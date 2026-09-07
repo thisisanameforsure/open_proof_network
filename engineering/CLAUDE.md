@@ -1,7 +1,7 @@
 # Open Proof Network — build instructions for Claude
 
 A distributed crowdsourced Lean 4 proof network for open mathematical problems, built spec-first.
-The protocol is decided (`docs/architecture_decisions_v_3_8.html`, decisions D-1 to D-36 with
+The protocol is decided (`docs/architecture_decisions_v_3_9.html`, decisions D-1 to D-36 with
 frozen identifiers); the implementation stack is not yet locked (conventions §1). Everything in
 `engineering/` is about how to build it, not what it is (`engineering/README.md`). The workflow
 below is in force from the first line of code.
@@ -55,7 +55,7 @@ The law of the project:
 - `engineering/specs/constitution.html` — non-negotiables (read first).
 - `engineering/specs/conventions.html` — how we build.
 - `engineering/specs/index.html` — feature build order and status.
-- `docs/architecture_decisions_v_3_8.html` — the protocol: every decision with its rationale and
+- `docs/architecture_decisions_v_3_9.html` — the protocol: every decision with its rationale and
   overturning condition, the stages, the glossary. Cite decisions by D-number.
 
 ## Current state (2026-09-07)
@@ -65,7 +65,7 @@ The law of the project:
 - **Stack locked 2026-09-07** (conventions §1): Python 3.13 + uv, pytest/ruff/mypy, jsonschema;
   gate on GitHub-hosted runners, api + MCP on Lambda, precheck as an Actions job in a scratch
   repo, site on S3/CloudFront — "boxless" at Stage 0. Two mandatory test tiers (§2).
-- Decisions doc at v3.8: the network is two repositories (D-35). This repo is `network`; the
+- Decisions doc at v3.9: the network is two repositories (D-35). This repo is `network`; the
   graph repo `../open_proof_network_graph` exists as an empty initial commit.
 - Stage 0 roadmap F00–F10 in `engineering/specs/index.html`. Current feature: F00 (gate walking
   skeleton), spec drafted, no task started.
