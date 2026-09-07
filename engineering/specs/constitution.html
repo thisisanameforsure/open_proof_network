@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open Proof Network — Constitution</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="index.html">specs</a> / constitution</nav>
+<h1>Constitution</h1>
+<p class="subtitle">Non-negotiables. Read first, every build session, before any spec or code.
+If this page and a feature spec conflict, this page wins. The engineering rules (C1–C7) are
+stable and apply to any project; the security rules (C8–C9) are derived from the stack lock of
+2026-09-07 (conventions §1) and the protocol's own boundaries. What the network <em>is</em> is not
+decided here — see C10.</p>
+
+<h2>Engineering</h2>
+<div class="rule"><strong>C1 — Verification is evidence, not assertion.</strong> A task is done
+only when its named verification command has run, its output is captured to
+<code>engineering/evidence/FXX/</code>, and it passes — a screenshot or recording for visual work. No manual
+"looks good" gates.</div>
+<div class="rule"><strong>C2 — Vertical slices, test-gated.</strong> Build a thin working thread
+through all layers before thickening any one of them; tests hold the line between stages. Every
+acceptance criterion in a spec names the test case that proves it — a criterion without a test is
+a bug in the spec.</div>
+<div class="rule"><strong>C3 — Work from specs.</strong> Code implements the current feature's
+spec (<code>engineering/specs/features/FXX.html</code>); the build order and status live in
+<code>engineering/specs/index.html</code>. Deviations get logged in the spec, not smuggled into code.</div>
+<div class="rule"><strong>C4 — Scope discipline.</strong> Build exactly what the current task
+names — no drive-by refactors outside its files, no unrequested features. Drive-by changes are
+how a codebase rots.</div>
+<div class="rule"><strong>C5 — Dependencies are a liability.</strong> Prefer the platform and
+standard library first; every added package is a supply-chain and audit cost that must be
+justified in the spec, pinned, and locked.</div>
+<div class="rule"><strong>C6 — Config over constants.</strong> Anything plausibly
+environment- or user-specific lives in config with a documented default, never a magic constant
+buried in code.</div>
+<div class="rule"><strong>C7 — Fail safe.</strong> On error or ambiguity, degrade gracefully and
+visibly — never fail silently, never corrupt data, never leave the user worse off than doing
+nothing. Errors are logged; the failure mode is the boring one.</div>
+
+<h2>Security</h2>
+<div class="rule"><strong>C8 — Secrets live behind one door.</strong> The complete inventory, each
+with its single home:
+<ol>
+  <li><strong>Gate signing key</strong> (ed25519): an Actions secret on the graph repo, nowhere
+    else; its public key is committed to the graph. Signs authoritative attestations (D-5) in the
+    post-merge job.</li>
+  <li><strong>Precheck signing key</strong> (ed25519): an Actions secret on the precheck scratch
+    repo, nowhere else; its public key is committed to the graph. Signs precheck attestations
+    (D-28).</li>
+  <li><strong>GitHub App private key</strong> and the <strong>api token-signing secret</strong>:
+    AWS Systems Manager Parameter Store (SecureString), read by the api function at startup.</li>
+  <li><strong>Deploy credentials:</strong> none stored. CI assumes an AWS role via OIDC; the role
+    ARN is config, not a secret.</li>
+  <li><strong>Founder bootstrap AWS credentials:</strong> the git-ignored <code>.env</code> on the
+    founder's machine only — never in GitHub, never in any deployed environment.</li>
+</ol>
+Three doors, then: the local <code>.env</code>, Parameter Store, and Actions secrets for signing
+keys alone. Code reads every secret through the one config module named in conventions §1; no
+other module touches the environment. Secrets never appear in client bundles, logs, git history,
+generated site pages, or attestations. The authoritative gate's build step is secretless by
+construction (D-4 step 3): the job that runs it is granted no secret and no write permission; only
+the separate post-merge job holds the signing key.</div>
+<div class="rule"><strong>C9 — Data handling &amp; trust boundaries.</strong> Two kinds of store,
+never confused.
+<p><strong>Evidentiary</strong> — lives only in the graph repo and only changes through a merge
+the gate has checked: nodes and <code>defs/</code> (D-3), attestations (D-5, D-34), attempts
+(D-13), annexes (D-31), schemas (D-34), <code>frontier.json</code> and <code>info.json</code>
+(D-25, D-35). Append-only or versioned; nothing in this repo may mutate one in place, write one
+directly, or hold a copy that could be mistaken for the original.</p>
+<p><strong>Operational</strong> — rebuildable from the graph without changing any verdict
+(D-35): the api's tables of hashed tokens, claims, precheck jobs and rate-limit counters; precheck
+job workspaces, deleted when the job ends; the rendered site bucket. Losing any of these is an
+outage, never a dispute.</p>
+<p><strong>Never:</strong> log a token, a signing key, or a raw submission above DEBUG; serve
+annex, postmortem or any contributor free text to an agent or a page without the untrusted-data
+demarcation (D-28, D-31); run a contributor's Lean outside the sandbox the gate uses (D-4 step 3 —
+elaboration executes arbitrary code); let the api, the MCP server or the site become a second
+source of truth.</p>
+<p><strong>Personal data:</strong> the site's CDN access logs contain visitor IP addresses; kept
+ninety days, used for aggregate counts only, never joined to ledger identities. Contributor
+identity is whatever the token holder asserted (D-19, D-22); the network stores no email or
+credential for it at Stage 0.</p></div>
+
+<h2>Product</h2>
+<div class="rule"><strong>C10 — What this is, and what it refuses to be, is decided elsewhere.</strong>
+The architecture decisions (<code>docs/architecture_decisions_v_3_8.html</code>) define the
+network: its promises, anti-goals, roles, and stages, each decision with a rationale and an
+overturning condition. Build specs cite them by D-number and never restate or override one. A spec
+that cannot follow a decision logs the deviation as a proposed overturn; the decision changes only
+through that document's own process. Product questions this constitution does not answer are
+answered there.</div>
+
+<footer>Open Proof Network · constitution v1 · 2026-09-07 · C8–C9 filled on stack lock; product
+section defers to <code>docs/architecture_decisions_v_3_8.html</code></footer>
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open Proof Network — Conventions</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="index.html">specs</a> / conventions</nav>
+<h1>Conventions</h1>
+<p class="subtitle">How we build: architecture, testing, verification, security, git protocol,
+spec format. Stable rules of the road; feature specs assume these and only state deviations.
+Stack locked 2026-09-07 (§1); the decisions behind it are recorded in §1 and §2 so a later
+session can overturn one with evidence rather than re-derive it.</p>
+
+<h2>1. Architecture</h2>
+<ul>
+  <li><strong>Two repositories (D-35).</strong> This repo is <code>network</code>: it has no
+    authority of its own and is rebuildable from the graph. The graph repo is
+    <code>../open_proof_network_graph</code>, a sibling directory whose history is mathematics
+    only; build work touches it solely for the files D-35 places there
+    (<code>.github/workflows/gate.yml</code>, <code>schemas/</code>, seeded targets and nodes),
+    named in a task's Files column with the <code>../open_proof_network_graph/</code> prefix. A
+    gate change reaches a graph only as a diff to its <code>gate-spec.json</code> (D-35).</li>
+  <li><strong>Repo layout (decided by D-35):</strong> <code>gate/</code> — the checks, hazard
+    checkers, <code>pregate.sh</code>, <code>reproduce.sh</code>, devcontainer, olean-cache
+    pipeline · <code>api/</code> — HTTP endpoints, precheck runner, MCP adapter (D-28) ·
+    <code>site/</code> — static generator (D-36) · <code>AGENTS.md</code> — the one context
+    file for agents building all three. Module owners within each are named on stack lock.</li>
+  <li><strong>Stack (locked 2026-09-07).</strong> One language across all three components:
+    <strong>Python 3.13</strong>, pinned in <code>.python-version</code>, managed by
+    <strong>uv</strong> with a committed <code>uv.lock</code>; one <code>pyproject.toml</code> at
+    the root. Lint and format: <strong>ruff</strong>. Types: <strong>mypy --strict</strong>. Tests:
+    <strong>pytest</strong> (§2). Runtime dependency: <strong>jsonschema</strong>, because the
+    protocol's schemas are JSON Schema 2020-12 files that other tools must read (D-34) and a
+    hand-written validator is a bug farm. These four packages are the only ones justified here;
+    any other needs its own C5 justification in a feature spec. Lean side: the toolchain is pinned
+    per graph in <code>gate-spec.json</code> (D-4 step 1, D-7); this repo carries a
+    <code>lean-toolchain</code> for its own Lake package of hazard checkers under
+    <code>gate/lean/</code>, installed via elan. The step-3 sandbox is a container image built
+    from <code>gate/Dockerfile</code> with a digest-pinned base; the same image serves the
+    authoritative gate, precheck and <code>reproduce.sh</code> (D-4: three invocations, one
+    codebase). <em>Why one language:</em> split stacks double the audit surface C5 exists to
+    shrink; Python has an official MCP SDK; it is what the founder reads. <em>Why Python
+    3.13:</em> current stable at lock time.</li>
+  <li><strong>Python packages live inside the D-35 directories</strong> as
+    <code>gate/opn_gate/</code>, <code>api/opn_api/</code>, <code>site/opn_site/</code>. The
+    prefix exists because a top-level package named <code>site</code> would shadow Python's own
+    <code>site</code> module. Tests sit beside their package: <code>gate/tests/</code>,
+    <code>api/tests/</code>, <code>site/tests/</code>. Fixture graphs under
+    <code>gate/tests/fixtures/graphs/&lt;name&gt;/</code>.</li>
+  <li><strong>Where things run (decided 2026-09-07; "boxless" at Stage 0).</strong>
+    <ul>
+      <li>The <strong>authoritative gate</strong> runs on GitHub-hosted runners from the graph
+        repo's <code>gate.yml</code> (D-35). Never on a self-hosted runner: GitHub's own guidance
+        forbids self-hosted runners for public repositories because any pull request can execute
+        code on them, and D-24 names that liability. Step 3's isolation is a container the
+        workflow starts with no network, no secrets, non-root, and the cpu/memory/wall-clock caps
+        the graph's <code>gate-spec.json</code> declares (C6).</li>
+      <li>The <strong>api and MCP adapter</strong> run as an AWS Lambda function behind API
+        Gateway; tokens, claims, precheck jobs and rate-limit counters live in DynamoDB. All of it
+        is operational state (D-35, C9). The MCP server holds no state (D-28), so a stateless
+        function is the honest shape for it.</li>
+      <li><strong>Precheck</strong> (<code>POST /precheck</code>, D-28) runs as a GitHub Actions
+        job in a scratch repo (<code>open_proof_network_precheck</code>) dispatched by the api
+        through a GitHub App: the same <code>gate.yml</code> steps minus step 9, on GitHub's
+        throwaway VM, which is the sandbox. The graph repo's history stays mathematics only.
+        Verdicts take minutes, not seconds; that is the accepted Stage 0 cost. Precheck sits
+        behind one seam so it can move to a warm-cache machine with evidence from the invited
+        run, without the api changing.</li>
+      <li>The <strong>site</strong> (D-36) is rendered by the graph repo's post-merge workflow
+        into an S3 bucket served by CloudFront on a custom domain; CDN logs are the analytics
+        (C9). No server-side code, no database, ever (D-36).</li>
+      <li><strong>Deploys</strong> of the api and site happen from CI via OIDC role assumption;
+        no long-lived cloud key exists anywhere (C8).</li>
+      <li>Both repos, and the precheck scratch repo, live under the founder's GitHub account at
+        Stage 0.</li>
+    </ul></li>
+  <li><strong>Module owners.</strong> Every module is owned by the founder until Stage 1 roles
+    exist (D-22); the founder is the gate's named owner (D-4) and the MCP server's (D-28).</li>
+  <li><strong>The one config module</strong> is <code>opn_gate.config</code> for the gate and
+    <code>opn_api.config</code> for the api; each reads environment and secrets (C8) in one place
+    with documented defaults (C6). Nothing else reads <code>os.environ</code>.</li>
+  <li><strong>Source of truth is the spec site</strong> under <code>engineering/specs/</code>; runtime code
+    implements it. Keep responsibilities in named modules so each spec can point at the files it
+    touches.</li>
+  <li><strong>One seam per external boundary.</strong> Every call out to an external service goes
+    through a single module so it can be faked in tests and swapped without touching callers. The
+    seams, by name: <code>Toolchain</code> (elan, lake, lean4checker), <code>GitHost</code> (GitHub
+    API: PRs, dispatch, checks), <code>Store</code> (DynamoDB), <code>ObjectStore</code> (S3),
+    <code>Signer</code> (ssh-keygen sign/verify), <code>Clock</code>.</li>
+</ul>
+
+<h2>2. Testing</h2>
+<ul>
+  <li><strong>Test runner: pytest.</strong> Two tiers, <strong>both mandatory</strong>:
+    <ul>
+      <li><code>make verify</code> — fast, deterministic, offline: <code>ruff check</code>,
+        <code>ruff format --check</code>, <code>mypy --strict</code>, and
+        <code>pytest -m "not lean and not docker and not network"</code>. This is the pre-commit
+        hook (§6), so it must stay under a minute on a laptop with no toolchain installed.</li>
+      <li><code>make verify-lean</code> — the same gate code against the <strong>real</strong>
+        pinned Lean toolchain and the real step-3 container on the fixture graphs
+        (<code>pytest -m "lean or docker"</code>). It is the named verification command for every
+        task that touches a Lean-facing step, it runs in this repo's CI on every push, and a
+        Lean-facing task is not done until both tiers pass (C1).</li>
+    </ul>
+    <em>Why two tiers rather than one:</em> a hook that takes minutes gets bypassed, and a suite
+    that needs elan fails on any machine without it; production fidelity comes from the second
+    tier and from evidence, not from the hook.</li>
+  <li><strong>No network in unit tests.</strong> Every external service sits behind a seam (§1)
+    with a fake; unit tests use the fake. The fake <code>Toolchain</code> returns structured
+    step results; it never imitates Lean's stdout, because a fake that mimics Lean drifts
+    silently and the real tier is what catches drift.</li>
+  <li><strong>Every gate rejection is a named test.</strong> Each step of D-4 that a feature
+    implements ships with an adversarial fixture diff expected to fail at exactly that step
+    (touches <code>Statement.lean</code>, touches another node, touches <code>defs/</code>,
+    edits <code>META.yaml</code>, contains <code>sorry</code>, adds an axiom, uses
+    <code>native_decide</code>, ships a divergent <code>lake-manifest.json</code>, compiles but
+    fails kernel replay, …) and a test that the JSON verdict names that step first with a
+    structured diagnostic (D-34).</li>
+  <li><strong>Markers:</strong> <code>lean</code> (needs the toolchain), <code>docker</code>
+    (needs the sandbox image), <code>network</code> (hits a real service). Unmarked tests are the
+    fast tier.</li>
+  <li><strong>Gate and site tests run against fixture graphs kept in this repo</strong> — small
+    directories in the D-35 <code>graph/</code> layout — never against the live graph repo.</li>
+  <li><strong>Every acceptance criterion in a spec names its test case.</strong> A criterion
+    without a test is a bug in the spec.</li>
+  <li><strong>Integration tests that hit real services</strong> are marked/isolated and run as
+    part of feature verification, not in the default fast run.</li>
+</ul>
+
+<h2>3. Verification</h2>
+<ul>
+  <li>Each task in a feature's task list names <strong>one verification command</strong>. The task
+    is done when the command's captured output (saved to <code>engineering/evidence/FXX/task-n.txt</code>)
+    shows pass — C1.</li>
+  <li>Visual work additionally requires a screenshot/recording in <code>engineering/evidence/FXX/</code>.</li>
+  <li>A feature is done when all task verifications pass and the full suite passes.</li>
+</ul>
+
+<h2>4. Security</h2>
+<ul>
+  <li><strong>No secrets in code, config, or logs.</strong> The inventory and its three doors —
+    the git-ignored <code>.env</code> locally, AWS Systems Manager Parameter Store for the api,
+    GitHub Actions secrets for the two signing keys alone — are C8; code reads them through the
+    one config module named in §1 only.</li>
+  <li><strong>External input is untrusted.</strong> Contributor submissions, informal annexes, and
+    data from any external service are validated at the boundary before use; they are never
+    interpolated into a query, command, or template unsanitized.</li>
+  <li><strong>New dependencies</strong> require a named justification in the spec, a pinned
+    version, and a locked install.</li>
+</ul>
+
+<h2>5. Errors, logging, and degradation</h2>
+<ul>
+  <li>Exceptions are caught at boundaries, logged with enough context to diagnose, and degrade per
+    C7 (fail safe) — never a silent swallow, never a crash that loses work.</li>
+  <li><strong>Logs carry no secrets and no sensitive data above DEBUG.</strong> Records the
+    protocol intentionally keeps — attestations, ledger entries, attempt records — are stores in
+    their own right (C9), distinct from application logs.</li>
+</ul>
+
+<h2>6. Git &amp; session protocol</h2>
+<ul>
+  <li><strong>Commit per verified task</strong>, message = <code>F01-T2: short description</code>;
+    the evidence file is committed with it. Trunk-based on <code>main</code>.</li>
+  <li><strong>Task ledger:</strong> each spec's Status block carries a <strong>Tasks:</strong> line
+    (e.g. <code>T1 &#10003; 2026-09-07 &middot; T2&ndash;T5 todo</code>) — the single explicit
+    record of task state, updated in the same commit as the task. Any commit that changes task
+    state also updates the feature's Status cell in <code>index.html</code>.</li>
+  <li><strong>This protocol governs the <code>network</code> repo.</strong> Specs, evidence and the
+    task ledger live here only. When a task also commits to the graph repo, that commit carries
+    the same <code>FXX-Tn:</code> message so the two histories cross-reference, and its evidence
+    is captured here. How contributors submit to the graph is the protocol's business (D-3,
+    D-4, D-35), not this section's.</li>
+  <li><strong>Verification entrypoint:</strong> <code>make verify</code> runs the full suite — the
+    regression gate behind each task's own named command. It also runs as the pre-commit hook
+    (<code>.githooks/pre-commit</code>; enable once per clone with
+    <code>git config core.hooksPath .githooks</code>).</li>
+  <li><strong>Session start:</strong> read the constitution, the current feature spec, and the
+    task ledger; state what this session will do. <strong>Session end:</strong> verifications
+    captured, work committed, spec status updated — the docs stay current or the session isn't
+    done. <code>/session-start</code> runs the start ritual.</li>
+  <li><strong>Feature complete:</strong> tag the commit <code>FXX-done</code>, update the Status
+    column in <code>index.html</code>, prune the <code>## Log</code> in <code>engineering/CLAUDE.md</code>
+    to lessons still relevant.</li>
+</ul>
+
+<h2>7. Spec format (per feature)</h2>
+<ul>
+  <li><strong>Sections:</strong> Summary &middot; User stories &middot; Scope (with explicit
+    non-goals) &middot; Requirements (<strong>EARS notation</strong>, stable IDs
+    <code>F01-R7</code>) &middot; Acceptance criteria (<strong>Given/When/Then</strong>, each
+    naming its test case) &middot; Budgets/limits (where relevant) &middot; Security &amp; privacy
+    notes &middot; Dependencies &middot; Open questions &middot; Status block (incl. the
+    <strong>Tasks:</strong> ledger line).</li>
+  <li><strong>Tasks:</strong> dependency-ordered; each task lists the files it touches, its deps,
+    and its one verification command.</li>
+  <li>Specs are HTML on this site; one file per feature,
+    <code>features/F01.html</code>. Copy <code>features/F00-template.html</code> to start a new
+    one. Cite architecture decisions by their frozen identifiers (<code>D-4</code>, <code>D-28</code>)
+    rather than restating them.</li>
+</ul>
+
+<footer>Open Proof Network · conventions v1 · 2026-09-07 · stack locked; §1/§2 filled</footer>
+</body>
+</html>

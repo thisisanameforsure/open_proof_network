@@ -1,0 +1,35 @@
+/* Open Proof Network spec site — shared style */
+:root {
+  --ink: #1a1a1e; --muted: #6b6b76; --accent: #2f6f4f; --warn: #a5432a;
+  --bg: #fbfaf7; --card: #ffffff; --line: #e4e1da; --code: #f2f0ea;
+}
+* { box-sizing: border-box; }
+body {
+  font: 16px/1.6 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  color: var(--ink); background: var(--bg);
+  max-width: 880px; margin: 0 auto; padding: 2.5rem 1.5rem 6rem;
+}
+h1 { font-size: 1.7rem; margin: 0 0 .3rem; }
+h2 { font-size: 1.25rem; margin-top: 2.2rem; border-bottom: 1px solid var(--line); padding-bottom: .3rem; }
+h3 { font-size: 1.05rem; margin-top: 1.6rem; }
+.subtitle { color: var(--muted); margin-bottom: 2rem; }
+nav.crumbs { font-size: .85rem; margin-bottom: 1.5rem; color: var(--muted); }
+nav.crumbs a { color: var(--accent); text-decoration: none; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .92rem; }
+th, td { border: 1px solid var(--line); padding: .5rem .7rem; text-align: left; vertical-align: top; }
+th { background: var(--code); }
+code, pre { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .88em; background: var(--code); border-radius: 4px; }
+code { padding: .1em .35em; }
+pre { padding: .8rem 1rem; overflow-x: auto; }
+.rule { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 6px; padding: .8rem 1rem; margin: .8rem 0; }
+.rule strong:first-child { color: var(--accent); }
+.warn { border-left-color: var(--warn); }
+.warn strong:first-child { color: var(--warn); }
+.todo { border-left-color: var(--muted); background: var(--code); }
+.todo strong:first-child { color: var(--muted); }
+.tag { display: inline-block; font-size: .72rem; padding: .1em .55em; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); margin-right: .35rem; vertical-align: middle; }
+.tag.done { color: #fff; background: var(--accent); border-color: var(--accent); }
+.tag.wip { color: #fff; background: #b98a1f; border-color: #b98a1f; }
+.tag.blocked { color: var(--muted); background: var(--code); }
+.status-note { font-size: .85rem; color: var(--muted); }
+footer { margin-top: 4rem; font-size: .8rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 1rem; }

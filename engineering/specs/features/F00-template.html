@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FXX — Feature title</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / FXX</nav>
+<h1>FXX — Feature title</h1>
+<p class="subtitle">One-sentence description of what this feature does and why. Copy this file to
+<code>features/FXX.html</code>, fill every section, and add a row to <code>index.html</code>.</p>
+
+<h2>1. Summary</h2>
+<p>A paragraph: what this feature is, what it changes, and where it sits in the system. State what
+it explicitly does <em>not</em> do here in prose; the Scope section makes it precise. Cite the
+architecture decisions it implements by identifier (e.g. D-3, D-4).</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a &lt;user/role&gt;, I want &lt;capability&gt; so that &lt;outcome&gt;.</li>
+  <li>As a &lt;other role/consumer&gt;, &hellip;</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> the concrete things this feature builds.</p>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>Explicitly out of scope — and which later feature owns it, if any.</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<p class="status-note">EARS notation, stable IDs. EARS templates: <em>ubiquitous</em> "The system
+shall &hellip;" &middot; <em>event</em> "When &lt;trigger&gt;, the system shall &hellip;" &middot;
+<em>state</em> "While &lt;state&gt;, the system shall &hellip;" &middot; <em>unwanted</em> "If
+&lt;condition&gt;, then the system shall &hellip;".</p>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>FXX-R1</td><td>The system shall &hellip;</td></tr>
+  <tr><td>FXX-R2</td><td>When &lt;trigger&gt;, the system shall &hellip;</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<p class="status-note">Given/When/Then. Each row names the test case that proves it (conventions
+§2, §7).</p>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>FXX-AC1</td><td>Given &lt;context&gt;, when &lt;action&gt;, then &lt;observable
+    outcome&gt;.</td><td><code>&lt;path::test_name&gt;</code></td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li>Any latency, size, rate, or resource limits this feature must respect (delete if none).</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li>Trust boundaries, what data is touched, what leaves the machine, how secrets are handled
+    (constitution C8/C9).</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>FYY</strong> (required/soft): what this feature needs from it.</li>
+  <li><strong>Packages:</strong> any new dependency, with its C5 justification, pinned + locked.</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>FXX-Q1</td><td>A decision made under uncertainty, and the alternative, so it can be
+    reviewed rather than silently assumed.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> planned · <strong>Tasks:</strong> T1&ndash;Tn todo</div>
+
+<h2>Tasks</h2>
+<p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its
+one verification command (conventions §3, §6).</p>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>FXX-T1</td><td>What this task delivers.</td>
+    <td><code>path/to/file</code>, <code>path/to/test</code></td>
+    <td>&mdash;</td><td><code>&lt;verification command&gt;</code></td></tr>
+  <tr><td>FXX-T2</td><td>&hellip;</td><td><code>&hellip;</code></td><td>T1</td>
+    <td><code>&hellip;</code></td></tr>
+</table>
+
+<footer>Open Proof Network · FXX spec v0 (template) · TODO: date</footer>
+</body>
+</html>

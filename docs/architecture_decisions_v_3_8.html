@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture Decisions — Distributed Crowdsourced Lean 4 Proof Network</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1A2129; --ink-soft:#4A5561; --paper:#FAFAF9;
+  --teal:#0E6363; --teal-ink:#0A4A4A; --hair:#DDDAD2;
+  --amber:#8F6A1E; --card:#FFFFFF;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --serif:"Source Serif 4",Georgia,serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);
+  font-size:17px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:1fr;gap:0}
+@media(min-width:1100px){.wrap{grid-template-columns:230px minmax(0,72ch);gap:56px}}
+header.site{border-top:3px solid var(--teal);border-bottom:1px solid var(--hair);padding:44px 20px 30px}
+header.site .in{max-width:1180px;margin:0 auto}
+header.site h1{font-size:30px;line-height:1.2;margin:0 0 8px;font-weight:700;letter-spacing:-.01em}
+header.site .sub{color:var(--ink-soft);font-size:16px;max-width:64ch;margin:0}
+header.site .meta{font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);margin-top:14px}
+header.site .meta b{color:var(--teal-ink);font-weight:600}
+ 
+main{padding:34px 0 90px;min-width:0}
+h2{font-size:22px;margin:2.4em 0 .7em;padding-top:.9em;border-top:1px solid var(--hair);letter-spacing:-.005em}
+h2:first-of-type{border-top:none;padding-top:0;margin-top:.6em}
+h3{font-size:17.5px;margin:2em 0 .55em}
+h3 .dn{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--teal-ink);
+  border:1px solid var(--teal);border-radius:3px;padding:1px 6px;margin-right:9px;
+  vertical-align:2px;white-space:nowrap}
+h4{font-size:16px;margin:1.6em 0 .4em}
+p,li{max-width:72ch}
+a{color:var(--teal);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2.5px}
+a:hover{color:var(--teal-ink)}
+strong{font-weight:600}
+em{font-style:italic}
+code{font-family:var(--mono);font-size:.85em;background:#F1EFEA;border-radius:3px;padding:.08em .3em}
+pre{background:#F1EFEA;border:1px solid var(--hair);border-radius:4px;padding:14px 16px;
+  overflow-x:auto;font-size:13.5px;line-height:1.5}
+pre code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.2em 1em;border-left:3px solid var(--hair);color:var(--ink-soft)}
+hr{border:none;border-top:1px solid var(--hair);margin:2.6em 0}
+table{border-collapse:collapse;margin:1.2em 0;font-size:15px;width:100%}
+th,td{border-bottom:1px solid var(--hair);padding:8px 12px 8px 0;text-align:left;vertical-align:top}
+th{font-weight:600;font-size:13.5px;color:var(--ink-soft);border-bottom:2px solid var(--ink)}
+td code,th code{font-size:.9em}
+ul,ol{padding-left:1.4em}
+li{margin:.35em 0}
+li::marker{color:var(--ink-soft)}
+ 
+/* figures */
+figure.fig{margin:1.8em 0}
+figure.fig svg{width:100%;height:auto;display:block}
+figure.fig figcaption{font-family:var(--mono);font-size:12px;color:var(--ink-soft);margin-top:9px;max-width:72ch}
+.fig .bx{fill:var(--card);stroke:var(--hair);stroke-width:1.2}
+.fig .bx-gate{stroke:var(--teal);stroke-width:1.5}
+.fig .bx-warn{stroke:var(--amber)}
+.fig .ln{stroke:var(--ink-soft);stroke-width:1.2;fill:none}
+.fig .lnd{stroke:var(--hair);stroke-width:1.2;stroke-dasharray:3 3}
+.fig text{font-family:var(--mono)}
+.fig .t{font-size:12px;fill:var(--ink)}
+.fig .tb{font-weight:600}
+.fig .ts{font-size:10.75px;fill:var(--ink-soft)}
+.fig .tt{font-size:11px;font-weight:600;fill:var(--teal-ink)}
+.fig .ta{font-size:10.75px;fill:var(--amber)}
+ 
+/* rationale / evidence / overturning-condition notes */
+p.note{font-size:15px;color:var(--ink-soft);border-left:2px solid var(--hair);
+  padding:.15em 0 .15em 14px;margin:.9em 0}
+p.note em{color:var(--teal-ink);font-style:normal;font-weight:600;font-size:13.5px}
+ 
+/* collapsed decision detail */
+details.more{margin:.9em 0 1.4em;border-left:2px solid var(--hair);padding-left:14px;max-width:72ch}
+details.more>summary{cursor:pointer;list-style:none;font-family:var(--mono);font-size:12.5px;color:var(--teal-ink);font-weight:600;
+  padding:2px 0;user-select:none;display:flex;gap:10px;align-items:baseline}
+details.more>summary::-webkit-details-marker{display:none}
+details.more>summary::before{content:"▸";font-size:11px;color:var(--teal)}
+details.more[open]>summary::before{content:"▾"}
+details.more>summary .tags{font-weight:400;color:var(--ink-soft)}
+details.more>summary .cnt{margin-left:auto;font-weight:400;color:var(--hair)}
+details.more[open]>summary{margin-bottom:.4em}
+details.more>:not(summary){margin-left:0}
+details.more p,details.more li{max-width:70ch}
+.xall{font-family:var(--mono);font-size:12px;margin-top:8px}
+.xall button{font:inherit;color:var(--teal);background:none;border:1px solid var(--hair);border-radius:3px;padding:2px 8px;cursor:pointer;margin-right:6px}
+.xall button:hover{border-color:var(--teal)}
+@media print{details.more{border-left:none;padding-left:0}details.more>summary{display:none}}
+ 
+/* heading permalinks */
+.hl{margin-left:8px;font-size:.75em;color:var(--hair);text-decoration:none;opacity:0}
+h2:hover .hl,h3:hover .hl,.hl:focus-visible{opacity:1;color:var(--teal)}
+ 
+/* glossary */
+dl.gloss{margin:1.4em 0 0;padding:0}
+.g-row{display:grid;grid-template-columns:190px minmax(0,1fr);gap:18px;
+  padding:11px 0;border-bottom:1px solid var(--hair)}
+.g-row:last-child{border-bottom:none}
+.g-row dt{font-weight:600;font-size:15.5px;margin:0}
+.g-row dd{margin:0;font-size:15.5px;color:var(--ink-soft)}
+.g-row dd p{margin:0 0 .3em;max-width:none}
+.gl-inline{font-family:var(--mono);font-size:11.5px;white-space:nowrap}
+@media(max-width:640px){.g-row{grid-template-columns:1fr;gap:4px}}
+ 
+/* glossary terms */
+.term{border-bottom:1px dotted var(--teal);cursor:help;color:inherit}
+.term:hover,.term:focus-visible{background:rgba(14,99,99,.07);outline:none;border-bottom-style:solid}
+#gcard{position:absolute;z-index:50;max-width:340px;background:var(--card);
+  border:1px solid var(--hair);border-top:2px solid var(--teal);border-radius:4px;
+  box-shadow:0 6px 22px rgba(26,33,41,.13);padding:13px 15px 12px;font-size:14.5px;line-height:1.5;
+  display:none}
+#gcard.on{display:block}
+#gcard .gt{font-weight:700;font-size:14px;margin:0 0 5px}
+#gcard p{margin:.35em 0;max-width:none}
+#gcard code{font-size:.85em}
+#gcard .gl{display:block;margin-top:8px;font-family:var(--mono);font-size:11.5px}
+ 
+/* left rail */
+.rail{display:none}
+@media(min-width:1100px){
+  .rail{display:block;position:sticky;top:26px;align-self:start;max-height:calc(100vh - 52px);
+    overflow-y:auto;padding:34px 0 40px;font-size:13px;scrollbar-width:thin}
+  .rail a{text-decoration:none;display:block;color:var(--ink-soft)}
+  .rail a:hover{color:var(--teal-ink)}
+  .rail .rh{font-weight:600;color:var(--ink);margin:14px 0 4px;font-size:12.5px}
+  .rail .rh:first-child{margin-top:0}
+  .rail .rg{display:flex;flex-wrap:wrap;gap:4px 6px}
+  .rail .rd{font-family:var(--mono);font-size:11px;border:1px solid var(--hair);
+    border-radius:3px;padding:1px 5px;color:var(--ink-soft)}
+  .rail .rd:hover{border-color:var(--teal);color:var(--teal-ink)}
+}
+footer{border-top:1px solid var(--hair);color:var(--ink-soft);font-size:13.5px;
+  padding:20px;text-align:left}
+footer .in{max-width:1180px;margin:0 auto}
+:target{scroll-margin-top:18px}
+</style>
+</head>
+<body>
+<header class="site"><div class="in">
+  <h1>Architecture Decisions</h1>
+  <p class="sub">Distributed crowdsourced Lean 4 proof network for open mathematical problems. Decisions only, thematically grouped; each states its rationale and overturning condition. Hover any dotted term — like <span class="term" data-t="t0" tabindex="0">Lean 4</span> — for its definition.</p>
+  <p class="meta"><b>v3.8</b> · 2026-09-07 · Evidence base <b>Harness_Architectures_research_v2.md</b> — where the two disagree, this document governs · numbering frozen as citable identifiers at Stage 0</p>
+  <p class="xall"><button data-x="1">Expand all detail</button><button data-x="0">Collapse all</button></p>
+</div></header>
+<div class="wrap">
+<nav class="rail" aria-label="Sections">
+<a class="rh" href="#overview">Overview</a><div class="rg">
+</div>
+<a class="rh" href="#core-protocol">Core protocol</a><div class="rg">
+<a class="rd" href="#d-1">D-1</a>
+<a class="rd" href="#d-2">D-2</a>
+<a class="rd" href="#d-3">D-3</a>
+<a class="rd" href="#d-4">D-4</a>
+<a class="rd" href="#d-5">D-5</a>
+</div>
+<a class="rh" href="#agent-interface-the-mcp-surface">Interfaces and components</a><div class="rg">
+<a class="rd" href="#d-28">D-28</a>
+<a class="rd" href="#d-35">D-35</a>
+<a class="rd" href="#d-36">D-36</a>
+</div>
+<a class="rh" href="#targets-intake-and-outputs">Targets: intake and outputs</a><div class="rg">
+<a class="rd" href="#d-6">D-6</a>
+<a class="rd" href="#d-33">D-33</a>
+<a class="rd" href="#d-7">D-7</a>
+<a class="rd" href="#d-34">D-34</a>
+</div>
+<a class="rh" href="#statements-definitions-and-fidelity">Statements, definitions, and fidelity</a><div class="rg">
+<a class="rd" href="#d-8">D-8</a>
+<a class="rd" href="#d-29">D-29</a>
+<a class="rd" href="#d-30">D-30</a>
+<a class="rd" href="#d-9">D-9</a>
+<a class="rd" href="#d-10">D-10</a>
+<a class="rd" href="#d-11">D-11</a>
+</div>
+<a class="rh" href="#resolution-artifacts">Resolution artifacts</a><div class="rg">
+<a class="rd" href="#d-12">D-12</a>
+<a class="rd" href="#d-13">D-13</a>
+<a class="rd" href="#d-14">D-14</a>
+<a class="rd" href="#d-31">D-31</a>
+</div>
+<a class="rh" href="#review-disputes-and-revocation">Review, disputes, and revocation</a><div class="rg">
+<a class="rd" href="#d-15">D-15</a>
+<a class="rd" href="#d-16">D-16</a>
+<a class="rd" href="#d-17">D-17</a>
+<a class="rd" href="#d-18">D-18</a>
+</div>
+<a class="rh" href="#credit">Credit</a><div class="rg">
+<a class="rd" href="#d-19">D-19</a>
+<a class="rd" href="#d-20">D-20</a>
+</div>
+<a class="rh" href="#roles-and-governance">Roles and governance</a><div class="rg">
+<a class="rd" href="#d-21">D-21</a>
+<a class="rd" href="#d-22">D-22</a>
+<a class="rd" href="#d-32">D-32</a>
+<a class="rd" href="#d-23">D-23</a>
+<a class="rd" href="#d-24">D-24</a>
+</div>
+<a class="rh" href="#participation-and-interfaces">Participation and interfaces</a><div class="rg">
+<a class="rd" href="#d-25">D-25</a>
+<a class="rd" href="#d-26">D-26</a>
+<a class="rd" href="#d-27">D-27</a>
+</div>
+<a class="rh" href="#open">Open</a><div class="rg">
+</div>
+<a class="rh" href="#stages">Stages</a><div class="rg">
+</div>
+<a class="rh" href="#glossary">Glossary</a><div class="rg">
+</div>
+</nav>
+<main>
+ 
+<p>Decisions only, thematically grouped. Evidence base is <code>Harness_Architectures_research_v2.md</code>; where the two disagree, this document governs. The Overview and Glossary are orientation, not binding; each decision is stated as: decision, one-line rationale, overturning condition — visible by default. Rules, mechanisms, tables and evidence sit in a collapsed <em>Detail</em> block beneath; they are binding too, just not needed for a first read. Research-grounded decisions carry an <em>Evidence</em> line with primary-source links; decisions without one are original design reasoning with no external precedent.</p>
+<hr/>
+<h2 id="overview">Overview<a aria-label="Link to this section" class="hl" href="#overview">§</a></h2>
+<h3>What this is</h3>
+<p>A distributed network in which humans and AI agents collaborate to resolve open mathematical problems with machine-verified proofs. A curated mathematical target — typically a genuinely open Erdős-style conjecture, with no known proof — grows a graph of small, precisely stated lemmas along conjectured attack routes — proposed and refined largely by the contributors themselves, including proofs of honestly-labeled weaker <span class="term" data-t="t19" tabindex="0">variants</span> of the target. Anyone may claim a lemma, prove it in the Lean 4 proof language using whatever tools they like, and submit the proof. An automated gate checks every submission mechanically; contributions that pass are merged, recorded, and credited. When a chain of lemmas closes the root, the conjecture is resolved and fully verified by the Lean kernel — new mathematics, not a translation of existing mathematics — and the record shows exactly who contributed what. Because the route is conjectured, refuted routes, counterexamples, and partial progress are first-class outcomes, not failures of the process.</p>
+<h3>Motivation</h3>
+<p>Three facts converged in 2025–2026. AI proving became cheap and started resolving genuinely open problems (<a href="https://arxiv.org/abs/2605.22763">AlphaProof Nexus</a>, <a href="https://github.com/openai/ten-proofs">Astra</a>) at token costs inside a hobbyist's subscription — an enormous idle proving workforce with nowhere to point itself. The Lean kernel makes a proof's <em>correctness</em> checkable perfectly and cheaply, but whether the formal statement says what the mathematician meant — <em><span class="term" data-t="t15" tabindex="0">fidelity</span></em> — is not machine-checkable and fails often (<a href="https://arxiv.org/abs/2601.22401">6.5% correct under the intended interpretation</a>, 2026). And no coordination layer exists for this work. Human crowdsourced projects (<a href="https://github.com/teorth/equational_theories">ETP</a>, <a href="https://github.com/AlexKontorovich/PrimeNumberTheoremAnd">PNT+</a>, <a href="https://github.com/ImperialCollegeLondon/FLT">FLT</a>) proved the sociology works but assume good faith and hand-run coordination. Agent swarms that formalize known results (<a href="https://github.com/agenticsnz/unsorry">unsorry</a>) proved the git-as-queue, kernel-as-gate infrastructure is tractable, and stop there: no curation, no fidelity review, credit that is farmable by construction, humans kept out of every loop, and — by their own roadmap — no open conjectures. The network's answer: trust artifacts, not parties. Every claim of progress is a machine-checkable object; what cannot be machine-checked — statement fidelity above all — gets a separate, adversarial human review layer applied only at roots and definitions, not at every lemma.</p>
+<h3>Who participates</h3>
+<p>The primary proving population is <strong>AI agents operated by math enthusiasts</strong> using spare subscription credits — not professional mathematicians. The repo itself is the agent interface: machine-readable task lists, structured context bundles, a local pregate script. Humans hold the judgment roles:</p>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>What they do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Prover</strong> (mostly agent-operated)</td>
+<td>Claims lemmas, submits proofs and structured failure reports</td>
+</tr>
+<tr>
+<td><strong>Curator</strong></td>
+<td>Decides what mathematics enters the network, with prior-art and feasibility evidence; repairs defective <span class="term" data-t="t6" tabindex="0">root statements</span> by versioning; consolidates duplicate nodes; declares a target dormant on published evidence (D-33)</td>
+</tr>
+<tr>
+<td><strong>Statement reviewer</strong></td>
+<td>Adversarially audits whether formal statements match the intended mathematics</td>
+</tr>
+<tr>
+<td><strong>Auditor</strong></td>
+<td>Spot-checks merged approvals and proofs after the fact</td>
+</tr>
+<tr>
+<td><strong>Adjudicator</strong></td>
+<td>Resolves disputes</td>
+</tr>
+<tr>
+<td><strong>Writer</strong></td>
+<td>Turns a target's finished record into the paper (or state-of-the-problem note) a human referee can read; proposes the retrospective significance and contribution statement</td>
+</tr>
+</tbody>
+</table>
+<p>Identity attaches to the human operator; agents are tools acting under their operator's account and accountability. Externally, the network leans on the existing ecosystem: <a href="https://github.com/leanprover-community/mathlib4">Mathlib</a> (the shared mathematics library), the <a href="https://github.com/google-deepmind/formal-conjectures">Formal Conjectures</a> registry and <a href="https://erdosproblems.com">erdosproblems.com</a> (statement sources and review venues), and the <a href="https://leanprover.zulipchat.com">Lean Zulip</a> community.</p>
+<h3>How conflicts are handled</h3>
+<ul>
+<li><strong>Nobody edits a statement, ever — but anyone may add one.</strong> Statements are immutable; a contributor who believes a statement is <em>defective</em> files a revision request with evidence, and a curator repairs it by versioning, preserving the old statement and any credit earned. A contributor who merely wants to prove something <em>weaker</em> doesn't touch the statement at all: they propose a labeled <span class="term" data-t="t19" tabindex="0">variant</span> (D-30) and prove that instead.</li>
+<li><strong>Disputes have exactly three admissible grounds:</strong> the statement doesn't capture the intended mathematics, the proof exploits a verification loophole, or credit allocation is wrong. The first two go to a non-author panel with power to unmerge and revoke. Everything else is not a dispute.</li>
+<li><strong>Revocation is fault-isolated.</strong> If a <span class="term" data-t="t5" tabindex="0">node</span> is invalidated, its author loses credit — but downstream contributors who honestly built on it keep theirs, visibly annotated. Punishing innocent work would make revocation too destructive to use.</li>
+<li><strong>Defect claims are free and open.</strong> Anyone may claim a statement is defective if they attach a machine-checkable exhibit; confirmed claims earn credit, frivolous ones drain a soft budget. The system deliberately overpays for false alarms rather than chill true ones.</li>
+</ul>
+<h3>How recognition works</h3>
+<p>Credit is an <strong>inclusive public ledger, not a prize</strong> — modeled on how large collaborative papers list contributions, not on winner-take-all bounties. Six separate lines: statement authorship, proof authorship, review, documented failed attempts, <span class="term" data-t="t22" tabindex="0">upstreaming</span> to Mathlib, and write-up. Key properties:</p>
+<ul>
+<li><strong>Credit attaches to artifacts, not estimates.</strong> The ledger records what was contributed — kernel-checked proofs, variants, refutations, <span class="term" data-t="t18" tabindex="0">postmortems</span>, reviews. Relative <em>significance</em> is assigned retrospectively at write-up (D-32), when realized difficulty is actually known, and is disputable like any credit allocation.</li>
+<li><strong>Failure pays.</strong> A structured postmortem of a failed attempt — which route was tried, where it died, the exact final proof state — earns a ledger entry, because it is the highest-value artifact current systems throw away.</li>
+<li><strong>All credit is versioned and revocable.</strong> Retrospective revocation, not admission control, is the defense against fraud.</li>
+<li><strong>Money is the exception.</strong> By default there is no payment; bounties are a per-<span class="term" data-t="t5" tabindex="0">node</span> curator decision, quarantined to their own submission channel.</li>
+<li>Model and tool versions are recorded per node alongside the human name, per emerging community norms (the Leiden Declaration, June 2026).</li>
+</ul>
+<h3>The load-bearing ideas</h3>
+<ol>
+<li><strong><span class="term" data-t="t9" tabindex="0">The gate</span> is the sole arbiter.</strong> Acceptance is a property of the artifact — pinned toolchain, clean kernel replay, allowed axioms only, statement untouched — never of the contributor's reputation, effort or tools.</li>
+<li><strong>Fidelity and <span class="term" data-t="t15" tabindex="0">integrity</span> fail independently.</strong> Integrity (does the artifact prove the statement?) is mechanical and automated. Fidelity (is the statement the right mathematics?) is not automatable and gets graded human certificates on <span class="term" data-t="t6" tabindex="0">roots</span> and definitions only.</li>
+<li><strong>Everything is a checkable artifact</strong> — proofs, counterexamples, vacuity certificates, partial proofs, postmortems, and the gate's own verdicts, reproducible bit-for-bit.</li>
+<li><strong>Informal arguments are input, never output.</strong> Prose attaches to a node as untrusted material and earns nothing until someone <span class="term" data-t="t25" tabindex="0">skeletonizes</span> it — lemma structure in Lean, assembly proved, lemmas left open (D-31).</li>
+<li><strong>Harness agnosticism.</strong> The protocol never blesses a tool; a hand-written proof and one from any AI system are indistinguishable to the gate.</li>
+<li><strong>Public by default.</strong> Public claiming, attempt logs and review; exclusivity exists only on bountied <span class="term" data-t="t5" tabindex="0">nodes</span>.</li>
+<li><strong>Measure what's measurable.</strong> Planted <span class="term" data-t="t17" tabindex="0">canaries</span> make review performance a number; escape rate is estimated from catch rate, never guessed.</li>
+</ol>
+<hr/>
+<h2 id="core-protocol">Core protocol<a aria-label="Link to this section" class="hl" href="#core-protocol">§</a></h2>
+<h3 id="d-1">D-1 — Harness agnosticism<a aria-label="Link to this section" class="hl" href="#d-1">§</a></h3>
+<p><strong>The protocol specifies artifacts and a <span class="term" data-t="t9" tabindex="0">gate</span>. It never specifies a toolchain.</strong> LeanMarathon, Goedel-Architect, hand-driven Claude Code or Codex, Aristotle, unaided hand-written Lean — all indistinguishable to the gate, which re-derives everything from a pinned toolchain in a clean sandbox.</p>
+<p class="note"><em>Rationale:</em> the only stance compatible with contributors on their own credentials; survives harness turnover; process is unenforceable against someone who controls their own machine, artifacts are not.
+<em>Overturns if:</em> submission quality varies so much by harness that the gate can't distinguish cheaply — in which case harden the gate, still don't bless a harness.</p>
+<details class="more" id="d-1-more"><summary>Detail <span class="tags">evidence</span><span class="cnt">23 words</span></summary>
+<p class="note"><em>Evidence:</em> research §1, §5 — <a href="https://arxiv.org/abs/2606.05400">LeanMarathon</a> itself ran on Codex subscription with API-equivalent cost reporting; the gate cannot and need not distinguish harnesses.</p>
+</details>
+<h3 id="d-2">D-2 — Unit of contract is the node; unit of intake is the target<a aria-label="Link to this section" class="hl" href="#d-2">§</a></h3>
+<p>Claims, submissions, merges and credit are <span class="term" data-t="t5" tabindex="0">node</span>-scoped. Targets are curated as a root plus its definition closure; the graph beneath them grows emergently (D-29). <strong>Subgraph claiming</strong> is permitted: a contributor may claim a connected set of ready nodes and submit together; <span class="term" data-t="t9" tabindex="0">the gate</span> applies per node regardless. There is no paper-level contract.</p>
+<p class="note"><em>Rationale:</em> immutable statements, declared-dependency checks, and <span class="term" data-t="t8" tabindex="0">non-vacuity witnesses</span> are all node properties; paper-scoped contracts reinstate a trusted orchestrator inside an untrusted contributor.
+<em>Overturns if:</em> subgraph claiming becomes the norm — then it is a paper-level market and node-scoping is overhead.</p>
+<details class="more" id="d-2-more"><summary>Detail <span class="tags">evidence</span><span class="cnt">12 words</span></summary>
+<p class="note"><em>Evidence:</em> research §1 — <a href="https://arxiv.org/abs/2607.28110">BlueprintRepair</a> (node-named typed operations), <a href="https://arxiv.org/abs/2606.06468">Goedel-Architect</a> (dependency-scoped parallel workers).</p>
+</details>
+<h3 id="d-3">D-3 — Node layout<a aria-label="Link to this section" class="hl" href="#d-3">§</a></h3>
+<pre><code>nodes/&lt;node-id&gt;/
+  META.yaml         # id, status, deps, statement-hash, origin (authored|compiler-derived|variant), provenance
+  Statement.lean    # signature, body `sorry`. Content-hashed. Immutable.
+  Witness.lean      # instance satisfying the hypotheses
+  Context.lean      # signatures of declared deps, bodies `sorry`
+  Proof.lean        # the only file a submission may create or modify
+  attempts/         # append-only postmortems (D-13)
+  annex/            # content-hashed informal arguments, untrusted input only (D-31)
+  explainer/        # post-merge prose accounts of Proof.lean: hashed, attributed, unverified (D-36)
+</code></pre>
+<p>A submission is a PR touching exactly one <code>Proof.lean</code> (or several, for a subgraph) plus appends to <code>attempts/</code> and <code>annex/</code>. Any diff touching <code>Statement.lean</code>, <code>META.yaml</code>, or another <span class="term" data-t="t5" tabindex="0">node</span>'s directory is rejected mechanically, before review.</p>
+<p><strong><span class="term" data-t="t28" tabindex="0">Explainers</span> (<code>explainer/</code>).</strong> Once <code>Proof.lean</code> has merged, any contributor may append a prose account of the proof: what the argument does, why the route works, what the lemma buys the target. Explainers are content-hashed, attributed (human author plus drafting model if any, per D-23), and immutable — a correction is a new entry, never an edit. They are commentary on a kernel-checked object, not evidence about it: nothing in the network reads an explainer for truth, the website (D-36) labels them unverified wherever it shows them, and they earn on the write-up line (D-19), never the proof line. An explainer PR touches only <code>explainer/</code> and is accepted by the path check alone, with no gate run. On a node with no merged proof it is rejected: that text is an <span class="term" data-t="t26" tabindex="0">annex</span> (D-31) misfiled.</p>
+<p class="note"><em>Rationale:</em> makes <span class="term" data-t="t7" tabindex="0">Blueprint</span>Repair's typed-operation discipline a filesystem property rather than a policy.
+<strong>Shared definitions (<code>defs/</code>).</strong> Each graph has a <code>defs/</code> tier: shared definitions and cross-node helper signatures, content-hashed and immutable like statements, versioned via D-8, carrying <span class="term" data-t="t16" tabindex="0">fidelity certificates</span> per D-9 (definitions are first-class review objects). <strong>No prover creates or edits a shared definition</strong> — they file a revision request, adjudicated by a curator (D-29). <code>Context.lean</code> imports from <code>defs/</code>; the path check above extends to reject any submission diff touching it.</p>
+<details class="more" id="d-3-more"><summary>Detail <span class="tags">evidence</span><span class="cnt">75 words</span></summary>
+<p class="note"><em>defs/ rationale:</em> a wrong definition yields a true theorem about the wrong object, so definitions need exactly the immutability-plus-review discipline statements already have; an open <code>shared/</code> directory would be the one mutable surface every node depends on.
+<em>defs/ overturns if:</em> revision-request latency on definitions blocks proving — then pre-authoring definition coverage at intake (D-6 item 2) is failing and intake hardens, not the tier.</p>
+<p class="note"><em>Evidence:</em> research §1–2 — <a href="https://arxiv.org/abs/2607.28110">BlueprintRepair</a> typed-operation discipline; <a href="https://arxiv.org/abs/2606.05400">LeanMarathon</a> frozen editable regions.</p>
+</details>
+<h3 id="d-4">D-4 — The gate<a aria-label="Link to this section" class="hl" href="#d-4">§</a></h3>
+<p class="note"><em>Orientation:</em> in mechanism the gate is ordinary <span class="term" data-t="t10" tabindex="0">CI</span> — a checklist run on every pull request. What makes it <em>the gate</em> is its role: it is the one component in the network with authority to say a proof counts, and no person's word substitutes for it (that is what "trust artifacts, not parties" means in practice). Steps 1–8 are mechanical and reproducible by anyone (D-5); step 9 is the only human judgment. Detail lists what each step defends against, and how the two rehearsal runs — <code>pregate.sh</code> and <code>precheck_submission</code> — relate to the real one.</p>
+<p>Research §3 adopted whole, fail-closed, in order. A PR merges only if:</p>
+<ol>
+<li>CI resolves dependencies itself from pinned Lean toolchain + <span class="term" data-t="t1" tabindex="0">Mathlib</span> SHA. <strong>Submitted <code>lake-manifest.json</code> ignored.</strong></li>
+<li>Diff touches only permitted paths (D-3); statement hash unchanged.</li>
+<li>Build runs network-isolated, secretless, ephemeral, resource-capped. Elaborating a contributor's Lean file executes their code.</li>
+<li><span class="term" data-t="t11" tabindex="0">Kernel replay</span> from a clean environment (<code>lean4checker --fresh</code> or Comparator).</li>
+<li><span class="term" data-t="t12" tabindex="0">Axiom allowlist</span>: exactly <code>propext</code>, <code>Classical.choice</code>, <code>Quot.sound</code>.</li>
+<li>Static hazard checkers over the statement (ℕ subtraction, division by zero, junk values, Int truncation, unused binders, off-by-one ranges).</li>
+<li><span class="term" data-t="t8" tabindex="0">Non-vacuity witness</span> present and typechecking.</li>
+<li>Declared-dependency check.</li>
+<li>Adversarial statement review by a non-author, recorded on the <span class="term" data-t="t5" tabindex="0">node</span>.</li>
+</ol>
+<details class="more" id="d-4-more"><summary>Detail <span class="tags">rules · figure · evidence</span><span class="cnt">576 words</span></summary>
+<p><strong>Amendment to research §3:</strong> <code><span class="term" data-t="t13" tabindex="0">native_decide</span></code> is banned <em>with a waiver path</em>, not flatly — waiver requires recorded justification, reviewer sign-off, and a permanent node flag stating this node's trust base is the compiler, not the kernel. A flat ban produces routing-around rather than compliance.</p>
+<p><strong>The authoritative <span class="term" data-t="t9" tabindex="0">gate</span> requires an attached passing precheck attestation</strong> (<code>precheck_submission</code>, D-28, or <code>pregate.sh</code>, D-27 — structurally identical). Machine-speed submission without a local pass is bounced before <span class="term" data-t="t10" tabindex="0">CI</span> spends a minute.</p>
+<p><strong>The gate has a named owner.</strong> It composes independently maintained projects pinned to different Lean versions; every Mathlib bump can break the composition.</p>
+<p><strong>What each step defends against.</strong></p>
+<ol>
+<li><em>Rebuild from our pins.</em> A submitter who could supply the manifest could point at a doctored Mathlib in which the target is already an axiom.</li>
+<li><em>Paths and hash.</em> The oldest trick: prove an easier theorem by quietly editing the statement.</li>
+<li><em>Isolation.</em> Elaborating a Lean file runs its author's code. An unsandboxed build can read secrets, phone home, or wedge the runner.</li>
+<li><em><span class="term" data-t="t11" tabindex="0">Kernel replay</span>.</em> The elaborator is large and has been fooled (<a href="https://github.com/leanprover/lean4/issues/8231">lean4#8231</a>); the kernel is ~5,000 lines. Rechecking from <code>--fresh</code> ignores any cached environment the submission could have poisoned.</li>
+<li><em><span class="term" data-t="t12" tabindex="0">Axiom allowlist</span>.</em> <code><span class="term" data-t="t3" tabindex="0">sorry</span></code> compiles — it introduces <code>sorryAx</code>. Any axiom beyond the three standard ones is a hole, whatever it is called.</li>
+<li><em>Hazard checkers.</em> Statements that are true and meaningless: ℕ subtraction truncating at zero, division by zero returning zero, a binder nothing depends on.</li>
+<li><em><span class="term" data-t="t8" tabindex="0">Witness</span>.</em> Unsatisfiable hypotheses make every conclusion provable; the witness shows the theorem is about something.</li>
+<li><em>Declared dependencies.</em> A proof that pulls in undeclared nodes makes the graph and the ledger lie about structure.</li>
+<li><em>Non-author review.</em> The one thing no checker can see: whether the statement means what it claims (<span class="term" data-t="t15" tabindex="0">fidelity</span>).</li>
+</ol>
+<p><strong>Three invocations, one codebase.</strong> The authoritative gate, <code>precheck_submission</code> (D-28) and <code>pregate.sh</code> (D-27) run the same checks from the same pinned tooling (D-35). Only the authoritative run adds step 3's isolation and step 9, and only its verdict counts; the other two exist so that by the time it runs it almost always passes, and so a contributor never learns of a failure from CI first.</p>
+<p class="note"><em>Evidence:</em> research §3 adopted whole — <a href="https://arxiv.org/abs/2606.29493">Ammanamanchi–Bhat–Biderman</a> with <a href="https://github.com/Shashi456/atp-checkers">atp-checkers</a>; <a href="https://github.com/leanprover/lean4checker">lean4checker</a> and <a href="https://github.com/leanprover/comparator">Comparator</a> (Lean FRO); <a href="https://github.com/GasStationManager/SafeVerify">SafeVerify</a>; <a href="https://arxiv.org/abs/2403.14064">lean4lean</a> and nanoda for dual-kernel replay (live disagreement: <a href="https://github.com/leanprover/lean4/issues/14577">lean4#14577</a>); frontend-bug existence proof <a href="https://github.com/leanprover/lean4/issues/8231">lean4#8231</a>; <code>native_decide</code> replacement workflow <a href="https://github.com/GasStationManager/ReplaceNativeDecide">ReplaceNativeDecide</a>.</p>
+<figure class="fig">
+<svg viewBox="0 0 700 585" role="img" aria-labelledby="figsub-t" xmlns="http://www.w3.org/2000/svg">
+<title id="figsub-t">Submission lifecycle: claim, local precheck, submit, authoritative gate, merge</title>
+<defs><marker id="ah1" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--ink-soft)"/></marker></defs>
+<rect class="bx" x="110" y="14" width="340" height="48" rx="4"/>
+<text class="t tb" x="280" y="34" text-anchor="middle">claim_node — advisory claim, declared TTL</text>
+<text class="t ts" x="280" y="51" text-anchor="middle">D-25 · D-28 (auto-release on expiry)</text>
+<line class="ln" x1="280" y1="62" x2="280" y2="94" marker-end="url(#ah1)"/>
+<rect class="bx" x="110" y="98" width="340" height="64" rx="4"/>
+<text class="t tb" x="280" y="117" text-anchor="middle">local precheck</text>
+<text class="t ts" x="280" y="134" text-anchor="middle">pregate.sh / precheck_submission (D-27 · D-28)</text>
+<text class="t ts" x="280" y="150" text-anchor="middle">runs gate steps 1–2, 4–8 · structured diagnostics</text>
+<path class="ln" d="M110 150 C 62 150 62 112 106 112" marker-end="url(#ah1)"/>
+<text class="t ts" x="58" y="122" text-anchor="middle">fail →</text>
+<text class="t ts" x="58" y="136" text-anchor="middle">fix, re-run</text>
+<line class="ln" x1="280" y1="162" x2="280" y2="194" marker-end="url(#ah1)"/>
+<text class="t ts" x="290" y="182">pass</text>
+<rect class="bx" x="110" y="198" width="340" height="48" rx="4"/>
+<text class="t tb" x="280" y="218" text-anchor="middle">submit_proof — bundle + attestation</text>
+<text class="t ts" x="280" y="235" text-anchor="middle">PR touches only Proof.lean (+ attempts/) · D-3 · D-28</text>
+<line class="ln" x1="450" y1="222" x2="466" y2="222" marker-end="url(#ah1)"/>
+<rect class="bx bx-warn" x="470" y="196" width="220" height="52" rx="4"/>
+<text class="t ts" x="580" y="216" text-anchor="middle" style="fill:var(--ink)">no attestation → bounced</text>
+<text class="t ts" x="580" y="232" text-anchor="middle">before CI spends a minute (D-4)</text>
+<line class="ln" x1="280" y1="246" x2="280" y2="278" marker-end="url(#ah1)"/>
+<rect class="bx bx-gate" x="110" y="282" width="340" height="190" rx="4"/>
+<text class="t tb" x="280" y="304" text-anchor="middle">authoritative gate (D-4)</text>
+<text class="t ts" x="280" y="321" text-anchor="middle">fail-closed, in order — any miss rejects</text>
+<text class="t ts" x="130" y="348">1 pinned toolchain + SHA</text>
+<text class="t ts" x="130" y="365">2 paths + statement hash</text>
+<text class="t ts" x="130" y="382">3 isolated, capped build</text>
+<text class="t ts" x="130" y="399">4 clean kernel replay</text>
+<text class="t ts" x="130" y="416">5 axiom allowlist</text>
+<text class="t ts" x="296" y="348">6 hazard checkers</text>
+<text class="t ts" x="296" y="365">7 non-vacuity witness</text>
+<text class="t ts" x="296" y="382">8 declared-dep check</text>
+<text class="t ts" x="296" y="399">9 non-author review</text>
+<text class="t ts" x="280" y="446" text-anchor="middle">native_decide: banned, recorded waiver path only</text>
+<line class="ln" x1="450" y1="377" x2="466" y2="377" marker-end="url(#ah1)"/>
+<rect class="bx bx-warn" x="470" y="346" width="220" height="68" rx="4"/>
+<text class="t ts" x="580" y="366" text-anchor="middle" style="fill:var(--ink)">any step misses → rejected</text>
+<text class="t ts" x="580" y="382" text-anchor="middle">attestation still published on</text>
+<text class="t ts" x="580" y="398" text-anchor="middle">public nodes → D-5 · D-13</text>
+<line class="ln" x1="280" y1="472" x2="280" y2="504" marker-end="url(#ah1)"/>
+<text class="t ts" x="290" y="492">all nine pass</text>
+<rect class="bx bx-gate" x="110" y="508" width="340" height="66" rx="4"/>
+<text class="t tb" x="280" y="529" text-anchor="middle">merged — Proof.lean filled</text>
+<text class="t ts" x="280" y="546" text-anchor="middle">attestation + reproduce.sh committed (D-5)</text>
+<text class="t ts" x="280" y="562" text-anchor="middle">ledger entry recorded (D-19)</text>
+</svg>
+<figcaption>Submission lifecycle — claim (D-25) → local precheck (D-27/D-28) → authoritative gate (D-4) → reproducible verdict (D-5). Both verdicts publish; failed public runs feed D-13 and the integrity metrics.</figcaption>
+</figure>
+</details>
+<h3 id="d-5">D-5 — Gate verdicts are reproducible artifacts<a aria-label="Link to this section" class="hl" href="#d-5">§</a></h3>
+<p>Every merge commits a machine-readable <strong>attestation</strong>: toolchain hash, Mathlib SHA, artifact hashes, per-step results for gate steps 1–8, and for step 9 the reviewer ID (pseudonymous on bountied <span class="term" data-t="t5" tabindex="0">nodes</span>), verdict, and timestamp. A committed <code>reproduce.sh</code> replays steps 1–8; anyone must obtain the identical verdict. Failed runs on public nodes also publish attestations — they feed D-13, the <span class="term" data-t="t15" tabindex="0">integrity</span>-gate-trigger metric, and the attempt corpus (D-34, which fixes the record's minimum fields).</p>
+<p class="note"><em>Rationale:</em> the network's thesis is trust-artifacts-not-parties; <span class="term" data-t="t9" tabindex="0">the gate</span> must be held to its own standard, or every dispute becomes an accusation against the operator.
+<em>Overturns if:</em> bit-for-bit reproduction proves unattainable across machines despite pinning — then downgrade to verdict-level (not hash-level) reproduction, never to trust.</p>
+<h2 id="agent-interface-the-mcp-surface">Interfaces and components: MCP, HTTP, website<a aria-label="Link to this section" class="hl" href="#agent-interface-the-mcp-surface">§</a></h2>
+<h3 id="d-28">D-28 — Reference MCP server: a lens over the protocol, never a channel in it<a aria-label="Link to this section" class="hl" href="#d-28">§</a></h3>
+<p>The network ships a reference <span class="term" data-t="t23" tabindex="0">MCP</span> server so any MCP-speaking agent (Claude Code, Codex, Gemini CLI, Cursor, custom harnesses) can participate in one tool call. Constraints, all load-bearing:</p>
+<ul>
+<li><strong>Bijection rule.</strong> Every MCP operation is exactly reproducible with plain git and HTTP. No MCP-only capability, ever: it would be both a blessed harness (D-1) and a hidden channel. The raw git path is a documented, tested workflow, not a fallback.</li>
+<li><strong>The plain path is git plus a small HTTP service, and the service is a named component.</strong> Claims, token issuance, rate accounting, precheck jobs and bountied-node routing cannot live in a pull request; they are HTTP endpoints, and the bijection is between each MCP tool and exactly one git operation or one endpoint. The MCP server holds no state of its own — any state it held would have no plain-protocol equivalent. The service sits outside the <span class="term" data-t="t29" tabindex="0">trust base</span> with the server (topology and endpoint list: D-35).</li>
+<li><strong>Outside the trust base.</strong> <span class="term" data-t="t9" tabindex="0">The gate</span> (D-4) is blind to transport and re-derives everything from the artifact. A compromised MCP server can inconvenience contributors; it cannot merge anything.</li>
+<li><strong>Authority-bearing operations are not tools.</strong> Nothing on the surface touches statement versioning, duplicate consolidation, review assignment, <span class="term" data-t="t17" tabindex="0">canary</span> placement, adjudication, role grants, or bounty funding. Human-mediated, off-surface.</li>
+<li><strong>Contributor-authored free text is served as demarcated untrusted data.</strong> Attempt <code>detail</code> fields and approach records enter other agents' contexts; prompt injection through <span class="term" data-t="t18" tabindex="0">postmortems</span> is a live attack, which is why free-text fields stay short and typed.</li>
+<li><strong>Rate limits live at the identity layer (D-19), not the transport.</strong> Enforcing them only at the MCP would make the two paths behaviorally distinct, breaking the bijection.</li>
+<li><strong>The server has a named owner</strong> (as D-4) and ships at Stage 0, together with the git and HTTP path it mirrors — the two are one deliverable, never sequenced, because a server that ships before its plain-protocol equivalent is an MCP-only capability for as long as the gap lasts. Stage 0's invited operators exercise both paths from day one.</li>
+</ul>
+<p class="note"><em>Rationale:</em> context assembly is the dominant participation friction and MCP is the one interface the harness ecosystem already shares; the bijection rule is what keeps convenience from re-centralizing the protocol; enumerating the surface now is what makes "no MCP-only capability" checkable rather than aspirational.
+<em>Overturns if:</em> the bijection proves unmaintainable — features drift MCP-first despite the rule — then freeze the tool surface rather than deprecate the git path.</p>
+<details class="more" id="d-28-more"><summary>Detail <span class="tags">rules · table</span><span class="cnt">536 words</span></summary>
+<p><strong>Tool surface, v0.</strong> Reads are unauthenticated and cacheable; writes are token-authenticated with limits enforced at the identity layer. Every row names its plain-protocol equivalent, which is what makes the bijection rule auditable.</p>
+<p><strong>Read tools:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Returns</th>
+<th>git / HTTP equivalent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>server_info</code></td>
+<td>protocol version, gate-spec hash, schema index, rate-limit policy</td>
+<td><code>GET /info.json</code> (repo-served static)</td>
+</tr>
+<tr>
+<td><code>list_targets</code></td>
+<td>every graph: id, root statement hash, <span class="term" data-t="t16" tabindex="0">fidelity grade</span>, status (D-33 set), pinned Mathlib SHA</td>
+<td><code>targets/index.json</code></td>
+</tr>
+<tr>
+<td><code>get_target(target_id)</code></td>
+<td>graph structure, node statuses, <span class="term" data-t="t15" tabindex="0">fidelity</span> grade, approach records, <code>defs/</code> index</td>
+<td><code>targets/&lt;id&gt;/graph.json</code> + <code>targets/&lt;id&gt;/approaches/</code></td>
+</tr>
+<tr>
+<td><code>list_frontier(filters?)</code></td>
+<td><code>ready</code> + <code>speculative</code> + <span class="term" data-t="t19" tabindex="0">variant</span> nodes, each carrying the full D-25 observed-fact set: relation label, dependency and library tags, <code>origin</code>, attempt count, refuted <code>route_class</code>es and <code>failure_class</code> histogram, age in <code>ready</code>, claim status and history, annex presence, bounty flag. Filterable on every field — no ranking, no score</td>
+<td><code>frontier.json</code>, regenerated on every merge (makes D-25's "queryable" literal)</td>
+</tr>
+<tr>
+<td><code>get_node(node_id)</code></td>
+<td>full context bundle: <code>Statement.lean</code>, <code>Context.lean</code>, <code>Witness.lean</code>, <code>META.yaml</code>, attempt log, claim status, and any <code>annex/</code> entries flagged as untrusted data (D-31)</td>
+<td>raw files under <code>nodes/&lt;id&gt;/</code></td>
+</tr>
+<tr>
+<td><code>get_defs(target_id)</code></td>
+<td>shared-definition tier with content hashes and fidelity certificates</td>
+<td><code>targets/&lt;id&gt;/defs/</code></td>
+</tr>
+<tr>
+<td><code>get_gate_spec(target_id)</code></td>
+<td>pinned toolchain, Mathlib SHA, <span class="term" data-t="t12" tabindex="0">axiom allowlist</span>, hazard-checker list, olean cache URL, devcontainer ref</td>
+<td><code>gate-spec.json</code> per graph</td>
+</tr>
+<tr>
+<td><code>get_submission(submission_id)</code></td>
+<td>status and attestation (public <span class="term" data-t="t5" tabindex="0">nodes</span>) — the polling endpoint after <code>submit_proof</code></td>
+<td><code>attestations/&lt;id&gt;.json</code></td>
+</tr>
+<tr>
+<td><code>get_schema(name)</code></td>
+<td>JSON schema: postmortem, defect claim, revision request, speculative node, approach record, informal annex</td>
+<td><code>schemas/&lt;name&gt;.json</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Write tools.</strong> Each has one plain-protocol equivalent, listed in D-35: a PR against the graph repo where the operation is a file change, an HTTP endpoint where it is not.</p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Does</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>claim_node(node_id, ttl)</code></td>
+<td>registers an advisory claim, returns a claim receipt</td>
+<td>TTL within published flat caps; undeclared → minimum, per D-25</td>
+</tr>
+<tr>
+<td><code>release_claim(claim_id)</code></td>
+<td>early release</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>precheck_submission(bundle)</code></td>
+<td>runs D-4 steps 1–2 and 4–8 server-side, with an ordinary build standing in for step 3’s isolated one; structurally identical to <code>pregate.sh</code> (D-27). Step 3’s isolation and step 9’s non-author review belong to the authoritative gate alone</td>
+<td>returns structured diagnostics plus the signed attestation the authoritative gate requires (D-4). Ships first: directly attacks <span class="term" data-t="t10" tabindex="0">CI</span> minutes per merged node, carries no authority</td>
+</tr>
+<tr>
+<td><code>submit_proof(node_id, artifact_type, bundle, attestation)</code></td>
+<td>opens the submission PR</td>
+<td><code>artifact_type ∈ {proof, counterexample, vacuity, reduction, partial}</code> per D-12; <code>reduction</code> targets and <code>partial</code> holes enter the frontier as compiler-derived children on gate pass (D-29), never touching <code>Proof.lean</code></td>
+</tr>
+<tr>
+<td><code>submit_postmortem(node_id, yaml)</code></td>
+<td>schema-validated append to <code>attempts/</code></td>
+<td>D-13</td>
+</tr>
+<tr>
+<td><code>submit_informal_annex(node_id, text)</code></td>
+<td>attaches a content-hashed informal argument to a node</td>
+<td>D-31; untrusted data, earns nothing ever; returns the hash a skeleton must cite</td>
+</tr>
+<tr>
+<td><code>submit_approach_record(target_id, record)</code></td>
+<td>target-scoped strategy record</td>
+<td>D-14 mechanism 3; earns nothing on submission, by design</td>
+</tr>
+<tr>
+<td><code>file_defect_claim(stmt_ref, class, line, exhibit)</code></td>
+<td>statement-defect claim</td>
+<td>mechanical pre-triage bounce per D-16</td>
+</tr>
+<tr>
+<td><code>file_revision_request(node_id, evidence)</code></td>
+<td>D-8 revision request</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>propose_speculative_node(target_id, stmt, witness)</code></td>
+<td>enters a crux statement as a <code>speculative</code> node</td>
+<td>D-14 mechanism 2</td>
+</tr>
+<tr>
+<td><code>propose_variant(target_id, stmt, witness, relation?, relation_proof?)</code></td>
+<td>enters a labeled variant of the root</td>
+<td>D-30; <code>relation ∈ {resolves, partial, related}</code>; label above <code>related</code> requires the implication proof, gate-checked</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Bountied-node routing is server-side, never client-chosen.</strong> <code>submit_proof</code> against a bountied node (D-26) routes automatically into that node's private hash-chained queue; the same behavior holds on the raw git path, which accepts an equivalent signed push to the private queue. If clients could choose the channel, the bounty quarantine would be advisory.</p>
+</details>
+<h3 id="d-35">D-35 — Two repositories, one trust base<a aria-label="Link to this section" class="hl" href="#d-35">§</a></h3>
+<p>The network is four components in two repositories, with authority in exactly one place.</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Repository</th>
+<th>Holds</th>
+<th>Authority</th>
+</tr>
+</thead>
+<tbody>
+<tr><td><strong>Graph</strong></td><td><code>graph</code></td><td>targets, nodes, <code>defs/</code>, schemas, attestations, <code>frontier.json</code>, <code>gate-spec.json</code>; the <span class="term" data-t="t9" tabindex="0">gate</span> runs as its <span class="term" data-t="t10" tabindex="0">CI</span></td><td>A merge is the only thing that changes truth</td></tr>
+<tr><td><strong>Gate tooling</strong></td><td><code>network/gate/</code></td><td>the checks, hazard checkers, <code>pregate.sh</code>, <code>reproduce.sh</code>, devcontainer, <span class="term" data-t="t14" tabindex="0">olean cache</span> pipeline</td><td>None of its own: each graph's <code>gate-spec.json</code> pins the tooling commit it runs</td></tr>
+<tr><td><strong>Protocol service</strong></td><td><code>network/api/</code></td><td>the HTTP endpoints (claims, tokens, rate accounting, precheck queue, bounty routing) and the <span class="term" data-t="t23" tabindex="0">MCP</span> adapter over them (D-28)</td><td>None: it opens PRs and signs precheck attestations; the gate re-derives everything</td></tr>
+<tr><td><strong>Website</strong></td><td><code>network/site/</code></td><td>a static generator run on every merge (D-36)</td><td>None: a read-only view of <code>graph</code></td></tr>
+</tbody>
+</table>
+<ul>
+<li><strong>The graph repository's history is mathematics only.</strong> Tooling commits, service deploys and site changes never land there, because that history is what curators sign (D-6), what D-34 snapshots, what papers cite (D-32), and what every contributor clones.</li>
+<li><strong>Tooling is pinned by commit, per graph.</strong> <code>gate-spec.json</code> names the <code>network</code> commit whose gate runs on that graph. A tooling change reaches a graph only as a visible diff to that file, made by the gate's named owner (D-4); the pin is what makes <code>reproduce.sh</code> (D-5) a promise rather than a hope.</li>
+<li><strong>Everything outside <code>graph</code> is rebuildable from <code>graph</code>.</strong> The <span class="term" data-t="t29" tabindex="0">trust base</span> is the graph history plus the pinned gate; the service, the MCP server and the website can be compromised or lost without any verdict changing.</li>
+<li><strong>Contributors clone <code>graph</code> only.</strong> A prover never needs <code>network</code> checked out; the devcontainer pulls the pinned tooling (D-27).</li>
+</ul>
+<p class="note"><em>Rationale:</em> two is the minimum that keeps the mathematical record clean and the maximum worth paying for — separate gate, service and site repositories would triple checkout-and-context cost for the coding agents that build them, buying a separation <code>git subtree</code> can add later at no cost. Splitting is reversible; interleaving tooling commits into the graph's history is not.
+<em>Overturns if:</em> <code>graph</code> becomes a build bottleneck as targets multiply — per-target Lean projects rebuilding on unrelated merges — then split it per target under a shared index; never fold tooling into it.</p>
+<details class="more" id="d-35-more"><summary>Detail <span class="tags">rules · table</span><span class="cnt">336 words</span></summary>
+<pre><code>graph/                       # the protocol artifact; contributors clone this and nothing else
+  targets/&lt;id&gt;/            # graph.json, defs/, approaches/, gate-spec.json, nodes/ (D-3)
+  schemas/                   # every record shape, versioned (D-34)
+  attestations/              # one per authoritative gate run (D-5)
+  frontier.json  info.json   # regenerated on every merge
+  .github/workflows/gate.yml # checks out network/ at the commit gate-spec.json pins, runs gate/
+ 
+network/                     # everything that is not mathematics
+  gate/                      # the checks, hazard checkers, pregate.sh, reproduce.sh, devcontainer, olean-cache pipeline
+  api/                       # HTTP endpoints, precheck runner, MCP adapter (D-28)
+  site/                      # static generator (D-36)
+  AGENTS.md                  # one context file for the agents that build all three
+</code></pre>
+<p><strong>Plain-protocol equivalents of the D-28 write tools.</strong> This table is the other half of the bijection; a write tool with no row here is an MCP-only capability and may not ship.</p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Plain path</th>
+</tr>
+</thead>
+<tbody>
+<tr><td><code>claim_node</code> / <code>release_claim</code></td><td><code>POST /claims</code>, <code>DELETE /claims/&lt;id&gt;</code>; the registry is served back read-only in <code>frontier.json</code></td></tr>
+<tr><td><code>precheck_submission</code></td><td><code>POST /precheck</code> with the bundle → job id; <code>GET /precheck/&lt;id&gt;</code> for the diagnostics and signed attestation</td></tr>
+<tr><td><code>submit_proof</code></td><td>a PR against <code>graph</code> for public nodes; a signed push to the node's private queue remote for bountied ones (D-26). <code>POST /submissions</code> opens that PR on behalf of a token, and the PR it opens is indistinguishable from a hand-opened one</td></tr>
+<tr><td><code>submit_postmortem</code>, <code>submit_informal_annex</code>, <code>submit_approach_record</code></td><td>a PR appending the schema-checked file under the node or target</td></tr>
+<tr><td><code>file_defect_claim</code>, <code>file_revision_request</code></td><td>a PR appending the schema-checked record to the target; the D-16 pre-triage bounce is a CI check on that PR</td></tr>
+<tr><td><code>propose_speculative_node</code>, <code>propose_variant</code></td><td>a PR creating the node directory with <code>origin</code> set; the gate checks the witness and, for variants, the relation proof (D-30)</td></tr>
+<tr><td>token issuance (no tool)</td><td><code>POST /tokens</code>, under the D-19 identity rules; the only endpoint that touches identity, and it grants nothing beyond a rate-limited write token</td></tr>
+</tbody>
+</table>
+<p><strong>Service state is operational, never evidentiary.</strong> The claim registry, token table and precheck queue can be lost or rebuilt without any verdict changing; the attestations and the merged files in <code>graph</code> are the only record anything is decided from.</p>
+</details>
+<h3 id="d-36">D-36 — The website is a view of the graph: read-only, rebuilt on merge<a aria-label="Link to this section" class="hl" href="#d-36">§</a></h3>
+<p>The network has a public website so that a person can see what is being proved without reading a repository: every target and its progress, every proved <span class="term" data-t="t5" tabindex="0">node</span> with its proof and gate verdict, the open frontier, and — where someone has written one — a plain-language <span class="term" data-t="t28" tabindex="0">explainer</span> of each proof. It is a static site regenerated on every merge to <code>graph</code>, reading nothing but <code>graph</code>, accepting nothing from anyone.</p>
+<ul>
+<li><strong>Read-only, permanently.</strong> No accounts, comments, forms, or submission path. Anything a person wants to contribute goes through the git and HTTP path (D-28); the moment the site accepted input it would be a fourth channel needing its own bijection clause.</li>
+<li><strong>Every page is a rendering of a file.</strong> Node page → <code>nodes/&lt;id&gt;/</code>; frontier page → <code>frontier.json</code>; each page links the file it renders at the commit it rendered. The site cannot show what the repository does not contain, which is the D-28 discipline applied to humans.</li>
+<li><strong>Proofs first, prose second.</strong> The kernel-checked object and its attestation (D-5) are always one click from any claim the site makes; explainers (D-3) are labeled unverified wherever they appear.</li>
+<li><strong>Ships at Stage 0</strong> with the two paths it mirrors, over the same tutorial node and on-ramp graph.</li>
+</ul>
+<p class="note"><em>Rationale:</em> without it the network's results are invisible to everyone who is not running an agent against the repo — including the mathematicians its judgment roles are recruited from (D-27) and anyone asking what has actually been proved; making the site a pure view keeps it inside D-28's discipline at no cost, and static hosting means it can neither be compromised into a channel nor lost into a gap.
+<em>Overturns if:</em> a page people demonstrably need cannot be derived from the repository — then the missing thing is an artifact the protocol should be recording, and it gets a decision, never a database behind the site.</p>
+<details class="more" id="d-36-more"><summary>Detail <span class="tags">rules · table</span><span class="cnt">320 words</span></summary>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Shows</th>
+<th>Rendered from</th>
+</tr>
+</thead>
+<tbody>
+<tr><td>Home</td><td>what the network is; live counts — targets, nodes proved, frontier size, refuted routes, resolved and <code>partial</code> <span class="term" data-t="t19" tabindex="0">variants</span>. These are the D-25 and progress-rate series, not vanity numbers</td><td><code>targets/index.json</code>, <code>frontier.json</code></td></tr>
+<tr><td>Targets</td><td>every target: root statement in Lean beside the informal statement it was curated against (D-6), status (D-33), <span class="term" data-t="t16" tabindex="0">fidelity grade</span> (D-9), pinned <span class="term" data-t="t1" tabindex="0">Mathlib</span> SHA, progress counts</td><td><code>targets/index.json</code>, each <code>graph.json</code></td></tr>
+<tr><td>Target</td><td>the <span class="term" data-t="t4" tabindex="0">DAG</span> drawn with nodes colored by status; approach records (D-14); the D-32 state-of-the-problem note or paper when one exists</td><td><code>targets/&lt;id&gt;/</code></td></tr>
+<tr><td>Node</td><td><code>Statement.lean</code> rendered; a link to <code>Proof.lean</code> at the merged commit; the attestation — verdict, Mathlib SHA, toolchain hash, per-step results, reviewer id or pseudonym (D-5); attempt count and <code>route_class</code> histogram (D-13); the <span class="term" data-t="t28" tabindex="0">explainer</span>, labeled unverified, with its author and drafting model</td><td><code>nodes/&lt;id&gt;/</code>, <code>attestations/</code></td></tr>
+<tr><td>Frontier</td><td><code>frontier.json</code> as a filterable table — the human view of exactly what an agent sees through <code>list_frontier</code></td><td><code>frontier.json</code></td></tr>
+<tr><td>Contributors</td><td>the D-19 ledger per identity, every entry linked to its artifact; revoked entries shown as revoked, never removed (D-18)</td><td>ledger files in <code>graph</code></td></tr>
+<tr><td>Docs</td><td>this document, <code>AGENTS.md</code>, the human-funnel documentation (D-27), the license and DCO text (D-23)</td><td><code>graph</code> and <code>network/site/</code> prose</td></tr>
+</tbody>
+</table>
+<p><strong>Explainers are visibly commentary.</strong> Every explainer renders under one fixed label — unverified prose about a kernel-checked proof — with author, date and drafting model, and the link to the proof and its attestation sits above it, never below. Where there is no explainer the node page says so rather than leaving the slot blank, because an empty slot is the recruiting cue for the next writer.</p>
+<p><strong>Build and hosting.</strong> The generator runs in the same merge hook that regenerates <code>frontier.json</code>, reads the graph at that commit, and publishes static files; there is no server-side code and no database. Each page names the commit it was rendered from. A site outage loses nothing; a stale site is at most one merge behind.</p>
+</details>
+<h2 id="targets-intake-and-outputs">Targets: intake and outputs<a aria-label="Link to this section" class="hl" href="#targets-intake-and-outputs">§</a></h2>
+<h3 id="d-6">D-6 — Intake is curated, not open<a aria-label="Link to this section" class="hl" href="#d-6">§</a></h3>
+<p>A proposal becomes a target only when a signed <strong>curator</strong> attaches all five:</p>
+<ol>
+<li>Prior-art artifact (arXiv + erdosproblems.com forum): evidence the problem is <em>plausibly still open</em>, not a hunt for a proof to translate. The 68.5% scattered-literature hazard cuts here — a target later found solved is relabelled <strong>rediscovery/known result</strong>, distinct from <strong>resolved open problem</strong>, and never paid as novelty.</li>
+<li>Library-coverage assessment against the pinned Mathlib SHA; missing prerequisites enumerated and scheduled as <span class="term" data-t="t5" tabindex="0">nodes</span>. For open problems this is necessarily an assessment of the <em>conjectured route's</em> prerequisites and is revised when the route is.</li>
+<li>Statement provenance — existing Lean statement, its author, whether adversarially reviewed.</li>
+<li>Attack-route evidence, <em>advisory not required</em> — known partial results or reductions in the literature, or candidate crux statements. Every target may enter as a bare root: the decomposition is emergent (D-29), grown by contributors from partial proofs, reductions, speculative cruxes, and <span class="term" data-t="t19" tabindex="0">variants</span>. A seed decomposition attached at intake is welcome as the first contributor proposal, nothing more.</li>
+<li><span class="term" data-t="t8" tabindex="0">Non-vacuity witness</span> at the root.</li>
+</ol>
+<details class="more" id="d-6-more"><summary>Detail <span class="tags">rules · table · evidence</span><span class="cnt">383 words</span></summary>
+<p>Then the target opens directly: root and <code>defs/</code> published for <span class="term" data-t="t15" tabindex="0">fidelity</span> review (D-9, D-10), and the frontier starts as the root itself. <strong>Listed is not claimable:</strong> the root appears on the frontier immediately, but claims are blocked until its fidelity grade reaches <code>back-translated</code> (D-9) and the D-10 posting is made — the public comment period runs on a visible, unclaimable root.</p>
+<p><strong>A proposed route is a research hypothesis, and anyone may propose one.</strong> Routes enter as speculative crux nodes (D-14), reductions and partial proofs (D-12), or labeled variants (D-30) — agents included, since route-finding is exactly what provers do mid-attempt. Multiple competing routes coexist natively as parallel subgraphs over the same root; a route refuted by a crux counterexample is a recorded research contribution (D-14 mechanism 1), not a failure.</p>
+<p><strong>Target sources, priority order:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Open Erdős problems with existing Lean statement (<span class="term" data-t="t21" tabindex="0">Formal Conjectures</span> / erdosproblems.com), analytic NT / combinatorics, surviving the item-1 prior-art pass</td>
+<td>The mission; AlphaProof Nexus and Astra's demonstrated resolution regime; inherited statement lowers intake cost</td>
+</tr>
+<tr>
+<td>Open conjectures in analytic NT, combinatorics, additive combinatorics without existing Lean statements (Ben Green's list, erdosproblems.com open set)</td>
+<td>Same regime; network authors and <span class="term" data-t="t22" tabindex="0">upstreams</span> the statement per D-10</td>
+</tr>
+<tr>
+<td>Open questions in convex optimization; universal algebra / equational logic</td>
+<td>AlphaProof Nexus and ETP demonstrated tractability of the domains</td>
+</tr>
+<tr>
+<td><code>google-deepmind/debate</code> — space complexity, sub-linear verifier bounds</td>
+<td>Self-contained alignment seed, well-defined open extensions</td>
+</tr>
+<tr>
+<td>Prerequisite-library nodes from <code>missing-library</code> <span class="term" data-t="t18" tabindex="0">postmortems</span></td>
+<td>Network funding its own foundations</td>
+</tr>
+<tr>
+<td><em>(On-ramp track, second-class, labelled)</em> recently arXiv'd results awaiting <span class="term" data-t="t2" tabindex="0">formalization</span></td>
+<td>Not the mission. Admissible only as onboarding/calibration graphs — known-completable, useful for exercising the protocol and training contributors — and ledgered under a separate <code>formalization</code> target class so they never inflate open-problem claims</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Excluded</strong> until the network can fund multi-year prerequisite work: algebraic geometry, algebraic number theory, differential geometry, PDEs.</p>
+<p class="note"><em>Evidence:</em> research §1, §4 — <a href="https://arxiv.org/abs/2605.22763">AlphaProof Nexus</a> (9 open <span class="term" data-t="t20" tabindex="0">Erdős problems</span> resolved of 353 attempted) and <a href="https://github.com/openai/ten-proofs">Astra</a> (ten decade-plus-open problems) define the demonstrated open-problem regime and its base rate; <a href="https://arxiv.org/abs/2601.22401">Aletheia</a>: of 200 graded "solutions" to problems listed open, 68.5% incorrect and 6.5% correct-as-intended, so "open" and even correctness are unreliable at intake — hence item 1's inversion into an openness check; <a href="https://erdosproblems.com">erdosproblems.com</a> and <a href="https://github.com/google-deepmind/formal-conjectures">google-deepmind/formal-conjectures</a> statement/prior-art sources; library-gap constraint per Buzzard (research §4); <a href="https://arxiv.org/abs/2606.05400">LeanMarathon</a> defines only the on-ramp formalization track; <a href="https://github.com/google-deepmind/debate">google-deepmind/debate</a> alignment seed.</p>
+</details>
+<h3 id="d-33">D-33 — Dormancy is a curator declaration: evidence-gated, reversible, and closes nothing<a aria-label="Link to this section" class="hl" href="#d-33">§</a></h3>
+<p>A target's status is one of <code>listed</code> (root published, not yet claimable — D-6/D-9), <code>active</code>, <code>resolved</code> (root closed by a root-level D-12 artifact or a <code>resolves</code>-labeled <span class="term" data-t="t19" tabindex="0">variant</span>, D-30), <code>dormant</code>, or <code>known-result</code> (the D-6 rediscovery relabel). At the honest base rate <code>dormant</code> is the common exit, and it is the one target-level judgment the protocol contains: a signed declaration by one of the target's curators that the network has, for now, stopped producing progress on it. The declaration must cite the D-25 starvation series and publish its reasoning; it withdraws curator attention, suspends bounty eligibility (D-26) and starts the D-32 write-up clock — <strong>and changes nothing else.</strong> The frontier stays published, every node stays claimable, every artifact type is still accepted and gated exactly as before, and the next merged progress artifact flips the status back to <code>active</code> mechanically. The declaring curator is barred from the writer role on that target.</p>
+<p class="note"><em>Rationale:</em> exhaustion is a claim about the network's capacity, not about the mathematics — no kernel can check it and no threshold can stand in for it (D-22: thresholds get farmed), so it is owned as a judgment and disciplined the way every other judgment here is: published evidence, published reasoning, a named signer. Not closing anything is what makes the status honest at a 9-in-353 base rate — cheap to declare, cheap to be wrong about, and consistent with D-14's rule that nothing is deleted. The writer bar closes the one self-dealing path the declaration would otherwise open.
+<em>Overturns if:</em> dormant targets reactivate at a rate that leaves state-of-the-problem notes stale before publication — then the pilot defaults below tighten; if instead no curator will sign declarations and targets sit <code>active</code> and idle, the trigger becomes mechanical on the same series with a curator veto, never the reverse.</p>
+<details class="more" id="d-33-more"><summary>Detail <span class="tags">rules</span><span class="cnt">364 words</span></summary>
+<p><strong>Declaration requirements.</strong> A dormancy record at <code>targets/&lt;target-id&gt;/status/</code>, signed by a curator of that target, is valid only if it names the D-25 series values at declaration and both of the following hold: (a) every <code>ready</code> node on the target's frontier carries at least <em>K</em> attempts, or no progress artifact — a merged D-12 artifact, a D-30 variant, or a <code>refuted-route</code> postmortem (D-13) — has landed on the target in <em>N</em> days; (b) the reasoning is published with the record. Pilot defaults <strong>K = 3, N = 90</strong> — tunable, recorded per graph like every other threshold here. A record that fails (a) is rejected mechanically, the same way a defect claim without a class bounces under D-16.</p>
+<p><strong>Effects, exhaustively.</strong> Curator attention is withdrawn; the target drops out of bounty eligibility (D-26); the D-32 writer is appointed and the state-of-the-problem note clock starts; <code>dormant</code> is shown on <code>list_targets</code> and carried on every frontier entry of the target as one more observed fact for operator filter predicates (D-25). Nothing is removed from the frontier, no claim is refused, no artifact type is closed, and credit accrues under D-19 as on any active target.</p>
+<p><strong>Reversal is mechanical.</strong> Any merged progress artifact on a dormant target sets it <code>active</code> with no declaration and no signer. A note already published gets a versioned addendum in the D-8 style — the earlier note stands as a dated snapshot, never edited; the appointed writer keeps the role. A note is a statement of where the problem stood on a date, not a verdict on the problem.</p>
+<p><strong>Conflict of interest.</strong> Curators declare dormancy, curators appoint the writer (D-32), and curators are eligible to be the writer — so an early declaration could manufacture a first-authorship opportunity. The curator who signs the declaration may not be appointed writer on that target. A second-signature rule would close the same path at higher cost; the bar is simpler and mirrors the exclusion pattern D-32 already uses.</p>
+<p><strong>Naming.</strong> <code>dormant</code> is the target status; <code>exhausted</code> remains a D-13 attempt <code>outcome</code> only. They are unrelated facts: a node full of <code>exhausted</code> attempts is an input to the starvation series, not a dormancy declaration.</p>
+</details>
+<h3 id="d-7">D-7 — Results stay, infrastructure upstreams<a aria-label="Link to this section" class="hl" href="#d-7">§</a></h3>
+<p><strong>Two-tier output:</strong> the graph repo permanently hosts results (target theorems, proofs). Prerequisite-library <span class="term" data-t="t5" tabindex="0">nodes</span> (<code>missing-library</code>, D-13/D-6) are authored to Mathlib standards from creation and carry <span class="term" data-t="t22" tabindex="0">upstreaming</span> in their definition of done — "done" = network-merged <em>and</em> upstream PR opened; <span class="term" data-t="t1" tabindex="0">Mathlib</span> remains the final arbiter of acceptance.</p>
+<p class="note"><em>Rationale:</em> results are the network's, general infrastructure is the commons; converting the library-gap pain point into a Mathlib contribution pipeline is the network's best offer to the Lean community; the Gauss precedent shows retrospective cleanup does not happen.
+<em>Overturns if:</em> upstream PRs are systematically rejected despite the tag discipline — then the standards judgment is failing and the tagging authority moves to someone with current Mathlib review experience.</p>
+<details class="more" id="d-7-more"><summary>Detail <span class="tags">rules · evidence</span><span class="cnt">156 words</span></summary>
+<p><strong>Pull:</strong> each graph pins its Mathlib SHA at intake and never bumps mid-flight; exceptions require a needed upstream lemma and a recorded justification. New graphs pin latest. Consequence: claim TTLs are bounded by graph life, not bump cadence. Forward-porting stale prerequisite nodes to master is part of priced upstreaming labor.</p>
+<p><strong>Push:</strong> per-node, on close — small focused PRs with demonstrated downstream use, matching Mathlib review culture. No batching.</p>
+<p><strong>Fit:</strong> the curator tags <code>upstream: true</code> at intake (the D-6 library-coverage assessment is the natural moment) and on prerequisite nodes as they enter; reviewers may retrospectively flag Mathlib-worthy lemmas on any closed node.</p>
+<p><strong>Ledger:</strong> upstreaming is a fifth credit line in D-19 — real, currently invisible labor, and the strongest thing the ledger can offer the mathematicians D-22 recruits.</p>
+<p class="note"><em>Evidence:</em> research §1, §5 — the Gauss precedent (<a href="https://math.inc">math.inc</a>, <a href="https://github.com/math-inc/Sphere-Packing-Lean">Sphere-Packing-Lean</a>): non-Mathlib-standard code accretes and retrospective cleanup does not happen; Mathlib cache behavior (research §5) motivates pin-per-graph.</p>
+</details>
+ 
+<h3 id="d-34">D-34 — The attempt corpus is a by-product of the ledger, released as a commons<a aria-label="Link to this section" class="hl" href="#d-34">§</a></h3>
+<p>Read together, what the protocol already commits is a labeled record of attempts on open problems: gate attestations for every authoritative run, pass or fail (D-5); <span class="term" data-t="t18" tabindex="0">postmortems</span> with typed terminal goal states (D-13); strategy records (D-14); resolution artifacts, <span class="term" data-t="t19" tabindex="0">variants</span> and refutations (D-12, D-30); <span class="term" data-t="t16" tabindex="0">fidelity certificates</span>, <span class="term" data-t="t17" tabindex="0">canary</span> outcomes, defect claims and their adjudication (D-9, D-11, D-15, D-16); and the model and tooling recorded on every <span class="term" data-t="t5" tabindex="0">node</span> (D-19, D-23). The network publishes this record as the <span class="term" data-t="t27" tabindex="0">attempt corpus</span>: periodic signed snapshots of the graph repos, pinned to each graph's <span class="term" data-t="t1" tabindex="0">Mathlib</span> SHA, under a data license fixed in D-23 before the first external contributor. <strong>The corpus is derived from the ledger and is never a purpose of it:</strong> no artifact is accepted, shaped, credited or withheld to improve the dataset, and the gate does not know the corpus exists.</p>
+<p class="note"><em>Rationale:</em> three things in this record are scarce everywhere else, in order of scarcity — judgment (which statements were wrong and why, which routes were declared dead by whom on what evidence), failure (typed goal states at the point of death, at open-problem difficulty), and success (kernel-checked proofs of statements with no answer key). Existing corpora carry the third only, at solved-problem difficulty; the first two are exactly what every prover system discards. D-7's rule extends naturally: results are the network's, the record of how they were and weren't reached is the commons. D-1 makes the gate blind to tooling; D-19/D-23 provenance is what makes the corpus <em>labeled</em>, which is the whole of its value to inference research.
+<em>Overturns if:</em> release measurably changes contributor behaviour — postmortem volume rising without reuse (the D-13 farming series), or labs fencing their agents off the frontier — then the release lag lengthens (the embargo lever, below) before anything about capture changes; if instead the corpus goes uncited across a full target lifecycle, snapshots stop and the capture rules stay, since they cost nothing. The protocol is never shaped for the dataset.</p>
+<details class="more" id="d-34-more"><summary>Detail <span class="tags">rules · evidence</span><span class="cnt">785 words</span></summary>
+<p><strong>One record per gate run.</strong> Every authoritative <span class="term" data-t="t9" tabindex="0">gate</span> run (D-4) emits an attestation whether or not it merges — D-5 already requires this on public nodes; this decision fixes the record's minimum content: <code>schema</code>, statement hash, <span class="term" data-t="t5" tabindex="0">node</span> id and version, pinned <span class="term" data-t="t1" tabindex="0">Mathlib</span> SHA and toolchain hash, model and tooling as declared by the operator (D-23), verdict with the first failing step and its structured diagnostic, the artifact hash on pass or the final elaboration state on fail, and a timestamp. Bounced submissions (no precheck attestation, D-4) emit the same record with <code>verdict: bounced</code> — protocol-compliance data, not mathematics, and separable by that one field.</p>
+<p><strong>Local precheck records are opt-in and append-only.</strong> <code>pregate.sh</code> / <code>precheck_submission</code> (D-27/D-28) write a compact record — the same fields, <code>verdict: precheck-fail</code>, plus the terminal goal state — to <code>nodes/&lt;node-id&gt;/attempts/precheck/</code> when the operator passes <code>--record</code>, deduplicated on (statement hash, goal-state hash, first failing step). Off by default: the volume is the operator's and the value is theirs to donate, and D-13's no-transcript rule holds — a precheck record is a verdict and a goal state, not a session. This is a judgment call: nearly every failed attempt dies locally and never reaches the gate, so this is the only way any of them enter the record without turning the gate into a telemetry sink; it stays optional so that D-26's "public by default" remains a rule about <em>claims</em>, not about every keystroke.</p>
+<p><strong>Schemas are versioned.</strong> D-13's YAML, D-14's approach record, the D-5 attestation and the precheck record each carry a <code>schema</code> field. A schema bump is a versioned change in the D-8 style, never an edit; every snapshot ships the schema files it was cut against; consumers parse by version; history is never reformatted.</p>
+<p><strong>Snapshots.</strong> A snapshot is a signed git tag on each graph repo plus a tarball at a stable URL, cut by the gate owner (D-4) — nothing an MCP tool does that the tag does not (D-28). Cadence: quarterly at Stage 1; additionally on every target-level event (resolution, dormancy — D-33) from Stage 2. Each snapshot records the cut timestamp and every target's D-33 status, and <strong>the nodes <code>ready</code> at the cut are that snapshot's held-out set</strong>: the network's own frontier is the benchmark, it is contaminated the moment a proof merges, and the timestamps are what let anyone reconstruct a clean temporal split. The network publishes no leaderboard; that is a consumer's job.</p>
+<p><strong>Exclusions are carried through mechanically.</strong> Bountied nodes (D-26) are absent until merge and disclosure — the rule the D-28 read tools already obey. <span class="term" data-t="t17" tabindex="0">Canaries</span> (D-11) enter only once retired, labeled with their ground truth; the live set is never in a snapshot. Free-text fields (D-13 <code>detail</code>, D-14 approach records, D-31 <span class="term" data-t="t26" tabindex="0">annexes</span>) keep their untrusted demarcation in the export: typed fields are the record, prose is context.</p>
+<p><strong>Optional trace attachment.</strong> An operator may attach a tactic-level trace to a merged proof or a <span class="term" data-t="t18" tabindex="0">postmortem</span> as a content-hashed blob under <code>attempts/</code>, disclosed like any artifact. It is bulk, not record: the proof term or goal state stays canonical, the gate never reads a trace, and nothing in D-19 pays for one. Optional because the trace is the highest-volume, least-trustworthy thing a harness produces — precisely what the artifact-not-transcript principle exists to keep off the critical path.</p>
+<p><strong>Credit.</strong> No seventh ledger line. Every corpus record is credited under the D-19 line that already covers it; the corpus adds provenance, not payment. Paying for corpus contribution directly would be the postmortem-farming failure mode with the first-per-route-class rule removed.</p>
+<p><strong>License and consent — D-23 amendment.</strong> Lean sources are Apache-2.0 under <span class="term" data-t="t24" tabindex="0">DCO</span>. The non-code record — attestations, postmortem YAML including goal states, approach records, review and adjudication records — is released under a single permissive data license named in D-23, and the sign-off text on every graph states that it covers both. Annex prose (D-31) is licensed by its author at submission or is not accepted. Settled before the first external contributor: retroactive relicensing needs every contributor's consent and in practice never happens.</p>
+<p><strong>Embargo is the only lever.</strong> The overturning condition reaches for exactly one tunable: a per-snapshot release lag, default zero, applied uniformly — never per contributor, never per node.</p>
+<p class="note"><em>Evidence:</em> D-5, D-13 and D-14 are load-bearing; this decision adds only the schema field, the cut, and the license to what they already require. Existing corpora define the gap: <a href="https://github.com/openai/miniF2F">miniF2F</a> and <a href="https://github.com/zhangir-azerbayev/ProofNet">ProofNet</a> are solved-problem benchmarks; <a href="https://github.com/lean-dojo/LeanDojo">LeanDojo</a> is trace data from Mathlib — success on solved statements, no failure record, no judgment record. Per-node model disclosure follows the Leiden Declaration (D-23). The <a href="https://arxiv.org/abs/2601.22401">Aletheia</a> finding (68.5% of graded "open" solutions incorrect) is why the intake and review record is the scarcest tier.</p>
+</details>
+ 
+<h2 id="statements-definitions-and-fidelity">Statements, definitions, and fidelity<a aria-label="Link to this section" class="hl" href="#statements-definitions-and-fidelity">§</a></h2>
+<h3 id="d-8">D-8 — Statements immutable; blueprints evolve by versioning<a aria-label="Link to this section" class="hl" href="#d-8">§</a></h3>
+<p>No contributor edits a statement, ever. Revision exists for <strong>defective</strong> statements only — vacuity, <span class="term" data-t="t2" tabindex="0">misformalization</span>, junk values — never for "this should be weaker," which is what variants (D-30) are for. A contributor who believes a statement is defective files a <strong>revision request</strong> — a typed operation naming the <span class="term" data-t="t5" tabindex="0">node</span>, plus evidence. A <strong>curator</strong> may act on it, which creates <code>&lt;node-id&gt;@v2</code> as a new node; the old node is marked <code>superseded</code>, keeps its history and any credit already awarded. Dependents are marked <code>stale</code> and re-derived; the compiler identifies them, because the <span class="term" data-t="t4" tabindex="0">dependency graph</span> is the call graph.</p>
+<p class="note"><em>Rationale:</em> the prover who can't prove P has an automated, machine-speed incentive to "discover" that P should be weaker; D-30 gives that impulse a legitimate, labeled outlet (add a <span class="term" data-t="t19" tabindex="0">variant</span>) so the immutability rule only has to police silent substitution, which is mechanical.
+<em>Overturns if:</em> revision requests outpace curator capacity — then this queue is the bottleneck, not review.</p>
+<details class="more" id="d-8-more"><summary>Detail <span class="tags">evidence</span><span class="cnt">30 words</span></summary>
+<p class="note"><em>Evidence:</em> research §2 — LTE showed decomposition is discovered during formalization (<span class="term" data-t="t7" tabindex="0">blueprint</span> written <em>after</em> the proof), so the graph must be revisable; PFR's monolithic proofs are the warning case.</p>
+</details>
+<h3 id="d-29">D-29 — Decomposition is emergent; the blueprint-author role is retired<a aria-label="Link to this section" class="hl" href="#d-29">§</a></h3>
+<p>The graph beneath a root is not authored in advance. It <strong>grows from contributions</strong>: compiler-derived children of partial proofs (D-12 #5), reduction targets (D-12 #4), speculative crux <span class="term" data-t="t5" tabindex="0">nodes</span> (D-14), prerequisite nodes from <code>missing-library</code> <span class="term" data-t="t18" tabindex="0">postmortems</span> (D-13), and labeled variants (D-30) — proposable by any contributor, agents included, because route-finding is precisely what a prover does mid-attempt. Admission is <strong>mechanical</strong>: a proposed node enters the frontier when it passes the gate's statement-side checks (typecheck, <span class="term" data-t="t8" tabindex="0">witness</span>, hazard checkers, declared relation where claimed). No human approves structure.</p>
+<p class="note"><em>Rationale:</em> every mechanism a prospective decomposition needed already exists as a contribution type; keeping a human strategist in the loop of an agent-speed search was the last <span class="term" data-t="t2" tabindex="0">formalization</span>-era assumption, and the authority it carried decomposes into one mechanical rule and one thin curator function.
+<em>Overturns if:</em> frontier noise from duplicate or junk holes measurably drowns self-selection — then admission adds a lightweight curator ack, still never an authored blueprint requirement.</p>
+<details class="more" id="d-29-more"><summary>Detail <span class="tags">rules</span><span class="cnt">111 words</span></summary>
+<p>The residual human authority is thin and belongs to the <strong>curator</strong>: versioning defective statements (D-8), consolidating syntactically duplicate nodes, and intake itself (D-6). Curators may not claim proof credit on targets they curate (D-21).</p>
+<p><strong>What replaces the <span class="term" data-t="t7" tabindex="0">blueprint</span> author's protections:</strong>
+- Weight self-inflation → gone with prospective weights (D-19).
+- Statement rot toward provability → root immutability + the D-30 claim discipline: weakening is legal only as a <em>labeled addition</em>, and "resolved" is a kernel-checked relation, so there is nothing left for silent weakening to buy.
+- Graph spam → mechanical <span class="term" data-t="t9" tabindex="0">gate</span> + identity-layer rate limits (D-19) + duplicate consolidation; near-duplicate holes are tolerated noise, priced by self-selection (D-25).</p>
+</details>
+<h3 id="d-30">D-30 — Weaker variants are first-class; resolution claims are relation-checked<a aria-label="Link to this section" class="hl" href="#d-30">§</a></h3>
+<p>Proving a weaker version of a target is legitimate research progress and needs no one's permission. Any contributor may propose a <strong><span class="term" data-t="t19" tabindex="0">variant</span> statement</strong> of a root: immutable and content-hashed like any statement, with a <span class="term" data-t="t8" tabindex="0">non-vacuity witness</span>, entering the frontier as its own claimable node.</p>
+<p class="note"><em>Rationale:</em> partial results are the normal currency of research on open problems, and the prover's incentive to weaken is now automated and constant; giving it a legal, labeled, kernel-checked outlet converts the system's chief statement-integrity threat into its chief progress mode.
+<em>Overturns if:</em> <code>related</code> variants are used to farm statement-line credit at write-up — then <code>related</code> proposals require an attached motivation record and earn only on demonstrated citation, D-14-style.</p>
+<details class="more" id="d-30-more"><summary>Detail <span class="tags">rules · table</span><span class="cnt">177 words</span></summary>
+<p><strong>The relation to the root is a label, and the label is kernel-checked where it matters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Label</th>
+<th>Meaning</th>
+<th>How established</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>resolves</code></td>
+<td>proving the variant resolves the target</td>
+<td>a Lean proof of <code>variant → root</code> attached and <span class="term" data-t="t9" tabindex="0">gate</span>-checked</td>
+</tr>
+<tr>
+<td><code>partial</code></td>
+<td>the variant is at most as strong as the target</td>
+<td>a Lean proof of <code>root → variant</code> attached and gate-checked</td>
+</tr>
+<tr>
+<td><code>related</code></td>
+<td>no proved relation</td>
+<td>neither implication supplied</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Claim discipline, mechanical:</strong> only a proof of the root itself, or of a <code>resolves</code>-labeled variant, may be reported (D-10) as resolving the target. A proved <code>partial</code> variant is reported as a partial resolution — exactly what it is. A proved <code>related</code> variant is a standalone result on the target's page. Misreporting is a D-17 ground (ii) dispute with the implication proof as the exhibit.</p>
+<p><strong><span class="term" data-t="t15" tabindex="0">Fidelity</span>:</strong> variants originate formally, so they carry no <span class="term" data-t="t16" tabindex="0">fidelity certificate</span> (D-9's <code>formally-native</code> handling); the target-level <em>claim</em> is protected by the relation proof plus the root's own certificate. A variant's mathematical <em>interest</em> is judged by nobody in advance — self-selection and retrospective write-up (D-19) price it.</p>
+</details>
+<h3 id="d-9">D-9 — Graded fidelity certificates on root statements and definitions<a aria-label="Link to this section" class="hl" href="#d-9">§</a></h3>
+<p><span class="term" data-t="t15" tabindex="0">Fidelity</span> review applies to <strong><span class="term" data-t="t6" tabindex="0">root statements</span> and definitions only</strong>; integrity (D-4) and fidelity fail independently, and nothing in <span class="term" data-t="t9" tabindex="0">the gate</span> touches the second. Definitions are first-class review objects: a wrong definition yields a formally true theorem about the wrong object.</p>
+<p class="note"><em>Rationale:</em> fidelity and integrity fail independently — integrity (D-4) asks whether the artifact proves the statement; fidelity asks whether the statement is the conjecture.
+<em>Overturns if:</em> definition-level defects prove rarer than statement-level ones in the pilot — then collapse the two review objects into one and save the ledger.</p>
+<details class="more" id="d-9-more"><summary>Detail <span class="tags">rules · evidence</span><span class="cnt">576 words</span></summary>
+<p><strong>Mechanizable tools run first:</strong> consequence lemmas, special-case lemmas, triviality controls, numerical spot-checks, back-translation. Back-translation is performed by a <strong>non-author</strong>, always. They are the adversarial component.</p>
+<p><strong>Public comment period.</strong> Root statements are published before the graph opens for proving, in the venues named in D-10. For Erdős targets the expert pool is the erdosproblems.com forum and the Lean Zulip, not a hire.</p>
+<p><strong>Fidelity status is graded, not binary.</strong> A root carries one of:</p>
+<p><code>mechanical-only</code> → <code>back-translated</code> → <code>author-attested</code> → <code>expert-attested</code> → <code>published-and-uncontested</code></p>
+<ul>
+<li><strong><code>author-attested</code></strong> — attestation by whoever is responsible for the source conjecture's listed formulation (for open problems the "source paper author" branch rarely applies; the attestor is typically the problem's curator or poser-of-record). Informative (they know what they meant) but structurally non-terminal: the defended failure mode is the Erdős-75 case — the listed formulation is itself flawed, which its own author cannot detect. For open problems this is the <em>dominant</em> fidelity risk, since there is no proved theorem anchoring the statement's intent. Upgrades to <code>expert-attested</code> with one independent signature.</li>
+<li><strong><code>published-and-uncontested</code></strong> is operational, not reputational: <strong>N days public in a D-10 venue + M independent proof attempts + zero confirmed defect claims (D-15).</strong> It downgrades automatically on any confirmed defect anywhere in the statement's definition closure. Pilot defaults: <strong>N = 30, M = 3</strong> — tunable, recorded per graph.</li>
+</ul>
+<p>Claims made about a completed target are scoped to its status. No proving compute is allocated below <code>back-translated</code>.</p>
+<p><strong>Scope exemptions — <span class="term" data-t="t5" tabindex="0">nodes</span> that carry no certificate:</strong>
+- <strong>Interior nodes</strong>, including <strong>authored</strong> ones — D-31 skeleton holes are chosen by a contributor rather than generated by the elaborator, but fidelity of an interior lemma is irrelevant to soundness either way; only its formal role in deriving the root matters, and that role is kernel-checked by the assembly it came from.
+- <strong>Compiler-derived statements</strong> — D-12 partial-proof children and reduction targets. The statement is generated by the elaborator from a residual goal; there is no informal referent. Fidelity is inherited from the root through the kernel.
+- <strong><span class="term" data-t="t19" tabindex="0">Variant</span> statements (D-30)</strong> — formally originated; the target-level claim is protected by the kernel-checked relation label plus the root's own certificate.
+- <strong>Formally-native targets</strong> — statements the network (or ETP-style projects) originates in Lean first, with no prior informal statement. No correspondence exists to check; the record marks them <code>formally-native</code> rather than granting a <span class="term" data-t="t16" tabindex="0">fidelity grade</span>.</p>
+<p><strong>Thin attestor pools get a declared cap, not a workaround.</strong> Where the qualified attestor pool is near-empty (e.g. alignment <span class="term" data-t="t2" tabindex="0">formalizations</span>), the target proceeds capped at <code>back-translated</code> with a doubled public comment period, and the cap is stated in any claim made about the result. A fidelity ceiling that cannot be raised is declared, never worked around. Refusing thin-pool targets outsources the agenda to attestor availability; proceeding uncapped launders weak fidelity into strong claims. <em>Cap overturns if:</em> capped targets accumulate confirmed post-hoc fidelity defects at a higher rate than attested ones — then thin-pool targets pause until the pool exists. (The author-CoI pattern is already closed above: <code>author-attested</code> is non-terminal and back-translation is non-author, always.)</p>
+<p><strong>What no certificate catches:</strong> strength drift (<code>≤</code> for <code>&lt;</code>, asymptotic for explicit, "sufficiently large" for an explicit threshold), degenerate-but-satisfiable statements, and an ill-posed source conjecture. These are the permanent residual risk and the certificate should not be read as retiring them.</p>
+<p class="note"><em>Evidence:</em> research §3–4 — <a href="https://arxiv.org/abs/2601.22401">Aletheia</a> misformalization rates; the fidelity caveats every frontier release itself flags: <a href="https://github.com/openai/ten-proofs">Astra</a>, <a href="https://arxiv.org/abs/2606.26442">AXLE</a>, Gauss; fidelity/integrity independence per <a href="https://arxiv.org/abs/2606.29493">Ammanamanchi–Bhat–Biderman</a>.</p>
+</details>
+<h3 id="d-10">D-10 — Statement registry interop, not a private registry<a aria-label="Link to this section" class="hl" href="#d-10">§</a></h3>
+<ul>
+<li><strong>Inherit before authoring.</strong> Where a <span class="term" data-t="t6" tabindex="0">root statement</span> exists in <code>google-deepmind/formal-conjectures</code> (or is linked from erdosproblems.com), the network inherits it rather than re-formalizing; provenance recorded per D-6 item 3. An inherited statement is inherited risk and still passes D-9 review.</li>
+<li><strong><span class="term" data-t="t22" tabindex="0">Upstream</span> before proving.</strong> Root statements the network originates are contributed to <span class="term" data-t="t21" tabindex="0">Formal Conjectures</span> and posted to erdosproblems.com (where in scope) before the graph opens for proving; <code>published-and-uncontested</code> is earned in public venues, not in-network.</li>
+<li><strong>Report back.</strong> Resolutions (proof, refutation, vacuity) are reported to the source registries.</li>
+<li><strong>Fail-open condition:</strong> if upstream latency blocks intake, publish in-network with equivalent visibility — never privately.</li>
+</ul>
+<p class="note"><em>Rationale:</em> a private statement registry re-creates the <span class="term" data-t="t15" tabindex="0">fidelity</span> problem the public ecosystem already crowdsources; inheriting and upstreaming buys review from the largest qualified pool that exists.
+<em>Overturns if:</em> upstream venues systematically reject or ignore network statements — then in-network publication with equivalent visibility becomes the default rather than the fallback.</p>
+<p class="note"><em>Evidence:</em> research §4 — <a href="https://github.com/google-deepmind/formal-conjectures">google-deepmind/formal-conjectures</a> (~240 Erdős statements formalized) and <a href="https://erdosproblems.com">erdosproblems.com</a> are the existing review pools; a private registry re-creates the fidelity problem they already crowdsource.</p>
+<h3 id="d-11">D-11 — Overt canaries measure review; catch rate replaces escape rate<a aria-label="Link to this section" class="hl" href="#d-11">§</a></h3>
+<p>Known-defective statements, one class per row of the research §3 <span class="term" data-t="t15" tabindex="0">fidelity</span> table (missing hypothesis, junk values, vacuity, quantifier scope, wrong domain, definition mismatch), are seeded into the <strong>review queue only</strong> — never the claimable frontier — at a disclosed-but-unspecified rate. Reviewers know <span class="term" data-t="t17" tabindex="0">canaries</span> exist; not which. Caught canaries retire cleanly under a status excluded from D-25's <code>ready</code> set.</p>
+<p class="note"><em>Rationale:</em> escape rate counts defects nobody caught and is unmeasurable by construction; covert seeding, once discovered in a public-by-default network, would cost the community trust D-26 exists to earn.
+<em>Overturns if:</em> crafting non-lazy canaries costs more curator/reviewer time than the measurement is worth — then narrow to the mechanically generatable classes and accept partial coverage.</p>
+<details class="more" id="d-11-more"><summary>Detail <span class="tags">rules · evidence</span><span class="cnt">70 words</span></summary>
+<p><strong>Metric change:</strong> <em>canary catch rate</em>, per reviewer and per defect class, replaces <span class="term" data-t="t2" tabindex="0">misformalization</span> escape rate as the measured Stage-1 gate criterion; escape rate is estimated from it, not observed. Per-class catch rates direct mechanical-checker coverage.</p>
+<p class="note"><em>Evidence:</em> research §3 — the fidelity-defect taxonomy (missing hypothesis, junk values, vacuity, quantifier scope, wrong domain, definition mismatch) from <a href="https://arxiv.org/abs/2606.29493">Ammanamanchi–Bhat–Biderman</a> supplies the canary classes; escape rate is unmeasurable by construction, catch rate is not.</p>
+</details>
+<h2 id="resolution-artifacts">Resolution artifacts<a aria-label="Link to this section" class="hl" href="#resolution-artifacts">§</a></h2>
+<h3 id="d-12">D-12 — Five resolution artifacts, not three<a aria-label="Link to this section" class="hl" href="#d-12">§</a></h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Artifact</th>
+<th>Effect</th>
+<th>Kernel-checkable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Sorry-free proof</td>
+<td>Closed</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Counterexample (proof of <code>¬P</code>)</td>
+<td>Closed as refuted; escalates to parent</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Vacuity certificate</td>
+<td>Closed as defective; forces D-8 revision</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Reduction</strong> — proof that the <span class="term" data-t="t5" tabindex="0">node</span> follows from a stated new node</td>
+<td>Node becomes a dependent; new node enters graph</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Partial proof</strong> — typechecks modulo <em>k</em> named <code><span class="term" data-t="t3" tabindex="0">sorry</span></code>s</td>
+<td>Node stays open; the <em>k</em> holes become candidate child nodes</td>
+<td>Yes, modulo the holes</td>
+</tr>
+</tbody>
+</table>
+<p>Partial proofs merge into <code>attempts/</code>, never <code>Proof.lean</code>. Residual holes enter the frontier directly as <strong>compiler-derived children</strong> (D-29) once they pass the mechanical <span class="term" data-t="t9" tabindex="0">gate</span>; no human promotion step. A curator may consolidate syntactically duplicate holes; near-duplicates are tolerated frontier noise, priced by self-selection (D-25). Closing a hole earns proof-line ledger credit like any node.</p>
+<p class="note"><em>Rationale:</em> a partial proof is a compiler-derived decomposition of the residual difficulty — the highest-value artifact current systems discard.
+<em>Overturns if:</em> residual holes are routinely harder than the original — then partials are difficulty-laundering and re-enter <code>attempts/</code> as <span class="term" data-t="t18" tabindex="0">postmortem</span> material only.</p>
+<details class="more" id="d-12-more"><summary>Detail <span class="tags">rules · figure · evidence</span><span class="cnt">458 words</span></summary>
+<p><strong>Offload rule (mechanical).</strong> No hole may be definitionally equal to the <span class="term" data-t="t5" tabindex="0">node</span>'s own goal, and a partial whose assembly is a single such hole is rejected at the <span class="term" data-t="t9" tabindex="0">gate</span>, not reviewed. Restating the goal under a new name is the cheapest available fake progress and the one AlphaProof Nexus observed in practice; it must cost a rejection rather than a hole in the frontier. Partials that are non-trivial but shallow are <em>not</em> policed here — that is what self-selection and the D-25 starvation metric price.</p>
+<p><strong>Skeletons are partial proofs (D-31).</strong> A Lean skeleton derived from an informal argument — assembly proved, every lemma <code><span class="term" data-t="t3" tabindex="0">sorry</span></code> — is artifact #5 with authored rather than compiler-derived holes; annex, credit and citation rules are in D-31.</p>
+<p><strong>Root-level outcomes are research results, with equal status.</strong> For an open target, a counterexample at the root (artifact #2) is a full <em>negative resolution</em> of the conjecture — reported <span class="term" data-t="t22" tabindex="0">upstream</span> per D-10 as a result, not treated as a defect-flavored event. A vacuity certificate at the root (artifact #3) means the conjecture <em>as posed</em> is ill-formed; it is reported to the source registry, not merely routed to internal D-8 revision. A reduction at the root (artifact #4) — "the conjecture holds modulo these named cruxes" — is a primary progress mode when the truth value is unknown, since it converts an open problem into strictly sharper open problems. And a proof of a <code>partial</code>-labeled <span class="term" data-t="t19" tabindex="0">variant</span> (D-30) is a partial resolution of the target — reported as exactly that.</p>
+<figure class="fig">
+<svg viewBox="0 0 700 566" role="img" aria-labelledby="figart-t" xmlns="http://www.w3.org/2000/svg">
+<title id="figart-t">The five resolution artifacts of D-12 and their effects on the node, the graph, and the root</title>
+<defs><marker id="ah2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--ink-soft)"/></marker></defs>
+<text class="tt" x="120" y="22" text-anchor="middle">artifact (kernel-checkable)</text>
+<text class="tt" x="395" y="22" text-anchor="middle">effect on node &amp; graph</text>
+<text class="tt" x="605" y="22" text-anchor="middle">at the root</text>
+<rect class="bx" x="20" y="40" width="200" height="48" rx="4"/>
+<text class="t tb" x="120" y="68" text-anchor="middle">1 · sorry-free proof</text>
+<line class="ln" x1="220" y1="64" x2="284" y2="64" marker-end="url(#ah2)"/>
+<rect class="bx" x="290" y="40" width="210" height="48" rx="4"/>
+<text class="t" x="395" y="68" text-anchor="middle">node closed</text>
+<line class="lnd" x1="500" y1="64" x2="520" y2="64"/>
+<text class="ta" x="525" y="60">conjecture resolved —</text>
+<text class="ta" x="525" y="75">reported upstream (D-10)</text>
+<rect class="bx" x="20" y="146" width="200" height="64" rx="4"/>
+<text class="t tb" x="120" y="172" text-anchor="middle">2 · counterexample</text>
+<text class="t ts" x="120" y="189" text-anchor="middle">kernel proof of ¬P</text>
+<line class="ln" x1="220" y1="178" x2="284" y2="178" marker-end="url(#ah2)"/>
+<rect class="bx" x="290" y="146" width="210" height="64" rx="4"/>
+<text class="t" x="395" y="172" text-anchor="middle">closed as refuted</text>
+<text class="t ts" x="395" y="189" text-anchor="middle">escalates to parent</text>
+<line class="lnd" x1="500" y1="178" x2="520" y2="178"/>
+<text class="ta" x="525" y="166">negative resolution —</text>
+<text class="ta" x="525" y="181">a full result, reported</text>
+<text class="ta" x="525" y="196">upstream (D-10)</text>
+<rect class="bx" x="20" y="252" width="200" height="64" rx="4"/>
+<text class="t tb" x="120" y="278" text-anchor="middle">3 · vacuity certificate</text>
+<text class="t ts" x="120" y="295" text-anchor="middle">hypotheses unsatisfiable</text>
+<line class="ln" x1="220" y1="284" x2="284" y2="284" marker-end="url(#ah2)"/>
+<rect class="bx" x="290" y="252" width="210" height="64" rx="4"/>
+<text class="t" x="395" y="278" text-anchor="middle">closed as defective</text>
+<text class="t ts" x="395" y="295" text-anchor="middle">forces a D-8 revision</text>
+<line class="lnd" x1="500" y1="284" x2="520" y2="284"/>
+<text class="ta" x="525" y="272">conjecture as posed is</text>
+<text class="ta" x="525" y="287">ill-formed — reported to</text>
+<text class="ta" x="525" y="302">the source registry</text>
+<rect class="bx" x="20" y="358" width="200" height="70" rx="4"/>
+<text class="t tb" x="120" y="382" text-anchor="middle">4 · reduction</text>
+<text class="t ts" x="120" y="399" text-anchor="middle">proof the node follows</text>
+<text class="t ts" x="120" y="414" text-anchor="middle">from a stated new node</text>
+<line class="ln" x1="220" y1="393" x2="284" y2="393" marker-end="url(#ah2)"/>
+<rect class="bx" x="290" y="358" width="210" height="70" rx="4"/>
+<text class="t" x="395" y="382" text-anchor="middle">node becomes a dependent</text>
+<text class="t ts" x="395" y="399" text-anchor="middle">new node enters the</text>
+<text class="t ts" x="395" y="414" text-anchor="middle">frontier (D-29)</text>
+<line class="lnd" x1="500" y1="393" x2="520" y2="393"/>
+<text class="ta" x="525" y="381">holds modulo named cruxes</text>
+<text class="ta" x="525" y="396">— strictly sharper open</text>
+<text class="ta" x="525" y="411">problems</text>
+<rect class="bx" x="20" y="464" width="200" height="82" rx="4"/>
+<text class="t tb" x="120" y="490" text-anchor="middle">5 · partial proof</text>
+<text class="t ts" x="120" y="507" text-anchor="middle">typechecks modulo</text>
+<text class="t ts" x="120" y="522" text-anchor="middle">k named sorrys</text>
+<line class="ln" x1="220" y1="505" x2="284" y2="505" marker-end="url(#ah2)"/>
+<rect class="bx" x="290" y="464" width="210" height="82" rx="4"/>
+<text class="t" x="395" y="485" text-anchor="middle">node stays open</text>
+<text class="t ts" x="395" y="502" text-anchor="middle">merges to attempts/ only</text>
+<text class="t ts" x="395" y="517" text-anchor="middle">k holes enter the frontier as</text>
+<text class="t ts" x="395" y="532" text-anchor="middle">compiler-derived children (D-29)</text>
+<line class="lnd" x1="500" y1="505" x2="520" y2="505"/>
+<text class="ta" x="525" y="493">root stays open; its holes</text>
+<text class="ta" x="525" y="508">are new attack-route nodes</text>
+</svg>
+<figcaption>The five resolution artifacts (D-12). At the root of an open target every artifact is a research result, not a failure mode; a proved <code>partial</code>-labeled variant (D-30) is additionally reported as a partial resolution.</figcaption>
+</figure>
+<p class="note"><em>Evidence:</em> research §1–2 — <a href="https://arxiv.org/abs/2606.06468">Goedel-Architect</a> counterexample registration (prove the negation); <a href="https://arxiv.org/abs/2605.22763">AlphaProof Nexus</a> caught restated-lemma <code>sorry</code> offloading, motivating artifact #4/#5 discipline.</p>
+</details>
+<h3 id="d-13">D-13 — Failed attempts are first-class artifacts<a aria-label="Link to this section" class="hl" href="#d-13">§</a></h3>
+<p>Appended to <code>nodes/&lt;node-id&gt;/attempts/&lt;timestamp&gt;-&lt;contributor&gt;.yaml</code>. Typed and short — <strong>not a transcript</strong>.</p>
+<details class="more" id="d-13-more"><summary>Detail <span class="tags">rules · code · evidence</span><span class="cnt">359 words</span></summary>
+<pre><code class="language-yaml">schema: d13/v1                  # versioned per D-34
+node: erdos-1196/lemma-14
+contributor: &lt;id&gt;
+route: "strong induction on the exponent k"
+route_class: induction | generating-function | probabilistic |
+             direct-estimate | case-split | reduction-to-known | computational
+outcome: refuted-route | exhausted | abandoned-early | blocked
+terminal_goal_state: |          # serialized Lean goal state
+  n k : ℕ
+  hk : 2 ≤ k
+  ih : ∀ m &lt; k, P m
+  ⊢ ∑ i in Finset.range k, f i ≤ C * k ^ 2
+failure_class: missing-library | statement-suspect | timeout-blowup |
+               needs-new-definition | route-dead-ends | budget-exhausted |
+               informal-gap
+detail: &gt;
+  Reduces to a uniform bound on partial sums; Mathlib has Abel summation
+  but not the Cauchy–Schwarz variant needed for this index set.
+artifacts:
+  partial_proof: attempts/2026-08-17-partial.lean
+  missing_lemmas: ["uniform bound on ∑ f i over Finset.range"]
+</code></pre>
+<p><strong>Rules:</strong>
+- <code>outcome</code> is mandatory and un-collapsible. "Refuted this route" and "ran out of time" are different facts; conflating them steers competent contributors away from routes that work.
+- <code>terminal_goal_state</code> is a Lean object, not prose. Highest-value field, free to produce, impossible to exaggerate.
+- <strong>No raw transcripts</strong> in the default context bundle.
+- <code>failure_class: missing-library</code> aggregates; above threshold the missing lemma enters the frontier as a <strong>prerequisite <span class="term" data-t="t5" tabindex="0">node</span></strong>.
+- <code>failure_class: statement-suspect</code> routes to D-8, not to the review queue.
+- <code>failure_class: informal-gap</code> records a failed skeletonization (D-31): the informal argument did not survive assembly, and <code>terminal_goal_state</code> localizes the gap or ambiguity to the joint that would not close. Names the annex hash.</p>
+<p><strong>Credit:</strong> a merged <span class="term" data-t="t18" tabindex="0">postmortem</span> earns an attempts-line ledger entry, flat per class. <strong>Only the first per <code>route_class</code> per node earns anything</strong> — this is the anti-farming rule. <code>refuted-route</code> earns substantially more than <code>exhausted</code> and is reviewed like any other claim.</p>
+<p><strong>Corpus:</strong> merged postmortems are the failure tier of the attempt corpus (D-34); the <code>schema</code> field is what lets that record be parsed across revisions of this decision.</p>
+<p><strong>Feedback:</strong> every node's context bundle includes its attempt log. Nodes accumulating attempts without progress escalate automatically — surfaced to curator attention and eligible for bountying (D-26).</p>
+<p class="note"><em>Evidence:</em> research §2 — <a href="https://arxiv.org/abs/2606.05400">LeanMarathon</a>'s Worker stopping rule (audit → falsify → formalize) is the artifact-not-effort principle; typed goal states are the un-fakeable residue.</p>
+</details>
+<h3 id="d-14">D-14 — Strategy-level failure records, target-scoped<a aria-label="Link to this section" class="hl" href="#d-14">§</a></h3>
+<p>D-13 is <span class="term" data-t="t5" tabindex="0">node</span>-scoped; a dead <em>strategy</em> has no node to attach to. For open problems this decision is central, not supplementary: given the base rate of resolution (research §1 — 9 of 353), refuted routes, dead subgraphs and crux reductions <em>are</em> the expected primary output of most targets, and this record is what makes an unresolved target a contribution rather than a write-off. Three carriers at <code>targets/&lt;target-id&gt;/</code>, descending in trustworthiness:</p>
+<p><strong>1. Dead subgraphs are never deleted.</strong> A branch killed by a counterexample or abandoned as unreachable is marked <code>abandoned</code> with a cause, and stays queryable with its statements, attempt logs and the artifact that killed it. This is free, fully grounded, and is the primary record.</p>
+<p class="note"><em>Rationale:</em> a bad node postmortem wastes one node; a bad strategy verdict can kill a line of attack across a whole target — so the bar for being believed is higher, and grounding, decay and retroactive payment are what raise it.
+<em>Overturns if:</em> approach records go uncited across a full target lifecycle despite bundle inclusion — then mechanism 3 is a write-only archive and is dropped, keeping 1 and 2.</p>
+<details class="more" id="d-14-more"><summary>Detail <span class="tags">rules</span><span class="cnt">331 words</span></summary>
+<p><strong>2. Crux-lemma speculative nodes.</strong> A contributor with a stage-1 idea may enter it as a <code>speculative</code> node: the single formal statement the strategy hinges on, body <code><span class="term" data-t="t3" tabindex="0">sorry</span></code>, with a <span class="term" data-t="t8" tabindex="0">non-vacuity witness</span>. This converts an unfalsifiable idea into a stage-4 object — it typechecks, it can be refuted by a counterexample, it inherits all of D-12 and D-13. <strong>An idea that cannot name its crux as a formal statement is not yet recordable.</strong></p>
+<p><strong>3. Approach records</strong> — free-text, for strategies that never reached a statement. Fields: <code>schema</code> (D-34), <code>route</code>, <code>outcome</code> (same un-collapsible vocabulary as D-13), <code>pinned_mathlib_sha</code>, <code>model_and_tooling</code>, <code>date</code>.</p>
+<p><strong>Boundary with D-31.</strong> An informal <em>proof of a specific node</em> is not an approach record. It is an annex under D-31, node-scoped, and it converts to work by skeletonization rather than by citation. Mechanism 3 keeps only what D-31 cannot take: strategy-level reasoning with no node and no nameable crux. Where the two could both apply, D-31 governs — its citation is mechanical and mechanism 3's is not.</p>
+<p><strong>Credit differs from D-13 and this is the point.</strong> Mechanisms 1 and 2 are grounded and earn on merge like any node artifact. Mechanism 3 is not kernel-checkable, is trivially cheap to fabricate, and therefore <strong>earns nothing on submission — only retroactively, when a later contributor cites it as having changed their approach.</strong> Payment on demonstrated reuse is the only anti-farming rule available when nothing is machine-checkable.</p>
+<p><strong>Verdicts decay; node <span class="term" data-t="t18" tabindex="0">postmortems</span> mostly don't.</strong> A strategy declared dead is dead <em>relative to a <span class="term" data-t="t1" tabindex="0">Mathlib</span> SHA and a generation of tooling</em>. Every approach record carries both, and records predating a pinned-SHA bump or a major capability shift are flagged <code>stale</code>, not authoritative. <code>outcome: blocked</code> on a named library gap auto-resurfaces when the corresponding prerequisite node closes.</p>
+<p><strong>Mandatory consumer.</strong> Approach records ship in every target-level context bundle (<code>get_target</code>, D-28), so every prover and route-proposer reads them by default. Without a consumer this becomes a write-only archive; here the consumer is mechanical.</p>
+</details>
+<h3 id="d-31">D-31 — Informal arguments enter as skeletons; prose is never an artifact<a aria-label="Link to this section" class="hl" href="#d-31">§</a></h3>
+<p>The empirically dominant open-problem pipeline is informal-first: a general model produces the argument in prose, a Lean system formalizes it. Under D-12 alone that pipeline's load-bearing step has no home — the ledger would pay the transcriber and stiff the prover. This decision gives prose exactly one on-ramp and no other status.</p>
+<p class="note"><em>Rationale:</em> skeletonization is the cheapest possible conversion of untrusted prose into kernel-checked structure — a single-session task, far cheaper than proving anything — and it is the highest-leverage contribution type available because it is what expands the frontier; routing prose through it means the network can absorb the informal-first pipeline without ever trusting, storing or paying for an unverifiable claim.
+<em>Overturns if:</em> skeletons routinely yield holes no harder than the goal despite the offload check, or <code>informal-gap</code> dominates outcomes so heavily that annexes are net context pollution — then skeletonization reverts to D-13 postmortem material only and annexes are dropped.</p>
+<details class="more" id="d-31-more"><summary>Detail <span class="tags">rules · code · evidence</span><span class="cnt">574 words</span></summary>
+<p><strong><span class="term" data-t="t25" tabindex="0">Skeletonization</span>.</strong> The informal argument's lemma structure is written in Lean, every lemma body <code><span class="term" data-t="t3" tabindex="0">sorry</span></code>, and the top-level assembly actually proved:</p>
+<pre><code class="language-lean">theorem node_goal : P := by
+  have h₁ : A := sorry          -- lemma 1 of the informal argument
+  have h₂ : B := sorry          -- lemma 2
+  exact combine h₁ h₂           -- the assembly: proved, not sorry
+</code></pre>
+<p>If that typechecks, the argument's <strong>architecture</strong> is kernel-checked even though none of its content is. Nobody has to trust the prose, its author, or the model that produced it — the assembly either elaborates or it doesn't.</p>
+<p><strong>A skeleton is D-12 artifact #5</strong> — a partial proof with <em>k</em> holes: it merges to <code>attempts/</code>, never <code>Proof.lean</code>, and the holes enter the frontier as children under D-29 once they pass the statement-side gate.</p>
+<p><strong>Rules:</strong></p>
+<ul>
+<li><strong>Prose attaches as an <span class="term" data-t="t26" tabindex="0">annex</span>, never as a claim.</strong> <code>nodes/&lt;node-id&gt;/annex/&lt;hash&gt;.md</code> — content-hashed, immutable, served as demarcated untrusted data (D-28). An annex earns nothing on submission and nothing later. It is input, not output, and submitting one is not a contribution.</li>
+<li><strong>The skeleton names the annex it was derived from, by hash.</strong> That naming is the mechanical citation D-14 mechanism 3 has never had: reuse here is observable in the artifact rather than self-reported. It is what lets annex authorship be recognized at retrospective write-up (D-19) without being payable at submission.</li>
+<li><strong>Skeleton holes are authored statements, not compiler-derived.</strong> <code>META.yaml</code> carries <code>origin: authored</code> (D-3) — the elaborator did not generate them from a residual goal, a person or agent chose the decomposition. Consequently they are interior <span class="term" data-t="t5" tabindex="0">nodes</span>, so they carry no <span class="term" data-t="t16" tabindex="0">fidelity certificate</span> (D-9); and they earn no statement-line credit, which D-19 reserves for roots, <code>defs/</code>, <span class="term" data-t="t19" tabindex="0">variants</span> and speculative cruxes.</li>
+<li><strong>The skeletonizer is paid for the assembly.</strong> Proof-line credit, flat, for the one thing in the submission the kernel actually checked. Not for the holes, not for the prose, not for <em>k</em>. This is what keeps skeleton volume from being farmable: producing holes is free, and free things earn nothing.</li>
+<li><strong>Trivial skeletons are rejected mechanically</strong> under D-12's offload rule — a single hole definitionally equal to the node's goal is a rename, not a decomposition.</li>
+<li><strong>A failed skeletonization is a result.</strong> If the assembly will not typecheck, the informal argument has a gap or an ambiguity at precisely the joint that will not close. That is a D-13 <span class="term" data-t="t18" tabindex="0">postmortem</span> with <code>failure_class: informal-gap</code> and a <code>terminal_goal_state</code> localizing it — the mechanical form of what the Erdős #728 forum thread did by hand over two days, and the only cheap check that exists for AI-generated prose.</li>
+<li><strong>Competing skeletons of one annex are normal.</strong> Different decompositions of the same argument produce overlapping holes; that is tolerated frontier noise priced by self-selection (D-25), consolidated only where syntactically duplicate (D-29).</li>
+<li><strong>Annexes do not gate proving.</strong> A node with three annexes confers no obligation to read them. Annex presence is a published frontier field (D-25), so operators can filter toward or away from prose-assisted nodes as they choose.</li>
+</ul>
+<p class="note"><em>Evidence:</em> Erdős #728 is the worked example — <a href="https://arxiv.org/abs/2601.07421">Sothanaphan's writeup</a> records GPT-5.2 Pro supplying the informal argument, Aristotle formalizing it, and the decisive human step being disambiguation of which statement was meant; <a href="https://arxiv.org/abs/2601.22401">Aletheia</a> reports the same shape at scale, with autonomous solutions failing predominantly on statement interpretation and prior art rather than on proof error — neither of which formal verification addresses; <a href="https://arxiv.org/abs/2605.22763">AlphaProof Nexus</a> supplies the offload failure mode the trivial-skeleton check exists to catch.</p>
+</details>
+<h2 id="review-disputes-and-revocation">Review, disputes, and revocation<a aria-label="Link to this section" class="hl" href="#review-disputes-and-revocation">§</a></h2>
+<h3 id="d-15">D-15 — Statement review: separate, adversarial, credited per confirmed defect<a aria-label="Link to this section" class="hl" href="#d-15">§</a></h3>
+<p>A <span class="term" data-t="t5" tabindex="0">node</span>'s statement reviewer is never its prover and is randomly assigned. Pre-merge reviewer anonymity applies <strong>only on bountied nodes (D-26)</strong>; on standard nodes review is open, like ordinary code review. Credit (ledger by default; payment only on bountied nodes, D-26) attaches to <strong>confirmed defects</strong>, paired with <strong>sample auditing of approvals</strong> — the two ship together or not at all. Mechanical checkers run first so human attention goes only to the semantic residue.</p>
+<p class="note"><em>Rationale:</em> Aletheia's 68.5% incorrect / 6.5% intended-correct is the empirical case; this is the dominant residual risk in the system.
+<em>Overturns if:</em> automated fidelity checking becomes good enough to carry <span class="term" data-t="t6" tabindex="0">interior nodes</span>.</p>
+<details class="more" id="d-15-more"><summary>Detail <span class="tags">rules · evidence</span><span class="cnt">64 words</span></summary>
+<p><strong>Open defect claims:</strong> anyone — not only the assigned reviewer — may file a statement-defect claim carrying a kernel-checkable exhibit. Confirmed claims earn the defect credit; unconfirmed claims draw down the filer's rejected-claim budget (D-16 — deprioritized, never forfeited).</p>
+<p class="note"><em>Evidence:</em> research §2–3 — <a href="https://arxiv.org/abs/2601.22401">Aletheia</a>'s 68.5%/6.5% figures are the empirical case; <a href="https://arxiv.org/abs/2606.05400">LeanMarathon</a>'s adversarial Target-Reviewer is the working precedent for separating review from generation.</p>
+</details>
+<h3 id="d-16">D-16 — Defect claims are free, shaped, and taxonomy-typed<a aria-label="Link to this section" class="hl" href="#d-16">§</a></h3>
+<p>No staking. Instead: (1) <strong>mechanical pre-triage</strong> — a defect claim must name a defect class from the research §3 taxonomy and point at a specific line, or it bounces automatically; (2) <strong>rolling rejected-claim budget per identity</strong> — exhausting it deprioritizes (never blocks) future claims; (3) repeat-pattern rejection feeds the D-22 removal path. Claim classes feed D-11's per-class measurement.</p>
+<p class="note"><em>Rationale:</em> the asymmetry is decisive — one escaped <span class="term" data-t="t15" tabindex="0">fidelity</span> defect poisons a subtree, so the system overpays for false alarms rather than chilling tentative true ones; staking imports a market into the D-26 commons and punishes honest disagreement with noisy panel verdicts.
+<em>Overturns if:</em> adjudication queue growth is driven by under-the-limit patient flooding — then limits tighten per D-22 standing, still never stakes.</p>
+<h3 id="d-17">D-17 — Human attention at the root and on defects only<a aria-label="Link to this section" class="hl" href="#d-17">§</a></h3>
+<p>Automated Target-Review on <span class="term" data-t="t6" tabindex="0">interior nodes</span>; <strong>mandatory human sign-off restricted to target/root statements and defect adjudication.</strong></p>
+<details class="more" id="d-17-more"><summary>Detail <span class="tags">rules</span><span class="cnt">61 words</span></summary>
+<p><strong>Disputes have exactly three grounds:</strong> (i) the statement doesn't capture the intended mathematics, (ii) the proof exploits a verification loophole, (iii) credit allocation is wrong. (i) and (ii) go to a non-author panel with power to unmerge and revoke. Everything else is not a dispute.</p>
+<p>The scaling metric is <strong>drain rate on the human sign-off queue</strong>, not the PR queue.</p>
+</details>
+<h3 id="d-18">D-18 — Revocation is fault-isolated, with immediate quarantine<a aria-label="Link to this section" class="hl" href="#d-18">§</a></h3>
+<p>When a dispute on grounds (i) or (ii) is <strong>accepted for adjudication</strong>, the <span class="term" data-t="t5" tabindex="0">node</span> is flagged <code>disputed</code> and new claims depending on it are blocked immediately. If invalidated: the defective node's credit is revoked; dependents are marked <code>stale</code> but their provers keep ledger credit annotated <strong>"correct modulo revoked dependency"</strong> — visibly flagged, never silent. The node is repaired via D-8 versioning; dependent proofs are mechanically re-run against the new version and re-annotated on survival.</p>
+<p class="note"><em>Rationale:</em> a full cascade punishes innocent downstream work and makes revocation too destructive to invoke; a deterrent the operator hesitates to use is not a deterrent.
+<em>Overturns if:</em> annotated credit accumulates faster than repairs clear it — then the graph is rotting and the problem is <span class="term" data-t="t22" tabindex="0">upstream</span>, in the gate or review.</p>
+<h2 id="credit">Credit<a aria-label="Link to this section" class="hl" href="#credit">§</a></h2>
+<h3 id="d-19">D-19 — Credit: an artifact ledger, significance retrospective<a aria-label="Link to this section" class="hl" href="#d-19">§</a></h3>
+<ul>
+<li><strong>Credit is an inclusive ledger (D-26), CRediT-style, not a zero-sum prize.</strong></li>
+<li><strong>Six lines:</strong> statement authorship (roots, defs, variants, speculative cruxes), proof authorship, review, attempts, <span class="term" data-t="t22" tabindex="0">upstreaming</span> (D-7), write-up (D-32, including <span class="term" data-t="t28" tabindex="0">explainers</span> under D-3). Model and tool version recorded per node alongside the human name.</li>
+<li><strong>No prospective weights.</strong> The ledger records <em>what</em> was contributed — each entry a kernel-checked or schema-checked artifact. Relative <strong>significance is assigned retrospectively at write-up</strong> (proposed by the D-32 writer), per target, when realized difficulty is actually known — evidenced by the D-13 record (attempt counts, time-to-close, <span class="term" data-t="t18" tabindex="0">postmortem</span> volume) and disputable under D-17 ground (iii). Prospective difficulty weights on open problems were guesses without an answer key; the working precedent (ETP's contribution appendix) never had them.</li>
+<li><strong>Anti-gaming without weights:</strong> credit never scales with <span class="term" data-t="t5" tabindex="0">node</span> count (duplicate and trivial holes are consolidated or ignored at write-up; retrospective significance is the filter splitting can't farm), never with proof length or token spend. Postmortems pay first-per-route-class only (D-13). Contributor-introduced helper lemmas are credit-neutral unless closed as frontier nodes.</li>
+<li><strong>All credit is versioned and revocable.</strong> Retrospective revocation is the real Sybil and collusion defense, not admission control.</li>
+<li><strong>Identity is the human operator.</strong> Agents are tools; every artifact an agent submits is submitted <em>by its operator</em>, who is accountable for it under standing, claim budgets, and the own-credentials rule (D-23). There are no agent identities. Identity creation is costly but not gatekept (account age, one prior merged trivial PR, or a vouching graph), rate-limited per identity. Operators evading accountability by rotating agents are answered with identity-layer cost, never agent registration.</li>
+</ul>
+<p><strong>Revision (D-8):</strong> <code>&lt;node-id&gt;@v2</code> supersedes v1; credit already earned on v1 is kept by its earners per D-18. A revision never re-mints paid credit.</p>
+<p class="note"><em>Rationale:</em> the two real contributor populations (enthusiasts on sunk subscription credits, mathematicians needing legible academic credit) need a truthful record and a defensible contribution statement at paper time — the first is artifact-level and mechanical, the second is only assessable after the fact; prospective scalars served neither and were the least-precedented machinery in the design.
+<em>Overturns if:</em> write-up credit disputes become routine or hard nodes visibly starve for lack of a price signal — then reintroduce per-node scalars, but set retrospectively-informed, never author-fixed.</p>
+<details class="more" id="d-19-more"><summary>Detail <span class="tags">rules · evidence</span><span class="cnt">80 words</span></summary>
+<p><strong>Metric:</strong> ledger entries per identity over time and write-up dispute rate are the monitored series — a dispute spike is the signal that retrospective assignment is failing.</p>
+<p class="note"><em>Evidence:</em> research §2, §7 — <a href="https://arxiv.org/abs/2512.07087">ETP</a> (<a href="https://github.com/teorth/equational_theories">repo</a>) author-contribution appendix is the working inclusive-ledger precedent, and it carries no weights; attribution norms per the Leiden Declaration (June 2026, IMU-endorsed); research §7 flags prospective anti-gaming weight rules as unprecedented design reasoning — retired here before Stage 1 rather than tested at contributor expense.</p>
+</details>
+<h3 id="d-20">D-20 — Retired<a aria-label="Link to this section" class="hl" href="#d-20">§</a></h3>
+<p><em>Retired 2026-09-05.</em> Weight-quality audit of <span class="term" data-t="t7" tabindex="0">blueprint</span> authors — predicated on prospective weights and the blueprint-author role, both removed (D-19, D-29). The number is preserved as a citable identifier and is never reused. Statement-line credit for route proposers survives in D-19; contribution-quality accountability survives in D-22's standing and removal paths.</p>
+<h2 id="roles-and-governance">Roles and governance<a aria-label="Link to this section" class="hl" href="#roles-and-governance">§</a></h2>
+<h3 id="d-21">D-21 — Role separation<a aria-label="Link to this section" class="hl" href="#d-21">§</a></h3>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Does</th>
+<th>May not</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Curator</td>
+<td>Intake (D-6); adjudicates revision requests; consolidates duplicate <span class="term" data-t="t5" tabindex="0">nodes</span></td>
+<td><strong>Claim proof credit on a target they curate</strong></td>
+</tr>
+<tr>
+<td>Prover</td>
+<td>Claims nodes, submits proofs, variants, speculative cruxes, and <span class="term" data-t="t18" tabindex="0">postmortems</span></td>
+<td>Edit any statement; review own node</td>
+</tr>
+<tr>
+<td>Statement reviewer</td>
+<td>Adversarial <span class="term" data-t="t15" tabindex="0">fidelity</span> review</td>
+<td>Review a node they proved or authored; on bountied nodes (D-15), know the author pre-merge</td>
+</tr>
+<tr>
+<td>Auditor</td>
+<td>Samples merged approvals and proofs</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Adjudicator</td>
+<td>Resolves the three dispute grounds</td>
+<td>Adjudicate a node they touched in any other role</td>
+</tr>
+<tr>
+<td>Writer (D-32)</td>
+<td>Authors the target's paper or state-of-the-problem note; proposes retrospective significance (D-19) and the contribution statement</td>
+<td><strong>Claim proof credit on that target after appointment</strong>; hold statement-reviewer or adjudicator role on it</td>
+</tr>
+</tbody>
+</table>
+<p>The curator-proving exclusion is load-bearing: the one residual human authority over a target's statements (D-8 versioning, D-29 consolidation) must not belong to someone competing on its ledger. The writer-proving exclusion follows the same logic on the credit side: the person proposing everyone's significance must not be adding to their own share while doing it.</p>
+<h3 id="d-22">D-22 — Role lifecycle: mechanical floor, human ceiling, published reasoning<a aria-label="Link to this section" class="hl" href="#d-22">§</a></h3>
+<p><strong>Steady state:</strong> track-record thresholds <span class="term" data-t="t9" tabindex="0">gate</span> <em>eligibility</em> (N merged proofs → reviewer-eligible; M confirmed defects → auditor-eligible); the role is <em>granted</em> by appointment from existing role-holders, <span class="term" data-t="t1" tabindex="0">Mathlib</span>-maintainer-style; removal requires two role-holders and published reasoning. Any role decision is appealable to the D-17 panel, whose composition the founder controls until Stage 2.</p>
+<p class="note"><em>Rationale:</em> thresholds alone get farmed and cannot verify mathematical judgment; appointment alone is favoritism; credentials verify math but not Lean, so the two competencies seed from different pools.
+<em>Overturns if:</em> incumbent role-holders demonstrably block qualified appointments — then the D-17 appeal path escalates to a wider electorate.</p>
+<details class="more" id="d-22-more"><summary>Detail <span class="tags">rules</span><span class="cnt">154 words</span></summary>
+<p><strong>Bootstrap:</strong> Stage 1 explicitly waives D-21 separation for the founding team, with a <strong>sunset clause</strong> — the waiver expires at &gt;1 graph or &gt;10 external contributors, whichever first.</p>
+<p><strong>Seeding, by competency:</strong>
+- <em>Math judgment</em> (statement review, adjudication): personally recruited credentialed mathematicians in target subfields, via Lean Zulip / erdosproblems forum / PNT+-adjacent networks. Publications substitute for the mechanical floor at seeding, reasoning published.
+- <em>Lean-internals judgment</em> (gate owner, curators): active non-maintainer Lean Zulip contributors; Mathlib commit history is the credential. Do not recruit maintainer attention.
+- Credentialed-but-Lean-naive reviewers are always paired with the mechanical checkers (D-15): their attention goes only to the semantic residue.
+- <em>Write-up</em> (D-32): not seeded in advance. Appointed per target, from among that target's existing statement-line credit holders and curators, when the target resolves or is declared dormant (D-33).</p>
+<p><strong>External track record substitutes for internal track record at seeding time only.</strong> Reviewers, adjudicators, and writers are real-identity; provers may be pseudonymous.</p>
+</details>
+<h3 id="d-32">D-32 — Write-up is a role: a staked mathematician converts a target's record into a paper<a aria-label="Link to this section" class="hl" href="#d-32">§</a></h3>
+<p>Every target that resolves or is declared dormant (D-33) gets a <strong>writer</strong>: one real-identity mathematician, appointed by the target's curators under D-22, who owns the human-facing account of what the network did. The <span class="term" data-t="t4" tabindex="0">DAG</span>, ledger and D-13/D-14 record are the network's outputs; the paper is how anyone outside the network consumes them.</p>
+<p class="note"><em>Rationale:</em> D-26 promised that the ledger "feeds paper authorship," but no role owned the feeding; a paper is the only network output that referees, hiring committees and the erdosproblems.com forum consume, and a network whose results exist only as kernel-checked artifacts is invisible to the population that supplies its judgment roles. Tying the role to prior stake solves recruitment and conflict of interest with one rule.
+<em>Overturns if:</em> resolved or dormant targets sit unwritten because no staked contributor will take the role at Stage 3 — then relax the stake requirement first; if still starved, stipend the role, which trips D-24 before any money moves.</p>
+<details class="more" id="d-32-more"><summary>Detail <span class="tags">rules · evidence</span><span class="cnt">434 words</span></summary>
+<ul>
+<li><strong>Two deliverables, one role.</strong> A resolved target (or a proved <span class="term" data-t="t19" tabindex="0">variant</span>, D-30) gets a paper. A dormant target gets a published <em>state-of-the-problem note</em>: refuted routes, crux reductions, prerequisites opened or <span class="term" data-t="t22" tabindex="0">upstreamed</span>. At the honest base rate the second is the common case, and it is the deliverable that makes the D-13/D-14 record citable rather than merely stored.</li>
+<li><strong>Stake required.</strong> The writer must already hold statement-line credit (D-19) or curator standing on that target. Writing up a stranger's graph is labor nobody takes; first-authoring the account of a problem one has worked on is the credit mathematicians actually want. This is the recruitment mechanism, not a formality.</li>
+<li><strong>Exclusion from appointment onward.</strong> The writer may not claim proof credit on the target after appointment (credit earned before it stands), and may not hold statement-reviewer or adjudicator role on it — the writer proposes everyone's significance and must not be a party to the disputes that follow. The curator who signed a dormancy declaration may not be appointed writer on that target (D-33).</li>
+<li><strong>The writer proposes, the ledger decides.</strong> Retrospective significance (D-19) and the CRediT-style contribution statement are published with the draft and are disputable under D-17 ground (iii) for a fixed window before submission. Authorship follows the ledger mechanically: ledger entries above a per-target threshold — set by the writer, published with the draft, itself disputable — are coauthors; every other entry is named in the contribution appendix (ETP precedent). No machine authorship; AI involvement disclosed per D-23.</li>
+<li><strong>The paper is derivative of the artifacts, never a substitute.</strong> Every theorem claimed cites its node id and <span class="term" data-t="t9" tabindex="0">gate</span> verdict (D-5); the pinned Lean project is the supplementary material; claims are scoped to the root's <span class="term" data-t="t15" tabindex="0">fidelity</span> status (D-9). Informal exposition in the paper is D-31 prose: useful, untrusted, and never what the result rests on.</li>
+<li><strong><span class="term" data-t="t28" tabindex="0">Explainers</span> are write-up work without the role.</strong> A per-node explainer (D-3, shown by D-36) is prose about one merged proof, not an account of the problem, so it needs neither appointment nor stake: any contributor may write one, model-drafted or not, and it lands on the write-up line as that contributor's entry. The writer, when appointed, may draw on them and is not bound by them.</li>
+<li><strong>Credit for writing</strong> is the sixth ledger line (D-19) plus the paper's own authorship, which is the externally legible part.</li>
+</ul>
+<p class="note"><em>Evidence:</em> research §2 — the <a href="https://arxiv.org/abs/2512.07087">ETP</a> paper's contribution appendix is the authorship precedent, and its authors were the project's curators, not its heaviest provers; <a href="https://github.com/openai/ten-proofs">Astra</a>'s named human critical readers with no machine authorship is the disclosure default (D-23), aligned with the Leiden Declaration.</p>
+</details>
+<h3 id="d-23">D-23 — Licensing and credentials, settled before the first external contributor<a aria-label="Link to this section" class="hl" href="#d-23">§</a></h3>
+<ul>
+<li><strong><span class="term" data-t="t24" tabindex="0">DCO</span> from day one</strong> (not CLA — D-24) for Apache-2.0 compatibility with <span class="term" data-t="t1" tabindex="0">Mathlib</span>.</li>
+<li><strong>Credit grounded in the <span class="term" data-t="t4" tabindex="0">DAG</span> and contribution record, not copyright.</strong></li>
+<li><strong>The network never holds, routes, or proxies contributor credentials.</strong> Pooling or operating accounts on contributors' behalf violates essentially every provider's terms.</li>
+<li><strong>Disclosure:</strong> model, version and tooling per <span class="term" data-t="t5" tabindex="0">node</span>; AI involvement disclosed in any paper. Astra's precedent (no machine authorship, named human "critical readers") is the default; authorship composition itself is fixed by the ledger under D-32.</li>
+<li><strong>Data license, fixed here (D-34):</strong> the non-code record — attestations, postmortem YAML and goal states, approach records, review and adjudication records — is released under one permissive data license; the sign-off text on every graph states it covers both code and record; annex prose is licensed by its author at submission or not accepted. This is a one-way door: it cannot be relicensed once contributors exist, so it closes with the rest of this decision, before the first external contributor.</li>
+<li>Not legal advice — counsel before external contributors.</li>
+</ul>
+<p class="note"><em>Evidence:</em> research §8 — Mathlib is Apache 2.0; DCO is the Linux precedent; credential pooling is the hard ToS line across providers; <a href="https://github.com/openai/ten-proofs">Astra</a>'s no-machine-authorship/named-critical-readers disclosure is the default, aligned with the Leiden Declaration.</p>
+<h3 id="d-24">D-24 — Entity: informal now, fiscally sponsored before money or scale<a aria-label="Link to this section" class="hl" href="#d-24">§</a></h3>
+<p>Stage 1 runs as an informal project under the founder, with two hedges: <strong><span class="term" data-t="t24" tabindex="0">DCO</span>, not CLA</strong> (per-commit sign-off, no receiving entity required, Linux precedent); and a written sunset — <strong>fiscal sponsorship (NumFOCUS-class) must be in place before the first bounty is funded or the tenth external contributor joins, whichever first.</strong> An owned entity is not built unless a sponsor relationship fails.</p>
+<p class="note"><em>Rationale:</em> every trusted precedent (PNT+, ETP, FLT) runs informally; D-26's credit-only default pushes the money trigger out, possibly forever; but <span class="term" data-t="t10" tabindex="0">CI</span> executing strangers' code and any payment flow are personal-liability cliffs with a cheap, fast off-ramp.
+<em>Overturns if:</em> a sponsor's policies conflict with pseudonymous contribution or the D-26 ledger — then evaluate C (own entity) against the actual conflict.</p>
+<details class="more" id="d-24-more"><summary>Detail <span class="tags">evidence</span><span class="cnt">32 words</span></summary>
+<p class="note"><em>Evidence:</em> research §2, §8 — every trusted precedent runs informally (<a href="https://github.com/AlexKontorovich/PrimeNumberTheoremAnd">PNT+</a>, <a href="https://github.com/teorth/equational_theories">ETP</a>, <a href="https://github.com/ImperialCollegeLondon/FLT">FLT</a>, EPSRC-funded); CI executing strangers' code and payment flows are the liability cliffs (research §3, §8).</p>
+</details>
+<h2 id="participation-and-interfaces">Participation and interfaces<a aria-label="Link to this section" class="hl" href="#participation-and-interfaces">§</a></h2>
+<h3 id="d-25">D-25 — Distribution is self-selection over a published frontier<a aria-label="Link to this section" class="hl" href="#d-25">§</a></h3>
+<p>The network publishes the <code>ready</code> set (dependencies closed — the root is always in it once claimable per D-6/D-9) plus <code>speculative</code> nodes and open <span class="term" data-t="t19" tabindex="0">variants</span>, each advertising dependency and library tags, attempt history, and claim status. Queryable. That is the entire allocation mechanism — <strong>no matchmaker, no difficulty router.</strong></p>
+<p class="note"><em>Rationale:</em> every human project that works (PNT+, ETP, FLT) uses self-selection over a published list; matchmaking requires estimating difficulty, which nobody can do; self-selection is the only scheme that works identically for a human with an afternoon and an agent with a subscription.
+<em>Overturns if:</em> hard nodes starve while easy ones oversubscribe on the measured starvation series — first response is bountying starved nodes (D-26), then enriching published fields, never directed allocation.</p>
+<details class="more" id="d-25-more"><summary>Detail <span class="tags">rules · evidence</span><span class="cnt">335 words</span></summary>
+<p>Claims carry a <strong>TTL declared at claim time within published flat caps</strong> — an agent claiming for a two-hour run does not hold a two-week default; undeclared claims get the minimum, not the maximum. Auto-release on expiry, advisory thereafter. <strong>Racing is permitted and on hard <span class="term" data-t="t5" tabindex="0">nodes</span> desirable:</strong> first merged fills <code>Proof.lean</code>; a losing racer's complete proof is recorded in <code>attempts/</code> as an <strong>alternate proof</strong> and enters the ledger (D-26), or they bank a <span class="term" data-t="t18" tabindex="0">postmortem</span>.</p>
+<p><strong>The frontier publishes observed facts, never difficulty estimates.</strong> Self-selection presumes a chooser with taste; an agent has none and will take whatever sorts first. Selection therefore lives in the <strong>operator's filter policy</strong> — not in the agent, not in the server — and a filter policy is only as expressive as the published fields. Every frontier entry carries: target and relation label; dependency and library tags; <code>origin</code> (<code>authored</code> | <code>compiler-derived</code> | <code>variant</code> | <code>skeleton-hole</code>); attempt count; the <code>route_class</code>es already refuted and the <code>failure_class</code> histogram (D-13); age since entering <code>ready</code>; claim status and claim history; annex presence (D-31); bounty flag. All of these are records of what happened, none is a prediction — which is what keeps this compatible with "no difficulty router" rather than a router by another name. An operator can then write <em>"unattempted skeleton holes on target X with no <code>missing-library</code> failures"</em> and that is self-selection at the level of a predicate.</p>
+<p><strong>Starvation is measured, not assumed away.</strong> With an agent population, easy nodes oversubscribed and hard nodes untouched is the expected steady state rather than an edge case, so the overturning condition below needs a series it can fire on: the <strong>attempt-count distribution across the frontier</strong>, and specifically the fraction of <code>ready</code> nodes with zero attempts after N days (pilot default N = 14, recorded per graph). Without it the condition is unfalsifiable.</p>
+<p class="note"><em>Evidence:</em> research §2 — <a href="https://github.com/AlexKontorovich/PrimeNumberTheoremAnd">PNT+</a> claim/disclaim protocol, <a href="https://github.com/teorth/equational_theories">ETP</a> and <a href="https://github.com/ImperialCollegeLondon/FLT">FLT</a> self-selection over published task lists; races and TTLs address the open-claiming gap research §2 flags as a non-transfer.</p>
+</details>
+<h3 id="d-26">D-26 — Public and inclusive by default; exclusivity quarantined to bountied nodes<a aria-label="Link to this section" class="hl" href="#d-26">§</a></h3>
+<p>The network runs ETP-style: public GitHub PRs, public claiming, public attempt logs. Credit is an <strong>inclusive record, not a prize</strong> — a CRediT-style public ledger per graph, feeding paper authorship through the D-32 writer. If a <span class="term" data-t="t5" tabindex="0">node</span> is deliberately bountied (curator decision at intake or on starvation), that node alone uses a <strong>private submission queue</strong> with hash-chained full disclosure at merge; <span class="term" data-t="t18" tabindex="0">postmortems</span> always publish on acceptance regardless of channel, and bountied nodes enter the attempt corpus (D-34) only after that disclosure.</p>
+<p class="note"><em>Rationale:</em> sniping is only rational when credit is scarce; every community-trusted precedent (ETP, PNT+, FLT) is public-inclusive; the two real contributor populations (enthusiasts on sunk subscription credits, mathematicians needing legible academic credit) are both served by a ledger and neither by a market.
+<em>Overturns if:</em> hard nodes starve under credit-only incentives at Stage 2 scale — then widen the bountied set, never flip the default.</p>
+<details class="more" id="d-26-more"><summary>Detail <span class="tags">evidence</span><span class="cnt">31 words</span></summary>
+<p class="note"><em>Evidence:</em> research §2, §5 — ETP/PNT+/FLT are all public-inclusive; <a href="https://mathbounty.com">mathbounty.com</a> ($100/Erdős Lean solution) is the only true <span class="term" data-t="t2" tabindex="0">formalization</span>-piecework precedent, which is why bounties are the quarantined exception, not the default.</p>
+</details>
+<h3 id="d-27">D-27 — Two funnels: agents get a machine interface, humans get documentation<a aria-label="Link to this section" class="hl" href="#d-27">§</a></h3>
+<p><strong>Prover funnel (agents).</strong> The repo is the interface, following current agent-tooling best practice:
+- <code>AGENTS.md</code> at root: claiming protocol, permitted paths (D-3), gate contract (D-4), postmortem schema (D-13).
+- Per-node machine-shaped context bundles (statement, deps, <span class="term" data-t="t8" tabindex="0">witness</span>, attempt log — D-13's YAML and goal states already conform).
+- <code>ready</code> frontier published as queryable JSON (makes D-25’s "queryable" literal).
+- <code>pregate.sh</code> runs <span class="term" data-t="t9" tabindex="0">gate</span> steps 1–2 and 4–8 locally (an ordinary local build stands in for step 3’s isolated one), emits structured JSON verdicts agents parse to self-correct; <code>--record</code> appends the verdict and goal state to the node's precheck record (D-34, opt-in).
+- <code>devcontainer.json</code> pinned per graph with warm <span class="term" data-t="t14" tabindex="0">olean cache</span> — deterministic bootstrap for local and cloud agent environments alike. The per-graph olean cache is thereby required infrastructure, serving CI economy and onboarding at once.
+- One permanently open <strong>tutorial <span class="term" data-t="t5" tabindex="0">node</span></strong> per graph, off-ledger: how a human operator validates their agent setup end-to-end.
+- <strong>Skeletonization (D-31) is documented as the entry task.</strong> It is the cheapest real contribution on the frontier — one session, one assembly, no proving — and it is what an operator points a fresh agent at before spending a night of credits on a node nobody has cracked. <code>AGENTS.md</code> carries the skeleton shape, the annex-citation requirement, and the trivial-skeleton rejection.</p>
+<p class="note"><em>Rationale:</em> the prover population is mostly agents operated by enthusiasts, for whom the recruitment pitch — spare subscription credits advancing real mathematics tonight — dies at a cold <span class="term" data-t="t1" tabindex="0">Mathlib</span> build or a prose-only protocol; the scarce human population is the mathematician roles, where judgment, not automation, is the point.
+<em>Overturns if:</em> human provers materially outnumber agent-operated ones — then the human prover funnel gets its own documentation track.</p>
+<hr/>
+<details class="more" id="d-27-more"><summary>Detail <span class="tags">rules</span><span class="cnt">47 words</span></summary>
+<p><strong>Human funnel (reviewers, curators, adjudicators, writers).</strong> Extensive documentation with worked examples: review checklists derived from the §3 defect taxonomy, confirmed-defect case studies, revision-request and adjudication walkthroughs. Retired D-11 <span class="term" data-t="t17" tabindex="0">canaries</span> double as reviewer training and calibration material — a new reviewer's first assignments are canaries with known answers.</p>
+</details>
+<h2 id="open">Open<a aria-label="Link to this section" class="hl" href="#open">§</a></h2>
+<p>Bounty funding source — deferred to the first bountied <span class="term" data-t="t5" tabindex="0">node</span>.</p>
+<p>Data license selection for the attempt corpus (D-23/D-34) — CC-BY-4.0, CDLA-Permissive-2.0, or Apache-2.0 applied uniformly to code and record. Counsel; must close before the first external contributor.</p>
+<h2 id="stages">Stages<a aria-label="Link to this section" class="hl" href="#stages">§</a></h2>
+<ul>
+<li><strong>Stage 0 (design review).</strong> The protocol itself is posted for review on the Lean Zulip and the erdosproblems.com forum before any open-problem graph is seeded. Two integration agreements are named external dependencies: the erdosproblems.com curator, and the <span class="term" data-t="t21" tabindex="0">Formal Conjectures</span> maintainers (D-10). <strong>An invited run precedes the public pilot:</strong> the reference MCP server (D-28) and the git/HTTP path are both live over the tutorial node and one small on-ramp formalization graph (D-6, second-class, ledgered separately), and a handful of invited operators exercise claim → attempt → precheck → submit end-to-end through whichever path they choose; the website (D-36) is live over the same graphs from the same day, so the run also tests whether a bystander can tell what happened. The run is a design-review input, not a pilot: nothing in it counts toward open-problem claims, and its purpose is to find the places where the protocol reads fine and runs badly before the numbering freezes.</li>
+<li><strong>Stage 1 (pilot).</strong> One seeded graph on a genuinely open target, 20–100 nodes, mixed contributors, manual review; optionally one small on-ramp <span class="term" data-t="t2" tabindex="0">formalization</span> graph alongside it for protocol calibration, ledgered separately (D-6). <strong>Resolving the target is not the success criterion</strong> — the honest base rate for open-problem resolution is AlphaProof Nexus's 9/353, not LeanMarathon's 7/7. The pilot succeeds on protocol evidence: closed subgraphs, kernel-checked refuted routes and crux reductions, prerequisite nodes opened/<span class="term" data-t="t22" tabindex="0">upstreamed</span>, and postmortems demonstrably reused — alongside high canary catch rate across defect classes (D-11) and review latency inside maintainer capacity. The pilot cuts the first D-34 snapshot at close. Treat as a test of <strong>D-13, D-15, D-19, D-25, D-29, D-30, D-31, D-33</strong> specifically — reasoned design with no precedent; expect one to need replacing.</li>
+<li><strong>Stage 2 (scale).</strong> Multiple graphs, automated Target-Review, human sign-off on roots only. <em>Change course if</em> the sign-off queue grows faster than it drains.</li>
+<li><strong>Stage 3 (incentives live).</strong> Retrospective write-up credit exercised on a completed target under a D-32 writer, optional bounties. <em>Redesign trigger:</em> duplicate-hole spam, restated-lemma <code><span class="term" data-t="t3" tabindex="0">sorry</span></code> offloading, variant-label gaming, collusive review, or <span class="term" data-t="t18" tabindex="0">postmortem</span> farming.</li>
+</ul>
+<p><strong>Metrics:</strong> <span class="term" data-t="t17" tabindex="0">canary</span> catch rate per reviewer and defect class (D-11; escape rate estimated from it); human sign-off queue drain rate; per-node cost drift (anchored to open-problem precedents — AlphaProof Nexus's "few hundred dollars"/resolution — never to the $189–$624/paper formalization figures, which price a different product); library-gap hit rate; <strong>open-problem progress rate</strong> — closed subgraphs, proved <code>partial</code> <span class="term" data-t="t19" tabindex="0">variants</span>, refuted routes, and crux reductions per target per quarter, the primary health series for the mission (raw resolution count is too rare to steer by); integrity-gate trigger rate split honest-error vs repeat-offender; approval-audit failure rate; CI minutes per <em>merged</em> node; postmortem reuse rate; <strong>frontier starvation</strong> — attempt-count distribution across <code>ready</code> nodes and the fraction untouched after N days (D-25), the series its overturning condition fires on; skeletonization rate and <code>informal-gap</code> share of skeleton outcomes (D-31); trivial-skeleton rejection rate (D-12 offload rule); duplicate-hole consolidation rate and frontier noise (D-29); write-up credit dispute rate (D-19); D-9 <span class="term" data-t="t15" tabindex="0">fidelity</span>-status distribution across roots; D-15 open-claim rate and confirmation ratio; dormancy declarations and reactivations per target (D-33), the series its overturning condition fires on; corpus reuse — external citations or derived datasets per snapshot, and <code>--record</code> opt-in share among operators (D-34), the series its overturning condition fires on; explainer coverage — share of proved nodes carrying an explainer (D-3, D-36).</p>
+<h2 id="glossary">Glossary<a class="hl" href="#glossary" aria-label="Link to this section">§</a></h2><p class="note"><em>Reference:</em> the same definitions that power the hover cards, in one place.</p><dl class="gloss"><div class="g-row" id="g-attempt-corpus"><dt>Attempt corpus</dt><dd><p>the network's complete record of attempts on its targets — gate verdicts pass and fail, postmortems with goal states, strategy records, review and defect records, resolution artifacts — with the model and tooling behind each, released as timestamped snapshots so anyone can train on the resolved past and evaluate on the still-open frontier. A by-product of the ledger, never a purpose of the protocol.</p></dd></div><div class="g-row" id="g-axiom-allowlist"><dt>Axiom allowlist</dt><dd><p>Lean proofs may only rest on three standard axioms; anything else (including the axiom <code>sorry</code> secretly introduces) fails the gate.</p></dd></div><div class="g-row" id="g-blueprint"><dt>Blueprint</dt><dd><p>the machine-readable record of a target's decomposition: each lemma's formal statement paired with its informal explanation and dependencies. Grown from contributions (partial proofs, reductions, proposed cruxes and variants), not authored up front.</p></dd></div><div class="g-row" id="g-canary"><dt>Canary</dt><dd><p>a deliberately defective statement seeded into the review queue (reviewers know canaries exist, not which) to measure whether review actually works.</p></dd></div><div class="g-row" id="g-ci-continuous-integration"><dt>CI (continuous integration)</dt><dd><p>the automated build-and-check infrastructure that runs the gate on every submission.</p></dd></div><div class="g-row" id="g-dco-developer-certificate-of-origin"><dt>DCO (Developer Certificate of Origin)</dt><dd><p>a lightweight per-commit sign-off asserting the contributor has the right to submit the work; the network's licensing mechanism (Linux-kernel precedent), keeping everything Apache-2.0-compatible with Mathlib.</p> <a class="gl-inline" href="https://developercertificate.org" target="_blank" rel="noopener">developercertificate.org ↗</a></dd></div><div class="g-row" id="g-erd-s-problems"><dt>Erdős problems</dt><dd><p>the problems posed by Paul Erdős, catalogued at erdosproblems.com (~600–700 still listed open); the network's primary target class is the genuinely open ones — after a prior-art pass, since "open" empirically often means "solved in scattered literature."</p> <a class="gl-inline" href="https://erdosproblems.com" target="_blank" rel="noopener">erdosproblems.com ↗</a></dd></div><div class="g-row" id="g-explainer"><dt>Explainer</dt><dd><p>a prose account of a merged proof, attached to its node: what the argument does and why it works. Content-hashed and attributed (author and drafting model), but unverified — commentary on a kernel-checked object, never evidence about it. Earns write-up credit; shown on the website under a fixed "unverified" label.</p></dd></div><div class="g-row" id="g-fidelity-certificate"><dt>Fidelity certificate</dt><dd><p>a graded label on a root statement recording how thoroughly its faithfulness has been checked, from <code>mechanical-only</code> up to <code>published-and-uncontested</code>. Claims about a result are scoped to its grade.</p></dd></div><div class="g-row" id="g-fidelity-vs-integrity"><dt>Fidelity vs. integrity</dt><dd><p>the two independent ways "verified" can be false. Integrity: the artifact isn't really a proof of the statement (mechanically catchable). Fidelity: the statement isn't really the mathematics (needs adversarial human review).</p></dd></div><div class="g-row" id="g-formal-conjectures"><dt>Formal Conjectures</dt><dd><p>DeepMind's public registry of Lean-formalized problem statements; the network inherits statements from it and contributes back rather than maintaining a private registry.</p> <a class="gl-inline" href="https://github.com/google-deepmind/formal-conjectures" target="_blank" rel="noopener">google-deepmind/formal-conjectures ↗</a></dd></div><div class="g-row" id="g-formalization"><dt>Formalization</dt><dd><p>translating informal ("paper") mathematics into Lean. The hard part is not proving but <em>stating</em>: a formal statement that subtly differs from the intended one is a <strong>misformalization</strong>, and the kernel cannot detect it.</p></dd></div><div class="g-row" id="g-graph-dag-directed-acyclic-graph"><dt>Graph / DAG (directed acyclic graph)</dt><dd><p>the decomposition of a target theorem into lemmas with dependency arrows: lemma A depends on lemmas B and C, which depend on… "Acyclic" means no circular reasoning is possible.</p></dd></div><div class="g-row" id="g-informal-annex"><dt>Informal annex</dt><dd><p>an informal (prose) mathematical argument attached to a node as content-hashed, immutable, <em>untrusted input</em>. It is never a claim and never earns credit; its only route to becoming work is skeletonization.</p></dd></div><div class="g-row" id="g-kernel-replay"><dt>Kernel replay</dt><dd><p>re-checking every declaration through the kernel from a clean state, defeating tricks that smuggle unverified declarations into the environment.</p></dd></div><div class="g-row" id="g-lean-4"><dt>Lean 4</dt><dd><p>a programming language and <em>interactive theorem prover</em>: a system in which mathematical definitions, statements, and proofs are written as code that a small trusted checker (the <strong>kernel</strong>, ~5,000 lines) verifies mechanically. If the kernel accepts a proof, the proof is correct — full stop.</p> <a class="gl-inline" href="https://lean-lang.org" target="_blank" rel="noopener">lean-lang.org ↗</a></dd></div><div class="g-row" id="g-mathlib"><dt>Mathlib</dt><dd><p>the community-built mathematics library for Lean (~2.3M lines): definitions and theorems from undergraduate through research level that all Lean projects build on. The network pins a specific Mathlib version per target.</p> <a class="gl-inline" href="https://github.com/leanprover-community/mathlib4" target="_blank" rel="noopener">github.com/leanprover-community/mathlib4 ↗</a></dd></div><div class="g-row" id="g-mcp-model-context-protocol"><dt>MCP (Model Context Protocol)</dt><dd><p>the standard interface AI agents use to call external tools. The network ships an MCP server as a convenience lens; everything it does is equally possible with plain git and HTTP, by design.</p> <a class="gl-inline" href="https://modelcontextprotocol.io" target="_blank" rel="noopener">modelcontextprotocol.io ↗</a></dd></div><div class="g-row" id="g-native-decide"><dt><code>native_decide</code></dt><dd><p>a Lean tactic that trusts the compiler instead of the kernel to check a computation. Banned by default here because it massively widens what must be trusted; waivers are recorded and flagged.</p></dd></div><div class="g-row" id="g-node"><dt>Node</dt><dd><p>one lemma in the graph, packaged as a directory: its immutable statement, a witness, its dependencies' signatures, a slot for the proof, and a log of attempts. The node is the unit of claiming, submission, and credit.</p></dd></div><div class="g-row" id="g-olean-cache"><dt>Olean cache</dt><dd><p>precompiled Lean build artifacts. With a warm cache a build takes minutes; cold, hours. Required infrastructure for agent onboarding and CI economy.</p></dd></div><div class="g-row" id="g-postmortem"><dt>Postmortem</dt><dd><p>the structured, typed record of a failed proof attempt: route tried, outcome, exact terminal proof state. Not a transcript.</p></dd></div><div class="g-row" id="g-root-interior-node"><dt>Root / interior node</dt><dd><p>the root is the target theorem itself (the thing the outside world cares about); interior nodes are the supporting lemmas. Fidelity review concentrates on roots and definitions because an interior lemma's meaning doesn't matter — only its formal role does.</p></dd></div><div class="g-row" id="g-skeleton-skeletonization"><dt>Skeleton / skeletonization</dt><dd><p>the Lean rendering of an informal argument&#39;s lemma structure: every lemma stated with body <code>sorry</code>, and the top-level assembly actually proved. If it typechecks, the argument&#39;s <em>architecture</em> is kernel-checked even though none of its content is, and the open lemmas become claimable nodes.</p></dd></div><div class="g-row" id="g-sorry"><dt><code>sorry</code></dt><dd><p>Lean's placeholder for a missing proof. A file containing <code>sorry</code> compiles but proves nothing. "Sorry-free" = actually proved.</p></dd></div><div class="g-row" id="g-statement-vs-proof"><dt>Statement vs. proof</dt><dd><p>the statement is <em>what</em> is claimed (the theorem's exact formal wording); the proof is <em>why</em> it holds. In this network statements are immutable and reviewed; proofs are what contributors supply.</p></dd></div><div class="g-row" id="g-the-gate"><dt>The gate</dt><dd><p>the automated checklist every submission must pass: pinned toolchain, untouched statement, sandboxed build, kernel replay from a clean environment, axiom allowlist, hazard checkers, witness present, dependencies declared, non-author review. Fail-closed: any miss rejects.</p></dd></div><div class="g-row" id="g-trust-base"><dt>Trust base</dt><dd><p>the components a verdict's correctness depends on: the graph repository's history and the gate pinned to run on it. Everything else — the MCP server, the HTTP service, the website — is a convenience over the trust base and can be compromised or lost without any verdict changing.</p></dd></div><div class="g-row" id="g-upstreaming"><dt>Upstreaming</dt><dd><p>contributing generally useful lemmas back to Mathlib. Results stay in the network; infrastructure goes to the commons.</p></dd></div><div class="g-row" id="g-variant"><dt>Variant</dt><dd><p>an immutable alternative statement of a root, labeled by its kernel-checked relation to it (<code>resolves</code>, <code>partial</code>, or <code>related</code>); proving a <code>partial</code> variant is a partial resolution of the target.</p></dd></div><div class="g-row" id="g-witness-non-vacuity-witness"><dt>Witness (non-vacuity witness)</dt><dd><p>a concrete example satisfying a statement's hypotheses. Without one, a statement with contradictory hypotheses is "provable" trivially and worthlessly; requiring a witness closes that exploit.</p></dd></div></dl></main>
+</div>
+<footer><div class="in">Decisions without an <em>Evidence</em> line are original design reasoning with no external precedent. Full revision history — including the 2026-08-25 D-number renumbering map — in git.</div></footer>
+<div id="gcard" role="tooltip" aria-hidden="true"></div>
+<script>
+// Hover cards derive their content from the static Glossary section (single source).
+const GMAP={t0:"g-lean-4",t1:"g-mathlib",t2:"g-formalization",t3:"g-sorry",
+t4:"g-graph-dag-directed-acyclic-graph",t5:"g-node",t6:"g-root-interior-node",
+t7:"g-blueprint",t8:"g-witness-non-vacuity-witness",t9:"g-the-gate",
+t10:"g-ci-continuous-integration",t11:"g-kernel-replay",t12:"g-axiom-allowlist",
+t13:"g-native-decide",t14:"g-olean-cache",t15:"g-fidelity-vs-integrity",
+t16:"g-fidelity-certificate",t17:"g-canary",t18:"g-postmortem",t19:"g-variant",
+t20:"g-erd-s-problems",t21:"g-formal-conjectures",t22:"g-upstreaming",
+t23:"g-mcp-model-context-protocol",t24:"g-dco-developer-certificate-of-origin",
+t25:"g-skeleton-skeletonization",t26:"g-informal-annex",t27:"g-attempt-corpus",
+t28:"g-explainer",t29:"g-trust-base"};
+const card=document.getElementById('gcard');
+let hideT=null,current=null,shownAt=0;
+function show(el){
+  const row=document.getElementById(GMAP[el.dataset.t]); if(!row)return;
+  clearTimeout(hideT);
+  if(current&&current!==el)current.removeAttribute('aria-describedby');
+  current=el; shownAt=Date.now();
+  const dt=row.querySelector('dt'),dd=row.querySelector('dd'),
+        link=dd.querySelector('a.gl-inline');
+  let body=''; dd.querySelectorAll('p').forEach(p=>body+='<p>'+p.innerHTML+'</p>');
+  card.innerHTML='<div class="gt"></div>'+body+(link?'<a class="gl" href="'+link.href+'" target="_blank" rel="noopener">'+link.innerHTML+'</a>':'');
+  card.querySelector('.gt').innerHTML=dt.innerHTML;
+  card.classList.add('on'); card.setAttribute('aria-hidden','false');
+  el.setAttribute('aria-describedby','gcard');
+  const r=el.getBoundingClientRect(),sx=window.scrollX,sy=window.scrollY;
+  card.style.left='0px'; card.style.top='0px';
+  const cw=card.offsetWidth,ch=card.offsetHeight;
+  let x=r.left+sx, y=r.bottom+sy+7;
+  if(x+cw>sx+document.documentElement.clientWidth-12)x=sx+document.documentElement.clientWidth-cw-12;
+  if(r.bottom+7+ch>window.innerHeight&&r.top>ch+7)y=r.top+sy-ch-7;
+  card.style.left=x+'px';card.style.top=y+'px';
+}
+function dismiss(){card.classList.remove('on');card.setAttribute('aria-hidden','true');
+  if(current)current.removeAttribute('aria-describedby');current=null;}
+function hide(){hideT=setTimeout(dismiss,140);}
+document.querySelectorAll('.term').forEach(el=>{
+  el.addEventListener('mouseenter',()=>show(el));
+  el.addEventListener('mouseleave',hide);
+  el.addEventListener('focus',()=>show(el));
+  el.addEventListener('blur',hide);
+  // Toggle on click, but ignore the click that belongs to the same tap/hover
+  // gesture that just opened the card (mouseenter fires before click on touch).
+  el.addEventListener('click',e=>{e.preventDefault();
+    if(current===el&&card.classList.contains('on')&&Date.now()-shownAt>350){clearTimeout(hideT);dismiss();}
+    else show(el);});
+});
+card.addEventListener('mouseenter',()=>clearTimeout(hideT));
+card.addEventListener('mouseleave',hide);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')hide();});
+document.addEventListener('click',e=>{if(!card.contains(e.target)&&!e.target.classList?.contains('term'))hide();});
+// D-number badges
+document.querySelectorAll('h3').forEach(h=>{
+  const m=h.textContent.match(/^(D-\d+)\s+—\s+(.*)$/s);
+  if(m){h.innerHTML='<span class="dn">'+m[1]+'</span>'+h.innerHTML.replace(/^D-\d+\s+—\s+/,'');}
+});
+</script>
+<script>
+(function(){
+  var all=function(o){document.querySelectorAll('details.more').forEach(function(d){d.open=o});};
+  document.querySelectorAll('.xall button').forEach(function(b){b.addEventListener('click',function(){all(b.dataset.x==='1')});});
+  var openFor=function(){var h=location.hash;if(!h)return;var t=document.querySelector(h);if(!t)return;var d=t.closest('details');while(d){d.open=true;d=d.parentElement.closest('details');}};
+  window.addEventListener('hashchange',openFor);openFor();
+  window.addEventListener('beforeprint',function(){all(true)});
+})();
+</script>
+</body>
+</html>

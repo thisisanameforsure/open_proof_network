@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open Proof Network — Specs</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<h1>Open Proof Network — spec site</h1>
+<p class="subtitle">The build plan for the Open Proof Network — a distributed crowdsourced Lean 4
+proof network for open mathematical problems. Every session starts with the
+<a href="constitution.html">constitution</a>; features follow the
+<a href="conventions.html">conventions</a>. The design input is the architecture decisions
+document (<a href="../../docs/architecture_decisions_v_3_8.html">docs/architecture_decisions_v_3_8.html</a>),
+whose D-numbers are frozen citable identifiers. That document is <em>what</em> is built; everything
+under <code>engineering/</code> is <em>how</em>. Specs cite decisions, never restate or override
+them. This repo is <code>network</code> — gate, API/MCP, website (D-35); the graph repo is the
+sibling <code>../open_proof_network_graph</code>, and nothing on this site lands there.</p>
+
+<h2>Read first</h2>
+<table>
+  <tr><th>Doc</th><th>What it is</th></tr>
+  <tr><td><a href="constitution.html">Constitution</a></td><td>Non-negotiables (engineering rules + security/product placeholders). Read every session.</td></tr>
+  <tr><td><a href="conventions.html">Conventions</a></td><td>Architecture, testing, verification, security, git protocol, spec format.</td></tr>
+  <tr><td><a href="../../docs/architecture_decisions_v_3_8.html">Architecture decisions</a> (v3.8)</td><td>The protocol: decisions D-1 to D-36, each with rationale and overturning condition; stages; glossary. Decides what is built (constitution C10).</td></tr>
+  <tr><td><a href="../../AGENTS.md">AGENTS.md</a></td><td>What this repo is and its relation to the graph repo (D-35). The one context file for agents building it.</td></tr>
+</table>
+
+<h2>Features — dependency order</h2>
+<p class="status-note">Each feature is a vertical slice with its own spec, tests, and verification
+evidence. Status: <span class="tag">planned</span> &rarr; <span class="tag wip">spec</span> &rarr;
+<span class="tag wip">building</span> &rarr; <span class="tag done">done</span>. Copy
+<code>features/F00-template.html</code> to draft a new feature spec, then add its row here.
+No feature is specced yet — the first build session drafts F00, the walking skeleton
+(constitution C2), from the architecture decisions' Stage 0.</p>
+<table>
+  <tr><th>#</th><th>Feature</th><th>One-liner</th><th>Depends on</th><th>Status</th></tr>
+</table>
+
+<footer>Open Proof Network · spec index v0 (scaffold) · 2026-09-07 · specs are authored in HTML</footer>
+</body>
+</html>
