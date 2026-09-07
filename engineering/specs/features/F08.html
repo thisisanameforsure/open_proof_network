@@ -88,7 +88,7 @@ D-13, D-14, D-16, D-18, D-19, D-21, D-28, D-29, D-30, D-33, D-35.</p>
 
 <h2>6. Budgets / limits</h2>
 <ul>
-  <li>Admission under 5 min on a hosted runner for Mathlib-free nodes; proposals per identity per day: 20 (config, published).</li>
+  <li>Admission under 5 min on a hosted runner for Mathlib-free nodes; proposals per identity per day: 40 (invited-run config default, published).</li>
   <li>Node ids: <code>&lt;target&gt;/&lt;slug&gt;</code>, slug ≤ 64 chars; versions <code>@v&lt;n&gt;</code>.</li>
 </ul>
 
@@ -108,11 +108,11 @@ D-13, D-14, D-16, D-18, D-19, D-21, D-28, D-29, D-30, D-33, D-35.</p>
 <h2>9. Open questions / judgment calls</h2>
 <table>
   <tr><th>ID</th><th>Call made — for review</th></tr>
-  <tr><td>F08-Q1</td><td><strong><code>Relation.lean</code> is a D-3 layout addition</strong> for variant nodes only, holding the D-30 implication proof; it is gate-checked at admission and never editable afterward. Proposed addition to D-3 for the next doc revision.</td></tr>
+  <tr><td>F08-Q1</td><td><strong><code>Relation.lean</code></strong> — in the D-3 layout since v3.10, variant nodes only, gate-checked at admission and immutable after. No deviation.</td></tr>
   <tr><td>F08-Q2</td><td><strong>Speculative nodes are <code>origin: authored</code> with a <code>speculative</code> flag</strong>, since D-3's origin set has no fourth value and D-14 describes them as authored crux statements; F03's status model already publishes <code>speculative</code>.</td></tr>
-  <tr><td>F08-Q3</td><td><strong>Missing-library prerequisites are not auto-created.</strong> D-13 says the lemma "enters the frontier as a prerequisite node" above threshold, but a postmortem names it in prose; a node needs a Lean statement. The report puts it in front of the curator, who proposes it like anyone else. Proposed clarification to D-13.</td></tr>
-  <tr><td>F08-Q4</td><td><strong>Defect taxonomy</strong> is D-11's six canary classes plus D-9's named residual <code>strength-drift</code> and an <code>other-with-exhibit</code> escape; the research §3 taxonomy the doc cites is not reproduced in it. Proposed enumeration for D-16.</td></tr>
-  <tr><td>F08-Q5</td><td><strong>Curator PRs need a second curator's approval</strong> per D-21's separation, waived while the founder is the only curator (D-22), with the waiver recorded per PR so the ledger shows it.</td></tr>
+  <tr><td>F08-Q3</td><td><strong>Missing-library prerequisites are not auto-created</strong> — decided in D-13 (v3.10): above the threshold (config default 3) the aggregated lemma is surfaced to the curator, who proposes the node like anyone else. No deviation.</td></tr>
+  <tr><td>F08-Q4</td><td><strong>Defect taxonomy</strong> — enumerated in D-16 since v3.10: the eight classes R7 lists. No deviation.</td></tr>
+  <tr><td>F08-Q5</td><td><strong>Curator PRs need a second curator's approval</strong> per D-21's separation, waived while the founder is the only curator (D-22), with the waiver recorded per PR so the ledger shows it. Confirmed by Mike 2026-09-07.</td></tr>
 </table>
 
 <h2>10. Status</h2>

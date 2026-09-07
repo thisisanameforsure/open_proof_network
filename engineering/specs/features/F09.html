@@ -91,7 +91,7 @@ in tool results is demarcated as untrusted data. Cites: D-1, D-19, D-25, D-28, D
 <h2>9. Open questions / judgment calls</h2>
 <table>
   <tr><th>ID</th><th>Call made — for review</th></tr>
-  <tr><td>F09-Q1</td><td><strong>One read tool added to D-28's list: <code>get_precheck(job_id)</code>.</strong> Precheck takes minutes and a tool call must return in seconds behind API Gateway; D-28 already has <code>get_submission</code> as the polling tool after <code>submit_proof</code>, and this is its twin for <code>precheck_submission</code>, bijective to <code>GET /precheck/&lt;id&gt;</code>. Proposed addition to D-28's read table.</td></tr>
+  <tr><td>F09-Q1</td><td><strong><code>get_precheck(job_id)</code></strong> — in D-28's read table since v3.10, bijective to <code>GET /precheck/&lt;id&gt;</code>. No deviation.</td></tr>
   <tr><td>F09-Q2</td><td><strong><code>submit_proof</code>'s <code>attestation</code> parameter</strong> is the precheck result envelope from <code>get_precheck</code>, which carries the job id F07's endpoint binds on; the adapter forwards it unchanged.</td></tr>
   <tr><td>F09-Q3</td><td><strong>Opaque bearer tokens without an OAuth server.</strong> The SDK's <code>TokenVerifier</code> protocol supports any validation; the SDK's protected-resource metadata endpoint, if it must exist, names the api as issuer and resource. To be confirmed against the pinned SDK version in T1 (conventions: check docs first).</td></tr>
   <tr><td>F09-Q4</td><td><strong>Reads go to <code>main</code> only.</strong> A tool that read a branch or PR would be a capability the file path lacks; history is reachable by git.</td></tr>

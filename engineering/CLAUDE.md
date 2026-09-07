@@ -1,7 +1,7 @@
 # Open Proof Network — build instructions for Claude
 
 A distributed crowdsourced Lean 4 proof network for open mathematical problems, built spec-first.
-The protocol is decided (`docs/architecture_decisions_v_3_9.html`, decisions D-1 to D-36 with
+The protocol is decided (`docs/architecture_decisions_v_3_10.html`, decisions D-1 to D-36 with
 frozen identifiers); the implementation stack is locked (conventions §1). Everything in
 `engineering/` is about how to build it, not what it is (`engineering/README.md`). The workflow
 below is in force from the first line of code.
@@ -55,7 +55,7 @@ The law of the project:
 - `engineering/specs/constitution.html` — non-negotiables (read first).
 - `engineering/specs/conventions.html` — how we build.
 - `engineering/specs/index.html` — feature build order and status.
-- `docs/architecture_decisions_v_3_9.html` — the protocol: every decision with its rationale and
+- `docs/architecture_decisions_v_3_10.html` — the protocol: every decision with its rationale and
   overturning condition, the stages, the glossary. Cite decisions by D-number.
 
 ## Current state (2026-09-07)
@@ -65,8 +65,9 @@ The law of the project:
 - **Stack locked 2026-09-07** (conventions §1): Python 3.13 + uv, pytest/ruff/mypy, jsonschema;
   gate on GitHub-hosted runners, api + MCP on Lambda, precheck as an Actions job in a scratch
   repo, site on S3/CloudFront — "boxless" at Stage 0. Two mandatory test tiers (§2).
-- Decisions doc at v3.9: the network is two repositories (D-35). This repo is `network`; the
-  graph repo `../open_proof_network_graph` exists as an empty initial commit.
+- Decisions doc at v3.10: the network is two repositories (D-35) plus a disposable precheck
+  scratch repo. This repo is `network`; the graph repo `../open_proof_network_graph` exists as an
+  empty initial commit.
 - Stage 0 roadmap F00–F11 in `engineering/specs/index.html`, every feature specced 2026-09-07
   (F07/F08 split submissions from proposals). Current feature: F00 (gate walking skeleton), no
   task started. Later specs will need touch-ups as earlier features land; each carries the
@@ -80,3 +81,6 @@ The law of the project:
   self-hosted GitHub runners were rejected for the gate on GitHub's own public-repo guidance
   (any PR can run code on them), and Lean elaboration executes arbitrary code, so precheck is
   never run outside the same sandbox the gate uses.
+- 2026-09-07 — Specs F01–F11 surfaced seven protocol readings; Mike folded all into decisions
+  v3.10 by survey rather than leaving them as §9 flags. Pattern to keep: when a spec cannot follow
+  a decision as written, ask, then change the doc — a spec flag that outlives the session rots.

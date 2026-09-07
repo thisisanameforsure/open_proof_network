@@ -10,17 +10,19 @@
 <nav class="crumbs"><a href="../index.html">specs</a> / F11</nav>
 <h1>F11 — On-ramp graph intake</h1>
 <p class="subtitle">Curated intake (D-6): the target layout, the five curator artifacts, fidelity
-certificates (D-9), registry interop (D-10), the first Mathlib-pinned graph — a small known result
-on the second-class formalization track — and a handful of genuinely open targets listed but not
-claimable. Ends with the Stage 0 invited-run readiness rehearsal.</p>
+certificates (D-9), registry interop (D-10), the first Mathlib-pinned graph — a classic textbook
+theorem stated over the graph's own definitions, on the second-class formalization track — and a
+handful of genuinely open targets listed but not claimable. Ends with the Stage 0 invited-run readiness rehearsal.</p>
 
 <h2>1. Summary</h2>
 <p>Everything before F11 runs on a Mathlib-free tutorial graph. F11 adds what a real target needs:
 a <code>targets/&lt;id&gt;/</code> record carrying D-6's five artifacts, a fidelity ladder on the
 root and definitions, the D-10 posting that makes a target claimable, and a Mathlib pin per graph
 with the image and caches to match (D-7). It seeds the on-ramp formalization graph the Stage 0
-invited run needs — a recently published small result, decomposed by skeletonization into three to
-six nodes so the whole pipeline runs to a merged root — and lists a few open targets imported from
+invited run needs — a classic textbook theorem whose objects are defined in the graph's own
+<code>defs/</code> so Mathlib cannot close it in one line, decomposed by skeletonization into three
+to six nodes so the whole pipeline runs to a merged root (Stages, v3.10) — and lists a few open
+targets imported from
 Formal Conjectures with grade <code>mechanical-only</code>, so the site is honest about the mission
 without letting anyone claim them. Cites: D-2, D-6, D-7, D-9, D-10, D-12, D-21, D-25, D-31,
 D-33, D-35, Stages.</p>
@@ -52,7 +54,7 @@ D-33, D-35, Stages.</p>
   <tr><td>F11-R4</td><td>The system shall derive <code>claimable</code> for a target as: status <code>active</code>, grade ≥ <code>back-translated</code>, and a non-null <code>posting</code> (D-6, D-10); the formalization track shall additionally require nothing else; F03's products shall carry the derived value per node.</td></tr>
   <tr><td>F11-R5</td><td>The system shall provide <code>opn-gate intake post &lt;target&gt; --venue &lt;name&gt; --url &lt;url&gt;</code> recording the D-10 posting and <code>opn-gate intake activate &lt;target&gt;</code> flipping status to <code>active</code>, each a curator PR; activation shall refuse while <code>claimable</code> would remain false, naming the missing condition.</td></tr>
   <tr><td>F11-R6</td><td>When a graph pins a Mathlib SHA, <code>gate-spec.json</code> shall name a per-graph image digest whose image contains that Mathlib's oleans; <code>gate.yml</code>, the precheck job and <code>reproduce.sh</code> shall use it; CI shall run <code>lake exe cache get</code> only on an image miss, and F10's graph cache shall layer on top.</td></tr>
-  <tr><td>F11-R7</td><td>The on-ramp target shall be selected against recorded criteria: published on arXiv within the last 24 months, elementary in an included domain, not in Mathlib at the pinned SHA, statable in under 40 lines with at most three new definitions, and decomposable into three to six lemmas; the selection record shall name two rejected alternatives and why.</td></tr>
+  <tr><td>F11-R7</td><td>The on-ramp target shall be a classic textbook theorem selected against recorded criteria: elementary in an included domain; its objects defined in the graph's own <code>defs/</code> rather than imported, so no one-line Mathlib citation closes the root; statable in under 40 lines with at most three definitions; decomposable into three to six lemmas each provable by a competent agent in under an hour; the graph still pins Mathlib (D-7) so provers may use its tactics and lemmas beneath the local definitions. The selection record shall name the theorem, the definitions, the planned lemma structure, and two rejected alternatives and why.</td></tr>
   <tr><td>F11-R8</td><td>The on-ramp graph shall be seeded as a root plus a skeleton submitted through F07 (a partial proof citing an annex holding the paper's argument), so its interior nodes are <code>origin: authored</code> holes admitted by F08 — the intake path dogfoods the contribution path.</td></tr>
   <tr><td>F11-R9</td><td>When <code>opn-gate intake import-fc &lt;path&gt; --at &lt;commit&gt;</code> runs, the system shall copy the Formal Conjectures statement file at that commit into a new target on the open track with provenance {statement_source: formal-conjectures, path, commit, author}, grade <code>mechanical-only</code>, status <code>listed</code>, <code>claimable: false</code>, run admission on the root, and open a curator PR; the count at Stage 0 is a config value (default 5).</td></tr>
   <tr><td>F11-R10</td><td>The site's Targets page shall show, for a listed open target, the reason it is not claimable (grade, posting, status) and the source link, so the mission is visible without a claim path.</td></tr>
@@ -99,9 +101,9 @@ D-33, D-35, Stages.</p>
 <h2>9. Open questions / judgment calls</h2>
 <table>
   <tr><th>ID</th><th>Call made — for review</th></tr>
-  <tr><td>F11-Q1</td><td><strong>The on-ramp result is chosen in T1 by a recorded fact pass</strong>, not here. Criteria are R7; the answer and its two rejected alternatives are evidence, so the choice is reviewable. Mike asked only that it be simple and something Lean routinely checks.</td></tr>
+  <tr><td>F11-Q1</td><td><strong>A classic theorem, not a recent arXiv result.</strong> Mike chose this on 2026-09-07 for zero selection risk; the Stages text (v3.10) permits it for the invited run because the run tests the protocol, not the mathematics. T1 records the choice against R7. Starting candidates for T1's record: "no natural numbers p, q with q ≠ 0 and p² = 2q²" over a local parity definition (descent via three lemmas), and "infinitely many primes" over a local <code>IsPrime</code> (prime-divisor lemma, factorial bound, assembly). D-6's recent-arXiv track resumes at Stage 1.</td></tr>
   <tr><td>F11-Q2</td><td><strong>Target grade is the minimum over root and definitions</strong> (D-9: definitions are first-class review objects), and an auto-downgrade on a confirmed definition defect follows from the same rule once F08's defect claims are adjudicated (Stage 1).</td></tr>
-  <tr><td>F11-Q3</td><td><strong>Listed open targets are imported, not authored</strong> (D-10), from Formal Conjectures at a pinned commit; which five is a curator choice recorded in each <code>target.yaml</code>'s prior-art summary. Erdős-problem targets wait for the erdosproblems.com agreement named in Stage 0.</td></tr>
+  <tr><td>F11-Q3</td><td><strong>Listed open targets are imported, not authored</strong> (D-10), from Formal Conjectures at a pinned commit. Which five: Claude proposes them in T5 by a recorded fact pass over the registry — Erdős problems in included domains with an existing Lean statement preferred — and Mike approves the list in the intake PR (decided 2026-09-07); each <code>target.yaml</code>'s prior-art summary records why. Upstream posting for these waits for the erdosproblems.com agreement named in Stage 0.</td></tr>
   <tr><td>F11-Q4</td><td><strong>Per-graph images.</strong> A Mathlib pin makes the image multi-gigabyte; one image per pinned SHA, referenced by digest, is the cost of D-4 step 1's "resolve from our pins" at usable speed. Shared across graphs with the same pin.</td></tr>
 </table>
 
@@ -111,7 +113,7 @@ D-33, D-35, Stages.</p>
 <h2>Tasks</h2>
 <table>
   <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
-  <tr><td>F11-T1</td><td><strong>Select the on-ramp result.</strong> Fact pass against R7; selection record with two rejected alternatives; the paper's argument saved as the annex text.</td>
+  <tr><td>F11-T1</td><td><strong>Choose the classic theorem.</strong> Selection against R7 from the Q1 candidates or better; record with definitions, lemma structure and two rejected alternatives; the textbook proof saved as the annex text.</td>
     <td><code>engineering/evidence/F11/selection.md</code>, <code>gate/tests/fixtures/onramp/annex.md</code>, <code>gate/tests/test_intake.py</code></td>
     <td>F10</td><td><code>uv run pytest gate/tests/test_intake.py -k selection</code></td></tr>
   <tr><td>F11-T2</td><td><strong>Target and fidelity records.</strong> Schemas, intake command with checks and scaffolding, fidelity command and grade derivation, posting and activation, claimability into products, Targets page reasons.</td>
@@ -123,8 +125,8 @@ D-33, D-35, Stages.</p>
   <tr><td>F11-T4</td><td><strong>Seed the on-ramp graph.</strong> Intake PR with the five artifacts; root and defs admitted; skeleton submitted through F07 citing the annex; holes admitted; fidelity raised to <code>back-translated</code> by a non-author; posting recorded; activated.</td>
     <td><code>../open_proof_network_graph/targets/&lt;onramp-id&gt;/</code>, <code>gate/tests/test_onramp_lean.py</code>, <code>engineering/evidence/F11/task-4.txt</code></td>
     <td>T3</td><td><code>make verify-lean</code> and the merged intake and skeleton PRs (URLs in evidence)</td></tr>
-  <tr><td>F11-T5</td><td><strong>List open targets.</strong> <code>import-fc</code> at a pinned commit; five targets listed; site shows reasons.</td>
-    <td><code>gate/opn_gate/intake.py</code>, <code>../open_proof_network_graph/targets/&lt;fc-ids&gt;/</code>, <code>gate/tests/test_intake.py</code></td>
+  <tr><td>F11-T5</td><td><strong>List open targets.</strong> Fact pass over Formal Conjectures at a pinned commit proposing five with reasons (Q3); Mike approves; <code>import-fc</code>; site shows reasons.</td>
+    <td><code>engineering/evidence/F11/open-targets.md</code>, <code>gate/opn_gate/intake.py</code>, <code>../open_proof_network_graph/targets/&lt;fc-ids&gt;/</code>, <code>gate/tests/test_intake.py</code></td>
     <td>T2</td><td><code>uv run pytest gate/tests/test_intake.py -k import_fc</code> and the merged import PR</td></tr>
   <tr><td>F11-T6</td><td><strong>Invited-run readiness rehearsal.</strong> Both paths end to end on the on-ramp graph with timings; site verified; the readiness record.</td>
     <td><code>gate/tools/rehearsal.py</code>, <code>engineering/evidence/F11/invited-run-readiness.txt</code></td>

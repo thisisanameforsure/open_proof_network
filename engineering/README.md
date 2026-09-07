@@ -1,7 +1,7 @@
 # engineering/
 
 How this repo gets built. Nothing here describes what the network is or how contributors use it
-once it exists — that is `docs/architecture_decisions_v_3_9.html`, and it governs where the two
+once it exists — that is `docs/architecture_decisions_v_3_10.html`, and it governs where the two
 disagree.
 
 ```
