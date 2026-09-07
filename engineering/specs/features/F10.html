@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F10 — Agent funnel</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F10</nav>
+<h1>F10 — Agent funnel</h1>
+<p class="subtitle">D-27's two funnels: the graph repo as the agent interface — <code>AGENTS.md</code>,
+per-node context bundles, a pinned devcontainer with a warm olean cache — and the documentation
+track for the human judgment roles.</p>
+
+<h2>1. Summary</h2>
+<p>By F09 every capability exists; F10 makes them findable and cheap to start. It writes the
+graph's <code>AGENTS.md</code> as a tested walkthrough of both paths, generates a machine-shaped
+context bundle per node so <code>get_node</code> and a raw clone serve the same object, pins a
+devcontainer per graph to the gate's own image, and builds the olean cache pipeline D-27 names as
+required infrastructure — the difference between minutes and hours for a cold agent, and the thing
+F11's first Mathlib-pinned graph cannot ship without. The human funnel gets its first documents:
+review checklists from the defect taxonomy, and walkthroughs for revision requests and defect
+claims. Cites: D-3, D-4, D-7, D-9, D-11, D-13, D-15, D-25, D-27, D-28, D-31, D-35, D-36.</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As an operator pointing a fresh agent at the repo tonight, I want one file that tells it how to claim, precheck, submit and record a failure, with commands that actually work.</li>
+  <li>As an agent, I want a node's context as one JSON document with no transcripts, so I spend tokens on mathematics.</li>
+  <li>As anyone starting a devcontainer, I want a warm cache so the first build is minutes, not hours (D-27).</li>
+  <li>As a new statement reviewer, I want a checklist derived from the defect classes, so I look for what actually goes wrong (D-15).</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> the graph's <code>AGENTS.md</code> with an executable walkthrough test; <code>nodes/&lt;id&gt;/CONTEXT.json</code> (schema <code>context/v1</code>) regenerated on merge; <code>get_node</code> served from it; <code>devcontainer.json</code> per graph pinned by image digest; the gate image published to GHCR and referenced by digest in <code>gate-spec.json</code>; the olean cache pipeline (build on merge, upload, fetch in <code>pregate.sh</code>, devcontainer and CI); human-funnel documents on the site's Docs page.</p>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>Mathlib itself: its cache comes from <code>lake exe cache get</code>; F10's pipeline covers the graph's own oleans (<code>defs/</code>, nodes). F11 exercises both.</li>
+  <li>Canary-based reviewer training (D-11, D-27) — Stage 1.</li>
+  <li>Skeletonization examples beyond the fixture — F11 provides a real one.</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F10-R1</td><td>The graph repo shall carry <code>AGENTS.md</code> covering, in this order: what the network is in five lines; the tutorial node and how to prove it on both paths; the claiming protocol (D-25); permitted paths (D-3); the gate contract with all nine steps and the bounce rule (D-4); how to get a token with and without GitHub (D-19); precheck and submit on the HTTP path and the identical git path; the postmortem schema with a filled example (D-13); skeletonization as the entry task — shape, annex citation, trivial-skeleton rejection (D-31, D-12); artifact types (D-12); proposals (D-29, D-30); rate limits and where they are published.</td></tr>
+  <tr><td>F10-R2</td><td>Every command in <code>AGENTS.md</code> shall be executable: a walkthrough script shall extract the fenced command blocks and run them against a fixture graph (git path) and the fake service (HTTP path), failing the suite if any block fails or drifts from the documented output.</td></tr>
+  <tr><td>F10-R3</td><td>The post-merge job shall write <code>nodes/&lt;id&gt;/CONTEXT.json</code> (<code>context/v1</code>): statement text and hash, the deps' signatures, witness text, gate-spec reference, status, claim snapshot, the attempt log as typed records without <code>detail</code> longer than 500 chars and with no transcripts, annex hashes with sizes, explainer presence, and F09's untrusted demarcation applied; bot-owned, deterministic.</td></tr>
+  <tr><td>F10-R4</td><td><code>get_node</code> (F09) shall return <code>CONTEXT.json</code> plus the raw files, so the bundle an agent reads by clone and by tool is the same document.</td></tr>
+  <tr><td>F10-R5</td><td>The gate image shall be published to GHCR on every tag of this repo and referenced by digest in each graph's <code>gate-spec.json</code> <code>devcontainer_ref</code>; <code>gate.yml</code>, the precheck job, <code>reproduce.sh</code> and the devcontainer shall all use that digest (D-4, D-35).</td></tr>
+  <tr><td>F10-R6</td><td>Each graph shall carry <code>.devcontainer/devcontainer.json</code> pointing at the pinned digest, with a post-create command that fetches the caches; opening it shall yield a working <code>pregate.sh</code> on the tutorial node without any build.</td></tr>
+  <tr><td>F10-R7</td><td>The post-merge job shall build the graph's oleans (<code>defs/</code> and every node's <code>Statement.lean</code>, <code>Context.lean</code>, merged <code>Proof.lean</code>) inside the image and upload them, keyed by graph commit, to the cache bucket named in <code>gate-spec.json</code> <code>olean_cache_url</code> (S3 behind CloudFront, public read); <code>pregate.sh</code>, the devcontainer and CI shall fetch the newest cache at or before their graph commit and fall back to building on a miss (C7).</td></tr>
+  <tr><td>F10-R8</td><td>The cache pipeline shall verify integrity: every uploaded archive carries a SHA-256 manifest; a fetch whose manifest does not verify shall be discarded and rebuilt, never trusted.</td></tr>
+  <tr><td>F10-R9</td><td>The site's Docs page shall carry the human-funnel documents: a statement-review checklist per defect class (F08-Q4 taxonomy) with a worked example each, a revision-request walkthrough, a defect-claim walkthrough, and the curator intake checklist (D-6), each naming the decision it implements.</td></tr>
+  <tr><td>F10-R10</td><td>The system shall record, in evidence, cold and warm timings for: devcontainer start to first <code>pregate.sh</code> pass, CI gate on the tutorial node, and precheck end to end — the Stage 0 latency series.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F10-AC1</td><td>Given <code>AGENTS.md</code>, when the walkthrough runner executes every fenced command block in order against the fixture and fakes, then all succeed and outputs match the documented ones.</td><td><code>gate/tests/test_walkthrough.py::test_agents_md_executes</code></td></tr>
+  <tr><td>F10-AC2</td><td>Given <code>AGENTS.md</code>, when its section headings are checked, then every R1 topic is present in order and every decision cited exists in the doc.</td><td><code>gate/tests/test_walkthrough.py::test_required_sections</code></td></tr>
+  <tr><td>F10-AC3</td><td>Given the fixture graph, when <code>CONTEXT.json</code> is generated for each node, then it validates against <code>context/v1</code>, contains no <code>detail</code> over 500 chars, and two runs are byte-identical.</td><td><code>gate/tests/test_context.py::test_context_bundle</code></td></tr>
+  <tr><td>F10-AC4</td><td>Given a node's <code>CONTEXT.json</code>, when <code>get_node</code> is called, then the tool's bundle equals the file plus raw files, demarcation included.</td><td><code>api/tests/test_mcp_equivalence.py::test_get_node_uses_context</code></td></tr>
+  <tr><td>F10-AC5</td><td>Given the tutorial graph's <code>gate-spec.json</code>, when read, then <code>devcontainer_ref</code> is a digest and the same digest appears in <code>gate.yml</code>, the precheck workflow, <code>reproduce.sh</code> and <code>devcontainer.json</code>.</td><td><code>gate/tests/test_pins.py::test_image_digest_consistent</code></td></tr>
+  <tr><td>F10-AC6</td><td>Given a cache archive and its manifest, when one byte is altered, then the fetch discards it and rebuilds; unaltered, then it is used and the build step reports cache hits.</td><td><code>gate/tests/test_cache.py::test_manifest_verification</code></td></tr>
+  <tr><td>F10-AC7</td><td>Given the fake ObjectStore with caches at commits A and C, when fetching for commit B (A &lt; B &lt; C), then A's cache is chosen.</td><td><code>gate/tests/test_cache.py::test_newest_at_or_before</code></td></tr>
+  <tr><td>F10-AC8</td><td>Given no cache in the store, when <code>pregate.sh</code> runs, then it builds and passes, logging the miss.</td><td><code>gate/tests/test_cache.py::test_miss_falls_back</code></td></tr>
+  <tr><td>F10-AC9</td><td>Given the Docs page, when rendered, then the four human-funnel documents are present and each names its decisions.</td><td><code>site/tests/test_render.py::test_human_funnel_docs</code></td></tr>
+  <tr><td>F10-AC10 <em>docker</em></td><td>Given the published image digest, when the devcontainer post-create command runs in it against the tutorial graph, then <code>pregate.sh</code> passes on the fixture proof without building the toolchain.</td><td><code>gate/tests/test_devcontainer_docker.py::test_postcreate_then_pregate</code></td></tr>
+  <tr><td>F10-AC11 <em>network</em></td><td>Given the live cache bucket and graph, when a merge completes, then a cache keyed by that commit exists with a verifying manifest and CI's next run reports hits; timings recorded.</td><td><code>gate/tools/check_cache.py &lt;commit&gt;</code> exit 0 (evidence with timings)</td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li>Tutorial graph: devcontainer start to first pass under 3 min cold; CI gate under 5 min; cache archive under 50 MiB.</li>
+  <li><code>CONTEXT.json</code> under 256 KiB; attempt records capped at the newest 50.</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li>Cache archives are built only by the post-merge job from merged content and verified by manifest; a poisoned cache cannot change a verdict because the authoritative gate replays from the pinned toolchain (D-4 step 1, D-5), but it could waste time, hence R8.</li>
+  <li>The image is pulled by digest everywhere; a tag is never trusted (D-35 pinning discipline).</li>
+  <li>Cache bucket writes use the same OIDC role pattern as the site (C8 item 4).</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>F09</strong> (required): <code>get_node</code>. <strong>F04</strong>: Docs page. <strong>F07</strong>, <strong>F08</strong>: the flows the walkthrough documents.</li>
+  <li><strong>Packages:</strong> none new.</li>
+  <li><strong>Infra:</strong> GHCR on the founder's account; a cache bucket added to the site's CloudFormation stack.</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F10-Q1</td><td><strong>The devcontainer image is the gate image.</strong> D-27 asks for a pinned devcontainer per graph; using the step-3 image means what a contributor builds in is what the gate builds in, which is D-4's one-codebase rule extended to the environment.</td></tr>
+  <tr><td>F10-Q2</td><td><strong><code>CONTEXT.json</code> is a bot-owned file inside the node directory</strong>, excluded from the submission path check like <code>META.yaml</code>. It duplicates nothing evidentiary; it is a rendering, deleted and regenerated on every merge.</td></tr>
+  <tr><td>F10-Q3</td><td><strong>Docs are tests.</strong> An <code>AGENTS.md</code> whose commands rot is worse than none; the walkthrough runner is how the doc stays true (C1 applied to prose).</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> spec · <strong>Tasks:</strong> T1&ndash;T5 todo</div>
+
+<h2>Tasks</h2>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F10-T1</td><td><strong><code>AGENTS.md</code> and walkthrough runner.</strong> The document; the runner extracting and executing fenced blocks against fixture and fakes; section checks.</td>
+    <td><code>../open_proof_network_graph/AGENTS.md</code>, <code>gate/tools/walkthrough.py</code>, <code>gate/tests/test_walkthrough.py</code></td>
+    <td>F09</td><td><code>uv run pytest gate/tests/test_walkthrough.py</code></td></tr>
+  <tr><td>F10-T2</td><td><strong>Context bundles.</strong> <code>context/v1</code>, generator in the post-merge job, <code>get_node</code> reads it.</td>
+    <td><code>gate/schemas/context/v1.json</code>, <code>gate/opn_gate/context.py</code>, <code>gate/opn_gate/postmerge.py</code>, <code>api/opn_api/mcp/reads.py</code>, <code>gate/tests/test_context.py</code>, <code>api/tests/test_mcp_equivalence.py</code></td>
+    <td>T1</td><td><code>uv run pytest gate/tests/test_context.py api/tests/test_mcp_equivalence.py</code></td></tr>
+  <tr><td>F10-T3</td><td><strong>Image publishing and devcontainer.</strong> GHCR publish workflow on tag, digest pinning check, per-graph <code>devcontainer.json</code> with post-create fetch.</td>
+    <td><code>.github/workflows/image-publish.yml</code>, <code>gate/tools/pin_image.py</code>, <code>../open_proof_network_graph/.devcontainer/devcontainer.json</code>, <code>../open_proof_network_graph/targets/tutorial/gate-spec.json</code>, <code>gate/tests/test_pins.py</code>, <code>gate/tests/test_devcontainer_docker.py</code></td>
+    <td>T1</td><td><code>make verify-lean</code></td></tr>
+  <tr><td>F10-T4</td><td><strong>Olean cache pipeline.</strong> Build and upload in the post-merge job, manifest, fetch with fallback in <code>pregate.sh</code>, devcontainer and CI, <code>ObjectStore</code> seam, cache bucket in the stack.</td>
+    <td><code>gate/opn_gate/cache.py</code>, <code>gate/opn_gate/objectstore.py</code>, <code>gate/pregate.sh</code>, <code>gate/opn_gate/postmerge.py</code>, <code>site/infra/site.cfn.yaml</code>, <code>gate/tests/test_cache.py</code>, <code>gate/tools/check_cache.py</code></td>
+    <td>T3</td><td><code>uv run pytest gate/tests/test_cache.py</code> and <code>check_cache.py</code> on a live merge (evidence with timings)</td></tr>
+  <tr><td>F10-T5</td><td><strong>Human funnel docs.</strong> Review checklists per defect class with examples, revision and defect walkthroughs, curator intake checklist, rendered on Docs.</td>
+    <td><code>site/docs/review-checklist.md</code>, <code>site/docs/revision-request.md</code>, <code>site/docs/defect-claim.md</code>, <code>site/docs/curator-intake.md</code>, <code>site/opn_site/render.py</code>, <code>site/tests/test_render.py</code></td>
+    <td>T1</td><td><code>uv run pytest site/tests/test_render.py</code></td></tr>
+</table>
+
+<footer>Open Proof Network · F10 spec v1 · 2026-09-07</footer>
+</body>
+</html>

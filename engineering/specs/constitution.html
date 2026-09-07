@@ -50,8 +50,9 @@ with its single home:
   <li><strong>Precheck signing key</strong> (ed25519): an Actions secret on the precheck scratch
     repo, nowhere else; its public key is committed to the graph. Signs precheck attestations
     (D-28).</li>
-  <li><strong>GitHub App private key</strong> and the <strong>api token-signing secret</strong>:
-    AWS Systems Manager Parameter Store (SecureString), read by the api function at startup.</li>
+  <li><strong>GitHub App private key and client secret</strong> (the App also serves as the OAuth
+    app for GitHub-proof identities, F05) and the <strong>api token-signing secret</strong>: AWS
+    Systems Manager Parameter Store (SecureString), read by the api function at startup.</li>
   <li><strong>Deploy credentials:</strong> none stored. CI assumes an AWS role via OIDC; the role
     ARN is config, not a secret.</li>
   <li><strong>Founder bootstrap AWS credentials:</strong> the git-ignored <code>.env</code> on the

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F01 — Witness and dependencies</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F01</nav>
+<h1>F01 — Witness and dependencies</h1>
+<p class="subtitle">Gate steps 7 and 8 (D-4): the non-vacuity witness is present and proves the
+statement's hypotheses are satisfiable, and a proof depends on nothing the node did not declare.
+Introduces the Lean-side metaprogram package the later steps build on.</p>
+
+<h2>1. Summary</h2>
+<p>F00 checks that a proof is a proof. F01 checks two things about what it is a proof <em>of</em>:
+that the statement's hypotheses can be met at all (step 7, the witness — without it contradictory
+hypotheses make every conclusion provable), and that the proof's dependency footprint matches the
+node's declared structure (step 8 — a proof pulling in undeclared nodes makes the graph and the
+ledger lie). Both need to inspect Lean terms, so F01 adds a Lake package under
+<code>gate/lean/</code>, pinned to the same toolchain, exposing two small executables the Python
+pipeline calls through the <code>Toolchain</code> seam. Cites: D-3 (<code>Witness.lean</code>,
+<code>Context.lean</code>, deps in <code>META.yaml</code>), D-4 steps 7–8, D-29 (statement-side
+checks at admission reuse these), D-34 (verdict shape).</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a prover, I want a clear failure when my proof quietly uses another node's lemma I did not
+    declare, so my merged proof never misrepresents the graph.</li>
+  <li>As a statement reviewer, I want every node to carry a witness that the gate has checked, so
+    I never spend review time on a vacuous statement.</li>
+  <li>As the gate owner, I want the Lean-side checks to be ordinary Lean programs in a pinned
+    package, so a toolchain bump is a visible diff and nothing else.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> the <code>gate/lean/</code> Lake package with <code>opn-witness-type</code>
+and <code>opn-used-constants</code>; step 7 (witness present, typechecks, has the expected type);
+step 8 (used constants originate only from toolchain/Mathlib, <code>defs/</code>, or declared deps;
+<code>Context.lean</code> signatures match the deps' statements); warnings for declared-unused
+deps; fixtures and both test tiers; the step-3 image builds the package.</p>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>Hazard checkers (step 6) — F02, though they live in the same Lake package.</li>
+  <li>Admission of new nodes (running these checks on a proposed node) — F08 calls into F01.</li>
+  <li>Cycle detection over the whole graph — F03, where the graph is derived.</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F01-R1</td><td>The system shall provide a Lake package at <code>gate/lean/</code> pinned to the repo's <code>lean-toolchain</code>, whose executables read a Lean file and print one JSON document on stdout; a non-zero exit with a JSON error document on any failure.</td></tr>
+  <tr><td>F01-R2</td><td>When step 7 runs, the system shall fail if <code>Witness.lean</code> is absent, does not elaborate under the pinned toolchain, depends on <code>sorryAx</code>, or depends on any axiom outside the allowlist.</td></tr>
+  <tr><td>F01-R3</td><td>When step 7 runs, the system shall compute the expected witness type from <code>Statement.lean</code> — the existential closure of the theorem's hypotheses over its binders, <code>True</code> when there are none — and shall fail if <code>Witness.lean</code> does not contain exactly one declaration named <code>witness</code> whose type is definitionally equal to it.</td></tr>
+  <tr><td>F01-R4</td><td>When step 8 runs, the system shall collect every constant the proof declaration depends on, transitively through declarations introduced in <code>Proof.lean</code>, and classify each by origin module: toolchain or Mathlib at the pinned SHA, the graph's <code>defs/</code>, a node directory, or the submission itself.</td></tr>
+  <tr><td>F01-R5</td><td>If any depended-on constant originates from a node not listed in <code>META.yaml</code> <code>deps</code>, then step 8 shall fail naming the constant, its module, and the undeclared node.</td></tr>
+  <tr><td>F01-R6</td><td>When step 8 runs, for every declared dep the system shall verify that the signature in <code>Context.lean</code> hash-equals the dep node's <code>Statement.lean</code> signature at the graph commit being gated, and shall fail naming the dep on mismatch.</td></tr>
+  <tr><td>F01-R7</td><td>If a declared dep contributes no constant to the proof, then step 8 shall record a warning naming it and shall pass.</td></tr>
+  <tr><td>F01-R8</td><td>The system shall run steps 7 and 8 after step 5 and before step 9's data is written, in that order, under the first-failure rule of F00-R7.</td></tr>
+  <tr><td>F01-R9</td><td>If a metaprogram exits non-zero or prints malformed JSON, then the step shall fail with the exit code and the first 8 KiB of output in the diagnostic, never pass (C7).</td></tr>
+  <tr><td>F01-R10</td><td>The system shall build the Lake package inside the step-3 image so <code>reproduce.sh</code>, the authoritative gate and <code>pregate.sh</code> run identical binaries (D-4: three invocations, one codebase).</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<p class="status-note">Paths relative to <code>gate/tests/</code>; <em>lean</em> rows are the <code>make verify-lean</code> tier.</p>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F01-AC1</td><td>Given the fake toolchain reporting a missing <code>Witness.lean</code>, when step 7 runs, then verdict names step 7 with <code>witness-missing</code>.</td><td><code>test_witness.py::test_missing_witness</code></td></tr>
+  <tr><td>F01-AC2</td><td>Given the fake reporting witness axioms {sorryAx}, when step 7 runs, then fail with <code>witness-sorry</code>.</td><td><code>test_witness.py::test_witness_sorry</code></td></tr>
+  <tr><td>F01-AC3</td><td>Given the fake reporting expected type T and witness type U ≠ T, when step 7 runs, then fail naming both types.</td><td><code>test_witness.py::test_witness_type_mismatch</code></td></tr>
+  <tr><td>F01-AC4</td><td>Given a statement with no hypotheses and a witness of type <code>True</code>, when step 7 runs, then pass.</td><td><code>test_witness.py::test_no_hypotheses_true_witness</code></td></tr>
+  <tr><td>F01-AC5</td><td>Given used constants including one from node B and deps [A], when step 8 runs, then fail naming B.</td><td><code>test_deps.py::test_undeclared_node_dependency</code></td></tr>
+  <tr><td>F01-AC6</td><td>Given used constants only from Mathlib, defs, and node A with deps [A], when step 8 runs, then pass with no warnings.</td><td><code>test_deps.py::test_declared_dependencies_pass</code></td></tr>
+  <tr><td>F01-AC7</td><td>Given deps [A, B] and constants only from A, when step 8 runs, then pass with a warning naming B.</td><td><code>test_deps.py::test_unused_declared_dep_warns</code></td></tr>
+  <tr><td>F01-AC8</td><td>Given <code>Context.lean</code> whose signature for A differs from A's <code>Statement.lean</code>, when step 8 runs, then fail naming A with both hashes.</td><td><code>test_deps.py::test_context_signature_mismatch</code></td></tr>
+  <tr><td>F01-AC9</td><td>Given a metaprogram that exits 1 with garbage, when either step runs, then the step fails with the output in the diagnostic and the pipeline exits nonzero.</td><td><code>test_deps.py::test_metaprogram_failure_is_step_failure</code></td></tr>
+  <tr><td>F01-AC10</td><td>Given the F00 pipeline, when a submission passes 1–5 and fails 7, then 8 does not run and the verdict names 7 first.</td><td><code>test_pipeline.py::test_step_order_7_before_8</code></td></tr>
+  <tr><td>F01-AC11 <em>lean</em></td><td>Given the propositional fixture, when <code>opn-witness-type</code> runs on each <code>Statement.lean</code>, then the printed types match the golden file.</td><td><code>test_lean_pkg_lean.py::test_witness_type_golden</code></td></tr>
+  <tr><td>F01-AC12 <em>lean</em></td><td>Given the fixture root's proof, when <code>opn-used-constants</code> runs, then the constants from the two interior nodes are listed with their modules and nothing from outside the fixture.</td><td><code>test_lean_pkg_lean.py::test_used_constants_golden</code></td></tr>
+  <tr><td>F01-AC13 <em>lean</em></td><td>Given a fixture node whose proof cites a node it does not declare, when <code>pregate.sh</code> runs, then step 8 fails.</td><td><code>test_pregate_lean.py::test_undeclared_dep_fails_step8</code></td></tr>
+  <tr><td>F01-AC14 <em>lean</em></td><td>Given a fixture node with a witness of the wrong type, when <code>pregate.sh</code> runs, then step 7 fails.</td><td><code>test_pregate_lean.py::test_wrong_witness_fails_step7</code></td></tr>
+  <tr><td>F01-AC15 <em>docker</em></td><td>Given the step-3 image, when the Lake package executables are invoked inside it, then they produce the same golden output as AC11–12.</td><td><code>test_sandbox_docker.py::test_lean_pkg_in_image</code></td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li>Each metaprogram under 30 s on the Mathlib-free fixture; the Lake package builds in under 2 min cold on a hosted runner.</li>
+  <li>Metaprogram output capped at 1 MiB; beyond that the step fails with a truncation marker.</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li>Both metaprograms elaborate contributor files and therefore execute contributor code; they run only where step 1 runs — inside the step-3 sandbox or on the contributor's own machine (C9).</li>
+  <li><code>Context.lean</code> is not a submission-editable path (D-3), so a mismatch in R6 indicates graph corruption or a bad admission, not a contributor action; the diagnostic says so.</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>F00</strong> (required): pipeline, seam, fixtures, image, <code>pregate.sh</code>.</li>
+  <li><strong>Packages:</strong> none new in Python. Lean: the Lake package depends on Lean core only; when a graph pins Mathlib (F11) the package must build against that Mathlib too, which the image handles per graph.</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F01-Q1</td><td><strong>Witness shape.</strong> D-4 says "present and typechecking"; F01 makes it "has exactly the type the gate derives from the statement", because a witness that typechecks but proves something unrelated defends nothing. The derivation is: for <code>theorem s : ∀ (x₁ : α₁) … (hₖ : Pₖ x), C x</code>, expected type <code>∃ x₁ … , P₁ x ∧ … ∧ Pₖ x</code>, with hypotheses identified as binders whose type is a <code>Prop</code>. Statements with no Prop binders get <code>True</code>.</td></tr>
+  <tr><td>F01-Q2</td><td><strong>Origin classification</strong> is by module name prefix: <code>Mathlib.*</code>/<code>Init.*</code>/<code>Lean.*</code>/<code>Std.*</code> → library; <code>Defs.*</code> → <code>defs/</code>; <code>Nodes.&lt;id&gt;.*</code> → node; anything else declared in the submission → submission. Module naming is therefore part of the D-3 layout contract and is fixed in F00's layout validator (T1 here adds it).</td></tr>
+  <tr><td>F01-Q3</td><td><strong>Unused declared deps warn, never fail.</strong> Over-declaring is honest about intent and harmless to structure; failing it would make provers trim deps mid-proof.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> spec · <strong>Tasks:</strong> T1&ndash;T5 todo</div>
+
+<h2>Tasks</h2>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F01-T1</td><td><strong>Lake package and module naming.</strong> <code>gate/lean/</code> with <code>lakefile.lean</code>, <code>opn-witness-type</code> and <code>opn-used-constants</code> executables, JSON output contract; module-name rule in the layout validator; golden files from the fixture.</td>
+    <td><code>gate/lean/lakefile.lean</code>, <code>gate/lean/OpnGate/WitnessType.lean</code>, <code>gate/lean/OpnGate/UsedConstants.lean</code>, <code>gate/opn_gate/layout.py</code>, <code>gate/tests/golden/</code>, <code>gate/tests/test_lean_pkg_lean.py</code></td>
+    <td>F00</td><td><code>make verify-lean</code></td></tr>
+  <tr><td>F01-T2</td><td><strong>Step 7.</strong> <code>Toolchain.witness_type</code> and elaboration of <code>Witness.lean</code> through the seam; fake extended; step implementation.</td>
+    <td><code>gate/opn_gate/toolchain.py</code>, <code>gate/opn_gate/steps/witness.py</code>, <code>gate/tests/fakes.py</code>, <code>gate/tests/test_witness.py</code></td>
+    <td>T1</td><td><code>uv run pytest gate/tests/test_witness.py</code></td></tr>
+  <tr><td>F01-T3</td><td><strong>Step 8.</strong> <code>Toolchain.used_constants</code>, origin classification, deps check, Context signature check, warnings.</td>
+    <td><code>gate/opn_gate/steps/deps.py</code>, <code>gate/opn_gate/toolchain.py</code>, <code>gate/tests/test_deps.py</code></td>
+    <td>T1</td><td><code>uv run pytest gate/tests/test_deps.py</code></td></tr>
+  <tr><td>F01-T4</td><td><strong>Pipeline wiring and fixtures.</strong> Steps 7–8 in order; adversarial fixture nodes (wrong witness, undeclared dep, unused dep, context mismatch); real-toolchain tests.</td>
+    <td><code>gate/opn_gate/pipeline.py</code>, <code>gate/tests/fixtures/graphs/propositional/</code>, <code>gate/tests/test_pipeline.py</code>, <code>gate/tests/test_pregate_lean.py</code></td>
+    <td>T2, T3</td><td><code>make verify-lean</code></td></tr>
+  <tr><td>F01-T5</td><td><strong>Image and reproduce.</strong> Lake package built in the step-3 image; <code>reproduce.sh</code> covers 7–8; D-5 identical-run test still green.</td>
+    <td><code>gate/Dockerfile</code>, <code>gate/reproduce.sh</code>, <code>gate/tests/test_sandbox_docker.py</code>, <code>gate/tests/test_reproduce_docker.py</code></td>
+    <td>T4</td><td><code>make verify-lean</code></td></tr>
+</table>
+
+<footer>Open Proof Network · F01 spec v1 · 2026-09-07</footer>
+</body>
+</html>

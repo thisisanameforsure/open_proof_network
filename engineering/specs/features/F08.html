@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F08 — Proposals and admission</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F08</nav>
+<h1>F08 — Proposals and admission</h1>
+<p class="subtitle">The graph grows from contributions (D-29): speculative crux nodes (D-14),
+labeled variants (D-30), witness completion for compiler-derived holes, revision requests (D-8),
+defect claims (D-16), and the thin curator operations — all admitted by the gate's statement-side
+checks, never by a person approving structure.</p>
+
+<h2>1. Summary</h2>
+<p>F08 adds the one gate mode that creates nodes — <code>proposal</code> — and the admission check
+behind it: layout, statement typechecks with body <code>sorry</code>, witness (F01), hazards (F02),
+context matches deps (F01), acyclicity (F03), and for variants the kernel-checked relation proof
+(D-30). It exposes <code>POST /proposals/speculative</code> and <code>POST /proposals/variant</code>
+(D-28's <code>propose_speculative_node</code> and <code>propose_variant</code>), the append-shaped
+<code>POST /revision-requests</code> and <code>POST /defect-claims</code> with D-16's pre-triage
+bounce, and the curator-only <code>curator</code> PR mode with three commands: revise (D-8),
+consolidate (D-29), and status records (abandon, dormancy; D-14, D-33). Statement authorship
+enters the ledger for admitted variants and speculative cruxes (D-19). Cites: D-3, D-8, D-9,
+D-13, D-14, D-16, D-18, D-19, D-21, D-28, D-29, D-30, D-33, D-35.</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a prover mid-attempt, I want to enter the crux my route hinges on as a speculative node, so an unfalsifiable idea becomes a typechecked object others can refute or prove (D-14).</li>
+  <li>As a prover who can only prove something weaker, I want to propose a labeled variant with its relation proof, so weakening is legal and visible (D-30).</li>
+  <li>As a contributor who thinks a statement is defective, I want to file evidence and have a curator version it, without anyone editing the statement (D-8).</li>
+  <li>As the curator, I want revision, consolidation and abandonment to be commands that open signed PRs, so my authority is thin, mechanical and on the record (D-29).</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> the admission check as a command and as gate mode <code>proposal</code>; node-directory scaffolding from a statement and witness; variant layout with <code>Relation.lean</code>; witness completion for compiler-derived holes; the four proposal/request endpoints; defect-claim pre-triage as a CI check; <code>curators.json</code> and the <code>curator</code> mode; curator commands revise, consolidate, status; missing-library aggregation report; ledger statement line; schemas <code>revision-request/v1</code>, <code>defect-claim/v1</code>, <code>node-status/v1</code> (F03) usage.</p>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>Adjudication of defect claims and revision requests (D-17), the rolling rejected-claim budget (D-16), canaries (D-11), reviewer assignment (D-15) — Stage 1.</li>
+  <li>Automatic prerequisite-node creation from <code>missing-library</code> postmortems — a report for the curator only (Q3).</li>
+  <li>Mechanical re-run of stale dependents after a revision (D-18) — Stage 1; F08 marks them stale.</li>
+  <li>Intake of targets (D-6) — F11.</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F08-R1</td><td>The system shall provide <code>opn-gate admit &lt;node-dir&gt;</code> running, in order: D-3 layout validation (F00), <code>Statement.lean</code> elaborates with body <code>sorry</code> and no other axiom beyond <code>sorryAx</code> and the allowlist, step 7 witness (F01), step 6 hazards (F02), <code>Context.lean</code> matches every declared dep (F01), deps exist and the graph stays acyclic (F03), and for a variant the relation proof (R4); emitting a verdict in the F00 shape with the first failing check.</td></tr>
+  <tr><td>F08-R2</td><td>The gate workflow shall classify a PR that adds exactly one new node directory and touches nothing else as mode <code>proposal</code>, run R1's admission on it inside the step-3 sandbox, and on pass merge with no review (D-29: no human approves structure); a proposal touching any existing file shall be rejected at step 2.</td></tr>
+  <tr><td>F08-R3</td><td>When <code>POST /proposals/speculative</code> {<code>target_id</code>, <code>statement</code>, <code>witness</code>, <code>deps?</code>} is received with a token, the system shall scaffold a node directory with id <code>&lt;target&gt;/spec-&lt;hash8&gt;</code>, <code>origin: authored</code>, <code>speculative: true</code>, the given files, generated <code>Context.lean</code> from deps, and open a proposal PR as in F07-R2, returning {node_id, pr_url}.</td></tr>
+  <tr><td>F08-R4</td><td>When <code>POST /proposals/variant</code> {<code>target_id</code>, <code>statement</code>, <code>witness</code>, <code>relation?</code>, <code>relation_proof?</code>} is received, the system shall scaffold a node with <code>origin: variant</code>, <code>relation</code> ∈ {resolves, partial, related} (default <code>related</code>), and when the label is above <code>related</code> a <code>Relation.lean</code> declaring <code>theorem relation : V → R</code> (resolves) or <code>R → V</code> (partial) where R is the root's statement type and V the variant's; admission shall check that type with <code>opn-artifact-type</code> and kernel-replay it under steps 4–5; a label above <code>related</code> without a passing relation proof shall fail admission (D-30).</td></tr>
+  <tr><td>F08-R5</td><td>When <code>POST /proposals/witness</code> {<code>node_id</code>, <code>witness</code>} is received for a compiler-derived node with cause <code>witness-missing</code>, the system shall open a proposal PR adding only <code>Witness.lean</code>; admission shall run on the completed node and on pass the node becomes <code>ready</code> (F07-Q3); <code>Witness.lean</code> creation on such nodes is the one permitted addition to an existing node directory in <code>proposal</code> mode.</td></tr>
+  <tr><td>F08-R6</td><td>When <code>POST /revision-requests</code> {<code>node_id</code>, <code>evidence</code>} is received, the system shall validate against <code>revision-request/v1</code> {schema, node, contributor, defect_class, evidence: {text ≤ 2,000 chars, exhibit?: Lean file}}, write <code>nodes/&lt;id&gt;/revisions/&lt;ts&gt;-&lt;pseudonym&gt;.yaml</code> and open an append PR (F07-R9); an exhibit, if given, shall elaborate in the append gate or the PR fails.</td></tr>
+  <tr><td>F08-R7</td><td>When <code>POST /defect-claims</code> {<code>stmt_ref</code>, <code>class</code>, <code>line</code>, <code>exhibit</code>} is received, the system shall bounce (400) unless <code>class</code> is in the defect taxonomy {missing-hypothesis, junk-value, vacuity, quantifier-scope, wrong-domain, definition-mismatch, strength-drift, other-with-exhibit}, <code>line</code> is an existing line of the referenced <code>Statement.lean</code> or <code>defs/</code> file, and <code>exhibit</code> is a Lean file; the append gate shall repeat the same check as CI (D-16, D-35) and elaborate the exhibit; the record goes to <code>nodes/&lt;id&gt;/defects/</code> or <code>defs/defects/</code>.</td></tr>
+  <tr><td>F08-R8</td><td>The graph repo shall carry <code>curators.json</code> {identities: [{pseudonym, github_login}]} owned by the founder; the gate shall classify a PR authored by a listed login that adds status records, a versioned node, or a consolidation record as mode <code>curator</code>, run admission on any new node directory, and merge on green plus one approving review by a different listed identity — waived while only one curator exists (D-22's founding-team waiver), recorded in the attestation.</td></tr>
+  <tr><td>F08-R9</td><td>The system shall provide <code>opn-gate revise &lt;node-id&gt; --statement &lt;file&gt; --request &lt;revision-file&gt;</code> that scaffolds <code>&lt;node-id&gt;@v2</code> (next free version) with <code>supersedes</code>, copies witness and deps for the curator to adjust, writes a <code>node-status/v1</code> record marking the old node <code>superseded</code> and each dependent <code>stale</code> with cause naming the revision, and opens a curator PR (D-8, D-18).</td></tr>
+  <tr><td>F08-R10</td><td>The system shall provide <code>opn-gate consolidate &lt;keep&gt; &lt;drop&gt;</code> that refuses unless the two statements have equal statement hashes or elaborate to definitionally equal types, and otherwise writes a status record marking <code>drop</code> <code>superseded</code> by <code>keep</code> and opens a curator PR (D-29).</td></tr>
+  <tr><td>F08-R11</td><td>The system shall provide <code>opn-gate status &lt;node-or-target&gt; &lt;abandoned|dormant|active&gt; --cause &lt;text&gt;</code> writing the corresponding record; a dormancy record shall name the D-25 starvation series values and the K and N in force, and shall fail if the target has had a merge within N days (D-33 condition a).</td></tr>
+  <tr><td>F08-R12</td><td>The system shall provide <code>opn-gate missing-library &lt;target&gt;</code> that aggregates <code>missing-library</code> postmortems by normalized <code>missing_lemmas</code> string and lists those at or above the configured threshold (default 3) for the curator, without creating nodes (D-13).</td></tr>
+  <tr><td>F08-R13</td><td>When a proposal PR merges, the post-merge job shall append a <code>statement</code> ledger entry for the proposer on variants and speculative cruxes only (D-19; never for holes, D-31), and shall regenerate products so the node appears in the frontier.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F08-AC1</td><td>Given a well-formed proposal node in the fixture, when <code>admit</code> runs with fakes, then every check passes in the stated order.</td><td><code>gate/tests/test_admit.py::test_admission_order_and_pass</code></td></tr>
+  <tr><td>F08-AC2</td><td>Given a statement that does not elaborate, when admitted, then the verdict names the typecheck step first and no later check runs.</td><td><code>gate/tests/test_admit.py::test_typecheck_first</code></td></tr>
+  <tr><td>F08-AC3</td><td>Given a proposal declaring a dep that would create a cycle, when admitted, then fail naming the cycle.</td><td><code>gate/tests/test_admit.py::test_cycle_rejected</code></td></tr>
+  <tr><td>F08-AC4</td><td>Given a variant labeled <code>resolves</code> with a relation proof of type R → V, when admitted, then fail naming the expected type V → R; with V → R, then pass.</td><td><code>gate/tests/test_admit.py::test_relation_direction</code></td></tr>
+  <tr><td>F08-AC5</td><td>Given a variant labeled <code>partial</code> without <code>Relation.lean</code>, when admitted, then fail; labeled <code>related</code> without it, then pass.</td><td><code>gate/tests/test_admit.py::test_relation_required_above_related</code></td></tr>
+  <tr><td>F08-AC6</td><td>Given a PR adding one node dir and editing another node's file, when classified, then rejected at step 2; adding only one node dir, then mode <code>proposal</code>.</td><td><code>gate/tests/test_modes.py::test_proposal_mode_exactly_one_dir</code></td></tr>
+  <tr><td>F08-AC7</td><td>Given a compiler-derived node with cause <code>witness-missing</code>, when a PR adds only its <code>Witness.lean</code> and admission passes, then the node is <code>ready</code> after merge; adding <code>Witness.lean</code> to a ready node, then rejected.</td><td><code>gate/tests/test_modes.py::test_witness_completion</code></td></tr>
+  <tr><td>F08-AC8</td><td>Given <code>POST /proposals/speculative</code>, when accepted, then the scaffolded directory validates against D-3, META has <code>speculative: true</code>, <code>Context.lean</code> lists the deps' signatures, and a proposal PR is opened.</td><td><code>api/tests/test_proposals.py::test_speculative_scaffold</code></td></tr>
+  <tr><td>F08-AC9</td><td>Given <code>POST /proposals/variant</code> with label <code>resolves</code> and no proof, when posted, then 400 naming the relation proof.</td><td><code>api/tests/test_proposals.py::test_variant_requires_proof_for_label</code></td></tr>
+  <tr><td>F08-AC10</td><td>Given a defect claim with class <code>typo</code>, or a line beyond the file, or no exhibit, when posted, then 400 naming the pre-triage rule; given a valid one, then an append PR and the CI check passes.</td><td><code>api/tests/test_claims_defect.py::test_pretriage_bounce</code></td></tr>
+  <tr><td>F08-AC11</td><td>Given a revision request with an exhibit that fails to elaborate, when gated, then the append PR fails naming the exhibit.</td><td><code>gate/tests/test_modes.py::test_revision_exhibit_elaborates</code></td></tr>
+  <tr><td>F08-AC12</td><td>Given a PR by a login in <code>curators.json</code> adding a status record, when classified, then mode <code>curator</code>; by a login not listed, then rejected.</td><td><code>gate/tests/test_modes.py::test_curator_mode_requires_listing</code></td></tr>
+  <tr><td>F08-AC13</td><td>Given <code>revise</code> on node N with dependents D1, D2, when run, then <code>N@v2</code> exists with <code>supersedes: N</code>, status records mark N superseded and D1, D2 stale with the revision cause, and products reflect it.</td><td><code>gate/tests/test_curator.py::test_revise_flow</code></td></tr>
+  <tr><td>F08-AC14</td><td>Given two nodes with different statement hashes that are not defeq, when <code>consolidate</code> runs, then it refuses; with equal hashes, then a superseded record for <code>drop</code>.</td><td><code>gate/tests/test_curator.py::test_consolidate_requires_equality</code></td></tr>
+  <tr><td>F08-AC15</td><td>Given a target with a merge 10 days ago and N = 90, when <code>status dormant</code> runs, then it refuses citing D-33 (a); with no merge in 100 days, then the record names the series values.</td><td><code>gate/tests/test_curator.py::test_dormancy_condition</code></td></tr>
+  <tr><td>F08-AC16</td><td>Given four postmortems naming the same lemma modulo whitespace and case, when the report runs with threshold 3, then it lists that lemma with count 4 and creates nothing.</td><td><code>gate/tests/test_curator.py::test_missing_library_report</code></td></tr>
+  <tr><td>F08-AC17</td><td>Given merged proposals of a variant, a speculative node, and a hole witness, when the ledger is written, then statement entries exist for the first two only.</td><td><code>gate/tests/test_ledger.py::test_statement_line_scope</code></td></tr>
+  <tr><td>F08-AC18 <em>lean</em></td><td>Given fixture proposals (valid, bad witness, hazard, wrong relation direction), when <code>admit</code> runs with the real toolchain, then each fails at the expected check or passes.</td><td><code>gate/tests/test_admit_lean.py::test_admission_matrix</code></td></tr>
+  <tr><td>F08-AC19 <em>network</em></td><td>Given the live service, when a test identity proposes a <code>related</code> variant of the tutorial node, then the proposal PR merges on green and the node appears in <code>frontier.json</code>.</td><td><code>api/tools/smoke_propose.py</code> exit 0 (evidence)</td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li>Admission under 5 min on a hosted runner for Mathlib-free nodes; proposals per identity per day: 20 (config, published).</li>
+  <li>Node ids: <code>&lt;target&gt;/&lt;slug&gt;</code>, slug ≤ 64 chars; versions <code>@v&lt;n&gt;</code>.</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li>Admission elaborates contributor Lean: sandbox only (C9). Exhibits in defect claims and revision requests are Lean files and are elaborated under the same rules.</li>
+  <li><code>curators.json</code> is the only role file at Stage 0 and is founder-owned; a change to it is a visible commit (D-22).</li>
+  <li>Proposal spam is bounded by identity-layer limits (D-19, D-29), never by review.</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>F07</strong> (required, except T1 which F07-T4 needs): PR creation, modes, ledger. <strong>F02</strong>, <strong>F01</strong>, <strong>F03</strong>: the checks admission composes.</li>
+  <li><strong>Packages:</strong> none new.</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F08-Q1</td><td><strong><code>Relation.lean</code> is a D-3 layout addition</strong> for variant nodes only, holding the D-30 implication proof; it is gate-checked at admission and never editable afterward. Proposed addition to D-3 for the next doc revision.</td></tr>
+  <tr><td>F08-Q2</td><td><strong>Speculative nodes are <code>origin: authored</code> with a <code>speculative</code> flag</strong>, since D-3's origin set has no fourth value and D-14 describes them as authored crux statements; F03's status model already publishes <code>speculative</code>.</td></tr>
+  <tr><td>F08-Q3</td><td><strong>Missing-library prerequisites are not auto-created.</strong> D-13 says the lemma "enters the frontier as a prerequisite node" above threshold, but a postmortem names it in prose; a node needs a Lean statement. The report puts it in front of the curator, who proposes it like anyone else. Proposed clarification to D-13.</td></tr>
+  <tr><td>F08-Q4</td><td><strong>Defect taxonomy</strong> is D-11's six canary classes plus D-9's named residual <code>strength-drift</code> and an <code>other-with-exhibit</code> escape; the research §3 taxonomy the doc cites is not reproduced in it. Proposed enumeration for D-16.</td></tr>
+  <tr><td>F08-Q5</td><td><strong>Curator PRs need a second curator's approval</strong> per D-21's separation, waived while the founder is the only curator (D-22), with the waiver recorded per PR so the ledger shows it.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> spec · <strong>Tasks:</strong> T1&ndash;T6 todo</div>
+
+<h2>Tasks</h2>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F08-T1</td><td><strong>Admission check.</strong> <code>opn-gate admit</code> composing the F00–F03 checks; variant relation check; scaffolding library for node directories; fixtures.</td>
+    <td><code>gate/opn_gate/admit.py</code>, <code>gate/opn_gate/scaffold.py</code>, <code>gate/opn_gate/cli.py</code>, <code>gate/tests/fixtures/proposals/</code>, <code>gate/tests/test_admit.py</code>, <code>gate/tests/test_admit_lean.py</code></td>
+    <td>F02, F03</td><td><code>make verify-lean</code></td></tr>
+  <tr><td>F08-T2</td><td><strong>Proposal and curator modes.</strong> Classification rules, witness completion, <code>curators.json</code>, workflow merge rules.</td>
+    <td><code>gate/opn_gate/modes.py</code>, <code>gate/opn_gate/paths.py</code>, <code>../open_proof_network_graph/curators.json</code>, <code>../open_proof_network_graph/.github/workflows/gate.yml</code>, <code>gate/tests/test_modes.py</code></td>
+    <td>T1, F07-T1</td><td><code>uv run pytest gate/tests/test_modes.py</code></td></tr>
+  <tr><td>F08-T3</td><td><strong>Proposal endpoints.</strong> Speculative, variant, witness completion; scaffolding through the service; PR creation.</td>
+    <td><code>api/opn_api/proposals.py</code>, <code>api/opn_api/routes.py</code>, <code>api/tests/test_proposals.py</code></td>
+    <td>T2, F07-T3</td><td><code>uv run pytest api/tests/test_proposals.py</code></td></tr>
+  <tr><td>F08-T4</td><td><strong>Revision requests and defect claims.</strong> Schemas, endpoints, pre-triage in service and in the append gate, exhibit elaboration.</td>
+    <td><code>gate/schemas/revision-request/v1.json</code>, <code>gate/schemas/defect-claim/v1.json</code>, <code>api/opn_api/requests.py</code>, <code>gate/opn_gate/modes.py</code>, <code>api/tests/test_claims_defect.py</code>, <code>gate/tests/test_modes.py</code></td>
+    <td>T2</td><td><code>uv run pytest api/tests/test_claims_defect.py gate/tests/test_modes.py</code></td></tr>
+  <tr><td>F08-T5</td><td><strong>Curator commands and ledger.</strong> revise, consolidate, status, missing-library report; statement ledger line.</td>
+    <td><code>gate/opn_gate/curator.py</code>, <code>gate/opn_gate/ledger.py</code>, <code>gate/opn_gate/cli.py</code>, <code>gate/tests/test_curator.py</code>, <code>gate/tests/test_ledger.py</code></td>
+    <td>T2</td><td><code>uv run pytest gate/tests/test_curator.py gate/tests/test_ledger.py</code></td></tr>
+  <tr><td>F08-T6</td><td><strong>Live proposal.</strong> Deploy; propose a <code>related</code> variant of the tutorial node; evidence.</td>
+    <td><code>api/tools/smoke_propose.py</code>, <code>engineering/evidence/F08/task-6.txt</code></td>
+    <td>T3, T4, T5</td><td><code>uv run python api/tools/smoke_propose.py &lt;api-url&gt;</code></td></tr>
+</table>
+
+<footer>Open Proof Network · F08 spec v1 · 2026-09-07</footer>
+</body>
+</html>

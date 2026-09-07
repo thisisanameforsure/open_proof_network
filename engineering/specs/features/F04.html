@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F04 — Site</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F04</nav>
+<h1>F04 — Site</h1>
+<p class="subtitle">The D-36 website: a static rendering of the graph regenerated on every merge,
+served from S3 through CloudFront, read-only forever, every page naming the commit it renders.</p>
+
+<h2>1. Summary</h2>
+<p>F04 builds <code>site/</code>: a generator that takes a graph checkout at a commit plus F03's
+products and emits static HTML; the AWS resources that serve it; and the deploy path that runs
+after every merge. It is the human view of exactly what an agent sees through the read tools
+(D-28), so it invents nothing: every page renders a file and links to it at the rendered commit.
+Contributor prose — explainers, annexes, postmortem detail — is escaped and shown under a fixed
+"unverified" or "untrusted" label with the kernel-checked object one click above it. There is no
+server-side code, no database, no form, no account (D-36). Cites: D-3, D-5, D-13, D-14, D-18,
+D-19, D-23, D-25, D-27, D-28, D-33, D-35, D-36.</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a bystander, I want to see which targets exist, what has been proved, and the frontier, without cloning anything.</li>
+  <li>As a mathematician deciding whether to review, I want the root statement in Lean beside the informal one and the fidelity grade, on one page.</li>
+  <li>As a prover, I want a node page that links the merged <code>Proof.lean</code> and its attestation at the exact commit.</li>
+  <li>As the founder, I want visitor counts from CDN logs without a tracking script.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> <code>opn_site</code> generator with the seven D-36 pages; escaped rendering of Lean and prose; a minimal safe prose renderer (paragraphs and code fences only); client-side frontier filtering in plain JavaScript; a link checker; CloudFormation for bucket, distribution, logging with 90-day retention, OIDC deploy role; the deploy workflow in this repo, triggered by the graph repo's post-merge job; first deploy with screenshots.</p>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>A custom domain (none exists as of 2026-09-07); the distribution's issued hostname is the address.</li>
+  <li>Search, accounts, comments, RSS, or any input (D-36: never).</li>
+  <li>Markdown rendering beyond paragraphs and code fences; a fuller renderer is a later, justified dependency.</li>
+  <li>Contributors page content beyond what ledger files exist (F07 creates them).</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F04-R1</td><td>The system shall render, from a graph checkout at commit C and its products: Home, Targets, Target (one per target), Node (one per node), Frontier, Contributors, Docs, with the contents D-36's table lists for each.</td></tr>
+  <tr><td>F04-R2</td><td>Every page shall show commit C and, for each file it renders, a link to that file at C in the graph repository.</td></tr>
+  <tr><td>F04-R3</td><td>The system shall HTML-escape all content from the graph before insertion; no string from a graph file shall reach the output unescaped.</td></tr>
+  <tr><td>F04-R4</td><td>When rendering an explainer, annex, postmortem <code>detail</code>, approach record, or acknowledgment justification, the system shall place it inside a block carrying the label "unverified" (explainers) or "untrusted" (the rest), with author and drafting model where the record has them, below the link to the kernel-checked object.</td></tr>
+  <tr><td>F04-R5</td><td>The Node page shall show the rendered <code>Statement.lean</code>, the proof link at the merged commit if proved, the attestation's verdict, Mathlib SHA, toolchain hash, per-step results, reviewer id, <code>trust_base</code> when <code>compiler</code>, attempt count and route-class histogram, the explainer or an explicit "no explainer yet" line.</td></tr>
+  <tr><td>F04-R6</td><td>The Target page shall draw the DAG as inline SVG with nodes colored by status, generated server-side with a layered layout; approach records; the D-32 note when present.</td></tr>
+  <tr><td>F04-R7</td><td>The Frontier page shall render <code>frontier.json</code> as a table with every D-25 field and shall filter client-side on every field with plain JavaScript; with JavaScript disabled the full table remains readable.</td></tr>
+  <tr><td>F04-R8</td><td>The Contributors page shall list every ledger identity with each entry linked to its artifact, showing revoked entries as revoked; when no ledger files exist it shall say so.</td></tr>
+  <tr><td>F04-R9</td><td>The Docs page shall include the architecture decisions document, the graph's <code>AGENTS.md</code>, the human-funnel documentation (D-27, when present), the license and DCO text.</td></tr>
+  <tr><td>F04-R10</td><td>The output shall reference no external resource: one inline or same-origin stylesheet, one same-origin script, no fonts, images or scripts from elsewhere; pages shall be served with a Content-Security-Policy that enforces this.</td></tr>
+  <tr><td>F04-R11</td><td>The system shall provision, via a CloudFormation template in <code>site/infra/</code>: a private S3 bucket with origin access control, a CloudFront distribution with standard logging to a second bucket whose lifecycle deletes objects after 90 days, and an IAM role assumable only by this repo's deploy workflow through GitHub OIDC (C8 item 4).</td></tr>
+  <tr><td>F04-R12</td><td>When the graph repo's post-merge job completes, it shall dispatch this repo's <code>site-deploy</code> workflow with the graph commit; that workflow shall render, sync to the bucket with deletion of stale objects, and invalidate the distribution; a failed deploy leaves the previous site intact (C7).</td></tr>
+  <tr><td>F04-R13</td><td>The generator shall fail, writing no output, if any product fails schema validation or any internal link would not resolve.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F04-AC1</td><td>Given the fixture graph and golden products, when rendered, then all seven page types exist and match the golden HTML.</td><td><code>site/tests/test_render.py::test_golden_pages</code></td></tr>
+  <tr><td>F04-AC2</td><td>Given an explainer containing <code>&lt;script&gt;alert(1)&lt;/script&gt;</code> and an annex containing an <code>&lt;img onerror&gt;</code>, when rendered, then both appear escaped inside the labeled block and no script or img tag exists in the output.</td><td><code>site/tests/test_escaping.py::test_prose_is_escaped</code></td></tr>
+  <tr><td>F04-AC3</td><td>Given a statement containing <code>&lt;</code> and <code>&amp;</code>, when rendered, then the Lean text is escaped and intact.</td><td><code>site/tests/test_escaping.py::test_lean_is_escaped</code></td></tr>
+  <tr><td>F04-AC4</td><td>Given any rendered page, when inspected, then it contains commit C and every rendered file has a link containing C.</td><td><code>site/tests/test_render.py::test_commit_and_file_links</code></td></tr>
+  <tr><td>F04-AC5</td><td>Given the rendered output, when the link checker runs, then every internal href resolves to a generated file and no external URL appears except GitHub file links and the docs' cited sources.</td><td><code>site/tests/test_links.py::test_internal_links_resolve</code></td></tr>
+  <tr><td>F04-AC6</td><td>Given a node with a passing merged attestation, when its page renders, then verdict, per-step results, reviewer and proof link are present; given an unproved node, then "no proof merged" and no proof link.</td><td><code>site/tests/test_render.py::test_node_page_states</code></td></tr>
+  <tr><td>F04-AC7</td><td>Given a node with <code>trust_base: compiler</code>, when rendered, then the page carries the compiler-trust flag text.</td><td><code>site/tests/test_render.py::test_compiler_trust_flag</code></td></tr>
+  <tr><td>F04-AC8</td><td>Given a node without an explainer, when rendered, then the page contains the "no explainer yet" line.</td><td><code>site/tests/test_render.py::test_no_explainer_cue</code></td></tr>
+  <tr><td>F04-AC9</td><td>Given the frontier page, when parsed, then the table has one row per frontier entry and one column per R5 field of F03, and the script tag is same-origin.</td><td><code>site/tests/test_render.py::test_frontier_table</code></td></tr>
+  <tr><td>F04-AC10</td><td>Given the fixture target, when the DAG SVG is generated, then it has one node element per node with the status class and one edge per dep.</td><td><code>site/tests/test_dag.py::test_dag_svg_structure</code></td></tr>
+  <tr><td>F04-AC11</td><td>Given a product that fails schema validation, when rendering, then the generator exits nonzero and the output directory is untouched.</td><td><code>site/tests/test_render.py::test_invalid_product_writes_nothing</code></td></tr>
+  <tr><td>F04-AC12</td><td>Given every rendered page, when parsed with the stdlib HTML parser, then tags balance and no resource URL points off-origin except the allowed link classes.</td><td><code>site/tests/test_links.py::test_no_external_resources</code></td></tr>
+  <tr><td>F04-AC13 <em>network</em></td><td>Given the deployed distribution, when its hostname is fetched, then Home renders with the latest graph commit, the CSP header is present, and screenshots of Home, a Target and a Node page are captured.</td><td><code>site/tools/check_deploy.py</code> exit 0; screenshots in <code>engineering/evidence/F04/</code></td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li>Full render under 30 s for 1,000 nodes; each page under 200 KiB; frontier page paginates client-side beyond 500 rows.</li>
+  <li>Deploy under 5 min end to end after merge.</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li>All graph content is untrusted for rendering purposes (C9); escaping is the rule, allow-listing is the exception (code fences).</li>
+  <li>CSP: <code>default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'</code>, set as a CloudFront response-headers policy.</li>
+  <li>CDN access logs hold IP addresses: 90-day lifecycle, aggregate use only (C9). No cookies, no beacons.</li>
+  <li>The deploy role can write the site bucket and create invalidations, nothing else.</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>F03</strong> (required): products. <strong>F00</strong>: attestations.</li>
+  <li><strong>Packages:</strong> none new. Templates use <code>string.Template</code>; prose renderer and SVG layout are hand-written.</li>
+  <li><strong>AWS:</strong> account with the OIDC provider; the founder bootstraps the CloudFormation stack once from the local <code>.env</code> credentials (C8 item 5).</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F04-Q1</td><td><strong>Deploy runs in this repo, dispatched by the graph's merge job.</strong> D-36 says the generator runs "in the same merge hook that regenerates <code>frontier.json</code>". Running it in the graph repo would require the graph workflow to carry site tooling and AWS credentials; dispatching this repo's workflow keeps the graph workflow secretless beyond the gate key and keeps site changes out of graph history (D-35). Same trigger, different repo; proposed clarification to D-36.</td></tr>
+  <tr><td>F04-Q2</td><td><strong>Prose renderer is deliberately tiny.</strong> Paragraphs and fenced code only; everything else is literal text. Correct and safe beats pretty at Stage 0.</td></tr>
+  <tr><td>F04-Q3</td><td><strong>DAG layout</strong> is longest-path layering with nodes ordered lexically within a layer; no crossing minimization. Good enough for 20–100 nodes; revisit at Stage 2 scale.</td></tr>
+  <tr><td>F04-Q4</td><td><strong>Docs page ships this repo's decisions doc</strong> copied at the site build's <code>network</code> commit, so the site can lag the doc by at most one merge.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> spec · <strong>Tasks:</strong> T1&ndash;T5 todo</div>
+
+<h2>Tasks</h2>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F04-T1</td><td><strong>Renderer core.</strong> Model loading from checkout + products with validation; escaping helpers; templates; Home, Targets, Target (incl. DAG SVG), Node pages; golden tests.</td>
+    <td><code>site/opn_site/model.py</code>, <code>site/opn_site/render.py</code>, <code>site/opn_site/dag.py</code>, <code>site/opn_site/templates/</code>, <code>site/opn_site/static/site.css</code>, <code>site/tests/golden/</code>, <code>site/tests/test_render.py</code>, <code>site/tests/test_dag.py</code></td>
+    <td>F03</td><td><code>uv run pytest site/tests/test_render.py site/tests/test_dag.py</code></td></tr>
+  <tr><td>F04-T2</td><td><strong>Frontier, Contributors, Docs.</strong> Frontier table with same-origin filter script; contributors from ledger files or the empty-state line; docs bundle.</td>
+    <td><code>site/opn_site/render.py</code>, <code>site/opn_site/static/frontier.js</code>, <code>site/tests/test_render.py</code></td>
+    <td>T1</td><td><code>uv run pytest site/tests/test_render.py</code></td></tr>
+  <tr><td>F04-T3</td><td><strong>Safe prose and link checker.</strong> Paragraph/code-fence renderer; labeled untrusted blocks; escaping tests with injection fixtures; internal link and no-external-resource checks.</td>
+    <td><code>site/opn_site/prose.py</code>, <code>site/opn_site/links.py</code>, <code>site/tests/test_escaping.py</code>, <code>site/tests/test_links.py</code></td>
+    <td>T1</td><td><code>uv run pytest site/tests/test_escaping.py site/tests/test_links.py</code></td></tr>
+  <tr><td>F04-T4</td><td><strong>Infra and deploy.</strong> CloudFormation stack; <code>site-deploy.yml</code> in this repo with OIDC; dispatch step in the graph's post-merge job; CSP response headers.</td>
+    <td><code>site/infra/site.cfn.yaml</code>, <code>.github/workflows/site-deploy.yml</code>, <code>gate/opn_gate/postmerge.py</code>, <code>../open_proof_network_graph/.github/workflows/gate.yml</code></td>
+    <td>T2, T3</td><td><code>aws cloudformation validate-template</code> on the stack and a green <code>site-deploy</code> run (URL in evidence)</td></tr>
+  <tr><td>F04-T5</td><td><strong>First deploy evidence.</strong> Deploy checker; screenshots of Home, Target, Node from the live hostname.</td>
+    <td><code>site/tools/check_deploy.py</code>, <code>engineering/evidence/F04/</code></td>
+    <td>T4</td><td><code>uv run python site/tools/check_deploy.py &lt;hostname&gt;</code></td></tr>
+</table>
+
+<footer>Open Proof Network · F04 spec v1 · 2026-09-07</footer>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F06 — Precheck service</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F06</nav>
+<h1>F06 — Precheck service</h1>
+<p class="subtitle"><code>POST /precheck</code> and <code>GET /precheck/&lt;id&gt;</code> (D-28,
+D-35): the gate's mechanical steps run on a submitted bundle as a GitHub Actions job in a scratch
+repository, returning structured diagnostics and a service-signed attestation. Also the
+account-free identity proof of D-19.</p>
+
+<h2>1. Summary</h2>
+<p>Precheck is the write tool D-28 says ships first: it is how an agent learns of a failure before
+CI does, and the signed attestation it returns is what the authoritative gate requires attached.
+F06 runs it without a machine of its own: the api pushes the bundle to a branch of a scratch repo,
+dispatches a workflow that runs the same gate code in the same container image (D-4: three
+invocations, one codebase), and serves the result when asked. Because the tutorial node is the
+D-19 identity proof, a precheck of it may be requested without a token, and a passing one can be
+exchanged for a write token under a pseudonym. Cites: D-4, D-19, D-24, D-27, D-28, D-34, D-35.</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As an agent, I want to submit my proof and get the first failing step with a diagnostic in minutes, so I can fix it without a human reading CI logs.</li>
+  <li>As a person with no GitHub account, I want my agent to prove the tutorial node and receive a write token, so I can contribute anonymously (D-19).</li>
+  <li>As the founder, I want strangers' Lean to run only on GitHub's throwaway VMs, so nothing I administer executes their code (D-24).</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> bundle validation; job records; the scratch repo with its workflow and signing key; dispatch, polling and artifact retrieval through the <code>GitHost</code> seam; both endpoints; the anonymous tutorial flow and tutorial-proof tokens; rate limits; result retention and branch cleanup; deployment and a real end-to-end run as evidence.</p>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>Opening the submission PR — F07 (<code>POST /submissions</code> consumes a precheck result).</li>
+  <li>Warm-cache precheck on dedicated infrastructure — a Stage 0 measurement (Stages, v3.9) decides whether it is ever needed.</li>
+  <li><code>--record</code> precheck records into <code>attempts/precheck/</code> (D-34) — F07, since it is a graph write.</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F06-R1</td><td>When <code>POST /precheck</code> {<code>node_id</code>, <code>bundle</code>: {path → UTF-8 content}} is received, the system shall validate that the node exists at the graph's <code>main</code>, that every path is permitted for that node by F00's path check (plus <code>waivers/</code> when F02's rule applies), that total size is under 512 KiB, and shall respond 400 naming the first violation otherwise.</td></tr>
+  <tr><td>F06-R2</td><td>The system shall require a bearer token for <code>POST /precheck</code> except when the node's <code>META.yaml</code> has <code>tutorial: true</code>, in which case an unauthenticated request is accepted, rate-limited per source address (default 10 per day), and answered with a single-use <code>nonce</code> alongside the job id.</td></tr>
+  <tr><td>F06-R3</td><td>When a job is accepted, the system shall create a job record {id, node, statement hash, graph commit at <code>main</code>, bundle hash, identity or nonce, state <code>queued</code>, created}, push a branch <code>job/&lt;id&gt;</code> to the scratch repo containing <code>job.json</code> and the bundle files, and dispatch the scratch repo's <code>precheck</code> workflow with the job id, all through the <code>GitHost</code> seam using the GitHub App installation token.</td></tr>
+  <tr><td>F06-R4</td><td>The scratch workflow shall check out the graph at the recorded commit and this repo at the commit the graph's <code>gate-spec.json</code> pins, apply the bundle, run gate steps 1–2 and 4–8 inside the step-3 image with the graph's caps, sign the resulting attestation with the precheck key (C8 item 2) as kind <code>service</code>, and upload <code>result.json</code> {verdict, steps, diagnostics, attestation} as a workflow artifact; the job shall hold no secret other than that key and no write permission.</td></tr>
+  <tr><td>F06-R5</td><td>When <code>GET /precheck/&lt;id&gt;</code> is called, the system shall return the job record; while not terminal it shall look up the workflow run by job id and, if complete, download the artifact, verify the attestation's signature against the committed precheck public key, store the result, and mark the job <code>done</code>; if the run failed or produced no artifact, mark it <code>error</code> with the run URL; results shall be served for 30 days, then <code>expired</code>.</td></tr>
+  <tr><td>F06-R6</td><td>The returned attestation shall validate against <code>attestation/v1</code> (or the current version), carry <code>runner: hosted</code>, <code>signature.kind: service</code>, the graph commit and the bundle hash, and shall be the document a submission attaches (F00-Q1).</td></tr>
+  <tr><td>F06-R7</td><td>When <code>POST /tokens</code> receives proof kind <code>tutorial</code> {<code>job_id</code>, <code>nonce</code>} with a pseudonym and DCO acceptance, the system shall verify the job is <code>done</code> with verdict <code>pass</code>, was created without a token, its nonce matches and is unconsumed, then issue a token as in F05-R4 with proof kind <code>tutorial</code> and consume the nonce; every other condition responds 400 without leaking which one.</td></tr>
+  <tr><td>F06-R8</td><td>The system shall limit authenticated prechecks per identity (default 20 per hour) and publish the limit in <code>rate_limit_policy</code>.</td></tr>
+  <tr><td>F06-R9</td><td>A scheduled workflow in the scratch repo shall delete job branches older than 7 days; the scratch repo's contents are disposable and never read by the gate (D-35: operational, never evidentiary).</td></tr>
+  <tr><td>F06-R10</td><td>If dispatch fails, the system shall mark the job <code>error</code> with the cause and respond 502 to the submitter; a bundle shall never be silently dropped (C7).</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F06-AC1</td><td>Given a bundle touching <code>Statement.lean</code>, when posted, then 400 naming the path and no job.</td><td><code>api/tests/test_precheck.py::test_bundle_path_rejected</code></td></tr>
+  <tr><td>F06-AC2</td><td>Given a bundle of 600 KiB, when posted, then 400 naming the size limit.</td><td><code>api/tests/test_precheck.py::test_bundle_size_cap</code></td></tr>
+  <tr><td>F06-AC3</td><td>Given a valid bundle and the fake GitHost, when posted with a token, then a branch push and a dispatch are recorded with the job id and the response is 202 with the id.</td><td><code>api/tests/test_precheck.py::test_dispatch_recorded</code></td></tr>
+  <tr><td>F06-AC4</td><td>Given a non-tutorial node, when posted without a token, then 401; given the tutorial node, then 202 with a nonce.</td><td><code>api/tests/test_precheck.py::test_tutorial_unauthenticated_only</code></td></tr>
+  <tr><td>F06-AC5</td><td>Given 10 anonymous tutorial prechecks from one address in a day, when the 11th arrives, then 429.</td><td><code>api/tests/test_precheck.py::test_anonymous_rate_limit</code></td></tr>
+  <tr><td>F06-AC6</td><td>Given a queued job and the fake reporting the run incomplete, when fetched, then state <code>running</code>; reporting complete with a valid signed artifact, then <code>done</code> with the result and signature verified.</td><td><code>api/tests/test_precheck.py::test_poll_to_done</code></td></tr>
+  <tr><td>F06-AC7</td><td>Given an artifact whose signature does not verify against the committed key, when fetched, then state <code>error</code> naming signature failure and no attestation is served.</td><td><code>api/tests/test_precheck.py::test_bad_signature_rejected</code></td></tr>
+  <tr><td>F06-AC8</td><td>Given a failed workflow run, when fetched, then <code>error</code> with the run URL.</td><td><code>api/tests/test_precheck.py::test_run_failure_surfaced</code></td></tr>
+  <tr><td>F06-AC9</td><td>Given a done job older than 30 days, when fetched, then <code>expired</code> and no result body.</td><td><code>api/tests/test_precheck.py::test_result_retention</code></td></tr>
+  <tr><td>F06-AC10</td><td>Given a passing anonymous tutorial job, when <code>POST /tokens</code> uses its id and nonce with a pseudonym and DCO, then a token is issued with proof kind <code>tutorial</code>; a second use of the nonce, then 400.</td><td><code>api/tests/test_tokens.py::test_tutorial_proof_single_use</code></td></tr>
+  <tr><td>F06-AC11</td><td>Given a failing tutorial job, or a passing job that was authenticated, when used as proof, then 400.</td><td><code>api/tests/test_tokens.py::test_tutorial_proof_requires_anonymous_pass</code></td></tr>
+  <tr><td>F06-AC12</td><td>Given dispatch raising, when a bundle is posted, then 502 and the job is <code>error</code> with the cause.</td><td><code>api/tests/test_precheck.py::test_dispatch_failure_is_error</code></td></tr>
+  <tr><td>F06-AC13</td><td>Given the routes table, when compared with D-35, then <code>POST /precheck</code> and <code>GET /precheck/&lt;id&gt;</code> map to the <code>precheck_submission</code> row.</td><td><code>api/tests/test_routes.py::test_precheck_routes_match_d35</code></td></tr>
+  <tr><td>F06-AC14 <em>docker</em></td><td>Given the scratch workflow's job script, when run locally in the step-3 image on the fixture, then it produces a <code>result.json</code> whose attestation validates and whose signature verifies with a test key.</td><td><code>gate/tests/test_precheck_job_docker.py::test_job_script_end_to_end</code></td></tr>
+  <tr><td>F06-AC15 <em>network</em></td><td>Given the deployed service and scratch repo, when a tutorial-node proof is prechecked anonymously, then the job reaches <code>done</code> with verdict <code>pass</code> in under 10 minutes and a token is issued from it.</td><td><code>api/tools/smoke_precheck.py</code> exit 0 (evidence)</td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li>Tutorial node precheck under 5 min end to end on a cold hosted runner; Mathlib-pinned graphs under 10 min with the cache download. Both measured and recorded in evidence as the Stage 0 latency series.</li>
+  <li>Bundle 512 KiB; result 1 MiB; diagnostics truncated with a marker.</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li>Contributor Lean runs only on the hosted runner inside the step-3 image (C9, D-4 v3.9). The scratch repo's workflow has <code>permissions: {}</code> plus the artifact upload, and the precheck key is its only secret (C8 item 2).</li>
+  <li>The scratch repo is public (hosted runners are free for public repos) so bundles are public the moment they are pushed; D-26 makes public attempts the default, and the api says so in its response.</li>
+  <li>Job branches carry contributor code; the 7-day cleanup bounds retention. Results in the store hold diagnostics, which may quote contributor text: served as data (D-28).</li>
+  <li>Anonymous precheck is the one unauthenticated write-shaped route; it is bounded by address rate limits and by being restricted to the tutorial node.</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>F05</strong> (required): api foundation, tokens, rate limits. <strong>F00</strong>: pipeline, image, attestation, signer. <strong>F02</strong> (soft): waiver path rule.</li>
+  <li><strong>Packages:</strong> none new.</li>
+  <li><strong>Scratch repo</strong> <code>open_proof_network_precheck</code> under the founder's account, public, with the GitHub App installed and the precheck key as its Actions secret.</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F06-Q1</td><td><strong>A third repository, unnamed by D-35.</strong> The scratch repo holds nothing but disposable job branches and one workflow; it has no authority and the gate never reads it. It exists because precheck must run strangers' code somewhere that is not the graph's history and not a machine we own. Proposed mention in D-35's detail for the next doc revision.</td></tr>
+  <tr><td>F06-Q2</td><td><strong>Anonymous precheck is the single carve-out from "writes are token-authenticated" (D-28).</strong> Without it the D-19 v3.9 account-free proof is circular. Scoped to the tutorial node, address-limited, and returns nothing a token would not.</td></tr>
+  <tr><td>F06-Q3</td><td><strong>Polling instead of webhooks.</strong> A GitHub webhook would need an inbound secret and endpoint; polling on read keeps the service stateless and the secret list at C8's five items.</td></tr>
+  <tr><td>F06-Q4</td><td><strong>The nonce is not inside the signed attestation.</strong> The service verifies tutorial proofs against its own job record, so the attestation shape stays the gate's, with no identity field for the gate to ignore.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> spec · <strong>Tasks:</strong> T1&ndash;T5 todo</div>
+
+<h2>Tasks</h2>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F06-T1</td><td><strong>Bundles and jobs.</strong> Bundle validation reusing the gate's path check, job model and store operations, retention states, rate limits, routes.</td>
+    <td><code>api/opn_api/precheck.py</code>, <code>api/opn_api/bundles.py</code>, <code>api/opn_api/routes.py</code>, <code>api/tests/test_precheck.py</code>, <code>api/tests/test_routes.py</code></td>
+    <td>F05</td><td><code>uv run pytest api/tests/test_precheck.py api/tests/test_routes.py</code></td></tr>
+  <tr><td>F06-T2</td><td><strong>Scratch repo job.</strong> The job script (apply bundle, run pipeline in image, sign, write result), the workflow, the cleanup workflow, precheck key generation and public key committed to the graph.</td>
+    <td><code>gate/precheck/job.py</code>, <code>gate/precheck/precheck.yml</code>, <code>gate/precheck/cleanup.yml</code>, <code>../open_proof_network_precheck/.github/workflows/</code>, <code>../open_proof_network_graph/keys/precheck.pub</code>, <code>gate/tests/test_precheck_job_docker.py</code></td>
+    <td>T1</td><td><code>make verify-lean</code></td></tr>
+  <tr><td>F06-T3</td><td><strong>Dispatch, poll, retrieve.</strong> <code>GitHost</code> methods for App tokens, branch push, dispatch, run lookup, artifact download; signature verification; polling state machine.</td>
+    <td><code>api/opn_api/githost.py</code>, <code>api/opn_api/precheck.py</code>, <code>api/tests/fakes.py</code>, <code>api/tests/test_precheck.py</code></td>
+    <td>T2</td><td><code>uv run pytest api/tests/test_precheck.py</code></td></tr>
+  <tr><td>F06-T4</td><td><strong>Anonymous tutorial flow.</strong> Unauthenticated tutorial precheck with nonce and address limits; <code>tutorial</code> proof kind in <code>POST /tokens</code>; single-use consumption.</td>
+    <td><code>api/opn_api/precheck.py</code>, <code>api/opn_api/identity.py</code>, <code>api/tests/test_precheck.py</code>, <code>api/tests/test_tokens.py</code></td>
+    <td>T3</td><td><code>uv run pytest api/tests/test_tokens.py api/tests/test_precheck.py</code></td></tr>
+  <tr><td>F06-T5</td><td><strong>Deploy and real run.</strong> Stack update, scratch repo live, end-to-end anonymous tutorial precheck and token; latency recorded.</td>
+    <td><code>api/infra/api.cfn.yaml</code>, <code>api/tools/smoke_precheck.py</code>, <code>engineering/evidence/F06/task-5.txt</code></td>
+    <td>T4</td><td><code>uv run python api/tools/smoke_precheck.py &lt;api-url&gt;</code></td></tr>
+</table>
+
+<footer>Open Proof Network · F06 spec v1 · 2026-09-07</footer>
+</body>
+</html>

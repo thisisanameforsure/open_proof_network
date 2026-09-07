@@ -70,7 +70,8 @@ session can overturn one with evidence rather than re-derive it.</p>
         behind one seam so it can move to a warm-cache machine with evidence from the invited
         run, without the api changing.</li>
       <li>The <strong>site</strong> (D-36) is rendered by the graph repo's post-merge workflow
-        into an S3 bucket served by CloudFront on a custom domain; CDN logs are the analytics
+        into an S3 bucket served by CloudFront — on its issued hostname until a domain exists (none
+        as of 2026-09-07), a custom domain after; CDN logs are the analytics
         (C9). No server-side code, no database, ever (D-36).</li>
       <li><strong>Deploys</strong> of the api and site happen from CI via OIDC role assumption;
         no long-lived cloud key exists anywhere (C8).</li>

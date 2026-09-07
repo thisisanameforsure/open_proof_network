@@ -67,8 +67,11 @@ The law of the project:
   repo, site on S3/CloudFront — "boxless" at Stage 0. Two mandatory test tiers (§2).
 - Decisions doc at v3.9: the network is two repositories (D-35). This repo is `network`; the
   graph repo `../open_proof_network_graph` exists as an empty initial commit.
-- Stage 0 roadmap F00–F10 in `engineering/specs/index.html`. Current feature: F00 (gate walking
-  skeleton), spec drafted, no task started.
+- Stage 0 roadmap F00–F11 in `engineering/specs/index.html`, every feature specced 2026-09-07
+  (F07/F08 split submissions from proposals). Current feature: F00 (gate walking skeleton), no
+  task started. Later specs will need touch-ups as earlier features land; each carries the
+  protocol readings it relies on in its §9 so a drift is visible.
+- No domain or DNS exists yet; the site ships on CloudFront's issued hostname (F04).
 
 ## Log
 

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F02 — Hazard checkers</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F02</nav>
+<h1>F02 — Hazard checkers</h1>
+<p class="subtitle">Gate step 6 (D-4): static checkers over the statement for the ways a Lean
+theorem can be true and meaningless, plus the <code>native_decide</code> waiver path D-4 names.</p>
+
+<h2>1. Summary</h2>
+<p>Step 6 runs six named checkers over a node's statement — ℕ subtraction, division by zero, junk
+values, Int truncation, unused binders, off-by-one ranges — and fails on any finding the node's
+author has not explicitly acknowledged. Because statements are immutable (D-8) and admitted
+mechanically (D-29), the checkers bite at <em>admission</em>; at proof time they re-run and, by
+construction, repeat the admission result — the re-run exists so the authoritative gate never
+trusts a prior verdict (D-4: fail-closed, in order). F02 also completes step 5: a proof using
+<code>native_decide</code> passes only with a recorded justification, a reviewer sign-off that
+names it, and a permanent flag on the attestation. Cites: D-3 (<code>META.yaml</code>), D-4
+step 6 and the <code>native_decide</code> amendment, D-8, D-15, D-29, D-34.</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a statement reviewer, I want the mechanical hazards found before I look (D-15: mechanical checkers run first), so my time goes to what only a human can see.</li>
+  <li>As a node proposer, I want to acknowledge a flagged construct with a one-line reason when it is intentional, so a legitimate ℕ subtraction does not block a real lemma.</li>
+  <li>As a bystander, I want a node proved with <code>native_decide</code> to say so permanently, so I know its trust base is the compiler.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> the checker framework in <code>gate/lean/</code> with the six checkers as one executable; per-graph enablement via <code>gate-spec.json</code>; step 6 in the pipeline; acknowledgment via <code>META.yaml</code> (schema <code>meta/v2</code>); the standalone <code>opn-gate hazards</code> command F08's admission will call; the <code>native_decide</code> waiver path; fixtures for every hazard and both test tiers.</p>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>Admission of new nodes end to end — F08.</li>
+  <li>Reviewer assignment and canaries (D-11, D-15) — Stage 1.</li>
+  <li>Rendering the compiler-trust flag on the site — F04 reads it from the attestation.</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F02-R1</td><td>The system shall provide the executable <code>opn-hazards</code> in <code>gate/lean/</code> that runs the checkers named on its command line over the theorem in a <code>Statement.lean</code> and prints findings as JSON: <code>{checker, location, message}</code>.</td></tr>
+  <tr><td>F02-R2</td><td>The system shall implement checkers with ids <code>nat-sub</code> (subtraction on ℕ in the statement), <code>div-zero</code> (division or modulo whose divisor is not syntactically non-zero), <code>junk-value</code> (a total function applied outside its meaningful domain: <code>Nat.pred 0</code>, <code>List.head!</code>-style defaults, <code>Real.sqrt</code> of a possibly negative argument), <code>int-trunc</code> (a coercion or division on ℤ/ℕ that truncates), <code>unused-binder</code> (a universally quantified variable nothing depends on), <code>off-by-one-range</code> (a <code>Finset.range</code>, <code>Ico</code>/<code>Icc</code> or <code>≤</code>/<code>&lt;</code> boundary adjacent to an explicit literal).</td></tr>
+  <tr><td>F02-R3</td><td>When step 6 runs, the system shall run exactly the checkers listed in <code>gate-spec.json</code> <code>hazard_checkers</code>; if that list names an unknown id, then the gate shall fail before step 1 with a configuration diagnostic.</td></tr>
+  <tr><td>F02-R4</td><td>When step 6 produces a finding that is not acknowledged in <code>META.yaml</code> <code>acknowledged_hazards</code> — an entry matching on <code>checker</code> and <code>location</code> with a non-empty <code>justification</code> — then step 6 shall fail naming every unacknowledged finding.</td></tr>
+  <tr><td>F02-R5</td><td>When step 6 passes with acknowledgments used, the verdict shall list them so a reviewer sees what was waved through.</td></tr>
+  <tr><td>F02-R6</td><td>The system shall bump the META schema to <code>meta/v2</code> adding optional <code>acknowledged_hazards</code>; <code>meta/v1</code> remains readable and equivalent to an empty list (D-34 versioning).</td></tr>
+  <tr><td>F02-R7</td><td>The system shall expose <code>opn-gate hazards &lt;node-dir&gt;</code> that runs step 6 alone and exits 0 or 1 with the same JSON, for use by admission (F08) and by proposers locally.</td></tr>
+  <tr><td>F02-R8</td><td>When step 5 detects <code>native_decide</code> (F00-R6), the system shall pass the step only if the submission includes <code>nodes/&lt;id&gt;/waivers/native_decide.yaml</code> validating against <code>waiver/v1</code> (justification, author); <code>waivers/</code> becomes a permitted path for that node only when the proof uses <code>native_decide</code>.</td></tr>
+  <tr><td>F02-R9</td><td>When a waived proof merges, the post-merge job shall require the approving review body to contain the line <code>waiver: native_decide</code>, shall otherwise refuse to merge, and on merge shall write <code>trust_base: compiler</code> into the attestation; the attestation schema gains that optional field as <code>attestation/v2</code>.</td></tr>
+  <tr><td>F02-R10</td><td>Step 6 shall be deterministic: two runs over the same statement and checker list produce byte-identical findings, and a proof-time run reproduces the admission-time findings.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F02-AC1</td><td>Given a spec listing checker <code>bogus</code>, when the gate starts, then it fails before step 1 with a config diagnostic.</td><td><code>gate/tests/test_hazards.py::test_unknown_checker_id_fails_config</code></td></tr>
+  <tr><td>F02-AC2</td><td>Given the fake reporting one <code>nat-sub</code> finding and no acknowledgments, when step 6 runs, then fail naming it.</td><td><code>gate/tests/test_hazards.py::test_unacknowledged_finding_fails</code></td></tr>
+  <tr><td>F02-AC3</td><td>Given the same finding and a matching acknowledgment with justification, when step 6 runs, then pass and the verdict lists the acknowledgment.</td><td><code>gate/tests/test_hazards.py::test_acknowledged_finding_passes_and_is_listed</code></td></tr>
+  <tr><td>F02-AC4</td><td>Given an acknowledgment with an empty justification, when step 6 runs, then fail.</td><td><code>gate/tests/test_hazards.py::test_empty_justification_rejected</code></td></tr>
+  <tr><td>F02-AC5</td><td>Given a <code>meta/v1</code> META, when validated and step 6 runs with no findings, then pass.</td><td><code>gate/tests/test_schemas.py::test_meta_v1_still_valid</code></td></tr>
+  <tr><td>F02-AC6</td><td>Given a proof using <code>native_decide</code> and no waiver file, when step 5 runs, then fail with <code>native-decide-unwaived</code>.</td><td><code>gate/tests/test_pipeline.py::test_native_decide_without_waiver_fails</code></td></tr>
+  <tr><td>F02-AC7</td><td>Given the same proof with a valid waiver file, when steps 2 and 5 run, then both pass and the verdict carries <code>waiver: native_decide</code>.</td><td><code>gate/tests/test_pipeline.py::test_native_decide_with_waiver_passes</code></td></tr>
+  <tr><td>F02-AC8</td><td>Given a diff adding <code>waivers/native_decide.yaml</code> to a proof that does not use <code>native_decide</code>, when step 2 runs, then rejected as an impermissible path.</td><td><code>gate/tests/test_paths.py::test_waiver_path_only_with_native_decide</code></td></tr>
+  <tr><td>F02-AC9</td><td>Given a waived proof and an approval whose body lacks the waiver line, when the post-merge job evaluates, then it refuses with a diagnostic; with the line, it merges and the attestation has <code>trust_base: compiler</code>.</td><td><code>gate/tests/test_postmerge.py::test_waiver_requires_named_approval</code></td></tr>
+  <tr><td>F02-AC10 <em>lean</em></td><td>Given six fixture statements each exhibiting one hazard, when <code>opn-hazards</code> runs with all checkers, then each yields exactly its expected finding and no other.</td><td><code>gate/tests/test_hazards_lean.py::test_each_checker_fires_once</code></td></tr>
+  <tr><td>F02-AC11 <em>lean</em></td><td>Given the propositional fixture statements, when all checkers run, then no findings.</td><td><code>gate/tests/test_hazards_lean.py::test_clean_statements_no_findings</code></td></tr>
+  <tr><td>F02-AC12 <em>lean</em></td><td>Given any fixture statement, when <code>opn-hazards</code> runs twice, then outputs are byte-identical.</td><td><code>gate/tests/test_hazards_lean.py::test_deterministic</code></td></tr>
+  <tr><td>F02-AC13 <em>lean</em></td><td>Given the fixture node with an acknowledged ℕ subtraction, when <code>pregate.sh</code> runs, then step 6 passes; with the acknowledgment removed, it fails.</td><td><code>gate/tests/test_pregate_lean.py::test_hazard_ack_roundtrip</code></td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li><code>opn-hazards</code> under 30 s per statement on the fixtures; findings capped at 200 per statement.</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li>Checkers elaborate the statement, which is admitted content, but they still run only in the sandbox or locally (C9).</li>
+  <li>Acknowledgment justifications and waiver justifications are contributor free text: short, typed, served as untrusted data downstream (D-28).</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>F00</strong>, <strong>F01</strong> (required): pipeline, seam, Lake package.</li>
+  <li><strong>Packages:</strong> none new.</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F02-Q1</td><td><strong>Hazards are admission-time failures with an acknowledgment escape.</strong> D-4 lists step 6 as a gate step and D-29 lists hazard checkers among the statement-side admission checks. Since a statement cannot change after admission, an unacknowledged hazard must block admission or it blocks every proof forever. The acknowledgment lives in <code>META.yaml</code> because that is the author-owned, immutable, reviewer-visible record; D-15's reviewer sees it. Proposed clarification to D-4/D-29 for the next doc revision.</td></tr>
+  <tr><td>F02-Q2</td><td><strong>Waiver mechanics.</strong> D-4 names justification, reviewer sign-off and a permanent node flag without saying where. Call: justification as a file in the submission, sign-off as a line in the approval, flag on the attestation (immutable, per-run) and projected into <code>graph.json</code> and the site — never by editing <code>META.yaml</code> (immutable). Proposed clarification to D-4.</td></tr>
+  <tr><td>F02-Q3</td><td><strong>Checker precision is deliberately conservative.</strong> Each checker flags syntactic patterns; false positives are cheap (one acknowledgment line), false negatives are what D-11's canaries measure later. Definitions in R2 are the v1 contract; tightening is a checker version, recorded in <code>gate-spec.json</code> by id@version.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> spec · <strong>Tasks:</strong> T1&ndash;T5 todo</div>
+
+<h2>Tasks</h2>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F02-T1</td><td><strong>Checker framework, <code>nat-sub</code>, <code>div-zero</code>.</strong> Traversal over the theorem type with location reporting; JSON contract; two checkers; fixture statements.</td>
+    <td><code>gate/lean/OpnGate/Hazards.lean</code>, <code>gate/lean/OpnGate/Hazards/NatSub.lean</code>, <code>gate/lean/OpnGate/Hazards/DivZero.lean</code>, <code>gate/tests/fixtures/hazards/</code>, <code>gate/tests/test_hazards_lean.py</code></td>
+    <td>F01</td><td><code>make verify-lean</code></td></tr>
+  <tr><td>F02-T2</td><td><strong>Remaining checkers.</strong> <code>junk-value</code>, <code>int-trunc</code>, <code>unused-binder</code>, <code>off-by-one-range</code>; determinism test.</td>
+    <td><code>gate/lean/OpnGate/Hazards/*.lean</code>, <code>gate/tests/fixtures/hazards/</code>, <code>gate/tests/test_hazards_lean.py</code></td>
+    <td>T1</td><td><code>make verify-lean</code></td></tr>
+  <tr><td>F02-T3</td><td><strong>Step 6, acknowledgments, <code>meta/v2</code>.</strong> Seam call, step, config check for checker ids, <code>opn-gate hazards</code> command, schema bump.</td>
+    <td><code>gate/opn_gate/steps/hazards.py</code>, <code>gate/opn_gate/toolchain.py</code>, <code>gate/opn_gate/cli.py</code>, <code>gate/schemas/meta/v2.json</code>, <code>gate/tests/test_hazards.py</code>, <code>gate/tests/test_schemas.py</code></td>
+    <td>T1</td><td><code>uv run pytest gate/tests/test_hazards.py gate/tests/test_schemas.py</code></td></tr>
+  <tr><td>F02-T4</td><td><strong><code>native_decide</code> waiver path.</strong> <code>waiver/v1</code> schema, conditional permitted path, step 5 waiver logic, post-merge approval line, <code>attestation/v2</code>.</td>
+    <td><code>gate/schemas/waiver/v1.json</code>, <code>gate/schemas/attestation/v2.json</code>, <code>gate/opn_gate/paths.py</code>, <code>gate/opn_gate/steps/axioms.py</code>, <code>gate/opn_gate/postmerge.py</code>, <code>gate/tests/test_pipeline.py</code>, <code>gate/tests/test_paths.py</code>, <code>gate/tests/test_postmerge.py</code></td>
+    <td>T3</td><td><code>uv run pytest gate/tests/test_pipeline.py gate/tests/test_paths.py gate/tests/test_postmerge.py</code></td></tr>
+  <tr><td>F02-T5</td><td><strong>Pipeline wiring, image, reproduce.</strong> Step 6 in order; fixture node with acknowledged hazard; image builds the checkers; D-5 test green; graph repo's <code>gate-spec.json</code> gains the checker list (bot-owner diff, D-35).</td>
+    <td><code>gate/opn_gate/pipeline.py</code>, <code>gate/Dockerfile</code>, <code>gate/reproduce.sh</code>, <code>gate/tests/test_pregate_lean.py</code>, <code>../open_proof_network_graph/targets/tutorial/gate-spec.json</code></td>
+    <td>T4</td><td><code>make verify-lean</code></td></tr>
+</table>
+
+<footer>Open Proof Network · F02 spec v1 · 2026-09-07</footer>
+</body>
+</html>

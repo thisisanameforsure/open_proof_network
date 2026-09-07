@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F11 — On-ramp graph intake</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F11</nav>
+<h1>F11 — On-ramp graph intake</h1>
+<p class="subtitle">Curated intake (D-6): the target layout, the five curator artifacts, fidelity
+certificates (D-9), registry interop (D-10), the first Mathlib-pinned graph — a small known result
+on the second-class formalization track — and a handful of genuinely open targets listed but not
+claimable. Ends with the Stage 0 invited-run readiness rehearsal.</p>
+
+<h2>1. Summary</h2>
+<p>Everything before F11 runs on a Mathlib-free tutorial graph. F11 adds what a real target needs:
+a <code>targets/&lt;id&gt;/</code> record carrying D-6's five artifacts, a fidelity ladder on the
+root and definitions, the D-10 posting that makes a target claimable, and a Mathlib pin per graph
+with the image and caches to match (D-7). It seeds the on-ramp formalization graph the Stage 0
+invited run needs — a recently published small result, decomposed by skeletonization into three to
+six nodes so the whole pipeline runs to a merged root — and lists a few open targets imported from
+Formal Conjectures with grade <code>mechanical-only</code>, so the site is honest about the mission
+without letting anyone claim them. Cites: D-2, D-6, D-7, D-9, D-10, D-12, D-21, D-25, D-31,
+D-33, D-35, Stages.</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As the curator, I want intake to refuse a target missing any of the five artifacts, so nothing listed is under-documented (D-6).</li>
+  <li>As a reviewer, I want the root's fidelity grade and its evidence on the record, and claims blocked until it is at least back-translated (D-6, D-9).</li>
+  <li>As an invited operator, I want a real Mathlib-pinned graph where my agent can close a lemma tonight and see the root close by the end of the run.</li>
+  <li>As a bystander, I want to see the open problems the network exists for, marked as not yet claimable and why.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> <code>target/v1</code> and <code>fidelity/v1</code> schemas; <code>opn-gate intake</code> with the five-artifact check, exclusion-domain check, and scaffolding; fidelity commands; claimability derivation into F03's products; D-10 posting record; Mathlib pinning per graph with per-graph image digest, Mathlib cache in CI, precheck, devcontainer; selection and seeding of the on-ramp result; import of listed open targets from Formal Conjectures at a pinned commit; the invited-run readiness rehearsal through both paths and the site.</p>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>Back-translation tooling and the mechanizable fidelity checks (D-9's consequence lemmas, triviality controls) — Stage 1; F11 records grades curators assign.</li>
+  <li>Upstreaming network-originated statements to Formal Conjectures (D-10) — a curator act documented, not tooled.</li>
+  <li>Any genuinely open target being claimable at Stage 0 (Stages: nothing counts toward open-problem claims).</li>
+  <li>Bounties, dormancy automation, canaries.</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F11-R1</td><td>Each target shall carry <code>targets/&lt;id&gt;/target.yaml</code> (<code>target/v1</code>): id, title, informal statement, track ∈ {open, formalization}, source {kind ∈ {erdos, formal-conjectures, arxiv, other}, ref, url}, curator identity, <code>prior_art</code> {arxiv_query, forum_url, summary}, <code>library_coverage</code> {mathlib_sha, missing_prerequisites: [node ids]}, <code>provenance</code> {statement_source, author, adversarially_reviewed}, <code>attack_routes</code> [] (advisory), <code>fidelity</code> grade (derived from certificates), <code>posting</code> {venue, url, date} or null, status (D-33 set), domain tags, <code>claimable</code> (derived).</td></tr>
+  <tr><td>F11-R2</td><td>When <code>opn-gate intake new &lt;id&gt; --from &lt;target.yaml&gt; --root &lt;dir&gt; [--defs &lt;dir&gt;]</code> runs, the system shall refuse unless prior art, library coverage, provenance, and a root witness are present (attack routes may be empty, D-6), refuse if any domain tag is in the excluded set {algebraic-geometry, algebraic-number-theory, differential-geometry, pde} (D-6), scaffold the target with <code>gate-spec.json</code> pinning the given Mathlib SHA (D-7), run F08's admission on the root and on each <code>defs/</code> file, write <code>mechanical-only</code> certificates, set status <code>listed</code>, and open a curator PR.</td></tr>
+  <tr><td>F11-R3</td><td>The system shall keep fidelity certificates as <code>targets/&lt;id&gt;/fidelity/&lt;subject&gt;-&lt;n&gt;.yaml</code> (<code>fidelity/v1</code>: subject (root or def name), grade ∈ {mechanical-only, back-translated, author-attested, expert-attested, published-and-uncontested}, attestor identity, date, evidence text ≤ 2,000 chars, evidence files), append-only; a target's grade is the minimum over root and every definition of the latest certificate for each; <code>opn-gate fidelity &lt;target&gt; &lt;subject&gt; &lt;grade&gt; --by &lt;identity&gt; --evidence &lt;file&gt;</code> shall refuse an attestor equal to the subject's author for <code>back-translated</code> and above (D-9: non-author).</td></tr>
+  <tr><td>F11-R4</td><td>The system shall derive <code>claimable</code> for a target as: status <code>active</code>, grade ≥ <code>back-translated</code>, and a non-null <code>posting</code> (D-6, D-10); the formalization track shall additionally require nothing else; F03's products shall carry the derived value per node.</td></tr>
+  <tr><td>F11-R5</td><td>The system shall provide <code>opn-gate intake post &lt;target&gt; --venue &lt;name&gt; --url &lt;url&gt;</code> recording the D-10 posting and <code>opn-gate intake activate &lt;target&gt;</code> flipping status to <code>active</code>, each a curator PR; activation shall refuse while <code>claimable</code> would remain false, naming the missing condition.</td></tr>
+  <tr><td>F11-R6</td><td>When a graph pins a Mathlib SHA, <code>gate-spec.json</code> shall name a per-graph image digest whose image contains that Mathlib's oleans; <code>gate.yml</code>, the precheck job and <code>reproduce.sh</code> shall use it; CI shall run <code>lake exe cache get</code> only on an image miss, and F10's graph cache shall layer on top.</td></tr>
+  <tr><td>F11-R7</td><td>The on-ramp target shall be selected against recorded criteria: published on arXiv within the last 24 months, elementary in an included domain, not in Mathlib at the pinned SHA, statable in under 40 lines with at most three new definitions, and decomposable into three to six lemmas; the selection record shall name two rejected alternatives and why.</td></tr>
+  <tr><td>F11-R8</td><td>The on-ramp graph shall be seeded as a root plus a skeleton submitted through F07 (a partial proof citing an annex holding the paper's argument), so its interior nodes are <code>origin: authored</code> holes admitted by F08 — the intake path dogfoods the contribution path.</td></tr>
+  <tr><td>F11-R9</td><td>When <code>opn-gate intake import-fc &lt;path&gt; --at &lt;commit&gt;</code> runs, the system shall copy the Formal Conjectures statement file at that commit into a new target on the open track with provenance {statement_source: formal-conjectures, path, commit, author}, grade <code>mechanical-only</code>, status <code>listed</code>, <code>claimable: false</code>, run admission on the root, and open a curator PR; the count at Stage 0 is a config value (default 5).</td></tr>
+  <tr><td>F11-R10</td><td>The site's Targets page shall show, for a listed open target, the reason it is not claimable (grade, posting, status) and the source link, so the mission is visible without a claim path.</td></tr>
+  <tr><td>F11-R11</td><td>The invited-run readiness rehearsal shall exercise, with a test identity on each path (git and HTTP/MCP): claim → precheck → submit on an on-ramp node, a postmortem, a variant proposal, the root closing when its last hole merges, the site reflecting each step within one merge; every step's evidence captured with timings.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F11-AC1</td><td>Given a <code>target.yaml</code> missing <code>prior_art</code>, when intake runs, then refused naming it; with all present and no attack routes, then it proceeds.</td><td><code>gate/tests/test_intake.py::test_five_artifacts_required</code></td></tr>
+  <tr><td>F11-AC2</td><td>Given domain tag <code>pde</code>, when intake runs, then refused citing D-6.</td><td><code>gate/tests/test_intake.py::test_excluded_domains</code></td></tr>
+  <tr><td>F11-AC3</td><td>Given a valid intake, when scaffolded, then <code>gate-spec.json</code> pins the SHA, certificates are <code>mechanical-only</code>, status is <code>listed</code>, and <code>claimable</code> is false.</td><td><code>gate/tests/test_intake.py::test_scaffold_state</code></td></tr>
+  <tr><td>F11-AC4</td><td>Given a root authored by identity A, when A attests <code>back-translated</code>, then refused; when B does, then the grade rises; with a def still <code>mechanical-only</code>, then the target grade stays <code>mechanical-only</code>.</td><td><code>gate/tests/test_fidelity.py::test_grade_rules</code></td></tr>
+  <tr><td>F11-AC5</td><td>Given grade <code>back-translated</code> and no posting, when activated, then refused naming posting; with a posting, then status <code>active</code> and products show <code>claimable: true</code>.</td><td><code>gate/tests/test_intake.py::test_activation_requires_posting</code></td></tr>
+  <tr><td>F11-AC6</td><td>Given a listed target, when products regenerate, then each node has <code>claimable: false</code> and <code>POST /claims</code> on one returns 409.</td><td><code>api/tests/test_claims.py::test_listed_not_claimable</code></td></tr>
+  <tr><td>F11-AC7</td><td>Given a Formal Conjectures file at a commit, when imported, then the target's provenance names path, commit and author, and the root admits.</td><td><code>gate/tests/test_intake.py::test_import_fc_provenance</code></td></tr>
+  <tr><td>F11-AC8</td><td>Given the selection record, when checked, then it names the chosen result, each R7 criterion with evidence, and two rejected alternatives.</td><td><code>gate/tests/test_intake.py::test_selection_record_complete</code></td></tr>
+  <tr><td>F11-AC9</td><td>Given the Targets page for a listed target, when rendered, then the not-claimable reasons and the source link are present.</td><td><code>site/tests/test_render.py::test_listed_target_reasons</code></td></tr>
+  <tr><td>F11-AC10 <em>lean</em></td><td>Given the on-ramp root and skeleton, when <code>pregate.sh</code> runs in partial mode with the pinned Mathlib, then the assembly passes, holes are extracted, and none is defeq the root.</td><td><code>gate/tests/test_onramp_lean.py::test_skeleton_admits</code></td></tr>
+  <tr><td>F11-AC11 <em>docker</em></td><td>Given the per-graph image, when the gate runs on an on-ramp node, then step 1 reports a Mathlib cache hit and the run stays under budget.</td><td><code>gate/tests/test_onramp_docker.py::test_mathlib_image_hit</code></td></tr>
+  <tr><td>F11-AC12 <em>network</em></td><td>Given the seeded graphs and live service, when the rehearsal script runs both paths, then every R11 step passes and the site shows the root proved.</td><td><code>gate/tools/rehearsal.py</code> exit 0; <code>engineering/evidence/F11/invited-run-readiness.txt</code></td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li>On-ramp graph gate run under 10 min on a hosted runner with the image hit; precheck under 10 min; image under 15 GiB.</li>
+  <li>Listed open targets at Stage 0: 5.</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li>Curator identity is recorded on every intake artifact; the curator may not claim proof credit on the target (D-21) — the ledger writer refuses proof entries for the curator on their own target.</li>
+  <li>Imported statements carry upstream authorship in provenance; nothing is re-formalized privately (D-10).</li>
+  <li>Prior-art summaries and evidence text are free text: capped, untrusted downstream.</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>F10</strong> (required): image publishing and cache. <strong>F08</strong>: admission, curator mode. <strong>F07</strong>: skeleton submission. <strong>F04</strong>: Targets page.</li>
+  <li><strong>Packages:</strong> none new.</li>
+  <li><strong>External:</strong> a pinned Formal Conjectures commit; arXiv for the selection; the two D-10 integration agreements are Stage 0 external dependencies and are not blocked on here.</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F11-Q1</td><td><strong>The on-ramp result is chosen in T1 by a recorded fact pass</strong>, not here. Criteria are R7; the answer and its two rejected alternatives are evidence, so the choice is reviewable. Mike asked only that it be simple and something Lean routinely checks.</td></tr>
+  <tr><td>F11-Q2</td><td><strong>Target grade is the minimum over root and definitions</strong> (D-9: definitions are first-class review objects), and an auto-downgrade on a confirmed definition defect follows from the same rule once F08's defect claims are adjudicated (Stage 1).</td></tr>
+  <tr><td>F11-Q3</td><td><strong>Listed open targets are imported, not authored</strong> (D-10), from Formal Conjectures at a pinned commit; which five is a curator choice recorded in each <code>target.yaml</code>'s prior-art summary. Erdős-problem targets wait for the erdosproblems.com agreement named in Stage 0.</td></tr>
+  <tr><td>F11-Q4</td><td><strong>Per-graph images.</strong> A Mathlib pin makes the image multi-gigabyte; one image per pinned SHA, referenced by digest, is the cost of D-4 step 1's "resolve from our pins" at usable speed. Shared across graphs with the same pin.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> spec · <strong>Tasks:</strong> T1&ndash;T6 todo</div>
+
+<h2>Tasks</h2>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F11-T1</td><td><strong>Select the on-ramp result.</strong> Fact pass against R7; selection record with two rejected alternatives; the paper's argument saved as the annex text.</td>
+    <td><code>engineering/evidence/F11/selection.md</code>, <code>gate/tests/fixtures/onramp/annex.md</code>, <code>gate/tests/test_intake.py</code></td>
+    <td>F10</td><td><code>uv run pytest gate/tests/test_intake.py -k selection</code></td></tr>
+  <tr><td>F11-T2</td><td><strong>Target and fidelity records.</strong> Schemas, intake command with checks and scaffolding, fidelity command and grade derivation, posting and activation, claimability into products, Targets page reasons.</td>
+    <td><code>gate/schemas/target/v1.json</code>, <code>gate/schemas/fidelity/v1.json</code>, <code>gate/opn_gate/intake.py</code>, <code>gate/opn_gate/fidelity.py</code>, <code>gate/opn_gate/products.py</code>, <code>site/opn_site/render.py</code>, <code>gate/tests/test_intake.py</code>, <code>gate/tests/test_fidelity.py</code>, <code>api/tests/test_claims.py</code>, <code>site/tests/test_render.py</code></td>
+    <td>T1</td><td><code>uv run pytest gate/tests/test_intake.py gate/tests/test_fidelity.py api/tests/test_claims.py site/tests/test_render.py</code></td></tr>
+  <tr><td>F11-T3</td><td><strong>Mathlib-pinned image.</strong> Image build per pinned SHA with Mathlib oleans, digest into <code>gate-spec.json</code>, CI/precheck/reproduce/devcontainer on it, cache-hit test, timing evidence.</td>
+    <td><code>gate/Dockerfile.mathlib</code>, <code>.github/workflows/image-publish.yml</code>, <code>gate/tools/pin_image.py</code>, <code>gate/tests/test_onramp_docker.py</code></td>
+    <td>T2</td><td><code>make verify-lean</code></td></tr>
+  <tr><td>F11-T4</td><td><strong>Seed the on-ramp graph.</strong> Intake PR with the five artifacts; root and defs admitted; skeleton submitted through F07 citing the annex; holes admitted; fidelity raised to <code>back-translated</code> by a non-author; posting recorded; activated.</td>
+    <td><code>../open_proof_network_graph/targets/&lt;onramp-id&gt;/</code>, <code>gate/tests/test_onramp_lean.py</code>, <code>engineering/evidence/F11/task-4.txt</code></td>
+    <td>T3</td><td><code>make verify-lean</code> and the merged intake and skeleton PRs (URLs in evidence)</td></tr>
+  <tr><td>F11-T5</td><td><strong>List open targets.</strong> <code>import-fc</code> at a pinned commit; five targets listed; site shows reasons.</td>
+    <td><code>gate/opn_gate/intake.py</code>, <code>../open_proof_network_graph/targets/&lt;fc-ids&gt;/</code>, <code>gate/tests/test_intake.py</code></td>
+    <td>T2</td><td><code>uv run pytest gate/tests/test_intake.py -k import_fc</code> and the merged import PR</td></tr>
+  <tr><td>F11-T6</td><td><strong>Invited-run readiness rehearsal.</strong> Both paths end to end on the on-ramp graph with timings; site verified; the readiness record.</td>
+    <td><code>gate/tools/rehearsal.py</code>, <code>engineering/evidence/F11/invited-run-readiness.txt</code></td>
+    <td>T4, T5</td><td><code>uv run python gate/tools/rehearsal.py &lt;api-url&gt;</code></td></tr>
+</table>
+
+<footer>Open Proof Network · F11 spec v1 · 2026-09-07</footer>
+</body>
+</html>
