@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F00 — Gate walking skeleton</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F00</nav>
+<h1>F00 — Gate walking skeleton</h1>
+<p class="subtitle">The thinnest thread through the trust base: one Mathlib-free tutorial node,
+the gate's mechanical steps 1, 2, 4 and 5 running identically on a laptop
+(<code>pregate.sh</code>), in CI (<code>gate.yml</code>) and in replay (<code>reproduce.sh</code>),
+ending in a D-5 identical attestation across two machines.</p>
+
+<h2>1. Summary</h2>
+<p>F00 builds the gate as a pipeline of steps over a node directory (D-3) and proves the one thing
+everything else depends on: that a verdict is a reproducible artifact (D-5). It implements D-4
+steps 1 (dependencies from the pinned toolchain only), 2 (permitted paths and statement hash), 4
+(kernel replay from clean, <code>lean4checker --fresh</code>) and 5 (axiom allowlist), the step-3
+sandbox the authoritative run adds, the attestation record (D-34 minimum plus the fields in §9),
+and the three invocations of one codebase D-4 names: <code>pregate.sh</code> locally, the
+authoritative <code>gate.yml</code> on GitHub-hosted runners, and <code>reproduce.sh</code>. It
+seeds the graph repo (D-35) with <code>schemas/</code>, one graph's <code>gate-spec.json</code>,
+the workflow, and the permanently open tutorial node (D-27). It ends with a rehearsal of the
+invited-run thread for a proof: prove the tutorial node, open the PR, merge on kernel green plus a
+recorded review, reproduce the attestation byte for byte.</p>
+<p>F00 does <em>not</em> implement steps 6, 7, 8 or 9's tooling beyond a reviewer field, the
+frontier, the site, any HTTP endpoint, MCP, claims, identity, or Mathlib-dependent graphs. Those
+are F01–F10 (<a href="../index.html">index</a>). Cites: D-3, D-4, D-5, D-7, D-27, D-34, D-35.</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a prover (human or agent-operated), I want to run the gate locally on my proof and get a
+    structured verdict naming the first failing step, so I can self-correct before spending anyone's
+    CI minutes.</li>
+  <li>As the gate owner, I want every merge to carry a signed attestation that anyone can
+    regenerate from a clean machine, so a verdict never rests on trusting me or my infrastructure.</li>
+  <li>As a bystander, I want to check that a merged proof rests only on the three allowed axioms,
+    from the attestation alone.</li>
+  <li>As a build session, I want the pipeline testable without Lean installed, and a second tier
+    that runs the real toolchain, so the fast suite stays fast and the real one stays honest.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> D-3 layout validation and the step-2 path check with statement hash;
+step 1 toolchain resolution ignoring submitted manifests; step 4 kernel replay; step 5 axiom
+allowlist with <code>native_decide</code> rejected outright; the pipeline runner with first-failure
+JSON verdicts (D-34); <code>schemas/</code> v1 for <code>gate-spec</code>, <code>attestation</code>
+and <code>META</code>; the <code>Toolchain</code> seam and its fake; the step-3 container image
+with caps from <code>gate-spec.json</code>; <code>pregate.sh</code> (unsigned or SSH-signed
+attestation); <code>reproduce.sh</code>; <code>gate.yml</code> with a secretless gate job and a
+post-merge signing job that commits the attestation; the precheck-attestation bounce rule; the
+fixture graph; seeding the graph repo; the rehearsal.</p>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>Steps 7 and 8 (witness, declared dependencies) — F01.</li>
+  <li>Step 6 hazard checkers and the <code>native_decide</code> waiver path — F02.</li>
+  <li><code>frontier.json</code>, <code>info.json</code>, claim overlay — F03.</li>
+  <li>The site — F04. Any HTTP or MCP surface, tokens, claims — F05–F08.</li>
+  <li>Olean cache, devcontainer, per-node context bundles — F09. Mathlib-pinned graphs — F10.</li>
+  <li>Reviewer assignment, canaries, anonymity on bountied nodes (D-11, D-15) — Stage 1.</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<p class="status-note">EARS notation, stable IDs. Step numbers are D-4's.</p>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F00-R1</td><td>The system shall validate a node directory against the D-3 layout and report every missing, extra, or misnamed entry as a structured diagnostic.</td></tr>
+  <tr><td>F00-R2</td><td>When a submission diff is presented, the system shall reject, before any build, any change to a path other than the claimed node's <code>Proof.lean</code> or an append under its <code>attempts/</code> or <code>annex/</code>, naming every offending path (D-3, step 2).</td></tr>
+  <tr><td>F00-R3</td><td>When a submission diff is presented, the system shall recompute the content hash of <code>Statement.lean</code> and reject if it differs from <code>META.yaml</code>'s <code>statement-hash</code> (step 2).</td></tr>
+  <tr><td>F00-R4</td><td>The system shall resolve the Lean toolchain and every dependency from the graph's <code>gate-spec.json</code> alone, and shall ignore any <code>lake-manifest.json</code> or <code>lean-toolchain</code> present in the submission (step 1).</td></tr>
+  <tr><td>F00-R5</td><td>The system shall replay every declaration of the node through the kernel from a clean environment via <code>lean4checker --fresh</code> and fail the step on any error (step 4).</td></tr>
+  <tr><td>F00-R6</td><td>The system shall fail step 5 if the set of axioms the proof depends on is not a subset of the allowlist in <code>gate-spec.json</code>, and shall fail it if the proof uses <code>native_decide</code>.</td></tr>
+  <tr><td>F00-R7</td><td>The system shall execute the implemented steps in D-4 order, stop at the first failure, and emit a JSON verdict naming that step and a structured diagnostic; on success the verdict shall carry every step's result (D-34).</td></tr>
+  <tr><td>F00-R8</td><td>The system shall emit an attestation validating against <code>schemas/attestation/v1.json</code>, carrying the D-34 minimum fields plus <code>graph_id</code>, <code>gate_spec_hash</code>, <code>network_commit</code>, <code>runner</code>, <code>precheck_attestation_hash</code>, <code>merge_commit</code>, and a <code>signature</code> block (§9).</td></tr>
+  <tr><td>F00-R9</td><td>The system shall validate every <code>META.yaml</code>, <code>gate-spec.json</code> and attestation it reads or writes against the schema named in its <code>schema</code> field, and shall refuse a document whose schema is unknown.</td></tr>
+  <tr><td>F00-R10</td><td>Every schema shall live at <code>schemas/&lt;name&gt;/v&lt;n&gt;.json</code>, and the system shall fail its own test suite if the content hash of a published schema changes (D-34: versioned, never edited).</td></tr>
+  <tr><td>F00-R11</td><td><code>pregate.sh</code> shall run steps 1, 2, 4 and 5 on a node with the pinned toolchain in an ordinary local build, write the verdict and an attestation with <code>runner: local</code>, and when invoked with <code>--sign</code> shall sign it with the caller's SSH key.</td></tr>
+  <tr><td>F00-R12</td><td>When the authoritative gate runs, the system shall execute steps 1, 4 and 5 inside a container started with no network, no secrets in its environment, a non-root user, and the cpu, memory and wall-clock caps declared in <code>gate-spec.json</code> (step 3; C6).</td></tr>
+  <tr><td>F00-R13</td><td>If a pull request carries no precheck attestation, or one whose signature kind is not in <code>gate-spec.json</code>'s <code>accepted_precheck_signatures</code>, or one older than <code>precheck_max_age</code>, then the gate shall emit a verdict of <code>bounced</code> without running steps 1–8 (D-4).</td></tr>
+  <tr><td>F00-R14</td><td>When a pull request merges to <code>main</code>, a separate post-merge job shall sign the attestation with the gate signing key, fill <code>merge_commit</code>, and commit it to <code>attestations/&lt;id&gt;.json</code>; the gate job itself shall hold no secret and no write permission (C8).</td></tr>
+  <tr><td>F00-R15</td><td><code>reproduce.sh</code>, given a merged commit, shall rerun steps 1, 2, 4 and 5 inside the step-3 image and produce an attestation identical to the committed one once <code>runner</code>, <code>merge_commit</code> and <code>signature</code> are masked (D-5).</td></tr>
+  <tr><td>F00-R16</td><td>While the Lean toolchain is absent from the machine, <code>make verify</code> shall pass using the fake <code>Toolchain</code>, and <code>make verify-lean</code> shall fail with a diagnostic that names the install script.</td></tr>
+  <tr><td>F00-R17</td><td>The system shall read secrets and environment only through <code>opn_gate.config</code>, with a documented default for every non-secret value (C6, C8).</td></tr>
+  <tr><td>F00-R18</td><td>If any step raises an unexpected error, the system shall record it as that step's failure with the exception class and message in the diagnostic, never as a pass and never as a crash without a verdict (C7).</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<p class="status-note">Given/When/Then; each names its test case. <code>gate/tests/</code> is
+implied for relative paths. Tests marked <em>lean</em> or <em>docker</em> are the
+<code>make verify-lean</code> tier (conventions §2).</p>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F00-AC1</td><td>Given the fixture graph, when its three node directories are validated, then all pass.</td><td><code>test_layout.py::test_fixture_nodes_valid</code></td></tr>
+  <tr><td>F00-AC2</td><td>Given a node missing <code>Witness.lean</code> and one with a stray file, when validated, then each fails naming the entry.</td><td><code>test_layout.py::test_missing_and_extra_entries_named</code></td></tr>
+  <tr><td>F00-AC3</td><td>Given a diff touching <code>Statement.lean</code>, when step 2 runs, then verdict names step 2 and the path.</td><td><code>test_paths.py::test_rejects_statement_edit</code></td></tr>
+  <tr><td>F00-AC4</td><td>Given a diff touching another node's <code>Proof.lean</code>, when step 2 runs, then rejected naming the path.</td><td><code>test_paths.py::test_rejects_other_node</code></td></tr>
+  <tr><td>F00-AC5</td><td>Given a diff touching <code>defs/</code>, when step 2 runs, then rejected.</td><td><code>test_paths.py::test_rejects_defs</code></td></tr>
+  <tr><td>F00-AC6</td><td>Given a diff editing <code>META.yaml</code>, when step 2 runs, then rejected.</td><td><code>test_paths.py::test_rejects_meta_edit</code></td></tr>
+  <tr><td>F00-AC7</td><td>Given a diff that only fills <code>Proof.lean</code> and appends one file under <code>attempts/</code>, when step 2 runs, then it passes.</td><td><code>test_paths.py::test_accepts_proof_and_attempt_append</code></td></tr>
+  <tr><td>F00-AC8</td><td>Given a diff that rewrites an existing file under <code>attempts/</code>, when step 2 runs, then rejected (append-only).</td><td><code>test_paths.py::test_rejects_attempt_rewrite</code></td></tr>
+  <tr><td>F00-AC9</td><td>Given a <code>Statement.lean</code> whose hash differs from <code>META.yaml</code>, when step 2 runs, then rejected with both hashes in the diagnostic.</td><td><code>test_paths.py::test_statement_hash_mismatch</code></td></tr>
+  <tr><td>F00-AC10</td><td>Given a submission shipping its own <code>lake-manifest.json</code>, when step 1 resolves, then the manifest is ignored and the pinned toolchain from <code>gate-spec.json</code> is used.</td><td><code>test_pipeline.py::test_submitted_manifest_ignored</code></td></tr>
+  <tr><td>F00-AC11</td><td>Given the fake toolchain reporting step 4 failure, when the pipeline runs, then the verdict names step 4 first, step 5 is not run, and the diagnostic is structured.</td><td><code>test_pipeline.py::test_first_failure_stops_pipeline</code></td></tr>
+  <tr><td>F00-AC12</td><td>Given the fake toolchain reporting axioms {propext, sorryAx}, when step 5 runs, then rejected naming <code>sorryAx</code>.</td><td><code>test_pipeline.py::test_axiom_outside_allowlist</code></td></tr>
+  <tr><td>F00-AC13</td><td>Given a proof using <code>native_decide</code>, when step 5 runs, then rejected.</td><td><code>test_pipeline.py::test_native_decide_rejected</code></td></tr>
+  <tr><td>F00-AC14</td><td>Given a step that raises, when the pipeline runs, then the verdict records that step as failed with the exception in the diagnostic and the process exits nonzero.</td><td><code>test_pipeline.py::test_unexpected_error_is_a_failure</code></td></tr>
+  <tr><td>F00-AC15</td><td>Given the schemas directory, when the suite runs, then every schema file's hash matches the pinned list, and a modified copy fails.</td><td><code>test_schemas.py::test_schema_hashes_pinned</code></td></tr>
+  <tr><td>F00-AC16</td><td>Given a document with an unknown <code>schema</code> value, when validated, then refused.</td><td><code>test_schemas.py::test_unknown_schema_refused</code></td></tr>
+  <tr><td>F00-AC17</td><td>Given a passing pipeline, when the attestation is built, then it validates against <code>attestation/v1</code> and carries every field in R8.</td><td><code>test_attestation.py::test_attestation_fields_and_schema</code></td></tr>
+  <tr><td>F00-AC18</td><td>Given a PR without a precheck attestation, when the gate entrypoint runs, then verdict is <code>bounced</code> and no step ran.</td><td><code>test_bounce.py::test_no_precheck_bounces</code></td></tr>
+  <tr><td>F00-AC19</td><td>Given an unsigned precheck attestation and a spec accepting <code>none</code>, when the gate entrypoint runs, then it proceeds; given a spec accepting only <code>service</code>, then bounced.</td><td><code>test_bounce.py::test_signature_kind_policy</code></td></tr>
+  <tr><td>F00-AC20</td><td>Given no elan on PATH, when <code>make verify-lean</code> runs, then it fails naming <code>gate/scripts/install-toolchain.sh</code>.</td><td><code>test_toolchain.py::test_missing_toolchain_diagnostic</code></td></tr>
+  <tr><td>F00-AC21 <em>lean</em></td><td>Given the pinned toolchain, when <code>pregate.sh</code> runs on the fixture's proven tutorial node, then all four steps pass and an attestation with <code>runner: local</code> is written.</td><td><code>test_pregate_lean.py::test_tutorial_node_passes</code></td></tr>
+  <tr><td>F00-AC22 <em>lean</em></td><td>Given a <code>Proof.lean</code> containing <code>sorry</code>, when <code>pregate.sh</code> runs, then step 5 fails naming <code>sorryAx</code>.</td><td><code>test_pregate_lean.py::test_sorry_fails_step5</code></td></tr>
+  <tr><td>F00-AC23 <em>lean</em></td><td>Given a <code>Proof.lean</code> that elaborates but adds an axiom, when <code>pregate.sh</code> runs, then step 5 fails.</td><td><code>test_pregate_lean.py::test_extra_axiom_fails_step5</code></td></tr>
+  <tr><td>F00-AC24 <em>lean</em></td><td>Given a proof of the tutorial node, when <code>pregate.sh --sign</code> runs with a test SSH key, then the attestation's signature verifies against that key's public half.</td><td><code>test_pregate_lean.py::test_ssh_signature_verifies</code></td></tr>
+  <tr><td>F00-AC25 <em>docker</em></td><td>Given the step-3 image, when a proof that attempts a network fetch during elaboration runs, then step 1 or 4 fails and the diagnostic shows no network.</td><td><code>test_sandbox_docker.py::test_no_network</code></td></tr>
+  <tr><td>F00-AC26 <em>docker</em></td><td>Given caps of 1 cpu, 1 GiB, 30 s in <code>gate-spec.json</code>, when a proof that loops runs, then the step fails by timeout inside the cap.</td><td><code>test_sandbox_docker.py::test_wallclock_cap</code></td></tr>
+  <tr><td>F00-AC27 <em>docker</em></td><td>Given two runs of <code>reproduce.sh</code> on the fixture tutorial node, when their attestations are compared with <code>runner</code>, <code>merge_commit</code> and <code>signature</code> masked, then they are byte-identical.</td><td><code>test_reproduce_docker.py::test_two_runs_identical</code></td></tr>
+  <tr><td>F00-AC28 <em>network</em></td><td>Given the merged tutorial-node PR in the graph repo, when <code>gate/tools/check_reproduce.py &lt;attestation-id&gt;</code> runs on a laptop, then the fetched CI attestation and the local reproduction are identical modulo masked fields, and the CI signature verifies against the committed gate public key.</td><td><code>gate/tools/check_reproduce.py</code> exit 0 (evidence: <code>engineering/evidence/F00/task-9.txt</code>)</td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li><code>make verify</code> under 60 s on a laptop with no toolchain (conventions §2).</li>
+  <li><code>make verify-lean</code> under 10 min on a laptop for the Mathlib-free fixture.</li>
+  <li>Authoritative gate on a hosted runner under 10 min for the tutorial node, cold.</li>
+  <li>Default step-3 caps in the seeded <code>gate-spec.json</code>: 2 cpu, 4 GiB, 600 s; tests use smaller caps (AC26).</li>
+  <li>An attestation under 64 KiB; diagnostics truncated with an explicit marker beyond 8 KiB.</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li>A contributor's Lean is arbitrary code at elaboration time. It runs only inside the step-3
+    container (CI) or on the contributor's own machine (<code>pregate.sh</code>, their choice). C9.</li>
+  <li>The gate job in <code>gate.yml</code> is granted <code>permissions: {}</code> and no secret;
+    only the post-merge job on <code>main</code> receives the gate signing key and
+    <code>contents: write</code>. C8 items 1 and 4.</li>
+  <li>The gate signing key is generated once by the founder, its public half committed to the graph
+    at <code>keys/gate.pub</code>; the private half exists only as the Actions secret. Rotation is
+    a visible commit adding a new public key with a start date.</li>
+  <li>Diagnostics quote at most the failing line of contributor text and are served as data, never
+    rendered as markup (D-28 demarcation is F04/F08's job; F00 just keeps them plain strings).</li>
+  <li>Nothing in F00 stores personal data. The reviewer field in an attestation carries the
+    approving GitHub login, which D-15 makes public on standard nodes.</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>Packages:</strong> <code>jsonschema</code> (runtime), <code>pytest</code>,
+    <code>ruff</code>, <code>mypy</code> (dev) — justified in conventions §1; pinned and locked in
+    <code>uv.lock</code> by T1. <code>pyyaml</code> for <code>META.yaml</code> — justified here: the
+    stdlib has no YAML parser and D-3 fixes YAML for META; pinned in T3.</li>
+  <li><strong>External tools:</strong> elan and the pinned Lean toolchain; <code>lean4checker</code>
+    at the commit matching that toolchain; Docker; <code>ssh-keygen</code> (platform);
+    GitHub Actions hosted runners.</li>
+  <li><strong>Graph repo</strong> <code>../open_proof_network_graph</code>: T8 seeds it; T9 needs
+    it pushed to GitHub with Actions enabled and branch protection on <code>main</code> requiring
+    the gate check and one approving review.</li>
+  <li>No feature dependency. F01–F10 depend on this.</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F00-Q1</td><td><strong>Precheck attestation signature kinds.</strong> D-4 requires an attached passing precheck attestation and D-28 says the service signs one; neither says what the plain git path attaches. Call: the gate accepts <code>service</code>, <code>contributor</code> (SSH-signed) or <code>none</code> (unsigned <code>pregate.sh</code> output) as listed per graph in <code>gate-spec.json</code>, and records the kind. Rationale: the precheck's job is keeping garbage out of CI, not proving anything; the authoritative run re-derives every verdict. Proposed addition to D-4, not an overturn.</td></tr>
+  <tr><td>F00-Q2</td><td><strong>Two fields added to <code>gate-spec.json</code></strong> beyond D-28's list: <code>step3_caps</code> (cpu, memory, wall-clock) and <code>accepted_precheck_signatures</code> plus <code>precheck_max_age</code>. Both are protocol-visible per graph (C6). Proposed addition to D-4/D-28.</td></tr>
+  <tr><td>F00-Q3</td><td><strong>Attestation fields beyond D-34.</strong> <code>graph_id</code>, <code>gate_spec_hash</code>, <code>network_commit</code>, <code>runner</code>, <code>precheck_attestation_hash</code>, <code>merge_commit</code>, <code>signature</code>. The D-5 identical-verdict comparison masks <code>runner</code>, <code>merge_commit</code>, <code>signature</code>. Proposed addition to D-34.</td></tr>
+  <tr><td>F00-Q4</td><td><strong>How step 9 is "recorded on the node".</strong> Call: an approving GitHub review on the PR by a login other than the author; the post-merge job reads it and writes the reviewer login into the attestation. Bot merges when the check is green and that approval exists; no human presses merge (D-4, D-15).</td></tr>
+  <tr><td>F00-Q5</td><td><strong>The rehearsal reviews its own author.</strong> T9's PR is authored and reviewed within the founding team. D-22 waives D-21 separation for the founding team at Stage 1; F00 applies the same waiver at Stage 0 and records the reviewer as the founder.</td></tr>
+  <tr><td>F00-Q6</td><td><strong>Tutorial-node attestations are committed like any other.</strong> D-27 puts the tutorial node off-ledger, which is about credit (F05), not about verdicts. The node's <code>META.yaml</code> carries <code>tutorial: true</code> so later features exclude it from the ledger.</td></tr>
+  <tr><td>F00-Q7</td><td><strong><code>native_decide</code> is rejected outright in F00.</strong> D-4's waiver path (justification, reviewer sign-off, permanent flag) needs the hazard-checker plumbing and a review record; it lands in F02.</td></tr>
+  <tr><td>F00-Q8</td><td><strong>Attestation identity.</strong> <code>attestations/&lt;id&gt;.json</code> where <code>id</code> is the merged PR number zero-padded, unique per graph repo and human-readable; the record carries the merge commit for the unambiguous reference.</td></tr>
+  <tr><td>F00-Q9</td><td><strong>Tutorial statement.</strong> <code>∀ p q : Prop, p ∧ q → q ∧ p</code>, Lean core only, so a cold hosted runner builds it in seconds. The fixture graph's root is <code>(p ∧ q) ∧ r → r ∧ (q ∧ p)</code> over interior nodes for swap and reassociation, so path checks and a three-node dependency shape are exercised.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> spec · <strong>Tasks:</strong> T1&ndash;T9 todo</div>
+
+<h2>Tasks</h2>
+<p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its
+one verification command (conventions §3, §6). Graph-repo paths carry the
+<code>../open_proof_network_graph/</code> prefix.</p>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F00-T1</td><td><strong>Stack lock in code.</strong> <code>pyproject.toml</code> with the four justified packages, <code>uv.lock</code>, <code>.python-version</code> 3.13, ruff and mypy strict config, pytest markers; the three packages as empty modules with <code>opn_gate.config</code>; real <code>make verify</code> (ruff, mypy, fast pytest) and <code>make verify-lean</code>; <code>.github/workflows/ci.yml</code> running both on push.</td>
+    <td><code>pyproject.toml</code>, <code>uv.lock</code>, <code>.python-version</code>, <code>Makefile</code>, <code>gate/opn_gate/__init__.py</code>, <code>gate/opn_gate/config.py</code>, <code>api/opn_api/__init__.py</code>, <code>site/opn_site/__init__.py</code>, <code>gate/tests/test_config.py</code>, <code>.github/workflows/ci.yml</code></td>
+    <td>&mdash;</td><td><code>make verify</code></td></tr>
+  <tr><td>F00-T2</td><td><strong>Toolchain pin.</strong> <code>lean-toolchain</code>, install script for elan and <code>lean4checker</code>, the <code>Toolchain</code> seam interface and its fake, R16's missing-toolchain diagnostic; <code>make verify-lean</code> proves one trivial theorem through the seam.</td>
+    <td><code>lean-toolchain</code>, <code>gate/scripts/install-toolchain.sh</code>, <code>gate/opn_gate/toolchain.py</code>, <code>gate/tests/fakes.py</code>, <code>gate/tests/test_toolchain.py</code>, <code>gate/tests/test_toolchain_lean.py</code></td>
+    <td>T1</td><td><code>make verify-lean</code></td></tr>
+  <tr><td>F00-T3</td><td><strong>Schemas v1.</strong> <code>gate-spec/v1</code>, <code>attestation/v1</code>, <code>meta/v1</code> as JSON Schema 2020-12; validation module; pinned schema hashes (R9, R10).</td>
+    <td><code>gate/schemas/gate-spec/v1.json</code>, <code>gate/schemas/attestation/v1.json</code>, <code>gate/schemas/meta/v1.json</code>, <code>gate/schemas/HASHES</code>, <code>gate/opn_gate/schemas.py</code>, <code>gate/tests/test_schemas.py</code></td>
+    <td>T1</td><td><code>uv run pytest gate/tests/test_schemas.py</code></td></tr>
+  <tr><td>F00-T4</td><td><strong>Layout and step 2.</strong> D-3 layout validation, permitted-path diff check, statement hash; the fixture graph; the adversarial diff library (AC1–AC9).</td>
+    <td><code>gate/opn_gate/layout.py</code>, <code>gate/opn_gate/paths.py</code>, <code>gate/tests/fixtures/graphs/propositional/</code>, <code>gate/tests/fixtures/diffs/</code>, <code>gate/tests/test_layout.py</code>, <code>gate/tests/test_paths.py</code></td>
+    <td>T3</td><td><code>uv run pytest gate/tests/test_layout.py gate/tests/test_paths.py</code></td></tr>
+  <tr><td>F00-T5</td><td><strong>Pipeline and steps 1, 4, 5.</strong> Step interface, runner with first-failure verdict (R7, R18), steps 1, 4, 5 over the <code>Toolchain</code> seam, attestation builder (R8); the bounce rule (R13).</td>
+    <td><code>gate/opn_gate/pipeline.py</code>, <code>gate/opn_gate/steps/</code>, <code>gate/opn_gate/attestation.py</code>, <code>gate/opn_gate/bounce.py</code>, <code>gate/tests/test_pipeline.py</code>, <code>gate/tests/test_attestation.py</code>, <code>gate/tests/test_bounce.py</code></td>
+    <td>T2, T4</td><td><code>uv run pytest gate/tests/test_pipeline.py gate/tests/test_attestation.py gate/tests/test_bounce.py</code></td></tr>
+  <tr><td>F00-T6</td><td><strong><code>pregate.sh</code>.</strong> CLI over T5 with the real toolchain, <code>--sign</code> via <code>ssh-keygen -Y</code>, the <code>Signer</code> seam (R11; AC21–AC24).</td>
+    <td><code>gate/pregate.sh</code>, <code>gate/opn_gate/cli.py</code>, <code>gate/opn_gate/signer.py</code>, <code>gate/tests/test_pregate_lean.py</code></td>
+    <td>T5</td><td><code>make verify-lean</code></td></tr>
+  <tr><td>F00-T7</td><td><strong>Step-3 image and <code>reproduce.sh</code>.</strong> Digest-pinned Dockerfile with the toolchain and <code>lean4checker</code>; the sandbox runner applying caps from <code>gate-spec.json</code>; <code>reproduce.sh</code>; the D-5 identical-run test (R12, R15; AC25–AC27).</td>
+    <td><code>gate/Dockerfile</code>, <code>gate/opn_gate/sandbox.py</code>, <code>gate/reproduce.sh</code>, <code>gate/tests/test_sandbox_docker.py</code>, <code>gate/tests/test_reproduce_docker.py</code></td>
+    <td>T6</td><td><code>make verify-lean</code></td></tr>
+  <tr><td>F00-T8</td><td><strong>Seed the graph repo and <code>gate.yml</code>.</strong> Schemas copied, <code>keys/gate.pub</code>, the tutorial graph's <code>gate-spec.json</code> pinning this repo's commit, the tutorial node, the workflow: secretless gate job, post-merge signing and commit job (R14). Graph repo pushed; branch protection set.</td>
+    <td><code>../open_proof_network_graph/schemas/</code>, <code>../open_proof_network_graph/keys/gate.pub</code>, <code>../open_proof_network_graph/targets/tutorial/gate-spec.json</code>, <code>../open_proof_network_graph/targets/tutorial/nodes/tutorial-and-swap/</code>, <code>../open_proof_network_graph/.github/workflows/gate.yml</code>, <code>gate/opn_gate/postmerge.py</code>, <code>gate/tests/test_postmerge.py</code></td>
+    <td>T7</td><td><code>uv run pytest gate/tests/test_postmerge.py</code> and a green <code>gate.yml</code> run on a no-op PR (run URL in evidence)</td></tr>
+  <tr><td>F00-T9</td><td><strong>Rehearsal.</strong> Fresh clone of the graph repo, prove the tutorial node, <code>pregate.sh</code>, open the PR with the attestation attached, approving review, bot merge, post-merge attestation committed; <code>check_reproduce.py</code> confirms local reproduction and CI signature (AC28).</td>
+    <td><code>gate/tools/check_reproduce.py</code>, <code>engineering/evidence/F00/task-9.txt</code></td>
+    <td>T8</td><td><code>uv run python gate/tools/check_reproduce.py &lt;attestation-id&gt;</code></td></tr>
+</table>
+
+<footer>Open Proof Network · F00 spec v1 · 2026-09-07 · drafted from the 2026-09-07 grill session</footer>
+</body>
+</html>
