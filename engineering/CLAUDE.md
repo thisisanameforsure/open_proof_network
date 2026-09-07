@@ -2,7 +2,7 @@
 
 A distributed crowdsourced Lean 4 proof network for open mathematical problems, built spec-first.
 The protocol is decided (`docs/architecture_decisions_v_3_9.html`, decisions D-1 to D-36 with
-frozen identifiers); the implementation stack is not yet locked (conventions §1). Everything in
+frozen identifiers); the implementation stack is locked (conventions §1). Everything in
 `engineering/` is about how to build it, not what it is (`engineering/README.md`). The workflow
 below is in force from the first line of code.
 
