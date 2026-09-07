@@ -1,0 +1,23 @@
+# F00-T1 verification — $ make verify — 2026-09-07T20:43:25Z — Darwin arm64, no Lean toolchain installed
+uv run --frozen ruff check .
+All checks passed!
+uv run --frozen ruff format --check .
+12 files already formatted
+uv run --frozen mypy gate
+Success: no issues found in 3 source files
+uv run --frozen mypy api
+Success: no issues found in 1 source file
+uv run --frozen mypy site
+Success: no issues found in 1 source file
+uv run --frozen pytest -m "not lean and not docker and not network"
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+testpaths: gate/tests, api/tests, site/tests
+collected 8 items
+
+gate/tests/test_config.py ........                                       [100%]
+
+============================== 8 passed in 0.03s ===============================
+make verify  0.69s user 0.28s system 52% cpu 1.849 total

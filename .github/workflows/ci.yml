@@ -1,0 +1,42 @@
+# CI for the `network` repo (conventions §2): both verification tiers on every push and PR.
+# Nothing here has authority over any graph (D-35); a graph pins a commit of this repo by hand.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: make verify (fast tier)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: "0.12.10"
+          enable-cache: true
+      - run: make verify
+
+  verify-lean:
+    name: make verify-lean (real toolchain + sandbox)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: "0.12.10"
+          enable-cache: true
+      - name: Install the pinned Lean toolchain
+        run: |
+          if [ -x gate/scripts/install-toolchain.sh ]; then
+            gate/scripts/install-toolchain.sh
+            echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          else
+            echo "::notice::gate/scripts/install-toolchain.sh not present yet (F00-T2)"
+          fi
+      - run: make verify-lean

@@ -1,0 +1,64 @@
+[project]
+name = "open-proof-network"
+version = "0.0.0"
+description = "Open Proof Network — gate, api and site tooling (the `network` repo, D-35)"
+readme = "README.md"
+requires-python = "==3.13.*"
+license = "Apache-2.0"
+# Runtime dependencies. Each package here needs a C5 justification in a spec:
+#   jsonschema — conventions §1 (protocol schemas are JSON Schema 2020-12, D-34).
+dependencies = [
+    "jsonschema==4.26.0",
+]
+
+[dependency-groups]
+# Development-only; conventions §1 names these three.
+dev = [
+    "pytest==9.1.1",
+    "ruff==0.16.6",
+    "mypy==2.3.1",
+]
+
+[tool.uv]
+# No build backend: the three packages live inside the D-35 directories (conventions §1) and are
+# put on the path by pytest/mypy config below and by the shell entrypoints (gate/pregate.sh, …).
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["gate/tests", "api/tests", "site/tests"]
+pythonpath = ["gate", "gate/tests", "api", "api/tests", "site", "site/tests"]
+addopts = "-ra --strict-markers --import-mode=importlib"
+# Conventions §2: unmarked tests are the fast tier (`make verify`).
+markers = [
+    "lean: needs the pinned Lean toolchain on PATH (make verify-lean)",
+    "docker: needs the step-3 sandbox image (make verify-lean)",
+    "network: hits a real external service; feature verification only",
+]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "N", "S", "PL", "RUF"]
+ignore = [
+    "PLR2004", # magic-value comparisons in tests are fine
+    "S101",    # assert is how tests assert
+    "S603",    # subprocess without shell=True is the safe form; we never pass shell=True
+    "S607",    # partial executable paths: toolchain binaries are resolved via PATH by design
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["opn_gate", "opn_api", "opn_site"]
+
+[tool.ruff.lint.per-file-ignores]
+"*/tests/**" = ["PLR0913", "S108", "S404"]
+
+[tool.mypy]
+strict = true
+python_version = "3.13"
+# Run per component (`make types`): the three `tests/` directories would otherwise collide by name.
+mypy_path = "gate:gate/tests:api:api/tests:site:site/tests"
+explicit_package_bases = true
+warn_unreachable = true
