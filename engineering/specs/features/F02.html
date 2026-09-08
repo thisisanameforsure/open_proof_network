@@ -92,8 +92,8 @@ step 6 and the <code>native_decide</code> amendment, D-8, D-15, D-29, D-34.</p>
 <h2>9. Open questions / judgment calls</h2>
 <table>
   <tr><th>ID</th><th>Call made — for review</th></tr>
-  <tr><td>F02-Q1</td><td><strong>Hazards are admission-time failures with an acknowledgment escape</strong> — decided in D-4 and D-29 (v3.10). The acknowledgment lives in <code>META.yaml</code> as <code>acknowledged_hazards</code>; the reviewer sees it (D-15). No deviation.</td></tr>
-  <tr><td>F02-Q2</td><td><strong>Waiver mechanics</strong> — decided in D-4 (v3.10): justification as a file in the submission, sign-off as a line in the approval, flag on the attestation projected into <code>graph.json</code> and the site, never an edit to <code>META.yaml</code>. No deviation.</td></tr>
+  <tr><td>F02-Q1</td><td><strong>Hazards are admission-time failures with an acknowledgment escape</strong> — decided in D-4 and D-29 (v3.11). The acknowledgment lives in <code>META.yaml</code> as <code>acknowledged_hazards</code>; the reviewer sees it (D-15). No deviation.</td></tr>
+  <tr><td>F02-Q2</td><td><strong>Waiver mechanics</strong> — decided in D-4 (v3.11): justification as a file in the submission, sign-off as a line in the approval, flag on the attestation projected into <code>graph.json</code> and the site, never an edit to <code>META.yaml</code>. No deviation.</td></tr>
   <tr><td>F02-Q3</td><td><strong>Checker precision is deliberately conservative.</strong> Each checker flags syntactic patterns; false positives are cheap (one acknowledgment line), false negatives are what D-11's canaries measure later. Definitions in R2 are the v1 contract; tightening is a checker version, recorded in <code>gate-spec.json</code> by id@version.</td></tr>
 </table>
 

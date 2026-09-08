@@ -1,7 +1,7 @@
 # Open Proof Network — build instructions for Claude
 
 A distributed crowdsourced Lean 4 proof network for open mathematical problems, built spec-first.
-The protocol is decided (`docs/architecture_decisions_v_3_10.html`, decisions D-1 to D-36 with
+The protocol is decided (`docs/architecture_decisions_v_3_11.html`, decisions D-1 to D-36 with
 frozen identifiers); the implementation stack is locked (conventions §1). Everything in
 `engineering/` is about how to build it, not what it is (`engineering/README.md`). The workflow
 below is in force from the first line of code.
@@ -55,7 +55,7 @@ The law of the project:
 - `engineering/specs/constitution.html` — non-negotiables (read first).
 - `engineering/specs/conventions.html` — how we build.
 - `engineering/specs/index.html` — feature build order and status.
-- `docs/architecture_decisions_v_3_10.html` — the protocol: every decision with its rationale and
+- `docs/architecture_decisions_v_3_11.html` — the protocol: every decision with its rationale and
   overturning condition, the stages, the glossary. Cite decisions by D-number.
 
 ## Current state (2026-09-08)
@@ -64,7 +64,7 @@ The law of the project:
   pyyaml, F00 §8); gate on GitHub-hosted runners, api + MCP on Lambda, precheck as an Actions
   job in a scratch repo, site on S3/CloudFront — "boxless" at Stage 0. Two test tiers:
   `make verify` ~2 s, `make verify-lean` ~10 min (needs elan at `~/.elan` and docker).
-- Decisions doc at v3.10; Stage 0 roadmap F00–F11 in `engineering/specs/index.html`, all specced
+- Decisions doc at v3.11; Stage 0 roadmap F00–F11 in `engineering/specs/index.html`, all specced
   2026-09-07. Later specs will need touch-ups as earlier features land; each carries the protocol
   readings it relies on in its §9 so a drift is visible.
 - **F00 T1–T8 done 2026-09-08** (overnight autonomous session; read

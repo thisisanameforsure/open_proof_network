@@ -59,21 +59,22 @@ def test_finalize_signs_with_gate_key(gate_key: tuple[Path, str], tmp_path: Path
     doc = attestation.build(
         ctx, pipeline.run_steps(ctx), graph_commit="3" * 40, clock=lambda: FIXED
     )
+    review = postmerge.review_block("pr-approval", reviewer="reviewer")
     signed = postmerge.finalize(
-        doc, merge_commit="4" * 40, reviewer="reviewer", key_path=key, signer=SshKeygenSigner()
+        doc, merge_commit="4" * 40, review=review, key_path=key, signer=SshKeygenSigner()
     )
     assert schemas.violations(signed) == []
     assert signed["runner"] == "hosted"
     assert signed["merge_commit"] == "4" * 40
-    assert signed["reviewer"] == "reviewer"
+    assert signed["review"] == {"kind": "pr-approval", "reviewer": "reviewer", "reference": None}
     assert signed["signature"]["kind"] == "gate"
     assert signed["signature"]["timestamp"] == "2026-09-08T06:00:00Z"
     assert postmerge.verify(signed, pub, SshKeygenSigner())
     # D-5: beyond the masked fields, signing changed only the step-9 record (Q11).
-    assert attestation.compare(doc, signed) == ["reviewer"]
+    assert attestation.compare(doc, signed) == ["review"]
     assert attestation.compare(attestation.with_step9(doc, signed), signed) == []
 
-    tampered = dict(signed, reviewer="someone-else")
+    tampered = dict(signed, review=postmerge.review_block("tutorial"))
     assert not postmerge.verify(tampered, pub, SshKeygenSigner())
     assert not postmerge.verify(doc, pub, SshKeygenSigner())  # unsigned
 
@@ -85,6 +86,23 @@ def test_verify_rejects_wrong_key(gate_key: tuple[Path, str], tmp_path: Path) ->
     ctx = make_context(tmp_path)
     doc = attestation.build(ctx, pipeline.run_steps(ctx), graph_commit=None, clock=lambda: FIXED)
     signed = postmerge.finalize(
-        doc, merge_commit="4" * 40, reviewer="r", key_path=key, signer=SshKeygenSigner()
+        doc,
+        merge_commit="4" * 40,
+        review=postmerge.review_block("tutorial"),
+        key_path=key,
+        signer=SshKeygenSigner(),
     )
     assert not postmerge.verify(signed, (tmp_path / "other.pub").read_text(), SshKeygenSigner())
+
+
+def test_review_block_rules() -> None:
+    assert postmerge.review_block("tutorial") == {
+        "kind": "tutorial",
+        "reviewer": None,
+        "reference": None,
+    }
+    assert postmerge.review_block("certificate", reference="cert-1")["reference"] == "cert-1"
+    with pytest.raises(ValueError, match="approving reviewer"):
+        postmerge.review_block("pr-approval")
+    with pytest.raises(ValueError, match="needs a reference"):
+        postmerge.review_block("provenance")

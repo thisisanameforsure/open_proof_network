@@ -17,6 +17,8 @@ from opn_gate.pipeline import Verdict
 from opn_gate.steps.base import RunContext
 from opn_gate.toolchain import ResolvedToolchain
 
+SCHEMA = "attestation/v2"
+ACCEPTED_SCHEMAS: tuple[str, ...] = ("attestation/v1", "attestation/v2")
 MASKED_FIELDS: tuple[str, ...] = ("runner", "merge_commit", "signature")
 Clock = Callable[[], datetime]
 
@@ -44,7 +46,7 @@ def build(
         artifact_hash = schemas.content_hash(node.proof_path.read_bytes())
     precheck = verdict.data.get("precheck_attestation") or {"hash": None, "signature_kind": None}
     doc: dict[str, Any] = {
-        "schema": "attestation/v1",
+        "schema": SCHEMA,
         "graph_id": ctx.spec["graph_id"],
         "node_id": ctx.claim.node_id,
         "statement_hash": statement_hash,
@@ -69,7 +71,7 @@ def build(
             "signature_kind": precheck.get("signature_kind"),
         },
         "merge_commit": None,
-        "reviewer": None,
+        "review": None,
         "signature": {
             "kind": "none",
             "key_id": None,
@@ -77,7 +79,7 @@ def build(
             "timestamp": clock().astimezone(UTC).strftime(TIMESTAMP_FORMAT),
         },
     }
-    return schemas.validate(doc, "attestation/v1")
+    return schemas.validate(doc, SCHEMA)
 
 
 def _statement_hash_fallback(ctx: RunContext) -> str:
@@ -89,14 +91,15 @@ def _statement_hash_fallback(ctx: RunContext) -> str:
     return "0" * 64
 
 
-STEP9_FIELDS: tuple[str, ...] = ("reviewer",)
+STEP9_FIELDS: tuple[str, ...] = ("review", "reviewer")  # v2 block; v1 string
 
 
 def with_step9(reproduction: dict[str, Any], committed: dict[str, Any]) -> dict[str, Any]:
     """A reproduction replays steps 1-8 (D-5); step 9's record is copied from the committed one."""
     out = dict(reproduction)
     for key in STEP9_FIELDS:
-        out[key] = committed.get(key)
+        if key in committed:
+            out[key] = committed[key]
     return out
 
 

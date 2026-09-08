@@ -21,7 +21,7 @@ root and definitions, the D-10 posting that makes a target claimable, and a Math
 with the image and caches to match (D-7). It seeds the on-ramp formalization graph the Stage 0
 invited run needs — a classic textbook theorem whose objects are defined in the graph's own
 <code>defs/</code> so Mathlib cannot close it in one line, decomposed by skeletonization into three
-to six nodes so the whole pipeline runs to a merged root (Stages, v3.10) — and lists a few open
+to six nodes so the whole pipeline runs to a merged root (Stages, v3.11) — and lists a few open
 targets imported from
 Formal Conjectures with grade <code>mechanical-only</code>, so the site is honest about the mission
 without letting anyone claim them. Cites: D-2, D-6, D-7, D-9, D-10, D-12, D-21, D-25, D-31,
@@ -101,7 +101,7 @@ D-33, D-35, Stages.</p>
 <h2>9. Open questions / judgment calls</h2>
 <table>
   <tr><th>ID</th><th>Call made — for review</th></tr>
-  <tr><td>F11-Q1</td><td><strong>A classic theorem, not a recent arXiv result.</strong> Mike chose this on 2026-09-07 for zero selection risk; the Stages text (v3.10) permits it for the invited run because the run tests the protocol, not the mathematics. T1 records the choice against R7. Starting candidates for T1's record: "no natural numbers p, q with q ≠ 0 and p² = 2q²" over a local parity definition (descent via three lemmas), and "infinitely many primes" over a local <code>IsPrime</code> (prime-divisor lemma, factorial bound, assembly). D-6's recent-arXiv track resumes at Stage 1.</td></tr>
+  <tr><td>F11-Q1</td><td><strong>A classic theorem, not a recent arXiv result.</strong> Mike chose this on 2026-09-07 for zero selection risk; the Stages text (v3.11) permits it for the invited run because the run tests the protocol, not the mathematics. T1 records the choice against R7. Starting candidates for T1's record: "no natural numbers p, q with q ≠ 0 and p² = 2q²" over a local parity definition (descent via three lemmas), and "infinitely many primes" over a local <code>IsPrime</code> (prime-divisor lemma, factorial bound, assembly). D-6's recent-arXiv track resumes at Stage 1.</td></tr>
   <tr><td>F11-Q2</td><td><strong>Target grade is the minimum over root and definitions</strong> (D-9: definitions are first-class review objects), and an auto-downgrade on a confirmed definition defect follows from the same rule once F08's defect claims are adjudicated (Stage 1).</td></tr>
   <tr><td>F11-Q3</td><td><strong>Listed open targets are imported, not authored</strong> (D-10), from Formal Conjectures at a pinned commit. Which five: Claude proposes them in T5 by a recorded fact pass over the registry — Erdős problems in included domains with an existing Lean statement preferred — and Mike approves the list in the intake PR (decided 2026-09-07); each <code>target.yaml</code>'s prior-art summary records why. Upstream posting for these waits for the erdosproblems.com agreement named in Stage 0.</td></tr>
   <tr><td>F11-Q4</td><td><strong>Per-graph images.</strong> A Mathlib pin makes the image multi-gigabyte; one image per pinned SHA, referenced by digest, is the cost of D-4 step 1's "resolve from our pins" at usable speed. Shared across graphs with the same pin.</td></tr>

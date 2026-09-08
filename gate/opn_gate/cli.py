@@ -91,7 +91,14 @@ def build_parser() -> argparse.ArgumentParser:
     post.add_argument("--graph", required=True, type=Path)
     post.add_argument("--commit", required=True, help="the merge commit")
     post.add_argument("--pr", required=True, type=int, help="the merged pull request number")
-    post.add_argument("--reviewer", required=True, help="the approving non-author reviewer")
+    post.add_argument(
+        "--review-kind",
+        required=True,
+        choices=["tutorial", "pr-approval", "certificate", "provenance"],
+        help="what satisfies step 9 for this node (D-4 v3.11)",
+    )
+    post.add_argument("--reviewer", help="the approving non-author reviewer (pr-approval)")
+    post.add_argument("--review-reference", help="certificate id or registry reference")
     post.add_argument("--target", required=True)
     post.add_argument("--node", required=True)
     post.add_argument("--out", type=Path)
@@ -173,7 +180,7 @@ def run_pregate(args: argparse.Namespace, settings: config.Settings) -> int:
             "value": sig.value,
             "timestamp": doc["signature"]["timestamp"],
         }
-        schemas.validate(doc, "attestation/v1")
+        schemas.validate(doc, attestation.SCHEMA)
     return emit(verdict, doc, out_dir, settings)
 
 
@@ -214,7 +221,7 @@ def run_reproduce(args: argparse.Namespace, settings: config.Settings) -> int:
     doc = attestation.build(ctx, verdict, graph_commit=commit)
     code = emit(verdict, doc, out_dir, settings)
     if args.compare is not None:
-        committed = schemas.load_json(args.compare, "attestation/v1")
+        committed = schemas.load_json(args.compare)
         differing = attestation.compare(committed, attestation.with_step9(doc, committed))
         result = {"identical": not differing, "differing_fields": differing}
         sys.stdout.write(json.dumps(result) + "\n")
@@ -273,7 +280,13 @@ def run_postmerge(args: argparse.Namespace, settings: config.Settings) -> int:
     )
     verdict = pipeline.run_submission(ctx)
     doc = attestation.build(ctx, verdict, graph_commit=commit)
-    doc = postmerge.record_step9(doc, merge_commit=commit, reviewer=args.reviewer)
+    try:
+        review = postmerge.review_block(
+            args.review_kind, reviewer=args.reviewer, reference=args.review_reference
+        )
+    except ValueError as exc:
+        raise CliError(str(exc)) from exc
+    doc = postmerge.record_step9(doc, merge_commit=commit, review=review)
     code = emit(verdict, doc, out_dir, settings)
     if code != EXIT_PASS:
         sys.stderr.write("opn-gate: the merged commit does not pass the gate; not attesting\n")
@@ -285,7 +298,10 @@ def run_sign(args: argparse.Namespace, settings: config.Settings) -> int:
     if not settings.gate_signing_key:
         msg = "OPN_GATE_SIGNING_KEY is not set"
         raise CliError(msg)
-    doc = schemas.load_json(args.attestation, "attestation/v1")
+    doc = schemas.load_json(args.attestation)
+    if doc.get("schema") not in attestation.ACCEPTED_SCHEMAS:
+        msg = f"not an attestation: schema {doc.get('schema')!r}"
+        raise CliError(msg)
     public_key = args.public_key.read_text(encoding="utf-8")
     s = signer.SshKeygenSigner()
     with tempfile.TemporaryDirectory(prefix="opn-gate-key-") as tmp:

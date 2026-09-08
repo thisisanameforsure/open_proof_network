@@ -20,6 +20,7 @@ R8_FIELDS = (
     "precheck_attestation",
     "merge_commit",
     "signature",
+    "review",
 )
 D34_FIELDS = (
     "schema",
@@ -60,7 +61,8 @@ def test_attestation_fields_and_schema(tmp_path: Path) -> None:
         "timestamp": "2026-09-08T03:04:05Z",
     }
     assert [s["result"] for s in doc["steps"]] == ["pass"] * 4
-    assert doc["merge_commit"] is None and doc["reviewer"] is None
+    assert doc["merge_commit"] is None and doc["review"] is None
+    assert doc["schema"] == "attestation/v2"
 
 
 def test_failed_run_still_attests(tmp_path: Path) -> None:

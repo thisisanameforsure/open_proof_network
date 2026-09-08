@@ -1,0 +1,390 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/attestation/v2.json",
+  "title": "attestation/v2",
+  "description": "One record per gate run (D-5, D-34 minimum fields; key names fixed by F00-Q3). Serves the authoritative gate, precheck and pregate.sh alike; they differ in runner and signature.kind. The D-5 identical-verdict comparison masks runner, merge_commit and signature only, so nothing outside those may depend on the run environment — the run timestamp therefore lives inside signature. v2 (2026-09-08, D-4 v3.11): the step-9 record is a `review` block naming what stood behind the merge — the tutorial exemption, a non-author PR approval, or the statement's certificate/provenance — replacing the bare `reviewer` string.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "graph_id",
+    "node_id",
+    "statement_hash",
+    "lean_toolchain",
+    "toolchain_hash",
+    "mathlib_sha",
+    "gate_spec_hash",
+    "network_commit",
+    "graph_commit",
+    "runner",
+    "tooling",
+    "verdict",
+    "first_failing_step",
+    "diagnostic",
+    "steps",
+    "artifact_hash",
+    "precheck_attestation",
+    "merge_commit",
+    "review",
+    "signature"
+  ],
+  "properties": {
+    "schema": {
+      "const": "attestation/v2"
+    },
+    "graph_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "node_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "statement_hash": {
+      "$ref": "#/$defs/sha256"
+    },
+    "lean_toolchain": {
+      "type": "string",
+      "minLength": 1
+    },
+    "toolchain_hash": {
+      "description": "Null only when step 1 failed before the toolchain resolved",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/sha256"
+        }
+      ]
+    },
+    "mathlib_sha": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/sha1"
+        }
+      ]
+    },
+    "gate_spec_hash": {
+      "$ref": "#/$defs/sha256"
+    },
+    "network_commit": {
+      "$ref": "#/$defs/sha1"
+    },
+    "graph_commit": {
+      "description": "The graph commit the checked tree came from; null for an uncommitted local tree",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/sha1"
+        }
+      ]
+    },
+    "runner": {
+      "enum": [
+        "hosted",
+        "local"
+      ]
+    },
+    "tooling": {
+      "type": "object",
+      "description": "Model and harness as declared by the operator (D-23); never verified",
+      "additionalProperties": false,
+      "required": [
+        "model",
+        "harness"
+      ],
+      "properties": {
+        "model": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        },
+        "harness": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        }
+      }
+    },
+    "verdict": {
+      "enum": [
+        "pass",
+        "fail",
+        "bounced"
+      ]
+    },
+    "first_failing_step": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/step_number"
+        }
+      ]
+    },
+    "diagnostic": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/diagnostic"
+        }
+      ]
+    },
+    "steps": {
+      "type": "array",
+      "description": "Every step the pipeline ran, in D-4 order, with the ones not reached marked skipped",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "step",
+          "name",
+          "result",
+          "diagnostic"
+        ],
+        "properties": {
+          "step": {
+            "$ref": "#/$defs/step_number"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "result": {
+            "enum": [
+              "pass",
+              "fail",
+              "skipped"
+            ]
+          },
+          "diagnostic": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/$defs/diagnostic"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "artifact_hash": {
+      "description": "sha256 of Proof.lean as checked (D-34: the artifact hash on pass, also recorded on fail)",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/sha256"
+        }
+      ]
+    },
+    "precheck_attestation": {
+      "type": "object",
+      "description": "What the authoritative run consumed (D-4); both null when none was attached",
+      "additionalProperties": false,
+      "required": [
+        "hash",
+        "signature_kind"
+      ],
+      "properties": {
+        "hash": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/sha256"
+            }
+          ]
+        },
+        "signature_kind": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "service",
+                "contributor",
+                "none"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "merge_commit": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/sha1"
+        }
+      ]
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "key_id",
+        "value",
+        "timestamp"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "gate",
+            "service",
+            "contributor",
+            "none"
+          ]
+        },
+        "key_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        },
+        "value": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "UTC, second precision, Z suffix",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        }
+      }
+    },
+    "review": {
+      "description": "Step 9 (D-4 v3.11): what satisfied the non-author review requirement; null until the post-merge job fills it",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "reviewer",
+            "reference"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "tutorial",
+                "pr-approval",
+                "certificate",
+                "provenance"
+              ]
+            },
+            "reviewer": {
+              "description": "The approving non-author identity (pr-approval); null otherwise",
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1
+                }
+              ]
+            },
+            "reference": {
+              "description": "What was relied on: the D-9 certificate id, the D-10 registry reference, or null",
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "sha1": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "step_number": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9
+    },
+    "diagnostic": {
+      "type": "object",
+      "description": "Structured, plain-string data; never rendered as markup (F00 §7)",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "object"
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

@@ -14,7 +14,12 @@ from opn_gate.schemas import SchemaError
 
 
 def test_known_schemas_are_the_three_v1() -> None:
-    assert schemas.known_schemas() == ("attestation/v1", "gate-spec/v1", "meta/v1")
+    assert schemas.known_schemas() == (
+        "attestation/v1",
+        "attestation/v2",
+        "gate-spec/v1",
+        "meta/v1",
+    )
 
 
 def test_samples_validate() -> None:
@@ -96,6 +101,9 @@ def test_meta_rejects(bad: dict[str, object]) -> None:
         {"steps": [{"step": 1, "name": "toolchain", "result": "ok", "diagnostic": None}]},
         {"diagnostic": {"message": "no code"}},
         {"precheck_attestation": {"hash": None}},
+        {"review": {"kind": "pr-approval", "reviewer": "r"}},
+        {"review": {"kind": "manager", "reviewer": None, "reference": None}},
+        {"reviewer": "v1-field-on-v2"},
     ],
 )
 def test_attestation_rejects(bad: dict[str, object]) -> None:

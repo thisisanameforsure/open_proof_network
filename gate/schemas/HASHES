@@ -1,5 +1,6 @@
 # sha256 pins of every published schema (F00-R10; D-34: versioned, never edited).
 # Regenerate only when ADDING a new version: python -c "from opn_gate.schemas import compute_hashes as c; print(c())"
 6bf80ac2979c8e9614a88a7a52b8011c789549528576b8188936bffdf63978f5  attestation/v1.json
+297974d908c2352e7f8be00f9345c67997e5ea8fd8ebe9c4fbd5cdf30be4f209  attestation/v2.json
 bd78e5c6f781709078fb437372ffe1c8f4256edc085344dd416d9fc0a9bd0269  gate-spec/v1.json
 ae7fbb4116fec5c458b3c85388cb8fc1017c163cfa61e618611c5640f4da3643  meta/v1.json

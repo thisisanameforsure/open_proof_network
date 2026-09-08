@@ -9,7 +9,7 @@ Run the build-session start ritual, in order:
 2. **Find the current feature**: the first row in `engineering/specs/index.html` whose Status is
    not `done`, respecting dependency order (F00 → F01 → …). If no feature is specced yet, the
    session's job is to draft one — copy `engineering/specs/features/F00-template.html` and work
-   from the architecture decisions (`docs/architecture_decisions_v_3_10.html`).
+   from the architecture decisions (`docs/architecture_decisions_v_3_11.html`).
 3. **Read that feature's spec** (`engineering/specs/features/FXX.html`) in full — requirements,
    acceptance criteria, tasks.
 4. **Read the task ledger**: the **Tasks:** line in the spec's §10 Status block. Cross-check

@@ -18,6 +18,8 @@ from typing import Any
 
 from opn_gate import schemas
 
+ACCEPTED_SCHEMAS: tuple[str, ...] = ("attestation/v1", "attestation/v2")
+
 MARKER = "opn-precheck-attestation"
 _BLOCK_RE = re.compile(r"```json[ \t]*\r?\n" + MARKER + r"[ \t]*\r?\n(?P<body>.*?)\r?\n```", re.S)
 TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
@@ -68,11 +70,14 @@ def evaluate(policy: PrecheckPolicy) -> Decision:  # noqa: PLR0911 — one retur
         doc = json.loads(body)
     except json.JSONDecodeError as exc:
         return Decision(True, f"precheck attestation is not valid JSON: {exc.msg}", digest)
-    problems = schemas.violations(doc, "attestation/v1")
+    schema_id = doc.get("schema") if isinstance(doc, dict) else None
+    if schema_id not in ACCEPTED_SCHEMAS:
+        return Decision(True, f"precheck attestation schema {schema_id!r} is not accepted", digest)
+    problems = schemas.violations(doc, str(schema_id))
     if problems:
         return Decision(
             True,
-            "precheck attestation does not validate against attestation/v1",
+            f"precheck attestation does not validate against {schema_id}",
             digest,
             details={"violations": [f"{v.path}: {v.message}" for v in problems[:5]]},
         )

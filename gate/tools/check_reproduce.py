@@ -39,7 +39,7 @@ def main(argv: list[str] | None = None) -> int:
 
     graph = args.graph.resolve()
     committed_path = graph / "attestations" / f"{args.attestation_id}.json"
-    committed = schemas.load_json(committed_path, "attestation/v1")
+    committed = schemas.load_json(committed_path)
     public_key = (graph / "keys" / "gate.pub").read_text(encoding="utf-8")
 
     signature_ok = postmerge.verify(committed, public_key, SshKeygenSigner())
@@ -75,7 +75,7 @@ def main(argv: list[str] | None = None) -> int:
     sys.stdout.write(proc.stdout)
     if proc.stderr.strip():
         sys.stderr.write(proc.stderr)
-    reproduced = schemas.load_json(out / "attestation.json", "attestation/v1")
+    reproduced = schemas.load_json(out / "attestation.json")
     differing = attestation.compare(committed, attestation.with_step9(reproduced, committed))
     summary = {"signature_ok": signature_ok, "identical": not differing, "differing": differing}
     print(json.dumps(summary))

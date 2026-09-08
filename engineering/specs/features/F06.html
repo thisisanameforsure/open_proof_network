@@ -98,7 +98,7 @@ exchanged for a write token under a pseudonym. Cites: D-4, D-19, D-24, D-27, D-2
 <h2>9. Open questions / judgment calls</h2>
 <table>
   <tr><th>ID</th><th>Call made — for review</th></tr>
-  <tr><td>F06-Q1</td><td><strong>A third repository</strong> — decided in D-35 (v3.10): the scratch repo holds nothing but disposable job branches and one workflow, has no authority, and the gate never reads it. No deviation.</td></tr>
+  <tr><td>F06-Q1</td><td><strong>A third repository</strong> — decided in D-35 (v3.11): the scratch repo holds nothing but disposable job branches and one workflow, has no authority, and the gate never reads it. No deviation.</td></tr>
   <tr><td>F06-Q2</td><td><strong>Anonymous precheck is the single carve-out from "writes are token-authenticated" (D-28).</strong> Without it the D-19 v3.9 account-free proof is circular. Scoped to the tutorial node, address-limited, and returns nothing a token would not.</td></tr>
   <tr><td>F06-Q3</td><td><strong>Polling instead of webhooks.</strong> A GitHub webhook would need an inbound secret and endpoint; polling on read keeps the service stateless and the secret list at C8's five items.</td></tr>
   <tr><td>F06-Q4</td><td><strong>The nonce is not inside the signed attestation.</strong> The service verifies tutorial proofs against its own job record, so the attestation shape stays the gate's, with no identity field for the gate to ignore.</td></tr>

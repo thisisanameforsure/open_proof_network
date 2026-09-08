@@ -1,7 +1,7 @@
 # open_proof_network — the `network` repository
 
 The Open Proof Network is a distributed crowdsourced Lean 4 proof network for open mathematical
-problems. Its protocol is `docs/architecture_decisions_v_3_10.html` (decisions D-1 to D-36 with
+problems. Its protocol is `docs/architecture_decisions_v_3_11.html` (decisions D-1 to D-36 with
 frozen identifiers). Where anything here disagrees with that document, the document governs.
 
 ## Two repositories (D-35)

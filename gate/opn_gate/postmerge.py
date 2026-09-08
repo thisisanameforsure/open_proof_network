@@ -1,7 +1,9 @@
 """The post-merge job's pure parts (F00-R14, Q4, Q8; C8 item 1).
 
 After a pull request merges to ``main``, a separate job re-runs the gate on the merge commit,
-fills ``merge_commit`` and ``reviewer``, signs the record with the gate key, and commits it to
+fills ``merge_commit`` and the step-9 ``review`` block (D-4 v3.11: the tutorial exemption, a
+non-author PR approval, or the statement's certificate/provenance), signs the record with the
+gate key, and commits it to
 ``attestations/<id>.json``. Everything here is testable without GitHub: the workflow only feeds
 it the merge commit, the pull-request number, the reviews list and the key path.
 """
@@ -10,7 +12,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from opn_gate import attestation, schemas
 from opn_gate.signer import Signer
@@ -56,13 +58,31 @@ def approving_reviewer(reviews: list[dict[str, Any]], author: str) -> str | None
     return str(login)
 
 
-def record_step9(doc: dict[str, Any], *, merge_commit: str, reviewer: str) -> dict[str, Any]:
+ReviewKind = Literal["tutorial", "pr-approval", "certificate", "provenance"]
+
+
+def review_block(
+    kind: ReviewKind, *, reviewer: str | None = None, reference: str | None = None
+) -> dict[str, Any]:
+    """The step-9 record (D-4 v3.11): what stood behind the merge."""
+    if kind == "pr-approval" and not reviewer:
+        msg = "a pr-approval review needs the approving reviewer's identity"
+        raise ValueError(msg)
+    if kind in ("certificate", "provenance") and not reference:
+        msg = f"a {kind} review needs a reference"
+        raise ValueError(msg)
+    return {"kind": kind, "reviewer": reviewer, "reference": reference}
+
+
+def record_step9(
+    doc: dict[str, Any], *, merge_commit: str, review: dict[str, Any]
+) -> dict[str, Any]:
     """Fill the post-merge fields; the record stays unsigned until ``sign_gate``."""
     out = dict(doc)
     out["runner"] = "hosted"
     out["merge_commit"] = merge_commit
-    out["reviewer"] = reviewer
-    return schemas.validate(out, "attestation/v1")
+    out["review"] = review
+    return schemas.validate(out, attestation.SCHEMA)
 
 
 def sign_gate(doc: dict[str, Any], *, key_path: Path, signer: Signer) -> dict[str, Any]:
@@ -75,20 +95,20 @@ def sign_gate(doc: dict[str, Any], *, key_path: Path, signer: Signer) -> dict[st
         "value": sig.value,
         "timestamp": doc["signature"]["timestamp"],
     }
-    return schemas.validate(out, "attestation/v1")
+    return schemas.validate(out, str(doc["schema"]))
 
 
 def finalize(
     doc: dict[str, Any],
     *,
     merge_commit: str,
-    reviewer: str,
+    review: dict[str, Any],
     key_path: Path,
     signer: Signer,
 ) -> dict[str, Any]:
     """Fill the post-merge fields and sign with the gate key."""
     return sign_gate(
-        record_step9(doc, merge_commit=merge_commit, reviewer=reviewer),
+        record_step9(doc, merge_commit=merge_commit, review=review),
         key_path=key_path,
         signer=signer,
     )
