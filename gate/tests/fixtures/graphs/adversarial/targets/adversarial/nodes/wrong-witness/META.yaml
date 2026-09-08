@@ -1,0 +1,12 @@
+schema: meta/v1
+id: wrong-witness
+status: ready
+deps: []
+statement-hash: adcdcc151f0c7fcd2eade89aeb415fd933c7de7731bbd27d88c79174b71a19a6
+origin: authored
+provenance:
+  author: thisisanameforsure
+  model: null
+  source: null
+  date: "2026-09-08"
+tutorial: false

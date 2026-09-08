@@ -93,8 +93,12 @@ class DepsStep:
         if context_problem is not None:
             return context_problem
 
+        staged = ctx.data.get("staged")
+        proof = (
+            staged.node_dir(node.node_id) / "Proof.lean" if staged is not None else node.proof_path
+        )
         req = UsedConstantsRequest(
-            file=node.proof_path,
+            file=proof,
             module=layout.node_module(node.node_id, PROOF_MODULE),
             decl=node.statement.decl_name,
         )

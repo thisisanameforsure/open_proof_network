@@ -1,0 +1,12 @@
+schema: meta/v1
+id: root-chain
+status: ready
+deps: [tutorial-and-swap, and-reassoc]
+statement-hash: f739b767058037acd3b57607e8a569a36505b4891b5268d4c7098a51e2504815
+origin: authored
+provenance:
+  author: thisisanameforsure
+  model: null
+  source: null
+  date: "2026-09-08"
+tutorial: false

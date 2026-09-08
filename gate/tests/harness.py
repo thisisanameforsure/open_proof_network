@@ -14,13 +14,14 @@ from opn_gate.steps.base import RunContext
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 GRAPH = FIXTURES / "graphs" / "propositional"
+ADVERSARIAL = FIXTURES / "graphs" / "adversarial"
 TARGET = "propositional"
 TUTORIAL = "tutorial-and-swap"
 
 
-def copy_graph(tmp_path: Path) -> Path:
+def copy_graph(tmp_path: Path, graph: Path = GRAPH) -> Path:
     root = tmp_path / "graph"
-    shutil.copytree(GRAPH, root)
+    shutil.copytree(graph, root)
     return root
 
 
@@ -36,16 +37,18 @@ def make_context(
     changes: list[Change] | None = None,
     spec_overrides: dict[str, Any] | None = None,
     settings: config.Settings | None = None,
+    graph: Path = GRAPH,
+    target: str = TARGET,
 ) -> RunContext:
-    root = copy_graph(tmp_path)
-    spec_path = layout.gate_spec_path(root, TARGET)
+    root = copy_graph(tmp_path, graph)
+    spec_path = layout.gate_spec_path(root, target)
     spec = schemas.load_json(spec_path, "gate-spec/v1")
     if spec_overrides:
         spec.update(spec_overrides)
         spec_path.write_bytes(schemas.canonical_json(spec))
     return RunContext(
         graph_root=root,
-        claim=Claim(TARGET, node_id),
+        claim=Claim(target, node_id),
         spec=spec,
         gate_spec_hash=schemas.content_hash(spec_path.read_bytes()),
         changes=proof_only_changes(node_id) if changes is None else changes,

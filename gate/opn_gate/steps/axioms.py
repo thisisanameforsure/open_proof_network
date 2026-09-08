@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import subprocess
 
+from opn_gate import layout
 from opn_gate.steps.base import RunContext, StepResult
 from opn_gate.steps.replay import PROOF_MODULE
 from opn_gate.toolchain import ResolvedToolchain, is_native_decide_axiom
@@ -21,7 +22,7 @@ class AxiomsStep:
         try:
             result = ctx.toolchain.axioms(
                 tc,
-                PROOF_MODULE,
+                layout.node_module(node.node_id, PROOF_MODULE),
                 node.statement.decl_name,
                 [ctx.build_dir],
                 ctx.workdir / "axioms",

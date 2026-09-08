@@ -61,6 +61,8 @@ def test_tutorial_node_passes(tmp_path: Path) -> None:
         (2, "pass"),
         (4, "pass"),
         (5, "pass"),
+        (7, "pass"),
+        (8, "pass"),
     ]
     doc = json.loads((tmp_path / "out" / "attestation.json").read_text())
     assert schemas.violations(doc) == []
@@ -130,3 +132,82 @@ def test_ssh_signature_verifies(tmp_path: Path) -> None:
     s = SshKeygenSigner()
     assert s.verify(attestation.signed_bytes(doc), doc["signature"]["value"], pub)
     assert doc["signature"]["key_id"] == s.fingerprint(pub)
+
+
+# --- F01-T4: steps 7 and 8 with the real toolchain --------------------------------------------
+
+ADVERSARIAL = Path(__file__).resolve().parent / "fixtures" / "graphs" / "adversarial"
+
+
+def git_adversarial(tmp_path: Path) -> Path:
+    root = tmp_path / "graph"
+    shutil.copytree(ADVERSARIAL, root)
+    env = {
+        "GIT_AUTHOR_NAME": "t",
+        "GIT_AUTHOR_EMAIL": "t@x",
+        "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@x",
+        "PATH": "/usr/bin:/bin",
+        "HOME": str(tmp_path),
+    }
+    for cmd in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "fixture"]):
+        subprocess.run(["git", "-C", str(root), *cmd], check=True, env=env)
+    return root
+
+
+def run_pregate_node(graph: Path, node: str, out: Path) -> tuple[int, dict[str, Any]]:
+    proc = subprocess.run(
+        [str(PREGATE), "--graph", str(graph), "--node", node, "--out", str(out)],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=900,
+    )
+    assert proc.stdout.strip().startswith("{"), proc.stderr
+    return proc.returncode, json.loads(proc.stdout)
+
+
+def test_root_with_deps_passes_all_steps(tmp_path: Path) -> None:
+    """F01-Q4: the root's proof compiles against the deps' merged proofs; 1, 2, 4, 5, 7, 8 pass."""
+    graph = git_graph(tmp_path)
+    code, summary = run_pregate_node(graph, "and-swap-reassoc", tmp_path / "out")
+    assert code == 0, summary
+    assert [(s["step"], s["result"]) for s in summary["steps"]] == [
+        (1, "pass"),
+        (2, "pass"),
+        (4, "pass"),
+        (5, "pass"),
+        (7, "pass"),
+        (8, "pass"),
+    ]
+
+
+def test_undeclared_dep_fails_step8(tmp_path: Path) -> None:
+    """AC13."""
+    graph = git_adversarial(tmp_path)
+    code, summary = run_pregate_node(graph, "undeclared-dep", tmp_path / "out")
+    assert code == 1
+    assert summary["first_failing_step"] == 8, summary
+    d = summary["diagnostic"]
+    assert d["code"] == "undeclared-dependency"
+    assert {o["node"] for o in d["details"]["offences"]} == {"and-reassoc", "tutorial-and-swap"}
+
+
+def test_wrong_witness_fails_step7(tmp_path: Path) -> None:
+    """AC14."""
+    graph = git_adversarial(tmp_path)
+    code, summary = run_pregate_node(graph, "wrong-witness", tmp_path / "out")
+    assert code == 1
+    assert summary["first_failing_step"] == 7, summary
+    d = summary["diagnostic"]
+    assert d["code"] == "witness-type-mismatch"
+    assert d["details"] == {"expected": "∃ p q, p ∧ q", "witness": "∃ p, p"}
+
+
+def test_unused_dep_warns_and_context_mismatch_fails(tmp_path: Path) -> None:
+    graph = git_adversarial(tmp_path)
+    code, summary = run_pregate_node(graph, "unused-dep", tmp_path / "out1")
+    assert code == 0, summary
+    code, summary = run_pregate_node(graph, "context-mismatch", tmp_path / "out2")
+    assert code == 1 and summary["first_failing_step"] == 8
+    assert summary["diagnostic"]["code"] == "context-signature-mismatch"

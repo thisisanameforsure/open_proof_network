@@ -28,8 +28,9 @@ def test_missing_witness(tmp_path: Path) -> None:
     assert verdict.first_failing_step == 2
     step = WitnessStep()
     ctx2 = make_context(tmp_path / "b")
-    pipeline.run_steps(ctx2)  # steps 1-5 fill the context
+    pipeline.run_steps(ctx2)  # steps 1-8 fill the context, including the staged copy
     (node_dir(ctx2) / "Witness.lean").unlink()
+    (ctx2.data["staged"].node_dir(ctx2.claim.node_id) / "Witness.lean").unlink()
     result = step.run(ctx2)
     assert not result.ok and result.diagnostic is not None
     assert result.diagnostic.code == "witness-missing"

@@ -1,0 +1,12 @@
+schema: meta/v1
+id: and-reassoc
+status: ready
+deps: []
+statement-hash: 22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7
+origin: authored
+provenance:
+  author: thisisanameforsure
+  model: null
+  source: null
+  date: "2026-09-08"
+tutorial: false

@@ -1,0 +1,12 @@
+schema: meta/v1
+id: undeclared-dep
+status: ready
+deps: [root-chain]
+statement-hash: 2e4f43683f599f21d0bf4ada53eddffe7e0a0e881fa8a333e8c3eeb7c07deaa6
+origin: authored
+provenance:
+  author: thisisanameforsure
+  model: null
+  source: null
+  date: "2026-09-08"
+tutorial: false

@@ -33,11 +33,13 @@ class WitnessStep:
         tc: ResolvedToolchain | None = ctx.data.get("toolchain")
         if node is None or tc is None:
             return StepResult.failed("step-order", "step 7 needs steps 1 and 2 to have passed")
-        witness_path = node.path / "Witness.lean"
+        staged = ctx.data.get("staged")
+        node_dir = staged.node_dir(node.node_id) if staged is not None else node.path
+        witness_path = node_dir / "Witness.lean"
         if not witness_path.is_file():
             return StepResult.failed("witness-missing", "the node has no Witness.lean")
         req = WitnessRequest(
-            statement=node.path / "Statement.lean",
+            statement=node_dir / "Statement.lean",
             statement_module=layout.node_module(node.node_id, "Statement"),
             decl=node.statement.decl_name,
             witness=witness_path,

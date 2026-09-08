@@ -1,0 +1,12 @@
+schema: meta/v1
+id: tutorial-and-swap
+status: ready
+deps: []
+statement-hash: 749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e
+origin: authored
+provenance:
+  author: thisisanameforsure
+  model: null
+  source: null
+  date: "2026-09-08"
+tutorial: true

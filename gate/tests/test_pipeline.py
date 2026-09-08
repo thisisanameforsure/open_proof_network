@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fakes import FakeToolchain
+from fakes import FakeToolchain, witness_result
 from harness import TUTORIAL, changes_against_fixture, make_context, node_dir
 
 from opn_gate import pipeline
@@ -22,6 +22,8 @@ def test_fixture_tutorial_passes_all_four_steps(tmp_path: Path) -> None:
         (2, "pass"),
         (4, "pass"),
         (5, "pass"),
+        (7, "pass"),
+        (8, "pass"),
     ]
     assert verdict.first_failing_step is None and verdict.diagnostic is None
     assert verdict.data["toolchain"].name == "leanprover/lean4:v4.33.1"
@@ -58,6 +60,8 @@ def test_first_failure_stops_pipeline(tmp_path: Path) -> None:
         (2, "pass"),
         (4, "fail"),
         (5, "skipped"),
+        (7, "skipped"),
+        (8, "skipped"),
     ]
     assert verdict.diagnostic is not None
     assert verdict.diagnostic.code == "kernel-replay-failed"
@@ -166,7 +170,7 @@ def test_steps_run_in_d4_order_regardless_of_list_order(tmp_path: Path) -> None:
 
     steps = [Marker(), *reversed(default_steps())]
     verdict = pipeline.run_steps(make_context(tmp_path), steps=steps)
-    assert [s.step for s in verdict.steps] == [1, 2, 4, 5, 9]
+    assert [s.step for s in verdict.steps] == [1, 2, 4, 5, 7, 8, 9]
     assert verdict.data["marker"] is True
 
 
@@ -178,3 +182,39 @@ def test_verdict_as_dict_truncates_long_diagnostics(tmp_path: Path) -> None:
     assert len(str(doc["diagnostic"])) < 9000
     assert doc["steps"][2]["diagnostic"]["truncated"] is True
     assert TUTORIAL  # the fixture node under test
+
+
+def test_step_order_7_before_8(tmp_path: Path) -> None:
+    """F01-AC10: 1-5 pass, 7 fails, 8 does not run."""
+    fake = FakeToolchain(witness=witness_result(expected="∃ p q, p ∧ q", witness="True"))
+    verdict = pipeline.run_steps(make_context(tmp_path, toolchain=fake))
+    assert verdict.first_failing_step == 7
+    assert [(s.step, s.result) for s in verdict.steps][-2:] == [(7, "fail"), (8, "skipped")]
+    assert not any(c.startswith("used_constants") for c in fake.calls)
+
+
+def test_root_node_stages_dependency_closure(tmp_path: Path) -> None:
+    """F01-Q4: deps are built first with generated Contexts; the node's Context imports them."""
+    fake = FakeToolchain()
+    ctx = make_context(tmp_path, node_id="and-swap-reassoc", toolchain=fake)
+    verdict = pipeline.run_steps(ctx)
+    assert verdict.ok, verdict
+    staged = verdict.data["staged"]
+    assert staged.order == ("tutorial-and-swap", "and-reassoc", "and-swap-reassoc")
+    ctx_text = (staged.node_dir("and-swap-reassoc") / "Context.lean").read_text()
+    assert "import Nodes.«tutorial-and-swap».Proof" in ctx_text
+    assert "import Nodes.«and-reassoc».Proof" in ctx_text
+    elaborated = [c for c in fake.calls if c.startswith("elaborate:")]
+    assert elaborated[0] == "elaborate:Nodes.«tutorial-and-swap».Context"
+    assert elaborated[-1] == "elaborate:Nodes.«and-swap-reassoc».Proof"
+    assert (staged.build / "Nodes" / "and-reassoc" / "Proof.olean").exists()
+    assert any(c.startswith("kernel_replay:Nodes.«and-swap-reassoc».Proof") for c in fake.calls)
+
+
+def test_unproved_dep_blocks_at_step4(tmp_path: Path) -> None:
+    ctx = make_context(tmp_path, node_id="and-swap-reassoc")
+    (node_dir(ctx).parent / "and-reassoc" / "Proof.lean").unlink()
+    verdict = pipeline.run_steps(ctx)
+    assert verdict.first_failing_step == 4
+    assert verdict.diagnostic is not None and verdict.diagnostic.code == "dep-unproved"
+    assert verdict.diagnostic.details["dep"] == "and-reassoc"

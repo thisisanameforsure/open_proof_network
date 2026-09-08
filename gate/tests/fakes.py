@@ -19,6 +19,7 @@ from opn_gate.toolchain import (
     ToolchainMissingError,
     UsedConstantsRequest,
     WitnessRequest,
+    module_output_path,
 )
 
 FAKE_RESOLVED = ResolvedToolchain(
@@ -116,13 +117,15 @@ class FakeToolchain:
         module: str,
         out_dir: Path,
         *,
+        root: Path | None = None,
         timeout_s: float | None = None,
     ) -> ElabResult:
         self.calls.append(f"elaborate:{module}")
         self._maybe_raise("elaborate")
         if self.elab.ok:
-            out_dir.mkdir(parents=True, exist_ok=True)
-            (out_dir / f"{module}.olean").write_bytes(b"fake olean")
+            olean = out_dir / module_output_path(module, ".olean")
+            olean.parent.mkdir(parents=True, exist_ok=True)
+            olean.write_bytes(b"fake olean")
         return self.elab
 
     def kernel_replay(

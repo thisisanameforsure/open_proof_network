@@ -60,7 +60,7 @@ def test_attestation_fields_and_schema(tmp_path: Path) -> None:
         "value": None,
         "timestamp": "2026-09-08T03:04:05Z",
     }
-    assert [s["result"] for s in doc["steps"]] == ["pass"] * 4
+    assert [s["result"] for s in doc["steps"]] == ["pass"] * 6
     assert doc["merge_commit"] is None and doc["review"] is None
     assert doc["schema"] == "attestation/v2"
 

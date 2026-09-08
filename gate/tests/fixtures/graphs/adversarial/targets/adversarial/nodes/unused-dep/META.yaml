@@ -1,0 +1,12 @@
+schema: meta/v1
+id: unused-dep
+status: ready
+deps: [tutorial-and-swap, and-reassoc]
+statement-hash: 3324d88bd266bff14b7ea5e81d30759149ff9e2af5a208fd20b2e6457a70d156
+origin: authored
+provenance:
+  author: thisisanameforsure
+  model: null
+  source: null
+  date: "2026-09-08"
+tutorial: false

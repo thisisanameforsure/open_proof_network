@@ -204,9 +204,14 @@ class Toolchain(Protocol):
         module: str,
         out_dir: Path,
         *,
+        root: Path | None = None,
         timeout_s: float | None = None,
     ) -> ElabResult:
-        """Compile ``source`` as module ``module`` into ``out_dir/<module>.olean``."""
+        """Compile ``source`` as module ``module``; the olean lands at ``out_dir/<module path>``.
+
+        ``root`` is the directory the module path is relative to (default: the source's own
+        directory); Lean derives the module name for private declarations from it.
+        """
 
     def kernel_replay(
         self,
@@ -308,6 +313,26 @@ def find_elan(*, path_env: str | None, elan_home: Path) -> Path:
         "elsewhere)."
     )
     raise ToolchainMissingError(msg)
+
+
+def module_output_path(module: str, suffix: str) -> Path:
+    """``Nodes.«a-b».Proof`` -> ``Nodes/a-b/Proof<suffix>``; bare ``Proof`` -> ``Proof<suffix>``."""
+    parts: list[str] = []
+    current = ""
+    quoted = False
+    for ch in module:
+        if ch == "«":
+            quoted = True
+        elif ch == "»":
+            quoted = False
+        elif ch == "." and not quoted:
+            parts.append(current)
+            current = ""
+            continue
+        else:
+            current += ch
+    parts.append(current)
+    return Path(*parts[:-1], parts[-1] + suffix)
 
 
 def _join_search_path(search_path: Sequence[Path]) -> str:
@@ -420,16 +445,19 @@ class LocalToolchain:
         module: str,
         out_dir: Path,
         *,
+        root: Path | None = None,
         timeout_s: float | None = None,
     ) -> ElabResult:
         out_dir = out_dir.resolve()
-        out_dir.mkdir(parents=True, exist_ok=True)
-        olean = out_dir / f"{module}.olean"
-        ilean = out_dir / f"{module}.ilean"
+        source = source.resolve()
+        cwd = (root or source.parent).resolve()
+        olean = out_dir / module_output_path(module, ".olean")
+        ilean = out_dir / module_output_path(module, ".ilean")
+        olean.parent.mkdir(parents=True, exist_ok=True)
         proc = self._run(
             tc.name,
-            ["lean", "--json", "-o", str(olean), "-i", str(ilean), source.name],
-            cwd=source.resolve().parent,
+            ["lean", "--json", "-o", str(olean), "-i", str(ilean), str(source.relative_to(cwd))],
+            cwd=cwd,
             lean_path=[out_dir, tc.libdir],
             timeout_s=timeout_s,
         )
@@ -480,6 +508,20 @@ class LocalToolchain:
             return AxiomResult(ok=False, output=output)
         return AxiomResult(ok=True, axioms=axioms, output=output)
 
+    def ensure_metaprograms(self, tc: ResolvedToolchain) -> None:
+        """Build the Lake package once if its executables are missing (pregate on a fresh clone)."""
+        if all(
+            (self.lean_pkg_bin / n).is_file() for n in ("opn-witness-type", "opn-used-constants")
+        ):
+            return
+        pkg = self.lean_pkg_bin.parents[2] if len(self.lean_pkg_bin.parents) > 2 else None
+        if pkg is None or not (pkg / "lakefile.lean").is_file():
+            return
+        proc = self._exec([str(self.elan), "run", tc.name, "lake", "build"], cwd=pkg, timeout_s=900)
+        if proc.returncode != 0:
+            msg = f"lake build of {pkg} failed: {(proc.stdout + proc.stderr)[-2000:]}"
+            raise ToolchainError(msg)
+
     def _metaprogram_run(
         self,
         tc: ResolvedToolchain,
@@ -488,6 +530,7 @@ class LocalToolchain:
         search_path: Sequence[Path],
         timeout_s: float | None,
     ) -> MetaprogramResult:
+        self.ensure_metaprograms(tc)
         binary = self.metaprogram(name)
         sysroot = tc.libdir.parent.parent
         proc = self._exec(
