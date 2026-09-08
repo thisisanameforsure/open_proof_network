@@ -1,0 +1,3 @@
+A	targets/propositional/nodes/tutorial-and-swap/Proof.lean
+A	lake-manifest.json
+A	lean-toolchain

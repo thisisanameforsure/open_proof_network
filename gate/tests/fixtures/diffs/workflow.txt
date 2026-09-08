@@ -1,0 +1,2 @@
+A	targets/propositional/nodes/tutorial-and-swap/Proof.lean
+A	.github/workflows/evil.yml

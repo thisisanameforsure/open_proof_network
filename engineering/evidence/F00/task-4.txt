@@ -1,0 +1,11 @@
+# F00-T4 verification — $ uv run pytest gate/tests/test_layout.py gate/tests/test_paths.py — 2026-09-08T04:01:45Z
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+collected 23 items
+
+gate/tests/test_layout.py ......                                         [ 26%]
+gate/tests/test_paths.py .................                               [100%]
+
+============================== 23 passed in 0.15s ==============================

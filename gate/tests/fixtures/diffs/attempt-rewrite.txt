@@ -1,0 +1,2 @@
+A	targets/propositional/nodes/tutorial-and-swap/Proof.lean
+M	targets/propositional/nodes/tutorial-and-swap/attempts/2026-09-01-route-x.yaml

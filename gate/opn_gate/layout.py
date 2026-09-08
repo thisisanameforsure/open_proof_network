@@ -1,0 +1,170 @@
+"""D-3 node layout validation (F00-R1) and the statement parser both step 2 and step 5 rely on.
+
+A node directory is::
+
+    nodes/<node-id>/
+      META.yaml        required; validates against meta/v1; id == directory name
+      Statement.lean   required; one theorem with body `sorry`; content-hashed into META
+      Witness.lean     required (checked by F01)
+      Context.lean     required (checked by F01)
+      Proof.lean       optional: absent until a proof merges; the only submittable file
+      Relation.lean    optional: variants only (D-30, F08)
+      attempts/  annex/  explainer/   required directories (may hold only .gitkeep)
+      waivers/         optional (F02)
+
+Anything else is an extra entry and is named in the diagnostic.
+"""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+from pathlib import Path
+
+from opn_gate import schemas
+from opn_gate.diagnostic import Diagnostic
+
+REQUIRED_FILES: tuple[str, ...] = ("META.yaml", "Statement.lean", "Witness.lean", "Context.lean")
+OPTIONAL_FILES: tuple[str, ...] = ("Proof.lean", "Relation.lean")
+REQUIRED_DIRS: tuple[str, ...] = ("attempts", "annex", "explainer")
+OPTIONAL_DIRS: tuple[str, ...] = ("waivers",)
+KEEP_FILE = ".gitkeep"
+META_SCHEMAS: tuple[str, ...] = ("meta/v1",)
+
+_THEOREM_RE = re.compile(r"^(?:theorem|lemma)\s+(?P<name>[^\s:({\[]+)", re.M)
+_NAMESPACE_RE = re.compile(r"^(namespace|end)\s+(?P<name>\S+)\s*$", re.M)
+_SORRY_BODY_RE = re.compile(r":=\s*(?:by\s+)?sorry\b")
+
+
+@dataclass(frozen=True)
+class Statement:
+    """What Statement.lean declares: the theorem's full name and where its body starts."""
+
+    decl_name: str
+    text: str
+    prefix: str  # everything up to and including the `:=` that opens the sorry body
+    suffix: str  # everything after the `sorry` token (trailing `end` lines, whitespace)
+
+    @property
+    def statement_hash(self) -> str:
+        return schemas.content_hash(self.text.encode("utf-8"))
+
+
+@dataclass(frozen=True)
+class Node:
+    node_id: str
+    target_id: str
+    path: Path
+    meta: dict[str, object]
+    statement: Statement
+
+    @property
+    def proof_path(self) -> Path:
+        return self.path / "Proof.lean"
+
+
+def parse_statement(text: str) -> Statement | Diagnostic:
+    """Find the single sorry-bodied theorem in ``text`` (F00-R19's shape)."""
+    theorems = list(_THEOREM_RE.finditer(text))
+    if len(theorems) != 1:
+        return Diagnostic(
+            "statement-shape",
+            f"Statement.lean must declare exactly one theorem, found {len(theorems)}",
+        )
+    bodies = list(_SORRY_BODY_RE.finditer(text))
+    if len(bodies) != 1:
+        return Diagnostic(
+            "statement-shape",
+            f"Statement.lean must have exactly one `:= sorry` body, found {len(bodies)}",
+        )
+    body = bodies[0]
+    if body.start() < theorems[0].end():
+        return Diagnostic("statement-shape", "the sorry body precedes the theorem")
+    stack: list[str] = []
+    for m in _NAMESPACE_RE.finditer(text[: theorems[0].start()]):
+        if m.group(1) == "namespace":
+            stack.append(m.group("name"))
+        elif stack and stack[-1] == m.group("name"):
+            stack.pop()
+    full_name = ".".join([*stack, theorems[0].group("name")])
+    return Statement(
+        decl_name=full_name,
+        text=text,
+        prefix=text[: body.start() + 2],
+        suffix=text[body.end() :],
+    )
+
+
+def validate_node(node_dir: Path) -> list[Diagnostic]:
+    """Every layout problem with ``node_dir``, or ``[]`` when it is a valid D-3 node."""
+    if not node_dir.is_dir():
+        return [Diagnostic("node-missing", f"{node_dir} is not a directory")]
+    entries = {p.name: p for p in node_dir.iterdir()}
+    found: list[Diagnostic] = []
+    expectations: tuple[tuple[tuple[str, ...], bool, bool], ...] = (
+        (REQUIRED_FILES, True, False),
+        (REQUIRED_DIRS, True, True),
+        (OPTIONAL_FILES, False, False),
+        (OPTIONAL_DIRS, False, True),
+    )
+    for names, required, is_dir in expectations:
+        kind = "directory" if is_dir else "file"
+        for name in names:
+            if name not in entries:
+                if required:
+                    shown = f"{name}/" if is_dir else name
+                    found.append(Diagnostic("layout-missing", f"missing required {kind} {shown}"))
+            elif entries[name].is_dir() != is_dir:
+                found.append(Diagnostic("layout-misnamed", f"{name} must be a {kind}"))
+    known = set(REQUIRED_FILES) | set(OPTIONAL_FILES) | set(REQUIRED_DIRS) | set(OPTIONAL_DIRS)
+    found.extend(
+        Diagnostic("layout-extra", f"unexpected entry {name}")
+        for name in sorted(entries)
+        if name not in known and name != KEEP_FILE
+    )
+    return found
+
+
+def load_node(node_dir: Path, target_id: str) -> Node | list[Diagnostic]:
+    """A validated ``Node`` (layout, META schema, id, statement shape, hash) or the problems."""
+    problems = validate_node(node_dir)
+    if problems:
+        return problems
+    try:
+        meta = schemas.load_yaml(node_dir / "META.yaml")  # R9: by its own schema field
+    except schemas.SchemaError as exc:
+        return [Diagnostic("meta-invalid", str(exc))]
+    if meta["schema"] not in META_SCHEMAS:
+        return [Diagnostic("meta-schema", f"META.yaml schema {meta['schema']!r} is not accepted")]
+    node_id = node_dir.name
+    if meta["id"] != node_id:
+        problems.append(
+            Diagnostic("meta-id", f"META id {meta['id']!r} differs from directory {node_id!r}")
+        )
+    text = (node_dir / "Statement.lean").read_text(encoding="utf-8")
+    parsed = parse_statement(text)
+    if isinstance(parsed, Diagnostic):
+        problems.append(parsed)
+        return problems
+    if parsed.statement_hash != meta["statement-hash"]:
+        problems.append(
+            Diagnostic(
+                "statement-hash",
+                "Statement.lean does not match META.yaml statement-hash",
+                {"meta": meta["statement-hash"], "computed": parsed.statement_hash},
+            )
+        )
+    for dep in meta["deps"]:
+        if not (node_dir.parent / str(dep)).is_dir():
+            problems.append(Diagnostic("meta-dep", f"declared dep {dep!r} is not a node"))
+    if problems:
+        return problems
+    return Node(node_id=node_id, target_id=target_id, path=node_dir, meta=meta, statement=parsed)
+
+
+def graph_nodes_dir(graph_root: Path, target_id: str) -> Path:
+    return graph_root / "targets" / target_id / "nodes"
+
+
+def gate_spec_path(graph_root: Path, target_id: str) -> Path:
+    return graph_root / "targets" / target_id / "gate-spec.json"
