@@ -27,11 +27,17 @@ def Finding.lt (a b : Finding) : Bool :=
     || (a.checker == b.checker
       && (a.location < b.location || (a.location == b.location && a.message < b.message)))
 
+/-- What a checker says about one subterm: a message, and a location when the subterm itself is
+not the right one to name (a binder's name rather than the whole `∀`). -/
+structure Hit where
+  message : String
+  location : Option String := none
+
 /-- A checker: an id (the `gate-spec.json` name) and a predicate over one subterm. -/
 structure Checker where
   id : String
   describe : String
-  visit : Expr → MetaM (Option String)
+  visit : Expr → MetaM (Option Hit)
 
 /-- Findings per statement are capped (F02 §6). -/
 def cap : Nat := 200
@@ -53,6 +59,23 @@ def natLit? (e : Expr) : Option Nat :=
       | _ => none
     else none
 
+/-- The constant at the head of an application, or `Name.anonymous`. -/
+def headName (e : Expr) : Name :=
+  (e.getAppFn.constName?).getD .anonymous
+
+/-- Leading binders of a type: the number of arguments a full application supplies. -/
+def countForalls : Expr → Nat
+  | .forallE _ _ b _ => countForalls b + 1
+  | _ => 0
+
+/-- `e` is a constant applied to exactly as many arguments as its type binds — so a checker
+matching a function by name fires once, on the full application, never on its partial ones. -/
+def fullyApplied (e : Expr) : MetaM Bool := do
+  let n := headName e
+  if n.isAnonymous then return false
+  let some info := (← getEnv).find? n | return false
+  return e.getAppNumArgs == countForalls info.type
+
 /-- A binary heterogeneous operator application `Op.op α β γ inst a b`: `(α, a, b)`. -/
 def binOp? (e : Expr) (op : Name) : Option (Expr × Expr × Expr) :=
   if e.isAppOfArity op 6 then
@@ -66,8 +89,11 @@ def binOp? (e : Expr) (op : Name) : Option (Expr × Expr × Expr) :=
 partial def traverse (checkers : Array Checker) (e : Expr) : MetaM (Array Finding) := do
   let mut out : Array Finding := #[]
   for c in checkers do
-    if let some msg ← c.visit e then
-      out := out.push { checker := c.id, location := toString (← ppExpr e), message := msg }
+    if let some hit ← c.visit e then
+      let location ← match hit.location with
+        | some l => pure l
+        | none => do pure (toString (← ppExpr e))
+      out := out.push { checker := c.id, location, message := hit.message }
   match e with
   | .app f a =>
     return out ++ (← traverse checkers f) ++ (← traverse checkers a)

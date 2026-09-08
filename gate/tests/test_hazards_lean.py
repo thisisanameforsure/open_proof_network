@@ -78,17 +78,24 @@ class Runner:
         return [c["id"] for c in doc["checkers"]]
 
     def on_fixture(self, stem: str, checkers: list[str]) -> tuple[int, dict[str, Any]]:
-        return self.hazards(
-            "--statement",
-            f"{stem}.lean",
-            "--module",
-            f"Hazards.{stem}",
-            "--decl",
-            EXPECTED[stem]["decl"] if stem in EXPECTED else "OpnHazard.clean",
-            "--checkers",
-            ",".join(checkers),
-            cwd=HAZARDS,
-        )
+        return self.hazards(*fixture_args(stem, checkers), cwd=HAZARDS)
+
+
+EXTRA_DECLS = {"Clean": "OpnHazard.clean", "NegLiteral": "OpnHazard.neg_literal"}
+
+
+def fixture_args(stem: str, checkers: list[str]) -> tuple[str, ...]:
+    decl = EXPECTED[stem]["decl"] if stem in EXPECTED else EXTRA_DECLS[stem]
+    return (
+        "--statement",
+        f"{stem}.lean",
+        "--module",
+        f"Hazards.{stem}",
+        "--decl",
+        decl,
+        "--checkers",
+        ",".join(checkers),
+    )
 
 
 @pytest.fixture(scope="module")
@@ -142,6 +149,16 @@ def test_clean_statements_no_findings(runner: Runner) -> None:
     assert code == 0 and doc["ok"] and doc["findings"] == [], doc
 
 
+def test_deterministic(runner: Runner) -> None:
+    """AC12: two runs over any fixture print byte-identical output."""
+    checkers = runner.all_checkers()
+    for stem in (*EXPECTED, *EXTRA_DECLS):
+        args = fixture_args(stem, checkers)
+        first = runner.run(str(runner.bin / "opn-hazards"), *args, cwd=HAZARDS)
+        second = runner.run(str(runner.bin / "opn-hazards"), *args, cwd=HAZARDS)
+        assert first.returncode == 0 and first.stdout == second.stdout, (stem, first.stderr)
+
+
 def test_unknown_checker_rejected(runner: Runner) -> None:
     """R3's Lean half: an unknown id is refused before the statement is elaborated."""
     code, doc = runner.on_fixture("NatSub", ["nat-sub", "bogus"])
@@ -155,3 +172,11 @@ def test_only_named_checkers_run(runner: Runner) -> None:
     assert code == 0 and doc["checkers"] == ["nat-sub"] and doc["findings"] == [], doc
     code, doc = runner.on_fixture("DivZero", [])
     assert code == 0 and doc["checkers"] == [] and doc["findings"] == [], doc
+
+
+def test_negative_literal_divisor(runner: Runner) -> None:
+    """R2: `-3` is syntactically non-zero for div-zero; the same Int division is an int-trunc."""
+    code, doc = runner.on_fixture("NegLiteral", ["div-zero"])
+    assert code == 0 and doc["findings"] == [], doc
+    code, doc = runner.on_fixture("NegLiteral", ["int-trunc"])
+    assert code == 0 and [f["checker"] for f in doc["findings"]] == ["int-trunc"], doc

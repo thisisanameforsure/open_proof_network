@@ -4,3 +4,7 @@ import OpnGate.UsedConstants
 import OpnGate.Hazards
 import OpnGate.Hazards.NatSub
 import OpnGate.Hazards.DivZero
+import OpnGate.Hazards.JunkValue
+import OpnGate.Hazards.IntTrunc
+import OpnGate.Hazards.UnusedBinder
+import OpnGate.Hazards.OffByOneRange

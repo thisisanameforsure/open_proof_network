@@ -2,6 +2,10 @@ import OpnGate.Frontend
 import OpnGate.Hazards
 import OpnGate.Hazards.NatSub
 import OpnGate.Hazards.DivZero
+import OpnGate.Hazards.JunkValue
+import OpnGate.Hazards.IntTrunc
+import OpnGate.Hazards.UnusedBinder
+import OpnGate.Hazards.OffByOneRange
 
 /-!
 `opn-hazards --statement <Statement.lean> --module <Name> --decl <Name> --checkers a,b,c`
@@ -16,7 +20,8 @@ registry against this one.
 open Lean Meta Elab OpnGate OpnGate.Hazards
 
 /-- Every checker this gate version ships, in id order. -/
-def registry : Array Checker := #[divZero, natSub]
+def registry : Array Checker :=
+  #[divZero, intTrunc, junkValue, natSub, offByOneRange, unusedBinder]
 
 unsafe def main (args : List String) : IO UInt32 := runMain do
   if args == ["--list"] then

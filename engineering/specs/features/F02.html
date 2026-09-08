@@ -99,7 +99,7 @@ step 6 and the <code>native_decide</code> amendment, D-8, D-15, D-29, D-34.</p>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1 &#10003; 2026-09-09 · T2&ndash;T5 todo</div>
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1&ndash;T2 &#10003; 2026-09-09 · T3&ndash;T5 todo</div>
 
 <h2>Tasks</h2>
 <table>
@@ -108,7 +108,7 @@ step 6 and the <code>native_decide</code> amendment, D-8, D-15, D-29, D-34.</p>
     <td><code>gate/lean/OpnGate/Hazards.lean</code>, <code>gate/lean/OpnGate/Hazards/NatSub.lean</code>, <code>gate/lean/OpnGate/Hazards/DivZero.lean</code>, <code>gate/lean/OpnGate/HazardsMain.lean</code>, <code>gate/lean/lakefile.lean</code>, <code>gate/lean/OpnGate.lean</code>, <code>gate/tests/fixtures/hazards/</code>, <code>gate/tests/test_hazards_lean.py</code>, <code>gate/tests/conftest.py</code></td>
     <td>F01</td><td><code>make verify-lean</code></td></tr>
   <tr><td>F02-T2</td><td><strong>Remaining checkers.</strong> <code>junk-value</code>, <code>int-trunc</code>, <code>unused-binder</code>, <code>off-by-one-range</code>; determinism test.</td>
-    <td><code>gate/lean/OpnGate/Hazards/*.lean</code>, <code>gate/tests/fixtures/hazards/</code>, <code>gate/tests/test_hazards_lean.py</code></td>
+    <td><code>gate/lean/OpnGate/Hazards/*.lean</code>, <code>gate/lean/OpnGate/Hazards.lean</code> (checkers may name their own location), <code>gate/lean/OpnGate/HazardsMain.lean</code>, <code>gate/lean/OpnGate.lean</code>, <code>gate/tests/fixtures/hazards/</code>, <code>gate/tests/test_hazards_lean.py</code></td>
     <td>T1</td><td><code>make verify-lean</code></td></tr>
   <tr><td>F02-T3</td><td><strong>Step 6, acknowledgments, <code>meta/v2</code>.</strong> Seam call, step, config check for checker ids, <code>opn-gate hazards</code> command, schema bump.</td>
     <td><code>gate/opn_gate/steps/hazards.py</code>, <code>gate/opn_gate/toolchain.py</code>, <code>gate/opn_gate/cli.py</code>, <code>gate/schemas/meta/v2.json</code>, <code>gate/tests/test_hazards.py</code>, <code>gate/tests/test_schemas.py</code></td>

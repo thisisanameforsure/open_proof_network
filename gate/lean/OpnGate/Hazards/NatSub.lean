@@ -12,9 +12,9 @@ def natSub : Checker where
   visit e := do
     if let some (ty, _, _) := binOp? e ``HSub.hSub then
       if isNat ty then
-        return some "subtraction on ℕ truncates at 0: a - b is 0 whenever b ≥ a"
+        return some { message := "subtraction on ℕ truncates at 0: a - b is 0 whenever b ≥ a" }
     if e.isAppOfArity ``Nat.sub 2 then
-      return some "subtraction on ℕ truncates at 0: Nat.sub a b is 0 whenever b ≥ a"
+      return some { message := "subtraction on ℕ truncates at 0: Nat.sub a b is 0 whenever b ≥ a" }
     return none
 
 end OpnGate.Hazards

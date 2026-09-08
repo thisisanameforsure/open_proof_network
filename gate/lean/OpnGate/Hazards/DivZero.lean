@@ -46,7 +46,7 @@ def divZero : Checker where
     match divisor? e with
     | some (kind, d) =>
       if syntacticallyNonzero d then return none
-      return some s!"{kind} by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+      return some { message := s!"{kind} by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0" }
     | none => return none
 
 end OpnGate.Hazards

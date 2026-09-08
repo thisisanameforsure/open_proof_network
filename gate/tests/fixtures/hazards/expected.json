@@ -3,8 +3,24 @@
     "decl": "OpnHazard.div_zero",
     "finding": {"checker": "div-zero", "location": "a / b"}
   },
+  "IntTrunc": {
+    "decl": "OpnHazard.int_trunc",
+    "finding": {"checker": "int-trunc", "location": "z / 2"}
+  },
+  "JunkValue": {
+    "decl": "OpnHazard.junk_value",
+    "finding": {"checker": "junk-value", "location": "l.head!"}
+  },
   "NatSub": {
     "decl": "OpnHazard.nat_sub",
     "finding": {"checker": "nat-sub", "location": "n - 1"}
+  },
+  "OffByOneRange": {
+    "decl": "OpnHazard.off_by_one_range",
+    "finding": {"checker": "off-by-one-range", "location": "n < 10"}
+  },
+  "UnusedBinder": {
+    "decl": "OpnHazard.unused_binder",
+    "finding": {"checker": "unused-binder", "location": "m"}
   }
 }
