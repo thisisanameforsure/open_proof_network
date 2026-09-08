@@ -75,9 +75,10 @@ The law of the project:
 - **Graph repo seeded and live** (`thisisanameforsure/open_proof_network_graph`): schemas v1
   frozen, `keys/gate.pub`, tutorial graph pinning this repo by commit, ruleset on `main` (gate
   check + non-author review; admins and the post-merge deploy key bypass).
-- **T9 rehearsal in progress**: PR #2 on the graph repo proves the tutorial node with the
-  attestation attached and its gate run is green; the non-author approving review needs a second
-  GitHub identity.
+- **T9 rehearsal deferred (2026-09-08)**: PR #2 on the graph repo proves the tutorial node with
+  the attestation attached and its gate run is green; it waits for an approving review from a
+  non-author GitHub identity (D-4 step 9), which the founder's single account cannot give.
+  F00 is not tagged done until it merges and `check_reproduce.py` passes.
 - No domain or DNS exists yet; the site ships on CloudFront's issued hostname (F04).
 
 ## Log

@@ -158,7 +158,7 @@ _(the final state is in the last section; this file was updated after each task)
 - **Action pins**: `actions/checkout@v7`, `actions/upload-artifact@v4`, `astral-sh/setup-uv@v10.0.1`
   (there is no `v10` moving tag; the first runs failed on that, hence the extra commits).
 
-## Where T9 stopped
+## Where T9 stopped (deferred 2026-09-08 by Mike; PR #2 left open)
 
 Done, in a fresh clone of the graph repo (`scratchpad/rehearsal/graph`, since deleted with the
 session scratchpad — the branch is on GitHub):
