@@ -1,7 +1,7 @@
-# The step-3 sandbox image (D-4 step 3; F00-R12, T7). One image serves the authoritative gate,
-# precheck and reproduce.sh (conventions §1). It holds elan and ONE pinned Lean toolchain and
-# nothing else the gate needs: the Python pipeline stays on the host and wraps every toolchain
-# call in `docker run --network none ...` (gate/opn_gate/sandbox.py).
+# The step-3 sandbox image (D-4 step 3; F00-R12, T7; F01-R10). One image serves the authoritative
+# gate, precheck and reproduce.sh (conventions §1). It holds elan, ONE pinned Lean toolchain and
+# the gate's Lean metaprograms, nothing else: the Python pipeline stays on the host and wraps
+# every toolchain call in an isolated container (gate/opn_gate/sandbox.py).
 #
 #   docker build -f gate/Dockerfile --build-arg LEAN_TOOLCHAIN=leanprover/lean4:v4.33.1 \
 #                -t opn-gate:leanprover-lean4-v4.33.1 gate
@@ -37,7 +37,18 @@ RUN set -eux; \
     elan run "${LEAN_TOOLCHAIN}" lean --version; \
     chmod -R a+rX /opt/elan
 
-# Non-root, no home to write to beyond /tmp (the runner mounts /tmp as tmpfs).
+# The gate's Lean metaprograms (F01-R1, R10): built here so the authoritative gate, precheck and
+# reproduce.sh run identical binaries. The package pins the same toolchain via lean-toolchain.
+COPY lean/ /opt/opn/lean/
+RUN set -eux; \
+    printf '%s\n' "${LEAN_TOOLCHAIN}" > /opt/opn/lean/lean-toolchain; \
+    cd /opt/opn/lean; \
+    elan run "${LEAN_TOOLCHAIN}" lake build; \
+    test -x .lake/build/bin/opn-witness-type; \
+    test -x .lake/build/bin/opn-used-constants; \
+    chmod -R a+rX /opt/opn
+
+# Non-root, no home to write to beyond /tmp.
 RUN useradd --uid 1000 --no-create-home --shell /usr/sbin/nologin opn
 USER 1000:1000
 ENV HOME=/tmp

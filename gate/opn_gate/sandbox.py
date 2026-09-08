@@ -26,6 +26,7 @@ from typing import Any
 from opn_gate.toolchain import LocalToolchain, ResolvedToolchain
 
 CONTAINER_ELAN = Path("/opt/elan/bin/elan")
+CONTAINER_LEAN_PKG_BIN = Path("/opt/opn/lean/.lake/build/bin")
 CONTAINER_UID = 1000
 GRACE_S = 30.0  # host-side slack beyond the in-container `timeout`
 _KILLED_BY_TIMEOUT = (124, 137)
@@ -95,7 +96,7 @@ class SandboxToolchain(LocalToolchain):
         read_write: Sequence[Path] = (),
         docker: str = "docker",
     ) -> None:
-        super().__init__(CONTAINER_ELAN)
+        super().__init__(CONTAINER_ELAN, CONTAINER_LEAN_PKG_BIN)
         self.image = image
         self.caps = caps
         self.read_only = [p.resolve() for p in read_only]
@@ -202,6 +203,13 @@ class SandboxToolchain(LocalToolchain):
 
     def resolve(self, toolchain: str, *, install: bool = False) -> ResolvedToolchain:
         return super().resolve(toolchain, install=False)
+
+    def metaprogram(self, name: str) -> Path:
+        """The image carries the built package (F01-R10); nothing is checked on the host side."""
+        return self.lean_pkg_bin / name
+
+    def ensure_metaprograms(self, tc: ResolvedToolchain) -> None:
+        return None
 
 
 def _add_tree(tar: tarfile.TarFile, root: Path, *, uid: int) -> None:

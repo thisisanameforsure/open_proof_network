@@ -54,7 +54,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="opn-gate", description=__doc__.split("\n\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
 
-    pre = sub.add_parser("pregate", help="run gate steps 1, 2, 4, 5 locally on one node")
+    pre = sub.add_parser("pregate", help="run gate steps 1, 2, 4, 5, 7, 8 locally on one node")
     pre.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
     pre.add_argument("--node", required=True, help="the claimed node id")
     pre.add_argument("--target", help="target id (inferred when the graph has exactly one)")
@@ -230,7 +230,7 @@ def run_reproduce(args: argparse.Namespace, settings: config.Settings) -> int:
 
 
 def run_gate(args: argparse.Namespace, settings: config.Settings) -> int:
-    """The authoritative run: bounce rule, then steps 1, 2, 4, 5 in the sandbox (runner hosted)."""
+    """The authoritative run: bounce rule, then steps 1, 2, 4, 5, 7, 8 in the sandbox (hosted)."""
     graph, head = _checkout_and_commit(args.graph, args.head)
     base = _git(graph, "rev-parse", "--verify", f"{args.base}^{{commit}}").stdout.strip()
     if not base:

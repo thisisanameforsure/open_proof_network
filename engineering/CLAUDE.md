@@ -59,3 +59,10 @@ The law of the project:
   (a tmpfs at `/tmp` hid the sandbox's inputs on Linux CI).
 - 2026-09-08 — A pinned tooling commit is chicken-and-egg with its own evidence: pin work takes
   two commits (code, then evidence), at every `gate-spec.json` re-pin.
+- 2026-09-08 — Never clean up sandbox containers by age while a real-tier run is in flight: a
+  laptop sleep made a live `leanchecker` container look like an hour-old leftover, and removing it
+  failed the test it belonged to. Leftovers are identified by the run that owns them, or after it.
+- 2026-09-09 — The docker tier builds the step-3 image lazily, from the working tree as it is when
+  the first docker test runs, ten minutes into `make verify-lean`. Editing `gate/lean/` during a
+  real-tier run put half-written Lean into the image and failed six tests. Stash next-task work
+  before an evidence run, or wait.

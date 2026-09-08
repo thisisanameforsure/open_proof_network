@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import subprocess
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from harness import TUTORIAL, make_context, node_dir
 from opn_gate import pipeline, sandbox
 from opn_gate.sandbox import Caps, SandboxToolchain
 from opn_gate.steps.base import RunContext
+from opn_gate.toolchain import WitnessRequest
 
 pytestmark = pytest.mark.docker
 
@@ -88,3 +90,30 @@ def test_no_containers_left_behind(sandbox_image: str) -> None:
     assert listing.stdout.strip() == ""
     assert sandbox.image_tag("leanprover/lean4:v4.33.1") == "opn-gate:leanprover-lean4-v4.33.1"
     assert TUTORIAL
+
+
+def test_lean_pkg_in_image(sandbox_image: str, tmp_path: Path) -> None:
+    """F01-AC15: the metaprograms inside the image give the golden output."""
+    golden = json.loads(
+        (Path(__file__).resolve().parent / "golden" / "witness-types.json").read_text()
+    )
+    ctx = make_context(tmp_path)
+    work = ctx.workdir
+    work.mkdir(parents=True, exist_ok=True)
+    src = work / "Statement.lean"
+    src.write_text((node_dir(ctx) / "Statement.lean").read_text(), encoding="utf-8")
+    wit = work / "Witness.lean"
+    wit.write_text((node_dir(ctx) / "Witness.lean").read_text(), encoding="utf-8")
+    sb = SandboxToolchain(sandbox_image, Caps.from_spec(ctx.spec), read_write=[work])
+    tc = sb.resolve(str(ctx.spec["lean_toolchain"]))
+    req = WitnessRequest(
+        src,
+        "Nodes.«tutorial-and-swap».Statement",
+        "OpnProp.and_swap",
+        wit,
+        "Nodes.«tutorial-and-swap».Witness",
+    )
+    result = sb.witness_type(tc, req, [work], timeout_s=120)
+    assert result.ok, result
+    assert result.doc["expected"] == golden["tutorial-and-swap"]["expected"]
+    assert result.doc["defeq"] is True and result.doc["witness_axioms"] == []

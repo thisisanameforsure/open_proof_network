@@ -1,0 +1,19 @@
+# F01-T4 verification — $ make verify-lean — the same run as task-5.txt (T4's real-toolchain tests for steps 7-8, test_pregate_lean.py, need T5's image, which carries the metaprograms); pregate tests below are T4's
+verify-lean: elan at /Users/mikehiggins/.elan/bin/elan
+uv run --frozen pytest -m "lean or docker"
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+testpaths: gate/tests, api/tests, site/tests
+collected 153 items / 129 deselected / 24 selected
+
+gate/tests/test_lean_pkg_lean.py ....                                    [ 16%]
+gate/tests/test_pregate_lean.py .........                                [ 54%]
+gate/tests/test_reproduce_docker.py ..                                   [ 62%]
+gate/tests/test_sandbox_docker.py .....                                  [ 83%]
+gate/tests/test_toolchain_lean.py ....                                   [100%]
+
+================ 24 passed, 129 deselected in 742.54s (0:12:22) ================
+make verify-lean 2>&1  406.04s user 27.82s system 58% cpu 12:22.96 total
+rc=0 (make exited 0: 24 passed)

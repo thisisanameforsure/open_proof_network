@@ -111,7 +111,7 @@ deps; fixtures and both test tiers; the step-3 image builds the package.</p>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1&ndash;T3 &#10003; 2026-09-08 · T4 code complete (fast tier + real-toolchain pregate tests green; <code>make verify-lean</code> evidence lands with T5, whose image carries the metaprograms) · T5 todo</div>
+<div class="rule"><strong>status:</strong> done · <strong>Tasks:</strong> T1&ndash;T3 &#10003; 2026-09-08 · T4&ndash;T5 &#10003; 2026-09-09 (one <code>make verify-lean</code> run is the evidence for both: T4's real-toolchain tests need T5's image)</div>
 
 <h2>Tasks</h2>
 <table>
@@ -129,7 +129,7 @@ deps; fixtures and both test tiers; the step-3 image builds the package.</p>
     <td><code>gate/opn_gate/pipeline.py</code>, <code>gate/tests/fixtures/graphs/propositional/</code>, <code>gate/tests/test_pipeline.py</code>, <code>gate/tests/test_pregate_lean.py</code></td>
     <td>T2, T3</td><td><code>make verify-lean</code></td></tr>
   <tr><td>F01-T5</td><td><strong>Image and reproduce.</strong> Lake package built in the step-3 image; <code>reproduce.sh</code> covers 7–8; D-5 identical-run test still green.</td>
-    <td><code>gate/Dockerfile</code>, <code>gate/reproduce.sh</code>, <code>gate/tests/test_sandbox_docker.py</code>, <code>gate/tests/test_reproduce_docker.py</code></td>
+    <td><code>gate/Dockerfile</code>, <code>gate/.dockerignore</code>, <code>gate/opn_gate/sandbox.py</code>, <code>gate/reproduce.sh</code>, <code>gate/opn_gate/cli.py</code> (help text only), <code>gate/tests/test_sandbox_docker.py</code>, <code>gate/tests/test_reproduce_docker.py</code></td>
     <td>T4</td><td><code>make verify-lean</code></td></tr>
 </table>
 

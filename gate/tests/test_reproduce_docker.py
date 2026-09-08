@@ -45,12 +45,20 @@ def run_reproduce(graph: Path, commit: str, out: Path, *extra: str) -> tuple[int
 def test_two_runs_identical(
     fixture_graph_repo: tuple[Path, str], sandbox_image: str, tmp_path: Path
 ) -> None:
-    """AC27."""
+    """AC27; F01-T5: the replay covers steps 7 and 8 with the image's metaprograms (R10)."""
     graph, commit = fixture_graph_repo
     code_a, a = run_reproduce(graph, commit, tmp_path / "a")
     code_b, b = run_reproduce(graph, commit, tmp_path / "b")
     assert code_a == 0 and code_b == 0, (a, b)
     assert a["verdict"] == "pass" and b["verdict"] == "pass"
+    assert [(s["step"], s["result"]) for s in a["steps"]] == [
+        (1, "pass"),
+        (2, "pass"),
+        (4, "pass"),
+        (5, "pass"),
+        (7, "pass"),
+        (8, "pass"),
+    ]
     assert a["graph_commit"] == commit
     assert schemas.violations(a) == [] and schemas.violations(b) == []
     assert attestation.compare(a, b) == []
