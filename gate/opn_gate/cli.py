@@ -22,10 +22,12 @@ from typing import Any
 
 from opn_gate import (
     attestation,
+    bounce,
     config,
     layout,
     paths,
     pipeline,
+    postmerge,
     sandbox,
     schemas,
     signer,
@@ -73,6 +75,33 @@ def build_parser() -> argparse.ArgumentParser:
     rep.add_argument("--compare", type=Path, help="committed attestation to compare against")
     rep.add_argument("--image", help="sandbox image tag (default: built from gate/Dockerfile)")
     rep.add_argument("--no-build", action="store_true", help="fail if the image is not present")
+
+    gate = sub.add_parser("gate", help="the authoritative run on a pull request (gate.yml)")
+    gate.add_argument("--graph", required=True, type=Path, help="checkout at the PR merge commit")
+    gate.add_argument("--base", required=True, help="the pull request's base sha")
+    gate.add_argument("--head", default="HEAD", help="the commit to check (default HEAD)")
+    gate.add_argument("--target", required=True)
+    gate.add_argument("--node", required=True)
+    gate.add_argument("--pr-body-file", required=True, type=Path)
+    gate.add_argument("--out", type=Path)
+    gate.add_argument("--image")
+    gate.add_argument("--no-build", action="store_true")
+
+    post = sub.add_parser("postmerge", help="re-derive on the merge commit; record step 9")
+    post.add_argument("--graph", required=True, type=Path)
+    post.add_argument("--commit", required=True, help="the merge commit")
+    post.add_argument("--pr", required=True, type=int, help="the merged pull request number")
+    post.add_argument("--reviewer", required=True, help="the approving non-author reviewer")
+    post.add_argument("--target", required=True)
+    post.add_argument("--node", required=True)
+    post.add_argument("--out", type=Path)
+    post.add_argument("--image")
+    post.add_argument("--no-build", action="store_true")
+
+    sign = sub.add_parser("sign", help="sign an attestation with the gate key from the environment")
+    sign.add_argument("--attestation", required=True, type=Path)
+    sign.add_argument("--public-key", required=True, type=Path, help="keys/gate.pub to verify")
+    sign.add_argument("--out", required=True, type=Path)
     return parser
 
 
@@ -80,15 +109,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     settings = config.load()
     logging.basicConfig(level=settings.log_level, format="%(levelname)s %(name)s: %(message)s")
+    commands = {
+        "pregate": run_pregate,
+        "reproduce": run_reproduce,
+        "gate": run_gate,
+        "postmerge": run_postmerge,
+        "sign": run_sign,
+    }
     try:
-        if args.command == "pregate":
-            return run_pregate(args, settings)
-        if args.command == "reproduce":
-            return run_reproduce(args, settings)
+        return commands[args.command](args, settings)
     except CliError as exc:
         sys.stderr.write(f"opn-gate: {exc}\n")
         return EXIT_ERROR
-    return EXIT_ERROR
 
 
 # --- pregate ------------------------------------------------------------------------------------
@@ -166,41 +198,17 @@ def emit(
 
 
 def run_reproduce(args: argparse.Namespace, settings: config.Settings) -> int:
-    graph: Path = args.graph.resolve()
-    if _git(graph, "rev-parse", "--is-inside-work-tree").returncode != 0:
-        msg = f"{graph} is not a git checkout"
-        raise CliError(msg)
-    commit = _git(graph, "rev-parse", "--verify", f"{args.commit}^{{commit}}").stdout.strip()
-    if not commit:
-        msg = f"unknown commit {args.commit!r}"
-        raise CliError(msg)
-    out_dir: Path = (args.out or Path(tempfile.mkdtemp(prefix="opn-reproduce-"))).resolve()
-    out_dir.mkdir(parents=True, exist_ok=True)
-    tree = export_tree(graph, commit, out_dir / "tree")
-    target_id = args.target or infer_target(tree)
-    claim = Claim(target_id, args.node)
-    spec_path = layout.gate_spec_path(tree, target_id)
-    try:
-        spec = schemas.load_json(spec_path, "gate-spec/v1")
-    except schemas.SchemaError as exc:
-        msg = f"cannot load {spec_path}: {exc}"
-        raise CliError(msg) from exc
-
-    image = args.image or ensure_image(str(spec["lean_toolchain"]), build=not args.no_build)
-    node_dir = layout.graph_nodes_dir(tree, target_id) / args.node
-    workdir = out_dir / "work"
-    tc = sandbox.SandboxToolchain(
-        image, sandbox.Caps.from_spec(spec), read_only=[node_dir], read_write=[workdir]
-    )
-    ctx = RunContext(
-        graph_root=tree,
-        claim=claim,
-        spec=spec,
-        gate_spec_hash=schemas.content_hash(spec_path.read_bytes()),
-        changes=commit_changes(graph, commit),
-        workdir=workdir,
-        toolchain=tc,
+    graph, commit = _checkout_and_commit(args.graph, args.commit)
+    out_dir = _out_dir(args.out, "opn-reproduce-")
+    ctx = _sandboxed_context(
+        graph,
+        commit,
+        out_dir,
+        target=args.target,
+        node=args.node,
         settings=settings,
+        image=args.image,
+        no_build=args.no_build,
     )
     verdict = pipeline.run_submission(ctx)
     doc = attestation.build(ctx, verdict, graph_commit=commit)
@@ -212,6 +220,143 @@ def run_reproduce(args: argparse.Namespace, settings: config.Settings) -> int:
         sys.stdout.write(json.dumps(result) + "\n")
         return EXIT_PASS if not differing else EXIT_FAIL
     return code
+
+
+def run_gate(args: argparse.Namespace, settings: config.Settings) -> int:
+    """The authoritative run: bounce rule, then steps 1, 2, 4, 5 in the sandbox (runner hosted)."""
+    graph, head = _checkout_and_commit(args.graph, args.head)
+    base = _git(graph, "rev-parse", "--verify", f"{args.base}^{{commit}}").stdout.strip()
+    if not base:
+        msg = f"unknown base {args.base!r}"
+        raise CliError(msg)
+    out_dir = _out_dir(args.out, "opn-gate-")
+    ctx = _sandboxed_context(
+        graph,
+        head,
+        out_dir,
+        target=args.target,
+        node=args.node,
+        settings=settings,
+        image=args.image,
+        no_build=args.no_build,
+    )
+    diff = _git(graph, "diff", "--name-status", "--no-renames", base, head)
+    ctx.changes = paths.changes_from_name_status(diff.stdout)
+    node_dir = layout.graph_nodes_dir(ctx.graph_root, args.target) / args.node
+    statement = node_dir / "Statement.lean"
+    policy = bounce.PrecheckPolicy(
+        pr_body=args.pr_body_file.read_text(encoding="utf-8"),
+        accepted_signatures=tuple(ctx.spec["accepted_precheck_signatures"]),
+        max_age_s=int(ctx.spec["precheck_max_age_s"]),
+        now=attestation.utc_now(),
+        node_id=args.node,
+        statement_hash=schemas.content_hash(statement.read_bytes()) if statement.is_file() else "",
+    )
+    verdict = pipeline.run_submission(ctx, precheck=policy)
+    doc = attestation.build(ctx, verdict, graph_commit=head)
+    return emit(verdict, doc, out_dir, settings)
+
+
+def run_postmerge(args: argparse.Namespace, settings: config.Settings) -> int:
+    """Re-derive on the merge commit and record step 9; signing is the separate `sign` step."""
+    graph, commit = _checkout_and_commit(args.graph, args.commit)
+    out_dir = _out_dir(args.out, "opn-postmerge-")
+    ctx = _sandboxed_context(
+        graph,
+        commit,
+        out_dir,
+        target=args.target,
+        node=args.node,
+        settings=settings,
+        image=args.image,
+        no_build=args.no_build,
+    )
+    verdict = pipeline.run_submission(ctx)
+    doc = attestation.build(ctx, verdict, graph_commit=commit)
+    doc = postmerge.record_step9(doc, merge_commit=commit, reviewer=args.reviewer)
+    code = emit(verdict, doc, out_dir, settings)
+    if code != EXIT_PASS:
+        sys.stderr.write("opn-gate: the merged commit does not pass the gate; not attesting\n")
+    return code
+
+
+def run_sign(args: argparse.Namespace, settings: config.Settings) -> int:
+    """Sign with the gate key read through config (C8); verify against the committed public key."""
+    if not settings.gate_signing_key:
+        msg = "OPN_GATE_SIGNING_KEY is not set"
+        raise CliError(msg)
+    doc = schemas.load_json(args.attestation, "attestation/v1")
+    public_key = args.public_key.read_text(encoding="utf-8")
+    s = signer.SshKeygenSigner()
+    with tempfile.TemporaryDirectory(prefix="opn-gate-key-") as tmp:
+        key_path = Path(tmp) / "gate"
+        key_path.touch(mode=0o600)
+        key_path.write_text(settings.gate_signing_key.rstrip("\n") + "\n", encoding="utf-8")
+        signed = postmerge.sign_gate(doc, key_path=key_path, signer=s)
+    if not postmerge.verify(signed, public_key, s):
+        msg = f"signature does not verify against {args.public_key}; wrong key?"
+        raise CliError(msg)
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_bytes(schemas.canonical_json(signed))
+    sys.stdout.write(json.dumps({"signed": str(args.out), "key_id": signed["signature"]["key_id"]}))
+    sys.stdout.write("\n")
+    return EXIT_PASS
+
+
+def _checkout_and_commit(graph_arg: Path, ref: str) -> tuple[Path, str]:
+    graph = graph_arg.resolve()
+    if _git(graph, "rev-parse", "--is-inside-work-tree").returncode != 0:
+        msg = f"{graph} is not a git checkout"
+        raise CliError(msg)
+    commit = _git(graph, "rev-parse", "--verify", f"{ref}^{{commit}}").stdout.strip()
+    if not commit:
+        msg = f"unknown commit {ref!r}"
+        raise CliError(msg)
+    return graph, commit
+
+
+def _out_dir(out: Path | None, prefix: str) -> Path:
+    out_dir = (out or Path(tempfile.mkdtemp(prefix=prefix))).resolve()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    return out_dir
+
+
+def _sandboxed_context(  # noqa: PLR0913 — one argument per CLI flag
+    graph: Path,
+    commit: str,
+    out_dir: Path,
+    *,
+    target: str | None,
+    node: str,
+    settings: config.Settings,
+    image: str | None,
+    no_build: bool,
+) -> RunContext:
+    """Export the tree at ``commit`` and build a RunContext whose toolchain is the sandbox."""
+    tree = export_tree(graph, commit, out_dir / "tree")
+    target_id = target or infer_target(tree)
+    spec_path = layout.gate_spec_path(tree, target_id)
+    try:
+        spec = schemas.load_json(spec_path, "gate-spec/v1")
+    except schemas.SchemaError as exc:
+        msg = f"cannot load {spec_path}: {exc}"
+        raise CliError(msg) from exc
+    tag = image or ensure_image(str(spec["lean_toolchain"]), build=not no_build)
+    node_dir = layout.graph_nodes_dir(tree, target_id) / node
+    workdir = out_dir / "work"
+    tc = sandbox.SandboxToolchain(
+        tag, sandbox.Caps.from_spec(spec), read_only=[node_dir], read_write=[workdir]
+    )
+    return RunContext(
+        graph_root=tree,
+        claim=Claim(target_id, node),
+        spec=spec,
+        gate_spec_hash=schemas.content_hash(spec_path.read_bytes()),
+        changes=commit_changes(graph, commit),
+        workdir=workdir,
+        toolchain=tc,
+        settings=settings,
+    )
 
 
 def export_tree(graph: Path, commit: str, dest: Path) -> Path:
