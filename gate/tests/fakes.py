@@ -13,6 +13,7 @@ from pathlib import Path
 from opn_gate.toolchain import (
     AxiomResult,
     ElabResult,
+    HazardsRequest,
     MetaprogramResult,
     ReplayResult,
     ResolvedToolchain,
@@ -72,6 +73,16 @@ LIBRARY_CONSTANTS: list[tuple[str, str | None]] = [
 ]
 
 
+def hazards_result(
+    findings: list[dict[str, str]], *, capped: bool = False, checkers: list[str] | None = None
+) -> MetaprogramResult:
+    """A structured ``opn-hazards`` result (F02-R1)."""
+    return MetaprogramResult(
+        ok=True,
+        doc={"ok": True, "checkers": checkers or [], "findings": findings, "capped": capped},
+    )
+
+
 def metaprogram_garbage(
     exit_code: int = 1, output: str = "Segmentation fault\n"
 ) -> MetaprogramResult:
@@ -93,6 +104,7 @@ class FakeToolchain:
     constants: MetaprogramResult = field(
         default_factory=lambda: used_constants_result(LIBRARY_CONSTANTS)
     )
+    hazards_doc: MetaprogramResult = field(default_factory=lambda: hazards_result([]))
     missing: bool = False
     raise_on: str | None = None  # name of the method that should raise an unexpected error
     calls: list[str] = field(default_factory=list)
@@ -177,3 +189,15 @@ class FakeToolchain:
         self.calls.append(f"used_constants:{req.decl}")
         self._maybe_raise("used_constants")
         return self.constants
+
+    def hazards(
+        self,
+        tc: ResolvedToolchain,
+        req: HazardsRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        self.calls.append(f"hazards:{req.decl}:{','.join(req.checkers)}")
+        self._maybe_raise("hazards")
+        return self.hazards_doc

@@ -144,6 +144,28 @@ class UsedConstantsRequest:
 
 
 @dataclass(frozen=True)
+class HazardsRequest:
+    """Inputs of ``opn-hazards`` (F02-R1, R3): the statement and exactly the checkers to run."""
+
+    statement: Path
+    module: str
+    decl: str
+    checkers: tuple[str, ...]
+
+    def args(self) -> list[str]:
+        return [
+            "--statement",
+            str(self.statement.resolve()),
+            "--module",
+            self.module,
+            "--decl",
+            self.decl,
+            "--checkers",
+            ",".join(self.checkers),
+        ]
+
+
+@dataclass(frozen=True)
 class MetaprogramResult:
     """What a gate metaprogram (F01-R1) returned: parsed JSON on success, raw output otherwise."""
 
@@ -174,6 +196,9 @@ class MetaprogramResult:
 
 
 METAPROGRAM_OUTPUT_CAP = 8192
+
+#: The executables the Lake package builds (F01-R1, F02-R1).
+METAPROGRAMS: tuple[str, ...] = ("opn-witness-type", "opn-used-constants", "opn-hazards")
 
 
 def parse_metaprogram_output(exit_code: int, stdout: str, stderr: str) -> MetaprogramResult:
@@ -254,6 +279,16 @@ class Toolchain(Protocol):
         timeout_s: float | None = None,
     ) -> MetaprogramResult:
         """Step 8: ``opn-used-constants`` — the proof's dependency footprint with module origins."""
+
+    def hazards(
+        self,
+        tc: ResolvedToolchain,
+        req: HazardsRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        """Step 6: ``opn-hazards`` — the named checkers' findings over the statement."""
 
 
 # --- helpers shared by the real implementation and its tests --------------------------------
@@ -510,9 +545,7 @@ class LocalToolchain:
 
     def ensure_metaprograms(self, tc: ResolvedToolchain) -> None:
         """Build the Lake package once if its executables are missing (pregate on a fresh clone)."""
-        if all(
-            (self.lean_pkg_bin / n).is_file() for n in ("opn-witness-type", "opn-used-constants")
-        ):
+        if all((self.lean_pkg_bin / n).is_file() for n in METAPROGRAMS):
             return
         pkg = self.lean_pkg_bin.parents[2] if len(self.lean_pkg_bin.parents) > 2 else None
         if pkg is None or not (pkg / "lakefile.lean").is_file():
@@ -562,6 +595,16 @@ class LocalToolchain:
         timeout_s: float | None = None,
     ) -> MetaprogramResult:
         return self._metaprogram_run(tc, "opn-used-constants", req.args(), search_path, timeout_s)
+
+    def hazards(
+        self,
+        tc: ResolvedToolchain,
+        req: HazardsRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        return self._metaprogram_run(tc, "opn-hazards", req.args(), search_path, timeout_s)
 
 
 def _env_with(extra: dict[str, str] | None) -> dict[str, str] | None:

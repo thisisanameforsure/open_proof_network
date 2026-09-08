@@ -16,7 +16,8 @@ Variables (prefix ``OPN_``):
     Diagnostics longer than this are truncated with an explicit marker (F00 §6). Default ``8192``.
 ``OPN_LEAN_PKG_BIN``
     Directory holding the gate's Lean metaprograms (``opn-witness-type``, ``opn-used-constants``,
-    F01-R1). Default: ``gate/lean/.lake/build/bin`` in this repo; the step-3 image sets its own.
+    ``opn-hazards``; F01-R1, F02-R1). Default: ``gate/lean/.lake/build/bin`` in this repo; the
+    step-3 image sets its own.
 ``OPN_GATE_SIGNING_KEY``
     **Secret.** The gate's ed25519 private key (C8 item 1), present only in the post-merge job's
     environment. Default ``None`` — meaning "no key: emit an unsigned attestation".

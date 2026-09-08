@@ -17,6 +17,7 @@ from typing import Any, Literal
 from opn_gate import bounce
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.steps import RunContext, Step, StepResult, default_steps
+from opn_gate.steps.hazards import check_config
 
 log = logging.getLogger(__name__)
 
@@ -76,6 +77,15 @@ def _guarded(step: Step, ctx: RunContext) -> StepResult:
 def run_steps(ctx: RunContext, steps: Sequence[Step] | None = None) -> Verdict:
     """Run ``steps`` (default: this version's D-4 steps) and stop at the first failure."""
     ordered = sorted(steps if steps is not None else default_steps(), key=lambda s: s.number)
+    config_problem = check_config(ctx.spec)
+    if config_problem is not None:  # F02-R3: a misconfigured gate fails before step 1
+        log.error("gate configuration: %s", config_problem.message)
+        return Verdict(
+            verdict="fail",
+            steps=tuple(StepRecord(s.number, s.name, "skipped") for s in ordered),
+            diagnostic=config_problem,
+            data=dict(ctx.data),
+        )
     records: list[StepRecord] = []
     failed_at: int | None = None
     diagnostic: Diagnostic | None = None
@@ -84,8 +94,8 @@ def run_steps(ctx: RunContext, steps: Sequence[Step] | None = None) -> Verdict:
             records.append(StepRecord(step.number, step.name, "skipped"))
             continue
         result = _guarded(step, ctx)
-        if result.ok:
-            records.append(StepRecord(step.number, step.name, "pass"))
+        if result.ok:  # a pass may carry a record (F02-R5)
+            records.append(StepRecord(step.number, step.name, "pass", result.diagnostic))
         else:
             failed_at = step.number
             diagnostic = result.diagnostic or Diagnostic("failed", "step failed without detail")

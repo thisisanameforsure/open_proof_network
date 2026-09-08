@@ -48,6 +48,11 @@ class StepResult:
         return StepResult(ok=True)
 
     @staticmethod
+    def passed_with(code: str, message: str, **details: Any) -> StepResult:
+        """A pass that leaves a record in the verdict (F02-R5: acknowledgments relied on)."""
+        return StepResult(ok=True, diagnostic=Diagnostic(code, message, details))
+
+    @staticmethod
     def failed(code: str, message: str, **details: Any) -> StepResult:
         return StepResult(ok=False, diagnostic=Diagnostic(code, message, details))
 

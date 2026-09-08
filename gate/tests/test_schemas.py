@@ -13,13 +13,41 @@ from opn_gate import schemas
 from opn_gate.schemas import SchemaError
 
 
-def test_known_schemas_are_the_three_v1() -> None:
+def test_known_schemas_are_the_published_set() -> None:
     assert schemas.known_schemas() == (
         "attestation/v1",
         "attestation/v2",
         "gate-spec/v1",
         "meta/v1",
+        "meta/v2",
     )
+
+
+def test_meta_v1_still_valid() -> None:
+    """F02-AC5, R6: meta/v1 validates unchanged; meta/v2 accepts acknowledgments."""
+    schemas.validate(samples.meta())
+    ack = {"checker": "nat-sub", "location": "n - 1", "justification": "intended"}
+    schemas.validate(samples.meta(schema="meta/v2"))
+    schemas.validate(samples.meta(schema="meta/v2", acknowledged_hazards=[ack]))
+    assert schemas.violations(samples.meta(acknowledged_hazards=[ack]))  # v1 has no such key
+
+
+@pytest.mark.parametrize(
+    "acks",
+    [
+        [{"checker": "nat-sub", "location": "n - 1", "justification": ""}],
+        [{"checker": "nat-sub", "location": "", "justification": "x"}],
+        [{"checker": "Nat Sub", "location": "n - 1", "justification": "x"}],
+        [{"checker": "nat-sub", "location": "n - 1", "justification": "x", "extra": 1}],
+        [{"checker": "nat-sub", "location": "n - 1"}],
+        [
+            {"checker": "nat-sub", "location": "n - 1", "justification": "x"},
+            {"checker": "nat-sub", "location": "n - 1", "justification": "x"},
+        ],
+    ],
+)
+def test_meta_v2_rejects_bad_acknowledgments(acks: list[dict[str, object]]) -> None:
+    assert schemas.violations(samples.meta(schema="meta/v2", acknowledged_hazards=acks))
 
 
 def test_samples_validate() -> None:
@@ -42,9 +70,9 @@ def test_schema_hashes_pinned(tmp_path: Path) -> None:
     assert len(problems) == 1
     assert "meta/v1.json was edited" in problems[0]
 
-    (copy / "meta" / "v2.json").write_text("{}")
+    (copy / "meta" / "v3.json").write_text("{}")
     assert any(
-        "meta/v2.json is not pinned" in p for p in schemas.verify_pins(copy, copy / "HASHES")
+        "meta/v3.json is not pinned" in p for p in schemas.verify_pins(copy, copy / "HASHES")
     )
 
 

@@ -35,6 +35,8 @@ from opn_gate import (
 )
 from opn_gate.paths import Change, Claim
 from opn_gate.steps.base import RunContext
+from opn_gate.steps.hazards import HazardsStep, StatementStep
+from opn_gate.steps.toolchain_step import ToolchainStep
 
 GATE_DIR = Path(__file__).resolve().parents[1]
 
@@ -71,10 +73,8 @@ def build_parser() -> argparse.ArgumentParser:
     rep.add_argument("--commit", required=True, help="the commit to reproduce")
     rep.add_argument("--node", required=True, help="the node the commit proved")
     rep.add_argument("--target", help="target id (inferred when the graph has exactly one)")
-    rep.add_argument("--out", type=Path, help="output directory (default: a fresh temp dir)")
     rep.add_argument("--compare", type=Path, help="committed attestation to compare against")
-    rep.add_argument("--image", help="sandbox image tag (default: built from gate/Dockerfile)")
-    rep.add_argument("--no-build", action="store_true", help="fail if the image is not present")
+    _add_sandbox_args(rep)
 
     gate = sub.add_parser("gate", help="the authoritative run on a pull request (gate.yml)")
     gate.add_argument("--graph", required=True, type=Path, help="checkout at the PR merge commit")
@@ -83,9 +83,7 @@ def build_parser() -> argparse.ArgumentParser:
     gate.add_argument("--target", required=True)
     gate.add_argument("--node", required=True)
     gate.add_argument("--pr-body-file", required=True, type=Path)
-    gate.add_argument("--out", type=Path)
-    gate.add_argument("--image")
-    gate.add_argument("--no-build", action="store_true")
+    _add_sandbox_args(gate)
 
     post = sub.add_parser("postmerge", help="re-derive on the merge commit; record step 9")
     post.add_argument("--graph", required=True, type=Path)
@@ -101,15 +99,25 @@ def build_parser() -> argparse.ArgumentParser:
     post.add_argument("--review-reference", help="certificate id or registry reference")
     post.add_argument("--target", required=True)
     post.add_argument("--node", required=True)
-    post.add_argument("--out", type=Path)
-    post.add_argument("--image")
-    post.add_argument("--no-build", action="store_true")
+    _add_sandbox_args(post)
+
+    haz = sub.add_parser("hazards", help="run step 6 alone on a node directory (F02-R7)")
+    haz.add_argument("node_dir", type=Path, help="targets/<target>/nodes/<id> in a graph checkout")
+    haz.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
+    haz.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
 
     sign = sub.add_parser("sign", help="sign an attestation with the gate key from the environment")
     sign.add_argument("--attestation", required=True, type=Path)
     sign.add_argument("--public-key", required=True, type=Path, help="keys/gate.pub to verify")
     sign.add_argument("--out", required=True, type=Path)
     return parser
+
+
+def _add_sandbox_args(p: argparse.ArgumentParser) -> None:
+    """The flags every sandboxed run shares (reproduce, gate, postmerge)."""
+    p.add_argument("--out", type=Path, help="output directory (default: a fresh temp dir)")
+    p.add_argument("--image", help="sandbox image tag (default: built from gate/Dockerfile)")
+    p.add_argument("--no-build", action="store_true", help="fail if the image is not present")
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -121,6 +129,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "reproduce": run_reproduce,
         "gate": run_gate,
         "postmerge": run_postmerge,
+        "hazards": run_hazards,
         "sign": run_sign,
     }
     try:
@@ -291,6 +300,48 @@ def run_postmerge(args: argparse.Namespace, settings: config.Settings) -> int:
     if code != EXIT_PASS:
         sys.stderr.write("opn-gate: the merged commit does not pass the gate; not attesting\n")
     return code
+
+
+def run_hazards(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F02-R7: step 6 alone over a node directory, for admission (F08) and proposers.
+
+    Prints the verdict JSON plus a ``hazards`` block (findings, acknowledgments used); exits 0
+    on pass, 1 on fail. No attestation: this is not a submission.
+    """
+    node_dir: Path = args.node_dir.resolve()
+    parts = node_dir.parts
+    if not node_dir.is_dir() or len(parts) < 4 or parts[-2] != "nodes" or parts[-4] != "targets":
+        msg = f"{node_dir} is not a node directory (targets/<target>/nodes/<id>)"
+        raise CliError(msg)
+    graph = node_dir.parents[3]
+    target_id = node_dir.parents[1].name
+    spec_path = layout.gate_spec_path(graph, target_id)
+    try:
+        spec = schemas.load_json(spec_path, "gate-spec/v1")
+    except schemas.SchemaError as exc:
+        msg = f"cannot load {spec_path}: {exc}"
+        raise CliError(msg) from exc
+    try:
+        tc = toolchain.LocalToolchain.from_settings(settings)
+    except toolchain.ToolchainMissingError as exc:
+        raise CliError(str(exc)) from exc
+    out_dir = _out_dir(args.out, "opn-hazards-")
+    ctx = RunContext(
+        graph_root=graph,
+        claim=Claim(target_id, node_dir.name),
+        spec=spec,
+        gate_spec_hash=schemas.content_hash(spec_path.read_bytes()),
+        changes=None,
+        workdir=out_dir / "work",
+        toolchain=tc,
+        settings=settings,
+        install_toolchain=bool(args.install),
+    )
+    verdict = pipeline.run_steps(ctx, steps=[ToolchainStep(), StatementStep(), HazardsStep()])
+    summary = verdict.as_dict(settings.diagnostic_max_bytes)
+    summary["hazards"] = ctx.data.get("hazards")
+    sys.stdout.write(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
+    return EXIT_PASS if verdict.ok else EXIT_FAIL
 
 
 def run_sign(args: argparse.Namespace, settings: config.Settings) -> int:

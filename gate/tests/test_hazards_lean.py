@@ -12,6 +12,7 @@ import pytest
 from harness import GRAPH, TARGET
 
 from opn_gate import layout
+from opn_gate.steps.hazards import KNOWN_CHECKERS
 from opn_gate.toolchain import LocalToolchain, ResolvedToolchain
 
 pytestmark = pytest.mark.lean
@@ -116,6 +117,7 @@ def test_registry_lists_shipped_checkers(runner: Runner) -> None:
     ids = runner.all_checkers()
     assert ids == sorted(ids) and len(ids) == len(set(ids))
     assert {EXPECTED[stem]["finding"]["checker"] for stem in EXPECTED} == set(ids)
+    assert tuple(ids) == KNOWN_CHECKERS  # F02-R3: the Python registry cannot drift from Lean's
 
 
 def test_each_checker_fires_once(runner: Runner) -> None:

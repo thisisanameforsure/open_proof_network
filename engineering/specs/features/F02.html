@@ -99,7 +99,7 @@ step 6 and the <code>native_decide</code> amendment, D-8, D-15, D-29, D-34.</p>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1&ndash;T2 &#10003; 2026-09-09 · T3&ndash;T5 todo</div>
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1&ndash;T3 &#10003; 2026-09-09 · T4&ndash;T5 todo</div>
 
 <h2>Tasks</h2>
 <table>
@@ -111,7 +111,7 @@ step 6 and the <code>native_decide</code> amendment, D-8, D-15, D-29, D-34.</p>
     <td><code>gate/lean/OpnGate/Hazards/*.lean</code>, <code>gate/lean/OpnGate/Hazards.lean</code> (checkers may name their own location), <code>gate/lean/OpnGate/HazardsMain.lean</code>, <code>gate/lean/OpnGate.lean</code>, <code>gate/tests/fixtures/hazards/</code>, <code>gate/tests/test_hazards_lean.py</code></td>
     <td>T1</td><td><code>make verify-lean</code></td></tr>
   <tr><td>F02-T3</td><td><strong>Step 6, acknowledgments, <code>meta/v2</code>.</strong> Seam call, step, config check for checker ids, <code>opn-gate hazards</code> command, schema bump.</td>
-    <td><code>gate/opn_gate/steps/hazards.py</code>, <code>gate/opn_gate/toolchain.py</code>, <code>gate/opn_gate/cli.py</code>, <code>gate/schemas/meta/v2.json</code>, <code>gate/tests/test_hazards.py</code>, <code>gate/tests/test_schemas.py</code></td>
+    <td><code>gate/opn_gate/steps/hazards.py</code>, <code>gate/opn_gate/toolchain.py</code>, <code>gate/opn_gate/cli.py</code>, <code>gate/opn_gate/pipeline.py</code> (R3 guard before step 1; a pass may carry a record, R5), <code>gate/opn_gate/steps/base.py</code>, <code>gate/opn_gate/layout.py</code>, <code>gate/opn_gate/config.py</code>, <code>gate/schemas/meta/v2.json</code>, <code>gate/schemas/HASHES</code>, <code>gate/tests/fakes.py</code>, <code>gate/tests/test_hazards.py</code>, <code>gate/tests/test_schemas.py</code>, <code>gate/tests/test_hazards_lean.py</code> (registry cross-check)</td>
     <td>T1</td><td><code>uv run pytest gate/tests/test_hazards.py gate/tests/test_schemas.py</code></td></tr>
   <tr><td>F02-T4</td><td><strong><code>native_decide</code> waiver path.</strong> <code>waiver/v1</code> schema, conditional permitted path, step 5 waiver logic, post-merge approval line, <code>attestation/v2</code>.</td>
     <td><code>gate/schemas/waiver/v1.json</code>, <code>gate/schemas/attestation/v2.json</code>, <code>gate/opn_gate/paths.py</code>, <code>gate/opn_gate/steps/axioms.py</code>, <code>gate/opn_gate/postmerge.py</code>, <code>gate/tests/test_pipeline.py</code>, <code>gate/tests/test_paths.py</code>, <code>gate/tests/test_postmerge.py</code></td>
