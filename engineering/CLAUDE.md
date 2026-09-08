@@ -58,20 +58,26 @@ The law of the project:
 - `docs/architecture_decisions_v_3_10.html` — the protocol: every decision with its rationale and
   overturning condition, the stages, the glossary. Cite decisions by D-number.
 
-## Current state (2026-09-07)
+## Current state (2026-09-08)
 
-- Spec site scaffolded from the ordertime_plugin structure, then split: `engineering/` holds how
-  we build, `docs/` holds what is built. Constitution C1–C10 in force; conventions §1/§2 filled.
-- **Stack locked 2026-09-07** (conventions §1): Python 3.13 + uv, pytest/ruff/mypy, jsonschema;
-  gate on GitHub-hosted runners, api + MCP on Lambda, precheck as an Actions job in a scratch
-  repo, site on S3/CloudFront — "boxless" at Stage 0. Two mandatory test tiers (§2).
-- Decisions doc at v3.10: the network is two repositories (D-35) plus a disposable precheck
-  scratch repo. This repo is `network`; the graph repo `../open_proof_network_graph` exists as an
-  empty initial commit.
-- Stage 0 roadmap F00–F11 in `engineering/specs/index.html`, every feature specced 2026-09-07
-  (F07/F08 split submissions from proposals). Current feature: F00 (gate walking skeleton), no
-  task started. Later specs will need touch-ups as earlier features land; each carries the
-  protocol readings it relies on in its §9 so a drift is visible.
+- Stack locked 2026-09-07 (conventions §1): Python 3.13 + uv, pytest/ruff/mypy, jsonschema (+
+  pyyaml, F00 §8); gate on GitHub-hosted runners, api + MCP on Lambda, precheck as an Actions
+  job in a scratch repo, site on S3/CloudFront — "boxless" at Stage 0. Two test tiers:
+  `make verify` ~2 s, `make verify-lean` ~10 min (needs elan at `~/.elan` and docker).
+- Decisions doc at v3.10; Stage 0 roadmap F00–F11 in `engineering/specs/index.html`, all specced
+  2026-09-07. Later specs will need touch-ups as earlier features land; each carries the protocol
+  readings it relies on in its §9 so a drift is visible.
+- **F00 T1–T8 done 2026-09-08** (overnight autonomous session; read
+  `engineering/session-notes/2026-09-08-overnight.md` for the decisions and open items). The
+  gate runs as `gate/pregate.sh` locally, as `gate.yml` in the graph repo on hosted runners, and
+  as `gate/reproduce.sh` in the step-3 image; D-5 identical reproduction is tested. Lean pin
+  `leanprover/lean4:v4.33.1`; `leanchecker` ships inside it (F00-Q10).
+- **Graph repo seeded and live** (`thisisanameforsure/open_proof_network_graph`): schemas v1
+  frozen, `keys/gate.pub`, tutorial graph pinning this repo by commit, ruleset on `main` (gate
+  check + non-author review; admins and the post-merge deploy key bypass).
+- **T9 rehearsal in progress**: PR #2 on the graph repo proves the tutorial node with the
+  attestation attached and its gate run is green; the non-author approving review needs a second
+  GitHub identity.
 - No domain or DNS exists yet; the site ships on CloudFront's issued hostname (F04).
 
 ## Log
@@ -84,3 +90,12 @@ The law of the project:
 - 2026-09-07 — Specs F01–F11 surfaced seven protocol readings; Mike folded all into decisions
   v3.10 by survey rather than leaving them as §9 flags. Pattern to keep: when a spec cannot follow
   a decision as written, ask, then change the doc — a spec flag that outlives the session rots.
+- 2026-09-08 — Check upstream before building to a spec's named tool: lean4checker had been folded
+  into the toolchain as `leanchecker`, and `astral-sh/setup-uv` has no `v10` moving tag. Both cost
+  a cycle; both were caught by reading the README / tag list rather than assuming.
+- 2026-09-08 — The seam design paid off: the step-3 sandbox is `LocalToolchain` with one method
+  (`_exec`) overridden, and the docker tier reuses every pipeline test unchanged. Keep every
+  external boundary behind one hook.
+- 2026-09-08 — A pinned tooling commit is chicken-and-egg with the evidence for the commit that
+  pins it: seed/pin work needs two commits (code, then evidence). Expect the same at every
+  `gate-spec.json` re-pin.
