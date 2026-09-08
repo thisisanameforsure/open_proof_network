@@ -1,0 +1,18 @@
+# F00-T2 verification — $ make verify-lean — 2026-09-08T03:53:44Z — Darwin arm64, elan 4.2.4, leanprover/lean4:v4.33.1
+verify-lean: elan at /Users/mikehiggins/.elan/bin/elan
+uv run --frozen pytest -m "lean or docker"
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+testpaths: gate/tests, api/tests, site/tests
+collected 22 items / 19 deselected / 3 selected
+
+gate/tests/test_toolchain_lean.py ...                                    [100%]
+
+====================== 3 passed, 19 deselected in 47.97s =======================
+make verify-lean  38.82s user 1.49s system 83% cpu 48.291 total
+
+# R16 check — $ PATH=/usr/bin:/bin:~/.local/bin OPN_ELAN_HOME=/nonexistent make verify-lean
+verify-lean: elan not found on PATH or at /nonexistent/bin/elan. The pinned Lean toolchain is installed by gate/scripts/install-toolchain.sh (it never edits your shell config; set OPN_ELAN_HOME if elan lives elsewhere).
+make: *** [test-lean] Error 1

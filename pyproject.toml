@@ -54,6 +54,7 @@ known-first-party = ["opn_gate", "opn_api", "opn_site"]
 
 [tool.ruff.lint.per-file-ignores]
 "*/tests/**" = ["PLR0913", "S108", "S404"]
+"gate/opn_gate/toolchain.py" = ["PLR0913"]  # seam methods mirror CLI invocations
 
 [tool.mypy]
 strict = true

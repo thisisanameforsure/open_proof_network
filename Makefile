@@ -29,6 +29,7 @@ test-fast: sync
 	$(UV) run --frozen pytest -m "$(FAST_MARKERS)"
 
 test-lean: sync
+	@PYTHONPATH=gate $(UV) run --frozen python -m opn_gate.toolchain --require
 	$(UV) run --frozen pytest -m "$(LEAN_MARKERS)"
 
 verify: lint types test-fast

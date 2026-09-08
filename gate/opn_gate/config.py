@@ -99,3 +99,15 @@ def load(environ: dict[str, str] | None = None) -> Settings:
         gate_signing_key=env.get("OPN_GATE_SIGNING_KEY") or None,
         precheck_signing_key=env.get("OPN_PRECHECK_SIGNING_KEY") or None,
     )
+
+
+def child_environment(extra: dict[str, str] | None = None) -> dict[str, str]:
+    """A copy of the process environment for a child process, plus ``extra``.
+
+    The toolchain seam passes this to ``subprocess`` so elan finds its home; the gate never reads
+    a value from it here. This is the second and last place the module touches ``os.environ``.
+    """
+    merged = dict(os.environ)
+    if extra:
+        merged.update(extra)
+    return merged
