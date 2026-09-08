@@ -7,8 +7,10 @@ requires-python = "==3.13.*"
 license = "Apache-2.0"
 # Runtime dependencies. Each package here needs a C5 justification in a spec:
 #   jsonschema — conventions §1 (protocol schemas are JSON Schema 2020-12, D-34).
+#   pyyaml     — F00 §8 (META.yaml is YAML by D-3; the stdlib has no parser).
 dependencies = [
     "jsonschema==4.26.0",
+    "pyyaml==6.0.3",
 ]
 
 [dependency-groups]
@@ -63,3 +65,9 @@ python_version = "3.13"
 mypy_path = "gate:gate/tests:api:api/tests:site:site/tests"
 explicit_package_bases = true
 warn_unreachable = true
+
+[[tool.mypy.overrides]]
+# Neither jsonschema nor PyYAML ships stubs; adding the two stub packages would be two more
+# dependencies (C5). opn_gate.schemas is the only importer and types its results itself.
+module = ["jsonschema", "yaml"]
+ignore_missing_imports = true

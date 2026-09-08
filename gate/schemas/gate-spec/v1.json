@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/gate-spec/v1.json",
+  "title": "gate-spec/v1",
+  "description": "Per-graph gate configuration (D-28 contents, D-35 pin; key names fixed by F00-Q2). Versioned, never edited (D-34): a key rename is v2.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "graph_id",
+    "lean_toolchain",
+    "mathlib_sha",
+    "axiom_allowlist",
+    "hazard_checkers",
+    "olean_cache_url",
+    "devcontainer_ref",
+    "network_commit",
+    "step3_caps",
+    "accepted_precheck_signatures",
+    "precheck_max_age_s",
+    "gate_owner"
+  ],
+  "properties": {
+    "schema": { "const": "gate-spec/v1" },
+    "graph_id": { "$ref": "#/$defs/identifier" },
+    "lean_toolchain": {
+      "type": "string",
+      "description": "elan toolchain name, e.g. leanprover/lean4:v4.33.1 (D-4 step 1, D-7)",
+      "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+:[A-Za-z0-9_.+-]+$"
+    },
+    "mathlib_sha": {
+      "description": "Pinned Mathlib commit; null for a Mathlib-free graph (D-7)",
+      "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/sha1" }]
+    },
+    "axiom_allowlist": {
+      "type": "array",
+      "description": "Every axiom a proof may rest on (D-4 step 5)",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "hazard_checkers": {
+      "type": "array",
+      "description": "Checker ids enabled for step 6 (F02); empty at F00",
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+      "uniqueItems": true
+    },
+    "olean_cache_url": { "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^https://" }] },
+    "devcontainer_ref": { "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1 }] },
+    "network_commit": {
+      "description": "The network repo commit whose gate runs on this graph (D-35)",
+      "$ref": "#/$defs/sha1"
+    },
+    "step3_caps": {
+      "type": "object",
+      "description": "Resource caps for the isolated build (D-4 step 3; C6)",
+      "additionalProperties": false,
+      "required": ["cpu", "memory_mib", "wallclock_s"],
+      "properties": {
+        "cpu": { "type": "number", "exclusiveMinimum": 0 },
+        "memory_mib": { "type": "integer", "minimum": 1 },
+        "wallclock_s": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "accepted_precheck_signatures": {
+      "type": "array",
+      "description": "Signature kinds the gate accepts on an attached precheck attestation (D-4)",
+      "items": { "enum": ["service", "contributor", "none"] },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "precheck_max_age_s": { "type": "integer", "minimum": 1 },
+    "gate_owner": { "type": "string", "minLength": 1, "description": "The gate's named owner (D-4)" }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "sha1": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+  }
+}
