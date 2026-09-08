@@ -32,6 +32,12 @@ KEEP_FILE = ".gitkeep"
 META_SCHEMAS: tuple[str, ...] = ("meta/v1",)
 
 _THEOREM_RE = re.compile(r"^(?:theorem|lemma)\s+(?P<name>[^\s:({\[]+)", re.M)
+_IMPORT_RE = re.compile(r"^import\s+(?P<module>\S+)", re.M)
+
+#: Module-name contract (F01-Q2): where a constant lives says what it is.
+LIBRARY_PREFIXES: tuple[str, ...] = ("Init", "Std", "Lean", "Mathlib", "Batteries", "Aesop")
+DEFS_PREFIX = "Defs"
+NODES_PREFIX = "Nodes"
 _NAMESPACE_RE = re.compile(r"^(namespace|end)\s+(?P<name>\S+)\s*$", re.M)
 _SORRY_BODY_RE = re.compile(r":=\s*(?:by\s+)?sorry\b")
 
@@ -95,6 +101,53 @@ def parse_statement(text: str) -> Statement | Diagnostic:
     )
 
 
+def node_module(node_id: str, file_stem: str) -> str:
+    """The module name of ``nodes/<node_id>/<file_stem>.lean``: ``Nodes.«<id>».<stem>``."""
+    return f"{NODES_PREFIX}.«{node_id}».{file_stem}"
+
+
+def module_origin(module: str) -> tuple[str, str | None]:
+    """Classify a module name (F01-Q2): ``("library"|"defs"|"node"|"other", node_id)``."""
+    head, _, rest = module.partition(".")
+    if head in LIBRARY_PREFIXES:
+        return "library", None
+    if head == DEFS_PREFIX:
+        return "defs", None
+    if head == NODES_PREFIX and rest:
+        node_id = rest.split(".", 1)[0].strip("«»")
+        return "node", node_id
+    return "other", None
+
+
+def imports_of(text: str) -> list[str]:
+    return [m.group("module") for m in _IMPORT_RE.finditer(text)]
+
+
+def check_imports(node_dir: Path, node_id: str) -> list[Diagnostic]:
+    """Every import in a node file must be library, ``Defs.*``, or the node's own Context."""
+    found: list[Diagnostic] = []
+    own_context = node_module(node_id, "Context")
+    for name in ("Statement.lean", "Proof.lean", "Witness.lean", "Context.lean"):
+        path = node_dir / name
+        if not path.is_file():
+            continue
+        for module in imports_of(path.read_text(encoding="utf-8")):
+            kind, _ = module_origin(module)
+            allowed = kind in ("library", "defs") or (
+                name != "Context.lean" and module == own_context
+            )
+            if not allowed:
+                found.append(
+                    Diagnostic(
+                        "import-forbidden",
+                        f"{name} imports {module}; allowed: library modules, Defs.*"
+                        + ("" if name == "Context.lean" else f", {own_context}"),
+                        {"file": name, "module": module},
+                    )
+                )
+    return found
+
+
 def validate_node(node_dir: Path) -> list[Diagnostic]:
     """Every layout problem with ``node_dir``, or ``[]`` when it is a valid D-3 node."""
     if not node_dir.is_dir():
@@ -122,6 +175,7 @@ def validate_node(node_dir: Path) -> list[Diagnostic]:
         for name in sorted(entries)
         if name not in known and name != KEEP_FILE
     )
+    found.extend(check_imports(node_dir, node_dir.name))
     return found
 
 

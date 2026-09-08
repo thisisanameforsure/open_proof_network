@@ -1,0 +1,14 @@
+{
+  "and-reassoc": {
+    "decl": "OpnProp.and_reassoc",
+    "expected": "∃ p q r, (p ∧ q) ∧ r"
+  },
+  "and-swap-reassoc": {
+    "decl": "OpnProp.and_swap_reassoc",
+    "expected": "∃ p q r, (p ∧ q) ∧ r"
+  },
+  "tutorial-and-swap": {
+    "decl": "OpnProp.and_swap",
+    "expected": "∃ p q, p ∧ q"
+  }
+}

@@ -2,7 +2,7 @@ schema: meta/v1
 id: and-swap-reassoc
 status: blocked
 deps: [tutorial-and-swap, and-reassoc]
-statement-hash: 96d888113b7c5cc4863fe23d79aebdbb84df1bcc7d63bbc667ed166564c5a96b
+statement-hash: 1fd9af9053c56877f4e7ec2ad69aa16602d39e826259da3878a8cc30a3b6791c
 origin: authored
 provenance:
   author: thisisanameforsure

@@ -142,6 +142,7 @@ def test_step2_failures_from_content(tmp_path: Path) -> None:
     assert verdict.diagnostic is not None and verdict.diagnostic.code == "proof-not-statement"
 
     ctx = make_context(tmp_path / "b", node_id="and-reassoc")
+    (node_dir(ctx) / "Proof.lean").unlink()
     verdict = pipeline.run_steps(ctx)
     assert verdict.first_failing_step == 2
     assert verdict.diagnostic is not None and verdict.diagnostic.code == "proof-missing"

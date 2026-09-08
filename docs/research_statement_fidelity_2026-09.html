@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Statement Fidelity — Autoformalization and Faithfulness Checking, 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1A2129; --ink-soft:#4A5561; --paper:#FAFAF9;
+  --teal:#0E6363; --teal-ink:#0A4A4A; --hair:#DDDAD2;
+  --amber:#8F6A1E; --card:#FFFFFF;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --serif:"Source Serif 4",Georgia,serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);
+  font-size:17px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:1fr;gap:0}
+@media(min-width:1100px){.wrap{grid-template-columns:230px minmax(0,72ch);gap:56px}}
+header.site{border-top:3px solid var(--teal);border-bottom:1px solid var(--hair);padding:44px 20px 30px}
+header.site .in{max-width:1180px;margin:0 auto}
+header.site h1{font-size:30px;line-height:1.2;margin:0 0 8px;font-weight:700;letter-spacing:-.01em}
+header.site .sub{color:var(--ink-soft);font-size:16px;max-width:64ch;margin:0}
+header.site .meta{font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);margin-top:14px;max-width:96ch}
+header.site .meta b{color:var(--teal-ink);font-weight:600}
+
+main{padding:34px 0 90px;min-width:0}
+h2{font-size:22px;margin:2.4em 0 .7em;padding-top:.9em;border-top:1px solid var(--hair);letter-spacing:-.005em}
+h2:first-of-type{border-top:none;padding-top:0;margin-top:.6em}
+h2 .sn{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--teal-ink);
+  border:1px solid var(--teal);border-radius:3px;padding:1px 6px;margin-right:9px;
+  vertical-align:3px;white-space:nowrap}
+h3{font-size:17.5px;margin:2em 0 .55em}
+h4{font-size:16px;margin:1.6em 0 .4em}
+p,li{max-width:72ch}
+a{color:var(--teal);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2.5px}
+a:hover{color:var(--teal-ink)}
+strong{font-weight:600}
+em{font-style:italic}
+code{font-family:var(--mono);font-size:.85em;background:#F1EFEA;border-radius:3px;padding:.08em .3em}
+pre{background:#F1EFEA;border:1px solid var(--hair);border-radius:4px;padding:14px 16px;
+  overflow-x:auto;font-size:13.5px;line-height:1.5}
+pre code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.2em 1em;border-left:3px solid var(--hair);color:var(--ink-soft)}
+hr{border:none;border-top:1px solid var(--hair);margin:2.6em 0}
+.tw{overflow-x:auto;margin:1.2em 0}
+table{border-collapse:collapse;font-size:15px;width:100%}
+th,td{border-bottom:1px solid var(--hair);padding:8px 12px 8px 0;text-align:left;vertical-align:top}
+th{font-weight:600;font-size:13.5px;color:var(--ink-soft);border-bottom:2px solid var(--ink)}
+td code,th code{font-size:.9em}
+td.num{font-family:var(--mono);font-size:13.5px;white-space:nowrap}
+ul,ol{padding-left:1.4em}
+li{margin:.35em 0}
+li::marker{color:var(--ink-soft)}
+
+/* rationale / evidence / bearing notes */
+p.note{font-size:15px;color:var(--ink-soft);border-left:2px solid var(--hair);
+  padding:.15em 0 .15em 14px;margin:.9em 0}
+p.note em{color:var(--teal-ink);font-style:normal;font-weight:600;font-size:13.5px}
+p.note.warn{border-left-color:var(--amber)}
+p.note.warn em{color:var(--amber)}
+
+/* decision reference chip */
+.dref{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--teal-ink);
+  border:1px solid var(--hair);border-radius:3px;padding:1px 5px;white-space:nowrap;
+  text-decoration:none}
+.dref:hover{border-color:var(--teal)}
+
+/* confidence chips */
+.cf{font-family:var(--mono);font-size:11px;font-weight:600;border-radius:3px;
+  padding:1px 6px;white-space:nowrap;border:1px solid var(--hair);color:var(--ink-soft)}
+.cf-hi{border-color:var(--teal);color:var(--teal-ink)}
+.cf-lo{border-color:var(--amber);color:var(--amber)}
+
+/* collapsed detail */
+details.more{margin:.9em 0 1.4em;border-left:2px solid var(--hair);padding-left:14px;max-width:72ch}
+details.more>summary{cursor:pointer;list-style:none;font-family:var(--mono);font-size:12.5px;color:var(--teal-ink);font-weight:600;
+  padding:2px 0;user-select:none;display:flex;gap:10px;align-items:baseline}
+details.more>summary::-webkit-details-marker{display:none}
+details.more>summary::before{content:"\25B8";font-size:11px;color:var(--teal)}
+details.more[open]>summary::before{content:"\25BE"}
+details.more>summary .tags{font-weight:400;color:var(--ink-soft)}
+details.more[open]>summary{margin-bottom:.4em}
+details.more p,details.more li{max-width:70ch}
+.xall{font-family:var(--mono);font-size:12px;margin-top:8px}
+.xall button{font:inherit;color:var(--teal);background:none;border:1px solid var(--hair);border-radius:3px;padding:2px 8px;cursor:pointer;margin-right:6px}
+.xall button:hover{border-color:var(--teal)}
+@media print{details.more{border-left:none;padding-left:0}details.more>summary{display:none}}
+
+/* struck-through refuted claims */
+.refuted{color:var(--ink-soft)}
+.refuted .rc{display:block;font-size:15px}
+.refuted .rv{font-family:var(--mono);font-size:12px;color:var(--amber)}
+
+/* heading permalinks */
+.hl{margin-left:8px;font-size:.75em;color:var(--hair);text-decoration:none;opacity:0}
+h2:hover .hl,h3:hover .hl,.hl:focus-visible{opacity:1;color:var(--teal)}
+
+/* left rail */
+.rail{display:none}
+@media(min-width:1100px){
+  .rail{display:block;position:sticky;top:26px;align-self:start;max-height:calc(100vh - 52px);
+    overflow-y:auto;padding:34px 0 40px;font-size:13px;scrollbar-width:thin}
+  .rail a{text-decoration:none;display:block;color:var(--ink-soft);margin:5px 0}
+  .rail a:hover{color:var(--teal-ink)}
+  .rail .rh{font-weight:600;color:var(--ink);margin:14px 0 4px;font-size:12.5px}
+  .rail .rh:first-child{margin-top:0}
+}
+footer{border-top:1px solid var(--hair);color:var(--ink-soft);font-size:13.5px;
+  padding:20px;text-align:left}
+footer .in{max-width:1180px;margin:0 auto}
+</style>
+</head>
+<body>
+<header class="site"><div class="in">
+  <h1>Statement Fidelity: Autoformalization and Faithfulness Checking</h1>
+  <p class="sub">What the 2025–2026 literature establishes about turning a natural-language mathematical statement into Lean 4, and about deciding whether the Lean statement means what the informal one meant. Evidence only — no decisions.</p>
+  <p class="meta"><b>Research note</b> · 2026-09-08 · extends <b>Harness_Architectures_research_v2.md §3</b> (the fidelity section) with the 2026 autoformalization literature · <b>subordinate to <a href="architecture_decisions_v_3_11.html">architecture_decisions_v_3_11.html</a></b> — where this note and the decisions disagree, the decisions govern · this note has no authority and overturns nothing; §5 flags where the evidence bears on a decision, for the doc's own process to act on</p>
+  <p class="xall"><button data-x="1">Expand all detail</button><button data-x="0">Collapse all</button></p>
+</div></header>
+<div class="wrap">
+<nav class="rail" aria-label="Sections">
+  <a class="rh" href="#method">Method and provenance</a>
+  <a href="#s1">§1 The compile–fidelity gap</a>
+  <a href="#s2">§2 Generation: the state of the art</a>
+  <a href="#s3">§3 The four checker families</a>
+  <a href="#s4">§4 Defect classes and detectors</a>
+  <a href="#s5">§5 Bearing on the decisions</a>
+  <a href="#s6">§6 Refuted — do not cite</a>
+  <a href="#s7">§7 Caveats on this evidence</a>
+  <a href="#s8">§8 Open questions</a>
+  <a href="#sources">Sources</a>
+</nav>
+
+<main>
+
+<h2 id="method"><span class="sn">Method</span>Method and provenance<a class="hl" href="#method" aria-label="Link to this section">§</a></h2>
+
+<p>Produced 2026-09-08 by a fan-out research harness: the question was decomposed into five angles, searched in parallel, and 20 sources were fetched and read in full. One hundred falsifiable claims were extracted and the top 25 put through three-vote adversarial verification, where a claim dies on two refutations. Seventeen survived; eight were killed and are recorded in <a href="#s6">§6</a> so they are not cited by mistake.</p>
+
+<p class="note"><em>Why this shape:</em> the field's headline numbers are mostly self-reported by a system's own authors, on benchmarks those authors also built, and scored by an LLM judge rather than a human. Adversarial verification does not repair that, but it does separate what a paper's tables actually say from what its abstract implies. Confidence chips below are the harness's, after verification.</p>
+
+<p>Every claim in §1–§4 carries a confidence chip: <span class="cf cf-hi">high</span> means multiple independent groups and at least one peer-reviewed anchor, <span class="cf">medium</span> means verified against a primary table but single-source or self-reported, <span class="cf cf-lo">low</span> means the source itself is weak and the number should not be relied on.</p>
+
+<h2 id="s1"><span class="sn">§1</span>The compile–fidelity gap<a class="hl" href="#s1" aria-label="Link to this section">§</a></h2>
+
+<p><strong>A Lean statement that compiles is roughly three-quarters likely to mean what was intended, and more sampling does not help.</strong> <span class="cf cf-hi">high</span> Five independent groups report the same gap between compilation rate and semantic faithfulness, measured on different benchmarks with different judges.</p>
+
+<div class="tw"><table>
+<thead><tr><th>System and benchmark</th><th>Compiles</th><th>Faithful</th><th>Gap</th></tr></thead>
+<tbody>
+<tr><td>Aria — ProofNet</td><td class="num">91.6%</td><td class="num">68.5%</td><td class="num">23.1 pp</td></tr>
+<tr><td>Goedel-Formalizer-V2 pass@128 — FATE-X</td><td class="num">63%</td><td class="num">24.0%</td><td class="num">39 pp</td></tr>
+<tr><td>MathForm-8B pass@8 — own suite</td><td class="num">88.1%</td><td class="num">72.4%</td><td class="num">15.7 pp</td></tr>
+<tr><td>Kimina autoformalizer — in-house</td><td class="num">90%</td><td class="num">66%</td><td class="num">24 pp</td></tr>
+<tr><td>GPT-5.2 tool agent — 400 graduate statements</td><td class="num">89.5%</td><td class="num">60.5%</td><td class="num">29.0 pp</td></tr>
+<tr><td>Claude Code (Opus 4.8) + Numina-Lean-Agent — ShadowBench</td><td class="num">61.8%</td><td class="num">11.2%</td><td class="num">50.6 pp</td></tr>
+</tbody></table></div>
+
+<p>Two structural findings matter more than any single row.</p>
+
+<p><strong>The gap does not close with sampling.</strong> Goedel-V2 on FATE-X raises compilation from 37% to 63% going from pass@16 to pass@128, while faithful accuracy stays at 24%. Extra samples buy syntactic admissibility, not meaning. Across eight systems on 400 graduate-level statements, every single one shows a gap, ranging from 3.0 to 29.0 percentage points.</p>
+
+<p><strong>Compilation is a poor ranking signal too.</strong> At benchmark level, type-check rate tracks human-judged accuracy at only Pearson <em>r</em> = 0.655 (Kendall <em>τ</em> = 0.560), against <em>r</em> = 0.974 (<em>τ</em> = 0.872) for proved bidirectional equivalence. Choosing between two formalization pipelines on compile rate will pick the wrong one often enough to matter.</p>
+
+<p class="note"><em>Corroboration:</em> Kimina's authors state the failure directly — the model "would repeatedly make mistakes that the LLM judge model cannot catch, as long as it passed compilation." The mechanism is that the elaborator checks well-typedness, and a misformalization is usually well-typed.</p>
+
+<details class="more"><summary>Sources and the honest reading of the gap <span class="tags">verified 3–0</span></summary>
+<p>Aria (arXiv 2510.04520, ICLR 2026), MathForm (arXiv 2608.14221), Kimina-Prover (arXiv 2504.11354), Beyond Compilation (arXiv 2606.31002), BEq+/ProofNet# (arXiv 2406.07222, EMNLP 2025), ShadowBench (arXiv 2608.29270).</p>
+<p>The exact size of the gap in any one study conflates genuine unfaithfulness with judge false negatives — AriaScorer at its strict threshold rejects roughly one in five correct statements — so the per-row magnitudes are not comparable across papers. The direction is unanimous and the papers run through September 2026. The Beyond Compilation gap is partly human-audited: 95 of 114 rejected compile-passing cases were confirmed genuine mismatches on manual review.</p>
+</details>
+
+<h2 id="s2"><span class="sn">§2</span>Generation: the state of the art<a class="hl" href="#s2" aria-label="Link to this section">§</a></h2>
+
+<p><strong>The winning architecture is retrieval-augmented and compiler-in-the-loop: look up the Mathlib definitions of the concepts in play, generate, compile, read the error, revise.</strong> <span class="cf">medium</span> This is not a modelling insight so much as a plumbing one, and it transfers across base models.</p>
+
+<div class="tw"><table>
+<thead><tr><th>System</th><th>Approach</th><th>Reported result</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td><strong>Aria</strong></td><td>Graph-of-Thought planner, LeanSearch Mathlib retrieval, compiler reflection</td><td class="num">68.5% ProofNet · 71.0% FATE-H · 44.0% FATE-X · 6/14 real homological conjectures</td><td>ICLR 2026, peer-reviewed</td></tr>
+<tr><td><strong>MathForm-8B</strong></td><td>Knowledge retrieval, verification-guided refinement</td><td class="num">72.4% consistency pass@8, vs 68.4% ReForm-32B, 63.7% Goedel-V2-32B, 34.4% Kimina-7B</td><td>preprint, weeks old</td></tr>
+<tr><td><strong>CRAMF</strong></td><td>Concept-driven retrieval bolted onto an existing formalizer</td><td class="num">up to +62.1% relative, +29.9% average, across seven base models</td><td>preprint</td></tr>
+<tr><td><strong>Kimina</strong></td><td>Expert iteration, production filters</td><td class="num">90% compile / 66% judged</td><td>technical report</td></tr>
+</tbody></table></div>
+
+<p>The Aria conjecture column is the one worth dwelling on. On 14 real homological-algebra conjectures — the closest published analogue to this network's intake — Aria formalizes 6, while Gemini-2.5-Pro, Goedel-V2-32B, Kimina-7B and Herald all score zero. Research-level statements are a different regime from competition and textbook ones, and most published numbers come from the easier regime.</p>
+
+<p class="note warn"><em>Read as ranking, not as accuracy:</em> every faithfulness number in this table is LLM-judged. Most are self-reported by the system's authors on benchmarks they co-created — FATE-H and FATE-X share authors with Aria, AdvancedMath is CRAMF's own. Only Aria is peer-reviewed, and only its 14-conjecture column was manually verified. Kimina's judge prompt was tuned on the same test set it scores.</p>
+
+<h2 id="s3"><span class="sn">§3</span>The four checker families<a class="hl" href="#s3" aria-label="Link to this section">§</a></h2>
+
+<p>Four distinct approaches exist for deciding whether a Lean statement faithfully renders an informal one. They differ in soundness, in what they need as input, and in how badly they fail.</p>
+
+<div class="tw"><table>
+<thead><tr><th>Family</th><th>Reliability</th><th>Needs</th><th>Fails by</th></tr></thead>
+<tbody>
+<tr><td><strong>Back-translation + LLM judge</strong><br>Lean → informal → compare</td><td class="num">~⅓ false positives<br>13.5% recall on research-level<br>F1 0.66 on DriftBench</td><td>nothing</td><td>passing wrong statements on easy material; rejecting correct rephrasings on hard material</td></tr>
+<tr><td><strong>Definition-grounded LLM judge</strong><br>inject Mathlib definitions of every term</td><td class="num">89.9% accuracy<br>93.5% F1 (n=69)<br>89.7% human agreement (n=400)</td><td>Mathlib definition lookup</td><td>~1 verdict in 10; conservative, non-negligible false negatives</td></tr>
+<tr><td><strong>Bidirectional equivalence proving</strong><br>prove each implication in Lean</td><td class="num">98.0% precision<br>48.3% recall<br>29.6% recall on long statements</td><td><strong>a trusted reference formalization</strong></td><td>silence — most true equivalences are not provable by the tactic budget</td></tr>
+<tr><td><strong>Provability fingerprinting</strong><br>probe with counterfactual lemmas</td><td class="num">89.6% at 3% FPR <span class="cf cf-lo">low</span></td><td>prover budget per probe</td><td>convention drift is invisible — every probe answers identically</td></tr>
+</tbody></table></div>
+
+<h3 id="s3-bt">Back-translation is the field's default and the field's weakest link <span class="cf cf-hi">high</span></h3>
+
+<p>The standard pipeline — compile in the Lean REPL, have a model translate the Lean back to English, have a second model judge entailment — is what Herald uses and what CRAMF adopts wholesale as its reported metric, explicitly because manual assessment was "impractical." Human audit of Herald outputs that <em>passed</em> this check found 101 of 151 fully correct, with 24 minor and 26 major errors: about a third of passes are wrong. In the other direction, on research-level FATE-X a back-translation checker scored 33.3% accuracy and 13.5% recall, rejecting 45 of 52 correct formalizations, because it demands near-textual agreement that a faithful-but-restructured formalization will not produce.</p>
+
+<p class="note"><em>Consequence:</em> a checker that is both permissive on easy statements and hostile on hard ones is close to the worst possible profile for an open-problem network, whose intake is by construction the hard end.</p>
+
+<h3 id="s3-grounded">Grounding a judge in Mathlib definitions is what makes it work <span class="cf">medium</span></h3>
+
+<p>AriaScorer decomposes the informal statement into subtasks and injects the Mathlib definition of every Lean term appearing in the candidate — terms extracted by static analysis, definitions looked up in an informalized-Mathlib dataset. Against expert labels it reaches 89.9% accuracy, 90.9% precision, 96.2% recall, 93.5% F1, against 76.8% for the same base model ungrounded and 71.0–73.9% for a re-implemented ungrounded competitor. An independent study using a calibrated two-judge consensus plus compilation reports 89.7% agreement with human majority on 400 graduate-level statements.</p>
+
+<p>Two groups landing near 90% by different routes suggests that is roughly the current ceiling for LLM judging, and that the lever is <em>term grounding</em> rather than model choice. It also means one verdict in ten is wrong, which is not a rate at which a statement about an open problem should be accepted.</p>
+
+<details class="more"><summary>Why the AriaScorer number is medium, not high <span class="tags">n=69</span></summary>
+<p>Sample of 69, class-imbalanced at 52 correct to 17 flawed, drawn only from the authors' own system's outputs, ground truth from one algebra PhD candidate with a second expert verifying. The competitor baseline is a re-implementation by the people proposing the winner. The independent 400-statement study supports the ~90% figure but describes its own judge as conservative with non-negligible false negatives.</p>
+</details>
+
+<h3 id="s3-beq">Proved equivalence is the only sound check, and it is half-blind <span class="cf cf-hi">high</span></h3>
+
+<p>BEq+ attempts a Lean proof of each implication direction between a reference statement and a candidate, using <code>exact?</code>, then <code>apply</code>/<code>convert</code>, then <code>tauto</code>, <code>simp_all_arith!</code> and <code>noncomm_ring</code> fallbacks. On 3,752 human-labelled pairs it achieves 98.0% precision at 48.3% recall. A positive verdict is trustworthy; a negative one means only that the tactics failed. Recall falls to 29.6% once the reference statement exceeds 165 characters, which is most interesting statements.</p>
+
+<p>The authors also document and fix a false-positive class worth knowing about: an implication that is trivially provable for degenerate reasons, of the shape <code>(p : Prop) (h : p) : p</code>. Any equivalence checker built here needs that guard on by default.</p>
+
+<p class="note warn"><em>The binding constraint:</em> BEq+ compares a candidate to a <em>reference</em>. A genuinely open problem has no reference formalization — that is what makes it open. The check becomes available only when two or more independent formalizations of the same statement exist, and then it compares them to each other rather than to truth.</p>
+
+<h3 id="s3-probe">Probe-based fingerprinting is promising and not yet citable <span class="cf cf-lo">low</span></h3>
+
+<p>Bidirectional Provability Fingerprinting with Counterfactual Probe Generation reports detecting 89.6% of drifted formalizations at a 3.0% false-positive rate, against 41.2% for provability checks, 11.4% for type-checking alone and 63.3% for an LLM judge. The source is an unrefereed workshop preprint with a dead code URL, template-placeholder references, synthetic drift labels on its headline split, and one dissenting verifier vote. <strong>The detection numbers should not be relied on.</strong></p>
+
+<p>Two things in it survive independent of its numbers, because they are architectural arguments rather than measurements. First, provability probes are constitutionally blind to <em>convention drift</em> — formalizing a group as a <code>Monoid</code>, or a <code>Set</code> where a <code>Finset</code> was meant — because every probe responds identically on both readings; catching it needs a structural comparison of type signatures. Second, the authors calibrate their score into accept, review and reject bands and argue the tool must be deployed to <em>prioritize</em> expert review rather than replace it. Both points are consistent with the rest of the literature.</p>
+
+<h3 id="s3-human">Human curation is itself a ~30%-error process <span class="cf cf-hi">high</span></h3>
+
+<p>Of 371 entries in the original Lean 4 ProofNet ports, 118 — <strong>31.8%</strong> — carried formalization errors: missing or extra hypotheses, wrong implicit types (natural-number arithmetic silently making 3/2 = 1), parenthesization errors inside quantified formulas, and instances or definitions not carrying the intended semantics. These were found by one annotator over roughly 200 hours in three passes, and corrected in ProofNet#.</p>
+
+<p class="note"><em>Bearing:</em> this is expert-written, published, widely-used benchmark material. It is the strongest available evidence that a single reviewer, however careful, is not a sufficient fidelity check — and it is measured on <em>textbook</em> statements, easier than anything this network will intake.</p>
+
+<h2 id="s4"><span class="sn">§4</span>Defect classes and what detects them<a class="hl" href="#s4" aria-label="Link to this section">§</a></h2>
+
+<p>Mapping the new evidence onto the defect taxonomy already fixed by <a class="dref" href="architecture_decisions_v_3_11.html#d-11">D-11</a> and <a class="dref" href="architecture_decisions_v_3_11.html#d-16">D-16</a>. The taxonomy needs no change; what follows is which detector covers which row, and where the coverage is empty.</p>
+
+<div class="tw"><table>
+<thead><tr><th>Class</th><th>Kernel / elaborator</th><th>Best mechanical detector</th><th>Residual</th></tr></thead>
+<tbody>
+<tr><td><strong>Missing hypothesis</strong></td><td>blind</td><td>proved equivalence against a second formalization; grounded judge</td><td>high without a reference</td></tr>
+<tr><td><strong>Junk values</strong></td><td>blind</td><td>grounded judge on the type of each operation; numerical spot-check</td><td>the ℕ-division case is the canonical miss</td></tr>
+<tr><td><strong>Vacuity</strong></td><td>blind</td><td><strong>witness, plus proving <code>False</code> from the hypotheses</strong></td><td>low — this class is mechanically tractable</td></tr>
+<tr><td><strong>Quantifier scope</strong></td><td>blind</td><td>grounded judge; proved equivalence</td><td>high — a parenthesization error type-checks cleanly</td></tr>
+<tr><td><strong>Wrong domain</strong></td><td>partial</td><td><strong>structural type-signature comparison</strong></td><td>convention drift is invisible to probes and to provability</td></tr>
+<tr><td><strong>Definition mismatch</strong></td><td>blind</td><td><strong>definition-grounded judging</strong> — inject the Mathlib definition of every term</td><td>this is precisely what grounding was built for</td></tr>
+<tr><td><strong>Strength drift</strong><br><span style="font-size:13.5px;color:var(--ink-soft)">(the <a class="dref" href="architecture_decisions_v_3_11.html#d-9">D-9</a> named residual)</span></td><td>blind</td><td><strong>bidirectional equivalence — one direction proves, the other does not</strong></td><td>directly and soundly detectable, given a second formalization</td></tr>
+</tbody></table></div>
+
+<p>Three of these are worth calling out because the evidence changes what is possible.</p>
+
+<p><strong>Vacuity is the cheapest win and is already deployed elsewhere.</strong> Kimina's production pipeline added exactly this family of filters: contradiction detection, attempting to prove the negation, triviality detection, and a post-hoc judge asking whether a proof merely exploited a formalization mistake. The network's non-vacuity witness requirement is the same instinct, arrived at independently, and the literature confirms it is the right one.</p>
+
+<p><strong>Strength drift has a sound mechanical test.</strong> Bidirectional equivalence proving fails asymmetrically on exactly this defect: if the candidate is strictly weaker than the reference, one implication proves and the other does not. That asymmetry <em>is</em> the drift signal, and it is a kernel-checked exhibit rather than a judgement — which makes it the right shape for a <a class="dref" href="architecture_decisions_v_3_11.html#d-16">D-16</a> defect claim.</p>
+
+<p><strong>Quantifier scope has no good automated detector.</strong> It type-checks, it survives back-translation because the English renders almost identically, and it is only reliably caught by a human or by equivalence against a correct reference. It was one of the classes found in the ProofNet audit. This is the class to weight most heavily in canary seeding.</p>
+
+<p class="note warn"><em>Gap in the evidence:</em> no surviving claim reports precision or recall for the cheap soundness screens — negation, <code>False</code>-from-hypotheses, triviality — as stand-alone filters, despite Kimina running them in production. See <a href="#s8">§8</a>.</p>
+
+<h2 id="s5"><span class="sn">§5</span>Bearing on the decisions<a class="hl" href="#s5" aria-label="Link to this section">§</a></h2>
+
+<p>This note decides nothing. What follows is where the evidence touches a frozen decision, marked as confirming, as filling in detail, or — in one case — as grounds for an amendment the decisions doc's own process would have to make.</p>
+
+<h3 id="b-d15">Confirms <a class="dref" href="architecture_decisions_v_3_11.html#d-15">D-15</a> and <a class="dref" href="architecture_decisions_v_3_11.html#d-17">D-17</a>: human sign-off stays</h3>
+<p>D-15's overturning condition is "automated fidelity checking becomes good enough to carry interior nodes." As of September 2026 it is not, and the ceiling is legible: the best grounded LLM judges sit near 90% accuracy on textbook and graduate material, the only sound check has under 50% recall and needs a reference, and every paper that proposes a checker positions it as triage in front of expert review rather than as a replacement. D-15 and D-17 stand unchanged, and now carry a dated measurement of how far the automation is from the bar.</p>
+
+<h3 id="b-d11">Confirms <a class="dref" href="architecture_decisions_v_3_11.html#d-11">D-11</a>, and suggests unequal canary weighting</h3>
+<p>The six canary classes survive contact with the 2026 literature — every class recurs in the ProofNet audit and the drift analyses, and no seventh class appeared that D-16's <code>strength-drift</code> and <code>other-with-exhibit</code> do not already cover. §4 adds a per-class difficulty ordering that D-11's per-class catch-rate measurement can use: quantifier scope and missing hypothesis are the hard classes, vacuity is the easy one.</p>
+
+<h3 id="b-d4">Fills in <a class="dref" href="architecture_decisions_v_3_11.html#d-4">D-4</a>: the witness requirement is externally corroborated</h3>
+<p>The non-vacuity witness is the network's answer to the vacuity class. Kimina independently deployed contradiction detection, negation-proving and triviality filters in production for the same reason. The evidence supports extending the mechanical screen beyond the witness to a bounded attempt at proving the statement, its negation, and <code>False</code> from its hypotheses — all three produce kernel-checked exhibits on failure.</p>
+
+<h3 id="b-d9">Amendment candidate for <a class="dref" href="architecture_decisions_v_3_11.html#d-9">D-9</a>: the <code>back-translated</code> rung is weaker than its name implies</h3>
+<p class="note warn"><em>Flagged, not applied:</em> D-9's fidelity ladder makes <code>back-translated</code> the second rung and sets it as the floor for allocating proving compute. The 2026 evidence is that back-translation is the <em>weakest</em> of the four checker families — roughly a third of its passes are wrong on textbook material, and its recall collapses on research-level statements, which is the network's actual intake. A root that has cleared <code>back-translated</code> has cleared a check with a known one-in-three false-positive rate.</p>
+<p>Two ways to read this, both for the decisions doc rather than for this note. Either the rung is renamed and redefined to mean <em>definition-grounded judging</em>, which is the technique that actually reaches ~90% and which D-9's "mechanizable tools run first" list can absorb; or the rung stays as a deliberately low bar and the compute floor moves up a rung. D-9 already requires back-translation to be performed by a non-author, which addresses author bias but not checker weakness.</p>
+<p>Worth noting that D-9's ladder is otherwise strongly vindicated: its insistence that <code>author-attested</code> is structurally non-terminal, because the listed formulation can itself be flawed in a way its author cannot see, is the same failure the ProofNet audit found at 31.8% in expert-curated material.</p>
+
+<h3 id="b-d10">Fills in <a class="dref" href="architecture_decisions_v_3_11.html#d-10">D-10</a>: the interop target is the right one</h3>
+<p>DeepMind's formal-conjectures repository remains the working practitioner precedent for accepting formal statements of open problems, and its process is the one D-10 already points at: an issue before a PR, source comments linking to the original paper or listing, and review before a statement lands. Nothing in the 2026 literature suggests a private registry would do better.</p>
+
+<h3 id="b-pipeline">Composite: what the evidence supports as a fidelity pipeline</h3>
+<p>Synthesis rather than any single source's claim, and untested end-to-end by anyone. Ordered cheapest-first, with each layer producing an artifact rather than an opinion:</p>
+<ol>
+<li><strong>Compile</strong> against the pinned toolchain. Necessary, and worth about 75% on its own.</li>
+<li><strong>Cheap soundness screens</strong> with a bounded tactic budget: prove the statement, prove its negation, prove <code>False</code> from its hypotheses. Any success is a rejection carrying a kernel-checked exhibit.</li>
+<li><strong>Definition-grounded judge and structural signature check</strong>, producing a review brief that lists every referenced Mathlib term with its definition. Triage and preparation for a human, never a verdict.</li>
+<li><strong>Bidirectional equivalence</strong> between independent formalizations of the same statement, once two exist. A proved equivalence is strong evidence; a failure is inconclusive and must not be recorded as negative.</li>
+<li><strong>Non-author human sign-off</strong> as the only event that changes accepted state, with every automated verdict attached as evidence.</li>
+</ol>
+<p class="note"><em>Design consequence:</em> layers 2 and 4 emit kernel-checkable exhibits, layer 3 emits a judgement. Only the first kind belongs in the trust base; the second belongs in the review brief. Keeping that line sharp is what stops a 90%-accurate judge from silently becoming an authority.</p>
+
+<h2 id="s6"><span class="sn">§6</span>Refuted — do not cite<a class="hl" href="#s6" aria-label="Link to this section">§</a></h2>
+
+<p>Eight extracted claims failed adversarial verification. They are recorded because several are plausible-sounding and appear in abstracts or secondary summaries, and because a later reader who finds them elsewhere should know they were checked and rejected here.</p>
+
+<div class="tw"><table>
+<thead><tr><th>Claim</th><th>Vote</th></tr></thead>
+<tbody>
+<tr><td class="refuted"><span class="rc">Herald reports 93.2% Pass@128 statement-formalization accuracy on miniF2F-test (96.7% in v2), vs 74.0% InternLM2-Math-Plus-7B and 50.1% TheoremLlama.</span></td><td class="num rv">0–3</td></tr>
+<tr><td class="refuted"><span class="rc">The drift taxonomy is four canonical classes — quantifier inversion, hypothesis omission, conclusion generalisation, type coercion — accounting for 94% of labelled drift.</span></td><td class="num rv">0–3</td></tr>
+<tr><td class="refuted"><span class="rc">Faithfulness-Guided Decoding reduces drift on graduate analysis statements from 19.4% to 10.3%.</span></td><td class="num rv">0–3</td></tr>
+<tr><td class="refuted"><span class="rc">Best statement autoformalization on ProofNet# is 45.1% for GPT-4o with n=50 sampling and Self-BLEU selection; research-level RLM25 scores ~0–2.78% without context.</span></td><td class="num rv">0–3</td></tr>
+<tr><td class="refuted"><span class="rc">The dominant failure modes are hallucinated Mathlib concepts and "conceptual polymorphism".</span></td><td class="num rv">0–3</td></tr>
+<tr><td class="refuted"><span class="rc">MathForm uses QwQ-32B as judge for both training-data filtering and benchmark scoring.</span></td><td class="num rv">0–3</td></tr>
+<tr><td class="refuted"><span class="rc">FATE-H / FATE-X consistency pass rates are 63% and 37%.</span></td><td class="num rv">1–2</td></tr>
+<tr><td class="refuted"><span class="rc">Kimina checked faithfulness with QwQ-32B under expert-refined prompting rather than any formal equivalence check.</span></td><td class="num rv">1–2</td></tr>
+</tbody></table></div>
+
+<h2 id="s7"><span class="sn">§7</span>Caveats on this evidence<a class="hl" href="#s7" aria-label="Link to this section">§</a></h2>
+
+<ul>
+<li><strong>Almost every headline number is LLM-judged, not human-verified.</strong> Where both exist, judges inflate: one system scored 98.4% by LLM judge against 88.1% by humans on the same miniF2F set. Read absolute figures as upper bounds, and treat only within-paper comparisons as meaningful.</li>
+<li><strong>Self-reporting is the norm.</strong> FATE-H and FATE-X share authors with Aria; AdvancedMath is CRAMF's own; DriftBench is the fingerprinting paper's own. No independent replication was found for MathForm, CRAMF or the fingerprinting work.</li>
+<li><strong>Several sources are days to weeks old.</strong> MathForm and Beyond Compilation are recent preprints. The fingerprinting paper is an unrefereed workshop submission with visible quality problems and drew a dissenting verification vote.</li>
+<li><strong>The peer-reviewed anchors are three:</strong> Aria (ICLR 2026), BEq+ / ProofNet# (EMNLP 2025), Herald (ICLR 2025). Weight them accordingly.</li>
+<li><strong>Judge-reliability samples are small:</strong> AriaScorer n=69, the Herald audit n=151, the conjecture set n=14, the ProofNet audit a single annotator.</li>
+<li><strong>Versions move.</strong> These results reflect Mathlib and model versions up to mid-2026. A toolchain pinned here may already differ from what the papers used, and Mathlib definition drift is itself one of the defect classes.</li>
+</ul>
+
+<h2 id="s8"><span class="sn">§8</span>Open questions<a class="hl" href="#s8" aria-label="Link to this section">§</a></h2>
+
+<ol>
+<li><strong>How good are the cheap soundness screens alone?</strong> No source reports precision or recall for negation-proving, <code>False</code>-from-hypotheses, or triviality detection as stand-alone filters, even though Kimina runs them in production. This is the most decision-relevant unknown, because these screens are cheap enough to run on every submission and produce kernel-checked exhibits.</li>
+<li><strong>Does definition-grounded judging survive contact with open problems?</strong> It was measured on textbook and graduate statements whose informal wording is settled. An open problem's informal statement may itself be ambiguous or under-specified, which is a different task.</li>
+<li><strong>Can equivalence proving work without a trusted reference?</strong> Comparing two independently submitted formalizations is the obvious substitute. Nobody has reported what agreement rate to expect between independent human formalizers of the same statement, which is the baseline that would make the signal interpretable.</li>
+<li><strong>What is the false-positive rate of human review itself at research level?</strong> A single annotator found 31.8% error in curated textbook material. How many independent reviewers an acceptance needs, in order to beat a 90%-accurate automated judge, is unmeasured.</li>
+</ol>
+
+<h2 id="sources">Sources<a class="hl" href="#sources" aria-label="Link to this section">§</a></h2>
+
+<p>Twenty sources were fetched and read; those carrying surviving claims are listed. Peer-review status is marked because §7 turns on it.</p>
+
+<div class="tw"><table>
+<thead><tr><th>Source</th><th>Status</th><th>Carries</th></tr></thead>
+<tbody>
+<tr><td><a href="https://arxiv.org/abs/2510.04520">Aria — arXiv 2510.04520</a></td><td>ICLR 2026</td><td>§1, §2, §3 grounded judging</td></tr>
+<tr><td><a href="https://arxiv.org/abs/2406.07222">BEq+ / ProofNet# — arXiv 2406.07222</a></td><td>EMNLP 2025</td><td>§3 equivalence, §3 curation error, §4</td></tr>
+<tr><td><a href="https://arxiv.org/abs/2410.10878">Herald — arXiv 2410.10878</a></td><td>ICLR 2025</td><td>§3 back-translation audit</td></tr>
+<tr><td><a href="https://arxiv.org/abs/2504.11354">Kimina-Prover — arXiv 2504.11354</a></td><td>tech report</td><td>§1, §2, §4 production filters</td></tr>
+<tr><td><a href="https://arxiv.org/abs/2606.31002">Beyond Compilation — arXiv 2606.31002</a></td><td>preprint 2026</td><td>§1 eight-system gap, §3 two-judge consensus</td></tr>
+<tr><td><a href="https://arxiv.org/abs/2608.14221">MathForm — arXiv 2608.14221</a></td><td>preprint 2026</td><td>§2</td></tr>
+<tr><td><a href="https://arxiv.org/abs/2508.06931">CRAMF — arXiv 2508.06931</a></td><td>preprint</td><td>§2, §3 default pipeline</td></tr>
+<tr><td><a href="https://arxiv.org/abs/2608.29270">ShadowBench — arXiv 2608.29270</a></td><td>preprint 2026</td><td>§1</td></tr>
+<tr><td><a href="https://arxiv.org/abs/2511.03108">Judge-inflation study — arXiv 2511.03108</a></td><td>preprint</td><td>§7</td></tr>
+<tr><td><a href="https://arxiv.org/abs/2606.29493">Faults in Our Formal Benchmarking — arXiv 2606.29493</a></td><td>preprint 2026</td><td>§3 curation error corroboration</td></tr>
+<tr><td>The Faithfulness Gap — arXiv 2606.16541</td><td>workshop preprint, <strong>weak</strong></td><td>§3 probes — architecture only, not numbers</td></tr>
+<tr><td><a href="https://github.com/google-deepmind/formal-conjectures">google-deepmind/formal-conjectures</a></td><td>live repository</td><td>§5 practitioner precedent</td></tr>
+<tr><td><a href="https://xenaproject.wordpress.com/2025/12/05/formalization-of-erdos-problems/">Buzzard — Formalization of Erdős problems</a></td><td>blog</td><td>§5 practitioner precedent</td></tr>
+</tbody></table></div>
+
+</main>
+</div>
+<footer><div class="in">Research note, not protocol. Produced by adversarial multi-source verification on 2026-09-08; 100 claims extracted, 25 verified, 17 confirmed, 8 refuted and recorded in §6. Extends <b>Harness_Architectures_research_v2.md §3</b>. Where this note and <a href="architecture_decisions_v_3_11.html">the decisions</a> disagree, the decisions govern.</div></footer>
+<script>
+// Expand/collapse all detail blocks.
+document.querySelectorAll('.xall button').forEach(function(b){
+  b.addEventListener('click',function(){
+    var open=b.dataset.x==='1';
+    document.querySelectorAll('details.more').forEach(function(d){d.open=open});
+  });
+});
+// Heading permalinks, added for any heading with an id that lacks one.
+document.querySelectorAll('main h2[id],main h3[id]').forEach(function(h){
+  if(h.querySelector('.hl'))return;
+  var a=document.createElement('a');
+  a.className='hl';a.href='#'+h.id;a.textContent='§';
+  a.setAttribute('aria-label','Link to this section');
+  h.appendChild(a);
+});
+</script>
+</body>
+</html>

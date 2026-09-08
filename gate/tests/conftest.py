@@ -67,3 +67,26 @@ def fixture_graph_repo(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, 
     git("add", "-A")
     git("commit", "-q", "-m", "prove tutorial-and-swap")
     return root, git("rev-parse", "HEAD")
+
+
+LEAN_PKG_DIR = ROOT / "gate" / "lean"
+
+
+@pytest.fixture(scope="session")
+def lean_pkg(real_toolchain: LocalToolchain, pinned: ResolvedToolchain) -> Path:
+    """The Lake package's built executables directory (lean tier); builds on first use."""
+    import subprocess  # noqa: PLC0415
+
+    bin_dir = LEAN_PKG_DIR / ".lake" / "build" / "bin"
+    proc = subprocess.run(
+        [str(real_toolchain.elan), "run", pinned.name, "lake", "build"],
+        cwd=LEAN_PKG_DIR,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=900,
+    )
+    assert proc.returncode == 0, proc.stdout[-3000:] + proc.stderr[-3000:]
+    assert (bin_dir / "opn-witness-type").is_file()
+    assert (bin_dir / "opn-used-constants").is_file()
+    return bin_dir

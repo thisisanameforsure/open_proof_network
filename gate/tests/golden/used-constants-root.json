@@ -1,0 +1,12 @@
+{
+  "decl": "OpnProp.and_swap_reassoc",
+  "axioms": [],
+  "constants": [
+    {"module": "Init.Prelude", "name": "And"},
+    {"module": "Init.Prelude", "name": "And.intro"},
+    {"module": "Init.Prelude", "name": "And.left"},
+    {"module": "Init.Prelude", "name": "And.right"},
+    {"module": "Nodes.«and-reassoc».Proof", "name": "OpnProp.and_reassoc"},
+    {"module": "Nodes.«tutorial-and-swap».Proof", "name": "OpnProp.and_swap"}
+  ]
+}

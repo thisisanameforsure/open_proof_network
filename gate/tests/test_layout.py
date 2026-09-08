@@ -112,3 +112,28 @@ def test_parse_statement_shapes() -> None:
     assert isinstance(none, Diagnostic)
     nobody = layout.parse_statement("theorem a : True := trivial\n")
     assert isinstance(nobody, Diagnostic)
+
+
+def test_import_rule(tmp_path: Path) -> None:
+    """F01-Q2: node files import only library modules, Defs.*, or their own Context."""
+    assert layout.node_module("and-swap-reassoc", "Proof") == "Nodes.«and-swap-reassoc».Proof"
+    assert layout.module_origin("Nodes.«tutorial-and-swap».Proof") == ("node", "tutorial-and-swap")
+    assert layout.module_origin("Nodes.tutorial.Proof") == ("node", "tutorial")
+    assert layout.module_origin("Mathlib.Data.Nat.Basic") == ("library", None)
+    assert layout.module_origin("Defs.Graph") == ("defs", None)
+    assert layout.module_origin("Context") == ("other", None)
+
+    n = tmp_path / "and-reassoc"
+    shutil.copytree(NODES / "and-reassoc", n)
+    (n / "Statement.lean").write_text(
+        "import Nodes.«tutorial-and-swap».Proof\nimport Context\n"
+        + (n / "Statement.lean").read_text()
+    )
+    (n / "Context.lean").write_text("import Nodes.«and-reassoc».Context\n")
+    found = layout.validate_node(n)
+    assert [d.details["module"] for d in found] == [
+        "Nodes.«tutorial-and-swap».Proof",
+        "Context",
+        "Nodes.«and-reassoc».Context",
+    ]
+    assert all(d.code == "import-forbidden" for d in found)
