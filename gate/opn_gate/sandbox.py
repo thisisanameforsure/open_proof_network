@@ -3,10 +3,12 @@
 ``SandboxToolchain`` is ``LocalToolchain`` with one difference: each process runs inside the
 image built from ``gate/Dockerfile`` with no network, no environment beyond what is set here, a
 non-root user, and the cpu / memory / wall-clock caps the graph's ``gate-spec.json`` declares
-(C6). Nothing is bind-mounted: the directories a call needs are copied into a fresh container at
-their host paths (read-only ones owned by root, writable ones by the sandbox user), the process
-runs, the writable ones are copied back, and the container is removed. That keeps the sandbox
-independent of host file-sharing and of uid mismatches on hosted runners.
+(C6). No tmpfs is mounted at ``/tmp``: host work directories may live under ``/tmp`` (pytest
+on Linux does that) and a mount there would hide the files copied in. Nothing is bind-mounted:
+the directories a call needs are copied into a fresh container at their host paths (read-only
+ones owned by root, writable ones by the sandbox user), the process runs, the writable ones are
+copied back, and the container is removed. That keeps the sandbox independent of host
+file-sharing and of uid mismatches on hosted runners.
 """
 
 from __future__ import annotations
@@ -27,7 +29,6 @@ CONTAINER_ELAN = Path("/opt/elan/bin/elan")
 CONTAINER_UID = 1000
 GRACE_S = 30.0  # host-side slack beyond the in-container `timeout`
 _KILLED_BY_TIMEOUT = (124, 137)
-TMPFS_SPEC = "/tmp:rw,exec,size=512m"  # noqa: S108 — the container's own scratch, not the host's
 
 
 class SandboxError(RuntimeError):
@@ -121,8 +122,6 @@ class SandboxToolchain(LocalToolchain):
             "no-new-privileges",
             "--pids-limit",
             "512",
-            "--tmpfs",
-            TMPFS_SPEC,
             "--cpus",
             f"{self.caps.cpu:g}",
             "--memory",

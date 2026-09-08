@@ -16,3 +16,15 @@ gate/tests/test_toolchain_lean.py ...                                    [100%]
 ================ 14 passed, 97 deselected in 556.47s (0:09:16) =================
 make verify-lean  216.00s user 16.79s system 41% cpu 9:16.76 total
 rc=0
+# F00-T7 addendum — $ uv run pytest gate/tests/test_sandbox_docker.py gate/tests/test_reproduce_docker.py -m docker — 2026-09-08T05:15:36Z — after removing the /tmp tmpfs (CI on Linux put pytest's tmp under /tmp, which the mount hid)
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+collected 6 items
+
+gate/tests/test_sandbox_docker.py ....                                   [ 66%]
+gate/tests/test_reproduce_docker.py ..                                   [100%]
+
+======================== 6 passed in 258.23s (0:04:18) =========================
+uv run --frozen pytest gate/tests/test_sandbox_docker.py  -m docker  14.04s user 6.56s system 7% cpu 4:18.45 total
