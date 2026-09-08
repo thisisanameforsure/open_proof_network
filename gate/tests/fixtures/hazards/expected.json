@@ -1,0 +1,10 @@
+{
+  "DivZero": {
+    "decl": "OpnHazard.div_zero",
+    "finding": {"checker": "div-zero", "location": "a / b"}
+  },
+  "NatSub": {
+    "decl": "OpnHazard.nat_sub",
+    "finding": {"checker": "nat-sub", "location": "n - 1"}
+  }
+}

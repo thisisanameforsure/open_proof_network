@@ -89,4 +89,5 @@ def lean_pkg(real_toolchain: LocalToolchain, pinned: ResolvedToolchain) -> Path:
     assert proc.returncode == 0, proc.stdout[-3000:] + proc.stderr[-3000:]
     assert (bin_dir / "opn-witness-type").is_file()
     assert (bin_dir / "opn-used-constants").is_file()
+    assert (bin_dir / "opn-hazards").is_file()
     return bin_dir

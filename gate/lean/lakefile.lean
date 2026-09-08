@@ -25,3 +25,8 @@ lean_exe «opn-witness-type» where
 lean_exe «opn-used-constants» where
   root := `OpnGate.UsedConstantsMain
   supportInterpreter := true
+
+@[default_target]
+lean_exe «opn-hazards» where
+  root := `OpnGate.HazardsMain
+  supportInterpreter := true

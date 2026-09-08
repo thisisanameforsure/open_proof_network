@@ -1,0 +1,19 @@
+# F02-T1 verification — $ make verify-lean — 2026-09-08T21:26:21Z — Darwin arm64, leanprover/lean4:v4.33.1, opn-hazards (nat-sub, div-zero) in the Lake package; image rebuilt with it
+verify-lean: elan at /Users/mikehiggins/.elan/bin/elan
+uv run --frozen pytest -m "lean or docker"
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+testpaths: gate/tests, api/tests, site/tests
+collected 158 items / 129 deselected / 29 selected
+
+gate/tests/test_hazards_lean.py .....                                    [ 17%]
+gate/tests/test_lean_pkg_lean.py ....                                    [ 31%]
+gate/tests/test_pregate_lean.py .........                                [ 62%]
+gate/tests/test_reproduce_docker.py ..                                   [ 68%]
+gate/tests/test_sandbox_docker.py .....                                  [ 86%]
+gate/tests/test_toolchain_lean.py ....                                   [100%]
+
+================ 29 passed, 129 deselected in 737.11s (0:12:17) ================
+make-exit=0

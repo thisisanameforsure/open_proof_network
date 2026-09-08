@@ -95,16 +95,17 @@ step 6 and the <code>native_decide</code> amendment, D-8, D-15, D-29, D-34.</p>
   <tr><td>F02-Q1</td><td><strong>Hazards are admission-time failures with an acknowledgment escape</strong> — decided in D-4 and D-29 (v3.11). The acknowledgment lives in <code>META.yaml</code> as <code>acknowledged_hazards</code>; the reviewer sees it (D-15). No deviation.</td></tr>
   <tr><td>F02-Q2</td><td><strong>Waiver mechanics</strong> — decided in D-4 (v3.11): justification as a file in the submission, sign-off as a line in the approval, flag on the attestation projected into <code>graph.json</code> and the site, never an edit to <code>META.yaml</code>. No deviation.</td></tr>
   <tr><td>F02-Q3</td><td><strong>Checker precision is deliberately conservative.</strong> Each checker flags syntactic patterns; false positives are cheap (one acknowledgment line), false negatives are what D-11's canaries measure later. Definitions in R2 are the v1 contract; tightening is a checker version, recorded in <code>gate-spec.json</code> by id@version.</td></tr>
+  <tr><td>F02-Q4</td><td><strong>A finding's <code>location</code> is the offending subterm, pretty-printed in its binder context</strong> (<code>n - 1</code>, <code>a / b</code>), not a line:column (decided at T1, 2026-09-09). The checkers run over the elaborated statement type, where source positions are gone but the term is exact, and the subterm is what a proposer writes into <code>acknowledged_hazards</code> and what a reviewer reads; it survives re-indentation of the file, which a position would not. Two identical subterms yield one finding (deduplicated), so one acknowledgment covers both. Findings are sorted by (checker, location, message) for R10.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> spec · <strong>Tasks:</strong> T1&ndash;T5 todo</div>
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1 &#10003; 2026-09-09 · T2&ndash;T5 todo</div>
 
 <h2>Tasks</h2>
 <table>
   <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
   <tr><td>F02-T1</td><td><strong>Checker framework, <code>nat-sub</code>, <code>div-zero</code>.</strong> Traversal over the theorem type with location reporting; JSON contract; two checkers; fixture statements.</td>
-    <td><code>gate/lean/OpnGate/Hazards.lean</code>, <code>gate/lean/OpnGate/Hazards/NatSub.lean</code>, <code>gate/lean/OpnGate/Hazards/DivZero.lean</code>, <code>gate/tests/fixtures/hazards/</code>, <code>gate/tests/test_hazards_lean.py</code></td>
+    <td><code>gate/lean/OpnGate/Hazards.lean</code>, <code>gate/lean/OpnGate/Hazards/NatSub.lean</code>, <code>gate/lean/OpnGate/Hazards/DivZero.lean</code>, <code>gate/lean/OpnGate/HazardsMain.lean</code>, <code>gate/lean/lakefile.lean</code>, <code>gate/lean/OpnGate.lean</code>, <code>gate/tests/fixtures/hazards/</code>, <code>gate/tests/test_hazards_lean.py</code>, <code>gate/tests/conftest.py</code></td>
     <td>F01</td><td><code>make verify-lean</code></td></tr>
   <tr><td>F02-T2</td><td><strong>Remaining checkers.</strong> <code>junk-value</code>, <code>int-trunc</code>, <code>unused-binder</code>, <code>off-by-one-range</code>; determinism test.</td>
     <td><code>gate/lean/OpnGate/Hazards/*.lean</code>, <code>gate/tests/fixtures/hazards/</code>, <code>gate/tests/test_hazards_lean.py</code></td>
