@@ -20,9 +20,21 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-from opn_gate import attestation, config, layout, paths, pipeline, schemas, signer, toolchain
+from opn_gate import (
+    attestation,
+    config,
+    layout,
+    paths,
+    pipeline,
+    sandbox,
+    schemas,
+    signer,
+    toolchain,
+)
 from opn_gate.paths import Change, Claim
 from opn_gate.steps.base import RunContext
+
+GATE_DIR = Path(__file__).resolve().parents[1]
 
 log = logging.getLogger("opn_gate")
 
@@ -51,6 +63,16 @@ def build_parser() -> argparse.ArgumentParser:
     pre.add_argument("--out", type=Path, help="output directory (default: a fresh temp dir)")
     pre.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
     pre.add_argument("--no-diff", action="store_true", help="skip the diff (bare tree, no git)")
+
+    rep = sub.add_parser("reproduce", help="replay a merged commit inside the step-3 image (D-5)")
+    rep.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    rep.add_argument("--commit", required=True, help="the commit to reproduce")
+    rep.add_argument("--node", required=True, help="the node the commit proved")
+    rep.add_argument("--target", help="target id (inferred when the graph has exactly one)")
+    rep.add_argument("--out", type=Path, help="output directory (default: a fresh temp dir)")
+    rep.add_argument("--compare", type=Path, help="committed attestation to compare against")
+    rep.add_argument("--image", help="sandbox image tag (default: built from gate/Dockerfile)")
+    rep.add_argument("--no-build", action="store_true", help="fail if the image is not present")
     return parser
 
 
@@ -61,6 +83,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if args.command == "pregate":
             return run_pregate(args, settings)
+        if args.command == "reproduce":
+            return run_reproduce(args, settings)
     except CliError as exc:
         sys.stderr.write(f"opn-gate: {exc}\n")
         return EXIT_ERROR
@@ -136,6 +160,90 @@ def emit(
     if verdict.verdict == "bounced":
         return EXIT_BOUNCED
     return EXIT_FAIL
+
+
+# --- reproduce ----------------------------------------------------------------------------------
+
+
+def run_reproduce(args: argparse.Namespace, settings: config.Settings) -> int:
+    graph: Path = args.graph.resolve()
+    if _git(graph, "rev-parse", "--is-inside-work-tree").returncode != 0:
+        msg = f"{graph} is not a git checkout"
+        raise CliError(msg)
+    commit = _git(graph, "rev-parse", "--verify", f"{args.commit}^{{commit}}").stdout.strip()
+    if not commit:
+        msg = f"unknown commit {args.commit!r}"
+        raise CliError(msg)
+    out_dir: Path = (args.out or Path(tempfile.mkdtemp(prefix="opn-reproduce-"))).resolve()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    tree = export_tree(graph, commit, out_dir / "tree")
+    target_id = args.target or infer_target(tree)
+    claim = Claim(target_id, args.node)
+    spec_path = layout.gate_spec_path(tree, target_id)
+    try:
+        spec = schemas.load_json(spec_path, "gate-spec/v1")
+    except schemas.SchemaError as exc:
+        msg = f"cannot load {spec_path}: {exc}"
+        raise CliError(msg) from exc
+
+    image = args.image or ensure_image(str(spec["lean_toolchain"]), build=not args.no_build)
+    node_dir = layout.graph_nodes_dir(tree, target_id) / args.node
+    workdir = out_dir / "work"
+    tc = sandbox.SandboxToolchain(
+        image, sandbox.Caps.from_spec(spec), read_only=[node_dir], read_write=[workdir]
+    )
+    ctx = RunContext(
+        graph_root=tree,
+        claim=claim,
+        spec=spec,
+        gate_spec_hash=schemas.content_hash(spec_path.read_bytes()),
+        changes=commit_changes(graph, commit),
+        workdir=workdir,
+        toolchain=tc,
+        settings=settings,
+    )
+    verdict = pipeline.run_submission(ctx)
+    doc = attestation.build(ctx, verdict, graph_commit=commit)
+    code = emit(verdict, doc, out_dir, settings)
+    if args.compare is not None:
+        committed = schemas.load_json(args.compare, "attestation/v1")
+        differing = attestation.compare(committed, attestation.with_step9(doc, committed))
+        result = {"identical": not differing, "differing_fields": differing}
+        sys.stdout.write(json.dumps(result) + "\n")
+        return EXIT_PASS if not differing else EXIT_FAIL
+    return code
+
+
+def export_tree(graph: Path, commit: str, dest: Path) -> Path:
+    """The graph's tree at ``commit`` as plain files (no .git), via git archive."""
+    dest.mkdir(parents=True, exist_ok=True)
+    archive = subprocess.run(
+        ["git", "-C", str(graph), "archive", "--format=tar", commit],
+        capture_output=True,
+        check=True,
+    )
+    subprocess.run(["tar", "-x", "-C", str(dest)], input=archive.stdout, check=True)
+    return dest
+
+
+def commit_changes(graph: Path, commit: str) -> list[Change]:
+    """What ``commit`` changed against its first parent (a merge: the whole PR)."""
+    parent = _git(graph, "rev-parse", "--verify", "--quiet", f"{commit}^")
+    if parent.returncode != 0:
+        return []
+    diff = _git(graph, "diff", "--name-status", "--no-renames", f"{commit}^", commit)
+    return paths.changes_from_name_status(diff.stdout)
+
+
+def ensure_image(lean_toolchain: str, *, build: bool) -> str:
+    tag = sandbox.image_tag(lean_toolchain)
+    if sandbox.image_exists(tag):
+        return tag
+    if not build:
+        msg = f"sandbox image {tag} is not present; build it from gate/Dockerfile"
+        raise CliError(msg)
+    log.info("building sandbox image %s", tag)
+    return sandbox.build_image(GATE_DIR, lean_toolchain)
 
 
 def infer_target(graph: Path) -> str:

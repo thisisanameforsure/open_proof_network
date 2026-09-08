@@ -24,3 +24,46 @@ def real_toolchain() -> LocalToolchain:
 @pytest.fixture(scope="session")
 def pinned(real_toolchain: LocalToolchain) -> ResolvedToolchain:
     return real_toolchain.resolve(PINNED_TOOLCHAIN, install=False)
+
+
+@pytest.fixture(scope="session")
+def sandbox_image() -> str:
+    """The step-3 image for the repo's pinned toolchain, built once per session (docker tier)."""
+    from opn_gate import sandbox  # noqa: PLC0415 — docker-tier only
+
+    return sandbox.build_image(ROOT / "gate", PINNED_TOOLCHAIN)
+
+
+@pytest.fixture(scope="session")
+def fixture_graph_repo(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, str]:
+    """The propositional fixture as a git repo: a base commit without the tutorial proof, then
+    a commit adding Proof.lean — the shape of a merged submission."""
+    import shutil  # noqa: PLC0415
+    import subprocess  # noqa: PLC0415
+
+    root = tmp_path_factory.mktemp("graph-repo") / "graph"
+    shutil.copytree(ROOT / "gate" / "tests" / "fixtures" / "graphs" / "propositional", root)
+    proof = root / "targets/propositional/nodes/tutorial-and-swap/Proof.lean"
+    proof_text = proof.read_text()
+    proof.unlink()
+    env = {
+        "GIT_AUTHOR_NAME": "t",
+        "GIT_AUTHOR_EMAIL": "t@x",
+        "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@x",
+        "PATH": "/usr/bin:/bin",
+        "HOME": str(root.parent),
+    }
+
+    def git(*args: str) -> str:
+        return subprocess.run(
+            ["git", "-C", str(root), *args], check=True, env=env, capture_output=True, text=True
+        ).stdout.strip()
+
+    git("init", "-q")
+    git("add", "-A")
+    git("commit", "-q", "-m", "seed")
+    proof.write_text(proof_text)
+    git("add", "-A")
+    git("commit", "-q", "-m", "prove tutorial-and-swap")
+    return root, git("rev-parse", "HEAD")

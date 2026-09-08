@@ -89,6 +89,17 @@ def _statement_hash_fallback(ctx: RunContext) -> str:
     return "0" * 64
 
 
+STEP9_FIELDS: tuple[str, ...] = ("reviewer",)
+
+
+def with_step9(reproduction: dict[str, Any], committed: dict[str, Any]) -> dict[str, Any]:
+    """A reproduction replays steps 1-8 (D-5); step 9's record is copied from the committed one."""
+    out = dict(reproduction)
+    for key in STEP9_FIELDS:
+        out[key] = committed.get(key)
+    return out
+
+
 def masked(doc: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in doc.items() if k not in MASKED_FIELDS}
 
