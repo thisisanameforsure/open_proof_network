@@ -1,0 +1,13 @@
+# F02-T4 verification — $ uv run pytest gate/tests/test_pipeline.py gate/tests/test_paths.py gate/tests/test_postmerge.py — 2026-09-08T22:03:50Z
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+collected 44 items
+
+gate/tests/test_pipeline.py ...................                          [ 43%]
+gate/tests/test_paths.py ..................                              [ 84%]
+gate/tests/test_postmerge.py .......                                     [100%]
+
+============================== 44 passed in 0.69s ==============================
+exit=0

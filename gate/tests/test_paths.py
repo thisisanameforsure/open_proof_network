@@ -79,6 +79,27 @@ def test_submitted_manifest_is_a_path_offence() -> None:
     assert offending("manifest") == ["lake-manifest.json", "lean-toolchain"]
 
 
+def test_waiver_path_only_with_native_decide() -> None:
+    """F02-AC8, R8: waivers/native_decide.yaml is permitted only when the proof needs it."""
+    changes = [
+        Change("A", f"{N}/tutorial-and-swap/Proof.lean"),
+        Change("A", f"{N}/tutorial-and-swap/waivers/native_decide.yaml"),
+    ]
+    found = paths.check_paths(changes, CLAIM)
+    assert [str(d.details["path"]) for d in found] == [
+        f"{N}/tutorial-and-swap/waivers/native_decide.yaml"
+    ]
+    assert "native_decide" in found[0].message
+    assert paths.check_paths(changes, CLAIM, waiver_allowed=True) == []
+    # Only that file, only added or modified, and never another waiver.
+    deleted = [Change("D", f"{N}/tutorial-and-swap/waivers/native_decide.yaml")]
+    assert len(paths.check_paths(deleted, CLAIM, waiver_allowed=True)) == 1
+    other = [Change("A", f"{N}/tutorial-and-swap/waivers/sorry.yaml")]
+    assert len(paths.check_paths(other, CLAIM, waiver_allowed=True)) == 1
+    assert paths.mentions_native_decide("  exact by native_decide\n")
+    assert not paths.mentions_native_decide("  exact ⟨h.2, h.1⟩\n")
+
+
 def test_rename_reports_both_paths() -> None:
     change = Change("R", f"{N}/tutorial-and-swap/Proof.lean", f"{N}/tutorial-and-swap/Old.lean")
     found = paths.check_paths([change], CLAIM)

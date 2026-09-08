@@ -5,12 +5,21 @@ from __future__ import annotations
 from pathlib import Path
 
 from fakes import FakeToolchain, witness_result
-from harness import TUTORIAL, changes_against_fixture, make_context, node_dir
+from harness import (
+    TUTORIAL,
+    changes_against_fixture,
+    make_context,
+    node_dir,
+    proof_only_changes,
+)
 
-from opn_gate import pipeline
+from opn_gate import attestation, pipeline, schemas
+from opn_gate.paths import Change
 from opn_gate.steps import default_steps
 from opn_gate.steps.base import RunContext, StepResult
 from opn_gate.toolchain import AxiomResult, ElabResult, Message, ReplayResult
+
+N = f"targets/propositional/nodes/{TUTORIAL}"
 
 
 def test_fixture_tutorial_passes_all_four_steps(tmp_path: Path) -> None:
@@ -94,13 +103,79 @@ def test_axiom_outside_allowlist(tmp_path: Path) -> None:
 
 
 def test_native_decide_rejected(tmp_path: Path) -> None:
-    """AC13."""
+    """AC13 (F00): rejected outright; since F02-R8 the code names the missing waiver."""
     axioms = frozenset({"OpnProp.and_swap._native.native_decide.ax_1_1"})
     fake = FakeToolchain(axiom_result=AxiomResult(ok=True, axioms=axioms))
     ctx = make_context(tmp_path, toolchain=fake)
     verdict = pipeline.run_steps(ctx)
     assert verdict.first_failing_step == 5
-    assert verdict.diagnostic is not None and verdict.diagnostic.code == "native-decide"
+    assert verdict.diagnostic is not None
+    assert verdict.diagnostic.code == "native-decide-unwaived"
+
+
+NATIVE_AXIOM = "OpnProp.and_swap._native.native_decide.ax_1_1"
+WAIVER_TEXT = (
+    "schema: waiver/v1\nkind: native_decide\n"
+    "justification: the kernel cannot reduce this check in reasonable time\n"
+    "author: thisisanameforsure\n"
+)
+
+
+def native_context(tmp_path: Path, *, waiver: str | None) -> tuple[RunContext, FakeToolchain]:
+    fake = FakeToolchain(axiom_result=AxiomResult(ok=True, axioms=frozenset({NATIVE_AXIOM})))
+    ctx = make_context(tmp_path, toolchain=fake)
+    proof = node_dir(ctx) / "Proof.lean"
+    proof.write_text(proof.read_text().replace("  exact ⟨h.2, h.1⟩\n", "  native_decide\n"))
+    if waiver is not None:
+        waivers = node_dir(ctx) / "waivers"
+        waivers.mkdir()
+        (waivers / "native_decide.yaml").write_text(waiver, encoding="utf-8")
+        ctx.changes = [*proof_only_changes(), Change("A", f"{N}/waivers/native_decide.yaml")]
+    return ctx, fake
+
+
+def test_native_decide_without_waiver_fails(tmp_path: Path) -> None:
+    """F02-AC6."""
+    ctx, _fake = native_context(tmp_path, waiver=None)
+    verdict = pipeline.run_steps(ctx)
+    assert verdict.first_failing_step == 5
+    d = verdict.diagnostic
+    assert d is not None and d.code == "native-decide-unwaived"
+    assert d.details["axioms"] == [NATIVE_AXIOM]
+
+
+def test_native_decide_with_waiver_passes(tmp_path: Path) -> None:
+    """F02-AC7: steps 2 and 5 pass and the verdict carries the waiver."""
+    ctx, _fake = native_context(tmp_path, waiver=WAIVER_TEXT)
+    verdict = pipeline.run_steps(ctx)
+    assert verdict.ok, verdict
+    five = next(s for s in verdict.steps if s.step == 5)
+    assert five.diagnostic is not None and five.diagnostic.code == "native-decide-waived"
+    assert "waiver: native_decide" in five.diagnostic.message
+    assert verdict.data["waiver"]["kind"] == "native_decide"
+    assert verdict.data["waiver"]["author"] == "thisisanameforsure"
+    doc = attestation.build(ctx, verdict, graph_commit=None)
+    assert doc["trust_base"] == "compiler" and schemas.violations(doc) == []
+
+
+def test_waiver_invalid_or_unneeded_fails(tmp_path: Path) -> None:
+    ctx, _fake = native_context(tmp_path, waiver="schema: waiver/v1\nkind: native_decide\n")
+    verdict = pipeline.run_steps(ctx)
+    assert verdict.first_failing_step == 5
+    assert verdict.diagnostic is not None and verdict.diagnostic.code == "waiver-invalid"
+
+    ctx = make_context(tmp_path / "b")  # honest proof, stray waiver: step 2 rejects the path
+    waivers = node_dir(ctx) / "waivers"
+    waivers.mkdir()
+    (waivers / "native_decide.yaml").write_text(WAIVER_TEXT, encoding="utf-8")
+    ctx.changes = [*proof_only_changes(), Change("A", f"{N}/waivers/native_decide.yaml")]
+    verdict = pipeline.run_steps(ctx)
+    assert verdict.first_failing_step == 2
+    assert verdict.diagnostic is not None and verdict.diagnostic.code == "path-forbidden"
+    ctx.changes = None  # and without a diff, step 5 catches it on the axioms
+    verdict = pipeline.run_steps(ctx)
+    assert verdict.first_failing_step == 5
+    assert verdict.diagnostic is not None and verdict.diagnostic.code == "waiver-unneeded"
 
 
 def test_allowed_axioms_pass(tmp_path: Path) -> None:

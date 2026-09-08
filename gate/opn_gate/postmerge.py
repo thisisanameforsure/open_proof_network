@@ -11,15 +11,39 @@ it the merge commit, the pull-request number, the reviews list and the key path.
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Literal
 
 from opn_gate import attestation, schemas
+from opn_gate.diagnostic import Diagnostic
 from opn_gate.signer import Signer
 
 ID_WIDTH = 6
 _MERGE_RE = re.compile(r"^Merge pull request #(?P<n>\d+)\b")
 _SQUASH_RE = re.compile(r"\(#(?P<n>\d+)\)\s*$", re.M)
+WAIVER_LINE = "waiver: native_decide"  # F02-R9: what the approving review must say
+_WAIVER_LINE_RE = re.compile(r"^\s*" + re.escape(WAIVER_LINE) + r"\s*$", re.M)
+
+
+def approval_names_waiver(body: str) -> bool:
+    """True when a review body contains the line ``waiver: native_decide`` (F02-R9)."""
+    return bool(_WAIVER_LINE_RE.search(body or ""))
+
+
+def check_waiver(doc: dict[str, Any], approval_bodies: Sequence[str]) -> Diagnostic | None:
+    """F02-R9: a waived proof (``trust_base: compiler``) merges only if the approving review
+    names the waiver; otherwise the post-merge job refuses with this diagnostic."""
+    if doc.get("trust_base") != attestation.TRUST_COMPILER:
+        return None
+    if any(approval_names_waiver(b) for b in approval_bodies):
+        return None
+    return Diagnostic(
+        "waiver-unapproved",
+        "the proof used native_decide under a waiver, but no approving review names it; the "
+        f"reviewer must include the line `{WAIVER_LINE}` in the approval",
+        {"required_line": WAIVER_LINE, "approvals_seen": len(approval_bodies)},
+    )
 
 
 def attestation_id(pr_number: int) -> str:

@@ -62,7 +62,8 @@ def test_attestation_fields_and_schema(tmp_path: Path) -> None:
     }
     assert [s["result"] for s in doc["steps"]] == ["pass"] * 6
     assert doc["merge_commit"] is None and doc["review"] is None
-    assert doc["schema"] == "attestation/v2"
+    assert doc["schema"] == "attestation/v3"
+    assert doc["trust_base"] == "kernel"  # F02-R9: no waiver, the kernel checked everything
 
 
 def test_failed_run_still_attests(tmp_path: Path) -> None:

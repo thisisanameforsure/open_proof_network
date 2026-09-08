@@ -97,6 +97,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     post.add_argument("--reviewer", help="the approving non-author reviewer (pr-approval)")
     post.add_argument("--review-reference", help="certificate id or registry reference")
+    post.add_argument(
+        "--approval-body-file",
+        type=Path,
+        action="append",
+        default=[],
+        help="an approving review's body; a waived proof needs one naming the waiver (F02-R9)",
+    )
     post.add_argument("--target", required=True)
     post.add_argument("--node", required=True)
     _add_sandbox_args(post)
@@ -296,6 +303,12 @@ def run_postmerge(args: argparse.Namespace, settings: config.Settings) -> int:
     except ValueError as exc:
         raise CliError(str(exc)) from exc
     doc = postmerge.record_step9(doc, merge_commit=commit, review=review)
+    bodies = [p.read_text(encoding="utf-8") for p in args.approval_body_file]
+    refusal = postmerge.check_waiver(doc, bodies)
+    if refusal is not None:  # F02-R9: refuse to attest; nothing is written
+        sys.stdout.write(json.dumps({"verdict": "refused", "diagnostic": refusal.as_dict()}) + "\n")
+        sys.stderr.write(f"opn-gate: {refusal.message}\n")
+        return EXIT_FAIL
     code = emit(verdict, doc, out_dir, settings)
     if code != EXIT_PASS:
         sys.stderr.write("opn-gate: the merged commit does not pass the gate; not attesting\n")

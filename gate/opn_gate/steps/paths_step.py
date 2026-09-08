@@ -11,8 +11,13 @@ class PathsStep:
     name = "paths"
 
     def run(self, ctx: RunContext) -> StepResult:
+        node_dir = layout.graph_nodes_dir(ctx.graph_root, ctx.claim.target_id) / ctx.claim.node_id
         if ctx.changes is not None:
-            offences = paths.check_paths(ctx.changes, ctx.claim)
+            proof = node_dir / "Proof.lean"
+            proof_text = proof.read_text(encoding="utf-8") if proof.is_file() else ""
+            offences = paths.check_paths(
+                ctx.changes, ctx.claim, waiver_allowed=paths.mentions_native_decide(proof_text)
+            )
             if offences:
                 return StepResult.failed(
                     "path-forbidden",
@@ -20,7 +25,6 @@ class PathsStep:
                     paths=[o.details["path"] for o in offences],
                     offences=[o.message for o in offences],
                 )
-        node_dir = layout.graph_nodes_dir(ctx.graph_root, ctx.claim.target_id) / ctx.claim.node_id
         loaded = layout.load_node(node_dir, ctx.claim.target_id)
         if isinstance(loaded, list):
             first = loaded[0]

@@ -17,10 +17,41 @@ def test_known_schemas_are_the_published_set() -> None:
     assert schemas.known_schemas() == (
         "attestation/v1",
         "attestation/v2",
+        "attestation/v3",
         "gate-spec/v1",
         "meta/v1",
         "meta/v2",
+        "waiver/v1",
     )
+
+
+def test_waiver_schema() -> None:
+    """F02-R8: waiver/v1 needs kind, justification and author; nothing else."""
+    schemas.validate(samples.waiver())
+    undated = samples.waiver()
+    del undated["date"]
+    schemas.validate(undated)  # date is optional
+    for bad in (
+        {"justification": ""},
+        {"author": ""},
+        {"kind": "sorry"},
+        {"extra": 1},
+        {"date": "yesterday"},
+    ):
+        assert schemas.violations(samples.waiver(**bad)), bad
+
+
+def test_attestation_v3_trust_base() -> None:
+    """F02-R9: trust_base is kernel or compiler, optional; v2 records stay readable."""
+    schemas.validate(samples.attestation(trust_base="compiler"))
+    doc = samples.attestation()
+    del doc["trust_base"]
+    schemas.validate(doc)
+    assert schemas.violations(samples.attestation(trust_base="hardware"))
+    v2 = samples.attestation(schema="attestation/v2")
+    del v2["trust_base"]
+    schemas.validate(v2)
+    assert schemas.violations(samples.attestation(schema="attestation/v2"))  # v2 has no field
 
 
 def test_meta_v1_still_valid() -> None:

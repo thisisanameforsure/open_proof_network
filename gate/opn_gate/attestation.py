@@ -17,9 +17,11 @@ from opn_gate.pipeline import Verdict
 from opn_gate.steps.base import RunContext
 from opn_gate.toolchain import ResolvedToolchain
 
-SCHEMA = "attestation/v2"
-ACCEPTED_SCHEMAS: tuple[str, ...] = ("attestation/v1", "attestation/v2")
+SCHEMA = "attestation/v3"  # v3 (F02-R9): trust_base
+ACCEPTED_SCHEMAS: tuple[str, ...] = ("attestation/v1", "attestation/v2", "attestation/v3")
 MASKED_FIELDS: tuple[str, ...] = ("runner", "merge_commit", "signature")
+TRUST_KERNEL = "kernel"
+TRUST_COMPILER = "compiler"
 Clock = Callable[[], datetime]
 
 
@@ -72,6 +74,8 @@ def build(
         },
         "merge_commit": None,
         "review": None,
+        # F02-R9: a function of the checked tree (the waiver step 5 accepted), never of the run.
+        "trust_base": TRUST_COMPILER if verdict.data.get("waiver") else TRUST_KERNEL,
         "signature": {
             "kind": "none",
             "key_id": None,

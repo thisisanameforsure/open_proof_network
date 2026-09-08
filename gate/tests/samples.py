@@ -1,4 +1,4 @@
-"""Valid sample documents for each v1 schema, for tests to start from and mutate."""
+"""Valid sample documents for the current schemas, for tests to start from and mutate."""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ def meta(**overrides: Any) -> dict[str, Any]:
 
 def attestation(**overrides: Any) -> dict[str, Any]:
     doc: dict[str, Any] = {
-        "schema": "attestation/v2",
+        "schema": "attestation/v3",
         "graph_id": "propositional",
         "node_id": "tutorial-and-swap",
         "statement_hash": SHA256,
@@ -70,12 +70,25 @@ def attestation(**overrides: Any) -> dict[str, Any]:
         "precheck_attestation": {"hash": None, "signature_kind": None},
         "merge_commit": None,
         "review": None,
+        "trust_base": "kernel",
         "signature": {
             "kind": "none",
             "key_id": None,
             "value": None,
             "timestamp": "2026-09-08T01:23:45Z",
         },
+    }
+    doc.update(overrides)
+    return doc
+
+
+def waiver(**overrides: Any) -> dict[str, Any]:
+    doc: dict[str, Any] = {
+        "schema": "waiver/v1",
+        "kind": "native_decide",
+        "justification": "the kernel cannot reduce the 10^6-case check in reasonable time",
+        "author": "thisisanameforsure",
+        "date": "2026-09-09",
     }
     doc.update(overrides)
     return doc

@@ -18,7 +18,7 @@ from typing import Any
 
 from opn_gate import schemas
 
-ACCEPTED_SCHEMAS: tuple[str, ...] = ("attestation/v1", "attestation/v2")
+ACCEPTED_SCHEMAS: tuple[str, ...] = ("attestation/v1", "attestation/v2", "attestation/v3")
 
 MARKER = "opn-precheck-attestation"
 _BLOCK_RE = re.compile(r"```json[ \t]*\r?\n" + MARKER + r"[ \t]*\r?\n(?P<body>.*?)\r?\n```", re.S)

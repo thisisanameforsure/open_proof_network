@@ -2,7 +2,8 @@
 
 The submission is a set of changes against the graph. Before any build, every change must be one
 of: create or modify the claimed node's ``Proof.lean``; add a file under its ``attempts/`` or
-``annex/``. Anything else — another node, ``Statement.lean``, ``META.yaml``, ``defs/``, a rewrite
+``annex/``; add or update ``waivers/native_decide.yaml`` when the proof uses ``native_decide``
+(F02-R8). Anything else — another node, ``Statement.lean``, ``META.yaml``, ``defs/``, a rewrite
 of an existing attempt — is rejected naming the path. The claimed node is an input, never
 inferred from the diff: a diff that touches two nodes is a rejection, not a subgraph.
 """
@@ -39,27 +40,42 @@ class Claim:
 
 
 APPEND_ONLY_DIRS: tuple[str, ...] = ("attempts/", "annex/")
+WAIVER_PATH = "waivers/native_decide.yaml"  # F02-R8: permitted only when the proof needs it
 
 
-def check_paths(changes: Iterable[Change], claim: Claim) -> list[Diagnostic]:
+def mentions_native_decide(proof_text: str) -> bool:
+    """The textual half of F02-R8's gate on ``waivers/``: step 2 lets the waiver path through
+    only when Proof.lean names ``native_decide`` at all; step 5 decides on the real axioms."""
+    return "native_decide" in proof_text
+
+
+def check_paths(
+    changes: Iterable[Change], claim: Claim, *, waiver_allowed: bool = False
+) -> list[Diagnostic]:
     """R2: every offending change, or ``[]`` when the diff is a permitted submission."""
     found: list[Diagnostic] = []
     for c in changes:
         for p in (c.path, c.old_path):
             if p is None:
                 continue
-            problem = _offence(c.status, p, claim)
+            problem = _offence(c.status, p, claim, waiver_allowed=waiver_allowed)
             if problem:
                 found.append(Diagnostic("path-forbidden", problem, {"path": p, "status": c.status}))
     return found
 
 
-def _offence(status: Status, path: str, claim: Claim) -> str | None:
+def _offence(  # noqa: PLR0911 — one return per rule
+    status: Status, path: str, claim: Claim, *, waiver_allowed: bool
+) -> str | None:
     if not path.startswith(claim.node_prefix):
         return f"{path} is outside the claimed node {claim.node_prefix}"
     rest = path[len(claim.node_prefix) :]
     if rest == "Proof.lean":
         return None if status in ("A", "M") else f"{path}: Proof.lean may not be {_verb(status)}"
+    if rest == WAIVER_PATH:
+        if not waiver_allowed:
+            return f"{path}: {WAIVER_PATH} is permitted only when Proof.lean uses native_decide"
+        return None if status in ("A", "M") else f"{path}: the waiver may not be {_verb(status)}"
     for d in APPEND_ONLY_DIRS:
         if rest.startswith(d):
             if "/" in rest[len(d) :] and not rest.startswith("attempts/precheck/"):
@@ -67,7 +83,10 @@ def _offence(status: Status, path: str, claim: Claim) -> str | None:
             if status != "A":
                 return f"{path}: {d} is append-only; a file there may not be {_verb(status)}"
             return None
-    return f"{path} is not Proof.lean or an append under attempts/ or annex/"
+    return (
+        f"{path} is not Proof.lean, the native_decide waiver, or an append under attempts/ or "
+        "annex/"
+    )
 
 
 def _verb(status: Status) -> str:

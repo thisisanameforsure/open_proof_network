@@ -95,6 +95,36 @@ def test_verify_rejects_wrong_key(gate_key: tuple[Path, str], tmp_path: Path) ->
     assert not postmerge.verify(signed, (tmp_path / "other.pub").read_text(), SshKeygenSigner())
 
 
+def test_waiver_requires_named_approval(gate_key: tuple[Path, str], tmp_path: Path) -> None:
+    """F02-AC9: a waived proof merges only with `waiver: native_decide` in the approval."""
+    key, pub = gate_key
+    ctx = make_context(tmp_path)
+    doc = attestation.build(
+        ctx, pipeline.run_steps(ctx), graph_commit="3" * 40, clock=lambda: FIXED
+    )
+    assert doc["trust_base"] == "kernel"
+    assert postmerge.check_waiver(doc, []) is None  # nothing to approve
+
+    waived = dict(doc, trust_base="compiler")
+    refusal = postmerge.check_waiver(waived, ["LGTM", "approved, nice proof"])
+    assert refusal is not None and refusal.code == "waiver-unapproved"
+    assert "waiver: native_decide" in refusal.message
+    assert postmerge.check_waiver(waived, []) is not None
+
+    body = "Reviewed the justification.\n\nwaiver: native_decide\n"
+    assert postmerge.check_waiver(waived, ["LGTM", body]) is None
+    assert not postmerge.approval_names_waiver("waiver: native_decide is not something I grant")
+    signed = postmerge.finalize(
+        waived,
+        merge_commit="4" * 40,
+        review=postmerge.review_block("pr-approval", reviewer="reviewer"),
+        key_path=key,
+        signer=SshKeygenSigner(),
+    )
+    assert signed["trust_base"] == "compiler" and schemas.violations(signed) == []
+    assert postmerge.verify(signed, pub, SshKeygenSigner())
+
+
 def test_review_block_rules() -> None:
     assert postmerge.review_block("tutorial") == {
         "kind": "tutorial",
