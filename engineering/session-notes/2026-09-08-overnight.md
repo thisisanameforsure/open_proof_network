@@ -158,7 +158,9 @@ _(the final state is in the last section; this file was updated after each task)
 - **Action pins**: `actions/checkout@v7`, `actions/upload-artifact@v4`, `astral-sh/setup-uv@v10.0.1`
   (there is no `v10` moving tag; the first runs failed on that, hence the extra commits).
 
-## Where T9 stopped (deferred 2026-09-08 by Mike; PR #2 left open)
+## Where T9 stopped — and then finished (2026-09-08, after D-4 v3.11)
+
+**Update:** Mike amended D-4 step 9 (decisions v3.11: review is a property of the statement; the tutorial node needs none). PR #2 merged mechanically on a green gate, the post-merge job signed and committed `attestations/000002.json`, and `check_reproduce.py 000002` passed on the laptop (`task-9.txt`). **F00 is done and tagged `F00-done`.** The text below is the state before the amendment, kept for the record.
 
 Done, in a fresh clone of the graph repo (`scratchpad/rehearsal/graph`, since deleted with the
 session scratchpad — the branch is on GitHub):

@@ -1,0 +1,60 @@
+# F00-T9 verification — $ uv run python gate/tools/check_reproduce.py 000002 — 2026-09-08T09:34:42Z — Darwin arm64, Docker Desktop 4.12
+# Graph PR #2 https://github.com/thisisanameforsure/open_proof_network_graph/pull/2 merged 6452ef80 under D-4 v3.11 (tutorial node: no reviewer needed)
+# Gate run https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34209478220 · postmerge run https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34209672687 · attestation commit b290f98
+
+signature: verifies against keys/gate.pub
+  kind=gate key_id=SHA256:XOd3xiS7BYG+uqfTlo5j3uEH96wPy5SCfmBWEsAKZLI
+reproducing merge commit 6452ef80d4f1f47175cfba448d382deebfb7f3d8 for node tutorial-and-swap in /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/95326215-0a99-401f-a8e0-57eb2377d6cc/scratchpad/check9
+{
+  "verdict": "pass",
+  "first_failing_step": null,
+  "diagnostic": null,
+  "steps": [
+    {
+      "step": 1,
+      "name": "toolchain",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 2,
+      "name": "paths",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 4,
+      "name": "kernel-replay",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 5,
+      "name": "axioms",
+      "result": "pass",
+      "diagnostic": null
+    }
+  ],
+  "attestation": "/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/95326215-0a99-401f-a8e0-57eb2377d6cc/scratchpad/check9/attestation.json",
+  "verdict_file": "/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/95326215-0a99-401f-a8e0-57eb2377d6cc/scratchpad/check9/verdict.json"
+}
+{"identical": true, "differing_fields": []}
+{"signature_ok": true, "identical": true, "differing": []}
+
+# Committed attestation (graph attestations/000002.json), summary:
+{
+  "schema": "attestation/v2",
+  "graph_id": "tutorial",
+  "node_id": "tutorial-and-swap",
+  "verdict": "pass",
+  "runner": "hosted",
+  "network_commit": "e10fb7ee924437a072c31d3403574a51441e6fc2",
+  "merge_commit": "6452ef80d4f1f47175cfba448d382deebfb7f3d8",
+  "review": {
+    "kind": "tutorial",
+    "reference": null,
+    "reviewer": null
+  },
+  "artifact_hash": "721b98ef97040596c6625c36749b28dfddbe4156fb84c31dcb5e4145b4f4222d"
+}
+signature.kind gate key_id SHA256:XOd3xiS7BYG+uqfTlo5j3uEH96wPy5SCfmBWEsAKZLI
