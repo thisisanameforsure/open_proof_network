@@ -202,7 +202,7 @@ def find_elan(*, path_env: str | None, elan_home: Path) -> Path:
 
 
 def _join_search_path(search_path: Sequence[Path]) -> str:
-    return ":".join(str(p) for p in search_path)
+    return ":".join(str(p.resolve()) for p in search_path)
 
 
 class LocalToolchain:
@@ -217,6 +217,28 @@ class LocalToolchain:
 
     # -- process plumbing ---------------------------------------------------------------------
 
+    def _exec(
+        self,
+        cmd: Sequence[str],
+        *,
+        cwd: Path | None = None,
+        extra_env: dict[str, str] | None = None,
+        timeout_s: float | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        """The one place a process is started. The sandbox seam overrides this alone."""
+        return subprocess.run(
+            list(cmd),
+            cwd=cwd,
+            env=_env_with(extra_env),
+            capture_output=True,
+            text=True,
+            timeout=timeout_s,
+            check=False,
+        )
+
+    def _elan(self, args: Sequence[str]) -> subprocess.CompletedProcess[str]:
+        return self._exec([str(self.elan), *args])
+
     def _run(
         self,
         tc_name: str,
@@ -226,29 +248,20 @@ class LocalToolchain:
         lean_path: Sequence[Path] | None = None,
         timeout_s: float | None = None,
     ) -> subprocess.CompletedProcess[str]:
-        cmd = [str(self.elan), "run", tc_name, *args]
         extra_env = None
         if lean_path is not None:
             extra_env = {"LEAN_PATH": _join_search_path(lean_path)}
-        return subprocess.run(
-            cmd,
+        return self._exec(
+            [str(self.elan), "run", tc_name, *args],
             cwd=cwd,
-            env=_env_with(extra_env),
-            capture_output=True,
-            text=True,
-            timeout=timeout_s,
-            check=False,
+            extra_env=extra_env,
+            timeout_s=timeout_s,
         )
 
     # -- the seam -----------------------------------------------------------------------------
 
     def resolve(self, toolchain: str, *, install: bool = False) -> ResolvedToolchain:
-        listed = subprocess.run(
-            [str(self.elan), "toolchain", "list"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        listed = self._elan(["toolchain", "list"])
         installed = {line.split()[0] for line in listed.stdout.splitlines() if line.strip()}
         if toolchain not in installed:
             if not install:
@@ -257,12 +270,7 @@ class LocalToolchain:
                     f"({self.elan}); run {INSTALL_SCRIPT} {toolchain}"
                 )
                 raise ToolchainMissingError(msg)
-            done = subprocess.run(
-                [str(self.elan), "toolchain", "install", toolchain],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
+            done = self._elan(["toolchain", "install", toolchain])
             if done.returncode != 0:
                 msg = f"elan toolchain install {toolchain} failed: {done.stderr.strip()}"
                 raise ToolchainMissingError(msg)
@@ -293,13 +301,14 @@ class LocalToolchain:
         *,
         timeout_s: float | None = None,
     ) -> ElabResult:
+        out_dir = out_dir.resolve()
         out_dir.mkdir(parents=True, exist_ok=True)
         olean = out_dir / f"{module}.olean"
         ilean = out_dir / f"{module}.ilean"
         proc = self._run(
             tc.name,
             ["lean", "--json", "-o", str(olean), "-i", str(ilean), source.name],
-            cwd=source.parent,
+            cwd=source.resolve().parent,
             lean_path=[out_dir, tc.libdir],
             timeout_s=timeout_s,
         )
@@ -333,6 +342,7 @@ class LocalToolchain:
         *,
         timeout_s: float | None = None,
     ) -> AxiomResult:
+        scratch = scratch.resolve()
         scratch.mkdir(parents=True, exist_ok=True)
         probe = scratch / "OpnAxioms.lean"
         probe.write_text(f"import {module}\n#print axioms {decl}\n", encoding="utf-8")

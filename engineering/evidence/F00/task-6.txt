@@ -1,0 +1,16 @@
+# F00-T6 verification — $ make verify-lean — 2026-09-08T04:22:49Z — Darwin arm64, elan 4.2.4, leanprover/lean4:v4.33.1
+verify-lean: elan at /Users/mikehiggins/.elan/bin/elan
+uv run --frozen pytest -m "lean or docker"
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+testpaths: gate/tests, api/tests, site/tests
+collected 105 items / 97 deselected / 8 selected
+
+gate/tests/test_pregate_lean.py .....                                    [ 62%]
+gate/tests/test_toolchain_lean.py ...                                    [100%]
+
+================= 8 passed, 97 deselected in 301.46s (0:05:01) =================
+make verify-lean  212.05s user 11.40s system 73% cpu 5:02.03 total
+rc=0

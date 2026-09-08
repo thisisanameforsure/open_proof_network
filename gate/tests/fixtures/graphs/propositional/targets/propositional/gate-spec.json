@@ -20,8 +20,8 @@
   "precheck_max_age_s": 86400,
   "schema": "gate-spec/v1",
   "step3_caps": {
-    "cpu": 1,
-    "memory_mib": 1024,
-    "wallclock_s": 30
+    "cpu": 2,
+    "memory_mib": 2048,
+    "wallclock_s": 300
   }
 }
