@@ -132,6 +132,18 @@ class WitnessRequest:
 
 
 @dataclass(frozen=True)
+class UsedConstantsRequest:
+    """Inputs of ``opn-used-constants`` (F01-R4)."""
+
+    file: Path
+    module: str
+    decl: str
+
+    def args(self) -> list[str]:
+        return ["--file", str(self.file.resolve()), "--module", self.module, "--decl", self.decl]
+
+
+@dataclass(frozen=True)
 class MetaprogramResult:
     """What a gate metaprogram (F01-R1) returned: parsed JSON on success, raw output otherwise."""
 
@@ -227,6 +239,16 @@ class Toolchain(Protocol):
         timeout_s: float | None = None,
     ) -> MetaprogramResult:
         """Step 7: ``opn-witness-type`` — the expected witness type, and the witness against it."""
+
+    def used_constants(
+        self,
+        tc: ResolvedToolchain,
+        req: UsedConstantsRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        """Step 8: ``opn-used-constants`` — the proof's dependency footprint with module origins."""
 
 
 # --- helpers shared by the real implementation and its tests --------------------------------
@@ -487,6 +509,16 @@ class LocalToolchain:
         timeout_s: float | None = None,
     ) -> MetaprogramResult:
         return self._metaprogram_run(tc, "opn-witness-type", req.args(), search_path, timeout_s)
+
+    def used_constants(
+        self,
+        tc: ResolvedToolchain,
+        req: UsedConstantsRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        return self._metaprogram_run(tc, "opn-used-constants", req.args(), search_path, timeout_s)
 
 
 def _env_with(extra: dict[str, str] | None) -> dict[str, str] | None:

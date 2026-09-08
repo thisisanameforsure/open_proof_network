@@ -17,6 +17,7 @@ from opn_gate.toolchain import (
     ReplayResult,
     ResolvedToolchain,
     ToolchainMissingError,
+    UsedConstantsRequest,
     WitnessRequest,
 )
 
@@ -48,6 +49,28 @@ def witness_result(
     )
 
 
+def used_constants_result(
+    constants: list[tuple[str, str | None]], *, axioms: tuple[str, ...] = ()
+) -> MetaprogramResult:
+    """A structured ``opn-used-constants`` result: (name, module-or-None-for-submission) pairs."""
+    return MetaprogramResult(
+        ok=True,
+        doc={
+            "ok": True,
+            "constants": [{"name": n, "module": m} for n, m in constants],
+            "axioms": list(axioms),
+        },
+    )
+
+
+LIBRARY_CONSTANTS: list[tuple[str, str | None]] = [
+    ("And", "Init.Prelude"),
+    ("And.intro", "Init.Prelude"),
+    ("And.left", "Init.Prelude"),
+    ("And.right", "Init.Prelude"),
+]
+
+
 def metaprogram_garbage(
     exit_code: int = 1, output: str = "Segmentation fault\n"
 ) -> MetaprogramResult:
@@ -65,6 +88,9 @@ class FakeToolchain:
     axiom_result: AxiomResult = field(default_factory=lambda: AxiomResult(ok=True))
     witness: MetaprogramResult = field(
         default_factory=lambda: witness_result(expected="∃ p q, p ∧ q", witness="∃ p q, p ∧ q")
+    )
+    constants: MetaprogramResult = field(
+        default_factory=lambda: used_constants_result(LIBRARY_CONSTANTS)
     )
     missing: bool = False
     raise_on: str | None = None  # name of the method that should raise an unexpected error
@@ -136,3 +162,15 @@ class FakeToolchain:
         self.calls.append(f"witness_type:{req.decl}:{req.witness is not None}")
         self._maybe_raise("witness_type")
         return self.witness
+
+    def used_constants(
+        self,
+        tc: ResolvedToolchain,
+        req: UsedConstantsRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        self.calls.append(f"used_constants:{req.decl}")
+        self._maybe_raise("used_constants")
+        return self.constants
