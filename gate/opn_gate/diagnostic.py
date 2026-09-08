@@ -7,6 +7,7 @@ an explicit marker.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -30,7 +31,6 @@ class Diagnostic:
 
 def truncate(doc: dict[str, Any], max_bytes: int) -> dict[str, Any]:
     """Shrink string leaves until the JSON form fits ``max_bytes``; mark the result truncated."""
-    import json  # noqa: PLC0415 — tiny helper; keeps the module import-light
 
     def size(d: dict[str, Any]) -> int:
         return len(json.dumps(d, ensure_ascii=False).encode("utf-8"))

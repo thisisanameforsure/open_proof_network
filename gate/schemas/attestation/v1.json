@@ -34,7 +34,10 @@
     "node_id": { "$ref": "#/$defs/identifier" },
     "statement_hash": { "$ref": "#/$defs/sha256" },
     "lean_toolchain": { "type": "string", "minLength": 1 },
-    "toolchain_hash": { "$ref": "#/$defs/sha256" },
+    "toolchain_hash": {
+      "description": "Null only when step 1 failed before the toolchain resolved",
+      "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/sha256" }]
+    },
     "mathlib_sha": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/sha1" }] },
     "gate_spec_hash": { "$ref": "#/$defs/sha256" },
     "network_commit": { "$ref": "#/$defs/sha1" },

@@ -1,0 +1,12 @@
+# F00-T5 verification — $ uv run pytest gate/tests/test_pipeline.py gate/tests/test_attestation.py gate/tests/test_bounce.py — 2026-09-08T04:05:35Z
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+collected 24 items
+
+gate/tests/test_pipeline.py .............                                [ 54%]
+gate/tests/test_attestation.py .......                                   [ 83%]
+gate/tests/test_bounce.py ....                                           [100%]
+
+============================== 24 passed in 0.30s ==============================
