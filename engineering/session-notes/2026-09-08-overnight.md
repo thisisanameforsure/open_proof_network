@@ -207,8 +207,17 @@ locally with throwaway keys but not on GitHub, because no PR could merge without
   three in the graph repo, all pushed. Ledger: `T1–T8 ✓ 2026-09-08 · T9 in progress`.
 - **116 tests**: 102 fast (`make verify`, ~2 s, the pre-commit hook), 14 real-tier (`make
   verify-lean`, ~10 min on your laptop: 8 need elan, 6 need docker).
-- **CI on this repo** (`ci.yml`): fast tier green; the real tier was still running at the end of
-  the session (it builds the sandbox image and installs the toolchain cold each run).
+- **CI on this repo** (`ci.yml`): fast tier green from the first fixed run. The real tier
+  failed twice on GitHub before passing locally-verified fix `4bcf8e7`: on Linux, pytest's temp
+  dirs live under `/tmp`, and the sandbox mounted a tmpfs at `/tmp` that hid the files it had just
+  copied in (macOS temp dirs are elsewhere, so every local run passed). The tmpfs is gone; the
+  container's own `/tmp` is writable and disposable. The gate run on PR #2 was unaffected because
+  the runner's temp dir is under `/home/runner/work`. Check the run for `4bcf8e7` at
+  https://github.com/thisisanameforsure/open_proof_network/actions/runs/34189964115 — **both
+  tiers green** (fast 11 s; real tier ~13 min cold on the hosted runner).
+- **The graph still pins `1e85df2`** (pre-fix). That pin works for the tutorial graph in CI (see
+  above), and re-pinning now would force PR #2 to update and re-run its gate. Re-pin to the
+  current network commit as the gate owner's next visible gate-spec diff after T9 lands.
 - **Uncommitted**: nothing in code. This notes file and the `engineering/CLAUDE.md` state update
   are committed with the T9-in-progress commit.
 - Nothing was deleted, force-pushed, or changed outside the two repos, `~/.local/bin/uv`,

@@ -99,3 +99,6 @@ The law of the project:
 - 2026-09-08 — A pinned tooling commit is chicken-and-egg with the evidence for the commit that
   pins it: seed/pin work needs two commits (code, then evidence). Expect the same at every
   `gate-spec.json` re-pin.
+- 2026-09-08 — Container mounts shadow copied-in files: a tmpfs at `/tmp` hid the sandbox's
+  inputs on Linux CI (pytest tmp lives under `/tmp` there, not on macOS). Never mount over a
+  path a host directory might occupy; the docker tier must pass on both platforms.
