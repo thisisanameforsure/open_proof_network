@@ -14,6 +14,9 @@ Variables (prefix ``OPN_``):
     on ``PATH``. Default ``~/.elan``.
 ``OPN_DIAGNOSTIC_MAX_BYTES``
     Diagnostics longer than this are truncated with an explicit marker (F00 §6). Default ``8192``.
+``OPN_LEAN_PKG_BIN``
+    Directory holding the gate's Lean metaprograms (``opn-witness-type``, ``opn-used-constants``,
+    F01-R1). Default: ``gate/lean/.lake/build/bin`` in this repo; the step-3 image sets its own.
 ``OPN_GATE_SIGNING_KEY``
     **Secret.** The gate's ed25519 private key (C8 item 1), present only in the post-merge job's
     environment. Default ``None`` — meaning "no key: emit an unsigned attestation".
@@ -34,6 +37,7 @@ DEFAULT_RUNNER: Runner = "local"
 DEFAULT_LOG_LEVEL = "INFO"
 DEFAULT_ELAN_HOME = Path.home() / ".elan"
 DEFAULT_DIAGNOSTIC_MAX_BYTES = 8192
+DEFAULT_LEAN_PKG_BIN = Path(__file__).resolve().parents[1] / "lean" / ".lake" / "build" / "bin"
 
 SECRET_NAMES: tuple[str, ...] = ("gate_signing_key", "precheck_signing_key")
 
@@ -50,6 +54,7 @@ class Settings:
     log_level: str = DEFAULT_LOG_LEVEL
     elan_home: Path = DEFAULT_ELAN_HOME
     diagnostic_max_bytes: int = DEFAULT_DIAGNOSTIC_MAX_BYTES
+    lean_pkg_bin: Path = DEFAULT_LEAN_PKG_BIN
     gate_signing_key: str | None = field(default=None, repr=False)
     precheck_signing_key: str | None = field(default=None, repr=False)
 
@@ -58,6 +63,7 @@ class Settings:
             f"Settings(runner={self.runner!r}, log_level={self.log_level!r}, "
             f"elan_home={str(self.elan_home)!r}, "
             f"diagnostic_max_bytes={self.diagnostic_max_bytes}, "
+            f"lean_pkg_bin={str(self.lean_pkg_bin)!r}, "
             f"gate_signing_key={'<set>' if self.gate_signing_key else None}, "
             f"precheck_signing_key={'<set>' if self.precheck_signing_key else None})"
         )
@@ -96,6 +102,7 @@ def load(environ: dict[str, str] | None = None) -> Settings:
         log_level=env.get("OPN_LOG_LEVEL", DEFAULT_LOG_LEVEL),
         elan_home=Path(env.get("OPN_ELAN_HOME", str(DEFAULT_ELAN_HOME))).expanduser(),
         diagnostic_max_bytes=diagnostic_max_bytes,
+        lean_pkg_bin=Path(env.get("OPN_LEAN_PKG_BIN", str(DEFAULT_LEAN_PKG_BIN))).expanduser(),
         gate_signing_key=env.get("OPN_GATE_SIGNING_KEY") or None,
         precheck_signing_key=env.get("OPN_PRECHECK_SIGNING_KEY") or None,
     )

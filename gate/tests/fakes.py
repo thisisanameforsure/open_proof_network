@@ -13,9 +13,11 @@ from pathlib import Path
 from opn_gate.toolchain import (
     AxiomResult,
     ElabResult,
+    MetaprogramResult,
     ReplayResult,
     ResolvedToolchain,
     ToolchainMissingError,
+    WitnessRequest,
 )
 
 FAKE_RESOLVED = ResolvedToolchain(
@@ -26,6 +28,33 @@ FAKE_RESOLVED = ResolvedToolchain(
 )
 
 
+def witness_result(
+    *,
+    expected: str,
+    witness: str | None,
+    defeq: bool | None = None,
+    axioms: tuple[str, ...] = (),
+) -> MetaprogramResult:
+    """A structured ``opn-witness-type`` result, as the real seam would parse it."""
+    return MetaprogramResult(
+        ok=True,
+        doc={
+            "ok": True,
+            "expected": expected,
+            "witness": witness,
+            "defeq": (witness == expected) if defeq is None else defeq,
+            "witness_axioms": list(axioms),
+        },
+    )
+
+
+def metaprogram_garbage(
+    exit_code: int = 1, output: str = "Segmentation fault\n"
+) -> MetaprogramResult:
+    """R9: a metaprogram that exited non-zero with no JSON."""
+    return MetaprogramResult(ok=False, exit_code=exit_code, output=output)
+
+
 @dataclass
 class FakeToolchain:
     """Scriptable seam. Each result is returned as configured; every call is recorded."""
@@ -34,6 +63,9 @@ class FakeToolchain:
     elab: ElabResult = field(default_factory=lambda: ElabResult(ok=True))
     replay: ReplayResult = field(default_factory=lambda: ReplayResult(ok=True))
     axiom_result: AxiomResult = field(default_factory=lambda: AxiomResult(ok=True))
+    witness: MetaprogramResult = field(
+        default_factory=lambda: witness_result(expected="∃ p q, p ∧ q", witness="∃ p q, p ∧ q")
+    )
     missing: bool = False
     raise_on: str | None = None  # name of the method that should raise an unexpected error
     calls: list[str] = field(default_factory=list)
@@ -92,3 +124,15 @@ class FakeToolchain:
         self.calls.append(f"axioms:{module}:{decl}")
         self._maybe_raise("axioms")
         return self.axiom_result
+
+    def witness_type(
+        self,
+        tc: ResolvedToolchain,
+        req: WitnessRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        self.calls.append(f"witness_type:{req.decl}:{req.witness is not None}")
+        self._maybe_raise("witness_type")
+        return self.witness

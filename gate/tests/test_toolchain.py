@@ -90,3 +90,24 @@ def test_fake_toolchain_records_calls(tmp_path: Path) -> None:
     assert fake.elaborate(tc, tmp_path / "Proof.lean", "Proof", tmp_path / "out").ok
     assert (tmp_path / "out" / "Proof.olean").exists()
     assert fake.calls == ["resolve:leanprover/lean4:v4.33.1:install=False", "elaborate:Proof"]
+
+
+def test_parse_metaprogram_output_contract() -> None:
+    """F01-R1/R9: the last stdout line is the JSON verdict; anything else is a failure."""
+    ok = toolchain.parse_metaprogram_output(0, 'noise\n{"ok": true, "expected": "True"}\n', "")
+    assert ok.ok and ok.doc["expected"] == "True" and ok.error is None
+    failed = toolchain.parse_metaprogram_output(1, '{"ok": false, "error": "boom"}\n', "")
+    assert not failed.ok and failed.error == "boom" and failed.doc
+    garbage = toolchain.parse_metaprogram_output(1, "Segmentation fault", "core dumped")
+    assert not garbage.ok and garbage.doc == {} and garbage.exit_code == 1
+    assert "Segmentation fault" in garbage.output and "core dumped" in garbage.output
+    huge = toolchain.parse_metaprogram_output(2, "x" * 100_000, "")
+    assert len(huge.output) == toolchain.METAPROGRAM_OUTPUT_CAP
+    lying = toolchain.parse_metaprogram_output(3, '{"ok": true}', "")
+    assert not lying.ok  # a non-zero exit is never a pass
+
+
+def test_metaprogram_path_requires_built_package(tmp_path: Path) -> None:
+    lt = toolchain.LocalToolchain(tmp_path / "elan", lean_pkg_bin=tmp_path / "bin")
+    with pytest.raises(ToolchainMissingError, match="lake build"):
+        lt.metaprogram("opn-witness-type")

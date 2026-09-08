@@ -1,0 +1,12 @@
+# F01-T2 verification — $ uv run pytest gate/tests/test_witness.py — 2026-09-08T13:05:09Z
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+collected 8 items
+
+gate/tests/test_witness.py ........                                      [100%]
+
+============================== 8 passed in 0.28s ===============================
+
+# real seam: $ uv run pytest gate/tests/test_toolchain_lean.py -m lean -k witness_type → 1 passed (9.8s)

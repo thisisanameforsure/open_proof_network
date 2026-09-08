@@ -22,7 +22,7 @@ import sys
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
 from opn_gate import config
 
@@ -102,6 +102,83 @@ class AxiomResult:
     output: str = ""
 
 
+@dataclass(frozen=True)
+class WitnessRequest:
+    """Inputs of ``opn-witness-type`` (F01-R3)."""
+
+    statement: Path
+    statement_module: str
+    decl: str
+    witness: Path | None = None
+    witness_module: str | None = None
+
+    def args(self) -> list[str]:
+        out = [
+            "--statement",
+            str(self.statement.resolve()),
+            "--module",
+            self.statement_module,
+            "--decl",
+            self.decl,
+        ]
+        if self.witness is not None and self.witness_module is not None:
+            out += [
+                "--witness",
+                str(self.witness.resolve()),
+                "--witness-module",
+                self.witness_module,
+            ]
+        return out
+
+
+@dataclass(frozen=True)
+class MetaprogramResult:
+    """What a gate metaprogram (F01-R1) returned: parsed JSON on success, raw output otherwise."""
+
+    ok: bool
+    doc: dict[str, Any] = field(default_factory=dict)
+    exit_code: int = 0
+    output: str = ""  # first 8 KiB of stdout+stderr when the contract was not honoured (R9)
+
+    @property
+    def error(self) -> str | None:
+        err = self.doc.get("error")
+        return str(err) if err is not None else None
+
+    @property
+    def messages(self) -> tuple[Message, ...]:
+        raw = self.doc.get("messages") or []
+        return tuple(
+            Message(
+                file="",
+                line=int(m.get("line", 0)),
+                column=int(m.get("column", 0)),
+                severity=str(m.get("severity", "error")),
+                text=str(m.get("text", "")),
+            )
+            for m in raw
+            if isinstance(m, dict)
+        )
+
+
+METAPROGRAM_OUTPUT_CAP = 8192
+
+
+def parse_metaprogram_output(exit_code: int, stdout: str, stderr: str) -> MetaprogramResult:
+    """R1/R9: the last stdout line must be one JSON object; anything else is a failure."""
+    lines = [ln for ln in stdout.splitlines() if ln.strip()]
+    doc: Any = None
+    if lines:
+        try:
+            doc = json.loads(lines[-1])
+        except json.JSONDecodeError:
+            doc = None
+    if not isinstance(doc, dict) or "ok" not in doc:
+        capped = (stdout + stderr)[:METAPROGRAM_OUTPUT_CAP]
+        return MetaprogramResult(ok=False, exit_code=exit_code, output=capped)
+    return MetaprogramResult(ok=bool(doc["ok"]) and exit_code == 0, doc=doc, exit_code=exit_code)
+
+
 class Toolchain(Protocol):
     """Everything the gate steps need from Lean, in order of use."""
 
@@ -140,6 +217,16 @@ class Toolchain(Protocol):
         timeout_s: float | None = None,
     ) -> AxiomResult:
         """Step 5: the axioms ``decl`` (defined in ``module``) depends on."""
+
+    def witness_type(
+        self,
+        tc: ResolvedToolchain,
+        req: WitnessRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        """Step 7: ``opn-witness-type`` — the expected witness type, and the witness against it."""
 
 
 # --- helpers shared by the real implementation and its tests --------------------------------
@@ -208,12 +295,24 @@ def _join_search_path(search_path: Sequence[Path]) -> str:
 class LocalToolchain:
     """The real seam: shells out to elan-managed binaries. Used by pregate.sh, CI and reproduce."""
 
-    def __init__(self, elan: Path) -> None:
+    def __init__(self, elan: Path, lean_pkg_bin: Path = config.DEFAULT_LEAN_PKG_BIN) -> None:
         self.elan = elan
+        self.lean_pkg_bin = lean_pkg_bin
 
     @classmethod
     def from_settings(cls, settings: config.Settings) -> LocalToolchain:
-        return cls(find_elan(path_env=None, elan_home=settings.elan_home))
+        return cls(find_elan(path_env=None, elan_home=settings.elan_home), settings.lean_pkg_bin)
+
+    def metaprogram(self, name: str) -> Path:
+        """Path of a built metaprogram; ``ToolchainMissingError`` if the package is unbuilt."""
+        path = self.lean_pkg_bin / name
+        if not path.is_file():
+            msg = (
+                f"metaprogram {name} not found at {path}; build the Lake package with "
+                f"`elan run <toolchain> lake build` in gate/lean (or set OPN_LEAN_PKG_BIN)"
+            )
+            raise ToolchainMissingError(msg)
+        return path
 
     # -- process plumbing ---------------------------------------------------------------------
 
@@ -358,6 +457,36 @@ class LocalToolchain:
         if proc.returncode != 0 or axioms is None:
             return AxiomResult(ok=False, output=output)
         return AxiomResult(ok=True, axioms=axioms, output=output)
+
+    def _metaprogram_run(
+        self,
+        tc: ResolvedToolchain,
+        name: str,
+        args: Sequence[str],
+        search_path: Sequence[Path],
+        timeout_s: float | None,
+    ) -> MetaprogramResult:
+        binary = self.metaprogram(name)
+        sysroot = tc.libdir.parent.parent
+        proc = self._exec(
+            [str(self.elan), "run", tc.name, str(binary), *args],
+            extra_env={
+                "LEAN_PATH": _join_search_path([*search_path, tc.libdir]),
+                "LEAN_SYSROOT": str(sysroot),
+            },
+            timeout_s=timeout_s,
+        )
+        return parse_metaprogram_output(proc.returncode, proc.stdout, proc.stderr)
+
+    def witness_type(
+        self,
+        tc: ResolvedToolchain,
+        req: WitnessRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        return self._metaprogram_run(tc, "opn-witness-type", req.args(), search_path, timeout_s)
 
 
 def _env_with(extra: dict[str, str] | None) -> dict[str, str] | None:

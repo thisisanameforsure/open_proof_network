@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from opn_gate.toolchain import LocalToolchain, ResolvedToolchain
+from opn_gate.toolchain import LocalToolchain, ResolvedToolchain, WitnessRequest
 
 pytestmark = pytest.mark.lean
 
@@ -49,3 +49,19 @@ def test_elaboration_error_is_structured(
     elab = real_toolchain.elaborate(pinned, src, "Proof", tmp_path / "out", timeout_s=120)
     assert not elab.ok
     assert elab.errors and elab.errors[0].line == 1
+
+
+def test_witness_type_through_the_seam(
+    real_toolchain: LocalToolchain, pinned: ResolvedToolchain, lean_pkg: Path, tmp_path: Path
+) -> None:
+    """F01-T2: the real opn-witness-type through LocalToolchain.witness_type."""
+    real_toolchain.lean_pkg_bin = lean_pkg
+    stmt = tmp_path / "Statement.lean"
+    stmt.write_text("theorem T.s : ∀ n : Nat, n > 0 → n ≥ 1 := by\n  sorry\n", encoding="utf-8")
+    wit = tmp_path / "Witness.lean"
+    wit.write_text("theorem witness : ∃ n : Nat, n > 0 := ⟨1, Nat.one_pos⟩\n", encoding="utf-8")
+    req = WitnessRequest(stmt, "T.Statement", "T.s", wit, "T.Witness")
+    result = real_toolchain.witness_type(pinned, req, [tmp_path], timeout_s=120)
+    assert result.ok, result
+    assert result.doc["expected"] == "∃ n, n > 0"
+    assert result.doc["defeq"] is True and result.doc["witness_axioms"] == []
