@@ -1,0 +1,36 @@
+# F00-T8 verification — $ uv run pytest gate/tests/test_postmerge.py — 2026-09-08T04:56:26Z
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+collected 5 items
+
+gate/tests/test_postmerge.py .....                                       [100%]
+
+============================== 5 passed in 0.30s ===============================
+
+# Green gate.yml run on a no-op PR (graph repo PR #1, touches README only):
+https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34188674148
+
+✓ noop-readme gate thisisanameforsure/open_proof_network_graph#1 · 34188674148
+Triggered via pull_request about 1 minute ago
+
+JOBS
+✓ gate (steps 1, 2, 4, 5 in the sandbox) in 5s (ID 101942055734)
+- postmerge (step 9 record, gate signature, attestation commit) (ID 101942056335)
+
+For more information about a job, try: gh run view --job=<job-id>
+View this run on GitHub: https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34188674148
+
+# The seed push's postmerge job (no PR merged → nothing to record):
+https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34188670467
+
+✓ main gate · 34188670467
+Triggered via push about 1 minute ago
+
+JOBS
+✓ postmerge (step 9 record, gate signature, attestation commit) in 5s (ID 101942045484)
+- gate (steps 1, 2, 4, 5 in the sandbox) in 0s (ID 101942046100)
+
+
+# Graph repo state: 8737523 F00-T8: gate.yml — pin astral-sh/setup-uv@v10.0.1; re-pin network commit; ruleset 'main: gate + non-author review' (id 22508489); secrets OPN_GATE_SIGNING_KEY, OPN_GRAPH_DEPLOY_KEY; keys/gate.pub fingerprint SHA256:XOd3xiS7BYG+uqfTlo5j3uEH96wPy5SCfmBWEsAKZLI
