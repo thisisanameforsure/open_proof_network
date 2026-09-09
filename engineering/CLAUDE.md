@@ -108,4 +108,15 @@ The law of the project:
   opn_gate but not gate/schemas, so every validating route answered 500 while health stayed green,
   because health validates nothing. A deploy check that only imports modules would not have caught
   it; it verifies the schema files and their pins now.
+- 2026-09-09 — Verify an edit landed. Twice a scripted `str.replace` matched nothing (the
+  formatter had rewrapped the target line) and the change silently vanished: two rate limits
+  stayed at their defaults, and the tests caught it only by luck of covering them. Assert on the
+  replacement, or use the Edit tool, which fails loudly.
+- 2026-09-09 — Assert the requirement where it is enforced. A precheck attestation records the
+  runner it actually ran on, so asserting `hosted` in a laptop test was wrong; the requirement
+  belongs to the workflow, and a static check of the YAML proves it — along with the stronger
+  property that no step before signing is granted any secret at all.
+- 2026-09-09 — Read the shape before asserting on it. Two docker-tier failures (16 minutes each)
+  were guesses at the verdict record's field names; the fast tier could not catch them because
+  the records only exist after a real run.
 

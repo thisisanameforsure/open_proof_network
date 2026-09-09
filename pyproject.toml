@@ -35,7 +35,7 @@ package = false
 
 [tool.pytest.ini_options]
 testpaths = ["gate/tests", "api/tests", "site/tests"]
-pythonpath = ["gate", "gate/tests", "api", "api/tests", "site", "site/tests"]
+pythonpath = ["gate", "gate/tests", "api", "api/tests", "site", "site/tests"]  # gate holds opn_gate and precheck
 addopts = "-ra --strict-markers --import-mode=importlib"
 # Conventions §2: unmarked tests are the fast tier (`make verify`).
 markers = [
@@ -65,6 +65,7 @@ known-first-party = ["opn_gate", "opn_api", "opn_site"]
 "*/tests/**" = ["PLR0913", "S108", "S404"]
 "gate/opn_gate/toolchain.py" = ["PLR0913"]  # seam methods mirror CLI invocations
 "gate/opn_gate/products.py" = ["PLR0913"]   # one keyword per product input (F03-R11, F05-R10)
+"gate/precheck/job.py" = ["PLR0913"]        # one keyword per CLI flag (F06-R4)
 
 [tool.mypy]
 strict = true

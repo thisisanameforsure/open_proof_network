@@ -1,0 +1,119 @@
+# The precheck job (F06-R4; D-4, D-24, D-28, D-35). This file is the scratch repository's
+# .github/workflows/precheck.yml; it is kept here so it is versioned with the code it runs.
+#
+# The api pushes a branch job/<id> holding job.json and bundle/, then dispatches this workflow
+# with the job id. The job checks out the graph at the commit the job pins and this repo at the
+# commit that graph's gate-spec.json pins, applies the bundle, and runs gate steps 1, 2 and 4-8
+# inside the step-3 image. A stranger's Lean therefore runs only on GitHub's throwaway VM, inside
+# the container, with no network and no secret in that step (D-24, C9).
+#
+# The precheck signing key is this repository's only secret (C8 item 2) and is used in a step of
+# its own, after the verdict exists, exactly as the authoritative gate separates signing from
+# checking. The result is uploaded as an artifact; the api downloads it and verifies the
+# signature against the public key committed to the graph (F06-R5).
+name: precheck
+
+on:
+  workflow_dispatch:
+    inputs:
+      job_id:
+        description: "the precheck job id (names the branch job/<id>)"
+        required: true
+
+permissions: {}
+
+concurrency:
+  group: precheck-${{ inputs.job_id }}
+  cancel-in-progress: false
+
+env:
+  UV_VERSION: "0.12.10"
+  GRAPH_REPO: thisisanameforsure/open_proof_network_graph
+  NETWORK_REPO: thisisanameforsure/open_proof_network
+
+jobs:
+  precheck:
+    name: precheck ${{ inputs.job_id }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out the job branch
+        uses: actions/checkout@v5
+        with:
+          ref: job/${{ inputs.job_id }}
+          path: job
+          persist-credentials: false
+
+      - name: Read the job
+        id: job
+        run: |
+          set -euo pipefail
+          for field in id node_id target_id graph_commit bundle_digest; do
+            value="$(python3 -c "import json,sys; print(json.load(open('job/job.json'))['$field'])")"
+            echo "$field=$value" >> "$GITHUB_OUTPUT"
+          done
+          test -d job/bundle || { echo "::error::the job branch carries no bundle/"; exit 1; }
+          echo "precheck: job ${{ inputs.job_id }}, $(find job/bundle -type f | wc -l) file(s)"
+
+      - name: Check out the graph at the commit the job pins
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ env.GRAPH_REPO }}
+          ref: ${{ steps.job.outputs.graph_commit }}
+          path: graph
+          persist-credentials: false
+
+      - name: Read the network commit that graph pins
+        id: pin
+        run: |
+          set -euo pipefail
+          spec="graph/targets/${{ steps.job.outputs.target_id }}/gate-spec.json"
+          pin="$(python3 -c "import json,sys; print(json.load(open('$spec'))['network_commit'])")"
+          echo "pin=$pin" >> "$GITHUB_OUTPUT"
+          echo "precheck: running the gate at network commit $pin"
+
+      - name: Check out the pinned network commit
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ env.NETWORK_REPO }}
+          ref: ${{ steps.pin.outputs.pin }}
+          path: network
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          version: ${{ env.UV_VERSION }}
+
+      - name: Run the gate on the bundle (no secret in this step)
+        id: run
+        env:
+          OPN_RUNNER: hosted
+          PYTHONPATH: network/gate
+        run: |
+          set -euo pipefail
+          uv sync --frozen --project network --quiet
+          uv run --frozen --project network python -m precheck.job \
+            --graph graph --job job/job.json --bundle job/bundle --out out \
+            | tee "$RUNNER_TEMP/job.txt"
+
+      - name: Sign the attestation with the precheck key (the only step that sees it)
+        if: success()
+        env:
+          OPN_PRECHECK_SIGNING_KEY: ${{ secrets.OPN_PRECHECK_SIGNING_KEY }}
+          PYTHONPATH: network/gate
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s\n' "$OPN_PRECHECK_SIGNING_KEY" > "$RUNNER_TEMP/precheck_key"
+          uv run --frozen --project network python -m precheck.sign \
+            --result out/result.json --key "$RUNNER_TEMP/precheck_key"
+          rm -f "$RUNNER_TEMP/precheck_key"
+
+      - name: Upload the result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-${{ inputs.job_id }}
+          path: out/result.json
+          if-no-files-found: warn
+          retention-days: 30

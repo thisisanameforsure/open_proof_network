@@ -1,0 +1,40 @@
+F06-T2 verification — 2026-09-09T18:25:55Z
+
+$ make verify-lean      (the real toolchain and the step-3 container)
+
+  gate/tests/test_hazards_lean.py .......                                  [ 19%]
+  gate/tests/test_lean_pkg_lean.py ....                                    [ 30%]
+  gate/tests/test_precheck_job_docker.py ..                                [ 36%]
+  gate/tests/test_pregate_lean.py ...........                              [ 66%]
+  gate/tests/test_products_lean.py .                                       [ 69%]
+  gate/tests/test_reproduce_docker.py ..                                   [ 75%]
+  gate/tests/test_sandbox_docker.py .....                                  [ 88%]
+  gate/tests/test_toolchain_lean.py ....                                   [100%]
+  api/tests/api_fakes.py:16
+  ========= 36 passed, 296 deselected, 2 warnings in 1027.55s (0:17:07) ==========
+
+The five precheck tests within it:
+
+  gate/tests/test_precheck_job_docker.py ..                                [ 36%]
+  gate/tests/test_pregate_lean.py ...........                              [ 66%]
+
+  gate/tests/test_precheck_job_docker.py::test_bundle_may_not_escape_the_graph_root PASSED [ 33%]
+  gate/tests/test_precheck_job_docker.py::test_empty_bundle_is_a_job_error PASSED [ 66%]
+  gate/tests/test_precheck_job_docker.py::test_workflow_declares_a_hosted_runner_and_no_permissions PASSED [100%]
+  ======================= 3 passed, 2 deselected in 0.16s ========================
+  (the two container tests are the ones counted in the run above; these three need no image)
+
+What AC14 asserts, and now holds:
+  - a real proof bundle applied to the fixture graph passes steps 1, 2 and 4-8 in the image
+  - the attestation validates, and signing it as kind 'service' verifies with its key
+  - a failing submission is a *successful* job carrying the first failing step's diagnostic
+  - the workflow declares OPN_RUNNER hosted and permissions {}
+  - no step before signing is granted any secret, and the key is the job's only one
+
+Live on GitHub:
+  cleanup	active	354257664
+  precheck	active	354257666
+  secret set:
+    OPN_PRECHECK_SIGNING_KEY	2026-09-09T17:48:09Z
+  public key committed to the graph:
+    ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIODVXkeVpU9Seb2h6QzplzU7q0viqk2CU6L0gqT4+Rvy opn-precheck-20260909

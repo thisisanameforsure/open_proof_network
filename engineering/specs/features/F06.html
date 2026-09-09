@@ -101,11 +101,12 @@ exchanged for a write token under a pseudonym. Cites: D-4, D-19, D-24, D-27, D-2
   <tr><td>F06-Q1</td><td><strong>A third repository</strong> — decided in D-35 (v3.11): the scratch repo holds nothing but disposable job branches and one workflow, has no authority, and the gate never reads it. No deviation.</td></tr>
   <tr><td>F06-Q2</td><td><strong>Anonymous precheck is the single carve-out from "writes are token-authenticated" (D-28).</strong> Without it the D-19 v3.9 account-free proof is circular. Scoped to the tutorial node, address-limited, and returns nothing a token would not.</td></tr>
   <tr><td>F06-Q3</td><td><strong>Polling instead of webhooks.</strong> A GitHub webhook would need an inbound secret and endpoint; polling on read keeps the service stateless and the secret list at C8's five items.</td></tr>
+  <tr><td>F06-Q5</td><td><strong>T3 needs RSA and the standard library has none.</strong> Authenticating as the GitHub App (R3) means an RS256 JWT signed with the App's private key. The options are a new dependency (<code>cryptography</code>, what PyJWT uses) or hand-written PKCS#1 v1.5 signing. C5 dislikes the first; "never roll your own crypto" forbids the second more strongly, so the proposal is <code>cryptography</code>, pinned and locked, justified here. <strong>Not yet decided — put to the founder 2026-09-09, awaiting an answer.</strong> Note it is a large wheel and the deployment package is cross-built for arm64, so the packaging step needs checking when it lands.</td></tr>
   <tr><td>F06-Q4</td><td><strong>The nonce is not inside the signed attestation.</strong> The service verifies tutorial proofs against its own job record, so the attestation shape stays the gate's, with no identity field for the gate to ignore.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1 &#10003; 2026-09-09 &middot; T2&ndash;T5 todo</div>
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1 &#10003; 2026-09-09 &middot; T2 &#10003; 2026-09-09 (<code>make verify-lean</code>: 36 passed, AC14 among them) &middot; T3&ndash;T5 todo. <strong>Live already:</strong> the scratch repo <a href="https://github.com/thisisanameforsure/open_proof_network_precheck">open_proof_network_precheck</a> (public) holds both workflows; its <code>OPN_PRECHECK_SIGNING_KEY</code> secret is set and the public half is committed to the graph at <code>keys/precheck.pub</code>; the GitHub App is installed on the graph and the scratch repo and on nothing else.</div>
 
 <h2>Tasks</h2>
 <table>

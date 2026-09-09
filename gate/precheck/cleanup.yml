@@ -1,0 +1,52 @@
+# Job-branch cleanup (F06-R9). This file is the scratch repository's
+# .github/workflows/cleanup.yml; it is kept here so it is versioned with the code it serves.
+#
+# The scratch repository holds nothing but disposable job branches and these two workflows
+# (D-35). Branches carry contributor code, so retention is bounded: anything older than the
+# window is deleted daily. Nothing reads these branches after their run — the api keeps the
+# result, the gate never looks here at all.
+name: cleanup
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      max_age_days:
+        description: "delete job branches older than this many days"
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cleanup
+  cancel-in-progress: false
+
+jobs:
+  prune:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Delete job branches past the retention window
+        env:
+          MAX_AGE_DAYS: ${{ inputs.max_age_days || '7' }}
+        run: |
+          set -euo pipefail
+          cutoff=$(( $(date -u +%s) - MAX_AGE_DAYS * 86400 ))
+          deleted=0
+          kept=0
+          # %(committerdate:unix) is when the api pushed the job; a branch is never updated after.
+          while read -r when ref; do
+            [ -z "${ref:-}" ] && continue
+            branch="${ref#origin/}"
+            if [ "$when" -lt "$cutoff" ]; then
+              git push origin --delete "$branch" && deleted=$((deleted + 1))
+            else
+              kept=$((kept + 1))
+            fi
+          done < <(git for-each-ref --format='%(committerdate:unix) %(refname:short)' 'refs/remotes/origin/job/*')
+          echo "cleanup: deleted $deleted job branch(es), kept $kept newer than ${MAX_AGE_DAYS}d"
