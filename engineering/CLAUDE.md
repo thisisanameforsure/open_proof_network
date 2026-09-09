@@ -80,3 +80,9 @@ The law of the project:
 - 2026-09-09 — GitHub's OIDC `sub` claim is now `repo:owner@<id>/name@<id>:ref:...`, so an
   exact-match trust policy on `repo:owner/name:ref:...` is denied. Print the claims from the
   workflow before guessing; pin the trust policy to the numeric ids (they survive renames).
+- 2026-09-09 — Adding a schema changes `info.json`'s schema index, which every F03 product
+  golden carries. Budget the golden regeneration into the commit that adds the schema, and keep
+  the api's fixtures copied from a golden so the two never drift (F05-Q5).
+- 2026-09-09 — A workflow on the graph may only use a gate flag the *pinned* commit understands.
+  Adding `--claims-url` behind `${VAR:+...}` keeps the old pin working; the flag becomes live
+  when the variable is set, which must wait for the re-pin (F05-R10).
