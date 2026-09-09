@@ -31,6 +31,7 @@ def test_fixture_tutorial_passes_all_four_steps(tmp_path: Path) -> None:
         (2, "pass"),
         (4, "pass"),
         (5, "pass"),
+        (6, "pass"),
         (7, "pass"),
         (8, "pass"),
     ]
@@ -69,6 +70,7 @@ def test_first_failure_stops_pipeline(tmp_path: Path) -> None:
         (2, "pass"),
         (4, "fail"),
         (5, "skipped"),
+        (6, "skipped"),
         (7, "skipped"),
         (8, "skipped"),
     ]
@@ -245,7 +247,7 @@ def test_steps_run_in_d4_order_regardless_of_list_order(tmp_path: Path) -> None:
 
     steps = [Marker(), *reversed(default_steps())]
     verdict = pipeline.run_steps(make_context(tmp_path), steps=steps)
-    assert [s.step for s in verdict.steps] == [1, 2, 4, 5, 7, 8, 9]
+    assert [s.step for s in verdict.steps] == [1, 2, 4, 5, 6, 7, 8, 9]
     assert verdict.data["marker"] is True
 
 

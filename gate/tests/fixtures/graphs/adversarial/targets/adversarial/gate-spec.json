@@ -12,7 +12,14 @@
   "devcontainer_ref": null,
   "gate_owner": "thisisanameforsure",
   "graph_id": "adversarial",
-  "hazard_checkers": [],
+  "hazard_checkers": [
+    "div-zero",
+    "int-trunc",
+    "junk-value",
+    "nat-sub",
+    "off-by-one-range",
+    "unused-binder"
+  ],
   "lean_toolchain": "leanprover/lean4:v4.33.1",
   "mathlib_sha": null,
   "network_commit": "0000000000000000000000000000000000000000",

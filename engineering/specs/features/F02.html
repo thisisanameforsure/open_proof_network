@@ -100,7 +100,7 @@ step 6 and the <code>native_decide</code> amendment, D-8, D-15, D-29, D-34.</p>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1&ndash;T4 &#10003; 2026-09-09 · T5 todo</div>
+<div class="rule"><strong>status:</strong> done · <strong>Tasks:</strong> T1&ndash;T5 &#10003; 2026-09-09 (T5's graph-repo diff is committed locally in <code>../open_proof_network_graph</code>, not pushed: the re-pin is the gate owner's to publish)</div>
 
 <h2>Tasks</h2>
 <table>
@@ -118,7 +118,7 @@ step 6 and the <code>native_decide</code> amendment, D-8, D-15, D-29, D-34.</p>
     <td><code>gate/schemas/waiver/v1.json</code>, <code>gate/schemas/attestation/v3.json</code> (Q5a), <code>gate/schemas/HASHES</code>, <code>gate/opn_gate/paths.py</code>, <code>gate/opn_gate/steps/paths_step.py</code>, <code>gate/opn_gate/steps/axioms.py</code>, <code>gate/opn_gate/postmerge.py</code>, <code>gate/opn_gate/attestation.py</code>, <code>gate/opn_gate/bounce.py</code>, <code>gate/opn_gate/cli.py</code> (<code>--approval-body-file</code>), <code>gate/tests/samples.py</code>, <code>gate/tests/test_pipeline.py</code>, <code>gate/tests/test_paths.py</code>, <code>gate/tests/test_postmerge.py</code>, <code>gate/tests/test_schemas.py</code>, <code>gate/tests/test_attestation.py</code></td>
     <td>T3</td><td><code>uv run pytest gate/tests/test_pipeline.py gate/tests/test_paths.py gate/tests/test_postmerge.py</code></td></tr>
   <tr><td>F02-T5</td><td><strong>Pipeline wiring, image, reproduce.</strong> Step 6 in order; fixture node with acknowledged hazard; image builds the checkers; D-5 test green; graph repo's <code>gate-spec.json</code> gains the checker list (bot-owner diff, D-35).</td>
-    <td><code>gate/opn_gate/pipeline.py</code>, <code>gate/Dockerfile</code>, <code>gate/reproduce.sh</code>, <code>gate/tests/test_pregate_lean.py</code>, <code>../open_proof_network_graph/targets/tutorial/gate-spec.json</code></td>
+    <td><code>gate/opn_gate/steps/__init__.py</code> (step 6 in the default order), <code>gate/Dockerfile</code>, <code>gate/reproduce.sh</code>, <code>gate/pregate.sh</code>, <code>gate/opn_gate/cli.py</code> (help text), <code>gate/tests/fixtures/graphs/adversarial/</code> (<code>nat-sub-ack</code>, all six checkers on), <code>gate/tests/test_pregate_lean.py</code>, <code>gate/tests/test_pipeline.py</code>, <code>gate/tests/test_attestation.py</code>, <code>gate/tests/test_reproduce_docker.py</code> (step lists), <code>../open_proof_network_graph/targets/tutorial/gate-spec.json</code> (checker list, re-pin), <code>../open_proof_network_graph/.github/workflows/gate.yml</code> (approval bodies to postmerge, Q5b), <code>../open_proof_network_graph/targets/tutorial/nodes/tutorial-and-swap/Witness.lean</code> (seeded witness in F01-R3's shape, or step 7 rejects the tutorial under the re-pin)</td>
     <td>T4</td><td><code>make verify-lean</code></td></tr>
 </table>
 

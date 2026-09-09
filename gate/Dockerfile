@@ -37,8 +37,9 @@ RUN set -eux; \
     elan run "${LEAN_TOOLCHAIN}" lean --version; \
     chmod -R a+rX /opt/elan
 
-# The gate's Lean metaprograms (F01-R1, R10): built here so the authoritative gate, precheck and
-# reproduce.sh run identical binaries. The package pins the same toolchain via lean-toolchain.
+# The gate's Lean metaprograms (F01-R1, R10; F02-R1: the hazard checkers): built here so the
+# authoritative gate, precheck and reproduce.sh run identical binaries. The package pins the same
+# toolchain via lean-toolchain.
 COPY lean/ /opt/opn/lean/
 RUN set -eux; \
     printf '%s\n' "${LEAN_TOOLCHAIN}" > /opt/opn/lean/lean-toolchain; \
@@ -46,6 +47,7 @@ RUN set -eux; \
     elan run "${LEAN_TOOLCHAIN}" lake build; \
     test -x .lake/build/bin/opn-witness-type; \
     test -x .lake/build/bin/opn-used-constants; \
+    test -x .lake/build/bin/opn-hazards; \
     chmod -R a+rX /opt/opn
 
 # Non-root, no home to write to beyond /tmp.

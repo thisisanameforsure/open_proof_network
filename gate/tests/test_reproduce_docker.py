@@ -56,6 +56,7 @@ def test_two_runs_identical(
         (2, "pass"),
         (4, "pass"),
         (5, "pass"),
+        (6, "pass"),
         (7, "pass"),
         (8, "pass"),
     ]

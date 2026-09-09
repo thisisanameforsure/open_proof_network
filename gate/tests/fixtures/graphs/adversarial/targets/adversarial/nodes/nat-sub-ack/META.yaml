@@ -1,0 +1,16 @@
+schema: meta/v2
+id: nat-sub-ack
+status: ready
+deps: []
+statement-hash: 1ebe24c5d7fb6d9f8eaa56cf6d8716417d41e994783abc3207bdb69101fc2c08
+origin: authored
+provenance:
+  author: thisisanameforsure
+  model: null
+  source: null
+  date: "2026-09-09"
+tutorial: false
+acknowledged_hazards:
+  - checker: nat-sub
+    location: "n - 0"
+    justification: "intended: the subtrahend is the literal 0, so nothing truncates"

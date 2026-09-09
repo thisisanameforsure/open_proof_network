@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -61,6 +62,7 @@ def test_tutorial_node_passes(tmp_path: Path) -> None:
         (2, "pass"),
         (4, "pass"),
         (5, "pass"),
+        (6, "pass"),
         (7, "pass"),
         (8, "pass"),
     ]
@@ -177,6 +179,7 @@ def test_root_with_deps_passes_all_steps(tmp_path: Path) -> None:
         (2, "pass"),
         (4, "pass"),
         (5, "pass"),
+        (6, "pass"),
         (7, "pass"),
         (8, "pass"),
     ]
@@ -202,6 +205,91 @@ def test_wrong_witness_fails_step7(tmp_path: Path) -> None:
     d = summary["diagnostic"]
     assert d["code"] == "witness-type-mismatch"
     assert d["details"] == {"expected": "∃ p q, p ∧ q", "witness": "∃ p, p"}
+
+
+# --- F02-T5: step 6 with the real checkers ---------------------------------------------------
+
+ACK_NODE = "nat-sub-ack"
+ACK_META = f"targets/adversarial/nodes/{ACK_NODE}/META.yaml"
+
+
+def strip_acknowledgment(root: Path) -> None:
+    meta = root / ACK_META
+    text = meta.read_text(encoding="utf-8")
+    meta.write_text(text[: text.index("acknowledged_hazards:")], encoding="utf-8")
+
+
+def test_hazard_ack_roundtrip(tmp_path: Path) -> None:
+    """AC13: the acknowledged Nat subtraction passes step 6 with a record; unacknowledged, fails."""
+    graph = git_adversarial(tmp_path)
+    code, summary = run_pregate_node(graph, ACK_NODE, tmp_path / "out1")
+    assert code == 0, summary
+    six = next(s for s in summary["steps"] if s["step"] == 6)
+    assert six["result"] == "pass"
+    assert six["diagnostic"]["code"] == "hazards-acknowledged"
+    assert six["diagnostic"]["details"]["acknowledged"][0]["location"] == "n - 0"
+    doc = json.loads((tmp_path / "out1" / "attestation.json").read_text())
+    assert schemas.violations(doc) == [] and doc["trust_base"] == "kernel"
+
+    # The acknowledgment removed and committed (META.yaml is not a submission path).
+    bare = tmp_path / "bare"
+    shutil.copytree(ADVERSARIAL, bare / "graph")
+    strip_acknowledgment(bare / "graph")
+    graph2 = git_adversarial_from(bare / "graph", bare)
+    code, summary = run_pregate_node(graph2, ACK_NODE, tmp_path / "out2")
+    assert code == 1 and summary["first_failing_step"] == 6, summary
+    d = summary["diagnostic"]
+    assert d["code"] == "hazard-unacknowledged"
+    assert [(f["checker"], f["location"]) for f in d["details"]["findings"]] == [
+        ("nat-sub", "n - 0")
+    ]
+
+
+def git_adversarial_from(root: Path, home: Path) -> Path:
+    env = {
+        "GIT_AUTHOR_NAME": "t",
+        "GIT_AUTHOR_EMAIL": "t@x",
+        "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@x",
+        "PATH": "/usr/bin:/bin",
+        "HOME": str(home),
+    }
+    for cmd in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "fixture"]):
+        subprocess.run(["git", "-C", str(root), *cmd], check=True, env=env)
+    return root
+
+
+def test_hazards_command(tmp_path: Path) -> None:
+    """R7: `opn-gate hazards <node-dir>` runs step 6 alone, without a proof or a diff."""
+    graph = git_adversarial(tmp_path)
+    node_dir = graph / "targets" / "adversarial" / "nodes" / ACK_NODE
+    (node_dir / "Proof.lean").unlink()  # a proposed node has none
+    proc = subprocess.run(
+        [
+            "uv",
+            "run",
+            "--frozen",
+            "--project",
+            str(ROOT),
+            "python",
+            "-m",
+            "opn_gate.cli",
+            "hazards",
+            str(node_dir),
+            "--out",
+            str(tmp_path / "haz"),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=600,
+        env={**os.environ, "PYTHONPATH": str(ROOT / "gate")},
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    summary = json.loads(proc.stdout)
+    assert [s["step"] for s in summary["steps"]] == [1, 2, 6]
+    assert summary["hazards"]["acknowledged"][0]["checker"] == "nat-sub"
+    assert summary["hazards"]["findings"][0]["location"] == "n - 0"
 
 
 def test_unused_dep_warns_and_context_mismatch_fails(tmp_path: Path) -> None:
