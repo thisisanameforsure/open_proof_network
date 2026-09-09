@@ -1,0 +1,11 @@
+# F03-T2 verification — $ uv run pytest gate/tests/test_products.py -k "status or cycle or missing or ready_since" — 2026-09-09T05:35:13Z
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+collected 10 items / 3 deselected / 7 selected
+
+gate/tests/test_products.py .......                                      [100%]
+
+======================= 7 passed, 3 deselected in 0.48s ========================
+exit=0

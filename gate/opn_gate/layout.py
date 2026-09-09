@@ -11,6 +11,7 @@ A node directory is::
       Relation.lean    optional: variants only (D-30, F08)
       attempts/  annex/  explainer/   required directories (may hold only .gitkeep)
       waivers/         optional (F02)
+      status/          optional: curator and adjudication records (F03); never a submission path
 
 Anything else is an extra entry and is named in the diagnostic.
 """
@@ -27,7 +28,7 @@ from opn_gate.diagnostic import Diagnostic
 REQUIRED_FILES: tuple[str, ...] = ("META.yaml", "Statement.lean", "Witness.lean", "Context.lean")
 OPTIONAL_FILES: tuple[str, ...] = ("Proof.lean", "Relation.lean")
 REQUIRED_DIRS: tuple[str, ...] = ("attempts", "annex", "explainer")
-OPTIONAL_DIRS: tuple[str, ...] = ("waivers",)
+OPTIONAL_DIRS: tuple[str, ...] = ("waivers", "status")  # status/: curator records (F03-Q3)
 KEEP_FILE = ".gitkeep"
 META_SCHEMAS: tuple[str, ...] = ("meta/v1", "meta/v2")  # v2: acknowledged_hazards (F02-R6)
 

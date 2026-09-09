@@ -103,7 +103,7 @@ D-3, D-8, D-12, D-13, D-14, D-18, D-25, D-28, D-29, D-30, D-33, D-34, D-35.</p>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1 &#10003; 2026-09-09 · T2&ndash;T5 todo</div>
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1&ndash;T2 &#10003; 2026-09-09 · T3&ndash;T5 todo</div>
 
 <h2>Tasks</h2>
 <table>
@@ -112,7 +112,7 @@ D-3, D-8, D-12, D-13, D-14, D-18, D-25, D-28, D-29, D-30, D-33, D-34, D-35.</p>
     <td><code>gate/schemas/*/v1.json</code> (postmortem, node-status, target-status (Q5), graph, frontier, targets-index, info), <code>gate/schemas/HASHES</code>, <code>gate/opn_gate/records.py</code>, <code>gate/tests/samples.py</code>, <code>gate/tests/test_schemas.py</code>, <code>gate/tests/test_records.py</code></td>
     <td>F01</td><td><code>uv run pytest gate/tests/test_schemas.py</code></td></tr>
   <tr><td>F03-T2</td><td><strong>Graph derivation.</strong> Status model, precedence, DAG validation, <code>ready_since</code> carry-forward, META status write.</td>
-    <td><code>gate/opn_gate/graph.py</code>, <code>gate/tests/test_products.py</code></td>
+    <td><code>gate/opn_gate/graph.py</code>, <code>gate/opn_gate/layout.py</code> (<code>status/</code> is an optional node directory), <code>gate/tests/test_products.py</code></td>
     <td>T1</td><td><code>uv run pytest gate/tests/test_products.py -k "status or cycle or missing or ready_since"</code></td></tr>
   <tr><td>F03-T3</td><td><strong>Generators.</strong> <code>graph.json</code>, <code>frontier.json</code>, <code>targets/index.json</code>, <code>info.json</code>; library tags through the seam with cache; canonical JSON writer; <code>opn-gate products</code> command.</td>
     <td><code>gate/opn_gate/products.py</code>, <code>gate/opn_gate/cli.py</code>, <code>gate/tests/test_products.py</code>, <code>gate/tests/test_products_lean.py</code></td>
