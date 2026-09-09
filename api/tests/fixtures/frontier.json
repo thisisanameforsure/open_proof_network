@@ -1,0 +1,93 @@
+{
+  "entries": [
+    {
+      "annex_present": true,
+      "attempts": 3,
+      "bounty": false,
+      "claimable": true,
+      "claims": {
+        "active": [],
+        "history_count": 0
+      },
+      "failure_class_histogram": {
+        "invalid": 1,
+        "missing-library": 1,
+        "route-dead-ends": 1
+      },
+      "node_id": "and-reassoc",
+      "origin": "authored",
+      "ready_since": null,
+      "refuted_route_classes": [
+        "case-split"
+      ],
+      "relation": null,
+      "statement_hash": "22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7",
+      "tags": {
+        "deps": [],
+        "library": []
+      },
+      "target_id": "propositional",
+      "tutorial": false
+    },
+    {
+      "annex_present": true,
+      "attempts": 3,
+      "bounty": false,
+      "claimable": false,
+      "claims": {
+        "active": [],
+        "history_count": 0
+      },
+      "failure_class_histogram": {
+        "invalid": 1,
+        "missing-library": 1,
+        "route-dead-ends": 1
+      },
+      "node_id": "listed-only",
+      "origin": "authored",
+      "ready_since": null,
+      "refuted_route_classes": [
+        "case-split"
+      ],
+      "relation": null,
+      "statement_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+      "tags": {
+        "deps": [],
+        "library": []
+      },
+      "target_id": "propositional",
+      "tutorial": false
+    },
+    {
+      "annex_present": true,
+      "attempts": 3,
+      "bounty": false,
+      "claimable": true,
+      "claims": {
+        "active": [],
+        "history_count": 0
+      },
+      "failure_class_histogram": {
+        "invalid": 1,
+        "missing-library": 1,
+        "route-dead-ends": 1
+      },
+      "node_id": "tutorial-and-swap",
+      "origin": "authored",
+      "ready_since": null,
+      "refuted_route_classes": [
+        "case-split"
+      ],
+      "relation": null,
+      "statement_hash": "4444444444444444444444444444444444444444444444444444444444444444",
+      "tags": {
+        "deps": [],
+        "library": []
+      },
+      "target_id": "propositional",
+      "tutorial": true
+    }
+  ],
+  "rendered_from": "5555555555555555555555555555555555555555",
+  "schema": "frontier/v1"
+}

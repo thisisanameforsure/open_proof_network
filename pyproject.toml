@@ -8,9 +8,15 @@ license = "Apache-2.0"
 # Runtime dependencies. Each package here needs a C5 justification in a spec:
 #   jsonschema — conventions §1 (protocol schemas are JSON Schema 2020-12, D-34).
 #   pyyaml     — F00 §8 (META.yaml is YAML by D-3; the stdlib has no parser).
+#   starlette  — F05 §8 (the ASGI framework the MCP SDK needs anyway; one HTTP stack).
+#   mangum     — F05 §8 (pure-Python ASGI-to-Lambda adapter; no server process).
+#   httpx      — F05 §8 (GitHub calls through the GitHost seam; Starlette's test client).
 dependencies = [
     "jsonschema==4.26.0",
     "pyyaml==6.0.3",
+    "starlette==1.6.0",
+    "mangum==0.22.0",
+    "httpx==0.28.1",
 ]
 
 [dependency-groups]
@@ -19,6 +25,7 @@ dev = [
     "pytest==9.1.1",
     "ruff==0.16.6",
     "mypy==2.3.1",
+    "boto3==1.43.90",  # F05 §8: DynamoDB/SSM for the network-tier tools; present in the Lambda runtime
 ]
 
 [tool.uv]
@@ -69,5 +76,5 @@ warn_unreachable = true
 [[tool.mypy.overrides]]
 # Neither jsonschema nor PyYAML ships stubs; adding the two stub packages would be two more
 # dependencies (C5). opn_gate.schemas is the only importer and types its results itself.
-module = ["jsonschema", "yaml"]
+module = ["jsonschema", "yaml", "boto3", "botocore.*", "mangum"]
 ignore_missing_imports = true
