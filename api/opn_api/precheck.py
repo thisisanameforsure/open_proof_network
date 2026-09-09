@@ -319,7 +319,7 @@ def advance(ctx: Context, job: Job) -> Job:
     if run is None:
         return job  # dispatched, but the run is not visible yet
     if not run.completed:
-        return _saved(ctx, replace(job, state="running", run_id=str(run.id), run_url=run.url))
+        return _store(ctx, job, replace(job, state="running", run_id=str(run.id), run_url=run.url))
     return _collect(ctx, job, run)
 
 
@@ -328,30 +328,33 @@ def _collect(ctx: Context, job: Job, run: WorkflowRun) -> Job:
     finished = replace(job, run_id=str(run.id), run_url=run.url)
     if not run.succeeded:
         why = f"the precheck run {run.conclusion or 'failed'}"
-        return _saved(ctx, replace(finished, state="error", error=why))
+        return _store(ctx, job, replace(finished, state="error", error=why))
     try:
         zipped = ctx.githost.download_artifact(
             ctx.settings.precheck_repo, run.id, artifact_name(job.id)
         )
     except GitHostError as exc:
         log.warning("precheck %s: cannot download the result: %s", job.id, exc)
-        return finished if finished == job else _saved(ctx, finished)
+        return _store(ctx, job, finished)
     if zipped is None:
-        return _saved(
-            ctx, replace(finished, state="error", error="the precheck run produced no result")
-        )
+        why = "the precheck run produced no result"
+        return _store(ctx, job, replace(finished, state="error", error=why))
     try:
         result = read_result(zipped)
         verify_result(ctx, finished, result)
     except ResultError as exc:
         log.warning("precheck %s: %s", job.id, exc)
-        return _saved(ctx, replace(finished, state="error", error=str(exc)))
-    return _saved(ctx, replace(finished, state="done", result=result))
+        return _store(ctx, job, replace(finished, state="error", error=str(exc)))
+    return _store(ctx, job, replace(finished, state="done", result=result))
 
 
-def _saved(ctx: Context, job: Job) -> Job:
-    save(ctx, job)
-    return job
+def _store(ctx: Context, before: Job, after: Job) -> Job:
+    """Write only a job that actually changed. Polling on read (Q3) means a caller watching a
+    running job asks every few seconds; without this each of those would rewrite the record."""
+    if after == before:
+        return before
+    save(ctx, after)
+    return after
 
 
 # --- the result, and the signature that makes it worth having (R5, R6) ---------------------------

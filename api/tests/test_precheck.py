@@ -398,6 +398,25 @@ def test_lookup_failure_leaves_the_job_alone(signed: Harness) -> None:
     assert signed.client.get(f"/precheck/{job_id}").json()["state"] == "running"
 
 
+def test_polling_a_running_job_does_not_rewrite_it(signed: Harness) -> None:
+    """Q3 polls on read, so a caller watching a job asks every few seconds; only a change is
+    written. Checked by counting the store's writes, not by reading the code."""
+    job_id = start(signed)["id"]
+    signed.githost.start_run(f"job/{job_id}")
+    writes = 0
+    original = signed.store.put_job
+
+    def counted(*args: Any, **kwargs: Any) -> None:
+        nonlocal writes
+        writes += 1
+        original(*args, **kwargs)
+
+    signed.store.put_job = counted  # type: ignore[method-assign]
+    for _ in range(4):
+        assert signed.client.get(f"/precheck/{job_id}").json()["state"] == "running"
+    assert writes == 1, "only the queued -> running transition should have been written"
+
+
 def test_expired_job_is_not_polled(signed: Harness, key: PrecheckKey) -> None:
     """AC9 with T3: past the window the job is expired and the host is not called again."""
     job_id = start(signed)["id"]
