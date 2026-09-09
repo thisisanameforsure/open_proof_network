@@ -66,3 +66,10 @@ The law of the project:
   the first docker test runs, ten minutes into `make verify-lean`. Editing `gate/lean/` during a
   real-tier run put half-written Lean into the image and failed six tests. Stash next-task work
   before an evidence run, or wait.
+- 2026-09-09 — A spec that names a future schema version rots as soon as that version ships for
+  another reason (F02-R9 said `attestation/v2`; v2 had been taken by the step-9 block a day
+  earlier, so `trust_base` became v3, logged as F02-Q5). Specs should say "the next version".
+- 2026-09-09 — A graph re-pin is only as good as the seeded nodes under it: F01 changed the
+  witness shape and the live tutorial node still had F00's, so the F02 re-pin had to fix
+  `Witness.lean` too (D-35 seeded-node exception). Run `pregate.sh` on the live graph after every
+  re-pin and keep the output as evidence.

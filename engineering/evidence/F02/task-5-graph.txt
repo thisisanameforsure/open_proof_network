@@ -1,0 +1,53 @@
+# F02-T5 graph re-pin check — $ gate/pregate.sh --graph ../open_proof_network_graph --node tutorial-and-swap — 2026-09-09T05:27:21Z — network HEAD b189821 = the commit targets/tutorial/gate-spec.json now pins; graph HEAD 4083609 (local, unpushed)
+{
+  "verdict": "pass",
+  "first_failing_step": null,
+  "diagnostic": null,
+  "steps": [
+    {
+      "step": 1,
+      "name": "toolchain",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 2,
+      "name": "paths",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 4,
+      "name": "kernel-replay",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 5,
+      "name": "axioms",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 6,
+      "name": "hazards",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 7,
+      "name": "witness",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 8,
+      "name": "deps",
+      "result": "pass",
+      "diagnostic": null
+    }
+  ],
+  "attestation": "/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/f28eb115-ff22-4ce0-b8ce-85ac1968469d/scratchpad/live-pregate/attestation.json",
+  "verdict_file": "/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/f28eb115-ff22-4ce0-b8ce-85ac1968469d/scratchpad/live-pregate/verdict.json"
+}
+exit=0
