@@ -70,8 +70,12 @@ session can overturn one with evidence rather than re-derive it.</p>
         behind one seam so it can move to a warm-cache machine with evidence from the invited
         run, without the api changing.</li>
       <li>The <strong>site</strong> (D-36) is rendered by the graph repo's post-merge workflow
-        into an S3 bucket served by CloudFront — on its issued hostname until a domain exists (none
-        as of 2026-09-07), a custom domain after; CDN logs are the analytics
+        into an S3 bucket served by CloudFront. The domain was bought on 2026-09-09:
+        <strong><code>openproofnetwork.org</code></strong> is canonical for the site and
+        <code>api.openproofnetwork.org</code> for the service, with <code>www</code> redirecting
+        to the apex and <code>openproofnetwork.com</code> forwarding to the <code>.org</code>.
+        DNS for the <code>.org</code> is a Route 53 zone; the <code>.com</code> must keep
+        GoDaddy's nameservers, because its forwarding runs on them. CDN logs are the analytics
         (C9). No server-side code, no database, ever (D-36).</li>
       <li><strong>Deploys</strong> of the api and site happen from CI via OIDC role assumption;
         no long-lived cloud key exists anywhere (C8).</li>

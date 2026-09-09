@@ -1,5 +1,8 @@
 # api infrastructure (F05-R12)
 
+The service answers on `https://api.openproofnetwork.org`, and on its generated
+`…execute-api.us-east-1.amazonaws.com` address as well.
+
 `api.cfn.yaml` is the whole stack: the function, the HTTP API, three DynamoDB tables, the
 execution role, and the deploy role CI assumes through OIDC. It is created once from the
 founder's `.env` credentials (C8 item 5); after that nothing but the function's *code* changes,
@@ -13,7 +16,11 @@ export AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY"          # the .env names it AWS_ACCE
 aws cloudformation deploy \
   --stack-name opn-api --region us-east-1 \
   --template-file api/infra/api.cfn.yaml \
-  --capabilities CAPABILITY_NAMED_IAM
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides \
+    ApiDomain=api.openproofnetwork.org \
+    CertificateArn="$CERT_ARN" \
+    HostedZoneId="$ZONE_ID"
 aws cloudformation describe-stacks --stack-name opn-api --region us-east-1 \
   --query 'Stacks[0].Outputs' --output table
 ```
@@ -49,8 +56,10 @@ half-runs.
 
 Create it under the founder's account (Settings → Developer settings → GitHub Apps → New):
 
-- **Homepage**: the site URL. **Callback URL**: `<ApiUrl>/auth/github/callback` from the stack
-  outputs. Tick **Request user authorization (OAuth) during installation**.
+- **Homepage**: `https://openproofnetwork.org/`. **Callback URL**:
+  `https://api.openproofnetwork.org/auth/github/callback`. A GitHub App accepts several callback
+  URLs, so the generated `…execute-api…` address may be listed alongside it while DNS settles.
+  Tick **Request user authorization (OAuth) during installation**.
 - **Webhook**: not needed at F05 — untick Active.
 - **Permissions**: Repository → Contents read and write, Pull requests read and write, Metadata
   read (F07 opens pull requests with these; F05 uses only the OAuth identity).

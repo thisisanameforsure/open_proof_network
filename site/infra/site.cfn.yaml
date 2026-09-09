@@ -32,9 +32,27 @@ Parameters:
     Type: Number
     Default: 90
     Description: CDN access logs are kept this long and used for aggregate counts only (C9)
+  SiteDomain:
+    Type: String
+    Default: ""
+    Description: >-
+      the canonical hostname, empty for the CloudFront-issued one (D-36 allowed both; the
+      domain was bought 2026-09-09 and openproofnetwork.org is canonical, F04-Q8)
+  CertificateArn:
+    Type: String
+    Default: ""
+    Description: an ACM certificate in us-east-1 covering SiteDomain and its www name
+  HostedZoneId:
+    Type: String
+    Default: ""
+    Description: the Route 53 zone for SiteDomain; empty leaves DNS to be pointed by hand
 
 Conditions:
   MakeProvider: !Equals [!Ref CreateOidcProvider, "true"]
+  HasDomain: !Not [!Equals [!Ref SiteDomain, ""]]
+  MakeDns: !And
+    - !Not [!Equals [!Ref SiteDomain, ""]]
+    - !Not [!Equals [!Ref HostedZoneId, ""]]
 
 Resources:
   LogBucket:
@@ -126,11 +144,24 @@ Resources:
       Name: !Sub "${AWS::StackName}-index"
       AutoPublish: true
       FunctionConfig:
-        Comment: "/targets/ -> /targets/index.html (the generator writes directories)"
+        Comment: "www -> apex, and /targets/ -> /targets/index.html (the generator writes directories)"
         Runtime: cloudfront-js-2.0
-      FunctionCode: |
+      FunctionCode: !Sub |
+        var CANONICAL = '${SiteDomain}';
         function handler(event) {
           var req = event.request;
+          // One canonical hostname: www redirects rather than serving a second copy.
+          var host = req.headers.host && req.headers.host.value;
+          if (CANONICAL && host && host !== CANONICAL) {
+            var q = req.querystring ? Object.keys(req.querystring).map(function (k) {
+              return encodeURIComponent(k) + '=' + encodeURIComponent(req.querystring[k].value);
+            }).join('&') : '';
+            return {
+              statusCode: 301,
+              statusDescription: 'Moved Permanently',
+              headers: { location: { value: 'https://' + CANONICAL + req.uri + (q ? '?' + q : '') } },
+            };
+          }
           if (req.uri.endsWith('/')) { req.uri += 'index.html'; }
           else if (!req.uri.includes('.')) { req.uri += '/index.html'; }
           return req;
@@ -142,6 +173,10 @@ Resources:
       DistributionConfig:
         Enabled: true
         Comment: Open Proof Network site (D-36), read-only
+        Aliases: !If
+          - HasDomain
+          - [!Ref SiteDomain, !Sub "www.${SiteDomain}"]
+          - !Ref AWS::NoValue
         DefaultRootObject: index.html
         HttpVersion: http2and3
         PriceClass: PriceClass_100
@@ -171,8 +206,12 @@ Resources:
           Bucket: !GetAtt LogBucket.DomainName
           IncludeCookies: false
           Prefix: cdn/
-        ViewerCertificate:
-          CloudFrontDefaultCertificate: true
+        ViewerCertificate: !If
+          - HasDomain
+          - AcmCertificateArn: !Ref CertificateArn
+            SslSupportMethod: sni-only
+            MinimumProtocolVersion: TLSv1.2_2021
+          - CloudFrontDefaultCertificate: true
 
   SiteBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -190,6 +229,44 @@ Resources:
             Condition:
               StringEquals:
                 AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
+
+  # The apex and www both resolve to the distribution; the viewer-request function sends www
+  # to the apex, so there is one canonical address for a page (D-36).
+  SiteDns:
+    Type: AWS::Route53::RecordSetGroup
+    Condition: MakeDns
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Comment: the Open Proof Network site (D-36)
+      RecordSets:
+        - Name: !Ref SiteDomain
+          Type: A
+          AliasTarget:
+            DNSName: !GetAtt Distribution.DomainName
+            # the fixed zone id every CloudFront distribution uses
+            HostedZoneId: Z2FDTNDATAQYW2
+            EvaluateTargetHealth: false
+        - Name: !Ref SiteDomain
+          Type: AAAA
+          AliasTarget:
+            DNSName: !GetAtt Distribution.DomainName
+            # the fixed zone id every CloudFront distribution uses
+            HostedZoneId: Z2FDTNDATAQYW2
+            EvaluateTargetHealth: false
+        - Name: !Sub "www.${SiteDomain}"
+          Type: A
+          AliasTarget:
+            DNSName: !GetAtt Distribution.DomainName
+            # the fixed zone id every CloudFront distribution uses
+            HostedZoneId: Z2FDTNDATAQYW2
+            EvaluateTargetHealth: false
+        - Name: !Sub "www.${SiteDomain}"
+          Type: AAAA
+          AliasTarget:
+            DNSName: !GetAtt Distribution.DomainName
+            # the fixed zone id every CloudFront distribution uses
+            HostedZoneId: Z2FDTNDATAQYW2
+            EvaluateTargetHealth: false
 
   GitHubOidcProvider:
     Type: AWS::IAM::OIDCProvider
@@ -242,7 +319,10 @@ Outputs:
   DistributionId:
     Value: !Ref Distribution
   SiteHostname:
-    Description: the issued hostname (no custom domain exists, F04 §3)
+    Description: the hostname the site is served on (the domain when set, else the issued one)
+    Value: !If [HasDomain, !Ref SiteDomain, !GetAtt Distribution.DomainName]
+  DistributionDomainName:
+    Description: the CloudFront-issued name, which the DNS alias records point at
     Value: !GetAtt Distribution.DomainName
   DeployRoleArn:
     Value: !GetAtt DeployRole.Arn

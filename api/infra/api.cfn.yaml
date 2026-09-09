@@ -38,6 +38,18 @@ Parameters:
     Type: String
     Default: thisisanameforsure/open_proof_network_graph
     Description: the graph whose committed frontier.json the claim routes read (D-35)
+  ApiDomain:
+    Type: String
+    Default: ""
+    Description: the service's hostname, e.g. api.openproofnetwork.org; empty uses the issued one
+  CertificateArn:
+    Type: String
+    Default: ""
+    Description: an ACM certificate in this region covering ApiDomain
+  HostedZoneId:
+    Type: String
+    Default: ""
+    Description: the Route 53 zone holding ApiDomain
   LogRetentionDays:
     Type: Number
     Default: 30
@@ -45,6 +57,10 @@ Parameters:
 
 Conditions:
   MakeProvider: !Equals [!Ref CreateOidcProvider, "true"]
+  HasDomain: !Not [!Equals [!Ref ApiDomain, ""]]
+  MakeDns: !And
+    - !Not [!Equals [!Ref ApiDomain, ""]]
+    - !Not [!Equals [!Ref HostedZoneId, ""]]
 
 Resources:
   IdentitiesTable:
@@ -172,7 +188,11 @@ Resources:
           OPN_API_TABLE_CLAIMS: !Ref ClaimsTable
           OPN_API_PARAMETER_PREFIX: !Ref ParameterPrefix
           OPN_API_GRAPH_REPO: !Ref GraphRepository
-          OPN_API_PUBLIC_URL: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+          # R3: the OAuth redirect_uri must match the address the browser actually used.
+          OPN_API_PUBLIC_URL: !If
+            - HasDomain
+            - !Sub "https://${ApiDomain}"
+            - !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
 
   HttpApi:
     Type: AWS::ApiGatewayV2::Api
@@ -210,6 +230,38 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*"
+
+  ApiDomainName:
+    Type: AWS::ApiGatewayV2::DomainName
+    Condition: HasDomain
+    Properties:
+      DomainName: !Ref ApiDomain
+      DomainNameConfigurations:
+        - CertificateArn: !Ref CertificateArn
+          EndpointType: REGIONAL
+          SecurityPolicy: TLS_1_2
+
+  ApiMapping:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Condition: HasDomain
+    Properties:
+      ApiId: !Ref HttpApi
+      DomainName: !Ref ApiDomainName
+      Stage: !Ref Stage
+
+  ApiDns:
+    Type: AWS::Route53::RecordSetGroup
+    Condition: MakeDns
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Comment: the Open Proof Network protocol service (D-35)
+      RecordSets:
+        - Name: !Ref ApiDomain
+          Type: A
+          AliasTarget:
+            DNSName: !GetAtt ApiDomainName.RegionalDomainName
+            HostedZoneId: !GetAtt ApiDomainName.RegionalHostedZoneId
+            EvaluateTargetHealth: false
 
   GitHubOidcProvider:
     Type: AWS::IAM::OIDCProvider
@@ -257,11 +309,20 @@ Resources:
 
 Outputs:
   ApiUrl:
-    Description: the service's origin (no custom domain exists at Stage 0)
-    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+    Description: the service's origin (the domain when set, else the issued address)
+    Value: !If
+      - HasDomain
+      - !Sub "https://${ApiDomain}"
+      - !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
   ClaimsUrl:
     Description: what the graph's post-merge job reads as OPN_API_CLAIMS_URL (F05-R10)
-    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/claims.json"
+    Value: !If
+      - HasDomain
+      - !Sub "https://${ApiDomain}/claims.json"
+      - !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/claims.json"
+  IssuedApiUrl:
+    Description: the generated address, which keeps working alongside the domain
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
   FunctionName:
     Value: !Ref Function
   DeployRoleArn:
