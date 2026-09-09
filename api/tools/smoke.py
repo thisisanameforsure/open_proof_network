@@ -91,10 +91,33 @@ def read_only(
     return frontier if isinstance(frontier, dict) else {}
 
 
+ABSENT_NODE = "opn-smoke-no-such-node"
+
+
+def token_authenticates(base: str, token: str, problems: list[str]) -> bool:
+    """Prove the bearer is accepted without needing a claimable node: a write route answers
+    about the node (404) rather than about the caller (401)."""
+    status, body = call(f"{base}/claims", method="POST", token=token, body={"node_id": ABSENT_NODE})
+    error = body.get("error") if isinstance(body, dict) else None
+    if status == 401:
+        problems.append(f"the token was not accepted: {status} {body}")
+        return False
+    if status != 404 or error != "node-not-in-frontier":
+        problems.append(f"unexpected answer for an absent node: {status} {body}")
+        return False
+    print(f"POST /claims {ABSENT_NODE} -> 404 node-not-in-frontier (the token authenticates)")
+    return True
+
+
 def claim_round_trip(base: str, token: str, frontier: dict[str, Any], problems: list[str]) -> None:
+    if not token_authenticates(base, token, problems):
+        return
     claimable = [e for e in frontier.get("entries", []) if e.get("claimable")]
     if not claimable:
-        problems.append("no claimable node in the frontier; cannot round-trip a claim")
+        problems.append(
+            "no claimable node in the frontier, so the claim round trip could not run "
+            "(the graph's nodes are all proved; F05-Q6)"
+        )
         return
     node = str(claimable[0]["node_id"])
     status, receipt = call(
