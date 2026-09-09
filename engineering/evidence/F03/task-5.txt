@@ -79,3 +79,7 @@ exit=1
     }
   ]
 }
+
+# addendum — $ gate/pregate.sh --graph ../open_proof_network_graph --node tutorial-and-swap — 2026-09-09T05:44:09Z — after the re-pin to 78343e1 (graph commit b0f82fe, local, unpushed)
+{"verdict": "pass", "steps": [[1, "pass"], [2, "pass"], [4, "pass"], [5, "pass"], [6, "pass"], [7, "pass"], [8, "pass"]]}
+exit=
