@@ -1,0 +1,122 @@
+F06-T5 — code complete, evidence pending. 2026-09-09T19:20:00Z
+
+AC15 is a *network*-tier criterion: it needs the deployed service and a real Actions run in the
+scratch repository. It cannot close in an unattended session, for one reason that is not code —
+the GitHub App is not permitted to dispatch a workflow. What follows is what was verified
+against real GitHub tonight, and the two things the founder must do to close it.
+
+WHAT IS VERIFIED AGAINST REAL GITHUB (read-only probes, plus one branch that was deleted again)
+------------------------------------------------------------------------------------------------
+
+1. The App JWT works. This is F06-Q5's `cryptography` doing its one job, against the live API:
+
+     GET /app -> 200 open-proof-network
+
+   The RS256 JWT is minted by opn_api.githost.HttpxGitHost._app_jwt from the private key in the
+   founder's .env (C8 item 5), and GitHub accepts it. No test could have shown this.
+
+2. The installation exists on both repositories, and on nothing else (C8, §8):
+
+     installation on thisisanameforsure/open_proof_network_precheck -> 200
+       id: 160370091   repository_selection: selected
+       permissions: {"contents": "write", "metadata": "read", "pull_requests": "write"}
+     installation on thisisanameforsure/open_proof_network_graph   -> 200
+       (the same installation id and permissions)
+
+3. An installation access token is minted and works:
+
+     installation token minted: 383 chars, prefix ghs_…
+     contents: the base branch ref    -> 200
+     actions: list workflows          -> 200
+     actions: list runs               -> 200
+
+   The two Actions *reads* succeed even without an `actions` permission, because the scratch
+   repository is public (§7). So find_run and download_artifact (R5) are already permitted.
+
+4. `push_branch` works — the whole POST /precheck path, in process, against the real graph and
+   the real scratch repo (opn_api.app over the real seams, memory store):
+
+     health: {'ok': True, 'store': 'memory'}
+     tutorial node: tutorial-and-swap in tutorial          (found by reading the real graph)
+     POST /precheck -> 502 dispatch-failed
+     job 01M23SFDNG8CTH1AD92EZ0AAPT  state=error
+     branch pushed: job/01M23SFDNG8CTH1AD92EZ0AAPT
+
+   The branch that landed, before it was deleted again:
+
+     tree .github/workflows      blob .github/workflows/cleanup.yml
+                                 blob .github/workflows/precheck.yml
+     blob README.md
+     blob job.json
+     blob bundle/targets/tutorial/nodes/tutorial-and-swap/Proof.lean
+
+     job.json:
+       {"bundle_digest": "3746ad893e3024001cf9a5dd35f152a0d965322c5444bbda0426620ba7098fc3",
+        "created": "2026-09-09T19:14:22Z",
+        "graph_commit": "b0f82fe9c906e259f4c9c5e1379d1c34160022d5",
+        "id": "01M23SFDNG8CTH1AD92EZ0AAPT",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"}
+
+   This is Q7 working in reality: the branch is main's tree — both workflows and the README —
+   plus the job record and the bundle at graph-relative paths. The workflow that would run is
+   the scratch repository's own; the api pushed no runnable code.
+
+   The branch was then deleted, so the scratch repo is back to `main` alone:
+     $ gh api -X DELETE /repos/.../git/refs/heads/job/01M23SFDNG8CTH1AD92EZ0AAPT
+     $ gh api /repos/.../branches --jq '.[].name'   ->  main
+
+5. R10 held under a real failure, which is the useful half of this probe: the dispatch 403 became
+   a 502 to the caller and a job marked `error` carrying the cause. Nothing was dropped (C7).
+
+WHAT BLOCKS AC15
+----------------
+The App may not dispatch a workflow. Probed with a ref that does not exist, so no run was ever
+created — a 403 means the permission is missing, a 422 "No ref found" would mean it is there:
+
+  POST /repos/.../actions/workflows/precheck.yml/dispatches -> 403 Resource not accessible by
+                                                                   integration
+
+Granting `Actions: write` is the founder's act: a GitHub App permission change must be made on
+the App and then approved on each installation. It cannot be done from a build session.
+
+TO CLOSE AC15 (in this order)
+-----------------------------
+1. GitHub App `open-proof-network` -> Permissions -> Repository -> **Actions: Read and write**.
+   Save, then approve the request on the installation (GitHub emails a link; it is also under
+   Settings -> Applications -> Installed GitHub Apps -> Configure).
+   Re-probe with the ref that does not exist; a 422 "No ref found" means it is granted:
+     set -a; . ./.env; set +a
+     uv run python - <<'PY'
+     import sys; sys.path.insert(0, "api")
+     import httpx
+     from opn_api import config, githost
+     R = "thisisanameforsure/open_proof_network_precheck"
+     s = config.load()
+     h = githost.HttpxGitHost(client_id="", client_secret="",
+                              app_id=s.github_app_id or "", private_key=s.github_private_key or "")
+     t = h._installation_token(R)
+     r = httpx.post(f"https://api.github.com/repos/{R}/actions/workflows/precheck.yml/dispatches",
+                    headers={"Authorization": f"Bearer {t}", "Accept": "application/vnd.github+json"},
+                    json={"ref": "job/deliberately-absent", "inputs": {"job_id": "probe"}})
+     print(r.status_code, r.json().get("message") if r.content else "")
+     PY
+
+2. Push main. The api-deploy workflow packages and deploys the function; its own post-deploy
+   check is read-only, so nothing about the precheck path is exercised by the deploy itself.
+
+3. Run the criterion's command:
+     uv run python api/tools/smoke_precheck.py https://api.openproofnetwork.org
+   It takes no account and no token: it reads the graph, finds the tutorial node, sends that
+   node's own committed proof anonymously, waits for the run, exchanges the nonce for a token,
+   uses the token on a write route, and checks the nonce is refused a second time. It prints the
+   latency of each state change — that is the Stage 0 series §6 asks to be recorded here.
+
+4. Append its output to this file and mark T5 done in the spec and in specs/index.html.
+
+WHY MAIN WAS NOT PUSHED TONIGHT
+--------------------------------
+Pushing main deploys. Deploying before step 1 would put a POST /precheck on the live service that
+answers 502 for every caller — worse than today's, which accepts a job and never runs it. The
+permission and the deploy belong in the same sitting, and the permission is the founder's.

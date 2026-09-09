@@ -78,8 +78,17 @@ Create it under the founder's account (Settings → Developer settings → GitHu
   Tick **Request user authorization (OAuth) during installation**.
 - **Webhook**: not needed at F05 — untick Active.
 - **Permissions**: Repository → Contents read and write, Pull requests read and write, Metadata
-  read (F07 opens pull requests with these; F05 uses only the OAuth identity).
-- **Install** on the graph repository only.
+  read (F07 opens pull requests with these; F05 uses only the OAuth identity), **Actions read and
+  write** (F06 dispatches the precheck workflow on the scratch repository).
+- **Install** on the graph repository and the precheck scratch repository, and on nothing else.
+
+> **Actions: read and write is not granted yet.** The installation currently carries
+> `{contents: write, metadata: read, pull_requests: write}`, so `POST /precheck` pushes its job
+> branch and then fails the dispatch with `403 Resource not accessible by integration`. Adding a
+> permission is the App owner's act — change it on the App, then approve the request on the
+> installation — and F06-AC15 cannot close until it is done.
+> `engineering/evidence/F06/task-5.txt` has the probe that tells granted from not granted without
+> starting a workflow run.
 
 ## Repository variables the deploy workflow reads
 

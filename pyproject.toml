@@ -74,7 +74,7 @@ known-first-party = ["opn_gate", "opn_api", "opn_site"]
 strict = true
 python_version = "3.13"
 # Run per component (`make types`): the three `tests/` directories would otherwise collide by name.
-mypy_path = "gate:gate/tests:api:api/tests:site:site/tests"
+mypy_path = "gate:gate/tests:api:api/tests:api/tools:site:site/tests"
 explicit_package_bases = true
 warn_unreachable = true
 
