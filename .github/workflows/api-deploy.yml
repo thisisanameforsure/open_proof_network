@@ -63,19 +63,30 @@ jobs:
           ls -l build/function.zip
 
       - name: Check the package carries the handler and every schema
+        env:
+          PYTHONPATH: gate
         run: |
           set -euo pipefail
-          PYTHONPATH=build/package python3 - <<'PY'
-          import importlib.util
-          for module in ("opn_api.app", "opn_api.routes", "opn_gate.schemas"):
-              assert importlib.util.find_spec(module), f"missing module {module}"
+          # The package is cross-built for the function's architecture, so it cannot be imported
+          # on this runner (compiled wheels). Check its contents on disk instead.
+          uv run --frozen python - <<'PY'
+          from pathlib import Path
+
           from opn_gate import schemas
-          known = schemas.known_schemas()
-          # The routes validate against these by name; an empty set means 500s, not a warning.
+
+          pkg = Path("build/package")
+          for entry in ("opn_api/app.py", "opn_api/routes.py", "opn_api/lambda_handler.py",
+                        "opn_gate/schemas.py", "mangum/__init__.py", "starlette/applications.py"):
+              assert (pkg / entry).is_file(), f"missing from the package: {entry}"
+
+          # opn_gate.schemas resolves its directory relative to the package parent, so the files
+          # must sit at build/package/schemas and match their pins (D-34).
+          shipped = sorted(f"{p.parent.name}/{p.stem}" for p in (pkg / "schemas").glob("*/v*.json"))
           for required in ("frontier/v1", "info/v1", "claims/v1"):
-              assert required in known, f"{required} is not in the package: {known}"
-          assert not schemas.verify_pins(), schemas.verify_pins()
-          print(f"package carries opn_api, opn_gate and {len(known)} pinned schemas")
+              assert required in shipped, f"{required} is not in the package: {shipped}"
+          problems = schemas.verify_pins(pkg / "schemas", Path("gate/schemas/HASHES"))
+          assert not problems, problems
+          print(f"package carries the handler and {len(shipped)} pinned schemas")
           PY
 
       - name: Assume the deploy role (OIDC, no stored key)
