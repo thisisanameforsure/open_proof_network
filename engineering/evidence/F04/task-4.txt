@@ -1,0 +1,39 @@
+# F04-T4 verification — $ aws cloudformation validate-template + deploy of site/infra/site.cfn.yaml as stack opn-site — 2026-09-09T08:16:07Z — bootstrapped once from the founder's local credentials (C8 item 5), account ...0882, us-east-1
+
+$ aws cloudformation validate-template --template-body file://site/infra/site.cfn.yaml
+[
+    "GitHubBranch",
+    "LogRetentionDays",
+    "CreateOidcProvider",
+    "GitHubRepository"
+]
+$ aws cloudformation deploy --stack-name opn-site --capabilities CAPABILITY_NAMED_IAM   (ran once; CREATE_COMPLETE)
+[
+    "CREATE_COMPLETE",
+    [
+        {
+            "OutputKey": "DeployRoleArn",
+            "OutputValue": "arn:aws:iam::066708640882:role/opn-site-deploy"
+        },
+        {
+            "OutputKey": "SiteHostname",
+            "OutputValue": "d2ogra7ock59zj.cloudfront.net",
+            "Description": "the issued hostname (no custom domain exists, F04 ?3)"
+        },
+        {
+            "OutputKey": "SiteBucketName",
+            "OutputValue": "opn-site-sitebucket-8ryvilh6nbbj"
+        },
+        {
+            "OutputKey": "DistributionId",
+            "OutputValue": "EFBDCJ7KFKJ4S"
+        },
+        {
+            "OutputKey": "LogBucketName",
+            "OutputValue": "opn-site-logbucket-tujzng68by2x"
+        }
+    ]
+]
+
+Repository variables set for site-deploy.yml: OPN_SITE_HOSTNAME OPN_SITE_DEPLOY_ROLE_ARN OPN_SITE_BUCKET OPN_SITE_DISTRIBUTION_ID OPN_AWS_REGION (gh variable list)
+The green site-deploy run is recorded in task-5.txt.

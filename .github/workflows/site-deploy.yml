@@ -1,0 +1,93 @@
+# Render and deploy the site (F04-R12; D-36). Runs after every graph merge: the graph's
+# post-merge job stays secretless (C8), so instead of a cross-repo dispatch this workflow polls
+# the graph's main every five minutes and deploys only when the commit changed (F04-Q7); it can
+# also be run by hand. Credentials: none stored — the workflow assumes the stack's deploy role
+# through GitHub OIDC (C8 item 4). A failed render or sync leaves the previous site intact (C7).
+name: site-deploy
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      graph_commit:
+        description: "graph commit to render (default: main)"
+        required: false
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: site-deploy
+  cancel-in-progress: false
+
+env:
+  UV_VERSION: "0.12.10"
+  GRAPH_REPO: thisisanameforsure/open_proof_network_graph
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check out the graph
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ env.GRAPH_REPO }}
+          ref: ${{ inputs.graph_commit || 'main' }}
+          path: graph
+          fetch-depth: 1
+
+      - name: Decide whether the site is stale
+        id: stale
+        env:
+          HOSTNAME: ${{ vars.OPN_SITE_HOSTNAME }}
+        run: |
+          set -euo pipefail
+          commit="$(git -C graph rev-parse HEAD)"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          live="$(curl -fsS "https://$HOSTNAME/rendered-from.txt" 2>/dev/null || echo none)"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$live" != "$commit" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            echo "site: live=$live graph=$commit -> deploy"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "site: already at $commit"
+          fi
+
+      - uses: astral-sh/setup-uv@v10.0.1
+        if: steps.stale.outputs.deploy == 'true'
+        with:
+          version: ${{ env.UV_VERSION }}
+
+      - name: Render
+        if: steps.stale.outputs.deploy == 'true'
+        env:
+          PYTHONPATH: gate:site
+        run: |
+          set -euo pipefail
+          uv sync --frozen --quiet
+          uv run --frozen python -m opn_site.cli render \
+            --graph graph --commit "${{ steps.stale.outputs.commit }}" --out out
+          printf '%s' "${{ steps.stale.outputs.commit }}" > out/rendered-from.txt
+
+      - name: Assume the deploy role (OIDC, no stored key)
+        if: steps.stale.outputs.deploy == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.OPN_SITE_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.OPN_AWS_REGION }}
+
+      - name: Sync to the bucket and invalidate
+        if: steps.stale.outputs.deploy == 'true'
+        run: |
+          set -euo pipefail
+          aws s3 sync out "s3://${{ vars.OPN_SITE_BUCKET }}" --delete \
+            --cache-control "public, max-age=60" --exclude "rendered-from.txt"
+          aws s3 cp out/rendered-from.txt "s3://${{ vars.OPN_SITE_BUCKET }}/rendered-from.txt" \
+            --cache-control "no-cache" --content-type "text/plain"
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ vars.OPN_SITE_DISTRIBUTION_ID }}" --paths "/*" >/dev/null
+          echo "deployed graph ${{ steps.stale.outputs.commit }} to https://${{ vars.OPN_SITE_HOSTNAME }}/"
