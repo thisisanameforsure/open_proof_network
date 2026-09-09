@@ -131,6 +131,11 @@ def _add_graph_tool_parsers(sub: argparse._SubParsersAction[argparse.ArgumentPar
     prod.add_argument("--commit", default="HEAD", help="the commit the products render (git)")
     prod.add_argument("--out", type=Path, help="write here instead of into the checkout")
     prod.add_argument("--no-meta", action="store_true", help="do not rewrite META.yaml status")
+    prod.add_argument(
+        "--claims-url",
+        help="the service's GET /claims.json; refreshes claims.json, keeping the committed "
+        "snapshot if the service is unreachable (F05-R10)",
+    )
 
 
 def _add_sandbox_args(p: argparse.ArgumentParser) -> None:
@@ -381,6 +386,7 @@ def run_products(args: argparse.Namespace, settings: config.Settings) -> int:
     """
     graph, commit = _checkout_and_commit(args.graph, args.commit)
     out_dir = args.out.resolve() if args.out is not None else graph
+    claims_note = postmerge.refresh_claims(graph, getattr(args, "claims_url", None))
     try:
         products_ = products.generate(
             graph,
@@ -395,9 +401,10 @@ def run_products(args: argparse.Namespace, settings: config.Settings) -> int:
         msg = "library tags on a Mathlib-pinned graph need the sandboxed scan (F10)"
         raise CliError(msg)
     written = products_.write(out_dir, write_meta=not args.no_meta and out_dir == graph)
-    summary = {
+    summary: dict[str, Any] = {
         "ok": True,
         "rendered_from": commit,
+        "claims": claims_note or "refreshed",
         "written": [p.as_posix() for p in written],
         "files": sorted(p.as_posix() for p in products_.files),
     }

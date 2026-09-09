@@ -100,6 +100,7 @@ class Harness:
     githost: FakeGitHost
     clock: FakeClock
     client: TestClient
+    app: Any
 
     def token_for(self, code: str, pseudonym: str) -> str:
         """Drive the three-step GitHub flow and return the raw token."""
@@ -123,6 +124,11 @@ class Harness:
         assert issued.status_code == 201, issued.text
         return str(issued.json()["token"])
 
+    @property
+    def context(self) -> Any:
+        """The app's ``Context`` — the seams and the committed-file cache (R9)."""
+        return self.app.state.context
+
     def auth(self, token: str) -> dict[str, str]:
         return {"Authorization": f"Bearer {token}"}
 
@@ -134,4 +140,4 @@ def make_harness(env: dict[str, str] | None = None, **seams: Any) -> Harness:
     clock = seams.get("clock") or FakeClock()
     app = create_app(settings, store=store, githost=githost, clock=clock)
     client = TestClient(app, raise_server_exceptions=False)
-    return Harness(settings, store, githost, clock, client)
+    return Harness(settings, store, githost, clock, client, app)

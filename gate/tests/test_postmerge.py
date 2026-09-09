@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+import json
+import logging
 import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
-from harness import make_context
+from harness import copy_graph, make_context
 
-from opn_gate import attestation, pipeline, postmerge, schemas
+from opn_gate import attestation, pipeline, postmerge, products, schemas
 from opn_gate.signer import SshKeygenSigner
 
 FIXED = datetime(2026, 9, 8, 6, 0, 0, tzinfo=UTC)
@@ -134,6 +137,82 @@ def test_waiver_requires_named_approval(gate_key: tuple[Path, str], tmp_path: Pa
     )
     assert signed["trust_base"] == "compiler" and schemas.violations(signed) == []
     assert postmerge.verify(signed, pub, SshKeygenSigner())
+
+
+# --- F05-T3: the claims snapshot (R10; AC16) ----------------------------------------------------
+
+
+def claims_doc(node: str = "and-reassoc", pseudonym: str = "alice-p") -> dict[str, Any]:
+    return {
+        "schema": "claims/v1",
+        "snapshot_at": "2026-09-09T12:00:00Z",
+        "nodes": {
+            node: {
+                "active": [{"pseudonym": pseudonym, "expires": "2026-09-09T18:00:00Z"}],
+                "history_count": 3,
+            }
+        },
+    }
+
+
+def test_claims_snapshot_refreshes(tmp_path: Path) -> None:
+    """R10: a reachable service replaces claims.json, canonically."""
+    graph = tmp_path / "graph"
+    graph.mkdir()
+    body = json.dumps(claims_doc()).encode()
+    note = postmerge.refresh_claims(
+        graph, "https://api.example/claims.json", opener=lambda _u, _t: body
+    )
+    assert note is None
+    written = json.loads((graph / "claims.json").read_text())
+    assert written == claims_doc()
+    assert (graph / "claims.json").read_bytes() == schemas.canonical_json(claims_doc())
+
+
+def test_claims_snapshot_fallback(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    """AC16: the service unreachable — the previous claims.json stands and the log names it,
+    and products still generate, carrying the previous claims."""
+    graph = tmp_path / "graph"
+    graph.mkdir()
+    previous = schemas.canonical_json(claims_doc(pseudonym="earlier-p"))
+    (graph / "claims.json").write_bytes(previous)
+
+    def down(_url: str, _timeout: int) -> bytes:
+        msg = "connection refused"
+        raise OSError(msg)
+
+    with caplog.at_level(logging.WARNING):
+        note = postmerge.refresh_claims(graph, "https://api.example/claims.json", opener=down)
+    assert note is not None and "connection refused" in note
+    assert "keeping the committed claims.json" in caplog.text
+    assert (graph / "claims.json").read_bytes() == previous
+
+    # A defective response is the same story: never a half-written snapshot (C7).
+    bad = postmerge.refresh_claims(
+        graph, "https://api.example/claims.json", opener=lambda _u, _t: b"{}"
+    )
+    assert bad is not None
+    assert (graph / "claims.json").read_bytes() == previous
+
+    # And the generator merges what stands into the frontier it renders.
+    root = copy_graph(tmp_path / "gen")
+    (root / "claims.json").write_bytes(previous)
+    prod = products.generate(root, rendered_from="5" * 40, commit_time="2026-09-09T00:00:00Z")
+    frontier = json.loads(prod.files[Path("frontier.json")])
+    entry = next(e for e in frontier["entries"] if e["node_id"] == "and-reassoc")
+    assert entry["claims"]["active"] == [
+        {"pseudonym": "earlier-p", "expires": "2026-09-09T18:00:00Z"}
+    ]
+    assert entry["claims"]["history_count"] == 3
+    others = [e for e in frontier["entries"] if e["node_id"] != "and-reassoc"]
+    assert all(e["claims"] == {"active": [], "history_count": 0} for e in others)
+
+
+def test_claims_snapshot_refuses_plain_http(tmp_path: Path) -> None:
+    note = postmerge.refresh_claims(tmp_path, "http://api.example/claims.json")
+    assert note is not None and "https" in note
+    assert postmerge.refresh_claims(tmp_path, None) == "no claims endpoint configured"
+    assert not (tmp_path / "claims.json").exists()
 
 
 def test_review_block_rules() -> None:

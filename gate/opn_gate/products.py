@@ -35,6 +35,8 @@ GRAPH_SCHEMA = "graph/v1"
 FRONTIER_SCHEMA = "frontier/v1"
 INDEX_SCHEMA = "targets-index/v1"
 INFO_SCHEMA = "info/v1"
+CLAIMS_SCHEMA = "claims/v1"
+CLAIMS_FILE = "claims.json"
 TAGS_CACHE = ".tags-cache.json"
 MATHLIB_PREFIX = "Mathlib"
 DEFAULT_FIDELITY = "mechanical-only"
@@ -119,6 +121,24 @@ class TagCache:
         return schemas.canonical_json(dict(sorted(self.entries.items())))
 
 
+def load_claims(graph_root: Path) -> dict[str, dict[str, Any]]:
+    """The committed ``claims.json`` snapshot the service produced (F05-R10, Q3).
+
+    Absent or defective, the frontier's claim fields are empty: a claim registry is
+    operational, never evidentiary, so it never blocks or corrupts a merge (C7, C9).
+    """
+    path = graph_root / CLAIMS_FILE
+    if not path.is_file():
+        return {}
+    try:
+        doc = schemas.load_json(path, CLAIMS_SCHEMA)
+    except schemas.SchemaError as exc:
+        log.warning("%s does not validate; the frontier carries no claims: %s", CLAIMS_FILE, exc)
+        return {}
+    nodes = doc.get("nodes") or {}
+    return {str(k): dict(v) for k, v in nodes.items() if isinstance(v, dict)}
+
+
 # --- documents ---------------------------------------------------------------------------------
 
 
@@ -183,6 +203,7 @@ def frontier_entry(
     claimable: bool,
     ready_since: str | None,
     tags: list[str],
+    claims: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     status = tg.statuses[node.node_id]
     attempts = records.load_attempts(node.path)
@@ -202,7 +223,7 @@ def frontier_entry(
         "tags": {"deps": sorted(node.deps), "library": tags},
         **attempts.as_dict(),
         "ready_since": ready_since if status == "ready" else None,
-        "claims": {"active": [], "history_count": 0},
+        "claims": claims if claims is not None else {"active": [], "history_count": 0},
         "annex_present": annex_present(node.path),
         "bounty": False,
         "claimable": claimable and in_frontier(status, node),
@@ -297,6 +318,7 @@ def generate(
     commit_time: str,
     scanner: Scanner | None = None,
     previous_frontier: dict[str, Any] | None = None,
+    claims: dict[str, dict[str, Any]] | None = None,
 ) -> Products:
     """Build and validate every product without writing anything (R11; AC5)."""
     if previous_frontier is None:
@@ -304,6 +326,7 @@ def generate(
         if committed.is_file():
             previous_frontier = json.loads(committed.read_text(encoding="utf-8"))
     previous = graphmod.previous_ready_since(previous_frontier)
+    registry = load_claims(graph_root) if claims is None else claims
     products = Products()
     entries: list[dict[str, Any]] = []
     for target_id in target_ids(graph_root):
@@ -328,6 +351,7 @@ def generate(
                     claimable=claimable,
                     ready_since=ready_since[node_id],
                     tags=cache.tags(node, scanner) if cache is not None else [],
+                    claims=registry.get(node_id),
                 )
             )
         if cache is not None and cache.dirty:

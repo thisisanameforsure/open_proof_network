@@ -1,0 +1,35 @@
+F05-T3 verification — 2026-09-09T12:36:55Z
+
+$ uv run pytest api/tests/test_claims.py api/tests/test_frontier.py gate/tests/test_postmerge.py
+api/tests/test_claims.py::test_ttl_caps PASSED                           [  4%]
+api/tests/test_claims.py::test_only_claimable_nodes PASSED               [  8%]
+api/tests/test_claims.py::test_racing_allowed PASSED                     [ 13%]
+api/tests/test_claims.py::test_release_holder_only PASSED                [ 17%]
+api/tests/test_claims.py::test_lazy_expiry PASSED                        [ 21%]
+api/tests/test_claims.py::test_active_claim_cap PASSED                   [ 26%]
+api/tests/test_claims.py::test_cap_is_per_identity PASSED                [ 30%]
+api/tests/test_claims.py::test_receipt_names_the_target PASSED           [ 34%]
+api/tests/test_frontier.py::test_overlay_only_touches_claims PASSED      [ 39%]
+api/tests/test_frontier.py::test_claims_json_is_the_registry_alone PASSED [ 43%]
+api/tests/test_frontier.py::test_committed_file_is_cached_and_revalidated PASSED [ 47%]
+api/tests/test_frontier.py::test_unreachable_graph_serves_the_last_good_copy PASSED [ 52%]
+gate/tests/test_postmerge.py::test_attestation_id_is_zero_padded PASSED  [ 56%]
+gate/tests/test_postmerge.py::test_bot_commit_message_round_trips PASSED [ 60%]
+gate/tests/test_postmerge.py::test_pr_number_from_message PASSED         [ 65%]
+gate/tests/test_postmerge.py::test_approving_reviewer_excludes_author_and_takes_latest PASSED [ 69%]
+gate/tests/test_postmerge.py::test_finalize_signs_with_gate_key PASSED   [ 73%]
+gate/tests/test_postmerge.py::test_verify_rejects_wrong_key PASSED       [ 78%]
+gate/tests/test_postmerge.py::test_waiver_requires_named_approval PASSED [ 82%]
+gate/tests/test_postmerge.py::test_claims_snapshot_refreshes PASSED      [ 86%]
+gate/tests/test_postmerge.py::test_claims_snapshot_fallback PASSED       [ 91%]
+gate/tests/test_postmerge.py::test_claims_snapshot_refuses_plain_http PASSED [ 95%]
+gate/tests/test_postmerge.py::test_review_block_rules PASSED             [100%]
+======================== 23 passed, 2 warnings in 0.40s ========================
+
+$ make verify (regression gate)
+All checks passed!
+107 files already formatted
+Success: no issues found in 55 source files
+Success: no issues found in 25 source files
+Success: no issues found in 14 source files
+================ 277 passed, 34 deselected, 2 warnings in 3.14s ================

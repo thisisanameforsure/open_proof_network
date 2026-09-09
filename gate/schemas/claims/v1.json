@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/claims/v1.json",
+  "title": "claims/v1",
+  "description": "claims.json (F05-R9, R10; D-25, D-35): the service's claim registry alone, per node — the active claims as [{pseudonym, expires}] and the count of all claims ever. GET /claims.json serves it live; the post-merge job commits it at the graph root so F03's generator merges it into frontier.json deterministically (F05-Q3). Operational, never evidentiary.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "snapshot_at",
+    "nodes"
+  ],
+  "properties": {
+    "schema": {
+      "const": "claims/v1"
+    },
+    "snapshot_at": {
+      "type": "string",
+      "description": "when the registry was read (UTC, second precision, Z suffix)",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "nodes": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "active",
+          "history_count"
+        ],
+        "properties": {
+          "active": {
+            "type": "array",
+            "description": "unexpired, unreleased claims, sorted by expiry then pseudonym",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "pseudonym",
+                "expires"
+              ],
+              "properties": {
+                "pseudonym": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9-]{1,39}$"
+                },
+                "expires": {
+                  "type": "string",
+                  "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+                }
+              }
+            }
+          },
+          "history_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

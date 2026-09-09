@@ -10,14 +10,19 @@ it the merge commit, the pull-request number, the reviews list and the key path.
 
 from __future__ import annotations
 
+import json
+import logging
 import re
-from collections.abc import Sequence
+import urllib.request
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any, Literal
 
 from opn_gate import attestation, schemas
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.signer import Signer
+
+log = logging.getLogger(__name__)
 
 ID_WIDTH = 6
 _MERGE_RE = re.compile(r"^Merge pull request #(?P<n>\d+)\b")
@@ -48,6 +53,47 @@ def check_waiver(doc: dict[str, Any], approval_bodies: Sequence[str]) -> Diagnos
 
 _BOT_MESSAGE_RE = re.compile(r"^gate: #(?P<n>\d+) (?P<verdict>pass|fail)$")
 PRODUCT_FILES: tuple[str, ...] = ("frontier.json", "info.json", "targets/index.json")
+CLAIMS_FILE = "claims.json"
+CLAIMS_TIMEOUT_S = 10
+
+
+def fetch_claims_snapshot(url: str, *, opener: Callable[[str, int], bytes] | None = None) -> bytes:
+    """F05-R10: ``GET /claims.json`` from the service, as raw bytes.
+
+    Raises ``OSError`` or ``ValueError`` on any failure; the caller falls back (C7).
+    """
+    if not url.startswith(("https://", "http://127.0.0.1", "http://localhost")):
+        msg = f"the claims endpoint must be https (or a local runner): {url}"
+        raise ValueError(msg)
+    if opener is not None:
+        return opener(url, CLAIMS_TIMEOUT_S)
+    request = urllib.request.Request(url, headers={"User-Agent": "opn-gate"})  # noqa: S310
+    with urllib.request.urlopen(request, timeout=CLAIMS_TIMEOUT_S) as resp:  # noqa: S310
+        body: bytes = resp.read()
+    return body
+
+
+def refresh_claims(
+    graph_root: Path, url: str | None, *, opener: Callable[[str, int], bytes] | None = None
+) -> str | None:
+    """Write ``claims.json`` from the service, keeping the committed one on any failure.
+
+    Returns ``None`` when the snapshot was refreshed, else the reason the previous file stands
+    (F05-R10, AC16: the service is never allowed to block a merge).
+    """
+    if not url:
+        return "no claims endpoint configured"
+    try:
+        body = fetch_claims_snapshot(url, opener=opener)
+        doc = schemas.validate(json.loads(body), "claims/v1")
+    except (OSError, ValueError, schemas.SchemaError) as exc:
+        reason = f"{type(exc).__name__}: {exc}"
+        log.warning(
+            "claims snapshot unavailable (%s); keeping the committed %s", reason, CLAIMS_FILE
+        )
+        return reason
+    (graph_root / CLAIMS_FILE).write_bytes(schemas.canonical_json(doc))
+    return None
 
 
 def bot_commit_message(pr_number: int, verdict: str) -> str:

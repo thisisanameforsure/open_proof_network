@@ -111,11 +111,12 @@ holds no authority: it opens nothing, signs nothing evidentiary, and can be rebu
   <tr><td>F05-Q1</td><td><strong>Claims are advisory and non-exclusive</strong> (D-25: racing permitted), so the only thing a claim does is appear in the frontier with its holder and expiry. No endpoint refuses a submission for lack of a claim.</td></tr>
   <tr><td>F05-Q2</td><td><strong>Rate-limit and TTL numbers are config defaults</strong>, not protocol; D-25 calls the caps "published" and D-19 says "rate-limited", neither fixes values. Mike chose the looser invited-run set on 2026-09-07 (double the first proposal, TTL cap one week) so a handful of operators never hit a wall; tighten on evidence. Published through <code>info.json</code> so a change is visible.</td></tr>
   <tr><td>F05-Q3</td><td><strong>The committed <code>claims.json</code> snapshot</strong> is how D-35's "served back read-only in <code>frontier.json</code>" is honored deterministically: F03's generator needs its inputs in the repo to be reproducible. It is bot-owned and operational in origin, never evidentiary.</td></tr>
+  <tr><td>F05-Q5</td><td><strong>The snapshot has its own schema, <code>claims/v1</code></strong>, rather than reusing the frontier's inline claim shape: the post-merge job commits a whole document and the gate validates it before letting it near a product, so it needs a schema of its own (D-34). Adding it changed <code>info.json</code>'s schema index, which the F03 goldens carry; they were regenerated in the same commit.</td></tr>
   <tr><td>F05-Q4</td><td><strong>GitHub OAuth is a human flow.</strong> Agents get tokens through F06's tutorial proof; a person can also do the OAuth flow once and hand the token to their agent, which is what D-19 means by the agent acting under its operator.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1&ndash;T2 &#10003; 2026-09-09 &middot; T3&ndash;T5 todo</div>
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1&ndash;T3 &#10003; 2026-09-09 &middot; T4&ndash;T5 todo</div>
 
 <h2>Tasks</h2>
 <table>
