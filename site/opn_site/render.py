@@ -10,9 +10,11 @@ all of them rendered (R13).
 
 from __future__ import annotations
 
+import re
 from html import escape
 from pathlib import Path
 from string import Template
+from typing import Any
 
 from opn_site import dag
 from opn_site.model import NodeView, Prose, Site, TargetView
@@ -30,6 +32,26 @@ STATUS_WORDS = {
     "disputed": "disputed",
     "abandoned": "abandoned",
 }
+FRONTIER_COLUMNS = (
+    ("node_id", "Node"),
+    ("target_id", "Target"),
+    ("statement_hash", "Statement hash"),
+    ("relation", "Relation"),
+    ("origin", "Origin"),
+    ("tags", "Tags"),
+    ("attempts", "Attempts"),
+    ("refuted_route_classes", "Routes refuted"),
+    ("failure_class_histogram", "Failure classes"),
+    ("ready_since", "Ready since"),
+    ("claims", "Claims"),
+    ("annex_present", "Annex"),
+    ("bounty", "Bounty"),
+    ("claimable", "Claimable"),
+    ("tutorial", "Tutorial"),
+)
+DECISIONS_DOC = Path(__file__).resolve().parents[2] / "docs" / "architecture_decisions_v_3_11.html"
+_STRIP_RE = re.compile(r"<link\b[^>]*>|<script\b.*?</script>", re.S | re.I)
+_STYLE_RE = re.compile(r"<style\b[^>]*>(.*?)</style>", re.S | re.I)
 NAV = (
     ("/", "Home"),
     ("/targets/", "Targets"),
@@ -49,9 +71,12 @@ def _template(name: str) -> Template:
 
 
 class Renderer:
-    def __init__(self, site: Site, *, repo_url: str) -> None:
+    def __init__(
+        self, site: Site, *, repo_url: str, decisions_doc: Path | None = DECISIONS_DOC
+    ) -> None:
         self.site = site
         self.repo_url = repo_url.rstrip("/")
+        self.decisions_doc = decisions_doc
         self.base = _template("base.html")
 
     # -- links -------------------------------------------------------------------------------
@@ -270,6 +295,125 @@ class Renderer:
         )
         return self.page(f"Node {nid}", body, renders=renders)
 
+    def frontier(self) -> str:
+        """R7: one column per F03-R5 field, one row per entry, filterable by the same-origin
+        script and complete without it."""
+        headers = "".join(f"<th>{esc(label)}</th>" for _key, label in FRONTIER_COLUMNS)
+        rows = []
+        for e in self.site.frontier["entries"]:
+            cells = []
+            for key, _label in FRONTIER_COLUMNS:
+                cells.append(f"<td>{self.frontier_cell(key, e)}</td>")
+            rows.append("<tr>" + "".join(cells) + "</tr>")
+        empty = "" if rows else "<p>The frontier is empty: nothing is ready to prove right now.</p>"
+        body = _template("frontier.html").substitute(
+            headers=headers, rows="".join(rows), empty=empty
+        )
+        return self.page("Frontier", body, renders=["frontier.json"])
+
+    def frontier_cell(self, key: str, e: dict[str, Any]) -> str:  # noqa: PLR0911 — one per field kind
+        value = e[key]
+        if key == "node_id":
+            return self.node_link(str(e["target_id"]), str(value))
+        if key == "target_id":
+            return f'<a href="{esc(self.target_path(str(value)))}">{esc(value)}</a>'
+        if key == "statement_hash":
+            return f"<code>{esc(str(value)[:12])}</code>"
+        if key == "tags":
+            deps = ", ".join(str(d) for d in value["deps"]) or "none"
+            lib = ", ".join(str(x) for x in value["library"]) or "none"
+            return esc(f"deps: {deps}; library: {lib}")
+        if key == "refuted_route_classes":
+            return esc(", ".join(str(x) for x in value) or "none")
+        if key == "failure_class_histogram":
+            return esc(", ".join(f"{k} {v}" for k, v in sorted(value.items())) or "none")
+        if key == "claims":
+            active = len(value["active"])
+            return esc(f"{active} active, {value['history_count']} past")
+        if value is None:
+            return "none"
+        if isinstance(value, bool):
+            return "yes" if value else "no"
+        return esc(value)
+
+    def contributors(self) -> str:
+        """R8: every ledger file linked at the commit; the empty state says so (F07 writes them)."""
+        ledger_dir = self.site.root / "ledger"
+        files = (
+            sorted(p for p in ledger_dir.iterdir() if p.is_file() and p.name != ".gitkeep")
+            if ledger_dir.is_dir()
+            else []
+        )
+        if not files:
+            ledger = (
+                "<p>No ledger files exist yet: nothing has been credited. The first merged proof "
+                "and the first postmortem will start the ledger (D-19, F07).</p>"
+            )
+            renders: list[str] = []
+        else:
+            renders = [f"ledger/{p.name}" for p in files]
+            ledger = "<ul>" + "".join(f"<li>{self.file_link(r)}</li>" for r in renders) + "</ul>"
+        body = _template("contributors.html").substitute(ledger=ledger)
+        return self.page("Contributors", body, renders=renders)
+
+    def docs(self) -> tuple[str, dict[str, str]]:
+        """R9, Q4: the docs page and the copied decisions document with its styles moved to a
+        same-origin stylesheet and every external or inline script removed (R10)."""
+        extra: dict[str, str] = {}
+        if self.decisions_doc is not None and self.decisions_doc.is_file():
+            raw = self.decisions_doc.read_text(encoding="utf-8")
+            styles = "\n".join(m.group(1) for m in _STYLE_RE.finditer(raw))
+            page = _STYLE_RE.sub("", _STRIP_RE.sub("", raw))
+            page = page.replace(
+                "</head>", '<link rel="stylesheet" href="/docs/decisions.css">\n</head>', 1
+            )
+            extra["docs/architecture-decisions.html"] = page
+            extra["docs/decisions.css"] = styles
+            decisions = (
+                '<a href="/docs/architecture-decisions.html">Architecture decisions</a>, '
+                "the protocol this network runs: decisions D-1 to D-36 with rationale and "
+                "overturning conditions. Copied at the site build (Q4)."
+            )
+        else:
+            decisions = "The architecture decisions document is not available in this build."
+        agents_md = self.site.root / "AGENTS.md"
+        agents = (
+            self.untrusted_block(
+                "untrusted",
+                Prose(path="AGENTS.md", text=agents_md.read_text(encoding="utf-8")),
+                what="AGENTS.md",
+            )
+            if agents_md.is_file()
+            else "<p>The graph has no AGENTS.md yet; the tested one arrives with F10 (D-27).</p>"
+        )
+        funnel_dir = self.site.root / "docs"
+        funnel_files = (
+            sorted(p for p in funnel_dir.iterdir() if p.is_file()) if funnel_dir.is_dir() else []
+        )
+        funnel = (
+            "<ul>"
+            + "".join(f"<li>{self.file_link(f'docs/{p.name}')}</li>" for p in funnel_files)
+            + "</ul>"
+            if funnel_files
+            else "<p>No human-funnel documentation yet (D-27, F10).</p>"
+        )
+        parts = []
+        for name, what in (("LICENSE", "license"), ("DCO", "sign-off (DCO)")):
+            path = self.site.root / name
+            if path.is_file():
+                text = path.read_text(encoding="utf-8")
+                parts.append(f'<h3>{esc(name)}</h3><pre class="prose">{esc(text)}</pre>')
+            else:
+                parts.append(
+                    f"<p>No {what} text is committed to the graph yet; D-23 settles it before the "
+                    "first external contributor.</p>"
+                )
+        body = _template("docs.html").substitute(
+            decisions=decisions, agents=agents, funnel=funnel, license="".join(parts)
+        )
+        renders = [n for n in ("AGENTS.md", "LICENSE", "DCO") if (self.site.root / n).is_file()]
+        return self.page("Docs", body, renders=renders), extra
+
     def attestation_block(self, nv: NodeView) -> str:
         doc = nv.attestation
         if doc is None or nv.attestation_path is None:
@@ -311,13 +455,21 @@ class Renderer:
         )
 
 
-def render_site(site: Site, *, repo_url: str) -> dict[str, str]:
+def render_site(
+    site: Site, *, repo_url: str, decisions_doc: Path | None = DECISIONS_DOC
+) -> dict[str, str]:
     """Every output file (path relative to the site root -> content)."""
-    r = Renderer(site, repo_url=repo_url)
+    r = Renderer(site, repo_url=repo_url, decisions_doc=decisions_doc)
+    docs_page, extra = r.docs()
     files: dict[str, str] = {
         "index.html": r.home(),
         "targets/index.html": r.targets(),
+        "frontier/index.html": r.frontier(),
+        "contributors/index.html": r.contributors(),
+        "docs/index.html": docs_page,
         "site.css": (STATIC / "site.css").read_text(encoding="utf-8"),
+        "frontier.js": (STATIC / "frontier.js").read_text(encoding="utf-8"),
+        **extra,
     }
     for tid, tv in site.targets.items():
         files[f"targets/{tid}/index.html"] = r.target(tv)

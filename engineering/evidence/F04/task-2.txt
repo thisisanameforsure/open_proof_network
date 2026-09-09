@@ -1,0 +1,11 @@
+# F04-T2 verification — $ uv run pytest site/tests/test_render.py — 2026-09-09T05:54:34Z — screenshot: task-2-frontier.png (filter row added by frontier.js, served locally)
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+collected 14 items
+
+site/tests/test_render.py ..............                                 [100%]
+
+============================== 14 passed in 0.19s ==============================
+exit=0

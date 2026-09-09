@@ -14,6 +14,7 @@ from opn_site import cli, model, render
 
 GOLDEN = Path(__file__).resolve().parent / "golden"
 REPO = "https://github.com/example/graph"
+COPIED_DOC = "docs/architecture-decisions.html"  # a verbatim copy of a network file (R9, Q4)
 PAGES = (
     "index.html",
     "targets/index.html",
@@ -38,7 +39,7 @@ def write_goldens(base: Path = GOLDEN) -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = fixture.build(Path(tmp))
         files = render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
-        for rel in PAGES:
+        for rel in (*PAGES, *T2_PAGES):
             target = base / rel
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(files[rel], encoding="utf-8")
@@ -54,7 +55,7 @@ def test_golden_pages(rendered: dict[str, str]) -> None:
 def test_commit_and_file_links(rendered: dict[str, str]) -> None:
     """AC4, R2: every page names the commit; every rendered file links at that commit."""
     for rel, html in rendered.items():
-        if not rel.endswith(".html"):
+        if not rel.endswith(".html") or rel == COPIED_DOC:
             continue
         assert fixture.COMMIT[:12] in html, rel
         assert f"{REPO}/tree/{fixture.COMMIT}" in html, rel
@@ -141,7 +142,7 @@ class _Balance(HTMLParser):
 
 def test_pages_are_well_formed(rendered: dict[str, str]) -> None:
     for rel, html in rendered.items():
-        if rel.endswith(".html"):
+        if rel.endswith(".html") and rel != COPIED_DOC:  # the copied doc is not our markup
             p = _Balance()
             p.feed(html)
             assert not p.problems and not p.stack, (rel, p.problems, p.stack)
@@ -176,3 +177,42 @@ def test_render_command_writes_everything(
     for rel in PAGES:
         assert (out / rel).is_file(), rel
     assert (out / "site.css").is_file()
+
+
+# --- T2: frontier, contributors, docs ---------------------------------------------------------
+
+T2_PAGES = ("frontier/index.html", "contributors/index.html", "docs/index.html")
+
+
+def test_frontier_table(rendered: dict[str, str]) -> None:
+    """AC9: one row per frontier entry, one column per F03-R5 field, a same-origin script."""
+    page = rendered["frontier/index.html"]
+    assert page.count("<th>") == 15
+    assert page.count("<tr>") == 1 + 1  # header + the one frontier entry (the ready root)
+    assert 'href="/nodes/propositional/and-swap-reassoc/"' in page
+    assert '<script src="/frontier.js"></script>' in page
+    assert "https://" not in page.split("<main>")[1].split("</main>")[0].replace(REPO, "")
+    assert "frontier.js" in rendered and "querySelector" in rendered["frontier.js"]
+    assert "deps: and-reassoc, tutorial-and-swap; library: none" in page
+
+
+def test_contributors_empty_state(rendered: dict[str, str]) -> None:
+    """R8: no ledger files yet, and the page says so."""
+    assert "No ledger files exist yet" in rendered["contributors/index.html"]
+
+
+def test_docs_bundle(rendered: dict[str, str]) -> None:
+    """R9, R10: the decisions doc is copied with no external link, inline style or script."""
+    docs = rendered["docs/index.html"]
+    assert 'href="/docs/architecture-decisions.html"' in docs
+    assert "no AGENTS.md yet" in docs and "No license text" in docs and "No sign-off" in docs
+    copied = rendered["docs/architecture-decisions.html"]
+    assert "fonts.googleapis.com" not in copied
+    assert "<script" not in copied and "<style" not in copied
+    assert '<link rel="stylesheet" href="/docs/decisions.css">' in copied
+    assert "D-36" in copied and rendered["docs/decisions.css"].strip()
+
+
+def test_t2_golden_pages(rendered: dict[str, str]) -> None:
+    for rel in T2_PAGES:
+        assert rendered[rel] == (GOLDEN / rel).read_text(encoding="utf-8"), rel

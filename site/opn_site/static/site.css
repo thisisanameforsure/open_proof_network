@@ -91,3 +91,11 @@ pre.prose { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--s
   dl.facts dd { margin-bottom: 0.4rem; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Frontier: a wide table scrolls inside its own box; the filter row is added by the script. */
+.table-wrap { overflow-x: auto; }
+table.frontier { font-size: 0.85rem; width: max-content; min-width: 100%; }
+table.frontier th, table.frontier td { padding-right: 1rem; white-space: nowrap; }
+table.frontier .filters input { width: 9ch; font: inherit; padding: 0.15rem 0.3rem; border: 1px solid var(--rule); background: #fff; }
+.filter-note { color: var(--muted); }
+button { font: inherit; padding: 0.3rem 0.8rem; border: 1px solid var(--rule); background: var(--well); color: var(--ink); }
