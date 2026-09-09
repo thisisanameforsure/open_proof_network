@@ -1,4 +1,4 @@
-"""Identity and token issuance (F05-R3, R4, R6; D-19, D-23; Q4).
+"""Identity and token issuance (F05-R3, R4, R6; F06-R7; D-19, D-23; Q4).
 
 The GitHub proof is a browser flow: ``GET /auth/github/start`` sends the browser to GitHub
 with a single-use state nonce; the callback exchanges the code through the ``GitHost`` seam
@@ -6,16 +6,24 @@ with a single-use state nonce; the callback exchanges the code through the ``Git
 store, and shows a form. ``POST /tokens`` takes the proof id, a pseudonym and the DCO
 acceptance, creates the identity and returns the token once. A JSON client can drive the same
 three steps: the callback answers JSON when asked for it.
+
+D-19's second proof needs no account at all: prove the tutorial node and the passing precheck
+job *is* the credential. ``POST /tokens`` accepts proof kind ``tutorial`` {job_id, nonce} for
+a job that was created without a token and passed, consuming the nonce (F06-R7). The job id
+is the identity's proof reference, so the store's uniqueness rule makes one job worth one
+identity, exactly as one GitHub login is worth one.
 """
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import html
 import json
 import os
 import re
 import secrets
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs
@@ -34,6 +42,8 @@ if TYPE_CHECKING:
     from opn_api.app import Context
 
 PROOF_GITHUB = "github"
+PROOF_TUTORIAL = "tutorial"  # D-19, F06-R7: a passing anonymous precheck of the tutorial node
+PROOF_KINDS: tuple[str, ...] = (PROOF_GITHUB, PROOF_TUTORIAL)
 PSEUDONYM_RE = re.compile(r"^[A-Za-z0-9-]{1,39}$")
 CALLBACK_PATH = "/auth/github/callback"
 
@@ -222,39 +232,99 @@ async def github_callback(ctx: Context, request: Request) -> Response:
     return HTMLResponse(token_form(login=user.login, proof_id=proof_id))
 
 
+# --- the two proofs a token may be minted from ---------------------------------------------------
+
+Undo = Callable[[], None]
+
+
+def github_reference(ctx: Context, proof: dict[str, Any]) -> tuple[str, Undo]:
+    """F05-R4: consume the short-lived proof the callback stored, and answer with the login.
+
+    The proof is taken now so that two concurrent requests cannot both spend it; ``undo`` puts
+    it back, which is what lets a pseudonym clash be retried (AC3).
+    """
+    proof_id = str(proof.get("id", ""))
+    record = ctx.store.take_ephemeral(KEY_PROOF + proof_id, ctx.clock.now()) if proof_id else None
+    if record is None:
+        raise ApiError(400, "proof-invalid", "unknown, used or expired proof; start again")
+
+    def undo() -> None:
+        ctx.store.put_ephemeral(KEY_PROOF + proof_id, record, expiry(ctx))
+
+    return str(record["login"]), undo
+
+
+def tutorial_reference(ctx: Context, request: Request, proof: dict[str, Any]) -> tuple[str, Undo]:
+    """F06-R7: a passing anonymous precheck of the tutorial node, spent once.
+
+    Every refusal is the same 400: which condition failed — no such job, still running, failed,
+    authenticated, wrong or already-spent nonce — is not something an unauthenticated caller
+    gets to probe for. The job id is the proof reference, so the store's uniqueness rule holds
+    the "one job, one identity" line even if the nonce check were ever bypassed.
+    """
+    from opn_api import precheck  # noqa: PLC0415 — precheck imports this module
+
+    ratelimit.check_token_start(ctx, ratelimit.client_address(request))
+    refusal = ApiError(400, "proof-invalid", "unknown, unfinished, used or unusable tutorial proof")
+    job_id = str(proof.get("job_id", ""))
+    nonce = str(proof.get("nonce", ""))
+    job = precheck.load(ctx, job_id) if job_id else None
+    if job is None or not job.anonymous or not job.nonce or job.nonce_consumed:
+        raise refusal
+    if not secrets.compare_digest(job.nonce, nonce):
+        raise refusal
+    job = precheck.advance(ctx, job)  # a job that finished but was never polled still counts
+    if job.state != "done" or (job.result or {}).get("verdict") != "pass":
+        raise refusal
+    precheck.save(ctx, dataclasses.replace(job, nonce_consumed=True))
+
+    def undo() -> None:
+        current = precheck.load(ctx, job_id)
+        if current is not None:
+            precheck.save(ctx, dataclasses.replace(current, nonce_consumed=False))
+
+    return job.id, undo
+
+
 # --- POST /tokens --------------------------------------------------------------------------------
 
 
 async def post_tokens(ctx: Context, request: Request) -> Response:
-    """R4: proof + pseudonym + DCO -> identity and one token, shown once."""
+    """R4: proof + pseudonym + DCO -> identity and one token, shown once.
+
+    Two proof kinds, one issuance path: ``github`` (F05-R4) and ``tutorial`` (F06-R7).
+    """
     fields, was_form = await body_fields(request)
     pseudonym = check_pseudonym(fields.get("pseudonym"))
     check_dco(fields.get("dco"))
     proof = fields.get("proof")
-    if not isinstance(proof, dict) or proof.get("kind") != PROOF_GITHUB:
-        raise ApiError(400, "proof-unsupported", "proof.kind must be github (tutorial-proof: F06)")
-    proof_id = str(proof.get("id", ""))
+    kind = proof.get("kind") if isinstance(proof, dict) else None
+    if kind not in PROOF_KINDS:
+        raise ApiError(
+            400, "proof-unsupported", f"proof.kind must be one of {', '.join(PROOF_KINDS)}"
+        )
+    assert isinstance(proof, dict)
     now = ctx.clock.now()
-    record = ctx.store.take_ephemeral(KEY_PROOF + proof_id, now) if proof_id else None
-    if record is None:
-        raise ApiError(400, "proof-invalid", "unknown, used or expired proof; start again")
+    if kind == PROOF_TUTORIAL:
+        reference, undo = tutorial_reference(ctx, request, proof)
+    else:
+        reference, undo = github_reference(ctx, proof)
     identity = Identity(
         id=new_ulid(now),
         pseudonym=pseudonym,
-        proof_kind=PROOF_GITHUB,
-        proof_reference=str(record["login"]),
+        proof_kind=str(kind),
+        proof_reference=reference,
         created=clockmod.render(now),
     )
     try:
         ctx.store.put_identity(identity)
     except ConflictError as exc:
         # The proof survives a pseudonym clash so the person can pick another (AC3).
-        ctx.store.put_ephemeral(KEY_PROOF + proof_id, record, expiry(ctx))
+        undo()
         if exc.what == "pseudonym":
             raise ApiError(409, "pseudonym-taken", f"pseudonym {pseudonym!r} is taken") from exc
-        raise ApiError(
-            409, "github-login-taken", f"an identity already exists for {record['login']}"
-        ) from exc
+        taken = "github-login-taken" if kind == PROOF_GITHUB else "proof-invalid"
+        raise ApiError(409, taken, f"an identity already exists for {reference}") from exc
     token = auth.new_token()
     ctx.store.put_token(
         TokenRecord(

@@ -34,6 +34,10 @@ from opn_gate import schemas
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 FAKE_ACCESS_TOKEN = "gho_FAKE_ACCESS_TOKEN_NEVER_STORED"  # noqa: S105 — a sentinel, not a secret
 PRECHECK_KEY_PATH = "keys/precheck.pub"
+# The fixture graph's tutorial node, and a proof shaped the way the gate's path check wants one.
+TUTORIAL_NODE = "tutorial-and-swap"
+PROOF_PREFIX = "targets/propositional/nodes/"
+TUTORIAL_PROOF = "import Nodes.X.Context\n\ntheorem x : True := trivial\n"
 
 
 @dataclass
@@ -277,6 +281,41 @@ class Harness:
         """Put the precheck public key where the graph commits it (C8 item 2; F06-R5)."""
         self.githost.files[PRECHECK_KEY_PATH] = public_key.encode() + b"\n"
         self.context.files.pop(PRECHECK_KEY_PATH, None)
+
+    def tutorial_job(
+        self,
+        key: PrecheckKey,
+        *,
+        node: str = TUTORIAL_NODE,
+        token: str | None = None,
+        verdict: str = "pass",
+    ) -> dict[str, Any]:
+        """Drive a precheck of the tutorial node all the way to ``done``, and answer the created
+        job document — the ``{id, nonce}`` an agent turns into a token (F06-R7).
+
+        ``token`` makes it an authenticated job (which then has no nonce, AC11) and ``verdict``
+        makes it a failing one.
+        """
+        self.commit_precheck_key(key.public)
+        headers = self.auth(token) if token else {}
+        proof = f"{PROOF_PREFIX}{node}/Proof.lean"
+        created = self.client.post(
+            "/precheck",
+            json={"node_id": node, "bundle": {proof: TUTORIAL_PROOF}},
+            headers=headers,
+        )
+        assert created.status_code == 202, created.text
+        doc: dict[str, Any] = created.json()
+        artifact = result_zip(
+            job_id=doc["id"],
+            node_id=node,
+            graph_commit=doc["graph_commit"],
+            bundle_digest=doc["bundle_digest"],
+            key=key,
+            verdict=verdict,
+        )
+        self.githost.finish_run(f"job/{doc['id']}", artifact=(f"result-{doc['id']}", artifact))
+        return doc
 
 
 def make_harness(env: dict[str, str] | None = None, **seams: Any) -> Harness:

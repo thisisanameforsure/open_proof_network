@@ -1,12 +1,20 @@
-"""F05-T2: identity proof and token issuance (R3, R4; AC1-AC5)."""
+"""F05-T2 and F06-T4: identity proof and token issuance (F05-R3, R4; F06-R7; AC1-AC5, AC10-AC11)."""
 
 from __future__ import annotations
 
 import json
 import logging
+from typing import Any
 
 import pytest
-from api_fakes import FAKE_ACCESS_TOKEN, Harness, alice, make_harness
+from api_fakes import (
+    FAKE_ACCESS_TOKEN,
+    Harness,
+    PrecheckKey,
+    alice,
+    make_harness,
+    make_precheck_key,
+)
 
 from opn_api import auth, identity
 
@@ -194,6 +202,127 @@ def test_one_token_per_github_login(harness: Harness) -> None:
     r = harness.client.get("/auth/github/callback", params={"code": "code_alice", "state": state})
     assert r.status_code == 409
     assert r.json()["error"] == "github-login-taken"
+
+
+# --- F06-T4: the account-free proof (D-19; F06-R7, AC10, AC11) -----------------------------------
+
+
+@pytest.fixture(scope="module")
+def key(tmp_path_factory: pytest.TempPathFactory) -> PrecheckKey:
+    return make_precheck_key(tmp_path_factory.mktemp("precheck-key"))
+
+
+def exchange(h: Harness, job_id: object, nonce: object, pseudonym: str = "anon-p") -> Any:
+    return h.client.post(
+        "/tokens",
+        json={
+            "proof": {"kind": "tutorial", "job_id": job_id, "nonce": nonce},
+            "pseudonym": pseudonym,
+            "dco": {"version": identity.DCO_VERSION, "accepted": True},
+        },
+    )
+
+
+def test_tutorial_proof_single_use(harness: Harness, key: PrecheckKey) -> None:
+    """AC10: a passing anonymous tutorial job mints one token, and only one."""
+    job = harness.tutorial_job(key)
+    assert job["authenticated"] is False and job["nonce"]
+
+    issued = exchange(harness, job["id"], job["nonce"])
+    assert issued.status_code == 201, issued.text
+    doc = issued.json()
+    assert doc["identity"]["proof_kind"] == "tutorial"
+    assert doc["identity"]["pseudonym"] == "anon-p"
+
+    # The token works: it authenticates a write route, which is the whole point of D-19.
+    claim = harness.client.post(
+        "/claims", json={"node_id": "and-reassoc"}, headers=harness.auth(doc["token"])
+    )
+    assert claim.status_code == 201, claim.text
+
+    again = exchange(harness, job["id"], job["nonce"], "anon-q")
+    assert again.status_code == 400
+    assert again.json()["error"] == "proof-invalid"
+    assert len(harness.store.identities) == 1
+
+
+def test_tutorial_proof_requires_anonymous_pass(key: PrecheckKey) -> None:
+    """AC11: a failing job, an authenticated job, a wrong nonce and an unfinished job are all
+    the same 400 — an unauthenticated caller cannot probe for which condition failed (R7)."""
+    failing = make_harness()
+    job = failing.tutorial_job(key, verdict="fail")
+    assert failing.client.get(f"/precheck/{job['id']}").json()["result"]["verdict"] == "fail"
+    refused = exchange(failing, job["id"], job["nonce"])
+    assert refused.status_code == 400
+    assert refused.json()["error"] == "proof-invalid"
+
+    authenticated = make_harness()
+    token = authenticated.token_for("code_alice", "alice-p")
+    signed_in = authenticated.tutorial_job(key, token=token)
+    assert "nonce" not in signed_in  # R2: only an anonymous job gets one
+    assert exchange(authenticated, signed_in["id"], "any-nonce").status_code == 400
+
+    h = make_harness()
+    good = h.tutorial_job(key)
+    for job_id, nonce in (
+        (good["id"], "not-the-nonce"),
+        (good["id"], None),
+        ("01NOSUCHJOB", good["nonce"]),
+        (None, good["nonce"]),
+    ):
+        r = exchange(h, job_id, nonce)
+        assert r.status_code == 400, (job_id, nonce)
+        assert r.json()["error"] == "proof-invalid", (job_id, nonce)
+    assert h.store.identities == {}
+    # None of that spent the nonce: the real exchange still works afterwards.
+    assert exchange(h, good["id"], good["nonce"]).status_code == 201
+
+
+def test_tutorial_proof_waits_for_the_verdict(harness: Harness, key: PrecheckKey) -> None:
+    """R7: a job that has not finished is refused, and the same proof works once it has —
+    including when the caller never polled ``GET /precheck/<id>`` at all."""
+    harness.commit_precheck_key(key.public)
+    created = harness.client.post(
+        "/precheck",
+        json={
+            "node_id": "tutorial-and-swap",
+            "bundle": {
+                "targets/propositional/nodes/tutorial-and-swap/Proof.lean": (
+                    "import Nodes.X.Context\n\ntheorem x : True := trivial\n"
+                )
+            },
+        },
+    ).json()
+    harness.githost.start_run(f"job/{created['id']}")
+    assert exchange(harness, created["id"], created["nonce"]).status_code == 400
+
+    finished = harness.tutorial_job(key)  # a second, complete job
+    assert exchange(harness, finished["id"], finished["nonce"]).status_code == 201
+
+
+def test_a_pseudonym_clash_does_not_burn_the_nonce(harness: Harness, key: PrecheckKey) -> None:
+    """AC3's rule, for the tutorial proof: pick another name and try again (C7)."""
+    harness.token_for("code_alice", "taken-name")
+    job = harness.tutorial_job(key)
+    clash = exchange(harness, job["id"], job["nonce"], "taken-name")
+    assert clash.status_code == 409
+    assert clash.json()["error"] == "pseudonym-taken"
+    retry = exchange(harness, job["id"], job["nonce"], "another-name")
+    assert retry.status_code == 201, retry.text
+
+
+def test_unsupported_proof_kind_names_both(harness: Harness) -> None:
+    r = harness.client.post(
+        "/tokens",
+        json={
+            "proof": {"kind": "carrier-pigeon"},
+            "pseudonym": "someone",
+            "dco": {"version": identity.DCO_VERSION, "accepted": True},
+        },
+    )
+    assert r.status_code == 400
+    assert r.json()["error"] == "proof-unsupported"
+    assert "github" in r.json()["message"] and "tutorial" in r.json()["message"]
 
 
 def test_browser_flow_serves_escaped_html() -> None:
