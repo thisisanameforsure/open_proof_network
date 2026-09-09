@@ -54,19 +54,28 @@ jobs:
             -r build/requirements.txt
           cp -R api/opn_api build/package/
           cp -R gate/opn_gate build/package/
+          # opn_gate.schemas resolves gate/schemas relative to the package's parent, so the
+          # schema files must travel with it or every validating route answers 500 (D-34).
+          cp -R gate/schemas build/package/
           find build/package -name '__pycache__' -type d -prune -exec rm -rf {} +
           find build/package -name '*.dist-info' -type d -prune -exec rm -rf {} +
           (cd build/package && zip -qr ../function.zip .)
           ls -l build/function.zip
 
-      - name: Check the package imports the handler
+      - name: Check the package carries the handler and every schema
         run: |
           set -euo pipefail
           PYTHONPATH=build/package python3 - <<'PY'
-          import importlib.util, sys
+          import importlib.util
           for module in ("opn_api.app", "opn_api.routes", "opn_gate.schemas"):
-              assert importlib.util.find_spec(module), module
-          print("package carries", *sys.argv[1:], "opn_api and opn_gate")
+              assert importlib.util.find_spec(module), f"missing module {module}"
+          from opn_gate import schemas
+          known = schemas.known_schemas()
+          # The routes validate against these by name; an empty set means 500s, not a warning.
+          for required in ("frontier/v1", "info/v1", "claims/v1"):
+              assert required in known, f"{required} is not in the package: {known}"
+          assert not schemas.verify_pins(), schemas.verify_pins()
+          print(f"package carries opn_api, opn_gate and {len(known)} pinned schemas")
           PY
 
       - name: Assume the deploy role (OIDC, no stored key)
