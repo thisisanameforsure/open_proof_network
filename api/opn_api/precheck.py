@@ -15,23 +15,29 @@ older than the retention window (R5). Terminal states never change again.
 
 from __future__ import annotations
 
+import io
+import json
 import logging
 import secrets
-from dataclasses import dataclass
+import zipfile
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Literal
 
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from opn_api import auth, bundles, frontier, ratelimit
+from opn_api import auth, bundles, frontier, ratelimit, sshsig
 from opn_api import clock as clockmod
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
+from opn_api.githost import GitHostError, WorkflowRun
+from opn_gate import attestation, schemas, signer
 from opn_gate.paths import Claim
 
 if TYPE_CHECKING:
     from opn_api.app import Context
+    from opn_api.bundles import Bundle
 
 log = logging.getLogger(__name__)
 
@@ -40,6 +46,12 @@ TERMINAL: frozenset[str] = frozenset({"done", "error", "expired"})
 RESULT_RETENTION_DAYS = 30  # R5
 NONCE_BYTES = 24
 KEY_JOB = "job#"
+JOB_FILE = "job.json"
+BUNDLE_DIR = "bundle"
+RESULT_FILE = "result.json"
+MAX_RESULT_BYTES = 1024 * 1024  # §6: a result is capped at 1 MiB
+SERVICE_KIND = "service"
+EXPECTED_RUNNER = "hosted"  # R6: the job runs on a hosted runner and says so
 
 
 @dataclass(frozen=True)
@@ -215,7 +227,65 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
         nonce=nonce,
     )
     save(ctx, job)
+    dispatch(ctx, job, bundle)
     return JSONResponse(job.as_dict(now, include_nonce=nonce is not None), status_code=202)
+
+
+# --- handing the job to the scratch repository (R3, R10) -----------------------------------------
+
+
+def branch_name(job_id: str) -> str:
+    return f"job/{job_id}"
+
+
+def artifact_name(job_id: str) -> str:
+    """What the scratch workflow uploads the result as (``gate/precheck/precheck.yml``)."""
+    return f"result-{job_id}"
+
+
+def branch_files(job: Job, bundle: Bundle) -> dict[str, str]:
+    """The branch's contents: the job record at the root and the bundle under ``bundle/``,
+    whose paths stay relative to the graph root so ``precheck.job`` can apply them (R3, R4)."""
+    record = {
+        "id": job.id,
+        "node_id": job.node_id,
+        "target_id": job.target_id,
+        "statement_hash": job.statement_hash,
+        "graph_commit": job.graph_commit,
+        "bundle_digest": job.bundle_digest,
+        "created": job.created,
+    }
+    files = {JOB_FILE: json.dumps(record, indent=2, sort_keys=True) + "\n"}
+    for path, content in bundle.files.items():
+        files[f"{BUNDLE_DIR}/{path}"] = content
+    return files
+
+
+def dispatch(ctx: Context, job: Job, bundle: Bundle) -> None:
+    """R3: push the branch and dispatch the workflow. R10: a failure is never silent — the job
+    is marked ``error`` with the cause and the submitter is told, so no bundle is dropped (C7)."""
+    settings = ctx.settings
+    branch = branch_name(job.id)
+    try:
+        ctx.githost.push_branch(
+            settings.precheck_repo,
+            branch,
+            branch_files(job, bundle),
+            base=settings.precheck_branch,
+            message=f"precheck job {job.id} ({job.node_id})",
+        )
+        ctx.githost.dispatch_workflow(
+            settings.precheck_repo,
+            settings.precheck_workflow,
+            ref=branch,
+            inputs={"job_id": job.id},
+        )
+    except GitHostError as exc:
+        log.warning("precheck %s could not be dispatched: %s", job.id, exc)
+        save(ctx, replace(job, state="error", error=f"dispatch failed: {exc}"))
+        raise ApiError(
+            502, "dispatch-failed", f"the precheck job could not be started: {exc}"
+        ) from exc
 
 
 # --- GET /precheck/<id> --------------------------------------------------------------------------
@@ -226,7 +296,156 @@ async def get_precheck(ctx: Context, request: Request) -> Response:
     job = load(ctx, str(request.path_params["job_id"]))
     if job is None:
         raise ApiError(404, "job-unknown", "no such precheck job")
+    job = advance(ctx, job)
     return JSONResponse(job.as_dict(ctx.clock.now()))
+
+
+def advance(ctx: Context, job: Job) -> Job:
+    """R5, Q3: poll on read. Look up the run, and when it has finished, take its artifact,
+    verify the signature and store the result. A terminal job never changes again.
+
+    A host failure while polling leaves the job as it is and is logged: a transient GitHub
+    outage must not turn a running job into a permanent error (C7).
+    """
+    if job.state in TERMINAL or job.expired_at(ctx.clock.now()):
+        return job
+    try:
+        run = ctx.githost.find_run(
+            ctx.settings.precheck_repo, ctx.settings.precheck_workflow, branch=branch_name(job.id)
+        )
+    except GitHostError as exc:
+        log.warning("precheck %s: cannot read the run: %s", job.id, exc)
+        return job
+    if run is None:
+        return job  # dispatched, but the run is not visible yet
+    if not run.completed:
+        return _saved(ctx, replace(job, state="running", run_id=str(run.id), run_url=run.url))
+    return _collect(ctx, job, run)
+
+
+def _collect(ctx: Context, job: Job, run: WorkflowRun) -> Job:
+    """The run has finished: take the artifact or record why there is no result (R5)."""
+    finished = replace(job, run_id=str(run.id), run_url=run.url)
+    if not run.succeeded:
+        why = f"the precheck run {run.conclusion or 'failed'}"
+        return _saved(ctx, replace(finished, state="error", error=why))
+    try:
+        zipped = ctx.githost.download_artifact(
+            ctx.settings.precheck_repo, run.id, artifact_name(job.id)
+        )
+    except GitHostError as exc:
+        log.warning("precheck %s: cannot download the result: %s", job.id, exc)
+        return finished if finished == job else _saved(ctx, finished)
+    if zipped is None:
+        return _saved(
+            ctx, replace(finished, state="error", error="the precheck run produced no result")
+        )
+    try:
+        result = read_result(zipped)
+        verify_result(ctx, finished, result)
+    except ResultError as exc:
+        log.warning("precheck %s: %s", job.id, exc)
+        return _saved(ctx, replace(finished, state="error", error=str(exc)))
+    return _saved(ctx, replace(finished, state="done", result=result))
+
+
+def _saved(ctx: Context, job: Job) -> Job:
+    save(ctx, job)
+    return job
+
+
+# --- the result, and the signature that makes it worth having (R5, R6) ---------------------------
+
+
+class ResultError(Exception):
+    """The artifact is not a result this service will serve. The job becomes ``error``."""
+
+
+def read_result(zipped: bytes) -> dict[str, Any]:
+    """``result.json`` out of the artifact zip, refusing anything oversized or malformed."""
+    try:
+        with zipfile.ZipFile(io.BytesIO(zipped)) as archive:
+            info = next((i for i in archive.infolist() if i.filename == RESULT_FILE), None)
+            if info is None:
+                msg = f"the artifact carries no {RESULT_FILE}"
+                raise ResultError(msg)
+            if info.file_size > MAX_RESULT_BYTES:
+                msg = f"the result is {info.file_size} bytes; the limit is {MAX_RESULT_BYTES}"
+                raise ResultError(msg)
+            raw = archive.read(info)
+    except (zipfile.BadZipFile, OSError) as exc:
+        msg = f"the result artifact is not a readable zip: {type(exc).__name__}"
+        raise ResultError(msg) from exc
+    try:
+        doc = json.loads(raw)
+    except ValueError as exc:
+        msg = "the result artifact is not valid JSON"
+        raise ResultError(msg) from exc
+    if not isinstance(doc, dict):
+        msg = "the result artifact is not a JSON object"
+        raise ResultError(msg)
+    return doc
+
+
+def precheck_public_key(ctx: Context) -> str:
+    """The precheck public key as the graph commits it (C8 item 2). Read through the same
+    committed-file cache the frontier uses, so a rotation reaches the service by merge."""
+    return frontier.committed(ctx, ctx.settings.precheck_key_path).decode("utf-8").strip()
+
+
+def verify_result(ctx: Context, job: Job, result: dict[str, Any]) -> None:
+    """R5, R6: the attestation must validate, be signed by the committed precheck key as kind
+    ``service``, and be about this job — the graph commit, the node and the bundle it recorded.
+
+    Verification is the whole point of the artifact: without it the api would be serving
+    whatever the scratch repository handed it, and the scratch repository is public (§7).
+    """
+    doc = result.get("attestation")
+    if not isinstance(doc, dict):
+        msg = "the result carries no attestation"
+        raise ResultError(msg)
+    schema = doc.get("schema")
+    if schema not in attestation.ACCEPTED_SCHEMAS:
+        msg = f"the attestation names an unknown schema {schema!r}"
+        raise ResultError(msg)
+    try:
+        schemas.validate(doc, str(schema))
+    except schemas.SchemaError as exc:
+        msg = f"the attestation does not validate against {schema}: {exc}"
+        raise ResultError(msg) from exc
+
+    signature = doc.get("signature") or {}
+    if signature.get("kind") != SERVICE_KIND:
+        msg = f"the attestation is signed as {signature.get('kind')!r}, not {SERVICE_KIND}"
+        raise ResultError(msg)
+    public_key = precheck_public_key(ctx)
+    try:
+        expected_id = sshsig.fingerprint(public_key)
+        ok = sshsig.verify(
+            attestation.signed_bytes(doc),
+            str(signature.get("value") or ""),
+            public_key,
+            namespace=signer.NAMESPACE,
+        )
+    except sshsig.SshsigError as exc:
+        msg = f"the attestation's signature is malformed: {exc}"
+        raise ResultError(msg) from exc
+    if signature.get("key_id") != expected_id:
+        msg = "the attestation is signed by a key that is not the committed precheck key"
+        raise ResultError(msg)
+    if not ok:
+        msg = "the attestation's signature does not verify against the committed precheck key"
+        raise ResultError(msg)
+
+    for field, expected, found in (
+        ("graph commit", job.graph_commit, doc.get("graph_commit")),
+        ("node", job.node_id, doc.get("node_id")),
+        ("runner", EXPECTED_RUNNER, doc.get("runner")),
+        ("bundle digest", job.bundle_digest, result.get("bundle_digest")),
+    ):
+        if found != expected:
+            msg = f"the result's {field} is {found!r}, not this job's {expected!r}"
+            raise ResultError(msg)
 
 
 # --- storage -------------------------------------------------------------------------------------

@@ -31,6 +31,13 @@ Variables (prefix ``OPN_API_``):
     Per-source limit on ``GET /auth/github/start`` (R6). Default ``10``.
 ``OPN_API_PRECHECKS_PER_HOUR`` / ``OPN_API_ANONYMOUS_PRECHECKS_PER_DAY``
     Precheck limits per identity and per source address (F06-R8, R2). Defaults ``40`` / ``20``.
+``OPN_API_PRECHECK_REPO`` / ``OPN_API_PRECHECK_BRANCH`` / ``OPN_API_PRECHECK_WORKFLOW``
+    The scratch repository job branches are pushed to, the branch they are based on, and the
+    workflow file dispatched there (F06-R3; D-35). Defaults: the Stage 0 scratch repo under the
+    founder's account, ``main``, ``precheck.yml``.
+``OPN_API_PRECHECK_KEY_PATH``
+    Where the precheck public key is committed in the graph, against which a downloaded
+    attestation's signature is verified (F06-R5; C8 item 2). Default ``keys/precheck.pub``.
 ``OPN_API_CLAIM_TTL_MIN_H`` / ``OPN_API_CLAIM_TTL_MAX_H``
     The D-25 flat caps (R7). Defaults ``1`` / ``168``.
 ``OPN_API_STATE_TTL_S``
@@ -65,6 +72,10 @@ DEFAULT_TOKENS_PER_LOGIN = 1
 DEFAULT_TOKEN_STARTS_PER_DAY = 10
 DEFAULT_PRECHECKS_PER_HOUR = 40
 DEFAULT_ANONYMOUS_PRECHECKS_PER_DAY = 20
+DEFAULT_PRECHECK_REPO = "thisisanameforsure/open_proof_network_precheck"
+DEFAULT_PRECHECK_BRANCH = "main"
+DEFAULT_PRECHECK_WORKFLOW = "precheck.yml"
+DEFAULT_PRECHECK_KEY_PATH = "keys/precheck.pub"
 DEFAULT_CLAIM_TTL_MIN_H = 1
 DEFAULT_CLAIM_TTL_MAX_H = 168
 DEFAULT_STATE_TTL_S = 600
@@ -105,6 +116,10 @@ class Settings:
     token_starts_per_day: int = DEFAULT_TOKEN_STARTS_PER_DAY
     prechecks_per_hour: int = DEFAULT_PRECHECKS_PER_HOUR
     anonymous_prechecks_per_day: int = DEFAULT_ANONYMOUS_PRECHECKS_PER_DAY
+    precheck_repo: str = DEFAULT_PRECHECK_REPO
+    precheck_branch: str = DEFAULT_PRECHECK_BRANCH
+    precheck_workflow: str = DEFAULT_PRECHECK_WORKFLOW
+    precheck_key_path: str = DEFAULT_PRECHECK_KEY_PATH
     claim_ttl_min_h: int = DEFAULT_CLAIM_TTL_MIN_H
     claim_ttl_max_h: int = DEFAULT_CLAIM_TTL_MAX_H
     state_ttl_s: int = DEFAULT_STATE_TTL_S
@@ -209,6 +224,10 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
         anonymous_prechecks_per_day=_int(
             env, "OPN_API_ANONYMOUS_PRECHECKS_PER_DAY", DEFAULT_ANONYMOUS_PRECHECKS_PER_DAY
         ),
+        precheck_repo=env.get("OPN_API_PRECHECK_REPO", DEFAULT_PRECHECK_REPO),
+        precheck_branch=env.get("OPN_API_PRECHECK_BRANCH", DEFAULT_PRECHECK_BRANCH),
+        precheck_workflow=env.get("OPN_API_PRECHECK_WORKFLOW", DEFAULT_PRECHECK_WORKFLOW),
+        precheck_key_path=env.get("OPN_API_PRECHECK_KEY_PATH", DEFAULT_PRECHECK_KEY_PATH),
         claim_ttl_min_h=ttl_min,
         claim_ttl_max_h=ttl_max,
         state_ttl_s=_int(env, "OPN_API_STATE_TTL_S", DEFAULT_STATE_TTL_S),

@@ -4,24 +4,36 @@ The store's fake is ``opn_api.store.MemoryStore`` itself — the local runner us
 fake host returns the structured records the seam defines; it never imitates GitHub's wire
 format. It holds a fake access token only so a test can assert the string never reaches a
 store or a log (AC5).
+
+F06 adds the App-authenticated half of the seam: the fake records every branch push and
+dispatch, and a test drives the polling state machine by putting a run — and, when the run
+completes, an artifact — where the fake will find it.
 """
 
 from __future__ import annotations
 
+import io
+import subprocess
+import zipfile
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+import samples  # gate/tests is on the path (pyproject [tool.pytest.ini_options])
+from precheck.job import sign_service  # the signing the scratch workflow itself calls
 from starlette.testclient import TestClient
 
 from opn_api import config, identity
 from opn_api.app import create_app
-from opn_api.githost import Fetched, GitHostError, GitHubUser
+from opn_api.githost import Fetched, GitHostError, GitHubUser, WorkflowRun
 from opn_api.store import MemoryStore
+from opn_gate import schemas
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 FAKE_ACCESS_TOKEN = "gho_FAKE_ACCESS_TOKEN_NEVER_STORED"  # noqa: S105 — a sentinel, not a secret
+PRECHECK_KEY_PATH = "keys/precheck.pub"
 
 
 @dataclass
@@ -36,6 +48,23 @@ class FakeClock:
 
 
 @dataclass
+class Push:
+    repo: str
+    branch: str
+    files: dict[str, str]
+    base: str
+    message: str
+
+
+@dataclass
+class Dispatch:
+    repo: str
+    workflow: str
+    ref: str
+    inputs: dict[str, str]
+
+
+@dataclass
 class FakeGitHost:
     users: dict[str, GitHubUser] = field(default_factory=dict)
     files: dict[str, bytes] = field(default_factory=dict)
@@ -43,6 +72,13 @@ class FakeGitHost:
     fetches: list[tuple[str, str | None]] = field(default_factory=list)
     unreachable: bool = False
     access_token: str = FAKE_ACCESS_TOKEN
+    # The App-authenticated half (F06-R3, R5).
+    pushes: list[Push] = field(default_factory=list)
+    dispatches: list[Dispatch] = field(default_factory=list)
+    runs: dict[str, WorkflowRun] = field(default_factory=dict)  # branch -> run
+    artifacts: dict[tuple[int, str], bytes] = field(default_factory=dict)  # (run, name) -> zip
+    app_failure: str | None = None  # when set, every App call raises it (R10, AC12)
+    lookup_failure: str | None = None  # when set, only find_run raises (C7: a transient outage)
 
     @classmethod
     def with_fixtures(cls, **users: GitHubUser) -> FakeGitHost:
@@ -76,6 +112,109 @@ class FakeGitHost:
         if etag == current:
             return Fetched(304, etag, None)
         return Fetched(200, current, body)
+
+    def _app_call(self) -> None:
+        if self.app_failure:
+            raise GitHostError(self.app_failure)
+
+    def push_branch(
+        self, repo: str, branch: str, files: Mapping[str, str], *, base: str, message: str
+    ) -> str:
+        self._app_call()
+        self.pushes.append(Push(repo, branch, dict(files), base, message))
+        return f"{len(self.pushes):040d}"
+
+    def dispatch_workflow(
+        self, repo: str, workflow: str, *, ref: str, inputs: Mapping[str, str]
+    ) -> None:
+        self._app_call()
+        self.dispatches.append(Dispatch(repo, workflow, ref, dict(inputs)))
+
+    def find_run(self, repo: str, workflow: str, *, branch: str) -> WorkflowRun | None:
+        self._app_call()
+        if self.lookup_failure:
+            raise GitHostError(self.lookup_failure)
+        return self.runs.get(branch)
+
+    def download_artifact(self, repo: str, run_id: int, name: str) -> bytes | None:
+        self._app_call()
+        return self.artifacts.get((run_id, name))
+
+    # --- what a test sets up ---------------------------------------------------------------------
+
+    def start_run(self, branch: str, run_id: int = 4242) -> WorkflowRun:
+        run = WorkflowRun(run_id, "in_progress", None, f"https://github.com/runs/{run_id}")
+        self.runs[branch] = run
+        return run
+
+    def finish_run(
+        self, branch: str, *, conclusion: str = "success", artifact: tuple[str, bytes] | None = None
+    ) -> WorkflowRun:
+        started = self.runs.get(branch) or self.start_run(branch)
+        run = WorkflowRun(started.id, "completed", conclusion, started.url)
+        self.runs[branch] = run
+        if artifact is not None:
+            self.artifacts[(run.id, artifact[0])] = artifact[1]
+        return run
+
+
+# --- a signed precheck result, as the scratch workflow would upload one --------------------------
+
+
+@dataclass(frozen=True)
+class PrecheckKey:
+    """An ed25519 keypair standing in for C8 item 2, made the way the real one was."""
+
+    private: Path
+    public: str
+
+
+def make_precheck_key(directory: Path, name: str = "precheck") -> PrecheckKey:
+    key = directory / name
+    subprocess.run(
+        ["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(key), "-C", "opn-precheck-test"],
+        check=True,
+    )
+    return PrecheckKey(key, (directory / f"{name}.pub").read_text().strip())
+
+
+def result_zip(
+    *,
+    job_id: str,
+    node_id: str,
+    graph_commit: str,
+    bundle_digest: str,
+    key: PrecheckKey | None,
+    verdict: str = "pass",
+    runner: str = "hosted",
+    tamper: bool = False,
+) -> bytes:
+    """The artifact zip the workflow uploads: one ``result.json`` whose attestation is signed by
+    ``key`` as kind ``service``, through the very function the workflow calls (``precheck.sign``).
+
+    ``key=None`` leaves it unsigned and ``tamper`` alters a field after signing, which is how the
+    two refusal paths (AC7) are exercised.
+    """
+    doc = samples.attestation(
+        node_id=node_id, graph_commit=graph_commit, runner=runner, verdict=verdict
+    )
+    if key is not None:
+        doc = sign_service(doc, key.private)
+    if tamper:
+        doc = {**doc, "verdict": "fail" if verdict == "pass" else "pass"}
+    result = {
+        "job_id": job_id,
+        "node_id": node_id,
+        "bundle_digest": bundle_digest,
+        "verdict": verdict,
+        "first_failing_step": None,
+        "steps": doc["steps"],
+        "attestation": doc,
+    }
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("result.json", schemas.canonical_json(result))
+    return buffer.getvalue()
 
 
 def alice() -> GitHubUser:
@@ -133,6 +272,11 @@ class Harness:
 
     def auth(self, token: str) -> dict[str, str]:
         return {"Authorization": f"Bearer {token}"}
+
+    def commit_precheck_key(self, public_key: str) -> None:
+        """Put the precheck public key where the graph commits it (C8 item 2; F06-R5)."""
+        self.githost.files[PRECHECK_KEY_PATH] = public_key.encode() + b"\n"
+        self.context.files.pop(PRECHECK_KEY_PATH, None)
 
 
 def make_harness(env: dict[str, str] | None = None, **seams: Any) -> Harness:

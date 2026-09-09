@@ -1,0 +1,118 @@
+F06-T3 verification — 2026-09-09T19:04:28Z
+
+$ uv run pytest api/tests/test_precheck.py      (the task's named command)
+
+  ........................                                                 [100%]
+  24 passed, 2 warnings in 0.23s
+
+$ uv run pytest api/tests/test_precheck.py api/tests/test_sshsig.py -v
+
+  api/tests/test_precheck.py::test_bundle_path_rejected PASSED             [  3%]
+  api/tests/test_precheck.py::test_bundle_size_cap PASSED                  [  6%]
+  api/tests/test_precheck.py::test_bundle_accepts_a_proof_and_appends PASSED [ 10%]
+  api/tests/test_precheck.py::test_bundle_rejects_other_nodes_and_bad_shapes PASSED [ 13%]
+  api/tests/test_precheck.py::test_waiver_allowed_only_when_the_proof_uses_native_decide PASSED [ 16%]
+  api/tests/test_precheck.py::test_tutorial_unauthenticated_only PASSED    [ 20%]
+  api/tests/test_precheck.py::test_proved_tutorial_node_is_still_precheckable PASSED [ 23%]
+  api/tests/test_precheck.py::test_unknown_node_is_404 PASSED              [ 26%]
+  api/tests/test_precheck.py::test_job_records_what_r3_requires PASSED     [ 30%]
+  api/tests/test_precheck.py::test_get_precheck_reports_the_job PASSED     [ 33%]
+  api/tests/test_precheck.py::test_result_retention PASSED                 [ 36%]
+  api/tests/test_precheck.py::test_anonymous_rate_limit PASSED             [ 40%]
+  api/tests/test_precheck.py::test_authenticated_precheck_limit PASSED     [ 43%]
+  api/tests/test_precheck.py::test_limits_are_published[prechecks_per_hour] PASSED [ 46%]
+  api/tests/test_precheck.py::test_limits_are_published[anonymous_prechecks_per_address_per_day] PASSED [ 50%]
+  api/tests/test_precheck.py::test_dispatch_recorded PASSED                [ 53%]
+  api/tests/test_precheck.py::test_dispatch_failure_is_error PASSED        [ 56%]
+  api/tests/test_precheck.py::test_poll_to_done PASSED                     [ 60%]
+  api/tests/test_precheck.py::test_bad_signature_rejected PASSED           [ 63%]
+  api/tests/test_precheck.py::test_result_must_be_about_this_job PASSED    [ 66%]
+  api/tests/test_precheck.py::test_run_failure_surfaced PASSED             [ 70%]
+  api/tests/test_precheck.py::test_successful_run_without_an_artifact_is_an_error PASSED [ 73%]
+  api/tests/test_precheck.py::test_lookup_failure_leaves_the_job_alone PASSED [ 76%]
+  api/tests/test_precheck.py::test_expired_job_is_not_polled PASSED        [ 80%]
+  api/tests/test_sshsig.py::test_fingerprint_matches_ssh_keygen PASSED     [ 83%]
+  api/tests/test_sshsig.py::test_verifies_a_real_ssh_keygen_signature PASSED [ 86%]
+  api/tests/test_sshsig.py::test_the_namespace_is_part_of_what_is_verified PASSED [ 90%]
+  api/tests/test_sshsig.py::test_another_key_does_not_verify PASSED        [ 93%]
+  api/tests/test_sshsig.py::test_malformed_input_is_an_error_not_a_false_verdict PASSED [ 96%]
+  api/tests/test_sshsig.py::test_a_public_key_line_must_be_ed25519 PASSED  [100%]
+  30 passed, 2 warnings in 0.41s
+
+$ make verify                                   (the regression gate)
+
+  ================ 311 passed, 36 deselected, 2 warnings in 3.46s ================
+
+AC3 (test_dispatch_recorded) — the branch and the dispatch R3 requires:
+  push   repo=<precheck_repo> branch=job/<id> base=main
+         files = {job.json, bundle/targets/propositional/nodes/and-reassoc/Proof.lean}
+         job.json carries id, node_id, target_id, statement_hash, graph_commit, bundle_digest
+  dispatch repo=<precheck_repo> workflow=precheck.yml ref=job/<id> inputs={job_id: <id>}
+
+  The dispatch ref is the job branch, not main. The branch is main's tree plus the job's two
+  kinds of file, so the workflow that runs is the scratch repository's own — the api pushes no
+  runnable code — and the run is findable by `?branch=job/<id>` without a run-name convention.
+
+AC12 (test_dispatch_failure_is_error) — dispatch raising:
+  POST /precheck -> 502 {"error": "dispatch-failed", ...}
+  job state=error, error="dispatch failed: POST /repos/x/git/refs returned 422: reference already
+  exists"                                     (R10: a bundle is never silently dropped)
+
+AC6 (test_poll_to_done) — the state machine, polling on read (Q3):
+  queued  (no run yet)  ->  running (run in_progress)  ->  done (run completed, artifact verified)
+  a later run state cannot move a terminal job.
+
+AC7 (test_bad_signature_rejected) — three artifacts, three refusals, each for its own reason:
+  signed by another key   -> error: the attestation is signed by a key that is not the committed
+                                    precheck key
+  unsigned                -> error: the attestation is signed as 'none', not service
+  tampered after signing  -> error: the attestation's signature does not verify against the
+                                    committed precheck key
+  In every case the job is `error` and no attestation is served.
+
+R6 (test_result_must_be_about_this_job) — a correctly signed result for another node, or against
+another graph commit, is still refused: the signature is necessary, not sufficient.
+
+AC8 (test_run_failure_surfaced) — a failed run is `error` naming the conclusion and the run URL;
+a *green* run with no artifact is `error` too (`if-no-files-found: warn` allows that).
+
+C7 (test_lookup_failure_leaves_the_job_alone) — GitHub unreachable while polling leaves the job
+exactly where it was and logs a warning. An outage is not a verdict.
+
+The signature reader (api/opn_api/sshsig.py), and why it exists
+---------------------------------------------------------------
+The gate signs with `ssh-keygen -Y sign` because the gate always runs where OpenSSH is installed.
+The api does not: the Lambda image carries no ssh-keygen, so a subprocess verifier would have
+failed in production and passed every test on this laptop. F06-Q5's `cryptography` covers this
+too — the module parses the SSHSIG wire format and hands the bytes to a vetted Ed25519 verify.
+
+Every test in test_sshsig.py checks it against real `ssh-keygen` output rather than a fixture
+this repository generated, including the fingerprint (`ssh-keygen -lf` agrees byte for byte) and
+the namespace (a signature made with `-n git` does not verify as `-n opn-attestation`).
+
+Cross-check performed by hand before the tests were written:
+  $ ssh-keygen -q -t ed25519 -N "" -f k && printf 'hello opn' > msg
+  $ ssh-keygen -Y sign -f k -n opn-attestation msg
+  fingerprint mine : SHA256:zaoAIoK9lgnLE7dTAJpTxyctAIAW21sVKPv2l8dwhjs
+  ssh-keygen says  : SHA256:zaoAIoK9lgnLE7dTAJpTxyctAIAW21sVKPv2l8dwhjs
+  verify good      : True
+  verify tampered  : False
+  verify wrong ns  : False
+
+F06-Q5 settled, and its packaging note discharged
+-------------------------------------------------
+The founder approved `cryptography` on 2026-09-09. Pinned at 50.0.1. Q5 also flagged that it is a
+large wheel and the deployment package is cross-built for arm64, so the packaging step needed
+checking before the dependency landed. Run here exactly as .github/workflows/api-deploy.yml runs it:
+
+  $ uv export --frozen --no-dev --no-emit-project --format requirements.txt > requirements.txt
+  $ uv pip install --python-platform aarch64-manylinux2014 --python-version 3.13 \
+      --only-binary=:all: --target package -r requirements.txt
+  + cryptography==50.0.1  (+ cffi 2.1.1, pycparser 3.0)
+  package/_cffi_backend.cpython-313-aarch64-linux-gnu.so
+  package/cryptography/hazmat/bindings/_rust.abi3.so
+  23M   package                       (unzipped; the Lambda limit is 250M)
+  6.6M  function-partial.zip          (dependencies only; the direct-upload limit is 50M)
+
+The aarch64 wheel resolves and carries its compiled extensions, so no source build is attempted
+on the runner and nothing about the deploy workflow needs to change.

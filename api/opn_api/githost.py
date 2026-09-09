@@ -4,23 +4,43 @@ F05 needs two calls: exchanging an OAuth code for the user's login and account a
 reading a committed file at the graph's ``main`` with ETag caching (R7, R9). The OAuth access
 token GitHub returns lives inside ``exchange_code`` for one request and is dropped on return —
 it is never stored, never returned, never logged (D-23; AC5).
+
+F06 adds the four calls a precheck job needs (F06-R3, R5), all as the GitHub App: push the job
+branch, dispatch the scratch repository's workflow, find the run that branch produced, and
+download its result artifact. Authenticating as the App means an RS256 JWT traded for an
+installation access token, which is cached in memory until shortly before it expires and, like
+the OAuth token, is never stored, returned or logged (C8).
 """
 
 from __future__ import annotations
 
+import base64
+import json
 import logging
+import time
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Protocol
 
 import httpx
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 log = logging.getLogger(__name__)
 
 GITHUB_AUTHORIZE_URL = "https://github.com/login/oauth/authorize"
 GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"  # noqa: S105 — a URL
 GITHUB_USER_URL = "https://api.github.com/user"
+GITHUB_API = "https://api.github.com"
 RAW_URL = "https://raw.githubusercontent.com/{repo}/{ref}/{path}"
+API_ACCEPT = "application/vnd.github+json"
+API_VERSION = "2022-11-28"
 TIMEOUT_S = 10.0
+ARTIFACT_TIMEOUT_S = 30.0  # a result artifact is a zip from blob storage, not an API call
+JWT_LIFETIME_S = 540  # GitHub caps an App JWT at ten minutes; stay inside it
+JWT_BACKDATE_S = 60  # tolerate clock skew on GitHub's side
+TOKEN_REFRESH_MARGIN_S = 300  # renew an installation token five minutes before it expires
+BLOB_MODE = "100644"
 
 
 class GitHostError(Exception):
@@ -41,6 +61,24 @@ class Fetched:
     body: bytes | None
 
 
+@dataclass(frozen=True)
+class WorkflowRun:
+    """One Actions run, as much of it as the polling state machine needs (F06-R5)."""
+
+    id: int
+    status: str  # queued | in_progress | completed (GitHub's vocabulary, not ours)
+    conclusion: str | None  # success | failure | cancelled | … , only once completed
+    url: str
+
+    @property
+    def completed(self) -> bool:
+        return self.status == "completed"
+
+    @property
+    def succeeded(self) -> bool:
+        return self.completed and self.conclusion == "success"
+
+
 class GitHost(Protocol):
     def exchange_code(self, code: str, *, redirect_uri: str) -> GitHubUser:
         """Trade the OAuth ``code`` for the user's login and creation date; the access token
@@ -51,11 +89,42 @@ class GitHost(Protocol):
         """Read a committed file, honoring ``If-None-Match`` (R9)."""
         ...
 
+    def push_branch(
+        self, repo: str, branch: str, files: Mapping[str, str], *, base: str, message: str
+    ) -> str:
+        """Create ``branch`` from ``base`` with ``files`` added, returning the commit sha.
+
+        The tree is the base branch's tree plus these paths, so the branch carries the scratch
+        repository's own workflow as ``base`` has it — the api never pushes runnable code
+        (F06-R3, §7).
+        """
+        ...
+
+    def dispatch_workflow(
+        self, repo: str, workflow: str, *, ref: str, inputs: Mapping[str, str]
+    ) -> None:
+        """``workflow_dispatch`` the named workflow file at ``ref`` (F06-R3)."""
+        ...
+
+    def find_run(self, repo: str, workflow: str, *, branch: str) -> WorkflowRun | None:
+        """The most recent run of ``workflow`` on ``branch``; ``None`` while there is none."""
+        ...
+
+    def download_artifact(self, repo: str, run_id: int, name: str) -> bytes | None:
+        """The named artifact's zip, or ``None`` when the run produced no such artifact."""
+        ...
+
 
 class HttpxGitHost:
-    def __init__(self, *, client_id: str, client_secret: str) -> None:
+    def __init__(
+        self, *, client_id: str, client_secret: str, app_id: str = "", private_key: str = ""
+    ) -> None:
         self._client_id = client_id
         self._client_secret = client_secret
+        self._app_id = app_id
+        self._private_key = private_key
+        # repo -> (installation access token, unix expiry). Memory only: never stored (C8).
+        self._installation_tokens: dict[str, tuple[str, float]] = {}
 
     def exchange_code(self, code: str, *, redirect_uri: str) -> GitHubUser:
         with httpx.Client(timeout=TIMEOUT_S, headers={"Accept": "application/json"}) as http:
@@ -113,6 +182,212 @@ class HttpxGitHost:
             return Fetched(resp.status_code, None, None)
         return Fetched(200, resp.headers.get("ETag"), resp.content)
 
+    # --- as the GitHub App (F06-R3, R5) ---------------------------------------------------------
+
+    def _app_jwt(self) -> str:
+        """An RS256 JWT signed with the App's private key (C8 item 3; F06-Q5)."""
+        if not self._app_id or not self._private_key:
+            msg = "the GitHub App id and private key are not configured"
+            raise GitHostError(msg)
+        try:
+            key = serialization.load_pem_private_key(
+                self._private_key.encode("utf-8"), password=None
+            )
+        except (ValueError, TypeError) as exc:
+            # The message is the exception's type alone: a key-parsing error must not echo key
+            # material into a log (C8).
+            msg = f"the GitHub App private key cannot be read: {type(exc).__name__}"
+            raise GitHostError(msg) from exc
+        if not isinstance(key, rsa.RSAPrivateKey):
+            msg = "the GitHub App private key is not an RSA key"
+            raise GitHostError(msg)
+        now = int(time.time())
+        header = {"alg": "RS256", "typ": "JWT"}
+        claims = {
+            "iat": now - JWT_BACKDATE_S,
+            "exp": now + JWT_LIFETIME_S,
+            "iss": self._app_id,
+        }
+        signing_input = b".".join(
+            _b64url(json.dumps(part, separators=(",", ":")).encode()) for part in (header, claims)
+        )
+        signature = key.sign(signing_input, padding.PKCS1v15(), hashes.SHA256())
+        return (signing_input + b"." + _b64url(signature)).decode("ascii")
+
+    def _installation_token(self, repo: str) -> str:
+        """The App's installation access token for ``repo``, cached until it nearly expires."""
+        cached = self._installation_tokens.get(repo)
+        if cached is not None and cached[1] - TOKEN_REFRESH_MARGIN_S > time.time():
+            return cached[0]
+        jwt = self._app_jwt()
+        headers = {
+            "Authorization": f"Bearer {jwt}",
+            "Accept": API_ACCEPT,
+            "X-GitHub-Api-Version": API_VERSION,
+        }
+        with httpx.Client(timeout=TIMEOUT_S, headers=headers) as http:
+            installation = _json(_send(http, "GET", f"{GITHUB_API}/repos/{repo}/installation"))
+            installation_id = installation.get("id")
+            if not installation_id:
+                msg = f"the GitHub App is not installed on {repo}"
+                raise GitHostError(msg)
+            issued = _json(
+                _send(
+                    http, "POST", f"{GITHUB_API}/app/installations/{installation_id}/access_tokens"
+                )
+            )
+        token = str(issued.get("token") or "")
+        if not token:
+            msg = f"GitHub issued no installation token for {repo}"
+            raise GitHostError(msg)
+        # An installation token lives an hour; trust the margin rather than parsing expires_at.
+        self._installation_tokens[repo] = (token, time.time() + 3600)
+        return token
+
+    def _api(self, repo: str) -> httpx.Client:
+        """A client carrying the installation token for ``repo``. The token is in memory and in
+        this header only — never in a store, a response or a log (C8)."""
+        return httpx.Client(
+            timeout=TIMEOUT_S,
+            headers={
+                "Authorization": f"Bearer {self._installation_token(repo)}",
+                "Accept": API_ACCEPT,
+                "X-GitHub-Api-Version": API_VERSION,
+            },
+        )
+
+    def push_branch(
+        self, repo: str, branch: str, files: Mapping[str, str], *, base: str, message: str
+    ) -> str:
+        with self._api(repo) as http:
+            ref = _json(_send(http, "GET", f"{GITHUB_API}/repos/{repo}/git/ref/heads/{base}"))
+            base_sha = str(ref.get("object", {}).get("sha") or "")
+            if not base_sha:
+                msg = f"{repo} has no {base} branch to base a job on"
+                raise GitHostError(msg)
+            base_commit = _json(
+                _send(http, "GET", f"{GITHUB_API}/repos/{repo}/git/commits/{base_sha}")
+            )
+            tree = _json(
+                _send(
+                    http,
+                    "POST",
+                    f"{GITHUB_API}/repos/{repo}/git/trees",
+                    json={
+                        "base_tree": base_commit["tree"]["sha"],
+                        "tree": [
+                            {"path": path, "mode": BLOB_MODE, "type": "blob", "content": content}
+                            for path, content in sorted(files.items())
+                        ],
+                    },
+                )
+            )
+            commit = _json(
+                _send(
+                    http,
+                    "POST",
+                    f"{GITHUB_API}/repos/{repo}/git/commits",
+                    json={"message": message, "tree": tree["sha"], "parents": [base_sha]},
+                )
+            )
+            _send(
+                http,
+                "POST",
+                f"{GITHUB_API}/repos/{repo}/git/refs",
+                json={"ref": f"refs/heads/{branch}", "sha": commit["sha"]},
+            )
+        return str(commit["sha"])
+
+    def dispatch_workflow(
+        self, repo: str, workflow: str, *, ref: str, inputs: Mapping[str, str]
+    ) -> None:
+        with self._api(repo) as http:
+            _send(
+                http,
+                "POST",
+                f"{GITHUB_API}/repos/{repo}/actions/workflows/{workflow}/dispatches",
+                json={"ref": ref, "inputs": dict(inputs)},
+            )
+
+    def find_run(self, repo: str, workflow: str, *, branch: str) -> WorkflowRun | None:
+        with self._api(repo) as http:
+            page = _json(
+                _send(
+                    http,
+                    "GET",
+                    f"{GITHUB_API}/repos/{repo}/actions/workflows/{workflow}/runs",
+                    params={"branch": branch, "per_page": 1},
+                )
+            )
+        runs = page.get("workflow_runs") or []
+        if not runs:
+            return None
+        run = runs[0]
+        return WorkflowRun(
+            id=int(run["id"]),
+            status=str(run.get("status") or ""),
+            conclusion=str(run["conclusion"]) if run.get("conclusion") else None,
+            url=str(run.get("html_url") or ""),
+        )
+
+    def download_artifact(self, repo: str, run_id: int, name: str) -> bytes | None:
+        with self._api(repo) as http:
+            listing = _json(
+                _send(http, "GET", f"{GITHUB_API}/repos/{repo}/actions/runs/{run_id}/artifacts")
+            )
+            found = next(
+                (a for a in listing.get("artifacts") or [] if str(a.get("name")) == name), None
+            )
+            if found is None:
+                return None
+            http.timeout = httpx.Timeout(ARTIFACT_TIMEOUT_S)
+            zipped = _send(
+                http,
+                "GET",
+                f"{GITHUB_API}/repos/{repo}/actions/artifacts/{found['id']}/zip",
+                follow_redirects=True,
+            )
+        return zipped.content
+
+
+def _b64url(raw: bytes) -> bytes:
+    return base64.urlsafe_b64encode(raw).rstrip(b"=")
+
+
+def _send(http: httpx.Client, method: str, url: str, **kwargs: Any) -> httpx.Response:
+    """One GitHub API call. Every failure becomes a ``GitHostError`` naming the call, never the
+    credential that made it (C8)."""
+    try:
+        resp = http.request(method, url, **kwargs)
+    except httpx.HTTPError as exc:
+        msg = f"{method} {_path(url)} failed: {type(exc).__name__}"
+        raise GitHostError(msg) from exc
+    if resp.status_code >= 400:
+        detail = ""
+        try:
+            detail = str(resp.json().get("message", ""))
+        except ValueError:
+            detail = ""
+        msg = f"{method} {_path(url)} returned {resp.status_code}{': ' + detail if detail else ''}"
+        raise GitHostError(msg)
+    return resp
+
+
+def _json(resp: httpx.Response) -> dict[str, Any]:
+    try:
+        doc = resp.json()
+    except ValueError as exc:
+        msg = f"GitHub returned a non-JSON body for {_path(str(resp.url))}"
+        raise GitHostError(msg) from exc
+    if not isinstance(doc, dict):
+        msg = f"GitHub returned {type(doc).__name__}, not an object, for {_path(str(resp.url))}"
+        raise GitHostError(msg)
+    return doc
+
+
+def _path(url: str) -> str:
+    return url.removeprefix(GITHUB_API)
+
 
 def authorize_url(*, client_id: str, redirect_uri: str, state: str) -> str:
     """Where ``GET /auth/github/start`` sends the browser (R3)."""
@@ -124,5 +399,8 @@ def authorize_url(*, client_id: str, redirect_uri: str, state: str) -> str:
 
 def build(settings: Any) -> GitHost:
     return HttpxGitHost(
-        client_id=settings.github_client_id or "", client_secret=settings.github_client_secret or ""
+        client_id=settings.github_client_id or "",
+        client_secret=settings.github_client_secret or "",
+        app_id=settings.github_app_id or "",
+        private_key=settings.github_private_key or "",
     )
