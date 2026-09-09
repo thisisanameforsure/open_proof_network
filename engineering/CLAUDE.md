@@ -86,3 +86,17 @@ The law of the project:
 - 2026-09-09 — A workflow on the graph may only use a gate flag the *pinned* commit understands.
   Adding `--claims-url` behind `${VAR:+...}` keeps the old pin working; the flag becomes live
   when the variable is set, which must wait for the re-pin (F05-R10).
+- 2026-09-09 — F12 (statement QA, provenance, drift) designed with Mike and settled in
+  `engineering/session-notes/2026-09-09-f12-statement-qa.md`. **Pending and easy to lose: a D-9
+  amendment to v3.12** — rung two becomes *screened and signed*, back-translation demoted to one
+  input, because the 2026 evidence puts back-translation's false-pass rate near a third. Two
+  carve-outs belong in F11, not F12: `sources[]`/licence fields on the target schema, and making
+  `docs/seed_conjecture_sources.html` rebuildable (its inputs are not in the repo today).
+- 2026-09-09 — A domain is configuration when nothing knows its own hostname. The site generator
+  and the api both read theirs from config, so `openproofnetwork.org` was two stack parameters
+  and a Route 53 zone, with the issued hostnames still answering. Keep it that way: never write
+  a hostname into a template or a page.
+- 2026-09-09 — GoDaddy cannot alias an apex at CloudFront, and its domain forwarding only runs on
+  its own nameservers. Hence the split: the .org is delegated to Route 53, the .com must stay at
+  GoDaddy or its redirect to the .org silently dies.
+

@@ -1,0 +1,23 @@
+Domain cutover — 2026-09-09T14:27:00Z
+
+openproofnetwork.org bought 2026-09-09; .org canonical, .com forwarded by the registrar.
+One ACM certificate in us-east-1 covers the apex, www and api.
+
+$ dig +short <name>
+openproofnetwork.org             13.224.245.129 13.224.245.84 
+www.openproofnetwork.org         13.224.245.129 13.224.245.84 
+api.openproofnetwork.org         100.26.156.109 100.63.238.198 
+
+$ curl https://openproofnetwork.org/
+status=200 tls_verify=0
+
+$ curl -D- https://www.openproofnetwork.org/targets/   (www is not a second copy)
+HTTP/2 301 
+location: https://openproofnetwork.org/targets/
+
+$ curl -I https://openproofnetwork.org/   (F04 R10 header survives the cutover)
+content-security-policy: default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'
+
+$ curl https://api.openproofnetwork.org/health
+{"ok":false,"missing":["OPN_API_GITHUB_APP_ID","OPN_API_GITHUB_CLIENT_ID","OPN_API_GITHUB_CLIENT_SECRET","OPN_API_GITHUB_PRIVATE_KEY"]}
+(503 naming the four GitHub App parameters is R13 working; the App is the founder's act.)
