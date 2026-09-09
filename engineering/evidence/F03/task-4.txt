@@ -1,0 +1,11 @@
+# F03-T4 verification — $ uv run pytest gate/tests/test_products.py — 2026-09-09T05:40:48Z — golden products for three fixture states (AC11), determinism (AC9); exact-fields test in test_schemas.py (AC10)
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+collected 23 items
+
+gate/tests/test_products.py .......................                      [100%]
+
+============================== 23 passed in 0.70s ==============================
+exit=0

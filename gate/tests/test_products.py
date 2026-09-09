@@ -440,3 +440,72 @@ def test_products_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) ->
     out = json.loads(capsys.readouterr().out)
     assert out["ok"] is False and "ghost" in out["error"]
     assert not (tmp_path / "o").exists()
+
+
+# --- T4: golden products -------------------------------------------------------------------------
+
+GOLDEN = Path(__file__).resolve().parent / "golden" / "products"
+STATES = ("unproved", "interior-proved", "curated")
+
+
+def build_state(tmp_path: Path, state: str) -> Path:
+    """The fixture graph in one of three states, with every timestamp and hash fixed."""
+    root = copy_graph(tmp_path)
+    if state == "unproved":
+        return root
+    attest(root, "tutorial-and-swap", n=1)
+    if state == "interior-proved":
+        attest(root, "and-reassoc", n=2, trust_base="compiler")
+        return root
+    # curated: one interior node proved, the other speculative with attempts and an annex, and a
+    # curator declaration that makes the target claimable and back-translated.
+    node_status_record(root, "and-reassoc", "speculative")
+    att = nodes_dir(root) / "and-reassoc" / "attempts"
+    (att / "2026-09-01-a.yaml").write_text(
+        yaml.safe_dump(samples.postmortem(node="and-reassoc", route_class="case-split")),
+        encoding="utf-8",
+    )
+    (att / "2026-09-02-b.yaml").write_text(
+        yaml.safe_dump(
+            samples.postmortem(
+                node="and-reassoc",
+                route_class="induction",
+                outcome="exhausted",
+                failure_class="missing-library",
+            )
+        ),
+        encoding="utf-8",
+    )
+    (att / "2026-09-03-c.yaml").write_text("outcome: [oops\n", encoding="utf-8")
+    (nodes_dir(root) / "and-reassoc" / "annex" / "sketch.md").write_text("informal\n")
+    st = root / "targets" / TARGET / "status"
+    st.mkdir()
+    (st / "2026-09-05-1.yaml").write_text(
+        yaml.safe_dump(samples.target_status(fidelity="back-translated", date="2026-09-05")),
+        encoding="utf-8",
+    )
+    return root
+
+
+def write_goldens(base: Path = GOLDEN) -> None:
+    """Regenerate the golden files (see golden/products/README.md); review the diff by eye."""
+    import tempfile  # noqa: PLC0415
+
+    for state in STATES:
+        with tempfile.TemporaryDirectory() as tmp:
+            prod = generate(build_state(Path(tmp), state))
+            for rel, data in prod.files.items():
+                target = base / state / rel
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(data)
+
+
+@pytest.mark.parametrize("state", STATES)
+def test_golden(tmp_path: Path, state: str) -> None:
+    """AC11: the generated products equal the checked-in golden files, byte for byte."""
+    prod = generate(build_state(tmp_path, state))
+    expected = sorted(p.relative_to(GOLDEN / state) for p in (GOLDEN / state).rglob("*.json"))
+    assert sorted(prod.files) == expected, "the set of products changed; regenerate the goldens"
+    for rel, data in prod.files.items():
+        golden = (GOLDEN / state / rel).read_bytes()
+        assert data == golden, f"{state}/{rel} differs from the golden file"

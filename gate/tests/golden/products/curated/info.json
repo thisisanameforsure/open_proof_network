@@ -1,0 +1,50 @@
+{
+  "protocol_version": "3.11",
+  "rate_limit_policy": null,
+  "rendered_from": "5555555555555555555555555555555555555555",
+  "schema": "info/v1",
+  "schemas": {
+    "attestation": [
+      1,
+      2,
+      3
+    ],
+    "frontier": [
+      1
+    ],
+    "gate-spec": [
+      1
+    ],
+    "graph": [
+      1
+    ],
+    "info": [
+      1
+    ],
+    "meta": [
+      1,
+      2
+    ],
+    "node-status": [
+      1
+    ],
+    "postmortem": [
+      1
+    ],
+    "target-status": [
+      1
+    ],
+    "targets-index": [
+      1
+    ],
+    "waiver": [
+      1
+    ]
+  },
+  "targets": {
+    "propositional": {
+      "gate_spec_hash": "be7a2166cfed8be2310ee5f64361f13c141a4d1b90092f61575c9c076602a7b0",
+      "network_commit": "0000000000000000000000000000000000000000"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "entries": [
+    {
+      "annex_present": false,
+      "attempts": 0,
+      "bounty": false,
+      "claimable": false,
+      "claims": {
+        "active": [],
+        "history_count": 0
+      },
+      "failure_class_histogram": {},
+      "node_id": "and-swap-reassoc",
+      "origin": "authored",
+      "ready_since": "2026-09-09T12:00:00Z",
+      "refuted_route_classes": [],
+      "relation": null,
+      "statement_hash": "1fd9af9053c56877f4e7ec2ad69aa16602d39e826259da3878a8cc30a3b6791c",
+      "tags": {
+        "deps": [
+          "and-reassoc",
+          "tutorial-and-swap"
+        ],
+        "library": []
+      },
+      "target_id": "propositional",
+      "tutorial": false
+    }
+  ],
+  "rendered_from": "5555555555555555555555555555555555555555",
+  "schema": "frontier/v1"
+}

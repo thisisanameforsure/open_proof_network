@@ -1,0 +1,25 @@
+{
+  "rendered_from": "5555555555555555555555555555555555555555",
+  "schema": "targets-index/v1",
+  "targets": [
+    {
+      "claimable": false,
+      "fidelity": "mechanical-only",
+      "mathlib_sha": null,
+      "node_counts": {
+        "abandoned": 0,
+        "blocked": 1,
+        "disputed": 0,
+        "proved": 0,
+        "ready": 2,
+        "speculative": 0,
+        "stale": 0,
+        "superseded": 0
+      },
+      "root": "and-swap-reassoc",
+      "root_statement_hash": "1fd9af9053c56877f4e7ec2ad69aa16602d39e826259da3878a8cc30a3b6791c",
+      "status": "listed",
+      "target_id": "propositional"
+    }
+  ]
+}
