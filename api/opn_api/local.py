@@ -1,6 +1,13 @@
-"""The local runner: ``python -m opn_api.local [--port 8000]`` (F05-T1).
+"""The local runner (F05-T1)::
 
-A minimal HTTP/1.1 server over asyncio bridging to the ASGI application — enough for a
+    set -a; . ./.env; set +a          # the local door of C8
+    PYTHONPATH=api:gate uv run python -m opn_api.local [--port 8000]
+
+Both packages must be on the path: ``opn_api`` for the service and ``opn_gate`` for the
+protocol schemas it validates against (D-34), which is how the deployed package is laid out
+too.
+
+It is a minimal HTTP/1.1 server over asyncio bridging to the ASGI application — enough for a
 laptop, the smoke script and a browser through the OAuth flow, without adding a server
 package (C5). One request per connection, no keep-alive, no TLS. Configuration comes from the
 environment (``.env`` sourced by the shell, C8 item 5), the store defaults to memory.

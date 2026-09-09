@@ -29,6 +29,22 @@ The site stack already created the GitHub OIDC provider, so `CreateOidcProvider`
 `false` here. The trust policy is pinned to the numeric GitHub owner and repository ids: the
 `sub` claim is `repo:owner@<id>/name@<id>:ref:refs/heads/main`, and the ids survive renames.
 
+## Running it on this machine
+
+The founder's git-ignored `.env` carries the same GitHub App values (the local door of C8), so
+the whole service runs from a laptop against the real graph:
+
+```sh
+set -a; . ./.env; set +a
+PYTHONPATH=api:gate uv run python -m opn_api.local --port 8000
+curl -s localhost:8000/health          # {"ok": true, "store": "memory"}
+```
+
+It uses the in-process store, so identities and claims live only for that run, and its token
+salt is a different value from the deployed one — a token minted locally does not work against
+`api.openproofnetwork.org`, and the deployed salt never leaves Parameter Store. Because the App
+values exist in both places, **a rotation has to change both**.
+
 ## The five secrets (C8 item 3)
 
 The function reads these from Parameter Store at startup and from nowhere else. Put them there
