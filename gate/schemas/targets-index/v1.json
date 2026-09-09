@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/targets-index/v1.json",
+  "title": "targets-index/v1",
+  "description": "targets/index.json (F03-R9; D-28 list_targets): every target with its root, D-9 fidelity grade, D-33 status, pinned Mathlib SHA, node counts by status and claimability. Sorted by target_id.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "rendered_from",
+    "targets"
+  ],
+  "properties": {
+    "schema": {
+      "const": "targets-index/v1"
+    },
+    "rendered_from": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      ]
+    },
+    "targets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target_id",
+          "root",
+          "root_statement_hash",
+          "fidelity",
+          "status",
+          "mathlib_sha",
+          "node_counts",
+          "claimable"
+        ],
+        "properties": {
+          "target_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "root": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "root_statement_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "fidelity": {
+            "enum": [
+              "mechanical-only",
+              "back-translated",
+              "author-attested",
+              "expert-attested",
+              "published-and-uncontested"
+            ]
+          },
+          "status": {
+            "enum": [
+              "listed",
+              "active",
+              "resolved",
+              "dormant",
+              "known-result"
+            ]
+          },
+          "mathlib_sha": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              }
+            ]
+          },
+          "node_counts": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ready",
+              "blocked",
+              "proved",
+              "speculative",
+              "superseded",
+              "stale",
+              "disputed",
+              "abandoned"
+            ],
+            "properties": {
+              "ready": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "blocked": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "proved": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "speculative": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "superseded": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "stale": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "disputed": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "abandoned": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "claimable": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

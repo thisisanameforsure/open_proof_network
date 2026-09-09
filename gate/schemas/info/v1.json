@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/info/v1.json",
+  "title": "info/v1",
+  "description": "info.json (F03-R10; D-28 server_info): protocol version, the schema index (name to versions), per-target gate-spec hash and pinned network commit (D-35), the rate-limit policy (null until F05) and the graph commit the products were rendered from.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "protocol_version",
+    "schemas",
+    "targets",
+    "rate_limit_policy",
+    "rendered_from"
+  ],
+  "properties": {
+    "schema": {
+      "const": "info/v1"
+    },
+    "protocol_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "the architecture decisions version the products follow"
+    },
+    "schemas": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minItems": 1
+      }
+    },
+    "targets": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "gate_spec_hash",
+          "network_commit"
+        ],
+        "properties": {
+          "gate_spec_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "network_commit": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          }
+        }
+      }
+    },
+    "rate_limit_policy": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object"
+        }
+      ]
+    },
+    "rendered_from": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      ]
+    }
+  }
+}

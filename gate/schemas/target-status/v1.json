@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/target-status/v1.json",
+  "title": "target-status/v1",
+  "description": "targets/<id>/status/<date>-<n>.yaml (F03-Q5): a curator's signed target-level declaration — the D-33 status, whether the target is claimable (D-6: listed until fidelity reaches back-translated and the D-10 posting is made), its D-9 fidelity grade, and which node is the root when the DAG has more than one sink. Latest by date, then file name, wins; with no record a target is listed and not claimable unless its root is the tutorial (D-27). Dormancy declarations (D-33) are these records with status dormant.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "status",
+    "author",
+    "date"
+  ],
+  "properties": {
+    "schema": {
+      "const": "target-status/v1"
+    },
+    "status": {
+      "enum": [
+        "listed",
+        "active",
+        "resolved",
+        "dormant",
+        "known-result"
+      ]
+    },
+    "claimable": {
+      "type": "boolean"
+    },
+    "fidelity": {
+      "enum": [
+        "mechanical-only",
+        "back-translated",
+        "author-attested",
+        "expert-attested",
+        "published-and-uncontested"
+      ]
+    },
+    "root": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "cause": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000,
+      "description": "reasoning and, for dormancy, the D-25 series values at declaration"
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    }
+  }
+}

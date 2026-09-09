@@ -1,0 +1,13 @@
+# F03-T1 verification — $ uv run pytest gate/tests/test_schemas.py — 2026-09-09T05:32:27Z — plus the loader tests in gate/tests/test_records.py
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+collected 67 items
+
+gate/tests/test_schemas.py ............................................. [ 67%]
+................                                                         [ 91%]
+gate/tests/test_records.py ......                                        [100%]
+
+============================== 67 passed in 0.41s ==============================
+exit=0

@@ -92,3 +92,67 @@ def waiver(**overrides: Any) -> dict[str, Any]:
     }
     doc.update(overrides)
     return doc
+
+
+def postmortem(**overrides: Any) -> dict[str, Any]:
+    doc: dict[str, Any] = {
+        "schema": "postmortem/v1",
+        "node": "tutorial-and-swap",
+        "contributor": "thisisanameforsure",
+        "route": "strong induction on the exponent k",
+        "route_class": "induction",
+        "outcome": "refuted-route",
+        "terminal_goal_state": "n k : Nat\nhk : 2 <= k\n|- P k",
+        "failure_class": "route-dead-ends",
+        "detail": "the inductive step needs a uniform bound the route cannot supply",
+        "artifacts": {"missing_lemmas": ["uniform bound on the partial sums"]},
+    }
+    doc.update(overrides)
+    return doc
+
+
+def node_status(**overrides: Any) -> dict[str, Any]:
+    doc: dict[str, Any] = {
+        "schema": "node-status/v1",
+        "status": "abandoned",
+        "cause": "curator: superseded by the route through and-reassoc",
+        "author": "thisisanameforsure",
+        "date": "2026-09-09",
+    }
+    doc.update(overrides)
+    return doc
+
+
+def target_status(**overrides: Any) -> dict[str, Any]:
+    doc: dict[str, Any] = {
+        "schema": "target-status/v1",
+        "status": "active",
+        "claimable": True,
+        "fidelity": "mechanical-only",
+        "author": "thisisanameforsure",
+        "date": "2026-09-09",
+    }
+    doc.update(overrides)
+    return doc
+
+
+def frontier_entry(**overrides: Any) -> dict[str, Any]:
+    doc: dict[str, Any] = {
+        "node_id": "and-swap-reassoc",
+        "target_id": "propositional",
+        "statement_hash": SHA256,
+        "relation": None,
+        "origin": "authored",
+        "tags": {"deps": ["and-reassoc", "tutorial-and-swap"], "library": []},
+        "attempts": 0,
+        "refuted_route_classes": [],
+        "failure_class_histogram": {},
+        "ready_since": "2026-09-09T00:00:00Z",
+        "claims": {"active": [], "history_count": 0},
+        "annex_present": False,
+        "bounty": False,
+        "claimable": True,
+        "tutorial": False,
+    }
+    doc.update(overrides)
+    return doc

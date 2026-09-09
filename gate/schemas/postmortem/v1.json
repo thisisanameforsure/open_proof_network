@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/postmortem/v1.json",
+  "title": "postmortem/v1",
+  "description": "nodes/<id>/attempts/<timestamp>-<contributor>.yaml (D-13): a failed attempt, typed and short, never a transcript. Fields and enums are D-13's verbatim (its example names the schema d13/v1; D-28 and F03 call the record postmortem). outcome is mandatory and un-collapsible; terminal_goal_state is a serialized Lean goal, not prose; detail is contributor free text served as untrusted data (D-28) and never copied into a product.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "node",
+    "contributor",
+    "route",
+    "route_class",
+    "outcome"
+  ],
+  "properties": {
+    "schema": {
+      "const": "postmortem/v1"
+    },
+    "node": {
+      "type": "string",
+      "description": "node id, optionally target-qualified as <target>/<node>",
+      "pattern": "^[a-z0-9][a-z0-9-]*(/[a-z0-9][a-z0-9-]*)?$"
+    },
+    "contributor": {
+      "type": "string",
+      "minLength": 1
+    },
+    "route": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "route_class": {
+      "enum": [
+        "induction",
+        "generating-function",
+        "probabilistic",
+        "direct-estimate",
+        "case-split",
+        "reduction-to-known",
+        "computational"
+      ]
+    },
+    "outcome": {
+      "enum": [
+        "refuted-route",
+        "exhausted",
+        "abandoned-early",
+        "blocked"
+      ]
+    },
+    "terminal_goal_state": {
+      "type": "string",
+      "description": "serialized Lean goal state; the highest-value field, impossible to exaggerate"
+    },
+    "failure_class": {
+      "enum": [
+        "missing-library",
+        "statement-suspect",
+        "timeout-blowup",
+        "needs-new-definition",
+        "route-dead-ends",
+        "budget-exhausted",
+        "informal-gap"
+      ]
+    },
+    "detail": {
+      "type": "string",
+      "maxLength": 4000
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "partial_proof": {
+          "type": "string",
+          "minLength": 1,
+          "description": "path under attempts/"
+        },
+        "missing_lemmas": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "annex": {
+          "description": "the annex hash an informal-gap record names (D-31)",
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}

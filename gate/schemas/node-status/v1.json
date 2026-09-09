@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/node-status/v1.json",
+  "title": "node-status/v1",
+  "description": "nodes/<id>/status/<date>-<n>.yaml (F03-Q3): a curator or adjudication record that overrides the derived status (D-8 superseded, D-14/D-33 abandoned, D-18 disputed and stale, D-29 speculative). The latest by date, then file name, wins. Written by F08 and later tooling; F03 only reads them.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "status",
+    "cause",
+    "author",
+    "date"
+  ],
+  "properties": {
+    "schema": {
+      "const": "node-status/v1"
+    },
+    "status": {
+      "enum": [
+        "speculative",
+        "superseded",
+        "stale",
+        "disputed",
+        "abandoned"
+      ]
+    },
+    "cause": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "description": "what the record rests on: a revision request, a dispute id, a superseding node id"
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "reference": {
+      "type": "string",
+      "minLength": 1,
+      "description": "the superseding node (superseded), the dispute (disputed), or the revoked dependency (stale)"
+    }
+  }
+}

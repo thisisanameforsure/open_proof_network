@@ -18,11 +18,199 @@ def test_known_schemas_are_the_published_set() -> None:
         "attestation/v1",
         "attestation/v2",
         "attestation/v3",
+        "frontier/v1",
         "gate-spec/v1",
+        "graph/v1",
+        "info/v1",
         "meta/v1",
         "meta/v2",
+        "node-status/v1",
+        "postmortem/v1",
+        "target-status/v1",
+        "targets-index/v1",
         "waiver/v1",
     )
+
+
+# --- F03-T1: record and product schemas -------------------------------------------------------
+
+
+def test_record_samples_validate() -> None:
+    schemas.validate(samples.postmortem())
+    schemas.validate(samples.node_status())
+    schemas.validate(samples.target_status())
+    schemas.validate(
+        {"schema": "frontier/v1", "rendered_from": None, "entries": [samples.frontier_entry()]}
+    )
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"outcome": "gave-up"},
+        {"route_class": "vibes"},
+        {"failure_class": "unlucky"},
+        {"node": "Bad Id"},
+        {"route": ""},
+        {"artifacts": {"transcript": "x"}},
+        {"artifacts": {"annex": "short"}},
+        {"extra": 1},
+    ],
+)
+def test_postmortem_rejects(bad: dict[str, object]) -> None:
+    """D-13 verbatim: outcome mandatory, enums closed, no transcript field."""
+    assert schemas.violations(samples.postmortem(**bad))
+
+
+def test_postmortem_outcome_is_mandatory() -> None:
+    doc = samples.postmortem()
+    del doc["outcome"]
+    assert schemas.violations(doc)
+    minimal = {k: doc[k] for k in ("schema", "node", "contributor", "route", "route_class")}
+    minimal["outcome"] = "blocked"
+    assert schemas.violations(minimal) == []
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"status": "ready"},  # derived statuses are never recorded (F03-R1)
+        {"status": "proved"},
+        {"cause": ""},
+        {"date": "2026-9-9"},
+        {"extra": 1},
+    ],
+)
+def test_node_status_rejects(bad: dict[str, object]) -> None:
+    assert schemas.violations(samples.node_status(**bad))
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"status": "open"},
+        {"fidelity": "gold"},
+        {"claimable": "yes"},
+        {"root": "Not An Id"},
+        {"extra": 1},
+    ],
+)
+def test_target_status_rejects(bad: dict[str, object]) -> None:
+    assert schemas.violations(samples.target_status(**bad))
+
+
+def test_frontier_entry_exact_fields() -> None:
+    """F03-AC10: exactly the R5 fields — nothing added, nothing missing."""
+    entry = samples.frontier_entry()
+    assert set(entry) == {
+        "node_id",
+        "target_id",
+        "statement_hash",
+        "relation",
+        "origin",
+        "tags",
+        "attempts",
+        "refuted_route_classes",
+        "failure_class_histogram",
+        "ready_since",
+        "claims",
+        "annex_present",
+        "bounty",
+        "claimable",
+        "tutorial",
+    }
+
+    def frontier(e: dict[str, object]) -> dict[str, object]:
+        return {"schema": "frontier/v1", "rendered_from": None, "entries": [e]}
+
+    assert schemas.violations(frontier(entry)) == []
+    assert schemas.violations(frontier(samples.frontier_entry(difficulty=3)))  # no score (D-25)
+    for key in entry:
+        without = dict(entry)
+        del without[key]
+        assert schemas.violations(frontier(without)), key
+    assert schemas.violations(frontier(samples.frontier_entry(tags={"deps": []})))
+    assert schemas.violations(
+        frontier(samples.frontier_entry(failure_class_histogram={"unlucky": 1}))
+    )
+    assert schemas.violations(frontier(samples.frontier_entry(refuted_route_classes=["vibes"])))
+    assert (
+        schemas.violations(
+            frontier(
+                samples.frontier_entry(
+                    failure_class_histogram={"timeout-blowup": 1, "invalid": 1},
+                    refuted_route_classes=["case-split", "induction"],
+                    ready_since=None,
+                )
+            )
+        )
+        == []
+    )
+
+
+def test_graph_index_info_samples() -> None:
+    node: dict[str, object] = {
+        "node_id": "and-reassoc",
+        "status": "proved",
+        "deps": [],
+        "origin": "authored",
+        "statement_hash": "a" * 64,
+        "relation": None,
+        "tutorial": False,
+        "trust_base": "kernel",
+        "proof_commit": "1" * 40,
+    }
+    graph = {
+        "schema": "graph/v1",
+        "target_id": "propositional",
+        "root": "and-swap-reassoc",
+        "rendered_from": None,
+        "nodes": [node],
+    }
+    assert schemas.violations(graph) == []
+    assert schemas.violations(dict(graph, nodes=[dict(node, status="unknown")]))
+    assert schemas.violations(dict(graph, nodes=[dict(node, score=1)]))
+    counts = dict.fromkeys(
+        (
+            "ready",
+            "blocked",
+            "proved",
+            "speculative",
+            "superseded",
+            "stale",
+            "disputed",
+            "abandoned",
+        ),
+        0,
+    )
+    target: dict[str, object] = {
+        "target_id": "propositional",
+        "root": "and-swap-reassoc",
+        "root_statement_hash": "a" * 64,
+        "fidelity": "mechanical-only",
+        "status": "active",
+        "mathlib_sha": None,
+        "node_counts": counts,
+        "claimable": True,
+    }
+    index: dict[str, object] = {
+        "schema": "targets-index/v1",
+        "rendered_from": "2" * 40,
+        "targets": [target],
+    }
+    assert schemas.violations(index) == []
+    partial = dict(index, targets=[dict(target, node_counts={"ready": 1})])
+    assert schemas.violations(partial)
+    info = {
+        "schema": "info/v1",
+        "protocol_version": "3.11",
+        "schemas": {"attestation": [1, 2, 3], "meta": [1, 2]},
+        "targets": {"propositional": {"gate_spec_hash": "c" * 64, "network_commit": "3" * 40}},
+        "rate_limit_policy": None,
+        "rendered_from": None,
+    }
+    assert schemas.violations(info) == []
+    assert schemas.violations(dict(info, protocol_version="v3"))
 
 
 def test_waiver_schema() -> None:
