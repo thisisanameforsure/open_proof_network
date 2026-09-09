@@ -73,6 +73,14 @@ jobs:
             --graph graph --commit "${{ steps.stale.outputs.commit }}" --out out
           printf '%s' "${{ steps.stale.outputs.commit }}" > out/rendered-from.txt
 
+      - name: Show the OIDC claims the deploy role will see (sub and aud only)
+        if: steps.stale.outputs.deploy == 'true'
+        run: |
+          set -euo pipefail
+          curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" \
+            | python3 -c "import json,sys,base64; t=json.load(sys.stdin)['value'].split('.')[1]; c=json.loads(base64.urlsafe_b64decode(t+'='*(-len(t)%4))); print('sub:', c.get('sub')); print('aud:', c.get('aud')); print('iss:', c.get('iss'))"
+
       - name: Assume the deploy role (OIDC, no stored key)
         if: steps.stale.outputs.deploy == 'true'
         uses: aws-actions/configure-aws-credentials@v4
