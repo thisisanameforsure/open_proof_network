@@ -28,6 +28,12 @@ sibling <code>../open_proof_network_graph</code>, and nothing on this site lands
 </table>
 
 <h2>Features — dependency order</h2>
+<p class="status-note"><strong>Two features are built but not tagged.</strong> F03 and F05 each
+have one acceptance criterion that needs a graph with an unproved node — a real merge (F03-AC13)
+and a claim round trip against the deployed service (F05-AC19). The live graph holds one node and
+it is proved, so both wait on F11's intake rather than on any code; adding a node purely to
+satisfy them would put content in the mathematical record for a test's sake (F05-Q6, decided
+2026-09-09).</p>
 <p class="status-note">Each feature is a vertical slice with its own spec, tests, and verification
 evidence. Status: <span class="tag">planned</span> &rarr; <span class="tag wip">spec</span> &rarr;
 <span class="tag wip">building</span> &rarr; <span class="tag done">done</span>. Copy

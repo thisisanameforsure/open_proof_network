@@ -99,4 +99,13 @@ The law of the project:
 - 2026-09-09 — GoDaddy cannot alias an apex at CloudFront, and its domain forwarding only runs on
   its own nameservers. Hence the split: the .org is delegated to Route 53, the .com must stay at
   GoDaddy or its redirect to the .org silently dies.
+- 2026-09-09 — A deployed acceptance criterion can be blocked by *content* rather than code: F05's
+  claim round trip needs a claimable node, and the live graph's only node is proved, so the
+  frontier is correctly empty. Do not manufacture graph content to close a criterion — the graph's
+  history is mathematics (D-35). Hand the criterion to the feature that will produce that content
+  (F11) and say so in both specs.
+- 2026-09-09 — Package what the code *reads*, not just what it imports: the Lambda zip carried
+  opn_gate but not gate/schemas, so every validating route answered 500 while health stayed green,
+  because health validates nothing. A deploy check that only imports modules would not have caught
+  it; it verifies the schema files and their pins now.
 
