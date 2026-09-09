@@ -1,21 +1,43 @@
-F05-T5 — deployed reads (AC19, three of four clauses) — 2026-09-09T16:52:16Z
+F05-T5 — deployed service (AC19) — 2026-09-09T16:55:43Z
 
-Stack opn-api, us-east-1, live at https://api.openproofnetwork.org with the GitHub App
-parameters in place (C8 item 3). api-deploy run:
-  conclusion=success run=34379250602 sha=4477241
+Stack opn-api, us-east-1, https://api.openproofnetwork.org, GitHub App 4887299
+configured through Parameter Store (C8 item 3). api-deploy run:
+  conclusion=success run=34379569998 sha=d91e034
 
-$ uv run python api/tools/smoke.py https://api.openproofnetwork.org --read-only
-GET /health -> 200 {'ok': True, 'store': 'dynamodb'}
-GET /info.json -> 200, protocol 3.11, policy {'writes_per_hour': 120, 'active_claims': 20, 'tokens_per_github_login': 1, 'token_starts_per_address_per_day': 10, 'claim_ttl_hours': {'min': 1, 'max': 168}}
-GET /frontier.json -> 200, 0 entries
-GET /claims.json -> 200, 0 nodes with claims
-smoke: ok
-exit=0
+1. Reads, run from a laptop:
 
-The fourth clause, the claim round trip, cannot run yet: the graph's only node
-(tutorial-and-swap) is proved, so the frontier is legitimately empty and nothing is
-claimable. The service is serving the committed file faithfully — see below — so this
-is graph content, not a defect in F05.
+   GET /health -> 200 {'ok': True, 'store': 'dynamodb'}
+   GET /info.json -> 200, protocol 3.11, policy {'writes_per_hour': 120, 'active_claims': 20, 'tokens_per_github_login': 1, 'token_starts_per_address_per_day': 10, 'claim_ttl_hours': {'min': 1, 'max': 168}}
+   GET /frontier.json -> 200, 0 entries
+   GET /claims.json -> 200, 0 nodes with claims
+   smoke: ok
 
-$ diff <(committed frontier.json at main) <(served /frontier.json)
-  (identical: no claims to overlay)
+2. Identity and token, through the real GitHub App: the founder ran
+   GET /auth/github/start in a browser, chose a pseudonym and accepted the DCO, and
+   presented the issued token to the smoke script (output pasted by him):
+
+   POST /claims opn-smoke-no-such-node -> 404 node-not-in-frontier (the token authenticates)
+
+   R3, R4 and R5 therefore hold against the deployed stack: the OAuth exchange, the
+   pseudonym and DCO gate, token issuance, and bearer authentication on a write route.
+
+3. What the tables actually hold (AC4, and §7's 'no email, nothing else'):
+
+   == identities table ==
+     identity  pseudonym=thisisanameforsure  proof=github:thisisanameforsure  created=2026-09-09T16:50:44Z
+               fields stored: ['created', 'id', 'proof_kind', 'proof_reference', 'pseudonym']
+     marker    proofref#github#thisisanameforsure  (proof-reference)
+     marker    pseudonym#thisisanameforsure  (pseudonym)
+   == tokens table ==
+     token row  key=token#9cab90d467e8… (64 hex chars)  revoked=False
+                fields stored: ['created', 'identity_id', 'key', 'revoked', 'token_hash']
+     scratch    rate#…  has_ttl=True
+     scratch    rate#…  has_ttl=True
+
+   The token row keeps a 64-character hash and never the token; the two marker rows are
+   the uniqueness rules written in the same transaction as the identity (R4); the rate
+   counters carry a TTL and delete themselves.
+
+4. Still open: the claim round trip. The graph's only node is proved, so the frontier is
+   legitimately empty and nothing is claimable (F05-Q6). The service is correct; the
+   criterion needs graph content that F05 does not own.
