@@ -22,6 +22,7 @@ KEY_TOKEN = "token#"  # noqa: S105 — a key prefix
 KEY_STATE = "state#"
 KEY_PROOF = "proof#"
 KEY_RATE = "rate#"
+KEY_JOB = "job#"
 KEY_PSEUDONYM = "pseudonym#"
 KEY_PROOF_REF = "proofref#"
 
@@ -79,6 +80,12 @@ class Store(Protocol):
 
     def get_token(self, token_hash: str) -> TokenRecord | None: ...
 
+    def put_job(self, job_id: str, record: dict[str, Any], expires: datetime) -> None:
+        """A precheck job (F06-R3). Readable until ``expires``, unlike an ephemeral item."""
+        ...
+
+    def get_job(self, job_id: str) -> dict[str, Any] | None: ...
+
     def put_claim(self, claim: Claim) -> None: ...
 
     def get_claim(self, claim_id: str) -> Claim | None: ...
@@ -105,6 +112,7 @@ class MemoryStore:
     unique: set[str] = field(default_factory=set)
     tokens: dict[str, TokenRecord] = field(default_factory=dict)
     claims: dict[str, Claim] = field(default_factory=dict)
+    jobs: dict[str, dict[str, Any]] = field(default_factory=dict)
     ephemeral: dict[str, tuple[dict[str, Any], datetime]] = field(default_factory=dict)
     counters: dict[str, tuple[int, datetime]] = field(default_factory=dict)
 
@@ -134,6 +142,13 @@ class MemoryStore:
 
     def get_token(self, token_hash: str) -> TokenRecord | None:
         return self.tokens.get(token_hash)
+
+    def put_job(self, job_id: str, record: dict[str, Any], expires: datetime) -> None:
+        self.jobs[job_id] = dict(record)
+
+    def get_job(self, job_id: str) -> dict[str, Any] | None:
+        found = self.jobs.get(job_id)
+        return dict(found) if found is not None else None
 
     def put_claim(self, claim: Claim) -> None:
         self.claims[claim.id] = claim
@@ -178,8 +193,9 @@ class DynamoStore:
 
     identities: ``id`` — an identity row, or a uniqueness marker (``pseudonym#<lower>``,
     ``proofref#<kind>#<ref>``) written in the same transaction as the identity (R4, R6).
-    tokens: ``key`` — ``token#<hash>`` rows, plus ``state#``, ``proof#`` and ``rate#`` items
-    carrying ``expires_at`` (the table's TTL attribute).
+    tokens: ``key`` — ``token#<hash>`` rows, plus ``state#``, ``proof#``, ``rate#`` and
+    ``job#`` items carrying ``expires_at`` (the table's TTL attribute). A job is readable
+    until it expires, unlike the single-use ephemeral items.
     claims: ``id`` — one row per claim; the registry is read by scan (Stage 0 volume).
     """
 
@@ -249,6 +265,16 @@ class DynamoStore:
             created=str(item["created"]),
             revoked=bool(item.get("revoked", False)),
         )
+
+    def put_job(self, job_id: str, record: dict[str, Any], expires: datetime) -> None:
+        self._tokens.put_item(
+            Item={"key": KEY_JOB + job_id, "job": record, "expires_at": _epoch(expires)}
+        )
+
+    def get_job(self, job_id: str) -> dict[str, Any] | None:
+        item = self._tokens.get_item(Key={"key": KEY_JOB + job_id}).get("Item")
+        job = item.get("job") if item else None
+        return dict(job) if isinstance(job, dict) else None
 
     def put_claim(self, claim: Claim) -> None:
         self._claims.put_item(Item=asdict(claim))

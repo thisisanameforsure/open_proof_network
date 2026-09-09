@@ -54,6 +54,19 @@ def check_token_start(ctx: Context, address: str) -> None:
     enforce(ctx, "start", address, limit=ctx.settings.token_starts_per_day, seconds=DAY_S)
 
 
+def check_precheck(ctx: Context, identity_id: str) -> None:
+    """F06-R8: authenticated prechecks per identity per hour."""
+    enforce(ctx, "precheck", identity_id, limit=ctx.settings.prechecks_per_hour, seconds=HOUR_S)
+
+
+def check_anonymous_precheck(ctx: Context, address: str) -> None:
+    """F06-R2: anonymous tutorial prechecks per source address per day (the one unauthenticated
+    write-shaped route, so the address limit is what bounds it)."""
+    enforce(
+        ctx, "anon-precheck", address, limit=ctx.settings.anonymous_prechecks_per_day, seconds=DAY_S
+    )
+
+
 def client_address(request: Request) -> str:
     """The source address: the first ``X-Forwarded-For`` hop (API Gateway sets it) or the peer."""
     forwarded = request.headers.get("x-forwarded-for", "")

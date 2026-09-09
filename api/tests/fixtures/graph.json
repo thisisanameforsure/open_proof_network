@@ -1,0 +1,52 @@
+{
+  "nodes": [
+    {
+      "deps": [],
+      "node_id": "already-proved",
+      "origin": "authored",
+      "proof_commit": "7777777777777777777777777777777777777777",
+      "relation": null,
+      "statement_hash": "6666666666666666666666666666666666666666666666666666666666666666",
+      "status": "proved",
+      "trust_base": "kernel",
+      "tutorial": true
+    },
+    {
+      "deps": [],
+      "node_id": "and-reassoc",
+      "origin": "authored",
+      "proof_commit": null,
+      "relation": null,
+      "statement_hash": "22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7",
+      "status": "ready",
+      "trust_base": null,
+      "tutorial": false
+    },
+    {
+      "deps": [],
+      "node_id": "listed-only",
+      "origin": "authored",
+      "proof_commit": null,
+      "relation": null,
+      "statement_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+      "status": "ready",
+      "trust_base": null,
+      "tutorial": false
+    },
+    {
+      "deps": [],
+      "node_id": "tutorial-and-swap",
+      "origin": "authored",
+      "proof_commit": null,
+      "relation": null,
+      "statement_hash": "4444444444444444444444444444444444444444444444444444444444444444",
+      "status": "ready",
+      "trust_base": null,
+      "tutorial": true
+    }
+  ],
+  "rendered_from": "5555555555555555555555555555555555555555",
+  "root": "and-swap-reassoc",
+  "schema": "graph/v1",
+  "target_id": "propositional"
+}

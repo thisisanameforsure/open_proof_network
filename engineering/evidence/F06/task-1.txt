@@ -1,0 +1,31 @@
+F06-T1 verification — 2026-09-09T17:33:33Z
+
+$ uv run pytest api/tests/test_precheck.py api/tests/test_routes.py
+api/tests/test_precheck.py::test_bundle_path_rejected PASSED             [  5%]
+api/tests/test_precheck.py::test_bundle_size_cap PASSED                  [ 10%]
+api/tests/test_precheck.py::test_bundle_accepts_a_proof_and_appends PASSED [ 15%]
+api/tests/test_precheck.py::test_bundle_rejects_other_nodes_and_bad_shapes PASSED [ 21%]
+api/tests/test_precheck.py::test_waiver_allowed_only_when_the_proof_uses_native_decide PASSED [ 26%]
+api/tests/test_precheck.py::test_tutorial_unauthenticated_only PASSED    [ 31%]
+api/tests/test_precheck.py::test_proved_tutorial_node_is_still_precheckable PASSED [ 36%]
+api/tests/test_precheck.py::test_unknown_node_is_404 PASSED              [ 42%]
+api/tests/test_precheck.py::test_job_records_what_r3_requires PASSED     [ 47%]
+api/tests/test_precheck.py::test_get_precheck_reports_the_job PASSED     [ 52%]
+api/tests/test_precheck.py::test_result_retention PASSED                 [ 57%]
+api/tests/test_precheck.py::test_anonymous_rate_limit PASSED             [ 63%]
+api/tests/test_precheck.py::test_authenticated_precheck_limit PASSED     [ 68%]
+api/tests/test_precheck.py::test_limits_are_published[prechecks_per_hour] PASSED [ 73%]
+api/tests/test_precheck.py::test_limits_are_published[anonymous_prechecks_per_address_per_day] PASSED [ 78%]
+api/tests/test_routes.py::test_routes_match_d35 PASSED                   [ 84%]
+api/tests/test_routes.py::test_precheck_routes_match_d35 PASSED          [ 89%]
+api/tests/test_routes.py::test_every_handler_resolves PASSED             [ 94%]
+api/tests/test_routes.py::test_read_routes_ignore_bearer PASSED          [100%]
+======================== 19 passed, 2 warnings in 0.12s ========================
+
+$ make verify (regression gate)
+All checks passed!
+113 files already formatted
+Success: no issues found in 55 source files
+Success: no issues found in 29 source files
+Success: no issues found in 14 source files
+================ 293 passed, 34 deselected, 2 warnings in 3.34s ================

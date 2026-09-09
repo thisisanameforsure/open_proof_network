@@ -29,6 +29,8 @@ Variables (prefix ``OPN_API_``):
     Per-identity limits (R6). Defaults ``120`` / ``20`` / ``1`` (Q2).
 ``OPN_API_TOKEN_STARTS_PER_DAY``
     Per-source limit on ``GET /auth/github/start`` (R6). Default ``10``.
+``OPN_API_PRECHECKS_PER_HOUR`` / ``OPN_API_ANONYMOUS_PRECHECKS_PER_DAY``
+    Precheck limits per identity and per source address (F06-R8, R2). Defaults ``40`` / ``20``.
 ``OPN_API_CLAIM_TTL_MIN_H`` / ``OPN_API_CLAIM_TTL_MAX_H``
     The D-25 flat caps (R7). Defaults ``1`` / ``168``.
 ``OPN_API_STATE_TTL_S``
@@ -61,6 +63,8 @@ DEFAULT_WRITES_PER_HOUR = 120
 DEFAULT_ACTIVE_CLAIMS = 20
 DEFAULT_TOKENS_PER_LOGIN = 1
 DEFAULT_TOKEN_STARTS_PER_DAY = 10
+DEFAULT_PRECHECKS_PER_HOUR = 40
+DEFAULT_ANONYMOUS_PRECHECKS_PER_DAY = 20
 DEFAULT_CLAIM_TTL_MIN_H = 1
 DEFAULT_CLAIM_TTL_MAX_H = 168
 DEFAULT_STATE_TTL_S = 600
@@ -99,6 +103,8 @@ class Settings:
     active_claims: int = DEFAULT_ACTIVE_CLAIMS
     tokens_per_login: int = DEFAULT_TOKENS_PER_LOGIN
     token_starts_per_day: int = DEFAULT_TOKEN_STARTS_PER_DAY
+    prechecks_per_hour: int = DEFAULT_PRECHECKS_PER_HOUR
+    anonymous_prechecks_per_day: int = DEFAULT_ANONYMOUS_PRECHECKS_PER_DAY
     claim_ttl_min_h: int = DEFAULT_CLAIM_TTL_MIN_H
     claim_ttl_max_h: int = DEFAULT_CLAIM_TTL_MAX_H
     state_ttl_s: int = DEFAULT_STATE_TTL_S
@@ -136,6 +142,8 @@ class Settings:
             "active_claims": self.active_claims,
             "tokens_per_github_login": self.tokens_per_login,
             "token_starts_per_address_per_day": self.token_starts_per_day,
+            "prechecks_per_hour": self.prechecks_per_hour,
+            "anonymous_prechecks_per_address_per_day": self.anonymous_prechecks_per_day,
             "claim_ttl_hours": {"min": self.claim_ttl_min_h, "max": self.claim_ttl_max_h},
         }
 
@@ -196,6 +204,10 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
         tokens_per_login=_int(env, "OPN_API_TOKENS_PER_LOGIN", DEFAULT_TOKENS_PER_LOGIN),
         token_starts_per_day=_int(
             env, "OPN_API_TOKEN_STARTS_PER_DAY", DEFAULT_TOKEN_STARTS_PER_DAY
+        ),
+        prechecks_per_hour=_int(env, "OPN_API_PRECHECKS_PER_HOUR", DEFAULT_PRECHECKS_PER_HOUR),
+        anonymous_prechecks_per_day=_int(
+            env, "OPN_API_ANONYMOUS_PRECHECKS_PER_DAY", DEFAULT_ANONYMOUS_PRECHECKS_PER_DAY
         ),
         claim_ttl_min_h=ttl_min,
         claim_ttl_max_h=ttl_max,

@@ -65,6 +65,8 @@ def test_rate_limit_policy_shape() -> None:
         "active_claims": 20,
         "tokens_per_github_login": 1,
         "token_starts_per_address_per_day": 10,
+        "prechecks_per_hour": 40,
+        "anonymous_prechecks_per_address_per_day": 20,
         "claim_ttl_hours": {"min": 1, "max": 168},
     }
 

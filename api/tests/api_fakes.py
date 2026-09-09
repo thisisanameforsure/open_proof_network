@@ -51,6 +51,8 @@ class FakeGitHost:
             files={
                 "frontier.json": (FIXTURES / "frontier.json").read_bytes(),
                 "info.json": (FIXTURES / "info.json").read_bytes(),
+                "targets/index.json": (FIXTURES / "targets-index.json").read_bytes(),
+                "targets/propositional/graph.json": (FIXTURES / "graph.json").read_bytes(),
             },
         )
 
