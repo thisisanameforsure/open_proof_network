@@ -28,11 +28,13 @@ from opn_gate import (
     paths,
     pipeline,
     postmerge,
+    products,
     sandbox,
     schemas,
     signer,
     toolchain,
 )
+from opn_gate import graph as graphmod
 from opn_gate.paths import Change, Claim
 from opn_gate.steps.base import RunContext
 from opn_gate.steps.hazards import HazardsStep, StatementStep
@@ -108,16 +110,27 @@ def build_parser() -> argparse.ArgumentParser:
     post.add_argument("--node", required=True)
     _add_sandbox_args(post)
 
-    haz = sub.add_parser("hazards", help="run step 6 alone on a node directory (F02-R7)")
-    haz.add_argument("node_dir", type=Path, help="targets/<target>/nodes/<id> in a graph checkout")
-    haz.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
-    haz.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
+    _add_graph_tool_parsers(sub)
 
     sign = sub.add_parser("sign", help="sign an attestation with the gate key from the environment")
     sign.add_argument("--attestation", required=True, type=Path)
     sign.add_argument("--public-key", required=True, type=Path, help="keys/gate.pub to verify")
     sign.add_argument("--out", required=True, type=Path)
     return parser
+
+
+def _add_graph_tool_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    """The graph-side tools that are not gate runs: step 6 alone (F02) and the products (F03)."""
+    haz = sub.add_parser("hazards", help="run step 6 alone on a node directory (F02-R7)")
+    haz.add_argument("node_dir", type=Path, help="targets/<target>/nodes/<id> in a graph checkout")
+    haz.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
+    haz.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
+
+    prod = sub.add_parser("products", help="regenerate the merge products (F03; D-35)")
+    prod.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    prod.add_argument("--commit", default="HEAD", help="the commit the products render (git)")
+    prod.add_argument("--out", type=Path, help="write here instead of into the checkout")
+    prod.add_argument("--no-meta", action="store_true", help="do not rewrite META.yaml status")
 
 
 def _add_sandbox_args(p: argparse.ArgumentParser) -> None:
@@ -137,6 +150,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "gate": run_gate,
         "postmerge": run_postmerge,
         "hazards": run_hazards,
+        "products": run_products,
         "sign": run_sign,
     }
     try:
@@ -355,6 +369,40 @@ def run_hazards(args: argparse.Namespace, settings: config.Settings) -> int:
     summary["hazards"] = ctx.data.get("hazards")
     sys.stdout.write(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
     return EXIT_PASS if verdict.ok else EXIT_FAIL
+
+
+def run_products(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F03: regenerate frontier.json, info.json, targets/index.json and every graph.json.
+
+    Renders the checkout as it is, stamped with ``--commit`` (its committer time feeds
+    ``ready_since``, R8). A defective graph (cycle, missing dep, ambiguous root) writes nothing
+    and exits 1 with the problem named (R3). Library tags on a Mathlib-pinned graph need a scan
+    inside the sandbox, which F10 wires; until then such a graph is refused here.
+    """
+    graph, commit = _checkout_and_commit(args.graph, args.commit)
+    out_dir = args.out.resolve() if args.out is not None else graph
+    try:
+        products_ = products.generate(
+            graph,
+            rendered_from=commit,
+            commit_time=graphmod.commit_timestamp(graph, commit),
+        )
+    except (graphmod.GraphError, schemas.SchemaError) as exc:
+        sys.stdout.write(json.dumps({"ok": False, "error": str(exc)}) + "\n")
+        sys.stderr.write(f"opn-gate: products not written: {exc}\n")
+        return EXIT_FAIL
+    if any(tg.spec["mathlib_sha"] is not None for tg in products_.targets):
+        msg = "library tags on a Mathlib-pinned graph need the sandboxed scan (F10)"
+        raise CliError(msg)
+    written = products_.write(out_dir, write_meta=not args.no_meta and out_dir == graph)
+    summary = {
+        "ok": True,
+        "rendered_from": commit,
+        "written": [p.as_posix() for p in written],
+        "files": sorted(p.as_posix() for p in products_.files),
+    }
+    sys.stdout.write(json.dumps(summary, indent=2) + "\n")
+    return EXIT_PASS
 
 
 def run_sign(args: argparse.Namespace, settings: config.Settings) -> int:

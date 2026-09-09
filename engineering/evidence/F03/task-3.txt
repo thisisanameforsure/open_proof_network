@@ -1,0 +1,15 @@
+# F03-T3 verification — $ uv run pytest gate/tests/test_products.py — 2026-09-09T05:39:29Z — plus the lean-tier tag scan (gate/tests/test_products_lean.py, real toolchain)
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+collected 20 items
+
+gate/tests/test_products.py ....................                         [100%]
+
+============================== 20 passed in 1.01s ==============================
+exit=0
+
+gate/tests/test_products_lean.py .                                       [100%]
+
+============================== 1 passed in 14.24s ==============================

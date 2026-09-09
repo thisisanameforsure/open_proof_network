@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 import samples
@@ -207,3 +208,235 @@ def test_commit_timestamp_is_git_committer_time(tmp_path: Path) -> None:
     for cmd in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "seed"]):
         subprocess.run(["git", "-C", str(root), *cmd], check=True, env=env)
     assert graph.commit_timestamp(root, "HEAD") == "2026-09-09T08:11:12Z"
+
+
+# --- T3: the products ----------------------------------------------------------------------------
+
+from opn_gate import cli, products  # noqa: E402
+
+NOW = "2026-09-09T12:00:00Z"
+RENDERED = "5" * 40
+
+
+def generate(
+    root: Path, *, commit_time: str = NOW, previous_frontier: dict[str, Any] | None = None
+) -> products.Products:
+    return products.generate(
+        root, rendered_from=RENDERED, commit_time=commit_time, previous_frontier=previous_frontier
+    )
+
+
+def loads(prod: products.Products, rel: str) -> dict[str, Any]:
+    doc: dict[str, Any] = json.loads(prod.files[Path(rel)])
+    return doc
+
+
+def frontier_ids(prod: products.Products) -> list[str]:
+    doc = loads(prod, "frontier.json")
+    return [str(e["node_id"]) for e in doc["entries"]]
+
+
+def test_products_of_the_fixture(tmp_path: Path) -> None:
+    """R4, R5, R9, R10 on the pristine fixture: two ready interior nodes, a blocked root."""
+    root = copy_graph(tmp_path)
+    prod = generate(root)
+    assert sorted(p.as_posix() for p in prod.files) == [
+        "frontier.json",
+        "info.json",
+        "targets/index.json",
+        "targets/propositional/graph.json",
+    ]
+    g = loads(prod, "targets/propositional/graph.json")
+    assert g["root"] == ROOT_NODE and g["rendered_from"] == RENDERED
+    assert [(n["node_id"], n["status"]) for n in g["nodes"]] == [
+        ("and-reassoc", "ready"),
+        ("and-swap-reassoc", "blocked"),
+        ("tutorial-and-swap", "ready"),
+    ]
+    assert frontier_ids(prod) == ["and-reassoc", "tutorial-and-swap"]
+    entry = loads(prod, "frontier.json")["entries"][0]
+    assert entry["ready_since"] == NOW and entry["tags"] == {"deps": [], "library": []}
+    assert entry["claims"] == {"active": [], "history_count": 0}
+    assert entry["claimable"] is False  # no declaration; the root is not the tutorial (Q4, Q5)
+    idx = loads(prod, "targets/index.json")["targets"][0]
+    assert idx["status"] == "listed" and idx["claimable"] is False
+    assert idx["fidelity"] == "mechanical-only" and idx["mathlib_sha"] is None
+    assert idx["node_counts"]["ready"] == 2 and idx["node_counts"]["blocked"] == 1
+    info = loads(prod, "info.json")
+    assert info["protocol_version"] == "3.11"
+    assert info["schemas"]["attestation"] == [1, 2, 3] and info["schemas"]["meta"] == [1, 2]
+    assert info["targets"]["propositional"]["network_commit"] == "0" * 40
+    assert prod.meta_status[Path("targets/propositional/nodes/and-reassoc")] == "ready"
+
+
+def test_curator_status_removes_from_frontier(tmp_path: Path) -> None:
+    """AC4, second half: an abandoned node is absent from the frontier."""
+    root = copy_graph(tmp_path)
+    node_status_record(root, "and-reassoc", "abandoned")
+    assert frontier_ids(generate(root)) == ["tutorial-and-swap"]
+
+
+def test_proved_nodes_carry_trust_base_and_commit(tmp_path: Path) -> None:
+    root = copy_graph(tmp_path)
+    attest(root, "tutorial-and-swap", n=1)
+    attest(root, "and-reassoc", n=2, trust_base="compiler")
+    prod = generate(root)
+    g = loads(prod, "targets/propositional/graph.json")
+    by_id = {n["node_id"]: n for n in g["nodes"]}
+    assert by_id["and-reassoc"]["trust_base"] == "compiler"
+    assert by_id["tutorial-and-swap"]["trust_base"] == "kernel"
+    assert by_id["and-reassoc"]["proof_commit"] == MERGE
+    assert by_id["and-swap-reassoc"]["trust_base"] is None
+    assert frontier_ids(prod) == [ROOT_NODE]
+    counts = loads(prod, "targets/index.json")["targets"][0]["node_counts"]
+    assert counts["proved"] == 2 and counts["ready"] == 1
+
+
+def test_cycle_writes_no_product(tmp_path: Path) -> None:
+    """AC5: the generator raises before any file exists."""
+    root = copy_graph(tmp_path)
+    set_deps(root, "and-reassoc", [ROOT_NODE])
+    with pytest.raises(GraphError, match="cycle"):
+        generate(root)
+    assert not (root / "frontier.json").exists()
+    assert not (root / "targets" / TARGET / "graph.json").exists()
+
+
+def test_attempt_aggregation(tmp_path: Path) -> None:
+    """AC7: three postmortems and one invalid file on a frontier node."""
+    root = copy_graph(tmp_path)
+    att = nodes_dir(root) / "and-reassoc" / "attempts"
+    docs = [
+        samples.postmortem(node="and-reassoc", route_class="induction"),
+        samples.postmortem(node="and-reassoc", route_class="case-split", failure_class=None),
+        samples.postmortem(
+            node="and-reassoc",
+            route_class="induction",
+            outcome="exhausted",
+            failure_class="timeout-blowup",
+        ),
+    ]
+    for i, doc in enumerate(docs):
+        if doc.get("failure_class") is None:
+            del doc["failure_class"]
+        (att / f"2026-09-0{i + 1}-x.yaml").write_text(yaml.safe_dump(doc), encoding="utf-8")
+    (att / "2026-09-04-y.yaml").write_text("route: [unterminated\n", encoding="utf-8")
+    entry = loads(generate(root), "frontier.json")["entries"][0]
+    assert entry["node_id"] == "and-reassoc"
+    assert entry["attempts"] == 4
+    assert entry["refuted_route_classes"] == ["case-split", "induction"]
+    assert entry["failure_class_histogram"] == {
+        "invalid": 1,
+        "route-dead-ends": 1,
+        "timeout-blowup": 1,
+    }
+
+
+def test_ready_since_from_previous_frontier(tmp_path: Path) -> None:
+    """AC8 with files: the committed frontier.json feeds the carry-forward."""
+    root = copy_graph(tmp_path)
+    first = generate(root, commit_time="2026-09-01T00:00:00Z")
+    first.write(root)
+    attest(root, "and-reassoc", n=1)
+    attest(root, "tutorial-and-swap", n=2)
+    second = generate(root)  # reads root/frontier.json
+    entries = loads(second, "frontier.json")["entries"]
+    assert [(e["node_id"], e["ready_since"]) for e in entries] == [(ROOT_NODE, NOW)]
+    # Explicitly: a still-ready node keeps its stamp.
+    kept = "2026-08-01T00:00:00Z"
+    third = generate(
+        root, previous_frontier={"entries": [{"node_id": ROOT_NODE, "ready_since": kept}]}
+    )
+    assert loads(third, "frontier.json")["entries"][0]["ready_since"] == kept
+
+
+def test_deterministic_and_valid(tmp_path: Path) -> None:
+    """AC9: two generations are byte-identical and every product validates."""
+    root = copy_graph(tmp_path)
+    attest(root, "tutorial-and-swap", n=1)
+    node_status_record(root, "and-reassoc", "speculative")
+    a = generate(root)
+    b = generate(root)
+    assert a.files == b.files
+    for rel, data in a.files.items():
+        assert data.endswith(b"\n") and b"\r" not in data, rel
+        assert schemas.violations(json.loads(data)) == [], rel
+    written = a.write(root)
+    assert sorted(p.as_posix() for p in written) == [
+        "frontier.json",
+        "info.json",
+        "targets/index.json",
+        "targets/propositional/graph.json",
+        "targets/propositional/nodes/and-reassoc/META.yaml",  # ready -> speculative (R2)
+        "targets/propositional/nodes/tutorial-and-swap/META.yaml",  # ready -> proved
+    ]
+    assert a.write(root) == []  # idempotent: nothing changes on a second write
+    meta = yaml.safe_load((nodes_dir(root) / "tutorial-and-swap" / "META.yaml").read_text())
+    assert meta["status"] == "proved"
+    assert frontier_ids(a) == ["and-reassoc"]  # speculative stays in the frontier (R5)
+    entry = loads(a, "frontier.json")["entries"][0]
+    assert entry["ready_since"] is None
+
+
+def test_target_declaration_drives_index(tmp_path: Path) -> None:
+    root = copy_graph(tmp_path)
+    st = root / "targets" / TARGET / "status"
+    st.mkdir()
+    (st / "2026-09-09-1.yaml").write_text(
+        yaml.safe_dump(samples.target_status(status="dormant", fidelity="back-translated")),
+        encoding="utf-8",
+    )
+    prod = generate(root)
+    idx = loads(prod, "targets/index.json")["targets"][0]
+    assert idx["status"] == "dormant" and idx["claimable"] is True
+    assert idx["fidelity"] == "back-translated"
+    assert all(e["claimable"] for e in loads(prod, "frontier.json")["entries"])
+    attest(root, "tutorial-and-swap", n=1)
+    attest(root, "and-reassoc", n=2)
+    attest(root, ROOT_NODE, n=3)
+    idx = loads(generate(root), "targets/index.json")["targets"][0]
+    assert idx["status"] == "resolved"  # a proved root beats any declaration
+
+
+def test_library_tags_from_modules() -> None:
+    """R6: top-level Mathlib namespaces, sorted, deduplicated; nothing from Init or nodes."""
+    assert products.library_tags_from_modules(
+        [
+            "Mathlib.Order.Basic",
+            "Init.Prelude",
+            None,
+            "Mathlib.Analysis.Calculus",
+            "Mathlib.Order.Lattice",
+            "Nodes.«a».Context",
+            "Mathlib",
+        ]
+    ) == ["Analysis", "Order"]
+
+
+def test_products_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """The CLI writes into a git checkout and refuses a defective graph without writing."""
+    import subprocess  # noqa: PLC0415
+
+    root = copy_graph(tmp_path)
+    env = {
+        "GIT_AUTHOR_NAME": "t",
+        "GIT_AUTHOR_EMAIL": "t@x",
+        "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@x",
+        "GIT_COMMITTER_DATE": "2026-09-09T10:11:12+00:00",
+        "PATH": "/usr/bin:/bin",
+        "HOME": str(tmp_path),
+    }
+    for cmd in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "seed"]):
+        subprocess.run(["git", "-C", str(root), *cmd], check=True, env=env)
+    assert cli.main(["products", "--graph", str(root)]) == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["ok"] and "frontier.json" in out["written"]
+    frontier = json.loads((root / "frontier.json").read_text())
+    assert frontier["entries"][0]["ready_since"] == "2026-09-09T10:11:12Z"
+    assert frontier["rendered_from"] == out["rendered_from"]
+    set_deps(root, "and-reassoc", ["ghost"])
+    assert cli.main(["products", "--graph", str(root), "--out", str(tmp_path / "o")]) == 1
+    out = json.loads(capsys.readouterr().out)
+    assert out["ok"] is False and "ghost" in out["error"]
+    assert not (tmp_path / "o").exists()
