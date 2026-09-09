@@ -341,6 +341,9 @@ class HttpxGitHost:
             if found is None:
                 return None
             http.timeout = httpx.Timeout(ARTIFACT_TIMEOUT_S)
+            # This redirects to blob storage with a signed URL. Following it is safe because
+            # httpx strips Authorization on a cross-origin redirect, so the installation token
+            # is not handed to a storage host that has no business seeing it (C8).
             zipped = _send(
                 http,
                 "GET",

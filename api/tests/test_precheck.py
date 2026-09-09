@@ -417,6 +417,28 @@ def test_polling_a_running_job_does_not_rewrite_it(signed: Harness) -> None:
     assert writes == 1, "only the queued -> running transition should have been written"
 
 
+def test_an_unreadable_key_does_not_burn_the_job(harness: Harness, key: PrecheckKey) -> None:
+    """C7: if the graph cannot be read, the committed key is unknown and the result cannot be
+    verified — so say so and leave the job alone. An outage must not become a failed precheck."""
+    harness.commit_precheck_key(key.public)
+    job_id = start(harness)["id"]
+    harness.githost.finish_run(
+        f"job/{job_id}", artifact=(f"result-{job_id}", artifact_for(harness, job_id, key))
+    )
+    del harness.githost.files["keys/precheck.pub"]
+    harness.context.files.pop("keys/precheck.pub", None)
+
+    refused = harness.client.get(f"/precheck/{job_id}")
+    assert refused.status_code == 503
+    assert refused.json()["error"] == "graph-unreachable"
+    job = precheck.load(harness.context, job_id)
+    assert job is not None and job.state == "queued", "the job must not have been marked error"
+
+    # The key comes back, and the same poll now completes the job.
+    harness.commit_precheck_key(key.public)
+    assert harness.client.get(f"/precheck/{job_id}").json()["state"] == "done"
+
+
 def test_expired_job_is_not_polled(signed: Harness, key: PrecheckKey) -> None:
     """AC9 with T3: past the window the job is expired and the host is not called again."""
     job_id = start(signed)["id"]
