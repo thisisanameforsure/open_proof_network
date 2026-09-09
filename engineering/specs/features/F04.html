@@ -109,7 +109,7 @@ D-19, D-23, D-25, D-27, D-28, D-33, D-35, D-36.</p>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1&ndash;T2 &#10003; 2026-09-09 · T3&ndash;T5 todo (T4&ndash;T5 need the founder's AWS bootstrap, C8 item 5)</div>
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1&ndash;T3 &#10003; 2026-09-09 · T4&ndash;T5 todo &mdash; <strong>blocked on the founder</strong>: the CloudFormation stack is bootstrapped once from the local <code>.env</code> credentials (C8 item 5) and the OIDC role needs the AWS account; nothing here may deploy unattended</div>
 
 <h2>Tasks</h2>
 <table>
@@ -121,7 +121,7 @@ D-19, D-23, D-25, D-27, D-28, D-33, D-35, D-36.</p>
     <td><code>site/opn_site/render.py</code>, <code>site/opn_site/static/frontier.js</code>, <code>site/opn_site/static/site.css</code>, <code>site/opn_site/templates/</code> (frontier, contributors, docs), <code>site/tests/golden/</code>, <code>site/tests/test_render.py</code></td>
     <td>T1</td><td><code>uv run pytest site/tests/test_render.py</code></td></tr>
   <tr><td>F04-T3</td><td><strong>Safe prose and link checker.</strong> Paragraph/code-fence renderer; labeled untrusted blocks; escaping tests with injection fixtures; internal link and no-external-resource checks.</td>
-    <td><code>site/opn_site/prose.py</code>, <code>site/opn_site/links.py</code>, <code>site/tests/test_escaping.py</code>, <code>site/tests/test_links.py</code></td>
+    <td><code>site/opn_site/prose.py</code>, <code>site/opn_site/links.py</code>, <code>site/opn_site/render.py</code> (prose in the labelled blocks; the link check fails the build, R13), <code>site/opn_site/static/site.css</code>, <code>site/tests/golden/</code>, <code>site/tests/test_escaping.py</code>, <code>site/tests/test_links.py</code></td>
     <td>T1</td><td><code>uv run pytest site/tests/test_escaping.py site/tests/test_links.py</code></td></tr>
   <tr><td>F04-T4</td><td><strong>Infra and deploy.</strong> CloudFormation stack; <code>site-deploy.yml</code> in this repo with OIDC; dispatch step in the graph's post-merge job; CSP response headers.</td>
     <td><code>site/infra/site.cfn.yaml</code>, <code>.github/workflows/site-deploy.yml</code>, <code>gate/opn_gate/postmerge.py</code>, <code>../open_proof_network_graph/.github/workflows/gate.yml</code></td>

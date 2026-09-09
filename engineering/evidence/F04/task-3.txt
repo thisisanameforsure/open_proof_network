@@ -1,0 +1,12 @@
+# F04-T3 verification — $ uv run pytest site/tests/test_escaping.py site/tests/test_links.py — 2026-09-09T05:56:52Z
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+collected 8 items
+
+site/tests/test_escaping.py ....                                         [ 50%]
+site/tests/test_links.py ....                                            [100%]
+
+============================== 8 passed in 0.77s ===============================
+exit=0

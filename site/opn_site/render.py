@@ -16,8 +16,8 @@ from pathlib import Path
 from string import Template
 from typing import Any
 
-from opn_site import dag
-from opn_site.model import NodeView, Prose, Site, TargetView
+from opn_site import dag, links, prose
+from opn_site.model import NodeView, Prose, Site, SiteError, TargetView
 
 TEMPLATES = Path(__file__).resolve().parent / "templates"
 STATIC = Path(__file__).resolve().parent / "static"
@@ -265,7 +265,7 @@ class Renderer:
             f'<div class="prose-block untrusted"><p class="label">Untrusted: acknowledgment '
             f"of a <code>{esc(a.get('checker', ''))}</code> finding at "
             f"<code>{esc(a.get('location', ''))}</code></p>"
-            f'<pre class="prose">{esc(a.get("justification", ""))}</pre></div>'
+            f'<div class="prose">{prose.render(a.get("justification", ""))}</div></div>'
             for a in nv.acknowledgments
         )
         body = _template("node.html").substitute(
@@ -437,21 +437,21 @@ class Renderer:
             steps=steps,
         )
 
-    def untrusted_block(self, label: str, prose: Prose, *, what: str) -> str:
+    def untrusted_block(self, label: str, prose_: Prose, *, what: str) -> str:
         """R4: contributor text in a labelled block, with author and model when recorded."""
         by = []
-        if prose.author:
-            by.append(f"by {esc(prose.author)}")
-        if prose.model:
-            by.append(f"drafted with {esc(prose.model)}")
-        if prose.date:
-            by.append(esc(prose.date))
+        if prose_.author:
+            by.append(f"by {esc(prose_.author)}")
+        if prose_.model:
+            by.append(f"drafted with {esc(prose_.model)}")
+        if prose_.date:
+            by.append(esc(prose_.date))
         who = ", ".join(by) or "author not recorded"
         return (
             f'<div class="prose-block {esc(label)}"><p class="label">'
             f"{esc(label.capitalize())}: {esc(what)}, {who}. "
-            f"Rendered from {self.file_link(prose.path)}.</p>"
-            f'<pre class="prose">{esc(prose.text.strip())}</pre></div>'
+            f"Rendered from {self.file_link(prose_.path)}.</p>"
+            f'<div class="prose">{prose.render(prose_.text)}</div></div>'
         )
 
 
@@ -475,6 +475,10 @@ def render_site(
         files[f"targets/{tid}/index.html"] = r.target(tv)
         for nid, nv in tv.nodes.items():
             files[f"nodes/{tid}/{nid}/index.html"] = r.node(nv)
+    problems = links.check(files, repo_url=r.repo_url, foreign=frozenset(extra))
+    if problems:  # R13: a link that would not resolve is a build failure, not a 404
+        msg = "rendered site has broken links: " + "; ".join(problems[:5])
+        raise SiteError(msg)
     return files
 
 
