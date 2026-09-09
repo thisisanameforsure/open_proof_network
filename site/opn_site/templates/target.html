@@ -1,0 +1,14 @@
+<h1>$target_id</h1>
+<p class="lead">Status $status, fidelity $fidelity. Root: $root. Rendered from $graph_link.</p>
+<h2>Dependency graph</h2>
+<p>Deps below, root on top; a node is coloured by its status.</p>
+<div class="dag-wrap">$dag</div>
+<h2>Nodes</h2>
+<table class="nodes">
+<thead><tr><th>Node</th><th>Status</th><th>Depends on</th><th>Origin</th></tr></thead>
+<tbody>$node_rows</tbody>
+</table>
+<h2>Approach records</h2>
+$approaches
+<h2>State of the problem</h2>
+$note

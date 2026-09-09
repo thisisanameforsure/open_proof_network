@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Targets</title>
+<link rel="stylesheet" href="/site.css">
+</head>
+<body>
+<header class="masthead">
+  <a class="site-name" href="/">Open Proof Network</a>
+  <nav><a href="/">Home</a><a href="/targets/">Targets</a><a href="/frontier/">Frontier</a><a href="/contributors/">Contributors</a><a href="/docs/">Docs</a></nav>
+</header>
+<main>
+<h1>Targets</h1>
+<p class="lead">Every target: its root statement in Lean, the informal statement it was curated
+against, its status, fidelity grade and progress.</p>
+<section class="target-card">
+<h2><a href="/targets/propositional/">propositional</a></h2>
+<pre class="lean">import Nodes.«and-swap-reassoc».Context
+
+theorem OpnProp.and_swap_reassoc : ∀ p q r : Prop, (p ∧ q) ∧ r → r ∧ (q ∧ p) := by
+  sorry</pre>
+<p class="informal">No informal statement is recorded for this target yet (D-6 intake, F11).</p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/propositional/and-swap-reassoc/">and-swap-reassoc</a> (<a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-swap-reassoc/Statement.lean">targets/propositional/nodes/and-swap-reassoc/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, listed, not claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Mathlib</dt><dd>Lean core only</dd>
+<dt>Progress</dt><dd>2 proved, 1 ready</dd>
+</dl>
+</section>
+
+
+</main>
+<footer class="colophon">
+  <p>Rendered from graph commit <a href="https://github.com/example/graph/tree/6666666666666666666666666666666666666666"><code>666666666666</code></a>.
+  This page is a view of <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/index.json">targets/index.json</a> at that commit. The site is read-only and rebuilt on every merge (D-36).</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Node tutorial-and-swap</title>
+<link rel="stylesheet" href="/site.css">
+</head>
+<body>
+<header class="masthead">
+  <a class="site-name" href="/">Open Proof Network</a>
+  <nav><a href="/">Home</a><a href="/targets/">Targets</a><a href="/frontier/">Frontier</a><a href="/contributors/">Contributors</a><a href="/docs/">Docs</a></nav>
+</header>
+<main>
+<p class="crumbs"><a href="/targets/">Targets</a> / <a href="/targets/propositional/">propositional</a></p>
+<h1>tutorial-and-swap</h1>
+<p class="lead"><span class="status status-proved"><span class="mark"></span>proved</span></p>
+<p class="cue">The tutorial node: permanently open and off the ledger (D-27).</p>
+<pre class="lean statement st-proved">/-! The tutorial node (D-27): permanently open, off-ledger. Lean core only. -/
+
+theorem OpnProp.and_swap : ∀ p q : Prop, p ∧ q → q ∧ p := by
+  sorry</pre>
+<p>Rendered from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/Statement.lean">targets/propositional/nodes/tutorial-and-swap/Statement.lean</a>. Depends on: none. Origin: authored.</p>
+<h2>Proof</h2>
+<p>Proof merged in commit <code>444444444444</code>: <a class="file" href="https://github.com/example/graph/blob/4444444444444444444444444444444444444444/targets/propositional/nodes/tutorial-and-swap/Proof.lean">targets/propositional/nodes/tutorial-and-swap/Proof.lean</a></p>
+
+<h2>Attestation</h2>
+<p>Verdict <strong>pass</strong>, from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/attestations/000001.json">attestations/000001.json</a>.</p>
+<dl class="facts">
+<dt>Toolchain</dt><dd>leanprover/lean4:v4.33.1 (hash <code>bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb</code>)</dd>
+<dt>Mathlib</dt><dd>none (Lean core only)</dd>
+<dt>Reviewer</dt><dd>reviewer-one</dd>
+</dl>
+<table class="steps">
+<thead><tr><th>Step</th><th>Check</th><th>Result</th></tr></thead>
+<tbody><tr><td>1</td><td>toolchain</td><td class="result-pass">pass</td></tr><tr><td>2</td><td>paths</td><td class="result-pass">pass</td></tr><tr><td>4</td><td>kernel-replay</td><td class="result-pass">pass</td></tr><tr><td>5</td><td>axioms</td><td class="result-pass">pass</td></tr></tbody>
+</table>
+
+<h2>Attempts</h2>
+<p>0 recorded. Routes refuted: none. Failure classes: none.</p>
+<h2>Explainer</h2>
+<div class="prose-block unverified"><p class="label">Unverified: explainer, by thisisanameforsure, drafted with claude-fable-5-1, 2026-09-09. Rendered from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/explainer/why.md">targets/propositional/nodes/tutorial-and-swap/explainer/why.md</a>.</p><pre class="prose">Swap the two halves of the conjunction.
+
+&lt;script&gt;alert(1)&lt;/script&gt;</pre></div>
+<h2>Annex</h2>
+<p>No annex.</p>
+
+
+</main>
+<footer class="colophon">
+  <p>Rendered from graph commit <a href="https://github.com/example/graph/tree/6666666666666666666666666666666666666666"><code>666666666666</code></a>.
+  This page is a view of <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/Statement.lean">targets/propositional/nodes/tutorial-and-swap/Statement.lean</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/META.yaml">targets/propositional/nodes/tutorial-and-swap/META.yaml</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/Proof.lean">targets/propositional/nodes/tutorial-and-swap/Proof.lean</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/attestations/000001.json">attestations/000001.json</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/explainer/why.md">targets/propositional/nodes/tutorial-and-swap/explainer/why.md</a> at that commit. The site is read-only and rebuilt on every merge (D-36).</p>
+</footer>
+</body>
+</html>

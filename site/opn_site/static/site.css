@@ -1,0 +1,93 @@
+/* Open Proof Network site (F04). One stylesheet, no external resources (R10).
+   The page is a record: quiet serif text, Lean set large in monospace, status carried by a
+   small coloured mark that never decorates. */
+:root {
+  --paper: #f7f8f6;
+  --ink: #17221e;
+  --muted: #5c6862;
+  --rule: #d3d9d4;
+  --well: #eef1ee;
+  --proved: #1f6f45;
+  --ready: #245fa6;
+  --blocked: #8a9490;
+  --speculative: #6b4ea6;
+  --warn: #a86400;
+  --bad: #8c2f2f;
+  --serif: "Charter", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+html { background: var(--paper); color: var(--ink); font-family: var(--serif); font-size: 17px; line-height: 1.5; }
+body { margin: 0; }
+a { color: inherit; text-decoration-color: var(--rule); text-underline-offset: 3px; }
+a:hover, a:focus { text-decoration-color: var(--ink); }
+a:focus-visible { outline: 2px solid var(--ready); outline-offset: 2px; }
+code, pre { font-family: var(--mono); font-size: 0.92em; }
+main { max-width: 72ch; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+h1 { font-size: 1.9rem; line-height: 1.15; font-weight: 500; margin: 1.5rem 0 0.75rem; }
+h2 { font-size: 1.15rem; font-weight: 600; margin: 2.25rem 0 0.5rem; padding-top: 0.75rem; border-top: 1px solid var(--rule); }
+p { margin: 0.5rem 0 0.75rem; }
+.lead { font-size: 1.05rem; color: var(--ink); }
+.cue, .informal { color: var(--muted); }
+
+.masthead { display: flex; flex-wrap: wrap; gap: 0.75rem 2rem; align-items: baseline; max-width: 72ch; margin: 0 auto; padding: 1.25rem 1.25rem 0; border-bottom: 1px solid var(--rule); }
+.site-name { font-weight: 600; text-decoration: none; }
+.masthead nav { display: flex; flex-wrap: wrap; gap: 1.25rem; }
+.masthead nav a { text-decoration: none; color: var(--muted); }
+.masthead nav a:hover { color: var(--ink); }
+.crumbs { color: var(--muted); margin-top: 0.25rem; }
+.colophon { max-width: 72ch; margin: 0 auto; padding: 1rem 1.25rem 2rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: 0.9rem; }
+
+/* Lean is the object of record: large, monospace, a status-coloured edge on the node page. */
+pre.lean { background: var(--well); padding: 0.9rem 1rem; overflow-x: auto; white-space: pre; line-height: 1.45; margin: 0.75rem 0; }
+pre.lean.statement { font-size: 1.05rem; border-left: 5px solid var(--rule); }
+pre.statement.st-proved { border-left-color: var(--proved); }
+pre.statement.st-ready { border-left-color: var(--ready); }
+pre.statement.st-blocked { border-left-color: var(--blocked); }
+pre.statement.st-speculative { border-left-color: var(--speculative); }
+pre.statement.st-stale, pre.statement.st-disputed { border-left-color: var(--warn); }
+pre.statement.st-superseded, pre.statement.st-abandoned { border-left-color: var(--bad); }
+
+.status { white-space: nowrap; }
+.status .mark { display: inline-block; width: 0.7em; height: 0.7em; margin-right: 0.45em; vertical-align: -0.02em; background: var(--blocked); }
+.status-proved .mark, .dag .status-proved rect { background: var(--proved); fill: var(--proved); }
+.status-ready .mark, .dag .status-ready rect { background: var(--ready); fill: var(--ready); }
+.status-blocked .mark, .dag .status-blocked rect { background: var(--blocked); fill: var(--blocked); }
+.status-speculative .mark, .dag .status-speculative rect { background: var(--speculative); fill: var(--speculative); }
+.status-stale .mark, .status-disputed .mark, .dag .status-stale rect, .dag .status-disputed rect { background: var(--warn); fill: var(--warn); }
+.status-superseded .mark, .status-abandoned .mark, .dag .status-superseded rect, .dag .status-abandoned rect { background: var(--bad); fill: var(--bad); }
+.result-pass { color: var(--proved); }
+.result-fail { color: var(--bad); }
+.result-skipped { color: var(--muted); }
+.flag { border-left: 5px solid var(--warn); padding-left: 0.75rem; }
+
+table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 1rem; font-size: 0.95rem; }
+th, td { text-align: left; vertical-align: top; padding: 0.4rem 0.6rem 0.4rem 0; border-bottom: 1px solid var(--rule); }
+th { font-weight: 600; color: var(--muted); }
+.counts td.n { font-size: 1.6rem; font-variant-numeric: tabular-nums; width: 5ch; text-align: right; padding-right: 1rem; }
+dl.facts { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 1rem; margin: 0.5rem 0 1rem; }
+dl.facts dt { color: var(--muted); }
+dl.facts dd { margin: 0; overflow-wrap: anywhere; }
+.target-card { margin: 1.5rem 0 2rem; }
+.target-card h2 { border-top: 0; margin-top: 0; padding-top: 0; font-size: 1.3rem; }
+
+.dag-wrap { overflow-x: auto; padding: 0.5rem 0; }
+.dag { display: block; max-width: 100%; height: auto; }
+.dag rect { stroke: none; }
+.dag text { fill: #fff; font-family: var(--mono); font-size: 13px; }
+.dag .edge { stroke: var(--muted); stroke-width: 1.5; }
+.dag marker path { fill: var(--muted); }
+.dag a:focus-visible rect { stroke: var(--ink); stroke-width: 2; }
+
+/* Contributor prose: always inside a labelled block, below the checked object (R4). */
+.prose-block { margin: 0.75rem 0 1rem; border: 1px solid var(--rule); border-left-width: 5px; padding: 0.5rem 0.9rem; }
+.prose-block.unverified { border-left-color: var(--speculative); }
+.prose-block.untrusted { border-left-color: var(--warn); }
+.prose-block .label { color: var(--muted); font-size: 0.9rem; margin: 0.25rem 0 0.5rem; }
+pre.prose { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--serif); font-size: 1rem; margin: 0 0 0.5rem; }
+
+@media (max-width: 600px) {
+  html { font-size: 16px; }
+  dl.facts { grid-template-columns: 1fr; gap: 0.1rem 0; }
+  dl.facts dd { margin-bottom: 0.4rem; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

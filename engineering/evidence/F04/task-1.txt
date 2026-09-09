@@ -1,0 +1,12 @@
+# F04-T1 verification — $ uv run pytest site/tests/test_render.py site/tests/test_dag.py — 2026-09-09T05:51:31Z — screenshots: task-1-home.png, task-1-target.png, task-1-node.png (rendered fixture site served locally, Playwright, 1100px)
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+collected 13 items
+
+site/tests/test_render.py ..........                                     [ 76%]
+site/tests/test_dag.py ...                                               [100%]
+
+============================== 13 passed in 0.17s ==============================
+exit=0

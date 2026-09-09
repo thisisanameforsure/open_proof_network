@@ -104,16 +104,17 @@ D-19, D-23, D-25, D-27, D-28, D-33, D-35, D-36.</p>
   <tr><td>F04-Q2</td><td><strong>Prose renderer is deliberately tiny.</strong> Paragraphs and fenced code only; everything else is literal text. Correct and safe beats pretty at Stage 0.</td></tr>
   <tr><td>F04-Q3</td><td><strong>DAG layout</strong> is longest-path layering with nodes ordered lexically within a layer; no crossing minimization. Good enough for 20–100 nodes; revisit at Stage 2 scale.</td></tr>
   <tr><td>F04-Q4</td><td><strong>Docs page ships this repo's decisions doc</strong> copied at the site build's <code>network</code> commit, so the site can lag the doc by at most one merge.</td></tr>
+  <tr><td>F04-Q5</td><td><strong>Where the prose lives (T1, 2026-09-09).</strong> No decision fixes the file shapes of an explainer, an approach record or the D-32 note, so the renderer reads: the first file under <code>nodes/&lt;id&gt;/explainer/</code> as the explainer, with optional front matter (<code>author</code>, <code>model</code>, <code>date</code> between <code>---</code> lines) supplying R4's author and drafting model; every file under <code>annex/</code> as an annex; <code>targets/&lt;id&gt;/approaches/*</code> as approach records, listed by name and linked at the commit (their schema is F08's); <code>targets/&lt;id&gt;/note.md</code> as the D-32 note. Until T3 lands the prose renderer, all prose is shown escaped and preformatted inside its labelled block. The Targets page's informal statement (D-6) says explicitly that none is recorded until F11 seeds one. The graph repository URL the file links point into is config (<code>OPN_SITE_GRAPH_REPO_URL</code>, C6).</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> spec · <strong>Tasks:</strong> T1&ndash;T5 todo</div>
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1 &#10003; 2026-09-09 · T2&ndash;T5 todo (T4&ndash;T5 need the founder's AWS bootstrap, C8 item 5)</div>
 
 <h2>Tasks</h2>
 <table>
   <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
   <tr><td>F04-T1</td><td><strong>Renderer core.</strong> Model loading from checkout + products with validation; escaping helpers; templates; Home, Targets, Target (incl. DAG SVG), Node pages; golden tests.</td>
-    <td><code>site/opn_site/model.py</code>, <code>site/opn_site/render.py</code>, <code>site/opn_site/dag.py</code>, <code>site/opn_site/templates/</code>, <code>site/opn_site/static/site.css</code>, <code>site/tests/golden/</code>, <code>site/tests/test_render.py</code>, <code>site/tests/test_dag.py</code></td>
+    <td><code>site/opn_site/model.py</code>, <code>site/opn_site/render.py</code>, <code>site/opn_site/dag.py</code>, <code>site/opn_site/config.py</code>, <code>site/opn_site/cli.py</code>, <code>site/opn_site/templates/</code>, <code>site/opn_site/static/site.css</code>, <code>site/tests/fixture.py</code>, <code>site/tests/golden/</code>, <code>site/tests/test_render.py</code>, <code>site/tests/test_dag.py</code></td>
     <td>F03</td><td><code>uv run pytest site/tests/test_render.py site/tests/test_dag.py</code></td></tr>
   <tr><td>F04-T2</td><td><strong>Frontier, Contributors, Docs.</strong> Frontier table with same-origin filter script; contributors from ledger files or the empty-state line; docs bundle.</td>
     <td><code>site/opn_site/render.py</code>, <code>site/opn_site/static/frontier.js</code>, <code>site/tests/test_render.py</code></td>
