@@ -46,6 +46,25 @@ def check_waiver(doc: dict[str, Any], approval_bodies: Sequence[str]) -> Diagnos
     )
 
 
+_BOT_MESSAGE_RE = re.compile(r"^gate: #(?P<n>\d+) (?P<verdict>pass|fail)$")
+PRODUCT_FILES: tuple[str, ...] = ("frontier.json", "info.json", "targets/index.json")
+
+
+def bot_commit_message(pr_number: int, verdict: str) -> str:
+    """F03-R12: the one bot commit carrying the attestation and every product."""
+    if verdict not in ("pass", "fail"):
+        msg = f"a bot commit records pass or fail, not {verdict!r}"
+        raise ValueError(msg)
+    return f"gate: #{attestation_id(pr_number).lstrip('0') or '0'} {verdict}"
+
+
+def parse_bot_commit_message(message: str) -> tuple[int, str] | None:
+    """The (pr, verdict) a bot commit's first line names, or ``None`` for any other commit."""
+    first = message.splitlines()[0] if message else ""
+    m = _BOT_MESSAGE_RE.match(first)
+    return (int(m.group("n")), m.group("verdict")) if m else None
+
+
 def attestation_id(pr_number: int) -> str:
     """Q8: the merged PR number, zero-padded, unique per graph repo and human-readable."""
     if pr_number <= 0:

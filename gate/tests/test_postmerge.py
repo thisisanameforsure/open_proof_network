@@ -34,6 +34,17 @@ def test_attestation_id_is_zero_padded() -> None:
         postmerge.attestation_id(0)
 
 
+def test_bot_commit_message_round_trips() -> None:
+    """F03-R12: `gate: <pr> <verdict>`."""
+    assert postmerge.bot_commit_message(2, "pass") == "gate: #2 pass"
+    assert postmerge.bot_commit_message(120, "fail") == "gate: #120 fail"
+    assert postmerge.parse_bot_commit_message("gate: #2 pass\n\nbody") == (2, "pass")
+    assert postmerge.parse_bot_commit_message("attestation: PR #2 (tutorial-and-swap)") is None
+    with pytest.raises(ValueError, match="pass or fail"):
+        postmerge.bot_commit_message(2, "bounced")
+    assert postmerge.pr_number_from_message("gate: #2 pass") is None  # not a merge commit
+
+
 def test_pr_number_from_message() -> None:
     assert postmerge.pr_number_from_message("Merge pull request #12 from x/y\n\nbody") == 12
     assert postmerge.pr_number_from_message("Prove tutorial-and-swap (#34)") == 34

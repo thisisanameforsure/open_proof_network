@@ -1,0 +1,81 @@
+# F03-T5 verification — $ uv run python gate/tools/check_products.py <commit> — 2026-09-09T05:43:17Z
+# The bot commit is simulated: a clone of ../open_proof_network_graph reset to merge commit 6452ef8 (PR #2), the signed attestation 000002.json copied in as the sign step leaves it, `opn-gate products --commit 6452ef8` run as gate.yml now does, and everything committed as `gate: #2 pass` (7d70180 in the clone). AC13's evidence from a real merge needs the re-pinned graph pushed and a proof merged; pending.
+
+$ check_products.py 7d70180 --graph <clone>
+commit 7d70180312d5: gate: #2 pass
+frontier.json: 0 entries, rendered from 6452ef80d4f1f47175cfba448d382deebfb7f3d8
+{"commit": "7d70180312d59c916c004f240b56f1c9a1c570c7", "ok": true, "problems": []}
+exit=0
+
+$ check_products.py 6452ef8 --graph <clone>   # the merge commit itself is not a bot commit: must fail
+commit 6452ef80d4f1: Merge pull request #2 from thisisanameforsure/prove-tutorial
+PROBLEM: commit message is not `gate: #<pr> <verdict>`: 'Merge pull request #2 from thisisanameforsure/prove-tutorial'
+PROBLEM: no attestation in the commit
+PROBLEM: frontier.json not touched by the commit
+PROBLEM: frontier.json missing from the tree
+PROBLEM: info.json not touched by the commit
+PROBLEM: info.json missing from the tree
+PROBLEM: targets/index.json not touched by the commit
+PROBLEM: targets/index.json missing from the tree
+PROBLEM: targets/tutorial/graph.json not touched by the commit
+PROBLEM: targets/tutorial/graph.json missing from the tree
+{"commit": "6452ef80d4f1f47175cfba448d382deebfb7f3d8", "ok": false, "problems": ["commit message is not `gate: #<pr> <verdict>`: 'Merge pull request #2 from thisisanameforsure/prove-tutorial'", "no attestation in the commit", "frontier.json not touched by the commit", "frontier.json missing from the tree", "info.json not touched by the commit", "info.json missing from the tree", "targets/index.json not touched by the commit", "targets/index.json missing from the tree", "targets/tutorial/graph.json not touched by the commit", "targets/tutorial/graph.json missing from the tree"]}
+exit=1
+
+--- the simulated bot commit
+7d70180312d59c916c004f240b56f1c9a1c570c7 gate: #2 pass
+
+ attestations/000002.json                           | 63 ++++++++++++++++++++++
+ frontier.json                                      |  5 ++
+ info.json                                          | 50 +++++++++++++++++
+ targets/index.json                                 | 25 +++++++++
+ targets/tutorial/graph.json                        | 19 +++++++
+ targets/tutorial/nodes/tutorial-and-swap/META.yaml |  2 +-
+ 6 files changed, 163 insertions(+), 1 deletion(-)
+
+--- targets/tutorial/graph.json
+{
+  "nodes": [
+    {
+      "deps": [],
+      "node_id": "tutorial-and-swap",
+      "origin": "authored",
+      "proof_commit": "6452ef80d4f1f47175cfba448d382deebfb7f3d8",
+      "relation": null,
+      "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+      "status": "proved",
+      "trust_base": "kernel",
+      "tutorial": true
+    }
+  ],
+  "rendered_from": "6452ef80d4f1f47175cfba448d382deebfb7f3d8",
+  "root": "tutorial-and-swap",
+  "schema": "graph/v1",
+  "target_id": "tutorial"
+}
+--- targets/index.json
+{
+  "rendered_from": "6452ef80d4f1f47175cfba448d382deebfb7f3d8",
+  "schema": "targets-index/v1",
+  "targets": [
+    {
+      "claimable": true,
+      "fidelity": "mechanical-only",
+      "mathlib_sha": null,
+      "node_counts": {
+        "abandoned": 0,
+        "blocked": 0,
+        "disputed": 0,
+        "proved": 1,
+        "ready": 0,
+        "speculative": 0,
+        "stale": 0,
+        "superseded": 0
+      },
+      "root": "tutorial-and-swap",
+      "root_statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+      "status": "resolved",
+      "target_id": "tutorial"
+    }
+  ]
+}

@@ -73,3 +73,7 @@ The law of the project:
   witness shape and the live tutorial node still had F00's, so the F02 re-pin had to fix
   `Witness.lean` too (D-35 seeded-node exception). Run `pregate.sh` on the live graph after every
   re-pin and keep the output as evidence.
+- 2026-09-09 — A *network*-tier acceptance criterion (a real merge on the graph, F03-AC13) cannot
+  be met in an unattended session: pushing the graph is the owner's act. Simulate the bot commit
+  on a local clone, capture that, and leave the task marked "code complete, evidence pending"
+  rather than tagging the feature done.
