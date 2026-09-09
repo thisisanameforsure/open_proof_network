@@ -52,7 +52,13 @@ table{border-collapse:collapse;font-size:15px;width:100%}
 th,td{border-bottom:1px solid var(--hair);padding:8px 12px 8px 0;text-align:left;vertical-align:top}
 th{font-weight:600;font-size:13.5px;color:var(--ink-soft);border-bottom:2px solid var(--ink)}
 td code,th code{font-size:.9em}
-td.num{font-family:var(--mono);font-size:13.5px;white-space:nowrap}
+/* Numeric cells: monospace, but they must still wrap — a fixed-layout table
+   cannot absorb a nowrap run, and these cells carry multi-value lines. */
+td.num{font-family:var(--mono);font-size:13.5px;line-height:1.45}
+/* Four-column data tables: fix the measure so the label column does not
+   collapse to two or three words per line. */
+table.cols{table-layout:fixed}
+table.cols td,table.cols th{padding-right:20px}
 ul,ol{padding-left:1.4em}
 li{margin:.35em 0}
 li::marker{color:var(--ink-soft)}
@@ -150,7 +156,8 @@ footer .in{max-width:1180px;margin:0 auto}
 
 <p><strong>A Lean statement that compiles is roughly three-quarters likely to mean what was intended, and more sampling does not help.</strong> <span class="cf cf-hi">high</span> Five independent groups report the same gap between compilation rate and semantic faithfulness, measured on different benchmarks with different judges.</p>
 
-<div class="tw"><table>
+<div class="tw"><table class="cols">
+<colgroup><col style="width:52%"><col style="width:16%"><col style="width:16%"><col style="width:16%"></colgroup>
 <thead><tr><th>System and benchmark</th><th>Compiles</th><th>Faithful</th><th>Gap</th></tr></thead>
 <tbody>
 <tr><td>Aria — ProofNet</td><td class="num">91.6%</td><td class="num">68.5%</td><td class="num">23.1 pp</td></tr>
@@ -178,7 +185,8 @@ footer .in{max-width:1180px;margin:0 auto}
 
 <p><strong>The winning architecture is retrieval-augmented and compiler-in-the-loop: look up the Mathlib definitions of the concepts in play, generate, compile, read the error, revise.</strong> <span class="cf">medium</span> This is not a modelling insight so much as a plumbing one, and it transfers across base models.</p>
 
-<div class="tw"><table>
+<div class="tw"><table class="cols">
+<colgroup><col style="width:15%"><col style="width:27%"><col style="width:37%"><col style="width:21%"></colgroup>
 <thead><tr><th>System</th><th>Approach</th><th>Reported result</th><th>Status</th></tr></thead>
 <tbody>
 <tr><td><strong>Aria</strong></td><td>Graph-of-Thought planner, LeanSearch Mathlib retrieval, compiler reflection</td><td class="num">68.5% ProofNet · 71.0% FATE-H · 44.0% FATE-X · 6/14 real homological conjectures</td><td>ICLR 2026, peer-reviewed</td></tr>
@@ -195,7 +203,8 @@ footer .in{max-width:1180px;margin:0 auto}
 
 <p>Four distinct approaches exist for deciding whether a Lean statement faithfully renders an informal one. They differ in soundness, in what they need as input, and in how badly they fail.</p>
 
-<div class="tw"><table>
+<div class="tw"><table class="cols">
+<colgroup><col style="width:23%"><col style="width:31%"><col style="width:16%"><col style="width:30%"></colgroup>
 <thead><tr><th>Family</th><th>Reliability</th><th>Needs</th><th>Fails by</th></tr></thead>
 <tbody>
 <tr><td><strong>Back-translation + LLM judge</strong><br>Lean → informal → compare</td><td class="num">~⅓ false positives<br>13.5% recall on research-level<br>F1 0.66 on DriftBench</td><td>nothing</td><td>passing wrong statements on easy material; rejecting correct rephrasings on hard material</td></tr>
@@ -244,7 +253,8 @@ footer .in{max-width:1180px;margin:0 auto}
 
 <p>Mapping the new evidence onto the defect taxonomy already fixed by <a class="dref" href="architecture_decisions_v_3_11.html#d-11">D-11</a> and <a class="dref" href="architecture_decisions_v_3_11.html#d-16">D-16</a>. The taxonomy needs no change; what follows is which detector covers which row, and where the coverage is empty.</p>
 
-<div class="tw"><table>
+<div class="tw"><table class="cols">
+<colgroup><col style="width:21%"><col style="width:14%"><col style="width:35%"><col style="width:30%"></colgroup>
 <thead><tr><th>Class</th><th>Kernel / elaborator</th><th>Best mechanical detector</th><th>Residual</th></tr></thead>
 <tbody>
 <tr><td><strong>Missing hypothesis</strong></td><td>blind</td><td>proved equivalence against a second formalization; grounded judge</td><td>high without a reference</td></tr>
@@ -339,7 +349,8 @@ footer .in{max-width:1180px;margin:0 auto}
 
 <p>Twenty sources were fetched and read; those carrying surviving claims are listed. Peer-review status is marked because §7 turns on it.</p>
 
-<div class="tw"><table>
+<div class="tw"><table class="cols">
+<colgroup><col style="width:40%"><col style="width:24%"><col style="width:36%"></colgroup>
 <thead><tr><th>Source</th><th>Status</th><th>Carries</th></tr></thead>
 <tbody>
 <tr><td><a href="https://arxiv.org/abs/2510.04520">Aria — arXiv 2510.04520</a></td><td>ICLR 2026</td><td>§1, §2, §3 grounded judging</td></tr>
