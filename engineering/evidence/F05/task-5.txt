@@ -1,20 +1,21 @@
-F05-T5 (in progress) — 2026-09-09T12:43:00Z
+F05-T5 — deployed reads (AC19, three of four clauses) — 2026-09-09T16:52:16Z
 
-The stack is deployed and the function runs. AC19's claim round trip needs the four GitHub
-App parameters, which only the founder can create (his account, C8 item 3). What the live
-service reports meanwhile is exactly R13 / AC17 on real infrastructure:
+Stack opn-api, us-east-1, live at https://api.openproofnetwork.org with the GitHub App
+parameters in place (C8 item 3). api-deploy run:
+  conclusion=success run=34379250602 sha=4477241
 
-$ gh run list --workflow=api-deploy.yml
-conclusion=success run=34352554317 sha=ffa5f45 at=2026-09-09T12:42:06Z
+$ uv run python api/tools/smoke.py https://api.openproofnetwork.org --read-only
+GET /health -> 200 {'ok': True, 'store': 'dynamodb'}
+GET /info.json -> 200, protocol 3.11, policy {'writes_per_hour': 120, 'active_claims': 20, 'tokens_per_github_login': 1, 'token_starts_per_address_per_day': 10, 'claim_ttl_hours': {'min': 1, 'max': 168}}
+GET /frontier.json -> 200, 0 entries
+GET /claims.json -> 200, 0 nodes with claims
+smoke: ok
+exit=0
 
-$ uv run python api/tools/smoke.py https://jsvywya6ik.execute-api.us-east-1.amazonaws.com --read-only
-PROBLEM: health is 503 {'ok': False, 'missing': ['OPN_API_GITHUB_APP_ID', 'OPN_API_GITHUB_CLIENT_ID', 'OPN_API_GITHUB_CLIENT_SECRET', 'OPN_API_GITHUB_PRIVATE_KEY']}
-GET /health -> 503 {'ok': False, 'missing': ['OPN_API_GITHUB_APP_ID', 'OPN_API_GITHUB_CLIENT_ID', 'OPN_API_GITHUB_CLIENT_SECRET', 'OPN_API_GITHUB_PRIVATE_KEY']}
-smoke: 1 problem(s)
-exit=1 (expected until the App exists)
+The fourth clause, the claim round trip, cannot run yet: the graph's only node
+(tutorial-and-swap) is proved, so the frontier is legitimately empty and nothing is
+claimable. The service is serving the committed file faithfully — see below — so this
+is graph content, not a defect in F05.
 
-Still to do for AC19:
-  1. the founder creates the GitHub App (api/infra/README.md) with callback
-     https://jsvywya6ik.execute-api.us-east-1.amazonaws.com/auth/github/callback
-  2. its app id, client id, client secret and private key go to /opn/api/ as SecureStrings
-  3. re-run this script without --read-only and with a token from the browser flow
+$ diff <(committed frontier.json at main) <(served /frontier.json)
+  (identical: no claims to overlay)
