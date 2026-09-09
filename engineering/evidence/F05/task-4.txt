@@ -1,0 +1,35 @@
+F05-T4 verification — 2026-09-09T12:41:46Z
+
+$ aws cloudformation validate-template --template-body file://api/infra/api.cfn.yaml
+{
+    "Capabilities": [
+        "CAPABILITY_NAMED_IAM"
+    ],
+    "Description": "Open Proof Network protocol service (F05-R12; D-35): one Lambda function behind an HTTP API, three on-demand DynamoDB tables (identities, tokens, claims), the Parameter Store paths its secrets live in (C8 item 3), an execution role limited to exactly those tables and parameters, and a deploy role assumable only by this repository's api-deploy workflow through GitHub OIDC (C8 item 4). The stack is bootstrapped once by the founder (C8 item 5); every later deploy assumes the role from CI. The service holds no authority (D-35) and its tables are operational state (C9) ? losing them is an outage, never a dispute."
+}
+
+$ aws cloudformation deploy --stack-name opn-api  (bootstrapped once from the founder credentials, C8 item 5)
+opn-api	CREATE_COMPLETE
+
+Stack outputs:
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+|                                                                            DescribeStacks                                                                            |
++------------------------------------------------------------------------+----------------------+----------------------------------------------------------------------+
+|                               Description                              |      OutputKey       |                             OutputValue                              |
++------------------------------------------------------------------------+----------------------+----------------------------------------------------------------------+
+|                                                                        |  FunctionName        |  opn-api-api                                                         |
+|                                                                        |  DeployRoleArn       |  arn:aws:iam::066708640882:role/opn-api-deploy                       |
+|                                                                        |  TokensTableName     |  opn-api-TokensTable-1IQF0WY5W0W3G                                   |
+|  the service's origin (no custom domain exists at Stage 0)             |  ApiUrl              |  https://jsvywya6ik.execute-api.us-east-1.amazonaws.com              |
+|                                                                        |  ClaimsTableName     |  opn-api-ClaimsTable-18ZT4A3J8VXUC                                   |
+|                                                                        |  IdentitiesTableName |  opn-api-IdentitiesTable-SJ1V0J2XFRYX                                |
+|  what the graph's post-merge job reads as OPN_API_CLAIMS_URL (F05-R10) |  ClaimsUrl           |  https://jsvywya6ik.execute-api.us-east-1.amazonaws.com/claims.json  |
+|                                                                        |  ParameterPrefix     |  /opn/api/                                                           |
++------------------------------------------------------------------------+----------------------+----------------------------------------------------------------------+
+
+Parameter Store under /opn/api/ (values never printed, C8):
+-------------------------------------------
+|           GetParametersByPath           |
++------------------------+----------------+
+|  /opn/api/token-secret |  SecureString  |
++------------------------+----------------+

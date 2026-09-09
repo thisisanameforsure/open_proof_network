@@ -1,0 +1,93 @@
+# Package and deploy the api function (F05-R12; D-35). Runs on every push to main that touches
+# api/, gate/schemas/ (the function validates against them) or this workflow, and by hand.
+# Credentials: none stored — the workflow assumes the stack's deploy role through GitHub OIDC
+# (C8 item 4), and that role may update the function's code and nothing else. A failed package
+# or update leaves the running function untouched (C7).
+name: api-deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "api/**"
+      - "gate/opn_gate/schemas.py"
+      - "gate/schemas/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/api-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: api-deploy
+  cancel-in-progress: false
+
+env:
+  UV_VERSION: "0.12.10"
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          version: ${{ env.UV_VERSION }}
+
+      - name: Build the deployment package
+        run: |
+          set -euo pipefail
+          mkdir -p build/package
+          # Runtime dependencies for the Lambda runtime's platform, then the two packages the
+          # function imports: opn_api, and opn_gate for the protocol schemas (D-34).
+          uv export --frozen --no-dev --no-emit-project --format requirements.txt > build/requirements.txt
+          uv pip install \
+            --python-platform aarch64-manylinux2014 \
+            --python-version "${{ env.PYTHON_VERSION }}" \
+            --only-binary=:all: \
+            --target build/package \
+            -r build/requirements.txt
+          cp -R api/opn_api build/package/
+          cp -R gate/opn_gate build/package/
+          find build/package -name '__pycache__' -type d -prune -exec rm -rf {} +
+          find build/package -name '*.dist-info' -type d -prune -exec rm -rf {} +
+          (cd build/package && zip -qr ../function.zip .)
+          ls -l build/function.zip
+
+      - name: Check the package imports the handler
+        run: |
+          set -euo pipefail
+          PYTHONPATH=build/package python3 - <<'PY'
+          import importlib.util, sys
+          for module in ("opn_api.app", "opn_api.routes", "opn_gate.schemas"):
+              assert importlib.util.find_spec(module), module
+          print("package carries", *sys.argv[1:], "opn_api and opn_gate")
+          PY
+
+      - name: Assume the deploy role (OIDC, no stored key)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.OPN_API_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.OPN_AWS_REGION }}
+
+      - name: Update the function's code
+        run: |
+          set -euo pipefail
+          aws lambda update-function-code \
+            --function-name "${{ vars.OPN_API_FUNCTION_NAME }}" \
+            --zip-file fileb://build/function.zip \
+            --publish >/dev/null
+          aws lambda wait function-updated \
+            --function-name "${{ vars.OPN_API_FUNCTION_NAME }}"
+          echo "deployed ${GITHUB_SHA} to ${{ vars.OPN_API_URL }}"
+
+      - name: Smoke the deployed service
+        run: |
+          set -euo pipefail
+          uv run --frozen python api/tools/smoke.py "${{ vars.OPN_API_URL }}" \
+            --read-only --allow-unconfigured

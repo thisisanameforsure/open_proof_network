@@ -1,0 +1,276 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Open Proof Network protocol service (F05-R12; D-35): one Lambda function behind an HTTP API,
+  three on-demand DynamoDB tables (identities, tokens, claims), the Parameter Store paths its
+  secrets live in (C8 item 3), an execution role limited to exactly those tables and parameters,
+  and a deploy role assumable only by this repository's api-deploy workflow through GitHub OIDC
+  (C8 item 4). The stack is bootstrapped once by the founder (C8 item 5); every later deploy
+  assumes the role from CI. The service holds no authority (D-35) and its tables are operational
+  state (C9) — losing them is an outage, never a dispute.
+
+Parameters:
+  GitHubRepository:
+    Type: String
+    Default: thisisanameforsure/open_proof_network
+    Description: owner/name of the network repository whose api-deploy workflow may deploy
+  GitHubOwnerId:
+    Type: Number
+    Default: 3485173
+    Description: the owner's numeric GitHub id (the sub claim is owner@id/repo@id; ids survive renames)
+  GitHubRepositoryId:
+    Type: Number
+    Default: 1360351029
+    Description: the network repository's numeric GitHub id
+  GitHubBranch:
+    Type: String
+    Default: main
+    Description: the branch the deploying workflow must run from
+  CreateOidcProvider:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: create the token.actions.githubusercontent.com provider (the site stack made one)
+  ParameterPrefix:
+    Type: String
+    Default: /opn/api/
+    Description: Parameter Store path the function reads its secrets from (C8 item 3)
+  GraphRepository:
+    Type: String
+    Default: thisisanameforsure/open_proof_network_graph
+    Description: the graph whose committed frontier.json the claim routes read (D-35)
+  LogRetentionDays:
+    Type: Number
+    Default: 30
+    Description: how long the function's CloudWatch logs are kept (they carry no token, C8)
+
+Conditions:
+  MakeProvider: !Equals [!Ref CreateOidcProvider, "true"]
+
+Resources:
+  IdentitiesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  TokensTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: key
+          AttributeType: S
+      KeySchema:
+        - AttributeName: key
+          KeyType: HASH
+      # State nonces, identity proofs and rate counters carry expires_at and vanish on their own.
+      TimeToLiveSpecification:
+        AttributeName: expires_at
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  ClaimsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+
+  FunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-api"
+      RetentionInDays: !Ref LogRetentionDays
+
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: the api function; nothing beyond its three tables and its parameters (C8)
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: logs
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub "${FunctionLogGroup.Arn}:*"
+        - PolicyName: tables
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Scan
+                  - dynamodb:Query
+                  - dynamodb:DescribeTable
+                  - dynamodb:TransactWriteItems
+                Resource:
+                  - !GetAtt IdentitiesTable.Arn
+                  - !GetAtt TokensTable.Arn
+                  - !GetAtt ClaimsTable.Arn
+        - PolicyName: parameters
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [ssm:GetParametersByPath, ssm:GetParameter, ssm:GetParameters]
+                Resource: !Sub
+                  - "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${Path}*"
+                  - Path: !Ref ParameterPrefix
+
+  Function:
+    Type: AWS::Lambda::Function
+    DependsOn: FunctionLogGroup
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-api"
+      Description: the Open Proof Network protocol service (D-35); no authority of its own
+      Runtime: python3.13
+      Architectures: [arm64]
+      Handler: opn_api.lambda_handler.handler
+      Role: !GetAtt ExecutionRole.Arn
+      MemorySize: 512
+      Timeout: 15
+      Code:
+        # Replaced on the first api-deploy run; this placeholder only lets the stack create.
+        ZipFile: |
+          def handler(event, context):
+              return {"statusCode": 503, "body": '{"error":"not-deployed"}'}
+      Environment:
+        Variables:
+          OPN_API_STORE: dynamodb
+          OPN_API_TABLE_IDENTITIES: !Ref IdentitiesTable
+          OPN_API_TABLE_TOKENS: !Ref TokensTable
+          OPN_API_TABLE_CLAIMS: !Ref ClaimsTable
+          OPN_API_PARAMETER_PREFIX: !Ref ParameterPrefix
+          OPN_API_GRAPH_REPO: !Ref GraphRepository
+          OPN_API_PUBLIC_URL: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub "${AWS::StackName}-http"
+      Description: the plain HTTP path of D-28's tool surface; reads unauthenticated, writes bearer
+      ProtocolType: HTTP
+
+  Integration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt Function.Arn
+      PayloadFormatVersion: "2.0"
+
+  DefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: $default
+      Target: !Sub "integrations/${Integration}"
+
+  Stage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HttpApi
+      StageName: $default
+      AutoDeploy: true
+
+  InvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref Function
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*"
+
+  GitHubOidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: MakeProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList: [sts.amazonaws.com]
+      ThumbprintList: [6938fd4d98bab03faadb97b34396831e3780aea1]
+
+  DeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-deploy"
+      Description: assumed only by the network repo's api-deploy workflow (C8 item 4)
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If
+                - MakeProvider
+                - !Ref GitHubOidcProvider
+                - !Sub "arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com"
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub
+                  - "repo:${Owner}@${GitHubOwnerId}/${Repo}@${GitHubRepositoryId}:ref:refs/heads/${GitHubBranch}"
+                  - Owner: !Select [0, !Split ["/", !Ref GitHubRepository]]
+                    Repo: !Select [1, !Split ["/", !Ref GitHubRepository]]
+      Policies:
+        - PolicyName: deploy-function
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # The code only. No permission over the tables, the parameters or any other role.
+              - Effect: Allow
+                Action:
+                  - lambda:UpdateFunctionCode
+                  - lambda:GetFunction
+                  - lambda:GetFunctionConfiguration
+                  - lambda:PublishVersion
+                Resource: !GetAtt Function.Arn
+
+Outputs:
+  ApiUrl:
+    Description: the service's origin (no custom domain exists at Stage 0)
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+  ClaimsUrl:
+    Description: what the graph's post-merge job reads as OPN_API_CLAIMS_URL (F05-R10)
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/claims.json"
+  FunctionName:
+    Value: !Ref Function
+  DeployRoleArn:
+    Value: !GetAtt DeployRole.Arn
+  ParameterPrefix:
+    Value: !Ref ParameterPrefix
+  IdentitiesTableName:
+    Value: !Ref IdentitiesTable
+  TokensTableName:
+    Value: !Ref TokensTable
+  ClaimsTableName:
+    Value: !Ref ClaimsTable
