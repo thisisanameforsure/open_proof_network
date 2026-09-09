@@ -77,3 +77,6 @@ The law of the project:
   be met in an unattended session: pushing the graph is the owner's act. Simulate the bot commit
   on a local clone, capture that, and leave the task marked "code complete, evidence pending"
   rather than tagging the feature done.
+- 2026-09-09 — GitHub's OIDC `sub` claim is now `repo:owner@<id>/name@<id>:ref:...`, so an
+  exact-match trust policy on `repo:owner/name:ref:...` is denied. Print the claims from the
+  workflow before guessing; pin the trust policy to the numeric ids (they survive renames).

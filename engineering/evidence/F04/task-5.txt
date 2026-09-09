@@ -1,0 +1,16 @@
+# F04-T5 verification — $ uv run python site/tools/check_deploy.py d2ogra7ock59zj.cloudfront.net — 2026-09-09T08:25:59Z — site-deploy run 34328986272 green (https://github.com/thisisanameforsure/open_proof_network/actions/runs/34328986272); screenshots task-5-home.png, task-5-target.png, task-5-node.png from the live hostname
+
+GET / -> 200
+rendered-from.txt: bebfa6a2c4329eb64806f7152c299bdcd467d499
+graph origin/main: bebfa6a2c4329eb64806f7152c299bdcd467d499
+GET /targets/ -> 200
+GET /frontier/ -> 200
+GET /targets/tutorial/ -> 200
+GET /nodes/tutorial/tutorial-and-swap/ -> 200
+{"hostname": "d2ogra7ock59zj.cloudfront.net", "commit": "bebfa6a2c4329eb64806f7152c299bdcd467d499", "ok": true}
+exit=0
+
+$ curl -sI https://d2ogra7ock59zj.cloudfront.net/ | grep -i -E 'content-security|x-frame|strict-transport'
+x-frame-options: DENY
+content-security-policy: default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'
+strict-transport-security: max-age=31536000; includeSubDomains

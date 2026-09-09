@@ -11,6 +11,14 @@ Parameters:
     Type: String
     Default: thisisanameforsure/open_proof_network
     Description: owner/name of the network repository whose site-deploy workflow may deploy
+  GitHubOwnerId:
+    Type: Number
+    Default: 3485173
+    Description: the owner's numeric GitHub id (the sub claim is owner@id/repo@id; ids survive renames)
+  GitHubRepositoryId:
+    Type: Number
+    Default: 1360351029
+    Description: the network repository's numeric GitHub id
   GitHubBranch:
     Type: String
     Default: main
@@ -209,7 +217,10 @@ Resources:
             Condition:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubRepository}:ref:refs/heads/${GitHubBranch}"
+                token.actions.githubusercontent.com:sub: !Sub
+                  - "repo:${Owner}@${GitHubOwnerId}/${Repo}@${GitHubRepositoryId}:ref:refs/heads/${GitHubBranch}"
+                  - Owner: !Select [0, !Split ["/", !Ref GitHubRepository]]
+                    Repo: !Select [1, !Split ["/", !Ref GitHubRepository]]
       Policies:
         - PolicyName: deploy-site
           PolicyDocument:
