@@ -6,7 +6,7 @@ is written from, plus the two things it changes outside the architecture documen
 
 Source documents this rests on:
 
-- `docs/architecture_decisions_v_3_11.html` — D-3 (node layout), D-12 (five artifacts), D-25
+- `docs/architecture_decisions_v_3_12.html` — D-3 (node layout), D-12 (five artifacts), D-25
   (frontier fields), D-28 (tool surface), D-29 (emergent decomposition), D-31 (skeletons), D-34
   (schemas versioned, never edited).
 - `engineering/specs/features/F07.html` — R6 and AC8, which already carry the mechanism and only
@@ -73,22 +73,27 @@ prose would leave a schema value no code could ever set.
    writing `meta/v2` and keeps its three-valued `Origin` literal. Widening both belongs to F07-T4,
    which is the task that creates children from partials and is blocked on F08-T1.
 
-7. **The D-9 amendment does not ride along; it becomes v3.13.** The F12 session note (2026-09-09,
-   item 5) planned the `screened and signed` rung for v3.12. Batching looked cheap until the cost
-   was checked: `back-translated` is an enum value in `target-status/v1.json` and
-   `targets-index/v1.json`, both hash-pinned, so renaming the rung forces two more schema versions
-   plus their fixtures, goldens, and five rows in the F11 spec — for a feature that has not
-   started. It rides with F11 instead, and that note's order of work is renumbered to v3.13 in the
-   same commit so the two records do not disagree.
+7. **This rides in v3.12 alongside the D-9 rung, which a parallel session landed first.**
+   *Corrected 2026-09-10, after the fact.* This note was first written planning to defer the D-9
+   amendment to v3.13, because renaming its second rung forces new versions of two hash-pinned
+   schemas — `target-status/v1.json` and `targets-index/v1.json` — plus their fixtures, goldens
+   and five rows in F11. While that was being planned, another session landed `db9fd5c`, which
+   renamed the document to v3.12, made the rung `screened-and-signed`, and deferred exactly that
+   schema bump to F11 under F11-Q6, *"the rung rename is a schema bump, not an edit"*. Same
+   reasoning, applied one layer down. So the origin change folds into the same v3.12: that version
+   is unpushed, no `gate-spec.json` pins it, and the live graph's `info.json` still reads `3.11`,
+   so nothing outside this laptop has seen it. A v3.13 whose only content is one enum value would
+   buy a second rename and a second golden regeneration for no reader.
 
 ## What this does not do, and what it leaves for others
 
-- **F08-Q2 becomes wrong in its reasoning and stays right in its conclusion.** It justifies making
-  `speculative` a status record rather than an origin *"since D-3's origin set has no fourth
-  value"*, and `gate/opn_gate/scaffold.py` repeats that reasoning in a docstring. D-3 now has a
-  fourth value, but it is `skeleton-hole`, not `speculative`, so the conclusion holds and only the
-  justification needs rewording. `F08.html` and `scaffold.py` were both uncommitted work in the
-  tree when this landed, so **neither was touched**. Whoever lands F08-T1 should reword both.
+- **F08-Q2 was wrong in its reasoning and right in its conclusion, and is reworded here.** It
+  justified making `speculative` a status record rather than an origin *"since D-3's origin set
+  has no fourth value"*, and `gate/opn_gate/scaffold.py` repeated that reasoning in a docstring.
+  D-3 now has a fourth value, but it is `skeleton-hole`, not `speculative`, so the conclusion
+  holds and only the justification needed fixing. Both were uncommitted when this work started and
+  had landed as `c9e1e5d` by the time it was written, so both are corrected in the same commit —
+  this change is what made them stale, so repairing them is not a drive-by.
 
 - **The graph repository's `README.md` still points at `docs/architecture_decisions_v_3_10.html`**,
   stale since before this change. AGENTS.md limits build work in that repository to the files D-35
@@ -103,9 +108,9 @@ prose would leave a schema value no code could ever set.
 
 ## Order of work
 
-1. Rename `docs/architecture_decisions_v_3_11.html` to `..._v_3_12.html`, make the five marked
-   edits (D-3, D-12, D-28, D-31, and D-9's scope-exemption bullet), and follow the rename through
-   every reference, `PROTOCOL_VERSION`, the goldens and the api fixture.
+1. Make the five marked edits in `docs/architecture_decisions_v_3_12.html` — D-3, D-12, D-28,
+   D-31, and D-9's scope-exemption bullet — and widen the v3.12 masthead clause to name them. The
+   rename and its blast radius, `PROTOCOL_VERSION` included, already landed with `db9fd5c`.
 2. Add `gate/schemas/meta/v3.json` with the four-value enum, pin it in `HASHES`, accept it in
    `layout.META_SCHEMAS`, and amend F07-R6, F07-AC8 and F11-R8 to name `skeleton-hole`, recording
    the call as F07-Q13.
