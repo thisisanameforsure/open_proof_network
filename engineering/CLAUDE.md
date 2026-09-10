@@ -134,4 +134,22 @@ The law of the project:
   was deleted again. Do this before declaring a seam done, and clean up what it leaves.
 - 2026-09-10 — Do not push when pushing deploys and the deploy is half-blocked. Leaving six
   commits local was the right answer: the permission and the deploy belong in one sitting.
-
+- 2026-09-10 — Read the shape from the toolchain, not from memory: `have h : T := sorry` is an
+  `Expr.letE` in Lean 4.33, and a theorem's proof term needs `value? (allowOpaque := true)` —
+  without it hole extraction silently reports *no holes*, which is the one answer a partial proof
+  must never get. Both found by driving a two-hole fixture and looking at the number.
+- 2026-09-10 — Lean imports once per process. A second `processHeader` in one run returns an
+  environment with no parser extensions, so the second file loses `∧` and `¬` and fails with
+  "expected token". A metaprogram over two or three files synthesises one header from the union
+  of their imports (`unionHeaderEnv`) — which also lets a partial proof declare the statement's
+  own name without colliding with it.
+- 2026-09-10 — A criterion can be met by making the thing it describes impossible. F08-AC5 asks
+  about a variant labelled `partial` with no `Relation.lean`; F03 had already put the label
+  inside that file, so the node cannot exist. Say so in a judgment call and test the two places
+  the impossibility is enforced — do not bend the design to make the literal words testable.
+- 2026-09-10 — Assert what the API actually lets you control. R2 wants the App as committer;
+  the Git Data API fills the committer from the token, so the test asserts the author that *is*
+  sent and that no committer field is sent at all. Omission is the enforcement.
+- 2026-09-10 — Two features can each be the other's dependency and still be buildable: F07-T4
+  needs F08-T1, F08 needs F07 for everything else. Take the one task that breaks the cycle rather
+  than treating the feature order as a total order.

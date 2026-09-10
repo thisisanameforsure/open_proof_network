@@ -41,6 +41,11 @@ not dispatch a workflow &mdash; <code>403 Resource not accessible by integration
 the dispatch that <em>is</em> verified against real GitHub, are in
 <code>engineering/evidence/F06/task-5.txt</code> and
 <code>engineering/session-notes/2026-09-09-overnight-f06.md</code>.</p>
+<p class="status-note"><strong>F07 and F08 interleave, by design.</strong> F07-T4 needs F08's
+admission check for a partial's holes (F07 &sect;8), and F08 needs the rest of F07 for everything
+else &mdash; so F08-T1 was built inside F07's slice, on 2026-09-10, and F07-T4 is unblocked by it.
+The remaining F07 work that is <em>not</em> unblocked is the graph's <code>gate.yml</code> (T1's
+last line, which waits on the re-pin) and T6 (which waits on the deploy F06 waits on).</p>
 <p class="status-note">Each feature is a vertical slice with its own spec, tests, and verification
 evidence. Status: <span class="tag">planned</span> &rarr; <span class="tag wip">spec</span> &rarr;
 <span class="tag wip">building</span> &rarr; <span class="tag done">done</span>. Copy
