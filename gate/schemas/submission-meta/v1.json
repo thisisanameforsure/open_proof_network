@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/submission-meta/v1.json",
+  "title": "submission-meta/v1",
+  "description": "The opn-submission block a service-opened pull request carries in its body (F07-R2), beside the opn-precheck-attestation block D-4's bounce rule reads. It declares who submitted, which of D-12's five artifacts this is, and the model and tooling D-23 requires disclosed; the authoritative attestation copies those forward. The block is not evidentiary — the gate re-derives every verdict — and a hand-opened pull request without one is gated exactly the same, with its tooling recorded undeclared (F07-R13).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "submission_id",
+    "identity",
+    "artifact_type",
+    "tooling"
+  ],
+  "properties": {
+    "schema": {
+      "const": "submission-meta/v1"
+    },
+    "submission_id": {
+      "type": "string",
+      "pattern": "^[0-9A-Z]{26}$",
+      "description": "The service's id for this submission (ULID, as precheck job ids are)"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pseudonym",
+        "proof_kind"
+      ],
+      "properties": {
+        "pseudonym": {
+          "type": "string",
+          "description": "What the ledger shows (D-19); the network stores no other name",
+          "pattern": "^[A-Za-z0-9-]{1,39}$"
+        },
+        "proof_kind": {
+          "description": "How the identity was proven (D-19): a GitHub account, or a tutorial proof",
+          "enum": [
+            "github",
+            "tutorial"
+          ]
+        }
+      }
+    },
+    "artifact_type": {
+      "description": "D-12's five resolution artifacts; reduction is a partial with one hole (F07-Q1)",
+      "enum": [
+        "proof",
+        "counterexample",
+        "vacuity",
+        "reduction",
+        "partial"
+      ]
+    },
+    "tooling": {
+      "type": "object",
+      "description": "As declared by the submitter (D-23); never verified, never a gate input",
+      "additionalProperties": false,
+      "required": [
+        "model",
+        "version",
+        "harness"
+      ],
+      "properties": {
+        "model": {
+          "$ref": "#/$defs/declared"
+        },
+        "version": {
+          "$ref": "#/$defs/declared"
+        },
+        "harness": {
+          "$ref": "#/$defs/declared"
+        }
+      }
+    },
+    "precheck_job_id": {
+      "type": "string",
+      "pattern": "^[0-9A-Z]{26}$",
+      "description": "The precheck job whose passing attestation this submission is bound to (F07-R1)"
+    }
+  },
+  "$defs": {
+    "declared": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      ]
+    }
+  }
+}

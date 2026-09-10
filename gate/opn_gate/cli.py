@@ -25,6 +25,7 @@ from opn_gate import (
     bounce,
     config,
     layout,
+    modes,
     paths,
     pipeline,
     postmerge,
@@ -110,6 +111,11 @@ def build_parser() -> argparse.ArgumentParser:
     post.add_argument("--node", required=True)
     _add_sandbox_args(post)
 
+    cls = sub.add_parser("classify", help="what kind of pull request this is (F07-R3)")
+    cls.add_argument("--graph", required=True, type=Path, help="checkout at the PR merge commit")
+    cls.add_argument("--base", required=True, help="the pull request's base sha")
+    cls.add_argument("--head", default="HEAD", help="the commit to classify (default HEAD)")
+
     _add_graph_tool_parsers(sub)
 
     sign = sub.add_parser("sign", help="sign an attestation with the gate key from the environment")
@@ -153,6 +159,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "pregate": run_pregate,
         "reproduce": run_reproduce,
         "gate": run_gate,
+        "classify": run_classify,
         "postmerge": run_postmerge,
         "hazards": run_hazards,
         "products": run_products,
@@ -297,6 +304,35 @@ def run_gate(args: argparse.Namespace, settings: config.Settings) -> int:
     verdict = pipeline.run_submission(ctx, precheck=policy)
     doc = attestation.build(ctx, verdict, graph_commit=head)
     return emit(verdict, doc, out_dir, settings)
+
+
+def run_classify(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F07-R3: what kind of pull request this is, and — for the kinds that build nothing — the
+    whole of their checking (R9, R10).
+
+    The workflow runs this before it decides whether to spend a sandbox on the diff: an append or
+    an explainer is finished here, a proof or a partial goes on to ``gate``. Exit 0 means the
+    classification stands and every check that applies to it passed; 1 means it is refused, with
+    every reason in ``problems``.
+    """
+    graph, head = _checkout_and_commit(args.graph, args.head)
+    base = _git(graph, "rev-parse", "--verify", f"{args.base}^{{commit}}").stdout.strip()
+    if not base:
+        msg = f"unknown base {args.base!r}"
+        raise CliError(msg)
+    diff = _git(graph, "diff", "--name-status", "--no-renames", base, head)
+    classification = modes.classify(paths.changes_from_name_status(diff.stdout))
+    problems = list(classification.problems)
+    if classification.ok:
+        problems.extend(modes.check(graph, classification))
+    summary = classification.as_dict()
+    summary["problems"] = [d.as_dict(settings.diagnostic_max_bytes) for d in problems]
+    summary["ok"] = classification.ok and not problems
+    sys.stdout.write(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
+    if not summary["ok"]:
+        for d in problems:
+            sys.stderr.write(f"opn-gate: {d.code}: {d.message}\n")
+    return EXIT_PASS if summary["ok"] else EXIT_FAIL
 
 
 def run_postmerge(args: argparse.Namespace, settings: config.Settings) -> int:

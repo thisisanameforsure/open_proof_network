@@ -78,7 +78,7 @@ D-26, D-28, D-29, D-31, D-34, D-35.</p>
   <tr><td>F07-AC11</td><td>Given an append PR with a valid postmortem, when the gate runs, then only path and schema checks execute and the verdict is pass; with an invalid enum value, then fail naming the field.</td><td><code>gate/tests/test_modes.py::test_append_mode_schema_only</code></td></tr>
   <tr><td>F07-AC12</td><td>Given an annex file whose name is not its content hash, when gated, then fail.</td><td><code>gate/tests/test_modes.py::test_annex_name_is_hash</code></td></tr>
   <tr><td>F07-AC13</td><td>Given an explainer on an unproved node, when gated, then rejected with the misfiled-annex message; on a proved node, then pass without a Lean build.</td><td><code>gate/tests/test_modes.py::test_explainer_mode</code></td></tr>
-  <tr><td>F07-AC14</td><td>Given <code>POST /annexes</code> with text T, when accepted, then the response hash equals SHA-256(T) and the PR adds <code>annex/&lt;hash&gt;.md</code>.</td><td><code>api/tests/test_appends.py::test_annex_hash</code></td></tr>
+  <tr><td>F07-AC14</td><td>Given <code>POST /annexes</code> with text T, when accepted, then the PR adds <code>annex/&lt;hash&gt;.md</code> whose front matter names the caller and a licence, whose body is T verbatim, and whose name is the SHA-256 the response returns (amended 2026-09-10, F07-Q8).</td><td><code>api/tests/test_appends.py::test_annex_hash</code></td></tr>
   <tr><td>F07-AC15</td><td>Given <code>POST /postmortems</code> with a YAML whose <code>contributor</code> differs from the caller, when accepted, then the stored file's <code>contributor</code> is the caller's identity.</td><td><code>api/tests/test_appends.py::test_contributor_is_caller</code></td></tr>
   <tr><td>F07-AC16</td><td>Given two merged postmortems on one node with the same <code>route_class</code>, when the ledger is written, then only the first earns an <code>attempts</code> entry.</td><td><code>gate/tests/test_ledger.py::test_first_per_route_class</code></td></tr>
   <tr><td>F07-AC17</td><td>Given a merged proof on the tutorial node, when the ledger is written, then no entry exists (D-27).</td><td><code>gate/tests/test_ledger.py::test_tutorial_off_ledger</code></td></tr>
@@ -90,7 +90,7 @@ D-26, D-28, D-29, D-31, D-34, D-35.</p>
 
 <h2>6. Budgets / limits</h2>
 <ul>
-  <li>Free-text caps: postmortem <code>detail</code> 2,000 chars; annex 64 KiB; approach <code>route</code> 500 chars. Bundles as F06.</li>
+  <li>Free-text caps: postmortem <code>detail</code> 4,000 chars — the cap <code>postmortem/v1</code> already publishes, which a published schema may not be edited to change (D-34); this line said 2,000 before 2026-09-10 and R14 defers to the schema. Annex 64 KiB; approach <code>route</code> 500 chars. Bundles as F06.</li>
   <li>Holes per partial: 20; beyond that the submission is rejected as a decomposition dump.</li>
 </ul>
 
@@ -116,10 +116,13 @@ D-26, D-28, D-29, D-31, D-34, D-35.</p>
   <tr><td>F07-Q4</td><td><strong>Append PRs merge without review</strong> because they assert nothing the kernel or a reviewer would check; the D-15 review is a statement review. Postmortem credit (D-13) is earned on merge, first per route class, mechanically.</td></tr>
   <tr><td>F07-Q5</td><td><strong>No explainer endpoint.</strong> D-28 enumerates the write surface and has no explainer tool; adding an endpoint without a tool is allowed by the bijection rule (which binds tools, not endpoints), but explainers are prose for humans and the git path suits them. Confirmed by Mike 2026-09-07; revisit if explainer coverage (a Stages metric) stays low.</td></tr>
   <tr><td>F07-Q6</td><td><strong>Anonymous author email</strong> uses the reserved <code>.invalid</code> TLD (<code>&lt;pseudonym&gt;@anon.opn.invalid</code>) so no deliverable address is ever fabricated.</td></tr>
+  <tr><td>F07-Q7</td><td><strong>An explainer is named for its content, like an annex.</strong> R10 names only the path check and the proved-node rule, but D-3 requires explainers to be content-hashed and immutable, <em>a correction is a new entry, never an edit</em>. Naming the file <code>&lt;sha256&gt;.md</code> makes both mechanical in the rule the gate already applies to annexes (R9), at the cost of one line. Attribution therefore lives inside the file, where the hash covers it. Decided 2026-09-10 in T1.</td></tr>
+  <tr><td>F07-Q8</td><td><strong>An annex is prose behind YAML front matter, and the hash is the file's.</strong> R9 has the gate validate an <code>annex/v1</code> document and R11 has the service set <code>contributor</code>; D-23's amendment accepts annex prose only when its author licenses it at submission. None of that fits a bare <code>.md</code>, so the file is front matter (<code>schema</code>, <code>node</code>, <code>contributor</code>, <code>licence</code>, optional <code>date</code> and <code>model_and_tooling</code>) followed by the prose, and <code>annex/&lt;hash&gt;.md</code> is the hash of the whole file — one rule for the gate to check and one hash for a skeleton to cite (D-31). AC14 said SHA-256 of the submitted text, which cannot also be the file name; it is amended above. Decided 2026-09-10 in T1.</td></tr>
+  <tr><td>F07-Q9</td><td><strong>Classification is decided from the diff, never from the submission block.</strong> R3 classifies by touched paths and R1&ndash;R2 carry an <code>artifact_type</code> in the PR body. Where they could disagree the paths win and the block is only a declaration, because the block is not evidentiary (D-4: every verdict is re-derived) and a submitter who mislabels a partial as a proof would otherwise choose which checks run. T2's artifact checks consume the declared type <em>after</em> the mode is fixed.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> spec · <strong>Tasks:</strong> T1&ndash;T6 todo</div>
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1 &#10003; 2026-09-10 (98 passed; AC3, AC11, AC12, AC13; <code>make verify</code> 355 passed) &mdash; <strong>except the graph's <code>gate.yml</code></strong>, which classifies with <code>opn_gate.cli classify</code> and so may only land with the re-pin that makes that command exist at the pinned commit (D-35); the re-pin needs this repo pushed, and the push is held with F06's. · T2&ndash;T6 todo</div>
 
 <h2>Tasks</h2>
 <table>

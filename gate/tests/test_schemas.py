@@ -15,6 +15,8 @@ from opn_gate.schemas import SchemaError
 
 def test_known_schemas_are_the_published_set() -> None:
     assert schemas.known_schemas() == (
+        "annex/v1",
+        "approach-record/v1",
         "attestation/v1",
         "attestation/v2",
         "attestation/v3",
@@ -27,6 +29,8 @@ def test_known_schemas_are_the_published_set() -> None:
         "meta/v2",
         "node-status/v1",
         "postmortem/v1",
+        "precheck-record/v1",
+        "submission-meta/v1",
         "target-status/v1",
         "targets-index/v1",
         "waiver/v1",

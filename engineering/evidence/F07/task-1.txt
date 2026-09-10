@@ -1,0 +1,61 @@
+F07-T1 — PR modes and append/explainer gating. 2026-09-10T07:54:15Z
+
+$ uv run pytest gate/tests/test_modes.py gate/tests/test_schemas.py
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 98 items
+
+gate/tests/test_modes.py .....................................           [ 37%]
+gate/tests/test_schemas.py ............................................. [ 83%]
+................                                                         [100%]
+
+============================== 98 passed in 1.21s ==============================
+
+Regression gate (conventions §6): make verify
+uv run --frozen ruff check .
+All checks passed!
+uv run --frozen ruff format --check .
+uv run --frozen mypy gate
+Success: no issues found in 61 source files
+uv run --frozen mypy api
+Success: no issues found in 32 source files
+uv run --frozen mypy site
+Success: no issues found in 14 source files
+uv run --frozen pytest -m "not lean and not docker and not network"
+================ 355 passed, 36 deselected, 2 warnings in 4.09s ================
+
+WHAT T1 COVERS
+--------------
+AC3  gate/tests/test_modes.py::test_classification_matrix          — twelve path patterns, each
+     landing in its one mode, plus the rejections: Proof.lean with an explainer, a proof with a
+     partial, two nodes, two targets, a modified append, a rename, a curator record (F08's mode),
+     and every path no mode may touch.
+AC11 ::test_append_mode_schema_only                                — a valid postmortem passes on
+     schema alone (no build, no review); a bad enum fails naming the field.
+AC12 ::test_annex_name_is_hash                                     — the file name is the SHA-256
+     of the file; editing the prose under the old name is the same rejection.
+AC13 ::test_explainer_mode                                         — an explainer on a node with no
+     merged Proof.lean is refused as a misfiled annex; on a proved node it passes with no build.
+
+Also: the four new schemas and their rejections (::test_new_schemas_reject), and the command the
+workflow will call, driven over real git commits (::test_classify_command).
+
+THE F03 GOLDENS
+---------------
+Adding four schemas moves info.json's schema index, which every F03 product golden carries (the
+trap the log records). Regenerated with the documented command; the whole diff is the twelve added
+lines of the schema index in three info.json files and nothing else — no product drifted.
+api/tests/fixtures/info.json is a byte copy of the curated golden (F05-Q5) and was copied across.
+
+NOT IN THIS COMMIT: the graph repository's gate.yml
+---------------------------------------------------
+T1's last line — the workflow classifying a pull request and merging appends and explainers on
+green — cannot land yet, and the reason is not code. The graph's workflow may only use gate
+features the *pinned* network commit understands (the log records this from F05-R10), and the pin
+is 78343e1. Re-pinning needs this repo's `main` pushed; pushing deploys the api, and the deploy is
+held on the GitHub App permission F06 waits for. So the workflow change belongs to the same
+sitting as the F06 permission, the push and the re-pin — one visible diff to gate-spec.json (D-35),
+with `opn_gate.cli classify` replacing the workflow's sed-based node finder.

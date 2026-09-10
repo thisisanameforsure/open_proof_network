@@ -10,12 +10,14 @@ inferred from the diff: a diff that touches two nodes is a rejection, not a subg
 
 from __future__ import annotations
 
+import re
 import subprocess
 from collections.abc import Iterable
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Literal
 
+from opn_gate import schemas
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.layout import Statement
 
@@ -145,6 +147,112 @@ def _first_divergent_line(expected: str, got: str) -> int:
 def _line(text: str, n: int) -> str:
     lines = text.splitlines()
     return lines[n - 1] if 0 < n <= len(lines) else ""
+
+
+# --- what a path is (F07-R3, R9, R10) ----------------------------------------------------------
+#
+# Every path a submission may touch has exactly one role. ``locate`` is the whole grammar in one
+# place, so the modes (``opn_gate.modes``) classify a diff by asking what each path is rather than
+# by matching prefixes of their own.
+
+Role = Literal[
+    "proof",  # the node's Proof.lean (D-3): a proof, counterexample or vacuity certificate
+    "waiver",  # waivers/native_decide.yaml (F02-R8)
+    "partial",  # a .lean assembly under attempts/ (D-12 #5): the node stays open
+    "postmortem",  # attempts/<ts>-<contributor>.yaml (D-13)
+    "precheck-record",  # attempts/precheck/<name>.json (D-34)
+    "annex",  # annex/<hash>.md (D-31)
+    "explainer",  # explainer/<hash>.md (D-3, D-36)
+    "approach-record",  # targets/<id>/approaches/<name>.yaml (D-14 mechanism 3)
+]
+
+#: Roles that claim nothing and merge on schema and path checks alone (F07-R9).
+APPEND_ROLES: tuple[Role, ...] = ("postmortem", "precheck-record", "annex", "approach-record")
+
+#: The schema each append validates against; an annex validates its YAML front matter.
+SCHEMA_FOR_ROLE: dict[Role, str] = {
+    "postmortem": "postmortem/v1",
+    "precheck-record": "precheck-record/v1",
+    "annex": "annex/v1",
+    "approach-record": "approach-record/v1",
+}
+
+#: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers).
+CONTENT_HASHED_ROLES: tuple[Role, ...] = ("annex", "explainer")
+
+ANNEX_MAX_BYTES = 64 * 1024  # F07 §6
+YAML_SUFFIXES: tuple[str, ...] = (".yaml", ".yml")
+
+_NODE_PATH_RE = re.compile(r"^targets/(?P<target>[^/]+)/nodes/(?P<node>[^/]+)/(?P<rest>.+)$")
+_TARGET_PATH_RE = re.compile(r"^targets/(?P<target>[^/]+)/(?P<rest>.+)$")
+_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+
+
+@dataclass(frozen=True)
+class Located:
+    """A path that is part of some submission, and what it is."""
+
+    role: Role
+    path: str
+    target_id: str
+    node_id: str | None  # None for the target-scoped approach record
+
+
+def locate(path: str) -> Located | None:
+    """The role of ``path``, or ``None`` when no mode may touch it (F07-R3's rejection)."""
+    node_match = _NODE_PATH_RE.match(path)
+    if node_match is not None:
+        target, node = node_match.group("target"), node_match.group("node")
+        if not (_ID_RE.match(target) and _ID_RE.match(node)):
+            return None
+        role = _node_role(node_match.group("rest"))
+        return None if role is None else Located(role, path, target, node)
+    target_match = _TARGET_PATH_RE.match(path)
+    if target_match is not None and _ID_RE.match(target_match.group("target")):
+        rest = target_match.group("rest")
+        head, _, name = rest.partition("/")
+        if head == "approaches" and _is_flat(name, YAML_SUFFIXES):
+            return Located("approach-record", path, target_match.group("target"), None)
+    return None
+
+
+def _node_role(rest: str) -> Role | None:  # noqa: PLR0911 — one return per D-3 directory
+    if rest == "Proof.lean":
+        return "proof"
+    if rest == WAIVER_PATH:
+        return "waiver"
+    if rest.startswith("attempts/precheck/"):
+        name = rest[len("attempts/precheck/") :]
+        return "precheck-record" if _is_flat(name, (".json",)) else None
+    if rest.startswith("attempts/"):
+        name = rest[len("attempts/") :]
+        if _is_flat(name, (".lean",)):
+            return "partial"
+        return "postmortem" if _is_flat(name, YAML_SUFFIXES) else None
+    if rest.startswith("annex/"):
+        return "annex" if _is_flat(rest[len("annex/") :], (".md",)) else None
+    if rest.startswith("explainer/"):
+        return "explainer" if _is_flat(rest[len("explainer/") :], (".md",)) else None
+    return None
+
+
+def _is_flat(name: str, suffixes: tuple[str, ...]) -> bool:
+    """A file directly in the directory, with one of these suffixes — never a nested tree."""
+    return "/" not in name and name != "" and PurePosixPath(name).suffix in suffixes
+
+
+def check_content_hash_name(located: Located, data: bytes) -> Diagnostic | None:
+    """R9: an annex is named for its own content, so a citation is mechanical (D-31) and a
+    correction is a new file rather than an edit — which is also D-3's rule for explainers."""
+    stem = PurePosixPath(located.path).stem
+    digest = schemas.content_hash(data)
+    if stem == digest:
+        return None
+    return Diagnostic(
+        "content-hash-name",
+        f"{located.path}: a {located.role} is named for the SHA-256 of its content",
+        {"path": located.path, "expected": f"{digest}.md", "role": located.role},
+    )
 
 
 # --- producing a change list -------------------------------------------------------------------

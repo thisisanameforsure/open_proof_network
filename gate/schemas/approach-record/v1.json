@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/approach-record/v1.json",
+  "title": "approach-record/v1",
+  "description": "targets/<id>/approaches/<timestamp>-<contributor>.yaml (D-14 mechanism 3): a strategy-level verdict for a route that never reached a formal statement. D-14 fixes the field list — schema, route, outcome (D-13's un-collapsible vocabulary), pinned_mathlib_sha, model_and_tooling, date — and this schema adds only target and contributor, which the file needs to locate and attribute itself once it is a file rather than a call argument. An informal proof of a specific node is not an approach record: it is an annex (D-31), which governs wherever both could apply. Earns nothing on submission by design (D-14); credit is retroactive and off this record.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "target",
+    "contributor",
+    "route",
+    "outcome",
+    "pinned_mathlib_sha",
+    "model_and_tooling",
+    "date"
+  ],
+  "properties": {
+    "schema": {
+      "const": "approach-record/v1"
+    },
+    "target": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "contributor": {
+      "type": "string",
+      "description": "The submitting identity's pseudonym; set by the service, never by the caller",
+      "minLength": 1,
+      "maxLength": 39
+    },
+    "route": {
+      "type": "string",
+      "description": "Contributor free text, served as untrusted data (D-28); capped so it stays a verdict",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "outcome": {
+      "description": "D-13's vocabulary verbatim: what happened to the route, un-collapsible",
+      "enum": [
+        "refuted-route",
+        "exhausted",
+        "abandoned-early",
+        "blocked"
+      ]
+    },
+    "blocked_on": {
+      "type": "string",
+      "description": "The named library gap or prerequisite an outcome of blocked waits on (D-14)",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "pinned_mathlib_sha": {
+      "description": "What the verdict is relative to; a record predating a bump is stale, not wrong (D-14)",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      ]
+    },
+    "model_and_tooling": {
+      "description": "As declared by the operator (D-23); never verified",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      ]
+    },
+    "date": {
+      "type": "string",
+      "description": "UTC, second precision, Z suffix",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    }
+  }
+}

@@ -4,6 +4,12 @@
   "rendered_from": "5555555555555555555555555555555555555555",
   "schema": "info/v1",
   "schemas": {
+    "annex": [
+      1
+    ],
+    "approach-record": [
+      1
+    ],
     "attestation": [
       1,
       2,
@@ -32,6 +38,12 @@
       1
     ],
     "postmortem": [
+      1
+    ],
+    "precheck-record": [
+      1
+    ],
+    "submission-meta": [
       1
     ],
     "target-status": [

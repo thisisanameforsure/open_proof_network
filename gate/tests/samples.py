@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import yaml
+
 SHA1 = "0123456789abcdef0123456789abcdef01234567"
 SHA256 = "a" * 64
 
@@ -106,6 +108,74 @@ def postmortem(**overrides: Any) -> dict[str, Any]:
         "failure_class": "route-dead-ends",
         "detail": "the inductive step needs a uniform bound the route cannot supply",
         "artifacts": {"missing_lemmas": ["uniform bound on the partial sums"]},
+    }
+    doc.update(overrides)
+    return doc
+
+
+def annex_front_matter(**overrides: Any) -> dict[str, Any]:
+    doc: dict[str, Any] = {
+        "schema": "annex/v1",
+        "node": "tutorial-and-swap",
+        "contributor": "thisisanameforsure",
+        "licence": "CC-BY-4.0",
+        "date": "2026-09-10T00:00:00Z",
+        "model_and_tooling": None,
+    }
+    doc.update(overrides)
+    return doc
+
+
+def annex_file(
+    body: str = "The argument runs by symmetry of conjunction.\n", **overrides: Any
+) -> bytes:
+    """An annex as it lands in the graph: YAML front matter, then the prose (D-31)."""
+    head = yaml.safe_dump(annex_front_matter(**overrides), sort_keys=True)
+    return f"---\n{head}---\n{body}".encode()
+
+
+def approach_record(**overrides: Any) -> dict[str, Any]:
+    doc: dict[str, Any] = {
+        "schema": "approach-record/v1",
+        "target": "propositional",
+        "contributor": "thisisanameforsure",
+        "route": "reduce every associativity obligation to a normal form and compare",
+        "outcome": "exhausted",
+        "pinned_mathlib_sha": None,
+        "model_and_tooling": None,
+        "date": "2026-09-10T00:00:00Z",
+    }
+    doc.update(overrides)
+    return doc
+
+
+def precheck_record(**overrides: Any) -> dict[str, Any]:
+    doc: dict[str, Any] = {
+        "schema": "precheck-record/v1",
+        "node": "tutorial-and-swap",
+        "statement_hash": SHA256,
+        "verdict": "precheck-fail",
+        "first_failing_step": 4,
+        "diagnostic": {"code": "kernel-replay", "message": "the proof term does not typecheck"},
+        "terminal_goal_state": "p q : Prop\nh : p /\\ q\n|- q /\\ p",
+        "lean_toolchain": "leanprover/lean4:v4.33.1",
+        "mathlib_sha": None,
+        "gate_spec_hash": "c" * 64,
+        "network_commit": SHA1,
+        "tooling": {"model": None, "harness": "pregate.sh"},
+        "date": "2026-09-10T00:00:00Z",
+    }
+    doc.update(overrides)
+    return doc
+
+
+def submission_meta(**overrides: Any) -> dict[str, Any]:
+    doc: dict[str, Any] = {
+        "schema": "submission-meta/v1",
+        "submission_id": "01M23SFDNG8CTH1AD92EZ0AAPT",
+        "identity": {"pseudonym": "thisisanameforsure", "proof_kind": "github"},
+        "artifact_type": "proof",
+        "tooling": {"model": None, "version": None, "harness": None},
     }
     doc.update(overrides)
     return doc
