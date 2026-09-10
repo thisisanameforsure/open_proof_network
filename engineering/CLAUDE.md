@@ -187,3 +187,9 @@ The law of the project:
   pin whose commit predates `gate/precheck/`. Re-derive what a task is waiting on after anything
   external changes, and correct the spec and the index in the same pass — a status note that names
   the wrong blocker is worse than none.
+- 2026-09-10 — A re-pin has to reach the thing that reads it. Re-pinning `gate-spec.json` on
+  `main` did not help the precheck job at all: a job pins `frontier.json`'s `rendered_from`
+  (F06-Q10), checks the graph out there, and reads the network pin from *that* commit. So the pin
+  landed first and the products were rendered from it second — the two-commit shape the log
+  already recorded, for a second reason. Before re-pinning, ask which commit each consumer
+  actually reads the pin from.

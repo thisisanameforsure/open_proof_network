@@ -184,3 +184,42 @@ CLEANED UP
 ----------
 The job branch this run created was deleted; the scratch repo is back to `main` alone, confirmed
 by listing its branches. The failed run uploaded no artifact.
+
+================================================================================
+CLOSED 2026-09-10 — AC15 met against the deployed service
+================================================================================
+
+The push landed (network af2f4e7, api-deploy green), the graph was re-pinned in two
+commits — bc8df29 the pin, ab84fca the products rendered from it — and the criterion ran:
+
+$ uv run python api/tools/smoke_precheck.py https://api.openproofnetwork.org
+
+GET /health -> 200 {'ok': True, 'store': 'dynamodb'}
+tutorial node: tutorial-and-swap in target tutorial, proof 174 bytes
+POST /precheck (no token) -> 202 state=queued id=01M25TEA2RRKPQ978M8J4WXJXB
+    0.8s  queued
+   11.5s  running
+  142.4s  done
+verdict pass; attestation attestation/v3 signed as service by SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo, runner hosted
+POST /tokens (tutorial proof) -> 201 identity={'id': '01M25TJSMGG7ZBGYGH4NA1VJ2E', 'pseudonym': 'smoke-d7c7ef95', 'proof_kind': 'tutorial', 'created': '2026-09-10T14:12:10Z'}
+token: 43 characters
+POST /claims opn-smoke-no-such-node -> 404 node-not-in-frontier
+POST /tokens (same nonce again) -> 400 {'error': 'proof-invalid', 'message': 'unknown, unfinished, used or unusable tutorial proof'}
+
+latency (§6: the tutorial node under 5 min on a cold hosted runner)
+      0.8s  queued
+     11.5s  running
+    142.4s  done
+smoke-precheck: ok
+
+WHY THE RE-PIN TOOK TWO COMMITS
+-------------------------------
+A precheck job pins frontier.json's rendered_from, not the graph's main (F06-Q10), checks
+the graph out at that commit, and reads the network pin from *that* checkout. Re-pinning
+main alone would therefore never have reached the job: rendered_from still named b0f82fe9,
+whose gate-spec.json holds the old pin. So the pin landed first and the products were
+rendered from it second, which is the two-commit shape the log records for pin work.
+
+The seeded node was checked under the new pin before it landed, per the log's rule:
+  pregate.sh --graph ../open_proof_network_graph --node tutorial-and-swap -> pass
+  steps 1, 2, 4, 5, 6, 7, 8 all green

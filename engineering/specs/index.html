@@ -34,14 +34,7 @@ and a claim round trip against the deployed service (F05-AC19). The live graph h
 it is proved, so both wait on F11's intake rather than on any code; adding a node purely to
 satisfy them would put content in the mathematical record for a test's sake (F05-Q6, decided
 2026-09-09).</p>
-<p class="status-note"><strong>F06's permission is granted; what it waits on now is the pin.</strong>
-T1&ndash;T4 are done and verified. The GitHub App gained <em>Actions: read and write</em> on
-2026-09-10, and a real dispatch created a real run &mdash; so T5's criterion (F06-AC15) is no
-longer blocked on anyone's permission. It is blocked on <code>gate-spec.json</code>: the scratch
-workflow runs the gate at the commit that file pins, and that commit predates
-<code>gate/precheck/</code>, so the job dies with <code>No module named 'precheck'</code>. Closing
-it needs the push (which deploys the api) and then a re-pin, which is the gate owner's act (D-4).
-Evidence, including the run's log, is in <code>engineering/evidence/F06/task-5.txt</code>.</p>
+<p class="status-note"><strong>F06 is done.</strong> The GitHub App permission landed on 2026-09-10, <code>main</code> was pushed, and the graph was re-pinned to it &mdash; in two commits, because a precheck job pins <code>frontier.json</code>'s <code>rendered_from</code> and reads the network pin from <em>that</em> commit (F06-Q10), so the pin had to land before the products were rendered from it. D-19's account-free loop then ran end to end on the live service: an anonymous precheck of the tutorial node, a signed attestation from a hosted runner, a nonce exchanged for a write token, and that token authenticating a write route.</p>
 <p class="status-note"><strong>F07 and F08 interleave, by design.</strong> F07-T4 needs F08's
 admission check for a partial's holes (F07 &sect;8), and F08 needs the rest of F07 for everything
 else &mdash; so F08-T1 was built inside F07's slice on 2026-09-10, and F07-T4 landed the same day
@@ -49,11 +42,7 @@ on top of it. F07-T5 is the next unblocked task.
 The remaining F07 work that is <em>not</em> unblocked is the graph's <code>gate.yml</code> (T1's
 last line) and T6 &mdash; both waiting on the same push and re-pin F06 waits on, since a workflow
 may only use a gate command the pinned commit understands.</p>
-<p class="status-note"><strong>One push and one re-pin unblock four things.</strong> Pushing
-<code>main</code> deploys the api and puts F06&ndash;F08 on GitHub; re-pinning each
-<code>gate-spec.json</code> to that commit then lets the precheck job find its package (F06-AC15),
-lets the graph's <code>gate.yml</code> call <code>opn-gate classify</code> (F07-T1's last line),
-and makes the live smokes runnable (F07-T6, F08-T6). Both are the gate owner's acts (D-4, D-35).</p>
+<p class="status-note"><strong>The push and the re-pin happened on 2026-09-10.</strong> <code>main</code> is on GitHub at <code>af2f4e7</code>, the api is deployed from it, and each <code>gate-spec.json</code> pins it &mdash; so the authoritative gate now runs F07's classifier and artifact checks and F08's admission, and the post-merge products are <code>graph/v2</code> and <code>targets-index/v2</code>. What that unblocked: F06-AC15 (met), F07-T1's <code>gate.yml</code> line and the two live smokes (F07-T6, F08-T6).</p>
 <p class="status-note">Each feature is a vertical slice with its own spec, tests, and verification
 evidence. Status: <span class="tag">planned</span> &rarr; <span class="tag wip">spec</span> &rarr;
 <span class="tag wip">building</span> &rarr; <span class="tag done">done</span>. Copy
@@ -69,7 +58,7 @@ file are planned, not committed to in detail.</p>
   <tr><td>F03</td><td><a href="features/F03.html">Merge products</a></td><td><code>frontier.json</code>, <code>info.json</code>, <code>graph.json</code>, <code>targets/index.json</code> regenerated deterministically on merge with the D-25 fields; node status model.</td><td>F01</td><td><span class="tag wip">building</span></td></tr>
   <tr><td>F04</td><td><a href="features/F04.html">Site</a></td><td>D-36 static generator to S3/CloudFront on <code>openproofnetwork.org</code>: home, targets, target, node, frontier, contributors, docs; escaped untrusted prose.</td><td>F03</td><td><span class="tag done">done</span></td></tr>
   <tr><td>F05</td><td><a href="features/F05.html">Identity and claims</a></td><td>Api foundation (Starlette on Lambda, DynamoDB); <code>POST /tokens</code> with GitHub proof, <code>POST/DELETE /claims</code> (D-25), live claim overlay on <code>frontier.json</code> (D-35).</td><td>F03</td><td><span class="tag wip">building</span></td></tr>
-  <tr><td>F06</td><td><a href="features/F06.html">Precheck service</a></td><td><code>POST /precheck</code>, <code>GET /precheck/&lt;id&gt;</code> as a gate job in the scratch repo; service-signed attestations; account-free tutorial-proof tokens (D-19, D-28).</td><td>F05</td><td><span class="tag wip">building</span></td></tr>
+  <tr><td>F06</td><td><a href="features/F06.html">Precheck service</a></td><td><code>POST /precheck</code>, <code>GET /precheck/&lt;id&gt;</code> as a gate job in the scratch repo; service-signed attestations; account-free tutorial-proof tokens (D-19, D-28).</td><td>F05</td><td><span class="tag done">done</span></td></tr>
   <tr><td>F07</td><td><a href="features/F07.html">Submissions and appends</a></td><td><code>POST /submissions</code> opening PRs via the GitHub App; D-12's five artifacts, holes as children, alternate proofs; postmortem, annex, approach-record appends; the ledger's proof and attempts lines.</td><td>F06</td><td><span class="tag wip">building</span></td></tr>
   <tr><td>F08</td><td><a href="features/F08.html">Proposals and admission</a></td><td>Mechanical admission (D-29); speculative nodes, variants with relation proofs (D-30), witness completion; revision requests and defect claims with pre-triage; curator commands.</td><td>F07</td><td><span class="tag wip">building</span></td></tr>
   <tr><td>F09</td><td><a href="features/F09.html">MCP adapter</a></td><td>D-28's tool surface over the F05–F08 endpoints under the bijection rule, with a frozen surface and equivalence tests; untrusted-data demarcation.</td><td>F08</td><td><span class="tag wip">spec</span></td></tr>
