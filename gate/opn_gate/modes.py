@@ -21,7 +21,7 @@ So the diff is classified into exactly one mode before anything else runs:
 ``proposal``     exactly one new node directory and nothing else — or only ``Witness.lean``
                  on a hole whose slot is unfilled (F08-R2, R5); admission decides, nobody
                  reviews (D-29)
-``curator``      status records, or a versioned node ``<id>@v<n>``, by a login listed in the
+``curator``      status records, or a versioned node ``<id>-v<n>``, by a login listed in the
                  graph's ``curators.json`` (F08-R8); reviewed by a second listed identity when
                  there is one (D-21, D-22)
 ===============  ==========================================================================

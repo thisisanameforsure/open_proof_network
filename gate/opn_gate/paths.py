@@ -230,14 +230,16 @@ RECORD_DIRS: dict[str, Role] = {
 _NODE_PATH_RE = re.compile(r"^targets/(?P<target>[^/]+)/nodes/(?P<node>[^/]+)/(?P<rest>.+)$")
 _TARGET_PATH_RE = re.compile(r"^targets/(?P<target>[^/]+)/(?P<rest>.+)$")
 _ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
-#: A node id, optionally versioned: ``<slug>@v<n>`` is D-8's revision of ``<slug>`` (F08 §6).
-_NODE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*(?:@v[1-9][0-9]*)?$")
-_VERSION_RE = re.compile(r"@v[1-9][0-9]*$")
+#: D-8's revision of ``<slug>`` is ``<slug>-v<n>`` (F08-Q16: the document writes ``@v<n>``, and the
+#: version rides inside the id's own alphabet so no id pattern changes). The suffix is reserved:
+#: a proposal may not end in one, and only a curator adds a directory that does.
+_NODE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+VERSION_RE = re.compile(r"^(?P<base>[a-z0-9][a-z0-9-]*?)-v(?P<n>[1-9][0-9]*)$")
 
 
 def is_versioned(node_id: str) -> bool:
-    """Whether ``node_id`` is a D-8 revision (``<slug>@v<n>``), which only a curator may add."""
-    return _VERSION_RE.search(node_id) is not None
+    """Whether ``node_id`` is a D-8 revision (``<slug>-v<n>``), which only a curator may add."""
+    return VERSION_RE.match(node_id) is not None
 
 
 @dataclass(frozen=True)

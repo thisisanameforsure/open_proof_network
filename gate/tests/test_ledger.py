@@ -167,3 +167,35 @@ def test_tooling_defaults_to_undeclared() -> None:
     assert entry is not None and entry.tooling == ledger.UNDECLARED
     declared = proof(tooling="claude-opus-5 claude-code")
     assert declared is not None and declared.as_dict()["tooling"] == "claude-opus-5 claude-code"
+
+
+# --- F08-T5 / AC17: the statement line (R13; D-19, D-31) --------------------------------------
+
+
+def statement(**kw: object) -> ledger.Entry | None:
+    args: dict[str, object] = {
+        "identity": "alice",
+        "target": TARGET,
+        "node": "spec-4d055448",
+        "origin": "authored",
+        "merge_commit": MERGE,
+        "date": DATE,
+    }
+    args.update(kw)
+    return ledger.statement_entry(**args)  # type: ignore[arg-type]
+
+
+def test_statement_line_scope() -> None:
+    """AC17: merged proposals of a variant and a speculative node earn statement entries; a
+    hole's witness earns nothing (D-31); nor does a revision (D-19) or the tutorial (D-27)."""
+    variant = statement(node="variant-1a2b3c4d", origin="variant")
+    crux = statement(origin="authored")
+    assert variant is not None and crux is not None
+    assert variant.line == crux.line == "statement"
+    assert variant.artifact == "Statement.lean"
+    assert schemas.violations(ledger.append(empty(), variant), ledger.SCHEMA) == []
+
+    assert statement(node="and-reassoc--h1", origin="compiler-derived") is None
+    assert statement(node="and-reassoc--h1", origin="skeleton-hole") is None
+    assert statement(node="and-reassoc-v2", supersedes="and-reassoc") is None
+    assert statement(tutorial=True) is None

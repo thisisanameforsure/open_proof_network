@@ -17,6 +17,7 @@ import subprocess
 import sys
 import tempfile
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -25,8 +26,10 @@ from opn_gate import (
     attestation,
     bounce,
     config,
+    curator,
     exhibits,
     layout,
+    ledger,
     modes,
     paths,
     pipeline,
@@ -124,6 +127,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     _add_graph_tool_parsers(sub)
+    _add_curator_parsers(sub)
 
     sign = sub.add_parser("sign", help="sign an attestation with the gate key from the environment")
     sign.add_argument("--attestation", required=True, type=Path)
@@ -174,6 +178,55 @@ def _add_graph_tool_parsers(sub: argparse._SubParsersAction[argparse.ArgumentPar
     )
 
 
+def _add_curator_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    """The curator's commands (F08-R9 to R12) and the post-merge ledger writer (F08-R13)."""
+
+    def common(p: argparse.ArgumentParser) -> None:
+        p.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+        p.add_argument("--target", help="target id (inferred when the graph has exactly one)")
+        p.add_argument("--author", required=True, help="the curator's pseudonym, on the record")
+        p.add_argument("--date", help="UTC timestamp of the act (default: now)")
+        p.add_argument(
+            "--branch",
+            help="also create this git branch and commit what was written, ready for a curator "
+            "pull request (F08-R8)",
+        )
+
+    rev = sub.add_parser("revise", help="version a defective statement (F08-R9; D-8)")
+    common(rev)
+    rev.add_argument("node_id", help="the node whose statement is defective")
+    rev.add_argument("--statement", required=True, type=Path, help="the new Statement.lean")
+    rev.add_argument("--request", required=True, type=Path, help="the revision request acted on")
+
+    con = sub.add_parser("consolidate", help="mark a duplicate node superseded (F08-R10; D-29)")
+    common(con)
+    con.add_argument("keep", help="the node that stays")
+    con.add_argument("drop", help="the node that is superseded by it")
+    con.add_argument("--no-toolchain", action="store_true", help="accept identical hashes only")
+    con.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
+    con.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
+    con.add_argument("--sandbox", action="store_true", help="elaborate inside the step-3 image")
+    con.add_argument("--image", help="sandbox image tag (default: built from gate/Dockerfile)")
+    con.add_argument("--no-build", action="store_true", help="fail if the image is not present")
+
+    st = sub.add_parser("status", help="an abandonment or dormancy record (F08-R11; D-14, D-33)")
+    common(st)
+    st.add_argument("ref", help="a node id (abandoned) or the target id (dormant, active)")
+    st.add_argument("status", choices=[*curator.NODE_STATUSES, *curator.TARGET_STATUSES])
+    st.add_argument("--cause", required=True, help="the published reasoning (D-33 b)")
+    st.add_argument("--k", type=int, default=curator.DEFAULT_K, help="D-33's K in force")
+    st.add_argument("--n", type=int, default=curator.DEFAULT_N_DAYS, help="D-33's N (days)")
+
+    ml = sub.add_parser("missing-library", help="the D-13 aggregate for the curator (F08-R12)")
+    ml.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    ml.add_argument("--target", help="target id (inferred when the graph has exactly one)")
+    ml.add_argument("--threshold", type=int, default=curator.DEFAULT_THRESHOLD)
+
+    led = sub.add_parser("ledger", help="the statement line for a merged proposal (F08-R13)")
+    led.add_argument("--graph", required=True, type=Path)
+    led.add_argument("--commit", required=True, help="the merge commit")
+
+
 def _add_sandbox_args(p: argparse.ArgumentParser) -> None:
     """The flags every sandboxed run shares (reproduce, gate, postmerge)."""
     p.add_argument("--out", type=Path, help="output directory (default: a fresh temp dir)")
@@ -191,6 +244,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         "gate": run_gate,
         "classify": run_classify,
         "exhibits": run_exhibits,
+        "revise": run_revise,
+        "consolidate": run_consolidate,
+        "status": run_status,
+        "missing-library": run_missing_library,
+        "ledger": run_ledger,
         "postmerge": run_postmerge,
         "admit": run_admit,
         "hazards": run_hazards,
@@ -202,6 +260,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     except CliError as exc:
         sys.stderr.write(f"opn-gate: {exc}\n")
         return EXIT_ERROR
+    except curator.CuratorError as exc:  # a refusal, with the reason: nothing was written
+        sys.stdout.write(json.dumps({"ok": False, "refused": str(exc)}, indent=2) + "\n")
+        sys.stderr.write(f"opn-gate: refused: {exc}\n")
+        return EXIT_FAIL
 
 
 # --- pregate ------------------------------------------------------------------------------------
@@ -637,6 +699,200 @@ def run_sign(args: argparse.Namespace, settings: config.Settings) -> int:
     sys.stdout.write(json.dumps({"signed": str(args.out), "key_id": signed["signature"]["key_id"]}))
     sys.stdout.write("\n")
     return EXIT_PASS
+
+
+# --- the curator's commands (F08-R9 to R12) ------------------------------------------------------
+
+
+def _curator_common(args: argparse.Namespace) -> tuple[Path, str, str]:
+    graph: Path = args.graph.resolve()
+    if not graph.is_dir():
+        msg = f"graph checkout not found: {graph}"
+        raise CliError(msg)
+    target_id = args.target or infer_target(graph)
+    date = args.date or attestation.utc_now().strftime("%Y-%m-%dT%H:%M:%SZ")
+    return graph, target_id, date
+
+
+def _curator_branch(graph: Path, branch: str, message: str, written: Sequence[str]) -> None:
+    """A branch and one commit holding what a command wrote — the curator's pull request is
+    then `git push` and `gh pr create`, under the curator's own credentials, which the gate
+    never holds (C8; F08-Q17)."""
+    if _git(graph, "rev-parse", "--is-inside-work-tree").returncode != 0:
+        msg = f"--branch needs a git checkout; {graph} is not one"
+        raise CliError(msg)
+    for step in (
+        ["checkout", "-q", "-b", branch],
+        ["add", "--", *written],
+        ["commit", "-q", "-m", message],
+    ):
+        proc = _git(graph, *step)
+        if proc.returncode != 0:
+            msg = f"git {step[0]} failed: {proc.stderr.strip()}"
+            raise CliError(msg)
+
+
+def _emit_curator(doc: dict[str, Any], graph: Path, branch: str | None, message: str) -> int:
+    if branch:
+        _curator_branch(graph, branch, message, [str(p) for p in doc.get("written", [])])
+        doc["branch"] = branch
+        doc["next"] = f"git push -u origin {branch} && gh pr create --fill"
+    sys.stdout.write(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
+    return EXIT_PASS
+
+
+def run_revise(args: argparse.Namespace, settings: config.Settings) -> int:
+    graph, target_id, date = _curator_common(args)
+    statement = args.statement.read_text(encoding="utf-8")
+    revision = curator.revise(
+        graph, target_id, args.node_id, statement, args.request, author=args.author, date=date
+    )
+    doc = {"ok": True, **revision.as_dict()}
+    return _emit_curator(doc, graph, args.branch, f"revise: {args.node_id} -> {revision.new_id}")
+
+
+def run_consolidate(args: argparse.Namespace, settings: config.Settings) -> int:
+    graph, target_id, date = _curator_common(args)
+    defeq: curator.Defeq | None = None
+    if not args.no_toolchain:
+        spec_path = layout.gate_spec_path(graph, target_id)
+        spec = schemas.load_json(spec_path, "gate-spec/v1")
+        out_dir = _out_dir(args.out, "opn-consolidate-")
+        workdir = out_dir / "work"
+        tc: toolchain.Toolchain
+        if args.sandbox:
+            tag = args.image or ensure_image(str(spec["lean_toolchain"]), build=not args.no_build)
+            tc = sandbox.SandboxToolchain(tag, sandbox.Caps.from_spec(spec), read_write=[workdir])
+        else:
+            try:
+                tc = toolchain.LocalToolchain.from_settings(settings)
+            except toolchain.ToolchainMissingError as exc:
+                raise CliError(str(exc)) from exc
+        ctx = RunContext(
+            graph_root=graph,
+            claim=Claim(target_id, args.keep),
+            spec=spec,
+            gate_spec_hash=schemas.content_hash(spec_path.read_bytes()),
+            changes=None,
+            workdir=workdir,
+            toolchain=tc,
+            settings=settings,
+            install_toolchain=bool(args.install) and not args.sandbox,
+        )
+
+        def defeq(kept: layout.Node, dropped: layout.Node) -> bool:
+            return curator.statements_defeq(ctx, kept, dropped)
+
+    record = curator.consolidate(
+        graph, target_id, args.keep, args.drop, author=args.author, date=date, defeq=defeq
+    )
+    written = [record.resolve().relative_to(graph).as_posix()]
+    doc = {"ok": True, "keep": args.keep, "drop": args.drop, "written": written}
+    return _emit_curator(doc, graph, args.branch, f"consolidate: {args.drop} into {args.keep}")
+
+
+def run_status(args: argparse.Namespace, settings: config.Settings) -> int:
+    graph, target_id, date = _curator_common(args)
+    now = attestation.utc_now()
+    record = curator.declare_status(
+        graph,
+        target_id,
+        args.ref,
+        args.status,
+        args.cause,
+        author=args.author,
+        date=date,
+        now=now,
+        last_merge=last_progress_merge(graph, target_id),
+        k=args.k,
+        n_days=args.n,
+    )
+    written = [record.resolve().relative_to(graph).as_posix()]
+    doc = {"ok": True, "ref": args.ref, "status": args.status, "written": written}
+    return _emit_curator(doc, graph, args.branch, f"status: {args.ref} {args.status}")
+
+
+def last_progress_merge(graph: Path, target_id: str) -> datetime | None:
+    """When the target's nodes last changed on ``main``'s history — the latest commit touching
+    them, which is a merge or the bot's products commit (D-33 a). ``None`` for a bare tree."""
+    if _git(graph, "rev-parse", "--is-inside-work-tree").returncode != 0:
+        return None
+    proc = _git(graph, "log", "-1", "--format=%cI", "--", f"targets/{target_id}/nodes")
+    when = proc.stdout.strip()
+    if proc.returncode != 0 or not when:
+        return None
+    return datetime.fromisoformat(when).astimezone(UTC)
+
+
+def run_missing_library(args: argparse.Namespace, settings: config.Settings) -> int:
+    graph: Path = args.graph.resolve()
+    target_id = args.target or infer_target(graph)
+    report = curator.missing_library_report(graph, target_id, threshold=args.threshold)
+    doc = {
+        "target": target_id,
+        "threshold": args.threshold,
+        "lemmas": [m.as_dict() for m in report],
+        "created": [],  # D-13, F08-Q3: the curator proposes; nothing is created here
+    }
+    sys.stdout.write(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
+    return EXIT_PASS
+
+
+def run_ledger(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F08-R13: after a proposal merges, the proposer's statement line — for a variant or a
+    speculative crux, never a hole (D-31) and never a revision (D-19)."""
+    graph, commit = _checkout_and_commit(args.graph, args.commit)
+    classification = modes.classify(commit_changes(graph, commit), author=settings.pr_author)
+    roles = {loc.role for loc in classification.located}
+    nothing: dict[str, Any] = {"earned": False, "commit": commit}
+    if classification.mode != "proposal" or classification.admit is None or "node" not in roles:
+        nothing["reason"] = f"not a merged node proposal (mode {classification.mode!r})"
+        sys.stdout.write(json.dumps(nothing, indent=2) + "\n")
+        return EXIT_PASS
+    target_id, node_id = str(classification.target_id), classification.admit
+    meta = schemas.load_yaml(layout.graph_nodes_dir(graph, target_id) / node_id / "META.yaml")
+    identity = proposer_of(graph, commit)
+    entry = ledger.statement_entry(
+        identity=identity,
+        target=target_id,
+        node=node_id,
+        origin=str(meta.get("origin")),
+        merge_commit=commit,
+        date=graphmod.commit_timestamp(graph, commit),
+        tutorial=bool(meta.get("tutorial", False)),
+        supersedes=str(meta["supersedes"]) if meta.get("supersedes") else None,
+    )
+    if entry is None:
+        nothing["reason"] = f"{node_id} ({meta.get('origin')}) earns no statement line (D-19, D-31)"
+        sys.stdout.write(json.dumps(nothing, indent=2) + "\n")
+        return EXIT_PASS
+    try:
+        path = ledger.record(graph, identity, entry)
+    except schemas.SchemaError as exc:
+        nothing["reason"] = f"identity {identity!r} cannot hold a ledger: {exc}"
+        sys.stdout.write(json.dumps(nothing, indent=2) + "\n")
+        return EXIT_PASS
+    assert path is not None
+    doc = {
+        "earned": True,
+        "identity": identity,
+        "node": node_id,
+        "line": entry.line,
+        "written": path.resolve().relative_to(graph).as_posix(),
+    }
+    sys.stdout.write(json.dumps(doc, indent=2) + "\n")
+    return EXIT_PASS
+
+
+def proposer_of(graph: Path, commit: str) -> str:
+    """The ledger identity behind a merge: the author of the pull request's commit (F07-R2 puts
+    the pseudonym there) — the second parent's for a merge commit, the commit's own otherwise."""
+    head = (
+        f"{commit}^2"
+        if _git(graph, "rev-parse", "--verify", "--quiet", f"{commit}^2").returncode == 0
+        else commit
+    )
+    return _git(graph, "log", "-1", "--format=%an", head).stdout.strip()
 
 
 def _checkout_and_commit(graph_arg: Path, ref: str) -> tuple[Path, str]:

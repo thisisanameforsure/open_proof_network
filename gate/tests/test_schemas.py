@@ -32,6 +32,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "meta/v1",
         "meta/v2",
         "meta/v3",
+        "meta/v4",
         "node-status/v1",
         "postmortem/v1",
         "precheck-record/v1",
@@ -317,9 +318,9 @@ def test_schema_hashes_pinned(tmp_path: Path) -> None:
     assert len(problems) == 1
     assert "meta/v1.json was edited" in problems[0]
 
-    (copy / "meta" / "v4.json").write_text("{}")
+    (copy / "meta" / "v99.json").write_text("{}")
     assert any(
-        "meta/v4.json is not pinned" in p for p in schemas.verify_pins(copy, copy / "HASHES")
+        "meta/v99.json is not pinned" in p for p in schemas.verify_pins(copy, copy / "HASHES")
     )
 
 

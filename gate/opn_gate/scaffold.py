@@ -23,13 +23,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
-from opn_gate import layout, schemas
+from opn_gate import layout, paths, schemas
 
 #: The oldest META version that can express the node being built. `skeleton-hole` exists
-#: only in v3 (D-3 v3.12), and a node that does not need it keeps the older version so
-#: nothing already committed churns.
+#: only from v3 (D-3 v3.12) and `supersedes` only from v4 (F08-R9), and a node that needs
+#: neither keeps the older version so nothing already committed churns.
 META_SCHEMA = "meta/v2"
 META_SCHEMA_FOR_ORIGIN: dict[str, str] = {"skeleton-hole": "meta/v3"}
+META_SCHEMA_SUPERSEDES = "meta/v4"
 NODE_STATUS_SCHEMA = "node-status/v1"
 RELATION_FILE = "Relation.lean"
 RELATION_DECL = "relation"
@@ -74,9 +75,16 @@ class Proposal:
         return self.origin == "variant"
 
 
-def check_slug(node_id: str) -> str:
+def check_slug(node_id: str, *, versioned: bool = False) -> str:
     if not _SLUG_RE.match(node_id) or len(node_id) > MAX_SLUG:
         msg = f"node id {node_id!r} must match ^[a-z0-9][a-z0-9-]*$ and be at most {MAX_SLUG} chars"
+        raise ScaffoldError(msg)
+    if paths.is_versioned(node_id) != versioned:
+        msg = (
+            f"node id {node_id!r}: the -v<n> suffix is a curator's revision (D-8, F08-Q16)"
+            if not versioned
+            else f"a revision's id ends in -v<n>, not {node_id!r}"
+        )
         raise ScaffoldError(msg)
     return node_id
 
@@ -143,8 +151,11 @@ def context_from(deps: tuple[str, ...], statements: dict[str, str]) -> str:
 
 
 def meta_for(proposal: Proposal, statement_hash: str) -> dict[str, Any]:
+    schema = META_SCHEMA_FOR_ORIGIN.get(proposal.origin, META_SCHEMA)
+    if "supersedes" in proposal.extra_meta:
+        schema = META_SCHEMA_SUPERSEDES
     doc: dict[str, Any] = {
-        "schema": META_SCHEMA_FOR_ORIGIN.get(proposal.origin, META_SCHEMA),
+        "schema": schema,
         "id": proposal.node_id,
         "status": SCAFFOLD_STATUS,
         "deps": list(proposal.deps),
@@ -183,7 +194,7 @@ def status_record(proposal: Proposal) -> dict[str, Any]:
 
 def validate(proposal: Proposal) -> None:
     """Everything that can be refused before a byte is written (C7)."""
-    check_slug(proposal.node_id)
+    check_slug(proposal.node_id, versioned="supersedes" in proposal.extra_meta)
     check_slug(proposal.target_id)
     parsed = layout.parse_statement(proposal.statement)
     if not isinstance(parsed, layout.Statement):

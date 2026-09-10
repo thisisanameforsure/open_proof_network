@@ -177,6 +177,40 @@ def postmortem_entry(  # noqa: PLR0913 — the ledger, plus one argument per fac
     )
 
 
+#: F08-R13, D-19: the origins whose proposer authored a statement — a crux (D-14) or a variant
+#: (D-30). A hole's statement was written by the elaborator or copied from a skeleton (D-31), so
+#: neither earns the line; D-25's `skeleton-hole` origin exists to make that distinction.
+STATEMENT_ORIGINS: tuple[str, ...] = ("authored", "variant")
+
+
+def statement_entry(  # noqa: PLR0913 — one argument per fact the entry records
+    *,
+    identity: str,
+    target: str,
+    node: str,
+    origin: str,
+    merge_commit: str,
+    date: str,
+    tooling: str = UNDECLARED,
+    tutorial: bool = False,
+    supersedes: str | None = None,
+) -> Entry | None:
+    """F08-R13: the statement line for a merged proposal, or ``None`` when it earns nothing —
+    a hole (never, D-31), the tutorial node (D-27), or a revision (D-19: a revision never
+    re-mints paid credit)."""
+    if tutorial or supersedes or origin not in STATEMENT_ORIGINS:
+        return None
+    return Entry(
+        line="statement",
+        target=target,
+        node=node,
+        artifact="Statement.lean",
+        merge_commit=merge_commit,
+        date=date,
+        tooling=tooling,
+    )
+
+
 def record(graph_root: Path, identity: str, entry: Entry | None) -> Path | None:
     """Append ``entry`` to the identity's ledger and write it; ``None`` earns nothing and
     writes nothing, so a merge that pays for nothing leaves no file behind."""

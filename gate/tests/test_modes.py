@@ -734,16 +734,17 @@ def test_locate_is_the_whole_grammar() -> None:
         f"{T}/defs/Helper.lean",
         f"{T}/defs/defects/nested/x.yaml",
         f"{N}/revisions/x.lean",
-        f"{T}/nodes/and-swap@2/Statement.lean",
-        f"{T}/nodes/and-swap@v0/Statement.lean",
+        f"{T}/nodes/and-swap@v2/Statement.lean",
     ):
         assert paths.locate(path) is None, path
 
-    # F08 §6, D-8: a revision is `<id>@v<n>`, and only that spelling is a version.
-    versioned = paths.locate(f"{T}/nodes/and-swap-reassoc@v2/Statement.lean")
-    assert versioned is not None and versioned.node_id == "and-swap-reassoc@v2"
-    assert paths.is_versioned("and-swap-reassoc@v2")
+    # F08 §6, D-8, Q16: a revision is `<id>-v<n>`, and only that spelling is a version.
+    versioned = paths.locate(f"{T}/nodes/and-swap-reassoc-v2/Statement.lean")
+    assert versioned is not None and versioned.node_id == "and-swap-reassoc-v2"
+    assert paths.is_versioned("and-swap-reassoc-v2")
     assert not paths.is_versioned("and-swap-reassoc")
+    assert not paths.is_versioned("and-swap-v0")
+    assert not paths.is_versioned("and-swap-v")
 
 
 # --- F08-AC6: a proposal is exactly one new node directory ----------------------------------------
@@ -977,14 +978,14 @@ def test_curator_mode_scope(graph: Path) -> None:
     """R8, D-8: a revision touches several nodes in one PR — a versioned node plus records on the
     old node and its dependents — while a plain new node stays a proposal like anyone else's."""
     listed = curators(CURATOR)
-    versioned = place_proposal(graph, "good", "good@v2")
+    versioned = place_proposal(graph, "good", "good-v2")
     superseded = Change("A", f"{T}/nodes/{UNPROVED}/status/20260910T000000-curator.yaml")
     stale = Change("A", f"{T}/nodes/and-reassoc/status/20260910T000000-curator.yaml")
     revision = modes.classify([*versioned, superseded, stale], author=CURATOR, curators=listed)
     assert revision.mode == "curator"
-    assert revision.admit == "good@v2"
+    assert revision.admit == "good-v2"
     assert revision.needs_admission is True
-    assert revision.node_id == "good@v2"
+    assert revision.node_id == "good-v2"
 
     # A versioned node alone is still a curator's act, never a proposal.
     assert modes.classify(versioned).problems[0].code == "curator-unlisted"

@@ -265,7 +265,12 @@ def test_products_of_the_fixture(tmp_path: Path) -> None:
     assert idx["node_counts"]["ready"] == 2 and idx["node_counts"]["blocked"] == 1
     info = loads(prod, "info.json")
     assert info["protocol_version"] == "3.11"
-    assert info["schemas"]["attestation"] == [1, 2, 3, 4] and info["schemas"]["meta"] == [1, 2, 3]
+    assert info["schemas"]["attestation"] == [1, 2, 3, 4] and info["schemas"]["meta"] == [
+        1,
+        2,
+        3,
+        4,
+    ]
     assert info["schemas"]["defect-claim"] == [1] and info["schemas"]["revision-request"] == [1]
     assert info["targets"]["propositional"]["network_commit"] == "0" * 40
     assert prod.meta_status[Path("targets/propositional/nodes/and-reassoc")] == "ready"

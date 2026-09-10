@@ -33,8 +33,9 @@ REQUIRED_DIRS: tuple[str, ...] = ("attempts", "annex", "explainer")
 #: status/: curator records (F03-Q3); revisions/ and defects/: D-8 and D-16 records (F08).
 OPTIONAL_DIRS: tuple[str, ...] = ("waivers", "status", "revisions", "defects")
 KEEP_FILE = ".gitkeep"
-#: v2 added acknowledged_hazards (F02-R6); v3 added the skeleton-hole origin (D-3 v3.12).
-META_SCHEMAS: tuple[str, ...] = ("meta/v1", "meta/v2", "meta/v3")
+#: v2 added acknowledged_hazards (F02-R6); v3 added the skeleton-hole origin (D-3 v3.12); v4
+#: added supersedes (F08-R9, D-8).
+META_SCHEMAS: tuple[str, ...] = ("meta/v1", "meta/v2", "meta/v3", "meta/v4")
 
 _THEOREM_RE = re.compile(r"^(?:theorem|lemma)\s+(?P<name>[^\s:({\[]+)", re.M)
 _IMPORT_RE = re.compile(r"^import\s+(?P<module>\S+)", re.M)

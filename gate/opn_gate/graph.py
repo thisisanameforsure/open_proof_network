@@ -69,6 +69,7 @@ class NodeFacts:
     override: StatusRecord | None
     artifact: str | None = None  # which of D-12's artifacts Proof.lean is (F07-R8)
     witness_stub: bool = False  # R6: the witness slot is unfilled, so the node cannot be ready
+    supersedes: str | None = None  # F08-R9, D-8: the node this one revises
 
 
 @dataclass(frozen=True)
@@ -191,11 +192,16 @@ def load_nodes(
             override=records.load_node_status(node_dir),
             artifact=artifact_of(node_dir, loaded.statement.decl_name),
             witness_stub=witness_is_stub(node_dir),
+            supersedes=_optional_str(loaded.meta.get("supersedes")),
         )
     return facts
 
 
 # --- derivation --------------------------------------------------------------------------------
+
+
+def _optional_str(value: object) -> str | None:
+    return str(value) if isinstance(value, str) and value else None
 
 
 def missing_dep(edges: dict[str, tuple[str, ...]]) -> tuple[str, str] | None:
@@ -311,7 +317,14 @@ def derive_causes(nodes: dict[str, NodeFacts], statuses: dict[str, str]) -> dict
 
 
 def find_root(nodes: dict[str, NodeFacts], declaration: StatusRecord | None) -> str:
-    """Q5: the declared root, else the unique node nothing depends on."""
+    """Q5: the declared root, else the unique node nothing depends on.
+
+    A revision (F08-R9, D-8) leaves two sinks until the dependents are re-derived: the
+    superseded node and the node that supersedes it. Neither is a new root — a superseded node
+    is never the root, and a revision of an interior node is a sink only because its dependents
+    still name the old id — so both are set aside before the sink is required to be unique. A
+    revision of the root itself is then the one sink left.
+    """
     if declaration is not None and declaration.doc.get("root"):
         root = str(declaration.doc["root"])
         if root not in nodes:
@@ -320,6 +333,11 @@ def find_root(nodes: dict[str, NodeFacts], declaration: StatusRecord | None) -> 
         return root
     depended_on = {dep for n in nodes.values() for dep in n.deps}
     sinks = sorted(n for n in nodes if n not in depended_on)
+    superseded = {n for n in sinks if _is_superseded(nodes[n])}
+    if len(sinks) > 1 and superseded:
+        sinks = [n for n in sinks if n not in superseded]
+    if len(sinks) > 1 and any(nodes[n].supersedes for n in sinks):
+        sinks = [n for n in sinks if not nodes[n].supersedes]
     if len(sinks) != 1:
         msg = (
             f"root is ambiguous: {len(sinks)} nodes have no dependents ({', '.join(sinks)}); "
@@ -327,6 +345,10 @@ def find_root(nodes: dict[str, NodeFacts], declaration: StatusRecord | None) -> 
         )
         raise GraphError(msg)
     return sinks[0]
+
+
+def _is_superseded(node: NodeFacts) -> bool:
+    return node.override is not None and node.override.status == "superseded"
 
 
 def load_target(graph_root: Path, target_id: str) -> TargetGraph:
