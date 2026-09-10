@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
+from decimal import Decimal
 from typing import Any, Protocol
 
 from opn_api import clock
@@ -188,6 +189,25 @@ def _epoch(when: datetime) -> int:
     return int(when.timestamp())
 
 
+def plain(value: Any) -> Any:
+    """DynamoDB numbers come back as ``Decimal``; turn a read item back into plain JSON types.
+
+    The seam's contract is that what goes in comes out (conventions §1), and the memory store
+    honours it exactly — which is why nothing caught this until a job record read from DynamoDB
+    was re-serialised into a pull-request body and ``json.dumps`` refused a Decimal. Integral
+    values become ``int`` and the rest ``float``, which is what they were before boto3 saw them.
+    """
+    if isinstance(value, Decimal):
+        return int(value) if value == value.to_integral_value() else float(value)
+    if isinstance(value, dict):
+        return {k: plain(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [plain(v) for v in value]
+    if isinstance(value, set):
+        return {plain(v) for v in value}
+    return value
+
+
 class DynamoStore:
     """The three tables (R12). Key layout:
 
@@ -274,7 +294,9 @@ class DynamoStore:
     def get_job(self, job_id: str) -> dict[str, Any] | None:
         item = self._tokens.get_item(Key={"key": KEY_JOB + job_id}).get("Item")
         job = item.get("job") if item else None
-        return dict(job) if isinstance(job, dict) else None
+        # `plain`: a job record carries a whole attestation, which is re-serialised into a
+        # pull-request body later (F07-R2). A Decimal in it is a 500 at that point, not here.
+        return plain(dict(job)) if isinstance(job, dict) else None
 
     def put_claim(self, claim: Claim) -> None:
         self._claims.put_item(Item=asdict(claim))

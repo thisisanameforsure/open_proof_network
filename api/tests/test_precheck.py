@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import json
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +12,7 @@ import pytest
 from api_fakes import Harness, PrecheckKey, make_harness, make_precheck_key, result_zip
 
 from opn_api import bundles, precheck
+from opn_api.store import plain
 from opn_gate.paths import Claim
 
 NODE = "and-reassoc"
@@ -448,3 +451,41 @@ def test_expired_job_is_not_polled(signed: Harness, key: PrecheckKey) -> None:
     assert signed.client.get(f"/precheck/{job_id}").json()["state"] == "done"
     signed.clock.advance(days=precheck.RESULT_RETENTION_DAYS)
     assert signed.client.get(f"/precheck/{job_id}").json()["state"] == "expired"
+
+
+# --- F07-T6: what DynamoDB hands back is not what was put in ------------------------------------
+
+
+def test_decimals_from_the_store_become_plain_json() -> None:
+    """A job record read from DynamoDB carries Decimals, and it is re-serialised into a
+    pull-request body later (F07-R2) — where `json.dumps` refuses one with a 500.
+
+    The memory store round-trips Python objects exactly, so no fake could catch this; it took the
+    deployed service. The conversion is pinned here so it cannot regress.
+    """
+    record = {
+        "id": "01M25XZN18YWR076EERWS82CJZ",
+        "result": {
+            "verdict": "pass",
+            "first_failing_step": Decimal("4"),
+            "steps": [{"step": Decimal("1"), "name": "toolchain"}],
+            "ratio": Decimal("1.5"),
+        },
+        "tags": {Decimal("2")},
+    }
+    converted = plain(record)
+    assert converted["result"]["first_failing_step"] == 1 + 3
+    assert isinstance(converted["result"]["first_failing_step"], int)
+    assert isinstance(converted["result"]["steps"][0]["step"], int)
+    assert converted["result"]["ratio"] == 1.5
+    assert isinstance(converted["result"]["ratio"], float)
+    assert converted["tags"] == {2}
+    # The point of the whole exercise: it serialises.
+    assert (
+        json.loads(json.dumps({k: v for k, v in converted.items() if k != "tags"}))["result"][
+            "first_failing_step"
+        ]
+        == 4
+    )
+    # Anything that was already plain is untouched.
+    assert plain({"a": "b", "n": 3, "l": [None, True]}) == {"a": "b", "n": 3, "l": [None, True]}
