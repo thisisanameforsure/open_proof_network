@@ -234,6 +234,19 @@ The law of the project:
   workflow passes the author as `OPN_PR_AUTHOR` (the `OPN_RUNNER` precedent) and reads every new
   classification field with a default. The `gate.yml` change is then inert on the old pin and
   can be committed to the graph before the re-pin, instead of waiting uncommitted for it.
+- 2026-09-10 — Test the shape that lands, not the shape that is built. `scaffold.files` returns
+  paths relative to the node directory and the service pushed them bare, so the first proposal
+  would have put `Statement.lean` at the graph root. The test that caught it materialises the
+  pushed files as a tree and runs the gate's own layout check and classifier over them; a test
+  that only read the dict would have passed.
+- 2026-09-10 — A fake elaborator cannot see a name clash. Consolidation's probe re-declared the
+  theorem it imported, because duplicates share a name; every fast-tier test passed and the
+  first real-toolchain run failed. Any probe that imports the thing it is compared against
+  needs its own declaration name — and one lean-tier test per new Lean-facing seam, always.
+- 2026-09-10 — Price a notation before adopting it as an identifier. D-8's `<id>@v2` would have
+  bumped six hash-pinned schemas; read as notation (the way F03 read D-13's `d13/v1`) and spelled
+  `<id>-v<n>` with `supersedes` in `meta/v4`, it cost one field. Recorded as F08-Q16 with the
+  reversal path, and the doc gets a notation note rather than an overturn.
 - 2026-09-10 — Naming the App as committer paid twice. Beyond D-23's split it makes a
   pseudonymous submission *attributed*, so the ruleset's
   `require_extra_approval_for_unattributed_changes` does not fire on D-19's account-free path —

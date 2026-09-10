@@ -1,0 +1,93 @@
+F08-T6 — code complete, evidence pending. 2026-09-10
+
+AC19 is a *network*-tier criterion: a test identity proposes a `related` variant of the tutorial
+node through the deployed service, the proposal pull request merges on green, and the node
+appears in frontier.json. Three acts on the way are the founder's, so the run itself is not in
+this file yet; what follows is what was verified and the exact steps that close it.
+
+WHAT IS BUILT
+-------------
+api/tools/smoke_propose.py — mints an account-free identity (D-19), POSTs a related variant of
+the tutorial node, reads the pull request back unauthenticated (one new node directory; author
+the pseudonym at anon.opn.invalid, committer the App, Signed-off-by), waits for the gate run on
+it to complete with success, then merges it with --github-token or waits for a person to (exit 2
+`PENDING` when the timeout passes green and unmerged), waits for the post-merge run, and reads
+frontier.json (the node, origin variant, relation related) and ledger/<pseudonym>.json (a
+statement line, F08-R13) from the graph.
+
+WHAT WAS VERIFIED HERE
+----------------------
+1. The re-pin's precondition (log, 2026-09-09): pregate on the live graph's tutorial node under
+   the new gate code, local toolchain, --no-diff — verdict pass, every step:
+
+{
+  "verdict": "pass",
+  "first_failing_step": null,
+  "diagnostic": null,
+  "steps": [
+    {
+      "step": 1,
+      "name": "toolchain",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 2,
+      "name": "paths",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 4,
+      "name": "kernel-replay",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 5,
+      "name": "axioms",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 6,
+      "name": "hazards",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 7,
+      "name": "witness",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 8,
+      "name": "deps",
+      "result": "pass",
+      "diagnostic": null
+    }
+  ],
+  "attestation": "/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/34dde239-e30b-45de-b1b2-0fa80558841b/scratchpad/pregate-live/attestation.json",
+  "verdict_file": "/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/34dde239-e30b-45de-b1b2-0fa80558841b/scratchpad/pregate-live/verdict.json"
+}
+
+2. The graph's gate.yml at 45e70f5 (F08-T2, T4, T5) parses and reads every new field with a
+   default, so it is inert on the pin it will replace (af2f4e7) and live on the new one (Q8).
+
+WHAT THE FOUNDER DOES TO CLOSE AC19 (in this order)
+---------------------------------------------------
+  1. cd open_proof_network && git push                  # deploys the api with the F08 routes
+     (api-deploy.yml runs on the push; wait for it to finish)
+  2. cd ../open_proof_network_graph && git push          # curators.json, gate.yml, the re-pin
+     and the products rendered from it (the two-commit shape, F06-Q10)
+  3. uv run python api/tools/smoke_propose.py https://api.openproofnetwork.org
+     — then merge the pull request it prints when the gate is green (F07-Q16: nothing merges on
+     green; a merge commit, not a squash, so the pseudonymous commit stays the pull request's),
+     or pass --github-token to have the tool press the button.
+  4. Paste the tool's output below and commit as `F08-T6: AC19 met on the live service`; tag
+     F08-done.
+
+RUN OUTPUT
+----------
+(pending)

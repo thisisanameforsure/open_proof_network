@@ -52,8 +52,11 @@ pre-triage in both the service and the gate, and gave the append mode its one bu
 exhibit elaborates in the sandbox or the pull request fails. F08-T5 added the curator's four
 commands and the statement ledger line; a revision is spelled <code>&lt;id&gt;-v&lt;n&gt;</code>
 with <code>supersedes</code> in <code>meta/v4</code> (F08-Q16), and the curator's pull request is
-the curator's own git act (F08-Q17). What is left of F08 is T6, the live proposal, which needs
-<code>main</code> pushed and the graph re-pinned.
+the curator's own git act (F08-Q17). F08-T6 is code complete: the proposal smoke is built, pregate passes on the
+live graph under the new gate, and the graph carries the re-pin and its products, all unpushed.
+AC19 closes when the founder pushes both repositories, runs the smoke and merges the pull
+request it opens (<code>engineering/evidence/F08/task-6.txt</code> has the steps); then
+<code>F08-done</code>.
 T6 met AC21 against the live service on 2026-09-10, and it found three defects no fake could:
 a DynamoDB <code>Decimal</code> reaching the JSON encoder (<code>MemoryStore</code> round-trips
 exactly); the contributor being recorded as committer as well as author, because the Git Data
