@@ -1,21 +1,56 @@
 GET /health -> 200 {'ok': True, 'store': 'dynamodb'}
-tutorial node: tutorial-and-swap in target tutorial, proof 174 bytes
-POST /precheck (no token) -> 202 id=01M25YW82G2ZGRK019F88W0AAS
-    0.7s  queued
-   11.7s  running
-  142.6s  done
-POST /tokens -> 201 pseudonym=smoke-b641f4fd
-POST /precheck (as the identity) -> 202 id=01M25Z0RKGZMGZR4CQ9Y3AWV01
-   19.9s  running
-  129.1s  done
-POST /submissions -> 201 https://github.com/thisisanameforsure/open_proof_network_graph/pull/4
-PR #4: 'proof: tutorial-and-swap' [open] https://github.com/thisisanameforsure/open_proof_network_graph/pull/4
-  author   : smoke-b641f4fd <smoke-b641f4fd@anon.opn.invalid>
+tutorial node: tutorial-and-swap in target tutorial, proof 181 bytes
+POST /precheck (no token) -> 202 id=01M2603EYR44D2116PD3QAT0BY
+    0.9s  running
+  142.3s  done
+POST /tokens -> 201 pseudonym=smoke-76c4b4b1
+POST /precheck (as the identity) -> 202 id=01M2607YGG7P66ATZ5YVZD0DQM
+    0.8s  queued
+   11.6s  running
+  142.5s  done
+POST /submissions -> 201 https://github.com/thisisanameforsure/open_proof_network_graph/pull/6
+PR #6: 'proof: tutorial-and-swap' [open] https://github.com/thisisanameforsure/open_proof_network_graph/pull/6
+  author   : smoke-76c4b4b1 <smoke-76c4b4b1@anon.opn.invalid>
   committer: open-proof-network[bot] <327070898+open-proof-network[bot]@users.noreply.github.com>
   sign-off : yes
-  gate     : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34496255987
-  gate     : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34496255987
-  gate     : completed success https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34496255987
-cleanup: close PR #4 -> 200
-cleanup: delete submit/01M25Z4TFR447SX5PMN74G34N6 -> 204
+  files    : 1 changed (200)
+  gate     : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34498609781
+  gate     : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34498609781
+  gate     : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34498609781
+  gate     : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34498609781
+  gate     : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34498609781
+  gate     : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34498609781
+  gate     : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34498609781
+  gate     : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34498609781
+  gate     : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34498609781
+  gate     : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34498609781
+  gate     : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34498609781
+  gate     : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34498609781
+  gate     : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34498609781
+  gate     : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34498609781
+  gate     : completed success https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34498609781
+cleanup: close PR #6 -> 200
+cleanup: delete submit/01M260CE28BF8HC781AG4G9Q1Z -> 204
 smoke-submit: ok
+
+--- what the pinned gate classified it as (run 34498609781, the "Classify the pull request"
+--- step of the graph's gate.yml; F07-T1's last line, F07-R3) --------------------------------
+gate: target tutorial; network pin af2f4e7b427fa3515e4c97a68c70a1a701d233e4
+{
+  "mode": "proof",
+  "target": "tutorial",
+  "node": "tutorial-and-swap",
+  "needs_gate": true,
+  "needs_review": true,
+  "problems": [],
+  "ok": true
+}
+tutorial=true  -> step 9 skipped (D-27); the sandbox ran and passed.
+
+--- the run before this one, which is why the tool now submits a variant --------------------
+The first two passes resubmitted the committed Proof.lean byte for byte. The pull request was
+therefore empty, and the gate answered "gate: nothing under targets/ changed; nothing to gate"
+— green, having checked nothing. AC21's evidence was hollow until the diff was real.
+Then the first variant prepended a comment, and the live gate refused it at step 2:
+  proof-not-statement: Proof.lean diverges from Statement.lean at line 1 (header or signature)
+which is F00-R19 working. Only the proof body may differ, so the rewrite is a route change.

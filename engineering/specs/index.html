@@ -40,11 +40,25 @@ admission check for a partial's holes (F07 &sect;8), and F08 needs the rest of F
 else &mdash; so F08-T1 was built inside F07's slice on 2026-09-10, and F07-T4 landed the same day
 on top of it. T5 and T6 followed. The one piece of F07 still outstanding is the graph's
 <code>gate.yml</code> (T1's last line), now unblocked by the re-pin.
-T6 met AC21 against the live service on 2026-09-10, and it found two defects no fake could:
+T6 met AC21 against the live service on 2026-09-10, and it found three defects no fake could:
 a DynamoDB <code>Decimal</code> reaching the JSON encoder (<code>MemoryStore</code> round-trips
-exactly), and the contributor being recorded as committer as well as author, because the Git Data
+exactly); the contributor being recorded as committer as well as author, because the Git Data
 API copies an absent committer from the author &mdash; so omitting the field, which the earlier
-test asserted, was the defect rather than the enforcement.</p>
+test asserted, was the defect rather than the enforcement; and the smoke resubmitting the
+committed <code>Proof.lean</code> byte for byte, which made the pull request empty and the gate
+green over nothing.</p>
+<p class="status-note"><strong>What is left of F07, and why it needs a decision.</strong>
+T1's <code>gate.yml</code> line landed on the graph as <code>1ac359d</code>: the mode is now
+decided by the pinned commit rather than by a <code>sed</code> script in the graph, proved on a
+live submission. Three things remain, and all three are the same shape of problem &mdash; an act
+that needs write permission on a pull-request trigger, which C8 forbids and D-4 forbids the App
+doing. Merging append and explainer mode on green (R9, R10, <strong>F07-Q16</strong>); recording
+a racing proof as an alternate and closing its pull request unmerged (R7, <strong>F07-Q17</strong>);
+and the post-merge effects having no caller at all (R6, R12, <strong>F07-Q17</strong>). Separately
+the graph's <code>main</code> ruleset requires a status check named
+<code>gate (steps 1, 2, 4, 5 in the sandbox)</code> and the workflow's job is named
+<code>gate (steps 1, 2 and 4-8 in the sandbox)</code>, so no pull request can satisfy it and no
+contributor merge can happen at all until the owner fixes the name.</p>
 <p class="status-note"><strong>The push and the re-pin happened on 2026-09-10.</strong> <code>main</code> is on GitHub at <code>af2f4e7</code>, the api is deployed from it, and each <code>gate-spec.json</code> pins it &mdash; so the authoritative gate now runs F07's classifier and artifact checks and F08's admission, and the post-merge products are <code>graph/v2</code> and <code>targets-index/v2</code>. What that unblocked: F06-AC15 (met), F07-T1's <code>gate.yml</code> line and the two live smokes (F07-T6, F08-T6).</p>
 <p class="status-note">Each feature is a vertical slice with its own spec, tests, and verification
 evidence. Status: <span class="tag">planned</span> &rarr; <span class="tag wip">spec</span> &rarr;

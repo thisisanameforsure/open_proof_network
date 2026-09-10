@@ -8,6 +8,11 @@ service and then reads the result back from GitHub, unauthenticated, exactly as 
 would: the branch, the commit's author and sign-off, the two blocks in the body, and the gate
 check running on it.
 
+What it submits is a *variant* of the committed proof, not the committed proof itself: an
+identical bundle is an empty pull request, and the gate correctly answers "nothing to gate" —
+green, having checked nothing. The criterion asks that the gate run on the submission, so the
+tool now asserts the diff is non-empty as well.
+
 It does not merge anything. The tutorial node is already proved, so a merge would be an
 alternate proof (F07-R7) rather than a new result, and the criterion asks only that the pull
 request exists and the gate runs. The branch and the pull request are cleaned up on the way out
@@ -59,6 +64,38 @@ def github(
     except urllib.error.HTTPError as exc:  # a refusal is an answer, not a crash
         text = exc.read().decode("utf-8")
         return exc.code, json.loads(text) if text else None
+
+
+#: D-25: a second route to a proved node is an alternate, which is a thing the network permits.
+#: The smoke needs one because a bundle equal to the committed file is an *empty* pull request,
+#: and the gate answers "nothing to gate" — a green run that checked nothing. Found by reading
+#: the run log after two passes that had proved nothing (F07-T6).
+#:
+#: The rewrite may only touch the proof *body*: F00-R19 compares ``Proof.lean`` with
+#: ``Statement.lean`` line by line down to the signature, so a leading comment is a step-2
+#: failure (``proof-not-statement``) — which the live gate said, correctly, on the first try.
+ROUTE_REWRITES: tuple[tuple[str, str], ...] = (("h.2, h.1", "h.right, h.left"),)
+
+
+def variant_proof(proof: str) -> str:
+    """The same theorem by a different route, so the pull request has a real diff.
+
+    Returns the proof unchanged when it knows no rewrite for it; the caller treats that as a
+    failure rather than submitting an empty pull request.
+    """
+    for before, after in ROUTE_REWRITES:
+        if before in proof:
+            return proof.replace(before, after)
+    return proof
+
+
+def check_diff_is_real(repo: str, number: int, problems: list[str]) -> None:
+    """AC21: the gate ran *on something*. An empty diff makes every check vacuously green."""
+    status, files = github(f"/repos/{repo}/pulls/{number}/files")
+    changed = files if isinstance(files, list) else []
+    print(f"  files    : {len(changed)} changed ({status})")
+    if not changed:
+        problems.append("the pull request changes no file, so the gate had nothing to check")
 
 
 def mint_identity(base: str, node_id: str, path: str, proof: str, timeout: int) -> str | None:
@@ -194,9 +231,17 @@ def main(argv: list[str] | None = None) -> int:
         print("PROBLEM: the service is not healthy", file=sys.stderr)
         return 1
 
-    target_id, node_id, proof = find_tutorial_node(args.graph_repo, args.graph_branch)
+    target_id, node_id, committed = find_tutorial_node(args.graph_repo, args.graph_branch)
     path = f"targets/{target_id}/nodes/{node_id}/Proof.lean"
+    proof = variant_proof(committed)
     print(f"tutorial node: {node_id} in target {target_id}, proof {len(proof)} bytes")
+    if proof == committed:
+        print(
+            "PROBLEM: no known route rewrite for this proof, so the PR would be empty; "
+            "add one to ROUTE_REWRITES",
+            file=sys.stderr,
+        )
+        return 1
 
     token = mint_identity(base, node_id, path, proof, args.timeout)
     if token is None:
@@ -226,6 +271,7 @@ def main(argv: list[str] | None = None) -> int:
     number = int(submitted["pr_number"])
     branch = f"submit/{submitted['submission_id']}"
     pr = check_pull_request(args.graph_repo, number, problems)
+    check_diff_is_real(args.graph_repo, number, problems)
     if pr:
         wait_for_gate(args.graph_repo, str(pr["head"]["sha"]), args.timeout, problems)
     if not args.keep_branch:
