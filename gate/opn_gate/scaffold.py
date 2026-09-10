@@ -153,7 +153,8 @@ def day(timestamp: str) -> str:
 
 def status_record(proposal: Proposal) -> dict[str, Any]:
     """F08-Q2: ``speculative`` is a status record, because F03's derived statuses are the tree's
-    and D-3's ``origin`` has no fourth value."""
+    and D-14 describes a crux as an authored statement. D-3 gained a fourth ``origin`` in v3.12,
+    but it is ``skeleton-hole``, so this call is unchanged."""
     return {
         "schema": NODE_STATUS_SCHEMA,
         "status": "speculative",

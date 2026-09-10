@@ -27,6 +27,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "info/v1",
         "meta/v1",
         "meta/v2",
+        "meta/v3",
         "node-status/v1",
         "postmortem/v1",
         "precheck-record/v1",
@@ -274,6 +275,21 @@ def test_meta_v2_rejects_bad_acknowledgments(acks: list[dict[str, object]]) -> N
     assert schemas.violations(samples.meta(schema="meta/v2", acknowledged_hazards=acks))
 
 
+def test_meta_v3_reaches_the_skeleton_hole_origin() -> None:
+    """D-3 v3.12: the fourth origin D-25 always published becomes settable. Only v3 takes it,
+    and v3 still carries everything v2 did, so the older versions stay readable and narrower."""
+    schemas.validate(samples.meta(schema="meta/v3", origin="skeleton-hole"))
+    assert schemas.violations(samples.meta(schema="meta/v2", origin="skeleton-hole"))
+    assert schemas.violations(samples.meta(origin="skeleton-hole"))  # v1
+
+    for origin in ("authored", "compiler-derived", "variant"):
+        schemas.validate(samples.meta(schema="meta/v3", origin=origin))
+    assert schemas.violations(samples.meta(schema="meta/v3", origin="invented"))
+
+    ack = {"checker": "nat-sub", "location": "n - 1", "justification": "intended"}
+    schemas.validate(samples.meta(schema="meta/v3", acknowledged_hazards=[ack]))
+
+
 def test_samples_validate() -> None:
     schemas.validate(samples.gate_spec())
     schemas.validate(samples.meta())
@@ -294,9 +310,9 @@ def test_schema_hashes_pinned(tmp_path: Path) -> None:
     assert len(problems) == 1
     assert "meta/v1.json was edited" in problems[0]
 
-    (copy / "meta" / "v3.json").write_text("{}")
+    (copy / "meta" / "v4.json").write_text("{}")
     assert any(
-        "meta/v3.json is not pinned" in p for p in schemas.verify_pins(copy, copy / "HASHES")
+        "meta/v4.json is not pinned" in p for p in schemas.verify_pins(copy, copy / "HASHES")
     )
 
 

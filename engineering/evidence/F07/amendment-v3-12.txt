@@ -1,0 +1,60 @@
+F07 — a skeleton hole gets its own origin (D-3 v3.12, F07-Q13). 2026-09-10T12:44:04Z
+
+$ uv run pytest gate/tests/test_schemas.py gate/tests/test_products.py
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 85 items
+gate/tests/test_schemas.py ............................................. [ 52%]
+.................                                                        [ 72%]
+gate/tests/test_products.py .......................                      [100%]
+============================== 85 passed in 1.07s ==============================
+
+Regression gate (conventions §6): make verify
+uv run --frozen ruff check .
+All checks passed!
+uv run --frozen ruff format --check .
+139 files already formatted
+uv run --frozen mypy gate
+Success: no issues found in 69 source files
+uv run --frozen mypy api
+Success: no issues found in 36 source files
+uv run --frozen mypy site
+Success: no issues found in 14 source files
+uv run --frozen pytest -m "not lean and not docker and not network"
+================ 396 passed, 46 deselected, 2 warnings in 4.96s ================
+
+WHAT THIS COVERS
+----------------
+Not a task. A protocol amendment (v3.12) plus the schema that makes its new value reachable,
+landed between F07-T3 and F07-T4 because T4 is the task that would otherwise have had to emit a
+value no schema accepted.
+
+  gate/tests/test_schemas.py::test_meta_v3_reaches_the_skeleton_hole_origin   new
+      meta/v3 accepts origin: skeleton-hole; meta/v2 and meta/v1 reject it; v3 still takes the
+      other three origins, still rejects an invented one, and still carries acknowledged_hazards.
+  gate/tests/test_schemas.py::test_known_schemas_are_the_published_set        meta/v3 added
+  gate/tests/test_schemas.py::test_schema_hashes_pinned                       probe renamed
+      The "not pinned" probe wrote a fake meta/v3.json. That file is real now, so writing {} over
+      it reads as edited rather than unpinned. The probe uses meta/v4.json.
+  gate/tests/test_products.py::test_products_of_the_fixture                   index is [1, 2, 3]
+
+THE THING WORTH CHECKING
+------------------------
+PROTOCOL_VERSION stays "3.11" and that is deliberate, not an oversight. db9fd5c set the rule:
+the constant is what the code implements, not what the document says. v3.12 also renamed D-9's
+second rung to screened-and-signed, which needs target-status and targets-index schema bumps
+budgeted into F11-T2. The origin half of v3.12 is fully implemented by this commit; the D-9 half
+is not, so the constant moves in F11-T2 as that commit's comment already promises.
+
+Consequence: the three golden info.json files changed by exactly one line each — meta gained 3 in
+the schema index — and api/tests/fixtures/info.json was recopied from the curated golden so the
+two cannot drift (F05-Q5).
+
+WHAT THIS DOES NOT DO
+---------------------
+No code emits skeleton-hole yet. scaffold.py still writes meta/v2 and its Origin literal still
+holds three values. Widening both belongs to F07-T4, which creates children from partials and
+reads the -- annex: line R6 now names; T4 was blocked on F08-T1, which landed as c9e1e5d.
