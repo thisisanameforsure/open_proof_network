@@ -1024,3 +1024,387 @@ def test_load_curators(graph: Path) -> None:
         (graph / modes.CURATORS_FILE).write_text(bad)
         with pytest.raises(modes.CuratorsError):
             modes.load_curators(graph)
+
+
+# --- edge diffs (F07-R3; F08-R2, R5, R8): every rejection names its code first --------------------
+#
+# Conventions §2: a rejection is proved by the code and the message of its *first* problem, so a
+# diff that is wrong in two ways is checked for which of them the classifier reports.
+
+
+def codes(classification: modes.Classification) -> list[str]:
+    return [d.code for d in classification.problems]
+
+
+def test_a_rename_pair_is_two_path_offences_named_in_diff_order() -> None:
+    """R3: the workflow diffs with ``--no-renames``, so a moved Proof.lean arrives as a deletion
+    plus an addition, and both are refused by name — the deletion for its role, the addition
+    because ``Old.lean`` is no path at all. A rename that does reach the classifier is refused
+    before its role is even looked up."""
+    pair = modes.classify([Change("D", f"{N}/Proof.lean"), Change("A", f"{N}/Old.lean")])
+    assert pair.mode is None
+    assert codes(pair) == ["path-forbidden", "path-forbidden"]
+    assert "a proof may not be deleted" in pair.problems[0].message
+    assert pair.problems[0].details == {"path": f"{N}/Proof.lean", "status": "D", "role": "proof"}
+    assert "not a path any submission may touch" in pair.problems[1].message
+
+    renamed = modes.classify([Change("R", f"{N}/Proof.lean", f"{N}/Old.lean")])
+    assert codes(renamed) == ["path-forbidden"]
+    assert "nothing in the graph is renamed" in renamed.problems[0].message
+    assert renamed.problems[0].details["path"] == f"{N}/Old.lean"  # the source, for the record
+
+
+@pytest.mark.parametrize(
+    ("name", "role"),
+    [
+        ("Proof.lean", "proof"),
+        ("Witness.lean", "witness"),
+        ("META.yaml", "node"),
+        ("Statement.lean", "node"),
+        ("Context.lean", "node"),
+        ("Relation.lean", "relation"),
+        ("waivers/native_decide.yaml", "waiver"),
+        ("attempts/.gitkeep", "keep"),
+    ],
+)
+def test_deleting_a_node_file_is_refused_by_its_role(name: str, role: str) -> None:
+    """D-3: nothing in a node directory is ever deleted — not the proof that merged, not the
+    witness slot, not the definition. The refusal names the role so the message is exact."""
+    rejected = modes.classify([Change("D", f"{N}/{name}")])
+    assert rejected.mode is None
+    assert codes(rejected) == ["path-forbidden"]
+    assert rejected.problems[0].message == f"{N}/{name}: a {role} may not be deleted"
+    assert rejected.problems[0].details["role"] == role
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "README.md",
+        "lake-manifest.json",
+        "lean-toolchain",
+        ".github/workflows/gate.yml",
+        "schemas/meta/v4.json",
+        "frontier.json",
+        "info.json",
+        "ledger/alice.json",
+        "keys/gate.pub",
+        f"{T}/index.json",
+        f"{T}/graph.json",
+        f"{T}/gate-spec.json",
+        f"{T}/defs/Helper.lean",
+        f"{T}/README.md",
+        f"{T}/nodes/README.md",
+    ],
+)
+def test_a_file_outside_every_node_is_refused_by_name(path: str) -> None:
+    """R3: root files, the workflow, the schemas, the products, the ledger, the keys and a
+    target's own files are outside every mode; each is refused naming the path, added or not."""
+    for status in ("A", "M", "D"):
+        rejected = modes.classify([Change(status, path)])
+        assert rejected.mode is None, (path, status)
+        assert codes(rejected) == ["path-forbidden"], (path, status)
+        assert rejected.problems[0].message == f"{path} is not a path any submission may touch"
+        assert rejected.problems[0].details == {"path": path, "status": status}
+
+
+def test_a_valid_proof_with_forbidden_files_names_every_offence_and_no_mode() -> None:
+    """A proof that also touches the workflow and a schema is refused, not classified as a proof
+    with problems: every forbidden path is listed in diff order, and there is no mode."""
+    rejected = modes.classify(
+        [
+            Change("A", ".github/workflows/gate.yml"),
+            Change("M", f"{N}/Proof.lean"),
+            Change("A", "schemas/meta/v4.json"),
+        ]
+    )
+    assert rejected.mode is None and rejected.target_id is None and rejected.located == ()
+    assert codes(rejected) == ["path-forbidden", "path-forbidden"]
+    assert [d.details["path"] for d in rejected.problems] == [
+        ".github/workflows/gate.yml",
+        "schemas/meta/v4.json",
+    ]
+    assert rejected.needs_gate is False and rejected.needs_admission is False
+
+
+@pytest.mark.parametrize(
+    ("path", "role"),
+    [
+        (f"{N}/attempts/2026-09-10-alice.yaml", "postmortem"),
+        (f"{N}/attempts/2026-09-10-alice-partial.lean", "partial"),
+        (f"{N}/attempts/precheck/01m23sfd.json", "precheck-record"),
+        (f"{N}/annex/{'a' * 64}.md", "annex"),
+        (f"{N}/explainer/{'b' * 64}.md", "explainer"),
+        (f"{T}/approaches/2026-09-10-alice.yaml", "approach-record"),
+        (f"{N}/revisions/20260910T000000-alice.yaml", "revision-request"),
+        (f"{N}/defects/20260910T000000-alice.yaml", "defect-claim"),
+        (f"{T}/defs/defects/20260910T000000-alice.yaml", "defect-claim"),
+        (f"{N}/status/20260910T000000-curator.yaml", "node-status"),
+        (f"{T}/status/2026-09-10-dormant.yaml", "target-status"),
+    ],
+)
+def test_modifying_an_existing_record_is_refused_by_its_role(path: str, role: str) -> None:
+    """R9, D-13, D-31: every record is append-only — a correction is a new file. A curator's
+    status record is no exception, so a modification is refused before the author is consulted."""
+    rejected = modes.classify([Change("M", path)], author=CURATOR, curators=curators(CURATOR))
+    assert rejected.mode is None
+    assert codes(rejected) == ["path-forbidden"]
+    assert rejected.problems[0].message == f"{path}: a {role} may not be modified"
+    assert rejected.problems[0].details["role"] == role
+
+
+def test_a_witness_fill_that_also_touches_proof_or_an_append_is_mixed() -> None:
+    """F08-R5: Witness.lean creation is the one permitted addition to an existing node in
+    proposal mode — *only* Witness.lean. With a proof it is neither a proof nor a completion;
+    with a postmortem or a .gitkeep, the same."""
+    for extra in (
+        Change("M", f"{N}/Proof.lean"),
+        Change("A", f"{N}/attempts/2026-09-10-alice.yaml"),
+        Change("A", f"{N}/attempts/.gitkeep"),
+        Change("A", f"{N}/annex/{'a' * 64}.md"),
+    ):
+        rejected = modes.classify([Change("M", f"{N}/Witness.lean"), extra])
+        assert rejected.mode is None, extra
+        assert codes(rejected) == ["mode-mixed"], extra
+        assert "witness" in rejected.problems[0].message
+        assert rejected.admit is None and rejected.needs_admission is False
+
+
+def test_mode_precedence_when_a_diff_could_fit_two() -> None:
+    """R3 says exactly one mode. Where a diff fits two shapes the classifier does not pick the
+    more permissive one: a proof beside a partial is mixed, a partial beside an explainer is
+    mixed, a new directory beside another node's witness is two nodes, and a curator's
+    versioned node beside a plain one is a proposal in the wrong pull request (F08-Q12 iii)."""
+    partial = f"{N}/attempts/2026-09-10-alice-partial.lean"
+    both = modes.classify(added(f"{N}/Proof.lean", partial))
+    assert codes(both) == ["mode-mixed"] and "partial" in both.problems[0].message
+    assert codes(modes.classify(added(partial, f"{N}/explainer/{'b' * 64}.md"))) == ["mode-mixed"]
+
+    new_dir = [f"{T}/nodes/new/{f}" for f in ("META.yaml", "Statement.lean", "Context.lean")]
+    fill = modes.classify([*added(*new_dir), Change("M", f"{N}/Witness.lean")])
+    assert codes(fill) == ["mode-multi-node"]
+    assert fill.problems[0].details["nodes"] == ["new", "tutorial-and-swap"]
+
+    listed = curators(CURATOR)
+    versioned = added(*(f"{T}/nodes/and-reassoc-v2/{f}" for f in ("META.yaml", "Statement.lean")))
+    plain = added(*(f"{T}/nodes/plain/{f}" for f in ("META.yaml", "Statement.lean")))
+    mixed = modes.classify([*versioned, *plain], author=CURATOR, curators=listed)
+    assert codes(mixed) == ["mode-mixed"]
+    assert mixed.problems[0].details == {"nodes": ["plain"]}
+    # The same diff by a stranger is refused for its shape, not for its author: the shape is a
+    # fact about the diff and comes first.
+    assert codes(modes.classify([*versioned, *plain], author="stranger", curators=listed)) == [
+        "mode-mixed"
+    ]
+    # Two versioned directories by a curator are two revisions (D-8: one at a time).
+    two = modes.classify(
+        [*versioned, *added(f"{T}/nodes/and-swap-reassoc-v2/META.yaml")],
+        author=CURATOR,
+        curators=listed,
+    )
+    assert codes(two) == ["mode-multi-node"] and "revision adds one" in two.problems[0].message
+
+    # A waiver alone rides the proof mode (F02-R8: step 2 decides whether the proof needs it).
+    assert modes.classify(added(f"{N}/waivers/native_decide.yaml")).mode == "proof"
+
+
+def test_a_curator_record_with_an_append_or_explainer_is_mixed_before_the_author_is_asked(
+    graph: Path,
+) -> None:
+    """F08-R8: a curator pull request adds status records and versioned nodes only. One that
+    also carries a postmortem, an explainer or a proof is refused for its shape, whoever opened
+    it — a listed curator included — and the shape is reported before the listing."""
+    record = Change("A", f"{N}/status/20260910T000000-curator.yaml")
+    for extra, role in (
+        (Change("A", f"{N}/attempts/2026-09-10-alice.yaml"), "postmortem"),
+        (Change("A", f"{N}/explainer/{'b' * 64}.md"), "explainer"),
+        (Change("M", f"{N}/Proof.lean"), "proof"),
+        (Change("A", f"{T}/approaches/2026-09-10-alice.yaml"), "approach-record"),
+    ):
+        for author in (CURATOR, "stranger", None):
+            rejected = modes.classify([record, extra], author=author, curators=curators(CURATOR))
+            assert rejected.mode is None, (role, author)
+            assert codes(rejected) == ["mode-mixed"], (role, author)
+            assert role in rejected.problems[0].message and "node-status" in (
+                rejected.problems[0].message
+            )
+    assert modes.classify([record], author=CURATOR, curators=curators(CURATOR)).mode == "curator"
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="a listed curator's diff that adds a status record and *modifies an existing node's "
+    "Witness.lean* is classified `curator` with no problem: `witness` is in NODE_ROLES and "
+    "MODIFIABLE_ROLES, so _classify_curator admits it, and check() runs the witness-completion "
+    "precondition only in proposal mode. F08-R8 lists status records, a versioned node or a "
+    "consolidation record; D-3 makes a witness immutable once real. A curator can thus replace a "
+    "ready node's witness without admission",
+)
+def test_a_curator_may_not_replace_an_existing_witness(graph: Path) -> None:
+    listed = curators(CURATOR)
+    record = write(
+        graph,
+        f"{N}/status/20260910T000000-curator.yaml",
+        yaml.safe_dump(samples.node_status(), sort_keys=True),
+    )
+    replaced = modes.classify(
+        [record, Change("M", f"{N}/Witness.lean")], author=CURATOR, curators=listed
+    )
+    found = codes(replaced) or [d.code for d in modes.check(graph, replaced)]
+    assert replaced.mode is None or found, "a curator replaced the tutorial node's witness"
+    assert found[0] in ("mode-mixed", "witness-not-a-hole")
+
+    # The same with a versioned node: the revision is admitted, the foreign witness is not.
+    versioned = place_proposal(graph, "good", "good-v2")
+    replaced = modes.classify(
+        [*versioned, Change("M", f"{N}/Witness.lean")], author=CURATOR, curators=listed
+    )
+    found = codes(replaced) or [d.code for d in modes.check(graph, replaced)]
+    assert found, "a curator's revision replaced another node's witness on the side"
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="check_witness_completion reads `'sorry' not in before` as 'the slot was still "
+    "unfilled'. postmerge.WITNESS_SLOT's header comment says `Replace \\`sorry\\` with an "
+    "instance`, so a witness filled while keeping the header still reads as a slot at the next "
+    "diff and can be replaced a second time — the twin of graph.witness_is_stub's defect "
+    "(coverage review, defect 4). D-3: a witness is immutable once real; F08-AC7: once",
+)
+def test_a_witness_filled_under_the_slot_header_is_not_filled_twice(tmp_path: Path) -> None:
+    base = copy_graph(tmp_path / "base")
+    child = make_hole(base)
+    head = copy_graph(tmp_path / "head")
+    make_hole(head)
+    witness_path = f"{T}/nodes/{child}/Witness.lean"
+    slot = (base / witness_path).read_text()
+    assert "sorry" in slot.split("theorem", 1)[0]  # the header names the word
+    # The first completion kept the header and replaced only the body; it merged.
+    (base / witness_path).write_text(slot.replace("by\n  sorry", "trivial"))
+    assert "sorry" not in (base / witness_path).read_text().split("theorem", 1)[1]
+
+    (head / witness_path).write_text("theorem witness : True := ⟨⟩\n")
+    classification = modes.classify([Change("M", witness_path)])
+    assert classification.mode == "proposal"
+    found = modes.check(head, classification, base=base_from(base))
+    assert [d.code for d in found] == ["witness-filled"]
+
+
+def test_a_witness_added_to_a_hole_that_had_none_at_the_base_is_a_completion(
+    tmp_path: Path,
+) -> None:
+    """F08-R5's precondition is 'the slot was unfilled'. A hole whose Witness.lean is absent at
+    the base (nothing to replace) is completed by an addition; the base reader answers None and
+    the completion is accepted rather than refused for a file that never existed."""
+    base = copy_graph(tmp_path / "base")
+    child = make_hole(base)
+    head = copy_graph(tmp_path / "head")
+    make_hole(head)
+    witness_path = f"{T}/nodes/{child}/Witness.lean"
+    (base / witness_path).unlink()
+    (head / witness_path).write_text("theorem witness : True := trivial\n")
+    classification = modes.classify([Change("A", witness_path)])
+    assert classification.mode == "proposal" and classification.admit == child
+    assert base_from(base)(witness_path) is None
+    assert modes.check(head, classification, base=base_from(base)) == []
+
+
+def test_a_witness_completion_on_a_broken_meta_is_refused_as_meta_invalid(
+    tmp_path: Path,
+) -> None:
+    """The completion rule reads the node's origin from META.yaml; a META that does not parse
+    is refused by name, before the base is consulted."""
+    head = copy_graph(tmp_path / "head")
+    child = make_hole(head)
+    (head / T / "nodes" / child / "META.yaml").write_text("origin: [unclosed\n")
+    witness_path = f"{T}/nodes/{child}/Witness.lean"
+    (head / witness_path).write_text("theorem witness : True := trivial\n")
+    found = modes.check(head, modes.classify([Change("M", witness_path)]), base=lambda _p: None)
+    assert [d.code for d in found] == ["meta-invalid"]
+    assert found[0].details == {"node": child}
+
+
+def test_the_empty_pull_request_through_the_command(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """R3: a pull request whose base is its head changes nothing, and nothing is not a
+    submission — exit 1, no mode, `mode-empty` — rather than a pass over nothing (log,
+    2026-09-10: a green run is not a checked run)."""
+    root = tmp_path / "graph"
+    shutil.copytree(GRAPH, root)
+    env = {
+        "GIT_AUTHOR_NAME": "t",
+        "GIT_AUTHOR_EMAIL": "t@x",
+        "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@x",
+        "PATH": "/usr/bin:/bin",
+        "HOME": str(tmp_path),
+    }
+    subprocess.run(["git", "-C", str(root), "init", "-q"], check=True, env=env)
+    subprocess.run(["git", "-C", str(root), "add", "-A"], check=True, env=env)
+    subprocess.run(["git", "-C", str(root), "commit", "-q", "-m", "seed"], check=True, env=env)
+    code = cli.main(["classify", "--graph", str(root), "--base", "HEAD"])
+    captured = capsys.readouterr()
+    out = json.loads(captured.out)
+    assert code == cli.EXIT_FAIL
+    assert out["ok"] is False and out["mode"] is None
+    assert [p["code"] for p in out["problems"]] == ["mode-empty"]
+    assert out["needs_gate"] is False and out["needs_exhibits"] is False
+    assert "mode-empty" in captured.err
+
+
+def test_pr_author_absent_or_blank_is_no_author(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """F08-Q8: the host's one fact reaches the classifier as ``OPN_PR_AUTHOR``. Unset or blank,
+    the author is unknown and a curator diff is refused as unlisted with author ``null`` — never
+    matched against an empty login; a blank ``--author`` defers to the environment."""
+    root = tmp_path / "graph"
+    shutil.copytree(GRAPH, root)
+    env = {
+        "GIT_AUTHOR_NAME": "t",
+        "GIT_AUTHOR_EMAIL": "t@x",
+        "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@x",
+        "PATH": "/usr/bin:/bin",
+        "HOME": str(tmp_path),
+    }
+
+    def git(*args: str) -> None:
+        subprocess.run(["git", "-C", str(root), *args], check=True, env=env, capture_output=True)
+
+    write_curators(root, CURATOR)
+    git("init", "-q")
+    git("add", "-A")
+    git("commit", "-q", "-m", "seed")
+    record = root / N / "status" / "20260910T000000-c.yaml"
+    record.parent.mkdir()
+    record.write_text(yaml.safe_dump(samples.node_status(), sort_keys=True))
+    git("add", "-A")
+    git("commit", "-q", "-m", "a status record")
+
+    def classify(*extra: str) -> dict[str, Any]:
+        code = cli.main(["classify", "--graph", str(root), "--base", "HEAD~1", *extra])
+        out: dict[str, Any] = json.loads(capsys.readouterr().out)
+        assert (code == 0) is out["ok"]
+        return out
+
+    monkeypatch.delenv("OPN_PR_AUTHOR", raising=False)
+    out = classify()
+    assert out["mode"] is None and [p["code"] for p in out["problems"]] == ["curator-unlisted"]
+    assert out["problems"][0]["details"]["author"] is None
+    assert "unknown" in out["problems"][0]["message"]
+
+    monkeypatch.setenv("OPN_PR_AUTHOR", "")
+    out = classify()
+    assert [p["code"] for p in out["problems"]] == ["curator-unlisted"]
+    assert out["problems"][0]["details"]["author"] is None
+
+    monkeypatch.setenv("OPN_PR_AUTHOR", "   ")
+    out = classify()  # whitespace is not a login either; it is simply not listed
+    assert [p["code"] for p in out["problems"]] == ["curator-unlisted"]
+    assert out["problems"][0]["details"]["listed"] == [CURATOR]
+
+    monkeypatch.setenv("OPN_PR_AUTHOR", CURATOR)
+    assert classify("--author", "")["mode"] == "curator"
+    assert classify("--author", "stranger")["mode"] is None  # the flag, when given, wins

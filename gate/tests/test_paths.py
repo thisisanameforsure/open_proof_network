@@ -302,3 +302,77 @@ def test_proof_respects_trailing_namespace_end() -> None:
     )
     d = paths.check_proof_is_statement(parsed, "namespace A\ntheorem t : True := by\n  trivial\n")
     assert d is not None and "trailing" in d.message
+
+
+# --- step 2 on the diffs the modes also see (R2; F07-R3) ------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("name", "reason"),
+    [
+        ("Proof.lean", "Proof.lean may not be deleted"),
+        ("Witness.lean", "is not Proof.lean"),
+        ("META.yaml", "is not Proof.lean"),
+        ("Statement.lean", "is not Proof.lean"),
+        ("Context.lean", "is not Proof.lean"),
+        ("waivers/native_decide.yaml", "the waiver may not be deleted"),
+    ],
+)
+def test_deleting_any_node_file_is_a_step_2_offence(name: str, reason: str) -> None:
+    """R2: a deletion inside the claimed node is never a permitted change — the proof and the
+    waiver by their own rule, everything else because only those two may change at all."""
+    path = f"{N}/tutorial-and-swap/{name}"
+    found = paths.check_paths([Change("D", path)], CLAIM, waiver_allowed=True)
+    assert [str(d.details["path"]) for d in found] == [path]
+    assert found[0].code == "path-forbidden" and reason in found[0].message
+    assert found[0].details["status"] == "D"
+
+
+def test_a_rename_reported_as_delete_plus_add_is_two_offences_in_diff_order() -> None:
+    """The workflow diffs with ``--no-renames`` (F07-R3), so a moved Proof.lean is a deletion of
+    the proof and an addition of a file no rule names; step 2 lists both, first the deletion."""
+    found = paths.check_paths(
+        [
+            Change("D", f"{N}/tutorial-and-swap/Proof.lean"),
+            Change("A", f"{N}/tutorial-and-swap/Old.lean"),
+        ],
+        CLAIM,
+    )
+    assert [str(d.details["path"]) for d in found] == [
+        f"{N}/tutorial-and-swap/Proof.lean",
+        f"{N}/tutorial-and-swap/Old.lean",
+    ]
+    assert "may not be deleted" in found[0].message
+    assert "is not Proof.lean" in found[1].message
+
+
+def test_a_diff_touching_two_nodes_names_only_the_foreign_paths() -> None:
+    """R2: the claimed node is an input, so a second node's files are the offences — each one,
+    added or modified — and the claimed node's own proof is not among them."""
+    changes = [
+        Change("M", f"{N}/tutorial-and-swap/Proof.lean"),
+        Change("M", f"{N}/and-reassoc/Proof.lean"),
+        Change("A", f"{N}/and-reassoc/attempts/2026-09-10-alice.yaml"),
+    ]
+    assert offending_changes(changes) == [
+        f"{N}/and-reassoc/Proof.lean",
+        f"{N}/and-reassoc/attempts/2026-09-10-alice.yaml",
+    ]
+    for d in paths.check_paths(changes, CLAIM):
+        assert "outside the claimed node" in d.message
+
+
+def test_an_empty_diff_offends_nothing_at_step_2() -> None:
+    """Step 2 checks changes; an empty set has none to refuse. That a pull request with no
+    changes is not a submission is the classifier's rule (``mode-empty``, F07-R3), not this
+    check's."""
+    assert paths.check_paths([], CLAIM) == []
+    assert paths.changes_from_name_status("") == []
+    assert paths.changes_from_name_status("\n\n  \n") == []
+
+
+def test_name_status_rename_without_a_destination_is_a_modification_of_the_named_path() -> None:
+    """A rename line git never writes — ``R100`` with one path — falls through to the catch-all
+    and is treated as a modification, so it cannot pass step 2 unexamined."""
+    assert paths.changes_from_name_status("R100\told\n") == [Change("M", "old")]
+    assert offending_changes([Change("M", "old")]) == ["old"]
