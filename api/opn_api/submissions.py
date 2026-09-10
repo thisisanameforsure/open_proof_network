@@ -60,6 +60,12 @@ def author_for(identity: Identity, now: str) -> Author:
     return Author(identity.pseudonym, f"{identity.pseudonym}@{AUTHOR_DOMAIN}", now)
 
 
+def committer_for(ctx: Context, now: str) -> Author:
+    """R2, D-23: the App carried the commit; the identity wrote it. Named rather than omitted,
+    because GitHub fills an absent committer with the author (found on the live host, F07-T6)."""
+    return Author(ctx.settings.committer_name, ctx.settings.committer_email, now)
+
+
 def sign_off(identity: Identity) -> str:
     """D-23's Developer Certificate of Origin line, in git's own shape."""
     return f"Signed-off-by: {identity.pseudonym} <{identity.pseudonym}@{AUTHOR_DOMAIN}>"
@@ -92,6 +98,7 @@ def open_pr(  # noqa: PLR0913 — every argument is part of the pull request bei
             base=settings.graph_branch,
             message=message,
             author=author_for(identity, now),
+            committer=committer_for(ctx, now),
         )
         return ctx.githost.open_pull_request(
             settings.graph_repo,

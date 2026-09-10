@@ -63,8 +63,9 @@ class Fetched:
 
 @dataclass(frozen=True)
 class Author:
-    """Who a commit is *by* (F07-R2). The committer is left to GitHub, which fills in the App:
-    that is the D-23 split — the contributor authored it, the service only carried it."""
+    """One side of a commit's attribution: the author who wrote it, or the committer who
+    carried it (F07-R2). Both are sent explicitly — GitHub copies the author into the committer
+    when only one is given, which would make the contributor both."""
 
     name: str
     email: str
@@ -117,13 +118,14 @@ class GitHost(Protocol):
         base: str,
         message: str,
         author: Author | None = None,
+        committer: Author | None = None,
     ) -> str:
         """Create ``branch`` from ``base`` with ``files`` added, returning the commit sha.
 
         The tree is the base branch's tree plus these paths, so the branch carries the scratch
         repository's own workflow as ``base`` has it — the api never pushes runnable code
-        (F06-R3, §7). With ``author``, the commit is by that person and committed by the App
-        (F07-R2); without one, both are the App.
+        (F06-R3, §7). ``author`` is who wrote it and ``committer`` is who carried it; both must
+        be given, because GitHub copies the author into the committer otherwise (F07-R2).
         """
         ...
 
@@ -298,6 +300,7 @@ class HttpxGitHost:
         base: str,
         message: str,
         author: Author | None = None,
+        committer: Author | None = None,
     ) -> str:
         with self._api(repo) as http:
             ref = _json(_send(http, "GET", f"{GITHUB_API}/repos/{repo}/git/ref/heads/{base}"))
@@ -328,9 +331,12 @@ class HttpxGitHost:
                 "parents": [base_sha],
             }
             if author is not None:
-                # No `committer`: GitHub fills it with the authenticated App, which is exactly
-                # what R2 asks for and is the one half of the pair the service cannot fake.
                 payload["author"] = author.as_dict()
+            if committer is not None:
+                # Named, not omitted: the Git Data API copies the author into the committer when
+                # none is given, so leaving it out made the contributor the committer too — the
+                # opposite of R2. Checked against the live host, not assumed (F07-T6).
+                payload["committer"] = committer.as_dict()
             commit = _json(
                 _send(http, "POST", f"{GITHUB_API}/repos/{repo}/git/commits", json=payload)
             )

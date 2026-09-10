@@ -59,6 +59,7 @@ class Push:
     base: str
     message: str
     author: Author | None = None
+    committer: Author | None = None
 
 
 @dataclass
@@ -142,9 +143,10 @@ class FakeGitHost:
         base: str,
         message: str,
         author: Author | None = None,
+        committer: Author | None = None,
     ) -> str:
         self._app_call()
-        self.pushes.append(Push(repo, branch, dict(files), base, message, author))
+        self.pushes.append(Push(repo, branch, dict(files), base, message, author, committer))
         return f"{len(self.pushes):040d}"
 
     def open_pull_request(

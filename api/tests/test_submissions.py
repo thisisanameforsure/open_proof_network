@@ -75,11 +75,16 @@ def test_submission_opens_pr(harness: Harness, key: PrecheckKey) -> None:
     assert push.branch == "submit/" + doc["submission_id"]
     assert push.base == harness.settings.graph_branch
     assert push.files == bundle()
-    # The author is the ledger identity at a reserved-TLD address (Q6); the committer is not
-    # sent at all, so GitHub records the App — the half the service cannot fake (R2).
+    # The author is the ledger identity at a reserved-TLD address (Q6); the committer is the
+    # App, named rather than omitted, because GitHub copies the author into an absent committer
+    # and the D-23 split would collapse (found on the live host, F07-T6).
     assert push.author is not None
     assert push.author.name == "alice"
     assert push.author.email == "alice@anon.opn.invalid"
+    assert push.committer is not None
+    assert push.committer.name == harness.settings.committer_name
+    assert push.committer.email == harness.settings.committer_email
+    assert push.committer.name != push.author.name
     assert push.message.endswith("Signed-off-by: alice <alice@anon.opn.invalid>\n")
 
     pr = harness.githost.pulls[-1]

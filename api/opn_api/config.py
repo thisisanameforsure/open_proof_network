@@ -38,6 +38,8 @@ Variables (prefix ``OPN_API_``):
 ``OPN_API_PRECHECK_KEY_PATH``
     Where the precheck public key is committed in the graph, against which a downloaded
     attestation's signature is verified (F06-R5; C8 item 2). Default ``keys/precheck.pub``.
+``OPN_API_COMMITTER_NAME`` / ``OPN_API_COMMITTER_EMAIL``
+    How the App signs a submission commit as committer (F07-R2). Defaults name the Stage 0 App.
 ``OPN_API_CLAIM_TTL_MIN_H`` / ``OPN_API_CLAIM_TTL_MAX_H``
     The D-25 flat caps (R7). Defaults ``1`` / ``168``.
 ``OPN_API_STATE_TTL_S``
@@ -76,6 +78,10 @@ DEFAULT_PRECHECK_REPO = "thisisanameforsure/open_proof_network_precheck"
 DEFAULT_PRECHECK_BRANCH = "main"
 DEFAULT_PRECHECK_WORKFLOW = "precheck.yml"
 DEFAULT_PRECHECK_KEY_PATH = "keys/precheck.pub"
+# The App as git sees it (F07-R2). GitHub does *not* fill the committer in when the Git Data
+# API is given an author and no committer — it copies the author — so the App names itself.
+DEFAULT_COMMITTER_NAME = "open-proof-network[bot]"
+DEFAULT_COMMITTER_EMAIL = "327070898+open-proof-network[bot]@users.noreply.github.com"
 DEFAULT_CLAIM_TTL_MIN_H = 1
 DEFAULT_CLAIM_TTL_MAX_H = 168
 DEFAULT_STATE_TTL_S = 600
@@ -120,6 +126,8 @@ class Settings:
     precheck_branch: str = DEFAULT_PRECHECK_BRANCH
     precheck_workflow: str = DEFAULT_PRECHECK_WORKFLOW
     precheck_key_path: str = DEFAULT_PRECHECK_KEY_PATH
+    committer_name: str = DEFAULT_COMMITTER_NAME
+    committer_email: str = DEFAULT_COMMITTER_EMAIL
     claim_ttl_min_h: int = DEFAULT_CLAIM_TTL_MIN_H
     claim_ttl_max_h: int = DEFAULT_CLAIM_TTL_MAX_H
     state_ttl_s: int = DEFAULT_STATE_TTL_S
@@ -228,6 +236,8 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
         precheck_branch=env.get("OPN_API_PRECHECK_BRANCH", DEFAULT_PRECHECK_BRANCH),
         precheck_workflow=env.get("OPN_API_PRECHECK_WORKFLOW", DEFAULT_PRECHECK_WORKFLOW),
         precheck_key_path=env.get("OPN_API_PRECHECK_KEY_PATH", DEFAULT_PRECHECK_KEY_PATH),
+        committer_name=env.get("OPN_API_COMMITTER_NAME", DEFAULT_COMMITTER_NAME),
+        committer_email=env.get("OPN_API_COMMITTER_EMAIL", DEFAULT_COMMITTER_EMAIL),
         claim_ttl_min_h=ttl_min,
         claim_ttl_max_h=ttl_max,
         state_ttl_s=_int(env, "OPN_API_STATE_TTL_S", DEFAULT_STATE_TTL_S),
