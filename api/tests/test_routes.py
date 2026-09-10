@@ -24,17 +24,46 @@ def d35_rows() -> set[str]:
     return {html.unescape(f) for f in found}
 
 
+def d35_text() -> str:
+    """D-35's section as plain text, for the rows whose plain path is a pull request rather
+    than an endpoint — the three append tools share one such row (F07)."""
+    text = DECISIONS.read_text(encoding="utf-8")
+    section = text[text.index('id="d-35"') : text.index('id="d-36"')]
+    return html.unescape(re.sub(r"<[^>]+>", "", section))
+
+
 def test_routes_match_d35() -> None:
     """AC18: every write route has a D-35 row, and every row a shipped feature owns has a route."""
     rows = d35_rows()
-    owned = routes.D35_OWNED_BY_F05 | routes.D35_OWNED_BY_F06
+    owned = routes.D35_OWNED_BY_F05 | routes.D35_OWNED_BY_F06 | {routes.D35_POST_SUBMISSIONS}
     assert rows >= owned, rows
+    # The append row names no endpoint: D-35's plain path for the three append tools is the
+    # pull request itself, quoted here verbatim so a reworded decision fails this test.
+    assert routes.D35_APPEND_PR in d35_text()
     write_rows = {r.d35 for r in routes.ROUTES if r.write}
     assert None not in write_rows  # every write route names its D-35 row
-    assert write_rows == routes.D35_OWNED_BY_F05 | {routes.D35_POST_PRECHECK}
+    assert write_rows == routes.D35_OWNED_BY_F05 | {routes.D35_POST_PRECHECK} | (
+        routes.D35_OWNED_BY_F07
+    )
     for r in routes.ROUTES:
-        assert r.d35 is None or r.d35 in rows, r
-        assert r.feature in ("F05", "F06"), r
+        assert r.d35 is None or r.d35 in rows or r.d35 == routes.D35_APPEND_PR, r
+        assert r.feature in ("F05", "F06", "F07"), r
+
+
+def test_f07_routes_are_authenticated_writes() -> None:
+    """F07-R1, R11: every submission and append route needs a token and names its D-35 row."""
+    f07 = {r.label: r for r in routes.ROUTES if r.feature == "F07"}
+    assert set(f07) == {
+        "POST /submissions",
+        "POST /postmortems",
+        "POST /annexes",
+        "POST /approach-records",
+    }
+    for spec in f07.values():
+        assert spec.write and spec.authenticated, spec
+    assert f07["POST /submissions"].d35 == routes.D35_POST_SUBMISSIONS
+    appends = ("POST /postmortems", "POST /annexes", "POST /approach-records")
+    assert {f07[p].d35 for p in appends} == {routes.D35_APPEND_PR}
 
 
 def test_precheck_routes_match_d35() -> None:

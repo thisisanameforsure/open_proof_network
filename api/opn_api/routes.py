@@ -37,6 +37,11 @@ D35_DELETE_CLAIM = "DELETE /claims/<id>"
 D35_OWNED_BY_F05: frozenset[str] = frozenset({D35_POST_TOKENS, D35_POST_CLAIMS, D35_DELETE_CLAIM})
 # F06 owns the precheck pair; GET is a read, so only the POST is a write route (AC13).
 D35_OWNED_BY_F06: frozenset[str] = frozenset({D35_POST_PRECHECK, D35_GET_PRECHECK})
+# F07's rows. D-35 gives ``submit_proof`` the endpoint by name; the three append tools share one
+# row, whose plain path is the pull request itself — the endpoint only opens it.
+D35_POST_SUBMISSIONS = "POST /submissions"
+D35_APPEND_PR = "a PR appending the schema-checked file under the node or target"
+D35_OWNED_BY_F07: frozenset[str] = frozenset({D35_POST_SUBMISSIONS, D35_APPEND_PR})
 
 ROUTES: tuple[RouteSpec, ...] = (
     RouteSpec("GET", "/health", "app:health", None),
@@ -56,5 +61,32 @@ ROUTES: tuple[RouteSpec, ...] = (
     RouteSpec("POST", "/precheck", "precheck:post_precheck", D35_POST_PRECHECK, feature="F06"),
     RouteSpec(
         "GET", "/precheck/{job_id}", "precheck:get_precheck", D35_GET_PRECHECK, feature="F06"
+    ),
+    RouteSpec(
+        "POST",
+        "/submissions",
+        "submissions:post_submissions",
+        D35_POST_SUBMISSIONS,
+        authenticated=True,
+        feature="F07",
+    ),
+    RouteSpec(
+        "POST",
+        "/postmortems",
+        "appends:post_postmortems",
+        D35_APPEND_PR,
+        authenticated=True,
+        feature="F07",
+    ),
+    RouteSpec(
+        "POST", "/annexes", "appends:post_annexes", D35_APPEND_PR, authenticated=True, feature="F07"
+    ),
+    RouteSpec(
+        "POST",
+        "/approach-records",
+        "appends:post_approach_records",
+        D35_APPEND_PR,
+        authenticated=True,
+        feature="F07",
     ),
 )

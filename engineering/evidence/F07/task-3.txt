@@ -1,0 +1,67 @@
+F07-T3 — service endpoints: POST /submissions and the three append routes. 2026-09-10T08:04:40Z
+
+$ uv run pytest api/tests/test_submissions.py api/tests/test_appends.py
+
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:26
+  /Users/mikehiggins/Desktop/repos/open_proof_network/api/tests/api_fakes.py:26: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 13 passed, 2 warnings in 0.30s ========================
+
+Regression gate: make verify
+uv run --frozen ruff check .
+All checks passed!
+uv run --frozen ruff format --check .
+128 files already formatted
+uv run --frozen mypy gate
+Success: no issues found in 62 source files
+uv run --frozen mypy api
+Success: no issues found in 36 source files
+uv run --frozen mypy site
+Success: no issues found in 14 source files
+uv run --frozen pytest -m "not lean and not docker and not network"
+================ 369 passed, 36 deselected, 2 warnings in 4.03s ================
+
+WHAT T3 COVERS
+--------------
+AC1  api/tests/test_submissions.py::test_submission_opens_pr   — branch submit/<id> on the graph,
+     one commit whose author and Signed-off-by are the ledger identity at <pseudonym>@anon.opn.
+     invalid and whose committer is left to GitHub (so it is the App), and a pull request whose
+     body carries both the opn-precheck-attestation and opn-submission blocks.
+AC2  ::test_precheck_binding                                   — another identity's precheck, a
+     failing one, an unknown id, no id at all, and a bundle whose bytes differ from the
+     prechecked ones are each a 400 naming which; nothing is pushed and no PR is opened. The
+     same request, correctly bound, then opens — so the refusals are about the binding.
+AC14 api/tests/test_appends.py::test_annex_hash                — the returned hash is the file's
+     SHA-256 and its name; the prose is stored verbatim behind the front matter; and the file
+     that lands passes the gate's own annex check (opn_gate.paths, opn_gate.modes) in the test.
+AC15 ::test_contributor_is_caller                              — a record naming somebody else
+     is stored with the caller's pseudonym.
+AC19 ::test_free_text_caps                                     — a 5,000-character detail is a
+     400 naming the field and the cap, and the 5,000 characters are not echoed back.
+
+Also: anonymous precheck jobs cannot be submitted on (they belong to no identity), every F07
+route is an authenticated write mapped to its D-35 row (::test_f07_routes_are_authenticated_
+writes), artifact types are D-12's five, declared tooling is capped and may be undeclared, and a
+host failure while opening the pull request is a 502 rather than a silent success.
+
+TWO THINGS WORTH KNOWING
+------------------------
+The commit's *committer* is asserted by omission. The Git Data API fills it from the token, so
+the service cannot fake it; the test asserts the author it does send and that no committer field
+is sent at all. That is the half of R2 that is actually enforced (the log's "assert the
+requirement where it is enforced").
+
+No new GitHub App permission. Opening a pull request on the graph needs `contents: write` and
+`pull_requests: write`, both of which the installation already carries — checked in F06's
+evidence (engineering/evidence/F06/task-5.txt, §2). The dispatch permission F06 waits for is a
+different one and does not block T3.
+
+No deploy change. api-deploy.yml copies gate/schemas wholesale and verifies every shipped schema
+against HASHES, so T1's four new schemas travel with the function and are pin-checked there.

@@ -21,8 +21,24 @@ from opn_gate import schemas
 ACCEPTED_SCHEMAS: tuple[str, ...] = ("attestation/v1", "attestation/v2", "attestation/v3")
 
 MARKER = "opn-precheck-attestation"
-_BLOCK_RE = re.compile(r"```json[ \t]*\r?\n" + MARKER + r"[ \t]*\r?\n(?P<body>.*?)\r?\n```", re.S)
 TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+
+
+def _block_re(marker: str) -> re.Pattern[str]:
+    return re.compile(
+        r"```json[ \t]*\r?\n" + re.escape(marker) + r"[ \t]*\r?\n(?P<body>.*?)\r?\n```", re.S
+    )
+
+
+def extract_marked_block(marker: str, pr_body: str) -> str | None:
+    """The first fenced ``json`` block whose first line is ``marker``. One convention serves
+    both blocks a pull request carries (F00-Q1 for the precheck, F07-R2 for the submission)."""
+    m = _block_re(marker).search(pr_body or "")
+    return m.group("body") if m else None
+
+
+def render_marked_block(marker: str, doc: dict[str, Any]) -> str:
+    return f"```json\n{marker}\n{json.dumps(doc, sort_keys=True, indent=2)}\n```"
 
 
 @dataclass(frozen=True)
@@ -47,13 +63,12 @@ class Decision:
 
 
 def extract_block(pr_body: str) -> str | None:
-    m = _BLOCK_RE.search(pr_body or "")
-    return m.group("body") if m else None
+    return extract_marked_block(MARKER, pr_body)
 
 
 def render_block(attestation: dict[str, Any]) -> str:
     """The inverse of ``extract_block``: what a submitter pastes into the PR body."""
-    return f"```json\n{MARKER}\n{json.dumps(attestation, sort_keys=True, indent=2)}\n```"
+    return render_marked_block(MARKER, attestation)
 
 
 def parse_timestamp(value: str) -> datetime:

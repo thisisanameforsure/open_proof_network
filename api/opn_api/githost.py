@@ -62,6 +62,25 @@ class Fetched:
 
 
 @dataclass(frozen=True)
+class Author:
+    """Who a commit is *by* (F07-R2). The committer is left to GitHub, which fills in the App:
+    that is the D-23 split — the contributor authored it, the service only carried it."""
+
+    name: str
+    email: str
+    date: str  # ISO 8601 with a Z suffix, as the api renders timestamps
+
+    def as_dict(self) -> dict[str, str]:
+        return {"name": self.name, "email": self.email, "date": self.date}
+
+
+@dataclass(frozen=True)
+class PullRequest:
+    number: int
+    url: str
+
+
+@dataclass(frozen=True)
 class WorkflowRun:
     """One Actions run, as much of it as the polling state machine needs (F06-R5)."""
 
@@ -89,15 +108,29 @@ class GitHost(Protocol):
         """Read a committed file, honoring ``If-None-Match`` (R9)."""
         ...
 
-    def push_branch(
-        self, repo: str, branch: str, files: Mapping[str, str], *, base: str, message: str
+    def push_branch(  # noqa: PLR0913 — one argument per part of the commit being made
+        self,
+        repo: str,
+        branch: str,
+        files: Mapping[str, str],
+        *,
+        base: str,
+        message: str,
+        author: Author | None = None,
     ) -> str:
         """Create ``branch`` from ``base`` with ``files`` added, returning the commit sha.
 
         The tree is the base branch's tree plus these paths, so the branch carries the scratch
         repository's own workflow as ``base`` has it — the api never pushes runnable code
-        (F06-R3, §7).
+        (F06-R3, §7). With ``author``, the commit is by that person and committed by the App
+        (F07-R2); without one, both are the App.
         """
+        ...
+
+    def open_pull_request(
+        self, repo: str, *, head: str, base: str, title: str, body: str
+    ) -> PullRequest:
+        """Open a pull request from ``head`` into ``base`` (F07-R2). The App never merges it."""
         ...
 
     def dispatch_workflow(
@@ -256,8 +289,15 @@ class HttpxGitHost:
             },
         )
 
-    def push_branch(
-        self, repo: str, branch: str, files: Mapping[str, str], *, base: str, message: str
+    def push_branch(  # noqa: PLR0913 — one argument per part of the commit being made
+        self,
+        repo: str,
+        branch: str,
+        files: Mapping[str, str],
+        *,
+        base: str,
+        message: str,
+        author: Author | None = None,
     ) -> str:
         with self._api(repo) as http:
             ref = _json(_send(http, "GET", f"{GITHUB_API}/repos/{repo}/git/ref/heads/{base}"))
@@ -282,13 +322,17 @@ class HttpxGitHost:
                     },
                 )
             )
+            payload: dict[str, Any] = {
+                "message": message,
+                "tree": tree["sha"],
+                "parents": [base_sha],
+            }
+            if author is not None:
+                # No `committer`: GitHub fills it with the authenticated App, which is exactly
+                # what R2 asks for and is the one half of the pair the service cannot fake.
+                payload["author"] = author.as_dict()
             commit = _json(
-                _send(
-                    http,
-                    "POST",
-                    f"{GITHUB_API}/repos/{repo}/git/commits",
-                    json={"message": message, "tree": tree["sha"], "parents": [base_sha]},
-                )
+                _send(http, "POST", f"{GITHUB_API}/repos/{repo}/git/commits", json=payload)
             )
             _send(
                 http,
@@ -297,6 +341,20 @@ class HttpxGitHost:
                 json={"ref": f"refs/heads/{branch}", "sha": commit["sha"]},
             )
         return str(commit["sha"])
+
+    def open_pull_request(
+        self, repo: str, *, head: str, base: str, title: str, body: str
+    ) -> PullRequest:
+        with self._api(repo) as http:
+            doc = _json(
+                _send(
+                    http,
+                    "POST",
+                    f"{GITHUB_API}/repos/{repo}/pulls",
+                    json={"head": head, "base": base, "title": title, "body": body},
+                )
+            )
+        return PullRequest(number=int(doc["number"]), url=str(doc.get("html_url") or ""))
 
     def dispatch_workflow(
         self, repo: str, workflow: str, *, ref: str, inputs: Mapping[str, str]

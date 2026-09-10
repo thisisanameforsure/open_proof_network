@@ -27,7 +27,7 @@ from starlette.testclient import TestClient
 
 from opn_api import config, identity
 from opn_api.app import create_app
-from opn_api.githost import Fetched, GitHostError, GitHubUser, WorkflowRun
+from opn_api.githost import Author, Fetched, GitHostError, GitHubUser, PullRequest, WorkflowRun
 from opn_api.store import MemoryStore
 from opn_gate import schemas
 
@@ -58,6 +58,16 @@ class Push:
     files: dict[str, str]
     base: str
     message: str
+    author: Author | None = None
+
+
+@dataclass
+class OpenedPr:
+    repo: str
+    head: str
+    base: str
+    title: str
+    body: str
 
 
 @dataclass
@@ -78,11 +88,13 @@ class FakeGitHost:
     access_token: str = FAKE_ACCESS_TOKEN
     # The App-authenticated half (F06-R3, R5).
     pushes: list[Push] = field(default_factory=list)
+    pulls: list[OpenedPr] = field(default_factory=list)
     dispatches: list[Dispatch] = field(default_factory=list)
     runs: dict[str, WorkflowRun] = field(default_factory=dict)  # branch -> run
     artifacts: dict[tuple[int, str], bytes] = field(default_factory=dict)  # (run, name) -> zip
     app_failure: str | None = None  # when set, every App call raises it (R10, AC12)
     lookup_failure: str | None = None  # when set, only find_run raises (C7: a transient outage)
+    pr_failure: str | None = None  # when set, the branch pushes and the pull request does not
 
     @classmethod
     def with_fixtures(cls, **users: GitHubUser) -> FakeGitHost:
@@ -122,11 +134,28 @@ class FakeGitHost:
             raise GitHostError(self.app_failure)
 
     def push_branch(
-        self, repo: str, branch: str, files: Mapping[str, str], *, base: str, message: str
+        self,
+        repo: str,
+        branch: str,
+        files: Mapping[str, str],
+        *,
+        base: str,
+        message: str,
+        author: Author | None = None,
     ) -> str:
         self._app_call()
-        self.pushes.append(Push(repo, branch, dict(files), base, message))
+        self.pushes.append(Push(repo, branch, dict(files), base, message, author))
         return f"{len(self.pushes):040d}"
+
+    def open_pull_request(
+        self, repo: str, *, head: str, base: str, title: str, body: str
+    ) -> PullRequest:
+        self._app_call()
+        if self.pr_failure:
+            raise GitHostError(self.pr_failure)
+        self.pulls.append(OpenedPr(repo, head, base, title, body))
+        number = len(self.pulls)
+        return PullRequest(number, f"https://github.com/{repo}/pull/{number}")
 
     def dispatch_workflow(
         self, repo: str, workflow: str, *, ref: str, inputs: Mapping[str, str]
