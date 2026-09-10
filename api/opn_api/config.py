@@ -31,6 +31,8 @@ Variables (prefix ``OPN_API_``):
     Per-source limit on ``GET /auth/github/start`` (R6). Default ``10``.
 ``OPN_API_PRECHECKS_PER_HOUR`` / ``OPN_API_ANONYMOUS_PRECHECKS_PER_DAY``
     Precheck limits per identity and per source address (F06-R8, R2). Defaults ``40`` / ``20``.
+``OPN_API_PROPOSALS_PER_DAY``
+    Node proposals per identity per day (F08 §6; D-29's identity-layer bound). Default ``40``.
 ``OPN_API_PRECHECK_REPO`` / ``OPN_API_PRECHECK_BRANCH`` / ``OPN_API_PRECHECK_WORKFLOW``
     The scratch repository job branches are pushed to, the branch they are based on, and the
     workflow file dispatched there (F06-R3; D-35). Defaults: the Stage 0 scratch repo under the
@@ -74,6 +76,7 @@ DEFAULT_TOKENS_PER_LOGIN = 1
 DEFAULT_TOKEN_STARTS_PER_DAY = 10
 DEFAULT_PRECHECKS_PER_HOUR = 40
 DEFAULT_ANONYMOUS_PRECHECKS_PER_DAY = 20
+DEFAULT_PROPOSALS_PER_DAY = 40  # F08 §6
 DEFAULT_PRECHECK_REPO = "thisisanameforsure/open_proof_network_precheck"
 DEFAULT_PRECHECK_BRANCH = "main"
 DEFAULT_PRECHECK_WORKFLOW = "precheck.yml"
@@ -122,6 +125,7 @@ class Settings:
     token_starts_per_day: int = DEFAULT_TOKEN_STARTS_PER_DAY
     prechecks_per_hour: int = DEFAULT_PRECHECKS_PER_HOUR
     anonymous_prechecks_per_day: int = DEFAULT_ANONYMOUS_PRECHECKS_PER_DAY
+    proposals_per_day: int = DEFAULT_PROPOSALS_PER_DAY
     precheck_repo: str = DEFAULT_PRECHECK_REPO
     precheck_branch: str = DEFAULT_PRECHECK_BRANCH
     precheck_workflow: str = DEFAULT_PRECHECK_WORKFLOW
@@ -167,6 +171,7 @@ class Settings:
             "token_starts_per_address_per_day": self.token_starts_per_day,
             "prechecks_per_hour": self.prechecks_per_hour,
             "anonymous_prechecks_per_address_per_day": self.anonymous_prechecks_per_day,
+            "proposals_per_day": self.proposals_per_day,
             "claim_ttl_hours": {"min": self.claim_ttl_min_h, "max": self.claim_ttl_max_h},
         }
 
@@ -232,6 +237,7 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
         anonymous_prechecks_per_day=_int(
             env, "OPN_API_ANONYMOUS_PRECHECKS_PER_DAY", DEFAULT_ANONYMOUS_PRECHECKS_PER_DAY
         ),
+        proposals_per_day=_int(env, "OPN_API_PROPOSALS_PER_DAY", DEFAULT_PROPOSALS_PER_DAY),
         precheck_repo=env.get("OPN_API_PRECHECK_REPO", DEFAULT_PRECHECK_REPO),
         precheck_branch=env.get("OPN_API_PRECHECK_BRANCH", DEFAULT_PRECHECK_BRANCH),
         precheck_workflow=env.get("OPN_API_PRECHECK_WORKFLOW", DEFAULT_PRECHECK_WORKFLOW),

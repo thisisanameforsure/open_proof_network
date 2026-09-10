@@ -42,6 +42,11 @@ D35_OWNED_BY_F06: frozenset[str] = frozenset({D35_POST_PRECHECK, D35_GET_PRECHEC
 D35_POST_SUBMISSIONS = "POST /submissions"
 D35_APPEND_PR = "a PR appending the schema-checked file under the node or target"
 D35_OWNED_BY_F07: frozenset[str] = frozenset({D35_POST_SUBMISSIONS, D35_APPEND_PR})
+# F08's row: the two proposal tools share one, whose plain path is the pull request that creates
+# the node directory; witness completion is the same row, on a directory that already exists
+# (F08-R5). Revision requests and defect claims share the other (T4).
+D35_PROPOSAL_PR = "a PR creating the node directory with origin set"
+D35_OWNED_BY_F08: frozenset[str] = frozenset({D35_PROPOSAL_PR})
 
 ROUTES: tuple[RouteSpec, ...] = (
     RouteSpec("GET", "/health", "app:health", None),
@@ -88,5 +93,29 @@ ROUTES: tuple[RouteSpec, ...] = (
         D35_APPEND_PR,
         authenticated=True,
         feature="F07",
+    ),
+    RouteSpec(
+        "POST",
+        "/proposals/speculative",
+        "proposals:post_speculative",
+        D35_PROPOSAL_PR,
+        authenticated=True,
+        feature="F08",
+    ),
+    RouteSpec(
+        "POST",
+        "/proposals/variant",
+        "proposals:post_variant",
+        D35_PROPOSAL_PR,
+        authenticated=True,
+        feature="F08",
+    ),
+    RouteSpec(
+        "POST",
+        "/proposals/witness",
+        "proposals:post_witness",
+        D35_PROPOSAL_PR,
+        authenticated=True,
+        feature="F08",
     ),
 )

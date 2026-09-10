@@ -67,6 +67,12 @@ def check_anonymous_precheck(ctx: Context, address: str) -> None:
     )
 
 
+def check_proposal(ctx: Context, identity_id: str) -> None:
+    """F08 §6, D-29: node proposals per identity per day — the identity-layer bound on graph
+    spam, never a review (F08 §7)."""
+    enforce(ctx, "proposal", identity_id, limit=ctx.settings.proposals_per_day, seconds=DAY_S)
+
+
 def client_address(request: Request) -> str:
     """The source address: the first ``X-Forwarded-For`` hop (API Gateway sets it) or the peer."""
     forwarded = request.headers.get("x-forwarded-for", "")

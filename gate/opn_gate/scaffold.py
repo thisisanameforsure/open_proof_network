@@ -42,6 +42,7 @@ Origin = Literal["authored", "compiler-derived", "variant", "skeleton-hole"]
 SCAFFOLD_STATUS = "ready"
 
 _IMPORT_LINE = re.compile(r"^import\s+\S+\s*$", re.M)
+_RELATION_LINE_RE = re.compile(r"^\s*--\s*relation:\s*(?P<label>\S+)\s*$", re.M)
 _SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 MAX_SLUG = 64  # F08 §6
 
@@ -107,20 +108,32 @@ def imports_of(texts: list[str]) -> list[str]:
 
 
 def context_for(nodes_dir: Path, deps: tuple[str, ...]) -> str:
-    """``Context.lean``: each declared dep's statement, verbatim, under the union of imports.
-
-    Verbatim is the point — F01-R6 compares the signature here with the dep's own
-    ``Statement.lean``, and anything but a copy risks differing by a space.
-    """
-    if not deps:
-        return "/-! Declared dependencies (D-4 step 8): none. -/\n"
-    texts: list[str] = []
+    """``Context.lean`` from the deps' ``Statement.lean`` files in a checkout."""
+    statements: dict[str, str] = {}
     for dep in deps:
         statement = nodes_dir / dep / "Statement.lean"
         if not statement.is_file():
             msg = f"declared dep {dep!r} is not a node of this target"
             raise ScaffoldError(msg)
-        texts.append(statement.read_text(encoding="utf-8"))
+        statements[dep] = statement.read_text(encoding="utf-8")
+    return context_from(deps, statements)
+
+
+def context_from(deps: tuple[str, ...], statements: dict[str, str]) -> str:
+    """``Context.lean``: each declared dep's statement, verbatim, under the union of imports.
+
+    Verbatim is the point — F01-R6 compares the signature here with the dep's own
+    ``Statement.lean``, and anything but a copy risks differing by a space. The texts come in as
+    a mapping so the service, which holds no checkout (D-35), can hand over what it fetched.
+    """
+    if not deps:
+        return "/-! Declared dependencies (D-4 step 8): none. -/\n"
+    texts: list[str] = []
+    for dep in deps:
+        if dep not in statements:
+            msg = f"declared dep {dep!r} is not a node of this target"
+            raise ScaffoldError(msg)
+        texts.append(statements[dep])
     header = "/-! Declared dependencies (D-4 step 8): " + ", ".join(f"`{d}`" for d in deps) + ". -/"
     parts = [header, *(f"\n{strip_imports(t)}\n" for t in texts)]
     lines = [f"import {m}" for m in imports_of(texts)]
@@ -192,27 +205,57 @@ def validate(proposal: Proposal) -> None:
     if proposal.relation_proof and not proposal.is_variant:
         msg = "Relation.lean belongs to variants only (D-3)"
         raise ScaffoldError(msg)
+    if proposal.relation_proof and proposal.relation not in LABELS_NEEDING_PROOF:
+        msg = "a variant labeled 'related' claims no implication, so it carries no Relation.lean"
+        raise ScaffoldError(msg)
 
 
-def files(nodes_dir: Path, proposal: Proposal) -> dict[str, str]:
+def with_relation_label(proof: str, label: str) -> str:
+    """``Relation.lean`` with its ``-- relation:`` line (F03's convention; F08-Q6): the file
+    carries its own claim, so the label and the proof cannot be separated. A proof that already
+    names a *different* label is refused rather than relabelled."""
+    m = _RELATION_LINE_RE.search(proof)
+    if m is None:
+        return f"-- relation: {label}\n{proof}"
+    if m.group("label") != label:
+        msg = f"Relation.lean says `-- relation: {m.group('label')}` but the label is {label!r}"
+        raise ScaffoldError(msg)
+    return proof
+
+
+def files(
+    nodes_dir: Path | None,
+    proposal: Proposal,
+    *,
+    dep_statements: dict[str, str] | None = None,
+) -> dict[str, str]:
     """The node directory as a mapping of relative path to content — what a PR would add.
 
     Returned rather than written so the service can put the same bytes in a branch (F07-R2)
-    without ever having the graph checked out.
+    without ever having the graph checked out: it passes the deps' statements it fetched as
+    ``dep_statements`` instead of a ``nodes_dir``.
     """
     validate(proposal)
     parsed = layout.parse_statement(proposal.statement)
     assert isinstance(parsed, layout.Statement)
+    if dep_statements is not None:
+        context = context_from(proposal.deps, dep_statements)
+    elif nodes_dir is not None:
+        context = context_for(nodes_dir, proposal.deps)
+    else:
+        msg = "a scaffold needs either a nodes directory or the deps' statements"
+        raise ScaffoldError(msg)
     out: dict[str, str] = {
         "Statement.lean": proposal.statement,
         "Witness.lean": proposal.witness,
-        "Context.lean": context_for(nodes_dir, proposal.deps),
+        "Context.lean": context,
         "META.yaml": _yaml(meta_for(proposal, parsed.statement_hash)),
     }
     for keep in layout.REQUIRED_DIRS:
         out[f"{keep}/{layout.KEEP_FILE}"] = ""
     if proposal.is_variant and proposal.relation_proof:
-        out[RELATION_FILE] = proposal.relation_proof
+        assert proposal.relation is not None
+        out[RELATION_FILE] = with_relation_label(proposal.relation_proof, proposal.relation)
     if proposal.speculative:
         stamp = (proposal.date or "1970-01-01T00:00:00Z").replace(":", "").replace("-", "")
         out[f"status/{stamp[:15]}-{proposal.author}.yaml"] = _yaml(status_record(proposal))

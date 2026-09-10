@@ -43,11 +43,13 @@ def test_routes_match_d35() -> None:
     write_rows = {r.d35 for r in routes.ROUTES if r.write}
     assert None not in write_rows  # every write route names its D-35 row
     assert write_rows == routes.D35_OWNED_BY_F05 | {routes.D35_POST_PRECHECK} | (
-        routes.D35_OWNED_BY_F07
+        routes.D35_OWNED_BY_F07 | routes.D35_OWNED_BY_F08
     )
+    assert routes.D35_PROPOSAL_PR in d35_text()  # F08's row, verbatim like the append row
+    pr_rows = {routes.D35_APPEND_PR, routes.D35_PROPOSAL_PR}
     for r in routes.ROUTES:
-        assert r.d35 is None or r.d35 in rows or r.d35 == routes.D35_APPEND_PR, r
-        assert r.feature in ("F05", "F06", "F07"), r
+        assert r.d35 is None or r.d35 in rows or r.d35 in pr_rows, r
+        assert r.feature in ("F05", "F06", "F07", "F08"), r
 
 
 def test_f07_routes_are_authenticated_writes() -> None:

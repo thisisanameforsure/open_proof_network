@@ -67,6 +67,7 @@ def test_rate_limit_policy_shape() -> None:
         "token_starts_per_address_per_day": 10,
         "prechecks_per_hour": 40,
         "anonymous_prechecks_per_address_per_day": 20,
+        "proposals_per_day": 40,  # F08 §6: published, like every identity-layer limit
         "claim_ttl_hours": {"min": 1, "max": 168},
     }
 

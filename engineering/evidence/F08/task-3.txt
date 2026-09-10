@@ -1,0 +1,123 @@
+F08-T3 — the proposal endpoints. 2026-09-10
+
+WHAT T3 COVERS
+--------------
+AC8  api/tests/test_proposals.py::test_speculative_scaffold      — POST /proposals/speculative
+     pushes one new node directory under targets/<t>/nodes/spec-<hash8>/ that validates against
+     D-3 (layout.validate_node), whose META is meta/v2 with origin authored, whose Context.lean
+     carries the dep's Statement.lean verbatim (F01-R6), and whose status record says
+     `speculative` (F08-Q2); the classifier calls the pushed paths a proposal and its checks
+     pass; the commit is the identity's with the App as committer; a proposal PR is opened.
+AC9  ::test_variant_requires_proof_for_label                     — `resolves` with no proof is
+     400 `relation-proof-required` naming relation_proof and the implication direction;
+     `related` needs none and carries no Relation.lean; a `partial` proof lands with its
+     `-- relation: partial` line inside Relation.lean (F08-Q6), and a proof already naming a
+     different label is refused rather than relabelled.
+R5   ::test_witness_completion_route                             — a witness for a hole the
+     products show blocked `witness-missing` opens a PR adding only Witness.lean; a ready node,
+     an unknown node, a filled hole, or a witness that is itself a sorry is refused.
+§6   ::test_proposals_are_rate_limited_per_identity_per_day      — 40/day published in the
+     policy; the (limit+1)th is 429 with Retry-After.
+     ::test_scaffold_from_texts_matches_scaffold_from_tree       — the service's builder and the
+     gate's are one function: same bytes from fetched statements and from a checkout.
+
+WHAT THE TESTS FOUND
+--------------------
+The first run of AC8 failed because the service pushed the scaffold's paths bare — Statement.lean
+at the graph root — since opn_gate.scaffold.files returns paths relative to the node directory.
+The service now prefixes targets/<t>/nodes/<id>/; the test materialises the pushed files as a
+tree and runs the gate's own layout check and classifier over it, which is what caught it.
+
+VERIFICATION
+------------
+$ uv run pytest api/tests/test_proposals.py -v
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 7 items
+api/tests/test_proposals.py::test_speculative_scaffold PASSED            [ 14%]
+api/tests/test_proposals.py::test_speculative_refusals PASSED            [ 28%]
+api/tests/test_proposals.py::test_variant_requires_proof_for_label PASSED [ 42%]
+api/tests/test_proposals.py::test_witness_completion_route PASSED        [ 57%]
+api/tests/test_proposals.py::test_proposals_are_rate_limited_per_identity_per_day PASSED [ 71%]
+api/tests/test_proposals.py::test_proposals_need_a_token PASSED          [ 85%]
+api/tests/test_proposals.py::test_scaffold_from_texts_matches_scaffold_from_tree PASSED [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:26
+  /Users/mikehiggins/Desktop/repos/open_proof_network/api/tests/api_fakes.py:26: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 7 passed, 2 warnings in 0.07s =========================
+
+$ make verify
+uv run --frozen ruff check .
+All checks passed!
+uv run --frozen ruff format --check .
+145 files already formatted
+uv run --frozen mypy gate
+Success: no issues found in 72 source files
+uv run --frozen mypy api
+Success: no issues found in 39 source files
+uv run --frozen mypy site
+Success: no issues found in 14 source files
+uv run --frozen pytest -m "not lean and not docker and not network"
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+testpaths: gate/tests, api/tests, site/tests
+plugins: anyio-4.15.1
+collected 486 items / 47 deselected / 439 selected
+gate/tests/test_admit.py .............                                   [  2%]
+gate/tests/test_artifacts.py .............                               [  5%]
+gate/tests/test_attestation.py ...........                               [  8%]
+gate/tests/test_bounce.py ....                                           [  9%]
+gate/tests/test_config.py ........                                       [ 11%]
+gate/tests/test_deps.py .........                                        [ 13%]
+gate/tests/test_hazards.py .........                                     [ 15%]
+gate/tests/test_layout.py .......                                        [ 16%]
+gate/tests/test_ledger.py .............                                  [ 19%]
+gate/tests/test_modes.py ............................................... [ 30%]
+                                                                         [ 30%]
+gate/tests/test_paths.py ..................                              [ 34%]
+gate/tests/test_pipeline.py ...................                          [ 38%]
+gate/tests/test_postmerge.py ...............                             [ 42%]
+gate/tests/test_precheck_job_docker.py ...                               [ 43%]
+gate/tests/test_products.py ..........................                   [ 48%]
+gate/tests/test_records.py ......                                        [ 50%]
+gate/tests/test_schemas.py ............................................. [ 60%]
+.................                                                        [ 64%]
+gate/tests/test_signer.py ....                                           [ 65%]
+gate/tests/test_toolchain.py .............                               [ 68%]
+gate/tests/test_witness.py ........                                      [ 70%]
+api/tests/test_appends.py .......                                        [ 71%]
+api/tests/test_auth.py ....                                              [ 72%]
+api/tests/test_claims.py ........                                        [ 74%]
+api/tests/test_frontier.py ....                                          [ 75%]
+api/tests/test_health.py ........                                        [ 77%]
+api/tests/test_info.py ...                                               [ 77%]
+api/tests/test_precheck.py ...........................                   [ 84%]
+api/tests/test_proposals.py .......                                      [ 85%]
+api/tests/test_ratelimit.py ....                                         [ 86%]
+api/tests/test_routes.py .....                                           [ 87%]
+api/tests/test_sshsig.py ......                                          [ 89%]
+api/tests/test_submissions.py ......                                     [ 90%]
+api/tests/test_tokens.py ................                                [ 94%]
+site/tests/test_dag.py ...                                               [ 94%]
+site/tests/test_escaping.py ....                                         [ 95%]
+site/tests/test_links.py ....                                            [ 96%]
+site/tests/test_render.py ...............                                [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:26
+  /Users/mikehiggins/Desktop/repos/open_proof_network/api/tests/api_fakes.py:26: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================ 439 passed, 47 deselected, 2 warnings in 5.03s ================
