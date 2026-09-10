@@ -589,3 +589,180 @@ def test_node_counts_carry_the_new_statuses(tmp_path: Path) -> None:
     counts = doc["targets"][0]["node_counts"]
     assert counts["refuted"] == 1
     assert sum(counts.values()) == len(tg.nodes)
+
+
+# --- R3, C7: every defective input is named, and nothing is written ------------------------------
+
+from fakes import FakeToolchain, metaprogram_garbage  # noqa: E402
+
+from opn_gate import records  # noqa: E402
+from opn_gate.toolchain import ElabResult  # noqa: E402
+
+
+def assert_nothing_generated(root: Path) -> None:
+    assert not (root / "frontier.json").exists()
+    assert not (root / "info.json").exists()
+    assert not (root / "targets" / "index.json").exists()
+    assert not (root / "targets" / TARGET / "graph.json").exists()
+
+
+def test_malformed_attestation_is_a_graph_defect(tmp_path: Path) -> None:
+    """A committed attestation that does not parse or validate stops generation naming the file;
+    it is never skipped, because skipping it would silently un-prove a node."""
+    root = copy_graph(tmp_path)
+    att = root / "attestations"
+    att.mkdir()
+    (att / "000001.json").write_text("{not json", encoding="utf-8")
+    with pytest.raises(GraphError, match=r"attestation .*000001\.json is malformed"):
+        generate(root)
+    assert_nothing_generated(root)
+
+    attest(root, "tutorial-and-swap", n=1)
+    doc = json.loads((att / "000001.json").read_text())
+    doc["verdict"] = "maybe"
+    (att / "000001.json").write_bytes(schemas.canonical_json(doc))
+    with pytest.raises(GraphError, match="malformed"):
+        generate(root)
+    assert_nothing_generated(root)
+
+
+def test_malformed_meta_names_the_node(tmp_path: Path) -> None:
+    """A node whose META does not parse, or names another id, is refused by name (R3)."""
+    root = copy_graph(tmp_path)
+    meta = nodes_dir(root) / "and-reassoc" / "META.yaml"
+    meta.write_text("id: [unterminated\n", encoding="utf-8")
+    with pytest.raises(GraphError, match="node and-reassoc"):
+        generate(root)
+    assert_nothing_generated(root)
+
+    other = copy_graph(tmp_path / "b")
+    meta = nodes_dir(other) / "and-reassoc" / "META.yaml"
+    meta.write_text(meta.read_text().replace("id: and-reassoc", "id: tutorial-and-swap"))
+    with pytest.raises(GraphError, match=r"node and-reassoc: .*differs from directory"):
+        generate(other)
+
+
+def test_missing_status_is_refused_by_the_meta_writer(tmp_path: Path) -> None:
+    """R2: the bot rewrites only the status line; a META with none to rewrite is a defect, not a
+    file the bot appends to."""
+    root = copy_graph(tmp_path)
+    meta = nodes_dir(root) / "and-reassoc" / "META.yaml"
+    meta.write_text(meta.read_text().replace("status: ready\n", ""), encoding="utf-8")
+    with pytest.raises(GraphError, match="no status line"):
+        graph.write_meta_status(meta.parent, "proved")
+
+
+def test_target_without_nodes_is_refused(tmp_path: Path) -> None:
+    root = copy_graph(tmp_path)
+    for node in nodes_dir(root).iterdir():
+        import shutil  # noqa: PLC0415
+
+        shutil.rmtree(node)
+    with pytest.raises(GraphError, match="has no nodes"):
+        generate(root)
+    assert_nothing_generated(root)
+
+
+def test_stray_target_directory_stops_generation(tmp_path: Path) -> None:
+    """A directory under targets/ that is not a target (no gate-spec.json) is a defect of the
+    whole graph, and the good target's products are not written either (R3, C7)."""
+    root = copy_graph(tmp_path)
+    (root / "targets" / "stray").mkdir()
+    with pytest.raises(schemas.SchemaError, match=r"gate-spec\.json"):
+        generate(root)
+    assert_nothing_generated(root)
+    assert products.target_ids(root) == [TARGET, "stray"]
+
+
+def test_invalid_committed_claims_are_dropped_with_a_warning(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """F05-Q3, C7: a claims.json that does not validate never blocks a merge; the frontier
+    carries no claims and the log says why."""
+    import logging  # noqa: PLC0415
+
+    root = copy_graph(tmp_path)
+    (root / "claims.json").write_text('{"schema": "claims/v1"}', encoding="utf-8")
+    with caplog.at_level(logging.WARNING):
+        assert products.load_claims(root) == {}
+        prod = generate(root)
+    assert "claims.json does not validate" in caplog.text
+    assert all(
+        e["claims"] == {"active": [], "history_count": 0}
+        for e in loads(prod, "frontier.json")["entries"]
+    )
+    (root / "claims.json").write_text("not json", encoding="utf-8")
+    assert products.load_claims(root) == {}
+
+
+def test_statement_scan_failures_are_graph_errors(tmp_path: Path) -> None:
+    """R6 through the seam: a Context that does not elaborate, or a metaprogram that returns no
+    verdict, names the node rather than tagging it with nothing."""
+    root = copy_graph(tmp_path)
+    tg = graph.load_target(root, TARGET)
+    node = tg.nodes["and-reassoc"]
+    from fakes import FAKE_RESOLVED  # noqa: PLC0415
+
+    broken = FakeToolchain(elab=ElabResult(ok=False))
+    with pytest.raises(GraphError, match="Context does not elaborate; cannot tag and-reassoc"):
+        products.scan_statement(broken, FAKE_RESOLVED, node, tmp_path / "w1")
+
+    garbage = FakeToolchain(constants=metaprogram_garbage(output="boom"))
+    with pytest.raises(GraphError, match="opn-used-constants failed on and-reassoc: boom"):
+        products.scan_statement(garbage, FAKE_RESOLVED, node, tmp_path / "w2")
+
+
+def test_tag_cache_ignores_a_file_that_is_not_an_object(tmp_path: Path) -> None:
+    """A bot-owned cache that is not a mapping is treated as empty: the scan runs again rather
+    than trusting a shape it cannot read."""
+    path = tmp_path / ".tags-cache.json"
+    path.write_text("[1, 2]", encoding="utf-8")
+    cache = products.TagCache(path)
+    assert cache.entries == {}
+    root = copy_graph(tmp_path)
+    node = graph.load_target(root, TARGET).nodes["and-reassoc"]
+    scans: list[str] = []
+
+    def scanner(n: graph.NodeFacts) -> list[str]:
+        scans.append(n.node_id)
+        return ["Order", "Algebra"]
+
+    assert cache.tags(node, scanner) == ["Algebra", "Order"]
+    assert cache.tags(node, scanner) == ["Algebra", "Order"]
+    assert scans == ["and-reassoc"] and cache.dirty
+
+
+def test_find_root_edge_cases_with_revisions(tmp_path: Path) -> None:
+    """F08-Q16: superseded sinks and revisions of interior nodes are set aside — but when nothing
+    is left, or two candidates remain, the root is still ambiguous rather than guessed."""
+    root = copy_graph(tmp_path)
+    tg = graph.load_target(root, TARGET)
+
+    def facts(base: str, **kw: object) -> graph.NodeFacts:
+        from dataclasses import replace  # noqa: PLC0415
+
+        return replace(tg.nodes[base], **kw)  # type: ignore[arg-type]
+
+    superseded = records.StatusRecord("superseded", "c", "2026-09-10", Path("x"), {})
+    # Two revisions of two different sinks, both un-depended-on: two candidates remain.
+    two = {
+        "a": facts("and-reassoc", node_id="a", deps=()),
+        "a-v2": facts("and-reassoc", node_id="a-v2", deps=(), supersedes="a"),
+        "b": facts("tutorial-and-swap", node_id="b", deps=()),
+        "b-v2": facts("tutorial-and-swap", node_id="b-v2", deps=(), supersedes="b"),
+    }
+    with pytest.raises(GraphError, match="ambiguous: 2 nodes"):
+        graph.find_root(two, None)
+    # Every sink superseded and nothing revising it: zero candidates, still ambiguous.
+    none = {
+        "a": facts("and-reassoc", node_id="a", deps=(), override=superseded),
+        "b": facts("tutorial-and-swap", node_id="b", deps=(), override=superseded),
+    }
+    with pytest.raises(GraphError, match="ambiguous: 0 nodes"):
+        graph.find_root(none, None)
+    # A superseded root and its revision: the revision is the root.
+    revised = {
+        "a": facts("and-reassoc", node_id="a", deps=(), override=superseded),
+        "a-v2": facts("and-reassoc", node_id="a-v2", deps=(), supersedes="a"),
+    }
+    assert graph.find_root(revised, None) == "a-v2"

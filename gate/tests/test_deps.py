@@ -12,6 +12,7 @@ from opn_gate import layout, pipeline
 from opn_gate.steps import default_steps
 from opn_gate.steps.deps import DepsStep, context_signatures, statement_signature
 from opn_gate.steps.witness import WitnessStep
+from opn_gate.toolchain import MetaprogramResult
 
 ROOT = "and-swap-reassoc"
 A, B = "tutorial-and-swap", "and-reassoc"
@@ -126,6 +127,75 @@ def test_unknown_module_origin_fails(tmp_path: Path) -> None:
     assert verdict.first_failing_step == 8
     assert verdict.diagnostic is not None
     assert verdict.diagnostic.details["offences"][0]["node"] == "?"
+
+
+def test_unreadable_dependencies_fail_closed(tmp_path: Path) -> None:
+    """R9, C7: a metaprogram that ran but answered `ok: false` is `deps-unreadable` with its
+    error and messages — never a pass with an empty footprint."""
+    bad = MetaprogramResult(
+        ok=False,
+        exit_code=1,
+        doc={
+            "ok": False,
+            "error": "unknown constant OpnProp.and_swap_reassoc",
+            "messages": [{"severity": "error", "line": 1, "column": 0, "text": "unknown"}],
+        },
+    )
+    ctx = make_context(tmp_path, node_id=ROOT, toolchain=FakeToolchain(constants=bad))
+    verdict = run_to_eight(ctx)
+    assert verdict.first_failing_step == 8
+    d = verdict.diagnostic
+    assert d is not None and d.code == "deps-unreadable"
+    assert d.message == "unknown constant OpnProp.and_swap_reassoc"
+    assert d.details["messages"][0]["line"] == 1
+    assert "deps" not in verdict.data
+
+
+def test_dep_whose_statement_is_malformed_is_a_graph_defect(tmp_path: Path) -> None:
+    """R6: the dep's Statement.lean must parse to compare signatures; when it does not, step 8
+    names the dep rather than passing with nothing to compare against."""
+    ctx = make_context(tmp_path, node_id=ROOT)
+    (node_dir(ctx).parent / A / "Statement.lean").write_text(
+        "theorem OpnProp.and_swap : True := sorry\ntheorem OpnProp.extra : True := sorry\n"
+    )
+    verdict = run_to_eight(ctx)
+    assert verdict.first_failing_step == 8, verdict
+    d = verdict.diagnostic
+    assert d is not None and d.code == "dep-statement"
+    assert d.details["dep"] == A and "found 2" in d.message
+
+
+def test_context_check_takes_the_first_offending_dep(tmp_path: Path) -> None:
+    """Deps are checked in declared order; the first defect is the verdict, both hashes named."""
+    ctx = make_context(tmp_path, node_id=ROOT)
+    (node_dir(ctx) / "Context.lean").write_text(
+        "theorem OpnProp.and_swap : ∀ p q : Prop, p ∧ q → q ∧ p := by\n  sorry\n"
+        "theorem OpnProp.and_reassoc : ∀ p q r : Prop, r ∧ (p ∧ q) → p ∧ (q ∧ r) := by\n  sorry\n"
+    )
+    verdict = run_to_eight(ctx)
+    assert verdict.first_failing_step == 8
+    d = verdict.diagnostic
+    assert d is not None and d.code == "context-signature-mismatch" and d.details["dep"] == B
+
+
+def test_constants_from_the_node_itself_and_the_submission_are_free(tmp_path: Path) -> None:
+    """R4: a proof may lean on its own module and on helpers it declares (module None)."""
+    fake = FakeToolchain(
+        constants=used_constants_result(
+            [
+                *LIBRARY_CONSTANTS,
+                ("OpnProp.and_swap_reassoc.aux", f"Nodes.«{ROOT}».Proof"),
+                ("local_helper", None),
+                ("Std.Thing", "Std.Data.HashMap"),
+                ("Aesop.Thing", "Aesop.Main"),
+            ]
+        )
+    )
+    ctx = make_context(tmp_path, node_id=ROOT, toolchain=fake)
+    verdict = run_to_eight(ctx)
+    assert verdict.ok, verdict
+    assert verdict.data["deps"]["used"] == []
+    assert sorted(verdict.data["deps"]["unused"]) == sorted([A, B])
 
 
 def test_tutorial_node_has_no_deps_and_passes(tmp_path: Path) -> None:

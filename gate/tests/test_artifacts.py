@@ -163,3 +163,99 @@ def test_declaration_parsing_respects_namespaces() -> None:
     text = "namespace OpnProp\ntheorem and_swap_refuted : True := trivial\nend OpnProp\n"
     assert layout.parse_declaration(text) == f"{STMT}_refuted"
     assert art.declared_kind(STMT, text)[0] == "counterexample"
+
+
+# --- running the metaprogram: every way it can fail to answer (R4, R5; F01-R9's contract) --------
+
+from pathlib import Path  # noqa: E402
+
+from fakes import FakeToolchain, metaprogram_garbage  # noqa: E402
+from harness import make_context  # noqa: E402
+from scripted import ScriptedToolchain  # noqa: E402
+
+from opn_gate.toolchain import ArtifactRequest, MetaprogramResult  # noqa: E402
+
+
+def request(kind: art.Kind) -> ArtifactRequest:
+    return ArtifactRequest(
+        statement=Path("Statement.lean"),
+        statement_module="Nodes.«tutorial-and-swap».Statement",
+        decl=STMT,
+        artifact=Path("Proof.lean"),
+        artifact_module="Nodes.«tutorial-and-swap».Proof",
+        artifact_decl=art.expected_decl(kind, STMT),
+        kind=kind,
+    )
+
+
+def test_a_metaprogram_without_a_verdict_is_named(tmp_path: Path) -> None:
+    fake = FakeToolchain(artifact=metaprogram_garbage(exit_code=134, output="Segmentation fault"))
+    ctx = make_context(tmp_path, toolchain=fake)
+    found, failure = art.run(ctx, fake.resolved, request("counterexample"), "counterexample")
+    assert found is None
+    assert failure is not None and failure.diagnostic is not None
+    assert failure.diagnostic.code == "metaprogram-failed"
+    assert failure.diagnostic.details["exit_code"] == 134
+    assert "Segmentation fault" in failure.diagnostic.details["output"]
+    assert "artifact" not in ctx.data
+
+
+def test_an_artifact_that_does_not_elaborate_is_named(tmp_path: Path) -> None:
+    broken = MetaprogramResult(ok=False, doc={"ok": False, "error": "unknown identifier 'foo'"})
+    fake = FakeToolchain(artifact=broken)
+    ctx = make_context(tmp_path, toolchain=fake)
+    found, failure = art.run(ctx, fake.resolved, request("partial"), "partial")
+    assert found is None
+    assert failure is not None and failure.diagnostic is not None
+    assert failure.diagnostic.code == "artifact-elaboration"
+    assert failure.diagnostic.message == "unknown identifier 'foo'"
+
+
+def test_the_wall_clock_cap_is_a_step_failure(tmp_path: Path) -> None:
+    fake = ScriptedToolchain(timeout_on={"artifact_type"})
+    ctx = make_context(tmp_path, toolchain=fake)
+    found, failure = art.run(ctx, fake.resolved, request("proof"), "proof")
+    assert found is None
+    assert failure is not None and failure.diagnostic is not None
+    assert failure.diagnostic.code == "timeout"
+    assert f"{ctx.wallclock_s:g}s" in failure.diagnostic.message
+
+
+def test_a_report_with_problems_fails_on_the_first_and_lists_them_all(tmp_path: Path) -> None:
+    """The step names the first problem (F00-R7) and carries every other one in ``problems``,
+    and the parsed artifact is recorded in the context either way."""
+    report = artifact_result(
+        kind="partial",
+        declared="∀ (p q : Prop), p ∧ q → p ∧ q",
+        matches=False,
+        holes=[("restated", S, True)],
+        unnamed=1,
+    )
+    fake = FakeToolchain(artifact=report)
+    ctx = make_context(tmp_path, toolchain=fake)
+    found, failure = art.run(ctx, fake.resolved, request("partial"), "partial")
+    assert found is not None and failure is not None and failure.diagnostic is not None
+    assert failure.diagnostic.code == "artifact-type-mismatch"
+    assert failure.diagnostic.details["expected"] == S
+    assert len(failure.diagnostic.details["problems"]) == 3
+    assert ctx.data["artifact"] == found.as_dict()
+    assert ctx.data["artifact"]["holes"][0]["name"] == "restated"
+
+
+def test_an_empty_report_never_passes() -> None:
+    """Fail closed: a report the parser cannot read anything from is a type mismatch and a
+    hole-less partial, never a pass."""
+    empty = art.Artifact.of("partial", {})
+    assert not empty.matches and empty.holes == () and empty.axioms == ()
+    assert codes(art.check(empty)) == ["artifact-type-mismatch", "partial-without-holes"]
+    proof = art.Artifact.of("proof", {"holes": ["not", "dicts", 3]})
+    assert proof.holes == ()
+    assert codes(art.check(proof)) == ["artifact-type-mismatch"]
+
+
+def test_a_hole_without_a_closed_type_falls_back_to_its_local_type() -> None:
+    """An older metaprogram report without ``closed_type`` still yields a hole; the local type
+    stands in, so nothing is silently dropped."""
+    hole = art.Hole.of({"name": "h", "type": "q"})
+    assert hole.closed_type == "q" and not hole.defeq_goal
+    assert art.Hole.of({}).name == "" and art.Hole.of({}).type == ""

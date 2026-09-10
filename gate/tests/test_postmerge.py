@@ -367,3 +367,231 @@ def test_alternate_proof(tmp_path: Path) -> None:
 
     with pytest.raises(postmerge.GraphWriteError, match="append-only"):
         postmerge.record_alternate(node_dir, alternate, pseudonym="bob", stamp=STAMP)
+
+
+# --- the post-merge job's refusals: each named, none half-written (R6, R7; C7) -------------------
+
+from opn_gate import scaffold  # noqa: E402
+from opn_gate.signer import Signature  # noqa: E402
+
+
+def snapshot(node_dir: Path) -> dict[str, bytes]:
+    return {
+        p.relative_to(node_dir.parent).as_posix(): p.read_bytes()
+        for p in node_dir.parent.rglob("*")
+        if p.is_file()
+    }
+
+
+def test_a_partial_with_no_holes_creates_nothing(tmp_path: Path) -> None:
+    """D-12 #5: a hole-less partial is a proof, and the job refuses to make children of it."""
+    node_dir = parent_dir(tmp_path)
+    before = snapshot(node_dir)
+    with pytest.raises(postmerge.GraphWriteError, match="no holes"):
+        postmerge.apply_partial(
+            node_dir, (), partial_text=ASSEMBLY, pseudonym=PSEUDONYM, stamp=STAMP
+        )
+    assert snapshot(node_dir) == before
+
+
+def test_a_partial_applied_twice_is_refused_and_the_parent_is_untouched(tmp_path: Path) -> None:
+    """The child ids are a function of the parent, so re-applying a merge lands on existing
+    directories, which the scaffold never writes into (D-3); the parent stays as the first
+    application left it."""
+    node_dir = parent_dir(tmp_path)
+    postmerge.apply_partial(
+        node_dir, HOLES, partial_text=ASSEMBLY, pseudonym=PSEUDONYM, stamp=STAMP
+    )
+    after_first = snapshot(node_dir)
+    with pytest.raises(scaffold.ScaffoldError, match="already exists"):
+        postmerge.apply_partial(
+            node_dir, HOLES, partial_text=ASSEMBLY, pseudonym="carol", stamp="20260911T000000Z"
+        )
+    assert snapshot(node_dir) == after_first
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="postmerge.apply_partial files the assembly last: when attempts/<ts>-<pseudonym>"
+    "-partial.lean already exists (F07-Q15: the submitter may name the file anything under "
+    "attempts/), the refusal comes after the children, the parent's deps and Context.lean were "
+    "written, contradicting the docstring's 'a failure leaves nothing behind' (C7)",
+)
+def test_a_refusal_at_the_attempt_file_leaves_nothing_behind(tmp_path: Path) -> None:
+    node_dir = parent_dir(tmp_path)
+    submitted = node_dir / "attempts" / postmerge.attempt_name(STAMP, PSEUDONYM, "-partial.lean")
+    submitted.write_text(ASSEMBLY, encoding="utf-8")
+    before = snapshot(node_dir)
+    with pytest.raises(postmerge.GraphWriteError, match="append-only"):
+        postmerge.apply_partial(
+            node_dir, HOLES, partial_text=ASSEMBLY, pseudonym=PSEUDONYM, stamp=STAMP
+        )
+    assert snapshot(node_dir) == before
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="postmerge.annex_citation matches only a 64-char lowercase hex hash, so a truncated "
+    "or upper-cased `-- annex:` line is read as no citation at all: the children silently become "
+    "compiler-derived instead of the citation being rejected as absent (F07-R6, D-31; C7)",
+)
+@pytest.mark.parametrize("digest", ["a" * 63, "A" * 64, "a" * 64 + "0"])
+def test_a_malformed_annex_citation_is_rejected_not_ignored(tmp_path: Path, digest: str) -> None:
+    node_dir = parent_dir(tmp_path)
+    text = f"-- annex: {digest}\n" + ASSEMBLY
+    with pytest.raises(postmerge.GraphWriteError):
+        postmerge.apply_partial(
+            node_dir, HOLES, partial_text=text, pseudonym=PSEUDONYM, stamp=STAMP
+        )
+
+
+def test_a_citation_needs_its_own_line(tmp_path: Path) -> None:
+    """The citation is a comment line of the form `-- annex: <hash>` and nothing else: a hash
+    mentioned in prose, or after other text, is not a citation."""
+    assert postmerge.annex_citation(f"-- see annex {'a' * 64}\n") is None
+    assert postmerge.annex_citation(f"-- annex: {'a' * 64} (my sketch)\n") is None
+    assert postmerge.annex_citation(f"  -- annex:\t{'b' * 64}  \n") == "b" * 64
+    assert postmerge.child_origin("theorem t : True := trivial\n") == "compiler-derived"
+
+
+def test_regenerating_context_for_a_ghost_dep_is_refused(tmp_path: Path) -> None:
+    """The bot-owned Context is generated from the deps' own files (F01-R6); a dep with no
+    Statement.lean to copy is a refusal, and the old Context stands."""
+    node_dir = parent_dir(tmp_path)
+    before = (node_dir / "Context.lean").read_text()
+    postmerge.add_deps(node_dir, ["ghost"])
+    with pytest.raises(scaffold.ScaffoldError, match="'ghost' is not a node"):
+        postmerge.regenerate_context(node_dir, node_dir.parent)
+    assert (node_dir / "Context.lean").read_text() == before
+
+
+def test_add_deps_is_additive_and_idempotent(tmp_path: Path) -> None:
+    node_dir = parent_dir(tmp_path)
+    before = yaml.safe_load((node_dir / "META.yaml").read_text())["deps"]
+    assert postmerge.add_deps(node_dir, [before[0], "x"]) == [*before, "x"]
+    assert postmerge.add_deps(node_dir, ["x"]) == [*before, "x"]
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="graph.witness_is_stub is `'sorry' in text`: a hole's witness filled by replacing the "
+    "body but keeping the slot's own doc comment (which says `sorry`) still reads as a stub, so "
+    "the node stays blocked with cause witness-missing after its witness is real (F07-R6, "
+    "F08-R5, F07-Q3)",
+)
+def test_a_filled_witness_that_keeps_the_slot_comment_is_not_a_stub(tmp_path: Path) -> None:
+    node_dir = parent_dir(tmp_path)
+    result = postmerge.apply_partial(
+        node_dir, HOLES, partial_text=ASSEMBLY, pseudonym=PSEUDONYM, stamp=STAMP
+    )
+    child = node_dir.parent / result.children[0]
+    slot = (child / "Witness.lean").read_text()
+    filled = slot.replace(":= by\n  sorry\n", ":= trivial\n")
+    assert "sorry" not in filled.split("theorem", 1)[1]  # the proof body is real
+    (child / "Witness.lean").write_text(filled, encoding="utf-8")
+    assert not graphmod.witness_is_stub(child)
+
+
+def test_stamp_to_date_needs_a_whole_day() -> None:
+    assert postmerge.stamp_to_date("20260910T121314Z") == "2026-09-10"
+    assert postmerge.stamp_to_date("2026") == "2026"  # too short to be a day: passed through
+
+
+# --- the step-9 record and the gate signature: what is refused ------------------------------------
+
+
+class RecordingSigner:
+    """A signer that never signs: every call is recorded so a test can prove none was made."""
+
+    def __init__(self, key_id: str = "SHA256:fake") -> None:
+        self.key_id = key_id
+        self.calls: list[str] = []
+
+    def sign(self, payload: bytes, key_path: Path, kind: str) -> Signature:
+        self.calls.append(f"sign:{kind}")
+        return Signature(kind, self.key_id, "sig")  # type: ignore[arg-type]
+
+    def verify(self, payload: bytes, signature: str, public_key: str) -> bool:
+        self.calls.append("verify")
+        return True
+
+    def fingerprint(self, public_key: str) -> str:
+        self.calls.append("fingerprint")
+        return self.key_id
+
+
+def test_verify_refuses_before_consulting_the_signer(tmp_path: Path) -> None:
+    """An unknown signature kind, an empty value, or a key id that is not the committed key's
+    is refused without a cryptographic check — a signer is never asked about garbage."""
+    ctx = make_context(tmp_path)
+    doc = attestation.build(ctx, pipeline.run_steps(ctx), graph_commit=None, clock=lambda: FIXED)
+    signer = RecordingSigner()
+
+    bogus = dict(doc, signature=dict(doc["signature"], kind="bogus", value="sig"))
+    assert not postmerge.verify(bogus, "ssh-ed25519 AAAA", signer)
+    empty = dict(doc, signature=dict(doc["signature"], kind="gate", value=""))
+    assert not postmerge.verify(empty, "ssh-ed25519 AAAA", signer)
+    assert signer.calls == []
+
+    other_key = dict(doc, signature=dict(doc["signature"], kind="gate", value="sig", key_id="x"))
+    assert not postmerge.verify(other_key, "ssh-ed25519 AAAA", signer)
+    assert signer.calls == ["fingerprint"]  # compared, but never verified
+
+
+def test_record_step9_refuses_a_malformed_review_or_commit(tmp_path: Path) -> None:
+    """The post-merge fields are validated on the way in: a review kind D-4 does not have, or a
+    merge commit that is not a SHA, never reaches a signature."""
+    ctx = make_context(tmp_path)
+    doc = attestation.build(ctx, pipeline.run_steps(ctx), graph_commit=None, clock=lambda: FIXED)
+    with pytest.raises(schemas.SchemaError):
+        postmerge.record_step9(doc, merge_commit="4" * 40, review={"kind": "rubber-stamp"})
+    with pytest.raises(schemas.SchemaError):
+        postmerge.record_step9(
+            doc, merge_commit="not-a-sha", review=postmerge.review_block("tutorial")
+        )
+    signer = RecordingSigner()
+    with pytest.raises(schemas.SchemaError):
+        postmerge.finalize(
+            doc,
+            merge_commit="4" * 40,
+            review={"kind": "rubber-stamp"},
+            key_path=tmp_path / "k",
+            signer=signer,
+        )
+    assert signer.calls == []
+
+
+def test_a_bot_commit_needs_a_real_pull_request_number() -> None:
+    with pytest.raises(ValueError, match="positive"):
+        postmerge.bot_commit_message(0, "pass")
+    with pytest.raises(ValueError, match="positive"):
+        postmerge.attestation_path(Path("/g"), -3)
+    assert postmerge.parse_bot_commit_message("") is None
+    assert postmerge.parse_bot_commit_message("gate: #2 bounced") is None
+    assert postmerge.parse_bot_commit_message("gate: #02 pass") == (2, "pass")
+
+
+def test_approving_reviewer_ignores_reviews_without_a_user() -> None:
+    reviews: list[dict[str, Any]] = [
+        {"state": "APPROVED", "submitted_at": "2026-09-08T01:00:00Z"},
+        {"state": "APPROVED", "user": None, "submitted_at": "2026-09-08T02:00:00Z"},
+        {"state": "APPROVED", "user": {}, "submitted_at": "2026-09-08T03:00:00Z"},
+    ]
+    assert postmerge.approving_reviewer(reviews, "author") is None
+
+
+def test_claims_snapshot_that_is_not_json_is_kept_out(tmp_path: Path) -> None:
+    """A response that does not parse is the same story as an unreachable service (C7)."""
+    graph = tmp_path / "graph"
+    graph.mkdir()
+    note = postmerge.refresh_claims(
+        graph, "https://api.example/claims.json", opener=lambda _u, _t: b"<html>oops</html>"
+    )
+    assert note is not None and "JSONDecodeError" in note
+    assert not (graph / "claims.json").exists()
+    with pytest.raises(ValueError, match="https"):
+        postmerge.fetch_claims_snapshot("ftp://api.example/claims.json")
+    assert (
+        postmerge.fetch_claims_snapshot("http://127.0.0.1:8000/c.json", opener=lambda _u, _t: b"{}")
+        == b"{}"
+    )

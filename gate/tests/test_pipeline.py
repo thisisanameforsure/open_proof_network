@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import subprocess
+from dataclasses import dataclass
 from pathlib import Path
 
+import pytest
 from fakes import FakeToolchain, witness_result
 from harness import (
     TUTORIAL,
@@ -16,7 +19,7 @@ from harness import (
 from opn_gate import attestation, pipeline, schemas
 from opn_gate.paths import Change
 from opn_gate.steps import default_steps
-from opn_gate.steps.base import RunContext, StepResult
+from opn_gate.steps.base import RunContext, Step, StepResult
 from opn_gate.toolchain import AxiomResult, ElabResult, Message, ReplayResult
 
 N = f"targets/propositional/nodes/{TUTORIAL}"
@@ -295,3 +298,117 @@ def test_unproved_dep_blocks_at_step4(tmp_path: Path) -> None:
     assert verdict.first_failing_step == 4
     assert verdict.diagnostic is not None and verdict.diagnostic.code == "dep-unproved"
     assert verdict.diagnostic.details["dep"] == "and-reassoc"
+
+
+# --- failure shapes the fast tier can only reach through the seam --------------------------------
+
+
+@dataclass
+class TimingOutToolchain(FakeToolchain):
+    """The fake seam with one call that overruns the wall-clock cap (F00-R12, C6)."""
+
+    timeout_in: str = ""
+
+    def _maybe_raise(self, name: str) -> None:
+        if name == self.timeout_in:
+            raise subprocess.TimeoutExpired([name], 300.0)
+        super()._maybe_raise(name)
+
+
+@pytest.mark.parametrize(
+    ("call", "step"),
+    [
+        ("elaborate", 4),
+        ("kernel_replay", 4),
+        ("axioms", 5),
+        ("hazards", 6),
+        ("witness_type", 7),
+        ("used_constants", 8),
+    ],
+)
+def test_wallclock_timeout_is_that_steps_failure(tmp_path: Path, call: str, step: int) -> None:
+    """A seam call that exceeds the cap fails exactly the step that made it, with a `timeout`
+    diagnostic naming the cap, and never escapes as an exception (R18)."""
+    fake = TimingOutToolchain(timeout_in=call)
+    ctx = make_context(tmp_path, toolchain=fake, spec_overrides={"hazard_checkers": ["nat-sub"]})
+    verdict = pipeline.run_steps(ctx)
+    assert verdict.first_failing_step == step, verdict
+    d = verdict.diagnostic
+    assert d is not None and d.code == "timeout"
+    assert f"step {step}" in d.message and "300s" in d.message
+    assert all(s.result == "skipped" for s in verdict.steps if s.step > step)
+
+
+def test_step_failure_without_detail_still_gets_a_diagnostic(tmp_path: Path) -> None:
+    """R7: a step that says `fail` and nothing else is recorded with a placeholder diagnostic,
+    never with `diagnostic: null` on a failed verdict."""
+
+    class Silent:
+        number = 3
+        name = "silent"
+
+        def run(self, ctx: RunContext) -> StepResult:
+            return StepResult(ok=False)
+
+    verdict = pipeline.run_steps(make_context(tmp_path), steps=[*default_steps(), Silent()])
+    assert verdict.first_failing_step == 3
+    assert verdict.diagnostic is not None and verdict.diagnostic.code == "failed"
+    three = next(s for s in verdict.steps if s.step == 3)
+    assert three.result == "fail" and three.diagnostic is verdict.diagnostic
+    assert verdict.as_dict()["diagnostic"] == {
+        "code": "failed",
+        "message": "step failed without detail",
+    }
+
+
+def test_unexpected_error_carries_a_traceback_but_stays_a_verdict(tmp_path: Path) -> None:
+    """R18: the diagnostic names the exception class and carries a bounded traceback."""
+    fake = FakeToolchain(raise_on="axioms")
+    verdict = pipeline.run_steps(make_context(tmp_path, toolchain=fake))
+    assert verdict.first_failing_step == 5
+    d = verdict.diagnostic
+    assert d is not None and d.code == "unexpected-error"
+    assert d.details["exception"] == "RuntimeError"
+    assert "Traceback" in d.details["traceback"] and "blew up in axioms" in d.details["traceback"]
+    ctx = make_context(tmp_path / "b", toolchain=fake)
+    assert schemas.violations(attestation.build(ctx, verdict, graph_commit=None)) == []
+
+
+def test_unreadable_axioms_fail_step5(tmp_path: Path) -> None:
+    """R6: when `#print axioms` cannot be interpreted the step fails closed with the output,
+    rather than passing an empty axiom set."""
+    fake = FakeToolchain(axiom_result=AxiomResult(ok=False, output="error: unknown constant"))
+    verdict = pipeline.run_steps(make_context(tmp_path, toolchain=fake))
+    assert verdict.first_failing_step == 5
+    d = verdict.diagnostic
+    assert d is not None and d.code == "axioms-unreadable"
+    assert d.details["output"] == "error: unknown constant"
+    assert "axioms" not in verdict.data
+
+
+@pytest.mark.parametrize(
+    "step", [s for s in default_steps() if s.number >= 4], ids=lambda s: str(s.name)
+)
+def test_steps_refuse_to_run_out_of_order(tmp_path: Path, step: Step) -> None:
+    """Every step after 2 needs the toolchain and the loaded node; called on a bare context it
+    fails `step-order` instead of guessing (C7)."""
+    ctx = make_context(tmp_path)
+    result = step.run(ctx)
+    assert not result.ok and result.diagnostic is not None
+    assert result.diagnostic.code == "step-order"
+    assert f"step {step.number}" in result.diagnostic.message
+
+
+def test_claim_on_a_missing_node_fails_step2_and_still_attests(tmp_path: Path) -> None:
+    """R1, R8: a claim naming a directory that does not exist is a step-2 `node-missing`, and
+    the attestation is still built — with a zero statement hash and no artifact hash — so the
+    record never depends on the node having loaded."""
+    ctx = make_context(tmp_path, node_id="ghost")
+    verdict = pipeline.run_steps(ctx)
+    assert verdict.first_failing_step == 2
+    assert verdict.diagnostic is not None and verdict.diagnostic.code == "node-missing"
+    assert ctx.node is None
+    doc = attestation.build(ctx, verdict, graph_commit=None)
+    assert schemas.violations(doc) == []
+    assert doc["statement_hash"] == "0" * 64
+    assert doc["artifact_hash"] is None and doc["node_id"] == "ghost"

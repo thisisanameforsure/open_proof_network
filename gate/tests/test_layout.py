@@ -114,6 +114,102 @@ def test_parse_statement_shapes() -> None:
     assert isinstance(nobody, Diagnostic)
 
 
+def test_missing_node_directory_is_named(tmp_path: Path) -> None:
+    """R1: a claim on a directory that does not exist is one diagnostic, not an exception."""
+    found = layout.validate_node(tmp_path / "ghost")
+    assert [d.code for d in found] == ["node-missing"]
+    assert "ghost" in found[0].message
+    loaded = layout.load_node(tmp_path / "ghost", "propositional")
+    assert isinstance(loaded, list) and loaded[0].code == "node-missing"
+
+    as_file = tmp_path / "file-not-dir"
+    as_file.write_text("")
+    assert [d.code for d in layout.validate_node(as_file)] == ["node-missing"]
+
+
+def test_meta_with_a_foreign_schema_is_refused(tmp_path: Path) -> None:
+    """R9: META.yaml validates against the schema it names; a document that is valid under some
+    *other* published schema is still not a META and is refused as such."""
+    n = tmp_path / "and-reassoc"
+    shutil.copytree(NODES / "and-reassoc", n)
+    (n / "META.yaml").write_text(
+        "schema: waiver/v1\nkind: native_decide\njustification: not a meta\nauthor: x\n"
+    )
+    result = layout.load_node(n, "propositional")
+    assert isinstance(result, list)
+    assert [d.code for d in result] == ["meta-schema"]
+    assert "waiver/v1" in result[0].message
+
+
+def test_unparseable_meta_yaml_is_meta_invalid(tmp_path: Path) -> None:
+    n = tmp_path / "and-reassoc"
+    shutil.copytree(NODES / "and-reassoc", n)
+    (n / "META.yaml").write_text("schema: meta/v1\nid: [unclosed\n")
+    result = layout.load_node(n, "propositional")
+    assert isinstance(result, list)
+    assert [d.code for d in result] == ["meta-invalid"]
+    assert "cannot read YAML" in result[0].message
+
+    (n / "META.yaml").write_text("- just\n- a list\n")
+    result = layout.load_node(n, "propositional")
+    assert isinstance(result, list)
+    assert result[0].code == "meta-invalid" and "must be an object" in result[0].message
+
+
+def test_load_node_reports_statement_shape(tmp_path: Path) -> None:
+    """R1: a Statement.lean that is not one sorry-bodied theorem stops the load, without a
+    hash comparison against META (there is no statement to hash)."""
+    n = tmp_path / "and-reassoc"
+    shutil.copytree(NODES / "and-reassoc", n)
+    (n / "Statement.lean").write_text(
+        "theorem OpnProp.a : True := by\n  sorry\ntheorem OpnProp.b : True := by\n  sorry\n"
+    )
+    result = layout.load_node(n, "propositional")
+    assert isinstance(result, list)
+    assert [d.code for d in result] == ["statement-shape"]
+    assert "found 2" in result[0].message
+
+
+def test_parse_statement_rejects_sorry_before_theorem_and_two_bodies() -> None:
+    before = layout.parse_statement("def helper : Nat := sorry\ntheorem t : True := trivial\n")
+    assert isinstance(before, Diagnostic) and before.code == "statement-shape"
+    assert "precedes" in before.message
+
+    two_bodies = layout.parse_statement(
+        "theorem t : True := by\n  sorry\ndef helper : Nat := sorry\n"
+    )
+    assert isinstance(two_bodies, Diagnostic) and "found 2" in two_bodies.message
+
+    lemma = layout.parse_statement("lemma L.x : True := sorry\n")
+    assert not isinstance(lemma, Diagnostic) and lemma.decl_name == "L.x"
+
+
+def test_proof_and_witness_may_not_import_another_node(tmp_path: Path) -> None:
+    """F01-Q2: the import rule holds for every node file, not only Statement.lean, so a proof
+    cannot smuggle in a sibling's constants by importing it directly."""
+    n = tmp_path / "tutorial-and-swap"
+    shutil.copytree(NODES / "tutorial-and-swap", n)
+    proof = n / "Proof.lean"
+    proof.write_text("import Nodes.«and-reassoc».Proof\n" + proof.read_text())
+    witness = n / "Witness.lean"
+    witness.write_text(
+        "import Defs.Helper\nimport Nodes.«and-reassoc».Statement\n" + witness.read_text()
+    )
+    found = layout.validate_node(n)
+    assert [(d.details["file"], d.details["module"]) for d in found] == [
+        ("Proof.lean", "Nodes.«and-reassoc».Proof"),
+        ("Witness.lean", "Nodes.«and-reassoc».Statement"),
+    ]
+    # Its own Context is allowed everywhere except in Context.lean itself.
+    original = NODES / "tutorial-and-swap"
+    proof.write_text(
+        "import Nodes.«tutorial-and-swap».Context\n" + (original / "Proof.lean").read_text()
+    )
+    witness.write_text((original / "Witness.lean").read_text())
+    assert layout.validate_node(n) == []
+    assert layout.module_origin("Nodes") == ("other", None)
+
+
 def test_import_rule(tmp_path: Path) -> None:
     """F01-Q2: node files import only library modules, Defs.*, or their own Context."""
     assert layout.node_module("and-swap-reassoc", "Proof") == "Nodes.«and-swap-reassoc».Proof"

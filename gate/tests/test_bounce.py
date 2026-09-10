@@ -111,3 +111,76 @@ def test_first_marked_block_wins() -> None:
     assert bounce.extract_block(body) == '{"a": 1}'
     assert bounce.extract_block("```json\r\nopn-precheck-attestation\r\n{}\r\n```") == "{}"
     assert bounce.extract_block("") is None
+
+
+# --- every other way a block can be wrong, each its own bounce (R13; D-4) -------------------------
+
+
+def test_a_block_that_is_not_an_object_or_not_an_accepted_schema_bounces(tmp_path: Path) -> None:
+    """Valid JSON is not enough: an array, or an object naming a schema the gate does not read,
+    is bounced before validation — and the hash of what was attached is still recorded."""
+    ctx = make_context(tmp_path)
+    pipeline.run_steps(ctx)
+    d = bounce.evaluate(policy(ctx, "```json\nopn-precheck-attestation\n[1, 2]\n```"))
+    assert d.bounced and "schema None is not accepted" in (d.reason or "")
+    assert d.attestation_hash == schemas.content_hash(b"[1, 2]")
+    assert d.signature_kind is None
+
+    future = samples.attestation(schema="attestation/v9")
+    d = bounce.evaluate(policy(ctx, bounce.render_block(future)))
+    assert d.bounced and "'attestation/v9' is not accepted" in (d.reason or "")
+
+    d = bounce.evaluate(policy(ctx, "```json\nopn-precheck-attestation\n\n```"))
+    assert d.bounced and "not valid JSON" in (d.reason or "")
+
+
+def test_a_fence_that_is_not_json_or_lacks_the_marker_is_no_block(tmp_path: Path) -> None:
+    ctx = make_context(tmp_path)
+    doc = precheck_doc(ctx)
+    plain = "```\nopn-precheck-attestation\n" + bounce.render_block(doc).split("\n", 2)[2]
+    assert bounce.extract_block(plain) is None
+    unmarked = "```json\n" + bounce.render_block(doc).split("\n", 2)[2]
+    assert bounce.extract_block(unmarked) is None
+    d = bounce.evaluate(policy(ctx, plain))
+    assert d.bounced and "no precheck attestation" in (d.reason or "")
+    assert d.attestation_hash is None
+
+
+def test_a_statement_hash_mismatch_bounces_even_for_the_right_node(tmp_path: Path) -> None:
+    """The attestation binds the node *and* its statement: a precheck of an older statement text
+    proves nothing about the current one (D-3, D-5)."""
+    ctx = make_context(tmp_path)
+    good = precheck_doc(ctx)
+    stale = dict(good, statement_hash="0" * 64)
+    d = bounce.evaluate(policy(ctx, bounce.render_block(stale)))
+    assert d.bounced and "different node or statement" in (d.reason or "")
+    assert d.signature_kind == "none"  # the block was well-formed; only the binding failed
+
+
+def test_age_boundaries(tmp_path: Path) -> None:
+    """Exactly the maximum age is accepted; one second more, or a seal in the future, is not."""
+    ctx = make_context(tmp_path)
+    good = precheck_doc(ctx)
+    max_age = int(ctx.spec["precheck_max_age_s"])
+
+    def sealed_at(when: datetime) -> str:
+        doc = dict(good)
+        doc["signature"] = dict(good["signature"], timestamp=when.strftime(bounce.TIMESTAMP_FORMAT))
+        return bounce.render_block(doc)
+
+    at_cap = bounce.evaluate(policy(ctx, sealed_at(NOW - timedelta(seconds=max_age))))
+    assert not at_cap.bounced
+    over = bounce.evaluate(policy(ctx, sealed_at(NOW - timedelta(seconds=max_age + 1))))
+    assert over.bounced and f"max accepted age is {max_age}s" in (over.reason or "")
+    future = bounce.evaluate(policy(ctx, sealed_at(NOW + timedelta(seconds=1))))
+    assert future.bounced and "-1s old" in (future.reason or "")
+
+
+def test_a_bounce_records_no_signature_kind_before_validation(tmp_path: Path) -> None:
+    """The signature kind is read only from a block that validates: a malformed one cannot
+    claim a kind the attestation record would then carry."""
+    ctx = make_context(tmp_path)
+    pipeline.run_steps(ctx)  # loads the node for the policy
+    invalid = samples.attestation(runner="cloud", signature={"kind": "service"})
+    d = bounce.evaluate(policy(ctx, bounce.render_block(invalid)))
+    assert d.bounced and d.signature_kind is None and d.attestation_hash

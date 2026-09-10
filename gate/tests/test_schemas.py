@@ -408,6 +408,120 @@ def test_load_yaml_and_json(tmp_path: Path) -> None:
         schemas.load_yaml(y, "gate-spec/v1")
 
 
+@pytest.mark.parametrize(
+    "schema_id",
+    ["meta/v0", "Meta/v1", "meta", "meta/1", "meta/v1/x", "meta/v01", "/v1", "meta/v1 "],
+)
+def test_malformed_schema_ids_are_refused_before_any_file_is_touched(schema_id: str) -> None:
+    """R9: the id grammar is `<name>/v<n>`; anything else never reaches the filesystem."""
+    with pytest.raises(SchemaError, match="malformed schema id"):
+        schemas.schema_path(schema_id)
+    assert [v.path for v in schemas.violations({"schema": schema_id})] == ["$.schema"]
+
+
+def test_non_string_schema_field_is_one_violation() -> None:
+    for doc in ({"schema": 1}, {"schema": None}, {"schema": ["meta/v1"]}):
+        found = schemas.violations(doc)
+        assert [v.path for v in found] == ["$.schema"], doc
+        assert "missing or non-string" in found[0].message
+
+
+def test_load_yaml_refuses_non_objects_and_broken_yaml(tmp_path: Path) -> None:
+    listy = tmp_path / "list.yaml"
+    listy.write_text("- a\n- b\n")
+    with pytest.raises(SchemaError, match="must be an object"):
+        schemas.load_yaml(listy)
+    broken = tmp_path / "broken.yaml"
+    broken.write_text("schema: meta/v1\nid: [unclosed\n")
+    with pytest.raises(SchemaError, match="cannot read YAML"):
+        schemas.load_yaml(broken)
+    empty = tmp_path / "empty.yaml"
+    empty.write_text("")
+    with pytest.raises(SchemaError, match="must be an object"):
+        schemas.load_yaml(empty)
+    with pytest.raises(SchemaError, match="cannot read YAML"):
+        schemas.load_yaml(tmp_path / "missing.yaml")
+    bad_json = tmp_path / "bad.json"
+    bad_json.write_text("{not json")
+    with pytest.raises(SchemaError, match="cannot read JSON"):
+        schemas.load_json(bad_json)
+
+
+def test_pins_catch_a_removed_schema_and_skip_comments(tmp_path: Path) -> None:
+    """R10, D-34: a published schema that disappears from disk is a pin failure too; the HASHES
+    file may carry comments and blank lines."""
+    copy = tmp_path / "schemas"
+    shutil.copytree(schemas.SCHEMAS_DIR, copy)
+    (copy / "meta" / "v1.json").unlink()
+    problems = schemas.verify_pins(copy, copy / "HASHES")
+    assert problems == ["pinned schema meta/v1.json is missing on disk"]
+
+    pins = copy / "HASHES"
+    pins.write_text("# comment\n\n" + pins.read_text())
+    assert schemas.read_pins(pins) == schemas.read_pins(schemas.HASHES_FILE)
+    assert schemas.verify_pins(copy, pins) == problems
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"lean_toolchain": "v4.33.1"},
+        {"lean_toolchain": "leanprover/lean4"},
+        {"network_commit": "0" * 39},
+        {"network_commit": "G" * 40},
+        {"hazard_checkers": ["NatSub"]},
+        {"hazard_checkers": ["nat-sub", "nat-sub"]},
+        {"olean_cache_url": "http://insecure.example"},
+        {"precheck_max_age_s": 0},
+        {"step3_caps": {"cpu": 1, "memory_mib": 0, "wallclock_s": 1}},
+        {"step3_caps": {"cpu": 1, "memory_mib": 1, "wallclock_s": 1.5}},
+        {"step3_caps": {"cpu": 1, "memory_mib": 1}},
+        {"gate_owner": ""},
+        {"axiom_allowlist": [""]},
+        {"schema": "gate-spec/v2"},
+    ],
+)
+def test_gate_spec_field_boundaries(bad: dict[str, object]) -> None:
+    """F00-Q2, C6: every pinned value has a shape; a zero cap or a plain-http cache is refused."""
+    assert schemas.violations(samples.gate_spec(**bad)), bad
+
+
+def test_gate_spec_required_keys() -> None:
+    for key in samples.gate_spec():
+        doc = samples.gate_spec()
+        del doc[key]
+        assert schemas.violations(doc), key
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"id": "Tutorial"},
+        {"id": "-leading-dash"},
+        {"status": "Ready"},
+        {"deps": "tutorial-and-swap"},
+        {"deps": ["Bad Id"]},
+        {"provenance": {"author": ""}},
+        {"provenance": {"author": "a", "date": "8 Sep 2026"}},
+        {"provenance": {"author": "a", "model": ""}},
+        {"tutorial": 1},
+        {"schema": "meta/v0"},
+    ],
+)
+def test_meta_field_boundaries(bad: dict[str, object]) -> None:
+    assert schemas.violations(samples.meta(**bad)), bad
+
+
+def test_waiver_justification_is_capped() -> None:
+    """F02-R8, D-28: contributor free text is short by schema."""
+    assert schemas.violations(samples.waiver(justification="x" * 2001))
+    assert schemas.violations(samples.waiver(justification="x" * 2000)) == []
+    for key in ("kind", "justification", "author"):
+        doc = samples.waiver()
+        del doc[key]
+        assert schemas.violations(doc), key
+
+
 def test_canonical_json_is_stable() -> None:
     a = schemas.canonical_json({"b": 1, "a": [1, 2]})
     b = schemas.canonical_json({"a": [1, 2], "b": 1})

@@ -9,6 +9,7 @@ over the result.
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -19,7 +20,7 @@ import yaml
 from fakes import FakeToolchain
 from harness import GRAPH, TARGET, copy_graph
 
-from opn_gate import cli, config, curator, layout, products, records, schemas
+from opn_gate import cli, config, curator, layout, products, records, scaffold, schemas
 from opn_gate import graph as graphmod
 from opn_gate.paths import Claim
 from opn_gate.steps.base import RunContext
@@ -523,3 +524,305 @@ def test_commands_write_and_branch(tmp_path: Path, capsys: pytest.CaptureFixture
     )
     out = json.loads(capsys.readouterr().out)
     assert code == 1 and "no toolchain" in out["refused"]
+
+
+# --- every refusal, and what it leaves behind (R9-R12; C7: nothing) ---------------------------
+
+from scripted import ScriptedToolchain  # noqa: E402
+
+
+def tree(root: Path) -> dict[str, bytes]:
+    return {p.relative_to(root).as_posix(): p.read_bytes() for p in root.rglob("*") if p.is_file()}
+
+
+def test_revise_refuses_a_node_that_is_not_one(tmp_path: Path) -> None:
+    root = copy_graph(tmp_path)
+    request = write_request(root, INTERIOR)
+    before = tree(root)
+    with pytest.raises(curator.CuratorError, match="ghost is not a node of propositional"):
+        curator.revise(root, TARGET, "ghost", NEW_STATEMENT, request, author=AUTHOR, date=DATE)
+    assert tree(root) == before
+
+    meta = nodes_dir(root) / INTERIOR / "META.yaml"
+    meta.write_text(meta.read_text().replace("id: and-reassoc", "id: other"))
+    request = write_request(root, INTERIOR)
+    before = tree(root)
+    with pytest.raises(curator.CuratorError, match="not a valid node: META id"):
+        curator.revise(root, TARGET, INTERIOR, NEW_STATEMENT, request, author=AUTHOR, date=DATE)
+    assert tree(root) == before
+
+
+def test_revise_refuses_a_malformed_request_before_writing(tmp_path: Path) -> None:
+    """R9 revises on a merged revision request; a file that is not one is a boundary failure."""
+    root = copy_graph(tmp_path)
+    request = write_request(root, INTERIOR)
+    request.write_text(
+        yaml.safe_dump(samples.revision_request(node=INTERIOR, defect_class="weaker")),
+        encoding="utf-8",
+    )
+    before = tree(root)
+    with pytest.raises(schemas.SchemaError):
+        curator.revise(root, TARGET, INTERIOR, NEW_STATEMENT, request, author=AUTHOR, date=DATE)
+    assert tree(root) == before
+    with pytest.raises(schemas.SchemaError):
+        curator.revise(
+            root, TARGET, INTERIOR, NEW_STATEMENT, root / "nowhere.yaml", author=AUTHOR, date=DATE
+        )
+    assert tree(root) == before
+
+
+def test_revise_refuses_a_statement_that_is_not_a_statement(tmp_path: Path) -> None:
+    """The revision is scaffolded like any node: a proof, or two theorems, is not a statement,
+    and the refusal comes before the old node's status record is written."""
+    root = copy_graph(tmp_path)
+    request = write_request(root, INTERIOR)
+    before = tree(root)
+    with pytest.raises(scaffold.ScaffoldError, match="single sorry-bodied theorem"):
+        curator.revise(
+            root,
+            TARGET,
+            INTERIOR,
+            NEW_STATEMENT.replace("by\n  sorry", "fun p q r h => ⟨h.1.1, h.1.2, h.2⟩"),
+            request,
+            author=AUTHOR,
+            date=DATE,
+        )
+    assert tree(root) == before
+    assert not (nodes_dir(root) / f"{INTERIOR}-v2").exists()
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="curator.revise scaffolds the new directory before writing the superseded record; "
+    "when that record's name is taken (same author and second), the CuratorError arrives with "
+    "<node>-v<n>/ already on disk, contradicting 'The command refuses; nothing has been "
+    "written' (C7)",
+)
+def test_revise_refused_at_the_status_record_leaves_no_directory(tmp_path: Path) -> None:
+    root = copy_graph(tmp_path)
+    request = write_request(root, INTERIOR)
+    curator.revise(root, TARGET, INTERIOR, NEW_STATEMENT, request, author=AUTHOR, date=DATE)
+    before = tree(root)
+    with pytest.raises(curator.CuratorError, match="append-only"):
+        curator.revise(
+            root,
+            TARGET,
+            INTERIOR,
+            NEW_STATEMENT.replace("-v2", "-v3"),
+            request,
+            author=AUTHOR,
+            date=DATE,
+        )
+    assert tree(root) == before
+
+
+def test_version_ids() -> None:
+    """Q16: the unversioned node is v1; the next free version is one past the highest taken."""
+    assert curator.base_id("and-reassoc-v2") == "and-reassoc"
+    assert curator.base_id("and-reassoc") == "and-reassoc"
+    assert curator.base_id("and-reassoc-var") == "and-reassoc-var"  # not a version
+    assert curator.version_of("and-reassoc-v7") == 7
+    assert curator.version_of("and-reassoc") == 1
+    assert curator.version_of("and-reassoc-v0") == 1  # v0 is not a version the grammar has
+
+
+def test_next_version_skips_every_taken_version(tmp_path: Path) -> None:
+    root = copy_graph(tmp_path)
+    for taken in ("and-reassoc-v2", "and-reassoc-v7", "and-reassoc-vx"):
+        (nodes_dir(root) / taken).mkdir()
+    assert curator.next_version_id(nodes_dir(root), INTERIOR) == "and-reassoc-v8"
+    assert curator.next_version_id(nodes_dir(root), "and-reassoc-v2") == "and-reassoc-v8"
+    assert curator.next_version_id(nodes_dir(root), ROOT) == f"{ROOT}-v2"
+
+
+def test_consolidate_refuses_unknown_nodes(tmp_path: Path) -> None:
+    root = copy_graph(tmp_path)
+    before = tree(root)
+    with pytest.raises(curator.CuratorError, match="ghost is not a node"):
+        curator.consolidate(root, TARGET, "ghost", INTERIOR, author=AUTHOR, date=DATE)
+    with pytest.raises(curator.CuratorError, match="ghost is not a node"):
+        curator.consolidate(root, TARGET, INTERIOR, "ghost", author=AUTHOR, date=DATE)
+    assert tree(root) == before
+
+
+def test_consolidate_treats_a_toolchain_that_cannot_answer_as_not_defeq(tmp_path: Path) -> None:
+    """A missing toolchain, or one that exceeds the cap, proves no equality; the refusal names
+    the reason and nothing is written."""
+    root = copy_graph(tmp_path)
+    before = tree(root)
+    for toolchain in (
+        FakeToolchain(missing=True),
+        ScriptedToolchain(timeout_modules={f"Nodes.«{ROOT}».Context"}),
+        ScriptedToolchain(timeout_modules={f"Nodes.«{ROOT}».Statement"}),
+        ScriptedToolchain(timeout_modules={f"Nodes.«{INTERIOR}».Consolidate"}),
+    ):
+        with pytest.raises(curator.CuratorError, match="do not elaborate to definitionally"):
+            curator.consolidate(
+                root,
+                TARGET,
+                ROOT,
+                INTERIOR,
+                author=AUTHOR,
+                date=DATE,
+                defeq=defeq_with(root, toolchain),
+            )
+    assert tree(root) == before
+
+
+def test_consolidate_refuses_to_record_twice(tmp_path: Path) -> None:
+    """Status records are append-only: the same consolidation in the same second by the same
+    curator is a collision, and the first record stands."""
+    root = copy_graph(tmp_path)
+    duplicate = nodes_dir(root) / "and-reassoc-again"
+    shutil.copytree(nodes_dir(root) / INTERIOR, duplicate)
+    for name in ("Statement.lean", "Witness.lean", "Context.lean"):
+        text = (duplicate / name).read_text().replace("«and-reassoc»", "«and-reassoc-again»")
+        (duplicate / name).write_text(text)
+    meta = yaml.safe_load((duplicate / "META.yaml").read_text())
+    meta["id"] = "and-reassoc-again"
+    (duplicate / "META.yaml").write_text(yaml.safe_dump(meta, sort_keys=False))
+    first = curator.consolidate(
+        root,
+        TARGET,
+        INTERIOR,
+        "and-reassoc-again",
+        author=AUTHOR,
+        date=DATE,
+        defeq=defeq_with(root, FakeToolchain()),
+    )
+    written = first.read_bytes()
+    with pytest.raises(curator.CuratorError, match="append-only"):
+        curator.consolidate(
+            root,
+            TARGET,
+            INTERIOR,
+            "and-reassoc-again",
+            author=AUTHOR,
+            date=DATE,
+            defeq=defeq_with(root, FakeToolchain()),
+        )
+    assert first.read_bytes() == written
+
+
+def test_status_refuses_an_unknown_node_and_a_duplicate_record(tmp_path: Path) -> None:
+    root = copy_graph(tmp_path)
+    with pytest.raises(curator.CuratorError, match="ghost is not a node"):
+        curator.declare_status(
+            root, TARGET, "ghost", "abandoned", "dead", author=AUTHOR, date=DATE, now=NOW
+        )
+    first = curator.declare_status(
+        root, TARGET, INTERIOR, "abandoned", "dead branch", author=AUTHOR, date=DATE, now=NOW
+    )
+    written = first.read_bytes()
+    with pytest.raises(curator.CuratorError, match="append-only"):
+        curator.declare_status(
+            root, TARGET, INTERIOR, "abandoned", "dead again", author=AUTHOR, date=DATE, now=NOW
+        )
+    assert first.read_bytes() == written
+    assert len(list((nodes_dir(root) / INTERIOR / "status").iterdir())) == 1
+    # Another author, or another second, is another record — and the latest wins.
+    curator.declare_status(
+        root,
+        TARGET,
+        INTERIOR,
+        "abandoned",
+        "still dead",
+        author="other",
+        date="2026-09-10T12:13:15Z",
+        now=NOW,
+    )
+    assert latest_status(root, INTERIOR).author == "other"
+
+
+def test_status_refuses_a_status_neither_side_has(tmp_path: Path) -> None:
+    """Only D-14's abandoned for a node; only D-33's dormant and active for a target."""
+    root = copy_graph(tmp_path)
+    for status in ("resurrected", "stale", "superseded", "proved"):
+        with pytest.raises(curator.CuratorError, match="a node may be marked abandoned"):
+            curator.declare_status(
+                root, TARGET, INTERIOR, status, "x", author=AUTHOR, date=DATE, now=NOW
+            )
+        with pytest.raises(curator.CuratorError, match="a target may be declared dormant, active"):
+            curator.declare_status(
+                root, TARGET, TARGET, status, "x", author=AUTHOR, date=DATE, now=NOW
+            )
+    assert not (nodes_dir(root) / INTERIOR / "status").exists()
+    assert not (root / "targets" / TARGET / "status").exists()
+
+
+def test_dormancy_boundaries(tmp_path: Path) -> None:
+    """D-33 (a): a merge exactly N days ago still counts as recent; a second older does not;
+    a target that never merged is quiet by definition and the record says so."""
+    root = copy_graph(tmp_path)
+
+    def declare(last_merge: datetime | None, date: str) -> Path:
+        return curator.declare_status(
+            root,
+            TARGET,
+            TARGET,
+            "dormant",
+            "quiet",
+            author=AUTHOR,
+            date=date,
+            now=NOW,
+            last_merge=last_merge,
+            k=3,
+            n_days=90,
+        )
+
+    with pytest.raises(curator.CuratorError, match=r"D-33 \(a\)") as refused:
+        declare(NOW - timedelta(days=90), DATE)
+    assert "merged 90 days ago" in str(refused.value)
+    assert not (root / "targets" / TARGET / "status").exists()
+
+    record = declare(NOW - timedelta(days=90, seconds=1), DATE)
+    assert "2026-06-12" in yaml.safe_load(record.read_text())["cause"]
+
+    never = declare(None, "2026-09-11T00:00:00Z")
+    assert "last progress artifact merged never" in yaml.safe_load(never.read_text())["cause"]
+
+
+def test_dormancy_on_a_defective_graph_is_a_graph_error(tmp_path: Path) -> None:
+    """The series is computed from the derived statuses, so a graph F03 refuses is refused here
+    too, and no record is written over it."""
+    root = copy_graph(tmp_path)
+    meta_path = nodes_dir(root) / INTERIOR / "META.yaml"
+    meta = yaml.safe_load(meta_path.read_text())
+    meta["deps"] = [ROOT]
+    meta_path.write_text(yaml.safe_dump(meta, sort_keys=False))
+    with pytest.raises(graphmod.GraphError, match="cycle"):
+        curator.declare_status(
+            root, TARGET, TARGET, "dormant", "quiet", author=AUTHOR, date=DATE, now=NOW
+        )
+    assert not (root / "targets" / TARGET / "status").exists()
+
+
+def test_missing_library_ignores_what_names_no_lemma(tmp_path: Path) -> None:
+    """A missing-library postmortem with no artifacts, an empty list, or blank strings names
+    nothing; a threshold above every count reports nothing; nothing is ever created."""
+    root = copy_graph(tmp_path)
+    att = nodes_dir(root) / INTERIOR / "attempts"
+    shapes = [
+        samples.postmortem(node=INTERIOR, failure_class="missing-library", artifacts={}),
+        samples.postmortem(
+            node=INTERIOR, failure_class="missing-library", artifacts={"missing_lemmas": []}
+        ),
+        samples.postmortem(
+            node=INTERIOR,
+            failure_class="missing-library",
+            artifacts={"missing_lemmas": ["   ", "\t\n"]},
+        ),
+        samples.postmortem(
+            node=INTERIOR, failure_class="missing-library", artifacts={"missing_lemmas": ["real"]}
+        ),
+    ]
+    for i, doc in enumerate(shapes):
+        if doc.get("artifacts") == {}:
+            del doc["artifacts"]
+        (att / f"2026-09-0{i + 1}-x.yaml").write_text(yaml.safe_dump(doc), encoding="utf-8")
+    before = sorted(p.as_posix() for p in root.rglob("*"))
+    assert [m.as_dict() for m in curator.missing_library_report(root, TARGET, threshold=1)] == [
+        {"lemma": "real", "count": 1, "as_written": ["real"], "nodes": [INTERIOR]}
+    ]
+    assert curator.missing_library_report(root, TARGET, threshold=2) == []
+    assert sorted(p.as_posix() for p in root.rglob("*")) == before

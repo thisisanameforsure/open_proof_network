@@ -5,11 +5,13 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
 import samples
 from fakes import FakeToolchain
 from harness import make_context, node_dir
 
-from opn_gate import attestation, bounce, pipeline, schemas, submission
+from opn_gate import attestation, bounce, config, pipeline, schemas, submission
+from opn_gate.diagnostic import Diagnostic
 from opn_gate.toolchain import AxiomResult, ReplayResult
 
 FIXED = datetime(2026, 9, 8, 3, 4, 5, tzinfo=UTC)
@@ -128,12 +130,82 @@ def test_signed_bytes_exclude_signature_and_are_canonical(tmp_path: Path) -> Non
     assert payload == schemas.canonical_json({k: v for k, v in doc.items() if k != "signature"})
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="with OPN_DIAGNOSTIC_MAX_BYTES=100 (accepted by config) truncate clips "
+    "diagnostic.code, attestation/v4 rejects the record (code pattern ^[a-z][a-z0-9-]*$) and "
+    "attestation.build raises SchemaError after the verdict exists — the CLI would crash with "
+    "no verdict.json written (C7, F00-R18)",
+)
+def test_a_small_diagnostic_budget_still_yields_a_valid_record(tmp_path: Path) -> None:
+    fake = FakeToolchain(replay=ReplayResult(ok=False, output="y" * 20_000))
+    small = config.load({"OPN_DIAGNOSTIC_MAX_BYTES": "100"})
+    ctx = make_context(tmp_path, toolchain=fake, settings=small)
+    verdict = pipeline.run_steps(ctx)
+    doc = attestation.build(ctx, verdict, graph_commit=None, clock=lambda: FIXED)
+    assert doc["diagnostic"]["code"] == "kernel-replay-failed"
+    assert schemas.violations(doc) == []
+
+
 def test_attestation_stays_under_budget_with_huge_diagnostic(tmp_path: Path) -> None:
     fake = FakeToolchain(replay=ReplayResult(ok=False, output="y" * 200_000))
     ctx = make_context(tmp_path, toolchain=fake)
     doc = attestation.build(ctx, pipeline.run_steps(ctx), graph_commit=None, clock=lambda: FIXED)
     assert len(schemas.canonical_json(doc)) < 64 * 1024
     assert doc["diagnostic"]["truncated"] is True
+
+
+def test_step9_is_inherited_from_the_committed_record() -> None:
+    """F00-Q11, Q12: a reproduction replays steps 1-8; step 9's block (v2+) or reviewer (v1) is
+    copied from the committed attestation, and only when the committed one has it."""
+    reproduction = samples.attestation(review=None)
+    committed = samples.attestation(
+        review={"kind": "tutorial", "reviewer": None, "reference": None}, merge_commit="2" * 40
+    )
+    merged = attestation.with_step9(reproduction, committed)
+    assert merged["review"] == {"kind": "tutorial", "reviewer": None, "reference": None}
+    assert merged["merge_commit"] is None  # only step 9 travels; merge_commit stays masked
+    assert reproduction["review"] is None  # the input is not mutated
+    assert attestation.compare(merged, committed) == []
+
+    v1_committed = {"schema": "attestation/v1", "reviewer": "alice"}
+    assert attestation.with_step9({"schema": "attestation/v1"}, v1_committed)["reviewer"] == "alice"
+    assert "review" not in attestation.with_step9({"a": 1}, {"a": 1})
+
+
+def test_compare_reports_a_field_missing_on_one_side() -> None:
+    a = samples.attestation()
+    b = samples.attestation()
+    del b["trust_base"]
+    assert attestation.compare(a, b) == ["trust_base"]
+    b["extra"] = 1
+    assert attestation.compare(a, b) == ["extra", "trust_base"]
+    assert set(attestation.masked(a)) == set(a) - set(attestation.MASKED_FIELDS)
+
+
+def test_submitter_needs_a_pseudonym_in_an_identity_object() -> None:
+    assert attestation.submitter_of(None) is None
+    assert attestation.submitter_of({"identity": "alice"}) is None
+    assert attestation.submitter_of({"identity": {"pseudonym": ""}}) is None
+    assert attestation.submitter_of({"identity": {"pseudonym": "alice"}}) == "alice"
+    assert submission.model_and_tooling({"tooling": {"model": "m", "harness": ""}}) == "m"
+    assert submission.model_and_tooling({"tooling": None}) == submission.UNDECLARED
+
+
+def test_bounced_verdict_attests_with_the_precheck_it_read(tmp_path: Path) -> None:
+    """R13, D-34: a bounce is a verdict; the record carries what was (not) consumed and no step."""
+    ctx = make_context(tmp_path)
+    ctx.data["precheck_attestation"] = {"hash": None, "signature_kind": None}
+    verdict = pipeline.Verdict(
+        verdict="bounced",
+        steps=(),
+        diagnostic=Diagnostic("bounced", "no precheck attestation"),
+        data=dict(ctx.data),
+    )
+    doc = attestation.build(ctx, verdict, graph_commit=None, clock=lambda: FIXED)
+    assert schemas.violations(doc) == []
+    assert doc["verdict"] == "bounced" and doc["steps"] == [] and doc["toolchain_hash"] is None
+    assert doc["precheck_attestation"] == {"hash": None, "signature_kind": None}
 
 
 # --- F07-T5 / AC18: who submitted, and what they said drove it (R13; D-23, D-34) -----------------

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -117,6 +118,105 @@ def test_name_status_parsing() -> None:
         Change("R", "new", "old"),
         Change("D", "gone"),
     ]
+
+
+def test_name_status_copies_and_type_changes_are_modifications() -> None:
+    """A copy, a type change or an unmerged path is treated as a modification of the named
+    path, so it can never slip past step 2 as an unclassified status."""
+    parsed = paths.changes_from_name_status("C75\tsrc\tdst\nT\tlink\nU\tconflict\n")
+    assert parsed == [Change("M", "dst"), Change("M", "link"), Change("M", "conflict")]
+    assert offending_changes(parsed) == ["dst", "link", "conflict"]
+
+
+def offending_changes(changes: list[Change]) -> list[str]:
+    return [str(d.details["path"]) for d in paths.check_paths(changes, CLAIM)]
+
+
+@pytest.mark.parametrize(
+    ("path", "reason"),
+    [
+        (f"{N}/tutorial-and-swap/attempts/sub/x.yaml", "nested directories"),
+        (f"{N}/tutorial-and-swap/annex/sub/{'a' * 64}.md", "nested directories"),
+        (f"{N}/tutorial-and-swap/attempts/../Statement.lean", "nested directories"),
+        (f"{N}/tutorial-and-swap/../and-reassoc/Proof.lean", "not Proof.lean"),
+        (f"{N}/tutorial-and-swap/./Proof.lean", "not Proof.lean"),
+        (f"{N}/tutorial-and-swap-evil/Proof.lean", "outside the claimed node"),
+        (f"{N}/tutorial-and-swap/Proof.lean.bak", "not Proof.lean"),
+        (f"{N}/tutorial-and-swap/waivers/native_decide.yaml/x", "not Proof.lean"),
+        ("", "outside the claimed node"),
+    ],
+)
+def test_escapes_of_the_node_directory_are_rejected(path: str, reason: str) -> None:
+    """R2: neither a nested directory, a `..` segment, a sibling whose id shares the claimed
+    node's prefix, nor a suffix on Proof.lean is a permitted path."""
+    found = paths.check_paths([Change("A", path)], CLAIM)
+    assert [str(d.details["path"]) for d in found] == [path]
+    assert reason in found[0].message
+
+
+def test_precheck_records_are_the_one_nested_append() -> None:
+    """D-34: attempts/precheck/<name>.json is an append; anything deeper is not."""
+    ok = [Change("A", f"{N}/tutorial-and-swap/attempts/precheck/01m23sfd.json")]
+    assert paths.check_paths(ok, CLAIM) == []
+    deeper = [Change("A", f"{N}/tutorial-and-swap/attempts/precheck/deep/x.json")]
+    assert paths.check_paths(deeper, CLAIM) == []  # step 2's grammar stops at one level ...
+    assert paths.locate(deeper[0].path) is None  # ... and the mode grammar refuses it (F07-R3)
+    rewritten = [Change("M", f"{N}/tutorial-and-swap/attempts/precheck/01m23sfd.json")]
+    assert "append-only" in paths.check_paths(rewritten, CLAIM)[0].message
+
+
+def test_deletion_under_append_only_is_named_as_such() -> None:
+    found = paths.check_paths([Change("D", f"{N}/tutorial-and-swap/annex/{'a' * 64}.md")], CLAIM)
+    assert len(found) == 1 and "deleted" in found[0].message and found[0].details["status"] == "D"
+
+
+def test_changes_from_a_git_worktree_and_range(tmp_path: Path) -> None:
+    """What pregate.sh diffs: tracked modifications plus untracked files, and a commit range
+    with renames reported as delete-plus-add (never as a rename step 2 would have to reason
+    about)."""
+    repo = tmp_path / "graph"
+    shutil.copytree(GRAPH, repo)
+    env = {
+        "GIT_AUTHOR_NAME": "t",
+        "GIT_AUTHOR_EMAIL": "t@x",
+        "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@x",
+        "PATH": "/usr/bin:/bin",
+        "HOME": str(tmp_path),
+    }
+
+    def git(*args: str) -> None:
+        subprocess.run(["git", "-C", str(repo), *args], check=True, env=env, capture_output=True)
+
+    git("init", "-q")
+    git("add", "-A")
+    git("commit", "-q", "-m", "seed")
+    node = repo / N / "tutorial-and-swap"
+    (node / "Proof.lean").write_text("changed\n")
+    (node / "attempts" / "new.yaml").write_text("route: a\n")
+    assert paths.changes_from_worktree(repo) == [
+        Change("M", f"{N}/tutorial-and-swap/Proof.lean"),
+        Change("A", f"{N}/tutorial-and-swap/attempts/new.yaml"),
+    ]
+    git("add", "-A")
+    git("commit", "-q", "-m", "change")
+    git("mv", f"{N}/tutorial-and-swap/Proof.lean", f"{N}/tutorial-and-swap/Old.lean")
+    git("commit", "-q", "-m", "rename")
+    assert paths.changes_from_git(repo, "HEAD~1") == [
+        Change("A", f"{N}/tutorial-and-swap/Old.lean"),
+        Change("D", f"{N}/tutorial-and-swap/Proof.lean"),
+    ]
+    with pytest.raises(subprocess.CalledProcessError):
+        paths.changes_from_git(repo, "no-such-ref")
+
+
+def test_proof_shorter_than_the_header_names_the_missing_line() -> None:
+    node = tutorial()
+    d = paths.check_proof_is_statement(node.statement, "/-! The tutorial node (D-27)")
+    assert d is not None and d.code == "proof-not-statement"
+    assert d.details["line"] == 1 and d.details["got"] == "/-! The tutorial node (D-27)"
+    d = paths.check_proof_is_statement(node.statement, "")
+    assert d is not None and d.details["line"] == 1 and d.details["got"] == ""
 
 
 def test_changes_from_trees(tmp_path: Path) -> None:

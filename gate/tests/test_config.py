@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 
@@ -48,13 +49,56 @@ def test_empty_secret_is_absent() -> None:
     "env",
     [
         {"OPN_RUNNER": "cloud"},
+        {"OPN_RUNNER": ""},
+        {"OPN_RUNNER": "Local"},
         {"OPN_DIAGNOSTIC_MAX_BYTES": "many"},
         {"OPN_DIAGNOSTIC_MAX_BYTES": "0"},
+        {"OPN_DIAGNOSTIC_MAX_BYTES": "-1"},
+        {"OPN_DIAGNOSTIC_MAX_BYTES": ""},
+        {"OPN_DIAGNOSTIC_MAX_BYTES": "1.5"},
     ],
 )
 def test_bad_values_fail_at_load(env: dict[str, str]) -> None:
-    with pytest.raises(config.ConfigError):
+    with pytest.raises(config.ConfigError) as info:
         config.load(env)
+    key = next(iter(env))
+    assert key in str(info.value)  # the diagnostic names the variable
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="OPN_LOG_LEVEL is not validated at load; an unknown level first fails inside "
+    "logging.basicConfig in cli.main, as a ValueError traceback (config docstring: raised at "
+    "load time, never later; C7)",
+)
+def test_bad_log_level_fails_at_load() -> None:
+    with pytest.raises(config.ConfigError):
+        config.load({"OPN_LOG_LEVEL": "LOUD"})
+
+
+def test_paths_expand_the_home_directory_and_pr_author_defaults() -> None:
+    s = config.load(
+        {"OPN_ELAN_HOME": "~/elan-x", "OPN_LEAN_PKG_BIN": "~/pkg/bin", "OPN_PR_AUTHOR": "alice"}
+    )
+    assert s.elan_home == Path.home() / "elan-x"
+    assert s.lean_pkg_bin == Path.home() / "pkg" / "bin"
+    assert s.pr_author == "alice"
+    assert config.load({}).lean_pkg_bin == config.DEFAULT_LEAN_PKG_BIN
+    assert config.load({}).pr_author is None
+    assert config.load({"OPN_PR_AUTHOR": ""}).pr_author is None
+    assert config.DEFAULT_LEAN_PKG_BIN.parts[-4:] == ("lean", ".lake", "build", "bin")
+
+
+def test_child_environment_adds_without_mutating(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The toolchain seam's child gets the inherited environment plus its extras; the parent's
+    environment is untouched, and `None` extras copy it as is."""
+    monkeypatch.setenv("OPN_TEST_MARKER", "parent")
+    child = config.child_environment({"LEAN_PATH": "/x", "OPN_TEST_MARKER": "child"})
+    assert child["LEAN_PATH"] == "/x" and child["OPN_TEST_MARKER"] == "child"
+    assert os.environ["OPN_TEST_MARKER"] == "parent"
+    assert "LEAN_PATH" not in os.environ or os.environ["LEAN_PATH"] != "/x"
+    plain = config.child_environment(None)
+    assert plain["OPN_TEST_MARKER"] == "parent" and plain is not os.environ
 
 
 def test_repr_never_shows_secrets() -> None:

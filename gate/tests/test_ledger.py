@@ -6,6 +6,7 @@ merges earn an entry. That is what these tests pin.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -199,3 +200,78 @@ def test_statement_line_scope() -> None:
     assert statement(node="and-reassoc--h1", origin="skeleton-hole") is None
     assert statement(node="and-reassoc-v2", supersedes="and-reassoc") is None
     assert statement(tutorial=True) is None
+
+
+def test_an_origin_the_ledger_does_not_know_earns_nothing() -> None:
+    """Fail closed: a META origin outside D-3's set is never paid for."""
+    assert statement(origin="") is None
+    assert statement(origin="Authored") is None
+    assert statement(origin="hole") is None
+
+
+# --- the ledger is a record, so a broken one is a defect, never a fresh start (D-19, C7) ---------
+
+
+def test_a_malformed_ledger_is_a_graph_defect_not_a_fresh_start(tmp_path: Path) -> None:
+    """Losing entries silently is the one thing credit must never do: a ledger that does not
+    parse or validate stops the writer and the reader, and the file is left as it was."""
+    path = ledger.ledger_path(tmp_path, "alice")
+    path.parent.mkdir()
+    path.write_text("{not json", encoding="utf-8")
+    with pytest.raises(schemas.SchemaError):
+        ledger.load(tmp_path, "alice")
+    with pytest.raises(schemas.SchemaError):
+        ledger.record(tmp_path, "alice", proof())
+    assert path.read_text() == "{not json"
+    with pytest.raises(schemas.SchemaError):
+        ledger.contributions(tmp_path)
+
+    # Valid JSON that is not a ledger — an entry with a line D-19 does not have — is the same.
+    bad = {"schema": ledger.SCHEMA, "identity": "alice", "entries": [{"line": "bonus"}]}
+    path.write_text(json.dumps(bad), encoding="utf-8")
+    with pytest.raises(schemas.SchemaError):
+        ledger.record(tmp_path, "alice", proof())
+    assert json.loads(path.read_text()) == bad
+
+    # Another identity's ledger being broken does not stop this identity's from being written,
+    # but the site's reader, which reads every ledger, still refuses.
+    ledger.record(tmp_path, "bob", proof(identity="bob"))
+    assert ledger.entries_of(ledger.load(tmp_path, "bob"))
+    with pytest.raises(schemas.SchemaError):
+        ledger.contributions(tmp_path)
+
+
+def test_append_refuses_an_entry_the_schema_rejects() -> None:
+    """Every entry is validated on the way in, so a bad merge commit, date or identity never
+    reaches a file."""
+    with pytest.raises(schemas.SchemaError):
+        ledger.append(empty(), ledger.Entry("proof", TARGET, NODE, "Proof.lean", "abc", DATE))
+    with pytest.raises(schemas.SchemaError):
+        ledger.append(
+            empty(), ledger.Entry("proof", TARGET, NODE, "Proof.lean", MERGE, "2026-09-10")
+        )
+    with pytest.raises(schemas.SchemaError):
+        ledger.append(
+            empty(), ledger.Entry("proof", TARGET, "Not-An-Id", "Proof.lean", MERGE, DATE)
+        )
+    with pytest.raises(schemas.SchemaError):
+        ledger.append(empty(), ledger.Entry("proof", TARGET, NODE, "", MERGE, DATE))
+
+
+def test_write_refuses_an_identity_outside_the_pseudonym_grammar(tmp_path: Path) -> None:
+    """R2's ``<pseudonym>`` is the file name and the schema's identity; a name with a slash or a
+    space in it is refused before a path is built from it (conventions §4)."""
+    for identity in ("../escape", "two words", "", "x" * 40):
+        doc = {"schema": ledger.SCHEMA, "identity": identity, "entries": []}
+        with pytest.raises(schemas.SchemaError):
+            ledger.write(tmp_path, doc)
+    # No file lands anywhere — not under ledger/, and not where `../escape` would have put one.
+    # (The empty ledger/ directory itself is created before validation: invisible to git.)
+    assert [p for p in tmp_path.rglob("*") if p.is_file()] == []
+
+
+def test_entries_that_are_not_objects_are_not_entries() -> None:
+    doc = {"schema": ledger.SCHEMA, "identity": "alice", "entries": ["proof", 3, None]}
+    assert ledger.entries_of(doc) == []
+    assert ledger.entries_of({"entries": "none"}) == []
+    assert ledger.earns_attempts(doc, NODE, "induction")

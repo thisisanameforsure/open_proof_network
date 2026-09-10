@@ -116,6 +116,37 @@ def test_witness_elaboration_error_and_shape(tmp_path: Path) -> None:
     assert verdict.diagnostic is not None and verdict.diagnostic.code == "witness-shape"
 
 
+def test_defeq_must_be_asserted_not_assumed(tmp_path: Path) -> None:
+    """R3: identical pretty-printed types are not enough; the metaprogram's `defeq` verdict is
+    what passes, so a missing or false flag fails even when the strings agree."""
+    same = "∃ p q, p ∧ q"
+    lying = witness_result(expected=same, witness=same, defeq=False)
+    verdict = run_to_seven(make_context(tmp_path, toolchain=FakeToolchain(witness=lying)))
+    assert verdict.first_failing_step == 7
+    assert verdict.diagnostic is not None and verdict.diagnostic.code == "witness-type-mismatch"
+
+    absent = MetaprogramResult(ok=True, doc={"ok": True, "expected": same, "witness": same})
+    verdict = run_to_seven(make_context(tmp_path / "b", toolchain=FakeToolchain(witness=absent)))
+    assert verdict.first_failing_step == 7
+    assert verdict.diagnostic is not None and verdict.diagnostic.code == "witness-type-mismatch"
+
+
+def test_sorry_is_named_before_the_allowlist(tmp_path: Path) -> None:
+    """R2: a witness resting on sorryAx and another stray axiom fails as `witness-sorry` — the
+    specific code a prover can act on — and both axioms are on the record."""
+    fake = FakeToolchain(
+        witness=witness_result(
+            expected="∃ p q, p ∧ q", witness="∃ p q, p ∧ q", axioms=("opn_oracle", "sorryAx")
+        )
+    )
+    verdict = run_to_seven(make_context(tmp_path, toolchain=fake))
+    assert verdict.first_failing_step == 7
+    d = verdict.diagnostic
+    assert d is not None and d.code == "witness-sorry"
+    assert d.details["axioms"] == ["opn_oracle", "sorryAx"]
+    assert verdict.data["witness"]["axioms"] == ["opn_oracle", "sorryAx"]
+
+
 def test_metaprogram_garbage_is_step_failure(tmp_path: Path) -> None:
     """R9."""
     verdict = run_to_seven(

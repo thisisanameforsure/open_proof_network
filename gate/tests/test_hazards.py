@@ -14,9 +14,12 @@ from opn_gate.steps.hazards import (
     Acknowledgment,
     Finding,
     HazardsStep,
+    acknowledgments_from,
     check_config,
     evaluate,
+    findings_from,
 )
+from opn_gate.toolchain import MetaprogramResult
 
 NAT_SUB = {"checker": "nat-sub", "location": "n - 1", "message": "subtraction on Nat truncates"}
 
@@ -151,6 +154,94 @@ def test_metaprogram_failure_is_step_failure(tmp_path: Path) -> None:
     verdict = run_to_six(ctx)
     assert verdict.first_failing_step == 6
     assert verdict.diagnostic is not None and verdict.diagnostic.code == "metaprogram-failed"
+
+
+def test_checkers_that_cannot_run_fail_closed(tmp_path: Path) -> None:
+    """R3, C7: a metaprogram that answers `ok: false` (the statement did not elaborate for it)
+    is a step-6 failure with its error and messages — never a pass with no findings."""
+    bad = MetaprogramResult(
+        ok=False,
+        exit_code=1,
+        doc={
+            "ok": False,
+            "error": "statement does not elaborate",
+            "messages": [{"severity": "error", "line": 2, "column": 0, "text": "unknown id"}],
+        },
+    )
+    fake = FakeToolchain(hazards_doc=bad)
+    ctx = make_context(tmp_path, toolchain=fake, spec_overrides={"hazard_checkers": ["nat-sub"]})
+    verdict = run_to_six(ctx)
+    assert verdict.first_failing_step == 6
+    d = verdict.diagnostic
+    assert d is not None and d.code == "hazards-unreadable"
+    assert d.message == "statement does not elaborate"
+    assert d.details["messages"][0]["line"] == 2
+    assert "hazards" not in verdict.data
+
+
+def test_every_unacknowledged_finding_is_named(tmp_path: Path) -> None:
+    """R4: the failure lists every open finding, names the first, and keeps the acknowledgments
+    that did match so the proposer sees what is left."""
+    div = {"checker": "div-zero", "location": "a / b", "message": "divisor may be zero"}
+    junk = {"checker": "junk-value", "location": "Nat.pred 0", "message": "junk value"}
+    fake = FakeToolchain(hazards_doc=hazards_result([NAT_SUB, div, junk], capped=True))
+    ctx = make_context(
+        tmp_path,
+        toolchain=fake,
+        spec_overrides={"hazard_checkers": ["div-zero", "junk-value", "nat-sub"]},
+    )
+    ack = {"checker": "div-zero", "location": "a / b", "justification": "b is positive by h"}
+    with_meta_v2(ctx, [ack])
+    verdict = run_to_six(ctx)
+    assert verdict.first_failing_step == 6
+    d = verdict.diagnostic
+    assert d is not None and d.code == "hazard-unacknowledged"
+    assert d.details["findings"] == [NAT_SUB, junk]
+    assert d.details["acknowledged"] == [ack]
+    assert d.message.startswith("2 unacknowledged")
+    assert verdict.data["hazards"]["capped"] is True  # F02 §6: the cap is on the record
+
+
+def test_acknowledgment_matching_is_exact(tmp_path: Path) -> None:
+    """R4: an acknowledgment matches on checker *and* location, verbatim (F02-Q4: the location
+    is the pretty-printed subterm, so whitespace is part of it)."""
+    fake = FakeToolchain(hazards_doc=hazards_result([NAT_SUB]))
+    ctx = make_context(tmp_path, toolchain=fake, spec_overrides={"hazard_checkers": ["nat-sub"]})
+    for ack in (
+        {"checker": "div-zero", "location": "n - 1", "justification": "wrong checker"},
+        {"checker": "nat-sub", "location": "n-1", "justification": "wrong spacing"},
+        {"checker": "nat-sub", "location": "m - 1", "justification": "wrong term"},
+    ):
+        with_meta_v2(ctx, [ack])
+        verdict = run_to_six(ctx)
+        assert verdict.first_failing_step == 6, ack
+        assert verdict.diagnostic is not None and verdict.diagnostic.details["acknowledged"] == []
+
+
+def test_malformed_findings_and_acknowledgments_are_ignored_not_trusted() -> None:
+    """A finding that is not an object cannot be matched and is dropped; a non-list
+    `acknowledged_hazards` acknowledges nothing (the schema refuses both upstream)."""
+    assert findings_from({"findings": ["nat-sub", 3, None, NAT_SUB]}) == [Finding(**NAT_SUB)]
+    assert findings_from({}) == []
+    assert acknowledgments_from({"acknowledged_hazards": "nat-sub"}) == []
+    assert acknowledgments_from({"acknowledged_hazards": [1, {"checker": "nat-sub"}]}) == [
+        Acknowledgment("nat-sub", "", "")
+    ]
+    assert check_config({}) is None and check_config({"hazard_checkers": None}) is None
+    assert check_config({"hazard_checkers": ["nat-sub", "bogus", "worse"]}) is not None
+
+
+def test_step6_guards_its_own_configuration(tmp_path: Path) -> None:
+    """R3: the pipeline refuses a bad spec before step 1; called on its own (the standalone
+    `opn-gate hazards` path) the step repeats the check rather than asking for `bogus`."""
+    fake = FakeToolchain(hazards_doc=hazards_result([]))
+    ctx = make_context(tmp_path, toolchain=fake)
+    assert run_to_six(ctx).ok
+    ctx.spec["hazard_checkers"] = ["bogus"]
+    result = HazardsStep().run(ctx)
+    assert not result.ok and result.diagnostic is not None
+    assert result.diagnostic.code == "config-unknown-checker"
+    assert not any("bogus" in c for c in fake.calls)
 
 
 def test_meta_v1_node_has_no_acknowledgments(tmp_path: Path) -> None:

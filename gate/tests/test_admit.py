@@ -11,6 +11,7 @@ import shutil
 from pathlib import Path
 
 import pytest
+import samples
 import yaml
 from fakes import FakeToolchain, hazards_result, relation_result, witness_result
 from harness import ADVERSARIAL, GRAPH, TARGET, make_context
@@ -259,3 +260,282 @@ def test_an_exploding_check_is_a_verdict(tmp_path: Path) -> None:
     assert not result.admitted
     assert result.first_failing_check == "witness"
     assert result.diagnostic is not None and result.diagnostic.code == "unexpected-error"
+
+
+# --- every remaining refusal, by check (R1, R4; F00-R7: the first failure is named) --------------
+
+from fakes import metaprogram_garbage  # noqa: E402
+from scripted import ScriptedToolchain  # noqa: E402
+
+from opn_gate import schemas  # noqa: E402
+from opn_gate.steps.base import StepResult  # noqa: E402
+from opn_gate.toolchain import MetaprogramResult  # noqa: E402
+
+ROOT_CONTEXT = f"Nodes.«{ROOT_NODE}».Context"
+
+
+def failure(result: admit.Admission) -> tuple[str | None, str | None]:
+    return result.first_failing_check, result.diagnostic.code if result.diagnostic else None
+
+
+def test_statement_elaboration_failure_is_the_statement_checks(tmp_path: Path) -> None:
+    """AC2 sharpened: when Context compiles and only Statement.lean fails, the verdict names the
+    statement check with statement-elaboration, and the axiom check never runs."""
+    toolchain = ScriptedToolchain(failing_modules={"Nodes.«good».Statement"})
+    result = admit.run(context_for(tmp_path, "good", toolchain=toolchain))
+    assert failure(result) == ("statement", "statement-elaboration")
+    assert result.diagnostic is not None
+    assert result.diagnostic.details["module"] == "Nodes.«good».Statement"
+    assert not any(c.startswith("axioms:") for c in toolchain.calls)
+
+
+def test_unreadable_statement_axioms_are_a_refusal(tmp_path: Path) -> None:
+    """A statement whose axioms cannot be read is not admitted on the benefit of the doubt."""
+    toolchain = FakeToolchain(axiom_result=AxiomResult(ok=False, output="#print axioms: error"))
+    result = admit.run(context_for(tmp_path, "good", toolchain=toolchain))
+    assert failure(result) == ("statement", "statement-axioms-unreadable")
+    assert result.diagnostic is not None
+    assert "#print axioms: error" in result.diagnostic.details["output"]
+
+
+def test_the_wall_clock_cap_is_named_at_each_check(tmp_path: Path) -> None:
+    """Contributor Lean runs under the cap at every check that elaborates (C9)."""
+    slow_statement = ScriptedToolchain(timeout_modules={"Nodes.«good».Statement"})
+    result = admit.run(context_for(tmp_path / "a", "good", toolchain=slow_statement))
+    assert failure(result) == ("statement", "timeout")
+
+    slow_axioms = ScriptedToolchain(timeout_on={"axioms"})
+    result = admit.run(context_for(tmp_path / "b", "good", toolchain=slow_axioms))
+    assert failure(result) == ("statement", "timeout")
+
+    slow_relation = variant_toolchain()
+    slow = ScriptedToolchain(witness=slow_relation.witness, timeout_on={"relation_type"})
+    result = admit.run(context_for(tmp_path / "c", "variant-resolves", toolchain=slow))
+    assert failure(result) == ("relation", "timeout")
+
+    slow_root = ScriptedToolchain(witness=slow_relation.witness, timeout_modules={ROOT_CONTEXT})
+    result = admit.run(context_for(tmp_path / "d", "variant-resolves", toolchain=slow_root))
+    assert failure(result) == ("relation", "timeout")
+
+
+def test_checks_run_out_of_order_fail_closed(tmp_path: Path) -> None:
+    """Each later check needs what the earlier ones loaded; asked alone, it refuses rather than
+    reading nothing and passing."""
+    for name, step in admit.default_checks()[2:]:
+        ctx = context_for(tmp_path / name, "good")
+        result = admit.run(ctx, checks=[(name, step)])
+        # Admission's own checks say check-order; the reused D-4 steps say step-order.
+        expected = "step-order" if name in ("witness", "hazards") else "check-order"
+        assert failure(result) == (name, expected), name
+    # And a check that fails without saying why still yields a diagnostic.
+
+    class Silent:
+        number = 0
+        name = "silent"
+
+        def run(self, ctx: RunContext) -> StepResult:
+            return StepResult(ok=False)
+
+    result = admit.run(context_for(tmp_path / "s", "good"), checks=[("silent", Silent())])
+    assert failure(result) == ("silent", "failed")
+    assert result.as_dict()["checks"] == [
+        {"check": "silent", "result": "fail", "diagnostic": result.as_dict()["diagnostic"]}
+    ]
+
+
+# --- the graph check: the target's other nodes are read from META alone --------------------------
+
+
+def test_a_sibling_without_a_readable_meta_makes_the_graph_unreadable(tmp_path: Path) -> None:
+    """The acyclicity question needs every node's deps; a sibling that has no META, or one that
+    does not parse, is named rather than skipped (which would hide a cycle)."""
+    ctx = context_for(tmp_path, "good")
+    (ctx.graph_root / "targets" / TARGET / "nodes" / "stray").mkdir()
+    result = admit.run(ctx)
+    assert failure(result) == ("graph", "graph-unreadable")
+    assert result.diagnostic is not None and "stray has no META.yaml" in result.diagnostic.message
+
+    ctx = context_for(tmp_path / "b", "good")
+    meta_path = ctx.graph_root / "targets" / TARGET / "nodes" / ROOT_NODE / "META.yaml"
+    meta_path.write_text("deps: [unterminated\n", encoding="utf-8")
+    result = admit.run(ctx)
+    assert failure(result) == ("graph", "graph-unreadable")
+
+
+def test_a_sibling_declaring_a_ghost_dep_fails_the_graph_check(tmp_path: Path) -> None:
+    """The proposal's own ghost dep is caught at layout; a sibling's is the graph check's."""
+    ctx = context_for(tmp_path, "good")
+    meta_path = ctx.graph_root / "targets" / TARGET / "nodes" / "and-reassoc" / "META.yaml"
+    meta = yaml.safe_load(meta_path.read_text())
+    meta["deps"] = ["ghost"]
+    meta_path.write_text(yaml.safe_dump(meta, sort_keys=False), encoding="utf-8")
+    result = admit.run(ctx)
+    assert failure(result) == ("graph", "dep-unknown")
+    assert result.diagnostic is not None
+    assert result.diagnostic.details == {"node": "and-reassoc", "dep": "ghost"}
+
+
+def test_a_cycle_among_siblings_is_also_refused(tmp_path: Path) -> None:
+    """A proposal cannot be admitted into a graph that is already not a DAG (F03-R3)."""
+    ctx = context_for(tmp_path, "good")
+    meta_path = ctx.graph_root / "targets" / TARGET / "nodes" / "and-reassoc" / "META.yaml"
+    meta = yaml.safe_load(meta_path.read_text())
+    meta["deps"] = [ROOT_NODE]
+    meta_path.write_text(yaml.safe_dump(meta, sort_keys=False), encoding="utf-8")
+    result = admit.run(ctx)
+    assert failure(result) == ("graph", "dependency-cycle")
+    assert result.diagnostic is not None and "good" not in result.diagnostic.details["cycle"]
+
+
+def test_dep_edges_reads_every_directory(tmp_path: Path) -> None:
+    ctx = context_for(tmp_path, "cycle")
+    edges = admit.dep_edges(ctx.graph_root / "targets" / TARGET / "nodes")
+    assert edges["cycle"] == (ROOT_NODE,)
+    assert edges[ROOT_NODE] == ("tutorial-and-swap", "and-reassoc")
+    with pytest.raises(schemas.SchemaError, match=r"has no META\.yaml"):
+        (ctx.graph_root / "targets" / TARGET / "nodes" / "empty").mkdir()
+        admit.dep_edges(ctx.graph_root / "targets" / TARGET / "nodes")
+
+
+# --- the relation check: everything between the label and the kernel's answer (R4, D-30) --------
+
+
+def test_relation_without_a_known_root_is_refused(tmp_path: Path) -> None:
+    """A claim relates the variant to the root; with three sinks and no declaration there is no
+    root to relate it to, and the proposal is refused rather than related to a guess."""
+    ctx = context_for(tmp_path, "variant-resolves", toolchain=variant_toolchain())
+    meta_path = ctx.graph_root / "targets" / TARGET / "nodes" / ROOT_NODE / "META.yaml"
+    meta = yaml.safe_load(meta_path.read_text())
+    meta["deps"] = []
+    meta_path.write_text(yaml.safe_dump(meta, sort_keys=False), encoding="utf-8")
+    result = admit.run(ctx)
+    assert failure(result) == ("relation", "relation-root-unknown")
+
+    # A target-status declaration resolves it (F03-Q5), and so would a rendered graph.json.
+    st = ctx.graph_root / "targets" / TARGET / "status"
+    st.mkdir()
+    (st / "2026-09-10-1.yaml").write_text(
+        yaml.safe_dump(samples.target_status(root=ROOT_NODE)), encoding="utf-8"
+    )
+    assert admit.root_of(ctx.graph_root, TARGET, exclude="variant-resolves") == ROOT_NODE
+    ok = admit.run(context_for(tmp_path / "b", "variant-resolves", toolchain=variant_toolchain()))
+    assert ok.admitted
+
+
+def test_root_of_prefers_the_rendered_graph_then_the_declaration(tmp_path: Path) -> None:
+    """A rendered graph.json is read only when it validates; then the declaration; then the
+    one un-depended-on node — and a graph.json that is not one falls through, never in."""
+    from opn_gate import products  # noqa: PLC0415
+
+    ctx = make_context(tmp_path, node_id="good")
+    target_dir = ctx.graph_root / "targets" / TARGET
+    products.generate(ctx.graph_root, rendered_from=None, commit_time="2026-09-10T00:00:00Z").write(
+        ctx.graph_root, write_meta=False
+    )
+    place(ctx, "good")
+    st = target_dir / "status"
+    st.mkdir()
+    (st / "2026-09-10-1.yaml").write_text(
+        yaml.safe_dump(samples.target_status(root="and-reassoc")), encoding="utf-8"
+    )
+    assert admit.root_of(ctx.graph_root, TARGET) == ROOT_NODE  # the rendered root wins
+    (target_dir / "graph.json").write_text('{"root": "tutorial-and-swap"}', encoding="utf-8")
+    assert admit.root_of(ctx.graph_root, TARGET) == "and-reassoc"  # no schema: the declaration
+    (target_dir / "graph.json").write_text("{broken", encoding="utf-8")
+    assert admit.root_of(ctx.graph_root, TARGET) == "and-reassoc"
+    (st / "2026-09-10-1.yaml").unlink()
+    assert admit.root_of(ctx.graph_root, TARGET, exclude="good") == ROOT_NODE  # the sink
+    assert admit.root_of(ctx.graph_root, TARGET) is None  # without the exclusion: two sinks
+    assert admit.root_of(ctx.graph_root, "nowhere") is None
+
+
+def test_an_invalid_root_cannot_be_related_to(tmp_path: Path) -> None:
+    ctx = context_for(tmp_path, "variant-resolves", toolchain=variant_toolchain())
+    statement = ctx.graph_root / "targets" / TARGET / "nodes" / ROOT_NODE / "Statement.lean"
+    statement.write_text(statement.read_text() + "\ntheorem extra : True := by\n  sorry\n")
+    result = admit.run(ctx)
+    assert failure(result) == ("relation", "relation-root-invalid")
+    assert result.diagnostic is not None and ROOT_NODE in result.diagnostic.message
+
+
+def test_a_root_context_that_does_not_elaborate_is_named(tmp_path: Path) -> None:
+    """F08-Q13: the root's Context is staged and compiled for the relation proof; when it does
+    not compile the verdict says which module, not merely 'does not elaborate'."""
+    toolchain = ScriptedToolchain(
+        witness=variant_toolchain().witness, failing_modules={ROOT_CONTEXT}
+    )
+    result = admit.run(context_for(tmp_path, "variant-resolves", toolchain=toolchain))
+    assert failure(result) == ("relation", "relation-root-context")
+    assert result.diagnostic is not None and result.diagnostic.details["module"] == ROOT_CONTEXT
+    assert not any(c.startswith("relation_type:") for c in toolchain.calls)
+
+
+def test_relation_must_declare_theorem_relation(tmp_path: Path) -> None:
+    """D-30's proof has one name; a file declaring another, or none, is refused before Lean."""
+    ctx = context_for(tmp_path, "variant-resolves", toolchain=variant_toolchain())
+    relation = ctx.graph_root / "targets" / TARGET / "nodes" / "variant-resolves" / "Relation.lean"
+    relation.write_text("-- relation: resolves\ntheorem rel : True := trivial\n")
+    result = admit.run(ctx)
+    assert failure(result) == ("relation", "relation-decl")
+    assert result.diagnostic is not None and result.diagnostic.details["declared"] == "rel"
+
+    ctx = context_for(tmp_path / "b", "variant-resolves", toolchain=variant_toolchain())
+    relation = ctx.graph_root / "targets" / TARGET / "nodes" / "variant-resolves" / "Relation.lean"
+    relation.write_text("-- relation: resolves\n-- no theorem at all\n")
+    result = admit.run(ctx)
+    assert failure(result) == ("relation", "artifact-shape")
+    assert result.diagnostic is not None and "Relation.lean" in result.diagnostic.message
+
+
+def test_relation_metaprogram_failures_are_named(tmp_path: Path) -> None:
+    garbage = variant_toolchain(relation=metaprogram_garbage(exit_code=2, output="boom"))
+    result = admit.run(context_for(tmp_path / "a", "variant-resolves", toolchain=garbage))
+    assert failure(result) == ("relation", "metaprogram-failed")
+    assert result.diagnostic is not None and result.diagnostic.details["exit_code"] == 2
+
+    broken = MetaprogramResult(ok=False, doc={"ok": False, "error": "type mismatch at relation"})
+    result = admit.run(
+        context_for(
+            tmp_path / "b", "variant-resolves", toolchain=variant_toolchain(relation=broken)
+        )
+    )
+    assert failure(result) == ("relation", "relation-elaboration")
+    assert result.diagnostic is not None
+    assert result.diagnostic.message == "type mismatch at relation"
+
+
+def test_a_relation_proof_resting_on_a_foreign_axiom_is_refused(tmp_path: Path) -> None:
+    """An implication proved from an axiom outside the allowlist is not the graph's implication."""
+    toolchain = variant_toolchain(
+        relation=relation_result(label="resolves", expected="V → R", axioms=("Nonsense.ax",))
+    )
+    result = admit.run(context_for(tmp_path, "variant-resolves", toolchain=toolchain))
+    assert failure(result) == ("relation", "relation-axiom")
+    assert result.diagnostic is not None and result.diagnostic.details["axioms"] == ["Nonsense.ax"]
+    # The allowlist itself is fine.
+    allowed = variant_toolchain(
+        relation=relation_result(label="resolves", expected="V → R", axioms=("propext",))
+    )
+    assert admit.run(context_for(tmp_path / "b", "variant-resolves", toolchain=allowed)).admitted
+
+
+# --- name collisions: a copy of an existing node under a new directory ---------------------------
+
+
+def test_a_directory_whose_meta_names_another_node_is_refused_at_layout(tmp_path: Path) -> None:
+    """A proposal that copies an existing node's files under a new id is not a new node: META's
+    id disagrees with the directory, and the layout check says so first."""
+    ctx = make_context(tmp_path, node_id="good-copy")
+    copy = ctx.graph_root / "targets" / TARGET / "nodes" / "good-copy"
+    shutil.copytree(PROPOSALS / "good", copy)
+    # Verbatim, the copy's files still import the original's Context: refused for that first.
+    result = admit.run(ctx)
+    assert failure(result) == ("layout", "import-forbidden")
+    # With the imports repointed, what remains is that META names the original.
+    for name in ("Statement.lean", "Witness.lean", "Context.lean"):
+        text = (copy / name).read_text().replace("«good»", "«good-copy»")
+        (copy / name).write_text(text, encoding="utf-8")
+    result = admit.run(ctx)
+    assert failure(result) == ("layout", "meta-id")
+    assert result.diagnostic is not None
+    assert "differs from directory 'good-copy'" in result.diagnostic.message
