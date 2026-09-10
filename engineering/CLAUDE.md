@@ -1,7 +1,7 @@
 # Open Proof Network — build instructions for Claude
 
 A distributed crowdsourced Lean 4 proof network for open mathematical problems, built spec-first.
-The protocol is decided (`docs/architecture_decisions_v_3_11.html`, decisions D-1 to D-36 with
+The protocol is decided (`docs/architecture_decisions_v_3_12.html`, decisions D-1 to D-36 with
 frozen identifiers); the implementation stack is locked (conventions §1). Everything in
 `engineering/` is about how to build it, not what it is (`engineering/README.md`). The workflow
 below is in force from the first line of code.
@@ -87,11 +87,16 @@ The law of the project:
   Adding `--claims-url` behind `${VAR:+...}` keeps the old pin working; the flag becomes live
   when the variable is set, which must wait for the re-pin (F05-R10).
 - 2026-09-09 — F12 (statement QA, provenance, drift) designed with Mike and settled in
-  `engineering/session-notes/2026-09-09-f12-statement-qa.md`. **Pending and easy to lose: a D-9
-  amendment to v3.12** — rung two becomes *screened and signed*, back-translation demoted to one
-  input, because the 2026 evidence puts back-translation's false-pass rate near a third. Two
-  carve-outs belong in F11, not F12: `sources[]`/licence fields on the target schema, and making
-  `docs/seed_conjecture_sources.html` rebuildable (its inputs are not in the repo today).
+  `engineering/session-notes/2026-09-09-f12-statement-qa.md`; **decisions v3.12 and the F12 spec
+  landed 2026-09-10.** Rung two is now `screened-and-signed`, back-translation demoted to one input,
+  because the 2026 evidence puts its false-pass rate near a third.
+- 2026-09-10 — Renaming a protocol identifier is never free: `back-translated` was an enum value in
+  two shipped schemas, and `gate/schemas/HASHES` says versioned, never edited (D-34). So the doc
+  leads and the code follows — the v2 bump plus golden regeneration is F11-T2, and
+  `PROTOCOL_VERSION` stays `3.11` until it lands, which is why code and doc disagree meanwhile.
+  Check for schema enums and file-path constants *before* promising a rename: `site/opn_site/`
+  and `api/tests/` both hold the decisions doc's filename, so the version bump breaks tests if the
+  rename stops at the docs.
 - 2026-09-09 — A domain is configuration when nothing knows its own hostname. The site generator
   and the api both read theirs from config, so `openproofnetwork.org` was two stack parameters
   and a Route 53 zone, with the issued hostnames still answering. Keep it that way: never write

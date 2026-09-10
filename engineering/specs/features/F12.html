@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F12 — Statement QA, provenance and drift</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F12</nav>
+<h1>F12 — Statement QA, provenance and drift</h1>
+<p class="subtitle">D-9 v3.12's mechanizable pass, built: the soundness screens and their
+kernel-checked exhibits, the grounded review brief, back-translation, equivalence. Plus the record
+that says what was checked and who signed, the ledger of documented attempts, and the watcher that
+notices when an inherited statement moves under us or its problem is solved somewhere else.</p>
+
+<h2>1. Summary</h2>
+<p>F11 gives a target a fidelity grade and a place to keep certificates. It does not check anything:
+a curator asserts a grade and the record takes their word. F12 is the checking. It builds D-9
+v3.12's ordered pass as commands that each produce an artifact, keeps a per-statement QA record of
+what every check found, and refuses to raise a subject to <code>screened-and-signed</code> until
+that record is complete for the statement as it stands now. It then keeps the record honest over
+time: the registries the network inherits from correct roughly one statement in ten, and a problem
+can be resolved elsewhere while the frontier works on it, so D-10 v3.12's watcher runs on a
+schedule and freezes compute rather than guessing. The two rules that no kernel can carry — that a
+derived falsehood might be a refutation rather than a defect, and that a <code>related</code>
+variant's relevance is a human claim — are routed to a person by construction. Cites: D-4, D-8,
+D-9, D-10, D-11, D-12, D-15, D-16, D-30, D-33, D-34, D-35.</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a curator, I want one command per check and a record I cannot forge by hand, so a grade is
+    a summary of evidence rather than an opinion I typed.</li>
+  <li>As a reviewer, I want the kernel-checked exhibits kept apart from the model's opinion, so I
+    can see at a glance which parts of a certificate a machine actually proved.</li>
+  <li>As Mike, doing the one human step, I want the back-translated English beside the source
+    wording and nothing else to read, so signing takes a few minutes and needs no Lean.</li>
+  <li>As a prover, I want compute frozen on a target whose statement moved upstream, so I do not
+    spend a week on a statement that has been corrected.</li>
+  <li>As a bystander, I want the target page to show what was checked, who signed and how many, so
+    "verified" is a link to evidence rather than a word.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> the <code>qa/v1</code> record and its exhibit store; <code>opn-gate qa</code>
+with the screen, brief, back-translate and equivalence subcommands, running in the gate's step-3
+sandbox against the graph's pin; defect-claim routing for a positive screen; the attempts ledger
+and the M count with its statement-hash guard; the fidelity gate on raising a subject to
+<code>screened-and-signed</code>; the upstream-drift and resolved-elsewhere watchers; the
+<code>related</code>-variant relevance signature (D-30 v3.12); the QA summary in F03's products and
+on the site.</p>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>Assigning grades. A grade is still a curator act on a certificate (F11); F12 only refuses the
+    ones the record does not support.</li>
+  <li>Canary seeding and per-class catch rates (D-11) — a separate feature; F12's defect classes are
+    D-16's taxonomy unchanged.</li>
+  <li>Adjudicating defect claims (D-15, D-16) — F08 owns the queue; F12 files into it.</li>
+  <li>Upstreaming a correction to Formal Conjectures (D-10) — a documented curator act, not tooled.</li>
+  <li>Deciding which targets to import, and the survey behind that decision. That is F11-T5 and
+    <code>docs/seed_conjecture_sources.html</code>.</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<p class="status-note">EARS notation, stable IDs.</p>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F12-R1</td><td>The system shall keep a QA record per subject as
+    <code>targets/&lt;id&gt;/qa/&lt;subject&gt;-&lt;n&gt;.yaml</code> (<code>qa/v1</code>):
+    subject, statement hash, pinned toolchain and Mathlib SHA, and a list of check results
+    {check ∈ {compile, screen-statement, screen-negation, screen-false, screen-consequence,
+    brief, backtranslation, equivalence}, <code>kind</code> ∈ {exhibit, brief}, tool and version,
+    model and version where a model ran, verdict ∈ {pass, fail, inconclusive}, exhibit path or
+    null, timestamp}; append-only, one file per run, exhibits under
+    <code>targets/&lt;id&gt;/qa/exhibits/</code>.</td></tr>
+  <tr><td>F12-R2</td><td>The system shall record every check as exactly one of two kinds and shall
+    permit only <code>kind: exhibit</code> to be cited as evidence for a fidelity grade; a
+    <code>kind: brief</code> result shall never raise a grade on its own (D-9 v3.12: layers 2 and 4
+    emit exhibits, layer 3 emits a judgement).</td></tr>
+  <tr><td>F12-R3</td><td>When <code>opn-gate qa screen &lt;target&gt; &lt;subject&gt;</code> runs,
+    the system shall attempt, under a bounded tactic budget and inside the gate's step-3 sandbox on
+    the graph's pinned toolchain: the statement, its negation, <code>False</code> from its
+    hypotheses, and each declared consequence lemma; it shall introduce the subject as an explicit
+    hypothesis or axiom in a scratch file and never as a <code>sorry</code> in a graph file; each
+    success shall write a kernel-checked exhibit and the command shall exit non-zero.</td></tr>
+  <tr><td>F12-R4</td><td>When a screen succeeds, the system shall open a defect claim (F08) carrying
+    the exhibit with its class unset, and shall not itself label the finding a misformalization or a
+    refutation; the claim shall name both readings and require a curator to route it (D-9 v3.12,
+    D-8, D-12).</td></tr>
+  <tr><td>F12-R5</td><td>When the statement version changes or the graph's Mathlib pin moves, the
+    system shall mark every QA record for that subject stale and re-run the screens, because
+    junk-value defects appear and disappear with the library beneath the statement (D-9 v3.12).</td></tr>
+  <tr><td>F12-R6</td><td>When <code>opn-gate qa brief</code> runs, the system shall produce a review
+    brief listing every constant the statement references with its definition as elaborated under
+    the pin, plus the structural type signature, recorded with <code>kind: brief</code>.</td></tr>
+  <tr><td>F12-R7</td><td>When <code>opn-gate qa backtranslate</code> runs, the system shall render
+    the statement into English from the Lean alone with the informal source withheld from the
+    model, write it beside the source wording for comparison, and record the model and version; if
+    the subject's provenance names an AI formalizer, the command shall refuse a back-translating
+    model of the same family and shall record <code>formalizer: unknown</code> where provenance does
+    not say.</td></tr>
+  <tr><td>F12-R8</td><td>When <code>opn-gate qa equivalence &lt;a&gt; &lt;b&gt;</code> runs, the
+    system shall attempt both implications between two formalizations; a proved pair shall be
+    recorded as an exhibit, and a failure shall be recorded <code>inconclusive</code> and never as
+    negative evidence (D-9 v3.12).</td></tr>
+  <tr><td>F12-R9</td><td>The system shall refuse <code>opn-gate fidelity</code> raising a subject to
+    <code>screened-and-signed</code> unless the QA record for the current statement hash shows the
+    pass complete with no unrouted positive screen, and the attestor differs from the subject's
+    author (D-9).</td></tr>
+  <tr><td>F12-R10</td><td>The system shall keep documented external attempts as
+    <code>targets/&lt;id&gt;/attempts.yaml</code> {venue, system, date, url, statement hash} and
+    shall count toward D-9's M only entries whose statement hash equals the subject's current hash;
+    on a D-8 revision the count shall reset and the record shall show the attempts that no longer
+    apply rather than deleting them.</td></tr>
+  <tr><td>F12-R11</td><td>The system shall run a scheduled watcher that, for each target whose
+    provenance names an upstream path and commit, diffs that path at the pinned commit against
+    upstream head; if they differ, then it shall open a revision request carrying the diff, set the
+    target's <code>drift</code> flag, and freeze proving compute by deriving
+    <code>claimable: false</code>, leaving the fidelity grade unchanged (D-10 v3.12).</td></tr>
+  <tr><td>F12-R12</td><td>The same watcher shall check each source's problem status and, on a flip
+    to resolved, shall flag the target for D-33 dormancy with the citation attached and notify the
+    curator; it shall never change a target's status by itself.</td></tr>
+  <tr><td>F12-R13</td><td>The system shall require a variant whose relation is <code>related</code>
+    to carry <code>relevance</code> {text ≤ 500 chars, signer identity, date} before products mark
+    it published as pertinent to the target; <code>resolves</code> and <code>partial</code> variants
+    shall require nothing beyond their relation proof (D-30 v3.12).</td></tr>
+  <tr><td>F12-R14</td><td>F03's products and the site shall carry, per target: the QA pass state per
+    check, the signature count with the named signers, the counted attempts, and the
+    <code>drift</code> flag with its date; untrusted upstream text in a diff or a brief shall be
+    escaped (conventions §4).</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F12-AC1</td><td>Given a QA record with a passing brief and no exhibits, when the curator
+    raises the grade to <code>screened-and-signed</code>, then it is refused naming the missing
+    screens.</td><td><code>gate/tests/test_qa.py::test_brief_alone_cannot_raise</code></td></tr>
+  <tr><td>F12-AC2</td><td>Given a statement whose hypotheses are contradictory, when
+    <code>qa screen</code> runs, then <code>screen-false</code> succeeds, an exhibit is written, the
+    command exits non-zero, and a defect claim is opened with its class
+    unset.</td><td><code>gate/tests/test_qa.py::test_false_screen_files_unrouted_claim</code></td></tr>
+  <tr><td>F12-AC3</td><td>Given a positive screen, when the record is read, then the finding names
+    both readings — misformalization and refutation — and no field asserts
+    either.</td><td><code>gate/tests/test_qa.py::test_finding_is_unrouted</code></td></tr>
+  <tr><td>F12-AC4</td><td>Given a subject with a complete pass, when the graph's Mathlib pin moves,
+    then its QA records are marked stale and the grade gate refuses until the screens
+    re-run.</td><td><code>gate/tests/test_qa.py::test_pin_move_stales_record</code></td></tr>
+  <tr><td>F12-AC5</td><td>Given provenance naming an AI formalizer, when
+    <code>qa backtranslate</code> is asked to use a model of the same family, then it is refused;
+    given provenance that names none, then it proceeds and records
+    <code>formalizer: unknown</code>.</td><td><code>gate/tests/test_qa.py::test_backtranslate_independence</code></td></tr>
+  <tr><td>F12-AC6</td><td>Given two formalizations where one implication proves and the other does
+    not, when <code>qa equivalence</code> runs, then the result is <code>inconclusive</code> and no
+    negative evidence is written.</td><td><code>gate/tests/test_qa.py::test_equivalence_failure_is_inconclusive</code></td></tr>
+  <tr><td>F12-AC7</td><td>Given three documented attempts against statement hash H, when the
+    statement is revised to H', then the M count reads 0 and the record still shows the three
+    attempts against H.</td><td><code>gate/tests/test_qa.py::test_attempts_do_not_cross_revisions</code></td></tr>
+  <tr><td>F12-AC8</td><td>Given a target imported at commit C, when upstream edits that path and the
+    watcher runs, then a revision request carrying the diff is opened, <code>drift</code> is set,
+    <code>claimable</code> becomes false, and the fidelity grade is
+    unchanged.</td><td><code>gate/tests/test_watcher.py::test_upstream_drift</code></td></tr>
+  <tr><td>F12-AC9</td><td>Given a source that flips the problem to resolved, when the watcher runs,
+    then the target is flagged for dormancy with the citation and its status is
+    untouched.</td><td><code>gate/tests/test_watcher.py::test_resolved_elsewhere</code></td></tr>
+  <tr><td>F12-AC10</td><td>Given a <code>related</code> variant with no relevance signature, when
+    products regenerate, then it is not marked pertinent; with a signature, then it is, and the
+    signer is named.</td><td><code>gate/tests/test_products.py::test_related_variant_needs_signature</code></td></tr>
+  <tr><td>F12-AC11</td><td>Given a target page for a subject with two signers, one drift flag and
+    three counted attempts, when rendered, then all three are visible and the upstream diff excerpt
+    is escaped.</td><td><code>site/tests/test_render.py::test_qa_summary</code></td></tr>
+  <tr><td>F12-AC12 <em>lean</em></td><td>Given the on-ramp root, when <code>qa screen</code> runs in
+    the sandbox on the pinned toolchain, then the statement, its negation and <code>False</code> all
+    fail to prove within budget and the record shows three clean
+    passes.</td><td><code>gate/tests/test_qa_lean.py::test_onramp_screens_clean</code></td></tr>
+  <tr><td>F12-AC13 <em>network</em></td><td>Given the live pinned registry, when the watcher runs in
+    dry-run mode against every imported target, then it reports drift state per target and exits 0.
+    </td><td><code>gate/tools/watch_upstream.py --dry-run</code>;
+    <code>engineering/evidence/F12/watcher-dry-run.txt</code></td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li>Screen tactic budget: 60 s per attempt, 5 min per subject, inside the sandbox. Provisional
+    until measured on the on-ramp graph (Q4).</li>
+  <li>Review brief: 200 KB, definitions elaborated one level deep.</li>
+  <li>Watcher: daily, one upstream fetch per distinct source repository, never per target.</li>
+  <li>Evidence text on a certificate stays F11's 2,000 characters; exhibits are files, not text.</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li>The screens elaborate Lean that is trying to prove <code>False</code>. They run in the gate's
+    step-3 sandbox on the pinned toolchain, never on the host and never in the api process
+    (conventions §4, constitution C9).</li>
+  <li>The brief and the back-translation send statement text to a model provider. Statements are
+    public by construction, so nothing secret leaves; the provider key is a C8 secret and lives
+    where the other service secrets do.</li>
+  <li>Upstream diffs, briefs and back-translations are untrusted text: capped, escaped at render,
+    never interpolated into a command.</li>
+  <li>The watcher reads public repositories unauthenticated where it can, so a token outage degrades
+    it to a warning rather than a false all-clear.</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>F11</strong> (required): the target record, the fidelity command and certificates, the
+    <code>sources</code> and provenance fields the watcher reads, and the
+    <code>screened-and-signed</code> schema bump.</li>
+  <li><strong>F08</strong> (required): defect claims and revision requests — F12 files into that
+    queue and never adjudicates.</li>
+  <li><strong>F03</strong>, <strong>F04</strong>: products and the site surface.</li>
+  <li><strong>Protocol:</strong> written against decisions v3.12 (D-9's pass and rung, D-10's
+    watched pin, D-30's relevance signature).</li>
+  <li><strong>Packages:</strong> one model client for the brief and back-translation, pinned and
+    locked, with its C5 justification recorded at T3. No new Lean dependency: the screens use the
+    graph's pinned Mathlib and the gate's existing sandbox.</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F12-Q1</td><td><strong>The watcher runs in this repo, not the graph.</strong> D-35 keeps
+    the graph's history mathematics only, and a daily drift check is tooling. It opens a revision
+    request against the graph the same way any contribution does. The alternative, a scheduled
+    workflow in the graph repo, would put service commits in a history that must stay
+    readable.</td></tr>
+  <tr><td>F12-Q2</td><td><strong>The attempts ledger lives in the graph, the survey stays here.</strong>
+    An attempt is evidence for a grade on a specific statement, so it belongs beside the
+    certificate; the catalog of candidates the network passed over is research and stays in
+    <code>docs/</code> (decided with Mike, 2026-09-09).</td></tr>
+  <tr><td>F12-Q3</td><td><strong>A failed equivalence writes nothing negative</strong> (R8). The
+    2026 evidence is that the check is sound in one direction only: a proved pair is strong, a
+    failure is uninformative. The risk accepted is that real drift can hide behind an
+    <code>inconclusive</code>, which is why equivalence is a bonus layer and not part of the floor.</td></tr>
+  <tr><td>F12-Q4</td><td><strong>The tactic budgets are guesses</strong> until the on-ramp graph
+    measures them (§6). Too low and the screens miss a shallow refutation; too high and every pin
+    move costs an hour of CI. T2 records the measured distribution and the numbers move once, with
+    evidence.</td></tr>
+  <tr><td>F12-Q5</td><td><strong>Model choice is recorded, not fixed by this spec.</strong> R7's
+    independence rule needs a family name per model, so the record carries model and version and the
+    refusal is by family string; a provider swap is then a config change and a new row in the
+    record, not a spec change.</td></tr>
+  <tr><td>F12-Q6</td><td><strong>A positive screen is never auto-labelled</strong> (R4), which means
+    the defect queue can carry a finding that is actually a refutation of an open conjecture. That
+    is the correct place for it: routing is cheap and mislabelling a refutation as a defect, or the
+    reverse, is not.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> spec · <strong>Tasks:</strong> T1&ndash;T6 todo</div>
+
+<h2>Tasks</h2>
+<p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its
+one verification command (conventions §3, §6).</p>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F12-T1</td><td><strong>The QA record.</strong> <code>qa/v1</code> schema, the record
+    writer, the exhibit store, the exhibit/brief split and the rule that only exhibits back a grade,
+    staleness on statement or pin change.</td>
+    <td><code>gate/schemas/qa/v1.json</code>, <code>gate/opn_gate/qa.py</code>,
+      <code>gate/tests/test_qa.py</code></td>
+    <td>F11</td><td><code>uv run pytest gate/tests/test_qa.py</code></td></tr>
+  <tr><td>F12-T2</td><td><strong>Soundness screens.</strong> <code>qa screen</code> in the step-3
+    sandbox on the graph's pin, the four attempt kinds, exhibits on success, non-zero exit, defect
+    claims filed unrouted, and the measured budget distribution recorded.</td>
+    <td><code>gate/opn_gate/qa.py</code>, <code>gate/lean/</code>,
+      <code>gate/tests/test_qa.py</code>, <code>gate/tests/test_qa_lean.py</code>,
+      <code>engineering/evidence/F12/budgets.txt</code></td>
+    <td>T1</td><td><code>make verify-lean</code></td></tr>
+  <tr><td>F12-T3</td><td><strong>Brief, back-translation, equivalence.</strong> The grounded brief
+    and signature check, the back-translation with the source withheld and the independence rule,
+    the bidirectional equivalence attempt with its inconclusive result; the model client pinned with
+    its C5 justification.</td>
+    <td><code>gate/opn_gate/qa.py</code>, <code>gate/opn_gate/models.py</code>,
+      <code>pyproject.toml</code>, <code>uv.lock</code>, <code>gate/tests/test_qa.py</code></td>
+    <td>T1</td><td><code>uv run pytest gate/tests/test_qa.py -k "brief or backtranslate or equivalence"</code></td></tr>
+  <tr><td>F12-T4</td><td><strong>Attempts and the grade gate.</strong> The attempts ledger with the
+    statement-hash guard and the reset on revision; <code>opn-gate fidelity</code> refusing
+    <code>screened-and-signed</code> without a complete pass.</td>
+    <td><code>gate/schemas/attempts/v1.json</code>, <code>gate/opn_gate/fidelity.py</code>,
+      <code>gate/opn_gate/qa.py</code>, <code>gate/tests/test_qa.py</code>,
+      <code>gate/tests/test_fidelity.py</code></td>
+    <td>T2, T3</td><td><code>uv run pytest gate/tests/test_qa.py gate/tests/test_fidelity.py</code></td></tr>
+  <tr><td>F12-T5</td><td><strong>The watchers.</strong> Scheduled drift check against each pinned
+    source path, revision request with the diff, drift flag and compute freeze; the
+    resolved-elsewhere check with its citation; a dry run over the live imports as evidence.</td>
+    <td><code>gate/tools/watch_upstream.py</code>, <code>.github/workflows/watch-upstream.yml</code>,
+      <code>gate/opn_gate/products.py</code>, <code>gate/tests/test_watcher.py</code>,
+      <code>engineering/evidence/F12/watcher-dry-run.txt</code></td>
+    <td>T1</td><td><code>uv run pytest gate/tests/test_watcher.py</code> and
+      <code>uv run python gate/tools/watch_upstream.py --dry-run</code></td></tr>
+  <tr><td>F12-T6</td><td><strong>Surfacing it.</strong> QA summary, signature count and signers,
+    attempts and drift into F03's products; the <code>related</code>-variant relevance signature;
+    the target page section with escaped upstream text; screenshot.</td>
+    <td><code>gate/opn_gate/products.py</code>, <code>site/opn_site/render.py</code>,
+      <code>gate/tests/test_products.py</code>, <code>site/tests/test_render.py</code>,
+      <code>engineering/evidence/F12/target-page.png</code></td>
+    <td>T4, T5</td><td><code>make verify</code> and the screenshot</td></tr>
+</table>
+
+<footer>Open Proof Network · F12 spec v1 · 2026-09-10</footer>
+</body>
+</html>

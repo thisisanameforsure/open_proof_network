@@ -1,8 +1,11 @@
 # F12 design record — statement QA, provenance and drift
 
 Date: 2026-09-09. Produced by a grilling session with Mike, two rounds, every proposal agreed.
-Nothing here is a spec yet and nothing here overrides a decision. It is the settled design that
-F12's spec should be written from, plus the two things it changes outside itself.
+
+**Status, 2026-09-10: acted on.** Decisions v3.12 applied items 5, 6, 10 and 12 to D-9, D-10 and
+D-30; F11 v2 took the carve-outs in item 1; `engineering/specs/features/F12.html` is written. What
+remains of the order of work below is F11-T2's schema bump and F11-T5's rebuildable report, both of
+which are now spec'd tasks rather than loose intentions.
 
 Source documents this rests on:
 
@@ -149,10 +152,13 @@ and must not be read as retiring any of them.
 
 ## Order of work
 
-1. Amend D-9 in `docs/architecture_decisions_v_3_11.html` to v3.12, per item 5, through the doc's
-   own process.
-2. Land the F11 carve-outs: `sources[]` and licence fields on the target schema, the written QA
-   pass for F11-T5, and the seed report made rebuildable with its dataset checked in.
-3. Write the F12 spec against this record, and add its row to `engineering/specs/index.html`.
+1. ~~Amend D-9 to v3.12, per item 5.~~ Done 2026-09-10 in
+   `docs/architecture_decisions_v_3_12.html`, and it grew: D-10 gained the watched pin (item 6) and
+   D-30 the related-variant signature (item 10), because a spec may not add protocol a decision
+   does not carry.
+2. ~~Spec the F11 carve-outs.~~ Done: F11 v2 adds R12 (the schema bump the rename forces) and R13
+   (the hand-run QA pass), with the licence gate in R9 and the sources fields in R1. The *code* for
+   all of it is F11-T2 and F11-T5, unstarted.
+3. ~~Write the F12 spec and index it.~~ Done: F12, six tasks, depending on F11 and F08.
 
 F12 does not start before F11 does.

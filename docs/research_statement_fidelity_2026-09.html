@@ -125,7 +125,7 @@ footer .in{max-width:1180px;margin:0 auto}
 <header class="site"><div class="in">
   <h1>Statement Fidelity: Autoformalization and Faithfulness Checking</h1>
   <p class="sub">What the 2025–2026 literature establishes about turning a natural-language mathematical statement into Lean 4, and about deciding whether the Lean statement means what the informal one meant. Evidence only — no decisions.</p>
-  <p class="meta"><b>Research note</b> · 2026-09-08 · extends <b>Harness_Architectures_research_v2.md §3</b> (the fidelity section) with the 2026 autoformalization literature · <b>subordinate to <a href="architecture_decisions_v_3_11.html">architecture_decisions_v_3_11.html</a></b> — where this note and the decisions disagree, the decisions govern · this note has no authority and overturns nothing; §5 flags where the evidence bears on a decision, for the doc's own process to act on</p>
+  <p class="meta"><b>Research note</b> · 2026-09-08 · extends <b>Harness_Architectures_research_v2.md §3</b> (the fidelity section) with the 2026 autoformalization literature · <b>subordinate to <a href="architecture_decisions_v_3_12.html">architecture_decisions_v_3_12.html</a></b> — where this note and the decisions disagree, the decisions govern · this note has no authority and overturns nothing; §5 flags where the evidence bears on a decision, for the doc's own process to act on</p>
   <p class="xall"><button data-x="1">Expand all detail</button><button data-x="0">Collapse all</button></p>
 </div></header>
 <div class="wrap">
@@ -251,7 +251,7 @@ footer .in{max-width:1180px;margin:0 auto}
 
 <h2 id="s4"><span class="sn">§4</span>Defect classes and what detects them<a class="hl" href="#s4" aria-label="Link to this section">§</a></h2>
 
-<p>Mapping the new evidence onto the defect taxonomy already fixed by <a class="dref" href="architecture_decisions_v_3_11.html#d-11">D-11</a> and <a class="dref" href="architecture_decisions_v_3_11.html#d-16">D-16</a>. The taxonomy needs no change; what follows is which detector covers which row, and where the coverage is empty.</p>
+<p>Mapping the new evidence onto the defect taxonomy already fixed by <a class="dref" href="architecture_decisions_v_3_12.html#d-11">D-11</a> and <a class="dref" href="architecture_decisions_v_3_12.html#d-16">D-16</a>. The taxonomy needs no change; what follows is which detector covers which row, and where the coverage is empty.</p>
 
 <div class="tw"><table class="cols">
 <colgroup><col style="width:21%"><col style="width:14%"><col style="width:35%"><col style="width:30%"></colgroup>
@@ -263,14 +263,14 @@ footer .in{max-width:1180px;margin:0 auto}
 <tr><td><strong>Quantifier scope</strong></td><td>blind</td><td>grounded judge; proved equivalence</td><td>high — a parenthesization error type-checks cleanly</td></tr>
 <tr><td><strong>Wrong domain</strong></td><td>partial</td><td><strong>structural type-signature comparison</strong></td><td>convention drift is invisible to probes and to provability</td></tr>
 <tr><td><strong>Definition mismatch</strong></td><td>blind</td><td><strong>definition-grounded judging</strong> — inject the Mathlib definition of every term</td><td>this is precisely what grounding was built for</td></tr>
-<tr><td><strong>Strength drift</strong><br><span style="font-size:13.5px;color:var(--ink-soft)">(the <a class="dref" href="architecture_decisions_v_3_11.html#d-9">D-9</a> named residual)</span></td><td>blind</td><td><strong>bidirectional equivalence — one direction proves, the other does not</strong></td><td>directly and soundly detectable, given a second formalization</td></tr>
+<tr><td><strong>Strength drift</strong><br><span style="font-size:13.5px;color:var(--ink-soft)">(the <a class="dref" href="architecture_decisions_v_3_12.html#d-9">D-9</a> named residual)</span></td><td>blind</td><td><strong>bidirectional equivalence — one direction proves, the other does not</strong></td><td>directly and soundly detectable, given a second formalization</td></tr>
 </tbody></table></div>
 
 <p>Three of these are worth calling out because the evidence changes what is possible.</p>
 
 <p><strong>Vacuity is the cheapest win and is already deployed elsewhere.</strong> Kimina's production pipeline added exactly this family of filters: contradiction detection, attempting to prove the negation, triviality detection, and a post-hoc judge asking whether a proof merely exploited a formalization mistake. The network's non-vacuity witness requirement is the same instinct, arrived at independently, and the literature confirms it is the right one.</p>
 
-<p><strong>Strength drift has a sound mechanical test.</strong> Bidirectional equivalence proving fails asymmetrically on exactly this defect: if the candidate is strictly weaker than the reference, one implication proves and the other does not. That asymmetry <em>is</em> the drift signal, and it is a kernel-checked exhibit rather than a judgement — which makes it the right shape for a <a class="dref" href="architecture_decisions_v_3_11.html#d-16">D-16</a> defect claim.</p>
+<p><strong>Strength drift has a sound mechanical test.</strong> Bidirectional equivalence proving fails asymmetrically on exactly this defect: if the candidate is strictly weaker than the reference, one implication proves and the other does not. That asymmetry <em>is</em> the drift signal, and it is a kernel-checked exhibit rather than a judgement — which makes it the right shape for a <a class="dref" href="architecture_decisions_v_3_12.html#d-16">D-16</a> defect claim.</p>
 
 <p><strong>Quantifier scope has no good automated detector.</strong> It type-checks, it survives back-translation because the English renders almost identically, and it is only reliably caught by a human or by equivalence against a correct reference. It was one of the classes found in the ProofNet audit. This is the class to weight most heavily in canary seeding.</p>
 
@@ -280,21 +280,22 @@ footer .in{max-width:1180px;margin:0 auto}
 
 <p>This note decides nothing. What follows is where the evidence touches a frozen decision, marked as confirming, as filling in detail, or — in one case — as grounds for an amendment the decisions doc's own process would have to make.</p>
 
-<h3 id="b-d15">Confirms <a class="dref" href="architecture_decisions_v_3_11.html#d-15">D-15</a> and <a class="dref" href="architecture_decisions_v_3_11.html#d-17">D-17</a>: human sign-off stays</h3>
+<h3 id="b-d15">Confirms <a class="dref" href="architecture_decisions_v_3_12.html#d-15">D-15</a> and <a class="dref" href="architecture_decisions_v_3_12.html#d-17">D-17</a>: human sign-off stays</h3>
 <p>D-15's overturning condition is "automated fidelity checking becomes good enough to carry interior nodes." As of September 2026 it is not, and the ceiling is legible: the best grounded LLM judges sit near 90% accuracy on textbook and graduate material, the only sound check has under 50% recall and needs a reference, and every paper that proposes a checker positions it as triage in front of expert review rather than as a replacement. D-15 and D-17 stand unchanged, and now carry a dated measurement of how far the automation is from the bar.</p>
 
-<h3 id="b-d11">Confirms <a class="dref" href="architecture_decisions_v_3_11.html#d-11">D-11</a>, and suggests unequal canary weighting</h3>
+<h3 id="b-d11">Confirms <a class="dref" href="architecture_decisions_v_3_12.html#d-11">D-11</a>, and suggests unequal canary weighting</h3>
 <p>The six canary classes survive contact with the 2026 literature — every class recurs in the ProofNet audit and the drift analyses, and no seventh class appeared that D-16's <code>strength-drift</code> and <code>other-with-exhibit</code> do not already cover. §4 adds a per-class difficulty ordering that D-11's per-class catch-rate measurement can use: quantifier scope and missing hypothesis are the hard classes, vacuity is the easy one.</p>
 
-<h3 id="b-d4">Fills in <a class="dref" href="architecture_decisions_v_3_11.html#d-4">D-4</a>: the witness requirement is externally corroborated</h3>
+<h3 id="b-d4">Fills in <a class="dref" href="architecture_decisions_v_3_12.html#d-4">D-4</a>: the witness requirement is externally corroborated</h3>
 <p>The non-vacuity witness is the network's answer to the vacuity class. Kimina independently deployed contradiction detection, negation-proving and triviality filters in production for the same reason. The evidence supports extending the mechanical screen beyond the witness to a bounded attempt at proving the statement, its negation, and <code>False</code> from its hypotheses — all three produce kernel-checked exhibits on failure.</p>
 
-<h3 id="b-d9">Amendment candidate for <a class="dref" href="architecture_decisions_v_3_11.html#d-9">D-9</a>: the <code>back-translated</code> rung is weaker than its name implies</h3>
+<h3 id="b-d9">Amendment candidate for <a class="dref" href="architecture_decisions_v_3_12.html#d-9">D-9</a>: the <code>back-translated</code> rung is weaker than its name implies</h3>
+<p class="note warn"><em>Applied in v3.12 (2026-09-10), by the decisions doc's own process — this note still decides nothing.</em> The amendment took the first of the two readings below and went further: the second rung is now <code>screened-and-signed</code>, defined as the whole mechanizable pass with its exhibits recorded plus a non-author signature, with back-translation demoted to one named input. The compute floor stayed where it was, because the rung it names is now stronger. What follows is the original flag, kept as written.</p>
 <p class="note warn"><em>Flagged, not applied:</em> D-9's fidelity ladder makes <code>back-translated</code> the second rung and sets it as the floor for allocating proving compute. The 2026 evidence is that back-translation is the <em>weakest</em> of the four checker families — roughly a third of its passes are wrong on textbook material, and its recall collapses on research-level statements, which is the network's actual intake. A root that has cleared <code>back-translated</code> has cleared a check with a known one-in-three false-positive rate.</p>
 <p>Two ways to read this, both for the decisions doc rather than for this note. Either the rung is renamed and redefined to mean <em>definition-grounded judging</em>, which is the technique that actually reaches ~90% and which D-9's "mechanizable tools run first" list can absorb; or the rung stays as a deliberately low bar and the compute floor moves up a rung. D-9 already requires back-translation to be performed by a non-author, which addresses author bias but not checker weakness.</p>
 <p>Worth noting that D-9's ladder is otherwise strongly vindicated: its insistence that <code>author-attested</code> is structurally non-terminal, because the listed formulation can itself be flawed in a way its author cannot see, is the same failure the ProofNet audit found at 31.8% in expert-curated material.</p>
 
-<h3 id="b-d10">Fills in <a class="dref" href="architecture_decisions_v_3_11.html#d-10">D-10</a>: the interop target is the right one</h3>
+<h3 id="b-d10">Fills in <a class="dref" href="architecture_decisions_v_3_12.html#d-10">D-10</a>: the interop target is the right one</h3>
 <p>DeepMind's formal-conjectures repository remains the working practitioner precedent for accepting formal statements of open problems, and its process is the one D-10 already points at: an issue before a PR, source comments linking to the original paper or listing, and review before a statement lands. Nothing in the 2026 literature suggests a private registry would do better.</p>
 
 <h3 id="b-pipeline">Composite: what the evidence supports as a fidelity pipeline</h3>
@@ -370,7 +371,7 @@ footer .in{max-width:1180px;margin:0 auto}
 
 </main>
 </div>
-<footer><div class="in">Research note, not protocol. Produced by adversarial multi-source verification on 2026-09-08; 100 claims extracted, 25 verified, 17 confirmed, 8 refuted and recorded in §6. Extends <b>Harness_Architectures_research_v2.md §3</b>. Where this note and <a href="architecture_decisions_v_3_11.html">the decisions</a> disagree, the decisions govern.</div></footer>
+<footer><div class="in">Research note, not protocol. Produced by adversarial multi-source verification on 2026-09-08; 100 claims extracted, 25 verified, 17 confirmed, 8 refuted and recorded in §6. Extends <b>Harness_Architectures_research_v2.md §3</b>. Where this note and <a href="architecture_decisions_v_3_12.html">the decisions</a> disagree, the decisions govern.</div></footer>
 <script>
 // Expand/collapse all detail blocks.
 document.querySelectorAll('.xall button').forEach(function(b){

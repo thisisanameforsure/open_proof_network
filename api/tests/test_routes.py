@@ -12,7 +12,7 @@ from opn_api import routes
 from opn_api.app import resolve
 
 ROOT = Path(__file__).resolve().parents[2]
-DECISIONS = ROOT / "docs" / "architecture_decisions_v_3_11.html"
+DECISIONS = ROOT / "docs" / "architecture_decisions_v_3_12.html"
 
 
 def d35_rows() -> set[str]:

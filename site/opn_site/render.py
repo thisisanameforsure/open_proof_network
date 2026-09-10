@@ -49,7 +49,7 @@ FRONTIER_COLUMNS = (
     ("claimable", "Claimable"),
     ("tutorial", "Tutorial"),
 )
-DECISIONS_DOC = Path(__file__).resolve().parents[2] / "docs" / "architecture_decisions_v_3_11.html"
+DECISIONS_DOC = Path(__file__).resolve().parents[2] / "docs" / "architecture_decisions_v_3_12.html"
 _STRIP_RE = re.compile(r"<link\b[^>]*>|<script\b.*?</script>", re.S | re.I)
 _STYLE_RE = re.compile(r"<style\b[^>]*>(.*?)</style>", re.S | re.I)
 NAV = (

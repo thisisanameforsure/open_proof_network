@@ -30,7 +30,10 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 
 log = logging.getLogger(__name__)
 
-PROTOCOL_VERSION = "3.11"  # docs/architecture_decisions_v_3_11.html
+PROTOCOL_VERSION = "3.11"  # what the code implements; docs/architecture_decisions_v_3_12.html
+# is the current protocol. v3.12 renamed D-9's second rung to screened-and-signed, which is a
+# target-status/targets-index schema bump (D-34: versioned, never edited) budgeted into F11-T2.
+# This value moves to "3.12" in that task, with the goldens regenerated in the same commit.
 GRAPH_SCHEMA = "graph/v1"
 FRONTIER_SCHEMA = "frontier/v1"
 INDEX_SCHEMA = "targets-index/v1"
