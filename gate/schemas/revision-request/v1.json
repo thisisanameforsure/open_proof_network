@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/revision-request/v1.json",
+  "title": "revision-request/v1",
+  "description": "nodes/<id>/revisions/<timestamp>-<contributor>.yaml (D-8; F08-R6): a contributor's claim that a statement is defective — never a request to weaken it, which is a variant (D-30). Names the defect class from D-16's taxonomy and carries evidence: free text, capped and served as untrusted data (D-28), and optionally a Lean exhibit the gate elaborates in the sandbox (C9). A curator acts on it by versioning the node (D-8); the record itself changes nothing.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "node", "contributor", "defect_class", "evidence", "date"],
+  "properties": {
+    "schema": { "const": "revision-request/v1" },
+    "node": { "$ref": "#/$defs/node_id" },
+    "contributor": { "type": "string", "minLength": 1 },
+    "defect_class": { "$ref": "#/$defs/defect_class" },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text"],
+      "properties": {
+        "text": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "exhibit": {
+          "type": "string",
+          "minLength": 1,
+          "description": "a Lean file; it must elaborate in the append gate or the pull request fails (F08-R6)"
+        }
+      }
+    },
+    "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+  },
+  "$defs": {
+    "node_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*(@v[1-9][0-9]*)?$" },
+    "defect_class": {
+      "description": "D-16's taxonomy: the six canary classes (D-11), strength-drift (D-9), and other-with-exhibit",
+      "enum": [
+        "missing-hypothesis",
+        "junk-value",
+        "vacuity",
+        "quantifier-scope",
+        "wrong-domain",
+        "definition-mismatch",
+        "strength-drift",
+        "other-with-exhibit"
+      ]
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/defect-claim/v1.json",
+  "title": "defect-claim/v1",
+  "description": "nodes/<id>/defects/<timestamp>-<contributor>.yaml, or targets/<id>/defs/defects/<timestamp>-<contributor>.yaml (D-16; F08-R7): a statement-defect claim, free and shaped. Mechanical pre-triage: the class is from the taxonomy, the line is an existing line of the referenced Statement.lean or defs/ file, and the exhibit is a Lean file — or the claim bounces, in the service and again in the gate (D-35). The exhibit elaborates in the sandbox (C9). Adjudication is D-17's, Stage 1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "stmt_ref", "class", "line", "exhibit", "contributor", "date"],
+  "properties": {
+    "schema": { "const": "defect-claim/v1" },
+    "stmt_ref": {
+      "type": "string",
+      "description": "the node id whose Statement.lean is claimed defective, or defs/<file>.lean under the target",
+      "pattern": "^([a-z0-9][a-z0-9-]*(@v[1-9][0-9]*)?|defs/[A-Za-z0-9_][A-Za-z0-9_/.-]*\\.lean)$"
+    },
+    "class": {
+      "enum": [
+        "missing-hypothesis",
+        "junk-value",
+        "vacuity",
+        "quantifier-scope",
+        "wrong-domain",
+        "definition-mismatch",
+        "strength-drift",
+        "other-with-exhibit"
+      ]
+    },
+    "line": { "type": "integer", "minimum": 1 },
+    "exhibit": { "type": "string", "minLength": 1, "description": "a Lean file" },
+    "contributor": { "type": "string", "minLength": 1 },
+    "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+  }
+}

@@ -170,10 +170,22 @@ Role = Literal[
     "keep",  # <dir>/.gitkeep: D-3's required empty directories, added with the node
     "node-status",  # nodes/<id>/status/<name>.yaml: a curator record (F03-Q3, F08-R8)
     "target-status",  # targets/<id>/status/<name>.yaml: a curator declaration (D-33)
+    "revision-request",  # nodes/<id>/revisions/<name>.yaml (D-8, F08-R6)
+    "defect-claim",  # nodes/<id>/defects/ or targets/<id>/defs/defects/<name>.yaml (D-16, F08-R7)
 ]
 
 #: Roles that claim nothing and merge on schema and path checks alone (F07-R9).
-APPEND_ROLES: tuple[Role, ...] = ("postmortem", "precheck-record", "annex", "approach-record")
+APPEND_ROLES: tuple[Role, ...] = (
+    "postmortem",
+    "precheck-record",
+    "annex",
+    "approach-record",
+    "revision-request",
+    "defect-claim",
+)
+
+#: Appends that may carry a Lean exhibit, which the gate elaborates in the sandbox (F08-R6, R7).
+EXHIBIT_ROLES: tuple[Role, ...] = ("revision-request", "defect-claim")
 
 #: The files a new node directory is made of (F08-R2): a proposal adds these and nothing else.
 NODE_ROLES: tuple[Role, ...] = ("node", "witness", "relation", "keep")
@@ -193,6 +205,8 @@ SCHEMA_FOR_ROLE: dict[Role, str] = {
     "approach-record": "approach-record/v1",
     "node-status": "node-status/v1",
     "target-status": "target-status/v1",
+    "revision-request": "revision-request/v1",
+    "defect-claim": "defect-claim/v1",
 }
 
 #: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers).
@@ -205,6 +219,13 @@ NODE_DEFINITION_FILES: tuple[str, ...] = ("META.yaml", "Statement.lean", "Contex
 WITNESS_FILE = "Witness.lean"
 RELATION_FILE = "Relation.lean"
 KEEP_DIRS: tuple[str, ...] = ("attempts", "annex", "explainer")
+
+#: The node directories that hold flat YAML records, and the role of a record there.
+RECORD_DIRS: dict[str, Role] = {
+    "status/": "node-status",
+    "revisions/": "revision-request",
+    "defects/": "defect-claim",
+}
 
 _NODE_PATH_RE = re.compile(r"^targets/(?P<target>[^/]+)/nodes/(?P<node>[^/]+)/(?P<rest>.+)$")
 _TARGET_PATH_RE = re.compile(r"^targets/(?P<target>[^/]+)/(?P<rest>.+)$")
@@ -246,10 +267,12 @@ def locate(path: str) -> Located | None:
             return Located("approach-record", path, target_match.group("target"), None)
         if head == "status" and _is_flat(name, YAML_SUFFIXES):
             return Located("target-status", path, target_match.group("target"), None)
+        if head == "defs" and name.startswith("defects/") and _is_flat(name[8:], YAML_SUFFIXES):
+            return Located("defect-claim", path, target_match.group("target"), None)
     return None
 
 
-def _node_role(rest: str) -> Role | None:  # noqa: PLR0911 — one return per D-3 entry
+def _node_role(rest: str) -> Role | None:  # noqa: PLR0911, PLR0912 — one branch per D-3 entry
     if rest == "Proof.lean":
         return "proof"
     if rest == WAIVER_PATH:
@@ -262,8 +285,9 @@ def _node_role(rest: str) -> Role | None:  # noqa: PLR0911 — one return per D-
         return "relation"
     if any(rest == f"{d}/{KEEP_FILE}" for d in KEEP_DIRS):
         return "keep"
-    if rest.startswith("status/"):
-        return "node-status" if _is_flat(rest[len("status/") :], YAML_SUFFIXES) else None
+    for directory, role in RECORD_DIRS.items():
+        if rest.startswith(directory):
+            return role if _is_flat(rest[len(directory) :], YAML_SUFFIXES) else None
     if rest.startswith("attempts/precheck/"):
         name = rest[len("attempts/precheck/") :]
         return "precheck-record" if _is_flat(name, (".json",)) else None

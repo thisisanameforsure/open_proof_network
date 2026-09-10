@@ -25,6 +25,7 @@ from opn_gate import (
     attestation,
     bounce,
     config,
+    exhibits,
     layout,
     modes,
     paths,
@@ -132,7 +133,18 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _add_graph_tool_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
-    """The graph-side tools that are not gate runs: step 6 alone (F02) and the products (F03)."""
+    """The graph-side tools that are not proof runs: admission (F08), exhibits (F08), step 6
+    alone (F02) and the products (F03)."""
+    exh = sub.add_parser("exhibits", help="elaborate the Lean exhibits an append carries (F08)")
+    exh.add_argument("--graph", required=True, type=Path, help="checkout at the PR merge commit")
+    exh.add_argument("--base", required=True, help="the pull request's base sha")
+    exh.add_argument("--head", default="HEAD", help="the commit to check (default HEAD)")
+    exh.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
+    exh.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
+    exh.add_argument("--sandbox", action="store_true", help="elaborate inside the step-3 image")
+    exh.add_argument("--image", help="sandbox image tag (default: built from gate/Dockerfile)")
+    exh.add_argument("--no-build", action="store_true", help="fail if the image is not present")
+
     adm = sub.add_parser("admit", help="may this node directory enter the graph? (F08-R1)")
     adm.add_argument("node_dir", type=Path, help="targets/<target>/nodes/<id> in a graph checkout")
     adm.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
@@ -178,6 +190,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "reproduce": run_reproduce,
         "gate": run_gate,
         "classify": run_classify,
+        "exhibits": run_exhibits,
         "postmerge": run_postmerge,
         "admit": run_admit,
         "hazards": run_hazards,
@@ -355,11 +368,75 @@ def run_classify(args: argparse.Namespace, settings: config.Settings) -> int:
     summary = classification.as_dict()
     summary["problems"] = [d.as_dict(settings.diagnostic_max_bytes) for d in problems]
     summary["ok"] = classification.ok and not problems
+    # F08-R6, R7: an append that carries a Lean exhibit still needs the sandbox, for that alone.
+    carrying = modes.exhibits(graph, classification) if classification.ok else []
+    summary["exhibits"] = [loc.path for loc in carrying]
+    summary["needs_exhibits"] = bool(carrying)
     sys.stdout.write(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
     if not summary["ok"]:
         for d in problems:
             sys.stderr.write(f"opn-gate: {d.code}: {d.message}\n")
     return EXIT_PASS if summary["ok"] else EXIT_FAIL
+
+
+def run_exhibits(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F08-R6, R7: elaborate every exhibit the pull request's appended records carry.
+
+    Contributor Lean, so ``--sandbox`` on the authoritative gate (C9). Exit 0 when every exhibit
+    elaborates, 1 when one does not, naming it; a diff that is not an append is a usage error,
+    because this command is the append mode's build and nothing else's.
+    """
+    graph, head = _checkout_and_commit(args.graph, args.head)
+    base = _git(graph, "rev-parse", "--verify", f"{args.base}^{{commit}}").stdout.strip()
+    if not base:
+        msg = f"unknown base {args.base!r}"
+        raise CliError(msg)
+    diff = _git(graph, "diff", "--name-status", "--no-renames", base, head)
+    classification = modes.classify(paths.changes_from_name_status(diff.stdout))
+    if classification.mode != "append" or classification.target_id is None:
+        msg = f"exhibits belong to append mode; this diff is {classification.mode!r}"
+        raise CliError(msg)
+    records = modes.exhibits(graph, classification)
+    out_dir = _out_dir(args.out, "opn-exhibits-")
+    workdir = out_dir / "work"
+    spec_path = layout.gate_spec_path(graph, classification.target_id)
+    try:
+        spec = schemas.load_json(spec_path, "gate-spec/v1")
+    except schemas.SchemaError as exc:
+        msg = f"cannot load {spec_path}: {exc}"
+        raise CliError(msg) from exc
+    tc: toolchain.Toolchain
+    if args.sandbox:
+        tag = args.image or ensure_image(str(spec["lean_toolchain"]), build=not args.no_build)
+        tc = sandbox.SandboxToolchain(tag, sandbox.Caps.from_spec(spec), read_write=[workdir])
+    else:
+        try:
+            tc = toolchain.LocalToolchain.from_settings(settings)
+        except toolchain.ToolchainMissingError as exc:
+            raise CliError(str(exc)) from exc
+    ctx = RunContext(
+        graph_root=graph,
+        claim=Claim(classification.target_id, classification.node_id or ""),
+        spec=spec,
+        gate_spec_hash=schemas.content_hash(spec_path.read_bytes()),
+        changes=None,
+        workdir=workdir,
+        toolchain=tc,
+        settings=settings,
+        install_toolchain=bool(args.install) and not args.sandbox,
+    )
+    problems = exhibits.run(ctx, records)
+    summary = {
+        "ok": not problems,
+        "exhibits": [loc.path for loc in records],
+        "sandboxed": bool(args.sandbox),
+        "problems": [d.as_dict(settings.diagnostic_max_bytes) for d in problems],
+    }
+    (out_dir / "exhibits.json").write_bytes(schemas.canonical_json(summary))
+    sys.stdout.write(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
+    for d in problems:
+        sys.stderr.write(f"opn-gate: {d.code}: {d.message}\n")
+    return EXIT_PASS if not problems else EXIT_FAIL
 
 
 def run_postmerge(args: argparse.Namespace, settings: config.Settings) -> int:

@@ -19,6 +19,9 @@
     "claims": [
       1
     ],
+    "defect-claim": [
+      1
+    ],
     "frontier": [
       1
     ],
@@ -47,6 +50,9 @@
       1
     ],
     "precheck-record": [
+      1
+    ],
+    "revision-request": [
       1
     ],
     "submission-meta": [

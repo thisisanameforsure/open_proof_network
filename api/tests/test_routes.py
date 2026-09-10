@@ -45,8 +45,9 @@ def test_routes_match_d35() -> None:
     assert write_rows == routes.D35_OWNED_BY_F05 | {routes.D35_POST_PRECHECK} | (
         routes.D35_OWNED_BY_F07 | routes.D35_OWNED_BY_F08
     )
-    assert routes.D35_PROPOSAL_PR in d35_text()  # F08's row, verbatim like the append row
-    pr_rows = {routes.D35_APPEND_PR, routes.D35_PROPOSAL_PR}
+    assert routes.D35_PROPOSAL_PR in d35_text()  # F08's rows, verbatim like the append row
+    assert routes.D35_CLAIM_PR in d35_text()
+    pr_rows = {routes.D35_APPEND_PR, routes.D35_PROPOSAL_PR, routes.D35_CLAIM_PR}
     for r in routes.ROUTES:
         assert r.d35 is None or r.d35 in rows or r.d35 in pr_rows, r
         assert r.feature in ("F05", "F06", "F07", "F08"), r

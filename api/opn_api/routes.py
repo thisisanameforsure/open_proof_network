@@ -46,7 +46,8 @@ D35_OWNED_BY_F07: frozenset[str] = frozenset({D35_POST_SUBMISSIONS, D35_APPEND_P
 # the node directory; witness completion is the same row, on a directory that already exists
 # (F08-R5). Revision requests and defect claims share the other (T4).
 D35_PROPOSAL_PR = "a PR creating the node directory with origin set"
-D35_OWNED_BY_F08: frozenset[str] = frozenset({D35_PROPOSAL_PR})
+D35_CLAIM_PR = "a PR appending the schema-checked record to the target"
+D35_OWNED_BY_F08: frozenset[str] = frozenset({D35_PROPOSAL_PR, D35_CLAIM_PR})
 
 ROUTES: tuple[RouteSpec, ...] = (
     RouteSpec("GET", "/health", "app:health", None),
@@ -115,6 +116,22 @@ ROUTES: tuple[RouteSpec, ...] = (
         "/proposals/witness",
         "proposals:post_witness",
         D35_PROPOSAL_PR,
+        authenticated=True,
+        feature="F08",
+    ),
+    RouteSpec(
+        "POST",
+        "/revision-requests",
+        "requests:post_revision_requests",
+        D35_CLAIM_PR,
+        authenticated=True,
+        feature="F08",
+    ),
+    RouteSpec(
+        "POST",
+        "/defect-claims",
+        "requests:post_defect_claims",
+        D35_CLAIM_PR,
         authenticated=True,
         feature="F08",
     ),

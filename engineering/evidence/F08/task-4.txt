@@ -1,0 +1,180 @@
+F08-T4 — revision requests and defect claims, with their exhibits. 2026-09-10
+
+WHAT T4 COVERS
+--------------
+AC10 api/tests/test_claims_defect.py::test_pretriage_bounce      — class `typo` is 400
+     `defect-class` naming D-16's taxonomy; a line beyond Statement.lean is 400 `defect-line`
+     naming the file's length; no exhibit (or a blank one) is 400 `exhibit-missing`; a valid
+     claim opens an append PR whose file the gate classifies as an append, passes the same
+     pre-triage on, and whose exhibit elaborates (fake toolchain) — or fails naming it.
+     ::test_defect_claim_on_a_defs_file — a claim against <target>/defs/<file> lands under
+     defs/defects/ and the gate's pre-triage reads the defs file from the checkout.
+     ::test_revision_request — the record validates against revision-request/v1, lands under
+     revisions/, its exhibit is elaborated by the append gate, text-only evidence is accepted,
+     and the 2,000-character cap is named without echoing the text.
+AC11 gate/tests/test_modes.py::test_revision_exhibit_elaborates   — an exhibit that fails to
+     elaborate fails the append gate naming the record and the module; one that elaborates
+     passes; a record with no exhibit needs no build; `weaker` is not a defect class (D-8).
+     ::test_defect_claim_pretriage_in_the_gate — the gate repeats D-16's pre-triage: the line
+     is a line of the referenced file (4 for the tutorial statement), the reference is the
+     statement the record sits under, defs/defects/ names an existing defs file.
+lean gate/tests/test_exhibits_lean.py::test_exhibit_elaborates_against_the_node — under the
+     pinned Lean, an exhibit importing the node's Context elaborates (h.2 : q) and the wrong
+     projection (h.1 : q) fails with `exhibit-elaboration`.
+
+SCHEMAS ADDED (D-34: versioned, never edited)
+---------------------------------------------
+revision-request/v1, defect-claim/v1 — pinned in gate/schemas/HASHES; info.json's schema index
+moved, so the three product goldens and api/tests/fixtures/info.json were regenerated in this
+commit (the log's rule from F03).
+
+THE GRAPH SIDE (../open_proof_network_graph, commit F08-T4)
+-----------------------------------------------------------
+gate.yml gains one step: when the classifier reports `needs_exhibits`, `opn-gate exhibits
+--sandbox` elaborates every exhibit inside the step-3 image. Read with a default, so inert on the
+current pin (F08-Q8).
+
+VERIFICATION
+------------
+$ uv run pytest api/tests/test_claims_defect.py gate/tests/test_modes.py -v
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 53 items
+api/tests/test_claims_defect.py::test_pretriage_bounce PASSED            [  1%]
+api/tests/test_claims_defect.py::test_defect_claim_on_a_defs_file PASSED [  3%]
+api/tests/test_claims_defect.py::test_revision_request PASSED            [  5%]
+api/tests/test_claims_defect.py::test_records_need_a_token PASSED        [  7%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched0-proof] PASSED [  9%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched1-proof] PASSED [ 11%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched2-proof] PASSED [ 13%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched3-proof] PASSED [ 15%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched4-partial] PASSED [ 16%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched5-partial] PASSED [ 18%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched6-append] PASSED [ 20%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched7-append] PASSED [ 22%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched8-append] PASSED [ 24%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched9-append] PASSED [ 26%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched10-append] PASSED [ 28%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched11-explainer] PASSED [ 30%]
+gate/tests/test_modes.py::test_classification_rejects_mixtures_and_forbidden_paths PASSED [ 32%]
+gate/tests/test_modes.py::test_classification_scoping_and_change_status PASSED [ 33%]
+gate/tests/test_modes.py::test_only_proof_and_partial_build PASSED       [ 35%]
+gate/tests/test_modes.py::test_append_mode_schema_only PASSED            [ 37%]
+gate/tests/test_modes.py::test_append_mode_checks_every_record_kind PASSED [ 39%]
+gate/tests/test_modes.py::test_annex_name_is_hash PASSED                 [ 41%]
+gate/tests/test_modes.py::test_annex_front_matter_and_cap PASSED         [ 43%]
+gate/tests/test_modes.py::test_explainer_mode PASSED                     [ 45%]
+gate/tests/test_modes.py::test_new_schemas_accept_their_samples PASSED   [ 47%]
+gate/tests/test_modes.py::test_new_schemas_reject[annex_front_matter-bad0] PASSED [ 49%]
+gate/tests/test_modes.py::test_new_schemas_reject[annex_front_matter-bad1] PASSED [ 50%]
+gate/tests/test_modes.py::test_new_schemas_reject[annex_front_matter-bad2] PASSED [ 52%]
+gate/tests/test_modes.py::test_new_schemas_reject[approach_record-bad3] PASSED [ 54%]
+gate/tests/test_modes.py::test_new_schemas_reject[approach_record-bad4] PASSED [ 56%]
+gate/tests/test_modes.py::test_new_schemas_reject[approach_record-bad5] PASSED [ 58%]
+gate/tests/test_modes.py::test_new_schemas_reject[approach_record-bad6] PASSED [ 60%]
+gate/tests/test_modes.py::test_new_schemas_reject[precheck_record-bad7] PASSED [ 62%]
+gate/tests/test_modes.py::test_new_schemas_reject[precheck_record-bad8] PASSED [ 64%]
+gate/tests/test_modes.py::test_new_schemas_reject[precheck_record-bad9] PASSED [ 66%]
+gate/tests/test_modes.py::test_new_schemas_reject[submission_meta-bad10] PASSED [ 67%]
+gate/tests/test_modes.py::test_new_schemas_reject[submission_meta-bad11] PASSED [ 69%]
+gate/tests/test_modes.py::test_new_schemas_reject[submission_meta-bad12] PASSED [ 71%]
+gate/tests/test_modes.py::test_new_schemas_reject[submission_meta-bad13] PASSED [ 73%]
+gate/tests/test_modes.py::test_classify_command PASSED                   [ 75%]
+gate/tests/test_modes.py::test_classify_command_curator_and_completion PASSED [ 77%]
+gate/tests/test_modes.py::test_admit_sandbox_flag PASSED                 [ 79%]
+gate/tests/test_modes.py::test_revision_exhibit_elaborates PASSED        [ 81%]
+gate/tests/test_modes.py::test_defect_claim_pretriage_in_the_gate PASSED [ 83%]
+gate/tests/test_modes.py::test_locate_is_the_whole_grammar PASSED        [ 84%]
+gate/tests/test_modes.py::test_proposal_mode_exactly_one_dir PASSED      [ 86%]
+gate/tests/test_modes.py::test_proposal_must_be_a_whole_node PASSED      [ 88%]
+gate/tests/test_modes.py::test_proposal_status_record_may_only_be_speculative PASSED [ 90%]
+gate/tests/test_modes.py::test_witness_completion PASSED                 [ 92%]
+gate/tests/test_modes.py::test_curator_mode_requires_listing PASSED      [ 94%]
+gate/tests/test_modes.py::test_curator_review_is_a_second_listed_identity_or_waived PASSED [ 96%]
+gate/tests/test_modes.py::test_curator_mode_scope PASSED                 [ 98%]
+gate/tests/test_modes.py::test_load_curators PASSED                      [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:26
+  /Users/mikehiggins/Desktop/repos/open_proof_network/api/tests/api_fakes.py:26: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 53 passed, 2 warnings in 1.93s ========================
+
+$ uv run pytest gate/tests/test_exhibits_lean.py
+.                                                                        [100%]
+1 passed in 10.32s
+
+$ make verify
+uv run --frozen ruff check .
+All checks passed!
+uv run --frozen ruff format --check .
+149 files already formatted
+uv run --frozen mypy gate
+Success: no issues found in 74 source files
+uv run --frozen mypy api
+Success: no issues found in 41 source files
+uv run --frozen mypy site
+Success: no issues found in 14 source files
+uv run --frozen pytest -m "not lean and not docker and not network"
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+testpaths: gate/tests, api/tests, site/tests
+plugins: anyio-4.15.1
+collected 493 items / 48 deselected / 445 selected
+gate/tests/test_admit.py .............                                   [  2%]
+gate/tests/test_artifacts.py .............                               [  5%]
+gate/tests/test_attestation.py ...........                               [  8%]
+gate/tests/test_bounce.py ....                                           [  9%]
+gate/tests/test_config.py ........                                       [ 11%]
+gate/tests/test_deps.py .........                                        [ 13%]
+gate/tests/test_hazards.py .........                                     [ 15%]
+gate/tests/test_layout.py .......                                        [ 16%]
+gate/tests/test_ledger.py .............                                  [ 19%]
+gate/tests/test_modes.py ............................................... [ 30%]
+..                                                                       [ 30%]
+gate/tests/test_paths.py ..................                              [ 34%]
+gate/tests/test_pipeline.py ...................                          [ 38%]
+gate/tests/test_postmerge.py ...............                             [ 42%]
+gate/tests/test_precheck_job_docker.py ...                               [ 42%]
+gate/tests/test_products.py ..........................                   [ 48%]
+gate/tests/test_records.py ......                                        [ 50%]
+gate/tests/test_schemas.py ............................................. [ 60%]
+.................                                                        [ 64%]
+gate/tests/test_signer.py ....                                           [ 64%]
+gate/tests/test_toolchain.py .............                               [ 67%]
+gate/tests/test_witness.py ........                                      [ 69%]
+api/tests/test_appends.py .......                                        [ 71%]
+api/tests/test_auth.py ....                                              [ 72%]
+api/tests/test_claims.py ........                                        [ 73%]
+api/tests/test_claims_defect.py ....                                     [ 74%]
+api/tests/test_frontier.py ....                                          [ 75%]
+api/tests/test_health.py ........                                        [ 77%]
+api/tests/test_info.py ...                                               [ 78%]
+api/tests/test_precheck.py ...........................                   [ 84%]
+api/tests/test_proposals.py .......                                      [ 85%]
+api/tests/test_ratelimit.py ....                                         [ 86%]
+api/tests/test_routes.py .....                                           [ 87%]
+api/tests/test_sshsig.py ......                                          [ 89%]
+api/tests/test_submissions.py ......                                     [ 90%]
+api/tests/test_tokens.py ................                                [ 94%]
+site/tests/test_dag.py ...                                               [ 94%]
+site/tests/test_escaping.py ....                                         [ 95%]
+site/tests/test_links.py ....                                            [ 96%]
+site/tests/test_render.py ...............                                [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:26
+  /Users/mikehiggins/Desktop/repos/open_proof_network/api/tests/api_fakes.py:26: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================ 445 passed, 48 deselected, 2 warnings in 5.13s ================

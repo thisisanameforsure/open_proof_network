@@ -14,7 +14,9 @@ So the diff is classified into exactly one mode before anything else runs:
 ===============  ==========================================================================
 ``proof``        the node's ``Proof.lean``, plus appends — the D-4 pipeline (D-12 #1, #2, #3)
 ``partial``      a ``.lean`` assembly under ``attempts/``, plus appends (D-12 #4, #5)
-``append``       only new postmortems, precheck records, annexes or approach records
+``append``       only new postmortems, precheck records, annexes, approach records, revision
+                 requests or defect claims (the last two may carry a Lean exhibit, which is
+                 elaborated in the sandbox — ``opn_gate.exhibits``)
 ``explainer``    only new files under ``explainer/`` (D-3), on a node that already has a proof
 ``proposal``     exactly one new node directory and nothing else — or only ``Witness.lean``
                  on a hole whose slot is unfilled (F08-R2, R5); admission decides, nobody
@@ -528,11 +530,17 @@ def check_witness_completion(
 
 
 def check_append_file(graph_root: Path, located: Located) -> list[Diagnostic]:
-    """One appended record: name, size and schema. An append claims nothing, so this is all."""
+    """One appended record: name, size and schema — plus D-16's pre-triage for a defect claim.
+    An append claims nothing a kernel could check, so this is all the gate asks before the
+    sandbox; an exhibit's elaboration is the sandbox's (``opn_gate.exhibits``)."""
     data = _read(graph_root, located)
     if isinstance(data, Diagnostic):
         return [data]
     problems: list[Diagnostic] = []
+    if located.role == "defect-claim":
+        problems.extend(check_defect_claim(graph_root, located, data))
+        if problems:
+            return problems
     if located.role in paths.CONTENT_HASHED_ROLES:
         naming = paths.check_content_hash_name(located, data)
         if naming is not None:
@@ -548,6 +556,90 @@ def check_append_file(graph_root: Path, located: Located) -> list[Diagnostic]:
         )
     problems.extend(_check_schema(located, data))
     return problems
+
+
+def referenced_file(located: Located, stmt_ref: str) -> str | None:
+    """F08-R7: the file a defect claim points at, from where the record sits — a node's own
+    ``Statement.lean`` under ``nodes/<id>/defects/``, a ``defs/`` file under ``defs/defects/``.
+    ``None`` when the reference and the location disagree."""
+    if located.node_id is not None:
+        if stmt_ref != located.node_id:
+            return None
+        return f"targets/{located.target_id}/nodes/{located.node_id}/Statement.lean"
+    if not stmt_ref.startswith("defs/"):
+        return None
+    return f"targets/{located.target_id}/{stmt_ref}"
+
+
+def check_defect_claim(graph_root: Path, located: Located, data: bytes) -> list[Diagnostic]:
+    """D-16's pre-triage, repeated in CI as D-35 requires: the class is from the taxonomy and the
+    exhibit is present (both the schema's), and the line is an existing line of the referenced
+    file (this check's). A claim that fails any of them bounces; nothing is adjudicated here."""
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    schema_problems = _check_schema(located, data, code="record-invalid")
+    if schema_problems:
+        return schema_problems
+    stmt_ref = str(doc.get("stmt_ref"))
+    path = referenced_file(located, stmt_ref)
+    if path is None:
+        return [
+            Diagnostic(
+                "defect-ref",
+                f"{located.path}: stmt_ref {stmt_ref!r} is not the statement this record sits "
+                "under (a node's defects/ names that node; defs/defects/ names a defs/ file)",
+                {"path": located.path, "stmt_ref": stmt_ref},
+            )
+        ]
+    target = graph_root / path
+    if not target.is_file():
+        return [
+            Diagnostic(
+                "defect-ref",
+                f"{located.path}: stmt_ref {stmt_ref!r} names no file ({path})",
+                {"path": located.path, "stmt_ref": stmt_ref, "file": path},
+            )
+        ]
+    lines = target.read_text(encoding="utf-8").splitlines()
+    line = int(doc["line"])
+    if line > len(lines):
+        return [
+            Diagnostic(
+                "defect-line",
+                f"{located.path}: line {line} is beyond {path}, which has {len(lines)} lines "
+                "(D-16: a claim points at a specific line or bounces)",
+                {"path": located.path, "line": line, "lines": len(lines), "file": path},
+            )
+        ]
+    return []
+
+
+def exhibit_of(role: Role, doc: dict[str, Any]) -> str | None:
+    """The Lean exhibit a record carries, or ``None`` (F08-R6, R7)."""
+    if role == "defect-claim":
+        value = doc.get("exhibit")
+    elif role == "revision-request":
+        evidence = doc.get("evidence")
+        value = evidence.get("exhibit") if isinstance(evidence, dict) else None
+    else:
+        value = None
+    return value if isinstance(value, str) and value.strip() else None
+
+
+def exhibits(graph_root: Path, classification: Classification) -> list[Located]:
+    """The appended records whose exhibit the sandbox has to elaborate (F08-R6, R7)."""
+    out: list[Located] = []
+    for located in classification.located:
+        if located.role not in paths.EXHIBIT_ROLES:
+            continue
+        data = _read(graph_root, located)
+        if isinstance(data, Diagnostic):
+            continue  # already a problem in `check`; nothing to elaborate
+        doc = _document(located, data)
+        if not isinstance(doc, Diagnostic) and exhibit_of(located.role, doc) is not None:
+            out.append(located)
+    return out
 
 
 def check_explainer_file(

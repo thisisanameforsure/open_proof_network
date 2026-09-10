@@ -195,6 +195,36 @@ def node_status(**overrides: Any) -> dict[str, Any]:
     return doc
 
 
+def revision_request(**overrides: Any) -> dict[str, Any]:
+    doc: dict[str, Any] = {
+        "schema": "revision-request/v1",
+        "node": "tutorial-and-swap",
+        "contributor": "thisisanameforsure",
+        "defect_class": "missing-hypothesis",
+        "evidence": {
+            "text": "the statement holds vacuously when p is False; a hypothesis is missing",
+            "exhibit": "example : True := trivial\n",
+        },
+        "date": "2026-09-10",
+    }
+    doc.update(overrides)
+    return doc
+
+
+def defect_claim(**overrides: Any) -> dict[str, Any]:
+    doc: dict[str, Any] = {
+        "schema": "defect-claim/v1",
+        "stmt_ref": "tutorial-and-swap",
+        "class": "junk-value",
+        "line": 3,
+        "exhibit": "example : True := trivial\n",
+        "contributor": "thisisanameforsure",
+        "date": "2026-09-10",
+    }
+    doc.update(overrides)
+    return doc
+
+
 def target_status(**overrides: Any) -> dict[str, Any]:
     doc: dict[str, Any] = {
         "schema": "target-status/v1",

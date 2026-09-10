@@ -18,12 +18,26 @@ from typing import Any
 import pytest
 import samples
 import yaml
+from fakes import FakeToolchain
 from harness import copy_graph
 
-from opn_gate import admit, cli, config, modes, paths, postmerge, sandbox, schemas, toolchain
+from opn_gate import (
+    admit,
+    cli,
+    config,
+    exhibits,
+    modes,
+    paths,
+    postmerge,
+    sandbox,
+    schemas,
+    toolchain,
+)
 from opn_gate import graph as graphmod
-from opn_gate.paths import Change
+from opn_gate.paths import Change, Claim
 from opn_gate.steps import artifact as art
+from opn_gate.steps.base import RunContext
+from opn_gate.toolchain import ElabResult
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 GRAPH = FIXTURES / "graphs" / "propositional"
@@ -436,6 +450,8 @@ def test_classify_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) ->
         "review_waived": None,
         "problems": [],
         "ok": True,
+        "exhibits": [],
+        "needs_exhibits": False,
     }
 
     (root / N / "attempts" / "2026-09-10-bob.yaml").write_text(
@@ -562,6 +578,117 @@ def test_admit_sandbox_flag(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
     assert config.load({"OPN_PR_AUTHOR": ""}).pr_author is None
 
 
+# --- F08-T4: revision requests and defect claims are appends, and their exhibits build ----------
+
+
+def exhibit_context(graph: Path, *, elab_ok: bool) -> RunContext:
+    spec_path = graph / T / "gate-spec.json"
+    return RunContext(
+        graph_root=graph,
+        claim=Claim("propositional", "tutorial-and-swap"),
+        spec=schemas.load_json(spec_path, "gate-spec/v1"),
+        gate_spec_hash=schemas.content_hash(spec_path.read_bytes()),
+        changes=None,
+        workdir=graph.parent / "work",
+        toolchain=FakeToolchain(elab=ElabResult(ok=elab_ok)),
+        settings=config.load({}),
+    )
+
+
+def test_revision_exhibit_elaborates(graph: Path) -> None:
+    """F08-AC11: a revision request whose exhibit fails to elaborate fails the append gate
+    naming the exhibit; one that elaborates passes; one with no exhibit needs no build."""
+    record = write(
+        graph,
+        f"{N}/revisions/20260910T000000-alice.yaml",
+        yaml.safe_dump(samples.revision_request(), sort_keys=True),
+    )
+    classification = modes.classify([record])
+    assert classification.mode == "append"
+    assert classification.needs_gate is False
+    assert modes.check(graph, classification) == []
+    carrying = modes.exhibits(graph, classification)
+    assert [loc.path for loc in carrying] == [record.path]
+
+    assert exhibits.run(exhibit_context(graph, elab_ok=True), carrying) == []
+    found = exhibits.run(exhibit_context(graph, elab_ok=False), carrying)
+    assert [d.code for d in found] == ["exhibit-elaboration"]
+    assert found[0].details["path"] == record.path
+    assert "tutorial-and-swap" in found[0].details["module"]
+
+    no_exhibit = samples.revision_request()
+    del no_exhibit["evidence"]["exhibit"]
+    plain = write(
+        graph,
+        f"{N}/revisions/20260910T000001-alice.yaml",
+        yaml.safe_dump(no_exhibit, sort_keys=True),
+    )
+    assert modes.exhibits(graph, modes.classify([plain])) == []
+    assert modes.check(graph, modes.classify([plain])) == []
+
+    bad = write(
+        graph,
+        f"{N}/revisions/20260910T000002-alice.yaml",
+        yaml.safe_dump(samples.revision_request(defect_class="weaker"), sort_keys=True),
+    )
+    assert problems(graph, bad) == ["append-invalid"]
+
+
+def test_defect_claim_pretriage_in_the_gate(graph: Path) -> None:
+    """F08-R7, D-35: the gate repeats D-16's pre-triage on the landed record — the line must be
+    a line of the referenced file, and the reference must be the statement the record sits under."""
+    good = write(
+        graph,
+        f"{N}/defects/20260910T000000-alice.yaml",
+        yaml.safe_dump(samples.defect_claim(), sort_keys=True),
+    )
+    classification = modes.classify([good])
+    assert classification.mode == "append"
+    assert modes.check(graph, classification) == []
+    assert len(modes.exhibits(graph, classification)) == 1
+
+    beyond = write(
+        graph,
+        f"{N}/defects/20260910T000001-alice.yaml",
+        yaml.safe_dump(samples.defect_claim(line=99), sort_keys=True),
+    )
+    found = modes.check(graph, modes.classify([beyond]))
+    assert [d.code for d in found] == ["defect-line"]
+    assert found[0].details["lines"] == 4
+
+    elsewhere = write(
+        graph,
+        f"{N}/defects/20260910T000002-alice.yaml",
+        yaml.safe_dump(samples.defect_claim(stmt_ref="and-reassoc"), sort_keys=True),
+    )
+    assert problems(graph, elsewhere) == ["defect-ref"]
+
+    typo = write(
+        graph,
+        f"{N}/defects/20260910T000003-alice.yaml",
+        yaml.safe_dump(samples.defect_claim(**{"class": "typo"}), sort_keys=True),
+    )
+    assert problems(graph, typo) == ["record-invalid"]
+
+    # A defs/ claim sits under defs/defects/ and names the defs file, which must exist.
+    (graph / T / "defs" / "Helper.lean").write_text("def helper : Nat := 0\n")
+    defs_claim = write(
+        graph,
+        f"{T}/defs/defects/20260910T000000-alice.yaml",
+        yaml.safe_dump(samples.defect_claim(stmt_ref="defs/Helper.lean", line=1), sort_keys=True),
+    )
+    assert problems(graph, defs_claim) == []
+    ghost = write(
+        graph,
+        f"{T}/defs/defects/20260910T000001-alice.yaml",
+        yaml.safe_dump(samples.defect_claim(stmt_ref="defs/Ghost.lean", line=1), sort_keys=True),
+    )
+    assert problems(graph, ghost) == ["defect-ref"]
+    # An exhibit about a defs file elaborates as a bare module (F08-Q15).
+    carrying = modes.exhibits(graph, modes.classify([defs_claim]))
+    assert exhibits.run(exhibit_context(graph, elab_ok=True), carrying) == []
+
+
 def test_locate_is_the_whole_grammar() -> None:
     """Every role in the mode table comes from one path, and nothing else has a role."""
     roles = {
@@ -584,13 +711,17 @@ def test_locate_is_the_whole_grammar() -> None:
         f"{N}/explainer/.gitkeep": "keep",
         f"{N}/status/20260910T000000-curator.yaml": "node-status",
         f"{T}/status/2026-09-10-dormant.yaml": "target-status",
+        f"{N}/revisions/20260910T000000-alice.yaml": "revision-request",
+        f"{N}/defects/20260910T000000-alice.yaml": "defect-claim",
+        f"{T}/defs/defects/20260910T000000-alice.yaml": "defect-claim",
     }
     target_scoped = {"approach-record", "target-status"}
     for path, role in roles.items():
         located = paths.locate(path)
         assert located is not None and located.role == role, path
         assert located.target_id == "propositional"
-        assert located.node_id == (None if role in target_scoped else "tutorial-and-swap")
+        expected_node = None if role in target_scoped or "/defs/" in path else "tutorial-and-swap"
+        assert located.node_id == expected_node, path
     for path in (
         "README.md",
         "targets/Bad Target/nodes/n/Proof.lean",
@@ -600,6 +731,9 @@ def test_locate_is_the_whole_grammar() -> None:
         f"{N}/status/.gitkeep",
         f"{N}/notes.md",
         f"{T}/status/nested/x.yaml",
+        f"{T}/defs/Helper.lean",
+        f"{T}/defs/defects/nested/x.yaml",
+        f"{N}/revisions/x.lean",
         f"{T}/nodes/and-swap@2/Statement.lean",
         f"{T}/nodes/and-swap@v0/Statement.lean",
     ):
