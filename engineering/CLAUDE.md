@@ -158,3 +158,18 @@ The law of the project:
 - 2026-09-10 — Two features can each be the other's dependency and still be buildable: F07-T4
   needs F08-T1, F08 needs F07 for everything else. Take the one task that breaks the cycle rather
   than treating the feature order as a total order.
+- 2026-09-10 — An enum value no code can emit is a live bug, not a tidiness problem. `skeleton-hole`
+  sat in `graph/v1` and `frontier/v1` because D-25 published it, while D-3 and D-31 said three
+  values and called those holes `authored` — so D-25's own worked-example filter was unwritable.
+  When two decisions disagree, check whether the *mechanism* exists before choosing a wording:
+  here the discriminator D-31 required, the annex citation, had no home in any schema or file
+  format, which is why the contradiction had survived.
+- 2026-09-10 — Re-price a batching decision before acting on it. Folding D-9's rung rename into
+  the same amendment looked free until `back-translated` turned out to be a value in two
+  hash-pinned schemas (D-34), which makes a rename a migration. Ask again when the cost you quoted
+  turns out to be wrong; the answer changed.
+- 2026-09-10 — Sessions can run in parallel on this repo. Mid-plan, another session committed the
+  v3.12 rename, D-9's rung and F08-T1 under me, and my just-committed note asserted the opposite.
+  Re-read `git log` and `git status` before each commit in a long session, and correct a committed
+  record in the next commit rather than leaving it. Two sessions on disjoint files merged fine;
+  the collision was in the *claims* the notes made, not the code.
