@@ -20,12 +20,14 @@ def test_known_schemas_are_the_published_set() -> None:
         "attestation/v1",
         "attestation/v2",
         "attestation/v3",
+        "attestation/v4",
         "claims/v1",
         "frontier/v1",
         "gate-spec/v1",
         "graph/v1",
         "graph/v2",
         "info/v1",
+        "ledger/v1",
         "meta/v1",
         "meta/v2",
         "meta/v3",
@@ -238,16 +240,17 @@ def test_waiver_schema() -> None:
 
 
 def test_attestation_v3_trust_base() -> None:
-    """F02-R9: trust_base is kernel or compiler, optional; v2 records stay readable."""
+    """F02-R9: trust_base is kernel or compiler, optional; older records stay readable."""
     schemas.validate(samples.attestation(trust_base="compiler"))
     doc = samples.attestation()
     del doc["trust_base"]
     schemas.validate(doc)
     assert schemas.violations(samples.attestation(trust_base="hardware"))
-    v2 = samples.attestation(schema="attestation/v2")
-    del v2["trust_base"]
-    schemas.validate(v2)
-    assert schemas.violations(samples.attestation(schema="attestation/v2"))  # v2 has no field
+    older = samples.attestation(schema="attestation/v2")
+    for gone in ("trust_base", "submitter", "model_and_tooling"):
+        older.pop(gone, None)
+    schemas.validate(older)  # a v2 record still validates as v2
+    assert schemas.violations(samples.attestation(schema="attestation/v2"))  # v2 has no v3/v4 keys
 
 
 def test_meta_v1_still_valid() -> None:

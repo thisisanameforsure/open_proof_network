@@ -47,7 +47,7 @@ def meta(**overrides: Any) -> dict[str, Any]:
 
 def attestation(**overrides: Any) -> dict[str, Any]:
     doc: dict[str, Any] = {
-        "schema": "attestation/v3",
+        "schema": "attestation/v4",
         "graph_id": "propositional",
         "node_id": "tutorial-and-swap",
         "statement_hash": SHA256,
@@ -72,6 +72,8 @@ def attestation(**overrides: Any) -> dict[str, Any]:
         "precheck_attestation": {"hash": None, "signature_kind": None},
         "merge_commit": None,
         "review": None,
+        "submitter": None,
+        "model_and_tooling": "undeclared",
         "trust_base": "kernel",
         "signature": {
             "kind": "none",

@@ -10,6 +10,7 @@ from typing import ClassVar
 import fixture
 import pytest
 
+from opn_gate import schemas
 from opn_site import cli, model, render
 
 GOLDEN = Path(__file__).resolve().parent / "golden"
@@ -216,3 +217,50 @@ def test_docs_bundle(rendered: dict[str, str]) -> None:
 def test_t2_golden_pages(rendered: dict[str, str]) -> None:
     for rel in T2_PAGES:
         assert rendered[rel] == (GOLDEN / rel).read_text(encoding="utf-8"), rel
+
+
+# --- F07-T5: the contributors page reads the ledger's entries (R8; D-19) -------------------------
+
+
+def test_contributors_lists_ledger_entries(tmp_path_factory: pytest.TempPathFactory) -> None:
+    """The page shows one row per contribution, linked to the artifact that earned it, and a
+    revoked entry stays listed as revoked (D-18). No totals: significance is retrospective."""
+    root = fixture.build(tmp_path_factory.mktemp("ledger-site"))
+    doc = {
+        "schema": "ledger/v1",
+        "identity": "alice",
+        "entries": [
+            {
+                "line": "proof",
+                "target": "propositional",
+                "node": "and-reassoc",
+                "artifact": "Proof.lean",
+                "merge_commit": "1" * 40,
+                "date": "2026-09-10T12:00:00Z",
+                "tooling": "claude-opus-5",
+                "status": "active",
+            },
+            {
+                "line": "attempts",
+                "target": "propositional",
+                "node": "and-reassoc",
+                "artifact": "attempts/2026-09-10-alice.yaml",
+                "merge_commit": "1" * 40,
+                "date": "2026-09-10T12:00:00Z",
+                "tooling": "undeclared",
+                "route_class": "induction",
+                "status": "revoked",
+            },
+        ],
+    }
+    (root / "ledger").mkdir(parents=True, exist_ok=True)
+    (root / "ledger" / "alice.json").write_bytes(schemas.canonical_json(doc))
+
+    pages = render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
+    page = pages["contributors/index.html"]
+    assert "No ledger files exist yet" not in page
+    assert ">alice</h2>" in page
+    assert "proof" in page and "attempts" in page
+    assert "claude-opus-5" in page
+    assert "revoked" in page  # D-18: kept and labelled, never removed
+    assert "Proof.lean" in page

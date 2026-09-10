@@ -3,10 +3,22 @@
 from __future__ import annotations
 
 import json
+import time
 
 from api_fakes import Harness
 
 from opn_gate import schemas
+
+
+def force_stale(harness: Harness, rel: str = "frontier.json") -> None:
+    """Age a cached file past the window, whatever the monotonic clock's origin is.
+
+    Setting the epoch to 0.0 is not enough: `time.monotonic()` counts from boot on Linux, so on
+    a freshly started CI runner "0.0 seconds ago" is still inside the 60-second window and the
+    cache is never revalidated. Subtracting the window from *now* is true on any machine.
+    """
+    window = harness.settings.frontier_max_stale_s
+    harness.context.files[rel].fetched_at = time.monotonic() - (window + 1)
 
 
 def test_overlay_only_touches_claims(harness: Harness) -> None:
@@ -63,8 +75,7 @@ def test_committed_file_is_cached_and_revalidated(harness: Harness) -> None:
     assert len(harness.githost.fetches) == 1  # inside the window: no call at all
 
     harness.clock.advance(seconds=61)  # the cache window is wall clock, so force it directly
-    ctx = harness.context
-    ctx.files["frontier.json"].fetched_at = 0.0
+    force_stale(harness)
     harness.client.get("/frontier.json")
     assert len(harness.githost.fetches) == 2
     assert harness.githost.fetches[1][1] is not None  # If-None-Match carried the ETag
@@ -74,11 +85,10 @@ def test_unreachable_graph_serves_the_last_good_copy(harness: Harness) -> None:
     """C7: a fetch failure degrades to the cached file, and to 503 when there is none."""
     assert harness.client.get("/frontier.json").status_code == 200
     harness.githost.unreachable = True
-    ctx = harness.context
-    ctx.files["frontier.json"].fetched_at = 0.0
+    force_stale(harness)
     assert harness.client.get("/frontier.json").status_code == 200
 
-    ctx.files.clear()
+    harness.context.files.clear()
     down = harness.client.get("/frontier.json")
     assert down.status_code == 503
     assert down.json()["error"] == "graph-unreachable"

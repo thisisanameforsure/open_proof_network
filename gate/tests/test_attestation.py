@@ -5,10 +5,11 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
+import samples
 from fakes import FakeToolchain
 from harness import make_context, node_dir
 
-from opn_gate import attestation, pipeline, schemas
+from opn_gate import attestation, bounce, pipeline, schemas, submission
 from opn_gate.toolchain import AxiomResult, ReplayResult
 
 FIXED = datetime(2026, 9, 8, 3, 4, 5, tzinfo=UTC)
@@ -62,7 +63,7 @@ def test_attestation_fields_and_schema(tmp_path: Path) -> None:
     }
     assert [s["result"] for s in doc["steps"]] == ["pass"] * 7
     assert doc["merge_commit"] is None and doc["review"] is None
-    assert doc["schema"] == "attestation/v3"
+    assert doc["schema"] == "attestation/v4"
     assert doc["trust_base"] == "kernel"  # F02-R9: no waiver, the kernel checked everything
 
 
@@ -133,3 +134,58 @@ def test_attestation_stays_under_budget_with_huge_diagnostic(tmp_path: Path) -> 
     doc = attestation.build(ctx, pipeline.run_steps(ctx), graph_commit=None, clock=lambda: FIXED)
     assert len(schemas.canonical_json(doc)) < 64 * 1024
     assert doc["diagnostic"]["truncated"] is True
+
+
+# --- F07-T5 / AC18: who submitted, and what they said drove it (R13; D-23, D-34) -----------------
+
+
+def test_undeclared_tooling(tmp_path: Path) -> None:
+    """AC18: a hand-opened pull request has no opn-submission block, so the record says
+    `undeclared` rather than inventing a model, and carries no pseudonym."""
+    ctx = make_context(tmp_path)
+    verdict = pipeline.run_steps(ctx)
+    doc = attestation.build(ctx, verdict, graph_commit="1" * 40)
+    assert doc["model_and_tooling"] == submission.UNDECLARED
+    assert doc["submitter"] is None
+    assert schemas.violations(doc, attestation.SCHEMA) == []
+
+
+def test_submission_block_is_carried_into_the_record(tmp_path: Path) -> None:
+    """R13: the block's pseudonym and declared tooling reach the attestation verbatim.
+
+    Declared, never verified — D-1 keeps the gate blind to tooling — and recorded because the
+    corpus is only labelled if this field is there (D-34).
+    """
+    ctx = make_context(tmp_path)
+    verdict = pipeline.run_steps(ctx)
+    block = samples.submission_meta(
+        identity={"pseudonym": "alice", "proof_kind": "tutorial"},
+        tooling={"model": "claude-opus-5", "version": "2026-09", "harness": "claude-code"},
+    )
+    doc = attestation.build(ctx, verdict, graph_commit="1" * 40, submission=block)
+    assert doc["submitter"] == "alice"
+    assert doc["model_and_tooling"] == "claude-opus-5 2026-09 claude-code"
+    assert schemas.violations(doc, attestation.SCHEMA) == []
+
+
+def test_a_malformed_block_is_the_same_as_none(tmp_path: Path) -> None:
+    """C7: the block is a declaration the gate never checks, so a broken one must not fail a
+    proof — it is recorded as undeclared, like a hand-opened pull request."""
+    body = "```json\nopn-submission\n{not json at all}\n```"
+    assert submission.extract(body) is None
+    invalid = samples.submission_meta(artifact_type="sketch")
+    assert submission.extract(submission.render_block(invalid)) is None
+    assert submission.model_and_tooling(None) == submission.UNDECLARED
+
+
+def test_the_block_round_trips_through_a_pull_request_body() -> None:
+    """R2: what the service writes is what the gate reads, past the other block in the body."""
+    meta = samples.submission_meta()
+    body = (
+        "Submitted through the service.\n\n"
+        + bounce.render_block(samples.attestation())
+        + "\n\n"
+        + submission.render_block(meta)
+    )
+    assert submission.extract(body) == meta
+    assert bounce.extract_block(body) is not None  # the precheck block is still found

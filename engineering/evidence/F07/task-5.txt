@@ -1,0 +1,79 @@
+F07-T5 — the ledger, and who submitted. 2026-09-10
+
+WHAT T5 COVERS
+--------------
+AC16 gate/tests/test_ledger.py::test_first_per_route_class    — the first postmortem of a route
+     class on a node earns the attempts line; the second does not. A different class on the same
+     node earns, and so does the same class on a different node.
+AC17 ::test_tutorial_off_ledger                               — nothing is credited for the
+     tutorial node, on either line (D-27).
+AC18 gate/tests/test_attestation.py::test_undeclared_tooling  — a hand-opened pull request has no
+     opn-submission block, so the record says `undeclared` and carries no pseudonym rather than
+     inventing either.
+
+Also: every kernel-checked artifact of D-12 earns the proof line, not just proofs
+(::test_every_kernel_checked_artifact_earns_the_proof_line); annexes and approach records earn
+nothing (D-31, D-14); first-per-route-class is asked of the identity's own ledger, so two
+contributors can each be first to a class they were first to; a merge that earns nothing writes
+no file at all; and the site's contributors page renders the entries rather than linking the
+files (site/tests/test_render.py::test_contributors_lists_ledger_entries).
+
+TWO SCHEMAS
+-----------
+  ledger/v1        D-19's six lines as an enum, of which F07 writes two. No weight, no score and
+                   no total anywhere — significance is retrospective (D-19, D-32), and a number
+                   here would be the prospective difficulty scalar D-25 refuses. `status` exists
+                   because credit is revocable (D-18): revoking flips it and keeps the entry.
+  attestation/v4   `submitter` and `model_and_tooling`, from the opn-submission block (R13). The
+                   block is a declaration the gate never checks — D-1 keeps it blind to tooling —
+                   and is recorded because a corpus is only labelled if the field is there (D-34).
+
+The two accepted-version lists were duplicated; there is now one, in `bounce`, because
+`attestation` imports that module and not the other way round.
+
+WHAT THE DECISION SETTLED THAT THE CODE HAD WRONG
+--------------------------------------------------
+`contributions()` filtered revoked entries out, while D-18 revokes credit by *marking* it and the
+contributors page's own text promises "revoked entries stay listed as revoked". The test written
+against the page caught the contradiction. Revoked entries are returned and labelled.
+
+A CI-ONLY FAILURE, FIXED HERE
+-----------------------------
+The repository's CI went red on the pushed commit while both tiers were green locally:
+
+  api/tests/test_frontier.py::test_committed_file_is_cached_and_revalidated
+  assert 1 == 2
+
+The test forced a cached file to look stale by setting its epoch to `0.0`. On Linux
+`time.monotonic()` counts from boot, so "0.0 seconds ago" is only stale on a machine that has
+been up longer than the 60-second window. This laptop reads 5280; a fresh hosted runner reads
+seconds, so the cache stayed fresh and never revalidated. The helper now subtracts the window
+from *now*, which is true whatever the clock's origin.
+
+VERIFICATION (2026-09-10)
+
+$ uv run pytest gate/tests/test_ledger.py gate/tests/test_attestation.py site/tests/test_render.py
+site/tests/test_render.py ...............                                [100%]
+
+============================== 39 passed in 0.41s ==============================
+
+$ make verify
+All checks passed!
+141 files already formatted
+Success: no issues found in 71 source files
+Success: no issues found in 36 source files
+Success: no issues found in 14 source files
+================ 421 passed, 46 deselected, 2 warnings in 4.81s ================
+
+$ make verify-lean
+gate/tests/test_admit_lean.py ........                                   [ 17%]
+gate/tests/test_artifacts_lean.py ..                                     [ 21%]
+gate/tests/test_hazards_lean.py .......                                  [ 36%]
+gate/tests/test_lean_pkg_lean.py ....                                    [ 45%]
+gate/tests/test_precheck_job_docker.py ..                                [ 50%]
+gate/tests/test_pregate_lean.py ...........                              [ 73%]
+gate/tests/test_products_lean.py .                                       [ 76%]
+gate/tests/test_reproduce_docker.py ..                                   [ 80%]
+gate/tests/test_sandbox_docker.py .....                                  [ 91%]
+gate/tests/test_toolchain_lean.py ....                                   [100%]
+========== 46 passed, 421 deselected, 2 warnings in 873.83s (0:14:33) ==========

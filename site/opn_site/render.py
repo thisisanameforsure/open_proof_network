@@ -16,6 +16,7 @@ from pathlib import Path
 from string import Template
 from typing import Any
 
+from opn_gate import ledger as ledgermod
 from opn_site import dag, links, prose
 from opn_site.model import NodeView, Prose, Site, SiteError, TargetView
 
@@ -339,24 +340,50 @@ class Renderer:
         return esc(value)
 
     def contributors(self) -> str:
-        """R8: every ledger file linked at the commit; the empty state says so (F07 writes them)."""
-        ledger_dir = self.site.root / "ledger"
-        files = (
-            sorted(p for p in ledger_dir.iterdir() if p.is_file() and p.name != ".gitkeep")
-            if ledger_dir.is_dir()
-            else []
-        )
-        if not files:
+        """R8, F07-R12: the ledger read as entries, not as a list of files.
+
+        One row per contribution, each linked to the artifact that earned it, because D-19's
+        ledger is a record of artifacts and a reader should be able to click through to the
+        thing itself. No totals and no ranking: significance is retrospective (D-19, D-32), and
+        a column of counts here would be the score the protocol refuses.
+        """
+        contributions = ledgermod.contributions(self.site.root)
+        renders: list[str] = []
+        if not contributions:
             ledger = (
                 "<p>No ledger files exist yet: nothing has been credited. The first merged proof "
                 "and the first postmortem will start the ledger (D-19, F07).</p>"
             )
-            renders: list[str] = []
         else:
-            renders = [f"ledger/{p.name}" for p in files]
-            ledger = "<ul>" + "".join(f"<li>{self.file_link(r)}</li>" for r in renders) + "</ul>"
+            blocks: list[str] = []
+            for identity, entries in sorted(contributions.items()):
+                renders.append(f"ledger/{identity}.json")
+                rows = "".join(self._ledger_row(e) for e in entries)
+                blocks.append(
+                    f"<h2>{esc(identity)}</h2>"
+                    f'<table class="ledger"><tr><th>Line</th><th>Node</th><th>Artifact</th>'
+                    f"<th>Merged</th><th>Tooling</th></tr>{rows}</table>"
+                )
+            ledger = "".join(blocks)
         body = _template("contributors.html").substitute(ledger=ledger)
         return self.page("Contributors", body, renders=renders)
+
+    def _ledger_row(self, entry: dict[str, Any]) -> str:
+        """One ledger entry. A revoked entry stays listed and says so (D-18)."""
+        target, node = str(entry.get("target", "")), str(entry.get("node", ""))
+        artifact = str(entry.get("artifact", ""))
+        path = f"targets/{target}/nodes/{node}/{artifact}"
+        revoked = entry.get("status") == "revoked"
+        line = esc(str(entry.get("line", "")))
+        if revoked:
+            line += ' <span class="status status-revoked">revoked</span>'
+        return (
+            f"<tr><td>{line}</td>"
+            f"<td>{self.node_link(target, node)}</td>"
+            f"<td>{self.file_link(path)}</td>"
+            f"<td>{esc(str(entry.get('date', '')))}</td>"
+            f"<td>{esc(str(entry.get('tooling', 'undeclared')))}</td></tr>"
+        )
 
     def docs(self) -> tuple[str, dict[str, str]]:
         """R9, Q4: the docs page and the copied decisions document with its styles moved to a

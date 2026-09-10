@@ -193,3 +193,8 @@ The law of the project:
   landed first and the products were rendered from it second — the two-commit shape the log
   already recorded, for a second reason. Before re-pinning, ask which commit each consumer
   actually reads the pin from.
+- 2026-09-10 — `time.monotonic()` counts from boot on Linux, so a test that ages a cache by
+  setting its epoch to `0.0` passes on a laptop up for hours and fails on a fresh hosted runner
+  that has been up for twenty seconds. CI caught it; both local tiers were green. Force staleness
+  by subtracting the window from *now*, never by assuming the clock's origin — and read a
+  CI-only failure as a fact about the environment before assuming flake.

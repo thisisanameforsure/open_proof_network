@@ -18,7 +18,14 @@ from typing import Any
 
 from opn_gate import schemas
 
-ACCEPTED_SCHEMAS: tuple[str, ...] = ("attestation/v1", "attestation/v2", "attestation/v3")
+#: Every attestation version the gate reads. Canonical here because ``attestation`` imports
+#: this module and not the other way round; ``attestation.ACCEPTED_SCHEMAS`` is this list.
+ACCEPTED_SCHEMAS: tuple[str, ...] = (
+    "attestation/v1",
+    "attestation/v2",
+    "attestation/v3",
+    "attestation/v4",
+)
 
 MARKER = "opn-precheck-attestation"
 TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"

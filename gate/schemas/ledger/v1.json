@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/ledger/v1.json",
+  "title": "ledger/v1",
+  "description": "ledger/<identity>.json (D-19): what one identity contributed, as artifacts rather than as a score. Append-only and bot-owned — every entry is written by the post-merge job from a merge that already happened, so the ledger is derived from the graph's history and never a second source of truth (D-35). Each entry names one of D-19's six lines, the artifact it is, and where it merged; F07 writes two of them, `proof` and `attempts`, and the rest arrive with the features that earn them. There is no weight, no score and no ranking: relative significance is assigned retrospectively at write-up (D-19, D-32), and a ledger that carried a number would be the prospective difficulty scalar D-25 refuses. `status` exists because all credit is versioned and revocable (D-18): revocation flips it and keeps the entry.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "identity",
+    "entries"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ledger/v1"
+    },
+    "identity": {
+      "type": "string",
+      "description": "The pseudonym D-19 says the ledger shows; the network stores no other name",
+      "pattern": "^[A-Za-z0-9-]{1,39}$"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "line",
+          "target",
+          "node",
+          "artifact",
+          "merge_commit",
+          "date",
+          "tooling",
+          "status"
+        ],
+        "properties": {
+          "line": {
+            "description": "Which of D-19's six lines this entry is on. F07 writes proof and attempts.",
+            "enum": [
+              "statement",
+              "proof",
+              "review",
+              "attempts",
+              "upstreaming",
+              "write-up"
+            ]
+          },
+          "target": {
+            "$ref": "#/$defs/identifier"
+          },
+          "node": {
+            "$ref": "#/$defs/identifier"
+          },
+          "artifact": {
+            "type": "string",
+            "description": "Path of the file this entry is for, relative to the node directory",
+            "minLength": 1
+          },
+          "merge_commit": {
+            "$ref": "#/$defs/sha1"
+          },
+          "date": {
+            "type": "string",
+            "description": "UTC, second precision, Z suffix",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+          },
+          "tooling": {
+            "description": "Model and tooling as declared at submission (D-23); undeclared when the pull request carried no opn-submission block",
+            "type": "string",
+            "minLength": 1
+          },
+          "route_class": {
+            "description": "D-13's class, on an attempts entry only — what makes first-per-route-class checkable from the ledger itself",
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "description": "All credit is versioned and revocable (D-18); a revoked entry is kept, not deleted",
+            "enum": [
+              "active",
+              "revoked"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "sha1": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    }
+  }
+}

@@ -11,14 +11,16 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
-from opn_gate import schemas
+from opn_gate import bounce, schemas
+from opn_gate import submission as submissionmod
 from opn_gate.bounce import TIMESTAMP_FORMAT
 from opn_gate.pipeline import Verdict
 from opn_gate.steps.base import RunContext
 from opn_gate.toolchain import ResolvedToolchain
 
-SCHEMA = "attestation/v3"  # v3 (F02-R9): trust_base
-ACCEPTED_SCHEMAS: tuple[str, ...] = ("attestation/v1", "attestation/v2", "attestation/v3")
+SCHEMA = "attestation/v4"  # v4 (F07-R13): submitter and model_and_tooling
+#: One list, defined in ``bounce`` because this module imports that one (F07-T5).
+ACCEPTED_SCHEMAS: tuple[str, ...] = bounce.ACCEPTED_SCHEMAS
 MASKED_FIELDS: tuple[str, ...] = ("runner", "merge_commit", "signature")
 TRUST_KERNEL = "kernel"
 TRUST_COMPILER = "compiler"
@@ -29,12 +31,13 @@ def utc_now() -> datetime:
     return datetime.now(tz=UTC)
 
 
-def build(
+def build(  # noqa: PLR0913 — one argument per fact the record carries
     ctx: RunContext,
     verdict: Verdict,
     *,
     graph_commit: str | None,
     tooling: dict[str, str | None] | None = None,
+    submission: dict[str, Any] | None = None,
     clock: Clock = utc_now,
 ) -> dict[str, Any]:
     """The attestation for ``verdict``; validated against attestation/v1 before it is returned."""
@@ -74,6 +77,10 @@ def build(
         },
         "merge_commit": None,
         "review": None,
+        # R13, D-23, D-34: who submitted and what they said drove it. Declared, never checked —
+        # D-1 keeps the gate blind to tooling — and recorded so the corpus is labelled.
+        "submitter": submitter_of(submission),
+        "model_and_tooling": submissionmod.model_and_tooling(submission),
         # F02-R9: a function of the checked tree (the waiver step 5 accepted), never of the run.
         "trust_base": TRUST_COMPILER if verdict.data.get("waiver") else TRUST_KERNEL,
         "signature": {
@@ -84,6 +91,17 @@ def build(
         },
     }
     return schemas.validate(doc, SCHEMA)
+
+
+def submitter_of(submission: dict[str, Any] | None) -> str | None:
+    """R13: the ledger pseudonym from the opn-submission block, or ``None``.
+
+    A hand-opened pull request has no block; the workflow passes the GitHub login instead, so
+    the record still says who opened it (D-5's reviewer field has always named a person).
+    """
+    identity = (submission or {}).get("identity") or {}
+    pseudonym = identity.get("pseudonym") if isinstance(identity, dict) else None
+    return str(pseudonym) if pseudonym else None
 
 
 def _statement_hash_fallback(ctx: RunContext) -> str:
