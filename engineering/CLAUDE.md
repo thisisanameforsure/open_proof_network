@@ -173,3 +173,17 @@ The law of the project:
   Re-read `git log` and `git status` before each commit in a long session, and correct a committed
   record in the next commit rather than leaving it. Two sessions on disjoint files merged fine;
   the collision was in the *claims* the notes made, not the code.
+- 2026-09-10 — A hole's type is not a statement. The extractor reported `q` for a hole inside
+  `∀ p q, p ∧ q → q ∧ p`, and every child node built from it would have had a `Statement.lean`
+  that does not elaborate — D-29's "holes enter the frontier as children" quietly producing nodes
+  the gate rejects. Holes now carry `closed_type`, the obligation closed over the binders it sat
+  under. When a value crosses from one context into a file of its own, ask what it is closed over.
+- 2026-09-10 — Eight red `E`s were one dead Docker daemon, not a regression. `make verify-lean`
+  errors at fixture setup when the step-3 image cannot build, which looks like eight failures in
+  three files. Read the first error's message before believing the count; start the daemon and
+  run `pytest -m docker` alone rather than paying for the 12-minute Lean tier twice.
+- 2026-09-10 — A blocker can change identity while you are not looking. F06 waited all morning on
+  a GitHub App permission; once granted, the same criterion was blocked by a stale `gate-spec.json`
+  pin whose commit predates `gate/precheck/`. Re-derive what a task is waiting on after anything
+  external changes, and correct the spec and the index in the same pass — a status note that names
+  the wrong blocker is worse than none.

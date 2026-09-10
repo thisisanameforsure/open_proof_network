@@ -44,7 +44,8 @@ it needs the push (which deploys the api) and then a re-pin, which is the gate o
 Evidence, including the run's log, is in <code>engineering/evidence/F06/task-5.txt</code>.</p>
 <p class="status-note"><strong>F07 and F08 interleave, by design.</strong> F07-T4 needs F08's
 admission check for a partial's holes (F07 &sect;8), and F08 needs the rest of F07 for everything
-else &mdash; so F08-T1 was built inside F07's slice, on 2026-09-10, and F07-T4 is unblocked by it.
+else &mdash; so F08-T1 was built inside F07's slice on 2026-09-10, and F07-T4 landed the same day
+on top of it. F07-T5 is the next unblocked task.
 The remaining F07 work that is <em>not</em> unblocked is the graph's <code>gate.yml</code> (T1's
 last line) and T6 &mdash; both waiting on the same push and re-pin F06 waits on, since a workflow
 may only use a gate command the pinned commit understands.</p>
