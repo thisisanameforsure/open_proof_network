@@ -1,0 +1,81 @@
+F07-T2 — artifact types and hole extraction. 2026-09-10
+
+WHAT T2 COVERS
+--------------
+AC4  gate/tests/test_artifacts.py::test_counterexample_type   — the negation of a different
+     statement is refused naming both types; the negation of this one passes.
+AC5  ::test_vacuity_type                                      — the same for ¬W, W being F01's
+     expected witness type.
+AC6  ::test_offload_rule_and_hole_extraction                  — a single hole whose type is the
+     goal is refused under D-12's offload rule; two honest holes come back with names and types.
+AC20 gate/tests/test_artifacts_lean.py::test_artifact_types_golden — ten fixtures, one per case
+     the rules have to get right, run through the real toolchain and compared byte for byte with
+     golden/artifact-types.json.
+
+The second lean-tier test (::test_the_golden_says_what_the_rules_say) reads the rules back out of
+the golden, so the golden cannot quietly become a record of the wrong behaviour: AC4, AC5 and AC6
+are asserted against the real elaborator as well as against the fake.
+
+THREE THINGS THE REAL TOOLCHAIN SAID, THAT GUESSING WOULD HAVE GOT WRONG
+-----------------------------------------------------------------------
+1. `have h : T := sorry` is an `Expr.letE`, not a beta-redex and not `letFun`. The extractor was
+   written against that after printing the term, per the log's "read the shape before asserting
+   on it". `sorry` itself is `sorryAx (Lean.Name → T) false <tag>` — the type argument is not T.
+
+2. A theorem's proof term needs `ConstantInfo.value? (allowOpaque := true)`. Without it the value
+   is None, `value!` panics, and hole extraction silently reports no holes — which is exactly the
+   failure a partial proof must never have. Caught by driving a two-hole fixture and seeing zero.
+
+3. Imports happen once per process. A second `processHeader` in the same run returns an
+   environment with no parser extensions, so the second file elaborated loses `∧`, `¬` and every
+   other notation and fails with "expected token" at the first one. The metaprogram therefore
+   imports once (`OpnGate.Frontend.headerEnv`) and elaborates both files on top of that
+   environment. This also solves the real problem: a partial proof declares the statement's own
+   name, so the statement and the artifact cannot share one environment the way a statement and
+   its witness do — they would be a duplicate declaration, not a comparison.
+
+WHAT IS NOT IN T2
+-----------------
+Wiring the check into the pipeline. R4 and R5 also say which D-4 steps run for each artifact
+(1, 3, 4, 5 for a counterexample; 1, 3, 4 with a sorry-tolerant replay for a partial), and no T2
+acceptance criterion covers that: T2's Files column is the two Lean modules, steps/artifact.py
+and the two test files. The step-2 dispatch and the sorry-tolerant replay belong with the
+post-merge work that consumes the holes (T4), which waits on F08-T1 in any case.
+
+VERIFICATION — $ make verify-lean   (2026-09-10)
+
+verify-lean: elan at /Users/mikehiggins/.elan/bin/elan
+uv run --frozen pytest -m "lean or docker"
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+testpaths: gate/tests, api/tests, site/tests
+plugins: anyio-4.15.1
+collected 420 items / 382 deselected / 38 selected
+
+gate/tests/test_artifacts_lean.py ..                                     [  5%]
+gate/tests/test_hazards_lean.py .......                                  [ 23%]
+gate/tests/test_lean_pkg_lean.py ....                                    [ 34%]
+gate/tests/test_precheck_job_docker.py ..                                [ 39%]
+gate/tests/test_pregate_lean.py ...........                              [ 68%]
+gate/tests/test_products_lean.py .                                       [ 71%]
+gate/tests/test_reproduce_docker.py ..                                   [ 76%]
+gate/tests/test_sandbox_docker.py .....                                  [ 89%]
+gate/tests/test_toolchain_lean.py ....                                   [100%]
+
+========= 38 passed, 382 deselected, 2 warnings in 1301.13s (0:21:41) ==========
+
+$ make verify
+uv run --frozen ruff check .
+All checks passed!
+uv run --frozen ruff format --check .
+132 files already formatted
+uv run --frozen mypy gate
+Success: no issues found in 65 source files
+uv run --frozen mypy api
+Success: no issues found in 36 source files
+uv run --frozen mypy site
+Success: no issues found in 14 source files
+uv run --frozen pytest -m "not lean and not docker and not network"
+================ 382 passed, 38 deselected, 2 warnings in 4.25s ================

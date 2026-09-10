@@ -70,6 +70,33 @@ class Node:
         return self.path / "Proof.lean"
 
 
+def _qualified(text: str, up_to: int, name: str) -> str:
+    """``name`` under whatever namespaces are open at offset ``up_to``."""
+    stack: list[str] = []
+    for m in _NAMESPACE_RE.finditer(text[:up_to]):
+        if m.group(1) == "namespace":
+            stack.append(m.group("name"))
+        elif stack and stack[-1] == m.group("name"):
+            stack.pop()
+    return ".".join([*stack, name])
+
+
+def parse_declaration(text: str, what: str = "the file") -> str | Diagnostic:
+    """The full name of the one theorem ``text`` declares (F07-R4 reads a submitted artifact's).
+
+    Unlike ``parse_statement`` this says nothing about the body: an artifact's body is whatever
+    it is, and the gate's opinion of it comes from the kernel, not from a regular expression.
+    """
+    theorems = list(_THEOREM_RE.finditer(text))
+    if len(theorems) != 1:
+        return Diagnostic(
+            "artifact-shape",
+            f"{what} must declare exactly one theorem, found {len(theorems)}",
+            {"found": len(theorems)},
+        )
+    return _qualified(text, theorems[0].start(), theorems[0].group("name"))
+
+
 def parse_statement(text: str) -> Statement | Diagnostic:
     """Find the single sorry-bodied theorem in ``text`` (F00-R19's shape)."""
     theorems = list(_THEOREM_RE.finditer(text))
@@ -87,13 +114,7 @@ def parse_statement(text: str) -> Statement | Diagnostic:
     body = bodies[0]
     if body.start() < theorems[0].end():
         return Diagnostic("statement-shape", "the sorry body precedes the theorem")
-    stack: list[str] = []
-    for m in _NAMESPACE_RE.finditer(text[: theorems[0].start()]):
-        if m.group(1) == "namespace":
-            stack.append(m.group("name"))
-        elif stack and stack[-1] == m.group("name"):
-            stack.pop()
-    full_name = ".".join([*stack, theorems[0].group("name")])
+    full_name = _qualified(text, theorems[0].start(), theorems[0].group("name"))
     return Statement(
         decl_name=full_name,
         text=text,

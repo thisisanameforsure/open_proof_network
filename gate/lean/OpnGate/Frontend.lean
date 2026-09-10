@@ -32,6 +32,18 @@ def messagesToArray (log : MessageLog) : IO (Array Msg) := do
     out := out.push (← Msg.ofMessage m)
   return out
 
+/-- The environment `path`'s imports give, before any of its own commands are elaborated.
+
+Imports happen once per process: a second `processHeader` in the same run returns an environment
+without the parser extensions, so a file elaborated after another loses `∧`, `¬` and every other
+notation (observed on Lean 4.33, not assumed). A metaprogram that needs two files therefore
+imports once, here, and elaborates each file's commands on top of the result. -/
+def headerEnv (path : System.FilePath) (moduleName : Name) : IO (Environment × MessageLog) := do
+  let input ← IO.FS.readFile path
+  let inputCtx := Parser.mkInputContext input path.toString
+  let (stx, _, messages) ← Parser.parseHeader inputCtx
+  processHeader stx {} messages inputCtx (mainModule := moduleName)
+
 /-- Elaborate `path` as module `moduleName`.
 
 With `base? = none` the file's own header is processed (imports resolved via `LEAN_PATH`).

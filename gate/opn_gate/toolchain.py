@@ -144,6 +144,37 @@ class UsedConstantsRequest:
 
 
 @dataclass(frozen=True)
+class ArtifactRequest:
+    """Inputs of ``opn-artifact-type`` (F07-R4, R5): the statement, and the artifact beside it."""
+
+    statement: Path
+    statement_module: str
+    decl: str
+    artifact: Path
+    artifact_module: str
+    artifact_decl: str
+    kind: str  # proof | counterexample | vacuity | partial | reduction
+
+    def args(self) -> list[str]:
+        return [
+            "--statement",
+            str(self.statement.resolve()),
+            "--module",
+            self.statement_module,
+            "--decl",
+            self.decl,
+            "--artifact",
+            str(self.artifact.resolve()),
+            "--artifact-module",
+            self.artifact_module,
+            "--artifact-decl",
+            self.artifact_decl,
+            "--kind",
+            self.kind,
+        ]
+
+
+@dataclass(frozen=True)
 class HazardsRequest:
     """Inputs of ``opn-hazards`` (F02-R1, R3): the statement and exactly the checkers to run."""
 
@@ -197,8 +228,13 @@ class MetaprogramResult:
 
 METAPROGRAM_OUTPUT_CAP = 8192
 
-#: The executables the Lake package builds (F01-R1, F02-R1).
-METAPROGRAMS: tuple[str, ...] = ("opn-witness-type", "opn-used-constants", "opn-hazards")
+#: The executables the Lake package builds (F01-R1, F02-R1, F07-R4).
+METAPROGRAMS: tuple[str, ...] = (
+    "opn-witness-type",
+    "opn-used-constants",
+    "opn-hazards",
+    "opn-artifact-type",
+)
 
 
 def parse_metaprogram_output(exit_code: int, stdout: str, stderr: str) -> MetaprogramResult:
@@ -289,6 +325,16 @@ class Toolchain(Protocol):
         timeout_s: float | None = None,
     ) -> MetaprogramResult:
         """Step 6: ``opn-hazards`` — the named checkers' findings over the statement."""
+
+    def artifact_type(
+        self,
+        tc: ResolvedToolchain,
+        req: ArtifactRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        """F07: ``opn-artifact-type`` — what the artifact declares, and its holes if it has any."""
 
 
 # --- helpers shared by the real implementation and its tests --------------------------------
@@ -605,6 +651,16 @@ class LocalToolchain:
         timeout_s: float | None = None,
     ) -> MetaprogramResult:
         return self._metaprogram_run(tc, "opn-hazards", req.args(), search_path, timeout_s)
+
+    def artifact_type(
+        self,
+        tc: ResolvedToolchain,
+        req: ArtifactRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        return self._metaprogram_run(tc, "opn-artifact-type", req.args(), search_path, timeout_s)
 
 
 def _env_with(extra: dict[str, str] | None) -> dict[str, str] | None:

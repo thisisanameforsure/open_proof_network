@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from opn_gate.toolchain import (
+    ArtifactRequest,
     AxiomResult,
     ElabResult,
     HazardsRequest,
@@ -83,6 +84,37 @@ def hazards_result(
     )
 
 
+def artifact_result(
+    *,
+    kind: str = "partial",
+    decl: str = "OpnProp.and_swap",
+    expected: str = "∀ (p q : Prop), p ∧ q → q ∧ p",
+    declared: str | None = None,
+    matches: bool | None = None,
+    holes: list[tuple[str, str, bool]] | None = None,
+    unnamed: int = 0,
+    body_is_hole: bool = False,
+    axioms: tuple[str, ...] = ("sorryAx",),
+) -> MetaprogramResult:
+    """A structured ``opn-artifact-type`` result (F07-R4, R5), in the shape the real seam parses."""
+    shown = expected if declared is None else declared
+    return MetaprogramResult(
+        ok=True,
+        doc={
+            "ok": True,
+            "kind": kind,
+            "decl": decl,
+            "expected": expected,
+            "declared": shown,
+            "matches": (shown == expected) if matches is None else matches,
+            "holes": [{"name": n, "type": ty, "defeq_goal": dg} for n, ty, dg in (holes or [])],
+            "unnamed": unnamed,
+            "body_is_hole": body_is_hole,
+            "axioms": list(axioms),
+        },
+    )
+
+
 def metaprogram_garbage(
     exit_code: int = 1, output: str = "Segmentation fault\n"
 ) -> MetaprogramResult:
@@ -105,6 +137,7 @@ class FakeToolchain:
         default_factory=lambda: used_constants_result(LIBRARY_CONSTANTS)
     )
     hazards_doc: MetaprogramResult = field(default_factory=lambda: hazards_result([]))
+    artifact: MetaprogramResult = field(default_factory=artifact_result)
     missing: bool = False
     raise_on: str | None = None  # name of the method that should raise an unexpected error
     calls: list[str] = field(default_factory=list)
@@ -201,3 +234,15 @@ class FakeToolchain:
         self.calls.append(f"hazards:{req.decl}:{','.join(req.checkers)}")
         self._maybe_raise("hazards")
         return self.hazards_doc
+
+    def artifact_type(
+        self,
+        tc: ResolvedToolchain,
+        req: ArtifactRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        self.calls.append(f"artifact_type:{req.kind}:{req.artifact_decl}")
+        self._maybe_raise("artifact_type")
+        return self.artifact

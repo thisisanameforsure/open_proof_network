@@ -1,0 +1,162 @@
+{
+  "Proof": {
+    "kind": "proof",
+    "decl": "OpnProp.and_swap",
+    "expected": "∀ (p q : Prop), p ∧ q → q ∧ p",
+    "declared": "∀ (p q : Prop), p ∧ q → q ∧ p",
+    "matches": true,
+    "holes": [],
+    "unnamed": 0,
+    "body_is_hole": false,
+    "reduction": false,
+    "problems": []
+  },
+  "Refuted": {
+    "kind": "counterexample",
+    "decl": "OpnProp.and_swap_refuted",
+    "expected": "¬∀ (p q : Prop), p ∧ q → q ∧ p",
+    "declared": "¬∀ (p q : Prop), p ∧ q → q ∧ p",
+    "matches": true,
+    "holes": [],
+    "unnamed": 1,
+    "body_is_hole": true,
+    "reduction": false,
+    "problems": []
+  },
+  "RefutedWrong": {
+    "kind": "counterexample",
+    "decl": "OpnProp.and_swap_refuted",
+    "expected": "¬∀ (p q : Prop), p ∧ q → q ∧ p",
+    "declared": "¬∀ (p q : Prop), p ∧ q → p ∧ q",
+    "matches": false,
+    "holes": [],
+    "unnamed": 1,
+    "body_is_hole": true,
+    "reduction": false,
+    "problems": [
+      "artifact-type-mismatch"
+    ]
+  },
+  "Vacuous": {
+    "kind": "vacuity",
+    "decl": "OpnProp.and_swap_vacuous",
+    "expected": "¬∃ p q, p ∧ q",
+    "declared": "¬∃ p q, p ∧ q",
+    "matches": true,
+    "holes": [],
+    "unnamed": 1,
+    "body_is_hole": true,
+    "reduction": false,
+    "problems": []
+  },
+  "VacuousWrong": {
+    "kind": "vacuity",
+    "decl": "OpnProp.and_swap_vacuous",
+    "expected": "¬∃ p q, p ∧ q",
+    "declared": "¬∃ p, p",
+    "matches": false,
+    "holes": [],
+    "unnamed": 1,
+    "body_is_hole": true,
+    "reduction": false,
+    "problems": [
+      "artifact-type-mismatch"
+    ]
+  },
+  "Partial": {
+    "kind": "partial",
+    "decl": "OpnProp.and_swap",
+    "expected": "∀ (p q : Prop), p ∧ q → q ∧ p",
+    "declared": "∀ (p q : Prop), p ∧ q → q ∧ p",
+    "matches": true,
+    "holes": [
+      {
+        "name": "right",
+        "type": "q",
+        "defeq_goal": false
+      },
+      {
+        "name": "left",
+        "type": "p",
+        "defeq_goal": false
+      }
+    ],
+    "unnamed": 0,
+    "body_is_hole": false,
+    "reduction": false,
+    "problems": []
+  },
+  "Reduction": {
+    "kind": "reduction",
+    "decl": "OpnProp.and_swap",
+    "expected": "∀ (p q : Prop), p ∧ q → q ∧ p",
+    "declared": "∀ (p q : Prop), p ∧ q → q ∧ p",
+    "matches": true,
+    "holes": [
+      {
+        "name": "comm",
+        "type": "∀ (a b : Prop), a ∧ b ↔ b ∧ a",
+        "defeq_goal": false
+      }
+    ],
+    "unnamed": 0,
+    "body_is_hole": false,
+    "reduction": true,
+    "problems": []
+  },
+  "Offload": {
+    "kind": "partial",
+    "decl": "OpnProp.and_swap",
+    "expected": "∀ (p q : Prop), p ∧ q → q ∧ p",
+    "declared": "∀ (p q : Prop), p ∧ q → q ∧ p",
+    "matches": true,
+    "holes": [
+      {
+        "name": "restated",
+        "type": "∀ (p q : Prop), p ∧ q → q ∧ p",
+        "defeq_goal": true
+      }
+    ],
+    "unnamed": 0,
+    "body_is_hole": false,
+    "reduction": true,
+    "problems": [
+      "offload-restated-goal"
+    ]
+  },
+  "RestateConclusion": {
+    "kind": "partial",
+    "decl": "OpnProp.and_swap",
+    "expected": "∀ (p q : Prop), p ∧ q → q ∧ p",
+    "declared": "∀ (p q : Prop), p ∧ q → q ∧ p",
+    "matches": true,
+    "holes": [
+      {
+        "name": "same",
+        "type": "q ∧ p",
+        "defeq_goal": true
+      }
+    ],
+    "unnamed": 0,
+    "body_is_hole": false,
+    "reduction": true,
+    "problems": [
+      "offload-restated-goal"
+    ]
+  },
+  "BareHole": {
+    "kind": "partial",
+    "decl": "OpnProp.and_swap",
+    "expected": "∀ (p q : Prop), p ∧ q → q ∧ p",
+    "declared": "∀ (p q : Prop), p ∧ q → q ∧ p",
+    "matches": true,
+    "holes": [],
+    "unnamed": 1,
+    "body_is_hole": true,
+    "reduction": false,
+    "problems": [
+      "offload-whole-goal",
+      "hole-unnamed"
+    ]
+  }
+}

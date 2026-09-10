@@ -30,3 +30,8 @@ lean_exe «opn-used-constants» where
 lean_exe «opn-hazards» where
   root := `OpnGate.HazardsMain
   supportInterpreter := true
+
+@[default_target]
+lean_exe «opn-artifact-type» where
+  root := `OpnGate.ArtifactTypeMain
+  supportInterpreter := true
