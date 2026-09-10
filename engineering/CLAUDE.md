@@ -119,4 +119,19 @@ The law of the project:
 - 2026-09-09 — Read the shape before asserting on it. Two docker-tier failures (16 minutes each)
   were guesses at the verdict record's field names; the fast tier could not catch them because
   the records only exist after a real run.
+- 2026-09-10 — The gate and the api do not run in the same world. The gate shells out to
+  `ssh-keygen` because OpenSSH is always where the gate runs; the Lambda image has none, so the
+  api verifies SSHSIG in Python instead (F06-Q6). Before reusing a gate helper in the api, ask
+  what binary it assumes — a subprocess seam passes every laptop test and fails in production.
+- 2026-09-10 — A permission is part of the build, and it is not yours to grant. F06 is code
+  complete and blocked on the GitHub App lacking `Actions: write` (403 on dispatch). Probe a
+  permission with an *inert* call — dispatching a ref that does not exist gives 403 vs 422 "No
+  ref found" and starts no run — and write the probe into the evidence so the founder can check
+  it in one paste.
+- 2026-09-10 — Fakes prove the logic; only the live host proves the host agrees. Driving
+  `POST /precheck` in process against the real graph and the real scratch repo proved the App
+  JWT, the installation token and all four Git Data calls in one go, and cost one branch that
+  was deleted again. Do this before declaring a seam done, and clean up what it leaves.
+- 2026-09-10 — Do not push when pushing deploys and the deploy is half-blocked. Leaving six
+  commits local was the right answer: the permission and the deploy belong in one sitting.
 

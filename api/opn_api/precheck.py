@@ -281,6 +281,9 @@ def dispatch(ctx: Context, job: Job, bundle: Bundle) -> None:
             inputs={"job_id": job.id},
         )
     except GitHostError as exc:
+        # If the push landed and only the dispatch failed, the branch is left where it is: the
+        # scratch repo's scheduled cleanup deletes job branches past the window (R9), and one
+        # more call that could itself fail is a worse answer than the retention rule (C7).
         log.warning("precheck %s could not be dispatched: %s", job.id, exc)
         save(ctx, replace(job, state="error", error=f"dispatch failed: {exc}"))
         raise ApiError(
