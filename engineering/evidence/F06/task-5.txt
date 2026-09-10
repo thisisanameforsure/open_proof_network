@@ -120,3 +120,67 @@ WHY MAIN WAS NOT PUSHED TONIGHT
 Pushing main deploys. Deploying before step 1 would put a POST /precheck on the live service that
 answers 502 for every caller — worse than today's, which accepts a job and never runs it. The
 permission and the deploy belong in the same sitting, and the permission is the founder's.
+
+================================================================================
+UPDATE 2026-09-10 — the permission was granted, and AC15 moved to a different blocker
+================================================================================
+
+THE PERMISSION IS GRANTED
+-------------------------
+The App owner added Actions: read and write and accepted it on the installation. Verified twice,
+by the two independent facts:
+
+  installation permissions: {'actions': 'write', 'contents': 'write',
+                             'metadata': 'read', 'pull_requests': 'write'}
+  POST /repos/.../actions/workflows/precheck.yml/dispatches
+    -> 422 No ref found for: job/deliberately-absent      (was 403 this morning)
+
+A REAL DISPATCH, AND A REAL RUN
+-------------------------------
+Driving POST /precheck in process against the real graph and the real scratch repo — the same
+application over the same seams, memory store, because main is not yet deployed — created an
+actual Actions run for the first time:
+
+  job 01M25NCGB8AGGVSYMQRK4ZDTZY   queued -> running at 17.4s -> error at 28.1s
+  https://github.com/thisisanameforsure/open_proof_network_precheck/actions/runs/34478140113
+
+Seven of its steps succeeded: the job branch, reading the job, the graph checkout at the commit
+the job pins, reading the network pin, checking that commit out, and setup-uv. That is the entire
+path that returned 403 before, so the permission is proven end to end and not just by the probe.
+
+WHAT BLOCKS AC15 NOW: THE PIN, NOT A PERMISSION
+-----------------------------------------------
+Step 8 failed:
+
+  PYTHONPATH: network/gate
+  uv run --frozen --project network python -m precheck.job ...
+  /home/runner/.../network/.venv/bin/python3: Error while finding module specification for
+    'precheck.job' (ModuleNotFoundError: No module named 'precheck')
+
+The scratch workflow runs the gate at the commit the *graph* pins, and that pin is stale:
+
+  targets/tutorial/gate-spec.json  network_commit = 78343e108e839ddd074d57b01c689065980197e0
+  $ git ls-tree --name-only 78343e1 gate/
+    gate/.dockerignore  gate/Dockerfile  gate/lean  gate/opn_gate  gate/pregate.sh
+    gate/reproduce.sh   gate/schemas     gate/scripts gate/tests   gate/tools
+                                        ^ no gate/precheck
+
+`gate/precheck/` was added by F06-T2 (004b1e1). The pinned commit is from F03-T5 and predates it,
+so the workflow is faithfully running a gate that has never heard of the precheck job. This is the
+re-pin trap the log already records, arriving from the other direction: a workflow may only use
+what the pinned commit contains.
+
+TO CLOSE AC15 (in this order)
+-----------------------------
+1. Push main. This deploys the api (api-deploy.yml fires on any push touching api/) and puts
+   F06, F07 and F08 on GitHub so a pin can name them.
+2. Re-pin each targets/<id>/gate-spec.json to that commit — one visible diff, the gate owner's
+   act (D-4, D-35). Note this also moves the *authoritative* gate onto F07/F08 code, which is
+   the point but is a deliberate change.
+3. uv run python api/tools/smoke_precheck.py https://api.openproofnetwork.org
+4. Append its output here, mark T5 done in F06.html and in specs/index.html, and tag F06-done.
+
+CLEANED UP
+----------
+The job branch this run created was deleted; the scratch repo is back to `main` alone, confirmed
+by listing its branches. The failed run uploaded no artifact.

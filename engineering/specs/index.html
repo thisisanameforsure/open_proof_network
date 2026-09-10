@@ -34,18 +34,25 @@ and a claim round trip against the deployed service (F05-AC19). The live graph h
 it is proved, so both wait on F11's intake rather than on any code; adding a node purely to
 satisfy them would put content in the mathematical record for a test's sake (F05-Q6, decided
 2026-09-09).</p>
-<p class="status-note"><strong>F06 waits on a GitHub App permission, not on code.</strong> T1&ndash;T4 are
-done and verified; T5's criterion (F06-AC15, a real precheck run) is blocked because the App may
-not dispatch a workflow &mdash; <code>403 Resource not accessible by integration</code>. Granting
-<em>Actions: read and write</em> is the App owner's act. The steps, and everything either side of
-the dispatch that <em>is</em> verified against real GitHub, are in
-<code>engineering/evidence/F06/task-5.txt</code> and
-<code>engineering/session-notes/2026-09-09-overnight-f06.md</code>.</p>
+<p class="status-note"><strong>F06's permission is granted; what it waits on now is the pin.</strong>
+T1&ndash;T4 are done and verified. The GitHub App gained <em>Actions: read and write</em> on
+2026-09-10, and a real dispatch created a real run &mdash; so T5's criterion (F06-AC15) is no
+longer blocked on anyone's permission. It is blocked on <code>gate-spec.json</code>: the scratch
+workflow runs the gate at the commit that file pins, and that commit predates
+<code>gate/precheck/</code>, so the job dies with <code>No module named 'precheck'</code>. Closing
+it needs the push (which deploys the api) and then a re-pin, which is the gate owner's act (D-4).
+Evidence, including the run's log, is in <code>engineering/evidence/F06/task-5.txt</code>.</p>
 <p class="status-note"><strong>F07 and F08 interleave, by design.</strong> F07-T4 needs F08's
 admission check for a partial's holes (F07 &sect;8), and F08 needs the rest of F07 for everything
 else &mdash; so F08-T1 was built inside F07's slice, on 2026-09-10, and F07-T4 is unblocked by it.
 The remaining F07 work that is <em>not</em> unblocked is the graph's <code>gate.yml</code> (T1's
-last line, which waits on the re-pin) and T6 (which waits on the deploy F06 waits on).</p>
+last line) and T6 &mdash; both waiting on the same push and re-pin F06 waits on, since a workflow
+may only use a gate command the pinned commit understands.</p>
+<p class="status-note"><strong>One push and one re-pin unblock four things.</strong> Pushing
+<code>main</code> deploys the api and puts F06&ndash;F08 on GitHub; re-pinning each
+<code>gate-spec.json</code> to that commit then lets the precheck job find its package (F06-AC15),
+lets the graph's <code>gate.yml</code> call <code>opn-gate classify</code> (F07-T1's last line),
+and makes the live smokes runnable (F07-T6, F08-T6). Both are the gate owner's acts (D-4, D-35).</p>
 <p class="status-note">Each feature is a vertical slice with its own spec, tests, and verification
 evidence. Status: <span class="tag">planned</span> &rarr; <span class="tag wip">spec</span> &rarr;
 <span class="tag wip">building</span> &rarr; <span class="tag done">done</span>. Copy
@@ -70,6 +77,7 @@ file are planned, not committed to in detail.</p>
   <tr><td>F12</td><td><a href="features/F12.html">Statement QA, provenance and drift</a></td><td>D-9 v3.12's mechanizable pass as commands with kernel-checked exhibits; the per-statement QA record and signature count; the attempts ledger; the upstream-drift and resolved-elsewhere watchers (D-10 v3.12); the <code>related</code>-variant relevance signature (D-30 v3.12).</td><td>F11, F08</td><td><span class="tag wip">spec</span></td></tr>
 </table>
 
-<footer>Open Proof Network · spec index v0 (scaffold) · 2026-09-07 · specs are authored in HTML</footer>
+<footer>Open Proof Network · spec index · last reconciled against the specs and the live App
+2026-09-10 · specs are authored in HTML</footer>
 </body>
 </html>
