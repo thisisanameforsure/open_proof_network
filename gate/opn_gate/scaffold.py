@@ -25,14 +25,18 @@ from typing import Any, Literal
 
 from opn_gate import layout, schemas
 
+#: The oldest META version that can express the node being built. `skeleton-hole` exists
+#: only in v3 (D-3 v3.12), and a node that does not need it keeps the older version so
+#: nothing already committed churns.
 META_SCHEMA = "meta/v2"
+META_SCHEMA_FOR_ORIGIN: dict[str, str] = {"skeleton-hole": "meta/v3"}
 NODE_STATUS_SCHEMA = "node-status/v1"
 RELATION_FILE = "Relation.lean"
 RELATION_DECL = "relation"
 #: D-30's labels. Above ``related`` the label is a claim, and needs ``Relation.lean``.
 RELATION_LABELS: tuple[str, ...] = ("related", "partial", "resolves")
 LABELS_NEEDING_PROOF: tuple[str, ...] = ("partial", "resolves")
-Origin = Literal["authored", "compiler-derived", "variant"]
+Origin = Literal["authored", "compiler-derived", "variant", "skeleton-hole"]
 
 #: What a fresh node's META says before the products regenerate it (F03 owns ``status``).
 SCAFFOLD_STATUS = "ready"
@@ -127,7 +131,7 @@ def context_for(nodes_dir: Path, deps: tuple[str, ...]) -> str:
 
 def meta_for(proposal: Proposal, statement_hash: str) -> dict[str, Any]:
     doc: dict[str, Any] = {
-        "schema": META_SCHEMA,
+        "schema": META_SCHEMA_FOR_ORIGIN.get(proposal.origin, META_SCHEMA),
         "id": proposal.node_id,
         "status": SCAFFOLD_STATUS,
         "deps": list(proposal.deps),

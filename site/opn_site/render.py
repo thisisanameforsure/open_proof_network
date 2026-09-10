@@ -26,6 +26,8 @@ STATUS_WORDS = {
     "proved": "proved",
     "ready": "ready to prove",
     "blocked": "blocked on a dependency",
+    "refuted": "refuted by a counterexample",
+    "defective": "defective: the statement is vacuous",
     "speculative": "speculative",
     "superseded": "superseded",
     "stale": "stale",

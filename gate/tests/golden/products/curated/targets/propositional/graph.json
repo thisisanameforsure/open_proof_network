@@ -1,6 +1,7 @@
 {
   "nodes": [
     {
+      "cause": null,
       "deps": [],
       "node_id": "and-reassoc",
       "origin": "authored",
@@ -12,6 +13,7 @@
       "tutorial": false
     },
     {
+      "cause": null,
       "deps": [
         "tutorial-and-swap",
         "and-reassoc"
@@ -26,6 +28,7 @@
       "tutorial": false
     },
     {
+      "cause": null,
       "deps": [],
       "node_id": "tutorial-and-swap",
       "origin": "authored",
@@ -39,6 +42,6 @@
   ],
   "rendered_from": "5555555555555555555555555555555555555555",
   "root": "and-swap-reassoc",
-  "schema": "graph/v1",
+  "schema": "graph/v2",
   "target_id": "propositional"
 }

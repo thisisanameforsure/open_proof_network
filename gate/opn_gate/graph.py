@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 import subprocess
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -18,12 +18,25 @@ from typing import Any
 
 from opn_gate import layout, records, schemas
 from opn_gate.bounce import TIMESTAMP_FORMAT
+from opn_gate.diagnostic import Diagnostic
 from opn_gate.records import StatusRecord
 
-DERIVED_STATUSES: tuple[str, ...] = ("ready", "blocked", "proved")
+DERIVED_STATUSES: tuple[str, ...] = ("ready", "blocked", "proved", "refuted", "defective")
 RECORD_STATUSES: tuple[str, ...] = ("speculative", "superseded", "stale", "disputed", "abandoned")
 ALL_STATUSES: tuple[str, ...] = (*DERIVED_STATUSES, *RECORD_STATUSES)
 FRONTIER_STATUSES: tuple[str, ...] = ("ready", "speculative")
+#: A node whose question is settled either way: nothing depending on it can be proved (F07-R8).
+RESOLVED_STATUSES: tuple[str, ...] = ("proved", "refuted", "defective")
+#: What a merged artifact makes of the node it was submitted against (D-12 #1, #2, #3).
+STATUS_FOR_ARTIFACT: dict[str, str] = {
+    "proof": "proved",
+    "counterexample": "refuted",
+    "vacuity": "defective",
+}
+CAUSE_DEP_REFUTED = "dep-refuted"  # R8: a dependent of a refuted node, for curator attention
+CAUSE_WITNESS_MISSING = "witness-missing"  # R6: a compiler-derived child with a stub witness
+#: Origins whose nodes are created by the post-merge job with a witness slot, not a witness.
+HOLE_ORIGINS: tuple[str, ...] = ("compiler-derived", "skeleton-hole")
 TRUST_KERNEL = "kernel"
 _RELATION_RE = re.compile(r"^\s*--\s*relation:\s*(?P<label>resolves|partial|related)\s*$", re.M)
 _META_STATUS_RE = re.compile(r"^status:[ \t]*[^\n]*$", re.M)
@@ -54,6 +67,8 @@ class NodeFacts:
     relation: str | None
     proof: Proof | None
     override: StatusRecord | None
+    artifact: str | None = None  # which of D-12's artifacts Proof.lean is (F07-R8)
+    witness_stub: bool = False  # R6: the witness slot is unfilled, so the node cannot be ready
 
 
 @dataclass(frozen=True)
@@ -108,6 +123,35 @@ def proof_for(
     return None
 
 
+def artifact_of(node_dir: Path, statement_decl: str) -> str | None:
+    """Which of D-12's artifacts the node's ``Proof.lean`` is, from the name it declares.
+
+    The same rule the gate applies when it checks the artifact (F07-R4, Q11): a proof keeps the
+    statement's name, a counterexample adds ``_refuted``, a vacuity certificate ``_vacuous``. So
+    the status a merged artifact produces is read off the tree, and no attestation field or
+    submission block has to be trusted for it. ``None`` when the node has no proof file, or when
+    it declares something the gate would not have accepted.
+    """
+    from opn_gate.steps import artifact  # noqa: PLC0415 — avoids a cycle through steps.base
+
+    proof = node_dir / "Proof.lean"
+    if not proof.is_file():
+        return None
+    declared = layout.parse_declaration(proof.read_text(encoding="utf-8"), "Proof.lean")
+    if isinstance(declared, Diagnostic):
+        return None
+    return artifact.kind_of(statement_decl, declared)
+
+
+def witness_is_stub(node_dir: Path) -> bool:
+    """R6: a compiler-derived child is created with a witness slot, not a witness. Until someone
+    fills it the node cannot pass step 7, so it is blocked and the reason is mechanical."""
+    witness = node_dir / "Witness.lean"
+    if not witness.is_file():
+        return True
+    return "sorry" in witness.read_text(encoding="utf-8")
+
+
 def relation_of(node_dir: Path, origin: str) -> str | None:
     """D-30 label: a variant's ``Relation.lean`` header names it; no header means ``related``."""
     if origin != "variant":
@@ -145,6 +189,8 @@ def load_nodes(
             relation=relation_of(node_dir, origin),
             proof=proof_for(loaded.node_id, statement_hash, attestations),
             override=records.load_node_status(node_dir),
+            artifact=artifact_of(node_dir, loaded.statement.decl_name),
+            witness_stub=witness_is_stub(node_dir),
         )
     return facts
 
@@ -205,7 +251,13 @@ def check_dag(nodes: dict[str, NodeFacts]) -> None:
 
 
 def derive_statuses(nodes: dict[str, NodeFacts]) -> dict[str, str]:
-    """R1: proved > blocked > ready from the facts; a status record overrides all three."""
+    """R1, F07-R8: resolved > blocked > ready from the facts; a status record overrides all three.
+
+    A merged artifact resolves its node, and *which* resolution it is comes from what the
+    artifact declares: a proof proves it, a counterexample refutes it, a vacuity certificate
+    marks it defective (D-12). All three are settled, and none of them lets a dependent proceed,
+    because only a proof discharges the obligation a dependent inherited.
+    """
     check_dag(nodes)
     statuses: dict[str, str] = {}
 
@@ -216,17 +268,46 @@ def derive_statuses(nodes: dict[str, NodeFacts]) -> dict[str, str]:
         if node.override is not None:
             result = node.override.status
         elif node.proof is not None:
-            result = "proved"
-        elif any(status_of(dep) != "proved" for dep in node.deps):
-            result = "blocked"
+            result = STATUS_FOR_ARTIFACT.get(node.artifact or "proof", "proved")
         else:
-            result = "ready"
+            blocked, _ = blocked_because(node, status_of)
+            result = "blocked" if blocked else "ready"
         statuses[node_id] = result
         return result
 
     for node_id in sorted(nodes):
         status_of(node_id)
     return dict(sorted(statuses.items()))
+
+
+def blocked_because(node: NodeFacts, status_of: Callable[[str], str]) -> tuple[bool, str | None]:
+    """Whether ``node`` is blocked, and the mechanical reason where there is one (R6, R8).
+
+    Two things block a node that has no artifact of its own: a dependency that is not proved, and
+    a witness slot nobody has filled. Only some of those have a *nameable* cause — a dep that is
+    merely unproved is the ordinary case and says nothing worth publishing, while a dep that has
+    been refuted is a dead end a curator has to look at (D-12, D-14).
+    """
+    unproved = [dep for dep in node.deps if status_of(dep) != "proved"]
+    if unproved:
+        refuted = any(status_of(dep) == "refuted" for dep in unproved)
+        return True, CAUSE_DEP_REFUTED if refuted else None
+    if node.witness_stub and node.origin in HOLE_ORIGINS:
+        return True, CAUSE_WITNESS_MISSING
+    return False, None
+
+
+def derive_causes(nodes: dict[str, NodeFacts], statuses: dict[str, str]) -> dict[str, str | None]:
+    """R8, R6: the machine-readable reason a blocked node is blocked, or ``None``.
+
+    ``dep-refuted`` is the one the curator has to see: a node under a refuted one can never be
+    proved as it stands, and nothing else in the products would say so.
+    """
+    causes: dict[str, str | None] = {}
+    for node_id in sorted(nodes):
+        _, cause = blocked_because(nodes[node_id], lambda n: statuses.get(n, "ready"))
+        causes[node_id] = cause if statuses[node_id] == "blocked" else None
+    return causes
 
 
 def find_root(nodes: dict[str, NodeFacts], declaration: StatusRecord | None) -> str:

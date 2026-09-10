@@ -10,10 +10,13 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 from harness import copy_graph, make_context
 
 from opn_gate import attestation, pipeline, postmerge, products, schemas
+from opn_gate import graph as graphmod
 from opn_gate.signer import SshKeygenSigner
+from opn_gate.steps import artifact as art
 
 FIXED = datetime(2026, 9, 8, 6, 0, 0, tzinfo=UTC)
 
@@ -226,3 +229,141 @@ def test_review_block_rules() -> None:
         postmerge.review_block("pr-approval")
     with pytest.raises(ValueError, match="needs a reference"):
         postmerge.review_block("provenance")
+
+
+# --- F07-T4: what a merged partial and a merged alternate leave behind (R6, R7; AC7, AC8, AC9) ---
+
+TARGET = "propositional"
+PARENT = "and-swap-reassoc"
+STAMP = "20260910T121314Z"
+PSEUDONYM = "alice"
+
+ASSEMBLY = """/-! A partial proof of the root (D-12 #5). -/
+
+theorem OpnProp.and_swap_reassoc : ∀ p q r : Prop, (p ∧ q) ∧ r → r ∧ (q ∧ p) := by
+  intro p q r h
+  have right : r := sorry
+  have left : q ∧ p := sorry
+  exact ⟨right, left⟩
+"""
+
+
+def hole(name: str, closed: str, *, local: str | None = None) -> art.Hole:
+    return art.Hole(name=name, type=local or closed, closed_type=closed, defeq_goal=False)
+
+
+HOLES = (
+    hole("right", "∀ (p q r : Prop), (p ∧ q) ∧ r → r", local="r"),
+    hole("left", "∀ (p q r : Prop), (p ∧ q) ∧ r → r → q ∧ p", local="q ∧ p"),
+)
+
+
+def parent_dir(tmp_path: Path) -> Path:
+    root = copy_graph(tmp_path)
+    return root / "targets" / TARGET / "nodes" / PARENT
+
+
+def test_partial_creates_children(tmp_path: Path) -> None:
+    """AC7: two node dirs with origin compiler-derived, the parent's deps and Context updated,
+    and the assembly filed under attempts/."""
+    node_dir = parent_dir(tmp_path)
+    before = yaml.safe_load((node_dir / "META.yaml").read_text())["deps"]
+
+    result = postmerge.apply_partial(
+        node_dir, HOLES, partial_text=ASSEMBLY, pseudonym=PSEUDONYM, stamp=STAMP
+    )
+    assert result.children == (f"{PARENT}--h1", f"{PARENT}--h2")
+    assert result.origin == "compiler-derived"
+    assert result.annex is None
+
+    for child_id, h in zip(result.children, HOLES, strict=True):
+        child = node_dir.parent / child_id
+        meta = yaml.safe_load((child / "META.yaml").read_text())
+        assert meta["origin"] == "compiler-derived"
+        assert meta["id"] == child_id
+        # The statement is the hole closed over its binders — a proposition on its own (D-29).
+        statement = (child / "Statement.lean").read_text()
+        assert h.closed_type in statement
+        assert h.name in statement
+        assert "sorry" in (child / "Witness.lean").read_text()  # R6: a slot, not a witness
+        assert schemas.violations(meta) == []
+
+    deps = yaml.safe_load((node_dir / "META.yaml").read_text())["deps"]
+    assert deps == [*before, *result.children]
+    context = (node_dir / "Context.lean").read_text()
+    for child_id in result.children:
+        signature = (node_dir.parent / child_id / "Statement.lean").read_text()
+        decl = signature.split("theorem ")[1].split(" :")[0]
+        assert decl in context
+    assert (node_dir / result.attempt_path).is_file()
+    assert (node_dir / result.attempt_path).read_text() == ASSEMBLY
+
+
+def test_children_are_blocked_until_their_witness_is_filled(tmp_path: Path) -> None:
+    """R6, F07-Q3: a child is created with a witness slot, so it is blocked with a cause until
+    someone fills it — and F03 derives that from the tree, not from a record."""
+    node_dir = parent_dir(tmp_path)
+    result = postmerge.apply_partial(
+        node_dir, HOLES, partial_text=ASSEMBLY, pseudonym=PSEUDONYM, stamp=STAMP
+    )
+    child = node_dir.parent / result.children[0]
+    assert graphmod.witness_is_stub(child)
+    facts = graphmod.NodeFacts(
+        node_id=child.name,
+        target_id=TARGET,
+        path=child,
+        statement_hash="a" * 64,
+        deps=(),
+        origin="compiler-derived",
+        tutorial=False,
+        relation=None,
+        proof=None,
+        override=None,
+        witness_stub=True,
+    )
+    statuses = graphmod.derive_statuses({child.name: facts})
+    assert statuses[child.name] == "blocked"
+    causes = graphmod.derive_causes({child.name: facts}, statuses)
+    assert causes[child.name] == graphmod.CAUSE_WITNESS_MISSING
+
+
+def test_skeleton_annex_citation(tmp_path: Path) -> None:
+    """AC8: a cited annex present on the node makes the children skeleton-hole; no citation
+    leaves them compiler-derived; a citation pointing at nothing is a rejection."""
+    node_dir = parent_dir(tmp_path)
+    text = "-- annex: " + ("a" * 64) + "\n" + ASSEMBLY
+
+    with pytest.raises(postmerge.GraphWriteError, match="not on this node"):
+        postmerge.apply_partial(
+            node_dir, HOLES, partial_text=text, pseudonym=PSEUDONYM, stamp=STAMP
+        )
+    assert not (node_dir.parent / f"{PARENT}--h1").exists()  # nothing half-written (C7)
+
+    (node_dir / "annex").mkdir(exist_ok=True)
+    (node_dir / "annex" / f"{'a' * 64}.md").write_text("the informal argument\n")
+    result = postmerge.apply_partial(
+        node_dir, HOLES, partial_text=text, pseudonym=PSEUDONYM, stamp=STAMP
+    )
+    assert result.origin == "skeleton-hole"
+    assert result.annex == "a" * 64
+    meta = yaml.safe_load((node_dir.parent / result.children[0] / "META.yaml").read_text())
+    assert meta["origin"] == "skeleton-hole"
+    assert meta["schema"] == "meta/v3"  # the only version that can carry the value (D-3 v3.12)
+    assert schemas.violations(meta) == []
+    # D-31 v3.12: the citation stays in the file, which is committed under attempts/.
+    assert postmerge.annex_citation((node_dir / result.attempt_path).read_text()) == "a" * 64
+
+
+def test_alternate_proof(tmp_path: Path) -> None:
+    """AC9: a second proof of a proved node lands under attempts/ and Proof.lean is unchanged."""
+    node_dir = parent_dir(tmp_path)
+    original = (node_dir / "Proof.lean").read_text()
+    alternate = original.replace("⟨", "⟨ ")  # a different route to the same theorem
+
+    path = postmerge.record_alternate(node_dir, alternate, pseudonym="bob", stamp=STAMP)
+    assert path == f"attempts/{STAMP}-bob-alternate.lean"
+    assert (node_dir / path).read_text() == alternate
+    assert (node_dir / "Proof.lean").read_text() == original
+
+    with pytest.raises(postmerge.GraphWriteError, match="append-only"):
+        postmerge.record_alternate(node_dir, alternate, pseudonym="bob", stamp=STAMP)

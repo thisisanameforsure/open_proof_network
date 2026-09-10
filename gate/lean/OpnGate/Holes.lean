@@ -23,7 +23,12 @@ namespace OpnGate
 /-- One `have`-bound hole in a partial proof. -/
 structure Hole where
   name : String
+  /-- The hole's type as written, in the context of the binders it sits under. -/
   type : String
+  /-- The same obligation closed over those binders — a standalone statement, which is what a
+  child node needs (D-29): a hole typed `q` under `∀ p q, p ∧ q → q ∧ p` becomes
+  `∀ (p q : Prop), p ∧ q → q`. Without this a child's `Statement.lean` would not elaborate. -/
+  closed_type : String
   /-- The offload rule's question: is this hole the node's own goal wearing a new name? -/
   defeq_goal : Bool
 deriving ToJson
@@ -45,49 +50,55 @@ private structure Acc where
   holes : Array Hole := #[]
   unnamed : Nat := 0
 
-/-- Is `t` the goal restated? Compared against both the conclusion in the theorem's own binder
-context and the whole statement type, because either is the same evasion. -/
-private def restatesGoal (goal stmt t : Expr) : MetaM Bool := do
+/-- Is `t` the goal restated? Compared against the conclusion in the theorem's own binder context
+and against the whole statement, and the closed form against the statement too, because all three
+are the same evasion wearing different numbers of binders. -/
+private def restatesGoal (goal stmt t closed : Expr) : MetaM Bool := do
   try
-    if ← withReducible (isDefEq t goal) then return true
-    if ← withReducible (isDefEq t stmt) then return true
-    if ← isDefEq t goal then return true
-    isDefEq t stmt
+    for (a, b) in #[(t, goal), (t, stmt), (closed, stmt)] do
+      if ← withReducible (isDefEq a b) then return true
+    for (a, b) in #[(t, goal), (t, stmt), (closed, stmt)] do
+      if ← isDefEq a b then return true
+    return false
   catch _ => return false
 
-private partial def scan (goal stmt : Expr) (e : Expr) (acc : Acc) : MetaM Acc := do
+private partial def scan (goal stmt : Expr) (binders : Array Expr) (e : Expr) (acc : Acc)
+    : MetaM Acc := do
   let e := e.consumeMData
   if isSorry e then
     return { acc with unnamed := acc.unnamed + 1 }
   match e with
   | .letE n t v b _ =>
     if isSorry v then
+      let closed ← instantiateMVars (← mkForallFVars binders t)
       let hole : Hole := {
-        name := n.toString, type := toString (← ppExpr t),
-        defeq_goal := ← restatesGoal goal stmt t }
+        name := n.toString,
+        type := toString (← ppExpr t),
+        closed_type := toString (← ppExpr closed),
+        defeq_goal := ← restatesGoal goal stmt t closed }
       let acc := { acc with holes := acc.holes.push hole }
-      withLocalDeclD n t fun x => scan goal stmt (b.instantiate1 x) acc
+      withLocalDeclD n t fun x => scan goal stmt (binders.push x) (b.instantiate1 x) acc
     else
-      let acc ← scan goal stmt t acc
-      let acc ← scan goal stmt v acc
-      withLetDecl n t v fun x => scan goal stmt (b.instantiate1 x) acc
+      let acc ← scan goal stmt binders t acc
+      let acc ← scan goal stmt binders v acc
+      withLetDecl n t v fun x => scan goal stmt (binders.push x) (b.instantiate1 x) acc
   | .app f a =>
-    let acc ← scan goal stmt f acc
-    scan goal stmt a acc
+    let acc ← scan goal stmt binders f acc
+    scan goal stmt binders a acc
   | .lam n t b bi =>
-    let acc ← scan goal stmt t acc
-    withLocalDecl n bi t fun x => scan goal stmt (b.instantiate1 x) acc
+    let acc ← scan goal stmt binders t acc
+    withLocalDecl n bi t fun x => scan goal stmt (binders.push x) (b.instantiate1 x) acc
   | .forallE n t b bi =>
-    let acc ← scan goal stmt t acc
-    withLocalDecl n bi t fun x => scan goal stmt (b.instantiate1 x) acc
-  | .proj _ _ s => scan goal stmt s acc
+    let acc ← scan goal stmt binders t acc
+    withLocalDecl n bi t fun x => scan goal stmt (binders.push x) (b.instantiate1 x) acc
+  | .proj _ _ s => scan goal stmt binders s acc
   | _ => return acc
 
 /-- Every hole in `value`, a proof of `stmt`. -/
 def holeReport (stmt value : Expr) : MetaM HoleReport := do
-  lambdaTelescope value fun _xs body => do
+  lambdaTelescope value fun xs body => do
     let goal ← inferType body
-    let acc ← scan goal stmt body {}
+    let acc ← scan goal stmt xs body {}
     return { holes := acc.holes, unnamed := acc.unnamed, body_is_hole := isSorry body }
 
 end OpnGate

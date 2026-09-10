@@ -108,7 +108,10 @@ def artifact_result(
             "expected": expected,
             "declared": shown,
             "matches": (shown == expected) if matches is None else matches,
-            "holes": [{"name": n, "type": ty, "defeq_goal": dg} for n, ty, dg in (holes or [])],
+            "holes": [
+                {"name": n, "type": ty, "closed_type": ty, "defeq_goal": dg}
+                for n, ty, dg in (holes or [])
+            ],
             "unnamed": unnamed,
             "body_is_hole": body_is_hole,
             "axioms": list(axioms),

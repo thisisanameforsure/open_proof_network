@@ -16,10 +16,14 @@ from typing import Any
 
 from opn_gate import layout, records, schemas
 
-PRODUCT_SCHEMAS = {
-    "frontier.json": "frontier/v1",
-    "info.json": "info/v1",
-    "targets/index.json": "targets-index/v1",
+#: The product schema versions this generator can render. A consumer parses by version and old
+#: snapshots keep rendering (D-34), so this is a set per product, not a pin: `targets-index/v2`
+#: and `graph/v2` add F07-R8's two statuses, which the site shows without needing to know them.
+PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
+    "frontier.json": ("frontier/v1",),
+    "info.json": ("info/v1",),
+    "targets/index.json": ("targets-index/v1", "targets-index/v2"),
+    "graph.json": ("graph/v1", "graph/v2"),
 }
 KEEP_FILE = ".gitkeep"
 _FRONT_MATTER_RE = re.compile(r"\A---\n(?P<head>.*?)\n---\n(?P<body>.*)\Z", re.S)
@@ -94,16 +98,25 @@ class Site:
         return [n for t in self.targets.values() for n in t.nodes.values()]
 
 
-def _load_product(root: Path, rel: str, schema_id: str) -> dict[str, Any]:
+def _load_product(root: Path, rel: str, accepted: tuple[str, ...]) -> dict[str, Any]:
+    """Load a product and validate it against the version it declares, if that is one we render."""
     path = root / rel
     if not path.is_file():
         msg = f"product {rel} is missing; run `opn-gate products` first (F03)"
         raise SiteError(msg)
     try:
-        return schemas.load_json(path, schema_id)
+        declared = schemas.load_json(path)
     except schemas.SchemaError as exc:
         msg = f"product {rel} does not validate: {exc}"
         raise SiteError(msg) from exc
+    schema_id = str(declared.get("schema"))
+    if schema_id not in accepted:
+        msg = (
+            f"product {rel} is {schema_id}, which this generator does not render; "
+            f"it renders {', '.join(accepted)}"
+        )
+        raise SiteError(msg)
+    return declared
 
 
 def parse_prose(path: Path, root: Path) -> Prose:
@@ -201,7 +214,9 @@ def load_site(root: Path, commit: str) -> Site:
     for index_entry in index["targets"]:
         target_id = str(index_entry["target_id"])
         target_dir = root / "targets" / target_id
-        graph = _load_product(root, f"targets/{target_id}/graph.json", "graph/v1")
+        graph = _load_product(
+            root, f"targets/{target_id}/graph.json", PRODUCT_SCHEMAS["graph.json"]
+        )
         spec = schemas.load_json(layout.gate_spec_path(root, target_id), "gate-spec/v1")
         nodes = {str(e["node_id"]): load_node(root, target_id, e) for e in graph["nodes"]}
         approaches_dir = target_dir / "approaches"

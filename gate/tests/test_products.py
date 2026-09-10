@@ -11,7 +11,8 @@ import samples
 import yaml
 from harness import GRAPH, TARGET, copy_graph
 
-from opn_gate import graph, schemas
+from opn_gate import graph, layout, schemas
+from opn_gate.diagnostic import Diagnostic
 from opn_gate.graph import GraphError
 
 ROOT_NODE = "and-swap-reassoc"
@@ -509,3 +510,76 @@ def test_golden(tmp_path: Path, state: str) -> None:
     for rel, data in prod.files.items():
         golden = (GOLDEN / state / rel).read_bytes()
         assert data == golden, f"{state}/{rel} differs from the golden file"
+
+
+# --- F07-T4 / AC10: what a merged counterexample and a merged vacuity make of a node (R8) --------
+
+
+def refute(root: Path, node_id: str, suffix: str) -> None:
+    """Rewrite a node's Proof.lean as the artifact ``suffix`` names, as a merge would leave it."""
+    node_dir = nodes_dir(root) / node_id
+    statement = layout.parse_statement((node_dir / "Statement.lean").read_text())
+    assert not isinstance(statement, Diagnostic)
+    decl = statement.decl_name + suffix
+    (node_dir / "Proof.lean").write_text(
+        f"import Nodes.«{node_id}».Context\n\ntheorem {decl} : True := trivial\n", encoding="utf-8"
+    )
+
+
+def test_refuted_and_defective_statuses(tmp_path: Path) -> None:
+    """AC10: a merged counterexample refutes the node and its dependents carry dep-refuted; a
+    merged vacuity certificate makes it defective."""
+    root = copy_graph(tmp_path)
+    refute(root, "tutorial-and-swap", "_refuted")
+    attest(root, "tutorial-and-swap", n=1)
+    attest(root, "and-reassoc", n=2)
+
+    tg = graph.load_target(root, TARGET)
+    assert tg.statuses["tutorial-and-swap"] == "refuted"
+    assert tg.statuses["and-reassoc"] == "proved"
+    # The root depends on both, so a refuted dependency blocks it — and says why.
+    assert tg.statuses["and-swap-reassoc"] == "blocked"
+    causes = graph.derive_causes(tg.nodes, tg.statuses)
+    assert causes["and-swap-reassoc"] == graph.CAUSE_DEP_REFUTED
+    assert causes["and-reassoc"] is None
+
+    doc = products.graph_doc(tg, "5" * 40)
+    assert schemas.violations(doc, products.GRAPH_SCHEMA) == []
+    by_id = {n["node_id"]: n for n in doc["nodes"]}
+    assert by_id["tutorial-and-swap"]["status"] == "refuted"
+    assert by_id["tutorial-and-swap"]["proof_commit"] == MERGE  # the artifact merged (D-12)
+    assert by_id["and-swap-reassoc"]["cause"] == graph.CAUSE_DEP_REFUTED
+    assert by_id["and-reassoc"]["cause"] is None
+
+    # A vacuity certificate is the other resolution, and it is not a refutation.
+    other = copy_graph(tmp_path / "b")
+    refute(other, "tutorial-and-swap", "_vacuous")
+    attest(other, "tutorial-and-swap", n=1)
+    tg2 = graph.load_target(other, TARGET)
+    assert tg2.statuses["tutorial-and-swap"] == "defective"
+    causes2 = graph.derive_causes(tg2.nodes, tg2.statuses)
+    assert causes2["and-swap-reassoc"] is None  # blocked, but not by a refutation
+
+
+def test_resolved_nodes_leave_the_frontier(tmp_path: Path) -> None:
+    """R5, R8: the frontier is what is still worth attacking, so a refuted node is not on it."""
+    root = copy_graph(tmp_path)
+    refute(root, "tutorial-and-swap", "_refuted")
+    attest(root, "tutorial-and-swap", n=1)
+    tg = graph.load_target(root, TARGET)
+    node = tg.nodes["tutorial-and-swap"]
+    assert not products.in_frontier(tg.statuses["tutorial-and-swap"], node)
+    assert products.in_frontier("ready", node)
+
+
+def test_node_counts_carry_the_new_statuses(tmp_path: Path) -> None:
+    """R8: targets-index/v2 counts them, so the counts still sum to the node total."""
+    root = copy_graph(tmp_path)
+    refute(root, "tutorial-and-swap", "_refuted")
+    attest(root, "tutorial-and-swap", n=1)
+    tg = graph.load_target(root, TARGET)
+    doc = products.index_doc([tg], "5" * 40)
+    assert schemas.violations(doc, products.INDEX_SCHEMA) == []
+    counts = doc["targets"][0]["node_counts"]
+    assert counts["refuted"] == 1
+    assert sum(counts.values()) == len(tg.nodes)

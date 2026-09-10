@@ -55,18 +55,28 @@ class Hole:
 
     name: str
     type: str
+    #: The same obligation closed over the binders it sat under — what a child node's
+    #: ``Statement.lean`` declares, because a hole's own type is rarely a closed proposition.
+    closed_type: str
     defeq_goal: bool
 
     @classmethod
     def of(cls, doc: dict[str, Any]) -> Hole:
+        local = str(doc.get("type", ""))
         return cls(
             name=str(doc.get("name", "")),
-            type=str(doc.get("type", "")),
+            type=local,
+            closed_type=str(doc.get("closed_type") or local),
             defeq_goal=bool(doc.get("defeq_goal")),
         )
 
     def as_dict(self) -> dict[str, Any]:
-        return {"name": self.name, "type": self.type, "defeq_goal": self.defeq_goal}
+        return {
+            "name": self.name,
+            "type": self.type,
+            "closed_type": self.closed_type,
+            "defeq_goal": self.defeq_goal,
+        }
 
 
 @dataclass(frozen=True)

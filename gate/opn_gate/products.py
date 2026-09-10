@@ -34,9 +34,9 @@ PROTOCOL_VERSION = "3.11"  # what the code implements; docs/architecture_decisio
 # is the current protocol. v3.12 renamed D-9's second rung to screened-and-signed, which is a
 # target-status/targets-index schema bump (D-34: versioned, never edited) budgeted into F11-T2.
 # This value moves to "3.12" in that task, with the goldens regenerated in the same commit.
-GRAPH_SCHEMA = "graph/v1"
+GRAPH_SCHEMA = "graph/v2"  # F07-R8: refuted, defective and the cause field
 FRONTIER_SCHEMA = "frontier/v1"
-INDEX_SCHEMA = "targets-index/v1"
+INDEX_SCHEMA = "targets-index/v2"  # F07-R8: the two new statuses in node_counts
 INFO_SCHEMA = "info/v1"
 CLAIMS_SCHEMA = "claims/v1"
 CLAIMS_FILE = "claims.json"
@@ -167,20 +167,24 @@ def target_facts(tg: TargetGraph) -> tuple[str, bool, str]:
 
 def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
     nodes = []
+    causes = graphmod.derive_causes(tg.nodes, tg.statuses)
     for node_id in tg.order:
         n = tg.nodes[node_id]
-        proved = tg.statuses[node_id] == "proved" and n.proof is not None
+        # A refuted or defective node has a merged artifact too, and the commit that carries it
+        # is as much a fact as a proof's (D-12): record it for all three resolved statuses.
+        resolved = tg.statuses[node_id] in graphmod.RESOLVED_STATUSES and n.proof is not None
         nodes.append(
             {
                 "node_id": node_id,
                 "status": tg.statuses[node_id],
+                "cause": causes.get(node_id),
                 "deps": list(n.deps),
                 "origin": n.origin,
                 "statement_hash": n.statement_hash,
                 "relation": n.relation,
                 "tutorial": n.tutorial,
-                "trust_base": n.proof.trust_base if proved and n.proof else None,
-                "proof_commit": n.proof.merge_commit if proved and n.proof else None,
+                "trust_base": n.proof.trust_base if resolved and n.proof else None,
+                "proof_commit": n.proof.merge_commit if resolved and n.proof else None,
             }
         )
     return {
@@ -193,10 +197,14 @@ def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
 
 
 def in_frontier(status: str, node: NodeFacts) -> bool:
-    """R5: ready or speculative, plus every variant not yet proved."""
+    """R5: ready or speculative, plus every variant whose question is still open.
+
+    A refuted or defective variant is as settled as a proved one (D-12), so it leaves the
+    frontier too — the frontier is what is still worth attacking, not what still lacks a proof.
+    """
     if status in graphmod.FRONTIER_STATUSES:
         return True
-    return node.origin == "variant" and status != "proved"
+    return node.origin == "variant" and status not in graphmod.RESOLVED_STATUSES
 
 
 def frontier_entry(

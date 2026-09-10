@@ -1,6 +1,6 @@
 {
   "rendered_from": "5555555555555555555555555555555555555555",
-  "schema": "targets-index/v1",
+  "schema": "targets-index/v2",
   "targets": [
     {
       "claimable": false,
@@ -9,9 +9,11 @@
       "node_counts": {
         "abandoned": 0,
         "blocked": 0,
+        "defective": 0,
         "disputed": 0,
         "proved": 2,
         "ready": 1,
+        "refuted": 0,
         "speculative": 0,
         "stale": 0,
         "superseded": 0

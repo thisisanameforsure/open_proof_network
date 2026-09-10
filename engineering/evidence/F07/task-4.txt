@@ -1,0 +1,95 @@
+F07-T4 — post-merge effects: children from partials, statuses, alternates. 2026-09-10
+
+WHAT T4 COVERS
+--------------
+AC7  gate/tests/test_postmerge.py::test_partial_creates_children  — two child node directories
+     with origin compiler-derived, the parent's deps extended and its Context.lean regenerated
+     from them, and the assembly filed under attempts/.
+AC8  ::test_skeleton_annex_citation                               — a cited annex present on the
+     node makes the children skeleton-hole on meta/v3; a citation pointing at nothing is refused
+     with nothing written; no citation leaves them compiler-derived.
+AC9  ::test_alternate_proof                                       — a second proof of a proved
+     node lands under attempts/ and Proof.lean is untouched; a repeat is refused (append-only).
+AC10 gate/tests/test_products.py::test_refuted_and_defective_statuses — a merged counterexample
+     refutes the node and its dependents carry cause dep-refuted; a merged vacuity certificate
+     makes it defective, and that is not a refutation.
+
+Also: children are blocked with cause witness-missing until their witness slot is filled
+(::test_children_are_blocked_until_their_witness_is_filled, F07-Q3), resolved nodes leave the
+frontier, and node_counts still sums to the node total with the two new statuses.
+
+THE GAP THIS TASK FOUND, AND WHY IT MATTERED
+--------------------------------------------
+A hole's type is not a statement. The extractor reported `q` for a hole inside
+`∀ p q : Prop, p ∧ q → q ∧ p`, and `q` is a bound variable, not a proposition anyone can state on
+its own — so a child node built from it would have had a Statement.lean that does not elaborate,
+and D-29's "the holes enter the frontier as children" would have produced nodes the gate rejects.
+
+`OpnGate.Holes` now reports `closed_type` alongside `type`: the same obligation closed over the
+binders it sat under.
+
+  right : q          ->  ∀ (p q : Prop), p ∧ q → q
+  left  : p          ->  ∀ (p q : Prop), p ∧ q → q → p     (it sits under `have right` too)
+
+The offload rule got sharper for free: the closed form is compared against the statement as well,
+so `have same : q ∧ p := sorry` inside the same binders is caught as the goal restated whichever
+way it is written. The `RestateConclusion` fixture shows exactly that in the golden.
+
+THREE SCHEMA VERSIONS, AND WHY EACH
+-----------------------------------
+D-34 says versioned, never edited, so R8's two new statuses cost new versions:
+
+  graph/v2          status gains refuted and defective, and each node gains `cause` — the
+                    machine-readable reason a derived status is what it is (dep-refuted,
+                    witness-missing). v1 has no field to put that in.
+  targets-index/v2  node_counts gains the same two keys, so the counts still sum.
+  meta/v3           already existed; the scaffold now picks it when the origin needs it
+                    (skeleton-hole) and keeps meta/v2 otherwise, so nothing committed churns.
+
+The site reads both product versions rather than moving its pin: a consumer parses by version and
+old snapshots keep rendering (D-34). Its status vocabulary gained the two words; it already fell
+back to the raw token for anything it did not know, so this is presentation, not correctness.
+
+The info.json schema index moved again, so the three F03 goldens and the api's copy were
+regenerated in this commit — the diff is the index, the `cause` field and the two schema names,
+and no product drifted otherwise.
+
+WHAT IS NOT IN T4
+-----------------
+Dispatching any of this from the workflow. T4 is the post-merge *effects* as pure functions of a
+merged tree plus the hole report; the post-merge job that calls them, and step 2's dispatch into
+the artifact checks, land with the graph's gate.yml — which waits on the push and the re-pin, as
+F07-T1's last line does.
+
+VERIFICATION (2026-09-10)
+
+$ uv run pytest gate/tests/test_postmerge.py gate/tests/test_products.py   [T4's named command]
+gate/tests/test_products.py ..........................                   [100%]
+
+============================== 41 passed in 1.30s ==============================
+
+$ make verify
+All checks passed!
+139 files already formatted
+Success: no issues found in 69 source files
+Success: no issues found in 36 source files
+Success: no issues found in 14 source files
+================ 403 passed, 46 deselected, 2 warnings in 4.80s ================
+
+$ make verify-lean   — the real toolchain, 38 passed:
+gate/tests/test_admit_lean.py ........                                   [ 17%]
+gate/tests/test_artifacts_lean.py ..                                     [ 21%]
+gate/tests/test_hazards_lean.py .......                                  [ 36%]
+gate/tests/test_lean_pkg_lean.py ....                                    [ 45%]
+gate/tests/test_precheck_job_docker.py EE                                [ 50%]
+gate/tests/test_pregate_lean.py ...........                              [ 73%]
+gate/tests/test_products_lean.py .                                       [ 76%]
+gate/tests/test_reproduce_docker.py E.                                   [ 80%]
+gate/tests/test_sandbox_docker.py EEEEE                                  [ 91%]
+gate/tests/test_toolchain_lean.py ....                                   [100%]
+===== 38 passed, 396 deselected, 2 warnings, 8 errors in 734.82s (0:12:14) =====
+
+The 8 errors are one cause and not a regression: the Docker daemon was not running, so
+the step-3 image could not be built. Started it and ran the docker tier on its own:
+$ uv run pytest -m docker
+9 passed, 440 deselected, 2 warnings in 367.15s (0:06:07)
