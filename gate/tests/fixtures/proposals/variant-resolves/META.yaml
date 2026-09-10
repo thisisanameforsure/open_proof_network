@@ -1,0 +1,12 @@
+schema: meta/v2
+id: variant-resolves
+status: ready
+deps: []
+statement-hash: c3b087ffd6bedf293fcbfba06b74ae317c5cfbd762bf5a51db4596e9cfe8c629
+origin: variant
+provenance:
+  author: thisisanameforsure
+  model: null
+  source: null
+  date: '2026-09-10'
+tutorial: false

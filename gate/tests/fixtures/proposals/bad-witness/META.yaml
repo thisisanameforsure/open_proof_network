@@ -1,0 +1,12 @@
+schema: meta/v2
+id: bad-witness
+status: ready
+deps: []
+statement-hash: 6b890e473f1747a5552ef898b09345defe77e10fdbd98e6c373ef990a989e64a
+origin: authored
+provenance:
+  author: thisisanameforsure
+  model: null
+  source: null
+  date: '2026-09-10'
+tutorial: false

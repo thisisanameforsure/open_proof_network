@@ -35,3 +35,8 @@ lean_exe «opn-hazards» where
 lean_exe «opn-artifact-type» where
   root := `OpnGate.ArtifactTypeMain
   supportInterpreter := true
+
+@[default_target]
+lean_exe «opn-relation-type» where
+  root := `OpnGate.RelationTypeMain
+  supportInterpreter := true

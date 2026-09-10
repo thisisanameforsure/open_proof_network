@@ -32,8 +32,8 @@ unsafe def main (args : List String) : IO UInt32 := runMain do
     | fail s!"unknown artifact kind {kindStr}"
 
   -- Import once, then elaborate each file's commands on its own copy of that environment.
-  let (base, baseLog) ← headerEnv stmtPath stmtMod.toName
-  if let some code ← failIfErrors "statement header" baseLog then return code
+  let (base, baseLog) ← unionHeaderEnv #[stmtPath, artPath] stmtMod.toName
+  if let some code ← failIfErrors "imports" baseLog then return code
 
   let (stmtEnv, stmtLog) ← elabFile stmtPath stmtMod.toName (some base)
   if let some code ← failIfErrors "statement" stmtLog then return code

@@ -145,31 +145,39 @@ class DepsStep:
         return StepResult.passed()
 
     def _check_context(self, node: layout.Node, declared: list[str]) -> StepResult | None:
-        """R6: Context.lean's signature for each dep hash-equals the dep's Statement.lean."""
-        context_path = node.path / "Context.lean"
-        present = context_signatures(context_path.read_text(encoding="utf-8"))
-        for dep in declared:
-            dep_dir: Path = node.path.parent / dep
-            parsed = layout.parse_statement((dep_dir / "Statement.lean").read_text("utf-8"))
-            if not isinstance(parsed, layout.Statement):
-                return StepResult.failed("dep-statement", f"dep {dep!r}: {parsed.message}", dep=dep)
-            expected = statement_signature(parsed)
-            actual = present.get(parsed.decl_name)
-            if actual is None:
-                return StepResult.failed(
-                    "context-missing-dep",
-                    f"Context.lean has no signature for dep {dep!r} ({parsed.decl_name}); "
-                    "Context.lean is not a submission path (D-3), so this is a graph defect",
-                    dep=dep,
-                    decl=parsed.decl_name,
-                )
-            if signature_hash(actual) != signature_hash(expected):
-                return StepResult.failed(
-                    "context-signature-mismatch",
-                    f"Context.lean's signature for dep {dep!r} differs from its Statement.lean; "
-                    "Context.lean is not a submission path (D-3), so this is a graph defect",
-                    dep=dep,
-                    context_hash=signature_hash(actual),
-                    statement_hash=signature_hash(expected),
-                )
-        return None
+        return check_context(node, declared)
+
+
+def check_context(node: layout.Node, declared: list[str]) -> StepResult | None:
+    """R6: Context.lean's signature for each dep hash-equals the dep's Statement.lean.
+
+    Step 8 asks this of a proof; admission asks it of a proposed node, which has none (F08-R1),
+    so the rule lives here as a function and the step delegates to it.
+    """
+    context_path = node.path / "Context.lean"
+    present = context_signatures(context_path.read_text(encoding="utf-8"))
+    for dep in declared:
+        dep_dir: Path = node.path.parent / dep
+        parsed = layout.parse_statement((dep_dir / "Statement.lean").read_text("utf-8"))
+        if not isinstance(parsed, layout.Statement):
+            return StepResult.failed("dep-statement", f"dep {dep!r}: {parsed.message}", dep=dep)
+        expected = statement_signature(parsed)
+        actual = present.get(parsed.decl_name)
+        if actual is None:
+            return StepResult.failed(
+                "context-missing-dep",
+                f"Context.lean has no signature for dep {dep!r} ({parsed.decl_name}); "
+                "Context.lean is not a submission path (D-3), so this is a graph defect",
+                dep=dep,
+                decl=parsed.decl_name,
+            )
+        if signature_hash(actual) != signature_hash(expected):
+            return StepResult.failed(
+                "context-signature-mismatch",
+                f"Context.lean's signature for dep {dep!r} differs from its Statement.lean; "
+                "Context.lean is not a submission path (D-3), so this is a graph defect",
+                dep=dep,
+                context_hash=signature_hash(actual),
+                statement_hash=signature_hash(expected),
+            )
+    return None

@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from opn_gate import (
+    admit,
     attestation,
     bounce,
     config,
@@ -127,6 +128,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 def _add_graph_tool_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     """The graph-side tools that are not gate runs: step 6 alone (F02) and the products (F03)."""
+    adm = sub.add_parser("admit", help="may this node directory enter the graph? (F08-R1)")
+    adm.add_argument("node_dir", type=Path, help="targets/<target>/nodes/<id> in a graph checkout")
+    adm.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
+    adm.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
+
     haz = sub.add_parser("hazards", help="run step 6 alone on a node directory (F02-R7)")
     haz.add_argument("node_dir", type=Path, help="targets/<target>/nodes/<id> in a graph checkout")
     haz.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
@@ -161,6 +167,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "gate": run_gate,
         "classify": run_classify,
         "postmerge": run_postmerge,
+        "admit": run_admit,
         "hazards": run_hazards,
         "products": run_products,
         "sign": run_sign,
@@ -370,12 +377,32 @@ def run_postmerge(args: argparse.Namespace, settings: config.Settings) -> int:
     return code
 
 
-def run_hazards(args: argparse.Namespace, settings: config.Settings) -> int:
-    """F02-R7: step 6 alone over a node directory, for admission (F08) and proposers.
+def run_admit(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F08-R1: the mechanical admission check over one node directory.
 
-    Prints the verdict JSON plus a ``hazards`` block (findings, acknowledgments used); exits 0
-    on pass, 1 on fail. No attestation: this is not a submission.
+    Prints the verdict JSON — every check, in order, with the first failure named — and exits 0
+    when the node may enter the graph, 1 when it may not. No attestation: admission decides
+    whether a *statement* is well formed, which is not a claim about mathematics (D-29).
     """
+    ctx = node_context(args, settings, prefix="opn-admit-")
+    result = admit.run(ctx)
+    summary = result.as_dict(settings.diagnostic_max_bytes)
+    summary["node"] = ctx.claim.node_id
+    summary["target"] = ctx.claim.target_id
+    for key in ("hazards", "relation", "relation_label", "statement_axioms", "witness"):
+        if key in ctx.data:
+            summary[key] = ctx.data[key]
+    sys.stdout.write(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
+    if not result.admitted and result.diagnostic is not None:
+        sys.stderr.write(
+            f"opn-gate: admission failed at {result.first_failing_check}: "
+            f"{result.diagnostic.message}\n"
+        )
+    return EXIT_PASS if result.admitted else EXIT_FAIL
+
+
+def node_context(args: argparse.Namespace, settings: config.Settings, *, prefix: str) -> RunContext:
+    """A RunContext over one node directory in a graph checkout — no diff, no Proof.lean."""
     node_dir: Path = args.node_dir.resolve()
     parts = node_dir.parts
     if not node_dir.is_dir() or len(parts) < 4 or parts[-2] != "nodes" or parts[-4] != "targets":
@@ -393,8 +420,8 @@ def run_hazards(args: argparse.Namespace, settings: config.Settings) -> int:
         tc = toolchain.LocalToolchain.from_settings(settings)
     except toolchain.ToolchainMissingError as exc:
         raise CliError(str(exc)) from exc
-    out_dir = _out_dir(args.out, "opn-hazards-")
-    ctx = RunContext(
+    out_dir = _out_dir(args.out, prefix)
+    return RunContext(
         graph_root=graph,
         claim=Claim(target_id, node_dir.name),
         spec=spec,
@@ -405,6 +432,15 @@ def run_hazards(args: argparse.Namespace, settings: config.Settings) -> int:
         settings=settings,
         install_toolchain=bool(args.install),
     )
+
+
+def run_hazards(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F02-R7: step 6 alone over a node directory, for admission (F08) and proposers.
+
+    Prints the verdict JSON plus a ``hazards`` block (findings, acknowledgments used); exits 0
+    on pass, 1 on fail. No attestation: this is not a submission.
+    """
+    ctx = node_context(args, settings, prefix="opn-hazards-")
     verdict = pipeline.run_steps(ctx, steps=[ToolchainStep(), StatementStep(), HazardsStep()])
     summary = verdict.as_dict(settings.diagnostic_max_bytes)
     summary["hazards"] = ctx.data.get("hazards")

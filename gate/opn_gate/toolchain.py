@@ -175,6 +175,50 @@ class ArtifactRequest:
 
 
 @dataclass(frozen=True)
+class RelationRequest:
+    """Inputs of ``opn-relation-type`` (D-30; F08-R4): a variant, its target's root, the claim."""
+
+    variant: Path
+    variant_module: str
+    variant_decl: str
+    root: Path
+    root_module: str
+    root_decl: str
+    label: str  # resolves | partial | related
+    relation: Path | None = None
+    relation_module: str | None = None
+    relation_decl: str = "relation"
+
+    def args(self) -> list[str]:
+        out = [
+            "--variant",
+            str(self.variant.resolve()),
+            "--variant-module",
+            self.variant_module,
+            "--variant-decl",
+            self.variant_decl,
+            "--root",
+            str(self.root.resolve()),
+            "--root-module",
+            self.root_module,
+            "--root-decl",
+            self.root_decl,
+            "--label",
+            self.label,
+        ]
+        if self.relation is not None and self.relation_module is not None:
+            out += [
+                "--relation",
+                str(self.relation.resolve()),
+                "--relation-module",
+                self.relation_module,
+                "--relation-decl",
+                self.relation_decl,
+            ]
+        return out
+
+
+@dataclass(frozen=True)
 class HazardsRequest:
     """Inputs of ``opn-hazards`` (F02-R1, R3): the statement and exactly the checkers to run."""
 
@@ -234,6 +278,7 @@ METAPROGRAMS: tuple[str, ...] = (
     "opn-used-constants",
     "opn-hazards",
     "opn-artifact-type",
+    "opn-relation-type",
 )
 
 
@@ -335,6 +380,16 @@ class Toolchain(Protocol):
         timeout_s: float | None = None,
     ) -> MetaprogramResult:
         """F07: ``opn-artifact-type`` — what the artifact declares, and its holes if it has any."""
+
+    def relation_type(
+        self,
+        tc: ResolvedToolchain,
+        req: RelationRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        """F08: ``opn-relation-type`` — the implication a labeled variant claims (D-30)."""
 
 
 # --- helpers shared by the real implementation and its tests --------------------------------
@@ -661,6 +716,16 @@ class LocalToolchain:
         timeout_s: float | None = None,
     ) -> MetaprogramResult:
         return self._metaprogram_run(tc, "opn-artifact-type", req.args(), search_path, timeout_s)
+
+    def relation_type(
+        self,
+        tc: ResolvedToolchain,
+        req: RelationRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        return self._metaprogram_run(tc, "opn-relation-type", req.args(), search_path, timeout_s)
 
 
 def _env_with(extra: dict[str, str] | None) -> dict[str, str] | None:

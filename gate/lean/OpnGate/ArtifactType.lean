@@ -45,4 +45,41 @@ def expectedArtifactType (kind : ArtifactKind) (stmtType : Expr) : MetaM Expr :=
   | .counterexample => return mkNot stmtType
   | .vacuity => return mkNot (← expectedWitnessType stmtType)
 
+/-!
+The relation a labeled variant must prove (D-30; F08-R4).
+
+A variant is a different statement offered beside a target's root, and its label says how the two
+are related. Above `related` the label is a claim about implication, and a claim is proved:
+
+* `resolves` — the variant implies the root, `V → R`: proving the variant closes the target.
+* `partial` — the root implies the variant, `R → V`: the variant is the weaker statement, so
+  proving it is progress and not a resolution.
+* `related` — no implication is claimed, so there is nothing to prove and no `Relation.lean`.
+
+Getting the direction wrong is the whole risk the label exists to price, which is why the gate
+checks it rather than reading the label.
+-/
+
+inductive RelationLabel where
+  | resolves | partial_ | related
+deriving Repr, BEq
+
+def RelationLabel.ofString? : String → Option RelationLabel
+  | "resolves" => some .resolves
+  | "partial" => some .partial_
+  | "related" => some .related
+  | _ => none
+
+def RelationLabel.toString : RelationLabel → String
+  | .resolves => "resolves"
+  | .partial_ => "partial"
+  | .related => "related"
+
+/-- The implication `Relation.lean` must declare, or `none` for `related`, which claims none. -/
+def expectedRelationType (label : RelationLabel) (variant root : Expr) : MetaM (Option Expr) := do
+  match label with
+  | .resolves => return some (← mkArrow variant root)
+  | .partial_ => return some (← mkArrow root variant)
+  | .related => return none
+
 end OpnGate

@@ -1,0 +1,12 @@
+schema: meta/v2
+id: hazard
+status: ready
+deps: []
+statement-hash: d52d490b40c31fe9aa0b50e641d97212b4c41f25ea98375464ff75cf13405c88
+origin: authored
+provenance:
+  author: thisisanameforsure
+  model: null
+  source: null
+  date: '2026-09-10'
+tutorial: false

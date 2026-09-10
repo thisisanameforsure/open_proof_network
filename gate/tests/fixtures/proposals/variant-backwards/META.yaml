@@ -1,0 +1,12 @@
+schema: meta/v2
+id: variant-backwards
+status: ready
+deps: []
+statement-hash: fce12291323121bf0aedbf56beafded24a98b2c635f4b38f2aac46ed5e120104
+origin: variant
+provenance:
+  author: thisisanameforsure
+  model: null
+  source: null
+  date: '2026-09-10'
+tutorial: false

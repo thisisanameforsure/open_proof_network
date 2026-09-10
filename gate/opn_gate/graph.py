@@ -152,30 +152,56 @@ def load_nodes(
 # --- derivation --------------------------------------------------------------------------------
 
 
-def check_dag(nodes: dict[str, NodeFacts]) -> None:
-    """R3: every dep exists and the relation is acyclic; the first problem is named."""
-    for node_id in sorted(nodes):
-        for dep in nodes[node_id].deps:
-            if dep not in nodes:
-                msg = f"node {node_id!r} declares dep {dep!r}, which is not a node"
-                raise GraphError(msg)
+def missing_dep(edges: dict[str, tuple[str, ...]]) -> tuple[str, str] | None:
+    """The first (node, dep) pair whose dep is not a node, or ``None``."""
+    for node_id in sorted(edges):
+        for dep in edges[node_id]:
+            if dep not in edges:
+                return node_id, dep
+    return None
+
+
+def find_cycle(edges: dict[str, tuple[str, ...]]) -> list[str] | None:
+    """The first dependency cycle in ``edges``, as the path that closes it, or ``None``.
+
+    Over ids alone, so admission (F08-R1) can ask the same question of a graph plus one proposed
+    node without building the full node records F03 derives statuses from.
+    """
     state: dict[str, int] = {}  # 1 = on the current path, 2 = done
+    found: list[str] | None = None
 
     def visit(node_id: str, path: list[str]) -> None:
+        nonlocal found
+        if found is not None:
+            return
         mark = state.get(node_id, 0)
         if mark == 2:
             return
         if mark == 1:
-            cycle = [*path[path.index(node_id) :], node_id]
-            msg = "dependency cycle: " + " -> ".join(cycle)
-            raise GraphError(msg)
+            found = [*path[path.index(node_id) :], node_id]
+            return
         state[node_id] = 1
-        for dep in nodes[node_id].deps:
+        for dep in edges.get(node_id, ()):
             visit(dep, [*path, node_id])
         state[node_id] = 2
 
-    for node_id in sorted(nodes):
+    for node_id in sorted(edges):
         visit(node_id, [])
+    return found
+
+
+def check_dag(nodes: dict[str, NodeFacts]) -> None:
+    """R3: every dep exists and the relation is acyclic; the first problem is named."""
+    edges = {node_id: nodes[node_id].deps for node_id in nodes}
+    absent = missing_dep(edges)
+    if absent is not None:
+        node_id, dep = absent
+        msg = f"node {node_id!r} declares dep {dep!r}, which is not a node"
+        raise GraphError(msg)
+    cycle = find_cycle(edges)
+    if cycle is not None:
+        msg = "dependency cycle: " + " -> ".join(cycle)
+        raise GraphError(msg)
 
 
 def derive_statuses(nodes: dict[str, NodeFacts]) -> dict[str, str]:

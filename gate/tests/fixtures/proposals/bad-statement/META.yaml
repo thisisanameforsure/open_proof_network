@@ -1,0 +1,12 @@
+schema: meta/v2
+id: bad-statement
+status: ready
+deps: []
+statement-hash: c09be89471877d5ce144ffa74263f7ff00e3e71b5a94365b404ec3e23e9715cf
+origin: authored
+provenance:
+  author: thisisanameforsure
+  model: null
+  source: null
+  date: '2026-09-10'
+tutorial: false

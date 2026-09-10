@@ -1,0 +1,87 @@
+F08-T1 — mechanical admission, node scaffolding, the D-30 relation check. 2026-09-10
+
+WHAT T1 COVERS
+--------------
+AC1  gate/tests/test_admit.py::test_admission_order_and_pass    — a well-formed proposal passes
+     all eight checks, in R1's order, and the verdict names that order.
+AC2  ::test_typecheck_first                                     — a statement that does not
+     elaborate fails at the elaboration, and every check after it is skipped, not run.
+AC3  ::test_cycle_rejected                                      — a proposal that closes a loop
+     with the root is refused naming the cycle; an unknown dep is named too.
+AC4  ::test_relation_direction                                  — a `partial` label with a
+     `resolves` proof fails naming both types; the right direction passes.
+AC5  ::test_relation_required_above_related                     — `related` needs no proof and
+     passes; a label above it cannot be built without one (see the judgment call below).
+AC18 gate/tests/test_admit_lean.py::test_admission_matrix       — the same seven fixtures against
+     the real toolchain: each is admitted, or fails at the check it is broken at.
+
+`opn-gate admit <node-dir>` is the command, and `opn_gate.scaffold` is the library that builds a
+node directory to feed it — one builder for every way a node enters the graph (D-14's crux, D-30's
+variant, D-29's hole, D-8's revision), which F08's endpoints and F07-T4's post-merge job will use.
+
+THE JUDGMENT CALL WORTH REVIEWING
+---------------------------------
+AC5 asks for a variant "labeled partial without Relation.lean". There is no such node. F03
+already fixed the convention that a variant's label is the `-- relation:` line inside
+Relation.lean, so a claim and its proof are the same file: claiming `partial` and supplying
+nothing is not a thing that can exist in the graph. The criterion is met in the two places the
+impossibility is actually enforced — the scaffold refuses to build it, and admission refuses a
+Relation.lean carrying no label (`relation-unlabelled`). Recorded as F08-Q6.
+
+WHAT THE REAL TOOLCHAIN SAID
+----------------------------
+Two failures the fast tier could not have caught, both about *imports*:
+
+1. The relation check reads three files — the variant's statement, the root's statement and the
+   relation proof — and no one of their headers is a superset of the others'. The metaprogram now
+   synthesises a header from the union of the three and imports that once
+   (`OpnGate.Frontend.unionHeaderEnv`). `opn-artifact-type` uses it too, for the same reason.
+
+2. The union is not enough on its own: the root's statement imports the root's `Context`, which
+   nothing had compiled — the layout check compiles only the Context of the node being admitted.
+   The relation check now stages and compiles the root's Context first. Both failures presented
+   identically (`relation-elaboration`), which is why the message names what could not be
+   imported rather than just saying the file is bad.
+
+VERIFICATION — $ make verify-lean   (2026-09-10)
+
+verify-lean: elan at /Users/mikehiggins/.elan/bin/elan
+uv run --frozen pytest -m "lean or docker"
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+testpaths: gate/tests, api/tests, site/tests
+plugins: anyio-4.15.1
+collected 441 items / 395 deselected / 46 selected
+
+gate/tests/test_admit_lean.py ........                                   [ 17%]
+gate/tests/test_artifacts_lean.py ..                                     [ 21%]
+gate/tests/test_hazards_lean.py .......                                  [ 36%]
+gate/tests/test_lean_pkg_lean.py ....                                    [ 45%]
+gate/tests/test_precheck_job_docker.py ..                                [ 50%]
+gate/tests/test_pregate_lean.py ...........                              [ 73%]
+gate/tests/test_products_lean.py .                                       [ 76%]
+gate/tests/test_reproduce_docker.py ..                                   [ 80%]
+gate/tests/test_sandbox_docker.py .....                                  [ 91%]
+gate/tests/test_toolchain_lean.py ....                                   [100%]
+
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:26
+  /Users/mikehiggins/Desktop/repos/open_proof_network/api/tests/api_fakes.py:26: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+========= 46 passed, 395 deselected, 2 warnings in 1277.95s (0:21:17) ==========
+
+$ make verify
+uv run --frozen ruff check .
+All checks passed!
+uv run --frozen ruff format --check .
+137 files already formatted
+uv run --frozen mypy gate
+Success: no issues found in 69 source files
+uv run --frozen mypy api
+Success: no issues found in 36 source files
+uv run --frozen mypy site
+Success: no issues found in 14 source files
+uv run --frozen pytest -m "not lean and not docker and not network"
+================ 395 passed, 46 deselected, 2 warnings in 4.45s ================

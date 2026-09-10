@@ -44,6 +44,34 @@ def headerEnv (path : System.FilePath) (moduleName : Name) : IO (Environment × 
   let (stx, _, messages) ← Parser.parseHeader inputCtx
   processHeader stx {} messages inputCtx (mainModule := moduleName)
 
+/-- The modules `path`'s header imports, in order. -/
+def fileImports (path : System.FilePath) : IO (Array Name) := do
+  let input ← IO.FS.readFile path
+  let inputCtx := Parser.mkInputContext input path.toString
+  let (stx, _, _) ← Parser.parseHeader inputCtx
+  let header : HeaderSyntax := stx
+  let mut out : Array Name := #[]
+  for imp in header.imports (includeInit := false) do
+    unless out.contains imp.module do out := out.push imp.module
+  return out
+
+/-- The environment the *union* of these files' imports gives.
+
+A metaprogram that compares two or three files needs one environment they can all be elaborated
+into, and no single file's header is necessarily a superset of the others': a variant's statement
+imports its own `Context`, the root's imports the root's. So the union is synthesised as a header
+of its own and imported once (see `headerEnv` for why once). -/
+def unionHeaderEnv (paths : Array System.FilePath) (moduleName : Name)
+    : IO (Environment × MessageLog) := do
+  let mut names : Array Name := #[]
+  for path in paths do
+    for module in ← fileImports path do
+      unless names.contains module do names := names.push module
+  let text := String.join (names.toList.map fun n => s!"import {n}\n")
+  let inputCtx := Parser.mkInputContext text "<opn-imports>"
+  let (stx, _, messages) ← Parser.parseHeader inputCtx
+  processHeader stx {} messages inputCtx (mainModule := moduleName)
+
 /-- Elaborate `path` as module `moduleName`.
 
 With `base? = none` the file's own header is processed (imports resolved via `LEAN_PATH`).

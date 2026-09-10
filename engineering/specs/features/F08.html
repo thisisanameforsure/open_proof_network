@@ -113,10 +113,12 @@ D-13, D-14, D-16, D-18, D-19, D-21, D-28, D-29, D-30, D-33, D-35.</p>
   <tr><td>F08-Q3</td><td><strong>Missing-library prerequisites are not auto-created</strong> — decided in D-13 (v3.11): above the threshold (config default 3) the aggregated lemma is surfaced to the curator, who proposes the node like anyone else. No deviation.</td></tr>
   <tr><td>F08-Q4</td><td><strong>Defect taxonomy</strong> — enumerated in D-16 since v3.11: the eight classes R7 lists. No deviation.</td></tr>
   <tr><td>F08-Q5</td><td><strong>Curator PRs need a second curator's approval</strong> per D-21's separation, waived while the founder is the only curator (D-22), with the waiver recorded per PR so the ledger shows it. Confirmed by Mike 2026-09-07.</td></tr>
+  <tr><td>F08-Q6</td><td><strong>A variant's label lives in <code>Relation.lean</code>, so a claim without a proof is not a node anyone can build.</strong> F03 already reads the label from the <code>-- relation:</code> line in that file, and F03's frontier publishes it from there. Keeping one home for it means <em>labeled <code>partial</code> with no <code>Relation.lean</code></em> (AC5's first half) describes something that cannot exist: the label would have nowhere to live. The impossibility is enforced in the two places it can be &mdash; the scaffold refuses to build such a proposal, and admission refuses a <code>Relation.lean</code> that carries no label (<code>relation-unlabelled</code>) &mdash; and AC5 is met there. Decided 2026-09-10 in T1.</td></tr>
+  <tr><td>F08-Q7</td><td><strong>Admission's verdict is keyed by check name, not by D-4 step number.</strong> R1 asks for "a verdict in the F00 shape with the first failing check", and its eight checks are not D-4 steps: two of them (context, graph) are halves of steps, and one (relation) has no step at all. The document therefore carries <code>checks: [{check, result, diagnostic}]</code> and <code>first_failing_check</code>, mirroring the gate verdict field for field. Nothing consumes both, and forcing admission into 1&ndash;9 would have invented step numbers the protocol does not have. Decided 2026-09-10 in T1.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> spec · <strong>Tasks:</strong> T1&ndash;T6 todo</div>
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1 &#10003; 2026-09-10 (<code>make verify-lean</code>: 46 passed, AC18 among them; AC1&ndash;AC5 in the fast tier; <code>make verify</code> 395 passed) · T2&ndash;T6 todo</div>
 
 <h2>Tasks</h2>
 <table>

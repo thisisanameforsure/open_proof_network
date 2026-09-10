@@ -1,0 +1,13 @@
+schema: meta/v2
+id: cycle
+status: ready
+deps:
+- and-swap-reassoc
+statement-hash: 6ad33d6b7736b7ac4d59e49bef00f1e4523000b94a935c58c94d029543a32495
+origin: authored
+provenance:
+  author: thisisanameforsure
+  model: null
+  source: null
+  date: '2026-09-10'
+tutorial: false
