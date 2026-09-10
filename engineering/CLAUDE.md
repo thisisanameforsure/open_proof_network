@@ -152,9 +152,10 @@ The law of the project:
   about a variant labelled `partial` with no `Relation.lean`; F03 had already put the label
   inside that file, so the node cannot exist. Say so in a judgment call and test the two places
   the impossibility is enforced — do not bend the design to make the literal words testable.
-- 2026-09-10 — Assert what the API actually lets you control. R2 wants the App as committer;
+- 2026-09-10 — ~~Assert what the API actually lets you control. R2 wants the App as committer;
   the Git Data API fills the committer from the token, so the test asserts the author that *is*
-  sent and that no committer field is sent at all. Omission is the enforcement.
+  sent and that no committer field is sent at all. Omission is the enforcement.~~ **Wrong, and
+  corrected the same day by the live host — see the entry at the end of this log.**
 - 2026-09-10 — Two features can each be the other's dependency and still be buildable: F07-T4
   needs F08-T1, F08 needs F07 for everything else. Take the one task that breaks the cycle rather
   than treating the feature order as a total order.
@@ -198,3 +199,17 @@ The law of the project:
   that has been up for twenty seconds. CI caught it; both local tiers were green. Force staleness
   by subtracting the window from *now*, never by assuming the clock's origin — and read a
   CI-only failure as a fact about the environment before assuming flake.
+- 2026-09-10 — Omission is not enforcement. The struck-through note above said the
+  Git Data API fills the committer from the token, so the test asserted *no committer field*.
+  The live host disagreed: it copies the **author** into an absent committer, so the contributor
+  was both, and the D-23 split had quietly collapsed. The assertion was asserting the defect.
+  Never test that a field is absent as a proxy for what the server will do with it.
+- 2026-09-10 — A green run is not a checked run. `smoke_submit` resubmitted the tutorial node's
+  committed `Proof.lean` byte for byte, so the pull request was empty, the gate said "nothing to
+  gate" and passed — twice, and I wrote both up as AC21 evidence. Read the *run log*, not the
+  conclusion. A smoke that drives a diff must assert the diff exists.
+- 2026-09-10 — Three of F07's requirements (R7, R9, R10) want an actor that merges or closes a
+  pull request, and every mechanism for one needs write permission in a job triggered by that
+  pull request — the exact thing C8 forbids, while D-4 forbids the App merging. The classifier
+  half landed; the acting half is a new privileged actor on the record repository, which is the
+  owner's call. When a spec line implies a permission, price the permission before the code.
