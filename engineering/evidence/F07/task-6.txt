@@ -1,0 +1,21 @@
+GET /health -> 200 {'ok': True, 'store': 'dynamodb'}
+tutorial node: tutorial-and-swap in target tutorial, proof 174 bytes
+POST /precheck (no token) -> 202 id=01M25YW82G2ZGRK019F88W0AAS
+    0.7s  queued
+   11.7s  running
+  142.6s  done
+POST /tokens -> 201 pseudonym=smoke-b641f4fd
+POST /precheck (as the identity) -> 202 id=01M25Z0RKGZMGZR4CQ9Y3AWV01
+   19.9s  running
+  129.1s  done
+POST /submissions -> 201 https://github.com/thisisanameforsure/open_proof_network_graph/pull/4
+PR #4: 'proof: tutorial-and-swap' [open] https://github.com/thisisanameforsure/open_proof_network_graph/pull/4
+  author   : smoke-b641f4fd <smoke-b641f4fd@anon.opn.invalid>
+  committer: open-proof-network[bot] <327070898+open-proof-network[bot]@users.noreply.github.com>
+  sign-off : yes
+  gate     : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34496255987
+  gate     : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34496255987
+  gate     : completed success https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34496255987
+cleanup: close PR #4 -> 200
+cleanup: delete submit/01M25Z4TFR447SX5PMN74G34N6 -> 204
+smoke-submit: ok
