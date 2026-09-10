@@ -75,3 +75,109 @@ def test_resolve() -> None:
     assert links.resolve("/targets/") == "targets/index.html"
     assert links.resolve("/site.css") == "site.css"
     assert links.resolve("https://x/") is None and links.resolve("relative") is None
+
+
+# --- the checker against hostile hrefs and resources (R10, R13) ----------------------------------
+
+
+@pytest.mark.parametrize(
+    "href",
+    [
+        "javascript:alert(1)",
+        "JAVASCRIPT:alert(1)",
+        "data:text/html,<script>alert(1)</script>",
+        "//evil.example/x",
+        "relative/page/",
+        "mailto:x@example",
+    ],
+)
+def test_active_or_off_origin_hrefs_are_reported(rendered: dict[str, str], href: str) -> None:
+    """Every scheme, protocol-relative and relative href is a problem: only same-origin absolute
+    paths and links under the configured repository URL are allowed."""
+    foreign = frozenset({"docs/architecture-decisions.html"})
+    page = rendered["index.html"] + f'<a href="{href}">x</a>'
+    problems = links.check({**rendered, "index.html": page}, repo_url=REPO, foreign=foreign)
+    assert problems == [f"index.html: external link {href}"]
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "links._check_page allows any href with href.startswith(repo_url) (links.py:70), so "
+        "https://github.com/example/graph-evil/x and graph.evil.example/ pass as file links; "
+        "AC5 allows only GitHub file links into the graph. Not reachable from graph content "
+        "today (every file href is built as repo_url + '/blob/'), so the net is loose, not torn"
+    ),
+)
+@pytest.mark.parametrize(
+    "href",
+    ["https://github.com/example/graph-evil/x", "https://github.com/example/graph.evil.example/"],
+)
+def test_repo_url_prefix_match_is_exact_to_the_configured_string(href: str) -> None:
+    """A URL that merely starts with the repository URL's text is external."""
+    assert links.check({"index.html": f'<a href="{href}">x</a>'}, repo_url=REPO) == [
+        f"index.html: external link {href}"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("tag", "attr"),
+    [("img", "src"), ("iframe", "src"), ("source", "src"), ("link", "href")],
+)
+def test_every_resource_kind_must_be_same_origin_and_present(tag: str, attr: str) -> None:
+    files = {"index.html": f'<{tag} {attr}="https://cdn.example/x">', "site.css": ""}
+    problems = links.check(files, repo_url=REPO)
+    assert "index.html: off-origin resource https://cdn.example/x" in problems
+    files["index.html"] = f'<{tag} {attr}="/missing.css">'
+    problems = links.check(files, repo_url=REPO)
+    assert "index.html: resource /missing.css does not resolve" in problems
+
+
+def test_data_uri_resource_is_off_origin() -> None:
+    files = {"index.html": '<img src="data:image/svg+xml,<svg onload=alert(1)>">'}
+    assert links.check(files, repo_url=REPO) == [
+        "index.html: off-origin resource data:image/svg+xml,<svg onload=alert(1)>"
+    ]
+
+
+def test_traversal_and_encoded_paths_do_not_resolve() -> None:
+    """An internal href must name a generated file literally; `..` and percent-encoding are not
+    normalised into a match."""
+    files = {"index.html": "", "targets/index.html": ""}
+    assert links.resolve("/targets/../index.html") == "targets/../index.html"
+    assert links.resolve("/%74argets/") == "%74argets/index.html"
+    for href in ("/targets/../index.html", "/%74argets/", "/Targets/"):
+        page = f'<a href="{href}">x</a>'
+        assert links.check({**files, "index.html": page}, repo_url=REPO) == [
+            f"index.html: internal link {href} does not resolve"
+        ]
+
+
+def test_query_and_fragment_are_ignored_when_resolving() -> None:
+    assert links.resolve("/targets/?filter=x#row-3") == "targets/index.html"
+    assert links.resolve("#top") is None
+    files = {"index.html": '<a href="#top">x</a><a href="/?x=1">y</a>'}
+    assert links.check(files, repo_url=REPO) == []
+
+
+def test_unclosed_tag_and_stray_close_are_both_reported() -> None:
+    files = {"index.html": "<div><p>open", "site.css": ""}
+    assert links.check(files, repo_url=REPO) == ["index.html: unclosed p"]
+    files["index.html"] = "<p>x</p></p>"
+    assert links.check(files, repo_url=REPO) == ["index.html: unbalanced </p>"]
+
+
+def test_foreign_pages_skip_balance_but_never_resource_checks() -> None:
+    """The copied decisions document may link anywhere, but it still may not load a resource
+    from another origin (R10: the CSP would block it and the page would silently break)."""
+    files = {
+        "docs/x.html": '<a href="https://cited.example/">c</a></div>'
+        '<script src="https://cdn.example/x.js"></script>'
+    }
+    problems = links.check(files, repo_url=REPO, foreign=frozenset({"docs/x.html"}))
+    assert problems == ["docs/x.html: off-origin resource https://cdn.example/x.js"]
+
+
+def test_non_html_files_are_not_scanned() -> None:
+    files = {"site.css": 'a { background: url("https://cdn.example/x.png") }'}
+    assert links.check(files, repo_url=REPO) == []
