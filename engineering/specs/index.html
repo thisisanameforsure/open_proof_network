@@ -54,11 +54,23 @@ live submission. Three things remain, and all three are the same shape of proble
 that needs write permission on a pull-request trigger, which C8 forbids and D-4 forbids the App
 doing. Merging append and explainer mode on green (R9, R10, <strong>F07-Q16</strong>); recording
 a racing proof as an alternate and closing its pull request unmerged (R7, <strong>F07-Q17</strong>);
-and the post-merge effects having no caller at all (R6, R12, <strong>F07-Q17</strong>). Separately
-the graph's <code>main</code> ruleset requires a status check named
-<code>gate (steps 1, 2, 4, 5 in the sandbox)</code> and the workflow's job is named
-<code>gate (steps 1, 2 and 4-8 in the sandbox)</code>, so no pull request can satisfy it and no
-contributor merge can happen at all until the owner fixes the name.</p>
+and the post-merge effects having no caller at all (R6, R12, <strong>F07-Q17</strong>). Decided
+2026-09-10 <em>not</em> to build the privileged actor yet: there are no contributors, so it would
+buy a risk early for a convenience nothing uses, and the first real submissions are worth watching
+land by hand. The five affected requirements are badged in the F07 table so the gap is visible
+where the requirement is, not only in the questions.</p>
+<p class="status-note"><strong>The graph's merge gate was broken and is fixed (2026-09-10).</strong>
+Its <code>main</code> ruleset required a status check named
+<code>gate (steps 1, 2, 4, 5 in the sandbox)</code> while the workflow's job reports
+<code>gate (steps 1, 2 and 4-8 in the sandbox)</code> &mdash; the name drifted when the gate grew
+from four sandboxed steps to six. GitHub matches by exact name, so the required check never
+reported and <em>no pull request could ever merge</em>. Corrected in the ruleset, that field alone,
+and verified live: a submission went from blocked to <code>mergeable_state: clean</code>. The same
+check confirmed two design properties hold &mdash; GitHub's own
+<code>required_approving_review_count</code> is 0, so step 9 stays a property of the statement
+(D-4 v3.11) rather than a blanket rule, and a pseudonymous submission is not caught by
+<code>require_extra_approval_for_unattributed_changes</code>, because the App is the committer
+(F07-R2).</p>
 <p class="status-note"><strong>The push and the re-pin happened on 2026-09-10.</strong> <code>main</code> is on GitHub at <code>af2f4e7</code>, the api is deployed from it, and each <code>gate-spec.json</code> pins it &mdash; so the authoritative gate now runs F07's classifier and artifact checks and F08's admission, and the post-merge products are <code>graph/v2</code> and <code>targets-index/v2</code>. What that unblocked: F06-AC15 (met), F07-T1's <code>gate.yml</code> line and the two live smokes (F07-T6, F08-T6).</p>
 <p class="status-note">Each feature is a vertical slice with its own spec, tests, and verification
 evidence. Status: <span class="tag">planned</span> &rarr; <span class="tag wip">spec</span> &rarr;

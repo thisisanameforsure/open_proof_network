@@ -213,3 +213,18 @@ The law of the project:
   pull request — the exact thing C8 forbids, while D-4 forbids the App merging. The classifier
   half landed; the acting half is a new privileged actor on the record repository, which is the
   owner's call. When a spec line implies a permission, price the permission before the code.
+- 2026-09-10 — A required status check is matched by exact name, so renaming a CI job silently
+  disarms branch protection: the graph's ruleset wanted `gate (steps 1, 2, 4, 5 in the sandbox)`
+  and the job had grown into `gate (steps 1, 2 and 4-8 in the sandbox)`, so the check never
+  reported and *no pull request could ever merge* — invisible, because a never-reported check
+  looks like a pending one. After any job rename, open a pull request and read `mergeable_state`;
+  `clean` is the proof, a green check is not.
+- 2026-09-10 — Keep GitHub's own review count at 0 and enforce review inside the gate. D-4 v3.11
+  makes step 9 a property of the *statement* — a certified statement needs no human — and that
+  carve-out is only expressible if the host is not demanding an approval underneath it. Worth
+  re-checking whenever the ruleset is touched. (Step 8 is the declared-dep check and always runs;
+  step 9 is the human.)
+- 2026-09-10 — Naming the App as committer paid twice. Beyond D-23's split it makes a
+  pseudonymous submission *attributed*, so the ruleset's
+  `require_extra_approval_for_unattributed_changes` does not fire on D-19's account-free path —
+  a carve-out nobody had to write. Checked on a live pull request rather than reasoned about.

@@ -1,0 +1,28 @@
+F07: the graph's main ruleset required a check name no job reports, so nothing could merge.
+Fixed 2026-09-10. Ruleset 22508489 on thisisanameforsure/open_proof_network_graph.
+
+--- before -> after (only the required check name changed) ---
+before: 'gate (steps 1, 2, 4, 5 in the sandbox)'
+ after: 'gate (steps 1, 2 and 4-8 in the sandbox)'
+
+unchanged, and load-bearing:
+  required_approving_review_count           = 0
+  require_extra_approval_for_unattributed_changes = True
+  enforcement = active | bypass = [('DeployKey', 'always'), ('RepositoryRole', 'always')]
+
+--- the job name the workflow actually reports ---
+'gate (steps 1, 2 and 4-8 in the sandbox)'
+
+--- verified live on PR #7 (tutorial node, pseudonymous author, App committer) ---
+{"mergeable":true,"mergeable_state":"clean","merged":false}
+check runs: gate (steps 1, 2 and 4-8 in the sandbox) | completed | success
+
+Step 9 (non-author review) was skipped: the tutorial node is trusted, and GitHub itself
+requires 0 approvals, so the review requirement lives only inside the gate. That is what
+lets step 9 be a property of the statement (D-4 v3.11). Step 8 is the declared-dep check,
+which is automated and always runs; it is step 9 that the carve-out skips.
+
+The pseudonymous author did not trip require_extra_approval_for_unattributed_changes,
+because the App is the committer (F07-R2) — a benefit of the committer fix the same day.
+
+PR #7 closed and its branch deleted: a test, not a result.
