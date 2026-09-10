@@ -18,6 +18,13 @@ Variables (prefix ``OPN_``):
     Directory holding the gate's Lean metaprograms (``opn-witness-type``, ``opn-used-constants``,
     ``opn-hazards``; F01-R1, F02-R1). Default: ``gate/lean/.lake/build/bin`` in this repo; the
     step-3 image sets its own.
+``OPN_PR_AUTHOR``
+    The login that opened the pull request under check, as the host reports it
+    (``github.event.pull_request.user.login``). Consulted by ``classify`` for the curator mode
+    alone (F08-R8), where the author must be a listed identity; ``--author`` overrides it. It is
+    an environment variable rather than only a flag so the graph's workflow can set it before its
+    pinned gate understands the flag (F08-Q8). Default ``None``: no author is known, and a
+    curator-shaped pull request is refused.
 ``OPN_GATE_SIGNING_KEY``
     **Secret.** The gate's ed25519 private key (C8 item 1), present only in the post-merge job's
     environment. Default ``None`` — meaning "no key: emit an unsigned attestation".
@@ -56,6 +63,7 @@ class Settings:
     elan_home: Path = DEFAULT_ELAN_HOME
     diagnostic_max_bytes: int = DEFAULT_DIAGNOSTIC_MAX_BYTES
     lean_pkg_bin: Path = DEFAULT_LEAN_PKG_BIN
+    pr_author: str | None = None
     gate_signing_key: str | None = field(default=None, repr=False)
     precheck_signing_key: str | None = field(default=None, repr=False)
 
@@ -64,7 +72,7 @@ class Settings:
             f"Settings(runner={self.runner!r}, log_level={self.log_level!r}, "
             f"elan_home={str(self.elan_home)!r}, "
             f"diagnostic_max_bytes={self.diagnostic_max_bytes}, "
-            f"lean_pkg_bin={str(self.lean_pkg_bin)!r}, "
+            f"lean_pkg_bin={str(self.lean_pkg_bin)!r}, pr_author={self.pr_author!r}, "
             f"gate_signing_key={'<set>' if self.gate_signing_key else None}, "
             f"precheck_signing_key={'<set>' if self.precheck_signing_key else None})"
         )
@@ -104,6 +112,7 @@ def load(environ: dict[str, str] | None = None) -> Settings:
         elan_home=Path(env.get("OPN_ELAN_HOME", str(DEFAULT_ELAN_HOME))).expanduser(),
         diagnostic_max_bytes=diagnostic_max_bytes,
         lean_pkg_bin=Path(env.get("OPN_LEAN_PKG_BIN", str(DEFAULT_LEAN_PKG_BIN))).expanduser(),
+        pr_author=env.get("OPN_PR_AUTHOR") or None,
         gate_signing_key=env.get("OPN_GATE_SIGNING_KEY") or None,
         precheck_signing_key=env.get("OPN_PRECHECK_SIGNING_KEY") or None,
     )

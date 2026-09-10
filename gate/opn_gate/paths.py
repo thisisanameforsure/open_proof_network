@@ -149,7 +149,7 @@ def _line(text: str, n: int) -> str:
     return lines[n - 1] if 0 < n <= len(lines) else ""
 
 
-# --- what a path is (F07-R3, R9, R10) ----------------------------------------------------------
+# --- what a path is (F07-R3, R9, R10; F08-R2, R5, R8) --------------------------------------------
 #
 # Every path a submission may touch has exactly one role. ``locate`` is the whole grammar in one
 # place, so the modes (``opn_gate.modes``) classify a diff by asking what each path is rather than
@@ -164,17 +164,35 @@ Role = Literal[
     "annex",  # annex/<hash>.md (D-31)
     "explainer",  # explainer/<hash>.md (D-3, D-36)
     "approach-record",  # targets/<id>/approaches/<name>.yaml (D-14 mechanism 3)
+    "node",  # META.yaml, Statement.lean, Context.lean: the node's definition, added once (D-3)
+    "witness",  # Witness.lean: added with the node, or filled in on a hole's slot (F08-R5)
+    "relation",  # Relation.lean: a variant's D-30 label and proof, added with the node
+    "keep",  # <dir>/.gitkeep: D-3's required empty directories, added with the node
+    "node-status",  # nodes/<id>/status/<name>.yaml: a curator record (F03-Q3, F08-R8)
+    "target-status",  # targets/<id>/status/<name>.yaml: a curator declaration (D-33)
 ]
 
 #: Roles that claim nothing and merge on schema and path checks alone (F07-R9).
 APPEND_ROLES: tuple[Role, ...] = ("postmortem", "precheck-record", "annex", "approach-record")
 
-#: The schema each append validates against; an annex validates its YAML front matter.
+#: The files a new node directory is made of (F08-R2): a proposal adds these and nothing else.
+NODE_ROLES: tuple[Role, ...] = ("node", "witness", "relation", "keep")
+
+#: The records only a listed curator may add (F08-R8; D-8, D-29, D-33).
+CURATOR_ROLES: tuple[Role, ...] = ("node-status", "target-status")
+
+#: Roles that may be modified as well as added: a proof is resubmittable, a waiver follows it, and
+#: a hole's witness slot is filled in place (F08-R5) — everything else is append-only.
+MODIFIABLE_ROLES: tuple[Role, ...] = ("proof", "waiver", "witness")
+
+#: The schema each record validates against; an annex validates its YAML front matter.
 SCHEMA_FOR_ROLE: dict[Role, str] = {
     "postmortem": "postmortem/v1",
     "precheck-record": "precheck-record/v1",
     "annex": "annex/v1",
     "approach-record": "approach-record/v1",
+    "node-status": "node-status/v1",
+    "target-status": "target-status/v1",
 }
 
 #: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers).
@@ -182,10 +200,23 @@ CONTENT_HASHED_ROLES: tuple[Role, ...] = ("annex", "explainer")
 
 ANNEX_MAX_BYTES = 64 * 1024  # F07 §6
 YAML_SUFFIXES: tuple[str, ...] = (".yaml", ".yml")
+KEEP_FILE = ".gitkeep"
+NODE_DEFINITION_FILES: tuple[str, ...] = ("META.yaml", "Statement.lean", "Context.lean")
+WITNESS_FILE = "Witness.lean"
+RELATION_FILE = "Relation.lean"
+KEEP_DIRS: tuple[str, ...] = ("attempts", "annex", "explainer")
 
 _NODE_PATH_RE = re.compile(r"^targets/(?P<target>[^/]+)/nodes/(?P<node>[^/]+)/(?P<rest>.+)$")
 _TARGET_PATH_RE = re.compile(r"^targets/(?P<target>[^/]+)/(?P<rest>.+)$")
 _ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+#: A node id, optionally versioned: ``<slug>@v<n>`` is D-8's revision of ``<slug>`` (F08 §6).
+_NODE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*(?:@v[1-9][0-9]*)?$")
+_VERSION_RE = re.compile(r"@v[1-9][0-9]*$")
+
+
+def is_versioned(node_id: str) -> bool:
+    """Whether ``node_id`` is a D-8 revision (``<slug>@v<n>``), which only a curator may add."""
+    return _VERSION_RE.search(node_id) is not None
 
 
 @dataclass(frozen=True)
@@ -203,7 +234,7 @@ def locate(path: str) -> Located | None:
     node_match = _NODE_PATH_RE.match(path)
     if node_match is not None:
         target, node = node_match.group("target"), node_match.group("node")
-        if not (_ID_RE.match(target) and _ID_RE.match(node)):
+        if not (_ID_RE.match(target) and _NODE_ID_RE.match(node)):
             return None
         role = _node_role(node_match.group("rest"))
         return None if role is None else Located(role, path, target, node)
@@ -213,14 +244,26 @@ def locate(path: str) -> Located | None:
         head, _, name = rest.partition("/")
         if head == "approaches" and _is_flat(name, YAML_SUFFIXES):
             return Located("approach-record", path, target_match.group("target"), None)
+        if head == "status" and _is_flat(name, YAML_SUFFIXES):
+            return Located("target-status", path, target_match.group("target"), None)
     return None
 
 
-def _node_role(rest: str) -> Role | None:  # noqa: PLR0911 — one return per D-3 directory
+def _node_role(rest: str) -> Role | None:  # noqa: PLR0911 — one return per D-3 entry
     if rest == "Proof.lean":
         return "proof"
     if rest == WAIVER_PATH:
         return "waiver"
+    if rest in NODE_DEFINITION_FILES:
+        return "node"
+    if rest == WITNESS_FILE:
+        return "witness"
+    if rest == RELATION_FILE:
+        return "relation"
+    if any(rest == f"{d}/{KEEP_FILE}" for d in KEEP_DIRS):
+        return "keep"
+    if rest.startswith("status/"):
+        return "node-status" if _is_flat(rest[len("status/") :], YAML_SUFFIXES) else None
     if rest.startswith("attempts/precheck/"):
         name = rest[len("attempts/precheck/") :]
         return "precheck-record" if _is_flat(name, (".json",)) else None

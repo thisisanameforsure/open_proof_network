@@ -1,0 +1,210 @@
+F08-T2 — proposal and curator modes, witness completion, curators.json, the workflow. 2026-09-10
+
+WHAT T2 COVERS
+--------------
+AC6  gate/tests/test_modes.py::test_proposal_mode_exactly_one_dir  — one new node directory is
+     mode proposal (admission runs, nobody reviews); the same plus another node's file, a second
+     directory, a proof or an append is rejected at step 2 naming why.
+AC7  ::test_witness_completion                                    — Witness.lean alone on a hole
+     whose slot is unfilled at the base is a proposal, and the node derives `ready` once it is
+     real; on a node whose witness was already real (`witness-filled`) or whose origin is not a
+     hole's (`witness-not-a-hole`) it is refused; with no base to read it refuses rather than
+     guesses.
+AC12 ::test_curator_mode_requires_listing                         — a status record by a login in
+     curators.json is mode curator; by a stranger, by nobody, or with no curators.json, rejected
+     `curator-unlisted`. Plus: the second-curator review rule and the single-curator waiver
+     (::test_curator_review_is_a_second_listed_identity_or_waived), a revision's multi-node scope
+     (::test_curator_mode_scope), the role file's loader (::test_load_curators), the CLI with
+     --author / OPN_PR_AUTHOR and a git-backed base reader
+     (::test_classify_command_curator_and_completion), and `admit --sandbox` building the
+     sandboxed toolchain (::test_admit_sandbox_flag).
+R2   gate/tests/test_admit_docker.py::test_admission_runs_in_the_sandbox — admission through the
+     real step-3 container: the good proposal passes all eight checks, the backwards variant is
+     refused at `relation` with `relation-direction`, by the container's Lean.
+
+THE GRAPH SIDE (../open_proof_network_graph, commit F08-T2)
+-----------------------------------------------------------
+curators.json               — {identities: [{pseudonym, github_login}]}, the founder alone.
+.github/workflows/gate.yml  — gate job: OPN_PR_AUTHOR to the classifier, step 9 restricted to the
+                              classifier's `reviewers` when it names any, an admission step in the
+                              sandbox when `needs_admission`, artifacts kept for it. postmerge job:
+                              classifies the merged diff with the pinned gate; proof/partial
+                              re-derive and sign as before; every other mode goes straight to the
+                              products and the bot commit (a merged proposal now reaches the
+                              frontier instead of failing the proof pipeline); an empty products
+                              diff commits nothing. Every new field is read with a default, so the
+                              file is inert on the current pin (af2f4e7) and switches on at the
+                              re-pin (F08-Q8). YAML parses; the live run is T6's.
+
+WHAT THE SANDBOX FOUND (F08-Q13)
+--------------------------------
+The relation check handed opn-relation-type the root's Statement.lean from the graph tree. Every
+laptop tier passed (AC18 included); the first sandboxed run failed with `relation-elaboration`,
+because the container holds only the node under admission and the work directory. Both
+statements are now read from their staged copies under the work directory. The lean-tier matrix
+was re-run after the fix (22 passed below).
+
+NOT BUILT, AND WHY (in the spec as badges and Q8–Q12)
+-----------------------------------------------------
+- Nothing merges a green proposal or curator PR (F07-Q16: merge needs a write permission on a
+  pull-request trigger, which C8 forbids).
+- The single-curator waiver is in the classification output, not an attestation: a curator merge
+  builds nothing and the post-merge job attests only building modes (F08-Q9; T5 with R13).
+- A versioned node `<id>@v2` is classified and routed to admission, but meta/v2, graph/v2 and
+  frontier/v1 forbid `@` in an id, so it cannot validate until T5 prices a schema bump (F08-Q10).
+
+VERIFICATION
+------------
+$ uv run pytest gate/tests/test_modes.py -v
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 47 items
+gate/tests/test_modes.py::test_classification_matrix[paths_touched0-proof] PASSED [  2%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched1-proof] PASSED [  4%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched2-proof] PASSED [  6%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched3-proof] PASSED [  8%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched4-partial] PASSED [ 10%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched5-partial] PASSED [ 12%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched6-append] PASSED [ 14%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched7-append] PASSED [ 17%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched8-append] PASSED [ 19%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched9-append] PASSED [ 21%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched10-append] PASSED [ 23%]
+gate/tests/test_modes.py::test_classification_matrix[paths_touched11-explainer] PASSED [ 25%]
+gate/tests/test_modes.py::test_classification_rejects_mixtures_and_forbidden_paths PASSED [ 27%]
+gate/tests/test_modes.py::test_classification_scoping_and_change_status PASSED [ 29%]
+gate/tests/test_modes.py::test_only_proof_and_partial_build PASSED       [ 31%]
+gate/tests/test_modes.py::test_append_mode_schema_only PASSED            [ 34%]
+gate/tests/test_modes.py::test_append_mode_checks_every_record_kind PASSED [ 36%]
+gate/tests/test_modes.py::test_annex_name_is_hash PASSED                 [ 38%]
+gate/tests/test_modes.py::test_annex_front_matter_and_cap PASSED         [ 40%]
+gate/tests/test_modes.py::test_explainer_mode PASSED                     [ 42%]
+gate/tests/test_modes.py::test_new_schemas_accept_their_samples PASSED   [ 44%]
+gate/tests/test_modes.py::test_new_schemas_reject[annex_front_matter-bad0] PASSED [ 46%]
+gate/tests/test_modes.py::test_new_schemas_reject[annex_front_matter-bad1] PASSED [ 48%]
+gate/tests/test_modes.py::test_new_schemas_reject[annex_front_matter-bad2] PASSED [ 51%]
+gate/tests/test_modes.py::test_new_schemas_reject[approach_record-bad3] PASSED [ 53%]
+gate/tests/test_modes.py::test_new_schemas_reject[approach_record-bad4] PASSED [ 55%]
+gate/tests/test_modes.py::test_new_schemas_reject[approach_record-bad5] PASSED [ 57%]
+gate/tests/test_modes.py::test_new_schemas_reject[approach_record-bad6] PASSED [ 59%]
+gate/tests/test_modes.py::test_new_schemas_reject[precheck_record-bad7] PASSED [ 61%]
+gate/tests/test_modes.py::test_new_schemas_reject[precheck_record-bad8] PASSED [ 63%]
+gate/tests/test_modes.py::test_new_schemas_reject[precheck_record-bad9] PASSED [ 65%]
+gate/tests/test_modes.py::test_new_schemas_reject[submission_meta-bad10] PASSED [ 68%]
+gate/tests/test_modes.py::test_new_schemas_reject[submission_meta-bad11] PASSED [ 70%]
+gate/tests/test_modes.py::test_new_schemas_reject[submission_meta-bad12] PASSED [ 72%]
+gate/tests/test_modes.py::test_new_schemas_reject[submission_meta-bad13] PASSED [ 74%]
+gate/tests/test_modes.py::test_classify_command PASSED                   [ 76%]
+gate/tests/test_modes.py::test_classify_command_curator_and_completion PASSED [ 78%]
+gate/tests/test_modes.py::test_admit_sandbox_flag PASSED                 [ 80%]
+gate/tests/test_modes.py::test_locate_is_the_whole_grammar PASSED        [ 82%]
+gate/tests/test_modes.py::test_proposal_mode_exactly_one_dir PASSED      [ 85%]
+gate/tests/test_modes.py::test_proposal_must_be_a_whole_node PASSED      [ 87%]
+gate/tests/test_modes.py::test_proposal_status_record_may_only_be_speculative PASSED [ 89%]
+gate/tests/test_modes.py::test_witness_completion PASSED                 [ 91%]
+gate/tests/test_modes.py::test_curator_mode_requires_listing PASSED      [ 93%]
+gate/tests/test_modes.py::test_curator_review_is_a_second_listed_identity_or_waived PASSED [ 95%]
+gate/tests/test_modes.py::test_curator_mode_scope PASSED                 [ 97%]
+gate/tests/test_modes.py::test_load_curators PASSED                      [100%]
+============================== 47 passed in 1.45s ==============================
+
+$ uv run pytest gate/tests/test_admit_docker.py gate/tests/test_admit_lean.py gate/tests/test_admit.py
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 22 items
+gate/tests/test_admit_docker.py::test_admission_runs_in_the_sandbox PASSED [  4%]
+gate/tests/test_admit_lean.py::test_admission_matrix[good] PASSED        [  9%]
+gate/tests/test_admit_lean.py::test_admission_matrix[bad-statement] PASSED [ 13%]
+gate/tests/test_admit_lean.py::test_admission_matrix[bad-witness] PASSED [ 18%]
+gate/tests/test_admit_lean.py::test_admission_matrix[hazard] PASSED      [ 22%]
+gate/tests/test_admit_lean.py::test_admission_matrix[variant-resolves] PASSED [ 27%]
+gate/tests/test_admit_lean.py::test_admission_matrix[variant-backwards] PASSED [ 31%]
+gate/tests/test_admit_lean.py::test_admission_matrix[variant-related] PASSED [ 36%]
+gate/tests/test_admit_lean.py::test_the_relation_direction_is_the_claim PASSED [ 40%]
+gate/tests/test_admit.py::test_admission_order_and_pass PASSED           [ 45%]
+gate/tests/test_admit.py::test_typecheck_first PASSED                    [ 50%]
+gate/tests/test_admit.py::test_statement_axioms_outside_the_allowlist PASSED [ 54%]
+gate/tests/test_admit.py::test_bad_witness_fails_at_the_witness_check PASSED [ 59%]
+gate/tests/test_admit.py::test_unacknowledged_hazard_fails PASSED        [ 63%]
+gate/tests/test_admit.py::test_cycle_rejected PASSED                     [ 68%]
+gate/tests/test_admit.py::test_unknown_dep_rejected PASSED               [ 72%]
+gate/tests/test_admit.py::test_relation_direction PASSED                 [ 77%]
+gate/tests/test_admit.py::test_relation_required_above_related PASSED    [ 81%]
+gate/tests/test_admit.py::test_a_relation_proof_that_claims_nothing_is_refused PASSED [ 86%]
+gate/tests/test_admit.py::test_relation_on_a_non_variant_is_refused PASSED [ 90%]
+gate/tests/test_admit.py::test_a_sorry_in_the_relation_proof_is_refused PASSED [ 95%]
+gate/tests/test_admit.py::test_an_exploding_check_is_a_verdict PASSED    [100%]
+============================= 22 passed in 37.40s ==============================
+
+$ make verify
+uv run --frozen ruff check .
+All checks passed!
+uv run --frozen ruff format --check .
+143 files already formatted
+uv run --frozen mypy gate
+Success: no issues found in 72 source files
+uv run --frozen mypy api
+Success: no issues found in 37 source files
+uv run --frozen mypy site
+Success: no issues found in 14 source files
+uv run --frozen pytest -m "not lean and not docker and not network"
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+testpaths: gate/tests, api/tests, site/tests
+plugins: anyio-4.15.1
+collected 479 items / 47 deselected / 432 selected
+gate/tests/test_admit.py .............                                   [  3%]
+gate/tests/test_artifacts.py .............                               [  6%]
+gate/tests/test_attestation.py ...........                               [  8%]
+gate/tests/test_bounce.py ....                                           [  9%]
+gate/tests/test_config.py ........                                       [ 11%]
+gate/tests/test_deps.py .........                                        [ 13%]
+gate/tests/test_hazards.py .........                                     [ 15%]
+gate/tests/test_layout.py .......                                        [ 17%]
+gate/tests/test_ledger.py .............                                  [ 20%]
+gate/tests/test_modes.py ............................................... [ 31%]
+                                                                         [ 31%]
+gate/tests/test_paths.py ..................                              [ 35%]
+gate/tests/test_pipeline.py ...................                          [ 39%]
+gate/tests/test_postmerge.py ...............                             [ 43%]
+gate/tests/test_precheck_job_docker.py ...                               [ 43%]
+gate/tests/test_products.py ..........................                   [ 49%]
+gate/tests/test_records.py ......                                        [ 51%]
+gate/tests/test_schemas.py ............................................. [ 61%]
+.................                                                        [ 65%]
+gate/tests/test_signer.py ....                                           [ 66%]
+gate/tests/test_toolchain.py .............                               [ 69%]
+gate/tests/test_witness.py ........                                      [ 71%]
+api/tests/test_appends.py .......                                        [ 72%]
+api/tests/test_auth.py ....                                              [ 73%]
+api/tests/test_claims.py ........                                        [ 75%]
+api/tests/test_frontier.py ....                                          [ 76%]
+api/tests/test_health.py ........                                        [ 78%]
+api/tests/test_info.py ...                                               [ 79%]
+api/tests/test_precheck.py ...........................                   [ 85%]
+api/tests/test_ratelimit.py ....                                         [ 86%]
+api/tests/test_routes.py .....                                           [ 87%]
+api/tests/test_sshsig.py ......                                          [ 88%]
+api/tests/test_submissions.py ......                                     [ 90%]
+api/tests/test_tokens.py ................                                [ 93%]
+site/tests/test_dag.py ...                                               [ 94%]
+site/tests/test_escaping.py ....                                         [ 95%]
+site/tests/test_links.py ....                                            [ 96%]
+site/tests/test_render.py ...............                                [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:26
+  /Users/mikehiggins/Desktop/repos/open_proof_network/api/tests/api_fakes.py:26: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================ 432 passed, 47 deselected, 2 warnings in 5.86s ================

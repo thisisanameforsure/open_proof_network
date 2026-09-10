@@ -224,6 +224,16 @@ The law of the project:
   carve-out is only expressible if the host is not demanding an approval underneath it. Worth
   re-checking whenever the ruleset is touched. (Step 8 is the declared-dep check and always runs;
   step 9 is the human.)
+- 2026-09-10 — The sandbox holds only the node under check and the work directory. Admission's
+  relation check read the *root's* `Statement.lean` from the graph tree, passed every laptop
+  tier (AC18 included) and failed on the first sandboxed run with a bare "does not elaborate".
+  A check that reads a sibling node must stage it into the work directory first; and any check
+  that will run in the sandbox deserves one docker-tier test before it is called done.
+- 2026-09-10 — A new gate flag would have blocked every merge. `classify --author` was the
+  natural shape for F08-R8, but the graph pins a commit that does not know the flag, so the
+  workflow passes the author as `OPN_PR_AUTHOR` (the `OPN_RUNNER` precedent) and reads every new
+  classification field with a default. The `gate.yml` change is then inert on the old pin and
+  can be committed to the graph before the re-pin, instead of waiting uncommitted for it.
 - 2026-09-10 — Naming the App as committer paid twice. Beyond D-23's split it makes a
   pseudonymous submission *attributed*, so the ruleset's
   `require_extra_approval_for_unattributed_changes` does not fire on D-19's account-free path —

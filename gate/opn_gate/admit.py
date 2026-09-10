@@ -271,11 +271,15 @@ class RelationCheck:
                 f"`theorem {RELATION_DECL}`",
                 declared=declared,
             )
+        # Both statements are read from their staged copies under the work directory: inside the
+        # step-3 sandbox only the node under admission and the work directory exist (F00-R12),
+        # so the root's own directory is not there to read — found on the first sandboxed run.
+        src = ctx.workdir / "src"
         req = RelationRequest(
-            variant=node.path / "Statement.lean",
+            variant=src / "Nodes" / node.node_id / "Statement.lean",
             variant_module=layout.node_module(node.node_id, STATEMENT_MODULE),
             variant_decl=node.statement.decl_name,
-            root=root_dir / "Statement.lean",
+            root=src / "Nodes" / root_id / "Statement.lean",
             root_module=layout.node_module(root_id, STATEMENT_MODULE),
             root_decl=root.statement.decl_name,
             label=label,

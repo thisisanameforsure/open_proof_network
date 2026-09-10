@@ -40,6 +40,12 @@ admission check for a partial's holes (F07 &sect;8), and F08 needs the rest of F
 else &mdash; so F08-T1 was built inside F07's slice on 2026-09-10, and F07-T4 landed the same day
 on top of it. T5 and T6 followed. The one piece of F07 still outstanding is the graph's
 <code>gate.yml</code> (T1's last line), now unblocked by the re-pin.
+F08-T2 followed on 2026-09-10: the <code>proposal</code> and <code>curator</code> modes, the
+graph's <code>curators.json</code>, and a <code>gate.yml</code> that admits a proposal inside the
+sandbox and regenerates the products for every merged mode &mdash; committed to the graph in a
+form the old pin ignores (F08-Q8), so it switches on with T6's re-pin. Driving admission through
+the real container for the first time found the relation check reading the root's statement from
+outside the sandbox's mounts (F08-Q13).
 T6 met AC21 against the live service on 2026-09-10, and it found three defects no fake could:
 a DynamoDB <code>Decimal</code> reaching the JSON encoder (<code>MemoryStore</code> round-trips
 exactly); the contributor being recorded as committer as well as author, because the Git Data

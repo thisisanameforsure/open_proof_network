@@ -1,10 +1,13 @@
-"""What kind of pull request this is, and what that kind may touch (F07-R3, R9, R10).
+"""What kind of pull request this is, and what that kind may touch (F07-R3, R9, R10; F08-R2, R5,
+R8).
 
 Until F07 every pull request the gate saw was a proof of one node. D-12's other artifacts, D-13's
 postmortems, D-31's annexes, D-14's approach records and D-3's explainers all reach the graph the
 same way — a pull request — and they need different checks: a proof runs the Lean pipeline, an
 append asserts nothing a kernel could check and merges on its schema, an explainer is prose about
-an object that already merged.
+an object that already merged. F08 adds the two kinds that change the graph's *structure*: a
+proposal, which anyone may make and admission decides (D-29), and a curator record, which only a
+listed identity may file (D-8, D-33).
 
 So the diff is classified into exactly one mode before anything else runs:
 
@@ -13,38 +16,111 @@ So the diff is classified into exactly one mode before anything else runs:
 ``partial``      a ``.lean`` assembly under ``attempts/``, plus appends (D-12 #4, #5)
 ``append``       only new postmortems, precheck records, annexes or approach records
 ``explainer``    only new files under ``explainer/`` (D-3), on a node that already has a proof
+``proposal``     exactly one new node directory and nothing else — or only ``Witness.lean``
+                 on a hole whose slot is unfilled (F08-R2, R5); admission decides, nobody
+                 reviews (D-29)
+``curator``      status records, or a versioned node ``<id>@v<n>``, by a login listed in the
+                 graph's ``curators.json`` (F08-R8); reviewed by a second listed identity when
+                 there is one (D-21, D-22)
 ===============  ==========================================================================
 
-A diff that fits none of them is rejected at step 2, naming the paths — never guessed at. F08 adds
-the ``proposal`` and ``curator`` modes; until it does, a pull request that proposes a node or
-files a curator record is one of those rejections.
+A diff that fits none of them is rejected at step 2, naming the paths — never guessed at.
 
-Modes are decided from the diff alone. Whether the *submitter* called it a counterexample or a
-reduction is in the ``opn-submission`` block (``submission-meta/v1``, F07-R2), and the artifact
-checks that consume it are F07-T2's; classification never reads it, because the block is not
-evidentiary and the paths are.
+Modes are decided from the diff alone, plus one fact the host reports: who opened the pull
+request, which only the curator rule consults. Whether the *submitter* called it a counterexample
+or a reduction is in the ``opn-submission`` block (``submission-meta/v1``, F07-R2), and the
+artifact checks that consume it are F07-T2's; classification never reads it, because the block is
+not evidentiary and the paths are.
 """
 
 from __future__ import annotations
 
+import json
 import re
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
 import yaml
 
+from opn_gate import graph as graphmod
 from opn_gate import paths, schemas
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Change, Located, Role
 
-Mode = Literal["proof", "partial", "append", "explainer"]
+Mode = Literal["proof", "partial", "append", "explainer", "proposal", "curator"]
 
-#: The modes that run the Lean pipeline; the other two never build anything (R9, R10).
+#: The modes that run the Lean pipeline; the others never build a proof (R9, R10; F08-R2).
 BUILDING_MODES: tuple[Mode, ...] = ("proof", "partial")
+#: F08-R8: the graph's role file — the founder's, and the only one at Stage 0 (F08 §7).
+CURATORS_FILE = "curators.json"
+#: F08-R8, D-22: why step 9 is not asked of a curator PR while the founder is the only curator.
+WAIVER_SINGLE_CURATOR = "single-curator"
+#: F08-Q2: the one status a proposer may give their own new node.
+PROPOSAL_STATUS = "speculative"
+
+#: What a file looked like at the pull request's base commit: its bytes, or ``None`` when it did
+#: not exist. Only the witness-completion rule needs the base (F08-R5): whether a hole's slot was
+#: still unfilled is a fact about the tree *before* the change, and the head no longer has it.
+BaseReader = Callable[[str], bytes | None]
 
 _FRONT_MATTER_RE = re.compile(r"\A---[ \t]*\r?\n(?P<yaml>.*?)\r?\n---[ \t]*\r?\n", re.S)
+
+
+@dataclass(frozen=True)
+class Curators:
+    """``curators.json`` (F08-R8): ``{identities: [{pseudonym, github_login}]}``."""
+
+    identities: tuple[tuple[str, str], ...] = ()  # (pseudonym, github_login)
+
+    @property
+    def logins(self) -> frozenset[str]:
+        return frozenset(login for _, login in self.identities)
+
+    def pseudonym_of(self, login: str) -> str | None:
+        for pseudonym, listed in self.identities:
+            if listed == login:
+                return pseudonym
+        return None
+
+
+class CuratorsError(ValueError):
+    """``curators.json`` is present but is not the role file R8 describes."""
+
+
+def load_curators(graph_root: Path) -> Curators:
+    """The graph's curator list, or an empty one when the graph has no ``curators.json``.
+
+    Checked at the boundary (conventions §4) but not by a published schema: the file is a role
+    list the founder owns (F08 §7), not a record of the mathematics, so D-34's versioning does not
+    reach it — and adding a schema would put it in ``info.json``'s index for no consumer.
+    """
+    path = graph_root / CURATORS_FILE
+    if not path.is_file():
+        return Curators()
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        msg = f"{CURATORS_FILE} is not readable JSON: {exc}"
+        raise CuratorsError(msg) from exc
+    identities = doc.get("identities") if isinstance(doc, dict) else None
+    if not isinstance(identities, list):
+        msg = f"{CURATORS_FILE} must be an object with an `identities` list (F08-R8)"
+        raise CuratorsError(msg)
+    out: list[tuple[str, str]] = []
+    for entry in identities:
+        if not (
+            isinstance(entry, dict)
+            and isinstance(entry.get("pseudonym"), str)
+            and isinstance(entry.get("github_login"), str)
+            and entry["pseudonym"]
+            and entry["github_login"]
+        ):
+            msg = f"{CURATORS_FILE}: each identity is {{pseudonym, github_login}}, got {entry!r}"
+            raise CuratorsError(msg)
+        out.append((entry["pseudonym"], entry["github_login"]))
+    return Curators(tuple(out))
 
 
 @dataclass(frozen=True)
@@ -56,6 +132,11 @@ class Classification:
     node_id: str | None
     located: tuple[Located, ...] = ()
     problems: tuple[Diagnostic, ...] = ()
+    #: The node directory admission runs on (F08-R1): a proposal's, or a curator's versioned node.
+    admit: str | None = None
+    #: Who may give step 9's approval. ``None`` means any non-author (D-4); a curator PR names the
+    #: other listed identities (F08-R8), and an empty tuple is the founding-team waiver (D-22).
+    reviewers: tuple[str, ...] | None = None
 
     @property
     def ok(self) -> bool:
@@ -63,13 +144,30 @@ class Classification:
 
     @property
     def needs_gate(self) -> bool:
-        """Whether the sandboxed pipeline runs. Appends and explainers assert nothing (R9, R10)."""
+        """Whether the D-4 proof pipeline runs. Appends and explainers assert nothing (R9, R10);
+        a proposal is admitted, not proved (F08-R2)."""
         return self.mode in BUILDING_MODES
 
     @property
+    def needs_admission(self) -> bool:
+        """Whether admission runs in the sandbox on a new node directory (F08-R2, R8)."""
+        return self.admit is not None
+
+    @property
     def needs_review(self) -> bool:
-        """Step 9 is a review of a *statement's* claim; an append makes none (F07-Q4)."""
+        """Step 9 is a review of a *statement's* claim; an append makes none (F07-Q4), a
+        proposal is admitted mechanically (D-29), and a curator record needs a second curator
+        only when there is one (F08-R8)."""
+        if self.mode == "curator":
+            return bool(self.reviewers)
         return self.mode in BUILDING_MODES
+
+    @property
+    def review_waived(self) -> str | None:
+        """Why step 9 is not asked when the mode would otherwise ask it — for the record."""
+        if self.mode == "curator" and not self.reviewers:
+            return WAIVER_SINGLE_CURATOR
+        return None
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -77,13 +175,26 @@ class Classification:
             "target": self.target_id,
             "node": self.node_id,
             "needs_gate": self.needs_gate,
+            "needs_admission": self.needs_admission,
+            "admit": self.admit,
             "needs_review": self.needs_review,
+            "reviewers": None if self.reviewers is None else list(self.reviewers),
+            "review_waived": self.review_waived,
             "problems": [d.as_dict() for d in self.problems],
         }
 
 
-def classify(changes: Iterable[Change]) -> Classification:
-    """R3: the diff's one mode, or the reasons it is not a submission at all."""
+def classify(  # noqa: PLR0911 — one return per rejection
+    changes: Iterable[Change],
+    *,
+    author: str | None = None,
+    curators: Curators | None = None,
+) -> Classification:
+    """R3, F08-R2, R8: the diff's one mode, or the reasons it is not a submission at all.
+
+    ``author`` is the login that opened the pull request, as the host reports it; ``curators`` is
+    the graph's role file. Both are consulted only when the diff is curator-shaped.
+    """
     changes = list(changes)
     if not changes:
         return _rejected([Diagnostic("mode-empty", "the pull request changes no file")])
@@ -95,29 +206,131 @@ def classify(changes: Iterable[Change]) -> Classification:
     if problems:
         return _rejected(problems)
 
-    scoping = _scope(located)
-    if isinstance(scoping, list):
-        return _rejected(scoping)
-    target_id, node_id = scoping
+    targets = sorted({loc.target_id for loc in located})
+    if len(targets) > 1:
+        return _rejected(
+            [
+                Diagnostic(
+                    "mode-multi-target",
+                    f"a submission touches one target; this one touches {', '.join(targets)}",
+                    {"targets": targets},
+                )
+            ]
+        )
+    target_id = targets[0]
+
+    # A new node directory is one whose definition files are added; a status record outside
+    # every new directory, or a versioned directory, is a curator's act (F08-R8).
+    new_dirs = sorted({loc.node_id for loc in located if loc.role == "node" and loc.node_id})
+    curator_records = [
+        loc for loc in located if loc.role in paths.CURATOR_ROLES and loc.node_id not in new_dirs
+    ]
+    if curator_records or any(paths.is_versioned(n) for n in new_dirs):
+        return _classify_curator(located, target_id, new_dirs, author, curators or Curators())
+
+    nodes = sorted({loc.node_id for loc in located if loc.node_id is not None})
+    if len(nodes) > 1:
+        return _rejected(
+            [
+                Diagnostic(
+                    "mode-multi-node",
+                    "a submission touches one node (D-2, D-3); this one touches "
+                    + ", ".join(nodes),
+                    {"nodes": nodes},
+                )
+            ]
+        )
+    node_id = nodes[0] if nodes else None
 
     roles = {loc.role for loc in located}
     mode = _mode_for(roles)
     if mode is None:
+        return Classification(None, target_id, node_id, tuple(located), (_mixed(roles),))
+    admit = node_id if mode == "proposal" else None
+    return Classification(mode, target_id, node_id, tuple(located), admit=admit)
+
+
+def _classify_curator(
+    located: list[Located],
+    target_id: str,
+    new_dirs: list[str],
+    author: str | None,
+    curators: Curators,
+) -> Classification:
+    """F08-R8: status records and versioned nodes, by a listed login, reviewed by another one.
+
+    A curator PR may touch several nodes — D-8's revision marks the old node superseded and each
+    dependent stale in the same change — so the one-node scope rule does not apply; the one-target
+    rule still does.
+    """
+    roles = {loc.role for loc in located}
+    allowed = set(paths.NODE_ROLES) | set(paths.CURATOR_ROLES)
+    if not roles <= allowed:
+        return Classification(None, target_id, None, tuple(located), (_mixed(roles),))
+    unversioned = [n for n in new_dirs if not paths.is_versioned(n)]
+    if unversioned:
         return Classification(
             None,
             target_id,
-            node_id,
+            None,
             tuple(located),
             (
                 Diagnostic(
                     "mode-mixed",
-                    "this pull request mixes kinds of change that belong in separate ones: "
-                    + ", ".join(sorted(roles)),
-                    {"roles": sorted(roles)},
+                    f"{', '.join(unversioned)}: a new node is a proposal like anyone else's "
+                    "(D-29, F08-Q3) and belongs in its own pull request; a curator pull request "
+                    "adds status records and versioned nodes only (F08-R8)",
+                    {"nodes": unversioned},
                 ),
             ),
         )
-    return Classification(mode, target_id, node_id, tuple(located))
+    if len(new_dirs) > 1:
+        return Classification(
+            None,
+            target_id,
+            None,
+            tuple(located),
+            (
+                Diagnostic(
+                    "mode-multi-node",
+                    "a revision adds one versioned node (D-8); this one adds "
+                    + ", ".join(new_dirs),
+                    {"nodes": new_dirs},
+                ),
+            ),
+        )
+    if author is None or author not in curators.logins:
+        who = "unknown" if author is None else repr(author)
+        return Classification(
+            None,
+            target_id,
+            None,
+            tuple(located),
+            (
+                Diagnostic(
+                    "curator-unlisted",
+                    f"status records and versioned nodes are a curator's act (D-8, D-29, D-33) and "
+                    f"the pull request's author ({who}) is not listed in {CURATORS_FILE}",
+                    {"author": author, "listed": sorted(curators.logins)},
+                ),
+            ),
+        )
+    admit = new_dirs[0] if new_dirs else None
+    nodes = sorted({loc.node_id for loc in located if loc.node_id is not None})
+    node_id = admit or (nodes[0] if len(nodes) == 1 else None)
+    reviewers = tuple(sorted(curators.logins - {author}))
+    return Classification(
+        "curator", target_id, node_id, tuple(located), admit=admit, reviewers=reviewers
+    )
+
+
+def _mixed(roles: set[Role]) -> Diagnostic:
+    return Diagnostic(
+        "mode-mixed",
+        "this pull request mixes kinds of change that belong in separate ones: "
+        + ", ".join(sorted(roles)),
+        {"roles": sorted(roles)},
+    )
 
 
 def _locate_change(change: Change, located: list[Located]) -> list[Diagnostic]:
@@ -139,7 +352,7 @@ def _locate_change(change: Change, located: list[Located]) -> list[Diagnostic]:
                 {"path": change.path, "status": change.status},
             )
         ]
-    allowed: tuple[str, ...] = ("A", "M") if where.role in ("proof", "waiver") else ("A",)
+    allowed: tuple[str, ...] = ("A", "M") if where.role in paths.MODIFIABLE_ROLES else ("A",)
     if change.status not in allowed:
         return [
             Diagnostic(
@@ -152,32 +365,14 @@ def _locate_change(change: Change, located: list[Located]) -> list[Diagnostic]:
     return []
 
 
-def _scope(located: Sequence[Located]) -> tuple[str, str | None] | list[Diagnostic]:
-    """One target, at most one node (D-2, D-3): a diff over two nodes is a rejection, not a
-    subgraph. An approach record is target-scoped and rides with whatever node the rest name."""
-    targets = sorted({loc.target_id for loc in located})
-    if len(targets) > 1:
-        return [
-            Diagnostic(
-                "mode-multi-target",
-                f"a submission touches one target; this one touches {', '.join(targets)}",
-                {"targets": targets},
-            )
-        ]
-    nodes = sorted({loc.node_id for loc in located if loc.node_id is not None})
-    if len(nodes) > 1:
-        return [
-            Diagnostic(
-                "mode-multi-node",
-                f"a submission touches one node (D-2, D-3); this one touches {', '.join(nodes)}",
-                {"nodes": nodes},
-            )
-        ]
-    return targets[0], nodes[0] if nodes else None
-
-
-def _mode_for(roles: set[Role]) -> Mode | None:
+def _mode_for(roles: set[Role]) -> Mode | None:  # noqa: PLR0911 — one return per mode
     appendish = set(paths.APPEND_ROLES)
+    if "node" in roles:  # F08-R2: a whole new directory, and nothing outside it
+        return "proposal" if roles <= (set(paths.NODE_ROLES) | {"node-status"}) else None
+    if roles == {"witness"}:  # F08-R5: filling a hole's slot
+        return "proposal"
+    if roles & (set(paths.NODE_ROLES) | {"node-status"}):
+        return None  # a node file or a status record outside a new directory, with other things
     if "proof" in roles or "waiver" in roles:
         return "proof" if roles <= ({"proof", "waiver"} | appendish) else None
     if "partial" in roles:
@@ -198,12 +393,16 @@ def _verb(status: str) -> str:
 # --- the checks the non-building modes run instead of a build ----------------------------------
 
 
-def check(graph_root: Path, classification: Classification) -> list[Diagnostic]:
-    """R9, R10: everything an ``append`` or ``explainer`` pull request is checked for.
+def check(
+    graph_root: Path, classification: Classification, *, base: BaseReader | None = None
+) -> list[Diagnostic]:
+    """R9, R10, F08-R2, R5, R8: everything a pull request is checked for before any sandbox.
 
     Content rules that belong to a file rather than to a mode — an annex is named for its own
     content, a postmortem validates against its schema — are applied to those files wherever they
-    appear, so a proof that carries an append is held to the same rules.
+    appear, so a proof that carries an append is held to the same rules. A proposal's shape and a
+    witness completion's precondition are mode rules, checked here so a malformed proposal never
+    costs a sandbox.
     """
     problems: list[Diagnostic] = []
     for located in classification.located:
@@ -211,7 +410,121 @@ def check(graph_root: Path, classification: Classification) -> list[Diagnostic]:
             problems.extend(check_append_file(graph_root, located))
         elif located.role == "explainer":
             problems.extend(check_explainer_file(graph_root, located, classification))
+        elif located.role in paths.CURATOR_ROLES:
+            problems.extend(check_status_record(graph_root, located, classification))
+    if classification.mode == "proposal":
+        problems.extend(check_proposal(graph_root, classification, base))
     return problems
+
+
+def check_status_record(
+    graph_root: Path, located: Located, classification: Classification
+) -> list[Diagnostic]:
+    """A status record validates against its schema; inside a proposer's new node it may only
+    say ``speculative`` (F08-Q2) — every other status is a curator's judgment (D-8, D-14, D-18)."""
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    if problems or classification.mode != "proposal":
+        return problems
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    if doc.get("status") != PROPOSAL_STATUS:
+        return [
+            Diagnostic(
+                "proposal-status",
+                f"{located.path}: a proposal may mark its node {PROPOSAL_STATUS!r} and nothing "
+                f"else (D-14, F08-Q2); {doc.get('status')!r} is a curator's record (F08-R8)",
+                {"path": located.path, "status": doc.get("status")},
+            )
+        ]
+    return []
+
+
+def check_proposal(
+    graph_root: Path, classification: Classification, base: BaseReader | None
+) -> list[Diagnostic]:
+    """F08-R2, R5: a proposal is a whole node directory, or a witness for a hole's empty slot."""
+    node_id = classification.admit
+    assert node_id is not None
+    roles = {loc.role for loc in classification.located}
+    prefix = f"targets/{classification.target_id}/nodes/{node_id}/"
+    added = {loc.path[len(prefix) :] for loc in classification.located}
+    if roles == {"witness"}:
+        return check_witness_completion(graph_root, classification, base)
+    required = (*paths.NODE_DEFINITION_FILES, paths.WITNESS_FILE)
+    missing = [name for name in required if name not in added]
+    if missing:
+        return [
+            Diagnostic(
+                "proposal-incomplete",
+                f"a proposal adds a whole node directory (D-3); {node_id} is missing "
+                + ", ".join(missing),
+                {"node": node_id, "missing": missing},
+            )
+        ]
+    return []
+
+
+def check_witness_completion(
+    graph_root: Path, classification: Classification, base: BaseReader | None
+) -> list[Diagnostic]:
+    """F08-R5, F07-Q3: ``Witness.lean`` alone may change on a hole whose slot is unfilled.
+
+    Three facts, each from the tree: the node exists (its ``META.yaml`` is at the head, untouched
+    by this diff), its origin is a hole's (the post-merge job is the only thing that creates a
+    node with a slot), and its witness at the *base* was the slot — so a witness that was already
+    real is never replaced, because a witness is as immutable as the statement it serves (D-3).
+    """
+    located = classification.located[0]
+    node_id = located.node_id
+    assert node_id is not None
+    node_dir = graph_root / "targets" / located.target_id / "nodes" / node_id
+    if not (node_dir / "META.yaml").is_file():
+        return [
+            Diagnostic(
+                "proposal-incomplete",
+                f"a proposal adds a whole node directory (D-3); {node_id} has no META.yaml, so "
+                "this Witness.lean belongs to nothing",
+                {"node": node_id, "missing": list(paths.NODE_DEFINITION_FILES)},
+            )
+        ]
+    try:
+        meta = schemas.load_yaml(node_dir / "META.yaml")
+    except schemas.SchemaError as exc:
+        return [Diagnostic("meta-invalid", str(exc), {"node": node_id})]
+    origin = str(meta.get("origin"))
+    if origin not in graphmod.HOLE_ORIGINS:
+        return [
+            Diagnostic(
+                "witness-not-a-hole",
+                f"{node_id} has origin {origin!r}; only a hole's witness slot is filled in after "
+                "the node exists (D-29, F07-Q3), and any other witness is immutable (D-3)",
+                {"node": node_id, "origin": origin},
+            )
+        ]
+    if base is None:
+        return [
+            Diagnostic(
+                "witness-completion-unverified",
+                f"{located.path}: whether the witness slot was still unfilled is a fact about the "
+                "base commit, which this check was not given",
+                {"path": located.path},
+            )
+        ]
+    before = base(located.path)
+    if before is not None and "sorry" not in before.decode("utf-8", errors="replace"):
+        return [
+            Diagnostic(
+                "witness-filled",
+                f"{node_id} already has a witness; a witness is immutable once it is real (D-3), "
+                "and a different one is a different node",
+                {"node": node_id, "path": located.path},
+            )
+        ]
+    return []
 
 
 def check_append_file(graph_root: Path, located: Located) -> list[Diagnostic]:
@@ -278,7 +591,9 @@ def _read(graph_root: Path, located: Located) -> bytes | Diagnostic:
         )
 
 
-def _check_schema(located: Located, data: bytes) -> list[Diagnostic]:
+def _check_schema(
+    located: Located, data: bytes, *, code: str = "append-invalid"
+) -> list[Diagnostic]:
     schema_id = paths.SCHEMA_FOR_ROLE.get(located.role)
     if schema_id is None:
         return []
@@ -288,7 +603,7 @@ def _check_schema(located: Located, data: bytes) -> list[Diagnostic]:
     violations = schemas.violations(doc, schema_id)
     return [
         Diagnostic(
-            "append-invalid",
+            code,
             f"{located.path} does not satisfy {schema_id}: {v.path}: {v.message}",
             {"path": located.path, "schema": schema_id, "field": v.path},
         )

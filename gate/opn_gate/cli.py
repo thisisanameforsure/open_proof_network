@@ -116,6 +116,11 @@ def build_parser() -> argparse.ArgumentParser:
     cls.add_argument("--graph", required=True, type=Path, help="checkout at the PR merge commit")
     cls.add_argument("--base", required=True, help="the pull request's base sha")
     cls.add_argument("--head", default="HEAD", help="the commit to classify (default HEAD)")
+    cls.add_argument(
+        "--author",
+        help="the login that opened the pull request; curator mode needs it listed in "
+        "curators.json (F08-R8). Default: OPN_PR_AUTHOR from the environment",
+    )
 
     _add_graph_tool_parsers(sub)
 
@@ -132,6 +137,13 @@ def _add_graph_tool_parsers(sub: argparse._SubParsersAction[argparse.ArgumentPar
     adm.add_argument("node_dir", type=Path, help="targets/<target>/nodes/<id> in a graph checkout")
     adm.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
     adm.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
+    adm.add_argument(
+        "--sandbox",
+        action="store_true",
+        help="elaborate inside the step-3 image, as the authoritative gate must (F08-R2, C9)",
+    )
+    adm.add_argument("--image", help="sandbox image tag (default: built from gate/Dockerfile)")
+    adm.add_argument("--no-build", action="store_true", help="fail if the image is not present")
 
     haz = sub.add_parser("hazards", help="run step 6 alone on a node directory (F02-R7)")
     haz.add_argument("node_dir", type=Path, help="targets/<target>/nodes/<id> in a graph checkout")
@@ -328,10 +340,18 @@ def run_classify(args: argparse.Namespace, settings: config.Settings) -> int:
         msg = f"unknown base {args.base!r}"
         raise CliError(msg)
     diff = _git(graph, "diff", "--name-status", "--no-renames", base, head)
-    classification = modes.classify(paths.changes_from_name_status(diff.stdout))
+    try:
+        curators = modes.load_curators(graph)
+    except modes.CuratorsError as exc:
+        raise CliError(str(exc)) from exc
+    classification = modes.classify(
+        paths.changes_from_name_status(diff.stdout),
+        author=args.author or settings.pr_author,
+        curators=curators,
+    )
     problems = list(classification.problems)
     if classification.ok:
-        problems.extend(modes.check(graph, classification))
+        problems.extend(modes.check(graph, classification, base=base_reader(graph, base)))
     summary = classification.as_dict()
     summary["problems"] = [d.as_dict(settings.diagnostic_max_bytes) for d in problems]
     summary["ok"] = classification.ok and not problems
@@ -384,14 +404,16 @@ def run_admit(args: argparse.Namespace, settings: config.Settings) -> int:
     when the node may enter the graph, 1 when it may not. No attestation: admission decides
     whether a *statement* is well formed, which is not a claim about mathematics (D-29).
     """
-    ctx = node_context(args, settings, prefix="opn-admit-")
+    ctx = node_context(args, settings, prefix="opn-admit-", sandboxed=bool(args.sandbox))
     result = admit.run(ctx)
     summary = result.as_dict(settings.diagnostic_max_bytes)
     summary["node"] = ctx.claim.node_id
     summary["target"] = ctx.claim.target_id
+    summary["sandboxed"] = bool(args.sandbox)
     for key in ("hazards", "relation", "relation_label", "statement_axioms", "witness"):
         if key in ctx.data:
             summary[key] = ctx.data[key]
+    (ctx.workdir.parent / "admission.json").write_bytes(schemas.canonical_json(summary))
     sys.stdout.write(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
     if not result.admitted and result.diagnostic is not None:
         sys.stderr.write(
@@ -401,8 +423,14 @@ def run_admit(args: argparse.Namespace, settings: config.Settings) -> int:
     return EXIT_PASS if result.admitted else EXIT_FAIL
 
 
-def node_context(args: argparse.Namespace, settings: config.Settings, *, prefix: str) -> RunContext:
-    """A RunContext over one node directory in a graph checkout — no diff, no Proof.lean."""
+def node_context(
+    args: argparse.Namespace, settings: config.Settings, *, prefix: str, sandboxed: bool = False
+) -> RunContext:
+    """A RunContext over one node directory in a graph checkout — no diff, no Proof.lean.
+
+    ``sandboxed`` puts the toolchain inside the step-3 image with the same mounts the
+    authoritative gate uses (F00-R5): the node read-only, the work directory read-write.
+    """
     node_dir: Path = args.node_dir.resolve()
     parts = node_dir.parts
     if not node_dir.is_dir() or len(parts) < 4 or parts[-2] != "nodes" or parts[-4] != "targets":
@@ -416,22 +444,46 @@ def node_context(args: argparse.Namespace, settings: config.Settings, *, prefix:
     except schemas.SchemaError as exc:
         msg = f"cannot load {spec_path}: {exc}"
         raise CliError(msg) from exc
-    try:
-        tc = toolchain.LocalToolchain.from_settings(settings)
-    except toolchain.ToolchainMissingError as exc:
-        raise CliError(str(exc)) from exc
     out_dir = _out_dir(args.out, prefix)
+    workdir = out_dir / "work"
+    tc: toolchain.Toolchain
+    if sandboxed:
+        tag = getattr(args, "image", None) or ensure_image(
+            str(spec["lean_toolchain"]), build=not getattr(args, "no_build", False)
+        )
+        tc = sandbox.SandboxToolchain(
+            tag, sandbox.Caps.from_spec(spec), read_only=[node_dir], read_write=[workdir]
+        )
+    else:
+        try:
+            tc = toolchain.LocalToolchain.from_settings(settings)
+        except toolchain.ToolchainMissingError as exc:
+            raise CliError(str(exc)) from exc
     return RunContext(
         graph_root=graph,
         claim=Claim(target_id, node_dir.name),
         spec=spec,
         gate_spec_hash=schemas.content_hash(spec_path.read_bytes()),
         changes=None,
-        workdir=out_dir / "work",
+        workdir=workdir,
         toolchain=tc,
         settings=settings,
-        install_toolchain=bool(args.install),
+        install_toolchain=bool(args.install) and not sandboxed,
     )
+
+
+def base_reader(graph: Path, base: str) -> modes.BaseReader:
+    """What a path held at ``base`` (``git show``), or ``None`` when it did not exist there."""
+
+    def read(path: str) -> bytes | None:
+        proc = subprocess.run(
+            ["git", "-C", str(graph), "show", f"{base}:{path}"],
+            capture_output=True,
+            check=False,
+        )
+        return proc.stdout if proc.returncode == 0 else None
+
+    return read
 
 
 def run_hazards(args: argparse.Namespace, settings: config.Settings) -> int:
