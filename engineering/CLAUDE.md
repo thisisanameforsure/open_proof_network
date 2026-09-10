@@ -247,6 +247,15 @@ The law of the project:
   bumped six hash-pinned schemas; read as notation (the way F03 read D-13's `d13/v1`) and spelled
   `<id>-v<n>` with `supersedes` in `meta/v4`, it cost one field. Recorded as F08-Q16 with the
   reversal path, and the doc gets a notation note rather than an overturn.
+- 2026-09-10 — A failing-case sweep (453 → 1232 fast tests, 91% → 99% branch, all in
+  `engineering/session-notes/2026-09-10-test-coverage-review.md`) found 22 defects, none by a
+  happy-path test. Three shapes recur and are worth checking in every new module: a substring
+  heuristic standing in for a fact (`"sorry" in witness` reads the slot's own comment, so a
+  filled witness stays blocked and can be filled twice); a mode's allowed roles wider than its
+  requirement (a listed curator's diff may replace an existing witness unchecked); and
+  exceptions escaping `cli.main` after the expensive work is done (`main` catches two error
+  types; nine other commands leak `SchemaError`, `FileNotFoundError`, `SandboxError`).
+  Each defect is a strict xfail, so fixing one flips a test red until the mark comes off.
 - 2026-09-10 — Naming the App as committer paid twice. Beyond D-23's split it makes a
   pseudonymous submission *attributed*, so the ruleset's
   `require_extra_approval_for_unattributed_changes` does not fire on D-19's account-free path —

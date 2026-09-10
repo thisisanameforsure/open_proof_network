@@ -63,6 +63,92 @@ Site:
 Nits not xfailed: `ledger.write` does `mkdir` before validating, leaving an empty `ledger/`
 after a refusal; the ledger's invalid-file message names the violation but not the file.
 
+## Round two (same day): the classifier, the curator commands, the two api seams
+
+A branch-coverage run (`uv run --with pytest-cov`, ephemeral, not a dependency) after round
+one read 91% overall; the holes were the classifier's edge diffs, the curator commands through
+`cli.main`, and the two api seams that only the live host had ever exercised: `githost.py` at
+33% and `store.py` at 61%. After round two: 1126 passed, 33 strict xfails; `githost.py`,
+`store.py` and `lambda_handler.py` at 100% branch, `local.py` at 79% (the socket loop).
+
+Gate (test_modes, test_paths, test_cli_curator, test_ledger; 62 cases):
+
+13. **`gate/opn_gate/modes.py` `_classify_curator`** allows every node role, so a listed
+    curator's status-record diff that also modifies an existing node's `Witness.lean` (or a
+    versioned-node diff plus a foreign witness) classifies `curator` with no problem; the
+    witness-completion precondition runs in proposal mode only. F08-R8 lists status records,
+    versioned nodes and consolidation records; D-3 makes a witness immutable. **Highest
+    priority of the day**: whether admission downstream catches it is not tested either.
+14. **`gate/opn_gate/modes.py` `check_witness_completion`** tests the base with
+    `"sorry" not in before`; the slot header contains the word, so a witness filled under the
+    header reads as unfilled and can be filled a second time. Twin of defect 4.
+15. `gate/opn_gate/cli.py` lets `SchemaError`, `ScaffoldError`, `FileNotFoundError` and
+    `GraphError` escape `main` from `revise` (bad or missing request, missing or non-statement
+    statement), `status` (malformed `--date`, dormant on a cyclic graph), `consolidate` (broken
+    gate-spec), and `missing-library` (missing graph or unknown target). Same shape as defect 2.
+16. `gate/opn_gate/ledger.py` `write` does `mkdir` before validating (the nit above, now
+    xfailed).
+
+Api (test_githost_seam, test_store_seam, test_entrypoints; 147 cases, mock httpx transport and
+a scripted boto3 resource using boto3's own serialisers and real `ClientError`s):
+
+17. **`api/opn_api/githost.py`** calls `.json()` on the OAuth exchange and the `/user` body
+    before checking the status and unguarded; a non-JSON body (an edge proxy's HTML 502)
+    escapes as `JSONDecodeError`, and the callback answers 500 instead of 502.
+18. **`api/opn_api/store.py` `take_ephemeral`** catches bare `Exception`: a programming error
+    or a throttled table reads as an expired nonce (400 `state-invalid`), never as an outage.
+19. `take_ephemeral` returns raw DynamoDB attributes (Decimals) where `get_job` converts via
+    `plain()`; harmless today because the one numeric ephemeral field is never read.
+20. Seam parity: boto3 refuses `float` at `put_item`, `MemoryStore` accepts it; no record
+    carries a float today.
+
+Spec-silent behaviours documented as they are: `status --k 0` makes D-33's attempt threshold
+vacuous (no lower bound anywhere); a `--branch` failure leaves the already-written record
+untracked on disk; `--author ""` defers to `OPN_PR_AUTHOR`.
+
+## Round three (same day): the sandboxed commands through a scripted docker
+
+The `reproduce`, `gate`, `postmerge`, `exhibits`, `admit`, `ledger` and `products` commands
+build the sandbox image unconditionally, so they had only ever run in the docker tier. A
+scripted `docker` binary (instant build, flippable `image inspect`, `cp` out emitting a real
+tar of the host directory) and a recording sandbox factory drive all of them through
+`cli.main` in the fast tier: 71 cases, gate at 99% branch, whole repo 99%; 1192 passed, 40
+strict xfails. Also covered: the elan install path and `lake` absence through the real
+`_exec` layering, and the `docker cp` tar stream both ways with traversal, symlink and mode
+hardening.
+
+21. `gate/opn_gate/cli.py` again, the same shape as defects 2 and 15, now after expensive
+    work: a failed `docker build` (`SandboxError`), `reproduce --compare` naming a missing or
+    non-JSON file (`SchemaError`, after the run completed and with the verdict on disk
+    unreported), `gate --pr-body-file` and `postmerge --approval-body-file` naming a missing
+    file (`FileNotFoundError`, after the export, image build and gate run). One `except` clause
+    around `commands[args.command]` for the gate's own error types, plus reading flag files
+    before doing work, closes 2, 15 and 21 together.
+22. `gate/opn_gate/sandbox.py` `_copy_out`: an empty or truncated `docker cp` stream surfaces
+    as `tarfile.ReadError`, not `SandboxError`, so the diagnostic names a tar parser. Arguable.
+
+## Round four (same day): the residual branches, and where it ends
+
+40 cases across the classifier's unreadable-record branches, SSHSIG's malformed-blob branches,
+bundle path shapes, the store-build failure as a 503, the form-vs-JSON token flows, and three
+site lines. No new defects. Final: **1232 passed, 40 strict xfails**, 99% branch coverage
+across the three packages. What remains is not fast-tier work: the local dev server's socket
+loop, three `__main__` guards, and three branches confirmed unreachable by reading (
+`submissions.py` `precheck-node-differs`, `modes.py` line 435 after `_check_schema`,
+`paths_step.py` line 37 after `layout.load_node`'s own hash check). Dead branches are a
+tidiness question for the owner, not a test.
+
+Eight commits, all tests, no production code:
+
+    a48f85e tests: failing-case coverage for the site (F04)
+    8009ebd tests: failing-case coverage for the api (F05-F08)
+    e5cd8bd tests: failing-case coverage for the gate (F00-F03, F07, F08)
+    e02044b notes: test coverage review, built features and spec-only features
+    0dcaff3 tests: classifier edge diffs, curator command errors, ledger refusal (F07, F08)
+    95071a5 tests: the GitHub host and DynamoDB store seams driven without network (F05, F06)
+    fddacae tests: the sandboxed commands, the install path and docker cp (F00, F03, F07, F08)
+    78af006 tests: the residual branches in the classifier, SSHSIG parsing, bundles and the site
+
 ## Gaps left open, and why
 
 - **Dead branch**: `api/opn_api/submissions.py` `precheck-node-differs` is unreachable, the
