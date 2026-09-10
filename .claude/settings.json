@@ -7,6 +7,8 @@
       "Write",
       "WebSearch",
       "WebFetch",
+      "Artifact",
+      "Monitor",
       "Workflow(deep-research)",
       "Skill(deep-research)",
       "Skill(deep-research:*)"
