@@ -111,3 +111,38 @@ All four calls made, in order:
 exit 0
 $ claude mcp remove -s local opn
 Removed MCP server opn from local config
+
+RUN 5 — the deployed function (api-deploy run 34607149058, 2026-09-11, after the founder pushed main)
+--------------------------------------------------------------------------------------------------
+The first deploy (run 34605897345) failed its package check: the new check imports opn_api and the
+step had only gate on its path. The second (run 34606904971) updated the function and then found
+it down — Runtime.ImportModuleError, "No package metadata was found for mcp": the build stripped
+every *.dist-info and the SDK reads its version through importlib.metadata at import. Keeping the
+metadata fixed it (commits 9fb6111, 5b7c3e6). The third run deployed and its smoke step, below,
+passed against https://api.openproofnetwork.org — the read-only half of AC11 is met on the
+deployed function; the claim step stays PENDING on a claimable node.
+
+--read-only --allow-unconfigured
+GET /health -> 200 {'ok': True, 'store': 'dynamodb'}
+GET /info.json -> 200, protocol 3.11, policy {'writes_per_hour': 120, 'active_claims': 20, 'tokens_per_github_login': 1, 'token_starts_per_address_per_day': 10, 'prechecks_per_hour': 40, 'anonymous_prechecks_per_address_per_day': 20, 'proposals_per_day': 40, 'claim_ttl_hours': {'min': 1, 'max': 168}}
+GET /frontier.json -> 200, 0 entries
+GET /claims.json -> 200, 0 nodes with claims
+smoke: ok
+initialize -> open-proof-network 3.11
+tools/list -> 21 tools
+server_info -> protocol 3.11; GET /info.json 200
+list_frontier -> 0 entries; GET /frontier.json 200
+list_targets -> ['tutorial']
+get_node(tutorial-and-swap) -> 0 attempts, 0 annexes, 0 explainers, note present: True
+get_gate_spec(tutorial) -> network commit af2f4e7b427fa3515e4c97a68c70a1a701d233e4
+claim_node (no token) -> 401, the SDK's unauthorized result
+
+transcript
+  server_info({}) -> ok {"protocol_version": "3.11", "rate_limit_policy": {"writes_per_hour": 120, "active_claims": 20, "tokens_per_github_login": 1, "token_starts_per_address_per_day"
+  list_frontier({}) -> ok {"entries": [], "rendered_from": "bc8df2956e8c8e461c446820a086e5b81eecfe41", "schema": "frontier/v1"}
+  list_targets({}) -> ok {"rendered_from": "bc8df2956e8c8e461c446820a086e5b81eecfe41", "schema": "targets-index/v2", "targets": [{"claimable": true, "fidelity": "mechanical-only", "math
+  get_target({"target_id": "tutorial"}) -> ok {"target_id": "tutorial", "graph": {"nodes": [{"cause": null, "deps": [], "node_id": "tutorial-and-swap", "origin": "authored", "proof_commit": "6452ef80d4f1f47
+  get_node({"node_id": "tutorial-and-swap"}) -> ok {"node_id": "tutorial-and-swap", "target_id": "tutorial", "files": {"Statement.lean": "/-! The tutorial node (D-27): permanently open, off-ledger. Lean core onl
+  get_gate_spec({"target_id": "tutorial"}) -> ok {"accepted_precheck_signatures": ["service", "contributor", "none"], "axiom_allowlist": ["propext", "Classical.choice", "Quot.sound"], "devcontainer_ref": null,
+  (no token) claim_node({"node_id": "tutorial-and-swap"}) -> error {"status": 401, "body": {"error": "invalid_token", "error_description": "Authentication required"}}
+smoke-mcp: ok

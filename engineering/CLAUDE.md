@@ -286,3 +286,10 @@ The law of the project:
   unattended before any push: the tutorial precheck minted a token in 138 s, every read crossed
   the live host (the new `list_dir` included), and Claude Code itself was the client through
   `claude mcp add --transport http`. Only the deploy and a claimable node remain the owner's.
+- 2026-09-11 — A deploy check that cannot import the package still has to see the package. Two
+  deploys in a row failed on the MCP adapter: the new package check imported `opn_api` with only
+  `gate` on the path, and then the function itself died at import because the build stripped
+  every `dist-info` and the SDK resolves its version through `importlib.metadata`. Neither the
+  fast tier nor the local runner could see either: both run from the venv, where metadata exists
+  and paths are set. Rehearse the build step locally (`uv pip install --python-platform
+  aarch64-manylinux2014 --target`) and check the package on disk before a push that deploys.
