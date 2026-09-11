@@ -1,0 +1,50 @@
+F09-T2 — read tools. 2026-09-11
+
+WHAT T2 COVERS
+--------------
+AC6  api/tests/test_mcp_demarcation.py::test_free_text_wrapped   — "ignore previous
+     instructions" planted in a postmortem detail, an annex body, an explainer and a hazard
+     justification appears only inside {untrusted, source, text} objects; the top-level note is
+     present; enums stay bare facts; unwrapping gives the file's record back verbatim.
+§6   ::test_attempt_log_truncated                                — the newest 50 records in
+     file order with attempts_truncated set; 50 exactly is not truncated.
+R6   ::test_target_approaches_wrapped, ::test_record_wrapping_by_family
+AC7  api/tests/test_mcp_frontier.py::test_filters_no_ranking     — {origin: authored,
+     tags.library contains "Nat"} keeps the two matching entries in the file's order.
+R5   ::test_no_filters_is_the_overlay — the unfiltered result is GET /frontier.json.
+C7   ::test_unknown_filter_named — a field the frontier schema lacks is refused by name.
+AC8  api/tests/test_mcp_errors.py::test_unreachable_source        — the fake host raising:
+     get_target and every graph-backed read answer {error, message, source: graph}, nothing
+     else; route-backed reads name the service with the status it answered.
+R10  ::test_partial_bundle_never_served — the host failing midway through get_node's bundle is
+     an error result, not a bundle missing its attempts.
+
+COMMAND
+-------
+uv run pytest api/tests/test_mcp_demarcation.py api/tests/test_mcp_frontier.py api/tests/test_mcp_errors.py
+
+OUTPUT
+------
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 13 items
+
+api/tests/test_mcp_demarcation.py::test_free_text_wrapped PASSED         [  7%]
+api/tests/test_mcp_demarcation.py::test_target_approaches_wrapped PASSED [ 15%]
+api/tests/test_mcp_demarcation.py::test_attempt_log_truncated PASSED     [ 23%]
+api/tests/test_mcp_demarcation.py::test_record_wrapping_by_family PASSED [ 30%]
+api/tests/test_mcp_frontier.py::test_filters_no_ranking PASSED           [ 38%]
+api/tests/test_mcp_frontier.py::test_no_filters_is_the_overlay PASSED    [ 46%]
+api/tests/test_mcp_frontier.py::test_unknown_filter_named PASSED         [ 53%]
+api/tests/test_mcp_errors.py::test_unreachable_source PASSED             [ 61%]
+api/tests/test_mcp_errors.py::test_partial_bundle_never_served PASSED    [ 69%]
+api/tests/test_mcp_errors.py::test_not_found_names_graph PASSED          [ 76%]
+api/tests/test_mcp_errors.py::test_service_refusal_names_service PASSED  [ 84%]
+api/tests/test_mcp_errors.py::test_arguments_refused_structured PASSED   [ 92%]
+api/tests/test_mcp_errors.py::test_get_schema_both_namespaces PASSED     [100%]
+
+============================== 13 passed in 0.86s ==============================
