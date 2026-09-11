@@ -46,6 +46,10 @@ Variables (prefix ``OPN_API_``):
     The D-25 flat caps (R7). Defaults ``1`` / ``168``.
 ``OPN_API_STATE_TTL_S``
     Lifetime of an OAuth state nonce and of the identity proof it yields (§7). Default ``600``.
+``OPN_API_MAX_BODY_BYTES``
+    The largest request body the api accepts, in bytes; anything larger is refused with a 413
+    ``body-too-large`` before any parsing (F05 §6, Q7). Default ``1048576`` (1 MiB), above
+    the 512 KiB precheck bundle (F06 §6) with room for its JSON envelope.
 ``OPN_API_LOG_LEVEL``
     Python logging level name. Default ``INFO``.
 ``OPN_API_GITHUB_APP_ID`` / ``OPN_API_GITHUB_CLIENT_ID``
@@ -88,6 +92,7 @@ DEFAULT_COMMITTER_EMAIL = "327070898+open-proof-network[bot]@users.noreply.githu
 DEFAULT_CLAIM_TTL_MIN_H = 1
 DEFAULT_CLAIM_TTL_MAX_H = 168
 DEFAULT_STATE_TTL_S = 600
+DEFAULT_MAX_BODY_BYTES = 1024 * 1024  # F05 §6: above bundles.MAX_BUNDLE_BYTES (512 KiB)
 DEFAULT_LOG_LEVEL = "INFO"
 
 # Parameter Store name (under the prefix) -> the variable it populates (C8 item 3).
@@ -135,6 +140,7 @@ class Settings:
     claim_ttl_min_h: int = DEFAULT_CLAIM_TTL_MIN_H
     claim_ttl_max_h: int = DEFAULT_CLAIM_TTL_MAX_H
     state_ttl_s: int = DEFAULT_STATE_TTL_S
+    max_body_bytes: int = DEFAULT_MAX_BODY_BYTES
     log_level: str = DEFAULT_LOG_LEVEL
     github_app_id: str | None = None
     github_client_id: str | None = None
@@ -247,6 +253,7 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
         claim_ttl_min_h=ttl_min,
         claim_ttl_max_h=ttl_max,
         state_ttl_s=_int(env, "OPN_API_STATE_TTL_S", DEFAULT_STATE_TTL_S),
+        max_body_bytes=_int(env, "OPN_API_MAX_BODY_BYTES", DEFAULT_MAX_BODY_BYTES),
         log_level=env.get("OPN_API_LOG_LEVEL", DEFAULT_LOG_LEVEL),
         github_app_id=env.get("OPN_API_GITHUB_APP_ID") or None,
         github_client_id=env.get("OPN_API_GITHUB_CLIENT_ID") or None,

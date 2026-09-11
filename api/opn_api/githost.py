@@ -176,9 +176,15 @@ class HttpxGitHost:
             except httpx.HTTPError as exc:
                 msg = f"GitHub token exchange failed: {type(exc).__name__}"
                 raise GitHostError(msg) from exc
-            payload: dict[str, Any] = exchange.json() if exchange.content else {}
+            # Status first, then the body, and the body only through a guard: an edge proxy's
+            # HTML 502 must become a GitHostError naming the call, never a JSONDecodeError
+            # escaping to the boundary as a 500 (C7; F05-Q7).
+            if exchange.status_code != 200:
+                msg = f"GitHub refused the code: {_error_field(exchange, exchange.status_code)}"
+                raise GitHostError(msg)
+            payload = _json(exchange, "the token exchange") if exchange.content else {}
             access_token = payload.get("access_token")
-            if exchange.status_code != 200 or not access_token:
+            if not access_token:
                 msg = f"GitHub refused the code: {payload.get('error', exchange.status_code)}"
                 raise GitHostError(msg)
             try:
@@ -193,7 +199,7 @@ class HttpxGitHost:
         if user.status_code != 200:
             msg = f"GitHub user lookup returned {user.status_code}"
             raise GitHostError(msg)
-        doc = user.json()
+        doc = _json(user, "the user lookup")
         try:
             return GitHubUser(
                 login=str(doc["login"]), id=int(doc["id"]), created_at=str(doc["created_at"])
@@ -430,26 +436,41 @@ def _send(http: httpx.Client, method: str, url: str, **kwargs: Any) -> httpx.Res
         msg = f"{method} {_path(url)} failed: {type(exc).__name__}"
         raise GitHostError(msg) from exc
     if resp.status_code >= 400:
-        detail = ""
-        try:
-            detail = str(resp.json().get("message", ""))
-        except ValueError:
-            detail = ""
+        detail = _error_field(resp, "", field="message")
         msg = f"{method} {_path(url)} returned {resp.status_code}{': ' + detail if detail else ''}"
         raise GitHostError(msg)
     return resp
 
 
-def _json(resp: httpx.Response) -> dict[str, Any]:
+def _json(resp: httpx.Response, call: str | None = None) -> dict[str, Any]:
+    """The response body as an object, or a ``GitHostError`` naming the call (never the
+    credential that made it). Every ``.json()`` in this module goes through here or through
+    ``_error_field``: a body is untrusted input (conventions §4) and parsing it is guarded."""
+    what = call or _path(str(resp.url))
     try:
         doc = resp.json()
     except ValueError as exc:
-        msg = f"GitHub returned a non-JSON body for {_path(str(resp.url))}"
+        msg = f"GitHub returned a non-JSON body for {what}"
         raise GitHostError(msg) from exc
     if not isinstance(doc, dict):
-        msg = f"GitHub returned {type(doc).__name__}, not an object, for {_path(str(resp.url))}"
+        msg = f"GitHub returned {type(doc).__name__}, not an object, for {what}"
         raise GitHostError(msg)
     return doc
+
+
+def _error_field(resp: httpx.Response, default: Any, *, field: str = "error") -> str:
+    """The named field of an error body, for a message; ``default`` when the body is empty,
+    not JSON, not an object or has no such field. Reading a diagnostic must never itself
+    raise, so this guard swallows on purpose — the status is already the fact reported."""
+    if not resp.content:
+        return str(default)
+    try:
+        doc = resp.json()
+    except ValueError:
+        return str(default)
+    if not isinstance(doc, dict) or not doc.get(field):
+        return str(default)
+    return str(doc[field])
 
 
 def _path(url: str) -> str:

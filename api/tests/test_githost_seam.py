@@ -222,16 +222,30 @@ def test_exchange_non_200_with_empty_body_names_the_status(
         host.exchange_code("code-1", redirect_uri="https://api/cb")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=json.JSONDecodeError,
-    reason="githost.py:179 calls exchange.json() before checking the status, unguarded: a "
-    "non-JSON body (an edge proxy's HTML 502) escapes as JSONDecodeError, so the callback "
-    "answers 500 instead of the mapped 502 github-exchange-failed (C7)",
-)
 def test_exchange_non_json_body_is_a_githost_error(script: Script, host: HttpxGitHost) -> None:
+    """An edge proxy's HTML 502 is a refusal naming the status, not a JSONDecodeError escaping
+    to the boundary as a 500 (C7; F05-T6): the status is checked before the body is parsed."""
     script.on("POST", "/login/oauth/access_token", 502, text="<html>Bad Gateway</html>")
-    with pytest.raises(GitHostError):
+    with pytest.raises(GitHostError, match=r"refused the code: 502$"):
+        host.exchange_code("code-1", redirect_uri="https://api/cb")
+
+
+def test_exchange_200_with_a_non_json_body_names_the_call(
+    script: Script, host: HttpxGitHost, secrets: list[str]
+) -> None:
+    """A 200 that is not JSON is parsed inside a guard and names the call, never the secret."""
+    script.on("POST", "/login/oauth/access_token", text="<html>ok?</html>")
+    with pytest.raises(GitHostError, match="non-JSON body for the token exchange") as raised:
+        host.exchange_code("code-1", redirect_uri="https://api/cb")
+    assert_clean(str(raised.value), secrets)
+    assert script.to("GET", "/user") == []
+
+
+def test_exchange_error_status_with_a_json_error_names_the_error(
+    script: Script, host: HttpxGitHost
+) -> None:
+    script.on("POST", "/login/oauth/access_token", 401, json={"error": "incorrect_client"})
+    with pytest.raises(GitHostError, match="refused the code: incorrect_client"):
         host.exchange_code("code-1", redirect_uri="https://api/cb")
 
 
@@ -292,15 +306,22 @@ def test_user_document_missing_a_field_is_refused(
         host.exchange_code("code-1", redirect_uri="https://api/cb")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=json.JSONDecodeError,
-    reason="githost.py:196 user.json() is unguarded: a non-JSON 200 body escapes as "
-    "JSONDecodeError instead of a GitHostError the callback maps to 502 (C7)",
-)
-def test_user_document_not_json_is_a_githost_error(script: Script, host: HttpxGitHost) -> None:
+def test_user_document_not_json_is_a_githost_error(
+    script: Script, host: HttpxGitHost, secrets: list[str]
+) -> None:
+    """A non-JSON 200 from ``/user`` is a GitHostError naming the call (the callback maps it
+    to 502), not a JSONDecodeError (C7; F05-T6) — and the access token is not in it."""
     exchange_ok(script).on("GET", "/user", text="not json")
-    with pytest.raises(GitHostError):
+    with pytest.raises(GitHostError, match="non-JSON body for the user lookup") as raised:
+        host.exchange_code("code-1", redirect_uri="https://api/cb")
+    assert_clean(str(raised.value), secrets)
+
+
+def test_user_document_that_is_a_list_is_a_githost_error(
+    script: Script, host: HttpxGitHost
+) -> None:
+    exchange_ok(script).on("GET", "/user", json=["alice"])
+    with pytest.raises(GitHostError, match="list, not an object, for the user lookup"):
         host.exchange_code("code-1", redirect_uri="https://api/cb")
 
 

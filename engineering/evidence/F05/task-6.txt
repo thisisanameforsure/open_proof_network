@@ -1,0 +1,68 @@
+F05-T6 — defects from the coverage sweep and the body cap — 2026-09-11
+
+$ uv run --frozen pytest api
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-a2424fab9ca8bfdf8
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 414 items
+
+api/tests/test_appends.py .......                                        [  1%]
+api/tests/test_auth.py ....                                              [  2%]
+api/tests/test_body_cap.py .........                                     [  4%]
+api/tests/test_branches_round4.py ...................                    [  9%]
+api/tests/test_claims.py ........                                        [ 11%]
+api/tests/test_claims_defect.py ....                                     [ 12%]
+api/tests/test_config_boundary.py ...........                            [ 14%]
+api/tests/test_entrypoints.py ..........                                 [ 17%]
+api/tests/test_frontier.py ....                                          [ 18%]
+api/tests/test_githost_seam.py ......................................... [ 28%]
+...........................                                              [ 34%]
+api/tests/test_health.py ........                                        [ 36%]
+api/tests/test_info.py ...                                               [ 37%]
+api/tests/test_precheck.py ...........................                   [ 43%]
+api/tests/test_proposals.py .......                                      [ 45%]
+api/tests/test_ratelimit.py ....                                         [ 46%]
+api/tests/test_rejections_app.py .............                           [ 49%]
+api/tests/test_rejections_appends.py ...........                         [ 52%]
+api/tests/test_rejections_claims.py .........                            [ 54%]
+api/tests/test_rejections_precheck.py ....................               [ 59%]
+api/tests/test_rejections_proposals.py ............                      [ 62%]
+api/tests/test_rejections_requests.py ........                           [ 64%]
+api/tests/test_rejections_submissions.py ..........                      [ 66%]
+api/tests/test_rejections_tokens.py .................                    [ 70%]
+api/tests/test_routes.py .....                                           [ 71%]
+api/tests/test_sshsig.py ......                                          [ 73%]
+api/tests/test_sshsig_rejections.py ...........                          [ 76%]
+api/tests/test_store_seam.py .....................................x..... [ 86%]
+..................................                                       [ 94%]
+api/tests/test_submissions.py ......                                     [ 96%]
+api/tests/test_tokens.py ................                                [100%]
+
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:26
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-a2424fab9ca8bfdf8/api/tests/api_fakes.py:26: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-a2424fab9ca8bfdf8/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+XFAIL api/tests/test_store_seam.py::test_a_float_in_a_job_record_is_stored_by_dynamodb_like_memory - boto3 refuses float attributes ('Float types are not supported'), so a job record carrying one fails put_job on DynamoDB while MemoryStore accepts it; store.plain's docstring promises floats come back as floats, but they never go in (seam parity, C7). No record carries a float today.
+================= 413 passed, 1 xfailed, 2 warnings in 13.81s ==================
+
+$ make verify (summary lines)
+uv run --frozen ruff check .
+All checks passed!
+uv run --frozen ruff format --check .
+187 files already formatted
+uv run --frozen mypy gate
+Success: no issues found in 90 source files
+uv run --frozen mypy api
+Success: no issues found in 57 source files
+uv run --frozen mypy site
+Success: no issues found in 18 source files
+========= 1248 passed, 49 deselected, 36 xfailed, 2 warnings in 46.42s =========
