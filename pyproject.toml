@@ -13,6 +13,9 @@ license = "Apache-2.0"
 #   httpx      — F05 §8 (GitHub calls through the GitHost seam; Starlette's test client).
 #   cryptography — F06 §8, Q5 (RS256 for the GitHub App JWT and Ed25519 for verifying a precheck
 #                  attestation without an ssh-keygen binary; never roll your own crypto).
+#   mcp        — F09 §8 (the official MCP Python SDK, the reference implementation of the
+#                transport and auth contract D-28 requires; pinned inside the 1.x line, the 2.x
+#                line having moved to a different httpx).
 dependencies = [
     "jsonschema==4.26.0",
     "pyyaml==6.0.3",
@@ -20,6 +23,7 @@ dependencies = [
     "mangum==0.22.0",
     "httpx==0.28.1",
     "cryptography==50.0.1",
+    "mcp==1.30.0",
 ]
 
 [dependency-groups]

@@ -109,6 +109,12 @@ class GitHost(Protocol):
         """Read a committed file, honoring ``If-None-Match`` (R9)."""
         ...
 
+    def list_dir(self, repo: str, ref: str, path: str) -> list[str] | None:
+        """The names of the files directly under ``path`` at ``ref``, sorted; ``None`` when
+        there is no such directory (F09-R6: a node's ``attempts/`` and ``annex/`` are listed,
+        never guessed)."""
+        ...
+
     def push_branch(  # noqa: PLR0913 — one argument per part of the commit being made
         self,
         repo: str,
@@ -222,6 +228,31 @@ class HttpxGitHost:
         if resp.status_code != 200:
             return Fetched(resp.status_code, None, None)
         return Fetched(200, resp.headers.get("ETag"), resp.content)
+
+    def list_dir(self, repo: str, ref: str, path: str) -> list[str] | None:
+        """The Contents API as the App (F09-R6): the raw host serves files, not listings, and
+        the App's installation token has the rate budget an anonymous call lacks."""
+        with self._api(repo) as http:
+            try:
+                resp = http.get(f"{GITHUB_API}/repos/{repo}/contents/{path}", params={"ref": ref})
+            except httpx.HTTPError as exc:
+                msg = f"listing {path} in {repo}@{ref} failed: {type(exc).__name__}"
+                raise GitHostError(msg) from exc
+        if resp.status_code == 404:
+            return None
+        if resp.status_code != 200:
+            msg = f"GET /repos/{repo}/contents/{path} returned {resp.status_code}"
+            raise GitHostError(msg)
+        try:
+            entries = resp.json()
+        except ValueError as exc:
+            msg = f"GitHub returned a non-JSON body for the listing of {path}"
+            raise GitHostError(msg) from exc
+        if not isinstance(entries, list):  # a file's path answers with an object
+            return None
+        return sorted(
+            str(e["name"]) for e in entries if isinstance(e, dict) and e.get("type") == "file"
+        )
 
     # --- as the GitHub App (F06-R3, R5) ---------------------------------------------------------
 

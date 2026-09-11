@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/mcp/list_frontier/v1.json",
+  "title": "mcp/list_frontier/v1",
+  "description": "The result of the list_frontier tool (F09-R9; D-28): frontier.json with the live claim overlay (GET /frontier.json), or an error result naming the source that did not answer (R10).",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "schema",
+        "entries"
+      ],
+      "properties": {
+        "schema": {
+          "type": "string",
+          "pattern": "^frontier/v[1-9][0-9]*$"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "The plain path did not answer, or the arguments were refused (F09-R10)",
+      "required": [
+        "error",
+        "message",
+        "source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "graph",
+            "service",
+            "adapter"
+          ]
+        },
+        "status": {
+          "type": "integer"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+F09-T1 — mount, auth, surface. 2026-09-11
+
+WHAT T1 COVERS
+--------------
+AC1  api/tests/test_mcp_surface.py::test_tool_surface_frozen      — the listed tools are R3's
+     ten reads and eleven writes exactly; each carries mcp/<tool>/v1 as its output schema and
+     readOnlyHint set for reads only.
+AC2  ::test_bijection_table_complete                               — every tool has a row, every
+     route in a row is in F05's routes table, every write maps to exactly one route; a tool
+     without a row fails by name. ::test_d28_rows_verbatim checks each row quotes D-28's or
+     D-35's equivalent cell.
+AC9  ::test_results_match_schemas                                  — every tool's answer and
+     refusal validates against mcp/<tool>/v1, and get_schema serves each schema (T2's schemas,
+     checked here because the test is T1's file).
+R1   ::test_lifespan_owns_the_session_manager                      — with the host lifespan
+     running on the loop the SDK manager it entered serves the request; without one the mount
+     runs a per-request manager (Mangum, lifespan off).
+AC5  api/tests/test_mcp_auth.py::test_token_required_for_writes_only — eleven writes without a
+     token: the SDK's unauthorized body at 401, no endpoint reached, nothing stored; reads open.
+
+SDK: mcp==1.30.0 (the 1.x line; 2.x moved to httpx2), locked in uv.lock.
+
+COMMAND
+-------
+uv run pytest api/tests/test_mcp_surface.py api/tests/test_mcp_auth.py
+
+OUTPUT
+------
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 11 items
+
+api/tests/test_mcp_surface.py::test_tool_surface_frozen PASSED           [  9%]
+api/tests/test_mcp_surface.py::test_bijection_table_complete PASSED      [ 18%]
+api/tests/test_mcp_surface.py::test_d28_rows_verbatim PASSED             [ 27%]
+api/tests/test_mcp_surface.py::test_results_match_schemas PASSED         [ 36%]
+api/tests/test_mcp_surface.py::test_lifespan_owns_the_session_manager PASSED [ 45%]
+api/tests/test_mcp_surface.py::test_server_identity PASSED               [ 54%]
+api/tests/test_mcp_auth.py::test_token_required_for_writes_only PASSED   [ 63%]
+api/tests/test_mcp_auth.py::test_token_reaches_the_endpoint PASSED       [ 72%]
+api/tests/test_mcp_auth.py::test_endpoint_refusal_passes_through PASSED  [ 81%]
+api/tests/test_mcp_auth.py::test_rate_limit_passthrough PASSED           [ 90%]
+api/tests/test_mcp_auth.py::test_precheck_submission_returns_job_and_poll PASSED [100%]
+
+============================== 11 passed in 2.93s ==============================

@@ -130,6 +130,24 @@ class FakeGitHost:
             return Fetched(304, etag, None)
         return Fetched(200, current, body)
 
+    def list_dir(self, repo: str, ref: str, path: str) -> list[str] | None:
+        """The files directly under ``path`` (F09-R6); ``None`` when nothing lives there.
+        A ``.gitkeep`` marks an empty directory the way the graph's layout does."""
+        self.fetches.append((path + "/", None))
+        if self.unreachable:
+            msg = f"listing {path} failed: ConnectError"
+            raise GitHostError(msg)
+        prefix = path.rstrip("/") + "/"
+        names = sorted(
+            {
+                name.partition("/")[0]
+                for name in (k.removeprefix(prefix) for k in self.files if k.startswith(prefix))
+            }
+        )
+        if not names:
+            return None
+        return [n for n in names if prefix + n in self.files]
+
     def _app_call(self) -> None:
         if self.app_failure:
             raise GitHostError(self.app_failure)

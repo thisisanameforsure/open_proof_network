@@ -13,14 +13,18 @@ The content type is deliberately not enforced (Q7).
 
 Request logging (R11): method, route template, identity id (never the token), status and
 duration, at INFO; no request or response body is logged above DEBUG.
+
+The MCP server (F09) is mounted at ``/mcp`` beside the routes table, not in it: it is a lens
+over those routes (D-28), and its session manager runs from this application's lifespan.
 """
 
 from __future__ import annotations
 
+import contextlib
 import importlib
 import logging
 import time
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -243,7 +247,17 @@ def create_app(
     )
     if missing:
         log.error("serving 503 until configured; missing: %s", ", ".join(missing))
+    from opn_api.mcp import server as mcpmod  # noqa: PLC0415 — the adapter imports this module
+
+    mcp = mcpmod.Mount(ctx, lambda: app)
     routes = [Route(r.path, bind(ctx, r), methods=[r.method], name=r.label) for r in ROUTES]
+    routes.append(Route(mcpmod.MCP_PATH, mcp, methods=["GET", "POST", "DELETE"], name="mcp"))
+
+    @contextlib.asynccontextmanager
+    async def lifespan(_: Starlette) -> AsyncIterator[None]:
+        async with mcp.running():
+            yield
+
     app = Starlette(
         routes=routes,
         middleware=[
@@ -251,6 +265,8 @@ def create_app(
             Middleware(BodyCap, cap=settings.max_body_bytes),  # inside the log, so a 413 is logged
         ],
         exception_handlers={ApiError: _api_error, 404: _not_found, Exception: _unexpected},
+        lifespan=lifespan,
     )
     app.state.context = ctx
+    app.state.mcp = mcp
     return app

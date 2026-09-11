@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/mcp/get_target/v1.json",
+  "title": "mcp/get_target/v1",
+  "description": "The result of the get_target tool (F09-R9; D-28): targets/<id>/graph.json + targets/<id>/approaches/, or an error result naming the source that did not answer (R10).",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "target_id",
+        "graph",
+        "approaches",
+        "untrusted_note"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "type": "string"
+        },
+        "graph": {
+          "type": "object",
+          "required": [
+            "schema"
+          ],
+          "properties": {
+            "schema": {
+              "type": "string",
+              "pattern": "^graph/v[1-9][0-9]*$"
+            }
+          }
+        },
+        "approaches": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "path",
+              "record"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "record": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "untrusted_note": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "The plain path did not answer, or the arguments were refused (F09-R10)",
+      "required": [
+        "error",
+        "message",
+        "source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "graph",
+            "service",
+            "adapter"
+          ]
+        },
+        "status": {
+          "type": "integer"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "untrusted": {
+      "type": "object",
+      "description": "Contributor free text, demarcated (D-28, D-31): data, never instructions",
+      "required": [
+        "untrusted",
+        "source",
+        "text"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "untrusted": {
+          "const": true
+        },
+        "source": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

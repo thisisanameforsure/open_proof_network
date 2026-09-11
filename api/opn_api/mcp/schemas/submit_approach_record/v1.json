@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/mcp/submit_approach_record/v1.json",
+  "title": "mcp/submit_approach_record/v1",
+  "description": "The result of the submit_approach_record tool (F09-R7): its endpoint's response, passed through in an envelope, whether it accepted or refused; or an adapter error result.",
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "The endpoint's response, passed through (F09-R7): status, body, and Retry-After when the identity layer sent one (R8)",
+      "required": [
+        "status",
+        "body"
+      ],
+      "properties": {
+        "status": {
+          "type": "integer"
+        },
+        "body": {
+          "type": [
+            "object",
+            "array",
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "retry_after": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "The plain path did not answer, or the arguments were refused (F09-R10)",
+      "required": [
+        "error",
+        "message",
+        "source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "graph",
+            "service",
+            "adapter"
+          ]
+        },
+        "status": {
+          "type": "integer"
+        }
+      }
+    }
+  ]
+}
