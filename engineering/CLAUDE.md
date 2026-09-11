@@ -293,3 +293,10 @@ The law of the project:
   fast tier nor the local runner could see either: both run from the venv, where metadata exists
   and paths are set. Rehearse the build step locally (`uv pip install --python-platform
   aarch64-manylinux2014 --target`) and check the package on disk before a push that deploys.
+- 2026-09-11 — The first live merge of a new node kind finds what fixtures cannot. A D-30
+  variant has no dependents, so the first merged variant gave the DAG two sinks and F03's root
+  inference refused; the products stopped rendering until the curator declared the root by pull
+  request (a direct push does not trigger the post-merge job). And a post-merge run that fails
+  before its ledger step loses that line for good, because a re-run checks out the same merge
+  commit. Before the first live use of any new mode, ask what the post-merge job assumes about
+  the tree — and match a run to the commit it is for, never to "the latest completed run".

@@ -90,4 +90,67 @@ WHAT THE FOUNDER DOES TO CLOSE AC19 (in this order)
 
 RUN OUTPUT
 ----------
-(pending)
+2026-09-11, on the founder's authority (both repositories pushed first; smoke run with the
+founder's gh token so it merges the pull request it opens).
+
+$ uv run python api/tools/smoke_propose.py https://api.openproofnetwork.org --github-token <gh auth token>
+GET /health -> 200 {'ok': True, 'store': 'dynamodb'}
+tutorial node: tutorial-and-swap in target tutorial
+POST /precheck (no token) -> 202 id=01M28CHEE8J0ZSFE9N82DXDE8R
+    0.7s  queued
+   11.4s  running
+  131.9s  done
+PROBLEM: variant-93e79cb5 is not in frontier.json after the merge
+PROBLEM: no ledger for smoke-8decc12b after the merge (F08-R13): HTTP Error 404: Not Found
+POST /tokens -> 201 pseudonym=smoke-8decc12b
+POST /proposals/variant -> 201 
+proposed variant-93e79cb5: https://github.com/thisisanameforsure/open_proof_network_graph/pull/8
+PR #8: 'proposal: variant-93e79cb5' [open] https://github.com/thisisanameforsure/open_proof_network_graph/pull/8
+  files    : 7 added under nodes/variant-93e79cb5/
+  author   : smoke-8decc12b <smoke-8decc12b@anon.opn.invalid>
+  committer: open-proof-network[bot] <327070898+open-proof-network[bot]@users.noreply.github.com>
+  pull_request : queued  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34608209649
+  pull_request : queued  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34608209649
+  pull_request : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34608209649
+  pull_request : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34608209649
+  pull_request : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34608209649
+  pull_request : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34608209649
+  pull_request : in_progress  https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34608209649
+  pull_request : completed success https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34608209649
+PUT /pulls/8/merge -> 200 
+  push         : completed success https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/34607972011
+frontier.json: 0 entries; variant-93e79cb5: ABSENT
+FAIL
+exit 1
+
+What the smoke saw, and what was true. The proposal reached the graph exactly as R3 says: an
+account-free identity, POST /proposals/variant 201, pull request #8 with seven files under
+nodes/variant-93e79cb5/, the pseudonym as author and the App as committer, the gate green, the
+merge as a merge commit. Then the post-merge run on the merge commit (34608433726) FAILED in
+its products step:
+
+  opn-gate: products not written: root is ambiguous: 2 nodes have no dependents
+  (tutorial-and-swap, variant-93e79cb5); declare one in targets/<id>/status/ (target-status/v1 root)
+
+A D-30 variant has no dependents by construction, so the first merged variant made the DAG's
+sink ambiguous and F03's root inference refused, as designed (F03-Q5): the mechanism for this
+case is a target-status/v1 record declaring the root. The smoke, meanwhile, had read the wrong
+push run (the earlier F08-T6 products push, not the merge's) and reported the node ABSENT — a
+defect in the smoke's run lookup, recorded below.
+
+Recovery, all on the curator path (F08-R8): a direct push of the record does not render
+(postmerge only runs for a merged pull request), so it was reverted and re-landed as pull
+request #9 by the listed curator — targets/tutorial/status/2026-09-11-1.yaml declaring root
+tutorial-and-swap, status resolved, claimable true, which is what the products already
+published. Rehearsed first with `opn-gate products` on a git copy of the graph: index
+unchanged, frontier gains the variant. #9's gate passed (16 s, curator mode), it merged, and
+the post-merge run rendered the products from 65313e2:
+
+  frontier.json rendered_from 65313e20: [('variant-93e79cb5', 'variant', 'related', claimable True)]
+
+AC19's two facts: the proposal merged on green and the node is in frontier.json as origin
+variant, relation related. One consequence is lost and recorded: the proposer's ledger line
+(R13) was to be written by #8's post-merge run, which failed before that step, and a re-run
+checks out the same merge commit, whose tree lacks the record — so ledger/smoke-8decc12b.json
+does not exist. Graph history: 770303f (merge #8), abe2600 (revert of the direct push),
+65313e2 (merge #9), 7dce206 (the bot's products commit).
