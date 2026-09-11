@@ -64,7 +64,7 @@ jobs:
 
       - name: Check the package carries the handler and every schema
         env:
-          PYTHONPATH: gate
+          PYTHONPATH: gate:api  # opn_gate for the schema pins, opn_api for the MCP tool list (F09)
         run: |
           set -euo pipefail
           # The package is cross-built for the function's architecture, so it cannot be imported
