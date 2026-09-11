@@ -8,7 +8,6 @@ the graph is trusted here — escaping is the renderer's job, and it escapes eve
 
 from __future__ import annotations
 
-import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -156,7 +155,15 @@ def _attestation_for(
     if proof_commit is None or not att_dir.is_dir():
         return None, None
     for path in sorted(p for p in att_dir.iterdir() if p.suffix == ".json"):
-        doc = json.loads(path.read_text(encoding="utf-8"))
+        rel = path.relative_to(root).as_posix()
+        try:
+            doc = schemas.load_json(path)  # by its own schema field: four versions are live
+        except schemas.SchemaError as exc:
+            msg = f"attestation {rel} does not validate: {exc}"
+            raise SiteError(msg) from exc
+        if not str(doc["schema"]).startswith("attestation/"):
+            msg = f"attestation {rel} declares {doc['schema']!r}, not an attestation schema"
+            raise SiteError(msg)
         if (
             doc.get("node_id") == node_id
             and doc.get("statement_hash") == statement_hash
@@ -204,6 +211,26 @@ def load_node(root: Path, target_id: str, entry: dict[str, Any]) -> NodeView:
     )
 
 
+def _check_graph_rows(target_id: str, graph: dict[str, Any]) -> None:
+    """What the schema does not say about ``graph.json``: at least one node, ids unique, and
+    the root among them. Each is a refusal, since the renderer indexes nodes by id and renders
+    the root's statement (R13, C7)."""
+    ids = [str(e["node_id"]) for e in graph["nodes"]]
+    if not ids:
+        msg = f"target {target_id}: graph.json lists no nodes, so there is no root to render"
+        raise SiteError(msg)
+    seen: set[str] = set()
+    for node_id in ids:
+        if node_id in seen:
+            msg = f"target {target_id}: graph.json lists node {node_id!r} more than once"
+            raise SiteError(msg)
+        seen.add(node_id)
+    root_id = str(graph["root"])
+    if root_id not in seen:
+        msg = f"target {target_id}: graph.json root {root_id!r} is not one of its nodes"
+        raise SiteError(msg)
+
+
 def load_site(root: Path, commit: str) -> Site:
     """Load a checkout and its products; raise ``SiteError`` on anything unrenderable."""
     root = root.resolve()
@@ -218,6 +245,7 @@ def load_site(root: Path, commit: str) -> Site:
             root, f"targets/{target_id}/graph.json", PRODUCT_SCHEMAS["graph.json"]
         )
         spec = schemas.load_json(layout.gate_spec_path(root, target_id), "gate-spec/v1")
+        _check_graph_rows(target_id, graph)
         nodes = {str(e["node_id"]): load_node(root, target_id, e) for e in graph["nodes"]}
         approaches_dir = target_dir / "approaches"
         approaches = (

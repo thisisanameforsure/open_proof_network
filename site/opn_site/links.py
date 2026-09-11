@@ -64,10 +64,14 @@ def _check_page(
         problems += [f"{rel}: {p}" for p in scan.problems]
         if scan.stack:
             problems.append(f"{rel}: unclosed {scan.stack[-1]}")
+    # A file link is a path *under* the repository (`<repo>/blob/<commit>/<file>` or the
+    # commit's `<repo>/tree/<commit>`), so the prefix ends at a slash: `<repo>-evil/x` is
+    # external (AC5).
+    into_repo = repo_url.rstrip("/") + "/"
     for href in scan.hrefs:
         target = resolve(href)
         if target is None:
-            if not href.startswith("#") and not href.startswith(repo_url) and not is_foreign:
+            if not href.startswith("#") and not href.startswith(into_repo) and not is_foreign:
                 problems.append(f"{rel}: external link {href}")
         elif target not in files:
             problems.append(f"{rel}: internal link {href} does not resolve")

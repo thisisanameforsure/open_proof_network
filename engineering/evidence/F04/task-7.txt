@@ -1,0 +1,40 @@
+F04-T7 — defects from the coverage sweep — 2026-09-11T11:17:48Z
+
+$ uv run --frozen pytest site
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-a0f2cdf102e4847fa
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 118 items
+
+site/tests/test_branches_round4.py ...                                   [  2%]
+site/tests/test_config.py .....                                          [  6%]
+site/tests/test_dag.py ..........                                        [ 15%]
+site/tests/test_escaping.py ....                                         [ 18%]
+site/tests/test_links.py ......................                          [ 37%]
+site/tests/test_rejection.py ......................................      [ 69%]
+site/tests/test_render.py ...............                                [ 82%]
+site/tests/test_untrusted.py .....................                       [100%]
+
+============================= 118 passed in 4.62s ==============================
+
+$ uv run --frozen pytest site -v -k "root_absent or no_nodes or duplicate_node_ids or attestation_missing_required or prefix_match_is_exact or writes_nothing_even_when_out_exists"
+  (the five un-marked xfails, and the existing refusal-with-out-present test kept green)
+site/tests/test_links.py::test_repo_url_prefix_match_is_exact_to_the_configured_string[https://github.com/example/graph-evil/x] PASSED [ 14%]
+site/tests/test_links.py::test_repo_url_prefix_match_is_exact_to_the_configured_string[https://github.com/example/graph.evil.example/] PASSED [ 28%]
+site/tests/test_rejection.py::test_root_absent_from_graph_nodes_is_refused PASSED [ 42%]
+site/tests/test_rejection.py::test_target_with_no_nodes_is_refused PASSED [ 57%]
+site/tests/test_rejection.py::test_duplicate_node_ids_in_graph_json_are_refused PASSED [ 71%]
+site/tests/test_rejection.py::test_attestation_missing_required_fields_is_refused PASSED [ 85%]
+site/tests/test_rejection.py::test_refusal_writes_nothing_even_when_out_exists PASSED [100%]
+====================== 7 passed, 111 deselected in 0.54s =======================
+
+$ make verify   (summary lines)
+All checks passed!
+186 files already formatted
+Success: no issues found in 90 source files
+Success: no issues found in 56 source files
+Success: no issues found in 18 source files
+========= 1238 passed, 49 deselected, 34 xfailed, 3 warnings in 45.90s =========
+make verify exit: 0

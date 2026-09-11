@@ -100,15 +100,6 @@ def test_active_or_off_origin_hrefs_are_reported(rendered: dict[str, str], href:
     assert problems == [f"index.html: external link {href}"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "links._check_page allows any href with href.startswith(repo_url) (links.py:70), so "
-        "https://github.com/example/graph-evil/x and graph.evil.example/ pass as file links; "
-        "AC5 allows only GitHub file links into the graph. Not reachable from graph content "
-        "today (every file href is built as repo_url + '/blob/'), so the net is loose, not torn"
-    ),
-)
 @pytest.mark.parametrize(
     "href",
     ["https://github.com/example/graph-evil/x", "https://github.com/example/graph.evil.example/"],

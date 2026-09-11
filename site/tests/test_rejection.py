@@ -178,14 +178,6 @@ def test_missing_gate_spec_is_refused(tmp_path: Path, capsys: pytest.CaptureFixt
     assert "gate-spec.json" in error
 
 
-ROOT_NOT_A_NODE = (
-    "model.load_site never checks that graph.json's root is one of its nodes; the Targets page "
-    "indexes tv.nodes[tv.root] (render.py:158) and the cli catches only SiteError/ValueError, so "
-    "the generator dies with a KeyError traceback instead of a named refusal (C7, R13)"
-)
-
-
-@pytest.mark.xfail(strict=True, raises=KeyError, reason=ROOT_NOT_A_NODE)
 def test_root_absent_from_graph_nodes_is_refused(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -198,7 +190,6 @@ def test_root_absent_from_graph_nodes_is_refused(
     assert "nowhere" in error
 
 
-@pytest.mark.xfail(strict=True, raises=KeyError, reason=ROOT_NOT_A_NODE)
 def test_target_with_no_nodes_is_refused(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -210,14 +201,6 @@ def test_target_with_no_nodes_is_refused(
     _refused(root, tmp_path, capsys)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "model.load_site builds nodes as a dict keyed by node_id (model.py:221), so a graph.json "
-        "with two rows for one id is rendered from whichever row comes last, silently (C7: never "
-        "fail silently); the schema has no uniqueItems on nodes"
-    ),
-)
 def test_duplicate_node_ids_in_graph_json_are_refused(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -263,16 +246,6 @@ def test_attestation_that_is_not_json_is_refused(
     _refused(root, tmp_path, capsys)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=KeyError,
-    reason=(
-        "model._attestation_for reads attestations with json.loads and no schema validation "
-        "(model.py:159), so one lacking 'steps' dies with a KeyError in "
-        "render.attestation_block (render.py:453) rather than a SiteError; the model's own "
-        "contract is 'validated at the boundary'"
-    ),
-)
 def test_attestation_missing_required_fields_is_refused(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
