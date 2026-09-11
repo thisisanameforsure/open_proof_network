@@ -40,4 +40,6 @@ def test_docs_page_without_the_decisions_document_says_so_and_copies_nothing(
         page, extra = render.Renderer(site, repo_url=REPO, decisions_doc=decisions_doc).docs()
         assert "not available in this build" in page
         assert "/docs/architecture-decisions.html" not in page
-        assert extra == {}
+        # F10-T5: the human-funnel pages are still rendered; the copied doc and its css are not.
+        assert extra and all(k.startswith("docs/") and k.endswith(".html") for k in extra)
+        assert "docs/architecture-decisions.html" not in extra and "docs/decisions.css" not in extra

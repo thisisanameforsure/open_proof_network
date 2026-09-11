@@ -1,0 +1,55 @@
+F10-T5 — human-funnel documents on the Docs page. 2026-09-11
+
+WHAT T5 COVERS
+--------------
+AC9  site/tests/test_render.py::test_human_funnel_docs — the four documents
+     (site/docs/review-checklist.md, revision-request.md, defect-claim.md, curator-intake.md)
+     render as pages docs/<name>.html, are linked from the Docs page with their first sentence,
+     and each names the decisions it implements (D-15/D-16/D-11; D-8; D-16/D-15; D-6/D-9/D-10);
+     the checklist has an <h3> and a worked example for each of the eight taxonomy classes
+     (F08-Q4); the record examples' angle brackets are escaped.
+     ::test_render_document_shapes — the site-document renderer (headings, both list kinds
+     with continuations, inline code and strong, fences) escapes everything.
+     ::test_docs_bundle, ::test_t2_golden_pages — the Docs page golden regenerated (one line).
+     test_branches_round4.py::test_docs_page_without_the_decisions_document_says_so_and_copies_nothing
+     — the funnel pages render even when the decisions doc is not available.
+
+Screenshots: engineering/evidence/F10/task-5-docs.png (the Docs page over the live graph
+checkout) and task-5-review-checklist.png (the checklist page).
+
+Judgment call: F10-Q9 (the documents are this repository's, under site/docs/, rendered as
+pages; the graph's own docs/ files stay linked as files).
+
+COMMAND
+-------
+uv run pytest site/tests/test_render.py
+
+OUTPUT
+------
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 17 items
+
+site/tests/test_render.py::test_golden_pages PASSED                      [  5%]
+site/tests/test_render.py::test_commit_and_file_links PASSED             [ 11%]
+site/tests/test_render.py::test_node_page_states PASSED                  [ 17%]
+site/tests/test_render.py::test_compiler_trust_flag PASSED               [ 23%]
+site/tests/test_render.py::test_no_explainer_cue PASSED                  [ 29%]
+site/tests/test_render.py::test_target_page_has_dag_and_nodes PASSED     [ 35%]
+site/tests/test_render.py::test_home_counts PASSED                       [ 41%]
+site/tests/test_render.py::test_pages_are_well_formed PASSED             [ 47%]
+site/tests/test_render.py::test_invalid_product_writes_nothing PASSED    [ 52%]
+site/tests/test_render.py::test_render_command_writes_everything PASSED  [ 58%]
+site/tests/test_render.py::test_frontier_table PASSED                    [ 64%]
+site/tests/test_render.py::test_contributors_empty_state PASSED          [ 70%]
+site/tests/test_render.py::test_docs_bundle PASSED                       [ 76%]
+site/tests/test_render.py::test_human_funnel_docs PASSED                 [ 82%]
+site/tests/test_render.py::test_render_document_shapes PASSED            [ 88%]
+site/tests/test_render.py::test_t2_golden_pages PASSED                   [ 94%]
+site/tests/test_render.py::test_contributors_lists_ledger_entries PASSED [100%]
+
+============================== 17 passed in 2.64s ==============================

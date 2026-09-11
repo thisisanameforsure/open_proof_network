@@ -207,11 +207,69 @@ def test_docs_bundle(rendered: dict[str, str]) -> None:
     docs = rendered["docs/index.html"]
     assert 'href="/docs/architecture-decisions.html"' in docs
     assert "no AGENTS.md yet" in docs and "No license text" in docs and "No sign-off" in docs
+    assert "No human-funnel documentation yet" not in docs  # F10-T5 delivered it
     copied = rendered["docs/architecture-decisions.html"]
     assert "fonts.googleapis.com" not in copied
     assert "<script" not in copied and "<style" not in copied
     assert '<link rel="stylesheet" href="/docs/decisions.css">' in copied
     assert "D-36" in copied and rendered["docs/decisions.css"].strip()
+
+
+# F10-R9: each document and the decision it implements, named in its own text (AC9).
+FUNNEL_DOCS: dict[str, tuple[str, tuple[str, ...]]] = {
+    "docs/review-checklist.html": ("Statement review checklist", ("D-15", "D-16", "D-11")),
+    "docs/revision-request.html": ("Requesting a revision", ("D-8",)),
+    "docs/defect-claim.html": ("Filing a defect claim", ("D-16", "D-15")),
+    "docs/curator-intake.html": ("Curator intake checklist", ("D-6", "D-9", "D-10")),
+}
+DEFECT_CLASSES = (
+    "missing-hypothesis",
+    "junk-value",
+    "vacuity",
+    "quantifier-scope",
+    "wrong-domain",
+    "definition-mismatch",
+    "strength-drift",
+    "other-with-exhibit",
+)
+
+
+def test_human_funnel_docs(rendered: dict[str, str]) -> None:
+    """F10-AC9: the four human-funnel documents are rendered, linked from the Docs page, and
+    each names the decisions it implements; the checklist covers every class of the taxonomy
+    (F08-Q4) with a worked example, and nothing in a page is unescaped markup from the source."""
+    docs = rendered["docs/index.html"]
+    for rel, (title, decisions) in FUNNEL_DOCS.items():
+        assert f'href="/{rel}"' in docs and title in docs, rel
+        page = rendered[rel]
+        assert f"<h1>{title}</h1>" in page
+        for decision in decisions:
+            assert decision in page, (rel, decision)
+        assert "<script" not in page and "<style" not in page
+    checklist = rendered["docs/review-checklist.html"]
+    for defect_class in DEFECT_CLASSES:
+        assert f"<h3>{defect_class}</h3>" in checklist, defect_class
+    assert checklist.count("<pre><code>") >= len(DEFECT_CLASSES) - 1  # a worked example each
+    assert "<ol><li>" in checklist and "<ul><li>" in checklist
+    assert "&lt;" in rendered["docs/revision-request.html"]  # the record's angle brackets, escaped
+
+
+def test_render_document_shapes() -> None:
+    """The site-document renderer: headings, both list kinds with continuations, inline code
+    and strong, fences, and escaping throughout."""
+    from opn_site import prose  # noqa: PLC0415
+
+    html = prose.render_document(
+        "# T <b>\n\nA `x<y` **b**.\n\n- one\n  more\n- two\n\n1. a\n2. b\n\n```\n<raw>\n```\n"
+    )
+    assert html == (
+        "<h1>T &lt;b&gt;</h1>\n"
+        "<p>A <code>x&lt;y</code> <strong>b</strong>.</p>\n"
+        "<ul><li>one more</li><li>two</li></ul>\n"
+        "<ol><li>a</li><li>b</li></ol>\n"
+        "<pre><code>&lt;raw&gt;</code></pre>"
+    )
+    assert prose.render_document("- a\nb\n") == "<ul><li>a</li></ul>\n<p>b</p>"
 
 
 def test_t2_golden_pages(rendered: dict[str, str]) -> None:

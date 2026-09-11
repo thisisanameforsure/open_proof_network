@@ -53,6 +53,28 @@ FRONTIER_COLUMNS = (
     ("tutorial", "Tutorial"),
 )
 DECISIONS_DOC = Path(__file__).resolve().parents[2] / "docs" / "architecture_decisions_v_3_12.html"
+FUNNEL_DOCS = Path(__file__).resolve().parents[1] / "docs"  # F10-R9: site/docs/*.md
+
+
+def document_head(text: str) -> tuple[str, str]:
+    """A document's title (its first heading) and summary (its first paragraph's first sentence)."""
+    title, summary = "Untitled", ""
+    lines = [line.strip() for line in text.splitlines()]
+    for i, line in enumerate(lines):
+        if line.startswith("# "):
+            title = line[2:].strip()
+            rest = lines[i + 1 :]
+            paragraph: list[str] = []
+            for after in rest:
+                if not after and paragraph:
+                    break
+                if after and not after.startswith("#"):
+                    paragraph.append(after)
+            summary = " ".join(paragraph).split(". ")[0].rstrip(".") + "." if paragraph else ""
+            break
+    return title, summary
+
+
 _STRIP_RE = re.compile(r"<link\b[^>]*>|<script\b.*?</script>", re.S | re.I)
 _STYLE_RE = re.compile(r"<style\b[^>]*>(.*?)</style>", re.S | re.I)
 NAV = (
@@ -415,15 +437,26 @@ class Renderer:
             if agents_md.is_file()
             else "<p>The graph has no AGENTS.md yet; the tested one arrives with F10 (D-27).</p>"
         )
+        # F10-R9: the human-funnel documents are this repository's (site/docs/), rendered as
+        # pages of their own; a graph may add files under its docs/, linked as files.
+        funnel_items = []
+        for path in sorted(FUNNEL_DOCS.glob("*.md")):
+            title, summary = document_head(path.read_text(encoding="utf-8"))
+            rel = f"docs/{path.stem}.html"
+            extra[rel] = self.page(
+                title, prose.render_document(path.read_text(encoding="utf-8")), renders=[]
+            )
+            funnel_items.append(
+                f'<li><a href="/{esc(rel)}">{esc(title)}</a> — {prose.inline(summary)}</li>'
+            )
         funnel_dir = self.site.root / "docs"
         funnel_files = (
             sorted(p for p in funnel_dir.iterdir() if p.is_file()) if funnel_dir.is_dir() else []
         )
+        funnel_items.extend(f"<li>{self.file_link(f'docs/{p.name}')}</li>" for p in funnel_files)
         funnel = (
-            "<ul>"
-            + "".join(f"<li>{self.file_link(f'docs/{p.name}')}</li>" for p in funnel_files)
-            + "</ul>"
-            if funnel_files
+            "<ul>" + "".join(funnel_items) + "</ul>"
+            if funnel_items
             else "<p>No human-funnel documentation yet (D-27, F10).</p>"
         )
         parts = []
