@@ -300,3 +300,27 @@ The law of the project:
   before its ledger step loses that line for good, because a re-run checks out the same merge
   commit. Before the first live use of any new mode, ask what the post-merge job assumes about
   the tree — and match a run to the commit it is for, never to "the latest completed run".
+- 2026-09-11 — "Specs should say 'the next version'" was paid a second time inside a day. F11-R12
+  named `targets-index/v2`; F07-R8 had shipped one the day before, so the rung rename landed at v3
+  (F11-Q9). The check is one `ls gate/schemas/<name>/` — do it before a requirement names a
+  number, not after.
+- 2026-09-11 — A one-field schema bump reaches every consumer, and the consumers are not where you
+  would look. `frontier/v2` (one boolean, D-33 dormancy) touched the api's `/frontier.json` route,
+  the MCP field filter, both smoke tools, the deploy workflow's package check and the site's
+  accepted-versions map. Grep for the *version string*, never for the module, and budget the sweep
+  into the same commit as the schema. What scales is a set per product rather than a pin: the site
+  already did it that way and was the only consumer that needed no thought.
+- 2026-09-11 — A derived value with two writable homes will disagree with itself, and the wrong one
+  will be the one a human edited. F11-R1 listed `fidelity` and `claimable` among `target.yaml`'s
+  fields while R3 and R4 derive both; the record now carries only the inputs and
+  `targets/index.json` carries the outputs with their reasons (F11-Q10). When a spec lists a
+  derived field on a record, settle which of the two is the source before writing the schema.
+- 2026-09-11 — A requirement to *show* something can be a change to a checker rather than to a
+  page. F11-R10 wants the Targets page to link a target's upstream source; F04-R13's link checker
+  refuses every off-site link and would have failed the build. Loosening the rule was the wrong
+  fix — `links.check` now takes an allowlist built from the *validated* target records, so the
+  renderer still cannot invent an outbound link (F11-Q11).
+- 2026-09-11 — Read the first error, not the count, in a fresh container. Sixty-seven errors and
+  nine failures across the gate and the api were one missing `ssh-keygen`: the signer shells out to
+  it, and every test that signs or verifies died at `FileNotFoundError`. `apt-get update` then
+  `apt-get install openssh-client` fixed all of them.
