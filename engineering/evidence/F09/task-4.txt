@@ -1,0 +1,34 @@
+F09-T4 — equivalence suite. 2026-09-11
+
+WHAT T4 COVERS
+--------------
+AC3  api/tests/test_mcp_equivalence.py::test_read_tools_equal_plain_path — all ten reads
+     against the fixture graph and the fake host: each result equals the parsed file
+     (targets/index.json, gate-spec.json, attestations/<id>.json, schemas/<name>.json, the
+     node's files, META.yaml, attempts, annex front matter and body, explainer, defs with
+     sha256) or the endpoint body (GET /info.json, GET /frontier.json, GET /precheck/<id>),
+     modulo the R6 demarcation, which unwrap() strips before comparing.
+AC4  ::test_write_tools_forward_once — each of the eleven writes with a token: the access log
+     shows exactly one endpoint call (its route label), the result equals the endpoint's own
+     response to the same request on a second, identical harness (ULIDs masked), and the
+     pushed files and stored claims on both harnesses are equal. submit_proof is driven from a
+     passing precheck on each side.
+
+COMMAND
+-------
+uv run pytest api/tests/test_mcp_equivalence.py
+
+OUTPUT
+------
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 2 items
+
+api/tests/test_mcp_equivalence.py::test_read_tools_equal_plain_path PASSED [ 50%]
+api/tests/test_mcp_equivalence.py::test_write_tools_forward_once PASSED  [100%]
+
+============================== 2 passed in 0.64s ===============================
