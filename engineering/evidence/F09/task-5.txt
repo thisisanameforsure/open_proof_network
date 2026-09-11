@@ -1,0 +1,113 @@
+F09-T5 — deploy and client smoke: code complete, the local-runner runs captured, the deployed run pending. 2026-09-11
+
+AC11 is a *network*-tier criterion: a real MCP client against the deployed function. Two of
+its acts are the founder's — pushing `main` (which deploys the function through api-deploy.yml,
+whose package check now asserts the adapter and its 21 result schemas travel, and whose smoke
+step now runs `smoke_mcp.py --read-only` against the deployed URL) — and one waits on content:
+"claim_node succeeds" needs a claimable frontier node, and the live graph's only node is proved
+(F05-Q6; the same wait as F05-AC19, handed to F11). So the smoke exits 2 `PENDING` on that step
+rather than manufacturing a node (D-35).
+
+What ran here instead, unattended, is the same service on the founder's machine: the local
+runner (`python -m opn_api.local`, memory store, the .env door of C8) against the *real* graph
+and the *real* scratch repository — so every read below crossed the live GitHub host, including
+the new `GitHost.list_dir` (the Contents API as the App), and the token was minted by the
+account-free loop (an anonymous tutorial precheck run on a hosted runner, 138 s, its nonce
+exchanged for a write token) exactly as a new agent would mint one.
+
+WHAT CLOSES AC11 ON THE DEPLOYED FUNCTION
+-----------------------------------------
+1. push `main` — api-deploy.yml builds the package (check step asserts opn_api/mcp/server.py,
+   mcp/server/lowlevel/server.py and the 21 mcp/<tool>/v1 schemas), deploys, and smokes with
+   `api/tools/smoke_mcp.py https://api.openproofnetwork.org --read-only` (exit 0 expected).
+2. with a token (`smoke_precheck.py https://api.openproofnetwork.org --keep-token` mints one):
+   `uv run python api/tools/smoke_mcp.py https://api.openproofnetwork.org --token <token>`
+   — exit 2 PENDING until the frontier has a claimable node (F08-T6's variant, once merged, is
+   one), then exit 0 with the claim visible in list_frontier and released.
+3. Claude Code: `claude mcp add --transport http opn https://api.openproofnetwork.org/mcp
+   --header "Authorization: Bearer <token>"`, then the same four calls as the transcript below.
+
+RUN 1 — the account-free loop mints the token (api/tools/smoke_precheck.py, local runner)
+-------------------------------------------------------------------------------------------
+GET /health -> 200 {'ok': True, 'store': 'memory'}
+tutorial node: tutorial-and-swap in target tutorial, proof 174 bytes
+POST /precheck (no token) -> 202 state=queued id=01M285WGZ0FV5QVYAWBA822TCD
+    0.4s  queued
+   10.9s  running
+  138.1s  done
+verdict pass; attestation attestation/v3 signed as service by SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo, runner hosted
+POST /tokens (tutorial proof) -> 201 identity={'id': '01M2860WKRMYBA7M65QN386XGA', 'pseudonym': 'smoke-728a8d7b', 'proof_kind': 'tutorial', 'created': '2026-09-11T12:10:35Z'}
+token: 43 characters — <token>
+POST /claims opn-smoke-no-such-node -> 404 node-not-in-frontier
+POST /tokens (same nonce again) -> 400 {'error': 'proof-invalid', 'message': 'unknown, unfinished, used or unusable tutorial proof'}
+
+latency (§6: the tutorial node under 5 min on a cold hosted runner)
+      0.4s  queued
+     10.9s  running
+    138.1s  done
+smoke-precheck: ok
+
+[exited with code 0]
+
+RUN 2 — smoke_mcp.py --read-only against the local runner (what api-deploy.yml now runs)
+--------------------------------------------------------------------------------------------
+initialize -> open-proof-network 3.11
+tools/list -> 21 tools
+server_info -> protocol 3.11; GET /info.json 200
+list_frontier -> 0 entries; GET /frontier.json 200
+list_targets -> ['tutorial']
+get_node(tutorial-and-swap) -> 0 attempts, 0 annexes, 0 explainers, note present: True
+get_gate_spec(tutorial) -> network commit af2f4e7b427fa3515e4c97a68c70a1a701d233e4
+claim_node (no token) -> 401, the SDK's unauthorized result
+
+transcript
+  server_info({}) -> ok {"protocol_version": "3.11", "rate_limit_policy": {"writes_per_hour": 120, "active_claims": 20, "tokens_per_github_login": 1, "token_starts_per_address_per_day"
+  list_frontier({}) -> ok {"entries": [], "rendered_from": "bc8df2956e8c8e461c446820a086e5b81eecfe41", "schema": "frontier/v1"}
+  list_targets({}) -> ok {"rendered_from": "bc8df2956e8c8e461c446820a086e5b81eecfe41", "schema": "targets-index/v2", "targets": [{"claimable": true, "fidelity": "mechanical-only", "math
+  get_target({"target_id": "tutorial"}) -> ok {"target_id": "tutorial", "graph": {"nodes": [{"cause": null, "deps": [], "node_id": "tutorial-and-swap", "origin": "authored", "proof_commit": "6452ef80d4f1f47
+  get_node({"node_id": "tutorial-and-swap"}) -> ok {"node_id": "tutorial-and-swap", "target_id": "tutorial", "files": {"Statement.lean": "/-! The tutorial node (D-27): permanently open, off-ledger. Lean core onl
+  get_gate_spec({"target_id": "tutorial"}) -> ok {"accepted_precheck_signatures": ["service", "contributor", "none"], "axiom_allowlist": ["propext", "Classical.choice", "Quot.sound"], "devcontainer_ref": null,
+  (no token) claim_node({"node_id": "tutorial-and-swap"}) -> error {"status": 401, "body": {"error": "invalid_token", "error_description": "Authentication required"}}
+smoke-mcp: ok
+exit 0
+
+RUN 3 — smoke_mcp.py --token against the local runner (exit 2: PENDING on a claimable node)
+--------------------------------------------------------------------------------------------
+initialize -> open-proof-network 3.11
+tools/list -> 21 tools
+server_info -> protocol 3.11; GET /info.json 200
+list_frontier -> 0 entries; GET /frontier.json 200
+list_targets -> ['tutorial']
+get_node(tutorial-and-swap) -> 0 attempts, 0 annexes, 0 explainers, note present: True
+get_gate_spec(tutorial) -> network commit af2f4e7b427fa3515e4c97a68c70a1a701d233e4
+claim_node (no token) -> 401, the SDK's unauthorized result
+PENDING: the frontier has no claimable node (F05-Q6); the claim round trip waits
+
+transcript
+  server_info({}) -> ok {"protocol_version": "3.11", "rate_limit_policy": {"writes_per_hour": 120, "active_claims": 20, "tokens_per_github_login": 1, "token_starts_per_address_per_day"
+  list_frontier({}) -> ok {"entries": [], "rendered_from": "bc8df2956e8c8e461c446820a086e5b81eecfe41", "schema": "frontier/v1"}
+  list_targets({}) -> ok {"rendered_from": "bc8df2956e8c8e461c446820a086e5b81eecfe41", "schema": "targets-index/v2", "targets": [{"claimable": true, "fidelity": "mechanical-only", "math
+  get_target({"target_id": "tutorial"}) -> ok {"target_id": "tutorial", "graph": {"nodes": [{"cause": null, "deps": [], "node_id": "tutorial-and-swap", "origin": "authored", "proof_commit": "6452ef80d4f1f47
+  get_node({"node_id": "tutorial-and-swap"}) -> ok {"node_id": "tutorial-and-swap", "target_id": "tutorial", "files": {"Statement.lean": "/-! The tutorial node (D-27): permanently open, off-ledger. Lean core onl
+  get_gate_spec({"target_id": "tutorial"}) -> ok {"accepted_precheck_signatures": ["service", "contributor", "none"], "axiom_allowlist": ["propext", "Classical.choice", "Quot.sound"], "devcontainer_ref": null,
+  (no token) claim_node({"node_id": "tutorial-and-swap"}) -> error {"status": 401, "body": {"error": "invalid_token", "error_description": "Authentication required"}}
+smoke-mcp: ok
+exit 2
+
+RUN 4 — Claude Code as the client (claude mcp add --transport http … --header "Authorization: Bearer <token>")
+--------------------------------------------------------------------------------------------
+$ claude mcp add --transport http -s local opn http://127.0.0.1:8000/mcp --header "Authorization: Bearer <token>"
+Added HTTP MCP server opn with URL: http://127.0.0.1:8000/mcp to local config
+Headers: { "Authorization": "[REDACTED]" }
+$ claude mcp list
+opn: http://127.0.0.1:8000/mcp (HTTP) - ✔ Connected
+$ claude -p "You have the opn MCP server connected. Make exactly these four tool calls, in order, and then report each result in one line: 1) server_info; 2) list_frontier with no filters; 3) get_node with node_id tutorial-and-swap — report which of Statement.lean, Context.lean and Witness.lean are present and whether the result carries an untrusted_note; 4) claim_node with node_id tutorial-and-swap — report the status and the body's error code. Call nothing else." --allowedTools "mcp__opn__server_info,mcp__opn__list_frontier,mcp__opn__get_node,mcp__opn__claim_node" --output-format text
+All four calls made, in order:
+
+1. **server_info** — protocol 3.11, rendered from `bc8df295…`, full schema index and rate-limit policy present, one target (`tutorial`) pinning network commit `af2f4e7b…`.
+2. **list_frontier** (no filters) — `entries: []`, an empty frontier (the tutorial node is proved), schema `frontier/v1`.
+3. **get_node tutorial-and-swap** — all three of `Statement.lean`, `Context.lean`, and `Witness.lean` are present, and the result does carry an `untrusted_note` (the D-28/D-31 verbatim-data warning).
+4. **claim_node tutorial-and-swap** — status **404**, error code **`node-not-in-frontier`** ("tutorial-and-swap is not in the frontier at main"), consistent with the empty frontier from call 2.
+exit 0
+$ claude mcp remove -s local opn
+Removed MCP server opn from local config

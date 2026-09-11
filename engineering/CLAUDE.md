@@ -271,3 +271,18 @@ The law of the project:
   pseudonymous submission *attributed*, so the ruleset's
   `require_extra_approval_for_unattributed_changes` does not fire on D-19's account-free path —
   a carve-out nobody had to write. Checked on a live pull request rather than reasoned about.
+- 2026-09-11 — An SDK's auth switch gates its transport, not its tools. The MCP SDK's
+  `AuthSettings` answers 401 to `initialize` and `tools/list` without a bearer, which is the
+  opposite of D-28's "reads unauthenticated, writes token-authenticated"; the fix was to keep
+  the SDK's verifier protocol and bearer backend and put the gate inside each write tool, which
+  also gave every refusal the tool's own structured shape (F09-Q6). Read the middleware, not the
+  README, before adopting a framework's auth flag.
+- 2026-09-11 — Re-price a spec's file list against the registry it names. F09-T2 put twenty-one
+  adapter result schemas in `gate/schemas`, whose id grammar is one level and whose index every
+  F03 golden carries; they went beside the adapter instead (F09-Q5). The SDK had also moved:
+  2.x depends on `httpx2`, so the spec's "1.x line" was a real constraint, not a formality.
+- 2026-09-11 — The founder's laptop is a deployment target. With `.env` sourced, the local runner
+  talks to the real graph and the real scratch repository, so a network-tier smoke can run
+  unattended before any push: the tutorial precheck minted a token in 138 s, every read crossed
+  the live host (the new `list_dir` included), and Claude Code itself was the client through
+  `claude mcp add --transport http`. Only the deploy and a claimable node remain the owner's.

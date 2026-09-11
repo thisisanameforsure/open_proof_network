@@ -76,8 +76,16 @@ jobs:
 
           pkg = Path("build/package")
           for entry in ("opn_api/app.py", "opn_api/routes.py", "opn_api/lambda_handler.py",
-                        "opn_gate/schemas.py", "mangum/__init__.py", "starlette/applications.py"):
+                        "opn_gate/schemas.py", "mangum/__init__.py", "starlette/applications.py",
+                        "opn_api/mcp/server.py", "mcp/server/lowlevel/server.py"):
               assert (pkg / entry).is_file(), f"missing from the package: {entry}"
+
+          # The MCP result schemas travel inside the adapter package (F09-R9, Q5): one per tool.
+          from opn_api.mcp import results
+          from opn_api.mcp.server import TOOLS
+          mcp_schemas = sorted(p.parent.name for p in (pkg / "opn_api/mcp/schemas").glob("*/v1.json"))
+          assert mcp_schemas == sorted(t.name for t in TOOLS), mcp_schemas
+          assert set(results.known()) == set(mcp_schemas)
 
           # opn_gate.schemas resolves its directory relative to the package parent, so the files
           # must sit at build/package/schemas and match their pins (D-34).
@@ -111,3 +119,6 @@ jobs:
           set -euo pipefail
           uv run --frozen python api/tools/smoke.py "${{ vars.OPN_API_URL }}" \
             --read-only --allow-unconfigured
+          # F09-T5: the MCP surface from a real SDK client — the frozen tool list, server_info
+          # and list_frontier against their endpoints, the tutorial bundle, the 401 on a write.
+          uv run --frozen python api/tools/smoke_mcp.py "${{ vars.OPN_API_URL }}" --read-only
