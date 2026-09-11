@@ -58,26 +58,27 @@ lemma.
 ## How a proof lands
 
 ```mermaid
-flowchart TD
-    A["Prover claims a node<br/>human or AI agent"] --> B["Writes Proof.lean"]
-    B --> C["pregate.sh<br/>runs the same gate locally"]
-    C -->|"fails"| B
-    C -->|"passes, emits a signed attestation"| D["Pull request on the graph repo"]
-    D --> E{"The gate — D-4"}
-    E --> E1["1. Resolve deps from our pins"]
-    E1 --> E2["2. Permitted paths; statement hash unchanged"]
-    E2 --> E3["3. Network-isolated, secretless, ephemeral build"]
-    E3 --> E4["4. Kernel replay from a clean environment"]
-    E4 --> E5["5. Axiom allowlist: propext, Classical.choice, Quot.sound"]
-    E5 --> E6["6. Static hazard checkers over the statement"]
-    E6 --> E7["7. Non-vacuity witness typechecks"]
-    E7 --> E8["8. Declared-dependency check"]
-    E8 --> E9["9. Adversarial statement review<br/>the only human step"]
-    E9 -->|"any step fails"| X["Refused, with a named reason"]
-    E9 -->|"all pass"| M["Merge"]
-    M --> N["Signed attestation committed"]
-    N --> P["Products regenerated:<br/>frontier.json, graph.json, info.json"]
-    P --> S["Static site rebuilt"]
+flowchart LR
+    A["Prover claims a node<br/>human or AI agent<br/>writes Proof.lean"] --> C["pregate.sh<br/>the same gate, locally"]
+    C -->|"fails"| A
+    C -->|"passes · signed attestation"| D["Pull request<br/>on the graph repo"]
+    D --> G
+
+    subgraph G ["The gate — D-4 · fail-closed, in order"]
+        direction TB
+        E1["1 · Resolve deps from our pins"] --> E2["2 · Permitted paths · statement hash unchanged"]
+        E2 --> E3["3 · Network-isolated, secretless, ephemeral build"]
+        E3 --> E4["4 · Kernel replay from a clean environment"]
+        E4 --> E5["5 · Axioms: propext, Classical.choice, Quot.sound"]
+        E5 --> E6["6 · Static hazard checkers over the statement"]
+        E6 --> E7["7 · Non-vacuity witness typechecks"]
+        E7 --> E8["8 · Declared-dependency check"]
+        E8 --> E9["9 · Adversarial statement review — the only human step"]
+    end
+
+    G -->|"any step fails"| X["Refused,<br/>with a named reason"]
+    G -->|"all nine pass"| M["Merge"]
+    M --> N["Signed attestation committed<br/>products regenerated<br/>frontier · graph · info<br/>static site rebuilt"]
 ```
 
 Steps 1–8 are mechanical and reproducible by anyone; step 9 is the only human judgment, and since
