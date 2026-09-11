@@ -65,3 +65,56 @@ def build(tmp_path: Path) -> Path:
     prod = products.generate(root, rendered_from=COMMIT, commit_time=NOW)
     prod.write(root)
     return root
+
+
+# --- F11: a curated target that is listed but not claimable (R10; AC9) --------------------------
+
+LISTED_TARGET = "listed-target"
+LISTED_ROOT = "listed-lemma"
+UNLICENSED = {
+    "kind": "erdos",
+    "url": "https://www.erdosproblems.com/42",
+    "accessed": "2026-09-09",
+    "licence": "none-stated",
+    "attribution": "erdosproblems.com, compiled by Thomas Bloom",
+    "quote_policy": "cite",
+}
+PARAPHRASE = "Whether a certain sum over a set of integers can stay bounded."
+UNLICENSED_WORDING = "THE-SOURCES-OWN-WORDING-WHICH-IS-NOT-LICENSED"
+QA_SUMMARY = "Back-translated by hand on 2026-09-09; two edge cases checked; no drift found."
+
+
+def build_with_listed_target(tmp_path: Path) -> Path:
+    """The curated fixture plus a second target that is listed and not claimable.
+
+    Its one source states no licence, so intake refuses to store the informal statement at all
+    and the network's paraphrase stands in its place (R10) — which is exactly the property the
+    page has to show without leaking.
+    """
+    import shutil  # noqa: PLC0415
+
+    from harness import take_in  # noqa: PLC0415
+
+    root = build(tmp_path)
+    src = nodes_dir(root) / "and-reassoc"
+    staged = tmp_path / LISTED_ROOT
+    shutil.copytree(src, staged)
+    meta = yaml.safe_load((staged / "META.yaml").read_text())
+    meta["id"] = LISTED_ROOT
+    (staged / "META.yaml").write_text(yaml.safe_dump(meta, sort_keys=False), encoding="utf-8")
+    (staged / "Proof.lean").unlink(missing_ok=True)  # listed, so nothing is proved under it
+
+    take_in(
+        root,
+        target_id=LISTED_TARGET,
+        root_dir=staged,
+        title="A listed open problem",
+        track="open",
+        informal=None,
+        paraphrase=PARAPHRASE,
+        sources=[UNLICENSED],
+        qa_summary=QA_SUMMARY,
+        domains=["number-theory"],
+    )
+    products.generate(root, rendered_from=COMMIT, commit_time=NOW).write(root)
+    return root

@@ -81,7 +81,7 @@ def read_only(
     print(f"GET /frontier.json -> {status}, {len(entries)} entries")
     if status != 200:
         problems.append(f"frontier.json is {status}")
-    elif schemas.violations(frontier, "frontier/v1"):
+    elif schemas.violations(frontier):  # against the version the graph published (D-34)
         problems.append(f"frontier.json does not validate: {schemas.violations(frontier)[:2]}")
 
     status, claims = call(f"{base}/claims.json")

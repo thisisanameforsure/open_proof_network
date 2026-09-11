@@ -1,0 +1,226 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/frontier/v2.json",
+  "title": "frontier/v2",
+  "description": "frontier.json (D-25; F03-R5): every ready or speculative node and every unproved variant, each carrying exactly the D-25 observed facts \u2014 no ranking, no score, no other field. Entries sorted lexically by node_id. Claims are the service's overlay (D-35); the committed file carries the snapshot at merge time. v2 (2026-09-11, F11-R4): each entry carries `dormant`, the D-33 status of the node's target. A dormancy declaration refuses no claim, so the node stays claimable \u2014 the fact is published so an agent choosing work sees it without a second fetch.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "rendered_from",
+    "entries"
+  ],
+  "properties": {
+    "schema": {
+      "const": "frontier/v2"
+    },
+    "rendered_from": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      ]
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "node_id",
+          "target_id",
+          "statement_hash",
+          "relation",
+          "origin",
+          "tags",
+          "attempts",
+          "refuted_route_classes",
+          "failure_class_histogram",
+          "ready_since",
+          "claims",
+          "annex_present",
+          "bounty",
+          "claimable",
+          "tutorial",
+          "dormant"
+        ],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "target_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "statement_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "relation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "enum": [
+                  "resolves",
+                  "partial",
+                  "related"
+                ]
+              }
+            ]
+          },
+          "origin": {
+            "enum": [
+              "authored",
+              "compiler-derived",
+              "variant",
+              "skeleton-hole"
+            ]
+          },
+          "tags": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "deps",
+              "library"
+            ],
+            "properties": {
+              "deps": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]*$"
+                },
+                "uniqueItems": true
+              },
+              "library": {
+                "type": "array",
+                "description": "top-level Mathlib namespaces the statement references (F03-R6); sorted",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              }
+            }
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "count of D-13 records, valid or not"
+          },
+          "refuted_route_classes": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "induction",
+                "generating-function",
+                "probabilistic",
+                "direct-estimate",
+                "case-split",
+                "reduction-to-known",
+                "computational"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "failure_class_histogram": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "missing-library": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "statement-suspect": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "timeout-blowup": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "needs-new-definition": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "route-dead-ends": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "budget-exhausted": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "informal-gap": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "invalid": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "attempt files that do not validate against postmortem/v1 (F03-R7)"
+              }
+            }
+          },
+          "ready_since": {
+            "description": "when the node entered ready (git committer time, carried forward, F03-R8); null for a speculative or variant entry that is not ready",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "description": "UTC, second precision, Z suffix; a git committer time, never the clock (F03-Q2)",
+                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+              }
+            ]
+          },
+          "claims": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "active",
+              "history_count"
+            ],
+            "properties": {
+              "active": {
+                "type": "array",
+                "description": "the claim snapshot at merge time; empty until F05",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "history_count": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "annex_present": {
+            "type": "boolean"
+          },
+          "bounty": {
+            "type": "boolean"
+          },
+          "claimable": {
+            "type": "boolean"
+          },
+          "tutorial": {
+            "type": "boolean"
+          },
+          "dormant": {
+            "description": "D-33: the target has been declared dormant. Claiming is unaffected (F11-R4).",
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

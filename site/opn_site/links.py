@@ -56,8 +56,14 @@ def resolve(href: str) -> str | None:
     return path + "index.html" if path.endswith("/") or path == "" else path
 
 
-def _check_page(
-    rel: str, scan: _Scan, files: dict[str, str], *, repo_url: str, is_foreign: bool
+def _check_page(  # noqa: PLR0913 — one argument per rule the page is checked under
+    rel: str,
+    scan: _Scan,
+    files: dict[str, str],
+    *,
+    repo_url: str,
+    is_foreign: bool,
+    cited: frozenset[str] = frozenset(),
 ) -> list[str]:
     problems: list[str] = []
     if not is_foreign:
@@ -71,7 +77,13 @@ def _check_page(
     for href in scan.hrefs:
         target = resolve(href)
         if target is None:
-            if not href.startswith("#") and not href.startswith(into_repo) and not is_foreign:
+            off_site = (
+                not href.startswith("#")
+                and not href.startswith(into_repo)
+                and href not in cited
+                and not is_foreign
+            )
+            if off_site:
                 problems.append(f"{rel}: external link {href}")
         elif target not in files:
             problems.append(f"{rel}: internal link {href} does not resolve")
@@ -85,15 +97,27 @@ def _check_page(
 
 
 def check(
-    files: dict[str, str], *, repo_url: str, foreign: frozenset[str] = frozenset()
+    files: dict[str, str],
+    *,
+    repo_url: str,
+    foreign: frozenset[str] = frozenset(),
+    cited: frozenset[str] = frozenset(),
 ) -> list[str]:
     """Every problem in ``files`` (path -> content); ``foreign`` pages skip the balance check
-    and may link anywhere (the copied decisions document and its cited sources)."""
+    and may link anywhere (the copied decisions document and its cited sources).
+
+    ``cited`` is the one other way an off-site link is allowed: a url a *validated graph record*
+    names — a target's source or its D-10 posting (F11-R1, R10). The allowlist is a set of exact
+    urls rather than a rule, so the renderer still cannot invent an outbound link, and a page that
+    cites a source the graph does not is a build failure like any other (R13).
+    """
     problems: list[str] = []
     for rel, html in sorted(files.items()):
         if not rel.endswith(".html"):
             continue
         scan = _Scan()
         scan.feed(html)
-        problems += _check_page(rel, scan, files, repo_url=repo_url, is_foreign=rel in foreign)
+        problems += _check_page(
+            rel, scan, files, repo_url=repo_url, is_foreign=rel in foreign, cited=cited
+        )
     return problems

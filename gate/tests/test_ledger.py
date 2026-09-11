@@ -294,3 +294,34 @@ def test_a_refused_record_over_a_bad_entry_creates_no_directory(tmp_path: Path) 
             tmp_path, "alice", ledger.Entry("proof", TARGET, NODE, "Proof.lean", "abc", DATE)
         )
     assert not (tmp_path / ledger.LEDGER_DIR).exists()
+
+
+# --- F11-T2: D-21, the curator earns no proof credit on their own target (AC16) -----------------
+
+
+def test_curator_earns_no_proof_credit_on_own_target() -> None:
+    """AC16, D-21, F11 §7: the curator chose the statement, its decomposition and its difficulty,
+    so a proof of one of its nodes is not a result they competed for. Anyone else's is, and the
+    bar is on the proof line alone — D-13's attempts line is deliberately inclusive, and a
+    curator who writes up a failed route has told everyone something true."""
+    assert proof(identity="curator", curator="curator") is None
+    reason = ledger.curator_bar(identity="curator", curator="curator", line="proof", target=TARGET)
+    assert reason is not None and "D-21" in reason and TARGET in reason
+
+    other = proof(identity="bob", curator="curator")
+    assert other is not None and other.line == "proof"
+
+    # A postmortem by the curator on their own target is written: D-21 bars proof credit, not
+    # attempts, and the whole point of the attempts line is that it pays for honest failure.
+    entry = postmortem(empty(), identity="curator")
+    assert entry is not None and entry.line == "attempts"
+    assert (
+        ledger.curator_bar(identity="curator", curator="curator", line="attempts", target=TARGET)
+        is None
+    )
+
+
+def test_a_target_with_no_curator_on_record_bars_nobody() -> None:
+    """A pre-F11 target has no target.yaml and so no curator; D-21 then has nothing to say."""
+    assert proof(identity="curator", curator=None) is not None
+    assert ledger.curator_bar(identity="a", curator=None, line="proof", target=TARGET) is None

@@ -5,7 +5,7 @@ Three kinds of file, all schema-checked at the boundary (conventions §4):
 - ``nodes/<id>/attempts/*.yaml`` — D-13 postmortems (``postmortem/v1``). A file that does not
   validate is never dropped silently: it is counted as ``invalid`` and named (F03-R7).
 - ``nodes/<id>/status/*.yaml`` — curator or adjudication overrides (``node-status/v1``).
-- ``targets/<id>/status/*.yaml`` — the target's declaration (``target-status/v1``).
+- ``targets/<id>/status/*.yaml`` — the target's declaration (``target-status/v1`` or ``v2``).
 
 For the status records the latest wins: ordered by ``date``, then file name.
 """
@@ -23,8 +23,10 @@ from opn_gate import schemas
 log = logging.getLogger(__name__)
 
 POSTMORTEM_SCHEMA = "postmortem/v1"
-NODE_STATUS_SCHEMA = "node-status/v1"
-TARGET_STATUS_SCHEMA = "target-status/v1"
+NODE_STATUS_SCHEMAS: tuple[str, ...] = ("node-status/v1",)
+#: F11-R12: v2 renamed D-9's second rung, and D-34 forbids editing v1 — so both are live,
+#: and a record is validated against the version it declares.
+TARGET_STATUS_SCHEMAS: tuple[str, ...] = ("target-status/v1", "target-status/v2")
 INVALID = "invalid"
 ATTEMPT_SUFFIXES: tuple[str, ...] = (".yaml", ".yml")
 
@@ -87,12 +89,21 @@ class StatusRecord:
     doc: dict[str, Any]
 
 
-def _latest_record(status_dir: Path, schema_id: str) -> StatusRecord | None:
+def _latest_record(status_dir: Path, accepted: tuple[str, ...]) -> StatusRecord | None:
+    """The latest record in ``status_dir``, each validated against the version it declares.
+
+    A record names its own schema and several versions are live at once (D-34), so pinning one
+    here would refuse a record the protocol publishes. What is pinned instead is the *set*: a
+    record declaring anything outside it is a graph defect and raises, like a malformed one.
+    """
     if not status_dir.is_dir():
         return None
     records: list[StatusRecord] = []
     for path in sorted(p for p in status_dir.iterdir() if p.suffix in ATTEMPT_SUFFIXES):
-        doc = schemas.load_yaml(path, schema_id)  # a bad status record is a graph defect: raise
+        doc = schemas.load_yaml(path)  # a bad status record is a graph defect: raise
+        if str(doc.get("schema")) not in accepted:
+            msg = f"{path} declares {doc.get('schema')!r}; expected one of {', '.join(accepted)}"
+            raise schemas.SchemaError(msg)
         records.append(
             StatusRecord(str(doc["status"]), str(doc["author"]), str(doc["date"]), path, doc)
         )
@@ -104,9 +115,9 @@ def _latest_record(status_dir: Path, schema_id: str) -> StatusRecord | None:
 
 def load_node_status(node_dir: Path) -> StatusRecord | None:
     """The node's effective override (F03-R1's last five statuses), or ``None``."""
-    return _latest_record(node_dir / "status", NODE_STATUS_SCHEMA)
+    return _latest_record(node_dir / "status", NODE_STATUS_SCHEMAS)
 
 
 def load_target_status(target_dir: Path) -> StatusRecord | None:
     """The target's latest declaration (D-33; F03-Q5), or ``None``."""
-    return _latest_record(target_dir / "status", TARGET_STATUS_SCHEMA)
+    return _latest_record(target_dir / "status", TARGET_STATUS_SCHEMAS)

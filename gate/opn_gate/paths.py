@@ -197,16 +197,18 @@ CURATOR_ROLES: tuple[Role, ...] = ("node-status", "target-status")
 #: a hole's witness slot is filled in place (F08-R5) — everything else is append-only.
 MODIFIABLE_ROLES: tuple[Role, ...] = ("proof", "waiver", "witness")
 
-#: The schema each record validates against; an annex validates its YAML front matter.
-SCHEMA_FOR_ROLE: dict[Role, str] = {
-    "postmortem": "postmortem/v1",
-    "precheck-record": "precheck-record/v1",
-    "annex": "annex/v1",
-    "approach-record": "approach-record/v1",
-    "node-status": "node-status/v1",
-    "target-status": "target-status/v1",
-    "revision-request": "revision-request/v1",
-    "defect-claim": "defect-claim/v1",
+#: The schema versions each record may declare; an annex validates its YAML front matter.
+#: A role carries a *set* because D-34 versions rather than edits: `target-status` gained v2
+#: when D-9 v3.12 renamed the second rung (F11-R12), and v1 records stay valid forever.
+SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
+    "postmortem": ("postmortem/v1",),
+    "precheck-record": ("precheck-record/v1",),
+    "annex": ("annex/v1",),
+    "approach-record": ("approach-record/v1",),
+    "node-status": ("node-status/v1",),
+    "target-status": ("target-status/v1", "target-status/v2"),
+    "revision-request": ("revision-request/v1",),
+    "defect-claim": ("defect-claim/v1",),
 }
 
 #: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers).

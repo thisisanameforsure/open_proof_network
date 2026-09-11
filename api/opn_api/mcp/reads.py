@@ -41,7 +41,10 @@ NODE_FILES: tuple[tuple[str, bool], ...] = (  # (file, required)
     ("Witness.lean", False),
 )
 META_FILE = "META.yaml"
-FRONTIER_SCHEMA = "frontier/v1"
+#: The frontier version whose entry fields the filters are drawn from. The newest known
+#: one: its field set is a superset of the older versions', and a filter naming a field
+#: an older document does not carry simply matches nothing (F11-R4).
+FRONTIER_SCHEMA = "frontier/v2"
 SCHEMA_NAME_RE = re.compile(r"^[a-z][a-z0-9-]*/v[1-9][0-9]*$")
 FRONT_MATTER_RE = re.compile(r"\A---[ \t]*\r?\n(?P<yaml>.*?)\r?\n---[ \t]*\r?\n", re.S)
 

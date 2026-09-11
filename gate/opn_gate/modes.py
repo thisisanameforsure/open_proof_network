@@ -716,12 +716,24 @@ def _read(graph_root: Path, located: Located) -> bytes | Diagnostic:
 def _check_schema(
     located: Located, data: bytes, *, code: str = "append-invalid"
 ) -> list[Diagnostic]:
-    schema_id = paths.SCHEMA_FOR_ROLE.get(located.role)
-    if schema_id is None:
+    accepted = paths.SCHEMAS_FOR_ROLE.get(located.role)
+    if accepted is None:
         return []
     doc = _document(located, data)
     if isinstance(doc, Diagnostic):
         return [doc]
+    # The record names its own version and several may be live (D-34), so the accepted set is
+    # what is pinned; anything outside it is refused naming the set rather than one version.
+    schema_id = str(doc.get("schema"))
+    if schema_id not in accepted:
+        return [
+            Diagnostic(
+                code,
+                f"{located.path} declares {schema_id!r}; a {located.role} record is one of "
+                f"{', '.join(accepted)}",
+                {"path": located.path, "schema": schema_id},
+            )
+        ]
     violations = schemas.violations(doc, schema_id)
     return [
         Diagnostic(

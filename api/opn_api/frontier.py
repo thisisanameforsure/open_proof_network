@@ -29,7 +29,10 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 FRONTIER_PATH = "frontier.json"
-FRONTIER_SCHEMA = "frontier/v1"
+#: The frontier versions this service will serve. A product names its own version and
+#: several are live at once (D-34, F11-R4), so what is pinned is the set: a graph that
+#: published something outside it is refused rather than passed through unvalidated.
+FRONTIER_SCHEMAS: tuple[str, ...] = ("frontier/v1", "frontier/v2")
 CLAIMS_SCHEMA = "claims/v1"
 EMPTY_CLAIMS: dict[str, Any] = {"active": [], "history_count": 0}
 
@@ -90,6 +93,18 @@ def overlay(doc: dict[str, Any], reg: dict[str, dict[str, Any]]) -> dict[str, An
     return out
 
 
+def validate_frontier(doc: dict[str, Any]) -> dict[str, Any]:
+    """Validate against the version the document declares, constrained to the set above."""
+    declared = str(doc.get("schema"))
+    if declared not in FRONTIER_SCHEMAS:
+        msg = (
+            f"frontier.json declares {declared!r}; this service serves "
+            f"{', '.join(FRONTIER_SCHEMAS)}"
+        )
+        raise schemas.SchemaError(msg)
+    return schemas.validate(doc, declared)
+
+
 def committed_frontier(ctx: Context) -> dict[str, Any]:
     doc: dict[str, Any] = json.loads(committed(ctx, FRONTIER_PATH))
     return doc
@@ -97,7 +112,7 @@ def committed_frontier(ctx: Context) -> dict[str, Any]:
 
 async def get_frontier(ctx: Context, request: Request) -> Response:
     doc = overlay(committed_frontier(ctx), registry(ctx))
-    return JSONResponse(schemas.validate(doc, FRONTIER_SCHEMA))
+    return JSONResponse(validate_frontier(doc))
 
 
 def snapshot(ctx: Context) -> dict[str, Any]:

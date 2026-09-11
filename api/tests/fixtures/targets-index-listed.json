@@ -1,0 +1,73 @@
+{
+  "rendered_from": "5555555555555555555555555555555555555555",
+  "schema": "targets-index/v3",
+  "targets": [
+    {
+      "claimable": false,
+      "fidelity": "mechanical-only",
+      "mathlib_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "node_counts": {
+        "abandoned": 0,
+        "blocked": 0,
+        "defective": 0,
+        "disputed": 0,
+        "proved": 0,
+        "ready": 1,
+        "refuted": 0,
+        "speculative": 0,
+        "stale": 0,
+        "superseded": 0
+      },
+      "not_claimable": [
+        "status-listed",
+        "grade-below-screened-and-signed",
+        "no-posting"
+      ],
+      "posting": null,
+      "root": "listed-lemma",
+      "root_statement_hash": "22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7",
+      "status": "listed",
+      "subjects": [
+        {
+          "grade": "mechanical-only",
+          "signature_count": 0,
+          "signers": [],
+          "subject": "root"
+        },
+        {
+          "grade": "mechanical-only",
+          "signature_count": 0,
+          "signers": [],
+          "subject": "Primes"
+        }
+      ],
+      "target_id": "listed-target",
+      "track": "formalization"
+    },
+    {
+      "claimable": false,
+      "fidelity": "mechanical-only",
+      "mathlib_sha": null,
+      "node_counts": {
+        "abandoned": 0,
+        "blocked": 1,
+        "defective": 0,
+        "disputed": 0,
+        "proved": 0,
+        "ready": 2,
+        "refuted": 0,
+        "speculative": 0,
+        "stale": 0,
+        "superseded": 0
+      },
+      "not_claimable": [],
+      "posting": null,
+      "root": "and-swap-reassoc",
+      "root_statement_hash": "1fd9af9053c56877f4e7ec2ad69aa16602d39e826259da3878a8cc30a3b6791c",
+      "status": "listed",
+      "subjects": [],
+      "target_id": "propositional",
+      "track": null
+    }
+  ]
+}

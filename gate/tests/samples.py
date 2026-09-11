@@ -227,7 +227,7 @@ def defect_claim(**overrides: Any) -> dict[str, Any]:
 
 def target_status(**overrides: Any) -> dict[str, Any]:
     doc: dict[str, Any] = {
-        "schema": "target-status/v1",
+        "schema": "target-status/v2",
         "status": "active",
         "claimable": True,
         "fidelity": "mechanical-only",
@@ -255,6 +255,52 @@ def frontier_entry(**overrides: Any) -> dict[str, Any]:
         "bounty": False,
         "claimable": True,
         "tutorial": False,
+    }
+    doc.update(overrides)
+    return doc
+
+
+def target_record(**overrides: Any) -> dict[str, Any]:
+    """A ``target/v1`` intake record with every D-6 artifact present (F11-R1)."""
+    doc: dict[str, Any] = {
+        "schema": "target/v1",
+        "id": "euclid-primes",
+        "title": "Euclid's theorem",
+        "informal": "For every natural number n there is a prime greater than n.",
+        "track": "formalization",
+        "source": {"kind": "other", "ref": "Euclid, Elements IX.20", "url": None},
+        "curator": "curator",
+        "prior_art": {
+            "arxiv_query": None,
+            "forum_url": None,
+            "summary": "Classical; the argument is Euclid's and is not in dispute.",
+        },
+        "library_coverage": {"mathlib_sha": "a" * 40, "missing_prerequisites": []},
+        "provenance": {
+            "statement_source": "other",
+            "author": "author",
+            "adversarially_reviewed": False,
+            "upstream_commit": None,
+        },
+        "sources": [],
+        "attack_routes": [],
+        "posting": None,
+        "domains": ["number-theory"],
+    }
+    doc.update(overrides)
+    return doc
+
+
+def fidelity_certificate(**overrides: Any) -> dict[str, Any]:
+    """A ``fidelity/v1`` certificate (F11-R3; D-9 v3.12)."""
+    doc: dict[str, Any] = {
+        "schema": "fidelity/v1",
+        "subject": "root",
+        "grade": "screened-and-signed",
+        "subject_author": "author",
+        "attestor": "reviewer",
+        "date": "2026-09-11",
+        "evidence": "Read the Lean statement against the informal one; they agree.",
     }
     doc.update(overrides)
     return doc

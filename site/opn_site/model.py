@@ -13,15 +13,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from opn_gate import layout, records, schemas
+from opn_gate import intake, layout, records, schemas
 
 #: The product schema versions this generator can render. A consumer parses by version and old
 #: snapshots keep rendering (D-34), so this is a set per product, not a pin: `targets-index/v2`
 #: and `graph/v2` add F07-R8's two statuses, which the site shows without needing to know them.
 PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
-    "frontier.json": ("frontier/v1",),
+    "frontier.json": ("frontier/v1", "frontier/v2"),
     "info.json": ("info/v1",),
-    "targets/index.json": ("targets-index/v1", "targets-index/v2"),
+    "targets/index.json": ("targets-index/v1", "targets-index/v2", "targets-index/v3"),
     "graph.json": ("graph/v1", "graph/v2"),
 }
 KEEP_FILE = ".gitkeep"
@@ -77,6 +77,7 @@ class TargetView:
     nodes: dict[str, NodeView]
     approaches: tuple[str, ...]  # file names under approaches/ (D-14; records are F08's)
     note: str | None  # the D-32 note, when targets/<id>/note.md exists
+    record: dict[str, Any] | None = None  # targets/<id>/target.yaml (F11-R1), when curated
 
     @property
     def root(self) -> str:
@@ -116,6 +117,20 @@ def _load_product(root: Path, rel: str, accepted: tuple[str, ...]) -> dict[str, 
         )
         raise SiteError(msg)
     return declared
+
+
+def _load_record(target_dir: Path) -> dict[str, Any] | None:
+    """The curator's ``target.yaml`` (F11-R1), or ``None`` for a target that predates F11.
+
+    A malformed one is a ``SiteError`` like any other invalid graph file: the Targets page says
+    why a target is not claimable and under whose licence its source is quoted, and rendering
+    that from a record nobody validated is how a page states something the graph does not.
+    """
+    try:
+        return intake.load_doc(target_dir)
+    except schemas.SchemaError as exc:
+        msg = f"targets/{target_dir.name}/{intake.TARGET_FILE} does not validate: {exc}"
+        raise SiteError(msg) from exc
 
 
 def parse_prose(path: Path, root: Path) -> Prose:
@@ -266,5 +281,6 @@ def load_site(root: Path, commit: str) -> Site:
             nodes=nodes,
             approaches=approaches,
             note=note_path.read_text(encoding="utf-8") if note_path.is_file() else None,
+            record=_load_record(target_dir),
         )
     return site

@@ -5,7 +5,7 @@
 Given a commit in the graph repo, this tool checks that it is the one bot commit F03-R12
 describes: its message is ``gate: #<pr> <verdict>``; it adds an attestation and touches
 ``frontier.json``, ``info.json``, ``targets/index.json`` and every target's ``graph.json``;
-``frontier.json`` validates against ``frontier/v1``; and regenerating the products from the tree
+``frontier.json`` validates against the version it declares; and regenerating from the tree
 at that commit reproduces every committed product byte for byte (R11). Exit 0 only when all of
 that holds.
 
@@ -72,7 +72,9 @@ def check_products_present(tree: Path, changed: set[str]) -> tuple[list[str], st
     if not frontier_path.is_file():
         return problems, None
     frontier = json.loads(frontier_path.read_text(encoding="utf-8"))
-    violations = schemas.violations(frontier, "frontier/v1")
+    # Against the version the products declare: several are live at once (D-34), and the
+    # gate that wrote them is the one that decides which (F11-R4).
+    violations = schemas.violations(frontier)
     if violations:
         problems.append(f"frontier.json does not validate: {violations[0].message}")
     rendered_from = frontier.get("rendered_from")

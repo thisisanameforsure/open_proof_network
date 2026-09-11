@@ -65,3 +65,51 @@ def node_dir(ctx: RunContext) -> Path:
 def changes_against_fixture(ctx: RunContext) -> list[Change]:
     """Diff the scratch copy against the pristine fixture, as a submission would be diffed."""
     return paths.changes_from_trees(GRAPH, ctx.graph_root)
+
+
+#: F11: a curated target, taken in through ``intake.new`` with admission faked out. The fast tier
+#: has no Lean (conventions §2), and every refusal intake has is about the *record* — so the seam
+#: is where the toolchain stops and the tests keep going.
+def always_admits(path: Path, subject: str) -> Any:
+    from opn_gate import intake  # noqa: PLC0415 — only the F11 helpers need it
+
+    return intake.SubjectCheck(subject, True, "admission faked in the fast tier")
+
+
+def take_in(
+    graph_root: Path,
+    target_id: str = "euclid-primes",
+    *,
+    source_node: str = "and-reassoc",
+    root_dir: Path | None = None,
+    defs: dict[str, str] | None = None,
+    checker: Any = None,
+    author: str = "curator",
+    date: str = "2026-09-11T00:00:00Z",
+    **record_overrides: Any,
+) -> Any:
+    """Take a target in, reusing one of the fixture's nodes as its root."""
+    import samples  # noqa: PLC0415
+
+    from opn_gate import intake  # noqa: PLC0415
+
+    node_dir = root_dir or graph_root / "targets" / TARGET / "nodes" / source_node
+    defs_dir: Path | None = None
+    if defs is not None:
+        defs_dir = graph_root.parent / f"{target_id}-defs"
+        defs_dir.mkdir(parents=True, exist_ok=True)
+        for name, text in defs.items():
+            (defs_dir / name).write_text(text, encoding="utf-8")
+    spec = schemas.load_json(layout.gate_spec_path(graph_root, TARGET), "gate-spec/v1")
+    doc = samples.target_record(id=target_id, **record_overrides)
+    return intake.new(
+        graph_root,
+        target_id,
+        doc=doc,
+        root_dir=node_dir,
+        defs_dir=defs_dir,
+        spec_template=spec,
+        checker=checker if checker is not None else always_admits,
+        author=author,
+        date=date,
+    )

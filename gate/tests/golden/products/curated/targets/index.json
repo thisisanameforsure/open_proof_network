@@ -1,10 +1,10 @@
 {
   "rendered_from": "5555555555555555555555555555555555555555",
-  "schema": "targets-index/v2",
+  "schema": "targets-index/v3",
   "targets": [
     {
       "claimable": true,
-      "fidelity": "back-translated",
+      "fidelity": "screened-and-signed",
       "mathlib_sha": null,
       "node_counts": {
         "abandoned": 0,
@@ -18,10 +18,14 @@
         "stale": 0,
         "superseded": 0
       },
+      "not_claimable": [],
+      "posting": null,
       "root": "and-swap-reassoc",
       "root_statement_hash": "1fd9af9053c56877f4e7ec2ad69aa16602d39e826259da3878a8cc30a3b6791c",
       "status": "active",
-      "target_id": "propositional"
+      "subjects": [],
+      "target_id": "propositional",
+      "track": null
     }
   ]
 }

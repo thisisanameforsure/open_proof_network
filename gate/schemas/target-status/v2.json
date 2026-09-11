@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/target-status/v2.json",
+  "title": "target-status/v2",
+  "description": "targets/<id>/status/<date>-<n>.yaml (F03-Q5): a curator's target-level declaration \u2014 the D-33 status, which node is the root when the DAG has more than one sink, and (for a target with no target.yaml and no fidelity certificates) the pre-F11 claimable and fidelity fallbacks. v2 (F11-R12, 2026-09-11) renames D-9's second rung to screened-and-signed: v3.12 demoted back-translation to one input of the rung rather than the rung itself, and D-34 makes that a new version rather than an edit. Where a target carries target.yaml and fidelity certificates, F11-R3 and R4 derive both values and these two fields are ignored.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "status",
+    "author",
+    "date"
+  ],
+  "properties": {
+    "schema": {
+      "const": "target-status/v2"
+    },
+    "status": {
+      "enum": [
+        "listed",
+        "active",
+        "resolved",
+        "dormant",
+        "known-result"
+      ]
+    },
+    "claimable": {
+      "type": "boolean"
+    },
+    "fidelity": {
+      "enum": [
+        "mechanical-only",
+        "screened-and-signed",
+        "author-attested",
+        "expert-attested",
+        "published-and-uncontested"
+      ]
+    },
+    "root": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "cause": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000,
+      "description": "reasoning and, for dormancy, the D-25 series values at declaration"
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    }
+  }
+}

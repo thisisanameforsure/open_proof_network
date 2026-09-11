@@ -91,7 +91,7 @@ jobs:
           # opn_gate.schemas resolves its directory relative to the package parent, so the files
           # must sit at build/package/schemas and match their pins (D-34).
           shipped = sorted(f"{p.parent.name}/{p.stem}" for p in (pkg / "schemas").glob("*/v*.json"))
-          for required in ("frontier/v1", "info/v1", "claims/v1"):
+          for required in ("frontier/v1", "frontier/v2", "info/v1", "claims/v1"):
               assert required in shipped, f"{required} is not in the package: {shipped}"
           problems = schemas.verify_pins(pkg / "schemas", Path("gate/schemas/HASHES"))
           assert not problems, problems

@@ -37,6 +37,11 @@ Line = Literal["statement", "proof", "review", "attempts", "upstreaming", "write
 
 #: The artifacts that earn the proof line (D-12, D-19). A reduction is a partial (F07-Q1).
 PROOF_ARTIFACTS: tuple[str, ...] = ("proof", "counterexample", "vacuity", "partial", "reduction")
+#: D-21, F11 §7: the curator of a target earns no proof credit on it. They chose the statement,
+#: its decomposition and its difficulty, so a proof of one of its nodes is not a result they
+#: competed for. It bars the *proof* line only: their postmortems, statements and write-ups are
+#: contributions like anyone else's, and D-13's attempts line is explicitly inclusive.
+CURATOR_BARRED_LINES: tuple[Line, ...] = ("proof",)
 
 
 @dataclass(frozen=True)
@@ -121,6 +126,21 @@ def write(graph_root: Path, doc: dict[str, Any]) -> Path:
 # --- what a merge earns ---------------------------------------------------------------------
 
 
+def curator_bar(*, identity: str, curator: str | None, line: Line, target: str) -> str | None:
+    """D-21: why ``identity`` may not earn ``line`` on ``target``, or ``None``.
+
+    Returned as a reason rather than swallowed, because a contributor who is also the curator
+    should be told *why* a merge of theirs paid nothing — a silent zero looks like a bug in the
+    ledger, which is the one thing a credit record must never look like (C7).
+    """
+    if curator is None or identity != curator or line not in CURATOR_BARRED_LINES:
+        return None
+    return (
+        f"{identity} curated {target}, so the {line} line is barred there (D-21); their attempts, "
+        "statements and write-ups on it are unaffected"
+    )
+
+
 def proof_entry(  # noqa: PLR0913 — one argument per fact the entry records
     *,
     identity: str,
@@ -132,13 +152,18 @@ def proof_entry(  # noqa: PLR0913 — one argument per fact the entry records
     date: str,
     tooling: str = UNDECLARED,
     tutorial: bool = False,
+    curator: str | None = None,
 ) -> Entry | None:
     """R12: the proof line for a merged D-12 artifact, or ``None`` when it earns nothing.
 
     ``tutorial`` is the one exclusion that is not about the artifact: D-27's node is how an
     identity is minted, so paying for it would make minting an identity a way to be paid.
+    ``curator`` is the second (D-21, F11-AC16): the target's curator earns nothing on the proof
+    line of their own target, whoever else may.
     """
     if tutorial or artifact_type not in PROOF_ARTIFACTS:
+        return None
+    if curator_bar(identity=identity, curator=curator, line="proof", target=target) is not None:
         return None
     return Entry(
         line="proof",

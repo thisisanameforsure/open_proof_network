@@ -9,6 +9,7 @@
         "active": [],
         "history_count": 0
       },
+      "dormant": false,
       "failure_class_histogram": {
         "invalid": 1,
         "missing-library": 1,
@@ -31,5 +32,5 @@
     }
   ],
   "rendered_from": "5555555555555555555555555555555555555555",
-  "schema": "frontier/v1"
+  "schema": "frontier/v2"
 }
