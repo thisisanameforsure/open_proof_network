@@ -102,3 +102,18 @@ collected 1396 items / 50 deselected / 1346 selected
 =========================== short test summary info ============================
 XFAIL api/tests/test_store_seam.py::test_a_float_in_a_job_record_is_stored_by_dynamodb_like_memory - boto3 refuses float attributes ('Float types are not supported'), so a job record carrying one fails put_job on DynamoDB while MemoryStore accepts it; store.plain's docstring promises floats come back as floats, but they never go in (seam parity, C7). No record carries a float today.
 ========= 1345 passed, 50 deselected, 1 xfailed, 2 warnings in 27.01s ==========
+
+THE LEAN TIER, FROM CI (added 2026-09-11 after the PR ran)
+----------------------------------------------------------
+This container has no Lean toolchain and no docker, so `make verify-lean` could not run here. CI
+ran it on the branch and it passed:
+
+  run 55, head c0cad3d, https://github.com/thisisanameforsure/open_proof_network/actions/runs/34639161398
+    make verify (fast tier)                   success
+    make verify-lean (real toolchain + sandbox)  success
+
+What that does and does not establish. It establishes that nothing in T2 — the five schemas, the
+derived claimability, the regenerated goldens, the frontier bump — regressed the real toolchain or
+the step-3 sandbox. It does NOT cover the new admission seam: `make verify-lean` runs the tests
+marked `lean` or `docker`, and none of them calls `cli.intake_checker` or `_elaborate_definition`
+yet. The note above stands; T4 is where that seam gets its test.
