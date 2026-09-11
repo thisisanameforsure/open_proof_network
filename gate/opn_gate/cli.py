@@ -36,6 +36,7 @@ from opn_gate import (
     postmerge,
     products,
     sandbox,
+    scaffold,
     schemas,
     signer,
     toolchain,
@@ -58,6 +59,44 @@ EXIT_BOUNCED = 3
 
 class CliError(Exception):
     """A problem with the invocation itself, reported before any verdict exists."""
+
+
+#: The curator's commands (F08-R9 to R12): what one of them refuses is answered as
+#: ``{"ok": false, "refused": ...}`` and exit 1, whichever module raised it.
+CURATOR_COMMANDS: frozenset[str] = frozenset({"revise", "consolidate", "status", "missing-library"})
+#: What a curator command refuses on: a record that does not satisfy its schema, a statement the
+#: scaffold cannot take, a graph that does not derive. Anywhere else these are exit 2.
+_REFUSALS: tuple[type[Exception], ...] = (
+    schemas.SchemaError,
+    scaffold.ScaffoldError,
+    graphmod.GraphError,
+)
+#: The gate's own error family, plus the OS's for a flag file that cannot be read: an input or
+#: environment problem, reported on stderr as exit 2 — never a traceback (conventions §5; F08-Q18).
+_ENVIRONMENT_ERRORS: tuple[type[Exception], ...] = (
+    *_REFUSALS,
+    signer.SignerError,
+    sandbox.SandboxError,
+    toolchain.ToolchainError,
+    toolchain.ToolchainMissingError,
+    postmerge.GraphWriteError,
+    OSError,
+)
+DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+
+
+def positive_int(text: str) -> int:
+    """An argparse type for a count with a lower bound of one (F08-R11: K below 1 makes D-33's
+    attempt threshold vacuous)."""
+    try:
+        value = int(text)
+    except ValueError:
+        msg = f"{text!r} is not an integer"
+        raise argparse.ArgumentTypeError(msg) from None
+    if value < 1:
+        msg = f"must be at least 1, got {value}"
+        raise argparse.ArgumentTypeError(msg)
+    return value
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -214,7 +253,9 @@ def _add_curator_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser
     st.add_argument("ref", help="a node id (abandoned) or the target id (dormant, active)")
     st.add_argument("status", choices=[*curator.NODE_STATUSES, *curator.TARGET_STATUSES])
     st.add_argument("--cause", required=True, help="the published reasoning (D-33 b)")
-    st.add_argument("--k", type=int, default=curator.DEFAULT_K, help="D-33's K in force")
+    st.add_argument(
+        "--k", type=positive_int, default=curator.DEFAULT_K, help="D-33's K in force (at least 1)"
+    )
     st.add_argument("--n", type=int, default=curator.DEFAULT_N_DAYS, help="D-33's N (days)")
 
     ml = sub.add_parser("missing-library", help="the D-13 aggregate for the curator (F08-R12)")
@@ -235,8 +276,14 @@ def _add_sandbox_args(p: argparse.ArgumentParser) -> None:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Every command, behind the one boundary where the gate's errors become exit codes: a
+    ``CliError`` or any input/environment error is exit 2 on stderr; a curator command's refusal
+    is ``{"ok": false, "refused": ...}`` and exit 1 (conventions §5)."""
     args = build_parser().parse_args(argv)
-    settings = config.load()
+    try:
+        settings = config.load()
+    except config.ConfigError as exc:
+        return _usage_error(exc)
     logging.basicConfig(level=settings.log_level, format="%(levelname)s %(name)s: %(message)s")
     commands = {
         "pregate": run_pregate,
@@ -258,12 +305,34 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         return commands[args.command](args, settings)
     except CliError as exc:
-        sys.stderr.write(f"opn-gate: {exc}\n")
-        return EXIT_ERROR
+        return _usage_error(exc)
     except curator.CuratorError as exc:  # a refusal, with the reason: nothing was written
-        sys.stdout.write(json.dumps({"ok": False, "refused": str(exc)}, indent=2) + "\n")
-        sys.stderr.write(f"opn-gate: refused: {exc}\n")
-        return EXIT_FAIL
+        return _refused(exc)
+    except _REFUSALS as exc:
+        return _refused(exc) if args.command in CURATOR_COMMANDS else _usage_error(exc)
+    except _ENVIRONMENT_ERRORS as exc:
+        return _usage_error(exc)
+
+
+def _usage_error(exc: Exception) -> int:
+    sys.stderr.write(f"opn-gate: {exc}\n")
+    return EXIT_ERROR
+
+
+def _refused(exc: Exception) -> int:
+    sys.stdout.write(json.dumps({"ok": False, "refused": str(exc)}, indent=2) + "\n")
+    sys.stderr.write(f"opn-gate: refused: {exc}\n")
+    return EXIT_FAIL
+
+
+def _read_flag_file(path: Path, flag: str) -> str:
+    """The text a flag names — read before any expensive work, so a wrong path is a usage
+    error and not a traceback after the export, the image build and the run (F08-Q18)."""
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError as exc:
+        msg = f"cannot read {flag} {path}: {exc.strerror or exc}"
+        raise CliError(msg) from exc
 
 
 # --- pregate ------------------------------------------------------------------------------------
@@ -286,6 +355,9 @@ def run_pregate(args: argparse.Namespace, settings: config.Settings) -> int:
         tc = toolchain.LocalToolchain.from_settings(settings)
     except toolchain.ToolchainMissingError as exc:
         raise CliError(str(exc)) from exc
+    if args.sign is not None and not args.sign.is_file():
+        msg = f"--sign {args.sign} is not a file"
+        raise CliError(msg)
 
     changes: list[Change] | None = None if args.no_diff else worktree_changes(graph, args.base)
     out_dir: Path = (args.out or Path(tempfile.mkdtemp(prefix="opn-pregate-"))).resolve()
@@ -309,7 +381,13 @@ def run_pregate(args: argparse.Namespace, settings: config.Settings) -> int:
         tooling={"model": args.model, "harness": args.harness},
     )
     if args.sign is not None:
-        sig = signer.SshKeygenSigner().sign(attestation.signed_bytes(doc), args.sign, "contributor")
+        try:
+            sig = signer.SshKeygenSigner().sign(
+                attestation.signed_bytes(doc), args.sign, "contributor"
+            )
+        except signer.SignerError as exc:
+            msg = f"cannot sign with {args.sign}: {exc}"
+            raise CliError(msg) from exc
         doc["signature"] = {
             "kind": sig.kind,
             "key_id": sig.key_id,
@@ -342,6 +420,13 @@ def emit(
 
 def run_reproduce(args: argparse.Namespace, settings: config.Settings) -> int:
     graph, commit = _checkout_and_commit(args.graph, args.commit)
+    committed: dict[str, Any] | None = None
+    if args.compare is not None:  # read before the run, so a wrong path costs no sandbox
+        try:
+            committed = schemas.load_json(args.compare)
+        except schemas.SchemaError as exc:
+            msg = f"cannot load --compare {args.compare}: {exc}"
+            raise CliError(msg) from exc
     out_dir = _out_dir(args.out, "opn-reproduce-")
     ctx = _sandboxed_context(
         graph,
@@ -356,8 +441,7 @@ def run_reproduce(args: argparse.Namespace, settings: config.Settings) -> int:
     verdict = pipeline.run_submission(ctx)
     doc = attestation.build(ctx, verdict, graph_commit=commit)
     code = emit(verdict, doc, out_dir, settings)
-    if args.compare is not None:
-        committed = schemas.load_json(args.compare)
+    if committed is not None:
         differing = attestation.compare(committed, attestation.with_step9(doc, committed))
         result = {"identical": not differing, "differing_fields": differing}
         sys.stdout.write(json.dumps(result) + "\n")
@@ -372,6 +456,7 @@ def run_gate(args: argparse.Namespace, settings: config.Settings) -> int:
     if not base:
         msg = f"unknown base {args.base!r}"
         raise CliError(msg)
+    pr_body = _read_flag_file(args.pr_body_file, "--pr-body-file")
     out_dir = _out_dir(args.out, "opn-gate-")
     ctx = _sandboxed_context(
         graph,
@@ -388,7 +473,7 @@ def run_gate(args: argparse.Namespace, settings: config.Settings) -> int:
     node_dir = layout.graph_nodes_dir(ctx.graph_root, args.target) / args.node
     statement = node_dir / "Statement.lean"
     policy = bounce.PrecheckPolicy(
-        pr_body=args.pr_body_file.read_text(encoding="utf-8"),
+        pr_body=pr_body,
         accepted_signatures=tuple(ctx.spec["accepted_precheck_signatures"]),
         max_age_s=int(ctx.spec["precheck_max_age_s"]),
         now=attestation.utc_now(),
@@ -504,6 +589,14 @@ def run_exhibits(args: argparse.Namespace, settings: config.Settings) -> int:
 def run_postmerge(args: argparse.Namespace, settings: config.Settings) -> int:
     """Re-derive on the merge commit and record step 9; signing is the separate `sign` step."""
     graph, commit = _checkout_and_commit(args.graph, args.commit)
+    # The flags are checked before the sandbox is spent on the run (F08-Q18).
+    try:
+        review = postmerge.review_block(
+            args.review_kind, reviewer=args.reviewer, reference=args.review_reference
+        )
+    except ValueError as exc:
+        raise CliError(str(exc)) from exc
+    bodies = [_read_flag_file(p, "--approval-body-file") for p in args.approval_body_file]
     out_dir = _out_dir(args.out, "opn-postmerge-")
     ctx = _sandboxed_context(
         graph,
@@ -517,14 +610,7 @@ def run_postmerge(args: argparse.Namespace, settings: config.Settings) -> int:
     )
     verdict = pipeline.run_submission(ctx)
     doc = attestation.build(ctx, verdict, graph_commit=commit)
-    try:
-        review = postmerge.review_block(
-            args.review_kind, reviewer=args.reviewer, reference=args.review_reference
-        )
-    except ValueError as exc:
-        raise CliError(str(exc)) from exc
     doc = postmerge.record_step9(doc, merge_commit=commit, review=review)
-    bodies = [p.read_text(encoding="utf-8") for p in args.approval_body_file]
     refusal = postmerge.check_waiver(doc, bodies)
     if refusal is not None:  # F02-R9: refuse to attest; nothing is written
         sys.stdout.write(json.dumps({"verdict": "refused", "diagnostic": refusal.as_dict()}) + "\n")
@@ -619,6 +705,7 @@ def base_reader(graph: Path, base: str) -> modes.BaseReader:
             ["git", "-C", str(graph), "show", f"{base}:{path}"],
             capture_output=True,
             check=False,
+            env=git_environment(),
         )
         return proc.stdout if proc.returncode == 0 else None
 
@@ -704,13 +791,27 @@ def run_sign(args: argparse.Namespace, settings: config.Settings) -> int:
 # --- the curator's commands (F08-R9 to R12) ------------------------------------------------------
 
 
-def _curator_common(args: argparse.Namespace) -> tuple[Path, str, str]:
+def _graph_and_target(args: argparse.Namespace) -> tuple[Path, str]:
+    """The checkout and the target every curator command works on, both checked to exist."""
     graph: Path = args.graph.resolve()
     if not graph.is_dir():
         msg = f"graph checkout not found: {graph}"
         raise CliError(msg)
     target_id = args.target or infer_target(graph)
-    date = args.date or attestation.utc_now().strftime("%Y-%m-%dT%H:%M:%SZ")
+    if not layout.graph_nodes_dir(graph, target_id).is_dir():
+        msg = f"target {target_id!r} has no nodes directory in {graph}"
+        raise CliError(msg)
+    return graph, target_id
+
+
+def _curator_common(args: argparse.Namespace) -> tuple[Path, str, str]:
+    graph, target_id = _graph_and_target(args)
+    date = args.date or attestation.utc_now().strftime(DATE_FORMAT)
+    try:  # a malformed flag is a usage error, not a schema refusal after the work
+        datetime.strptime(date, DATE_FORMAT).replace(tzinfo=UTC)
+    except ValueError:
+        msg = f"--date must be a UTC timestamp like 2026-09-10T12:13:14Z, got {date!r}"
+        raise CliError(msg) from None
     return graph, target_id, date
 
 
@@ -743,7 +844,10 @@ def _emit_curator(doc: dict[str, Any], graph: Path, branch: str | None, message:
 
 def run_revise(args: argparse.Namespace, settings: config.Settings) -> int:
     graph, target_id, date = _curator_common(args)
-    statement = args.statement.read_text(encoding="utf-8")
+    statement = _read_flag_file(args.statement, "--statement")
+    if not args.request.is_file():
+        msg = f"--request {args.request} is not a file"
+        raise CliError(msg)
     revision = curator.revise(
         graph, target_id, args.node_id, statement, args.request, author=args.author, date=date
     )
@@ -756,7 +860,11 @@ def run_consolidate(args: argparse.Namespace, settings: config.Settings) -> int:
     defeq: curator.Defeq | None = None
     if not args.no_toolchain:
         spec_path = layout.gate_spec_path(graph, target_id)
-        spec = schemas.load_json(spec_path, "gate-spec/v1")
+        try:
+            spec = schemas.load_json(spec_path, "gate-spec/v1")
+        except schemas.SchemaError as exc:
+            msg = f"cannot load {spec_path}: {exc}"
+            raise CliError(msg) from exc
         out_dir = _out_dir(args.out, "opn-consolidate-")
         workdir = out_dir / "work"
         tc: toolchain.Toolchain
@@ -825,8 +933,7 @@ def last_progress_merge(graph: Path, target_id: str) -> datetime | None:
 
 
 def run_missing_library(args: argparse.Namespace, settings: config.Settings) -> int:
-    graph: Path = args.graph.resolve()
-    target_id = args.target or infer_target(graph)
+    graph, target_id = _graph_and_target(args)
     report = curator.missing_library_report(graph, target_id, threshold=args.threshold)
     doc = {
         "target": target_id,
@@ -958,6 +1065,7 @@ def export_tree(graph: Path, commit: str, dest: Path) -> Path:
         ["git", "-C", str(graph), "archive", "--format=tar", commit],
         capture_output=True,
         check=True,
+        env=git_environment(),
     )
     subprocess.run(["tar", "-x", "-C", str(dest)], input=archive.stdout, check=True)
     return dest
@@ -992,9 +1100,20 @@ def infer_target(graph: Path) -> str:
 
 
 def _git(graph: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    """``git -C <graph> ...`` on the graph checkout and nothing else: the repository variables
+    git exports to a hook are dropped, or a pre-commit hook running the gate from a worktree
+    would see ``--branch`` check out and stage in the repository that ran the hook (F08-Q18)."""
     return subprocess.run(
-        ["git", "-C", str(graph), *args], capture_output=True, text=True, check=False
+        ["git", "-C", str(graph), *args],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=git_environment(),
     )
+
+
+def git_environment() -> dict[str, str]:
+    return config.child_environment(drop=config.GIT_REPO_VARIABLES)
 
 
 def worktree_changes(graph: Path, base: str | None) -> list[Change] | None:

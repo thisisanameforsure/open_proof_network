@@ -33,7 +33,7 @@ class PathsStep:
             )
         ctx.node = loaded
         hash_problem = paths.check_statement_hash(loaded.statement, loaded.meta)
-        if hash_problem:
+        if hash_problem:  # defence in depth: load_node already refused a hash mismatch above
             return StepResult(ok=False, diagnostic=hash_problem)
         if not loaded.proof_path.is_file():
             return StepResult.failed("proof-missing", "the claimed node has no Proof.lean")

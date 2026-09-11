@@ -161,9 +161,19 @@ class SandboxToolchain(LocalToolchain):
     def _copy_out(self, name: str) -> None:
         for root in self.read_write:
             proc = self._docker("cp", f"{name}:{root}", "-")
-            with tarfile.open(fileobj=io.BytesIO(proc.stdout), mode="r") as tar:
-                members = [m for m in tar.getmembers() if not m.name.startswith("/")]
-                tar.extractall(root.parent, members=members, filter="data")
+            if not proc.stdout:
+                msg = f"docker cp of {root} returned an empty stream"
+                raise SandboxError(msg)
+            # A stream that does not parse is docker failing, not the container's output; the
+            # data filter's own refusals (a member escaping the destination) are not ReadErrors
+            # and pass through as themselves.
+            try:
+                with tarfile.open(fileobj=io.BytesIO(proc.stdout), mode="r") as tar:
+                    members = [m for m in tar.getmembers() if not m.name.startswith("/")]
+                    tar.extractall(root.parent, members=members, filter="data")
+            except tarfile.ReadError as exc:
+                msg = f"docker cp of {root} returned a stream that is not a tar archive: {exc}"
+                raise SandboxError(msg) from exc
 
     def _exec(
         self,

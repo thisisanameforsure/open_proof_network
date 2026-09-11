@@ -46,6 +46,56 @@ DEFS_PREFIX = "Defs"
 NODES_PREFIX = "Nodes"
 _NAMESPACE_RE = re.compile(r"^(namespace|end)\s+(?P<name>\S+)\s*$", re.M)
 _SORRY_BODY_RE = re.compile(r":=\s*(?:by\s+)?sorry\b")
+#: ``sorry`` as a whole token: not a piece of ``sorryAx`` or ``unsorry``, nor a field of a name.
+_SORRY_TOKEN_RE = re.compile(r"(?<![\w'.!?])sorry(?![\w'.!?])")
+
+
+def strip_comments(text: str) -> str:
+    """``text`` with every Lean comment and string-literal body blanked: ``--`` to the end of
+    its line, ``/- -/`` blocks — nested, and including the ``/-!`` and ``/--`` doc forms — and
+    the inside of ``"..."``, so a ``--`` in a string does not swallow the rest of the line and a
+    word in one is not a token. Newlines survive, so line numbers mean the same as in the
+    source."""
+    out: list[str] = []
+    i, n, depth = 0, len(text), 0
+    while i < n:
+        c = text[i]
+        pair = text[i : i + 2]
+        if depth:
+            if pair == "/-":
+                depth += 1
+                i += 2
+            elif pair == "-/":
+                depth -= 1
+                i += 2
+            else:
+                out.append(c if c == "\n" else " ")
+                i += 1
+        elif pair == "/-":
+            depth = 1
+            i += 2
+        elif pair == "--":
+            end = text.find("\n", i)
+            i = n if end == -1 else end
+        elif c == '"':
+            end = i + 1
+            while end < n and text[end] != '"':
+                end += 2 if text[end] == "\\" else 1
+            body = text[i + 1 : end]
+            out.append('"' + "".join(ch if ch == "\n" else " " for ch in body) + '"')
+            i = end + 1
+        else:
+            out.append(c)
+            i += 1
+    return "".join(out)
+
+
+def mentions_sorry(text: str) -> bool:
+    """Whether ``text`` uses ``sorry`` as a token in code — a comment that names the word (the
+    witness slot's own header does) and identifiers that contain it do not count. The one
+    reading of "the witness is still a stub" the gate takes from text; the kernel's word on
+    ``sorryAx`` is the witness step's (F01)."""
+    return _SORRY_TOKEN_RE.search(strip_comments(text)) is not None
 
 
 @dataclass(frozen=True)

@@ -7,8 +7,8 @@ each writes. Docker is a scripted binary that "builds" and "inspects" instantly 
 container assembly (image, caps, mounts) is asserted while nothing runs in a container. The
 docker tier drives the real image (``test_reproduce_docker.py``, ``test_admit_docker.py``).
 
-Where a malformed input escapes ``main`` as a traceback today, the test is a strict xfail naming
-the exception (conventions §5; the round-two defects in ``test_cli_curator.py``).
+A malformed flag is a usage error before the export, the image build and the run — the coverage
+sweep found four escaping ``main`` as tracebacks after that work (F08-Q18; conventions §5).
 """
 
 from __future__ import annotations
@@ -415,16 +415,10 @@ def test_the_image_is_built_when_absent_and_refused_under_no_build(
     assert seam.made[-1]["image"] == "opn-gate:mine"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=sandbox.SandboxError,
-    reason="`reproduce` (and gate, postmerge) when `docker build` fails: sandbox.SandboxError "
-    "escapes cli.main as a traceback instead of exit 2 naming the build failure "
-    "(conventions §5: exceptions are caught at boundaries)",
-)
 def test_a_failed_image_build_is_a_usage_error(
     tmp_path: Path, seam: Seam, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """A `docker build` failure is exit 2 naming it, not a SandboxError traceback."""
     root, _git, _base = git_repo(tmp_path)
     seam.set_image_present(False)
 
@@ -596,16 +590,11 @@ def test_reproduce_compare_is_the_d5_verdict(
     assert code == cli.EXIT_PASS and out["identical"] is True
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=schemas.SchemaError,
-    reason="`reproduce --compare` naming a file that does not exist or is not JSON: the run "
-    "completes, then schemas.load_json's SchemaError escapes cli.main as a traceback instead "
-    "of exit 2; the verdict already on disk is not reported",
-)
 def test_reproduce_compare_against_a_missing_or_unreadable_file_is_a_usage_error(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """`--compare` is read before the run: a missing or non-JSON file is exit 2 with no sandbox
+    spent and no verdict written."""
     root, _git, _base = git_repo(tmp_path)
     code, out, err = run(
         capsys,
@@ -622,6 +611,8 @@ def test_reproduce_compare_against_a_missing_or_unreadable_file_is_a_usage_error
         str(tmp_path / "nope.json"),
     )
     assert code == cli.EXIT_ERROR and out == {} and "nope.json" in err
+    assert not (tmp_path / "o" / "verdict.json").exists()
+    assert "build" not in seam.docker_verbs() and "create" not in seam.docker_verbs()
 
 
 def test_reproduce_runs_the_real_sandbox_seam_over_the_scripted_docker(
@@ -746,19 +737,14 @@ def test_gate_with_no_statement_at_the_commit_bounces_on_the_hash(
     assert "different node or statement" in out["diagnostic"]["message"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=FileNotFoundError,
-    reason="`gate --pr-body-file` naming a file that does not exist: the tree is exported and "
-    "the image ensured first, then Path.read_text raises FileNotFoundError out of cli.main "
-    "instead of exit 2 (conventions §5)",
-)
 def test_gate_with_a_missing_pr_body_file_is_a_usage_error(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """`--pr-body-file` is read before the export and the image: a missing file is exit 2."""
     root, _git, base = git_repo(tmp_path)
     code, out, err = run(capsys, *gate_argv(root, base, tmp_path / "nope.md", tmp_path / "o"))
     assert code == cli.EXIT_ERROR and out == {} and "nope.md" in err
+    assert seam.docker_verbs() == [] and not (tmp_path / "o" / "tree").exists()
 
 
 # --- postmerge: step 9 on the merge commit ------------------------------------------------------
@@ -865,15 +851,10 @@ def test_postmerge_refuses_an_unapproved_waiver_and_writes_nothing(
     assert not (out_dir / "verdict.json").exists() and not (out_dir / "attestation.json").exists()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=FileNotFoundError,
-    reason="`postmerge --approval-body-file` naming a file that does not exist: the gate has "
-    "already run when Path.read_text raises FileNotFoundError out of cli.main instead of exit 2",
-)
 def test_postmerge_with_a_missing_approval_body_file_is_a_usage_error(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """`--approval-body-file` is read before the run: a missing file is exit 2, no sandbox."""
     root, _git, _base = git_repo(tmp_path)
     code, out, err = run(
         capsys,
@@ -887,6 +868,7 @@ def test_postmerge_with_a_missing_approval_body_file_is_a_usage_error(
         ),
     )
     assert code == cli.EXIT_ERROR and out == {} and "nope.md" in err
+    assert seam.docker_verbs() == []
 
 
 # --- exhibits: the append mode's one build (F08-R6, R7) -----------------------------------------

@@ -100,15 +100,23 @@ def node_status_doc(
     return schemas.validate(doc, NODE_STATUS_SCHEMA)
 
 
-def write_record(directory: Path, doc: dict[str, Any], *, author: str, date: str) -> Path:
-    """``<dir>/status/<stamp>-<author>.yaml`` — append-only, so a second record in the same
-    second by the same author is a refusal rather than an overwrite (C7)."""
-    status_dir = directory / "status"
-    status_dir.mkdir(parents=True, exist_ok=True)
-    path = status_dir / f"{stamp(date)}-{author}.yaml"
+def record_path(directory: Path, *, author: str, date: str) -> Path:
+    """Where a status record by ``author`` at ``date`` goes: ``<dir>/status/<stamp>-<author>.yaml``.
+    Append-only, so a name already taken is a refusal rather than an overwrite (C7)."""
+    path = directory / "status" / f"{stamp(date)}-{author}.yaml"
     if path.exists():
         msg = f"{path} already exists; status records are append-only"
         raise CuratorError(msg)
+    return path
+
+
+def write_record(directory: Path, doc: dict[str, Any], *, author: str, date: str) -> Path:
+    """Write ``doc`` at its ``record_path``; the refusal comes before the directory is made."""
+    return _write_yaml(record_path(directory, author=author, date=date), doc)
+
+
+def _write_yaml(path: Path, doc: dict[str, Any]) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True), encoding="utf-8")
     return path
 
@@ -174,7 +182,9 @@ def revise(  # noqa: PLR0913 — one argument per fact of the revision
     relation for the curator to adjust; mark the old node superseded and each dependent stale.
 
     The old node is never touched beyond its status record (D-3, D-8): its history and its
-    credit stay where they are (D-19), and the products derive the rest.
+    credit stay where they are (D-19), and the products derive the rest. Every record is built
+    and its path checked free before the directory is scaffolded, so a refusal at any of them
+    leaves nothing on disk (C7; F08-Q18).
     """
     nodes_dir = layout.graph_nodes_dir(graph_root, target_id)
     old = load_node(nodes_dir, target_id, node_id)
@@ -184,6 +194,34 @@ def revise(  # noqa: PLR0913 — one argument per fact of the revision
         raise CuratorError(msg)
     request_rel = _relative(graph_root, request)
     new_id = next_version_id(nodes_dir, node_id)
+    defect = request_doc["defect_class"]
+    records: list[tuple[Path, dict[str, Any]]] = [
+        (
+            record_path(old.path, author=author, date=date),
+            node_status_doc(
+                "superseded",
+                f"superseded by {new_id} on revision request {request_rel} ({defect}; D-8)",
+                author=author,
+                date=date,
+                reference=new_id,
+            ),
+        )
+    ]
+    dependents = tuple(dependents_of(nodes_dir, node_id))
+    records.extend(
+        (
+            record_path(nodes_dir / dependent, author=author, date=date),
+            node_status_doc(
+                "stale",
+                f"depends on {node_id}, superseded by {new_id} on revision request "
+                f"{request_rel}; to be re-derived against the revision (D-18)",
+                author=author,
+                date=date,
+                reference=node_id,
+            ),
+        )
+        for dependent in dependents
+    )
     origin = str(old.meta.get("origin", "authored"))
     raw_deps = old.meta.get("deps")
     deps = tuple(str(d) for d in raw_deps) if isinstance(raw_deps, list) else ()
@@ -204,35 +242,11 @@ def revise(  # noqa: PLR0913 — one argument per fact of the revision
         date=date,
         extra_meta={"supersedes": node_id},
     )
+    scaffold.validate(proposal)  # every refusal the scaffold has, before a byte is written
     written: list[str] = []
     new_dir = scaffold.write(nodes_dir, proposal)
     written.extend(_relative(graph_root, p) for p in sorted(new_dir.rglob("*")) if p.is_file())
-    defect = request_doc["defect_class"]
-    superseded = node_status_doc(
-        "superseded",
-        f"superseded by {new_id} on revision request {request_rel} ({defect}; D-8)",
-        author=author,
-        date=date,
-        reference=new_id,
-    )
-    written.append(
-        _relative(graph_root, write_record(old.path, superseded, author=author, date=date))
-    )
-    dependents = tuple(dependents_of(nodes_dir, node_id))
-    for dependent in dependents:
-        stale = node_status_doc(
-            "stale",
-            f"depends on {node_id}, superseded by {new_id} on revision request {request_rel}; "
-            "to be re-derived against the revision (D-18)",
-            author=author,
-            date=date,
-            reference=node_id,
-        )
-        written.append(
-            _relative(
-                graph_root, write_record(nodes_dir / dependent, stale, author=author, date=date)
-            )
-        )
+    written.extend(_relative(graph_root, _write_yaml(path, doc)) for path, doc in records)
     log.info("revised %s as %s; %d dependents stale", node_id, new_id, len(dependents))
     return Revision(node_id, new_id, request_rel, dependents, tuple(written))
 

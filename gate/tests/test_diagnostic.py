@@ -55,17 +55,15 @@ def test_truncation_fits_or_bottoms_out_with_a_marker(max_bytes: int) -> None:
         )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="truncate clips every string leaf including `code`, so under a budget below ~300 "
-    "bytes (any positive OPN_DIAGNOSTIC_MAX_BYTES is accepted, C6) the structured code becomes "
-    "'kernel-replay-fa…[truncated]' — no longer the identifier D-34 names, and no longer "
-    "matching attestation/v4's ^[a-z][a-z0-9-]*$ (see test_attestation)",
-)
 def test_the_code_survives_any_budget() -> None:
+    """D-34, F08-Q18: `code` is the identifier every consumer matches on, so it is exempt from
+    the budget rather than the budget floored; the message and details still shrink."""
     huge = Diagnostic("kernel-replay-failed", "x" * 50_000, {"output": "y" * 100_000})
     for max_bytes in (300, 100, 1):
-        assert huge.as_dict(max_bytes)["code"] == "kernel-replay-failed", max_bytes
+        out = huge.as_dict(max_bytes)
+        assert out["code"] == "kernel-replay-failed", max_bytes
+        assert out["truncated"] is True and len(out["message"]) < 100, max_bytes
+        assert len(out["details"]["output"]) < 100, max_bytes
 
 
 def test_clipping_never_splits_a_multibyte_character() -> None:

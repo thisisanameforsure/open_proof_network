@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
-import pytest
 import samples
 from fakes import FakeToolchain
 from harness import make_context, node_dir
@@ -130,14 +129,9 @@ def test_signed_bytes_exclude_signature_and_are_canonical(tmp_path: Path) -> Non
     assert payload == schemas.canonical_json({k: v for k, v in doc.items() if k != "signature"})
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="with OPN_DIAGNOSTIC_MAX_BYTES=100 (accepted by config) truncate clips "
-    "diagnostic.code, attestation/v4 rejects the record (code pattern ^[a-z][a-z0-9-]*$) and "
-    "attestation.build raises SchemaError after the verdict exists — the CLI would crash with "
-    "no verdict.json written (C7, F00-R18)",
-)
 def test_a_small_diagnostic_budget_still_yields_a_valid_record(tmp_path: Path) -> None:
+    """F00-R18, C7, F08-Q18: with OPN_DIAGNOSTIC_MAX_BYTES=100 the code is not clipped, so the
+    record still satisfies attestation/v4 and the verdict is written rather than crashed on."""
     fake = FakeToolchain(replay=ReplayResult(ok=False, output="y" * 20_000))
     small = config.load({"OPN_DIAGNOSTIC_MAX_BYTES": "100"})
     ctx = make_context(tmp_path, toolchain=fake, settings=small)

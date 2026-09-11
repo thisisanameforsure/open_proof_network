@@ -79,6 +79,56 @@ def test_admission_matrix(
     assert all(c.result != "pass" for c in after)
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="F08-Q18: admission elaborates a proposal's Statement.lean as its own module, so a "
+    "statement that declares the same theorem name as an existing node (`OpnProp.and_swap`, the "
+    "tutorial's) is admitted; the clash surfaces only later, in the Context.lean of the first "
+    "node that depends on both (F01-R6), where the two signatures collide. No fake can see a "
+    "name clash — held here against the real toolchain until admission refuses it by name",
+)
+def test_a_proposal_redeclaring_an_existing_nodes_theorem_is_refused(
+    tmp_path: Path, real_toolchain: LocalToolchain, pinned: ResolvedToolchain, lean_pkg: Path
+) -> None:
+    """A proposal whose statement declares a theorem name another node of the target already
+    declares must be refused by admission, naming the declaration."""
+    case = "good"
+    root = copy_graph(tmp_path / case, GRAPH)
+    node_dir = layout.graph_nodes_dir(root, TARGET) / case
+    shutil.copytree(PROPOSALS / case, node_dir)
+    tutorial = layout.parse_statement(
+        (layout.graph_nodes_dir(root, TARGET) / "tutorial-and-swap" / "Statement.lean").read_text()
+    )
+    assert isinstance(tutorial, layout.Statement)
+    statement = node_dir / "Statement.lean"
+    text = statement.read_text().replace("OpnProp.and_weaken", tutorial.decl_name)
+    assert tutorial.decl_name in text
+    statement.write_text(text)
+    meta = node_dir / "META.yaml"
+    meta.write_text(
+        meta.read_text().replace(
+            "statement-hash: 6699224fc51b6d024769f98e6e8dcca2987bae7576a1a27eed059b9a05f8cf29",
+            f"statement-hash: {schemas.content_hash(text.encode('utf-8'))}",
+        )
+    )
+    spec_path = layout.gate_spec_path(root, TARGET)
+    spec = schemas.load_json(spec_path, "gate-spec/v1")
+    ctx = RunContext(
+        graph_root=root,
+        claim=Claim(TARGET, case),
+        spec=spec,
+        gate_spec_hash=schemas.content_hash(spec_path.read_bytes()),
+        changes=None,
+        workdir=tmp_path / case / "work",
+        toolchain=real_toolchain,
+        settings=config.load({}),
+    )
+    result = admit.run(ctx)
+    assert not result.admitted, result.as_dict()
+    assert result.diagnostic is not None
+    assert tutorial.decl_name in result.diagnostic.message, result.as_dict()
+
+
 def test_the_relation_direction_is_the_claim(
     tmp_path: Path, real_toolchain: LocalToolchain, pinned: ResolvedToolchain, lean_pkg: Path
 ) -> None:

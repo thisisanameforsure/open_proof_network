@@ -150,7 +150,8 @@ def witness_is_stub(node_dir: Path) -> bool:
     witness = node_dir / "Witness.lean"
     if not witness.is_file():
         return True
-    return "sorry" in witness.read_text(encoding="utf-8")
+    # As a token in code, not as a word: the slot's own header comment says `sorry` (F08-Q18).
+    return layout.mentions_sorry(witness.read_text(encoding="utf-8"))
 
 
 def relation_of(node_dir: Path, origin: str) -> str | None:

@@ -410,14 +410,9 @@ def test_a_partial_applied_twice_is_refused_and_the_parent_is_untouched(tmp_path
     assert snapshot(node_dir) == after_first
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="postmerge.apply_partial files the assembly last: when attempts/<ts>-<pseudonym>"
-    "-partial.lean already exists (F07-Q15: the submitter may name the file anything under "
-    "attempts/), the refusal comes after the children, the parent's deps and Context.lean were "
-    "written, contradicting the docstring's 'a failure leaves nothing behind' (C7)",
-)
 def test_a_refusal_at_the_attempt_file_leaves_nothing_behind(tmp_path: Path) -> None:
+    """C7, F08-Q18: the attempt's name is reserved before the children are written, so a name
+    already filed under attempts/ (F07-Q15) refuses with the parent and its siblings untouched."""
     node_dir = parent_dir(tmp_path)
     submitted = node_dir / "attempts" / postmerge.attempt_name(STAMP, PSEUDONYM, "-partial.lean")
     submitted.write_text(ASSEMBLY, encoding="utf-8")
@@ -429,20 +424,24 @@ def test_a_refusal_at_the_attempt_file_leaves_nothing_behind(tmp_path: Path) -> 
     assert snapshot(node_dir) == before
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="postmerge.annex_citation matches only a 64-char lowercase hex hash, so a truncated "
-    "or upper-cased `-- annex:` line is read as no citation at all: the children silently become "
-    "compiler-derived instead of the citation being rejected as absent (F07-R6, D-31; C7)",
-)
 @pytest.mark.parametrize("digest", ["a" * 63, "A" * 64, "a" * 64 + "0"])
 def test_a_malformed_annex_citation_is_rejected_not_ignored(tmp_path: Path, digest: str) -> None:
+    """F07-R6, D-31, Q18: an `-- annex:` line whose value is not a 64-hex lowercase hash is a
+    refusal naming the line, never read as no citation (which would have made the children
+    compiler-derived in silence); nothing is written."""
     node_dir = parent_dir(tmp_path)
     text = f"-- annex: {digest}\n" + ASSEMBLY
-    with pytest.raises(postmerge.GraphWriteError):
+    before = snapshot(node_dir)
+    with pytest.raises(postmerge.GraphWriteError, match=r"line 1: .*not an annex citation"):
         postmerge.apply_partial(
             node_dir, HOLES, partial_text=text, pseudonym=PSEUDONYM, stamp=STAMP
         )
+    assert snapshot(node_dir) == before
+    problem = postmerge.check_annex_citation(node_dir, "theorem t : True := trivial\n" + text)
+    assert problem is not None and problem.code == "annex-malformed"
+    assert problem.details == {"line": 2}
+    with pytest.raises(postmerge.MalformedCitationError):
+        postmerge.child_origin(text)
 
 
 def test_a_citation_needs_its_own_line(tmp_path: Path) -> None:
@@ -472,14 +471,9 @@ def test_add_deps_is_additive_and_idempotent(tmp_path: Path) -> None:
     assert postmerge.add_deps(node_dir, ["x"]) == [*before, "x"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="graph.witness_is_stub is `'sorry' in text`: a hole's witness filled by replacing the "
-    "body but keeping the slot's own doc comment (which says `sorry`) still reads as a stub, so "
-    "the node stays blocked with cause witness-missing after its witness is real (F07-R6, "
-    "F08-R5, F07-Q3)",
-)
 def test_a_filled_witness_that_keeps_the_slot_comment_is_not_a_stub(tmp_path: Path) -> None:
+    """F07-R6, F08-R5, Q18: the slot's doc comment says `sorry`; a witness filled by replacing
+    only the body is real, and the node no longer stays blocked as witness-missing."""
     node_dir = parent_dir(tmp_path)
     result = postmerge.apply_partial(
         node_dir, HOLES, partial_text=ASSEMBLY, pseudonym=PSEUDONYM, stamp=STAMP

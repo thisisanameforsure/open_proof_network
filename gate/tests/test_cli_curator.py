@@ -1,8 +1,8 @@
 """F08-R9 to R12 through the entry point: the curator's four commands driven by ``cli.main``,
-their happy paths, every refusal's exit code, and — where a malformed input escapes ``main``
-as a traceback today — a strict xfail naming the exception (conventions §5: exceptions are
-caught at boundaries; the CLI's contract is ``{"ok": false, "refused": ...}`` and exit 1 for a
-refusal, exit 2 for a usage error, never a stack trace)."""
+their happy paths, every refusal's exit code, and every malformed input the coverage sweep
+found escaping ``main`` as a traceback (F08-Q18; conventions §5: exceptions are caught at
+boundaries; the CLI's contract is ``{"ok": false, "refused": ...}`` and exit 1 for a refusal,
+exit 2 for a usage error, never a stack trace)."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ import yaml
 from fakes import FakeToolchain
 from harness import TARGET, copy_graph
 
-from opn_gate import cli, curator, layout, scaffold, schemas, toolchain
+from opn_gate import cli, curator, layout, schemas, toolchain
 from opn_gate import graph as graphmod
 
 ROOT = "and-swap-reassoc"
@@ -280,19 +280,13 @@ def test_branch_refusals_are_usage_errors(
     assert git("status", "--porcelain").split() == ["??", f"targets/{TARGET}/status/"]
 
 
-# --- malformed inputs that escape main as a traceback today (defects; strict xfail) --------------
+# --- malformed inputs, each once a traceback out of main (coverage sweep; F08-Q18) ---------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=schemas.SchemaError,
-    reason="cli.main catches CliError and CuratorError only; `revise` with a request file that "
-    "does not satisfy revision-request/v1 lets schemas.SchemaError escape as a traceback instead "
-    "of a `{ok: false, refused}` answer (conventions §5)",
-)
 def test_revise_with_a_schema_invalid_request_is_a_refusal(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """A request that does not satisfy revision-request/v1 is a refusal, and nothing is written."""
     root = copy_graph(tmp_path)
     request = write_request(root, INTERIOR, defect_class="weaker")
     statement = tmp_path / "S.lean"
@@ -307,15 +301,10 @@ def test_revise_with_a_schema_invalid_request_is_a_refusal(
     assert tree(root) == before
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=schemas.SchemaError,
-    reason="`revise --request` naming a file that does not exist: curator.revise reads it with "
-    "schemas.load_yaml, whose SchemaError escapes cli.main as a traceback instead of exit 2",
-)
 def test_revise_with_a_missing_request_file_is_a_usage_error(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """`--request` naming no file is refused by name before anything else is read."""
     root = copy_graph(tmp_path)
     statement = tmp_path / "S.lean"
     statement.write_text(NEW_STATEMENT)
@@ -326,19 +315,14 @@ def test_revise_with_a_missing_request_file_is_a_usage_error(
             root, INTERIOR, "--statement", str(statement), "--request", str(tmp_path / "no.yaml")
         ),
     )
-    assert code in (cli.EXIT_ERROR, cli.EXIT_FAIL) and out.get("ok", False) is False
+    assert code == cli.EXIT_ERROR and out == {}
     assert "no.yaml" in err
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=FileNotFoundError,
-    reason="`revise --statement` naming a file that does not exist: run_revise calls "
-    "Path.read_text before anything is checked, and FileNotFoundError escapes cli.main",
-)
 def test_revise_with_a_missing_statement_file_is_a_usage_error(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """`--statement` naming no file is exit 2 naming the path, not a FileNotFoundError."""
     root = copy_graph(tmp_path)
     request = write_request(root, INTERIOR)
     code, out, err = run(
@@ -351,15 +335,10 @@ def test_revise_with_a_missing_statement_file_is_a_usage_error(
     assert code == cli.EXIT_ERROR and out == {} and "no.lean" in err
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=scaffold.ScaffoldError,
-    reason="`revise` with a statement that is a proof (no sorry body): scaffold.ScaffoldError "
-    "escapes cli.main as a traceback instead of a refusal naming the shape",
-)
 def test_revise_with_a_statement_that_is_not_one_is_a_refusal(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """A statement that is a proof (no sorry body) is a refusal naming the shape."""
     root = copy_graph(tmp_path)
     request = write_request(root, INTERIOR)
     statement = tmp_path / "S.lean"
@@ -374,16 +353,10 @@ def test_revise_with_a_statement_that_is_not_one_is_a_refusal(
     assert tree(root) == before
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=schemas.SchemaError,
-    reason="`status --date yesterday`: the date is validated only when the record is built "
-    "against node-status/v1, and that SchemaError escapes cli.main as a traceback instead of "
-    "exit 2 for a malformed flag",
-)
 def test_status_with_a_malformed_date_is_a_usage_error(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """`--date yesterday` is a malformed flag: exit 2 before any record is built or written."""
     root = copy_graph(tmp_path)
     code, out, err = run(
         capsys,
@@ -403,16 +376,11 @@ def test_status_with_a_malformed_date_is_a_usage_error(
     assert not (nodes_dir(root) / INTERIOR / "status").exists()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=graphmod.GraphError,
-    reason="`status <target> dormant` on a graph with a dependency cycle: the starvation series "
-    "derives statuses and graph.GraphError escapes cli.main as a traceback; the products "
-    "command turns the same error into `{ok: false, error}` and exit 1",
-)
 def test_status_dormant_on_a_defective_graph_is_a_refusal(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """A dormancy declaration on a graph with a dependency cycle is a refusal naming the cycle,
+    as the products command answers the same GraphError."""
     root = copy_graph(tmp_path)
     meta_path = nodes_dir(root) / INTERIOR / "META.yaml"
     meta = yaml.safe_load(meta_path.read_text())
@@ -423,17 +391,11 @@ def test_status_dormant_on_a_defective_graph_is_a_refusal(
     assert not (root / "targets" / TARGET / "status").exists()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=schemas.SchemaError,
-    reason="`consolidate` without --no-toolchain loads gate-spec.json bare (run_consolidate has "
-    "no try around schemas.load_json, unlike pregate/exhibits/admit), so a broken spec is a "
-    "traceback instead of the `cannot load ... gate-spec.json` usage error every other command "
-    "gives",
-)
 def test_consolidate_with_a_broken_gate_spec_is_a_usage_error(
     tmp_path: Path, fake: FakeToolchain, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """A broken gate-spec.json is the `cannot load ...` usage error every other command gives,
+    and the toolchain is never asked."""
     root = copy_graph(tmp_path)
     (root / "targets" / TARGET / "gate-spec.json").write_text("{not json")
     code, out, err = run(capsys, "consolidate", *common(root, ROOT, INTERIOR))
@@ -441,18 +403,69 @@ def test_consolidate_with_a_broken_gate_spec_is_a_usage_error(
     assert fake.calls == []
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=FileNotFoundError,
-    reason="`missing-library --graph <missing>` and `--target ghost`: run_missing_library never "
-    "checks the checkout exists (the other curator commands do, via _curator_common) and "
-    "iterates targets/<id>/nodes directly, so FileNotFoundError escapes cli.main",
-)
 def test_missing_library_refuses_a_missing_graph_or_target(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """`missing-library` checks the checkout and the target like the other curator commands."""
     code, out, err = run(capsys, "missing-library", "--graph", str(tmp_path / "nope"))
     assert code == cli.EXIT_ERROR and out == {} and "graph checkout not found" in err
     root = copy_graph(tmp_path)
     code, out, err = run(capsys, "missing-library", "--graph", str(root), "--target", "ghost")
     assert code == cli.EXIT_ERROR and out == {} and "ghost" in err
+    # The same target check guards the commands that write (they would otherwise hit the OS).
+    code, out, err = run(
+        capsys, "status", *common(root, "--target", "ghost", TARGET, "active", "--cause", "x")
+    )
+    assert code == cli.EXIT_ERROR and out == {} and "ghost" in err
+
+
+def test_status_rejects_k_below_one(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """R11, D-33, Q18: K is the attempt threshold a dormancy declaration is measured against;
+    `--k 0` would make it vacuous, so the flag has a lower bound of one — a usage error (exit 2)
+    from the parser, before any record is considered."""
+    root = copy_graph(tmp_path)
+    for bad in ("0", "-1", "one"):
+        with pytest.raises(SystemExit) as info:
+            cli.main(["status", *common(root, TARGET, "dormant", "--cause", "quiet", "--k", bad)])
+        assert info.value.code == cli.EXIT_ERROR, bad
+        err = capsys.readouterr().err
+        assert "--k" in err and ("at least 1" in err or "not an integer" in err), bad
+    assert not (root / "targets" / TARGET / "status").exists()
+    assert cli.positive_int("1") == 1 and cli.positive_int("42") == 42
+
+
+def test_branch_acts_on_the_graph_even_under_a_git_hook(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Q18's last find: git exports GIT_DIR, GIT_INDEX_FILE, GIT_WORK_TREE and GIT_PREFIX to a
+    hook, so a pre-commit hook running the suite from a worktree handed them to every `git -C
+    <graph>` call and `--branch` checked out and staged in the *calling* repository. With them
+    set here to a scratch repository, the branch and the commit land on the graph and the
+    scratch repository's HEAD, index and tree are untouched."""
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    (scratch / "README").write_text("the repository that ran the hook\n")
+    scratch_git = git_init(scratch, tmp_path)
+    scratch_head = scratch_git("symbolic-ref", "HEAD")
+    scratch_commit = scratch_git("rev-parse", "HEAD")
+    monkeypatch.setenv("GIT_DIR", str(scratch / ".git"))
+    monkeypatch.setenv("GIT_WORK_TREE", str(scratch))
+    monkeypatch.setenv("GIT_INDEX_FILE", str(scratch / ".git" / "index"))
+    monkeypatch.setenv("GIT_PREFIX", "")
+
+    root = copy_graph(tmp_path)
+    git = git_init(root, tmp_path)
+    code, out, _err = run(
+        capsys,
+        "status",
+        *common(root, TARGET, "active", "--cause", "work resumes", "--branch", "curator/active"),
+    )
+    assert code == cli.EXIT_PASS and out["branch"] == "curator/active"
+    assert git("branch", "--show-current") == "curator/active"
+    assert git("status", "--porcelain") == ""
+    assert git("log", "-1", "--format=%s") == f"status: {TARGET} active"
+
+    assert scratch_git("symbolic-ref", "HEAD") == scratch_head
+    assert scratch_git("rev-parse", "HEAD") == scratch_commit
+    assert scratch_git("status", "--porcelain") == ""
+    assert not scratch_git("branch", "--list", "curator/active")

@@ -110,9 +110,11 @@ def append(doc: dict[str, Any], entry: Entry) -> dict[str, Any]:
 
 
 def write(graph_root: Path, doc: dict[str, Any]) -> Path:
+    """Validate, then write: a refused ledger leaves no ``ledger/`` directory behind (C7)."""
+    payload = schemas.canonical_json(schemas.validate(doc, SCHEMA))
     path = ledger_path(graph_root, str(doc["identity"]))
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(schemas.canonical_json(schemas.validate(doc, SCHEMA)))
+    path.write_bytes(payload)
     return path
 
 

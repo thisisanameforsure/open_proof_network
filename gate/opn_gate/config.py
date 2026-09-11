@@ -8,7 +8,8 @@ Variables (prefix ``OPN_``):
 ``OPN_RUNNER``
     Runner class recorded in attestations (D-34): ``local`` or ``hosted``. Default ``local``.
 ``OPN_LOG_LEVEL``
-    Python logging level name for the gate's own logs. Default ``INFO``.
+    Python logging level name for the gate's own logs, checked against the names ``logging``
+    knows at load. Default ``INFO``.
 ``OPN_ELAN_HOME``
     Where elan keeps toolchains; used only to locate the pinned toolchain when it is not already
     on ``PATH``. Default ``~/.elan``.
@@ -34,6 +35,7 @@ Variables (prefix ``OPN_``):
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -106,9 +108,16 @@ def load(environ: dict[str, str] | None = None) -> Settings:
         msg = f"OPN_DIAGNOSTIC_MAX_BYTES must be positive, got {diagnostic_max_bytes}"
         raise ConfigError(msg)
 
+    raw_level = env.get("OPN_LOG_LEVEL", DEFAULT_LOG_LEVEL)
+    log_level = raw_level.upper()
+    if log_level not in logging.getLevelNamesMapping():
+        names = ", ".join(sorted(logging.getLevelNamesMapping()))
+        msg = f"OPN_LOG_LEVEL must be a logging level name ({names}), got {raw_level!r}"
+        raise ConfigError(msg)
+
     return Settings(
         runner=runner,
-        log_level=env.get("OPN_LOG_LEVEL", DEFAULT_LOG_LEVEL),
+        log_level=log_level,
         elan_home=Path(env.get("OPN_ELAN_HOME", str(DEFAULT_ELAN_HOME))).expanduser(),
         diagnostic_max_bytes=diagnostic_max_bytes,
         lean_pkg_bin=Path(env.get("OPN_LEAN_PKG_BIN", str(DEFAULT_LEAN_PKG_BIN))).expanduser(),
@@ -118,13 +127,22 @@ def load(environ: dict[str, str] | None = None) -> Settings:
     )
 
 
-def child_environment(extra: dict[str, str] | None = None) -> dict[str, str]:
-    """A copy of the process environment for a child process, plus ``extra``.
+#: What git exports to a hook, and what a linked worktree's hook therefore hands every child:
+#: with these set, ``git -C <graph>`` acts on the *calling* repository, not on the graph checkout.
+#: The gate's git calls drop them (F08-Q18).
+GIT_REPO_VARIABLES: tuple[str, ...] = ("GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_PREFIX")
 
-    The toolchain seam passes this to ``subprocess`` so elan finds its home; the gate never reads
-    a value from it here. This is the second and last place the module touches ``os.environ``.
+
+def child_environment(
+    extra: dict[str, str] | None = None, *, drop: tuple[str, ...] = ()
+) -> dict[str, str]:
+    """A copy of the process environment for a child process, plus ``extra``, minus ``drop``.
+
+    The toolchain seam passes this to ``subprocess`` so elan finds its home, and the gate's git
+    calls pass ``drop=GIT_REPO_VARIABLES``; the gate never reads a value from it here. This is the
+    second and last place the module touches ``os.environ``.
     """
-    merged = dict(os.environ)
+    merged = {k: v for k, v in os.environ.items() if k not in drop}
     if extra:
         merged.update(extra)
     return merged
