@@ -54,7 +54,8 @@ on the site.</p>
   <li>Assigning grades. A grade is still a curator act on a certificate (F11); F12 only refuses the
     ones the record does not support.</li>
   <li>Canary seeding and per-class catch rates (D-11) — a separate feature; F12's defect classes are
-    D-16's taxonomy unchanged.</li>
+    D-16's taxonomy unchanged. <code>screen-finding</code> (R4, Q7) is a routing state a curator
+    replaces with a class, not a class: it enters no per-class measurement.</li>
   <li>Adjudicating defect claims (D-15, D-16) — F08 owns the queue; F12 files into it.</li>
   <li>Upstreaming a correction to Formal Conjectures (D-10) — a documented curator act, not tooled.</li>
   <li>Deciding which targets to import, and the survey behind that decision. That is F11-T5 and
@@ -84,9 +85,12 @@ on the site.</p>
     hypothesis or axiom in a scratch file and never as a <code>sorry</code> in a graph file; each
     success shall write a kernel-checked exhibit and the command shall exit non-zero.</td></tr>
   <tr><td>F12-R4</td><td>When a screen succeeds, the system shall open a defect claim (F08) carrying
-    the exhibit with its class unset, and shall not itself label the finding a misformalization or a
-    refutation; the claim shall name both readings and require a curator to route it (D-9 v3.12,
-    D-8, D-12).</td></tr>
+    the exhibit with class <code>screen-finding</code> — the one value <code>defect-claim/v2</code>
+    adds to <code>defect-claim/v1</code>'s enum, issued as a new version and never an edit (D-34),
+    because D-16 bounces a claim with no class — and shall not itself label the finding a
+    misformalization or a refutation; the claim shall name both readings and require a curator to
+    route it, replacing <code>screen-finding</code> with a D-16 class or closing it (D-9 v3.12,
+    D-8, D-12). Amended 2026-09-11 (Q7).</td></tr>
   <tr><td>F12-R5</td><td>When the statement version changes or the graph's Mathlib pin moves, the
     system shall mark every QA record for that subject stale and re-run the screens, because
     junk-value defects appear and disappear with the library beneath the statement (D-9 v3.12).</td></tr>
@@ -128,6 +132,13 @@ on the site.</p>
     check, the signature count with the named signers, the counted attempts, and the
     <code>drift</code> flag with its date; untrusted upstream text in a diff or a brief shall be
     escaped (conventions §4).</td></tr>
+  <tr><td>F12-R15</td><td>The system shall record on every <code>kind: exhibit</code> row the SHA-256
+    of the exhibit file; the record writer and every reader of the record (the grade gate, R9; the
+    products, R14) shall refuse a row whose exhibit file is missing, whose hash differs from the
+    recorded one, or whose file contains <code>sorry</code>, each with its own diagnostic, and shall
+    not count that row toward a complete pass; before an exhibit counts for a grade it shall be
+    replayed through the toolchain seam under the gate's own hazard checks (D-4 steps 2 and 4). An
+    exhibit is trusted by content, never by path (C9). Added 2026-09-11 (Q8).</td></tr>
 </table>
 
 <h2>5. Acceptance criteria</h2>
@@ -138,8 +149,8 @@ on the site.</p>
     screens.</td><td><code>gate/tests/test_qa.py::test_brief_alone_cannot_raise</code></td></tr>
   <tr><td>F12-AC2</td><td>Given a statement whose hypotheses are contradictory, when
     <code>qa screen</code> runs, then <code>screen-false</code> succeeds, an exhibit is written, the
-    command exits non-zero, and a defect claim is opened with its class
-    unset.</td><td><code>gate/tests/test_qa.py::test_false_screen_files_unrouted_claim</code></td></tr>
+    command exits non-zero, and a <code>defect-claim/v2</code> claim is opened with class
+    <code>screen-finding</code>.</td><td><code>gate/tests/test_qa.py::test_false_screen_files_unrouted_claim</code></td></tr>
   <tr><td>F12-AC3</td><td>Given a positive screen, when the record is read, then the finding names
     both readings — misformalization and refutation — and no field asserts
     either.</td><td><code>gate/tests/test_qa.py::test_finding_is_unrouted</code></td></tr>
@@ -177,6 +188,45 @@ on the site.</p>
     dry-run mode against every imported target, then it reports drift state per target and exits 0.
     </td><td><code>gate/tools/watch_upstream.py --dry-run</code>;
     <code>engineering/evidence/F12/watcher-dry-run.txt</code></td></tr>
+  <tr><td>F12-AC14</td><td>Given a hand-written <code>defect-claim/v1</code> claim with no
+    <code>class</code>, when appended, then it bounces at D-16's pre-triage as before; given a
+    <code>defect-claim/v2</code> claim of class <code>screen-finding</code> carrying its exhibit,
+    then it is accepted and routes to the curator queue (R4).</td><td><code>gate/tests/test_modes.py::test_screen_finding_routes_and_classless_still_bounces</code></td></tr>
+  <tr><td>F12-AC15</td><td>Given <code>FakeToolchain</code> reporting a known set of constants for
+    the statement, when <code>qa brief</code> runs, then each constant appears exactly once with its
+    definition text and the structural signature, and the row is recorded <code>kind: brief</code>
+    with model and version filled (R6).</td><td><code>gate/tests/test_qa.py::test_brief_lists_every_referenced_constant</code></td></tr>
+  <tr><td>F12-AC16</td><td>Given <code>FakeToolchain</code> returning a timed-out result for one
+    attempt, when <code>qa screen</code> runs, then that row's verdict is
+    <code>inconclusive</code>, never <code>pass</code>; no exhibit is written for it; the record
+    shows the budget used; and the pass is not complete for R9 (R3, C7).</td><td><code>gate/tests/test_qa.py::test_timeout_is_inconclusive_not_pass</code></td></tr>
+  <tr><td>F12-AC17</td><td>Given <code>FakeClock</code> advancing past the per-subject budget (§6)
+    after the second attempt, when <code>qa screen</code> runs, then the remaining rows exist with
+    verdict <code>inconclusive</code> and a <code>budget-exhausted</code> note — none is missing
+    (R3, C7).</td><td><code>gate/tests/test_qa.py::test_subject_budget_marks_remaining_checks_inconclusive</code></td></tr>
+  <tr><td>F12-AC18</td><td>Given <code>FakeToolchain(raise_on="elaborate")</code>, when
+    <code>qa screen</code> runs, then the row is <code>inconclusive</code>, the error is logged, and
+    the command does not exit 0 as a clean pass (R3, C7).</td><td><code>gate/tests/test_qa.py::test_erroring_screen_is_inconclusive_and_visible</code></td></tr>
+  <tr><td>F12-AC19</td><td>Given a fake model client that raises or answers non-2xx, when
+    <code>qa brief</code> runs, then the row is <code>inconclusive</code> and no brief file claiming
+    success is written (R6, C7).</td><td><code>gate/tests/test_qa.py::test_model_outage_is_inconclusive</code></td></tr>
+  <tr><td>F12-AC20</td><td>Given <code>FakeGitHost</code> raising or answering 401 for upstream,
+    when the watcher runs, then it exits non-zero with a logged warning, writes no
+    <code>drift</code> flag and opens no revision request — never a false all-clear (R11,
+    §7, C7).</td><td><code>gate/tests/test_watcher.py::test_upstream_unreachable_is_a_warning_not_all_clear</code></td></tr>
+  <tr><td>F12-AC21</td><td>Given a record row citing <code>qa/exhibits/x.lean</code> with its
+    SHA-256, when the file is deleted, then the writer and the grade gate each refuse the row with
+    the missing-exhibit diagnostic and it is not counted toward a complete pass (R15).</td><td><code>gate/tests/test_qa.py::test_missing_exhibit_is_refused</code></td></tr>
+  <tr><td>F12-AC22</td><td>Given the same row, when one byte of the exhibit is altered, then the
+    writer and the grade gate each refuse the row with the hash-mismatch diagnostic and it is not
+    counted (R15).</td><td><code>gate/tests/test_qa.py::test_exhibit_hash_mismatch_is_refused</code></td></tr>
+  <tr><td>F12-AC23</td><td>Given an exhibit file containing <code>sorry</code> with a matching
+    recorded hash, when the row is written or read, then it is refused with the sorry diagnostic and
+    not counted (R15).</td><td><code>gate/tests/test_qa.py::test_exhibit_containing_sorry_is_refused</code></td></tr>
+  <tr><td>F12-AC24 <em>lean</em></td><td>Given a hand-committed exhibit whose proof uses
+    <code>native_decide</code> or an axiom outside the allowlist, with a matching recorded hash and
+    no <code>sorry</code>, when the grade gate reads the record, then the exhibit is replayed
+    through the toolchain seam and refused, so the grade does not rise (R15, R9).</td><td><code>gate/tests/test_qa_lean.py::test_exhibit_is_replayed_before_it_counts</code></td></tr>
 </table>
 
 <h2>6. Budgets / limits</h2>
@@ -245,6 +295,34 @@ on the site.</p>
     the defect queue can carry a finding that is actually a refutation of an open conjecture. That
     is the correct place for it: routing is cheap and mislabelling a refutation as a defect, or the
     reverse, is not.</td></tr>
+  <tr><td>F12-Q7</td><td><strong><code>defect-claim/v2</code> adds <code>screen-finding</code>, so
+    the screen's claim can exist</strong> (R4, AC14; 2026-09-11, review note F12-G1). R4 as first
+    written filed the claim "with its class unset", and <code>defect-claim/v1</code> has a closed
+    <code>class</code> enum that D-16's pre-triage bounces on — the claim was unwritable. The
+    alternative was to keep the finding in the QA record only and let the curator open the claim on
+    routing. It lost because routing is what D-16 exists for: the queue, the rejected-claim budget
+    and the D-22 pattern feed all hang off a claim that exists, and a finding held outside the queue
+    is one nobody is asked to act on. The value is named for what it is — a screen's finding, not
+    yet a defect class — in D-16's hyphenated vocabulary; <code>other-with-exhibit</code> was rejected
+    because it is a class and would auto-label. v2 is a new version, never an edit (D-34), added in
+    T2 with the <code>HASHES</code> pin and the product goldens (the schema index in
+    <code>info.json</code> changes with every added schema). The api's <code>POST /defect-claims</code>
+    stays on v1: contributors file classed claims; only the screen files v2, through the gate's own
+    path.</td></tr>
+  <tr><td>F12-Q8</td><td><strong>Timeouts and outages are <code>inconclusive</code>, exhibits are
+    trusted by content, and the brief has a criterion</strong> (2026-09-11, from
+    <code>engineering/session-notes/2026-09-10-test-coverage-review-spec-only.md</code>, F12-G2,
+    G3, G7, G12). R6 had no criterion (AC15). Nothing tested that a screen which runs out of
+    budget or whose toolchain errors, a brief whose model is down, or a watcher that cannot reach
+    upstream is recorded as <code>inconclusive</code> rather than as a clean pass — the naïve
+    implementation of each does exactly that (AC16–AC20, every one fast-tier through the fake
+    seam). And a <code>kind: exhibit</code> row was trusted by path: a hand-committed row whose
+    file was absent, edited or never kernel-checked would have counted toward the grade, which is
+    the forgery the user story rules out. R15 puts the hash on the row, three fast refusals on the
+    writer and reader (AC21–AC23) and one lean-tier replay (AC24). The fast <code>sorry</code>
+    check is a token match and is not the enforcement; the replay is. Files: T1 carries the hash
+    field and the refusals, T4 carries the replay and moves to <code>make verify-lean</code>, T2
+    carries the screen's budget rows, T3 the model outage, T5 the upstream outage.</td></tr>
 </table>
 
 <h2>10. Status</h2>
@@ -257,14 +335,20 @@ one verification command (conventions §3, §6).</p>
   <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
   <tr><td>F12-T1</td><td><strong>The QA record.</strong> <code>qa/v1</code> schema, the record
     writer, the exhibit store, the exhibit/brief split and the rule that only exhibits back a grade,
+    the exhibit hash on every exhibit row with the three refusals on write and read (R15),
     staleness on statement or pin change.</td>
     <td><code>gate/schemas/qa/v1.json</code>, <code>gate/opn_gate/qa.py</code>,
       <code>gate/tests/test_qa.py</code></td>
     <td>F11</td><td><code>uv run pytest gate/tests/test_qa.py</code></td></tr>
   <tr><td>F12-T2</td><td><strong>Soundness screens.</strong> <code>qa screen</code> in the step-3
-    sandbox on the graph's pin, the four attempt kinds, exhibits on success, non-zero exit, defect
-    claims filed unrouted, and the measured budget distribution recorded.</td>
+    sandbox on the graph's pin, the four attempt kinds, exhibits on success, non-zero exit, timeouts
+    and errors as <code>inconclusive</code> rows, defect claims filed as <code>screen-finding</code>
+    under <code>defect-claim/v2</code> with the pre-triage accepting it (R4, Q7), and the measured
+    budget distribution recorded.</td>
     <td><code>gate/opn_gate/qa.py</code>, <code>gate/lean/</code>,
+      <code>gate/schemas/defect-claim/v2.json</code>, <code>gate/schemas/HASHES</code>,
+      <code>gate/opn_gate/modes.py</code>, <code>gate/tests/golden/products/</code>,
+      <code>gate/tests/test_modes.py</code>,
       <code>gate/tests/test_qa.py</code>, <code>gate/tests/test_qa_lean.py</code>,
       <code>engineering/evidence/F12/budgets.txt</code></td>
     <td>T1</td><td><code>make verify-lean</code></td></tr>
@@ -277,11 +361,12 @@ one verification command (conventions §3, §6).</p>
     <td>T1</td><td><code>uv run pytest gate/tests/test_qa.py -k "brief or backtranslate or equivalence"</code></td></tr>
   <tr><td>F12-T4</td><td><strong>Attempts and the grade gate.</strong> The attempts ledger with the
     statement-hash guard and the reset on revision; <code>opn-gate fidelity</code> refusing
-    <code>screened-and-signed</code> without a complete pass.</td>
+    <code>screened-and-signed</code> without a complete pass, and replaying each exhibit through the
+    toolchain seam before it counts (R15, AC24).</td>
     <td><code>gate/schemas/attempts/v1.json</code>, <code>gate/opn_gate/fidelity.py</code>,
       <code>gate/opn_gate/qa.py</code>, <code>gate/tests/test_qa.py</code>,
-      <code>gate/tests/test_fidelity.py</code></td>
-    <td>T2, T3</td><td><code>uv run pytest gate/tests/test_qa.py gate/tests/test_fidelity.py</code></td></tr>
+      <code>gate/tests/test_qa_lean.py</code>, <code>gate/tests/test_fidelity.py</code></td>
+    <td>T2, T3</td><td><code>make verify-lean</code> (the replay is Lean-facing; conventions §2)</td></tr>
   <tr><td>F12-T5</td><td><strong>The watchers.</strong> Scheduled drift check against each pinned
     source path, revision request with the diff, drift flag and compute freeze; the
     resolved-elsewhere check with its citation; a dry run over the live imports as evidence.</td>
@@ -299,6 +384,6 @@ one verification command (conventions §3, §6).</p>
     <td>T4, T5</td><td><code>make verify</code> and the screenshot</td></tr>
 </table>
 
-<footer>Open Proof Network · F12 spec v1 · 2026-09-10</footer>
+<footer>Open Proof Network · F12 spec v2 · 2026-09-11 (v2: <code>defect-claim/v2</code> and <code>screen-finding</code> for R4, R15 exhibit integrity, the brief's criterion, timeouts and outages as <code>inconclusive</code> — Q7, Q8)</footer>
 </body>
 </html>
