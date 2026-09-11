@@ -134,6 +134,15 @@ session can overturn one with evidence rather than re-derive it.</p>
     without a test is a bug in the spec.</li>
   <li><strong>Integration tests that hit real services</strong> are marked/isolated and run as
     part of feature verification, not in the default fast run.</li>
+  <li><strong>Branch coverage is a diagnostic, not a gate</strong> (added 2026-09-11). Measure it
+    on demand from the repo root with <code>uv run --frozen --with pytest-cov pytest -m "not lean
+    and not docker and not network" --cov=gate/opn_gate --cov=api/opn_api --cov=site/opn_site
+    --cov-branch --cov-report=term-missing:skip-covered</code>. <code>pytest-cov</code> is
+    deliberately not a locked dependency (C5): coverage gates nothing, so it earns no place in
+    <code>uv.lock</code>. A known defect is held as <code>xfail(strict=True)</code> with the defect
+    stated in its <code>reason</code> until the spec task that fixes it lands; removing the mark is
+    the evidence, and a strict xfail that starts passing fails the suite so the mark cannot be
+    forgotten.</li>
 </ul>
 
 <h2>3. Verification</h2>
@@ -209,6 +218,6 @@ session can overturn one with evidence rather than re-derive it.</p>
     rather than restating them.</li>
 </ul>
 
-<footer>Open Proof Network · conventions v1 · 2026-09-07 · stack locked; §1/§2 filled</footer>
+<footer>Open Proof Network · conventions v2 · 2026-09-11 · stack locked; §1/§2 filled (v2: §2 coverage diagnostic and strict xfail)</footer>
 </body>
 </html>
