@@ -64,6 +64,24 @@ API copies an absent committer from the author &mdash; so omitting the field, wh
 test asserted, was the defect rather than the enforcement; and the smoke resubmitting the
 committed <code>Proof.lean</code> byte for byte, which made the pull request empty and the gate
 green over nothing.</p>
+<p class="status-note"><strong>A failing-case sweep on 2026-09-10, and its fixes on 2026-09-11.</strong>
+Every built feature and the site were reviewed for rejection paths without a test: the fast
+tier went from 453 to 1232 tests and branch coverage from 91% to 99%, with 22 defects held as
+strict xfails and no code touched (<code>engineering/session-notes/2026-09-10-test-coverage-review.md</code>;
+the spec-only features F10&ndash;F12 were reviewed on paper in the companion note). The fixes
+landed as <strong>F08-T7</strong> (a curator's diff may no longer modify an existing node's
+files, the witness-stub test ignores comments, no exception escapes <code>cli.main</code>, a
+refusal writes nothing, a malformed annex citation is rejected, <code>--k</code> is at least
+one, and the gate's git helper scrubs the hook environment; F08-Q18),
+<strong>F05-T6</strong> (GitHub bodies parsed after the status check, a store failure on the
+nonce path is an outage not an expired nonce, a 1&nbsp;MiB request-body cap with content type
+deliberately unenforced, one dead branch deleted; F05-Q7) and <strong>F04-T7</strong> (a root
+missing from <code>graph.json</code>, an empty target, duplicate ids and a malformed
+attestation are named refusals; F04-Q9). F11 and F12 were brought in line with D-33 and D-16
+(F11-Q7, F12-Q7, F12-Q8) and conventions &sect;2 records the on-demand coverage diagnostic.
+Two defects stay held: float parity at the store seam, and admission not refusing a proposal
+that redeclares an existing node's theorem name (lean tier; F08-Q18).</p>
+
 <p class="status-note"><strong>What is left of F07, and why it needs a decision.</strong>
 T1's <code>gate.yml</code> line landed on the graph as <code>1ac359d</code>: the mode is now
 decided by the pinned commit rather than by a <code>sed</code> script in the graph, proved on a
@@ -114,6 +132,6 @@ file are planned, not committed to in detail.</p>
 </table>
 
 <footer>Open Proof Network · spec index · last reconciled against the specs and the live App
-2026-09-10 · specs are authored in HTML</footer>
+2026-09-11 · specs are authored in HTML</footer>
 </body>
 </html>

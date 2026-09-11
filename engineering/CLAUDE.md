@@ -256,6 +256,17 @@ The law of the project:
   exceptions escaping `cli.main` after the expensive work is done (`main` catches two error
   types; nine other commands leak `SchemaError`, `FileNotFoundError`, `SandboxError`).
   Each defect is a strict xfail, so fixing one flips a test red until the mark comes off.
+- 2026-09-11 — Git exports `GIT_DIR` and `GIT_INDEX_FILE` to hooks. Run from a linked worktree,
+  the pre-commit hook's suite made the curator `--branch` tests act on the *network* repo:
+  `checkout -b curator/revise` and a whole tree staged as deleted, in two worktrees at once,
+  because `cli._git` inherited the environment. Any child `git -C <elsewhere>` must scrub the
+  repo variables (`config.child_environment(drop=GIT_REPO_VARIABLES)` now does; the hook unsets
+  them too). Recovery: `git symbolic-ref HEAD refs/heads/<branch>`, `git reset` (mixed), delete
+  the stray branches; the working tree survives.
+- 2026-09-11 — The sweep's defects landed as three spec tasks (F08-T7, F05-T6, F04-T7) plus the
+  F11/F12 spec edits; every xfail came off except two that are real and out of scope: float
+  parity at the store seam, and admission not seeing a proposal that redeclares an existing
+  node's theorem name (lean tier, F08-Q18). Both are held strict, so they cannot be forgotten.
 - 2026-09-10 — Naming the App as committer paid twice. Beyond D-23's split it makes a
   pseudonymous submission *attributed*, so the ruleset's
   `require_extra_approval_for_unattributed_changes` does not fire on D-19's account-free path —

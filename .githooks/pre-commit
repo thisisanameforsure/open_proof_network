@@ -1,5 +1,10 @@
 #!/bin/sh
 # Open Proof Network pre-commit gate (conventions §6): the full suite passes or the commit doesn't.
 # Enable once per clone: git config core.hooksPath .githooks
+#
+# Git exports GIT_DIR, GIT_INDEX_FILE and friends to hooks. From a linked worktree that means
+# every `git -C <elsewhere>` a test spawns would act on *this* repository (log, 2026-09-11), so
+# the suite runs with those variables cleared; the gate's own git helper drops them too.
+unset GIT_DIR GIT_INDEX_FILE GIT_WORK_TREE GIT_PREFIX GIT_OBJECT_DIRECTORY GIT_COMMON_DIR
 cd "$(git rev-parse --show-toplevel)" || exit 1
 exec make verify
