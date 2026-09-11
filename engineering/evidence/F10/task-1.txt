@@ -1,0 +1,109 @@
+F10-T1 — AGENTS.md and the walkthrough runner. 2026-09-11
+
+WHAT T1 COVERS
+--------------
+AC1  gate/tests/test_walkthrough.py::test_agents_md_executes            — every `sh` block of
+     gate/agents/AGENTS.md runs in order against a git clone of the propositional fixture
+     (tutorial node proved and attested, target claimable, products committed, precheck key
+     committed) and the api served on a loopback port over the local runner's server with the
+     fake host and a memory store; each `output` block's lines are found in the command's
+     output. 27 blocks run in the fast tier; the one `lean` block and two `manual` blocks
+     (a push, the MCP registration) are skipped and counted.
+     ::test_agents_md_executes_with_toolchain (lean tier)              — the same with the
+     pinned toolchain, so pregate.sh really runs on the tutorial node: 28 blocks pass.
+AC2  ::test_required_sections                                          — R1's twelve topics are
+     headings in R1's order; every D-n cited has a section in docs/architecture_decisions_v_3_12.html.
+     ::test_manual_blocks_are_the_known_two                            — the blocks that escape
+     execution are exactly the push and the MCP registration.
+     ::test_graph_copy_is_identical                                    — the graph's AGENTS.md is a
+     byte-for-byte copy of the tested one (skips in CI, where the sibling is not checked out).
+
+Judgment calls: F10-Q4 (the tested copy lives in network, the graph carries a copy, as schemas do),
+F10-Q5 (`lean` and `manual` tags; the fast tier skips them and a lean-tier twin runs `lean`).
+
+COMMAND
+-------
+uv run pytest gate/tests/test_walkthrough.py
+
+OUTPUT
+------
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 5 items
+
+gate/tests/test_walkthrough.py::test_required_sections PASSED
+gate/tests/test_walkthrough.py::test_graph_copy_is_identical PASSED
+gate/tests/test_walkthrough.py::test_manual_blocks_are_the_known_two PASSED
+gate/tests/test_walkthrough.py::test_agents_md_executes line   34 passed   test -d "$GRAPH/targets"
+line   52 passed   META="$(grep -l '^tutorial: true' "$GRAPH"/targets/*/nodes/*/META.yaml
+line   70 passed   cat "$NODE_DIR/Statement.lean"
+line   82 passed   python3 - "$NODE_DIR" <<'PY'
+line  105 skipped  OUT="$WORK/pregate"  [lean]
+line  129 passed   BUNDLE_PATH="targets/$TARGET/nodes/$NODE/Proof.lean"
+line  150 passed   STATE=queued
+line  165 passed   python3 - "$WORK/precheck-result.json" <<'PY'
+line  193 passed   curl -fsS "$OPN_API/frontier.json" > "$WORK/frontier.json"
+line  213 passed   CLAIM_NODE="$(python3 - "$WORK/frontier.json" <<'PY'
+line  237 passed   DCO_VERSION="$(curl -fsS "$OPN_API/dco.json" | python3 -c 'import json
+line  258 passed   curl -fsS -X POST "$OPN_API/claims" -H "Authorization: Bearer $TOKEN" 
+line  283 passed   ls -p "$NODE_DIR" | LC_ALL=C sort
+line  312 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line  367 passed   python3 - "$GRAPH/targets/$TARGET/gate-spec.json" <<'PY'
+line  395 passed   curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' "$OPN_API/aut
+line  412 passed   curl -fsS -X POST "$OPN_API/precheck" -H "Authorization: Bearer $TOKEN
+line  436 passed   python3 - "$WORK/precheck-request.json" "$OWNED_JOB" <<'PY' > "$WORK/s
+line  464 passed   BRANCH="proof/$NODE-$PSEUDONYM"
+line  481 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line  494 passed   ATTESTATION="$WORK/attestation.json"
+line  519 skipped  git -C "$GRAPH" push -u origin "$BRANCH"  [manual]
+line  537 passed   cat > "$WORK/postmortem.yaml" <<'YAML'
+line  579 passed   python3 - "$WORK/postmortem.yaml" "$NODE" <<'PY' > "$WORK/postmortem-r
+line  636 passed   python3 - "$NODE" <<'PY' > "$WORK/annex-request.json"
+line  668 passed   curl -sS -X POST "$OPN_API/submissions" -H "Authorization: Bearer $TOK
+line  694 passed   python3 - "$TARGET" "$NODE" <<'PY' > "$WORK/proposal.json"
+line  720 passed   curl -fsS "$OPN_API/info.json" | python3 -c '
+line  737 passed   curl -fsS -X DELETE "$OPN_API/claims/$CLAIM_ID" -H "Authorization: Bea
+line  772 skipped  claude mcp add --transport http open-proof-network "$OPN_API/mcp"  [manual]
+27 passed, 0 drifted, 0 failed, 3 skipped
+PASSED
+gate/tests/test_walkthrough.py::test_agents_md_executes_with_toolchain line   34 passed   test -d "$GRAPH/targets"
+line   52 passed   META="$(grep -l '^tutorial: true' "$GRAPH"/targets/*/nodes/*/META.yaml
+line   70 passed   cat "$NODE_DIR/Statement.lean"
+line   82 passed   python3 - "$NODE_DIR" <<'PY'
+line  105 passed   OUT="$WORK/pregate"  [lean]
+line  129 passed   BUNDLE_PATH="targets/$TARGET/nodes/$NODE/Proof.lean"
+line  150 passed   STATE=queued
+line  165 passed   python3 - "$WORK/precheck-result.json" <<'PY'
+line  193 passed   curl -fsS "$OPN_API/frontier.json" > "$WORK/frontier.json"
+line  213 passed   CLAIM_NODE="$(python3 - "$WORK/frontier.json" <<'PY'
+line  237 passed   DCO_VERSION="$(curl -fsS "$OPN_API/dco.json" | python3 -c 'import json
+line  258 passed   curl -fsS -X POST "$OPN_API/claims" -H "Authorization: Bearer $TOKEN" 
+line  283 passed   ls -p "$NODE_DIR" | LC_ALL=C sort
+line  312 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line  367 passed   python3 - "$GRAPH/targets/$TARGET/gate-spec.json" <<'PY'
+line  395 passed   curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' "$OPN_API/aut
+line  412 passed   curl -fsS -X POST "$OPN_API/precheck" -H "Authorization: Bearer $TOKEN
+line  436 passed   python3 - "$WORK/precheck-request.json" "$OWNED_JOB" <<'PY' > "$WORK/s
+line  464 passed   BRANCH="proof/$NODE-$PSEUDONYM"
+line  481 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line  494 passed   ATTESTATION="$WORK/attestation.json"
+line  519 skipped  git -C "$GRAPH" push -u origin "$BRANCH"  [manual]
+line  537 passed   cat > "$WORK/postmortem.yaml" <<'YAML'
+line  579 passed   python3 - "$WORK/postmortem.yaml" "$NODE" <<'PY' > "$WORK/postmortem-r
+line  636 passed   python3 - "$NODE" <<'PY' > "$WORK/annex-request.json"
+line  668 passed   curl -sS -X POST "$OPN_API/submissions" -H "Authorization: Bearer $TOK
+line  694 passed   python3 - "$TARGET" "$NODE" <<'PY' > "$WORK/proposal.json"
+line  720 passed   curl -fsS "$OPN_API/info.json" | python3 -c '
+line  737 passed   curl -fsS -X DELETE "$OPN_API/claims/$CLAIM_ID" -H "Authorization: Bea
+line  772 skipped  claude mcp add --transport http open-proof-network "$OPN_API/mcp"  [manual]
+28 passed, 0 drifted, 0 failed, 2 skipped
+PASSED
+
+=============================== warnings summary ===============================
+
+
+=================== 5 passed, 2 warnings in 65.40s (0:01:05) ===================

@@ -58,7 +58,7 @@ claims. Cites: D-3, D-4, D-7, D-9, D-11, D-13, D-15, D-25, D-27, D-28, D-31, D-3
 <h2>5. Acceptance criteria</h2>
 <table>
   <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
-  <tr><td>F10-AC1</td><td>Given <code>AGENTS.md</code>, when the walkthrough runner executes every fenced command block in order against the fixture and fakes, then all succeed and outputs match the documented ones.</td><td><code>gate/tests/test_walkthrough.py::test_agents_md_executes</code></td></tr>
+  <tr><td>F10-AC1</td><td>Given <code>AGENTS.md</code>, when the walkthrough runner executes every fenced command block in order against the fixture and fakes, then all succeed and outputs match the documented ones.</td><td><code>gate/tests/test_walkthrough.py::test_agents_md_executes</code> (fast tier; the <code>lean</code>-tagged block runs in <code>::test_agents_md_executes_with_toolchain</code>, Q5)</td></tr>
   <tr><td>F10-AC2</td><td>Given <code>AGENTS.md</code>, when its section headings are checked, then every R1 topic is present in order and every decision cited exists in the doc.</td><td><code>gate/tests/test_walkthrough.py::test_required_sections</code></td></tr>
   <tr><td>F10-AC3</td><td>Given the fixture graph, when <code>CONTEXT.json</code> is generated for each node, then it validates against <code>context/v1</code>, contains no <code>detail</code> over 500 chars, and two runs are byte-identical.</td><td><code>gate/tests/test_context.py::test_context_bundle</code></td></tr>
   <tr><td>F10-AC4</td><td>Given a node's <code>CONTEXT.json</code>, when <code>get_node</code> is called, then the tool's bundle equals the file plus raw files, demarcation included.</td><td><code>api/tests/test_mcp_equivalence.py::test_get_node_uses_context</code></td></tr>
@@ -97,16 +97,18 @@ claims. Cites: D-3, D-4, D-7, D-9, D-11, D-13, D-15, D-25, D-27, D-28, D-31, D-3
   <tr><td>F10-Q1</td><td><strong>The devcontainer image is the gate image.</strong> D-27 asks for a pinned devcontainer per graph; using the step-3 image means what a contributor builds in is what the gate builds in, which is D-4's one-codebase rule extended to the environment.</td></tr>
   <tr><td>F10-Q2</td><td><strong><code>CONTEXT.json</code> is a bot-owned file inside the node directory</strong>, excluded from the submission path check like <code>META.yaml</code>. It duplicates nothing evidentiary; it is a rendering, deleted and regenerated on every merge.</td></tr>
   <tr><td>F10-Q3</td><td><strong>Docs are tests.</strong> An <code>AGENTS.md</code> whose commands rot is worse than none; the walkthrough runner is how the doc stays true (C1 applied to prose).</td></tr>
+  <tr><td>F10-Q4</td><td><strong>The tested <code>AGENTS.md</code> lives in this repo and the graph carries a copy</strong> (T1, 2026-09-11). D-27 puts the file at the graph root, but this repo's CI has no sibling checkout, so the test reads <code>gate/agents/AGENTS.md</code> and, when the sibling is present, checks the graph's copy is byte-identical &mdash; the same shape as <code>schemas/</code>, which the graph also carries as a copy of this repo's registry (D-35). The copy lands with the same <code>F10-Tn:</code> commit message.</td></tr>
+  <tr><td>F10-Q5</td><td><strong>Two tags let a command block escape execution, and both are counted.</strong> <code>sh lean</code> marks the one block that needs the pinned toolchain (<code>pregate.sh</code>); the fast tier skips it and a lean-tier twin of AC1's test runs it, so <code>make verify</code> stays under a minute (conventions &sect;2) while the git path is still executed on every <code>make verify-lean</code>. <code>sh manual</code> marks the push to a remote and the MCP registration, which no fixture can absorb; the test freezes that set at those two, so no other command can hide behind the tag. Everything else &mdash; 27 blocks &mdash; runs against the fixture clone and the fake service on a real port, with the documented output lines matched in order (R2's &ldquo;drifts from the documented output&rdquo;).</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> spec · <strong>Tasks:</strong> T1&ndash;T5 todo</div>
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1 &#10003; 2026-09-11 &middot; T2&ndash;T5 todo</div>
 
 <h2>Tasks</h2>
 <table>
   <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
   <tr><td>F10-T1</td><td><strong><code>AGENTS.md</code> and walkthrough runner.</strong> The document; the runner extracting and executing fenced blocks against fixture and fakes; section checks.</td>
-    <td><code>../open_proof_network_graph/AGENTS.md</code>, <code>gate/tools/walkthrough.py</code>, <code>gate/tests/test_walkthrough.py</code></td>
+    <td><code>gate/agents/AGENTS.md</code> (Q4), <code>../open_proof_network_graph/AGENTS.md</code> (its copy), <code>gate/tools/walkthrough.py</code>, <code>gate/tests/test_walkthrough.py</code></td>
     <td>F09</td><td><code>uv run pytest gate/tests/test_walkthrough.py</code></td></tr>
   <tr><td>F10-T2</td><td><strong>Context bundles.</strong> <code>context/v1</code>, generator in the post-merge job, <code>get_node</code> reads it.</td>
     <td><code>gate/schemas/context/v1.json</code>, <code>gate/opn_gate/context.py</code>, <code>gate/opn_gate/postmerge.py</code>, <code>api/opn_api/mcp/reads.py</code>, <code>gate/tests/test_context.py</code>, <code>api/tests/test_mcp_equivalence.py</code></td>
