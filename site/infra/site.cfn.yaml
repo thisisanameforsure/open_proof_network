@@ -2,8 +2,10 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
   Open Proof Network site (F04-R11; D-36): a private S3 bucket served through CloudFront with
   origin access control, standard logging to a second bucket that deletes objects after 90 days
-  (C9), a response-headers policy carrying the F04 Content-Security-Policy (R10), and an IAM role
-  assumable only by the network repository's site-deploy workflow through GitHub OIDC (C8 item 4).
+  (C9), a response-headers policy carrying the F04 Content-Security-Policy (R10), an IAM role
+  assumable only by the network repository's site-deploy workflow through GitHub OIDC (C8 item 4),
+  and, since F10-T4, the olean cache bucket served under /cache/ with a second role assumable only
+  by the graph repository's post-merge job (F10-R7).
   Bootstrapped once by the founder (C8 item 5); every later deploy assumes the role from CI.
 
 Parameters:
@@ -46,6 +48,18 @@ Parameters:
     Type: String
     Default: ""
     Description: the Route 53 zone for SiteDomain; empty leaves DNS to be pointed by hand
+  GraphRepository:
+    Type: String
+    Default: thisisanameforsure/open_proof_network_graph
+    Description: owner/name of the graph repository whose post-merge job may upload the olean cache (F10-R7)
+  GraphRepositoryId:
+    Type: Number
+    Default: 1360513071
+    Description: the graph repository's numeric GitHub id (the sub claim carries ids, which survive renames)
+  CachePrefix:
+    Type: String
+    Default: cache
+    Description: the key prefix in the cache bucket, and the path under the site the cache is served at (F10-R7)
 
 Conditions:
   MakeProvider: !Equals [!Ref CreateOidcProvider, "true"]
@@ -105,6 +119,39 @@ Resources:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
+
+  # F10-R7: the olean cache. Private bucket, public read through the site's distribution under
+  # /<CachePrefix>/, written only by the graph repository's post-merge job through CacheUploadRole
+  # (C8 item 4). Operational, never evidentiary (C9): losing it costs a rebuild, never a verdict.
+  CacheBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  CacheBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CacheBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: CloudFrontRead
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${CacheBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
 
   OriginAccessControl:
     Type: AWS::CloudFront::OriginAccessControl
@@ -186,6 +233,21 @@ Resources:
             OriginAccessControlId: !GetAtt OriginAccessControl.Id
             S3OriginConfig:
               OriginAccessIdentity: ""
+          - Id: cache
+            DomainName: !GetAtt CacheBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt OriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        # F10-R7: /<CachePrefix>/* is the olean cache bucket; the key keeps the prefix, so an
+        # upload under it is served at the same path. No index rewrite: these are files.
+        CacheBehaviors:
+          - PathPattern: !Sub "/${CachePrefix}/*"
+            TargetOriginId: cache
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            CachedMethods: [GET, HEAD]
+            Compress: false
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # AWS managed CachingOptimized
         DefaultCacheBehavior:
           TargetOriginId: site
           ViewerProtocolPolicy: redirect-to-https
@@ -313,6 +375,42 @@ Resources:
                 Action: [cloudfront:CreateInvalidation]
                 Resource: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
 
+  # F10-R7: assumed only by the graph repository's post-merge job on main (C8 item 4). It may
+  # write the cache bucket and read it back (the index is read-modify-write); nothing else.
+  CacheUploadRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-cache-upload"
+      Description: assumed only by the graph repo's post-merge job to publish the olean cache (F10-R7)
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If
+                - MakeProvider
+                - !Ref GitHubOidcProvider
+                - !Sub "arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com"
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub
+                  - "repo:${Owner}@${GitHubOwnerId}/${Repo}@${GraphRepositoryId}:ref:refs/heads/${GitHubBranch}"
+                  - Owner: !Select [0, !Split ["/", !Ref GraphRepository]]
+                    Repo: !Select [1, !Split ["/", !Ref GraphRepository]]
+      Policies:
+        - PolicyName: publish-olean-cache
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [s3:ListBucket]
+                Resource: !GetAtt CacheBucket.Arn
+              - Effect: Allow
+                Action: [s3:PutObject, s3:GetObject]
+                Resource: !Sub "${CacheBucket.Arn}/${CachePrefix}/*"
+
 Outputs:
   SiteBucketName:
     Value: !Ref SiteBucket
@@ -328,3 +426,14 @@ Outputs:
     Value: !GetAtt DeployRole.Arn
   LogBucketName:
     Value: !Ref LogBucket
+  CacheBucketName:
+    Description: the olean cache bucket (repo variable OPN_CACHE_BUCKET on the graph; F10-R7)
+    Value: !Ref CacheBucket
+  CacheUploadRoleArn:
+    Description: the role the graph's post-merge job assumes (repo variable OPN_CACHE_UPLOAD_ROLE_ARN)
+    Value: !GetAtt CacheUploadRole.Arn
+  CacheUrl:
+    Description: what a graph pins as olean_cache_url in gate-spec.json
+    Value: !Sub
+      - "https://${Host}/${CachePrefix}"
+      - Host: !If [HasDomain, !Ref SiteDomain, !GetAtt Distribution.DomainName]

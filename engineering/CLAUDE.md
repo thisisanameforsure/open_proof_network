@@ -300,3 +300,30 @@ The law of the project:
   before its ledger step loses that line for good, because a re-run checks out the same merge
   commit. Before the first live use of any new mode, ask what the post-merge job assumes about
   the tree — and match a run to the commit it is for, never to "the latest completed run".
+- 2026-09-11 — Docs are tests, and the test found the doc's own bugs. AGENTS.md's 28 commands run
+  against a fixture clone and the fake service on every `make verify`; the first run caught
+  compact JSON (`"ok":true`, not `"ok": true`), locale-dependent `sort`, and a `cd` that did
+  not survive a fresh shell. The runner carries variables across blocks with `set -a` plus an
+  `env -0` dump, so a document reads like a pasted session. Tag the two blocks a fixture cannot
+  absorb (`sh manual`) and freeze that set in the test, or commands hide behind the tag.
+- 2026-09-11 — A pin four files must agree on is a pin one function should read. F10-R5 wanted
+  the image digest in gate.yml, the precheck workflow, reproduce.sh and devcontainer.json;
+  `ensure_image` reads `devcontainer_ref` from the spec instead, so the three scripts name no
+  image at all and the test asserts *that*. Same shape as the network pin: one visible diff.
+- 2026-09-11 — `uv run` inside an image synced with `--no-dev` tries to install the dev group
+  and dies offline; set `UV_NO_DEV=1` in the image (and `UV_CACHE_DIR` somewhere writable for
+  uid 1000). Found by the docker-tier test, not by the build, which succeeded.
+- 2026-09-11 — A deploy window is a design input. `get_node` serving `CONTEXT.json` would have
+  gone dark between the api deploy and the graph re-pin that first writes the file; the
+  generator reads through a seam and the api derives the same document from the host until the
+  file exists, and AC4's test is the equality of the two. Ask what the tool does on the day the
+  push lands, not only after.
+- 2026-09-11 — A cache must be invisible to the attestation. D-5 says two runs anywhere agree byte
+  for byte; whether a dependency's olean was fetched or compiled is not a fact about the tree,
+  so hits go to the printed summary and `cache.json` only, and the lean-tier test asserts the
+  attestations with and without the cache are identical. `leanchecker --fresh` re-checks every
+  import, which is why a poisoned cache can waste time but never change a verdict.
+- 2026-09-11 — `aws cloudformation deploy` cannot say "keep the previous value"; a stack whose
+  domain and certificate were set at deploy time would have lost them to the template defaults.
+  Build a change set with `UsePreviousValue` for every existing parameter, read it, then execute.
+

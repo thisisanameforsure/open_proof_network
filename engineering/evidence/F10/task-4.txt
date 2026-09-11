@@ -1,0 +1,108 @@
+F10-T4 — the olean cache pipeline. 2026-09-11
+
+WHAT T4 COVERS
+--------------
+AC6  gate/tests/test_cache.py::test_manifest_verification — a cache built and packed from the
+     fixture (both interior nodes proved) is used by pregate on the root: every dependency module
+     is a hit and only the root is compiled; one altered byte in the archive, and the fetch discards
+     it (the directory is gone) and every dependency is rebuilt; a manifest whose member hashes lie
+     is discarded the same way. The attestation says nothing about the cache (D-5).
+AC7  ::test_newest_at_or_before — caches at A and C, fetch for B (A < B < C) chooses A; an exact
+     match beats an ancestor; a side branch's cache is never chosen; without git only the exact
+     commit matches.
+AC8  ::test_miss_falls_back — no cache: pregate builds and passes, logging the miss; an unreachable
+     store and a graph naming no cache degrade the same way.
+     ::test_take_requires_the_same_source_and_toolchain, ::test_pack_is_deterministic_and_capped
+     (§6's 50 MiB), ::test_extract_refuses_extra_members_and_bad_manifests,
+     ::test_cache_commands (`cache publish` builds, packs and uploads; `cache fetch` answers),
+     ::test_http_store (403/404 are "no object"; read-only; https only).
+     gate/tests/test_cache_lean.py::test_real_cache_round_trip (lean tier) — real oleans built,
+     packed, uploaded to the memory store, taken by the next pregate; the attestation with and
+     without the cache is identical.
+
+Infrastructure: site/infra/site.cfn.yaml gained CacheBucket, CacheBucketPolicy, the /cache/*
+behaviour on the distribution and CacheUploadRole (assumable only by the graph repository's main
+through OIDC, C8 item 4). The change set (three adds, the distribution modified in place, no
+replacement) was executed on the live stack opn-site; outputs below.
+
+The graph's gate.yml gained the publish step (inert until OPN_CACHE_BUCKET, OPN_CACHE_PREFIX,
+OPN_CACHE_UPLOAD_ROLE_ARN and OPN_AWS_REGION are set as repository variables), committed to the
+graph as F10-T4.
+
+Judgment calls: Q12 (layered on the gate's build layout; never a verdict; reproduce and the
+post-merge re-derivation do not consult it), Q13 (ancestry decides "at or before").
+
+AC11 (network) — PENDING, Mike's sitting: set the four repository variables on the graph, re-pin
+(with --cache-url https://openproofnetwork.org/cache so olean_cache_url is set), merge a pull
+request, then
+    uv run python gate/tools/check_cache.py <merge commit>
+and paste its output plus the post-merge run's "Publish the olean cache" step and the next gate
+run's `olean_cache` summary here, with the CI gate and precheck timings for R10.
+
+COMMAND
+-------
+uv run pytest gate/tests/test_cache.py
+
+OUTPUT
+------
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 8 items
+
+gate/tests/test_cache.py::test_manifest_verification PASSED              [ 12%]
+gate/tests/test_cache.py::test_newest_at_or_before PASSED                [ 25%]
+gate/tests/test_cache.py::test_miss_falls_back PASSED                    [ 37%]
+gate/tests/test_cache.py::test_take_requires_the_same_source_and_toolchain PASSED [ 50%]
+gate/tests/test_cache.py::test_pack_is_deterministic_and_capped PASSED   [ 62%]
+gate/tests/test_cache.py::test_extract_refuses_extra_members_and_bad_manifests PASSED [ 75%]
+gate/tests/test_cache.py::test_cache_commands PASSED                     [ 87%]
+gate/tests/test_cache.py::test_http_store PASSED                         [100%]
+
+============================== 8 passed in 2.71s ===============================
+
+LEAN TIER (gate/tests/test_cache_lean.py, run alone before make verify-lean):
+1 passed in 101.29s (0:01:41)
+
+STACK UPDATE (opn-site, change set f10-t4-olean-cache: Add CacheBucket, CacheBucketPolicy,
+CacheUploadRole; Modify Distribution in place; SiteDns re-evaluated only)
+------------------------------------------------------------------------
+UPDATE_COMPLETE
+CacheUploadRoleArn   arn:aws:iam::066708640882:role/opn-site-cache-upload
+CacheBucketName      opn-site-cachebucket-ybt7xgxymwwj
+CacheUrl             https://openproofnetwork.org/cache
+
+Repository variables to set on the graph (the post-merge publish step stays skipped until then):
+  OPN_CACHE_BUCKET=opn-site-cachebucket-ybt7xgxymwwj
+  OPN_CACHE_PREFIX=cache
+  OPN_CACHE_UPLOAD_ROLE_ARN=arn:aws:iam::066708640882:role/opn-site-cache-upload
+  OPN_AWS_REGION=us-east-1
+
+LIVE UPLOAD AND FETCH (from the laptop with the founder's credentials, before any merge)
+---------------------------------------------------------------------------------------
+$ PYTHONPATH=gate uv run python -m opn_gate.cli cache publish --graph ../open_proof_network_graph \
+    --commit HEAD --target tutorial --sandbox --bucket opn-site-cachebucket-ybt7xgxymwwj --prefix cache
+  ok: true; commit 5edb9e8e9c4b97bc94a95508d3082d778e485239 (the graph's HEAD, the F10-T1 AGENTS.md copy);
+  modules Nodes.«tutorial-and-swap».Context, Nodes.«tutorial-and-swap».Proof; archive 2646 bytes;
+  uploaded: tutorial/<commit>/oleans.tar.gz, tutorial/<commit>/manifest.json (+ tutorial/index.json);
+  10 s wall, sandboxed build included.
+
+$ PYTHONPATH=gate uv run python gate/tools/check_cache.py 5edb9e8e9c4b97bc94a95508d3082d778e485239 \
+    --url https://openproofnetwork.org/cache
+cache: https://openproofnetwork.org/cache (target tutorial)
+index: 1 cache(s): ['5edb9e8e9c4b']
+verified: 2646 bytes, 2 module(s), toolchain leanprover/lean4:v4.33.1, network c6cebbcd2c76
+  Nodes.«tutorial-and-swap».Context: Nodes/tutorial-and-swap/Context.ilean, Nodes/tutorial-and-swap/Context.olean
+  Nodes.«tutorial-and-swap».Proof: Nodes/tutorial-and-swap/Proof.ilean, Nodes/tutorial-and-swap/Proof.olean
+timings: fetch 1.38s, verify+extract 0.00s
+newest at or before 5edb9e8e9c4b on this checkout's history: 5edb9e8e9c4b97bc94a95508d3082d778e485239
+{"ok": true, "problems": []}
+exit 0
+
+So the whole path — sandboxed build, pack, S3 upload, CloudFront, https fetch, manifest
+verification, ancestry choice — works on the live bucket. What AC11 still needs is the
+post-merge job doing it unattended after a merge and CI's next run reporting hits, which is
+Mike's sitting (above).
