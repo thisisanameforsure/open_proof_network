@@ -70,3 +70,21 @@ uv run --frozen mypy site
 Success: no issues found in 18 source files
 XFAIL api/tests/test_githost_seam.py::test_exchange_non_json_body_is_a_githost_error - githost.py:179 calls exchange.json() before checking the status, unguarded: a non-JSON body (an edge proxy's HTML 502) escapes as JSONDecodeError, so the callback answers 500 instead of the mapped 502 github-exchange-failed (C7)
 ========= 1266 passed, 50 deselected, 11 xfailed, 3 warnings in 53.84s =========
+
+=== make verify-lean on main at 868ef4b, 2026-09-11 (real toolchain and step-3 container) ===
+gate/tests/test_admit_docker.py .                                        [  2%]
+gate/tests/test_admit_lean.py .......x.                                  [ 20%]
+gate/tests/test_artifacts_lean.py ..                                     [ 24%]
+gate/tests/test_curator_lean.py .                                        [ 26%]
+gate/tests/test_exhibits_lean.py .                                       [ 28%]
+gate/tests/test_hazards_lean.py .......                                  [ 42%]
+gate/tests/test_lean_pkg_lean.py ....                                    [ 50%]
+gate/tests/test_precheck_job_docker.py ..                                [ 54%]
+gate/tests/test_pregate_lean.py ...........                              [ 76%]
+gate/tests/test_products_lean.py .                                       [ 78%]
+gate/tests/test_reproduce_docker.py ..                                   [ 82%]
+gate/tests/test_sandbox_docker.py .....                                  [ 92%]
+gate/tests/test_toolchain_lean.py ....                                   [100%]
+XFAIL gate/tests/test_admit_lean.py::test_a_proposal_redeclaring_an_existing_nodes_theorem_is_refused - F08-Q18: admission elaborates a proposal's Statement.lean as its own module, so a statement that declares the same theorem name as an existing node (`OpnProp.and_swap`, the tutorial's) is admitted; the clash surfaces only later, in the Context.lean of the first node that depends on both (F01-R6), where the two signatures collide. No fake can see a name clash — held here against the real toolchain until admission refuses it by name
+=== 49 passed, 1289 deselected, 1 xfailed, 2 warnings in 1005.72s (0:16:45) ====
+EXIT 0
