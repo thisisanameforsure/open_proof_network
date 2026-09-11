@@ -1,0 +1,36 @@
+F09-T3 — write tools. 2026-09-11
+
+WHAT T3 COVERS
+--------------
+AC10 api/tests/test_mcp_auth.py::test_rate_limit_passthrough   — with writes_per_hour=1 the
+     second claim is the identity layer's 429, body unchanged and Retry-After beside it, equal
+     to what the endpoint answers directly.
+R7   ::test_token_reaches_the_endpoint                         — the receipt is the endpoint's
+     own 201 body under the identity the token resolves to.
+R7   ::test_endpoint_refusal_passes_through                    — a 409 from POST /claims is the
+     tool's error result, status and body unchanged.
+R7   ::test_precheck_submission_returns_job_and_poll           — job id and polling instruction;
+     get_precheck equals GET /precheck/<id>.
+AC5  ::test_token_required_for_writes_only (T1).
+
+COMMAND
+-------
+uv run pytest api/tests/test_mcp_auth.py
+
+OUTPUT
+------
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 5 items
+
+api/tests/test_mcp_auth.py::test_token_required_for_writes_only PASSED   [ 20%]
+api/tests/test_mcp_auth.py::test_token_reaches_the_endpoint PASSED       [ 40%]
+api/tests/test_mcp_auth.py::test_endpoint_refusal_passes_through PASSED  [ 60%]
+api/tests/test_mcp_auth.py::test_rate_limit_passthrough PASSED           [ 80%]
+api/tests/test_mcp_auth.py::test_precheck_submission_returns_job_and_poll PASSED [100%]
+
+============================== 5 passed in 0.33s ===============================
