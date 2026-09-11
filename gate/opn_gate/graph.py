@@ -154,16 +154,23 @@ def witness_is_stub(node_dir: Path) -> bool:
     return layout.mentions_sorry(witness.read_text(encoding="utf-8"))
 
 
-def relation_of(node_dir: Path, origin: str) -> str | None:
-    """D-30 label: a variant's ``Relation.lean`` header names it; no header means ``related``."""
+def relation_label(relation_text: str | None, origin: str) -> str | None:
+    """D-30 label from the text of ``Relation.lean``: the header names it; no header, or no
+    file, means ``related``; a node that is not a variant has no label."""
     if origin != "variant":
         return None
-    relation = node_dir / "Relation.lean"
-    if relation.is_file():
-        m = _RELATION_RE.search(relation.read_text(encoding="utf-8"))
+    if relation_text is not None:
+        m = _RELATION_RE.search(relation_text)
         if m:
             return m.group("label")
     return "related"
+
+
+def relation_of(node_dir: Path, origin: str) -> str | None:
+    """``relation_label`` over the node directory's ``Relation.lean``."""
+    relation = node_dir / "Relation.lean"
+    text = relation.read_text(encoding="utf-8") if relation.is_file() else None
+    return relation_label(text, origin)
 
 
 def load_nodes(

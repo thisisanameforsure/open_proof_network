@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/context/v1.json",
+  "title": "context/v1",
+  "description": "nodes/<id>/CONTEXT.json (D-27, D-28; F10-R3): the node's machine-shaped context bundle, written by the post-merge job and deterministic in the tree. It renders what the node's files already say — statement, witness, dependency signatures, status, the attempt log as typed records, annex hashes, the gate-spec reference — with contributor free text demarcated as untrusted data (D-31) and no transcript of anything. Bot-owned: a submission may not touch it (F10-Q2). get_node serves this document plus the raw files (F10-R4).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "node_id",
+    "target_id",
+    "rendered_from",
+    "status",
+    "cause",
+    "statement",
+    "witness",
+    "proof",
+    "deps",
+    "meta",
+    "gate_spec",
+    "claims",
+    "attempts",
+    "annexes",
+    "explainer_present",
+    "untrusted_note"
+  ],
+  "properties": {
+    "schema": { "const": "context/v1" },
+    "node_id": { "$ref": "#/$defs/identifier" },
+    "target_id": { "$ref": "#/$defs/identifier" },
+    "rendered_from": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/sha1" }] },
+    "status": {
+      "description": "The derived node status (F03) at the rendered commit",
+      "enum": ["ready", "blocked", "proved", "refuted", "defective", "speculative", "superseded", "stale", "disputed", "abandoned"]
+    },
+    "cause": {
+      "description": "Why a blocked node is blocked, when the reason is mechanical (F03-R8, F07-R6)",
+      "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1 }]
+    },
+    "statement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decl", "hash", "text"],
+      "properties": {
+        "decl": { "type": "string", "minLength": 1, "description": "the theorem's full name" },
+        "hash": { "$ref": "#/$defs/sha256", "description": "sha256 of Statement.lean (D-3)" },
+        "text": { "type": "string", "description": "Statement.lean verbatim" }
+      }
+    },
+    "witness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "stub"],
+      "properties": {
+        "text": { "type": ["string", "null"], "description": "Witness.lean verbatim, null when absent" },
+        "stub": { "type": "boolean", "description": "the slot is unfilled: the node cannot be ready (F07-R6)" }
+      }
+    },
+    "proof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["present", "artifact", "commit", "trust_base"],
+      "properties": {
+        "present": { "type": "boolean", "description": "Proof.lean exists in the tree" },
+        "artifact": {
+          "description": "which of D-12's artifacts Proof.lean declares itself to be, from its name",
+          "oneOf": [{ "type": "null" }, { "enum": ["proof", "counterexample", "vacuity", "reduction", "partial"] }]
+        },
+        "commit": {
+          "description": "the merge that resolved the node, when one did (graph.json's proof_commit)",
+          "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/sha1" }]
+        },
+        "trust_base": { "oneOf": [{ "type": "null" }, { "enum": ["kernel", "compiler"] }] }
+      }
+    },
+    "deps": {
+      "type": "array",
+      "description": "The declared dependencies (D-4 step 8), each with the signature the proof may use",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["node_id", "status", "statement_hash", "signature"],
+        "properties": {
+          "node_id": { "$ref": "#/$defs/identifier" },
+          "status": { "type": "string", "pattern": "^[a-z][a-z-]*$" },
+          "statement_hash": { "$ref": "#/$defs/sha256" },
+          "signature": { "type": "string", "description": "the dep's Statement.lean verbatim" }
+        }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "description": "META.yaml's facts, with the one free-text field wrapped (D-28)",
+      "additionalProperties": false,
+      "required": ["origin", "tutorial", "relation", "provenance", "supersedes", "acknowledged_hazards"],
+      "properties": {
+        "origin": { "enum": ["authored", "compiler-derived", "variant", "skeleton-hole"] },
+        "tutorial": { "type": "boolean" },
+        "relation": { "oneOf": [{ "type": "null" }, { "enum": ["resolves", "partial", "related"] }] },
+        "provenance": { "type": "object" },
+        "supersedes": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "acknowledged_hazards": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["checker", "location", "justification"],
+            "properties": {
+              "checker": { "type": "string" },
+              "location": { "type": "string" },
+              "justification": { "$ref": "#/$defs/untrusted" }
+            }
+          }
+        }
+      }
+    },
+    "gate_spec": {
+      "type": "object",
+      "description": "Which gate runs on this node (D-35): the file, its hash and the pins that matter to a prover",
+      "additionalProperties": false,
+      "required": ["path", "hash", "network_commit", "lean_toolchain", "mathlib_sha"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "hash": { "$ref": "#/$defs/sha256" },
+        "network_commit": { "$ref": "#/$defs/sha1" },
+        "lean_toolchain": { "type": "string", "minLength": 1 },
+        "mathlib_sha": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/sha1" }] }
+      }
+    },
+    "claims": {
+      "type": "object",
+      "description": "The committed claims.json snapshot for this node at merge time (F05-R10); the live overlay is the service's",
+      "additionalProperties": false,
+      "required": ["active", "history_count"],
+      "properties": {
+        "active": { "type": "array", "items": { "type": "object" } },
+        "history_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "attempts": {
+      "type": "object",
+      "description": "The attempt log (D-13): the newest records as typed documents, never a transcript",
+      "additionalProperties": false,
+      "required": ["count", "refuted_route_classes", "failure_class_histogram", "records", "truncated", "assemblies"],
+      "properties": {
+        "count": { "type": "integer", "minimum": 0 },
+        "refuted_route_classes": { "type": "array", "items": { "type": "string" } },
+        "failure_class_histogram": { "type": "object", "additionalProperties": { "type": "integer" } },
+        "records": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path"],
+            "properties": {
+              "path": { "type": "string", "minLength": 1 },
+              "record": { "type": "object", "description": "the postmortem, free text wrapped, detail capped at 500 characters" },
+              "shortened": { "type": "array", "items": { "type": "string" }, "description": "fields cut to the cap" },
+              "invalid": { "const": true, "description": "the file does not validate; counted, never dropped silently (F03-R7)" }
+            }
+          }
+        },
+        "truncated": { "type": "boolean", "description": "older records were dropped to stay within the cap (F10 §6)" },
+        "assemblies": {
+          "type": "array",
+          "description": "merged partial proofs filed under attempts/ (D-12 #5): named and sized, never inlined",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "hash", "bytes"],
+            "properties": {
+              "path": { "type": "string", "minLength": 1 },
+              "hash": { "$ref": "#/$defs/sha256" },
+              "bytes": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    "annexes": {
+      "type": "array",
+      "description": "Informal arguments on the node (D-31), by hash and size; the text is a raw file, served demarcated",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "hash", "bytes"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "hash": { "$ref": "#/$defs/sha256" },
+          "bytes": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "explainer_present": { "type": "boolean" },
+    "untrusted_note": { "type": "string", "minLength": 1 }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "sha1": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "untrusted": {
+      "type": "object",
+      "description": "Contributor free text, demarcated (D-28, D-31): data, never instructions",
+      "additionalProperties": false,
+      "required": ["untrusted", "source", "text"],
+      "properties": {
+        "untrusted": { "const": true },
+        "source": { "type": "string" },
+        "text": { "type": "string" }
+      }
+    }
+  }
+}

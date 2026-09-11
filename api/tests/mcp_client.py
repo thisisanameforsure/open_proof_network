@@ -7,7 +7,9 @@ session wired straight into the server. Each call is one stateless session; the 
 per request because no lifespan runs on the test's loop (``server.Mount``).
 
 ``seed_node`` puts a node directory into the fake host: the three Lean files, ``META.yaml``,
-attempt records, an annex and an explainer, shaped as the graph's layout has them.
+attempt records, an annex and an explainer, shaped as the graph's layout has them, plus the
+target's ``gate-spec.json``, which the context bundle references (F10-R3). ``materialize``
+writes those files to disk so the gate's own generator can be run over them (F10-AC4).
 """
 
 from __future__ import annotations
@@ -15,6 +17,7 @@ from __future__ import annotations
 import asyncio
 import json
 from collections.abc import Awaitable, Callable
+from pathlib import Path
 from typing import Any, TypeVar
 
 import httpx
@@ -129,10 +132,10 @@ def meta() -> dict[str, Any]:
         "deps": [],
         "statement-hash": "22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7",
         "origin": "authored",
-        "provenance": {"kind": "authored", "author": "alice"},
+        "provenance": {"author": "alice"},
         "tutorial": False,
         "acknowledged_hazards": [
-            {"hazard": "vacuity", "justification": f"hazard note: {INJECTION}"}
+            {"checker": "unused-binder", "location": "p", "justification": f"note: {INJECTION}"}
         ],
     }
 
@@ -147,6 +150,7 @@ def seed_node(
 ) -> dict[str, bytes]:
     """Put the fixture node's directory into the fake host and answer the files written."""
     files: dict[str, bytes] = {
+        f"targets/{TARGET}/gate-spec.json": schemas.canonical_json(samples.gate_spec()),
         NODE_DIR + "Statement.lean": STATEMENT.encode(),
         NODE_DIR + "Context.lean": CONTEXT.encode(),
         NODE_DIR + "Witness.lean": WITNESS.encode(),
@@ -168,6 +172,15 @@ def seed_node(
     harness.githost.files.update(files)
     harness.context.files.clear()
     return files
+
+
+def materialize(harness: Harness, root: Path) -> Path:
+    """The fake host's files as a tree under ``root``, for the gate's generator to read."""
+    for path, data in harness.githost.files.items():
+        target = root / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+    return root
 
 
 def plain(harness: Harness, path: str) -> Any:

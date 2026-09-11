@@ -23,10 +23,11 @@ from api_fakes import (
     make_harness,
     make_precheck_key,
 )
-from mcp_client import NODE, NODE_DIR, TARGET, McpClient, plain, seed_node, unwrap
+from mcp_client import NODE, NODE_DIR, TARGET, McpClient, materialize, plain, seed_node, unwrap
 
+from opn_api.mcp import demarcate
 from opn_api.mcp.server import TOOLS
-from opn_gate import schemas
+from opn_gate import context, schemas
 
 ULID_RE = re.compile(r"[0-9A-Z]{26}")
 STATEMENT = "theorem OpnProp.and_weaken : ∀ p q : Prop, p ∧ q → p ∨ q := by\n  sorry\n"  # noqa: RUF001
@@ -51,9 +52,9 @@ def seed_graph(harness: Harness) -> None:
     )
     files[f"targets/{TARGET}/defs/Helper.lean"] = b"def helper : Nat := 1\n"
     files[f"targets/{TARGET}/defs/Helper.cert.yaml"] = b"schema: fidelity/v1\nkind: mechanical\n"
-    files[f"targets/{TARGET}/gate-spec.json"] = json.dumps(
-        {"schema": "gate-spec/v1", "lean_toolchain": "leanprover/lean4:v4.33.1"}
-    ).encode()
+    files[f"targets/{TARGET}/gate-spec.json"] = schemas.canonical_json(
+        samples.gate_spec(lean_toolchain="leanprover/lean4:v4.33.1", network_commit="9" * 40)
+    )
     files["attestations/000001.json"] = json.dumps(
         samples.attestation(node_id=TUTORIAL_NODE, graph_commit="5" * 40)
     ).encode()
@@ -62,7 +63,9 @@ def seed_graph(harness: Harness) -> None:
     harness.context.files.clear()
 
 
-def test_read_tools_equal_plain_path(harness: Harness, key: PrecheckKey) -> None:
+def test_read_tools_equal_plain_path(
+    harness: Harness, key: PrecheckKey, tmp_path_factory: pytest.TempPathFactory
+) -> None:
     """AC3: each read tool's result is the file's parsed content or the endpoint's body."""
     seed_graph(harness)
     token = harness.token_for("code_alice", "alice-p")
@@ -104,14 +107,14 @@ def test_read_tools_equal_plain_path(harness: Harness, key: PrecheckKey) -> None
     node = client.ok("get_node", {"node_id": NODE})
     files = harness.githost.files
     assert node["files"] == {
-        name: files[NODE_DIR + name].decode()
-        for name in ("Statement.lean", "Context.lean", "Witness.lean")
+        **{
+            name: files[NODE_DIR + name].decode()
+            for name in ("Statement.lean", "Context.lean", "Witness.lean")
+        },
+        "Proof.lean": None,
     }
-    assert unwrap(node["meta"]) == plain(harness, NODE_DIR + "META.yaml")
-    attempts = sorted(
-        p for p in files if p.startswith(NODE_DIR + "attempts/") and p.endswith(".yaml")
-    )
-    assert unwrap(node["attempts"]) == [{"path": p, "record": plain(harness, p)} for p in attempts]
+    assert node["context"] == derived_bundle(harness, tmp_path_factory.mktemp("tree"))
+    assert node["context_source"] == "derived"  # the fake graph commits no CONTEXT.json
     [annex] = [p for p in files if p.startswith(NODE_DIR + "annex/") and p.endswith(".md")]
     text = files[annex].decode()
     front, _, body = text.removeprefix("---\n").partition("---\n")
@@ -125,7 +128,47 @@ def test_read_tools_equal_plain_path(harness: Harness, key: PrecheckKey) -> None
     overlay = harness.client.get("/frontier.json").json()
     assert node["claims"] == next(e["claims"] for e in overlay["entries"] if e["node_id"] == NODE)
     assert node["claims"]["active"][0]["pseudonym"] == "alice-p"
-    assert node["attempts_truncated"] is False
+
+
+def derived_bundle(harness: Harness, tree: Path) -> dict[str, Any]:
+    """What the post-merge job would write for the fixture node: the gate's generator over the
+    same files, with the states graph.json records (F10-R3)."""
+    materialize(harness, tree)
+    states = context.graph_states(json.loads(harness.githost.files[f"targets/{TARGET}/graph.json"]))
+    rendered = json.loads(harness.githost.files["frontier.json"])["rendered_from"]
+    return context.build(
+        context.DiskReader(tree), TARGET, NODE, states=states, rendered_from=rendered
+    )
+
+
+def test_get_node_uses_context(harness: Harness, tmp_path: Path) -> None:
+    """F10-AC4: with CONTEXT.json committed, the tool's bundle is that file plus the raw files,
+    demarcation included — and the file is exactly what the tool derived without it."""
+    seed_graph(harness)
+    client = McpClient(harness)
+    before = client.ok("get_node", {"node_id": NODE})
+    assert before["context_source"] == "derived"
+    committed = schemas.canonical_json(derived_bundle(harness, tmp_path / "tree"))
+    harness.githost.files[NODE_DIR + "CONTEXT.json"] = committed
+    harness.context.files.clear()
+    after = client.ok("get_node", {"node_id": NODE})
+    assert after["context_source"] == "file"
+    assert after["context"] == json.loads(committed) == before["context"]
+    assert {k: v for k, v in after.items() if k != "context_source"} == {
+        k: v for k, v in before.items() if k != "context_source"
+    }
+    assert (
+        after["files"]["Statement.lean"]
+        == harness.githost.files[NODE_DIR + "Statement.lean"].decode()
+    )
+    # The bundle carries the injection only wrapped, as the file does (R6; F10-R3).
+    assert demarcate.bare_strings(after["context"]) == demarcate.bare_strings(json.loads(committed))
+    assert "ignore previous instructions" in json.dumps(after["context"])
+    # A committed bundle that does not validate is a named error, not a partial answer (R10).
+    harness.githost.files[NODE_DIR + "CONTEXT.json"] = b'{"schema": "context/v1"}'
+    harness.context.files.clear()
+    failed = client.failed("get_node", {"node_id": NODE})
+    assert failed["error"] == "context-invalid" and failed["source"] == "graph"
 
 
 # --- AC4 ------------------------------------------------------------------------------------------

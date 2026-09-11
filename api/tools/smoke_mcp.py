@@ -93,7 +93,7 @@ class Client:
         return doc
 
 
-def read_only(  # noqa: PLR0912 — a checklist: one branch per thing the run asserts
+def read_only(  # noqa: PLR0912, PLR0915 — a checklist: one branch per thing the run asserts
     base: str, client: Client, problems: list[str]
 ) -> dict[str, Any]:
     init, tools = client.tools()
@@ -139,11 +139,13 @@ def read_only(  # noqa: PLR0912 — a checklist: one branch per thing the run as
         problems.append(f"get_node({tutorial}) is an error: {bundle}")
     else:
         bare = demarcate.bare_strings(
-            {k: v for k, v in bundle.items() if k in ("attempts", "annexes", "explainers")}
+            {k: v for k, v in bundle.items() if k in ("context", "annexes", "explainers")}
         )
-        prose = [p for p in bare if p.endswith((".detail", ".route", ".text"))]
+        prose = [p for p in bare if p.endswith((".detail", ".route", ".text", ".justification"))]
+        attempts = bundle["context"]["attempts"]
         print(
-            f"get_node({tutorial}) -> {len(bundle['attempts'])} attempts, "
+            f"get_node({tutorial}) -> context {bundle['context_source']}, "
+            f"{attempts['count']} attempts ({len(attempts['records'])} records), "
             f"{len(bundle['annexes'])} annexes, {len(bundle['explainers'])} explainers, "
             f"note present: {bundle.get('untrusted_note') == demarcate.UNTRUSTED_NOTE}"
         )

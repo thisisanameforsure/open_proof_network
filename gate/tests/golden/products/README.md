@@ -1,6 +1,7 @@
 # Golden merge products (F03-T4, AC11)
 
-The four products generated from the propositional fixture in three states, byte for byte:
+The four products, plus every node's `CONTEXT.json` (F10-R3), generated from the propositional
+fixture in three states, byte for byte:
 
 - `unproved/` — the pristine fixture: two ready interior nodes, a blocked root, no declaration.
 - `interior-proved/` — merged passing attestations for both interior nodes (one under a

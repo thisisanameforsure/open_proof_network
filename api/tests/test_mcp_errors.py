@@ -43,7 +43,8 @@ def test_partial_bundle_never_served(harness: Harness) -> None:
     listing failing) is an error result, not a bundle missing its attempts."""
     seed_node(harness)
     client = McpClient(harness)
-    assert client.ok("get_node", {"node_id": NODE})["attempts"]  # the whole bundle, first
+    whole = client.ok("get_node", {"node_id": NODE})  # the whole bundle, first
+    assert whole["context"]["attempts"]["records"]
 
     original = harness.githost.list_dir
 

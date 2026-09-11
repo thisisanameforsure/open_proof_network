@@ -5,9 +5,11 @@ and revalidated by ETag exactly as ``frontier.committed`` does, and returns the 
 unchanged; a tool that maps to a service route calls that route in process and returns its
 body. ``list_frontier`` reads the overlay (``GET /frontier.json``, D-35) and filters it by
 equality or containment on named fields, in the file's order, with no ranking (D-25).
-``get_node`` assembles the D-28 context bundle with every contributor free-text value wrapped
-as untrusted data (``demarcate``). A source that does not answer is an error result naming it,
-never a partial bundle (R10, C7).
+``get_node`` serves the node's committed ``CONTEXT.json`` — the bundle the post-merge job
+renders with every contributor free-text value wrapped as untrusted data (F10-R3, R4) — plus
+the raw files, annexes and explainers; a graph that has no bundle yet gets the same document
+derived from its files through the same generator (F10-Q7). A source that does not answer is
+an error result naming it, never a partial bundle (R10, C7).
 
 Reads go to ``main`` only (Q4).
 """
@@ -21,26 +23,25 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
-from opn_api import precheck
+from opn_api import frontier, precheck
 from opn_api.app import ApiError, CachedFile
 from opn_api.githost import GitHostError
 from opn_api.mcp import demarcate, results
 from opn_api.mcp.calls import ID_PARAM, Call, Source, Tool, error, params
-from opn_gate import schemas
+from opn_gate import context, schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
 
-ATTEMPT_LOG_LIMIT = 50  # §6: the newest records, with a marker when older ones were dropped
 ATTEMPT_SUFFIXES = (".yaml", ".yml")
 PROSE_SUFFIX = ".md"
 LEAN_SUFFIX = ".lean"
-NODE_FILES: tuple[tuple[str, bool], ...] = (  # (file, required)
+NODE_FILES: tuple[tuple[str, bool], ...] = (  # (file, required): the raw files (F10-R4)
     ("Statement.lean", True),
     ("Context.lean", True),
     ("Witness.lean", False),
+    ("Proof.lean", False),
 )
-META_FILE = "META.yaml"
 FRONTIER_SCHEMA = "frontier/v1"
 SCHEMA_NAME_RE = re.compile(r"^[a-z][a-z0-9-]*/v[1-9][0-9]*$")
 FRONT_MATTER_RE = re.compile(r"\A---[ \t]*\r?\n(?P<yaml>.*?)\r?\n---[ \t]*\r?\n", re.S)
@@ -254,21 +255,6 @@ async def list_frontier(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     return {**doc, "entries": entries}
 
 
-def _records(
-    ctx: Context, directory: str, *, suffixes: tuple[str, ...], limit: int | None = None
-) -> tuple[list[dict[str, Any]], bool]:
-    names = [n for n in listing(ctx, directory) if n.endswith(suffixes)]
-    truncated = limit is not None and len(names) > limit
-    if truncated:
-        assert limit is not None
-        names = names[-limit:]  # file names sort by timestamp (F07-R11), so the newest are last
-    out = []
-    for name in names:
-        path = f"{directory}/{name}"
-        out.append({"path": path, "record": demarcate.record(document(ctx, path), path)})
-    return out, truncated
-
-
 def _prose(ctx: Context, directory: str) -> list[dict[str, Any]]:
     out = []
     for name in listing(ctx, directory):
@@ -287,10 +273,51 @@ def _prose(ctx: Context, directory: str) -> list[dict[str, Any]]:
     return out
 
 
+class HostReader:
+    """``context.Reader`` over the graph's host at ``main`` (F10-R4, Q7): the same generator the
+    post-merge job runs over a checkout, so a derived bundle equals the committed one."""
+
+    def __init__(self, ctx: Context) -> None:
+        self.ctx = ctx
+
+    def read(self, path: str) -> bytes | None:
+        return committed(self.ctx, path, optional=True)
+
+    def listdir(self, path: str) -> list[str]:
+        return listing(self.ctx, path)
+
+
+def node_context(ctx: Context, target_id: str, node_id: str) -> tuple[dict[str, Any], str]:
+    """The node's ``CONTEXT.json`` as committed, or the same document derived from the files at
+    ``main`` when the graph carries none yet (a graph rendered before F10's pin). The second
+    value says which (``file`` or ``derived``)."""
+    path = context.context_path(target_id, node_id)
+    raw = committed(ctx, path, optional=True)
+    if raw is not None:
+        try:
+            return schemas.validate(parse(raw, path), context.SCHEMA), "file"
+        except schemas.SchemaError as exc:
+            raise error("context-invalid", f"{path} does not validate: {exc}", "graph") from exc
+    states = context.graph_states({"nodes": precheck.graph_doc(ctx).get(target_id, [])})
+    rendered = frontier.committed_frontier(ctx).get("rendered_from")
+    try:
+        doc = context.build(
+            HostReader(ctx),
+            target_id,
+            node_id,
+            states=states,
+            rendered_from=str(rendered) if isinstance(rendered, str) else None,
+        )
+    except context.ContextError as exc:
+        raise error("context-underivable", f"{node_id}: {exc}", "graph") from exc
+    return doc, "derived"
+
+
 async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     node_id = check_id(args.get("node_id"), "node_id")
     try:
         facts = precheck.node_facts(call.ctx, node_id)
+        bundle, source = node_context(call.ctx, str(facts["target_id"]), node_id)
     except ApiError as exc:
         raise from_api_error(exc) from exc
     target_id = str(facts["target_id"])
@@ -299,20 +326,14 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     for name, required in NODE_FILES:
         raw = committed(call.ctx, f"{node_dir}/{name}", optional=not required)
         files[name] = text(raw, name) if raw is not None else None
-    meta_path = f"{node_dir}/{META_FILE}"
-    meta = demarcate.record(document(call.ctx, meta_path), meta_path)
-    attempts, truncated = _records(
-        call.ctx, f"{node_dir}/attempts", suffixes=ATTEMPT_SUFFIXES, limit=ATTEMPT_LOG_LIMIT
-    )
     overlay = service_answer(await call.endpoint("GET", "/frontier.json"), "/frontier.json")
     entry = next((e for e in overlay.get("entries", []) if e.get("node_id") == node_id), None)
     return {
         "node_id": node_id,
         "target_id": target_id,
+        "context": bundle,
+        "context_source": source,
         "files": files,
-        "meta": meta,
-        "attempts": attempts,
-        "attempts_truncated": truncated,
         "claims": dict(entry["claims"]) if entry is not None else None,
         "annexes": _prose(call.ctx, f"{node_dir}/annex"),
         "explainers": _prose(call.ctx, f"{node_dir}/explainer"),
@@ -406,8 +427,9 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "get_node",
-        "A node's context bundle: Statement.lean, Context.lean, Witness.lean, META.yaml, the "
-        "attempt log, live claim status, annexes and explainers.",
+        "A node's context bundle (nodes/<id>/CONTEXT.json: statement, deps' signatures, witness, "
+        "status, gate-spec reference, attempt log, annex hashes) plus the raw Lean files, live "
+        "claim status, annexes and explainers.",
         params({"node_id": ID_PARAM}, ("node_id",)),
         get_node,
     ),

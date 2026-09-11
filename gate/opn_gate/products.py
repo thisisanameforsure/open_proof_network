@@ -2,6 +2,7 @@
 
 ``generate`` derives every target (``graph.py``), builds the four documents — each target's
 ``graph.json``, the graph-wide ``frontier.json``, ``targets/index.json`` and ``info.json`` —
+plus every node's ``CONTEXT.json`` (F10-R3, ``context.py``),
 validates each against its schema, and only then writes them all, canonically (sorted keys,
 two-space indent, LF, trailing newline), so two runs over one commit are byte-identical (R11)
 and a defective graph leaves the tree untouched (R3, C7). It also writes each node's derived
@@ -23,8 +24,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from opn_gate import context, layout, records, schemas
 from opn_gate import graph as graphmod
-from opn_gate import layout, records, schemas
 from opn_gate.graph import GraphError, NodeFacts, TargetGraph
 from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsRequest
 
@@ -340,12 +341,18 @@ def generate(
     registry = load_claims(graph_root) if claims is None else claims
     products = Products()
     entries: list[dict[str, Any]] = []
+    reader = context.DiskReader(graph_root)
     for target_id in target_ids(graph_root):
         tg = graphmod.load_target(graph_root, target_id)
         products.targets.append(tg)
-        products.files[Path("targets") / target_id / "graph.json"] = schemas.canonical_json(
-            schemas.validate(graph_doc(tg, rendered_from), GRAPH_SCHEMA)
-        )
+        gdoc = schemas.validate(graph_doc(tg, rendered_from), GRAPH_SCHEMA)
+        products.files[Path("targets") / target_id / "graph.json"] = schemas.canonical_json(gdoc)
+        # F10-R3: one context bundle per node, a rendering of the same facts, bot-owned (Q2).
+        states = context.graph_states(gdoc)
+        for node_id in tg.order:
+            products.files[Path(context.context_path(target_id, node_id))] = context.render(
+                reader, target_id, node_id, states=states, rendered_from=rendered_from
+            )
         _status, claimable, _fidelity = target_facts(tg)
         ready_since = graphmod.ready_since_map(previous, tg.statuses, commit_time)
         # R6: only a Mathlib-pinned graph has library tags to scan for and a cache to keep.

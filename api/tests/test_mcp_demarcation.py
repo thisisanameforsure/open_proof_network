@@ -9,7 +9,7 @@ from api_fakes import Harness
 from mcp_client import INJECTION, NODE, NODE_DIR, TARGET, McpClient, seed_node, unwrap
 
 from opn_api.mcp import demarcate
-from opn_api.mcp.reads import ATTEMPT_LOG_LIMIT
+from opn_gate.context import RECORD_LIMIT as ATTEMPT_LOG_LIMIT
 
 
 def bare_hits(value: Any, needle: str, path: str = "$") -> list[str]:
@@ -53,7 +53,7 @@ def test_free_text_wrapped(harness: Harness) -> None:
         assert w["untrusted"] is True
         assert INJECTION in w["text"]
     # Wrapped verbatim: unwrapping gives the records back exactly as the files hold them.
-    attempt = bundle["attempts"][0]
+    attempt = bundle["context"]["attempts"]["records"][0]
     assert unwrap(attempt["record"])["detail"] == f"attempt 0: {INJECTION}"
     assert attempt["record"]["route"] == {
         "untrusted": True,
@@ -87,15 +87,16 @@ def test_target_approaches_wrapped(harness: Harness) -> None:
 def test_attempt_log_truncated(harness: Harness) -> None:
     """§6: the newest 50 attempt records, oldest first, with the marker set."""
     seed_node(harness, attempts=ATTEMPT_LOG_LIMIT + 3)
-    bundle = McpClient(harness).ok("get_node", {"node_id": NODE})
-    assert bundle["attempts_truncated"] is True
-    assert len(bundle["attempts"]) == ATTEMPT_LOG_LIMIT
-    paths = [a["path"] for a in bundle["attempts"]]
+    attempts = McpClient(harness).ok("get_node", {"node_id": NODE})["context"]["attempts"]
+    assert attempts["truncated"] is True and attempts["count"] == ATTEMPT_LOG_LIMIT + 3
+    assert len(attempts["records"]) == ATTEMPT_LOG_LIMIT
+    paths = [a["path"] for a in attempts["records"]]
     assert paths == sorted(paths)
-    assert unwrap(bundle["attempts"][0]["record"])["route"] == "route 3"  # the three oldest dropped
-    assert unwrap(bundle["attempts"][-1]["record"])["route"] == f"route {ATTEMPT_LOG_LIMIT + 2}"
+    assert unwrap(attempts["records"][0]["record"])["route"] == "route 3"  # the oldest dropped
+    assert unwrap(attempts["records"][-1]["record"])["route"] == f"route {ATTEMPT_LOG_LIMIT + 2}"
     seed_node(harness, attempts=ATTEMPT_LOG_LIMIT)
-    assert McpClient(harness).ok("get_node", {"node_id": NODE})["attempts_truncated"] is False
+    bundle = McpClient(harness).ok("get_node", {"node_id": NODE})
+    assert bundle["context"]["attempts"]["truncated"] is False
 
 
 def test_record_wrapping_by_family() -> None:

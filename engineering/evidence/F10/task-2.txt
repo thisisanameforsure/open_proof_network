@@ -1,0 +1,55 @@
+F10-T2 — context bundles: context/v1, the generator in the products pass, get_node serves it. 2026-09-11
+
+WHAT T2 COVERS
+--------------
+AC3  gate/tests/test_context.py::test_context_bundle       — the products pass writes one
+     CONTEXT.json per node; each validates against context/v1, no detail exceeds 500
+     characters, two generations are byte-identical; the root's bundle carries the deps'
+     signatures in declared order, the gate-spec hash, the claims snapshot, the frontier's own
+     attempt aggregate, an invalid record named rather than dropped, a shortened detail, a
+     merged assembly by hash and size, the annex by hash and size, explainer presence, and the
+     planted injection only inside untrusted objects.
+     ::test_proved_node_carries_its_merge, ::test_record_cap_and_budget (newest 50; the byte cap
+     drops the oldest first and refuses a node that cannot fit), ::test_defective_node_is_refused
+     (C7: an error naming the file, never a partial bundle), ::test_context_file_is_bot_owned
+     (Q2: the layout tolerates it, step 2 and the mode grammar refuse it),
+     ::test_products_write_and_rewrite_bundles.
+AC4  api/tests/test_mcp_equivalence.py::test_get_node_uses_context — with CONTEXT.json committed
+     the tool's bundle is that file plus the raw files, demarcation included; without it the
+     tool derives the identical document through the same generator (context_source: derived,
+     Q7); a committed bundle that does not validate is a named error.
+     ::test_read_tools_equal_plain_path — get_node's context equals the gate's generator over
+     the same files; files are the four raw Lean files; annexes and explainers as before.
+
+Also moved: the demarcation rule to opn_gate.demarcate (Q6), re-exported by the api; the
+products goldens gained a CONTEXT.json per node and `context: [1]` in info.json's index (the
+api's info fixture copied likewise); get_node's result schema edited in place (Q8).
+
+COMMAND
+-------
+uv run pytest gate/tests/test_context.py api/tests/test_mcp_equivalence.py
+
+OUTPUT
+------
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 9 items
+
+gate/tests/test_context.py::test_context_bundle PASSED                   [ 11%]
+gate/tests/test_context.py::test_proved_node_carries_its_merge PASSED    [ 22%]
+gate/tests/test_context.py::test_record_cap_and_budget PASSED            [ 33%]
+gate/tests/test_context.py::test_defective_node_is_refused PASSED        [ 44%]
+gate/tests/test_context.py::test_context_file_is_bot_owned PASSED        [ 55%]
+gate/tests/test_context.py::test_products_write_and_rewrite_bundles PASSED [ 66%]
+api/tests/test_mcp_equivalence.py::test_read_tools_equal_plain_path PASSED [ 77%]
+api/tests/test_mcp_equivalence.py::test_get_node_uses_context PASSED     [ 88%]
+api/tests/test_mcp_equivalence.py::test_write_tools_forward_once PASSED  [100%]
+
+=============================== warnings summary ===============================
+
+
+======================== 9 passed, 2 warnings in 1.11s =========================

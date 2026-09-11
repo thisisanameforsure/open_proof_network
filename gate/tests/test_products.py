@@ -246,6 +246,9 @@ def test_products_of_the_fixture(tmp_path: Path) -> None:
         "info.json",
         "targets/index.json",
         "targets/propositional/graph.json",
+        "targets/propositional/nodes/and-reassoc/CONTEXT.json",  # F10-R3
+        "targets/propositional/nodes/and-swap-reassoc/CONTEXT.json",
+        "targets/propositional/nodes/tutorial-and-swap/CONTEXT.json",
     ]
     g = loads(prod, "targets/propositional/graph.json")
     assert g["root"] == ROOT_NODE and g["rendered_from"] == RENDERED
@@ -374,7 +377,10 @@ def test_deterministic_and_valid(tmp_path: Path) -> None:
         "info.json",
         "targets/index.json",
         "targets/propositional/graph.json",
+        "targets/propositional/nodes/and-reassoc/CONTEXT.json",  # F10-R3
         "targets/propositional/nodes/and-reassoc/META.yaml",  # ready -> speculative (R2)
+        "targets/propositional/nodes/and-swap-reassoc/CONTEXT.json",
+        "targets/propositional/nodes/tutorial-and-swap/CONTEXT.json",
         "targets/propositional/nodes/tutorial-and-swap/META.yaml",  # ready -> proved
     ]
     assert a.write(root) == []  # idempotent: nothing changes on a second write

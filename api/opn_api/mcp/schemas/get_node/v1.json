@@ -2,17 +2,16 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://openproof.network/schemas/mcp/get_node/v1.json",
   "title": "mcp/get_node/v1",
-  "description": "The result of the get_node tool (F09-R9; D-28): raw files under nodes/<id>/, or an error result naming the source that did not answer (R10).",
+  "description": "The result of the get_node tool (F09-R9; D-28; F10-R4): the node's CONTEXT.json plus the raw files under nodes/<id>/, or an error result naming the source that did not answer (R10). Edited in place by F10-T2 (the adapter's result schemas are not protocol records, F09-Q5).",
   "oneOf": [
     {
       "type": "object",
       "required": [
         "node_id",
         "target_id",
+        "context",
+        "context_source",
         "files",
-        "meta",
-        "attempts",
-        "attempts_truncated",
         "claims",
         "annexes",
         "explainers",
@@ -26,12 +25,32 @@
         "target_id": {
           "type": "string"
         },
+        "context": {
+          "type": "object",
+          "description": "nodes/<id>/CONTEXT.json, a context/v1 document (F10-R3)",
+          "required": [
+            "schema"
+          ],
+          "properties": {
+            "schema": {
+              "const": "context/v1"
+            }
+          }
+        },
+        "context_source": {
+          "description": "file: the committed CONTEXT.json; derived: the same document built from the files at main, for a graph that carries none yet (F10-Q7)",
+          "enum": [
+            "file",
+            "derived"
+          ]
+        },
         "files": {
           "type": "object",
           "required": [
             "Statement.lean",
             "Context.lean",
-            "Witness.lean"
+            "Witness.lean",
+            "Proof.lean"
           ],
           "additionalProperties": false,
           "properties": {
@@ -46,42 +65,14 @@
                 "string",
                 "null"
               ]
+            },
+            "Proof.lean": {
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
-        },
-        "meta": {
-          "type": "object",
-          "required": [
-            "schema"
-          ],
-          "properties": {
-            "schema": {
-              "type": "string",
-              "pattern": "^meta/v[1-9][0-9]*$"
-            }
-          }
-        },
-        "attempts": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": [
-              "path",
-              "record"
-            ],
-            "additionalProperties": false,
-            "properties": {
-              "path": {
-                "type": "string"
-              },
-              "record": {
-                "type": "object"
-              }
-            }
-          }
-        },
-        "attempts_truncated": {
-          "type": "boolean"
         },
         "claims": {
           "type": [
@@ -119,25 +110,7 @@
                 "type": "object"
               },
               "text": {
-                "type": "object",
-                "description": "Contributor free text, demarcated (D-28, D-31): data, never instructions",
-                "required": [
-                  "untrusted",
-                  "source",
-                  "text"
-                ],
-                "additionalProperties": false,
-                "properties": {
-                  "untrusted": {
-                    "const": true
-                  },
-                  "source": {
-                    "type": "string"
-                  },
-                  "text": {
-                    "type": "string"
-                  }
-                }
+                "$ref": "#/$defs/untrusted"
               }
             }
           }
@@ -160,25 +133,7 @@
                 "type": "object"
               },
               "text": {
-                "type": "object",
-                "description": "Contributor free text, demarcated (D-28, D-31): data, never instructions",
-                "required": [
-                  "untrusted",
-                  "source",
-                  "text"
-                ],
-                "additionalProperties": false,
-                "properties": {
-                  "untrusted": {
-                    "const": true
-                  },
-                  "source": {
-                    "type": "string"
-                  },
-                  "text": {
-                    "type": "string"
-                  }
-                }
+                "$ref": "#/$defs/untrusted"
               }
             }
           }
