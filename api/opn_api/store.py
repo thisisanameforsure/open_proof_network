@@ -320,15 +320,18 @@ class DynamoStore:
         self._tokens.put_item(Item={"key": key, "data": data, "expires_at": _epoch(expires)})
 
     def take_ephemeral(self, key: str, now: datetime) -> dict[str, Any] | None:
-        try:
-            deleted = self._tokens.delete_item(Key={"key": key}, ReturnValues="ALL_OLD")
-        except Exception:
-            return None
+        # No guard: an unconditional DeleteItem reports an absent item as a response with no
+        # ``Attributes``, never as an error, so there is no client error that means "no such
+        # nonce". Anything DynamoDB raises here — throttling, a missing table, a permission —
+        # is an outage and reaches the app's boundary as one (C7; F05-Q7), rather than reading
+        # as an expired nonce and a 400.
+        deleted = self._tokens.delete_item(Key={"key": key}, ReturnValues="ALL_OLD")
         item = deleted.get("Attributes")
         if not item or int(item.get("expires_at", 0)) <= _epoch(now):
             return None
         data = item.get("data")
-        return dict(data) if isinstance(data, dict) else None
+        # `plain`, as in get_job: what went in comes back out, ints not Decimals.
+        return plain(dict(data)) if isinstance(data, dict) else None
 
     def bump_counter(self, key: str, expires: datetime) -> int:
         updated = self._tokens.update_item(

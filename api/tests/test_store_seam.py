@@ -570,15 +570,9 @@ def test_take_ephemeral_returns_plain_ints_like_memory(both: Store) -> None:
     assert isinstance(taken["attempt"], int | Decimal)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="store.py:322-331 take_ephemeral returns the raw DynamoDB attributes: a Decimal "
-    "reaches the caller where MemoryStore hands back the int that went in. Harmless today: "
-    "the one numeric field, the proof record's github_id (identity.py:218), is never read "
-    "(github_reference uses login only) and undo re-stores it, which boto3 accepts. But the "
-    "seam's contract is 'what goes in comes out' and get_job already converts (seam parity).",
-)
 def test_take_ephemeral_returns_exact_ints_on_dynamodb() -> None:
+    """Seam parity (F05-T6): what went in comes back out, an ``int`` and not a ``Decimal``,
+    as ``get_job`` already guaranteed."""
     store = dynamo()
     store.put_ephemeral("proof#n1", {"attempt": 2}, LATER)
     taken = store.take_ephemeral("proof#n1", NOW)
@@ -615,22 +609,19 @@ def test_ephemeral_row_without_a_ttl_reads_as_expired() -> None:
     assert dynamo(resource).take_ephemeral("state#n1", NOW) is None
 
 
-def test_take_ephemeral_swallows_a_store_outage_into_none() -> None:
-    """Documented behaviour: a throttled or unreachable table reads as 'no such state', so the
-    caller answers 400 state-invalid rather than 503. The first is what the code does."""
+def test_take_ephemeral_propagates_a_store_outage() -> None:
+    """A throttled or unreachable table is an outage, not an expired nonce (C7; F05-T6): the
+    error propagates so the app's boundary answers as it does for every other store failure,
+    rather than the caller answering 400 state-invalid. An absent item is never an error on an
+    unconditional DeleteItem — it is a response with no Attributes — so nothing is caught."""
     resource = fake_resource()
     resource.client.tables[TABLES["tokens"]].failure = client_error(
         "ProvisionedThroughputExceededException", "DeleteItem"
     )
-    assert dynamo(resource).take_ephemeral("state#n1", NOW) is None
+    with pytest.raises(ClientError, match="ProvisionedThroughputExceededException"):
+        dynamo(resource).take_ephemeral("state#n1", NOW)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="store.py:323-326 take_ephemeral catches bare Exception, so a programming error "
-    "(here a TypeError from the client) is swallowed into None and reported to the caller as an "
-    "expired nonce instead of failing loudly (C7: no silent swallowing)",
-)
 def test_take_ephemeral_does_not_swallow_a_programming_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

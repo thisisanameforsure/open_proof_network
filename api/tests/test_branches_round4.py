@@ -2,10 +2,11 @@
 each, named by what it proves (session note 2026-09-10-test-coverage-review.md for rounds one to
 three).
 
-One line is left alone on purpose: ``submissions.py:217`` (``precheck-node-differs``) is
-unreachable, because a job's bundle digest is over the bundle's paths and every path in a bundle
-must lie under its claim's node (``opn_gate.paths._offence``) — a job for another node cannot
-have the same digest as a bundle validated for this one. Noted rather than forced.
+One line was left alone on purpose and has since been deleted (F05-T6): ``submissions.py``'s
+``precheck-node-differs`` branch was unreachable, because a job's bundle digest is over the
+bundle's paths and every path in a bundle must lie under its claim's node
+(``opn_gate.paths._offence``) — a job for another node cannot have the same digest as a bundle
+validated for this one, so a foreign job always fails ``path-forbidden`` first (F05-Q7).
 """
 
 from __future__ import annotations

@@ -212,11 +212,10 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
         assert rejection is not None
         raise ApiError(400, rejection.code, rejection.message)
 
+    # A job for another node cannot reach here: the bundle was just path-checked against this
+    # node, and a job's digest is over its bundle's paths, so a foreign job's bundle fails
+    # `path-forbidden` above before its digest could match (F05-Q7).
     job = bound_job(ctx, identity, fields, bundle.digest)
-    if job.node_id != node_id:
-        raise ApiError(
-            400, "precheck-node-differs", f"precheck {job.id} is for {job.node_id}, not {node_id}"
-        )
 
     now = ctx.clock.now()
     submission_id = identitymod.new_ulid(now)
