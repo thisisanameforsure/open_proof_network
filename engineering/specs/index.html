@@ -38,8 +38,7 @@ schema bumps rather than two &mdash; <code>targets-index/v2</code> was already s
 so the rename is <code>targets-index/v3</code> (F11-Q9), and R4's dormancy fact needed
 <code>frontier/v2</code>, which reached every consumer of the frontier in the api, the site, the
 smoke tools and the deploy check. <code>PROTOCOL_VERSION</code> is now <code>3.12</code>, so the
-code and the decisions document agree again. T3 (the Mathlib-pinned image) waits on F10; T4, T5
-and T6 need the graph repository, a Formal&nbsp;Conjectures pin and the live service.</p>
+code and the decisions document agree again. T5's tooling half followed: <code>intake import-fc</code> with R9's licence allowlist, its repository denylist, the upstream copyright header kept verbatim, the attribution written into the graph's third-party notice file, and the Stage 0 count as config (<code>OPN_LISTED_TARGETS_MAX</code>, default 5). T5 is code complete rather than done: the fact pass over Formal&nbsp;Conjectures, Mike's approval of the five, R13's hand-run QA record and the merged import pull request all remain (F11-Q12). T3 waits on F10 and on a docker host; T4 and T6 need the graph repository and the live service, neither reachable from an unattended session.</p>
 <p class="status-note"><strong>Two features are built but not tagged.</strong> F03 and F05 each
 have one acceptance criterion that needs a graph with an unproved node — a real merge (F03-AC13)
 and a claim round trip against the deployed service (F05-AC19). The live graph holds one node and

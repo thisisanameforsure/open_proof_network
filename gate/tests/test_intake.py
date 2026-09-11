@@ -297,3 +297,139 @@ def test_a_pre_f11_target_keeps_f03s_rule(tmp_path: Path) -> None:
     row = index_row(root, TARGET)
     assert row["claimable"] is True and row["not_claimable"] == []
     assert row["track"] is None and row["subjects"] == []
+
+
+# --- T5: importing a registry statement (R9; AC7, AC12; D-10) ----------------------------------
+
+UPSTREAM = Path(__file__).resolve().parent / "fixtures" / "upstream"
+FC_REPO = "google-deepmind/formal-conjectures"
+FC_URL = "https://github.com/google-deepmind/formal-conjectures/blob/abc/ErdosProblem42.lean"
+FC_COMMIT = "b" * 40
+ATTRIBUTION = "The Formal Conjectures Authors"
+WITNESS = "-- witness\nexample : Nat := 0\n"
+
+
+def import_fc(root: Path, **kw: Any) -> Any:
+    """R9's command, with the curator's half of the record and the upstream half as flags."""
+    args: dict[str, Any] = {
+        "source": UPSTREAM / "ErdosProblem42.lean",
+        "rel_path": "FormalConjectures/ErdosProblems/42.lean",
+        "commit": FC_COMMIT,
+        "base": samples.target_record(
+            id="fc-42",
+            title="A bounded-sum question",
+            informal=None,
+            paraphrase="Whether a certain sum over a set of integers stays bounded.",
+            sources=[],
+        ),
+        "witness": WITNESS,
+        "repo": FC_REPO,
+        "url": FC_URL,
+        "licence": "Apache-2.0",
+        "attribution": ATTRIBUTION,
+        "upstream_author": "the Formal Conjectures authors",
+        "spec_template": schemas.load_json(
+            root / "targets" / TARGET / "gate-spec.json", "gate-spec/v1"
+        ),
+        "checker": lambda path, subject: intake.SubjectCheck(subject, True, "faked"),
+        "author": "curator",
+        "date": "2026-09-11T00:00:00Z",
+        "listed_max": 5,
+    }
+    target_id = kw.pop("target_id", "fc-42")
+    args.update(kw)
+    return intake.import_fc(root, target_id, **args)
+
+
+def test_import_fc_provenance(tmp_path: Path) -> None:
+    """AC7: the target's provenance names the path, the commit and the author, and the root is
+    admitted — as an open-track target that is listed and not claimable (R9)."""
+    root = copy_graph(tmp_path)
+    result = import_fc(root)
+    assert result.commit == FC_COMMIT
+    assert all(check.ok for check in result.intake.checks)
+
+    doc = intake.load_doc(root / "targets" / "fc-42")
+    assert doc is not None
+    provenance = doc["provenance"]
+    assert provenance["statement_source"] == "formal-conjectures"
+    assert provenance["upstream_path"] == "FormalConjectures/ErdosProblems/42.lean"
+    assert provenance["upstream_commit"] == FC_COMMIT
+    assert provenance["author"] == "the Formal Conjectures authors"
+    assert provenance["adversarially_reviewed"] is False
+    assert doc["track"] == "open" and doc["posting"] is None
+
+    row = index_row(root, "fc-42")
+    assert row["status"] == "listed" and row["claimable"] is False
+    assert row["fidelity"] == "mechanical-only" and row["track"] == "open"
+
+
+def test_import_licence_gate(tmp_path: Path) -> None:
+    """AC12: a licence outside the allowlist and a denylisted repository are both refused naming
+    the licence; an allowed import keeps the upstream copyright header byte for byte and writes
+    the attribution into the graph's third-party notice file."""
+    root = copy_graph(tmp_path)
+    for licence in ("none-stated", "GPL-3.0-only", "CC-BY-NC-4.0"):
+        with pytest.raises(IntakeError) as refusal:
+            import_fc(root, licence=licence)
+        assert licence in str(refusal.value) and "Apache-2.0" in str(refusal.value)
+    with pytest.raises(IntakeError, match="denylist"):
+        import_fc(root, repo="someone/lean-genius")
+    assert not (root / "targets" / "fc-42").exists()
+    assert not (root / intake.NOTICES_FILE).exists(), "a refusal wrote a notice"
+
+    import_fc(root)
+    upstream = (UPSTREAM / "ErdosProblem42.lean").read_text(encoding="utf-8")
+    copied = (root / "targets" / "fc-42" / "nodes" / "fc-42" / "Statement.lean").read_text(
+        encoding="utf-8"
+    )
+    header = intake.copyright_header(upstream)
+    assert header is not None and "Copyright 2026" in header
+    assert header in copied, "the upstream copyright header did not survive the import"
+
+    notices = (root / intake.NOTICES_FILE).read_text(encoding="utf-8")
+    assert ATTRIBUTION in notices and "Apache-2.0" in notices and FC_REPO in notices
+
+
+def test_an_adapted_statement_must_keep_the_header(tmp_path: Path) -> None:
+    """R9: a statement may be reshaped for D-3, but not stripped of the licence that let it in."""
+    root = copy_graph(tmp_path)
+    with pytest.raises(IntakeError, match="verbatim"):
+        import_fc(root, statement="theorem erdos_42 : ∀ n : Nat, n ≤ n := sorry\n")
+    header = intake.copyright_header((UPSTREAM / "ErdosProblem42.lean").read_text(encoding="utf-8"))
+    assert header is not None
+    kept = header + "\n\ntheorem erdos_42 : ∀ n : Nat, n ≤ n := sorry\n"
+    result = import_fc(root, statement=kept)
+    assert result.target_id == "fc-42"
+
+
+def test_a_file_with_no_copyright_header_constrains_nothing(tmp_path: Path) -> None:
+    """Not every upstream file carries one; the rule is "keep it", not "invent it"."""
+    root = copy_graph(tmp_path)
+    assert intake.copyright_header((UPSTREAM / "NoHeader.lean").read_text(encoding="utf-8")) is None
+    result = import_fc(root, source=UPSTREAM / "NoHeader.lean", target_id="fc-43")
+    assert result.target_id == "fc-43"
+
+
+def test_the_stage_0_count_is_a_refusal_not_a_flag(tmp_path: Path) -> None:
+    """R9 §6: the count is config with a documented default (C6), and the sixth import is a
+    decision someone makes rather than something that happens."""
+    root = copy_graph(tmp_path)
+    import_fc(root, target_id="fc-42", listed_max=1)
+    with pytest.raises(IntakeError) as refusal:
+        import_fc(root, target_id="fc-43", listed_max=1)
+    assert "fc-42" in str(refusal.value) and "OPN_LISTED_TARGETS_MAX" in str(refusal.value)
+    assert not (root / "targets" / "fc-43").exists()
+    # A formalization-track target does not count against the open-problem budget.
+    take_in(root)
+    import_fc(root, target_id="fc-43", listed_max=2)
+
+
+def test_the_notice_file_is_appended_never_rewritten(tmp_path: Path) -> None:
+    """R9: a notice is a licence obligation, so it outlives the import that added it."""
+    root = copy_graph(tmp_path)
+    import_fc(root, target_id="fc-42")
+    import_fc(root, target_id="fc-43")
+    notices = (root / intake.NOTICES_FILE).read_text(encoding="utf-8")
+    assert notices.count("## fc-4") == 2
+    assert notices.startswith("# Third-party notices")

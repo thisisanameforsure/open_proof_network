@@ -26,6 +26,9 @@ Variables (prefix ``OPN_``):
     an environment variable rather than only a flag so the graph's workflow can set it before its
     pinned gate understands the flag (F08-Q8). Default ``None``: no author is known, and a
     curator-shaped pull request is refused.
+``OPN_LISTED_TARGETS_MAX``
+    How many open-track targets may be listed at once (F11-R9; Stages: Stage 0 lists a handful so
+    the mission is visible, and none of them is claimable). Default ``5``.
 ``OPN_GATE_SIGNING_KEY``
     **Secret.** The gate's ed25519 private key (C8 item 1), present only in the post-merge job's
     environment. Default ``None`` — meaning "no key: emit an unsigned attestation".
@@ -47,6 +50,7 @@ DEFAULT_RUNNER: Runner = "local"
 DEFAULT_LOG_LEVEL = "INFO"
 DEFAULT_ELAN_HOME = Path.home() / ".elan"
 DEFAULT_DIAGNOSTIC_MAX_BYTES = 8192
+DEFAULT_LISTED_TARGETS_MAX = 5  # F11-R9 §6: the Stage 0 count, config rather than a constant
 DEFAULT_LEAN_PKG_BIN = Path(__file__).resolve().parents[1] / "lean" / ".lake" / "build" / "bin"
 
 SECRET_NAMES: tuple[str, ...] = ("gate_signing_key", "precheck_signing_key")
@@ -65,6 +69,7 @@ class Settings:
     elan_home: Path = DEFAULT_ELAN_HOME
     diagnostic_max_bytes: int = DEFAULT_DIAGNOSTIC_MAX_BYTES
     lean_pkg_bin: Path = DEFAULT_LEAN_PKG_BIN
+    listed_targets_max: int = DEFAULT_LISTED_TARGETS_MAX
     pr_author: str | None = None
     gate_signing_key: str | None = field(default=None, repr=False)
     precheck_signing_key: str | None = field(default=None, repr=False)
@@ -74,6 +79,7 @@ class Settings:
             f"Settings(runner={self.runner!r}, log_level={self.log_level!r}, "
             f"elan_home={str(self.elan_home)!r}, "
             f"diagnostic_max_bytes={self.diagnostic_max_bytes}, "
+            f"listed_targets_max={self.listed_targets_max}, "
             f"lean_pkg_bin={str(self.lean_pkg_bin)!r}, pr_author={self.pr_author!r}, "
             f"gate_signing_key={'<set>' if self.gate_signing_key else None}, "
             f"precheck_signing_key={'<set>' if self.precheck_signing_key else None})"
@@ -108,6 +114,16 @@ def load(environ: dict[str, str] | None = None) -> Settings:
         msg = f"OPN_DIAGNOSTIC_MAX_BYTES must be positive, got {diagnostic_max_bytes}"
         raise ConfigError(msg)
 
+    raw_listed = env.get("OPN_LISTED_TARGETS_MAX", str(DEFAULT_LISTED_TARGETS_MAX))
+    try:
+        listed_targets_max = int(raw_listed)
+    except ValueError as exc:
+        msg = f"OPN_LISTED_TARGETS_MAX must be an integer, got {raw_listed!r}"
+        raise ConfigError(msg) from exc
+    if listed_targets_max < 0:
+        msg = f"OPN_LISTED_TARGETS_MAX must not be negative, got {listed_targets_max}"
+        raise ConfigError(msg)
+
     raw_level = env.get("OPN_LOG_LEVEL", DEFAULT_LOG_LEVEL)
     log_level = raw_level.upper()
     if log_level not in logging.getLevelNamesMapping():
@@ -120,6 +136,7 @@ def load(environ: dict[str, str] | None = None) -> Settings:
         log_level=log_level,
         elan_home=Path(env.get("OPN_ELAN_HOME", str(DEFAULT_ELAN_HOME))).expanduser(),
         diagnostic_max_bytes=diagnostic_max_bytes,
+        listed_targets_max=listed_targets_max,
         lean_pkg_bin=Path(env.get("OPN_LEAN_PKG_BIN", str(DEFAULT_LEAN_PKG_BIN))).expanduser(),
         pr_author=env.get("OPN_PR_AUTHOR") or None,
         gate_signing_key=env.get("OPN_GATE_SIGNING_KEY") or None,

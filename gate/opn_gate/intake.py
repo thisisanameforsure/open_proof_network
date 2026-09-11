@@ -450,3 +450,258 @@ def activate(
         date=date,
     )
     return (path.resolve().relative_to(graph_root.resolve()).as_posix(),)
+
+
+# --- intake import-fc (R9; D-10) ---------------------------------------------------------------
+
+#: R9's allowlist. A statement is copied into a published repository, so the licence has to permit
+#: that. `none-stated` is not on it and never will be: silence is not permission.
+LICENCE_ALLOWLIST: frozenset[str] = frozenset({"Apache-2.0", "MIT", "CC-BY-4.0", "BSD-3-Clause"})
+#: R9's denylist: unlicensed auto-merged AI corpora. Named rather than described, because the
+#: hazard is specific — a statement whose provenance is an unreviewed machine translation
+#: contaminates the prior-art pass, which is the one artifact D-6 cannot reconstruct later.
+REPO_DENYLIST: frozenset[str] = frozenset({"lean-genius"})
+FC_SOURCE_KIND = "formal-conjectures"
+OPEN_TRACK = "open"
+NOTICES_FILE = "THIRD_PARTY_NOTICES.md"
+#: The leading comment of an upstream file, up to and including its copyright line.
+_HEADER_BLOCK = "-/"
+
+
+def copyright_header(text: str) -> str | None:
+    """The upstream file's leading block comment when it carries a copyright line.
+
+    Returned as the exact substring so R9's "verbatim" is a comparison rather than a promise: a
+    statement adapted to D-3's shape must still contain this, character for character.
+    """
+    if not text.startswith("/-"):
+        return None
+    end = text.find(_HEADER_BLOCK)
+    if end == -1:
+        return None
+    header = text[: end + len(_HEADER_BLOCK)]
+    return header if "copyright" in header.casefold() else None
+
+
+def check_licence(licence: str, repo: str) -> None:
+    """R9: the two gates on where a statement may be copied from."""
+    name = repo.rsplit("/", 1)[-1]
+    if name in REPO_DENYLIST or repo in REPO_DENYLIST:
+        msg = (
+            f"{repo} is on the import denylist: unlicensed auto-merged AI corpora are a "
+            "contamination hazard for the prior-art pass (R9)"
+        )
+        raise IntakeError(msg)
+    if licence not in LICENCE_ALLOWLIST:
+        msg = (
+            f"{repo} is under {licence!r}, which is not one of "
+            f"{', '.join(sorted(LICENCE_ALLOWLIST))}; a statement is copied into a published "
+            "repository, and silence is not permission (R9)"
+        )
+        raise IntakeError(msg)
+
+
+def listed_open_targets(graph_root: Path) -> list[str]:
+    """Every open-track target already in the graph (R9 §6: Stage 0 lists a handful)."""
+    targets = graph_root / "targets"
+    if not targets.is_dir():
+        return []
+    out: list[str] = []
+    for directory in sorted(p for p in targets.iterdir() if p.is_dir()):
+        doc = load_doc(directory)
+        if doc is not None and str(doc["track"]) == OPEN_TRACK:
+            out.append(directory.name)
+    return out
+
+
+def notices_entry(*, target_id: str, repo: str, url: str, licence: str, attribution: str) -> str:
+    return (
+        f"## {target_id}\n\n"
+        f"- upstream: {repo} ({url})\n"
+        f"- licence: {licence}\n"
+        f"- attribution: {attribution}\n"
+    )
+
+
+def write_notice(graph_root: Path, entry: str) -> str:
+    """R9: the attribution goes in the graph's third-party notice file, appended never rewritten.
+
+    A notice is a licence obligation, so it outlives the target it was added for: nothing here
+    removes an entry, and a re-import of the same target is a refusal upstream of this.
+    """
+    path = graph_root / NOTICES_FILE
+    head = (
+        "# Third-party notices\n\n"
+        "Statements copied into this graph from elsewhere, with the licence that permitted it "
+        "and the attribution it requires (D-10, F11-R9). Append-only.\n"
+    )
+    existing = path.read_text(encoding="utf-8") if path.is_file() else head
+    path.write_text(existing.rstrip("\n") + "\n\n" + entry, encoding="utf-8")
+    return NOTICES_FILE
+
+
+@dataclass(frozen=True)
+class Import:
+    target_id: str
+    source_path: str
+    commit: str
+    intake: Intake
+    notice: str
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            **self.intake.as_dict(),
+            "imported": {"path": self.source_path, "commit": self.commit},
+            "notice": self.notice,
+        }
+
+
+def fc_record(  # noqa: PLR0913 — one argument per fact the import records
+    base: dict[str, Any],
+    *,
+    target_id: str,
+    path: str,
+    commit: str,
+    author: str,
+    url: str,
+    licence: str,
+    attribution: str,
+    accessed: str,
+) -> dict[str, Any]:
+    """R9: the curator's record with the upstream half filled in from the import.
+
+    The curator writes what only a person can (prior art, domains, the paraphrase); provenance,
+    sources and the track are derived here, so an imported target cannot claim to be anything
+    other than what it is.
+    """
+    doc = dict(base)
+    doc["id"] = target_id
+    doc["track"] = OPEN_TRACK
+    doc["source"] = {"kind": FC_SOURCE_KIND, "ref": path, "url": url}
+    doc["provenance"] = {
+        "statement_source": FC_SOURCE_KIND,
+        "author": author,
+        "adversarially_reviewed": False,
+        "upstream_commit": commit,
+        "upstream_path": path,
+    }
+    doc["sources"] = [
+        {
+            "kind": FC_SOURCE_KIND,
+            "url": url,
+            "accessed": accessed,
+            "licence": licence,
+            "attribution": attribution,
+            "quote_policy": "cite",
+        },
+        *(s for s in base.get("sources") or []),
+    ]
+    doc["posting"] = None
+    return schemas.validate(doc, SCHEMA)
+
+
+def import_fc(  # noqa: PLR0913 — one argument per fact the import records
+    graph_root: Path,
+    target_id: str,
+    *,
+    source: Path,
+    rel_path: str | None = None,
+    commit: str,
+    base: dict[str, Any],
+    witness: str,
+    statement: str | None = None,
+    repo: str,
+    url: str,
+    licence: str,
+    attribution: str,
+    upstream_author: str,
+    spec_template: dict[str, Any],
+    checker: Checker,
+    author: str,
+    date: str,
+    listed_max: int,
+) -> Import:
+    """R9: copy one Formal Conjectures statement in as a listed open target.
+
+    ``source`` is the file in a local checkout; ``rel_path`` is where it lives in the upstream
+    repository, which is what the provenance records and what a reader needs to find it again.
+
+    Every refusal comes before the tree is touched, and the last of them is the count: Stage 0
+    lists a handful of open problems so the mission is visible, and a sixth one is a decision
+    somebody has to make rather than a flag somebody passes.
+    """
+    check_licence(licence, repo)
+    if not source.is_file():
+        msg = f"the upstream statement file {source} does not exist"
+        raise IntakeError(msg)
+    upstream = source.read_text(encoding="utf-8")
+    header = copyright_header(upstream)
+    text = upstream if statement is None else statement
+    if header is not None and header not in text:
+        msg = (
+            f"{source.name} carries a copyright header that the statement does not: an import "
+            "keeps it verbatim (R9)"
+        )
+        raise IntakeError(msg)
+    already = listed_open_targets(graph_root)
+    if len(already) >= listed_max:
+        msg = (
+            f"{len(already)} open targets are already listed and the Stage 0 count is "
+            f"{listed_max} ({', '.join(already)}); raise OPN_LISTED_TARGETS_MAX deliberately "
+            "or retire one (R9 §6)"
+        )
+        raise IntakeError(msg)
+
+    doc = fc_record(
+        base,
+        target_id=target_id,
+        path=rel_path or source.name,
+        commit=commit,
+        author=upstream_author,
+        url=url,
+        licence=licence,
+        attribution=attribution,
+        accessed=date[:10],
+    )
+    staged = _stage_root(graph_root, target_id, statement=text, witness=witness)
+    result = new(
+        graph_root,
+        target_id,
+        doc=doc,
+        root_dir=staged,
+        spec_template=spec_template,
+        checker=checker,
+        author=author,
+        date=date,
+    )
+    notice = write_notice(
+        graph_root,
+        notices_entry(
+            target_id=target_id,
+            repo=repo,
+            url=url,
+            licence=licence,
+            attribution=attribution,
+        ),
+    )
+    return Import(target_id, str(doc["provenance"]["upstream_path"]), commit, result, notice)
+
+
+def _stage_root(graph_root: Path, target_id: str, *, statement: str, witness: str) -> Path:
+    """The root node directory an import scaffolds, built outside the graph so a refusal in
+    ``new`` leaves nothing behind (C7). Its id is the target's, which is what a single-node
+    imported target wants: there is one statement and it is the target."""
+    from opn_gate import scaffold  # noqa: PLC0415 — only the import path builds a node
+
+    staging = graph_root.parent / f".opn-import-{target_id}"
+    if staging.exists():
+        shutil.rmtree(staging)
+    proposal = scaffold.Proposal(
+        node_id=target_id,
+        target_id=target_id,
+        statement=statement,
+        witness=witness,
+        author="upstream",
+    )
+    scaffold.write(staging, proposal)
+    return staging / target_id

@@ -274,6 +274,34 @@ def _add_curator_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser
     led.add_argument("--commit", required=True, help="the merge commit")
 
 
+def _add_import_parser(acts: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    """``intake import-fc`` (F11-R9; D-10): one registry statement, under its own licence."""
+    imp = acts.add_parser("import-fc", help="import a Formal Conjectures statement (F11-R9)")
+    imp.add_argument("source", type=Path, help="the statement file in a checkout of the registry")
+    imp.add_argument("--at", dest="commit", required=True, help="the upstream commit, pinned")
+    imp.add_argument("--graph", required=True, type=Path)
+    imp.add_argument("--target", dest="target_id", required=True, help="the new target's id")
+    imp.add_argument("--from", dest="record", required=True, type=Path, help="the curator's half")
+    imp.add_argument("--witness", required=True, type=Path, help="the root's Witness.lean")
+    imp.add_argument("--statement", type=Path, help="the statement adapted to D-3's shape")
+    imp.add_argument("--path", dest="rel_path", help="the file's path in the upstream repository")
+    imp.add_argument("--repo", required=True, help="the upstream repository, e.g. owner/name")
+    imp.add_argument("--url", required=True, help="where the file can be read upstream")
+    imp.add_argument("--licence", required=True, help="the upstream SPDX identifier")
+    imp.add_argument("--attribution", required=True, help="the attribution the licence requires")
+    imp.add_argument("--upstream-author", required=True, help="who wrote the statement (D-10)")
+    imp.add_argument("--spec", type=Path, help="gate-spec.json to inherit the gate's settings from")
+    imp.add_argument("--author", required=True, help="the curator, on every record")
+    imp.add_argument("--date", help="UTC timestamp of the act (default: now)")
+    imp.add_argument("--branch", help="also commit what was written on this branch")
+    imp.add_argument("--no-toolchain", action="store_true", help="skip admission (R2); testing")
+    imp.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
+    imp.add_argument("--install", action="store_true", help="let elan install the pin")
+    imp.add_argument("--sandbox", action="store_true", help="admit inside the step-3 image")
+    imp.add_argument("--image", help="sandbox image tag (default: built from gate/Dockerfile)")
+    imp.add_argument("--no-build", action="store_true", help="fail if the image is not present")
+
+
 def _add_intake_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     """Curated intake and the fidelity ladder (F11-R2, R3, R5; D-6, D-9, D-10)."""
     intk = sub.add_parser("intake", help="curated target intake (F11-R2, R5; D-6)")
@@ -308,6 +336,8 @@ def _add_intake_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]
     post.add_argument("--url", required=True, help="the posting's url")
     post.add_argument("--date", help="UTC timestamp of the posting (default: now)")
     post.add_argument("--branch", help="also commit what was written on this branch")
+
+    _add_import_parser(acts)
 
     act = acts.add_parser("activate", help="flip the target to active, or say what is missing")
     act.add_argument("target_id")
@@ -1120,9 +1150,11 @@ def run_intake(args: argparse.Namespace, settings: config.Settings) -> int:
         )
         doc = {"ok": True, "target": args.target_id, "written": list(written)}
         return _emit_curator(doc, graph, args.branch, f"intake: {args.target_id} active")
+    if args.action == "import-fc":
+        return run_import_fc(args, settings, graph)
     record = schemas.load_yaml(args.record.resolve(), intake.SCHEMA)
     checker: intake.Checker = (
-        (lambda path, subject: intake.SubjectCheck(subject, True, "admission skipped"))
+        _fake_checker
         if args.no_toolchain
         else intake_checker(graph, args.target_id, args, settings)
     )
@@ -1140,6 +1172,49 @@ def run_intake(args: argparse.Namespace, settings: config.Settings) -> int:
     return _emit_curator(
         {"ok": True, **result.as_dict()}, graph, args.branch, f"intake: list {args.target_id}"
     )
+
+
+def _fake_checker(path: Path, subject: str) -> intake.SubjectCheck:
+    return intake.SubjectCheck(subject, True, "admission skipped (--no-toolchain)")
+
+
+def run_import_fc(args: argparse.Namespace, settings: config.Settings, graph: Path) -> int:
+    """R9: one Formal Conjectures statement, copied in under its own licence.
+
+    The curator's half of the record comes in as a file (`--from`): prior art, domains, the title
+    and the paraphrase are what only a person can write. The upstream half — provenance, sources
+    and the track — is derived from the import, so a copied target cannot describe itself as
+    anything but a copy.
+    """
+    base = schemas.load_yaml(args.record.resolve(), intake.SCHEMA)
+    checker: intake.Checker = (
+        _fake_checker
+        if args.no_toolchain
+        else intake_checker(graph, args.target_id, args, settings)
+    )
+    result = intake.import_fc(
+        graph,
+        args.target_id,
+        source=args.source.resolve(),
+        rel_path=args.rel_path,
+        commit=args.commit,
+        base=base,
+        witness=_read_flag_file(args.witness, "--witness"),
+        statement=(_read_flag_file(args.statement, "--statement") if args.statement else None),
+        repo=args.repo,
+        url=args.url,
+        licence=args.licence,
+        attribution=args.attribution,
+        upstream_author=args.upstream_author,
+        spec_template=spec_template(graph, args.spec),
+        checker=checker,
+        author=args.author,
+        date=_intake_date(args),
+        listed_max=settings.listed_targets_max,
+    )
+    doc: dict[str, Any] = {"ok": True, **result.as_dict()}
+    doc["written"] = [*doc.get("written", []), result.notice]
+    return _emit_curator(doc, graph, args.branch, f"intake: import {args.target_id}")
 
 
 def run_fidelity(args: argparse.Namespace, settings: config.Settings) -> int:
