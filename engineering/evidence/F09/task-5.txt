@@ -146,3 +146,52 @@ transcript
   get_gate_spec({"target_id": "tutorial"}) -> ok {"accepted_precheck_signatures": ["service", "contributor", "none"], "axiom_allowlist": ["propext", "Classical.choice", "Quot.sound"], "devcontainer_ref": null,
   (no token) claim_node({"node_id": "tutorial-and-swap"}) -> error {"status": 401, "body": {"error": "invalid_token", "error_description": "Authentication required"}}
 smoke-mcp: ok
+
+RUN 6 — AC11 on the deployed function: smoke_mcp.py --token against https://api.openproofnetwork.org
+--------------------------------------------------------------------------------------------------
+2026-09-11, after F08-AC19 put variant-93e79cb5 on the frontier (F08-T6). The token was minted by
+the account-free loop against the deployed service (smoke_precheck.py, 142.5 s on a hosted
+runner, identity smoke-7c151ad8). Exit 0: the claim round trip — claim_node 201, the claim
+visible in list_frontier's overlay, release_claim 200.
+
+initialize -> open-proof-network 3.11
+tools/list -> 21 tools
+server_info -> protocol 3.11; GET /info.json 200
+list_frontier -> 1 entries; GET /frontier.json 200
+list_targets -> ['tutorial']
+get_node(tutorial-and-swap) -> 0 attempts, 0 annexes, 0 explainers, note present: True
+get_gate_spec(tutorial) -> network commit c6cebbcd2c7646f397e7f147ac94068096180f03
+claim_node (no token) -> 401, the SDK's unauthorized result
+claim_node(variant-93e79cb5) -> 201 claim 01M28DAN2RKVZ7FP79MQPQGGTJ as smoke-7c151ad8
+list_frontier(filters={node_id}) -> claim visible in the overlay
+release_claim -> 200 released at 2026-09-11T14:18:19Z
+
+transcript
+  server_info({}) -> ok {"protocol_version": "3.11", "rate_limit_policy": {"writes_per_hour": 120, "active_claims": 20, "tokens_per_github_login": 1, "token_starts_per_address_per_day"
+  list_frontier({}) -> ok {"entries": [{"annex_present": false, "attempts": 0, "bounty": false, "claimable": true, "claims": {"active": [], "history_count": 0}, "failure_class_histogram"
+  list_targets({}) -> ok {"rendered_from": "65313e200a79f7029bb395fd736480018cbf13f9", "schema": "targets-index/v2", "targets": [{"claimable": true, "fidelity": "mechanical-only", "math
+  get_target({"target_id": "tutorial"}) -> ok {"target_id": "tutorial", "graph": {"nodes": [{"cause": null, "deps": [], "node_id": "tutorial-and-swap", "origin": "authored", "proof_commit": "6452ef80d4f1f47
+  get_node({"node_id": "tutorial-and-swap"}) -> ok {"node_id": "tutorial-and-swap", "target_id": "tutorial", "files": {"Statement.lean": "/-! The tutorial node (D-27): permanently open, off-ledger. Lean core onl
+  get_gate_spec({"target_id": "tutorial"}) -> ok {"accepted_precheck_signatures": ["service", "contributor", "none"], "axiom_allowlist": ["propext", "Classical.choice", "Quot.sound"], "devcontainer_ref": null,
+  (no token) claim_node({"node_id": "tutorial-and-swap"}) -> error {"status": 401, "body": {"error": "invalid_token", "error_description": "Authentication required"}}
+  claim_node({"node_id": "variant-93e79cb5", "ttl": 1}) -> ok {"status": 201, "body": {"id": "01M28DAN2RKVZ7FP79MQPQGGTJ", "node_id": "variant-93e79cb5", "target_id": "tutorial", "pseudonym": "smoke-7c151ad8", "created": "
+  list_frontier({"filters": {"node_id": "variant-93e79cb5"}}) -> ok {"entries": [{"annex_present": false, "attempts": 0, "bounty": false, "claimable": true, "claims": {"active": [{"pseudonym": "smoke-7c151ad8", "expires": "2026-
+  release_claim({"claim_id": "01M28DAN2RKVZ7FP79MQPQGGTJ"}) -> ok {"status": 200, "body": {"id": "01M28DAN2RKVZ7FP79MQPQGGTJ", "node_id": "variant-93e79cb5", "target_id": "tutorial", "pseudonym": "smoke-7c151ad8", "created": "
+smoke-mcp: ok
+exit 0
+
+RUN 7 — Claude Code as the client against the deployed function
+----------------------------------------------------------------
+$ claude mcp add --transport http -s local opn https://api.openproofnetwork.org/mcp --header "Authorization: Bearer <token>"
+$ claude mcp list
+opn: https://api.openproofnetwork.org/mcp (HTTP) - ✔ Connected
+$ claude -p "… list_frontier; get_node on the first node; claim_node ttl 1; list_frontier filtered on it; release_claim …" --allowedTools "mcp__opn__list_frontier,mcp__opn__get_node,mcp__opn__claim_node,mcp__opn__release_claim" --output-format text
+All five calls made, in order, and all succeeded:
+
+1. **list_frontier (no filters)** — one node: `variant-93e79cb5` (target `tutorial`), claimable: true.
+2. **get_node variant-93e79cb5** — all three files present (Statement.lean, Context.lean, Witness.lean); origin from meta is `variant`; the result carries an `untrusted_note` (the D-28/D-31 verbatim-free-text warning).
+3. **claim_node (ttl 1)** — status 201; claim id `01M28DBP98VRNQNSWWPQ3KXVC9`, pseudonym `smoke-7c151ad8`.
+4. **list_frontier filtered on that node** — one active claim: pseudonym `smoke-7c151ad8`, expires 2026-09-11T15:18:49Z (history_count now 2).
+5. **release_claim** — status 200; released at `2026-09-11T14:18:55Z`.
+exit 0
+$ claude mcp remove -s local opn
