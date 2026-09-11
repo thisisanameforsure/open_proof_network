@@ -442,11 +442,22 @@ def git_env(tmp_path: Path) -> dict[str, str]:
     }
 
 
-def test_commands_write_and_branch(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_commands_write_and_branch(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
     """R9-R12 as commands: each prints what it wrote, `--branch` commits it on a branch for the
     curator's pull request, a refusal exits 1 with the reason and writes nothing."""
     root = copy_graph(tmp_path)
     env = git_env(tmp_path)
+    # `--branch` commits with the identity the environment carries, because the gate does not
+    # fabricate one (F08-Q17). A hosted runner has none in ~/.gitconfig, so put it here.
+    for name in (
+        "GIT_AUTHOR_NAME",
+        "GIT_AUTHOR_EMAIL",
+        "GIT_COMMITTER_NAME",
+        "GIT_COMMITTER_EMAIL",
+    ):
+        monkeypatch.setenv(name, env[name])
 
     def git(*args: str) -> str:
         proc = subprocess.run(

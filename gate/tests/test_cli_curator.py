@@ -87,6 +87,27 @@ def git_init(root: Path, home: Path) -> Any:
     return git
 
 
+#: The four variables git reads a commit's identity from. The gate deliberately does not
+#: fabricate one — a curator's branch commit is the curator's own git act, under their own
+#: credentials (F08-Q17) — so ``--branch`` commits with whatever identity the environment
+#: carries. A developer machine has one in ``~/.gitconfig`` and a hosted runner does not, which
+#: is why these three tests passed locally and failed in CI for a week: supply it here rather
+#: than borrowing the machine's.
+GIT_IDENTITY: dict[str, str] = {
+    "GIT_AUTHOR_NAME": "curator",
+    "GIT_AUTHOR_EMAIL": "c@x",
+    "GIT_COMMITTER_NAME": "curator",
+    "GIT_COMMITTER_EMAIL": "c@x",
+}
+
+
+@pytest.fixture
+def git_identity(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Put a commit identity in the environment the CLI's child ``git`` inherits."""
+    for name, value in GIT_IDENTITY.items():
+        monkeypatch.setenv(name, value)
+
+
 # --- happy paths through the entry point ---------------------------------------------------------
 
 
@@ -109,7 +130,7 @@ def test_status_command_writes_an_abandonment_record(
 
 
 def test_status_command_declares_a_target_active_and_branches_it(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], git_identity: None
 ) -> None:
     """R11, Q17: an ``active`` declaration needs no evidence; ``--branch`` commits the one record
     on a new branch and prints the push the curator runs next."""
@@ -435,7 +456,10 @@ def test_status_rejects_k_below_one(tmp_path: Path, capsys: pytest.CaptureFixtur
 
 
 def test_branch_acts_on_the_graph_even_under_a_git_hook(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    git_identity: None,
 ) -> None:
     """Q18's last find: git exports GIT_DIR, GIT_INDEX_FILE, GIT_WORK_TREE and GIT_PREFIX to a
     hook, so a pre-commit hook running the suite from a worktree handed them to every `git -C

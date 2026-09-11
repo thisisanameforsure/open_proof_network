@@ -324,3 +324,9 @@ The law of the project:
   nine failures across the gate and the api were one missing `ssh-keygen`: the signer shells out to
   it, and every test that signs or verifies died at `FileNotFoundError`. `apt-get update` then
   `apt-get install openssh-client` fixed all of them.
+- 2026-09-11 — A test that borrows the developer's machine is green locally forever and red in CI
+  forever. Three `--branch` tests had been failing on `main` for a week: `--branch` commits with
+  whatever identity the environment carries, because the gate deliberately fabricates none
+  (F08-Q17), and a hosted runner has no `~/.gitconfig`. Reproduce a CI-only failure by taking the
+  ambient thing away — `HOME=/tmp/empty uv run pytest` found it in one run — and have the test
+  supply what it needs instead of inheriting it.
