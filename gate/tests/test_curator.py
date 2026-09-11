@@ -591,14 +591,10 @@ def test_revise_refuses_a_statement_that_is_not_a_statement(tmp_path: Path) -> N
     assert not (nodes_dir(root) / f"{INTERIOR}-v2").exists()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="curator.revise scaffolds the new directory before writing the superseded record; "
-    "when that record's name is taken (same author and second), the CuratorError arrives with "
-    "<node>-v<n>/ already on disk, contradicting 'The command refuses; nothing has been "
-    "written' (C7)",
-)
 def test_revise_refused_at_the_status_record_leaves_no_directory(tmp_path: Path) -> None:
+    """C7, F08-Q18: every record's path is checked free before the directory is scaffolded, so
+    a superseded record whose name is taken (same author, same second) refuses with nothing on
+    disk — not with <node>-v<n>/ already written."""
     root = copy_graph(tmp_path)
     request = write_request(root, INTERIOR)
     curator.revise(root, TARGET, INTERIOR, NEW_STATEMENT, request, author=AUTHOR, date=DATE)

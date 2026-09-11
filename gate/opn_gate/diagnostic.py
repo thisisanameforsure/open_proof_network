@@ -29,8 +29,16 @@ class Diagnostic:
         return out
 
 
+#: The one field the budget never reaches: ``code`` is the identifier D-34 names and every
+#: consumer matches on, so it is exempt rather than the budget floored — a clipped code would
+#: fail the attestation schema after the verdict exists (F00-R18; F08-Q18). Codes are short by
+#: construction (``^[a-z][a-z0-9-]*$``), so the exemption costs the budget a few dozen bytes.
+_UNCLIPPED: frozenset[str] = frozenset({"code"})
+
+
 def truncate(doc: dict[str, Any], max_bytes: int) -> dict[str, Any]:
-    """Shrink string leaves until the JSON form fits ``max_bytes``; mark the result truncated."""
+    """Shrink string leaves until the JSON form fits ``max_bytes``; mark the result truncated.
+    ``code`` is never clipped, so the result can exceed a budget smaller than the code itself."""
 
     def size(d: dict[str, Any]) -> int:
         return len(json.dumps(d, ensure_ascii=False).encode("utf-8"))
@@ -41,7 +49,7 @@ def truncate(doc: dict[str, Any], max_bytes: int) -> dict[str, Any]:
     out["truncated"] = True
     budget = max(64, max_bytes // 4)
     while size(out) > max_bytes and budget >= 16:
-        out = _clip_strings(out, budget)
+        out = {k: v if k in _UNCLIPPED else _clip_strings(v, budget) for k, v in out.items()}
         budget //= 2
     return out
 

@@ -166,20 +166,16 @@ def test_copy_out_strips_setuid_and_world_writable_bits(tmp_path: Path) -> None:
     assert not mode & 0o4000 and not mode & 0o002
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=tarfile.ReadError,
-    reason="a `docker cp` stream that is empty or cut short is docker failing, but it surfaces "
-    "as tarfile.ReadError rather than SandboxError, so the step's diagnostic names a tar "
-    "parser instead of the sandbox (sandbox.SandboxError: 'docker itself failed'); arguable",
-)
 @pytest.mark.parametrize("cut", [0, 300, 700])
 def test_a_truncated_or_empty_copy_out_stream_is_a_sandbox_error(tmp_path: Path, cut: int) -> None:
+    """F08-Q18: a `docker cp` stream that is empty or cut short is docker failing, and it is
+    reported as a SandboxError naming the directory, not as a tar parser's ReadError."""
     work = tmp_path / "work"
     whole = stream(("work/out.txt", b"x" * 400, {"mode": 0o644}))
     tc = Recording("opn-gate:test", CAPS, read_write=[work], stream=whole[:cut])
-    with pytest.raises(sandbox.SandboxError):
+    with pytest.raises(sandbox.SandboxError, match=r"docker cp of .*work"):
         tc._copy_out("c1")
+    assert not (work / "out.txt").exists()
 
 
 # --- the host-side guard and the build --------------------------------------------------------

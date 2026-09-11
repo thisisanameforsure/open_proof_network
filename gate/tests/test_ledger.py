@@ -277,13 +277,8 @@ def test_entries_that_are_not_objects_are_not_entries() -> None:
     assert ledger.earns_attempts(doc, NODE, "induction")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="ledger.write does `path.parent.mkdir(...)` before `schemas.validate(doc)`, so a "
-    "refused write leaves an empty ledger/ directory behind (C7: a refusal writes nothing; "
-    "coverage review 2026-09-10, ledger nit)",
-)
 def test_a_refused_write_leaves_no_ledger_directory(tmp_path: Path) -> None:
+    """C7, F08-Q18: the ledger is validated before ledger/ is made, so a refusal writes nothing."""
     doc = {"schema": ledger.SCHEMA, "identity": "two words", "entries": []}
     with pytest.raises(schemas.SchemaError):
         ledger.write(tmp_path, doc)

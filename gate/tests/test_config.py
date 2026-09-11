@@ -65,15 +65,12 @@ def test_bad_values_fail_at_load(env: dict[str, str]) -> None:
     assert key in str(info.value)  # the diagnostic names the variable
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="OPN_LOG_LEVEL is not validated at load; an unknown level first fails inside "
-    "logging.basicConfig in cli.main, as a ValueError traceback (config docstring: raised at "
-    "load time, never later; C7)",
-)
 def test_bad_log_level_fails_at_load() -> None:
-    with pytest.raises(config.ConfigError):
+    """C7, F08-Q18: an unknown OPN_LOG_LEVEL is refused at load, naming the variable, and a
+    known one is accepted in any case and normalised to the name logging knows."""
+    with pytest.raises(config.ConfigError, match="OPN_LOG_LEVEL"):
         config.load({"OPN_LOG_LEVEL": "LOUD"})
+    assert config.load({"OPN_LOG_LEVEL": "debug"}).log_level == "DEBUG"
 
 
 def test_paths_expand_the_home_directory_and_pr_author_defaults() -> None:

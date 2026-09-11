@@ -1231,16 +1231,10 @@ def test_a_curator_record_with_an_append_or_explainer_is_mixed_before_the_author
     assert modes.classify([record], author=CURATOR, curators=curators(CURATOR)).mode == "curator"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="a listed curator's diff that adds a status record and *modifies an existing node's "
-    "Witness.lean* is classified `curator` with no problem: `witness` is in NODE_ROLES and "
-    "MODIFIABLE_ROLES, so _classify_curator admits it, and check() runs the witness-completion "
-    "precondition only in proposal mode. F08-R8 lists status records, a versioned node or a "
-    "consolidation record; D-3 makes a witness immutable once real. A curator can thus replace a "
-    "ready node's witness without admission",
-)
 def test_a_curator_may_not_replace_an_existing_witness(graph: Path) -> None:
+    """F08-R8, D-3, Q18: a listed curator's diff that adds a status record and modifies an
+    existing node's Witness.lean is refused for its shape — a curator adds records and at most
+    one versioned directory; an existing node's files are immutable, whoever the author is."""
     listed = curators(CURATOR)
     record = write(
         graph,
@@ -1261,17 +1255,37 @@ def test_a_curator_may_not_replace_an_existing_witness(graph: Path) -> None:
     )
     found = codes(replaced) or [d.code for d in modes.check(graph, replaced)]
     assert found, "a curator's revision replaced another node's witness on the side"
+    assert found == ["mode-mixed"] and f"{N}/Witness.lean" in replaced.problems[0].message
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="check_witness_completion reads `'sorry' not in before` as 'the slot was still "
-    "unfilled'. postmerge.WITNESS_SLOT's header comment says `Replace \\`sorry\\` with an "
-    "instance`, so a witness filled while keeping the header still reads as a slot at the next "
-    "diff and can be replaced a second time — the twin of graph.witness_is_stub's defect "
-    "(coverage review, defect 4). D-3: a witness is immutable once real; F08-AC7: once",
-)
+def test_a_curator_revision_may_not_carry_a_modified_proof_or_a_witness_for_a_hole(
+    graph: Path,
+) -> None:
+    """F08-R8, Q18: the same rule for the other two ways a curator's versioned-node diff could
+    reach into an existing node — a modified Proof.lean, and a Witness.lean added to a hole
+    (which is a proposal, F08-R5). Both are refused before the author is consulted."""
+    listed = curators(CURATOR)
+    versioned = place_proposal(graph, "good", "good-v2")
+    with_proof = modes.classify(
+        [*versioned, Change("M", f"{N}/Proof.lean")], author=CURATOR, curators=listed
+    )
+    assert with_proof.mode is None and codes(with_proof) == ["mode-mixed"]
+    hole = f"{T}/nodes/and-reassoc/Witness.lean"
+    with_witness = modes.classify([*versioned, Change("A", hole)], author=CURATOR, curators=listed)
+    assert with_witness.mode is None and codes(with_witness) == ["mode-mixed"]
+    assert with_witness.problems[0].details == {"paths": [hole]}
+    # The author is not what decides it: a stranger's copy is refused for the same shape.
+    assert codes(modes.classify([*versioned, Change("A", hole)], author="stranger")) == [
+        "mode-mixed"
+    ]
+    # And the versioned directory on its own is still the curator's act it was.
+    assert modes.classify(versioned, author=CURATOR, curators=listed).mode == "curator"
+
+
 def test_a_witness_filled_under_the_slot_header_is_not_filled_twice(tmp_path: Path) -> None:
+    """F08-R5, D-3, Q18: the slot's own header comment names `sorry`, so a witness filled while
+    keeping the header was read as still unfilled and could be replaced again; the check now
+    reads `sorry` as a token of the code, and the second fill is `witness-filled` (AC7: once)."""
     base = copy_graph(tmp_path / "base")
     child = make_hole(base)
     head = copy_graph(tmp_path / "head")

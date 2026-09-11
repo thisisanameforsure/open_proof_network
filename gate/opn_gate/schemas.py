@@ -110,7 +110,7 @@ def load_json(path: Path, schema_id: str | None = None) -> JsonDoc:
 def load_yaml(path: Path, schema_id: str | None = None) -> JsonDoc:
     try:
         doc: object = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError) as exc:
+    except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:  # not UTF-8 is not YAML
         msg = f"cannot read YAML {path}: {exc}"
         raise SchemaError(msg) from exc
     return validate(doc, schema_id)

@@ -1,0 +1,72 @@
+# F08-T7 — defects from the coverage sweep. Captured 2026-09-11.
+
+$ uv run --frozen pytest gate -m "not lean and not docker"
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-ad2ec2614e3bb27fe
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 807 items / 50 deselected / 757 selected
+
+gate/tests/test_admit.py .............................                   [  3%]
+gate/tests/test_artifacts.py ...................                         [  6%]
+gate/tests/test_attestation.py ................                          [  8%]
+gate/tests/test_bounce.py .........                                      [  9%]
+gate/tests/test_branches_round3.py ......................                [ 12%]
+gate/tests/test_branches_round4.py ..................                    [ 14%]
+gate/tests/test_cli_curator.py ..................                        [ 17%]
+gate/tests/test_cli_pregate.py ..................                        [ 19%]
+gate/tests/test_cli_sandboxed.py ............................            [ 23%]
+gate/tests/test_config.py ................                               [ 25%]
+gate/tests/test_curator.py .....................                         [ 28%]
+gate/tests/test_deps.py .............                                    [ 29%]
+gate/tests/test_diagnostic.py ..........                                 [ 31%]
+gate/tests/test_exhibits.py .........                                    [ 32%]
+gate/tests/test_hazards.py ..............                                [ 34%]
+gate/tests/test_layout.py ...............                                [ 36%]
+gate/tests/test_ledger.py .....................                          [ 39%]
+gate/tests/test_modes.py ............................................... [ 45%]
+................................................                         [ 51%]
+gate/tests/test_paths.py ..........................................      [ 57%]
+gate/tests/test_pipeline.py ..................................           [ 61%]
+gate/tests/test_postmerge.py ...............................             [ 65%]
+gate/tests/test_precheck_job_docker.py ...                               [ 66%]
+gate/tests/test_products.py ...................................          [ 70%]
+gate/tests/test_records.py ............                                  [ 72%]
+gate/tests/test_sandbox.py ......                                        [ 73%]
+gate/tests/test_sandbox_copyout.py ...........                           [ 74%]
+gate/tests/test_scaffold.py ........................                     [ 77%]
+gate/tests/test_schemas.py ............................................. [ 83%]
+......................................................                   [ 90%]
+gate/tests/test_signer.py .........                                      [ 92%]
+gate/tests/test_stage.py ....                                            [ 92%]
+gate/tests/test_toolchain.py ..................................          [ 97%]
+gate/tests/test_toolchain_install.py ............                        [ 98%]
+gate/tests/test_witness.py ..........                                    [100%]
+
+===================== 757 passed, 50 deselected in 39.69s ======================
+
+$ uv run --frozen pytest -m lean gate/tests/test_admit_lean.py -k redeclaring -rxX
+============================= test session starts ==============================
+collected 9 items / 8 deselected / 1 selected
+
+gate/tests/test_admit_lean.py x                                          [100%]
+
+=========================== short test summary info ============================
+XFAIL gate/tests/test_admit_lean.py::test_a_proposal_redeclaring_an_existing_nodes_theorem_is_refused - F08-Q18: admission elaborates a proposal's Statement.lean as its own module, so a statement that declares the same theorem name as an existing node (`OpnProp.and_swap`, the tutorial's) is admitted; the clash surfaces only later, in the Context.lean of the first node that depends on both (F01-R6), where the two signatures collide. No fake can see a name clash — held here against the real toolchain until admission refuses it by name
+================= 8 deselected, 1 xfailed in 222.93s (0:03:42) =================
+exit 0
+
+$ make verify (run directly, not under the pre-commit hook; summary lines)
+uv run --frozen ruff check .
+All checks passed!
+uv run --frozen ruff format --check .
+uv run --frozen mypy gate
+Success: no issues found in 90 source files
+uv run --frozen mypy api
+Success: no issues found in 56 source files
+uv run --frozen mypy site
+Success: no issues found in 18 source files
+XFAIL api/tests/test_githost_seam.py::test_exchange_non_json_body_is_a_githost_error - githost.py:179 calls exchange.json() before checking the status, unguarded: a non-JSON body (an edge proxy's HTML 502) escapes as JSONDecodeError, so the callback answers 500 instead of the mapped 502 github-exchange-failed (C7)
+========= 1266 passed, 50 deselected, 11 xfailed, 3 warnings in 53.84s =========

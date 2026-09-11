@@ -120,13 +120,9 @@ def test_attempts_that_are_not_mappings_are_invalid_not_dropped(tmp_path: Path) 
     assert summary.refuted_route_classes == ()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="records.load_attempts (via schemas.load_yaml) lets UnicodeDecodeError escape: an "
-    "attempt file that is not UTF-8 crashes product generation instead of counting as invalid "
-    "(F03-R7, C7)",
-)
 def test_an_attempt_that_is_not_utf8_is_invalid_not_a_crash(tmp_path: Path) -> None:
+    """F03-R7, C7, F08-Q18: an attempt file that is not UTF-8 is not YAML, so schemas.load_yaml
+    refuses it as a SchemaError and the products count it as invalid rather than crashing."""
     att = tmp_path / "attempts"
     att.mkdir()
     (att / "01-bytes.yaml").write_bytes(b"\xff\xfe\x00")

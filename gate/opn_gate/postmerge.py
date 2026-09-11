@@ -231,7 +231,10 @@ PARTIAL_SUFFIX = "-partial.lean"
 ALTERNATE_SUFFIX = "-alternate.lean"
 #: D-31 v3.12: the skeleton names its annex in the file, as a comment, so the gate re-derives the
 #: citation from evidence instead of trusting a declaration.
-_ANNEX_LINE_RE = re.compile(r"^\s*--\s*annex:\s*(?P<hash>[0-9a-f]{64})\s*$", re.M)
+#: The line is recognised by its shape and the value checked afterwards, so a citation that is
+#: not a hash is refused by name rather than read as no citation at all (F08-Q18).
+_ANNEX_LINE_RE = re.compile(r"^\s*--\s*annex:\s*(?P<value>\S+)\s*$", re.M)
+_ANNEX_HASH_RE = re.compile(r"^[0-9a-f]{64}$")
 DAY_CHARS = 8  # YYYYMMDD, the prefix of a compact timestamp
 ORIGIN_COMPILER = "compiler-derived"
 ORIGIN_SKELETON = "skeleton-hole"
@@ -244,10 +247,33 @@ WITNESS_SLOT = (
 )
 
 
+class MalformedCitationError(ValueError):
+    """An ``-- annex:`` line whose value is not a content hash; the message names the line."""
+
+    def __init__(self, message: str, *, line: int) -> None:
+        super().__init__(message)
+        self.line = line
+
+
 def annex_citation(partial_text: str) -> str | None:
-    """The annex hash a skeleton cites, or ``None`` when the file cites none (D-31 v3.12)."""
+    """The annex hash a skeleton cites, or ``None`` when the file cites none (D-31 v3.12).
+
+    A line of the citation's shape whose value is not a 64-character lowercase hex hash is a
+    ``MalformedCitationError``: a truncated or upper-cased hash is a citation the author got wrong,
+    and reading it as no citation would silently make the children ``compiler-derived``.
+    """
     m = _ANNEX_LINE_RE.search(partial_text)
-    return m.group("hash") if m else None
+    if m is None:
+        return None
+    value = m.group("value")
+    if _ANNEX_HASH_RE.match(value) is None:
+        line = partial_text.count("\n", 0, m.start()) + 1
+        msg = (
+            f"line {line}: `{m.group(0).strip()}` is not an annex citation; the value is the "
+            "SHA-256 of the annex, 64 lowercase hex characters (D-31)"
+        )
+        raise MalformedCitationError(msg, line=line)
+    return value
 
 
 def annex_present(node_dir: Path, digest: str) -> bool:
@@ -258,9 +284,13 @@ def check_annex_citation(node_dir: Path, partial_text: str) -> Diagnostic | None
     """R6: a cited annex that is not on the node is a rejection, not a missing footnote.
 
     The citation is what makes D-31's reuse mechanical — it is how prose that helped becomes
-    traceable from the node it helped — so a citation pointing at nothing is worse than none.
+    traceable from the node it helped — so a citation pointing at nothing is worse than none,
+    and one that is not a hash is refused by name.
     """
-    digest = annex_citation(partial_text)
+    try:
+        digest = annex_citation(partial_text)
+    except MalformedCitationError as exc:
+        return Diagnostic("annex-malformed", str(exc), {"line": exc.line})
     if digest is None or annex_present(node_dir, digest):
         return None
     return Diagnostic(
@@ -322,15 +352,20 @@ def attempt_name(stamp: str, pseudonym: str, suffix: str) -> str:
     return f"{stamp}-{pseudonym}{suffix}"
 
 
+def check_attempt_free(node_dir: Path, name: str) -> None:
+    """Refuse an attempt name already filed: ``attempts/`` is append-only (D-3). Asked before
+    anything else is written, so the refusal leaves nothing behind (C7; F08-Q18)."""
+    if (node_dir / ATTEMPTS_DIR / name).exists():
+        msg = f"{name} already exists; attempts/ is append-only (D-3)"
+        raise GraphWriteError(msg)
+
+
 def record_attempt(node_dir: Path, name: str, text: str) -> str:
     """File a submission under ``attempts/`` — append-only, so an existing name is a refusal."""
+    check_attempt_free(node_dir, name)
     attempts = node_dir / ATTEMPTS_DIR
     attempts.mkdir(parents=True, exist_ok=True)
-    dest = attempts / name
-    if dest.exists():
-        msg = f"{dest.name} already exists; attempts/ is append-only (D-3)"
-        raise GraphWriteError(msg)
-    dest.write_text(text, encoding="utf-8")
+    (attempts / name).write_text(text, encoding="utf-8")
     return f"{ATTEMPTS_DIR}/{name}"
 
 
@@ -349,10 +384,11 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
 ) -> PartialMerge:
     """R6: turn a merged partial into child nodes, and file the assembly under ``attempts/``.
 
-    Order matters and is chosen so a failure leaves nothing behind: the citation is checked, then
-    the children are written, then the parent's ``deps`` and ``Context.lean`` are regenerated to
-    match, then the assembly is filed. The parent's statement is never touched — only the two
-    bot-owned files change, which is what keeps D-3's immutability intact (F07-Q2).
+    Order matters and is chosen so a failure leaves nothing behind: the citation is checked and
+    the attempt's name reserved, then the children are written, then the parent's ``deps`` and
+    ``Context.lean`` are regenerated to match, then the assembly is filed. The parent's statement
+    is never touched — only the two bot-owned files change, which is what keeps D-3's
+    immutability intact (F07-Q2).
     """
     from opn_gate import scaffold  # noqa: PLC0415 — scaffold imports layout, which imports schemas
 
@@ -362,6 +398,8 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
     if not holes:
         msg = "a partial with no holes creates no children (D-12 #5)"
         raise GraphWriteError(msg)
+    attempt_file = attempt_name(stamp, pseudonym, PARTIAL_SUFFIX)
+    check_attempt_free(node_dir, attempt_file)
 
     origin = child_origin(partial_text)
     annex = annex_citation(partial_text)
@@ -385,7 +423,7 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
 
     add_deps(node_dir, created)
     regenerate_context(node_dir, nodes_dir)
-    attempt = record_attempt(node_dir, attempt_name(stamp, pseudonym, PARTIAL_SUFFIX), partial_text)
+    attempt = record_attempt(node_dir, attempt_file, partial_text)
     return PartialMerge(tuple(created), attempt, origin, annex)
 
 

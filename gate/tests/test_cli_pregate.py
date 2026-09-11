@@ -288,32 +288,26 @@ def test_pregate_sign_produces_a_verifiable_contributor_signature(
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="a --sign key that ssh-keygen cannot use raises SignerError out of cli.main after the "
-    "verdict was computed: no verdict.json is written and the process dies with a traceback "
-    "instead of exit 2 (conventions §5: exceptions are caught at boundaries; C7)",
-)
 def test_pregate_sign_with_an_unusable_key_is_a_usage_error(
     tmp_path: Path, fake: FakeToolchain, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """Conventions §5, F08-Q18: a --sign key ssh-keygen cannot use is exit 2 naming the key,
+    never a SignerError traceback; a --sign path that is not a file is refused before the run."""
     graph = copy_graph(tmp_path)
     bad_key = tmp_path / "not-a-key"
     bad_key.write_text("garbage\n")
-    code = cli.main(
-        [
-            "pregate",
-            "--graph",
-            str(graph),
-            "--node",
-            TUTORIAL,
-            "--sign",
-            str(bad_key),
-            "--out",
-            str(tmp_path / "o"),
-        ]
-    )
-    assert code == cli.EXIT_ERROR
+    argv = ["pregate", "--graph", str(graph), "--node", TUTORIAL, "--out", str(tmp_path / "o")]
+    code = cli.main([*argv, "--sign", str(bad_key)])
+    captured = capsys.readouterr()
+    assert code == cli.EXIT_ERROR and captured.out == ""
+    assert "cannot sign with" in captured.err and "not-a-key" in captured.err
+    assert "Traceback" not in captured.err
+
+    calls_before = len(fake.calls)
+    code = cli.main([*argv, "--sign", str(tmp_path / "absent")])
+    captured = capsys.readouterr()
+    assert code == cli.EXIT_ERROR and "absent" in captured.err and "is not a file" in captured.err
+    assert len(fake.calls) == calls_before  # refused before the pipeline ran
 
 
 def test_emit_maps_every_verdict_kind_to_its_exit_code(

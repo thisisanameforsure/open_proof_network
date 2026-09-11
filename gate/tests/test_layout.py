@@ -5,7 +5,7 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from opn_gate import layout
+from opn_gate import layout, postmerge
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.layout import Node
 
@@ -233,3 +233,40 @@ def test_import_rule(tmp_path: Path) -> None:
         "Nodes.«and-reassoc».Context",
     ]
     assert all(d.code == "import-forbidden" for d in found)
+
+
+def test_mentions_sorry_reads_code_not_comments_or_identifiers() -> None:
+    """F08-Q18: the one text reading of 'this witness is a stub'. `sorry` counts as a token of
+    the code; inside a line comment, a block comment (nested, or a `/-!` doc comment), a string
+    literal, or as a piece of `sorryAx` / `unsorry` / `Foo.sorry`, it does not."""
+    assert layout.mentions_sorry("theorem witness : True := by\n  sorry\n")
+    assert layout.mentions_sorry("theorem witness : True := sorry\n")
+    assert layout.mentions_sorry("theorem w : True := by\n  exact (sorry : True)\n")
+    assert not layout.mentions_sorry("-- replace sorry here\ntheorem w : True := trivial\n")
+    assert not layout.mentions_sorry("theorem w : True := trivial -- was sorry\n")
+    assert not layout.mentions_sorry("/- a sorry in a block -/\ntheorem w : True := trivial\n")
+    assert not layout.mentions_sorry(
+        "/-! The witness slot. Replace `sorry` with an instance /- nested sorry -/ -/\n"
+        "theorem witness : True := trivial\n"
+    )
+    assert not layout.mentions_sorry('theorem w : "sorry" = "sorry" := rfl\n')
+    assert not layout.mentions_sorry("#print axioms sorryAx\ntheorem w : True := trivial\n")
+    assert not layout.mentions_sorry("theorem w : True := unsorry\n")
+    assert not layout.mentions_sorry("theorem w : True := Lean.sorry'\n")
+    assert not layout.mentions_sorry("theorem w : True := Foo.sorry\n")
+    # The slot the post-merge job writes is a stub; filled under its own header it is not.
+    slot = postmerge.WITNESS_SLOT.format(expected="True")
+    assert layout.mentions_sorry(slot)
+    assert not layout.mentions_sorry(slot.replace("by\n  sorry", "trivial"))
+    # A block comment that is never closed hides everything after it — still not a token.
+    assert not layout.mentions_sorry("/- open forever sorry\ntheorem w : True := trivial\n")
+
+
+def test_strip_comments_keeps_offsets_and_string_literals() -> None:
+    src = 'theorem w : "-- not a comment" = "x" := by -- tail\n  /- a\n  b -/ rfl\n'
+    stripped = layout.strip_comments(src)
+    assert len(stripped.splitlines()) == len(src.splitlines())
+    assert ":= by" in stripped and "tail" not in stripped  # the string did not eat the line
+    assert "not a comment" not in stripped and stripped.count('"') == 4  # its body is blanked
+    assert "a\n" not in stripped.split("by")[1] and stripped.endswith(" rfl\n")
+    assert layout.strip_comments("no comments\n") == "no comments\n"

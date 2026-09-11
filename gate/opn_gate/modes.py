@@ -47,7 +47,7 @@ from typing import Any, Literal
 import yaml
 
 from opn_gate import graph as graphmod
-from opn_gate import paths, schemas
+from opn_gate import layout, paths, schemas
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Change, Located, Role
 
@@ -228,7 +228,9 @@ def classify(  # noqa: PLR0911 — one return per rejection
         loc for loc in located if loc.role in paths.CURATOR_ROLES and loc.node_id not in new_dirs
     ]
     if curator_records or any(paths.is_versioned(n) for n in new_dirs):
-        return _classify_curator(located, target_id, new_dirs, author, curators or Curators())
+        return _classify_curator(
+            located, changes, target_id, new_dirs, author=author, curators=curators or Curators()
+        )
 
     nodes = sorted({loc.node_id for loc in located if loc.node_id is not None})
     if len(nodes) > 1:
@@ -252,10 +254,12 @@ def classify(  # noqa: PLR0911 — one return per rejection
     return Classification(mode, target_id, node_id, tuple(located), admit=admit)
 
 
-def _classify_curator(
+def _classify_curator(  # noqa: PLR0913 — the diff, its located paths and the host's one fact
     located: list[Located],
+    changes: list[Change],
     target_id: str,
     new_dirs: list[str],
+    *,
     author: str | None,
     curators: Curators,
 ) -> Classification:
@@ -263,12 +267,36 @@ def _classify_curator(
 
     A curator PR may touch several nodes — D-8's revision marks the old node superseded and each
     dependent stale in the same change — so the one-node scope rule does not apply; the one-target
-    rule still does.
+    rule still does. What it may do to those nodes is *add records*: a node's own files are
+    immutable once merged (D-3), so any node file outside the one new versioned directory — a
+    modified witness, a deleted relation, a witness added to an existing hole, which is a
+    proposal (F08-R5) — is refused before the author is asked (F08-Q18).
     """
     roles = {loc.role for loc in located}
     allowed = set(paths.NODE_ROLES) | set(paths.CURATOR_ROLES)
     if not roles <= allowed:
         return Classification(None, target_id, None, tuple(located), (_mixed(roles),))
+    node_roles = set(paths.NODE_ROLES)
+    touched = sorted(
+        {loc.path for loc in located if loc.role in node_roles and loc.node_id not in new_dirs}
+        | {c.path for c in changes if c.status != "A"}
+    )
+    if touched:
+        return Classification(
+            None,
+            target_id,
+            None,
+            tuple(located),
+            (
+                Diagnostic(
+                    "mode-mixed",
+                    f"{', '.join(touched)}: a curator pull request adds status records and at "
+                    "most one versioned node directory (F08-R8); an existing node's files are "
+                    "immutable (D-3), and a witness for a hole is a proposal (F08-R5)",
+                    {"paths": touched},
+                ),
+            ),
+        )
     unversioned = [n for n in new_dirs if not paths.is_versioned(n)]
     if unversioned:
         return Classification(
@@ -432,7 +460,7 @@ def check_status_record(
         return problems
     doc = _document(located, data)
     if isinstance(doc, Diagnostic):
-        return [doc]
+        return [doc]  # defence in depth: _check_schema just parsed this same document
     if doc.get("status") != PROPOSAL_STATUS:
         return [
             Diagnostic(
@@ -517,7 +545,9 @@ def check_witness_completion(
             )
         ]
     before = base(located.path)
-    if before is not None and "sorry" not in before.decode("utf-8", errors="replace"):
+    # The slot is unfilled while `sorry` is a token of its code; the slot's own header comment
+    # names the word, so a witness filled under that header is real (F08-Q18).
+    if before is not None and not layout.mentions_sorry(before.decode("utf-8", errors="replace")):
         return [
             Diagnostic(
                 "witness-filled",
