@@ -213,9 +213,9 @@ def test_consolidate_sandbox_mounts_only_the_work_directory_and_takes_the_image_
 
     ensured: list[tuple[str, bool]] = []
 
-    def ensure_image(lean_toolchain: str, *, build: bool) -> str:
-        ensured.append((lean_toolchain, build))
-        return f"ensured:{lean_toolchain}"
+    def ensure_image(spec: dict[str, Any], *, build: bool) -> str:
+        ensured.append((str(spec["lean_toolchain"]), build))
+        return f"ensured:{spec['lean_toolchain']}"
 
     monkeypatch.setattr(sandbox, "SandboxToolchain", make_sandbox)
     monkeypatch.setattr(cli, "ensure_image", ensure_image)

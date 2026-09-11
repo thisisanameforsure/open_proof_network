@@ -58,7 +58,9 @@ def image_tag(lean_toolchain: str) -> str:
 
 
 def build_image(gate_dir: Path, lean_toolchain: str, *, docker: str = "docker") -> str:
-    """``docker build`` the sandbox image for ``lean_toolchain``; returns the tag."""
+    """``docker build`` the sandbox image for ``lean_toolchain``; returns the tag. The context is
+    the repository root (``gate_dir``'s parent) since F10-T3: the image carries the gate package
+    and its locked environment as well as the Lean side (F10-R6), filtered by ``.dockerignore``."""
     tag = image_tag(lean_toolchain)
     cmd = [
         docker,
@@ -70,7 +72,7 @@ def build_image(gate_dir: Path, lean_toolchain: str, *, docker: str = "docker") 
         f"LEAN_TOOLCHAIN={lean_toolchain}",
         "-t",
         tag,
-        str(gate_dir),
+        str(gate_dir.parent),
     ]
     proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
     if proc.returncode != 0:
@@ -82,6 +84,28 @@ def build_image(gate_dir: Path, lean_toolchain: str, *, docker: str = "docker") 
 def image_exists(tag: str, *, docker: str = "docker") -> bool:
     proc = subprocess.run([docker, "image", "inspect", tag], capture_output=True, check=False)
     return proc.returncode == 0
+
+
+DIGEST_REF_RE = re.compile(r"^[a-z0-9][a-z0-9._/-]*@sha256:[0-9a-f]{64}$")
+
+
+def is_digest_ref(ref: str) -> bool:
+    """``registry/name@sha256:<64 hex>`` — the only form a graph may pin (F10-R5; D-35): a tag
+    can be moved, a digest cannot."""
+    return DIGEST_REF_RE.match(ref) is not None
+
+
+def pull_image(ref: str, *, docker: str = "docker") -> str:
+    """``docker pull`` an image by digest and answer the same reference, which docker accepts
+    everywhere a tag is accepted. Refuses anything that is not a digest reference."""
+    if not is_digest_ref(ref):
+        msg = f"not an image digest reference: {ref!r} (expected name@sha256:<64 hex>)"
+        raise SandboxError(msg)
+    proc = subprocess.run([docker, "pull", "--quiet", ref], capture_output=True, check=False)
+    if proc.returncode != 0:
+        msg = f"docker pull {ref} failed: {proc.stderr.decode(errors='replace').strip()[-2000:]}"
+        raise SandboxError(msg)
+    return ref
 
 
 class SandboxToolchain(LocalToolchain):

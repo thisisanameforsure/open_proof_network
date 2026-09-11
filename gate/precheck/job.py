@@ -89,7 +89,7 @@ def build_context(
     except schemas.SchemaError as exc:
         msg = f"cannot load {spec_path}: {exc}"
         raise JobError(msg) from exc
-    tag = image or ensure_image(str(spec["lean_toolchain"]), build=True)
+    tag = image or ensure_image(spec, build=True)
     node_dir = layout.graph_nodes_dir(graph_root, target_id) / node_id
     toolchain = sandbox.SandboxToolchain(
         tag, sandbox.Caps.from_spec(spec), read_only=[node_dir], read_write=[workdir]

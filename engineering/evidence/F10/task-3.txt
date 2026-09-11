@@ -1,0 +1,176 @@
+F10-T3 — image publishing and the devcontainer. 2026-09-11
+
+WHAT T3 COVERS
+--------------
+AC5  gate/tests/test_pins.py::test_image_digest_consistent — pin_image.py writes devcontainer_ref
+     (a digest reference, refused otherwise) into gate-spec.json and .devcontainer/devcontainer.json
+     together; the check passes; a drift, a tag, a missing pin, or a workflow naming an image of
+     its own is named. ::test_spec_consumers_carry_no_image_of_their_own — gate.yml (graph),
+     precheck.yml and reproduce.sh carry no image: they reach it through ensure_image, which reads
+     the spec (Q10). ::test_ensure_image_pulls_the_pin_and_builds_without_one — a pinned digest is
+     pulled once and never built; no pin builds for the toolchain as before. ::test_pull_refuses_a_tag,
+     ::test_publish_workflow_shape (tags trigger, packages:write, no secret, root context, digest
+     printed, pin_image.py named).
+AC10 gate/tests/test_devcontainer_docker.py::test_postcreate_then_pregate (docker tier) — inside the
+     image gate/Dockerfile builds, as uid 1000 with no network: post-create proves elan, the toolchain,
+     the metaprograms and the gate's Python run; pregate.sh passes the tutorial node; nothing installs
+     or builds a toolchain. R10 cold timing: container start to pregate pass in 58.8 s.
+
+Judgment calls: Q10 (one digest by construction), Q11 (the devcontainer image is the gate image,
+grown; amd64 only; the first digest is Mike's tag push).
+
+WHAT IS MIKE'S (network tier, the re-pin sitting)
+-------------------------------------------------
+1. Push main and push a tag (e.g. `git tag F10-done && git push origin F10-done`); the
+   image-publish workflow builds gate/Dockerfile and prints the digest in its step summary.
+2. Pin it in the graph, with the network commit the tag names:
+     uv run python gate/tools/pin_image.py 'ghcr.io/thisisanameforsure/opn-gate@sha256:...' \
+       --graph ../open_proof_network_graph --target tutorial --network-commit <sha> \
+       --cache-url https://openproofnetwork.org/cache
+     uv run python gate/tools/pin_image.py --check --verify --graph ../open_proof_network_graph --target tutorial
+   then commit both files in the graph (F10-T3: pin ...) and regenerate the products from the
+   new pin (the two-commit shape).
+3. Open the graph in the devcontainer (VS Code: Reopen in Container); post-create runs, then
+   `$NETWORK/gate/pregate.sh --graph "$GRAPH" --node tutorial-and-swap`.
+
+COMMAND
+-------
+make verify-lean   (this run's tree: the T1, T2 and T5 commits plus the uncommitted T3 and T4 work;
+                    the T4 files add tests, and the image is built from gate/, which T4 also touches)
+
+OUTPUT (the devcontainer test alone, first; the full tier follows)
+------
+
+DEVCONTAINER TEST LOG (uv run pytest gate/tests/test_devcontainer_docker.py -s, before the full tier)
+    {
+      "step": 2,
+      "name": "paths",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 4,
+      "name": "kernel-replay",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 5,
+      "name": "axioms",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 6,
+      "name": "hazards",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 7,
+      "name": "witness",
+      "result": "pass",
+      "diagnostic": null
+    },
+    {
+      "step": 8,
+      "name": "deps",
+      "result": "pass",
+      "diagnostic": null
+    }
+  ],
+  "attestation": "/tmp/pregate/attestation.json",
+  "verdict_file": "/tmp/pregate/verdict.json",
+  "olean_cache": {
+    "status": "none",
+    "commit": null,
+    "reason": "the graph names no olean cache",
+    "hits": [],
+    "misses": []
+  }
+}
+
+
+real	0m1.105s
+user	0m0.796s
+sys	0m0.289s
+
+real	0m57.240s
+user	0m50.423s
+sys	0m5.052s
+
+R10 cold: container start to pregate pass in 58.8s (image opn-gate:leanprover-lean4-v4.33.1)
+.
+1 passed in 61.76s (0:01:01)
+
+FULL TIER (make verify-lean)
+----------------------------
+collected 1394 items / 1341 deselected / 53 selected
+
+gate/tests/test_admit_docker.py .                                        [  1%]
+gate/tests/test_admit_lean.py .......x.                                  [ 18%]
+gate/tests/test_artifacts_lean.py ..                                     [ 22%]
+gate/tests/test_cache_lean.py .                                          [ 24%]
+gate/tests/test_curator_lean.py .                                        [ 26%]
+gate/tests/test_devcontainer_docker.py .                                 [ 28%]
+gate/tests/test_exhibits_lean.py .                                       [ 30%]
+gate/tests/test_hazards_lean.py .......                                  [ 43%]
+gate/tests/test_lean_pkg_lean.py ....                                    [ 50%]
+gate/tests/test_precheck_job_docker.py ..                                [ 54%]
+gate/tests/test_pregate_lean.py ...........                              [ 75%]
+gate/tests/test_products_lean.py .                                       [ 77%]
+gate/tests/test_reproduce_docker.py ..                                   [ 81%]
+gate/tests/test_sandbox_docker.py F....                                  [ 90%]
+gate/tests/test_toolchain_lean.py ....                                   [ 98%]
+gate/tests/test_walkthrough.py .                                         [100%]
+
+=================================== FAILURES ===================================
+__________________________ test_container_is_isolated __________________________
+
+sandbox_image = 'opn-gate:leanprover-lean4-v4.33.1'
+
+    def test_container_is_isolated(sandbox_image: str) -> None:
+        """R12: no network, non-root, clean environment, caps applied."""
+        sb = SandboxToolchain(sandbox_image, Caps(1, 512, 30))
+        proc = sb._exec(["sh", "-c", "id -u; env | sort; getent hosts example.com; echo rc=$?"])
+        lines = proc.stdout.splitlines()
+        assert lines[0] == "1000"
+        env_lines = [ln for ln in lines if "=" in ln and not ln.startswith("rc=")]
+>       assert {ln.split("=")[0] for ln in env_lines} <= {
+            "ELAN_HOME",
+            "HOME",
+            "HOSTNAME",
+            "PATH",
+            "PWD",
+            "LC_ALL",
+        }
+E       AssertionError: assert {'ELAN_HOME',...AN_HOME', ...} <= {'ELAN_HOME',...'PATH', 'PWD'}
+E         
+E         Extra items in the left set:
+E         'OPN_ELAN_HOME'
+E         'UV_PYTHON_INSTALL_DIR'
+E         'NETWORK'
+E         'UV_NO_DEV'
+E         'UV_CACHE_DIR'
+E         'UV_NO_PROGRESS'
+E         'OPN_LEAN_PKG_BIN'
+
+gate/tests/test_sandbox_docker.py:39: AssertionError
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:26
+
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+XFAIL gate/tests/test_admit_lean.py::test_a_proposal_redeclaring_an_existing_nodes_theorem_is_refused - F08-Q18: admission elaborates a proposal's Statement.lean as its own module, so a statement that declares the same theorem name as an existing node (`OpnProp.and_swap`, the tutorial's) is admitted; the clash surfaces only later, in the Context.lean of the first node that depends on both (F01-R6), where the two signatures collide. No fake can see a name clash — held here against the real toolchain until admission refuses it by name
+FAILED gate/tests/test_sandbox_docker.py::test_container_is_isolated - Assert...
+= 1 failed, 51 passed, 1341 deselected, 1 xfailed, 2 warnings in 1226.02s (0:20:26) =
+make: *** [test-lean] Error 1
+exit: 
+
+RERUN after widening test_sandbox_docker.py::test_container_is_isolated to the image's own
+declared ENV (the seven F10-T3 variables are the image's, not the host's; R12's property is
+that no host variable reaches the container, and the set is now a named constant):
+$ uv run pytest gate/tests/test_sandbox_docker.py -q
+5 passed in 54.32s
+With that, make verify-lean's tier is 52 passed, 1 xfailed (the F08-Q18 hold), 0 failed.

@@ -1,6 +1,0 @@
-# The image needs the Lake package sources only (F01-R10); everything else stays on the host.
-*
-!Dockerfile
-!lean/
-lean/.lake/
-lean/lean-toolchain

@@ -393,7 +393,7 @@ def test_the_image_is_built_when_absent_and_refused_under_no_build(
     assert seam.docker_verbs() == ["image", "image", "build"]
     build = seam.docker_log()[-1]
     assert f"-f {cli.GATE_DIR / 'Dockerfile'}" in build
-    assert f"--build-arg LEAN_TOOLCHAIN={PIN} -t {TAG} {cli.GATE_DIR}" in build
+    assert f"--build-arg LEAN_TOOLCHAIN={PIN} -t {TAG} {cli.GATE_DIR.parent}" in build  # F10-T3
     assert seam.made[-1]["image"] == TAG
 
     code, _out, _err = run(

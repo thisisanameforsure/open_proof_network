@@ -25,12 +25,14 @@ from opn_gate import (
     admit,
     attestation,
     bounce,
+    cache,
     config,
     curator,
     exhibits,
     layout,
     ledger,
     modes,
+    objectstore,
     paths,
     pipeline,
     postmerge,
@@ -99,7 +101,7 @@ def positive_int(text: str) -> int:
     return value
 
 
-def build_parser() -> argparse.ArgumentParser:
+def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statement per flag
     parser = argparse.ArgumentParser(prog="opn-gate", description=__doc__.split("\n\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -167,6 +169,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     _add_graph_tool_parsers(sub)
     _add_curator_parsers(sub)
+    _add_cache_parsers(sub)
 
     sign = sub.add_parser("sign", help="sign an attestation with the gate key from the environment")
     sign.add_argument("--attestation", required=True, type=Path)
@@ -268,6 +271,29 @@ def _add_curator_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser
     led.add_argument("--commit", required=True, help="the merge commit")
 
 
+def _add_cache_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    """The olean cache (F10-R7, R8): ``cache fetch`` for a checkout, ``cache publish`` for the
+    post-merge job."""
+    top = sub.add_parser("cache", help="the olean cache a graph names in gate-spec.json (F10)")
+    ops = top.add_subparsers(dest="cache_command", required=True)
+    fetch = ops.add_parser("fetch", help="fetch the newest verified cache at or before a commit")
+    fetch.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    fetch.add_argument("--target", help="target id (inferred when the graph has exactly one)")
+    fetch.add_argument("--commit", default="HEAD", help="the graph commit to key on")
+    fetch.add_argument("--out", type=Path, help="where to put it (default: a fresh temp dir)")
+    pub = ops.add_parser("publish", help="build the merged tree's oleans, pack, upload (postmerge)")
+    pub.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    pub.add_argument("--commit", default="HEAD", help="the merge commit the cache is keyed by")
+    pub.add_argument("--target", help="target id (inferred when the graph has exactly one)")
+    pub.add_argument("--bucket", help="the S3 bucket to upload to (omit: build and pack only)")
+    pub.add_argument("--prefix", default="", help="key prefix inside the bucket")
+    pub.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
+    pub.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
+    pub.add_argument("--sandbox", action="store_true", help="build inside the step-3 image")
+    pub.add_argument("--image", help="sandbox image tag (default: from the spec, or built)")
+    pub.add_argument("--no-build", action="store_true", help="fail if the image is not present")
+
+
 def _add_sandbox_args(p: argparse.ArgumentParser) -> None:
     """The flags every sandboxed run shares (reproduce, gate, postmerge)."""
     p.add_argument("--out", type=Path, help="output directory (default: a fresh temp dir)")
@@ -301,6 +327,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "hazards": run_hazards,
         "products": run_products,
         "sign": run_sign,
+        "cache": run_cache,
     }
     try:
         return commands[args.command](args, settings)
@@ -373,6 +400,7 @@ def run_pregate(args: argparse.Namespace, settings: config.Settings) -> int:
         settings=settings,
         install_toolchain=bool(args.install),
     )
+    fetched = attach_cache(ctx, graph, head_commit(graph), out_dir)
     verdict = pipeline.run_submission(ctx)
     doc = attestation.build(
         ctx,
@@ -395,18 +423,58 @@ def run_pregate(args: argparse.Namespace, settings: config.Settings) -> int:
             "timestamp": doc["signature"]["timestamp"],
         }
         schemas.validate(doc, attestation.SCHEMA)
-    return emit(verdict, doc, out_dir, settings)
+    return emit(verdict, doc, out_dir, settings, olean_cache=cache_report(ctx, fetched))
+
+
+def head_commit(graph: Path) -> str | None:
+    """HEAD's sha whether or not the tree is dirty (the cache is keyed by ancestry, F10-R7);
+    ``None`` for a bare tree."""
+    if _git(graph, "rev-parse", "--is-inside-work-tree").returncode != 0:
+        return None
+    head = _git(graph, "rev-parse", "HEAD")
+    return head.stdout.strip() if head.returncode == 0 and head.stdout.strip() else None
+
+
+def attach_cache(
+    ctx: RunContext, git_root: Path, commit: str | None, out_dir: Path
+) -> cache.FetchResult:
+    """F10-R7: fetch the newest olean cache at or before ``commit`` into the run's directory and
+    hand it to the build step; a miss, a corrupt archive or an unreachable store means the run
+    builds everything itself (C7) and says so in the summary."""
+    result = cache.prepare(ctx.spec, git_root, commit, out_dir / "olean-cache")
+    ctx.data["olean_cache_usage"] = cache.Usage(commit=result.commit)
+    if result.fetched is not None:
+        ctx.data["olean_cache"] = result.fetched
+    return result
+
+
+def cache_report(ctx: RunContext, fetched: cache.FetchResult) -> dict[str, Any]:
+    usage: cache.Usage | None = ctx.data.get("olean_cache_usage")
+    report = fetched.as_dict()
+    report.update(usage.as_dict() if usage is not None else {"hits": [], "misses": []})
+    return report
 
 
 def emit(
-    verdict: pipeline.Verdict, doc: dict[str, Any], out_dir: Path, settings: config.Settings
+    verdict: pipeline.Verdict,
+    doc: dict[str, Any],
+    out_dir: Path,
+    settings: config.Settings,
+    *,
+    olean_cache: dict[str, Any] | None = None,
 ) -> int:
+    """Write the verdict and the attestation, print the summary. The cache report rides in the
+    summary and ``cache.json`` only: the attestation is a function of the tree and the pinned
+    tooling alone (D-5), and whether a dependency's olean was compiled or fetched is not."""
     verdict_doc = verdict.as_dict(settings.diagnostic_max_bytes)
     (out_dir / "verdict.json").write_bytes(schemas.canonical_json(verdict_doc))
     (out_dir / "attestation.json").write_bytes(schemas.canonical_json(doc))
     summary = dict(verdict_doc)
     summary["attestation"] = str(out_dir / "attestation.json")
     summary["verdict_file"] = str(out_dir / "verdict.json")
+    if olean_cache is not None:
+        (out_dir / "cache.json").write_bytes(schemas.canonical_json(olean_cache))
+        summary["olean_cache"] = olean_cache
     sys.stdout.write(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
     if verdict.verdict == "pass":
         return EXIT_PASS
@@ -480,9 +548,10 @@ def run_gate(args: argparse.Namespace, settings: config.Settings) -> int:
         node_id=args.node,
         statement_hash=schemas.content_hash(statement.read_bytes()) if statement.is_file() else "",
     )
+    fetched = attach_cache(ctx, graph, head, out_dir)
     verdict = pipeline.run_submission(ctx, precheck=policy)
     doc = attestation.build(ctx, verdict, graph_commit=head)
-    return emit(verdict, doc, out_dir, settings)
+    return emit(verdict, doc, out_dir, settings, olean_cache=cache_report(ctx, fetched))
 
 
 def run_classify(args: argparse.Namespace, settings: config.Settings) -> int:
@@ -554,7 +623,7 @@ def run_exhibits(args: argparse.Namespace, settings: config.Settings) -> int:
         raise CliError(msg) from exc
     tc: toolchain.Toolchain
     if args.sandbox:
-        tag = args.image or ensure_image(str(spec["lean_toolchain"]), build=not args.no_build)
+        tag = args.image or ensure_image(spec, build=not args.no_build)
         tc = sandbox.SandboxToolchain(tag, sandbox.Caps.from_spec(spec), read_write=[workdir])
     else:
         try:
@@ -674,7 +743,7 @@ def node_context(
     tc: toolchain.Toolchain
     if sandboxed:
         tag = getattr(args, "image", None) or ensure_image(
-            str(spec["lean_toolchain"]), build=not getattr(args, "no_build", False)
+            spec, build=not getattr(args, "no_build", False)
         )
         tc = sandbox.SandboxToolchain(
             tag, sandbox.Caps.from_spec(spec), read_only=[node_dir], read_write=[workdir]
@@ -759,6 +828,102 @@ def run_products(args: argparse.Namespace, settings: config.Settings) -> int:
         "files": sorted(p.as_posix() for p in products_.files),
     }
     sys.stdout.write(json.dumps(summary, indent=2) + "\n")
+    return EXIT_PASS
+
+
+def run_cache(args: argparse.Namespace, settings: config.Settings) -> int:
+    return (
+        run_cache_fetch(args)
+        if args.cache_command == "fetch"
+        else run_cache_publish(args, settings)
+    )
+
+
+def _spec_for(graph: Path, target_id: str) -> dict[str, Any]:
+    spec_path = layout.gate_spec_path(graph, target_id)
+    try:
+        return schemas.load_json(spec_path, "gate-spec/v1")
+    except schemas.SchemaError as exc:
+        msg = f"cannot load {spec_path}: {exc}"
+        raise CliError(msg) from exc
+
+
+def run_cache_fetch(args: argparse.Namespace) -> int:
+    """F10-R7 for the devcontainer and anyone else: fetch, verify, report. Exit 0 on a hit,
+    1 otherwise — a miss is an answer, not an error."""
+    graph = args.graph.resolve()
+    if not graph.is_dir():
+        msg = f"graph checkout not found: {graph}"
+        raise CliError(msg)
+    target_id = args.target or infer_target(graph)
+    spec = _spec_for(graph, target_id)
+    commit = args.commit
+    if _git(graph, "rev-parse", "--is-inside-work-tree").returncode == 0:
+        resolved = _git(graph, "rev-parse", "--verify", f"{commit}^{{commit}}").stdout.strip()
+        commit = resolved or commit
+    out_dir = _out_dir(args.out, "opn-cache-")
+    result = cache.prepare(spec, graph, commit, out_dir / "olean-cache")
+    doc = result.as_dict()
+    doc["target"] = target_id
+    doc["directory"] = str(out_dir / "olean-cache") if result.fetched else None
+    sys.stdout.write(json.dumps(doc, indent=2) + "\n")
+    return EXIT_PASS if result.status == "hit" else EXIT_FAIL
+
+
+def run_cache_publish(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F10-R7, R8: the post-merge job's half — build every proved node's oleans from the merged
+    tree (inside the image with ``--sandbox``, as the gate builds), pack them with a SHA-256
+    manifest, and upload keyed by the merge commit. Without ``--bucket`` it stops after packing,
+    which is how a laptop checks what a run would upload."""
+    graph, commit = _checkout_and_commit(args.graph, args.commit)
+    out_dir = _out_dir(args.out, "opn-cache-publish-")
+    tree = export_tree(graph, commit, out_dir / "tree")
+    target_id = args.target or infer_target(tree)
+    spec = _spec_for(tree, target_id)
+    workdir = out_dir / "work"
+    tc: toolchain.Toolchain
+    if args.sandbox:
+        tag = args.image or ensure_image(spec, build=not args.no_build)
+        tc = sandbox.SandboxToolchain(tag, sandbox.Caps.from_spec(spec), read_write=[workdir])
+    else:
+        try:
+            tc = toolchain.LocalToolchain.from_settings(settings)
+        except toolchain.ToolchainMissingError as exc:
+            raise CliError(str(exc)) from exc
+    try:
+        built = cache.build(
+            tree, target_id, tc, workdir, spec=spec, install=bool(args.install) and not args.sandbox
+        )
+        manifest, archive = cache.pack(built, graph_commit=commit, target_id=target_id, spec=spec)
+    except (cache.CacheError, graphmod.GraphError, toolchain.ToolchainMissingError) as exc:
+        sys.stdout.write(json.dumps({"ok": False, "error": str(exc)}) + "\n")
+        sys.stderr.write(f"opn-gate: cache not published: {exc}\n")
+        return EXIT_FAIL
+    (out_dir / cache.MANIFEST).write_bytes(manifest)
+    (out_dir / cache.ARCHIVE).write_bytes(archive)
+    doc: dict[str, Any] = {
+        "ok": True,
+        "target": target_id,
+        "commit": commit,
+        "modules": sorted(built.modules),
+        "archive_bytes": len(archive),
+        "archive_sha256": cache.sha256(archive),
+        "manifest": str(out_dir / cache.MANIFEST),
+        "uploaded": False,
+    }
+    if args.bucket:
+        try:
+            store = objectstore.S3Store(args.bucket, prefix=args.prefix)
+            cache.upload(store, target_id, commit, manifest, archive)
+        except objectstore.ObjectStoreError as exc:
+            doc["ok"] = False
+            doc["error"] = str(exc)
+            sys.stdout.write(json.dumps(doc, indent=2) + "\n")
+            sys.stderr.write(f"opn-gate: cache built but not uploaded: {exc}\n")
+            return EXIT_FAIL
+        doc["uploaded"] = True
+        doc["keys"] = [cache.archive_key(target_id, commit), cache.manifest_key(target_id, commit)]
+    sys.stdout.write(json.dumps(doc, indent=2) + "\n")
     return EXIT_PASS
 
 
@@ -869,7 +1034,7 @@ def run_consolidate(args: argparse.Namespace, settings: config.Settings) -> int:
         workdir = out_dir / "work"
         tc: toolchain.Toolchain
         if args.sandbox:
-            tag = args.image or ensure_image(str(spec["lean_toolchain"]), build=not args.no_build)
+            tag = args.image or ensure_image(spec, build=not args.no_build)
             tc = sandbox.SandboxToolchain(tag, sandbox.Caps.from_spec(spec), read_write=[workdir])
         else:
             try:
@@ -1040,7 +1205,7 @@ def _sandboxed_context(  # noqa: PLR0913 — one argument per CLI flag
     except schemas.SchemaError as exc:
         msg = f"cannot load {spec_path}: {exc}"
         raise CliError(msg) from exc
-    tag = image or ensure_image(str(spec["lean_toolchain"]), build=not no_build)
+    tag = image or ensure_image(spec, build=not no_build)
     node_dir = layout.graph_nodes_dir(tree, target_id) / node
     workdir = out_dir / "work"
     tc = sandbox.SandboxToolchain(
@@ -1080,7 +1245,25 @@ def commit_changes(graph: Path, commit: str) -> list[Change]:
     return paths.changes_from_name_status(diff.stdout)
 
 
-def ensure_image(lean_toolchain: str, *, build: bool) -> str:
+def ensure_image(spec: dict[str, Any], *, build: bool) -> str:
+    """The image every sandboxed run uses, from the graph's gate-spec alone (F10-R5, Q10).
+
+    A graph that pins ``devcontainer_ref`` names the published image by digest, and that digest
+    is what the authoritative gate, the precheck job, ``reproduce.sh`` and the devcontainer all
+    run — pulled once if absent, never built. A graph that pins none (the fixtures, a graph
+    before its first pin) gets the image built from ``gate/Dockerfile`` for its toolchain, as
+    before; ``--no-build`` then requires it to be present already.
+    """
+    ref = spec.get("devcontainer_ref")
+    if isinstance(ref, str) and ref:
+        if sandbox.image_exists(ref):
+            return ref
+        log.info("pulling the pinned image %s", ref)
+        try:
+            return sandbox.pull_image(ref)
+        except sandbox.SandboxError as exc:
+            raise CliError(str(exc)) from exc
+    lean_toolchain = str(spec["lean_toolchain"])
     tag = sandbox.image_tag(lean_toolchain)
     if sandbox.image_exists(tag):
         return tag

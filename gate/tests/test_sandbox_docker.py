@@ -25,6 +25,28 @@ NETWORK_PROBE = (
 SPIN = "\npartial def OpnSpin.spin (n : Nat) : Nat := OpnSpin.spin (n + 1)\n#eval OpnSpin.spin 0\n"
 
 
+#: What the image itself declares (gate/Dockerfile ENV) plus what docker and the sandbox set;
+#: a host variable reaching the container would be an extra name here (R12).
+IMAGE_ENV: frozenset[str] = frozenset(
+    {
+        "ELAN_HOME",
+        "HOME",
+        "HOSTNAME",
+        "PATH",
+        "PWD",
+        "LC_ALL",
+        # F10-T3: the devcontainer half of the image (uv, and where the gate finds its tools)
+        "UV_PYTHON_INSTALL_DIR",
+        "UV_CACHE_DIR",
+        "UV_NO_DEV",
+        "UV_NO_PROGRESS",
+        "OPN_ELAN_HOME",
+        "OPN_LEAN_PKG_BIN",
+        "NETWORK",
+    }
+)
+
+
 def sandboxed(ctx: RunContext, image: str, caps: Caps) -> SandboxToolchain:
     return SandboxToolchain(image, caps, read_only=[node_dir(ctx)], read_write=[ctx.workdir])
 
@@ -36,14 +58,7 @@ def test_container_is_isolated(sandbox_image: str) -> None:
     lines = proc.stdout.splitlines()
     assert lines[0] == "1000"
     env_lines = [ln for ln in lines if "=" in ln and not ln.startswith("rc=")]
-    assert {ln.split("=")[0] for ln in env_lines} <= {
-        "ELAN_HOME",
-        "HOME",
-        "HOSTNAME",
-        "PATH",
-        "PWD",
-        "LC_ALL",
-    }
+    assert {ln.split("=")[0] for ln in env_lines} <= IMAGE_ENV  # nothing from the host
     assert lines[-1] == "rc=2"  # getent: name not found — no resolver, no network
 
 

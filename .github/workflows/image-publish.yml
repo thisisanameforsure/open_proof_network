@@ -1,0 +1,82 @@
+# Publish the gate image to GHCR on every tag of this repo (F10-R5; D-4, D-35).
+#
+# The image is gate/Dockerfile built from the repo root at the tagged commit, for the toolchain
+# this repo's lean-toolchain pins. It is pushed as ghcr.io/<owner>/opn-gate:<tag> and the run
+# prints the digest: a graph pins *that* — never the tag — in gate-spec.json devcontainer_ref
+# (gate/tools/pin_image.py writes it and the graph's .devcontainer/devcontainer.json together),
+# after which the authoritative gate, the precheck job, reproduce.sh and the devcontainer all
+# pull the same bytes (F10-Q10). Nothing here has authority over any graph: a re-pin is the gate
+# owner's visible diff (D-4). The token is the workflow's own GITHUB_TOKEN with packages:write;
+# no other secret exists here (C8).
+#
+# linux/amd64 only: the hosted runners that run the gate are amd64, and an arm64 laptop runs it
+# under emulation (F10-Q11).
+name: image-publish
+
+on:
+  push:
+    tags: ["*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/opn-gate
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Log in to GHCR with the workflow token
+        run: echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build the image for the pinned toolchain
+        id: build
+        run: |
+          set -euo pipefail
+          toolchain="$(tr -d '[:space:]' < lean-toolchain)"
+          tag="$(printf '%s' "${GITHUB_REF_NAME}" | tr -c 'A-Za-z0-9_.-\n' '-')"
+          echo "toolchain=$toolchain" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          docker build -f gate/Dockerfile \
+            --build-arg "LEAN_TOOLCHAIN=$toolchain" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
+            --label "org.opencontainers.image.version=$tag" \
+            --label "network.openproof.lean_toolchain=$toolchain" \
+            -t "$IMAGE:$tag" -t "$IMAGE:sha-${GITHUB_SHA::12}" .
+
+      - name: Push and record the digest
+        id: push
+        run: |
+          set -euo pipefail
+          docker push "$IMAGE:${{ steps.build.outputs.tag }}"
+          docker push "$IMAGE:sha-${GITHUB_SHA::12}"
+          digest="$(docker inspect --format '{{index .RepoDigests 0}}' "$IMAGE:${{ steps.build.outputs.tag }}")"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Gate image published"
+            echo
+            echo "- tag: \`$IMAGE:${{ steps.build.outputs.tag }}\`"
+            echo "- digest: \`$digest\`"
+            echo "- toolchain: \`${{ steps.build.outputs.toolchain }}\`"
+            echo "- network commit: \`${GITHUB_SHA}\`"
+            echo
+            echo "Pin it in a graph (the gate owner's act, D-4):"
+            echo
+            echo '```sh'
+            echo "uv run python gate/tools/pin_image.py '$digest' --graph ../open_proof_network_graph --target tutorial --network-commit ${GITHUB_SHA}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "published $digest"
+
+      - name: The published image runs the gate (pull by digest, elan and uv answer)
+        run: |
+          set -euo pipefail
+          docker pull --quiet "${{ steps.push.outputs.digest }}"
+          docker run --rm --network none "${{ steps.push.outputs.digest }}" \
+            bash -c 'elan --version && uv --version && test -x /opt/opn/lean/.lake/build/bin/opn-hazards && uv run --frozen --project /opt/opn/network python -c "import opn_gate; print(\"opn_gate ok\")"'

@@ -210,5 +210,5 @@ def test_build_image_returns_the_tag_for_the_pin(tmp_path: Path) -> None:
     tag = sandbox.build_image(tmp_path / "gate", "leanprover/lean4:v4.33.1", docker=str(docker))
     assert tag == "opn-gate:leanprover-lean4-v4.33.1"
     build = log_of(tmp_path)[0]
-    assert build.startswith("build --quiet -f") and f"-t {tag} {tmp_path / 'gate'}" in build
+    assert build.startswith("build --quiet -f") and f"-t {tag} {tmp_path}" in build  # the root
     assert "--build-arg LEAN_TOOLCHAIN=leanprover/lean4:v4.33.1" in build

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import subprocess
 
-from opn_gate import layout
+from opn_gate import cache, layout
 from opn_gate.steps import stage as staging
 from opn_gate.steps.base import RunContext, StepResult
 from opn_gate.toolchain import ElabResult, ResolvedToolchain
@@ -73,9 +73,21 @@ class KernelReplayStep:
         stem: str,
     ) -> StepResult | None:
         module = layout.node_module(node_id, stem)
+        source = staged.root / staged.rel(node_id, stem)
+        # F10-R7: a dependency whose staged source the cache was built from is taken as built;
+        # the node under check is always compiled, and the replay re-checks every import anyway.
+        fetched: cache.Fetched | None = ctx.data.get("olean_cache")
+        usage: cache.Usage | None = ctx.data.get("olean_cache_usage")
+        if fetched is not None and ctx.node is not None and node_id != ctx.node.node_id:
+            if cache.take(fetched, source, module, staged.build, tc.name):
+                if usage is not None:
+                    usage.hits.append(module)
+                return None
+            if usage is not None:
+                usage.misses.append(module)
         elab: ElabResult = ctx.toolchain.elaborate(
             tc,
-            staged.root / staged.rel(node_id, stem),
+            source,
             module,
             staged.build,
             root=staged.root,

@@ -1,0 +1,16 @@
+# The image (gate/Dockerfile) is built from the repo root and takes only what pregate.sh needs
+# inside it (F10-R6): the gate package and its Lean metaprograms, and the locked Python
+# environment. Everything else — the api, the site, the specs, the venv — stays on the host.
+*
+!gate/
+!.python-version
+!lean-toolchain
+!pyproject.toml
+!uv.lock
+gate/lean/.lake/
+gate/lean/lean-toolchain
+gate/tests/
+gate/.dockerignore
+**/__pycache__/
+**/.mypy_cache/
+**/.ruff_cache/
