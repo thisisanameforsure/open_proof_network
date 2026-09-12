@@ -504,9 +504,12 @@ The law of the project:
   public site said Euclid's theorem was resolved with four blocked holes and no `Proof.lean`
   anywhere (F03-Q7). The attestation for a partial is a passing attestation against the parent's
   statement hash and says nothing about which artifact it was; `artifact_of` answers `None` for a
-  node with no proof file and the caller defaults that to `"proof"`. Every fixture node is in that
-  same state — none has a `Proof.lean` — so the fallback was the normal path in every test and the
-  live shape was the one nothing covered. Check what a fixture omits, not only what it contains.
+  node with no proof file and the caller defaults that to `"proof"`. The suite agreed because no
+  test had ever attested a node whose proof file was absent — the state a merged partial leaves
+  behind — not, as this entry first said, because the fixture lacks `Proof.lean` files (it has
+  them; the expected-failure test written that evening was failing on its own guard, and was
+  rewritten with the fix). Fixed the same day on Mike's rule: proved needs a formal statement
+  *and* a valid proof in the tree. Test the state a mode leaves behind, not only the mode.
 - 2026-09-12 — A checker that regenerates must run from the commit that generated. Run from
   `main`, `check_products.py` reported nine differences on a healthy bot commit; every one was
   F12's schema bump (`graph/v2→v3`, `targets-index/v3→v4`), because the tool regenerates with the

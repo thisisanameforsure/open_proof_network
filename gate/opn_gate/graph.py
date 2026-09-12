@@ -281,8 +281,14 @@ def derive_statuses(nodes: dict[str, NodeFacts]) -> dict[str, str]:
         node = nodes[node_id]
         if node.override is not None:
             result = node.override.status
-        elif node.proof is not None:
-            result = STATUS_FOR_ARTIFACT.get(node.artifact or "proof", "proved")
+        elif node.proof is not None and node.artifact in STATUS_FOR_ARTIFACT:
+            # F03-Q7 (2026-09-12): settled only by an artifact that is *in the tree* — a
+            # Proof.lean the gate accepted, whose declared name says which artifact it is — with
+            # a merged passing attestation for this statement. The attestation alone is not
+            # enough: a merged partial earns one against its parent's statement hash too, and it
+            # leaves no Proof.lean behind, so a parent with an attestation and no artifact is
+            # blocked on its holes like any other node, not proved (D-12 #5, D-29, D-35).
+            result = STATUS_FOR_ARTIFACT[node.artifact]
         else:
             blocked, _ = blocked_because(node, status_of)
             result = "blocked" if blocked else "ready"

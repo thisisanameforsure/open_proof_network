@@ -87,6 +87,14 @@ def findings_from(doc: dict[str, Any]) -> list[Finding]:
     return out
 
 
+def derived_origins() -> tuple[str, ...]:
+    """The origins whose statements the post-merge job generates rather than a person writes
+    (F07-R6, F08-R5): the one set the graph module owns, read late to avoid a cycle."""
+    from opn_gate.graph import HOLE_ORIGINS  # noqa: PLC0415 — graph imports steps lazily too
+
+    return HOLE_ORIGINS
+
+
 def acknowledgments_from(meta: dict[str, object]) -> list[Acknowledgment]:
     """The node's ``acknowledged_hazards`` (``meta/v2``); ``meta/v1`` has none (R6)."""
     raw = meta.get("acknowledged_hazards")
@@ -231,6 +239,25 @@ class HazardsStep:
             "acknowledged": [a.as_dict() for a in ev.used],
             "capped": bool(result.doc.get("capped")),
         }
+        if ev.unacknowledged and str(node.meta.get("origin")) in derived_origins():
+            # F07-Q19 (2026-09-12): a hole's statement was not authored, it was derived from a
+            # merged assembly as an obligation sufficient for its parent, and the kernel checked
+            # that sufficiency when the assembly elaborated. A boundary in it can make the route
+            # harder or dead, never the record wrong — the parent is only ever proved from the
+            # holes as stated plus a kernel-checked assembly — and there is no informal statement
+            # for anyone to attest it against. So the findings are recorded, never silent (C7),
+            # and the step passes; an authored statement keeps the refusal below.
+            first = ev.unacknowledged[0]
+            return StepResult.passed_with(
+                "hazards-derived-statement",
+                f"{len(ev.unacknowledged)} hazard finding(s) on a statement the gate derived "
+                f"from a merged assembly, recorded and not refused; first: {first.checker} at "
+                f"{first.location}: {first.message}",
+                findings=[f.as_dict() for f in ev.unacknowledged],
+                acknowledged=[a.as_dict() for a in ev.used],
+                checkers=checkers,
+                origin=str(node.meta.get("origin")),
+            )
         if ev.unacknowledged:
             first = ev.unacknowledged[0]
             return StepResult.failed(

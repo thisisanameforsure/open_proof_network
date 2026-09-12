@@ -93,35 +93,34 @@ def test_status_proved_unblocks(tmp_path: Path) -> None:
     assert tg.nodes["tutorial-and-swap"].proof == graph.Proof(MERGE, "kernel", "000001.json")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="F03-Q7 / F07-Q18: a merged partial's attestation is indistinguishable from a "
-    "proof's, so the assembly's parent is derived `proved` and its target `resolved`. Live on "
-    "the graph since 2026-09-12: openproofnetwork.org shows euclid-primes as resolved, 1 proved "
-    "4 blocked, with no Proof.lean anywhere under the root. Held, not fixed: which of the two "
-    "rules settles it — a node is proved only when it has a recognised artifact file, or the "
-    "attestation records the artifact kind and proof_for ignores a partial — is the owner's "
-    "call, and it changes what the network asserts about a proof.",
-)
 def test_a_merged_partial_does_not_prove_its_parent(tmp_path: Path) -> None:
-    """A partial reduces a statement to its holes; it does not settle it (D-12 #5, D-29).
+    """F03-Q7: a partial reduces a statement to its holes; it does not settle it (D-12 #5, D-29).
 
     The assembly is filed under ``attempts/`` and never as ``Proof.lean`` (F07-R4, F11-Q28), yet
     the post-merge job signs a passing attestation against the parent's statement hash for a
-    partial exactly as for a proof, and ``status_of`` reads any passing attestation as a proof
-    because ``artifact_of`` answers ``None`` for a node with no proof file and the caller
-    defaults that to ``"proof"``. Every fixture node is in that same state — none has a
-    ``Proof.lean`` — which is why the whole suite agreed.
+    partial exactly as for a proof. Until 2026-09-12 ``status_of`` read any merged passing
+    attestation as a proof, so the live on-ramp root was ``proved`` and its target ``resolved``
+    with four blocked holes and no proof file. The rule now: a node is settled only by an
+    artifact that is in the tree — a ``Proof.lean`` whose declared name says which artifact it
+    is — with a matching attestation. No test had attested a node whose proof file was absent,
+    which is the state a merged partial leaves behind; this one does.
     """
     root = copy_graph(tmp_path)
     node = nodes_dir(root) / ROOT_NODE
+    proof = (node / "Proof.lean").read_text(encoding="utf-8")
+    (node / "Proof.lean").unlink()
     (node / "attempts").mkdir(exist_ok=True)
     (node / "attempts" / "20260912T000000Z-anon-partial.lean").write_text(
         "-- the assembly of a merged partial\n", encoding="utf-8"
     )
     attest(root, ROOT_NODE)
-    assert not (node / "Proof.lean").exists()
-    assert graph.load_target(root, TARGET).statuses[ROOT_NODE] != "proved"
+    tg = graph.load_target(root, TARGET)
+    assert tg.nodes[ROOT_NODE].proof is not None  # the attestation is there and is read
+    assert tg.nodes[ROOT_NODE].artifact is None  # but nothing in the tree is a proof
+    assert tg.statuses[ROOT_NODE] == "blocked"  # on its unproved deps, like any other node
+    # The same attestation with the proof file back in the tree is a proof, as before.
+    (node / "Proof.lean").write_text(proof, encoding="utf-8")
+    assert graph.load_target(root, TARGET).statuses[ROOT_NODE] == "proved"
 
 
 def test_unmerged_pass_does_not_prove(tmp_path: Path) -> None:

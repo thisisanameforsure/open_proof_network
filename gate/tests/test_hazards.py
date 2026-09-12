@@ -98,6 +98,40 @@ def test_acknowledged_finding_passes_and_is_listed(tmp_path: Path) -> None:
     assert record["diagnostic"]["details"]["acknowledged"] == [ack]
 
 
+def with_origin(ctx: object, origin: str) -> None:
+    """Rewrite the fixture node's META.yaml origin, as the post-merge job writes a hole's."""
+    path = node_dir(ctx) / "META.yaml"  # type: ignore[arg-type]
+    text = path.read_text(encoding="utf-8")
+    assert "origin: authored\n" in text and "schema: meta/v2\n" in text
+    # skeleton-hole entered the origin enum at meta/v3 (F11); v3 requires the same fields as v2.
+    text = text.replace("schema: meta/v2\n", "schema: meta/v3\n")
+    path.write_text(text.replace("origin: authored\n", f"origin: {origin}\n"), encoding="utf-8")
+
+
+def test_a_derived_statement_records_its_findings_and_passes(tmp_path: Path) -> None:
+    """F07-Q19 (2026-09-12): a hole's statement was derived from a merged assembly, not authored,
+    so an unacknowledged finding on it is recorded in the verdict and does not refuse the node.
+    The same finding on an authored statement still fails (test_unacknowledged_finding_fails)."""
+    for origin in ("compiler-derived", "skeleton-hole"):
+        fake = FakeToolchain(hazards_doc=hazards_result([NAT_SUB]))
+        ctx = make_context(
+            tmp_path / origin, toolchain=fake, spec_overrides={"hazard_checkers": ["nat-sub"]}
+        )
+        with_meta_v2(ctx, None)
+        with_origin(ctx, origin)
+        verdict = run_to_six(ctx)
+        assert verdict.ok, verdict
+        six = next(s for s in verdict.steps if s.step == 6)
+        assert six.result == "pass" and six.diagnostic is not None
+        assert six.diagnostic.code == "hazards-derived-statement"
+        assert six.diagnostic.details["findings"] == [NAT_SUB]
+        assert six.diagnostic.details["origin"] == origin
+        assert "nat-sub" in six.diagnostic.message and "n - 1" in six.diagnostic.message
+        assert verdict.data["hazards"]["findings"] == [NAT_SUB]  # never silent (C7)
+        record = next(s for s in verdict.as_dict()["steps"] if s["step"] == 6)
+        assert record["diagnostic"]["code"] == "hazards-derived-statement"
+
+
 def test_empty_justification_rejected(tmp_path: Path) -> None:
     """AC4: a whitespace justification passes the schema's minLength but acknowledges nothing."""
     fake = FakeToolchain(hazards_doc=hazards_result([NAT_SUB]))
