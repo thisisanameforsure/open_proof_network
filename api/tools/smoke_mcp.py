@@ -141,7 +141,16 @@ def read_only(  # noqa: PLR0912, PLR0915 — a checklist: one branch per thing t
         bare = demarcate.bare_strings(
             {k: v for k, v in bundle.items() if k in ("context", "annexes", "explainers")}
         )
-        prose = [p for p in bare if p.endswith((".detail", ".route", ".text", ".justification"))]
+        # F09-AC6 over the F10-R3 bundle shape: contributor *prose* must be wrapped; the node's
+        # Lean source (the statement's and witness's ``text``) is code the gate checked, served
+        # bare on purpose (F10-Q6), and is the one ``.text`` the rule does not apply to.
+        lean_source = {"$.context.statement.text", "$.context.witness.text"}
+        prose = [
+            p
+            for p in bare
+            if p.endswith((".detail", ".route", ".text", ".justification"))
+            and p not in lean_source
+        ]
         attempts = bundle["context"]["attempts"]
         print(
             f"get_node({tutorial}) -> context {bundle['context_source']}, "
