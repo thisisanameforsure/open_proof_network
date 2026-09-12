@@ -75,3 +75,14 @@ gate/tests/test_fidelity.py::test_a_certificate_records_its_exhibits_and_evidenc
 
 $ make verify (regression gate)
 ========= 1505 passed, 1 skipped, 61 deselected, 2 warnings in 36.26s ==========
+
+--- CI lean tier (the task's named verification for AC24; this container has no elan or docker) ---
+Run 34690463330 (ci run 66, head 035d3d8 = the F12-T4 commit): job 103544676993 FAILED on one assertion,
+  gate/tests/test_qa_lean.py::test_exhibit_is_replayed_before_it_counts — "Regex pattern did not match":
+  expected 'ofReduceBool'; the replay had refused the forged exhibit with
+  "OpnQa.equiv_forward rests on OpnQa.equiv_forward._native.native_decide.ax_1_1 (D-4 steps 4, 5);
+  it does not count toward a grade (R15)" (QaError, code exhibit-replay).
+  So the behaviour AC24 asks for held on the real toolchain — the grade did not rise — and the test
+  had guessed the axiom's name from memory: Lean 4.33 mints the native-decide axiom per declaration,
+  which toolchain.NATIVE_DECIDE_MARKERS already covers ("native_decide", "Lean.ofReduceBool"). The
+  match is now "native_decide|ofReduceBool". 60 of 61 lean/docker tests passed in that run.

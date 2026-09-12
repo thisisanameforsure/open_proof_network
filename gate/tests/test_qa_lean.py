@@ -144,7 +144,9 @@ def test_exhibit_is_replayed_before_it_counts(
 ) -> None:
     """AC24: an exhibit that elaborates and has a matching hash and no sorry, but proves by
     native_decide, is refused by the replay through the real toolchain — the axiom check sees
-    ``Lean.ofReduceBool`` — so the grade does not rise."""
+    the native-decide axiom (Lean 4.33 names it per declaration,
+    ``<decl>._native.native_decide.ax_1_1``; ``Lean.ofReduceBool`` on older toolchains, both
+    markers in ``toolchain.NATIVE_DECIDE_MARKERS``) — so the grade does not rise."""
     real_toolchain.lean_pkg_bin = lean_pkg
     root = copy_graph(tmp_path, GRAPH)
     target = root / "targets" / TARGET
@@ -176,7 +178,7 @@ def test_exhibit_is_replayed_before_it_counts(
     assert state.complete and state.refused == (), "the fast checks let the forgery through"
 
     ctx = context(root, TARGET, PROPOSITIONAL_ROOT, real_toolchain, tmp_path / "work")
-    with pytest.raises(qa.QaError, match="ofReduceBool") as refused:
+    with pytest.raises(qa.QaError, match=r"native_decide|ofReduceBool") as refused:
         qa.grade_gate(
             target, "root", replay=lambda rs: qa.replay_exhibits(ctx, rs, timeout_s=120.0)
         )
