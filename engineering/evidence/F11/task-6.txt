@@ -1,0 +1,60 @@
+F11-T6 — the invited-run readiness rehearsal: gate/tools/rehearsal.py, its fast-tier test,
+and the first live run.
+2026-09-12
+
+STATUS: CODE COMPLETE; AC14 (network tier) waits on the on-ramp intake merging (Mike's sitting)
+-------------------------------------------------------------------------------------------
+R11 asks for one driver that exercises both contributor paths with a test identity each —
+claim, precheck, submit; a postmortem; a variant; the root closing; the site — with timings.
+Before T6 the pieces existed as three smoke tools (smoke.py, smoke_precheck.py, smoke_mcp.py),
+each proving one seam, none of them the sequence a contributor lives through.
+
+  gate/tools/rehearsal.py       the driver: mints an identity per path the account-free way
+                                (D-19), runs the four acts on each path, polls the root,
+                                checks the site's rendered-from commit against the service's,
+                                writes the readiness record with a time per step. Exit 0 only
+                                when every R11 step passed; 2 (PENDING) when a step was
+                                skipped for want of an input, the merge has not landed or the
+                                site is a redeploy behind; 1 on a failure. HTTP through the
+                                smoke tools' guarded caller (https or the local runner only,
+                                C5); MCP through the SDK client, the one Claude Code speaks.
+  gate/tests/test_rehearsal.py  fast tier, over the walkthrough test's stage (a git checkout
+                                of the fixture graph, the api on a loopback port, the fake
+                                host whose precheck runs finish at once): every act ok on both
+                                paths, two pull requests of each kind on the host, the root
+                                pending, the site skipped, exit 2; the optional steps skipped
+                                without inputs; a node off the frontier fails the first step;
+                                only https or the local runner is driven.
+
+Two things the live run taught (below), both folded in before the commit:
+  - the MCP path's variant is marked with a trailing comment, because a variant's id is a hash
+    of its statement (F08-R3) and the second path would otherwise have proposed the node the
+    first had just proposed;
+  - a skipped step is PENDING, not READY: the live run printed READY with four steps skipped,
+    which is not what R11 means by "every step". The test pins the rule.
+
+
+Verification
+------------
+$ make verify                                            (2026-09-12, before the READY fix)
+All checks passed!                                       ruff check
+Success: no issues found in 116 source files             mypy gate
+Success: no issues found in 74 source files              mypy api
+Success: no issues found in 18 source files              mypy site
+=============== 1430 passed, 58 deselected, 2 warnings in 56.23s ===============
+exit 0
+
+$ uv run pytest gate/tests/test_rehearsal.py -q          (after the READY fix)
+4 passed, 2 warnings in 1.73s
+
+(The pre-commit hook runs the full fast tier again on the commit.)
+
+
+The spec's verification command, against the live service
+----------------------------------------------------------
+$ uv run python gate/tools/rehearsal.py https://api.openproofnetwork.org --out <record>
+exit 0 as printed, PENDING under the rule added afterwards; the record, the timings, the two
+pull requests the gate passed and their closing are in engineering/evidence/F11/invited-run-readiness.txt.
+The frontier's one claimable node today is F08's live variant on the tutorial target; the
+on-ramp node, its proof, the variant of its root and the site check are the run Mike makes
+after T4's intake pull requests merge (section 3 of that record).

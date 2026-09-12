@@ -1,0 +1,109 @@
+F11-T6 — invited-run readiness rehearsal: the readiness record (R11; AC14)
+2026-09-12
+
+STATUS: PENDING — both paths reach the live service end to end; the two steps that need an
+on-ramp node (precheck + submit, and a variant of its root) and the site check wait on the
+on-ramp intake merging (T4's pull requests, after the re-pin), which is Mike's sitting.
+-------------------------------------------------------------------------------------------
+
+Three runs of gate/tools/rehearsal.py are recorded here: the live service as it is today, the
+same driver over the fixture graph and the fake service (what the fast tier runs on every
+`make verify`, gate/tests/test_rehearsal.py), and the command Mike runs once the on-ramp graph
+is merged. The driver mints one identity per path the account-free way (D-19: an anonymous
+precheck of the tutorial node), drives the HTTP routes with the standard library and the MCP
+tools with the SDK client, times every step, and exits 0 only when every R11 step passed —
+a skipped step, a merge not yet landed or a site a redeploy behind is exit 2, PENDING.
+
+
+1. The live service, 2026-09-12 08:51 UTC
+-----------------------------------------
+    uv run python gate/tools/rehearsal.py https://api.openproofnetwork.org --out <record>
+
+The frontier's one claimable node is variant-93e79cb5 on the tutorial target (F08's first live
+variant, 2026-09-11). No proof of it exists, so the two submit steps were skipped; the variant
+step was skipped for want of a statement. Everything else ran for real.
+
+ seconds  status   step
+    12.6  ok       frontier  — 1 entries; node variant-93e79cb5 on tutorial; tutorial tutorial-and-swap
+   139.0  ok       identity:http  — tutorial precheck -> token (D-19)
+   132.8  ok       identity:mcp  — tutorial precheck -> token (D-19)
+     0.6  ok       claim:http  — claim 01M2AD0MX08CF38HM0MTZ8ATBG
+     0.0  skipped  precheck+submit:http  — no --proof given
+     3.8  ok       postmortem:http  — PR https://github.com/thisisanameforsure/open_proof_network_graph/pull/10
+     0.0  skipped  variant:http  — no --variant-statement/--variant-witness
+     1.9  ok       claim:mcp  — claim 01M2AD0SS8CDEQHJMRF39S4304
+     0.0  skipped  precheck+submit:mcp  — no --proof given
+     5.1  ok       postmortem:mcp  — PR https://github.com/thisisanameforsure/open_proof_network_graph/pull/11
+     0.0  skipped  variant:mcp  — no --variant-statement/--variant-witness
+     1.7  ok       root-closes  — root tutorial-and-swap is proved
+     0.0  skipped  site  — no --site given
+
+verdict: PENDING   (the run printed READY; the rule that a skipped step is pending was added
+                    from this record, and the fast-tier test pins it — see task-6.txt)
+
+Timings worth knowing for the invited run: the account-free identity costs one hosted precheck
+of the tutorial node, 133–139 s each here (the precheck workflow's runner start plus the
+sandboxed gate); every write after that is under six seconds on either path, the MCP path's
+extra second or two being one SDK session per call.
+
+What the live host said about the two pull requests (gh pr view, before they were closed):
+
+  PR 10  app/open-proof-network  append/01M2AD0NW8EB8Q1212VXN716JP
+         targets/tutorial/nodes/variant-93e79cb5/attempts/20260912T085117Z-rehearsal-http-5db93f.yaml
+         gate (steps 1, 2 and 4-8 in the sandbox): SUCCESS; postmerge: SKIPPED
+  PR 11  app/open-proof-network  append/01M2AD0WQ00AZQ1NC6GBY0S38D
+         targets/tutorial/nodes/variant-93e79cb5/attempts/20260912T085124Z-rehearsal-mcp-8364b5.yaml
+         gate (steps 1, 2 and 4-8 in the sandbox): SUCCESS; postmerge: SKIPPED
+
+Both were the App as committer with the rehearsal pseudonym as author (D-23), both classified
+as postmortem appends and passed the gate. Both were then closed with a comment and their
+branches deleted: a rehearsal identity's attempt record is a test artifact, and the graph's
+history is mathematics only (D-35). The two claims are advisory and expire on their own.
+
+
+2. The fixture graph and the fake service (fast tier; gate/tests/test_rehearsal.py)
+-----------------------------------------------------------------------------------
+The propositional fixture as a git checkout, the api on a loopback port over the fake host
+whose precheck runs finish at once, a Proof.lean for the claimable node and a variant
+statement supplied. Every step but the two no fixture can close comes back ok:
+
+ seconds  status   step
+     0.1  ok       frontier  — 1 entries; node and-reassoc on propositional; tutorial tutorial-and-swap
+     0.0  ok       identity:http  — tutorial precheck -> token (D-19)
+     0.0  ok       identity:mcp  — tutorial precheck -> token (D-19)
+     0.0  ok       claim:http  — claim 01M230M2G0EB2RRXN62NC3DA1J
+     0.0  ok       precheck+submit:http  — precheck 01M230M2G0PVACN2F63G780T28 pass; PR .../pull/1
+     0.0  ok       postmortem:http  — PR .../pull/2
+     0.0  ok       variant:http  — node variant-6490b88f; PR .../pull/3
+     0.0  ok       claim:mcp  — claim 01M230M2G0PSMNYAXNCJ8N1PHP
+     0.1  ok       precheck+submit:mcp  — precheck 01M230M2G0A0JR4PJK9X02WBDX pass; PR .../pull/4
+     0.0  ok       postmortem:mcp  — PR .../pull/5
+     0.0  ok       variant:mcp  — node variant-f948ac7e; PR .../pull/6
+     0.0  pending  root-closes  — root and-swap-reassoc is blocked; waits on the merges (nothing merges on green, F07-Q16)
+     0.0  skipped  site  — no --site given
+
+verdict: PENDING
+pull requests opened on the fake host: proof: and-reassoc ×2, postmortem: and-reassoc ×2,
+proposal: variant-6490b88f, proposal: variant-f948ac7e (the MCP path marks its statement, so
+the two variants are two nodes rather than one node proposed twice — F08-R3's id is a hash of
+the statement).
+
+
+3. The run that closes AC14 (Mike's sitting, after T4's intake merges)
+----------------------------------------------------------------------
+On the on-ramp graph the frontier carries the skeleton's holes, so the driver is pointed at a
+hole with a proof of it, and at the site:
+
+    uv run python gate/tools/rehearsal.py https://api.openproofnetwork.org \
+        --target euclid-primes --node <a hole of infinitude-of-primes> \
+        --proof <Proof.lean for that hole> \
+        --variant-statement <Statement.lean> --variant-witness <Witness.lean> \
+        --site https://openproofnetwork.org --merge-timeout 0
+
+which opens two proof pull requests, two postmortems and two variants (exit 2, PENDING); Mike
+merges one proof and one variant (nothing merges on green, F07-Q16), the post-merge job
+re-renders, the site redeploys, and the second invocation with `--merge-timeout 900` and the
+same `--node` reports the root's status and the site's rendered-from commit — exit 0, READY,
+once the root's last hole is merged. The git path of R11 — a clone, a branch and a pull
+request opened by hand under a GitHub identity — is AGENTS.md's two `manual` blocks, run by
+Mike with his own account, and its pull request is listed here when it has been.

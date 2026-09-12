@@ -440,3 +440,10 @@ The law of the project:
   that fetches it, not the file. The seed pass's inputs include one erdosproblems.com page per
   problem and the site states no licence, so the dataset is committed (extracted from the
   report) and the pages are named as fetches (F11-Q23). R10's rule reaches the repository.
+- 2026-09-12 — A rehearsal that reports READY with steps skipped is lying by omission. The
+  first live `rehearsal.py` run skipped four of R11's steps for want of inputs and printed
+  READY, because the verdict only knew *failed* and *pending*. Every "all steps pass" tool
+  needs a third state for "not attempted", and it must count against the verdict. Also: the
+  live frontier was not empty as the notes said — F08's merged variant is claimable — so a
+  read-only probe became two live pull requests; re-read the frontier before assuming a run
+  writes nothing, and clean up what it opens (both closed, branches deleted).
