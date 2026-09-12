@@ -205,12 +205,13 @@ def check(doc: dict[str, Any], root_dir: Path) -> None:
 
 
 def claimability(
-    doc: dict[str, Any] | None, *, status: str, grade: str | None
+    doc: dict[str, Any] | None, *, status: str, grade: str | None, drifted: bool = False
 ) -> tuple[bool, tuple[str, ...]]:
     """R4: ``(claimable, reasons)``. The reasons are empty exactly when it is claimable.
 
     ``doc`` is ``None`` for a pre-F11 target, which this does not decide for: the caller keeps
-    F03's rule there.
+    F03's rule there. ``drifted`` is F12-R11's freeze: an upstream edit stands on the root as it
+    is, and proving compute waits for a person (D-10 v3.12).
     """
     if doc is None:
         msg = "claimability is derived from a target record; this target has none"
@@ -222,6 +223,8 @@ def claimability(
         reasons.append(f"grade-below-{fidelity.CLAIMABLE_GRADE}")
     if doc.get("posting") is None:
         reasons.append("no-posting")
+    if drifted:
+        reasons.append("upstream-drift")
     return not reasons, tuple(reasons)
 
 
@@ -233,6 +236,11 @@ def explain(reason: str) -> str:
         return f"its fidelity grade is below {reason.removeprefix('grade-below-')} (D-9)"
     if reason == "no-posting":
         return "it has not been posted upstream (D-10)"
+    if reason == "upstream-drift":
+        return (
+            "the statement it was imported from changed upstream; compute is frozen until a "
+            "curator acts (D-10 v3.12)"
+        )
     return reason
 
 

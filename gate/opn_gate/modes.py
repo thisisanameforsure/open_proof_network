@@ -286,6 +286,10 @@ def _classify_curator(  # noqa: PLR0913 — the diff, its located paths and the 
         # F12-R4: the screen's own claim rides with the QA record that produced it; the claim is
         # then held to being a screen-finding (``check_defect_claim``), not a contributor's.
         allowed.add("defect-claim")
+    if "drift-record" in roles:
+        # F12-R11: the watcher's revision request rides with the drift record that opened it,
+        # held to the upstream-drift class (``check_revision_request``).
+        allowed.add("revision-request")
     if not roles <= allowed:
         return Classification(None, target_id, None, tuple(located), (_mixed(roles),))
     node_roles = set(paths.NODE_ROLES)
@@ -679,6 +683,10 @@ def check_append_file(
         problems.extend(check_defect_claim(graph_root, located, data, mode=mode))
         if problems:
             return problems
+    if located.role == "revision-request" and mode == "curator":
+        problems.extend(check_watcher_request(located, data))
+        if problems:
+            return problems
     if located.role in paths.CONTENT_HASHED_ROLES:
         naming = paths.check_content_hash_name(located, data)
         if naming is not None:
@@ -765,6 +773,26 @@ def check_defect_claim(  # noqa: PLR0911 — one return per rule
 
 
 SCREEN_FINDING = "screen-finding"
+UPSTREAM_DRIFT = "upstream-drift"
+
+
+def check_watcher_request(located: Located, data: bytes) -> list[Diagnostic]:
+    """F12-R11: in a curator pull request a revision request is the watcher's — class
+    ``upstream-drift`` — or nothing; a person's request is an append like anyone's."""
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    if doc.get("defect_class") == UPSTREAM_DRIFT:
+        return []
+    return [
+        Diagnostic(
+            "defect-class",
+            f"{located.path}: a curator pull request carries the watcher's request "
+            f"({UPSTREAM_DRIFT}) beside its drift record and no other; file a "
+            f"{doc.get('defect_class')!r} request as an append like anyone else (F12-R11, D-8)",
+            {"path": located.path, "class": doc.get("defect_class")},
+        )
+    ]
 
 
 def check_screen_finding(

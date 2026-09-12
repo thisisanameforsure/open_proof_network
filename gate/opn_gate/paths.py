@@ -179,6 +179,7 @@ Role = Literal[
     "qa-record",  # targets/<id>/qa/<subject>-<n>.yaml: one run of the QA pass (F12-R1)
     "qa-file",  # targets/<id>/qa/{exhibits,consequences,briefs,backtranslation}/<name> (F12)
     "attempts-ledger",  # targets/<id>/attempts.yaml: D-9's documented attempts (F12-R10)
+    "drift-record",  # targets/<id>/drift/<name>.yaml: the watcher's flag (F12-R11, R12)
 ]
 
 #: Roles that claim nothing and merge on schema and path checks alone (F07-R9).
@@ -205,6 +206,7 @@ CURATOR_ROLES: tuple[Role, ...] = (
     "qa-record",
     "qa-file",
     "attempts-ledger",
+    "drift-record",
 )
 
 #: What a curated intake adds beside the root node (F11-R2; D-6): the target's own files. A pull
@@ -226,10 +228,11 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "approach-record": ("approach-record/v1",),
     "node-status": ("node-status/v1",),
     "target-status": ("target-status/v1", "target-status/v2"),
-    "revision-request": ("revision-request/v1",),
+    "revision-request": ("revision-request/v1", "revision-request/v2"),
     "defect-claim": ("defect-claim/v1", "defect-claim/v2"),
     "qa-record": ("qa/v1",),
     "attempts-ledger": ("attempts/v1",),
+    "drift-record": ("drift/v1",),
 }
 
 #: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers).
@@ -308,6 +311,8 @@ def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912 — one branc
             return Located("gate-spec", path, target_match.group("target"), None)
         if rest == "attempts.yaml":
             return Located("attempts-ledger", path, target_match.group("target"), None)
+        if head == "drift" and _is_flat(name, YAML_SUFFIXES):
+            return Located("drift-record", path, target_match.group("target"), None)
         if head == "defs" and _is_flat(name, (".lean",)):
             return Located("definition", path, target_match.group("target"), None)
         if head == "fidelity" and _is_flat(name, YAML_SUFFIXES):

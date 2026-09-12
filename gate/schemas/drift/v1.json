@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/drift/v1.json",
+  "title": "drift/v1",
+  "description": "targets/<id>/drift/<timestamp>-<author>.yaml (F12-R11, R12; D-10 v3.12): what the watcher noticed about an inherited statement — `upstream-edit`, the path the target was imported from differs at upstream head from the pinned commit, with the diff attached; or `resolved-elsewhere`, the source lists the problem as no longer open, with the citation attached. A flagged `upstream-edit` freezes proving compute by deriving claimable: false for as long as the root's statement hash is the one recorded here; a D-8 revision changes the hash and lifts the flag, and a curator who judges the edit irrelevant appends a `cleared` record. The grade never moves on a drift record (D-9 downgrades on a confirmed defect, and a drift signal is not one). Append-only; every string here is untrusted upstream text, capped and escaped at render (F12 §7). Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "kind", "state", "statement_hash", "date", "author", "upstream", "citation", "diff"],
+  "properties": {
+    "schema": { "const": "drift/v1" },
+    "kind": { "enum": ["upstream-edit", "resolved-elsewhere"] },
+    "state": {
+      "description": "`flagged` by the watcher; `cleared` by a curator, naming the flag it clears in `clears`.",
+      "enum": ["flagged", "cleared"]
+    },
+    "statement_hash": {
+      "description": "The root's statement hash when the record was written; the flag applies while it is the current one.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$" },
+    "author": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "upstream": {
+      "description": "For `upstream-edit`: where the statement came from, and the two commits compared.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["repo", "path", "pinned_commit", "head_commit"],
+          "properties": {
+            "repo": { "type": "string", "minLength": 3, "maxLength": 200 },
+            "path": { "type": "string", "minLength": 1, "maxLength": 300 },
+            "pinned_commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+            "head_commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+          }
+        }
+      ]
+    },
+    "citation": {
+      "description": "For `resolved-elsewhere`: the source's page, the status it shows and the line it shows it with.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["url", "status", "text"],
+          "properties": {
+            "url": { "type": "string", "pattern": "^https?://", "maxLength": 500 },
+            "status": { "type": "string", "minLength": 1, "maxLength": 100 },
+            "text": { "type": "string", "maxLength": 2000 }
+          }
+        }
+      ]
+    },
+    "diff": {
+      "description": "The unified diff between the pinned and the head version of the path, capped at 16 KiB; untrusted text.",
+      "oneOf": [{ "type": "null" }, { "type": "string", "maxLength": 16384 }]
+    },
+    "clears": {
+      "description": "For a `cleared` record: the file name of the flag it clears.",
+      "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1, "maxLength": 200 }]
+    },
+    "note": {
+      "oneOf": [{ "type": "null" }, { "type": "string", "maxLength": 2000 }]
+    }
+  }
+}

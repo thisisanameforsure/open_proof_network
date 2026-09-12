@@ -401,10 +401,28 @@ on the site.</p>
     every fixture carries a record, is a gate by default. A subject with no exhibit rows — the
     common case, since clean screens leave no file — needs no toolchain to sign, which is why
     the command starts one only when there is something to replay.</td></tr>
+  <tr><td>F12-Q16</td><td><strong>The drift flag is a record scoped to the root's hash, the
+    watcher's write access is a fourth secret door the owner has not granted, and the workflow
+    runs dry until it is</strong> (2026-09-12, T5). R11's "set the target's drift flag" is a
+    <code>drift/v1</code> record under <code>targets/&lt;id&gt;/drift/</code> carrying the root's
+    statement hash at the time, so the products derive the freeze (<code>claimable: false</code>,
+    reason <code>upstream-drift</code>) exactly while that hash is current: a D-8 revision changes
+    it and lifts the flag with no further act, and a curator who judges the edit irrelevant appends
+    a <code>cleared</code> record naming the flag. The revision request the flag opens is a
+    <code>revision-request/v2</code> — one enum value, <code>upstream-drift</code>, added because a
+    drift is not one of D-16's classes and D-34 forbids editing v1 — and rides in the same curator
+    pull request as the flag (F12-Q12's shape). What the watcher cannot do from this repository is
+    push that pull request: the repository's own token has no write on the graph, and a token that
+    does is a secret C8 does not list. So <code>watch-upstream.yml</code> always runs the dry run
+    and keeps its report as the run's artifact, and the live step is gated on
+    <code>OPN_GRAPH_WATCHER_TOKEN</code> under an identity in the graph's
+    <code>curators.json</code> — Mike's call, the F07 precedent of pricing a permission before the
+    code assumes it. R12's "notify the curator" is the record, the report and the pull request; no
+    other channel exists yet. Q1 stands: the watcher is tooling and lives here.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1 ✓ 2026-09-12 · T2 built 2026-09-12 (lean tier pending CI) · T3 ✓ 2026-09-12 · T4 built 2026-09-12 (lean tier pending CI) · T5&ndash;T6 todo</div>
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1 ✓ 2026-09-12 · T2 built 2026-09-12 (lean tier pending CI) · T3 ✓ 2026-09-12 · T4 built 2026-09-12 (lean tier pending CI) · T5 ✓ 2026-09-12 (AC13 dry run: this container cannot reach erdosproblems.com; the workflow run is the evidence) · T6 todo</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its

@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from opn_gate import context, defs, intake, layout, records, schemas
+from opn_gate import context, defs, intake, layout, records, schemas, watch
 from opn_gate import fidelity as fidelitymod
 from opn_gate import graph as graphmod
 from opn_gate.graph import GraphError, NodeFacts, TargetGraph
@@ -200,7 +200,9 @@ def target_facts(tg: TargetGraph) -> TargetFacts:
         status = "active" if legacy_claimable else "listed"
     if doc is None:
         return TargetFacts(status=status, claimable=legacy_claimable, fidelity=grade)
-    claimable, reasons = intake.claimability(doc, status=status, grade=grade)
+    # F12-R11: an upstream edit that stands on the root as it is freezes proving compute.
+    drift = watch.drift_state(tg.path, tg.nodes[tg.root].statement_hash)
+    claimable, reasons = intake.claimability(doc, status=status, grade=grade, drifted=drift.frozen)
     return TargetFacts(
         status=status,
         claimable=claimable,

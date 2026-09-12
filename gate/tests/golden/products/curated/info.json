@@ -29,6 +29,9 @@
       1,
       2
     ],
+    "drift": [
+      1
+    ],
     "fidelity": [
       1
     ],
@@ -68,7 +71,8 @@
       1
     ],
     "revision-request": [
-      1
+      1,
+      2
     ],
     "submission-meta": [
       1

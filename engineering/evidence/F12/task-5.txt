@@ -1,0 +1,20 @@
+F12-T5 — the watchers: the upstream-drift check with the diff, the drift record, the revision request and the compute freeze (R11); the resolved-elsewhere check with its citation (R12); the daily workflow (Q1, Q16).
+2026-09-12T11:20:59Z  commit: 035d3d8 (+ working tree)
+
+$ uv run pytest gate/tests/test_watcher.py -v
+gate/tests/test_watcher.py::test_upstream_drift PASSED                   [ 10%]
+gate/tests/test_watcher.py::test_a_second_run_does_not_flag_the_same_head_twice PASSED [ 20%]
+gate/tests/test_watcher.py::test_an_unchanged_path_and_an_unpinned_target_write_nothing PASSED [ 30%]
+gate/tests/test_watcher.py::test_one_head_fetch_per_repository PASSED    [ 40%]
+gate/tests/test_watcher.py::test_a_revision_lifts_the_flag_and_a_curator_can_clear_it PASSED [ 50%]
+gate/tests/test_watcher.py::test_resolved_elsewhere PASSED               [ 60%]
+gate/tests/test_watcher.py::test_parse_status_reads_the_badge_or_nothing PASSED [ 70%]
+gate/tests/test_watcher.py::test_upstream_unreachable_is_a_warning_not_all_clear PASSED [ 80%]
+gate/tests/test_watcher.py::test_dry_run_reports_and_writes_nothing PASSED [ 90%]
+gate/tests/test_watcher.py::test_the_tool_runs_a_dry_run_and_commits_on_a_branch PASSED [100%]
+============================== 10 passed in 0.79s ==============================
+
+$ uv run python gate/tools/watch_upstream.py --dry-run — see watcher-dry-run.txt
+
+$ make verify (regression gate)
+========= 1515 passed, 1 skipped, 61 deselected, 2 warnings in 40.47s ==========
