@@ -93,6 +93,37 @@ def test_status_proved_unblocks(tmp_path: Path) -> None:
     assert tg.nodes["tutorial-and-swap"].proof == graph.Proof(MERGE, "kernel", "000001.json")
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="F03-Q7 / F07-Q18: a merged partial's attestation is indistinguishable from a "
+    "proof's, so the assembly's parent is derived `proved` and its target `resolved`. Live on "
+    "the graph since 2026-09-12: openproofnetwork.org shows euclid-primes as resolved, 1 proved "
+    "4 blocked, with no Proof.lean anywhere under the root. Held, not fixed: which of the two "
+    "rules settles it — a node is proved only when it has a recognised artifact file, or the "
+    "attestation records the artifact kind and proof_for ignores a partial — is the owner's "
+    "call, and it changes what the network asserts about a proof.",
+)
+def test_a_merged_partial_does_not_prove_its_parent(tmp_path: Path) -> None:
+    """A partial reduces a statement to its holes; it does not settle it (D-12 #5, D-29).
+
+    The assembly is filed under ``attempts/`` and never as ``Proof.lean`` (F07-R4, F11-Q28), yet
+    the post-merge job signs a passing attestation against the parent's statement hash for a
+    partial exactly as for a proof, and ``status_of`` reads any passing attestation as a proof
+    because ``artifact_of`` answers ``None`` for a node with no proof file and the caller
+    defaults that to ``"proof"``. Every fixture node is in that same state — none has a
+    ``Proof.lean`` — which is why the whole suite agreed.
+    """
+    root = copy_graph(tmp_path)
+    node = nodes_dir(root) / ROOT_NODE
+    (node / "attempts").mkdir(exist_ok=True)
+    (node / "attempts" / "20260912T000000Z-anon-partial.lean").write_text(
+        "-- the assembly of a merged partial\n", encoding="utf-8"
+    )
+    attest(root, ROOT_NODE)
+    assert not (node / "Proof.lean").exists()
+    assert graph.load_target(root, TARGET).statuses[ROOT_NODE] != "proved"
+
+
 def test_unmerged_pass_does_not_prove(tmp_path: Path) -> None:
     """AC3: a pass without a merge commit is a precheck, not a proof; a stale hash neither."""
     root = copy_graph(tmp_path)
