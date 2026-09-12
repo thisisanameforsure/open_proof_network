@@ -31,8 +31,11 @@ complete`` is the refusal the grade gate uses (R9); ``pass_state`` is what the p
 from __future__ import annotations
 
 import logging
+import re
+import subprocess
+import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
@@ -41,6 +44,8 @@ import yaml
 from opn_gate import fidelity, layout, schemas
 from opn_gate import graph as graphmod
 from opn_gate.diagnostic import Diagnostic
+from opn_gate.steps.base import RunContext
+from opn_gate.toolchain import ResolvedToolchain, ToolchainMissingError
 
 log = logging.getLogger(__name__)
 
@@ -547,6 +552,10 @@ class PassState:
         return tuple(f for f in self.findings if not f.routed)
 
     @property
+    def routed_findings(self) -> tuple[Finding, ...]:
+        return tuple(f for f in self.findings if f.routed)
+
+    @property
     def complete(self) -> bool:
         """R9: every floor check passed and no positive screen awaits a person."""
         return not self.missing and not self.unrouted
@@ -674,3 +683,736 @@ def require_complete(
     code = state.refused[0].code if state.refused and not state.missing else "pass-incomplete"
     msg = f"{subject} cannot rise to {fidelity.SIGNED_FROM}: " + "; ".join(reasons)
     raise QaError(code, msg)
+
+
+# --- the soundness screens (R3, R4; D-9 v3.12 layer 2) --------------------------------------------
+#
+# Four attempts, each a scratch Lean file that names the statement as a goal or a hypothesis and
+# never as a ``sorry`` in a graph file: prove the statement, prove its negation, prove ``False``
+# from its hypotheses, and derive each declared consequence. Any success is a *finding*: the
+# proof is replayed through the kernel (D-4 step 4) with the axiom check (step 5), stored as an
+# exhibit, and filed as a ``screen-finding`` defect claim that names both readings (R4). A
+# timeout, an exhausted budget or an error is ``inconclusive`` — never a clean pass (C7).
+
+SCREEN_TOOL = "opn-gate qa screen"
+SCREEN_CONTRIBUTOR = "opn-gate-qa"
+SCREEN_NAMESPACE = "OpnQa"
+CONSEQUENCES_DIR = "consequences"
+#: The bounded tactic budget's *shape*: cheap closers first, then a library search. Each attempt
+#: also runs under the wall-clock budget (``OPN_QA_ATTEMPT_BUDGET_S``), which is the bound that
+#: holds whatever the tactics do. ``aesop`` exists only under Mathlib (D-7).
+SCREEN_TACTICS_CORE: tuple[str, ...] = (
+    "(intros; simp_all)",
+    "(intros; omega)",
+    "decide",
+    "(intros; exact?)",
+)
+SCREEN_TACTICS_MATHLIB: tuple[str, ...] = ("(intros; aesop)", "(intros; norm_num)")
+SCREEN_HEARTBEATS = 400000
+NOTE_BUDGET = "budget-exhausted: the per-subject budget was spent before this attempt started"
+NOTE_TIMEOUT = "timed out: the attempt exceeded the per-attempt budget"
+NOTE_NO_CONSEQUENCES = "no consequence lemma is declared under qa/consequences/; nothing to derive"
+
+_THEOREM_HEAD_RE = re.compile(r"(?:theorem|lemma)\s+[^\s:({\[⦃]+")
+_OPENERS = "({[⦃⟨"
+_CLOSERS = ")}]⦄⟩"
+_ARROW = "→"
+_FORALL = "∀"
+
+
+@dataclass(frozen=True)
+class Signature:
+    """A statement's declared shape: its explicit binders and the proposition after the colon."""
+
+    binders: str  # ``(n : Nat) {m : Nat}``, or ``""``
+    prop: str
+
+    @property
+    def closed(self) -> str:
+        """The proposition with the binders folded in: what a hypothesis of it says."""
+        return f"{_FORALL} {self.binders}, {self.prop}" if self.binders else self.prop
+
+    @property
+    def negation(self) -> str:
+        return f"¬ ({self.closed})"
+
+    @property
+    def false_form(self) -> str:
+        """The proposition with its conclusion replaced by ``False``: provable exactly when the
+        hypotheses are contradictory (the vacuity screen). A proposition with no hypotheses
+        becomes ``False`` itself, which is an honest attempt rather than a vacuous pass."""
+        return conclusion_to_false(self.prop)
+
+
+def _balanced_end(text: str, start: int) -> int:
+    """The index just past the group that opens at ``start``; ``-1`` when it never closes."""
+    depth = 0
+    for i in range(start, len(text)):
+        if text[i] in _OPENERS:
+            depth += 1
+        elif text[i] in _CLOSERS:
+            depth -= 1
+            if depth == 0:
+                return i + 1
+    return -1
+
+
+def signature_of(statement: layout.Statement) -> Signature | Diagnostic:
+    """The binders and the proposition of a D-3 statement, from its text.
+
+    Reads the one shape ``layout.parse_statement`` already admits — ``theorem N binders : P :=
+    sorry`` — so what it cannot read is a diagnostic, and the screen records ``inconclusive``
+    rather than guessing at a proposition (C7, F12-Q11).
+    """
+    head = statement.prefix[: -len(":=")] if statement.prefix.endswith(":=") else statement.prefix
+    m = _THEOREM_HEAD_RE.search(head)
+    if m is None:
+        return Diagnostic("statement-shape", "the statement declares no theorem")
+    rest = head[m.end() :].strip()
+    binders: list[str] = []
+    while rest and rest[0] in "({[⦃":
+        end = _balanced_end(rest, 0)
+        if end == -1:
+            return Diagnostic("statement-shape", "a binder group in the statement never closes")
+        binders.append(rest[:end])
+        rest = rest[end:].lstrip()
+    if not rest.startswith(":"):
+        return Diagnostic(
+            "statement-shape",
+            "the statement's signature is not `theorem <name> <binders> : <proposition>`",
+            {"after_binders": rest[:40]},
+        )
+    prop = rest[1:].strip()
+    if not prop:
+        return Diagnostic("statement-shape", "the statement has an empty proposition")
+    return Signature(" ".join(binders), prop)
+
+
+def _split_top_level(text: str, token: str) -> list[str]:
+    """Split ``text`` on ``token`` outside every bracket group."""
+    pieces: list[str] = []
+    depth = 0
+    current = ""
+    i = 0
+    while i < len(text):
+        ch = text[i]
+        if ch in _OPENERS:
+            depth += 1
+        elif ch in _CLOSERS:
+            depth -= 1
+        if depth == 0 and text.startswith(token, i):
+            pieces.append(current)
+            current = ""
+            i += len(token)
+            continue
+        current += ch
+        i += 1
+    pieces.append(current)
+    return pieces
+
+
+def conclusion_to_false(prop: str) -> str:
+    """``∀ x, H₁ → H₂ → C`` becomes ``∀ x, H₁ → H₂ → False``; a proposition with no top-level
+    hypothesis becomes ``False`` under its binders. Only the *last* top-level arrow is the
+    conclusion's; anything inside brackets is left alone."""
+    text = prop.strip()
+    prefix = ""
+    while text.startswith(_FORALL):
+        comma = _split_top_level(text, ",")
+        if len(comma) < 2:
+            break
+        prefix += comma[0] + ","
+        text = ",".join(comma[1:]).strip()
+    arrows = _split_top_level(text, _ARROW)
+    hyps = [h.strip() for h in arrows[:-1]]
+    body = " → ".join([*hyps, "False"]) if hyps else "False"
+    return f"{prefix} {body}".strip() if prefix else body
+
+
+@dataclass(frozen=True)
+class Attempt:
+    """One scratch theorem the screen tries to prove."""
+
+    check: Check
+    stem: str  # the module and file stem under ``OpnQa/``
+    decl: str
+    goal: str
+    binders: str = ""
+    hypothesis: str | None = None  # the subject, introduced as an explicit hypothesis
+    note: str | None = None
+    extra_imports: tuple[str, ...] = ()
+
+
+def consequences(target_dir: Path) -> list[tuple[str, layout.Statement]] | Diagnostic:
+    """The declared consequence lemmas: ``qa/consequences/<Name>.lean``, each in the statement
+    shape (one sorry-bodied theorem), named for its file."""
+    directory = qa_dir(target_dir) / CONSEQUENCES_DIR
+    if not directory.is_dir():
+        return []
+    out: list[tuple[str, layout.Statement]] = []
+    for path in sorted(p for p in directory.iterdir() if p.is_file() and p.suffix == ".lean"):
+        parsed = layout.parse_statement(path.read_text(encoding="utf-8"))
+        if isinstance(parsed, Diagnostic):
+            return Diagnostic(
+                "consequence-shape",
+                f"qa/consequences/{path.name}: {parsed.message}",
+                {"file": path.name},
+            )
+        out.append((path.stem, parsed))
+    return out
+
+
+def attempts_for(
+    signature: Signature, declared: list[tuple[str, layout.Statement]]
+) -> list[Attempt] | Diagnostic:
+    """R3's four kinds, in order: the statement, its negation, False from its hypotheses, and
+    each declared consequence under the statement as a hypothesis."""
+    out = [
+        Attempt(
+            "screen-statement",
+            "ScreenStatement",
+            "screen_statement",
+            signature.prop,
+            binders=signature.binders,
+        ),
+        Attempt("screen-negation", "ScreenNegation", "screen_negation", signature.negation),
+        Attempt(
+            "screen-false",
+            "ScreenFalse",
+            "screen_false",
+            signature.false_form,
+            binders=signature.binders,
+        ),
+    ]
+    for name, statement in declared:
+        shape = signature_of(statement)
+        if isinstance(shape, Diagnostic):
+            return Diagnostic(shape.code, f"consequence {name}: {shape.message}", shape.details)
+        stem = "".join(ch for ch in name if ch.isalnum()) or "Consequence"
+        out.append(
+            Attempt(
+                "screen-consequence",
+                f"ScreenConsequence{stem}",
+                f"screen_consequence_{stem}",
+                shape.closed,
+                hypothesis=signature.closed,
+                note=f"consequence {name}",
+                extra_imports=tuple(
+                    m
+                    for m in layout.imports_of(statement.text)
+                    if layout.module_origin(m)[0] in ("library", "defs")
+                ),
+            )
+        )
+    return out
+
+
+def scratch_source(attempt: Attempt, *, imports: list[str], mathlib: bool) -> str:
+    """The scratch file: the statement's own imports, the goal, the bounded tactic script."""
+    tactics = [*SCREEN_TACTICS_CORE, *(SCREEN_TACTICS_MATHLIB if mathlib else ())]
+    lines = [f"import {m}" for m in imports]
+    lines += [
+        "",
+        f"/-! {SCREEN_TOOL}: {attempt.check}. The subject enters as a goal or an explicit",
+        "hypothesis, never as a sorry in a graph file (F12-R3; D-9 v3.12). A proof here is a",
+        "finding a person routes (R4): a misformalization (D-8) or a refutation (D-12). -/",
+        "",
+        f"set_option maxHeartbeats {SCREEN_HEARTBEATS} in",
+    ]
+    binders = attempt.binders
+    if attempt.hypothesis is not None:
+        binders = (binders + " " if binders else "") + f"(opn_subject : {attempt.hypothesis})"
+    head = f"theorem {SCREEN_NAMESPACE}.{attempt.decl}"
+    if binders:
+        head += f" {binders}"
+    lines.append(f"{head} : {attempt.goal} := by")
+    lines.append("  first")
+    lines.extend(f"    | {t}" for t in tactics)
+    return "\n".join(lines) + "\n"
+
+
+@dataclass
+class ScreenRun:
+    """What one ``qa screen`` run produced: the rows, the exhibits and claims it wrote, the
+    record's path, and whether it was a clean pass."""
+
+    subject: str
+    rows: list[Row] = field(default_factory=list)
+    exhibits: list[str] = field(default_factory=list)
+    claims: list[str] = field(default_factory=list)
+    record: str | None = None
+    problems: list[Diagnostic] = field(default_factory=list)
+
+    @property
+    def findings(self) -> list[Row]:
+        return [r for r in self.rows if r.is_finding]
+
+    @property
+    def clean(self) -> bool:
+        """Every row passed: no finding, nothing inconclusive, the statement compiled."""
+        return bool(self.rows) and all(r.verdict == "pass" for r in self.rows)
+
+    @property
+    def written(self) -> list[str]:
+        return [*([self.record] if self.record else []), *self.exhibits, *self.claims]
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "subject": self.subject,
+            "clean": self.clean,
+            "checks": [r.as_dict() for r in self.rows],
+            "findings": [r.check for r in self.findings],
+            "exhibits": list(self.exhibits),
+            "claims": list(self.claims),
+            "record": self.record,
+            "written": self.written,
+            "problems": [d.as_dict() for d in self.problems],
+        }
+
+
+Clock = Callable[[], float]
+NOTE_CAP = 2000
+
+
+def _capped(*parts: str | None) -> str | None:
+    """The row's note: the non-empty parts joined, within the schema's cap."""
+    kept = [p for p in parts if p]
+    return "; ".join(kept)[:NOTE_CAP] if kept else None
+
+
+@dataclass
+class _Screening:
+    """One run's mutable state: the context, the budgets, the clock and the rows so far."""
+
+    ctx: RunContext
+    run: ScreenRun
+    date: str
+    attempt_budget_s: float
+    subject_budget_s: float
+    clock: Clock
+    tool_version: str
+    started: float = 0.0
+
+    def record(self, check: Check, verdict: Verdict, **kw: Any) -> Row:
+        row_ = row(
+            check,
+            verdict,
+            tool=SCREEN_TOOL,
+            tool_version=self.tool_version,
+            timestamp=self.date,
+            **kw,
+        )
+        self.run.rows.append(row_)
+        return row_
+
+    def abandon(self, reason: str, *, compile_verdict: Verdict | None = None) -> None:
+        """Every screen inconclusive with the reason, after an optional compile row."""
+        if compile_verdict is not None:
+            self.record("compile", compile_verdict, note=_capped(reason))
+        for check in SCREENS:
+            self.record(check, "inconclusive", note=_capped(reason))
+
+
+def screen(  # noqa: PLR0913 — one argument per budget and seam
+    ctx: RunContext,
+    subject: str,
+    *,
+    date: str,
+    attempt_budget_s: float,
+    subject_budget_s: float,
+    clock: Clock = time.monotonic,
+    contributor: str = SCREEN_CONTRIBUTOR,
+    tool_version: str = "0.0.0",
+) -> ScreenRun:
+    """R3: the screens over ``ctx.claim``'s node — the target's root — through the toolchain seam.
+
+    ``ctx.toolchain`` is wherever the caller put it; the authoritative run puts it in the
+    step-3 sandbox (C9), because every attempt elaborates Lean that is trying to prove False.
+    The record is written whatever happened, so a run that timed out is a run that says so.
+    """
+    from opn_gate.steps.toolchain_step import ToolchainStep  # noqa: PLC0415 — an import cycle
+
+    if subject != fidelity.ROOT_SUBJECT:
+        msg = (
+            f"the screens run on the root statement; {subject!r} is a definition and has nothing "
+            "to negate — its pass is compile, brief and backtranslation (F12-Q10)"
+        )
+        raise QaError("record", msg)
+    target_dir = ctx.graph_root / "targets" / ctx.claim.target_id
+    s = _Screening(
+        ctx, ScreenRun(subject), date, attempt_budget_s, subject_budget_s, clock, tool_version
+    )
+    s.started = clock()
+    resolved = ToolchainStep().run(ctx)
+    if not resolved.ok:
+        assert resolved.diagnostic is not None
+        raise ToolchainMissingError(resolved.diagnostic.message)
+    tc: ResolvedToolchain = ctx.data["toolchain"]
+
+    node = _compile_statement(s, tc)
+    if node is None:
+        s.run.record = _write_run(target_dir, s.run, date)
+        return s.run
+    plan = _plan(s, target_dir, node)
+    if plan is None:
+        s.run.record = _write_run(target_dir, s.run, date)
+        return s.run
+    imports = layout.imports_of(node.statement.text)
+    for attempt in plan:
+        _run_attempt(s, tc, target_dir, node, attempt, imports=imports, contributor=contributor)
+    s.run.record = _write_run(target_dir, s.run, date)
+    return s.run
+
+
+def _compile_statement(s: _Screening, tc: ResolvedToolchain) -> layout.Node | None:
+    """Layer 1: stage the definitions and the Context (the statement step) and elaborate the
+    statement itself. ``None`` when the run cannot go on; the rows say why."""
+    from opn_gate.steps.hazards import StatementStep  # noqa: PLC0415 — an import cycle
+
+    ctx = s.ctx
+    compile_started = s.clock()
+    try:
+        staged = StatementStep().run(ctx)
+    except Exception as exc:  # C7: the toolchain blew up; the row says so and the log says why
+        log.exception("qa screen: staging %s failed", ctx.claim.node_id)
+        s.run.problems.append(Diagnostic("compile", f"{exc.__class__.__name__}: {exc}"))
+        s.record(
+            "compile",
+            "inconclusive",
+            elapsed_s=s.clock() - compile_started,
+            note=_capped(f"error: {exc.__class__.__name__}: {exc}"),
+        )
+        s.abandon("the statement could not be staged (layer 1)")
+        return None
+    node = ctx.node
+    if not staged.ok or node is None:
+        problem = staged.diagnostic or Diagnostic("compile", "the statement did not stage")
+        s.run.problems.append(problem)
+        s.record(
+            "compile", "fail", elapsed_s=s.clock() - compile_started, note=_capped(problem.message)
+        )
+        s.abandon("the statement does not compile (layer 1)")
+        return None
+    src = ctx.workdir / "src"
+    module = layout.node_module(node.node_id, "Statement")
+    verdict: Verdict = "pass"
+    note: str | None = None
+    try:
+        elab = ctx.toolchain.elaborate(
+            tc,
+            src / "Nodes" / node.node_id / "Statement.lean",
+            module,
+            ctx.build_dir,
+            root=src,
+            timeout_s=s.attempt_budget_s,
+        )
+        if not elab.ok:
+            verdict, note = "fail", _capped("; ".join(m.text for m in elab.errors))
+    except subprocess.TimeoutExpired:
+        verdict, note = "inconclusive", NOTE_TIMEOUT
+    except Exception as exc:  # C7: named on the row, never a crash
+        log.exception("qa screen: compiling %s failed", module)
+        verdict, note = "inconclusive", _capped(f"error: {exc.__class__.__name__}: {exc}")
+    s.record(
+        "compile",
+        verdict,
+        elapsed_s=s.clock() - compile_started,
+        budget_s=s.attempt_budget_s,
+        note=note,
+    )
+    if verdict != "pass":
+        s.abandon("the statement does not compile (layer 1)")
+        return None
+    return node
+
+
+def _plan(s: _Screening, target_dir: Path, node: layout.Node) -> list[Attempt] | None:
+    """Layer 2's attempts, or ``None`` with every screen recorded inconclusive when the
+    statement's shape or a consequence file cannot be read (Q11)."""
+    signature = signature_of(node.statement)
+    declared = consequences(target_dir)
+    plan: list[Attempt] | Diagnostic
+    if isinstance(signature, Diagnostic):
+        plan = signature
+    elif isinstance(declared, Diagnostic):
+        plan = declared
+    else:
+        plan = attempts_for(signature, declared)
+    if isinstance(plan, Diagnostic):
+        s.run.problems.append(plan)
+        s.abandon(f"{plan.code}: {plan.message}")
+        return None
+    if not any(a.check == "screen-consequence" for a in plan):
+        s.record("screen-consequence", "pass", note=NOTE_NO_CONSEQUENCES)
+    return plan
+
+
+def _run_attempt(  # noqa: PLR0913 — the run, the seam, the attempt and its inputs
+    s: _Screening,
+    tc: ResolvedToolchain,
+    target_dir: Path,
+    node: layout.Node,
+    attempt: Attempt,
+    *,
+    imports: list[str],
+    contributor: str,
+) -> None:
+    """One attempt: a row whatever happens, an exhibit and a claim when it proves (R3, R4)."""
+    ctx = s.ctx
+    attempt_started = s.clock()
+    budget = s.attempt_budget_s
+    if attempt_started - s.started > s.subject_budget_s:
+        s.record(
+            attempt.check, "inconclusive", budget_s=budget, note=_capped(attempt.note, NOTE_BUDGET)
+        )
+        return
+    src = ctx.workdir / "src"
+    module_imports = [*imports, *(m for m in attempt.extra_imports if m not in imports)]
+    source = scratch_source(attempt, imports=module_imports, mathlib=tc.mathlib_sha is not None)
+    scratch = src / SCREEN_NAMESPACE / f"{attempt.stem}.lean"
+    scratch.parent.mkdir(parents=True, exist_ok=True)
+    scratch.write_text(source, encoding="utf-8")
+    module = f"{SCREEN_NAMESPACE}.{attempt.stem}"
+    decl = f"{SCREEN_NAMESPACE}.{attempt.decl}"
+    try:
+        outcome = _attempt(ctx, tc, scratch, module, decl, timeout_s=budget)
+    except subprocess.TimeoutExpired:
+        s.record(
+            attempt.check,
+            "inconclusive",
+            elapsed_s=s.clock() - attempt_started,
+            budget_s=budget,
+            note=_capped(attempt.note, NOTE_TIMEOUT),
+        )
+        return
+    except Exception as exc:  # C7: the row says so, the log says why
+        log.exception("qa screen: %s errored", attempt.check)
+        s.record(
+            attempt.check,
+            "inconclusive",
+            elapsed_s=s.clock() - attempt_started,
+            budget_s=budget,
+            note=_capped(attempt.note, f"error: {exc.__class__.__name__}: {exc}"),
+        )
+        return
+    elapsed = s.clock() - attempt_started
+    if outcome is None:  # nothing proved within the budget: the screen found nothing
+        s.record(attempt.check, "pass", elapsed_s=elapsed, budget_s=budget, note=attempt.note)
+        return
+    if isinstance(outcome, Diagnostic):  # it elaborated but the kernel would not have it
+        s.record(
+            attempt.check,
+            "inconclusive",
+            elapsed_s=elapsed,
+            budget_s=budget,
+            note=_capped(attempt.note, f"{outcome.code}: {outcome.message}"),
+        )
+        return
+    # A kernel-checked finding: store it, record it, file it (R3, R4).
+    rel, digest = store_exhibit(
+        target_dir, exhibit_name(s.run.subject, attempt.check, target_dir), source
+    )
+    s.run.exhibits.append(rel)
+    s.record(
+        attempt.check,
+        "fail",
+        elapsed_s=elapsed,
+        budget_s=budget,
+        exhibit=rel,
+        exhibit_sha256=digest,
+        note=_capped(attempt.note, f"proved with axioms {', '.join(sorted(outcome)) or 'none'}"),
+    )
+    s.run.claims.append(
+        file_screen_finding(
+            target_dir, node, attempt.check, source, rel, date=s.date, contributor=contributor
+        )
+    )
+
+
+def _write_run(target_dir: Path, run: ScreenRun, date: str) -> str:
+    path = write(target_dir, run.subject, run.rows, date=date, produced_by=SCREEN_TOOL)
+    return relative(target_dir, path)
+
+
+def _attempt(  # noqa: PLR0913 — the seam's inputs
+    ctx: RunContext,
+    tc: ResolvedToolchain,
+    scratch: Path,
+    module: str,
+    decl: str,
+    *,
+    timeout_s: float,
+) -> frozenset[str] | Diagnostic | None:
+    """Elaborate one scratch theorem. ``None``: it did not prove (a clean screen). A set of
+    axioms: it proved and the kernel replayed it under the graph's allowlist (a finding). A
+    ``Diagnostic``: it elaborated but replay or the axiom check refused it (inconclusive)."""
+    src = ctx.workdir / "src"
+    elab = ctx.toolchain.elaborate(
+        tc, scratch, module, ctx.build_dir, root=src, timeout_s=timeout_s
+    )
+    if not elab.ok:
+        return None
+    replay = ctx.toolchain.kernel_replay(tc, module, [ctx.build_dir], timeout_s=timeout_s)
+    if not replay.ok:
+        return Diagnostic(
+            "kernel-replay-failed",
+            "the proof elaborated but leanchecker refused it",
+            {"output": replay.output[:2000]},
+        )
+    axioms = ctx.toolchain.axioms(
+        tc, module, decl, [ctx.build_dir], ctx.workdir / "axioms", timeout_s=timeout_s
+    )
+    if not axioms.ok:
+        return Diagnostic("axioms-unreadable", f"could not determine the axioms of {decl}")
+    allowed = set(ctx.spec["axiom_allowlist"])
+    outside = sorted(a for a in axioms.axioms if a not in allowed)
+    if outside:
+        return Diagnostic(
+            "axiom-not-allowed",
+            f"the proof rests on {', '.join(outside)}, outside the graph's allowlist",
+            {"axioms": outside},
+        )
+    return axioms.axioms
+
+
+# --- the screen's claim, and how a person routes it (R4, Q7) -------------------------------------
+
+CLAIM_SCHEMA = "defect-claim/v2"
+SCREEN_FINDING = "screen-finding"
+READINGS: tuple[str, ...] = ("misformalization", "refutation")
+SCREEN_NOTE = (
+    "A kernel-checked proof from the QA screen (F12-R3). It means one of two things and the "
+    "screen asserts neither: the statement is a misformalization (route it with a D-16 class; a "
+    "D-8 revision follows), or the conjecture is refuted (route it as a refutation; a D-12 "
+    "counterexample follows). A curator routes it by appending a claim whose `routes` names "
+    "this file (D-9 v3.12)."
+)
+
+
+def defects_dir(node_dir: Path) -> Path:
+    return node_dir / "defects"
+
+
+def theorem_line(statement: layout.Statement) -> int:
+    """The 1-based line of the theorem keyword: what D-16's claim points at."""
+    m = _THEOREM_HEAD_RE.search(statement.text)
+    return statement.text[: m.start()].count("\n") + 1 if m else 1
+
+
+def file_screen_finding(  # noqa: PLR0913 — one argument per fact the claim carries
+    target_dir: Path,
+    node: layout.Node,
+    check: Check,
+    exhibit_text: str,
+    qa_exhibit: str,
+    *,
+    date: str,
+    contributor: str = SCREEN_CONTRIBUTOR,
+) -> str:
+    """R4: file the finding into F08's queue as a ``screen-finding`` claim carrying the exhibit
+    and naming both readings. Append-only; the file is named for the run and the screen."""
+    doc: dict[str, Any] = {
+        "schema": CLAIM_SCHEMA,
+        "stmt_ref": node.node_id,
+        "class": SCREEN_FINDING,
+        "line": theorem_line(node.statement),
+        "exhibit": exhibit_text,
+        "contributor": contributor,
+        "date": date[:10],
+        "qa_exhibit": qa_exhibit,
+        "readings": list(READINGS),
+        "routes": None,
+        "note": SCREEN_NOTE,
+    }
+    schemas.validate(doc, CLAIM_SCHEMA)
+    stamp = date.replace("-", "").replace(":", "")
+    path = defects_dir(node.path) / f"{stamp}-{contributor}-{check}.yaml"
+    if path.exists():
+        msg = f"{path} already exists; defect claims are append-only"
+        raise QaError("record", msg)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True), encoding="utf-8")
+    return relative(target_dir, path)
+
+
+def load_claims(node_dir: Path) -> list[tuple[str, dict[str, Any]]]:
+    """Every defect claim under the node, by file name; one that does not parse is skipped with
+    a warning, which can only leave a finding *unrouted* — the safe direction."""
+    directory = defects_dir(node_dir)
+    if not directory.is_dir():
+        return []
+    out: list[tuple[str, dict[str, Any]]] = []
+    for path in sorted(p for p in directory.iterdir() if p.is_file() and p.suffix in SUFFIXES):
+        try:
+            doc = schemas.load_yaml(path)
+        except schemas.SchemaError as exc:
+            log.warning("defect claim %s does not validate and routes nothing: %s", path, exc)
+            continue
+        out.append((path.name, doc))
+    return out
+
+
+def routed_by_claims(target_dir: Path, root_id: str | None = None) -> Routed:
+    """R4: a finding is routed when a screen-finding claim names its exhibit and a later claim's
+    ``routes`` names that claim — the curator's one act, as an append."""
+    node_dir = layout.graph_nodes_dir(graph_root_of(target_dir), target_dir.name) / (
+        root_id or root_node(target_dir)
+    )
+    claims = load_claims(node_dir)
+    findings: dict[str, list[str]] = {}
+    for name, doc in claims:
+        exhibit = doc.get("qa_exhibit")
+        if doc.get("class") == SCREEN_FINDING and isinstance(exhibit, str):
+            findings.setdefault(exhibit, []).append(name)
+    routed_names = {
+        str(doc["routes"]["claim"])
+        for _, doc in claims
+        if isinstance(doc.get("routes"), dict) and "claim" in doc["routes"]
+    }
+
+    def routed(finding: Finding) -> bool:
+        return any(name in routed_names for name in findings.get(finding.exhibit, []))
+
+    return routed
+
+
+def route_finding(  # noqa: PLR0913 — one argument per fact of the routing
+    target_dir: Path,
+    node: layout.Node,
+    claim_name: str,
+    *,
+    reading: str,
+    defect_class: str,
+    contributor: str,
+    date: str,
+    note: str | None = None,
+) -> str:
+    """The curator's routing claim (R4): names the finding and the reading, and carries the
+    finding's own exhibit so the gate elaborates the same Lean again."""
+    if reading not in READINGS:
+        msg = f"reading must be one of {', '.join(READINGS)}, got {reading!r}"
+        raise QaError("record", msg)
+    found = dict(load_claims(node.path))
+    if claim_name not in found or found[claim_name].get("class") != SCREEN_FINDING:
+        msg = f"{claim_name} is not a screen-finding claim under {node.node_id}"
+        raise QaError("record", msg)
+    doc: dict[str, Any] = {
+        "schema": CLAIM_SCHEMA,
+        "stmt_ref": node.node_id,
+        "class": defect_class,
+        "line": int(found[claim_name]["line"]),
+        "exhibit": str(found[claim_name]["exhibit"]),
+        "contributor": contributor,
+        "date": date[:10],
+        "qa_exhibit": None,
+        "routes": {"claim": claim_name, "reading": reading},
+        "note": note,
+    }
+    schemas.validate(doc, CLAIM_SCHEMA)
+    stamp = date.replace("-", "").replace(":", "")
+    path = defects_dir(node.path) / f"{stamp}-{contributor}.yaml"
+    if path.exists():
+        msg = f"{path} already exists; defect claims are append-only"
+        raise QaError("record", msg)
+    path.write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True), encoding="utf-8")
+    return relative(target_dir, path)

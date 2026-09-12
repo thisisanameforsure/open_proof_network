@@ -338,10 +338,44 @@ on the site.</p>
     A definition's defects surface through the root's screens (a junk-value definition makes the
     root's negation or falsity provable) and through the brief, which lists it elaborated.
     Equivalence stays a bonus layer for both (Q3).</td></tr>
+  <tr><td>F12-Q11</td><td><strong>The attempt shapes are rewritten in Python from the D-3
+    statement text, not by a metaprogram</strong> (2026-09-12, T2). The negation is
+    <code>¬ (∀ binders, P)</code>; the falsity form replaces the conclusion after the last
+    top-level arrow with <code>False</code>, keeping every <code>∀</code> prefix. Both are string
+    rewrites over the one shape <code>layout.parse_statement</code> already admits, and a shape
+    the rewriter cannot read leaves every screen <code>inconclusive</code> with a named
+    diagnostic — never a pass (C7). A Lean metaprogram over the elaborated type would be the sound
+    form; it was not built because the lean tier (AC12 and the tautology test) is what proves the
+    rewrites are Lean the pinned toolchain accepts, and a wrong rewrite fails there, loudly. The
+    tactic script is fixed (<code>simp_all</code>, <code>omega</code>, <code>decide</code>,
+    <code>exact?</code>, plus <code>aesop</code> and <code>norm_num</code> under a Mathlib pin)
+    and the bound that holds whatever the tactics do is the wall-clock budget through the seam.
+    Reversal path: an <code>opn-qa-shapes</code> metaprogram in <code>gate/lean/</code> with the
+    same four outputs.</td></tr>
+  <tr><td>F12-Q12</td><td><strong>The screen's claim rides in the curator's QA pull request; every
+    other claim is an append</strong> (2026-09-12, T2). R4 files the finding into F08's queue, and
+    the run that finds it writes the record, the exhibit and the claim together. The QA record is a
+    curator's act (a grade rests on it, R9), so <code>qa-record</code> and <code>qa-file</code> are
+    curator roles, and a curator pull request that carries a QA record may also carry a
+    <code>defect-claim</code> — held to being a <code>screen-finding</code> naming an exhibit in
+    the tree, or refused as <code>defect-class</code>. A curator's own classed claim, and the
+    routing claim, are appends like anyone's (F08-Q18's rule that a curator record with an append
+    is mixed stands for everything else). The screen's claim under a definition subject does not
+    arise: screens run on the root only (Q10).</td></tr>
+  <tr><td>F12-Q13</td><td><strong>A finding is routed by a later claim naming it, and is never
+    cleared by a re-run</strong> (2026-09-12, T2). Records are append-only, so "replacing
+    <code>screen-finding</code> with a D-16 class" (R4) is a second claim whose <code>routes</code>
+    names the first and states the reading; <code>opn-gate qa route</code> writes it and the
+    pass state reads it. A clean re-run of the same screen on the same statement does not clear a
+    finding — a kernel-checked proof stays one, and a later miss says only that the budget or the
+    library moved — so R9's floor for that screen is met only by a fresh pass <em>and</em> the
+    finding being routed. Exit codes: <code>qa screen</code> exits 0 on a clean pass and 1 on a
+    finding or on anything inconclusive (R3: a success is a rejection; C7: a timeout is not a
+    pass).</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1 ✓ 2026-09-12 · T2&ndash;T6 todo</div>
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1 ✓ 2026-09-12 · T2 built 2026-09-12 (lean tier pending CI) · T3&ndash;T6 todo</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its

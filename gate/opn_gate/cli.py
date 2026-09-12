@@ -40,6 +40,7 @@ from opn_gate import (
     pipeline,
     postmerge,
     products,
+    qa,
     sandbox,
     scaffold,
     schemas,
@@ -70,7 +71,7 @@ class CliError(Exception):
 #: The curator's commands (F08-R9 to R12): what one of them refuses is answered as
 #: ``{"ok": false, "refused": ...}`` and exit 1, whichever module raised it.
 CURATOR_COMMANDS: frozenset[str] = frozenset(
-    {"revise", "consolidate", "status", "missing-library", "intake", "fidelity"}
+    {"revise", "consolidate", "status", "missing-library", "intake", "fidelity", "qa"}
 )
 #: What a curator command refuses on: a record that does not satisfy its schema, a statement the
 #: scaffold cannot take, a graph that does not derive. Anywhere else these are exit 2.
@@ -80,6 +81,7 @@ _REFUSALS: tuple[type[Exception], ...] = (
     graphmod.GraphError,
     intake.IntakeError,
     fidelity.FidelityError,
+    qa.QaError,
 )
 #: The gate's own error family, plus the OS's for a flag file that cannot be read: an input or
 #: environment problem, reported on stderr as exit 2 — never a traceback (conventions §5; F08-Q18).
@@ -191,6 +193,7 @@ def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statemen
         _add_graph_tool_parsers,
         _add_curator_parsers,
         _add_intake_parsers,
+        _add_qa_parsers,
         _add_cache_parsers,
     ):
         add_parsers(sub)
@@ -406,6 +409,47 @@ def _add_intake_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]
     fid.add_argument("--branch", help="also commit what was written on this branch")
 
 
+def _add_qa_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    """F12: the statement-QA pass, one command per layer of D-9 v3.12's pass."""
+    top = sub.add_parser("qa", help="the statement-QA pass over a subject (F12; D-9 v3.12)")
+    acts = top.add_subparsers(dest="action", required=True)
+
+    def common(p: argparse.ArgumentParser) -> None:
+        p.add_argument("target_id")
+        p.add_argument("subject", help="`root`, or the name of one definition in defs/")
+        p.add_argument("--graph", required=True, type=Path)
+        p.add_argument("--date", help="UTC timestamp of the run (default: now)")
+        p.add_argument("--branch", help="also commit what was written on this branch")
+
+    scr = acts.add_parser("screen", help="the soundness screens on the root statement (F12-R3)")
+    common(scr)
+    scr.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
+    scr.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
+    scr.add_argument(
+        "--sandbox",
+        action="store_true",
+        help="elaborate inside the step-3 image, as the authoritative run must (F12 §7, C9)",
+    )
+    scr.add_argument("--image", help="sandbox image tag (default: from the spec)")
+    scr.add_argument("--no-build", action="store_true", help="fail if the image is not present")
+    scr.add_argument(
+        "--by", default=qa.SCREEN_CONTRIBUTOR, help="the contributor a finding's claim names"
+    )
+
+    rte = acts.add_parser("route", help="route a positive screen's claim (F12-R4; D-9 v3.12)")
+    common(rte)
+    rte.add_argument("claim", help="the file name of the screen-finding claim under defects/")
+    rte.add_argument("--reading", required=True, choices=list(qa.READINGS))
+    rte.add_argument(
+        "--class",
+        dest="defect_class",
+        required=True,
+        help="the D-16 class for a misformalization, or the class that best fits the exhibit",
+    )
+    rte.add_argument("--by", required=True, dest="by", help="the curator routing it")
+    rte.add_argument("--note", help="why, in a sentence")
+
+
 def _add_sandbox_args(p: argparse.ArgumentParser) -> None:
     """The flags every sandboxed run shares (reproduce, gate, postmerge)."""
     p.add_argument("--out", type=Path, help="output directory (default: a fresh temp dir)")
@@ -435,6 +479,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "missing-library": run_missing_library,
         "ledger": run_ledger,
         "intake": run_intake,
+        "qa": run_qa,
         "fidelity": run_fidelity,
         "postmerge": run_postmerge,
         "admit": run_admit,
@@ -1526,6 +1571,85 @@ def run_fidelity(args: argparse.Namespace, settings: config.Settings) -> int:
     }
     message = f"fidelity: {args.target_id} {args.subject} {args.grade}"
     return _emit_curator(doc, graph, args.branch, message)
+
+
+# --- qa (F12-R3, R4) ------------------------------------------------------------------------------
+
+
+def _qa_context(
+    args: argparse.Namespace, settings: config.Settings, graph: Path, target_id: str
+) -> RunContext:
+    """The root's node directory as a ``node_context``: the screens are checks on one node in a
+    graph checkout, sandboxed the way admission is (C9)."""
+    target_dir = intake.target_dir(graph, target_id)
+    if not target_dir.is_dir():
+        msg = f"no such target: {target_id} under {graph}"
+        raise CliError(msg)
+    root = qa.root_node(target_dir)
+    node_args = argparse.Namespace(**vars(args))
+    node_args.node_dir = layout.graph_nodes_dir(graph, target_id) / root
+    return node_context(node_args, settings, prefix="opn-qa-", sandboxed=bool(args.sandbox))
+
+
+def run_qa(args: argparse.Namespace, settings: config.Settings) -> int:
+    graph = _intake_graph(args)
+    date = _intake_date(args)
+    target_dir = intake.target_dir(graph, args.target_id)
+    if args.action == "route":
+        root = qa.root_node(target_dir)
+        node = curator.load_node(
+            layout.graph_nodes_dir(graph, args.target_id), args.target_id, root
+        )
+        written = qa.route_finding(
+            target_dir,
+            node,
+            args.claim,
+            reading=args.reading,
+            defect_class=args.defect_class,
+            contributor=args.by,
+            date=date,
+            note=args.note,
+        )
+        doc: dict[str, Any] = {
+            "ok": True,
+            "target": args.target_id,
+            "routed": args.claim,
+            "reading": args.reading,
+            "written": [written],
+        }
+        return _emit_curator(doc, graph, args.branch, f"qa: route {args.claim} ({args.reading})")
+    ctx = _qa_context(args, settings, graph, args.target_id)
+    run = qa.screen(
+        ctx,
+        args.subject,
+        date=date,
+        attempt_budget_s=settings.qa_attempt_budget_s,
+        subject_budget_s=settings.qa_subject_budget_s,
+        contributor=args.by,
+    )
+    doc = {
+        "ok": run.clean,
+        "target": args.target_id,
+        "sandboxed": bool(args.sandbox),
+        **run.as_dict(),
+    }
+    if args.branch:
+        _curator_branch(
+            graph, args.branch, f"qa: screen {args.target_id} {args.subject}", run.written
+        )
+        doc["branch"] = args.branch
+        doc["next"] = f"git push -u origin {args.branch} && gh pr create --fill"
+    sys.stdout.write(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
+    if not run.clean:
+        what = (
+            f"findings: {', '.join(r.check for r in run.findings)}"
+            if run.findings
+            else "not a clean pass: " + ", ".join(r.check for r in run.rows if r.verdict != "pass")
+        )
+        sys.stderr.write(f"opn-gate: qa screen {args.target_id}/{args.subject}: {what}\n")
+    # R3: a success is a rejection — a finding exits non-zero; so does anything short of a
+    # clean pass, because an inconclusive screen is not one either (C7).
+    return EXIT_PASS if run.clean else EXIT_FAIL
 
 
 def last_progress_merge(graph: Path, target_id: str) -> datetime | None:

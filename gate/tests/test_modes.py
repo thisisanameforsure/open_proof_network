@@ -696,6 +696,58 @@ def test_defect_claim_pretriage_in_the_gate(graph: Path) -> None:
     assert exhibits.run(exhibit_context(graph, elab_ok=True), carrying) == []
 
 
+def test_screen_finding_routes_and_classless_still_bounces(graph: Path) -> None:
+    """F12-AC14, R4, Q7: a hand-written v1 claim with no class bounces at pre-triage as before;
+    a v2 claim of class screen-finding carrying its exhibit is accepted and routes to the queue
+    — beside the QA record in a curator pull request, or on its own as an append. A v2 claim
+    whose named exhibit is not in the tree bounces naming it."""
+    classless = dict(samples.defect_claim())
+    del classless["class"]
+    bounced = write(
+        graph, f"{N}/defects/20260912T000000-alice.yaml", yaml.safe_dump(classless, sort_keys=True)
+    )
+    assert problems(graph, bounced) == ["record-invalid"]
+
+    exhibit_rel = f"{T}/qa/exhibits/root-screen-false-1.lean"
+    exhibit = write(graph, exhibit_rel, "theorem OpnQa.screen_false : True := trivial\n")
+    finding = write(
+        graph,
+        f"{N}/defects/20260912T000001-opn-gate-qa-screen-false.yaml",
+        yaml.safe_dump(samples.screen_finding(qa_exhibit=exhibit_rel), sort_keys=True),
+    )
+    appended = modes.classify([finding])
+    assert appended.mode == "append" and modes.check(graph, appended) == []
+    assert len(modes.exhibits(graph, appended)) == 1  # the exhibit still elaborates in CI
+
+    record = write(
+        graph, f"{T}/qa/root-1.yaml", yaml.safe_dump(samples.qa_record(), sort_keys=True)
+    )
+    with_record = modes.classify(
+        [record, exhibit, finding], author=CURATOR, curators=curators(CURATOR)
+    )
+    assert with_record.mode == "curator", with_record.problems
+    assert modes.check(graph, with_record) == []
+    # ...but a curator's *own* classed claim does not ride along (F12-Q7): file it as an append.
+    classed = write(
+        graph, f"{N}/defects/20260912T000002-curator.yaml", yaml.safe_dump(samples.defect_claim())
+    )
+    mixed = modes.classify([record, exhibit, classed], author=CURATOR, curators=curators(CURATOR))
+    assert mixed.mode == "curator"
+    assert [d.code for d in modes.check(graph, mixed)] == ["defect-class"]
+    # And without the record, a claim beside a status record is mixed as it always was.
+    status = Change("A", f"{N}/status/20260912T000000-curator.yaml")
+    assert (
+        modes.classify([status, finding], author=CURATOR, curators=curators(CURATOR)).mode is None
+    )
+
+    ghost = write(
+        graph,
+        f"{N}/defects/20260912T000003-opn-gate-qa-screen-negation.yaml",
+        yaml.safe_dump(samples.screen_finding(qa_exhibit=f"{T}/qa/exhibits/ghost.lean")),
+    )
+    assert problems(graph, ghost) == ["defect-ref"]
+
+
 def test_locate_is_the_whole_grammar() -> None:
     """Every role in the mode table comes from one path, and nothing else has a role."""
     roles = {
@@ -712,6 +764,11 @@ def test_locate_is_the_whole_grammar() -> None:
         f"{T}/gate-spec.json": "gate-spec",
         f"{T}/defs/Divides.lean": "definition",
         f"{T}/fidelity/root-1.yaml": "fidelity",
+        f"{T}/qa/root-1.yaml": "qa-record",
+        f"{T}/qa/exhibits/root-screen-false-1.lean": "qa-file",
+        f"{T}/qa/consequences/Euclid.lean": "qa-file",
+        f"{T}/qa/briefs/root-brief-1.md": "qa-file",
+        f"{T}/qa/backtranslation/root-backtranslation-1.md": "qa-file",
         f"{N}/META.yaml": "node",
         f"{N}/Statement.lean": "node",
         f"{N}/Context.lean": "node",
@@ -726,7 +783,15 @@ def test_locate_is_the_whole_grammar() -> None:
         f"{N}/defects/20260910T000000-alice.yaml": "defect-claim",
         f"{T}/defs/defects/20260910T000000-alice.yaml": "defect-claim",
     }
-    target_scoped = {"approach-record", "target-status", "target-record", "gate-spec", "fidelity"}
+    target_scoped = {
+        "approach-record",
+        "target-status",
+        "target-record",
+        "gate-spec",
+        "fidelity",
+        "qa-record",
+        "qa-file",
+    }
     for path, role in roles.items():
         located = paths.locate(path)
         assert located is not None and located.role == role, path
@@ -743,6 +808,10 @@ def test_locate_is_the_whole_grammar() -> None:
         f"{N}/notes.md",
         f"{T}/status/nested/x.yaml",
         f"{T}/defs/defects/nested/x.yaml",
+        f"{T}/qa/exhibits/nested/x.lean",
+        f"{T}/qa/exhibits/x.md",
+        f"{T}/qa/notes/x.md",
+        f"{T}/qa/x.lean",
         f"{N}/revisions/x.lean",
         f"{T}/nodes/and-swap@v2/Statement.lean",
     ):

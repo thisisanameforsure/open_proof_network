@@ -24,6 +24,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "claims/v1",
         "context/v1",
         "defect-claim/v1",
+        "defect-claim/v2",
         "fidelity/v1",
         "frontier/v1",
         "frontier/v2",
