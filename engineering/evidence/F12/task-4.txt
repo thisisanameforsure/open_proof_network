@@ -86,3 +86,13 @@ Run 34690463330 (ci run 66, head 035d3d8 = the F12-T4 commit): job 103544676993 
   had guessed the axiom's name from memory: Lean 4.33 mints the native-decide axiom per declaration,
   which toolchain.NATIVE_DECIDE_MARKERS already covers ("native_decide", "Lean.ofReduceBool"). The
   match is now "native_decide|ofReduceBool". 60 of 61 lean/docker tests passed in that run.
+
+Run 34692446154 (ci run 71, head 17743bf = the AC24 match fix, merged onto main dc25d2b):
+  https://github.com/thisisanameforsure/open_proof_network/actions/runs/34692446154
+  job "make verify-lean (real toolchain + sandbox)" 103549996438: success
+  gate/tests/test_qa_lean.py ...   (test_exhibit_is_replayed_before_it_counts = AC24: the forged
+                                    native_decide exhibit refused by the replay, code exhibit-replay,
+                                    the grade held at mechanical-only)
+  ========= 61 passed, 1520 deselected, 2 warnings in 2515.19s (0:41:55) =========
+  The budget lines of this run agree with budgets.txt within 0.4 s (onramp total 3.5 s; the
+  propositional finding's replay 56.0 s).
