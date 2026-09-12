@@ -63,7 +63,10 @@ $ uv run pytest gate/tests/test_onramp_lean.py -k mechanics_without_mathlib -m l
   mechanics with the pin removed; AC10 itself (test_skeleton_admits, the pinned checkout) runs
   in CI beside T3's docker tier — the laptop holds no Mathlib checkout (task-3.txt).
 
-  [CI result: to be appended]
+  CI result (run 34683194460 on 89f64bc, job "make verify-lean", 2026-09-12, hosted runner):
+    gate/tests/test_onramp_lean.py ...       finished 08:59:27, 4 min 42 s for the three
+    (the pinned on-ramp run, test_skeleton_admits — AC10 on the pinned checkout — and the
+    Mathlib-free mechanics). Green; the tier as a whole 58 passed in 2663 s.
 
 WHAT IS THE CURATOR'S, IN ORDER (engineering/onramp/README.md has the commands)
 ------------------------------------------------------------------------------

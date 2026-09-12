@@ -80,7 +80,16 @@ hosted runner and runs:
   gate/tests/test_onramp_docker.py::test_postcreate_finds_the_pinned_mathlib_in_the_image
 Its printed "F11 §6 / AC11: reproduce fact-pos on the Mathlib image in N s" is the budget line.
 
-  [CI result: to be appended]
+  CI result (run 34683194460 on 89f64bc, job "make verify-lean", 2026-09-12 08:31-09:15 UTC,
+  hosted runner; the whole tier 58 passed in 2663 s):
+    gate/tests/test_onramp_docker.py ..      finished 08:54:45, 18 min 23 s after the file before it
+    (both AC11 tests: the Mathlib image opn-gate:leanprover-lean4-v4.33.1-mathlib-0df444a360ea
+    built on the runner from the cached checkout and fact-pos reproduced on it under the pin;
+    post-create finds the pinned Mathlib in the image). The 18 minutes are the image build; the
+    reproduce's own "in N s" line is captured by pytest on a pass and not in the log, so the
+    per-run budget stays the laptop's 253 s from the lean tier above until a run prints it.
+  The two docker-tier failures on 36e1a29 (host-side Path checks in the sandbox) are the ones
+  fixed in 89f64bc; this is the first green real tier on the Mathlib pin.
 
 ALSO THIS SESSION, ON THE PUSH
 ------------------------------
