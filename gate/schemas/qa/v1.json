@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/qa/v1.json",
+  "title": "qa/v1",
+  "description": "targets/<id>/qa/<subject>-<n>.yaml (F12-R1, R2, R15; D-9 v3.12): one run of the statement-QA pass over one subject — the root statement, or one definition in defs/ — pinned to the statement hash it ran on and the toolchain and Mathlib it ran under. Append-only: one file per run, never edited; a record whose statement hash or pins no longer match the subject is stale and counts for nothing (R5). Every check is exactly one of two kinds: an `exhibit` row is a kernel fact (a screen's outcome, a compile, a proved equivalence) and is the only kind that may be cited as evidence for a fidelity grade; a `brief` row is a judgement (a review brief, a back-translation) and raises no grade on its own (R2). An exhibit row that names a file carries its SHA-256, and the file is trusted by content, never by path (R15, C9). Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "subject",
+    "statement_hash",
+    "lean_toolchain",
+    "mathlib_sha",
+    "date",
+    "produced_by",
+    "checks"
+  ],
+  "properties": {
+    "schema": { "const": "qa/v1" },
+    "subject": {
+      "description": "`root`, or the name of a definition in the target's defs/ (the same subjects as fidelity/v1).",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+      "maxLength": 100
+    },
+    "statement_hash": {
+      "description": "The subject's content hash when the run happened: the root's statement hash, or the SHA-256 of the definition file. A record for any other hash is stale (R5).",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "lean_toolchain": { "type": "string", "minLength": 1 },
+    "mathlib_sha": {
+      "description": "The graph's Mathlib pin when the run happened; a record under another pin is stale (R5: junk-value defects move with the library).",
+      "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^[0-9a-f]{40}$" }]
+    },
+    "date": { "$ref": "#/$defs/timestamp" },
+    "produced_by": {
+      "description": "The command that wrote the record, e.g. `opn-gate qa screen`.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "check",
+          "kind",
+          "tool",
+          "tool_version",
+          "model",
+          "model_version",
+          "verdict",
+          "exhibit",
+          "exhibit_sha256",
+          "timestamp"
+        ],
+        "properties": {
+          "check": {
+            "enum": [
+              "compile",
+              "screen-statement",
+              "screen-negation",
+              "screen-false",
+              "screen-consequence",
+              "brief",
+              "backtranslation",
+              "equivalence"
+            ]
+          },
+          "kind": {
+            "description": "D-9 v3.12: layers 1, 2 and 4 emit exhibits; layer 3 emits a judgement.",
+            "enum": ["exhibit", "brief"]
+          },
+          "tool": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "tool_version": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "model": {
+            "description": "The model that ran, where one did (brief, backtranslation); null otherwise.",
+            "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1, "maxLength": 200 }]
+          },
+          "model_version": {
+            "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1, "maxLength": 200 }]
+          },
+          "verdict": {
+            "description": "For a screen: `pass` means the screen found nothing, `fail` means it proved its target and the exhibit is the finding. `inconclusive` is a timeout, an exhausted budget, a toolchain or model error — never a clean pass (C7).",
+            "enum": ["pass", "fail", "inconclusive"]
+          },
+          "exhibit": {
+            "description": "The path, relative to the graph root, of the file this row rests on — a kernel-checked exhibit for kind `exhibit`, the brief or back-translation text for kind `brief` — or null when the row produced no file (a clean screen, a compile).",
+            "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1, "maxLength": 300 }]
+          },
+          "exhibit_sha256": {
+            "description": "The SHA-256 of the file `exhibit` names; required whenever `exhibit` is a path (R15).",
+            "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^[0-9a-f]{64}$" }]
+          },
+          "timestamp": { "$ref": "#/$defs/timestamp" },
+          "elapsed_s": {
+            "description": "Wall-clock seconds the check took, for the budget record (F12 §6, Q4).",
+            "oneOf": [{ "type": "null" }, { "type": "number", "minimum": 0 }]
+          },
+          "budget_s": {
+            "description": "The tactic budget the attempt ran under, where one applied.",
+            "oneOf": [{ "type": "null" }, { "type": "number", "minimum": 0 }]
+          },
+          "note": {
+            "description": "Free text about the row: the diagnostic behind an inconclusive verdict, the consequence lemma a screen tried, the pair an equivalence compared. Untrusted downstream (F12 §7).",
+            "oneOf": [{ "type": "null" }, { "type": "string", "maxLength": 2000 }]
+          }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "exhibit": { "type": "string" } } },
+            "then": { "properties": { "exhibit_sha256": { "type": "string" } } }
+          }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "timestamp": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$" }
+  }
+}

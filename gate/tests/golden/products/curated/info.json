@@ -10,6 +10,9 @@
     "approach-record": [
       1
     ],
+    "attempts": [
+      1
+    ],
     "attestation": [
       1,
       2,
@@ -23,6 +26,10 @@
       1
     ],
     "defect-claim": [
+      1,
+      2
+    ],
+    "drift": [
       1
     ],
     "fidelity": [
@@ -37,7 +44,8 @@
     ],
     "graph": [
       1,
-      2
+      2,
+      3
     ],
     "info": [
       1
@@ -60,8 +68,15 @@
     "precheck-record": [
       1
     ],
-    "revision-request": [
+    "qa": [
       1
+    ],
+    "relevance": [
+      1
+    ],
+    "revision-request": [
+      1,
+      2
     ],
     "submission-meta": [
       1
@@ -76,7 +91,8 @@
     "targets-index": [
       1,
       2,
-      3
+      3,
+      4
     ],
     "waiver": [
       1

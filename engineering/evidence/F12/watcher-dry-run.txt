@@ -1,0 +1,15 @@
+F12-AC13 — the watcher's dry run over the live pinned registry (gate/tools/watch_upstream.py --dry-run).
+2026-09-12T11:20:58Z  graph: 2c095366041229d5cfab3beb2d59a8dd4b215e76 (a fresh clone of thisisanameforsure/open_proof_network_graph, main)
+
+Run 1 — from the build container, whose egress proxy allows github.com and raw.githubusercontent.com but refuses erdosproblems.com (CONNECT 403). The upstream comparison ran against the real registry (pinned c7f31d5f, head 2ff75e1a); the status page could not be read, so the run reports it as a warning and exits 1 rather than an all-clear (AC20). Run 2 is the workflow on a GitHub-hosted runner, appended below when it lands.
+
+$ uv run python gate/tools/watch_upstream.py --graph <clone> --dry-run
+watcher: erdos-68: https://www.erdosproblems.com/68 unreachable: fetching https://www.erdosproblems.com/68 failed: URLError
+opn watcher 2026-09-12T11:20:58Z (dry run)
+  erdos-68                 unchanged    google-deepmind/formal-conjectures:FormalConjectures/ErdosProblems/68.lean @ c7f31d5fd3d2 -> 2ff75e1ab78d
+      WARNING: fetching https://www.erdosproblems.com/68 failed: URLError
+  euclid-primes            not watched  no upstream pin
+  tutorial                 not watched  no upstream pin
+      note: no target record (pre-F11); not watched
+WARNING: upstream could not be read for some targets; nothing was written for them and this is not an all-clear (F12-AC20)
+exit: 1

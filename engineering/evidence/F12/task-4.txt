@@ -1,0 +1,103 @@
+F12-T4 — the attempts ledger with the statement-hash guard and the reset on revision (R10), opn-gate fidelity refusing screened-and-signed without a complete pass (R9), and every exhibit replayed through the toolchain seam before it counts (R15, AC24; Q15).
+2026-09-12T11:11:31Z  commit: 894a392 (+ working tree)
+
+Named verification: make verify-lean (the replay is Lean-facing). This container has no elan and no docker, so the lean tier runs in this repo's CI on the pushed branch; its run and result are appended below when it lands.
+
+$ uv run pytest gate/tests/test_qa.py gate/tests/test_fidelity.py -k 'attempt or ledger or gate or replay or declared' -v
+gate/tests/test_qa.py::test_every_check_has_exactly_one_kind PASSED      [  1%]
+gate/tests/test_qa.py::test_row_coherence_rules PASSED                   [  2%]
+gate/tests/test_qa.py::test_record_is_written_once_per_run_and_read_back PASSED [  4%]
+gate/tests/test_qa.py::test_a_definition_is_a_subject_with_a_smaller_floor PASSED [  5%]
+gate/tests/test_qa.py::test_a_broken_record_stops_the_reader_rather_than_being_skipped PASSED [  7%]
+gate/tests/test_qa.py::test_brief_alone_cannot_raise PASSED              [  8%]
+gate/tests/test_qa.py::test_a_complete_pass_is_every_floor_check_passed PASSED [ 10%]
+gate/tests/test_qa.py::test_an_inconclusive_check_is_not_a_pass PASSED   [ 11%]
+gate/tests/test_qa.py::test_the_latest_run_of_a_check_wins PASSED        [ 13%]
+gate/tests/test_qa.py::test_pin_move_stales_record PASSED                [ 14%]
+gate/tests/test_qa.py::test_statement_change_stales_record PASSED        [ 16%]
+gate/tests/test_qa.py::test_a_record_under_another_toolchain_is_stale PASSED [ 17%]
+gate/tests/test_qa.py::test_finding_is_unrouted PASSED                   [ 19%]
+gate/tests/test_qa.py::test_a_routed_finding_still_needs_a_clean_screen PASSED [ 20%]
+gate/tests/test_qa.py::test_a_finding_is_not_cleared_by_a_later_pass PASSED [ 22%]
+gate/tests/test_qa.py::test_missing_exhibit_is_refused PASSED            [ 23%]
+gate/tests/test_qa.py::test_exhibit_hash_mismatch_is_refused PASSED      [ 25%]
+gate/tests/test_qa.py::test_exhibit_containing_sorry_is_refused PASSED   [ 26%]
+gate/tests/test_qa.py::test_a_comment_naming_sorry_is_not_a_sorry PASSED [ 28%]
+gate/tests/test_qa.py::test_the_exhibit_store_is_append_only PASSED      [ 29%]
+gate/tests/test_qa.py::test_a_brief_file_is_not_evidence_and_is_not_integrity_checked PASSED [ 31%]
+gate/tests/test_qa.py::test_signature_shapes[theorem T.a : \u2200 p q r : Prop, (p \u2227 q) \u2227 r \u2192 p \u2227 (q \u2227 r) := by\n  sorry\n--\u2200 p q r : Prop, (p \u2227 q) \u2227 r \u2192 p \u2227 (q \u2227 r)-\u2200 p q r : Prop, (p \u2227 q) \u2227 r \u2192 False] PASSED [ 32%]
+gate/tests/test_qa.py::test_signature_shapes[theorem T.b (n : Nat) {m : Nat} [inst : Inhabited Nat] : n < m \u2192 m \u2260 0 := sorry\n-(n : Nat) {m : Nat} [inst : Inhabited Nat]-n < m \u2192 m \u2260 0-n < m \u2192 False] PASSED [ 34%]
+gate/tests/test_qa.py::test_signature_shapes[theorem T.c : \u2200 n : Nat, \u2203 p : Nat, n < p \u2227 Opn.IsPrime p := by\n  sorry\n--\u2200 n : Nat, \u2203 p : Nat, n < p \u2227 Opn.IsPrime p-\u2200 n : Nat, False] PASSED [ 35%]
+gate/tests/test_qa.py::test_signature_shapes[theorem T.d : (\u2200 x : Nat, x = x) \u2192 True := by sorry\n--(\u2200 x : Nat, x = x) \u2192 True-(\u2200 x : Nat, x = x) \u2192 False] PASSED [ 37%]
+gate/tests/test_qa.py::test_signature_shapes[namespace Opn\ntheorem e : True := by\n  sorry\nend Opn\n--True-False] PASSED [ 38%]
+gate/tests/test_qa.py::test_an_unreadable_signature_is_inconclusive_not_a_pass PASSED [ 40%]
+gate/tests/test_qa.py::test_scratch_source_names_the_subject_as_hypothesis_or_goal_never_sorry PASSED [ 41%]
+gate/tests/test_qa.py::test_false_screen_files_unrouted_claim PASSED     [ 43%]
+gate/tests/test_qa.py::test_finding_is_unrouted_until_a_curator_routes_it PASSED [ 44%]
+gate/tests/test_qa.py::test_a_routing_claim_must_name_a_real_finding PASSED [ 46%]
+gate/tests/test_qa.py::test_a_clean_run_writes_a_record_and_nothing_else PASSED [ 47%]
+gate/tests/test_qa.py::test_a_declared_consequence_is_attempted_under_the_subject PASSED [ 49%]
+gate/tests/test_qa.py::test_a_definition_is_refused_by_the_screens PASSED [ 50%]
+gate/tests/test_qa.py::test_timeout_is_inconclusive_not_pass PASSED      [ 52%]
+gate/tests/test_qa.py::test_subject_budget_marks_remaining_checks_inconclusive PASSED [ 53%]
+gate/tests/test_qa.py::test_erroring_screen_is_inconclusive_and_visible PASSED [ 55%]
+gate/tests/test_qa.py::test_an_elaborated_proof_the_kernel_refuses_is_inconclusive PASSED [ 56%]
+gate/tests/test_qa.py::test_a_statement_that_does_not_compile_stops_at_layer_one PASSED [ 58%]
+gate/tests/test_qa.py::test_qa_screen_command_runs_in_the_sandbox_and_routes PASSED [ 59%]
+gate/tests/test_qa.py::test_brief_lists_every_referenced_constant PASSED [ 61%]
+gate/tests/test_qa.py::test_model_outage_is_inconclusive PASSED          [ 62%]
+gate/tests/test_qa.py::test_a_brief_whose_grounding_fails_is_inconclusive PASSED [ 64%]
+gate/tests/test_qa.py::test_a_definition_gets_its_own_brief PASSED       [ 65%]
+gate/tests/test_qa.py::test_backtranslate_independence PASSED            [ 67%]
+gate/tests/test_qa.py::test_backtranslate_outage_is_inconclusive PASSED  [ 68%]
+gate/tests/test_qa.py::test_equivalence_failure_is_inconclusive PASSED   [ 70%]
+gate/tests/test_qa.py::test_a_proved_pair_is_an_exhibit PASSED           [ 71%]
+gate/tests/test_qa.py::test_equivalence_needs_a_real_other_node PASSED   [ 73%]
+gate/tests/test_qa.py::test_qa_brief_and_backtranslate_commands PASSED   [ 74%]
+gate/tests/test_qa.py::test_attempts_do_not_cross_revisions PASSED       [ 76%]
+gate/tests/test_qa.py::test_the_ledger_refuses_a_duplicate_and_a_broken_file PASSED [ 77%]
+gate/tests/test_qa.py::test_the_ledger_is_a_curator_file_that_grows PASSED [ 79%]
+gate/tests/test_qa.py::test_the_grade_gate_refuses_an_incomplete_pass_and_writes_nothing PASSED [ 80%]
+gate/tests/test_qa.py::test_the_gate_replays_every_exhibit_before_it_counts PASSED [ 82%]
+gate/tests/test_qa.py::test_declared_theorems_are_qualified PASSED       [ 83%]
+gate/tests/test_qa.py::test_fidelity_command_is_gated_and_cites_what_it_rests_on PASSED [ 85%]
+gate/tests/test_fidelity.py::test_grade_rules PASSED                     [ 86%]
+gate/tests/test_fidelity.py::test_the_author_may_still_hold_the_machines_own_grade PASSED [ 88%]
+gate/tests/test_fidelity.py::test_certificates_are_append_only_and_the_latest_wins PASSED [ 89%]
+gate/tests/test_fidelity.py::test_signatures_are_counted_and_named PASSED [ 91%]
+gate/tests/test_fidelity.py::test_a_subject_has_one_author PASSED        [ 92%]
+gate/tests/test_fidelity.py::test_an_unknown_subject_is_refused PASSED   [ 94%]
+gate/tests/test_fidelity.py::test_a_broken_certificate_stops_the_grade_rather_than_being_skipped PASSED [ 95%]
+gate/tests/test_fidelity.py::test_a_certificate_for_a_removed_definition_still_counts PASSED [ 97%]
+gate/tests/test_fidelity.py::test_the_ladder_is_ordered_and_unknown_grades_are_refused PASSED [ 98%]
+gate/tests/test_fidelity.py::test_a_certificate_records_its_exhibits_and_evidence_files PASSED [100%]
+============================== 67 passed in 3.40s ==============================
+
+$ make verify (regression gate)
+========= 1505 passed, 1 skipped, 61 deselected, 2 warnings in 36.26s ==========
+
+--- CI lean tier (the task's named verification for AC24; this container has no elan or docker) ---
+Run 34690463330 (ci run 66, head 035d3d8 = the F12-T4 commit): job 103544676993 FAILED on one assertion,
+  gate/tests/test_qa_lean.py::test_exhibit_is_replayed_before_it_counts — "Regex pattern did not match":
+  expected 'ofReduceBool'; the replay had refused the forged exhibit with
+  "OpnQa.equiv_forward rests on OpnQa.equiv_forward._native.native_decide.ax_1_1 (D-4 steps 4, 5);
+  it does not count toward a grade (R15)" (QaError, code exhibit-replay).
+  So the behaviour AC24 asks for held on the real toolchain — the grade did not rise — and the test
+  had guessed the axiom's name from memory: Lean 4.33 mints the native-decide axiom per declaration,
+  which toolchain.NATIVE_DECIDE_MARKERS already covers ("native_decide", "Lean.ofReduceBool"). The
+  match is now "native_decide|ofReduceBool". 60 of 61 lean/docker tests passed in that run.
+
+Run 34692446154 (ci run 71, head 17743bf = the AC24 match fix, merged onto main dc25d2b):
+  https://github.com/thisisanameforsure/open_proof_network/actions/runs/34692446154
+  job "make verify-lean (real toolchain + sandbox)" 103549996438: success
+  gate/tests/test_qa_lean.py ...   (test_exhibit_is_replayed_before_it_counts = AC24: the forged
+                                    native_decide exhibit refused by the replay, code exhibit-replay,
+                                    the grade held at mechanical-only)
+  ========= 61 passed, 1520 deselected, 2 warnings in 2515.19s (0:41:55) =========
+  The budget lines of this run agree with budgets.txt within 0.4 s (onramp total 3.5 s; the
+  propositional finding's replay 56.0 s).
+
+Tag: F12-done was created locally on 36251a6 (annotated). Pushing it was refused by this session's
+git proxy (three attempts, "the remote end hung up unexpectedly"; branch pushes succeed, so the
+proxy admits only the designated branch). The owner pushes the tag on merge:
+    git tag -a F12-done 36251a6 -m "F12 done" && git push origin F12-done

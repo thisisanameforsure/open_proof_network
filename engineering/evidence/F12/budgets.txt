@@ -1,0 +1,30 @@
+F12-Q4 — the screen tactic budgets measured on the real toolchain (make verify-lean in CI).
+Source: ci run 34691779392, job 103548186829 (head 1867ecc), gate/tests/test_qa_lean.py, printed by the
+tests through capsys.disabled(); ubuntu-24.04 hosted runner, Lean 4.33.1, the pinned Mathlib checkout
+from the Actions cache. Format: <subject> <check> <verdict> <elapsed> of <attempt budget>.
+
+  onramp (infinitude-of-primes, import Mathlib):
+    compile              pass             1.3s of 120s
+    screen-consequence   pass             0.0s of 0s      (no consequences declared: vacuous)
+    screen-statement     pass             0.7s of 120s    (no tactic proved it; four attempts)
+    screen-negation      pass             0.3s of 120s
+    screen-false         pass             0.8s of 120s
+    subject total 3.3s
+
+  propositional (and-swap-reassoc, core only; the statement is a tautology):
+    compile              pass             0.4s of 120s
+    screen-consequence   pass             0.0s of 0s
+    screen-statement     fail            55.6s of 120s    (proved by the first tactic; the 55 s is the
+                                                          kernel replay — leanchecker --fresh — and the
+                                                          axiom check on the found proof)
+    screen-negation      pass             0.2s of 120s
+    screen-false         pass             0.8s of 120s
+
+Reading. A clean screen costs seconds, not minutes, on both a core-only and a Mathlib statement: the
+four tactics fail fast. The cost is in a *finding* — replaying the found proof through leanchecker
+--fresh is ~55 s even for a one-line tautology, because --fresh re-checks every import. So the
+provisional budgets in §6 (60 s per attempt, 5 min per subject) are generous for the attempts and
+tight for a subject with several findings: a subject where three screens all find something would
+spend ~3 min in replays alone. Keep 60 s per attempt; the per-subject budget should be read as
+"attempts plus replays", which is what the runner counts. The 0.0 s consequence rows are vacuous
+passes (no qa/consequences/<Name>.lean); a real consequence screen costs one attempt each.

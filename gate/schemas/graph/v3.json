@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/graph/v3.json",
+  "title": "graph/v3",
+  "description": "targets/<id>/graph.json (D-25, D-35): every node of one target with its derived status, regenerated on every merge and never hand-edited. v3 (2026-09-12, F12-R13; D-30 v3.12): each row carries `relevance` — for a variant labelled `related`, whether one signature on the sentence that says why it bears on the target is on record (nodes/<id>/relevance.yaml, relevance/v1), with the signer and date; a related variant is published as pertinent to the target only with it. Null for every other node. v2 could not be edited (D-34). status gains refuted and defective — what a merged counterexample and a merged vacuity certificate make of a node (D-12 #2, #3) — and each node gains cause, the machine-readable reason a derived status is what it is: dep-refuted for a node under a refuted one, witness-missing for a compiler-derived child whose witness slot is still a stub (D-29, F07-R6). v1 stays readable; a graph rendered by an older gate has neither value.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "target_id",
+    "root",
+    "rendered_from",
+    "nodes"
+  ],
+  "properties": {
+    "schema": {
+      "const": "graph/v3"
+    },
+    "target_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "root": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "rendered_from": {
+      "description": "the graph commit the products were rendered from; null for an uncommitted tree",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      ]
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "node_id",
+          "status",
+          "deps",
+          "origin",
+          "statement_hash",
+          "relation",
+          "tutorial",
+          "trust_base",
+          "proof_commit",
+          "cause",
+          "relevance"
+        ],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "blocked",
+              "proved",
+              "refuted",
+              "defective",
+              "speculative",
+              "superseded",
+              "stale",
+              "disputed",
+              "abandoned"
+            ]
+          },
+          "deps": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]*$"
+            },
+            "uniqueItems": true
+          },
+          "origin": {
+            "enum": [
+              "authored",
+              "compiler-derived",
+              "variant",
+              "skeleton-hole"
+            ]
+          },
+          "statement_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "relation": {
+            "description": "D-30 label for a variant; null otherwise",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "enum": [
+                  "resolves",
+                  "partial",
+                  "related"
+                ]
+              }
+            ]
+          },
+          "tutorial": {
+            "type": "boolean"
+          },
+          "trust_base": {
+            "description": "compiler when the proving attestation says so (F02-R9); kernel for a proof the kernel checked; null when unproved",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "enum": [
+                  "kernel",
+                  "compiler"
+                ]
+              }
+            ]
+          },
+          "proof_commit": {
+            "description": "merge commit of the proof when proved",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              }
+            ]
+          },
+          "cause": {
+            "description": "Why this status, where the reason is mechanical; null when it needs none",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$"
+              }
+            ]
+          },
+          "relevance": {
+            "description": "D-30 v3.12: for a related variant, the one human act on the one claim no kernel checks; null for any other node.",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "pertinent",
+                  "signer",
+                  "date"
+                ],
+                "properties": {
+                  "pertinent": {
+                    "type": "boolean"
+                  },
+                  "signer": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100
+                      }
+                    ]
+                  },
+                  "date": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -9,6 +9,7 @@ A node directory is::
       Context.lean     required (checked by F01)
       Proof.lean       optional: absent until a proof merges; the only submittable file
       Relation.lean    optional: variants only (D-30, F08)
+      relevance.yaml   optional: a related variant's one signature (D-30 v3.12, F12-R13)
       CONTEXT.json     optional: the bot-owned context bundle (F10-R3, Q2); never a submission path
       attempts/  annex/  explainer/   required directories (may hold only .gitkeep)
       waivers/         optional (F02)
@@ -32,7 +33,9 @@ REQUIRED_FILES: tuple[str, ...] = ("META.yaml", "Statement.lean", "Witness.lean"
 #: CONTEXT.json is written by the post-merge job (F10-R3) and, like META.yaml's status line, is a
 #: rendering the layout tolerates but no submission may touch (F10-Q2; ``paths`` refuses it).
 CONTEXT_FILE = "CONTEXT.json"
-OPTIONAL_FILES: tuple[str, ...] = ("Proof.lean", "Relation.lean", CONTEXT_FILE)
+#: relevance.yaml is a related variant's one signature (F12-R13, D-30 v3.12), a curator's record.
+RELEVANCE_FILE = "relevance.yaml"
+OPTIONAL_FILES: tuple[str, ...] = ("Proof.lean", "Relation.lean", CONTEXT_FILE, RELEVANCE_FILE)
 REQUIRED_DIRS: tuple[str, ...] = ("attempts", "annex", "explainer")
 #: status/: curator records (F03-Q3); revisions/ and defects/: D-8 and D-16 records (F08).
 OPTIONAL_DIRS: tuple[str, ...] = ("waivers", "status", "revisions", "defects")

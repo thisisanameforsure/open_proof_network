@@ -225,6 +225,55 @@ def defect_claim(**overrides: Any) -> dict[str, Any]:
     return doc
 
 
+def screen_finding(**overrides: Any) -> dict[str, Any]:
+    """A ``defect-claim/v2`` claim as the QA screen files one (F12-R4, Q7)."""
+    doc: dict[str, Any] = {
+        "schema": "defect-claim/v2",
+        "stmt_ref": "tutorial-and-swap",
+        "class": "screen-finding",
+        "line": 1,
+        "exhibit": "example : True := trivial\n",
+        "contributor": "opn-gate-qa",
+        "date": "2026-09-12",
+        "qa_exhibit": "targets/propositional/qa/exhibits/root-screen-false-1.lean",
+        "readings": ["misformalization", "refutation"],
+        "routes": None,
+        "note": (
+            "either the statement is a misformalization (D-8) or the conjecture is refuted (D-12)"
+        ),
+    }
+    doc.update(overrides)
+    return doc
+
+
+def qa_record(**overrides: Any) -> dict[str, Any]:
+    """A ``qa/v1`` record: one clean run of the screens (F12-R1)."""
+    row = {
+        "check": "compile",
+        "kind": "exhibit",
+        "tool": "opn-gate qa screen",
+        "tool_version": "0.0.0",
+        "model": None,
+        "model_version": None,
+        "verdict": "pass",
+        "exhibit": None,
+        "exhibit_sha256": None,
+        "timestamp": "2026-09-12T10:00:00Z",
+    }
+    doc: dict[str, Any] = {
+        "schema": "qa/v1",
+        "subject": "root",
+        "statement_hash": SHA256,
+        "lean_toolchain": "leanprover/lean4:v4.33.1",
+        "mathlib_sha": None,
+        "date": "2026-09-12T10:00:00Z",
+        "produced_by": "opn-gate qa screen",
+        "checks": [row, {**row, "check": "screen-statement"}],
+    }
+    doc.update(overrides)
+    return doc
+
+
 def target_status(**overrides: Any) -> dict[str, Any]:
     doc: dict[str, Any] = {
         "schema": "target-status/v2",

@@ -176,6 +176,11 @@ Role = Literal[
     "gate-spec",  # targets/<id>/gate-spec.json: the pins the target runs under (D-35, F11-R2)
     "definition",  # targets/<id>/defs/<Name>.lean: an object the statements are stated over
     "fidelity",  # targets/<id>/fidelity/<subject>-<n>.yaml: a D-9 certificate (F11-R3)
+    "qa-record",  # targets/<id>/qa/<subject>-<n>.yaml: one run of the QA pass (F12-R1)
+    "qa-file",  # targets/<id>/qa/{exhibits,consequences,briefs,backtranslation}/<name> (F12)
+    "attempts-ledger",  # targets/<id>/attempts.yaml: D-9's documented attempts (F12-R10)
+    "drift-record",  # targets/<id>/drift/<name>.yaml: the watcher's flag (F12-R11, R12)
+    "relevance",  # nodes/<id>/relevance.yaml: a related variant's one signature (F12-R13)
 ]
 
 #: Roles that claim nothing and merge on schema and path checks alone (F07-R9).
@@ -194,8 +199,17 @@ EXHIBIT_ROLES: tuple[Role, ...] = ("revision-request", "defect-claim")
 #: The files a new node directory is made of (F08-R2): a proposal adds these and nothing else.
 NODE_ROLES: tuple[Role, ...] = ("node", "witness", "relation", "keep")
 
-#: The records only a listed curator may add (F08-R8; D-8, D-29, D-33).
-CURATOR_ROLES: tuple[Role, ...] = ("node-status", "target-status")
+#: The records only a listed curator may add (F08-R8; D-8, D-29, D-33) — and, since F12, the
+#: QA record and its files: the pass is the curator's act and a grade rests on it (F12-R9).
+CURATOR_ROLES: tuple[Role, ...] = (
+    "node-status",
+    "target-status",
+    "qa-record",
+    "qa-file",
+    "attempts-ledger",
+    "drift-record",
+    "relevance",
+)
 
 #: What a curated intake adds beside the root node (F11-R2; D-6): the target's own files. A pull
 #: request carrying any of these is an intake, and an intake is a curator's act.
@@ -203,7 +217,8 @@ INTAKE_ROLES: tuple[Role, ...] = ("target-record", "gate-spec", "definition", "f
 
 #: Roles that may be modified as well as added: a proof is resubmittable, a waiver follows it, and
 #: a hole's witness slot is filled in place (F08-R5) — everything else is append-only.
-MODIFIABLE_ROLES: tuple[Role, ...] = ("proof", "waiver", "witness")
+#: The attempts ledger is one file that grows (F12-R10): modified in place, entries only added.
+MODIFIABLE_ROLES: tuple[Role, ...] = ("proof", "waiver", "witness", "attempts-ledger")
 
 #: The schema versions each record may declare; an annex validates its YAML front matter.
 #: A role carries a *set* because D-34 versions rather than edits: `target-status` gained v2
@@ -215,8 +230,12 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "approach-record": ("approach-record/v1",),
     "node-status": ("node-status/v1",),
     "target-status": ("target-status/v1", "target-status/v2"),
-    "revision-request": ("revision-request/v1",),
-    "defect-claim": ("defect-claim/v1",),
+    "revision-request": ("revision-request/v1", "revision-request/v2"),
+    "defect-claim": ("defect-claim/v1", "defect-claim/v2"),
+    "qa-record": ("qa/v1",),
+    "attempts-ledger": ("attempts/v1",),
+    "drift-record": ("drift/v1",),
+    "relevance": ("relevance/v1",),
 }
 
 #: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers).
@@ -228,7 +247,15 @@ KEEP_FILE = ".gitkeep"
 NODE_DEFINITION_FILES: tuple[str, ...] = ("META.yaml", "Statement.lean", "Context.lean")
 WITNESS_FILE = "Witness.lean"
 RELATION_FILE = "Relation.lean"
+RELEVANCE_FILE = "relevance.yaml"
 KEEP_DIRS: tuple[str, ...] = ("attempts", "annex", "explainer")
+#: What a QA run leaves under ``targets/<id>/qa/`` (F12-R1, R6, R7), each directory flat.
+QA_SUBDIRS: dict[str, tuple[str, ...]] = {
+    "exhibits": (".lean",),
+    "consequences": (".lean",),
+    "briefs": (".md",),
+    "backtranslation": (".md",),
+}
 
 #: The node directories that hold flat YAML records, and the role of a record there.
 RECORD_DIRS: dict[str, Role] = {
@@ -262,7 +289,7 @@ class Located:
     node_id: str | None  # None for the target-scoped approach record
 
 
-def locate(path: str) -> Located | None:  # noqa: PLR0911 — one return per D-3 entry
+def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912 — one branch per D-3 entry
     """The role of ``path``, or ``None`` when no mode may touch it (F07-R3's rejection)."""
     node_match = _NODE_PATH_RE.match(path)
     if node_match is not None:
@@ -286,10 +313,21 @@ def locate(path: str) -> Located | None:  # noqa: PLR0911 — one return per D-3
             return Located("target-record", path, target_match.group("target"), None)
         if rest == "gate-spec.json":
             return Located("gate-spec", path, target_match.group("target"), None)
+        if rest == "attempts.yaml":
+            return Located("attempts-ledger", path, target_match.group("target"), None)
+        if head == "drift" and _is_flat(name, YAML_SUFFIXES):
+            return Located("drift-record", path, target_match.group("target"), None)
         if head == "defs" and _is_flat(name, (".lean",)):
             return Located("definition", path, target_match.group("target"), None)
         if head == "fidelity" and _is_flat(name, YAML_SUFFIXES):
             return Located("fidelity", path, target_match.group("target"), None)
+        # F12-R1: the QA record beside the certificates, and the files a run leaves.
+        if head == "qa" and _is_flat(name, YAML_SUFFIXES):
+            return Located("qa-record", path, target_match.group("target"), None)
+        if head == "qa":
+            sub, _, leaf = name.partition("/")
+            if sub in QA_SUBDIRS and _is_flat(leaf, QA_SUBDIRS[sub]):
+                return Located("qa-file", path, target_match.group("target"), None)
     return None
 
 
@@ -304,6 +342,8 @@ def _node_role(rest: str) -> Role | None:  # noqa: PLR0911, PLR0912 — one bran
         return "witness"
     if rest == RELATION_FILE:
         return "relation"
+    if rest == RELEVANCE_FILE:
+        return "relevance"
     if any(rest == f"{d}/{KEEP_FILE}" for d in KEEP_DIRS):
         return "keep"
     for directory, role in RECORD_DIRS.items():

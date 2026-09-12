@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/defect-claim/v2.json",
+  "title": "defect-claim/v2",
+  "description": "nodes/<id>/defects/<timestamp>-<contributor>.yaml, or targets/<id>/defs/defects/<timestamp>-<contributor>.yaml (D-16; F08-R7; F12-R4, Q7): a statement-defect claim, free and shaped. v2 (2026-09-12) adds one class value, `screen-finding`: the QA screen's own claim (F12-R3, R4), which carries a kernel-checked exhibit and names both readings — misformalization (D-8) or refutation (D-12) — without asserting either; a curator routes it by appending a claim whose `routes` names this file, with the D-16 class they chose or the `refutation` reading. `screen-finding` is a routing state, not a class: it enters no per-class measurement (D-11). A screen-finding claim names the exhibit file it rests on in `qa_exhibit` (F12-R15: trusted by content). Everything else is v1's: pre-triage in the service and the gate (D-35), the exhibit elaborating in the sandbox (C9), adjudication D-17's. v1 stays live and unedited (D-34); the service files classed claims at v1, only the screen files v2.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "stmt_ref", "class", "line", "exhibit", "contributor", "date"],
+  "properties": {
+    "schema": { "const": "defect-claim/v2" },
+    "stmt_ref": {
+      "type": "string",
+      "description": "the node id whose Statement.lean is claimed defective, or defs/<file>.lean under the target",
+      "pattern": "^([a-z0-9][a-z0-9-]*(@v[1-9][0-9]*)?|defs/[A-Za-z0-9_][A-Za-z0-9_/.-]*\\.lean)$"
+    },
+    "class": {
+      "enum": [
+        "missing-hypothesis",
+        "junk-value",
+        "vacuity",
+        "quantifier-scope",
+        "wrong-domain",
+        "definition-mismatch",
+        "strength-drift",
+        "other-with-exhibit",
+        "screen-finding"
+      ]
+    },
+    "line": { "type": "integer", "minimum": 1 },
+    "exhibit": { "type": "string", "minLength": 1, "description": "a Lean file" },
+    "contributor": { "type": "string", "minLength": 1 },
+    "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "qa_exhibit": {
+      "description": "For a screen-finding claim: the path, relative to the graph root, of the exhibit file under targets/<id>/qa/exhibits/ that the QA record cites (F12-R15). Null on any other claim.",
+      "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1, "maxLength": 300 }]
+    },
+    "readings": {
+      "description": "For a screen-finding claim: the two things a derived falsehood can mean, named so nobody has to remember; the claim asserts neither (F12-R4, D-9 v3.12).",
+      "type": "array",
+      "items": { "enum": ["misformalization", "refutation"] },
+      "minItems": 2,
+      "maxItems": 2,
+      "uniqueItems": true
+    },
+    "routes": {
+      "description": "A curator's routing of an earlier screen-finding claim in the same directory: which file, and which reading. With `misformalization` this claim's own class is the D-16 class the curator chose and a D-8 revision follows; with `refutation` the finding is a D-12 counterexample in waiting and this claim's class is whatever best describes the exhibit.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["claim", "reading"],
+          "properties": {
+            "claim": { "type": "string", "minLength": 1, "maxLength": 200 },
+            "reading": { "enum": ["misformalization", "refutation"] }
+          }
+        }
+      ]
+    },
+    "note": {
+      "description": "Free text; capped and served as untrusted data (F12 §7).",
+      "oneOf": [{ "type": "null" }, { "type": "string", "maxLength": 2000 }]
+    }
+  }
+}

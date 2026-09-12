@@ -1,0 +1,43 @@
+F12-T2 — the soundness screens: qa screen in the sandbox on the graph's pin, the four attempt kinds, exhibits on success, non-zero exit, timeouts/errors/budget as inconclusive rows, defect-claim/v2 with screen-finding and the routing claim (R3, R4, Q7, Q11-Q13).
+2026-09-12T10:54:30Z  commit: d9b2935 (+ working tree)
+
+Named verification: make verify-lean. This container has no elan and no docker, so the lean tier runs in this repo's CI on the pushed branch (conventions §2); the run id and its result are appended below when it lands, as F11-T3/T4 did. The budget distribution the lean test prints goes to engineering/evidence/F12/budgets.txt.
+
+$ uv run pytest gate/tests/test_qa.py gate/tests/test_modes.py -k 'screen or finding or budget or timeout or erroring or signature or scratch or consequence or definition_is_refused or kernel or compile' -v
+gate/tests/test_qa.py::test_finding_is_unrouted PASSED                   [  4%]
+gate/tests/test_qa.py::test_a_routed_finding_still_needs_a_clean_screen PASSED [  9%]
+gate/tests/test_qa.py::test_a_finding_is_not_cleared_by_a_later_pass PASSED [ 13%]
+gate/tests/test_qa.py::test_signature_shapes[theorem T.a : \u2200 p q r : Prop, (p \u2227 q) \u2227 r \u2192 p \u2227 (q \u2227 r) := by\n  sorry\n--\u2200 p q r : Prop, (p \u2227 q) \u2227 r \u2192 p \u2227 (q \u2227 r)-\u2200 p q r : Prop, (p \u2227 q) \u2227 r \u2192 False] PASSED [ 18%]
+gate/tests/test_qa.py::test_signature_shapes[theorem T.b (n : Nat) {m : Nat} [inst : Inhabited Nat] : n < m \u2192 m \u2260 0 := sorry\n-(n : Nat) {m : Nat} [inst : Inhabited Nat]-n < m \u2192 m \u2260 0-n < m \u2192 False] PASSED [ 22%]
+gate/tests/test_qa.py::test_signature_shapes[theorem T.c : \u2200 n : Nat, \u2203 p : Nat, n < p \u2227 Opn.IsPrime p := by\n  sorry\n--\u2200 n : Nat, \u2203 p : Nat, n < p \u2227 Opn.IsPrime p-\u2200 n : Nat, False] PASSED [ 27%]
+gate/tests/test_qa.py::test_signature_shapes[theorem T.d : (\u2200 x : Nat, x = x) \u2192 True := by sorry\n--(\u2200 x : Nat, x = x) \u2192 True-(\u2200 x : Nat, x = x) \u2192 False] PASSED [ 31%]
+gate/tests/test_qa.py::test_signature_shapes[namespace Opn\ntheorem e : True := by\n  sorry\nend Opn\n--True-False] PASSED [ 36%]
+gate/tests/test_qa.py::test_an_unreadable_signature_is_inconclusive_not_a_pass PASSED [ 40%]
+gate/tests/test_qa.py::test_scratch_source_names_the_subject_as_hypothesis_or_goal_never_sorry PASSED [ 45%]
+gate/tests/test_qa.py::test_false_screen_files_unrouted_claim PASSED     [ 50%]
+gate/tests/test_qa.py::test_finding_is_unrouted_until_a_curator_routes_it PASSED [ 54%]
+gate/tests/test_qa.py::test_a_routing_claim_must_name_a_real_finding PASSED [ 59%]
+gate/tests/test_qa.py::test_a_declared_consequence_is_attempted_under_the_subject PASSED [ 63%]
+gate/tests/test_qa.py::test_a_definition_is_refused_by_the_screens PASSED [ 68%]
+gate/tests/test_qa.py::test_timeout_is_inconclusive_not_pass PASSED      [ 72%]
+gate/tests/test_qa.py::test_subject_budget_marks_remaining_checks_inconclusive PASSED [ 77%]
+gate/tests/test_qa.py::test_erroring_screen_is_inconclusive_and_visible PASSED [ 81%]
+gate/tests/test_qa.py::test_an_elaborated_proof_the_kernel_refuses_is_inconclusive PASSED [ 86%]
+gate/tests/test_qa.py::test_a_statement_that_does_not_compile_stops_at_layer_one PASSED [ 90%]
+gate/tests/test_qa.py::test_qa_screen_command_runs_in_the_sandbox_and_routes PASSED [ 95%]
+gate/tests/test_modes.py::test_screen_finding_routes_and_classless_still_bounces PASSED [100%]
+====================== 22 passed, 112 deselected in 0.88s ======================
+
+$ make verify (regression gate)
+========= 1470 passed, 1 skipped, 60 deselected, 2 warnings in 35.16s ==========
+
+--- CI lean tier (the task's named verification, make verify-lean; this container has no elan or docker) ---
+Run 34689742821 (ci run 65, head e1f1cf5 = the F12-T2 commit, merged onto main dc25d2b):
+  https://github.com/thisisanameforsure/open_proof_network/actions/runs/34689742821
+  job "make verify-lean (real toolchain + sandbox)" 103542790638: success
+  uv run --frozen pytest -m "lean or docker"
+  gate/tests/test_qa_lean.py ..    (test_onramp_screens_clean = AC12 on the pinned Mathlib;
+                                    test_a_tautology_is_found_and_its_exhibit_replays = R3/R4 with a real proof)
+  ========= 60 passed, 1471 deselected, 2 warnings in 2266.08s (0:37:46) =========
+The budget lines the test prints (F12-Q4, budgets.txt) did not reach this log: pytest captures a
+passing test's stdout. The test now prints them through capsys.disabled(); the next run carries them.

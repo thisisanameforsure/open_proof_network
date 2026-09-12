@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/attempts/v1.json",
+  "title": "attempts/v1",
+  "description": "targets/<id>/attempts.yaml (F12-R10; D-9 v3.12): the documented external attempts on a target's root statement — a prover sweep run against an upstream registry, a published attempt in a venue — each named, dated, linked and pinned to the statement content hash it actually ran on. Only entries whose hash equals the root's current hash count toward D-9's M; on a D-8 revision the count resets and the entries stay, so the record shows the attempts that no longer apply rather than deleting them. Append-only in content: a curator adds entries and never edits or removes one. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "attempts"],
+  "properties": {
+    "schema": { "const": "attempts/v1" },
+    "attempts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["venue", "system", "date", "url", "statement_hash"],
+        "properties": {
+          "venue": {
+            "description": "Where the attempt is documented: a registry, a paper, a forum.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "system": {
+            "description": "Who or what made the attempt: a prover system and its version, or a person.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+          "url": { "type": "string", "pattern": "^https?://", "maxLength": 500 },
+          "statement_hash": {
+            "description": "The root's statement hash the attempt ran against (D-9 v3.12's guard).",
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "note": {
+            "description": "Free text; capped and served as untrusted data (F12 §7).",
+            "oneOf": [{ "type": "null" }, { "type": "string", "maxLength": 500 }]
+          }
+        }
+      }
+    }
+  }
+}

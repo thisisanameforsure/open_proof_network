@@ -323,10 +323,124 @@ on the site.</p>
     check is a token match and is not the enforcement; the replay is. Files: T1 carries the hash
     field and the refusals, T4 carries the replay and moves to <code>make verify-lean</code>, T2
     carries the screen's budget rows, T3 the model outage, T5 the upstream outage.</td></tr>
+  <tr><td>F12-Q9</td><td><strong>Staleness is derived from the pins, never written</strong>
+    (2026-09-12, T1). R5 says "mark every QA record stale". A record pins the statement hash and
+    the toolchain and Mathlib it ran under (<code>qa/v1</code>), and a record whose pins differ
+    from the subject as it stands is stale by that fact alone; nothing edits a record, and the
+    grade gate and the products derive the state on every read. A written flag would be a second
+    home for a value the pins already carry, the F11-Q10 shape. The re-run R5 asks for is the
+    curator's act (<code>qa screen</code> again), and the refusal names it.</td></tr>
+  <tr><td>F12-Q10</td><td><strong>Screens run on the root; a definition's floor is compile, brief
+    and back-translation</strong> (2026-09-12, T1). D-9 makes a definition a review object, and R1
+    lists it as a QA subject, but a definition is not a proposition: it has nothing to negate, no
+    hypotheses to close and no consequences to derive. So <code>qa screen</code> refuses a
+    definition subject by name, and R9's "pass complete" for one is the three checks that apply.
+    A definition's defects surface through the root's screens (a junk-value definition makes the
+    root's negation or falsity provable) and through the brief, which lists it elaborated.
+    Equivalence stays a bonus layer for both (Q3).</td></tr>
+  <tr><td>F12-Q11</td><td><strong>The attempt shapes are rewritten in Python from the D-3
+    statement text, not by a metaprogram</strong> (2026-09-12, T2). The negation is
+    <code>¬ (∀ binders, P)</code>; the falsity form replaces the conclusion after the last
+    top-level arrow with <code>False</code>, keeping every <code>∀</code> prefix. Both are string
+    rewrites over the one shape <code>layout.parse_statement</code> already admits, and a shape
+    the rewriter cannot read leaves every screen <code>inconclusive</code> with a named
+    diagnostic — never a pass (C7). A Lean metaprogram over the elaborated type would be the sound
+    form; it was not built because the lean tier (AC12 and the tautology test) is what proves the
+    rewrites are Lean the pinned toolchain accepts, and a wrong rewrite fails there, loudly. The
+    tactic script is fixed (<code>simp_all</code>, <code>omega</code>, <code>decide</code>,
+    <code>exact?</code>, plus <code>aesop</code> and <code>norm_num</code> under a Mathlib pin)
+    and the bound that holds whatever the tactics do is the wall-clock budget through the seam.
+    Reversal path: an <code>opn-qa-shapes</code> metaprogram in <code>gate/lean/</code> with the
+    same four outputs.</td></tr>
+  <tr><td>F12-Q12</td><td><strong>The screen's claim rides in the curator's QA pull request; every
+    other claim is an append</strong> (2026-09-12, T2). R4 files the finding into F08's queue, and
+    the run that finds it writes the record, the exhibit and the claim together. The QA record is a
+    curator's act (a grade rests on it, R9), so <code>qa-record</code> and <code>qa-file</code> are
+    curator roles, and a curator pull request that carries a QA record may also carry a
+    <code>defect-claim</code> — held to being a <code>screen-finding</code> naming an exhibit in
+    the tree, or refused as <code>defect-class</code>. A curator's own classed claim, and the
+    routing claim, are appends like anyone's (F08-Q18's rule that a curator record with an append
+    is mixed stands for everything else). The screen's claim under a definition subject does not
+    arise: screens run on the root only (Q10).</td></tr>
+  <tr><td>F12-Q13</td><td><strong>A finding is routed by a later claim naming it, and is never
+    cleared by a re-run</strong> (2026-09-12, T2). Records are append-only, so "replacing
+    <code>screen-finding</code> with a D-16 class" (R4) is a second claim whose <code>routes</code>
+    names the first and states the reading; <code>opn-gate qa route</code> writes it and the
+    pass state reads it. A clean re-run of the same screen on the same statement does not clear a
+    finding — a kernel-checked proof stays one, and a later miss says only that the budget or the
+    library moved — so R9's floor for that screen is met only by a fresh pass <em>and</em> the
+    finding being routed. Exit codes: <code>qa screen</code> exits 0 on a clean pass and 1 on a
+    finding or on anything inconclusive (R3: a success is a rejection; C7: a timeout is not a
+    pass).</td></tr>
+  <tr><td>F12-Q14</td><td><strong>The model client is the Messages API over the locked
+    <code>httpx</code>; no package was added</strong> (2026-09-12, T3). §8 budgeted "one model
+    client, pinned and locked, with its C5 justification". The official SDK's current line is built
+    on <code>httpx2</code> while <code>mcp</code> 1.x pins <code>httpx</code> 0.28 (F09-Q5), so
+    the SDK would have brought a second HTTP stack for one endpoint — the audit surface C5 exists
+    to refuse. <code>opn_gate.models</code> is the seam: one request shape (the documented
+    <code>POST /v1/messages</code> with the model, a system prompt, one user turn and
+    <code>max_tokens</code>; no thinking configuration, since the default model runs adaptive
+    thinking), one answer, every non-completion — a non-2xx, a refusal stop reason, an empty or
+    malformed body, a network error — a <code>ModelError</code> the caller records as
+    <code>inconclusive</code>. The model is config (<code>OPN_MODEL</code>, default
+    <code>claude-opus-5</code>) and the key is a C8 secret (<code>OPN_MODEL_API_KEY</code>) in the
+    curator's <code>.env</code>; R7's family is the model id's leading letters, and provenance names
+    an AI formalizer by substring against a small table (<code>models.AI_FAMILIES</code>) or is
+    <code>unknown</code>. Reversal path: the SDK, once one HTTP stack serves both it and
+    <code>mcp</code>.</td></tr>
+  <tr><td>F12-Q15</td><td><strong>The grade gate is the command's, and the library's default
+    is no gate</strong> (2026-09-12, T4). R9 says "refuse <code>opn-gate fidelity</code>", and
+    that is where it is enforced: <code>fidelity.attest</code> gained a <code>gate</code> callable
+    that runs after the author rules and before anything is written, and the command wires it to
+    <code>qa.grade_gate</code> — the pass complete for the statement as it stands, no unrouted
+    finding, every exhibit row replayed through the toolchain seam (R15), and the certificate
+    citing exactly the accepted exhibit rows as <code>exhibits</code> and the brief files as
+    <code>evidence_files</code> (R2). The library default is no gate because intake writes the
+    machine's own grade, which needs none, and because the fixtures that build a curated graph in
+    the tests (F11's, the site's) sign without a QA record by design. The reversal path, once
+    every fixture carries a record, is a gate by default. A subject with no exhibit rows — the
+    common case, since clean screens leave no file — needs no toolchain to sign, which is why
+    the command starts one only when there is something to replay.</td></tr>
+  <tr><td>F12-Q16</td><td><strong>The drift flag is a record scoped to the root's hash, the
+    watcher's write access is a fourth secret door the owner has not granted, and the workflow
+    runs dry until it is</strong> (2026-09-12, T5). R11's "set the target's drift flag" is a
+    <code>drift/v1</code> record under <code>targets/&lt;id&gt;/drift/</code> carrying the root's
+    statement hash at the time, so the products derive the freeze (<code>claimable: false</code>,
+    reason <code>upstream-drift</code>) exactly while that hash is current: a D-8 revision changes
+    it and lifts the flag with no further act, and a curator who judges the edit irrelevant appends
+    a <code>cleared</code> record naming the flag. The revision request the flag opens is a
+    <code>revision-request/v2</code> — one enum value, <code>upstream-drift</code>, added because a
+    drift is not one of D-16's classes and D-34 forbids editing v1 — and rides in the same curator
+    pull request as the flag (F12-Q12's shape). What the watcher cannot do from this repository is
+    push that pull request: the repository's own token has no write on the graph, and a token that
+    does is a secret C8 does not list. So <code>watch-upstream.yml</code> always runs the dry run
+    and keeps its report as the run's artifact, and the live step is gated on
+    <code>OPN_GRAPH_WATCHER_TOKEN</code> under an identity in the graph's
+    <code>curators.json</code> — Mike's call, the F07 precedent of pricing a permission before the
+    code assumes it. R12's "notify the curator" is the record, the report and the pull request; no
+    other channel exists yet. Q1 stands: the watcher is tooling and lives here.</td></tr>
+  <tr><td>F12-Q17</td><td><strong>The relevance signature is a curator record beside the node, and
+    surfacing it cost two product versions and no frontier bump</strong> (2026-09-12, T6). R13's
+    signature lives at <code>nodes/&lt;id&gt;/relevance.yaml</code> (<code>relevance/v1</code>: the
+    signer's reading in at most 500 characters, the signer, the date), written once by
+    <code>opn-gate qa relevance</code>, which refuses a node whose relation is not
+    <code>related</code>, a signer who is the variant's author (D-30 v3.12's "non-author"), and a
+    second signature. The site does not read the file: <code>graph/v3</code> adds a
+    <code>relevance</code> row per node (<code>null</code> for anything but a related variant;
+    otherwise pertinent, signer, date) so the page renders from the product alone, and
+    <code>targets-index/v4</code> carries the per-subject QA state, the counted and recorded
+    attempts and the drift flag (R14), which is what the Targets page and the target page read.
+    <code>frontier.json</code> is not bumped: claimability already carries the freeze as the reason
+    <code>upstream-drift</code> (Q16), and a related variant's pertinence changes nothing about
+    whether it may be claimed. The site accepts the new versions beside the old ones (a set per
+    product, the F11 lesson) and a target row without subjects says the pass has no subject rather
+    than showing an empty table. The api's listed fixture was regenerated from the gate at v4
+    with every earlier field identical (F05-Q5). Reversal: drop the two schema versions and the
+    file role; the record format is one file and stays readable.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> spec · <strong>Tasks:</strong> T1&ndash;T6 todo</div>
+<div class="rule"><strong>status:</strong> done 2026-09-12 (tag F12-done) · <strong>Tasks:</strong> T1 ✓ 2026-09-12 · T2 ✓ 2026-09-12 (lean tier: ci run 34689742821 green) · T3 ✓ 2026-09-12 · T4 ✓ 2026-09-12 (lean tier: ci run 34692446154 green) · T5 ✓ 2026-09-12 (AC13 dry run: this container cannot reach erdosproblems.com; the workflow run is the evidence) · T6 ✓ 2026-09-12</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its

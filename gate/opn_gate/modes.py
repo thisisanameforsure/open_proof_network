@@ -282,12 +282,22 @@ def _classify_curator(  # noqa: PLR0913 — the diff, its located paths and the 
     """
     roles = {loc.role for loc in located}
     allowed = set(paths.NODE_ROLES) | set(paths.CURATOR_ROLES)
+    if "qa-record" in roles:
+        # F12-R4: the screen's own claim rides with the QA record that produced it; the claim is
+        # then held to being a screen-finding (``check_defect_claim``), not a contributor's.
+        allowed.add("defect-claim")
+    if "drift-record" in roles:
+        # F12-R11: the watcher's revision request rides with the drift record that opened it,
+        # held to the upstream-drift class (``check_revision_request``).
+        allowed.add("revision-request")
     if not roles <= allowed:
         return Classification(None, target_id, None, tuple(located), (_mixed(roles),))
     node_roles = set(paths.NODE_ROLES)
+    # F12-R10: the attempts ledger is the one curator file that grows in place.
+    growing = {loc.path for loc in located if loc.role in paths.MODIFIABLE_ROLES}
     touched = sorted(
         {loc.path for loc in located if loc.role in node_roles and loc.node_id not in new_dirs}
-        | {c.path for c in changes if c.status != "A"}
+        | {c.path for c in changes if c.status != "A" and c.path not in growing}
     )
     if touched:
         return Classification(
@@ -537,7 +547,7 @@ def check(
     problems: list[Diagnostic] = []
     for located in classification.located:
         if located.role in paths.APPEND_ROLES:
-            problems.extend(check_append_file(graph_root, located))
+            problems.extend(check_append_file(graph_root, located, mode=classification.mode))
         elif located.role == "explainer":
             problems.extend(check_explainer_file(graph_root, located, classification))
         elif located.role in paths.CURATOR_ROLES:
@@ -659,7 +669,9 @@ def check_witness_completion(
     return []
 
 
-def check_append_file(graph_root: Path, located: Located) -> list[Diagnostic]:
+def check_append_file(
+    graph_root: Path, located: Located, *, mode: Mode | None = None
+) -> list[Diagnostic]:
     """One appended record: name, size and schema — plus D-16's pre-triage for a defect claim.
     An append claims nothing a kernel could check, so this is all the gate asks before the
     sandbox; an exhibit's elaboration is the sandbox's (``opn_gate.exhibits``)."""
@@ -668,7 +680,11 @@ def check_append_file(graph_root: Path, located: Located) -> list[Diagnostic]:
         return [data]
     problems: list[Diagnostic] = []
     if located.role == "defect-claim":
-        problems.extend(check_defect_claim(graph_root, located, data))
+        problems.extend(check_defect_claim(graph_root, located, data, mode=mode))
+        if problems:
+            return problems
+    if located.role == "revision-request" and mode == "curator":
+        problems.extend(check_watcher_request(located, data))
         if problems:
             return problems
     if located.role in paths.CONTENT_HASHED_ROLES:
@@ -701,16 +717,27 @@ def referenced_file(located: Located, stmt_ref: str) -> str | None:
     return f"targets/{located.target_id}/{stmt_ref}"
 
 
-def check_defect_claim(graph_root: Path, located: Located, data: bytes) -> list[Diagnostic]:
+def check_defect_claim(  # noqa: PLR0911 — one return per rule
+    graph_root: Path, located: Located, data: bytes, *, mode: Mode | None = None
+) -> list[Diagnostic]:
     """D-16's pre-triage, repeated in CI as D-35 requires: the class is from the taxonomy and the
     exhibit is present (both the schema's), and the line is an existing line of the referenced
-    file (this check's). A claim that fails any of them bounces; nothing is adjudicated here."""
+    file (this check's). A claim that fails any of them bounces; nothing is adjudicated here.
+
+    F12-R4, Q7: a ``defect-claim/v2`` claim of class ``screen-finding`` is the screen's, so it
+    names the exhibit file the QA record cites, and one that ``routes`` names a screen-finding
+    claim in its own directory. In a curator pull request (the QA run's), a claim is the
+    screen's or nothing: a curator files their own claims as anyone does, in an append.
+    """
     doc = _document(located, data)
     if isinstance(doc, Diagnostic):
         return [doc]
     schema_problems = _check_schema(located, data, code="record-invalid")
     if schema_problems:
         return schema_problems
+    finding_problems = check_screen_finding(graph_root, located, doc, mode=mode)
+    if finding_problems:
+        return finding_problems
     stmt_ref = str(doc.get("stmt_ref"))
     path = referenced_file(located, stmt_ref)
     if path is None:
@@ -742,6 +769,73 @@ def check_defect_claim(graph_root: Path, located: Located, data: bytes) -> list[
                 {"path": located.path, "line": line, "lines": len(lines), "file": path},
             )
         ]
+    return []
+
+
+SCREEN_FINDING = "screen-finding"
+UPSTREAM_DRIFT = "upstream-drift"
+
+
+def check_watcher_request(located: Located, data: bytes) -> list[Diagnostic]:
+    """F12-R11: in a curator pull request a revision request is the watcher's — class
+    ``upstream-drift`` — or nothing; a person's request is an append like anyone's."""
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    if doc.get("defect_class") == UPSTREAM_DRIFT:
+        return []
+    return [
+        Diagnostic(
+            "defect-class",
+            f"{located.path}: a curator pull request carries the watcher's request "
+            f"({UPSTREAM_DRIFT}) beside its drift record and no other; file a "
+            f"{doc.get('defect_class')!r} request as an append like anyone else (F12-R11, D-8)",
+            {"path": located.path, "class": doc.get("defect_class")},
+        )
+    ]
+
+
+def check_screen_finding(
+    graph_root: Path, located: Located, doc: dict[str, Any], *, mode: Mode | None
+) -> list[Diagnostic]:
+    """F12-R4's two v2 rules, and the curator-mode restriction (F12-Q7)."""
+    claim_class = str(doc.get("class"))
+    if mode == "curator" and claim_class != SCREEN_FINDING:
+        return [
+            Diagnostic(
+                "defect-class",
+                f"{located.path}: a curator pull request carries the screen's own claim "
+                f"({SCREEN_FINDING}) beside its QA record and no other; file a {claim_class} "
+                "claim as an append like anyone else (F12-R4, D-16)",
+                {"path": located.path, "class": claim_class},
+            )
+        ]
+    if claim_class == SCREEN_FINDING:
+        exhibit = doc.get("qa_exhibit")
+        if not isinstance(exhibit, str) or not (graph_root / exhibit).is_file():
+            return [
+                Diagnostic(
+                    "defect-ref",
+                    f"{located.path}: a {SCREEN_FINDING} claim names the exhibit file the QA "
+                    f"record cites under targets/<id>/qa/exhibits/ (F12-R4, R15); "
+                    f"qa_exhibit is {exhibit!r}",
+                    {"path": located.path, "qa_exhibit": exhibit},
+                )
+            ]
+    routes = doc.get("routes")
+    if isinstance(routes, dict):
+        name = str(routes.get("claim"))
+        sibling = (graph_root / located.path).parent / name
+        routed_doc = _document(located, sibling.read_bytes()) if sibling.is_file() else None
+        if not isinstance(routed_doc, dict) or routed_doc.get("class") != SCREEN_FINDING:
+            return [
+                Diagnostic(
+                    "defect-route",
+                    f"{located.path}: routes {name!r}, which is not a {SCREEN_FINDING} claim in "
+                    "the same directory (F12-R4)",
+                    {"path": located.path, "claim": name},
+                )
+            ]
     return []
 
 

@@ -10,6 +10,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
+from opn_gate.models import Completion, ModelError
 from opn_gate.toolchain import (
     ArtifactRequest,
     AxiomResult,
@@ -300,3 +301,25 @@ class FakeToolchain:
         self.calls.append(f"relation_type:{req.label}:{req.variant_decl}")
         self._maybe_raise("relation_type")
         return self.relation
+
+
+# --- the Model seam (F12-R6, R7) -----------------------------------------------------------------
+
+
+@dataclass
+class FakeModelClient:
+    """Answers every prompt with ``answer``; ``fail`` is the ``ModelError`` message to raise
+    instead (an outage, a non-2xx, a refusal). Every prompt is kept for the tests that check
+    what the model was and was not shown (R7: the informal source is withheld)."""
+
+    answer: str = "The statement says what its definitions say."
+    model: str = "fake-model"
+    version: str = "fake-model-2026-09-12"
+    fail: str | None = None
+    prompts: list[tuple[str, str]] = field(default_factory=list)
+
+    def complete(self, *, system: str, prompt: str, max_tokens: int = 16000) -> Completion:
+        self.prompts.append((system, prompt))
+        if self.fail is not None:
+            raise ModelError(self.fail)
+        return Completion(text=self.answer, model=self.model, version=self.version)

@@ -34,12 +34,14 @@ from opn_gate import (
     intake,
     layout,
     ledger,
+    models,
     modes,
     objectstore,
     paths,
     pipeline,
     postmerge,
     products,
+    qa,
     sandbox,
     scaffold,
     schemas,
@@ -48,6 +50,7 @@ from opn_gate import (
 )
 from opn_gate import graph as graphmod
 from opn_gate import submission as submissionmod
+from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Change, Claim
 from opn_gate.steps.base import RunContext
 from opn_gate.steps.hazards import HazardsStep, StatementStep
@@ -70,7 +73,7 @@ class CliError(Exception):
 #: The curator's commands (F08-R9 to R12): what one of them refuses is answered as
 #: ``{"ok": false, "refused": ...}`` and exit 1, whichever module raised it.
 CURATOR_COMMANDS: frozenset[str] = frozenset(
-    {"revise", "consolidate", "status", "missing-library", "intake", "fidelity"}
+    {"revise", "consolidate", "status", "missing-library", "intake", "fidelity", "qa"}
 )
 #: What a curator command refuses on: a record that does not satisfy its schema, a statement the
 #: scaffold cannot take, a graph that does not derive. Anywhere else these are exit 2.
@@ -80,6 +83,7 @@ _REFUSALS: tuple[type[Exception], ...] = (
     graphmod.GraphError,
     intake.IntakeError,
     fidelity.FidelityError,
+    qa.QaError,
 )
 #: The gate's own error family, plus the OS's for a flag file that cannot be read: an input or
 #: environment problem, reported on stderr as exit 2 — never a traceback (conventions §5; F08-Q18).
@@ -191,6 +195,7 @@ def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statemen
         _add_graph_tool_parsers,
         _add_curator_parsers,
         _add_intake_parsers,
+        _add_qa_parsers,
         _add_cache_parsers,
     ):
         add_parsers(sub)
@@ -404,6 +409,103 @@ def _add_intake_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]
     fid.add_argument("--subject-author", help="required only for a subject with no certificate yet")
     fid.add_argument("--date", help="UTC timestamp of the act (default: now)")
     fid.add_argument("--branch", help="also commit what was written on this branch")
+    # F12-R9, R15: a signature needs the QA pass complete, and every exhibit it rests on is
+    # replayed through the toolchain first — sandboxed like the screens when asked (C9).
+    fid.add_argument("--out", type=Path, help="work directory for the replay (default: temp)")
+    fid.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
+    fid.add_argument("--sandbox", action="store_true", help="replay inside the step-3 image")
+    fid.add_argument("--image", help="sandbox image tag (default: from the spec)")
+    fid.add_argument("--no-build", action="store_true", help="fail if the image is not present")
+
+
+def _add_qa_parsers(  # noqa: PLR0915 — one statement per flag
+    sub: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
+    """F12: the statement-QA pass, one command per layer of D-9 v3.12's pass."""
+    top = sub.add_parser("qa", help="the statement-QA pass over a subject (F12; D-9 v3.12)")
+    acts = top.add_subparsers(dest="action", required=True)
+
+    def common(p: argparse.ArgumentParser) -> None:
+        p.add_argument("target_id")
+        p.add_argument("subject", help="`root`, or the name of one definition in defs/")
+        p.add_argument("--graph", required=True, type=Path)
+        p.add_argument("--date", help="UTC timestamp of the run (default: now)")
+        p.add_argument("--branch", help="also commit what was written on this branch")
+
+    scr = acts.add_parser("screen", help="the soundness screens on the root statement (F12-R3)")
+    common(scr)
+    scr.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
+    scr.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
+    scr.add_argument(
+        "--sandbox",
+        action="store_true",
+        help="elaborate inside the step-3 image, as the authoritative run must (F12 §7, C9)",
+    )
+    scr.add_argument("--image", help="sandbox image tag (default: from the spec)")
+    scr.add_argument("--no-build", action="store_true", help="fail if the image is not present")
+    scr.add_argument(
+        "--by", default=qa.SCREEN_CONTRIBUTOR, help="the contributor a finding's claim names"
+    )
+
+    brf = acts.add_parser("brief", help="the grounded review brief (F12-R6): a judgement")
+    common(brf)
+    brf.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
+    brf.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
+    brf.add_argument("--sandbox", action="store_true", help="elaborate inside the step-3 image")
+    brf.add_argument("--image", help="sandbox image tag (default: from the spec)")
+    brf.add_argument("--no-build", action="store_true", help="fail if the image is not present")
+
+    bt = acts.add_parser("backtranslate", help="English from the Lean alone (F12-R7)")
+    common(bt)
+
+    eq = acts.add_parser("equivalence", help="both implications between two nodes (F12-R8)")
+    common(eq)
+    eq.add_argument("other", help="the node that formalizes the same statement independently")
+    eq.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
+    eq.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
+    eq.add_argument("--sandbox", action="store_true", help="elaborate inside the step-3 image")
+    eq.add_argument("--image", help="sandbox image tag (default: from the spec)")
+    eq.add_argument("--no-build", action="store_true", help="fail if the image is not present")
+
+    att = acts.add_parser("attempt", help="record a documented external attempt (F12-R10)")
+    att.add_argument("target_id")
+    att.add_argument("--graph", required=True, type=Path)
+    att.add_argument("--venue", required=True, help="where it is documented")
+    att.add_argument("--system", required=True, help="the prover system or person")
+    att.add_argument("--url", required=True)
+    att.add_argument(
+        "--on", dest="attempt_date", required=True, help="the attempt's day, YYYY-MM-DD"
+    )
+    att.add_argument(
+        "--statement-hash",
+        help="the root hash the attempt ran against (default: the current one); an attempt on "
+        "an earlier revision counts for nothing, which is the guard",
+    )
+    att.add_argument("--note")
+    att.add_argument("--date", help="UTC timestamp of the act (default: now)")
+    att.add_argument("--branch", help="also commit what was written on this branch")
+
+    rel = acts.add_parser("relevance", help="sign why a related variant is pertinent (F12-R13)")
+    rel.add_argument("target_id")
+    rel.add_argument("variant", help="the related variant's node id")
+    rel.add_argument("--graph", required=True, type=Path)
+    rel.add_argument("--by", required=True, dest="by", help="the signer (not the proposer)")
+    rel.add_argument("--text", required=True, help="why it bears on the target, in one sentence")
+    rel.add_argument("--date", help="UTC timestamp of the act (default: now)")
+    rel.add_argument("--branch", help="also commit what was written on this branch")
+
+    rte = acts.add_parser("route", help="route a positive screen's claim (F12-R4; D-9 v3.12)")
+    common(rte)
+    rte.add_argument("claim", help="the file name of the screen-finding claim under defects/")
+    rte.add_argument("--reading", required=True, choices=list(qa.READINGS))
+    rte.add_argument(
+        "--class",
+        dest="defect_class",
+        required=True,
+        help="the D-16 class for a misformalization, or the class that best fits the exhibit",
+    )
+    rte.add_argument("--by", required=True, dest="by", help="the curator routing it")
+    rte.add_argument("--note", help="why, in a sentence")
 
 
 def _add_sandbox_args(p: argparse.ArgumentParser) -> None:
@@ -435,6 +537,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "missing-library": run_missing_library,
         "ledger": run_ledger,
         "intake": run_intake,
+        "qa": run_qa,
         "fidelity": run_fidelity,
         "postmerge": run_postmerge,
         "admit": run_admit,
@@ -1503,10 +1606,28 @@ def run_import_fc(args: argparse.Namespace, settings: config.Settings, graph: Pa
 
 
 def run_fidelity(args: argparse.Namespace, settings: config.Settings) -> int:
-    """R3: append one certificate, and print the grade the target now derives from the set."""
+    """R3: append one certificate, and print the grade the target now derives from the set.
+
+    F12-R9: a signature (``screened-and-signed`` and up) is refused unless the QA pass is
+    complete for the statement as it stands with no unrouted finding, and every exhibit the
+    grade rests on has been replayed through the toolchain seam (R15) — the certificate then
+    cites those exhibits and the brief files, and nothing else (R2).
+    """
     graph = _intake_graph(args)
     directory = intake.target_dir(graph, args.target_id)
     evidence = _read_flag_file(args.evidence, "--evidence")
+    cited: dict[str, Any] = {"exhibits": (), "files": ()}
+
+    def gate(subject: str, grade: str) -> None:
+        def replay(rows: tuple[qa.Row, ...]) -> list[Diagnostic]:
+            ctx = _qa_context(args, settings, graph, args.target_id)
+            return qa.replay_exhibits(ctx, rows, timeout_s=settings.qa_attempt_budget_s)
+
+        state = qa.grade_gate(directory, subject, replay=replay)
+        cited["exhibits"], cited["files"] = qa.certificate_citations(state)
+
+    if fidelity.is_signature(args.grade):
+        gate(args.subject, args.grade)  # before the author rules, so the refusal is the useful one
     path = fidelity.attest(
         directory,
         args.subject,
@@ -1515,6 +1636,9 @@ def run_fidelity(args: argparse.Namespace, settings: config.Settings) -> int:
         subject_author=args.subject_author,
         date=_intake_date(args)[:10],
         evidence=evidence,
+        evidence_files=tuple(cited["files"]),
+        exhibits=tuple(cited["exhibits"]),
+        gate=gate,
     )
     doc: dict[str, Any] = {
         "ok": True,
@@ -1527,6 +1651,158 @@ def run_fidelity(args: argparse.Namespace, settings: config.Settings) -> int:
     }
     message = f"fidelity: {args.target_id} {args.subject} {args.grade}"
     return _emit_curator(doc, graph, args.branch, message)
+
+
+# --- qa (F12-R3, R4) ------------------------------------------------------------------------------
+
+
+def _qa_context(
+    args: argparse.Namespace, settings: config.Settings, graph: Path, target_id: str
+) -> RunContext:
+    """The root's node directory as a ``node_context``: the screens are checks on one node in a
+    graph checkout, sandboxed the way admission is (C9)."""
+    target_dir = intake.target_dir(graph, target_id)
+    if not target_dir.is_dir():
+        msg = f"no such target: {target_id} under {graph}"
+        raise CliError(msg)
+    root = qa.root_node(target_dir)
+    node_args = argparse.Namespace(**vars(args))
+    node_args.node_dir = layout.graph_nodes_dir(graph, target_id) / root
+    return node_context(node_args, settings, prefix="opn-qa-", sandboxed=bool(args.sandbox))
+
+
+def run_qa(args: argparse.Namespace, settings: config.Settings) -> int:  # noqa: PLR0911
+    graph = _intake_graph(args)
+    date = _intake_date(args)
+    target_dir = intake.target_dir(graph, args.target_id)
+    if args.action == "route":
+        root = qa.root_node(target_dir)
+        node = curator.load_node(
+            layout.graph_nodes_dir(graph, args.target_id), args.target_id, root
+        )
+        written = qa.route_finding(
+            target_dir,
+            node,
+            args.claim,
+            reading=args.reading,
+            defect_class=args.defect_class,
+            contributor=args.by,
+            date=date,
+            note=args.note,
+        )
+        doc: dict[str, Any] = {
+            "ok": True,
+            "target": args.target_id,
+            "routed": args.claim,
+            "reading": args.reading,
+            "written": [written],
+        }
+        return _emit_curator(doc, graph, args.branch, f"qa: route {args.claim} ({args.reading})")
+    if args.action == "relevance":
+        signed = qa.sign_relevance(
+            graph, args.target_id, args.variant, text=args.text, signer=args.by, date=date
+        )
+        doc = {
+            "ok": True,
+            "target": args.target_id,
+            "variant": args.variant,
+            "written": [signed.resolve().relative_to(graph.resolve()).as_posix()],
+        }
+        return _emit_curator(doc, graph, args.branch, f"qa: relevance of {args.variant}")
+    if args.action == "attempt":
+        ledger = qa.record_attempt(
+            target_dir,
+            venue=args.venue,
+            system=args.system,
+            date=args.attempt_date,
+            url=args.url,
+            statement_hash=args.statement_hash,
+            note=args.note,
+        )
+        state = qa.attempts_state(target_dir)
+        doc = {
+            "ok": True,
+            "target": args.target_id,
+            "attempts": state.as_dict(),
+            "written": [ledger.resolve().relative_to(graph.resolve()).as_posix()],
+        }
+        return _emit_curator(doc, graph, args.branch, f"qa: attempt on {args.target_id}")
+    if args.action == "backtranslate":
+        layer = qa.backtranslate(target_dir, args.subject, model=_model_client(settings), date=date)
+        return _emit_layer(layer, graph, args)
+    ctx = _qa_context(args, settings, graph, args.target_id)
+    if args.action == "brief":
+        layer = qa.brief(
+            ctx,
+            args.subject,
+            model=_model_client(settings),
+            date=date,
+            timeout_s=settings.qa_attempt_budget_s,
+        )
+        return _emit_layer(layer, graph, args)
+    if args.action == "equivalence":
+        if args.subject != fidelity.ROOT_SUBJECT:
+            msg = "an equivalence is between the root and another node; the subject is `root`"
+            raise CliError(msg)
+        layer = qa.equivalence(
+            ctx, args.other, date=date, attempt_budget_s=settings.qa_attempt_budget_s
+        )
+        return _emit_layer(layer, graph, args)
+    run = qa.screen(
+        ctx,
+        args.subject,
+        date=date,
+        attempt_budget_s=settings.qa_attempt_budget_s,
+        subject_budget_s=settings.qa_subject_budget_s,
+        contributor=args.by,
+    )
+    doc = {
+        "ok": run.clean,
+        "target": args.target_id,
+        "sandboxed": bool(args.sandbox),
+        **run.as_dict(),
+    }
+    if args.branch:
+        _curator_branch(
+            graph, args.branch, f"qa: screen {args.target_id} {args.subject}", run.written
+        )
+        doc["branch"] = args.branch
+        doc["next"] = f"git push -u origin {args.branch} && gh pr create --fill"
+    sys.stdout.write(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
+    if not run.clean:
+        what = (
+            f"findings: {', '.join(r.check for r in run.findings)}"
+            if run.findings
+            else "not a clean pass: " + ", ".join(r.check for r in run.rows if r.verdict != "pass")
+        )
+        sys.stderr.write(f"opn-gate: qa screen {args.target_id}/{args.subject}: {what}\n")
+    # R3: a success is a rejection — a finding exits non-zero; so does anything short of a
+    # clean pass, because an inconclusive screen is not one either (C7).
+    return EXIT_PASS if run.clean else EXIT_FAIL
+
+
+def _model_client(settings: config.Settings) -> models.ModelClient:
+    """The model seam, or a usage error before any work when no key is configured (C8)."""
+    if not settings.model_api_key:
+        msg = (
+            "OPN_MODEL_API_KEY is not set; the brief and the back-translation ask a model "
+            "(F12-R6, R7) and the key lives in the curator's .env (C8)"
+        )
+        raise CliError(msg)
+    return models.HttpxModelClient(settings.model_api_key, settings.model)
+
+
+def _emit_layer(layer: qa.LayerRun, graph: Path, args: argparse.Namespace) -> int:
+    doc: dict[str, Any] = {"target": args.target_id, **layer.as_dict()}
+    if args.branch:
+        message = f"qa: {args.action} {args.target_id} {args.subject}"
+        _curator_branch(graph, args.branch, message, doc["written"])
+        doc["branch"] = args.branch
+        doc["next"] = f"git push -u origin {args.branch} && gh pr create --fill"
+    sys.stdout.write(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
+    if not layer.ok:
+        sys.stderr.write(f"opn-gate: qa {args.action}: {layer.row.note}\n")
+    return EXIT_PASS if layer.ok else EXIT_FAIL
 
 
 def last_progress_merge(graph: Path, target_id: str) -> datetime | None:

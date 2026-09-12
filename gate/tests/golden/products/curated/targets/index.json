@@ -1,9 +1,14 @@
 {
   "rendered_from": "5555555555555555555555555555555555555555",
-  "schema": "targets-index/v3",
+  "schema": "targets-index/v4",
   "targets": [
     {
+      "attempts": {
+        "counted": 0,
+        "recorded": 0
+      },
       "claimable": true,
+      "drift": null,
       "fidelity": "screened-and-signed",
       "mathlib_sha": null,
       "node_counts": {

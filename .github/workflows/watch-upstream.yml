@@ -1,0 +1,93 @@
+# The daily drift watcher (F12-R11, R12; D-10 v3.12). Runs in this repo, not the graph (F12-Q1):
+# a scheduled tooling run has no place in a history that is mathematics only (D-35). It checks
+# out the graph, compares every inherited statement's upstream path at its pinned commit with
+# upstream head, and reads each source's problem status.
+#
+# Two modes, decided by one secret. The dry run always happens and its report is the run's
+# artifact: what drifted, what is resolved elsewhere, what could not be reached. Writing the
+# records and opening the pull request against the graph needs write access there, and this
+# repository's own token has none — that access is a fourth secret door C8 does not yet list,
+# so the live step runs only once the owner has decided to grant it (F12-Q16): a fine-grained
+# token with contents and pull-request write on the graph, stored as OPN_GRAPH_WATCHER_TOKEN,
+# under an identity listed in the graph's curators.json (the records are a curator's, F08-R8).
+# Until then the watcher reports, and a person acts on the report.
+#
+# A watcher that cannot reach upstream exits 1 and writes nothing — the run goes red rather than
+# reading as an all-clear (F12-AC20, C7).
+name: watch-upstream
+
+on:
+  schedule:
+    - cron: "17 4 * * *"  # daily (F12 §6); the minute is arbitrary and avoids the top of the hour
+  workflow_dispatch:
+    inputs:
+      graph_commit:
+        description: "graph commit to watch (default: main)"
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: watch-upstream
+  cancel-in-progress: false
+
+env:
+  UV_VERSION: "0.12.10"
+  GRAPH_REPO: thisisanameforsure/open_proof_network_graph
+
+jobs:
+  watch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          version: ${{ env.UV_VERSION }}
+
+      - name: Check out the graph
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ env.GRAPH_REPO }}
+          ref: ${{ inputs.graph_commit || 'main' }}
+          path: graph
+          fetch-depth: 1
+          # The live step below pushes with its own token; this checkout stays read-only.
+          persist-credentials: false
+
+      - name: Dry run over every imported target (AC13)
+        id: dry
+        run: |
+          set -euo pipefail
+          uv sync --frozen --quiet
+          uv run --frozen python gate/tools/watch_upstream.py --graph graph --dry-run \
+            --out watch-report.txt
+          echo "written=$(grep -c 'would flag' watch-report.txt || true)" >> "$GITHUB_OUTPUT"
+
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: watch-report
+          path: watch-report.txt
+          retention-days: 30
+
+      # F12-Q16: the live step is gated on a secret the owner has not granted yet. When it is,
+      # the records land on a branch of the graph and a pull request carries them, like every
+      # other change to the graph (D-35); nothing here merges anything.
+      - name: Write the records and open the pull request (needs OPN_GRAPH_WATCHER_TOKEN)
+        if: ${{ steps.dry.outputs.written != '0' && env.WATCHER_TOKEN != '' }}
+        env:
+          WATCHER_TOKEN: ${{ secrets.OPN_GRAPH_WATCHER_TOKEN }}
+          GH_TOKEN: ${{ secrets.OPN_GRAPH_WATCHER_TOKEN }}
+        run: |
+          set -euo pipefail
+          branch="watcher/$(date -u +%Y%m%dT%H%M%SZ)"
+          git -C graph config user.name "opn-watcher"
+          git -C graph config user.email "opn-watcher@users.noreply.github.com"
+          uv run --frozen python gate/tools/watch_upstream.py --graph graph --branch "$branch"
+          git -C graph push "https://x-access-token:${WATCHER_TOKEN}@github.com/${GRAPH_REPO}" "$branch"
+          gh pr create --repo "$GRAPH_REPO" --head "$branch" --base main \
+            --title "watcher: upstream drift and status flags ($(date -u +%F))" \
+            --body-file watch-report.txt

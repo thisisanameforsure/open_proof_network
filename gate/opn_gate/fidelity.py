@@ -28,6 +28,7 @@ however often they sign.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -261,6 +262,14 @@ def certificate_doc(  # noqa: PLR0913 — one argument per fact the certificate 
     return schemas.validate(doc, SCHEMA)
 
 
+#: F12-R9: what stands between a signature and the record — called with the subject and the
+#: grade before anything is written, for every grade from ``screened-and-signed`` up; it raises
+#: to refuse. ``opn-gate fidelity`` wires it to the QA pass state and the exhibit replay
+#: (``opn_gate.qa.grade_gate``); the library default is no gate, which is what intake's
+#: ``mechanical-only`` certificate and the tests that build fixtures need (F12-Q15).
+Gate = Callable[[str, str], object]
+
+
 def attest(  # noqa: PLR0913 — one argument per fact the certificate records
     target_dir: Path,
     subject: str,
@@ -272,11 +281,14 @@ def attest(  # noqa: PLR0913 — one argument per fact the certificate records
     subject_author: str | None = None,
     evidence_files: tuple[str, ...] = (),
     exhibits: tuple[dict[str, Any], ...] = (),
+    gate: Gate | None = None,
 ) -> Path:
     """R3: append a certificate for ``subject``, refusing before anything is written.
 
     ``subject_author`` is taken from the subject's existing certificates when it has any — intake
     writes the first one and so establishes it — and must be given for a subject that has none.
+    ``gate`` is F12-R9's refusal (see ``Gate``): it runs last, after the author rules, so a
+    refused signature leaves nothing on disk (C7).
     """
     if not target_dir.is_dir():
         msg = f"no such target directory: {target_dir}"
@@ -309,6 +321,8 @@ def attest(  # noqa: PLR0913 — one argument per fact the certificate records
             f"every rung from {SIGNED_FROM} up is a non-author's signature (D-9)"
         )
         raise FidelityError(msg)
+    if gate is not None and is_signature(grade):
+        gate(subject, grade)
     doc = certificate_doc(
         subject=subject,
         grade=grade,
