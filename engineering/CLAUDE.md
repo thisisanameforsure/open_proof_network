@@ -485,3 +485,47 @@ The law of the project:
   fifth (`OPN_MODEL_API_KEY`), and neither existed in the build. Both workflows run in the mode
   the missing secret allows — the watcher dry-runs and keeps its report; the model commands
   refuse with a named error — so a missing permission never reads as a passing run.
+- 2026-09-12 — A tag is a release, and the first one finds what nothing has run. The first tag
+  push this repository ever made published no image: `tr -c 'A-Za-z0-9_.-\n' '-'` reads `.-\n`
+  as a reverse range on GNU tr and is accepted silently by BSD tr on the laptop, so no local run
+  and no static read of the file could tell the two apart. The second attempt built and pushed,
+  then went red on its own in-image check, which imported `opn_gate` without `PYTHONPATH` — the
+  image was right and the check was wrong, because this project installs no package and every
+  entrypoint puts it on the path itself. Both fixed; the guard that covers the class is asserting
+  the expression uses no external program, not asserting its output.
+- 2026-09-12 — A node the gate itself creates must still pass the gate. The post-merge job writes
+  a hole's `Statement.lean` from the assembly and its `META.yaml` by bot, and neither ever meets
+  step 6: three of the on-ramp's four holes carry `2 ≤ m`, `off-by-one-range` flags it, nothing
+  wrote `acknowledged_hazards`, and so admission refuses *every* submission against those nodes —
+  while `POST /proposals/witness` pushes `Witness.lean` alone and cannot supply the cure
+  (F07-Q19). Whenever a job creates a record on the graph, run the gate's own checks over what it
+  wrote, not only over what a contributor sends.
+- 2026-09-12 — A merged partial derived its parent `proved` and the target `resolved`, so the
+  public site said Euclid's theorem was resolved with four blocked holes and no `Proof.lean`
+  anywhere (F03-Q7). The attestation for a partial is a passing attestation against the parent's
+  statement hash and says nothing about which artifact it was; `artifact_of` answers `None` for a
+  node with no proof file and the caller defaults that to `"proof"`. Every fixture node is in that
+  same state — none has a `Proof.lean` — so the fallback was the normal path in every test and the
+  live shape was the one nothing covered. Check what a fixture omits, not only what it contains.
+- 2026-09-12 — A checker that regenerates must run from the commit that generated. Run from
+  `main`, `check_products.py` reported nine differences on a healthy bot commit; every one was
+  F12's schema bump (`graph/v2→v3`, `targets-index/v3→v4`), because the tool regenerates with the
+  tooling it is run from while the products were rendered by the pinned gate. Run from a worktree
+  at the pin: `{"ok": true, "problems": []}`. The tool should say which gate it is using before it
+  reports a difference.
+- 2026-09-12 — The toolchain answers questions memory cannot. The four hole witnesses were checked
+  before submission by running the gate's own `opn-witness-type` over a Mathlib-free mock of the
+  four statements — expected type, definitional equality and the axiom set, all on a laptop with
+  no Mathlib checkout — and the live gate then printed `expected` and `witness` identical to the
+  mock's. Writing the witnesses in Lean core only is what made that possible, and it also means
+  they cannot break under a Mathlib rename. The same mock caught a parse error (two doc comments
+  before one declaration) before any pull request existed.
+- 2026-09-12 — A witness for a later hole is real mathematics, not a token. A hole inherits its
+  predecessors as hypotheses (F11-Q22), and step 7 asks for the hypotheses closed over their
+  variables — so witnessing h3 and h4 meant proving that every m ≥ 2 has a prime divisor and that
+  nothing but 1 divides two consecutive numbers. Budget for that when a skeleton's holes are
+  ordered: the last hole's witness costs as much as the lemmas before it.
+- 2026-09-12 — Read an image's labels from the registry, not by pulling it. `pin_image.py --verify`
+  pulls, and a Mathlib image is 3.5 GiB compressed against 6.6 GiB free, so the check it exists to
+  make is unrunnable on the founder's machine. The labels live in the config blob: a pull token,
+  the manifest by digest, the blob — a few kilobytes and no disk.
