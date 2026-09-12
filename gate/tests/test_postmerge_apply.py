@@ -127,11 +127,12 @@ def test_a_merged_partial_becomes_children_in_the_checkout(
     assert parent["deps"][-2:] == [f"{ROOT}--h1", f"{ROOT}--h2"]
     context = (nodes / ROOT / "Context.lean").read_text(encoding="utf-8")
     assert f"`{ROOT}--h1`" in context and HOLES[0][1] in context
-    # The assembly is filed for the pseudonym the block names, stamped with the merge's time.
-    attempt = nodes / ROOT / out["partial"]["attempt"].removeprefix("")
-    filed = sorted((nodes / ROOT / "attempts").glob("*-some-prover-partial.lean"))
-    assert len(filed) == 1 and filed[0].read_text(encoding="utf-8") == assembly
-    assert attempt.name == filed[0].name or out["partial"]["attempt"].endswith(filed[0].name)
+    # The submitted assembly under attempts/ is the attempt record itself; nothing is filed
+    # twice (F11-Q28), and the block's pseudonym is the ledger's business, not a file name's.
+    assert out["partial"]["attempt"] == f"attempts/{STAMP_FILE}"
+    filed = sorted(p.name for p in (nodes / ROOT / "attempts").glob("*.lean"))
+    assert filed == [STAMP_FILE]
+    assert (nodes / ROOT / "attempts" / STAMP_FILE).read_text(encoding="utf-8") == assembly
 
 
 def test_children_carry_the_parents_imports(
@@ -153,8 +154,10 @@ def test_children_carry_the_parents_imports(
     child = (root / NODES / f"{ROOT}--h1" / "Statement.lean").read_text(encoding="utf-8")
     assert child.startswith("import Defs.Divides\nimport Mathlib.Tactic\n\n")
     assert "Context" not in child.split("/-!")[0]
-    # With no block in the body, the login the workflow passed names the attempt.
-    assert list((root / NODES / ROOT / "attempts").glob("*-login-partial.lean"))
+    # With no block in the body the login the workflow passed credits the children; the
+    # attempt on record is still the submitted file, not a copy under that login (F11-Q28).
+    assert out["partial"]["attempt"] == f"attempts/{STAMP_FILE}"
+    assert not list((root / NODES / ROOT / "attempts").glob("*-login-partial.lean"))
 
 
 def test_a_cited_annex_makes_skeleton_holes(

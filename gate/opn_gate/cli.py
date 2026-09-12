@@ -1006,6 +1006,7 @@ def apply_merged_partial(
             pseudonym=str(pseudonym),
             stamp=stamp,
             author=args.author,
+            assembly_path=str(partial["path"]),
         )
     except postmerge.GraphWriteError as exc:
         raise CliError(str(exc)) from exc
