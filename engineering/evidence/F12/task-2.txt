@@ -30,3 +30,14 @@ gate/tests/test_modes.py::test_screen_finding_routes_and_classless_still_bounces
 
 $ make verify (regression gate)
 ========= 1470 passed, 1 skipped, 60 deselected, 2 warnings in 35.16s ==========
+
+--- CI lean tier (the task's named verification, make verify-lean; this container has no elan or docker) ---
+Run 34689742821 (ci run 65, head e1f1cf5 = the F12-T2 commit, merged onto main dc25d2b):
+  https://github.com/thisisanameforsure/open_proof_network/actions/runs/34689742821
+  job "make verify-lean (real toolchain + sandbox)" 103542790638: success
+  uv run --frozen pytest -m "lean or docker"
+  gate/tests/test_qa_lean.py ..    (test_onramp_screens_clean = AC12 on the pinned Mathlib;
+                                    test_a_tautology_is_found_and_its_exhibit_replays = R3/R4 with a real proof)
+  ========= 60 passed, 1471 deselected, 2 warnings in 2266.08s (0:37:46) =========
+The budget lines the test prints (F12-Q4, budgets.txt) did not reach this log: pytest captures a
+passing test's stdout. The test now prints them through capsys.disabled(); the next run carries them.

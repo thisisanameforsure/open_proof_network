@@ -50,16 +50,27 @@ def context(
     )
 
 
-def budget_lines(label: str, run: qa.ScreenRun) -> None:
+def report(capsys: pytest.CaptureFixture[str], line: str) -> None:
+    """Print past pytest's capture, so a *passing* run's budget numbers reach the CI log (a
+    captured print is shown only for failures; the numbers are wanted when the screens pass)."""
+    with capsys.disabled():
+        print(line)
+
+
+def budget_lines(capsys: pytest.CaptureFixture[str], label: str, run: qa.ScreenRun) -> None:
     for row in run.rows:
-        print(
+        report(
+            capsys,
             f"F12 §6 budget: {label} {row.check:<20} {row.verdict:<12} "
-            f"{(row.elapsed_s or 0.0):7.1f}s of {row.budget_s or 0:g}s"
+            f"{(row.elapsed_s or 0.0):7.1f}s of {row.budget_s or 0:g}s",
         )
 
 
 def test_onramp_screens_clean(
-    tmp_path: Path, real_toolchain: LocalToolchain, lean_pkg: Path
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+    real_toolchain: LocalToolchain,
+    lean_pkg: Path,
 ) -> None:
     """AC12: on the pinned toolchain and Mathlib, the statement, its negation and False all fail
     to prove within budget; the record shows the three clean passes (and the compile, and the
@@ -71,8 +82,8 @@ def test_onramp_screens_clean(
     started = time.monotonic()
     run = qa.screen(ctx, "root", date=WHEN, attempt_budget_s=120.0, subject_budget_s=600.0)
     elapsed = time.monotonic() - started
-    budget_lines("onramp", run)
-    print(f"F12 §6 budget: onramp subject total {elapsed:.1f}s")
+    budget_lines(capsys, "onramp", run)
+    report(capsys, f"F12 §6 budget: onramp subject total {elapsed:.1f}s")
     assert {r.check: r.verdict for r in run.rows} == {
         "compile": "pass",
         "screen-consequence": "pass",
@@ -86,7 +97,10 @@ def test_onramp_screens_clean(
 
 
 def test_a_tautology_is_found_and_its_exhibit_replays(
-    tmp_path: Path, real_toolchain: LocalToolchain, lean_pkg: Path
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+    real_toolchain: LocalToolchain,
+    lean_pkg: Path,
 ) -> None:
     """R3, R4 on a real proof: the propositional root is provable by ``simp_all``, so the
     statement screen is a finding — the exhibit passed ``leanchecker --fresh`` and rests on no
@@ -95,7 +109,7 @@ def test_a_tautology_is_found_and_its_exhibit_replays(
     root = copy_graph(tmp_path, GRAPH)
     ctx = context(root, TARGET, PROPOSITIONAL_ROOT, real_toolchain, tmp_path / "work")
     run = qa.screen(ctx, "root", date=WHEN, attempt_budget_s=120.0, subject_budget_s=600.0)
-    budget_lines("propositional", run)
+    budget_lines(capsys, "propositional", run)
     by_check = {r.check: r for r in run.rows}
     assert by_check["compile"].verdict == "pass"
     assert by_check["screen-statement"].verdict == "fail", by_check["screen-statement"].note
