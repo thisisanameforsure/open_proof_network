@@ -39,6 +39,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "node-status/v1",
         "postmortem/v1",
         "precheck-record/v1",
+        "qa/v1",
         "revision-request/v1",
         "submission-meta/v1",
         "target-status/v1",

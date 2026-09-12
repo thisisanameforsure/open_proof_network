@@ -323,10 +323,25 @@ on the site.</p>
     check is a token match and is not the enforcement; the replay is. Files: T1 carries the hash
     field and the refusals, T4 carries the replay and moves to <code>make verify-lean</code>, T2
     carries the screen's budget rows, T3 the model outage, T5 the upstream outage.</td></tr>
+  <tr><td>F12-Q9</td><td><strong>Staleness is derived from the pins, never written</strong>
+    (2026-09-12, T1). R5 says "mark every QA record stale". A record pins the statement hash and
+    the toolchain and Mathlib it ran under (<code>qa/v1</code>), and a record whose pins differ
+    from the subject as it stands is stale by that fact alone; nothing edits a record, and the
+    grade gate and the products derive the state on every read. A written flag would be a second
+    home for a value the pins already carry, the F11-Q10 shape. The re-run R5 asks for is the
+    curator's act (<code>qa screen</code> again), and the refusal names it.</td></tr>
+  <tr><td>F12-Q10</td><td><strong>Screens run on the root; a definition's floor is compile, brief
+    and back-translation</strong> (2026-09-12, T1). D-9 makes a definition a review object, and R1
+    lists it as a QA subject, but a definition is not a proposition: it has nothing to negate, no
+    hypotheses to close and no consequences to derive. So <code>qa screen</code> refuses a
+    definition subject by name, and R9's "pass complete" for one is the three checks that apply.
+    A definition's defects surface through the root's screens (a junk-value definition makes the
+    root's negation or falsity provable) and through the brief, which lists it elaborated.
+    Equivalence stays a bonus layer for both (Q3).</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> spec · <strong>Tasks:</strong> T1&ndash;T6 todo</div>
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1 ✓ 2026-09-12 · T2&ndash;T6 todo</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its
