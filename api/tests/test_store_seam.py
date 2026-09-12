@@ -464,18 +464,38 @@ def test_job_item_whose_record_is_not_an_object_is_none() -> None:
     assert dynamo(resource).get_job("job-1") is None
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=TypeError,
-    reason="boto3 refuses float attributes ('Float types are not supported'), so a job record "
-    "carrying one fails put_job on DynamoDB while MemoryStore accepts it; store.plain's "
-    "docstring promises floats come back as floats, but they never go in (seam parity, C7). "
-    "No record carries a float today.",
-)
-def test_a_float_in_a_job_record_is_stored_by_dynamodb_like_memory() -> None:
-    store = dynamo()
-    store.put_job("job-1", {"ratio": 0.5}, LATER)
-    assert store.get_job("job-1") == {"ratio": 0.5}
+def test_a_float_in_a_job_record_is_stored_by_dynamodb_like_memory(both: Store) -> None:
+    """Seam parity (C7): boto3 refuses a float outright, so `storable` sends a Decimal and `plain`
+    reads it back as the float that was written. Both stores must agree, so both are driven."""
+    both.put_job("job-1", {"ratio": 0.5}, LATER)
+    assert both.get_job("job-1") == {"ratio": 0.5}
+
+
+def test_floats_survive_nesting_and_keep_their_value_in_both_stores(both: Store) -> None:
+    """The conversion is recursive, and goes through `str` so the number that comes back is the
+    number that was written rather than a binary expansion of it."""
+    record = {"outer": {"ratio": 0.1}, "list": [1.5, 2, True], "whole": 3.0}
+    both.put_job("job-2", record, LATER)
+    read = both.get_job("job-2")
+    assert read is not None
+    assert read["outer"]["ratio"] == 0.1
+    assert read["list"][0] == 1.5
+    assert read["list"][2] is True  # a bool is not a number to be converted
+    assert read["whole"] == 3  # integral values come back as int, as `plain` documents
+
+
+def test_a_non_finite_float_is_refused_by_name() -> None:
+    """NaN and the infinities have no DynamoDB representation and are not valid JSON either, so
+    they are refused here rather than reaching boto3 as a puzzle."""
+    for bad in (float("nan"), float("inf"), float("-inf")):
+        with pytest.raises(ValueError, match="non-finite"):
+            storemod.storable({"x": bad})
+
+
+def test_an_ephemeral_record_carrying_a_float_round_trips_in_both_stores(both: Store) -> None:
+    """The other free-form write takes the same conversion; a nonce payload is caller data too."""
+    both.put_ephemeral("nonce-1", {"ratio": 0.25}, LATER)
+    assert both.take_ephemeral("nonce-1", NOW) == {"ratio": 0.25}
 
 
 def test_plain_converts_decimals_by_integrality() -> None:

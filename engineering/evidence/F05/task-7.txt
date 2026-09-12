@@ -1,0 +1,51 @@
+F05-T7 — seam parity for floats: the write-side serialiser (Q8).
+2026-09-12
+
+THE DEFECT
+----------
+The 2026-09-10 coverage sweep held this as a strict xfail and F05-T6 left it there, recording that
+"the fix is a serialiser at the seam, not a line". It is that serialiser.
+
+`plain()` has turned DynamoDB's Decimals back into plain JSON numbers since F05, because a Decimal
+reaching json.dumps is a 500. Nothing did the reverse on the way in. boto3 refuses a float outright
+("Float types are not supported"), so:
+
+    MemoryStore.put_job("j", {"ratio": 0.5})   ->  stored
+    DynamoStore.put_job("j", {"ratio": 0.5})   ->  TypeError
+
+Two implementations of one seam disagreeing about what can be stored, which is the one thing a seam
+may not do (conventions §1, C7). It had never fired because no record carries a float today — a
+precheck job record carries an attestation, and every number in one is an integer.
+
+THE FIX
+-------
+`storable()` mirrors `plain()` and is applied to both free-form writes, `put_job` and
+`put_ephemeral`. The claims and identities tables take typed dataclasses and need none.
+
+Two calls worth recording:
+
+  - The conversion goes through `str`, not `Decimal(value)`. `Decimal(0.1)` is the exact binary
+    expansion of the double — fifty-odd digits — while `Decimal("0.1")` is the number the caller
+    wrote. `str` round-trips a Python float exactly, so `plain()` hands back what went in.
+  - A non-finite float is refused by name. NaN and the infinities have no DynamoDB representation
+    and are not valid JSON either, so `ValueError` naming the number beats boto3's puzzle.
+
+And the tests changed shape: they now drive BOTH stores through the shared `both` fixture rather
+than DynamoDB alone. A parity test that exercises one side is not a parity test. That is what the
+new nesting case is for — it asserts the value, not merely that the write did not raise.
+
+VERIFICATION
+------------
+$ uv run --frozen pytest api/tests/test_store_seam.py -p no:warnings -q
+........................................................................ [ 86%]
+...........                                                              [100%]
+83 passed in 0.13s
+
+The four new cases: the float round trip in both stores, floats nested in dicts and lists (with a
+bool left alone and an integral float coming back as int, as `plain` documents), the non-finite
+refusal, and the ephemeral write taking the same conversion.
+
+Full fast tier after the change, together with F08-T8:
+
+  make verify -> ruff clean, mypy clean on gate/api/site, 1393 passed, 53 deselected,
+                 NO XFAIL LEFT ANYWHERE IN THE SUITE (it was 1383 passed + 1 xfailed).

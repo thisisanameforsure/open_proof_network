@@ -12,6 +12,7 @@ dependency here and part of the Lambda runtime there.
 
 from __future__ import annotations
 
+import math
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
 from decimal import Decimal
@@ -208,6 +209,36 @@ def plain(value: Any) -> Any:
     return value
 
 
+def storable(value: Any) -> Any:
+    """``plain``'s inverse at the write side: turn plain JSON types into what boto3 will accept.
+
+    boto3 refuses a ``float`` outright ("Float types are not supported"), so a record carrying one
+    raised ``TypeError`` on DynamoDB while ``MemoryStore`` took it happily — the two halves of the
+    seam disagreeing about what can be stored, which is the one thing a seam may not do
+    (conventions §1, C7). The conversion goes through ``str`` rather than ``Decimal(value)``
+    because ``Decimal(0.1)`` is the exact binary expansion, fifty-odd digits of it, while
+    ``Decimal("0.1")`` is the number the caller wrote; ``plain`` then returns the same float, since
+    ``str`` round-trips a Python float exactly.
+
+    A non-finite float has no DynamoDB representation and is not valid JSON either, so it is
+    refused here by name instead of reaching boto3 as a puzzle.
+    """
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, float):
+        if not math.isfinite(value):  # NaN or ±inf
+            msg = f"cannot store the non-finite number {value!r}"
+            raise ValueError(msg)
+        return Decimal(str(value))
+    if isinstance(value, dict):
+        return {k: storable(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [storable(v) for v in value]
+    if isinstance(value, set):
+        return {storable(v) for v in value}
+    return value
+
+
 class DynamoStore:
     """The three tables (R12). Key layout:
 
@@ -288,7 +319,11 @@ class DynamoStore:
 
     def put_job(self, job_id: str, record: dict[str, Any], expires: datetime) -> None:
         self._tokens.put_item(
-            Item={"key": KEY_JOB + job_id, "job": record, "expires_at": _epoch(expires)}
+            Item={
+                "key": KEY_JOB + job_id,
+                "job": storable(record),
+                "expires_at": _epoch(expires),
+            }
         )
 
     def get_job(self, job_id: str) -> dict[str, Any] | None:
@@ -317,7 +352,9 @@ class DynamoStore:
             kwargs["ExclusiveStartKey"] = last
 
     def put_ephemeral(self, key: str, data: dict[str, Any], expires: datetime) -> None:
-        self._tokens.put_item(Item={"key": key, "data": data, "expires_at": _epoch(expires)})
+        self._tokens.put_item(
+            Item={"key": key, "data": storable(data), "expires_at": _epoch(expires)}
+        )
 
     def take_ephemeral(self, key: str, now: datetime) -> dict[str, Any] | None:
         # No guard: an unconditional DeleteItem reports an absent item as a response with no
