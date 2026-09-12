@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Digestion — AI Proofs and the Mathematical Community, September 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1A2129; --ink-soft:#4A5561; --paper:#FAFAF9;
+  --teal:#0E6363; --teal-ink:#0A4A4A; --hair:#DDDAD2;
+  --amber:#8F6A1E; --card:#FFFFFF;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --serif:"Source Serif 4",Georgia,serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);
+  font-size:17px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:1fr;gap:0}
+@media(min-width:1100px){.wrap{grid-template-columns:230px minmax(0,72ch);gap:56px}}
+header.site{border-top:3px solid var(--teal);border-bottom:1px solid var(--hair);padding:44px 20px 30px}
+header.site .in{max-width:1180px;margin:0 auto}
+header.site h1{font-size:30px;line-height:1.2;margin:0 0 8px;font-weight:700;letter-spacing:-.01em}
+header.site .sub{color:var(--ink-soft);font-size:16px;max-width:64ch;margin:0}
+header.site .meta{font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);margin-top:14px;max-width:96ch}
+header.site .meta b{color:var(--teal-ink);font-weight:600}
+
+main{padding:34px 0 90px;min-width:0}
+h2{font-size:22px;margin:2.4em 0 .7em;padding-top:.9em;border-top:1px solid var(--hair);letter-spacing:-.005em}
+h2:first-of-type{border-top:none;padding-top:0;margin-top:.6em}
+h2 .sn{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--teal-ink);
+  border:1px solid var(--teal);border-radius:3px;padding:1px 6px;margin-right:9px;
+  vertical-align:3px;white-space:nowrap}
+h3{font-size:17.5px;margin:2em 0 .55em}
+h4{font-size:16px;margin:1.6em 0 .4em}
+p,li{max-width:72ch}
+a{color:var(--teal);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2.5px}
+a:hover{color:var(--teal-ink)}
+strong{font-weight:600}
+em{font-style:italic}
+code{font-family:var(--mono);font-size:.85em;background:#F1EFEA;border-radius:3px;padding:.08em .3em}
+pre{background:#F1EFEA;border:1px solid var(--hair);border-radius:4px;padding:14px 16px;
+  overflow-x:auto;font-size:13.5px;line-height:1.5}
+pre code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.2em 1em;border-left:3px solid var(--hair);color:var(--ink-soft)}
+blockquote p{margin:.4em 0}
+hr{border:none;border-top:1px solid var(--hair);margin:2.6em 0}
+.tw{overflow-x:auto;margin:1.2em 0}
+table{border-collapse:collapse;font-size:15px;width:100%}
+th,td{border-bottom:1px solid var(--hair);padding:8px 12px 8px 0;text-align:left;vertical-align:top}
+th{font-weight:600;font-size:13.5px;color:var(--ink-soft);border-bottom:2px solid var(--ink)}
+td code,th code{font-size:.9em}
+td.num{font-family:var(--mono);font-size:13.5px;line-height:1.45}
+table.cols{table-layout:fixed}
+table.cols td,table.cols th{padding-right:20px}
+ul,ol{padding-left:1.4em}
+li{margin:.35em 0}
+li::marker{color:var(--ink-soft)}
+
+p.note{font-size:15px;color:var(--ink-soft);border-left:2px solid var(--hair);
+  padding:.15em 0 .15em 14px;margin:.9em 0}
+p.note em{color:var(--teal-ink);font-style:normal;font-weight:600;font-size:13.5px}
+p.note.warn{border-left-color:var(--amber)}
+p.note.warn em{color:var(--amber)}
+
+.dref{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--teal-ink);
+  border:1px solid var(--hair);border-radius:3px;padding:1px 5px;white-space:nowrap;
+  text-decoration:none}
+.dref:hover{border-color:var(--teal)}
+
+.cf{font-family:var(--mono);font-size:11px;font-weight:600;border-radius:3px;
+  padding:1px 6px;white-space:nowrap;border:1px solid var(--hair);color:var(--ink-soft)}
+.cf-hi{border-color:var(--teal);color:var(--teal-ink)}
+.cf-lo{border-color:var(--amber);color:var(--amber)}
+
+details.more{margin:.9em 0 1.4em;border-left:2px solid var(--hair);padding-left:14px;max-width:72ch}
+details.more>summary{cursor:pointer;list-style:none;font-family:var(--mono);font-size:12.5px;color:var(--teal-ink);font-weight:600;
+  padding:2px 0;user-select:none;display:flex;gap:10px;align-items:baseline}
+details.more>summary::-webkit-details-marker{display:none}
+details.more>summary::before{content:"\25B8";font-size:11px;color:var(--teal)}
+details.more[open]>summary::before{content:"\25BE"}
+details.more>summary .tags{font-weight:400;color:var(--ink-soft)}
+details.more[open]>summary{margin-bottom:.4em}
+details.more p,details.more li{max-width:70ch}
+.xall{font-family:var(--mono);font-size:12px;margin-top:8px}
+.xall button{font:inherit;color:var(--teal);background:none;border:1px solid var(--hair);border-radius:3px;padding:2px 8px;cursor:pointer;margin-right:6px}
+.xall button:hover{border-color:var(--teal)}
+@media print{details.more{border-left:none;padding-left:0}details.more>summary{display:none}}
+
+.refuted{color:var(--ink-soft)}
+.refuted .rc{display:block;font-size:15px}
+.refuted .rv{font-family:var(--mono);font-size:12px;color:var(--amber)}
+
+/* plan items */
+.plan{border:1px solid var(--hair);border-radius:4px;padding:14px 18px;margin:1.2em 0;background:var(--card);max-width:72ch}
+.plan h4{margin:0 0 .4em;font-size:16px}
+.plan h4 .pid{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--teal-ink);
+  border:1px solid var(--teal);border-radius:3px;padding:1px 6px;margin-right:9px;vertical-align:2px}
+.plan .kv{font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);margin:0 0 .6em}
+.plan .kv b{color:var(--teal-ink);font-weight:600}
+.plan p{margin:.5em 0}
+
+.hl{margin-left:8px;font-size:.75em;color:var(--hair);text-decoration:none;opacity:0}
+h2:hover .hl,h3:hover .hl,.hl:focus-visible{opacity:1;color:var(--teal)}
+
+.rail{display:none}
+@media(min-width:1100px){
+  .rail{display:block;position:sticky;top:26px;align-self:start;max-height:calc(100vh - 52px);
+    overflow-y:auto;padding:34px 0 40px;font-size:13px;scrollbar-width:thin}
+  .rail a{text-decoration:none;display:block;color:var(--ink-soft);margin:5px 0}
+  .rail a:hover{color:var(--teal-ink)}
+  .rail .rh{font-weight:600;color:var(--ink);margin:14px 0 4px;font-size:12.5px}
+  .rail .rh:first-child{margin-top:0}
+}
+footer{border-top:1px solid var(--hair);color:var(--ink-soft);font-size:13.5px;
+  padding:20px;text-align:left}
+footer .in{max-width:1180px;margin:0 auto}
+</style>
+</head>
+<body>
+<header class="site"><div class="in">
+  <h1>Digestion: AI Proofs and the Mathematical Community</h1>
+  <p class="sub">What working mathematicians are objecting to in machine-generated proofs as of September 2026, what has historically turned a formal certificate into understanding, and what follows for this network. Evidence, then a plan — no decisions.</p>
+  <p class="meta"><b>Research note and incorporation plan</b> · 2026-09-12 · prompted by the Fields-medallist declaration of 2026-09-11 and Mike's concern that the network's proofs will be a net negative for mathematicians · <b>subordinate to <a href="architecture_decisions_v_3_12.html">architecture_decisions_v_3_12.html</a></b> — where this note and the decisions disagree, the decisions govern · §6 and §7 propose amendments for the doc's own process to act on; nothing here changes a decision</p>
+  <p class="xall"><button data-x="1">Expand all detail</button><button data-x="0">Collapse all</button></p>
+</div></header>
+<div class="wrap">
+<nav class="rail" aria-label="Sections">
+  <a class="rh" href="#method">Method and provenance</a>
+  <a href="#s1">§1 The objections, ranked</a>
+  <a href="#s2">§2 The record behind them</a>
+  <a href="#s3">§3 What has produced understanding</a>
+  <a href="#s4">§4 Norms on the table</a>
+  <a href="#s5">§5 Where the protocol already stands</a>
+  <a href="#s6">§6 The uncomfortable finding</a>
+  <a href="#s7">§7 Incorporation plan</a>
+  <a href="#s8">§8 Refuted — do not build</a>
+  <a href="#s9">§9 Caveats</a>
+  <a href="#s10">§10 Open questions</a>
+  <a href="#sources">Sources</a>
+</nav>
+
+<main>
+
+<h2 id="method"><span class="sn">Method</span>Method and provenance<a class="hl" href="#method" aria-label="Link to this section">§</a></h2>
+
+<p>Produced 2026-09-12. The question was split into four threads and researched in parallel: the primary statements of named mathematicians; the institutional responses (declarations, journal and society policies, the Erdős-problems community's practice); the mechanisms that have historically produced understanding from formal or computer proofs; and the dated empirical record of AI-claimed results in 2025–2026. About forty sources were fetched and read; every claim below carries its URL in the <a href="#sources">sources</a> table. The note then reads the findings against the frozen decisions, one by one.</p>
+
+<p class="note"><em>What this note is not:</em> the fidelity note of 2026-09-08 put its claims through adversarial verification. This one did not: the material is mostly public statements by identifiable people and the risk is misquotation rather than a self-reported benchmark. Quotations were extracted from the fetched pages verbatim; two sources were reachable only through a search index and are marked. Sentences marked <span class="cf">inference</span> are this note's own reading.</p>
+
+<p>Confidence chips: <span class="cf cf-hi">high</span> means the claim is a verbatim primary statement or a fact confirmed on two independent pages; <span class="cf">medium</span> means a single primary source or a reliable secondary report; <span class="cf cf-lo">low</span> means the source could not be fetched directly.</p>
+
+<h2 id="s1"><span class="sn">§1</span>The objections, ranked by how often they recur<a class="hl" href="#s1" aria-label="Link to this section">§</a></h2>
+
+<p>The concern Mike raised — proofs no mathematician can digest — is the first item on the community's list, but it is one of nine, and several of the others are what actually triggered the September declaration. In descending order of recurrence across the sources:</p>
+
+<ol>
+<li><strong>A certificate is not understanding.</strong> <span class="cf cf-hi">high</span> Tao, Radziwiłł, Sienicki, Buzzard, Bloom, Vakil, Duminil-Copin, the 25-signatory declaration, the Leiden Declaration, and the Association for Human Mathematics all state it. Radziwiłł's formulation is the sharpest: a ten-million-line Lean derivation of the twin-prime conjecture "adds very little to the state of my knowledge. Essentially nothing more than 'a derivation of (S) from ZFC currently exists'."</li>
+<li><strong>Benchmark racing corrupts incentives.</strong> <span class="cf cf-hi">high</span> The declaration's central sentence: "the push by AI companies to solve mathematical problems as a benchmark is detrimental to the science of mathematics." Vakil: theorems are valued by AI companies "because they're great at marketing." Litt: "the dominant strategy for career success ... is playing the slot machine for conjectures."</li>
+<li><strong>Undigested proofs are abandoned.</strong> <span class="cf cf-hi">high</span> Tao's parenting norm: "any author seeking to claim credit for generating a proof should commit to making their best efforts to develop that proof all the way to at least the publication stage." Bloom: "no human has read it, and no human is going to read it."</li>
+<li><strong>Attribution, plagiarism, scooping.</strong> <span class="cf cf-hi">high</span> The declaration: "severe attribution and plagiarism questions." The Astra "ten advances" paper was silently updated on 2026-08-06 to add the Cohn–Miller 2016 citation its sphere-packing result rested on; Stephen Miller called the pattern "research misconduct." The Navier–Stokes announcement of 2026-09-08 came twelve hours after Buckmaster and Alpöge's Euler result and is now a public dispute over who was told what.</li>
+<li><strong>The training pipeline for students is destroyed.</strong> <span class="cf cf-hi">high</span> The declaration: "The most precious resources of our profession are students and ideas." Gowers: for students "it needs to be hard enough for an LLM not to be able to solve it." Tao: pre-AI open problems have "become something resembling a non-renewable resource."</li>
+<li><strong>Fields are evacuated once their problems fall.</strong> <span class="cf cf-hi">high</span> Alon, on Erdős problems: "Once AI started to solve them, there is no point anymore." Thurston's account of foliations is quoted at length in the comment thread as the precedent.</li>
+<li><strong>Companies set the agenda; process is undisclosed.</strong> <span class="cf cf-hi">high</span> Leiden value 5: "the autonomous shaping of the direction of research." Ellenberg: "research questions may come to be prioritized because of their amenability to automated mathematics." Wood: "OpenAI does not share all the times their internal model failed."</li>
+<li><strong>Volume no one can check.</strong> <span class="cf">medium</span> Tao's Simpson's-paradox argument: individual output quality rises while the literature's signal-to-noise falls. Litt: "polluting the scientific commons with incorrect mathematics."</li>
+<li><strong>Ethics, environment, ownership of training data.</strong> <span class="cf">medium</span> Harris, Sweeting, Leiden's consent clauses.</li>
+</ol>
+
+<p class="note"><em>Reading:</em> items 2, 4, 7 and 8 are not about the proofs at all. They are about the actor: a company, a press release, a benchmark, an undisclosed process, a missing citation. A network that produced identical certificates through a public ledger, with human credit, no announcements and a prior-art record would be a different object under most of this list. That is the hinge of §5 and §6.</p>
+
+<details class="more"><summary>The declaration of 2026-09-11, key paragraphs verbatim <span class="tags">mathandai.org · 25 Fields medallists</span></summary>
+<blockquote><p>"Over the last few months, the mathematical capabilities of LLMs have improved dramatically, to the point that they can solve major outstanding problems in many fields of mathematics. However, the push by AI companies to solve mathematical problems as a benchmark is detrimental to the science of mathematics, and to the mathematical community. The goals of the AI companies and the goals of the mathematical community are severely misaligned."</p>
+<p>"But solving problems is only a tool and proxy for achieving the primary goal of conceptual understanding and insight ... the mass production at faster and faster pace of 'true/false' statements could destroy fertile ground instead of breathing life into new ideas."</p>
+<p>"Often these solutions are announced in a rush, leaving no time for a proper writeup, the isolation of new methods and ideas, and citing relevant previous work of others. As in all creative professions, this raises severe attribution and plagiarism questions. Moreover, without the willing mathematicians who must take care of their development and integration into the mathematical canon, AI-conceived ideas would never become fully alive and the crucial human transmission chain between mathematicians would be lost."</p></blockquote>
+<p>Signatories: Avila, Bhargava, Birkar, Deligne, Deng, Donaldson, Duminil-Copin, Figalli, Hairer, Huh, Kontsevich, Lindenstrauss, Lions, Maynard, McMullen, Mori, Ngô, Okounkov, Scholze, Smirnov, Tao, Viazovska, Villani, Werner, Zelmanov. Tao notes it was written "over the last week" without Leiden's consultative process, "because the urgency of the situation was such that we needed to release a statement sooner rather than later."</p>
+</details>
+
+<details class="more"><summary>Radziwiłł's comment and the seminar test <span class="tags">the one concrete proposal from a named number theorist</span></summary>
+<blockquote><p>"When an AI company provides a 10M lines lean checked derivation of (S) from ZFC this adds very little to the state of my knowledge ... when an AI company claims full credit for the solution of (S) due to the existence of a lean certificate and without having any understanding thereof, it generates negative value for the community. The company leaves no more credit for writing an understandable solution ... This is due to the current incentives in math that conflate existence of proof with understanding."</p>
+<p>"[We should] demand from AI companies the same standard that we demand from mathematicians: that they only provide proofs when they do actually possess an understanding. For example they should be able to send a human over to explain the proof at a seminar series and answer all the questions in a competent manner."</p></blockquote>
+<p>Sienicki, in the same thread, from a human audit of an OpenAI proof: a Lean proof "does not tell us whether the formal statement is the theorem people intended to prove, whether the idea is genuinely new, whether earlier work has been properly acknowledged, or why the result matters." His list of what a completed result needs: "a precise statement, a readable explanation, a record of its dependencies, a serious search for prior work, reproducible materials, and independent human assessment."</p>
+</details>
+
+<h2 id="s2"><span class="sn">§2</span>The record behind them<a class="hl" href="#s2" aria-label="Link to this section">§</a></h2>
+
+<p><strong>The failures the community names are literature, attribution and announcement, not wrong proofs.</strong> <span class="cf cf-hi">high</span> Of the episodes that produced the September mood, none turned on a kernel accepting a false theorem. The dated record:</p>
+
+<div class="tw"><table class="cols">
+<colgroup><col style="width:13%"><col style="width:30%"><col style="width:33%"><col style="width:24%"></colgroup>
+<thead><tr><th>Date</th><th>Episode</th><th>What actually went wrong</th><th>Reaction</th></tr></thead>
+<tbody>
+<tr><td class="num">2025-10</td><td>GPT-5 "solved 10 Erdős problems" (Bubeck, Weil)</td><td>All ten were in the literature; the model had done a literature search</td><td>Bloom: "a dramatic misrepresentation"; Hassabis: "embarrassing"</td></tr>
+<tr><td class="num">2025-12-25</td><td>Erdős #333, Claude Opus 4.5 + GPT-5.2, full Lean proof</td><td>Erdős–Newman 1977 had already answered it; found on the forum the same day</td><td>Barreto: "put greater focus on literature search"; site now cites [ErNe77]</td></tr>
+<tr><td class="num">2026-01-29</td><td>Aletheia (DeepMind) sweep</td><td>Of 200 graded "solutions" to problems listed open, 6.5% "meaningfully correct"; 50 "mathematically vacuous" from misread statements; 4 rediscoveries</td><td>Paper names "subconscious plagiarism" as a new risk</td></tr>
+<tr><td class="num">2026-05-21</td><td>AlphaProof Nexus: 9 of 353 open Erdős problems</td><td>Four of the nine were in the literature per an external critic; two proofs used "natural density" where "lower density" was meant, and the informal statements were amended afterwards</td><td>"moved the goalposts"</td></tr>
+<tr><td class="num">2026-07-28</td><td>"Disproof" of Collatz in Lean</td><td>Exploited kernel soundness bug #14576; stood three days; fixed in an hour</td><td>de Moura postmortem</td></tr>
+<tr><td class="num">2026-08-01</td><td>OpenAI Astra "ten advances"</td><td>Sphere-packing result rested on Cohn–Miller 2016, uncited; non-sofic result on Kun 2016 and Kun–Thom 2019; paper silently updated 2026-08-06</td><td>Miller: "points to research misconduct"</td></tr>
+<tr><td class="num">2026-09-08</td><td>Navier–Stokes singularity, ~10,000 agents, 88 hours, press release</td><td>Announced twelve hours after Buckmaster–Alpöge's Euler result, using a "forcing" method of Córdoba–Martínez-Zoroa; "human verification of logical equivalence remained pending"</td><td>Tao: "almost no value added to mathematics"; the declaration three days later</td></tr>
+</tbody></table></div>
+
+<p><strong>The base rate on significant problems is an order of magnitude below the headline sweeps.</strong> <span class="cf cf-hi">high</span> FrontierMath Erdős, released 2026-09-01 with 68 problems chosen by Bloom "for mathematical significance and difficulty rather than ease of solution," scored the best model at 2 of 68 within budget. Tao's January measurement of the Erdős sweeps: "the true success rate was only a point or two." The Erdős-problems wiki's own count, frozen 2026-06-30, has 51 standalone AI resolutions against 172 formalisations and 138 human collaborations, and states "this page is not a benchmark."</p>
+
+<p><strong>Where AI results were welcomed, a human digestion existed.</strong> <span class="cf cf-hi">high</span> Erdős #1196 became an eight-author paper generalising the method to von Mangoldt chains; the unit-distance disproof got a nine-author companion paper and was then improved by Sawin "using good old-fashioned human understanding"; Tao's digestion of Sendov's conjecture cut the Lean proof from about 90,000 lines to about 15,000 and found the argument "remarkably elementary." Litt on unit distance: "the unique interesting result produced autonomously by AI so far." In every case the value was created after the certificate, by a person.</p>
+
+<p><strong>The formalisation-only precedent has just been judged.</strong> <span class="cf cf-hi">high</span> Buzzard, 2026-09-04, on Anthropic's 13.4-million-line Lean formalisation of Fermat's Last Theorem: "mathematically this work of anthropic tells us essentially nothing," and "they will feel that their job is done with the formalization." This is the closest analogue to a network whose output is certificates, and it comes from the person who runs the human FLT formalisation.</p>
+
+<details class="more"><summary>Statement fidelity, again: the numbers this note inherits <span class="tags">from the 2026-09-08 fidelity note</span></summary>
+<p>Aletheia's 6.5% "meaningfully correct" is the same finding the fidelity note recorded from the autoformalisation literature: a compiling statement is about three-quarters likely to mean what was intended, and sampling does not close the gap. Tao's rule for the network's provers: models "will cheerfully prove spectacular results from a subtly mis-stated hypothesis, so a sudden run of easy successes is itself the warning sign." Nothing in this note changes D-9 or D-15; it adds that the community now says this out loud, and that the Collatz episode makes "a pinned, patched kernel" part of what a certificate means.</p>
+</details>
+
+<h2 id="s3"><span class="sn">§3</span>What has produced understanding from a formal proof<a class="hl" href="#s3" aria-label="Link to this section">§</a></h2>
+
+<p>Fifty years of computer-assisted proof give a ranking. Ordered by the strength of the evidence that the mechanism produced understanding, not merely certainty:</p>
+
+<ol>
+<li><strong>Human reformulation forced by formalising.</strong> <span class="cf cf-hi">high</span> Gonthier's hypermaps replaced planar graphs and "greatly simplified" the Four Colour proof; Hales called himself a "revisionist" whose Kepler proof "was completely transformed during formalization" into a book; Tao's Sendov digestion is the 2026 instance. Understanding arrived when a person rewrote the mathematics with the checker as a safety net. It never arrived from the checker.</li>
+<li><strong>Blueprint-style prose linked node by node to declarations.</strong> <span class="cf cf-hi">high</span> Massot's leanblueprint, used for PFR and the Equational Theories Project: every Lean declaration has a prose node (<code>\lean</code>), a dependency list (<code>\uses</code>), and a status colour. The ETP paper calls the blueprint "the only comprehensive record of all the techniques that were employed in the project." Hales did the same by hand with seven-letter tracking codes and wished for it automated. This is the community's accepted digestion format.</li>
+<li><strong>Comprehension gates on contributors.</strong> <span class="cf cf-hi">high</span> Mathlib's contributing guide: "It is essential that you understand all the content written by an AI ... being able to justify each decision to reviewers without the use of an AI"; low-quality LLM pull requests are "summarily close[d] without comment." The Erdős-problems guide: "Can you explain the solution's main ideas to others without referencing the AI output?" Tao's publication test: "if the authors cannot convincingly demonstrate that they can give a clear, expert-level talk on their results, that is correct and properly attributed, then the result should not be published."</li>
+<li><strong>A separate human write-up as the condition of "solved".</strong> <span class="cf cf-hi">high</span> Erdős #728, the first AI resolution, got a human write-up by Sothanaphan "for wider accessibility"; Bloom "reserv[es] judgement on whether any of these proofs are correct until I am confident that humans have read and vouched for the proof." Tao: a verified proof "remains only 2/3 of a solution until a proper, well-digested presentation."</li>
+<li><strong>Small trusted surface, optional insight reading.</strong> <span class="cf cf-hi">high</span> Gonthier: the 230 lines of definitions "are all that one needs to read ... to ascertain that the statement ... is indeed a proof"; the other 60,000 "can be read for insight or even entertainment, but need not be reviewed for correctness." This produces certainty about the statement. It leaves insight explicitly optional, which is the gap.</li>
+<li><strong>Readability tooling.</strong> <span class="cf">medium</span> Mathlib's <code>says</code> records the meaningful slow tactic beside the fast one; Verbose Lean and LeanInformal render proofs as prose. Carneiro on Zulip: "mathlib is also not primarily focused on proof readability ... Usability of lemma statements and maintainability are the main criteria." Readability lives in statements and docstrings, not in proof terms.</li>
+<li><strong>AI-generated exposition of a formal proof.</strong> <span class="cf cf-hi">high</span> as the weakest. Tao: AI write-ups "dwell at length on trivialities while passing briefly through — or even actively obscuring — the most interesting and novel portions"; "blindly optimizing various metrics for 'digestibility' ... can make the final product worse." No 2025–2026 paper measures the faithfulness of prose summaries of formal proofs; the statement-level numbers (89.5% compile, 60.5% faithful) transfer by symmetry and have not been tested. Palomar, Tao's own registry, labels its LLM informal-match check "non-deterministic."</li>
+</ol>
+
+<p class="note"><em>No validated understandability metric exists.</em> The de Bruijn factor measures formal-to-informal length, about four for classical formalisations and about twenty for PFR; the Mathlib network paper finds centrality "capturing language infrastructure rather than mathematical relevance." Reuse counts measure toolness, not insight. Anything the network publishes as a readability score would be an invented number.</p>
+
+<h2 id="s4"><span class="sn">§4</span>Norms on the table, and their status<a class="hl" href="#s4" aria-label="Link to this section">§</a></h2>
+
+<div class="tw"><table class="cols">
+<colgroup><col style="width:44%"><col style="width:26%"><col style="width:30%"></colgroup>
+<thead><tr><th>Norm</th><th>Proposed by</th><th>Status, 2026-09-12</th></tr></thead>
+<tbody>
+<tr><td>Disclose tool use, in a named section of the paper</td><td>Leiden Declaration</td><td>Declaration (IMU-endorsed); policy at AMS, LMS, EMS, Annals</td></tr>
+<tr><td>Credit and responsibility belong to humans only; no machine authorship</td><td>Leiden; Annals ("Authors must be human"); AMS; LMS</td><td>Policy</td></tr>
+<tr><td>Proactive attribution and literature search; state explicitly where attribution is not possible</td><td>Leiden; Bloom</td><td>Declaration; practice on erdosproblems.com</td></tr>
+<tr><td>Results through peer-reviewed venues, never press releases or blog posts</td><td>Leiden</td><td>Declaration</td></tr>
+<tr><td>"Human descriptions of central arguments obtained by automated tools"</td><td>Leiden, to organisations</td><td>Recommended, not adopted anywhere</td></tr>
+<tr><td>Expert-level talk as the publication gate</td><td>Tao, ICM essay</td><td>Idea</td></tr>
+<tr><td>Priority to the first complete artifact set: generation, verification, exposition, publication</td><td>Tao, 2026-08-06</td><td>Idea</td></tr>
+<tr><td>Best-efforts duty to develop a proof; "give it up for adoption" otherwise</td><td>Tao, 2026-08-04 and 08-19</td><td>Idea</td></tr>
+<tr><td>Classes of problems off-limits to automated solvers, or "analysis-required"</td><td>Duminil-Copin; Tao, 2026-09-03 and 09-08</td><td>Idea; "hasn't turned into policy anywhere yet"</td></tr>
+<tr><td>Disclose chat logs and traces, not a checkbox</td><td>Tao, ICM panel; Yuzhe Ni</td><td>Idea; voluntary in some papers</td></tr>
+<tr><td>Understand the AI's output well enough to justify it without the AI</td><td>Mathlib contributing guide; Erdős wiki</td><td>Practice, enforced by summary closure</td></tr>
+<tr><td>Classify AI results by literature presence and degree of human involvement</td><td>Erdős AI-contributions wiki</td><td>Practice; frozen 2026-06-30</td></tr>
+<tr><td>Stop using open problems as benchmarks</td><td>25 Fields medallists</td><td>Declaration, no mechanism</td></tr>
+<tr><td>Benchmark moratorium</td><td>—</td><td>Not found</td></tr>
+</tbody></table></div>
+
+<p>Two facts about this table matter for the plan. Nothing in the "idea" rows has a home anywhere: no journal, registry or repository implements first-to-explain priority, adoption, or an analysis-required class. And the "practice" rows all come from one community, the Erdős-problems site and Mathlib, which is exactly the community D-10 and D-22 say the network inherits statements from and recruits reviewers in.</p>
+
+<h2 id="s5"><span class="sn">§5</span>Where the protocol already stands<a class="hl" href="#s5" aria-label="Link to this section">§</a></h2>
+
+<p><strong>Read against the nine objections, the decisions are already closer to Leiden than any lab's practice, and most of the distance that remains is one property: digestion is optional.</strong> <span class="cf">inference</span> The table walks each objection against what the decisions contain today.</p>
+
+<div class="tw"><table class="cols">
+<colgroup><col style="width:22%"><col style="width:46%"><col style="width:32%"></colgroup>
+<thead><tr><th>Objection</th><th>What the decisions already do</th><th>The gap</th></tr></thead>
+<tbody>
+<tr><td>Certificate is not understanding</td><td>Explainers per node, hashed, attributed, labelled unverified (<a class="dref" href="architecture_decisions_v_3_12.html#d-3">D-3</a>, <a class="dref" href="architecture_decisions_v_3_12.html#d-36">D-36</a>); a write-up role owning the paper or state-of-the-problem note (<a class="dref" href="architecture_decisions_v_3_12.html#d-32">D-32</a>); explainer coverage is a named metric; the glossary already defines the blueprint as "each lemma's formal statement paired with its informal explanation and dependencies"</td><td>Explainers are optional and unsigned; a target is <code>resolved</code> the moment the kernel says so; nothing renders the graph as a blueprint</td></tr>
+<tr><td>Benchmark racing</td><td>"The network publishes no leaderboard" (<a class="dref" href="architecture_decisions_v_3_12.html#d-34">D-34</a>); home-page counts are "not vanity numbers" (D-36); "raw resolution count is too rare to steer by" (Stages, metrics); the corpus is "never a purpose" of the ledger</td><td>Nothing forbids the network announcing a resolution; the first number on the home page is proved-node count</td></tr>
+<tr><td>Undigested proofs abandoned</td><td>Writer appointed at resolution or dormancy (D-32); "where there is no explainer the node page says so ... the recruiting cue for the next writer" (D-36)</td><td>No window, no adoption list, no consequence; the writer is appointed only after the fact</td></tr>
+<tr><td>Attribution, prior work</td><td>Prior-art artifact at intake, with the <code>known-result</code> relabel (<a class="dref" href="architecture_decisions_v_3_12.html#d-6">D-6</a>); inherit-and-report-back with a resolved-elsewhere watcher (<a class="dref" href="architecture_decisions_v_3_12.html#d-10">D-10</a>); identity is the human operator, model and tooling recorded per node (<a class="dref" href="architecture_decisions_v_3_12.html#d-19">D-19</a>, <a class="dref" href="architecture_decisions_v_3_12.html#d-23">D-23</a>); no machine authorship (D-32)</td><td>The search performed at intake is not itself a recorded artifact; the paper's prior-work obligation is implicit</td></tr>
+<tr><td>Students and ideas</td><td>Nothing</td><td>Out of the network's power; see §7.4</td></tr>
+<tr><td>Fields evacuated</td><td>Intake is curated, not open (D-6); a public comment period precedes claimability (D-9)</td><td>No way for a community to say "not this one"; source priority is explicitly the "demonstrated resolution regime"</td></tr>
+<tr><td>Agenda set by companies; undisclosed process</td><td>Public by default (<a class="dref" href="architecture_decisions_v_3_12.html#d-26">D-26</a>); every gate run's attestation is published, pass or fail (<a class="dref" href="architecture_decisions_v_3_12.html#d-5">D-5</a>, D-34); failed attempts are first-class with typed goal states (<a class="dref" href="architecture_decisions_v_3_12.html#d-13">D-13</a>); optional trace attachment (D-34); harness-agnostic (D-1)</td><td>None of substance. This is the network's strongest answer and it is not stated anywhere a mathematician would read</td></tr>
+<tr><td>Volume no one can check</td><td>Kernel replay, axiom allowlist, pinned toolchain (<a class="dref" href="architecture_decisions_v_3_12.html#d-4">D-4</a>); graded fidelity (<a class="dref" href="architecture_decisions_v_3_12.html#d-9">D-9</a>); canaries measure review (D-11)</td><td>Fidelity is checked; digestion volume is not bounded by anything</td></tr>
+<tr><td>Ethics and data</td><td>Data licence fixed before the first external contributor (D-23); annex prose licensed by its author or not accepted</td><td>None beyond the open items already in the doc</td></tr>
+</tbody></table></div>
+
+<p class="note"><em>What Wood's complaint looks like from here:</em> "OpenAI does not share all the times their internal model failed to solve an open problem." D-13 and D-34 make every failure a published, typed record with a goal state. No lab does this. It is the single design property that most directly answers the "benchmark" charge, and the protocol currently presents it as a data-commons feature rather than as an answer to the community.</p>
+
+<h2 id="s6"><span class="sn">§6</span>The uncomfortable finding<a class="hl" href="#s6" aria-label="Link to this section">§</a></h2>
+
+<p><strong>As written, the network's mission is the activity the declaration condemns.</strong> <span class="cf">inference</span> D-6's first-priority source is "Open Erdős problems with existing Lean statement," chosen because of "AlphaProof Nexus and Astra's demonstrated resolution regime." D-27's recruitment pitch is "spare subscription credits advancing real mathematics tonight." The declaration's target is "the mass production at faster and faster pace of 'true/false' statements," and it does not say "by companies": a crowd of hobbyist agents harvesting the Erdős list is mass production too, and Alon's "no point anymore" applies to it exactly. Tao's "non-renewable resource" argument is about the problem list the network intends to draw from first.</p>
+
+<p>Two things follow, and they pull in different directions.</p>
+
+<p><strong>First, the network is not a lab, and almost every objection in §1 that is not about digestion is about the actor.</strong> Public ledger, human credit, no announcements, failures on the record, harness-agnostic, prior art at intake, report-back to the registry: the protocol satisfies Leiden's value 3 ("no proprietary knowledge or equipment should be required") by construction and its attribution and disclosure recommendations by decision. Posted to the Lean Zulip and the erdosproblems forum at Stage 0 as D-27 plans, with the digestion commitments of §7 in place, it is the only proposal on the table that implements Tao's "complete artifact set" as a record rather than a norm.</p>
+
+<p><strong>Second, without those commitments it will be read as a distributed Astra, and the community that supplies its reviewers, curators and writers will refuse it.</strong> D-22 recruits "credentialed mathematicians in target subfields, via Lean Zulip / erdosproblems forum." Those are the people signing. A memory from the 2026-09-08 session records Mike's intent to have "agent-found proofs in the record before approaching postdocs." The September evidence inverts that order: agent-found proofs with no digester are the thing the postdocs' advisors have just signed a statement against. Proofs first, people second, is now the wrong sequence, and this is Mike's call to re-make rather than this note's to make (§7.4).</p>
+
+<p>The change in kind that resolves the tension is small to state: <strong>no open-problem target opens without a named human who has committed to digest whatever the network produces on it.</strong> D-32 already has the role; it appoints at resolution because "writing up a stranger's graph is labor nobody takes." Appointing at intake is Tao's adoption mechanism run in advance, answers Judy Yan's "who decides which problems are worth solving" with a person who will explain the answer, throttles intake to the number of mathematicians willing, which is the throttle the community is asking for, and turns the recruitment problem inside out: the network cannot open a target the community has not, through one of its members, agreed to receive.</p>
+
+<h2 id="s7"><span class="sn">§7</span>Incorporation plan<a class="hl" href="#s7" aria-label="Link to this section">§</a></h2>
+
+<p>Three tiers. Amendment candidates change a decision and go through the doc's own process; product work changes nothing a decision fixes and can be specified as feature tasks now; decisions for Mike are the calls this note cannot make. Each item names the decisions it touches, what it answers, and its cost.</p>
+
+<h3 id="s7-1">7.1 Amendment candidates</h3>
+
+<div class="plan">
+<h4><span class="pid">A1</span>A digester at intake</h4>
+<p class="kv"><b>touches</b> D-6 · D-32 · D-22 &nbsp; <b>answers</b> §1 items 1, 3, 6, 7 &nbsp; <b>cost</b> one intake artifact; throttles open-problem intake to willing mathematicians</p>
+<p>D-6 gains a sixth intake artifact for open-problem targets: a real-identity mathematician who accepts the D-32 writer role for the target in advance, with the D-21 exclusions applying from listing. On-ramp and calibration graphs (D-6's second-class track) are exempt: they exercise the protocol, not the mathematics. D-32's "appointed at resolution or dormancy" becomes "appointed at listing, confirmed or replaced at resolution or dormancy," keeping the stake rule for the replacement.</p>
+<p>The public comment period D-9 already runs on a visible, unclaimable root becomes also the window for a <em>reservation request</em>: a member of the source community may ask that the problem not be listed (a student is working on it; the community wants a human proof first), and the curators honour it by default and publish the reasoning either way. This is Tao's "analysis-required" class implemented as a per-problem, community-driven act rather than a class the network declares.</p>
+<p class="note warn"><em>Bears on F11 now.</em> F11-T5 lists five open targets from Formal Conjectures pending Mike's approval. Under A1 none of the five is listable until someone has taken it. The cheapest honest move is to keep them <code>listed</code> as F11 already does, unclaimable under D-9, and let A1's artifact be what promotes them.</p>
+</div>
+
+<div class="plan">
+<h4><span class="pid">A2</span>Digestion is a target-level fact, and the network announces nothing before it</h4>
+<p class="kv"><b>touches</b> D-33 · D-10 · D-36 &nbsp; <b>answers</b> §1 items 1, 2, 3 &nbsp; <b>cost</b> one field, one label, one sentence in D-10</p>
+<p>Alongside the D-33 status a target carries a digestion state: <code>undigested</code> (root closed, nothing else), <code>explained</code> (every node on the closing proof's dependency closure carries a signed explainer, A3), <code>written-up</code> (the D-32 paper or note is published). <code>resolved</code> stays the kernel's fact and is never delayed. What changes is the claim: the Targets page shows "resolved — undigested" until the state moves, and D-10's report-back to the source registry carries the digestion state in its text, so the erdosproblems forum reads "kernel-checked, not yet explained" rather than "solved." The network issues no announcement of any kind beyond the D-10 note and the D-32 paper.</p>
+<p>This is Tao's one-third, two-thirds rule as a status, and it costs the network nothing it has: the artifact is public the moment it merges either way. It also gives Bloom's "read and vouched for" a field to read.</p>
+</div>
+
+<div class="plan">
+<h4><span class="pid">A3</span>Explainers can be signed, and a signature is a comprehension claim</h4>
+<p class="kv"><b>touches</b> D-3 · D-36 · D-22 &nbsp; <b>answers</b> §1 item 1; Radziwiłł's seminar test; Mathlib's justify-without-AI rule &nbsp; <b>cost</b> one optional signing block, reusing the SSHSIG machinery the gate has</p>
+<p>An explainer stays what D-3 says: hashed, attributed, unverified, model-drafted or not. It may additionally carry a signature by a real-identity contributor affirming one sentence: <em>I can explain this proof without the tool that produced it.</em> The signer is accountable under D-22 like any role-holder; a signed explainer whose signer cannot in fact explain it is a D-17 ground (iii) matter. The site shows "explained and vouched by <em>name</em>" above the unverified label, and A2's <code>explained</code> state counts only signed explainers. The signature claims nothing about the mathematics, which is why it does not touch the trust base.</p>
+<p>The explainer template names the crux and the natural difficulty, and the generator fills the difficulty section from D-13: attempts per node, route classes refuted, time in <code>ready</code>. Tao's warning that AI exposition smooths away friction is answered by making the friction a record rather than a judgement.</p>
+</div>
+
+<div class="plan">
+<h4><span class="pid">A4</span>The record distinguishes generated from explained, and lists the unexplained for adoption</h4>
+<p class="kv"><b>touches</b> D-19 · D-32 · D-25 &nbsp; <b>answers</b> §1 items 1, 3; Tao's first-to-explain and adoption norms &nbsp; <b>cost</b> two words in the contribution statement; one frontier view</p>
+<p>No ledger line changes and nothing kernel-checked is ever discounted. D-32's contribution statement lists proof-line entries as <em>generated</em> or <em>generated and explained</em>, and the target page names the first signed explainer of the closing proof beside the prover. A proved node with no signed explainer after a published window (pilot default 30 days) appears on a public adoption list, a second frontier view rendered from the same files, where anyone's signed explainer earns the write-up line. The prover loses nothing; the explainer is simply named. Tao's priority rule, "the first to provide a complete set of artifacts," is then a fact the ledger can state rather than a norm it asks for.</p>
+</div>
+
+<div class="plan">
+<h4><span class="pid">A5</span>Alternate proofs of closed nodes are refinement, paid on adoption only</h4>
+<p class="kv"><b>touches</b> D-25 · D-3 · D-19 &nbsp; <b>answers</b> §3 item 1, the mechanism that actually produced understanding &nbsp; <b>cost</b> Stage 2; low priority</p>
+<p>D-25 already lands a losing racer's proof in <code>attempts/</code> as an alternate. Extend the same slot to a proof submitted <em>after</em> close: gate-checked like any proof, earning nothing on submission (D-19's anti-farming rule applies unchanged), and promotable to <code>Proof.lean</code> by a curator on the writer's proposal, so the digested proof becomes the canonical one. Tao's Sendov digestion, 90,000 lines to 15,000, is the use case; Gonthier's hypermaps are the precedent. Deferred because it has no consumer until a target has closed and been written up.</p>
+</div>
+
+<h3 id="s7-2">7.2 Product work, no protocol change</h3>
+
+<ul>
+<li><strong>Render every target as a blueprint.</strong> The graph is already a leanblueprint in all but format: node = <code>\lean</code>, declared deps = <code>\uses</code>, status = colour, explainer = the prose. The site (D-36) renders a blueprint page per target and exports a leanblueprint project, so a mathematician receives the artifact PFR and ETP taught them to read. This is the largest single digestion gain available and it is a generator change.</li>
+<li><strong>Digestion coverage is the home page's first number.</strong> The metric exists in the Stages list; move it above proved-node count. A home page whose headline is "explained: 12 of 40" says what the network values without a sentence of positioning.</li>
+<li><strong>Record the prior-art search, not just its verdict.</strong> D-6 item 1's artifact gains the databases queried, the queries and the date, rendered on the Targets page. Leiden's "where a satisfactory attribution is not possible, state this explicitly" becomes a field. The D-10 resolved-elsewhere watcher (F12) stays as specified.</li>
+<li><strong>A Leiden compliance table on the Docs page.</strong> Value by value and recommendation by recommendation, which decision implements it and which does not. §5 of this note is the draft. A reader from the erdosproblems forum should be able to check the network against the declaration they signed in one page.</li>
+<li><strong>Reuse counts and upstream flags on node pages.</strong> "Used by <em>n</em> nodes" from declared dependencies; D-7's <code>upstream</code> tag shown. The caveat from §3 stands: this measures toolness, not insight, and is labelled as such.</li>
+<li><strong>An unused-hypothesis report after merge.</strong> Lean's linter says which hypotheses a proof never touched; the report is shown on the node and the stronger statement is proposable as a D-30 <code>resolves</code> variant by anyone. No new artifact type: D-30 already admits a variant that implies the root.</li>
+<li><strong>The Stage 0 post leads with digestion.</strong> D-27 posts the protocol to the Zulip and the forum for review. Given the month, the post opens with A1, A2 and the failure record, names the declaration and Leiden, and asks the erdosproblems curator which problems the community would reserve. Posting the protocol as a proving network first and a digestion record second is the one avoidable way to lose the review.</li>
+</ul>
+
+<h3 id="s7-3">7.3 Sequencing against the feature ledger</h3>
+
+<div class="tw"><table class="cols">
+<colgroup><col style="width:18%"><col style="width:50%"><col style="width:32%"></colgroup>
+<thead><tr><th>Where</th><th>What</th><th>Why there</th></tr></thead>
+<tbody>
+<tr><td>Decisions doc</td><td>A1–A4 as a v3.13 amendment set; A5 as a noted Stage-2 candidate</td><td>Rule 4 of the build law: a spec never overrides a decision; D-6, D-32, D-33, D-3 and D-19 all move</td></tr>
+<tr><td>F11 (building)</td><td>A1's intake artifact and reservation window, once amended; the prior-art search record; keep the five targets <code>listed</code></td><td>F11 owns intake and is the feature in flight; T5's approval step is where A1 lands</td></tr>
+<tr><td>F12 (spec)</td><td>A2's digestion state on the target-status record and the D-10 report-back text</td><td>F12 owns the target-status record and the drift and resolved-elsewhere watchers</td></tr>
+<tr><td>New feature, F13 — Digestion</td><td>A3 signed explainers and the template; A4's adoption view and contribution-statement wording; blueprint rendering and export; coverage-first home page; reuse and unused-hypothesis reports; the compliance table</td><td>One feature, one spec, one verification suite; the site and gate changes are small and the value is in shipping them together before Stage 0</td></tr>
+<tr><td>Stage 0 post</td><td>Written from this note's §5 and §7 after the amendments land</td><td>D-27 already schedules it; only its lead changes</td></tr>
+</tbody></table></div>
+
+<h3 id="s7-4">7.4 Decisions for Mike</h3>
+
+<ol>
+<li><strong>Proofs first, or digester first?</strong> The recorded intent was agent-found proofs in the record before approaching postdocs. §6 argues the evidence has reversed the order. A1 is the structural form of the reversal, and it delays the first open-problem target until one mathematician has said yes. The on-ramp graph is unaffected either way.</li>
+<li><strong>Endorse Leiden, and answer the September declaration, or stay silent?</strong> The protocol implements most of Leiden already. A public line to that effect on the Docs page costs a paragraph; a formal endorsement is an act by the entity D-24 has not yet formed. This note recommends the paragraph and the compliance table, and leaves the endorsement to the entity.</li>
+<li><strong>Do Erdős problems stay the first-priority source?</strong> D-6 chose them for tractability and the existing Lean statements, which is Ellenberg's "amenability" worry stated as a design rationale. The alternatives are to keep them under A1's reservation window with Bloom's cooperation, or to move first priority to the prerequisite-library and formally-native classes where no community is being evacuated. This note does not recommend; it records that the choice is now visible to the people the network needs.</li>
+<li><strong>Students.</strong> The declaration's "most precious resources" claim has no answer in a proof network and this note does not invent one. The honest position is to say so on the Docs page rather than to claim the on-ramp track as pedagogy.</li>
+</ol>
+
+<h2 id="s8"><span class="sn">§8</span>Refuted — do not build<a class="hl" href="#s8" aria-label="Link to this section">§</a></h2>
+
+<p>Ideas from the two brainstorms that preceded this note, killed by the evidence, recorded so they are not proposed again.</p>
+
+<p class="refuted"><span class="rc">AI-generated proof sketches, structurally checked against the dependency DAG, as a digestion rung.</span><span class="rv">refuted — Tao: AI exposition "dwells at length on trivialities while ... obscuring the most interesting and novel portions"; ranked weakest of seven mechanisms in §3; no faithfulness measurement exists for prose-from-formal. A model may draft; only a human signature counts (A3).</span></p>
+
+<p class="refuted"><span class="rc">Readability metrics (term size, depth, distinct lemmas) as a ranking or gate on proofs; penalising monoliths.</span><span class="rv">refuted — no validated understandability metric exists; Mathlib places readability in statements and docstrings, not proofs; the de Bruijn factor varies by a factor of five across honest measurements. Reuse counts survive only as a labelled display, never as a score.</span></p>
+
+<p class="refuted"><span class="rc">"Redefine done" by withholding the certificate until an explainer exists.</span><span class="rv">refuted — the graph is public and the kernel's verdict is a fact; hiding it re-creates the closed-process objection. A2 changes the claim, never the record.</span></p>
+
+<p class="refuted"><span class="rc">A network-declared "protected class" of problems.</span><span class="rv">refuted as a class — no community has adopted one, and a network declaring which problems are too precious would be the agenda-setting Leiden objects to. Survives as a per-problem reservation request honoured by curators (A1).</span></p>
+
+<p class="refuted"><span class="rc">Mandatory trace disclosure per node.</span><span class="rv">refuted — D-34's rationale holds: the trace is "the highest-volume, least-trustworthy thing a harness produces," and the attestation already records model and tooling. Stays optional; the site shows whether one exists.</span></p>
+
+<h2 id="s9"><span class="sn">§9</span>Caveats on this evidence<a class="hl" href="#s9" aria-label="Link to this section">§</a></h2>
+
+<ul>
+<li><strong>It is one week old.</strong> The declaration is dated 2026-09-11; the Navier–Stokes dispute is three days old and Clay's review is "deliberately unhurried." Positions will move. What is stable is the Leiden text (June), Tao's ICM essay (August) and the Erdős-community practices, which is why the plan leans on those.</li>
+<li><strong>The loudest voices are number theorists and combinatorialists,</strong> which is also the network's target domain. This makes the objections more relevant, not less, but the sample is not the profession.</li>
+<li><strong>Two sources were read through a search index only:</strong> Bloom's X thread on "read and vouched for," and the Economist headline Tao links. Neither carries a plan item on its own.</li>
+<li><strong>Counts from the Erdős AI-contributions wiki are frozen at 2026-06-30</strong> and predate Astra, Navier–Stokes and FrontierMath Erdős.</li>
+<li><strong>§6 is an inference,</strong> and a strong one. It rests on reading the declaration's wording as targeting the activity rather than the actor. A reader who thinks the declaration is about companies only will weigh A1 differently. The wording is quoted in §1 so that reading can be checked.</li>
+</ul>
+
+<h2 id="s10"><span class="sn">§10</span>Open questions<a class="hl" href="#s10" aria-label="Link to this section">§</a></h2>
+
+<ol>
+<li><strong>Will anyone take the writer role at intake?</strong> D-32 chose appointment at resolution because nobody writes up a stranger's graph. A1 asks for the commitment before there is a graph. The Stage 0 post is the experiment; if no one signs for the on-ramp's sibling open target, A1 has a recruitment cost the note cannot price.</li>
+<li><strong>What is a signed explainer worth to a hiring committee?</strong> D-32's rationale is that the paper is the only output referees consume. Whether "explained and vouched by" on a public page carries academic weight is unknown, and it determines whether A3 recruits or merely records.</li>
+<li><strong>Is a blueprint of an emergent decomposition readable?</strong> PFR and ETP blueprints were authored top-down by people with a proof in mind. D-29 grows the graph from holes and variants. Whether the rendered result reads as an argument or as a parts list is a question for the first written-up target.</li>
+<li><strong>How does the reservation window interact with D-10's "upstream before proving"?</strong> Posting a statement to Formal Conjectures publishes it to every lab's sweep. A community reserving a problem from this network has not reserved it from anyone else, and the network may need to hold a reserved statement back from upstreaming, which D-10's fail-open clause does not currently contemplate.</li>
+</ol>
+
+<h2 id="sources">Sources<a class="hl" href="#sources" aria-label="Link to this section">§</a></h2>
+
+<div class="tw"><table class="cols">
+<colgroup><col style="width:44%"><col style="width:20%"><col style="width:36%"></colgroup>
+<thead><tr><th>Source</th><th>Kind</th><th>Carries</th></tr></thead>
+<tbody>
+<tr><td><a href="https://terrytao.wordpress.com/2026/09/11/a-severe-misalignment-of-ai-in-mathematics/">Tao — A severe misalignment of AI in mathematics, with comments</a></td><td>blog, 2026-09-11</td><td>§1 declaration text, Radziwiłł, Sienicki, Steinberg, Yan, Ni</td></tr>
+<tr><td><a href="https://mathandai.org/">The declaration, canonical text and signatories</a></td><td>declaration</td><td>§1</td></tr>
+<tr><td><a href="https://teorth.github.io/tao-web/ai-views.html">Tao — collected views on AI in mathematics</a></td><td>summary page, Tao-reviewed</td><td>§1, §3, §4 pipeline, talk gate, trace disclosure</td></tr>
+<tr><td><a href="https://arxiv.org/abs/2608.16753">Tao — Mathematics in the age of AI (ICM essay)</a></td><td>arXiv, 2026-08</td><td>§3 AI exposition, §4 publication test, §2 reporting bias</td></tr>
+<tr><td><a href="https://mathstodon.xyz/@tao/117046985982017853">Tao — priority to the first to explain</a> · <a href="https://mathstodon.xyz/@tao/117035751627601466">parenting norm</a> · <a href="https://mathstodon.xyz/@tao/117123957813926355">adoption</a> · <a href="https://mathstodon.xyz/@tao/117204929023813310">off-limits classes</a> · <a href="https://mathstodon.xyz/@tao/116450581967483825">one-third rule</a></td><td>Mathstodon, 2026-04 to 09</td><td>§4</td></tr>
+<tr><td><a href="https://terrytao.wordpress.com/2026/08/12/a-digestion-of-the-proof-of-sendovs-conjecture/">Tao — A digestion of the proof of Sendov's conjecture</a></td><td>blog</td><td>§2, §3 the 90k-to-15k case</td></tr>
+<tr><td><a href="https://leidendeclaration.ai/">Leiden Declaration on AI and Mathematics</a> · <a href="https://en.wikipedia.org/wiki/Leiden_Declaration_on_Artificial_Intelligence_and_Mathematics">summary</a></td><td>declaration, 2026-06-02, IMU-endorsed</td><td>§1, §4, §5 values and recommendations</td></tr>
+<tr><td><a href="https://arxiv.org/abs/2603.24914">Commelin, Jamnik, Ochigame, Taelman, Venkatesh — Shaping the future of mathematics in the age of AI</a></td><td>arXiv, 2026-03</td><td>§4 open infrastructure recommendation</td></tr>
+<tr><td><a href="https://www.scientificamerican.com/article/mathematicians-confront-the-ai-apocalypse/">Scientific American — Mathematicians confront the AI apocalypse</a></td><td>press, 2026-09-10</td><td>§1 Sweeting, Vakil, Tsimerman quotes</td></tr>
+<tr><td><a href="https://www.scientificamerican.com/article/openais-latest-math-breakthroughs-commit-research-misconduct-experts-say/">Scientific American — Astra and research misconduct</a> · <a href="https://cdn.openai.com/pdf/ten-proofs-oai.pdf">the updated paper</a></td><td>press; primary PDF</td><td>§2 Cohn–Miller citation added 2026-08-06</td></tr>
+<tr><td><a href="https://www.quantamagazine.org/why-the-legendary-erdos-problems-are-falling-to-ai-20260803/">Quanta — Why the legendary Erdős problems are falling to AI</a></td><td>press, 2026-08-03</td><td>§1 Alon, Bloom, Lichtman; §2</td></tr>
+<tr><td><a href="https://www.quantamagazine.org/ai-has-solved-one-of-maths-1-million-millennium-prize-problems-20260908/">Quanta — Navier–Stokes claim</a> · <a href="https://fortune.com/2026/09/08/openai-says-it-cracked-navier-stokes-math-grand-challenge-buckmaster-accusation-cheating-intimidation-tao-lament/">Fortune — the Buckmaster dispute</a></td><td>press, 2026-09-08</td><td>§2</td></tr>
+<tr><td><a href="https://www.erdosproblems.com/forum/thread/333">erdosproblems.com — thread #333</a> · <a href="https://github.com/teorth/erdosproblems/wiki/AI-contributions-to-Erd%C5%91s-problems">AI-contributions wiki</a> · <a href="https://github.com/teorth/erdosproblems/wiki/What-to-do-when-I-think-I-managed-to-get-AI-to-solve-an-Erd%C5%91s-problem%3F">submission guide</a></td><td>community practice</td><td>§2, §3, §4 classification and comprehension rule</td></tr>
+<tr><td><a href="https://arxiv.org/html/2601.22401v3">Aletheia — arXiv 2601.22401</a> · <a href="https://arxiv.org/html/2605.22763v1">AlphaProof Nexus — arXiv 2605.22763</a></td><td>lab papers</td><td>§2 base rates, density misformalisation, "subconscious plagiarism"</td></tr>
+<tr><td><a href="https://epoch.ai/latest/announcing-frontiermath-erdos">Epoch — FrontierMath Erdős</a></td><td>benchmark release, 2026-09-01</td><td>§2 2-of-68</td></tr>
+<tr><td><a href="https://leodemoura.github.io/blog/2026-8-1-postmortem-for-kernel-soundness-bug-14576/">de Moura — postmortem for kernel bug 14576</a></td><td>blog</td><td>§2 Collatz</td></tr>
+<tr><td><a href="https://xenaproject.wordpress.com/2026/09/04/flt-anthropic-has-beaten-me-to-it/">Buzzard — FLT: Anthropic has beaten me to it</a> · <a href="https://xenaproject.wordpress.com/2026/07/20/human-mathematicians-are-being-outcounterexampled/">outcounterexampled</a></td><td>blog</td><td>§2 "tells us essentially nothing"</td></tr>
+<tr><td><a href="https://gowers.wordpress.com/2026/05/08/a-recent-experience-with-chatgpt-5-5-pro/">Gowers — A recent experience with ChatGPT 5.5 Pro</a> · <a href="https://www.daniellitt.com/blog/2026/8/11/the-end-of-mathematics/">Litt — The end of mathematics</a> · <a href="https://quomodocumque.wordpress.com/2026/06/04/the-leiden-declaration-on-artificial-intelligence-and-mathematics/">Ellenberg on Leiden</a></td><td>blogs</td><td>§1</td></tr>
+<tr><td><a href="https://www.cse.chalmers.se/~abela/lehre/WS05-06/CAFR/4colproof.pdf">Gonthier — A computer-checked proof of the Four Colour Theorem</a> · <a href="https://thomas.math.gatech.edu/FC/fourcolor.html">Robertson–Sanders–Seymour–Thomas</a> · <a href="https://www.quantamagazine.org/the-four-color-theorem-gets-a-rare-new-proof-20260910/">Quanta, 2026-09-10</a></td><td>primary; press</td><td>§3 item 1 and 5</td></tr>
+<tr><td><a href="https://arxiv.org/abs/2402.08032">Hales — Kepler and Flyspeck, 2024 retrospective</a> · <a href="https://www.ams.org/notices/200811/tx081101370p.pdf">Hales, Notices 2008</a></td><td>primary</td><td>§3 revisionist, tracking codes, de Bruijn factor</td></tr>
+<tr><td><a href="https://github.com/PatrickMassot/leanblueprint/blob/master/README.md">leanblueprint README</a> · <a href="https://terrytao.wordpress.com/2023/11/18/formalizing-the-proof-of-pfr-in-lean4-using-blueprint-a-short-tour/">Tao — PFR blueprint tour</a> · <a href="https://arxiv.org/html/2512.07087">ETP paper</a></td><td>tool; primary</td><td>§3 item 2, §7.2 blueprint rendering</td></tr>
+<tr><td><a href="https://leanprover-community.github.io/contribute/index.html">Mathlib — contributing guide (AI policy)</a> · <a href="https://leanprover-community.github.io/contribute/pr-review.html">PR review guide</a> · <a href="https://leanprover-community.github.io/archive/stream/113488-general/topic/Make.20lean.20proofs.20more.20readable.3F.html">Zulip on readability</a></td><td>community policy</td><td>§3 items 3 and 6</td></tr>
+<tr><td><a href="https://annals.math.princeton.edu/submission-guidelines">Annals — submission guidelines</a> · <a href="https://www.lms.ac.uk/publications/policies/AI">LMS AI policy</a> · <a href="https://euromathsoc.org/code-of-practice">EMS code of practice</a> · <a href="https://www.ams.org/publications/journals/policies/UseofArtificialIntelligence">AMS policy</a></td><td>journal policy</td><td>§4</td></tr>
+<tr><td><a href="https://arxiv.org/abs/2604.24797">The network structure of Mathlib — arXiv 2604.24797</a> · <a href="https://www.cs.ru.nl/~freek/factor/factor.pdf">Wiedijk — the de Bruijn factor</a></td><td>papers</td><td>§3 no metric</td></tr>
+<tr><td><a href="research_statement_fidelity_2026-09.html">Statement fidelity research note, 2026-09-08</a></td><td>this repo</td><td>§2 fidelity numbers inherited</td></tr>
+</tbody></table></div>
+
+</main>
+</div>
+<footer><div class="in">Research note and plan, not protocol. Produced 2026-09-12 from four parallel research threads over about forty sources. Where this note and <a href="architecture_decisions_v_3_12.html">the decisions</a> disagree, the decisions govern; §7's amendment candidates change nothing until the doc's own process acts on them.</div></footer>
+<script>
+document.querySelectorAll('.xall button').forEach(function(b){
+  b.addEventListener('click',function(){
+    var open=b.dataset.x==='1';
+    document.querySelectorAll('details.more').forEach(function(d){d.open=open});
+  });
+});
+document.querySelectorAll('main h2[id],main h3[id]').forEach(function(h){
+  if(h.querySelector('.hl'))return;
+  var a=document.createElement('a');
+  a.className='hl';a.href='#'+h.id;a.textContent='§';
+  a.setAttribute('aria-label','Link to this section');
+  h.appendChild(a);
+});
+</script>
+</body>
+</html>

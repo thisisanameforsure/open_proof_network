@@ -365,3 +365,26 @@ The law of the project:
   After any merge of parallel sessions, run the type checker before believing the test count —
   and look first at the functions whose *signature* one side changed, since a signature is the one
   edit whose blast radius is entirely in files it does not touch.
+- 2026-09-12 — The 25-Fields-medallist declaration (2026-09-11) condemns "the mass production of
+  'true/false' statements" on open problems, and D-6's first-priority source is the Erdős list
+  chosen for its "demonstrated resolution regime" — as written, the mission is the condemned
+  activity, and the people D-22 recruits are the signatories. Researched in
+  `docs/research_digestion_2026-09.html`: the protocol already answers most of Leiden (public
+  failures, human credit, no leaderboard, prior art, report-back) but digestion is optional and
+  unstated. Proposed amendments A1–A5, the load-bearing one being a named digester at intake
+  (D-32's writer appointed at listing, not at resolution). Two things the evidence killed: AI-drafted
+  proof sketches as a rung (Tao: they "obscure the most interesting portions") and any readability
+  metric (none is validated). Explainers already exist as a gate mode; what is missing is a
+  signature and a status. Mike's calls: proofs-first vs digester-first, and whether Erdős
+  problems stay first priority.
+- 2026-09-12 — A defect held because "no fake can see it" was worth re-reading before fixing. F08-Q18
+  parked the theorem-name clash in the lean tier on the grounds that only the real elaborator could
+  show it. But the fix is a string comparison over sibling `Statement.lean` files — no toolchain at
+  all — so the fast tier covers it after all, and the lean test became an ordinary test rather than
+  the only one. When a held defect names the *reason* it is held, check that the reason still
+  applies to the fix you are about to write; it constrains the test, not the code.
+- 2026-09-12 — Both halves of a seam must agree on what is *unstorable*, not just on what round
+  trips. `plain()` had turned DynamoDB's Decimals back into JSON numbers since F05, but nothing did
+  the reverse, so a float was a `TypeError` on DynamoDB and a happy write in memory. The parity
+  tests had been driving DynamoDB alone; driven through the shared both-stores fixture they are
+  parity tests, and that is the shape to reach for whenever a seam has two implementations.
