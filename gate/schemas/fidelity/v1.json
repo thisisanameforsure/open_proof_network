@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/fidelity/v1.json",
+  "title": "fidelity/v1",
+  "description": "targets/<id>/fidelity/<subject>-<n>.yaml (F11-R3; D-9 v3.12): one attestation that a subject — the root statement, or one definition in defs/ — says what its informal statement says, at one rung of the ladder. Append-only: a certificate is never edited, and the latest by (date, file name) is the subject's current grade. Above `mechanical-only` the attestor may not be the subject's author (D-9: the second rung is a non-author's signature), and the certificate names the exhibits the grade rests on. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "subject",
+    "grade",
+    "subject_author",
+    "attestor",
+    "date",
+    "evidence"
+  ],
+  "properties": {
+    "schema": { "const": "fidelity/v1" },
+    "subject": {
+      "description": "`root`, or the name of a definition in the target's defs/.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+      "maxLength": 100
+    },
+    "grade": {
+      "description": "D-9 v3.12's ladder. Rung two is `screened-and-signed`; back-translation is one input to it, not the rung itself.",
+      "enum": [
+        "mechanical-only",
+        "screened-and-signed",
+        "author-attested",
+        "expert-attested",
+        "published-and-uncontested"
+      ]
+    },
+    "subject_author": {
+      "description": "Who wrote the subject. The first certificate for a subject establishes it; every later one must agree.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "attestor": {
+      "description": "Who is signing. Equal to subject_author only at `mechanical-only`, which is the machine's own grade and signs for nobody.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "evidence": {
+      "description": "What was checked, in the attestor's words. Free text, untrusted downstream (F11 §7).",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "evidence_files": {
+      "description": "Paths, relative to the graph root, of anything the evidence points at.",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 300 },
+      "uniqueItems": true
+    },
+    "exhibits": {
+      "description": "The kernel-checked exhibits this grade rests on (D-9 v3.12). Empty at `mechanical-only`; F12 produces them for the mechanizable pass.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "path"],
+        "properties": {
+          "kind": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "maxLength": 60 },
+          "path": { "type": "string", "minLength": 1, "maxLength": 300 },
+          "note": { "oneOf": [{ "type": "null" }, { "type": "string", "maxLength": 500 }] }
+        }
+      }
+    }
+  }
+}

@@ -327,3 +327,33 @@ The law of the project:
   domain and certificate were set at deploy time would have lost them to the template defaults.
   Build a change set with `UsePreviousValue` for every existing parameter, read it, then execute.
 
+- 2026-09-11 — "Specs should say 'the next version'" was paid a second time inside a day. F11-R12
+  named `targets-index/v2`; F07-R8 had shipped one the day before, so the rung rename landed at v3
+  (F11-Q9). The check is one `ls gate/schemas/<name>/` — do it before a requirement names a
+  number, not after.
+- 2026-09-11 — A one-field schema bump reaches every consumer, and the consumers are not where you
+  would look. `frontier/v2` (one boolean, D-33 dormancy) touched the api's `/frontier.json` route,
+  the MCP field filter, both smoke tools, the deploy workflow's package check and the site's
+  accepted-versions map. Grep for the *version string*, never for the module, and budget the sweep
+  into the same commit as the schema. What scales is a set per product rather than a pin: the site
+  already did it that way and was the only consumer that needed no thought.
+- 2026-09-11 — A derived value with two writable homes will disagree with itself, and the wrong one
+  will be the one a human edited. F11-R1 listed `fidelity` and `claimable` among `target.yaml`'s
+  fields while R3 and R4 derive both; the record now carries only the inputs and
+  `targets/index.json` carries the outputs with their reasons (F11-Q10). When a spec lists a
+  derived field on a record, settle which of the two is the source before writing the schema.
+- 2026-09-11 — A requirement to *show* something can be a change to a checker rather than to a
+  page. F11-R10 wants the Targets page to link a target's upstream source; F04-R13's link checker
+  refuses every off-site link and would have failed the build. Loosening the rule was the wrong
+  fix — `links.check` now takes an allowlist built from the *validated* target records, so the
+  renderer still cannot invent an outbound link (F11-Q11).
+- 2026-09-11 — Read the first error, not the count, in a fresh container. Sixty-seven errors and
+  nine failures across the gate and the api were one missing `ssh-keygen`: the signer shells out to
+  it, and every test that signs or verifies died at `FileNotFoundError`. `apt-get update` then
+  `apt-get install openssh-client` fixed all of them.
+- 2026-09-11 — A test that borrows the developer's machine is green locally forever and red in CI
+  forever. Three `--branch` tests had been failing on `main` for a week: `--branch` commits with
+  whatever identity the environment carries, because the gate deliberately fabricates none
+  (F08-Q17), and a hosted runner has no `~/.gitconfig`. Reproduce a CI-only failure by taking the
+  ambient thing away — `HOME=/tmp/empty uv run pytest` found it in one run — and have the test
+  supply what it needs instead of inheriting it.

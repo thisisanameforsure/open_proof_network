@@ -114,3 +114,25 @@ def test_only_config_module_reads_the_environment() -> None:
         if p.name != "config.py" and ENV_ACCESS.search(p.read_text())
     ]
     assert offenders == []
+
+
+# --- F11-R9 §6: the Stage 0 listed-target count is config, not a constant (C6) ------------------
+
+
+def test_listed_targets_max_defaults_and_reads() -> None:
+    assert config.load({}).listed_targets_max == config.DEFAULT_LISTED_TARGETS_MAX == 5
+    assert config.load({"OPN_LISTED_TARGETS_MAX": "12"}).listed_targets_max == 12
+    assert config.load({"OPN_LISTED_TARGETS_MAX": "0"}).listed_targets_max == 0
+
+
+@pytest.mark.parametrize("value", ["five", "-1", "", "3.5"])
+def test_a_bad_listed_targets_max_fails_at_load(value: str) -> None:
+    """C7: a configured value is refused when it is read, never later."""
+    with pytest.raises(config.ConfigError, match="OPN_LISTED_TARGETS_MAX"):
+        config.load({"OPN_LISTED_TARGETS_MAX": value})
+
+
+def test_the_count_is_not_in_the_repr_by_accident() -> None:
+    """C8: the repr exists so secrets stay out of it; a new field has to be in it deliberately."""
+    assert "listed_targets_max=5" in repr(config.load({}))
+    assert "gate_signing_key=None" in repr(config.load({}))

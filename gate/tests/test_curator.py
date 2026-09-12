@@ -304,8 +304,10 @@ def test_dormancy_condition(tmp_path: Path) -> None:
         n_days=90,
     )
     doc = yaml.safe_load(record.read_text())
-    assert doc["schema"] == "target-status/v1" and doc["status"] == "dormant"
-    assert schemas.violations(doc, "target-status/v1") == []
+    # F11-R12: new declarations are written at v2, whose fidelity enum carries D-9
+    # v3.12's renamed rung; v1 records already in a graph stay valid (D-34).
+    assert doc["schema"] == "target-status/v2" and doc["status"] == "dormant"
+    assert schemas.violations(doc, "target-status/v2") == []
     cause = doc["cause"]
     assert cause.startswith("the network has moved on\n")
     assert "D-25 series" in cause and "K=3" in cause and "N=90 days" in cause
@@ -314,7 +316,7 @@ def test_dormancy_condition(tmp_path: Path) -> None:
     # F03 consumes it: the target is dormant in the products.
     tg = graphmod.load_target(root, TARGET)
     assert tg.declaration is not None and tg.declaration.status == "dormant"
-    assert products.target_facts(tg)[0] == "dormant"
+    assert products.target_facts(tg).status == "dormant"
 
     # Condition (a)'s other arm: every ready node carries at least K attempts.
     root2 = copy_graph(tmp_path / "attempted")
@@ -440,11 +442,22 @@ def git_env(tmp_path: Path) -> dict[str, str]:
     }
 
 
-def test_commands_write_and_branch(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_commands_write_and_branch(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
     """R9-R12 as commands: each prints what it wrote, `--branch` commits it on a branch for the
     curator's pull request, a refusal exits 1 with the reason and writes nothing."""
     root = copy_graph(tmp_path)
     env = git_env(tmp_path)
+    # `--branch` commits with the identity the environment carries, because the gate does not
+    # fabricate one (F08-Q17). A hosted runner has none in ~/.gitconfig, so put it here.
+    for name in (
+        "GIT_AUTHOR_NAME",
+        "GIT_AUTHOR_EMAIL",
+        "GIT_COMMITTER_NAME",
+        "GIT_COMMITTER_EMAIL",
+    ):
+        monkeypatch.setenv(name, env[name])
 
     def git(*args: str) -> str:
         proc = subprocess.run(

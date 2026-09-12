@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/targets-index/v3.json",
+  "title": "targets-index/v3",
+  "description": "targets/index.json (D-25, D-35): one row per target, regenerated on every merge. v3 (2026-09-11, F11-R12/R3/R4, Q9): D-9 v3.12's second rung is screened-and-signed; each row carries the target's track, the per-subject fidelity certificates as a signature count and the named signers (D-9 v3.12: signatures are counted and named), the D-10 posting, and \u2014 when the target is not claimable \u2014 the reasons, so a reader learns why without deriving it. v2 could not be edited (D-34), and its number was already spent on F07-R8's node counts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "rendered_from",
+    "targets"
+  ],
+  "properties": {
+    "schema": {
+      "const": "targets-index/v3"
+    },
+    "rendered_from": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      ]
+    },
+    "targets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target_id",
+          "root",
+          "root_statement_hash",
+          "fidelity",
+          "status",
+          "mathlib_sha",
+          "node_counts",
+          "claimable",
+          "track",
+          "subjects",
+          "posting",
+          "not_claimable"
+        ],
+        "properties": {
+          "target_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "root": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "root_statement_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "fidelity": {
+            "enum": [
+              "mechanical-only",
+              "screened-and-signed",
+              "author-attested",
+              "expert-attested",
+              "published-and-uncontested"
+            ]
+          },
+          "status": {
+            "enum": [
+              "listed",
+              "active",
+              "resolved",
+              "dormant",
+              "known-result"
+            ]
+          },
+          "mathlib_sha": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              }
+            ]
+          },
+          "node_counts": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ready",
+              "blocked",
+              "proved",
+              "refuted",
+              "defective",
+              "speculative",
+              "superseded",
+              "stale",
+              "disputed",
+              "abandoned"
+            ],
+            "properties": {
+              "ready": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "blocked": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "proved": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "speculative": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "superseded": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "stale": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "disputed": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "abandoned": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "refuted": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "defective": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "claimable": {
+            "type": "boolean"
+          },
+          "track": {
+            "description": "D-6's two tracks; null for a target with no target.yaml (a pre-F11 graph).",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "enum": [
+                  "open",
+                  "formalization"
+                ]
+              }
+            ]
+          },
+          "subjects": {
+            "description": "One row per fidelity subject (the root and each definition), latest certificate first in time order (F11-R3). Empty for a target with no certificates.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "subject",
+                "grade",
+                "signature_count",
+                "signers"
+              ],
+              "properties": {
+                "subject": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "grade": {
+                  "enum": [
+                    "mechanical-only",
+                    "screened-and-signed",
+                    "author-attested",
+                    "expert-attested",
+                    "published-and-uncontested"
+                  ]
+                },
+                "signature_count": {
+                  "description": "Distinct attestors who signed this subject at screened-and-signed or above. A mechanical-only certificate is the machine's own and signs for nobody.",
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "signers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "uniqueItems": true
+                }
+              }
+            }
+          },
+          "posting": {
+            "description": "The D-10 posting from target.yaml, or null.",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "venue",
+                  "url",
+                  "date"
+                ],
+                "properties": {
+                  "venue": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "url": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "date": {
+                    "type": "string",
+                    "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+                  }
+                }
+              }
+            ]
+          },
+          "not_claimable": {
+            "description": "Why claimable is false, as machine-readable reasons (F11-R4, R10). Empty when the target is claimable.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$",
+              "maxLength": 80
+            },
+            "uniqueItems": true
+          }
+        }
+      }
+    }
+  }
+}

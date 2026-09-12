@@ -35,6 +35,30 @@
       },
       "dormant": false,
       "failure_class_histogram": {},
+      "node_id": "listed-lemma",
+      "origin": "authored",
+      "ready_since": "2026-09-09T12:00:00Z",
+      "refuted_route_classes": [],
+      "relation": null,
+      "statement_hash": "22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7",
+      "tags": {
+        "deps": [],
+        "library": []
+      },
+      "target_id": "listed-target",
+      "tutorial": false
+    },
+    {
+      "annex_present": false,
+      "attempts": 0,
+      "bounty": false,
+      "claimable": false,
+      "claims": {
+        "active": [],
+        "history_count": 0
+      },
+      "dormant": false,
+      "failure_class_histogram": {},
       "node_id": "tutorial-and-swap",
       "origin": "authored",
       "ready_since": "2026-09-09T12:00:00Z",

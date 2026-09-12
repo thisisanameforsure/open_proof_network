@@ -16,6 +16,7 @@ from pathlib import Path
 from string import Template
 from typing import Any
 
+from opn_gate import intake
 from opn_gate import ledger as ledgermod
 from opn_site import dag, links, prose
 from opn_site.model import NodeView, Prose, Site, SiteError, TargetView
@@ -190,18 +191,103 @@ class Renderer:
                     root=self.node_link(tid, tv.root),
                     statement=esc(root.statement.strip()),
                     statement_link=self.file_link(root.statement_path),
-                    informal=(
-                        "No informal statement is recorded for this target yet (D-6 intake, F11)."
-                    ),
+                    informal=self.informal_line(tv),
                     status=esc(e["status"]),
                     fidelity=esc(e["fidelity"]),
                     mathlib=esc(mathlib),
                     progress=esc(progress or "nothing proved yet"),
                     claimable="claimable" if e["claimable"] else "listed, not claimable",
+                    why_not=self.why_not_claimable(tv),
+                    sources=self.sources_block(tv),
+                    qa=self.qa_block(tv),
                 )
             )
         body = _template("targets.html").substitute(rows="".join(rows))
         return self.page("Targets", body, renders=["targets/index.json"])
+
+    # --- F11-R10: why a listed target cannot be claimed, and under what licence it is quoted ---
+
+    def informal_line(self, tv: TargetView) -> str:
+        """The informal statement, or the network's own paraphrase in its place.
+
+        A source that states no licence has not licensed its wording, so intake refuses to store
+        it at all (F11-R10) and there is simply nothing here to reproduce — the paraphrase and
+        the citation below are what the page has, which is the honest thing to show.
+        """
+        if tv.record is None:
+            return "No informal statement is recorded for this target yet (D-6 intake, F11)."
+        informal = tv.record.get("informal")
+        if informal:
+            return esc(str(informal))
+        paraphrase = tv.record.get("paraphrase")
+        if paraphrase:
+            return (
+                f'{esc(str(paraphrase))} <span class="note">(the network\'s own paraphrase: the '
+                "source states no licence, so its wording is cited rather than reproduced)</span>"
+            )
+        return "No informal statement is recorded for this target yet (D-6 intake, F11)."
+
+    def why_not_claimable(self, tv: TargetView) -> str:
+        """R10: the reason a listed target is not claimable, named rather than implied."""
+        e = tv.index_entry
+        if e.get("claimable"):
+            return ""
+        reasons = [str(r) for r in e.get("not_claimable") or []]
+        if not reasons:
+            return (
+                '<p class="why-not">Not claimable: this target has no curated intake record '
+                "(D-6), so nothing may be claimed under it.</p>"
+            )
+        items = "".join(f"<li>{esc(intake.explain(r))}</li>" for r in reasons)
+        posted = e.get("posting")
+        where = (
+            f' Posted at <a href="{esc(str(posted["url"]))}">{esc(str(posted["venue"]))}</a> '
+            f"on {esc(str(posted['date']))}."
+            if posted
+            else ""
+        )
+        signed = "; ".join(
+            f"{esc(str(s['subject']))} {esc(str(s['grade']))}"
+            f" ({s['signature_count']} signature{'' if s['signature_count'] == 1 else 's'}"
+            + (f": {esc(', '.join(str(n) for n in s['signers']))}" if s["signers"] else "")
+            + ")"
+            for s in e.get("subjects") or []
+        )
+        detail = (
+            f'<p class="signatures">Fidelity by subject: {signed}.{where}</p>' if signed else ""
+        )
+        return (
+            '<p class="why-not">Not claimable, because:</p>'
+            f'<ul class="why-not">{items}</ul>{detail}'
+        )
+
+    def sources_block(self, tv: TargetView) -> str:
+        """R10: where the statement came from, its attribution, and its licence."""
+        if tv.record is None:
+            return ""
+        sources = tv.record.get("sources") or []
+        if not sources:
+            return (
+                '<p class="sources">No external source: this statement is the network\'s own.</p>'
+            )
+        items = "".join(
+            f'<li><a href="{esc(str(s["url"]))}">{esc(str(s["url"]))}</a> &mdash; '
+            f"{esc(str(s['attribution']))}; licence {esc(str(s['licence']))}; "
+            f"{esc(str(s['quote_policy']))} only</li>"
+            for s in sources
+        )
+        return (
+            f'<p class="sources">Sources and licences (D-10):</p><ul class="sources">{items}</ul>'
+        )
+
+    def qa_block(self, tv: TargetView) -> str:
+        """R10: the statement-QA summary, so a reader sees what was checked (D-9 v3.12)."""
+        if tv.record is None:
+            return ""
+        summary = tv.record.get("qa_summary")
+        if not summary:
+            return '<p class="qa">No statement-QA pass is recorded yet (D-9 v3.12).</p>'
+        return f'<p class="qa">Statement QA (D-9 v3.12): {esc(str(summary))}</p>'
 
     def target(self, tv: TargetView) -> str:
         tid = tv.target_id
@@ -517,6 +603,23 @@ class Renderer:
         )
 
 
+def cited_urls(site: Site) -> frozenset[str]:
+    """Every off-site url a validated target record names (F11-R1): its sources and its D-10
+    posting. Nothing else on the site may point off-origin (R13)."""
+    urls: set[str] = set()
+    for tv in site.targets.values():
+        if tv.record is None:
+            continue
+        urls.update(str(s["url"]) for s in tv.record.get("sources") or [])
+        posting = tv.record.get("posting")
+        if posting:
+            urls.add(str(posting["url"]))
+        source = tv.record.get("source") or {}
+        if source.get("url"):
+            urls.add(str(source["url"]))
+    return frozenset(urls)
+
+
 def render_site(
     site: Site, *, repo_url: str, decisions_doc: Path | None = DECISIONS_DOC
 ) -> dict[str, str]:
@@ -537,7 +640,9 @@ def render_site(
         files[f"targets/{tid}/index.html"] = r.target(tv)
         for nid, nv in tv.nodes.items():
             files[f"nodes/{tid}/{nid}/index.html"] = r.node(nv)
-    problems = links.check(files, repo_url=r.repo_url, foreign=frozenset(extra))
+    problems = links.check(
+        files, repo_url=r.repo_url, foreign=frozenset(extra), cited=cited_urls(site)
+    )
     if problems:  # R13: a link that would not resolve is a build failure, not a 404
         msg = "rendered site has broken links: " + "; ".join(problems[:5])
         raise SiteError(msg)

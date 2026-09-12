@@ -1,5 +1,5 @@
 {
-  "protocol_version": "3.11",
+  "protocol_version": "3.12",
   "rate_limit_policy": null,
   "rendered_from": "5555555555555555555555555555555555555555",
   "schema": "info/v1",
@@ -25,8 +25,12 @@
     "defect-claim": [
       1
     ],
-    "frontier": [
+    "fidelity": [
       1
+    ],
+    "frontier": [
+      1,
+      2
     ],
     "gate-spec": [
       1
@@ -62,12 +66,17 @@
     "submission-meta": [
       1
     ],
-    "target-status": [
+    "target": [
       1
+    ],
+    "target-status": [
+      1,
+      2
     ],
     "targets-index": [
       1,
-      2
+      2,
+      3
     ],
     "waiver": [
       1

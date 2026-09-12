@@ -6,12 +6,13 @@ import json
 from pathlib import Path
 from typing import Any
 
+import harness
 import pytest
 import samples
 import yaml
 from harness import GRAPH, TARGET, copy_graph
 
-from opn_gate import graph, layout, schemas
+from opn_gate import fidelity, graph, intake, layout, schemas
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.graph import GraphError
 
@@ -267,7 +268,7 @@ def test_products_of_the_fixture(tmp_path: Path) -> None:
     assert idx["fidelity"] == "mechanical-only" and idx["mathlib_sha"] is None
     assert idx["node_counts"]["ready"] == 2 and idx["node_counts"]["blocked"] == 1
     info = loads(prod, "info.json")
-    assert info["protocol_version"] == "3.11"
+    assert info["protocol_version"] == "3.12"
     assert info["schemas"]["attestation"] == [1, 2, 3, 4] and info["schemas"]["meta"] == [
         1,
         2,
@@ -396,13 +397,13 @@ def test_target_declaration_drives_index(tmp_path: Path) -> None:
     st = root / "targets" / TARGET / "status"
     st.mkdir()
     (st / "2026-09-09-1.yaml").write_text(
-        yaml.safe_dump(samples.target_status(status="dormant", fidelity="back-translated")),
+        yaml.safe_dump(samples.target_status(status="dormant", fidelity="screened-and-signed")),
         encoding="utf-8",
     )
     prod = generate(root)
     idx = loads(prod, "targets/index.json")["targets"][0]
     assert idx["status"] == "dormant" and idx["claimable"] is True
-    assert idx["fidelity"] == "back-translated"
+    assert idx["fidelity"] == "screened-and-signed"
     assert all(e["claimable"] for e in loads(prod, "frontier.json")["entries"])
     attest(root, "tutorial-and-swap", n=1)
     attest(root, "and-reassoc", n=2)
@@ -471,7 +472,7 @@ def build_state(tmp_path: Path, state: str) -> Path:
         attest(root, "and-reassoc", n=2, trust_base="compiler")
         return root
     # curated: one interior node proved, the other speculative with attempts and an annex, and a
-    # curator declaration that makes the target claimable and back-translated.
+    # curator declaration that makes the target claimable and screened-and-signed.
     node_status_record(root, "and-reassoc", "speculative")
     att = nodes_dir(root) / "and-reassoc" / "attempts"
     (att / "2026-09-01-a.yaml").write_text(
@@ -494,7 +495,7 @@ def build_state(tmp_path: Path, state: str) -> Path:
     st = root / "targets" / TARGET / "status"
     st.mkdir()
     (st / "2026-09-05-1.yaml").write_text(
-        yaml.safe_dump(samples.target_status(fidelity="back-translated", date="2026-09-05")),
+        yaml.safe_dump(samples.target_status(fidelity="screened-and-signed", date="2026-09-05")),
         encoding="utf-8",
     )
     return root
@@ -772,3 +773,135 @@ def test_find_root_edge_cases_with_revisions(tmp_path: Path) -> None:
         "a-v2": facts("and-reassoc", node_id="a-v2", deps=(), supersedes="a"),
     }
     assert graph.find_root(revised, None) == "a-v2"
+
+
+# --- F11-T2: fidelity signatures, dormancy and claimability in the products (R3, R4) ------------
+
+
+F11_TARGET = "euclid-primes"
+F11_DEFS = {"Primes.lean": "def Opn.IsPrime (p : Nat) : Prop := 2 ≤ p\n"}
+
+
+def claimable_target(tmp_path: Path, *, defs: dict[str, str] | None = None) -> Path:
+    """A curated target that satisfies every one of R4's three conditions."""
+    root = copy_graph(tmp_path)
+    harness.take_in(root, defs=defs)
+    target = root / "targets" / F11_TARGET
+    fidelity.attest(
+        target,
+        "root",
+        "screened-and-signed",
+        attestor="reviewer",
+        date="2026-09-12",
+        evidence="read the Lean against the English",
+    )
+    for name in defs or {}:
+        fidelity.attest(
+            target,
+            Path(name).stem,
+            "screened-and-signed",
+            attestor="reviewer",
+            date="2026-09-12",
+            evidence="read the definition against the English",
+        )
+    intake.post(
+        root,
+        F11_TARGET,
+        venue="erdosproblems.com",
+        url="https://example.org/p",
+        date="2026-09-12T00:00:00Z",
+    )
+    intake.activate(root, F11_TARGET, author="curator", date="2026-09-12T00:00:00Z")
+    return root
+
+
+def f11_row(root: Path, prod: products.Products | None = None) -> dict[str, Any]:
+    products_ = prod if prod is not None else generate(root)
+    rows = loads(products_, "targets/index.json")["targets"]
+    return next(r for r in rows if r["target_id"] == F11_TARGET)
+
+
+def declare(root: Path, status: str, date: str = "2026-09-13") -> None:
+    directory = root / "targets" / F11_TARGET / "status"
+    directory.mkdir(exist_ok=True)
+    (directory / f"{date}-curator.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "schema": "target-status/v2",
+                "status": status,
+                "cause": "for the test",
+                "author": "curator",
+                "date": date,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_signature_count(tmp_path: Path) -> None:
+    """AC13: two certificates by different attestors give a signature count of 2 and both names
+    in targets-index/v3, and the untouched v1 schema still validates a v1 document."""
+    root = copy_graph(tmp_path)
+    harness.take_in(root)
+    target = root / "targets" / F11_TARGET
+    for who, date in (("reviewer", "2026-09-12"), ("auditor", "2026-09-13")):
+        fidelity.attest(
+            target,
+            "root",
+            "screened-and-signed",
+            attestor=who,
+            date=date,
+            evidence=f"{who} read it",
+        )
+    row = f11_row(root)
+    subject = next(s for s in row["subjects"] if s["subject"] == "root")
+    assert subject["signature_count"] == 2
+    assert subject["signers"] == ["reviewer", "auditor"]
+    assert row["fidelity"] == "screened-and-signed"
+
+    # D-34: v1 was not edited, so a v1 consumer still validates a v1 document.
+    old = json.loads((GOLDEN / "unproved" / "targets" / "index.json").read_bytes())
+    old["schema"] = "targets-index/v1"
+    for entry in old["targets"]:
+        for key in ("track", "subjects", "posting", "not_claimable"):
+            entry.pop(key, None)
+        for key in ("refuted", "defective"):
+            entry["node_counts"].pop(key, None)
+    assert schemas.violations(old, "targets-index/v1") == []
+
+
+def test_dormant_target_stays_claimable(tmp_path: Path) -> None:
+    """AC15, R4, D-33: a dormancy declaration refuses no claim — every ready node stays
+    claimable and the frontier carries `dormant` as a fact. `resolved` and `known-result` do
+    close claiming, and the reason names the status."""
+    root = claimable_target(tmp_path)
+    declare(root, "dormant")
+    prod = generate(root)
+    row = f11_row(root, prod)
+    assert row["status"] == "dormant" and row["claimable"] is True and row["not_claimable"] == []
+    entries = [e for e in loads(prod, "frontier.json")["entries"] if e["target_id"] == F11_TARGET]
+    assert entries, "the curated target has nothing on the frontier"
+    assert all(e["claimable"] and e["dormant"] for e in entries)
+    # The tutorial graph's own entries are not dormant: the fact is per target, not per graph.
+    others = [e for e in loads(prod, "frontier.json")["entries"] if e["target_id"] == TARGET]
+    assert all(e["dormant"] is False for e in others)
+
+    for closing in ("resolved", "known-result"):
+        declare(root, closing, date="2026-09-14")
+        row = f11_row(root)
+        assert row["claimable"] is False, closing
+        assert row["not_claimable"] == [f"status-{closing}"], closing
+        (root / "targets" / F11_TARGET / "status" / "2026-09-14-curator.yaml").unlink()
+
+
+def test_the_target_grade_is_its_weakest_subject_in_the_index(tmp_path: Path) -> None:
+    """R3 through to the product: an uncertified definition holds the whole target down, and
+    the index says so rather than publishing the root's grade alone."""
+    root = claimable_target(tmp_path)
+    target = root / "targets" / F11_TARGET
+    (target / "defs" / "Later.lean").write_text("def Opn.Later : Nat := 1\n", encoding="utf-8")
+    row = f11_row(root)
+    assert row["fidelity"] == "mechanical-only"
+    assert row["claimable"] is False
+    assert "grade-below-screened-and-signed" in row["not_claimable"]
+    assert {s["subject"] for s in row["subjects"]} == {"root", "Later"}

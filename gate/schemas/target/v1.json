@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/target/v1.json",
+  "title": "target/v1",
+  "description": "targets/<id>/target.yaml (F11-R1; D-6, D-10): the curator's intake record for one target — D-6's five artifacts (prior art, library coverage, provenance, attack routes, a root witness, the last of which is a file rather than a field), where the statement came from and under what licence, and the D-10 posting that makes the target claimable. The derived values are NOT here: a target's fidelity grade comes from its certificates (F11-R3) and its claimability from status, grade and posting (F11-R4); both are published in targets/index.json. Absent, a target behaves as it did before F11 (F03-Q4, Q5). Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "id",
+    "title",
+    "track",
+    "source",
+    "curator",
+    "prior_art",
+    "library_coverage",
+    "provenance",
+    "sources",
+    "attack_routes",
+    "posting",
+    "domains"
+  ],
+  "properties": {
+    "schema": { "const": "target/v1" },
+    "id": { "$ref": "#/$defs/identifier" },
+    "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "informal": {
+      "description": "The informal statement as the source states it. Null when the source states no licence: reproducing it would be republishing it (F11-R10), and `paraphrase` stands in its place.",
+      "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1, "maxLength": 4000 }]
+    },
+    "paraphrase": {
+      "description": "The network's own one-line paraphrase. Required by intake when `informal` is null (F11-R10).",
+      "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1, "maxLength": 300 }]
+    },
+    "track": {
+      "description": "D-6: `open` is a genuinely open problem; `formalization` is the second-class track a known result sits on.",
+      "enum": ["open", "formalization"]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "ref"],
+      "properties": {
+        "kind": { "enum": ["erdos", "formal-conjectures", "arxiv", "other"] },
+        "ref": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "url": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/url" }] }
+      }
+    },
+    "curator": {
+      "description": "The curator's identity. D-21: they earn no proof credit on this target.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "prior_art": {
+      "description": "D-6 artifact 1. Free text, untrusted downstream (F11 §7).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary"],
+      "properties": {
+        "arxiv_query": { "oneOf": [{ "type": "null" }, { "type": "string", "maxLength": 300 }] },
+        "forum_url": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/url" }] },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 4000 }
+      }
+    },
+    "library_coverage": {
+      "description": "D-6 artifact 2: what the pinned Mathlib already has, and what it does not.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mathlib_sha", "missing_prerequisites"],
+      "properties": {
+        "mathlib_sha": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/sha1" }] },
+        "missing_prerequisites": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/identifier" },
+          "uniqueItems": true
+        }
+      }
+    },
+    "provenance": {
+      "description": "D-6 artifact 3, D-10: who wrote the statement this target formalizes, and whether it was adversarially reviewed.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["statement_source", "author", "adversarially_reviewed"],
+      "properties": {
+        "statement_source": { "enum": ["network", "formal-conjectures", "erdos", "paper", "other"] },
+        "author": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "adversarially_reviewed": { "type": "boolean" },
+        "upstream_commit": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/sha1" }] },
+        "upstream_path": { "oneOf": [{ "type": "null" }, { "type": "string", "maxLength": 300 }] }
+      }
+    },
+    "sources": {
+      "description": "Every external source this target copies from or cites, with its licence. `none-stated` is a real answer and gates what the site may reproduce (F11-R10).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "url", "accessed", "licence", "attribution", "quote_policy"],
+        "properties": {
+          "kind": { "enum": ["erdos", "formal-conjectures", "arxiv", "other"] },
+          "url": { "$ref": "#/$defs/url" },
+          "accessed": { "$ref": "#/$defs/day" },
+          "licence": {
+            "description": "An SPDX identifier, or `none-stated` where the source publishes no licence.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "attribution": { "type": "string", "minLength": 1, "maxLength": 500 },
+          "quote_policy": { "enum": ["cite", "quote"] }
+        }
+      }
+    },
+    "attack_routes": {
+      "description": "D-6 artifact 4, advisory: routes worth trying, or the ones already spent. May be empty (F11-R2).",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 500 }
+    },
+    "posting": {
+      "description": "D-10: where this target was posted upstream. Null until `intake post` records one; claimability needs it (F11-R4).",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["venue", "url", "date"],
+          "properties": {
+            "venue": { "type": "string", "minLength": 1, "maxLength": 200 },
+            "url": { "$ref": "#/$defs/url" },
+            "date": { "$ref": "#/$defs/day" }
+          }
+        }
+      ]
+    },
+    "domains": {
+      "description": "Domain tags. D-6 excludes four of them from Stage 0 intake; F11-R2 refuses on any of them.",
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "qa_summary": {
+      "description": "One paragraph on the D-9 v3.12 statement-QA pass, for the Targets page (F11-R10, R13). The pass itself is recorded as evidence in the network repo at Stage 0; F12 tools it.",
+      "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1, "maxLength": 2000 }]
+    }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "sha1": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "day": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "url": { "type": "string", "pattern": "^https?://", "maxLength": 500 }
+  }
+}

@@ -1,0 +1,45 @@
+F11-T1 — the on-ramp target, chosen against R7. 2026-09-11
+
+WHAT T1 COVERS
+--------------
+AC8  gate/tests/test_intake.py::test_selection_record_complete   — the record names the chosen
+     result, each of R7's six criteria with an evidence line, and two rejected alternatives
+     each with a reason.
+     ::test_selection_lemma_structure_is_in_r7s_band              — the lemma table is counted,
+     not asserted in prose: three to six nodes, and one of them marked as the root.
+     ::test_selection_names_the_annex_the_skeleton_will_cite      — R8's annex exists, the
+     record points at it, and it declares itself untrusted input (D-31).
+
+THE CHOICE
+----------
+Euclid's theorem — for every n there is a prime greater than n — over three definitions written
+in the graph's own defs/: Divides, IsPrime, fact. Five nodes: fact-pos, dvd-fact, prime-divisor,
+dvd-consecutive, and the root infinitude-of-primes that assembles them.
+
+Why it beats F11-Q1's other candidate (sqrt 2 irrational): the local IsPrime is the thing R7 is
+really asking for. Mathlib's Nat.exists_infinite_primes is about Nat.Prime, so closing this root
+from it needs `IsPrime p <-> Nat.Prime p` first, which is a proof rather than a citation. The
+sqrt-2 statement is pure Nat arithmetic with no local object in it at all, so Mathlib's parity
+API applies to it directly — and it yields a three-node graph, the bottom of R7's band, too thin
+for the run to exercise parallel claiming or a variant proposal.
+
+The second rejection (a local Euclidean algorithm) fails one level down: Nat.gcd is in core, so
+a local copy transfers core lemmas over an rfl-shaped bridge, and well-founded recursion puts
+`decreasing_by` plumbing in front of every prover before any mathematics starts.
+
+Files: engineering/evidence/F11/selection.md (the record R7 asks for),
+gate/tests/fixtures/onramp/annex.md (the textbook argument, for R8's skeleton to cite).
+
+VERIFICATION
+------------
+$ uv run pytest gate/tests/test_intake.py -k selection
+============================= test session starts ==============================
+platform linux -- Python 3.13.12, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/user/open_proof_network
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 3 items
+
+gate/tests/test_intake.py ...                                            [100%]
+
+============================== 3 passed in 0.04s ===============================

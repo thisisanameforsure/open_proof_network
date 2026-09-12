@@ -24,7 +24,9 @@ def test_known_schemas_are_the_published_set() -> None:
         "claims/v1",
         "context/v1",
         "defect-claim/v1",
+        "fidelity/v1",
         "frontier/v1",
+        "frontier/v2",
         "gate-spec/v1",
         "graph/v1",
         "graph/v2",
@@ -40,8 +42,11 @@ def test_known_schemas_are_the_published_set() -> None:
         "revision-request/v1",
         "submission-meta/v1",
         "target-status/v1",
+        "target-status/v2",
+        "target/v1",
         "targets-index/v1",
         "targets-index/v2",
+        "targets-index/v3",
         "waiver/v1",
     )
 

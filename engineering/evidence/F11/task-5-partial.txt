@@ -1,0 +1,68 @@
+F11-T5 (partial) — the Formal Conjectures import path, its licence gate and its attribution.
+2026-09-11
+
+STATUS: CODE COMPLETE, NOT DONE
+-------------------------------
+T5's verification command is two things: the pytest selection below, *and* a merged import pull
+request on the graph. Only the first can run in this session. What is outstanding, and why:
+
+  - The fact pass over Formal Conjectures at a pinned commit, proposing five targets with
+    reasons (Q3). docs/seed_conjecture_sources_build.py is committed and its report exists, but
+    T5 asks for its build inputs and the joined dataset (docs/seed_conjecture_sources.json) to
+    be committed so it is rebuildable — which needs a shallow clone of the registry, the
+    erdosproblems.com pages and four other public sources fetched into a work directory.
+  - Mike approves the five in the intake pull request (Q3, decided 2026-09-07). A human gate by
+    design, and the reason the count is five rather than whatever the pass returns.
+  - The written QA pass per imported statement (R13, Q5) — the D-9 v3.12 pass run by hand, its
+    exhibits, the back-translation comparison, the licence check and the counted external
+    attempts. engineering/evidence/F11/open-targets.md is where it goes; it is not written.
+  - The graph repository is not present in this container (../open_proof_network_graph), so no
+    import can be committed or merged anywhere.
+
+WHAT LANDED, AND WHAT IT IS VERIFIED BY
+---------------------------------------
+AC7  gate/tests/test_intake.py::test_import_fc_provenance  — the imported target's provenance
+     names the upstream path, the pinned commit and the author; the root is admitted; the target
+     is on the open track, listed, and not claimable.
+AC12 ::test_import_licence_gate                            — none-stated, GPL-3.0-only and
+     CC-BY-NC-4.0 are each refused naming the licence and the allowlist; a repository on the
+     denylist (lean-genius) is refused naming the denylist; neither writes a target or a notice.
+     An allowed import keeps the upstream copyright header byte for byte and writes the
+     attribution into the graph's THIRD_PARTY_NOTICES.md.
+
+Four more rules, each with its own test: an *adapted* statement (reshaped for D-3) must still
+contain the header verbatim; a file with no copyright header constrains nothing, because the rule
+is "keep it" and not "invent it"; the Stage 0 count is a refusal naming the targets already
+listed and the variable that raises it, and a formalization-track target does not count against
+the open-problem budget; and the notice file is appended, never rewritten, because a notice is a
+licence obligation that outlives the import that added it.
+
+The count is config with a documented default (C6, R9 §6): OPN_LISTED_TARGETS_MAX, default 5,
+read in opn_gate.config like every other value and covered by four tests there.
+
+ONE DESIGN NOTE WORTH REVIEWING
+-------------------------------
+`import-fc` derives only the upstream half of the record — track, provenance, sources — and takes
+the rest from a `--from <target.yaml>` the curator writes. D-6's five artifacts are not waived by
+an import: prior art, domains and the paraphrase are exactly what a person has to supply, and
+deriving them would be inventing them. So an import is intake with the provenance filled in, not
+a second intake path, and every refusal in `intake new` still applies to it.
+
+VERIFICATION
+------------
+$ uv run pytest gate/tests/test_intake.py -k "import_fc or licence"
+============================= test session starts ==============================
+platform linux -- Python 3.13.12, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/user/open_proof_network
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 19 items / 17 deselected / 2 selected
+
+gate/tests/test_intake.py ..                                             [100%]
+
+======================= 2 passed, 17 deselected in 0.23s =======================
+
+$ make verify
+=========================== short test summary info ============================
+XFAIL api/tests/test_store_seam.py::test_a_float_in_a_job_record_is_stored_by_dynamodb_like_memory - boto3 refuses float attributes ('Float types are not supported'), so a job record carrying one fails put_job on DynamoDB while MemoryStore accepts it; store.plain's docstring promises floats come back as floats, but they never go in (seam parity, C7). No record carries a float today.
+========= 1357 passed, 50 deselected, 1 xfailed, 2 warnings in 27.35s ==========

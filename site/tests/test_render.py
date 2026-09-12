@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import ClassVar
@@ -322,3 +323,46 @@ def test_contributors_lists_ledger_entries(tmp_path_factory: pytest.TempPathFact
     assert "claude-opus-5" in page
     assert "revoked" in page  # D-18: kept and labelled, never removed
     assert "Proof.lean" in page
+
+
+# --- F11-AC9: a listed target's page says why it cannot be claimed (R10) ------------------------
+
+
+@pytest.fixture(scope="module")
+def listed_pages(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
+    root = fixture.build_with_listed_target(tmp_path_factory.mktemp("listed"))
+    return render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
+
+
+def test_listed_target_reasons(listed_pages: dict[str, str]) -> None:
+    """AC9, R10: the Targets page carries the not-claimable reasons, the source link, the
+    attribution and licence, and the QA summary — and does not reproduce the informal statement
+    of a source that states no licence."""
+    page = listed_pages["targets/index.html"]
+
+    assert "Not claimable, because:" in page
+    for reason in (
+        "D-33 status is listed",
+        "fidelity grade is below screened-and-signed",
+        "not been posted upstream",
+    ):
+        assert reason in page, reason
+
+    assert fixture.UNLICENSED["url"] in page, "the source is not linked"
+    assert escape(fixture.UNLICENSED["attribution"]) in page, "the attribution is missing"
+    assert "licence none-stated" in page
+    assert escape(fixture.QA_SUMMARY) in page, "the QA summary is missing"
+
+    # R10: the paraphrase stands in, and the source's own wording is nowhere on any page —
+    # because intake refused to put it in the graph at all.
+    assert escape(fixture.PARAPHRASE) in page
+    assert "the network's own paraphrase" in page
+    assert all(fixture.UNLICENSED_WORDING not in html for html in listed_pages.values())
+
+
+def test_a_claimable_target_states_no_reasons(listed_pages: dict[str, str]) -> None:
+    """The block is a fact about this target, not boilerplate: it appears once, for the listed
+    target, and the propositional target's own card does not claim reasons it does not have."""
+    page = listed_pages["targets/index.html"]
+    assert page.count("Not claimable, because:") == 1
+    assert "Fidelity by subject:" in page and "root mechanical-only" in page

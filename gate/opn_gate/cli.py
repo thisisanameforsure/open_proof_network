@@ -29,6 +29,8 @@ from opn_gate import (
     config,
     curator,
     exhibits,
+    fidelity,
+    intake,
     layout,
     ledger,
     modes,
@@ -65,13 +67,17 @@ class CliError(Exception):
 
 #: The curator's commands (F08-R9 to R12): what one of them refuses is answered as
 #: ``{"ok": false, "refused": ...}`` and exit 1, whichever module raised it.
-CURATOR_COMMANDS: frozenset[str] = frozenset({"revise", "consolidate", "status", "missing-library"})
+CURATOR_COMMANDS: frozenset[str] = frozenset(
+    {"revise", "consolidate", "status", "missing-library", "intake", "fidelity"}
+)
 #: What a curator command refuses on: a record that does not satisfy its schema, a statement the
 #: scaffold cannot take, a graph that does not derive. Anywhere else these are exit 2.
 _REFUSALS: tuple[type[Exception], ...] = (
     schemas.SchemaError,
     scaffold.ScaffoldError,
     graphmod.GraphError,
+    intake.IntakeError,
+    fidelity.FidelityError,
 )
 #: The gate's own error family, plus the OS's for a flag file that cannot be read: an input or
 #: environment problem, reported on stderr as exit 2 — never a traceback (conventions §5; F08-Q18).
@@ -101,7 +107,7 @@ def positive_int(text: str) -> int:
     return value
 
 
-def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statement per flag
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="opn-gate", description=__doc__.split("\n\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -167,9 +173,13 @@ def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statemen
         "curators.json (F08-R8). Default: OPN_PR_AUTHOR from the environment",
     )
 
-    _add_graph_tool_parsers(sub)
-    _add_curator_parsers(sub)
-    _add_cache_parsers(sub)
+    for add_parsers in (
+        _add_graph_tool_parsers,
+        _add_curator_parsers,
+        _add_intake_parsers,
+        _add_cache_parsers,
+    ):
+        add_parsers(sub)
 
     sign = sub.add_parser("sign", help="sign an attestation with the gate key from the environment")
     sign.add_argument("--attestation", required=True, type=Path)
@@ -294,6 +304,90 @@ def _add_cache_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser])
     pub.add_argument("--no-build", action="store_true", help="fail if the image is not present")
 
 
+def _add_import_parser(acts: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    """``intake import-fc`` (F11-R9; D-10): one registry statement, under its own licence."""
+    imp = acts.add_parser("import-fc", help="import a Formal Conjectures statement (F11-R9)")
+    imp.add_argument("source", type=Path, help="the statement file in a checkout of the registry")
+    imp.add_argument("--at", dest="commit", required=True, help="the upstream commit, pinned")
+    imp.add_argument("--graph", required=True, type=Path)
+    imp.add_argument("--target", dest="target_id", required=True, help="the new target's id")
+    imp.add_argument("--from", dest="record", required=True, type=Path, help="the curator's half")
+    imp.add_argument("--witness", required=True, type=Path, help="the root's Witness.lean")
+    imp.add_argument("--statement", type=Path, help="the statement adapted to D-3's shape")
+    imp.add_argument("--path", dest="rel_path", help="the file's path in the upstream repository")
+    imp.add_argument("--repo", required=True, help="the upstream repository, e.g. owner/name")
+    imp.add_argument("--url", required=True, help="where the file can be read upstream")
+    imp.add_argument("--licence", required=True, help="the upstream SPDX identifier")
+    imp.add_argument("--attribution", required=True, help="the attribution the licence requires")
+    imp.add_argument("--upstream-author", required=True, help="who wrote the statement (D-10)")
+    imp.add_argument("--spec", type=Path, help="gate-spec.json to inherit the gate's settings from")
+    imp.add_argument("--author", required=True, help="the curator, on every record")
+    imp.add_argument("--date", help="UTC timestamp of the act (default: now)")
+    imp.add_argument("--branch", help="also commit what was written on this branch")
+    imp.add_argument("--no-toolchain", action="store_true", help="skip admission (R2); testing")
+    imp.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
+    imp.add_argument("--install", action="store_true", help="let elan install the pin")
+    imp.add_argument("--sandbox", action="store_true", help="admit inside the step-3 image")
+    imp.add_argument("--image", help="sandbox image tag (default: built from gate/Dockerfile)")
+    imp.add_argument("--no-build", action="store_true", help="fail if the image is not present")
+
+
+def _add_intake_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    """Curated intake and the fidelity ladder (F11-R2, R3, R5; D-6, D-9, D-10)."""
+    intk = sub.add_parser("intake", help="curated target intake (F11-R2, R5; D-6)")
+    acts = intk.add_subparsers(dest="action", required=True)
+
+    new_t = acts.add_parser("new", help="take a target in: record, spec, root, defs, certificates")
+    new_t.add_argument("target_id", help="the new target's id")
+    new_t.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    new_t.add_argument("--from", dest="record", required=True, type=Path, help="the target.yaml")
+    new_t.add_argument("--root", required=True, type=Path, help="the root node directory")
+    new_t.add_argument("--defs", type=Path, help="the target's defs/ directory")
+    new_t.add_argument(
+        "--spec",
+        type=Path,
+        help="gate-spec.json to take the gate's own settings from (default: the graph's, when "
+        "every existing target agrees on one)",
+    )
+    new_t.add_argument("--author", required=True, help="the curator, on every record")
+    new_t.add_argument("--date", help="UTC timestamp of the act (default: now)")
+    new_t.add_argument("--branch", help="also commit what was written on this branch")
+    new_t.add_argument("--no-toolchain", action="store_true", help="skip admission (R2); testing")
+    new_t.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
+    new_t.add_argument("--install", action="store_true", help="let elan install the pin")
+    new_t.add_argument("--sandbox", action="store_true", help="admit inside the step-3 image")
+    new_t.add_argument("--image", help="sandbox image tag (default: built from gate/Dockerfile)")
+    new_t.add_argument("--no-build", action="store_true", help="fail if the image is not present")
+
+    post = acts.add_parser("post", help="record the D-10 posting (F11-R5)")
+    post.add_argument("target_id")
+    post.add_argument("--graph", required=True, type=Path)
+    post.add_argument("--venue", required=True, help="where it was posted")
+    post.add_argument("--url", required=True, help="the posting's url")
+    post.add_argument("--date", help="UTC timestamp of the posting (default: now)")
+    post.add_argument("--branch", help="also commit what was written on this branch")
+
+    _add_import_parser(acts)
+
+    act = acts.add_parser("activate", help="flip the target to active, or say what is missing")
+    act.add_argument("target_id")
+    act.add_argument("--graph", required=True, type=Path)
+    act.add_argument("--author", required=True, help="the curator, on the record")
+    act.add_argument("--date", help="UTC timestamp of the act (default: now)")
+    act.add_argument("--branch", help="also commit what was written on this branch")
+
+    fid = sub.add_parser("fidelity", help="attest a statement's fidelity (F11-R3; D-9 v3.12)")
+    fid.add_argument("target_id")
+    fid.add_argument("subject", help="`root`, or the name of one definition in defs/")
+    fid.add_argument("grade", choices=list(fidelity.GRADES))
+    fid.add_argument("--graph", required=True, type=Path)
+    fid.add_argument("--by", required=True, dest="by", help="the attestor (not the author, D-9)")
+    fid.add_argument("--evidence", required=True, type=Path, help="a file holding what was checked")
+    fid.add_argument("--subject-author", help="required only for a subject with no certificate yet")
+    fid.add_argument("--date", help="UTC timestamp of the act (default: now)")
+    fid.add_argument("--branch", help="also commit what was written on this branch")
+
+
 def _add_sandbox_args(p: argparse.ArgumentParser) -> None:
     """The flags every sandboxed run shares (reproduce, gate, postmerge)."""
     p.add_argument("--out", type=Path, help="output directory (default: a fresh temp dir)")
@@ -322,6 +416,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "status": run_status,
         "missing-library": run_missing_library,
         "ledger": run_ledger,
+        "intake": run_intake,
+        "fidelity": run_fidelity,
         "postmerge": run_postmerge,
         "admit": run_admit,
         "hazards": run_hazards,
@@ -1083,6 +1179,238 @@ def run_status(args: argparse.Namespace, settings: config.Settings) -> int:
     written = [record.resolve().relative_to(graph).as_posix()]
     doc = {"ok": True, "ref": args.ref, "status": args.status, "written": written}
     return _emit_curator(doc, graph, args.branch, f"status: {args.ref} {args.status}")
+
+
+# --- intake and fidelity (F11-R2, R3, R5) ----------------------------------------------------
+
+
+def _intake_graph(args: argparse.Namespace) -> Path:
+    """The checkout an intake command works on. Unlike the curator's commands this cannot ask
+    for the target's nodes directory: ``intake new`` is what creates it."""
+    graph: Path = args.graph.resolve()
+    if not graph.is_dir():
+        msg = f"graph checkout not found: {graph}"
+        raise CliError(msg)
+    return graph
+
+
+def _intake_date(args: argparse.Namespace) -> str:
+    date = args.date or attestation.utc_now().strftime(DATE_FORMAT)
+    try:
+        datetime.strptime(date, DATE_FORMAT).replace(tzinfo=UTC)
+    except ValueError:
+        msg = f"--date must be a UTC timestamp like 2026-09-10T12:13:14Z, got {date!r}"
+        raise CliError(msg) from None
+    return date
+
+
+def spec_template(graph: Path, given: Path | None) -> dict[str, Any]:
+    """R2: the gate settings the new target inherits.
+
+    Inherited rather than invented, and inherited from the *graph* rather than from this repo:
+    the axiom allowlist, the hazard checkers and the step-3 caps are what the graph's own gate
+    runs under (D-35), and a target quietly listed under a different allowlist would be a second
+    trust base. With no single answer in the graph the curator has to say which one.
+    """
+    if given is not None:
+        return schemas.load_json(given.resolve(), "gate-spec/v1")
+    existing = (
+        sorted(p for p in (graph / "targets").glob("*/gate-spec.json") if p.is_file())
+        if (graph / "targets").is_dir()
+        else []
+    )
+    if not existing:
+        msg = "this graph has no target to inherit gate settings from; pass --spec"
+        raise CliError(msg)
+    specs = [schemas.load_json(p, "gate-spec/v1") for p in existing]
+    shared = {k: v for k, v in specs[0].items() if k not in ("graph_id", "mathlib_sha")}
+    for spec in specs[1:]:
+        if {k: v for k, v in spec.items() if k not in ("graph_id", "mathlib_sha")} != shared:
+            msg = "this graph's targets do not agree on one gate-spec; pass --spec"
+            raise CliError(msg)
+    return specs[0]
+
+
+def intake_checker(
+    graph: Path, target_id: str, args: argparse.Namespace, settings: config.Settings
+) -> intake.Checker:
+    """R2's admission seam, wired to the real thing: F08's admission for the root node, and a
+    plain elaboration for each definition, which is all a ``defs/`` file can be asked.
+
+    Both run wherever the caller says — ``--sandbox`` puts them in the step-3 image, which is
+    where the authoritative gate will run them (C9).
+    """
+    spec_path = layout.gate_spec_path(graph, target_id)
+    out_dir = _out_dir(getattr(args, "out", None), "opn-intake-")
+
+    def check(path: Path, subject: str) -> intake.SubjectCheck:
+        spec = schemas.load_json(spec_path, "gate-spec/v1")
+        workdir = out_dir / subject / "work"
+        workdir.mkdir(parents=True, exist_ok=True)
+        tc: toolchain.Toolchain
+        if args.sandbox:
+            tag = args.image or ensure_image(spec, build=not args.no_build)
+            tc = sandbox.SandboxToolchain(
+                tag, sandbox.Caps.from_spec(spec), read_only=[path], read_write=[workdir]
+            )
+        else:
+            try:
+                tc = toolchain.LocalToolchain.from_settings(settings)
+            except toolchain.ToolchainMissingError as exc:
+                raise CliError(str(exc)) from exc
+        ctx = RunContext(
+            graph_root=graph,
+            claim=Claim(target_id, path.name if path.is_dir() else subject),
+            spec=spec,
+            gate_spec_hash=schemas.content_hash(spec_path.read_bytes()),
+            changes=None,
+            workdir=workdir,
+            toolchain=tc,
+            settings=settings,
+            install_toolchain=bool(args.install) and not args.sandbox,
+        )
+        if subject == fidelity.ROOT_SUBJECT:
+            result = admit.run(ctx)
+            detail = "" if result.admitted else f"{result.first_failing_check}: {result.diagnostic}"
+            return intake.SubjectCheck(subject, result.admitted, detail)
+        return _elaborate_definition(ctx, path, subject)
+
+    return check
+
+
+def _elaborate_definition(ctx: RunContext, path: Path, subject: str) -> intake.SubjectCheck:
+    """A definition is not a node, so F08's admission does not apply to it; what does is that it
+    elaborates at all. Staged under ``Defs/`` because that is the module prefix the layout check
+    lets a node's Context import (F01-Q2)."""
+    resolved = ToolchainStep().run(ctx)
+    if not resolved.ok:
+        return intake.SubjectCheck(subject, False, "the pinned toolchain is not available")
+    tc: toolchain.ResolvedToolchain = ctx.data["toolchain"]
+    src = ctx.workdir / "src" / layout.DEFS_PREFIX
+    src.mkdir(parents=True, exist_ok=True)
+    staged = src / path.name
+    staged.write_bytes(path.read_bytes())
+    ctx.build_dir.mkdir(parents=True, exist_ok=True)
+    elab = ctx.toolchain.elaborate(
+        tc,
+        staged,
+        f"{layout.DEFS_PREFIX}.{subject}",
+        ctx.build_dir,
+        root=ctx.workdir / "src",
+        timeout_s=ctx.wallclock_s,
+    )
+    if elab.ok:
+        return intake.SubjectCheck(subject, True)
+    detail = "; ".join(m.text for m in elab.errors[:3]) or elab.stderr[-500:]
+    return intake.SubjectCheck(subject, False, detail)
+
+
+def run_intake(args: argparse.Namespace, settings: config.Settings) -> int:
+    graph = _intake_graph(args)
+    if args.action == "post":
+        written = intake.post(
+            graph, args.target_id, venue=args.venue, url=args.url, date=_intake_date(args)
+        )
+        doc: dict[str, Any] = {"ok": True, "target": args.target_id, "written": list(written)}
+        return _emit_curator(doc, graph, args.branch, f"intake: {args.target_id} posted")
+    if args.action == "activate":
+        written = intake.activate(
+            graph, args.target_id, author=args.author, date=_intake_date(args)
+        )
+        doc = {"ok": True, "target": args.target_id, "written": list(written)}
+        return _emit_curator(doc, graph, args.branch, f"intake: {args.target_id} active")
+    if args.action == "import-fc":
+        return run_import_fc(args, settings, graph)
+    record = schemas.load_yaml(args.record.resolve(), intake.SCHEMA)
+    checker: intake.Checker = (
+        _fake_checker
+        if args.no_toolchain
+        else intake_checker(graph, args.target_id, args, settings)
+    )
+    result = intake.new(
+        graph,
+        args.target_id,
+        doc=record,
+        root_dir=args.root.resolve(),
+        defs_dir=args.defs.resolve() if args.defs else None,
+        spec_template=spec_template(graph, args.spec),
+        checker=checker,
+        author=args.author,
+        date=_intake_date(args),
+    )
+    return _emit_curator(
+        {"ok": True, **result.as_dict()}, graph, args.branch, f"intake: list {args.target_id}"
+    )
+
+
+def _fake_checker(path: Path, subject: str) -> intake.SubjectCheck:
+    return intake.SubjectCheck(subject, True, "admission skipped (--no-toolchain)")
+
+
+def run_import_fc(args: argparse.Namespace, settings: config.Settings, graph: Path) -> int:
+    """R9: one Formal Conjectures statement, copied in under its own licence.
+
+    The curator's half of the record comes in as a file (`--from`): prior art, domains, the title
+    and the paraphrase are what only a person can write. The upstream half — provenance, sources
+    and the track — is derived from the import, so a copied target cannot describe itself as
+    anything but a copy.
+    """
+    base = schemas.load_yaml(args.record.resolve(), intake.SCHEMA)
+    checker: intake.Checker = (
+        _fake_checker
+        if args.no_toolchain
+        else intake_checker(graph, args.target_id, args, settings)
+    )
+    result = intake.import_fc(
+        graph,
+        args.target_id,
+        source=args.source.resolve(),
+        rel_path=args.rel_path,
+        commit=args.commit,
+        base=base,
+        witness=_read_flag_file(args.witness, "--witness"),
+        statement=(_read_flag_file(args.statement, "--statement") if args.statement else None),
+        repo=args.repo,
+        url=args.url,
+        licence=args.licence,
+        attribution=args.attribution,
+        upstream_author=args.upstream_author,
+        spec_template=spec_template(graph, args.spec),
+        checker=checker,
+        author=args.author,
+        date=_intake_date(args),
+        listed_max=settings.listed_targets_max,
+    )
+    doc: dict[str, Any] = {"ok": True, **result.as_dict()}
+    doc["written"] = [*doc.get("written", []), result.notice]
+    return _emit_curator(doc, graph, args.branch, f"intake: import {args.target_id}")
+
+
+def run_fidelity(args: argparse.Namespace, settings: config.Settings) -> int:
+    """R3: append one certificate, and print the grade the target now derives from the set."""
+    graph = _intake_graph(args)
+    directory = intake.target_dir(graph, args.target_id)
+    evidence = _read_flag_file(args.evidence, "--evidence")
+    path = fidelity.attest(
+        directory,
+        args.subject,
+        args.grade,
+        attestor=args.by,
+        subject_author=args.subject_author,
+        date=_intake_date(args)[:10],
+        evidence=evidence,
+    )
+    doc: dict[str, Any] = {
+        "ok": True,
+        "target": args.target_id,
+        "subject": args.subject,
+        "grade": args.grade,
+        "target_grade": fidelity.target_grade(directory),
+        "subjects": [row.as_dict() for row in fidelity.subject_grades(directory)],
+        "written": [path.resolve().relative_to(graph.resolve()).as_posix()],
+    }
+    message = f"fidelity: {args.target_id} {args.subject} {args.grade}"
+    return _emit_curator(doc, graph, args.branch, message)
 
 
 def last_progress_merge(graph: Path, target_id: str) -> datetime | None:

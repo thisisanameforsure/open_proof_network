@@ -117,8 +117,8 @@ def read_only(  # noqa: PLR0912, PLR0915 — a checklist: one branch per thing t
     print(f"list_frontier -> {len(entries)} entries; GET /frontier.json {status}")
     if frontier != plain:
         problems.append("list_frontier differs from GET /frontier.json")
-    if schemas.violations(frontier, "frontier/v1"):
-        problems.append("list_frontier does not validate against frontier/v1")
+    if schemas.violations(frontier):  # against the version it declares (D-34)
+        problems.append(f"list_frontier does not validate against {frontier.get('schema')}")
 
     targets = client.call("list_targets")
     targets.pop("__is_error__")

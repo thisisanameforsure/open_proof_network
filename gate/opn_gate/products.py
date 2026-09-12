@@ -24,26 +24,26 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from opn_gate import context, layout, records, schemas
+from opn_gate import context, intake, layout, records, schemas
+from opn_gate import fidelity as fidelitymod
 from opn_gate import graph as graphmod
 from opn_gate.graph import GraphError, NodeFacts, TargetGraph
 from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsRequest
 
 log = logging.getLogger(__name__)
 
-PROTOCOL_VERSION = "3.11"  # what the code implements; docs/architecture_decisions_v_3_12.html
-# is the current protocol. v3.12 renamed D-9's second rung to screened-and-signed, which is a
-# target-status/targets-index schema bump (D-34: versioned, never edited) budgeted into F11-T2.
-# This value moves to "3.12" in that task, with the goldens regenerated in the same commit.
+PROTOCOL_VERSION = "3.12"  # docs/architecture_decisions_v_3_12.html, implemented by F11-T2
 GRAPH_SCHEMA = "graph/v2"  # F07-R8: refuted, defective and the cause field
-FRONTIER_SCHEMA = "frontier/v1"
-INDEX_SCHEMA = "targets-index/v2"  # F07-R8: the two new statuses in node_counts
+FRONTIER_SCHEMA = "frontier/v2"  # F11-R4: the target's D-33 dormancy, as a fact on each entry
+#: F11-R12 renames D-9's second rung and F11-R3/R4 add the derived fields. v2 was already spent
+#: on F07-R8's node counts and D-34 forbids editing it, so the rename lands at v3 (F11-Q9).
+INDEX_SCHEMA = "targets-index/v3"
 INFO_SCHEMA = "info/v1"
 CLAIMS_SCHEMA = "claims/v1"
 CLAIMS_FILE = "claims.json"
 TAGS_CACHE = ".tags-cache.json"
 MATHLIB_PREFIX = "Mathlib"
-DEFAULT_FIDELITY = "mechanical-only"
+DEFAULT_FIDELITY = fidelitymod.DEFAULT_GRADE
 KEEP_FILE = ".gitkeep"
 
 Scanner = Callable[[NodeFacts], list[str]]
@@ -151,19 +151,60 @@ def annex_present(node_dir: Path) -> bool:
     return annex.is_dir() and any(p.name != KEEP_FILE for p in annex.iterdir())
 
 
-def target_facts(tg: TargetGraph) -> tuple[str, bool, str]:
-    """(status, claimable, fidelity) for the index (R9; Q4, Q5)."""
+@dataclass(frozen=True)
+class TargetFacts:
+    """What the index publishes about a target, all of it derived (F03-R9; F11-R3, R4)."""
+
+    status: str
+    claimable: bool
+    fidelity: str
+    reasons: tuple[str, ...] = ()
+    subjects: tuple[fidelitymod.SubjectGrade, ...] = ()
+    posting: dict[str, Any] | None = None
+    track: str | None = None
+
+    @property
+    def dormant(self) -> bool:
+        return self.status == intake.DORMANT
+
+
+def target_facts(tg: TargetGraph) -> TargetFacts:
+    """(status, claimable, fidelity) and the rest, for the index (R9; Q4, Q5; F11-R3, R4).
+
+    Two eras meet here. A target with no ``target.yaml`` predates F11: its declaration says
+    whether it is claimable and at what grade, which is F03-Q4/Q5 and is what the tutorial graph
+    still runs on. A curated target derives all three — the grade from its fidelity certificates
+    (F11-R3), claimability from status, grade and posting (F11-R4) — and the declaration's own
+    ``claimable`` and ``fidelity`` fields are ignored, because a derived value with a second
+    writable home is a value that will disagree with itself.
+    """
     decl = tg.declaration.doc if tg.declaration is not None else {}
-    root_tutorial = tg.nodes[tg.root].tutorial
-    claimable = bool(decl.get("claimable", root_tutorial))
-    fidelity = str(decl.get("fidelity", DEFAULT_FIDELITY))
+    doc = intake.load_doc(tg.path)
+    subjects = tuple(fidelitymod.subject_grades(tg.path))
+    derived_grade = fidelitymod.target_grade(tg.path)
+    fallback = str(decl.get("fidelity", DEFAULT_FIDELITY))
+    grade = derived_grade if derived_grade is not None else fallback
+    legacy_claimable = bool(decl.get("claimable", tg.nodes[tg.root].tutorial))
     if tg.statuses[tg.root] == "proved":
         status = "resolved"
     elif "status" in decl:
         status = str(decl["status"])
+    elif doc is not None:
+        status = intake.LISTED
     else:
-        status = "active" if claimable else "listed"
-    return status, claimable, fidelity
+        status = "active" if legacy_claimable else "listed"
+    if doc is None:
+        return TargetFacts(status=status, claimable=legacy_claimable, fidelity=grade)
+    claimable, reasons = intake.claimability(doc, status=status, grade=grade)
+    return TargetFacts(
+        status=status,
+        claimable=claimable,
+        fidelity=grade,
+        reasons=reasons,
+        subjects=subjects,
+        posting=doc.get("posting"),
+        track=str(doc["track"]),
+    )
 
 
 def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
@@ -213,6 +254,7 @@ def frontier_entry(
     node: NodeFacts,
     *,
     claimable: bool,
+    dormant: bool,
     ready_since: str | None,
     tags: list[str],
     claims: dict[str, Any] | None = None,
@@ -240,26 +282,34 @@ def frontier_entry(
         "bounty": False,
         "claimable": claimable and in_frontier(status, node),
         "tutorial": node.tutorial,
+        # D-33: a dormancy declaration refuses no claim, so this is a fact and not a gate. It
+        # rides on the entry rather than only on the index so an agent choosing work sees it
+        # without a second fetch (F11-R4).
+        "dormant": dormant,
     }
 
 
 def index_doc(targets: list[TargetGraph], rendered_from: str | None) -> dict[str, Any]:
     out = []
     for tg in targets:
-        status, claimable, fidelity = target_facts(tg)
+        facts = target_facts(tg)
         counts = dict.fromkeys(graphmod.ALL_STATUSES, 0)
-        for s in tg.statuses.values():
-            counts[s] += 1
+        for status in tg.statuses.values():
+            counts[status] += 1
         out.append(
             {
                 "target_id": tg.target_id,
                 "root": tg.root,
                 "root_statement_hash": tg.nodes[tg.root].statement_hash,
-                "fidelity": fidelity,
-                "status": status,
+                "fidelity": facts.fidelity,
+                "status": facts.status,
                 "mathlib_sha": tg.spec["mathlib_sha"],
                 "node_counts": counts,
-                "claimable": claimable,
+                "claimable": facts.claimable,
+                "track": facts.track,
+                "subjects": [row.as_dict() for row in facts.subjects],
+                "posting": facts.posting,
+                "not_claimable": list(facts.reasons),
             }
         )
     return {"schema": INDEX_SCHEMA, "rendered_from": rendered_from, "targets": out}
@@ -353,7 +403,7 @@ def generate(
             products.files[Path(context.context_path(target_id, node_id))] = context.render(
                 reader, target_id, node_id, states=states, rendered_from=rendered_from
             )
-        _status, claimable, _fidelity = target_facts(tg)
+        facts = target_facts(tg)
         ready_since = graphmod.ready_since_map(previous, tg.statuses, commit_time)
         # R6: only a Mathlib-pinned graph has library tags to scan for and a cache to keep.
         cache = TagCache(tg.path / TAGS_CACHE) if tg.spec["mathlib_sha"] is not None else None
@@ -366,7 +416,8 @@ def generate(
                 frontier_entry(
                     tg,
                     node,
-                    claimable=claimable,
+                    claimable=facts.claimable,
+                    dormant=facts.dormant,
                     ready_since=ready_since[node_id],
                     tags=cache.tags(node, scanner) if cache is not None else [],
                     claims=registry.get(node_id),

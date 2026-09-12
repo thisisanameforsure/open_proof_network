@@ -28,6 +28,17 @@ sibling <code>../open_proof_network_graph</code>, and nothing on this site lands
 </table>
 
 <h2>Features — dependency order</h2>
+<p><strong>F11 started 2026-09-11.</strong> T1 chose the on-ramp target &mdash; Euclid's theorem
+over three definitions written in the graph's own <code>defs/</code>, five nodes, with the
+textbook argument saved as the annex the T4 skeleton will cite. T2 landed the curated-intake
+half: <code>target/v1</code> and <code>fidelity/v1</code>, the <code>intake new | post |
+activate</code> and <code>fidelity</code> commands, derived claimability in the products, and
+the Targets page's reasons, sources, licences and QA summary. D-9 v3.12's rung rename cost three
+schema bumps rather than two &mdash; <code>targets-index/v2</code> was already spent on F07-R8,
+so the rename is <code>targets-index/v3</code> (F11-Q9), and R4's dormancy fact needed
+<code>frontier/v2</code>, which reached every consumer of the frontier in the api, the site, the
+smoke tools and the deploy check. <code>PROTOCOL_VERSION</code> is now <code>3.12</code>, so the
+code and the decisions document agree again. T5's tooling half followed: <code>intake import-fc</code> with R9's licence allowlist, its repository denylist, the upstream copyright header kept verbatim, the attribution written into the graph's third-party notice file, and the Stage 0 count as config (<code>OPN_LISTED_TARGETS_MAX</code>, default 5). T5 is code complete rather than done: the fact pass over Formal&nbsp;Conjectures, Mike's approval of the five, R13's hand-run QA record and the merged import pull request all remain (F11-Q12). T3 waits on F10 and on a docker host; T4 and T6 need the graph repository and the live service, neither reachable from an unattended session.</p>
 <p class="status-note"><strong>Two features are built but not tagged.</strong> F03 and F05 each
 have one acceptance criterion that needs a graph with an unproved node — a real merge (F03-AC13)
 and a claim round trip against the deployed service (F05-AC19). The live graph holds one node and
@@ -130,7 +141,7 @@ file are planned, not committed to in detail.</p>
   <tr><td>F08</td><td><a href="features/F08.html">Proposals and admission</a></td><td>Mechanical admission (D-29); speculative nodes, variants with relation proofs (D-30), witness completion; revision requests and defect claims with pre-triage; curator commands.</td><td>F07</td><td><span class="tag done">done</span></td></tr>
   <tr><td>F09</td><td><a href="features/F09.html">MCP adapter</a></td><td>D-28's tool surface over the F05–F08 endpoints under the bijection rule, with a frozen surface and equivalence tests; untrusted-data demarcation.</td><td>F08</td><td><span class="tag done">done</span></td></tr>
   <tr><td>F10</td><td><a href="features/F10.html">Agent funnel</a></td><td>Tested <code>AGENTS.md</code>, per-node context bundles, devcontainer on the gate image, olean cache pipeline, human-funnel docs (D-27).</td><td>F09, F04</td><td><span class="tag wip">building</span> (T1&ndash;T5 built 2026-09-11; AC11 and the image digest pin wait on Mike's tag push and re-pin)</td></tr>
-  <tr><td>F11</td><td><a href="features/F11.html">On-ramp graph intake</a></td><td>Curated intake with the five artifacts and fidelity ladder (D-6, D-9, D-10); source and licence provenance; first Mathlib-pinned graph, a classic theorem over its own definitions, seeded by skeleton; five open targets listed not claimable; invited-run readiness rehearsal.</td><td>F10</td><td><span class="tag wip">spec</span></td></tr>
+  <tr><td>F11</td><td><a href="features/F11.html">On-ramp graph intake</a></td><td>Curated intake with the five artifacts and fidelity ladder (D-6, D-9, D-10); source and licence provenance; first Mathlib-pinned graph, a classic theorem over its own definitions, seeded by skeleton; five open targets listed not claimable; invited-run readiness rehearsal.</td><td>F10</td><td><span class="tag wip">building</span> (T1, T2 done 2026-09-11; T5 code complete; T3, T4, T6 todo)</td></tr>
   <tr><td>F12</td><td><a href="features/F12.html">Statement QA, provenance and drift</a></td><td>D-9 v3.12's mechanizable pass as commands with kernel-checked exhibits; the per-statement QA record and signature count; the attempts ledger; the upstream-drift and resolved-elsewhere watchers (D-10 v3.12); the <code>related</code>-variant relevance signature (D-30 v3.12).</td><td>F11, F08</td><td><span class="tag wip">spec</span></td></tr>
 </table>
 

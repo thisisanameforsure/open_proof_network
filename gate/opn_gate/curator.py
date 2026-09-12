@@ -35,7 +35,9 @@ from opn_gate.toolchain import ResolvedToolchain
 log = logging.getLogger(__name__)
 
 NODE_STATUS_SCHEMA = "node-status/v1"
-TARGET_STATUS_SCHEMA = "target-status/v1"
+#: F11-R12: new declarations are written at v2, whose fidelity enum carries D-9
+#: v3.12's renamed rung. v1 records already in a graph stay valid (D-34).
+TARGET_STATUS_SCHEMA = "target-status/v2"
 REVISION_SCHEMA = "revision-request/v1"
 POSTMORTEM_SCHEMA = "postmortem/v1"
 MISSING_LIBRARY = "missing-library"
