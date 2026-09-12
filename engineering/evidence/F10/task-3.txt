@@ -174,3 +174,82 @@ that no host variable reaches the container, and the set is now a named constant
 $ uv run pytest gate/tests/test_sandbox_docker.py -q
 5 passed in 54.32s
 With that, make verify-lean's tier is 52 passed, 1 xfailed (the F08-Q18 hold), 0 failed.
+
+================================================================================
+THE IMAGE IS PUBLISHED AND PINNED — 2026-09-12. AC5 on the live graph.
+================================================================================
+
+The first tag push this repository has ever made found two defects in image-publish.yml, neither
+of which any local run or static check could have caught. Both are fixed in `network`.
+
+1. `tr: range-endpoints of '.-\012' are in reverse collating sequence order` (run 34709039747,
+   both matrix legs, before a layer was built). The tag was derived with
+   `tr -c 'A-Za-z0-9_.-\n' '-'`; GNU tr on the runner reads the set's dash as a range endpoint
+   and exits 1, while BSD tr on this laptop accepts the same set and prints the right answer.
+   The tag is now bash's own substitution, which needs no external program, and
+   gate/tests/test_pins.py runs the real line out of the workflow and asserts the expression
+   contains no pipe.
+2. `ModuleNotFoundError: No module named 'opn_gate'` (run 34709280131, after build and push both
+   succeeded). The image was fine; the workflow's own check was wrong. pyproject.toml declares no
+   build backend on purpose, so opn_gate is never installed and every entrypoint puts it on the
+   path — pregate.sh, reproduce.sh and devcontainer/post-create.sh all export
+   PYTHONPATH=<network>/gate. The step does the same now, and runs the CLI rather than importing
+   the package.
+
+PUBLISHED (run 34709873677, both legs green, from tag F12-done at network 54180a1)
+---------------------------------------------------------------------------------
+  ghcr.io/thisisanameforsure/opn-gate:F12-done
+    @sha256:913c7b1b17ffc56d9de475babc69632fb4e30619060d271302f45c946d7f2bd1   1.15 GiB
+  ghcr.io/thisisanameforsure/opn-gate:F12-done-mathlib-0df444a360ea
+    @sha256:05f3670971243f74446a5f402d1ed8db3bee69904a740896ca0c25c7d76d4804   3.52 GiB
+
+LABELS — read from the registry, not by pulling
+-----------------------------------------------
+pin_image.py --verify pulls the image to inspect its labels. A Mathlib image is 3.5 GiB
+compressed and this laptop has 6.6 GiB free, so --verify is not runnable here (F11-Q17). The
+labels live in the image's config blob, a few kilobytes, which the registry serves on its own:
+an anonymous ghcr.io pull token, the manifest by digest, then the config blob. Both images:
+
+  network.openproof.lean_toolchain   leanprover/lean4:v4.33.1
+  network.openproof.mathlib_sha      0df444a360eaa60ab8c11dca51a86af692955474  (empty on the plain)
+  org.opencontainers.image.revision  54180a13d50fa69e1773b1c09bb6c6329779fc9f
+  org.opencontainers.image.version   F12-done / F12-done-mathlib-0df444a360ea
+
+which is exactly what --verify compares: the revision is the pinned network_commit and the
+Mathlib label is the graph's mathlib_sha. The script that reads it is six calls of urllib and is
+kept in the session scratch; whether it belongs in gate/tools/ is the owner's call, but on any
+machine without ~20 GiB spare it is the only way to run this check.
+
+PINNED (graph f1d6719, a direct push to main — the gate owner's visible diff, D-4)
+---------------------------------------------------------------------------------
+All seven targets: network_commit 54180a1, olean_cache_url https://openproofnetwork.org/cache,
+devcontainer_ref the Mathlib image for the six that pin mathlib_sha and the plain image for
+`tutorial`, which pins none. .devcontainer/devcontainer.json runs the on-ramp target's image.
+
+    $ uv run --frozen python gate/tools/pin_image.py --check --graph ../open_proof_network_graph \
+        --target euclid-primes
+    pin ok
+    exit=0
+
+One devcontainer serves seven targets, so `--check` can only agree with the target whose image it
+carries; with two images in play that is a real limit of the one-file design, worth a look if a
+graph ever pins three.
+
+THE GATE ON THE LIVE GRAPH UNDER THE NEW PIN (the rule after every re-pin)
+-------------------------------------------------------------------------
+    $ gate/pregate.sh --graph ../open_proof_network_graph --target tutorial \
+        --node tutorial-and-swap
+    INFO opn_gate.cache: olean cache hit: 5edb9e8e9c4b
+    verdict: pass
+    steps: [(1, 'pass'), (2, 'pass'), (4, 'pass'), (5, 'pass'), (6, 'pass'), (7, 'pass'), (8, 'pass')]
+    olean_cache: hit
+    exit=0
+
+Run once before the graph commit, it failed step 2 with `path-forbidden` naming all eight
+re-pin files — the gate refusing a working tree that carries changes outside the claimed node,
+which is correct. Committed first, it passes.
+
+STILL OPEN for AC11: the four repository variables are set on the graph (OPN_CACHE_BUCKET,
+OPN_CACHE_PREFIX, OPN_CACHE_UPLOAD_ROLE_ARN, OPN_AWS_REGION), so the post-merge publish step is
+live; what remains is a merge under the new pin, then check_cache.py on that merge commit and the
+CI timings for R10.
