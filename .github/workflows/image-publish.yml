@@ -126,5 +126,11 @@ jobs:
         run: |
           set -euo pipefail
           docker pull --quiet "${{ steps.push.outputs.digest }}"
-          docker run --rm --network none -e MATHLIB_SHA "${{ steps.push.outputs.digest }}" \
-            bash -c 'elan --version && uv --version && test -x /opt/opn/lean/.lake/build/bin/opn-hazards && uv run --frozen --project /opt/opn/network python -c "import opn_gate; print(\"opn_gate ok\")" && if [ -n "$MATHLIB_SHA" ]; then test "$(cat /opt/opn/mathlib/$MATHLIB_SHA/MATHLIB_SHA)" = "$MATHLIB_SHA" && test -d /opt/opn/mathlib/$MATHLIB_SHA/.lake/build/lib/lean && echo "mathlib $MATHLIB_SHA present"; fi'
+          # PYTHONPATH, because the project has no build backend: opn_gate is never installed,
+          # it is put on the path by whatever runs it (gate/pregate.sh, gate/reproduce.sh,
+          # gate/devcontainer/post-create.sh all export exactly this). Without it the import
+          # below fails in a correctly built image — which is how the first image this workflow
+          # ever pushed came out red.
+          docker run --rm --network none -e MATHLIB_SHA \
+            -e PYTHONPATH=/opt/opn/network/gate "${{ steps.push.outputs.digest }}" \
+            bash -c 'elan --version && uv --version && test -x /opt/opn/lean/.lake/build/bin/opn-hazards && uv run --frozen --project /opt/opn/network python -m opn_gate.cli --help >/dev/null && echo "opn_gate ok" && if [ -n "$MATHLIB_SHA" ]; then test "$(cat /opt/opn/mathlib/$MATHLIB_SHA/MATHLIB_SHA)" = "$MATHLIB_SHA" && test -d /opt/opn/mathlib/$MATHLIB_SHA/.lake/build/lib/lean && echo "mathlib $MATHLIB_SHA present"; fi'
