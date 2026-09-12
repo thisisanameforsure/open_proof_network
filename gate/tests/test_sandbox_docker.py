@@ -35,6 +35,8 @@ IMAGE_ENV: frozenset[str] = frozenset(
         "PATH",
         "PWD",
         "LC_ALL",
+        # F11-T3: where the image keeps its Mathlib checkouts (gate/Dockerfile ENV)
+        "OPN_MATHLIB_HOME",
         # F10-T3: the devcontainer half of the image (uv, and where the gate finds its tools)
         "UV_PYTHON_INSTALL_DIR",
         "UV_CACHE_DIR",

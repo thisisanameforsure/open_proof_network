@@ -174,3 +174,35 @@ def test_sandbox_never_installs_a_toolchain(tmp_path: Path) -> None:
     assert tc.metaprogram("opn-hazards") == sandbox.CONTAINER_LEAN_PKG_BIN / "opn-hazards"
     tc.ensure_metaprograms(FAKE_RESOLVED)  # a no-op: nothing is built on the host side
     assert tc.calls == [[str(sandbox.CONTAINER_ELAN), "toolchain", "list"]]
+
+
+def test_the_mathlib_probe_is_parsed_into_the_library_path_or_a_named_refusal() -> None:
+    """F11-R6 inside the image: the checkout is found by a command in the container (this seam
+    moves processes, not Python's file reads — CI found the host being asked), and the same
+    three facts a laptop checks are read off what it prints."""
+    sha = "0df444a360eaa60ab8c11dca51a86af692955474"
+    pin = "leanprover/lean4:v4.33.1"
+    good = (
+        f"stamp={sha}\ntoolchain={pin}\n"
+        f"lib=/opt/opn/mathlib/{sha}/.lake/build/lib/lean\n"
+        f"lib=/opt/opn/mathlib/{sha}/.lake/packages/aesop/.lake/build/lib/lean\n"
+        f"lib=/opt/opn/mathlib/{sha}/.lake/packages/batteries/.lake/build/lib/lean\n"
+    )
+    path = sandbox.parse_mathlib_probe(good, sha, pin, "img")
+    assert path[0] == Path(f"/opt/opn/mathlib/{sha}/.lake/build/lib/lean")
+    assert len(path) == 3 and all(".lake/packages/" in p.as_posix() for p in path[1:])
+    cmd = sandbox.mathlib_probe(sandbox.CONTAINER_MATHLIB_HOME, sha)
+    assert f"/opt/opn/mathlib/{sha}" in cmd and "MATHLIB_SHA" in cmd and "lean-toolchain" in cmd
+
+    from opn_gate.toolchain import ToolchainMissingError  # noqa: PLC0415
+
+    with pytest.raises(ToolchainMissingError, match=r"no Mathlib checkout .* inside the image"):
+        sandbox.parse_mathlib_probe("MISSING\n", sha, pin, "img")
+    with pytest.raises(ToolchainMissingError, match=r"stamped 'e'"):
+        sandbox.parse_mathlib_probe(good.replace(f"stamp={sha}", "stamp=e"), sha, pin, "img")
+    with pytest.raises(ToolchainMissingError, match=r"pins leanprover/lean4:v4\.32\.0"):
+        sandbox.parse_mathlib_probe(good.replace(pin, "leanprover/lean4:v4.32.0"), sha, pin, "img")
+    with pytest.raises(ToolchainMissingError, match="no built oleans"):
+        sandbox.parse_mathlib_probe(f"stamp={sha}\ntoolchain={pin}\n", sha, pin, "img")
+    for message in (sandbox.parse_mathlib_probe.__doc__ or "",):
+        assert "pin_image.py" in message  # the remedy is the re-pin, named

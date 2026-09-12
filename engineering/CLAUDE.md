@@ -424,3 +424,10 @@ The law of the project:
   commit as the assembly, once for editing the statement's imports in a later one — because the
   gate correctly refuses both. Put the tree's pre-conditions in the base commit and only the
   submission in the diff; the refusals were right.
+- 2026-09-12 — The sandbox seam moves *processes* into the container, not Python's file reads.
+  Step 1's Mathlib check verified the checkout with `Path.is_file()` and passed every laptop
+  tier; in CI the image carried the checkout and step 1 said it did not exist, because the
+  reads looked at the host. Anything the gate learns about the image's filesystem has to come
+  back on a process's stdout (`SandboxToolchain.resolve` now probes with one `sh -c`). The
+  third time a check that reads a path outside `_exec` has failed only in the sandbox
+  (F06-Q6, F08-Q13): treat a host-side `Path` in sandboxed code as a bug on sight.

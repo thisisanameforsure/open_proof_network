@@ -19,11 +19,11 @@ import subprocess
 import tarfile
 import uuid
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
-from opn_gate.toolchain import LocalToolchain, ResolvedToolchain
+from opn_gate.toolchain import LocalToolchain, ResolvedToolchain, ToolchainMissingError
 
 CONTAINER_ELAN = Path("/opt/elan/bin/elan")
 CONTAINER_LEAN_PKG_BIN = Path("/opt/opn/lean/.lake/build/bin")
@@ -53,6 +53,54 @@ class Caps:
             memory_mib=int(caps["memory_mib"]),
             wallclock_s=int(caps["wallclock_s"]),
         )
+
+
+def mathlib_probe(home: Path, sha: str) -> str:
+    """One shell command that prints the checkout's three facts, each on its own line: the
+    stamp, the toolchain pin, then every built lib directory (Mathlib's own first)."""
+    checkout = f"{home}/{sha}"
+    return (
+        f"cd '{checkout}' 2>/dev/null || {{ echo MISSING; exit 0; }}; "
+        'echo "stamp=$(cat MATHLIB_SHA 2>/dev/null)"; '
+        "echo \"toolchain=$(tr -d '[:space:]' < lean-toolchain 2>/dev/null)\"; "
+        "for d in .lake/build/lib/lean .lake/packages/*/.lake/build/lib/lean; do "
+        '[ -d "$d" ] && echo "lib=$PWD/$d"; done; true'
+    )
+
+
+def parse_mathlib_probe(stdout: str, sha: str, toolchain: str, image: str) -> tuple[Path, ...]:
+    """The library path the probe reports, or ``ToolchainMissingError`` naming what is wrong —
+    the same three refusals as on a laptop, with the remedy being a re-pin to an image built
+    for this Mathlib (``gate/tools/pin_image.py --check --verify``)."""
+    facts: dict[str, str] = {}
+    libs: list[Path] = []
+    for line in stdout.splitlines():
+        key, _, value = line.strip().partition("=")
+        if key == "lib" and value:
+            libs.append(Path(value))
+        elif key in ("stamp", "toolchain"):
+            facts[key] = value
+    hint = f"the image {image} must carry Mathlib {sha[:12]}: pin one built for it (F11-R6)"
+    if "stamp" not in facts or stdout.strip() == "MISSING":
+        msg = f"no Mathlib checkout for {sha} inside the image; {hint}"
+        raise ToolchainMissingError(msg)
+    if facts["stamp"] != sha:
+        msg = f"the image's Mathlib checkout is stamped {facts['stamp']!r}, not {sha}; {hint}"
+        raise ToolchainMissingError(msg)
+    if facts.get("toolchain") != toolchain:
+        msg = (
+            f"the image's Mathlib {sha[:12]} pins {facts.get('toolchain') or 'no toolchain'}, "
+            f"but the graph pins {toolchain} (D-7); {hint}"
+        )
+        raise ToolchainMissingError(msg)
+    if not libs:
+        msg = f"the image's Mathlib {sha[:12]} has no built oleans; {hint}"
+        raise ToolchainMissingError(msg)
+    own = [p for p in libs if "/.lake/packages/" not in p.as_posix()]
+    if not own:
+        msg = f"the image's Mathlib {sha[:12]} has no built oleans of its own; {hint}"
+        raise ToolchainMissingError(msg)
+    return tuple(own + [p for p in libs if p not in own])
 
 
 def image_tag(lean_toolchain: str, mathlib_sha: str | None = None) -> str:
@@ -249,7 +297,20 @@ class SandboxToolchain(LocalToolchain):
     def resolve(
         self, toolchain: str, *, install: bool = False, mathlib_sha: str | None = None
     ) -> ResolvedToolchain:
-        return super().resolve(toolchain, install=False, mathlib_sha=mathlib_sha)
+        """The pin, with the Mathlib checkout found *inside the image* (F11-R6).
+
+        ``LocalToolchain.resolve`` verifies a checkout with Python file reads, and this seam only
+        moves processes into the container — the reads would look at the host, which holds no
+        ``/opt/opn/mathlib`` (CI found it: the image carried the checkout and step 1 said it did
+        not exist). So the checkout is probed by a command in the container and the library
+        path built from what it prints; the same three facts are checked (F11-Q14).
+        """
+        tc = super().resolve(toolchain, install=False)
+        if mathlib_sha is None:
+            return tc
+        proc = self._exec(["sh", "-c", mathlib_probe(self.mathlib_home, mathlib_sha)])
+        library_path = parse_mathlib_probe(proc.stdout, mathlib_sha, toolchain, self.image)
+        return replace(tc, mathlib_sha=mathlib_sha, library_path=library_path)
 
     def metaprogram(self, name: str) -> Path:
         """The image carries the built package (F01-R10); nothing is checked on the host side."""
