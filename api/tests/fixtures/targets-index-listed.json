@@ -1,9 +1,14 @@
 {
   "rendered_from": "5555555555555555555555555555555555555555",
-  "schema": "targets-index/v3",
+  "schema": "targets-index/v4",
   "targets": [
     {
+      "attempts": {
+        "counted": 0,
+        "recorded": 0
+      },
       "claimable": false,
+      "drift": null,
       "fidelity": "mechanical-only",
       "mathlib_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "node_counts": {
@@ -30,12 +35,44 @@
       "subjects": [
         {
           "grade": "mechanical-only",
+          "qa": {
+            "checks": {
+              "backtranslation": null,
+              "brief": null,
+              "compile": null,
+              "equivalence": null,
+              "screen-consequence": null,
+              "screen-false": null,
+              "screen-negation": null,
+              "screen-statement": null
+            },
+            "complete": false,
+            "fresh_records": 0,
+            "stale": false,
+            "unrouted_findings": 0
+          },
           "signature_count": 0,
           "signers": [],
           "subject": "root"
         },
         {
           "grade": "mechanical-only",
+          "qa": {
+            "checks": {
+              "backtranslation": null,
+              "brief": null,
+              "compile": null,
+              "equivalence": null,
+              "screen-consequence": null,
+              "screen-false": null,
+              "screen-negation": null,
+              "screen-statement": null
+            },
+            "complete": false,
+            "fresh_records": 0,
+            "stale": false,
+            "unrouted_findings": 0
+          },
           "signature_count": 0,
           "signers": [],
           "subject": "Primes"
@@ -45,7 +82,12 @@
       "track": "formalization"
     },
     {
+      "attempts": {
+        "counted": 0,
+        "recorded": 0
+      },
       "claimable": false,
+      "drift": null,
       "fidelity": "mechanical-only",
       "mathlib_sha": null,
       "node_counts": {

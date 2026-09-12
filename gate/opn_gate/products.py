@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from opn_gate import context, defs, intake, layout, records, schemas, watch
+from opn_gate import context, defs, intake, layout, qa, records, schemas, watch
 from opn_gate import fidelity as fidelitymod
 from opn_gate import graph as graphmod
 from opn_gate.graph import GraphError, NodeFacts, TargetGraph
@@ -33,11 +33,12 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 log = logging.getLogger(__name__)
 
 PROTOCOL_VERSION = "3.12"  # docs/architecture_decisions_v_3_12.html, implemented by F11-T2
-GRAPH_SCHEMA = "graph/v2"  # F07-R8: refuted, defective and the cause field
+GRAPH_SCHEMA = "graph/v3"  # F12-R13: a related variant's relevance signature (v2: F07-R8)
 FRONTIER_SCHEMA = "frontier/v2"  # F11-R4: the target's D-33 dormancy, as a fact on each entry
 #: F11-R12 renames D-9's second rung and F11-R3/R4 add the derived fields. v2 was already spent
 #: on F07-R8's node counts and D-34 forbids editing it, so the rename lands at v3 (F11-Q9).
-INDEX_SCHEMA = "targets-index/v3"
+#: F12-R14 adds the QA pass state per subject, the counted attempts and the drift flag: v4.
+INDEX_SCHEMA = "targets-index/v4"
 INFO_SCHEMA = "info/v1"
 CLAIMS_SCHEMA = "claims/v1"
 CLAIMS_FILE = "claims.json"
@@ -167,6 +168,9 @@ class TargetFacts:
     subjects: tuple[fidelitymod.SubjectGrade, ...] = ()
     posting: dict[str, Any] | None = None
     track: str | None = None
+    qa: dict[str, dict[str, Any]] = field(default_factory=dict)  # subject -> pass state (F12)
+    attempts: dict[str, int] = field(default_factory=lambda: {"counted": 0, "recorded": 0})
+    drift: dict[str, Any] | None = None
 
     @property
     def dormant(self) -> bool:
@@ -201,8 +205,17 @@ def target_facts(tg: TargetGraph) -> TargetFacts:
     if doc is None:
         return TargetFacts(status=status, claimable=legacy_claimable, fidelity=grade)
     # F12-R11: an upstream edit that stands on the root as it is freezes proving compute.
-    drift = watch.drift_state(tg.path, tg.nodes[tg.root].statement_hash)
+    root_hash = tg.nodes[tg.root].statement_hash
+    drift = watch.drift_state(tg.path, root_hash)
     claimable, reasons = intake.claimability(doc, status=status, grade=grade, drifted=drift.frozen)
+    # F12-R14: the pass state per subject, the counted attempts and the flag, all derived.
+    routed = qa.routed_by_claims(tg.path, tg.root)
+    pass_states = {
+        row.subject: qa.pass_state(tg.path, row.subject, spec=tg.spec, routed=routed).as_dict()
+        for row in subjects
+        if row.subject in fidelitymod.subjects_of(tg.path)
+    }
+    attempts = qa.attempts_state(tg.path, root_hash)
     return TargetFacts(
         status=status,
         claimable=claimable,
@@ -211,6 +224,9 @@ def target_facts(tg: TargetGraph) -> TargetFacts:
         subjects=subjects,
         posting=doc.get("posting"),
         track=str(doc["track"]),
+        qa=pass_states,
+        attempts={"counted": attempts.m, "recorded": attempts.m + len(attempts.stale)},
+        drift=drift.as_dict(),
     )
 
 
@@ -234,6 +250,8 @@ def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
                 "tutorial": n.tutorial,
                 "trust_base": n.proof.trust_base if resolved and n.proof else None,
                 "proof_commit": n.proof.merge_commit if resolved and n.proof else None,
+                # F12-R13: a related variant is pertinent only with its one signature.
+                "relevance": qa.relevance_of(n.path, n.relation),
             }
         )
     return {
@@ -296,6 +314,26 @@ def frontier_entry(
     }
 
 
+def qa_summary(state: dict[str, Any] | None) -> dict[str, Any]:
+    """F12-R14: the pass state as the index carries it — a subject with no record, or one that
+    predates F11, shows every check unrun and the pass incomplete."""
+    if state is None:
+        return {
+            "complete": False,
+            "stale": False,
+            "checks": dict.fromkeys(qa.CHECKS),
+            "unrouted_findings": 0,
+            "fresh_records": 0,
+        }
+    return {
+        "complete": bool(state["complete"]),
+        "stale": bool(state["stale"]),
+        "checks": {c: state["checks"].get(c) for c in qa.CHECKS},
+        "unrouted_findings": int(state["unrouted_findings"]),
+        "fresh_records": int(state["fresh_records"]),
+    }
+
+
 def index_doc(targets: list[TargetGraph], rendered_from: str | None) -> dict[str, Any]:
     out = []
     for tg in targets:
@@ -314,9 +352,14 @@ def index_doc(targets: list[TargetGraph], rendered_from: str | None) -> dict[str
                 "node_counts": counts,
                 "claimable": facts.claimable,
                 "track": facts.track,
-                "subjects": [row.as_dict() for row in facts.subjects],
+                "subjects": [
+                    {**row.as_dict(), "qa": qa_summary(facts.qa.get(row.subject))}
+                    for row in facts.subjects
+                ],
                 "posting": facts.posting,
                 "not_claimable": list(facts.reasons),
+                "attempts": facts.attempts,
+                "drift": facts.drift,
             }
         )
     return {"schema": INDEX_SCHEMA, "rendered_from": rendered_from, "targets": out}

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/relevance/v1.json",
+  "title": "relevance/v1",
+  "description": "nodes/<id>/relevance.yaml (F12-R13; D-30 v3.12): one signature on the sentence that says why a variant labelled `related` bears on the target — an improved bound, a nearby case, a reformulation. It is not a fidelity grade and enters no ladder; it is the one human act on the one claim no kernel checks, and a related variant is published as pertinent to the target only with it. Written once by a listed curator who is not the variant's author. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "node",
+    "text",
+    "signer",
+    "date"
+  ],
+  "properties": {
+    "schema": {
+      "const": "relevance/v1"
+    },
+    "node": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "text": {
+      "description": "Why the variant is pertinent, in the signer's words; untrusted downstream (F12 §7).",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "signer": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    }
+  }
+}

@@ -298,6 +298,7 @@ class Renderer:
             f"<td>{esc(', '.join(n.deps) or 'none')}</td>"
             f"<td>{esc(n.graph_entry['origin'])}"
             f"{' (' + esc(n.graph_entry['relation']) + ')' if n.graph_entry['relation'] else ''}"
+            f"{self.pertinence(n.graph_entry)}"
             "</td></tr>"
             for nid, n in sorted(tv.nodes.items())
         )
@@ -331,9 +332,113 @@ class Renderer:
             node_rows=node_rows,
             approaches=approaches,
             note=note,
+            qa=self.qa_section(tv),
             graph_link=self.file_link(f"targets/{tid}/graph.json"),
         )
         return self.page(f"Target {tid}", body, renders=[f"targets/{tid}/graph.json"])
+
+    # --- F12-R14: what was checked, who signed, what was attempted, what moved upstream -------
+
+    @staticmethod
+    def pertinence(entry: dict[str, Any]) -> str:
+        """D-30 v3.12: a related variant is pertinent only with its one signature."""
+        relevance = entry.get("relevance")
+        if not isinstance(relevance, dict):
+            return ""
+        if relevance.get("pertinent"):
+            return (
+                f' <span class="pertinent">pertinent to the target, signed by '
+                f"{esc(str(relevance.get('signer')))} on {esc(str(relevance.get('date')))}</span>"
+            )
+        return ' <span class="note">not yet signed as pertinent to the target (D-30 v3.12)</span>'
+
+    def qa_section(self, tv: TargetView) -> str:
+        """The statement-QA state per subject and check, the signers, the counted attempts and
+        the drift flag with its escaped upstream excerpt (F12-R14; D-9 v3.12, D-10 v3.12).
+
+        A pre-F11 target (an index row without the F12 fields) says so and shows nothing else;
+        every string from the graph or from upstream passes through ``esc`` (§7)."""
+        e = tv.index_entry
+        subjects = e.get("subjects") or []
+        if "attempts" not in e:
+            return "<p>No statement-QA record: this target predates the QA pass (F12).</p>"
+        parts: list[str] = []
+        first: dict[str, Any] = subjects[0] if subjects else {}
+        checks: list[str] = list((first.get("qa") or {}).get("checks") or {})
+        if not subjects:
+            parts.append(
+                "<p>No statement-QA record: this target has no curated record (F11), so the "
+                "pass has no subject to check.</p>"
+            )
+        elif checks:
+            head = "".join(f"<th>{esc(c)}</th>" for c in checks)
+            rows: list[str] = []
+            states: list[str] = []
+            for s in subjects:
+                qa = s.get("qa") or {}
+                cells = "".join(
+                    f'<td class="qa-{esc(str(qa.get("checks", {}).get(c) or "unrun"))}">'
+                    f"{esc(str(qa.get('checks', {}).get(c) or '—'))}</td>"
+                    for c in checks
+                )
+                state = "complete" if qa.get("complete") else "incomplete"
+                if qa.get("stale"):
+                    state += ", stale (the statement or the pin moved)"
+                if qa.get("unrouted_findings"):
+                    state += f"; {qa['unrouted_findings']} finding(s) await routing"
+                signers = ", ".join(esc(str(n)) for n in s.get("signers") or []) or "none yet"
+                rows.append(f"<tr><td>{esc(str(s['subject']))}</td>{cells}</tr>")
+                states.append(
+                    f"<li><strong>{esc(str(s['subject']))}</strong>: pass {esc(state)}; "
+                    f"{esc(str(s['grade']))}; {s.get('signature_count', 0)} signature"
+                    f"{'' if s.get('signature_count', 0) == 1 else 's'} ({signers})</li>"
+                )
+            parts.append(
+                '<div class="table-wrap"><table class="qa"><thead><tr><th>Subject</th>'
+                f"{head}</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
+                f'<ul class="qa-state">{"".join(states)}</ul>'
+            )
+        attempts = e.get("attempts") or {}
+        counted, recorded = attempts.get("counted", 0), attempts.get("recorded", 0)
+        parts.append(
+            f'<p class="attempts">Documented external attempts counting toward D-9\'s M: '
+            f"<strong>{counted}</strong> against the statement as it stands"
+            + (
+                f"; {recorded - counted} recorded against an earlier revision no longer count."
+                if recorded > counted
+                else "."
+            )
+            + "</p>"
+        )
+        drift = e.get("drift")
+        if not drift:
+            parts.append('<p class="drift">No upstream drift on record (D-10 v3.12).</p>')
+            return "".join(parts)
+        record = next((r for r in tv.drift if r.name == drift.get("record")), None)
+        kind, date = esc(str(drift.get("kind"))), esc(str(drift.get("date")))
+        if drift.get("kind") == "upstream-edit":
+            up = drift.get("upstream") or {}
+            excerpt = "\n".join((record.diff or "").splitlines()[:40]) if record else ""
+            parts.append(
+                f'<div class="prose-block untrusted drift"><p class="label">Drift flag: '
+                f"<strong>{kind}</strong> on {date} — the statement was imported from "
+                f"{esc(str(up.get('repo')))} at {esc(str(up.get('pinned_commit', ''))[:12])} and "
+                f"{esc(str(up.get('path')))} differs at head "
+                f"{esc(str(up.get('head_commit', ''))[:12])}. Proving compute is frozen until a "
+                f"curator acts (D-10 v3.12). Upstream text, untrusted:</p>"
+                f'<pre class="diff">{esc(excerpt)}</pre></div>'
+            )
+        else:
+            cite = drift.get("citation") or {}
+            parts.append(
+                f'<div class="prose-block untrusted drift"><p class="label">Drift flag: '
+                f"<strong>{kind}</strong> on {date} — "
+                f'<a href="{esc(str(cite.get("url")))}">{esc(str(cite.get("url")))}</a> lists the '
+                f"problem as {esc(str(cite.get('status')))}; flagged for D-33 dormancy, the status "
+                f"untouched. Source text, untrusted:</p>"
+                f'<pre class="diff">{esc(str(cite.get("text", "")))}</pre></div>'
+            )
+        return "".join(parts)
 
     def node(self, nv: NodeView) -> str:
         e = nv.graph_entry

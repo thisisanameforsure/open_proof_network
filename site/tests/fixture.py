@@ -118,3 +118,87 @@ def build_with_listed_target(tmp_path: Path) -> Path:
     )
     products.generate(root, rendered_from=COMMIT, commit_time=NOW).write(root)
     return root
+
+
+# --- F12: a curated target with a QA pass, two signers, three attempts and a drift flag (AC11) ----
+
+QA_TARGET = "qa-target"
+QA_ROOT = "qa-lemma"
+DIFF_INJECTION = "<img src=x onerror=alert('drift')>"
+DRIFT_DIFF = (
+    "--- pinned/FormalConjectures/ErdosProblems/68.lean\n"
+    "+++ head/FormalConjectures/ErdosProblems/68.lean\n"
+    "-theorem erdos_68 : Irrational s := by\n"
+    f"+theorem erdos_68 : Irrational s' := by -- {DIFF_INJECTION}\n"
+)
+
+
+def build_with_qa_target(tmp_path: Path) -> Path:
+    """The curated fixture plus a target that has been through the QA pass: a complete pass on
+    the root, two signers on it, three documented attempts of which one no longer counts, and
+    an upstream-drift flag whose diff carries an injection string (F12-R14)."""
+    import shutil  # noqa: PLC0415
+
+    from harness import take_in  # noqa: PLC0415
+
+    from opn_gate import fidelity, qa, watch  # noqa: PLC0415
+
+    root = build(tmp_path)
+    src = nodes_dir(root) / "and-reassoc"
+    staged = tmp_path / QA_ROOT
+    shutil.copytree(src, staged)
+    meta = yaml.safe_load((staged / "META.yaml").read_text())
+    meta["id"] = QA_ROOT
+    (staged / "META.yaml").write_text(yaml.safe_dump(meta, sort_keys=False), encoding="utf-8")
+    (staged / "Proof.lean").unlink(missing_ok=True)
+    take_in(root, target_id=QA_TARGET, root_dir=staged, title="A checked target")
+    target = root / "targets" / QA_TARGET
+    when = "2026-09-12T10:00:00Z"
+    rows = [
+        qa.row(
+            c,
+            "pass",
+            tool="opn-gate qa",
+            tool_version="0.0.0",
+            timestamp=when,
+            model="claude-opus-5" if qa.KIND_OF[c] == "brief" else None,
+            model_version="claude-opus-5-20260401" if qa.KIND_OF[c] == "brief" else None,
+        )
+        for c in qa.FLOOR_ROOT
+    ]
+    qa.write(target, "root", rows, date=when, produced_by="opn-gate qa screen")
+    for who, day in (("reviewer-one", "2026-09-12"), ("reviewer-two", "2026-09-13")):
+        fidelity.attest(
+            target, "root", "screened-and-signed", attestor=who, date=day, evidence="agreed"
+        )
+    current = qa.subject_hash(target, "root")
+    for n, (day, hash_) in enumerate(
+        (("2026-08-01", current), ("2026-08-02", current), ("2026-08-03", "0" * 64)), start=1
+    ):
+        qa.record_attempt(
+            target,
+            venue="Formal Conjectures sweep",
+            system=f"prover-{n}",
+            date=day,
+            url=f"https://example.org/attempts/{n}",
+            statement_hash=hash_,
+        )
+    watch.write_drift(
+        target,
+        watch.DriftRecord(
+            kind="upstream-edit",
+            state="flagged",
+            statement_hash=current,
+            date="2026-09-12T04:17:00Z",
+            author="opn-watcher",
+            upstream={
+                "repo": "google-deepmind/formal-conjectures",
+                "path": "FormalConjectures/ErdosProblems/68.lean",
+                "pinned_commit": "c" * 40,
+                "head_commit": "d" * 40,
+            },
+            diff=DRIFT_DIFF,
+        ),
+    )
+    products.generate(root, rendered_from=COMMIT, commit_time=NOW).write(root)
+    return root

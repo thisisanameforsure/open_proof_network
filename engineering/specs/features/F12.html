@@ -419,10 +419,28 @@ on the site.</p>
     <code>curators.json</code> — Mike's call, the F07 precedent of pricing a permission before the
     code assumes it. R12's "notify the curator" is the record, the report and the pull request; no
     other channel exists yet. Q1 stands: the watcher is tooling and lives here.</td></tr>
+  <tr><td>F12-Q17</td><td><strong>The relevance signature is a curator record beside the node, and
+    surfacing it cost two product versions and no frontier bump</strong> (2026-09-12, T6). R13's
+    signature lives at <code>nodes/&lt;id&gt;/relevance.yaml</code> (<code>relevance/v1</code>: the
+    signer's reading in at most 500 characters, the signer, the date), written once by
+    <code>opn-gate qa relevance</code>, which refuses a node whose relation is not
+    <code>related</code>, a signer who is the variant's author (D-30 v3.12's "non-author"), and a
+    second signature. The site does not read the file: <code>graph/v3</code> adds a
+    <code>relevance</code> row per node (<code>null</code> for anything but a related variant;
+    otherwise pertinent, signer, date) so the page renders from the product alone, and
+    <code>targets-index/v4</code> carries the per-subject QA state, the counted and recorded
+    attempts and the drift flag (R14), which is what the Targets page and the target page read.
+    <code>frontier.json</code> is not bumped: claimability already carries the freeze as the reason
+    <code>upstream-drift</code> (Q16), and a related variant's pertinence changes nothing about
+    whether it may be claimed. The site accepts the new versions beside the old ones (a set per
+    product, the F11 lesson) and a target row without subjects says the pass has no subject rather
+    than showing an empty table. The api's listed fixture was regenerated from the gate at v4
+    with every earlier field identical (F05-Q5). Reversal: drop the two schema versions and the
+    file role; the record format is one file and stays readable.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1 ✓ 2026-09-12 · T2 built 2026-09-12 (lean tier pending CI) · T3 ✓ 2026-09-12 · T4 built 2026-09-12 (lean tier pending CI) · T5 ✓ 2026-09-12 (AC13 dry run: this container cannot reach erdosproblems.com; the workflow run is the evidence) · T6 todo</div>
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1 ✓ 2026-09-12 · T2 built 2026-09-12 (lean tier pending CI) · T3 ✓ 2026-09-12 · T4 built 2026-09-12 (lean tier pending CI) · T5 ✓ 2026-09-12 (AC13 dry run: this container cannot reach erdosproblems.com; the workflow run is the evidence) · T6 ✓ 2026-09-12</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its

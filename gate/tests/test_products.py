@@ -866,7 +866,7 @@ def test_signature_count(tmp_path: Path) -> None:
     old = json.loads((GOLDEN / "unproved" / "targets" / "index.json").read_bytes())
     old["schema"] = "targets-index/v1"
     for entry in old["targets"]:
-        for key in ("track", "subjects", "posting", "not_claimable"):
+        for key in ("track", "subjects", "posting", "not_claimable", "attempts", "drift"):
             entry.pop(key, None)
         for key in ("refuted", "defective"):
             entry["node_counts"].pop(key, None)
@@ -908,3 +908,160 @@ def test_the_target_grade_is_its_weakest_subject_in_the_index(tmp_path: Path) ->
     assert row["claimable"] is False
     assert "grade-below-screened-and-signed" in row["not_claimable"]
     assert {s["subject"] for s in row["subjects"]} == {"root", "Later"}
+
+
+# --- F12-T6: the QA pass, the attempts, the drift flag and a related variant's signature --------
+
+
+def related_variant(root: Path, node_id: str = "variant-related") -> Path:
+    """A `related` variant of the propositional root: no Relation.lean, no implication proved."""
+    from opn_gate import scaffold  # noqa: PLC0415
+
+    proposal = scaffold.Proposal(
+        node_id=node_id,
+        target_id=TARGET,
+        statement="theorem OpnProp.related_one : ∀ p : Prop, p → p := by\n  sorry\n",
+        witness="theorem witness : True := trivial\n",
+        author="proposer",
+        origin="variant",
+        relation="related",
+        date="2026-09-12T00:00:00Z",
+    )
+    scaffold.validate(proposal)
+    written = scaffold.write(nodes_dir(root), proposal)
+    # A related variant has no dependents, so the DAG has two sinks and the root must be declared
+    # (F08-Q19; the live graph's first variant taught the same, engineering/CLAUDE.md log).
+    status = root / "targets" / TARGET / "status"
+    status.mkdir(exist_ok=True)
+    (status / "2026-09-12-curator.yaml").write_text(
+        yaml.safe_dump(samples.target_status(root=ROOT_NODE)), encoding="utf-8"
+    )
+    return written
+
+
+def test_related_variant_needs_signature(tmp_path: Path) -> None:
+    """F12-AC10, R13 (D-30 v3.12): with no relevance signature a related variant is not marked
+    pertinent; with one it is, and the signer is named; a resolves or partial variant and an
+    authored node carry null. The proposer may not sign their own, and a signature is written
+    once."""
+    from opn_gate import qa  # noqa: PLC0415
+
+    root = copy_graph(tmp_path)
+    related_variant(root)
+    prod = generate(root)
+    rows = {
+        n["node_id"]: n
+        for n in json.loads(prod.files[Path(f"targets/{TARGET}/graph.json")])["nodes"]
+    }
+    assert rows["variant-related"]["relevance"] == {
+        "pertinent": False,
+        "signer": None,
+        "date": None,
+    }
+    assert rows["tutorial-and-swap"]["relevance"] is None
+
+    with pytest.raises(qa.QaError, match="non-author"):
+        qa.sign_relevance(
+            root,
+            TARGET,
+            "variant-related",
+            text="mine",
+            signer="proposer",
+            date="2026-09-12T00:00:00Z",
+        )
+    with pytest.raises(qa.QaError, match="only a variant labelled"):
+        qa.sign_relevance(
+            root, TARGET, "tutorial-and-swap", text="x", signer="mike", date="2026-09-12T00:00:00Z"
+        )
+    qa.sign_relevance(
+        root,
+        TARGET,
+        "variant-related",
+        text="A nearby case of the root's swap.",
+        signer="mike",
+        date="2026-09-12T00:00:00Z",
+    )
+    with pytest.raises(qa.QaError, match="written once"):
+        qa.sign_relevance(
+            root,
+            TARGET,
+            "variant-related",
+            text="again",
+            signer="mike",
+            date="2026-09-13T00:00:00Z",
+        )
+    prod = generate(root)
+    doc = json.loads(prod.files[Path(f"targets/{TARGET}/graph.json")])
+    assert doc["schema"] == "graph/v3"
+    row = next(n for n in doc["nodes"] if n["node_id"] == "variant-related")
+    assert row["relevance"] == {"pertinent": True, "signer": "mike", "date": "2026-09-12"}
+    # The layout tolerates the file, and the gate knows whose it is.
+    assert layout.validate_node(nodes_dir(root) / "variant-related") == []
+
+
+def test_index_carries_the_qa_state_attempts_and_drift(tmp_path: Path) -> None:
+    """F12-R14: per subject the pass state per check; per target the counted attempts and the
+    drift flag; a target with no QA record shows every check unrun and the pass incomplete."""
+    from opn_gate import qa, watch  # noqa: PLC0415
+
+    root = copy_graph(tmp_path)
+    harness.take_in(root)
+    target = root / "targets" / F11_TARGET
+    row = f11_row(root)
+    subject = next(s for s in row["subjects"] if s["subject"] == "root")
+    assert subject["qa"]["complete"] is False and subject["qa"]["checks"]["compile"] is None
+    assert row["attempts"] == {"counted": 0, "recorded": 0} and row["drift"] is None
+
+    rows = [
+        qa.row(
+            c,
+            "pass",
+            tool="t",
+            tool_version="0",
+            timestamp="2026-09-12T00:00:00Z",
+            model="m" if qa.KIND_OF[c] == "brief" else None,
+        )
+        for c in qa.FLOOR_ROOT
+    ]
+    qa.write(target, "root", rows, date="2026-09-12T00:00:00Z", produced_by="t")
+    qa.record_attempt(
+        target, venue="sweep", system="Aristotle", date="2026-09-01", url="https://example.org/a"
+    )
+    qa.record_attempt(
+        target,
+        venue="sweep",
+        system="Nexus",
+        date="2026-09-02",
+        url="https://example.org/b",
+        statement_hash="0" * 64,
+    )
+    watch.write_drift(
+        target,
+        watch.DriftRecord(
+            kind="upstream-edit",
+            state="flagged",
+            statement_hash=qa.subject_hash(target, "root"),
+            date="2026-09-12T04:00:00Z",
+            author="opn-watcher",
+            upstream={
+                "repo": "o/r",
+                "path": "P.lean",
+                "pinned_commit": "a" * 40,
+                "head_commit": "b" * 40,
+            },
+            diff="--- a\n+++ b\n",
+        ),
+    )
+    row = f11_row(root)
+    subject = next(s for s in row["subjects"] if s["subject"] == "root")
+    assert subject["qa"]["complete"] is True and subject["qa"]["checks"]["brief"] == "pass"
+    assert subject["qa"]["checks"]["equivalence"] is None
+    assert row["attempts"] == {"counted": 1, "recorded": 2}
+    assert row["drift"]["kind"] == "upstream-edit" and row["drift"]["frozen"] is True
+    assert row["claimable"] is False and "upstream-drift" in row["not_claimable"]
+    assert (
+        schemas.violations(
+            json.loads(generate(root).files[Path("targets/index.json")]), "targets-index/v4"
+        )
+        == []
+    )

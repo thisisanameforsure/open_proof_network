@@ -2278,3 +2278,82 @@ def certificate_citations(state: PassState) -> tuple[tuple[dict[str, Any], ...],
     exhibits = tuple({"kind": r.check, "path": r.exhibit, "note": r.note} for r in state.exhibits)
     files = tuple(r.exhibit for r in state.briefs if r.exhibit is not None)
     return exhibits, files
+
+
+# --- a related variant's relevance signature (R13; D-30 v3.12) ------------------------------------
+
+RELEVANCE_SCHEMA = "relevance/v1"
+RELEVANCE_FILE = "relevance.yaml"
+RELEVANCE_MAX = 500
+
+
+def load_relevance(node_dir: Path) -> dict[str, Any] | None:
+    """The variant's signature, or ``None``; a malformed one raises (it publishes a claim)."""
+    path = node_dir / RELEVANCE_FILE
+    if not path.is_file():
+        return None
+    return schemas.load_yaml(path, RELEVANCE_SCHEMA)
+
+
+def sign_relevance(  # noqa: PLR0913 — one argument per fact of the signature
+    graph_root: Path,
+    target_id: str,
+    node_id: str,
+    *,
+    text: str,
+    signer: str,
+    date: str,
+) -> Path:
+    """R13: the one signature a ``related`` variant needs before it is pertinent. Refused for
+    any other node (``resolves`` and ``partial`` carry a relation proof, and the kernel does
+    the work), for the variant's own author (one human act, not the proposer's), and twice."""
+    node_dir = layout.graph_nodes_dir(graph_root, target_id) / node_id
+    loaded = layout.load_node(node_dir, target_id)
+    if isinstance(loaded, list):
+        msg = f"{node_id} is not a valid node of {target_id}: {loaded[0].message}"
+        raise QaError("record", msg)
+    origin = str(loaded.meta.get("origin", "authored"))
+    label = graphmod.relation_of(node_dir, origin)
+    if label != "related":
+        msg = (
+            f"{node_id} is {origin}"
+            + (f" ({label})" if label else "")
+            + ": only a variant labelled `related` needs a relevance signature; resolves and "
+            "partial carry a relation proof (D-30 v3.12)"
+        )
+        raise QaError("record", msg)
+    provenance = loaded.meta.get("provenance")
+    author = provenance.get("author") if isinstance(provenance, dict) else None
+    if author == signer:
+        msg = f"{signer!r} proposed {node_id}; the relevance signature is a non-author's (D-30)"
+        raise QaError("record", msg)
+    if (node_dir / RELEVANCE_FILE).exists():
+        msg = f"{node_id} already carries a relevance signature; it is written once (D-34)"
+        raise QaError("record", msg)
+    if not text.strip() or len(text) > RELEVANCE_MAX:
+        msg = f"the relevance text is one sentence of at most {RELEVANCE_MAX} characters"
+        raise QaError("record", msg)
+    doc = schemas.validate(
+        {
+            "schema": RELEVANCE_SCHEMA,
+            "node": node_id,
+            "text": text.strip(),
+            "signer": signer,
+            "date": date[:10],
+        },
+        RELEVANCE_SCHEMA,
+    )
+    path = node_dir / RELEVANCE_FILE
+    path.write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True), encoding="utf-8")
+    return path
+
+
+def relevance_of(node_dir: Path, relation: str | None) -> dict[str, Any] | None:
+    """What ``graph/v3`` publishes: for a related variant, whether it is pertinent and by whom;
+    ``None`` for every other node."""
+    if relation != "related":
+        return None
+    signed = load_relevance(node_dir)
+    if signed is None:
+        return {"pertinent": False, "signer": None, "date": None}
+    return {"pertinent": True, "signer": str(signed["signer"]), "date": str(signed["date"])}

@@ -485,6 +485,15 @@ def _add_qa_parsers(  # noqa: PLR0915 — one statement per flag
     att.add_argument("--date", help="UTC timestamp of the act (default: now)")
     att.add_argument("--branch", help="also commit what was written on this branch")
 
+    rel = acts.add_parser("relevance", help="sign why a related variant is pertinent (F12-R13)")
+    rel.add_argument("target_id")
+    rel.add_argument("variant", help="the related variant's node id")
+    rel.add_argument("--graph", required=True, type=Path)
+    rel.add_argument("--by", required=True, dest="by", help="the signer (not the proposer)")
+    rel.add_argument("--text", required=True, help="why it bears on the target, in one sentence")
+    rel.add_argument("--date", help="UTC timestamp of the act (default: now)")
+    rel.add_argument("--branch", help="also commit what was written on this branch")
+
     rte = acts.add_parser("route", help="route a positive screen's claim (F12-R4; D-9 v3.12)")
     common(rte)
     rte.add_argument("claim", help="the file name of the screen-finding claim under defects/")
@@ -1661,7 +1670,7 @@ def _qa_context(
     return node_context(node_args, settings, prefix="opn-qa-", sandboxed=bool(args.sandbox))
 
 
-def run_qa(args: argparse.Namespace, settings: config.Settings) -> int:
+def run_qa(args: argparse.Namespace, settings: config.Settings) -> int:  # noqa: PLR0911
     graph = _intake_graph(args)
     date = _intake_date(args)
     target_dir = intake.target_dir(graph, args.target_id)
@@ -1688,6 +1697,17 @@ def run_qa(args: argparse.Namespace, settings: config.Settings) -> int:
             "written": [written],
         }
         return _emit_curator(doc, graph, args.branch, f"qa: route {args.claim} ({args.reading})")
+    if args.action == "relevance":
+        signed = qa.sign_relevance(
+            graph, args.target_id, args.variant, text=args.text, signer=args.by, date=date
+        )
+        doc = {
+            "ok": True,
+            "target": args.target_id,
+            "variant": args.variant,
+            "written": [signed.resolve().relative_to(graph.resolve()).as_posix()],
+        }
+        return _emit_curator(doc, graph, args.branch, f"qa: relevance of {args.variant}")
     if args.action == "attempt":
         ledger = qa.record_attempt(
             target_dir,

@@ -33,6 +33,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "gate-spec/v1",
         "graph/v1",
         "graph/v2",
+        "graph/v3",
         "info/v1",
         "ledger/v1",
         "meta/v1",
@@ -43,6 +44,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "postmortem/v1",
         "precheck-record/v1",
         "qa/v1",
+        "relevance/v1",
         "revision-request/v1",
         "revision-request/v2",
         "submission-meta/v1",
@@ -52,6 +54,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "targets-index/v1",
         "targets-index/v2",
         "targets-index/v3",
+        "targets-index/v4",
         "waiver/v1",
     )
 

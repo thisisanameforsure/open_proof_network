@@ -771,6 +771,7 @@ def test_locate_is_the_whole_grammar() -> None:
         f"{T}/qa/backtranslation/root-backtranslation-1.md": "qa-file",
         f"{T}/attempts.yaml": "attempts-ledger",
         f"{T}/drift/20260912T000000Z-opn-watcher-upstream-edit.yaml": "drift-record",
+        f"{N}/relevance.yaml": "relevance",
         f"{N}/META.yaml": "node",
         f"{N}/Statement.lean": "node",
         f"{N}/Context.lean": "node",

@@ -44,7 +44,8 @@
     ],
     "graph": [
       1,
-      2
+      2,
+      3
     ],
     "info": [
       1
@@ -70,6 +71,9 @@
     "qa": [
       1
     ],
+    "relevance": [
+      1
+    ],
     "revision-request": [
       1,
       2
@@ -87,7 +91,8 @@
     "targets-index": [
       1,
       2,
-      3
+      3,
+      4
     ],
     "waiver": [
       1

@@ -7,6 +7,7 @@
       "origin": "authored",
       "proof_commit": "4444444444444444444444444444444444444444",
       "relation": null,
+      "relevance": null,
       "statement_hash": "22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7",
       "status": "proved",
       "trust_base": "compiler",
@@ -22,6 +23,7 @@
       "origin": "authored",
       "proof_commit": null,
       "relation": null,
+      "relevance": null,
       "statement_hash": "1fd9af9053c56877f4e7ec2ad69aa16602d39e826259da3878a8cc30a3b6791c",
       "status": "ready",
       "trust_base": null,
@@ -34,6 +36,7 @@
       "origin": "authored",
       "proof_commit": "4444444444444444444444444444444444444444",
       "relation": null,
+      "relevance": null,
       "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
       "status": "proved",
       "trust_base": "kernel",
@@ -42,6 +45,6 @@
   ],
   "rendered_from": "5555555555555555555555555555555555555555",
   "root": "and-swap-reassoc",
-  "schema": "graph/v2",
+  "schema": "graph/v3",
   "target_id": "propositional"
 }

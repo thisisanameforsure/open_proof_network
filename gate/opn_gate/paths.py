@@ -180,6 +180,7 @@ Role = Literal[
     "qa-file",  # targets/<id>/qa/{exhibits,consequences,briefs,backtranslation}/<name> (F12)
     "attempts-ledger",  # targets/<id>/attempts.yaml: D-9's documented attempts (F12-R10)
     "drift-record",  # targets/<id>/drift/<name>.yaml: the watcher's flag (F12-R11, R12)
+    "relevance",  # nodes/<id>/relevance.yaml: a related variant's one signature (F12-R13)
 ]
 
 #: Roles that claim nothing and merge on schema and path checks alone (F07-R9).
@@ -207,6 +208,7 @@ CURATOR_ROLES: tuple[Role, ...] = (
     "qa-file",
     "attempts-ledger",
     "drift-record",
+    "relevance",
 )
 
 #: What a curated intake adds beside the root node (F11-R2; D-6): the target's own files. A pull
@@ -233,6 +235,7 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "qa-record": ("qa/v1",),
     "attempts-ledger": ("attempts/v1",),
     "drift-record": ("drift/v1",),
+    "relevance": ("relevance/v1",),
 }
 
 #: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers).
@@ -244,6 +247,7 @@ KEEP_FILE = ".gitkeep"
 NODE_DEFINITION_FILES: tuple[str, ...] = ("META.yaml", "Statement.lean", "Context.lean")
 WITNESS_FILE = "Witness.lean"
 RELATION_FILE = "Relation.lean"
+RELEVANCE_FILE = "relevance.yaml"
 KEEP_DIRS: tuple[str, ...] = ("attempts", "annex", "explainer")
 #: What a QA run leaves under ``targets/<id>/qa/`` (F12-R1, R6, R7), each directory flat.
 QA_SUBDIRS: dict[str, tuple[str, ...]] = {
@@ -338,6 +342,8 @@ def _node_role(rest: str) -> Role | None:  # noqa: PLR0911, PLR0912 — one bran
         return "witness"
     if rest == RELATION_FILE:
         return "relation"
+    if rest == RELEVANCE_FILE:
+        return "relevance"
     if any(rest == f"{d}/{KEEP_FILE}" for d in KEEP_DIRS):
         return "keep"
     for directory, role in RECORD_DIRS.items():

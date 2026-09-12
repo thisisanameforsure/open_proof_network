@@ -366,3 +366,67 @@ def test_a_claimable_target_states_no_reasons(listed_pages: dict[str, str]) -> N
     page = listed_pages["targets/index.html"]
     assert page.count("Not claimable, because:") == 1
     assert "Fidelity by subject:" in page and "root mechanical-only" in page
+
+
+# --- F12-T6 / AC11: the target page shows the QA state, the signers, the attempts, the drift ----
+
+
+@pytest.fixture(scope="module")
+def qa_pages(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
+    root = fixture.build_with_qa_target(tmp_path_factory.mktemp("qa"))
+    return render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
+
+
+def test_qa_summary(qa_pages: dict[str, str]) -> None:
+    """AC11, R14: two signers, one drift flag and three attempts (two counted) are visible on
+    the target page, and the upstream diff excerpt is escaped — the injection string appears
+    nowhere unescaped on any page."""
+    page = qa_pages[f"targets/{fixture.QA_TARGET}/index.html"]
+    assert "Statement QA (D-9 v3.12)" in page
+    assert "screened-and-signed; 2 signatures (reviewer-one, reviewer-two)" in page
+    assert "complete" in page and 'class="qa-pass">pass' in page
+    assert "<strong>2</strong> against the statement as it stands" in page
+    assert "1 recorded against an earlier revision no longer count" in page
+    assert "Drift flag: <strong>upstream-edit</strong> on 2026-09-12T04:17:00Z" in page
+    assert "google-deepmind/formal-conjectures" in page and "Proving compute is frozen" in page
+    assert escape(fixture.DIFF_INJECTION) in page, "the diff excerpt is shown, escaped"
+    assert all(fixture.DIFF_INJECTION not in html for html in qa_pages.values()), "unescaped"
+    assert "the statement it was imported from changed upstream" in qa_pages["targets/index.html"]
+
+    # A target that predates the pass says so rather than showing an empty table.
+    old = qa_pages["targets/propositional/index.html"]
+    assert "Statement QA (D-9 v3.12)" in old and (
+        "No statement-QA record" in old or "incomplete" in old
+    )
+
+
+def test_related_variant_pertinence_on_the_target_page(tmp_path: Path) -> None:
+    """R13 on the page: a related variant reads as not yet pertinent, then as pertinent with
+    its signer once the signature is on record."""
+    import sys  # noqa: PLC0415
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "gate" / "tests"))
+    from test_products import related_variant  # noqa: PLC0415
+
+    from opn_gate import products, qa  # noqa: PLC0415
+
+    root = fixture.build(tmp_path)
+    related_variant(root)
+    products.generate(root, rendered_from=fixture.COMMIT, commit_time=fixture.NOW).write(root)
+    page = render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)[
+        "targets/propositional/index.html"
+    ]
+    assert "not yet signed as pertinent" in page
+    qa.sign_relevance(
+        root,
+        "propositional",
+        "variant-related",
+        text="A nearby case.",
+        signer="mike",
+        date="2026-09-12T00:00:00Z",
+    )
+    products.generate(root, rendered_from=fixture.COMMIT, commit_time=fixture.NOW).write(root)
+    page = render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)[
+        "targets/propositional/index.html"
+    ]
+    assert "pertinent to the target, signed by mike on 2026-09-12" in page

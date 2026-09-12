@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from opn_gate import intake, layout, records, schemas
+from opn_gate import intake, layout, records, schemas, watch
 
 #: The product schema versions this generator can render. A consumer parses by version and old
 #: snapshots keep rendering (D-34), so this is a set per product, not a pin: `targets-index/v2`
@@ -21,8 +21,13 @@ from opn_gate import intake, layout, records, schemas
 PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
     "frontier.json": ("frontier/v1", "frontier/v2"),
     "info.json": ("info/v1",),
-    "targets/index.json": ("targets-index/v1", "targets-index/v2", "targets-index/v3"),
-    "graph.json": ("graph/v1", "graph/v2"),
+    "targets/index.json": (
+        "targets-index/v1",
+        "targets-index/v2",
+        "targets-index/v3",
+        "targets-index/v4",
+    ),
+    "graph.json": ("graph/v1", "graph/v2", "graph/v3"),
 }
 KEEP_FILE = ".gitkeep"
 _FRONT_MATTER_RE = re.compile(r"\A---\n(?P<head>.*?)\n---\n(?P<body>.*)\Z", re.S)
@@ -78,6 +83,7 @@ class TargetView:
     approaches: tuple[str, ...]  # file names under approaches/ (D-14; records are F08's)
     note: str | None  # the D-32 note, when targets/<id>/note.md exists
     record: dict[str, Any] | None = None  # targets/<id>/target.yaml (F11-R1), when curated
+    drift: tuple[watch.DriftRecord, ...] = ()  # targets/<id>/drift/*.yaml (F12-R11, R12)
 
     @property
     def root(self) -> str:
@@ -130,6 +136,16 @@ def _load_record(target_dir: Path) -> dict[str, Any] | None:
         return intake.load_doc(target_dir)
     except schemas.SchemaError as exc:
         msg = f"targets/{target_dir.name}/{intake.TARGET_FILE} does not validate: {exc}"
+        raise SiteError(msg) from exc
+
+
+def _load_drift(target_dir: Path) -> tuple[watch.DriftRecord, ...]:
+    """The watcher's records (F12-R11, R12), for the diff excerpt and the citation the target
+    page shows escaped (R14); a malformed one is a ``SiteError`` like any invalid graph file."""
+    try:
+        return tuple(watch.load_drift(target_dir))
+    except schemas.SchemaError as exc:
+        msg = f"targets/{target_dir.name}/drift does not validate: {exc}"
         raise SiteError(msg) from exc
 
 
@@ -282,5 +298,6 @@ def load_site(root: Path, commit: str) -> Site:
             approaches=approaches,
             note=note_path.read_text(encoding="utf-8") if note_path.is_file() else None,
             record=_load_record(target_dir),
+            drift=_load_drift(target_dir),
         )
     return site
