@@ -29,3 +29,13 @@ The sequence, in the curator's hands (each step is a pull request the gate check
     # 4. merge it: the post-merge job applies the children (F07-R6) and renders the products
     # 5. opn-gate fidelity euclid-primes root screened-and-signed --by <a non-author> --evidence ...
     #    opn-gate intake post euclid-primes --venue ... --url ...; opn-gate intake activate euclid-primes
+
+## The five open targets (F11-T5)
+
+`open/` holds one directory per listed open problem — the curator's half of the record
+(`record.yaml`), the statement adapted to D-3's shape with the registry's Apache-2.0 header kept
+verbatim, and its witness — plus `upstream/` with the registry files at the pinned commit and
+`import.sh`, which imports all five onto the graph checkout with `opn-gate intake import-fc`
+(licence gate, attribution, count). The choice and the hand QA pass per statement are
+`engineering/evidence/F11/open-targets.md`. Staged on the graph branch `intake/open-targets`;
+merging that pull request is Mike's approval of the five (F11-Q3).

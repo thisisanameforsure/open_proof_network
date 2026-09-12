@@ -1,0 +1,38 @@
+schema: target/v1
+id: erdos-376
+title: 'Erdős problem 376: central binomial coefficients coprime to 105'
+informal: null
+paraphrase: Whether infinitely many n have the central binomial coefficient C(2n, n) coprime to 105.
+track: open
+source:
+  kind: formal-conjectures
+  ref: FormalConjectures/ErdosProblems/376.lean
+  url: https://www.erdosproblems.com/376
+curator: thisisanameforsure
+prior_art:
+  arxiv_query: null
+  forum_url: https://www.erdosproblems.com/376
+  summary: Open since 1975. Erdős, Graham, Ruzsa and Straus [EGRS75] proved the two-prime case (infinitely
+    many n with C(2n,n) coprime to pq for odd primes p, q), which the registry carries as a solved variant;
+    105 = 3·5·7 is the first three-prime case. Attempted by AlphaProof Nexus (Feb 2026), not solved; Bloom
+    selection; erdos_376 in Formal Conjectures since 2025-04-26, no misformalization issue (trust A).
+library_coverage:
+  mathlib_sha: 0df444a360eaa60ab8c11dca51a86af692955474
+  missing_prerequisites: []
+provenance:
+  statement_source: formal-conjectures
+  author: The Formal Conjectures Authors
+  adversarially_reviewed: false
+  upstream_commit: c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae
+sources: []
+attack_routes:
+- Kummer's theorem on carries in base p for p = 3, 5, 7 simultaneously; the density heuristic for simultaneous
+  carry-free n
+posting: null
+domains:
+- number-theory
+qa_summary: 'Hand QA pass 2026-09-12 (engineering/evidence/F11/open-targets.md): the Lean statement back-translates
+  to — The set of n whose central binomial coefficient is coprime to 105 is infinite. — which matches
+  erdosproblems.com/376; no hypothesis is vacuous; licence Apache-2.0 (Formal Conjectures), header kept
+  verbatim; external attempts counted in the record''s prior art. Grade mechanical-only until a non-author
+  signs it (D-9).'

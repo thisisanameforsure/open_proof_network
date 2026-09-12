@@ -1,0 +1,50 @@
+F11-T5 — the five listed open targets: the pass, the imports, the QA record.
+2026-09-12 (follows task-5-partial.txt, 2026-09-11, which built import-fc and its gate)
+
+STATUS: STAGED — Mike's approval of the five is the merge of intake/open-targets (Q3)
+------------------------------------------------------------------------------------
+What task-5-partial.txt listed as outstanding, and what happened to each:
+
+  - The fact pass, rebuildable: docs/seed_conjecture_sources.json (640 problems) is the join,
+    extracted from the report by docs/seed_conjecture_sources_extract.py; the build script
+    writes it too (--json). The inputs stay commands, not files (Q23: erdosproblems.com states
+    no licence).
+  - Five proposed with reasons: engineering/evidence/F11/open-targets.md — the filter
+    (open, trust A, no misformalization issue, included domain, statable over Mathlib alone),
+    the five (erdos-68, -376, -406, -172, -52), the alternates (#324, #952) and what was set
+    aside and why (#3, #371 need registry helpers; #241, #213 carry local definitions).
+  - Mike's approval: the merge of the pull request from intake/open-targets (graph commit
+    9fe468e, 56 files: five targets, each with record, spec pinning Mathlib 0df444a3…, root
+    over `import Mathlib` with the registry's Apache-2.0 header verbatim, a certificate at
+    mechanical-only, the listed status; THIRD_PARTY_NOTICES.md with five attributions).
+  - R13's QA pass per statement, by hand: in open-targets.md — back-translation and the
+    comparison with the problem as the site states it, the soundness screens, the licence,
+    the external attempts counted (AlphaProof Nexus, Feb 2026; plus the variant solution on
+    the AI wiki for #52), with the sha256 of the registry file at the pin and of the statement
+    as listed.
+  - The graph repository is present here; the imports ran against it (--no-toolchain: the
+    laptop holds no Mathlib image, Q17; the pull request's gate admits each root in the
+    sandbox under the intake mode, T4).
+
+VERIFICATION
+------------
+..                                                                       [100%]
+2 passed, 17 deselected in 0.08s
+
+$ engineering/onramp/open/import.sh ../open_proof_network_graph      (on branch intake/open-targets)
+  imported erdos-68 / erdos-376 / erdos-406 / erdos-172 / erdos-52 — the first run refused
+  erdos-52 ("carries a copyright header that the statement does not"): its registry file is
+  "Copyright 2026", the others 2025, and the adapted statement had copied the wrong year. The
+  licence gate did exactly what AC12 says; fixed, re-imported, the branch amended.
+
+$ git -C ../open_proof_network_graph show --stat 9fe468e | tail -1
+  56 files changed, 744 insertions(+)
+
+WHAT REMAINS MIKE'S
+-------------------
+  1. The re-pin (F10's sitting): the current pin's gate has no intake mode, so the pull request
+     would be refused under it.
+  2. Merge intake/open-targets — that merge is the approval Q3 asks for. The gate admits each
+     root (import Mathlib, in the sandbox on the Mathlib image); the products then list five
+     open targets, not claimable, with the reasons, the attribution and the QA summary on the
+     Targets page (AC9, T2).

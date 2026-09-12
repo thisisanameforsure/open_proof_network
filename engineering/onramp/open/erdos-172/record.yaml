@@ -1,0 +1,39 @@
+schema: target/v1
+id: erdos-172
+title: 'Erdős problem 172: monochromatic sums and products in a finite colouring'
+informal: null
+paraphrase: Whether every finite colouring of the natural numbers has arbitrarily large finite sets all
+  of whose distinct-element sums and products share one colour.
+track: open
+source:
+  kind: formal-conjectures
+  ref: FormalConjectures/ErdosProblems/172.lean
+  url: https://www.erdosproblems.com/172
+curator: thisisanameforsure
+prior_art:
+  arxiv_query: null
+  forum_url: https://www.erdosproblems.com/172
+  summary: Open since 1977 (Erdős–Graham; Hindman's question in the sums-and-products family). Known for
+    |A| = 2 by Moreira (2017) in the form x, x+y, xy; the general finite-A case is open. Attempted by
+    AlphaProof Nexus (Feb 2026), not solved; Bloom selection; erdos_172 in Formal Conjectures since 2025-11-25,
+    no misformalization issue (trust A).
+library_coverage:
+  mathlib_sha: 0df444a360eaa60ab8c11dca51a86af692955474
+  missing_prerequisites: []
+provenance:
+  statement_source: formal-conjectures
+  author: The Formal Conjectures Authors
+  adversarially_reviewed: false
+  upstream_commit: c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae
+sources: []
+attack_routes:
+- Ramsey-theoretic (Hindman/Rado) methods for sums alone are classical; the joint sums-and-products constraint
+  is where every known approach stops
+posting: null
+domains:
+- combinatorics
+qa_summary: 'Hand QA pass 2026-09-12 (engineering/evidence/F11/open-targets.md): the Lean statement back-translates
+  to — For every finite colouring and every m there is a finite set of at least m naturals such that every
+  nonempty subset''s sum and product carry one common colour c. — which matches erdosproblems.com/172;
+  no hypothesis is vacuous; licence Apache-2.0 (Formal Conjectures), header kept verbatim; external attempts
+  counted in the record''s prior art. Grade mechanical-only until a non-author signs it (D-9).'

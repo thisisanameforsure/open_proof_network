@@ -20,11 +20,13 @@ Inputs (all public; fetched into a work directory, see `--work`):
 Run:  uv run --no-project --with pyyaml python3 docs/seed_conjecture_sources_build.py --work <dir>
 """
 import argparse
+import importlib.util
 import datetime as dt
 import glob
 import html
 import json
 import os
+import pathlib
 import re
 import subprocess
 import sys
@@ -345,6 +347,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--work", required=True)
     ap.add_argument("--out", default=os.path.join(os.path.dirname(__file__), "seed_conjecture_sources.html"))
+    ap.add_argument("--json", default=os.path.join(os.path.dirname(__file__), "seed_conjecture_sources.json"),
+                    help="also write the joined dataset here (F11-T5): the same rows the report's "
+                    "catalog renders, extracted by seed_conjecture_sources_extract.py")
     args = ap.parse_args()
     W = args.work
     fc = os.path.join(W, "fc")
@@ -495,7 +500,19 @@ def main():
     page = body.replace("{{ERDOS_TABLE_ROWS}}", "\n".join(trs)).replace("{{OTHER_TABLE_ROWS}}", "\n".join(other))
     open(args.out, "w", encoding="utf-8").write(page)
     print(f"wrote {args.out}: {len(rows)} Erdős rows ({n_open_site} open on site, {n_cand} scoreable, {n_A} A, {n_B} B), {len(other)} non-Erdős files with open statements; missing pages: {missing_pages}")
+    # F11-T5: the joined dataset, from the report just written (one join, two renderings).
+    if args.json:
+        spec = importlib.util.spec_from_file_location(
+            "seed_extract", os.path.join(os.path.dirname(__file__), "seed_conjecture_sources_extract.py")
+        )
+        extract_mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(extract_mod)
+        dataset = extract_mod.extract(pathlib.Path(args.out))
+        with open(args.json, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps(dataset, indent=1, ensure_ascii=False, sort_keys=True) + "\n")
+        print(f"wrote {dataset['count']} problems to {args.json}")
 
 
 if __name__ == "__main__":
+
     main()

@@ -431,3 +431,12 @@ The law of the project:
   back on a process's stdout (`SandboxToolchain.resolve` now probes with one `sh -c`). The
   third time a check that reads a path outside `_exec` has failed only in the sandbox
   (F06-Q6, F08-Q13): treat a host-side `Path` in sandboxed code as a bug on sight.
+- 2026-09-12 — A registry's `answer(sorry) ↔ P` is a question, not a proposition; the graph's
+  statement is P. Formal Conjectures' own docstring says the answer needs a mathematician, which
+  is what D-9's QA record supplies; the negative answer has a home in D-12's counterexample. The
+  licence gate earned its keep on the first run: one file's header said 2026, the adapted
+  statement had copied 2025, and the import was refused by name (F11-Q24).
+- 2026-09-12 — "Rebuildable" for a source the network may not republish means the *command*
+  that fetches it, not the file. The seed pass's inputs include one erdosproblems.com page per
+  problem and the site states no licence, so the dataset is committed (extracted from the
+  report) and the pages are named as fetches (F11-Q23). R10's rule reaches the repository.

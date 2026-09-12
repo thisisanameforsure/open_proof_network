@@ -1,0 +1,41 @@
+schema: target/v1
+id: erdos-52
+title: 'Erdős problem 52: the sum-product conjecture'
+informal: null
+paraphrase: Whether for every ε>0 a finite set of integers has either its sumset or its product set of
+  size at least a constant times |A|^(2−ε).
+track: open
+source:
+  kind: formal-conjectures
+  ref: FormalConjectures/ErdosProblems/52.lean
+  url: https://www.erdosproblems.com/52
+curator: thisisanameforsure
+prior_art:
+  arxiv_query: null
+  forum_url: https://www.erdosproblems.com/52
+  summary: Open since 1977 (Erdős–Szemerédi; $500). The best exponent known is 4/3 + c (Solymosi 2009,
+    Konyagin–Shkredov 2016 and successors), far from 2. Attempted by AlphaProof Nexus (Feb 2026), not
+    solved; Bloom top-10 selection; an AI solution to a *variant* is recorded on the AI-contributions
+    wiki (Claude Mythos, 3 June 2026), not to this statement; erdos_52 in Formal Conjectures since 2026-04-17,
+    no misformalization issue (trust A).
+library_coverage:
+  mathlib_sha: 0df444a360eaa60ab8c11dca51a86af692955474
+  missing_prerequisites: []
+provenance:
+  statement_source: formal-conjectures
+  author: The Formal Conjectures Authors
+  adversarially_reviewed: false
+  upstream_commit: c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae
+sources: []
+attack_routes:
+- Incidence geometry (Szemerédi–Trotter) gives 5/4 and 4/3-type exponents; the conjectured 2−ε is out
+  of reach of every incidence bound
+posting: null
+domains:
+- number-theory
+- combinatorics
+qa_summary: 'Hand QA pass 2026-09-12 (engineering/evidence/F11/open-targets.md): the Lean statement back-translates
+  to — For each ε in (0,1) there is C>0 such that every finite set of integers has max(|A+A|, |A·A|) ≥
+  C·|A|^(2−ε). — which matches erdosproblems.com/52; no hypothesis is vacuous; licence Apache-2.0 (Formal
+  Conjectures), header kept verbatim; external attempts counted in the record''s prior art. Grade mechanical-only
+  until a non-author signs it (D-9).'

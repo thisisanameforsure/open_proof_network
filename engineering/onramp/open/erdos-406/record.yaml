@@ -1,0 +1,39 @@
+schema: target/v1
+id: erdos-406
+title: 'Erdős problem 406: powers of two with only the digits 0 and 1 in base three'
+informal: null
+paraphrase: Whether only finitely many powers of two have base-three expansions using only the digits
+  0 and 1.
+track: open
+source:
+  kind: formal-conjectures
+  ref: FormalConjectures/ErdosProblems/406.lean
+  url: https://www.erdosproblems.com/406
+curator: thisisanameforsure
+prior_art:
+  arxiv_query: null
+  forum_url: https://www.erdosproblems.com/406
+  summary: Open since 1979 (Erdős–Graham). The registry's companion statement (digits 1 and 2, with 2^15
+    conjectured largest) is a variant, also open. Attempted twice by AlphaProof Nexus (Feb 2026), not
+    solved; Bloom selection; erdos_406 in Formal Conjectures since 2025-04-26, no misformalization issue
+    (trust A).
+library_coverage:
+  mathlib_sha: 0df444a360eaa60ab8c11dca51a86af692955474
+  missing_prerequisites: []
+provenance:
+  statement_source: formal-conjectures
+  author: The Formal Conjectures Authors
+  adversarially_reviewed: false
+  upstream_commit: c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae
+sources: []
+attack_routes:
+- Equidistribution of 2^k in base 3 (Lagarias's ternary expansions of 2^n); a finiteness argument would
+  need a digit-avoidance bound no current method gives
+posting: null
+domains:
+- number-theory
+qa_summary: 'Hand QA pass 2026-09-12 (engineering/evidence/F11/open-targets.md): the Lean statement back-translates
+  to — The set of powers of two whose base-3 digits are all 0 or 1 is finite (the affirmative answer to
+  the registry''s yes/no form). — which matches erdosproblems.com/406; no hypothesis is vacuous; licence
+  Apache-2.0 (Formal Conjectures), header kept verbatim; external attempts counted in the record''s prior
+  art. Grade mechanical-only until a non-author signs it (D-9).'
