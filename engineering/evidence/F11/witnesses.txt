@@ -1,0 +1,113 @@
+F11 — the four skeleton holes' witnesses. 2026-09-12
+
+WHAT THIS CLOSES
+----------------
+The on-ramp skeleton merged as pull request #19 and its four `have` holes became
+`skeleton-hole` children of the root (D-12 #5, D-29), each created with an empty witness slot and
+so `blocked` with cause `witness-missing` (F07-R6, F03-R6). A hole cannot be worked on until
+somebody fills that slot. These are the four, submitted through `POST /proposals/witness`
+(F08-R5), one pull request each.
+
+WHAT A WITNESS HAS TO BE
+------------------------
+Step 7's expected type is the statement's hypotheses closed over the variables they mention
+(F01-R3): for `theorem s : ∀ (x₁ : α₁) … (hₖ : Pₖ), C` it is `∃ x₁ …, P₁ ∧ … ∧ Pₖ`. A hole
+inherits the holes before it as hypotheses (F11-Q22), so h3 and h4 can only be witnessed by
+*proving* the earlier lemmas — the witness for a later hole is real mathematics, not a token.
+The four expected types, as the metaprogram derives them:
+
+  h1  ∃ n k, 0 < k ∧ k ≤ n
+  h2  ∃ n m, (∀ k, 0 < k → k ≤ n → Opn.Divides k n.factorial) ∧ 2 ≤ m
+  h3  ∃ n d m, (h1's lemma at n) ∧ (∀ m, 2 ≤ m → ∃ p, Opn.IsPrime p ∧ Opn.Divides p m)
+                ∧ Opn.Divides d m ∧ Opn.Divides d (m + 1)
+  h4  ∃ n k, (h1's lemma at n) ∧ (h2's lemma) ∧ (h3's lemma)
+
+h1 and h2 are discharged by choice: `n = k = 1` for the first, and `n = 0` for the second, which
+makes `∀ k, 0 < k → k ≤ 0 → …` vacuous. h3 and h4 need two real lemmas, and both are in the
+files that carry them:
+
+  exists_prime_divisor  every m ≥ 2 has a prime divisor, by strong induction, with the
+                        non-trivial divisor of a composite extracted classically
+  dvd_consecutive       nothing but 1 divides two consecutive numbers
+
+Both are written over the graph's own `Opn.Divides` and `Opn.IsPrime` (D-6: Mathlib's `Dvd` API
+does not apply to them by name), and `Opn.Divides a b` is core `a ∣ b` written out, so the core
+divisibility lemmas apply to it definitionally — which is the bridge F11-T1 said would be a
+lemma rather than a citation.
+
+LEAN CORE ONLY, AND WHY
+-----------------------
+No Mathlib name appears in any of the four, although the statement's environment offers Mathlib
+(the witness is elaborated on top of the statement's environment, which is why a hole's
+Witness.lean carries no imports of its own). Two reasons: a core proof can be checked on a laptop
+with no Mathlib checkout — this one has 6.6 GiB free and a Mathlib checkout is 6.8 GiB — and it
+cannot break when a Mathlib lemma is renamed under the pin.
+
+VERIFIED BEFORE SUBMISSION
+--------------------------
+Against the gate's own metaprogram, on a Mathlib-free mock of the four statements (the live
+statements with `ℕ` spelled `Nat` and `Nat.factorial` defined locally):
+
+    $ elan run leanprover/lean4:v4.33.1 gate/lean/.lake/build/bin/opn-witness-type \
+        --statement <mock statement> --module … --decl infinitude_of_primes__hN \
+        --witness <the witness> --witness-module …
+
+  h1  {"defeq":true,"ok":true,"witness_axioms":[]}
+  h2  {"defeq":true,"ok":true,"witness_axioms":["propext","Quot.sound"]}
+  h3  {"defeq":true,"ok":true,"witness_axioms":["propext","Classical.choice","Quot.sound"]}
+  h4  {"defeq":true,"ok":true,"witness_axioms":["propext","Classical.choice","Quot.sound"]}
+
+Every axiom is inside the graph's `axiom_allowlist`, and none is `sorryAx`. The mock found one
+real defect before any pull request existed: two consecutive doc comments before one declaration
+is a parse error, which is what the h3 file had.
+
+SUBMITTED — one merged, three refused by a defect that is not theirs
+-------------------------------------------------------------------
+POST /proposals/witness, against the live service, under an account-free identity:
+
+  h1  pull request #20  gate PASS, merged 2026-09-12T18:22:50Z (merge 89c5aef, bot 6e2f27f)
+  h2  pull request #21  gate FAIL — hazards: off-by-one-range at `2 ≤ m`, unacknowledged
+  h3  pull request #22  gate FAIL — same
+  h4  pull request #23  gate FAIL — same
+
+The witness check itself passed on every one of them. #22's verdict prints `expected` and
+`witness` as the same string, character for character — the type derived on the laptop's
+Mathlib-free mock is the type the live Mathlib toolchain derives — and admission failed two
+checks later, at `hazards`.
+
+The finding is not in the witness. Step 6 runs the checkers over `Statement.lean` and nothing
+else (`opn_gate/steps/hazards.py` builds its request from `node_dir / "Statement.lean"`), so a
+Witness.lean cannot cause or cure it. Run locally on the statements alone, with no witness
+present at all:
+
+    $ opn-hazards --statement <h1 statement> --decl infinitude_of_primes__h1 \
+        --checkers off-by-one-range
+    {"checkers":["off-by-one-range"],"findings":[],"ok":true}
+
+    $ opn-hazards --statement <h2 statement> --decl infinitude_of_primes__h2 \
+        --checkers off-by-one-range
+    {"checkers":["off-by-one-range"],"findings":[{"checker":"off-by-one-range",
+     "location":"2 ≤ m","message":"comparison against an explicit literal: check whether the
+     boundary is inclusive or exclusive"}],"ok":true}
+
+    $ grep -l acknowledged_hazards targets/euclid-primes/nodes/*/META.yaml
+    (none)
+
+So h2, h3 and h4 carry an unacknowledged hazard in statements the post-merge job generated from
+the assembly, and their META.yaml has no `acknowledged_hazards` because nothing wrote one. Step 6
+refuses them, and `POST /proposals/witness` pushes only `Witness.lean` (F08-R5), so no proposal
+can ever supply the acknowledgment. Those three nodes cannot accept any submission from anyone
+until a curator writes the acknowledgment into their META.yaml. h1 merged only because its
+obligation happens to contain no literal comparison.
+
+Logged as F07-Q19. The three pull requests are left open: they are correct work waiting on the
+acknowledgment, and they become mergeable the moment it lands.
+
+WHAT h1's MERGE PROVED BESIDES THE WITNESS
+------------------------------------------
+It was the first merge under the new pin, and the gate pulled the published image instead of
+building one: `INFO opn_gate: pulling the pinned image ghcr.io/...@sha256:05f36709...`, with
+admission finishing 2 min 20 s after the pull began, against about six minutes to build a Mathlib
+image per job (F11-Q29). The post-merge job then regenerated the products, wrote the proposer's
+statement line, assumed the cache upload role by OIDC and published the olean cache — every step
+green, which is F10-AC11's unattended publish.

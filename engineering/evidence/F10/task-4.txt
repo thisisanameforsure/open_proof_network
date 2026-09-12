@@ -106,3 +106,52 @@ So the whole path — sandboxed build, pack, S3 upload, CloudFront, https fetch,
 verification, ancestry choice — works on the live bucket. What AC11 still needs is the
 post-merge job doing it unattended after a merge and CI's next run reporting hits, which is
 Mike's sitting (above).
+
+================================================================================
+AC11 (network) — MET 2026-09-12. The post-merge job published the cache, unattended.
+================================================================================
+
+The four repository variables were set on the graph, the seven targets re-pinned (graph f1d6719),
+and the first merge under that pin was pull request #20, the h1 witness (merge commit 89c5aef).
+The post-merge job ran every step green, the two new ones included:
+
+    13. Assume the cache upload role (OIDC, no stored key): success
+    14. Publish the olean cache for this commit (F10-R7; no gate secret in this step): success
+
+and its own log shows the upload rather than a skip:
+
+    uv run --frozen --project network python -m opn_gate.cli cache publish \
+      --sandbox --bucket "opn-site-cachebucket-ybt7xgxymwwj" --prefix "cache" ...
+    "manifest": "/tmp/opn-cache-publish-29ls6zfx/manifest.json",
+    "uploaded": true,
+
+COMMAND
+-------
+uv run --frozen python gate/tools/check_cache.py 89c5aef30926644b3d20eccd3d63be2e7c0cb8e7 \
+    --target euclid-primes
+
+OUTPUT
+------
+cache: https://openproofnetwork.org/cache (target euclid-primes)
+index: 1 cache(s): ['89c5aef30926']
+verified: 45 bytes, 0 module(s), toolchain leanprover/lean4:v4.33.1, network 54180a13d50f
+timings: fetch 2.24s, verify+extract 0.00s
+newest at or before 89c5aef30926 on this checkout's history: 89c5aef30926644b3d20eccd3d63be2e7c0cb8e7
+{"ok": true, "problems": []}
+exit=0
+
+Two readings to keep honest about this run:
+
+- The cache is keyed by the **merge commit**, not by the bot commit the job goes on to make; the
+  bot commit does not exist when the job publishes. Run against the bot commit the checker
+  answers `no cache for 6e2f27f`, correctly. The default `--target tutorial` also has to be
+  overridden: the merge was on euclid-primes.
+- It is an **empty** cache — 45 bytes, 0 modules — because euclid-primes has no compiled module
+  to pack: its root has no proof and its holes are blocked. So this run proves the pipeline (role
+  assumption, pack, upload, index, https fetch, manifest verification) and not that a cache saves
+  time on that target. The saving is proved elsewhere, on the tutorial target: pregate on the
+  live graph under the new pin logged `INFO opn_gate.cache: olean cache hit: 5edb9e8e9c4b` and
+  passed all seven steps.
+
+R10's CI and precheck timings are still to be taken from a run that actually consumes a
+non-empty cache on a Mathlib target, which needs a proof to merge there first.
