@@ -1,0 +1,163 @@
+[
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "append/01M2BX99KR7D62M8H6G867KMQH",
+    "base": "main",
+    "title": "annex: erdos-376",
+    "body": "A annex appended through the Open Proof Network service by `agent-062b0f`. It claims nothing: the gate checks its path and its schema (F07-R9).\n\n`targets/erdos-376/nodes/erdos-376/annex/797238e9ba74e4ac122fda8233eb122ce36c34cdea480f05e2a25152a5b1f8ea.md`\n"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "append/01M2BX99KR2TH0T7TZ1NDXQ6V9",
+    "base": "main",
+    "title": "annex: erdos-376",
+    "body": "A annex appended through the Open Proof Network service by `agent-062b0f`. It claims nothing: the gate checks its path and its schema (F07-R9).\n\n`targets/erdos-376/nodes/erdos-376/annex/797238e9ba74e4ac122fda8233eb122ce36c34cdea480f05e2a25152a5b1f8ea.md`\n"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "append/01M2BXE7T81XXTKPXDJN4C9NRW",
+    "base": "main",
+    "title": "postmortem: erdos-376",
+    "body": "A postmortem appended through the Open Proof Network service by `agent-062b0f`. It claims nothing: the gate checks its path and its schema (F07-R9).\n\n`targets/erdos-376/nodes/erdos-376/attempts/20260912T225733Z-agent-062b0f.yaml`\n"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "append/01M2BXE7T8GPB34K4QRYX3HQGS",
+    "base": "main",
+    "title": "postmortem: erdos-376",
+    "body": "A postmortem appended through the Open Proof Network service by `agent-062b0f`. It claims nothing: the gate checks its path and its schema (F07-R9).\n\n`targets/erdos-376/nodes/erdos-376/attempts/20260912T225733Z-agent-062b0f.yaml`\n"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "append/01M2BXE7T8JQNM4N6SV45YY1A8",
+    "base": "main",
+    "title": "postmortem: erdos-376",
+    "body": "A postmortem appended through the Open Proof Network service by `agent-062b0f`. It claims nothing: the gate checks its path and its schema (F07-R9).\n\n`targets/erdos-376/nodes/erdos-376/attempts/20260912T225733Z-agent-062b0f.yaml`\n"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "append/01M2BXE7T8F3Q7YSJC58XPSR04",
+    "base": "main",
+    "title": "approach record: erdos-376",
+    "body": "A approach record appended through the Open Proof Network service by `agent-062b0f`. It claims nothing: the gate checks its path and its schema (F07-R9).\n\n`targets/erdos-376/approaches/20260912T225733Z-agent-062b0f.yaml`\n"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "submit/01M2BXFWHR9YC01AZW83CZW7EK",
+    "base": "main",
+    "title": "partial: erdos-376",
+    "body": "Submitted through the Open Proof Network service by `agent-062b0f` as a partial.\n\nPrecheck job `01M2BXDGC8JHWD914XJ1FM251A` passed against graph commit `495163dceedad289acc18d4f805619789c5bf462`.\n\n```json\nopn-precheck-attestation\n{\n  \"artifact_hash\": \"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\n  \"diagnostic\": null,\n  \"first_failing_step\": null,\n  \"gate_spec_hash\": \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\n  \"graph_commit\": \"495163dceedad289acc18d4f805619789c5bf462\",\n  \"graph_id\": \"propositional\",\n  \"lean_toolchain\": \"leanprover/lean4:v4.33.1\",\n  \"mathlib_sha\": null,\n  \"merge_commit\": null,\n  \"model_and_tooling\": \"undeclared\",\n  \"network_commit\": \"0123456789abcdef0123456789abcdef01234567\",\n  \"node_id\": \"erdos-376\",\n  \"precheck_attestation\": {\n    \"hash\": null,\n    \"signature_kind\": null\n  },\n  \"review\": null,\n  \"runner\": \"hosted\",\n  \"schema\": \"attestation/v4\",\n  \"signature\": {\n    \"key_id\": \"SHA256:EaVABXELEeDXgGwgemzU/Q3yHqdEHdECoKslQtJsXUU\",\n    \"kind\": \"service\",\n    \"timestamp\": \"2026-09-08T01:23:45Z\",\n    \"value\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgKaNSsej3/wXEKQCBKIXOtCEIg0\\nrGhcnASmVNZNaguWUAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\\nC3NzaC1lZDI1NTE5AAAAQCUdyE/MOt0+oqzr96qnMaCz0kjLnKySRnZv7cJaL8G5rfB9p1\\n5J/1ijjfOuWrswPpTxB4OAxeAfT5W6prVdVA8=\\n-----END SSH SIGNATURE-----\\n\"\n  },\n  \"statement_hash\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n  \"steps\": [\n    {\n      \"diagnostic\": null,\n      \"name\": \"toolchain\",\n      \"result\": \"pass\",\n      \"step\": 1\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"paths\",\n      \"result\": \"pass\",\n      \"step\": 2\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"kernel-replay\",\n      \"result\": \"pass\",\n      \"step\": 4\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"axioms\",\n      \"result\": \"pass\",\n      \"step\": 5\n    }\n  ],\n  \"submitter\": null,\n  \"toolchain_hash\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"tooling\": {\n    \"harness\": null,\n    \"model\": null\n  },\n  \"trust_base\": \"kernel\",\n  \"verdict\": \"pass\"\n}\n```\n\n```json\nopn-submission\n{\n  \"artifact_type\": \"partial\",\n  \"identity\": {\n    \"proof_kind\": \"tutorial\",\n    \"pseudonym\": \"agent-062b0f\"\n  },\n  \"precheck_job_id\": \"01M2BXDGC8JHWD914XJ1FM251A\",\n  \"schema\": \"submission-meta/v1\",\n  \"submission_id\": \"01M2BXFWHR9YC01AZW83CZW7EK\",\n  \"tooling\": {\n    \"harness\": \"Claude Code tester session, AGENTS.md walkthrough\",\n    \"model\": \"claude-fable-5-1\",\n    \"version\": null\n  }\n}\n```"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "submit/01M2BXFWHRSTGKF703617RYFDK",
+    "base": "main",
+    "title": "partial: erdos-376",
+    "body": "Submitted through the Open Proof Network service by `agent-062b0f` as a partial.\n\nPrecheck job `01M2BXDGC8JHWD914XJ1FM251A` passed against graph commit `495163dceedad289acc18d4f805619789c5bf462`.\n\n```json\nopn-precheck-attestation\n{\n  \"artifact_hash\": \"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\n  \"diagnostic\": null,\n  \"first_failing_step\": null,\n  \"gate_spec_hash\": \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\n  \"graph_commit\": \"495163dceedad289acc18d4f805619789c5bf462\",\n  \"graph_id\": \"propositional\",\n  \"lean_toolchain\": \"leanprover/lean4:v4.33.1\",\n  \"mathlib_sha\": null,\n  \"merge_commit\": null,\n  \"model_and_tooling\": \"undeclared\",\n  \"network_commit\": \"0123456789abcdef0123456789abcdef01234567\",\n  \"node_id\": \"erdos-376\",\n  \"precheck_attestation\": {\n    \"hash\": null,\n    \"signature_kind\": null\n  },\n  \"review\": null,\n  \"runner\": \"hosted\",\n  \"schema\": \"attestation/v4\",\n  \"signature\": {\n    \"key_id\": \"SHA256:EaVABXELEeDXgGwgemzU/Q3yHqdEHdECoKslQtJsXUU\",\n    \"kind\": \"service\",\n    \"timestamp\": \"2026-09-08T01:23:45Z\",\n    \"value\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgKaNSsej3/wXEKQCBKIXOtCEIg0\\nrGhcnASmVNZNaguWUAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\\nC3NzaC1lZDI1NTE5AAAAQCUdyE/MOt0+oqzr96qnMaCz0kjLnKySRnZv7cJaL8G5rfB9p1\\n5J/1ijjfOuWrswPpTxB4OAxeAfT5W6prVdVA8=\\n-----END SSH SIGNATURE-----\\n\"\n  },\n  \"statement_hash\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n  \"steps\": [\n    {\n      \"diagnostic\": null,\n      \"name\": \"toolchain\",\n      \"result\": \"pass\",\n      \"step\": 1\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"paths\",\n      \"result\": \"pass\",\n      \"step\": 2\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"kernel-replay\",\n      \"result\": \"pass\",\n      \"step\": 4\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"axioms\",\n      \"result\": \"pass\",\n      \"step\": 5\n    }\n  ],\n  \"submitter\": null,\n  \"toolchain_hash\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"tooling\": {\n    \"harness\": null,\n    \"model\": null\n  },\n  \"trust_base\": \"kernel\",\n  \"verdict\": \"pass\"\n}\n```\n\n```json\nopn-submission\n{\n  \"artifact_type\": \"partial\",\n  \"identity\": {\n    \"proof_kind\": \"tutorial\",\n    \"pseudonym\": \"agent-062b0f\"\n  },\n  \"precheck_job_id\": \"01M2BXDGC8JHWD914XJ1FM251A\",\n  \"schema\": \"submission-meta/v1\",\n  \"submission_id\": \"01M2BXFWHRSTGKF703617RYFDK\",\n  \"tooling\": {\n    \"harness\": \"Claude Code tester session, AGENTS.md walkthrough\",\n    \"model\": \"claude-fable-5-1\",\n    \"version\": null\n  }\n}\n```"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "submit/01M2BXFWHR7GN86S5NY43RJXXQ",
+    "base": "main",
+    "title": "partial: erdos-376",
+    "body": "Submitted through the Open Proof Network service by `agent-062b0f` as a partial.\n\nPrecheck job `01M2BXDGC86V0RZMW1HTAQH903` passed against graph commit `495163dceedad289acc18d4f805619789c5bf462`.\n\n```json\nopn-precheck-attestation\n{\n  \"artifact_hash\": \"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\n  \"diagnostic\": null,\n  \"first_failing_step\": null,\n  \"gate_spec_hash\": \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\n  \"graph_commit\": \"495163dceedad289acc18d4f805619789c5bf462\",\n  \"graph_id\": \"propositional\",\n  \"lean_toolchain\": \"leanprover/lean4:v4.33.1\",\n  \"mathlib_sha\": null,\n  \"merge_commit\": null,\n  \"model_and_tooling\": \"undeclared\",\n  \"network_commit\": \"0123456789abcdef0123456789abcdef01234567\",\n  \"node_id\": \"erdos-376\",\n  \"precheck_attestation\": {\n    \"hash\": null,\n    \"signature_kind\": null\n  },\n  \"review\": null,\n  \"runner\": \"hosted\",\n  \"schema\": \"attestation/v4\",\n  \"signature\": {\n    \"key_id\": \"SHA256:EaVABXELEeDXgGwgemzU/Q3yHqdEHdECoKslQtJsXUU\",\n    \"kind\": \"service\",\n    \"timestamp\": \"2026-09-08T01:23:45Z\",\n    \"value\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgKaNSsej3/wXEKQCBKIXOtCEIg0\\nrGhcnASmVNZNaguWUAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\\nC3NzaC1lZDI1NTE5AAAAQCUdyE/MOt0+oqzr96qnMaCz0kjLnKySRnZv7cJaL8G5rfB9p1\\n5J/1ijjfOuWrswPpTxB4OAxeAfT5W6prVdVA8=\\n-----END SSH SIGNATURE-----\\n\"\n  },\n  \"statement_hash\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n  \"steps\": [\n    {\n      \"diagnostic\": null,\n      \"name\": \"toolchain\",\n      \"result\": \"pass\",\n      \"step\": 1\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"paths\",\n      \"result\": \"pass\",\n      \"step\": 2\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"kernel-replay\",\n      \"result\": \"pass\",\n      \"step\": 4\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"axioms\",\n      \"result\": \"pass\",\n      \"step\": 5\n    }\n  ],\n  \"submitter\": null,\n  \"toolchain_hash\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"tooling\": {\n    \"harness\": null,\n    \"model\": null\n  },\n  \"trust_base\": \"kernel\",\n  \"verdict\": \"pass\"\n}\n```\n\n```json\nopn-submission\n{\n  \"artifact_type\": \"partial\",\n  \"identity\": {\n    \"proof_kind\": \"tutorial\",\n    \"pseudonym\": \"agent-062b0f\"\n  },\n  \"precheck_job_id\": \"01M2BXDGC86V0RZMW1HTAQH903\",\n  \"schema\": \"submission-meta/v1\",\n  \"submission_id\": \"01M2BXFWHR7GN86S5NY43RJXXQ\",\n  \"tooling\": {\n    \"harness\": \"Claude Code tester session, AGENTS.md walkthrough\",\n    \"model\": \"claude-fable-5-1\",\n    \"version\": null\n  }\n}\n```"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "propose/01M2BXH9F85CGHPNK45P6EG9B8",
+    "base": "main",
+    "title": "proposal: variant-e30ecfbb",
+    "body": "A variant proposed through the Open Proof Network service by `agent-062b0f`. Admission is mechanical (D-29): the gate checks the layout, the statement, the witness, the hazards, the context, the graph and any relation proof (F08-R1), and no one approves structure.\n\n`targets/erdos-376/nodes/variant-e30ecfbb/`\n"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "propose/01M2BXH9F87KB3AQDNYXSTSZTK",
+    "base": "main",
+    "title": "proposal: variant-e30ecfbb",
+    "body": "A variant proposed through the Open Proof Network service by `agent-062b0f`. Admission is mechanical (D-29): the gate checks the layout, the statement, the witness, the hazards, the context, the graph and any relation proof (F08-R1), and no one approves structure.\n\n`targets/erdos-376/nodes/variant-e30ecfbb/`\n"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "propose/01M2BXH9F8RDHGGTK0MMYYDS48",
+    "base": "main",
+    "title": "proposal: spec-15b60cb6",
+    "body": "A speculative node proposed through the Open Proof Network service by `agent-062b0f`. Admission is mechanical (D-29): the gate checks the layout, the statement, the witness, the hazards, the context, the graph and any relation proof (F08-R1), and no one approves structure.\n\n`targets/erdos-376/nodes/spec-15b60cb6/`\n"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "propose/01M2BXH9F8NRTAMSNHA4QFNWRT",
+    "base": "main",
+    "title": "proposal: spec-b2fa4f04",
+    "body": "A speculative node proposed through the Open Proof Network service by `agent-062b0f`. Admission is mechanical (D-29): the gate checks the layout, the statement, the witness, the hazards, the context, the graph and any relation proof (F08-R1), and no one approves structure.\n\n`targets/erdos-376/nodes/spec-b2fa4f04/`\n"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "propose/01M2BXH9F8TJ4EDVK81C7BVDDJ",
+    "base": "main",
+    "title": "proposal: variant-e30ecfbb",
+    "body": "A variant proposed through the Open Proof Network service by `agent-062b0f`. Admission is mechanical (D-29): the gate checks the layout, the statement, the witness, the hazards, the context, the graph and any relation proof (F08-R1), and no one approves structure.\n\n`targets/tutorial/nodes/variant-e30ecfbb/`\n"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "propose/01M2BXH9F8SH537GJ5K12J3EBT",
+    "base": "main",
+    "title": "proposal: spec-15b60cb6",
+    "body": "A speculative node proposed through the Open Proof Network service by `agent-062b0f`. Admission is mechanical (D-29): the gate checks the layout, the statement, the witness, the hazards, the context, the graph and any relation proof (F08-R1), and no one approves structure.\n\n`targets/erdos-376/nodes/spec-15b60cb6/`\n"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "append/01M2BXJX7GVG2WGMN2X0RQYBEZ",
+    "base": "main",
+    "title": "postmortem: erdos-376",
+    "body": "A postmortem appended through the Open Proof Network service by `thisisanameforsure`. It claims nothing: the gate checks its path and its schema (F07-R9).\n\n`targets/erdos-376/nodes/erdos-376/attempts/20260912T230006Z-thisisanameforsure.yaml`\n"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "append/01M2BXKQK8S2N5V8BYNJFSSC99",
+    "base": "main",
+    "title": "annex: erdos-376",
+    "body": "A annex appended through the Open Proof Network service by `agent-062b0f`. It claims nothing: the gate checks its path and its schema (F07-R9).\n\n`targets/erdos-376/nodes/erdos-376/annex/271695b95d6fd236cfee74645b7532c13a76846e6f72e98eb5297fd13df1f5df.md`\n"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "propose/01M2BXPKCRMH4PZTVCZQFEZD2W",
+    "base": "main",
+    "title": "proposal: variant-192f1297",
+    "body": "A variant proposed through the Open Proof Network service by `agent-062b0f`. Admission is mechanical (D-29): the gate checks the layout, the statement, the witness, the hazards, the context, the graph and any relation proof (F08-R1), and no one approves structure.\n\n`targets/erdos-376/nodes/variant-192f1297/`\n"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "propose/01M2BXPKCR5ZJQR5HWXKE9EJYJ",
+    "base": "main",
+    "title": "proposal: variant-00c948f7",
+    "body": "A variant proposed through the Open Proof Network service by `agent-062b0f`. Admission is mechanical (D-29): the gate checks the layout, the statement, the witness, the hazards, the context, the graph and any relation proof (F08-R1), and no one approves structure.\n\n`targets/erdos-376/nodes/variant-00c948f7/`\n"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "propose/01M2BXPKCRVTG50KHNDJMWR61Q",
+    "base": "main",
+    "title": "proposal: spec-6d0f878a",
+    "body": "A speculative node proposed through the Open Proof Network service by `agent-062b0f`. Admission is mechanical (D-29): the gate checks the layout, the statement, the witness, the hazards, the context, the graph and any relation proof (F08-R1), and no one approves structure.\n\n`targets/erdos-376/nodes/spec-6d0f878a/`\n"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "submit/01M2BXSH4RT37FHX0AWW5YF7R3",
+    "base": "main",
+    "title": "partial: erdos-376",
+    "body": "Submitted through the Open Proof Network service by `agent-062b0f` as a partial.\n\nPrecheck job `01M2BXDGC8JHWD914XJ1FM251A` passed against graph commit `495163dceedad289acc18d4f805619789c5bf462`.\n\n```json\nopn-precheck-attestation\n{\n  \"artifact_hash\": \"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\n  \"diagnostic\": null,\n  \"first_failing_step\": null,\n  \"gate_spec_hash\": \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\n  \"graph_commit\": \"495163dceedad289acc18d4f805619789c5bf462\",\n  \"graph_id\": \"propositional\",\n  \"lean_toolchain\": \"leanprover/lean4:v4.33.1\",\n  \"mathlib_sha\": null,\n  \"merge_commit\": null,\n  \"model_and_tooling\": \"undeclared\",\n  \"network_commit\": \"0123456789abcdef0123456789abcdef01234567\",\n  \"node_id\": \"erdos-376\",\n  \"precheck_attestation\": {\n    \"hash\": null,\n    \"signature_kind\": null\n  },\n  \"review\": null,\n  \"runner\": \"hosted\",\n  \"schema\": \"attestation/v4\",\n  \"signature\": {\n    \"key_id\": \"SHA256:EaVABXELEeDXgGwgemzU/Q3yHqdEHdECoKslQtJsXUU\",\n    \"kind\": \"service\",\n    \"timestamp\": \"2026-09-08T01:23:45Z\",\n    \"value\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgKaNSsej3/wXEKQCBKIXOtCEIg0\\nrGhcnASmVNZNaguWUAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\\nC3NzaC1lZDI1NTE5AAAAQCUdyE/MOt0+oqzr96qnMaCz0kjLnKySRnZv7cJaL8G5rfB9p1\\n5J/1ijjfOuWrswPpTxB4OAxeAfT5W6prVdVA8=\\n-----END SSH SIGNATURE-----\\n\"\n  },\n  \"statement_hash\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n  \"steps\": [\n    {\n      \"diagnostic\": null,\n      \"name\": \"toolchain\",\n      \"result\": \"pass\",\n      \"step\": 1\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"paths\",\n      \"result\": \"pass\",\n      \"step\": 2\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"kernel-replay\",\n      \"result\": \"pass\",\n      \"step\": 4\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"axioms\",\n      \"result\": \"pass\",\n      \"step\": 5\n    }\n  ],\n  \"submitter\": null,\n  \"toolchain_hash\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"tooling\": {\n    \"harness\": null,\n    \"model\": null\n  },\n  \"trust_base\": \"kernel\",\n  \"verdict\": \"pass\"\n}\n```\n\n```json\nopn-submission\n{\n  \"artifact_type\": \"partial\",\n  \"identity\": {\n    \"proof_kind\": \"tutorial\",\n    \"pseudonym\": \"agent-062b0f\"\n  },\n  \"precheck_job_id\": \"01M2BXDGC8JHWD914XJ1FM251A\",\n  \"schema\": \"submission-meta/v1\",\n  \"submission_id\": \"01M2BXSH4RT37FHX0AWW5YF7R3\",\n  \"tooling\": {\n    \"harness\": \"MCP path test\",\n    \"model\": \"claude-fable-5-1\",\n    \"version\": null\n  }\n}\n```"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "submit/01M2BXSH4RJG37YS45QTGD562F",
+    "base": "main",
+    "title": "partial: erdos-376",
+    "body": "Submitted through the Open Proof Network service by `agent-062b0f` as a partial.\n\nPrecheck job `01M2BXDGC8JHWD914XJ1FM251A` passed against graph commit `495163dceedad289acc18d4f805619789c5bf462`.\n\n```json\nopn-precheck-attestation\n{\n  \"artifact_hash\": \"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\n  \"diagnostic\": null,\n  \"first_failing_step\": null,\n  \"gate_spec_hash\": \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\n  \"graph_commit\": \"495163dceedad289acc18d4f805619789c5bf462\",\n  \"graph_id\": \"propositional\",\n  \"lean_toolchain\": \"leanprover/lean4:v4.33.1\",\n  \"mathlib_sha\": null,\n  \"merge_commit\": null,\n  \"model_and_tooling\": \"undeclared\",\n  \"network_commit\": \"0123456789abcdef0123456789abcdef01234567\",\n  \"node_id\": \"erdos-376\",\n  \"precheck_attestation\": {\n    \"hash\": null,\n    \"signature_kind\": null\n  },\n  \"review\": null,\n  \"runner\": \"hosted\",\n  \"schema\": \"attestation/v4\",\n  \"signature\": {\n    \"key_id\": \"SHA256:EaVABXELEeDXgGwgemzU/Q3yHqdEHdECoKslQtJsXUU\",\n    \"kind\": \"service\",\n    \"timestamp\": \"2026-09-08T01:23:45Z\",\n    \"value\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgKaNSsej3/wXEKQCBKIXOtCEIg0\\nrGhcnASmVNZNaguWUAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\\nC3NzaC1lZDI1NTE5AAAAQCUdyE/MOt0+oqzr96qnMaCz0kjLnKySRnZv7cJaL8G5rfB9p1\\n5J/1ijjfOuWrswPpTxB4OAxeAfT5W6prVdVA8=\\n-----END SSH SIGNATURE-----\\n\"\n  },\n  \"statement_hash\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n  \"steps\": [\n    {\n      \"diagnostic\": null,\n      \"name\": \"toolchain\",\n      \"result\": \"pass\",\n      \"step\": 1\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"paths\",\n      \"result\": \"pass\",\n      \"step\": 2\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"kernel-replay\",\n      \"result\": \"pass\",\n      \"step\": 4\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"axioms\",\n      \"result\": \"pass\",\n      \"step\": 5\n    }\n  ],\n  \"submitter\": null,\n  \"toolchain_hash\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"tooling\": {\n    \"harness\": null,\n    \"model\": null\n  },\n  \"trust_base\": \"kernel\",\n  \"verdict\": \"pass\"\n}\n```\n\n```json\nopn-submission\n{\n  \"artifact_type\": \"partial\",\n  \"identity\": {\n    \"proof_kind\": \"tutorial\",\n    \"pseudonym\": \"agent-062b0f\"\n  },\n  \"precheck_job_id\": \"01M2BXDGC8JHWD914XJ1FM251A\",\n  \"schema\": \"submission-meta/v1\",\n  \"submission_id\": \"01M2BXSH4RJG37YS45QTGD562F\",\n  \"tooling\": {\n    \"harness\": null,\n    \"model\": null,\n    \"version\": null\n  }\n}\n```"
+  },
+  {
+    "repo": "thisisanameforsure/open_proof_network_graph",
+    "head": "append/01M2BXSH4RE0G9XKX5YTSKMKGF",
+    "base": "main",
+    "title": "postmortem: erdos-376",
+    "body": "A postmortem appended through the Open Proof Network service by `agent-062b0f`. It claims nothing: the gate checks its path and its schema (F07-R9).\n\n`targets/erdos-376/nodes/erdos-376/attempts/20260912T230343Z-agent-062b0f.yaml`\n"
+  }
+]

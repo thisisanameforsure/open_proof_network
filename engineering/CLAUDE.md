@@ -536,3 +536,11 @@ The law of the project:
   updated in the gap between the merge and its `gate: #N pass` commit is BEHIND again by the time
   its gate is green, and a loop waiting for CLEAN waits forever. Sequence pull requests as merge →
   wait for the bot commit → update the next branch; the merge script now does.
+- 2026-09-12 — Hand the network to a fresh agent and ask it to push a frontier: twenty minutes on
+  a staged bench (the real service over the test suite's fake host, seeded with the live graph,
+  because the container cannot reach the live hosts) produced 23 pull requests and a 23-item bug
+  list, and replaying them through `classify` and `products` found the two things the tester
+  could not see — the first merged variant or crux on any of the five Erdős targets stops the
+  products because no `target-status` record declares a `root` (F08-Q19 again; the tutorial's
+  was written by hand), and three postmortems filed in one second share a file name, so a merge
+  keeps one. Notes and the replay in `engineering/session-notes/2026-09-12-erdos-376-tester.md`.

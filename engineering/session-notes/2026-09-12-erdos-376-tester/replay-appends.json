@@ -1,0 +1,1512 @@
+{
+  "base": "02a4e239fcbfd23f8bdcbb9d40ca7fd4a13cffe7",
+  "pushes": [
+    {
+      "n": 1,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "append/01M2BX99KR7D62M8H6G867KMQH",
+      "message": "annex: erdos-376\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T22:54:51Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T22:54:51Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "append/01M2BX99KR7D62M8H6G867KMQH",
+        "base": "main",
+        "title": "annex: erdos-376",
+        "body": "A annex appended through the Open Proof Network service by `agent-062b0f`. It claims nothing: the gate checks its path and its schema (F07-R9).\n\n`targets/erdos-376/nodes/erdos-376/annex/797238e9ba74e4ac122fda8233eb122ce36c34cdea480f05e2a25152a5b1f8ea.md`\n"
+      },
+      "files": [
+        "targets/erdos-376/nodes/erdos-376/annex/797238e9ba74e4ac122fda8233eb122ce36c34cdea480f05e2a25152a5b1f8ea.md"
+      ],
+      "diff": "A\ttargets/erdos-376/nodes/erdos-376/annex/797238e9ba74e4ac122fda8233eb122ce36c34cdea480f05e2a25152a5b1f8ea.md\n",
+      "classification": {
+        "mode": "append",
+        "target": "erdos-376",
+        "node": "erdos-376",
+        "needs_gate": false,
+        "needs_admission": false,
+        "admit": null,
+        "needs_review": false,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": "58b9c0fce8173562a81d35bf406fd3b678044832",
+      "admitted": true
+    },
+    {
+      "n": 2,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "append/01M2BX99KR2TH0T7TZ1NDXQ6V9",
+      "message": "annex: erdos-376\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T22:54:51Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T22:54:51Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "append/01M2BX99KR2TH0T7TZ1NDXQ6V9",
+        "base": "main",
+        "title": "annex: erdos-376",
+        "body": "A annex appended through the Open Proof Network service by `agent-062b0f`. It claims nothing: the gate checks its path and its schema (F07-R9).\n\n`targets/erdos-376/nodes/erdos-376/annex/797238e9ba74e4ac122fda8233eb122ce36c34cdea480f05e2a25152a5b1f8ea.md`\n"
+      },
+      "files": [
+        "targets/erdos-376/nodes/erdos-376/annex/797238e9ba74e4ac122fda8233eb122ce36c34cdea480f05e2a25152a5b1f8ea.md"
+      ],
+      "diff": "A\ttargets/erdos-376/nodes/erdos-376/annex/797238e9ba74e4ac122fda8233eb122ce36c34cdea480f05e2a25152a5b1f8ea.md\n",
+      "classification": {
+        "mode": "append",
+        "target": "erdos-376",
+        "node": "erdos-376",
+        "needs_gate": false,
+        "needs_admission": false,
+        "admit": null,
+        "needs_review": false,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": null
+    },
+    {
+      "n": 3,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "append/01M2BXE7T81XXTKPXDJN4C9NRW",
+      "message": "postmortem: erdos-376\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T22:57:33Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T22:57:33Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "append/01M2BXE7T81XXTKPXDJN4C9NRW",
+        "base": "main",
+        "title": "postmortem: erdos-376",
+        "body": "A postmortem appended through the Open Proof Network service by `agent-062b0f`. It claims nothing: the gate checks its path and its schema (F07-R9).\n\n`targets/erdos-376/nodes/erdos-376/attempts/20260912T225733Z-agent-062b0f.yaml`\n"
+      },
+      "files": [
+        "targets/erdos-376/nodes/erdos-376/attempts/20260912T225733Z-agent-062b0f.yaml"
+      ],
+      "diff": "A\ttargets/erdos-376/nodes/erdos-376/attempts/20260912T225733Z-agent-062b0f.yaml\n",
+      "classification": {
+        "mode": "append",
+        "target": "erdos-376",
+        "node": "erdos-376",
+        "needs_gate": false,
+        "needs_admission": false,
+        "admit": null,
+        "needs_review": false,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": "b36cd0768f277552b21787e460e997a597b56328",
+      "admitted": true
+    },
+    {
+      "n": 4,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "append/01M2BXE7T8GPB34K4QRYX3HQGS",
+      "message": "postmortem: erdos-376\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T22:57:33Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T22:57:33Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "append/01M2BXE7T8GPB34K4QRYX3HQGS",
+        "base": "main",
+        "title": "postmortem: erdos-376",
+        "body": "A postmortem appended through the Open Proof Network service by `agent-062b0f`. It claims nothing: the gate checks its path and its schema (F07-R9).\n\n`targets/erdos-376/nodes/erdos-376/attempts/20260912T225733Z-agent-062b0f.yaml`\n"
+      },
+      "files": [
+        "targets/erdos-376/nodes/erdos-376/attempts/20260912T225733Z-agent-062b0f.yaml"
+      ],
+      "diff": "A\ttargets/erdos-376/nodes/erdos-376/attempts/20260912T225733Z-agent-062b0f.yaml\n",
+      "classification": {
+        "mode": "append",
+        "target": "erdos-376",
+        "node": "erdos-376",
+        "needs_gate": false,
+        "needs_admission": false,
+        "admit": null,
+        "needs_review": false,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": null
+    },
+    {
+      "n": 5,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "append/01M2BXE7T8JQNM4N6SV45YY1A8",
+      "message": "postmortem: erdos-376\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T22:57:33Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T22:57:33Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "append/01M2BXE7T8JQNM4N6SV45YY1A8",
+        "base": "main",
+        "title": "postmortem: erdos-376",
+        "body": "A postmortem appended through the Open Proof Network service by `agent-062b0f`. It claims nothing: the gate checks its path and its schema (F07-R9).\n\n`targets/erdos-376/nodes/erdos-376/attempts/20260912T225733Z-agent-062b0f.yaml`\n"
+      },
+      "files": [
+        "targets/erdos-376/nodes/erdos-376/attempts/20260912T225733Z-agent-062b0f.yaml"
+      ],
+      "diff": "A\ttargets/erdos-376/nodes/erdos-376/attempts/20260912T225733Z-agent-062b0f.yaml\n",
+      "classification": {
+        "mode": "append",
+        "target": "erdos-376",
+        "node": "erdos-376",
+        "needs_gate": false,
+        "needs_admission": false,
+        "admit": null,
+        "needs_review": false,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": null
+    },
+    {
+      "n": 6,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "append/01M2BXE7T8F3Q7YSJC58XPSR04",
+      "message": "approach record: erdos-376\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T22:57:33Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T22:57:33Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "append/01M2BXE7T8F3Q7YSJC58XPSR04",
+        "base": "main",
+        "title": "approach record: erdos-376",
+        "body": "A approach record appended through the Open Proof Network service by `agent-062b0f`. It claims nothing: the gate checks its path and its schema (F07-R9).\n\n`targets/erdos-376/approaches/20260912T225733Z-agent-062b0f.yaml`\n"
+      },
+      "files": [
+        "targets/erdos-376/approaches/20260912T225733Z-agent-062b0f.yaml"
+      ],
+      "diff": "A\ttargets/erdos-376/approaches/20260912T225733Z-agent-062b0f.yaml\n",
+      "classification": {
+        "mode": "append",
+        "target": "erdos-376",
+        "node": null,
+        "needs_gate": false,
+        "needs_admission": false,
+        "admit": null,
+        "needs_review": false,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": "5ee0ab808b3c18ecb05793d70a911be3c48cbc2f",
+      "admitted": true
+    },
+    {
+      "n": 7,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "submit/01M2BXFWHR9YC01AZW83CZW7EK",
+      "message": "partial: erdos-376\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T22:58:27Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T22:58:27Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "submit/01M2BXFWHR9YC01AZW83CZW7EK",
+        "base": "main",
+        "title": "partial: erdos-376",
+        "body": "Submitted through the Open Proof Network service by `agent-062b0f` as a partial.\n\nPrecheck job `01M2BXDGC8JHWD914XJ1FM251A` passed against graph commit `495163dceedad289acc18d4f805619789c5bf462`.\n\n```json\nopn-precheck-attestation\n{\n  \"artifact_hash\": \"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\n  \"diagnostic\": null,\n  \"first_failing_step\": null,\n  \"gate_spec_hash\": \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\n  \"graph_commit\": \"495163dceedad289acc18d4f805619789c5bf462\",\n  \"graph_id\": \"propositional\",\n  \"lean_toolchain\": \"leanprover/lean4:v4.33.1\",\n  \"mathlib_sha\": null,\n  \"merge_commit\": null,\n  \"model_and_tooling\": \"undeclared\",\n  \"network_commit\": \"0123456789abcdef0123456789abcdef01234567\",\n  \"node_id\": \"erdos-376\",\n  \"precheck_attestation\": {\n    \"hash\": null,\n    \"signature_kind\": null\n  },\n  \"review\": null,\n  \"runner\": \"hosted\",\n  \"schema\": \"attestation/v4\",\n  \"signature\": {\n    \"key_id\": \"SHA256:EaVABXELEeDXgGwgemzU/Q3yHqdEHdECoKslQtJsXUU\",\n    \"kind\": \"service\",\n    \"timestamp\": \"2026-09-08T01:23:45Z\",\n    \"value\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgKaNSsej3/wXEKQCBKIXOtCEIg0\\nrGhcnASmVNZNaguWUAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\\nC3NzaC1lZDI1NTE5AAAAQCUdyE/MOt0+oqzr96qnMaCz0kjLnKySRnZv7cJaL8G5rfB9p1\\n5J/1ijjfOuWrswPpTxB4OAxeAfT5W6prVdVA8=\\n-----END SSH SIGNATURE-----\\n\"\n  },\n  \"statement_hash\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n  \"steps\": [\n    {\n      \"diagnostic\": null,\n      \"name\": \"toolchain\",\n      \"result\": \"pass\",\n      \"step\": 1\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"paths\",\n      \"result\": \"pass\",\n      \"step\": 2\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"kernel-replay\",\n      \"result\": \"pass\",\n      \"step\": 4\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"axioms\",\n      \"result\": \"pass\",\n      \"step\": 5\n    }\n  ],\n  \"submitter\": null,\n  \"toolchain_hash\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"tooling\": {\n    \"harness\": null,\n    \"model\": null\n  },\n  \"trust_base\": \"kernel\",\n  \"verdict\": \"pass\"\n}\n```\n\n```json\nopn-submission\n{\n  \"artifact_type\": \"partial\",\n  \"identity\": {\n    \"proof_kind\": \"tutorial\",\n    \"pseudonym\": \"agent-062b0f\"\n  },\n  \"precheck_job_id\": \"01M2BXDGC8JHWD914XJ1FM251A\",\n  \"schema\": \"submission-meta/v1\",\n  \"submission_id\": \"01M2BXFWHR9YC01AZW83CZW7EK\",\n  \"tooling\": {\n    \"harness\": \"Claude Code tester session, AGENTS.md walkthrough\",\n    \"model\": \"claude-fable-5-1\",\n    \"version\": null\n  }\n}\n```"
+      },
+      "files": [
+        "targets/erdos-376/nodes/erdos-376/attempts/20260912T225709Z-agent-062b0f-partial.lean"
+      ],
+      "diff": "A\ttargets/erdos-376/nodes/erdos-376/attempts/20260912T225709Z-agent-062b0f-partial.lean\n",
+      "classification": {
+        "mode": "partial",
+        "target": "erdos-376",
+        "node": "erdos-376",
+        "needs_gate": true,
+        "needs_admission": false,
+        "admit": null,
+        "needs_review": true,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": null
+    },
+    {
+      "n": 8,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "submit/01M2BXFWHRSTGKF703617RYFDK",
+      "message": "partial: erdos-376\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T22:58:27Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T22:58:27Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "submit/01M2BXFWHRSTGKF703617RYFDK",
+        "base": "main",
+        "title": "partial: erdos-376",
+        "body": "Submitted through the Open Proof Network service by `agent-062b0f` as a partial.\n\nPrecheck job `01M2BXDGC8JHWD914XJ1FM251A` passed against graph commit `495163dceedad289acc18d4f805619789c5bf462`.\n\n```json\nopn-precheck-attestation\n{\n  \"artifact_hash\": \"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\n  \"diagnostic\": null,\n  \"first_failing_step\": null,\n  \"gate_spec_hash\": \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\n  \"graph_commit\": \"495163dceedad289acc18d4f805619789c5bf462\",\n  \"graph_id\": \"propositional\",\n  \"lean_toolchain\": \"leanprover/lean4:v4.33.1\",\n  \"mathlib_sha\": null,\n  \"merge_commit\": null,\n  \"model_and_tooling\": \"undeclared\",\n  \"network_commit\": \"0123456789abcdef0123456789abcdef01234567\",\n  \"node_id\": \"erdos-376\",\n  \"precheck_attestation\": {\n    \"hash\": null,\n    \"signature_kind\": null\n  },\n  \"review\": null,\n  \"runner\": \"hosted\",\n  \"schema\": \"attestation/v4\",\n  \"signature\": {\n    \"key_id\": \"SHA256:EaVABXELEeDXgGwgemzU/Q3yHqdEHdECoKslQtJsXUU\",\n    \"kind\": \"service\",\n    \"timestamp\": \"2026-09-08T01:23:45Z\",\n    \"value\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgKaNSsej3/wXEKQCBKIXOtCEIg0\\nrGhcnASmVNZNaguWUAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\\nC3NzaC1lZDI1NTE5AAAAQCUdyE/MOt0+oqzr96qnMaCz0kjLnKySRnZv7cJaL8G5rfB9p1\\n5J/1ijjfOuWrswPpTxB4OAxeAfT5W6prVdVA8=\\n-----END SSH SIGNATURE-----\\n\"\n  },\n  \"statement_hash\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n  \"steps\": [\n    {\n      \"diagnostic\": null,\n      \"name\": \"toolchain\",\n      \"result\": \"pass\",\n      \"step\": 1\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"paths\",\n      \"result\": \"pass\",\n      \"step\": 2\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"kernel-replay\",\n      \"result\": \"pass\",\n      \"step\": 4\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"axioms\",\n      \"result\": \"pass\",\n      \"step\": 5\n    }\n  ],\n  \"submitter\": null,\n  \"toolchain_hash\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"tooling\": {\n    \"harness\": null,\n    \"model\": null\n  },\n  \"trust_base\": \"kernel\",\n  \"verdict\": \"pass\"\n}\n```\n\n```json\nopn-submission\n{\n  \"artifact_type\": \"partial\",\n  \"identity\": {\n    \"proof_kind\": \"tutorial\",\n    \"pseudonym\": \"agent-062b0f\"\n  },\n  \"precheck_job_id\": \"01M2BXDGC8JHWD914XJ1FM251A\",\n  \"schema\": \"submission-meta/v1\",\n  \"submission_id\": \"01M2BXFWHRSTGKF703617RYFDK\",\n  \"tooling\": {\n    \"harness\": \"Claude Code tester session, AGENTS.md walkthrough\",\n    \"model\": \"claude-fable-5-1\",\n    \"version\": null\n  }\n}\n```"
+      },
+      "files": [
+        "targets/erdos-376/nodes/erdos-376/attempts/20260912T225709Z-agent-062b0f-partial.lean"
+      ],
+      "diff": "A\ttargets/erdos-376/nodes/erdos-376/attempts/20260912T225709Z-agent-062b0f-partial.lean\n",
+      "classification": {
+        "mode": "partial",
+        "target": "erdos-376",
+        "node": "erdos-376",
+        "needs_gate": true,
+        "needs_admission": false,
+        "admit": null,
+        "needs_review": true,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": null
+    },
+    {
+      "n": 9,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "submit/01M2BXFWHR7GN86S5NY43RJXXQ",
+      "message": "partial: erdos-376\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T22:58:27Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T22:58:27Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "submit/01M2BXFWHR7GN86S5NY43RJXXQ",
+        "base": "main",
+        "title": "partial: erdos-376",
+        "body": "Submitted through the Open Proof Network service by `agent-062b0f` as a partial.\n\nPrecheck job `01M2BXDGC86V0RZMW1HTAQH903` passed against graph commit `495163dceedad289acc18d4f805619789c5bf462`.\n\n```json\nopn-precheck-attestation\n{\n  \"artifact_hash\": \"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\n  \"diagnostic\": null,\n  \"first_failing_step\": null,\n  \"gate_spec_hash\": \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\n  \"graph_commit\": \"495163dceedad289acc18d4f805619789c5bf462\",\n  \"graph_id\": \"propositional\",\n  \"lean_toolchain\": \"leanprover/lean4:v4.33.1\",\n  \"mathlib_sha\": null,\n  \"merge_commit\": null,\n  \"model_and_tooling\": \"undeclared\",\n  \"network_commit\": \"0123456789abcdef0123456789abcdef01234567\",\n  \"node_id\": \"erdos-376\",\n  \"precheck_attestation\": {\n    \"hash\": null,\n    \"signature_kind\": null\n  },\n  \"review\": null,\n  \"runner\": \"hosted\",\n  \"schema\": \"attestation/v4\",\n  \"signature\": {\n    \"key_id\": \"SHA256:EaVABXELEeDXgGwgemzU/Q3yHqdEHdECoKslQtJsXUU\",\n    \"kind\": \"service\",\n    \"timestamp\": \"2026-09-08T01:23:45Z\",\n    \"value\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgKaNSsej3/wXEKQCBKIXOtCEIg0\\nrGhcnASmVNZNaguWUAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\\nC3NzaC1lZDI1NTE5AAAAQCUdyE/MOt0+oqzr96qnMaCz0kjLnKySRnZv7cJaL8G5rfB9p1\\n5J/1ijjfOuWrswPpTxB4OAxeAfT5W6prVdVA8=\\n-----END SSH SIGNATURE-----\\n\"\n  },\n  \"statement_hash\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n  \"steps\": [\n    {\n      \"diagnostic\": null,\n      \"name\": \"toolchain\",\n      \"result\": \"pass\",\n      \"step\": 1\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"paths\",\n      \"result\": \"pass\",\n      \"step\": 2\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"kernel-replay\",\n      \"result\": \"pass\",\n      \"step\": 4\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"axioms\",\n      \"result\": \"pass\",\n      \"step\": 5\n    }\n  ],\n  \"submitter\": null,\n  \"toolchain_hash\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"tooling\": {\n    \"harness\": null,\n    \"model\": null\n  },\n  \"trust_base\": \"kernel\",\n  \"verdict\": \"pass\"\n}\n```\n\n```json\nopn-submission\n{\n  \"artifact_type\": \"partial\",\n  \"identity\": {\n    \"proof_kind\": \"tutorial\",\n    \"pseudonym\": \"agent-062b0f\"\n  },\n  \"precheck_job_id\": \"01M2BXDGC86V0RZMW1HTAQH903\",\n  \"schema\": \"submission-meta/v1\",\n  \"submission_id\": \"01M2BXFWHR7GN86S5NY43RJXXQ\",\n  \"tooling\": {\n    \"harness\": \"Claude Code tester session, AGENTS.md walkthrough\",\n    \"model\": \"claude-fable-5-1\",\n    \"version\": null\n  }\n}\n```"
+      },
+      "files": [
+        "targets/erdos-376/nodes/erdos-376/Proof.lean"
+      ],
+      "diff": "A\ttargets/erdos-376/nodes/erdos-376/Proof.lean\n",
+      "classification": {
+        "mode": "proof",
+        "target": "erdos-376",
+        "node": "erdos-376",
+        "needs_gate": true,
+        "needs_admission": false,
+        "admit": null,
+        "needs_review": true,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": null
+    },
+    {
+      "n": 10,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "propose/01M2BXH9F85CGHPNK45P6EG9B8",
+      "message": "proposal: variant-e30ecfbb\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T22:59:13Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T22:59:13Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "propose/01M2BXH9F85CGHPNK45P6EG9B8",
+        "base": "main",
+        "title": "proposal: variant-e30ecfbb",
+        "body": "A variant proposed through the Open Proof Network service by `agent-062b0f`. Admission is mechanical (D-29): the gate checks the layout, the statement, the witness, the hazards, the context, the graph and any relation proof (F08-R1), and no one approves structure.\n\n`targets/erdos-376/nodes/variant-e30ecfbb/`\n"
+      },
+      "files": [
+        "targets/erdos-376/nodes/variant-e30ecfbb/Context.lean",
+        "targets/erdos-376/nodes/variant-e30ecfbb/META.yaml",
+        "targets/erdos-376/nodes/variant-e30ecfbb/Statement.lean",
+        "targets/erdos-376/nodes/variant-e30ecfbb/Witness.lean",
+        "targets/erdos-376/nodes/variant-e30ecfbb/annex/.gitkeep",
+        "targets/erdos-376/nodes/variant-e30ecfbb/attempts/.gitkeep",
+        "targets/erdos-376/nodes/variant-e30ecfbb/explainer/.gitkeep"
+      ],
+      "diff": "A\ttargets/erdos-376/nodes/variant-e30ecfbb/Context.lean\nA\ttargets/erdos-376/nodes/variant-e30ecfbb/META.yaml\nA\ttargets/erdos-376/nodes/variant-e30ecfbb/Statement.lean\nA\ttargets/erdos-376/nodes/variant-e30ecfbb/Witness.lean\nA\ttargets/erdos-376/nodes/variant-e30ecfbb/annex/.gitkeep\nA\ttargets/erdos-376/nodes/variant-e30ecfbb/attempts/.gitkeep\nA\ttargets/erdos-376/nodes/variant-e30ecfbb/explainer/.gitkeep\n",
+      "classification": {
+        "mode": "proposal",
+        "target": "erdos-376",
+        "node": "variant-e30ecfbb",
+        "needs_gate": false,
+        "needs_admission": true,
+        "admit": "variant-e30ecfbb",
+        "needs_review": false,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": null
+    },
+    {
+      "n": 11,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "propose/01M2BXH9F87KB3AQDNYXSTSZTK",
+      "message": "proposal: variant-e30ecfbb\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T22:59:13Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T22:59:13Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "propose/01M2BXH9F87KB3AQDNYXSTSZTK",
+        "base": "main",
+        "title": "proposal: variant-e30ecfbb",
+        "body": "A variant proposed through the Open Proof Network service by `agent-062b0f`. Admission is mechanical (D-29): the gate checks the layout, the statement, the witness, the hazards, the context, the graph and any relation proof (F08-R1), and no one approves structure.\n\n`targets/erdos-376/nodes/variant-e30ecfbb/`\n"
+      },
+      "files": [
+        "targets/erdos-376/nodes/variant-e30ecfbb/Context.lean",
+        "targets/erdos-376/nodes/variant-e30ecfbb/META.yaml",
+        "targets/erdos-376/nodes/variant-e30ecfbb/Statement.lean",
+        "targets/erdos-376/nodes/variant-e30ecfbb/Witness.lean",
+        "targets/erdos-376/nodes/variant-e30ecfbb/annex/.gitkeep",
+        "targets/erdos-376/nodes/variant-e30ecfbb/attempts/.gitkeep",
+        "targets/erdos-376/nodes/variant-e30ecfbb/explainer/.gitkeep"
+      ],
+      "diff": "A\ttargets/erdos-376/nodes/variant-e30ecfbb/Context.lean\nA\ttargets/erdos-376/nodes/variant-e30ecfbb/META.yaml\nA\ttargets/erdos-376/nodes/variant-e30ecfbb/Statement.lean\nA\ttargets/erdos-376/nodes/variant-e30ecfbb/Witness.lean\nA\ttargets/erdos-376/nodes/variant-e30ecfbb/annex/.gitkeep\nA\ttargets/erdos-376/nodes/variant-e30ecfbb/attempts/.gitkeep\nA\ttargets/erdos-376/nodes/variant-e30ecfbb/explainer/.gitkeep\n",
+      "classification": {
+        "mode": "proposal",
+        "target": "erdos-376",
+        "node": "variant-e30ecfbb",
+        "needs_gate": false,
+        "needs_admission": true,
+        "admit": "variant-e30ecfbb",
+        "needs_review": false,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": null
+    },
+    {
+      "n": 12,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "propose/01M2BXH9F8RDHGGTK0MMYYDS48",
+      "message": "proposal: spec-15b60cb6\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T22:59:13Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T22:59:13Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "propose/01M2BXH9F8RDHGGTK0MMYYDS48",
+        "base": "main",
+        "title": "proposal: spec-15b60cb6",
+        "body": "A speculative node proposed through the Open Proof Network service by `agent-062b0f`. Admission is mechanical (D-29): the gate checks the layout, the statement, the witness, the hazards, the context, the graph and any relation proof (F08-R1), and no one approves structure.\n\n`targets/erdos-376/nodes/spec-15b60cb6/`\n"
+      },
+      "files": [
+        "targets/erdos-376/nodes/spec-15b60cb6/Context.lean",
+        "targets/erdos-376/nodes/spec-15b60cb6/META.yaml",
+        "targets/erdos-376/nodes/spec-15b60cb6/Statement.lean",
+        "targets/erdos-376/nodes/spec-15b60cb6/Witness.lean",
+        "targets/erdos-376/nodes/spec-15b60cb6/annex/.gitkeep",
+        "targets/erdos-376/nodes/spec-15b60cb6/attempts/.gitkeep",
+        "targets/erdos-376/nodes/spec-15b60cb6/explainer/.gitkeep",
+        "targets/erdos-376/nodes/spec-15b60cb6/status/20260912T225913-agent-062b0f.yaml"
+      ],
+      "diff": "A\ttargets/erdos-376/nodes/spec-15b60cb6/Context.lean\nA\ttargets/erdos-376/nodes/spec-15b60cb6/META.yaml\nA\ttargets/erdos-376/nodes/spec-15b60cb6/Statement.lean\nA\ttargets/erdos-376/nodes/spec-15b60cb6/Witness.lean\nA\ttargets/erdos-376/nodes/spec-15b60cb6/annex/.gitkeep\nA\ttargets/erdos-376/nodes/spec-15b60cb6/attempts/.gitkeep\nA\ttargets/erdos-376/nodes/spec-15b60cb6/explainer/.gitkeep\nA\ttargets/erdos-376/nodes/spec-15b60cb6/status/20260912T225913-agent-062b0f.yaml\n",
+      "classification": {
+        "mode": "proposal",
+        "target": "erdos-376",
+        "node": "spec-15b60cb6",
+        "needs_gate": false,
+        "needs_admission": true,
+        "admit": "spec-15b60cb6",
+        "needs_review": false,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": null
+    },
+    {
+      "n": 13,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "propose/01M2BXH9F8NRTAMSNHA4QFNWRT",
+      "message": "proposal: spec-b2fa4f04\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T22:59:13Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T22:59:13Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "propose/01M2BXH9F8NRTAMSNHA4QFNWRT",
+        "base": "main",
+        "title": "proposal: spec-b2fa4f04",
+        "body": "A speculative node proposed through the Open Proof Network service by `agent-062b0f`. Admission is mechanical (D-29): the gate checks the layout, the statement, the witness, the hazards, the context, the graph and any relation proof (F08-R1), and no one approves structure.\n\n`targets/erdos-376/nodes/spec-b2fa4f04/`\n"
+      },
+      "files": [
+        "targets/erdos-376/nodes/spec-b2fa4f04/Context.lean",
+        "targets/erdos-376/nodes/spec-b2fa4f04/META.yaml",
+        "targets/erdos-376/nodes/spec-b2fa4f04/Statement.lean",
+        "targets/erdos-376/nodes/spec-b2fa4f04/Witness.lean",
+        "targets/erdos-376/nodes/spec-b2fa4f04/annex/.gitkeep",
+        "targets/erdos-376/nodes/spec-b2fa4f04/attempts/.gitkeep",
+        "targets/erdos-376/nodes/spec-b2fa4f04/explainer/.gitkeep",
+        "targets/erdos-376/nodes/spec-b2fa4f04/status/20260912T225913-agent-062b0f.yaml"
+      ],
+      "diff": "A\ttargets/erdos-376/nodes/spec-b2fa4f04/Context.lean\nA\ttargets/erdos-376/nodes/spec-b2fa4f04/META.yaml\nA\ttargets/erdos-376/nodes/spec-b2fa4f04/Statement.lean\nA\ttargets/erdos-376/nodes/spec-b2fa4f04/Witness.lean\nA\ttargets/erdos-376/nodes/spec-b2fa4f04/annex/.gitkeep\nA\ttargets/erdos-376/nodes/spec-b2fa4f04/attempts/.gitkeep\nA\ttargets/erdos-376/nodes/spec-b2fa4f04/explainer/.gitkeep\nA\ttargets/erdos-376/nodes/spec-b2fa4f04/status/20260912T225913-agent-062b0f.yaml\n",
+      "classification": {
+        "mode": "proposal",
+        "target": "erdos-376",
+        "node": "spec-b2fa4f04",
+        "needs_gate": false,
+        "needs_admission": true,
+        "admit": "spec-b2fa4f04",
+        "needs_review": false,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": null
+    },
+    {
+      "n": 14,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "propose/01M2BXH9F8TJ4EDVK81C7BVDDJ",
+      "message": "proposal: variant-e30ecfbb\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T22:59:13Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T22:59:13Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "propose/01M2BXH9F8TJ4EDVK81C7BVDDJ",
+        "base": "main",
+        "title": "proposal: variant-e30ecfbb",
+        "body": "A variant proposed through the Open Proof Network service by `agent-062b0f`. Admission is mechanical (D-29): the gate checks the layout, the statement, the witness, the hazards, the context, the graph and any relation proof (F08-R1), and no one approves structure.\n\n`targets/tutorial/nodes/variant-e30ecfbb/`\n"
+      },
+      "files": [
+        "targets/tutorial/nodes/variant-e30ecfbb/Context.lean",
+        "targets/tutorial/nodes/variant-e30ecfbb/META.yaml",
+        "targets/tutorial/nodes/variant-e30ecfbb/Statement.lean",
+        "targets/tutorial/nodes/variant-e30ecfbb/Witness.lean",
+        "targets/tutorial/nodes/variant-e30ecfbb/annex/.gitkeep",
+        "targets/tutorial/nodes/variant-e30ecfbb/attempts/.gitkeep",
+        "targets/tutorial/nodes/variant-e30ecfbb/explainer/.gitkeep"
+      ],
+      "diff": "A\ttargets/tutorial/nodes/variant-e30ecfbb/Context.lean\nA\ttargets/tutorial/nodes/variant-e30ecfbb/META.yaml\nA\ttargets/tutorial/nodes/variant-e30ecfbb/Statement.lean\nA\ttargets/tutorial/nodes/variant-e30ecfbb/Witness.lean\nA\ttargets/tutorial/nodes/variant-e30ecfbb/annex/.gitkeep\nA\ttargets/tutorial/nodes/variant-e30ecfbb/attempts/.gitkeep\nA\ttargets/tutorial/nodes/variant-e30ecfbb/explainer/.gitkeep\n",
+      "classification": {
+        "mode": "proposal",
+        "target": "tutorial",
+        "node": "variant-e30ecfbb",
+        "needs_gate": false,
+        "needs_admission": true,
+        "admit": "variant-e30ecfbb",
+        "needs_review": false,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": null
+    },
+    {
+      "n": 15,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "propose/01M2BXH9F8SH537GJ5K12J3EBT",
+      "message": "proposal: spec-15b60cb6\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T22:59:13Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T22:59:13Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "propose/01M2BXH9F8SH537GJ5K12J3EBT",
+        "base": "main",
+        "title": "proposal: spec-15b60cb6",
+        "body": "A speculative node proposed through the Open Proof Network service by `agent-062b0f`. Admission is mechanical (D-29): the gate checks the layout, the statement, the witness, the hazards, the context, the graph and any relation proof (F08-R1), and no one approves structure.\n\n`targets/erdos-376/nodes/spec-15b60cb6/`\n"
+      },
+      "files": [
+        "targets/erdos-376/nodes/spec-15b60cb6/Context.lean",
+        "targets/erdos-376/nodes/spec-15b60cb6/META.yaml",
+        "targets/erdos-376/nodes/spec-15b60cb6/Statement.lean",
+        "targets/erdos-376/nodes/spec-15b60cb6/Witness.lean",
+        "targets/erdos-376/nodes/spec-15b60cb6/annex/.gitkeep",
+        "targets/erdos-376/nodes/spec-15b60cb6/attempts/.gitkeep",
+        "targets/erdos-376/nodes/spec-15b60cb6/explainer/.gitkeep",
+        "targets/erdos-376/nodes/spec-15b60cb6/status/20260912T225913-agent-062b0f.yaml"
+      ],
+      "diff": "A\ttargets/erdos-376/nodes/spec-15b60cb6/Context.lean\nA\ttargets/erdos-376/nodes/spec-15b60cb6/META.yaml\nA\ttargets/erdos-376/nodes/spec-15b60cb6/Statement.lean\nA\ttargets/erdos-376/nodes/spec-15b60cb6/Witness.lean\nA\ttargets/erdos-376/nodes/spec-15b60cb6/annex/.gitkeep\nA\ttargets/erdos-376/nodes/spec-15b60cb6/attempts/.gitkeep\nA\ttargets/erdos-376/nodes/spec-15b60cb6/explainer/.gitkeep\nA\ttargets/erdos-376/nodes/spec-15b60cb6/status/20260912T225913-agent-062b0f.yaml\n",
+      "classification": {
+        "mode": "proposal",
+        "target": "erdos-376",
+        "node": "spec-15b60cb6",
+        "needs_gate": false,
+        "needs_admission": true,
+        "admit": "spec-15b60cb6",
+        "needs_review": false,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": null
+    },
+    {
+      "n": 16,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "append/01M2BXJX7GVG2WGMN2X0RQYBEZ",
+      "message": "postmortem: erdos-376\n\nSigned-off-by: thisisanameforsure <thisisanameforsure@anon.opn.invalid>\n",
+      "author": {
+        "name": "thisisanameforsure",
+        "email": "thisisanameforsure@anon.opn.invalid",
+        "date": "2026-09-12T23:00:06Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T23:00:06Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "append/01M2BXJX7GVG2WGMN2X0RQYBEZ",
+        "base": "main",
+        "title": "postmortem: erdos-376",
+        "body": "A postmortem appended through the Open Proof Network service by `thisisanameforsure`. It claims nothing: the gate checks its path and its schema (F07-R9).\n\n`targets/erdos-376/nodes/erdos-376/attempts/20260912T230006Z-thisisanameforsure.yaml`\n"
+      },
+      "files": [
+        "targets/erdos-376/nodes/erdos-376/attempts/20260912T230006Z-thisisanameforsure.yaml"
+      ],
+      "diff": "A\ttargets/erdos-376/nodes/erdos-376/attempts/20260912T230006Z-thisisanameforsure.yaml\n",
+      "classification": {
+        "mode": "append",
+        "target": "erdos-376",
+        "node": "erdos-376",
+        "needs_gate": false,
+        "needs_admission": false,
+        "admit": null,
+        "needs_review": false,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": null
+    },
+    {
+      "n": 17,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "append/01M2BXKQK8S2N5V8BYNJFSSC99",
+      "message": "annex: erdos-376\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T23:00:33Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T23:00:33Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "append/01M2BXKQK8S2N5V8BYNJFSSC99",
+        "base": "main",
+        "title": "annex: erdos-376",
+        "body": "A annex appended through the Open Proof Network service by `agent-062b0f`. It claims nothing: the gate checks its path and its schema (F07-R9).\n\n`targets/erdos-376/nodes/erdos-376/annex/271695b95d6fd236cfee74645b7532c13a76846e6f72e98eb5297fd13df1f5df.md`\n"
+      },
+      "files": [
+        "targets/erdos-376/nodes/erdos-376/annex/271695b95d6fd236cfee74645b7532c13a76846e6f72e98eb5297fd13df1f5df.md"
+      ],
+      "diff": "A\ttargets/erdos-376/nodes/erdos-376/annex/271695b95d6fd236cfee74645b7532c13a76846e6f72e98eb5297fd13df1f5df.md\n",
+      "classification": {
+        "mode": "append",
+        "target": "erdos-376",
+        "node": "erdos-376",
+        "needs_gate": false,
+        "needs_admission": false,
+        "admit": null,
+        "needs_review": false,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": null
+    },
+    {
+      "n": 18,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "propose/01M2BXPKCRMH4PZTVCZQFEZD2W",
+      "message": "proposal: variant-192f1297\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T23:02:07Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T23:02:07Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "propose/01M2BXPKCRMH4PZTVCZQFEZD2W",
+        "base": "main",
+        "title": "proposal: variant-192f1297",
+        "body": "A variant proposed through the Open Proof Network service by `agent-062b0f`. Admission is mechanical (D-29): the gate checks the layout, the statement, the witness, the hazards, the context, the graph and any relation proof (F08-R1), and no one approves structure.\n\n`targets/erdos-376/nodes/variant-192f1297/`\n"
+      },
+      "files": [
+        "targets/erdos-376/nodes/variant-192f1297/Context.lean",
+        "targets/erdos-376/nodes/variant-192f1297/META.yaml",
+        "targets/erdos-376/nodes/variant-192f1297/Relation.lean",
+        "targets/erdos-376/nodes/variant-192f1297/Statement.lean",
+        "targets/erdos-376/nodes/variant-192f1297/Witness.lean",
+        "targets/erdos-376/nodes/variant-192f1297/annex/.gitkeep",
+        "targets/erdos-376/nodes/variant-192f1297/attempts/.gitkeep",
+        "targets/erdos-376/nodes/variant-192f1297/explainer/.gitkeep"
+      ],
+      "diff": "A\ttargets/erdos-376/nodes/variant-192f1297/Context.lean\nA\ttargets/erdos-376/nodes/variant-192f1297/META.yaml\nA\ttargets/erdos-376/nodes/variant-192f1297/Relation.lean\nA\ttargets/erdos-376/nodes/variant-192f1297/Statement.lean\nA\ttargets/erdos-376/nodes/variant-192f1297/Witness.lean\nA\ttargets/erdos-376/nodes/variant-192f1297/annex/.gitkeep\nA\ttargets/erdos-376/nodes/variant-192f1297/attempts/.gitkeep\nA\ttargets/erdos-376/nodes/variant-192f1297/explainer/.gitkeep\n",
+      "classification": {
+        "mode": "proposal",
+        "target": "erdos-376",
+        "node": "variant-192f1297",
+        "needs_gate": false,
+        "needs_admission": true,
+        "admit": "variant-192f1297",
+        "needs_review": false,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": null
+    },
+    {
+      "n": 19,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "propose/01M2BXPKCR5ZJQR5HWXKE9EJYJ",
+      "message": "proposal: variant-00c948f7\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T23:02:07Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T23:02:07Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "propose/01M2BXPKCR5ZJQR5HWXKE9EJYJ",
+        "base": "main",
+        "title": "proposal: variant-00c948f7",
+        "body": "A variant proposed through the Open Proof Network service by `agent-062b0f`. Admission is mechanical (D-29): the gate checks the layout, the statement, the witness, the hazards, the context, the graph and any relation proof (F08-R1), and no one approves structure.\n\n`targets/erdos-376/nodes/variant-00c948f7/`\n"
+      },
+      "files": [
+        "targets/erdos-376/nodes/variant-00c948f7/Context.lean",
+        "targets/erdos-376/nodes/variant-00c948f7/META.yaml",
+        "targets/erdos-376/nodes/variant-00c948f7/Relation.lean",
+        "targets/erdos-376/nodes/variant-00c948f7/Statement.lean",
+        "targets/erdos-376/nodes/variant-00c948f7/Witness.lean",
+        "targets/erdos-376/nodes/variant-00c948f7/annex/.gitkeep",
+        "targets/erdos-376/nodes/variant-00c948f7/attempts/.gitkeep",
+        "targets/erdos-376/nodes/variant-00c948f7/explainer/.gitkeep"
+      ],
+      "diff": "A\ttargets/erdos-376/nodes/variant-00c948f7/Context.lean\nA\ttargets/erdos-376/nodes/variant-00c948f7/META.yaml\nA\ttargets/erdos-376/nodes/variant-00c948f7/Relation.lean\nA\ttargets/erdos-376/nodes/variant-00c948f7/Statement.lean\nA\ttargets/erdos-376/nodes/variant-00c948f7/Witness.lean\nA\ttargets/erdos-376/nodes/variant-00c948f7/annex/.gitkeep\nA\ttargets/erdos-376/nodes/variant-00c948f7/attempts/.gitkeep\nA\ttargets/erdos-376/nodes/variant-00c948f7/explainer/.gitkeep\n",
+      "classification": {
+        "mode": "proposal",
+        "target": "erdos-376",
+        "node": "variant-00c948f7",
+        "needs_gate": false,
+        "needs_admission": true,
+        "admit": "variant-00c948f7",
+        "needs_review": false,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": null
+    },
+    {
+      "n": 20,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "propose/01M2BXPKCRVTG50KHNDJMWR61Q",
+      "message": "proposal: spec-6d0f878a\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T23:02:07Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T23:02:07Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "propose/01M2BXPKCRVTG50KHNDJMWR61Q",
+        "base": "main",
+        "title": "proposal: spec-6d0f878a",
+        "body": "A speculative node proposed through the Open Proof Network service by `agent-062b0f`. Admission is mechanical (D-29): the gate checks the layout, the statement, the witness, the hazards, the context, the graph and any relation proof (F08-R1), and no one approves structure.\n\n`targets/erdos-376/nodes/spec-6d0f878a/`\n"
+      },
+      "files": [
+        "targets/erdos-376/nodes/spec-6d0f878a/Context.lean",
+        "targets/erdos-376/nodes/spec-6d0f878a/META.yaml",
+        "targets/erdos-376/nodes/spec-6d0f878a/Statement.lean",
+        "targets/erdos-376/nodes/spec-6d0f878a/Witness.lean",
+        "targets/erdos-376/nodes/spec-6d0f878a/annex/.gitkeep",
+        "targets/erdos-376/nodes/spec-6d0f878a/attempts/.gitkeep",
+        "targets/erdos-376/nodes/spec-6d0f878a/explainer/.gitkeep",
+        "targets/erdos-376/nodes/spec-6d0f878a/status/20260912T230207-agent-062b0f.yaml"
+      ],
+      "diff": "A\ttargets/erdos-376/nodes/spec-6d0f878a/Context.lean\nA\ttargets/erdos-376/nodes/spec-6d0f878a/META.yaml\nA\ttargets/erdos-376/nodes/spec-6d0f878a/Statement.lean\nA\ttargets/erdos-376/nodes/spec-6d0f878a/Witness.lean\nA\ttargets/erdos-376/nodes/spec-6d0f878a/annex/.gitkeep\nA\ttargets/erdos-376/nodes/spec-6d0f878a/attempts/.gitkeep\nA\ttargets/erdos-376/nodes/spec-6d0f878a/explainer/.gitkeep\nA\ttargets/erdos-376/nodes/spec-6d0f878a/status/20260912T230207-agent-062b0f.yaml\n",
+      "classification": {
+        "mode": "proposal",
+        "target": "erdos-376",
+        "node": "spec-6d0f878a",
+        "needs_gate": false,
+        "needs_admission": true,
+        "admit": "spec-6d0f878a",
+        "needs_review": false,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": null
+    },
+    {
+      "n": 21,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "submit/01M2BXSH4RT37FHX0AWW5YF7R3",
+      "message": "partial: erdos-376\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T23:03:43Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T23:03:43Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "submit/01M2BXSH4RT37FHX0AWW5YF7R3",
+        "base": "main",
+        "title": "partial: erdos-376",
+        "body": "Submitted through the Open Proof Network service by `agent-062b0f` as a partial.\n\nPrecheck job `01M2BXDGC8JHWD914XJ1FM251A` passed against graph commit `495163dceedad289acc18d4f805619789c5bf462`.\n\n```json\nopn-precheck-attestation\n{\n  \"artifact_hash\": \"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\n  \"diagnostic\": null,\n  \"first_failing_step\": null,\n  \"gate_spec_hash\": \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\n  \"graph_commit\": \"495163dceedad289acc18d4f805619789c5bf462\",\n  \"graph_id\": \"propositional\",\n  \"lean_toolchain\": \"leanprover/lean4:v4.33.1\",\n  \"mathlib_sha\": null,\n  \"merge_commit\": null,\n  \"model_and_tooling\": \"undeclared\",\n  \"network_commit\": \"0123456789abcdef0123456789abcdef01234567\",\n  \"node_id\": \"erdos-376\",\n  \"precheck_attestation\": {\n    \"hash\": null,\n    \"signature_kind\": null\n  },\n  \"review\": null,\n  \"runner\": \"hosted\",\n  \"schema\": \"attestation/v4\",\n  \"signature\": {\n    \"key_id\": \"SHA256:EaVABXELEeDXgGwgemzU/Q3yHqdEHdECoKslQtJsXUU\",\n    \"kind\": \"service\",\n    \"timestamp\": \"2026-09-08T01:23:45Z\",\n    \"value\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgKaNSsej3/wXEKQCBKIXOtCEIg0\\nrGhcnASmVNZNaguWUAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\\nC3NzaC1lZDI1NTE5AAAAQCUdyE/MOt0+oqzr96qnMaCz0kjLnKySRnZv7cJaL8G5rfB9p1\\n5J/1ijjfOuWrswPpTxB4OAxeAfT5W6prVdVA8=\\n-----END SSH SIGNATURE-----\\n\"\n  },\n  \"statement_hash\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n  \"steps\": [\n    {\n      \"diagnostic\": null,\n      \"name\": \"toolchain\",\n      \"result\": \"pass\",\n      \"step\": 1\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"paths\",\n      \"result\": \"pass\",\n      \"step\": 2\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"kernel-replay\",\n      \"result\": \"pass\",\n      \"step\": 4\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"axioms\",\n      \"result\": \"pass\",\n      \"step\": 5\n    }\n  ],\n  \"submitter\": null,\n  \"toolchain_hash\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"tooling\": {\n    \"harness\": null,\n    \"model\": null\n  },\n  \"trust_base\": \"kernel\",\n  \"verdict\": \"pass\"\n}\n```\n\n```json\nopn-submission\n{\n  \"artifact_type\": \"partial\",\n  \"identity\": {\n    \"proof_kind\": \"tutorial\",\n    \"pseudonym\": \"agent-062b0f\"\n  },\n  \"precheck_job_id\": \"01M2BXDGC8JHWD914XJ1FM251A\",\n  \"schema\": \"submission-meta/v1\",\n  \"submission_id\": \"01M2BXSH4RT37FHX0AWW5YF7R3\",\n  \"tooling\": {\n    \"harness\": \"MCP path test\",\n    \"model\": \"claude-fable-5-1\",\n    \"version\": null\n  }\n}\n```"
+      },
+      "files": [
+        "targets/erdos-376/nodes/erdos-376/attempts/20260912T225709Z-agent-062b0f-partial.lean"
+      ],
+      "diff": "A\ttargets/erdos-376/nodes/erdos-376/attempts/20260912T225709Z-agent-062b0f-partial.lean\n",
+      "classification": {
+        "mode": "partial",
+        "target": "erdos-376",
+        "node": "erdos-376",
+        "needs_gate": true,
+        "needs_admission": false,
+        "admit": null,
+        "needs_review": true,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": null
+    },
+    {
+      "n": 22,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "submit/01M2BXSH4RJG37YS45QTGD562F",
+      "message": "partial: erdos-376\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T23:03:43Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T23:03:43Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "submit/01M2BXSH4RJG37YS45QTGD562F",
+        "base": "main",
+        "title": "partial: erdos-376",
+        "body": "Submitted through the Open Proof Network service by `agent-062b0f` as a partial.\n\nPrecheck job `01M2BXDGC8JHWD914XJ1FM251A` passed against graph commit `495163dceedad289acc18d4f805619789c5bf462`.\n\n```json\nopn-precheck-attestation\n{\n  \"artifact_hash\": \"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\n  \"diagnostic\": null,\n  \"first_failing_step\": null,\n  \"gate_spec_hash\": \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\n  \"graph_commit\": \"495163dceedad289acc18d4f805619789c5bf462\",\n  \"graph_id\": \"propositional\",\n  \"lean_toolchain\": \"leanprover/lean4:v4.33.1\",\n  \"mathlib_sha\": null,\n  \"merge_commit\": null,\n  \"model_and_tooling\": \"undeclared\",\n  \"network_commit\": \"0123456789abcdef0123456789abcdef01234567\",\n  \"node_id\": \"erdos-376\",\n  \"precheck_attestation\": {\n    \"hash\": null,\n    \"signature_kind\": null\n  },\n  \"review\": null,\n  \"runner\": \"hosted\",\n  \"schema\": \"attestation/v4\",\n  \"signature\": {\n    \"key_id\": \"SHA256:EaVABXELEeDXgGwgemzU/Q3yHqdEHdECoKslQtJsXUU\",\n    \"kind\": \"service\",\n    \"timestamp\": \"2026-09-08T01:23:45Z\",\n    \"value\": \"-----BEGIN SSH SIGNATURE-----\\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgKaNSsej3/wXEKQCBKIXOtCEIg0\\nrGhcnASmVNZNaguWUAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\\nC3NzaC1lZDI1NTE5AAAAQCUdyE/MOt0+oqzr96qnMaCz0kjLnKySRnZv7cJaL8G5rfB9p1\\n5J/1ijjfOuWrswPpTxB4OAxeAfT5W6prVdVA8=\\n-----END SSH SIGNATURE-----\\n\"\n  },\n  \"statement_hash\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n  \"steps\": [\n    {\n      \"diagnostic\": null,\n      \"name\": \"toolchain\",\n      \"result\": \"pass\",\n      \"step\": 1\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"paths\",\n      \"result\": \"pass\",\n      \"step\": 2\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"kernel-replay\",\n      \"result\": \"pass\",\n      \"step\": 4\n    },\n    {\n      \"diagnostic\": null,\n      \"name\": \"axioms\",\n      \"result\": \"pass\",\n      \"step\": 5\n    }\n  ],\n  \"submitter\": null,\n  \"toolchain_hash\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n  \"tooling\": {\n    \"harness\": null,\n    \"model\": null\n  },\n  \"trust_base\": \"kernel\",\n  \"verdict\": \"pass\"\n}\n```\n\n```json\nopn-submission\n{\n  \"artifact_type\": \"partial\",\n  \"identity\": {\n    \"proof_kind\": \"tutorial\",\n    \"pseudonym\": \"agent-062b0f\"\n  },\n  \"precheck_job_id\": \"01M2BXDGC8JHWD914XJ1FM251A\",\n  \"schema\": \"submission-meta/v1\",\n  \"submission_id\": \"01M2BXSH4RJG37YS45QTGD562F\",\n  \"tooling\": {\n    \"harness\": null,\n    \"model\": null,\n    \"version\": null\n  }\n}\n```"
+      },
+      "files": [
+        "targets/erdos-376/nodes/erdos-376/attempts/20260912T225709Z-agent-062b0f-partial.lean"
+      ],
+      "diff": "A\ttargets/erdos-376/nodes/erdos-376/attempts/20260912T225709Z-agent-062b0f-partial.lean\n",
+      "classification": {
+        "mode": "partial",
+        "target": "erdos-376",
+        "node": "erdos-376",
+        "needs_gate": true,
+        "needs_admission": false,
+        "admit": null,
+        "needs_review": true,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": null
+    },
+    {
+      "n": 23,
+      "repo": "thisisanameforsure/open_proof_network_graph",
+      "branch": "append/01M2BXSH4RE0G9XKX5YTSKMKGF",
+      "message": "postmortem: erdos-376\n\nSigned-off-by: agent-062b0f <agent-062b0f@anon.opn.invalid>\n",
+      "author": {
+        "name": "agent-062b0f",
+        "email": "agent-062b0f@anon.opn.invalid",
+        "date": "2026-09-12T23:03:43Z"
+      },
+      "committer": {
+        "name": "open-proof-network[bot]",
+        "email": "327070898+open-proof-network[bot]@users.noreply.github.com",
+        "date": "2026-09-12T23:03:43Z"
+      },
+      "pr": {
+        "repo": "thisisanameforsure/open_proof_network_graph",
+        "head": "append/01M2BXSH4RE0G9XKX5YTSKMKGF",
+        "base": "main",
+        "title": "postmortem: erdos-376",
+        "body": "A postmortem appended through the Open Proof Network service by `agent-062b0f`. It claims nothing: the gate checks its path and its schema (F07-R9).\n\n`targets/erdos-376/nodes/erdos-376/attempts/20260912T230343Z-agent-062b0f.yaml`\n"
+      },
+      "files": [
+        "targets/erdos-376/nodes/erdos-376/attempts/20260912T230343Z-agent-062b0f.yaml"
+      ],
+      "diff": "A\ttargets/erdos-376/nodes/erdos-376/attempts/20260912T230343Z-agent-062b0f.yaml\n",
+      "classification": {
+        "mode": "append",
+        "target": "erdos-376",
+        "node": "erdos-376",
+        "needs_gate": false,
+        "needs_admission": false,
+        "admit": null,
+        "needs_review": false,
+        "reviewers": null,
+        "review_waived": null,
+        "problems": [],
+        "ok": true,
+        "exhibits": [],
+        "needs_exhibits": false
+      },
+      "applied": null
+    }
+  ],
+  "applied": [
+    1,
+    3,
+    6
+  ],
+  "skipped": [
+    {
+      "n": 2,
+      "mode": "append",
+      "why": "excluded: admission would refuse it"
+    },
+    {
+      "n": 4,
+      "mode": "append",
+      "why": "excluded: admission would refuse it"
+    },
+    {
+      "n": 5,
+      "mode": "append",
+      "why": "excluded: admission would refuse it"
+    },
+    {
+      "n": 7,
+      "mode": "partial",
+      "why": "excluded: admission would refuse it"
+    },
+    {
+      "n": 8,
+      "mode": "partial",
+      "why": "excluded: admission would refuse it"
+    },
+    {
+      "n": 9,
+      "mode": "proof",
+      "why": "excluded: admission would refuse it"
+    },
+    {
+      "n": 10,
+      "mode": "proposal",
+      "why": "excluded: admission would refuse it"
+    },
+    {
+      "n": 11,
+      "mode": "proposal",
+      "why": "excluded: admission would refuse it"
+    },
+    {
+      "n": 12,
+      "mode": "proposal",
+      "why": "excluded: admission would refuse it"
+    },
+    {
+      "n": 13,
+      "mode": "proposal",
+      "why": "excluded: admission would refuse it"
+    },
+    {
+      "n": 14,
+      "mode": "proposal",
+      "why": "excluded: admission would refuse it"
+    },
+    {
+      "n": 15,
+      "mode": "proposal",
+      "why": "excluded: admission would refuse it"
+    },
+    {
+      "n": 16,
+      "mode": "append",
+      "why": "excluded: admission would refuse it"
+    },
+    {
+      "n": 17,
+      "mode": "append",
+      "why": "excluded: admission would refuse it"
+    },
+    {
+      "n": 18,
+      "mode": "proposal",
+      "why": "excluded: admission would refuse it"
+    },
+    {
+      "n": 19,
+      "mode": "proposal",
+      "why": "excluded: admission would refuse it"
+    },
+    {
+      "n": 20,
+      "mode": "proposal",
+      "why": "excluded: admission would refuse it"
+    },
+    {
+      "n": 21,
+      "mode": "partial",
+      "why": "excluded: admission would refuse it"
+    },
+    {
+      "n": 22,
+      "mode": "partial",
+      "why": "excluded: admission would refuse it"
+    },
+    {
+      "n": 23,
+      "mode": "append",
+      "why": "excluded: admission would refuse it"
+    }
+  ],
+  "precheck_jobs": [
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BX0W2R3DD30GQD0GQBCKPM",
+      "job": {
+        "bundle_digest": "53543a1e07bb2c62aae6092fb1a91565db893fdd3a227707b0010d70dff8c48e",
+        "created": "2026-09-12T22:50:15Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BX0W2R3DD30GQD0GQBCKPM",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BX5DK0836ATQM3PZ5Y9C8H",
+      "job": {
+        "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+        "created": "2026-09-12T22:52:44Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BX5DK0836ATQM3PZ5Y9C8H",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXDGC86V0RZMW1HTAQH903",
+      "job": {
+        "bundle_digest": "c43b3a798013f7344493103cb2b08a9abf7a4e20a7165da70a283df20c2b7329",
+        "created": "2026-09-12T22:57:09Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXDGC86V0RZMW1HTAQH903",
+        "node_id": "erdos-376",
+        "statement_hash": "eaebe54dfc2dc163d73390cf5ae874858b9368062ca1b1719313a4aee8016e15",
+        "target_id": "erdos-376"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXDGC8JHWD914XJ1FM251A",
+      "job": {
+        "bundle_digest": "bdc77933f053fdacf0f155b85e21047b02432ef39b1df3e6e81aee13316e9594",
+        "created": "2026-09-12T22:57:09Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXDGC8JHWD914XJ1FM251A",
+        "node_id": "erdos-376",
+        "statement_hash": "eaebe54dfc2dc163d73390cf5ae874858b9368062ca1b1719313a4aee8016e15",
+        "target_id": "erdos-376"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXGD5026326PFHGC58X9GE",
+      "job": {
+        "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+        "created": "2026-09-12T22:58:44Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXGD5026326PFHGC58X9GE",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXRYK07WXQNKVSN416R4W1",
+      "job": {
+        "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+        "created": "2026-09-12T23:03:24Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXRYK07WXQNKVSN416R4W1",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXV5W8BG1HKQB3PET5S322",
+      "job": {
+        "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+        "created": "2026-09-12T23:04:37Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXV5W8BG1HKQB3PET5S322",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXV5W8XXD2VZENYH2BHT21",
+      "job": {
+        "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+        "created": "2026-09-12T23:04:37Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXV5W8XXD2VZENYH2BHT21",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXV5W8MKG1N8CP9Y0V9HXQ",
+      "job": {
+        "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+        "created": "2026-09-12T23:04:37Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXV5W8MKG1N8CP9Y0V9HXQ",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXV5W8NVCGJ2NA0BBZTDY8",
+      "job": {
+        "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+        "created": "2026-09-12T23:04:37Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXV5W8NVCGJ2NA0BBZTDY8",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXV5W82FDPDY5C3G925474",
+      "job": {
+        "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+        "created": "2026-09-12T23:04:37Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXV5W82FDPDY5C3G925474",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXV5W8FMBQAF16Y1TDQ4E5",
+      "job": {
+        "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+        "created": "2026-09-12T23:04:37Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXV5W8FMBQAF16Y1TDQ4E5",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXV5W8RAWAC1PF7SMDMQSD",
+      "job": {
+        "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+        "created": "2026-09-12T23:04:37Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXV5W8RAWAC1PF7SMDMQSD",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXV5W8J0X3KGSS5V06PPXM",
+      "job": {
+        "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+        "created": "2026-09-12T23:04:37Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXV5W8J0X3KGSS5V06PPXM",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXV5W8H8RDDMP7AS3A71P4",
+      "job": {
+        "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+        "created": "2026-09-12T23:04:37Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXV5W8H8RDDMP7AS3A71P4",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXV5W8FDQX4296AXHW7XSC",
+      "job": {
+        "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+        "created": "2026-09-12T23:04:37Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXV5W8FDQX4296AXHW7XSC",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXV5W80QVZ6TCZ2G23ZDEA",
+      "job": {
+        "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+        "created": "2026-09-12T23:04:37Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXV5W80QVZ6TCZ2G23ZDEA",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXV5W8PF8P0PV1QSGNQQT6",
+      "job": {
+        "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+        "created": "2026-09-12T23:04:37Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXV5W8PF8P0PV1QSGNQQT6",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXV5W8Y7GEAMK05REQ2G2H",
+      "job": {
+        "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+        "created": "2026-09-12T23:04:37Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXV5W8Y7GEAMK05REQ2G2H",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXV5W8H5XTVCDH41BKPJXX",
+      "job": {
+        "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+        "created": "2026-09-12T23:04:37Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXV5W8H5XTVCDH41BKPJXX",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXV5W85K4VEVD76MGFXDY8",
+      "job": {
+        "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+        "created": "2026-09-12T23:04:37Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXV5W85K4VEVD76MGFXDY8",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXV5W8QF5VSZYRE6CXAZ2N",
+      "job": {
+        "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+        "created": "2026-09-12T23:04:37Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXV5W8QF5VSZYRE6CXAZ2N",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXV5W85Y018TMAH5CPSAVJ",
+      "job": {
+        "bundle_digest": "649bb5805accfb7f71eb2b7e4a9c15656184aa2731639a929414dae36a4e292e",
+        "created": "2026-09-12T23:04:37Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXV5W85Y018TMAH5CPSAVJ",
+        "node_id": "tutorial-and-swap",
+        "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+        "target_id": "tutorial"
+      }
+    },
+    {
+      "repo": "thisisanameforsure/open_proof_network_precheck",
+      "branch": "job/01M2BXWNQG3MSCJ3KK8WCBDFGR",
+      "job": {
+        "bundle_digest": "bdc77933f053fdacf0f155b85e21047b02432ef39b1df3e6e81aee13316e9594",
+        "created": "2026-09-12T23:05:26Z",
+        "graph_commit": "495163dceedad289acc18d4f805619789c5bf462",
+        "id": "01M2BXWNQG3MSCJ3KK8WCBDFGR",
+        "node_id": "erdos-376",
+        "statement_hash": "eaebe54dfc2dc163d73390cf5ae874858b9368062ca1b1719313a4aee8016e15",
+        "target_id": "erdos-376"
+      }
+    }
+  ],
+  "products": {
+    "rc": 0,
+    "stdout": "{\n  \"ok\": true,\n  \"rendered_from\": \"5ee0ab808b3c18ecb05793d70a911be3c48cbc2f\",\n  \"claims\": \"no claims endpoint configured\",\n  \"written\": [\n    \"frontier.json\",\n    \"info.json\",\n    \"targets/erdos-172/graph.json\",\n    \"targets/erdos-172/nodes/erdos-172/CONTEXT.json\",\n    \"targets/erdos-376/graph.json\",\n    \"targets/erdos-376/nodes/erdos-376/CONTEXT.json\",\n    \"targets/erdos-406/graph.json\",\n    \"targets/erdos-406/nodes/erdos-406/CONTEXT.json\",\n    \"targets/erdos-52/graph.json\",\n    \"targets/erdos-52/nodes/erdos-52/CONTEXT.json\",\n    \"targets/erdos-68/graph.json\",\n    \"targets/erdos-68/nodes/erdos-68/CONTEXT.json\",\n    \"targets/euclid-primes/graph.json\",\n    \"targets/euclid-primes/nodes/infinitude-of-primes/CONTEXT.json\",\n    \"targets/euclid-primes/nodes/infinitude-of-primes--h1/CONTEXT.json\",\n    \"targets/euclid-primes/nodes/infinitude-of-primes--h2/CONTEXT.json\",\n    \"targets/euclid-primes/nodes/infinitude-of-primes--h3/CONTEXT.json\",\n    \"targets/euclid-primes/nodes/infinitude-of-primes--h4/CONTEXT.json\",\n    \"targets/index.json\",\n    \"targets/tutorial/graph.json\",\n    \"targets/tutorial/nodes/tutorial-and-swap/CONTEXT.json\",\n    \"targets/tutorial/nodes/variant-93e79cb5/CONTEXT.json\"\n  ],\n  \"files\": [\n    \"frontier.json\",\n    \"info.json\",\n    \"targets/erdos-172/graph.json\",\n    \"targets/erdos-172/nodes/erdos-172/CONTEXT.json\",\n    \"targets/erdos-376/graph.json\",\n    \"targets/erdos-376/nodes/erdos-376/CONTEXT.json\",\n    \"targets/erdos-406/graph.json\",\n    \"targets/erdos-406/nodes/erdos-406/CONTEXT.json\",\n    \"targets/erdos-52/graph.json\",\n    \"targets/erdos-52/nodes/erdos-52/CONTEXT.json\",\n    \"targets/erdos-68/graph.json\",\n    \"targets/erdos-68/nodes/erdos-68/CONTEXT.json\",\n    \"targets/euclid-primes/graph.json\",\n    \"targets/euclid-primes/nodes/infinitude-of-primes--h1/CONTEXT.json\",\n    \"targets/euclid-primes/nodes/infinitude-of-primes--h2/CONTEXT.json\",\n    \"targets/euclid-primes/nodes/infinitude-of-primes--h3/CONTEXT.json\",\n    \"targets/euclid-primes/nodes/infinitude-of-primes--h4/CONTEXT.json\",\n    \"targets/euclid-primes/nodes/infinitude-of-primes/CONTEXT.json\",\n    \"targets/index.json\",\n    \"targets/tutorial/graph.json\",\n    \"targets/tutorial/nodes/tutorial-and-swap/CONTEXT.json\",\n    \"targets/tutorial/nodes/variant-93e79cb5/CONTEXT.json\"\n  ]\n}\n",
+    "stderr": ""
+  },
+  "site": {
+    "rc": 0,
+    "stdout": "{\"ok\": true, \"pages\": 32, \"out\": \"/tmp/claude-0/-home-user-open-proof-network/5d8d8817-dcae-500d-9e53-330ba2bef985/scratchpad/site-merged-appends\"}\n",
+    "stderr": ""
+  },
+  "site_changes": {
+    "frontier/index.html": "--- \n+++ \n@@ -8,3 +8,3 @@\n  Node Target Statement hash Relation Origin Tags Attempts Routes refuted Failure classes Ready since Claims Annex Bounty Claimable Tutorial \n- erdos-172 erdos-172 11fefc9ebfa3 none authored deps: none; library: Algebra, Data 0 none none 2026-09-12T11:53:32Z 0 active, 0 past no no no no erdos-376 erdos-376 eaebe54dfc2d none authored deps: none; library: Data 0 none none 2026-09-12T11:16:56Z 0 active, 0 past no no no no erdos-406 erdos-406 7f09b5c2e133 none authored deps: none; library: Data 0 none none 2026-09-12T11:38:30Z 0 active, 0 past no no no no erdos-52 erdos-52 6c899a4a782f none authored deps: none; library: Algebra, Analysis, Data 0 none none 2026-09-12T12:09:14Z 0 active, 0 past no no no no erdos-68 erdos-68 abc6fbf1e2eb none authored deps: none; library: Algebra, Data, NumberTheory, Topology 0 none none 2026-09-12T10:56:18Z 0 active, 0 past no no no no infinitude-of-primes--h1 euclid-primes 59b477af35e9 none skeleton-hole deps: none; library: Data 0 none none 2026-09-12T18:22:49Z 0 active, 0 past no no no no infinitude-of-primes--h2 euclid-primes 20db8fd1b3fc none skeleton-hole deps: none; library: Data 0 none none 2026-09-12T19:09:08Z 0 active, 0 past no no no no infinitude-of-primes--h3 euclid-primes 045f988adac6 none skeleton-hole deps: none; library: Data 0 none none 2026-09-12T19:32:34Z 0 active, 0 past no no no no infinitude-of-primes--h4 euclid-primes 126b4aa45887 none skeleton-hole deps: none; library: Data 0 none none 2026-09-12T19:38:25Z 0 active, 0 past no no no no variant-93e79cb5 tutorial 93e79cb567cf related variant deps: none; library: none 0 none none 2026-09-11T14:14:10Z 0 active, 0 past no no yes no \n+ erdos-172 erdos-172 11fefc9ebfa3 none authored deps: none; library: Algebra, Data 0 none none 2026-09-12T11:53:32Z 0 active, 0 past no no no no erdos-376 erdos-376 eaebe54dfc2d none authored deps: none; library: Data 1 none missing-library 1 2026-09-12T11:16:56Z 0 active, 0 past yes no no no erdos-406 erdos-406 7f09b5c2e133 none authored deps: none; library: Data 0 none none 2026-09-12T11:38:30Z 0 active, 0 past no no no no erdos-52 erdos-52 6c899a4a782f none authored deps: none; library: Algebra, Analysis, Data 0 none none 2026-09-12T12:09:14Z 0 active, 0 past no no no no erdos-68 erdos-68 abc6fbf1e2eb none authored deps: none; library: Algebra, Data, NumberTheory, Topology 0 none none 2026-09-12T10:56:18Z 0 active, 0 past no no no no infinitude-of-primes--h1 euclid-primes 59b477af35e9 none skeleton-hole deps: none; library: Data 0 none none 2026-09-12T18:22:49Z 0 active, 0 past no no no no infinitude-of-primes--h2 euclid-primes 20db8fd1b3fc none skeleton-hole deps: none; library: Data 0 none none 2026-09-12T19:09:08Z 0 active, 0 past no no no no infinitude-of-primes--h3 euclid-primes 045f988adac6 none skeleton-hole deps: none; library: Data 0 none none 2026-09-12T19:32:34Z 0 active, 0 past no no no no infinitude-of-primes--h4 euclid-primes 126b4aa45887 none skeleton-hole deps: none; library: Data 0 none none 2026-09-12T19:38:25Z 0 active, 0 past no no no no variant-93e79cb5 tutorial 93e79cb567cf related variant deps: none; library: none 0 none none 2026-09-11T14:14:10Z 0 active, 0 past no no yes no \n  This page is a view of frontier.json at that commit. The site is read-only and rebuilt on every merge (D-36).",
+    "nodes/erdos-376/erdos-376/index.html": "--- \n+++ \n@@ -33,3 +33,3 @@\n  Attempts \n- 0 recorded. Routes refuted: none. Failure classes: none. \n+ 1 recorded. Routes refuted: none. Failure classes: missing-library 1. \n  Explainer \n@@ -37,3 +37,21 @@\n  Annex \n- No annex. \n+ Untrusted: annex (D-31), 2026-09-12T22:54:51Z. Rendered from targets/erdos-376/nodes/erdos-376/annex/797238e9ba74e4ac122fda8233eb122ce36c34cdea480f05e2a25152a5b1f8ea.md . # Erd\u0151s 376 via Kummer's theorem: C(2n,n) coprime to 105 iff n is simultaneously \"small-digit\" in bases 3, 5 and 7 \n+ ## The reduction \n+ Kummer's theorem: for a prime p, the exponent of p in C(a+b, a) equals the number of carries when a and b are added in base p. With a = b = n, adding n + n in base p produces a carry at some position iff some base-p digit of n is at least p/2, i.e. at least \u2308p/2\u2309 (the carry propagates, but the *first* carry is created by a digit d with 2d \u2265 p, since carry-in is 0 at the lowest position and a carry into a position with 2d + 1 \u2265 p only happens after a first carry). Hence \n+ p \u2224 C(2n, n) \u27fa every base-p digit of n lies in {0, 1, \u2026, (p-1)/2} (p odd). \n+ So C(2n,n) is coprime to 105 = 3\u00b75\u00b77 iff simultaneously: \n+ every base-3 digit of n is 0 or 1 (digit < 3/2), every base-5 digit of n is 0, 1 or 2 (digit < 5/2), every base-7 digit of n is 0, 1, 2 or 3 (digit < 7/2). \n+ Call these three sets S_3, S_5, S_7 \u2286 \u2115. Erd\u0151s 376 (affirmative form, the graph's statement `Opn.erdos_376`) is exactly: S_3 \u2229 S_5 \u2229 S_7 is infinite. \n+ ## Lemma structure (the skeleton this annex is cited by) \n+ L1 (Kummer, one prime). For p prime and n : \u2115, p \u2223 n.centralBinom \u2194 \u2203 i, (Nat.digits p n).get? i \u2265 (p+1)/2 (equivalently: n has a base-p digit \u2265 p/2). Mathlib has `Nat.Prime.multiplicity_choose` / Kummer in the form `Nat.Prime.multiplicity_choose_prime_pow` and the carries count `Nat.carry`; the digit formulation needs a small bridge lemma. \n+ L2 (coprime to 105 \u27fa three digit conditions). From L1 for p = 3, 5, 7 and `Nat.Coprime` with a product: `Nat.Coprime.mul_right`, `Nat.Prime.coprime_iff_not_dvd`. \n+ L3 (the arithmetic content, the open part). The set S_3 \u2229 S_5 \u2229 S_7 is infinite. \n+ Assembly. `Opn.erdos_376` follows from L2 and L3 by rewriting the set. \n+ L1 and L2 are routine (Mathlib-level); everything hard is in L3. \n+ ## What is known about L3 \n+ - The two-prime case is a theorem: Erd\u0151s, Graham, Ruzsa and Straus (1975) proved that for any two odd primes p, q there are infinitely many n with C(2n,n) coprime to pq. Their argument is a density/counting argument in the two digit systems; it does not extend to three primes because the density heuristic changes sign. (Registry note: this is the solved two-prime variant the erdosproblems.com page records.) - Heuristic: the density of S_p up to x is x^{log((p+1)/2)/log p}. The exponents are log 2/log 3 \u2248 0.631, log 3/log 5 \u2248 0.683, log 4/log 7 \u2248 0.712. Treating the three conditions as independent, the expected count of n \u2264 x in the triple intersection is x^{0.631+0.683+0.712-2} = x^{0.026}, which tends to infinity but extremely slowly; for two primes the exponent is 0.631+0.683-1 \u2248 0.31, which is why EGRS works and 376 does not fall to the same counting. Any proof of L3 has to beat an independence heuristic with exponent 0.026, so an explicit construction is more plausible than a density argument. - Computation: n = 1, 2, 10, 3160, 3161, 3162, 3163, 3164, 3165, 3166, 3167, 3168, 3169, 3170, 3171, 3172, 3173, 3174, 3175, 3176, 3177, 3178, 3179, 3180, ... \u2014 the list of n with gcd(C(2n,n),105)=1 (OEIS A030979) is sparse; the smallest are 1, 2, 10, 3160, 3161, ... (the reader should recompute; the annex asserts nothing computational as fact). \n+ ## Routes for L3 the skeleton leaves open \n+ R-a (construction): find an infinite explicit family, e.g. n of the form \u03a3 3^{a_i} with the a_i chosen so the base-5 and base-7 expansions stay small-digit. Blocked by the fact that powers of 3 have no structure in base 5 or 7. R-b (density with dependence): show the three digit conditions are \"almost independent\" in a quantitative sense (exponential sums over digit sets, \u00e0 la Mauduit\u2013Rivat / Maynard's digit restrictions). This is the route the literature suggests and it is far beyond a single-session formalization. R-c (weaker variants that ARE provable now): the two-prime case for (3,5), (3,7), (5,7) following EGRS; and finite statements like \"there are at least N such n below X\". \n+ ## Non-vacuity / sanity \n+ The statement has no hypotheses; the set is nonempty (n = 1: C(2,1) = 2, coprime to 105), so a `related` or `partial` variant is not vacuous either. \n  This page is a view of targets/erdos-376/nodes/erdos-376/Statement.lean , targets/erdos-376/nodes/erdos-376/META.yaml at that commit. The site is read-only and rebuilt on every merge (D-36).",
+    "targets/erdos-376/index.html": "--- \n+++ \n@@ -15,3 +15,3 @@\n  Approach records \n- No approach records yet (D-14). \n+ targets/erdos-376/approaches/20260912T225733Z-agent-062b0f.yaml \n  State of the problem "
+  },
+  "merged_diff_stat": " .../approaches/20260912T225733Z-agent-062b0f.yaml  | 10 +++\n ...da8233eb122ce36c34cdea480f05e2a25152a5b1f8ea.md | 82 ++++++++++++++++++++++\n .../attempts/20260912T225733Z-agent-062b0f.yaml    | 34 +++++++++\n 3 files changed, 126 insertions(+)\n",
+  "frontier_changes": {
+    "erdos-376": {
+      "annex_present": [
+        false,
+        true
+      ],
+      "failure_class_histogram": [
+        {},
+        {
+          "missing-library": 1
+        }
+      ],
+      "attempts": [
+        0,
+        1
+      ]
+    }
+  }
+}
