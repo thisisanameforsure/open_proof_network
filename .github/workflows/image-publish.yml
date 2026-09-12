@@ -74,7 +74,12 @@ jobs:
         run: |
           set -euo pipefail
           toolchain="$(tr -d '[:space:]' < lean-toolchain)"
-          tag="$(printf '%s' "${GITHUB_REF_NAME}" | tr -c 'A-Za-z0-9_.-\n' '-')"
+          # Bash's own substitution, not tr: the set was written 'A-Za-z0-9_.-\n', in which GNU
+          # tr reads '.-\n' as a reverse range and refuses ("range-endpoints ... in reverse
+          # collating sequence order") while BSD tr on a laptop accepts it silently. The first
+          # tag push ever made failed here and published no image. A bracket expression with the
+          # dash last has one meaning in every shell, and needs no external program.
+          tag="${GITHUB_REF_NAME//[^A-Za-z0-9_.-]/-}"
           if [ -n "$MATHLIB_SHA" ]; then tag="$tag-mathlib-${MATHLIB_SHA::12}"; fi
           echo "toolchain=$toolchain" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"

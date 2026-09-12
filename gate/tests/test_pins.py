@@ -6,6 +6,8 @@ from __future__ import annotations
 import importlib.util
 import json
 import re
+import shlex
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -142,6 +144,33 @@ def test_pull_refuses_a_tag() -> None:
     with pytest.raises(sandbox.SandboxError, match="not an image digest reference"):
         sandbox.pull_image("ghcr.io/x/opn-gate:latest", docker="/bin/false")
     assert sandbox.is_digest_ref(DIGEST) and not sandbox.is_digest_ref(DIGEST[:-1])
+
+
+#: Docker's own tag grammar: a leading alphanumeric or underscore, then up to 127 more of
+#: alphanumeric, underscore, period or dash.
+DOCKER_TAG = re.compile(r"[A-Za-z0-9_][A-Za-z0-9._-]{0,127}")
+
+
+def test_publish_workflow_tag_is_derived_by_the_shell_alone() -> None:
+    """The image tag comes from a shell expression in the publish workflow, so run the real line
+    rather than read it (F10-R5).
+
+    The first tag push ever made published nothing: the line piped the ref through
+    ``tr -c 'A-Za-z0-9_.-\\n' '-'``, and GNU tr on the runner reads ``.-\\n`` as a reverse range
+    and exits 1, while BSD tr on the laptop accepts the same set silently. No static reading of
+    the file could tell those two apart, and no laptop run could reproduce it — so the guard is
+    that the expression uses no external program at all, plus its output for real refs.
+    """
+    text = (ROOT / ".github" / "workflows" / "image-publish.yml").read_text(encoding="utf-8")
+    line = next(ln.strip() for ln in text.splitlines() if ln.strip().startswith("tag="))
+    assert "|" not in line, f"the tag must not depend on an external program: {line}"
+    for ref, want in (("F12-done", "F12-done"), ("v1.2.3", "v1.2.3"), ("feat/x y@1", "feat-x-y-1")):
+        script = f'GITHUB_REF_NAME={shlex.quote(ref)}\n{line}\nprintf %s "$tag"'
+        proc = subprocess.run(
+            ["bash", "-euo", "pipefail", "-c", script], capture_output=True, text=True, check=True
+        )
+        assert proc.stdout == want
+        assert DOCKER_TAG.fullmatch(proc.stdout), f"{proc.stdout!r} is not a docker tag"
 
 
 def test_publish_workflow_shape() -> None:
