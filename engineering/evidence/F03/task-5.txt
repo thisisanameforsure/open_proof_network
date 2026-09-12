@@ -144,3 +144,33 @@ merge built a proof, and check_products.py still requires an attestation of ever
 An intake and an append build no proof, so the post-merge job signs nothing for them and is
 right not to (F07-R9, F08-R13). Logged as F03-Q6; AC13 is met by #19, which is a merge of the
 kind R12 describes.
+
+================================================================================
+F03-Q7 FIXED AND LIVE — 2026-09-12, later the same day. Mike's rule.
+================================================================================
+
+The rule: a node is proved only with a formal statement and a valid proof in the tree.
+graph.status_of settles a node when its Proof.lean declares a recognised artifact *and* a merged
+passing attestation matches its statement hash (network f45b781; test
+gate/tests/test_products.py::test_a_merged_partial_does_not_prove_its_parent, both ways).
+
+Derived from the live graph with the fixed code before any release, from the laptop:
+  infinitude-of-primes  blocked   (proof attested: True, artifact in tree: None)
+  target euclid-primes  listed
+
+Released: tag F03-done on f45b781 → image-publish 34712385135 green → graph re-pinned at fc4b3f2
+(all seven targets; labels read from the registry: revision f45b781, mathlib 0df444a360ea) →
+pregate on the live tutorial node: pass, seven steps, cache hit → the next post-merge render
+(the h2 witness, bot commit 3abfdee) wrote graph/v3 and targets-index/v4 with the root blocked
+and the target listed → site-deploy 34714359134.
+
+openproofnetwork.org/targets/, euclid-primes, before and after:
+  before  Status resolved, listed, not claimable · Progress 1 proved, 4 blocked
+  after   Status listed,   listed, not claimable · Progress 2 ready, 3 blocked   (then 4 ready,
+          1 blocked once the last two witnesses merged)
+
+The correction to this record's own earlier account: the propositional fixture's nodes do carry
+Proof.lean files. The suite agreed with the bug because no test had attested a node whose proof
+file was absent — the state a merged partial leaves behind — not because the fixture lacked
+them; the expected-failure test written earlier was failing on its guard assertion, and is now a
+real test of the rule.

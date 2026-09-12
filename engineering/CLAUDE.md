@@ -532,3 +532,7 @@ The law of the project:
   pulls, and a Mathlib image is 3.5 GiB compressed against 6.6 GiB free, so the check it exists to
   make is unrunnable on the founder's machine. The labels live in the config blob: a pull token,
   the manifest by digest, the blob — a few kilobytes and no disk.
+- 2026-09-12 — After a merge, the post-merge job's own commit moves main a second time. A branch
+  updated in the gap between the merge and its `gate: #N pass` commit is BEHIND again by the time
+  its gate is green, and a loop waiting for CLEAN waits forever. Sequence pull requests as merge →
+  wait for the bot commit → update the next branch; the merge script now does.

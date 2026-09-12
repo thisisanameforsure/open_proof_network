@@ -111,3 +111,24 @@ admission finishing 2 min 20 s after the pull began, against about six minutes t
 image per job (F11-Q29). The post-merge job then regenerated the products, wrote the proposer's
 statement line, assumed the cache upload role by OIDC and published the olean cache — every step
 green, which is F10-AC11's unattended publish.
+
+ALL FOUR MERGED — 2026-09-12, after F07-Q19 was decided and pinned
+------------------------------------------------------------------
+With the gate at f45b781 (step 6 records a derived statement's findings, never refuses), the
+three branches were updated to main and re-gated: every run pulled the new image, admitted, and
+recorded the finding as it should —
+
+    "verdict": "pass"  ...  "code": "hazards-derived-statement"   (h4's run, read from the log)
+
+  h2  #21  merged bf225fe   bot 3abfdee   gate: #21 pass
+  h3  #22  merged 8320859   bot caa81c5   gate: #22 pass
+  h4  #23  merged 495163d   bot 02a4e23   gate: #23 pass
+
+Products at 02a4e23: the root blocked (F03-Q7), h1–h4 ready, cause none; euclid-primes listed,
+node_counts {ready: 4, blocked: 1}; all four holes in frontier.json, claimable false — the target
+is not yet claimable, which is F11 step 5's business (a non-author signature and the posting),
+not the holes'.
+
+One operational note for the next batch of pull requests: under the strict up-to-date rule a
+branch updated *before* the previous merge's bot commit lands goes BEHIND again and never becomes
+CLEAN; after each merge, wait for `gate: #N pass` on main, then update the next branch.
