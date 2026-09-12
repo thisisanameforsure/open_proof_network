@@ -9,9 +9,12 @@ Contexts, compiled deps-first, and the node's ``Proof`` module is replayed with
 from __future__ import annotations
 
 import subprocess
+from pathlib import Path
 
 from opn_gate import cache, defs, layout
+from opn_gate.steps import artifact
 from opn_gate.steps import stage as staging
+from opn_gate.steps.artifact import PARTIAL_KEY
 from opn_gate.steps.base import RunContext, StepResult
 from opn_gate.toolchain import ElabResult, ResolvedToolchain
 
@@ -28,7 +31,9 @@ class KernelReplayStep:
         tc: ResolvedToolchain | None = ctx.data.get("toolchain")
         if node is None or tc is None:
             return StepResult.failed("step-order", "step 4 needs steps 1 and 2 to have passed")
-        staged = staging.stage(node, ctx.workdir)
+        partial = ctx.data.get(PARTIAL_KEY)
+        override = Path(str(partial["file"])) if isinstance(partial, dict) else None
+        staged = staging.stage(node, ctx.workdir, proof_override=override)
         ctx.data["staged"] = staged
         if staged.problems:
             first = staged.problems[0]
@@ -69,7 +74,12 @@ class KernelReplayStep:
                 "leanchecker --fresh rejected the module",
                 output=replay.output,
             )
-        return StepResult.passed()
+        # F07-R4, R5: which of D-12's artifacts this is, and whether it is that thing — step 4's
+        # last word, because the type check needs the build that just passed (F11-T4).
+        try:
+            return artifact.judge(ctx, tc)
+        except subprocess.TimeoutExpired:
+            return StepResult.failed("timeout", "the artifact check exceeded the wall-clock cap")
 
     def _compile(
         self,

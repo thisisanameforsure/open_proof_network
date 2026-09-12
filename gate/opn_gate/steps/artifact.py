@@ -304,3 +304,59 @@ def _metaprogram_failure(result: MetaprogramResult) -> StepResult | None:
         result.error or "the artifact does not elaborate",
         messages=[m.as_dict() for m in result.messages],
     )
+
+
+# --- the judgment, from step 4 (F07-R4, R5 dispatched; F11-T4) ----------------------------------
+
+#: What step 2 records when the submission is a partial: where the assembly is, relative to the
+#: node, and the file itself (F07-R3's partial mode, D-12 #5).
+PARTIAL_KEY = "partial"
+ARTIFACT_KEY = "artifact"
+
+
+def judge(ctx: RunContext, tc: ResolvedToolchain) -> StepResult:
+    """D-12's shape rule, at the end of step 4 where the build it needs exists (F07-R4, R5;
+    dispatched in F11-T4). Not a step of its own: the verdict's steps are D-4's numbering,
+    which the attestation carries and every consumer reads, so this is step 4's last word.
+
+    A plain proof needs nothing here — F00-R19's textual rule already made it the statement with
+    the ``sorry`` replaced. A counterexample or a vacuity certificate declares a different type,
+    checked by the metaprogram against ``¬ S`` or ``¬ W`` (R4). A partial is the statement's
+    declaration with holes; the metaprogram extracts them and applies the offload rule (R5),
+    and the record it leaves in ``ctx.data`` is what the post-merge job turns into children.
+    """
+    node = ctx.node
+    assert node is not None
+    staged_dir = ctx.workdir / "src" / "Nodes" / node.node_id
+    proof = staged_dir / "Proof.lean"
+    if ctx.data.get(PARTIAL_KEY) is not None:
+        kind: Kind = "partial"
+    else:
+        declared, problem = declared_kind(
+            node.statement.decl_name, proof.read_text(encoding="utf-8")
+        )
+        if problem is not None:
+            return StepResult(ok=False, diagnostic=problem)
+        assert declared is not None
+        if declared == "proof":
+            ctx.data[ARTIFACT_KEY] = {"kind": "proof", "decl": node.statement.decl_name}
+            return StepResult.passed()
+        kind = declared
+    req = request(
+        ctx,
+        kind,
+        node_dir=staged_dir,
+        artifact=proof,
+        artifact_module=layout.node_module(node.node_id, "Proof"),
+    )
+    artifact, failure = run(ctx, tc, req, kind)
+    if failure is not None:
+        return failure
+    assert artifact is not None
+    return StepResult.passed_with(
+        "artifact-" + ("reduction" if artifact.is_reduction else artifact.kind),
+        f"{artifact.kind}: {artifact.decl} declares {artifact.declared}"
+        + (f"; {len(artifact.holes)} hole(s)" if artifact.holes else ""),
+        kind=artifact.kind,
+        holes=[h.name for h in artifact.holes],
+    )

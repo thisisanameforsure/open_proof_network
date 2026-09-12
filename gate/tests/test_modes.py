@@ -160,8 +160,6 @@ def test_classification_rejects_mixtures_and_forbidden_paths() -> None:
     assert both_artifacts.mode is None
 
     for path in (
-        f"{T}/defs/Helper.lean",
-        f"{T}/gate-spec.json",
         ".github/workflows/evil.yml",
         "curators.json",  # the role file is the founder's, never a submission's (F08 §7)
         f"{N}/attempts/precheck/nested/deep.json",
@@ -172,6 +170,13 @@ def test_classification_rejects_mixtures_and_forbidden_paths() -> None:
         rejected = modes.classify(added(path))
         assert rejected.mode is None, path
         assert [d.code for d in rejected.problems] == ["path-forbidden"], path
+
+    # F11-R2 (T4): a target's own files are an intake's, and an intake is whole — a lone
+    # definition or gate-spec is an incomplete intake, named as such, never a submission.
+    for path in (f"{T}/defs/Helper.lean", f"{T}/gate-spec.json"):
+        rejected = modes.classify(added(path))
+        assert rejected.mode is None, path
+        assert [d.code for d in rejected.problems] == ["intake-incomplete"], path
 
     # A node's definition is added once and never edited (D-3, D-8): a modification is forbidden
     # at the path, before any mode is considered.
@@ -464,13 +469,15 @@ def test_classify_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) ->
     assert out["ok"] is False
     assert [p["code"] for p in out["problems"]] == ["append-invalid"]
 
+    # A definition slipped onto an existing target is not a submission (F11-R2): a target's own
+    # files travel in an intake, whole, and a lone one is refused as that.
     (root / T / "defs" / "Sneak.lean").write_text("-- not a submission path\n")
     git("add", "-A")
     git("commit", "-q", "-m", "sneak")
     assert cli.main(["classify", "--graph", str(root), "--base", "HEAD~1"]) == 1
     out = json.loads(capsys.readouterr().out)
     assert out["mode"] is None
-    assert [p["code"] for p in out["problems"]] == ["path-forbidden"]
+    assert [p["code"] for p in out["problems"]] == ["intake-incomplete"]
 
 
 def test_classify_command_curator_and_completion(
@@ -701,6 +708,10 @@ def test_locate_is_the_whole_grammar() -> None:
         f"{N}/annex/{'a' * 64}.md": "annex",
         f"{N}/explainer/{'a' * 64}.md": "explainer",
         f"{T}/approaches/x.yaml": "approach-record",
+        f"{T}/target.yaml": "target-record",
+        f"{T}/gate-spec.json": "gate-spec",
+        f"{T}/defs/Divides.lean": "definition",
+        f"{T}/fidelity/root-1.yaml": "fidelity",
         f"{N}/META.yaml": "node",
         f"{N}/Statement.lean": "node",
         f"{N}/Context.lean": "node",
@@ -715,7 +726,7 @@ def test_locate_is_the_whole_grammar() -> None:
         f"{N}/defects/20260910T000000-alice.yaml": "defect-claim",
         f"{T}/defs/defects/20260910T000000-alice.yaml": "defect-claim",
     }
-    target_scoped = {"approach-record", "target-status"}
+    target_scoped = {"approach-record", "target-status", "target-record", "gate-spec", "fidelity"}
     for path, role in roles.items():
         located = paths.locate(path)
         assert located is not None and located.role == role, path
@@ -731,7 +742,6 @@ def test_locate_is_the_whole_grammar() -> None:
         f"{N}/status/.gitkeep",
         f"{N}/notes.md",
         f"{T}/status/nested/x.yaml",
-        f"{T}/defs/Helper.lean",
         f"{T}/defs/defects/nested/x.yaml",
         f"{N}/revisions/x.lean",
         f"{T}/nodes/and-swap@v2/Statement.lean",
@@ -1091,8 +1101,6 @@ def test_deleting_a_node_file_is_refused_by_its_role(name: str, role: str) -> No
         "keys/gate.pub",
         f"{T}/index.json",
         f"{T}/graph.json",
-        f"{T}/gate-spec.json",
-        f"{T}/defs/Helper.lean",
         f"{T}/README.md",
         f"{T}/nodes/README.md",
     ],

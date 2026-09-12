@@ -13,7 +13,8 @@ from opn_gate.steps.witness import WitnessStep
 
 
 def default_steps() -> list[Step]:
-    """The D-4 steps this gate version implements: 1, 2, 4, 5 (F00), 6 (F02) and 7, 8 (F01)."""
+    """The D-4 steps this gate version implements: 1, 2, 4, 5 (F00), 6 (F02) and 7, 8 (F01); step 4
+    ends with D-12's artifact rule (F07-R4, R5; dispatched in F11-T4)."""
     return [
         ToolchainStep(),
         PathsStep(),

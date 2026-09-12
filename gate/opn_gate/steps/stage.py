@@ -43,8 +43,10 @@ def generated_context(deps: list[str]) -> str:
     )
 
 
-def stage(node: layout.Node, workdir: Path) -> Staged:
-    """Copy the node and its dependency closure into the build layout."""
+def stage(node: layout.Node, workdir: Path, *, proof_override: Path | None = None) -> Staged:
+    """Copy the node and its dependency closure into the build layout. ``proof_override`` is a
+    partial's assembly (F07-R5): it is staged as the node's own ``Proof.lean``, since it declares
+    the statement's theorem and is built and replayed exactly as a proof is."""
     root = workdir / "src"
     build = workdir / "build"
     problems: list[Diagnostic] = []
@@ -89,6 +91,8 @@ def stage(node: layout.Node, workdir: Path) -> Staged:
         for name in NODE_FILES:
             if (src / name).is_file():
                 shutil.copy(src / name, dest / name)
+        if node_id == node.node_id and proof_override is not None:
+            shutil.copy(proof_override, dest / "Proof.lean")
         (dest / "Context.lean").write_text(generated_context(deps), encoding="utf-8")
         (build / "Nodes" / node_id).mkdir(parents=True, exist_ok=True)
         seen.add(node_id)

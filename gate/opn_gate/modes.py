@@ -24,6 +24,10 @@ So the diff is classified into exactly one mode before anything else runs:
 ``curator``      status records, or a versioned node ``<id>-v<n>``, by a login listed in the
                  graph's ``curators.json`` (F08-R8); reviewed by a second listed identity when
                  there is one (D-21, D-22)
+``intake``       a whole new target — ``target.yaml``, ``gate-spec.json``, ``defs/``, the
+                 fidelity certificates, a status record and exactly one node, the root — by a
+                 listed curator (F11-R2, D-6); the root is admitted, which builds the
+                 definitions first, and a second listed identity reviews when there is one
 ===============  ==========================================================================
 
 A diff that fits none of them is rejected at step 2, naming the paths — never guessed at.
@@ -51,7 +55,7 @@ from opn_gate import layout, paths, schemas
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Change, Located, Role
 
-Mode = Literal["proof", "partial", "append", "explainer", "proposal", "curator"]
+Mode = Literal["proof", "partial", "append", "explainer", "proposal", "curator", "intake"]
 
 #: The modes that run the Lean pipeline; the others never build a proof (R9, R10; F08-R2).
 BUILDING_MODES: tuple[Mode, ...] = ("proof", "partial")
@@ -160,14 +164,14 @@ class Classification:
         """Step 9 is a review of a *statement's* claim; an append makes none (F07-Q4), a
         proposal is admitted mechanically (D-29), and a curator record needs a second curator
         only when there is one (F08-R8)."""
-        if self.mode == "curator":
+        if self.mode in ("curator", "intake"):
             return bool(self.reviewers)
         return self.mode in BUILDING_MODES
 
     @property
     def review_waived(self) -> str | None:
         """Why step 9 is not asked when the mode would otherwise ask it — for the record."""
-        if self.mode == "curator" and not self.reviewers:
+        if self.mode in ("curator", "intake") and not self.reviewers:
             return WAIVER_SINGLE_CURATOR
         return None
 
@@ -227,6 +231,10 @@ def classify(  # noqa: PLR0911 — one return per rejection
     curator_records = [
         loc for loc in located if loc.role in paths.CURATOR_ROLES and loc.node_id not in new_dirs
     ]
+    if any(loc.role in paths.INTAKE_ROLES for loc in located):
+        return _classify_intake(
+            located, changes, target_id, new_dirs, author=author, curators=curators or Curators()
+        )
     if curator_records or any(paths.is_versioned(n) for n in new_dirs):
         return _classify_curator(
             located, changes, target_id, new_dirs, author=author, curators=curators or Curators()
@@ -351,6 +359,98 @@ def _classify_curator(  # noqa: PLR0913 — the diff, its located paths and the 
     reviewers = tuple(sorted(curators.logins - {author}))
     return Classification(
         "curator", target_id, node_id, tuple(located), admit=admit, reviewers=reviewers
+    )
+
+
+def _classify_intake(  # noqa: PLR0913 — one return per refusal; the diff and the host's fact
+    located: list[Located],
+    changes: list[Change],
+    target_id: str,
+    new_dirs: list[str],
+    *,
+    author: str | None,
+    curators: Curators,
+) -> Classification:
+    """F11-R2 (D-6): a curated target enters whole, by a listed curator, and its root is admitted.
+
+    The pull request adds the target's record, its gate-spec, its definitions, the certificates
+    intake wrote and its status record, plus exactly one node directory — the root — and
+    nothing else: no proof, no append, no second node. Everything is an addition, since the
+    target did not exist. The root is admitted in the sandbox like a proposal's node, and
+    admission builds ``defs/`` before the root's Context, so the definitions are checked by the
+    same act (F11-Q13). D-6's artifact rules on the record itself are ``intake new``'s and run
+    where the curator ran it; the gate's step here is the shape and the author.
+    """
+    roles = {loc.role for loc in located}
+    allowed = set(paths.INTAKE_ROLES) | set(paths.NODE_ROLES) | {"target-status"}
+    if not roles <= allowed:
+        return Classification(None, target_id, None, tuple(located), (_mixed(roles),))
+    modified = sorted(c.path for c in changes if c.status != "A")
+    if modified:
+        return Classification(
+            None,
+            target_id,
+            None,
+            tuple(located),
+            (
+                Diagnostic(
+                    "mode-mixed",
+                    f"{', '.join(modified)}: an intake adds a target that did not exist; nothing "
+                    "in it is a modification (F11-R2, D-3)",
+                    {"paths": modified},
+                ),
+            ),
+        )
+    for role, name in (("target-record", "target.yaml"), ("gate-spec", "gate-spec.json")):
+        if role not in roles:
+            return Classification(
+                None,
+                target_id,
+                None,
+                tuple(located),
+                (
+                    Diagnostic(
+                        "intake-incomplete",
+                        f"an intake adds targets/{target_id}/{name}; this one does not (F11-R2)",
+                        {"missing": name},
+                    ),
+                ),
+            )
+    if len(new_dirs) != 1:
+        return Classification(
+            None,
+            target_id,
+            None,
+            tuple(located),
+            (
+                Diagnostic(
+                    "intake-root",
+                    "an intake adds exactly one node, the root (F11-R2, D-6); this one adds "
+                    + (", ".join(new_dirs) if new_dirs else "none"),
+                    {"nodes": new_dirs},
+                ),
+            ),
+        )
+    if author is None or author not in curators.logins:
+        who = "unknown" if author is None else repr(author)
+        return Classification(
+            None,
+            target_id,
+            None,
+            tuple(located),
+            (
+                Diagnostic(
+                    "curator-unlisted",
+                    f"a target is taken in by a curator (D-6, F11-R2) and the pull request's "
+                    f"author ({who}) is not listed in {CURATORS_FILE}",
+                    {"author": author, "listed": sorted(curators.logins)},
+                ),
+            ),
+        )
+    root = new_dirs[0]
+    reviewers = tuple(sorted(curators.logins - {author}))
+    return Classification(
+        "intake", target_id, root, tuple(located), admit=root, reviewers=reviewers
     )
 
 

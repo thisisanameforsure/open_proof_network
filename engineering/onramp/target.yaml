@@ -1,0 +1,32 @@
+schema: target/v1
+id: euclid-primes
+title: Euclid's theorem
+informal: For every natural number n there is a prime greater than n.
+track: formalization
+source:
+  kind: other
+  ref: "Euclid, Elements IX.20"
+  url: null
+curator: thisisanameforsure
+prior_art:
+  arxiv_query: null
+  forum_url: null
+  summary: >-
+    Classical (Euclid, Elements IX.20; c. 300 BC) and not in dispute. Mathlib proves the same fact
+    as Nat.exists_infinite_primes about Nat.Prime; this target states it over the graph's own
+    Divides, IsPrime and fact (engineering/evidence/F11/selection.md, F11-R7), so the bridge to
+    Mathlib's statement is a lemma, not a citation. Chosen as the Stage 0 on-ramp for zero
+    selection risk (F11-Q1).
+library_coverage:
+  mathlib_sha: "0df444a360eaa60ab8c11dca51a86af692955474"
+  missing_prerequisites: []
+provenance:
+  statement_source: other
+  author: thisisanameforsure
+  adversarially_reviewed: false
+  upstream_commit: null
+sources: []
+attack_routes:
+  - "Euclid's construction: a prime divisor of n! + 1 exceeds n (the annex; the skeleton's three lemmas)"
+posting: null
+domains: [number-theory, elementary]

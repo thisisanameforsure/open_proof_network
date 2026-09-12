@@ -47,6 +47,7 @@ from opn_gate import (
     toolchain,
 )
 from opn_gate import graph as graphmod
+from opn_gate import submission as submissionmod
 from opn_gate.paths import Change, Claim
 from opn_gate.steps.base import RunContext
 from opn_gate.steps.hazards import HazardsStep, StatementStep
@@ -108,7 +109,7 @@ def positive_int(text: str) -> int:
     return value
 
 
-def build_parser() -> argparse.ArgumentParser:
+def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statement per flag
     parser = argparse.ArgumentParser(prog="opn-gate", description=__doc__.split("\n\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -153,6 +154,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     post.add_argument("--reviewer", help="the approving non-author reviewer (pr-approval)")
     post.add_argument("--review-reference", help="certificate id or registry reference")
+    # F07-R6 (F11-T4): a merged partial's holes become child nodes in the checkout, for the
+    # bot commit to carry. Asked for explicitly, so the graph's workflow passes it only in
+    # partial mode and an older pin, which does not know the flag, is never handed it (F08-Q8).
+    post.add_argument(
+        "--apply-partial",
+        action="store_true",
+        help="after a passing partial, create its hole children and file the assembly (F07-R6)",
+    )
+    post.add_argument(
+        "--pr-body-file", type=Path, help="the pull request body: the pseudonym for the children"
+    )
+    post.add_argument("--author", help="the pull request's author, for a hand-opened one")
     post.add_argument(
         "--approval-body-file",
         type=Path,
@@ -839,7 +852,60 @@ def run_postmerge(args: argparse.Namespace, settings: config.Settings) -> int:
     code = emit(verdict, doc, out_dir, settings)
     if code != EXIT_PASS:
         sys.stderr.write("opn-gate: the merged commit does not pass the gate; not attesting\n")
+        return code
+    if args.apply_partial:
+        applied = apply_merged_partial(ctx, verdict, graph, commit, args)
+        if applied is not None:
+            sys.stdout.write(json.dumps({"partial": applied.as_dict()}) + "\n")
     return code
+
+
+def apply_merged_partial(
+    ctx: RunContext,
+    verdict: pipeline.Verdict,
+    graph: Path,
+    commit: str,
+    args: argparse.Namespace,
+) -> postmerge.PartialMerge | None:
+    """F07-R6, dispatched (F11-T4): the children of a partial that just re-derived as passing,
+    written into the *checkout* (the export the run used is a copy), and the assembly filed
+    under ``attempts/`` as the record of who decomposed what.
+
+    The pseudonym is the submission block's, from the pull request body (F07-R2, R13); a
+    hand-opened pull request has no block and the login the workflow passes stands in. The
+    stamp is the merge commit's time, so two merges of one node file distinct attempts.
+    """
+    partial = verdict.data.get("partial")
+    artifact_doc = verdict.data.get("artifact") or {}
+    if not isinstance(partial, dict) or artifact_doc.get("kind") not in ("partial", "reduction"):
+        sys.stderr.write("opn-gate: --apply-partial given, but the merge was not a partial\n")
+        return None
+    from opn_gate.steps import artifact as artifactmod  # noqa: PLC0415 — steps.base would cycle
+
+    holes = [artifactmod.Hole.of(h) for h in artifact_doc.get("holes") or []]
+    node_dir = layout.graph_nodes_dir(graph, ctx.claim.target_id) / ctx.claim.node_id
+    assembly = node_dir / str(partial["path"])
+    if not assembly.is_file():
+        msg = f"the merged assembly {assembly} is not in the checkout"
+        raise CliError(msg)
+    body = _read_flag_file(args.pr_body_file, "--pr-body-file") if args.pr_body_file else ""
+    pseudonym = attestation.submitter_of(submissionmod.extract(body)) or args.author
+    if not pseudonym:
+        msg = "--apply-partial needs the pull request body (--pr-body-file) or --author"
+        raise CliError(msg)
+    when = graphmod.commit_timestamp(graph, commit)
+    stamp = when.replace("-", "").replace(":", "")
+    try:
+        return postmerge.apply_partial(
+            node_dir,
+            holes,
+            partial_text=assembly.read_text(encoding="utf-8"),
+            pseudonym=str(pseudonym),
+            stamp=stamp,
+            author=args.author,
+        )
+    except postmerge.GraphWriteError as exc:
+        raise CliError(str(exc)) from exc
 
 
 def run_admit(args: argparse.Namespace, settings: config.Settings) -> int:

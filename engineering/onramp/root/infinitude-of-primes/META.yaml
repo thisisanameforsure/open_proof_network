@@ -1,0 +1,12 @@
+schema: meta/v1
+id: infinitude-of-primes
+status: ready
+deps: []
+statement-hash: 5b109e7fcdb6efbec7644a28e98752abf8a0b84253a4c259dcb10f7a5968d451
+origin: authored
+provenance:
+  author: thisisanameforsure
+  model: null
+  source: null
+  date: "2026-09-12"
+tutorial: false

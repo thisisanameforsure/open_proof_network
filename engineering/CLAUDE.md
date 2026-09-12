@@ -407,3 +407,20 @@ The law of the project:
   fast tier's demarcation tests learned the new shape, and the smoke did not — so the first
   deploy after the merge went red on a check the tests had already passed. When a bundle's
   shape changes, grep the smokes for the field names as well as the tests.
+- 2026-09-12 — "Built as pure functions; nothing invokes them" is a status that hides a missing
+  mode. F07 shipped partial mode's classifier, artifact rule and post-merge effects as tested
+  functions with no dispatch, and F11-R8's "skeleton submitted through F07" read as done work
+  until the first partial hit step 2's `proof-missing`. When a feature's ledger says a piece has
+  no caller, the next feature that depends on it owns the caller — price that before promising.
+- 2026-09-12 — A check that needs a later step's build is that step's last word, not a step of
+  its own. The artifact rule numbered 4 beside the replay duplicated D-4's numbering and broke
+  every consumer of the attestation's step list at once. The verdict's steps are the protocol's
+  list; anything else rides as a step's diagnostic.
+- 2026-09-12 — A hole inherits the holes before it: the extractor closes each `have`-bound hole
+  over the binders in scope, and an earlier hole is one. Order a skeleton's lemma holes before the
+  assembly's locals, and expect each child to carry its predecessors as hypotheses (F11-Q22).
+- 2026-09-12 — A test that "modifies" a merged file to set up a submission is testing a refusal.
+  The apply tests failed with `path-forbidden` twice — once for deleting Proof.lean in the same
+  commit as the assembly, once for editing the statement's imports in a later one — because the
+  gate correctly refuses both. Put the tree's pre-conditions in the base commit and only the
+  submission in the diff; the refusals were right.

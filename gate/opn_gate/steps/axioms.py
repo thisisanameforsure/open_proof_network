@@ -15,9 +15,12 @@ from pathlib import Path
 from typing import Any
 
 from opn_gate import layout, schemas
+from opn_gate.steps.artifact import PARTIAL_KEY
 from opn_gate.steps.base import RunContext, StepResult
 from opn_gate.steps.replay import PROOF_MODULE
 from opn_gate.toolchain import ResolvedToolchain, is_native_decide_axiom
+
+SORRY_AXIOM = "sorryAx"
 
 WAIVER_SCHEMA = "waiver/v1"
 WAIVER_FILE = Path("waivers") / "native_decide.yaml"
@@ -87,6 +90,10 @@ class AxiomsStep:
                 path=str(WAIVER_FILE),
             )
         allowed = set(ctx.spec["axiom_allowlist"])
+        if ctx.data.get(PARTIAL_KEY) is not None:
+            # F07-R5: a partial's replay accepts sorryAx through its holes and nowhere else —
+            # "nowhere else" is the artifact step's check that every sorry is a named hole.
+            allowed.add(SORRY_AXIOM)
         outside = [a for a in axioms if a not in allowed and not is_native_decide_axiom(a)]
         if outside:
             return StepResult.failed(

@@ -1,0 +1,82 @@
+F11-T4 — seeding the on-ramp graph: the paths it needs, built; the pull requests, staged.
+2026-09-12
+
+STATUS: CODE COMPLETE; the intake and skeleton pull requests are the curator's, after the re-pin
+--------------------------------------------------------------------------------------------
+R8 says the on-ramp graph is seeded as a root plus a skeleton submitted through F07, its interior
+nodes holes admitted by F08. None of that path existed end to end:
+
+  1. Partial mode was not dispatched. F07-T2 built the artifact rule as functions ("belongs with
+     T4", which never got a caller — F07-Q17); a partial pull request failed step 2 with
+     proof-missing. Now step 2 takes the one new assembly under attempts/ as the submission,
+     step 4 stages and replays it and ends with D-12's judgment (holes, offload rule), step 5
+     accepts sorryAx through the holes (Q18). The rule is step 4's last word, not a step: a
+     numbered step beside the replay broke every consumer of the attestation's steps (Q19).
+  2. Nothing created the children. postmerge --apply-partial does (F07-R6), in the checkout the
+     bot commit carries, with each child's statement under the parent's imports (Q16, Q21);
+     the graph's gate.yml passes the flag in partial mode only (graph commit 0dcf252).
+  3. An intake had no mode: target.yaml, gate-spec.json, defs/ and the certificates were "not a
+     path any submission may touch". The classifier names `intake` — a whole new target by a
+     listed curator, the root admitted (which builds defs/ first, Q13), reviewed by a second
+     curator when there is one (Q20).
+
+And the seeding itself:
+  - engineering/onramp/: the inputs (target.yaml with D-6's artifacts, the root over
+    Defs.IsPrime carrying Mathlib.Tactic for provers — Q16 — with no dependencies and a real
+    witness, the three definitions, the annex with its front matter named for its hash, and the
+    skeleton citing it: four lemma holes and Euclid's assembly in Lean core).
+  - The graph checkout: `intake new euclid-primes --branch intake/euclid-primes --no-toolchain`
+    wrote targets/euclid-primes/ (record, spec pinning Mathlib 0df444a3…, defs, root, four
+    mechanical-only certificates, the listed status) as commit 631277f on that branch. Admission
+    was skipped here for want of the Mathlib image on this laptop (Q17); the pull request's gate
+    is where the root and the definitions are admitted, in the sandbox, by the intake mode.
+
+VERIFICATION — FAST TIER
+------------------------
+$ make verify -> ruff clean, mypy clean (114 files), 1425 passed, 58 deselected
+
+  gate/tests/test_partial.py          9: the assembly through the pipeline (holes named at
+                                         step 4, sorryAx only for a partial, F00-R19 on the
+                                         assembly, one assembly per diff, the newest without a
+                                         diff, proof-missing unchanged, R4's counterexample by
+                                         the metaprogram and a proof by nothing beyond F00-R19)
+  gate/tests/test_intake_mode.py      4: the classification over intake new's own tree, the
+                                         listed-curator rule, five named refusals, `classify`
+  gate/tests/test_postmerge_apply.py  8: children in the checkout with the parent's imports,
+                                         deps and Context regenerated, the assembly filed for the
+                                         block's pseudonym (or the login), skeleton-hole with a
+                                         cited annex, nothing without the flag, nothing on a proof
+                                         merge, a usage error with nobody to credit, nothing on a
+                                         failing partial, the merge diff step 2 reads
+  test_modes.py: the grammar gains four roles; a lone definition or gate-spec is an incomplete
+                 intake; a modified gate-spec is refused before any mode is asked.
+
+VERIFICATION — LEAN TIER (the real toolchain, on this laptop)
+------------------------------------------------------------
+$ uv run pytest gate/tests/test_onramp_lean.py -k mechanics_without_mathlib -m lean
+  1 passed in 51.42s
+
+  The fixture's skeleton (four lemma statements of the selection record, three as holes and
+  fact-pos from the Context) on a Mathlib-free copy of the fixture: steps 1, 2, 4, 5, 6, 7, 8
+  pass; step 2 says partial-submission; step 4 says artifact-partial with holes
+  [dvd_fact, prime_divisor, dvd_consecutive]; none is definitionally the root. This is AC10's
+  mechanics with the pin removed; AC10 itself (test_skeleton_admits, the pinned checkout) runs
+  in CI beside T3's docker tier — the laptop holds no Mathlib checkout (task-3.txt).
+
+  [CI result: to be appended]
+
+WHAT IS THE CURATOR'S, IN ORDER (engineering/onramp/README.md has the commands)
+------------------------------------------------------------------------------
+  0. Re-pin the graph to a network commit that knows the intake mode and the Mathlib image
+     (pin_image.py; F10's sitting). Under the current pin (c6cebbc) an intake pull request is
+     refused as "not a path any submission may touch", which is the gap this task closes.
+  1. Push intake/euclid-primes, open the pull request; the gate admits the root and the defs in
+     the sandbox (mode intake, review waived: single curator); merge.
+  2. Submit the annex as an append on the root; merge.
+  3. Submit the skeleton as a partial through the service (POST /precheck, POST /submissions
+     with artifact_type partial); the gate runs partial mode; merge; the post-merge job creates
+     infinitude-of-primes--h1..h4 with origin skeleton-hole and renders the products.
+  4. Fidelity to screened-and-signed by a non-author — a second identity the graph does not
+     have yet (Q22); the posting; activation.
+Timing: the live root imports Mathlib.Tactic; every elaboration pays for it, and the first live
+gate run is where §6's ten minutes is measured for the real graph.

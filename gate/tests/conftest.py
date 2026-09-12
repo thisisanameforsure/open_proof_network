@@ -117,6 +117,10 @@ def fixture_graph_repo(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, 
     return root, git("rev-parse", "HEAD")
 
 
+#: The scripted-docker seam ``test_cli_sandboxed.py`` defines, shared with the other tests that
+#: drive a sandboxed command through ``cli.main`` (``test_postmerge_apply.py``, F11-T4).
+from test_cli_sandboxed import seam  # noqa: E402, F401
+
 LEAN_PKG_DIR = ROOT / "gate" / "lean"
 
 

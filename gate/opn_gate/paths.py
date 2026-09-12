@@ -172,6 +172,10 @@ Role = Literal[
     "target-status",  # targets/<id>/status/<name>.yaml: a curator declaration (D-33)
     "revision-request",  # nodes/<id>/revisions/<name>.yaml (D-8, F08-R6)
     "defect-claim",  # nodes/<id>/defects/ or targets/<id>/defs/defects/<name>.yaml (D-16, F08-R7)
+    "target-record",  # targets/<id>/target.yaml: D-6's five artifacts (F11-R1, R2)
+    "gate-spec",  # targets/<id>/gate-spec.json: the pins the target runs under (D-35, F11-R2)
+    "definition",  # targets/<id>/defs/<Name>.lean: an object the statements are stated over
+    "fidelity",  # targets/<id>/fidelity/<subject>-<n>.yaml: a D-9 certificate (F11-R3)
 ]
 
 #: Roles that claim nothing and merge on schema and path checks alone (F07-R9).
@@ -192,6 +196,10 @@ NODE_ROLES: tuple[Role, ...] = ("node", "witness", "relation", "keep")
 
 #: The records only a listed curator may add (F08-R8; D-8, D-29, D-33).
 CURATOR_ROLES: tuple[Role, ...] = ("node-status", "target-status")
+
+#: What a curated intake adds beside the root node (F11-R2; D-6): the target's own files. A pull
+#: request carrying any of these is an intake, and an intake is a curator's act.
+INTAKE_ROLES: tuple[Role, ...] = ("target-record", "gate-spec", "definition", "fidelity")
 
 #: Roles that may be modified as well as added: a proof is resubmittable, a waiver follows it, and
 #: a hole's witness slot is filled in place (F08-R5) — everything else is append-only.
@@ -254,7 +262,7 @@ class Located:
     node_id: str | None  # None for the target-scoped approach record
 
 
-def locate(path: str) -> Located | None:
+def locate(path: str) -> Located | None:  # noqa: PLR0911 — one return per D-3 entry
     """The role of ``path``, or ``None`` when no mode may touch it (F07-R3's rejection)."""
     node_match = _NODE_PATH_RE.match(path)
     if node_match is not None:
@@ -273,6 +281,15 @@ def locate(path: str) -> Located | None:
             return Located("target-status", path, target_match.group("target"), None)
         if head == "defs" and name.startswith("defects/") and _is_flat(name[8:], YAML_SUFFIXES):
             return Located("defect-claim", path, target_match.group("target"), None)
+        # F11-R2: the files a curated intake adds beside the root node.
+        if rest == "target.yaml":
+            return Located("target-record", path, target_match.group("target"), None)
+        if rest == "gate-spec.json":
+            return Located("gate-spec", path, target_match.group("target"), None)
+        if head == "defs" and _is_flat(name, (".lean",)):
+            return Located("definition", path, target_match.group("target"), None)
+        if head == "fidelity" and _is_flat(name, YAML_SUFFIXES):
+            return Located("fidelity", path, target_match.group("target"), None)
     return None
 
 
