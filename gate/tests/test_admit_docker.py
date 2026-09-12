@@ -47,6 +47,7 @@ def test_admission_runs_in_the_sandbox(
     assert [c["check"] for c in good["checks"]] == [
         "toolchain",
         "layout",
+        "declaration",
         "statement",
         "witness",
         "hazards",

@@ -202,6 +202,57 @@ class GraphCheck:
         return StepResult.passed()
 
 
+class DeclarationCheck:
+    """R1: no two nodes of a target declare the same theorem name (F08-Q18).
+
+    Each node's ``Statement.lean`` is its own module, so Lean is perfectly happy to elaborate two
+    nodes that declare ``OpnProp.and_swap`` — the clash is invisible until some later node depends
+    on both, and then it surfaces in *that* node's ``Context.lean``, where the two signatures
+    collide (F01-R6). That is the wrong place and the wrong person: the node that fails is the one
+    that did nothing wrong. So the name is checked where it is introduced.
+
+    The exception is a revision (D-8, F08-R9): ``<id>-v<n>`` supersedes ``<id>`` and restates the
+    same theorem deliberately, which is the whole point of a revision. A node may therefore share
+    its declaration with the node it names in ``supersedes``, and with no other.
+
+    This is a string comparison over sibling statements, so it needs no toolchain and runs before
+    anything is elaborated — the cheapest refusal in the order.
+    """
+
+    number = 5
+    name = "declaration"
+
+    def run(self, ctx: RunContext) -> StepResult:
+        node = ctx.node
+        if node is None:
+            return StepResult.failed("check-order", "the declaration check needs the layout check")
+        allowed = str(node.meta.get("supersedes") or "") or None
+        nodes_dir = layout.graph_nodes_dir(ctx.graph_root, ctx.claim.target_id)
+        if not nodes_dir.is_dir():
+            return StepResult.passed()
+        for sibling in sorted(p for p in nodes_dir.iterdir() if p.is_dir()):
+            if sibling.name in (node.node_id, allowed):
+                continue
+            statement_path = sibling / "Statement.lean"
+            if not statement_path.is_file():
+                continue
+            parsed = layout.parse_statement(statement_path.read_text(encoding="utf-8"))
+            if not isinstance(parsed, layout.Statement):
+                # A sibling whose own statement is malformed is that node's problem, not this
+                # one's: it cannot have been admitted, and it cannot be collided with either.
+                continue
+            if parsed.decl_name == node.statement.decl_name:
+                return StepResult.failed(
+                    "declaration-clash",
+                    f"node {sibling.name!r} already declares {node.statement.decl_name}; "
+                    f"a node may only restate a declaration by superseding the node that "
+                    f"holds it (D-8)",
+                    node=sibling.name,
+                    declaration=node.statement.decl_name,
+                )
+        return StepResult.passed()
+
+
 class RelationCheck:
     """R4, D-30: a variant's label above ``related`` is a claim, and the claim is kernel-checkable.
 
@@ -429,6 +480,7 @@ def default_checks() -> list[tuple[str, Step]]:
     return [
         ("toolchain", ToolchainStep()),
         ("layout", StatementStep()),
+        ("declaration", DeclarationCheck()),
         ("statement", StatementAxiomsCheck()),
         ("witness", WitnessStep()),
         ("hazards", HazardsStep()),

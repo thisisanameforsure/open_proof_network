@@ -1,0 +1,57 @@
+F08-T8 — one theorem name per target: the declaration check (Q20).
+2026-09-12
+
+THE DEFECT
+----------
+Q18 held it as a strict xfail against the real toolchain: two nodes of a target could declare the
+same theorem, because each Statement.lean elaborates as its own module and Lean has no complaint.
+The clash surfaced only in the Context.lean of the first node to depend on both (F01-R6) — the
+wrong node and the wrong person, since the node that fails is the one that did nothing wrong.
+
+THE FIX
+-------
+admit.DeclarationCheck, second in R1's order, straight after layout: compares the proposal's
+declaration with every sibling Statement.lean of the target and refuses `declaration-clash`,
+naming the node that holds the name. It exempts exactly the node named in `supersedes` — restating
+the theorem is what a revision *is* (D-8, F08-R9) — and no other; a sibling whose own statement is
+malformed declares nothing and cannot be collided with.
+
+Q18's reason for holding it ("no fake can see a name clash") applied to the old framing, not to
+the fix: the check is a string comparison over files already on disk, so the fast tier covers it
+after all, and the lean-tier test that was the xfail is now an ordinary test.
+
+Every read is a Python read of the host tree, never a path handed to the toolchain, so the
+sandbox's mounts (F08-Q13) are not in play.
+
+VERIFICATION — FAST TIER
+------------------------
+$ uv run --frozen pytest gate/tests/test_admit.py -p no:warnings -q
+32 passed
+
+  new: test_a_proposal_redeclaring_another_nodes_theorem_is_refused   (the clash, named; nothing after it runs)
+       test_a_revision_may_restate_the_theorem_it_supersedes          (the exemption, and that a different
+                                                                       node in supersedes does not license it)
+       test_a_sibling_with_an_unreadable_statement_is_not_a_clash
+  changed: test_admission_order_and_pass (R1's order gains "declaration")
+
+$ make verify  ->  ruff clean, mypy clean, 1393 passed, 53 deselected, NO XFAIL LEFT IN THE SUITE
+                   (with F05-T7; it was 1383 passed + 1 xfailed before both)
+
+VERIFICATION — REAL TIER (make verify-lean, 19m43s)
+---------------------------------------------------
+The held test, unmarked, against the real toolchain. The run was captured through `tail -45`,
+so the per-file progress lines are not in the record; the summary is, and 52 passed with no
+xfail is the count that includes it (it was 52 passed + 1 xfailed on the previous run):
+
+gate/tests/test_admit_docker.py:47: AssertionError
+FAILED gate/tests/test_admit_docker.py::test_admission_runs_in_the_sandbox - ...
+==== 1 failed, 52 passed, 1393 deselected, 2 warnings in 1183.93s (0:19:43) ====
+
+The one failure is test_admit_docker.py asserting the old check-order list — the same list
+test_admit.py asserts, updated there and not here, because that file had already been collected
+by the run. Fixed and re-run alone against the already-built image:
+
+$ uv run --frozen pytest gate/tests/test_admit_docker.py -p no:warnings -q
+1 passed in 14.67s
+
+So across both tiers: 1393 + 53 passed, 0 xfailed, 0 failed.

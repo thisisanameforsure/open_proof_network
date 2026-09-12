@@ -16,7 +16,8 @@ import yaml
 from fakes import FakeToolchain, hazards_result, relation_result, witness_result
 from harness import ADVERSARIAL, GRAPH, TARGET, make_context
 
-from opn_gate import admit, scaffold
+from opn_gate import admit, layout, scaffold
+from opn_gate.paths import Claim
 from opn_gate.steps.base import RunContext
 from opn_gate.toolchain import AxiomResult, ElabResult
 
@@ -63,6 +64,7 @@ def test_admission_order_and_pass(tmp_path: Path) -> None:
     assert [c.name for c in result.checks] == [
         "toolchain",
         "layout",
+        "declaration",
         "statement",
         "witness",
         "hazards",
@@ -539,3 +541,82 @@ def test_a_directory_whose_meta_names_another_node_is_refused_at_layout(tmp_path
     assert failure(result) == ("layout", "meta-id")
     assert result.diagnostic is not None
     assert "differs from directory 'good-copy'" in result.diagnostic.message
+
+
+# --- the declaration check: one theorem name per target (F08-Q18) --------------------------------
+
+
+def redeclare(ctx: RunContext, case: str, victim: str) -> str:
+    """Point ``case``'s statement at the theorem ``victim`` already declares, and fix its hash."""
+    nodes = ctx.graph_root / "targets" / TARGET / "nodes"
+    taken = layout.parse_statement((nodes / victim / "Statement.lean").read_text())
+    assert isinstance(taken, layout.Statement)
+    statement = nodes / case / "Statement.lean"
+    mine = layout.parse_statement(statement.read_text())
+    assert isinstance(mine, layout.Statement)
+    text = statement.read_text().replace(
+        mine.decl_name.split(".")[-1], taken.decl_name.split(".")[-1]
+    )
+    statement.write_text(text, encoding="utf-8")
+    meta_path = nodes / case / "META.yaml"
+    meta = yaml.safe_load(meta_path.read_text())
+    meta["statement-hash"] = schemas.content_hash(text.encode("utf-8"))
+    meta_path.write_text(yaml.safe_dump(meta, sort_keys=False), encoding="utf-8")
+    return taken.decl_name
+
+
+def test_a_proposal_redeclaring_another_nodes_theorem_is_refused(tmp_path: Path) -> None:
+    """F08-Q18: two nodes of a target may not declare the same theorem. Lean would elaborate
+    both, because each statement is its own module; the clash would surface in the Context of the
+    first node to depend on both (F01-R6), which is the wrong node and the wrong person."""
+    ctx = context_for(tmp_path, "good")
+    taken = redeclare(ctx, "good", "tutorial-and-swap")
+    result = admit.run(ctx)
+    assert failure(result) == ("declaration", "declaration-clash")
+    assert result.diagnostic is not None
+    assert taken in result.diagnostic.message
+    assert result.diagnostic.details["node"] == "tutorial-and-swap"
+    # It is cheap enough to run before anything elaborates, so nothing after it does.
+    after = names(result)[[c.name for c in result.checks].index("declaration") + 1 :]
+    assert {r for _, r in after} == {"skipped"}
+
+
+def test_a_revision_may_restate_the_theorem_it_supersedes(tmp_path: Path) -> None:
+    """D-8, F08-R9: restating the statement is what a revision *is*, so `<id>-v<n>` may share its
+    declaration with the node it supersedes — and with that node only."""
+    good_witness = witness_result(expected="∃ p q, p ∧ q", witness="∃ p q, p ∧ q")
+    ctx = context_for(tmp_path, "good", toolchain=FakeToolchain(witness=good_witness))
+    nodes = ctx.graph_root / "targets" / TARGET / "nodes"
+    revision = nodes / "good-v2"
+    shutil.copytree(nodes / "good", revision)
+    for name in ("Statement.lean", "Witness.lean", "Context.lean"):
+        text = (revision / name).read_text().replace("«good»", "«good-v2»")
+        (revision / name).write_text(text, encoding="utf-8")
+    meta_path = revision / "META.yaml"
+    meta = yaml.safe_load(meta_path.read_text())
+    statement_hash = schemas.content_hash((revision / "Statement.lean").read_bytes())
+    meta.update(
+        {
+            "schema": "meta/v4",
+            "id": "good-v2",
+            "supersedes": "good",
+            "statement-hash": statement_hash,
+        }
+    )
+    meta_path.write_text(yaml.safe_dump(meta, sort_keys=False), encoding="utf-8")
+    ctx.claim = Claim(TARGET, "good-v2")
+    assert admit.run(ctx).admitted, admit.run(ctx).as_dict()
+    # Naming a *different* node in supersedes does not license the clash.
+    meta["supersedes"] = "and-reassoc"
+    meta_path.write_text(yaml.safe_dump(meta, sort_keys=False), encoding="utf-8")
+    assert failure(admit.run(ctx)) == ("declaration", "declaration-clash")
+
+
+def test_a_sibling_with_an_unreadable_statement_is_not_a_clash(tmp_path: Path) -> None:
+    """A sibling whose own Statement.lean is malformed cannot be collided with: it declares
+    nothing this node could take, and its shape is that node's problem, not this one's."""
+    good_witness = witness_result(expected="∃ p q, p ∧ q", witness="∃ p q, p ∧ q")
+    ctx = context_for(tmp_path, "good", toolchain=FakeToolchain(witness=good_witness))
+    broken = ctx.graph_root / "targets" / TARGET / "nodes" / "and-reassoc" / "Statement.lean"
+    broken.write_text("-- no theorem here at all\n", encoding="utf-8")
+    assert admit.run(ctx).admitted, admit.run(ctx).as_dict()

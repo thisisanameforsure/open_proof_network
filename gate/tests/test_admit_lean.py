@@ -79,14 +79,6 @@ def test_admission_matrix(
     assert all(c.result != "pass" for c in after)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="F08-Q18: admission elaborates a proposal's Statement.lean as its own module, so a "
-    "statement that declares the same theorem name as an existing node (`OpnProp.and_swap`, the "
-    "tutorial's) is admitted; the clash surfaces only later, in the Context.lean of the first "
-    "node that depends on both (F01-R6), where the two signatures collide. No fake can see a "
-    "name clash — held here against the real toolchain until admission refuses it by name",
-)
 def test_a_proposal_redeclaring_an_existing_nodes_theorem_is_refused(
     tmp_path: Path, real_toolchain: LocalToolchain, pinned: ResolvedToolchain, lean_pkg: Path
 ) -> None:
