@@ -96,3 +96,8 @@ Run 34692446154 (ci run 71, head 17743bf = the AC24 match fix, merged onto main 
   ========= 61 passed, 1520 deselected, 2 warnings in 2515.19s (0:41:55) =========
   The budget lines of this run agree with budgets.txt within 0.4 s (onramp total 3.5 s; the
   propositional finding's replay 56.0 s).
+
+Tag: F12-done was created locally on 36251a6 (annotated). Pushing it was refused by this session's
+git proxy (three attempts, "the remote end hung up unexpectedly"; branch pushes succeed, so the
+proxy admits only the designated branch). The owner pushes the tag on merge:
+    git tag -a F12-done 36251a6 -m "F12 done" && git push origin F12-done
