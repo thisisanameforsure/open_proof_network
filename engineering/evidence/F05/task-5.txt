@@ -41,3 +41,50 @@ configured through Parameter Store (C8 item 3). api-deploy run:
 4. Still open: the claim round trip. The graph's only node is proved, so the frontier is
    legitimately empty and nothing is claimable (F05-Q6). The service is correct; the
    criterion needs graph content that F05 does not own.
+
+================================================================================
+AC19 — MET IN FULL 2026-09-12. The claim round trip, on the deployed service.
+================================================================================
+
+T5 had been "code complete, AC19 all but its last clause" since 2026-09-09: every read and the
+bearer check passed against the live stack, but the round trip itself could not run because the
+graph's only node was proved, so nothing in the frontier was claimable (F05-Q6 refused to add a
+node for a test's sake). F11's intake and F08's merged variant supplied the content; the
+frontier now carries six entries, one of them claimable.
+
+THE IDENTITY
+------------
+Account-free, the D-19 way, by reusing gate/tools/rehearsal.py's own `mint`: an anonymous
+precheck of the tutorial node (queued 0.8 s, running 11.6 s, done 152.2 s on a hosted runner),
+whose nonce was exchanged at POST /tokens for one write token under the pseudonym
+`rehearsal-ac19-a4128c`. No GitHub account was used and no secret of the founder's.
+
+COMMAND
+-------
+uv run --frozen python api/tools/smoke.py https://api.openproofnetwork.org --token "$TOKEN"
+
+OUTPUT
+------
+GET /health -> 200 {'ok': True, 'store': 'dynamodb'}
+GET /info.json -> 200, protocol 3.12, policy {'writes_per_hour': 120, 'active_claims': 20,
+  'tokens_per_github_login': 1, 'token_starts_per_address_per_day': 10, 'prechecks_per_hour': 40,
+  'anonymous_prechecks_per_address_per_day': 20, 'proposals_per_day': 40,
+  'claim_ttl_hours': {'min': 1, 'max': 168}}
+GET /frontier.json -> 200, 6 entries
+GET /claims.json -> 200, 1 nodes with claims
+POST /claims opn-smoke-no-such-node -> 404 node-not-in-frontier (the token authenticates)
+POST /claims variant-93e79cb5 -> 201 {'id': '01M2BC5BE04VF6D6CSPPMGH8Z0', 'node_id':
+  'variant-93e79cb5', 'target_id': 'tutorial', 'pseudonym': 'rehearsal-ac19-a4128c',
+  'created': '2026-09-12T17:55:36Z', 'expires': '2026-09-12T18:55:36Z', 'released': None}
+overlay shows variant-93e79cb5 claimed by ['rehearsal-ac19-a4128c']
+DELETE /claims/01M2BC5BE04VF6D6CSPPMGH8Z0 -> 200, released 2026-09-12T17:55:37Z
+smoke: ok
+exit=0
+
+So: health, the published rate-limit policy, a validating frontier and claims registry, a bearer
+the service accepts, a claim that appears in the live overlay under the claimant's pseudonym, a
+release that answers 200, and a frontier that afterwards shows the claim gone from `active` and
+counted in `history_count`. The run left nothing behind: the one claim it made it released.
+
+One note for the next runner of this tool: `mint` prints its progress to stdout, so a shell that
+captures the whole stream gets the timings as well as the token. Take the last line.

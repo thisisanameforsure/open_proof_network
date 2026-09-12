@@ -83,3 +83,64 @@ exit=1
 # addendum — $ gate/pregate.sh --graph ../open_proof_network_graph --node tutorial-and-swap — 2026-09-09T05:44:09Z — after the re-pin to 78343e1 (graph commit b0f82fe, local, unpushed)
 {"verdict": "pass", "steps": [[1, "pass"], [2, "pass"], [4, "pass"], [5, "pass"], [6, "pass"], [7, "pass"], [8, "pass"]]}
 exit=
+
+================================================================================
+AC13 (network) — MET 2026-09-12. The real merge, from the live graph.
+================================================================================
+
+F03-T5 had been "code complete, evidence pending" since 2026-09-09 for want of a real bot
+commit: the criterion wants the products of a merge that actually happened, not a simulated one.
+The graph now has eight, from the F11 intake, annex, skeleton and the five open targets.
+
+WHICH GATE REGENERATES
+----------------------
+check_products.py regenerates the products from the tree at the commit with *the tooling it is
+run from*, so it must be run from a checkout of the commit the graph pinned when that merge
+happened — targets/*/gate-spec.json network_commit = dc25d2b. Run from `main` instead it reports
+nine differences, every one of them the F12 schema bump (graph/v2 -> v3, targets-index/v3 -> v4)
+rather than anything wrong with the graph:
+
+    $ uv run --frozen python gate/tools/check_products.py 9aaa6431fc69      # from main, d9180fd
+    PROBLEM: targets/erdos-172/graph.json differs from a fresh generation
+    ... 9 problems, exit 1
+    committed graph.json schema: graph/v2        (products.py on main: GRAPH_SCHEMA graph/v3)
+    committed targets/index.json schema: targets-index/v3   (on main: INDEX_SCHEMA targets-index/v4)
+
+COMMAND (from a worktree at the pinned commit dc25d2b)
+------------------------------------------------------
+git worktree add <tmp>/pinned-dc25d2b dc25d2b
+cd <tmp>/pinned-dc25d2b
+uv run --frozen python gate/tools/check_products.py \
+    9aaa6431fc695b0ff179c90c42d6627bd63e868c --graph ../open_proof_network_graph
+
+OUTPUT
+------
+commit 9aaa6431fc69: gate: #19 pass
+frontier.json: 6 entries, rendered from 609a18d7c15b401c8f78ebc5c588ea8db3158f44
+{"commit": "9aaa6431fc695b0ff179c90c42d6627bd63e868c", "ok": true, "problems": []}
+exit=0
+
+That commit is the post-merge of pull request #19, the on-ramp skeleton (a partial): it carries a
+signed attestation, touches frontier.json, info.json, targets/index.json and every target's
+graph.json, frontier.json validates against the version it declares, and regenerating from the
+tree reproduces every committed product byte for byte (R11, R12).
+
+EVERY BOT COMMIT UNDER THIS PIN
+-------------------------------
+The same command over all eight, same worktree:
+
+    b5ae3d6  #12 intake euclid-primes    no attestation in the commit
+    2c09536  #13 intake erdos-68         no attestation in the commit
+    432f208  #14 intake erdos-376        no attestation in the commit
+    1c03136  #15 intake erdos-406        no attestation in the commit
+    c9c7523  #16 intake erdos-172        no attestation in the commit
+    0273996  #17 intake erdos-52         no attestation in the commit
+    33a003e  #18 append (the annex)      no attestation in the commit
+    9aaa643  #19 partial (the skeleton)  ok
+
+Products reproduced byte for byte on all eight — no commit reported a product difference. The
+seven "no attestation" lines are the tool, not the graph: F03-R12 was written when every gated
+merge built a proof, and check_products.py still requires an attestation of every bot commit.
+An intake and an append build no proof, so the post-merge job signs nothing for them and is
+right not to (F07-R9, F08-R13). Logged as F03-Q6; AC13 is met by #19, which is a merge of the
+kind R12 describes.
