@@ -41,9 +41,10 @@ from typing import Any, Literal
 
 import yaml
 
-from opn_gate import fidelity, layout, schemas
+from opn_gate import fidelity, layout, models, schemas
 from opn_gate import graph as graphmod
 from opn_gate.diagnostic import Diagnostic
+from opn_gate.models import ModelClient, ModelError
 from opn_gate.steps.base import RunContext
 from opn_gate.toolchain import ResolvedToolchain, ToolchainMissingError
 
@@ -1416,3 +1417,616 @@ def route_finding(  # noqa: PLR0913 — one argument per fact of the routing
         raise QaError("record", msg)
     path.write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True), encoding="utf-8")
     return relative(target_dir, path)
+
+
+# --- layer 3: the review brief and the back-translation (R6, R7; D-9 v3.12) ---------------------
+#
+# Both are judgements: a model reads and writes, and what it writes goes into a ``brief`` row
+# that raises no grade on its own (R2). The kernel's part of the brief — every constant the
+# statement references, with its definition as elaborated under the pin, and the structural
+# signature — comes from the toolchain seam (``opn-used-constants``, then ``#print`` and
+# ``#check`` through the elaborator), so the model judges grounded text rather than its memory.
+
+BRIEF_TOOL = "opn-gate qa brief"
+BACKTRANSLATION_TOOL = "opn-gate qa backtranslate"
+EQUIVALENCE_TOOL = "opn-gate qa equivalence"
+BRIEFS_DIR = "briefs"
+BACKTRANSLATION_DIR = "backtranslation"
+BRIEF_MAX_BYTES = 200 * 1024  # F12 §6
+BRIEF_MODULE = "OpnQa.Brief"
+_DEF_RE = re.compile(r"^(?:def|abbrev|structure|inductive|class)\s+(?P<name>[^\s:({\[]+)", re.M)
+_NAMESPACE_RE = re.compile(r"^(namespace|end)\s+(?P<name>\S+)\s*$", re.M)
+JUDGEMENT_HEADING = "## Model's review (a judgement, not evidence)"
+BRIEF_SYSTEM = (
+    "You are a statement reviewer for a formal mathematics network. You are given a Lean 4 "
+    "statement, the structural signature the elaborator reports for it, and the definition of "
+    "every constant it references, as elaborated under the pinned library. Your task is triage "
+    "for a human reviewer, never a verdict: for each constant, say in one line whether the "
+    "statement uses it in a way consistent with its definition, and list anything a reviewer "
+    "should look at twice — a hypothesis that may be vacuous, a quantifier whose scope is "
+    "surprising, a definition that departs from the standard one, a junk value the statement "
+    "may depend on. Be concrete and brief. Do not restate the definitions."
+)
+BACKTRANSLATION_SYSTEM = (
+    "You are given Lean 4 source only: a statement and the definitions it is stated over. "
+    "Render the statement into plain mathematical English, as a mathematician would state it, "
+    "in at most a short paragraph. Say exactly what the Lean says, including every hypothesis "
+    "and the exact quantifier structure, even where that seems odd. Do not guess at what was "
+    "intended, do not name the theorem, and do not add commentary."
+)
+
+
+def definition_decl(text: str) -> str | Diagnostic:
+    """The qualified name of the one definition a ``defs/`` file declares."""
+    found = list(_DEF_RE.finditer(text))
+    if len(found) != 1:
+        return Diagnostic(
+            "definition-shape",
+            f"a definition file declares exactly one definition, found {len(found)}",
+            {"found": len(found)},
+        )
+    stack: list[str] = []
+    for m in _NAMESPACE_RE.finditer(text[: found[0].start()]):
+        if m.group(1) == "namespace":
+            stack.append(m.group("name"))
+        elif stack and stack[-1] == m.group("name"):
+            stack.pop()
+    return ".".join([*stack, found[0].group("name")])
+
+
+@dataclass(frozen=True)
+class Constant:
+    name: str
+    module: str | None  # None: declared in the file itself
+    definition: str | None = None  # ``#print`` output under the pin, when it elaborated
+
+
+@dataclass
+class Grounding:
+    """What the toolchain says about a subject: its declaration, signature and constants."""
+
+    decl: str
+    text: str  # the subject's own Lean source
+    signature: str | None = None
+    constants: list[Constant] = field(default_factory=list)
+    problems: list[Diagnostic] = field(default_factory=list)
+
+
+def _subject_source(ctx: RunContext, subject: str) -> tuple[Path, str, str, str] | Diagnostic:
+    """``(staged file, module, decl, text)`` for the subject — the root's Statement or a
+    definition — once the statement step has staged the tree."""
+    src = ctx.workdir / "src"
+    target_dir = ctx.graph_root / "targets" / ctx.claim.target_id
+    if subject == fidelity.ROOT_SUBJECT:
+        node = ctx.node
+        if node is None:
+            return Diagnostic("compile", "the statement did not stage")
+        return (
+            src / "Nodes" / node.node_id / "Statement.lean",
+            layout.node_module(node.node_id, "Statement"),
+            node.statement.decl_name,
+            node.statement.text,
+        )
+    source = target_dir / fidelity.DEFS_DIR / f"{subject}.lean"
+    if not source.is_file():
+        return Diagnostic("record", f"{subject!r} is not a definition of {ctx.claim.target_id}")
+    text = source.read_text(encoding="utf-8")
+    decl = definition_decl(text)
+    if isinstance(decl, Diagnostic):
+        return decl
+    return (
+        src / layout.DEFS_PREFIX / f"{subject}.lean",
+        f"{layout.DEFS_PREFIX}.{subject}",
+        decl,
+        text,
+    )
+
+
+def ground(ctx: RunContext, subject: str, *, timeout_s: float) -> Grounding:
+    """R6's kernel half: stage the tree, read the subject's constants through
+    ``opn-used-constants``, then ``#check`` its signature and ``#print`` each constant under
+    the pin. Every failure is a named problem on the grounding, and the caller records the
+    brief inconclusive (C7)."""
+    from opn_gate.steps.hazards import StatementStep  # noqa: PLC0415 — an import cycle
+    from opn_gate.steps.toolchain_step import ToolchainStep  # noqa: PLC0415
+    from opn_gate.toolchain import UsedConstantsRequest  # noqa: PLC0415
+
+    resolved = ToolchainStep().run(ctx)
+    if not resolved.ok:
+        assert resolved.diagnostic is not None
+        raise ToolchainMissingError(resolved.diagnostic.message)
+    tc: ResolvedToolchain = ctx.data["toolchain"]
+    staged = StatementStep().run(ctx)
+    if not staged.ok:
+        problem = staged.diagnostic or Diagnostic("compile", "the statement did not stage")
+        return Grounding(decl="", text="", problems=[problem])
+    located = _subject_source(ctx, subject)
+    if isinstance(located, Diagnostic):
+        return Grounding(decl="", text="", problems=[located])
+    source, module, decl, text = located
+    grounding = Grounding(decl=decl, text=text)
+    src = ctx.workdir / "src"
+    if subject == fidelity.ROOT_SUBJECT:  # the definitions are built; the statement is not yet
+        elab = ctx.toolchain.elaborate(
+            tc, source, module, ctx.build_dir, root=src, timeout_s=timeout_s
+        )
+        if not elab.ok:
+            grounding.problems.append(
+                Diagnostic("compile", f"{module} does not elaborate", {"module": module})
+            )
+            return grounding
+    result = ctx.toolchain.used_constants(
+        tc, UsedConstantsRequest(source, module, decl), [ctx.build_dir], timeout_s=timeout_s
+    )
+    if not result.ok:
+        grounding.problems.append(
+            Diagnostic(
+                "used-constants",
+                f"opn-used-constants failed on {decl}: {result.error or result.output[:500]}",
+            )
+        )
+        return grounding
+    names: list[Constant] = []
+    for raw in result.doc.get("constants") or []:
+        if isinstance(raw, dict) and isinstance(raw.get("name"), str):
+            module_name = raw.get("module")
+            names.append(Constant(str(raw["name"]), str(module_name) if module_name else None))
+    names = [c for c in names if c.name != decl]
+    grounding.constants = names
+    _print_definitions(ctx, tc, grounding, imports=[module], timeout_s=timeout_s)
+    return grounding
+
+
+def _print_definitions(
+    ctx: RunContext,
+    tc: ResolvedToolchain,
+    grounding: Grounding,
+    *,
+    imports: list[str],
+    timeout_s: float,
+) -> None:
+    """One scratch file: ``#check @decl`` then ``#print`` per constant, each on its own line, so
+    the elaborator's info messages map back by line number."""
+    lines = [f"import {m}" for m in imports] + ["", f"#check @{grounding.decl}"]
+    first = len(lines)  # 1-based line of the first #print is first + 1
+    lines += [f"#print {c.name}" for c in grounding.constants]
+    scratch = ctx.workdir / "src" / "OpnQa" / "Brief.lean"
+    scratch.parent.mkdir(parents=True, exist_ok=True)
+    scratch.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    try:
+        elab = ctx.toolchain.elaborate(
+            tc, scratch, BRIEF_MODULE, ctx.build_dir, root=ctx.workdir / "src", timeout_s=timeout_s
+        )
+    except subprocess.TimeoutExpired:
+        grounding.problems.append(Diagnostic("timeout", "printing the definitions timed out"))
+        return
+    by_line: dict[int, list[str]] = {}
+    for message in elab.messages:
+        if message.severity == "error":
+            grounding.problems.append(
+                Diagnostic("brief-print", f"line {message.line}: {message.text[:500]}")
+            )
+            continue
+        by_line.setdefault(message.line, []).append(message.text)
+    signature = by_line.get(first)
+    grounding.signature = "\n".join(signature).strip() if signature else None
+    grounding.constants = [
+        Constant(c.name, c.module, "\n".join(by_line.get(first + 1 + i, [])).strip() or None)
+        for i, c in enumerate(grounding.constants)
+    ]
+
+
+def brief_text(subject: str, target_id: str, grounding: Grounding, judgement: str | None) -> str:
+    """The brief, as Markdown: the kernel's facts first, the model's judgement last and labelled.
+    Untrusted downstream (F12 §7): the site escapes it, nothing interpolates it."""
+    lines = [
+        f"# Review brief: {target_id} / {subject}",
+        "",
+        f"Declaration: `{grounding.decl}`",
+        "",
+        "## Statement (verbatim)",
+        "",
+        "```lean",
+        grounding.text.rstrip("\n"),
+        "```",
+        "",
+        "## Structural signature (`#check`, under the pin)",
+        "",
+        "```lean",
+        grounding.signature or "(not reported)",
+        "```",
+        "",
+        f"## Referenced constants ({len(grounding.constants)}), each with its definition",
+        "",
+    ]
+    for c in grounding.constants:
+        lines += [f"### `{c.name}`" + (f" — `{c.module}`" if c.module else " — this file"), ""]
+        lines += ["```lean", (c.definition or "(no definition printed)").rstrip("\n"), "```", ""]
+    if judgement is not None:
+        lines += [JUDGEMENT_HEADING, "", judgement.strip(), ""]
+    text = "\n".join(lines)
+    if len(text.encode("utf-8")) > BRIEF_MAX_BYTES:
+        text = text.encode("utf-8")[: BRIEF_MAX_BYTES - 64].decode("utf-8", errors="ignore")
+        text += "\n\n[truncated at the 200 KB brief budget (F12 §6)]\n"
+    return text
+
+
+@dataclass
+class LayerRun:
+    """What a brief, back-translation or equivalence run produced."""
+
+    subject: str
+    row: Row
+    record: str | None = None
+    written: list[str] = field(default_factory=list)
+    problems: list[Diagnostic] = field(default_factory=list)
+
+    @property
+    def ok(self) -> bool:
+        return self.row.verdict == "pass"
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "subject": self.subject,
+            "ok": self.ok,
+            "check": self.row.as_dict(),
+            "record": self.record,
+            "written": [*([self.record] if self.record else []), *self.written],
+            "problems": [d.as_dict() for d in self.problems],
+        }
+
+
+def text_name(subject: str, kind: str, target_dir: Path, sub: str) -> str:
+    directory = qa_dir(target_dir) / sub
+    taken = {p.name for p in directory.iterdir()} if directory.is_dir() else set()
+    n = 1
+    while f"{subject}-{kind}-{n}.md" in taken:
+        n += 1
+    return f"{subject}-{kind}-{n}.md"
+
+
+def _store_text(target_dir: Path, sub: str, name: str, text: str) -> tuple[str, str]:
+    path = qa_dir(target_dir) / sub / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = text.encode("utf-8")
+    path.write_bytes(data)
+    return relative(target_dir, path), schemas.content_hash(data)
+
+
+def brief(  # noqa: PLR0913 — one argument per seam and fact
+    ctx: RunContext,
+    subject: str,
+    *,
+    model: ModelClient,
+    date: str,
+    timeout_s: float,
+    tool_version: str = "0.0.0",
+) -> LayerRun:
+    """R6: the grounded review brief. A model outage or a grounding failure is an inconclusive
+    row and no brief file (AC19): a file that existed would read as a brief that was written."""
+    target_dir = ctx.graph_root / "targets" / ctx.claim.target_id
+    grounding = ground(ctx, subject, timeout_s=timeout_s)
+    problems = list(grounding.problems)
+    if problems and not grounding.constants:
+        row_ = row(
+            "brief",
+            "inconclusive",
+            tool=BRIEF_TOOL,
+            tool_version=tool_version,
+            timestamp=date,
+            model=model.model,
+            note=_capped(f"{problems[0].code}: {problems[0].message}"),
+        )
+        run = LayerRun(subject, row_, problems=problems)
+        run.record = _write_layer(target_dir, subject, run, BRIEF_TOOL, date)
+        return run
+    facts = brief_text(subject, target_dir.name, grounding, None)
+    try:
+        completion = model.complete(system=BRIEF_SYSTEM, prompt=facts)
+    except ModelError as exc:
+        log.warning("qa brief: the model did not answer: %s", exc)
+        row_ = row(
+            "brief",
+            "inconclusive",
+            tool=BRIEF_TOOL,
+            tool_version=tool_version,
+            timestamp=date,
+            model=model.model,
+            note=_capped(f"model: {exc}"),
+        )
+        run = LayerRun(subject, row_, problems=[*problems, Diagnostic("model", str(exc))])
+        run.record = _write_layer(target_dir, subject, run, BRIEF_TOOL, date)
+        return run
+    text = brief_text(subject, target_dir.name, grounding, completion.text)
+    rel, digest = _store_text(
+        target_dir, BRIEFS_DIR, text_name(subject, "brief", target_dir, BRIEFS_DIR), text
+    )
+    row_ = row(
+        "brief",
+        "pass",
+        tool=BRIEF_TOOL,
+        tool_version=tool_version,
+        timestamp=date,
+        model=completion.model,
+        model_version=completion.version,
+        exhibit=rel,
+        exhibit_sha256=digest,
+        note=_capped(
+            f"{len(grounding.constants)} constants grounded"
+            + ("; " + "; ".join(p.message for p in problems) if problems else "")
+        ),
+    )
+    run = LayerRun(subject, row_, written=[rel], problems=problems)
+    run.record = _write_layer(target_dir, subject, run, BRIEF_TOOL, date)
+    return run
+
+
+def _write_layer(target_dir: Path, subject: str, run: LayerRun, tool: str, date: str) -> str:
+    return relative(target_dir, write(target_dir, subject, [run.row], date=date, produced_by=tool))
+
+
+def source_wording(doc: dict[str, Any] | None) -> tuple[str, str]:
+    """R7: what the back-translation is laid beside — the informal statement, or the network's
+    paraphrase where the source states no licence (F11-R10) — and the citation."""
+    if doc is None:
+        return "(no target record: the target predates F11)", ""
+    informal = doc.get("informal")
+    wording = (
+        str(informal) if informal else f"{doc.get('paraphrase') or ''} (the network's paraphrase)"
+    )
+    cites = "; ".join(
+        f"{s.get('attribution')} — {s.get('url')}"
+        for s in doc.get("sources") or []
+        if isinstance(s, dict)
+    )
+    return wording.strip(), cites
+
+
+def backtranslate(
+    target_dir: Path,
+    subject: str,
+    *,
+    model: ModelClient,
+    date: str,
+    tool_version: str = "0.0.0",
+) -> LayerRun:
+    """R7: render the subject into English from the Lean alone — the prompt carries the
+    statement and the target's definitions and nothing else — and write it beside the source
+    wording. Refused before any call when the model's family is the formalizer's (AC5)."""
+    from opn_gate import intake  # noqa: PLC0415 — the record's provenance
+
+    doc = intake.load_doc(target_dir)
+    provenance = doc.get("provenance") if doc else None
+    author = provenance.get("author") if isinstance(provenance, dict) else None
+    formalizer = models.formalizer_family(author if isinstance(author, str) else None)
+    if formalizer != models.FORMALIZER_UNKNOWN and models.family_of(model.model) == formalizer:
+        msg = (
+            f"{model.model} is of the family that formalized this statement ({formalizer!r}, per "
+            "provenance); a back-translation is a non-author's reading (R7, D-9 v3.12)"
+        )
+        raise QaError("record", msg)
+    if subject == fidelity.ROOT_SUBJECT:
+        node_dir = layout.graph_nodes_dir(graph_root_of(target_dir), target_dir.name)
+        lean = (node_dir / root_node(target_dir) / "Statement.lean").read_text(encoding="utf-8")
+    else:
+        definition = target_dir / fidelity.DEFS_DIR / f"{subject}.lean"
+        if not definition.is_file():
+            msg = f"{subject!r} is not a definition of {target_dir.name}"
+            raise QaError("record", msg)
+        lean = definition.read_text(encoding="utf-8")
+    defs_dir = target_dir / fidelity.DEFS_DIR
+    definitions = (
+        [
+            (p.name, p.read_text(encoding="utf-8"))
+            for p in sorted(defs_dir.iterdir())
+            if defs_dir.is_dir() and p.is_file() and p.suffix == ".lean"
+        ]
+        if defs_dir.is_dir()
+        else []
+    )
+    prompt = "\n".join(
+        [
+            "## The statement",
+            "```lean",
+            lean.rstrip("\n"),
+            "```",
+            *(
+                line
+                for name, text in definitions
+                for line in ("", f"## defs/{name}", "```lean", text.rstrip("\n"), "```")
+            ),
+        ]
+    )
+    try:
+        completion = model.complete(system=BACKTRANSLATION_SYSTEM, prompt=prompt)
+    except ModelError as exc:
+        log.warning("qa backtranslate: the model did not answer: %s", exc)
+        row_ = row(
+            "backtranslation",
+            "inconclusive",
+            tool=BACKTRANSLATION_TOOL,
+            tool_version=tool_version,
+            timestamp=date,
+            model=model.model,
+            note=_capped(f"model: {exc}; formalizer: {formalizer}"),
+        )
+        run = LayerRun(subject, row_, problems=[Diagnostic("model", str(exc))])
+        run.record = _write_layer(target_dir, subject, run, BACKTRANSLATION_TOOL, date)
+        return run
+    wording, cites = source_wording(doc)
+    text = "\n".join(
+        [
+            f"# Back-translation: {target_dir.name} / {subject}",
+            "",
+            f"Rendered from the Lean alone by {completion.model} ({completion.version}); the "
+            "informal source was withheld from the model (F12-R7). Formalizer per provenance: "
+            f"{formalizer}.",
+            "",
+            "## The model's English",
+            "",
+            completion.text.strip(),
+            "",
+            "## The source's wording (for the signer's comparison)",
+            "",
+            wording,
+            "",
+            (f"Cited: {cites}" if cites else "No external source is cited for this target."),
+            "",
+        ]
+    )
+    rel, digest = _store_text(
+        target_dir,
+        BACKTRANSLATION_DIR,
+        text_name(subject, "backtranslation", target_dir, BACKTRANSLATION_DIR),
+        text,
+    )
+    row_ = row(
+        "backtranslation",
+        "pass",
+        tool=BACKTRANSLATION_TOOL,
+        tool_version=tool_version,
+        timestamp=date,
+        model=completion.model,
+        model_version=completion.version,
+        exhibit=rel,
+        exhibit_sha256=digest,
+        note=f"formalizer: {formalizer}",
+    )
+    run = LayerRun(subject, row_, written=[rel])
+    run.record = _write_layer(target_dir, subject, run, BACKTRANSLATION_TOOL, date)
+    return run
+
+
+# --- layer 4: bidirectional equivalence (R8, Q3) ------------------------------------------------
+
+EQUIVALENCE_MODULE = "OpnQa.Equivalence"
+EQUIVALENCE_DECLS: tuple[str, ...] = ("OpnQa.equiv_forward", "OpnQa.equiv_backward")
+
+
+def equivalence(  # noqa: PLR0911, PLR0912, PLR0915 — one return per way the pair is not an exhibit
+    ctx: RunContext,
+    other: str,
+    *,
+    date: str,
+    attempt_budget_s: float,
+    tool_version: str = "0.0.0",
+) -> LayerRun:
+    """R8: both implications between the root and ``other``, another node of the target that
+    formalizes the same statement. A proved pair is an exhibit; anything less is
+    ``inconclusive`` and never negative evidence (AC6, Q3)."""
+    from opn_gate import exhibits as exhibitsmod  # noqa: PLC0415 — stages the other node
+    from opn_gate.steps.hazards import StatementStep  # noqa: PLC0415
+    from opn_gate.steps.toolchain_step import ToolchainStep  # noqa: PLC0415
+
+    target_dir = ctx.graph_root / "targets" / ctx.claim.target_id
+    subject = fidelity.ROOT_SUBJECT
+
+    def inconclusive(note: str, problems: list[Diagnostic] | None = None) -> LayerRun:
+        row_ = row(
+            "equivalence",
+            "inconclusive",
+            tool=EQUIVALENCE_TOOL,
+            tool_version=tool_version,
+            timestamp=date,
+            budget_s=attempt_budget_s,
+            note=_capped(f"{ctx.claim.node_id} vs {other}", note),
+        )
+        run = LayerRun(subject, row_, problems=problems or [])
+        run.record = _write_layer(target_dir, subject, run, EQUIVALENCE_TOOL, date)
+        return run
+
+    resolved = ToolchainStep().run(ctx)
+    if not resolved.ok:
+        assert resolved.diagnostic is not None
+        raise ToolchainMissingError(resolved.diagnostic.message)
+    tc: ResolvedToolchain = ctx.data["toolchain"]
+    staged = StatementStep().run(ctx)
+    node = ctx.node
+    if not staged.ok or node is None:
+        problem = staged.diagnostic or Diagnostic("compile", "the root did not stage")
+        return inconclusive(f"{problem.code}: {problem.message}", [problem])
+    other_dir = layout.graph_nodes_dir(ctx.graph_root, ctx.claim.target_id) / other
+    loaded = layout.load_node(other_dir, ctx.claim.target_id)
+    if isinstance(loaded, list):
+        msg = f"{other!r} is not a node of {ctx.claim.target_id}: {loaded[0].message}"
+        raise QaError("record", msg)
+    staging = exhibitsmod.stage_node(ctx, tc, ctx.claim.target_id, other)
+    if staging is not None:
+        return inconclusive(f"{staging.code}: {staging.message}", [staging])
+    a, b = signature_of(node.statement), signature_of(loaded.statement)
+    if isinstance(a, Diagnostic):
+        return inconclusive(f"{a.code}: {a.message}", [a])
+    if isinstance(b, Diagnostic):
+        return inconclusive(f"{b.code}: {b.message}", [b])
+    imports = list(
+        dict.fromkeys(
+            [*layout.imports_of(node.statement.text), *layout.imports_of(loaded.statement.text)]
+        )
+    )
+    mathlib = tc.mathlib_sha is not None
+    forward = Attempt("equivalence", "EquivForward", "equiv_forward", b.closed, hypothesis=a.closed)
+    backward = Attempt(
+        "equivalence", "EquivBackward", "equiv_backward", a.closed, hypothesis=b.closed
+    )
+    scratch_dir = ctx.workdir / "src" / SCREEN_NAMESPACE
+    scratch_dir.mkdir(parents=True, exist_ok=True)
+    sources: dict[str, str] = {}
+    outcomes: list[frozenset[str] | Diagnostic | None] = []
+    try:
+        for attempt in (forward, backward):
+            sources[attempt.stem] = scratch_source(attempt, imports=imports, mathlib=mathlib)
+            scratch = scratch_dir / f"{attempt.stem}.lean"
+            scratch.write_text(sources[attempt.stem], encoding="utf-8")
+            outcomes.append(
+                _attempt(
+                    ctx,
+                    tc,
+                    scratch,
+                    f"{SCREEN_NAMESPACE}.{attempt.stem}",
+                    f"{SCREEN_NAMESPACE}.{attempt.decl}",
+                    timeout_s=attempt_budget_s,
+                )
+            )
+        if any(o is None for o in outcomes):
+            return inconclusive(
+                "at least one implication did not prove within the budget; a failed "
+                "equivalence is not negative evidence (R8)"
+            )
+        refused = [o for o in outcomes if isinstance(o, Diagnostic)]
+        if refused:
+            return inconclusive(f"{refused[0].code}: {refused[0].message}", refused)
+        # Both proved: the exhibit is the pair in one file, kernel-checked as one.
+        tail = sources["EquivBackward"]
+        source = sources["EquivForward"] + "\n" + tail[tail.index("set_option") :]
+        combined = scratch_dir / "Equivalence.lean"
+        combined.write_text(source, encoding="utf-8")
+        for decl in EQUIVALENCE_DECLS:
+            checked = _attempt(
+                ctx, tc, combined, EQUIVALENCE_MODULE, decl, timeout_s=attempt_budget_s
+            )
+            if checked is None:
+                return inconclusive("the two implications do not elaborate together")
+            if isinstance(checked, Diagnostic):
+                return inconclusive(f"{checked.code}: {checked.message}", [checked])
+    except subprocess.TimeoutExpired:
+        return inconclusive(NOTE_TIMEOUT)
+    except Exception as exc:  # C7: named on the row, logged, never a crash
+        log.exception("qa equivalence: %s vs %s errored", ctx.claim.node_id, other)
+        return inconclusive(f"error: {exc.__class__.__name__}: {exc}")
+    rel, digest = store_exhibit(
+        target_dir, exhibit_name(subject, "equivalence", target_dir), source
+    )
+    row_ = row(
+        "equivalence",
+        "pass",
+        tool=EQUIVALENCE_TOOL,
+        tool_version=tool_version,
+        timestamp=date,
+        budget_s=attempt_budget_s,
+        exhibit=rel,
+        exhibit_sha256=digest,
+        note=f"{ctx.claim.node_id} <-> {other}: both implications proved and replayed",
+    )
+    run = LayerRun(subject, row_, written=[rel])
+    run.record = _write_layer(target_dir, subject, run, EQUIVALENCE_TOOL, date)
+    return run

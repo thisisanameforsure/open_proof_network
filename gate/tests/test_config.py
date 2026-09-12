@@ -146,3 +146,31 @@ def test_mathlib_home_is_config_with_a_documented_default(tmp_path: Path) -> Non
     custom = config.load({"OPN_MATHLIB_HOME": str(tmp_path / "ml")})
     assert custom.mathlib_home == tmp_path / "ml"
     assert "mathlib_home=" in repr(custom) and str(tmp_path / "ml") in repr(custom)
+
+
+# --- F12-R6, R7, Q5: the model is config, its key is a secret (C6, C8) ---------------------------
+
+
+def test_model_is_config_and_its_key_is_a_secret() -> None:
+    assert config.load({}).model == config.DEFAULT_MODEL == "claude-opus-5"
+    assert config.load({}).model_api_key is None
+    s = config.load({"OPN_MODEL": "claude-sonnet-5", "OPN_MODEL_API_KEY": "sk-ant-SECRET"})
+    assert s.model == "claude-sonnet-5" and s.model_api_key == "sk-ant-SECRET"
+    assert "sk-ant-SECRET" not in repr(s) and "model_api_key=<set>" in repr(s)
+    assert config.load({"OPN_MODEL_API_KEY": ""}).model_api_key is None
+    assert "model_api_key" in config.SECRET_NAMES
+
+
+@pytest.mark.parametrize("value", ["sixty", "0", "-5", "", "inf"])
+def test_a_bad_qa_budget_fails_at_load(value: str) -> None:
+    with pytest.raises(config.ConfigError, match="OPN_QA_ATTEMPT_BUDGET_S"):
+        config.load({"OPN_QA_ATTEMPT_BUDGET_S": value})
+    with pytest.raises(config.ConfigError, match="OPN_QA_SUBJECT_BUDGET_S"):
+        config.load({"OPN_QA_SUBJECT_BUDGET_S": value})
+
+
+def test_qa_budgets_default_and_read() -> None:
+    s = config.load({})
+    assert (s.qa_attempt_budget_s, s.qa_subject_budget_s) == (60.0, 300.0)
+    s = config.load({"OPN_QA_ATTEMPT_BUDGET_S": "7.5", "OPN_QA_SUBJECT_BUDGET_S": "40"})
+    assert (s.qa_attempt_budget_s, s.qa_subject_budget_s) == (7.5, 40.0)

@@ -34,6 +34,7 @@ from opn_gate import (
     intake,
     layout,
     ledger,
+    models,
     modes,
     objectstore,
     paths,
@@ -435,6 +436,26 @@ def _add_qa_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     scr.add_argument(
         "--by", default=qa.SCREEN_CONTRIBUTOR, help="the contributor a finding's claim names"
     )
+
+    brf = acts.add_parser("brief", help="the grounded review brief (F12-R6): a judgement")
+    common(brf)
+    brf.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
+    brf.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
+    brf.add_argument("--sandbox", action="store_true", help="elaborate inside the step-3 image")
+    brf.add_argument("--image", help="sandbox image tag (default: from the spec)")
+    brf.add_argument("--no-build", action="store_true", help="fail if the image is not present")
+
+    bt = acts.add_parser("backtranslate", help="English from the Lean alone (F12-R7)")
+    common(bt)
+
+    eq = acts.add_parser("equivalence", help="both implications between two nodes (F12-R8)")
+    common(eq)
+    eq.add_argument("other", help="the node that formalizes the same statement independently")
+    eq.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
+    eq.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
+    eq.add_argument("--sandbox", action="store_true", help="elaborate inside the step-3 image")
+    eq.add_argument("--image", help="sandbox image tag (default: from the spec)")
+    eq.add_argument("--no-build", action="store_true", help="fail if the image is not present")
 
     rte = acts.add_parser("route", help="route a positive screen's claim (F12-R4; D-9 v3.12)")
     common(rte)
@@ -1618,7 +1639,27 @@ def run_qa(args: argparse.Namespace, settings: config.Settings) -> int:
             "written": [written],
         }
         return _emit_curator(doc, graph, args.branch, f"qa: route {args.claim} ({args.reading})")
+    if args.action == "backtranslate":
+        layer = qa.backtranslate(target_dir, args.subject, model=_model_client(settings), date=date)
+        return _emit_layer(layer, graph, args)
     ctx = _qa_context(args, settings, graph, args.target_id)
+    if args.action == "brief":
+        layer = qa.brief(
+            ctx,
+            args.subject,
+            model=_model_client(settings),
+            date=date,
+            timeout_s=settings.qa_attempt_budget_s,
+        )
+        return _emit_layer(layer, graph, args)
+    if args.action == "equivalence":
+        if args.subject != fidelity.ROOT_SUBJECT:
+            msg = "an equivalence is between the root and another node; the subject is `root`"
+            raise CliError(msg)
+        layer = qa.equivalence(
+            ctx, args.other, date=date, attempt_budget_s=settings.qa_attempt_budget_s
+        )
+        return _emit_layer(layer, graph, args)
     run = qa.screen(
         ctx,
         args.subject,
@@ -1650,6 +1691,30 @@ def run_qa(args: argparse.Namespace, settings: config.Settings) -> int:
     # R3: a success is a rejection — a finding exits non-zero; so does anything short of a
     # clean pass, because an inconclusive screen is not one either (C7).
     return EXIT_PASS if run.clean else EXIT_FAIL
+
+
+def _model_client(settings: config.Settings) -> models.ModelClient:
+    """The model seam, or a usage error before any work when no key is configured (C8)."""
+    if not settings.model_api_key:
+        msg = (
+            "OPN_MODEL_API_KEY is not set; the brief and the back-translation ask a model "
+            "(F12-R6, R7) and the key lives in the curator's .env (C8)"
+        )
+        raise CliError(msg)
+    return models.HttpxModelClient(settings.model_api_key, settings.model)
+
+
+def _emit_layer(layer: qa.LayerRun, graph: Path, args: argparse.Namespace) -> int:
+    doc: dict[str, Any] = {"target": args.target_id, **layer.as_dict()}
+    if args.branch:
+        message = f"qa: {args.action} {args.target_id} {args.subject}"
+        _curator_branch(graph, args.branch, message, doc["written"])
+        doc["branch"] = args.branch
+        doc["next"] = f"git push -u origin {args.branch} && gh pr create --fill"
+    sys.stdout.write(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
+    if not layer.ok:
+        sys.stderr.write(f"opn-gate: qa {args.action}: {layer.row.note}\n")
+    return EXIT_PASS if layer.ok else EXIT_FAIL
 
 
 def last_progress_merge(graph: Path, target_id: str) -> datetime | None:

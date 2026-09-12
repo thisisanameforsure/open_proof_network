@@ -372,10 +372,26 @@ on the site.</p>
     finding being routed. Exit codes: <code>qa screen</code> exits 0 on a clean pass and 1 on a
     finding or on anything inconclusive (R3: a success is a rejection; C7: a timeout is not a
     pass).</td></tr>
+  <tr><td>F12-Q14</td><td><strong>The model client is the Messages API over the locked
+    <code>httpx</code>; no package was added</strong> (2026-09-12, T3). §8 budgeted "one model
+    client, pinned and locked, with its C5 justification". The official SDK's current line is built
+    on <code>httpx2</code> while <code>mcp</code> 1.x pins <code>httpx</code> 0.28 (F09-Q5), so
+    the SDK would have brought a second HTTP stack for one endpoint — the audit surface C5 exists
+    to refuse. <code>opn_gate.models</code> is the seam: one request shape (the documented
+    <code>POST /v1/messages</code> with the model, a system prompt, one user turn and
+    <code>max_tokens</code>; no thinking configuration, since the default model runs adaptive
+    thinking), one answer, every non-completion — a non-2xx, a refusal stop reason, an empty or
+    malformed body, a network error — a <code>ModelError</code> the caller records as
+    <code>inconclusive</code>. The model is config (<code>OPN_MODEL</code>, default
+    <code>claude-opus-5</code>) and the key is a C8 secret (<code>OPN_MODEL_API_KEY</code>) in the
+    curator's <code>.env</code>; R7's family is the model id's leading letters, and provenance names
+    an AI formalizer by substring against a small table (<code>models.AI_FAMILIES</code>) or is
+    <code>unknown</code>. Reversal path: the SDK, once one HTTP stack serves both it and
+    <code>mcp</code>.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1 ✓ 2026-09-12 · T2 built 2026-09-12 (lean tier pending CI) · T3&ndash;T6 todo</div>
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1 ✓ 2026-09-12 · T2 built 2026-09-12 (lean tier pending CI) · T3 ✓ 2026-09-12 · T4&ndash;T6 todo</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its

@@ -40,6 +40,13 @@ Variables (prefix ``OPN_``):
 ``OPN_QA_SUBJECT_BUDGET_S``
     The budget of one ``qa screen`` run over one subject, in seconds; attempts that would start
     past it are recorded ``inconclusive`` rather than skipped (F12-R3, §6). Default ``300``.
+``OPN_MODEL``
+    The model the QA brief and back-translation ask (F12-R6, R7, Q5): a Messages API model id
+    whose leading letters name its family for R7's independence rule. Default ``claude-opus-5``.
+``OPN_MODEL_API_KEY``
+    **Secret.** The model provider's API key (F12 §7; C8: the curator's ``.env``, never in
+    the graph, a log or a record). Default ``None`` — meaning "no model: the brief and
+    back-translation refuse before they start".
 ``OPN_GATE_SIGNING_KEY``
     **Secret.** The gate's ed25519 private key (C8 item 1), present only in the post-merge job's
     environment. Default ``None`` — meaning "no key: emit an unsigned attestation".
@@ -66,8 +73,9 @@ DEFAULT_LEAN_PKG_BIN = Path(__file__).resolve().parents[1] / "lean" / ".lake" / 
 DEFAULT_MATHLIB_HOME = Path.home() / ".opn" / "mathlib"  # F11-R6: one checkout per pinned sha
 DEFAULT_QA_ATTEMPT_BUDGET_S = 60.0  # F12 §6: per screen attempt, provisional (F12-Q4)
 DEFAULT_QA_SUBJECT_BUDGET_S = 300.0  # F12 §6: per subject per run
+DEFAULT_MODEL = "claude-opus-5"  # F12-Q5: recorded on every brief row, swapped by config
 
-SECRET_NAMES: tuple[str, ...] = ("gate_signing_key", "precheck_signing_key")
+SECRET_NAMES: tuple[str, ...] = ("gate_signing_key", "precheck_signing_key", "model_api_key")
 
 
 class ConfigError(ValueError):
@@ -87,7 +95,9 @@ class Settings:
     listed_targets_max: int = DEFAULT_LISTED_TARGETS_MAX
     qa_attempt_budget_s: float = DEFAULT_QA_ATTEMPT_BUDGET_S
     qa_subject_budget_s: float = DEFAULT_QA_SUBJECT_BUDGET_S
+    model: str = DEFAULT_MODEL
     pr_author: str | None = None
+    model_api_key: str | None = field(default=None, repr=False)
     gate_signing_key: str | None = field(default=None, repr=False)
     precheck_signing_key: str | None = field(default=None, repr=False)
 
@@ -98,7 +108,8 @@ class Settings:
             f"diagnostic_max_bytes={self.diagnostic_max_bytes}, "
             f"listed_targets_max={self.listed_targets_max}, "
             f"qa_attempt_budget_s={self.qa_attempt_budget_s}, "
-            f"qa_subject_budget_s={self.qa_subject_budget_s}, "
+            f"qa_subject_budget_s={self.qa_subject_budget_s}, model={self.model!r}, "
+            f"model_api_key={'<set>' if self.model_api_key else None}, "
             f"lean_pkg_bin={str(self.lean_pkg_bin)!r}, "
             f"mathlib_home={str(self.mathlib_home)!r}, pr_author={self.pr_author!r}, "
             f"gate_signing_key={'<set>' if self.gate_signing_key else None}, "
@@ -174,6 +185,8 @@ def load(environ: dict[str, str] | None = None) -> Settings:
         listed_targets_max=listed_targets_max,
         qa_attempt_budget_s=budgets["OPN_QA_ATTEMPT_BUDGET_S"],
         qa_subject_budget_s=budgets["OPN_QA_SUBJECT_BUDGET_S"],
+        model=env.get("OPN_MODEL") or DEFAULT_MODEL,
+        model_api_key=env.get("OPN_MODEL_API_KEY") or None,
         lean_pkg_bin=Path(env.get("OPN_LEAN_PKG_BIN", str(DEFAULT_LEAN_PKG_BIN))).expanduser(),
         mathlib_home=Path(env.get("OPN_MATHLIB_HOME", str(DEFAULT_MATHLIB_HOME))).expanduser(),
         pr_author=env.get("OPN_PR_AUTHOR") or None,

@@ -15,14 +15,15 @@ from typing import Any
 
 import pytest
 import yaml
-from fakes import FakeToolchain
+from fakes import FakeModelClient, FakeToolchain, used_constants_result
 from harness import copy_graph, take_in
 from scripted import ScriptedToolchain
 
-from opn_gate import config, fidelity, layout, modes, qa, schemas
+from opn_gate import config, fidelity, intake, layout, modes, qa, schemas
 from opn_gate.paths import Change, Claim
 from opn_gate.qa import QaError
 from opn_gate.steps.base import RunContext
+from opn_gate.toolchain import ElabResult, Message
 
 DEFS = {"Primes.lean": "def Opn.IsPrime (p : Nat) : Prop := 2 ≤ p\n"}
 WHEN = "2026-09-12T10:00:00Z"
@@ -807,3 +808,256 @@ def test_qa_screen_command_runs_in_the_sandbox_and_routes(
     )
     refused = json.loads(capsys.readouterr().out)
     assert code == cli.EXIT_FAIL and "nothing to negate" in refused["refused"]
+
+
+# =================================================================================================
+# T3: the brief, the back-translation and the equivalence (R6, R7, R8; AC5, AC6, AC15, AC19)
+# =================================================================================================
+
+CONSTANTS = [
+    ("Opn.IsPrime", "Defs.Primes"),
+    ("And", "Init.Prelude"),
+    ("Nat.lt", "Init.Prelude"),
+]
+SIGNATURE = "OpnProp.and_reassoc : ∀ (p q r : Prop), (p ∧ q) ∧ r → p ∧ q ∧ r"
+DEFINITIONS = {
+    "Opn.IsPrime": "def Opn.IsPrime : Nat → Prop :=\nfun p => 2 ≤ p",
+    "And": "structure And (a b : Prop) : Prop\nnumber of parameters: 2",
+    "Nat.lt": "def Nat.lt : Nat → Nat → Prop :=\nfun n m => Nat.le (n + 1) m",
+}
+
+
+def brief_toolchain() -> FakeToolchain:
+    """A fake whose `#check` and `#print` answers sit on the lines the scratch file puts them:
+    one import, a blank line, `#check` on line 3, one `#print` per constant from line 4."""
+    messages = [Message("Brief.lean", 3, 0, "info", SIGNATURE)]
+    messages += [
+        Message("Brief.lean", 4 + i, 0, "info", DEFINITIONS[name])
+        for i, (name, _) in enumerate(CONSTANTS)
+    ]
+    return FakeToolchain(
+        constants=used_constants_result([*CONSTANTS, ("OpnProp.and_reassoc", None)]),
+        elab=ElabResult(ok=True, messages=tuple(messages)),
+    )
+
+
+def test_brief_lists_every_referenced_constant(target: Path) -> None:
+    """AC15, R6: each constant exactly once with its definition as printed under the pin, the
+    structural signature, the model's judgement labelled as one, and a `brief` row with the
+    model and version filled — a judgement, not evidence."""
+    model = FakeModelClient(answer="Nothing to flag; `Opn.IsPrime` is used as a predicate.")
+    run = qa.brief(
+        screen_context(target, brief_toolchain()), "root", model=model, date=WHEN, timeout_s=60
+    )
+    assert run.ok and run.row.kind == "brief" and run.row.verdict == "pass"
+    assert (run.row.model, run.row.model_version) == ("fake-model", "fake-model-2026-09-12")
+    assert run.row.exhibit == f"targets/{target.name}/qa/briefs/root-brief-1.md"
+    text = (target.parents[1] / run.row.exhibit).read_text(encoding="utf-8")
+    for name, module in CONSTANTS:
+        assert text.count(f"### `{name}`") == 1, name
+        assert module in text and DEFINITIONS[name] in text
+    assert "### `OpnProp.and_reassoc`" not in text, "the subject is not its own constant"
+    assert SIGNATURE in text
+    assert text.index(qa.JUDGEMENT_HEADING) > text.index("## Referenced constants")
+    assert model.answer in text
+    # The model saw the grounded facts, and only after the kernel produced them.
+    system, prompt = model.prompts[0]
+    assert system == qa.BRIEF_SYSTEM and SIGNATURE in prompt and DEFINITIONS["And"] in prompt
+    # R2: a brief alone raises nothing.
+    assert "brief" not in qa.pass_state(target, "root").missing
+    assert not qa.pass_state(target, "root").complete
+
+
+def test_model_outage_is_inconclusive(target: Path) -> None:
+    """AC19, C7: the model raises or answers non-2xx — the row is inconclusive and no brief
+    file claiming success exists."""
+    for failure in ("the model provider answered 503", "the model declined (bio)"):
+        model = FakeModelClient(fail=failure)
+        run = qa.brief(
+            screen_context(target, brief_toolchain()), "root", model=model, date=WHEN, timeout_s=60
+        )
+        assert not run.ok and run.row.verdict == "inconclusive"
+        assert run.row.exhibit is None and failure in (run.row.note or "")
+        assert run.row.model == "fake-model"
+    assert not (qa.qa_dir(target) / qa.BRIEFS_DIR).exists()
+    assert qa.pass_state(target, "root").checks["brief"] == "inconclusive"
+
+
+def test_a_brief_whose_grounding_fails_is_inconclusive(target: Path) -> None:
+    """R6, C7: no constants could be read — the row says so and the model is never asked."""
+    from fakes import metaprogram_garbage  # noqa: PLC0415
+
+    model = FakeModelClient()
+    run = qa.brief(
+        screen_context(target, FakeToolchain(constants=metaprogram_garbage())),
+        "root",
+        model=model,
+        date=WHEN,
+        timeout_s=60,
+    )
+    assert run.row.verdict == "inconclusive" and "used-constants" in (run.row.note or "")
+    assert model.prompts == []
+
+
+def test_a_definition_gets_its_own_brief(target: Path) -> None:
+    """Q10: a definition is a subject; its constants come from `opn-used-constants` over the
+    definition file, and the brief names its declaration."""
+    fake = brief_toolchain()
+    run = qa.brief(
+        screen_context(target, fake), "Primes", model=FakeModelClient(), date=WHEN, timeout_s=60
+    )
+    assert run.ok
+    assert any(c.startswith("used_constants:Opn.IsPrime") for c in fake.calls)
+    assert "Declaration: `Opn.IsPrime`" in (target.parents[1] / run.row.exhibit).read_text()  # type: ignore[operator]
+
+
+def test_backtranslate_independence(target: Path) -> None:
+    """AC5, R7: provenance naming an AI formalizer refuses a model of the same family before
+    any call; provenance naming none proceeds, records `formalizer: unknown`, and withholds the
+    informal source from the model."""
+    record = intake.load_doc(target)
+    assert record is not None
+    record["provenance"]["author"] = "Claude Opus 4.5 (auto-formalized)"
+    intake.write_doc(target, record)
+    same_family = FakeModelClient(model="claude-opus-5")
+    with pytest.raises(QaError, match="family") as refusal:
+        qa.backtranslate(target, "root", model=same_family, date=WHEN)
+    assert "claude" in str(refusal.value) and same_family.prompts == []
+    other_family = FakeModelClient(model="gemini-3-pro", answer="For all propositions...")
+    run = qa.backtranslate(target, "root", model=other_family, date=WHEN)
+    assert run.ok and (run.row.note or "") == "formalizer: claude"
+
+    record["provenance"]["author"] = "author"
+    intake.write_doc(target, record)
+    model = FakeModelClient(model="claude-opus-5", answer="For every three propositions...")
+    run = qa.backtranslate(target, "root", model=model, date=WHEN)
+    assert run.ok and run.row.note == "formalizer: unknown"
+    assert run.row.exhibit == f"targets/{target.name}/qa/backtranslation/root-backtranslation-2.md"
+    text = (target.parents[1] / run.row.exhibit).read_text(encoding="utf-8")
+    assert "Formalizer per provenance: unknown" in text
+    assert model.answer in text and record["informal"] in text, "the comparison sits beside it"
+    system, prompt = model.prompts[0]
+    assert system == qa.BACKTRANSLATION_SYSTEM
+    assert "theorem OpnProp.and_reassoc" in prompt and "defs/Primes.lean" in prompt
+    assert record["informal"] not in prompt and record["title"] not in prompt, "withheld (R7)"
+
+
+def test_backtranslate_outage_is_inconclusive(target: Path) -> None:
+    run = qa.backtranslate(target, "root", model=FakeModelClient(fail="answered 502"), date=WHEN)
+    assert run.row.verdict == "inconclusive" and run.row.exhibit is None
+    assert not (qa.qa_dir(target) / qa.BACKTRANSLATION_DIR).exists()
+
+
+def equivalence_context(tmp_path: Path, toolchain: Any) -> tuple[Path, RunContext]:
+    """The propositional fixture: its root and `and-reassoc` as the other formalization."""
+    root = copy_graph(tmp_path)
+    target = root / "targets" / "propositional"
+    spec_path = target / "gate-spec.json"
+    ctx = RunContext(
+        graph_root=root,
+        claim=Claim("propositional", "and-swap-reassoc"),
+        spec=schemas.load_json(spec_path, "gate-spec/v1"),
+        gate_spec_hash=schemas.content_hash(spec_path.read_bytes()),
+        changes=None,
+        workdir=tmp_path / "work",
+        toolchain=toolchain,
+        settings=config.load({}),
+    )
+    return target, ctx
+
+
+def test_equivalence_failure_is_inconclusive(tmp_path: Path) -> None:
+    """AC6, R8, Q3: one implication proves and the other does not — the row is inconclusive,
+    no exhibit is written, and nothing negative is recorded."""
+    target, ctx = equivalence_context(
+        tmp_path, ScriptedToolchain(failing_modules={"OpnQa.EquivBackward"})
+    )
+    run = qa.equivalence(ctx, "and-reassoc", date=WHEN, attempt_budget_s=30)
+    assert run.row.verdict == "inconclusive" and run.row.exhibit is None
+    assert "not negative evidence" in (run.row.note or "")
+    assert not (qa.exhibits_dir(target)).exists()
+    state = qa.pass_state(target, "root")
+    assert state.checks["equivalence"] == "inconclusive"
+    assert "equivalence" not in state.floor
+
+
+def test_a_proved_pair_is_an_exhibit(tmp_path: Path) -> None:
+    """R8: both implications prove and replay — the pair is one kernel-checked exhibit."""
+    fake = ScriptedToolchain()
+    target, ctx = equivalence_context(tmp_path, fake)
+    run = qa.equivalence(ctx, "and-reassoc", date=WHEN, attempt_budget_s=30)
+    assert run.ok and run.row.kind == "exhibit"
+    assert run.row.exhibit == "targets/propositional/qa/exhibits/root-equivalence-1.lean"
+    source = (target.parents[1] / run.row.exhibit).read_text(encoding="utf-8")
+    assert "theorem OpnQa.equiv_forward" in source and "theorem OpnQa.equiv_backward" in source
+    assert "(opn_subject : ∀ p q r : Prop, (p ∧ q) ∧ r → r ∧ (q ∧ p))" in source
+    assert "kernel_replay:OpnQa.Equivalence" in fake.calls
+    assert qa.pass_state(target, "root").checks["equivalence"] == "pass"
+
+
+def test_equivalence_needs_a_real_other_node(tmp_path: Path) -> None:
+    _, ctx = equivalence_context(tmp_path, ScriptedToolchain())
+    with pytest.raises(QaError, match="not a node"):
+        qa.equivalence(ctx, "ghost", date=WHEN, attempt_budget_s=30)
+
+
+def test_qa_brief_and_backtranslate_commands(
+    tmp_path: Path, seam: Any, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The three commands through the CLI: no key is a usage error before any work (C8); with
+    the seam faked, `brief` runs sandboxed and `backtranslate` needs no toolchain at all."""
+    from opn_gate import cli  # noqa: PLC0415
+
+    root = copy_graph(tmp_path)
+    take_in(root, defs=DEFS)
+    argv = [
+        "qa",
+        "brief",
+        "euclid-primes",
+        "root",
+        "--graph",
+        str(root),
+        "--sandbox",
+        "--out",
+        str(tmp_path / "out"),
+        "--date",
+        WHEN,
+    ]
+    monkeypatch.delenv("OPN_MODEL_API_KEY", raising=False)
+    assert cli.main(argv) == cli.EXIT_ERROR
+    assert "OPN_MODEL_API_KEY" in capsys.readouterr().err
+
+    model = FakeModelClient(answer="Fine.")
+    monkeypatch.setattr(cli, "_model_client", lambda _settings: model)
+    seam.fake = brief_toolchain()
+    assert cli.main(argv) == cli.EXIT_PASS
+    doc = json.loads(capsys.readouterr().out)
+    assert doc["ok"] is True and doc["check"]["check"] == "brief"
+    assert seam.made[0]["read_only"] == [
+        (root / "targets/euclid-primes/nodes" / ROOT_NODE).resolve()
+    ]
+
+    code = cli.main(
+        ["qa", "backtranslate", "euclid-primes", "Primes", "--graph", str(root), "--date", WHEN]
+    )
+    doc = json.loads(capsys.readouterr().out)
+    assert code == cli.EXIT_PASS and doc["check"]["check"] == "backtranslation"
+    assert doc["written"] == [
+        "targets/euclid-primes/qa/Primes-1.yaml",
+        "targets/euclid-primes/qa/backtranslation/Primes-backtranslation-1.md",
+    ]
+    assert (
+        cli.main(
+            [
+                "qa",
+                "equivalence",
+                "euclid-primes",
+                "Primes",
+                "other",
+                "--graph",
+                str(root),
+                "--sandbox",
+            ]
+        )
+        == cli.EXIT_ERROR
+    )
