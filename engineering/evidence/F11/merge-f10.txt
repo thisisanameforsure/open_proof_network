@@ -1,0 +1,99 @@
+F11 merged onto F10 — the resolution and both verification tiers.
+2026-09-12
+
+WHY THERE WAS A MERGE AT ALL
+----------------------------
+The F11 session ran on a branch cut from bcdf9ef, before F10's five commits landed on main, so
+the two histories diverged: 5 commits on main, 6 on origin/claude/f11-startup-rpvoca, 14 files
+touched by both. Merged into main as d888ffa with both parents intact.
+
+THE FIVE CONFLICTS
+------------------
+Two were textual (both sides appended) and three were semantic:
+
+  gate/opn_gate/products.py  F11 turned `target_facts` into a `TargetFacts` dataclass; F10 added
+                             the per-node context bundles to the same block and still unpacked a
+                             3-tuple. Kept F10's `gdoc` and its bundle loop, and F11's `facts`
+                             object — which every other caller in the merged tree already expects
+                             (products.py:295, test_curator.py:319).
+  api/opn_api/mcp/reads.py   F10 deleted META_FILE (get_node serves CONTEXT.json now, F10-Q7);
+                             F11's side still carried it and bumped the filter to frontier/v2.
+                             Took both: the constant had no remaining reference in the api.
+  gate/opn_gate/cli.py       Both sides added parser groups. Unioned to four; the PLR0915
+                             suppression on build_parser is unused now that each group is its own
+                             function, and ruff said so.
+  engineering/CLAUDE.md      Append conflict, both sides' log entries kept (19 dated 2026-09-11).
+  engineering/specs/index.html  F11's branch predates F10's row, so its index still said F10 was
+                             at "spec". Kept main's F10 row and F11's own.
+
+WHAT NEITHER SIDE'S TESTS COULD HAVE CAUGHT
+-------------------------------------------
+mypy --strict found the one defect the merge created:
+
+  gate/opn_gate/cli.py:1252: error: Argument 1 to "ensure_image" has incompatible type "str";
+  expected "dict[str, Any]"
+
+F10-R5 changed `ensure_image` to take the whole gate-spec so a graph that pins `devcontainer_ref`
+runs the published image by digest rather than building its own. F11's intake admission was
+written against the old signature and passed `lean_toolchain`. Both branches were green in
+isolation; only the merge puts the new caller next to the new callee. Fixed by passing `spec`, as
+all six other call sites do — so `intake new --sandbox` and `intake import-fc --sandbox` now admit
+inside the pinned image, which is where the authoritative gate will run them (C9).
+
+No file was lost: the union of both parents' trees is the merged tree, with one rename
+(gate/.dockerignore -> .dockerignore, F10-T3's build-context move).
+
+VERIFICATION — FAST TIER (make verify, also run by the pre-commit hook)
+----------------------------------------------------------------------
+$ make verify
+uv run --frozen ruff check .        All checks passed!
+uv run --frozen ruff format --check .   224 files already formatted
+uv run --frozen mypy gate           Success: no issues found in 107 source files
+uv run --frozen mypy api            Success: no issues found in 74 source files
+uv run --frozen mypy site           Success: no issues found in 18 source files
+========= 1383 passed, 53 deselected, 1 xfailed, 2 warnings in 43.93s ==========
+
+The one xfail is the held float-parity defect at the store seam (C7), unchanged by this merge.
+
+VERIFICATION — REAL TIER (make verify-lean)
+-------------------------------------------
+d777049's note said the lean tier had passed in CI on c0cad3d — that is the F11 branch before the
+merge, and it could not have covered F10's sandbox image, the cache, the devcontainer or the
+merged `ensure_image` call. Run here against the pinned toolchain and the step-3 container:
+
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+testpaths: gate/tests, api/tests, site/tests
+plugins: anyio-4.15.1
+collected 1437 items / 1384 deselected / 53 selected
+
+gate/tests/test_admit_docker.py .                                        [  1%]
+gate/tests/test_admit_lean.py .......x.                                  [ 18%]
+gate/tests/test_artifacts_lean.py ..                                     [ 22%]
+gate/tests/test_cache_lean.py .                                          [ 24%]
+gate/tests/test_curator_lean.py .                                        [ 26%]
+gate/tests/test_devcontainer_docker.py .                                 [ 28%]
+gate/tests/test_exhibits_lean.py .                                       [ 30%]
+gate/tests/test_hazards_lean.py .......                                  [ 43%]
+gate/tests/test_lean_pkg_lean.py ....                                    [ 50%]
+gate/tests/test_precheck_job_docker.py ..                                [ 54%]
+gate/tests/test_pregate_lean.py ...........                              [ 75%]
+gate/tests/test_products_lean.py .                                       [ 77%]
+gate/tests/test_reproduce_docker.py ..                                   [ 81%]
+gate/tests/test_sandbox_docker.py .....                                  [ 90%]
+...
+=== 52 passed, 1384 deselected, 1 xfailed, 2 warnings in 1146.87s (0:19:06) ====
+
+
+The remaining xfail is F08-Q18, held strict on purpose: admission does not yet refuse a proposal
+that redeclares an existing node's theorem name. Unrelated to this merge.
+
+WHAT IS NOT DONE
+----------------
+Nothing is pushed. main is 12 commits ahead of origin and pushing it deploys the api, which is
+Mike's sitting together with F10's tag, the image digest pin, the four OPN_CACHE_* variables and
+the merge that closes F10-AC11. F11's own T3, T4 and T6 remain todo, and T5 is code complete
+pending the registry pass, Mike's approval of the five targets, the written QA record and a
+merged import pull request.

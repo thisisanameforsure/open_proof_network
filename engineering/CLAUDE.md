@@ -357,3 +357,11 @@ The law of the project:
   (F08-Q17), and a hosted runner has no `~/.gitconfig`. Reproduce a CI-only failure by taking the
   ambient thing away — `HOME=/tmp/empty uv run pytest` found it in one run — and have the test
   supply what it needs instead of inheriting it.
+- 2026-09-12 — Two green branches can merge into a broken one, and only the type checker sees it.
+  A session on a phone built F11 from a commit that predates F10, so F10 changed `ensure_image` to
+  take the whole gate-spec (R5's pinned digest) while F11 wrote a new caller against the old
+  signature. Both branches passed everything they had; git merged the two files without a
+  conflict, because neither side edited the other's line. `mypy --strict` caught it in one run.
+  After any merge of parallel sessions, run the type checker before believing the test count —
+  and look first at the functions whose *signature* one side changed, since a signature is the one
+  edit whose blast radius is entirely in files it does not touch.
