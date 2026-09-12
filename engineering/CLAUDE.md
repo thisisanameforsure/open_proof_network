@@ -68,7 +68,9 @@ The law of the project:
   before an evidence run, or wait.
 - 2026-09-09 — A spec that names a future schema version rots as soon as that version ships for
   another reason (F02-R9 said `attestation/v2`; v2 had been taken by the step-9 block a day
-  earlier, so `trust_base` became v3, logged as F02-Q5). Specs should say "the next version".
+  earlier, so `trust_base` became v3, logged as F02-Q5; paid again 2026-09-11 when F11-R12 named
+  `targets-index/v2` a day after F07-R8 shipped one, F11-Q9). Specs should say "the next
+  version", and the check is one `ls gate/schemas/<name>/` before a requirement names a number.
 - 2026-09-09 — A graph re-pin is only as good as the seeded nodes under it: F01 changed the
   witness shape and the live tutorial node still had F00's, so the F02 re-pin had to fix
   `Witness.lean` too (D-35 seeded-node exception). Run `pregate.sh` on the live graph after every
@@ -152,10 +154,6 @@ The law of the project:
   about a variant labelled `partial` with no `Relation.lean`; F03 had already put the label
   inside that file, so the node cannot exist. Say so in a judgment call and test the two places
   the impossibility is enforced — do not bend the design to make the literal words testable.
-- 2026-09-10 — ~~Assert what the API actually lets you control. R2 wants the App as committer;
-  the Git Data API fills the committer from the token, so the test asserts the author that *is*
-  sent and that no committer field is sent at all. Omission is the enforcement.~~ **Wrong, and
-  corrected the same day by the live host — see the entry at the end of this log.**
 - 2026-09-10 — Two features can each be the other's dependency and still be buildable: F07-T4
   needs F08-T1, F08 needs F07 for everything else. Take the one task that breaks the cycle rather
   than treating the feature order as a total order.
@@ -199,8 +197,8 @@ The law of the project:
   that has been up for twenty seconds. CI caught it; both local tiers were green. Force staleness
   by subtracting the window from *now*, never by assuming the clock's origin — and read a
   CI-only failure as a fact about the environment before assuming flake.
-- 2026-09-10 — Omission is not enforcement. The struck-through note above said the
-  Git Data API fills the committer from the token, so the test asserted *no committer field*.
+- 2026-09-10 — Omission is not enforcement. A note written that morning said the Git Data API
+  fills the committer from the token, so the test asserted *no committer field*.
   The live host disagreed: it copies the **author** into an absent committer, so the contributor
   was both, and the D-23 split had quietly collapsed. The assertion was asserting the defect.
   Never test that a field is absent as a proxy for what the server will do with it.
@@ -326,11 +324,6 @@ The law of the project:
 - 2026-09-11 — `aws cloudformation deploy` cannot say "keep the previous value"; a stack whose
   domain and certificate were set at deploy time would have lost them to the template defaults.
   Build a change set with `UsePreviousValue` for every existing parameter, read it, then execute.
-
-- 2026-09-11 — "Specs should say 'the next version'" was paid a second time inside a day. F11-R12
-  named `targets-index/v2`; F07-R8 had shipped one the day before, so the rung rename landed at v3
-  (F11-Q9). The check is one `ls gate/schemas/<name>/` — do it before a requirement names a
-  number, not after.
 - 2026-09-11 — A one-field schema bump reaches every consumer, and the consumers are not where you
   would look. `frontier/v2` (one boolean, D-33 dormancy) touched the api's `/frontier.json` route,
   the MCP field filter, both smoke tools, the deploy workflow's package check and the site's
@@ -447,3 +440,25 @@ The law of the project:
   live frontier was not empty as the notes said — F08's merged variant is claimable — so a
   read-only probe became two live pull requests; re-read the frontier before assuming a run
   writes nothing, and clean up what it opens (both closed, branches deleted).
+- 2026-09-12 — A fixture helper that adds a variant re-finds F08-Q19 every time: a `related`
+  variant has no dependents, so the DAG has two sinks and root inference refuses. The helper
+  declares the root in a `target-status/v2` record now; any fixture that grows a sink must.
+- 2026-09-12 — Record the recipe that made a fixture, not just the rule that it came from the
+  gate. F05-Q5 says the api's `targets-index-listed.json` is a golden copy; nothing said how, and
+  regenerating it at v4 took three tries to rediscover (the root directory renamed to
+  `listed-lemma` with its `META.yaml` id, `take_in` with `root_dir`, `rendered_from` of forty
+  5s, `commit_time` 2026-09-09T12:00:00Z). Equality of every pre-F12 field was the check that
+  the recipe was right; the recipe is now in `engineering/evidence/F12/task-6.txt`.
+- 2026-09-12 — A page can hide what a test asserts. The QA table carried twelve columns and its
+  wrapper scrolls, so the pass state and the signers were off-screen while the string assertions
+  passed; the screenshot caught it. Visual evidence is a check on layout, not a formality — look
+  at it before writing it up, and put a wide table's per-row verdict under the table.
+- 2026-09-12 — A container without elan or docker cannot run the lean tier, and the ledger must
+  say so rather than ✓: T2 and T4 shipped as "built, lean tier pending CI" with the run ids
+  recorded once green. A `FakeToolchain(raise_on="elaborate")` also showed that a toolchain
+  error inside `StatementStep` escaped the screen; AC18 wanted an `inconclusive` compile row,
+  which is what a screen must answer when it cannot run at all.
+- 2026-09-12 — The watcher's write access is a fourth secret door (F12-Q16), the model's key a
+  fifth (`OPN_MODEL_API_KEY`), and neither existed in the build. Both workflows run in the mode
+  the missing secret allows — the watcher dry-runs and keeps its report; the model commands
+  refuse with a named error — so a missing permission never reads as a passing run.
