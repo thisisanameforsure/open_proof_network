@@ -1,0 +1,96 @@
+F11 — the graph re-pinned to network dc25d2b011757c4bb3ece433051e12953ec8a47b
+2026-09-12
+
+Graph main 0dcf252 -> 20a8b04 (the gate owner's direct push; the main ruleset lets the admin
+role bypass, as it lets the deploy key): targets/tutorial/gate-spec.json network_commit
+c6cebbcd -> dc25d2b0; devcontainer_ref stays null (the gate builds the image in the job; the
+published image is the tag's, F10's sitting); THIRD_PARTY_NOTICES.md for the five imports
+(F11-Q26). dc25d2b's CI: fast tier and real tier green (runs 34685576317, 34683194460).
+
+Pregate on the live tutorial node with the gate at dc25d2b, before the push (the log's rule:
+run pregate on the live graph after every re-pin and keep the output):
+
+$ gate/pregate.sh --graph ../open_proof_network_graph --target tutorial --node tutorial-and-swap
+exit 0
+verdict: pass
+steps: 1 toolchain pass, 2 paths pass, 4 kernel-replay pass, 5 axioms pass, 6 hazards pass, 7 witness pass, 8 deps pass
+olean cache: none (the graph names no olean cache)
+
+The intake branches were re-based onto 20a8b04 and their gate-spec pins set to dc25d2b (each
+graph pins its own commit, D-35): intake/euclid-primes (1bf4304) and the five
+intake/erdos-{68,376,406,172,52} split from intake/open-targets, which was deleted. The gate at
+dc25d2b classifies all six as mode intake, admit = the root, review waived single-curator,
+no problems (opn_gate.cli classify over a worktree of each). Pull requests #12 (euclid-primes)
+and #13-#17 (erdos-68, -376, -406, -172, -52); their gate runs and merges are appended below.
+
+PR #12 intake: list euclid-primes — gate run 34688348159: classify -> mode intake, admit
+infinitude-of-primes; "Admit the proposed node inside the step-3 sandbox": the Mathlib image
+opn-gate:leanprover-lean4-v4.33.1-mathlib-0df444a360ea built on the runner and the root admitted
+on it, verdict pass; the job 10:24:10 -> 10:30:22 UTC (6 min 12 s, image build included).
+mergeStateStatus CLEAN; merged by the gate owner (merge commit).
+
+PR #18 annex: infinitude-of-primes — classified append, no sandbox; merged (0fe047d), products
+re-rendered (33a003e). Note: the first push of this branch deleted annex/.gitkeep and the
+classifier refused it ("a keep may not be deleted"); the keep stayed.
+
+The five erdos pull requests, first gate runs on the pinned commit (the Mathlib image built on
+each runner, ~6 min a run):
+  #14 erdos-376  pass        #15 erdos-406  pass
+  #13 erdos-68   FAIL hazards: div-zero at `1 / (↑(n + 2).factorial - 1)`, unacknowledged
+  #16 erdos-172  FAIL witness: type True, the statement's binders need `∃ n color m, True`
+  #17 erdos-52   FAIL witness: type True, the hypotheses need `∃ ε, 0 < ε ∧ ε < 1`
+Three content defects the import tool left: `import-fc` derives the witness as `True` whenever
+the statement has no named hypotheses, but D-4 step 7 closes over the leading ∀-binders and
+their bounds; and a statement carrying a total division needs its acknowledgment in META.yaml
+(meta/v2 acknowledged_hazards). Fixed on the branches by hand: witnesses ε = 1/2 and
+(n, color, m) = (1, const 0, 0); the div-zero acknowledged with the justification that
+(n+2)! - 1 ≥ 1. Follow-up for the tool recorded in F11-Q26.
+
+Also seen: a pull request that is BEHIND main fails the workflow's "exactly one target" step,
+because `git diff base.sha...HEAD` on the merge ref reaches main's newer commits (the on-ramp
+target's files). Under the ruleset's strict up-to-date policy every branch is updated before
+it can merge anyway, which is the workaround used here; the workflow should diff the merge
+commit against its first parent (HEAD^1) instead — a gate.yml follow-up.
+
+The skeleton (README step 3, through the service under the curator's token): precheck
+01M2AM3GNGC503ZW59WVSVC50R on graph 0fe047d — steps 1, 2 pass, step 4 kernel-replay FAIL,
+"Unknown identifier `Opn.fact`" ×6: the live root imports Defs.IsPrime, Mathlib.Tactic and an
+empty Context, never Defs.Fact (F11-Q27). The skeleton was restated over Nat.factorial (the
+statement's header byte for byte; the note in the body) and resubmitted: precheck
+01M2AMSWFRAQCZ66DEH7G80CVK — result appended below.
+  -> precheck 01M2AMSWFRAQCZ66DEH7G80CVK on graph 037bd3f: pass in 816 s (steps 1, 2, 4-8;
+     step 1 mathlib-pinned, step 2 partial-submission, step 4 artifact-partial with holes
+     [dvd_fact, prime_divisor, dvd_consecutive, fact_pos]); POST /submissions -> 201,
+     submission 01M2ANJX8RE7A0R3B38P5BJAEN, PR #19 opened by the App with the curator as author.
+  -> PR #19's gate (run 34690844639, after the curator's approving review — the App is the
+     author, so the curator is a non-author for step 9): partial mode, replayed in the sandbox
+     on the Mathlib image, success. The first run (34690826327) failed at step 9 before any
+     Lean ran, because the review did not exist yet: the check is cheap and comes first.
+
+The five erdos pull requests, after the fixes and under the strict up-to-date policy (each merge
+re-gated the rest; the Mathlib image built again on every run, ~6 min): #13 erdos-68 merged
+(postmerge 2c09536), #14 erdos-376 (0a4327e/432f208), #15 erdos-406 (9dbdb82), #16 erdos-172
+(86f41f7), #17 erdos-52 (3cfdbf1). All five admitted by the gate at dc25d2b on the Mathlib
+image; merging them is Mike's approval of the five (F11-Q3) delegated by "please merge into
+main" (2026-09-12).
+
+PR #19 merged (609a18d); postmerge 34693836186: re-derived on the Mathlib image, verdict pass,
+signed, children applied and products rendered (9aaa643):
+  infinitude-of-primes--h1  ∀ n k, 0 < k → k ≤ n → Opn.Divides k n.factorial
+  infinitude-of-primes--h2  ∀ n, (h1) → ∀ m, 2 ≤ m → ∃ p, Opn.IsPrime p ∧ Opn.Divides p m
+  infinitude-of-primes--h3  ∀ n, (h1) → (h2) → ∀ d m, Divides d m → Divides d (m+1) → d = 1
+  infinitude-of-primes--h4  ∀ n, (h1) → (h2) → (h3) → ∀ k, 0 < n.factorial  (fact_pos)
+  each origin skeleton-hole, status blocked (an empty witness slot, F08-R5), the root's deps
+  now the four (F11-Q22: each hole closed over the ones before it).
+Seen: the assembly filed twice under attempts/ (the submission's file and the job's stamped
+copy) — F11-Q28, fixed in the network for the next re-pin.
+
+The site (site-deploy dispatched by hand; the 5-minute schedule had not fired since 09:37):
+rendered-from 9aaa643; /targets/euclid-primes/, the root's and h1's node pages and
+/targets/erdos-68/ answer 200; the Targets page lists the five with "Formal Conjectures"
+attribution, not claimable.
+
+Live frontier after 9aaa643: the five erdos roots and the tutorial's variant; the on-ramp root
+has deps now and its holes are blocked, so nothing on euclid-primes is claimable until step 5
+(a non-author's screened-and-signed attestation, posting, activation) and the holes' witnesses
+(POST /proposals/witness). AC14's exit-0 run waits on those.

@@ -396,14 +396,20 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
     pseudonym: str,
     stamp: str,
     author: str | None = None,
+    assembly_path: str | None = None,
 ) -> PartialMerge:
-    """R6: turn a merged partial into child nodes, and file the assembly under ``attempts/``.
+    """R6: turn a merged partial into child nodes, with the assembly on record under ``attempts/``.
 
     Order matters and is chosen so a failure leaves nothing behind: the citation is checked and
     the attempt's name reserved, then the children are written, then the parent's ``deps`` and
     ``Context.lean`` are regenerated to match, then the assembly is filed. The parent's statement
     is never touched — only the two bot-owned files change, which is what keeps D-3's
     immutability intact (F07-Q2).
+
+    ``assembly_path`` is the merged assembly's own path under the node when the submission was
+    the ``attempts/*.lean`` file partial mode takes (F11-T4): that file *is* the attempt record,
+    so nothing is filed again — the first live merge filed the same text twice (F11-Q28). A
+    caller without it (the pre-F11 shape, a partial carried elsewhere) still gets the copy.
     """
     from opn_gate import scaffold  # noqa: PLC0415 — scaffold imports layout, which imports schemas
 
@@ -413,8 +419,10 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
     if not holes:
         msg = "a partial with no holes creates no children (D-12 #5)"
         raise GraphWriteError(msg)
+    on_record = assembly_path is not None and assembly_path.startswith(ATTEMPTS_DIR + "/")
     attempt_file = attempt_name(stamp, pseudonym, PARTIAL_SUFFIX)
-    check_attempt_free(node_dir, attempt_file)
+    if not on_record:
+        check_attempt_free(node_dir, attempt_file)
 
     origin = child_origin(partial_text)
     annex = annex_citation(partial_text)
@@ -444,7 +452,9 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
 
     add_deps(node_dir, created)
     regenerate_context(node_dir, nodes_dir)
-    attempt = record_attempt(node_dir, attempt_file, partial_text)
+    attempt = (
+        str(assembly_path) if on_record else record_attempt(node_dir, attempt_file, partial_text)
+    )
     return PartialMerge(tuple(created), attempt, origin, annex)
 
 

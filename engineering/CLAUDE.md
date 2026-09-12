@@ -447,3 +447,26 @@ The law of the project:
   live frontier was not empty as the notes said — F08's merged variant is claimable — so a
   read-only probe became two live pull requests; re-read the frontier before assuming a run
   writes nothing, and clean up what it opens (both closed, branches deleted).
+- 2026-09-12 — The first merge of a new mode found two refusals no fixture had: an intake staged
+  as one five-target branch cannot pass the gate, because the workflow takes exactly one target
+  per pull request and `THIRD_PARTY_NOTICES.md` is a path no submission may touch — and both
+  refusals were right. Split it into five pull requests and push the owner's file with the re-pin
+  (F11-Q26). Before staging a branch for a mode's first live use, run `classify` over a worktree
+  of it with the gate you are about to pin; it takes a second and would have said so a day earlier.
+- 2026-09-12 — The first live skeleton failed on an import the fixture had supplied by accident.
+  The live on-ramp root imports `Defs.IsPrime`, `Mathlib.Tactic` and an empty Context; the fixture
+  root has a proved dependency whose Context imports `Defs.Fact`, so the skeleton's `Opn.fact`
+  resolved in every test and nowhere live. A proof cannot add an import (F00-R19), so the
+  skeleton moved to `Nat.factorial` (F11-Q27). When a fixture has more structure than the live
+  object it stands for, its passes are worth less than they look; keep one fixture with the live
+  shape — here, a root with no dependencies.
+- 2026-09-12 — A step's output can duplicate its input once the input moves. F07's post-merge
+  filed a merged partial under `attempts/`; F11 made the submission *be* an `attempts/` file, and
+  the first live merge filed the same text twice (F11-Q28). The fixture hid it because the test's
+  file was named for a different pseudonym than the block's. When a later feature changes where a
+  thing arrives, re-read every step that records where it went.
+- 2026-09-12 — The strict up-to-date ruleset turns N pull requests into N sequential rounds, each
+  re-building the Mathlib image (~6 min) — an hour for five targets. And a pull request that is
+  BEHIND fails the gate's "one target" step, because the workflow diffs from the pull request's
+  stale base rather than the merge commit's first parent. Publishing the image (the tag, F10)
+  and diffing `HEAD^1` are the two fixes; both are for the next sitting.
