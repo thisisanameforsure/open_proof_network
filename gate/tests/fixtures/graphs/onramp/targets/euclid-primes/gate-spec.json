@@ -1,0 +1,27 @@
+{
+  "accepted_precheck_signatures": [
+    "service",
+    "contributor",
+    "none"
+  ],
+  "axiom_allowlist": [
+    "propext",
+    "Classical.choice",
+    "Quot.sound"
+  ],
+  "devcontainer_ref": null,
+  "gate_owner": "thisisanameforsure",
+  "graph_id": "euclid-primes",
+  "hazard_checkers": [],
+  "lean_toolchain": "leanprover/lean4:v4.33.1",
+  "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+  "network_commit": "0000000000000000000000000000000000000000",
+  "olean_cache_url": null,
+  "precheck_max_age_s": 86400,
+  "schema": "gate-spec/v1",
+  "step3_caps": {
+    "cpu": 2,
+    "memory_mib": 4096,
+    "wallclock_s": 600
+  }
+}

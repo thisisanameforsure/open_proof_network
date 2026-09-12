@@ -136,3 +136,13 @@ def test_the_count_is_not_in_the_repr_by_accident() -> None:
     """C8: the repr exists so secrets stay out of it; a new field has to be in it deliberately."""
     assert "listed_targets_max=5" in repr(config.load({}))
     assert "gate_signing_key=None" in repr(config.load({}))
+
+
+def test_mathlib_home_is_config_with_a_documented_default(tmp_path: Path) -> None:
+    """F11-R6: where Mathlib checkouts live is read from the environment, once, with a default
+    under the home directory; the image sets its own (gate/Dockerfile)."""
+    assert config.load({}).mathlib_home == config.DEFAULT_MATHLIB_HOME
+    assert Path.home() / ".opn" / "mathlib" == config.DEFAULT_MATHLIB_HOME
+    custom = config.load({"OPN_MATHLIB_HOME": str(tmp_path / "ml")})
+    assert custom.mathlib_home == tmp_path / "ml"
+    assert "mathlib_home=" in repr(custom) and str(tmp_path / "ml") in repr(custom)

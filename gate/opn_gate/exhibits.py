@@ -18,7 +18,7 @@ import shutil
 import subprocess
 from collections.abc import Sequence
 
-from opn_gate import layout, modes
+from opn_gate import defs, layout, modes
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Located
 from opn_gate.steps.base import RunContext
@@ -118,6 +118,13 @@ def stage_node(
                 {"node": node_id, "missing": name},
             )
         shutil.copy(source, dest / name)
+    # F11-R2, F01-Q2: the target's definitions first; the Context may import them.
+    target_dir = layout.gate_spec_path(ctx.graph_root, target_id).parent
+    problem = defs.compile_all(
+        ctx.toolchain, tc, target_dir, ctx.workdir, timeout_s=ctx.wallclock_s
+    )
+    if problem is not None:
+        return problem
     module = layout.node_module(node_id, "Context")
     try:
         elab = ctx.toolchain.elaborate(

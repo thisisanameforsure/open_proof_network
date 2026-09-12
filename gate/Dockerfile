@@ -18,11 +18,17 @@
 ARG LEAN_TOOLCHAIN=leanprover/lean4:v4.33.1
 ARG ELAN_VERSION=v4.2.4
 ARG UV_VERSION=0.12.10
+# F11-R6 (D-7): a Mathlib-pinned graph gets an image that also carries that Mathlib checkout
+# with its oleans, fetched from Mathlib's own cache at build time — so a gate run inside the
+# image never runs `lake exe cache get` (that is the "image hit"). Empty for a Mathlib-free image.
+#   docker build ... --build-arg MATHLIB_SHA=<40 hex> -t opn-gate:<toolchain>-mathlib-<12 hex> .
+ARG MATHLIB_SHA=
 
 FROM debian:bookworm-slim@sha256:88200866dfff7ea7f5cbcb6ec7c8a701889efe6fe859fe64d6990e4b07ea4171
 ARG LEAN_TOOLCHAIN
 ARG ELAN_VERSION
 ARG UV_VERSION
+ARG MATHLIB_SHA
 
 ENV ELAN_HOME=/opt/elan \
     PATH=/opt/elan/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
@@ -44,6 +50,20 @@ RUN set -eux; \
     elan toolchain install "${LEAN_TOOLCHAIN}"; \
     elan run "${LEAN_TOOLCHAIN}" lean --version; \
     chmod -R a+rX /opt/elan
+
+# F11-R6: the pinned Mathlib, when the build names one. The same steps as
+# gate/scripts/install-mathlib.sh (one clone at the commit, the oleans from Mathlib's cache, a
+# stamp), at the path the gate's config names inside the image (OPN_MATHLIB_HOME). The
+# checkout's own lean-toolchain must be the image's toolchain: Mathlib oleans are specific to
+# the Lean that built them, and a mismatch here is refused at build time rather than at step 1.
+COPY gate/scripts/install-mathlib.sh /opt/opn/install-mathlib.sh
+ENV OPN_MATHLIB_HOME=/opt/opn/mathlib
+RUN set -eux; \
+    if [ -n "${MATHLIB_SHA}" ]; then \
+      OPN_MATHLIB_HOME=/opt/opn/mathlib bash /opt/opn/install-mathlib.sh "${MATHLIB_SHA}" "${LEAN_TOOLCHAIN}"; \
+      rm -rf "/opt/opn/mathlib/${MATHLIB_SHA}/.git"; \
+      chmod -R a+rX /opt/opn/mathlib; \
+    else mkdir -p /opt/opn/mathlib; fi
 
 # The gate's Lean metaprograms (F01-R1, R10; F02-R1: the hazard checkers): built here so the
 # authoritative gate, precheck and reproduce.sh run identical binaries. The package pins the same
@@ -79,6 +99,7 @@ RUN set -eux; \
 # (opn_gate.config OPN_ELAN_HOME, OPN_LEAN_PKG_BIN; the sandbox sets the same two).
 ENV OPN_ELAN_HOME=/opt/elan \
     OPN_LEAN_PKG_BIN=/opt/opn/lean/.lake/build/bin \
+    OPN_MATHLIB_HOME=/opt/opn/mathlib \
     NETWORK=/opt/opn/network
 
 # Non-root. The sandbox runs as 1000 with HOME=/tmp and copies its inputs in; the devcontainer

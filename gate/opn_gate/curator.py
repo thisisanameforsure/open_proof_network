@@ -25,8 +25,8 @@ from typing import Any
 
 import yaml
 
+from opn_gate import defs, layout, records, scaffold, schemas
 from opn_gate import graph as graphmod
-from opn_gate import layout, records, scaffold, schemas
 from opn_gate.paths import VERSION_RE
 from opn_gate.steps.base import RunContext
 from opn_gate.steps.toolchain_step import ToolchainStep
@@ -321,6 +321,10 @@ def statements_defeq(ctx: RunContext, kept: layout.Node, dropped: layout.Node) -
     tc: ResolvedToolchain = ctx.data["toolchain"]
     src = ctx.workdir / "src"
     ctx.build_dir.mkdir(parents=True, exist_ok=True)
+    # F11-R2, F01-Q2: the target's definitions first; either Context may import them.
+    target_dir = layout.gate_spec_path(ctx.graph_root, ctx.claim.target_id).parent
+    if defs.compile_all(ctx.toolchain, tc, target_dir, ctx.workdir, timeout_s=ctx.wallclock_s):
+        return False
     for node in (kept, dropped):
         dest = src / "Nodes" / node.node_id
         dest.mkdir(parents=True, exist_ok=True)

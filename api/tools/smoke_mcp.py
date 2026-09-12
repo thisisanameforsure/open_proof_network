@@ -148,8 +148,7 @@ def read_only(  # noqa: PLR0912, PLR0915 — a checklist: one branch per thing t
         prose = [
             p
             for p in bare
-            if p.endswith((".detail", ".route", ".text", ".justification"))
-            and p not in lean_source
+            if p.endswith((".detail", ".route", ".text", ".justification")) and p not in lean_source
         ]
         attempts = bundle["context"]["attempts"]
         print(

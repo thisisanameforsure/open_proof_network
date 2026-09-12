@@ -27,6 +27,9 @@ from opn_gate.toolchain import LocalToolchain, ResolvedToolchain
 
 CONTAINER_ELAN = Path("/opt/elan/bin/elan")
 CONTAINER_LEAN_PKG_BIN = Path("/opt/opn/lean/.lake/build/bin")
+#: Where the image keeps Mathlib checkouts, one per pinned commit (F11-R6): the Dockerfile's
+#: MATHLIB_SHA build argument puts the checkout and its oleans at ``<home>/<sha>``.
+CONTAINER_MATHLIB_HOME = Path("/opt/opn/mathlib")
 CONTAINER_UID = 1000
 GRACE_S = 30.0  # host-side slack beyond the in-container `timeout`
 _KILLED_BY_TIMEOUT = (124, 137)
@@ -52,16 +55,23 @@ class Caps:
         )
 
 
-def image_tag(lean_toolchain: str) -> str:
-    """A docker tag for the toolchain, e.g. ``opn-gate:leanprover-lean4-v4.33.1``."""
-    return "opn-gate:" + re.sub(r"[^A-Za-z0-9_.-]+", "-", lean_toolchain)
+def image_tag(lean_toolchain: str, mathlib_sha: str | None = None) -> str:
+    """A docker tag for the toolchain, e.g. ``opn-gate:leanprover-lean4-v4.33.1`` — and for a
+    Mathlib pin, ``...-mathlib-<12 hex>`` (F11-R6, Q4: one image per pinned sha)."""
+    tag = "opn-gate:" + re.sub(r"[^A-Za-z0-9_.-]+", "-", lean_toolchain)
+    if mathlib_sha:
+        tag += f"-mathlib-{mathlib_sha[:12]}"
+    return tag
 
 
-def build_image(gate_dir: Path, lean_toolchain: str, *, docker: str = "docker") -> str:
+def build_image(
+    gate_dir: Path, lean_toolchain: str, *, mathlib_sha: str | None = None, docker: str = "docker"
+) -> str:
     """``docker build`` the sandbox image for ``lean_toolchain``; returns the tag. The context is
     the repository root (``gate_dir``'s parent) since F10-T3: the image carries the gate package
-    and its locked environment as well as the Lean side (F10-R6), filtered by ``.dockerignore``."""
-    tag = image_tag(lean_toolchain)
+    and its locked environment as well as the Lean side (F10-R6), filtered by ``.dockerignore``.
+    With ``mathlib_sha`` the image also carries that Mathlib checkout with its oleans (F11-R6)."""
+    tag = image_tag(lean_toolchain, mathlib_sha)
     cmd = [
         docker,
         "build",
@@ -70,6 +80,7 @@ def build_image(gate_dir: Path, lean_toolchain: str, *, docker: str = "docker") 
         str(gate_dir / "Dockerfile"),
         "--build-arg",
         f"LEAN_TOOLCHAIN={lean_toolchain}",
+        *(["--build-arg", f"MATHLIB_SHA={mathlib_sha}"] if mathlib_sha else []),
         "-t",
         tag,
         str(gate_dir.parent),
@@ -120,7 +131,7 @@ class SandboxToolchain(LocalToolchain):
         read_write: Sequence[Path] = (),
         docker: str = "docker",
     ) -> None:
-        super().__init__(CONTAINER_ELAN, CONTAINER_LEAN_PKG_BIN)
+        super().__init__(CONTAINER_ELAN, CONTAINER_LEAN_PKG_BIN, CONTAINER_MATHLIB_HOME)
         self.image = image
         self.caps = caps
         self.read_only = [p.resolve() for p in read_only]
@@ -235,8 +246,10 @@ class SandboxToolchain(LocalToolchain):
         proc = self._docker("inspect", "-f", "{{.State.ExitCode}}", name)
         return int(proc.stdout.decode().strip() or "1")
 
-    def resolve(self, toolchain: str, *, install: bool = False) -> ResolvedToolchain:
-        return super().resolve(toolchain, install=False)
+    def resolve(
+        self, toolchain: str, *, install: bool = False, mathlib_sha: str | None = None
+    ) -> ResolvedToolchain:
+        return super().resolve(toolchain, install=False, mathlib_sha=mathlib_sha)
 
     def metaprogram(self, name: str) -> Path:
         """The image carries the built package (F01-R10); nothing is checked on the host side."""

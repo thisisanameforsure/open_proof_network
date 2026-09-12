@@ -33,7 +33,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
-from opn_gate import config, layout, schemas
+from opn_gate import config, defs, layout, schemas
 from opn_gate import graph as graphmod
 from opn_gate.objectstore import HttpStore, ObjectStore, ObjectStoreError
 from opn_gate.steps import stage as staging
@@ -124,9 +124,22 @@ def build(  # noqa: PLR0913 — one argument per fact the build needs
     """Compile every proved node's ``Context`` and ``Proof`` modules in the gate's own layout
     (``steps.stage``), deps first, and record each module's source hash and output hashes."""
     tg = graphmod.load_target(graph_root, target_id)
-    tc = toolchain.resolve(str(spec["lean_toolchain"]), install=install)
+    raw_sha = spec["mathlib_sha"]
+    tc = toolchain.resolve(
+        str(spec["lean_toolchain"]),
+        install=install,
+        mathlib_sha=str(raw_sha) if raw_sha is not None else None,
+    )
     src = workdir / "src"
     build_dir = workdir / "build"
+    # F11-R2, F01-Q2: the target's definitions first; a Context or Proof may import them. They
+    # are not themselves cached (F10-Q12 defers that): small, and rebuilt in seconds.
+    problem = defs.compile_all(
+        toolchain, tc, tg.path, workdir, timeout_s=float(spec["step3_caps"]["wallclock_s"])
+    )
+    if problem is not None:
+        msg = f"{target_id}: {problem.message}; the cache is not built"
+        raise CacheError(msg)
     modules: dict[str, dict[str, Any]] = {}
     for node_id in proved_order(tg):
         node = tg.nodes[node_id]

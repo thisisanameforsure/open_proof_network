@@ -17,7 +17,7 @@ import subprocess
 from dataclasses import dataclass
 from typing import Any
 
-from opn_gate import layout
+from opn_gate import defs, layout
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.steps.base import RunContext, StepResult
 from opn_gate.steps.replay import CONTEXT_MODULE
@@ -152,6 +152,13 @@ class StatementStep:
         for name in ("Statement.lean", CONTEXT_MODULE + ".lean"):
             shutil.copy(loaded.path / name, dest / name)
         ctx.build_dir.mkdir(parents=True, exist_ok=True)
+        # F11-R2, F01-Q2: the target's definitions first; the Context may import them.
+        target_dir = layout.gate_spec_path(ctx.graph_root, ctx.claim.target_id).parent
+        problem = defs.compile_all(
+            ctx.toolchain, tc, target_dir, ctx.workdir, timeout_s=ctx.wallclock_s
+        )
+        if problem is not None:
+            return StepResult(ok=False, diagnostic=problem)
         module = layout.node_module(loaded.node_id, CONTEXT_MODULE)
         try:
             elab = ctx.toolchain.elaborate(

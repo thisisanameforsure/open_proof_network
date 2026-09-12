@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import subprocess
 
-from opn_gate import cache, layout
+from opn_gate import cache, defs, layout
 from opn_gate.steps import stage as staging
 from opn_gate.steps.base import RunContext, StepResult
 from opn_gate.toolchain import ElabResult, ResolvedToolchain
@@ -23,7 +23,7 @@ class KernelReplayStep:
     number = 4
     name = "kernel-replay"
 
-    def run(self, ctx: RunContext) -> StepResult:
+    def run(self, ctx: RunContext) -> StepResult:  # noqa: PLR0911 — one return per rule
         node = ctx.node
         tc: ResolvedToolchain | None = ctx.data.get("toolchain")
         if node is None or tc is None:
@@ -39,6 +39,13 @@ class KernelReplayStep:
                 problems=[p.message for p in staged.problems],
             )
         try:
+            # F11-R2, F01-Q2: ``Defs.*`` first — a node's Context and Proof may import them.
+            target_dir = layout.gate_spec_path(ctx.graph_root, ctx.claim.target_id).parent
+            problem = defs.compile_all(
+                ctx.toolchain, tc, target_dir, ctx.workdir, timeout_s=ctx.wallclock_s
+            )
+            if problem is not None:
+                return StepResult(ok=False, diagnostic=problem)
             for node_id in staged.order:
                 for stem in (CONTEXT_MODULE, PROOF_MODULE):
                     failure = self._compile(ctx, tc, staged, node_id, stem)

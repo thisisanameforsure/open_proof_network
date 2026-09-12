@@ -1,0 +1,12 @@
+schema: meta/v1
+id: fact-pos
+status: ready
+deps: []
+statement-hash: 856300436f791da7ff13069612e222eba00faba39447b9736ffb87eb1c15e1d8
+origin: authored
+provenance:
+  author: thisisanameforsure
+  model: null
+  source: null
+  date: "2026-09-12"
+tutorial: false

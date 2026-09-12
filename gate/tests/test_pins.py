@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -104,9 +105,9 @@ def test_ensure_image_pulls_the_pin_and_builds_without_one(monkeypatch: pytest.M
         calls.append(f"pull {ref}")
         return ref
 
-    def build(gate_dir: Path, tc: str) -> str:
-        calls.append(f"build {tc}")
-        return f"built:{tc}"
+    def build(gate_dir: Path, tc: str, *, mathlib_sha: str | None = None) -> str:
+        calls.append(f"build {tc}" + (f" mathlib {mathlib_sha[:12]}" if mathlib_sha else ""))
+        return f"built:{tc}" + (f"-mathlib-{mathlib_sha[:12]}" if mathlib_sha else "")
 
     monkeypatch.setattr(sandbox, "image_exists", lambda ref: ref in present)
     monkeypatch.setattr(sandbox, "pull_image", pull)
@@ -121,6 +122,20 @@ def test_ensure_image_pulls_the_pin_and_builds_without_one(monkeypatch: pytest.M
         cli.ensure_image(unpinned, build=False)
     assert cli.ensure_image(unpinned, build=True) == "built:leanprover/lean4:v4.33.1"
     assert calls[-1] == "build leanprover/lean4:v4.33.1"
+    # F11-R6: a Mathlib pin selects the image built for that commit — a different tag, and the
+    # sha handed to the build — while a pinned digest is still taken as-is.
+    mathlib = {**unpinned, "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474"}
+    assert (
+        cli.ensure_image(mathlib, build=True)
+        == "built:leanprover/lean4:v4.33.1-mathlib-0df444a360ea"
+    )
+    assert calls[-1] == "build leanprover/lean4:v4.33.1 mathlib 0df444a360ea"
+    present.add("opn-gate:leanprover-lean4-v4.33.1-mathlib-0df444a360ea")
+    assert (
+        cli.ensure_image(mathlib, build=False)
+        == "opn-gate:leanprover-lean4-v4.33.1-mathlib-0df444a360ea"
+    )
+    assert cli.ensure_image({**mathlib, "devcontainer_ref": DIGEST}, build=False) == DIGEST
 
 
 def test_pull_refuses_a_tag() -> None:
@@ -145,3 +160,43 @@ def test_publish_workflow_shape() -> None:
     dockerfile = (ROOT / "gate" / "Dockerfile").read_text(encoding="utf-8")
     assert "COPY gate/lean/ /opt/opn/lean/" in dockerfile and "uv sync --frozen" in dockerfile
     assert "OPN_LEAN_PKG_BIN=/opt/opn/lean/.lake/build/bin" in dockerfile
+    # F11-R6: one image per Mathlib pin, from the same Dockerfile and the same install script
+    # a laptop runs; the workflow builds the matrix the pins file lists and labels each image
+    # with the Mathlib it carries, which pin_image.py --verify reads back.
+    assert "ARG MATHLIB_SHA=" in dockerfile and "install-mathlib.sh" in dockerfile
+    assert "OPN_MATHLIB_HOME=/opt/opn/mathlib" in dockerfile
+    assert "gate/mathlib-pins.txt" in text and "matrix" in text
+    assert "MATHLIB_SHA=$MATHLIB_SHA" in text and "network.openproof.mathlib_sha=" in text
+    pins = (ROOT / "gate" / "mathlib-pins.txt").read_text(encoding="utf-8")
+    listed = [
+        line.split("#", 1)[0].strip() for line in pins.splitlines() if line.split("#", 1)[0].strip()
+    ]
+    assert listed and all(re.fullmatch(r"[0-9a-f]{40}", sha) for sha in listed)
+    script = (ROOT / "gate" / "scripts" / "install-mathlib.sh").read_text(encoding="utf-8")
+    assert (
+        "lake exe cache get" in script and "MATHLIB_SHA" in script and "OPN_MATHLIB_HOME" in script
+    )
+
+
+def test_verify_checks_the_mathlib_label_against_the_pin(tmp_path: Path) -> None:
+    """F11-R6: an image pinned on a Mathlib graph must carry that Mathlib — a plain image would
+    pass --check and fail at step 1 inside the sandbox — and a Mathlib image pinned on a
+    Mathlib-free graph is the same mismatch the other way."""
+    docker = tmp_path / "docker"
+    labels = tmp_path / "labels.json"
+    docker.write_text(
+        f'#!/bin/sh\ncase "$1" in\n  pull) exit 0 ;;\n  image) cat "{labels}" ;;\nesac\n'
+    )
+    docker.chmod(0o755)
+    sha = "0df444a360eaa60ab8c11dca51a86af692955474"
+    labels.write_text(
+        json.dumps({pin_image.REVISION_LABEL: "1" * 40, pin_image.MATHLIB_LABEL: sha})
+    )
+    assert pin_image.verify(DIGEST, "1" * 40, mathlib_sha=sha, docker=str(docker)) == []
+    [problem] = pin_image.verify(DIGEST, "1" * 40, mathlib_sha=None, docker=str(docker))
+    assert "Mathlib label" in problem and "None" in problem
+    labels.write_text(json.dumps({pin_image.REVISION_LABEL: "1" * 40, pin_image.MATHLIB_LABEL: ""}))
+    [problem] = pin_image.verify(DIGEST, "1" * 40, mathlib_sha=sha, docker=str(docker))
+    assert f"not the graph's mathlib_sha '{sha}'" in problem
+    problems = pin_image.verify(DIGEST, "2" * 40, mathlib_sha=sha, docker=str(docker))
+    assert len(problems) == 2 and "revision label" in problems[0]

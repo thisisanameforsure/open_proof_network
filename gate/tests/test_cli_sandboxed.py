@@ -25,7 +25,7 @@ from typing import Any
 import pytest
 import samples
 import yaml
-from fakes import FakeToolchain
+from fakes import FakeToolchain, used_constants_result
 from harness import FIXTURES, GRAPH, TARGET, TUTORIAL, copy_graph
 from scripted import ScriptedToolchain
 
@@ -102,8 +102,8 @@ def seam(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Seam:
     def image_exists(tag: str) -> bool:
         return real_exists(tag, docker=str(docker))
 
-    def build_image(gate_dir: Path, lean_toolchain: str) -> str:
-        return real_build(gate_dir, lean_toolchain, docker=str(docker))
+    def build_image(gate_dir: Path, lean_toolchain: str, *, mathlib_sha: str | None = None) -> str:
+        return real_build(gate_dir, lean_toolchain, mathlib_sha=mathlib_sha, docker=str(docker))
 
     def make_sandbox(
         image: str,
@@ -422,7 +422,9 @@ def test_a_failed_image_build_is_a_usage_error(
     root, _git, _base = git_repo(tmp_path)
     seam.set_image_present(False)
 
-    def failing_build(gate_dir: Path, lean_toolchain: str) -> str:
+    def failing_build(
+        gate_dir: Path, lean_toolchain: str, *, mathlib_sha: str | None = None
+    ) -> str:
         msg = "docker build failed: no space left on device"
         raise sandbox.SandboxError(msg)
 
@@ -1139,19 +1141,38 @@ def test_ledger_refuses_an_identity_that_cannot_hold_a_ledger(
 # --- products on a Mathlib pin, and the module entry point ----------------------------------------
 
 
-def test_products_refuses_a_mathlib_pinned_graph_until_f10(
+def test_products_scans_a_mathlib_pinned_graph_inside_the_sandbox(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """F11-R6, F03-R6 (C9): on a Mathlib-pinned target the library-tag scan runs inside the
+    step-3 image built for that Mathlib — chosen from the spec, with the target directory
+    mounted read-only — and nobody has to ask for it; the frontier carries the tags it found."""
     root, git, _base = git_repo(tmp_path)
     spec_path = root / "targets" / TARGET / "gate-spec.json"
     spec = schemas.load_json(spec_path)
     spec["mathlib_sha"] = samples.SHA1
     spec_path.write_bytes(schemas.canonical_json(spec))
     git("commit", "-q", "-am", "pin mathlib")
+    seam.fake.constants = used_constants_result(
+        [("Nat.Prime", "Mathlib.Data.Nat.Prime.Basic"), ("le_refl", "Mathlib.Order.Basic")]
+    )
     code, out, err = run(capsys, "products", "--graph", str(root), "--out", str(tmp_path / "o"))
-    assert code == cli.EXIT_ERROR and out == {}
-    assert "library tags on a Mathlib-pinned graph need the sandboxed scan (F10)" in err
-    assert not (tmp_path / "o").exists() and not (root / "frontier.json").exists()
+    assert code == cli.EXIT_PASS, err
+    assert out["ok"] is True
+    made = seam.made[-1]
+    assert made["image"] == sandbox.image_tag(PIN, samples.SHA1)
+    assert made["read_only"] == [(root / "targets" / TARGET).resolve()]
+    assert f"resolve:{PIN}:install=False:mathlib={samples.SHA1[:12]}" in seam.fake.calls
+    assert any(c.startswith("used_constants:") for c in seam.fake.calls)
+    frontier = json.loads((tmp_path / "o" / "frontier.json").read_text())
+    assert {tuple(e["tags"]["library"]) for e in frontier["entries"]} == {("Data", "Order")}
+    # A graph with no Mathlib pin builds no sandbox at all: the tutorial's job is untouched.
+    seam.made.clear()
+    spec["mathlib_sha"] = None
+    spec_path.write_bytes(schemas.canonical_json(spec))
+    git("commit", "-q", "-am", "unpin")
+    code, out, _err = run(capsys, "products", "--graph", str(root), "--out", str(tmp_path / "p"))
+    assert code == cli.EXIT_PASS and seam.made == []
 
 
 def test_module_entry_point_exits_2_on_usage() -> None:

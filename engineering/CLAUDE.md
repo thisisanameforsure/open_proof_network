@@ -388,3 +388,22 @@ The law of the project:
   the reverse, so a float was a `TypeError` on DynamoDB and a happy write in memory. The parity
   tests had been driving DynamoDB alone; driven through the shared both-stores fixture they are
   parity tests, and that is the shape to reach for whenever a seam has two implementations.
+- 2026-09-12 — A proof cannot add an import. F00-R19's proof-is-statement check compares the
+  header too, so the first on-ramp fixture failed step 2 on `import Mathlib.Tactic.Linarith` in
+  the proof. R7's "provers may use Mathlib beneath the local definitions" is a property of the
+  *statement*: the curator seeds each statement with the imports provers may draw on, and every
+  elaboration pays for them (F11-Q16). Decide the import set with the timing in hand.
+- 2026-09-12 — Read the checkout, not the manifest. "Every Mathlib package has built oleans" was
+  true of seven and false of `Cli`, a build-time dependency of the cache tool, and the rule
+  refused a real 6.8 GiB checkout at step 1. Require what is imported (Mathlib's own lib) and
+  take whatever else is there.
+- 2026-09-12 — A Mathlib image is a disk event. Two builds died mid-download with "Bad response
+  from Docker engine"; the cause was the laptop's data volume at 198 MiB free (Docker.raw grows
+  and never shrinks on its own; the checkout is 7 GiB; a second copy lives inside the image).
+  Check `df /System/Volumes/Data` before a multi-GiB build, and expect the docker tier for a
+  Mathlib graph to belong to CI unless the laptop has ~20 GiB spare (F11-Q17).
+- 2026-09-12 — A smoke's heuristic drifts when the shape it checks changes. F09's MCP smoke flagged
+  any `.text` as prose; F10 put the statement's Lean source at `$.context.statement.text`, the
+  fast tier's demarcation tests learned the new shape, and the smoke did not — so the first
+  deploy after the merge went red on a check the tests had already passed. When a bundle's
+  shape changes, grep the smokes for the field names as well as the tests.

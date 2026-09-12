@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from collections.abc import Sequence
@@ -392,3 +393,120 @@ def test_metaprogram_run_sets_the_lean_environment(tmp_path: Path) -> None:
     }
     assert timeout == 3
     assert not any("lake" in c[0] for c in lt.calls)  # already built: no rebuild
+
+
+# --- F11-R6: the Mathlib pin — a checkout found by sha, its oleans on every search path ---------
+
+
+def mathlib_checkout(home: Path, sha: str, *, toolchain_pin: str = PIN, packages: int = 2) -> Path:
+    """What install-mathlib.sh leaves: the stamp, the lean-toolchain, Mathlib's lib and its
+    packages' libs."""
+    checkout = home / sha
+    lib = Path(".lake") / "build" / "lib" / "lean"
+    (checkout / lib).mkdir(parents=True)
+    (checkout / "MATHLIB_SHA").write_text(sha + "\n")
+    (checkout / "lean-toolchain").write_text(toolchain_pin + "\n")
+    for name in [f"pkg{i}" for i in range(packages)]:
+        (checkout / ".lake" / "packages" / name / lib).mkdir(parents=True)
+    return checkout
+
+
+MATHLIB = "0df444a360eaa60ab8c11dca51a86af692955474"
+
+
+def test_mathlib_library_path_is_mathlib_then_its_packages(tmp_path: Path) -> None:
+    checkout = mathlib_checkout(tmp_path, MATHLIB)
+    lib = Path(".lake") / "build" / "lib" / "lean"
+    assert toolchain.mathlib_library_path(tmp_path, MATHLIB, PIN) == (
+        checkout / lib,
+        checkout / ".lake" / "packages" / "pkg0" / lib,
+        checkout / ".lake" / "packages" / "pkg1" / lib,
+    )
+
+
+def test_mathlib_pin_refusals_name_the_install_script(tmp_path: Path) -> None:
+    """No checkout, a checkout stamped with another commit, one built by another toolchain, one
+    without oleans, a sha that is not one: each is step 1's failure with the remedy in it."""
+    with pytest.raises(ToolchainMissingError, match="no Mathlib checkout") as info:
+        toolchain.mathlib_library_path(tmp_path, MATHLIB, PIN)
+    assert toolchain.INSTALL_MATHLIB_SCRIPT in str(info.value) and MATHLIB in str(info.value)
+
+    other = "e" * 40
+    checkout = mathlib_checkout(tmp_path / "a", other)
+    (checkout / "MATHLIB_SHA").write_text(MATHLIB + "\n")  # stamp says one thing, path another
+    with pytest.raises(ToolchainMissingError, match="stamped"):
+        toolchain.mathlib_library_path(tmp_path / "a", other, PIN)
+
+    mathlib_checkout(tmp_path / "b", MATHLIB, toolchain_pin="leanprover/lean4:v4.32.0")
+    with pytest.raises(
+        ToolchainMissingError, match=re.escape("pins leanprover/lean4:v4.32.0")
+    ) as info:
+        toolchain.mathlib_library_path(tmp_path / "b", MATHLIB, PIN)
+    assert "D-7" in str(info.value)
+
+    checkout = mathlib_checkout(tmp_path / "c", MATHLIB, packages=1)
+    (checkout / ".lake" / "build" / "lib" / "lean").rmdir()
+    with pytest.raises(ToolchainMissingError, match="no built oleans"):
+        toolchain.mathlib_library_path(tmp_path / "c", MATHLIB, PIN)
+    # A package with no oleans (Mathlib's `Cli`, a build-time dependency of its cache tool) is
+    # simply not on the path: nothing imports it, and requiring it refused a real checkout.
+    checkout = mathlib_checkout(tmp_path / "d", MATHLIB, packages=2)
+    (checkout / ".lake" / "packages" / "pkg0" / ".lake" / "build" / "lib" / "lean").rmdir()
+    lib = Path(".lake") / "build" / "lib" / "lean"
+    assert toolchain.mathlib_library_path(tmp_path / "d", MATHLIB, PIN) == (
+        checkout / lib,
+        checkout / ".lake" / "packages" / "pkg1" / lib,
+    )
+
+    with pytest.raises(ToolchainMissingError, match="not a 40-hex commit"):
+        toolchain.mathlib_library_path(tmp_path, "v4.33.1", PIN)
+
+
+def test_resolve_with_a_mathlib_pin_puts_its_oleans_on_every_search_path(tmp_path: Path) -> None:
+    """R6: the pin resolves once, and the order everywhere is build dir, Mathlib and its
+    packages, then the toolchain's lib — for `lean`, `leanchecker`, the axiom probe and the
+    metaprograms alike. Without a pin nothing changes."""
+    checkout = mathlib_checkout(tmp_path / "mathlib", MATHLIB, packages=1)
+    lib = Path(".lake") / "build" / "lib" / "lean"
+    pkg = tmp_path / "pkg"
+    bin_dir = pkg / ".lake" / "build" / "bin"
+    bin_dir.mkdir(parents=True)
+    for name in toolchain.METAPROGRAMS:
+        (bin_dir / name).write_text("")
+    lt = ScriptedToolchain(
+        [
+            ("opn-witness-type", (0, '{"ok": true, "expected": "True", "defeq": true}\n', "")),
+            *HEALTHY,
+        ],
+        bin_dir,
+    )
+    lt.mathlib_home = tmp_path / "mathlib"
+    tc = lt.resolve(PIN, mathlib_sha=MATHLIB)
+    assert tc.mathlib_sha == MATHLIB
+    assert tc.library_path == (checkout / lib, checkout / ".lake" / "packages" / "pkg0" / lib)
+    assert tc.toolchain_hash == lt.resolve(PIN).toolchain_hash  # the pin is not in the hash
+    build = tmp_path / "build"
+    expected = ":".join(str(p) for p in (build.resolve(), *tc.library_path, tc.libdir.resolve()))
+
+    src = tmp_path / "src" / "Nodes" / "n" / "Proof.lean"
+    src.parent.mkdir(parents=True)
+    src.write_text("theorem t : True := trivial\n")
+    lt.elaborate(tc, src, "Nodes.«n».Proof", build, root=tmp_path / "src")
+    assert lt.calls[-1][2] == {"LEAN_PATH": expected}
+    lt.kernel_replay(tc, "Nodes.«n».Proof", [build])
+    assert lt.calls[-1][2] == {"LEAN_PATH": expected}
+    lt.axioms(tc, "Nodes.«n».Proof", "t", [build], tmp_path / "scratch")
+    assert lt.calls[-1][2] == {"LEAN_PATH": expected}
+    req = toolchain.WitnessRequest(tmp_path / "S.lean", "Nodes.«n».Statement", "T.x")
+    lt.witness_type(tc, req, [build])
+    env = lt.calls[-1][2]
+    assert env is not None and env["LEAN_PATH"] == expected
+
+    plain = lt.resolve(PIN)
+    assert plain.library_path == () and plain.mathlib_sha is None
+    lt.elaborate(plain, src, "Nodes.«n».Proof", build, root=tmp_path / "src")
+    assert lt.calls[-1][2] == {"LEAN_PATH": f"{build.resolve()}:{plain.libdir.resolve()}"}
+
+    lt.mathlib_home = tmp_path / "nowhere"
+    with pytest.raises(ToolchainMissingError, match="no Mathlib checkout"):
+        lt.resolve(PIN, mathlib_sha=MATHLIB)

@@ -24,6 +24,17 @@ for spec in "$GRAPH"/targets/*/gate-spec.json; do
   toolchain="$(uv run --frozen --project "$NETWORK" python -c 'import json,sys; print(json.load(open(sys.argv[1]))["lean_toolchain"])' "$spec")"
   echo "post-create: $(basename "$(dirname "$spec")") pins $toolchain: $("$elan_home/bin/elan" run "$toolchain" lean --version)"
 done
+# F11-R6: a Mathlib-pinned target's checkout is in the image, at the sha the spec names.
+for spec in "$GRAPH"/targets/*/gate-spec.json; do
+  sha="$(uv run --frozen --project "$NETWORK" python -c 'import json,sys; print(json.load(open(sys.argv[1]))["mathlib_sha"] or "")' "$spec")"
+  [ -n "$sha" ] || continue
+  home="${OPN_MATHLIB_HOME:-/opt/opn/mathlib}"
+  if [ "$(cat "$home/$sha/MATHLIB_SHA" 2>/dev/null)" = "$sha" ] && [ -d "$home/$sha/.lake/build/lib/lean" ]; then
+    echo "post-create: $(basename "$(dirname "$spec")") pins Mathlib $sha: present in the image"
+  else
+    echo "post-create: $(basename "$(dirname "$spec")") pins Mathlib $sha but the image lacks it; pin an image built for it (gate/tools/pin_image.py --check --verify)"; exit 1
+  fi
+done
 test -x "${OPN_LEAN_PKG_BIN:-/opt/opn/lean/.lake/build/bin}/opn-hazards"
 echo "post-create: metaprograms present in ${OPN_LEAN_PKG_BIN:-/opt/opn/lean/.lake/build/bin}"
 PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_gate.cli --help >/dev/null

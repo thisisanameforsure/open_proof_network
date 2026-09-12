@@ -39,4 +39,27 @@ jobs:
           else
             echo "::notice::gate/scripts/install-toolchain.sh not present yet (F00-T2)"
           fi
+      # F11-R6: the lean tier runs the on-ramp fixture on the Mathlib commit gate/mathlib-pins.txt
+      # names; the checkout with its oleans is several GiB, so it is cached on the pins file and
+      # installed by the same script a laptop runs. The docker tier builds the Mathlib image on
+      # top (a hosted runner is what §6's budget is measured on), which needs the room the
+      # runner's preinstalled toolchains occupy.
+      - name: Cache the pinned Mathlib checkouts
+        id: mathlib-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.opn/mathlib
+          key: mathlib-${{ hashFiles('gate/mathlib-pins.txt') }}
+      - name: Install the pinned Mathlib checkouts (on a cache miss)
+        if: steps.mathlib-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          sed -e 's/#.*//' -e 's/[[:space:]]//g' gate/mathlib-pins.txt | grep -E '^[0-9a-f]{40}$' | while read -r sha; do
+            gate/scripts/install-mathlib.sh "$sha"
+          done
+      - name: Make room for the Mathlib image
+        run: |
+          df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h / | tail -1
       - run: make verify-lean

@@ -51,6 +51,33 @@ def test_caps_and_tag_come_from_the_spec() -> None:
     )
     assert caps == Caps(cpu=2.0, memory_mib=4096, wallclock_s=600)
     assert sandbox.image_tag("leanprover/lean4:v4.33.1") == "opn-gate:leanprover-lean4-v4.33.1"
+    # F11-R6, Q4: one image per Mathlib pin, named by the first twelve hex of the commit.
+    sha = "0df444a360eaa60ab8c11dca51a86af692955474"
+    assert sandbox.image_tag("leanprover/lean4:v4.33.1", sha) == (
+        "opn-gate:leanprover-lean4-v4.33.1-mathlib-0df444a360ea"
+    )
+    assert (
+        sandbox.image_tag("leanprover/lean4:v4.33.1", None) == "opn-gate:leanprover-lean4-v4.33.1"
+    )
+
+
+def test_build_image_hands_the_mathlib_pin_to_the_dockerfile(tmp_path: Path) -> None:
+    """F11-R6: the same Dockerfile builds both images; the Mathlib one gets the sha as a build
+    argument and the pinned tag, the plain one neither."""
+    docker = fake_docker(tmp_path)
+    sha = "0df444a360eaa60ab8c11dca51a86af692955474"
+    gate_dir = tmp_path / "repo" / "gate"
+    gate_dir.mkdir(parents=True)
+    tag = sandbox.build_image(
+        gate_dir, "leanprover/lean4:v4.33.1", mathlib_sha=sha, docker=str(docker)
+    )
+    assert tag == "opn-gate:leanprover-lean4-v4.33.1-mathlib-0df444a360ea"
+    [build] = [line for line in log_of(tmp_path) if line.startswith("build ")]
+    assert "--build-arg LEAN_TOOLCHAIN=leanprover/lean4:v4.33.1" in build
+    assert f"--build-arg MATHLIB_SHA={sha}" in build and build.endswith(str(tmp_path / "repo"))
+    plain = sandbox.build_image(gate_dir, "leanprover/lean4:v4.33.1", docker=str(docker))
+    assert plain == "opn-gate:leanprover-lean4-v4.33.1"
+    assert "MATHLIB_SHA" not in log_of(tmp_path)[-1]
 
 
 def test_container_is_isolated_and_carries_no_host_environment(

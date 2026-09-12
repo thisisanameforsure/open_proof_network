@@ -19,6 +19,11 @@ Variables (prefix ``OPN_``):
     Directory holding the gate's Lean metaprograms (``opn-witness-type``, ``opn-used-constants``,
     ``opn-hazards``; F01-R1, F02-R1). Default: ``gate/lean/.lake/build/bin`` in this repo; the
     step-3 image sets its own.
+``OPN_MATHLIB_HOME``
+    Where Mathlib checkouts live, one per pinned commit: ``<home>/<sha>`` holds the checkout
+    ``gate/scripts/install-mathlib.sh`` made, with its built oleans (F11-R6; D-7). Consulted only
+    when a graph's ``gate-spec.json`` pins ``mathlib_sha``. Default ``~/.opn/mathlib``; the
+    step-3 image sets its own.
 ``OPN_PR_AUTHOR``
     The login that opened the pull request under check, as the host reports it
     (``github.event.pull_request.user.login``). Consulted by ``classify`` for the curator mode
@@ -52,6 +57,7 @@ DEFAULT_ELAN_HOME = Path.home() / ".elan"
 DEFAULT_DIAGNOSTIC_MAX_BYTES = 8192
 DEFAULT_LISTED_TARGETS_MAX = 5  # F11-R9 §6: the Stage 0 count, config rather than a constant
 DEFAULT_LEAN_PKG_BIN = Path(__file__).resolve().parents[1] / "lean" / ".lake" / "build" / "bin"
+DEFAULT_MATHLIB_HOME = Path.home() / ".opn" / "mathlib"  # F11-R6: one checkout per pinned sha
 
 SECRET_NAMES: tuple[str, ...] = ("gate_signing_key", "precheck_signing_key")
 
@@ -69,6 +75,7 @@ class Settings:
     elan_home: Path = DEFAULT_ELAN_HOME
     diagnostic_max_bytes: int = DEFAULT_DIAGNOSTIC_MAX_BYTES
     lean_pkg_bin: Path = DEFAULT_LEAN_PKG_BIN
+    mathlib_home: Path = DEFAULT_MATHLIB_HOME
     listed_targets_max: int = DEFAULT_LISTED_TARGETS_MAX
     pr_author: str | None = None
     gate_signing_key: str | None = field(default=None, repr=False)
@@ -80,7 +87,8 @@ class Settings:
             f"elan_home={str(self.elan_home)!r}, "
             f"diagnostic_max_bytes={self.diagnostic_max_bytes}, "
             f"listed_targets_max={self.listed_targets_max}, "
-            f"lean_pkg_bin={str(self.lean_pkg_bin)!r}, pr_author={self.pr_author!r}, "
+            f"lean_pkg_bin={str(self.lean_pkg_bin)!r}, "
+            f"mathlib_home={str(self.mathlib_home)!r}, pr_author={self.pr_author!r}, "
             f"gate_signing_key={'<set>' if self.gate_signing_key else None}, "
             f"precheck_signing_key={'<set>' if self.precheck_signing_key else None})"
         )
@@ -138,6 +146,7 @@ def load(environ: dict[str, str] | None = None) -> Settings:
         diagnostic_max_bytes=diagnostic_max_bytes,
         listed_targets_max=listed_targets_max,
         lean_pkg_bin=Path(env.get("OPN_LEAN_PKG_BIN", str(DEFAULT_LEAN_PKG_BIN))).expanduser(),
+        mathlib_home=Path(env.get("OPN_MATHLIB_HOME", str(DEFAULT_MATHLIB_HOME))).expanduser(),
         pr_author=env.get("OPN_PR_AUTHOR") or None,
         gate_signing_key=env.get("OPN_GATE_SIGNING_KEY") or None,
         precheck_signing_key=env.get("OPN_PRECHECK_SIGNING_KEY") or None,

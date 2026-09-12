@@ -37,6 +37,9 @@ DEVCONTAINER = Path(".devcontainer") / "devcontainer.json"
 POST_CREATE = "bash /opt/opn/network/gate/devcontainer/post-create.sh"
 NETWORK_IN_IMAGE = "/opt/opn/network"
 REVISION_LABEL = "org.opencontainers.image.revision"
+#: F11-R6: the Mathlib commit an image carries (empty on a Mathlib-free image); a graph that
+#: pins Mathlib must pin an image built for the same commit, or step 1 fails inside the sandbox.
+MATHLIB_LABEL = "network.openproof.mathlib_sha"
 #: Files that must not name an image of their own (they take it from the spec, Q10).
 SPEC_CONSUMERS: tuple[tuple[str, Path], ...] = (
     ("graph", Path(".github/workflows/gate.yml")),
@@ -121,8 +124,12 @@ def check(graph: Path, target_id: str, *, network: Path = ROOT) -> list[str]:
     return problems
 
 
-def verify(ref: str, network_commit: str, *, docker: str = "docker") -> list[str]:
-    """Network tier: the pulled image's revision label is the pinned network commit."""
+def verify(
+    ref: str, network_commit: str, *, mathlib_sha: str | None = None, docker: str = "docker"
+) -> list[str]:
+    """Network tier: the pulled image's revision label is the pinned network commit, and its
+    Mathlib label is the graph's Mathlib pin (F11-R6) — an image built for another Mathlib, or
+    for none, would pass ``--check`` and fail at step 1 inside the sandbox."""
     sandbox.pull_image(ref, docker=docker)
     proc = subprocess.run(
         [docker, "image", "inspect", "--format", "{{json .Config.Labels}}", ref],
@@ -131,12 +138,18 @@ def verify(ref: str, network_commit: str, *, docker: str = "docker") -> list[str
         check=True,
     )
     labels = json.loads(proc.stdout or "{}") or {}
+    problems: list[str] = []
     revision = labels.get(REVISION_LABEL)
     if revision != network_commit:
-        return [
+        problems.append(
             f"image revision label {revision!r} is not the pinned network commit {network_commit}"
-        ]
-    return []
+        )
+    carried = labels.get(MATHLIB_LABEL) or None
+    if carried != mathlib_sha:
+        problems.append(
+            f"image Mathlib label {carried!r} is not the graph's mathlib_sha {mathlib_sha!r}"
+        )
+    return problems
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -157,7 +170,12 @@ def main(argv: list[str] | None = None) -> int:
         problems = check(graph, args.target)
         spec = schemas.load_json(layout.gate_spec_path(graph, args.target), "gate-spec/v1")
         if args.verify and not problems:
-            problems += verify(str(spec["devcontainer_ref"]), str(spec["network_commit"]))
+            raw_sha = spec.get("mathlib_sha")
+            problems += verify(
+                str(spec["devcontainer_ref"]),
+                str(spec["network_commit"]),
+                mathlib_sha=str(raw_sha) if raw_sha else None,
+            )
         for p in problems:
             print(f"PROBLEM: {p}", file=sys.stderr)
         print("pin ok" if not problems else f"{len(problems)} problem(s)")

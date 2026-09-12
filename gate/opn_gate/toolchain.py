@@ -45,17 +45,28 @@ class ToolchainError(RuntimeError):
 
 @dataclass(frozen=True)
 class ResolvedToolchain:
-    """What step 1 pins: a toolchain name and the Lean commit it resolves to."""
+    """What step 1 pins: a toolchain name and the Lean commit it resolves to — and, for a graph
+    that pins Mathlib (D-7; F11-R6), the library search path of that checkout's built oleans,
+    which every ``lean`` and metaprogram invocation is handed after the build directory and
+    before the toolchain's own lib. The path is where *this* host keeps the checkout and is
+    never recorded; ``mathlib_sha`` is what the attestation carries (D-5)."""
 
     name: str
     version: str
     githash: str
     libdir: Path
+    mathlib_sha: str | None = None
+    library_path: tuple[Path, ...] = ()
 
     @property
     def toolchain_hash(self) -> str:
         """sha256 over name and commit — platform-independent, so identical on every runner."""
         return hashlib.sha256(f"{self.name}\n{self.githash}\n".encode()).hexdigest()
+
+    def search_path(self, *before: Path) -> list[Path]:
+        """``LEAN_PATH`` in the gate's order: the caller's build directories, then Mathlib's
+        packages when pinned, then the toolchain's lib — the one place the order is decided."""
+        return [*before, *self.library_path, self.libdir]
 
 
 @dataclass(frozen=True)
@@ -300,8 +311,11 @@ def parse_metaprogram_output(exit_code: int, stdout: str, stderr: str) -> Metapr
 class Toolchain(Protocol):
     """Everything the gate steps need from Lean, in order of use."""
 
-    def resolve(self, toolchain: str, *, install: bool = False) -> ResolvedToolchain:
-        """Step 1: make ``toolchain`` available and report what it is."""
+    def resolve(
+        self, toolchain: str, *, install: bool = False, mathlib_sha: str | None = None
+    ) -> ResolvedToolchain:
+        """Step 1: make ``toolchain`` available and report what it is — and, when the graph pins
+        Mathlib, find the checkout and its built oleans (F11-R6)."""
 
     def elaborate(
         self,
@@ -451,6 +465,61 @@ def find_elan(*, path_env: str | None, elan_home: Path) -> Path:
     raise ToolchainMissingError(msg)
 
 
+#: What ``gate/scripts/install-mathlib.sh`` (and the image) leave beside the checkout so the pin
+#: can be verified without git: the commit the checkout is at.
+MATHLIB_STAMP = "MATHLIB_SHA"
+INSTALL_MATHLIB_SCRIPT = "gate/scripts/install-mathlib.sh"
+_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+
+
+def mathlib_library_path(home: Path, sha: str, toolchain: str) -> tuple[Path, ...]:
+    """The built library directories of the Mathlib checkout pinned at ``sha`` (F11-R6; D-7):
+    Mathlib's own and each of its packages', in a fixed order, or ``ToolchainMissingError``
+    naming the install script.
+
+    Three things are checked, because each has been the bug somewhere: the stamp says the
+    checkout is at the pinned commit (a checkout at another commit elaborates a different
+    Mathlib); its ``lean-toolchain`` is the graph's pin (Mathlib oleans are specific to the Lean
+    that built them); and the oleans exist (a clone without ``lake exe cache get`` is a
+    two-hour build waiting to time out inside the sandbox).
+    """
+    if not _SHA_RE.match(sha):
+        msg = f"mathlib_sha {sha!r} is not a 40-hex commit"
+        raise ToolchainMissingError(msg)
+    checkout = home / sha
+    hint = f"run {INSTALL_MATHLIB_SCRIPT} {sha} (OPN_MATHLIB_HOME={home})"
+    stamp = checkout / MATHLIB_STAMP
+    if not stamp.is_file():
+        msg = f"no Mathlib checkout for {sha} under {home}; {hint}"
+        raise ToolchainMissingError(msg)
+    stamped = stamp.read_text(encoding="utf-8").strip()
+    if stamped != sha:
+        msg = f"the Mathlib checkout under {checkout} is stamped {stamped!r}, not {sha}; {hint}"
+        raise ToolchainMissingError(msg)
+    pin_file = checkout / "lean-toolchain"
+    pinned = pin_file.read_text(encoding="utf-8").strip() if pin_file.is_file() else ""
+    if pinned != toolchain:
+        msg = (
+            f"Mathlib {sha[:12]} pins {pinned or 'no toolchain'}, but the graph pins {toolchain}; "
+            "a graph pins the Mathlib built by its own toolchain (D-7)"
+        )
+        raise ToolchainMissingError(msg)
+    lib = Path(".lake") / "build" / "lib" / "lean"
+    own = checkout / lib
+    if not own.is_dir():
+        msg = f"Mathlib {sha[:12]} has no built oleans at {own}; {hint}"
+        raise ToolchainMissingError(msg)
+    # Every package that has oleans. One that has none (``Cli``, a build-time dependency of
+    # Mathlib's own cache tool) is not on the search path because nothing imports it.
+    packages = checkout / ".lake" / "packages"
+    extra = (
+        [pkg / lib for pkg in sorted(packages.iterdir()) if (pkg / lib).is_dir()]
+        if packages.is_dir()
+        else []
+    )
+    return (own, *extra)
+
+
 def module_output_path(module: str, suffix: str) -> Path:
     """``Nodes.«a-b».Proof`` -> ``Nodes/a-b/Proof<suffix>``; bare ``Proof`` -> ``Proof<suffix>``."""
     parts: list[str] = []
@@ -478,13 +547,23 @@ def _join_search_path(search_path: Sequence[Path]) -> str:
 class LocalToolchain:
     """The real seam: shells out to elan-managed binaries. Used by pregate.sh, CI and reproduce."""
 
-    def __init__(self, elan: Path, lean_pkg_bin: Path = config.DEFAULT_LEAN_PKG_BIN) -> None:
+    def __init__(
+        self,
+        elan: Path,
+        lean_pkg_bin: Path = config.DEFAULT_LEAN_PKG_BIN,
+        mathlib_home: Path = config.DEFAULT_MATHLIB_HOME,
+    ) -> None:
         self.elan = elan
         self.lean_pkg_bin = lean_pkg_bin
+        self.mathlib_home = mathlib_home
 
     @classmethod
     def from_settings(cls, settings: config.Settings) -> LocalToolchain:
-        return cls(find_elan(path_env=None, elan_home=settings.elan_home), settings.lean_pkg_bin)
+        return cls(
+            find_elan(path_env=None, elan_home=settings.elan_home),
+            settings.lean_pkg_bin,
+            settings.mathlib_home,
+        )
 
     def metaprogram(self, name: str) -> Path:
         """Path of a built metaprogram; ``ToolchainMissingError`` if the package is unbuilt."""
@@ -542,7 +621,9 @@ class LocalToolchain:
 
     # -- the seam -----------------------------------------------------------------------------
 
-    def resolve(self, toolchain: str, *, install: bool = False) -> ResolvedToolchain:
+    def resolve(
+        self, toolchain: str, *, install: bool = False, mathlib_sha: str | None = None
+    ) -> ResolvedToolchain:
         listed = self._elan(["toolchain", "list"])
         installed = {line.split()[0] for line in listed.stdout.splitlines() if line.strip()}
         if toolchain not in installed:
@@ -567,11 +648,16 @@ class LocalToolchain:
         if not m:
             msg = f"could not parse lean --version output: {version.stdout!r}"
             raise ToolchainError(msg)
+        library_path: tuple[Path, ...] = ()
+        if mathlib_sha is not None:
+            library_path = mathlib_library_path(self.mathlib_home, mathlib_sha, toolchain)
         return ResolvedToolchain(
             name=toolchain,
             version=m.group(1),
             githash=githash.stdout.strip(),
             libdir=Path(libdir.stdout.strip()),
+            mathlib_sha=mathlib_sha,
+            library_path=library_path,
         )
 
     def elaborate(
@@ -594,7 +680,7 @@ class LocalToolchain:
             tc.name,
             ["lean", "--json", "-o", str(olean), "-i", str(ilean), str(source.relative_to(cwd))],
             cwd=cwd,
-            lean_path=[out_dir, tc.libdir],
+            lean_path=tc.search_path(out_dir),
             timeout_s=timeout_s,
         )
         messages = parse_json_messages(proc.stdout)
@@ -612,7 +698,7 @@ class LocalToolchain:
         proc = self._run(
             tc.name,
             ["leanchecker", "--fresh", module],
-            lean_path=[*search_path, tc.libdir],
+            lean_path=tc.search_path(*search_path),
             timeout_s=timeout_s,
         )
         return ReplayResult(ok=proc.returncode == 0, output=proc.stdout + proc.stderr)
@@ -635,7 +721,7 @@ class LocalToolchain:
             tc.name,
             ["lean", probe.name],
             cwd=scratch,
-            lean_path=[*search_path, tc.libdir],
+            lean_path=tc.search_path(*search_path),
             timeout_s=timeout_s,
         )
         output = proc.stdout + proc.stderr
@@ -670,7 +756,7 @@ class LocalToolchain:
         proc = self._exec(
             [str(self.elan), "run", tc.name, str(binary), *args],
             extra_env={
-                "LEAN_PATH": _join_search_path([*search_path, tc.libdir]),
+                "LEAN_PATH": _join_search_path(tc.search_path(*search_path)),
                 "LEAN_SYSROOT": str(sysroot),
             },
             timeout_s=timeout_s,

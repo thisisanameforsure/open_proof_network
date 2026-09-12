@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from opn_gate import context, intake, layout, records, schemas
+from opn_gate import context, defs, intake, layout, records, schemas
 from opn_gate import fidelity as fidelitymod
 from opn_gate import graph as graphmod
 from opn_gate.graph import GraphError, NodeFacts, TargetGraph
@@ -76,6 +76,11 @@ def scan_statement(
     build.mkdir(parents=True, exist_ok=True)
     for name in ("Statement.lean", "Context.lean"):
         shutil.copy(node.path / name, dest / name)
+    # F11-R2, F01-Q2: the target's definitions first; the Context may import them.
+    problem = defs.compile_all(toolchain, tc, node.path.parents[1], workdir)
+    if problem is not None:
+        msg = f"{node.target_id}: {problem.message}; cannot tag {node.node_id}"
+        raise GraphError(msg)
     context = layout.node_module(node.node_id, "Context")
     elab = toolchain.elaborate(tc, dest / "Context.lean", context, build, root=root)
     if not elab.ok:

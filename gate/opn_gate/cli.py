@@ -28,6 +28,7 @@ from opn_gate import (
     cache,
     config,
     curator,
+    defs,
     exhibits,
     fidelity,
     intake,
@@ -223,6 +224,10 @@ def _add_graph_tool_parsers(sub: argparse._SubParsersAction[argparse.ArgumentPar
     prod.add_argument("--commit", default="HEAD", help="the commit the products render (git)")
     prod.add_argument("--out", type=Path, help="write here instead of into the checkout")
     prod.add_argument("--no-meta", action="store_true", help="do not rewrite META.yaml status")
+    # F11-R6: a Mathlib-pinned target's tag scan runs inside the step-3 image (C9), chosen by
+    # the spec like every other sandboxed run (F10-Q10); these two only override that choice.
+    prod.add_argument("--image", help="sandbox image tag for the tag scan (default: from the spec)")
+    prod.add_argument("--no-build", action="store_true", help="fail if the image is not present")
     prod.add_argument(
         "--claims-url",
         help="the service's GET /claims.json; refreshes claims.json, keeping the committed "
@@ -751,6 +756,56 @@ def run_exhibits(args: argparse.Namespace, settings: config.Settings) -> int:
     return EXIT_PASS if not problems else EXIT_FAIL
 
 
+def library_scanner(
+    graph: Path, out_dir: Path | None, args: argparse.Namespace, settings: config.Settings
+) -> products.Scanner | None:
+    """F03-R6 on a Mathlib-pinned graph (F11-R6): the statement scan that reads a node's Mathlib
+    constants runs *inside the step-3 image*, because a statement elaborates arbitrary code
+    (C9) — and it runs there whether or not anyone asked, since there is no legitimate
+    host-side choice to offer. A graph with no Mathlib pin has no library tags to scan for and
+    gets no scanner, exactly as before, so the tutorial graph's post-merge job is untouched.
+    """
+    pinned = [
+        (t, spec)
+        for t in products.target_ids(graph)
+        for spec in [schemas.load_json(layout.gate_spec_path(graph, t), "gate-spec/v1")]
+        if spec["mathlib_sha"] is not None
+    ]
+    if not pinned:
+        return None
+    work_root = (out_dir or Path(tempfile.mkdtemp(prefix="opn-products-"))) / "scan"
+    toolchains: dict[str, tuple[sandbox.SandboxToolchain, toolchain.ResolvedToolchain]] = {}
+
+    def scan(node: graphmod.NodeFacts) -> list[str]:
+        if node.target_id not in toolchains:
+            spec = dict(pinned)[node.target_id]
+            tag = getattr(args, "image", None) or ensure_image(
+                spec, build=not getattr(args, "no_build", False)
+            )
+            workdir = work_root / node.target_id
+            tc = sandbox.SandboxToolchain(
+                tag,
+                sandbox.Caps.from_spec(spec),
+                read_only=[layout.gate_spec_path(graph, node.target_id).parent],
+                read_write=[workdir],
+            )
+            resolved = tc.resolve(str(spec["lean_toolchain"]), mathlib_sha=str(spec["mathlib_sha"]))
+            problem = defs.compile_all(
+                tc,
+                resolved,
+                layout.gate_spec_path(graph, node.target_id).parent,
+                workdir,
+                timeout_s=float(spec["step3_caps"]["wallclock_s"]),
+            )
+            if problem is not None:
+                raise graphmod.GraphError(f"{node.target_id}: {problem.message}")
+            toolchains[node.target_id] = (tc, resolved)
+        tc, resolved = toolchains[node.target_id]
+        return products.scan_statement(tc, resolved, node, work_root / node.target_id)
+
+    return scan
+
+
 def run_postmerge(args: argparse.Namespace, settings: config.Settings) -> int:
     """Re-derive on the merge commit and record step 9; signing is the separate `sign` step."""
     graph, commit = _checkout_and_commit(args.graph, args.commit)
@@ -902,19 +957,18 @@ def run_products(args: argparse.Namespace, settings: config.Settings) -> int:
     graph, commit = _checkout_and_commit(args.graph, args.commit)
     out_dir = args.out.resolve() if args.out is not None else graph
     claims_note = postmerge.refresh_claims(graph, getattr(args, "claims_url", None))
+    scanner = library_scanner(graph, out_dir if args.out is not None else None, args, settings)
     try:
         products_ = products.generate(
             graph,
             rendered_from=commit,
             commit_time=graphmod.commit_timestamp(graph, commit),
+            scanner=scanner,
         )
     except (graphmod.GraphError, schemas.SchemaError) as exc:
         sys.stdout.write(json.dumps({"ok": False, "error": str(exc)}) + "\n")
         sys.stderr.write(f"opn-gate: products not written: {exc}\n")
         return EXIT_FAIL
-    if any(tg.spec["mathlib_sha"] is not None for tg in products_.targets):
-        msg = "library tags on a Mathlib-pinned graph need the sandboxed scan (F10)"
-        raise CliError(msg)
     written = products_.write(out_dir, write_meta=not args.no_meta and out_dir == graph)
     summary: dict[str, Any] = {
         "ok": True,
@@ -1280,29 +1334,24 @@ def intake_checker(
 
 def _elaborate_definition(ctx: RunContext, path: Path, subject: str) -> intake.SubjectCheck:
     """A definition is not a node, so F08's admission does not apply to it; what does is that it
-    elaborates at all. Staged under ``Defs/`` because that is the module prefix the layout check
-    lets a node's Context import (F01-Q2)."""
+    elaborates at all — with the definitions it imports built first, in their order, which is
+    ``opn_gate.defs``'s job everywhere a Context is compiled (F11-R2; F01-Q2)."""
     resolved = ToolchainStep().run(ctx)
     if not resolved.ok:
         return intake.SubjectCheck(subject, False, "the pinned toolchain is not available")
     tc: toolchain.ResolvedToolchain = ctx.data["toolchain"]
-    src = ctx.workdir / "src" / layout.DEFS_PREFIX
-    src.mkdir(parents=True, exist_ok=True)
-    staged = src / path.name
-    staged.write_bytes(path.read_bytes())
-    ctx.build_dir.mkdir(parents=True, exist_ok=True)
-    elab = ctx.toolchain.elaborate(
-        tc,
-        staged,
-        f"{layout.DEFS_PREFIX}.{subject}",
-        ctx.build_dir,
-        root=ctx.workdir / "src",
-        timeout_s=ctx.wallclock_s,
+    target_dir = layout.gate_spec_path(ctx.graph_root, ctx.claim.target_id).parent
+    problem = defs.compile_all(
+        ctx.toolchain, tc, target_dir, ctx.workdir, timeout_s=ctx.wallclock_s
     )
-    if elab.ok:
+    if problem is None:
         return intake.SubjectCheck(subject, True)
-    detail = "; ".join(m.text for m in elab.errors[:3]) or elab.stderr[-500:]
-    return intake.SubjectCheck(subject, False, detail)
+    if problem.details.get("file") == path.name or problem.code in ("defs-cycle", "timeout"):
+        messages = problem.details.get("messages") or []
+        texts = [str(m.get("text", "")) for m in messages if isinstance(m, dict)][:3]
+        return intake.SubjectCheck(subject, False, "; ".join(texts) or problem.message)
+    # Another definition failed first; this one is judged once that one is fixed (C7: named).
+    return intake.SubjectCheck(subject, False, f"blocked by {problem.message}")
 
 
 def run_intake(args: argparse.Namespace, settings: config.Settings) -> int:
@@ -1592,14 +1641,16 @@ def ensure_image(spec: dict[str, Any], *, build: bool) -> str:
         except sandbox.SandboxError as exc:
             raise CliError(str(exc)) from exc
     lean_toolchain = str(spec["lean_toolchain"])
-    tag = sandbox.image_tag(lean_toolchain)
+    raw_sha = spec.get("mathlib_sha")
+    mathlib_sha = str(raw_sha) if raw_sha else None
+    tag = sandbox.image_tag(lean_toolchain, mathlib_sha)
     if sandbox.image_exists(tag):
         return tag
     if not build:
         msg = f"sandbox image {tag} is not present; build it from gate/Dockerfile"
         raise CliError(msg)
     log.info("building sandbox image %s", tag)
-    return sandbox.build_image(GATE_DIR, lean_toolchain)
+    return sandbox.build_image(GATE_DIR, lean_toolchain, mathlib_sha=mathlib_sha)
 
 
 def infer_target(graph: Path) -> str:

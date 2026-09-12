@@ -7,7 +7,7 @@ stdout, so the fast tier cannot drift silently — drift is caught by the real t
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from opn_gate.toolchain import (
@@ -176,12 +176,25 @@ class FakeToolchain:
             msg = f"fake toolchain blew up in {name}"
             raise RuntimeError(msg)
 
-    def resolve(self, toolchain: str, *, install: bool = False) -> ResolvedToolchain:
-        self.calls.append(f"resolve:{toolchain}:install={install}")
+    def resolve(
+        self, toolchain: str, *, install: bool = False, mathlib_sha: str | None = None
+    ) -> ResolvedToolchain:
+        self.calls.append(
+            f"resolve:{toolchain}:install={install}"
+            + (f":mathlib={mathlib_sha[:12]}" if mathlib_sha else "")
+        )
         self._maybe_raise("resolve")
         if self.missing:
             msg = f"toolchain {toolchain} is not installed (fake)"
             raise ToolchainMissingError(msg)
+        if mathlib_sha is not None:
+            # The fake "has" every Mathlib: a graph pin resolves to a made-up library path,
+            # so the steps see the pinned shape without a checkout on disk.
+            return replace(
+                self.resolved,
+                mathlib_sha=mathlib_sha,
+                library_path=(Path(f"/fake/mathlib/{mathlib_sha}/.lake/build/lib/lean"),),
+            )
         return self.resolved
 
     def elaborate(

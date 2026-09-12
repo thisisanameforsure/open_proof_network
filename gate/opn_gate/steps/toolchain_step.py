@@ -1,4 +1,5 @@
-"""D-4 step 1: resolve the toolchain from gate-spec.json alone (F00-R4)."""
+"""D-4 step 1: resolve the toolchain from gate-spec.json alone (F00-R4) — and, for a graph that
+pins Mathlib, the Mathlib checkout built by that toolchain (F11-R6; D-7)."""
 
 from __future__ import annotations
 
@@ -15,16 +16,26 @@ class ToolchainStep:
     name = "toolchain"
 
     def run(self, ctx: RunContext) -> StepResult:
-        if ctx.spec["mathlib_sha"] is not None:
-            return StepResult.failed(
-                "mathlib-unsupported",
-                "Mathlib-pinned graphs are not supported by this gate version (F10)",
-                mathlib_sha=ctx.spec["mathlib_sha"],
-            )
         pinned = str(ctx.spec["lean_toolchain"])
+        raw_sha = ctx.spec["mathlib_sha"]
+        mathlib_sha = str(raw_sha) if raw_sha is not None else None
         try:
-            resolved = ctx.toolchain.resolve(pinned, install=ctx.install_toolchain)
+            resolved = ctx.toolchain.resolve(
+                pinned, install=ctx.install_toolchain, mathlib_sha=mathlib_sha
+            )
         except ToolchainMissingError as exc:
-            return StepResult.failed("toolchain-missing", str(exc), toolchain=pinned)
+            return StepResult.failed(
+                "toolchain-missing", str(exc), toolchain=pinned, mathlib_sha=mathlib_sha
+            )
         ctx.data["toolchain"] = resolved
-        return StepResult.passed()
+        if mathlib_sha is None:
+            return StepResult.passed()
+        # F11-AC11: the pin is reported, never where this host keeps it — the attestation is a
+        # function of the tree and the pins, not of the runner's disk (D-5). Whether the oleans
+        # were in the image or fetched by the install script is likewise not a fact about the tree.
+        return StepResult.passed_with(
+            "mathlib-pinned",
+            f"Mathlib {mathlib_sha[:12]} resolved from the pinned checkout",
+            mathlib_sha=mathlib_sha,
+            packages=len(resolved.library_path),
+        )

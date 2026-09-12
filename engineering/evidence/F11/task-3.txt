@@ -1,0 +1,90 @@
+F11-T3 — the Mathlib-pinned image, and everything a Mathlib pin had to travel through.
+2026-09-12
+
+STATUS: CODE COMPLETE; AC11's docker-tier run is CI's (Q17)
+-------------------------------------------------------------
+The fast tier and the lean tier ran here and passed. The docker tier's on-ramp test — the
+image built for the pin, reproduce on the fixture's proved node inside it, the §6 timing — could
+not finish on this laptop: its data volume reached 198 MiB free with the image half built and the
+Docker engine died twice ("Bad response from Docker engine"). ci.yml now installs and caches the
+pinned checkout and clears the runner's preinstalled toolchains before make verify-lean; the CI
+run on this commit is where test_onramp_docker.py::test_mathlib_image_hit produces AC11's
+timing, to be pasted below when it lands.
+
+WHAT A MATHLIB PIN HAD TO TRAVEL THROUGH (three gaps, not one)
+-------------------------------------------------------------
+  1. Step 1 refused every Mathlib-pinned graph outright ("mathlib-unsupported").
+     Now: ToolchainStep hands mathlib_sha to the seam; LocalToolchain.resolve finds the checkout
+     at OPN_MATHLIB_HOME/<sha> (stamp, lean-toolchain and oleans all checked) and the resolved
+     pin carries library_path; ResolvedToolchain.search_path is the ONE place LEAN_PATH's order is
+     decided — build dir, Mathlib and its packages, the toolchain's lib — for lean, leanchecker,
+     the axiom probe and every metaprogram. The sandbox runs resolve inside the container, so
+     the image's path and a laptop's path both just work (Q14).
+  2. Nothing staged targets/<id>/defs/ — a node importing Defs.X failed step 4 with an unknown
+     module. Now: opn_gate.defs (order by imports, four refusals by name, compile-before-Context)
+     called from every compiler of a Context: replay, admission's statement check, the tag scan,
+     exhibits, the consolidation probe, intake's definition check, the cache build (Q13).
+  3. products refused a Mathlib graph ("need the sandboxed scan"). Now: the scan builds the
+     sandbox from the spec whenever a target pins Mathlib, never otherwise (Q15).
+
+Plus the image itself (gate/Dockerfile MATHLIB_SHA + install-mathlib.sh + the stamp), the tag
+(image_tag/build_image/ensure_image with the sha), the publish matrix over gate/mathlib-pins.txt
+with the Mathlib label pin_image.py --verify reads back, post-create proving the checkout is in
+the image, and OPN_MATHLIB_HOME in config.
+
+TWO THINGS THE FIXTURE FOUND
+----------------------------
+  - A proof cannot add an import: proof-is-statement (F00-R19) compares headers, so the first
+    fixture failed step 2 with "diverges at line 2: import Mathlib.Tactic.Linarith". The
+    statement carries the imports its provers may use (Q16); T4 seeds the on-ramp statements so.
+  - Mathlib's manifest lists `Cli` (its cache tool's dependency) with no oleans; requiring a lib
+    dir per package refused a real checkout. Packages without oleans are skipped (Q14).
+
+VERIFICATION — FAST TIER
+------------------------
+$ make verify
+  ruff clean · mypy clean (111 files) · 1406 passed, 56 deselected (3 new lean/docker tests)
+
+  new: gate/tests/test_defs.py (7: order, refusals, idempotent compile, before-any-node in the
+       pipeline and in admission); test_toolchain.py (+3: library path shape, the five refusals,
+       the search path on every call); test_pipeline.py (mathlib-pinned at step 1, toolchain-missing
+       names the sha); test_pins.py (+1 verify's Mathlib label, +ensure_image on a pin, +publish
+       shape); test_sandbox.py (+1 build arg and tag); test_config.py (+1); test_cli_sandboxed.py
+       (products on a Mathlib pin scans inside the sandbox built from the spec).
+
+VERIFICATION — LEAN TIER (the pinned checkout, on this laptop)
+--------------------------------------------------------------
+Checkout: gate/scripts/install-mathlib.sh 0df444a360eaa60ab8c11dca51a86af692955474
+  (mathlib4 tag v4.33.1, lean-toolchain leanprover/lean4:v4.33.1; 6.8 GiB of oleans, 8 lib dirs)
+
+$ PYTHONPATH=gate uv run python -m opn_gate.cli pregate --graph gate/tests/fixtures/graphs/onramp \
+      --node fact-pos --no-diff
+  verdict pass; steps 1 2 4 5 6 7 8 all pass; step 1 diagnostic:
+    {"code": "mathlib-pinned", "details": {"mathlib_sha": "0df444a3…5474", "packages": 8}}
+  (the proof's nlinarith ran on Mathlib's oleans; Defs.Fact compiled first, under Defs/)
+  wall: 47 s on an idle machine (`time`, first run); 236 s inside the test below, with the
+  image build downloading Mathlib's cache beside it.
+
+$ uv run pytest gate/tests/test_onramp_lean.py -m lean -s
+  F11 §6: pregate on fact-pos with the pinned Mathlib in 236.2s
+  1 passed in 253.30s
+
+VERIFICATION — DOCKER TIER (AC11): PENDING, CI
+----------------------------------------------
+Two builds of opn-gate:leanprover-lean4-v4.33.1-mathlib-0df444a360ea reached Mathlib's cache
+download inside the image and the engine died; between them the data volume read 198 MiB free
+(Docker.raw 35 GiB on disk, the checkout 7 GiB). The checkout was removed to give the machine
+7 GiB back (regenerable by the install script). CI's verify-lean job builds the image on a
+hosted runner and runs:
+  gate/tests/test_onramp_docker.py::test_mathlib_image_hit
+  gate/tests/test_onramp_docker.py::test_postcreate_finds_the_pinned_mathlib_in_the_image
+Its printed "F11 §6 / AC11: reproduce fact-pos on the Mathlib image in N s" is the budget line.
+
+  [CI result: to be appended]
+
+ALSO THIS SESSION, ON THE PUSH
+------------------------------
+The api deploy of 7c4facd succeeded and its smoke failed on "bare prose in the bundle:
+$.context.statement.text, $.context.witness.text" — the F10-R3 bundle's Lean source caught by
+F09's suffix heuristic. Fixed in ff3c2a5 (the rule exempts the two Lean-source paths); re-run
+against the live service: smoke-mcp ok; the redeploy's smoke passed.

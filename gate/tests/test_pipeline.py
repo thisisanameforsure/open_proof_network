@@ -210,11 +210,30 @@ def test_missing_toolchain_is_step1_failure(tmp_path: Path) -> None:
     assert verdict.diagnostic is not None and verdict.diagnostic.code == "toolchain-missing"
 
 
-def test_mathlib_graph_fails_step1_visibly(tmp_path: Path) -> None:
-    ctx = make_context(tmp_path, spec_overrides={"mathlib_sha": "f" * 40})
+def test_mathlib_graph_resolves_its_pin_at_step1(tmp_path: Path) -> None:
+    """F11-R6 (D-7): step 1 hands the Mathlib pin to the seam and records that it resolved —
+    the sha, never the path, so two runs anywhere agree (D-5). A pin the seam cannot find is
+    step 1's failure, naming it."""
+    sha = "f" * 40
+    fake = FakeToolchain()
+    ctx = make_context(tmp_path, toolchain=fake, spec_overrides={"mathlib_sha": sha})
     verdict = pipeline.run_steps(ctx)
+    assert verdict.first_failing_step is None, verdict.as_dict()
+    assert f"resolve:leanprover/lean4:v4.33.1:install=False:mathlib={sha[:12]}" in fake.calls
+    step1 = verdict.steps[0]
+    assert step1.diagnostic is not None and step1.diagnostic.code == "mathlib-pinned"
+    assert step1.diagnostic.details == {"mathlib_sha": sha, "packages": 1}
+    assert "fake" not in str(step1.diagnostic.as_dict())  # no host path leaks into the record
+    resolved = ctx.data["toolchain"]
+    assert resolved.mathlib_sha == sha and len(resolved.library_path) == 1
+
+    missing = make_context(
+        tmp_path / "b", toolchain=FakeToolchain(missing=True), spec_overrides={"mathlib_sha": sha}
+    )
+    verdict = pipeline.run_steps(missing)
     assert verdict.first_failing_step == 1
-    assert verdict.diagnostic is not None and verdict.diagnostic.code == "mathlib-unsupported"
+    assert verdict.diagnostic is not None and verdict.diagnostic.code == "toolchain-missing"
+    assert verdict.diagnostic.details["mathlib_sha"] == sha
 
 
 def test_step2_failures_from_content(tmp_path: Path) -> None:

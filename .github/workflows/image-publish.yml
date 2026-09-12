@@ -1,16 +1,19 @@
-# Publish the gate image to GHCR on every tag of this repo (F10-R5; D-4, D-35).
+# Publish the gate image to GHCR on every tag of this repo (F10-R5; D-4, D-35) — one image for the
+# repo's pinned toolchain, and one more per Mathlib commit listed in gate/mathlib-pins.txt
+# (F11-R6, Q4: a Mathlib-pinned graph runs an image that carries that Mathlib's oleans).
 #
 # The image is gate/Dockerfile built from the repo root at the tagged commit, for the toolchain
-# this repo's lean-toolchain pins. It is pushed as ghcr.io/<owner>/opn-gate:<tag> and the run
-# prints the digest: a graph pins *that* — never the tag — in gate-spec.json devcontainer_ref
-# (gate/tools/pin_image.py writes it and the graph's .devcontainer/devcontainer.json together),
-# after which the authoritative gate, the precheck job, reproduce.sh and the devcontainer all
-# pull the same bytes (F10-Q10). Nothing here has authority over any graph: a re-pin is the gate
-# owner's visible diff (D-4). The token is the workflow's own GITHUB_TOKEN with packages:write;
-# no other secret exists here (C8).
+# this repo's lean-toolchain pins. It is pushed as ghcr.io/<owner>/opn-gate:<tag> (and
+# :<tag>-mathlib-<12 hex> for a Mathlib image) and the run prints each digest: a graph pins
+# *that* — never the tag — in gate-spec.json devcontainer_ref (gate/tools/pin_image.py writes it
+# and the graph's .devcontainer/devcontainer.json together), after which the authoritative gate,
+# the precheck job, reproduce.sh and the devcontainer all pull the same bytes (F10-Q10). Nothing
+# here has authority over any graph: a re-pin is the gate owner's visible diff (D-4). The token
+# is the workflow's own GITHUB_TOKEN with packages:write; no other secret exists here (C8).
 #
 # linux/amd64 only: the hosted runners that run the gate are amd64, and an arm64 laptop runs it
-# under emulation (F10-Q11).
+# under emulation (F10-Q11). A Mathlib image is several GiB (F11 §6 budgets 15 GiB): the free
+# space on the runner is checked before the build rather than discovered by it.
 name: image-publish
 
 on:
@@ -26,57 +29,97 @@ env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/opn-gate
 
 jobs:
-  publish:
+  pins:
+    name: read the Mathlib pins
     runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.read.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: read
+        run: |
+          set -euo pipefail
+          # The plain image (mathlib "") plus one per listed commit; the file may list none.
+          shas="$(sed -e 's/#.*//' -e 's/[[:space:]]//g' gate/mathlib-pins.txt | grep -E '^[0-9a-f]{40}$' || true)"
+          matrix="$(printf '%s\n' "" $shas | python3 -c 'import json,sys; print(json.dumps({"mathlib": [l.rstrip("\n") for l in sys.stdin]}))')"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "images to build: $matrix"
+
+  publish:
+    name: build and publish (mathlib ${{ matrix.mathlib || 'none' }})
+    needs: pins
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.pins.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v7
 
       - name: Log in to GHCR with the workflow token
         run: echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
-      - name: Build the image for the pinned toolchain
+      - name: Make room for a Mathlib image (the runner's preinstalled toolchains are not needed)
+        if: matrix.mathlib != ''
+        run: |
+          set -euo pipefail
+          df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          docker system prune -af >/dev/null
+          df -h / | tail -1
+
+      - name: Build the image for the pinned toolchain (and the Mathlib pin, when given)
         id: build
+        env:
+          MATHLIB_SHA: ${{ matrix.mathlib }}
         run: |
           set -euo pipefail
           toolchain="$(tr -d '[:space:]' < lean-toolchain)"
           tag="$(printf '%s' "${GITHUB_REF_NAME}" | tr -c 'A-Za-z0-9_.-\n' '-')"
+          if [ -n "$MATHLIB_SHA" ]; then tag="$tag-mathlib-${MATHLIB_SHA::12}"; fi
           echo "toolchain=$toolchain" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           docker build -f gate/Dockerfile \
             --build-arg "LEAN_TOOLCHAIN=$toolchain" \
+            --build-arg "MATHLIB_SHA=$MATHLIB_SHA" \
             --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
             --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
             --label "org.opencontainers.image.version=$tag" \
             --label "network.openproof.lean_toolchain=$toolchain" \
-            -t "$IMAGE:$tag" -t "$IMAGE:sha-${GITHUB_SHA::12}" .
+            --label "network.openproof.mathlib_sha=$MATHLIB_SHA" \
+            -t "$IMAGE:$tag" -t "$IMAGE:sha-${GITHUB_SHA::12}${MATHLIB_SHA:+-mathlib-${MATHLIB_SHA::12}}" .
 
       - name: Push and record the digest
         id: push
+        env:
+          MATHLIB_SHA: ${{ matrix.mathlib }}
         run: |
           set -euo pipefail
           docker push "$IMAGE:${{ steps.build.outputs.tag }}"
-          docker push "$IMAGE:sha-${GITHUB_SHA::12}"
+          docker push "$IMAGE:sha-${GITHUB_SHA::12}${MATHLIB_SHA:+-mathlib-${MATHLIB_SHA::12}}"
           digest="$(docker inspect --format '{{index .RepoDigests 0}}' "$IMAGE:${{ steps.build.outputs.tag }}")"
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
           {
-            echo "## Gate image published"
+            echo "## Gate image published (mathlib ${MATHLIB_SHA:-none})"
             echo
             echo "- tag: \`$IMAGE:${{ steps.build.outputs.tag }}\`"
             echo "- digest: \`$digest\`"
             echo "- toolchain: \`${{ steps.build.outputs.toolchain }}\`"
+            echo "- mathlib: \`${MATHLIB_SHA:-none}\`"
             echo "- network commit: \`${GITHUB_SHA}\`"
             echo
-            echo "Pin it in a graph (the gate owner's act, D-4):"
+            echo "Pin it in a graph whose gate-spec.json pins the same mathlib_sha (the gate owner's act, D-4):"
             echo
             echo '```sh'
-            echo "uv run python gate/tools/pin_image.py '$digest' --graph ../open_proof_network_graph --target tutorial --network-commit ${GITHUB_SHA}"
+            echo "uv run python gate/tools/pin_image.py '$digest' --graph ../open_proof_network_graph --target <target> --network-commit ${GITHUB_SHA}"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           echo "published $digest"
 
-      - name: The published image runs the gate (pull by digest, elan and uv answer)
+      - name: The published image runs the gate (pull by digest, elan and uv answer, Mathlib present when pinned)
+        env:
+          MATHLIB_SHA: ${{ matrix.mathlib }}
         run: |
           set -euo pipefail
           docker pull --quiet "${{ steps.push.outputs.digest }}"
-          docker run --rm --network none "${{ steps.push.outputs.digest }}" \
-            bash -c 'elan --version && uv --version && test -x /opt/opn/lean/.lake/build/bin/opn-hazards && uv run --frozen --project /opt/opn/network python -c "import opn_gate; print(\"opn_gate ok\")"'
+          docker run --rm --network none -e MATHLIB_SHA "${{ steps.push.outputs.digest }}" \
+            bash -c 'elan --version && uv --version && test -x /opt/opn/lean/.lake/build/bin/opn-hazards && uv run --frozen --project /opt/opn/network python -c "import opn_gate; print(\"opn_gate ok\")" && if [ -n "$MATHLIB_SHA" ]; then test "$(cat /opt/opn/mathlib/$MATHLIB_SHA/MATHLIB_SHA)" = "$MATHLIB_SHA" && test -d /opt/opn/mathlib/$MATHLIB_SHA/.lake/build/lib/lean && echo "mathlib $MATHLIB_SHA present"; fi'

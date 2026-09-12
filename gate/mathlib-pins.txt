@@ -1,0 +1,8 @@
+# Mathlib commits the network builds a gate image for (F11-R6, Q4): one image per pinned sha,
+# shared by every graph pinning it. One 40-hex commit per line; blank lines and # comments are
+# ignored. The publish workflow builds opn-gate:<tag>-mathlib-<12 hex> for each, and a graph pins
+# the digest that run prints (gate/tools/pin_image.py). Adding a line here is a network commit;
+# using it is the gate owner's re-pin (D-4).
+#
+# v4.33.1 of Mathlib, built by leanprover/lean4:v4.33.1 (the on-ramp graph, F11-T1/T3):
+0df444a360eaa60ab8c11dca51a86af692955474
