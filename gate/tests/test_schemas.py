@@ -17,6 +17,7 @@ def test_known_schemas_are_the_published_set() -> None:
     assert schemas.known_schemas() == (
         "annex/v1",
         "approach-record/v1",
+        "attempts/v1",
         "attestation/v1",
         "attestation/v2",
         "attestation/v3",

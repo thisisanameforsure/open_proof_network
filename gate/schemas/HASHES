@@ -2,6 +2,7 @@
 # Regenerate only when ADDING a new version: python -c "from opn_gate.schemas import compute_hashes as c; print(c())"
 2ba0d7956b7895e388704ecfbe5da793b3e683150150c047d626f7f946bff0ee  annex/v1.json
 654d80e5f22af824dc7556f088632a887f0f69ad06be43d1e5f5b462d0d01acf  approach-record/v1.json
+d7644be4acc6ab9044fb972936fc4cc73568b8e89bf828ce569910cbec9628c4  attempts/v1.json
 6bf80ac2979c8e9614a88a7a52b8011c789549528576b8188936bffdf63978f5  attestation/v1.json
 297974d908c2352e7f8be00f9345c67997e5ea8fd8ebe9c4fbd5cdf30be4f209  attestation/v2.json
 03ee28d36b7e6b8e564840bfb7e106f6333e87d4debfba5d31445123827007c2  attestation/v3.json

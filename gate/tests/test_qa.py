@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -1061,3 +1062,265 @@ def test_qa_brief_and_backtranslate_commands(
         )
         == cli.EXIT_ERROR
     )
+
+
+# =================================================================================================
+# T4: the attempts ledger and the grade gate (R9, R10, R15; AC1, AC4, AC7, AC21-AC24)
+# =================================================================================================
+
+
+def attempt(target: Path, n: int, **kw: Any) -> Path:
+    kw.setdefault("venue", "Formal Conjectures sweep")
+    kw.setdefault("system", f"prover-{n}")
+    kw.setdefault("date", "2026-09-01")
+    kw.setdefault("url", f"https://example.org/attempts/{n}")
+    return qa.record_attempt(target, **kw)
+
+
+def test_attempts_do_not_cross_revisions(target: Path) -> None:
+    """AC7, R10: three attempts against hash H count 3; once the subject is a different
+    statement they count 0 and the record still shows all three, marked as not counting."""
+    for n in (1, 2, 3):
+        attempt(target, n)
+    before = qa.attempts_state(target)
+    assert before.m == 3 and before.stale == ()
+    doc = schemas.load_yaml(qa.attempts_path(target), qa.ATTEMPTS_SCHEMA)
+    assert [a["statement_hash"] for a in doc["attempts"]] == [before.statement_hash] * 3
+
+    revised = "b" * 64  # what a D-8 revision makes the root's hash
+    after = qa.attempts_state(target, statement_hash=revised)
+    assert after.m == 0 and len(after.stale) == 3
+    assert [e["counts"] for e in after.as_dict()["entries"]] == [False, False, False]
+    assert after.as_dict()["recorded"] == 3
+    # An attempt recorded against the old hash after the revision counts for nothing either.
+    attempt(target, 4, statement_hash=before.statement_hash)
+    assert qa.attempts_state(target, statement_hash=revised).m == 0
+    assert len(qa.load_attempts(target)) == 4, "nothing was deleted (R10)"
+
+
+def test_the_ledger_refuses_a_duplicate_and_a_broken_file(target: Path) -> None:
+    attempt(target, 1)
+    with pytest.raises(QaError, match="already on the ledger"):
+        attempt(target, 1)
+    qa.attempts_path(target).write_text("attempts: [oops\n", encoding="utf-8")
+    with pytest.raises(schemas.SchemaError):
+        qa.attempts_state(target)
+
+
+def test_the_ledger_is_a_curator_file_that_grows(target: Path) -> None:
+    """R10 in the gate: the ledger is modified in place by a curator and refused for anyone
+    else; a curator pull request that modifies it is not `mixed`."""
+    attempt(target, 1)
+    rel = f"targets/{target.name}/attempts.yaml"
+    listed = modes.Curators((("mike", "thisisanameforsure"),))
+    curated = modes.classify([Change("M", rel)], author="thisisanameforsure", curators=listed)
+    assert curated.mode == "curator", curated.problems
+    assert modes.check(target.parents[1], curated) == []
+    stranger = modes.classify([Change("M", rel)], author="stranger", curators=listed)
+    assert stranger.mode is None and stranger.problems[0].code == "curator-unlisted"
+
+
+# --- R9, R15: the gate on a signature -------------------------------------------------------------
+
+
+def no_replay(rows: tuple[qa.Row, ...]) -> list[Any]:
+    return []
+
+
+def test_the_grade_gate_refuses_an_incomplete_pass_and_writes_nothing(target: Path) -> None:
+    """AC1 at the gate: a brief alone is refused naming the screens; the certificate set is
+    untouched; a complete pass is admitted and the certificate cites the brief files."""
+    qa.write(
+        target,
+        "root",
+        [a_row("brief", exhibit=None), a_row("backtranslation")],
+        date=WHEN,
+        produced_by=TOOL,
+    )
+    gate = lambda subject, grade: qa.grade_gate(target, subject, replay=no_replay)  # noqa: E731
+    with pytest.raises(QaError) as refusal:
+        fidelity.attest(
+            target,
+            "root",
+            "screened-and-signed",
+            attestor="reviewer",
+            date=WHEN[:10],
+            evidence="read it",
+            gate=gate,
+        )
+    assert "screen-statement" in str(refusal.value)
+    assert fidelity.target_grade(target) == "mechanical-only"
+    assert not any(p.name.startswith("root-2") for p in fidelity.fidelity_dir(target).iterdir())
+
+    qa.write(target, "root", floor_rows(), date=WHEN, produced_by=TOOL)
+    state = qa.grade_gate(target, "root", replay=no_replay)
+    exhibits, files = qa.certificate_citations(state)
+    path = fidelity.attest(
+        target,
+        "root",
+        "screened-and-signed",
+        attestor="reviewer",
+        date=WHEN[:10],
+        evidence="read it",
+        exhibits=exhibits,
+        evidence_files=files,
+        gate=gate,
+    )
+    assert path.is_file() and fidelity.subject_grades(target)[0].grade == "screened-and-signed"
+    # The gate does not reach the machine's own grade.
+    fidelity.attest(
+        target,
+        "Primes",
+        "mechanical-only",
+        attestor="author",
+        date=WHEN[:10],
+        evidence="machine",
+        gate=gate,
+    )
+
+
+def test_the_gate_replays_every_exhibit_before_it_counts(target: Path) -> None:
+    """R15: an exhibit row rests on a file that must replay through the seam; a replay that
+    finds native_decide, an axiom outside the allowlist, or a file that does not elaborate
+    refuses the grade with `exhibit-replay`; and no toolchain at all is a refusal too."""
+    from opn_gate.toolchain import AxiomResult, ReplayResult  # noqa: PLC0415
+
+    pair, digest = qa.store_exhibit(
+        target,
+        "root-equivalence-1.lean",
+        "theorem OpnQa.equiv_forward : True := trivial\n"
+        "theorem OpnQa.equiv_backward : True := trivial\n",
+    )
+    rows = [*floor_rows(), a_row("equivalence", exhibit=pair, exhibit_sha256=digest)]
+    qa.write(target, "root", rows, date=WHEN, produced_by=TOOL)
+
+    with pytest.raises(QaError, match="no toolchain was given") as held:
+        qa.grade_gate(target, "root", replay=None)
+    assert held.value.code == qa.CODE_REPLAY
+
+    def replay_with(fake: Any) -> Callable[[tuple[qa.Row, ...]], list[Any]]:
+        return lambda rows: qa.replay_exhibits(screen_context(target, fake), rows, timeout_s=30)
+
+    good = FakeToolchain()
+    state = qa.grade_gate(target, "root", replay=replay_with(good))
+    assert [r.check for r in state.exhibits] == ["equivalence"]
+    assert "axioms:OpnQa.Replay0:OpnQa.equiv_forward" in good.calls
+    assert "axioms:OpnQa.Replay0:OpnQa.equiv_backward" in good.calls
+    assert "kernel_replay:OpnQa.Replay0" in good.calls
+
+    native = FakeToolchain(
+        axiom_result=AxiomResult(ok=True, axioms=frozenset({"Lean.ofReduceBool"}))
+    )
+    with pytest.raises(QaError, match=r"Lean\.ofReduceBool") as refused:
+        qa.grade_gate(target, "root", replay=replay_with(native))
+    assert refused.value.code == qa.CODE_REPLAY
+    outside = FakeToolchain(axiom_result=AxiomResult(ok=True, axioms=frozenset({"sorryAx"})))
+    with pytest.raises(QaError, match="sorryAx"):
+        qa.grade_gate(target, "root", replay=replay_with(outside))
+    with pytest.raises(QaError, match="leanchecker"):
+        qa.grade_gate(
+            target, "root", replay=replay_with(FakeToolchain(replay=ReplayResult(ok=False)))
+        )
+    broken = ScriptedToolchain(failing_modules={"OpnQa.Replay0"})
+    with pytest.raises(QaError, match="does not elaborate"):
+        qa.grade_gate(target, "root", replay=replay_with(broken))
+    assert fidelity.target_grade(target) == "mechanical-only"
+
+
+def test_declared_theorems_are_qualified() -> None:
+    text = (
+        "namespace A\ntheorem x : True := trivial\nend A\n"
+        "-- theorem no : False\nlemma B.y : True := trivial\n"
+    )
+    assert qa.declared_theorems(text) == ["A.x", "B.y"]
+
+
+def test_fidelity_command_is_gated_and_cites_what_it_rests_on(
+    tmp_path: Path, seam: Any, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """R9 through the command: a signature without a complete pass is the curator's refusal
+    (exit 1, nothing written); with one, the certificate is written and cites the brief."""
+    from opn_gate import cli  # noqa: PLC0415
+
+    root = copy_graph(tmp_path)
+    take_in(root, defs=DEFS)
+    target = root / "targets" / "euclid-primes"
+    evidence = tmp_path / "evidence.txt"
+    evidence.write_text("compared the English with the Lean; they agree", encoding="utf-8")
+    argv = [
+        "fidelity",
+        "euclid-primes",
+        "root",
+        "screened-and-signed",
+        "--graph",
+        str(root),
+        "--by",
+        "reviewer",
+        "--evidence",
+        str(evidence),
+        "--date",
+        WHEN,
+        "--sandbox",
+        "--out",
+        str(tmp_path / "out"),
+    ]
+    assert cli.main(argv) == cli.EXIT_FAIL
+    refused = json.loads(capsys.readouterr().out)
+    assert refused["ok"] is False and "screen-statement" in refused["refused"]
+    assert fidelity.target_grade(target) == "mechanical-only"
+
+    briefs = qa.qa_dir(target) / qa.BRIEFS_DIR
+    briefs.mkdir(parents=True)
+    (briefs / "root-brief-1.md").write_text("# brief\n", encoding="utf-8")
+    brief_rel = qa.relative(target, briefs / "root-brief-1.md")
+    rows = [a_row(c) for c in qa.FLOOR_ROOT if c != "brief"]
+    rows.append(
+        a_row("brief", exhibit=brief_rel, exhibit_sha256=schemas.content_hash(b"# brief\n"))
+    )
+    qa.write(target, "root", rows, date=WHEN, produced_by=TOOL)
+    assert cli.main(argv) == cli.EXIT_PASS
+    doc = json.loads(capsys.readouterr().out)
+    assert doc["ok"] is True and doc["subjects"][0]["grade"] == "screened-and-signed"
+    certificate = yaml.safe_load((root / doc["written"][0]).read_text())
+    assert certificate["evidence_files"] == [brief_rel] and "exhibits" not in certificate
+    assert seam.made == [], "no exhibit row, so no toolchain was started"
+
+    # The machine's own grade needs no pass and no toolchain.
+    assert (
+        cli.main(
+            [
+                "fidelity",
+                "euclid-primes",
+                "Primes",
+                "mechanical-only",
+                "--graph",
+                str(root),
+                "--by",
+                "author",
+                "--evidence",
+                str(evidence),
+            ]
+        )
+        == cli.EXIT_PASS
+    )
+    capsys.readouterr()
+    code = cli.main(
+        [
+            "qa",
+            "attempt",
+            "euclid-primes",
+            "--graph",
+            str(root),
+            "--venue",
+            "FC sweep",
+            "--system",
+            "Aristotle 2",
+            "--url",
+            "https://example.org/a",
+            "--on",
+            "2026-09-01",
+        ]
+    )
+    doc = json.loads(capsys.readouterr().out)
+    assert code == cli.EXIT_PASS and doc["attempts"]["counted"] == 1
+    assert doc["written"] == ["targets/euclid-primes/attempts.yaml"]

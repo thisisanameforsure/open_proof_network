@@ -2030,3 +2030,251 @@ def equivalence(  # noqa: PLR0911, PLR0912, PLR0915 — one return per way the p
     run = LayerRun(subject, row_, written=[rel])
     run.record = _write_layer(target_dir, subject, run, EQUIVALENCE_TOOL, date)
     return run
+
+
+# --- the attempts ledger (R10; D-9 v3.12's M) ----------------------------------------------------
+
+ATTEMPTS_SCHEMA = "attempts/v1"
+ATTEMPTS_FILE = "attempts.yaml"
+
+
+@dataclass(frozen=True)
+class LedgerEntry:
+    venue: str
+    system: str
+    date: str
+    url: str
+    statement_hash: str
+    note: str | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        out: dict[str, Any] = {
+            "venue": self.venue,
+            "system": self.system,
+            "date": self.date,
+            "url": self.url,
+            "statement_hash": self.statement_hash,
+        }
+        if self.note is not None:
+            out["note"] = self.note
+        return out
+
+
+@dataclass(frozen=True)
+class AttemptsState:
+    """R10: the attempts that count toward M for the statement as it stands, and the ones
+    recorded against an earlier hash, which stay visible and count for nothing."""
+
+    statement_hash: str
+    counted: tuple[LedgerEntry, ...]
+    stale: tuple[LedgerEntry, ...]
+
+    @property
+    def m(self) -> int:
+        return len(self.counted)
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "statement_hash": self.statement_hash,
+            "counted": self.m,
+            "recorded": self.m + len(self.stale),
+            "entries": [
+                {**a.as_dict(), "counts": a.statement_hash == self.statement_hash}
+                for a in (*self.counted, *self.stale)
+            ],
+        }
+
+
+def attempts_path(target_dir: Path) -> Path:
+    return target_dir / ATTEMPTS_FILE
+
+
+def load_attempts(target_dir: Path) -> list[LedgerEntry]:
+    """The ledger's entries in file order; a ledger that does not validate raises, because the
+    count feeds a grade (D-9: M attempts toward ``published-and-uncontested``)."""
+    path = attempts_path(target_dir)
+    if not path.is_file():
+        return []
+    doc = schemas.load_yaml(path, ATTEMPTS_SCHEMA)
+    return [
+        LedgerEntry(
+            venue=str(a["venue"]),
+            system=str(a["system"]),
+            date=str(a["date"]),
+            url=str(a["url"]),
+            statement_hash=str(a["statement_hash"]),
+            note=_optional_str(a.get("note")),
+        )
+        for a in doc["attempts"]
+    ]
+
+
+def attempts_state(target_dir: Path, statement_hash: str | None = None) -> AttemptsState:
+    current = statement_hash or subject_hash(target_dir, fidelity.ROOT_SUBJECT)
+    entries = load_attempts(target_dir)
+    return AttemptsState(
+        statement_hash=current,
+        counted=tuple(a for a in entries if a.statement_hash == current),
+        stale=tuple(a for a in entries if a.statement_hash != current),
+    )
+
+
+def record_attempt(  # noqa: PLR0913 — one argument per fact the entry records
+    target_dir: Path,
+    *,
+    venue: str,
+    system: str,
+    date: str,
+    url: str,
+    statement_hash: str | None = None,
+    note: str | None = None,
+) -> Path:
+    """R10: append one documented attempt. The hash defaults to the root's current one — the
+    curator recording a sweep that ran on an earlier revision passes that revision's hash, and
+    the entry then counts for nothing, which is the guard."""
+    entry = LedgerEntry(
+        venue=venue,
+        system=system,
+        date=date[:10],
+        url=url,
+        statement_hash=statement_hash or subject_hash(target_dir, fidelity.ROOT_SUBJECT),
+        note=note,
+    )
+    existing = load_attempts(target_dir)
+    if any(e.url == entry.url and e.statement_hash == entry.statement_hash for e in existing):
+        msg = f"an attempt at {url} against this statement is already on the ledger"
+        raise QaError("record", msg)
+    doc = schemas.validate(
+        {"schema": ATTEMPTS_SCHEMA, "attempts": [e.as_dict() for e in [*existing, entry]]},
+        ATTEMPTS_SCHEMA,
+    )
+    path = attempts_path(target_dir)
+    path.write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True), encoding="utf-8")
+    return path
+
+
+# --- the grade gate (R9, R15; AC1, AC4, AC21-AC24) ------------------------------------------------
+
+REPLAY_MODULE_PREFIX = "OpnQa.Replay"
+CODE_REPLAY = "exhibit-replay"
+Replay = Callable[[tuple[Row, ...]], list[Diagnostic]]
+
+
+def declared_theorems(text: str) -> list[str]:
+    """Every theorem an exhibit declares, qualified by the namespaces open at each."""
+    out: list[str] = []
+    for m in _THEOREM_HEAD_RE.finditer(layout.strip_comments(text)):
+        name = m.group(0).split(None, 1)[1]
+        stack: list[str] = []
+        for ns in _NAMESPACE_RE.finditer(text[: m.start()]):
+            if ns.group(1) == "namespace":
+                stack.append(ns.group("name"))
+            elif stack and stack[-1] == ns.group("name"):
+                stack.pop()
+        out.append(".".join([*stack, name]))
+    return out
+
+
+def replay_exhibits(
+    ctx: RunContext, rows: tuple[Row, ...], *, timeout_s: float
+) -> list[Diagnostic]:
+    """R15: replay every exhibit a grade would rest on through the toolchain seam under the
+    gate's own checks — it elaborates against the root's Context, ``leanchecker --fresh``
+    accepts it, and every theorem it declares rests on the allowlist alone (no ``sorryAx``, no
+    ``native_decide``). Each refusal is named; the first refusal is enough to hold the grade."""
+    from opn_gate.steps.hazards import StatementStep  # noqa: PLC0415 — an import cycle
+    from opn_gate.steps.toolchain_step import ToolchainStep  # noqa: PLC0415
+    from opn_gate.toolchain import is_native_decide_axiom  # noqa: PLC0415
+
+    if not rows:
+        return []
+    resolved = ToolchainStep().run(ctx)
+    if not resolved.ok:
+        assert resolved.diagnostic is not None
+        raise ToolchainMissingError(resolved.diagnostic.message)
+    tc: ResolvedToolchain = ctx.data["toolchain"]
+    staged = StatementStep().run(ctx)
+    if not staged.ok:
+        problem = staged.diagnostic or Diagnostic("compile", "the root did not stage")
+        return [
+            Diagnostic(CODE_REPLAY, f"the root cannot be staged for the replay: {problem.message}")
+        ]
+    src = ctx.workdir / "src"
+    allowed = set(ctx.spec["axiom_allowlist"])
+    problems: list[Diagnostic] = []
+    for index, row_ in enumerate(rows):
+        assert row_.exhibit is not None
+        text = (ctx.graph_root / row_.exhibit).read_text(encoding="utf-8")
+        module = f"{REPLAY_MODULE_PREFIX}{index}"
+        scratch = src / SCREEN_NAMESPACE / f"Replay{index}.lean"
+        scratch.parent.mkdir(parents=True, exist_ok=True)
+        scratch.write_text(text, encoding="utf-8")
+        try:
+            elab = ctx.toolchain.elaborate(
+                tc, scratch, module, ctx.build_dir, root=src, timeout_s=timeout_s
+            )
+            if not elab.ok:
+                problems.append(_replay_problem(row_, "does not elaborate under the pin"))
+                continue
+            replay = ctx.toolchain.kernel_replay(tc, module, [ctx.build_dir], timeout_s=timeout_s)
+            if not replay.ok:
+                problems.append(_replay_problem(row_, "leanchecker --fresh refused it"))
+                continue
+            decls = declared_theorems(text)
+            if not decls:
+                problems.append(_replay_problem(row_, "declares no theorem"))
+                continue
+            for decl in decls:
+                axioms = ctx.toolchain.axioms(
+                    tc, module, decl, [ctx.build_dir], ctx.workdir / "axioms", timeout_s=timeout_s
+                )
+                if not axioms.ok:
+                    problems.append(_replay_problem(row_, f"the axioms of {decl} are unreadable"))
+                    break
+                bad = sorted(
+                    a for a in axioms.axioms if a not in allowed or is_native_decide_axiom(a)
+                )
+                if bad:
+                    problems.append(
+                        _replay_problem(row_, f"{decl} rests on {', '.join(bad)} (D-4 steps 4, 5)")
+                    )
+                    break
+        except subprocess.TimeoutExpired:
+            problems.append(_replay_problem(row_, NOTE_TIMEOUT))
+    return problems
+
+
+def _replay_problem(row_: Row, why: str) -> Diagnostic:
+    return Diagnostic(
+        CODE_REPLAY,
+        f"{row_.check}: exhibit {row_.exhibit} {why}; it does not count toward a grade (R15)",
+        {"check": row_.check, "exhibit": row_.exhibit},
+    )
+
+
+def grade_gate(target_dir: Path, subject: str, *, replay: Replay | None) -> PassState:
+    """R9 with R15: the pass complete for the statement as it stands, no unrouted finding, and
+    every exhibit the grade would rest on replayed through the seam before it counts."""
+    state = require_complete(target_dir, subject, routed=routed_by_claims(target_dir))
+    if state.exhibits:
+        if replay is None:
+            msg = (
+                f"{subject} rests on {len(state.exhibits)} exhibit(s), which must be replayed "
+                "through the toolchain before they count (R15); no toolchain was given"
+            )
+            raise QaError(CODE_REPLAY, msg)
+        problems = replay(state.exhibits)
+        if problems:
+            msg = f"{subject} cannot rise to {fidelity.SIGNED_FROM}: " + "; ".join(
+                p.message for p in problems
+            )
+            raise QaError(CODE_REPLAY, msg)
+    return state
+
+
+def certificate_citations(state: PassState) -> tuple[tuple[dict[str, Any], ...], tuple[str, ...]]:
+    """R2: what a certificate may cite — the accepted exhibit rows as its ``exhibits``, the brief
+    rows as ``evidence_files``, never the other way round."""
+    exhibits = tuple({"kind": r.check, "path": r.exhibit, "note": r.note} for r in state.exhibits)
+    files = tuple(r.exhibit for r in state.briefs if r.exhibit is not None)
+    return exhibits, files

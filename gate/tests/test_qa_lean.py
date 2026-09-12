@@ -115,3 +115,58 @@ def test_a_tautology_is_found_and_its_exhibit_replays(
         root / "targets" / TARGET, "root", routed=qa.routed_by_claims(root / "targets" / TARGET)
     )
     assert [f.check for f in state.unrouted] == ["screen-statement"]
+
+
+# --- AC24: a hand-committed exhibit is replayed before it counts (R15, R9) -----------------------
+
+FORGED = (
+    "theorem OpnQa.equiv_forward : (2 : Nat) + 2 = 4 := by native_decide\n"
+    "theorem OpnQa.equiv_backward : (3 : Nat) + 3 = 6 := by native_decide\n"
+)
+
+
+def test_exhibit_is_replayed_before_it_counts(
+    tmp_path: Path, real_toolchain: LocalToolchain, lean_pkg: Path
+) -> None:
+    """AC24: an exhibit that elaborates and has a matching hash and no sorry, but proves by
+    native_decide, is refused by the replay through the real toolchain — the axiom check sees
+    ``Lean.ofReduceBool`` — so the grade does not rise."""
+    real_toolchain.lean_pkg_bin = lean_pkg
+    root = copy_graph(tmp_path, GRAPH)
+    target = root / "targets" / TARGET
+    rel, digest = qa.store_exhibit(target, "root-equivalence-1.lean", FORGED)
+    rows = [
+        qa.row(
+            check,
+            "pass",
+            tool="hand",
+            tool_version="0",
+            timestamp=WHEN,
+            model="hand" if qa.KIND_OF[check] == "brief" else None,
+        )
+        for check in qa.FLOOR_ROOT
+    ]
+    rows.append(
+        qa.row(
+            "equivalence",
+            "pass",
+            tool="hand",
+            tool_version="0",
+            timestamp=WHEN,
+            exhibit=rel,
+            exhibit_sha256=digest,
+        )
+    )
+    qa.write(target, "root", rows, date=WHEN, produced_by="hand")
+    state = qa.pass_state(target, "root")
+    assert state.complete and state.refused == (), "the fast checks let the forgery through"
+
+    ctx = context(root, TARGET, PROPOSITIONAL_ROOT, real_toolchain, tmp_path / "work")
+    with pytest.raises(qa.QaError, match="ofReduceBool") as refused:
+        qa.grade_gate(
+            target, "root", replay=lambda rs: qa.replay_exhibits(ctx, rs, timeout_s=120.0)
+        )
+    assert refused.value.code == qa.CODE_REPLAY
+    assert (target / "fidelity").is_dir() is False or not any(
+        "screened" in p.read_text() for p in (target / "fidelity").glob("root-*.yaml")
+    )

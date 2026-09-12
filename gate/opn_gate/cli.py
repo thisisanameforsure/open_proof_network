@@ -50,6 +50,7 @@ from opn_gate import (
 )
 from opn_gate import graph as graphmod
 from opn_gate import submission as submissionmod
+from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Change, Claim
 from opn_gate.steps.base import RunContext
 from opn_gate.steps.hazards import HazardsStep, StatementStep
@@ -408,9 +409,18 @@ def _add_intake_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]
     fid.add_argument("--subject-author", help="required only for a subject with no certificate yet")
     fid.add_argument("--date", help="UTC timestamp of the act (default: now)")
     fid.add_argument("--branch", help="also commit what was written on this branch")
+    # F12-R9, R15: a signature needs the QA pass complete, and every exhibit it rests on is
+    # replayed through the toolchain first — sandboxed like the screens when asked (C9).
+    fid.add_argument("--out", type=Path, help="work directory for the replay (default: temp)")
+    fid.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
+    fid.add_argument("--sandbox", action="store_true", help="replay inside the step-3 image")
+    fid.add_argument("--image", help="sandbox image tag (default: from the spec)")
+    fid.add_argument("--no-build", action="store_true", help="fail if the image is not present")
 
 
-def _add_qa_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+def _add_qa_parsers(  # noqa: PLR0915 — one statement per flag
+    sub: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
     """F12: the statement-QA pass, one command per layer of D-9 v3.12's pass."""
     top = sub.add_parser("qa", help="the statement-QA pass over a subject (F12; D-9 v3.12)")
     acts = top.add_subparsers(dest="action", required=True)
@@ -456,6 +466,24 @@ def _add_qa_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     eq.add_argument("--sandbox", action="store_true", help="elaborate inside the step-3 image")
     eq.add_argument("--image", help="sandbox image tag (default: from the spec)")
     eq.add_argument("--no-build", action="store_true", help="fail if the image is not present")
+
+    att = acts.add_parser("attempt", help="record a documented external attempt (F12-R10)")
+    att.add_argument("target_id")
+    att.add_argument("--graph", required=True, type=Path)
+    att.add_argument("--venue", required=True, help="where it is documented")
+    att.add_argument("--system", required=True, help="the prover system or person")
+    att.add_argument("--url", required=True)
+    att.add_argument(
+        "--on", dest="attempt_date", required=True, help="the attempt's day, YYYY-MM-DD"
+    )
+    att.add_argument(
+        "--statement-hash",
+        help="the root hash the attempt ran against (default: the current one); an attempt on "
+        "an earlier revision counts for nothing, which is the guard",
+    )
+    att.add_argument("--note")
+    att.add_argument("--date", help="UTC timestamp of the act (default: now)")
+    att.add_argument("--branch", help="also commit what was written on this branch")
 
     rte = acts.add_parser("route", help="route a positive screen's claim (F12-R4; D-9 v3.12)")
     common(rte)
@@ -1568,10 +1596,28 @@ def run_import_fc(args: argparse.Namespace, settings: config.Settings, graph: Pa
 
 
 def run_fidelity(args: argparse.Namespace, settings: config.Settings) -> int:
-    """R3: append one certificate, and print the grade the target now derives from the set."""
+    """R3: append one certificate, and print the grade the target now derives from the set.
+
+    F12-R9: a signature (``screened-and-signed`` and up) is refused unless the QA pass is
+    complete for the statement as it stands with no unrouted finding, and every exhibit the
+    grade rests on has been replayed through the toolchain seam (R15) — the certificate then
+    cites those exhibits and the brief files, and nothing else (R2).
+    """
     graph = _intake_graph(args)
     directory = intake.target_dir(graph, args.target_id)
     evidence = _read_flag_file(args.evidence, "--evidence")
+    cited: dict[str, Any] = {"exhibits": (), "files": ()}
+
+    def gate(subject: str, grade: str) -> None:
+        def replay(rows: tuple[qa.Row, ...]) -> list[Diagnostic]:
+            ctx = _qa_context(args, settings, graph, args.target_id)
+            return qa.replay_exhibits(ctx, rows, timeout_s=settings.qa_attempt_budget_s)
+
+        state = qa.grade_gate(directory, subject, replay=replay)
+        cited["exhibits"], cited["files"] = qa.certificate_citations(state)
+
+    if fidelity.is_signature(args.grade):
+        gate(args.subject, args.grade)  # before the author rules, so the refusal is the useful one
     path = fidelity.attest(
         directory,
         args.subject,
@@ -1580,6 +1626,9 @@ def run_fidelity(args: argparse.Namespace, settings: config.Settings) -> int:
         subject_author=args.subject_author,
         date=_intake_date(args)[:10],
         evidence=evidence,
+        evidence_files=tuple(cited["files"]),
+        exhibits=tuple(cited["exhibits"]),
+        gate=gate,
     )
     doc: dict[str, Any] = {
         "ok": True,
@@ -1639,6 +1688,24 @@ def run_qa(args: argparse.Namespace, settings: config.Settings) -> int:
             "written": [written],
         }
         return _emit_curator(doc, graph, args.branch, f"qa: route {args.claim} ({args.reading})")
+    if args.action == "attempt":
+        ledger = qa.record_attempt(
+            target_dir,
+            venue=args.venue,
+            system=args.system,
+            date=args.attempt_date,
+            url=args.url,
+            statement_hash=args.statement_hash,
+            note=args.note,
+        )
+        state = qa.attempts_state(target_dir)
+        doc = {
+            "ok": True,
+            "target": args.target_id,
+            "attempts": state.as_dict(),
+            "written": [ledger.resolve().relative_to(graph.resolve()).as_posix()],
+        }
+        return _emit_curator(doc, graph, args.branch, f"qa: attempt on {args.target_id}")
     if args.action == "backtranslate":
         layer = qa.backtranslate(target_dir, args.subject, model=_model_client(settings), date=date)
         return _emit_layer(layer, graph, args)

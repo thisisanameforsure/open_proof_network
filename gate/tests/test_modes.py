@@ -769,6 +769,7 @@ def test_locate_is_the_whole_grammar() -> None:
         f"{T}/qa/consequences/Euclid.lean": "qa-file",
         f"{T}/qa/briefs/root-brief-1.md": "qa-file",
         f"{T}/qa/backtranslation/root-backtranslation-1.md": "qa-file",
+        f"{T}/attempts.yaml": "attempts-ledger",
         f"{N}/META.yaml": "node",
         f"{N}/Statement.lean": "node",
         f"{N}/Context.lean": "node",
@@ -791,6 +792,7 @@ def test_locate_is_the_whole_grammar() -> None:
         "fidelity",
         "qa-record",
         "qa-file",
+        "attempts-ledger",
     }
     for path, role in roles.items():
         located = paths.locate(path)

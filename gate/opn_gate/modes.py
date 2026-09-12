@@ -289,9 +289,11 @@ def _classify_curator(  # noqa: PLR0913 — the diff, its located paths and the 
     if not roles <= allowed:
         return Classification(None, target_id, None, tuple(located), (_mixed(roles),))
     node_roles = set(paths.NODE_ROLES)
+    # F12-R10: the attempts ledger is the one curator file that grows in place.
+    growing = {loc.path for loc in located if loc.role in paths.MODIFIABLE_ROLES}
     touched = sorted(
         {loc.path for loc in located if loc.role in node_roles and loc.node_id not in new_dirs}
-        | {c.path for c in changes if c.status != "A"}
+        | {c.path for c in changes if c.status != "A" and c.path not in growing}
     )
     if touched:
         return Classification(

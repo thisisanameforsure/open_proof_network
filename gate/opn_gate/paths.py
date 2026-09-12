@@ -178,6 +178,7 @@ Role = Literal[
     "fidelity",  # targets/<id>/fidelity/<subject>-<n>.yaml: a D-9 certificate (F11-R3)
     "qa-record",  # targets/<id>/qa/<subject>-<n>.yaml: one run of the QA pass (F12-R1)
     "qa-file",  # targets/<id>/qa/{exhibits,consequences,briefs,backtranslation}/<name> (F12)
+    "attempts-ledger",  # targets/<id>/attempts.yaml: D-9's documented attempts (F12-R10)
 ]
 
 #: Roles that claim nothing and merge on schema and path checks alone (F07-R9).
@@ -198,7 +199,13 @@ NODE_ROLES: tuple[Role, ...] = ("node", "witness", "relation", "keep")
 
 #: The records only a listed curator may add (F08-R8; D-8, D-29, D-33) — and, since F12, the
 #: QA record and its files: the pass is the curator's act and a grade rests on it (F12-R9).
-CURATOR_ROLES: tuple[Role, ...] = ("node-status", "target-status", "qa-record", "qa-file")
+CURATOR_ROLES: tuple[Role, ...] = (
+    "node-status",
+    "target-status",
+    "qa-record",
+    "qa-file",
+    "attempts-ledger",
+)
 
 #: What a curated intake adds beside the root node (F11-R2; D-6): the target's own files. A pull
 #: request carrying any of these is an intake, and an intake is a curator's act.
@@ -206,7 +213,8 @@ INTAKE_ROLES: tuple[Role, ...] = ("target-record", "gate-spec", "definition", "f
 
 #: Roles that may be modified as well as added: a proof is resubmittable, a waiver follows it, and
 #: a hole's witness slot is filled in place (F08-R5) — everything else is append-only.
-MODIFIABLE_ROLES: tuple[Role, ...] = ("proof", "waiver", "witness")
+#: The attempts ledger is one file that grows (F12-R10): modified in place, entries only added.
+MODIFIABLE_ROLES: tuple[Role, ...] = ("proof", "waiver", "witness", "attempts-ledger")
 
 #: The schema versions each record may declare; an annex validates its YAML front matter.
 #: A role carries a *set* because D-34 versions rather than edits: `target-status` gained v2
@@ -221,6 +229,7 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "revision-request": ("revision-request/v1",),
     "defect-claim": ("defect-claim/v1", "defect-claim/v2"),
     "qa-record": ("qa/v1",),
+    "attempts-ledger": ("attempts/v1",),
 }
 
 #: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers).
@@ -297,6 +306,8 @@ def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912 — one branc
             return Located("target-record", path, target_match.group("target"), None)
         if rest == "gate-spec.json":
             return Located("gate-spec", path, target_match.group("target"), None)
+        if rest == "attempts.yaml":
+            return Located("attempts-ledger", path, target_match.group("target"), None)
         if head == "defs" and _is_flat(name, (".lean",)):
             return Located("definition", path, target_match.group("target"), None)
         if head == "fidelity" and _is_flat(name, YAML_SUFFIXES):
