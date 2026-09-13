@@ -5,8 +5,9 @@ D — a hand-typed ``qa/root-1.yaml`` satisfies the signature gate (F12-R9).
 E — ``opn-gate status <target> active`` on a curated target skips activation's refusal (F11-R5).
 
 Each test asserts the behaviour the governing text asks for. The two reader defects were fixed
-in F12-T7 (Q18); D3 and E are held as strict expected failures naming Mike's decision of
-2026-09-13 and the fix it calls for. Tests marked **PIN** capture behaviour judged intended.
+in F12-T7 (Q18); D3 was closed in F12-T8 where Mike's decision of 2026-09-13 put the rule (the
+gate re-runs the screens on the pull request); E was closed in F11-T10. Tests marked **PIN**
+capture behaviour judged intended.
 """
 
 from __future__ import annotations
@@ -14,14 +15,16 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import subprocess
 from pathlib import Path
 from typing import Any
 
 import pytest
 import yaml
 from harness import copy_graph, take_in
+from scripted import ScriptedToolchain
 
-from opn_gate import cli, fidelity, intake, modes, products, qa, schemas
+from opn_gate import cli, fidelity, intake, modes, products, qa, qa_rerun, schemas
 from opn_gate.paths import Change
 
 TARGET_ID = "euclid-primes"
@@ -156,12 +159,10 @@ def test_d_a_rows_kind_is_its_checks_not_what_the_record_claims(tmp_path: Path) 
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="finding D3 (D-9 v3.12, F12 user story): a hand-typed clean pass raises a grade; fix: CI re-runs the screens on a QA pull request (Mike, 2026-09-13)",  # noqa: E501 — the xfail reason names the finding and its fix
-)
-def test_d_a_hand_typed_pass_does_not_raise_a_grade_through_the_command(graph: Path) -> None:
-    """**Held (strict xfail): a spec gap; Mike chose CI re-running the screens.**
+def test_d_a_hand_typed_pass_is_refused_by_the_gate_on_its_pull_request(
+    graph: Path, tmp_path: Path, seam: Any, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """**Fixed in F12-T8, at the pull request — where Mike's decision of 2026-09-13 put it.**
 
     The report, end to end: every floor row ``verdict: pass``, ``exhibit: null``,
     ``tool: hand`` (brief rows given a model name, so the two defects above are not the cause),
@@ -172,53 +173,75 @@ def test_d_a_hand_typed_pass_does_not_raise_a_grade_through_the_command(graph: P
     grade is a summary of evidence rather than an opinion I typed"; D-9 v3.12 "each layer
     producing an artifact rather than an opinion" and screened-and-signed is "the mechanizable
     pass above completed with its exhibits recorded"; F12-Q8 names "a hand-committed row" as
-    "the forgery the user story rules out".
+    "the forgery the user story rules out". Against: F12-R15 closes the forgery only for rows
+    that name a file, and F12-Q15 makes a clean screen a row with ``exhibit: null``.
 
-    Against: F12-R15 closes the forgery only for rows that name a file, and qa/v1 and F12-Q15
-    make a clean screen or a compile a row with ``exhibit: null`` ("clean screens leave no
-    file"), so no requirement says how a clean pass is told apart from a typed one. F11-R13's
-    "the D-9 v3.12 pass run by hand" does not license it: that pass is "evidence in this repo"
-    (network), for targets that stay mechanical-only (F11-Q5), not a ``qa/v1`` record.
-
-    The reading tested: a floor row counts only when a gate command produced it. The weakest
-    fix that turns this green (``tool`` must be the gate's own command name) is still typeable;
-    the real options are the owner's — see the report."""
+    **Why the test moved.** This test used to assert that the local ``fidelity`` command refuse
+    the typed record. The owner's rule is that CI re-runs the screens on the pull request that
+    adds a QA record, and refuses it where a re-run disagrees. The local command runs where the
+    curator runs it, so any check there is again the curator's own word; the pull request is
+    the one way a record reaches the graph (D-35), and the gate job re-runs the screens inside
+    the step-3 sandbox with no secret (C8, C9). So the test drives the path a typed record takes
+    to the graph — ``classify`` asks for the re-run, ``qa-rerun --sandbox`` runs it — and asserts
+    the refusal names the row the re-run refutes. The local command is deliberately unchanged:
+    a record that never merged grades nothing on the graph. The rule verifies what a record
+    *claims*, not who typed it, so a typed record whose passes the re-run reproduces is accepted
+    (``test_qa_rerun.py``); brief rows are not re-run, because they ask a model (C8)."""
     target = target_of(graph)
+    (graph / "curators.json").write_text(
+        json.dumps({"identities": [{"pseudonym": CURATOR, "github_login": CURATOR}]})
+    )
+    env = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@x", "GIT_COMMITTER_NAME": "t"}
+    env |= {"GIT_COMMITTER_EMAIL": "t@x", "PATH": "/usr/bin:/bin", "HOME": str(tmp_path)}
+
+    def git(*args: str) -> str:
+        return subprocess.run(
+            ["git", "-C", str(graph), *args], check=True, env=env, capture_output=True, text=True
+        ).stdout.strip()
+
+    git("init", "-q")
+    git("add", "-A")
+    git("commit", "-q", "-m", "intake")
     rows = [
         hand_row(c, **({"model": "m", "model_version": "1"} if qa.KIND_OF[c] == "brief" else {}))
         for c in qa.FLOOR_ROOT
     ]
-    write_hand_record(target, rows)
-    evidence = graph.parent / "evidence.txt"
-    evidence.write_text("compared the English with the Lean", encoding="utf-8")
+    rel = write_hand_record(target, rows).relative_to(graph).as_posix()
+    git("add", "-A")
+    git("commit", "-q", "-m", "qa: typed by hand")
 
-    code, out = run_cli(
-        "fidelity",
-        TARGET_ID,
-        "root",
-        "screened-and-signed",
-        "--graph",
-        str(graph),
-        "--by",
-        "reviewer",
-        "--evidence",
-        str(evidence),
-        "--date",
-        WHEN,
+    code, out = run_cli("classify", "--graph", str(graph), "--base", "HEAD~1", "--author", CURATOR)
+    assert code == cli.EXIT_PASS and out["mode"] == "curator"
+    assert out["needs_qa_rerun"] is True and out["qa_records"] == [rel]
+
+    # The statement's negation proves at head: the typed "screen-negation: pass" is false.
+    seam.fake = ScriptedToolchain(
+        failing_modules={f"{qa.SCREEN_NAMESPACE}.{s}" for s in ("ScreenStatement", "ScreenFalse")}
     )
-    assert code == cli.EXIT_FAIL, f"a hand-typed QA pass raised the grade: {out}"
-    assert fidelity.subject_grades(target)[0].grade == "mechanical-only"
+    code, out = run_cli(
+        "qa-rerun", "--graph", str(graph), "--base", "HEAD~1", "--sandbox", "--date", WHEN,
+        "--out", str(tmp_path / "rerun"),
+    )  # fmt: skip
+    assert code == cli.EXIT_FAIL, f"the gate accepted a typed pass its re-run refutes: {out}"
+    assert [(p["code"], p["details"]["check"]) for p in out["problems"]] == [
+        (qa_rerun.CODE_DISAGREES, "screen-negation")
+    ]
+    assert {n["check"]: n["reason"] for n in out["not_rerun"]} == {
+        "brief": qa_rerun.REASON_MODEL,
+        "backtranslation": qa_rerun.REASON_MODEL,
+    }
+    assert git("status", "--porcelain") == "", "the re-run wrote into the checkout"
 
 
-def test_d_pin_ci_checks_a_qa_record_by_schema_and_curator_only(graph: Path) -> None:
+def test_d_pin_ci_classifies_a_qa_record_as_curator_and_asks_for_the_rerun(graph: Path) -> None:
     """**PIN — intended as built.** What the classifier does with ``targets/<id>/qa/`` in a pull
     request: ``qa-record`` is a curator role (``paths.CURATOR_ROLES``; F12-Q12 "The QA record is
     a curator's act (a grade rests on it, R9), so ``qa-record`` and ``qa-file`` are curator
     roles"), so a stranger's record is ``curator-unlisted``; a listed curator's is ``curator``
     mode, reviewed by the other listed curators (F08-R8), and ``modes.check`` validates it
-    against ``qa/v1`` and nothing more — no pin, row-coherence or tool check runs in CI, and no
-    screen is re-run. The hand record below is accepted. If the owner decides CI must verify a
-    QA record (finding D), this pin is the test to change."""
+    against ``qa/v1``. Since F12-T8 (finding D3) the classifier also names the record for the
+    re-run (``qa_rerun.records_in``, reported as ``needs_qa_rerun``), which is where a typed pass
+    is refused — not in ``modes.check``, which runs before any sandbox."""
     target = target_of(graph)
     path = write_hand_record(target, [hand_row(c) for c in qa.FLOOR_ROOT])
     rel = path.relative_to(graph).as_posix()
@@ -231,6 +254,7 @@ def test_d_pin_ci_checks_a_qa_record_by_schema_and_curator_only(graph: Path) -> 
     assert curated.mode == "curator", curated.problems
     assert curated.reviewers == ("second-curator",)
     assert modes.check(graph, curated) == []
+    assert qa_rerun.records_in(curated.located) == [rel]
 
 
 def test_d_pin_an_exhibit_row_is_trusted_by_content(graph: Path) -> None:

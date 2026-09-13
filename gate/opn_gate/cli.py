@@ -42,6 +42,7 @@ from opn_gate import (
     postmerge,
     products,
     qa,
+    qa_rerun,
     sandbox,
     scaffold,
     schemas,
@@ -507,6 +508,25 @@ def _add_qa_parsers(  # noqa: PLR0915 — one statement per flag
     rte.add_argument("--by", required=True, dest="by", help="the curator routing it")
     rte.add_argument("--note", help="why, in a sentence")
 
+    # F12-T8 (finding D3): the pull request's check on a QA record, not a curator act — so a
+    # command of its own beside ``exhibits``, not a ``qa`` action.
+    rr = sub.add_parser(
+        "qa-rerun", help="re-run the passes a pull request's QA record claims (F12-T8)"
+    )
+    rr.add_argument("--graph", required=True, type=Path)
+    rr.add_argument("--base", required=True)
+    rr.add_argument("--head", default="HEAD")
+    rr.add_argument("--date", help="UTC timestamp for the re-run's rows (default: now)")
+    rr.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
+    rr.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
+    rr.add_argument(
+        "--sandbox",
+        action="store_true",
+        help="re-run inside the step-3 image, as the authoritative gate must (C9)",
+    )
+    rr.add_argument("--image", help="sandbox image tag (default: from the spec)")
+    rr.add_argument("--no-build", action="store_true", help="fail if the image is not present")
+
 
 def _add_sandbox_args(p: argparse.ArgumentParser) -> None:
     """The flags every sandboxed run shares (reproduce, gate, postmerge)."""
@@ -531,6 +551,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "gate": run_gate,
         "classify": run_classify,
         "exhibits": run_exhibits,
+        "qa-rerun": run_qa_rerun,
         "revise": run_revise,
         "consolidate": run_consolidate,
         "status": run_status,
@@ -805,6 +826,11 @@ def run_classify(args: argparse.Namespace, settings: config.Settings) -> int:
     carrying = modes.exhibits(graph, classification) if classification.ok else []
     summary["exhibits"] = [loc.path for loc in carrying]
     summary["needs_exhibits"] = bool(carrying)
+    # F12-T8: a QA record's claimed passes are re-run in the sandbox (``qa-rerun``). The workflow
+    # reads the flag with a default, so a pin that predates it skips the step.
+    records = qa_rerun.records_in(classification.located) if classification.ok else []
+    summary["qa_records"] = records
+    summary["needs_qa_rerun"] = bool(records)
     sys.stdout.write(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
     if not summary["ok"]:
         for d in problems:
@@ -870,6 +896,92 @@ def run_exhibits(args: argparse.Namespace, settings: config.Settings) -> int:
     for d in problems:
         sys.stderr.write(f"opn-gate: {d.code}: {d.message}\n")
     return EXIT_PASS if not problems else EXIT_FAIL
+
+
+def run_qa_rerun(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F12-T8 (finding D3): re-run every compile and screen a QA record in the pull request says
+    passed without an exhibit, on the tree at head, and exit 1 naming each row the re-run does
+    not also pass (``opn_gate.qa_rerun``).
+
+    Contributor-shaped Lean either way — the screens try to prove False — so ``--sandbox`` on the
+    authoritative gate (C9). The re-run writes into a copy of the tree under ``--out``, never into
+    the checkout; a record with nothing to re-run starts no toolchain. A diff that adds no QA
+    record is a usage error: this command is that record's check and nothing else's.
+    """
+    graph, head = _checkout_and_commit(args.graph, args.head)
+    base = _git(graph, "rev-parse", "--verify", f"{args.base}^{{commit}}").stdout.strip()
+    if not base:
+        msg = f"unknown base {args.base!r}"
+        raise CliError(msg)
+    date = _intake_date(args)
+    diff = _git(graph, "diff", "--name-status", "--no-renames", base, head)
+    located = [
+        where
+        for change in paths.changes_from_name_status(diff.stdout)
+        if (where := paths.locate(change.path)) is not None
+    ]
+    records = qa_rerun.records_in(located)
+    if not records:
+        msg = "this diff adds no QA record (targets/<id>/qa/<subject>-<n>.yaml); nothing to re-run"
+        raise CliError(msg)
+    out_dir = _out_dir(args.out, "opn-qa-rerun-")
+    workdir = out_dir / "work"
+    seams: dict[str, toolchain.Toolchain] = {}
+
+    def rerun(target_id: str, subject: str) -> list[qa.Row]:
+        copy = qa_rerun.head_copy(graph, out_dir / "head")
+        if target_id not in seams:
+            seams[target_id] = _rerun_toolchain(args, settings, copy, target_id, workdir)
+        ctx = qa_rerun.context(
+            copy,
+            target_id,
+            seams[target_id],
+            workdir,
+            settings,
+            install=bool(args.install) and not args.sandbox,
+        )
+        return qa_rerun.rerun_subject(
+            ctx,
+            subject,
+            date=date,
+            attempt_budget_s=settings.qa_attempt_budget_s,
+            subject_budget_s=settings.qa_subject_budget_s,
+        )
+
+    report = qa_rerun.verify(graph, records, rerun)
+    summary = {**report.as_dict(settings.diagnostic_max_bytes), "sandboxed": bool(args.sandbox)}
+    (out_dir / "qa-rerun.json").write_bytes(schemas.canonical_json(summary))
+    sys.stdout.write(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
+    for d in report.problems:
+        sys.stderr.write(f"opn-gate: {d.code}: {d.message}\n")
+    return EXIT_PASS if report.ok else EXIT_FAIL
+
+
+def _rerun_toolchain(
+    args: argparse.Namespace,
+    settings: config.Settings,
+    copy: Path,
+    target_id: str,
+    workdir: Path,
+) -> toolchain.Toolchain:
+    """The seam ``qa screen --sandbox`` builds (``node_context``), over the head copy: the root
+    read-only and the work directory read-write."""
+    spec_path = layout.gate_spec_path(copy, target_id)
+    try:
+        spec = schemas.load_json(spec_path, "gate-spec/v1")
+    except schemas.SchemaError as exc:
+        msg = f"cannot load {spec_path}: {exc}"
+        raise CliError(msg) from exc
+    if args.sandbox:
+        tag = args.image or ensure_image(spec, build=not args.no_build)
+        root = layout.graph_nodes_dir(copy, target_id) / qa.root_node(copy / "targets" / target_id)
+        return sandbox.SandboxToolchain(
+            tag, sandbox.Caps.from_spec(spec), read_only=[root], read_write=[workdir]
+        )
+    try:
+        return toolchain.LocalToolchain.from_settings(settings)
+    except toolchain.ToolchainMissingError as exc:
+        raise CliError(str(exc)) from exc
 
 
 def library_scanner(
