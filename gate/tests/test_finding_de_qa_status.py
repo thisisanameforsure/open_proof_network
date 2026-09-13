@@ -258,10 +258,6 @@ def test_d_pin_an_exhibit_row_is_trusted_by_content(graph: Path) -> None:
 # =================================================================================================
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="finding E (F11-R5 vs F08-R11): status active on a curated target skips activation's checks; fix: refuse unless claimable (Mike, 2026-09-13)",  # noqa: E501 — the xfail reason names the finding and its fix
-)
 def test_e_status_active_on_a_curated_target_refuses_what_activation_refuses(graph: Path) -> None:
     """**Held (strict xfail) — spec conflict; Mike decided 2026-09-13 for this reading: refuse
     unless claimable.**

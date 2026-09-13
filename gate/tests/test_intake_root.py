@@ -128,7 +128,8 @@ def test_the_cli_prints_the_root_the_record_declares(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """R14 through the entry point the curator actually runs: ``intake new`` reports the root,
-    and the record it wrote names the same one."""
+    and the record it wrote names the same one. The record's Mathlib pin is not the fixture
+    target's, so no target can supply its image and the curator passes ``--spec`` (F11-R6)."""
     root = copy_graph(tmp_path)
     record = tmp_path / "target.yaml"
     record.write_text(yaml.safe_dump(samples.target_record(id=NEW)), encoding="utf-8")
@@ -141,6 +142,8 @@ def test_the_cli_prints_the_root_the_record_declares(
             str(root),
             "--from",
             str(record),
+            "--spec",
+            str(root / "targets" / TARGET / "gate-spec.json"),
             "--root",
             str(root / "targets" / TARGET / "nodes" / ROOT),
             "--author",
@@ -194,9 +197,12 @@ def test_later_declarations_carry_the_root_forward(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("status", ["active", "dormant"])
 def test_a_curator_declaration_carries_the_root_forward(tmp_path: Path, status: str) -> None:
-    """AC18, one declaration at a time, straight after intake."""
+    """AC18, one declaration at a time, straight after intake. An ``active`` declaration on a
+    curated target needs it claimable first (F11-R5; finding E)."""
     root = copy_graph(tmp_path)
     take_in(root)
+    if status == "active":
+        ready_to_activate(root)
     curator.declare_status(
         root, NEW, NEW, status, "a curator's call", author="curator", date=LATER, now=NOW
     )
@@ -209,9 +215,11 @@ def test_a_curator_declaration_carries_the_root_forward(tmp_path: Path, status: 
 def test_the_status_command_carries_the_root_forward(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """AC18 through ``opn-gate status``, on a graph with two targets so ``--target`` is needed."""
+    """AC18 through ``opn-gate status``, on a graph with two targets so ``--target`` is needed,
+    and a target claimable enough to be declared active (F11-R5; finding E)."""
     root = copy_graph(tmp_path)
     take_in(root)
+    ready_to_activate(root)
     code = cli.main(
         [
             "status",
@@ -347,6 +355,6 @@ def test_the_carried_root_is_the_one_the_products_read(tmp_path: Path) -> None:
     take_in(root)
     hand_record_without_root(root)
     curator.declare_status(
-        root, NEW, NEW, "active", "x", author="curator", date="2026-09-13T00:00:00Z", now=NOW
+        root, NEW, NEW, "dormant", "x", author="curator", date="2026-09-13T00:00:00Z", now=NOW
     )
     assert "root" not in latest(root)

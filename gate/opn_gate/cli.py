@@ -1386,7 +1386,17 @@ def run_consolidate(args: argparse.Namespace, settings: config.Settings) -> int:
 
 def run_status(args: argparse.Namespace, settings: config.Settings) -> int:
     graph, target_id, date = _curator_common(args)
-    now = attestation.utc_now()
+    # D-33 (a) is judged at the declaration's own date, which is what the record carries; a date
+    # after the clock is refused, since it could open N days early and would outrank every later
+    # record (F03-Q5: the latest record wins).
+    clock = attestation.utc_now()
+    now = datetime.strptime(date, DATE_FORMAT).replace(tzinfo=UTC)
+    if now > clock:
+        msg = (
+            f"--date {date} is after the clock ({clock.strftime(DATE_FORMAT)}); "
+            "a declaration is not dated in the future"
+        )
+        raise CliError(msg)
     record = curator.declare_status(
         graph,
         target_id,
@@ -1428,13 +1438,22 @@ def _intake_date(args: argparse.Namespace) -> str:
     return date
 
 
-def spec_template(graph: Path, given: Path | None) -> dict[str, Any]:
+#: The gate-spec fields that belong to one target rather than to the graph's trust base: its id,
+#: its Mathlib pin, and the image digest that carries that pin's oleans (F11-R6).
+PER_TARGET_SPEC_FIELDS: tuple[str, ...] = ("graph_id", "mathlib_sha", "devcontainer_ref")
+
+
+def spec_template(graph: Path, given: Path | None, mathlib_sha: str | None) -> dict[str, Any]:
     """R2: the gate settings the new target inherits.
 
     Inherited rather than invented, and inherited from the *graph* rather than from this repo:
     the axiom allowlist, the hazard checkers and the step-3 caps are what the graph's own gate
     runs under (D-35), and a target quietly listed under a different allowlist would be a second
     trust base. With no single answer in the graph the curator has to say which one.
+
+    The image is not trust base: R6 makes it a function of the Mathlib pin. So every target must
+    agree on the rest, and the image comes from the targets pinned to the new record's Mathlib —
+    none of them, and no target in the graph can supply an image with its oleans.
     """
     if given is not None:
         return schemas.load_json(given.resolve(), "gate-spec/v1")
@@ -1447,12 +1466,24 @@ def spec_template(graph: Path, given: Path | None) -> dict[str, Any]:
         msg = "this graph has no target to inherit gate settings from; pass --spec"
         raise CliError(msg)
     specs = [schemas.load_json(p, "gate-spec/v1") for p in existing]
-    shared = {k: v for k, v in specs[0].items() if k not in ("graph_id", "mathlib_sha")}
-    for spec in specs[1:]:
-        if {k: v for k, v in spec.items() if k not in ("graph_id", "mathlib_sha")} != shared:
-            msg = "this graph's targets do not agree on one gate-spec; pass --spec"
-            raise CliError(msg)
-    return specs[0]
+
+    def trust_base(spec: dict[str, Any]) -> dict[str, Any]:
+        return {k: v for k, v in spec.items() if k not in PER_TARGET_SPEC_FIELDS}
+
+    if any(trust_base(spec) != trust_base(specs[0]) for spec in specs[1:]):
+        msg = "this graph's targets do not agree on one gate-spec; pass --spec"
+        raise CliError(msg)
+    sharing = [spec for spec in specs if spec.get("mathlib_sha") == mathlib_sha]
+    if not sharing:
+        msg = (
+            f"no target in this graph is pinned to Mathlib {mathlib_sha}, so none names an image "
+            "carrying its oleans (F11-R6); pass --spec"
+        )
+        raise CliError(msg)
+    if len({spec.get("devcontainer_ref") for spec in sharing}) != 1:
+        msg = f"the targets pinned to Mathlib {mathlib_sha} name different images; pass --spec"
+        raise CliError(msg)
+    return sharing[0]
 
 
 def intake_checker(
@@ -1552,7 +1583,7 @@ def run_intake(args: argparse.Namespace, settings: config.Settings) -> int:
         doc=record,
         root_dir=args.root.resolve(),
         defs_dir=args.defs.resolve() if args.defs else None,
-        spec_template=spec_template(graph, args.spec),
+        spec_template=spec_template(graph, args.spec, record["library_coverage"]["mathlib_sha"]),
         checker=checker,
         author=args.author,
         date=_intake_date(args),
@@ -1594,7 +1625,7 @@ def run_import_fc(args: argparse.Namespace, settings: config.Settings, graph: Pa
         licence=args.licence,
         attribution=args.attribution,
         upstream_author=args.upstream_author,
-        spec_template=spec_template(graph, args.spec),
+        spec_template=spec_template(graph, args.spec, base["library_coverage"]["mathlib_sha"]),
         checker=checker,
         author=args.author,
         date=_intake_date(args),

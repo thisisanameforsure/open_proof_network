@@ -269,7 +269,8 @@ def files(
         out[RELATION_FILE] = with_relation_label(proposal.relation_proof, proposal.relation)
     if proposal.speculative:
         stamp = (proposal.date or "1970-01-01T00:00:00Z").replace(":", "").replace("-", "")
-        out[f"status/{stamp[:15]}-{proposal.author}.yaml"] = _yaml(status_record(proposal))
+        # The same stamp shape as every other record, ``20260910T121314Z`` (curator.stamp).
+        out[f"status/{stamp[:15]}Z-{proposal.author}.yaml"] = _yaml(status_record(proposal))
     return out
 
 

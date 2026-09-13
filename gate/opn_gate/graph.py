@@ -351,12 +351,17 @@ def find_root(nodes: dict[str, NodeFacts], declaration: StatusRecord | None) -> 
     superseded = {n for n in sinks if _is_superseded(nodes[n])}
     if len(sinks) > 1 and superseded:
         sinks = [n for n in sinks if n not in superseded]
-    if len(sinks) > 1 and any(nodes[n].supersedes for n in sinks):
-        sinks = [n for n in sinks if not nodes[n].supersedes]
+    # A revision is set aside only when the node it revises is depended on: that revision is a
+    # sink only because its dependents still name the old id. A revision of the root is the root's
+    # successor and stays a candidate, so a variant beside it is ambiguity, never the root (C7).
+    interior_revisions = {n for n in sinks if nodes[n].supersedes in depended_on}
+    if len(sinks) > 1 and interior_revisions:
+        sinks = [n for n in sinks if n not in interior_revisions]
     if len(sinks) != 1:
         msg = (
             f"root is ambiguous: {len(sinks)} nodes have no dependents ({', '.join(sinks)}); "
-            "declare one in targets/<id>/status/ (target-status/v1 root)"
+            f"declare one as `root:` in a targets/<id>/status/ record "
+            f"({records.TARGET_STATUS_SCHEMAS[-1]})"
         )
         raise GraphError(msg)
     return sinks[0]

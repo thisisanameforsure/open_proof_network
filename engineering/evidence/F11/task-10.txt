@@ -1,0 +1,90 @@
+F11-T10 — a curator's acts, as the end-to-end run met them (Q30)
+Session 2026-09-13. Base commit 923a6ce (F12-T7, which committed the finding tests).
+
+Origin: the agent that took Erdős #242 through its life on a clone of the live graph
+(engineering/evidence/F11/task-7.txt §4) reported E, F1–F4 and G. An investigating agent wrote
+gate/tests/test_finding_fg_friction.py (and E in test_finding_de_qa_status.py) asserting the
+correct behaviour without touching production code; F12-T7 committed them as strict expected
+failures, each naming its fix. Mike decided E on 2026-09-13 (refuse unless claimable).
+
+1. Red before (each committed at 923a6ce as a strict xfail; the agent's runs, one line each)
+   E   test_e_status_active_on_a_curated_target_refuses_what_activation_refuses
+         exit 0; index status=active claimable=False
+   F1  test_intake_inherits_the_image_of_the_targets_sharing_its_mathlib_pin
+         exit 2, "this graph's targets do not agree on one gate-spec; pass --spec"
+   F1  test_intake_under_a_mathlib_pin_no_target_shares_needs_a_spec
+         exit 0, spec written under another Mathlib's image
+   F2  test_a_back_dated_dormancy_is_judged_at_its_own_date      exit 0, record written
+   F3  test_a_speculative_crux_status_record_is_stamped_like_every_other_record
+         status/20260913T120000-prover-b.yaml (no Z)
+   F4  test_activating_an_active_target_is_refused               DID NOT RAISE
+   F4  test_activation_does_not_reopen_a_known_result            DID NOT RAISE
+   G   test_root_ambiguity_names_the_current_target_status_schema message cites target-status/v1
+   G   test_root_ambiguity_lists_the_revision_it_set_aside        'a-v2' missing from the message
+   G   test_a_variant_beside_a_revised_root_is_not_inferred_as_the_root
+         find_root returned 'v', the variant, as the root
+
+2. The first fast-tier run after the fixes, before any test was touched:
+   10 XPASS(strict) — every fix above flipped its test — and 6 more failures, each read before
+   acting:
+   - test_branches_round3.py::test_files_needs_a_checkout_or_the_dep_statements asserted the
+     Z-less crux name (F3's defect); updated to the Z name with the reason in place.
+   - test_products.py::test_find_root_edge_cases_with_revisions asserted "ambiguous: 2 nodes",
+     the count that left the revisions out (G's defect); updated to assert ambiguity and that
+     both revisions are listed.
+   - test_intake_root.py (F11-T7's own tests), four that met a new rule: the CLI intake's record
+     is pinned to a Mathlib no fixture target shares, so it passes --spec (F1); two `active`
+     declarations first make the target claimable (E); the carry-forward test declares dormant.
+   The ten xfail marks were then removed by a script asserting each removal landed once.
+
+3. Green after
+== uv run pytest gate/tests/test_finding_fg_friction.py gate/tests/test_finding_de_qa_status.py -v
+gate/tests/test_finding_fg_friction.py::test_intake_inherits_the_image_of_the_targets_sharing_its_mathlib_pin PASSED [  4%]
+gate/tests/test_finding_fg_friction.py::test_intake_under_a_mathlib_pin_no_target_shares_needs_a_spec PASSED [  9%]
+gate/tests/test_finding_fg_friction.py::test_targets_disagreeing_on_the_trust_base_still_need_a_spec PASSED [ 14%]
+gate/tests/test_finding_fg_friction.py::test_a_back_dated_dormancy_is_judged_at_its_own_date PASSED [ 19%]
+gate/tests/test_finding_fg_friction.py::test_a_dormancy_dated_after_the_clock_does_not_open_the_window PASSED [ 23%]
+gate/tests/test_finding_fg_friction.py::test_a_speculative_crux_status_record_is_stamped_like_every_other_record PASSED [ 28%]
+gate/tests/test_finding_fg_friction.py::test_the_missing_z_changes_order_only_within_one_second PASSED [ 33%]
+gate/tests/test_finding_fg_friction.py::test_activating_an_active_target_is_refused PASSED [ 38%]
+gate/tests/test_finding_fg_friction.py::test_activation_does_not_reopen_a_known_result PASSED [ 42%]
+gate/tests/test_finding_fg_friction.py::test_activating_a_dormant_target_is_allowed PASSED [ 47%]
+gate/tests/test_finding_fg_friction.py::test_root_ambiguity_names_the_current_target_status_schema PASSED [ 52%]
+gate/tests/test_finding_fg_friction.py::test_root_ambiguity_lists_the_revision_it_set_aside PASSED [ 57%]
+gate/tests/test_finding_fg_friction.py::test_a_variant_beside_a_revised_root_is_not_inferred_as_the_root PASSED [ 61%]
+gate/tests/test_finding_fg_friction.py::test_revisions_are_still_set_aside_where_f08_q16_meant_them PASSED [ 66%]
+gate/tests/test_finding_de_qa_status.py::test_d_reader_holds_a_row_to_the_writers_coherence_rules PASSED [ 71%]
+gate/tests/test_finding_de_qa_status.py::test_d_a_rows_kind_is_its_checks_not_what_the_record_claims PASSED [ 76%]
+gate/tests/test_finding_de_qa_status.py::test_d_a_hand_typed_pass_does_not_raise_a_grade_through_the_command XFAIL [ 80%]
+gate/tests/test_finding_de_qa_status.py::test_d_pin_ci_checks_a_qa_record_by_schema_and_curator_only PASSED [ 85%]
+gate/tests/test_finding_de_qa_status.py::test_d_pin_an_exhibit_row_is_trusted_by_content PASSED [ 90%]
+gate/tests/test_finding_de_qa_status.py::test_e_status_active_on_a_curated_target_refuses_what_activation_refuses PASSED [ 95%]
+gate/tests/test_finding_de_qa_status.py::test_e_pin_a_dormant_curated_target_may_be_declared_active_again PASSED [100%]
+XFAIL gate/tests/test_finding_de_qa_status.py::test_d_a_hand_typed_pass_does_not_raise_a_grade_through_the_command - finding D3 (D-9 v3.12, F12 user story): a hand-typed clean pass raises a grade; fix: CI re-runs the screens on a QA pull request (Mike, 2026-09-13)
+======================== 20 passed, 1 xfailed in 7.22s =========================
+
+== tests updated because they pinned a fixed defect, or now meet a new rule
+gate/tests/test_products.py::test_find_root_edge_cases_with_revisions PASSED [  5%]
+gate/tests/test_branches_round3.py::test_files_needs_a_checkout_or_the_dep_statements PASSED [ 11%]
+gate/tests/test_intake_root.py::test_intake_new_declares_the_root_it_scaffolds PASSED [ 17%]
+gate/tests/test_intake_root.py::test_a_new_targets_first_variant_keeps_the_products_rendering PASSED [ 23%]
+gate/tests/test_intake_root.py::test_an_imported_target_declares_itself_as_root PASSED [ 29%]
+gate/tests/test_intake_root.py::test_the_cli_prints_the_root_the_record_declares PASSED [ 35%]
+gate/tests/test_intake_root.py::test_later_declarations_carry_the_root_forward PASSED [ 41%]
+gate/tests/test_intake_root.py::test_a_curator_declaration_carries_the_root_forward[active] PASSED [ 47%]
+gate/tests/test_intake_root.py::test_a_curator_declaration_carries_the_root_forward[dormant] PASSED [ 52%]
+gate/tests/test_intake_root.py::test_the_status_command_carries_the_root_forward PASSED [ 58%]
+gate/tests/test_intake_root.py::test_a_target_that_never_declared_a_root_gets_none PASSED [ 64%]
+gate/tests/test_intake_root.py::test_a_revised_declared_root_is_followed_to_its_revision PASSED [ 70%]
+gate/tests/test_intake_root.py::test_a_twice_revised_declared_root_is_followed_to_the_end PASSED [ 76%]
+gate/tests/test_intake_root.py::test_a_consolidated_declared_root_is_followed_to_the_node_kept PASSED [ 82%]
+gate/tests/test_intake_root.py::test_a_superseded_root_with_no_successor_is_a_loud_refusal PASSED [ 88%]
+gate/tests/test_intake_root.py::test_a_supersession_loop_is_a_loud_refusal PASSED [ 94%]
+gate/tests/test_intake_root.py::test_the_carried_root_is_the_one_the_products_read PASSED [100%]
+============================== 17 passed in 5.07s ==============================
+
+== fast tier
+1578 passed, 61 deselected, 13 xfailed, 2 warnings in 96.93s (0:01:36)
+
+4. Still held as strict expected failures (13), for the tasks running on their own branches:
+   F11-T8 (A, 5), F11-T9 (C, 7), F12-T8 (D3, 1).

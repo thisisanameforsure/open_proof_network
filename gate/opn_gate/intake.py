@@ -430,6 +430,32 @@ def post(graph_root: Path, target_id: str, *, venue: str, url: str, date: str) -
     return (path.resolve().relative_to(graph_root.resolve()).as_posix(),)
 
 
+#: The statuses a curated target may be activated from: ``listed`` (R5) and ``dormant``, which
+#: D-33 makes reversible. ``active`` has nothing to flip; ``resolved`` and ``known-result`` close
+#: claiming (R4) and are not reopened by activation.
+ACTIVATABLE: tuple[str, ...] = (LISTED, DORMANT)
+
+
+def activation_refusal(destination: Path, doc: dict[str, Any]) -> str | None:
+    """Why this curated target cannot be declared active, or ``None`` (R4, R5; D-33).
+
+    One rule for both ways of saying it — ``intake activate`` and the curator's
+    ``opn-gate status <target> active`` — so a second command cannot publish an ``active`` target
+    that is not claimable, a state D-33 has no name for (Mike, 2026-09-13).
+    """
+    latest = records.load_target_status(destination)
+    current = latest.status if latest is not None else None
+    if current is not None and current not in ACTIVATABLE:
+        return (
+            f"its status is {current!r}, and a target is activated from "
+            f"{' or '.join(ACTIVATABLE)} only (D-33; R4)"
+        )
+    claimable, reasons = claimability(doc, status=ACTIVE, grade=fidelity.target_grade(destination))
+    if not claimable:
+        return "; ".join(explain(r) for r in reasons)
+    return None
+
+
 def activate(
     graph_root: Path, target_id: str, *, author: str, date: str, status: str | None = None
 ) -> tuple[str, ...]:
@@ -444,11 +470,10 @@ def activate(
     if doc is None:
         msg = f"target {target_id!r} has no {TARGET_FILE}; only a curated target is activated"
         raise IntakeError(msg)
+    refusal = activation_refusal(destination, doc)
+    if refusal is not None:
+        raise IntakeError(f"cannot activate {target_id}: {refusal}")
     grade = fidelity.target_grade(destination)
-    claimable, reasons = claimability(doc, status=ACTIVE, grade=grade)
-    if not claimable:
-        msg = "cannot activate " + target_id + ": " + "; ".join(explain(r) for r in reasons)
-        raise IntakeError(msg)
     path = _write_status(
         destination,
         status_doc(

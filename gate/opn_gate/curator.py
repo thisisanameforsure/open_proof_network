@@ -25,7 +25,7 @@ from typing import Any
 
 import yaml
 
-from opn_gate import defs, layout, records, scaffold, schemas
+from opn_gate import defs, intake, layout, records, scaffold, schemas
 from opn_gate import graph as graphmod
 from opn_gate.paths import SCHEMAS_FOR_ROLE, VERSION_RE
 from opn_gate.steps.base import RunContext
@@ -470,6 +470,15 @@ def declare_status(  # noqa: PLR0913 — the declaration's facts, each named
     if status not in TARGET_STATUSES:
         msg = f"a target may be declared {', '.join(TARGET_STATUSES)}; {status!r} is a node status"
         raise CuratorError(msg)
+    if status == "active":
+        target_directory = graph_root / "targets" / target_id
+        curated = intake.load_doc(target_directory)
+        # F11-R5 on a curated target, whichever command says `active`; a pre-F11 target keeps
+        # F08-R11, where an active declaration needs no evidence (Mike, 2026-09-13).
+        refusal = intake.activation_refusal(target_directory, curated) if curated else None
+        if refusal is not None:
+            msg = f"cannot declare {target_id} active: {refusal} (F11-R5)"
+            raise CuratorError(msg)
     full_cause = cause
     if status == "dormant":
         series = starvation_series(graph_root, target_id, k=k, n_days=n_days, last_merge=last_merge)

@@ -296,8 +296,9 @@ def test_files_needs_a_checkout_or_the_dep_statements(tmp_path: Path) -> None:
     out = scaffold.files(root / NODES, proposal)
     tutorial_statement = (GRAPH / NODES / TUTORIAL / "Statement.lean").read_text()
     assert scaffold.strip_imports(tutorial_statement) in out["Context.lean"]
-    assert out["status/20260910T121314-alice.yaml"].startswith("schema: node-status/v1")
-    assert "speculative" in out["status/20260910T121314-alice.yaml"]
+    # Stamped like every other record, with its Z (finding F3; this used to pin the Z-less name).
+    assert out["status/20260910T121314Z-alice.yaml"].startswith("schema: node-status/v1")
+    assert "speculative" in out["status/20260910T121314Z-alice.yaml"]
 
 
 # --- postmerge (F05-R10; F07-R6) ------------------------------------------------------------------
