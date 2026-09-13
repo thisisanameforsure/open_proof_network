@@ -1,0 +1,22 @@
+F07-T9 · alternate classification (R3, R7; AC9) · 2026-09-13T21:02:17Z · network cbaff8a + working tree
+
+$ uv run pytest gate/tests/test_alternate.py gate/tests/test_modes.py -v
+gate/tests/test_alternate.py::test_an_alternate_path_has_its_own_role PASSED [  0%]
+gate/tests/test_alternate.py::test_alternate_classification_and_refusals PASSED [  1%]
+gate/tests/test_alternate.py::test_an_alternate_on_an_unproved_node_is_refused PASSED [  2%]
+gate/tests/test_alternate.py::test_a_copy_of_an_earlier_alternate_is_a_duplicate_and_a_changed_one_is_not PASSED [  3%]
+gate/tests/test_alternate.py::test_an_alternate_rides_with_appends_but_not_with_a_proof_or_a_partial PASSED [  4%]
+gate/tests/test_alternate.py::test_a_first_proof_is_still_a_proof PASSED [  5%]
+gate/tests/test_alternate.py::test_the_tutorial_nodes_proof_stays_open_to_rehearsal PASSED [  6%]
+gate/tests/test_alternate.py::test_an_unreadable_meta_is_not_taken_for_a_tutorial PASSED [  7%]
+============================= 102 passed in 2.49s ==============================
+
+Red first, before the fix: test_alternate.py 5 failed, 1 passed — the alternate path classified as role 'partial', mode 'partial'; no alternate-unproved or alternate-duplicate refusal existed.
+
+First cut refused a modified Proof.lean in the classifier. The pre-commit suite failed one test:
+  gate/tests/test_walkthrough.py::test_agents_md_executes — line 481 (classify on the tutorial node): opn-gate: proof-replaces-merged
+D-27 keeps the tutorial node permanently open (every operator proves it again, off-ledger), and the classifier cannot read the tutorial flag,
+so the refusal moved to modes.check (check_replaced_proof), which exempts a META with tutorial: true and refuses an unreadable META (C7).
+
+$ uv run pytest gate/tests/test_walkthrough.py -q
+4 passed, 1 deselected, 2 warnings in 2.46s

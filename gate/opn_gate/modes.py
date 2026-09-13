@@ -61,11 +61,19 @@ from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Change, Located, Role
 
 Mode = Literal[
-    "proof", "partial", "append", "explainer", "proposal", "curator", "intake", "fidelity"
+    "proof",
+    "partial",
+    "alternate",
+    "append",
+    "explainer",
+    "proposal",
+    "curator",
+    "intake",
+    "fidelity",
 ]
 
 #: The modes that run the Lean pipeline; the others never build a proof (R9, R10; F08-R2).
-BUILDING_MODES: tuple[Mode, ...] = ("proof", "partial")
+BUILDING_MODES: tuple[Mode, ...] = ("proof", "partial", "alternate")
 #: F08-R8: the graph's role file — the founder's, and the only one at Stage 0 (F08 §7).
 CURATORS_FILE = "curators.json"
 #: F08-R8, D-22: why step 9 is not asked of a curator PR while the founder is the only curator.
@@ -154,6 +162,9 @@ class Classification:
     #: rule reads it after classification (a certificate is its attestor's own act, F11-R3);
     #: it is the host's fact, not a finding, so ``as_dict`` does not publish it.
     author: str | None = None
+    #: Each existing ``Proof.lean`` the diff modifies. Whether that is allowed depends on the
+    #: node's tutorial flag, which only ``check`` can read (D-3 v3.13, D-27); not published.
+    replaced: tuple[str, ...] = ()
 
     @property
     def ok(self) -> bool:
@@ -177,6 +188,10 @@ class Classification:
         only when there is one (F08-R8)."""
         if self.mode in ("curator", "intake"):
             return bool(self.reviewers)
+        if self.mode == "alternate":
+            # D-4 v3.13: the statement met step 9 when the first proof merged, and a later proof
+            # changes no verdict, status, dependency or credit (D-25, F07-Q20).
+            return False
         return self.mode in BUILDING_MODES
 
     @property
@@ -302,8 +317,19 @@ def classify(  # noqa: PLR0911 — one return per rejection
     mode = _mode_for(roles)
     if mode is None:
         return Classification(None, target_id, node_id, tuple(located), (_mixed(roles),))
+    alternates = [loc.path for loc in located if loc.role == "alternate"]
+    if len(alternates) > 1:
+        multiple = Diagnostic(
+            "alternate-multiple",
+            f"a pull request adds one alternate proof (D-25); this one adds {len(alternates)}: "
+            + ", ".join(alternates),
+            {"paths": alternates},
+        )
+        return Classification(None, target_id, node_id, tuple(located), (multiple,))
     admit = node_id if mode == "proposal" else None
-    return Classification(mode, target_id, node_id, tuple(located), admit=admit)
+    modified = {c.path for c in changes if c.status == "M"}
+    replaced = tuple(loc.path for loc in located if loc.role == "proof" and loc.path in modified)
+    return Classification(mode, target_id, node_id, tuple(located), admit=admit, replaced=replaced)
 
 
 def _classify_curator(  # noqa: PLR0913 — the diff, its located paths and the host's one fact
@@ -632,6 +658,8 @@ def _mode_for(roles: set[Role]) -> Mode | None:  # noqa: PLR0911 — one return 
         return None  # a node file or a status record outside a new directory, with other things
     if "proof" in roles or "waiver" in roles:
         return "proof" if roles <= ({"proof", "waiver"} | appendish) else None
+    if "alternate" in roles:  # D-25 v3.13: a later proof of a proved node, plus appends
+        return "alternate" if roles <= ({"alternate"} | appendish) else None
     if "partial" in roles:
         return "partial" if roles <= ({"partial"} | appendish) else None
     if "explainer" in roles:
@@ -675,6 +703,9 @@ def check(
         problems.extend(check_proposal(graph_root, classification, base))
     if classification.mode == "fidelity":
         problems.extend(check_certificate(graph_root, classification))
+    if classification.mode == "alternate":
+        problems.extend(check_alternate(graph_root, classification))
+    problems.extend(check_replaced_proof(graph_root, classification))
     return problems
 
 
@@ -1322,6 +1353,75 @@ def _has_proof(graph_root: Path, located: Located) -> bool:
     assert located.node_id is not None
     proof = graph_root / "targets" / located.target_id / "nodes" / located.node_id / "Proof.lean"
     return proof.is_file()
+
+
+def check_replaced_proof(graph_root: Path, classification: Classification) -> list[Diagnostic]:
+    """D-3 v3.13: a merged ``Proof.lean`` is never modified; a later proof of the node is an
+    alternate (D-25). The tutorial node is the exception D-27 makes it: permanently open, every
+    operator proves it again, and it earns nothing, so its proof file is a rehearsal slot rather
+    than a record. A META that cannot be read is not taken as a tutorial (C7: refuse)."""
+    problems: list[Diagnostic] = []
+    for path in classification.replaced:
+        node = path.rsplit("/", 1)[0]
+        try:
+            meta = yaml.safe_load((graph_root / node / "META.yaml").read_text(encoding="utf-8"))
+        except (OSError, yaml.YAMLError):
+            meta = None
+        if isinstance(meta, dict) and meta.get("tutorial") is True:
+            continue
+        problems.append(
+            Diagnostic(
+                "proof-replaces-merged",
+                f"{path}: a merged Proof.lean is never modified (D-3 v3.13); a later proof of "
+                f"this node is submitted as {node}/attempts/<ts>-<pseudonym>"
+                f"{paths.ALTERNATE_SUFFIX} (D-25)",
+                {"path": path},
+            )
+        )
+    return problems
+
+
+def check_alternate(graph_root: Path, classification: Classification) -> list[Diagnostic]:
+    """R7, D-25 v3.13: an alternate is a later proof of a proved node. The one duplicate the gate
+    refuses is an exact copy of the node's proof or of an alternate already recorded; no
+    similarity between proofs is ever judged (F07-Q20)."""
+    problems: list[Diagnostic] = []
+    for located in (loc for loc in classification.located if loc.role == "alternate"):
+        assert located.node_id is not None
+        if not _has_proof(graph_root, located):
+            problems.append(
+                Diagnostic(
+                    "alternate-unproved",
+                    f"{located.node_id} has no merged Proof.lean, so there is nothing for this to "
+                    "be an alternate to: submit it as the node's Proof.lean (D-25)",
+                    {"path": located.path, "node": located.node_id},
+                )
+            )
+            continue
+        data = _read(graph_root, located)
+        if isinstance(data, Diagnostic):
+            problems.append(data)
+            continue
+        node_dir = graph_root / "targets" / located.target_id / "nodes" / located.node_id
+        itself = graph_root / located.path
+        recorded = sorted(
+            p
+            for p in (node_dir / "attempts").glob(f"*{paths.ALTERNATE_SUFFIX}")
+            if p.is_file() and p != itself
+        )
+        for other in (node_dir / "Proof.lean", *recorded):
+            if other.read_bytes() == data:
+                same = other.relative_to(graph_root).as_posix()
+                problems.append(
+                    Diagnostic(
+                        "alternate-duplicate",
+                        f"{located.path} is byte-identical to {same}; an alternate must differ "
+                        "from every proof already recorded (D-25)",
+                        {"path": located.path, "same_as": same},
+                    )
+                )
+                break
+    return problems
 
 
 def _read(graph_root: Path, located: Located) -> bytes | Diagnostic:

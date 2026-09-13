@@ -42,6 +42,9 @@ class Claim:
 
 
 APPEND_ONLY_DIRS: tuple[str, ...] = ("attempts/", "annex/")
+#: D-25 v3.13: a proof of a node whose Proof.lean has merged lands beside it under attempts/,
+#: named for this suffix; any other flat .lean there is a partial assembly (D-12 #5).
+ALTERNATE_SUFFIX = "-alternate.lean"
 WAIVER_PATH = "waivers/native_decide.yaml"  # F02-R8: permitted only when the proof needs it
 
 
@@ -159,6 +162,7 @@ Role = Literal[
     "proof",  # the node's Proof.lean (D-3): a proof, counterexample or vacuity certificate
     "waiver",  # waivers/native_decide.yaml (F02-R8)
     "partial",  # a .lean assembly under attempts/ (D-12 #5): the node stays open
+    "alternate",  # attempts/<ts>-<pseudonym>-alternate.lean: a later proof of a proved node (D-25)
     "postmortem",  # attempts/<ts>-<contributor>.yaml (D-13)
     "precheck-record",  # attempts/precheck/<name>.json (D-34)
     "annex",  # annex/<hash>.md (D-31)
@@ -363,7 +367,7 @@ def _node_role(rest: str) -> Role | None:  # noqa: PLR0911, PLR0912 — one bran
     if rest.startswith("attempts/"):
         name = rest[len("attempts/") :]
         if _is_flat(name, (".lean",)):
-            return "partial"
+            return "alternate" if name.endswith(ALTERNATE_SUFFIX) else "partial"
         return "postmortem" if _is_flat(name, YAML_SUFFIXES) else None
     if rest.startswith("annex/"):
         return "annex" if _is_flat(rest[len("annex/") :], (".md",)) else None
