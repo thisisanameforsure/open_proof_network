@@ -544,3 +544,17 @@ The law of the project:
   products because no `target-status` record declares a `root` (F08-Q19 again; the tutorial's
   was written by hand), and three postmortems filed in one second share a file name, so a merge
   keeps one. Notes and the replay in `engineering/session-notes/2026-09-12-erdos-376-tester.md`.
+- 2026-09-13 — Findings §1 (a) is done on the live graph: graph PRs #25–#30 declare the root of
+  erdos-52, -68, -172, -376, -406 and euclid-primes (`infinitude-of-primes`), status unchanged,
+  each rehearsed first with the pinned gate's `classify` (curator mode, no problems) and root
+  inference (ambiguous without the record, the root with it). Curator PRs gate in ~15 s, so
+  the rounds are paced by the post-merge bot commit (~3 min), not the gate; the strict up-to-date
+  rule makes them sequential whatever the tooling. (b), `intake new` writing the root, is still
+  a spec task. Three things cost time: `products` on a Mathlib target pulls the 3.5 GiB image
+  even to report a root error, so it filled the disk (Docker down at 126 MiB free) — call
+  `graph.load_target` in process to test root inference; GitHub answered 500/502 to *every* API
+  write on every repo of the account for ~10 min while reads, pushes and gists worked, from two
+  identities — probe one inert write elsewhere before debugging the repo, then retry; and a
+  helper that captured `gh api ... 2>&1` turned a network timeout into a "PR number", so the
+  loop waited 30 min on a PR that did not exist. Validate a captured value's shape, never its
+  non-emptiness.
