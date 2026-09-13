@@ -218,7 +218,15 @@ INTAKE_ROLES: tuple[Role, ...] = ("target-record", "gate-spec", "definition", "f
 #: Roles that may be modified as well as added: a proof is resubmittable, a waiver follows it, and
 #: a hole's witness slot is filled in place (F08-R5) — everything else is append-only.
 #: The attempts ledger is one file that grows (F12-R10): modified in place, entries only added.
-MODIFIABLE_ROLES: tuple[Role, ...] = ("proof", "waiver", "witness", "attempts-ledger")
+#: The target record takes its D-10 posting in place (F11-R5): ``modes.check_posting`` holds the
+#: modification to that one field, null to a posting, and a target record is never deleted.
+MODIFIABLE_ROLES: tuple[Role, ...] = (
+    "proof",
+    "waiver",
+    "witness",
+    "attempts-ledger",
+    "target-record",
+)
 
 #: The schema versions each record may declare; an annex validates its YAML front matter.
 #: A role carries a *set* because D-34 versions rather than edits: `target-status` gained v2

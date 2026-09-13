@@ -23,17 +23,22 @@ So the diff is classified into exactly one mode before anything else runs:
                  reviews (D-29)
 ``curator``      status records, or a versioned node ``<id>-v<n>``, by a login listed in the
                  graph's ``curators.json`` (F08-R8); reviewed by a second listed identity when
-                 there is one (D-21, D-22)
+                 there is one (D-21, D-22). Also a curated target's D-10 posting: its
+                 ``target.yaml`` modified alone, ``posting`` null to a posting (F11-R5)
 ``intake``       a whole new target — ``target.yaml``, ``gate-spec.json``, ``defs/``, the
                  fidelity certificates, a status record and exactly one node, the root — by a
                  listed curator (F11-R2, D-6); the root is admitted, which builds the
                  definitions first, and a second listed identity reviews when there is one
+``fidelity``     only new certificates for one subject of an existing curated target, opened by
+                 their attestor (F11-R3, D-9): the signature is the review, so nobody else
+                 approves it, and it builds nothing
 ===============  ==========================================================================
 
 A diff that fits none of them is rejected at step 2, naming the paths — never guessed at.
 
 Modes are decided from the diff alone, plus one fact the host reports: who opened the pull
-request, which only the curator rule consults. Whether the *submitter* called it a counterexample
+request, which the curator rule consults and the certificate rule compares with the attestor
+(``check_certificate``). Whether the *submitter* called it a counterexample
 or a reduction is in the ``opn-submission`` block (``submission-meta/v1``, F07-R2), and the
 artifact checks that consume it are F07-T2's; classification never reads it, because the block is
 not evidentiary and the paths are.
@@ -45,17 +50,19 @@ import json
 import re
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Literal
 
 import yaml
 
+from opn_gate import fidelity, intake, layout, paths, qa, schemas
 from opn_gate import graph as graphmod
-from opn_gate import layout, paths, schemas
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Change, Located, Role
 
-Mode = Literal["proof", "partial", "append", "explainer", "proposal", "curator", "intake"]
+Mode = Literal[
+    "proof", "partial", "append", "explainer", "proposal", "curator", "intake", "fidelity"
+]
 
 #: The modes that run the Lean pipeline; the others never build a proof (R9, R10; F08-R2).
 BUILDING_MODES: tuple[Mode, ...] = ("proof", "partial")
@@ -143,6 +150,10 @@ class Classification:
     #: Who may give step 9's approval. ``None`` means any non-author (D-4); a curator PR names the
     #: other listed identities (F08-R8), and an empty tuple is the founding-team waiver (D-22).
     reviewers: tuple[str, ...] | None = None
+    #: The login that opened the pull request, as the host reported it. Only the certificate
+    #: rule reads it after classification (a certificate is its attestor's own act, F11-R3);
+    #: it is the host's fact, not a finding, so ``as_dict`` does not publish it.
+    author: str | None = None
 
     @property
     def ok(self) -> bool:
@@ -232,8 +243,41 @@ def classify(  # noqa: PLR0911 — one return per rejection
         loc for loc in located if loc.role in paths.CURATOR_ROLES and loc.node_id not in new_dirs
     ]
     if any(loc.role in paths.INTAKE_ROLES for loc in located):
-        return _classify_intake(
-            located, changes, target_id, new_dirs, author=author, curators=curators or Curators()
+        # A target's own files arrive whole in its intake (F11-R2); after it, exactly two of them
+        # change again, each in a pull request of its own (F11-R5): the record takes its posting,
+        # and a signer adds certificates (F11-R3). Anything else is an intake, or a mixture.
+        roles = {loc.role for loc in located}
+        added = {c.path for c in changes if c.status == "A"}
+        adds_record = any(loc.role == "target-record" and loc.path in added for loc in located)
+        if adds_record or roles & {"gate-spec", "definition"}:
+            return _classify_intake(
+                located,
+                changes,
+                target_id,
+                new_dirs,
+                author=author,
+                curators=curators or Curators(),
+            )
+        if roles == {"target-record"}:
+            return _classify_posting(
+                located, target_id, author=author, curators=curators or Curators()
+            )
+        if roles == {"fidelity"}:
+            return _classify_certificate(located, target_id, author=author)
+        return Classification(
+            None,
+            target_id,
+            None,
+            tuple(located),
+            (
+                Diagnostic(
+                    "mode-mixed",
+                    "a target's posting (target.yaml) and a signer's fidelity certificates are "
+                    "each a pull request of their own, carrying nothing else (F11-R3, R5); this "
+                    "one mixes: " + ", ".join(sorted(roles)),
+                    {"roles": sorted(roles)},
+                ),
+            ),
         )
     if curator_records or any(paths.is_versioned(n) for n in new_dirs):
         return _classify_curator(
@@ -464,6 +508,79 @@ def _classify_intake(  # noqa: PLR0913 — one return per refusal; the diff and 
     )
 
 
+def _classify_posting(
+    located: list[Located], target_id: str, *, author: str | None, curators: Curators
+) -> Classification:
+    """F11-R5 (D-10): ``targets/<id>/target.yaml`` modified alone is ``intake post``'s curator PR.
+
+    The shape is all the diff can say; that the modification is the posting and nothing else is
+    ``check_posting``'s, which needs the base. The record is the only path in the pull request —
+    the caller routes here only when it is — so the one-node rule has nothing to count.
+    """
+    if author is None or author not in curators.logins:
+        who = "unknown" if author is None else repr(author)
+        return Classification(
+            None,
+            target_id,
+            None,
+            tuple(located),
+            (
+                Diagnostic(
+                    "curator-unlisted",
+                    f"recording a target's D-10 posting is a curator's act (F11-R5) and the pull "
+                    f"request's author ({who}) is not listed in {CURATORS_FILE}",
+                    {"author": author, "listed": sorted(curators.logins)},
+                ),
+            ),
+        )
+    reviewers = tuple(sorted(curators.logins - {author}))
+    return Classification(
+        "curator", target_id, None, tuple(located), reviewers=reviewers, author=author
+    )
+
+
+_CERTIFICATE_NAME_RE = re.compile(r"^(?P<subject>.+)-[1-9][0-9]*\.ya?ml$")
+
+
+def certificate_subject(path: str) -> str:
+    """The subject a certificate's file name gives (``fidelity/<subject>-<n>.yaml``, F11-R3), or
+    the bare file name when it follows no such pattern (then ``check_certificate`` refuses it)."""
+    name = PurePosixPath(path).name
+    m = _CERTIFICATE_NAME_RE.match(name)
+    return m.group("subject") if m else name
+
+
+def _classify_certificate(
+    located: list[Located], target_id: str, *, author: str | None
+) -> Classification:
+    """F11-R3, D-9: new certificates for one subject, and nothing else, are the signer's own PR.
+
+    Every change is an addition — a certificate is not modifiable, so ``_locate_change`` has
+    already refused a rewrite or a deletion by path. Who may open it is not a curator question:
+    the pull request's author must be the certificate's attestor, which is in the file, so it is
+    ``check_certificate``'s, with the other content rules. No reviewer is named: D-9's non-author
+    signature *is* the review of the statement, and asking another person to approve it would
+    make the signer's act someone else's.
+    """
+    subjects = sorted({certificate_subject(loc.path) for loc in located})
+    if len(subjects) != 1:
+        return Classification(
+            None,
+            target_id,
+            None,
+            tuple(located),
+            (
+                Diagnostic(
+                    "certificate-subjects",
+                    "a certificate pull request signs one subject (F11-R3, D-9); this one adds "
+                    "certificates for " + ", ".join(subjects),
+                    {"subjects": subjects},
+                ),
+            ),
+        )
+    return Classification("fidelity", target_id, None, tuple(located), author=author)
+
+
 def _mixed(roles: set[Role]) -> Diagnostic:
     return Diagnostic(
         "mode-mixed",
@@ -552,21 +669,30 @@ def check(
             problems.extend(check_explainer_file(graph_root, located, classification))
         elif located.role in paths.CURATOR_ROLES:
             problems.extend(check_status_record(graph_root, located, classification))
+        elif located.role == "target-record" and classification.mode == "curator":
+            problems.extend(check_posting(graph_root, located, base))
     if classification.mode == "proposal":
         problems.extend(check_proposal(graph_root, classification, base))
+    if classification.mode == "fidelity":
+        problems.extend(check_certificate(graph_root, classification))
     return problems
 
 
-def check_status_record(
+def check_status_record(  # noqa: PLR0911 — one return per rule
     graph_root: Path, located: Located, classification: Classification
 ) -> list[Diagnostic]:
     """A status record validates against its schema; inside a proposer's new node it may only
-    say ``speculative`` (F08-Q2) — every other status is a curator's judgment (D-8, D-14, D-18)."""
+    say ``speculative`` (F08-Q2) — every other status is a curator's judgment (D-8, D-14, D-18).
+    A target declared ``active`` is held to activation's rule (``check_activation``)."""
     data = _read(graph_root, located)
     if isinstance(data, Diagnostic):
         return [data]
     problems = _check_schema(located, data, code="record-invalid")
-    if problems or classification.mode != "proposal":
+    if problems:
+        return problems
+    if located.role == "target-status":
+        return check_activation(graph_root, located, data)
+    if classification.mode != "proposal":
         return problems
     doc = _document(located, data)
     if isinstance(doc, Diagnostic):
@@ -581,6 +707,261 @@ def check_status_record(
             )
         ]
     return []
+
+
+_ABSENT = object()
+
+
+def check_posting(  # noqa: PLR0911 — one return per rule
+    graph_root: Path, located: Located, base: BaseReader | None
+) -> list[Diagnostic]:
+    """F11-R5, D-10: a modified target record records its posting and nothing else.
+
+    Two facts, one from each side of the diff: at the base ``posting`` was null (``intake post``
+    records a posting once, so a rewrite or a removal is refused), and at the head it is a
+    posting the record's schema accepts — with every other field exactly as it was, because the
+    record's other fields are D-6's artifacts and are not re-opened by posting (F11-Q10).
+    """
+    if base is None:
+        return [
+            Diagnostic(
+                "posting-unverified",
+                f"{located.path}: whether the target had no posting before is a fact about the "
+                "base commit, which this check was not given (F11-R5)",
+                {"path": located.path},
+            )
+        ]
+    before_bytes = base(located.path)
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    after = _document(located, data)
+    if isinstance(after, Diagnostic):
+        return [after]
+    before = _document(located, before_bytes) if before_bytes is not None else None
+    if not isinstance(before, dict):
+        return [
+            Diagnostic(
+                "posting-unverified",
+                f"{located.path}: the base commit holds no readable target record to compare the "
+                "posting against (F11-R5)",
+                {"path": located.path},
+            )
+        ]
+    violations = schemas.violations(after, intake.SCHEMA)
+    if violations:
+        return [
+            Diagnostic(
+                "record-invalid",
+                f"{located.path} does not satisfy {intake.SCHEMA}: {v.path}: {v.message}",
+                {"path": located.path, "schema": intake.SCHEMA, "field": v.path},
+            )
+            for v in violations[:5]
+        ]
+    changed = sorted(
+        key
+        for key in set(before) | set(after)
+        if key != "posting" and before.get(key, _ABSENT) != after.get(key, _ABSENT)
+    )
+    if changed:
+        return [
+            Diagnostic(
+                "posting-fields",
+                f"{located.path}: a curator modifies a target record only to record its D-10 "
+                f"posting (F11-R5); this change also edits {', '.join(changed)}",
+                {"path": located.path, "fields": changed},
+            )
+        ]
+    if before.get("posting") is not None:
+        return [
+            Diagnostic(
+                "posting-recorded",
+                f"{located.path}: the target is already posted at {before['posting'].get('url')}; "
+                "a posting is recorded once and never rewritten or removed (F11-R5, D-10)",
+                {"path": located.path, "posting": before["posting"]},
+            )
+        ]
+    if after.get("posting") is None:
+        return [
+            Diagnostic(
+                "posting-absent",
+                f"{located.path}: the change records no posting; a curator modifies a target "
+                "record only to record its D-10 posting (F11-R5)",
+                {"path": located.path},
+            )
+        ]
+    return []
+
+
+def check_certificate(  # noqa: PLR0911, PLR0912 — one return per rule that stops the rest
+    graph_root: Path, classification: Classification
+) -> list[Diagnostic]:
+    """F11-R3, D-9, F12-R9: a certificate pull request is its signer's, on a screened statement.
+
+    In order: the target is curated (its ``target.yaml`` is in the tree — and since this pull
+    request adds certificates only, the head's record is the base's); every added file is a
+    certificate the schema accepts, named for the one subject it grades, which is the root or one
+    of the target's definitions. Then, per certificate: the pull request's author is its attestor;
+    it agrees with the subject's author on record (the earliest certificate already in the tree);
+    and from ``screened-and-signed`` up the attestor is not that author. Last, for a signature,
+    the subject's QA pass is complete for the statement as it stands, read from the files alone
+    (``qa.require_complete``) — the exhibit replay F12-R9 adds belongs to the command, which runs
+    where a toolchain is; this mode starts no sandbox.
+    """
+    target_id = classification.target_id
+    assert target_id is not None
+    target_dir = graph_root / "targets" / target_id
+    if not intake.record_path(target_dir).is_file():
+        return [
+            Diagnostic(
+                "certificate-uncurated",
+                f"{target_id} has no {intake.TARGET_FILE}: certificates stand beside a curated "
+                "target (F11-R3), and a new target's certificates ride in its intake (F11-R2)",
+                {"target": target_id},
+            )
+        ]
+    docs: list[tuple[Located, dict[str, Any]]] = []
+    problems: list[Diagnostic] = []
+    for located in classification.located:
+        data = _read(graph_root, located)
+        doc = data if isinstance(data, Diagnostic) else _document(located, data)
+        if isinstance(doc, Diagnostic):
+            problems.append(doc)
+            continue
+        violations = schemas.violations(doc, fidelity.SCHEMA)
+        problems.extend(
+            Diagnostic(
+                "certificate-invalid",
+                f"{located.path} does not satisfy {fidelity.SCHEMA}: {v.path}: {v.message}",
+                {"path": located.path, "schema": fidelity.SCHEMA, "field": v.path},
+            )
+            for v in violations[:5]
+        )
+        if not violations:
+            docs.append((located, doc))
+    if problems:
+        return problems
+    for located, doc in docs:
+        if certificate_subject(located.path) != doc["subject"]:
+            problems.append(
+                Diagnostic(
+                    "certificate-name",
+                    f"{located.path} grades {doc['subject']!r}; a certificate is named "
+                    f"fidelity/<subject>-<n>.yaml for the subject it grades (F11-R3)",
+                    {"path": located.path, "subject": doc["subject"]},
+                )
+            )
+    if problems:
+        return problems
+    subject = str(docs[0][1]["subject"])
+    known = fidelity.subjects_of(target_dir)
+    if subject not in known:
+        return [
+            Diagnostic(
+                "certificate-subject",
+                f"{subject!r} is not a fidelity subject of {target_id}; D-9's subjects are the "
+                f"root and each definition: {', '.join(known)}",
+                {"subject": subject, "subjects": list(known)},
+            )
+        ]
+    added = {PurePosixPath(loc.path).name for loc, _ in docs}
+    try:
+        on_disk = fidelity.load(target_dir).get(subject, [])
+    except ValueError as exc:  # SchemaError: an earlier certificate no longer reads
+        return [Diagnostic("certificate-invalid", str(exc), {"subject": subject})]
+    on_record = fidelity.author_of([c for c in on_disk if c.path.name not in added])
+    author = classification.author
+    for located, doc in docs:
+        attestor, grade = str(doc["attestor"]), str(doc["grade"])
+        subject_author = str(doc["subject_author"])
+        if author is None or attestor != author:
+            who = "unknown" if author is None else repr(author)
+            problems.append(
+                Diagnostic(
+                    "certificate-attestor",
+                    f"{located.path} is attested by {attestor!r} and the pull request was opened "
+                    f"by {who}: a certificate is its signer's own pull request (F11-R3, D-9)",
+                    {"path": located.path, "attestor": attestor, "author": author},
+                )
+            )
+        if on_record is not None and subject_author != on_record:
+            problems.append(
+                Diagnostic(
+                    "certificate-author",
+                    f"{located.path} names {subject_author!r} as the author of {subject!r}, which "
+                    f"is on record as authored by {on_record!r}; a subject has one author (D-9)",
+                    {
+                        "path": located.path,
+                        "subject_author": subject_author,
+                        "on_record": on_record,
+                    },
+                )
+            )
+        if fidelity.is_signature(grade) and attestor == subject_author:
+            problems.append(
+                Diagnostic(
+                    "certificate-self-signed",
+                    f"{located.path}: {attestor!r} authored {subject!r}, so they cannot attest it "
+                    f"at {grade!r}; every rung from {fidelity.SIGNED_FROM} up is a non-author's "
+                    "signature (D-9, F11-R3)",
+                    {"path": located.path, "attestor": attestor, "grade": grade},
+                )
+            )
+    if problems:
+        return problems
+    if any(fidelity.is_signature(str(doc["grade"])) for _, doc in docs):
+        try:
+            qa.require_complete(target_dir, subject, routed=qa.routed_by_claims(target_dir))
+        except ValueError as exc:  # QaError, or a record or root that does not load
+            return [
+                Diagnostic(
+                    "certificate-qa-incomplete",
+                    f"{exc} — a signature from {fidelity.SIGNED_FROM} up rests on a complete QA "
+                    "pass for the statement as it stands (F12-R9, D-9)",
+                    {"subject": subject, "qa_code": getattr(exc, "code", None)},
+                )
+            ]
+    return []
+
+
+def check_activation(graph_root: Path, located: Located, data: bytes) -> list[Diagnostic]:
+    """F11-R4, R5 (D-6, D-33): a curated target is declared ``active`` only when it is claimable.
+
+    ``intake activate`` refuses while claimability would stay false; a record written any other
+    way (``opn-gate status``, or by hand) reaches the graph through this check instead, which
+    derives claimability on the head tree exactly as the command does. A dormant target that is
+    claimable may be declared active again (D-33's reversal), and a target with no
+    ``target.yaml`` keeps F08-R11, since claimability is not derived for it (F11-Q4, Q5).
+    """
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic) or doc.get("status") != intake.ACTIVE:
+        return [doc] if isinstance(doc, Diagnostic) else []
+    target_dir = graph_root / "targets" / located.target_id
+    try:
+        record = intake.load_doc(target_dir)
+        if record is None:
+            return []
+        grade = fidelity.target_grade(target_dir)
+    except ValueError as exc:  # SchemaError, FidelityError: the inputs do not read
+        return [
+            Diagnostic(
+                "activation-unclaimable",
+                f"{located.path}: claimability cannot be derived for {located.target_id}, so it "
+                f"cannot be declared active (F11-R4, R5): {exc}",
+                {"path": located.path, "reasons": []},
+            )
+        ]
+    claimable, reasons = intake.claimability(record, status=intake.ACTIVE, grade=grade)
+    if claimable:
+        return []
+    return [
+        Diagnostic(
+            "activation-unclaimable",
+            f"{located.path}: {located.target_id} is declared active but would not be claimable "
+            "(F11-R4, R5; D-6): " + "; ".join(intake.explain(r) for r in reasons),
+            {"path": located.path, "reasons": list(reasons)},
+        )
+    ]
 
 
 def check_proposal(
