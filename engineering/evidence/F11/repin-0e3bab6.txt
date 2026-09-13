@@ -1,0 +1,42 @@
+The graph re-pinned to network 0e3bab622e3a6572ca673c4946e360a27e3c7db5 — 2026-09-13
+
+Carries F11-T7..T11 and F12-T7..T8 to the live gate: intake declares the root (R14); posting,
+signature and activation by pull request (Q32); fidelity/v2 (Q31); a removed definition leaves
+the grade (Q33); one activation rule (Q30); the QA reader's rules and the QA re-run (F12-Q18, Q19).
+
+1. CI on 0e3bab6 (run 34757465242): fast tier success; make verify-lean success —
+   63 passed, 1653 deselected in 2715.64s (0:45:15), including the docker-tier test F12-Q19 owed
+   before the re-pin:  gate/tests/test_qa_rerun_docker.py .
+   (api-deploy on the same commit: run 34757465229, success.)
+
+2. Tag gate-0e3bab6 at 0e3bab6 -> image-publish run 34759848655, success:
+   mathlib none                                      ghcr.io/thisisanameforsure/opn-gate@sha256:19d2eb889fc31710677922422f002717c946204ce3a5f8ff17b094bd584576dc
+   mathlib 0df444a360eaa60ab8c11dca51a86af692955474  ghcr.io/thisisanameforsure/opn-gate@sha256:1f9a0270f741d4215ff8f31d33afbca3d8be4d95f22a14faa99f7e34ad23aba0
+
+3. Pins, written by gate/tools/pin_image.py <digest> --graph ../open_proof_network_graph
+   --target <t> --network-commit 0e3bab6 (olean_cache_url kept as it was):
+   tutorial                                          -> the plain image
+   erdos-52, -68, -172, -376, -406, euclid-primes    -> the Mathlib image
+   pin_image.py --check: the six Mathlib targets "pin ok"; tutorial 1 problem, the graph's single
+   .devcontainer/devcontainer.json runs the Mathlib image (pinned last), not tutorial's — the same
+   shape as before this re-pin (the devcontainer served the Mathlib image then too).
+
+4. Pregate on the live tutorial node with the gate at 0e3bab6, before the push (the log's rule):
+   $ gate/pregate.sh --graph ../open_proof_network_graph --target tutorial --node tutorial-and-swap
+   exit 0, verdict pass: 1 toolchain, 2 paths, 4 kernel-replay, 5 axioms, 6 hazards, 7 witness,
+   8 deps — all pass; 52.5 s. The six Mathlib targets were not pregated here: this laptop holds no
+   Mathlib checkout, so their first run on the new image is the graph's CI on their next pull
+   request.
+
+5. The graph (the gate owner's direct push, as at the last re-pin):
+   d000a1a  F12-T8: the gate re-runs a QA record's claimed passes (inert until the re-pin)
+   c514d91  re-pin every target to network 0e3bab6 and its published gate images
+   origin/main a7dbd82 -> c514d91 (pushed by Mike). The push's gate workflow run 34760805936:
+   success (postmerge finds no merged pull request on a direct push and records nothing).
+
+6. Not yet true, by construction (the two-commit shape the log records):
+   - frontier.json and the other products still say rendered_from 17de758: a direct push does
+     not run the post-merge job, so they are re-rendered, under the new pin, by the next merged
+     pull request.
+   - the precheck job pins frontier.json's rendered_from (F06-Q10), so it reads the old network
+     pin until that render; a precheck before then runs the gate at f45b781.
