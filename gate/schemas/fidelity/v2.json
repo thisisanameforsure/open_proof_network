@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/fidelity/v2.json",
+  "title": "fidelity/v2",
+  "description": "targets/<id>/fidelity/<subject>-<n>.yaml (F11-R3; D-9 v3.12): one attestation that a subject — the root statement, or one definition in defs/ — says what its informal statement says, at one rung of the ladder. v2 adds `statement_hash`: D-9 grades a statement, not a subject name, so a certificate counts toward its subject's grade, signature count and signers only while its hash is the subject's current one, and a v1 certificate, which pins none, counts for nothing. Append-only: a certificate is never edited, and the latest counting certificate by (date, file name) is the subject's current grade. Above `mechanical-only` the attestor may not be the subject's author (D-9: the second rung is a non-author's signature), and the certificate names the exhibits the grade rests on. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "subject",
+    "statement_hash",
+    "grade",
+    "subject_author",
+    "attestor",
+    "date",
+    "evidence"
+  ],
+  "properties": {
+    "schema": { "const": "fidelity/v2" },
+    "subject": {
+      "description": "`root`, or the name of a definition in the target's defs/.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+      "maxLength": 100
+    },
+    "statement_hash": {
+      "description": "SHA-256, lowercase hex, of the subject as it stood when the certificate was written: the root node's statement hash, or the definition file's content hash — the value the QA record pins for the same subject (F12-R5). A D-8 revision of the root or an edit of the definition changes it, and the certificate stops counting. A move of the graph's Mathlib pin does not.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "grade": {
+      "description": "D-9 v3.12's ladder. Rung two is `screened-and-signed`; back-translation is one input to it, not the rung itself.",
+      "enum": [
+        "mechanical-only",
+        "screened-and-signed",
+        "author-attested",
+        "expert-attested",
+        "published-and-uncontested"
+      ]
+    },
+    "subject_author": {
+      "description": "Who wrote the subject. The first certificate for a subject establishes it; every later one must agree.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "attestor": {
+      "description": "Who is signing. Equal to subject_author only at `mechanical-only`, which is the machine's own grade and signs for nobody.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "evidence": {
+      "description": "What was checked, in the attestor's words. Free text, untrusted downstream (F11 §7).",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "evidence_files": {
+      "description": "Paths, relative to the graph root, of anything the evidence points at.",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 300 },
+      "uniqueItems": true
+    },
+    "exhibits": {
+      "description": "The kernel-checked exhibits this grade rests on (D-9 v3.12). Empty at `mechanical-only`; F12 produces them for the mechanizable pass.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "path"],
+        "properties": {
+          "kind": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "maxLength": 60 },
+          "path": { "type": "string", "minLength": 1, "maxLength": 300 },
+          "note": { "oneOf": [{ "type": "null" }, { "type": "string", "maxLength": 500 }] }
+        }
+      }
+    }
+  }
+}

@@ -23,6 +23,16 @@ What a subject's certificates yield, besides the grade, is a *signature count an
 (D-9 v3.12: signatures are counted and named). Only certificates at ``screened-and-signed`` or
 above count — a mechanical-only certificate is not a signature — and an attestor counts once
 however often they sign.
+
+**A certificate is for a statement, not a subject name** (F11-T9, finding C). ``fidelity/v2``
+records the subject's content hash as it stood when the certificate was written — the value
+F12's QA record pins, ``qa.subject_hash`` — and a certificate *counts* toward the grade, the
+count and the names only if it is v2 and that hash is the subject's current one. A D-8 revision
+of the root or an edit of a definition therefore drops the subject to ``mechanical-only`` with no
+signers until someone signs the new statement (D-9: non-author sign-off is "the only event that
+changes accepted state"); re-running the screens is not a signature and lifts nothing. A v1
+certificate pins no statement and counts for nothing. Certificates that no longer count stay on
+disk, because the record is append-only, and are simply not counted.
 """
 
 from __future__ import annotations
@@ -39,7 +49,11 @@ from opn_gate import schemas
 
 log = logging.getLogger(__name__)
 
-SCHEMA = "fidelity/v1"
+#: New certificates are written at v2, which pins the statement (F11-T9).
+SCHEMA = "fidelity/v2"
+#: Every version the reader accepts (D-34: versioned, never edited). v1 validates and loads — its
+#: author still establishes the subject's — but it pins no statement, so it never counts.
+READABLE_SCHEMAS: tuple[str, ...] = ("fidelity/v1", "fidelity/v2")
 FIDELITY_DIR = "fidelity"
 DEFS_DIR = "defs"
 ROOT_SUBJECT = "root"
@@ -89,10 +103,23 @@ class Certificate:
     date: str
     path: Path
     doc: dict[str, Any]
+    schema: str = SCHEMA
+    #: The subject's hash when the certificate was written; ``None`` on a v1 certificate.
+    statement_hash: str | None = None
 
     @property
     def signs(self) -> bool:
         return is_signature(self.grade)
+
+    def counts_for(self, current_hash: str | None) -> bool:
+        """F11-T9: whether this certificate speaks for the subject as it stands. Only a v2
+        certificate pins a statement, and only one pinned to the current hash counts; with no
+        current hash (a definition that no longer exists) nothing does."""
+        return (
+            self.schema == SCHEMA
+            and current_hash is not None
+            and self.statement_hash == current_hash
+        )
 
 
 @dataclass(frozen=True)
@@ -149,7 +176,15 @@ def load(target_dir: Path) -> dict[str, list[Certificate]]:
     if not directory.is_dir():
         return out
     for path in sorted(p for p in directory.iterdir() if p.suffix in SUFFIXES):
-        doc = schemas.load_yaml(path, SCHEMA)
+        doc = schemas.load_yaml(path)
+        declared = doc.get("schema")
+        if declared not in READABLE_SCHEMAS:
+            msg = (
+                f"{path}: schema {declared!r} is not a fidelity certificate; "
+                f"readable: {', '.join(READABLE_SCHEMAS)}"
+            )
+            raise schemas.SchemaError(msg)
+        hash_ = doc.get("statement_hash")
         cert = Certificate(
             subject=str(doc["subject"]),
             grade=str(doc["grade"]),
@@ -158,6 +193,8 @@ def load(target_dir: Path) -> dict[str, list[Certificate]]:
             date=str(doc["date"]),
             path=path,
             doc=doc,
+            schema=str(declared),
+            statement_hash=str(hash_) if hash_ is not None else None,
         )
         out.setdefault(cert.subject, []).append(cert)
     for certs in out.values():
@@ -166,16 +203,38 @@ def load(target_dir: Path) -> dict[str, list[Certificate]]:
 
 
 def author_of(certs: list[Certificate]) -> str | None:
+    """The subject's author on record: the first certificate's, of any version. Authorship is a
+    fact about who wrote the subject, not a grade, so a v1 certificate still establishes it."""
     return certs[0].subject_author if certs else None
 
 
+def current_hash(target_dir: Path, subject: str) -> str | None:
+    """The subject's content hash as it stands — ``qa.subject_hash``, the value F12's QA record
+    pins — or ``None`` for a certificate's subject that is no longer a definition of the target.
+
+    A root that does not load raises (``qa.QaError``) rather than answering ``None``: the grade
+    gates claiming, and a graph whose root cannot be read has a defect to fix, not a grade.
+    """
+    if subject not in subjects_of(target_dir):
+        return None
+    from opn_gate import qa  # noqa: PLC0415 — qa imports this module; the hash has one home
+
+    return qa.subject_hash(target_dir, subject)
+
+
+def counting(certs: list[Certificate], current: str | None) -> list[Certificate]:
+    """F11-T9: the certificates that speak for the subject as it stands, oldest first."""
+    return [cert for cert in certs if cert.counts_for(current)]
+
+
 def grade_of(certs: list[Certificate]) -> str:
-    """The subject's current grade: the latest certificate's, or the default with none."""
+    """The grade of a list of *counting* certificates: the latest one's, or the default."""
     return certs[-1].grade if certs else DEFAULT_GRADE
 
 
 def signers_of(certs: list[Certificate]) -> tuple[str, ...]:
-    """Distinct attestors at ``screened-and-signed`` or above, in first-signature order."""
+    """Distinct attestors at ``screened-and-signed`` or above among *counting* certificates, in
+    first-signature order."""
     seen: list[str] = []
     for cert in certs:
         if cert.signs and cert.attestor not in seen:
@@ -183,27 +242,28 @@ def signers_of(certs: list[Certificate]) -> tuple[str, ...]:
     return tuple(seen)
 
 
+def _row(target_dir: Path, subject: str, certs: list[Certificate]) -> SubjectGrade:
+    counted = counting(certs, current_hash(target_dir, subject)) if certs else []
+    return SubjectGrade(
+        subject=subject,
+        grade=grade_of(counted),
+        signers=signers_of(counted),
+        author=author_of(certs),
+    )
+
+
 def subject_grades(target_dir: Path) -> list[SubjectGrade]:
-    """One row per subject — the root and each definition — whether certified or not."""
+    """One row per subject — the root and each definition — whether certified or not.
+
+    Each row counts only the certificates for the subject as it stands (F11-T9).
+    """
     certs = load(target_dir)
-    rows = [
-        SubjectGrade(
-            subject=subject,
-            grade=grade_of(certs.get(subject, [])),
-            signers=signers_of(certs.get(subject, [])),
-            author=author_of(certs.get(subject, [])),
-        )
-        for subject in subjects_of(target_dir)
-    ]
-    # A certificate for a subject that is no longer a definition still names a real judgment;
-    # publish it rather than dropping it, so a removed def cannot silently raise the grade.
+    rows = [_row(target_dir, s, certs.get(s, [])) for s in subjects_of(target_dir)]
+    # A certificate for a subject that is no longer a definition keeps its row, so the removal
+    # stays visible and cannot silently raise the grade; with no current hash it counts for
+    # nothing, so the row is the machine's own grade with no signers.
     rows.extend(
-        SubjectGrade(
-            subject=subject,
-            grade=grade_of(certs[subject]),
-            signers=signers_of(certs[subject]),
-            author=author_of(certs[subject]),
-        )
+        _row(target_dir, subject, certs[subject])
         for subject in sorted(certs)
         if subject not in subjects_of(target_dir)
     )
@@ -238,6 +298,7 @@ def certificate_path(target_dir: Path, subject: str) -> Path:
 def certificate_doc(  # noqa: PLR0913 — one argument per fact the certificate records
     *,
     subject: str,
+    statement_hash: str,
     grade: str,
     subject_author: str,
     attestor: str,
@@ -249,6 +310,7 @@ def certificate_doc(  # noqa: PLR0913 — one argument per fact the certificate 
     doc: dict[str, Any] = {
         "schema": SCHEMA,
         "subject": subject,
+        "statement_hash": statement_hash,
         "grade": grade,
         "subject_author": subject_author,
         "attestor": attestor,
@@ -323,8 +385,11 @@ def attest(  # noqa: PLR0913 — one argument per fact the certificate records
         raise FidelityError(msg)
     if gate is not None and is_signature(grade):
         gate(subject, grade)
+    hash_ = current_hash(target_dir, subject)
+    assert hash_ is not None  # the subject was checked against subjects_of above
     doc = certificate_doc(
         subject=subject,
+        statement_hash=hash_,
         grade=grade,
         subject_author=author,
         attestor=attestor,
