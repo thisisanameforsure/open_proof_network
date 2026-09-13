@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Findings register — the Erdős 376 tester pass</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="index.html">specs</a> / findings</nav>
+<h1>Findings register — the Erdős 376 tester pass (2026-09-12)</h1>
+<p class="subtitle">An agent that had never seen the network was handed the website, the
+contributor guide, the HTTP service and the MCP endpoint, and told to push the frontier of
+Erdős problem 376. It opened 23 pull requests against a staged bench and reported 23 defects and
+11 missing features; this session replayed every one of those pull requests through the pinned
+gate and re-rendered the site from the result. This page is the triage: each finding assigned to
+the feature that owns it, so the work enters the ledger rather than a narrative. The raw material
+&mdash; the brief, the tester's verbatim report, the bench, the replay and its outputs &mdash; is
+<a href="../session-notes/2026-09-12-erdos-376-tester.md">engineering/session-notes/2026-09-12-erdos-376-tester.md</a>
+and the directory beside it.</p>
+
+<div class="rule"><strong>how to read this:</strong> severity is about the <em>record</em>, not
+about effort. <strong>live</strong> acts on the mathematical record as it stands today;
+<strong>blocks</strong> stops a contributor who is doing everything right; <strong>record</strong>
+loses or corrupts what someone filed; <strong>friction</strong> and <strong>cosmetic</strong> cost
+patience only. &ldquo;Tester #n&rdquo; cites that finding's number in the report. Task numbers are
+deliberately unassigned: the session that takes one gives it the next free number in its feature
+and writes the requirement there, because a number promised here and spent elsewhere is exactly
+the rot the build log warns about.</div>
+
+<h2>1. Take this one first</h2>
+
+<div class="rule warn"><strong>The first merged variant or crux on any of the five open Erdős
+targets stops the products.</strong> (live &middot; owner's act &middot; F11 intake, F03 root
+inference &middot; tester found the mechanism, the replay found that it is armed) A D-30 variant
+and a D-14 speculative crux both have no dependents, so the moment either merges the target's DAG
+has two sinks and F03's root inference refuses &mdash; the post-merge job writes nothing, the
+products freeze at the previous commit, and the site goes on serving the stale frontier with no
+sign that anything failed. This is F08-Q19 exactly, and it was paid once already on the tutorial
+target, whose <code>targets/tutorial/status/2026-09-11-1.yaml</code> declares
+<code>root: tutorial-and-swap</code> by hand after the fact. <strong>None of
+<code>erdos-52</code>, <code>erdos-68</code>, <code>erdos-172</code>, <code>erdos-376</code> or
+<code>erdos-406</code> carries that declaration</strong>, and all five are one accepted proposal
+away from needing it. Replayed: merging a single <code>related</code> variant onto
+<code>erdos-376</code> gives <code>root is ambiguous: 2 nodes have no dependents (erdos-376,
+variant-e30ecfbb); declare one in targets/&lt;id&gt;/status/</code>; the site still renders 32
+pages from the stale products, so the failure is invisible where the public looks.
+<strong>Two fixes, and they are not alternatives.</strong> (a) The graph act, which is the
+owner's and cannot be done from this repo: file a <code>target-status/v2</code> record declaring
+the root on each of the five, the way the tutorial's was filed. (b) The tooling act, which is a
+spec task here: <code>intake new</code> should write the root declaration at listing, so no target
+is ever seeded into this state again &mdash; and F03's inference should not count a node whose
+<code>META.yaml</code> origin is <code>variant</code> as a candidate root, which is the change
+F08-Q19 said &ldquo;belongs with F12's target-level records&rdquo; and was never taken.</div>
+
+<h2>2. Blocks or misleads a contributor</h2>
+<table>
+  <tr><th>Finding</th><th>Owner</th><th>What the fix looks like</th></tr>
+  <tr>
+    <td><strong>The guide's <code>pregate.sh</code> line fails on the live graph.</strong>
+      (tester #3) The block runs <code>pregate.sh --graph "$GRAPH" --node "$NODE" --out "$OUT"</code>;
+      on a graph with seven targets that exits 2 with <code>--target is required</code>. The
+      target is inferred only when the graph has exactly one, and the document's own test drives
+      the single-target fixture, so the doc test cannot see it. This is the first command on the
+      git path.</td>
+    <td>F10 (<code>gate/agents/AGENTS.md</code>, R1)</td>
+    <td>Pass <code>--target "$TARGET"</code>, which the document has already computed two blocks
+      earlier. Worth asking in the same task whether the walkthrough test should run against a
+      multi-target fixture, since that is the shape of every real graph from now on.</td>
+  </tr>
+  <tr>
+    <td><strong>A partial submitted at <code>Proof.lean</code> is accepted and then gated as a
+      proof.</strong> (tester #4; confirmed by the replay) <code>POST /submissions</code> with
+      <code>artifact_type: "partial"</code> and a bundle writing <code>Proof.lean</code> answers
+      201; the pinned <code>classify</code> then reads that diff as mode <code>proof</code>, and
+      the run dies at kernel replay on the <code>sorry</code>s with nothing saying the file was
+      merely in the wrong place. The guide never names the path a partial takes
+      (<code>attempts/&lt;stamp&gt;-&lt;pseudonym&gt;-partial.lean</code>), and shows only a
+      <code>Proof.lean</code> bundle throughout.</td>
+    <td>F07 (submissions) and F10 (the guide)</td>
+    <td>The service already has <code>opn_gate.paths</code>, which knows the role of every path:
+      refuse <code>partial</code> at <code>Proof.lean</code> and <code>proof</code> under
+      <code>attempts/</code> before opening the pull request. Then one guide section that submits
+      a skeleton end to end &mdash; path, <code>artifact_type</code>, the
+      <code>-- annex:</code> citation, and what the children will look like.</td>
+  </tr>
+  <tr>
+    <td><strong>The 409 on a claim gives no reason.</strong> (tester #1)
+      <code>POST /claims</code> on <code>erdos-376</code> answers
+      <code>{"error":"node-not-claimable","message":"erdos-376 is not claimable"}</code>, while
+      <code>targets/index.json</code> already publishes the three machine-readable reasons
+      (<code>status-listed</code>, <code>grade-below-screened-and-signed</code>,
+      <code>no-posting</code>). The contributor is told no and not why, nor what would change it.</td>
+    <td>F05 (claims)</td>
+    <td>Carry the target's <code>not_claimable</code> reasons into the 409 body. The data is in
+      the product the route already reads.</td>
+  </tr>
+  <tr>
+    <td><strong>Three pages disagree about whether 376 can be worked on.</strong> (tester #2)
+      The node page headlines <strong>ready to prove</strong>; the target page says
+      <em>Status listed, fidelity mechanical-only</em> with no explanation; only the Targets index
+      explains, and it prints <strong>&ldquo;Status listed, listed, not claimable&rdquo;</strong>
+      (<code>site/opn_site/render.py:199</code> composes the status and the claimability string,
+      both of which say &ldquo;listed&rdquo;). The frontier page's Claimable column has no reason
+      beside it.</td>
+    <td>F04 (site), F11-R10 (the reasons)</td>
+    <td>Drop the duplicated word; put the not-claimable reason on the node page and the frontier
+      row, not only on the index. A node nobody may claim should not headline &ldquo;ready to
+      prove&rdquo;.</td>
+  </tr>
+  <tr>
+    <td><strong><code>get_schema</code> cannot serve the schemas the guide points at.</strong>
+      (tester #5) The tool and its plain path read <code>schemas/&lt;name&gt;.json</code> from the
+      graph, which carries four files; <code>info.json</code> advertises 27 schema families and
+      the guide says <code>get_schema("postmortem/v1")</code> has the whole shape. Every family
+      the service actually validates against lives in this repo's <code>gate/schemas/</code> at
+      the pinned <code>network_commit</code>.</td>
+    <td>F09 (adapter), F10 (the guide)</td>
+    <td>Serve the pinned gate's schema directory, or say plainly in both the tool's error and the
+      guide which schemas the graph publishes and where the rest live. The bijection rule (D-28)
+      means whatever is decided applies to the plain path too.</td>
+  </tr>
+</table>
+
+<h2>3. Loses or corrupts a record</h2>
+<table>
+  <tr><th>Finding</th><th>Owner</th><th>What the fix looks like</th></tr>
+  <tr>
+    <td><strong>Two appends in the same second share a file name, and the loser is told 201.</strong>
+      (tester #6; the replay lost a real postmortem to a probe) Append names are
+      <code>&lt;timestamp&gt;-&lt;pseudonym&gt;</code> at second resolution
+      (<code>api/opn_api/appends.py</code>), so three postmortems filed in one second all became
+      <code>attempts/20260912T225733Z-agent-062b0f.yaml</code>. Each is its own branch off
+      <code>main</code>, so all three are additions until the first merges; merged in order, the
+      last one wins and the first is gone. The module documents this as &ldquo;the gate then
+      rejects the second as a modification&rdquo;, which is true only after the first merge, and
+      is not what the contributor was told. An annex is worse: identical text hashes identically,
+      so a retry is indistinguishable from a second record.</td>
+    <td>F07 (appends)</td>
+    <td>The service already mints a ULID per record and returns it as <code>id</code>. Put it in
+      the file name, or refuse the second write when the path is taken on <code>main</code> or in
+      an open pull request.</td>
+  </tr>
+  <tr>
+    <td><strong>The annex citation is checked only after the merge.</strong> (tester #14;
+      confirmed: the only callers of <code>check_annex_citation</code> are in
+      <code>gate/opn_gate/postmerge.py</code>) D-31 says a skeleton citing an annex that is not on
+      the node is rejected. <code>classify</code> answers <code>ok: true</code> for a skeleton
+      citing forty zeros and for one with a malformed short hash, and nothing in the pipeline's
+      steps calls the check &mdash; so a mis-cited skeleton passes the gate, merges into
+      <code>attempts/</code>, and <em>then</em> the post-merge job raises. That is the worst
+      moment for it: the merge has happened, the holes are not created, and a post-merge run that
+      fails before its ledger step loses that line for good (the build log records this).</td>
+    <td>F07 (partial mode) / F02-style step-6 placement</td>
+    <td>Run the citation check pre-merge as the artifact step's last word, where the offload rule
+      already lives (<code>steps/artifact.py</code>). It reads two files and needs no toolchain.</td>
+  </tr>
+  <tr>
+    <td><strong>The curator's own pseudonym can be minted by anyone.</strong> (tester #8) A
+      tutorial proof bought a token under the pseudonym <code>thisisanameforsure</code> &mdash; the
+      single login in the graph's <code>curators.json</code> and the gate owner named in every
+      <code>gate-spec.json</code> &mdash; and that identity then filed a postmortem attributed to
+      the curator and held a claim shown under the curator's name on the frontier. Uniqueness is
+      enforced against the service's own store and nothing else; the names the <em>graph</em>
+      reserves are not reserved. D-21's rule that curators may not claim proof credit on targets
+      they curate is enforced nowhere the tester or this session could find.</td>
+    <td>F05 (identity), D-21 enforcement is a protocol question</td>
+    <td>Read the reserved names from the graph (<code>curators.json</code>, each spec's
+      <code>gate_owner</code>) at minting time. D-21 needs a decision about where it binds &mdash;
+      the ledger step is the natural place &mdash; and that is the owner's call, not a task.</td>
+  </tr>
+  <tr>
+    <td><strong>A number-theory variant was accepted onto the tutorial target.</strong>
+      (tester #9; the replay classified it <code>proposal</code> on <code>tutorial</code> with no
+      complaint) Nothing checks that a <code>related</code> variant bears on the target it is
+      filed against; D-30 v3.12 leans on a later relevance signature, which is a human act after
+      the node exists.</td>
+    <td>F08 (admission), F12-R13 (relevance)</td>
+    <td>At minimum refuse a proposal whose declaration namespace or import set cannot belong to
+      that target. Otherwise the frontier carries nodes that no filter policy can sensibly rank,
+      and the relevance signature arrives too late to prevent the noise.</td>
+  </tr>
+</table>
+
+<h2>4. Friction</h2>
+<table>
+  <tr><th>Finding</th><th>Owner</th><th>Note</th></tr>
+  <tr><td><strong>Refused writes are charged against the hourly write budget.</strong> (tester #19)
+    <code>ratelimit.enforce</code> bumps the counter before it compares, so 54 rejected claims on a
+    nonexistent node exhausted 120 writes/hour and locked the identity out for 3274 seconds. A
+    contributor debugging a request body pays for an hour of silence.</td>
+    <td>F05-R6</td>
+    <td>Charge on the write, not on the attempt &mdash; or give 4xx its own, looser bucket.</td></tr>
+  <tr><td><strong>No idempotency anywhere.</strong> (tester #7) The identical annex, variant and
+    crux each opened a fresh pull request; one precheck job was spent on four separate
+    submissions. Node ids collide by name only at merge time.</td>
+    <td>F07, F08</td>
+    <td>Return the existing pull request for content already on <code>main</code> or in flight;
+    consume a precheck job on first use.</td></tr>
+  <tr><td><strong>One identity may stack claims on one node.</strong> (tester #18) Twenty
+    simultaneous claims by one pseudonym on one node, all 201, which defeats the guide's own
+    published filter policy for everyone else.</td>
+    <td>F05 (claims)</td>
+    <td>A second claim by the same identity should extend the first, not add one.</td></tr>
+  <tr><td><strong>MCP argument names are not the endpoints' field names.</strong> (tester #12)
+    <code>ttl</code> not <code>ttl_hours</code>; <code>stmt</code> not <code>statement</code>;
+    <code>attestation</code> (an object) not <code>precheck_job_id</code>; and
+    <code>submit_postmortem</code> takes only an object where the HTTP route takes a YAML string,
+    refusing it with a raw validator message. The guide's appendix maps tool names to paths and
+    says every tool <em>is</em> one of the calls, which reads as a promise about arguments.</td>
+    <td>F09 (bijection), F10 (the appendix)</td>
+    <td>Either align the names or state the mapping per argument. The demarcation and auth
+    behaviour were otherwise exactly as D-28 describes.</td></tr>
+  <tr><td><strong>Attestation ids are zero-padded and nothing says so.</strong> (tester #13)
+    Submissions return <code>pr_number: 7</code>; the file is
+    <code>attestations/000007.json</code>; <code>get_submission("7")</code> misses. A merged
+    proposal has no attestation at all and the tool cannot say why.</td>
+    <td>F09, F10</td>
+    <td>Accept either spelling; answer &ldquo;this mode earns no attestation&rdquo; distinctly
+    from &ldquo;not found&rdquo;.</td></tr>
+  <tr><td><strong>Sorry-bearing witnesses are refused in one place and accepted in two.</strong>
+    (tester #10) <code>/proposals/witness</code> refuses; <code>/proposals/speculative</code> and
+    <code>/proposals/variant</code> accept, and admission catches it later.</td>
+    <td>F08 (proposals)</td>
+    <td>The same cheap check in all three saves a pull request and a sandbox run.</td></tr>
+  <tr><td><strong>Builds are accepted against a <code>listed</code> root.</strong> (tester #15)
+    Prechecks and submissions on <code>erdos-376</code> all succeed while claims are refused. This
+    may well be intended &mdash; claims are advisory and artifacts during the comment period are
+    worth having &mdash; but the two answers disagree and nothing says which is deliberate.</td>
+    <td>D-33 reading; then F05/F07</td>
+    <td>Decide, then make the site say it: &ldquo;not claimable, open to artifacts&rdquo; is a
+    perfectly good state if it is the intended one.</td></tr>
+  <tr><td><strong>The docs page contradicts the running service.</strong> (tester #16) It says no
+    licence text and no DCO text are committed yet, while every write requires accepting the DCO
+    the service serves and every annex requires an SPDX licence.</td>
+    <td>F04 (docs page)</td>
+    <td>Stale copy.</td></tr>
+  <tr><td><strong>Explainers are advertised as appendable and have no endpoint.</strong>
+    (tester #17) The permitted-paths table lists them as writable by anyone; there is no route and
+    no tool, and on the git path <code>classify</code> correctly refuses one on an unproved node
+    &mdash; a rule the guide never states.</td>
+    <td>F10 (the guide), F07 if the route is wanted</td>
+    <td>State the rule; decide whether the route exists.</td></tr>
+  <tr><td><strong>The site cannot show live claims.</strong> (tester #23) The frontier page
+    filters the static table while the service's overlay had 21 active claims. This is D-36 working
+    as designed, but the page could at least link the live document.</td>
+    <td>F04</td>
+    <td>Cosmetic, but it is the first thing a claimer looks for after claiming.</td></tr>
+  <tr><td><strong>JSON-RPC batches answer with a raw validator dump.</strong> (tester #20)
+    Four pydantic validation errors and a docs URL.</td>
+    <td>F09</td>
+    <td>One structured refusal, like every other tool error.</td></tr>
+</table>
+
+<h2>5. What a contributor to 376 asked for and could not find</h2>
+<p>The tester's feature list, in its order of usefulness to someone actually trying to make
+progress on the problem. The first is the one this session would take before any of the defects
+above except &sect;1.</p>
+<table>
+  <tr><th>Want</th><th>Owner</th><th>Why it is the gap it is</th></tr>
+  <tr><td><strong>Show the intake's prior art and attack routes.</strong></td><td>F04, F11</td>
+    <td><code>targets/erdos-376/target.yaml</code> records that the problem is open since 1975,
+      that Erdős, Graham, Ruzsa and Straus proved the two-prime case, that AlphaProof Nexus
+      attempted it in February 2026, and that the curator's route is Kummer's theorem on carries
+      in bases 3, 5 and 7. <em>None of it reaches any page, product or tool.</em> The tester had to
+      open the graph clone to find the single most useful paragraph about the target, and then
+      re-derived the Kummer route from scratch as its own contribution.</td></tr>
+  <tr><td><strong>A claimability explanation with the path to claimable.</strong></td><td>F04, F05</td>
+    <td>The three reasons exist as data. Who may sign the statement (D-9), what posting upstream
+      means (D-10), and whether artifacts are welcome meanwhile are all answerable.</td></tr>
+  <tr><td><strong>&ldquo;My pending contributions.&rdquo;</strong></td><td>F07, F09</td>
+    <td>After 23 pull requests there is no way through the site, the api or MCP to see what one
+      has filed, what its gate status is, or whether a node one proposed exists yet.</td></tr>
+  <tr><td><strong>A toolchain-free dry run for proposals and partials.</strong></td><td>F08, F07</td>
+    <td>Admission needs Mathlib; a contributor cannot rehearse it. The service can already check
+      layout, a sorry-free witness, the relation label and direction, imports, the slug and
+      duplicate ids without any toolchain &mdash; and for a partial, report the holes' closed types
+      and the children that would be created, which is where the off-by-one and unused-binder
+      hazards on bot-written children (F07-Q19) would surface before the merge rather than after.</td></tr>
+  <tr><td><strong>Tell me the node id before I submit.</strong></td><td>F08</td>
+    <td><code>variant-&lt;sha256(statement)[:8]&gt;</code> is derivable and undocumented; a
+      <code>Relation.lean</code> or an annex that wants to name the node cannot.</td></tr>
+  <tr><td><strong>A curator-seeded decomposition for 376.</strong></td><td>F11 / curation</td>
+    <td>Every newcomer will spend the same first hour rediscovering that the Kummer reduction is
+      routine and the digit-set infinitude is the whole problem. The two-prime cases have been
+      theorems since 1975 and are provable today: as <code>partial</code>-labelled variants they
+      would exercise the pipeline on real mathematics while the root waits for its signature.</td></tr>
+</table>
+
+<h2>6. What worked</h2>
+<p>Recorded because a register of defects is not a verdict on the system, and two of these were
+load-bearing.</p>
+<ul>
+  <li><strong>Every refusal the tester probed for was correct.</strong> Bad enums, spoofed
+    <code>node</code> and <code>contributor</code> fields (overwritten by the service), oversized
+    bodies, <code>..</code> path segments, two-node diffs, touching <code>Statement.lean</code>,
+    another identity's precheck job, an anonymous job used for an authenticated submission, a
+    <code>partial</code> label without a relation proof, a <code>related</code> label with one, and
+    a trivial skeleton &mdash; all named the field and the rule.</li>
+  <li><strong>All 23 pull requests classified as intended</strong> under the pinned gate: nine
+    <code>append</code>, nine <code>proposal</code> each naming its admission directory, four
+    <code>partial</code>, one <code>proof</code>. The D-23 author/committer split held on every
+    push; every submission body carried its attestation block.</li>
+  <li><strong>Appends update the record and the site exactly as designed.</strong> Replaying the
+    annex, the postmortem and the approach record: <code>annex_present</code>,
+    <code>attempts</code> and the failure-class histogram all moved on the frontier entry, the node
+    page rendered the annex escaped and labelled untrusted, and the target page listed the approach
+    record.</li>
+  <li><strong>The one thing the protocol most needs to be true was true.</strong> The frontier of
+    376 moved by zero nodes, and correctly so: the root is <code>listed</code>, no claim can be
+    held, and nothing reaches the record without a merge. A fresh agent with a token could not
+    manufacture progress.</li>
+</ul>
+
+<div class="rule todo"><strong>a caveat that belongs on every number above:</strong> the bench had
+no Lean and no Docker, and its precheck passed everything instantly. Nothing here is evidence about
+any contributor's Lean, the tester's included &mdash; its own estimates of what would elaborate are
+in its report, and its annex's numerical aside is wrong (this session recomputed the members below
+25000; the Kummer reduction agrees with the direct computation on every one). The two annexes
+should not be merged as they stand.</div>
+
+<footer>Open Proof Network · findings register · opened 2026-09-12 from the Erdős 376 tester pass ·
+findings are retired by the task that lands them, not by editing this page</footer>
+</body>
+</html>
