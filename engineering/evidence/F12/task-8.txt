@@ -1,0 +1,474 @@
+F12-T8 — the gate re-runs what a QA record claims passed with no file to show (finding D3)
+2026-09-13 · branch worktree-agent-aa54e99353fe4b6db · started from 923a6ce (F12-T7), fast-forwarded to
+main 4f67be8 (F11-T9 + F11-T10) with the patch re-applied and no conflict, then to main 1128611
+(F11-T9's spec: engineering/specs HTML only) before the final make verify.
+
+0. The gap and the rule
+
+   A qa/v1 row for a clean screen or a compile carries exhibit: null (F12-Q15: clean screens leave no
+   file), so a record whose every floor row says pass reads the same typed by hand as written by
+   `opn-gate qa screen`. F12-R15 closes the forgery for rows that name a file; nothing closed it for
+   rows that name none, and CI checked a qa-record pull request by schema and curator membership only.
+   The strict xfail gate/tests/test_finding_de_qa_status.py::test_d_a_hand_typed_pass_does_not_raise_
+   a_grade_through_the_command held it.
+
+   Rule, as decided by Mike on 2026-09-13: when a pull request adds or changes a QA record, the gate
+   re-runs, in its sandbox toolchain, the checks the record claims passed without an exhibit file —
+   compile and the four soundness screens — for that subject's statement as it stands at head, and
+   refuses the pull request if any re-run disagrees, naming each disagreeing row. Rows with exhibit
+   files stay R15's. Brief and back-translation rows need a model key the gate job must not hold
+   (C8), so they are not re-run, and the report says so.
+
+1. The seam as built
+
+   gate/opn_gate/qa_rerun.py (new; qa.py, modes.py and paths.py are untouched, to keep the parallel
+   branches' merges clean)
+     records_in(located) -> [path]        the qa-record paths a diff adds; what classify reports
+     reason_not_rerun(subject, row)        None for a row the gate must re-run, else the stated reason
+     verify(graph_root, record_paths, rerun) -> Report
+                                           loads each record from the tree at head, splits its rows,
+                                           checks the record is for head's statement and pins, calls
+                                           rerun(target, subject) at most once per subject and only
+                                           when some row needs it, and compares each claimed pass
+                                           with every fresh row of the same check
+     agrees(verdicts)                      a pass stands only if the check ran and every run passed:
+                                           fail, inconclusive (timeout, budget, error) or no row at
+                                           all is a disagreement (C7)
+     head_copy(graph_root, dest)           the tree without .git, for the re-run to write into
+     context(copy_root, target, toolchain, workdir, settings)
+                                           a RunContext over the copy's root node, as `qa screen`
+                                           builds one
+     rerun_subject(ctx, subject, ...)      root: qa.screen itself (so the re-run cannot drift from
+                                           the command that writes honest records); a definition:
+                                           the target's definitions compiled through the seam
+                                           (a definition has no screens, F12-Q10)
+
+   What is re-run and what is not (each skipped row is listed in the report with its reason):
+     compile, screen-statement, screen-negation, screen-false, screen-consequence with verdict pass
+       and no exhibit                                      re-run
+     brief, backtranslation (any verdict, file or not)     REASON_MODEL — asks a model; no key in
+                                                           the gate job (C8); held to R15 and the
+                                                           writer's coherence rules (F12-Q18)
+     any row naming an exhibit file                        REASON_EXHIBIT — R15 hash and replay
+     any row with verdict fail or inconclusive             REASON_NOTHING_CLAIMED
+     equivalence pass with no file                         REASON_EQUIVALENCE — outside the floor
+                                                           (Q3), evidence only through its exhibit
+     a screen row on a definition subject                  REASON_DEFINITION_SCREEN (Q10)
+
+   Diagnostic codes
+     qa-rerun-disagrees     a recorded pass the re-run at head does not reproduce; details carry
+                            record, subject, check, recorded: pass, rerun: [verdicts], notes
+     qa-rerun-unverifiable  a record pinned to another statement hash, toolchain or Mathlib (R5),
+                            an unknown subject, or a path that is not a record in the tree at head
+
+   Where it writes: qa.screen records its run and, on a finding, stores an exhibit and files a
+   screen-finding claim. All of it lands in <out>/head (the copy), never in the checkout under check.
+
+   gate/opn_gate/cli.py
+     opn-gate classify    two new keys: qa_records (the records the diff adds) and needs_qa_rerun
+     opn-gate qa-rerun --graph G --base B [--head H] [--sandbox [--image T] [--no-build]] [--install]
+                       [--out DIR] [--date TS]
+                          exit 0 when every claimed pass is reproduced, 1 naming each disagreement
+                          (stdout JSON, stderr one line per problem, <out>/qa-rerun.json), 2 for a
+                          diff that adds no QA record or an environment error. --sandbox builds the
+                          seam `qa screen --sandbox` builds: the copy's root node read-only, the work
+                          directory read-write, never installing. A record with nothing to re-run
+                          starts no toolchain and no image.
+     It is a top-level command beside `exhibits`, not a `qa` action: it is the pull request's check,
+     not a curator act, so it answers refusals as exit 1 rather than {"ok": false, "refused"}.
+
+2. The workflow change — drafted, not applied (the graph is the owner's to push)
+
+   ../open_proof_network_graph/.github/workflows/gate.yml. Inert on the currently pinned gate: the
+   classify step reads needs_qa_rerun with a default of false, and the pinned commit never emits the
+   key, so the new step is skipped until the re-pin; it can be committed before the re-pin
+   (F08-Q8's shape, the OPN_PR_AUTHOR precedent). The step holds no secret and the job keeps
+   permissions contents: read, pull-requests: read (C8). Checked by applying it to a scratch copy
+   of the graph's gate.yml and parsing the result: 11 steps in the gate job, the new step's `if` is
+   steps.classify.outputs.needs_qa_rerun == 'true', and no `secrets.` in it.
+
+   --- a/.github/workflows/gate.yml
+   +++ b/.github/workflows/gate.yml
+   @@ -139,7 +139,7 @@
+              doc = json.loads(pathlib.Path("classification.json").read_text())
+              for key, default in (("mode", None), ("node", None), ("needs_gate", False),
+                                   ("needs_review", False), ("needs_admission", False), ("admit", None),
+   -                               ("needs_exhibits", False)):
+   +                               ("needs_exhibits", False), ("needs_qa_rerun", False)):
+                  value = doc.get(key, default)
+                  print(f"{key}={json.dumps(value) if isinstance(value, bool) else (value or '')}")
+              PY
+   @@ -208,6 +208,25 @@
+                --graph . --base "$BASE" --head HEAD --sandbox --out "$RUNNER_TEMP/gate-out" \
+                | tee "$RUNNER_TEMP/exhibits.txt"
+
+   +      # F12-T8 (finding D3): a clean screen and a compile leave no exhibit (F12-Q15), so a QA
+   +      # record's `pass` rows read the same typed as run. The pinned gate re-runs, inside the step-3
+   +      # sandbox on the tree at head, every compile and soundness screen the record says passed
+   +      # without an exhibit, and fails the pull request naming each row the re-run does not also
+   +      # pass. Brief and back-translation rows ask a model, and this job holds no key (C8): they
+   +      # are listed as not re-run. No secret, no write permission. Inert on a pin that predates the
+   +      # command: `needs_qa_rerun` then reads false and the step is skipped (F08-Q8's shape).
+   +      - name: Re-run the screens a QA record claims inside the step-3 sandbox
+   +        if: steps.classify.outputs.needs_qa_rerun == 'true'
+   +        env:
+   +          BASE: ${{ steps.pin.outputs.base }}
+   +          PYTHONPATH: network/gate
+   +        run: |
+   +          set -euo pipefail
+   +          mkdir -p "$RUNNER_TEMP/gate-out"
+   +          uv run --frozen --project network python -m opn_gate.cli qa-rerun \
+   +            --graph . --base "$BASE" --head HEAD --sandbox --out "$RUNNER_TEMP/gate-out/qa-rerun" \
+   +            | tee "$RUNNER_TEMP/qa-rerun.txt"
+   +
+          - name: Run the gate
+            if: steps.classify.outputs.needs_gate == 'true'
+            env:
+   @@ -225,11 +244,13 @@
+                | tee "$RUNNER_TEMP/verdict.txt"
+
+          - name: Keep the verdict and attestation
+   -        if: always() && (steps.classify.outputs.needs_gate == 'true' || steps.classify.outputs.needs_admission == 'true' || steps.classify.outputs.needs_exhibits == 'true')
+   +        if: always() && (steps.classify.outputs.needs_gate == 'true' || steps.classify.outputs.needs_admission == 'true' || steps.classify.outputs.needs_exhibits == 'true' || steps.classify.outputs.needs_qa_rerun == 'true')
+            uses: actions/upload-artifact@v4
+            with:
+              name: gate-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
+   -          path: ${{ runner.temp }}/gate-out/*.json
+   +          path: |
+   +            ${{ runner.temp }}/gate-out/*.json
+   +            ${{ runner.temp }}/gate-out/qa-rerun/qa-rerun.json
+              if-no-files-found: ignore
+
+      postmerge:
+
+3. Tests
+
+   Test-first: the tests were written before the command was wired, and the red run before wiring was
+     7 failed, 119 passed, 1 xfailed (test_qa_rerun.py, test_finding_de_qa_status.py, test_modes.py):
+     the five command tests, the rewritten D3 test and test_modes.py::test_classify_command — exactly
+     the tests that need `qa-rerun` or classify's new keys. (qa_rerun.py itself was drafted before
+     its tests; the mutants in §4 are the evidence that the tests constrain it.)
+
+   The D3 test, rewritten to the decided rule and passing:
+     test_finding_de_qa_status.py::test_d_a_hand_typed_pass_is_refused_by_the_gate_on_its_pull_request
+       git checkout of a taken-in target, a listed curator, every floor row typed pass; `classify`
+       says curator mode, needs_qa_rerun true, the record named; `qa-rerun --sandbox` on a seam where
+       the negation proves exits 1 with exactly [qa-rerun-disagrees screen-negation], the brief and
+       back-translation rows listed as not re-run for want of a key, and `git status --porcelain`
+       empty. The docstring keeps why the test moved from the local `fidelity` command to the pull
+       request. The strict xfail is gone.
+     test_finding_de_qa_status.py::test_d_pin_ci_classifies_a_qa_record_as_curator_and_asks_for_the_rerun
+       (was test_d_pin_ci_checks_a_qa_record_by_schema_and_curator_only, which named itself as the pin
+       to change if the owner decided CI must verify a QA record): unchanged assertions, plus
+       records_in names the record.
+     test_modes.py::test_classify_command: the exact classify summary gains qa_records: [] and
+       needs_qa_rerun: false for an append.
+
+   New fast tests, gate/tests/test_qa_rerun.py (fake seam; conventions §2):
+     accepted       test_a_typed_record_whose_passes_the_rerun_reproduces_is_accepted
+                    test_a_record_qa_screen_wrote_is_accepted
+     refused        test_a_typed_pass_the_rerun_refutes_is_refused_naming_the_row[screen-statement,
+                      screen-negation, screen-false]
+                    test_a_declared_consequence_that_proves_is_a_disagreement
+                    test_a_compile_the_rerun_cannot_reproduce_refuses_every_claimed_row
+                    test_a_check_the_rerun_never_ran_is_a_disagreement
+     C7             test_an_inconclusive_rerun_is_refused_never_a_clean_pass   (a timeout)
+                    test_an_erroring_rerun_is_refused                          (the toolchain raises)
+                    test_a_definition_compile_that_errors_is_refused
+     not re-run     test_rows_with_exhibits_and_rows_without_a_pass_are_not_rerun
+                    test_an_equivalence_pass_with_no_file_is_not_rerun_and_says_why
+                    test_brief_rows_are_not_rerun_and_the_reason_is_the_missing_key
+     definitions    test_a_definitions_compile_pass_is_rerun
+     R5 / paths     test_a_record_for_another_pin_or_statement_is_unverifiable
+                    test_a_path_that_is_not_a_record_in_the_tree_is_unverifiable
+     shape          test_the_rerun_is_asked_once_per_subject
+                    test_the_rerun_writes_nothing_into_the_checkout
+                    test_the_report_is_json
+     path to CI     test_a_qa_record_pull_request_asks_for_the_rerun           (classifier)
+                    test_classify_asks_the_workflow_for_the_rerun              (classify command)
+                    test_qa_rerun_runs_in_the_sandbox_refuses_a_forgery_and_accepts_a_true_record
+                    test_qa_rerun_starts_no_sandbox_when_nothing_needs_it
+                    test_qa_rerun_refuses_a_diff_that_adds_no_record
+                    test_qa_rerun_without_the_sandbox_uses_the_local_toolchain
+
+   Verification command (fast tier):
+   UV_PROJECT_ENVIRONMENT=<main checkout>/.venv uv run --frozen pytest gate/tests/test_qa_rerun.py \
+     gate/tests/test_finding_de_qa_status.py -v -p no:cacheprovider
+
+   gate/tests/test_qa_rerun.py::test_a_qa_record_pull_request_asks_for_the_rerun PASSED
+   gate/tests/test_qa_rerun.py::test_a_typed_record_whose_passes_the_rerun_reproduces_is_accepted PASSED
+   gate/tests/test_qa_rerun.py::test_a_record_qa_screen_wrote_is_accepted PASSED
+   gate/tests/test_qa_rerun.py::test_a_typed_pass_the_rerun_refutes_is_refused_naming_the_row[screen-false] PASSED
+   gate/tests/test_qa_rerun.py::test_a_typed_pass_the_rerun_refutes_is_refused_naming_the_row[screen-negation] PASSED
+   gate/tests/test_qa_rerun.py::test_a_typed_pass_the_rerun_refutes_is_refused_naming_the_row[screen-statement] PASSED
+   gate/tests/test_qa_rerun.py::test_a_declared_consequence_that_proves_is_a_disagreement PASSED
+   gate/tests/test_qa_rerun.py::test_a_compile_the_rerun_cannot_reproduce_refuses_every_claimed_row PASSED
+   gate/tests/test_qa_rerun.py::test_an_inconclusive_rerun_is_refused_never_a_clean_pass PASSED
+   gate/tests/test_qa_rerun.py::test_an_erroring_rerun_is_refused PASSED
+   gate/tests/test_qa_rerun.py::test_a_check_the_rerun_never_ran_is_a_disagreement PASSED
+   gate/tests/test_qa_rerun.py::test_rows_with_exhibits_and_rows_without_a_pass_are_not_rerun PASSED
+   gate/tests/test_qa_rerun.py::test_an_equivalence_pass_with_no_file_is_not_rerun_and_says_why PASSED
+   gate/tests/test_qa_rerun.py::test_brief_rows_are_not_rerun_and_the_reason_is_the_missing_key PASSED
+   gate/tests/test_qa_rerun.py::test_a_definitions_compile_pass_is_rerun PASSED
+   gate/tests/test_qa_rerun.py::test_a_definition_compile_that_errors_is_refused PASSED
+   gate/tests/test_qa_rerun.py::test_a_record_for_another_pin_or_statement_is_unverifiable PASSED
+   gate/tests/test_qa_rerun.py::test_a_path_that_is_not_a_record_in_the_tree_is_unverifiable PASSED
+   gate/tests/test_qa_rerun.py::test_the_rerun_is_asked_once_per_subject PASSED
+   gate/tests/test_qa_rerun.py::test_the_rerun_writes_nothing_into_the_checkout PASSED
+   gate/tests/test_qa_rerun.py::test_the_report_is_json PASSED
+   gate/tests/test_qa_rerun.py::test_classify_asks_the_workflow_for_the_rerun PASSED
+   gate/tests/test_qa_rerun.py::test_qa_rerun_runs_in_the_sandbox_refuses_a_forgery_and_accepts_a_true_record PASSED
+   gate/tests/test_qa_rerun.py::test_qa_rerun_starts_no_sandbox_when_nothing_needs_it PASSED
+   gate/tests/test_qa_rerun.py::test_qa_rerun_refuses_a_diff_that_adds_no_record PASSED
+   gate/tests/test_qa_rerun.py::test_qa_rerun_without_the_sandbox_uses_the_local_toolchain PASSED
+   gate/tests/test_finding_de_qa_status.py::test_d_reader_holds_a_row_to_the_writers_coherence_rules PASSED
+   gate/tests/test_finding_de_qa_status.py::test_d_a_rows_kind_is_its_checks_not_what_the_record_claims PASSED
+   gate/tests/test_finding_de_qa_status.py::test_d_a_hand_typed_pass_is_refused_by_the_gate_on_its_pull_request PASSED
+   gate/tests/test_finding_de_qa_status.py::test_d_pin_ci_classifies_a_qa_record_as_curator_and_asks_for_the_rerun PASSED
+   gate/tests/test_finding_de_qa_status.py::test_d_pin_an_exhibit_row_is_trusted_by_content PASSED
+   gate/tests/test_finding_de_qa_status.py::test_e_status_active_on_a_curated_target_refuses_what_activation_refuses PASSED
+   gate/tests/test_finding_de_qa_status.py::test_e_pin_a_dormant_curated_target_may_be_declared_active_again PASSED
+   ============================== 33 passed in 5.03s ==============================
+
+4. The tests have teeth: nine in-memory mutants
+
+   Each mutant is a pytest plugin (-p) that monkeypatches opn_gate.qa_rerun in pytest_configure; no
+   file is changed. The driver runs test_qa_rerun.py and test_finding_de_qa_status.py once clean and
+   once per mutant, and reports every F12-T8 test that fails under no mutant and every mutant no
+   test catches. Result: all 28 F12-T8 tests fail under at least one mutant; no mutant survives.
+     mutant_trust_record        nothing is re-run; every row is left to the record's word (D3 undone)
+     mutant_only_fail_disagrees only a finding contradicts; inconclusive or missing is accepted (C7)
+     mutant_rerun_exhibits      rows with exhibits and rows with no pass are re-run too (R15 split)
+     mutant_rerun_briefs        a brief or back-translation pass is sent to the re-run (C8 carve-out)
+     mutant_in_place            the re-run screens the checkout itself, writing into it
+     mutant_silent_classifier   classify never names a QA record, so the workflow never reaches it
+     mutant_ignore_stale        a record for another pin or statement is re-run as if fresh (R5)
+     mutant_skip_missing        a path that is not a record in the tree passes silently
+     mutant_no_usage_error      a diff with no record is not refused as misuse
+
+   == clean (no mutant)
+   33 passed in 6.32s
+   == mutant_trust_record
+   FAILED gate/tests/test_qa_rerun.py::test_a_typed_record_whose_passes_the_rerun_reproduces_is_accepted
+   FAILED gate/tests/test_qa_rerun.py::test_a_record_qa_screen_wrote_is_accepted
+   FAILED gate/tests/test_qa_rerun.py::test_a_typed_pass_the_rerun_refutes_is_refused_naming_the_row[screen-false]
+   FAILED gate/tests/test_qa_rerun.py::test_a_typed_pass_the_rerun_refutes_is_refused_naming_the_row[screen-negation]
+   FAILED gate/tests/test_qa_rerun.py::test_a_typed_pass_the_rerun_refutes_is_refused_naming_the_row[screen-statement]
+   FAILED gate/tests/test_qa_rerun.py::test_a_declared_consequence_that_proves_is_a_disagreement
+   FAILED gate/tests/test_qa_rerun.py::test_a_compile_the_rerun_cannot_reproduce_refuses_every_claimed_row
+   FAILED gate/tests/test_qa_rerun.py::test_an_inconclusive_rerun_is_refused_never_a_clean_pass
+   FAILED gate/tests/test_qa_rerun.py::test_an_erroring_rerun_is_refused
+   FAILED gate/tests/test_qa_rerun.py::test_a_check_the_rerun_never_ran_is_a_disagreement
+   FAILED gate/tests/test_qa_rerun.py::test_rows_with_exhibits_and_rows_without_a_pass_are_not_rerun
+   FAILED gate/tests/test_qa_rerun.py::test_an_equivalence_pass_with_no_file_is_not_rerun_and_says_why
+   FAILED gate/tests/test_qa_rerun.py::test_brief_rows_are_not_rerun_and_the_reason_is_the_missing_key
+   FAILED gate/tests/test_qa_rerun.py::test_a_definitions_compile_pass_is_rerun
+   FAILED gate/tests/test_qa_rerun.py::test_a_definition_compile_that_errors_is_refused
+   FAILED gate/tests/test_qa_rerun.py::test_a_record_for_another_pin_or_statement_is_unverifiable
+   FAILED gate/tests/test_qa_rerun.py::test_the_rerun_is_asked_once_per_subject
+   FAILED gate/tests/test_qa_rerun.py::test_the_rerun_writes_nothing_into_the_checkout
+   FAILED gate/tests/test_qa_rerun.py::test_the_report_is_json
+   FAILED gate/tests/test_qa_rerun.py::test_qa_rerun_runs_in_the_sandbox_refuses_a_forgery_and_accepts_a_true_record
+   FAILED gate/tests/test_qa_rerun.py::test_qa_rerun_without_the_sandbox_uses_the_local_toolchain
+   FAILED gate/tests/test_finding_de_qa_status.py::test_d_a_hand_typed_pass_is_refused_by_the_gate_on_its_pull_request
+   22 failed, 11 passed in 4.00s
+   == mutant_only_fail_disagrees
+   FAILED gate/tests/test_qa_rerun.py::test_a_compile_the_rerun_cannot_reproduce_refuses_every_claimed_row
+   FAILED gate/tests/test_qa_rerun.py::test_an_inconclusive_rerun_is_refused_never_a_clean_pass
+   FAILED gate/tests/test_qa_rerun.py::test_an_erroring_rerun_is_refused
+   FAILED gate/tests/test_qa_rerun.py::test_a_check_the_rerun_never_ran_is_a_disagreement
+   FAILED gate/tests/test_qa_rerun.py::test_a_definition_compile_that_errors_is_refused
+   5 failed, 28 passed in 4.59s
+   == mutant_rerun_exhibits
+   FAILED gate/tests/test_qa_rerun.py::test_rows_with_exhibits_and_rows_without_a_pass_are_not_rerun
+   FAILED gate/tests/test_qa_rerun.py::test_an_equivalence_pass_with_no_file_is_not_rerun_and_says_why
+   FAILED gate/tests/test_qa_rerun.py::test_a_definitions_compile_pass_is_rerun
+   3 failed, 30 passed in 4.83s
+   == mutant_rerun_briefs
+   FAILED gate/tests/test_qa_rerun.py::test_a_typed_record_whose_passes_the_rerun_reproduces_is_accepted
+   FAILED gate/tests/test_qa_rerun.py::test_a_typed_pass_the_rerun_refutes_is_refused_naming_the_row[screen-false]
+   FAILED gate/tests/test_qa_rerun.py::test_a_typed_pass_the_rerun_refutes_is_refused_naming_the_row[screen-negation]
+   FAILED gate/tests/test_qa_rerun.py::test_a_typed_pass_the_rerun_refutes_is_refused_naming_the_row[screen-statement]
+   FAILED gate/tests/test_qa_rerun.py::test_a_declared_consequence_that_proves_is_a_disagreement
+   FAILED gate/tests/test_qa_rerun.py::test_a_compile_the_rerun_cannot_reproduce_refuses_every_claimed_row
+   FAILED gate/tests/test_qa_rerun.py::test_an_inconclusive_rerun_is_refused_never_a_clean_pass
+   FAILED gate/tests/test_qa_rerun.py::test_an_erroring_rerun_is_refused
+   FAILED gate/tests/test_qa_rerun.py::test_brief_rows_are_not_rerun_and_the_reason_is_the_missing_key
+   FAILED gate/tests/test_qa_rerun.py::test_a_definitions_compile_pass_is_rerun
+   FAILED gate/tests/test_qa_rerun.py::test_a_definition_compile_that_errors_is_refused
+   FAILED gate/tests/test_qa_rerun.py::test_the_rerun_is_asked_once_per_subject
+   FAILED gate/tests/test_qa_rerun.py::test_qa_rerun_runs_in_the_sandbox_refuses_a_forgery_and_accepts_a_true_record
+   FAILED gate/tests/test_qa_rerun.py::test_qa_rerun_starts_no_sandbox_when_nothing_needs_it
+   FAILED gate/tests/test_qa_rerun.py::test_qa_rerun_without_the_sandbox_uses_the_local_toolchain
+   FAILED gate/tests/test_finding_de_qa_status.py::test_d_a_hand_typed_pass_is_refused_by_the_gate_on_its_pull_request
+   16 failed, 17 passed in 4.93s
+   == mutant_in_place
+   FAILED gate/tests/test_qa_rerun.py::test_the_rerun_writes_nothing_into_the_checkout
+   FAILED gate/tests/test_qa_rerun.py::test_qa_rerun_runs_in_the_sandbox_refuses_a_forgery_and_accepts_a_true_record
+   FAILED gate/tests/test_finding_de_qa_status.py::test_d_a_hand_typed_pass_is_refused_by_the_gate_on_its_pull_request
+   3 failed, 30 passed in 4.44s
+   == mutant_silent_classifier
+   FAILED gate/tests/test_qa_rerun.py::test_a_qa_record_pull_request_asks_for_the_rerun
+   FAILED gate/tests/test_qa_rerun.py::test_classify_asks_the_workflow_for_the_rerun
+   FAILED gate/tests/test_qa_rerun.py::test_qa_rerun_runs_in_the_sandbox_refuses_a_forgery_and_accepts_a_true_record
+   FAILED gate/tests/test_qa_rerun.py::test_qa_rerun_starts_no_sandbox_when_nothing_needs_it
+   FAILED gate/tests/test_qa_rerun.py::test_qa_rerun_without_the_sandbox_uses_the_local_toolchain
+   FAILED gate/tests/test_finding_de_qa_status.py::test_d_a_hand_typed_pass_is_refused_by_the_gate_on_its_pull_request
+   FAILED gate/tests/test_finding_de_qa_status.py::test_d_pin_ci_classifies_a_qa_record_as_curator_and_asks_for_the_rerun
+   7 failed, 26 passed in 3.64s
+   == mutant_ignore_stale
+   FAILED gate/tests/test_qa_rerun.py::test_a_record_for_another_pin_or_statement_is_unverifiable
+   1 failed, 32 passed in 4.29s
+   == mutant_skip_missing
+   FAILED gate/tests/test_qa_rerun.py::test_a_path_that_is_not_a_record_in_the_tree_is_unverifiable
+   1 failed, 32 passed in 4.86s
+   == mutant_no_usage_error
+   FAILED gate/tests/test_qa_rerun.py::test_a_qa_record_pull_request_asks_for_the_rerun
+   FAILED gate/tests/test_qa_rerun.py::test_qa_rerun_refuses_a_diff_that_adds_no_record
+   2 failed, 31 passed in 4.55s
+   == summary
+   F12-T8 tests: 28; tests failing under no mutant: 0
+   mutants that survived every test: none
+
+5. Lean tier: gate/tests/test_qa_rerun_lean.py (pytest.mark.lean, run by make verify-lean)
+
+   test_the_rerun_refutes_a_typed_pass_on_a_tautology: on the propositional fixture (core Lean, no
+   Mathlib), a record typing compile and every screen pass is verified through the real toolchain.
+   The root is a tautology, so screen-statement proves: exactly that row is refused; compile,
+   negation, false and consequence agree; the tree is byte-identical afterwards. It RAN here, on the
+   real LocalToolchain (Lean 4.33.1, arm64-apple-darwin, the gate/lean package built in this
+   worktree with lake build), not inside the step-3 image: no Docker build was made (task rules).
+
+   Before the fast-forward to main:
+   .                                                                        [100%]
+   ==================================== PASSES ====================================
+   =========================== short test summary info ============================
+   PASSED gate/tests/test_qa_rerun_lean.py::test_the_rerun_refutes_a_typed_pass_on_a_tautology
+   1 passed in 57.48s
+   exit 0
+
+   After the fast-forward to 4f67be8 (the later move to 1128611 changed spec HTML only, no code):
+   .                                                                        [100%]
+   ==================================== PASSES ====================================
+   =========================== short test summary info ============================
+   PASSED gate/tests/test_qa_rerun_lean.py::test_the_rerun_refutes_a_typed_pass_on_a_tautology
+   1 passed in 52.91s
+   exit 0
+
+6. make verify (after the fast-forward to main 1128611, on the tree that is committed)
+
+   UV_PROJECT_ENVIRONMENT=<main checkout>/.venv make verify
+   All checks passed!
+   260 files already formatted
+   Success: no issues found in 133 source files
+   Success: no issues found in 74 source files
+   Success: no issues found in 18 source files
+   = 1621 passed, 1 skipped, 62 deselected, 5 xfailed, 2 warnings in 80.04s (0:01:20) =
+   make verify exit=0
+
+7. Costs and limits
+
+   Time per QA pull request. The Lean is cheap and the image is not. F12's own measurement
+   (engineering/evidence/F12/budgets.txt, hosted runner): a clean root costs ~3.3 s of Lean for the
+   compile and three screens, plus one attempt per declared consequence; a finding costs ~55 s more,
+   almost all of it leanchecker --fresh replaying the found proof; the per-subject budget (300 s,
+   OPN_QA_SUBJECT_BUDGET_S) bounds attempts plus replays, and each attempt has 60 s. The local lean
+   run above (one finding) took ~57 s end to end. On top, the gate job must have the step-3 image:
+   for a Mathlib graph that is the published image by digest (~3.5 GiB compressed) pulled on a cold
+   runner, which is minutes and dominates. A record of briefs alone costs nothing: no image, no Lean.
+   The job is paced by the post-merge bot commit under the strict up-to-date ruleset anyway (log,
+   2026-09-13).
+
+   Not re-run, and why. brief and backtranslation: they ask a model; the gate job holds no model key
+   and must not (C8; OPN_MODEL_API_KEY lives in the curator's .env). They remain held to R15 and the
+   writer's coherence rules, and R2 keeps a brief from raising a grade on its own. Rows with exhibit
+   files: R15's hash check at every reader and the kernel replay before a grade counts them.
+   equivalence with no file: it counts for nothing (outside the floor, and cited only through its
+   exhibit).
+
+   What the rule does not settle (for Mike):
+   a. A typed record whose claims are true is accepted. The rule verifies what a record claims, not
+      who wrote it. That is the decided reading; it means `tool:`/`produced_by:` stay unverified
+      labels.
+   b. Exhibit files in a QA pull request are not elaborated in CI. R15's replay runs where
+      `opn-gate fidelity` runs — the attestor's machine, sandboxed only if they pass --sandbox — and a
+      qa-file does not trigger `needs_exhibits` (that is append mode's). A hand-made exhibit with a
+      matching hash and no sorry merges; it cannot raise a grade without the replay, but the replay
+      is not a CI act. Moving the replay to this same step would close it, at ~55 s per exhibit.
+   c. A record for another statement or pin is refused as qa-rerun-unverifiable. The alternative is
+      to accept it, since a stale record counts for nothing (R5). Refusing was chosen as the
+      fail-safe direction (C7) and costs no sandbox; it does block a curator who ran the screens on
+      a base that has since moved (re-run at head, or rebase).
+   d. A slow runner can refuse a true record: an attempt that passed locally within budget and times
+      out in CI is inconclusive, so the pull request fails and must be re-run. Tactic results can
+      also differ between machines (`exact?`, `aesop`); a proof found in CI and not locally is a
+      real finding, and CI refusing is right, but the curator then routes it (R4) with no exhibit
+      from the CI run — the exhibit and claim exist only in the job's scratch copy, and only
+      qa-rerun.json is uploaded.
+   e. A definition's compile re-run builds all of the target's definitions; one that fails before
+      the subject's module is reached makes the subject's compile row disagree (named in the note).
+   f. Only records a pull request adds are re-run. Records already on main are grandfathered; the
+      live graph has no targets/*/qa/ directory today (checked on the local graph checkout), so
+      nothing is.
+   g. No docker-tier test drives `qa-rerun --sandbox` in the real image. The command reads the head
+      copy on the host (inputs only) and every Lean process goes through the same SandboxToolchain
+      `qa screen --sandbox` and admission use, and nothing it learns about the image's filesystem
+      comes from a host Path — but the log's rule is one docker-tier test per sandboxed check, and
+      that is owed before the re-pin.
+   h. Merge points with the parallel branches: qa_rerun calls qa.subject_hash, qa.spec_of,
+      Record.stale and qa.screen; if the fidelity/qa branch moves subject_hash, mypy --strict will
+      name the call. cli.py's run_classify gains two summary keys, and classify's exact-output test
+      in test_modes.py lists them.
+
+8. Proposed spec text (not applied: specs are not edited from this task)
+
+   F12 §4, a new requirement:
+     F12-R16 When a pull request adds a QA record, the gate shall re-run, inside the step-3 sandbox on
+     the graph's pinned toolchain and on the subject as it stands at the pull request's head, every
+     compile and soundness-screen row the record records as pass with no exhibit, and shall refuse
+     the pull request naming each such row whose re-run is not also pass — a finding, a failure, a
+     timeout, an exhausted budget or an error (C7). It shall not re-run a brief or backtranslation
+     row, which asks a model the gate job holds no key for (C8), nor a row that names an exhibit
+     file (R15), and shall list each row it does not re-run with the reason. It shall refuse a
+     record pinned to a statement hash, toolchain or Mathlib other than head's as unverifiable (R5).
+     The re-run shall write nothing into the checkout it checks. Added 2026-09-13 (Q19).
+
+   F12 §5, acceptance criteria:
+     F12-AC25 Given a QA record typing every floor row pass, when its pull request is classified and
+       the statement's negation proves at head, then classify reports needs_qa_rerun, qa-rerun in the
+       sandbox exits non-zero naming screen-negation, the brief rows are listed as not re-run, and the
+       checkout is unchanged.
+       gate/tests/test_finding_de_qa_status.py::test_d_a_hand_typed_pass_is_refused_by_the_gate_on_its_pull_request
+     F12-AC26 Given the same record where no screen proves, when qa-rerun runs, then it exits 0; given
+       a re-run that times out or errors, then the claimed row is refused.
+       gate/tests/test_qa_rerun.py::test_qa_rerun_runs_in_the_sandbox_refuses_a_forgery_and_accepts_a_true_record,
+       ::test_an_inconclusive_rerun_is_refused_never_a_clean_pass, ::test_an_erroring_rerun_is_refused
+     F12-AC27 lean Given the propositional root (a tautology) and a record typing screen-statement
+       pass, when the re-run runs on the real toolchain, then exactly screen-statement is refused.
+       gate/tests/test_qa_rerun_lean.py::test_the_rerun_refutes_a_typed_pass_on_a_tautology
+
+   F12 §9, a decision:
+     F12-Q19 A clean pass is checked by reproducing it, at the pull request (2026-09-13, T8, finding
+     D3; Mike's decision). Q15 left a clean screen with no file, so no reader could tell a typed pass
+     from a run one, and a `tool` check would still be typeable. The pull request is the one way a
+     record reaches the graph (D-35), and its gate job can re-run the compile and the screens inside
+     the step-3 sandbox with no secret; so `classify` names the records a diff adds and
+     `opn-gate qa-rerun` re-runs every claimed pass through `qa.screen` on a copy of the head tree,
+     refusing each row it does not reproduce. The local `fidelity` command is unchanged: a record
+     that never merged grades nothing on the graph. What is not re-run: briefs and back-translations
+     (a model key in the gate job would be a sixth secret door, C8) and exhibit rows (R15). The
+     workflow reads the new flag with a default, so the step is inert until the re-pin. Reversal
+     path: drop the step; the records stay readable and R15 stands.
+
+   F12 §10, the Tasks row and ledger:
+     F12-T8 CI re-runs a QA record's claimed passes. `opn-gate qa-rerun`, classify's needs_qa_rerun,
+       the drafted gate.yml step (R16, Q19).
+       Files: gate/opn_gate/qa_rerun.py, gate/opn_gate/cli.py, gate/tests/test_qa_rerun.py,
+       gate/tests/test_qa_rerun_lean.py, gate/tests/test_finding_de_qa_status.py,
+       gate/tests/test_modes.py, ../open_proof_network_graph/.github/workflows/gate.yml (drafted here;
+       the owner commits it), engineering/evidence/F12/task-8.txt. Deps: T7.
+       Verification: uv run pytest gate/tests/test_qa_rerun.py gate/tests/test_finding_de_qa_status.py;
+       make verify; make verify-lean (test_qa_rerun_lean.py).
+     Ledger: T8 ✓ 2026-09-13 (D3: the gate re-runs a QA record's claimed passes on its pull request;
+       gate.yml step drafted, inert until the re-pin; lean tier run locally, CI run and a docker-tier
+       test pending; engineering/evidence/F12/task-8.txt)

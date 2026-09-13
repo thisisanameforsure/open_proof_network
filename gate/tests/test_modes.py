@@ -457,6 +457,8 @@ def test_classify_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) ->
         "ok": True,
         "exhibits": [],
         "needs_exhibits": False,
+        "qa_records": [],
+        "needs_qa_rerun": False,
     }
 
     (root / N / "attempts" / "2026-09-10-bob.yaml").write_text(
