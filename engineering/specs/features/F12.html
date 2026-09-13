@@ -437,10 +437,27 @@ on the site.</p>
     than showing an empty table. The api's listed fixture was regenerated from the gate at v4
     with every earlier field identical (F05-Q5). Reversal: drop the two schema versions and the
     file role; the record format is one file and stays readable.</td></tr>
+  <tr><td>F12-Q18</td><td><strong>The readers of F12's records are no laxer than their writers</strong>
+    (2026-09-13, from an independent end-to-end run on a clone of the live graph). Two readers
+    had drifted from what the writers enforce. <em>Revision requests:</em> Q16 added
+    <code>revision-request/v2</code> for the watcher's <code>upstream-drift</code>, and the append
+    path accepts both versions, but <code>opn-gate revise</code> still pinned v1, so a curator
+    could not act on the one request the watcher opens; <code>revise</code> now reads the set in
+    <code>paths.SCHEMAS_FOR_ROLE</code> and refuses an unknown version naming it. <em>QA rows:</em>
+    <code>qa.row</code> derives a row's kind from its check and refuses a brief that names no
+    model (R2, R6, R7), but <code>pass_state</code> read committed rows through
+    <code>Row.from_dict</code> and applied neither rule, so a hand-typed brief counted as run and a
+    brief typed as <code>kind: exhibit</code> was cited in a certificate as a kernel exhibit;
+    <code>pass_state</code> now puts every stored row back through the writer's rules and refuses
+    one that fails as <code>row-incoherent</code>, beside R15's exhibit refusals. Not closed here,
+    and held as strict expected failures in <code>gate/tests/test_finding_de_qa_status.py</code>:
+    a clean screen still leaves no file, so a hand-typed clean pass remains indistinguishable from
+    a run one; Mike decided 2026-09-13 that CI re-runs the screens on a pull request that adds a
+    QA record, which is its own task. Decided 2026-09-13 in T7.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> done 2026-09-12 (tag F12-done) · <strong>Tasks:</strong> T1 ✓ 2026-09-12 · T2 ✓ 2026-09-12 (lean tier: ci run 34689742821 green) · T3 ✓ 2026-09-12 · T4 ✓ 2026-09-12 (lean tier: ci run 34692446154 green) · T5 ✓ 2026-09-12 (AC13 dry run: this container cannot reach erdosproblems.com; the workflow run is the evidence) · T6 ✓ 2026-09-12</div>
+<div class="rule"><strong>status:</strong> done 2026-09-12 (tag F12-done) · <strong>Tasks:</strong> T1 ✓ 2026-09-12 · T2 ✓ 2026-09-12 (lean tier: ci run 34689742821 green) · T3 ✓ 2026-09-12 · T4 ✓ 2026-09-12 (lean tier: ci run 34692446154 green) · T5 ✓ 2026-09-12 (AC13 dry run: this container cannot reach erdosproblems.com; the workflow run is the evidence) · T6 ✓ 2026-09-12 · T7 ✓ 2026-09-13 (Q18: revise reads v2 requests; the QA reader holds rows to the writer's rules; the end-to-end findings captured as tests, 23 held as strict expected failures for the tasks that close them; engineering/evidence/F12/task-7.txt)</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its
@@ -496,6 +513,14 @@ one verification command (conventions §3, §6).</p>
       <code>gate/tests/test_products.py</code>, <code>site/tests/test_render.py</code>,
       <code>engineering/evidence/F12/target-page.png</code></td>
     <td>T4, T5</td><td><code>make verify</code> and the screenshot</td></tr>
+  <tr><td>F12-T7</td><td><strong>Readers no laxer than writers.</strong> <code>revise</code> reads
+    every live revision-request version; <code>pass_state</code> holds stored rows to
+    <code>qa.row</code>'s rules and the check's kind (Q18). The end-to-end findings captured first
+    as tests, the ones this task does not close held as strict expected failures.</td>
+    <td><code>gate/opn_gate/curator.py</code>, <code>gate/opn_gate/qa.py</code>,
+      <code>gate/tests/test_finding_*.py</code>, <code>engineering/evidence/F12/task-7.txt</code></td>
+    <td>T2, T5</td><td><code>uv run pytest gate/tests/test_finding_b_revise_v2.py
+      gate/tests/test_finding_de_qa_status.py</code>; <code>make verify</code></td></tr>
 </table>
 
 <footer>Open Proof Network · F12 spec v2 · 2026-09-11 (v2: <code>defect-claim/v2</code> and <code>screen-finding</code> for R4, R15 exhibit integrity, the brief's criterion, timeouts and outages as <code>inconclusive</code> — Q7, Q8)</footer>

@@ -108,7 +108,10 @@ CODE_MISSING = "exhibit-missing"
 CODE_HASH = "exhibit-hash-mismatch"
 CODE_SORRY = "exhibit-sorry"
 #: The diagnostics a row can be refused with, in the order they are checked (R15).
-REFUSAL_CODES: tuple[str, ...] = (CODE_MISSING, CODE_HASH, CODE_SORRY)
+#: A stored row the writer would have refused: the reader is never laxer than the writer (R2, R6).
+CODE_INCOHERENT = "row-incoherent"
+
+REFUSAL_CODES: tuple[str, ...] = (CODE_MISSING, CODE_HASH, CODE_SORRY, CODE_INCOHERENT)
 
 
 class QaError(ValueError):
@@ -249,6 +252,37 @@ def row(  # noqa: PLR0913 — one argument per fact the row records
         budget_s=budget_s,
         note=note,
     )
+
+
+def incoherence(row_: Row) -> str | None:
+    """Why a stored row could not have been written, or ``None``.
+
+    The writer derives a row's kind from its check and holds it to ``row``'s coherence rules; a
+    record committed by hand is read through ``Row.from_dict``, which applies none of them. So
+    the reader asks both questions again: a brief typed as ``kind: exhibit`` would otherwise be
+    cited as a kernel exhibit (R2), and a brief that names no model would count as run (R6, R7).
+    """
+    expected = KIND_OF.get(row_.check)
+    if expected != row_.kind:
+        return (
+            f"{row_.check}: recorded as kind {row_.kind!r}, but {row_.check!r} is "
+            f"{'a ' + repr(expected) + ' check' if expected else 'not a check'} (R2)"
+        )
+    try:
+        row(
+            row_.check,
+            row_.verdict,
+            tool=row_.tool,
+            tool_version=row_.tool_version,
+            timestamp=row_.timestamp,
+            model=row_.model,
+            model_version=row_.model_version,
+            exhibit=row_.exhibit,
+            exhibit_sha256=row_.exhibit_sha256,
+        )
+    except QaError as exc:
+        return str(exc)
+    return None
 
 
 @dataclass(frozen=True)
@@ -610,6 +644,16 @@ def pass_state(
     briefs: list[Row] = []
     for record in fresh:
         for row_ in record.checks:
+            reason = incoherence(row_)
+            if reason is not None:
+                refused.append(
+                    Diagnostic(
+                        CODE_INCOHERENT,
+                        reason,
+                        {"check": row_.check, "exhibit": row_.exhibit, "record": record.name},
+                    )
+                )
+                continue
             problem = check_exhibit(graph_root, row_)
             if problem is not None:
                 refused.append(

@@ -27,7 +27,7 @@ import yaml
 
 from opn_gate import defs, layout, records, scaffold, schemas
 from opn_gate import graph as graphmod
-from opn_gate.paths import VERSION_RE
+from opn_gate.paths import SCHEMAS_FOR_ROLE, VERSION_RE
 from opn_gate.steps.base import RunContext
 from opn_gate.steps.toolchain_step import ToolchainStep
 from opn_gate.toolchain import ResolvedToolchain
@@ -38,7 +38,9 @@ NODE_STATUS_SCHEMA = "node-status/v1"
 #: F11-R12: new declarations are written at v2, whose fidelity enum carries D-9
 #: v3.12's renamed rung. v1 records already in a graph stay valid (D-34).
 TARGET_STATUS_SCHEMA = "target-status/v2"
-REVISION_SCHEMA = "revision-request/v1"
+#: Every live version, from the table the append path checks: F12-Q16 added v2 for the watcher's
+#: `upstream-drift`, and a curator acts on that request with `revise` (D-34: versions, not edits).
+REVISION_SCHEMAS: tuple[str, ...] = SCHEMAS_FOR_ROLE["revision-request"]
 POSTMORTEM_SCHEMA = "postmortem/v1"
 MISSING_LIBRARY = "missing-library"
 #: D-33's pilot defaults, tunable per graph: every ready node carries at least K attempts, or no
@@ -170,6 +172,28 @@ class Revision:
         }
 
 
+def load_revision_request(request: Path) -> dict[str, Any]:
+    """A revision request at whichever live version it declares (F08-R9; F12-Q16).
+
+    The version is checked against the accepted set before the document is validated against
+    it, so an unknown one is refused naming the set rather than failing on a schema id the
+    registry has never heard of.
+    """
+    try:
+        raw: object = yaml.safe_load(request.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
+        msg = f"cannot read YAML {request}: {exc}"
+        raise schemas.SchemaError(msg) from exc
+    declared = raw.get("schema") if isinstance(raw, dict) else None
+    if declared not in REVISION_SCHEMAS:
+        msg = (
+            f"{request} declares {declared!r}; a revision request is one of "
+            f"{', '.join(REVISION_SCHEMAS)}"
+        )
+        raise CuratorError(msg)
+    return schemas.validate(raw, str(declared))
+
+
 def revise(  # noqa: PLR0913 — one argument per fact of the revision
     graph_root: Path,
     target_id: str,
@@ -190,7 +214,7 @@ def revise(  # noqa: PLR0913 — one argument per fact of the revision
     """
     nodes_dir = layout.graph_nodes_dir(graph_root, target_id)
     old = load_node(nodes_dir, target_id, node_id)
-    request_doc = schemas.load_yaml(request, REVISION_SCHEMA)
+    request_doc = load_revision_request(request)
     if str(request_doc["node"]) != node_id:
         msg = f"{request} is a revision request for {request_doc['node']!r}, not {node_id!r}"
         raise CuratorError(msg)

@@ -1,0 +1,78 @@
+F12-T7 — readers no laxer than writers (Q18)
+Session 2026-09-13. Base commit 90efbf7 (F11-T7).
+
+Origin: an independent agent took Erdős #242 through its whole life on a clone of the live graph
+(engineering/evidence/F11/task-7.txt §4) and reported issues A–G. Five agents then reproduced each
+in the fast tier and wrote tests asserting the correct behaviour, without touching production
+code: gate/tests/test_finding_{a_post_fidelity,b_revise_v2,c_stale_signature,de_qa_status,fg_friction}.py.
+
+1. Red before the fixes (as each agent reported its run)
+   B  test_finding_b_revise_v2.py: 3 failed, 3 passed
+      test_revise_acts_on_a_v2_request             SchemaError: document does not satisfy
+                                                    'revision-request/v1' ($['schema'] ... ;
+                                                    'upstream-drift' is not one of [...])
+      test_revise_refuses_an_unknown_version_...    message names v1 only
+      test_cli_revise_acts_on_a_v2_request          exit 1, {"ok": false, "refused": "document
+                                                    does not satisfy 'revision-request/v1' ..."}
+   D  test_finding_de_qa_status.py: 4 failed, 3 passed
+      test_d_reader_holds_a_row_to_the_writers_coherence_rules
+                                                    a model-less brief row counted toward a
+                                                    complete pass
+      test_d_a_rows_kind_is_its_checks_not_what_the_record_claims
+                                                    ['brief'] cited as a kernel exhibit
+      (+ D3 and E, which depend on Mike's decisions — held below)
+
+2. Mike's decisions, 2026-09-13 (AskUserQuestion): A — only the signer opens a fidelity
+   certificate PR (PR author = attestor ≠ subject author); C — fidelity/v2 pins the statement
+   hash and v1 signatures count for nothing; D3 — CI re-runs the screens on a PR that adds a QA
+   record; E — `status active` on a curated target refuses unless claimable.
+
+3. Green after the fixes in this task (curator.load_revision_request; qa.incoherence in
+   pass_state), with every finding not closed here held as a strict expected failure naming
+   its fix, so fixing one flips its test red until the mark comes off.
+== uv run pytest gate/tests/test_finding_b_revise_v2.py gate/tests/test_finding_de_qa_status.py -v
+gate/tests/test_finding_b_revise_v2.py::test_the_watcher_writes_a_v2_request_the_append_path_accepts PASSED [  7%]
+gate/tests/test_finding_b_revise_v2.py::test_revise_acts_on_a_v2_request PASSED [ 15%]
+gate/tests/test_finding_b_revise_v2.py::test_revise_still_acts_on_a_v1_request PASSED [ 23%]
+gate/tests/test_finding_b_revise_v2.py::test_revise_refuses_an_unknown_version_naming_the_accepted_set PASSED [ 30%]
+gate/tests/test_finding_b_revise_v2.py::test_cli_revise_acts_on_a_v2_request PASSED [ 38%]
+gate/tests/test_finding_b_revise_v2.py::test_cli_revise_still_acts_on_a_v1_request PASSED [ 46%]
+gate/tests/test_finding_de_qa_status.py::test_d_reader_holds_a_row_to_the_writers_coherence_rules PASSED [ 53%]
+gate/tests/test_finding_de_qa_status.py::test_d_a_rows_kind_is_its_checks_not_what_the_record_claims PASSED [ 61%]
+gate/tests/test_finding_de_qa_status.py::test_d_a_hand_typed_pass_does_not_raise_a_grade_through_the_command XFAIL [ 69%]
+gate/tests/test_finding_de_qa_status.py::test_d_pin_ci_checks_a_qa_record_by_schema_and_curator_only PASSED [ 76%]
+gate/tests/test_finding_de_qa_status.py::test_d_pin_an_exhibit_row_is_trusted_by_content PASSED [ 84%]
+gate/tests/test_finding_de_qa_status.py::test_e_status_active_on_a_curated_target_refuses_what_activation_refuses XFAIL [ 92%]
+gate/tests/test_finding_de_qa_status.py::test_e_pin_a_dormant_curated_target_may_be_declared_active_again PASSED [100%]
+XFAIL gate/tests/test_finding_de_qa_status.py::test_d_a_hand_typed_pass_does_not_raise_a_grade_through_the_command - finding D3 (D-9 v3.12, F12 user story): a hand-typed clean pass raises a grade; fix: CI re-runs the screens on a QA pull request (Mike, 2026-09-13)
+XFAIL gate/tests/test_finding_de_qa_status.py::test_e_status_active_on_a_curated_target_refuses_what_activation_refuses - finding E (F11-R5 vs F08-R11): status active on a curated target skips activation's checks; fix: refuse unless claimable (Mike, 2026-09-13)
+======================== 11 passed, 2 xfailed in 0.63s =========================
+
+== the suites the two fixes touch
+157 passed in 7.54s
+
+== every finding file
+XFAIL gate/tests/test_finding_a_post_fidelity.py::test_a_posting_pull_request_is_not_refused_as_a_path
+XFAIL gate/tests/test_finding_a_post_fidelity.py::test_a_curator_posts_a_listed_target_by_pull_request
+XFAIL gate/tests/test_finding_a_post_fidelity.py::test_a_lone_certificate_is_not_an_incomplete_intake
+XFAIL gate/tests/test_finding_a_post_fidelity.py::test_a_non_author_certificate_enters_by_pull_request
+XFAIL gate/tests/test_finding_a_post_fidelity.py::test_post_sign_and_activate_as_three_pull_requests_make_the_target_claimable
+XFAIL gate/tests/test_finding_c_stale_signature.py::test_a_revised_root_drops_below_the_signed_rung
+XFAIL gate/tests/test_finding_c_stale_signature.py::test_a_revised_root_is_not_claimable_and_says_why
+XFAIL gate/tests/test_finding_c_stale_signature.py::test_the_old_signer_is_not_counted_for_the_new_statement
+XFAIL gate/tests/test_finding_c_stale_signature.py::test_re_running_the_screens_does_not_resurrect_the_old_signature
+XFAIL gate/tests/test_finding_c_stale_signature.py::test_a_fresh_signature_on_the_revised_root_restores_the_rung
+XFAIL gate/tests/test_finding_c_stale_signature.py::test_a_signature_on_an_unchanged_definition_still_counts
+XFAIL gate/tests/test_finding_c_stale_signature.py::test_an_edited_definition_loses_its_signature_too
+XFAIL gate/tests/test_finding_de_qa_status.py::test_d_a_hand_typed_pass_does_not_raise_a_grade_through_the_command
+XFAIL gate/tests/test_finding_de_qa_status.py::test_e_status_active_on_a_curated_target_refuses_what_activation_refuses
+XFAIL gate/tests/test_finding_fg_friction.py::test_intake_inherits_the_image_of_the_targets_sharing_its_mathlib_pin
+XFAIL gate/tests/test_finding_fg_friction.py::test_intake_under_a_mathlib_pin_no_target_shares_needs_a_spec
+XFAIL gate/tests/test_finding_fg_friction.py::test_a_back_dated_dormancy_is_judged_at_its_own_date
+XFAIL gate/tests/test_finding_fg_friction.py::test_a_speculative_crux_status_record_is_stamped_like_every_other_record
+XFAIL gate/tests/test_finding_fg_friction.py::test_activating_an_active_target_is_refused
+XFAIL gate/tests/test_finding_fg_friction.py::test_activation_does_not_reopen_a_known_result
+XFAIL gate/tests/test_finding_fg_friction.py::test_root_ambiguity_names_the_current_target_status_schema
+XFAIL gate/tests/test_finding_fg_friction.py::test_root_ambiguity_lists_the_revision_it_set_aside
+XFAIL gate/tests/test_finding_fg_friction.py::test_a_variant_beside_a_revised_root_is_not_inferred_as_the_root
+30 passed, 23 xfailed in 7.02s
