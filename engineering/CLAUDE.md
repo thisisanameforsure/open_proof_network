@@ -571,3 +571,16 @@ The law of the project:
   target can record its D-10 posting through a pull request — the kind of finding only a
   whole-lifecycle run produces. Its report that a lone fidelity certificate is refused too
   (`intake-incomplete`) needs a completed QA pass to reproduce and was not re-checked.
+- 2026-09-13 — The whole-lifecycle run's A–G became seven commits in one sitting by splitting
+  *finding the error* from *fixing it*. Five agents, one per finding, each wrote a test asserting
+  the correct behaviour and touched no production code; the lead committed every still-red test
+  as a strict xfail naming its fix (F12-T7), so the suite stayed green and every later fix flipped
+  its own test. Then the owner's decisions came in one question, the small fixes were done in the
+  main tree, and three worktree agents built A, C and D3 in parallel. What made the merges boring:
+  agents never edited spec HTML (the lead renumbered their proposed Q30s at merge), and a message
+  telling each running agent "main moved, merge it before you finish" turned two of three merges
+  into fast-forwards. Two things the red-first order caught that fixing directly would have hidden:
+  two existing tests had pinned the very defects being fixed (a Z-less file name, a root-ambiguity
+  count that left the revisions out), and the cheap fix for a stale signature (count it while the
+  QA pass is fresh) was wrong — a test the investigating agent wrote before anyone chose a fix is
+  what ruled it out.
