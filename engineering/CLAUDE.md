@@ -584,3 +584,11 @@ The law of the project:
   count that left the revisions out), and the cheap fix for a stale signature (count it while the
   QA pass is fresh) was wrong — a test the investigating agent wrote before anyone chose a fix is
   what ruled it out.
+- 2026-09-13 — A cron on GitHub Actions is a hope, not a schedule. site-deploy's `*/5` ran every two
+  to five hours for two days, so F04-Q7's "a merge reaches the site within five minutes" was never
+  true; it only surfaced when a live contribution (graph PR #31) rendered its products at 14:53 and
+  the page still said "no approach records" at 14:56. Read the run history before trusting a
+  schedule's budget. The fix was the dispatch R12 had asked for all along, through a token whose
+  whole reach is "start this repo's workflows" (F04-Q10, C8), and the owner's direct push of that
+  change was its own end-to-end test: push 15:43:28, deploy 15:43:30, live by 15:44:02. Writing the
+  token into C8 also found the inventory had been missing the graph's deploy key since day two.

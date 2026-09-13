@@ -34,3 +34,15 @@ and reached the site only when site-deploy was dispatched by hand: run 347641001
 
 5. Live dispatch: pending the graph push of site/dispatch-deploy (the push itself is a direct push
    by Mike, so its postmerge run exercises the step). Appended below once run.
+
+   -> Live, 2026-09-13 (Mike pushed site/dispatch-deploy to the graph's main, eab2a29 -> 14d87ac; a
+      direct push, so the owner's bypass of the pull-request rule, as at the re-pin):
+      graph run 34766445365 (gate / postmerge on 14d87ac): success
+        step "Ask the site to deploy this commit": success, started 15:43:28 UTC
+        log: site: dispatched site-deploy for 14d87ac210e217229447b8deab7274406200e80a
+      network site-deploy run 34766452428: event workflow_dispatch, created 15:43:30 UTC,
+        triggering actor thisisanameforsure (the token's owner), success
+        https://github.com/thisisanameforsure/open_proof_network/actions/runs/34766452428
+      https://openproofnetwork.org/rendered-from.txt = 14d87ac210e2... at 15:44:02 UTC, the first poll
+      after the push; no hand dispatch.
+   R12 as written holds: a push to the graph's main reaches the site in about half a minute.
