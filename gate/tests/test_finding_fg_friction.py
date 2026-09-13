@@ -84,10 +84,6 @@ def live_shaped_graph(tmp_path: Path) -> Path:
     return root
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="finding F1 (F11-R2, R6): intake's spec template demands unanimity including the Mathlib-bound image digest",  # noqa: E501 — the xfail reason names the finding and its fix
-)
 def test_intake_inherits_the_image_of_the_targets_sharing_its_mathlib_pin(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -107,10 +103,6 @@ def test_intake_inherits_the_image_of_the_targets_sharing_its_mathlib_pin(
     assert spec["devcontainer_ref"] == IMAGE_X
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="finding F1 (F11-R6): intake keeps another Mathlib's image digest under a new pin",
-)
 def test_intake_under_a_mathlib_pin_no_target_shares_needs_a_spec(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -177,10 +169,6 @@ def declare_dormant(capsys: pytest.CaptureFixture[str], root: Path, date: str) -
     return code
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="finding F2 (D-33): dormancy is judged against the wall clock, not the record's --date",
-)
 def test_a_back_dated_dormancy_is_judged_at_its_own_date(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -232,7 +220,6 @@ def crux(date: str = CRUX_DATE) -> scaffold.Proposal:
     )
 
 
-@pytest.mark.xfail(strict=True, reason="finding F3: a speculative crux's status stamp lacks its Z")
 def test_a_speculative_crux_status_record_is_stamped_like_every_other_record() -> None:
     """F3 (fails today). Every other status record is ``<stamp>-<author>.yaml`` with
     ``curator.stamp``'s shape, ``20260910T121314Z`` ("sorts lexically, a legal file name");
@@ -302,9 +289,6 @@ def status_names(root: Path) -> list[str]:
     return sorted(p.name for p in (root / "targets" / LISTED / "status").iterdir())
 
 
-@pytest.mark.xfail(
-    strict=True, reason="finding F4 (F11-R5): activating an already-active target is not refused"
-)
 def test_activating_an_active_target_is_refused(tmp_path: Path) -> None:
     """F4 (fails today). R5: ``intake activate`` is "flipping status to active"; on a target already
     active there is nothing to flip, and today a second record is appended saying so. ``intake
@@ -319,9 +303,6 @@ def test_activating_an_active_target_is_refused(tmp_path: Path) -> None:
     assert status_names(root) == before
 
 
-@pytest.mark.xfail(
-    strict=True, reason="finding F4 (F11-R4, D-33): intake activate reopens a known-result target"
-)
 def test_activation_does_not_reopen_a_known_result(tmp_path: Path) -> None:
     """F4, the sharper case (fails today). F11-R4: "listed, resolved and known-result close
     claiming". ``activate`` computes claimability *as if* the target were active and never reads
@@ -366,9 +347,6 @@ def superseded_by(successor: str) -> records.StatusRecord:
     return records.StatusRecord("superseded", "curator", "2026-09-10", Path("x"), doc)
 
 
-@pytest.mark.xfail(
-    strict=True, reason="finding G: the root-ambiguity message cites target-status/v1"
-)
 def test_root_ambiguity_names_the_current_target_status_schema(facts: Any) -> None:
     """G (fails today). The message tells the curator to write "target-status/v1 root", but every
     writer writes ``target-status/v2`` (``intake.TARGET_STATUS_SCHEMA``; F11-R12), and v2 is what a
@@ -381,9 +359,6 @@ def test_root_ambiguity_names_the_current_target_status_schema(facts: Any) -> No
     assert "target-status/v1" not in message
 
 
-@pytest.mark.xfail(
-    strict=True, reason="finding G: the root-ambiguity message omits the revision it set aside"
-)
 def test_root_ambiguity_lists_the_revision_it_set_aside(facts: Any) -> None:
     """G (fails today). With the root revised (``a`` superseded by ``a-v2``) and two variants
     merged, the message reads "2 nodes have no dependents (v, w)": ``a-v2``, the node that should
@@ -401,10 +376,6 @@ def test_root_ambiguity_lists_the_revision_it_set_aside(facts: Any) -> None:
         assert candidate in str(refused.value)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="finding G (C7): a variant beside a revised root is silently inferred as the root",
-)
 def test_a_variant_beside_a_revised_root_is_not_inferred_as_the_root(facts: Any) -> None:
     """G, the silent case (fails today). The same filter with *one* variant leaves one sink, and
     ``find_root`` returns the variant as the target's root: no error, and the products would

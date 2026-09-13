@@ -784,15 +784,18 @@ def test_find_root_edge_cases_with_revisions(tmp_path: Path) -> None:
         return replace(tg.nodes[base], **kw)  # type: ignore[arg-type]
 
     superseded = records.StatusRecord("superseded", "c", "2026-09-10", Path("x"), {})
-    # Two revisions of two different sinks, both un-depended-on: two candidates remain.
+    # Two revisions of two different sinks, both un-depended-on: still ambiguous, and the message
+    # lists the revisions too. A revision is set aside only when the node it revises is depended
+    # on; this assertion used to pin "2 nodes", the count that left the revisions out (finding G).
     two = {
         "a": facts("and-reassoc", node_id="a", deps=()),
         "a-v2": facts("and-reassoc", node_id="a-v2", deps=(), supersedes="a"),
         "b": facts("tutorial-and-swap", node_id="b", deps=()),
         "b-v2": facts("tutorial-and-swap", node_id="b-v2", deps=(), supersedes="b"),
     }
-    with pytest.raises(GraphError, match="ambiguous: 2 nodes"):
+    with pytest.raises(GraphError, match="ambiguous") as refused:
         graph.find_root(two, None)
+    assert "a-v2" in str(refused.value) and "b-v2" in str(refused.value)
     # Every sink superseded and nothing revising it: zero candidates, still ambiguous.
     none = {
         "a": facts("and-reassoc", node_id="a", deps=(), override=superseded),
