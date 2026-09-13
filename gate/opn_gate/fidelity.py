@@ -253,21 +253,16 @@ def _row(target_dir: Path, subject: str, certs: list[Certificate]) -> SubjectGra
 
 
 def subject_grades(target_dir: Path) -> list[SubjectGrade]:
-    """One row per subject — the root and each definition — whether certified or not.
+    """One row per subject — the root and each definition that exists now — whether certified
+    or not.
 
-    Each row counts only the certificates for the subject as it stands (F11-T9).
+    Each row counts only the certificates for the subject as it stands (F11-T9). A certificate
+    for a subject that is no longer a definition stays on disk and has no row: nothing can sign a
+    subject that does not exist, so a row kept for it would hold the target below its root for
+    good, while the root's own grade still bounds the target (Mike, 2026-09-13; F11-Q33).
     """
     certs = load(target_dir)
-    rows = [_row(target_dir, s, certs.get(s, [])) for s in subjects_of(target_dir)]
-    # A certificate for a subject that is no longer a definition keeps its row, so the removal
-    # stays visible and cannot silently raise the grade; with no current hash it counts for
-    # nothing, so the row is the machine's own grade with no signers.
-    rows.extend(
-        _row(target_dir, subject, certs[subject])
-        for subject in sorted(certs)
-        if subject not in subjects_of(target_dir)
-    )
-    return rows
+    return [_row(target_dir, s, certs.get(s, [])) for s in subjects_of(target_dir)]
 
 
 def target_grade(target_dir: Path) -> str | None:

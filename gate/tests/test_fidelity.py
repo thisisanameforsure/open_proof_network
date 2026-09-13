@@ -115,13 +115,19 @@ def test_a_broken_certificate_stops_the_grade_rather_than_being_skipped(target: 
         fidelity.subject_grades(target)
 
 
-def test_a_certificate_for_a_removed_definition_still_counts(target: Path) -> None:
-    """R3: deleting a definition file must not silently raise the target's grade."""
+def test_a_removed_definition_leaves_the_grade_and_its_certificates_stay(target: Path) -> None:
+    """R3 (Mike, 2026-09-13; F11-Q33): the grade is the minimum over the root and the definitions
+    that exist now. A removed definition's row goes, so it cannot hold the target below a
+    signed root forever — nothing can sign a subject that is not a definition — while its
+    certificates stay on disk (append-only). The root's own grade still bounds the target."""
+    sign(target, "root", "screened-and-signed", "reviewer")
     sign(target, "Primes", "mechanical-only", AUTHOR)
+    assert fidelity.target_grade(target) == "mechanical-only", "Primes holds it while it exists"
     (target / "defs" / "Primes.lean").unlink()
     rows = grades(target)
-    assert "Primes" in rows, "a certificate vanished with its subject file"
-    assert fidelity.target_grade(target) == "mechanical-only"
+    assert "Primes" not in rows, "a removed definition still holds a row in the grade"
+    assert "Primes" in fidelity.load(target), "a certificate vanished with its subject file"
+    assert fidelity.target_grade(target) == rows["root"].grade == "screened-and-signed"
 
 
 def test_the_ladder_is_ordered_and_unknown_grades_are_refused() -> None:

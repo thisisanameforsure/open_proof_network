@@ -398,19 +398,17 @@ def test_a_revised_root_keeps_its_posting(tmp_path: Path) -> None:
 
 def test_a_certificate_for_a_removed_definition_counts_for_nothing(tmp_path: Path) -> None:
     """A definition that no longer exists has no current hash, so its signature counts for
-    nothing — and the products still render. The row stays, at the machine's grade with no
-    signers, so the removal cannot silently raise the grade (F11-T2's rule, kept); the
-    certificate stays on disk."""
+    nothing — and the products still render. Its row leaves the grade (Mike, 2026-09-13;
+    F11-Q33), so the target is graded by the root and the definitions that exist now, and the
+    certificates stay on disk."""
     root = active_signed_target(tmp_path, defs=DEFS)
     t = target_dir(root)
     (t / "defs" / "Primes.lean").unlink()
     assert fidelity.current_hash(t, "Primes") is None
     row = index_row(root, NEW)
-    primes = subject_row(row, "Primes")
-    assert primes["grade"] == fidelity.DEFAULT_GRADE
-    assert primes["signers"] == [] and primes["signature_count"] == 0
+    assert [s["subject"] for s in row["subjects"]] == ["root"]
     assert subject_row(row, "root")["grade"] == SIGNED
-    assert row["fidelity"] == fidelity.DEFAULT_GRADE
+    assert row["fidelity"] == SIGNED
     assert [c.grade for c in fidelity.load(t)["Primes"]] == ["mechanical-only", SIGNED]
 
 

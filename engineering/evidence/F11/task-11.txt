@@ -1,0 +1,55 @@
+F11-T11 — a removed definition leaves the grade (Q33)
+Session 2026-09-13. Base 44b1d3f.
+
+Mike's call (AskUserQuestion, 2026-09-13): drop removed definitions from the grade. F11-T9 had kept
+a mechanical-only row for a certificate whose subject is no longer a definition, so a target with a
+removed definition could never rise above it — nothing can sign a subject that does not exist.
+
+1. The two tests that encoded the old rule were rewritten to the new one first, and ran red:
+   $ uv run pytest gate/tests/test_fidelity.py::test_a_removed_definition_leaves_the_grade_and_its_certificates_stay \
+       gate/tests/test_finding_c_stale_signature.py::test_a_certificate_for_a_removed_definition_counts_for_nothing
+   E   AssertionError: a removed definition still holds a row in the grade
+       assert 'Primes' not in {'root': SubjectGrade(subject='root', grade='screened-and-signed', ...),
+                               'Primes': SubjectGrade(subject='Primes', grade='mechanical-only', ...)}
+   E   AssertionError: assert ['root', 'Primes'] == ['root']
+   2 failed
+
+2. Then fidelity.subject_grades returned rows for the root and the definitions that exist only.
+
+3. Green
+$ uv run pytest gate/tests/test_fidelity.py gate/tests/test_finding_c_stale_signature.py -v
+gate/tests/test_fidelity.py::test_grade_rules PASSED                     [  3%]
+gate/tests/test_fidelity.py::test_the_author_may_still_hold_the_machines_own_grade PASSED [  6%]
+gate/tests/test_fidelity.py::test_certificates_are_append_only_and_the_latest_wins PASSED [  9%]
+gate/tests/test_fidelity.py::test_signatures_are_counted_and_named PASSED [ 12%]
+gate/tests/test_fidelity.py::test_a_subject_has_one_author PASSED        [ 16%]
+gate/tests/test_fidelity.py::test_an_unknown_subject_is_refused PASSED   [ 19%]
+gate/tests/test_fidelity.py::test_a_broken_certificate_stops_the_grade_rather_than_being_skipped PASSED [ 22%]
+gate/tests/test_fidelity.py::test_a_removed_definition_leaves_the_grade_and_its_certificates_stay PASSED [ 25%]
+gate/tests/test_fidelity.py::test_the_ladder_is_ordered_and_unknown_grades_are_refused PASSED [ 29%]
+gate/tests/test_fidelity.py::test_a_certificate_records_its_exhibits_and_evidence_files PASSED [ 32%]
+gate/tests/test_finding_c_stale_signature.py::test_an_unrevised_signed_target_stays_screened_and_signed PASSED [ 35%]
+gate/tests/test_finding_c_stale_signature.py::test_an_unrevised_target_with_a_signed_definition_stays_signed PASSED [ 38%]
+gate/tests/test_finding_c_stale_signature.py::test_the_revision_really_changes_the_statement_the_pass_was_for PASSED [ 41%]
+gate/tests/test_finding_c_stale_signature.py::test_the_superseded_signature_stays_on_disk PASSED [ 45%]
+gate/tests/test_finding_c_stale_signature.py::test_a_revised_root_drops_below_the_signed_rung PASSED [ 48%]
+gate/tests/test_finding_c_stale_signature.py::test_a_revised_root_is_not_claimable_and_says_why PASSED [ 51%]
+gate/tests/test_finding_c_stale_signature.py::test_the_old_signer_is_not_counted_for_the_new_statement PASSED [ 54%]
+gate/tests/test_finding_c_stale_signature.py::test_re_running_the_screens_does_not_resurrect_the_old_signature PASSED [ 58%]
+gate/tests/test_finding_c_stale_signature.py::test_a_fresh_signature_on_the_revised_root_restores_the_rung PASSED [ 61%]
+gate/tests/test_finding_c_stale_signature.py::test_a_signature_on_an_unchanged_definition_still_counts PASSED [ 64%]
+gate/tests/test_finding_c_stale_signature.py::test_an_edited_definition_loses_its_signature_too PASSED [ 67%]
+gate/tests/test_finding_c_stale_signature.py::test_intake_writes_its_certificates_at_v2_pinned_to_each_subject PASSED [ 70%]
+gate/tests/test_finding_c_stale_signature.py::test_the_v2_schema_requires_a_statement_hash_and_v1_is_unchanged PASSED [ 74%]
+gate/tests/test_finding_c_stale_signature.py::test_a_v1_signature_counts_for_nothing PASSED [ 77%]
+gate/tests/test_finding_c_stale_signature.py::test_a_v1_certificate_still_names_the_subjects_author PASSED [ 80%]
+gate/tests/test_finding_c_stale_signature.py::test_a_stale_v2_signature_counts_for_nothing_and_a_fresh_one_counts PASSED [ 83%]
+gate/tests/test_finding_c_stale_signature.py::test_a_later_stale_certificate_does_not_mask_a_counting_one PASSED [ 87%]
+gate/tests/test_finding_c_stale_signature.py::test_a_mathlib_pin_move_keeps_the_grade PASSED [ 90%]
+gate/tests/test_finding_c_stale_signature.py::test_a_revised_root_keeps_its_posting PASSED [ 93%]
+gate/tests/test_finding_c_stale_signature.py::test_a_certificate_for_a_removed_definition_counts_for_nothing PASSED [ 96%]
+gate/tests/test_finding_c_stale_signature.py::test_a_certificate_of_an_unreadable_version_stops_the_grade PASSED [100%]
+============================== 31 passed in 6.52s ==============================
+
+$ uv run pytest gate/tests/test_products.py gate/tests/test_intake.py gate/tests/test_finding_a_post_fidelity.py -q
+101 passed in 14.18s

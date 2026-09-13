@@ -250,6 +250,10 @@ on the site.</p>
   <tr><td>F12-AC27 <em>lean</em></td><td>Given the propositional root (a tautology) and a record
     typing <code>screen-statement</code> pass, when the re-run runs on the real toolchain, then
     exactly <code>screen-statement</code> is refused (R16).</td><td><code>gate/tests/test_qa_rerun_lean.py::test_the_rerun_refutes_a_typed_pass_on_a_tautology</code></td></tr>
+  <tr><td>F12-AC28 <em>docker</em></td><td>Given a git checkout whose head commit adds a record typing the
+    compile and every screen <code>pass</code> on the propositional root, when <code>opn-gate qa-rerun
+    --sandbox</code> runs in the step-3 image, then it exits 1 naming exactly
+    <code>screen-statement</code>, and the checkout is unchanged (R16, Q19).</td><td><code>gate/tests/test_qa_rerun_docker.py::test_qa_rerun_in_the_sandbox_refutes_a_typed_pass_on_a_tautology</code></td></tr>
 </table>
 
 <h2>6. Budgets / limits</h2>
@@ -490,7 +494,7 @@ on the site.</p>
     back-translations (a model key in the gate job would be another secret door, C8) and exhibit
     rows (R15), each listed with its reason. A record pinned to another statement, toolchain or
     Mathlib is refused as <code>qa-rerun-unverifiable</code>, because head cannot check it
-    (accepting it, since it would count for nothing, is the alternative, put to Mike). Limits: the
+    (accepting it, since it would count for nothing, was the alternative; Mike kept the refusal, 2026-09-13). Limits: the
     rule checks claims, not authorship, so a typed record whose claims are true is accepted; a slow
     runner can refuse a true record through timeouts; exhibit files in a QA pull request are not
     elaborated in CI (R15's replay runs where <code>fidelity</code> runs). The workflow reads the new
@@ -500,7 +504,7 @@ on the site.</p>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> done 2026-09-12 (tag F12-done) · <strong>Tasks:</strong> T1 ✓ 2026-09-12 · T2 ✓ 2026-09-12 (lean tier: ci run 34689742821 green) · T3 ✓ 2026-09-12 · T4 ✓ 2026-09-12 (lean tier: ci run 34692446154 green) · T5 ✓ 2026-09-12 (AC13 dry run: this container cannot reach erdosproblems.com; the workflow run is the evidence) · T6 ✓ 2026-09-12 · T7 ✓ 2026-09-13 (Q18: revise reads v2 requests; the QA reader holds rows to the writer's rules; the end-to-end findings captured as tests, 23 held as strict expected failures for the tasks that close them; engineering/evidence/F12/task-7.txt) · T8 ✓ 2026-09-13 (Q19, D3: the gate re-runs a QA record's claimed passes on its pull request; 26 fast tests and nine in-memory mutants each caught; the lean-tier test ran locally on Lean 4.33.1, CI run and a docker-tier test of qa-rerun --sandbox pending; the gate.yml step drafted, inert until the re-pin; built on its own branch and fast-forwarded onto main, make verify 1622 passed; engineering/evidence/F12/task-8.txt)</div>
+<div class="rule"><strong>status:</strong> done 2026-09-12 (tag F12-done) · <strong>Tasks:</strong> T1 ✓ 2026-09-12 · T2 ✓ 2026-09-12 (lean tier: ci run 34689742821 green) · T3 ✓ 2026-09-12 · T4 ✓ 2026-09-12 (lean tier: ci run 34692446154 green) · T5 ✓ 2026-09-12 (AC13 dry run: this container cannot reach erdosproblems.com; the workflow run is the evidence) · T6 ✓ 2026-09-12 · T7 ✓ 2026-09-13 (Q18: revise reads v2 requests; the QA reader holds rows to the writer's rules; the end-to-end findings captured as tests, 23 held as strict expected failures for the tasks that close them; engineering/evidence/F12/task-7.txt) · T8 ✓ 2026-09-13 (Q19, D3: the gate re-runs a QA record's claimed passes on its pull request; 26 fast tests and nine in-memory mutants each caught; the lean-tier test ran locally on Lean 4.33.1, CI run and a docker-tier test of qa-rerun --sandbox pending; the gate.yml step drafted, inert until the re-pin; built on its own branch and fast-forwarded onto main, make verify 1622 passed; engineering/evidence/F12/task-8.txt) · T8 addendum 2026-09-13: the owed docker-tier test written (AC28, test_qa_rerun_docker.py); this laptop's Docker daemon is down, so its first run is CI's on the push of main — the run id is recorded here once green</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its
