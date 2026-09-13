@@ -121,3 +121,15 @@ def load_node_status(node_dir: Path) -> StatusRecord | None:
 def load_target_status(target_dir: Path) -> StatusRecord | None:
     """The target's latest declaration (D-33; F03-Q5), or ``None``."""
     return _latest_record(target_dir / "status", TARGET_STATUS_SCHEMAS)
+
+
+def declared_root(target_dir: Path) -> str | None:
+    """The root the target's latest declaration names, or ``None`` (F11-R14; F03-Q5).
+
+    The products read the root from the latest record alone, so every tool that writes a later
+    target record carries this value forward: a record that left it out would undeclare the
+    root, and the first variant or crux after it would stop the products (F08-Q19).
+    """
+    latest = load_target_status(target_dir)
+    root = latest.doc.get("root") if latest is not None else None
+    return str(root) if root else None

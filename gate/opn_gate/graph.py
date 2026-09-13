@@ -337,14 +337,15 @@ def find_root(nodes: dict[str, NodeFacts], declaration: StatusRecord | None) -> 
     superseded node and the node that supersedes it. Neither is a new root — a superseded node
     is never the root, and a revision of an interior node is a sink only because its dependents
     still name the old id — so both are set aside before the sink is required to be unique. A
-    revision of the root itself is then the one sink left.
+    revision of the root itself is then the one sink left. A declared root is followed the same
+    way, to the node it has become (F11-Q29).
     """
     if declaration is not None and declaration.doc.get("root"):
         root = str(declaration.doc["root"])
         if root not in nodes:
             msg = f"declared root {root!r} is not a node"
             raise GraphError(msg)
-        return root
+        return _current_node(nodes, root)
     depended_on = {dep for n in nodes.values() for dep in n.deps}
     sinks = sorted(n for n in nodes if n not in depended_on)
     superseded = {n for n in sinks if _is_superseded(nodes[n])}
@@ -363,6 +364,34 @@ def find_root(nodes: dict[str, NodeFacts], declaration: StatusRecord | None) -> 
 
 def _is_superseded(node: NodeFacts) -> bool:
     return node.override is not None and node.override.status == "superseded"
+
+
+def _current_node(nodes: dict[str, NodeFacts], declared: str) -> str:
+    """F11-Q29: the node a declared root has become.
+
+    A declaration names the root as it was when written. A revision (D-8) or a consolidation
+    (D-29) supersedes that node with a status record whose ``reference`` names the successor,
+    and rewrites no target record — so the declaration is followed to the end of that chain.
+    A successor that is not a node, or a chain that loops, is refused by name: publishing a
+    superseded node as the root would be a silent wrong answer (C7).
+    """
+    chain = [declared]
+    override = nodes[declared].override
+    while override is not None and override.status == "superseded":
+        successor = override.doc.get("reference")
+        if not successor or str(successor) not in nodes:
+            msg = (
+                f"declared root {declared!r} is superseded and its successor {successor!r} is "
+                "not a node; declare the root again in targets/<id>/status/"
+            )
+            raise GraphError(msg)
+        if str(successor) in chain:
+            path = " -> ".join([*chain, str(successor)])
+            msg = f"declared root {declared!r} is superseded in a loop: {path}"
+            raise GraphError(msg)
+        chain.append(str(successor))
+        override = nodes[chain[-1]].override
+    return chain[-1]
 
 
 def load_target(graph_root: Path, target_id: str) -> TargetGraph:

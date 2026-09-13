@@ -51,7 +51,16 @@ the root on each of the five, the way the tutorial's was filed. (b) The tooling 
 spec task here: <code>intake new</code> should write the root declaration at listing, so no target
 is ever seeded into this state again &mdash; and F03's inference should not count a node whose
 <code>META.yaml</code> origin is <code>variant</code> as a candidate root, which is the change
-F08-Q19 said &ldquo;belongs with F12's target-level records&rdquo; and was never taken.</div>
+F08-Q19 said &ldquo;belongs with F12's target-level records&rdquo; and was never taken.
+<br><br><strong>Taken 2026-09-13.</strong> (a) Graph pull requests #25&ndash;#30 declare the root of
+<code>erdos-52</code>, <code>erdos-68</code>, <code>erdos-172</code>, <code>erdos-376</code>,
+<code>erdos-406</code> and <code>euclid-primes</code> (<code>infinitude-of-primes</code>), each rehearsed
+first with the pinned gate's <code>classify</code> and root inference. (b) Landed as
+<a href="features/F11.html">F11-T7</a> (R14): <code>intake new</code> declares the root it scaffolds,
+<code>intake activate</code> and <code>opn-gate status</code> carry it forward, and a declared root is
+followed through a revision or consolidation to the node it has become (F11-Q29). The inference half
+&mdash; not counting a variant as a candidate root &mdash; was not taken: every curated target now
+declares its root at listing, so inference only speaks for pre-F11 targets (Q29).</div>
 
 <h2>2. Blocks or misleads a contributor</h2>
 <table>

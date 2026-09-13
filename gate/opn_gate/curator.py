@@ -460,13 +460,11 @@ def declare_status(  # noqa: PLR0913 — the declaration's facts, each named
             )
             raise CuratorError(msg)
         full_cause = f"{cause}\n{series.render()}"
-    doc: dict[str, Any] = {
-        "schema": TARGET_STATUS_SCHEMA,
-        "status": status,
-        "cause": full_cause,
-        "author": author,
-        "date": scaffold.day(date),
-    }
+    doc: dict[str, Any] = {"schema": TARGET_STATUS_SCHEMA, "status": status}
+    root = records.declared_root(graph_root / "targets" / target_id)
+    if root is not None:
+        doc["root"] = root  # F11-R14: a later declaration must not undeclare the root
+    doc.update({"cause": full_cause, "author": author, "date": scaffold.day(date)})
     schemas.validate(doc, TARGET_STATUS_SCHEMA)
     return write_record(graph_root / "targets" / target_id, doc, author=author, date=date)
 

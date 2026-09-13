@@ -1,0 +1,243 @@
+F11-T7 — declare the root at intake, and keep it declared (R14; AC17, AC18; Q29)
+Session 2026-09-13. Base commit 245ebe1 (working tree: intake.py, curator.py, records.py, graph.py,
+test_intake_root.py, F11.html, findings.html).
+
+Why: the products read a target's root from its latest status record alone, else infer the unique
+sink. A variant or crux has no dependents, so every intake left its target one proposal away from
+stopped products (F08-Q19; findings register §1). The six live targets were fixed by hand the same
+morning as graph PRs #25-#30; this task makes intake do it, and keeps later records from undoing it.
+
+1. Red before the Q29 fix (the risk found while writing the tests)
+   Declaring the root at intake would have published a revised (superseded) root as the root.
+   Run before graph.find_root followed supersession:
+     FAILED test_a_revised_declared_root_is_followed_to_its_revision
+       AssertionError: assert 'and-reassoc' == 'and-reassoc-v2'
+     1 failed, 10 passed
+
+2. Green: the task's verification commands
+== uv run pytest gate/tests/test_intake_root.py -v
+gate/tests/test_intake_root.py::test_intake_new_declares_the_root_it_scaffolds PASSED [  6%]
+gate/tests/test_intake_root.py::test_a_new_targets_first_variant_keeps_the_products_rendering PASSED [ 13%]
+gate/tests/test_intake_root.py::test_an_imported_target_declares_itself_as_root PASSED [ 20%]
+gate/tests/test_intake_root.py::test_the_cli_prints_the_root_the_record_declares PASSED [ 26%]
+gate/tests/test_intake_root.py::test_later_declarations_carry_the_root_forward PASSED [ 33%]
+gate/tests/test_intake_root.py::test_a_curator_declaration_carries_the_root_forward[active] PASSED [ 40%]
+gate/tests/test_intake_root.py::test_a_curator_declaration_carries_the_root_forward[dormant] PASSED [ 46%]
+gate/tests/test_intake_root.py::test_the_status_command_carries_the_root_forward PASSED [ 53%]
+gate/tests/test_intake_root.py::test_a_target_that_never_declared_a_root_gets_none PASSED [ 60%]
+gate/tests/test_intake_root.py::test_a_revised_declared_root_is_followed_to_its_revision PASSED [ 66%]
+gate/tests/test_intake_root.py::test_a_twice_revised_declared_root_is_followed_to_the_end PASSED [ 73%]
+gate/tests/test_intake_root.py::test_a_consolidated_declared_root_is_followed_to_the_node_kept PASSED [ 80%]
+gate/tests/test_intake_root.py::test_a_superseded_root_with_no_successor_is_a_loud_refusal PASSED [ 86%]
+gate/tests/test_intake_root.py::test_a_supersession_loop_is_a_loud_refusal PASSED [ 93%]
+gate/tests/test_intake_root.py::test_the_carried_root_is_the_one_the_products_read PASSED [100%]
+============================== 15 passed in 3.87s ==============================
+
+== make verify
+uv run --frozen ruff check .
+All checks passed!
+uv run --frozen ruff format --check .
+252 files already formatted
+uv run --frozen mypy gate
+Success: no issues found in 125 source files
+uv run --frozen mypy api
+Success: no issues found in 74 source files
+uv run --frozen mypy site
+Success: no issues found in 18 source files
+uv run --frozen pytest -m "not lean and not docker and not network"
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network
+configfile: pyproject.toml
+testpaths: gate/tests, api/tests, site/tests
+plugins: anyio-4.15.1
+collected 1599 items / 61 deselected / 1538 selected
+
+gate/tests/test_admit.py ................................                [  2%]
+gate/tests/test_artifacts.py ...................                         [  3%]
+gate/tests/test_attestation.py ................                          [  4%]
+gate/tests/test_bounce.py .........                                      [  4%]
+gate/tests/test_branches_round3.py ......................                [  6%]
+gate/tests/test_branches_round4.py ..................                    [  7%]
+gate/tests/test_cache.py ........                                        [  8%]
+gate/tests/test_cli_curator.py ..................                        [  9%]
+gate/tests/test_cli_pregate.py ..................                        [ 10%]
+gate/tests/test_cli_sandboxed.py ............................            [ 12%]
+gate/tests/test_config.py ..............................                 [ 14%]
+gate/tests/test_context.py ......                                        [ 14%]
+gate/tests/test_curator.py .....................                         [ 15%]
+gate/tests/test_defs.py .......                                          [ 16%]
+gate/tests/test_deps.py .............                                    [ 17%]
+gate/tests/test_diagnostic.py ..........                                 [ 17%]
+gate/tests/test_exhibits.py .........                                    [ 18%]
+gate/tests/test_fidelity.py ..........                                   [ 19%]
+gate/tests/test_hazards.py ...............                               [ 20%]
+gate/tests/test_intake.py ...................                            [ 21%]
+gate/tests/test_intake_mode.py ....                                      [ 21%]
+gate/tests/test_intake_root.py ...............                           [ 22%]
+gate/tests/test_layout.py ...............                                [ 23%]
+gate/tests/test_ledger.py .......................                        [ 25%]
+gate/tests/test_models.py ...........                                    [ 25%]
+gate/tests/test_modes.py ............................................... [ 28%]
+...............................................                          [ 31%]
+gate/tests/test_partial.py .........                                     [ 32%]
+gate/tests/test_paths.py ..........................................      [ 35%]
+gate/tests/test_pins.py .......                                          [ 35%]
+gate/tests/test_pipeline.py ..................................           [ 37%]
+gate/tests/test_postmerge.py ...............................             [ 39%]
+gate/tests/test_postmerge_apply.py ........                              [ 40%]
+gate/tests/test_precheck_job_docker.py ...                               [ 40%]
+gate/tests/test_products.py .........................................    [ 43%]
+gate/tests/test_qa.py .................................................. [ 46%]
+.......                                                                  [ 46%]
+gate/tests/test_records.py ............                                  [ 47%]
+gate/tests/test_rehearsal.py ....                                        [ 47%]
+gate/tests/test_sandbox.py ........                                      [ 48%]
+gate/tests/test_sandbox_copyout.py ...........                           [ 49%]
+gate/tests/test_scaffold.py ........................                     [ 50%]
+gate/tests/test_schemas.py ............................................. [ 53%]
+......................................................                   [ 57%]
+gate/tests/test_signer.py .........                                      [ 57%]
+gate/tests/test_stage.py ....                                            [ 58%]
+gate/tests/test_toolchain.py .....................................       [ 60%]
+gate/tests/test_toolchain_install.py ............                        [ 61%]
+gate/tests/test_walkthrough.py ....                                      [ 61%]
+gate/tests/test_watcher.py ..........                                    [ 62%]
+gate/tests/test_witness.py ..........                                    [ 62%]
+api/tests/test_appends.py .......                                        [ 63%]
+api/tests/test_auth.py ....                                              [ 63%]
+api/tests/test_body_cap.py .........                                     [ 64%]
+api/tests/test_branches_round4.py ...................                    [ 65%]
+api/tests/test_claims.py .........                                       [ 65%]
+api/tests/test_claims_defect.py ....                                     [ 66%]
+api/tests/test_config_boundary.py ...........                            [ 66%]
+api/tests/test_entrypoints.py ..........                                 [ 67%]
+api/tests/test_frontier.py ....                                          [ 67%]
+api/tests/test_githost_seam.py ......................................... [ 70%]
+...........................                                              [ 72%]
+api/tests/test_health.py ........                                        [ 72%]
+api/tests/test_info.py ...                                               [ 72%]
+api/tests/test_mcp_auth.py .....                                         [ 73%]
+api/tests/test_mcp_demarcation.py ....                                   [ 73%]
+api/tests/test_mcp_equivalence.py ...                                    [ 73%]
+api/tests/test_mcp_errors.py ......                                      [ 74%]
+api/tests/test_mcp_frontier.py ...                                       [ 74%]
+api/tests/test_mcp_surface.py ......                                     [ 74%]
+api/tests/test_precheck.py ...........................                   [ 76%]
+api/tests/test_proposals.py .......                                      [ 76%]
+api/tests/test_ratelimit.py ....                                         [ 77%]
+api/tests/test_rejections_app.py .............                           [ 78%]
+api/tests/test_rejections_appends.py ...........                         [ 78%]
+api/tests/test_rejections_claims.py .........                            [ 79%]
+api/tests/test_rejections_precheck.py ....................               [ 80%]
+api/tests/test_rejections_proposals.py ............                      [ 81%]
+api/tests/test_rejections_requests.py ........                           [ 81%]
+api/tests/test_rejections_submissions.py ..........                      [ 82%]
+api/tests/test_rejections_tokens.py .................                    [ 83%]
+api/tests/test_routes.py .....                                           [ 84%]
+api/tests/test_sshsig.py ......                                          [ 84%]
+api/tests/test_sshsig_rejections.py ...........                          [ 85%]
+api/tests/test_store_seam.py ........................................... [ 87%]
+........................................                                 [ 90%]
+api/tests/test_submissions.py ......                                     [ 90%]
+api/tests/test_tokens.py ................                                [ 91%]
+site/tests/test_branches_round4.py ...                                   [ 92%]
+site/tests/test_config.py .....                                          [ 92%]
+site/tests/test_dag.py ..........                                        [ 93%]
+site/tests/test_escaping.py ....                                         [ 93%]
+site/tests/test_links.py ......................                          [ 94%]
+site/tests/test_rejection.py ......................................      [ 97%]
+site/tests/test_render.py .....................                          [ 98%]
+site/tests/test_untrusted.py .....................                       [100%]
+
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:26
+  /Users/mikehiggins/Desktop/repos/open_proof_network/api/tests/api_fakes.py:26: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========== 1538 passed, 61 deselected, 2 warnings in 70.11s (0:01:10) ==========
+make verify exit=0
+
+3. The tests have teeth: four in-memory mutants (pytest plugins monkeypatching the code; no file
+   changed), each re-running gate/tests/test_intake_root.py. Every one of the 15 tests fails under
+   at least one mutant.
+   mutant_noroot     intake never declares a root; nothing carries one      (R14 undone)
+   mutant_nofollow   a declared root is returned as declared, never followed (Q29 undone)
+   mutant_resurrect  writers revive the most recent root in any record      (mirror rule undone)
+   mutant_invent     writers invent a root from inference where none declared (no-invention undone)
+== mutant_noroot
+FAILED gate/tests/test_intake_root.py::test_intake_new_declares_the_root_it_scaffolds
+FAILED gate/tests/test_intake_root.py::test_a_new_targets_first_variant_keeps_the_products_rendering
+FAILED gate/tests/test_intake_root.py::test_an_imported_target_declares_itself_as_root
+FAILED gate/tests/test_intake_root.py::test_the_cli_prints_the_root_the_record_declares
+FAILED gate/tests/test_intake_root.py::test_later_declarations_carry_the_root_forward
+FAILED gate/tests/test_intake_root.py::test_a_curator_declaration_carries_the_root_forward[active]
+FAILED gate/tests/test_intake_root.py::test_a_curator_declaration_carries_the_root_forward[dormant]
+FAILED gate/tests/test_intake_root.py::test_the_status_command_carries_the_root_forward
+FAILED gate/tests/test_intake_root.py::test_a_revised_declared_root_is_followed_to_its_revision
+FAILED gate/tests/test_intake_root.py::test_a_twice_revised_declared_root_is_followed_to_the_end
+FAILED gate/tests/test_intake_root.py::test_a_superseded_root_with_no_successor_is_a_loud_refusal
+FAILED gate/tests/test_intake_root.py::test_a_supersession_loop_is_a_loud_refusal
+12 failed, 3 passed in 1.20s
+== mutant_nofollow
+FAILED gate/tests/test_intake_root.py::test_a_revised_declared_root_is_followed_to_its_revision
+FAILED gate/tests/test_intake_root.py::test_a_twice_revised_declared_root_is_followed_to_the_end
+FAILED gate/tests/test_intake_root.py::test_a_consolidated_declared_root_is_followed_to_the_node_kept
+FAILED gate/tests/test_intake_root.py::test_a_superseded_root_with_no_successor_is_a_loud_refusal
+FAILED gate/tests/test_intake_root.py::test_a_supersession_loop_is_a_loud_refusal
+5 failed, 10 passed in 0.75s
+== mutant_resurrect
+FAILED gate/tests/test_intake_root.py::test_the_carried_root_is_the_one_the_products_read
+1 failed, 14 passed in 3.50s
+== mutant_invent
+FAILED gate/tests/test_intake_root.py::test_a_target_that_never_declared_a_root_gets_none
+FAILED gate/tests/test_intake_root.py::test_the_carried_root_is_the_one_the_products_read
+2 failed, 13 passed in 0.68s
+
+4. Behaviour: an independent agent took one new problem through its life on a local clone of the
+   live graph at a7dbd82, with the working-tree gate (no Lean, no Docker, no network, no pushes;
+   products regenerated in process; each act one commit, classified against its parent).
+   Problem: Erdős #242 (Erdős–Straus), target erdos-242, root erdos-straus, stated in core Lean.
+
+   step                                   root check                                     result
+   1  intake new --no-toolchain --spec    listed record root: erdos-straus; CLI output and
+                                          targets/index.json and graph.json agree;
+                                          classify: intake ok; non-curator: curator-unlisted PASS
+   2a related variant, no new record      products render, index root erdos-straus;
+                                          classify: proposal ok                          PASS
+   2b speculative crux, no new record     products render (3 nodes), root unchanged;
+                                          classify: proposal ok                          PASS
+   3a status dormant (--n 0)              record root: erdos-straus; classify curator ok PASS
+   3b status active                       record root: erdos-straus; classify curator ok PASS
+   3f intake activate                     record root: erdos-straus; index claimable true
+                                          and root erdos-straus; classify curator ok     PASS
+   4c revise erdos-straus (v1 request)    erdos-straus-v2 written, old superseded with
+                                          reference; index and graph.json root
+                                          erdos-straus-v2 with a variant present;
+                                          classify curator ok; non-curator refused       PASS
+   4d status active after the revision    record carries root: erdos-straus (the declared
+                                          id); products follow it to erdos-straus-v2     PASS
+   5  hand record without root:           products: GraphError root is ambiguous: 2 nodes
+                                          have no dependents (spec-5b854502,
+                                          variant-erdos-straus-5)                         PASS
+   5b intake activate after 5             writes no root (mirrors the latest record);
+                                          products stay ambiguous until a curator
+                                          declares the root again by hand                note
+
+   Every root check passed. Issues the agent found outside T7's scope, reported to Mike and not
+   fixed here (C4): (A) `intake post` and a fidelity certificate each fail classify on the live
+   graph's rules (path-forbidden target-record may not be modified / intake-incomplete), so no
+   curated target can reach claimable through the gate; (B) `revise` accepts only
+   revision-request/v1 while the append path accepts v2; (C) a revised root keeps its old fidelity
+   signature (fidelity/v1 records no statement hash); (D) a hand-typed QA record with tool: hand
+   rows satisfies the signature gate; (E) `status <target> active` skips activation's claimability
+   checks; (F) `intake new` needs --spec on the live graph because the tutorial's gate-spec
+   differs; dormancy's last-merge uses commit wall-clock time, not --date; a crux status stamp
+   lacks its Z; a second activate is not refused; (G) the ambiguity message omits a revision among
+   the sinks it lists and still cites target-status/v1. Scratch clone deleted; neither repository
+   was modified by the agent.

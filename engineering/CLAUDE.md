@@ -558,3 +558,16 @@ The law of the project:
   helper that captured `gh api ... 2>&1` turned a network timeout into a "PR number", so the
   loop waited 30 min on a PR that did not exist. Validate a captured value's shape, never its
   non-emptiness.
+- 2026-09-13 — F11-T7 (R14): intake declares the root, activate and status carry it forward. A fix
+  that makes a value *declared* instead of *inferred* inherits every case inference handled: an
+  undeclared target already survived a revision of its root (superseded sinks set aside), and a
+  declared one would have published the superseded node — found only because a test for it was
+  written before `find_root` was touched, and failed with the old id. Declarations now follow a
+  superseded record's `reference`. Mutants as pytest plugins (`-p`, monkeypatching in memory, no
+  file touched) proved each of the 15 tests fails under some wrong implementation, and could run
+  while an agent was using the same checkout. The agent that took Erdős #242 through its life on a
+  clone passed every root check and found that `intake post` is refused by the gate's path rules
+  (`path-forbidden: target-record may not be modified`, reproduced on erdos-376), so no curated
+  target can record its D-10 posting through a pull request — the kind of finding only a
+  whole-lifecycle run produces. Its report that a lone fidelity certificate is refused too
+  (`intake-incomplete`) needs a completed QA pass to reproduce and was not re-checked.

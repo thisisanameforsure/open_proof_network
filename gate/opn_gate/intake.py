@@ -11,8 +11,9 @@ Three commands live here, and they are deliberately three rather than one:
 ``intake new``
     Everything that makes a target exist: the record, the ``gate-spec.json`` pinning the graph's
     Mathlib (D-7), the root node and the definitions it is stated over, a ``mechanical-only``
-    certificate for each of them, and a ``listed`` declaration. Admission runs on the root and on
-    each definition before any of it is kept.
+    certificate for each of them, and a ``listed`` declaration naming the root node, which every
+    later declaration carries forward (R14). Admission runs on the root and on each definition
+    before any of it is kept.
 ``intake post``
     The D-10 posting. A target that has not been posted upstream is not claimable, and posting is
     a thing a person does in the world; the record follows it.
@@ -38,7 +39,7 @@ from typing import Any
 
 import yaml
 
-from opn_gate import fidelity, layout, schemas
+from opn_gate import fidelity, layout, records, schemas
 
 log = logging.getLogger(__name__)
 
@@ -263,14 +264,15 @@ class Intake:
         }
 
 
-def status_doc(status: str, cause: str, *, author: str, date: str) -> dict[str, Any]:
-    doc: dict[str, Any] = {
-        "schema": TARGET_STATUS_SCHEMA,
-        "status": status,
-        "cause": cause,
-        "author": author,
-        "date": date[:10],
-    }
+def status_doc(
+    status: str, cause: str, *, author: str, date: str, root: str | None = None
+) -> dict[str, Any]:
+    """A target declaration. ``root`` is declared at intake and carried forward by every later
+    record (R14), because the products read it from the latest record alone (F03-Q5)."""
+    doc: dict[str, Any] = {"schema": TARGET_STATUS_SCHEMA, "status": status}
+    if root is not None:
+        doc["root"] = root
+    doc.update({"cause": cause, "author": author, "date": date[:10]})
     return schemas.validate(doc, TARGET_STATUS_SCHEMA)
 
 
@@ -364,6 +366,7 @@ def new(  # noqa: PLR0913 — one argument per input the target is built from
                 "statement and the target is posted upstream (D-9, D-10)",
                 author=author,
                 date=date,
+                root=root_id,
             ),
             author=author,
             date=date,
@@ -453,6 +456,7 @@ def activate(
             f"activated by {author}: grade {grade} and a D-10 posting are on record (D-6)",
             author=author,
             date=date,
+            root=records.declared_root(destination),
         ),
         author=author,
         date=date,
