@@ -50,6 +50,16 @@ with its single home:
   <li><strong>Precheck signing key</strong> (ed25519): an Actions secret on the precheck scratch
     repo, nowhere else; its public key is committed to the graph. Signs precheck attestations
     (D-28).</li>
+  <li><strong>Graph deploy key</strong> (<code>OPN_GRAPH_DEPLOY_KEY</code>, SSH, write): an Actions
+    secret on the graph repo, nowhere else. The post-merge job pushes the attestation and products
+    commit with it, which the main ruleset lets bypass. (In use since 2026-09-08; listed here
+    2026-09-13, when the inventory was found to omit it.)</li>
+  <li><strong>Site dispatch token</strong> (<code>OPN_SITE_DEPLOY_TOKEN</code>): a fine-grained token
+    on the network repository with Actions: read and write and nothing else, an Actions secret on
+    the graph repo, read by one step at the end of the post-merge job to run
+    <code>site-deploy</code> (F04-Q10; added 2026-09-13, expiring after a year). It can start any
+    of the network repository's workflows on <code>main</code> and cannot push code or read
+    secrets; losing it costs a site that waits for the schedule.</li>
   <li><strong>GitHub App private key and client secret</strong> (the App also serves as the OAuth
     app for GitHub-proof identities, F05) and the <strong>api token-signing secret</strong>: AWS
     Systems Manager Parameter Store (SecureString), read by the api function at startup.</li>
@@ -58,8 +68,9 @@ with its single home:
   <li><strong>Founder bootstrap AWS credentials:</strong> the git-ignored <code>.env</code> on the
     founder's machine only — never in GitHub, never in any deployed environment.</li>
 </ol>
-Three doors, then: the local <code>.env</code>, Parameter Store, and Actions secrets for signing
-keys alone. Code reads every secret through the one config module named in conventions §1; no
+Three doors, then: the local <code>.env</code>, Parameter Store, and Actions secrets for the two
+signing keys, the graph's deploy key and the site dispatch token, each read only by the job named
+above. Code reads every secret through the one config module named in conventions §1; no
 other module touches the environment. Secrets never appear in client bundles, logs, git history,
 generated site pages, or attestations. The authoritative gate's build step is secretless by
 construction (D-4 step 3): the job that runs it is granted no secret and no write permission; only

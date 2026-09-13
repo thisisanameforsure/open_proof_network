@@ -1,8 +1,9 @@
 # Render and deploy the site (F04-R12; D-36). Runs after every graph merge: the graph's
-# post-merge job stays secretless (C8), so instead of a cross-repo dispatch this workflow polls
-# the graph's main every five minutes and deploys only when the commit changed (F04-Q7); it can
-# also be run by hand. Credentials: none stored — the workflow assumes the stack's deploy role
-# through GitHub OIDC (C8 item 4). A failed render or sync leaves the previous site intact (C7).
+# post-merge job dispatches it with the commit to render, through a fine-grained token that can
+# only run this repository's workflows (C8; F04-Q10). The five-minute schedule stays as the
+# fallback, polling the graph's main and deploying only when the commit changed (F04-Q7), and it
+# can be run by hand. Credentials here: none stored — the workflow assumes the stack's deploy
+# role through GitHub OIDC (C8 item 4). A failed render or sync leaves the previous site intact.
 name: site-deploy
 
 on:

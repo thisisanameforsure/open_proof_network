@@ -1,0 +1,36 @@
+F04-T8 — the graph's post-merge job dispatches the site deploy (R12 amended, Q10)
+Session 2026-09-13. Network base 66f3d5d; graph base eab2a29.
+
+Why: GitHub ran site-deploy's five-minute schedule every two to five hours. Graph PR #31
+(erdos-406, the first contribution after the 0e3bab6 re-pin) rendered its products at 14:53 UTC
+and reached the site only when site-deploy was dispatched by hand: run 34764100164, job 18 s
+(14:56:19 -> 14:56:37), live page updated 14:56:46.
+
+1. The token (Mike, 2026-09-13): a fine-grained personal access token on
+   thisisanameforsure/open_proof_network only, Repository permission Actions: Read and write
+   (Metadata read-only implied), expiring after one year. Stored as an Actions secret on the graph
+   repo:
+     $ gh api repos/thisisanameforsure/open_proof_network_graph/actions/secrets
+     OPN_GATE_SIGNING_KEY (updated 2026-09-08T04:33:09Z)
+     OPN_GRAPH_DEPLOY_KEY (updated 2026-09-08T04:33:50Z)
+     OPN_SITE_DEPLOY_TOKEN (updated 2026-09-13T15:27:40Z)
+   The network repository holds no Actions secret.
+
+2. The step, the last of the graph's postmerge job (graph commit 14d87ac on branch
+   site/dispatch-deploy): runs for every push to main except the bot's own `gate: #N pass`
+   commit; `gh workflow run site-deploy.yml --repo thisisanameforsure/open_proof_network --ref main
+   -f graph_commit=<HEAD>`; without the token, or on a refused dispatch, it prints that the schedule
+   deploys and exits 0 (C7).
+
+3. Static check of the graph workflow (python yaml over .github/workflows/gate.yml at 14d87ac):
+   gate.yml parses; gate job secretless; OPN_SITE_DEPLOY_TOKEN used only by the last postmerge
+   step: ['Ask the site to deploy this commit']
+   postmerge steps: 15 | secrets referenced in postmerge: ['OPN_GATE_SIGNING_KEY',
+   'OPN_GRAPH_DEPLOY_KEY', 'OPN_SITE_DEPLOY_TOKEN']
+
+4. C8 now lists the site dispatch token and the graph deploy key (the inventory had omitted the
+   deploy key since 2026-09-08); site-deploy.yml's header no longer says the post-merge job is
+   secretless.
+
+5. Live dispatch: pending the graph push of site/dispatch-deploy (the push itself is a direct push
+   by Mike, so its postmerge run exercises the step). Appended below once run.
