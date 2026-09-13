@@ -139,6 +139,16 @@ on the site.</p>
     not count that row toward a complete pass; before an exhibit counts for a grade it shall be
     replayed through the toolchain seam under the gate's own hazard checks (D-4 steps 2 and 4). An
     exhibit is trusted by content, never by path (C9). Added 2026-09-11 (Q8).</td></tr>
+  <tr><td>F12-R16</td><td>When a pull request adds a QA record, the gate shall re-run, inside the
+    step-3 sandbox on the graph's pinned toolchain and on the subject as it stands at the pull
+    request's head, every compile and soundness-screen row the record records as <code>pass</code>
+    with no exhibit, and shall refuse the pull request naming each such row whose re-run is not also
+    <code>pass</code> &mdash; a finding, a failure, a timeout, an exhausted budget or an error (C7). It
+    shall not re-run a brief or back-translation row, which asks a model the gate job holds no key
+    for (C8), nor a row that names an exhibit file (R15), and shall list each row it does not re-run
+    with the reason. It shall refuse a record pinned to a statement hash, toolchain or Mathlib other
+    than head's as unverifiable (R5). The re-run shall write nothing into the checkout it checks.
+    Added 2026-09-13 (Q19).</td></tr>
 </table>
 
 <h2>5. Acceptance criteria</h2>
@@ -227,6 +237,19 @@ on the site.</p>
     <code>native_decide</code> or an axiom outside the allowlist, with a matching recorded hash and
     no <code>sorry</code>, when the grade gate reads the record, then the exhibit is replayed
     through the toolchain seam and refused, so the grade does not rise (R15, R9).</td><td><code>gate/tests/test_qa_lean.py::test_exhibit_is_replayed_before_it_counts</code></td></tr>
+  <tr><td>F12-AC25</td><td>Given a QA record typing every floor row <code>pass</code>, when its pull
+    request is classified and the statement's negation proves at head, then <code>classify</code>
+    reports <code>needs_qa_rerun</code>, <code>qa-rerun</code> in the sandbox exits non-zero naming
+    <code>screen-negation</code>, the brief rows are listed as not re-run, and the checkout is
+    unchanged (R16).</td><td><code>gate/tests/test_finding_de_qa_status.py::test_d_a_hand_typed_pass_is_refused_by_the_gate_on_its_pull_request</code></td></tr>
+  <tr><td>F12-AC26</td><td>Given the same record where no screen proves, when <code>qa-rerun</code>
+    runs, then it exits 0; given a re-run that times out or errors, then the claimed row is refused
+    (R16, C7).</td><td><code>gate/tests/test_qa_rerun.py::test_qa_rerun_runs_in_the_sandbox_refuses_a_forgery_and_accepts_a_true_record</code>,
+    <code>::test_an_inconclusive_rerun_is_refused_never_a_clean_pass</code>,
+    <code>::test_an_erroring_rerun_is_refused</code></td></tr>
+  <tr><td>F12-AC27 <em>lean</em></td><td>Given the propositional root (a tautology) and a record
+    typing <code>screen-statement</code> pass, when the re-run runs on the real toolchain, then
+    exactly <code>screen-statement</code> is refused (R16).</td><td><code>gate/tests/test_qa_rerun_lean.py::test_the_rerun_refutes_a_typed_pass_on_a_tautology</code></td></tr>
 </table>
 
 <h2>6. Budgets / limits</h2>
@@ -454,10 +477,30 @@ on the site.</p>
     a clean screen still leaves no file, so a hand-typed clean pass remains indistinguishable from
     a run one; Mike decided 2026-09-13 that CI re-runs the screens on a pull request that adds a
     QA record, which is its own task. Decided 2026-09-13 in T7.</td></tr>
+  <tr><td>F12-Q19</td><td><strong>A clean pass is checked by reproducing it, at the pull request</strong>
+    (2026-09-13, T8, finding D3; Mike's decision). Q15 left a clean screen with no file, so no
+    reader could tell a typed pass from a run one, and a check on the <code>tool</code> field would
+    still be typeable. The pull request is the one way a record reaches the graph (D-35), and its
+    gate job can re-run the compile and the screens inside the step-3 sandbox with no secret; so
+    <code>classify</code> names the records a diff adds (<code>qa_records</code>,
+    <code>needs_qa_rerun</code>) and <code>opn-gate qa-rerun</code> re-runs every claimed pass
+    through <code>qa.screen</code> on a copy of the head tree, refusing each row it does not
+    reproduce (<code>qa-rerun-disagrees</code>). The local <code>fidelity</code> command is
+    unchanged: a record that never merged grades nothing on the graph. Not re-run: briefs and
+    back-translations (a model key in the gate job would be another secret door, C8) and exhibit
+    rows (R15), each listed with its reason. A record pinned to another statement, toolchain or
+    Mathlib is refused as <code>qa-rerun-unverifiable</code>, because head cannot check it
+    (accepting it, since it would count for nothing, is the alternative, put to Mike). Limits: the
+    rule checks claims, not authorship, so a typed record whose claims are true is accepted; a slow
+    runner can refuse a true record through timeouts; exhibit files in a QA pull request are not
+    elaborated in CI (R15's replay runs where <code>fidelity</code> runs). The workflow reads the new
+    flag with a default, so the drafted <code>gate.yml</code> step is inert until the re-pin, and a
+    docker-tier test of <code>qa-rerun --sandbox</code> is owed before it. Reversal: drop the step;
+    the records stay readable and R15 stands. Decided 2026-09-13 in T8.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> done 2026-09-12 (tag F12-done) · <strong>Tasks:</strong> T1 ✓ 2026-09-12 · T2 ✓ 2026-09-12 (lean tier: ci run 34689742821 green) · T3 ✓ 2026-09-12 · T4 ✓ 2026-09-12 (lean tier: ci run 34692446154 green) · T5 ✓ 2026-09-12 (AC13 dry run: this container cannot reach erdosproblems.com; the workflow run is the evidence) · T6 ✓ 2026-09-12 · T7 ✓ 2026-09-13 (Q18: revise reads v2 requests; the QA reader holds rows to the writer's rules; the end-to-end findings captured as tests, 23 held as strict expected failures for the tasks that close them; engineering/evidence/F12/task-7.txt)</div>
+<div class="rule"><strong>status:</strong> done 2026-09-12 (tag F12-done) · <strong>Tasks:</strong> T1 ✓ 2026-09-12 · T2 ✓ 2026-09-12 (lean tier: ci run 34689742821 green) · T3 ✓ 2026-09-12 · T4 ✓ 2026-09-12 (lean tier: ci run 34692446154 green) · T5 ✓ 2026-09-12 (AC13 dry run: this container cannot reach erdosproblems.com; the workflow run is the evidence) · T6 ✓ 2026-09-12 · T7 ✓ 2026-09-13 (Q18: revise reads v2 requests; the QA reader holds rows to the writer's rules; the end-to-end findings captured as tests, 23 held as strict expected failures for the tasks that close them; engineering/evidence/F12/task-7.txt) · T8 ✓ 2026-09-13 (Q19, D3: the gate re-runs a QA record's claimed passes on its pull request; 26 fast tests and nine in-memory mutants each caught; the lean-tier test ran locally on Lean 4.33.1, CI run and a docker-tier test of qa-rerun --sandbox pending; the gate.yml step drafted, inert until the re-pin; built on its own branch and fast-forwarded onto main, make verify 1622 passed; engineering/evidence/F12/task-8.txt)</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its
@@ -521,6 +564,17 @@ one verification command (conventions §3, §6).</p>
       <code>gate/tests/test_finding_*.py</code>, <code>engineering/evidence/F12/task-7.txt</code></td>
     <td>T2, T5</td><td><code>uv run pytest gate/tests/test_finding_b_revise_v2.py
       gate/tests/test_finding_de_qa_status.py</code>; <code>make verify</code></td></tr>
+  <tr><td>F12-T8</td><td><strong>CI re-runs a QA record's claimed passes.</strong>
+    <code>opn-gate qa-rerun</code>, <code>classify</code>'s <code>needs_qa_rerun</code>, and the
+    drafted <code>gate.yml</code> step (R16, Q19; finding D3).</td>
+    <td><code>gate/opn_gate/qa_rerun.py</code>, <code>gate/opn_gate/cli.py</code>,
+      <code>gate/tests/test_qa_rerun.py</code>, <code>gate/tests/test_qa_rerun_lean.py</code>,
+      <code>gate/tests/test_finding_de_qa_status.py</code>, <code>gate/tests/test_modes.py</code>,
+      <code>../open_proof_network_graph/.github/workflows/gate.yml</code> (drafted in the evidence;
+      the owner commits it with the re-pin), <code>engineering/evidence/F12/task-8.txt</code></td>
+    <td>T7</td><td><code>uv run pytest gate/tests/test_qa_rerun.py
+      gate/tests/test_finding_de_qa_status.py</code>; <code>make verify</code>; <code>make
+      verify-lean</code> (<code>test_qa_rerun_lean.py</code>)</td></tr>
 </table>
 
 <footer>Open Proof Network · F12 spec v2 · 2026-09-11 (v2: <code>defect-claim/v2</code> and <code>screen-finding</code> for R4, R15 exhibit integrity, the brief's criterion, timeouts and outages as <code>inconclusive</code> — Q7, Q8)</footer>
