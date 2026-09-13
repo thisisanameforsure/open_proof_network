@@ -759,11 +759,13 @@ def test_a_dormant_declaration_is_not_held_to_claimability(
     repo: Repo, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """The merge-time check is activation's (F11-R5); a ``dormant`` record on an unclaimable
-    curated target is not an activation and is not refused by it."""
+    curated target is not an activation, so the curator PR passes. (Asserted as a clean pass, not
+    as the absence of one code: an absence assertion kept passing after the code was renamed, and
+    the ``activation_any_status`` mutant survived it.)"""
     declare(repo, "dormant", date="2026-09-13T00:00:00Z")
     repo.commit("declared dormant")
-    _code, out = classify(repo, capsys)
-    assert "activation-unclaimable" not in codes(out), out
+    code, out = classify(repo, capsys)
+    assert code == 0 and out["mode"] == "curator" and codes(out) == [], out
 
 
 def test_a_pre_f11_targets_active_declaration_is_unchanged(

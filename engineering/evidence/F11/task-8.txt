@@ -1,0 +1,257 @@
+F11-T8 — finding A: a posting and a fidelity certificate reach the graph by pull request, and
+activation is re-checked at merge (F11-R3, R4, R5; D-6, D-9, D-10, D-33)
+Date: 2026-09-13. Branch worktree-agent-aae73f9c25fef108f, from 923a6ce; main merged twice
+(03e878d: F11-T9 fidelity/v2 + F11-T10 one activation rule; bd8c35d: F12-T8 QA re-run).
+Fast tier only: no Docker, no Lean, no network, no gh; nothing pushed; graph repo untouched.
+
+== 1. The defect
+
+At 923a6ce `opn-gate classify` refused both acts a curated target needs to become claimable:
+- `intake post`'s diff (target.yaml M, posting null -> {venue,url,date}):
+  path-forbidden: a target-record may not be modified  (target-record not in MODIFIABLE_ROLES)
+- a lone certificate (fidelity/<subject>-<n>.yaml A):
+  intake-incomplete  (fidelity is an INTAKE_ROLE, so every such diff went to _classify_intake)
+Held as five strict xfails in gate/tests/test_finding_a_post_fidelity.py.
+
+== 2. The rules as implemented (Mike's decision of 2026-09-13)
+
+Routing, modes.classify: a diff with a target-intake role goes to _classify_intake only when it
+adds target.yaml or touches gate-spec.json / defs/*.lean (F11-R2, unchanged). Otherwise:
+  roles == {target-record}  -> _classify_posting   (mode curator)
+  roles == {fidelity}       -> _classify_certificate (new mode `fidelity`)
+  anything else             -> mode-mixed, "each a pull request of their own (F11-R3, R5)"
+paths.MODIFIABLE_ROLES gains target-record (A/M); D stays path-forbidden. Certificates stay
+add-only, so a rewrite or deletion is path-forbidden before any mode is asked.
+
+Posting (F11-R5, D-10). _classify_posting: author must be in curators.json, else
+curator-unlisted; reviewers = the other curators (curator mode's F08-R8 rule).
+modes.check_posting (reads the base like check_witness_completion):
+  posting-unverified  no base reader given, or no readable target.yaml at base
+  record-invalid      head target.yaml fails target/v1 (e.g. a posting with no url)
+  posting-fields      any field other than `posting` differs between base and head (names them)
+  posting-recorded    base already had a posting (rewrite or removal)
+  posting-absent      head posting still null (e.g. a comment-only change)
+
+Certificate (F11-R3, D-9, F12-R9). Mode `fidelity`: needs_gate, needs_admission and
+needs_review all false (the signature is the review; nothing builds). _classify_certificate:
+  certificate-subjects  files name more than one subject (fidelity/<subject>-<n>.yaml)
+modes.check_certificate, in order:
+  certificate-uncurated   targets/<id>/target.yaml absent (head == base: the PR adds certs only)
+  certificate-invalid     declares a version outside fidelity.READABLE_SCHEMAS, or fails the
+                          version it declares; also an earlier certificate that no longer loads
+  certificate-name        file name's subject != the certificate's `subject`
+  certificate-subject     subject is not the root or a defs/ name of the target
+  per certificate:
+  certificate-unpinned    not fidelity/v2 (a new v1 certificate counts for nothing; F11-T9)
+  certificate-stale       v2 statement_hash != fidelity.current_hash(target, subject) at head
+  certificate-attestor    `attestor` != the PR author (Classification.author; OPN_PR_AUTHOR /
+                          --author). The attestor need not be a curator.
+  certificate-author      `subject_author` != the author on record (earliest existing cert)
+  certificate-self-signed grade >= screened-and-signed and attestor == subject_author
+  certificate-qa-incomplete  any grade >= screened-and-signed and
+                          qa.require_complete(target, subject, routed=qa.routed_by_claims(...))
+                          raises (files only; the exhibit replay of F12-R9 is the command's)
+mechanical-only certificates skip the non-author rule and the QA rule.
+
+Activation at merge (F11-R4, R5; D-33; F11-T10). modes.check_activation, run on every
+target-status record whose status is `active` (check_status_record): on a target with no
+target.yaml nothing changes (F08-R11). Otherwise it applies F11-T10's one rule,
+intake.activation_refusal, through a new intake.activation_refusal_from(destination, doc,
+current), with `current` = records.load_target_status(target, exclude=<status files this PR
+adds>) — the status before the PR, since the head's latest record is the PR's own.
+  activation-refused   not from listed/dormant (D-33), or not claimable (names D-9 / D-10)
+Small API additions for this: records._latest_record / load_target_status(exclude=frozenset()),
+intake.activation_refusal_from (activation_refusal now delegates to it; behaviour unchanged).
+Classification gains `author` (not published by as_dict).
+
+== 3. Behaviour changed for existing tests, and why
+
+- test_intake_mode.py::test_the_refusals_are_named: asserted a lone certificate is
+  intake-incomplete. Now it classifies as mode `fidelity` with no problems (the content rules
+  are check_certificate's); the "target file alone is an incomplete intake" coverage moved to a
+  lone defs/Other.lean, which is still intake-incomplete.
+- test_finding_a_post_fidelity.py: the five xfail marks removed. The ten refusals now assert
+  their own codes (curator-unlisted, posting-fields, posting-recorded x2, path-forbidden,
+  mode-mixed, path-forbidden, certificate-self-signed, mode-mixed, mode-mixed) instead of any
+  refusal. The fixture commits a complete QA pass for the root on the base (a signature needs
+  one now); certificate PRs are classified with the attestor as author (the owner settled the
+  file's "open decision": the attestor opens it); hand-written certificates are v2 with the
+  current hash. test_an_authors_own_signature... is opened by the author so its only refusal is
+  certificate-self-signed.
+- Not pinned by any test, changed: an intake that *modifies* target.yaml was path-forbidden, is
+  now mode-mixed ("an intake adds a target that did not exist"); an intake carrying an `active`
+  status record on its new target is now held to activation's rule.
+
+== 4. Tests
+
+Former strict xfails, now passing:
+  test_a_posting_pull_request_is_not_refused_as_a_path
+  test_a_curator_posts_a_listed_target_by_pull_request
+  test_a_lone_certificate_is_not_an_incomplete_intake
+  test_a_non_author_certificate_enters_by_pull_request
+  test_post_sign_and_activate_as_three_pull_requests_make_the_target_claimable
+New (26 test ids):
+  posting: test_a_modification_that_records_no_posting_is_refused,
+    test_a_posting_that_breaks_the_schema_is_refused, test_a_posting_needs_the_base_to_be_checked
+  certificates: test_a_certificate_may_not_be_deleted,
+    test_a_certificate_opened_by_someone_other_than_its_attestor_is_refused (stranger, curator),
+    test_a_certificate_with_no_qa_pass_is_refused,
+    test_a_certificate_with_an_incomplete_qa_pass_is_refused,
+    test_a_qa_pass_in_the_same_pull_request_is_not_a_certificate,
+    test_a_mechanical_only_certificate_needs_no_signature_rules,
+    test_a_certificate_must_agree_with_the_subjects_author_on_record,
+    test_a_certificate_for_an_uncurated_target_is_refused,
+    test_a_certificate_for_no_subject_of_the_target_is_refused,
+    test_a_certificate_is_named_for_its_subject,
+    test_a_certificate_that_breaks_the_schema_is_refused[invented-grade|unknown-version|
+      v2-without-hash],
+    test_a_v1_certificate_is_not_added, test_a_certificate_for_another_statement_is_refused,
+    test_a_certificate_pull_request_signs_one_subject,
+    test_a_certificate_pull_request_touches_nothing_else
+  activation: test_an_active_declaration_on_an_unclaimable_curated_target_is_refused,
+    test_an_active_declaration_names_only_the_condition_still_missing,
+    test_an_active_target_is_not_declared_active_again,
+    test_a_dormant_claimable_target_may_be_declared_active_again,
+    test_a_dormant_declaration_is_not_held_to_claimability,
+    test_a_pre_f11_targets_active_declaration_is_unchanged
+
+$ uv run --frozen pytest gate/tests/test_finding_a_post_fidelity.py gate/tests/test_intake_mode.py -q
+45 passed   (41 in the finding file, 4 in test_intake_mode.py)
+
+== 5. The tests have teeth: 26 in-memory mutants
+
+pytest plugins monkeypatching opn_gate at session start (no repository file changed), selected
+by OPN_MUTANT, each run over the two files above on the final tree. Every mutant fails at least
+one test; the baseline passes 45.
+  none (baseline)                         45 passed
+  record_not_modifiable  (posting route)  11 failed  posting tests + the three-PR test
+  certificate_is_intake  (cert route)     19 failed  every certificate test + test_the_refusals_are_named
+  posting_any_author                       1 failed  test_a_non_curator_may_not_post
+  mixture_allowed        (R3/R5 mixture)   5 failed  post/cert + proof, cert + QA, cert + status, bundle
+  one_subject_undone                       1 failed  test_a_certificate_pull_request_signs_one_subject
+  posting_drop_posting-fields              1 failed  test_a_post_may_change_no_other_field...
+  posting_drop_posting-recorded            1 failed  test_a_posting_is_recorded_once
+  posting_drop_posting-absent              1 failed  test_a_modification_that_records_no_posting...
+  posting_drop_record-invalid              1 failed  test_a_posting_that_breaks_the_schema...
+  posting_drop_posting-unverified          1 failed  test_a_posting_needs_the_base_to_be_checked
+  cert_drop_certificate-uncurated          1 failed  test_a_certificate_for_an_uncurated_target...
+  cert_drop_certificate-invalid            3 failed  test_a_certificate_that_breaks_the_schema[x3]
+  cert_drop_certificate-name               1 failed  test_a_certificate_is_named_for_its_subject
+  cert_drop_certificate-subject            1 failed  test_a_certificate_for_no_subject_of_the_target...
+  cert_drop_certificate-unpinned           1 failed  test_a_v1_certificate_is_not_added
+  cert_drop_certificate-stale              1 failed  test_a_certificate_for_another_statement...
+  cert_drop_certificate-attestor           1 failed  test_a_certificate_opened_by_someone_other...
+  cert_drop_certificate-author             1 failed  test_a_certificate_must_agree_with_the_subjects...
+  cert_drop_certificate-self-signed        1 failed  test_an_authors_own_signature_is_refused...
+  cert_drop_certificate-qa-incomplete      2 failed  no QA pass; incomplete QA pass
+  cert_signature_everywhere (mech-only held to signature rules)
+                                           1 failed  test_a_mechanical_only_certificate_needs_no...
+  activation_undone                        3 failed  unclaimable; names only posting; active again
+  activation_refuses_every_active          7 failed  every allowed activation + pre-F11 + the refusals
+  activation_any_status (dormant held too) 1 failed  test_a_dormant_declaration_is_not_held...
+  activation_reads_head (own record = prior)
+                                           5 failed  three-PR, activation alone, dormant->active, ...
+  activation_ignores_prior (D-33 from-status undone)
+                                           1 failed  test_an_active_target_is_not_declared_active_again
+A mutant earned its keep: activation_any_status first survived, because the dormant test
+asserted the *absence* of the old code name `activation-unclaimable` and kept passing after the
+code became `activation-refused`. The test now asserts a clean pass (exit 0, curator, no
+problems), and the mutant fails it.
+
+== 6. make verify (final tree: bd8c35d plus the test fix, before commit)
+
+All checks passed!                          (ruff check)
+260 files already formatted                 (ruff format --check)
+Success: no issues found in 133 source files (mypy gate)
+Success: no issues found in 74 source files  (mypy api)
+Success: no issues found in 18 source files  (mypy site)
+==== 1652 passed, 1 skipped, 62 deselected, 2 warnings in 87.65s ====
+make verify exit=0
+(At 923a6ce: 1567 passed, 1 skipped, 61 deselected, 23 xfailed. The rest of the difference is
+main's F11-T9, F11-T10 and F12-T8. The pre-commit hook ran the same suite green on 1e9eb45 and
+7e098e1.)
+
+== 7. What the rules above do not settle
+
+1. Identity spelling. `attestor` is compared with the GitHub login that opened the PR, but
+   `subject_author` is provenance.author as the curator typed it, and curators.json is the only
+   pseudonym<->login map. A subject's author whose login differs from the provenance spelling
+   passes the non-author rule by signing under their login. Needs one mapping (curators.json
+   style) or a rule that subject_author is a login.
+2. Who merges a certificate PR. The mode names no reviewer and builds nothing, so it is green on
+   classify alone. Any GitHub account can then sign any target whose QA pass is complete. That
+   is the owner's rule, but the merge click still needs someone with write access (F07's
+   merge-on-green actor does not exist), so in practice a curator merges unreviewed-by-rule PRs.
+3. Exhibit replay. F12-R9's grade gate replays the exhibits a pass rests on; fidelity mode
+   starts no sandbox, so check_certificate trusts qa.pass_state's file checks (present, hash,
+   no sorry). F12-T8 re-runs a QA record's claimed passes on the QA record's own PR, which
+   closes most of this, but a certificate PR does not re-replay.
+4. Additions beyond the listed rules, each small and tested, for the owner to keep or drop:
+   certificate-name, certificate-subject (a low cert for a non-subject would drag the published
+   minimum down), certificate-unpinned/-stale (the lead's request after F11-T9), and posting-absent.
+5. Activation is checked on any `active` target-status record, so an intake PR whose status
+   record says active is held to it too (intake new writes `listed`, so no live path hits it).
+6. Drift. activation_refusal (F11-T10) does not pass `drifted` to claimability; a target frozen
+   by F12-R11 can still be declared active at merge, exactly as by the command.
+7. Several status records in one PR: the prior status excludes all of them, so listed ->
+   {dormant, active} in one PR is judged from listed.
+
+== 8. Proposed spec text (for the lead; engineering/specs not edited here)
+
+F11-R3 (amend, add): "When a pull request adds only certificate files under
+targets/<id>/fidelity/ for one subject of a target whose target.yaml exists, the gate shall
+classify it as mode `fidelity`, which builds nothing and asks no reviewer, and shall refuse it
+unless every added certificate: validates against the version it declares; is fidelity/v2
+pinned to the subject's hash at head; is named for its subject, a subject of the target; names
+the pull request's author as attestor; names the subject's author on record; and, from
+screened-and-signed up, is attested by a non-author on a QA pass complete for the statement as
+it stands (F12-R9). An existing certificate may not be modified or deleted."
+F11-R5 (amend, add): "When a pull request by a listed curator modifies only
+targets/<id>/target.yaml, the gate shall classify it as a curator pull request and refuse it
+unless the base and head records differ only in `posting`, from null to a posting target/v1
+accepts. A target record may not be deleted. When a pull request adds a target-status record
+declaring a curated target active, the gate shall refuse it with the reason
+intake.activation_refusal gives, judged from the status before the pull request. A posting, a
+certificate and any other change are each their own pull request."
+Acceptance criteria (next free AC numbers; tests in gate/tests/test_finding_a_post_fidelity.py):
+- Given a listed curated target, when its curator opens the PR `intake post` writes, then
+  classify passes it as curator mode building nothing
+  (test_a_curator_posts_a_listed_target_by_pull_request); a stranger's is curator-unlisted
+  (test_a_non_curator_may_not_post); one editing another field is posting-fields
+  (test_a_post_may_change_no_other_field_of_the_target_record); a rewrite or removal is
+  posting-recorded (test_a_posting_is_recorded_once).
+- Given a target whose root QA pass is complete, when a non-author opens the PR
+  `opn-gate fidelity ... screened-and-signed --by <them>` writes, then classify passes it as mode
+  fidelity (test_a_non_author_certificate_enters_by_pull_request); opened by anyone else it is
+  certificate-attestor (test_a_certificate_opened_by_someone_other_than_its_attestor_is_refused);
+  by the author it is certificate-self-signed (test_an_authors_own_signature_is_refused_at_the_gate);
+  with no complete QA pass it is certificate-qa-incomplete
+  (test_a_certificate_with_no_qa_pass_is_refused); at v1 or against another hash it is
+  certificate-unpinned / certificate-stale (test_a_v1_certificate_is_not_added,
+  test_a_certificate_for_another_statement_is_refused).
+- Given a curated target, when a PR adds an active status record while the target is not
+  claimable or is already active, then it is activation-refused naming the missing condition
+  (test_an_active_declaration_on_an_unclaimable_curated_target_is_refused,
+  test_an_active_target_is_not_declared_active_again); dormant -> active on a claimable target and
+  an active record on a pre-F11 target pass (test_a_dormant_claimable_target_may_be_declared_active_again,
+  test_a_pre_f11_targets_active_declaration_is_unchanged).
+- Given posting, signature and activation as three PRs in that order, each passes and the target
+  is claimable (test_post_sign_and_activate_as_three_pull_requests_make_the_target_claimable);
+  bundled in one PR they are mode-mixed (test_post_sign_and_activate_bundled_are_refused).
+Q-note (next free Q): "Finding A. The two acts R5 and R3 name after intake were unclassifiable:
+target.yaml was not modifiable and a lone certificate was routed to intake. Rule (Mike,
+2026-09-13): posting is a curator's in-place edit of one field; a certificate is its signer's own
+pull request, mode `fidelity`, merged on its content checks with no second reviewer because
+D-9's non-author signature is itself the review; activation is re-checked at merge with
+F11-T10's one rule, judged from the status before the pull request (the head's latest record is
+the pull request's own). Reasons: each act stays one reviewable diff (R5); the gate, not a
+command run somewhere, holds D-9's non-author and QA preconditions (C7); and a certificate that
+cannot count (v1, stale hash) is refused rather than merged as noise (F11-T9). Open: identity
+spelling between provenance.author and logins; the replay of exhibits is not repeated on a
+certificate PR."
+Task row: "F11-T8 — classify posting and certificate pull requests; re-check activation at merge
+(finding A). Files: gate/opn_gate/modes.py, gate/opn_gate/paths.py, gate/opn_gate/records.py,
+gate/opn_gate/intake.py, gate/tests/test_finding_a_post_fidelity.py,
+gate/tests/test_intake_mode.py. Deps: F11-T4, F11-T9, F11-T10, F12-T1. Verify: uv run --frozen
+pytest gate/tests/test_finding_a_post_fidelity.py gate/tests/test_intake_mode.py -q (45 passed),
+then make verify."
