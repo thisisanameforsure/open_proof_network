@@ -592,3 +592,16 @@ The law of the project:
   whole reach is "start this repo's workflows" (F04-Q10, C8), and the owner's direct push of that
   change was its own end-to-end test: push 15:43:28, deploy 15:43:30, live by 15:44:02. Writing the
   token into C8 also found the inventory had been missing the graph's deploy key since day two.
+- 2026-09-13 — Two strings are enough for an agent: given only the site and the MCP URL, a fresh
+  agent found the guide, learned the JSON-RPC shape, earned a token and landed an annex plus a
+  two-hole partial on the tutorial variant (graph PRs #32, #33) in twenty minutes and twelve
+  writes — the bench's 23-PR footprint on 2026-09-12 was the bench's free prechecks, not agents.
+  The record did everything right (holes created, attestation, products, site in two minutes, no
+  Q28 duplicate) and still left three things only this side could see: the MCP refuses the one
+  anonymous write that mints every identity, so an MCP-only client is read-only forever; the
+  workflow evaluates step 9 before the sandbox, so every valid App-authored submission is a red
+  check within eight seconds until a human approves; and a merged skeleton turns the only
+  claimable node into "blocked" and spawns two holes nobody but a curator can witness — with no
+  witness tool on the MCP. One of the holes was the tutorial's own proved theorem, filed as a new
+  node. `OPN_API_CLAIMS_URL` was never set on the graph, so every committed product says zero
+  claims. Notes in `engineering/session-notes/2026-09-13-live-contribution-tester.md`.

@@ -1,0 +1,11 @@
+{
+ "status": 201,
+ "body": {
+  "submission_id": "01M2DRDN90JWNYA2N6GMQZYEPZ",
+  "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/33",
+  "pr_number": 33,
+  "node_id": "variant-93e79cb5",
+  "target_id": "tutorial",
+  "artifact_type": "partial"
+ }
+}

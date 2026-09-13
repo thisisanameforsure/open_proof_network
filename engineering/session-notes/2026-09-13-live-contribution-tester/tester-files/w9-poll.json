@@ -1,0 +1,181 @@
+{
+ "id": "01M2DR4M70JSXZT8FJTAEA4HRH",
+ "node_id": "variant-93e79cb5",
+ "target_id": "tutorial",
+ "state": "done",
+ "created": "2026-09-13T16:03:24Z",
+ "graph_commit": "0a8580f32d83cb6ba247225a64fe8be38bf26c97",
+ "bundle_digest": "52340c973ecc9cf362f79c85818c10a624f70047c1dc5b7b9662e4cdfec4c855",
+ "authenticated": true,
+ "result": {
+  "attestation": {
+   "artifact_hash": "df375af29a9b41444121a30a5577ad2324708de0aec71444cbdcb2f5c56302b0",
+   "diagnostic": {
+    "code": "axiom-not-allowed",
+    "details": {
+     "allowlist": [
+      "Classical.choice",
+      "Quot.sound",
+      "propext"
+     ],
+     "axioms": [
+      "sorryAx"
+     ]
+    },
+    "message": "the proof depends on axioms outside the allowlist: sorryAx"
+   },
+   "first_failing_step": 5,
+   "gate_spec_hash": "c4033ac90563f2e438ca4189e9f944f69e3ab4f5361cdaeefa6c1625e8050ee6",
+   "graph_commit": "0a8580f32d83cb6ba247225a64fe8be38bf26c97",
+   "graph_id": "tutorial",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": null,
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "0e3bab622e3a6572ca673c4946e360a27e3c7db5",
+   "node_id": "variant-93e79cb5",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v4",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-09-13T16:05:19Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQPy5Vz0EuLHpRMmvyuYDldzVCB/sa5qdeIZPlxlfId6ikNeeBy\nmLdGlIbYLehix53qlVgplTzFmxnhUV4G5tnAE=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "93e79cb567cfba147d87e5a216ae47a4442faa479e7308e7596b5e1e10708f44",
+   "steps": [
+    {
+     "diagnostic": null,
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": null,
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": null,
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": {
+      "code": "axiom-not-allowed",
+      "details": {
+       "allowlist": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+       ],
+       "axioms": [
+        "sorryAx"
+       ]
+      },
+      "message": "the proof depends on axioms outside the allowlist: sorryAx"
+     },
+     "name": "axioms",
+     "result": "fail",
+     "step": 5
+    },
+    {
+     "diagnostic": null,
+     "name": "hazards",
+     "result": "skipped",
+     "step": 6
+    },
+    {
+     "diagnostic": null,
+     "name": "witness",
+     "result": "skipped",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "skipped",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "fail"
+  },
+  "bundle_digest": "52340c973ecc9cf362f79c85818c10a624f70047c1dc5b7b9662e4cdfec4c855",
+  "first_failing_step": 5,
+  "job_id": "01M2DR4M70JSXZT8FJTAEA4HRH",
+  "node_id": "variant-93e79cb5",
+  "steps": [
+   {
+    "diagnostic": null,
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": null,
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": null,
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": {
+     "code": "axiom-not-allowed",
+     "details": {
+      "allowlist": [
+       "Classical.choice",
+       "Quot.sound",
+       "propext"
+      ],
+      "axioms": [
+       "sorryAx"
+      ]
+     },
+     "message": "the proof depends on axioms outside the allowlist: sorryAx"
+    },
+    "name": "axioms",
+    "result": "fail",
+    "step": 5
+   },
+   {
+    "diagnostic": null,
+    "name": "hazards",
+    "result": "skipped",
+    "step": 6
+   },
+   {
+    "diagnostic": null,
+    "name": "witness",
+    "result": "skipped",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "skipped",
+    "step": 8
+   }
+  ],
+  "verdict": "fail"
+ },
+ "public": true
+}

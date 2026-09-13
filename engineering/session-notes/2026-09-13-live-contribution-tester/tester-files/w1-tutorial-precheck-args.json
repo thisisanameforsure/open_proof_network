@@ -1,0 +1,1 @@
+{"node_id": "tutorial-and-swap", "bundle": {"targets/tutorial/nodes/tutorial-and-swap/Proof.lean": "/-! The tutorial node (D-27): permanently open, off-ledger. Lean core only. -/\n\ntheorem OpnProp.and_swap : ∀ p q : Prop, p ∧ q → q ∧ p := by\n  intro p q hpq\n  exact ⟨hpq.right, hpq.left⟩\n"}}

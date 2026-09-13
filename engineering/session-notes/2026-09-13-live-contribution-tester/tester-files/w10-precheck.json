@@ -1,0 +1,16 @@
+{
+ "status": 202,
+ "body": {
+  "id": "01M2DR9BJR7PV0KMKBW4EGSTR9",
+  "node_id": "variant-93e79cb5",
+  "target_id": "tutorial",
+  "state": "queued",
+  "created": "2026-09-13T16:05:59Z",
+  "graph_commit": "0a8580f32d83cb6ba247225a64fe8be38bf26c97",
+  "bundle_digest": "2d2365de41bd11d23c7e6698762bd1f3feb1fce0026eb65ef9de55ffcab25a5e",
+  "authenticated": true,
+  "public": true
+ },
+ "job_id": "01M2DR9BJR7PV0KMKBW4EGSTR9",
+ "poll": "poll get_precheck with job_id until state is done or error; a precheck takes minutes"
+}

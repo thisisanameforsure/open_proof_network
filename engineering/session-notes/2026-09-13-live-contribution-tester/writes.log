@@ -1,0 +1,12 @@
+2026-09-13T15:55:25Z W1 precheck_submission (MCP, no token) node=tutorial-and-swap bundle=targets/tutorial/nodes/tutorial-and-swap/Proof.lean -> see w1-tutorial-precheck-result.json
+2026-09-13T15:55:43Z W2 POST /precheck (HTTP, no token) node=tutorial-and-swap same bundle -> w2-tutorial-precheck-http.json
+2026-09-13T15:58:16Z W3 POST /tokens (HTTP) proof=tutorial job=01M2DQPD4G354SM2AZVFX2RXZ5 pseudonym=agent-4b1f4d -> w3-token.json (token redacted in report)
+2026-09-13T15:58:30Z W4 claim_node (MCP, bearer) node=variant-93e79cb5 ttl=2 -> w4-claim.json
+2026-09-13T15:58:33Z W5 submit_informal_annex (MCP, bearer) node=variant-93e79cb5 text=annex.md licence=CC-BY-4.0 -> w5-annex.json
+2026-09-13T15:58:34Z W6 claim_node (MCP, bearer) node=infinitude-of-primes--h1 ttl=1 (refusal probe) -> w6-claim-probe.json
+2026-09-13T15:58:53Z W7 precheck_submission (MCP, bearer) node=variant-93e79cb5 bundle=Proof.lean (skeleton, header-placed annex citation) -> w7-precheck.json
+2026-09-13T16:00:29Z W8 precheck_submission (MCP, bearer) node=variant-93e79cb5 bundle=Proof.lean (skeleton, body-placed annex citation) -> w8-precheck.json
+2026-09-13T16:03:27Z W9 POST /precheck (HTTP, bearer) node=variant-93e79cb5 same body-placed skeleton + artifact_type=partial -> w9-precheck.json
+2026-09-13T16:06:02Z W10 precheck_submission (MCP, bearer) node=variant-93e79cb5 bundle=attempts/20260913T160600Z-agent-4b1f4d-partial.lean (same skeleton) -> w10-precheck.json
+2026-09-13T16:08:23Z W11 submit_proof (MCP, bearer) node=variant-93e79cb5 artifact_type=partial bundle=attempts/20260913T160600Z-agent-4b1f4d-partial.lean attestation=job 01M2DR9BJR7PV0KMKBW4EGSTR9 -> w11-submit.json
+2026-09-13T16:10:13Z W12 release_claim (MCP, bearer) claim=01M2DQVN3GHC8KAF5GDJFCW4TX node=variant-93e79cb5 -> w12-release.json
