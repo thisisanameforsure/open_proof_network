@@ -55,7 +55,7 @@ from typing import Any, Literal
 
 import yaml
 
-from opn_gate import fidelity, intake, layout, paths, qa, schemas
+from opn_gate import fidelity, intake, layout, paths, qa, records, schemas
 from opn_gate import graph as graphmod
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Change, Located, Role
@@ -691,7 +691,7 @@ def check_status_record(  # noqa: PLR0911 — one return per rule
     if problems:
         return problems
     if located.role == "target-status":
-        return check_activation(graph_root, located, data)
+        return check_activation(graph_root, located, data, classification)
     if classification.mode != "proposal":
         return problems
     doc = _document(located, data)
@@ -793,15 +793,17 @@ def check_posting(  # noqa: PLR0911 — one return per rule
     return []
 
 
-def check_certificate(  # noqa: PLR0911, PLR0912 — one return per rule that stops the rest
+def check_certificate(  # noqa: PLR0911, PLR0912, PLR0915 — one return per rule that stops the rest
     graph_root: Path, classification: Classification
 ) -> list[Diagnostic]:
     """F11-R3, D-9, F12-R9: a certificate pull request is its signer's, on a screened statement.
 
     In order: the target is curated (its ``target.yaml`` is in the tree — and since this pull
     request adds certificates only, the head's record is the base's); every added file is a
-    certificate the schema accepts, named for the one subject it grades, which is the root or one
-    of the target's definitions. Then, per certificate: the pull request's author is its attestor;
+    certificate valid at the version it declares, named for the one subject it grades, which is
+    the root or one of the target's definitions. Then, per certificate: it is ``fidelity/v2`` and
+    pinned to the subject's hash at head (F11-T9: anything else merges and counts for nothing,
+    ``certificate-unpinned`` / ``certificate-stale``); the pull request's author is its attestor;
     it agrees with the subject's author on record (the earliest certificate already in the tree);
     and from ``screened-and-signed`` up the attestor is not that author. Last, for a signature,
     the subject's QA pass is complete for the statement as it stands, read from the files alone
@@ -828,12 +830,25 @@ def check_certificate(  # noqa: PLR0911, PLR0912 — one return per rule that st
         if isinstance(doc, Diagnostic):
             problems.append(doc)
             continue
-        violations = schemas.violations(doc, fidelity.SCHEMA)
+        # Validated against the version the file declares, from the set the reader accepts
+        # (D-34); whether that version may still be *added* is the unpinned rule below.
+        declared = str(doc.get("schema"))
+        if declared not in fidelity.READABLE_SCHEMAS:
+            problems.append(
+                Diagnostic(
+                    "certificate-invalid",
+                    f"{located.path} declares {declared!r}; a fidelity certificate is one of "
+                    f"{', '.join(fidelity.READABLE_SCHEMAS)}",
+                    {"path": located.path, "schema": declared},
+                )
+            )
+            continue
+        violations = schemas.violations(doc, declared)
         problems.extend(
             Diagnostic(
                 "certificate-invalid",
-                f"{located.path} does not satisfy {fidelity.SCHEMA}: {v.path}: {v.message}",
-                {"path": located.path, "schema": fidelity.SCHEMA, "field": v.path},
+                f"{located.path} does not satisfy {declared}: {v.path}: {v.message}",
+                {"path": located.path, "schema": declared, "field": v.path},
             )
             for v in violations[:5]
         )
@@ -870,10 +885,39 @@ def check_certificate(  # noqa: PLR0911, PLR0912 — one return per rule that st
     except ValueError as exc:  # SchemaError: an earlier certificate no longer reads
         return [Diagnostic("certificate-invalid", str(exc), {"subject": subject})]
     on_record = fidelity.author_of([c for c in on_disk if c.path.name not in added])
+    try:
+        current = fidelity.current_hash(target_dir, subject)
+    except ValueError as exc:  # QaError: the root does not load, so no statement to pin
+        current = None
+        unhashable: str | None = str(exc)
+    else:
+        unhashable = None
     author = classification.author
     for located, doc in docs:
         attestor, grade = str(doc["attestor"]), str(doc["grade"])
         subject_author = str(doc["subject_author"])
+        if doc["schema"] != fidelity.SCHEMA:
+            problems.append(
+                Diagnostic(
+                    "certificate-unpinned",
+                    f"{located.path} is {doc['schema']}, which pins no statement and counts for "
+                    f"nothing; a new certificate is {fidelity.SCHEMA}, pinned to the statement it "
+                    "signs (D-9, F12-R9)",
+                    {"path": located.path, "schema": doc["schema"]},
+                )
+            )
+        elif doc["statement_hash"] != current:
+            pinned = doc["statement_hash"]
+            problems.append(
+                Diagnostic(
+                    "certificate-stale",
+                    f"{located.path} is pinned to {pinned}, and {subject!r} as it stands is "
+                    + (current if current is not None else f"unreadable ({unhashable})")
+                    + ": a certificate counts only for the statement it was signed against "
+                    "(D-9, F12-R9)",
+                    {"path": located.path, "statement_hash": pinned, "current": current},
+                )
+            )
         if author is None or attestor != author:
             who = "unknown" if author is None else repr(author)
             problems.append(
@@ -924,42 +968,46 @@ def check_certificate(  # noqa: PLR0911, PLR0912 — one return per rule that st
     return []
 
 
-def check_activation(graph_root: Path, located: Located, data: bytes) -> list[Diagnostic]:
-    """F11-R4, R5 (D-6, D-33): a curated target is declared ``active`` only when it is claimable.
+def check_activation(
+    graph_root: Path, located: Located, data: bytes, classification: Classification
+) -> list[Diagnostic]:
+    """F11-R4, R5 (D-6, D-33): a curated target is declared ``active`` only as activation allows.
 
-    ``intake activate`` refuses while claimability would stay false; a record written any other
-    way (``opn-gate status``, or by hand) reaches the graph through this check instead, which
-    derives claimability on the head tree exactly as the command does. A dormant target that is
-    claimable may be declared active again (D-33's reversal), and a target with no
-    ``target.yaml`` keeps F08-R11, since claimability is not derived for it (F11-Q4, Q5).
+    The rule is ``intake.activation_refusal`` — the one both ``intake activate`` and ``opn-gate
+    status <target> active`` apply (F11-T10): from ``listed`` or ``dormant`` only, and claimable.
+    A record written any other way reaches the graph through this check instead. The gate sees
+    the tree *after* the pull request, whose latest status record is this one, so the status it
+    flips from is read with the pull request's own status records left out — the base's, since
+    status records are append-only. A target with no ``target.yaml`` keeps F08-R11, since
+    claimability is not derived for it (F11-Q4, Q5).
     """
     doc = _document(located, data)
     if isinstance(doc, Diagnostic) or doc.get("status") != intake.ACTIVE:
         return [doc] if isinstance(doc, Diagnostic) else []
     target_dir = graph_root / "targets" / located.target_id
+    added = frozenset(
+        PurePosixPath(loc.path).name
+        for loc in classification.located
+        if loc.role == "target-status" and loc.target_id == located.target_id
+    )
     try:
         record = intake.load_doc(target_dir)
         if record is None:
             return []
-        grade = fidelity.target_grade(target_dir)
-    except ValueError as exc:  # SchemaError, FidelityError: the inputs do not read
-        return [
-            Diagnostic(
-                "activation-unclaimable",
-                f"{located.path}: claimability cannot be derived for {located.target_id}, so it "
-                f"cannot be declared active (F11-R4, R5): {exc}",
-                {"path": located.path, "reasons": []},
-            )
-        ]
-    claimable, reasons = intake.claimability(record, status=intake.ACTIVE, grade=grade)
-    if claimable:
+        prior = records.load_target_status(target_dir, exclude=added)
+        refusal = intake.activation_refusal_from(
+            target_dir, record, prior.status if prior is not None else None
+        )
+    except ValueError as exc:  # SchemaError, FidelityError, QaError: the inputs do not read
+        refusal = f"claimability cannot be derived: {exc}"
+    if refusal is None:
         return []
     return [
         Diagnostic(
-            "activation-unclaimable",
-            f"{located.path}: {located.target_id} is declared active but would not be claimable "
-            "(F11-R4, R5; D-6): " + "; ".join(intake.explain(r) for r in reasons),
-            {"path": located.path, "reasons": list(reasons)},
+            "activation-refused",
+            f"{located.path}: {located.target_id} cannot be declared active (F11-R4, R5; D-6, "
+            f"D-33): {refusal}",
+            {"path": located.path, "refusal": refusal},
         )
     ]
 

@@ -89,17 +89,23 @@ class StatusRecord:
     doc: dict[str, Any]
 
 
-def _latest_record(status_dir: Path, accepted: tuple[str, ...]) -> StatusRecord | None:
+def _latest_record(
+    status_dir: Path, accepted: tuple[str, ...], exclude: frozenset[str] = frozenset()
+) -> StatusRecord | None:
     """The latest record in ``status_dir``, each validated against the version it declares.
 
     A record names its own schema and several versions are live at once (D-34), so pinning one
     here would refuse a record the protocol publishes. What is pinned instead is the *set*: a
     record declaring anything outside it is a graph defect and raises, like a malformed one.
+    ``exclude`` names files to leave out — the records a pull request adds, when the gate asks
+    what the status was before it (status records are append-only, so that is the base's).
     """
     if not status_dir.is_dir():
         return None
     records: list[StatusRecord] = []
-    for path in sorted(p for p in status_dir.iterdir() if p.suffix in ATTEMPT_SUFFIXES):
+    for path in sorted(
+        p for p in status_dir.iterdir() if p.suffix in ATTEMPT_SUFFIXES and p.name not in exclude
+    ):
         doc = schemas.load_yaml(path)  # a bad status record is a graph defect: raise
         if str(doc.get("schema")) not in accepted:
             msg = f"{path} declares {doc.get('schema')!r}; expected one of {', '.join(accepted)}"
@@ -118,9 +124,12 @@ def load_node_status(node_dir: Path) -> StatusRecord | None:
     return _latest_record(node_dir / "status", NODE_STATUS_SCHEMAS)
 
 
-def load_target_status(target_dir: Path) -> StatusRecord | None:
-    """The target's latest declaration (D-33; F03-Q5), or ``None``."""
-    return _latest_record(target_dir / "status", TARGET_STATUS_SCHEMAS)
+def load_target_status(
+    target_dir: Path, *, exclude: frozenset[str] = frozenset()
+) -> StatusRecord | None:
+    """The target's latest declaration (D-33; F03-Q5), or ``None`` — leaving out the files named
+    in ``exclude`` (the gate's view of the status before a pull request's own records, F11-T8)."""
+    return _latest_record(target_dir / "status", TARGET_STATUS_SCHEMAS, exclude)
 
 
 def declared_root(target_dir: Path) -> str | None:

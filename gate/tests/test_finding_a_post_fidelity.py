@@ -192,10 +192,13 @@ def declare(repo: Repo, status: str, *, date: str, target_id: str = TARGET_ID) -
 
 
 def certificate(repo: Repo, name: str, **fields: Any) -> Path:
-    """A certificate written by hand, bypassing ``fidelity.attest``'s refusals."""
+    """A certificate written by hand, bypassing ``fidelity.attest``'s refusals: ``fidelity/v2``,
+    pinned to the root's statement as it stands (F11-T9) unless a field says otherwise. A field
+    given as ``None`` is left out of the file."""
     doc: dict[str, Any] = {
         "schema": fidelity.SCHEMA,
         "subject": fidelity.ROOT_SUBJECT,
+        "statement_hash": fidelity.current_hash(repo.target, fidelity.ROOT_SUBJECT),
         "grade": "screened-and-signed",
         "subject_author": SUBJECT_AUTHOR,
         "attestor": ATTESTOR,
@@ -203,6 +206,7 @@ def certificate(repo: Repo, name: str, **fields: Any) -> Path:
         "evidence": "read it",
         **fields,
     }
+    doc = {key: value for key, value in doc.items() if value is not None}
     path = repo.target / "fidelity" / name
     path.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
     return path
@@ -519,6 +523,7 @@ def test_a_certificate_for_an_uncurated_target_is_refused(
         yaml.safe_dump(
             fidelity.certificate_doc(
                 subject="root",
+                statement_hash="0" * 64,
                 grade="screened-and-signed",
                 subject_author=SUBJECT_AUTHOR,
                 attestor=ATTESTOR,
@@ -556,15 +561,46 @@ def test_a_certificate_is_named_for_its_subject(
     assert code != 0 and codes(out) == ["certificate-name"], out
 
 
+@pytest.mark.parametrize(
+    "fields",
+    [{"grade": "very-sure"}, {"schema": "fidelity/v9"}, {"statement_hash": None}],
+    ids=["invented-grade", "unknown-version", "v2-without-hash"],
+)
 def test_a_certificate_that_breaks_the_schema_is_refused(
-    repo: Repo, capsys: pytest.CaptureFixture[str]
+    repo: Repo, capsys: pytest.CaptureFixture[str], fields: dict[str, Any]
 ) -> None:
     """F11-R3: a certificate is load-bearing for claimability, so one that does not validate
-    against the certificate schema is refused as ``certificate-invalid``."""
-    certificate(repo, "root-2.yaml", grade="very-sure")
-    repo.commit("an invented grade")
+    against the version it declares — or declares a version the reader does not accept (D-34)
+    — is refused as ``certificate-invalid``."""
+    certificate(repo, "root-2.yaml", **fields)
+    repo.commit("a broken certificate")
     code, out = classify(repo, capsys, author=ATTESTOR)
     assert code != 0 and set(codes(out)) == {"certificate-invalid"}, out
+
+
+def test_a_v1_certificate_is_not_added(repo: Repo, capsys: pytest.CaptureFixture[str]) -> None:
+    """F11-T9, D-9: a ``fidelity/v1`` certificate pins no statement and counts for nothing, so a
+    new one would merge as a signature nobody can count. It validates, and is refused as
+    ``certificate-unpinned``."""
+    certificate(repo, "root-2.yaml", schema="fidelity/v1", statement_hash=None)
+    repo.commit("signed at v1")
+    code, out = classify(repo, capsys, author=ATTESTOR)
+    assert code != 0 and codes(out) == ["certificate-unpinned"], out
+    assert fidelity.SCHEMA in messages(out) and "D-9" in messages(out), out
+
+
+def test_a_certificate_for_another_statement_is_refused(
+    repo: Repo, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """F11-T9, D-9, F12-R9: a certificate counts only for the statement whose hash it pins. One
+    pinned to anything but the subject's hash at head would merge and count for nothing; refused
+    as ``certificate-stale``, naming both hashes."""
+    certificate(repo, "root-2.yaml", statement_hash="0" * 64)
+    repo.commit("signed against another statement")
+    code, out = classify(repo, capsys, author=ATTESTOR)
+    assert code != 0 and codes(out) == ["certificate-stale"], out
+    current = fidelity.current_hash(repo.target, fidelity.ROOT_SUBJECT)
+    assert current is not None and current in messages(out) and "0" * 64 in messages(out), out
 
 
 def test_a_certificate_pull_request_signs_one_subject() -> None:
@@ -661,19 +697,15 @@ def test_an_active_declaration_on_an_unclaimable_curated_target_is_refused(
     repo: Repo, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """F11-R5: activation "shall refuse while claimable would remain false, naming the missing
-    condition". A hand-written ``active`` record on a listed, unsigned, unposted target — what
-    ``opn-gate status`` could write — is refused at the gate as ``activation-unclaimable``,
-    naming the grade (D-9) and the posting (D-10)."""
+    condition". A hand-written ``active`` record on a listed, unsigned, unposted target — what a
+    record written outside ``intake activate`` could say — is refused at the gate as
+    ``activation-refused``, naming the grade (D-9) and the posting (D-10)."""
     declare(repo, "active", date="2026-09-13T00:00:00Z")
     repo.commit("declared active by hand")
     code, out = classify(repo, capsys)
     assert code != 0 and out["ok"] is False, out
-    assert codes(out) == ["activation-unclaimable"], out
+    assert codes(out) == ["activation-refused"], out
     assert "D-9" in messages(out) and "D-10" in messages(out), out
-    assert out["problems"][0]["details"]["reasons"] == [
-        f"grade-below-{fidelity.CLAIMABLE_GRADE}",
-        "no-posting",
-    ], out
 
 
 def test_an_active_declaration_names_only_the_condition_still_missing(
@@ -686,8 +718,25 @@ def test_an_active_declaration_names_only_the_condition_still_missing(
     declare(repo, "active", date="2026-09-13T00:00:00Z")
     repo.commit("declared active before posting")
     _code, out = classify(repo, capsys)
-    assert codes(out) == ["activation-unclaimable"], out
-    assert out["problems"][0]["details"]["reasons"] == ["no-posting"], out
+    assert codes(out) == ["activation-refused"], out
+    assert "D-10" in messages(out) and "D-9" not in messages(out), out
+
+
+def test_an_active_target_is_not_declared_active_again(
+    repo: Repo, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """F11-T10's one activation rule, held at merge: a target is activated from listed or dormant
+    only (D-33), so a second ``active`` record on a claimable active target is refused. The rule
+    reads the status *before* this pull request — the head's latest is the record itself."""
+    sign(repo)
+    post(repo)
+    activate(repo)
+    repo.commit("signed, posted and activated, on the base")
+    declare(repo, "active", date="2026-09-14T00:00:00Z")
+    repo.commit("declared active again")
+    code, out = classify(repo, capsys)
+    assert code != 0 and codes(out) == ["activation-refused"], out
+    assert "'active'" in messages(out) and "D-33" in messages(out), out
 
 
 def test_a_dormant_claimable_target_may_be_declared_active_again(

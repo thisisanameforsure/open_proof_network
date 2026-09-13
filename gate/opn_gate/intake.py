@@ -444,7 +444,15 @@ def activation_refusal(destination: Path, doc: dict[str, Any]) -> str | None:
     that is not claimable, a state D-33 has no name for (Mike, 2026-09-13).
     """
     latest = records.load_target_status(destination)
-    current = latest.status if latest is not None else None
+    return activation_refusal_from(destination, doc, latest.status if latest is not None else None)
+
+
+def activation_refusal_from(
+    destination: Path, doc: dict[str, Any], current: str | None
+) -> str | None:
+    """``activation_refusal`` with the status it flips from given rather than read — for the gate,
+    which sees the tree *after* the pull request's own ``active`` record and asks what the status
+    was before it (``modes.check_activation``, F11-T8)."""
     if current is not None and current not in ACTIVATABLE:
         return (
             f"its status is {current!r}, and a target is activated from "
