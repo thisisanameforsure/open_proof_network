@@ -1,0 +1,292 @@
+F11-T9 — a fidelity certificate is for a statement: fidelity/v2 pins the subject's hash, and only a
+certificate for the subject as it stands counts (findings register, finding C; D-9 v3.12, F12-R9).
+2026-09-13  branch: worktree-agent-a579edb53daff75ca, from 923a6ce  (fast tier only; no Lean, no
+Docker, no network; the live graph clone was read, never written)
+
+The defect. fidelity/v1 records no statement hash and grade_of took the latest certificate for a
+subject *name*, so after `opn-gate revise` changed the root's statement the target stayed
+screened-and-signed and claimable with the old signer counted, while the same index row said the
+root's QA was stale. D-9: non-author sign-off is "the only event that changes accepted state";
+F12-R9 ties a signature to "the QA record for the current statement hash".
+
+The rules (Mike, 2026-09-13), as built:
+  - fidelity/v2 = v1 + required statement_hash (64 lowercase hex): qa.subject_hash(target, subject)
+    at the moment the certificate is written. Every new certificate is v2; v1 stays readable (D-34).
+  - A certificate counts toward a subject's grade, signature count and signers only if it is v2 and
+    its statement_hash equals the subject's current hash. v1 counts for nothing. A subject with no
+    counting certificate is mechanical-only with no signers. Root and every definition alike.
+  - The grade is the latest *counting* certificate's; a later non-counting one masks nothing.
+  - After a root revision: not claimable, reason grade-below-screened-and-signed (no new code).
+  - Superseded certificates stay on disk and are not published (no targets-index bump).
+  - A Mathlib pin move does not drop the grade; a revised root keeps its D-10 posting.
+  - A certificate for a definition that no longer exists has no current hash and counts for
+    nothing; its row stays (see "not settled" 1) and nothing crashes.
+
+1. Files changed, and why
+  gate/schemas/fidelity/v2.json   new: v1 plus required statement_hash; description says what counts.
+  gate/schemas/HASHES             the v2 pin (29d1fc00...914ea). v1's pin untouched (D-34).
+  gate/opn_gate/fidelity.py       SCHEMA = fidelity/v2; READABLE_SCHEMAS = (v1, v2), and load()
+                                  validates each file against the version it declares and refuses
+                                  anything else by name; Certificate carries schema and
+                                  statement_hash, and counts_for(current); current_hash(target,
+                                  subject) = qa.subject_hash, or None for a subject that is no
+                                  longer a definition; counting(); subject_grades counts only
+                                  counting certificates (author_of still reads all: authorship is
+                                  not a grade, and the live graph's v1 certificates establish it);
+                                  attest writes the current hash. The import cycle (qa imports
+                                  fidelity) is broken by a function-local import of qa inside
+                                  current_hash (the intake.py:183 precedent), so qa.py is not
+                                  changed at all and the hash keeps one home.
+  gate/tests/golden/products/{unproved,interior-proved,curated}/info.json
+                                  regenerated: the schema index gains fidelity [1, 2]. Nothing else.
+  gate/tests/test_schemas.py      the published-set list gains fidelity/v2.
+  gate/tests/samples.py           fidelity_certificate() is a v2 certificate.
+  gate/tests/test_finding_c_stale_signature.py
+                                  the seven strict xfail marks removed; ten new tests (§4).
+  engineering/evidence/F11/task-9.txt  this file.
+  Not changed: intake.py (its mechanical-only certificates go through attest, so they are v2 with
+  the right hash — tested), products.py, cli.py, qa.py, any api or site file, any spec page.
+
+2. Every consumer of the version string (grep "fidelity/v" over gate/, api/, site/, .github/)
+  gate/opn_gate/fidelity.py:SCHEMA               now v2, plus READABLE_SCHEMAS (above)
+  gate/schemas/HASHES, gate/schemas/fidelity/    the new pin and file
+  gate/tests/test_schemas.py                     published-set list (+ fidelity/v2)
+  gate/tests/samples.py                          sample now v2
+  gate/schemas/qa/v1.json:21 "the same subjects as fidelity/v1"
+                                                 a description in a hash-pinned schema: left as it
+                                                 is (D-34), and still true — the subjects did not
+                                                 change
+  api/tests/test_mcp_equivalence.py:54           the bytes of a fake defs file, not a certificate:
+                                                 nothing to do
+  gate/tests/test_finding_c_stale_signature.py   docstrings and the removed xfail reasons
+  Consumers of the module's reading functions (subject_grades, target_grade, grade_of, signers_of):
+  products.target_facts, cli run_fidelity, intake.activate — none needed a change, because the
+  counting happens inside subject_grades. gate/tests/test_finding_a_post_fidelity.py:309 writes a
+  certificate by hand with `fidelity.SCHEMA` and no hash: it is now an invalid v2 document and the
+  test still passes (it asserts a refusal) — see "not settled" 3.
+  The graph repository's schemas/ holds attestation, gate-spec and meta only, so there is no graph
+  copy of fidelity to add.
+
+3. Goldens and the api fixtures (the log's F05-Q5 rule; recipe in engineering/evidence/F12/task-6.txt)
+  $ PYTHONPATH=gate uv run python -c "...; import test_products as t; t.write_goldens()"
+  $ git diff --stat
+   gate/tests/golden/products/curated/info.json         | 3 +-
+   gate/tests/golden/products/interior-proved/info.json | 3 +-
+   gate/tests/golden/products/unproved/info.json        | 3 +-
+  Each diff is exactly  "fidelity": [ 1 ]  ->  "fidelity": [ 1, 2 ].  Every other golden file (every
+  targets/index.json, graph.json, frontier.json and CONTEXT.json in the three states) regenerated
+  byte-identical.
+  api fixtures, regenerated with the F12-T6 recipe (copy_graph; and-reassoc copied to listed-lemma
+  with its META id; take_in "listed-target" with root_dir and the Primes def; generate with
+  rendered_from 5*40, commit_time 2026-09-09T12:00:00Z) — the take-in's certificates are now v2:
+    certificate Primes-1.yaml ['schema: fidelity/v2', 'subject: Primes', 'statement_hash: 92874e40...']
+    certificate root-1.yaml ['schema: fidelity/v2', 'subject: root', 'statement_hash: 22d574be...']
+    targets-index-listed.json byte-identical
+    frontier-listed.json byte-identical
+  api/tests/fixtures/info.json is not a live golden copy: it predates F11 (no fidelity, qa, drift,
+  relevance entries; graph [1, 2]; targets-index [1, 2]) and no test compares it with the gate. Left
+  as it is (C4); see "not settled" 2.
+
+4. Tests
+  $ uv run pytest gate/tests/test_finding_c_stale_signature.py gate/tests/test_fidelity.py gate/tests/test_schemas.py -q
+  The seven former strict xfails, now plain tests, all pass:
+    test_a_revised_root_drops_below_the_signed_rung
+    test_a_revised_root_is_not_claimable_and_says_why
+    test_the_old_signer_is_not_counted_for_the_new_statement
+    test_re_running_the_screens_does_not_resurrect_the_old_signature
+    test_a_fresh_signature_on_the_revised_root_restores_the_rung
+    test_a_signature_on_an_unchanged_definition_still_counts
+    test_an_edited_definition_loses_its_signature_too
+  (With the marks still on, the first run after the fix reported all seven XPASS(strict).)
+  The four pins still pass: unrevised signed target; unrevised with a signed definition; the
+  revision really moves the hash; the superseded signature stays on disk.
+  New tests (same file, section "F11-T9"):
+    test_intake_writes_its_certificates_at_v2_pinned_to_each_subject
+    test_the_v2_schema_requires_a_statement_hash_and_v1_is_unchanged
+    test_a_v1_signature_counts_for_nothing
+    test_a_v1_certificate_still_names_the_subjects_author
+    test_a_stale_v2_signature_counts_for_nothing_and_a_fresh_one_counts
+    test_a_later_stale_certificate_does_not_mask_a_counting_one
+    test_a_mathlib_pin_move_keeps_the_grade
+    test_a_revised_root_keeps_its_posting
+    test_a_certificate_for_a_removed_definition_counts_for_nothing
+    test_a_certificate_of_an_unreadable_version_stops_the_grade
+  gate/tests/test_fidelity.py passes unchanged, including
+  test_a_certificate_for_a_removed_definition_still_counts (the row stays; the grade does not rise).
+  Result: 130 passed (the three files).
+
+5. The tests have teeth: eight in-memory mutants, a pytest plugin (-p t9_mutants, OPN_MUTANT=<name>)
+   monkeypatching the code at configure time; no file changed. Each re-ran
+   test_finding_c_stale_signature.py and test_fidelity.py (31 tests). Every rule is killed.
+   mutant_nohash       every certificate counts, whatever it was for      (the defect restored)
+   mutant_v1counts     a certificate with no hash (v1) counts             (v1-counts-for-nothing undone)
+   mutant_cheapfix     all certificates count while the QA pass is complete and fresh (the rejected fix)
+   mutant_pinhash      the pinned hash includes the Mathlib pin           (pin-move rule undone)
+   mutant_removedhash  a removed definition is asked for its hash         (no-current-hash rule undone)
+   mutant_writerv1     the writer keeps writing v1                         (writer rule undone)
+   mutant_latestany    the latest certificate decides, counting or not     (latest-counting rule undone)
+   mutant_anyschema    the reader takes any document under fidelity/       (readable-versions rule undone)
+  (C = test_finding_c_stale_signature.py, F = test_fidelity.py)
+== mutant_nohash        12 failed, 19 passed
+  C::test_a_revised_root_drops_below_the_signed_rung, C::test_a_revised_root_is_not_claimable_and_says_why,
+  C::test_the_old_signer_is_not_counted_for_the_new_statement,
+  C::test_re_running_the_screens_does_not_resurrect_the_old_signature,
+  C::test_a_fresh_signature_on_the_revised_root_restores_the_rung,
+  C::test_a_signature_on_an_unchanged_definition_still_counts, C::test_an_edited_definition_loses_its_signature_too,
+  C::test_a_v1_signature_counts_for_nothing, C::test_a_stale_v2_signature_counts_for_nothing_and_a_fresh_one_counts,
+  C::test_a_later_stale_certificate_does_not_mask_a_counting_one, C::test_a_revised_root_keeps_its_posting,
+  C::test_a_certificate_for_a_removed_definition_counts_for_nothing
+== mutant_v1counts       1 failed, 30 passed
+  C::test_a_v1_signature_counts_for_nothing
+== mutant_cheapfix       9 failed, 22 passed
+  C::test_re_running_the_screens_does_not_resurrect_the_old_signature,
+  C::test_a_fresh_signature_on_the_revised_root_restores_the_rung, C::test_a_v1_signature_counts_for_nothing,
+  C::test_a_stale_v2_signature_counts_for_nothing_and_a_fresh_one_counts,
+  C::test_a_later_stale_certificate_does_not_mask_a_counting_one, C::test_a_mathlib_pin_move_keeps_the_grade,
+  F::test_grade_rules, F::test_certificates_are_append_only_and_the_latest_wins, F::test_signatures_are_counted_and_named
+== mutant_pinhash        2 failed, 29 passed
+  C::test_intake_writes_its_certificates_at_v2_pinned_to_each_subject, C::test_a_mathlib_pin_move_keeps_the_grade
+== mutant_removedhash    2 failed, 29 passed
+  C::test_a_certificate_for_a_removed_definition_counts_for_nothing,
+  F::test_a_certificate_for_a_removed_definition_still_counts
+== mutant_writerv1      21 failed, 10 passed
+  every test that signs through attest (the four pins among them) and
+  C::test_intake_writes_its_certificates_at_v2_pinned_to_each_subject
+== mutant_latestany      1 failed, 30 passed
+  C::test_a_later_stale_certificate_does_not_mask_a_counting_one
+== mutant_anyschema      1 failed, 30 passed
+  C::test_a_certificate_of_an_unreadable_version_stops_the_grade
+
+6. Live graph certificate inventory (../open_proof_network_graph at a7dbd82, read in process with
+   this branch's fidelity module; nothing written)
+  erdos-172/root-1.yaml: fidelity/v1 mechanical-only author='The Formal Conjectures Authors' counts=False
+    -> subjects root=mechanical-only/0; target_grade=mechanical-only
+  erdos-376/root-1.yaml: fidelity/v1 mechanical-only author='The Formal Conjectures Authors' counts=False
+    -> subjects root=mechanical-only/0; target_grade=mechanical-only
+  erdos-406/root-1.yaml: fidelity/v1 mechanical-only author='The Formal Conjectures Authors' counts=False
+    -> subjects root=mechanical-only/0; target_grade=mechanical-only
+  erdos-52/root-1.yaml: fidelity/v1 mechanical-only author='The Formal Conjectures Authors' counts=False
+    -> subjects root=mechanical-only/0; target_grade=mechanical-only
+  erdos-68/root-1.yaml: fidelity/v1 mechanical-only author='The Formal Conjectures Authors' counts=False
+    -> subjects root=mechanical-only/0; target_grade=mechanical-only
+  euclid-primes/Divides-1.yaml: fidelity/v1 mechanical-only author='thisisanameforsure' counts=False
+  euclid-primes/Fact-1.yaml: fidelity/v1 mechanical-only author='thisisanameforsure' counts=False
+  euclid-primes/IsPrime-1.yaml: fidelity/v1 mechanical-only author='thisisanameforsure' counts=False
+  euclid-primes/root-1.yaml: fidelity/v1 mechanical-only author='thisisanameforsure' counts=False
+    -> subjects root=mechanical-only/0, Divides=mechanical-only/0, Fact=mechanical-only/0,
+       IsPrime=mechanical-only/0; target_grade=mechanical-only
+  tutorial: no certificates (pre-F11); target_grade=None
+  Nine certificates, all fidelity/v1, all mechanical-only, all dated 2026-09-12, attestor
+  thisisanameforsure.
+  Before T9 all nine were mechanical-only, so every curated target derived mechanical-only with no
+  signers; after T9 all nine count for nothing and every target still derives mechanical-only with
+  no signers. No live grade, count, signer or claimability changes. The tutorial has no
+  certificates and still speaks through its declaration (target_grade None).
+
+7. make verify
+  $ UV_PROJECT_ENVIRONMENT=<main checkout>/.venv make verify
+  ruff check: All checks passed! · ruff format --check: 257 files already formatted
+  mypy gate: no issues in 130 source files · mypy api: 74 · mypy site: 18
+  = 1584 passed, 1 skipped, 61 deselected, 16 xfailed, 2 warnings in 93.14s =
+  make verify exit=0
+  (the skip is test_walkthrough: the worktree has no sibling graph checkout beside it)
+  Baseline: the run started at 923a6ce was contaminated — the new schema file landed while it ran,
+  and it reported 1561 passed, 6 failed (the schema set, the HASHES pins and the three info.json
+  goldens: the consequences of adding fidelity/v2, fixed above), 23 xfailed. After the fix and
+  before the new tests: 1574 passed, 1 skipped, 16 xfailed (23 - the 7 finding-C marks).
+
+8. Not settled by the rules
+  1. A removed definition's row. F11-T2 kept a certificate whose subject is no longer a definition
+     as a row "so a removed def cannot silently raise the grade". Kept: the row stays, now at
+     mechanical-only with no signers (it counts for nothing), and it is in the target's minimum.
+     Consequence, unchanged from before for a mechanical-only removed def but now for any removed
+     def: the target is held at mechanical-only for good, because `opn-gate fidelity` refuses a
+     subject that is not a definition. The alternative is to drop such rows from the index and the
+     minimum. Mike's call; mutant_removedhash covers only the no-crash half.
+  2. api/tests/fixtures/info.json is a pre-F11 copy that has drifted from every golden (F05-Q5
+     says the api's fixtures are copied from a golden). Not touched here.
+  3. Finding A's branch (certificates by pull request, modes.py): its classifier should read a
+     certificate against READABLE_SCHEMAS (or require fidelity.SCHEMA) and may want to refuse a
+     *new* v1 certificate, or a v2 one whose statement_hash is not the subject's current hash at
+     the pull request's head — either counts for nothing, so today it would merge as noise.
+     test_finding_a_post_fidelity.py:309 hand-writes `schema: fidelity.SCHEMA` with no hash, which
+     is now invalid for a second reason; it still asserts only a refusal.
+  4. The live step-5 signature (a non-author signing euclid-primes and the Erdős roots) must be
+     written by a gate at or after this change. A signature written with the currently pinned
+     gate would be v1 and would count for nothing once the graph is re-pinned here.
+  5. A root that does not load: current_hash raises qa.QaError rather than answering None — the
+     grade gates claiming, and products.target_facts already raises the same way from
+     qa.pass_state. A removed definition is the only "no current hash" case.
+  6. D-9's automatic downgrade of published-and-uncontested on a confirmed defect is not touched;
+     the counting rule is independent of it.
+
+9. Proposed spec text (for the lead to place; F11 numbers are the next free ones at 923a6ce and may
+   need renumbering against the parallel branches)
+
+  F11-R3, amended 2026-09-13 (T9, Q30): replace "(fidelity/v1: subject (root or def name), grade ..."
+  with "(fidelity/v2: subject (root or def name), the subject's statement hash when the certificate
+  was written (the value F12-R5's QA record pins), grade ...", and replace "a target's grade is the
+  minimum over root and every definition of the latest certificate for each" with "a certificate
+  counts toward its subject's grade, signature count and signers only if it pins the subject's
+  current hash, and a fidelity/v1 certificate, which pins none, counts for nothing; a subject's
+  grade is its latest counting certificate's, or mechanical-only with no signers when none counts;
+  a target's grade is the minimum over root and every definition".
+
+  Acceptance criteria:
+  AC19 After a D-8 revision of a signed root, the root's grade is mechanical-only with no signers,
+       the target's grade falls with it, and the target is not claimable with reason
+       grade-below-screened-and-signed; re-running the QA screens restores nothing, a new
+       non-author signature does, counting that signer alone.
+       — test_a_revised_root_drops_below_the_signed_rung, test_a_revised_root_is_not_claimable_and_says_why,
+         test_the_old_signer_is_not_counted_for_the_new_statement,
+         test_re_running_the_screens_does_not_resurrect_the_old_signature,
+         test_a_fresh_signature_on_the_revised_root_restores_the_rung
+  AC20 A definition keeps its signature while its file is unchanged and loses it when edited.
+       — test_a_signature_on_an_unchanged_definition_still_counts, test_an_edited_definition_loses_its_signature_too
+  AC21 Certificates are written at fidelity/v2 with the subject's current hash, intake's included;
+       v2 requires the hash and v1 is unedited.
+       — test_intake_writes_its_certificates_at_v2_pinned_to_each_subject,
+         test_the_v2_schema_requires_a_statement_hash_and_v1_is_unchanged
+  AC22 A v1 certificate above mechanical-only counts for nothing, but still names the subject's
+       author; a v2 certificate for another hash counts for nothing and masks no counting one.
+       — test_a_v1_signature_counts_for_nothing, test_a_v1_certificate_still_names_the_subjects_author,
+         test_a_stale_v2_signature_counts_for_nothing_and_a_fresh_one_counts,
+         test_a_later_stale_certificate_does_not_mask_a_counting_one
+  AC23 A Mathlib pin move keeps the grade and claimability; a revised root keeps its posting; a
+       removed definition's certificate counts for nothing without stopping the products; a file
+       of an unreadable version stops the grade.
+       — test_a_mathlib_pin_move_keeps_the_grade, test_a_revised_root_keeps_its_posting,
+         test_a_certificate_for_a_removed_definition_counts_for_nothing,
+         test_a_certificate_of_an_unreadable_version_stops_the_grade,
+         test_the_superseded_signature_stays_on_disk
+
+  F11-Q30 — A certificate is for a statement (2026-09-13, finding C; Mike's rules). fidelity/v1
+  pinned no statement, so a signature crossed a D-8 revision under the subject name `root` — the one
+  record on the path from QA to claimable without a hash (F12-R10 already refuses to carry an
+  attempt across one). Decisions: (a) fidelity/v2 adds a required statement_hash, the value
+  qa.subject_hash gives (the root's statement hash, a definition file's content hash), written by
+  attest, so intake's mechanical-only certificates carry it too. (b) A certificate counts only if it
+  is v2 and pins the subject's current hash; the grade is the latest counting certificate's. (c) v1
+  counts for nothing above mechanical-only until re-signed at v2 — no migration, because the nine
+  live v1 certificates are all mechanical-only and no live grade moves; authorship still reads from
+  v1, so the non-author rule holds across versions. (d) The pass being fresh is not enough: D-9 makes
+  non-author sign-off the only event that changes accepted state, so re-running the screens on a
+  revised statement lifts nothing (the rejected fix, held by
+  test_re_running_the_screens_does_not_resurrect_the_old_signature and a mutant). (e) The pin is not
+  in the hash: D-9 re-runs the screens when the pin moves, but the statement the signer read is the
+  same, so the grade stands while the QA pass reads stale. (f) Superseded certificates stay on disk
+  and are not published; no targets-index version, no new not-claimable reason. (g) A certificate
+  for a definition that no longer exists has no current hash and counts for nothing; its row is
+  kept at mechanical-only (F11-T2's no-silent-rise rule). Reversal: to let v1 signatures count again,
+  treat a v1 certificate as pinned to the hash current at its date (needs history, not the tree); to
+  drop the pin rule, count every certificate (mutant_nohash restores exactly that and turns the seven
+  finding-C tests red); to drop removed-definition rows, filter subject_grades to subjects_of.
+
+  Task row:
+  F11-T9 | A fidelity certificate is for a statement. R3 (Q30): fidelity/v2 pins the subject's hash;
+  only certificates for the subject as it stands count toward the grade, the count and the signers;
+  v1 counts for nothing; the findings register's finding C. | gate/schemas/fidelity/v2.json,
+  gate/schemas/HASHES, gate/opn_gate/fidelity.py, gate/tests/test_finding_c_stale_signature.py,
+  gate/tests/test_schemas.py, gate/tests/samples.py, gate/tests/golden/products/*/info.json,
+  engineering/evidence/F11/task-9.txt | T2, T7 | uv run pytest
+  gate/tests/test_finding_c_stale_signature.py gate/tests/test_fidelity.py ; make verify

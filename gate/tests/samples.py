@@ -341,10 +341,11 @@ def target_record(**overrides: Any) -> dict[str, Any]:
 
 
 def fidelity_certificate(**overrides: Any) -> dict[str, Any]:
-    """A ``fidelity/v1`` certificate (F11-R3; D-9 v3.12)."""
+    """A ``fidelity/v2`` certificate (F11-R3, T9; D-9 v3.12): v1 plus the subject's hash."""
     doc: dict[str, Any] = {
-        "schema": "fidelity/v1",
+        "schema": "fidelity/v2",
         "subject": "root",
+        "statement_hash": "a" * 64,
         "grade": "screened-and-signed",
         "subject_author": "author",
         "attestor": "reviewer",
