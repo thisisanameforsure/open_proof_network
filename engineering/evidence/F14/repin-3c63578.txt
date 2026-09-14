@@ -68,3 +68,17 @@ Carries F14 to the live gate:
      euclid-primes  claimable False (status-resolved)
      tutorial  claimable True  step9 review
    The wave merges started at #44 (intake/erdos-1003).
+
+10. Wave, first pass: #44 erdos-1003 and #45 erdos-1065 merged with their bot commits. #46 erdos-1094 failed
+    admission at step 6 (run 34877116285):
+      hazard-unacknowledged: div-zero at n / k — Lean's / is total and gives a junk value at 0
+    The refusal is right, and the division is safe. The statement is
+      {(n, k) : N x N | 0 < k and 2 * k <= n and (n.choose k).minFac > max (n / k) k}.Finite
+    so 0 < k is a conjunct of the same predicate. For a natural number p, p > floor(n/k) holds exactly when
+    p > n/k, so floor division matches the informal max(n/k, k). The curator acknowledged it in
+    nodes/erdos-1094/META.yaml (checker div-zero, location "n / k", with that justification), pushed as f9650c6.
+    The merge script now holds a pull request whose gate fails and moves on. The remaining 20 are queued, with
+    erdos-1094 last.
+    Gap: wave.py drafts cannot run the Lean hazard checkers without a Mathlib checkout, so a draft's first
+    hazard verdict comes from its own pull request. For wave two: run the step-6 checkers in the Mathlib image
+    before pushing, which is T11L's docker-tier admission.
