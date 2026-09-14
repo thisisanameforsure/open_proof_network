@@ -177,7 +177,7 @@ def test_listed_not_claimable(harness: Harness) -> None:
     been posted, so there is nothing to claim yet (D-6, D-9, D-10)."""
     serve_listed(harness)
     served = harness.client.get("/frontier.json").json()
-    assert served["schema"] == "frontier/v2"  # the service serves the version the graph published
+    assert served["schema"] == "frontier/v3"  # the service serves the version the graph published
     entry = next(e for e in served["entries"] if e["node_id"] == LISTED_NODE)
     assert entry["claimable"] is False and entry["dormant"] is False
 

@@ -377,6 +377,27 @@ def test_attempt_aggregation(tmp_path: Path) -> None:
     }
 
 
+def test_a_merged_partial_is_an_attempt_on_the_frontier(tmp_path: Path) -> None:
+    """R7 (T7): the frontier's ``attempts`` counts the partials filed under ``attempts/`` beside
+    the postmortems, which ``frontier/v3`` says; an alternate is not an attempt. (Found live: the
+    Euclid root and ``variant-93e79cb5`` each carry merged partials and showed 0 attempts.)"""
+    root = copy_graph(tmp_path)
+    att = nodes_dir(root) / "and-reassoc" / "attempts"
+    write = samples.postmortem(node="and-reassoc", route_class="induction")
+    (att / "20260912T100000Z-alice.yaml").write_text(yaml.safe_dump(write), encoding="utf-8")
+    (att / "20260912T110722Z-bob-partial.lean").write_text("-- a partial\n", encoding="utf-8")
+    (att / "20260914T000000Z-dave-alternate.lean").write_text("-- an alternate\n", encoding="utf-8")
+    doc = loads(generate(root), "frontier.json")
+    assert doc["schema"] == "frontier/v3"
+    entry = next(e for e in doc["entries"] if e["node_id"] == "and-reassoc")
+    assert entry["attempts"] == 2
+    assert entry["refuted_route_classes"] == ["induction"]
+    assert (
+        schemas.load_schema("frontier/v3")["properties"]["entries"]["items"]["required"]
+        == (schemas.load_schema("frontier/v2")["properties"]["entries"]["items"]["required"])
+    ), "v3 changes what attempts counts, not the shape"
+
+
 def test_ready_since_from_previous_frontier(tmp_path: Path) -> None:
     """AC8 with files: the committed frontier.json feeds the carry-forward."""
     root = copy_graph(tmp_path)

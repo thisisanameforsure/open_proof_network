@@ -23,6 +23,7 @@ import yaml
 
 from opn_gate import demarcate, layout, schemas
 from opn_gate import graph as graphmod
+from opn_gate import records as recordsmod
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.graph import GraphError
 
@@ -266,6 +267,7 @@ def _attempts(reader: Reader, node_dir: str) -> dict[str, Any]:
     refuted: set[str] = set()
     histogram: dict[str, int] = {}
     parsed: list[tuple[str, dict[str, Any] | None]] = []
+    named: list[str] = []  # partials a valid record names: one attempt with it (F03-T7)
     for name in yaml_names:
         path = f"{directory}/{name}"
         raw = _must(reader, path)
@@ -281,6 +283,9 @@ def _attempts(reader: Reader, node_dir: str) -> dict[str, Any]:
         failure_class = doc.get("failure_class")
         if failure_class is not None:
             histogram[str(failure_class)] = histogram.get(str(failure_class), 0) + 1
+        partial = (doc.get("artifacts") or {}).get("partial_proof")
+        if isinstance(partial, str):
+            named.append(partial)
         parsed.append((path, doc))
     truncated = len(parsed) > RECORD_LIMIT
     kept = parsed[-RECORD_LIMIT:] if truncated else parsed  # names sort by timestamp (F07-R11)
@@ -300,7 +305,7 @@ def _attempts(reader: Reader, node_dir: str) -> dict[str, Any]:
         raw = _must(reader, path)
         assemblies.append({"path": path, "hash": schemas.content_hash(raw), "bytes": len(raw)})
     return {
-        "count": len(yaml_names),
+        "count": recordsmod.count_attempts(len(yaml_names), lean_names, named),
         "refuted_route_classes": sorted(refuted),
         "failure_class_histogram": dict(sorted(histogram.items())),
         "records": records,
