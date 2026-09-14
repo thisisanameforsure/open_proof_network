@@ -341,13 +341,13 @@ def qa_summary(state: dict[str, Any] | None) -> dict[str, Any]:
 def step9_basis(tg: TargetGraph) -> str:
     """F14-R9: what a proof or partial on the root needs at merge, as the gate decides it from this
     tree (``modes.with_statement_review``): a counting certificate, recorded evidence, or a
-    non-author's review. Until F14-T5 the evidence basis is the registry provenance F07-T17 reads;
-    T5 narrows it to a statement-evidence record at the minimum score."""
+    non-author's review. Rendered with the default minimum, since the products are what the gate
+    at this pin decides without configuration (F14-R5)."""
     from opn_gate import modes  # noqa: PLC0415 — modes owns the rule; products only reports it
 
     if modes.root_certificate(tg.path) is not None:
         return "certificate"
-    if modes.registry_provenance(tg.path) is not None:
+    if modes.step9_evidence(tg.path) is not None:
         return "evidence"
     return "review"
 

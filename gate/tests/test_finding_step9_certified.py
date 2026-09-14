@@ -37,7 +37,7 @@ import yaml
 from harness import TARGET, TUTORIAL, copy_graph, take_in
 from test_cli_sandboxed import Seam, git_repo, postmerge_argv, run
 
-from opn_gate import cli, fidelity, schemas
+from opn_gate import cli, evidence, fidelity, schemas
 
 TARGET_ID = "euclid-primes"
 ROOT = "and-reassoc"  # take_in reuses this fixture node as the new target's root
@@ -265,20 +265,103 @@ def test_c_a_proof_cannot_bring_its_own_certificate(
     assert step9(out) == (False, None, None), out
 
 
-# --- (d)-(f) D-10 registry provenance ----------------------------------------------------------
-
-
-def test_d_formal_conjectures_provenance_satisfies_step9(
+def test_c_a_proof_cannot_bring_its_own_evidence(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """(d) D-4 v3.11, D-10: a root inherited from Formal Conjectures at a pinned commit and path
-    satisfies step 9, and the reference names both."""
+    """F14-AC5: an evidence record is a curator's record, so one added beside the proof it would
+    excuse makes the pull request ``mode-mixed``, exactly as a certificate does."""
     repo, proof = curated(tmp_path, provenance=fc_provenance())
-    repo.commit("base: an imported statement")
+    repo.commit("base: an imported statement, no evidence")
+    evidence_record(repo, score=8)
+    (repo.node / "Proof.lean").write_text(proof, encoding="utf-8")
+    repo.commit("a proof, and evidence for its statement")
+    code, out = classify(repo, capsys)
+    assert code != 0 and out["mode"] is None, out
+    assert "mode-mixed" in [p["code"] for p in out["problems"]], out
+    assert step9(out) == (False, None, None), out
+
+
+# --- (d)-(f) F14-R5: recorded catalog evidence, never provenance alone --------------------------
+
+
+LETTERS = {4: "B", 5: "B+", 6: "A", 8: "A"}
+
+
+def evidence_record(repo: Repo, *, score: int = 6, statement_hash: str | None = None) -> str:
+    """A statement-evidence record for the root at ``score``, pinned to the root as it stands
+    unless a hash is given; returns the reference the attestation would cite (F14-R6)."""
+    root_hash = statement_hash or fidelity.current_hash(repo.target, fidelity.ROOT_SUBJECT)
+    doc = samples.statement_evidence(statement_hash=root_hash)
+    doc["catalog"] = {**doc["catalog"], "score": score, "letter": LETTERS[score]}
+    path = evidence.write(repo.target, doc)
+    return f"evidence:evidence/{path.name}@{root_hash}:{score}"
+
+
+def test_d_formal_conjectures_provenance_alone_needs_a_review(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """(d) F14-R5 (Mike, 2026-09-14): where a statement came from is not evidence that it says
+    what the conjecture says. A root inherited from Formal Conjectures at a pinned commit and
+    path, with no evidence record, asks a non-author's review."""
+    repo, proof = curated(tmp_path, provenance=fc_provenance())
+    repo.commit("base: an imported statement, no evidence recorded")
     submit_proof(repo, proof)
     code, out = classify(repo, capsys)
     assert code == 0 and out["mode"] == "proof", out
-    assert step9(out) == (False, "provenance", FC_REFERENCE), out
+    assert step9(out) == (True, "pr-approval", None), out
+
+
+@pytest.mark.parametrize("score", [5, 6, 8])
+def test_d_catalog_evidence_at_the_minimum_satisfies_step9(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], score: int
+) -> None:
+    """(d) F14-R5, R6: a current evidence record scoring at least five stands in for the review,
+    recorded as ``provenance`` with the reference naming the record, the hash and the score."""
+    repo, proof = curated(tmp_path, provenance=fc_provenance())
+    reference = evidence_record(repo, score=score)
+    repo.commit("base: an imported statement with its catalog evidence")
+    submit_proof(repo, proof)
+    code, out = classify(repo, capsys)
+    assert code == 0 and out["mode"] == "proof", out
+    assert step9(out) == (False, "provenance", reference), out
+
+
+def test_e_evidence_below_the_minimum_needs_a_review(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """(e) F14-R5: four points is B, below the high grade — a person reviews the proof."""
+    repo, proof = curated(tmp_path, provenance=fc_provenance())
+    evidence_record(repo, score=4)
+    repo.commit("base: evidence at four")
+    submit_proof(repo, proof)
+    _code, out = classify(repo, capsys)
+    assert step9(out) == (True, "pr-approval", None), out
+
+
+def test_e_evidence_for_another_statement_needs_a_review(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """(e) F14-R3: a record pinned to another hash counts for nothing, however high it scored."""
+    repo, proof = curated(tmp_path, provenance=fc_provenance())
+    evidence_record(repo, score=8, statement_hash="a" * 64)
+    repo.commit("base: evidence recorded against an earlier root")
+    submit_proof(repo, proof)
+    _code, out = classify(repo, capsys)
+    assert step9(out) == (True, "pr-approval", None), out
+
+
+def test_e_the_minimum_is_configuration(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """(e) C6, F14-Q4: the minimum is read from OPN_STEP9_MIN_SCORE; raised to seven, a record at
+    six asks a review."""
+    monkeypatch.setenv("OPN_STEP9_MIN_SCORE", "7")
+    repo, proof = curated(tmp_path, provenance=fc_provenance())
+    evidence_record(repo, score=6)
+    repo.commit("base: evidence at six")
+    submit_proof(repo, proof)
+    _code, out = classify(repo, capsys)
+    assert step9(out) == (True, "pr-approval", None), out
 
 
 @pytest.mark.parametrize(
@@ -304,55 +387,48 @@ def test_e_incomplete_or_non_registry_provenance_needs_a_review(
     assert step9(out) == (True, "pr-approval", None), out
 
 
-def test_f_a_certificate_is_preferred_over_provenance(
+def test_f_a_certificate_is_preferred_over_evidence(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """(f) When both hold, the certificate is what the attestation relies on: a signature on the
-    statement as it stands says more than where the statement came from."""
+    """(f) When both hold, the certificate is what the attestation relies on: a person's signature
+    on the statement as it stands says more than a catalog score."""
     repo, proof = curated(tmp_path, provenance=fc_provenance())
     certificate(repo, "root-2.yaml")
-    repo.commit("base: imported and signed")
+    evidence_record(repo, score=8)
+    repo.commit("base: imported, evidenced and signed")
     submit_proof(repo, proof)
     _code, out = classify(repo, capsys)
     assert step9(out) == (False, "certificate", "fidelity/root-2.yaml"), out
 
 
-def test_f_a_stale_certificate_falls_back_to_provenance(
+def test_f_a_stale_certificate_falls_back_to_evidence(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """(f) A certificate that does not count is no certificate: provenance still stands."""
+    """(f) A certificate that does not count is no certificate: current evidence still stands."""
     repo, proof = curated(tmp_path, provenance=fc_provenance())
     certificate(repo, "root-2.yaml", statement_hash="a" * 64)
-    repo.commit("base: imported, signed against an old root")
+    reference = evidence_record(repo, score=6)
+    repo.commit("base: evidenced, signed against an old root")
     submit_proof(repo, proof)
     _code, out = classify(repo, capsys)
-    assert step9(out) == (False, "provenance", FC_REFERENCE), out
+    assert step9(out) == (False, "provenance", reference), out
 
 
 # --- (g) partial mode -----------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize(
-    ("record", "sign", "expected"),
-    [
-        pytest.param({}, True, (False, "certificate", "fidelity/root-2.yaml"), id="certificate"),
-        pytest.param(
-            {"provenance": fc_provenance()}, False, (False, "provenance", FC_REFERENCE), id="fc"
-        ),
-        pytest.param({}, False, (True, "pr-approval", None), id="neither"),
-    ],
-)
+@pytest.mark.parametrize("basis", ["certificate", "evidence", "neither"])
 def test_g_a_partial_is_treated_like_a_proof(
-    tmp_path: Path,
-    capsys: pytest.CaptureFixture[str],
-    record: dict[str, Any],
-    sign: bool,
-    expected: tuple[Any, Any, Any],
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], basis: str
 ) -> None:
     """(g) D-4 v3.11: "every kernel-checked artifact of D-12 is treated alike"."""
-    repo, _proof = curated(tmp_path, **record)
-    if sign:
+    repo, _proof = curated(tmp_path, provenance=fc_provenance())
+    expected: tuple[Any, Any, Any] = (True, "pr-approval", None)
+    if basis == "certificate":
         certificate(repo, "root-2.yaml")
+        expected = (False, "certificate", "fidelity/root-2.yaml")
+    elif basis == "evidence":
+        expected = (False, "provenance", evidence_record(repo, score=5))
     repo.commit("base")
     submit_partial(repo)
     code, out = classify(repo, capsys)

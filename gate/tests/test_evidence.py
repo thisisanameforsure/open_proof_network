@@ -141,6 +141,7 @@ def test_record_from_catalog_row(graph: Path) -> None:
         "misformalization_open": 0,
     }
     assert row["attempts"] == {"counted": 2, "recorded": 2}
+    assert row["step9"] == "evidence"  # F14-R9: six points clears the default minimum
 
 
 def test_a_second_record_does_not_repeat_the_attempts(graph: Path) -> None:

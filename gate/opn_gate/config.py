@@ -74,6 +74,8 @@ DEFAULT_MATHLIB_HOME = Path.home() / ".opn" / "mathlib"  # F11-R6: one checkout 
 DEFAULT_QA_ATTEMPT_BUDGET_S = 60.0  # F12 §6: per screen attempt, provisional (F12-Q4)
 DEFAULT_QA_SUBJECT_BUDGET_S = 300.0  # F12 §6: per subject per run
 DEFAULT_MODEL = "claude-opus-5"  # F12-Q5: recorded on every brief row, swapped by config
+#: F14-R5, Q4: the catalog score at which a root's recorded evidence stands in for step 9 ("B+").
+DEFAULT_STEP9_MIN_SCORE = 5
 
 SECRET_NAMES: tuple[str, ...] = ("gate_signing_key", "precheck_signing_key", "model_api_key")
 
@@ -93,6 +95,7 @@ class Settings:
     lean_pkg_bin: Path = DEFAULT_LEAN_PKG_BIN
     mathlib_home: Path = DEFAULT_MATHLIB_HOME
     listed_targets_max: int = DEFAULT_LISTED_TARGETS_MAX
+    step9_min_score: int = DEFAULT_STEP9_MIN_SCORE
     qa_attempt_budget_s: float = DEFAULT_QA_ATTEMPT_BUDGET_S
     qa_subject_budget_s: float = DEFAULT_QA_SUBJECT_BUDGET_S
     model: str = DEFAULT_MODEL
@@ -117,7 +120,7 @@ class Settings:
         )
 
 
-def load(environ: dict[str, str] | None = None) -> Settings:
+def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0915 — one per setting
     """Build ``Settings`` from ``environ`` (default: the real process environment).
 
     Tests pass an explicit mapping; production code calls ``load()`` with no argument. This is the
@@ -155,6 +158,13 @@ def load(environ: dict[str, str] | None = None) -> Settings:
         msg = f"OPN_LISTED_TARGETS_MAX must not be negative, got {listed_targets_max}"
         raise ConfigError(msg)
 
+    raw_step9 = env.get("OPN_STEP9_MIN_SCORE", str(DEFAULT_STEP9_MIN_SCORE))
+    try:
+        step9_min_score = int(raw_step9)
+    except ValueError as exc:
+        msg = f"OPN_STEP9_MIN_SCORE must be an integer catalog score, got {raw_step9!r}"
+        raise ConfigError(msg) from exc
+
     budgets: dict[str, float] = {}
     for name, default in (
         ("OPN_QA_ATTEMPT_BUDGET_S", DEFAULT_QA_ATTEMPT_BUDGET_S),
@@ -183,6 +193,7 @@ def load(environ: dict[str, str] | None = None) -> Settings:
         elan_home=Path(env.get("OPN_ELAN_HOME", str(DEFAULT_ELAN_HOME))).expanduser(),
         diagnostic_max_bytes=diagnostic_max_bytes,
         listed_targets_max=listed_targets_max,
+        step9_min_score=step9_min_score,
         qa_attempt_budget_s=budgets["OPN_QA_ATTEMPT_BUDGET_S"],
         qa_subject_budget_s=budgets["OPN_QA_SUBJECT_BUDGET_S"],
         model=env.get("OPN_MODEL") or DEFAULT_MODEL,

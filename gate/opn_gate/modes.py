@@ -56,7 +56,7 @@ from typing import Any, Literal
 
 import yaml
 
-from opn_gate import fidelity, intake, layout, paths, qa, records, schemas
+from opn_gate import config, evidence, fidelity, intake, layout, paths, qa, records, schemas
 from opn_gate import graph as graphmod
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Change, Located, Role
@@ -87,8 +87,8 @@ PROPOSAL_STATUS = "speculative"
 STATEMENT_REVIEW_MODES: tuple[Mode, ...] = ("proof", "partial")
 #: D-4 v3.11: the rung the root's certificate must reach ("at least screened-and-signed").
 STEP9_GRADE = fidelity.SIGNED_FROM
-#: D-10: the registries whose pinned provenance satisfies step 9 (what ``intake import-fc`` writes).
-STEP9_REGISTRIES: frozenset[str] = frozenset({intake.FC_SOURCE_KIND})
+#: F14-R5 (Mike, 2026-09-14): registry provenance alone no longer satisfies step 9; a root's
+#: recorded catalog evidence at the configured minimum does (``step9_evidence``).
 #: What stood in for the review; ``pr-approval`` is the person D-4 asks for otherwise.
 StatementBasis = Literal["certificate", "provenance"]
 ReviewKind = Literal["certificate", "provenance", "pr-approval"]
@@ -251,13 +251,22 @@ class Classification:
         }
 
 
-def with_statement_review(graph_root: Path, classification: Classification) -> Classification:
-    """D-4 v3.11: step 9 for a proof or a partial is satisfied by the root's certificate, else by
-    its D-10 registry provenance, else by a non-author's approval — decided from the checkout.
+def with_statement_review(
+    graph_root: Path,
+    classification: Classification,
+    *,
+    minimum: int = config.DEFAULT_STEP9_MIN_SCORE,
+) -> Classification:
+    """D-4 step 9 (F14-R5): for a proof or a partial it is satisfied by the root's certificate,
+    else by the root's recorded catalog evidence scoring ``minimum`` or more, else by a
+    non-author's approval — decided from the checkout. Where a statement came from is not evidence
+    that it says what the conjecture says, so registry provenance alone no longer stands in
+    (F07-T17 narrowed; Mike, 2026-09-14).
 
     The checkout is the pull request's merge commit, and a building mode's diff cannot add a
-    certificate or modify ``target.yaml`` (either makes it ``mode-mixed``), so what is read here
-    is what stood on the base: nobody certifies the statement in the pull request that proves it.
+    certificate or an evidence record or modify ``target.yaml`` (each makes it ``mode-mixed``), so
+    what is read here is what stood on the base: nobody vouches for the statement in the pull
+    request that proves it.
     """
     if classification.mode not in STATEMENT_REVIEW_MODES or classification.target_id is None:
         return classification
@@ -265,9 +274,10 @@ def with_statement_review(graph_root: Path, classification: Classification) -> C
     certificate = root_certificate(target_dir)
     if certificate is not None:
         return replace(classification, review_basis="certificate", review_reference=certificate)
-    provenance = registry_provenance(target_dir)
-    if provenance is not None:
-        return replace(classification, review_basis="provenance", review_reference=provenance)
+    recorded = step9_evidence(target_dir, minimum)
+    if recorded is not None:
+        # F14-R6: recorded as provenance, so the attestation schema and an older pin still read it.
+        return replace(classification, review_basis="provenance", review_reference=recorded)
     return classification
 
 
@@ -290,24 +300,18 @@ def root_certificate(target_dir: Path) -> str | None:
     return f"{fidelity.FIDELITY_DIR}/{newest.path.name}"
 
 
-def registry_provenance(target_dir: Path) -> str | None:
-    """``<registry>:<upstream_path>@<upstream_commit>`` when ``target.yaml`` records a statement
-    inherited from a D-10 registry at a pinned commit and path; ``None`` otherwise (D-10: the
-    commit is part of provenance, so a record without one inherits nothing)."""
+def step9_evidence(target_dir: Path, minimum: int = config.DEFAULT_STEP9_MIN_SCORE) -> str | None:
+    """F14-R3, R5, R6: the newest evidence record pinned to the root as it stands, as the reference
+    an attestation cites, when it scores ``minimum`` or more; ``None`` otherwise, and when the
+    records or the root cannot be read (C7: nothing stands in for a person on a guess)."""
     try:
-        doc = intake.load_doc(target_dir)
-    except (ValueError, OSError) as exc:  # SchemaError: the record does not validate
-        log.warning("step 9: the target record of %s does not read: %s", target_dir.name, exc)
+        record = evidence.current(target_dir)
+    except (ValueError, OSError) as exc:  # SchemaError, EvidenceError, QaError: a graph defect
+        log.warning("step 9: the evidence records of %s do not read: %s", target_dir.name, exc)
         return None
-    provenance = doc.get("provenance") if doc is not None else None
-    if not isinstance(provenance, dict):
+    if record is None or record.score < minimum:
         return None
-    source = provenance.get("statement_source")
-    commit = str(provenance.get("upstream_commit") or "").strip()
-    path = str(provenance.get("upstream_path") or "").strip()
-    if source not in STEP9_REGISTRIES or not commit or not path:
-        return None
-    return f"{source}:{path}@{commit}"
+    return record.reference()
 
 
 def classify(  # noqa: PLR0911 — one return per rejection
