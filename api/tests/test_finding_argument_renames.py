@@ -11,8 +11,8 @@ Mike's decision (2026-09-14, plan F09-T7): ``writes.RENAMES`` is the one table, 
 checked against it (F10-T7); ``submit_proof`` accepts ``precheck_job_id`` directly, forwarding the
 same body as the ``attestation`` form, and exactly one of the two or ``arguments-invalid``.
 
-``RENAMES`` and the new parameter are looked up inside the test body, never imported: a
-collection error is not an xfail. Held as strict xfails until F09-T7 lands (conventions §2).
+``RENAMES`` and the new parameter are looked up inside the test body, never imported: they were
+held as strict xfails until F09-T7 landed, and the marks came off with it (conventions §2).
 """
 
 from __future__ import annotations
@@ -44,7 +44,6 @@ EXPECTED_RENAMES = {
     "propose_variant": {"stmt": "statement"},
     "submit_proof": {"attestation": "precheck_job_id"},
 }
-REASON = "finding argument-renames (F09-R2, F09-R7, D-28): {}; fix: F09-T7 (Mike, 2026-09-14)"
 
 
 @pytest.fixture(scope="module")
@@ -90,13 +89,6 @@ def expected_value(tool: str, name: str) -> Any:
     return value_for(tool, name)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=REASON.format(
-        "the argument -> body-field mapping lives only inside four handlers, so no table says "
-        "what a write tool sends and the guide cannot be checked against it"
-    ),
-)
 def test_renames_is_what_the_handlers_send() -> None:
     """``writes.RENAMES`` is the four renames, and for every write tool that sends a body the
     body's fields are exactly its arguments passed through ``RENAMES`` — no other rename hides
@@ -122,13 +114,6 @@ def test_renames_is_what_the_handlers_send() -> None:
     assert with_body == len(writes.TOOLS) - 1
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=REASON.format(
-        "submit_proof refuses precheck_job_id and demands the whole get_precheck document, "
-        "although the endpoint binds on the id alone"
-    ),
-)
 def test_submit_proof_accepts_precheck_job_id_and_forwards_the_same_body(
     harness: Harness, key: PrecheckKey
 ) -> None:

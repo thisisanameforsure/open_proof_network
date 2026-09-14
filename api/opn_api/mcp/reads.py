@@ -390,8 +390,7 @@ async def get_submission(call: Call, args: dict[str, Any]) -> dict[str, Any]:
 
 
 async def list_submissions(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    """``GET /submissions.json`` (F09-T7). Built and tested, not yet in ``TOOLS``: a tool needs
-    its D-28 row in the decisions doc first (``test_mcp_surface.test_d28_rows_verbatim``)."""
+    """``GET /submissions.json`` body for body (F09-T7; D-28's notation note of 2026-09-14)."""
     return service_answer(await call.endpoint("GET", "/submissions.json"), "/submissions.json")
 
 
@@ -477,6 +476,14 @@ TOOLS: tuple[Tool, ...] = (
         "it earned or why there is none.",
         params({"submission_id": {"type": "string"}}, ("submission_id",)),
         get_submission,
+    ),
+    Tool(
+        "list_submissions",
+        "Every pull request the service opened on the graph that no live read has yet found "
+        "merged or closed: id, kind, node, target, pull-request number and URL, pseudonym. "
+        "get_submission gives one with its checks and reviews; get_node lists a node's own.",
+        params({}),
+        list_submissions,
     ),
     Tool(
         "get_schema",

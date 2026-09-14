@@ -71,6 +71,8 @@ TABLE: tuple[Row, ...] = (
         ("attestations/<id>.json", "GET /submissions/{submission_id}"),
         "attestations/<id>.json",
     ),
+    # F09-T7: D-28's read table, notation note of 2026-09-14 — an existing route (F07-T16).
+    Row("list_submissions", "read", ("GET /submissions.json",), "GET /submissions.json"),
     Row("get_schema", "read", ("schemas/<name>.json",), "schemas/<name>.json"),
     Row("get_precheck", "read", ("GET /precheck/{job_id}",), "GET /precheck/<id>"),
     # --- writes (D-35's plain-path table) -----------------------------------------------------

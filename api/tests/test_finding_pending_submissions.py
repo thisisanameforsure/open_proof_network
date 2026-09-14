@@ -421,13 +421,6 @@ def test_get_submission_tool_equals_the_route(harness: Harness, key: PrecheckKey
     assert over_mcp == over_http
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=MCP.format(
-        "list_submissions is built (reads.list_submissions) but not registered as a tool; "
-        "the MCP adapter's registration is another agent's work (2026-09-14)"
-    ),
-)
 def test_list_submissions_is_a_tool_and_equals_the_snapshot(
     harness: Harness, key: PrecheckKey
 ) -> None:

@@ -85,6 +85,7 @@ def test_read_tools_equal_plain_path(
     over_mcp = client.ok("get_submission", {"submission_id": "000001"})
     assert over_mcp == harness.client.get("/submissions/000001").json()
     assert over_mcp["attestation"] == plain(harness, "attestations/000001.json")
+    assert client.ok("list_submissions") == harness.client.get("/submissions.json").json()
     assert client.ok("get_schema", {"name": "postmortem/v1"}) == plain(
         harness, "schemas/postmortem/v1.json"
     )

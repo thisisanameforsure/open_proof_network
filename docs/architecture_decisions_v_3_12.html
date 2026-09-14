@@ -488,6 +488,11 @@ footer .in{max-width:1180px;margin:0 auto}
 <td>state, diagnostics and signed attestation of a precheck job — the polling tool after <code>precheck_submission</code>, as <code>get_submission</code> is after <code>submit_proof</code>; a precheck takes minutes and a tool call must return in seconds</td>
 <td><code>GET /precheck/&lt;id&gt;</code> (D-35)</td>
 </tr>
+<tr>
+<td><code>list_submissions()</code> <em>(notation note, 2026-09-14)</em></td>
+<td>the pull requests the service opened that are not yet merged or closed — id, kind, node, target, pull-request number and URL, pseudonym; <code>get_node</code> carries the same list for one node</td>
+<td><code>GET /submissions.json</code> (D-35)</td>
+</tr>
 </tbody>
 </table>
 <p><strong>Write tools.</strong> Each has one plain-protocol equivalent, listed in D-35: a PR against the graph repo where the operation is a file change, an HTTP endpoint where it is not.</p>
@@ -572,7 +577,7 @@ footer .in{max-width:1180px;margin:0 auto}
 </tr>
 </tbody>
 </table>
-<p class="note"><em>Notation note, 2026-09-14:</em> rows marked with this date were added to the v0 tables after the 2026-09-13 live contribution, in which an agent given only the MCP endpoint could not earn a token or witness the holes its own partial created. Each is an endpoint the service already had (D-35), so every tool still has exactly one plain-protocol equivalent and no decision changes. The same note records a reading of “writes are token-authenticated”: <code>precheck_submission</code> on the tutorial node, like <code>POST /precheck</code>, needs no token (D-19, D-27), and with <code>get_token</code> it is how an MCP-only client earns its first one. D-35’s “token issuance (no tool)” row is <code>get_token</code>’s plain path.</p>
+<p class="note"><em>Notation note, 2026-09-14:</em> rows marked with this date were added to the v0 tables after the two agent runs of 2026-09-13: in one, an agent given only the MCP endpoint could not earn a token or witness the holes its own partial created; in the other, an agent could not see the pull requests it had opened until they merged. Each is an endpoint the service already had (D-35), so every tool still has exactly one plain-protocol equivalent and no decision changes. The same note records a reading of “writes are token-authenticated”: <code>precheck_submission</code> on the tutorial node, like <code>POST /precheck</code>, needs no token (D-19, D-27), and with <code>get_token</code> it is how an MCP-only client earns its first one. D-35’s “token issuance (no tool)” row is <code>get_token</code>’s plain path.</p>
 <p><strong>Bountied-node routing is server-side, never client-chosen.</strong> <code>submit_proof</code> against a bountied node (D-26) routes automatically into that node's private hash-chained queue; the same behavior holds on the raw git path, which accepts an equivalent signed push to the private queue. If clients could choose the channel, the bounty quarantine would be advisory.</p>
 </details>
 <h3 id="d-35">D-35 — Two repositories, one trust base<a aria-label="Link to this section" class="hl" href="#d-35">§</a></h3>

@@ -13,7 +13,9 @@ mints an identity, so it never carries one.
 
 Parameter names follow D-28's rows. Where the endpoint's body spells a field differently
 (``ttl`` is ``ttl_hours``, ``stmt`` is ``statement``, ``attestation`` binds through the job id
-it carries) the mapping is here and nowhere else; the optional fields the endpoints accept
+it carries) the mapping is ``RENAMES`` and nowhere else — every handler builds its body through
+``present``, which applies it (F09-T7); ``submit_proof`` also takes that id directly as
+``precheck_job_id``, exactly one of the two; the optional fields the endpoints accept
 beyond D-28's lists (``tooling``, ``licence``, ``model_and_tooling``, ``deps``, ``model``,
 ``defect_class``) are offered so the tool is not weaker than its plain path (Q7).
 """
@@ -21,10 +23,11 @@ beyond D-28's lists (``tooling``, ``licence``, ``model_and_tooling``, ``deps``, 
 from __future__ import annotations
 
 from collections.abc import Mapping
+from types import MappingProxyType
 from typing import Any
 
 from opn_api.mcp import auth
-from opn_api.mcp.calls import ID_PARAM, Answer, Call, Tool, ToolError, params
+from opn_api.mcp.calls import ID_PARAM, Answer, Call, Tool, ToolError, error, params
 
 LEAN = {"type": "string", "description": "the text of a Lean file"}
 BUNDLE = {
@@ -51,18 +54,30 @@ async def forward(
     return answer.envelope()
 
 
-def present(args: Mapping[str, Any], *names: str, **renamed: str) -> dict[str, Any]:
-    """The given parameters that were supplied, renamed where the endpoint spells them
-    differently, so an omitted optional stays omitted rather than becoming ``null``."""
-    out = {n: args[n] for n in names if n in args}
-    out.update({to: args[fr] for fr, to in renamed.items() if fr in args})
-    return out
+#: The adapter's one machine-readable rename map (F09-T7): per tool, the D-28 argument and the
+#: endpoint body field it is sent as, wherever the two are spelled differently. A tool or an
+#: argument not named here is sent under its own name. The guide's MCP appendix is checked
+#: against this table (F10-T7).
+RENAMES: Mapping[str, Mapping[str, str]] = MappingProxyType(
+    {
+        "claim_node": MappingProxyType({"ttl": "ttl_hours"}),
+        "propose_speculative_node": MappingProxyType({"stmt": "statement"}),
+        "propose_variant": MappingProxyType({"stmt": "statement"}),
+        "submit_proof": MappingProxyType({"attestation": "precheck_job_id"}),
+    }
+)
+
+
+def present(tool: str, args: Mapping[str, Any], *names: str) -> dict[str, Any]:
+    """The named parameters that were supplied, each under the body field ``RENAMES`` gives it
+    for ``tool``, so an omitted optional stays omitted rather than becoming ``null``."""
+    renames = RENAMES.get(tool, {})
+    return {renames.get(n, n): args[n] for n in names if n in args}
 
 
 async def claim_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    return await forward(
-        call, "POST", "/claims", present(args, "node_id", "target_id", ttl="ttl_hours")
-    )
+    body = present("claim_node", args, "node_id", "target_id", "ttl")
+    return await forward(call, "POST", "/claims", body)
 
 
 async def release_claim(call: Call, args: dict[str, Any]) -> dict[str, Any]:
@@ -70,71 +85,90 @@ async def release_claim(call: Call, args: dict[str, Any]) -> dict[str, Any]:
 
 
 async def precheck_submission(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    out = await forward(call, "POST", "/precheck", present(args, "node_id", "bundle"))
+    body = present("precheck_submission", args, "node_id", "bundle")
+    out = await forward(call, "POST", "/precheck", body)
     body = out["body"] if isinstance(out["body"], dict) else {}
     return {**out, "job_id": body.get("id"), "poll": POLL}
 
 
+#: The two ways to name the passing precheck a submission binds to; exactly one is given.
+PRECHECK_REFS = ("attestation", "precheck_job_id")
+
+
 async def submit_proof(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    attestation = args.get("attestation")
-    body = present(args, "node_id", "artifact_type", "bundle", "tooling")
-    body["precheck_job_id"] = (
-        attestation.get("id") if isinstance(attestation, dict) else attestation
+    given = [n for n in PRECHECK_REFS if n in args]
+    if len(given) != 1:
+        raise error(
+            "arguments-invalid",
+            "submit_proof takes exactly one of `attestation` (the get_precheck result) and "
+            f"`precheck_job_id` (its id); {'both were' if given else 'neither was'} given",
+            "adapter",
+        )
+    fields = dict(args)
+    attestation = fields.get("attestation")
+    if isinstance(attestation, dict):
+        fields["attestation"] = attestation.get("id")  # the id is what binds (F09-Q2)
+    body = present(
+        "submit_proof", fields, "node_id", "artifact_type", "bundle", "tooling", *PRECHECK_REFS
     )
     return await forward(call, "POST", "/submissions", body)
 
 
 async def submit_postmortem(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    return await forward(call, "POST", "/postmortems", present(args, "node_id", "yaml"))
+    body = present("submit_postmortem", args, "node_id", "yaml")
+    return await forward(call, "POST", "/postmortems", body)
 
 
 async def submit_informal_annex(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    return await forward(
-        call, "POST", "/annexes", present(args, "node_id", "text", "licence", "model_and_tooling")
-    )
+    body = present("submit_informal_annex", args, "node_id", "text", "licence", "model_and_tooling")
+    return await forward(call, "POST", "/annexes", body)
 
 
 async def submit_approach_record(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    return await forward(call, "POST", "/approach-records", present(args, "target_id", "record"))
+    body = present("submit_approach_record", args, "target_id", "record")
+    return await forward(call, "POST", "/approach-records", body)
 
 
 async def file_defect_claim(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    return await forward(
-        call, "POST", "/defect-claims", present(args, "stmt_ref", "class", "line", "exhibit")
-    )
+    body = present("file_defect_claim", args, "stmt_ref", "class", "line", "exhibit")
+    return await forward(call, "POST", "/defect-claims", body)
 
 
 async def file_revision_request(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    return await forward(
-        call, "POST", "/revision-requests", present(args, "node_id", "defect_class", "evidence")
-    )
+    body = present("file_revision_request", args, "node_id", "defect_class", "evidence")
+    return await forward(call, "POST", "/revision-requests", body)
 
 
 async def propose_speculative_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    body = present(args, "target_id", "witness", "deps", "model", stmt="statement")
+    body = present(
+        "propose_speculative_node", args, "target_id", "stmt", "witness", "deps", "model"
+    )
     return await forward(call, "POST", "/proposals/speculative", body)
 
 
 async def propose_variant(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     body = present(
+        "propose_variant",
         args,
         "target_id",
+        "stmt",
         "witness",
         "relation",
         "relation_proof",
         "deps",
         "model",
-        stmt="statement",
     )
     return await forward(call, "POST", "/proposals/variant", body)
 
 
 async def get_token(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    return await forward(call, "POST", "/tokens", present(args, "proof", "pseudonym", "dco"))
+    body = present("get_token", args, "proof", "pseudonym", "dco")
+    return await forward(call, "POST", "/tokens", body)
 
 
 async def propose_witness(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    return await forward(call, "POST", "/proposals/witness", present(args, "node_id", "witness"))
+    body = present("propose_witness", args, "node_id", "witness")
+    return await forward(call, "POST", "/proposals/witness", body)
 
 
 TOOLING = {
@@ -202,10 +236,10 @@ TOOLS: tuple[Tool, ...] = (
     Tool(
         "submit_proof",
         "Open the submission pull request on the graph: the ledger identity as author and "
-        "sign-off, the service as committer. `attestation` is the get_precheck result of a "
-        "passing precheck of this bundle. On a node whose Proof.lean has already merged, a "
-        "later proof is an alternate: put it at "
-        "attempts/<timestamp>-<pseudonym>-alternate.lean with artifact_type proof (D-25).",
+        "sign-off, the service as committer. Name the passing precheck of this bundle with "
+        "exactly one of `attestation` (the get_precheck result) or `precheck_job_id` (its id). "
+        "On a node whose Proof.lean has already merged, a later proof is an alternate: put it "
+        "at attempts/<timestamp>-<pseudonym>-alternate.lean with artifact_type proof (D-25).",
         params(
             {
                 "node_id": ID_PARAM,
@@ -215,11 +249,17 @@ TOOLS: tuple[Tool, ...] = (
                 "bundle": BUNDLE,
                 "attestation": {
                     "type": "object",
-                    "description": "the get_precheck result; its `id` binds the submission",
+                    "description": "the get_precheck result; its `id` binds the submission. "
+                    "Give this or precheck_job_id, not both",
+                },
+                "precheck_job_id": {
+                    "type": "string",
+                    "description": "the id of a passing precheck of this bundle. Give this or "
+                    "attestation, not both",
                 },
                 "tooling": TOOLING,
             },
-            ("node_id", "artifact_type", "bundle", "attestation"),
+            ("node_id", "artifact_type", "bundle"),
         ),
         submit_proof,
         write=True,

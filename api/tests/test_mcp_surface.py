@@ -28,6 +28,7 @@ READS = {
     "get_defs",
     "get_gate_spec",
     "get_submission",
+    "list_submissions",  # F09-T7: D-28's notation note of 2026-09-14
     "get_schema",
     "get_precheck",
 }
