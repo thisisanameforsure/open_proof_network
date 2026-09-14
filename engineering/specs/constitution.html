@@ -91,15 +91,19 @@ the gate has checked: nodes and <code>defs/</code> (D-3), attestations (D-5, D-3
 directly, or hold a copy that could be mistaken for the original.</p>
 <p><strong>Operational</strong> — rebuildable from the graph without changing any verdict
 (D-35): the api's tables of hashed tokens, claims, precheck jobs and rate-limit counters; precheck
-job workspaces, deleted when the job ends; the rendered site bucket. Losing any of these is an
-outage, never a dispute.</p>
+job workspaces, deleted when the job ends; the rendered site bucket; the fast-check call log, which
+keeps each call's metadata and a content hash and never the Lean text (F13). Losing any of these is
+an outage, never a dispute.</p>
 <p><strong>Never:</strong> log a token, a signing key, or a raw submission above DEBUG; serve
 annex, postmortem or any contributor free text to an agent or a page without the untrusted-data
 demarcation (D-28, D-31); run a contributor's Lean outside the sandbox the gate uses (D-4 step 3 —
-elaboration executes arbitrary code); let the api, the MCP server or the site become a second
+elaboration executes arbitrary code), save a non-authoritative check forwarded to the named hosted
+service D-4 v3.14 allows, which runs it in its own sandbox while the network runs none of it; let the api, the MCP server or the site become a second
 source of truth.</p>
 <p><strong>Personal data:</strong> the site's CDN access logs contain visitor IP addresses; kept
-ninety days, used for aggregate counts only, never joined to ledger identities. Contributor
+ninety days, used for aggregate counts only, never joined to ledger identities. The fast-check log
+names a caller by identity id when a token is presented and otherwise by a keyed hash of the source
+address, never the address itself (F13). Contributor
 identity is whatever the token holder asserted (D-19, D-22); the network stores no email or
 credential for it at Stage 0.</p></div>
 
@@ -112,7 +116,8 @@ that cannot follow a decision logs the deviation as a proposed overturn; the dec
 through that document's own process. Product questions this constitution does not answer are
 answered there.</div>
 
-<footer>Open Proof Network · constitution v1 · 2026-09-07 · C8–C9 filled on stack lock; product
+<footer>Open Proof Network · constitution v2 · 2026-09-14 (v2: C9 allows a non-authoritative check
+delegated under D-4 v3.14 and names its call log, F13) · C8–C9 filled on stack lock; product
 section defers to <code>docs/architecture_decisions_v_3_12.html</code></footer>
 </body>
 </html>

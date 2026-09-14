@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F13 — Fast check</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F13</nav>
+<h1>F13 — Fast check</h1>
+<p class="subtitle">A second-scale, non-authoritative Lean check for contributors and their
+harnesses: the network forwards Lean text to a named hosted checker matched to the target's
+pinned Mathlib, adds the warnings where the gate would disagree, logs every call, and publishes
+which checker serves which pin.</p>
+
+<h2>1. Summary</h2>
+<p>AI provers iterate on compiler feedback: tens of checks per attempt, each expected in about a
+second, with errors and goal states (surveyed 2026-09-13: Goedel-Prover-V2 and Seed-Prover 1.5 gain most
+of their accuracy from error-message rounds, and AXLE's own measurements put a warm Mathlib check
+near one second). The network's only check today is the signed precheck, minutes
+per job and rate-limited, which is right for its purpose (D-4's attached attestation) and wrong for
+an inner loop. F13 adds <code>POST /check</code> and its MCP tool <code>check_lean</code>: the
+service resolves the target's Mathlib pin to a hosted environment on AXLE (Axiom Math's public
+Lean engine), lints the text for the three ways a checker pass still fails the gate, forwards it,
+and returns the checker's answer verbatim beside the lint and an explicit
+<code>authoritative: false</code>. Every call is logged by its metadata and content hash. The pin
+policy that keeps targets on hosted environments is written down (a Mathlib release tag, matching
+the Formal Conjectures registry at intake), and the mapping from pin to environment is network
+configuration shown in the guide, <code>info.json</code> and the target page. This required
+decisions v3.14 (D-4, D-28, D-35) and constitution v2 (C9), because the network had promised that
+no contributor Lean is ever elaborated outside the gate's sandbox. Cites: D-1, D-4, D-7, D-19,
+D-28, D-35, D-36.</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As an agent working an Erdős node, I want a check that answers in about a second with line
+    and column errors and the goal at each failure, so I can iterate before spending a precheck.</li>
+  <li>As an agent, I want to be told when the checker's pass would still fail the gate (a helper
+    lemma above the theorem, a changed import, a leftover <code>sorry</code>), so a green fast check
+    does not become a red precheck.</li>
+  <li>As a curator importing a new wave of registry statements, I want the pin policy and the
+    checker mapping to say, before I pin, whether contributors will have a hosted checker.</li>
+  <li>As the gate owner, I want every call logged, so abuse, load and harness behaviour are
+    visible without keeping anyone's unmerged work.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> the pin-tag rule on <code>gate/mathlib-pins.txt</code>; the
+<code>gate/hosted-checkers.yaml</code> mapping; the AXLE client seam and its fake;
+<code>POST /check</code> with lint, limits and a concurrency cap; the call log and
+<code>GET /checks/&lt;id&gt;</code>; the <code>hosted_check</code> block in <code>info.json</code> and
+<code>server_info</code>; the target page line; the guide section; the MCP tool
+<code>check_lean</code>; a network-tier smoke.</p>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>A checker the network runs itself on the gate image, for pins no hosted service carries
+    (F-later; D-35's rule on administered machines would bind it).</li>
+  <li>Keeping the checked Lean text. Decided 2026-09-14: the log keeps metadata and a hash only (Q3).</li>
+  <li>Relaxing F00-R19 so helper lemmas above the theorem are accepted; F13 only warns.</li>
+  <li>Watching the registry's Mathlib bumps; F12's drift watcher already flags an edited statement.</li>
+  <li>Any change to the gate. <code>opn_gate</code> helpers are imported for the lint; no step reads
+    anything F13 writes (D-1).</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<p class="status-note">EARS notation, stable IDs.</p>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F13-R1</td><td>The system shall pin each new Mathlib-based graph to a Mathlib release tag,
+    chosen at intake to match the tag the Formal Conjectures registry builds against, and each line
+    of <code>gate/mathlib-pins.txt</code> shall name that tag in a trailing comment (D-7 unchanged: a
+    graph keeps its pin for life).</td></tr>
+  <tr><td>F13-R2</td><td>The system shall keep <code>gate/hosted-checkers.yaml</code>
+    (<code>hosted-checkers/v1</code>) with exactly one entry per pinned sha: the tag, the hosted
+    environment or <code>null</code>, whether it is <code>exact</code>, and a note saying what differs
+    when it is not.</td></tr>
+  <tr><td>F13-R3</td><td>When <code>POST /check</code> receives {target_id, node_id?, content, mode ∈
+    {check, verify}}, the system shall resolve the target's <code>mathlib_sha</code> from its
+    gate-spec, map it to an environment, and forward the content to AXLE's <code>check</code>, or in
+    <code>verify</code> mode to <code>verify_proof</code> with the node's <code>Statement.lean</code>
+    as the formal statement.</td></tr>
+  <tr><td>F13-R4</td><td>Before forwarding, the system shall lint the content with the gate's own
+    parsers and return named warnings, never refusals: <code>imports-differ</code> when the header is
+    not the statement's, <code>helper-declarations</code> when anything but the statement's theorem is
+    declared, <code>sorry-present</code> when a <code>sorry</code> token remains.</td></tr>
+  <tr><td>F13-R5</td><td>When the node's statement imports <code>Defs.*</code> modules, the system
+    shall inline those definitions' sources ahead of the content before forwarding, because the
+    hosted checker imports only Mathlib, and shall say so in the response.</td></tr>
+  <tr><td>F13-R6</td><td>The system shall answer {authoritative: false, service, environment, exact,
+    lint, inlined_defs, result: the checker's body verbatim, log_id}, and shall never accept a check
+    answer where a precheck attestation is required (D-4 v3.14).</td></tr>
+  <tr><td>F13-R7</td><td>If the pin maps to no environment, the content exceeds the size limit, or
+    the checker is unreachable, then the system shall refuse with
+    <code>no-hosted-environment</code>, <code>content-too-large</code> or
+    <code>upstream-unavailable</code> and log the refusal.</td></tr>
+  <tr><td>F13-R8</td><td>The system shall rate-limit checks at the identity layer (D-19, D-28):
+    per identity per hour when a token is presented, per source address per day otherwise, and shall
+    cap in-flight calls to the hosted service at a configured concurrency.</td></tr>
+  <tr><td>F13-R9</td><td>The system shall log every call as a <code>check-log</code> record in the
+    operational store: id, time, caller (identity id, or a keyed hash of the source address), target,
+    node, environment, mode, content SHA-256 and size, outcome, error count, lint codes, the
+    checker's request id, upstream status and latency; it shall never store the content (C9 v2,
+    Q3).</td></tr>
+  <tr><td>F13-R10</td><td>When <code>GET /checks/&lt;id&gt;</code> is called by the identity that made
+    the call, the system shall return that record; any other caller shall get
+    <code>not-found</code>.</td></tr>
+  <tr><td>F13-R11</td><td>The system shall publish the mapping as <code>hosted_check</code> in the
+    service's <code>info.json</code> and <code>server_info</code>, show the environment and its
+    exactness on each target page, and document the endpoint in the graph's
+    <code>AGENTS.md</code>, naming AXLE as a third party, the precheck as the only verdict, and the
+    lint's three gaps.</td></tr>
+  <tr><td>F13-R12</td><td>The system shall expose <code>check_lean</code> on the MCP server as the
+    one tool over <code>POST /check</code> (D-28, D-35 v3.14), with the same arguments, limits and
+    log.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F13-AC1</td><td>Given the committed pins file and mapping, when they are read together,
+    then every pin names a release tag and has one entry, and each disagreement is refused by
+    name.</td><td><code>gate/tests/test_hosted_checkers.py::test_every_pin_has_a_tag_and_one_checker_entry</code>,
+    <code>::test_each_disagreement_is_named</code></td></tr>
+  <tr><td>F13-AC2</td><td>Given a tagged pin line, when the publish and CI workflows' sed reads the
+    file, then the image matrix is unchanged.</td><td><code>gate/tests/test_hosted_checkers.py::test_the_workflows_still_read_the_tagged_line</code></td></tr>
+  <tr><td>F13-AC3</td><td>Given the fake checker, when a check and a verify are posted for a Mathlib
+    target, then each is forwarded with the mapped environment (verify with the node's statement)
+    and answered with <code>authoritative: false</code> and the body verbatim.</td><td><code>api/tests/test_checks.py::test_check_and_verify_forward_to_the_mapped_environment</code></td></tr>
+  <tr><td>F13-AC4</td><td>Given content with a changed header, a helper lemma above the theorem, or a
+    <code>sorry</code>, when it is checked, then the matching warning is returned and the call is
+    still forwarded.</td><td><code>api/tests/test_checks.py::test_each_gate_gap_is_warned</code></td></tr>
+  <tr><td>F13-AC5</td><td>Given a node whose statement imports a <code>Defs</code> module, when it is
+    checked, then the forwarded text starts with that definition's source and the response names
+    it.</td><td><code>api/tests/test_checks.py::test_defs_are_inlined</code></td></tr>
+  <tr><td>F13-AC6</td><td>Given a pin mapped to <code>null</code>, oversized content, or a checker
+    answering 503 or timing out, when a check is posted, then the named refusal is returned and a
+    log record exists.</td><td><code>api/tests/test_checks.py::test_refusals_are_named_and_logged</code></td></tr>
+  <tr><td>F13-AC7</td><td>Given the configured limits, when an anonymous address or an identity
+    exceeds them, then the next call is 429 with <code>Retry-After</code>, and concurrent calls beyond
+    the cap wait rather than reach the checker.</td><td><code>api/tests/test_checks.py::test_limits_and_concurrency_cap</code></td></tr>
+  <tr><td>F13-AC8</td><td>Given both stores, when a check is logged, then the record round-trips with
+    the content hash and no content field, and only its owner can read it back.</td><td><code>api/tests/test_store_seam.py::test_check_log_round_trips</code>,
+    <code>api/tests/test_checks.py::test_log_readable_only_by_owner</code></td></tr>
+  <tr><td>F13-AC9</td><td>Given the mapping, when <code>info.json</code>, <code>server_info</code>
+    and a target page are rendered, then each shows the target's environment and whether it is
+    exact.</td><td><code>api/tests/test_checks.py::test_info_carries_hosted_check</code>,
+    <code>site/tests/test_render.py::test_target_page_names_fast_check</code></td></tr>
+  <tr><td>F13-AC10</td><td>Given the guide, when its runner executes, then the new section's
+    commands are in the frozen manual set and its text names AXLE, the precheck as the verdict and
+    the three gaps.</td><td><code>gate/tests/test_walkthrough.py::test_fast_check_section</code></td></tr>
+  <tr><td>F13-AC11</td><td>Given the MCP server, when <code>check_lean</code> is called, then the
+    answer equals <code>POST /check</code>'s for the same arguments and the surface lists it.</td><td><code>api/tests/test_mcp_equivalence.py</code>,
+    <code>api/tests/test_mcp_surface.py::test_tool_surface_frozen</code></td></tr>
+  <tr><td>F13-AC12</td><td><em>network</em> Given the deployed service and the real checker, when
+    the smoke checks the tutorial proof, a broken proof and one Erdős root statement, then the pass,
+    the error with its position, and the environment are each asserted, and a log record exists per
+    call.</td><td><code>api/tools/smoke_check.py</code></td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li>Measured 2026-09-14, keyless, from the laptop: about 0.8 s per call round trip, 57–81 ms of
+    execution on AXLE; Mathlib is preloaded there, so the budget is the network hop.</li>
+  <li>Defaults (config, C6): <code>OPN_API_CHECKS_PER_HOUR</code> 600 per identity,
+    <code>OPN_API_ANONYMOUS_CHECKS_PER_DAY</code> 200 per address,
+    <code>OPN_API_CHECK_MAX_BYTES</code> 200 000, <code>OPN_API_CHECK_CONCURRENCY</code> 8 (AXLE allows
+    10 concurrent keyless requests), <code>OPN_API_CHECK_TIMEOUT_S</code> 60. Provisional until the
+    smoke and the first week's log say otherwise.</li>
+  <li>Lambda's own timeout bounds a call; a verify of a large proof may approach it (Q6).</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li>Contributor Lean leaves the network for a third party's sandbox. The network elaborates none
+    of it (C9 v2, D-4 v3.14) and states in the guide that check text is sent to AXLE.</li>
+  <li>The answer is untrusted data from a third party; it is returned, never parsed into any record,
+    and never reaches a page.</li>
+  <li>The log keeps no text. The caller is an identity id or a keyed hash of the source address,
+    keyed with the api's existing token-signing secret, so no new secret is added (Q4).</li>
+  <li>No AXLE key at Stage 0 (keyless limits suffice). A key, when needed, is a Parameter Store
+    SecureString read at startup, and C8's inventory gains the line in the same commit (Q5).</li>
+  <li>The lint imports <code>opn_gate.layout</code> and <code>opn_gate.steps.artifact</code>, which
+    shell out to nothing (2026-09-10 log: ask what binary a gate helper assumes).</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>F05</strong> (required): the api, identity, rate limits, the store seam.</li>
+  <li><strong>F09</strong> (required for R12): the MCP adapter and its bijection table.</li>
+  <li><strong>F04</strong> (soft): the target page for R11.</li>
+  <li><strong>F10</strong> (soft): the tested guide runner for AC10.</li>
+  <li><strong>Packages:</strong> none. AXLE is called over <code>httpx</code>, already locked for
+    F05; the <code>axiom-axle</code> SDK is not added (C5).</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F13-Q1</td><td><strong>DECIDED 2026-09-14 (Mike): delegate, and amend the decisions.</strong>
+    D-4 said a contributor's Lean is never elaborated outside the gate's sandbox and D-35 that
+    strangers' Lean runs only where nobody administers the machine; a wrapper forwarding to AXLE
+    breaks both as written. The alternatives were a client-side wrapper that posts its own log (no
+    amendment, but only cooperating clients are logged) and shipping only the mapping. Decisions
+    v3.14 amended D-4 and D-35 and added the D-28 and D-35 rows for <code>check_lean</code>;
+    constitution v2 amended C9. <code>PROTOCOL_VERSION</code> and the file name stay, as for v3.13.</td></tr>
+  <tr><td>F13-Q2</td><td><strong>DECIDED 2026-09-14 (Mike): anonymous calls under an address limit,
+    a token raises it.</strong> Mirrors precheck, and lets a first-time agent iterate before it can
+    mint a token (the MCP bootstrap gap, F09-T6).</td></tr>
+  <tr><td>F13-Q3</td><td><strong>DECIDED 2026-09-14 (Mike): no text in the log.</strong> Mike first
+    chose to keep the Lean text; that contradicts D-36's opt-in rule for precheck records ("the value
+    is theirs to donate … without turning the gate into a telemetry sink") and D-13's no-transcript
+    stance, and when shown the conflict he dropped it, with the retention question it raised.
+    Metadata records carry no expiry.</td></tr>
+  <tr><td>F13-Q4</td><td>The anonymous caller is hashed with the token-signing secret rather than a
+    new salt, so C8 gains no door; rotating that secret re-keys the hashes, which only splits an
+    address's history.</td></tr>
+  <tr><td>F13-Q5</td><td>AXLE is named, not abstracted: <code>service: axle</code> is the only value
+    the mapping accepts. A second service is a schema version, not a flag, because the lint and the
+    response shape are AXLE's.</td></tr>
+  <tr><td>F13-Q6</td><td>Mathlib v4.33.1 maps to <code>lean-4.33.0</code> with <code>exact:
+    false</code>: the two Mathlib tags differ by one commit, a toolchain bump. A proof that uses
+    something only the patch changed would pass the checker and fail the gate; the lint cannot see
+    that, and the precheck remains the verdict.</td></tr>
+  <tr><td>F13-Q7</td><td>R1 turns D-7's "new graphs pin latest" into "the latest release tag the
+    registry builds against". This reads D-7 rather than overturning it: the registry has bumped on
+    release tags only (v4.28.1 … v4.33.1, 2026-08-23), and a master-head pin would never match a
+    hosted environment.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1 ✓ 2026-09-14
+  (<code>uv run pytest gate/tests/test_hosted_checkers.py api/tests/test_mcp_surface.py</code>; pin
+  tags and the mapping; decisions v3.14 and constitution v2; <code>engineering/evidence/F13/task-1.txt</code>)
+  · T2&ndash;T7 todo</div>
+
+<h2>Tasks</h2>
+<p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its
+one verification command (conventions §3, §6).</p>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F13-T1</td><td>Spec; pin tags and policy; the hosted-checker mapping and its coverage test;
+    decisions v3.14 and constitution v2.</td>
+    <td><code>engineering/specs/features/F13.html</code>, <code>engineering/specs/index.html</code>,
+    <code>gate/mathlib-pins.txt</code>, <code>gate/hosted-checkers.yaml</code>,
+    <code>gate/tests/test_hosted_checkers.py</code>, <code>docs/architecture_decisions_v_3_12.html</code>,
+    <code>engineering/specs/constitution.html</code></td>
+    <td>&mdash;</td><td><code>uv run pytest gate/tests/test_hosted_checkers.py api/tests/test_mcp_surface.py</code></td></tr>
+  <tr><td>F13-T2</td><td>The AXLE client seam (<code>check</code>, <code>verify_proof</code>,
+    <code>environments</code>) over <code>httpx</code>, and its fake; timeouts and 5xx as
+    <code>upstream-unavailable</code>.</td>
+    <td><code>api/opn_api/axle.py</code>, <code>api/opn_api/config.py</code>,
+    <code>api/tests/api_fakes.py</code>, <code>api/tests/test_axle.py</code></td>
+    <td>T1</td><td><code>uv run pytest api/tests/test_axle.py</code></td></tr>
+  <tr><td>F13-T3</td><td><code>POST /check</code>: mapping lookup, lint, Defs inlining, refusals,
+    limits, concurrency cap.</td>
+    <td><code>api/opn_api/checks.py</code>, <code>api/opn_api/routes.py</code>,
+    <code>api/opn_api/ratelimit.py</code>, <code>api/opn_api/config.py</code>,
+    <code>api/tests/test_checks.py</code></td>
+    <td>T2</td><td><code>uv run pytest api/tests/test_checks.py</code></td></tr>
+  <tr><td>F13-T4</td><td>The call log in both stores, <code>GET /checks/&lt;id&gt;</code>, the
+    structured log line; the deploy package check sees <code>gate/hosted-checkers.yaml</code>.</td>
+    <td><code>api/opn_api/store.py</code>, <code>api/opn_api/checks.py</code>,
+    <code>api/tests/test_store_seam.py</code>, <code>.github/workflows/api-deploy.yml</code></td>
+    <td>T3</td><td><code>uv run pytest api/tests/test_checks.py api/tests/test_store_seam.py</code></td></tr>
+  <tr><td>F13-T5</td><td>Publication: <code>info.json</code> and <code>server_info</code>, the target
+    page line with a screenshot, the guide section.</td>
+    <td><code>api/opn_api/info.py</code>, <code>site/opn_site/render.py</code>,
+    <code>site/tests/test_render.py</code>, <code>gate/agents/AGENTS.md</code>,
+    <code>../open_proof_network_graph/AGENTS.md</code>, <code>gate/tests/test_walkthrough.py</code></td>
+    <td>T3</td><td><code>make verify</code></td></tr>
+  <tr><td>F13-T6</td><td>MCP <code>check_lean</code>, its bijection row, result schema and
+    equivalence test.</td>
+    <td><code>api/opn_api/mcp/writes.py</code>, <code>api/opn_api/mcp/server.py</code>,
+    <code>api/opn_api/mcp/bijection.py</code>, <code>api/opn_api/mcp/schemas/check_lean/v1.json</code>,
+    <code>api/tests/test_mcp_surface.py</code>, <code>api/tests/test_mcp_equivalence.py</code></td>
+    <td>T3</td><td><code>uv run pytest api/tests/test_mcp_surface.py api/tests/test_mcp_equivalence.py</code></td></tr>
+  <tr><td>F13-T7</td><td>Network-tier smoke against the deployed service and the real checker.</td>
+    <td><code>api/tools/smoke_check.py</code>, <code>engineering/evidence/F13/</code></td>
+    <td>T4, T5, T6</td><td><code>uv run python api/tools/smoke_check.py --api "$OPN_API"</code></td></tr>
+</table>
+
+<footer>Open Proof Network · F13 spec v1 · 2026-09-14</footer>
+</body>
+</html>

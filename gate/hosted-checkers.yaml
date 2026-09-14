@@ -1,0 +1,18 @@
+# F13-R2: the hosted fast checker matching each Mathlib pin in gate/mathlib-pins.txt.
+# Network configuration, never graph content (D-35): the api's POST /check, the MCP's
+# check_lean, server_info and the site read it; the gate never does (D-1). Every pinned sha has
+# exactly one entry. `environment: null` says no hosted environment matches and POST /check
+# refuses `no-hosted-environment` for targets on that pin. `exact: false` says the environment
+# is the nearest one and `note` says what differs. Probe the list with
+#   curl -s https://axle.axiommath.ai/v1/environments
+# before adding an entry, and record the probe in the task's evidence.
+schema: hosted-checkers/v1
+service: axle
+pins:
+  0df444a360eaa60ab8c11dca51a86af692955474:
+    mathlib_tag: v4.33.1
+    environment: lean-4.33.0
+    exact: false
+    note: >-
+      Mathlib v4.33.1 is one commit after v4.33.0 ("chore: bump toolchain to v4.33.1"); AXLE
+      hosts lean-4.33.0 and no 4.33.1 environment (probed 2026-09-14).
