@@ -10,3 +10,8 @@ All checks passed!
 
 MCP smoke: no change needed. No agent bundle carries the evidence text; it is on the site and in targets/index.json only.
 PROTOCOL_VERSION stays 3.12 until the v3.15 edit in engineering/session-notes/2026-09-14-f14-decisions-amendment.md lands.
+
+2026-09-14, after the owner's go-ahead: task-14-guide.patch applied to gate/agents/AGENTS.md, with the
+partial-path paragraph added. The graph copy prepared for the re-pin is byte-identical (cmp). The two guide
+xfails are removed and pass, and test_walkthrough passes: the prepared graph copy is not yet at the
+sibling path it reads, so it compares against the live copy only after the graph push.

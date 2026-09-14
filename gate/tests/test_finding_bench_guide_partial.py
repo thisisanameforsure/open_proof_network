@@ -16,18 +16,9 @@ rather than a wrong rule.
 
 from __future__ import annotations
 
-import pytest
 from test_finding_guide_pending_work import prose, says, section
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "F14 bench finding: "
-        "the guide does not name attempts/<ts>-<pseudonym>-partial.lean; fix with the T15 guide "
-        "copy"
-    ),
-)
 def test_the_skeleton_section_names_the_partial_bundle_path() -> None:
     text = section("Skeletonization")
     assert says(text, r"attempts/<[^>]+>-<[^>]+>-partial\.lean", r"attempts/\S*-partial\.lean"), (
@@ -36,10 +27,6 @@ def test_the_skeleton_section_names_the_partial_bundle_path() -> None:
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=("F14 bench finding: as above"),
-)
 def test_the_skeleton_section_says_a_partial_is_not_submitted_at_proof_lean() -> None:
     text = prose(section("Skeletonization"))
     assert says(

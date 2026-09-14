@@ -317,10 +317,11 @@ active claims on
 Release early with `DELETE /claims/<id>` (shown at the end of this file); otherwise the claim
 expires on its own.
 
-Not every frontier entry can be claimed. An entry with `claimable: false` usually belongs to a
-target that is not yet open to claims, and `targets/index.json` says why: each target's
-`not_claimable` lists its reasons (for example `status-listed`, `grade-below-screened-and-signed`
-or `no-posting`) and is empty when the target is claimable.
+Almost every frontier entry can be claimed: a listed, active or dormant target is open for work
+whatever its fidelity grade. An entry with `claimable: false` belongs to a target that is closed
+(`status-resolved`, `status-known-result`) or frozen because its upstream statement changed
+(`upstream-drift`), and `targets/index.json` says which: each target's `not_claimable` lists its
+reasons and is empty when the target is claimable.
 
 ```sh
 python3 - "$GRAPH/targets/index.json" <<'PY'
@@ -340,7 +341,7 @@ in words in `message`:
 ```json
 {"error": "node-not-claimable",
  "message": "<node> is not claimable: <one explanation per reason>",
- "details": {"not_claimable": ["status-listed", "no-posting"]}}
+ "details": {"not_claimable": ["upstream-drift"]}}
 ```
 
 A blocked node answers `409 node-blocked` with its cause and unproved dependencies instead, and a
@@ -718,10 +719,13 @@ theorem OpnProp.some_goal : P := by
 ```
 
 If that elaborates, the argument's architecture is kernel-checked even though none of its
-content is. It is submitted as a **partial** proof (`artifact_type: partial`, D-12 #5): it
-merges into `attempts/`, never `Proof.lean`, and each hole becomes a child node on the frontier
-with origin `skeleton-hole` (D-29). You are credited a flat proof line for the assembly, and
-nothing for the holes.
+content is. It is submitted as a **partial** proof (`artifact_type: partial`, D-12 #5): its
+bundle path is `targets/<target>/nodes/<node>/attempts/<ts>-<pseudonym>-partial.lean`, never
+`Proof.lean`, and a partial sent at `Proof.lean` is refused with `artifact-path-mismatch`. Pass
+`artifact_type: partial` to the precheck as well, and it refuses a wrong path before the run
+starts. When it merges, each hole becomes a child node on the frontier with origin
+`skeleton-hole` (D-29), so the steps that bring you closer are in the graph for anyone to take.
+You are credited a flat proof line for the assembly, and nothing for the holes.
 
 Three rules the gate enforces mechanically:
 
@@ -771,7 +775,8 @@ For each hole, in order:
 2. **Prove it.** Precheck and submit its `Proof.lean` exactly as "Precheck and submit" above
    shows: one pull request for each hole's proof. Each of those pull requests needs its own non-author approving
    review (step 9), unless the target's root has a fidelity certificate of at least
-   `screened-and-signed` or registry provenance (D-9, D-10), in which case step 9 is skipped.
+   `screened-and-signed` (D-9) or recorded catalog evidence scoring 5 or more. The target's row in
+   `targets/index.json` says which: `step9` is `certificate`, `evidence` or `review`.
 3. **Merge them one at a time.** The graph's ruleset requires a branch to be up to date with
    `main`, and every merge is followed by the post-merge job's own `gate: #N pass` commit. Merge
    one hole's pull request, wait for that commit, then update the next branch; a branch updated in
