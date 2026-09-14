@@ -228,14 +228,6 @@ def test_required_sections() -> None:
     assert cited <= anchors, f"cited decisions with no section in the protocol: {cited - anchors}"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "F10-T6, F10-T7: the guide changed in this repo first; graph copy pushed by the lead "
-        "(gate/agents/AGENTS.md copied byte for byte to the graph's AGENTS.md), then this mark "
-        "comes off"
-    ),
-)
 def test_graph_copy_is_identical() -> None:
     """D-35: the graph carries a copy of the tested document, byte for byte (skipped when the
     sibling checkout is not present, as in CI)."""

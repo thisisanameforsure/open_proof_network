@@ -42,7 +42,6 @@ def _live_readme() -> str:
     return proc.stdout
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_the_graph_readme_cites_a_decisions_document_that_exists() -> None:
     cited = sorted(set(CITATION.findall(_live_readme())))
     assert cited, "the graph's README cites no docs/architecture_decisions_v_<n>_<m>.html"

@@ -80,7 +80,6 @@ def _step(
     raise AssertionError(f"no step named {name!r} / running {runs!r}")
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_postmerge_classify_exports_the_review_kind_and_reference_with_defaults() -> None:
     """The classify step's output loop names both new fields with a default, so an old pin that
     publishes neither leaves them empty and changes nothing."""
@@ -90,7 +89,6 @@ def test_postmerge_classify_exports_the_review_kind_and_reference_with_defaults(
     assert '("review_reference", None)' in run, run
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_the_step_9_record_runs_for_every_building_merge() -> None:
     """A certified merge asks no review, so the record step cannot be guarded by ``needs_review``:
     it runs whenever the merge builds, and a certificate or provenance kind needs no approval."""
@@ -111,7 +109,6 @@ def test_the_step_9_record_runs_for_every_building_merge() -> None:
     assert "reference=" in run and "GITHUB_OUTPUT" in run, "the step publishes no reference"
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_the_re_derive_step_hands_the_reference_to_postmerge() -> None:
     """The attestation names the certificate or provenance it relied on (D-4): ``postmerge`` gets
     ``--review-reference`` whenever the record step published one."""

@@ -1,0 +1,77 @@
+The graph re-pinned to network f3abee2 — 2026-09-14
+
+Carries to the live gate: F07-T14 (attestations carry the submission block and the consumed
+precheck), F07-T15 (the ledger credits every merge mode), F07-T17 (step 9 satisfied by the root's
+certificate at screened-and-signed or above, or by D-10 registry provenance), F03-T6/T7
+(frontier/v3: status-aware claimable, partial attempts), and everything on network main between
+0e3bab6 and f3abee2. The graph push also carries F07-T17's post-merge workflow change and F10-T7's
+README and AGENTS.md copy.
+
+0. Before the tag (2026-09-14, 10:00–10:40Z)
+   - network main pushed f6a8cf8..f3abee2 (then cc34aa0, 6b988fc: site and spec only).
+   - api-deploy on f3abee2: run 34832315259, success. Live checks against the deployed api:
+       GET /health -> {"ok":true,"store":"dynamodb"}
+       GET /submissions/33 and /submissions/000034 -> 200, submission null, pull_request merged, runs
+       GET /submissions/999999 -> 404 submission-unknown
+       GET /submissions.json -> 200 {"open":[]}
+       POST /precheck with artifact_type -> 400 unknown-field (F05-T8)
+   - site-deploy on f3abee2: run 34832543502, success (site accepts frontier/v3 before the first
+     v3 product renders); on cc34aa0: run 34832983023, success.
+   - baseline pregate from network cc34aa0 on the live tutorial node (graph 578454e): exit 0, verdict
+     pass, steps 1, 2, 4-8 pass, 66 s.
+   - graph worktree branch repin-f3abee2: 17814a2 (origin/main) <- 578454e F07-T17 workflow <-
+     77ca463 F10-T7 README + AGENTS.md copy (cmp identical to gate/agents/AGENTS.md) <-
+     18be31b F03-T8 schemas/ seed: schemas.publish from network 6cb9912 added 39 files (4 were
+     there), unpublished() == [], a second run added 0. Inert under the f3abee2 pin, which predates
+     T8; it keeps the first re-pin that carries T8 from refusing its products run.
+     Static tests against that tree (plugin repin_graph_worktree.py, --runxfail):
+       test_finding_step9_certified_workflow, test_finding_step9_stale_run,
+       test_finding_graph_readme, test_pins -m 'not network': 23 passed.
+
+1. CI on f3abee2 (run 34832315279): fast tier success — 1944 passed, 17 skipped, 17 xfailed in 50.90s;
+   make verify-lean success — 65 passed, 1979 deselected, 1 xfailed in 2868.90s (0:47:48).
+
+2. Tag gate-f3abee2 (annotated, at f3abee2843e0f5f9c226868e3b1c79d34ba72ad9, pushed 11:11Z) -> image-publish
+   run 34837015412, success (each digest paired with its own job's log):
+   mathlib none                                      ghcr.io/thisisanameforsure/opn-gate@sha256:feb262d914035f10f282e09739bd48a4b31a7dd4743f439a7511c60cff6ea759
+   mathlib 0df444a360eaa60ab8c11dca51a86af692955474  ghcr.io/thisisanameforsure/opn-gate@sha256:e578dea769b57dd378a45fbb9bd0a2d19340c34838705da8c3738616ea31281d
+   (the Mathlib image: install-mathlib fetched mathlib4 at 0df444a, 6.9G of oleans, lake build a no-op)
+
+3. Pins, written by gate/tools/pin_image.py <digest> --graph <repin worktree> --target <t>
+   --network-commit f3abee2843e0... --api-url https://api.openproofnetwork.org (olean_cache_url kept):
+   tutorial -> the plain image; erdos-52, -68, -172, -376, -406, euclid-primes -> the Mathlib image,
+   euclid-primes last so the graph's single devcontainer.json keeps running the Mathlib image
+   named for euclid-primes, with OPN_API exported (the same shape as the 0e3bab6 re-pin).
+   8 files changed, 15 insertions, 15 deletions (each gate-spec: devcontainer_ref and network_commit).
+   pin_image.py --check: the six Mathlib targets "pin ok"; tutorial 1 problem, the devcontainer runs
+   the Mathlib image rather than tutorial's — as at the last re-pin.
+
+4. Pregate on the re-pinned tree with the gate at f3abee2 (a detached network worktree at f3abee2):
+   first run with the pins uncommitted: step 2 path-forbidden, 8 offences, every one a pin file —
+   pregate gates the working tree's uncommitted changes as the submission, so this was the harness,
+   not the gate. After committing the pins (graph 96ba669):
+   $ <net-f3abee2>/gate/pregate.sh --graph <repin worktree> --target tutorial --node tutorial-and-swap
+   exit 0, verdict pass: 1 toolchain, 2 paths, 4 kernel-replay, 5 axioms, 6 hazards, 7 witness,
+   8 deps — all pass; 256 s. The six Mathlib targets were not pregated here (no Mathlib checkout on
+   this laptop); their first run on the new image is the graph's CI on their next pull request.
+
+5. The graph (the gate owner's push, run by the session on Mike's go-ahead of 2026-09-14):
+   578454e  F07-T17: the post-merge job records step 9 by certificate or provenance
+   77ca463  F10-T7: the guide's copy; the README cites architecture_decisions_v_3_12.html
+   18be31b  F03-T8: the graph serves every schema its info.json advertises (39 files)
+   22793b0  F10-T7, F13: the guide's copy matches network e617b54, with the fast-check section
+   96ba669  re-pin every target to network f3abee2 and its published gate images
+   origin/main 17814a2 -> 96ba669 at 2026-09-14T11:32:56Z. The shared graph checkout moved to it in
+   the same minute and five strict marks came off network main (after_graph_push.sh):
+   test_finding_step9_certified_workflow.py 3, test_finding_graph_readme.py 1,
+   test_walkthrough.py::test_graph_copy_is_identical 1; ruff clean; with test_finding_step9_stale_run
+   and test_pins: 24 passed against the live origin/main and working tree.
+
+6. Expected in the first post-merge products under the new pin (6e, 2026-09-14): frontier/v3;
+   variant-93e79cb5 claimable false, attempts 1; infinitude-of-primes attempts 2, claimable false
+   (listed); erdos roots unchanged; info.json schema index gains frontier 3; CONTEXT.json
+   attempts.count equals its frontier entry; claims history_count 6 for the variant.
+   T17 effect: the five Erdős targets skip step 9 (complete FC provenance); euclid-primes (v1,
+   mechanical-only certificate) and tutorial still require a non-author approval.
+   The graph push's own workflow run 34838764204: success (postmerge ran and found no merged pull
+   request; the sandbox gate and step 9 jobs skipped on a push, as designed).
