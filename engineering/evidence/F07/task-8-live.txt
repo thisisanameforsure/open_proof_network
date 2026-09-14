@@ -1,0 +1,66 @@
+F07-T8 live acceptance (AC32) — graph PR #38, 2026-09-14, first pull request under the re-pin to network f3abee2
+
+The pull request: the Euclid root assembly proof (the 2026-09-13 tester's root-A-assembly-Proof.lean over the four
+proved holes), submitted through the live service the way the guide says — anonymous tutorial precheck
+01M2FV3S8R65ZBA161CYQ997RB (pass) -> POST /tokens as euclid-root-27e3a5 -> owned precheck
+01M2FV7Y2R1R37QGYWWXGSPWVN (authenticated, pass) -> POST /submissions -> 201, PR #38, submission
+01M2FVW3K04M07X9F688KZ5WTZ, tooling {model: claude-opus-5, harness: claude-code}. The driver followed the guide's HTTP blocks;
+the token was never written to evidence.
+
+The root's statement carries a v1, mechanical-only fidelity certificate and no registry provenance, so F07-T17 still
+asks for a non-author review: step 9 is a real gate on this pull request.
+
+F07-T16 live, seconds after it opened (GET https://api.openproofnetwork.org/submissions/38):
+  submission {id 01M2FVW3K04M07X9F688KZ5WTZ, kind proof, node infinitude-of-primes, target euclid-primes,
+  pr_number 38, pseudonym euclid-root-27e3a5, precheck_job_id 01M2FV7Y2R1R37QGYWWXGSPWVN, closed null};
+  pull_request {state open, merged false, mergeable_state blocked, runs [gate in_progress], reviews []};
+  attestation null, attestation_note "not-merged". GET /submissions/<submission id> 200.
+  GET /submissions.json: open == [that record].
+
+The acceptance sequence (observe.sh; times UTC):
+  11:47:42  open, mergeable_state blocked, 0 reviews; gate job pending
+  11:47:42  approved by thisisanameforsure (non-author: the author is the pseudonym, the committer the App)
+  11:47:46  step9-refresh run 34840016713 (pull_request_review) success — the gate run was still building, so
+            the refresh found no completed step-9 job to re-run (its "gate still running" branch)
+  11:57:26  gate (steps 1, 2 and 4-8 in the sandbox) success, 10m7s
+  11:57:33  step 9 (a non-author approving review), attempt 1, success — it ran after the build and saw the
+            approval already standing
+  11:57:51  mergeable_state clean, with no manual re-run
+  11:57:54  approval dismissed
+  11:58:12  step9-refresh run 34840862936 re-ran the step-9 job in place: attempt 2 FAILURE;
+            gate still pass; mergeable_state blocked
+            -> this is AC32's state: a valid pull request, gate green, step 9 red, merge blocked
+  11:58:17  approved again
+  11:58:41  step9-refresh run 34840902043 re-ran step 9: attempt 3 success
+  11:58:57  mergeable_state clean, with no manual re-run
+
+What a refresh re-executes (GET actions/runs/34839971834/attempts/<n>/jobs): in attempts 2 and 3 the gate job
+carries attempt 1's started_at 11:47:19 and completed_at 11:57:26 — a copied record, not a rebuild; only
+"step 9" executed (5 s each). "gh run rerun --job" re-runs the named job and its dependents, and step 9 has none
+that ran (postmerge is skipped on a pull request).
+
+Merge: 11:59:28 by thisisanameforsure, merge commit 2c0d9798ae82f8547c886da890468406ce9218e7 (base 96ba669).
+
+Post-merge record under the new pin (F07-T14, T15, T16 live):
+  graph run 34840991372 (push of 2c0d979): postmerge success; bot commit 1acbf35 "gate: #38 pass", 28 files.
+  attestations/000038.json (attestation/v4): verdict pass, steps 1, 2, 4-8 pass, graph_id euclid-primes, node
+    infinitude-of-primes, network_commit f3abee2, runner hosted, trust_base kernel, signature kind gate;
+    submitter "euclid-root-27e3a5"; model_and_tooling "claude-opus-5 claude-code"; tooling {harness claude-code,
+    model claude-opus-5}; precheck_attestation {hash d8e9ae46…a9, signature_kind service};
+    review {kind pr-approval, reviewer thisisanameforsure, reference null}.
+    (For contrast, 000037 — the last merge before the re-pin — carries submitter null: F07-T14's defect.)
+  ledger/euclid-root-27e3a5.json (ledger/v1): one entry {line proof, node infinitude-of-primes, target
+    euclid-primes, artifact Proof.lean, merge_commit 2c0d979, date 2026-09-14T11:59:27Z, tooling
+    "claude-opus-5 claude-code", status active} — the first ledger file the graph has ever written (F07-T15).
+  targets/index.json: euclid-primes status resolved, node_counts proved 5, not_claimable [status-resolved,
+    grade-below-screened-and-signed, no-posting], fidelity mechanical-only.
+  frontier.json: frontier/v3, rendered_from 2c0d979; the Euclid root has left the frontier (proved);
+    variant-93e79cb5 claimable false, attempts 1, claims history_count 6; the five Erdős roots claimable false,
+    attempts 0. info.json schema index frontier [1, 2, 3]; every target's network_commit f3abee2.
+    (6e's expected "infinitude-of-primes attempts 2" no longer applies: the node is proved and off the frontier.)
+  GET /submissions/38 at 12:10:57Z: submission closed 2026-09-14T12:10:57Z, pull_request closed merged true,
+    attestation_path attestations/000038.json, attestation.submitter euclid-root-27e3a5; GET /submissions.json
+    open [] (F07-T16: a finished pull request closes its record).
+  Site: the home page renders from graph commit 1acbf3554e5c ("6 nodes proved"); Contributors lists
+    euclid-root-27e3a5 and links ledger/euclid-root-27e3a5.json. Screenshots: task-8-live-node.png,
+    task-8-live-contributors.png.
