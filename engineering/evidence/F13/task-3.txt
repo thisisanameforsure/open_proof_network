@@ -1,0 +1,21 @@
+F13-T3 — POST /check: the mapped environment, the gate-gap lint, Defs inlining, named refusals, limits and the in-flight cap
+Captured 2026-09-14T10:08:28Z on branch f13-fast-check.
+
+$ uv run pytest api/tests/test_checks.py -v
+api/tests/test_checks.py::test_the_route_is_open_and_names_its_d35_row PASSED [ 16%]
+api/tests/test_checks.py::test_check_and_verify_forward_to_the_mapped_environment PASSED [ 33%]
+api/tests/test_checks.py::test_each_gate_gap_is_warned PASSED            [ 50%]
+api/tests/test_checks.py::test_defs_are_inlined PASSED                   [ 66%]
+api/tests/test_checks.py::test_refusals_are_named_and_logged PASSED      [ 83%]
+api/tests/test_checks.py::test_limits_and_concurrency_cap PASSED         [100%]
+======================== 6 passed, 2 warnings in 1.40s =========================
+
+$ uv run pytest api/tests/test_routes.py api/tests/test_finding_unknown_fields.py api/tests/test_axle.py -q   (the tests T3 changed or relies on)
+22 passed, 13 xfailed, 2 warnings in 8.13s
+
+Static: ruff check api, ruff format --check api, mypy api
+  All checks passed!
+  93 files already formatted
+  Success: no issues found in 92 source files
+
+Reading. The concurrency test caught a wrong assertion, not a wrong route: the blocking fake records a call only when it answers, so while the first check was held the fake's call list was empty; the route had refused the second with checker-busy as required. The test now counts entries into the checker.

@@ -96,7 +96,8 @@ D-28, D-35, D-36.</p>
     <code>upstream-unavailable</code> and log the refusal.</td></tr>
   <tr><td>F13-R8</td><td>The system shall rate-limit checks at the identity layer (D-19, D-28):
     per identity per hour when a token is presented, per source address per day otherwise, and shall
-    cap in-flight calls to the hosted service at a configured concurrency.</td></tr>
+    cap in-flight calls to the hosted service per process at a configured concurrency, refusing
+    <code>checker-busy</code> when no slot frees within the call budget (Q8).</td></tr>
   <tr><td>F13-R9</td><td>The system shall log every call as a <code>check-log</code> record in the
     operational store: id, time, caller (identity id, or a keyed hash of the source address), target,
     node, environment, mode, content SHA-256 and size, outcome, error count, lint codes, the
@@ -137,8 +138,9 @@ D-28, D-35, D-36.</p>
     answering 503 or timing out, when a check is posted, then the named refusal is returned and a
     log record exists.</td><td><code>api/tests/test_checks.py::test_refusals_are_named_and_logged</code></td></tr>
   <tr><td>F13-AC7</td><td>Given the configured limits, when an anonymous address or an identity
-    exceeds them, then the next call is 429 with <code>Retry-After</code>, and concurrent calls beyond
-    the cap wait rather than reach the checker.</td><td><code>api/tests/test_checks.py::test_limits_and_concurrency_cap</code></td></tr>
+    exceeds them, then the next call is 429 with <code>Retry-After</code>; a bad token is 401; and a
+    call beyond the in-flight cap waits up to the call budget and is then refused
+    <code>checker-busy</code> without reaching the checker.</td><td><code>api/tests/test_checks.py::test_limits_and_concurrency_cap</code></td></tr>
   <tr><td>F13-AC8</td><td>Given both stores, when a check is logged, then the record round-trips with
     the content hash and no content field, and only its owner can read it back.</td><td><code>api/tests/test_store_seam.py::test_check_log_round_trips</code>,
     <code>api/tests/test_checks.py::test_log_readable_only_by_owner</code></td></tr>
@@ -226,6 +228,22 @@ D-28, D-35, D-36.</p>
     registry builds against". This reads D-7 rather than overturning it: the registry has bumped on
     release tags only (v4.28.1 … v4.33.1, 2026-08-23), and a master-head pin would never match a
     hosted environment.</td></tr>
+  <tr><td>F13-Q8</td><td>The in-flight cap is a per-process semaphore (T3). On Lambda each container
+    serves one request at a time, so there the real cap on calls to AXLE is the function's own
+    concurrency; the semaphore bounds the local runner and any threaded host. A global cap would need
+    a lease in the store or reserved concurrency on the function; neither is built until T7's smoke or
+    the first week's log shows AXLE refusing us (429s appear in the log as
+    <code>upstream-unavailable</code> with their status).</td></tr>
+  <tr><td>F13-Q9</td><td>A Mathlib-free graph is refused <code>no-hosted-environment</code>, as R7
+    reads. This includes the tutorial node, the first node an agent meets. Every hosted environment
+    imports all of Mathlib, and a core-only statement is not guaranteed to mean the same under it
+    (names can collide), so forwarding it would answer a different question. The alternative, an
+    entry keyed by toolchain for core-only graphs, is one mapping line if Mike wants the tutorial
+    fast-checkable.</td></tr>
+  <tr><td>F13-Q10</td><td><code>POST /check</code> refuses an unknown top-level key
+    (<code>unknown-field</code>) from its first commit, which finding 5 asks of every write route and
+    F05-T8 will deliver for the others. The finding's strict expected failure now marks each route by
+    parameter, with <code>/check</code> unmarked, so its pass is not read as an XPASS.</td></tr>
 </table>
 
 <h2>10. Status</h2>
@@ -235,7 +253,11 @@ D-28, D-35, D-36.</p>
   · T2 ✓ 2026-09-14 (<code>uv run pytest api/tests/test_axle.py</code>: 14 passed; the seam over the
   wire shapes probed live, its fake, <code>Context.axle</code>, <code>OPN_API_AXLE_URL</code> and
   <code>OPN_API_CHECK_TIMEOUT_S</code>; <code>engineering/evidence/F13/task-2.txt</code>)
-  · T3&ndash;T7 todo</div>
+  · T3 ✓ 2026-09-14 (<code>uv run pytest api/tests/test_checks.py</code>: 6 passed; the mapped
+  environment, the three lint warnings, Defs inlined dependencies first, every refusal named, both
+  limits and the in-flight cap; unknown keys refused from the start, Q10; Mathlib-free graphs refused,
+  Q9; the cap per process, Q8; <code>engineering/evidence/F13/task-3.txt</code>)
+  · T4&ndash;T7 todo</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its
@@ -260,7 +282,8 @@ one verification command (conventions §3, §6).</p>
     limits, concurrency cap.</td>
     <td><code>api/opn_api/checks.py</code>, <code>api/opn_api/routes.py</code>,
     <code>api/opn_api/ratelimit.py</code>, <code>api/opn_api/config.py</code>,
-    <code>api/tests/test_checks.py</code></td>
+    <code>api/tests/test_checks.py</code>, <code>api/tests/test_routes.py</code>,
+    <code>api/tests/test_finding_unknown_fields.py</code></td>
     <td>T2</td><td><code>uv run pytest api/tests/test_checks.py</code></td></tr>
   <tr><td>F13-T4</td><td>The call log in both stores, <code>GET /checks/&lt;id&gt;</code>, the
     structured log line; the deploy package check sees <code>gate/hosted-checkers.yaml</code>.</td>

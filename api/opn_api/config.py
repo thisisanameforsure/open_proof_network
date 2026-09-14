@@ -57,6 +57,13 @@ Variables (prefix ``OPN_API_``):
     ``https://axle.axiommath.ai``. Keyless at Stage 0 (F13-Q5): no secret is read for it.
 ``OPN_API_CHECK_TIMEOUT_S``
     The per-call budget handed to the checker, in seconds (F13 §6). Default ``60``.
+``OPN_API_CHECKS_PER_HOUR`` / ``OPN_API_ANONYMOUS_CHECKS_PER_DAY``
+    Fast-check limits per identity and per source address (F13-R8). Defaults ``600`` / ``200``.
+``OPN_API_CHECK_MAX_BYTES``
+    The largest Lean text ``POST /check`` forwards (F13-R7). Default ``200000``.
+``OPN_API_CHECK_CONCURRENCY``
+    Checks in flight to the hosted service per process (F13-R8, Q8). Default ``8``, under
+    AXLE's ten concurrent keyless requests.
 ``OPN_API_GITHUB_APP_ID`` / ``OPN_API_GITHUB_CLIENT_ID``
     The GitHub App's ids (not secret, but issued with the App, so they travel with its secrets).
 ``OPN_API_GITHUB_CLIENT_SECRET`` / ``OPN_API_GITHUB_PRIVATE_KEY``
@@ -101,6 +108,10 @@ DEFAULT_MAX_BODY_BYTES = 1024 * 1024  # F05 §6: above bundles.MAX_BUNDLE_BYTES 
 DEFAULT_LOG_LEVEL = "INFO"
 DEFAULT_AXLE_URL = "https://axle.axiommath.ai"  # F13-R3
 DEFAULT_CHECK_TIMEOUT_S = 60  # F13 §6
+DEFAULT_CHECKS_PER_HOUR = 600  # F13-R8
+DEFAULT_ANONYMOUS_CHECKS_PER_DAY = 200  # F13-R8
+DEFAULT_CHECK_MAX_BYTES = 200_000  # F13-R7
+DEFAULT_CHECK_CONCURRENCY = 8  # F13-R8, Q8
 
 # Parameter Store name (under the prefix) -> the variable it populates (C8 item 3).
 PARAMETERS: dict[str, str] = {
@@ -151,6 +162,10 @@ class Settings:
     log_level: str = DEFAULT_LOG_LEVEL
     axle_url: str = DEFAULT_AXLE_URL
     check_timeout_s: int = DEFAULT_CHECK_TIMEOUT_S
+    checks_per_hour: int = DEFAULT_CHECKS_PER_HOUR
+    anonymous_checks_per_day: int = DEFAULT_ANONYMOUS_CHECKS_PER_DAY
+    check_max_bytes: int = DEFAULT_CHECK_MAX_BYTES
+    check_concurrency: int = DEFAULT_CHECK_CONCURRENCY
     github_app_id: str | None = None
     github_client_id: str | None = None
     github_client_secret: str | None = field(default=None, repr=False)
@@ -266,6 +281,12 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
         log_level=env.get("OPN_API_LOG_LEVEL", DEFAULT_LOG_LEVEL),
         axle_url=env.get("OPN_API_AXLE_URL", DEFAULT_AXLE_URL).rstrip("/"),
         check_timeout_s=_int(env, "OPN_API_CHECK_TIMEOUT_S", DEFAULT_CHECK_TIMEOUT_S),
+        checks_per_hour=_int(env, "OPN_API_CHECKS_PER_HOUR", DEFAULT_CHECKS_PER_HOUR),
+        anonymous_checks_per_day=_int(
+            env, "OPN_API_ANONYMOUS_CHECKS_PER_DAY", DEFAULT_ANONYMOUS_CHECKS_PER_DAY
+        ),
+        check_max_bytes=_int(env, "OPN_API_CHECK_MAX_BYTES", DEFAULT_CHECK_MAX_BYTES),
+        check_concurrency=_int(env, "OPN_API_CHECK_CONCURRENCY", DEFAULT_CHECK_CONCURRENCY),
         github_app_id=env.get("OPN_API_GITHUB_APP_ID") or None,
         github_client_id=env.get("OPN_API_GITHUB_CLIENT_ID") or None,
         github_client_secret=env.get("OPN_API_GITHUB_CLIENT_SECRET") or None,

@@ -48,6 +48,9 @@ D35_OWNED_BY_F07: frozenset[str] = frozenset({D35_POST_SUBMISSIONS, D35_APPEND_P
 D35_PROPOSAL_PR = "a PR creating the node directory with origin set"
 D35_CLAIM_PR = "a PR appending the schema-checked record to the target"
 D35_OWNED_BY_F08: frozenset[str] = frozenset({D35_PROPOSAL_PR, D35_CLAIM_PR})
+# F13's row (D-35 v3.14): the fast check answers in the same response, so there is no polling read.
+D35_POST_CHECK = "POST /check"
+D35_OWNED_BY_F13: frozenset[str] = frozenset({D35_POST_CHECK})
 
 ROUTES: tuple[RouteSpec, ...] = (
     RouteSpec("GET", "/health", "app:health", None),
@@ -139,4 +142,7 @@ ROUTES: tuple[RouteSpec, ...] = (
         authenticated=True,
         feature="F08",
     ),
+    # F13-R8, Q2: open like the tutorial precheck; a presented token is authenticated and charged
+    # per identity, and an anonymous caller is charged per address, by the handler.
+    RouteSpec("POST", "/check", "checks:post_check", D35_POST_CHECK, feature="F13"),
 )

@@ -168,6 +168,11 @@ def tokens(h: Harness, key: PrecheckKey) -> Prepared:
     return body, {}
 
 
+def check(h: Harness, key: PrecheckKey) -> Prepared:
+    """F13-T3: anonymous; the refusal comes before any graph read, so no pin need be seeded."""
+    return {"target_id": TARGET, "content": "theorem x : True := trivial\n"}, {}
+
+
 #: Every POST route of ``routes.ROUTES`` that reads a JSON body (``DELETE /claims/<id>`` has none).
 WRITE_ROUTES: dict[str, Prepare] = {
     "/tokens": tokens,
@@ -182,7 +187,17 @@ WRITE_ROUTES: dict[str, Prepare] = {
     "/proposals/speculative": speculative,
     "/proposals/variant": variant,
     "/proposals/witness": witness,
+    "/check": check,
 }
+#: F13-T3: routes that refuse an unknown key from their first commit, so the finding's strict
+#: expected failure does not apply to them (an XPASS would fail the suite).
+REFUSES_UNKNOWN_KEYS = frozenset({"/check"})
+EVERY_ROUTE_HELD = pytest.mark.xfail(
+    strict=True,
+    reason=FINDING_5.format(
+        "every write route reads its fields with .get and ignores a key it does not define"
+    ),
+)
 
 
 def test_the_table_covers_every_body_taking_write_route() -> None:
@@ -210,13 +225,13 @@ def test_precheck_refuses_the_testers_stray_key(harness: Harness) -> None:
     assert harness.githost.dispatches == []
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=FINDING_5.format(
-        "every write route reads its fields with .get and ignores a key it does not define"
-    ),
+@pytest.mark.parametrize(
+    "route",
+    [
+        pytest.param(r, marks=() if r in REFUSES_UNKNOWN_KEYS else EVERY_ROUTE_HELD)
+        for r in sorted(WRITE_ROUTES)
+    ],
 )
-@pytest.mark.parametrize("route", sorted(WRITE_ROUTES))
 def test_every_write_route_refuses_one_unknown_key(
     harness: Harness, key: PrecheckKey, route: str
 ) -> None:

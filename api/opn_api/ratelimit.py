@@ -73,6 +73,16 @@ def check_proposal(ctx: Context, identity_id: str) -> None:
     enforce(ctx, "proposal", identity_id, limit=ctx.settings.proposals_per_day, seconds=DAY_S)
 
 
+def check_check(ctx: Context, identity_id: str) -> None:
+    """F13-R8: fast checks per identity per hour."""
+    enforce(ctx, "check", identity_id, limit=ctx.settings.checks_per_hour, seconds=HOUR_S)
+
+
+def check_anonymous_check(ctx: Context, address: str) -> None:
+    """F13-R8, Q2: anonymous fast checks per source address per day."""
+    enforce(ctx, "anon-check", address, limit=ctx.settings.anonymous_checks_per_day, seconds=DAY_S)
+
+
 def client_address(request: Request) -> str:
     """The source address: the first ``X-Forwarded-For`` hop (API Gateway sets it) or the peer."""
     forwarded = request.headers.get("x-forwarded-for", "")
