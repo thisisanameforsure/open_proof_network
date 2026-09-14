@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from opn_gate import layout, records, schemas
+from opn_gate import layout, paths, records, schemas
 from opn_gate.bounce import TIMESTAMP_FORMAT
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.records import StatusRecord
@@ -106,22 +106,51 @@ def load_attestations(graph_root: Path) -> list[tuple[str, dict[str, Any]]]:
 
 
 def proof_for(
-    node_id: str, statement_hash: str, attestations: list[tuple[str, dict[str, Any]]]
+    node_id: str,
+    statement_hash: str,
+    attestations: list[tuple[str, dict[str, Any]]],
+    *,
+    proof_hash: str | None = None,
+    alternate_hashes: frozenset[str] = frozenset(),
 ) -> Proof | None:
-    """R1: the first merged passing attestation for the node's current statement (AC3)."""
-    for name, doc in attestations:
-        if (
-            doc.get("node_id") == node_id
-            and doc.get("statement_hash") == statement_hash
-            and doc.get("verdict") == "pass"
-            and doc.get("merge_commit")
-        ):
-            return Proof(
-                merge_commit=str(doc["merge_commit"]),
-                trust_base=str(doc.get("trust_base") or TRUST_KERNEL),
-                attestation=name,
-            )
+    """R1, F07-R15: the node's proof — a merged passing attestation for its current statement.
+
+    The one whose ``artifact_hash`` is the node's ``Proof.lean`` wins, whatever its number: in a
+    race the pull request opened first can land second, as an alternate (D-25 v3.13), and its
+    attestation sorts first by name. With no such match (a hand-made attestation), the first one
+    that is not an alternate's is taken, which is what this function answered before alternates.
+    """
+    passing = [
+        (name, doc)
+        for name, doc in attestations
+        if doc.get("node_id") == node_id
+        and doc.get("statement_hash") == statement_hash
+        and doc.get("verdict") == "pass"
+        and doc.get("merge_commit")
+    ]
+    matching = [(n, d) for n, d in passing if proof_hash and d.get("artifact_hash") == proof_hash]
+    others = [(n, d) for n, d in passing if d.get("artifact_hash") not in alternate_hashes]
+    for name, doc in (*matching, *others):
+        return Proof(
+            merge_commit=str(doc["merge_commit"]),
+            trust_base=str(doc.get("trust_base") or TRUST_KERNEL),
+            attestation=name,
+        )
     return None
+
+
+def recorded_hashes(node_dir: Path) -> tuple[str | None, frozenset[str]]:
+    """The content hash of the node's ``Proof.lean`` (``None`` without one) and of each alternate
+    under ``attempts/`` (D-25 v3.13): what ``proof_for`` tells the node's proof from them by."""
+    proof = node_dir / "Proof.lean"
+    proof_hash = schemas.content_hash(proof.read_bytes()) if proof.is_file() else None
+    attempts = node_dir / "attempts"
+    alternates = frozenset(
+        schemas.content_hash(p.read_bytes())
+        for p in (attempts.glob(f"*{paths.ALTERNATE_SUFFIX}") if attempts.is_dir() else ())
+        if p.is_file()
+    )
+    return proof_hash, alternates
 
 
 def artifact_of(node_dir: Path, statement_decl: str) -> str | None:
@@ -187,6 +216,7 @@ def load_nodes(
         deps = tuple(str(d) for d in raw_deps) if isinstance(raw_deps, list) else ()
         origin = str(loaded.meta.get("origin", "authored"))
         statement_hash = loaded.statement.statement_hash
+        hashes = recorded_hashes(node_dir)
         facts[loaded.node_id] = NodeFacts(
             node_id=loaded.node_id,
             target_id=target_id,
@@ -196,7 +226,13 @@ def load_nodes(
             origin=origin,
             tutorial=bool(loaded.meta.get("tutorial", False)),
             relation=relation_of(node_dir, origin),
-            proof=proof_for(loaded.node_id, statement_hash, attestations),
+            proof=proof_for(
+                loaded.node_id,
+                statement_hash,
+                attestations,
+                proof_hash=hashes[0],
+                alternate_hashes=hashes[1],
+            ),
             override=records.load_node_status(node_dir),
             artifact=artifact_of(node_dir, loaded.statement.decl_name),
             witness_stub=witness_is_stub(node_dir),

@@ -311,6 +311,8 @@ def _metaprogram_failure(result: MetaprogramResult) -> StepResult | None:
 #: What step 2 records when the submission is a partial: where the assembly is, relative to the
 #: node, and the file itself (F07-R3's partial mode, D-12 #5).
 PARTIAL_KEY = "partial"
+#: D-25 v3.13: step 2 records a proved node's alternate here; step 4 stages it as the Proof module.
+ALTERNATE_KEY = "alternate"
 ARTIFACT_KEY = "artifact"
 
 

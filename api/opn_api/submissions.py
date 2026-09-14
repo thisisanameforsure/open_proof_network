@@ -17,6 +17,7 @@ merge one (C8).
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -29,7 +30,7 @@ from opn_api import identity as identitymod
 from opn_api.app import ApiError
 from opn_api.githost import Author, GitHostError, PullRequest
 from opn_gate import bounce, submission
-from opn_gate.paths import Claim
+from opn_gate.paths import ALTERNATE_SUFFIX, Claim
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -191,6 +192,33 @@ def bound_job(
     return job
 
 
+def check_placement(
+    claim: Claim, files: Mapping[str, str], *, proved: bool, tutorial: bool
+) -> None:
+    """R7, D-25 v3.13: where a proof lands depends on whether the node is proved, and the
+    gate refuses the wrong place (``proof-replaces-merged``, ``alternate-unproved``). Refused
+    here first, before a precheck is bound or anything pushed. The tutorial node's proof stays
+    open to rehearsal (D-27)."""
+    proof = claim.node_prefix + bundles.PROOF_FILE
+    if proved and not tutorial and proof in files:
+        raise ApiError(
+            400,
+            "proof-replaces-merged",
+            f"{claim.node_id} already has a merged Proof.lean, which is never modified (D-3); "
+            f"submit this proof as {claim.node_prefix}attempts/<ts>-<pseudonym>{ALTERNATE_SUFFIX} "
+            "with artifact_type proof (D-25)",
+        )
+    attempts = claim.node_prefix + "attempts/"
+    alternates = sorted(p for p in files if p.startswith(attempts) and p.endswith(ALTERNATE_SUFFIX))
+    if alternates and not proved:
+        raise ApiError(
+            400,
+            "alternate-unproved",
+            f"{claim.node_id} has no merged Proof.lean, so {alternates[0]} has nothing to be an "
+            f"alternate to: submit it as {proof} (D-25)",
+        )
+
+
 async def post_submissions(ctx: Context, request: Request) -> Response:
     """R1, R2: bind to a passing precheck, then open the pull request on the graph."""
     identity: Identity = request.state.identity
@@ -203,14 +231,17 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
         raise ApiError(400, "node-id-missing", "node_id is required")
     facts = precheck.node_facts(ctx, node_id)
     claim = Claim(facts["target_id"], node_id)
-    bundle, rejection = bundles.validate(
-        fields.get("bundle"),
-        claim,
-        existing=precheck.existing_paths(ctx, node_id, claim.target_id),
-    )
+    existing = precheck.existing_paths(ctx, node_id, claim.target_id)
+    bundle, rejection = bundles.validate(fields.get("bundle"), claim, existing=existing)
     if rejection is not None or bundle is None:
         assert rejection is not None
         raise ApiError(400, rejection.code, rejection.message)
+    check_placement(
+        claim,
+        bundle.files,
+        proved=claim.node_prefix + bundles.PROOF_FILE in existing,
+        tutorial=bool(facts["tutorial"]),
+    )
 
     # A job for another node cannot reach here: the bundle was just path-checked against this
     # node, and a job's digest is over its bundle's paths, so a foreign job's bundle fails

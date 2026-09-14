@@ -454,6 +454,8 @@ class Renderer:
         else:
             proof = "<p>No proof merged yet.</p>"
         attestation = self.attestation_block(nv)
+        alternates = self.alternates_block(nv)
+        renders.extend(alt.path for alt in nv.alternates)
         if nv.attestation_path:
             renders.append(nv.attestation_path)
         trust = ""
@@ -501,6 +503,7 @@ class Renderer:
             origin=esc(e["origin"]) + (f" ({esc(e['relation'])})" if e["relation"] else ""),
             proof=proof,
             attestation=attestation,
+            alternates=alternates,
             trust=trust,
             attempt_count=attempts.count,
             refuted=esc(refuted or "none"),
@@ -666,6 +669,27 @@ class Renderer:
         )
         renders = [n for n in ("AGENTS.md", "LICENSE", "DCO") if (self.site.root / n).is_file()]
         return self.page("Docs", body, renders=renders), extra
+
+    def alternates_block(self, nv: NodeView) -> str:
+        """D-25 v3.13: every later proof of the node, each linked at the commit that merged it.
+        Empty when there is none, so a node without alternates renders exactly as before."""
+        if not nv.alternates:
+            return ""
+        items = []
+        for alt in nv.alternates:
+            merged = (
+                f" merged in <code>{esc(alt.merge_commit[:12])}</code>" if alt.merge_commit else ""
+            )
+            by = f" by <code>{esc(alt.submitter)}</code>" if alt.submitter else ""
+            link = self.file_link(alt.path, commit=alt.merge_commit)
+            items.append(f"<li>{link}{merged}{by}</li>")
+        return (
+            "\n<h2>Alternate proofs</h2>\n"
+            "<p>Later proofs of the same statement, kept beside the first because a different "
+            "proof can carry a different insight (D-25). Each passed the gate as a proof does; "
+            "none changes this node's status or credit.</p>\n"
+            f"<ul>{''.join(items)}</ul>"
+        )
 
     def attestation_block(self, nv: NodeView) -> str:
         doc = nv.attestation

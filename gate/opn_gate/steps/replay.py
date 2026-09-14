@@ -14,7 +14,7 @@ from pathlib import Path
 from opn_gate import cache, defs, layout
 from opn_gate.steps import artifact
 from opn_gate.steps import stage as staging
-from opn_gate.steps.artifact import PARTIAL_KEY
+from opn_gate.steps.artifact import ALTERNATE_KEY, PARTIAL_KEY
 from opn_gate.steps.base import RunContext, StepResult
 from opn_gate.toolchain import ElabResult, ResolvedToolchain
 
@@ -31,8 +31,10 @@ class KernelReplayStep:
         tc: ResolvedToolchain | None = ctx.data.get("toolchain")
         if node is None or tc is None:
             return StepResult.failed("step-order", "step 4 needs steps 1 and 2 to have passed")
-        partial = ctx.data.get(PARTIAL_KEY)
-        override = Path(str(partial["file"])) if isinstance(partial, dict) else None
+        # A partial's assembly (F07-R5) or a proved node's alternate (D-25) is built and replayed
+        # as the node's own Proof module; neither ever writes the node's Proof.lean.
+        chosen = ctx.data.get(PARTIAL_KEY) or ctx.data.get(ALTERNATE_KEY)
+        override = Path(str(chosen["file"])) if isinstance(chosen, dict) else None
         staged = staging.stage(node, ctx.workdir, proof_override=override)
         ctx.data["staged"] = staged
         if staged.problems:

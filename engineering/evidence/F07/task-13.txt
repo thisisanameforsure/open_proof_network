@@ -1,0 +1,13 @@
+F07-T13 · the node page lists alternates (R7; AC26) · 2026-09-13T21:21:13Z · network d06404d + working tree
+
+$ uv run pytest site/tests
+125 passed, 1 xfailed in 6.32s
+
+$ uv run pytest site/tests/test_render_alternates.py -v
+site/tests/test_render_alternates.py::test_node_page_lists_alternates PASSED [100%]
+
+Red first, before the site code: test_node_page_lists_alternates failed — 'Alternate proofs' not in the rendered tutorial node page.
+Goldens: unchanged. The section renders on the attestation's template line and is empty for a node with no alternates, so every checked-in page compares byte for byte.
+
+Screenshot: engineering/evidence/F07/task-13-node.png — the site fixture (site/tests/fixture.build) with two alternates merged on tutorial-and-swap (test_render_alternates.with_alternates), rendered by opn_site.render, served locally and captured with headless Google Chrome at 1200px.
+Checked by eye: the Alternate proofs section follows the attestation; both files listed in stamp order, each linked at its own merge commit (aaaaaaaaaaaa, bbbbbbbbbbbb) with its submitter; the Proof section still names the first merge (444444444444); the footer lists the two alternate files among the page's sources.

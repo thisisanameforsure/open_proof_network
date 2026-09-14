@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from opn_gate import intake, layout, records, schemas, watch
+from opn_gate import intake, layout, paths, records, schemas, watch
 
 #: The product schema versions this generator can render. A consumer parses by version and old
 #: snapshots keep rendering (D-34), so this is a set per product, not a pin: `targets-index/v2`
@@ -49,6 +49,15 @@ class Prose:
 
 
 @dataclass(frozen=True)
+class AlternateView:
+    """One alternate proof (D-25 v3.13): its file, and what its attestation records."""
+
+    path: str
+    merge_commit: str | None  # None only when no attestation names the file's hash
+    submitter: str | None
+
+
+@dataclass(frozen=True)
 class NodeView:
     target_id: str
     node_id: str
@@ -63,6 +72,8 @@ class NodeView:
     annexes: tuple[Prose, ...]
     acknowledgments: tuple[dict[str, str], ...]
     tutorial: bool
+    #: D-25 v3.13: later proofs of this node, in the order their files are stamped.
+    alternates: tuple[AlternateView, ...] = ()
 
     @property
     def status(self) -> str:
@@ -204,6 +215,48 @@ def _attestation_for(
     return None, None
 
 
+def _alternates_for(
+    root: Path, node_dir: Path, node_id: str, statement_hash: str
+) -> tuple[AlternateView, ...]:
+    """R7, R15: each ``attempts/*-alternate.lean`` with the merged attestation whose
+    ``artifact_hash`` is that file's — how an alternate is told from the node's own proof."""
+    attempts = node_dir / "attempts"
+    if not attempts.is_dir():
+        return ()
+    files = sorted(p for p in attempts.glob(f"*{paths.ALTERNATE_SUFFIX}") if p.is_file())
+    if not files:
+        return ()
+    by_hash: dict[str, dict[str, Any]] = {}
+    att_dir = root / "attestations"
+    for path in (
+        sorted(p for p in att_dir.iterdir() if p.suffix == ".json") if att_dir.is_dir() else ()
+    ):
+        try:
+            doc = schemas.load_json(path)
+        except schemas.SchemaError as exc:
+            msg = f"attestation {path.relative_to(root).as_posix()} does not validate: {exc}"
+            raise SiteError(msg) from exc
+        digest = doc.get("artifact_hash")
+        if (
+            isinstance(digest, str)
+            and doc.get("node_id") == node_id
+            and doc.get("statement_hash") == statement_hash
+            and doc.get("merge_commit")
+        ):
+            by_hash.setdefault(digest, doc)
+    views: list[AlternateView] = []
+    for f in files:
+        found = by_hash.get(schemas.content_hash(f.read_bytes()))
+        views.append(
+            AlternateView(
+                path=f.relative_to(root).as_posix(),
+                merge_commit=str(found["merge_commit"]) if found else None,
+                submitter=str(found["submitter"]) if found and found.get("submitter") else None,
+            )
+        )
+    return tuple(views)
+
+
 def load_node(root: Path, target_id: str, entry: dict[str, Any]) -> NodeView:
     node_id = str(entry["node_id"])
     node_dir = layout.graph_nodes_dir(root, target_id) / node_id
@@ -239,6 +292,7 @@ def load_node(root: Path, target_id: str, entry: dict[str, Any]) -> NodeView:
         annexes=_prose_files(node_dir / "annex", root),
         acknowledgments=acks,
         tutorial=bool(entry.get("tutorial")),
+        alternates=_alternates_for(root, node_dir, node_id, loaded.statement.statement_hash),
     )
 
 

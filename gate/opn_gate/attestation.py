@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from opn_gate import bounce, schemas
@@ -46,8 +47,15 @@ def build(  # noqa: PLR0913 — one argument per fact the record carries
     max_bytes = ctx.settings.diagnostic_max_bytes
     verdict_doc = verdict.as_dict(max_bytes)
     statement_hash = node.statement.statement_hash if node else _statement_hash_fallback(ctx)
+    from opn_gate.steps.artifact import ALTERNATE_KEY  # noqa: PLC0415 — steps import this module
+
     artifact_hash = None
-    if node is not None and node.proof_path.is_file():
+    alternate = ctx.data.get(ALTERNATE_KEY)
+    if isinstance(alternate, dict):
+        # D-25 v3.13: an alternate's record names the alternate, never the proof beside it, so
+        # the node's proof can be told from its alternates by hash (F07-R15).
+        artifact_hash = schemas.content_hash(Path(str(alternate["file"])).read_bytes())
+    elif node is not None and node.proof_path.is_file():
         artifact_hash = schemas.content_hash(node.proof_path.read_bytes())
     precheck = verdict.data.get("precheck_attestation") or {"hash": None, "signature_kind": None}
     doc: dict[str, Any] = {

@@ -6,7 +6,7 @@ from pathlib import Path
 
 from opn_gate import layout, paths
 from opn_gate.steps import artifact
-from opn_gate.steps.artifact import PARTIAL_KEY
+from opn_gate.steps.artifact import ALTERNATE_KEY, PARTIAL_KEY
 from opn_gate.steps.base import RunContext, StepResult
 
 
@@ -39,6 +39,11 @@ class PathsStep:
         hash_problem = paths.check_statement_hash(loaded.statement, loaded.meta)
         if hash_problem:  # defence in depth: load_node already refused a hash mismatch above
             return StepResult(ok=False, diagnostic=hash_problem)
+        alternate = alternate_file(ctx, node_dir)
+        if isinstance(alternate, StepResult):
+            return alternate
+        if alternate is not None:
+            return take_alternate(ctx, loaded, node_dir, alternate)
         if not loaded.proof_path.is_file():
             # F07-R3, R5 (F11-T4): with no Proof.lean the submission may be a partial — one new
             # assembly under attempts/. Its header and signature are the statement's, like a
@@ -92,12 +97,17 @@ def partial_assembly(ctx: RunContext, node_dir: Path) -> Path | StepResult | Non
             if c.status == "A"
             and c.path.startswith(prefix)
             and c.path.endswith(".lean")
+            and not c.path.endswith(paths.ALTERNATE_SUFFIX)
             and "/" not in c.path[len(prefix) :]
         )
     else:
         attempts = node_dir / "attempts"
         added = (
-            sorted(f"attempts/{p.name}" for p in attempts.glob("*.lean") if p.is_file())
+            sorted(
+                f"attempts/{p.name}"
+                for p in attempts.glob("*.lean")
+                if p.is_file() and not p.name.endswith(paths.ALTERNATE_SUFFIX)
+            )
             if attempts.is_dir()
             else []
         )
@@ -112,3 +122,65 @@ def partial_assembly(ctx: RunContext, node_dir: Path) -> Path | StepResult | Non
             paths=added,
         )
     return node_dir / added[0]
+
+
+def alternate_file(ctx: RunContext, node_dir: Path) -> Path | StepResult | None:
+    """D-25 v3.13: the one ``attempts/*-alternate.lean`` the diff adds to this node, ``None`` when
+    it adds none, or the refusal when it adds several. Only a diff can say which file is new, so
+    a bare tree has no alternate and step 2 checks the node's ``Proof.lean`` as it always did."""
+    if ctx.changes is None:
+        return None
+    prefix = ctx.claim.node_prefix + "attempts/"
+    added = sorted(
+        c.path[len(ctx.claim.node_prefix) :]
+        for c in ctx.changes
+        if c.status == "A"
+        and c.path.startswith(prefix)
+        and c.path.endswith(paths.ALTERNATE_SUFFIX)
+        and "/" not in c.path[len(prefix) :]
+    )
+    if not added:
+        return None
+    if len(added) > 1:
+        return StepResult.failed(
+            "alternate-multiple",
+            "a pull request adds one alternate proof (D-25); this one adds " + ", ".join(added),
+            paths=added,
+        )
+    return node_dir / added[0]
+
+
+def take_alternate(
+    ctx: RunContext, loaded: layout.Node, node_dir: Path, alternate: Path
+) -> StepResult:
+    """R7: an alternate is held to a proof's shape — the statement with its sorry replaced
+    (F00-R19) — and recorded for step 4, which stages it as the node's Proof module. A file
+    declaring a counterexample or vacuity certificate of a proved statement is not an alternate."""
+    rel = alternate.relative_to(node_dir).as_posix()
+    if not loaded.proof_path.is_file():  # precheck never classifies, so step 2 says it too
+        return StepResult.failed(
+            "alternate-unproved",
+            f"{ctx.claim.node_id} has no merged Proof.lean, so {rel} has nothing to be an "
+            "alternate to: submit it as the node's Proof.lean (D-25)",
+            path=rel,
+        )
+    text = alternate.read_text(encoding="utf-8")
+    shape_problem = paths.check_proof_is_statement(loaded.statement, text)
+    if shape_problem is not None:
+        kind, _unknown = artifact.declared_kind(loaded.statement.decl_name, text)
+        if kind is not None and kind != "proof":
+            return StepResult.failed(
+                "alternate-not-proof",
+                f"{rel} declares a {kind} of a statement already proved; an alternate is another "
+                "proof of it (D-25), and a merged proof beside a refutation is a defect claim "
+                "(D-15), not a submission",
+                path=rel,
+                kind=kind,
+            )
+        return StepResult(ok=False, diagnostic=shape_problem)
+    ctx.data[ALTERNATE_KEY] = {"path": rel, "file": str(alternate)}
+    return StepResult.passed_with(
+        "alternate-submission",
+        f"an alternate proof: {rel} (D-25); the node's Proof.lean is unchanged",
+        path=rel,
+    )

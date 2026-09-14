@@ -169,7 +169,9 @@ TOOLS: tuple[Tool, ...] = (
         "submit_proof",
         "Open the submission pull request on the graph: the ledger identity as author and "
         "sign-off, the service as committer. `attestation` is the get_precheck result of a "
-        "passing precheck of this bundle.",
+        "passing precheck of this bundle. On a node whose Proof.lean has already merged, a "
+        "later proof is an alternate: put it at "
+        "attempts/<timestamp>-<pseudonym>-alternate.lean with artifact_type proof (D-25).",
         params(
             {
                 "node_id": ID_PARAM,
