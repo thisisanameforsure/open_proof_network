@@ -75,7 +75,7 @@ class CliError(Exception):
 #: The curator's commands (F08-R9 to R12): what one of them refuses is answered as
 #: ``{"ok": false, "refused": ...}`` and exit 1, whichever module raised it.
 CURATOR_COMMANDS: frozenset[str] = frozenset(
-    {"revise", "consolidate", "status", "missing-library", "intake", "fidelity", "qa"}
+    {"revise", "consolidate", "status", "missing-library", "intake", "fidelity", "qa", "evidence"}
 )
 #: What a curator command refuses on: a record that does not satisfy its schema, a statement the
 #: scaffold cannot take, a graph that does not derive. Anywhere else these are exit 2.
@@ -355,9 +355,15 @@ def _add_import_parser(acts: argparse._SubParsersAction[argparse.ArgumentParser]
     imp.add_argument("--sandbox", action="store_true", help="admit inside the step-3 image")
     imp.add_argument("--image", help="sandbox image tag (default: built from gate/Dockerfile)")
     imp.add_argument("--no-build", action="store_true", help="fail if the image is not present")
+    # F14-R4: the root's catalog evidence, written with the import.
+    imp.add_argument("--evidence-from", type=Path, help="docs/lean_conjecture_catalog.json")
+    imp.add_argument("--key", help="the catalog row for this statement, e.g. erdos:376")
+    imp.add_argument("--network-commit", help="the network commit the catalog was read at")
 
 
-def _add_intake_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+def _add_intake_parsers(  # noqa: PLR0915 — one statement per flag
+    sub: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
     """Curated intake and the fidelity ladder (F11-R2, R3, R5; D-6, D-9, D-10)."""
     intk = sub.add_parser("intake", help="curated target intake (F11-R2, R5; D-6)")
     acts = intk.add_subparsers(dest="action", required=True)
@@ -418,6 +424,18 @@ def _add_intake_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]
     fid.add_argument("--sandbox", action="store_true", help="replay inside the step-3 image")
     fid.add_argument("--image", help="sandbox image tag (default: from the spec)")
     fid.add_argument("--no-build", action="store_true", help="fail if the image is not present")
+
+    ev = sub.add_parser("evidence", help="record a root's catalog evidence (F14-R3, R4)")
+    ev_acts = ev.add_subparsers(dest="action", required=True)
+    ev_add = ev_acts.add_parser("add", help="write the evidence record and the attempts it names")
+    ev_add.add_argument("target_id")
+    ev_add.add_argument("--graph", required=True, type=Path)
+    ev_add.add_argument("--catalog", required=True, type=Path, help="lean_conjecture_catalog.json")
+    ev_add.add_argument("--key", required=True, help="the catalog row, e.g. erdos:376")
+    ev_add.add_argument("--network-commit", required=True, help="the commit the catalog is read at")
+    ev_add.add_argument("--author", required=True, help="the curator recording it")
+    ev_add.add_argument("--date", help="UTC timestamp of the act (default: now)")
+    ev_add.add_argument("--branch", help="also commit what was written on this branch")
 
 
 def _add_qa_parsers(  # noqa: PLR0915 — one statement per flag
@@ -561,6 +579,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "intake": run_intake,
         "qa": run_qa,
         "fidelity": run_fidelity,
+        "evidence": run_evidence,
         "postmerge": run_postmerge,
         "admit": run_admit,
         "hazards": run_hazards,
@@ -1791,10 +1810,66 @@ def run_import_fc(args: argparse.Namespace, settings: config.Settings, graph: Pa
         author=args.author,
         date=_intake_date(args),
         listed_max=settings.listed_targets_max,
+        evidence_catalog=_evidence_catalog(args.evidence_from),
+        evidence_key=args.key,
+        network_commit=args.network_commit,
     )
     doc: dict[str, Any] = {"ok": True, **result.as_dict()}
     doc["written"] = [*doc.get("written", []), result.notice]
     return _emit_curator(doc, graph, args.branch, f"intake: import {args.target_id}")
+
+
+def _evidence_catalog(path: Path | None) -> dict[str, Any] | None:
+    """F14-R4: the catalog named by ``--evidence-from``, or ``None``; an unreadable one is a
+    refusal, like every other curator input."""
+    if path is None:
+        return None
+    from opn_gate import evidence as evidencemod  # noqa: PLC0415 — only the evidence acts need it
+
+    try:
+        return evidencemod.load_catalog(path.resolve())
+    except evidencemod.EvidenceError as exc:
+        raise intake.IntakeError(str(exc)) from exc
+
+
+def run_evidence(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F14-R4: record a curated target's catalog evidence and the attempts its row names, checked
+    against the file the target was imported from."""
+    del settings  # nothing configurable: the record is the catalog's row, pinned to the root
+    from opn_gate import evidence as evidencemod  # noqa: PLC0415
+
+    graph = _intake_graph(args)
+    directory = intake.target_dir(graph, args.target_id)
+    record = intake.load_doc(directory)
+    if record is None:
+        msg = (
+            f"target {args.target_id!r} has no {intake.TARGET_FILE}; evidence is recorded for a "
+            "curated target (F14-R4)"
+        )
+        raise intake.IntakeError(msg)
+    upstream = (record.get("provenance") or {}).get("upstream_path")
+    catalog = _evidence_catalog(args.catalog)
+    assert catalog is not None  # --catalog is required
+    try:
+        written = evidencemod.add(
+            directory,
+            catalog,
+            args.key,
+            network_commit=args.network_commit,
+            recorded_by=args.author,
+            date=_intake_date(args),
+            upstream_path=str(upstream) if upstream else None,
+        )
+    except evidencemod.EvidenceError as exc:
+        raise intake.IntakeError(str(exc)) from exc
+    root = graph.resolve()
+    doc: dict[str, Any] = {
+        "ok": True,
+        "target": args.target_id,
+        "key": args.key,
+        "written": [p.resolve().relative_to(root).as_posix() for p in written],
+    }
+    return _emit_curator(doc, graph, args.branch, f"evidence: {args.target_id} {args.key}")
 
 
 def run_fidelity(args: argparse.Namespace, settings: config.Settings) -> int:

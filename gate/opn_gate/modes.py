@@ -556,7 +556,16 @@ def _classify_intake(  # noqa: PLR0913 — one return per refusal; the diff and 
     where the curator ran it; the gate's step here is the shape and the author.
     """
     roles = {loc.role for loc in located}
-    allowed = set(paths.INTAKE_ROLES) | set(paths.NODE_ROLES) | {"target-status"}
+    # F14-R4: an import may carry the root's catalog evidence and the attempts its row names.
+    allowed = (
+        set(paths.INTAKE_ROLES)
+        | set(paths.NODE_ROLES)
+        | {
+            "target-status",
+            "statement-evidence",
+            "attempts-ledger",
+        }
+    )
     if not roles <= allowed:
         return Classification(None, target_id, None, tuple(located), (_mixed(roles),))
     modified = sorted(c.path for c in changes if c.status != "A")
@@ -789,6 +798,8 @@ def check(
             problems.extend(check_append_file(graph_root, located, mode=classification.mode))
         elif located.role == "explainer":
             problems.extend(check_explainer_file(graph_root, located, classification))
+        elif located.role == "statement-evidence":
+            problems.extend(check_evidence(graph_root, located))
         elif located.role in paths.CURATOR_ROLES:
             problems.extend(check_status_record(graph_root, located, classification))
         elif located.role == "target-record" and classification.mode == "curator":
@@ -829,6 +840,45 @@ def check_status_record(  # noqa: PLR0911 — one return per rule
                 f"{located.path}: a proposal may mark its node {PROPOSAL_STATUS!r} and nothing "
                 f"else (D-14, F08-Q2); {doc.get('status')!r} is a curator's record (F08-R8)",
                 {"path": located.path, "status": doc.get("status")},
+            )
+        ]
+    return []
+
+
+def check_evidence(graph_root: Path, located: Located) -> list[Diagnostic]:
+    """F14-R3: an evidence record validates, and it speaks for the root as it stands at head.
+
+    A record pinned to another statement would count for nothing at step 9, so adding one is a
+    mistake the curator hears about now (``evidence-stale``) rather than a record that silently
+    does nothing. Whether the score is the catalog's is the curator's act, like the record
+    itself; the attestation cites the file, so the claim is public (F14-R6)."""
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    if problems:
+        return problems
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    target_dir = graph_root / "targets" / located.target_id
+    try:
+        current = qa.subject_hash(target_dir, fidelity.ROOT_SUBJECT)
+    except ValueError as exc:  # QaError, GraphError, SchemaError: the root does not read
+        return [
+            Diagnostic(
+                "evidence-unreadable",
+                f"{located.path}: the root's statement does not read: {exc}",
+                {"path": located.path},
+            )
+        ]
+    if doc.get("statement_hash") != current:
+        return [
+            Diagnostic(
+                "evidence-stale",
+                f"{located.path}: pinned to {doc.get('statement_hash')}, and the root's statement "
+                f"as it stands is {current} (F14-R3)",
+                {"path": located.path, "recorded": doc.get("statement_hash"), "current": current},
             )
         ]
     return []

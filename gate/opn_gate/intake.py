@@ -603,12 +603,14 @@ class Import:
     commit: str
     intake: Intake
     notice: str
+    evidence: tuple[str, ...] = ()  # F14-R4: the evidence record and the attempts ledger
 
     def as_dict(self) -> dict[str, Any]:
         return {
             **self.intake.as_dict(),
             "imported": {"path": self.source_path, "commit": self.commit},
             "notice": self.notice,
+            "evidence": list(self.evidence),
         }
 
 
@@ -676,6 +678,9 @@ def import_fc(  # noqa: PLR0913 — one argument per fact the import records
     author: str,
     date: str,
     listed_max: int,
+    evidence_catalog: dict[str, Any] | None = None,
+    evidence_key: str | None = None,
+    network_commit: str | None = None,
 ) -> Import:
     """R9: copy one Formal Conjectures statement in as a listed open target.
 
@@ -707,6 +712,28 @@ def import_fc(  # noqa: PLR0913 — one argument per fact the import records
             "or retire one (R9 §6)"
         )
         raise IntakeError(msg)
+
+    # F14-R4: the evidence is checked against the import before anything is written (C7).
+    if (evidence_catalog is None) != (evidence_key is None):
+        msg = "an import's evidence needs both the catalog and the row key (F14-R4)"
+        raise IntakeError(msg)
+    if evidence_catalog is not None and evidence_key is not None:
+        from opn_gate import evidence as evidencemod  # noqa: PLC0415 — evidence reads qa and this
+
+        try:
+            row = evidencemod.catalog_row(evidence_catalog, evidence_key)
+        except evidencemod.EvidenceError as exc:
+            raise IntakeError(str(exc)) from exc
+        upstream = rel_path or source.name
+        if row["file"] != upstream:
+            msg = (
+                f"{evidence_key} is the catalog row for {row['file']}, and this import copies "
+                f"{upstream} (F14-R4)"
+            )
+            raise IntakeError(msg)
+        if network_commit is None:
+            msg = "recording evidence names the network commit the catalog was read at (F14-R4)"
+            raise IntakeError(msg)
 
     doc = fc_record(
         base,
@@ -740,7 +767,37 @@ def import_fc(  # noqa: PLR0913 — one argument per fact the import records
             attribution=attribution,
         ),
     )
-    return Import(target_id, str(doc["provenance"]["upstream_path"]), commit, result, notice)
+    written_evidence: tuple[str, ...] = ()
+    if evidence_catalog is not None and evidence_key is not None and network_commit is not None:
+        from opn_gate import evidence as evidencemod  # noqa: PLC0415
+
+        destination = target_dir(graph_root, target_id)
+        try:
+            added = evidencemod.add(
+                destination,
+                evidence_catalog,
+                evidence_key,
+                network_commit=network_commit,
+                recorded_by=author,
+                date=date,
+                upstream_path=rel_path or source.name,
+            )
+        except evidencemod.EvidenceError as exc:
+            shutil.rmtree(destination, ignore_errors=True)
+            raise IntakeError(str(exc)) from exc
+        except Exception:
+            shutil.rmtree(destination, ignore_errors=True)
+            raise
+        root = graph_root.resolve()
+        written_evidence = tuple(p.resolve().relative_to(root).as_posix() for p in added)
+    return Import(
+        target_id,
+        str(doc["provenance"]["upstream_path"]),
+        commit,
+        result,
+        notice,
+        written_evidence,
+    )
 
 
 def _stage_root(graph_root: Path, target_id: str, *, statement: str, witness: str) -> Path:

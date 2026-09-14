@@ -185,6 +185,7 @@ Role = Literal[
     "attempts-ledger",  # targets/<id>/attempts.yaml: D-9's documented attempts (F12-R10)
     "drift-record",  # targets/<id>/drift/<name>.yaml: the watcher's flag (F12-R11, R12)
     "relevance",  # nodes/<id>/relevance.yaml: a related variant's one signature (F12-R13)
+    "statement-evidence",  # targets/<id>/evidence/root-<n>.yaml: catalog evidence (F14-R3)
 ]
 
 #: Roles that claim nothing and merge on schema and path checks alone (F07-R9).
@@ -213,6 +214,7 @@ CURATOR_ROLES: tuple[Role, ...] = (
     "attempts-ledger",
     "drift-record",
     "relevance",
+    "statement-evidence",  # F14-R4: a curator records the catalog's evidence for a root
 )
 
 #: What a curated intake adds beside the root node (F11-R2; D-6): the target's own files. A pull
@@ -248,6 +250,7 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "attempts-ledger": ("attempts/v1",),
     "drift-record": ("drift/v1",),
     "relevance": ("relevance/v1",),
+    "statement-evidence": ("statement-evidence/v1",),
 }
 
 #: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers).
@@ -333,6 +336,9 @@ def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912 — one branc
             return Located("definition", path, target_match.group("target"), None)
         if head == "fidelity" and _is_flat(name, YAML_SUFFIXES):
             return Located("fidelity", path, target_match.group("target"), None)
+        # F14-R3: the root's catalog evidence, beside the certificates it does not replace.
+        if head == "evidence" and _is_flat(name, YAML_SUFFIXES):
+            return Located("statement-evidence", path, target_match.group("target"), None)
         # F12-R1: the QA record beside the certificates, and the files a run leaves.
         if head == "qa" and _is_flat(name, YAML_SUFFIXES):
             return Located("qa-record", path, target_match.group("target"), None)
