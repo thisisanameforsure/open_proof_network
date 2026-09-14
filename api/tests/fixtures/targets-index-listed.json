@@ -1,6 +1,6 @@
 {
   "rendered_from": "5555555555555555555555555555555555555555",
-  "schema": "targets-index/v4",
+  "schema": "targets-index/v5",
   "targets": [
     {
       "attempts": {
@@ -10,6 +10,7 @@
       "claimable": true,
       "drift": null,
       "fidelity": "mechanical-only",
+      "formalizations": [],
       "mathlib_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "node_counts": {
         "abandoned": 0,
@@ -27,7 +28,9 @@
       "posting": null,
       "root": "listed-lemma",
       "root_statement_hash": "22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7",
+      "statement_evidence": null,
       "status": "listed",
+      "step9": "review",
       "subjects": [
         {
           "grade": "mechanical-only",
@@ -85,6 +88,7 @@
       "claimable": false,
       "drift": null,
       "fidelity": "mechanical-only",
+      "formalizations": [],
       "mathlib_sha": null,
       "node_counts": {
         "abandoned": 0,
@@ -102,7 +106,9 @@
       "posting": null,
       "root": "and-swap-reassoc",
       "root_statement_hash": "1fd9af9053c56877f4e7ec2ad69aa16602d39e826259da3878a8cc30a3b6791c",
+      "statement_evidence": null,
       "status": "listed",
+      "step9": "review",
       "subjects": [],
       "target_id": "propositional",
       "track": null

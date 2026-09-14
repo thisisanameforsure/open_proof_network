@@ -274,6 +274,63 @@ def qa_record(**overrides: Any) -> dict[str, Any]:
     return doc
 
 
+def statement_evidence(**overrides: Any) -> dict[str, Any]:
+    """A ``statement-evidence/v1`` record: a catalog row at the high grade (F14-R3)."""
+    doc: dict[str, Any] = {
+        "schema": "statement-evidence/v1",
+        "subject": "root",
+        "statement_hash": SHA256,
+        "catalog": {
+            "file": "docs/lean_conjecture_catalog.json",
+            "network_commit": "1" * 40,
+            "key": "erdos:376",
+            "fc_commit": "c" * 40,
+            "score": 6,
+            "letter": "A",
+            "reasons": [
+                "+2 attempted by AlphaProof Nexus (Feb 2026), not solved",
+                "+2 Bloom selected it for FrontierMath Erdős",
+                "+1 no misformalization issue ever filed",
+                "+1 Lean statement public for 180+ days",
+            ],
+        },
+        "registry_history": {"first": "2025-04-26", "last": "2026-07-16", "commits": 13},
+        "misformalization": [],
+        "local_definitions": [],
+        "registry_helpers": [],
+        "external_attempts_recorded": 1,
+        "hazards": [],
+        "site_status": "OPEN",
+        "mathlib_definition": None,
+        "recorded_by": "curator",
+        "date": "2026-09-14",
+    }
+    doc.update(overrides)
+    return doc
+
+
+def formalization(**overrides: Any) -> dict[str, Any]:
+    """A ``formalization/v1`` record: a second statement of the conjecture (F14-R7)."""
+    doc: dict[str, Any] = {
+        "schema": "formalization/v1",
+        "name": "fc-twin",
+        "declaration": "Opn.twin",
+        "statement_hash": "b" * 64,
+        "author": "curator",
+        "source": {
+            "kind": "network",
+            "ref": "a direct restatement over Mathlib",
+            "url": None,
+            "licence": "Apache-2.0",
+            "attribution": "the Open Proof Network curators",
+        },
+        "provenance": {"upstream_commit": None, "upstream_path": None},
+        "date": "2026-09-14",
+    }
+    doc.update(overrides)
+    return doc
+
+
 def target_status(**overrides: Any) -> dict[str, Any]:
     doc: dict[str, Any] = {
         "schema": "target-status/v2",

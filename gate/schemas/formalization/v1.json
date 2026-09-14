@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/formalization/v1.json",
+  "title": "formalization/v1",
+  "description": "targets/<id>/formalizations/<name>/formalization.yaml (F14-R7; D-9 layer 4): a second Lean formalization of the target's conjecture, kept beside its Statement.lean outside nodes/, so it is evidence and never a graph node, a frontier entry or claimable. `statement_hash` is the hash of that Statement.lean; the gate refuses a record that disagrees with the file. An equivalence exhibit against the root is recorded on the root's QA record (qa/v2 `against`). Added once by a curator, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "name",
+    "declaration",
+    "statement_hash",
+    "author",
+    "source",
+    "provenance",
+    "date"
+  ],
+  "properties": {
+    "schema": {
+      "const": "formalization/v1"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "maxLength": 100
+    },
+    "declaration": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_.']*$",
+      "maxLength": 200
+    },
+    "statement_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref",
+        "url",
+        "licence",
+        "attribution"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "formal-conjectures",
+            "mathlib",
+            "network",
+            "paper",
+            "other"
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "url": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "maxLength": 500
+            }
+          ]
+        },
+        "licence": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "upstream_commit",
+        "upstream_path"
+      ],
+      "properties": {
+        "upstream_commit": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          ]
+        },
+        "upstream_path": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300
+            }
+          ]
+        }
+      }
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "note": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "maxLength": 500
+        }
+      ]
+    }
+  }
+}

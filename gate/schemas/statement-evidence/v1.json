@@ -1,0 +1,283 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/statement-evidence/v1.json",
+  "title": "statement-evidence/v1",
+  "description": "targets/<id>/evidence/root-<n>.yaml (F14-R3, R4; D-4 step 9, D-9, D-10): what the network knows, from outside itself, about whether the root's Lean statement says what the conjecture says — the seed catalog's row for it (score, letter and the reasons that summed to the score), the registry history and misformalization issues behind those reasons, the definitions and helpers ported with it, and the external attempts written to the attempts ledger. Pinned to the root's statement hash: a record for any other hash counts for nothing. At the configured minimum score a proof under this root needs no human reviewer (F14-R5). Evidence, not a signature: it raises no D-9 grade. Append-only, versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "subject",
+    "statement_hash",
+    "catalog",
+    "registry_history",
+    "misformalization",
+    "local_definitions",
+    "registry_helpers",
+    "external_attempts_recorded",
+    "hazards",
+    "site_status",
+    "mathlib_definition",
+    "recorded_by",
+    "date"
+  ],
+  "properties": {
+    "schema": {
+      "const": "statement-evidence/v1"
+    },
+    "subject": {
+      "const": "root"
+    },
+    "statement_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "catalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "network_commit",
+        "key",
+        "fc_commit",
+        "score",
+        "letter",
+        "reasons"
+      ],
+      "properties": {
+        "file": {
+          "const": "docs/lean_conjecture_catalog.json"
+        },
+        "network_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "key": {
+          "type": "string",
+          "pattern": "^(erdos:[0-9]+|fc:FormalConjectures/[^#\\s]+\\.lean#[^\\s]+)$",
+          "maxLength": 300
+        },
+        "fc_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "score": {
+          "type": "integer",
+          "minimum": -20,
+          "maximum": 20
+        },
+        "letter": {
+          "enum": [
+            "A",
+            "B+",
+            "B",
+            "C",
+            "D"
+          ]
+        },
+        "reasons": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400
+          }
+        }
+      }
+    },
+    "registry_history": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "first",
+            "last",
+            "commits"
+          ],
+          "properties": {
+            "first": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+            },
+            "last": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+            },
+            "commits": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    },
+    "misformalization": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "number",
+          "state",
+          "url",
+          "created",
+          "closed",
+          "pr"
+        ],
+        "properties": {
+          "number": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "state": {
+            "enum": [
+              "open",
+              "closed"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "created": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+          },
+          "closed": {
+            "oneOf": [
+              {
+                "const": ""
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+              }
+            ]
+          },
+          "pr": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "local_definitions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "upstream_name",
+          "ported_to"
+        ],
+        "properties": {
+          "upstream_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "ported_to": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "pattern": "^defs/[A-Za-z0-9_]+\\.lean$"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "registry_helpers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "module",
+          "ported_to"
+        ],
+        "properties": {
+          "module": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "ported_to": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "pattern": "^defs/[A-Za-z0-9_]+\\.lean$"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "external_attempts_recorded": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "hazards": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 60
+      },
+      "uniqueItems": true
+    },
+    "site_status": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "maxLength": 100
+        }
+      ]
+    },
+    "mathlib_definition": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "maxLength": 200
+        }
+      ]
+    },
+    "recorded_by": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "note": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "maxLength": 500
+        }
+      ]
+    }
+  }
+}

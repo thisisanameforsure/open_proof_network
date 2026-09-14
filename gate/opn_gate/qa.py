@@ -50,7 +50,10 @@ from opn_gate.toolchain import ResolvedToolchain, ToolchainMissingError
 
 log = logging.getLogger(__name__)
 
-SCHEMA = "qa/v1"
+#: F14-R8: a row may name what it compared against. Records are written at v2 and read at either
+#: version, since a published record is never rewritten (D-34).
+SCHEMA = "qa/v2"
+READABLE_SCHEMAS: tuple[str, ...] = ("qa/v1", "qa/v2")
 QA_DIR = "qa"
 EXHIBITS_DIR = "exhibits"
 SUFFIXES: tuple[str, ...] = (".yaml", ".yml")
@@ -146,6 +149,8 @@ class Row:
     elapsed_s: float | None = None
     budget_s: float | None = None
     note: str | None = None
+    #: F14-R8: ``{kind: node | formalization, ref, statement_hash}`` for a comparing check.
+    against: dict[str, str] | None = None
 
     @property
     def is_finding(self) -> bool:
@@ -171,6 +176,8 @@ class Row:
             out["budget_s"] = self.budget_s
         if self.note is not None:
             out["note"] = self.note
+        if self.against is not None:
+            out["against"] = dict(self.against)
         return out
 
     @classmethod
@@ -189,6 +196,11 @@ class Row:
             elapsed_s=_optional_float(doc.get("elapsed_s")),
             budget_s=_optional_float(doc.get("budget_s")),
             note=_optional_str(doc.get("note")),
+            against=(
+                {str(k): str(v) for k, v in doc["against"].items()}
+                if isinstance(doc.get("against"), dict)
+                else None
+            ),
         )
 
 
@@ -214,6 +226,7 @@ def row(  # noqa: PLR0913 — one argument per fact the row records
     elapsed_s: float | None = None,
     budget_s: float | None = None,
     note: str | None = None,
+    against: dict[str, str] | None = None,
 ) -> Row:
     """A row whose kind is the check's, with the coherence rules the schema cannot state.
 
@@ -251,6 +264,7 @@ def row(  # noqa: PLR0913 — one argument per fact the row records
         elapsed_s=elapsed_s,
         budget_s=budget_s,
         note=note,
+        against=against,
     )
 
 
@@ -287,7 +301,7 @@ def incoherence(row_: Row) -> str | None:
 
 @dataclass(frozen=True)
 class Record:
-    """One ``qa/v1`` file, with where it came from."""
+    """One QA record (``qa/v1`` or ``qa/v2``), with where it came from."""
 
     subject: str
     statement_hash: str
@@ -516,7 +530,13 @@ def load(target_dir: Path) -> dict[str, list[Record]]:
     if not directory.is_dir():
         return out
     for path in sorted(p for p in directory.iterdir() if p.is_file() and p.suffix in SUFFIXES):
-        doc = schemas.load_yaml(path, SCHEMA)
+        doc = schemas.load_yaml(path)  # validated against the version it declares
+        if doc.get("schema") not in READABLE_SCHEMAS:
+            msg = (
+                f"{path.name} declares {doc.get('schema')!r}; a QA record is one of "
+                f"{', '.join(READABLE_SCHEMAS)}"
+            )
+            raise schemas.SchemaError(msg)
         record = Record(
             subject=str(doc["subject"]),
             statement_hash=str(doc["statement_hash"]),

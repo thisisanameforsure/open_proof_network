@@ -38,7 +38,9 @@ FRONTIER_SCHEMA = "frontier/v3"  # T7: attempts counts partials (v2, F11-R4: D-3
 #: F11-R12 renames D-9's second rung and F11-R3/R4 add the derived fields. v2 was already spent
 #: on F07-R8's node counts and D-34 forbids editing it, so the rename lands at v3 (F11-Q9).
 #: F12-R14 adds the QA pass state per subject, the counted attempts and the drift flag: v4.
-INDEX_SCHEMA = "targets-index/v4"
+#: F14-R1, R9: claimable while listed; the statement evidence, the step-9 basis and the
+#: formalizations: v5.
+INDEX_SCHEMA = "targets-index/v5"
 INFO_SCHEMA = "info/v1"
 CLAIMS_SCHEMA = "claims/v1"
 CLAIMS_FILE = "claims.json"
@@ -336,6 +338,20 @@ def qa_summary(state: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def step9_basis(tg: TargetGraph) -> str:
+    """F14-R9: what a proof or partial on the root needs at merge, as the gate decides it from this
+    tree (``modes.with_statement_review``): a counting certificate, recorded evidence, or a
+    non-author's review. Until F14-T5 the evidence basis is the registry provenance F07-T17 reads;
+    T5 narrows it to a statement-evidence record at the minimum score."""
+    from opn_gate import modes  # noqa: PLC0415 — modes owns the rule; products only reports it
+
+    if modes.root_certificate(tg.path) is not None:
+        return "certificate"
+    if modes.registry_provenance(tg.path) is not None:
+        return "evidence"
+    return "review"
+
+
 def index_doc(targets: list[TargetGraph], rendered_from: str | None) -> dict[str, Any]:
     out = []
     for tg in targets:
@@ -362,6 +378,10 @@ def index_doc(targets: list[TargetGraph], rendered_from: str | None) -> dict[str
                 "not_claimable": list(facts.reasons),
                 "attempts": facts.attempts,
                 "drift": facts.drift,
+                # F14-R9: filled by the evidence record (T4) and the formalizations (T6).
+                "statement_evidence": None,
+                "step9": step9_basis(tg),
+                "formalizations": [],
             }
         )
     return {"schema": INDEX_SCHEMA, "rendered_from": rendered_from, "targets": out}

@@ -29,6 +29,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "drift/v1",
         "fidelity/v1",
         "fidelity/v2",
+        "formalization/v1",
         "frontier/v1",
         "frontier/v2",
         "frontier/v3",
@@ -46,9 +47,11 @@ def test_known_schemas_are_the_published_set() -> None:
         "postmortem/v1",
         "precheck-record/v1",
         "qa/v1",
+        "qa/v2",
         "relevance/v1",
         "revision-request/v1",
         "revision-request/v2",
+        "statement-evidence/v1",
         "submission-meta/v1",
         "target-status/v1",
         "target-status/v2",
@@ -57,6 +60,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "targets-index/v2",
         "targets-index/v3",
         "targets-index/v4",
+        "targets-index/v5",
         "waiver/v1",
     )
 
@@ -338,6 +342,25 @@ def test_schema_hashes_pinned(tmp_path: Path) -> None:
     assert any(
         "meta/v99.json is not pinned" in p for p in schemas.verify_pins(copy, copy / "HASHES")
     )
+
+
+def test_f14_record_samples_validate() -> None:
+    """F14-T3: the evidence record, the formalization record and a qa/v2 row that names what it
+    compared against validate; each refuses the shape its requirement forbids."""
+    schemas.validate(samples.statement_evidence())
+    schemas.validate(samples.formalization())
+    against = {"kind": "formalization", "ref": "fc-twin", "statement_hash": "b" * 64}
+    record = samples.qa_record(schema="qa/v2")
+    record["checks"][0] = {**record["checks"][0], "check": "equivalence", "against": against}
+    schemas.validate(record)
+    assert schemas.violations(samples.qa_record(checks=record["checks"]))  # v1 has no `against`
+    assert schemas.violations(samples.statement_evidence(subject="Primes"))  # the root only
+    bad_letter = samples.statement_evidence()
+    bad_letter["catalog"] = {**bad_letter["catalog"], "letter": "A+"}
+    assert schemas.violations(bad_letter)
+    assert schemas.violations(samples.statement_evidence(statement_hash="A" * 64))
+    assert schemas.violations(samples.formalization(name="Not_An_Id"))
+    assert schemas.violations({**samples.formalization(), "claimable": True})
 
 
 def test_unknown_schema_refused() -> None:

@@ -1,0 +1,17 @@
+F14-T3 — schemas targets-index/v5, qa/v2, statement-evidence/v1, formalization/v1
+worktree: /Users/mikehiggins/Desktop/repos/opn-f14 at 86bd9cf + T3 changes
+command: make verify's three steps (ruff check + format --check, mypy gate/api/site, pytest fast tier),
+  with --ignore=gate/tests/test_catalog.py: that file belongs to T9 and reads a catalog T9's build writes
+2026-09-14T13:59:00Z
+
+All checks passed!
+319 files already formatted
+Success: no issues found in 156 source files
+Success: no issues found in 96 source files
+Success: no issues found in 24 source files
+........................................................................ [ 88%]
+........................................................................ [ 92%]
+........................................................................ [ 95%]
+........................................................................ [ 99%]
+.................                                                        [100%]
+2033 passed, 68 deselected in 155.44s (0:02:35)

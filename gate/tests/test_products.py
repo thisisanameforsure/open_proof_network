@@ -961,7 +961,17 @@ def test_signature_count(tmp_path: Path) -> None:
     old = json.loads((GOLDEN / "unproved" / "targets" / "index.json").read_bytes())
     old["schema"] = "targets-index/v1"
     for entry in old["targets"]:
-        for key in ("track", "subjects", "posting", "not_claimable", "attempts", "drift"):
+        for key in (
+            "track",
+            "subjects",
+            "posting",
+            "not_claimable",
+            "attempts",
+            "drift",
+            "statement_evidence",  # F14: v5
+            "step9",
+            "formalizations",
+        ):
             entry.pop(key, None)
         for key in ("refuted", "defective"):
             entry["node_counts"].pop(key, None)
@@ -1156,7 +1166,7 @@ def test_index_carries_the_qa_state_attempts_and_drift(tmp_path: Path) -> None:
     assert row["claimable"] is False and "upstream-drift" in row["not_claimable"]
     assert (
         schemas.violations(
-            json.loads(generate(root).files[Path("targets/index.json")]), "targets-index/v4"
+            json.loads(generate(root).files[Path("targets/index.json")]), "targets-index/v5"
         )
         == []
     )
