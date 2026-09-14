@@ -60,6 +60,13 @@ with its single home:
     <code>site-deploy</code> (F04-Q10; added 2026-09-13, expiring after a year). It can start any
     of the network repository's workflows on <code>main</code> and cannot push code or read
     secrets; losing it costs a site that waits for the schedule.</li>
+  <li><strong>Step 9 refresh permission</strong> (no stored secret: the job's own token): the graph's
+    <code>step9-refresh.yml</code> is granted <code>actions: write</code> and
+    <code>pull-requests: read</code> for one step that re-runs the step-9 job of a pull request's
+    existing gate run when a review is submitted or dismissed (F07-T8, F07-Q23; added 2026-09-14).
+    It checks nothing out, runs no gate or contributor code and names no secret; a review on a pull
+    request from a fork receives a read-only token by GitHub's rule, and there the reviewer re-runs
+    the check by hand.</li>
   <li><strong>GitHub App private key and client secret</strong> (the App also serves as the OAuth
     app for GitHub-proof identities, F05) and the <strong>api token-signing secret</strong>: AWS
     Systems Manager Parameter Store (SecureString), read by the api function at startup.</li>

@@ -237,13 +237,7 @@ def test_verify_checks_the_mathlib_label_against_the_pin(tmp_path: Path) -> None
 # The workflow is the graph's file (D-35), read here from the fetched remote because the local
 # clone's main is stale; skipped where the graph is not checked out beside this repo (CI) or has
 # no origin/main. A static read of the YAML, never a run of it.
-
-STEP9_REASON = (
-    "finding 7 (D-4 step order, C8, F07-Q16): the graph's gate job evaluates step 9 before the "
-    "sandbox, so a valid non-certified submission is a red check within seconds and its build "
-    "never runs; the mark stays until Phase 2 lands the split gate.yml on the graph; "
-    "fix: F07-T8 (Mike, 2026-09-13)"
-)
+# Held as a strict xfail from the 2026-09-13 plan until F07-T8 went live on the graph (17814a2).
 
 
 def _live_gate_jobs() -> dict[str, Any]:
@@ -285,7 +279,6 @@ def test_the_gate_jobs_build_step_holds_no_secret_and_no_write_permission() -> N
     assert "secrets." not in json.dumps(build) and "github.token" not in json.dumps(build)
 
 
-@pytest.mark.xfail(strict=True, reason=STEP9_REASON)
 def test_step_9_is_its_own_job_after_the_sandbox_build() -> None:
     """D-4's order: the sandbox build (steps 1-8) is job ``gate``, which exports the classify
     step's ``needs_review`` and ``tutorial`` as job outputs; step 9 is a job of its own that

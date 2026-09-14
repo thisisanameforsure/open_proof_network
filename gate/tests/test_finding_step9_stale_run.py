@@ -14,6 +14,8 @@ inert on any pin. The same commit makes the post-merge job hand every merge its 
 Static reads of ``origin/main`` in the sibling graph repo (never a run of the workflows), skipped
 where the graph is not checked out beside this repo; a missing ``step9-refresh.yml`` is a
 failure, not a skip. One ``network`` test reads the ruleset through ``gh``, read-only.
+
+Held as strict xfails from f80151b until F07-T8 went live on the graph (17814a2, 2026-09-14).
 """
 
 from __future__ import annotations
@@ -38,12 +40,6 @@ REFRESH_WORKFLOW = ".github/workflows/step9-refresh.yml"
 #: The name F07-T8 gives the step-9 job; the ruleset matches a check by this exact string.
 STEP9_JOB_NAME = "step 9 (a non-author approving review)"
 ACTIONS_APP_ID = 15368  # GitHub Actions' integration id, the source every required check names
-
-REASON = (
-    "finding step9-stale-run (D-4 step order, F07-R16, C8, F07-Q16): step 9 runs inside the gate "
-    "job and an approving review starts a new run instead of refreshing the red one, so a "
-    "reviewed submission stays blocked; fix: F07-T8 (Mike, 2026-09-14)"
-)
 
 
 def _git(*args: str) -> subprocess.CompletedProcess[str]:
@@ -123,7 +119,6 @@ def _step9_job(jobs: dict[str, Any]) -> dict[str, Any] | None:
 # --- gate.yml -----------------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_the_gate_workflow_is_not_started_by_a_review() -> None:
     """A review re-runs step 9 in place (step9-refresh.yml); it never starts the gate again, so
     the workflow triggers on ``pull_request`` and ``push`` only and the gate job runs for a pull
@@ -136,7 +131,6 @@ def test_the_gate_workflow_is_not_started_by_a_review() -> None:
     assert "pull_request_review" not in gate_if, gate_if
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_the_step_9_job_reads_eligible_reviewers_from_the_gate_jobs_output() -> None:
     """The step-9 job has no checkout, so ``classification.json`` is not there to read: the gate
     job exports ``reviewers`` (with ``needs_review`` and ``tutorial``) and step 9 reads it from
@@ -151,7 +145,6 @@ def test_the_step_9_job_reads_eligible_reviewers_from_the_gate_jobs_output() -> 
     assert "classification.json" not in text, "step 9 reads a file its job never checked out"
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_the_gate_step_hands_the_author_to_the_pinned_gate() -> None:
     """F07-T14 records the submitter; a hand-opened pull request has no body block, so ``Run the
     gate`` passes the author the way classify already does (``OPN_PR_AUTHOR``, no new flag)."""
@@ -165,7 +158,6 @@ def test_the_gate_step_hands_the_author_to_the_pinned_gate() -> None:
 # --- the post-merge job -------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_postmerge_fetches_the_body_for_every_mode() -> None:
     """Every attested merge records its submission block (F07-T14), so the body is fetched
     whatever the mode — not only for a partial."""
@@ -176,7 +168,6 @@ def test_postmerge_fetches_the_body_for_every_mode() -> None:
     assert "mode" not in guard and "partial" not in guard, guard
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_postmerge_passes_the_body_and_the_author_unconditionally() -> None:
     """The re-derive step's ``postmerge`` command carries ``--pr-body-file`` and ``--author`` on
     its own command line, not inside the partial-only array (the pinned commit already accepts
@@ -196,7 +187,6 @@ def test_postmerge_passes_the_body_and_the_author_unconditionally() -> None:
     assert re.search(r"--author\b", invocation), invocation
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_postmerge_writes_the_ledger_for_every_merge_after_signing() -> None:
     """F07-T15: the ledger credits every merge it should, so its step runs whenever the merge
     touched a target — not only for a proposal — and after the attestation is signed (it reads
@@ -214,7 +204,6 @@ def test_postmerge_writes_the_ledger_for_every_merge_after_signing() -> None:
 # --- step9-refresh.yml --------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_the_refresh_workflow_runs_on_a_review_and_holds_one_job() -> None:
     doc = _refresh_workflow()
     on = _triggers(doc)
@@ -226,7 +215,6 @@ def test_the_refresh_workflow_runs_on_a_review_and_holds_one_job() -> None:
     assert isinstance(jobs, dict) and len(jobs) == 1, jobs
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_the_refresh_workflow_holds_nothing_but_the_rerun_permission() -> None:
     """C8: the one new door is ``actions: write``; no action is used (no checkout), no secret is
     named, so nothing a contributor wrote is ever on the runner."""
@@ -239,7 +227,6 @@ def test_the_refresh_workflow_holds_nothing_but_the_rerun_permission() -> None:
     assert "secrets." not in json.dumps(doc)
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_the_refresh_workflow_reruns_the_step_9_job_of_the_existing_gate_run() -> None:
     """It finds the pull request's gate run and re-runs that run's step-9 job in place, and runs
     no gate code at all — so it works the same on any pinned network commit."""
@@ -261,7 +248,6 @@ def _gh(*args: str) -> subprocess.CompletedProcess[str]:
 
 
 @pytest.mark.network
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_the_ruleset_requires_the_gate_and_the_step_9_job() -> None:
     """The main ruleset requires both job names, exactly, from GitHub Actions, up to date — a
     check matched by a stale name never reports and blocks every merge (the log, 2026-09-10).

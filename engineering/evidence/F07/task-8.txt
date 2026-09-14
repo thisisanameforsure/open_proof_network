@@ -1,0 +1,76 @@
+F07-T8 · step 9 is its own job after the build, refreshed in place by a review (R16; D-4 order, C8) · 2026-09-14T09:01:17Z
+
+Status: live on the graph (ruleset + push, Mike's go-ahead 2026-09-14). The live pull-request acceptance
+(task-8-live.txt) follows the network push and the re-pin, on the euclid root proof.
+
+================ A. before the push: red against origin/main, green against the local tree ================
+--- red, against the graph's origin/main (network main bd7dbfa) ---
+$ uv run --frozen pytest gate/tests/test_finding_step9_stale_run.py gate/tests/test_pins.py --runxfail -m "not network" -q
+FAILED gate/tests/test_finding_step9_stale_run.py::test_the_gate_workflow_is_not_started_by_a_review
+FAILED gate/tests/test_finding_step9_stale_run.py::test_the_step_9_job_reads_eligible_reviewers_from_the_gate_jobs_output
+FAILED gate/tests/test_finding_step9_stale_run.py::test_the_gate_step_hands_the_author_to_the_pinned_gate
+FAILED gate/tests/test_finding_step9_stale_run.py::test_postmerge_fetches_the_body_for_every_mode
+FAILED gate/tests/test_finding_step9_stale_run.py::test_postmerge_passes_the_body_and_the_author_unconditionally
+FAILED gate/tests/test_finding_step9_stale_run.py::test_postmerge_writes_the_ledger_for_every_merge_after_signing
+FAILED gate/tests/test_finding_step9_stale_run.py::test_the_refresh_workflow_runs_on_a_review_and_holds_one_job
+FAILED gate/tests/test_finding_step9_stale_run.py::test_the_refresh_workflow_holds_nothing_but_the_rerun_permission
+FAILED gate/tests/test_finding_step9_stale_run.py::test_the_refresh_workflow_reruns_the_step_9_job_of_the_existing_gate_run
+FAILED gate/tests/test_pins.py::test_step_9_is_its_own_job_after_the_sandbox_build
+10 failed, 8 passed, 1 deselected in 7.34s
+
+--- green, the same tests read from the local graph working tree (pytest plugin local_graph_workflows:
+    it patches the collected modules' _live_workflow / _live_gate_jobs to read the files on disk) ---
+local_graph_workflows patched: ['gate.tests.test_finding_step9_stale_run._live_workflow', 'gate.tests.test_pins._live_gate_jobs']
+18 passed, 1 deselected in 0.62s
+
+--- the change (graph commit 17814a2 on branch f07-t8) ---
+
+ .github/workflows/gate.yml          | 125 ++++++++++++++++++++++--------------
+ .github/workflows/step9-refresh.yml |  53 +++++++++++++++
+ 2 files changed, 129 insertions(+), 49 deletions(-)
+
+Mechanism checked in the docs before writing: POST /repos/{owner}/{repo}/actions/jobs/{job_id}/rerun
+"Re-run a job and its dependent jobs in a workflow run" (docs.github.com REST, workflow runs); gh 2.78
+'gh run rerun <run> --job <databaseId>'. The step-9 job has no dependents, so a review re-runs it alone
+and the gate job's outputs from the first attempt stand.
+
+
+================ B. the owner's acts, done ================
+--- 1. ruleset 22508489 (main), required_status_checks before and after (gh api GET / PUT) ---
+before: [{'strict_required_status_checks_policy': True, 'do_not_enforce_on_create': False, 'required_status_checks': [{'context': 'gate (steps 1, 2 and 4-8 in the sandbox)', 'integration_id': 15368}]}]
+after:  [{'strict_required_status_checks_policy': True, 'do_not_enforce_on_create': False, 'required_status_checks': [{'context': 'gate (steps 1, 2 and 4-8 in the sandbox)', 'integration_id': 15368}, {'context': 'step 9 (a non-author approving review)', 'integration_id': 15368}]}]
+Only required_status_checks changed (asserted over every rule and every non-rule field); bypass actors unchanged:
+[{'actor_id': None, 'actor_type': 'DeployKey', 'bypass_mode': 'always'}, {'actor_id': 5, 'actor_type': 'RepositoryRole', 'bypass_mode': 'always'}]
+
+--- 2. the push (owner bypass; origin/main was 0801922 = the branch's parent) ---
+   0801922..17814a2  f07-t8 -> main   (remote: 2 of 2 required status checks are expected — bypassed by the owner)
+graph main: 17814a2 F07-T8: step 9 is its own job after the build, refreshed in place by a review; every merge hands the gate its body and author and writes the ledger
+
+--- 3. workflows registered ---
+gate	active	352809760
+step 9 refresh	active	357670819
+
+--- 4. the push-triggered run (no pull request merged: postmerge records nothing) ---
+34825240231 gate push completed success 17814a2 jobs: postmerge (step 9 record, gate signature, attestation commit)=success, gate (steps 1, 2 and 4-8 in the sandbox)=skipped, step 9 (a non-author approving review)=skipped
+
+--- 5. the static tests, now reading the LIVE origin/main (no plugin), marks ignored ---
+$ uv run --frozen pytest gate/tests/test_finding_step9_stale_run.py gate/tests/test_pins.py --runxfail -m "not network" -q
+18 passed, 1 deselected in 6.23s
+$ uv run --frozen pytest gate/tests/test_finding_step9_stale_run.py --runxfail -m network -q   (reads the ruleset through gh)
+1 passed, 9 deselected in 1.59s
+
+
+================ C. the marks off (they read origin/main, so they XPASSed from the push on) ================
+10 strict xfail marks (and the REASON constant) removed from gate/tests/test_finding_step9_stale_run.py, and
+1 (with STEP9_REASON) from gate/tests/test_pins.py. The push turned them into XPASS, which failed the
+pre-commit hook for every session until they came off; the marks should have come off in the same sitting
+as the push.
+$ uv run --frozen pytest gate/tests/test_finding_step9_stale_run.py gate/tests/test_pins.py -m "not lean and not docker" -q
+19 passed in 2.40s
+$ uv run --frozen pytest -m "not lean and not docker and not network" -q   (shared tree, 2026-09-14 ~09:05Z)
+1828 passed, 67 deselected, 53 xfailed
+
+================ D. still to come ================
+task-8-live.txt: a real reviewable pull request — gate green and step 9 red, mergeable_state blocked; a
+non-author approval; the refresh run re-running step 9 in place; mergeable_state clean with no manual re-run;
+a dismissal blocking it again.
