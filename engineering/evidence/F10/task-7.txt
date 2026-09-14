@@ -1,0 +1,141 @@
+F10-T6 and F10-T7: the agent guide (gate/agents/AGENTS.md) says what two live testers had to discover
+Captured 2026-09-14 in a worktree fast-forwarded to main cc34aa0.
+
+Scope: gate/agents/AGENTS.md; the strict marks off gate/tests/test_finding_guide_skeleton.py (T6),
+test_finding_guide_pending_work.py and test_finding_guide_mcp_renames.py (T7);
+gate/tests/test_walkthrough.py (MIN_EXECUTED 20 -> 22 for two new executed blocks; a strict xfail on
+test_graph_copy_is_identical until the lead copies the guide to the graph).
+test_finding_graph_readme.py keeps its strict mark: the fix is the graph's README, pushed by the lead.
+
+T6 test change forced by the fix: split_guide_block looked for the citation only above `theorem`, so
+no guide in the fixed shape could ever pass it (StopIteration). It now keeps whatever the guide puts
+between the imports and the theorem and lays the block over a real statement exactly as the guide
+lays it out; mutant 3a shows it still fails on the old shape with the original diagnostic.
+
+Verification commands:
+  uv run --frozen pytest --runxfail gate/tests/test_finding_guide_skeleton.py \
+    gate/tests/test_finding_guide_pending_work.py gate/tests/test_finding_guide_mcp_renames.py \
+    gate/tests/test_finding_graph_readme.py -rA            (1, before any edit)
+  the same without --runxfail                                (2, after)
+  uv run --frozen pytest gate/tests/test_walkthrough.py -s -m 'not lean and not docker and not network'
+  make verify
+
+== 1. Red first: --runxfail, before any edit ==
+FAILED gate/tests/test_finding_guide_skeleton.py::test_the_guides_skeleton_shape_passes_step_2
+  E AssertionError: {'code': 'proof-not-statement', 'message': 'Proof.lean diverges from
+    Statement.lean at line 2 (header or signature)', ... 'details': {'line': 2, 'expected': '',
+    'got': '-- annex: d0c8e2f9...'}}
+PASSED gate/tests/test_finding_guide_skeleton.py::test_the_citation_after_by_passes_step_2_today
+FAILED gate/tests/test_finding_guide_pending_work.py::test_the_skeleton_section_says_the_holes_are_yours_to_witness_and_prove
+  E AssertionError: the skeleton section never mentions a hole's witness
+FAILED gate/tests/test_finding_guide_pending_work.py::test_the_skeleton_section_says_one_pull_request_and_one_approval_per_hole
+  E AssertionError: the skeleton section does not say each hole is its own pull request
+FAILED gate/tests/test_finding_guide_pending_work.py::test_the_skeleton_section_says_merge_one_at_a_time_and_the_parent_last
+  E AssertionError: the skeleton section does not say the hole pull requests merge one at a time
+FAILED gate/tests/test_finding_guide_pending_work.py::test_precheck_and_submit_names_the_zero_padded_attestation
+  E AssertionError: the guide still names the unpadded `attestations/<pull request number>.json`
+FAILED gate/tests/test_finding_guide_pending_work.py::test_precheck_and_submit_says_how_to_watch_a_pending_submission
+  E AssertionError: no paragraph documents GET /submissions/<id> or get_submission with review and check state
+FAILED gate/tests/test_finding_guide_pending_work.py::test_the_appendix_lists_list_submissions
+  E AssertionError: the MCP appendix has no list_submissions row
+FAILED gate/tests/test_finding_guide_pending_work.py::test_the_claiming_section_says_why_a_node_is_not_claimable
+  E AssertionError: the claiming section does not mention ['not_claimable', 'targets/index.json', 'node-not-claimable']
+FAILED gate/tests/test_finding_guide_mcp_renames.py::test_the_appendix_renames_column_is_the_renames_map
+  E AssertionError: the MCP appendix has no 'Argument → body field' column: ['Tool', 'Plain path']
+SKIPPED [1] gate/tests/test_finding_graph_readme.py:32: the graph repo is not checked out beside this repo
+==================== 9 failed, 1 passed, 1 skipped in 0.12s ====================
+
+== 2. Green: after the edit, marks off ==
+PASSED gate/tests/test_finding_guide_skeleton.py::test_the_guides_skeleton_shape_passes_step_2
+PASSED gate/tests/test_finding_guide_skeleton.py::test_the_citation_after_by_passes_step_2_today
+PASSED gate/tests/test_finding_guide_pending_work.py::test_the_skeleton_section_says_the_holes_are_yours_to_witness_and_prove
+PASSED gate/tests/test_finding_guide_pending_work.py::test_the_skeleton_section_says_one_pull_request_and_one_approval_per_hole
+PASSED gate/tests/test_finding_guide_pending_work.py::test_the_skeleton_section_says_merge_one_at_a_time_and_the_parent_last
+PASSED gate/tests/test_finding_guide_pending_work.py::test_precheck_and_submit_names_the_zero_padded_attestation
+PASSED gate/tests/test_finding_guide_pending_work.py::test_precheck_and_submit_says_how_to_watch_a_pending_submission
+PASSED gate/tests/test_finding_guide_pending_work.py::test_the_appendix_lists_list_submissions
+PASSED gate/tests/test_finding_guide_pending_work.py::test_the_claiming_section_says_why_a_node_is_not_claimable
+PASSED gate/tests/test_finding_guide_mcp_renames.py::test_the_appendix_renames_column_is_the_renames_map
+SKIPPED [1] gate/tests/test_finding_graph_readme.py:32: the graph repo is not checked out beside this repo
+======================== 10 passed, 1 skipped in 0.37s =========================
+
+Red -> green: skeleton 1 failed + 1 passed -> 2 passed (T6); pending work 7 failed -> 7 passed (T7);
+MCP renames 1 failed -> 1 passed (T7); graph README: strict xfail kept, skipped in a worktree, the
+lead's README push flips it.
+
+== 3. Mutants: a pytest -p plugin points each module's GUIDE at a scratch copy with one edit reverted ==
+-- 3a (T6): the citation moved back between the imports and the theorem
+E AssertionError: {'code': 'proof-not-statement', 'message': 'Proof.lean diverges from Statement.lean
+  at line 2 (header or signature)', ... 'got': '-- annex: d0c8e2f9...'}
+PASSED gate/tests/test_finding_guide_skeleton.py::test_the_citation_after_by_passes_step_2_today
+FAILED gate/tests/test_finding_guide_skeleton.py::test_the_guides_skeleton_shape_passes_step_2
+========================= 1 failed, 1 passed in 0.05s ==========================
+
+-- 3b (T7): "3. **Merge them one at a time.**" -> "3. **Merge them.**"
+E AssertionError: the skeleton section does not say the hole pull requests merge one at a time
+FAILED gate/tests/test_finding_guide_pending_work.py::test_the_skeleton_section_says_merge_one_at_a_time_and_the_parent_last
+========================= 1 failed, 6 passed in 0.04s ==========================
+
+-- 3c (T7): the `claim_node`: `ttl` → `ttl_hours` cell emptied
+E AssertionError: {'documented only': [], 'RENAMES only': [('claim_node', 'ttl', 'ttl_hours')]}
+FAILED gate/tests/test_finding_guide_mcp_renames.py::test_the_appendix_renames_column_is_the_renames_map
+============================== 1 failed in 0.37s ===============================
+
+-- 3d: test_graph_copy_is_identical with GRAPH_COPY pointed at the live sibling
+   /Users/mikehiggins/Desktop/repos/open_proof_network_graph/AGENTS.md (what the main checkout reads:
+   the graph's working tree, not origin/main), whose copy is the pre-T6 guide
+XFAIL gate/tests/test_walkthrough.py::test_graph_copy_is_identical - F10-T6, F10-T7: the guide changed in this repo first; graph copy pushed by the lead ...
+======================== 1 xfailed, 2 warnings in 0.13s ========================
+
+== 4. The guide executes: walkthrough fast tier (fixture clone + fake service) ==
+line   34 passed   test -d "$GRAPH/targets"
+line   52 passed   META="$(grep -l '^tutorial: true' "$GRAPH"/targets/*/nodes/*/META.yaml
+line   70 passed   cat "$NODE_DIR/Statement.lean"
+line   82 passed   python3 - "$NODE_DIR" <<'PY'
+line  105 skipped  OUT="$WORK/pregate"  [lean]
+line  129 passed   BUNDLE_PATH="targets/$TARGET/nodes/$NODE/Proof.lean"
+line  150 passed   STATE=queued
+line  165 passed   python3 - "$WORK/precheck-result.json" <<'PY'
+line  193 passed   curl -fsS "$OPN_API/frontier.json" > "$WORK/frontier.json"
+line  213 passed   CLAIM_NODE="$(python3 - "$WORK/frontier.json" <<'PY'
+line  237 passed   DCO_VERSION="$(curl -fsS "$OPN_API/dco.json" | python3 -c 'import json
+line  258 passed   curl -fsS -X POST "$OPN_API/claims" -H "Authorization: Bearer $TOKEN"
+line  284 passed   python3 - "$GRAPH/targets/index.json" <<'PY'                          (new, T7)
+line  312 passed   ls -p "$NODE_DIR" | LC_ALL=C sort
+line  341 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line  396 passed   python3 - "$GRAPH/targets/$TARGET/gate-spec.json" <<'PY'
+line  424 passed   curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' "$OPN_API/aut
+line  441 passed   curl -fsS -X POST "$OPN_API/precheck" -H "Authorization: Bearer $TOKEN
+line  465 passed   python3 - "$WORK/precheck-request.json" "$OWNED_JOB" <<'PY' > "$WORK/s
+line  491 passed   SUBMISSION_ID="$(python3 -c 'import json,sys; print(json.load(sys.stdi   (new, T7)
+line  524 passed   BRANCH="proof/$NODE-$PSEUDONYM"
+line  541 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line  554 passed   ATTESTATION="$WORK/attestation.json"
+line  579 skipped  git -C "$GRAPH" push -u origin "$BRANCH"  [manual]
+line  597 passed   cat > "$WORK/postmortem.yaml" <<'YAML'
+line  639 passed   python3 - "$WORK/postmortem.yaml" "$NODE" <<'PY' > "$WORK/postmortem-r
+line  698 passed   python3 - "$NODE" <<'PY' > "$WORK/annex-request.json"
+line  757 passed   curl -sS -X POST "$OPN_API/submissions" -H "Authorization: Bearer $TOK
+line  783 passed   python3 - "$TARGET" "$NODE" <<'PY' > "$WORK/proposal.json"
+line  809 passed   curl -fsS "$OPN_API/info.json" | python3 -c '
+line  826 passed   curl -fsS -X DELETE "$OPN_API/claims/$CLAIM_ID" -H "Authorization: Bea
+line  866 skipped  claude mcp add --transport http open-proof-network "$OPN_API/mcp"  [manual]
+29 passed, 0 drifted, 0 failed, 3 skipped
+PASSED gate/tests/test_walkthrough.py::test_required_sections
+PASSED gate/tests/test_walkthrough.py::test_manual_blocks_are_the_known_two
+PASSED gate/tests/test_walkthrough.py::test_agents_md_executes
+SKIPPED gate/tests/test_walkthrough.py::test_graph_copy_is_identical (no sibling graph beside the worktree)
+============ 3 passed, 1 skipped, 1 deselected, 2 warnings in 4.67s ============
+Before the edit the same run executed 27 blocks; the manual set is unchanged (2).
+
+== 5. make verify (exit 0) ==
+ruff check: All checks passed!   ruff format: 312 files already formatted
+mypy: Success: no issues found in 153 / 93 / 23 source files (gate, api, site)
+= 1967 passed, 17 skipped, 67 deselected, 6 xfailed, 2 warnings in 169.84s (0:02:49) =
+
+== 6. Left for the lead (graph repository, D-35) ==
+- Copy gate/agents/AGENTS.md byte for byte to ../open_proof_network_graph/AGENTS.md, push, and take
+  the strict mark off gate/tests/test_walkthrough.py::test_graph_copy_is_identical.
+- In ../open_proof_network_graph/README.md replace `docs/architecture_decisions_v_3_10.html` with
+  `docs/architecture_decisions_v_3_12.html`, push, and take the strict mark off
+  gate/tests/test_finding_graph_readme.py.

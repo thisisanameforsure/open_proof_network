@@ -21,17 +21,9 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
-import pytest
-
 ROOT = Path(__file__).resolve().parents[2]
 GUIDE = ROOT / "gate" / "agents" / "AGENTS.md"
 APPENDIX = "## Appendix: the MCP tools"
-
-REASON = (
-    "finding guide-mcp-renames (F10-R2, D-28, F09-R2): the guide's MCP appendix does not say "
-    "which tool arguments the endpoints spell differently, and no RENAMES map exists to hold it "
-    "to; fix: F10-T7 (Mike, 2026-09-14)"
-)
 
 _TOKEN = re.compile(r"`([^`]+)`")
 _PAIR = re.compile(r"`([A-Za-z_][A-Za-z0-9_]*)`\s*(?:→|->)\s*`([A-Za-z_][A-Za-z0-9_]*)`")
@@ -92,7 +84,6 @@ def flattened(renames: Any) -> set[Triple]:
     return {(str(t), str(a), str(f)) for t, a, f in renames}
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_the_appendix_renames_column_is_the_renames_map() -> None:
     documented = guide_triples()
     writes = importlib.import_module("opn_api.mcp.writes")
