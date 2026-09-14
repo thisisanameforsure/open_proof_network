@@ -1,0 +1,33 @@
+F14-T10 — research: prover sweeps and selections beyond Erdős (R11)
+date: 2026-09-14
+inputs (scratch, named in docs/seed_conjecture_sources_fetch.sh): google-deepmind/alphaproof-nexus-results,
+epoch apn data, formal-conjectures at the pin c7f31d5 and its auto_oeis branch at 67338a1 (2026-05-20).
+
+1. AlphaProof Nexus
+   - APNOutputs holds ErdosProblems, OEIS (38 solved outputs), StacksProject (11) and AICollaborator (5 areas).
+   - Stacks Project and AICollaborator problems are not Formal Conjectures files. No catalog row can carry them.
+   - The OEIS attempts are the 492 theorems of FormalConjectures/OEIS/Auto on the auto_oeis branch, 444 distinct
+     sequence numbers. Those are machine autoformalizations, not the pinned OEIS/<n>.lean statements.
+     104 of the catalog's 165 OEIS files share a sequence number with an attempt. An attempt on a different
+     formalization is not an attempt on this statement, so it earns no point. The best matching row scores -1
+     because of the OEIS penalty, so it would change no grade at five points either way.
+   - Delta to the catalog: none.
+
+2. Epoch
+   - epoch/apn/data/oeis is the same 492 auto_oeis theorems. Nothing new.
+   - epoch/apn/data/fc100open is Formal Conjectures' own FormalConjectures/Subsets/FC100OpenSet1.lean,
+     which exists at the pin (last changed b1fe0251, 2026-08-27). 100 items; 72 map to catalog rows by
+     file and declaration, the other 28 are Erdős items keyed by number.
+   - Grades of the 72: A 3, B+ 2, B 4, C 26, D 31, unscored 6.
+   - If membership counted +2, as Bloom's FrontierMath selection does for Erdős rows, 14 more rows
+     would reach five points:
+       non-Erdős at 3: GreensOpenProblems/58 green_58; Wikipedia/Grimm grimm_conjecture and
+       grimm_conjecture_weak; Wikipedia/Irrational irrational_e_to_e; Wikipedia/RiemannZetaValues
+       irrational_five; Wikipedia/Transcendental pi_pow_pi_pow_pi_transcendental and
+       pi_pow_sqrt_two_transcendental.
+       Erdős: 200, 695, 887 at 3; 269, 313, 479, 890 at 4.
+   - Not applied. A new weight changes the grading the owner approved, so it is F14-Q12.
+   - Delta to the catalog: none.
+
+Conclusion: no non-Erdős prover sweep attaches to a pinned statement. Wave one stays 48 rows.
+Rebuild not needed: the build inputs and weights are unchanged, and gate/tests/test_catalog.py still passes in make verify.
