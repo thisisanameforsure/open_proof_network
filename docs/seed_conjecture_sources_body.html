@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seed Conjecture Sources — Open Proof Network</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+window.MathJax = {tex: {inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']]}, options: {skipHtmlTags: ['script','noscript','style','textarea','pre','code']}};
+</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.js"></script>
+<style>
+:root{
+  --ink:#1A2129; --ink-soft:#4A5561; --paper:#FAFAF9;
+  --teal:#0E6363; --teal-ink:#0A4A4A; --hair:#DDDAD2;
+  --amber:#8F6A1E; --rust:#9E3A2F; --green:#2F6B3F; --card:#FFFFFF; --tint:#F1EFEA;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --serif:"Source Serif 4",Georgia,serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:17px;line-height:1.62;-webkit-font-smoothing:antialiased}
+header.site{border-top:3px solid var(--teal);border-bottom:1px solid var(--hair);padding:44px 20px 30px}
+header.site .in{max-width:1180px;margin:0 auto}
+header.site h1{font-size:30px;line-height:1.2;margin:0 0 8px;font-weight:700;letter-spacing:-.01em}
+header.site .sub{color:var(--ink-soft);font-size:16px;max-width:64ch;margin:0}
+header.site .meta{font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);margin-top:14px;line-height:1.7}
+header.site .meta b{color:var(--teal-ink);font-weight:600}
+main{max-width:1180px;margin:0 auto;padding:34px 20px 90px;min-width:0}
+.narrow{max-width:72ch}
+h2{font-size:22px;margin:2.4em 0 .7em;padding-top:.9em;border-top:1px solid var(--hair);letter-spacing:-.005em}
+h2:first-of-type{border-top:none;padding-top:0;margin-top:.6em}
+h3{font-size:17.5px;margin:2em 0 .55em}
+p,li{max-width:72ch}
+a{color:var(--teal);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2.5px}
+a:hover{color:var(--teal-ink)}
+strong{font-weight:600}
+code{font-family:var(--mono);font-size:.85em;background:var(--tint);border-radius:3px;padding:.08em .3em}
+table{border-collapse:collapse;margin:1.2em 0;font-size:15px;width:100%}
+th,td{border-bottom:1px solid var(--hair);padding:8px 12px 8px 0;text-align:left;vertical-align:top}
+th{font-weight:600;font-size:13.5px;color:var(--ink-soft);border-bottom:2px solid var(--ink)}
+ul,ol{padding-left:1.4em}
+li{margin:.35em 0}
+li::marker{color:var(--ink-soft)}
+p.note{font-size:15px;color:var(--ink-soft);border-left:2px solid var(--hair);padding:.15em 0 .15em 14px;margin:.9em 0}
+p.note em{color:var(--teal-ink);font-style:normal;font-weight:600;font-size:13.5px}
+.answer{border-left:3px solid var(--teal);padding:2px 0 2px 18px;margin:26px 0}
+.answer p{margin:8px 0}
+.ladder{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 6px;font-family:var(--mono);font-size:12.5px}
+.ladder span{background:var(--card);border:1px solid var(--hair);padding:5px 10px;border-radius:3px;white-space:nowrap}
+.ladder span.floor{border-color:var(--teal);color:var(--teal-ink);font-weight:600}
+.tablewrap{overflow-x:auto;margin:1.2em 0;border:1px solid var(--hair);border-radius:4px;background:var(--card)}
+.tablewrap table{margin:0}
+.tablewrap th,.tablewrap td{padding:8px 10px}
+.tablewrap th{background:var(--tint);position:sticky;top:0;z-index:1}
+td.g{font-family:var(--mono);font-weight:600;white-space:nowrap}
+.A{color:var(--green)} .B{color:var(--teal-ink)} .C{color:var(--amber)} .D,.F{color:var(--rust)}
+/* catalog */
+.controls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;font-family:var(--mono);font-size:13px;margin:14px 0}
+.controls label{display:inline-flex;gap:6px;align-items:center}
+.controls input[type=search]{font:inherit;padding:4px 8px;border:1px solid var(--hair);border-radius:3px;min-width:260px}
+.controls select{font:inherit;padding:4px 6px;border:1px solid var(--hair);border-radius:3px;background:var(--card)}
+.controls .count{color:var(--ink-soft);margin-left:auto}
+#catalog{font-size:13.5px}
+#catalog th{cursor:pointer;user-select:none;white-space:nowrap}
+#catalog th.sorted::after{content:" ▾";color:var(--teal)}
+#catalog th.sorted.asc::after{content:" ▴"}
+#catalog td{min-width:120px}
+#catalog td.stmt{min-width:380px;max-width:520px}
+#catalog td.num{min-width:60px;font-family:var(--mono)}
+#catalog td.tn{font-variant-numeric:tabular-nums;white-space:nowrap}
+#catalog td.score{min-width:110px}
+.mut{color:var(--ink-soft);font-size:12.5px;line-height:1.45;margin-top:3px}
+.st{font-family:var(--mono);font-size:12px;font-weight:600;padding:1px 6px;border-radius:3px;border:1px solid var(--hair)}
+.st.open{color:var(--teal-ink);border-color:var(--teal)}
+.st.closed{color:var(--ink-soft)}
+.lt{font-family:var(--mono);font-weight:600;font-size:13px}
+.cat{font-family:var(--mono);font-size:11px;padding:0 5px;border-radius:3px;background:var(--tint);color:var(--ink-soft)}
+.cat.research-open{color:var(--teal-ink);background:#E3EEEC}
+.cat.research-solved{color:var(--green)}
+details summary{cursor:pointer;color:var(--teal);font-size:12.5px;font-family:var(--mono);margin-top:4px}
+details .why,ul.stmts,ul.wiki{font-size:12.5px;color:var(--ink);margin:6px 0 0;padding-left:1.1em;line-height:1.45}
+ul.stmts li{margin:.45em 0}
+ul.stmts .doc{color:var(--ink-soft);margin-top:2px}
+ul.wiki{padding-left:1em}
+.row.hidden{display:none}
+#other{font-size:13.5px}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header class="site"><div class="in">
+<h1>Seed Conjecture Sources</h1>
+<p class="sub">Where open conjectures exist as human-checked Lean 4 statements, how good each source's checking is, and a per-problem catalog with the metadata needed to decide whether a problem is added to a graph. Feeds F11-Q3 / F11-T5 (the recorded fact pass over the registry).</p>
+<div class="meta">Research date <b>2026-09-08</b> · Registry pin <b>google-deepmind/formal-conjectures@{{COMMIT_SHORT}}</b> ({{COMMIT_DATE}}) · Toolchain <b>{{TOOLCHAIN}}</b> · Mathlib <b>{{MATHLIB_TAG}}</b> ({{MATHLIB_REV}})<br>
+Catalog: <b>{{N_ROWS}}</b> Erdős problems with a Lean file, <b>{{N_OPEN_SITE}}</b> open on erdosproblems.com, <b>{{N_CAND}}</b> scoreable seed candidates, <b>{{N_A}}</b> graded A and <b>{{N_B}}</b> graded B+ or B · <b>{{N_OTHER}}</b> non-Erdős files with open statements · Rebuild with <code>docs/seed_conjecture_sources_build.py</code></div>
+</div></header>
+
+<main>
+<div class="narrow">
+
+<div class="answer">
+<p><strong>There is one real source.</strong> Google DeepMind's <code>formal-conjectures</code> registry holds essentially every reviewed Lean statement of an open problem. Everything else either vendors its statements from there or is unreviewed AI output.</p>
+<p><strong>Its checking is good enough to inherit from, not good enough to skip review.</strong> Every statement gets human review, but by one approver, with no per-statement record and no "verified" tier. The registry has itself corrected 291 misformalizations, about 11% of its statements, most of them found by provers rather than reviewers.</p>
+<p><strong>A filtered subset gets you what you actually want.</strong> Statements that Thomas Bloom selected for FrontierMath Erdős, that survived AlphaProof Nexus and Aletheia's prover and literature sweeps, and that use only Mathlib definitions, carry enough external evidence to meet D-9's top grade on its operational definition. The remaining cost per target is one non-author back-translation, which you can do yourself with tooling in well under an hour. The catalog below applies that filter to every formalized Erdős problem.</p>
+</div>
+
+<h2>1. The grading scale</h2>
+<p>D-9 makes fidelity a graded status, not a yes/no. The grades, low to high, with the floor below which no proving compute is allocated:</p>
+<div class="ladder"><span>mechanical-only</span><span class="floor">back-translated</span><span>author-attested</span><span>expert-attested</span><span>published-and-uncontested</span></div>
+<p>The top grade is operational, not reputational: N days public in a D-10 venue, M independent proof attempts, zero confirmed defect claims. Pilot defaults are N = 30 and M = 3. That definition is the lever in this report, because the registry's public history already supplies both N and M for many statements.</p>
+
+<h2>2. Sources, graded</h2>
+<p>Letter grade is for fidelity of the Lean to the intended open problem, given what is known today. The last column is the grade a statement would honestly carry the moment it is imported, before you do anything.</p>
+</div>
+<div class="tablewrap"><table>
+<thead><tr><th>Source</th><th>Open statements</th><th>Who checks the Lean</th><th>Residual-error evidence</th><th>Grade</th><th>D-9 at import</th></tr></thead>
+<tbody>
+<tr><td>Formal Conjectures, Erdős subset that is also in FrontierMath Erdős and survived the AlphaProof Nexus / Aletheia sweeps</td><td>≈ 50</td><td>FC reviewer at intake; Bloom selected the problem as significant; DeepMind experts validated Lean on every solve; provers hammered it for months without a trivial proof</td><td>None outstanding. Provers found and fixed density defects in #125, #741 before publication</td><td class="g A">A-</td><td>Meets published-and-uncontested operationally, if external attempts count as M</td></tr>
+<tr><td>Formal Conjectures, 18 Epoch autoformalized Erdős statements reviewed by Bloom (merged 2026-09-07)</td><td>18</td><td>AI formalized; Bloom reviewed each; Epoch's reviewers are "not Lean experts"</td><td>Too new to have survived any prover sweep</td><td class="g B">B</td><td>author-attested (curator of record signed off), but not yet back-translated by a Lean-literate non-author</td></tr>
+<tr><td>Formal Conjectures, other Erdős <code>research open</code></td><td>≈ 1,000</td><td>One human approver per PR; CI lints; ad hoc LLM cross-check; periodic prover runs</td><td>291 fixes to date across the registry; #480, #859, #424, #394 all stood months</td><td class="g B">B-</td><td>mechanical-only (F11-R9 already says this)</td></tr>
+<tr><td>Formal Conjectures, non-Erdős (Wikipedia, Ben Green's list, papers, MathOverflow)</td><td>≈ 400</td><td>Same intake; no curator equivalent to Bloom maintaining the informal side</td><td>Bateman–Horn junk values, MovingSofa order bug, both 2026</td><td class="g C">C+</td><td>mechanical-only</td></tr>
+<tr><td>Formal Conjectures, OEIS Open (Gemini-selected, Gemini-formalized)</td><td>492</td><td>Only the 44 machine-resolved ones were human-checked</td><td>Epoch: "likely that at least some conjectures are misformalized"</td><td class="g D">D</td><td>Not eligible; treat as unreviewed</td></tr>
+<tr><td>Mathlib (<code>RiemannHypothesis</code>, <code>conway_99</code>)</td><td>2</td><td>Full Mathlib maintainer review; RH is a <code>def</code> other theorems depend on</td><td>None</td><td class="g A">A</td><td>expert-attested in effect, but neither is a sensible Stage 0 target</td></tr>
+<tr><td>lean-dojo / LeanMillenniumPrizeProblems</td><td>4</td><td>No documented process; Buzzard's Sept 2026 review found Hodge vacuously true</td><td>Two of seven statements were interface sketches</td><td class="g C">C</td><td>mechanical-only; out of domain anyway</td></tr>
+<tr><td>lean-genius (1,500+ AI-formalized Erdős problems, auto-merged)</td><td>≈ 1,500</td><td>Nobody</td><td>Unaudited; no license</td><td class="g F">F</td><td>Do not import. Contamination hazard for the prior-art pass</td></tr>
+<tr><td>mathbounty.com, po0f.xyz</td><td>–</td><td>Bounty front-ends, not statement sources</td><td>–</td><td class="g">n/a</td><td>–</td></tr>
+</tbody></table></div>
+<div class="narrow">
+
+<h2>3. How Formal Conjectures actually checks a statement</h2>
+<p>Verified from the repository's CONTRIBUTING.md, AGENTS.md, CI workflows, review records and the May 2026 paper (arXiv 2605.13171).</p>
+<h3>Intake</h3>
+<p>Anyone with a Google CLA submits. Every statement carries exactly one <code>@[category research open | research solved | textbook | API | test]</code>, at least one <code>@[AMS n]</code>, and a module docstring citing the source. Questions are written with <code>answer(sorry)</code>. AGENTS.md adds a Source Fidelity rule: match quantifier order, bounds and hypotheses; test edge cases.</p>
+<h3>Mechanical checks</h3>
+<p><code>lake --wfail build</code> and <code>test</code>, a category-contradiction script, copyright headers, and custom linters: <code>ExistsImplicationLinter</code> (catches the classic <code>∃ x, P x → Q</code> bug), <code>StubLinter</code> (no sorry in definitions, no new axioms), metadata linters. There is no triviality or vacuity check in CI.</p>
+<h3>Human review</h3>
+<p>The paper says every contribution gets review by someone with Lean and domain expertise. In practice the two most recent merged PRs each had one approval, by the lead maintainer. No CODEOWNERS file, no per-statement reviewer record, no "verified" label. Fixed statements do not retain a record of the old, wrong version.</p>
+<h3>Adversarial provers</h3>
+<p>The strongest check, and it runs outside CI: AlphaProof, Gemini and Aristotle are pointed at the registry, and "manually inspecting these results primarily reveals misformalizations." Nearly every incident in §5 was caught this way.</p>
+<h3>Link to erdosproblems.com</h3>
+<p>Mechanical in both directions. A push to the registry auto-updates the site's "Formalised statement? Yes" link, which points at <code>main</code>, not a commit. The site records no formalization-verified status and Bloom does not review the Lean, except the 18 Epoch statements.</p>
+<h3>Measured defect rate</h3>
+<p>291 misformalizations corrected up to the frozen <code>bench-v1</code> tag of 2,615 statements. By class: misrepresentation (quantifiers, connectives, missing hypotheses) 48%, semantic (types, operators) 35%, implicit conventions 8%, reporting 5%, syntactic 3%, genuine mathematical error 0.3%.</p>
+
+<h2>4. Base rates from comparable corpora</h2>
+<p>Every human-reviewed Lean benchmark keeps shedding statement errors after release. These numbers set the prior for any statement you inherit.</p>
+</div>
+<div class="tablewrap"><table>
+<thead><tr><th>Corpus</th><th>Reviewed by</th><th>Errors found after release</th><th>Found how</th></tr></thead>
+<tbody>
+<tr><td>Formal Conjectures (2,615)</td><td>Lean + domain reviewer per PR</td><td>291, ≈ 11%</td><td>Prover runs, then issues</td></tr>
+<tr><td>PutnamBench (672)</td><td>Human-formalized, Mathlib-community reviewed</td><td>≈ 12% in first four months, ≈ 4% more over the next 18</td><td>Mathlib reviewers, then a prover with the English alongside</td></tr>
+<tr><td>miniF2F (488)</td><td>Human-authored 2021</td><td>Over half had informal/formal discrepancies; 16 unprovable</td><td>Full manual audit, 2025</td></tr>
+<tr><td>ProofNet (371)</td><td>Human-authored</td><td>≈ 35% flawed (snippet-level confidence)</td><td>Manual audit</td></tr>
+<tr><td>Aletheia grading of 200 AI "solutions" to open Erdős problems</td><td>Expert mathematicians</td><td>137 fundamentally flawed, 63 technically correct, 13 correct as intended</td><td>50 of the 63 proved an unintended reading</td></tr>
+</tbody></table></div>
+<div class="narrow">
+<p>The Aletheia row is the one that matters for an open-problem network. When the statement admits a weak reading, a prover finds the weak reading. Lean cannot see that. That is the residual risk D-9 already names as permanent, and it is why "no human reviewer" cannot mean "no non-author ever reads the statement".</p>
+
+<h2>5. What review misses on open problems</h2>
+<p>Concrete cases, all from the Erdős subset, grouped by the defect class. Each of these is a wording pattern the catalog screens for.</p>
+<ul>
+<li><strong>Source ambiguity.</strong> #728 had "a number of trivial solutions to the problem as written"; the community reconstructed the intended statement on the forum before a Lean proof meant anything. #1026 was ambiguous from 1975. #124 has two readings of P(d,0) versus P(d,1).</li>
+<li><strong>Source error.</strong> #75: Erdős dropped an ℵ₁-vertices condition in one of his own papers; Aletheia proved the flawed version correctly. The curator cannot catch this, which is why author-attested is non-terminal in D-9.</li>
+<li><strong>Density.</strong> "Positive density" and "natural density" were formalized three different ways in #125, #741 and #424; AlphaProof exploited natural density before the statements were amended to lower or upper density. The #424 reporter asked for an audit of every "positive density" problem, which is still open.</li>
+<li><strong>Asymptotic notation.</strong> #394 had the sides of ≫ swapped for months; #728's <code>n + O(log n)</code> was the whole disagreement.</li>
+<li><strong>Junk values and guards.</strong> #480 said <code>m ≠ 0</code> where it needed <code>n ≠ 0</code>; Aristotle proved it at n = 0 through Mathlib's 1/0 = 0. Bateman–Horn's <code>tprod</code> had the same shape in 2026.</li>
+<li><strong>Missing hypothesis.</strong> #859 lacked <code>t ≥ 1</code>; #56 lacked a constraint and fell to counterexamples "with tiny parameters like 2".</li>
+<li><strong>Definition mismatch.</strong> #918 used subgraph where induced subgraph was meant, found only when AlphaProof produced trivial solutions.</li>
+</ul>
+
+<h2>6. The seed filter, and how the trust score encodes it</h2>
+<p>A recorded fact pass over the registry, as F11-Q3 asks for. The catalog in §9 computes a heuristic trust score per problem from exactly these predicates; the "why" cell on each row lists which fired. The score is a triage aid derived from this report, not a certificate. D-9 certificates are still recorded per target by the fidelity command.</p>
+<ol>
+<li><strong>Pin the registry.</strong> Import at an immutable tag or dated commit, never from <code>main</code>. The catalog is built at c7f31d5; record the commit in provenance.</li>
+<li><strong>Erdős, <code>research open</code>, in an included domain.</strong> AMS 11 (number theory) or 05 (combinatorics), matching the protocol's target domains. Rows with no open Lean statement or a closed site status score n/a.</li>
+<li><strong>Bloom-selected</strong> (+2, +1 more if the FC statement was vendored and asserted open at Epoch's pin). The problem is one of the 70 Bloom chose for FrontierMath Erdős. This is the only curated "significant and difficult" list that exists, made by the person who maintains the informal side.</li>
+<li><strong>Survived the sweeps</strong> (+2). The statement was among the 353 AlphaProof Nexus attempted (Feb 2026) and is still open. This is evidence against trivial-reading defects. Aletheia's Dec 2025 literature search covered all 700 then-open problems, so "still open" also carries that check against a solution already in the literature.</li>
+<li><strong>No misformalization issue</strong> (+1 if none ever; −2 if one is open). A closed one is neutral because the fixed version is what survived.</li>
+<li><strong>Public long enough</strong> (+1 if the Lean file is 180+ days old; −1 if it changed in the last 30 days). This is D-9's N, read off the registry's history.</li>
+<li><strong>Mathlib definitions only</strong> (+1). A file-local definition is a second review object under D-9 and the #918 failure mode.</li>
+<li><strong>Wording hazards</strong> (−1 each, max −2): density, "sufficiently large", asymptotic notation, cardinal conditions, "almost all". These are the classes in §5.</li>
+<li><strong>Value-typed</strong> (−1). A main statement of the form <code>… = answer(sorry)</code> is a question, not a conjecture; Epoch excluded these too.</li>
+<li><strong>Site status lag</strong> (−2). The AI wiki records a full solution while the site still says open.</li>
+</ol>
+<p>Letters: A at 6 or more points, B+ at exactly 5, B at 4, C at 2–3, D below. B+ and above is the network's high grade (F14): a proof under such a statement merges without a human reviewer, and below it a non-author approves the proof. Expect the A rows to be the Stage 0 shortlist; F11's default is five.</p>
+
+<h3>Then certify, cheaply</h3>
+<p>For each shortlisted problem, the D-9 mechanizable pass and one human act:</p>
+<ul>
+<li>Triviality control: try to prove the statement and its negation with Lean automation and a short agent run. A cheap proof of either is a defect, not a result.</li>
+<li>Two or three consequence or special-case lemmas from the informal statement, checked against the Lean.</li>
+<li>Back-translation: an LLM informalizes the Lean without seeing the source; a non-author compares it to the erdosproblems.com wording. Compile-plus-two-judge agreement with human majority runs near 90% in the literature, so this is a screen, and the non-author's read is the certificate.</li>
+<li>Record the external history as the published-and-uncontested evidence: days public in the registry, the named prover attempts, zero confirmed defects.</li>
+</ul>
+<p class="note"><em>Decision for Mike</em> D-9 says M independent proof attempts are earned "in public venues, not in-network". Counting AlphaProof Nexus, Aletheia and Aristotle runs on the registry as those attempts is consistent with that wording and is what makes the top grade reachable without an in-network expert. If you count them, the seeds enter at published-and-uncontested after a back-translation you can do yourself. If you do not, they enter at back-translated and stay there until three network provers have tried. Either way the floor for allocating compute is met.</p>
+
+<h2>7. What "no human reviewer" can honestly mean</h2>
+<p>It can mean no external expert, no hire, and no per-artifact approval click. It cannot mean nobody reads the statement, for two reasons the evidence forces. First, the dominant defect on open problems is an unintended reading of an ambiguous source, which no kernel and no lint can detect; a non-author back-translation is the cheapest known detector. Second, the registry you are inheriting from has no per-statement review record, so its own review cannot be cited as yours. The filter shrinks the human step to a comparison of two paragraphs per target.</p>
+
+<h2>8. Licensing</h2>
+<ul>
+<li>Formal Conjectures: code Apache-2.0, prose CC-BY 4.0, third-party content under its own license. Inheriting statements with attribution and the pinned commit is explicitly intended; Epoch already does it.</li>
+<li>erdosproblems.com: no license text anywhere on the site. It asks for the citation form "T. F. Bloom, Erdős Problem #N, https://www.erdosproblems.com/N, accessed date". The catalog below quotes each problem's statement for decision-making with that citation implied by the link; a target record should cite rather than copy, and cite Erdős's original papers as the site asks.</li>
+<li>teorth/erdosproblems (the status database) and alphaproof-nexus-results: Apache-2.0. Epoch's LeanOpenProblems: MIT for scripts, Apache-2.0 for vendored statements. The AI wiki is CC-BY-SA via GitHub wiki defaults; rows are quoted as data.</li>
+</ul>
+
+<h2>9. Catalog: every Erdős problem with a Lean statement</h2>
+<p>One row per file in <code>FormalConjectures/ErdosProblems/</code> at the pinned commit. Columns and where each comes from:</p>
+<ul>
+<li><strong>#, prize</strong>: erdosproblems.com problem number (linked) and Erdős's prize as shown on the site.</li>
+<li><strong>Site status</strong>: the label on the site (OPEN, PROVED (LEAN), DISPROVED, …) with its explanatory line, the status database's last-update date, and the page's last-edited date. Open here means "Bloom is personally unaware of a solution".</li>
+<li><strong>Informal conjecture</strong>: the site's statement verbatim (LaTeX rendered); the expandable list gives every Lean declaration in the file with its category, AMS codes, docstring and any proof link.</li>
+<li><strong>Area</strong>: AMS codes from the Lean attributes, then the site's tags.</li>
+<li><strong>Standing since</strong>: earliest year among the site's citation keys, so "1974 (52 yr)" means the oldest source Bloom cites is from 1974. The first four keys are shown.</li>
+<li><strong>Lean</strong>: the file at the pinned commit, the main open statement's name, when the file was added to the registry, its last change, its commit count, and any file-local definitions. Toolchain and Mathlib for every row are the pin in the header.</li>
+<li><strong>Proof (closed problems)</strong>: Lean proof links from <code>formal_proof</code> attributes on solved statements, and the solved statement's docstring, which names the informal proof and its reference.</li>
+<li><strong>Benchmarks</strong>: FrontierMath Erdős membership (FC-reviewed 48, autoformalized 17, or Bloom-selected but excluded as estimate-type), Bloom's top-10 list, and AlphaProof Nexus (attempted count, or the solved statement names).</li>
+<li><strong>Misformalization</strong>: every issue or PR in the registry labelled <code>misformalization</code> that names this problem, with state and dates.</li>
+<li><strong>AI wiki</strong>: rows from the Erdős-problems AI wiki (frozen 2026-06-30) for this problem, with section, systems, date and outcome.</li>
+<li><strong>Trust</strong>: the §6 score and its reasons.</li>
+</ul>
+<p>Pages the scrape could not fetch (rows fall back to the Lean docstring and the status database): {{MISSING_PAGES}}.</p>
+</div>
+
+<div class="controls">
+<label><input type="search" id="q" placeholder="search statement, tags, title"></label>
+<label>status <select id="fstatus"><option value="">any</option><option value="open" selected>open on site</option><option value="closed">closed</option></select></label>
+<label>min grade <select id="fgrade"><option value="">any</option><option value="A">A</option><option value="B">B</option><option value="C">C</option></select></label>
+<label><input type="checkbox" id="ffme"> FrontierMath Erdős only</label>
+<label><input type="checkbox" id="fnexus"> Nexus-attempted only</label>
+<label><input type="checkbox" id="fnoiss"> no misformalization issues</label>
+<label>AMS <select id="fams"><option value="">any</option><option value="11">11 number theory</option><option value="5">05 combinatorics</option><option value="52">52 discrete geometry</option><option value="51">51 geometry</option><option value="30">30 complex functions</option><option value="3">03 logic</option></select></label>
+<span class="count" id="count"></span>
+</div>
+<div class="tablewrap"><table id="catalog">
+<thead><tr>
+<th data-k="num" data-t="n">#</th><th data-k="status">Site status</th><th>Informal conjecture · Lean statements</th><th data-k="ams">Area</th><th data-k="year" data-t="n">Standing since</th><th data-k="days" data-t="n">Lean (added)</th><th>Proof (closed)</th><th data-k="fme" data-t="n">Benchmarks</th><th data-k="issues" data-t="n">Misformalization</th><th>AI wiki</th><th data-k="score" data-t="n">Trust</th>
+</tr></thead>
+<tbody>
+{{ERDOS_TABLE_ROWS}}
+</tbody></table></div>
+
+<div class="narrow">
+<h2>10. Non-Erdős files with open statements</h2>
+<p>Every other file in the registry holding at least one <code>research open</code> statement, for completeness. These have no curator maintaining the informal side and no site status, so they carry only the registry's own intake review; the protocol's included domains and the §6 filter apply as written, minus the Bloom and Nexus predicates. Since F14 each open declaration is scored on its own: its statement text decides the local-definition and Mathlib predicates (three points when the statement is typed by Mathlib's own definition, listed in <code>docs/mathlib_conjectures.yaml</code>, one more for 180 days public in Mathlib), and OEIS Open loses three points, §2's "not eligible".</p>
+</div>
+<div class="controls"><label><input type="search" id="q2" placeholder="search title or path"></label><label>source <select id="fdir"><option value="">any</option></select></label><span class="count" id="count2"></span></div>
+<div class="tablewrap"><table id="other">
+<thead><tr><th>Source</th><th>File</th><th>Source URL</th><th>Statements</th><th>Area</th><th>Added</th><th>Misformalization</th><th>Open statements</th><th data-k="score" data-t="n">Trust</th></tr></thead>
+<tbody>
+{{OTHER_TABLE_ROWS}}
+</tbody></table></div>
+
+<div class="narrow">
+<h2>11. Sources consulted and confidence</h2>
+<ul>
+<li>google-deepmind/formal-conjectures at c7f31d5: every Lean file, README, CONTRIBUTING.md, AGENTS.md, CI workflows, releases API, the full commit history (file add and change dates), all 351 issues and PRs labelled misformalization, PRs #5229 and #5313 review records. Firsching et al., arXiv 2605.13171 (May 2026).</li>
+<li>erdosproblems.com: one page per formalized problem (status, statement, citations, tags, edit date, comment and proof-claim counts), plus home, FAQ, prizes, and forum blog threads 1, 2 and 5. teorth/erdosproblems <code>data/problems.yaml</code>, README and CONTRIBUTING.md. The AI-contributions wiki, frozen 2026-06-30.</li>
+<li>Epoch AI: FrontierMath Erdős announcement (2026-09-01) and methodology PDF; epoch-research/LeanOpenProblems (Bloom's 70-problem selection, the 48 and 18 subsets, the top-10 snapshot); OEIS Open, arXiv 2608.11941.</li>
+<li>Google DeepMind: Aletheia, arXiv 2601.22401 and the Aletheia PDF; AlphaProof Nexus, arXiv 2605.22763 and google-deepmind/alphaproof-nexus-results (attempted list, solved proofs).</li>
+<li>Ammanamanchi, Bhat and Biderman, Faults in Our Formal Benchmarking, arXiv 2606.29493. Ospanov et al., miniF2F-Lean Revisited, arXiv 2511.03108. PutnamBench git history and Logical Intelligence's Aleph posts.</li>
+<li>Xena Project posts by Alexeev (2025-12-05) and Buzzard (2025-10, 2026-07-20); Tao's mathstodon posts (Nov 2025, Jan 2026); lean-dojo/LeanMillenniumPrizeProblems README; Mathlib <code>Wanted/</code> and PR #42284; rjwalters/lean-genius README.</li>
+</ul>
+<p>Confidence: counts, incidents, CI and review mechanics were read from the primary pages, and every catalog cell is computed from a fetched file. The ProofNet rate and the October 2025 OpenAI episode rest on search snippets. The "one approver" observation is from two PRs and branch-protection rules are not public. The "standing since" year is parsed from citation keys and can be off where a key's two-digit year is ambiguous. The issue-to-problem mapping is by regex on titles and bodies and may attach an issue that merely mentions a problem. No source publishes a post-review error rate with a proper denominator.</p>
+</div>
+</main>
+
+<script>
+(function(){
+  const rows=[...document.querySelectorAll('#catalog tbody tr')];
+  const q=document.getElementById('q'),fs=document.getElementById('fstatus'),fg=document.getElementById('fgrade'),
+        ff=document.getElementById('ffme'),fn=document.getElementById('fnexus'),fi=document.getElementById('fnoiss'),fa=document.getElementById('fams'),cnt=document.getElementById('count');
+  const order={A:3,B:2,C:1,D:0};
+  function apply(){
+    const t=q.value.trim().toLowerCase(),st=fs.value,g=fg.value,ams=fa.value;let n=0;
+    for(const r of rows){
+      let ok=true;const d=r.dataset;
+      if(st==='open'&&d.status.toUpperCase()!=='OPEN')ok=false;
+      if(st==='closed'&&d.status.toUpperCase()==='OPEN')ok=false;
+      if(g&&(!(d.letter in order)||order[d.letter]<order[g]))ok=false;
+      if(ff.checked&&d.fme!=='1')ok=false;
+      if(fn.checked&&d.nexus!=='1')ok=false;
+      if(fi.checked&&d.issues!=='0')ok=false;
+      if(ams&&!d.ams.split(' ').includes(ams))ok=false;
+      if(t&&!d.text.includes(t)&&!('#'+d.num).includes(t))ok=false;
+      r.classList.toggle('hidden',!ok);if(ok)n++;
+    }
+    cnt.textContent=n+' of '+rows.length+' problems';
+  }
+  for(const el of [q,fs,fg,ff,fn,fi,fa])el.addEventListener('input',apply);
+  apply();
+  const tb=document.querySelector('#catalog tbody');
+  document.querySelectorAll('#catalog th[data-k]').forEach(th=>{
+    th.addEventListener('click',()=>{
+      const k=th.dataset.k,num=th.dataset.t==='n';
+      const asc=th.classList.contains('sorted')&&!th.classList.contains('asc');
+      document.querySelectorAll('#catalog th').forEach(x=>x.classList.remove('sorted','asc'));
+      th.classList.add('sorted');if(asc)th.classList.add('asc');
+      const s=[...rows].sort((a,b)=>{let A=a.dataset[k],B=b.dataset[k];if(num){A=+A;B=+B;return asc?A-B:B-A}return asc?A.localeCompare(B):B.localeCompare(A)});
+      for(const r of s)tb.appendChild(r);
+    });
+  });
+  // default order: trust score descending, then number
+  const th=document.querySelector('#catalog th[data-k="score"]');th.click();
+  // non-Erdős table
+  const rows2=[...document.querySelectorAll('#other tbody tr')],q2=document.getElementById('q2'),fd=document.getElementById('fdir'),c2=document.getElementById('count2');
+  [...new Set(rows2.map(r=>r.dataset.dir))].sort().forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;fd.appendChild(o)});
+  function apply2(){const t=q2.value.trim().toLowerCase(),d=fd.value;let n=0;for(const r of rows2){const ok=(!d||r.dataset.dir===d)&&(!t||r.dataset.text.includes(t));r.classList.toggle('hidden',!ok);if(ok)n++}c2.textContent=n+' of '+rows2.length+' files'}
+  q2.addEventListener('input',apply2);fd.addEventListener('input',apply2);apply2();
+})();
+</script>
+</body>
+</html>

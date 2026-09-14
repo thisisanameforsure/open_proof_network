@@ -57,6 +57,7 @@ DECL_RE = re.compile(r"^(?:noncomputable\s+)?(?P<kind>theorem|lemma|def|abbrev|s
 MODDOC_RE = re.compile(r"/-!(?P<doc>.*?)-/", re.S)
 NS_RE = re.compile(r"^namespace\s+(\S+)", re.M)
 URL_RE = re.compile(r"https?://[^\s)\]>\"']+")
+IMPORT_RE = re.compile(r"^(?:public\s+)?import\s+(\S+)", re.M)
 
 
 def parse_attrs(text):
@@ -115,9 +116,13 @@ def parse_lean(path):
             # value-typed: `answer(sorry)` used as a value (`f n = answer(sorry)`), as opposed to the
             # prove-or-disprove form `answer(sorry) ↔ P`, which is a conjecture with unknown truth value
             "value_typed": "answer(sorry)" in body and not re.search(r"answer\(sorry\)\s*↔|↔\s*answer\(sorry\)", body),
+            # F14-R11: the statement itself (binders and type, up to its `:=`), so a declaration is
+            # scored on what it says and not on the neighbouring declarations' docstrings.
+            "statement": body.split(":=", 1)[0][:4000],
         })
     local_defs = [d for d in decls if d["kind"] in ("def", "abbrev", "structure") and d["category"] is None]
     return {"title": title, "refs": refs, "namespace": namespace, "decls": decls,
+            "imports": IMPORT_RE.findall(src),
             "local_defs": [d["name"] for d in local_defs], "src_len": len(src)}
 
 
@@ -186,7 +191,10 @@ def load_issues(path):
         body = it.get("body") or ""
         rec = {"number": it["number"], "state": it["state"], "created": it["created_at"][:10],
                "closed": (it.get("closed_at") or "")[:10], "title": title, "url": it["html_url"],
-               "pr": "pull_request" in it}
+               "pr": "pull_request" in it,
+               # F14-R11: what the issue says, so a statement typed by a Mathlib definition is held
+               # only to the issues that name that definition (score_decl).
+               "text": title + "\n" + body[:3000]}
         # Problem numbers named in the title are authoritative; fall back to the opening of the
         # body only when the title names none, so a passing "see also Erdős 3" does not attach.
         nums = set()
@@ -291,8 +299,102 @@ def score_row(r):
         pts -= 1; why.append("-1 main open statement is value-typed (`answer(sorry)`)")
     if any("🟢" in " ".join(e["cells"]) and e["section"][0] == "1" for e in r["wiki"]):
         pts -= 2; why.append("-2 wiki records a full AI solution while the site still says open")
-    letter = "A" if pts >= 6 else "B" if pts >= 4 else "C" if pts >= 2 else "D"
-    return pts, letter, why
+    return pts, letter_of(pts), why
+
+
+def letter_of(pts):
+    """F14-R11: A at 6 or more, B+ at exactly 5 (the network's high grade: a proof under such a
+    statement merges without a human reviewer, F14-R5), B at 4, C at 2-3, D below."""
+    return "A" if pts >= 6 else "B+" if pts == 5 else "B" if pts >= 4 else "C" if pts >= 2 else "D"
+
+
+def hazards_of(text):
+    return [name for name, rx in HAZARDS if rx.search(text or "")]
+
+
+def load_mathlib_conjectures(path):
+    """docs/mathlib_conjectures.yaml: Mathlib's own statements of open conjectures, by definition
+    name. A registry statement whose type is one of these is graded by the Mathlib predicate."""
+    if not os.path.exists(path):
+        return {}
+    doc = yaml.safe_load(open(path, encoding="utf-8")) or {}
+    return {str(e["decl"]): e for e in doc.get("conjectures") or []}
+
+
+def _named(name, text):
+    return re.search(r"(?<![\w.])" + re.escape(name) + r"(?![\w])", text or "") is not None
+
+
+def score_decl(d, lean, rel, h, iss, mathlib_defs):
+    """F14-R11: the §6 filter for one `research open` declaration outside the Erdős folder, where
+    the site status, Bloom's selection and the Nexus attempt list do not exist.
+
+    Returns (points, letter, reasons, mathlib_definition). The Mathlib predicate replaces the
+    registry's own age for a statement typed by a Mathlib definition: the statement a prover
+    works on is Mathlib's, public since it merged, and reviewed by Mathlib's maintainers (report
+    §2). OEIS Open is §2's "not eligible; treat as unreviewed".
+    """
+    if d["category"] != "research open":
+        return None, "n/a", ["not a `research open` declaration"], None
+    if d["formal_proof"]:
+        return None, "n/a", ["a formal proof is attached in the registry"], None
+    pts, why = 0, []
+    stmt = d.get("statement", "")
+    mdef = next((name for name in mathlib_defs if _named(name, stmt)), None)
+    if mdef is not None:
+        m = mathlib_defs[mdef]
+        pts += 3
+        why.append(f"+3 the statement is Mathlib's own `{mdef}` ({m['file']}), a definition merged through Mathlib's maintainer review")
+        since = dt.date.fromisoformat(str(m["since"]))
+        if (TODAY - since).days >= 180:
+            pts += 1
+            why.append(f"+1 the statement has been public in Mathlib since {since} (180+ days)")
+    elif h and h.get("first") and (TODAY - dt.date.fromisoformat(h["first"])).days >= 180:
+        pts += 1
+        why.append("+1 Lean statement public for 180+ days")
+    if h and h.get("last") and (TODAY - dt.date.fromisoformat(h["last"])).days < 30:
+        pts -= 1
+        why.append("-1 file modified in the last 30 days")
+    if rel.split("/")[1] == "OEIS":
+        pts -= 3
+        why.append("-3 OEIS Open: selected and formalized by Gemini, only machine-resolved ones human-checked (report §2: not eligible)")
+    if mdef is not None:
+        # The statement is Mathlib's definition, so the misformalization question is about that
+        # definition: an issue counts when it names it as an identifier (a file path does not).
+        # Issues about other statements in the same registry file are named, not counted.
+        naming = [i for i in iss if re.search(r"(?<![\w./])" + re.escape(mdef) + r"(?![\w.])", i.get("text", i["title"]))]
+        others = [i for i in iss if i not in naming]
+        if others:
+            why.append("+0 not counted: " + ", ".join(f"#{i['number']} ({i['title'][:80]})" for i in others) + f" names another statement in the file, not `{mdef}`")
+        iss = naming
+    subject = f"naming `{mdef}`" if mdef is not None else "ever filed"
+    if not iss:
+        pts += 1
+        why.append(f"+1 no misformalization issue {subject}")
+    elif any(i["state"] == "open" for i in iss):
+        pts -= 2
+        why.append(f"-2 open misformalization issue {subject}".replace(" ever filed", ""))
+    else:
+        why.append("+0 misformalization issue(s) filed and closed")
+    used = [n for n in lean["local_defs"] if _named(n.split(".")[-1], stmt)]
+    if not used:
+        pts += 1
+        why.append("+1 no file-local definitions in the statement (Mathlib vocabulary only)")
+    else:
+        why.append("+0 file-local definitions in the statement: " + ", ".join(used[:4]))
+    haz = hazards_of(d["doc"])
+    if haz:
+        n = min(2, len(haz))
+        pts -= n
+        why.append(f"-{n} wording hazard: " + ", ".join(haz))
+    if d["value_typed"]:
+        pts -= 1
+        why.append("-1 the statement is value-typed (`answer(sorry)`)")
+    return pts, letter_of(pts), why, mdef
+
+
+def catalog_issues(iss):
+    return [{k: i[k] for k in ("number", "state", "url", "created", "closed", "pr")} for i in iss]
 
 
 # ----------------------------------------------------------------------------- html helpers
@@ -347,9 +449,16 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--work", required=True)
     ap.add_argument("--out", default=os.path.join(os.path.dirname(__file__), "seed_conjecture_sources.html"))
-    ap.add_argument("--json", default=os.path.join(os.path.dirname(__file__), "seed_conjecture_sources.json"),
+    ap.add_argument("--json", default="",
                     help="also write the joined dataset here (F11-T5): the same rows the report's "
-                    "catalog renders, extracted by seed_conjecture_sources_extract.py")
+                    "catalog renders, extracted by seed_conjecture_sources_extract.py. Off by default "
+                    "since F14: docs/seed_conjecture_sources.json is F11's dated 2026-09-08 snapshot, "
+                    "and a rebuild must not overwrite it; the current rows are the catalog's")
+    ap.add_argument("--catalog", default=os.path.join(os.path.dirname(__file__), "lean_conjecture_catalog.json"),
+                    help="F14-R11: every conjecture with a Lean statement, scored, written from the rows directly")
+    ap.add_argument("--body", default=os.path.join(os.path.dirname(__file__), "seed_conjecture_sources_body.html"),
+                    help="the report's hand-written prose, with the placeholders the build fills")
+    ap.add_argument("--mathlib", default=os.path.join(os.path.dirname(__file__), "mathlib_conjectures.yaml"))
     args = ap.parse_args()
     W = args.work
     fc = os.path.join(W, "fc")
@@ -366,6 +475,7 @@ def main():
     wiki = load_wiki(os.path.join(W, "epwiki/AI-contributions-to-Erdős-problems.md"))
     bloom70, fc48, auto18, top10 = load_epoch(W)
     nexus_att, nexus_solved = load_nexus(W)
+    mathlib_defs = load_mathlib_conjectures(args.mathlib)
 
     rows = []
     missing_pages = []
@@ -459,7 +569,38 @@ def main():
 <td class="score"><span class="lt {esc(r['letter'])}">{esc(score_txt)}</span><details><summary>why</summary><div class="why">{why}</div></details></td>
 </tr>""")
 
-    # ------------------------------------------------------------------ non-Erdős open statements
+    # ------------------------------------------------------------------ the catalog (F14-R11)
+    catalog = []
+    for r in rows:
+        s = r["site"] or {}
+        db_status = r["db"].get("status") if isinstance(r["db"].get("status"), dict) else {}
+        catalog.append({
+            "key": f"erdos:{r['num']}",
+            "source": "formal-conjectures",
+            "kind": "erdos",
+            "srcdir": "ErdosProblems",
+            "file": r["rel"],
+            "decl": r["main_open"]["name"] if r["main_open"] else None,
+            "score": r["score"],
+            "letter": r["letter"],
+            "reasons": r["why"],
+            "site_status": s.get("status") or db_status.get("state"),
+            "history": r["hist"],
+            "issues": catalog_issues(r["issues"]),
+            "local_defs": r["lean"]["local_defs"],
+            "imports": r["lean"]["imports"],
+            "statements": [d["name"] for d in r["open_stmts"]],
+            "docstring": (r["main_open"] or {}).get("doc", ""),
+            "value_typed": bool(r["main_open"] and r["main_open"]["value_typed"]),
+            "hazards": r["hazards"],
+            "mathlib_definition": None,
+            "ams": sorted({a for d in r["open_stmts"] for a in d["ams"]}, key=int),
+            # F14-R4: the statement names AlphaProof Nexus lists as attempted, so the attempts
+            # ledger can record each one by name (nexus/erdos_problems_attempted.txt).
+            "nexus_attempted": sorted(nexus_att.get(r["num"], [])),
+        })
+
+    # ------------------------------------------------------------------ non-Erdős open statements, scored per declaration
     other = []
     for path in sorted(glob.glob(os.path.join(fc, "FormalConjectures/*/**/*.lean"), recursive=True)):
         rel = os.path.relpath(path, fc)
@@ -478,20 +619,55 @@ def main():
         iss = issues_by_file.get(rel, [])
         srcdir = rel.split("/")[1]
         refs = lean["refs"][:2]
-        other.append(f"""<tr data-dir="{esc(srcdir)}" data-text="{esc((lean['title'] + ' ' + rel).lower())}">
+        scored = []
+        for d in opens:
+            pts, letter, why, mdef = score_decl(d, lean, rel, h, iss, mathlib_defs)
+            scored.append((d, pts, letter, why))
+            catalog.append({
+                "key": f"fc:{rel}#{d['name']}",
+                "source": "formal-conjectures",
+                "kind": "fc",
+                "srcdir": srcdir,
+                "file": rel,
+                "decl": d["name"],
+                "score": pts,
+                "letter": letter,
+                "reasons": why,
+                "site_status": None,
+                "history": h or None,
+                "issues": catalog_issues(iss),
+                "local_defs": lean["local_defs"],
+                "imports": lean["imports"],
+                "statements": [d["name"]],
+                "docstring": d["doc"],
+                "value_typed": d["value_typed"],
+                "hazards": hazards_of(d["doc"]),
+                "mathlib_definition": mdef,
+                "ams": d["ams"],
+                "nexus_attempted": [],
+            })
+        best = max((p for _d, p, _l, _w in scored if p is not None), default=None)
+        best_txt = "n/a" if best is None else f"best {letter_of(best)} ({best:+d})"
+        trust = "".join(
+            f'<li><code>{esc(d["name"])}</code> <span class="lt">{esc("n/a" if p is None else f"{letter} ({p:+d})")}</span>'
+            f'<div class="why">{"<br>".join(esc(w) for w in why)}</div></li>'
+            for d, p, letter, why in scored
+        )
+        other.append(f"""<tr data-dir="{esc(srcdir)}" data-score="{best if best is not None else -99}" data-text="{esc((lean['title'] + ' ' + rel).lower())}">
 <td>{esc(srcdir)}</td><td><a href="{esc(fc_url(commit, rel))}">{esc(rel.split('/', 2)[-1])}</a><div class="mut">{esc(lean['title'])}</div></td>
 <td>{' '.join(f'<a href="{esc(u)}">{esc(u[:60])}</a>' for u in refs)}</td>
 <td class="tn">{len(opens)} open / {cats.get('research solved', 0)} solved</td>
 <td>{esc('; '.join('AMS ' + a + ' ' + AMS_NAMES.get(a, '') for a in ams))}</td>
 <td class="tn">{esc(h.get('first', ''))}</td>
 <td>{render_issues(iss)}</td>
-<td><details><summary>{len(opens)} statements</summary>{render_stmt_list(opens, commit, rel)}</details></td></tr>""")
+<td><details><summary>{len(opens)} statements</summary>{render_stmt_list(opens, commit, rel)}</details></td>
+<td class="score"><details><summary>{esc(best_txt)}</summary><ul class="stmts">{trust}</ul></details></td></tr>""")
 
     n_open_site = sum(1 for r in rows if (r["site"] or {}).get("status", "").upper() == "OPEN")
     n_cand = sum(1 for r in rows if r["score"] is not None)
     n_A = sum(1 for r in rows if r["letter"] == "A")
-    n_B = sum(1 for r in rows if r["letter"] == "B")
-    body = open(os.path.join(W, "report_body.html"), encoding="utf-8").read()
+    n_B = sum(1 for r in rows if r["letter"] in ("B+", "B"))
+    body = open(args.body, encoding="utf-8").read()
     body = (body.replace("{{COMMIT}}", commit).replace("{{COMMIT_SHORT}}", commit[:7]).replace("{{COMMIT_DATE}}", commit_date)
                 .replace("{{TOOLCHAIN}}", toolchain).replace("{{MATHLIB_REV}}", mathlib_rev).replace("{{MATHLIB_TAG}}", mathlib_tag or "")
                 .replace("{{N_ROWS}}", str(len(rows))).replace("{{N_OPEN_SITE}}", str(n_open_site)).replace("{{N_CAND}}", str(n_cand))
@@ -511,6 +687,32 @@ def main():
         with open(args.json, "w", encoding="utf-8") as fh:
             fh.write(json.dumps(dataset, indent=1, ensure_ascii=False, sort_keys=True) + "\n")
         print(f"wrote {dataset['count']} problems to {args.json}")
+    if args.catalog:
+        doc = {
+            "schema": "lean-conjecture-catalog/v1",
+            "source": "docs/seed_conjecture_sources_build.py (F14-R11)",
+            "fc_commit": commit,
+            "fc_commit_date": commit_date,
+            "toolchain": toolchain,
+            "mathlib_rev": mathlib_rev,
+            "mathlib_tag": mathlib_tag,
+            "scored_as_of": TODAY.isoformat(),
+            # F14-R4: when google-deepmind/alphaproof-nexus-results published its attempt list.
+            "nexus_published": (
+                open(os.path.join(W, "nexus_published.txt"), encoding="utf-8").read().strip()
+                if os.path.exists(os.path.join(W, "nexus_published.txt"))
+                else None
+            ),
+            "letters": {"A": ">= 6", "B+": "5", "B": "4", "C": "2-3", "D": "< 2", "n/a": "not scored"},
+            "count": len(catalog),
+            "rows": sorted(catalog, key=lambda e: e["key"]),
+        }
+        with open(args.catalog, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps(doc, indent=1, ensure_ascii=False, sort_keys=True) + "\n")
+        by_letter = {}
+        for e in catalog:
+            by_letter[e["letter"]] = by_letter.get(e["letter"], 0) + 1
+        print(f"wrote {len(catalog)} catalog rows to {args.catalog}: {dict(sorted(by_letter.items()))}")
 
 
 if __name__ == "__main__":

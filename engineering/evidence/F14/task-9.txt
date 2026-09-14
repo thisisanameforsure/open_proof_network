@@ -1,0 +1,63 @@
+F14-T9 — the catalog of every conjecture with a Lean statement (R11; AC11)
+worktree: /Users/mikehiggins/Desktop/repos/opn-f14, 2026-09-14
+
+Inputs, fetched by docs/seed_conjecture_sources_fetch.sh into a scratch work directory:
+  formal-conjectures at c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae (2026-09-08T09:58:12Z), full history
+    (fc_file_history.txt 9980 lines, 1231 Lean files)
+  691 misformalization issues and pull requests (gh api, all states, fetched 2026-09-14)
+  teorth/erdosproblems and its wiki; epoch-research/LeanOpenProblems (apn/data);
+  google-deepmind/alphaproof-nexus-results (published 2026-05-13; APNOutputs: AICollaborator 13,
+    ErdosProblems 9, OEIS 38, StacksProject 11 Lean files; erdos_problems_attempted.txt 352 lines)
+  640 erdosproblems.com pages, one fetch each at 0.4 s spacing: fetched 640, failed 0
+
+Command:
+  uv run --no-project --with pyyaml python3 docs/seed_conjecture_sources_build.py --work <work>
+Output:
+  wrote docs/seed_conjecture_sources.html: 640 Erdős rows (335 open on site, 327 scoreable, 23 A,
+    74 B+ or B), 448 non-Erdős files with open statements; missing pages: []
+  wrote 1456 catalog rows to docs/lean_conjecture_catalog.json:
+    {'A': 24, 'B': 45, 'B+': 29, 'C': 336, 'D': 709, 'n/a': 313}
+
+Verification:
+  $ uv run --frozen pytest gate/tests/test_catalog.py -q
+  5 passed in 0.04s
+    test_every_row_names_a_lean_statement, test_every_letter_is_the_one_its_score_gives (the reasons
+    sum to the score on every row), test_the_riemann_hypothesis_grades_a, test_oeis_open_is_never_high
+    (OEIS maximum is -1), test_erdos_letters_agree_with_the_f11_dataset
+
+What changed in the build (docs/seed_conjecture_sources_build.py):
+  - letters: A >= 6, B+ = 5 (F14's high grade), B = 4, C 2-3, D < 2
+  - every non-Erdős `research open` declaration is scored on its own statement text: registry age,
+    recent change, misformalization issues on the file, local definitions the statement uses,
+    wording hazards in its docstring, value-typed; OEIS Open -3 (report §2: not eligible)
+  - the Mathlib predicate (docs/mathlib_conjectures.yaml): +3 when the statement is typed by Mathlib's
+    own definition, +1 when that definition has been public in Mathlib 180+ days; for such a statement
+    the misformalization predicate counts only issues naming the definition as an identifier
+  - docs/lean_conjecture_catalog.json written from the rows; the prose template is committed as
+    docs/seed_conjecture_sources_body.html (the work directory that held it was gone)
+  - --json is off by default: docs/seed_conjecture_sources.json is F11's 2026-09-08 snapshot and a
+    rebuild overwrote it on the first run; restored from git and left unchanged
+
+The Riemann Hypothesis (F14-Q6, Q8): fc:FormalConjectures/Millenium/RiemannHypothesis.lean#riemannHypothesis
+  A (+6): +3 Mathlib's own `RiemannHypothesis`; +1 public in Mathlib since 2023-06-29 (mathlib4#5556);
+  +0 not counted: #3931 "Extended Riemann Hypothesis (ERH) is false as currently stated" names
+  another statement in the file; +1 no misformalization issue naming `RiemannHypothesis`; +1 no
+  file-local definitions in the statement.
+  First build scored it B+ (+5): the file-level rule counted #3931, which concerns the ERH declaration
+  upstream removed, against the RH declaration. The narrowed rule applies only to Mathlib-typed
+  statements.
+  conway_99 is in Mathlib's root Wanted/ folder, outside the library a graph pins: deferred (Q8).
+
+Drift since the F11 dataset (2026-09-08): 51 Erdős rows changed points, almost all from
+misformalization issues filed after the pin (a closed one moves a row from +1 to +0; an open one to
+-2). The five listed targets are unchanged at A: erdos-52 +6, -68 +8, -172 +8, -376 +8, -406 +8.
+test_erdos_letters_agree_with_the_f11_dataset compares the rows that kept their points.
+
+Wave one (score >= 5, open on the site, not yet listed), 48 rows:
+  A: erdos 324, 66, 1003, 120, 213, 241, 28, 3, 371, 39, 564, 61, 972, 208, 30, 812, 89, 952
+  B+: erdos 101, 1065, 1094, 1137, 1139, 20, 212, 247, 251, 257, 260, 267, 341, 352, 383, 410, 412,
+      417, 495, 51, 517, 677, 727, 849, 850, 931, 932, 938, 975
+  and fc:FormalConjectures/Millenium/RiemannHypothesis.lean#riemannHypothesis (A after the rule above)
+  Ten carry file-local definitions (120, 213, 241, 61, 972, 208, 30, 101, 20, 975); 3 and 371 use
+  registry helpers (F11 open-targets.md); eight carry a wording hazard. The wave driver (T11) refuses
+  what it cannot port, and each draft is read by hand (R13).

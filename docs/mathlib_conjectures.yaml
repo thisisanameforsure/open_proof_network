@@ -1,0 +1,19 @@
+# Mathlib's own statements of open conjectures (F14-R11, F14-Q6).
+#
+# A Formal Conjectures declaration whose statement is typed by one of these definitions is graded
+# by the Mathlib predicate in docs/seed_conjecture_sources_build.py: three points because the
+# statement is Mathlib's, merged through Mathlib's maintainer review (report §2 grades Mathlib's
+# statements A), and one more when it has been public in Mathlib for 180 days or more. `since` is
+# the date the definition first merged into Mathlib 4, with the pull request that shows it.
+#
+# Deferred: `conway_99` sits in Mathlib's root `Wanted/` folder, which is not part of the Mathlib
+# library a graph pins, so no graph can state it over its Mathlib import (F14-Q8).
+conjectures:
+  - decl: RiemannHypothesis
+    file: Mathlib/NumberTheory/LSeries/RiemannZeta.lean
+    since: 2023-06-29
+    since_evidence: >-
+      ported to Mathlib 4 in leanprover-community/mathlib4#5556 as NumberTheory/ZetaFunction.lean,
+      moved to NumberTheory/LSeries/RiemannZeta.lean in #13273 (2024-05-31); the definition is
+      `∀ s, riemannZeta s = 0 → (¬∃ n : ℕ, s = -2 * (n + 1)) → s ≠ 1 → s.re = 1 / 2` at the
+      graph's Mathlib pin 0df444a360eaa60ab8c11dca51a86af692955474
