@@ -33,6 +33,8 @@ KEY_PROOF_REF = "proofref#"
 KEY_SUBMISSION = "submission#"
 KEY_SUBMISSION_PR = "submissionpr#"
 KEY_SUBMISSIONS_OPEN = "submissions#open"
+# F13-T4: one record per fast check, no TTL (Q3), in the tokens table like the submissions.
+KEY_CHECK = "check#"
 
 
 class ConflictError(Exception):
@@ -96,6 +98,32 @@ class Submission:
     final_state: dict[str, Any] | None = None
 
 
+@dataclass(frozen=True)
+class CheckLog:
+    """One fast check (F13-R9): who asked, about what, where it went and how it ended — the
+    content's hash and size, never the content (C9 v2, F13-Q3). ``caller`` is an identity id when
+    ``caller_kind`` is ``identity`` and a keyed hash of the source address otherwise (Q4).
+    ``outcome`` is ``answered`` or the refusal's code. Operational, never evidentiary."""
+
+    id: str
+    created: str
+    caller_kind: str
+    caller: str
+    target_id: str
+    node_id: str | None
+    mode: str
+    environment: str | None
+    content_sha256: str
+    content_bytes: int
+    outcome: str
+    okay: bool | None
+    error_count: int | None
+    lint: list[str]
+    axle_request_id: str | None
+    upstream_status: int | None
+    latency_ms: int
+
+
 class Store(Protocol):
     def check(self) -> list[str]:
         """Names of tables that cannot be reached; empty when healthy (R13)."""
@@ -153,6 +181,12 @@ class Store(Protocol):
         """Mark a record finished with the state that finished it; ``None`` when absent."""
         ...
 
+    def put_check(self, record: CheckLog) -> None:
+        """Record one fast check (F13-R9); a record is written once and never changed."""
+        ...
+
+    def get_check(self, check_id: str) -> CheckLog | None: ...
+
 
 # --- memory ------------------------------------------------------------------------------------
 
@@ -169,6 +203,7 @@ class MemoryStore:
     submissions: dict[str, Submission] = field(default_factory=dict)
     submissions_by_pr: dict[int, str] = field(default_factory=dict)
     open_submissions: set[str] = field(default_factory=set)
+    checks: dict[str, CheckLog] = field(default_factory=dict)
 
     def check(self) -> list[str]:
         return []
@@ -255,6 +290,13 @@ class MemoryStore:
         self.put_submission(done)
         return done
 
+    def put_check(self, record: CheckLog) -> None:
+        self.checks[record.id] = replace(record, lint=list(record.lint))
+
+    def get_check(self, check_id: str) -> CheckLog | None:
+        found = self.checks.get(check_id)
+        return replace(found, lint=list(found.lint)) if found is not None else None
+
 
 def _unique_keys(identity: Identity) -> list[tuple[str, str]]:
     return [
@@ -328,7 +370,8 @@ class DynamoStore:
     ``job#`` items carrying ``expires_at`` (the table's TTL attribute). A job is readable
     until it expires, unlike the single-use ephemeral items. Submissions (F07-T16) carry no
     TTL: ``submission#<ulid>`` is the record, ``submissionpr#<n>`` points a pull-request number at
-    it, and ``submissions#open`` holds the open ids as a string set.
+    it, and ``submissions#open`` holds the open ids as a string set. Fast checks (F13-T4)
+    are ``check#<ulid>`` records, also without TTL.
     claims: ``id`` — one row per claim; the registry is read by scan (Stage 0 volume).
     """
 
@@ -515,6 +558,18 @@ class DynamoStore:
         self.put_submission(done)
         return done
 
+    # --- fast checks (F13-T4): one key prefix in the tokens table, no TTL ---------------------
+
+    def put_check(self, record: CheckLog) -> None:
+        self._tokens.put_item(
+            Item={"key": KEY_CHECK + record.id, "check": storable(asdict(record))}
+        )
+
+    def get_check(self, check_id: str) -> CheckLog | None:
+        item = self._tokens.get_item(Key={"key": KEY_CHECK + check_id}).get("Item")
+        record = item.get("check") if item else None
+        return _check(plain(dict(record))) if isinstance(record, dict) else None
+
 
 def _identity(item: dict[str, Any]) -> Identity:
     return Identity(
@@ -554,6 +609,35 @@ def _submission(record: dict[str, Any]) -> Submission:
         created=str(record["created"]),
         closed=str(record["closed"]) if record.get("closed") is not None else None,
         final_state=dict(final) if isinstance(final, dict) else None,
+    )
+
+
+def _optional_str(value: Any) -> str | None:
+    return str(value) if value is not None else None
+
+
+def _check(record: dict[str, Any]) -> CheckLog:
+    okay = record.get("okay")
+    return CheckLog(
+        id=str(record["id"]),
+        created=str(record["created"]),
+        caller_kind=str(record["caller_kind"]),
+        caller=str(record["caller"]),
+        target_id=str(record["target_id"]),
+        node_id=_optional_str(record.get("node_id")),
+        mode=str(record["mode"]),
+        environment=_optional_str(record.get("environment")),
+        content_sha256=str(record["content_sha256"]),
+        content_bytes=int(record["content_bytes"]),
+        outcome=str(record["outcome"]),
+        okay=okay if isinstance(okay, bool) else None,
+        error_count=int(record["error_count"]) if record.get("error_count") is not None else None,
+        lint=[str(code) for code in record.get("lint") or []],
+        axle_request_id=_optional_str(record.get("axle_request_id")),
+        upstream_status=(
+            int(record["upstream_status"]) if record.get("upstream_status") is not None else None
+        ),
+        latency_ms=int(record["latency_ms"]),
     )
 
 

@@ -145,4 +145,9 @@ ROUTES: tuple[RouteSpec, ...] = (
     # F13-R8, Q2: open like the tutorial precheck; a presented token is authenticated and charged
     # per identity, and an anonymous caller is charged per address, by the handler.
     RouteSpec("POST", "/check", "checks:post_check", D35_POST_CHECK, feature="F13"),
+    # F13-R10: a caller's own call record. A read with no D-35 row, like /submissions/{id}; the
+    # bearer is required because a record is readable by its identity alone.
+    RouteSpec(
+        "GET", "/checks/{check_id}", "checks:get_check", None, authenticated=True, feature="F13"
+    ),
 )

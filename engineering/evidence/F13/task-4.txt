@@ -1,0 +1,30 @@
+F13-T4 — the call log: check# records in both stores, GET /checks/<id>, the log line, the deploy package
+Captured 2026-09-14T10:17:44Z on branch f13-fast-check.
+
+$ uv run pytest api/tests/test_checks.py api/tests/test_store_seam.py -v   (F13-T4's named command; the check and log tests)
+api/tests/test_checks.py::test_the_routes_are_registered PASSED          [  1%]
+api/tests/test_checks.py::test_check_and_verify_forward_to_the_mapped_environment PASSED [  2%]
+api/tests/test_checks.py::test_each_gate_gap_is_warned PASSED            [  3%]
+api/tests/test_checks.py::test_defs_are_inlined PASSED                   [  4%]
+api/tests/test_checks.py::test_refusals_are_named_and_logged PASSED      [  5%]
+api/tests/test_checks.py::test_limits_and_concurrency_cap PASSED         [  6%]
+api/tests/test_checks.py::test_log_readable_only_by_owner PASSED         [  7%]
+api/tests/test_checks.py::test_a_store_failure_does_not_fail_the_check PASSED [  8%]
+api/tests/test_store_seam.py::test_check_log_round_trips[memory] PASSED  [ 97%]
+api/tests/test_store_seam.py::test_check_log_round_trips[dynamodb] PASSED [ 98%]
+api/tests/test_store_seam.py::test_check_log_item_carries_no_content PASSED [100%]
+======================== 94 passed, 2 warnings in 1.56s ========================
+
+$ uv run pytest api/tests/test_routes.py api/tests/test_finding_unknown_fields.py api/tests/test_axle.py -q
+22 passed, 13 xfailed, 2 warnings in 0.40s
+
+Static: ruff check api, ruff format --check api, mypy api
+  All checks passed!
+  93 files already formatted
+  Success: no issues found in 92 source files
+
+Package rehearsal (api-deploy.yml's copy steps, without the cross-built wheels):
+  cp -R api/opn_api gate/opn_gate gate/schemas gate/hosted-checkers.yaml -> a scratch package root
+  checks imported from: /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/0852004d-c3f6-412d-bbb8-8b61a039b33a/scratchpad/f13-package/opn_api/checks.py
+  mapping path: /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/0852004d-c3f6-412d-bbb8-8b61a039b33a/scratchpad/f13-package/hosted-checkers.yaml exists: True
+  pins mapped: {'0df444a360ea': ('lean-4.33.0', False)}

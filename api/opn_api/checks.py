@@ -1,4 +1,4 @@
-"""``POST /check`` — the fast, non-authoritative Lean check (F13-R3 to R8; D-4 v3.14, D-28, D-35).
+"""``POST /check`` — the fast, non-authoritative Lean check (F13-R3 to R10; D-4 v3.14, D-28, D-35).
 
 The service resolves the target's pinned Mathlib to a hosted environment through
 ``gate/hosted-checkers.yaml``, lints the text for the ways a checker's pass still fails the gate,
@@ -10,6 +10,12 @@ Order of refusals, cheapest first (C7): the body's shape, then the caller's limi
 graph (target, node, pin), then the checker. A refusal from the checker itself is
 ``upstream-unavailable`` naming its status; the network never retries on the caller's behalf.
 
+Every call that passes the body and the limit is logged (R9, Q11): one ``check-log`` record in
+the operational store and one structured log line, carrying the content's hash and size and
+never its text (C9 v2, Q3). A refusal before that point — a malformed body, a bad token, a spent
+limit — is in the access log only, so a flood of bad requests cannot fill the store. A log write
+that fails is itself logged and never fails the check (C7).
+
 The concurrency cap is per process (F13-Q8): on Lambda each container serves one request at a
 time, so there the effective cap is the function's own concurrency, and this semaphore bounds
 the local runner and any multi-threaded host.
@@ -18,10 +24,13 @@ the local runner and any multi-threaded host.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
+import logging
 import re
 import threading
-from dataclasses import dataclass
+import time
+from dataclasses import asdict, dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -31,11 +40,15 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from opn_api import auth, frontier, identity, precheck, ratelimit
+from opn_api import clock as clockmod
 from opn_api.axle import AxleAnswer, AxleError
+from opn_api.store import CheckLog
 from opn_gate import layout, schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
+
+log = logging.getLogger("opn_api.checks")
 
 #: The mapping sits beside the gate's schemas in the repository (``gate/``) and at the package
 #: root on Lambda, where the deploy copies both (F13-T4) — the rule ``opn_gate.schemas`` uses.
@@ -54,6 +67,7 @@ DECLARATION_RE = re.compile(
     re.M,
 )
 IMPORT_LINE_RE = re.compile(r"^import\s+\S+[ \t]*$", re.M)
+ANSWERED = "answered"
 
 
 @dataclass(frozen=True)
@@ -97,7 +111,7 @@ def load_mapping(path: Path = MAPPING_PATH) -> dict[str, Hosted]:
     return out
 
 
-# --- the body ------------------------------------------------------------------------------------
+# --- the body and the caller ---------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
@@ -106,6 +120,14 @@ class CheckRequest:
     node_id: str | None
     content: str
     mode: str
+
+
+@dataclass(frozen=True)
+class Caller:
+    """Who the log names (R9): an identity id, or a keyed hash of the source address (Q4)."""
+
+    kind: str  # "identity" or "address"
+    id: str
 
 
 def parse_body(ctx: Context, fields: dict[str, Any]) -> CheckRequest:
@@ -136,15 +158,17 @@ def parse_body(ctx: Context, fields: dict[str, Any]) -> CheckRequest:
     return CheckRequest(target_id, node_id, content, mode)
 
 
-def charge(ctx: Context, request: Request) -> str | None:
+def charge(ctx: Context, request: Request) -> Caller:
     """R8: a presented token is authenticated and charged per identity; otherwise the source
-    address is charged. Answers the identity id, or ``None`` for an anonymous caller."""
+    address is charged, and the log names it only by a keyed hash (Q4)."""
     if auth.bearer(request) is not None:
         who = auth.authenticate(ctx, request)
+        request.state.identity_id = who.id  # the access log line names it, as on other routes
         ratelimit.check_check(ctx, who.id)
-        return who.id
-    ratelimit.check_anonymous_check(ctx, ratelimit.client_address(request))
-    return None
+        return Caller("identity", who.id)
+    address = ratelimit.client_address(request)
+    ratelimit.check_anonymous_check(ctx, address)
+    return Caller("address", auth.token_hash(ctx.settings.token_secret or "", "address:" + address))
 
 
 # --- the graph -----------------------------------------------------------------------------------
@@ -299,32 +323,136 @@ def call_checker(
         gate.release()
 
 
+# --- the log -------------------------------------------------------------------------------------
+
+
+def error_count(body: dict[str, Any]) -> int | None:
+    """Lean's errors plus the tool's, when the body has the shape AXLE answers with."""
+    total, seen = 0, False
+    for key in ("lean_messages", "tool_messages"):
+        block = body.get(key)
+        if isinstance(block, dict) and isinstance(block.get("errors"), list):
+            total += len(block["errors"])
+            seen = True
+    return total if seen else None
+
+
+def write_log(  # noqa: PLR0913 — one argument per fact the record keeps
+    ctx: Context,
+    req: CheckRequest,
+    caller: Caller,
+    *,
+    outcome: str,
+    started: float,
+    environment: str | None = None,
+    lint_codes: list[str] | None = None,
+    answer: AxleAnswer | None = None,
+    upstream_status: int | None = None,
+) -> str | None:
+    """R9: one record and one log line; the record's id, or ``None`` when the store refused it."""
+    now = ctx.clock.now()
+    body = answer.body if answer is not None else {}
+    okay = body.get("okay")
+    record = CheckLog(
+        id=identity.new_ulid(now),
+        created=clockmod.render(now),
+        caller_kind=caller.kind,
+        caller=caller.id,
+        target_id=req.target_id,
+        node_id=req.node_id,
+        mode=req.mode,
+        environment=environment,
+        content_sha256=hashlib.sha256(req.content.encode("utf-8")).hexdigest(),
+        content_bytes=len(req.content.encode("utf-8")),
+        outcome=outcome,
+        okay=okay if isinstance(okay, bool) else None,
+        error_count=error_count(body) if answer is not None else None,
+        lint=list(lint_codes or []),
+        axle_request_id=answer.request_id if answer is not None else None,
+        upstream_status=upstream_status,
+        latency_ms=int((time.monotonic() - started) * 1000),
+    )
+    log.info(
+        "check id=%s caller=%s:%s target=%s node=%s mode=%s env=%s outcome=%s okay=%s errors=%s "
+        "bytes=%d ms=%d",
+        record.id,
+        record.caller_kind,
+        record.caller[:12],
+        record.target_id,
+        record.node_id or "-",
+        record.mode,
+        record.environment or "-",
+        record.outcome,
+        record.okay,
+        record.error_count,
+        record.content_bytes,
+        record.latency_ms,
+    )
+    try:
+        ctx.store.put_check(record)
+    except Exception as exc:  # C7: a lost log line never costs the caller a check
+        log.error("check id=%s was not stored: %s", record.id, type(exc).__name__)
+        return None
+    return record.id
+
+
+# --- the routes ----------------------------------------------------------------------------------
+
+
 async def post_check(ctx: Context, request: Request) -> Response:
+    from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
+
     fields, _ = await identity.body_fields(request)
     req = parse_body(ctx, fields)
-    charge(ctx, request)
-    sha, hosted = hosted_for(ctx, req.target_id)
-    if hosted is None or hosted.environment is None:
-        msg = (
-            f"{req.target_id} pins Mathlib {sha}, which no hosted checker serves"
-            if sha
-            else f"{req.target_id} is a Mathlib-free graph; the hosted checker serves Mathlib pins"
-        )
-        raise api_error(422, "no-hosted-environment", msg, details={"mathlib_sha": sha})
-    statement = statement_of(ctx, req.target_id, req.node_id) if req.node_id else None
-    if req.mode == "verify" and statement is None:
-        msg = f"{req.node_id}'s Statement.lean has no single sorry-bodied theorem to verify against"
-        raise api_error(409, "statement-unparsable", msg)
-    defs = inline_defs(ctx, req.target_id, statement) if statement is not None else []
-    text = forwarded_text(req.content, defs)
+    caller = charge(ctx, request)
+    started = time.monotonic()
+    environment: str | None = None
     try:
-        answer = await asyncio.to_thread(
-            call_checker, ctx, req, text, hosted.environment, statement
+        sha, hosted = hosted_for(ctx, req.target_id)
+        if hosted is None or hosted.environment is None:
+            msg = (
+                f"{req.target_id} pins Mathlib {sha}, which no hosted checker serves"
+                if sha
+                else f"{req.target_id} is Mathlib-free; the hosted checker serves Mathlib pins"
+            )
+            raise api_error(422, "no-hosted-environment", msg, details={"mathlib_sha": sha})
+        environment = hosted.environment
+        statement = statement_of(ctx, req.target_id, req.node_id) if req.node_id else None
+        if req.mode == "verify" and statement is None:
+            msg = f"{req.node_id}'s Statement.lean has no single sorry-bodied theorem to verify"
+            raise api_error(409, "statement-unparsable", msg)
+        defs = inline_defs(ctx, req.target_id, statement) if statement is not None else []
+        text = forwarded_text(req.content, defs)
+        warnings = lint(req.content, statement)
+        try:
+            answer = await asyncio.to_thread(call_checker, ctx, req, text, environment, statement)
+        except AxleError as exc:
+            raise api_error(
+                502, "upstream-unavailable", str(exc), details={"upstream_status": exc.status}
+            ) from exc
+    except ApiError as refusal:
+        upstream = (refusal.details or {}).get("upstream_status")
+        log_id = write_log(
+            ctx,
+            req,
+            caller,
+            outcome=refusal.code,
+            started=started,
+            environment=environment,
+            upstream_status=upstream if isinstance(upstream, int) else None,
         )
-    except AxleError as exc:
-        raise api_error(
-            502, "upstream-unavailable", str(exc), details={"upstream_status": exc.status}
-        ) from exc
+        refusal.details = {**(refusal.details or {}), "log_id": log_id}
+        raise
+    log_id = write_log(
+        ctx,
+        req,
+        caller,
+        outcome=ANSWERED,
+        started=started,
+        environment=environment,
+        lint_codes=[w["code"] for w in warnings],
+        answer=answer,
+    )
     return JSONResponse(
         {
             "authoritative": False,
@@ -333,9 +461,19 @@ async def post_check(ctx: Context, request: Request) -> Response:
             "exact": hosted.exact,
             "note": hosted.note,
             "mode": req.mode,
-            "lint": lint(req.content, statement),
+            "lint": warnings,
             "inlined_defs": [module for module, _ in defs],
             "result": answer.body,
-            "log_id": None,
+            "log_id": log_id,
         }
     )
+
+
+async def get_check(ctx: Context, request: Request) -> Response:
+    """R10: a record is readable by the identity that made the call and by nobody else; an
+    anonymous call's record names no identity, so no token reads it."""
+    record = ctx.store.get_check(str(request.path_params["check_id"]))
+    who = str(request.state.identity_id)
+    if record is None or record.caller_kind != "identity" or record.caller != who:
+        raise api_error(404, "check-unknown", "no such check for this identity")
+    return JSONResponse(asdict(record))

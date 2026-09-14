@@ -98,7 +98,8 @@ D-28, D-35, D-36.</p>
     per identity per hour when a token is presented, per source address per day otherwise, and shall
     cap in-flight calls to the hosted service per process at a configured concurrency, refusing
     <code>checker-busy</code> when no slot frees within the call budget (Q8).</td></tr>
-  <tr><td>F13-R9</td><td>The system shall log every call as a <code>check-log</code> record in the
+  <tr><td>F13-R9</td><td>The system shall log every call that passes the body's shape and the caller's
+    limit (Q11) as a <code>check-log</code> record in the
     operational store: id, time, caller (identity id, or a keyed hash of the source address), target,
     node, environment, mode, content SHA-256 and size, outcome, error count, lint codes, the
     checker's request id, upstream status and latency; it shall never store the content (C9 v2,
@@ -135,15 +136,18 @@ D-28, D-35, D-36.</p>
     checked, then the forwarded text starts with that definition's source and the response names
     it.</td><td><code>api/tests/test_checks.py::test_defs_are_inlined</code></td></tr>
   <tr><td>F13-AC6</td><td>Given a pin mapped to <code>null</code>, oversized content, or a checker
-    answering 503 or timing out, when a check is posted, then the named refusal is returned and a
-    log record exists.</td><td><code>api/tests/test_checks.py::test_refusals_are_named_and_logged</code></td></tr>
+    answering 503 or timing out, when a check is posted, then the named refusal is returned; a
+    refusal past the body and the limit carries its <code>log_id</code> and leaves a record with its
+    code (and the upstream status), and a refusal of the body leaves none (Q11).</td><td><code>api/tests/test_checks.py::test_refusals_are_named_and_logged</code></td></tr>
   <tr><td>F13-AC7</td><td>Given the configured limits, when an anonymous address or an identity
     exceeds them, then the next call is 429 with <code>Retry-After</code>; a bad token is 401; and a
     call beyond the in-flight cap waits up to the call budget and is then refused
     <code>checker-busy</code> without reaching the checker.</td><td><code>api/tests/test_checks.py::test_limits_and_concurrency_cap</code></td></tr>
   <tr><td>F13-AC8</td><td>Given both stores, when a check is logged, then the record round-trips with
     the content hash and no content field, and only its owner can read it back.</td><td><code>api/tests/test_store_seam.py::test_check_log_round_trips</code>,
-    <code>api/tests/test_checks.py::test_log_readable_only_by_owner</code></td></tr>
+    <code>api/tests/test_checks.py::test_log_readable_only_by_owner</code>,
+    <code>api/tests/test_store_seam.py::test_check_log_item_carries_no_content</code>,
+    <code>api/tests/test_checks.py::test_a_store_failure_does_not_fail_the_check</code></td></tr>
   <tr><td>F13-AC9</td><td>Given the mapping, when <code>info.json</code>, <code>server_info</code>
     and a target page are rendered, then each shows the target's environment and whether it is
     exact.</td><td><code>api/tests/test_checks.py::test_info_carries_hosted_check</code>,
@@ -244,6 +248,16 @@ D-28, D-35, D-36.</p>
     (<code>unknown-field</code>) from its first commit, which finding 5 asks of every write route and
     F05-T8 will deliver for the others. The finding's strict expected failure now marks each route by
     parameter, with <code>/check</code> unmarked, so its pass is not read as an XPASS.</td></tr>
+  <tr><td>F13-Q11</td><td>What is logged (T4): every call that passes the body's shape and the
+    caller's limit, answered or refused, including <code>target-unknown</code>,
+    <code>no-hosted-environment</code>, <code>checker-busy</code> and
+    <code>upstream-unavailable</code>. A malformed body, a bad token or a spent limit is left to the
+    access log line, which every request already writes: logging those would let anyone fill the
+    store with records at no cost, and none of them reached the checker. A record is written once,
+    carries no expiry (Q3), and a store failure is logged and never fails the check (C7), so its
+    <code>log_id</code> is then <code>null</code>. <code>GET /checks/&lt;id&gt;</code> needs a
+    token and answers the owner alone; an anonymous call's record is readable by no one through the
+    service, only by the gate owner in the table.</td></tr>
 </table>
 
 <h2>10. Status</h2>
@@ -257,7 +271,13 @@ D-28, D-35, D-36.</p>
   environment, the three lint warnings, Defs inlined dependencies first, every refusal named, both
   limits and the in-flight cap; unknown keys refused from the start, Q10; Mathlib-free graphs refused,
   Q9; the cap per process, Q8; <code>engineering/evidence/F13/task-3.txt</code>)
-  · T4&ndash;T7 todo</div>
+  · T4 ✓ 2026-09-14 (<code>uv run pytest api/tests/test_checks.py api/tests/test_store_seam.py</code>;
+  the <code>check#</code> record in both stores with no content field, <code>GET /checks/&lt;id&gt;</code>
+  for its owner, the structured log line without the text, a store failure that never fails the
+  check, and the package rehearsal proving <code>hosted-checkers.yaml</code> resolves beside
+  <code>schemas/</code> in the deploy layout; what is logged, Q11;
+  <code>engineering/evidence/F13/task-4.txt</code>)
+  · T5&ndash;T7 todo</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its
@@ -288,7 +308,8 @@ one verification command (conventions §3, §6).</p>
   <tr><td>F13-T4</td><td>The call log in both stores, <code>GET /checks/&lt;id&gt;</code>, the
     structured log line; the deploy package check sees <code>gate/hosted-checkers.yaml</code>.</td>
     <td><code>api/opn_api/store.py</code>, <code>api/opn_api/checks.py</code>,
-    <code>api/tests/test_store_seam.py</code>, <code>.github/workflows/api-deploy.yml</code></td>
+    <code>api/opn_api/routes.py</code>, <code>api/tests/test_store_seam.py</code>,
+    <code>api/tests/test_checks.py</code>, <code>.github/workflows/api-deploy.yml</code></td>
     <td>T3</td><td><code>uv run pytest api/tests/test_checks.py api/tests/test_store_seam.py</code></td></tr>
   <tr><td>F13-T5</td><td>Publication: <code>info.json</code> and <code>server_info</code>, the target
     page line with a screenshot, the guide section.</td>

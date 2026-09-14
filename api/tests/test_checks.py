@@ -1,5 +1,6 @@
-"""F13-T3: ``POST /check`` — the mapped environment, the gate-gap lint, ``Defs`` inlining, the
-named refusals, the limits and the in-flight cap (F13-R3 to R8; AC3 to AC7).
+"""F13-T3, T4: ``POST /check`` and its call log — the mapped environment, the gate-gap lint,
+``Defs`` inlining, the named refusals, the limits and the in-flight cap, and the record every
+call past the body and the limit leaves (F13-R3 to R10; AC3 to AC8).
 
 Every test drives the route through the fake graph host and ``FakeAxle``: the hosted checker is
 never reached, and what the route forwards is read back from the fake's recorded calls.
@@ -7,10 +8,13 @@ never reached, and what the route forwards is read back from the fake's recorded
 
 from __future__ import annotations
 
+import hashlib
+import logging
 import threading
 from typing import Any
 
 import httpx
+import pytest
 import samples
 from api_fakes import AXLE_OKAY, FakeAxle, Harness, make_harness
 from mcp_client import NODE, NODE_DIR, STATEMENT, TARGET, seed_node
@@ -51,10 +55,20 @@ def post(h: Harness, body: dict[str, Any], headers: dict[str, str] | None = None
     return response
 
 
-def test_the_route_is_open_and_names_its_d35_row() -> None:
-    """R8, Q2: no bearer demanded by the table; D-35 v3.14's row, verbatim."""
-    (spec,) = [r for r in routes.ROUTES if r.label == "POST /check"]
-    assert spec.d35 == "POST /check" and not spec.authenticated and spec.feature == "F13"
+def refused(r: httpx.Response, status: int, code: str) -> dict[str, Any]:
+    assert r.status_code == status, r.text
+    doc: dict[str, Any] = r.json()
+    assert doc["error"] == code, r.text
+    return doc
+
+
+def test_the_routes_are_registered() -> None:
+    """R8, R10, Q2: the check is open with D-35 v3.14's row; the record read needs a bearer."""
+    (post_spec,) = [r for r in routes.ROUTES if r.label == "POST /check"]
+    assert post_spec.d35 == "POST /check" and not post_spec.authenticated
+    (get_spec,) = [r for r in routes.ROUTES if r.label == "GET /checks/{check_id}"]
+    assert get_spec.d35 is None and get_spec.authenticated
+    assert post_spec.feature == get_spec.feature == "F13"
 
 
 def test_check_and_verify_forward_to_the_mapped_environment() -> None:
@@ -127,16 +141,10 @@ def test_defs_are_inlined() -> None:
     assert sent.index("def Opn.base") < sent.index("def Opn.fact") < sent.index("theorem OpnProp")
 
 
-def refused(r: httpx.Response, status: int, code: str) -> dict[str, Any]:
-    assert r.status_code == status, r.text
-    doc: dict[str, Any] = r.json()
-    assert doc["error"] == code, r.text
-    return doc
-
-
 def test_refusals_are_named_and_logged() -> None:
-    """AC6 (the naming half; T4 adds the log): each refusal before the checker reaches nothing,
-    and the checker's own failure is upstream-unavailable with its status."""
+    """AC6: a refusal of the body is named and leaves no record (Q11); a refusal past the limit
+    is named, carries its log id and leaves a record with its code; the checker's own failure
+    is upstream-unavailable with its status in both the answer and the record."""
     h = harness_with({"OPN_API_CHECK_MAX_BYTES": "200"})
     seed(h)
     base = {"target_id": TARGET, "content": PROOF}
@@ -148,13 +156,21 @@ def test_refusals_are_named_and_logged() -> None:
     refused(post(h, {**base, "mode": "verify"}), 400, "node-id-required")
     refused(post(h, {**base, "content": "  "}), 400, "content-missing")
     refused(post(h, {**base, "content": "x" * 201}), 413, "content-too-large")
-    refused(post(h, {**base, "target_id": "nowhere"}), 404, "target-unknown")
-    refused(post(h, {**base, "node_id": "no-such-node"}), 404, "node-unknown")
+    assert h.store.checks == {}  # nothing past the body yet
+
+    for body, status, code in (
+        ({**base, "target_id": "nowhere"}, 404, "target-unknown"),
+        ({**base, "node_id": "no-such-node"}, 404, "node-unknown"),
+    ):
+        doc = refused(post(h, body), status, code)
+        assert h.store.checks[doc["details"]["log_id"]].outcome == code
     assert h.axle.calls == []
 
     seed(h, sha=None)  # a Mathlib-free graph, like the tutorial's (Q9)
     doc = refused(post(h, base), 422, "no-hosted-environment")
-    assert doc["details"] == {"mathlib_sha": None} and "Mathlib-free" in doc["message"]
+    assert doc["details"]["mathlib_sha"] is None and "Mathlib-free" in doc["message"]
+    record = h.store.checks[doc["details"]["log_id"]]
+    assert (record.outcome, record.environment) == ("no-hosted-environment", None)
     seed(h, sha="1" * 40)  # a pin the mapping does not list
     refused(post(h, base), 422, "no-hosted-environment")
     assert h.axle.calls == []
@@ -163,7 +179,13 @@ def test_refusals_are_named_and_logged() -> None:
     h = harness_with(axle=failing)
     seed(h)
     doc = refused(post(h, base), 502, "upstream-unavailable")
-    assert doc["details"] == {"upstream_status": 503} and "503" in doc["message"]
+    assert doc["details"]["upstream_status"] == 503 and "503" in doc["message"]
+    record = h.store.checks[doc["details"]["log_id"]]
+    assert (record.outcome, record.upstream_status, record.environment) == (
+        "upstream-unavailable",
+        503,
+        "lean-4.33.0",
+    )
 
 
 def test_limits_and_concurrency_cap() -> None:
@@ -173,14 +195,14 @@ def test_limits_and_concurrency_cap() -> None:
     h = harness_with({"OPN_API_ANONYMOUS_CHECKS_PER_DAY": "2", "OPN_API_CHECKS_PER_HOUR": "1"})
     seed(h)
     assert [post(h, body).status_code for _ in range(2)] == [200, 200]
-    r = refused(post(h, body), 429, "rate-limited")
+    refused(post(h, body), 429, "rate-limited")
     token = h.token_for("code_alice", "alice")
     assert post(h, body, h.auth(token)).status_code == 200  # a different subject
     over = post(h, body, h.auth(token))
     refused(over, 429, "rate-limited")
     assert int(over.headers["Retry-After"]) > 0
     refused(post(h, body, {"Authorization": "Bearer nonsense"}), 401, "invalid-token")
-    assert r  # the anonymous refusal above carried the standard body
+    assert len(h.store.checks) == 3  # the three answered calls; the refused ones are not logged
 
     blocking = Blocking()
     h = harness_with({"OPN_API_CHECK_CONCURRENCY": "1", "OPN_API_CHECK_TIMEOUT_S": "1"}, blocking)
@@ -191,11 +213,77 @@ def test_limits_and_concurrency_cap() -> None:
     try:
         assert blocking.entered.wait(10), "the first check never reached the checker"
         busy = refused(post(h, body), 503, "checker-busy")
-        assert busy and blocking.entries == 1  # the second check never reached the checker
+        assert busy["details"]["log_id"] and blocking.entries == 1  # never reached the checker
     finally:
         blocking.release.set()
         worker.join(15)
     assert [r.status_code for r in first] == [200]
+
+
+def test_log_readable_only_by_owner(caplog: pytest.LogCaptureFixture) -> None:
+    """AC8, R9, R10: the record carries the content's hash and size, the answer's facts and the
+    lint codes, never the text; its identity reads it back, another identity and an anonymous
+    call's record answer not-found, and the log line names the call without the text."""
+    reply = {
+        **AXLE_OKAY,
+        "okay": False,
+        "lean_messages": {"errors": ["e1", "e2"], "warnings": [], "infos": []},
+        "info": {"request_id": "req-42"},
+    }
+    h = harness_with(axle=FakeAxle(replies=[reply]))
+    seed(h)
+    marked_text = "theorem OpnProp.and_reassoc : True := by\n  sorry -- UNIQUE-MARKER\n"
+    alice = h.token_for("code_alice", "alice")
+    with caplog.at_level(logging.INFO, logger="opn_api.checks"):
+        r = post(h, {"target_id": TARGET, "node_id": NODE, "content": marked_text}, h.auth(alice))
+    assert r.status_code == 200, r.text
+    log_id = r.json()["log_id"]
+
+    got = h.client.get(f"/checks/{log_id}", headers=h.auth(alice))
+    assert got.status_code == 200, got.text
+    record = got.json()
+    assert "content" not in record and "UNIQUE-MARKER" not in got.text
+    assert record["content_sha256"] == hashlib.sha256(marked_text.encode()).hexdigest()
+    assert record["content_bytes"] == len(marked_text.encode())
+    assert (record["caller_kind"], record["outcome"], record["okay"]) == (
+        "identity",
+        "answered",
+        False,
+    )
+    assert (record["error_count"], record["axle_request_id"]) == (2, "req-42")
+    assert record["lint"] == ["sorry-present"] and record["environment"] == "lean-4.33.0"
+
+    bob = h.token_for("code_bob", "bob")
+    refused(h.client.get(f"/checks/{log_id}", headers=h.auth(bob)), 404, "check-unknown")
+    refused(h.client.get(f"/checks/{log_id}"), 401, "unauthenticated")
+    refused(h.client.get("/checks/01NOSUCHCHECK", headers=h.auth(alice)), 404, "check-unknown")
+
+    anonymous = post(h, {"target_id": TARGET, "content": PROOF})
+    anon_id = anonymous.json()["log_id"]
+    anon = h.store.checks[anon_id]
+    assert (
+        anon.caller_kind == "address" and len(anon.caller) == 64 and "testclient" not in anon.caller
+    )
+    refused(h.client.get(f"/checks/{anon_id}", headers=h.auth(alice)), 404, "check-unknown")
+
+    lines = [rec.getMessage() for rec in caplog.records if rec.name == "opn_api.checks"]
+    assert any(f"id={log_id}" in line and "outcome=answered" in line for line in lines), lines
+    assert all("UNIQUE-MARKER" not in line for line in lines)
+
+
+def test_a_store_failure_does_not_fail_the_check() -> None:
+    """C7, R9: the check is answered even when its record cannot be written; the log id is null."""
+    h = harness_with()
+    seed(h)
+
+    def broken(record: Any) -> None:
+        msg = "table unavailable"
+        raise RuntimeError(msg)
+
+    h.store.put_check = broken  # type: ignore[method-assign]
+    r = post(h, {"target_id": TARGET, "content": PROOF})
+    assert r.status_code == 200, r.text
+    assert r.json()["log_id"] is None
 
 
 class Blocking(FakeAxle):

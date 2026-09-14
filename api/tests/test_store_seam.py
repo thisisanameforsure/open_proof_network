@@ -31,10 +31,12 @@ from botocore.exceptions import ClientError
 
 from opn_api import store as storemod
 from opn_api.store import (
+    KEY_CHECK,
     KEY_JOB,
     KEY_PROOF_REF,
     KEY_PSEUDONYM,
     KEY_TOKEN,
+    CheckLog,
     Claim,
     ConflictError,
     DynamoStore,
@@ -744,3 +746,58 @@ def test_release_renders_the_time(both: Store) -> None:
     found = both.get_claim("c1")
     assert found is not None
     assert found.released == "2026-09-10T12:00:00Z"
+
+
+def check_log(id_: str, **overrides: Any) -> CheckLog:
+    fields: dict[str, Any] = {
+        "id": id_,
+        "created": "2026-09-14T10:00:00Z",
+        "caller_kind": "address",
+        "caller": "ab" * 32,
+        "target_id": "erdos-376",
+        "node_id": None,
+        "mode": "check",
+        "environment": "lean-4.33.0",
+        "content_sha256": "cd" * 32,
+        "content_bytes": 1234,
+        "outcome": "answered",
+        "okay": False,
+        "error_count": 2,
+        "lint": ["helper-declarations", "sorry-present"],
+        "axle_request_id": "8d2d5549",
+        "upstream_status": None,
+        "latency_ms": 812,
+    }
+    return CheckLog(**{**fields, **overrides})
+
+
+def test_check_log_round_trips(both: Store) -> None:
+    """F13-AC8: a check record comes back exactly from both stores — its nulls, its booleans and
+    its integers (DynamoDB returns Decimals) — and an absent id is None."""
+    answered = check_log("01CHECK1")
+    refused = check_log(
+        "01CHECK2",
+        caller_kind="identity",
+        caller="01IDENTITY",
+        node_id="erdos-376",
+        mode="verify",
+        outcome="upstream-unavailable",
+        okay=None,
+        error_count=None,
+        lint=[],
+        axle_request_id=None,
+        upstream_status=503,
+    )
+    for record in (answered, refused):
+        both.put_check(record)
+        assert both.get_check(record.id) == record
+    assert both.get_check("01MISSING") is None
+
+
+def test_check_log_item_carries_no_content() -> None:
+    """F13-R9, C9 v2: the stored item has the hash and the size and no field holding the text."""
+    resource = fake_resource()
+    dynamo(resource).put_check(check_log("01CHECK3"))
+    item = resource.meta.client.tables[TABLES["tokens"]].items[KEY_CHECK + "01CHECK3"]
+    assert set(item) == {"key", "check"}
+    assert "content" not in item["check"] and item["check"]["content_bytes"] == 1234
