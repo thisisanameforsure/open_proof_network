@@ -637,3 +637,13 @@ The law of the project:
   semaphore and the test failed once in a full run and never alone; per-app state lives on the
   app's own object. And price a "just add a field to info.json" before promising it: `info/v1` is
   closed and hash-pinned and is the graph's product, so the mapping became its own route instead.
+- 2026-09-14 — The Euclid tester's fixes reached the live record in one sitting: network f3abee2 re-pinned
+  (graph 96ba669), then the tester's own root proof went in through the service as graph PR #38. Its
+  attestation was the first to name a submitter, it wrote the graph's first ledger file, and euclid-primes
+  resolved. Two things worth keeping. `pregate.sh` gates the working tree's uncommitted changes as the
+  submission, so pregating a re-pin before committing it gave eight `path-forbidden` offences, every one
+  a pin file. Commit the pins, then pregate. And `gh run rerun --job` on the step-9 job re-executes only
+  that job: the later attempts carry the gate build's original timestamps, so an approval costs five
+  seconds rather than a ten-minute Mathlib build. The first approval arrived mid-build and passed without
+  ever showing red. AC32's red state was seen after a dismissal, which is why the check approves, dismisses
+  and approves again rather than approving once.
