@@ -1,0 +1,54 @@
+The graph re-pinned to network d0122d1 — 2026-09-14 (the second re-pin of the day; Mike asked for it)
+
+Carries to the live gate what landed on network main after f3abee2: F07-T7's gate half (a hole child
+records the submission block's model; a hole that restates a sibling's statement becomes a dependency
+edge, asked in the sandbox by opn-artifact-type --siblings), F03-T8 (products refuse a graph whose
+schemas/ lacks an advertised schema — the seed went out with the f3abee2 push), F13 (hosted-checkers
+mapping; no gate step reads it), the F10 guide and the log. No graph workflow change and no strict
+mark flips with this push (checked: no strict xfail reads the graph).
+
+0. Before the tag
+   - b9 (F13) checked that F13 needs nothing graph-side: no gate step, CLI command or post-merge code
+     imports opn_gate.hosted or reads gate/hosted-checkers.yaml; mathlib-pins.txt's tag comment is
+     stripped by both workflows, so the image matrix is unchanged (Mathlib 0df444a360).
+   - schemas.unpublished(<graph>) with the gate at d0122d1: [] — the graph serves every advertised
+     schema, so F03-T8 cannot refuse the first products run.
+   - graph AGENTS.md == gate/agents/AGENTS.md at d0122d1 (cmp).
+   - baseline pregate, gate at d0122d1 (detached network worktree), graph 1acbf35, tutorial-and-swap:
+     exit 0, verdict pass, steps 1, 2, 4-8 pass, 236 s (it built F07-T7's extractor).
+
+1. CI on d0122d1 (run 34842659414): fast tier success — 2013 passed, 17 skipped in 68.79s;
+   make verify-lean success — 67 passed, 2031 deselected in 3111.49s (0:51:51), including the three
+   Mathlib-checkout tests F07-T7 left pending CI (the laptop has no ~/.opn/mathlib).
+
+2. Tag gate-d0122d1 (annotated, at d0122d1665c3021b5bdaaaa61909c1b6411c0db5, pushed 13:40Z) -> image-publish
+   run 34850661331, success (each digest paired with its own job's log):
+   mathlib none                                      ghcr.io/thisisanameforsure/opn-gate@sha256:ae4e0914add1c5b654f8e1cecb9b9118e5d7d7e7c840950c26e5ab22ee8d5f53
+   mathlib 0df444a360eaa60ab8c11dca51a86af692955474  ghcr.io/thisisanameforsure/opn-gate@sha256:3d9761f525eee75baa8bc458f7f4e250cf50c3cb001aac539b7547bfabe6ad12
+
+3. Pins, written by scratch pin_all.sh (gate/tools/pin_image.py <digest> --graph <repin worktree> --target <t>
+   --network-commit d0122d1665c3... --api-url https://api.openproofnetwork.org; olean_cache_url kept):
+   tutorial -> the plain image; erdos-52, -68, -172, -376, -406, euclid-primes -> the Mathlib image,
+   euclid-primes last (the graph's single devcontainer.json runs the Mathlib image, OPN_API exported).
+   8 files changed, 15 insertions, 15 deletions; each gate-spec.json names d0122d1 once.
+   pin_image.py --check: the six Mathlib targets "pin ok"; tutorial 1 problem, the devcontainer runs the
+   Mathlib image rather than tutorial's — as at both earlier re-pins.
+   Committed on the graph branch as f874fb2 "re-pin every target to network d0122d1 and its published gate
+   images", on top of 1acbf35 "gate: #38 pass".
+
+4. Pregate on the committed re-pin, gate at d0122d1 (detached network worktree):
+   $ <net-d0122d1>/gate/pregate.sh --graph <repin worktree> --target tutorial --node tutorial-and-swap
+   exit 0, verdict pass: 1 toolchain, 2 paths, 4 kernel-replay, 5 axioms, 6 hazards, 7 witness, 8 deps —
+   all pass; 55 s. The six Mathlib targets were not pregated here (no Mathlib checkout on this laptop);
+   CI's lean tier on d0122d1 ran the on-ramp's Mathlib tests, and their first live run on the new image is
+   the graph's CI on their next pull request.
+
+5. The graph (the gate owner's push, run by the session at Mike's request of 2026-09-14):
+   f874fb2  re-pin every target to network d0122d1 and its published gate images
+   origin/main 1acbf35 -> f874fb2 at 2026-09-14T13:54:17Z; the shared graph checkout fast-forwarded to it.
+   The push's own workflow run 34852150762: success (postmerge ran and found no merged pull request; the
+   sandbox gate and step 9 jobs skipped on a push, as designed). No network test changed state.
+
+6. Not yet true, by construction: the committed products still say rendered_from 2c0d979 until the next
+   merged pull request re-renders them under this pin, and the precheck job reads the network pin from
+   that rendered commit (F06-Q10), so a precheck before then runs the gate at f3abee2.
