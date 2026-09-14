@@ -115,3 +115,20 @@ Carries F14 to the live gate:
     the eleven that failed admission for driver reasons: erdos-247, 257, 260, 341, 410, 412, 727, 849, 931
     (hypotheses), 812 (notation) and 1139 (let). The four hazard holds are drafted still, as they should be:
     a hazard needs a curator judgment, not a refusal.
+
+13. Wave one complete, 2026-09-14. Merged:
+    - first pass: #44 erdos-1003, #45 erdos-1065, #46 erdos-1094, #48 erdos-212, #53 erdos-324, #62 erdos-850,
+      #65 riemann-hypothesis;
+    - after fixes: #50 erdos-251, #58 erdos-51, #51 erdos-257, #55 erdos-410, #57 erdos-417, #64 erdos-952,
+      #56 erdos-412, #59 erdos-727, #61 erdos-849, #63 erdos-931.
+    17 of 22 are on the graph. The other five are closed for wave two, each with a comment naming why: #60 erdos-812,
+    #47 erdos-1139, #49 erdos-247, #52 erdos-260, #54 erdos-341.
+    Fixes in the second and third passes: real witnesses (erdos-257, 410, 412, 727, 849, 931), and hazard
+    acknowledgements with justifications for div-zero and unused hygienic binders (erdos-251, 51, 417, 952, 257,
+    410) and for literal-bound off-by-one-range findings that match the informal problems (erdos-412, 727, 849,
+    931).
+    Admission stops at its first failing check, so each fix surfaced the next step's findings: hazards appeared
+    only after witnesses passed.
+    Live targets/index.json (targets-index/v5, rendered_from 355734a): 24 targets, 23 claimable (euclid-primes is
+    resolved), step9 evidence 22 and review 2 (euclid-primes, tutorial).
+    https://openproofnetwork.org/targets/riemann-hypothesis/ answers 200.
