@@ -1,0 +1,23 @@
+F14-T15 pre-check — the five evidence pull requests rehearsed before any graph write
+date: 2026-09-14
+graph: a local clone of ../open_proof_network_graph at f874fb2 (no push, scratch directory)
+gate: this branch (network worktree opn-f14), classify with the graph's first curator as author
+
+Each branch adds `opn-gate evidence add erdos-<n> --catalog docs/lean_conjecture_catalog.json --key erdos:<n>`.
+
+== erdos-52 files: targets/erdos-52/attempts.yaml targets/erdos-52/evidence/root-1.yaml
+ mode curator problems [] needs_gate False needs_review False
+== erdos-68 files: targets/erdos-68/attempts.yaml targets/erdos-68/evidence/root-1.yaml
+ mode curator problems [] needs_gate False needs_review False
+== erdos-172 files: targets/erdos-172/attempts.yaml targets/erdos-172/evidence/root-1.yaml
+ mode curator problems [] needs_gate False needs_review False
+== erdos-376 files: targets/erdos-376/attempts.yaml targets/erdos-376/evidence/root-1.yaml
+ mode curator problems [] needs_gate False needs_review False
+== erdos-406 files: targets/erdos-406/attempts.yaml targets/erdos-406/evidence/root-1.yaml
+ mode curator problems [] needs_gate False needs_review False
+
+Catalog grades: erdos-52 6 (A); erdos-68, -172, -376, -406 8 (A).
+Rendered on a bench clone with this gate: targets-index/v5, all five claimable, step9 evidence;
+euclid-primes resolved and not claimable; the frontier serves 5 claimable entries of 6.
+These PRs can only merge after the re-pin: the pinned gate at d0122d1 does not know the
+statement-evidence role.
