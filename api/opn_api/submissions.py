@@ -230,6 +230,10 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
     if not isinstance(node_id, str) or not node_id:
         raise ApiError(400, "node-id-missing", "node_id is required")
     facts = precheck.node_facts(ctx, node_id)
+    # F06-T6: a job outlives the state it was minted in, so a node that turned blocked since its
+    # precheck passed is refused here too — the shared 409 node-blocked, before the bundle is
+    # placed or any job is bound, and nothing pushed or recorded.
+    precheck.check_open(ctx, node_id, facts)
     claim = Claim(facts["target_id"], node_id)
     existing = precheck.existing_paths(ctx, node_id, claim.target_id)
     bundle, rejection = bundles.validate(fields.get("bundle"), claim, existing=existing)

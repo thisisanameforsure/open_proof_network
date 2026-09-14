@@ -1,0 +1,97 @@
+F06-T6, the submission half — POST /submissions refuses a node that turned blocked (2026-09-14)
+===============================================================================================
+
+The precheck half (engineering/evidence/F06/task-6.txt) made POST /precheck refuse a blocked node.
+The plan's line for this half: "After their commit: the same call at submissions.py". The other
+session's submissions.py work is on main, so the call lands here.
+
+Worktree branch worktree-agent-a4bc9f319e9b10429, on main 800a08e (rebased after F03-T7 landed;
+F07-T16's completion is 3f94711 beneath this commit).
+
+Why a second call is needed at all: a precheck job outlives the state it was minted in. A job that
+passed while the node was ready still binds a submission after a merge turns the node blocked, and
+the submission then opens a pull request the gate can only refuse at the dependency check.
+
+1. Red test, written first
+--------------------------
+New file api/tests/test_finding_submission_blocked.py (no mark: it was red only in this worktree,
+never committed red). Helpers reused from test_finding_precheck_blocked.py (block_node, bundle,
+UNPROVED_DEP) and test_finding_mcp_bootstrap.py (add_hole, HOLE).
+  test_a_job_minted_before_the_node_turned_blocked_opens_nothing
+    a passing job on and-reassoc while ready; then the node turns blocked on tutorial-and-swap;
+    the submission bound to that job -> 409 node-blocked naming the dep, details {status, cause,
+    unproved_deps}; no push beyond the precheck's own job branch, no pull request, no record.
+  test_a_blocked_node_is_refused_before_the_precheck_binding
+    a witness-missing hole and NO precheck_job_id -> 409 node-blocked naming /proposals/witness,
+    not 400 precheck-required: the refusal is about the node, so it comes first.
+  test_pin_a_ready_node_still_submits (PIN)
+    the same job and bundle while the node is ready -> 201.
+
+$ uv run --frozen pytest -q --tb=line api/tests/test_finding_submission_blocked.py   (before the fix)
+FAILED ...::test_a_job_minted_before_the_node_turned_blocked_opens_nothing
+  test_finding_submission_blocked.py:57: AssertionError: {'submission_id': '01M230M2G09H49WGW6RE968R32',
+  'pr_url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/1', 'pr_number': 1,
+  'node_id': 'and-reassoc', ...}
+    assert (201, None) == (409, 'node-blocked')
+FAILED ...::test_a_blocked_node_is_refused_before_the_precheck_binding
+  test_finding_submission_blocked.py:71: AssertionError: {'error': 'precheck-required', 'message':
+  'precheck_job_id is required (D-4: no attestation, no CI)'}
+    assert (400, 'precheck-required') == (409, 'node-blocked')
+2 failed, 1 passed
+
+2. The change
+-------------
+api/opn_api/submissions.py post_submissions, directly after precheck.node_facts:
+    precheck.check_open(ctx, node_id, facts)
+The existing F06-T6 function, unchanged: only status blocked is refused, through the shared
+precheck.blocked_error (F05-T9). So a proved node stays submittable (alternates, D-25 v3.13, and
+the tutorial node's rehearsal, D-27), and a node the graph gives no status is not refused. It sits
+before the bundle is validated and placed, before bound_job, and so before any push, pull request
+or pending.record.
+
+3. Existing tests that pinned old behaviour
+-------------------------------------------
+None. No existing submissions test submits to a blocked node.
+
+4. Green
+--------
+$ uv run --frozen pytest -q -rfxX api/tests/test_finding_submission_blocked.py \
+    api/tests/test_finding_precheck_blocked.py api/tests/test_precheck.py api/tests/test_submissions.py \
+    api/tests/test_submissions_alternate.py api/tests/test_finding_pending_submissions.py
+XFAIL test_finding_pending_submissions.py::test_list_submissions_is_a_tool_and_equals_the_snapshot
+  (the MCP registration, see F07/task-16-completion.txt)
+52 passed, 1 xfailed
+
+5. Mutation check (pytest plugins in a scratch dir, monkeypatching in memory)
+------------------------------------------------------------------------------
+mutant_blocked_cause_only.py     precheck.check_open refuses only when the graph row names a cause,
+                                 so a node blocked on unproved deps alone (cause null) passes
+mutant_blocked_after_binding.py  submissions' own check_open becomes a no-op and the real check
+                                 runs after bound_job, i.e. the refusal moved behind the binding
+
+$ PYTHONPATH=<scratch>/mutants uv run --frozen pytest -q --tb=no -rf -p no:cacheprovider \
+    -p mutant_blocked_cause_only api/tests/test_finding_submission_blocked.py \
+    api/tests/test_finding_precheck_blocked.py
+FAILED api/tests/test_finding_submission_blocked.py::test_a_job_minted_before_the_node_turned_blocked_opens_nothing
+FAILED api/tests/test_finding_precheck_blocked.py::test_a_dep_blocked_node_is_refused_before_any_job
+FAILED api/tests/test_finding_precheck_blocked.py::test_precheck_submission_over_mcp_passes_the_refusal_through
+3 failed, 6 passed
+
+$ ... -p mutant_blocked_after_binding (same files)
+FAILED api/tests/test_finding_submission_blocked.py::test_a_blocked_node_is_refused_before_the_precheck_binding
+1 failed, 8 passed
+  The ordering test is the only one that sees this mutant: with a job, a late check still refuses
+  before anything is pushed, so only a request with no job tells the two orders apart.
+
+6. make verify (fast tier, on main 800a08e + F07-T16 rebased + this change)
+----------------------------------------------------------------------------
+$ env -u VIRTUAL_ENV make verify
+ruff check: All checks passed!   ruff format --check: 305 files already formatted
+mypy gate: Success: no issues found in 150 source files
+mypy api:  Success: no issues found in 89 source files
+mypy site: Success: no issues found in 23 source files
+pytest -m "not lean and not docker and not network":
+  1830 passed, 13 skipped, 67 deselected, 44 xfailed, 2 warnings in 137.13s
+exit 0
+This run is also the post-rebase check of F07-T16 (3f94711 on 800a08e): nothing F03-T7 changed
+broke it.
