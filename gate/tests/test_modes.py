@@ -453,6 +453,8 @@ def test_classify_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) ->
         "needs_review": False,
         "reviewers": None,
         "review_waived": None,
+        "review_kind": None,  # F07-T17: an append asks no step 9
+        "review_reference": None,
         "problems": [],
         "ok": True,
         "exhibits": [],

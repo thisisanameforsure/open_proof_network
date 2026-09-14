@@ -10,7 +10,8 @@ schemas say ``additionalProperties: false``; the plain path should say the same.
 Asserted here (plan Phase 0, F05-T8): a top-level key outside the route's allowlist is a 400
 ``unknown-field`` whose message names the key — on ``POST /precheck`` with the tester's exact
 key, and on every POST route that takes a JSON body. A known-field body is unchanged, which the
-one un-marked test proves today. Held as strict xfails until F05-T8 lands (conventions §2).
+one un-marked test proves today. Held as strict xfails until F05-T8 landed (2026-09-14), when
+the marks came off.
 """
 
 from __future__ import annotations
@@ -169,7 +170,7 @@ def tokens(h: Harness, key: PrecheckKey) -> Prepared:
 
 
 def check(h: Harness, key: PrecheckKey) -> Prepared:
-    """F13-T3: anonymous; the refusal comes before any graph read, so no pin need be seeded."""
+    """F13-T3: anonymous; body_fields refuses before any graph read, so no pin need be seeded."""
     return {"target_id": TARGET, "content": "theorem x : True := trivial\n"}, {}
 
 
@@ -189,15 +190,6 @@ WRITE_ROUTES: dict[str, Prepare] = {
     "/proposals/witness": witness,
     "/check": check,
 }
-#: F13-T3: routes that refuse an unknown key from their first commit, so the finding's strict
-#: expected failure does not apply to them (an XPASS would fail the suite).
-REFUSES_UNKNOWN_KEYS = frozenset({"/check"})
-EVERY_ROUTE_HELD = pytest.mark.xfail(
-    strict=True,
-    reason=FINDING_5.format(
-        "every write route reads its fields with .get and ignores a key it does not define"
-    ),
-)
 
 
 def test_the_table_covers_every_body_taking_write_route() -> None:
@@ -207,12 +199,6 @@ def test_the_table_covers_every_body_taking_write_route() -> None:
     assert with_body == set(WRITE_ROUTES)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=FINDING_5.format(
-        "POST /precheck accepts artifact_type and runs the job as if the key were not there"
-    ),
-)
 def test_precheck_refuses_the_testers_stray_key(harness: Harness) -> None:
     """The exact request the tester made: the tutorial precheck plus ``artifact_type``. A 400
     naming the key, and no job is created or dispatched."""
@@ -225,13 +211,7 @@ def test_precheck_refuses_the_testers_stray_key(harness: Harness) -> None:
     assert harness.githost.dispatches == []
 
 
-@pytest.mark.parametrize(
-    "route",
-    [
-        pytest.param(r, marks=() if r in REFUSES_UNKNOWN_KEYS else EVERY_ROUTE_HELD)
-        for r in sorted(WRITE_ROUTES)
-    ],
-)
+@pytest.mark.parametrize("route", sorted(WRITE_ROUTES))
 def test_every_write_route_refuses_one_unknown_key(
     harness: Harness, key: PrecheckKey, route: str
 ) -> None:
@@ -254,3 +234,67 @@ def test_a_known_field_body_still_works(harness: Harness, key: PrecheckKey) -> N
     r = harness.client.post("/claims", json=body, headers=headers)
     assert r.status_code == 201, r.text
     assert r.json()["node_id"] == NODE
+
+
+# --- edges (F05-T8, 2026-09-14) -------------------------------------------------------------------
+
+
+def test_the_refusal_names_every_stray_key_and_lists_the_accepted_ones(
+    harness: Harness, key: PrecheckKey
+) -> None:
+    """Two stray keys are both named, sorted, and the message lists what the route accepts, so
+    a caller fixes the request in one round; ``details`` carries the same two lists as data."""
+    body, headers = claims(harness, key)
+    r = harness.client.post("/claims", json={**body, "zeta": 1, STRAY: "stray"}, headers=headers)
+    assert r.status_code == 400, r.text
+    doc = r.json()
+    assert doc["error"] == "unknown-field", doc
+    assert f"{STRAY}, zeta" in doc["message"], doc["message"]
+    assert "node_id, target_id, ttl_hours" in doc["message"], doc["message"]
+    assert doc["details"] == {
+        "unknown": [STRAY, "zeta"],
+        "accepted": ["node_id", "target_id", "ttl_hours"],
+    }
+
+
+def test_only_top_level_keys_are_refused(harness: Harness, key: PrecheckKey) -> None:
+    """The allowlist is the route's own field names. A key *inside* a field's object is that
+    field's business (``tooling`` keeps three names and ignores the rest, a record is validated
+    by its schema), so a stray key nested in ``tooling`` still opens the pull request."""
+    body, headers = submissions(harness, key)
+    nested = {**body, "tooling": {"model": "m", STRAY: "stray"}}
+    r = harness.client.post("/submissions", json=nested, headers=headers)
+    assert r.status_code == 201, r.text
+
+
+def test_an_empty_body_is_not_an_unknown_field(harness: Harness) -> None:
+    """No keys, no stray key: an empty body is refused for the field it lacks, as before."""
+    token = harness.token_for("code_alice", "alice")
+    for raw in (b"", b"{}"):
+        r = harness.client.post(
+            "/claims",
+            content=raw,
+            headers={**harness.auth(token), "Content-Type": "application/json"},
+        )
+        assert r.status_code == 400, r.text
+        assert r.json()["error"] == "node-id-invalid", r.text
+
+
+def test_a_form_body_with_an_unknown_field_is_refused(harness: Harness, key: PrecheckKey) -> None:
+    """The browser path (``POST /tokens`` as a urlencoded form) gets the same rule, applied to
+    the top-level names after ``proof.id`` and ``dco.accepted`` are nested: the form's own
+    fields pass, and one more field is refused by name."""
+    body, _ = tokens(harness, key)
+    form = {
+        "proof.kind": body["proof"]["kind"],
+        "proof.id": body["proof"]["id"],
+        "dco.version": body["dco"]["version"],
+        "dco.accepted": "true",
+        "pseudonym": "alice",
+    }
+    r = harness.client.post("/tokens", data={**form, STRAY: "stray"})
+    assert r.status_code == 400, r.text
+    assert r.json()["error"] == "unknown-field", r.text
+    assert STRAY in r.json()["message"], r.text
+    ok = harness.client.post("/tokens", data=form, headers={"Accept": "application/json"})
+    assert ok.status_code == 201, ok.text  # the proof survived the refusal: nothing was spent

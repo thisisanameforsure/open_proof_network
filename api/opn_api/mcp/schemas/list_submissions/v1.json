@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/mcp/list_submissions/v1.json",
+  "title": "mcp/list_submissions/v1",
+  "description": "The result of the list_submissions tool (F09-R9, F09-T7; D-28 notation note of 2026-09-14): GET /submissions.json, or an error result naming the source that did not answer (R10).",
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "The open pull requests the service opened, each the submission document GET /submissions/<id> carries",
+      "required": [
+        "snapshot_at",
+        "open"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "snapshot_at": {
+          "type": "string"
+        },
+        "open": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/submission"
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "The plain path did not answer, or the arguments were refused (F09-R10)",
+      "required": [
+        "error",
+        "message",
+        "source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "graph",
+            "service",
+            "adapter"
+          ]
+        },
+        "status": {
+          "type": "integer"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "submission": {
+      "type": "object",
+      "description": "A pull request the service opened (F07-T16): operational, not evidentiary (C9)",
+      "required": [
+        "id",
+        "kind",
+        "node_id",
+        "target_id",
+        "pr_number",
+        "pr_url",
+        "pseudonym",
+        "precheck_job_id",
+        "created",
+        "closed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "node_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_id": {
+          "type": "string"
+        },
+        "pr_number": {
+          "type": "integer"
+        },
+        "pr_url": {
+          "type": "string"
+        },
+        "pseudonym": {
+          "type": "string"
+        },
+        "precheck_job_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created": {
+          "type": "string"
+        },
+        "closed": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

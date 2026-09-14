@@ -286,6 +286,36 @@ def test_a_store_failure_does_not_fail_the_check() -> None:
     assert r.json()["log_id"] is None
 
 
+def test_a_new_application_never_inherits_an_old_cap() -> None:
+    """R8, Q8: the in-flight cap belongs to its application. The first version kept semaphores
+    in a table keyed by ``id(ctx)``; CPython hands a collected Context's address to the next one
+    (189 of 200 rounds in the probe, task-4.txt), so a cap-1 application inherited a cap-8
+    semaphore and let a second check through — once in a full suite run, never alone."""
+    import gc  # noqa: PLC0415
+
+    body = {"target_id": TARGET, "content": PROOF}
+    for _ in range(20):
+        old = harness_with()
+        seed(old)
+        assert post(old, body).status_code == 200  # its cap now exists
+        del old
+        gc.collect()
+        blocking = Blocking()
+        h = harness_with(
+            {"OPN_API_CHECK_CONCURRENCY": "1", "OPN_API_CHECK_TIMEOUT_S": "1"}, blocking
+        )
+        seed(h)
+        assert h.context.check_slots is None  # nothing carried over, whatever its address
+        worker = threading.Thread(target=lambda h=h: post(h, body))
+        worker.start()
+        try:
+            assert blocking.entered.wait(10)
+            refused(post(h, body), 503, "checker-busy")
+        finally:
+            blocking.release.set()
+            worker.join(15)
+
+
 class Blocking(FakeAxle):
     """A checker that holds its first call until released, so a second call meets the cap."""
 

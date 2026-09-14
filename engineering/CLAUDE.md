@@ -605,3 +605,27 @@ The law of the project:
   witness tool on the MCP. One of the holes was the tutorial's own proved theorem, filed as a new
   node. `OPN_API_CLAIMS_URL` was never set on the graph, so every committed product says zero
   claims. Notes in `engineering/session-notes/2026-09-13-live-contribution-tester.md`.
+- 2026-09-14 — The laptop hit 2.5 GiB free and a session's `docker system prune -a --volumes` hung
+  the daemon for two hours. Inside Docker the build left 10.7 GB of Mathlib-image build cache and a
+  dangling 4.7 GB `opn-gate` image, because a rebuild moves the tag and nothing prunes the old one.
+  Docker 4.12 never returns that space to the Mac (`fstrim` in the VM gave the host nothing), so
+  reclaiming meant deleting `Docker.raw` with Docker stopped: 48 G → 1.9 G. Run
+  `docker builder prune -f` and `docker image prune -f` after a docker-tier session, check
+  `df /System/Volumes/Data` before one, and never prune on a full disk — stop Docker instead.
+- 2026-09-14 — Two sessions sharing one checkout share one index, and a pre-commit hook is a
+  90-second window. My `git commit` had staged its seven paths and was running `make verify` when
+  another session ran `git reset` and `git add` of its own eighteen; the commit took the index as
+  it found it, so F07's alternates landed under an F03-T6 message and my files fell back to
+  unstaged. Nothing was lost (the amend was message-only and the tree hash was checked equal), but
+  the rule is now: commit by path with `git commit -o -- <paths>`, never `git reset` a shared
+  index, and do task work in a worktree merged by fast-forward. A graph push can also break every
+  network commit at once: F07-T8's live workflow turned ten strict xfails that read the graph's
+  `origin/main` into XPASS. Take those marks off before the graph push, not after.
+- 2026-09-14 — Mike asked what the frontier table's columns mean, and the review found the page
+  wrong in ways no test saw: a blocked variant published `claimable: true` (F03-Q4 had said
+  status, the code read the target alone), merged partials counted as zero attempts, and the page
+  had no status column to show either. Fixed as F03-T6, F03-T7 (`frontier/v3`) and F04-T11. On the
+  way, `CONTEXT.json` turned out to count attempts separately and would have disagreed with the
+  frontier; one helper serves both now. When a product field is computed in two places, grep for
+  the second before changing the first. And a local screenshot server can collide with another
+  session's on the same port: read the page you captured, not the one you meant to.

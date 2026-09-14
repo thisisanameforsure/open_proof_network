@@ -6,7 +6,9 @@ Read-only (what CI runs after a deploy): the SDK's Streamable HTTP client initia
 session at ``<api-url>/mcp``, the listed tools are exactly D-28's rows, ``server_info`` equals
 ``GET /info.json``, ``list_frontier`` equals ``GET /frontier.json`` and validates, ``get_node``
 serves the tutorial node's bundle with its prose demarcated, every result validates against
-its ``mcp/<tool>/v1`` schema, and a write without a token is the SDK's unauthorized result.
+its ``mcp/<tool>/v1`` schema, and a write that needs a token, called without one, is the
+unauthorized result: the route's ``{error: unauthenticated, message}``, the message naming
+``get_token`` (F09-T6).
 
 With a token (the evidence run) it also claims the first claimable frontier node through
 ``claim_node``, sees the claim in ``list_frontier``, and releases it through ``release_claim``
@@ -174,7 +176,7 @@ def read_only(  # noqa: PLR0912, PLR0915 — a checklist: one branch per thing t
             f"claim_node without a token is not the unauthorized result: {unauthorized}"
         )
     else:
-        print("claim_node (no token) -> 401, the SDK's unauthorized result")
+        print("claim_node (no token) -> 401 unauthenticated, the message naming get_token")
     return {"entries": entries, "tutorial": tutorial}
 
 

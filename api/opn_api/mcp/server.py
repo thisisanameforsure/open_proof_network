@@ -53,8 +53,9 @@ BY_NAME: dict[str, Tool] = {t.name: t for t in TOOLS}
 INSTRUCTIONS = (
     "The Open Proof Network's reference MCP server (D-28). Every tool is a lens over plain git "
     "and HTTP and holds no state: reads need no token; writes need `Authorization: Bearer "
-    "<token>` from POST /tokens, and pass their endpoint's status and body through. "
-    + demarcate.UNTRUSTED_NOTE
+    "<token>` and pass their endpoint's status and body through. Two writes need none: "
+    "precheck_submission on the tutorial node, and get_token, which turns that passing precheck "
+    "into a token. " + demarcate.UNTRUSTED_NOTE
 )
 
 
@@ -123,6 +124,9 @@ def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
             jsonschema.validate(instance=arguments, schema=tool.input_schema)
         except jsonschema.ValidationError as exc:
             return error_result(name, error("arguments-invalid", exc.message, "adapter").doc)
+        token = auth.bearer() if tool.forwards_bearer else None
+        if tool.needs_bearer and not token:  # R2: refused here, the endpoint never reached
+            return error_result(name, writes.unauthorized().doc)
         outer = OUTER.get()
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(
@@ -135,7 +139,7 @@ def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
             call = Call(
                 ctx,
                 http,
-                token=auth.bearer() if tool.write else None,
+                token=token,
                 forwarded_for=outer.forwarded_for if outer else None,
             )
             try:

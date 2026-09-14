@@ -28,6 +28,7 @@ READS = {
     "get_defs",
     "get_gate_spec",
     "get_submission",
+    "list_submissions",  # F09-T7: D-28's notation note of 2026-09-14
     "get_schema",
     "get_precheck",
 }
@@ -35,6 +36,8 @@ WRITES = {
     "claim_node",
     "release_claim",
     "precheck_submission",
+    "get_token",  # F09-T6: D-28's notation note of 2026-09-14
+    "propose_witness",  # F09-T6: idem
     "submit_proof",
     "submit_postmortem",
     "submit_informal_annex",
@@ -112,6 +115,12 @@ def test_results_match_schemas(harness: Harness, tmp_path: Path) -> None:
         "claim_node": {"node_id": NODE},
         "release_claim": {"claim_id": "0" * 26},
         "precheck_submission": {"node_id": TUTORIAL_NODE, "bundle": {}},
+        "get_token": {
+            "proof": {"kind": "tutorial", "job_id": "0" * 26, "nonce": "n"},
+            "pseudonym": "surface",
+            "dco": {"version": "v", "accepted": True},
+        },
+        "propose_witness": {"node_id": NODE, "witness": "w"},
         "submit_proof": {
             "node_id": TUTORIAL_NODE,
             "artifact_type": "proof",

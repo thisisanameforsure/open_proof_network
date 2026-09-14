@@ -183,11 +183,15 @@ def node_files(
 # --- POST /proposals/speculative (D-14 mechanism 2) -----------------------------------------------
 
 
+#: F05-T8: the fields ``POST /proposals/speculative`` reads; any other top-level key is refused.
+SPECULATIVE_FIELDS: tuple[str, ...] = ("target_id", "statement", "witness", "deps", "model")
+
+
 async def post_speculative(ctx: Context, request: Request) -> Response:
     """R3: a crux statement as a typechecked, refutable object — origin authored, marked
     speculative by a status record inside the new directory (F08-Q2)."""
     identity: Identity = request.state.identity
-    fields, _ = await identitymod.body_fields(request)
+    fields, _ = await identitymod.body_fields(request, SPECULATIVE_FIELDS)
     target_id, files, node_id = node_files(
         ctx, identity, fields, prefix=SPECULATIVE_PREFIX, origin="authored", speculative=True
     )
@@ -208,11 +212,23 @@ async def post_speculative(ctx: Context, request: Request) -> Response:
 # --- POST /proposals/variant (D-30) ---------------------------------------------------------------
 
 
+#: F05-T8: the fields ``POST /proposals/variant`` reads; any other top-level key is refused.
+VARIANT_FIELDS: tuple[str, ...] = (
+    "target_id",
+    "statement",
+    "witness",
+    "deps",
+    "model",
+    "relation",
+    "relation_proof",
+)
+
+
 async def post_variant(ctx: Context, request: Request) -> Response:
     """R4: a labeled variant of the root; a label above ``related`` needs its implication proof,
     and the label lives in that proof's file (F08-Q6), so the two cannot be separated."""
     identity: Identity = request.state.identity
-    fields, _ = await identitymod.body_fields(request)
+    fields, _ = await identitymod.body_fields(request, VARIANT_FIELDS)
     relation = fields.get("relation") or "related"
     if relation not in scaffold.RELATION_LABELS:
         raise ApiError(
@@ -277,10 +293,14 @@ def hole_awaiting_witness(ctx: Context, node_id: Any) -> str:
     raise ApiError(404, "node-unknown", f"{node_id} is not a node of this graph")
 
 
+#: F05-T8: the fields ``POST /proposals/witness`` reads; any other top-level key is refused.
+WITNESS_FIELDS: tuple[str, ...] = ("node_id", "witness")
+
+
 async def post_witness(ctx: Context, request: Request) -> Response:
     """R5: fill a hole's witness slot — a pull request adding only ``Witness.lean``."""
     identity: Identity = request.state.identity
-    fields, _ = await identitymod.body_fields(request)
+    fields, _ = await identitymod.body_fields(request, WITNESS_FIELDS)
     node_id = fields.get("node_id")
     target_id = hole_awaiting_witness(ctx, node_id)
     assert isinstance(node_id, str)

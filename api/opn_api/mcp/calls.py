@@ -91,17 +91,45 @@ class Call:
 
 Handler = Callable[[Call, dict[str, Any]], Awaitable[dict[str, Any]]]
 
+#: Who may call a tool (R2), a separate question from whether it changes anything (``write``).
+#: ``anyone``: no bearer is read or forwarded — every read, and ``get_token``, which is how an
+#: identity starts (D-19). ``bearer``: without a verified bearer the server refuses the call
+#: before its endpoint is reached. ``endpoint``: the bearer is forwarded when there is one and
+#: the endpoint decides — ``precheck_submission``, because ``POST /precheck`` opens the tutorial
+#: node to an anonymous caller (F06-R2).
+Access = Literal["anyone", "bearer", "endpoint"]
+
 
 @dataclass(frozen=True)
 class Tool:
     """One D-28 row as the server declares it: name, D-28's parameters as a JSON Schema, the
-    handler, and whether it needs a bearer (R2)."""
+    handler, whether it changes state (``write``: not read-only, not idempotent) and who may
+    call it (``access``). A write defaults to ``bearer`` and a read to ``anyone``, so an
+    anonymous write is always declared, never a default (C7)."""
 
     name: str
     description: str
     input_schema: dict[str, Any]
     handler: Handler
     write: bool = False
+    access: Access | None = None
+
+    def __post_init__(self) -> None:
+        if self.access is None:
+            object.__setattr__(self, "access", "bearer" if self.write else "anyone")
+        elif not self.write and self.access != "anyone":
+            msg = f"{self.name}: a read tool is unauthenticated (D-28), not {self.access!r}"
+            raise ValueError(msg)
+
+    @property
+    def needs_bearer(self) -> bool:
+        """Refused without a verified bearer, before the endpoint (R2)."""
+        return self.access == "bearer"
+
+    @property
+    def forwards_bearer(self) -> bool:
+        """The caller's bearer, when verified, travels to the endpoint."""
+        return self.access != "anyone"
 
 
 def params(

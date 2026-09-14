@@ -28,3 +28,18 @@ Package rehearsal (api-deploy.yml's copy steps, without the cross-built wheels):
   checks imported from: /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/0852004d-c3f6-412d-bbb8-8b61a039b33a/scratchpad/f13-package/opn_api/checks.py
   mapping path: /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/0852004d-c3f6-412d-bbb8-8b61a039b33a/scratchpad/f13-package/hosted-checkers.yaml exists: True
   pins mapped: {'0df444a360ea': ('lean-4.33.0', False)}
+
+Addendum 2026-09-14, on merging main (f3abee2) into the branch. The merge commit's hook run of
+the whole suite failed once: api/tests/test_checks.py::test_limits_and_concurrency_cap, which had
+passed alone and in the api tier (611 passed). Cause, from a probe rather than a guess: the
+in-flight cap kept its semaphores in a dict keyed by id(ctx), and CPython reuses a collected
+Context's address. The probe built a default harness (cap 8), took its semaphore, collected it,
+built a cap-1 harness, and compared:
+
+  iteration 11: new Context reused address 0x10ab95be0; slots() returned the old semaphore: True
+  address reused in 189 of 200 rounds
+
+So a cap-1 application could inherit a cap-8 semaphore, let a second check through to the
+blocking fake, and answer 200 after 15 s where the test wants 503. Fix: the semaphore lives on
+Context.check_slots, created on first use; test_a_new_application_never_inherits_an_old_cap
+repeats the collect-then-rebuild twenty times and asserts the new application starts with none.

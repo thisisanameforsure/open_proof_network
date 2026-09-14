@@ -24,6 +24,7 @@ from api_fakes import (
     make_precheck_key,
 )
 from mcp_client import NODE, NODE_DIR, TARGET, McpClient, materialize, plain, seed_node, unwrap
+from test_finding_mcp_bootstrap import HOLE, add_hole
 
 from opn_api.mcp import demarcate
 from opn_api.mcp.server import TOOLS
@@ -84,6 +85,7 @@ def test_read_tools_equal_plain_path(
     over_mcp = client.ok("get_submission", {"submission_id": "000001"})
     assert over_mcp == harness.client.get("/submissions/000001").json()
     assert over_mcp["attestation"] == plain(harness, "attestations/000001.json")
+    assert client.ok("list_submissions") == harness.client.get("/submissions.json").json()
     assert client.ok("get_schema", {"name": "postmortem/v1"}) == plain(
         harness, "schemas/postmortem/v1.json"
     )
@@ -177,8 +179,20 @@ def test_get_node_uses_context(harness: Harness, tmp_path: Path) -> None:
 
 
 def masked(value: Any) -> Any:
-    """Ids the service mints (ULIDs) differ between two fresh harnesses; nothing else may."""
-    return json.loads(ULID_RE.sub("<ulid>", json.dumps(value, sort_keys=True)))
+    """Ids the service mints (ULIDs) and the tokens it issues (F09-T6: ``get_token``) differ
+    between two fresh harnesses; nothing else may."""
+
+    def walk(v: Any) -> Any:
+        if isinstance(v, dict):
+            return {
+                k: "<token>" if k == "token" and isinstance(x, str) else walk(x)
+                for k, x in v.items()
+            }
+        if isinstance(v, list):
+            return [walk(x) for x in v]
+        return v
+
+    return json.loads(ULID_RE.sub("<ulid>", json.dumps(walk(value), sort_keys=True)))
 
 
 def endpoint_calls(caplog: pytest.LogCaptureFixture) -> list[str]:
@@ -213,6 +227,11 @@ def with_dep(h: Harness, token: str) -> dict[str, Any]:
         b"theorem OpnProp.and_reassoc : True := by\n  sorry\n"
     )
     h.context.files.clear()
+    return {}
+
+
+def with_hole(h: Harness, token: str) -> dict[str, Any]:
+    add_hole(h)  # a hole blocked witness-missing, as a merged partial leaves it (F07-R6)
     return {}
 
 
@@ -279,6 +298,12 @@ WRITES: dict[str, tuple[dict[str, Any], str, dict[str, Any], Setup]] = {
         "POST /proposals/variant",
         {"target_id": TARGET, "statement": STATEMENT, "witness": WITNESS, "relation": "related"},
         no_setup,
+    ),
+    "propose_witness": (
+        {"node_id": HOLE, "witness": WITNESS},
+        "POST /proposals/witness",
+        {"node_id": HOLE, "witness": WITNESS},
+        with_hole,
     ),
 }
 
@@ -357,4 +382,23 @@ def test_write_tools_forward_once(
         [p.files for p in b.githost.pushes]
     )
     covered.add("submit_proof")
+
+    # get_token (F09-T6): anonymous on both sides, the proof being each harness's own passing
+    # anonymous tutorial job; the minted token and the identity's ULID are masked.
+    a, b = make_harness(), make_harness()
+    proofs = []
+    for h in (a, b):
+        job = h.tutorial_job(key)
+        proofs.append({"kind": "tutorial", "job_id": job["id"], "nonce": job["nonce"]})
+    dco = {"version": a.client.get("/dco.json").json()["version"], "accepted": True}
+    caplog.clear()
+    result = McpClient(a).call("get_token", {"proof": proofs[0], "pseudonym": "alice", "dco": dco})
+    assert endpoint_calls(caplog) == ["POST /tokens"]
+    direct = b.client.post("/tokens", json={"proof": proofs[1], "pseudonym": "alice", "dco": dco})
+    assert direct.status_code == 201, direct.text
+    assert result.structuredContent is not None
+    got = {k: v for k, v in result.structuredContent.items() if k in ("status", "body")}
+    assert masked(got) == masked({"status": 201, "body": direct.json()})
+    assert got["body"]["token"] != direct.json()["token"]  # two identities, two tokens
+    covered.add("get_token")
     assert covered == {t.name for t in TOOLS if t.write}

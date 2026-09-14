@@ -24,6 +24,7 @@ from __future__ import annotations
 import contextlib
 import importlib
 import logging
+import threading
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
 from dataclasses import dataclass, field
@@ -108,6 +109,10 @@ class Context:
     missing: list[str] = field(default_factory=list)
     files: dict[str, CachedFile] = field(default_factory=dict)
     pulls: dict[int, CachedPull] = field(default_factory=dict)
+    # F13-R8, Q8: this application's in-flight cap on the hosted checker, made on first use. It
+    # lives here rather than in a table keyed by id(ctx), because a collected Context's address
+    # is reused by the next one (checks.slots).
+    check_slots: threading.BoundedSemaphore | None = None
 
 
 Handler = Callable[[Context, Request], Awaitable[Response]]

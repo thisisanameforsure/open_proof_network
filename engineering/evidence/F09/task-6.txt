@@ -1,0 +1,151 @@
+F09-T6 — the MCP path can bootstrap and finish a contribution (2026-09-14)
+===========================================================================
+
+Specification: api/tests/test_finding_mcp_bootstrap.py (findings 1 and 10 of the 2026-09-13 live
+contribution). Decisions: Mike, 2026-09-13 and 2026-09-14 (plan "F09-T6"). Built in a worktree
+from main 39b5154, fast-forwarded to 800a08e (F03-T7) before verification.
+
+1. Red, before any change
+-------------------------
+uv run pytest api/tests/test_finding_mcp_bootstrap.py ... --runxfail
+FAILED test_precheck_submission_on_the_tutorial_node_needs_no_bearer
+  AssertionError: [TextContent(... '{"status": 401, "body": {"error": "invalid_token",
+  "error_description": "Authentication required"}}')]          (mcp_client.py:92, the tool refused)
+FAILED test_get_token_is_listed_and_mints_a_token_from_a_tutorial_pass
+  assert 'get_token' in {'claim_node', 'file_defect_claim', ...}
+FAILED test_propose_witness_is_listed_and_forwards_to_the_witness_route
+  assert 'propose_witness' in {'claim_node', 'file_defect_claim', ...}
+FAILED test_unauthenticated_write_refusal_matches_the_http_route
+  assert {'error', 'error_description'} == {'error', 'message'}
+(test_pin_the_precheck_route_is_anonymous_for_the_tutorial_node passed: a pin on the route.)
+
+2. The change
+-------------
+mcp/calls.py   Tool.write keeps one meaning — the tool changes state (readOnlyHint and
+               idempotentHint false). Who may call it is a new field, Tool.access:
+                 "anyone"   no bearer read or forwarded (every read; get_token)
+                 "bearer"   refused without a verified bearer before the endpoint (the writes)
+                 "endpoint" the bearer is forwarded when there is one and the endpoint decides
+                            (precheck_submission; POST /precheck opens the tutorial node, F06-R2)
+               A write defaults to "bearer" and a read to "anyone", so an anonymous write is
+               always declared, never a default (C7); a read declared anything but "anyone" is
+               a ValueError at import.
+mcp/server.py  The bearer gate moved from writes.forward into call_tool, after argument
+               validation: token = bearer() if tool.forwards_bearer; a tool that needs_bearer
+               without one gets the unauthorized result and no HTTP client is even opened.
+               INSTRUCTIONS name the two anonymous writes.
+mcp/auth.py    UNAUTHORIZED is the route's shape: {"error": "unauthenticated", "message": "this
+               tool needs `Authorization: Bearer <token>`. To mint one without leaving the MCP:
+               run precheck_submission on the tutorial node with no token, poll get_precheck
+               until it passes, then call get_token with proof {kind: tutorial, job_id, nonce}"}.
+               The SDK's transport-level verifier and bearer backend are unchanged (F09-Q6).
+mcp/writes.py  forward() no longer checks the token (the declaration does). precheck_submission
+               is access="endpoint". New tools: get_token -> POST /tokens with {proof, pseudonym,
+               dco} verbatim, access="anyone"; propose_witness -> POST /proposals/witness with
+               {node_id, witness}, access defaulting to "bearer".
+mcp/bijection.py  Rows get_token ("POST /tokens") and propose_witness ("POST /proposals/witness").
+mcp/schemas    get_token/v1.json and propose_witness/v1.json: the write envelope schema, as
+               claim_node's (the deploy check globs this directory against TOOLS; no edit to
+               .github/workflows/api-deploy.yml needed).
+api/tools/smoke_mcp.py  Still compares the exact refusal body (it imports auth.UNAUTHORIZED); its
+               docstring and printed line now describe the route-shaped body naming get_token.
+
+3. The decisions document (docs/architecture_decisions_v_3_12.html, D-28)
+-------------------------------------------------------------------------
+Write table, after precheck_submission:
+  | get_token(proof, pseudonym, dco) (notation note, 2026-09-14) | issues a rate-limited write
+    token under the D-19 identity rules | unauthenticated, because it is how an identity starts;
+    plain path POST /tokens (D-35) |
+Write table, after propose_variant:
+  | propose_witness(node_id, witness) (notation note, 2026-09-14) | fills the witness slot of a
+    hole a merged partial left blocked for want of one | D-29; a PR adding only the hole's
+    Witness.lean, gate-checked; plain path POST /proposals/witness |
+Beneath the write table:
+  Notation note, 2026-09-14: rows marked with this date were added to the v0 tables after the
+  2026-09-13 live contribution, in which an agent given only the MCP endpoint could not earn a
+  token or witness the holes its own partial created. Each is an endpoint the service already
+  had (D-35), so every tool still has exactly one plain-protocol equivalent and no decision
+  changes. The same note records a reading of "writes are token-authenticated":
+  precheck_submission on the tutorial node, like POST /precheck, needs no token (D-19, D-27),
+  and with get_token it is how an MCP-only client earns its first one. D-35's "token issuance
+  (no tool)" row is get_token's plain path.
+Not an overturn; PROTOCOL_VERSION unchanged; D-35's table itself is not edited.
+test_d28_rows_verbatim finds "POST /tokens" (already in D-35) and "POST /proposals/witness".
+
+4. Pins rewritten, and why
+--------------------------
+api/tests/test_mcp_auth.py::test_token_required_for_writes_only
+  pinned "every write refuses without a token". Two are anonymous by design now, so the test
+  lists them (ANONYMOUS_WRITES = {get_token: anyone, precheck_submission: endpoint}) and asserts
+  that set equals the declared one — a new write cannot become anonymous silently. Every other
+  write is the unauthorized envelope with nothing stored, pushed or dispatched; the two listed
+  ones reach their endpoint and get its own 400, not the adapter's 401. MINIMAL gains both tools.
+api/tests/test_mcp_surface.py  WRITES gains get_token and propose_witness; the results-schema
+  args map gains an argument set for each (both answered by the endpoint's refusal, validated).
+api/tests/test_mcp_equivalence.py  WRITES gains propose_witness (setup: the hole add_hole seeds);
+  get_token is its own block, because its proof is each twin harness's own anonymous tutorial job
+  (a Setup has no precheck key); masked() now masks a "token" value beside the ULIDs.
+api/tests/test_finding_mcp_bootstrap.py  the four strict xfail marks and their reason constants
+  removed; the module docstring says so.
+
+5. Edge cases (new: api/tests/test_mcp_bootstrap.py, 7 tests)
+-------------------------------------------------------------
+- get_token with a wrong nonce: the tool's refusal == POST /tokens' for the same body (400
+  proof-invalid); the right nonce still mints afterwards.
+- get_token with a used nonce: the second call's refusal == the HTTP path's third (400
+  proof-invalid).
+- get_token forwards no bearer: a caller already holding alice's token mints a new identity, and
+  the returned token claims as the new pseudonym.
+- precheck_submission with no token on a non-tutorial node: the route's own 401 body
+  {"error": "unauthenticated", "message": "this route needs `Authorization: Bearer <token>`"}
+  passed through (not the adapter's), equal to POST /precheck's, nothing dispatched.
+- Anonymous tutorial precheck through the adapter == POST /precheck on a twin harness (job id and
+  nonce masked), one dispatch each.
+- propose_witness on a ready node (400 witness-not-missing) and on an unknown node (404
+  node-unknown): the route's refusal, equal over both paths, nothing pushed.
+
+6. Green
+--------
+uv run pytest api/tests/test_mcp_surface.py api/tests/test_mcp_auth.py
+  api/tests/test_mcp_equivalence.py api/tests/test_finding_mcp_bootstrap.py
+  api/tests/test_mcp_bootstrap.py
+26 passed (every test PASSED by name, including the five of test_finding_mcp_bootstrap.py).
+test_mcp_errors.py, test_finding_refusal_reasons.py, test_finding_precheck_blocked.py (which import
+add_hole from the finding file) also green.
+
+7. Mutants (pytest plugins patching in memory at session start; no file touched)
+-------------------------------------------------------------------------------
+Each run over test_mcp_bootstrap, test_finding_mcp_bootstrap, test_mcp_auth, test_mcp_equivalence,
+test_mcp_surface (26 tests).
+T6-a precheck_submission access="bearer" (requires a bearer again)
+  FAILED test_mcp_bootstrap.py::test_anonymous_precheck_on_another_node_is_the_routes_401
+  FAILED test_mcp_bootstrap.py::test_anonymous_tutorial_precheck_equals_the_route
+  FAILED test_finding_mcp_bootstrap.py::test_precheck_submission_on_the_tutorial_node_needs_no_bearer
+  FAILED test_mcp_auth.py::test_token_required_for_writes_only
+  4 failed, 22 passed — killed
+T6-b get_token access="bearer" (not anonymous)
+  FAILED test_mcp_bootstrap.py::test_get_token_wrong_nonce_is_the_routes_refusal
+  FAILED test_mcp_bootstrap.py::test_get_token_used_nonce_is_the_routes_refusal
+  FAILED test_finding_mcp_bootstrap.py::test_get_token_is_listed_and_mints_a_token_from_a_tutorial_pass
+  FAILED test_mcp_auth.py::test_token_required_for_writes_only
+  FAILED test_mcp_equivalence.py::test_write_tools_forward_once
+  5 failed, 21 passed — killed
+T6-c auth.UNAUTHORIZED mutated in place back to the SDK body
+  FAILED test_finding_mcp_bootstrap.py::test_unauthenticated_write_refusal_matches_the_http_route
+  1 failed, 25 passed — killed (the only test comparing with the route; test_mcp_auth compares with
+  the constant, by design)
+
+8. make verify
+--------------
+ruff check: All checks passed! · ruff format --check: 305 files already formatted ·
+mypy gate/api/site: no issues (150, 89, 23 source files) ·
+pytest -m "not lean and not docker and not network":
+1830 passed, 13 skipped, 67 deselected, 48 xfailed in 326.40s (run beside the mutant runs)
+
+Still red, not this task's: test_finding_argument_renames.py (2, F09-T7);
+test_finding_pending_submissions.py::test_list_submissions_is_a_tool_and_equals_the_snapshot (F09-T7).
+
+Not done here (no spec HTML edits in this worktree): the F09 spec lines — R2, R3, AC5 amended, a T6
+ledger entry and a Q for the Tool.access split — are listed in the session report for the lead.
+Live-host smoke (anonymous tutorial precheck -> get_token -> propose_witness refusal probe with .env
+sourced) not run: it writes to the real graph's scratch repository and the task forbids pushes.

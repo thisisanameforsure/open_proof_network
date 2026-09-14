@@ -151,10 +151,14 @@ def append_pr(  # noqa: PLR0913 — one pull request, described
 # --- POST /postmortems (D-13) ---------------------------------------------------------------------
 
 
+#: F05-T8: the fields ``POST /postmortems`` reads; any other top-level key is refused.
+POSTMORTEM_FIELDS: tuple[str, ...] = ("node_id", "yaml")
+
+
 async def post_postmortems(ctx: Context, request: Request) -> Response:
     """R11: a typed failed attempt, contributed under the caller's identity (AC15)."""
     identity: Identity = request.state.identity
-    fields, _ = await identitymod.body_fields(request)
+    fields, _ = await identitymod.body_fields(request, POSTMORTEM_FIELDS)
     node_id, target_id = node_target(ctx, fields)
     doc = as_mapping(fields.get("yaml"), "yaml")
     doc["schema"] = POSTMORTEM_SCHEMA
@@ -198,10 +202,14 @@ def annex_file(doc: dict[str, Any], text: str) -> str:
     return f"---\n{head}---\n{body}"
 
 
+#: F05-T8: the fields ``POST /annexes`` reads; any other top-level key is refused.
+ANNEX_FIELDS: tuple[str, ...] = ("node_id", "text", "licence", "model_and_tooling")
+
+
 async def post_annexes(ctx: Context, request: Request) -> Response:
     """R11, AC14: the hash a skeleton must cite is the file's, and it is the file's name too."""
     identity: Identity = request.state.identity
-    fields, _ = await identitymod.body_fields(request)
+    fields, _ = await identitymod.body_fields(request, ANNEX_FIELDS)
     node_id, target_id = node_target(ctx, fields)
     text = fields.get("text")
     if not isinstance(text, str) or not text.strip():
@@ -259,10 +267,14 @@ def known_target(ctx: Context, target_id: Any) -> str:
     return target_id
 
 
+#: F05-T8: the fields ``POST /approach-records`` reads; any other top-level key is refused.
+APPROACH_FIELDS: tuple[str, ...] = ("target_id", "record")
+
+
 async def post_approach_records(ctx: Context, request: Request) -> Response:
     """R11: a strategy-level verdict for a route that never reached a statement (D-14)."""
     identity: Identity = request.state.identity
-    fields, _ = await identitymod.body_fields(request)
+    fields, _ = await identitymod.body_fields(request, APPROACH_FIELDS)
     target_id = known_target(ctx, fields.get("target_id"))
     doc = as_mapping(fields.get("record"), "record")
     doc["schema"] = APPROACH_SCHEMA

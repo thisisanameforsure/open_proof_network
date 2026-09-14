@@ -64,15 +64,6 @@ def test_get_submission_resolves_the_padded_and_unpadded_id(
     assert doc["attestation_note"] is None
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "finding pending-submissions (F09-R5, D-28): get_submission is GET /submissions/{id}, "
-        "which does not know a POST /submissions pull request that was never recorded; "
-        "fix: F09-T7 (Mike, 2026-09-14); needs the submissions.py record call; after the other "
-        "session's commit"
-    ),
-)
 def test_get_submission_answers_pending_state_for_an_open_pull_request(
     harness: Harness, tmp_path: Path
 ) -> None:

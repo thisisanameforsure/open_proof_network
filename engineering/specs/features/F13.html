@@ -245,9 +245,11 @@ D-28, D-35, D-36.</p>
     entry keyed by toolchain for core-only graphs, is one mapping line if Mike wants the tutorial
     fast-checkable.</td></tr>
   <tr><td>F13-Q10</td><td><code>POST /check</code> refuses an unknown top-level key
-    (<code>unknown-field</code>) from its first commit, which finding 5 asks of every write route and
-    F05-T8 will deliver for the others. The finding's strict expected failure now marks each route by
-    parameter, with <code>/check</code> unmarked, so its pass is not read as an XPASS.</td></tr>
+    (<code>unknown-field</code>) from its first commit, which finding 5 asks of every write route.
+    It first did so in its own parser, with the finding's strict expected failure marked per route so
+    its pass was not an XPASS; F05-T8 landed the same day with <code>identity.body_fields(request,
+    accepted)</code> refusing for every route, so on the merge the route passes its four keys there,
+    its own check went, and <code>/check</code> is one plain row in the finding's table.</td></tr>
   <tr><td>F13-Q11</td><td>What is logged (T4): every call that passes the body's shape and the
     caller's limit, answered or refused, including <code>target-unknown</code>,
     <code>no-hosted-environment</code>, <code>checker-busy</code> and

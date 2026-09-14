@@ -71,12 +71,16 @@ TABLE: tuple[Row, ...] = (
         ("attestations/<id>.json", "GET /submissions/{submission_id}"),
         "attestations/<id>.json",
     ),
+    # F09-T7: D-28's read table, notation note of 2026-09-14 — an existing route (F07-T16).
+    Row("list_submissions", "read", ("GET /submissions.json",), "GET /submissions.json"),
     Row("get_schema", "read", ("schemas/<name>.json",), "schemas/<name>.json"),
     Row("get_precheck", "read", ("GET /precheck/{job_id}",), "GET /precheck/<id>"),
     # --- writes (D-35's plain-path table) -----------------------------------------------------
     Row("claim_node", "write", ("POST /claims",), "POST /claims"),
     Row("release_claim", "write", ("DELETE /claims/{claim_id}",), "DELETE /claims/<id>"),
     Row("precheck_submission", "write", ("POST /precheck",), "POST /precheck with the bundle"),
+    # F09-T6: D-28's write table, notation note of 2026-09-14 — both existing endpoints.
+    Row("get_token", "write", ("POST /tokens",), "POST /tokens"),
     Row("submit_proof", "write", ("POST /submissions",), "POST /submissions opens that PR"),
     Row(
         "submit_postmortem",
@@ -119,6 +123,12 @@ TABLE: tuple[Row, ...] = (
         "write",
         ("POST /proposals/variant",),
         "a PR creating the node directory with origin set",
+    ),
+    Row(
+        "propose_witness",
+        "write",
+        ("POST /proposals/witness",),
+        "POST /proposals/witness",
     ),
 )
 

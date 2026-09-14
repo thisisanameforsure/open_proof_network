@@ -111,10 +111,14 @@ def as_evidence(raw: Any) -> dict[str, Any]:
     return out
 
 
+#: F05-T8: the fields ``POST /revision-requests`` reads; any other top-level key is refused.
+REVISION_FIELDS: tuple[str, ...] = ("node_id", "defect_class", "evidence")
+
+
 async def post_revision_requests(ctx: Context, request: Request) -> Response:
     """R6: a claim that a statement is defective, with evidence, for a curator to act on."""
     identity: Identity = request.state.identity
-    fields, _ = await identitymod.body_fields(request)
+    fields, _ = await identitymod.body_fields(request, REVISION_FIELDS)
     node_id, target_id = appends.node_target(ctx, fields)
     doc: dict[str, Any] = {
         "schema": REVISION_SCHEMA,
@@ -181,10 +185,14 @@ def check_line(ctx: Context, raw: Any, path: str) -> int:
     return raw
 
 
+#: F05-T8: the fields ``POST /defect-claims`` reads; any other top-level key is refused.
+DEFECT_FIELDS: tuple[str, ...] = ("stmt_ref", "class", "line", "exhibit")
+
+
 async def post_defect_claims(ctx: Context, request: Request) -> Response:
     """R7: D-16's pre-triage, then an append the gate re-checks the same way."""
     identity: Identity = request.state.identity
-    fields, _ = await identitymod.body_fields(request)
+    fields, _ = await identitymod.body_fields(request, DEFECT_FIELDS)
     defect_class = check_class(fields.get("class"), "class")
     target_id, stmt_ref, referenced = resolve_ref(ctx, fields.get("stmt_ref"))
     line = check_line(ctx, fields.get("line"), referenced)

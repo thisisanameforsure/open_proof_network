@@ -1,0 +1,131 @@
+F09-T7 (completion) — writes.RENAMES made load-bearing, submit_proof takes precheck_job_id,
+list_submissions registered (2026-09-14)
+=================================================================================================
+
+The first half of T7 is engineering/evidence/F09/task-7.txt (get_submission is the route,
+get_node carries submissions.open). This is the rest, on top of F09-T6, rebased onto main.
+Decisions: Mike, 2026-09-14 (plan "F09-T7").
+
+1. Red, before any change (captured with F09-T6's red run, --runxfail)
+---------------------------------------------------------------------
+FAILED test_finding_argument_renames.py::test_renames_is_what_the_handlers_send
+  AssertionError: writes.RENAMES does not exist   (assert isinstance(None, Mapping))
+FAILED test_finding_argument_renames.py::test_submit_proof_accepts_precheck_job_id_and_forwards_the_same_body
+  AssertionError: ['artifact_type', 'attestation', 'bundle', 'node_id', 'tooling']
+  assert 'precheck_job_id' in {...}
+FAILED test_finding_pending_submissions.py::test_list_submissions_is_a_tool_and_equals_the_snapshot
+  AssertionError: assert 'list_submissions' in {'claim_node', 'file_defect_claim', ...}
+
+2. The change
+-------------
+mcp/writes.py  RENAMES (read-only MappingProxyType) is the one rename map:
+                 claim_node {ttl: ttl_hours}; propose_speculative_node {stmt: statement};
+                 propose_variant {stmt: statement}; submit_proof {attestation: precheck_job_id}.
+               present(tool, args, *names) sends each supplied argument under RENAMES[tool]'s
+               field, or its own name; an omitted argument sends nothing. Every write handler
+               (all thirteen) builds its body through it; the keyword renames that lived inside
+               four handlers are gone.
+               submit_proof: precheck_job_id is a declared string parameter, attestation is no
+               longer required; exactly one of the two, otherwise an adapter error
+               {error: arguments-invalid, message: "submit_proof takes exactly one of
+               `attestation` (the get_precheck result) and `precheck_job_id` (its id); both
+               were|neither was given", source: adapter}, raised before any endpoint call. The
+               attestation form sends its id, so both forms send the same body. (Not a JSON
+               Schema oneOf in the input schema: top-level oneOf is refused by some clients'
+               tool-schema validators, and the message names the rule.)
+mcp/reads.py   ONLY the TOOLS tuple (list_submissions registered after get_submission, no
+               parameters) and list_submissions' docstring. FRONTIER_SCHEMA (frontier/v3 since
+               F03-T7) untouched.
+mcp/bijection.py  Row("list_submissions", "read", ("GET /submissions.json",), "GET /submissions.json").
+mcp/schemas/list_submissions/v1.json  {snapshot_at, open: [submission]} with the submission
+               definition copied from get_submission/v1.json's $defs, plus the error branch.
+               The deploy check globs the directory against TOOLS; api-deploy.yml not edited.
+
+3. The decisions document (D-28)
+--------------------------------
+Read table, after get_precheck:
+  | list_submissions() (notation note, 2026-09-14) | the pull requests the service opened that
+    are not yet merged or closed — id, kind, node, target, pull-request number and URL,
+    pseudonym; get_node carries the same list for one node | GET /submissions.json (D-35) |
+The note beneath the write table (written in F09-T6) now opens: "rows marked with this date were
+added to the v0 tables after the two agent runs of 2026-09-13: in one, an agent given only the
+MCP endpoint could not earn a token or witness the holes its own partial created; in the other,
+an agent could not see the pull requests it had opened until they merged." The rest is as
+recorded in task-6.txt. Three dated rows in all; PROTOCOL_VERSION unchanged; not an overturn.
+
+4. Pins rewritten, and why
+--------------------------
+api/tests/test_mcp_surface.py  READS gains list_submissions (R3's set is 24 tools now: 11 reads,
+  13 writes). No args entry needed: it takes none.
+api/tests/test_mcp_equivalence.py::test_read_tools_equal_plain_path  one line: list_submissions ==
+  GET /submissions.json (AC3 covers every read tool).
+api/tests/test_finding_argument_renames.py  both strict xfail marks and the REASON constant
+  removed; docstring says so. Assertions unchanged.
+api/tests/test_finding_pending_submissions.py::test_list_submissions_is_a_tool_and_equals_the_snapshot
+  mark kept, reason corrected: it named the unregistered tool and the missing D-28 row, both done.
+  Run with --runxfail it now passes the tools/list and equality assertions and fails only at
+  line 502, `assert [] == [1]`: POST /submissions records nothing (the record call in
+  api/opn_api/submissions.py, another session's file). New reason: "list_submissions is
+  registered and equals GET /submissions.json (F09-T7), but the snapshot misses a POST
+  /submissions pull request, which records nothing; needs the submissions.py record call; after
+  the other session's commit".
+
+5. Edge cases (new: api/tests/test_mcp_renames.py, 8 tests)
+-----------------------------------------------------------
+- submit_proof with both, and with neither: ToolError arguments-invalid, source adapter, the
+  message names both arguments and says which case, the doc validates against
+  mcp/submit_proof/v1, and no endpoint call was made (call.sent == []).
+- submit_proof with an attestation lacking an id sends precheck_job_id null: the endpoint names
+  that refusal, the adapter does not guess (F09-R7).
+- An omitted renamed argument sends nothing, for every RENAMES entry but submit_proof's (whose
+  omission is the both-or-neither rule): claim_node without ttl, propose_speculative_node and
+  propose_variant without stmt — neither the argument nor its field in the body, and the body
+  otherwise equals the arguments.
+- submit_proof by precheck_job_id sends no attestation field.
+- Every RENAMES entry names a parameter the tool declares, and renames it to something else.
+
+6. Green
+--------
+uv run pytest api/tests/test_finding_argument_renames.py api/tests/test_mcp_renames.py
+  api/tests/test_mcp_surface.py api/tests/test_mcp_equivalence.py api/tests/test_mcp_errors.py
+  api/tests/test_mcp_pending_submissions.py
+  api/tests/test_finding_pending_submissions.py::test_list_submissions_is_a_tool_and_equals_the_snapshot
+28 passed, 1 xfailed (every test PASSED by name; the xfail is the list_submissions one above).
+
+7. Mutants (pytest plugins patching in memory at session start; no file touched)
+-------------------------------------------------------------------------------
+Each run over test_finding_argument_renames, test_mcp_renames, test_mcp_surface,
+test_mcp_equivalence, test_mcp_auth, test_mcp_pending_submissions (27 tests).
+T7-a claim_node's handler bypasses RENAMES (sends `ttl`)
+  FAILED test_finding_argument_renames.py::test_renames_is_what_the_handlers_send
+  FAILED test_mcp_equivalence.py::test_write_tools_forward_once
+  FAILED test_mcp_auth.py::test_token_reaches_the_endpoint
+  3 failed, 24 passed — killed
+T7-b submit_proof drops exactly-one (precheck_job_id wins; neither goes to the endpoint)
+  FAILED test_finding_argument_renames.py::test_submit_proof_accepts_precheck_job_id_and_forwards_the_same_body
+  FAILED test_mcp_renames.py::test_submit_proof_both_or_neither_is_refused_before_any_call[given0-both]
+  FAILED test_mcp_renames.py::test_submit_proof_both_or_neither_is_refused_before_any_call[given1-neither]
+  3 failed, 24 passed — killed
+T7-c list_submissions dropped from the served surface
+  FAILED test_mcp_surface.py::test_tool_surface_frozen
+  FAILED test_mcp_surface.py::test_bijection_table_complete
+  FAILED test_mcp_surface.py::test_results_match_schemas
+  FAILED test_mcp_equivalence.py::test_read_tools_equal_plain_path
+  4 failed, 23 passed — killed
+
+8. make verify (working tree, before the commit)
+------------------------------------------------
+ruff check: All checks passed! · ruff format --check: 306 files already formatted ·
+mypy gate/api/site: no issues (150, 90, 23 source files) ·
+pytest -m "not lean and not docker and not network":
+1841 passed, 13 skipped, 67 deselected, 46 xfailed in 143.96s
+(F09-T6's run was 1830 passed, 48 xfailed: +11 = the two renames tests un-marked and nine new.)
+gate/tests/test_finding_guide_mcp_renames.py stays a strict xfail for its own reason, now that
+RENAMES exists: "the MCP appendix has no 'Argument → body field' column: ['Tool', 'Plain path']"
+(F10-T7's guide change).
+
+Still red and why
+-----------------
+test_finding_pending_submissions.py::test_list_submissions_is_a_tool_and_equals_the_snapshot —
+only the POST /submissions record call (above). The other pending-submissions xfails and
+test_finding_submission_ids.py's pending-state test wait on the same line and were not touched.

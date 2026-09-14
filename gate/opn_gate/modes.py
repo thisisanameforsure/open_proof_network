@@ -47,9 +47,10 @@ not evidentiary and the paths are.
 from __future__ import annotations
 
 import json
+import logging
 import re
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 from typing import Any, Literal
 
@@ -80,6 +81,19 @@ CURATORS_FILE = "curators.json"
 WAIVER_SINGLE_CURATOR = "single-curator"
 #: F08-Q2: the one status a proposer may give their own new node.
 PROPOSAL_STATUS = "speculative"
+#: D-4 v3.11: step 9 is a property of the statement. For these modes — every kernel-checked
+#: artifact of D-12 alike — the root's certificate or registry provenance stands in for a
+#: person; an alternate asks no step 9 at all (v3.13), and curator records keep F08-R8's rule.
+STATEMENT_REVIEW_MODES: tuple[Mode, ...] = ("proof", "partial")
+#: D-4 v3.11: the rung the root's certificate must reach ("at least screened-and-signed").
+STEP9_GRADE = fidelity.SIGNED_FROM
+#: D-10: the registries whose pinned provenance satisfies step 9 (what ``intake import-fc`` writes).
+STEP9_REGISTRIES: frozenset[str] = frozenset({intake.FC_SOURCE_KIND})
+#: What stood in for the review; ``pr-approval`` is the person D-4 asks for otherwise.
+StatementBasis = Literal["certificate", "provenance"]
+ReviewKind = Literal["certificate", "provenance", "pr-approval"]
+
+log = logging.getLogger(__name__)
 
 #: What a file looked like at the pull request's base commit: its bytes, or ``None`` when it did
 #: not exist. Only the witness-completion rule needs the base (F08-R5): whether a hole's slot was
@@ -165,6 +179,11 @@ class Classification:
     #: Each existing ``Proof.lean`` the diff modifies. Whether that is allowed depends on the
     #: node's tutorial flag, which only ``check`` can read (D-3 v3.13, D-27); not published.
     replaced: tuple[str, ...] = ()
+    #: D-4 v3.11: what satisfies step 9 in place of a person for a proof or a partial — the
+    #: root's certificate or its registry provenance — and the reference the attestation records.
+    #: Read from the graph (``with_statement_review``), since the diff alone cannot say.
+    review_basis: StatementBasis | None = None
+    review_reference: str | None = None
 
     @property
     def ok(self) -> bool:
@@ -192,7 +211,19 @@ class Classification:
             # D-4 v3.13: the statement met step 9 when the first proof merged, and a later proof
             # changes no verdict, status, dependency or credit (D-25, F07-Q20).
             return False
+        if self.mode in STATEMENT_REVIEW_MODES and self.review_basis is not None:
+            return False  # D-4 v3.11: the statement's certificate or provenance is the review
         return self.mode in BUILDING_MODES
+
+    @property
+    def review_kind(self) -> ReviewKind | None:
+        """What satisfies step 9: a person's approval when one is asked, the root's certificate
+        or provenance when it stands in (D-4 v3.11), and ``None`` where step 9 is not asked."""
+        if self.needs_review:
+            return "pr-approval"
+        if self.mode in STATEMENT_REVIEW_MODES:
+            return self.review_basis
+        return None
 
     @property
     def review_waived(self) -> str | None:
@@ -212,8 +243,71 @@ class Classification:
             "needs_review": self.needs_review,
             "reviewers": None if self.reviewers is None else list(self.reviewers),
             "review_waived": self.review_waived,
+            "review_kind": self.review_kind,
+            "review_reference": (
+                self.review_reference if self.review_kind in ("certificate", "provenance") else None
+            ),
             "problems": [d.as_dict() for d in self.problems],
         }
+
+
+def with_statement_review(graph_root: Path, classification: Classification) -> Classification:
+    """D-4 v3.11: step 9 for a proof or a partial is satisfied by the root's certificate, else by
+    its D-10 registry provenance, else by a non-author's approval — decided from the checkout.
+
+    The checkout is the pull request's merge commit, and a building mode's diff cannot add a
+    certificate or modify ``target.yaml`` (either makes it ``mode-mixed``), so what is read here
+    is what stood on the base: nobody certifies the statement in the pull request that proves it.
+    """
+    if classification.mode not in STATEMENT_REVIEW_MODES or classification.target_id is None:
+        return classification
+    target_dir = graph_root / "targets" / classification.target_id
+    certificate = root_certificate(target_dir)
+    if certificate is not None:
+        return replace(classification, review_basis="certificate", review_reference=certificate)
+    provenance = registry_provenance(target_dir)
+    if provenance is not None:
+        return replace(classification, review_basis="provenance", review_reference=provenance)
+    return classification
+
+
+def root_certificate(target_dir: Path) -> str | None:
+    """The newest counting signature on the root, as ``fidelity/<file>``, when the root's grade is
+    at least ``screened-and-signed`` — counting as F11-R3 counts: ``fidelity/v2`` pinned to the
+    root as it stands (F11-T9), the latest one's grade. ``None`` otherwise, and when the
+    certificates or the root cannot be read (C7: nothing stands in for a person on a guess)."""
+    try:
+        certs = fidelity.load(target_dir).get(fidelity.ROOT_SUBJECT, [])
+        if not certs:
+            return None
+        counted = fidelity.counting(certs, fidelity.current_hash(target_dir, fidelity.ROOT_SUBJECT))
+    except (ValueError, OSError) as exc:  # SchemaError, QaError, GraphError: a graph defect
+        log.warning("step 9: the root certificates of %s do not read: %s", target_dir.name, exc)
+        return None
+    if not fidelity.meets(fidelity.grade_of(counted), STEP9_GRADE):
+        return None
+    newest = [cert for cert in counted if cert.signs][-1]
+    return f"{fidelity.FIDELITY_DIR}/{newest.path.name}"
+
+
+def registry_provenance(target_dir: Path) -> str | None:
+    """``<registry>:<upstream_path>@<upstream_commit>`` when ``target.yaml`` records a statement
+    inherited from a D-10 registry at a pinned commit and path; ``None`` otherwise (D-10: the
+    commit is part of provenance, so a record without one inherits nothing)."""
+    try:
+        doc = intake.load_doc(target_dir)
+    except (ValueError, OSError) as exc:  # SchemaError: the record does not validate
+        log.warning("step 9: the target record of %s does not read: %s", target_dir.name, exc)
+        return None
+    provenance = doc.get("provenance") if doc is not None else None
+    if not isinstance(provenance, dict):
+        return None
+    source = provenance.get("statement_source")
+    commit = str(provenance.get("upstream_commit") or "").strip()
+    path = str(provenance.get("upstream_path") or "").strip()
+    if source not in STEP9_REGISTRIES or not commit or not path:
+        return None
+    return f"{source}:{path}@{commit}"
 
 
 def classify(  # noqa: PLR0911 — one return per rejection

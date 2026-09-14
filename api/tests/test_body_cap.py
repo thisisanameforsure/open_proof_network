@@ -28,9 +28,14 @@ def capped() -> Harness:
 
 
 def padded_json(size: int) -> bytes:
-    """A JSON object of exactly ``size`` bytes with no usable fields."""
-    frame = b'{"pad": ""}'
-    body = b'{"pad": "' + b"x" * (size - len(frame)) + b'"}'
+    """A JSON object of exactly ``size`` bytes whose one field ``POST /tokens`` reads but cannot
+    accept: a pseudonym far past its 39 characters.
+
+    Rewritten by F05-T8 (2026-09-14): the padding used to be a ``pad`` key, which a route now
+    refuses as ``unknown-field``. The cap test is about the body reaching the parser, so the
+    padding moved into a defined field and the parser's answer stays ``pseudonym-invalid``."""
+    frame = b'{"pseudonym": ""}'
+    body = b'{"pseudonym": "' + b"x" * (size - len(frame)) + b'"}'
     assert len(body) == size
     return body
 

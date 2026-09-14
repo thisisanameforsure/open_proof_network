@@ -131,11 +131,7 @@ class Caller:
 
 
 def parse_body(ctx: Context, fields: dict[str, Any]) -> CheckRequest:
-    unknown = sorted(set(fields) - FIELDS)
-    if unknown:
-        allowed = ", ".join(sorted(FIELDS))
-        msg = f"unknown field(s): {', '.join(unknown)}; POST /check takes {allowed}"
-        raise api_error(400, "unknown-field", msg)
+    # A key outside FIELDS was already refused by identity.body_fields (F05-T8, Q10).
     target_id = fields.get("target_id")
     if not isinstance(target_id, str) or not ID_RE.match(target_id):
         raise api_error(400, "target-id-invalid", "target_id must match ^[a-z0-9][a-z0-9-]*$")
@@ -291,15 +287,19 @@ def _written_name(statement_text: str) -> str | None:
 
 # --- the checker ---------------------------------------------------------------------------------
 
-_SLOTS: dict[int, threading.BoundedSemaphore] = {}
 _SLOTS_LOCK = threading.Lock()
 
 
 def slots(ctx: Context) -> threading.BoundedSemaphore:
-    """This application's in-flight cap (R8, Q8), created on first use."""
+    """This application's in-flight cap (R8, Q8), created on first use and kept on its Context.
+
+    Not in a table keyed by ``id(ctx)``: CPython reuses a collected object's address, so a new
+    application could inherit an old one's semaphore with another cap — which is how the first
+    version failed once in a full suite run and never alone (evidence task-4.txt)."""
     with _SLOTS_LOCK:
-        cap = ctx.settings.check_concurrency
-        return _SLOTS.setdefault(id(ctx), threading.BoundedSemaphore(cap))
+        if ctx.check_slots is None:
+            ctx.check_slots = threading.BoundedSemaphore(ctx.settings.check_concurrency)
+        return ctx.check_slots
 
 
 def call_checker(
@@ -402,7 +402,7 @@ def write_log(  # noqa: PLR0913 — one argument per fact the record keeps
 async def post_check(ctx: Context, request: Request) -> Response:
     from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
 
-    fields, _ = await identity.body_fields(request)
+    fields, _ = await identity.body_fields(request, FIELDS)
     req = parse_body(ctx, fields)
     caller = charge(ctx, request)
     started = time.monotonic()

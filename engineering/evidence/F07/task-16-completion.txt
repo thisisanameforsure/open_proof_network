@@ -1,0 +1,125 @@
+F07-T16 completion — POST /submissions records what it opened (2026-09-14)
+==========================================================================
+
+What task-16.txt left: "NOT landed (ownership, 2026-09-14): the one-line pending.record(...) at
+the end of submissions.post_submissions". The other session's submissions.py work has landed on
+main (39b5154), so the line lands here.
+
+Worktree branch worktree-agent-a4bc9f319e9b10429, fast-forwarded to main 39b5154.
+
+1. Red, before any change
+-------------------------
+$ uv run --frozen pytest --runxfail -q --tb=line api/tests/test_finding_pending_submissions.py \
+    api/tests/test_finding_submission_ids.py
+FAILED test_finding_pending_submissions.py::test_post_submissions_records_the_submission
+  test_finding_pending_submissions.py:125: AssertionError: a submission record, not None
+FAILED ...::test_get_submission_by_ulid_or_pr_number_answers_the_live_pull_request
+  test_finding_pending_submissions.py:164: AssertionError: GET /submissions/01M230M2G0FA8QDV1K11C8DYRH:
+  404 {"error":"submission-unknown","message":"01M230M2G0FA8QDV1K11C8DYRH is neither a pull request
+  the service opened nor one the graph has attested"}
+FAILED ...::test_a_merged_proof_links_its_attestation_and_is_never_looked_up_again
+  test_finding_pending_submissions.py:316: AssertionError: a closed submission asked the host again
+FAILED ...::test_the_pull_request_state_is_cached_and_survives_a_host_failure
+  test_finding_pending_submissions.py:164: AssertionError: GET /submissions/1: 404 {"error":"submission-unknown",...}
+FAILED ...::test_submissions_json_lists_open_work_and_drops_the_merged
+  E   assert [2] == [1, 2]            (only the annex's pull request was in the snapshot)
+FAILED ...::test_get_node_lists_the_open_submissions_on_the_node
+  E   ValueError: not enough values to unpack (expected 1, got 0)
+FAILED ...::test_get_submission_tool_equals_the_route
+  test_finding_pending_submissions.py:164: AssertionError: GET /submissions/1: 404 {"error":"submission-unknown",...}
+FAILED ...::test_list_submissions_is_a_tool_and_equals_the_snapshot
+  test_finding_pending_submissions.py:496: AssertionError: ['claim_node', 'file_defect_claim', ...]
+  (list_submissions is not in tools/list — the registration, not the record call)
+FAILED test_finding_submission_ids.py::test_get_submission_answers_pending_state_for_an_open_pull_request
+  mcp_client.py:92: AssertionError: [TextContent(... "error": "submission-unknown", "message": "1 is
+  neither a pull request the service opened nor one the graph has attested" ...)]
+9 failed, 5 passed
+
+2. The change
+-------------
+api/opn_api/submissions.py  imports pending; after open_pr answers and the log line:
+    pending.record(ctx, identity, submission_id=submission_id, kind=artifact_type,
+                   target_id=claim.target_id, node_id=node_id, pr=pr, precheck_job_id=job.id)
+  The names were checked against the code: pending.record's keyword arguments are exactly these;
+  kind is the artifact type, which is what pending.ATTESTING_KINDS is held equal to. No import
+  cycle: pending imports app, clock, frontier, githost and store, never submissions. The response
+  body is unchanged; a store failure inside record is logged and the route still answers 201
+  (pending.record's own contract, test_pending_submissions.py covers it for the appends).
+
+3. Marks removed, and the one kept
+----------------------------------
+Removed (each now passes; no assertion edited):
+  test_finding_pending_submissions.py::test_post_submissions_records_the_submission
+  ::test_get_submission_by_ulid_or_pr_number_answers_the_live_pull_request
+  ::test_a_merged_proof_links_its_attestation_and_is_never_looked_up_again
+  ::test_the_pull_request_state_is_cached_and_survives_a_host_failure
+  ::test_submissions_json_lists_open_work_and_drops_the_merged
+  ::test_get_node_lists_the_open_submissions_on_the_node          (MCP side)
+  ::test_get_submission_tool_equals_the_route                     (MCP side)
+  test_finding_submission_ids.py::test_get_submission_answers_pending_state_for_an_open_pull_request
+The WAITS constant and its comment went with them (nothing waits on the record call now).
+
+Kept strict, reason rewritten to name only what it waits on:
+  ::test_list_submissions_is_a_tool_and_equals_the_snapshot
+  "list_submissions is built (reads.list_submissions) but not registered as a tool; the MCP
+   adapter's registration is another agent's work (2026-09-14)"
+  Checked with --runxfail after the change: it fails only at `assert "list_submissions" in names`.
+
+No existing test pinned the old behaviour (POST /submissions recording nothing), so none was
+rewritten.
+
+4. Green
+--------
+$ uv run --frozen pytest -q -rfxX api/tests/test_finding_pending_submissions.py \
+    api/tests/test_finding_submission_ids.py api/tests/test_pending_submissions.py \
+    api/tests/test_mcp_pending_submissions.py api/tests/test_submissions.py \
+    api/tests/test_appends.py api/tests/test_routes.py
+XFAIL test_finding_pending_submissions.py::test_list_submissions_is_a_tool_and_equals_the_snapshot
+  - ... not registered as a tool; the MCP adapter's registration is another agent's work ...
+59 passed, 1 xfailed in 1.98s
+
+5. Mutation check, re-run against the finding file now that its tests run
+--------------------------------------------------------------------------
+Same two mutants as task-16.txt §5, as pytest plugins in a scratch dir, monkeypatching in memory:
+  mutant_cache_never_expires.py   pending.time = SimpleNamespace(monotonic=lambda: 0.0)
+  mutant_merged_not_closed.py     githost.PullRequestState.finished = property(lambda self: False)
+
+$ PYTHONPATH=<scratch>/mutants uv run --frozen pytest -q --tb=no -rf -p no:cacheprovider \
+    -p mutant_cache_never_expires api/tests/test_finding_pending_submissions.py \
+    api/tests/test_finding_submission_ids.py api/tests/test_pending_submissions.py \
+    api/tests/test_mcp_pending_submissions.py
+FAILED api/tests/test_finding_pending_submissions.py::test_the_pull_request_state_is_cached_and_survives_a_host_failure
+FAILED api/tests/test_pending_submissions.py::test_reads_inside_the_window_are_one_lookup_and_a_failure_serves_the_last_state
+FAILED api/tests/test_mcp_pending_submissions.py::test_get_node_carries_only_its_own_open_submissions_and_drops_the_merged
+3 failed, 38 passed, 1 xfailed
+
+$ ... -p mutant_merged_not_closed (same files)
+FAILED api/tests/test_finding_pending_submissions.py::test_a_merged_proof_links_its_attestation_and_is_never_looked_up_again
+FAILED api/tests/test_finding_pending_submissions.py::test_submissions_json_lists_open_work_and_drops_the_merged
+FAILED api/tests/test_pending_submissions.py::test_a_pull_request_closed_unmerged_closes_the_record
+FAILED api/tests/test_pending_submissions.py::test_a_merged_proof_is_pending_until_its_attestation_lands
+FAILED api/tests/test_pending_submissions.py::test_a_merged_annex_leaves_the_snapshot
+FAILED api/tests/test_mcp_pending_submissions.py::test_get_node_carries_only_its_own_open_submissions_and_drops_the_merged
+6 failed, 35 passed, 1 xfailed
+
+Both mutants are now killed by the specification's own tests (the finding file), not only by
+this task's; task-16.txt's closing note asked for exactly this re-run. One difference from
+task-16.txt: test_a_merged_annex_leaves_the_snapshot no longer dies under the cache mutant, because
+its F07-T16 follow-up advances the fake clock between the two annexes; the finding file's cache
+test covers the window instead.
+
+6. make verify (fast tier)
+--------------------------
+$ env -u VIRTUAL_ENV make verify
+ruff check: All checks passed!   ruff format --check: 304 files already formatted
+mypy gate: Success: no issues found in 150 source files
+mypy api:  Success: no issues found in 88 source files
+mypy site: Success: no issues found in 23 source files
+pytest -m "not lean and not docker and not network":
+  1824 passed, 13 skipped, 67 deselected, 44 xfailed, 2 warnings in 120.47s
+exit 0
+
+7. Still red here, and why
+--------------------------
+test_finding_pending_submissions.py::test_list_submissions_is_a_tool_and_equals_the_snapshot —
+the tool's registration (mcp/writes.py, bijection.py and the D-28 row), which another agent holds.

@@ -851,6 +851,10 @@ def run_classify(args: argparse.Namespace, settings: config.Settings) -> int:
         author=args.author or settings.pr_author,
         curators=curators,
     )
+    # D-4 v3.11 (F07-T17): step 9 for a proof or a partial is the root's certificate or registry
+    # provenance where it has one, read from this checkout; the workflow reads the two published
+    # fields with a default, so a pin that predates them keeps asking for a review.
+    classification = modes.with_statement_review(graph, classification)
     problems = list(classification.problems)
     if classification.ok:
         problems.extend(modes.check(graph, classification, base=base_reader(graph, base)))

@@ -267,9 +267,13 @@ def existing_paths(ctx: Context, node_id: str, target_id: str) -> frozenset[str]
 # --- POST /precheck ------------------------------------------------------------------------------
 
 
+#: F05-T8: the fields ``POST /precheck`` reads; any other top-level key is refused.
+PRECHECK_FIELDS: tuple[str, ...] = ("node_id", "bundle")
+
+
 async def post_precheck(ctx: Context, request: Request) -> Response:
     """R1, R2, R3, R10. Authentication is decided by the node: the tutorial one is open (Q2)."""
-    fields, _ = await identitymod.body_fields(request)
+    fields, _ = await identitymod.body_fields(request, PRECHECK_FIELDS)
     node_id = fields.get("node_id")
     if not isinstance(node_id, str) or not node_id:
         raise ApiError(400, "node-id-missing", "node_id is required")
