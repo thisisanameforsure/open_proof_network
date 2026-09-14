@@ -77,3 +77,10 @@ ruff check .: All checks passed! · ruff format --check .: 304 files already for
 mypy --strict: no issues (150, 88, 23 source files)
 = 1844 passed, 13 skipped, 67 deselected, 46 xfailed, 2 warnings in 208.90s (0:03:28) =
 exit 0
+
+== LIVE (2026-09-14, after push cc34aa0 and site-deploy run 34832983023, success) ==
+$ curl -s https://openproofnetwork.org/frontier/ | grep -o 'The Claims column...</a>'
+The Claims column is a snapshot from the products at <code>7f81053778e5</code>: a claim made or
+released since then is not counted here. The live count is the service's
+<a href="https://api.openproofnetwork.org/claims.json">/claims.json</a>
+(the origin comes from the network repo's existing Actions variable OPN_API_URL; no hostname in code)
