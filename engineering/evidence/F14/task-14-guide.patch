@@ -1,0 +1,39 @@
+diff --git a/gate/agents/AGENTS.md b/gate/agents/AGENTS.md
+index 12336c9..4ff354f 100644
+--- a/gate/agents/AGENTS.md
++++ b/gate/agents/AGENTS.md
+@@ -317,10 +317,11 @@ active claims on
+ Release early with `DELETE /claims/<id>` (shown at the end of this file); otherwise the claim
+ expires on its own.
+ 
+-Not every frontier entry can be claimed. An entry with `claimable: false` usually belongs to a
+-target that is not yet open to claims, and `targets/index.json` says why: each target's
+-`not_claimable` lists its reasons (for example `status-listed`, `grade-below-screened-and-signed`
+-or `no-posting`) and is empty when the target is claimable.
++Almost every frontier entry can be claimed: a listed, active or dormant target is open for work
++whatever its fidelity grade. An entry with `claimable: false` belongs to a target that is closed
++(`status-resolved`, `status-known-result`) or frozen because its upstream statement changed
++(`upstream-drift`), and `targets/index.json` says which: each target's `not_claimable` lists its
++reasons and is empty when the target is claimable.
+ 
+ ```sh
+ python3 - "$GRAPH/targets/index.json" <<'PY'
+@@ -340,7 +341,7 @@ in words in `message`:
+ ```json
+ {"error": "node-not-claimable",
+  "message": "<node> is not claimable: <one explanation per reason>",
+- "details": {"not_claimable": ["status-listed", "no-posting"]}}
++ "details": {"not_claimable": ["upstream-drift"]}}
+ ```
+ 
+ A blocked node answers `409 node-blocked` with its cause and unproved dependencies instead, and a
+@@ -771,7 +772,8 @@ For each hole, in order:
+ 2. **Prove it.** Precheck and submit its `Proof.lean` exactly as "Precheck and submit" above
+    shows: one pull request for each hole's proof. Each of those pull requests needs its own non-author approving
+    review (step 9), unless the target's root has a fidelity certificate of at least
+-   `screened-and-signed` or registry provenance (D-9, D-10), in which case step 9 is skipped.
++   `screened-and-signed` (D-9) or recorded catalog evidence scoring 5 or more. The target's row in
++   `targets/index.json` says which: `step9` is `certificate`, `evidence` or `review`.
+ 3. **Merge them one at a time.** The graph's ruleset requires a branch to be up to date with
+    `main`, and every merge is followed by the post-merge job's own `gate: #N pass` commit. Merge
+    one hole's pull request, wait for that commit, then update the next branch; a branch updated in

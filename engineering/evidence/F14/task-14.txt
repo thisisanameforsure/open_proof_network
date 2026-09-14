@@ -1,0 +1,12 @@
+F14-T14 — documentation
+worktree at f8911f8 + T14 changes
+2026-09-14T15:05:46Z
+first run with the guide edited: 2084 passed, 1 failed, test_graph_copy_is_identical, because the graph's copy of AGENTS.md lives in the live graph checkout and can only change with the T15 re-pin push.
+so the guide change is kept as task-14-guide.patch, applied together with the graph copy in T15.
+
+command: make verify (spec notes and the v3.15 note, guide restored)
+All checks passed!
+========= 2085 passed, 69 deselected, 2 warnings in 149.32s (0:02:29) ==========
+
+MCP smoke: no change needed. No agent bundle carries the evidence text; it is on the site and in targets/index.json only.
+PROTOCOL_VERSION stays 3.12 until the v3.15 edit in engineering/session-notes/2026-09-14-f14-decisions-amendment.md lands.
