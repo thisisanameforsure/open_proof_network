@@ -83,6 +83,12 @@ class NodeView:
     def deps(self) -> list[str]:
         return [str(d) for d in self.graph_entry["deps"]]
 
+    @property
+    def cause(self) -> str | None:
+        """Why a blocked node is blocked (``graph/v2`` on; absent before, read as ``None``)."""
+        cause = self.graph_entry.get("cause")
+        return None if cause is None else str(cause)
+
 
 @dataclass(frozen=True)
 class TargetView:

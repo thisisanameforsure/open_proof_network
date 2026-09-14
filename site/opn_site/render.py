@@ -36,6 +36,14 @@ STATUS_WORDS = {
     "disputed": "disputed",
     "abandoned": "abandoned",
 }
+#: F04-T10: a blocked node's words name its cause when graph.json records one (F03-R8, F07-R6,
+#: D-29); a blocked node with no cause is blocked by its dependencies and keeps STATUS_WORDS.
+CAUSE_WORDS = {
+    "witness-missing": "blocked: witness missing (propose one through /proposals/witness)",
+    "dep-refuted": "blocked: a dependency was refuted",
+}
+#: F03-Q8: the statuses a claim could take, so the only ones a target's reasons explain.
+CLAIMABLE_STATUSES = ("ready", "speculative")
 #: One column per frontier entry field, plus the node's status from its target's graph (T11, Q11):
 #: the frontier lists open variants that wait on their holes, so Claimable needs a status beside it.
 FRONTIER_COLUMNS = (
@@ -129,10 +137,15 @@ class Renderer:
         return f'<a href="{esc(self.node_path(target_id, node_id))}">{esc(node_id)}</a>'
 
     @staticmethod
-    def status_mark(status: str) -> str:
+    def status_mark(status: str, cause: str | None = None) -> str:
+        """The status as a coloured mark and words. A blocked node's cause picks the words; an
+        unknown cause is shown as itself, escaped, rather than as a reason it is not."""
+        words = STATUS_WORDS.get(status, status)
+        if status == "blocked" and cause:
+            words = CAUSE_WORDS.get(cause, f"blocked: {cause}")
         return (
             f'<span class="status status-{esc(status)}"><span class="mark"></span>'
-            f"{esc(STATUS_WORDS.get(status, status))}</span>"
+            f"{esc(words)}</span>"
         )
 
     # -- pages -------------------------------------------------------------------------------
@@ -200,7 +213,7 @@ class Renderer:
                     fidelity=esc(e["fidelity"]),
                     mathlib=esc(mathlib),
                     progress=esc(progress or "nothing proved yet"),
-                    claimable="claimable" if e["claimable"] else "listed, not claimable",
+                    claimable="claimable" if e["claimable"] else "not claimable",
                     why_not=self.why_not_claimable(tv),
                     sources=self.sources_block(tv),
                     qa=self.qa_block(tv),
@@ -231,8 +244,9 @@ class Renderer:
             )
         return "No informal statement is recorded for this target yet (D-6 intake, F11)."
 
-    def why_not_claimable(self, tv: TargetView) -> str:
-        """R10: the reason a listed target is not claimable, named rather than implied."""
+    def why_not_claimable(self, tv: TargetView, *, detail: bool = True) -> str:
+        """R10: the reason a listed target is not claimable, named rather than implied. The node
+        page (F04-T10) shows the reasons without the target's signatures and posting."""
         e = tv.index_entry
         if e.get("claimable"):
             return ""
@@ -243,6 +257,8 @@ class Renderer:
                 "(D-6), so nothing may be claimed under it.</p>"
             )
         items = "".join(f"<li>{esc(intake.explain(r))}</li>" for r in reasons)
+        if not detail:
+            return f'<p class="why-not">Not claimable, because:</p><ul class="why-not">{items}</ul>'
         posted = e.get("posting")
         where = (
             f' Posted at <a href="{esc(str(posted["url"]))}">{esc(str(posted["venue"]))}</a> '
@@ -257,12 +273,12 @@ class Renderer:
             + ")"
             for s in e.get("subjects") or []
         )
-        detail = (
+        signatures = (
             f'<p class="signatures">Fidelity by subject: {signed}.{where}</p>' if signed else ""
         )
         return (
             '<p class="why-not">Not claimable, because:</p>'
-            f'<ul class="why-not">{items}</ul>{detail}'
+            f'<ul class="why-not">{items}</ul>{signatures}'
         )
 
     def sources_block(self, tv: TargetView) -> str:
@@ -298,7 +314,7 @@ class Renderer:
         href = {nid: self.node_path(tid, nid) for nid in tv.nodes}
         svg = dag.svg(tv.graph["nodes"], href=href)
         node_rows = "".join(
-            f"<tr><td>{self.node_link(tid, nid)}</td><td>{self.status_mark(n.status)}</td>"
+            f"<tr><td>{self.node_link(tid, nid)}</td><td>{self.status_mark(n.status, n.cause)}</td>"
             f"<td>{esc(', '.join(n.deps) or 'none')}</td>"
             f"<td>{esc(n.graph_entry['origin'])}"
             f"{' (' + esc(n.graph_entry['relation']) + ')' if n.graph_entry['relation'] else ''}"
@@ -494,8 +510,9 @@ class Renderer:
             node_id=esc(nid),
             target_id=esc(tid),
             target_href=esc(self.target_path(tid)),
-            status=self.status_mark(nv.status),
+            status=self.status_mark(nv.status, nv.cause),
             status_class=esc(nv.status),
+            claimable=self.node_not_claimable(nv),
             tutorial=(
                 '<p class="cue">The tutorial node: permanently open and off the ledger (D-27).</p>'
                 if nv.tutorial
@@ -517,6 +534,16 @@ class Renderer:
             acknowledgments=acks,
         )
         return self.page(f"Node {nid}", body, renders=renders)
+
+    def node_not_claimable(self, nv: NodeView) -> str:
+        """F04-T10: a node a claim could take (F03-Q8) under a target that is not claimable says
+        so on its own page, in the target's reasons. A node whose target has no index row (never
+        the case for a loaded site) says nothing, since there is no record to state."""
+        tv = self.site.targets.get(nv.target_id)
+        if tv is None or nv.status not in CLAIMABLE_STATUSES:
+            return ""
+        block = self.why_not_claimable(tv, detail=False)
+        return f"{block}\n" if block else ""
 
     def frontier(self) -> str:
         """R7: one column per F03-R5 field, one row per entry, filterable by the same-origin
@@ -639,6 +666,7 @@ class Renderer:
                 "untrusted",
                 Prose(path="AGENTS.md", text=agents_md.read_text(encoding="utf-8")),
                 what="AGENTS.md",
+                document=True,  # F04-T10: headings, tables and labelled fences
             )
             if agents_md.is_file()
             else "<p>The graph has no AGENTS.md yet; the tested one arrives with F10 (D-27).</p>"
@@ -726,8 +754,12 @@ class Renderer:
             steps=steps,
         )
 
-    def untrusted_block(self, label: str, prose_: Prose, *, what: str) -> str:
-        """R4: contributor text in a labelled block, with author and model when recorded."""
+    def untrusted_block(
+        self, label: str, prose_: Prose, *, what: str, document: bool = False
+    ) -> str:
+        """R4: contributor text in a labelled block, with author and model when recorded. A
+        document (the graph's AGENTS.md) goes through the document renderer; all else is prose."""
+        body = prose.render_document(prose_.text) if document else prose.render(prose_.text)
         by = []
         if prose_.author:
             by.append(f"by {esc(prose_.author)}")
@@ -740,7 +772,7 @@ class Renderer:
             f'<div class="prose-block {esc(label)}"><p class="label">'
             f"{esc(label.capitalize())}: {esc(what)}, {who}. "
             f"Rendered from {self.file_link(prose_.path)}.</p>"
-            f'<div class="prose">{prose.render(prose_.text)}</div></div>'
+            f'<div class="prose">{body}</div></div>'
         )
 
 

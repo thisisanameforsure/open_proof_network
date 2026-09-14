@@ -59,16 +59,89 @@ def inline(text: str) -> str:
     return _STRONG_RE.sub(lambda m: f"<strong>{m.group(1)}</strong>", escaped)
 
 
-def render_document(text: str) -> str:  # noqa: PLR0915 — one branch per line shape
-    """The site's own documents (F10-R9): ``render``'s rules plus headings (``#`` to ``###``),
-    bullet and numbered lists with indented continuation lines, and the two inline forms of
-    ``inline``. Every character is still escaped; the documents are this repository's, but the
+#: F04-T10: the label an ``output`` fence carries. The guide's output blocks are fragments a
+#: reader should find in what the command printed, not a transcript of it (F10-R9).
+OUTPUT_LABEL = "expected output (fragments)"
+_CLOSING_FENCE_RE = re.compile(r"^`{3,}$")
+_INFO_WORD_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+_TABLE_RULE_RE = re.compile(r"^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?$")
+
+
+def _code_block(code: list[str], info: str) -> str:
+    """A fenced block, escaped, with its info string kept: ``output`` is labelled, and the first
+    word of any other info string becomes a class (``sh`` → ``fence-sh``) when it is a plain word.
+    Backticks are written as ``&#96;`` so a fence quoted inside a block (``echo '```json'``) never
+    reaches the page as a literal fence; a browser shows the same character."""
+    body = escape("\n".join(code), quote=True).replace("`", "&#96;")
+    words = info.split()
+    first = words[0].lower() if words else ""
+    if first == "output":
+        return (
+            f'<p class="fence-label">{OUTPUT_LABEL}</p>'
+            f'<pre class="fence-output"><code>{body}</code></pre>'
+        )
+    if first and _INFO_WORD_RE.match(first):
+        return f'<pre class="fence-{first}"><code>{body}</code></pre>'
+    return f"<pre><code>{body}</code></pre>"
+
+
+def table_cells(line: str) -> list[str]:
+    """A pipe-table row's cells. A pipe inside a backtick code span, or written ``\\|``, belongs to
+    the cell; the outer pipes of ``| a | b |`` delimit nothing."""
+    cells: list[str] = []
+    cell: list[str] = []
+    in_code = False
+    i = 0
+    stripped = line.strip()
+    while i < len(stripped):
+        ch = stripped[i]
+        if ch == "\\" and i + 1 < len(stripped) and stripped[i + 1] == "|":
+            cell.append("|")
+            i += 2
+            continue
+        if ch == "`":
+            in_code = not in_code
+        if ch == "|" and not in_code:
+            cells.append("".join(cell).strip())
+            cell = []
+        else:
+            cell.append(ch)
+        i += 1
+    cells.append("".join(cell).strip())
+    if stripped.startswith("|"):
+        cells = cells[1:]
+    if stripped.endswith("|") and not stripped.endswith("\\|") and cells:
+        cells = cells[:-1]
+    return cells
+
+
+def _table(header: str, rows: list[str]) -> str:
+    heads = table_cells(header)
+    width = len(heads)
+    head = "".join(f"<th>{inline(c)}</th>" for c in heads)
+    body = []
+    for row in rows:
+        cells = (table_cells(row) + [""] * width)[:width]
+        body.append("<tr>" + "".join(f"<td>{inline(c)}</td>" for c in cells) + "</tr>")
+    return (
+        f'<div class="table-wrap"><table class="doc"><thead><tr>{head}</tr></thead>'
+        f"<tbody>{''.join(body)}</tbody></table></div>"
+    )
+
+
+def render_document(text: str) -> str:  # noqa: PLR0912, PLR0915 — one branch per line shape
+    """The site's own documents (F10-R9) and the graph's AGENTS.md (F04-R9, T10): ``render``'s
+    rules plus headings (``#`` to ``###``), bullet and numbered lists with indented continuation
+    lines, the two inline forms of ``inline``, fence info strings (``_code_block``) and pipe
+    tables (a ``|`` row followed by a ``|---|`` rule). Every character is still escaped; the
     renderer trusts nothing (F04-R3)."""
     out: list[str] = []
     paragraph: list[str] = []
     items: list[str] = []
     list_tag: str | None = None
     code: list[str] | None = None
+    info = ""
+    lines = text.splitlines()
 
     def flush_paragraph() -> None:
         if paragraph:
@@ -84,11 +157,14 @@ def render_document(text: str) -> str:  # noqa: PLR0915 — one branch per line 
         items.clear()
         list_tag = None
 
-    for raw in text.splitlines():
+    index = 0
+    while index < len(lines):
+        raw = lines[index]
+        index += 1
         line = raw.rstrip()
         if code is not None:
-            if line.strip().startswith(FENCE):
-                out.append("<pre><code>" + escape("\n".join(code), quote=True) + "</code></pre>")
+            if _CLOSING_FENCE_RE.match(line.strip()):
+                out.append(_code_block(code, info))
                 code = None
             else:
                 code.append(raw)
@@ -97,6 +173,21 @@ def render_document(text: str) -> str:  # noqa: PLR0915 — one branch per line 
             flush_paragraph()
             flush_list()
             code = []
+            info = line.strip().lstrip("`").strip()
+            continue
+        if (
+            line.lstrip().startswith("|")
+            and index < len(lines)
+            and _TABLE_RULE_RE.match(lines[index].strip())
+        ):
+            flush_paragraph()
+            flush_list()
+            index += 1  # the rule row
+            rows: list[str] = []
+            while index < len(lines) and lines[index].lstrip().startswith("|"):
+                rows.append(lines[index])
+                index += 1
+            out.append(_table(line, rows))
             continue
         if not line.strip():
             flush_paragraph()
@@ -129,6 +220,6 @@ def render_document(text: str) -> str:  # noqa: PLR0915 — one branch per line 
         paragraph.append(line.strip())
     flush_paragraph()
     flush_list()
-    if code is not None:  # an unclosed fence is still just text
-        out.append("<pre><code>" + escape("\n".join(code), quote=True) + "</code></pre>")
+    if code is not None:  # an unclosed fence is still just text, kept with its info string
+        out.append(_code_block(code, info))
     return "\n".join(out)
