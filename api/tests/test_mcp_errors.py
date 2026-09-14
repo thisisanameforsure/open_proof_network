@@ -25,15 +25,20 @@ def test_unreachable_source(harness: Harness) -> None:
         ("get_node", {"node_id": NODE}),
         ("get_defs", {"target_id": TARGET}),
         ("get_gate_spec", {"target_id": TARGET}),
-        ("get_submission", {"submission_id": "000001"}),
         ("get_schema", {"name": "postmortem/v1"}),
     ):
         failed = client.failed(name, args)
         assert failed["source"] == "graph", name
         assert set(failed) == {"error", "message", "source"}, name
-    # A route-backed read names the service, with the status the route answered.
-    for name in ("server_info", "list_frontier"):
-        failed = client.failed(name)
+    # A route-backed read names the service, with the status the route answered. get_submission
+    # moved here with F09-T7: it is GET /submissions/{id}, which answers 503 when the graph it
+    # reads the attestation from does not.
+    for name, args in (
+        ("server_info", {}),
+        ("list_frontier", {}),
+        ("get_submission", {"submission_id": "000001"}),
+    ):
+        failed = client.failed(name, args)
         assert failed["source"] == "service", name
         assert failed["status"] == 503
 
@@ -74,7 +79,13 @@ def test_not_found_names_graph(harness: Harness) -> None:
     }
     node = client.failed("get_node", {"node_id": "ghost"})
     assert node["error"] == "node-unknown" and node["source"] == "graph"
-    assert client.failed("get_submission", {"submission_id": "999999"})["error"] == "not-found"
+    # F09-T7: the route's own refusal — neither recorded nor attested — named by the service.
+    unknown = client.failed("get_submission", {"submission_id": "999999"})
+    assert (unknown["error"], unknown["source"], unknown["status"]) == (
+        "submission-unknown",
+        "service",
+        404,
+    )
     assert client.failed("get_schema", {"name": "mcp/ghost/v1"})["error"] == "not-found"
     assert client.failed("get_schema", {"name": "postmortem/v1"})["error"] == "not-found"
 

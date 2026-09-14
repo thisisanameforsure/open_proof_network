@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://openproof.network/schemas/mcp/get_node/v1.json",
   "title": "mcp/get_node/v1",
-  "description": "The result of the get_node tool (F09-R9; D-28; F10-R4): the node's CONTEXT.json plus the raw files under nodes/<id>/, or an error result naming the source that did not answer (R10). Edited in place by F10-T2 (the adapter's result schemas are not protocol records, F09-Q5).",
+  "description": "The result of the get_node tool (F09-R9; D-28; F10-R4): the node's CONTEXT.json plus the raw files under nodes/<id>/, or an error result naming the source that did not answer (R10). Edited in place by F10-T2 (the adapter's result schemas are not protocol records, F09-Q5); F09-T7 added the open submissions.",
   "oneOf": [
     {
       "type": "object",
@@ -15,6 +15,7 @@
         "claims",
         "annexes",
         "explainers",
+        "submissions",
         "untrusted_note"
       ],
       "additionalProperties": false,
@@ -138,6 +139,22 @@
             }
           }
         },
+        "submissions": {
+          "type": "object",
+          "description": "The submissions open on this node, as GET /submissions.json lists them (F09-T7)",
+          "required": [
+            "open"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "open": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/submission"
+              }
+            }
+          }
+        },
         "untrusted_note": {
           "type": "string"
         }
@@ -191,6 +208,64 @@
         },
         "text": {
           "type": "string"
+        }
+      }
+    },
+    "submission": {
+      "type": "object",
+      "description": "A pull request the service opened (F07-T16): operational, not evidentiary (C9)",
+      "required": [
+        "id",
+        "kind",
+        "node_id",
+        "target_id",
+        "pr_number",
+        "pr_url",
+        "pseudonym",
+        "precheck_job_id",
+        "created",
+        "closed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "node_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_id": {
+          "type": "string"
+        },
+        "pr_number": {
+          "type": "integer"
+        },
+        "pr_url": {
+          "type": "string"
+        },
+        "pseudonym": {
+          "type": "string"
+        },
+        "precheck_job_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created": {
+          "type": "string"
+        },
+        "closed": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     }

@@ -79,9 +79,11 @@ def test_read_tools_equal_plain_path(
     assert client.ok("get_gate_spec", {"target_id": TARGET}) == plain(
         harness, f"targets/{TARGET}/gate-spec.json"
     )
-    assert client.ok("get_submission", {"submission_id": "000001"}) == plain(
-        harness, "attestations/000001.json"
-    )
+    # F09-T7: get_submission is GET /submissions/{id} now, whose answer carries the attestation
+    # (the plain path's file) beside the record and the pull request's state.
+    over_mcp = client.ok("get_submission", {"submission_id": "000001"})
+    assert over_mcp == harness.client.get("/submissions/000001").json()
+    assert over_mcp["attestation"] == plain(harness, "attestations/000001.json")
     assert client.ok("get_schema", {"name": "postmortem/v1"}) == plain(
         harness, "schemas/postmortem/v1.json"
     )

@@ -22,13 +22,14 @@ Kind = Literal["read", "write"]
 #: directory listing. Anything else in ``plain`` must be a route label (``METHOD /path``).
 GRAPH_PATTERN_RE = re.compile(r"^(?:[A-Za-z0-9_.-]+|<[a-z_]+>)(?:/(?:[A-Za-z0-9_.<>-]+))*/?$")
 ROUTE_LABEL_RE = re.compile(r"^(GET|POST|DELETE) /")
+MAX_PLAIN_PATHS = 3
 
 
 @dataclass(frozen=True)
 class Row:
     tool: str
     kind: Kind
-    plain: tuple[str, ...]  # one or two entries: graph patterns at main, or route labels
+    plain: tuple[str, ...]  # one to three entries: graph patterns at main, or route labels
     d28: str  # the "git / HTTP equivalent" cell of D-28's table, verbatim
 
     @property
@@ -59,12 +60,17 @@ TABLE: tuple[Row, ...] = (
     Row(
         "get_node",
         "read",
-        ("targets/<target>/nodes/<id>/", "GET /frontier.json"),
+        ("targets/<target>/nodes/<id>/", "GET /frontier.json", "GET /submissions.json"),
         "raw files under nodes/<id>/",
     ),
     Row("get_defs", "read", ("targets/<id>/defs/",), "targets/<id>/defs/"),
     Row("get_gate_spec", "read", ("targets/<id>/gate-spec.json",), "gate-spec.json per graph"),
-    Row("get_submission", "read", ("attestations/<id>.json",), "attestations/<id>.json"),
+    Row(
+        "get_submission",
+        "read",
+        ("attestations/<id>.json", "GET /submissions/{submission_id}"),
+        "attestations/<id>.json",
+    ),
     Row("get_schema", "read", ("schemas/<name>.json",), "schemas/<name>.json"),
     Row("get_precheck", "read", ("GET /precheck/{job_id}",), "GET /precheck/<id>"),
     # --- writes (D-35's plain-path table) -----------------------------------------------------
@@ -126,8 +132,10 @@ def problems(tools: set[str], route_labels: set[str]) -> list[str]:
     out.extend(f"tool {t} has no bijection row" for t in sorted(tools - set(BY_TOOL)))
     out.extend(f"row {t} names no declared tool" for t in sorted(set(BY_TOOL) - tools))
     for row in TABLE:
-        if not 1 <= len(row.plain) <= 2:
-            out.append(f"{row.tool}: {len(row.plain)} plain paths, not one or two")
+        # Three since F09-T7: get_node names the node's files, the claim overlay and the open
+        # submissions, one plain path per part of the bundle that has its own source.
+        if not 1 <= len(row.plain) <= MAX_PLAIN_PATHS:
+            out.append(f"{row.tool}: {len(row.plain)} plain paths, not one to three")
         if row.kind == "write" and (len(row.plain) != 1 or not row.routes):
             out.append(f"{row.tool}: a write tool maps to exactly one route")
         for route in row.routes:

@@ -1,0 +1,107 @@
+F09-T7 — pending submissions, MCP side; argument renames (PARTIAL) (2026-09-14)
+================================================================================
+
+Specification: api/tests/test_finding_pending_submissions.py (the MCP half),
+api/tests/test_finding_submission_ids.py (the appended pending-state test),
+api/tests/test_finding_argument_renames.py. Service side: engineering/evidence/F07/task-16.txt.
+
+1. Red, before any change
+-------------------------
+(the same run as F07-T16's section 1)
+FAILED test_finding_pending_submissions.py::test_get_node_lists_the_open_submissions_on_the_node
+  AssertionError: FakeGitHost.set_pull_request_state ... / 'submissions' not in get_node
+FAILED ...::test_get_submission_tool_equals_the_route     (setter missing)
+FAILED ...::test_list_submissions_is_a_tool_and_equals_the_snapshot
+  AssertionError: 'list_submissions' not in tools/list
+FAILED test_finding_submission_ids.py::test_get_submission_resolves_the_padded_and_unpadded_id[33]
+  {"error": "not-found", "message": "the graph has no attestations/33.json at main"}
+FAILED test_finding_submission_ids.py::test_get_submission_answers_pending_state_for_an_open_pull_request
+FAILED test_finding_argument_renames.py::test_renames_is_what_the_handlers_send
+  AssertionError: writes.RENAMES does not exist
+FAILED test_finding_argument_renames.py::test_submit_proof_accepts_precheck_job_id_and_forwards_the_same_body
+
+2. The change
+-------------
+mcp/reads.py     get_submission is GET /submissions/{submission_id} through service_answer, body
+                 for body (the argument check keeps its old character class; the route decides
+                 the shape). get_node adds "submissions": {"open": [...]} — GET
+                 /submissions.json filtered to the node. list_submissions(call, args) is written
+                 and tested (== GET /submissions.json) but NOT in TOOLS: see section 5.
+mcp/bijection.py get_submission row plain = ("attestations/<id>.json", "GET
+                 /submissions/{submission_id}"), d28 cell unchanged (verbatim in D-28). get_node
+                 row gains "GET /submissions.json", so the audit's limit is one to three plain
+                 paths (was one or two): one per part of the bundle that has its own source.
+schemas          mcp/get_submission/v1.json reshaped in place (F09-Q5 precedent): {submission |
+                 null, pull_request | null, pull_request_error, attestation_path, attestation |
+                 null, attestation_note enum}. mcp/get_node/v1.json gains required "submissions".
+                 No list_submissions/v1.json (it would break results.known() == TOOLS and the
+                 deploy check until the tool is registered).
+
+NOT landed (ownership, 2026-09-14): writes.RENAMES and submit_proof's precheck_job_id —
+api/opn_api/mcp/writes.py holds another session's uncommitted edits.
+test_finding_argument_renames.py is untouched and both its tests stay strict xfails.
+
+3. Tests rewritten, and why
+---------------------------
+api/tests/test_mcp_equivalence.py (test_read_tools_equal_plain_path, was :82-84)
+  pinned get_submission == the attestation file. The tool is now the route: asserts the tool
+  equals GET /submissions/000001 and its "attestation" field equals the file.
+api/tests/test_mcp_errors.py::test_unreachable_source (was :28)
+  pinned get_submission as a graph-backed read naming "graph". It is route-backed now, so it
+  moves to the route loop: source "service", status 503 (the route's graph-unreachable).
+api/tests/test_mcp_errors.py::test_not_found_names_graph (was :77)
+  pinned "999999" -> not-found. The route's answer is 404 submission-unknown, source service.
+api/tests/test_finding_submission_ids.py::test_get_submission_resolves_the_padded_and_unpadded_id
+  pinned doc == the attestation for [000033] and held [33] as FINDING_8 (fix F09-T6). The result
+  is the route's document now, so the assertions read doc["attestation"], doc["attestation_path"],
+  submission null, note null; [33] passes and its mark is removed; [0000000033] added (leading
+  zeros past six). The appended pending-state test keeps its strict mark with its reason
+  updated: needs the submissions.py record call; after the other session's commit.
+api/tests/test_mcp_surface.py — not changed: READS stays ten tools because list_submissions is
+  not registered, and the get_submission argument "000001" still validates.
+
+New: api/tests/test_mcp_pending_submissions.py (3) — get_submission tool == route for an open
+append by "1" and "000001"; get_node carries only its node's open submission, equal to the
+route's submission document, and drops it once a live read finds it merged; the list_submissions
+handler over the live application == GET /submissions.json.
+
+4. Green and still red
+----------------------
+Green now: test_finding_submission_ids.py::...[33] (and [000033], [0000000033]);
+test_mcp_pending_submissions.py (3); test_mcp_equivalence, test_mcp_errors, test_mcp_surface
+unchanged in count. make verify: see F07/task-16.txt section 7 (1761 passed, 65 xfailed, mypy and
+ruff clean).
+Mutants: see F07/task-16.txt section 5 (padding mutant kills the MCP tool test and both padded
+finding cases; the cache and closing mutants kill the get_node test).
+
+Still red (strict xfail):
+  test_finding_pending_submissions.py::test_get_node_lists_the_open_submissions_on_the_node
+    waits on the submissions.py record call (it drives POST /submissions).
+  ::test_get_submission_tool_equals_the_route
+    waits on the submissions.py record call.
+  ::test_list_submissions_is_a_tool_and_equals_the_snapshot
+    waits on (a) a D-28 row for list_submissions, then registering it in reads.TOOLS, adding
+    "list_submissions" to test_mcp_surface.READS, writing schemas/list_submissions/v1.json and a
+    bijection row; and (b) the submissions.py record call (it asserts PR 1 from POST /submissions).
+  test_finding_submission_ids.py::test_get_submission_answers_pending_state_for_an_open_pull_request
+    waits on the submissions.py record call.
+  test_finding_argument_renames.py::test_renames_is_what_the_handlers_send
+  test_finding_argument_renames.py::test_submit_proof_accepts_precheck_job_id_and_forwards_the_same_body
+    wait on writes.py (RENAMES, precheck_job_id), after the other session's commit.
+
+5. Why list_submissions is built but not registered
+---------------------------------------------------
+test_mcp_surface.py::test_d28_rows_verbatim requires every bijection row's d28 cell to appear
+verbatim in D-28 or D-35 of docs/architecture_decisions_v_3_12.html. No cell for
+list_submissions exists there, and docs/ is held by another session. Registering the tool would
+fail that test (make verify, the pre-commit hook) and weakening it is not allowed, so the handler
+waits unregistered. The assertion that would go red on registration:
+  assert wanted in d28 or wanted in d35, row   (row = Row("list_submissions", ...))
+Row text to add to D-28's read-tool table (the F09-T6 notation-addendum shape):
+  | list_submissions | every pull request the service opened that no live read has found merged
+    or closed — id, node, target, kind, pull-request number and URL, pseudonym — the snapshot
+    get_node filters per node | GET /submissions.json |
+and, for get_submission's row, the Returns cell could name the live state:
+  "status (the pull request's live checks, reviews and mergeability) and attestation ... —
+   attestations/<id>.json + GET /submissions/<id>"
+D-35's endpoint list would gain GET /submissions/<id> and GET /submissions.json as reads.

@@ -2,17 +2,79 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://openproof.network/schemas/mcp/get_submission/v1.json",
   "title": "mcp/get_submission/v1",
-  "description": "The result of the get_submission tool (F09-R9; D-28): attestations/<id>.json, or an error result naming the source that did not answer (R10).",
+  "description": "The result of the get_submission tool (F09-R9; D-28): GET /submissions/{submission_id} \u2014 the service's record, the pull request's live state and, once merged, attestations/<n>.json \u2014 or an error result naming the source that did not answer (R10). Reshaped in place by F09-T7 (the adapter's result schemas are not protocol records, F09-Q5).",
   "oneOf": [
     {
       "type": "object",
       "required": [
-        "schema"
+        "submission",
+        "pull_request",
+        "pull_request_error",
+        "attestation_path",
+        "attestation",
+        "attestation_note"
       ],
+      "additionalProperties": false,
       "properties": {
-        "schema": {
-          "type": "string",
-          "pattern": "^attestation/v[1-9][0-9]*$"
+        "submission": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/submission"
+            }
+          ]
+        },
+        "pull_request": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/pull_request"
+            }
+          ]
+        },
+        "pull_request_error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "attestation_path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "attestation": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "schema"
+              ],
+              "properties": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^attestation/v[1-9][0-9]*$"
+                }
+              }
+            }
+          ]
+        },
+        "attestation_note": {
+          "enum": [
+            null,
+            "not-merged",
+            "no-attestation-for-mode",
+            "attestation-pending",
+            "pull-request-unavailable"
+          ]
         }
       }
     },
@@ -44,5 +106,169 @@
         }
       }
     }
-  ]
+  ],
+  "$defs": {
+    "submission": {
+      "type": "object",
+      "description": "A pull request the service opened (F07-T16): operational, not evidentiary (C9)",
+      "required": [
+        "id",
+        "kind",
+        "node_id",
+        "target_id",
+        "pr_number",
+        "pr_url",
+        "pseudonym",
+        "precheck_job_id",
+        "created",
+        "closed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "node_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_id": {
+          "type": "string"
+        },
+        "pr_number": {
+          "type": "integer"
+        },
+        "pr_url": {
+          "type": "string"
+        },
+        "pseudonym": {
+          "type": "string"
+        },
+        "precheck_job_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created": {
+          "type": "string"
+        },
+        "closed": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "pull_request": {
+      "type": "object",
+      "description": "The pull request's live state from the host, or the state that closed the record",
+      "required": [
+        "number",
+        "url",
+        "state",
+        "merged",
+        "mergeable_state",
+        "head_sha",
+        "merge_commit_sha",
+        "runs",
+        "reviews"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "number": {
+          "type": "integer"
+        },
+        "url": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "merged": {
+          "type": "boolean"
+        },
+        "mergeable_state": {
+          "type": "string"
+        },
+        "head_sha": {
+          "type": "string"
+        },
+        "merge_commit_sha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "runs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "status",
+              "conclusion",
+              "url"
+            ],
+            "properties": {
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "conclusion": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "url": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "reviews": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "login",
+              "state"
+            ],
+            "properties": {
+              "login": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "state": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }

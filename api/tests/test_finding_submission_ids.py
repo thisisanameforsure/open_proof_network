@@ -45,29 +45,32 @@ def seed_attestation(harness: Harness) -> None:
     harness.context.files.clear()
 
 
-@pytest.mark.parametrize(
-    "submission_id",
-    [
-        PADDED,
-        pytest.param("33", marks=pytest.mark.xfail(strict=True, reason=FINDING_8)),
-    ],
-)
+@pytest.mark.parametrize("submission_id", [PADDED, "33", "0000000033"])
 def test_get_submission_resolves_the_padded_and_unpadded_id(
     harness: Harness, submission_id: str
 ) -> None:
-    """The pull-request number and the file's zero-padded name are the same attestation."""
+    """The pull-request number and the file's zero-padded name are the same attestation.
+
+    Rewritten by F09-T7 (2026-09-14): the tool is ``GET /submissions/{id}`` now, so the
+    attestation is the answer's ``attestation`` field rather than the whole result, and the
+    unpadded spelling (FINDING_8, held for F09-T6) passes with it. A pull request opened by hand
+    has no record, so ``submission`` is null. Leading zeros beyond six are the same number."""
     seed_attestation(harness)
     doc = McpClient(harness).ok("get_submission", {"submission_id": submission_id})
-    assert doc == plain(harness, ATTESTATION_PATH)
-    assert doc["node_id"] == TUTORIAL_NODE
+    assert doc["submission"] is None
+    assert doc["attestation_path"] == ATTESTATION_PATH
+    assert doc["attestation"] == plain(harness, ATTESTATION_PATH)
+    assert doc["attestation"]["node_id"] == TUTORIAL_NODE
+    assert doc["attestation_note"] is None
 
 
 @pytest.mark.xfail(
     strict=True,
     reason=(
-        "finding pending-submissions (F09-R5, D-28): get_submission reads attestations/<id>.json "
-        "only, so a submission whose pull request is still open is not-found; "
-        "fix: F09-T7 (Mike, 2026-09-14)"
+        "finding pending-submissions (F09-R5, D-28): get_submission is GET /submissions/{id}, "
+        "which does not know a POST /submissions pull request that was never recorded; "
+        "fix: F09-T7 (Mike, 2026-09-14); needs the submissions.py record call; after the other "
+        "session's commit"
     ),
 )
 def test_get_submission_answers_pending_state_for_an_open_pull_request(

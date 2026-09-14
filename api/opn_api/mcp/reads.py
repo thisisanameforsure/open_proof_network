@@ -333,6 +333,7 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         files[name] = text(raw, name) if raw is not None else None
     overlay = service_answer(await call.endpoint("GET", "/frontier.json"), "/frontier.json")
     entry = next((e for e in overlay.get("entries", []) if e.get("node_id") == node_id), None)
+    pending = service_answer(await call.endpoint("GET", "/submissions.json"), "/submissions.json")
     return {
         "node_id": node_id,
         "target_id": target_id,
@@ -342,6 +343,10 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         "claims": dict(entry["claims"]) if entry is not None else None,
         "annexes": _prose(call.ctx, f"{node_dir}/annex"),
         "explainers": _prose(call.ctx, f"{node_dir}/explainer"),
+        # F09-T7: the pull requests already open on this node, as GET /submissions.json lists them.
+        "submissions": {
+            "open": [s for s in pending.get("open", []) if s.get("node_id") == node_id]
+        },
         "untrusted_note": demarcate.UNTRUSTED_NOTE,
     }
 
@@ -370,10 +375,24 @@ async def get_gate_spec(call: Call, args: dict[str, Any]) -> dict[str, Any]:
 
 
 async def get_submission(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """``GET /submissions/{id}``, body for body (F09-T7): the record, the pull request's live
+    state and the attestation once there is one."""
     submission_id = args.get("submission_id")
     if not isinstance(submission_id, str) or not re.match(r"^[A-Za-z0-9-]+$", submission_id):
-        raise error("arguments-invalid", "submission_id names an attestation file", "adapter")
-    return document(call.ctx, f"attestations/{submission_id}.json")
+        raise error(
+            "arguments-invalid",
+            "submission_id is the ULID a submission returned or its pull-request number",
+            "adapter",
+        )
+    return service_answer(
+        await call.endpoint("GET", f"/submissions/{submission_id}"), "/submissions/<id>"
+    )
+
+
+async def list_submissions(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """``GET /submissions.json`` (F09-T7). Built and tested, not yet in ``TOOLS``: a tool needs
+    its D-28 row in the decisions doc first (``test_mcp_surface.test_d28_rows_verbatim``)."""
+    return service_answer(await call.endpoint("GET", "/submissions.json"), "/submissions.json")
 
 
 async def get_schema(call: Call, args: dict[str, Any]) -> dict[str, Any]:
@@ -434,7 +453,7 @@ TOOLS: tuple[Tool, ...] = (
         "get_node",
         "A node's context bundle (nodes/<id>/CONTEXT.json: statement, deps' signatures, witness, "
         "status, gate-spec reference, attempt log, annex hashes) plus the raw Lean files, live "
-        "claim status, annexes and explainers.",
+        "claim status, annexes, explainers and the submissions open on it.",
         params({"node_id": ID_PARAM}, ("node_id",)),
         get_node,
     ),
@@ -453,7 +472,9 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "get_submission",
-        "A gate run's signed attestation: the record a merged submission earned.",
+        "A submission by its ULID or pull-request number (padded or not): the record, the pull "
+        "request's live state (checks, reviews, mergeability) and, once merged, the attestation "
+        "it earned or why there is none.",
         params({"submission_id": {"type": "string"}}, ("submission_id",)),
         get_submission,
     ),
