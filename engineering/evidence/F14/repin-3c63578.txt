@@ -1,0 +1,47 @@
+The graph re-pinned to network 3c63578, 2026-09-14 (F14-T15; Mike: "yeah roll it out")
+
+Carries F14 to the live gate:
+- a listed target is claimable;
+- step 9 is waived by a certificate or by catalog evidence at five points;
+- the statement-evidence, formalization, qa/v2 and targets-index/v5 schemas;
+- THIRD_PARTY_NOTICES.md as a merge product;
+- the owner's rulings: precheck artifact_type, get_node live claims, target pages state claimability;
+- decisions v3.15, with PROTOCOL_VERSION 3.15.
+
+0. Before the tag
+   - Network main d707b43 (F14 plus the rulings) was pushed. api-deploy 34865340843 succeeded.
+   - The guide copy went to the graph first as c6affa1, so the network's copy test compares equal. Then network
+     3c63578 (the guide) was pushed with 2100 passed.
+   - Rehearsals: the five evidence diffs classify as curator mode with no problems, and erdos-51 and
+     riemann-hypothesis classify as intake with no problems (task-15-rehearsal.txt).
+
+1. CI on 3c63578 (run 34866271259): fast tier success; make verify-lean (real toolchain and sandbox) success.
+   The superseded run on d707b43 was cancelled.
+
+2. Tag gate-3c63578, pushed 17:02Z. image-publish run 34872317261 succeeded:
+   mathlib none                                      ghcr.io/thisisanameforsure/opn-gate@sha256:d8bb6c671584dc45a947e566d4d4e85ce92e39c02e0f3bb5b8326e7e1797f6f7
+   mathlib 0df444a360eaa60ab8c11dca51a86af692955474  ghcr.io/thisisanameforsure/opn-gate@sha256:9a3b0387f84a825905693c1a6652fb97d50d91ea466403ba353250d03138f23e
+   The Mathlib digest was read from its job's "Push and record the digest" step; the plain digest is the other.
+
+3. Pins, written by gate/tools/pin_image.py (--network-commit 3c63578370f7cc3b9b4666c57492606d385c6873,
+   --api-url https://api.openproofnetwork.org). tutorial got the plain image. erdos-52, -68, -172, -376 and
+   -406 got the Mathlib image, with euclid-primes last.
+   pin_image.py --check: the six Mathlib targets "pin ok". The tutorial has 1 problem (the devcontainer runs
+   the Mathlib image), as at every earlier re-pin. 7 of 7 gate-spec.json files name 3c63578.
+   In the same commit:
+   - schemas.publish added formalization/v1, qa/v2, statement-evidence/v1 and targets-index/v5, pinned in
+     schemas/HASHES;
+   - .github/workflows/gate.yml gained, after the ledger line:
+       [ -f THIRD_PARTY_NOTICES.md ] && git add THIRD_PARTY_NOTICES.md  # F14-R12: a merge product
+   Committed as 9fb6b19 on top of c6affa1.
+
+4. Pregate on the committed re-pin, with the gate at 3c63578:
+   $ gate/pregate.sh --graph <repin worktree> --target tutorial --node tutorial-and-swap
+   exit 0, verdict pass. Steps 1 toolchain, 2 paths, 4 kernel-replay, 5 axioms, 6 hazards, 7 witness and 8 deps
+   ran. 54 s, olean cache hit.
+
+5. The graph push: origin/main c6affa1 -> 9fb6b19, and the shared graph checkout fast-forwarded. The push's
+   workflow run 34873839057 succeeded (postmerge found no merged pull request).
+
+6. Not yet true, by construction: the committed products still render under the old pin until the first
+   merged pull request (the erdos-52 evidence PR) re-renders them as targets-index/v5.

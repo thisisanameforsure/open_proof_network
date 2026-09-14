@@ -21,3 +21,13 @@ Rendered on a bench clone with this gate: targets-index/v5, all five claimable, 
 euclid-primes resolved and not claimable; the frontier serves 5 claimable entries of 6.
 These PRs can only merge after the re-pin: the pinned gate at d0122d1 does not know the
 statement-evidence role.
+
+Wave intakes rehearsed, 2026-09-14 16:05Z. Clone of the graph at c6affa1, with this gate's four new
+schemas published and committed as the base. import-fc with --no-toolchain, because admission runs in
+the graph's CI. Then classify with the curator as author:
+== erdos-51 files: attempts.yaml evidence/root-1.yaml fidelity/root-1.yaml gate-spec.json nodes/erdos-51/{Context,Statement,Witness}.lean META.yaml .gitkeeps status/…yaml target.yaml
+ mode intake problems [] needs_admission True needs_review False
+== riemann-hypothesis files: evidence/root-1.yaml fidelity/root-1.yaml gate-spec.json nodes/riemann-hypothesis/… status/…yaml target.yaml
+ mode intake problems [] needs_admission True needs_review False
+An intake copies its gate-spec.json from an existing target's, so the real branches are cut after the
+re-pin, or they would carry the old network and image pins.
