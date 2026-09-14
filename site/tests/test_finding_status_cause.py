@@ -22,7 +22,6 @@ from pathlib import Path
 from typing import Any
 
 import fixture
-import pytest
 
 from opn_site import model, render
 
@@ -47,12 +46,6 @@ def blocked_page(tmp_path: Path, cause: str | None) -> str:
     return r.node(dataclasses.replace(nv, graph_entry=entry))
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=FINDING.format(
-        "status_mark takes no cause, so every blocked node reads 'blocked on a dependency'"
-    ),
-)
 def test_status_mark_says_a_witness_is_missing() -> None:
     assert "cause" in inspect.signature(render.Renderer.status_mark).parameters
     mark_fn: Any = render.Renderer.status_mark
@@ -62,13 +55,6 @@ def test_status_mark_says_a_witness_is_missing() -> None:
     assert 'class="status status-blocked"' in mark
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=FINDING.format(
-        "the node page of a hole blocked witness-missing, with no dependencies, says it is "
-        "blocked on a dependency"
-    ),
-)
 def test_node_page_of_a_witness_missing_hole_names_the_cause(tmp_path: Path) -> None:
     page = blocked_page(tmp_path, "witness-missing")
     words = lead(page)
@@ -83,3 +69,25 @@ def test_pin_a_blocked_node_with_no_cause_reads_blocked_on_a_dependency(tmp_path
     mark and on the page."""
     assert "blocked on a dependency" in render.Renderer.status_mark("blocked")
     assert "blocked on a dependency" in lead(blocked_page(tmp_path, None))
+
+
+def test_a_refuted_dependency_has_its_own_words(tmp_path: Path) -> None:
+    """``dep-refuted`` (F03-R8) is neither the witness words nor the no-cause words."""
+    mark = render.Renderer.status_mark("blocked", cause="dep-refuted")
+    assert "refuted" in mark and "witness" not in mark
+    assert "blocked on a dependency" not in mark
+    words = lead(blocked_page(tmp_path, "dep-refuted"))
+    assert "a dependency was refuted" in words, words
+
+
+def test_an_unknown_cause_is_shown_as_itself_escaped() -> None:
+    """A cause this generator has no words for (a newer product) is named, escaped, not replaced
+    by a reason it is not; a cause on a status other than blocked changes nothing."""
+    payload = '<b onclick="x">new-cause'
+    mark = render.Renderer.status_mark("blocked", cause=payload)
+    assert "<b" not in mark and 'onclick="x"' not in mark
+    assert "blocked: &lt;b onclick=&quot;x&quot;&gt;new-cause" in mark
+    assert "dependency" not in mark
+    assert render.Renderer.status_mark("ready", cause="witness-missing") == (
+        render.Renderer.status_mark("ready")
+    )

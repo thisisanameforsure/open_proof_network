@@ -1,0 +1,141 @@
+F04-T10 (part 2) · the site says what the record says: cause words, not-claimable reasons, the guide as a document (R5, R7, R9; F03-Q8; D-29, D-33) · 2026-09-14 · network 800a08e + working tree
+Part 1 (DAG labels) is engineering/evidence/F04/task-10-dag.txt.
+
+== Red first (before any change) ==
+$ uv run --frozen pytest --runxfail site/tests/test_finding_status_cause.py site/tests/test_finding_not_claimable_reasons.py site/tests/test_finding_docs_agents_md.py
+FAILED test_finding_status_cause.py::test_status_mark_says_a_witness_is_missing
+  assert 'cause' in <Signature (status: 'str') -> 'str'>.parameters
+FAILED test_finding_status_cause.py::test_node_page_of_a_witness_missing_hole_names_the_cause
+  assert 'witness' in '<span class="status status-blocked"><span class="mark"></span>blocked on a dependency</span>'
+FAILED test_finding_not_claimable_reasons.py::test_targets_page_does_not_say_listed_twice
+  assert 'listed, listed' not in ... s</dt><dd>listed, listed, not claimable</dd>
+FAILED test_finding_not_claimable_reasons.py::test_node_page_of_a_listed_target_says_why_it_is_not_claimable
+  assert 'Not claimable' in '<!DOCTYPE html>...'
+FAILED test_finding_not_claimable_reasons.py::test_frontier_row_of_a_listed_target_says_why_it_is_not_claimable
+  assert 'Not claimable' in '<tr>...<td>no</td><td>no</td><td>no</td><td>no</td>'
+FAILED test_finding_docs_agents_md.py::test_agents_md_renders_as_a_document
+  AssertionError: no <h2> for the section
+6 failed, 1 passed (the pin: a blocked node with no cause reads "blocked on a dependency")
+
+== The change ==
+site/opn_site/render.py
+  - CAUSE_WORDS; Renderer.status_mark(status, cause=None): a blocked node's cause picks its words
+    ("blocked: witness missing (propose one through /proposals/witness)", "blocked: a dependency
+    was refuted"); an unknown cause reads "blocked: <cause>", escaped; no cause keeps
+    "blocked on a dependency"; a cause on any other status changes nothing. The node page and the
+    target page's node table pass the row's cause.
+  - Targets row: the claimable word is "claimable" / "not claimable" (was "listed, not claimable",
+    which printed "listed, listed, not claimable" beside the D-33 status).
+  - node_not_claimable(nv): a ready or speculative node (F03-Q8: the only statuses a claim could
+    take) under a not-claimable target shows why_not_claimable(tv, detail=False), each reason in
+    intake.explain's words, escaped; empty reasons keep the "no curated intake record (D-6)" line;
+    a node whose target has no index row shows nothing.
+  - docs(): AGENTS.md goes through prose.render_document inside the same "Untrusted: AGENTS.md"
+    block (untrusted_block(document=True)).
+site/opn_site/prose.py — render_document gains
+  - fence info strings: ```output is labelled exactly "expected output (fragments)"
+    (<pre class="fence-output">); a plain first word gives a class (```sh → fence-sh, ```sh manual
+    → fence-sh); anything else gives no class; bare fences stay <pre><code>; a fence closes only on
+    a line of backticks alone; an unclosed fence keeps its info string and its text;
+  - backticks inside a code block written as &#96; — the guide's `echo '```json'` is code, not a
+    fence, and must not reach the page as a literal fence (the browser shows the same character);
+  - pipe tables: a | row followed by a |---| rule; cells split on pipes outside backtick spans
+    (and \| is a literal pipe); short rows padded; a | line without a rule stays a paragraph;
+    tables wrapped in the existing .table-wrap.
+site/opn_site/model.py — NodeView.cause (graph_entry.get("cause"); graph/v1 has none). PRODUCT_SCHEMAS
+  untouched (main's frontier/v3 kept through the rebase).
+site/opn_site/templates/node.html — $claimable after the status lead.
+site/opn_site/static/site.css — .fence-label, pre.fence-output, table.doc (five lines, prose section).
+Tests: the five strict xfails un-marked; the frontier-row assertion held as its own strict xfail
+  ("finding site-not-claimable-reasons (F04-R7): the frontier row carries no reason; after F04-T11
+  (another session's Frontier page rewrite)"); twelve edge tests added:
+  status cause — dep-refuted's own words; an unknown cause shown escaped (and ignored off blocked);
+  not claimable — a reason carrying HTML escaped; an empty reasons list; a target with no index row;
+    a proved node carries no claim reasons;
+  document renderer — output label exact + sh class; a non-word info string gives no class; a pipe
+    inside backticks; a short row + a pipe line without a rule; an unclosed fence; a heading (and a
+    quoted fence) inside a fence.
+Not touched (coordination): FRONTIER_COLUMNS, frontier(), frontier_cell(), templates/frontier.html,
+  site/tests/golden/frontier/**, test_render.py (no edit at all), gate/, api/, engineering/specs/.
+
+== Goldens changed (regenerated as test_render.write_goldens does, frontier/index.html skipped and
+   confirmed unchanged) ==
+site/tests/golden/targets/index.html — "listed, listed, not claimable" → "listed, not claimable".
+site/tests/golden/nodes/propositional/and-swap-reassoc/index.html — the fixture's propositional
+  target is claimable: false with not_claimable: [] (no curated record) and the root is ready, so
+  its page gains the one line "Not claimable: this target has no curated intake record (D-6), so
+  nothing may be claimed under it." The two proved nodes' goldens are unchanged (F03-Q8).
+
+== Green (after rebasing on main 800a08e) ==
+$ uv run --frozen pytest -v site/tests/test_finding_status_cause.py site/tests/test_finding_not_claimable_reasons.py site/tests/test_finding_docs_agents_md.py
+18 passed, 1 xfailed
+  XFAIL test_frontier_row_of_a_listed_target_says_why_it_is_not_claimable (after F04-T11)
+$ uv run --frozen pytest site/tests   (before the rebase; make verify below covers after)
+145 passed, 2 xfailed (the frontier row above; F04-T9's claims-label test)
+ruff check, ruff format --check, mypy --strict site: clean
+
+== Mutants (pytest plugins, patched in memory, no file touched; scratchpad/f04t10p2_mutants/) ==
+$ PYTHONPATH=<mutants> uv run --frozen pytest -p <mutant> <the three files>
+mut_cause_ignored (status_mark takes cause and ignores it): 4 failed, 14 passed, 1 xfailed
+  test_status_mark_says_a_witness_is_missing, test_node_page_of_a_witness_missing_hole_names_the_cause,
+  test_a_refuted_dependency_has_its_own_words, test_an_unknown_cause_is_shown_as_itself_escaped
+mut_reasons_unescaped (node page lists intake.explain(r) without esc): 2 failed, 16 passed, 1 xfailed
+  test_node_page_of_a_listed_target_says_why_it_is_not_claimable, test_a_reason_carrying_html_is_escaped_on_the_node_page
+mut_output_unlabelled (output fences rendered as bare code): 3 failed, 15 passed, 1 xfailed
+  test_agents_md_renders_as_a_document, test_output_fence_is_labelled_exactly_and_sh_fence_gets_a_class,
+  test_an_unclosed_fence_keeps_its_info_and_its_text
+Each mutant killed; all three re-run on the rebased tree with the same counts.
+
+== Screenshots ==
+The site fixture (fixture.build_with_listed_target) with gate/agents/AGENTS.md copied to the graph
+root and one hole: and-reassoc's graph.json row set to status blocked, cause witness-missing, no
+deps, no proof commit, no trust base. Rendered by opn_site.render, served with python -m http.server
+on 127.0.0.1, captured with headless Google Chrome at 1200px (F07-T13 precedent).
+engineering/evidence/F04/task-10-hole.png — /nodes/propositional/and-reassoc/
+  Checked by eye: the lead reads "blocked: witness missing (propose one through /proposals/witness)"
+  beside the grey blocked mark; no "blocked on a dependency" anywhere; "Depends on: none"; no
+  not-claimable block (a blocked node, F03-Q8); the statement's edge is the blocked grey. A first
+  capture showed the compiler-trust flag because the edited row kept the fixture's trust_base:
+  compiler; the row's trust_base was cleared and the page recaptured.
+engineering/evidence/F04/task-10-listed.png — /nodes/listed-target/listed-lemma/
+  Checked by eye: "ready to prove", then "Not claimable, because:" and three bullets in
+  intake.explain's words (the target's D-33 status is listed; its fidelity grade is below
+  screened-and-signed (D-9); it has not been posted upstream (D-10)), above the statement and
+  wholly on screen; no signatures line (detail=False).
+engineering/evidence/F04/task-10-docs-top.png — /docs/ at 1200x1300
+  Checked by eye: the guide sits inside the "Untrusted: AGENTS.md, author not recorded" block; its
+  # title is a heading and "What this is" / "Before you start" are section headings with rules, not
+  paragraphs starting with ##; inline code and **bold** render. Single-asterisk *nodes* stays
+  literal (render_document never handled it; not in T10).
+engineering/evidence/F04/task-10-docs-table.png — a 1200x1600 crop of a full-page capture
+  Checked by eye: every output block carries the grey "expected output (fragments)" label over a
+  dashed box, distinct from the grey-filled sh blocks; "Rate limits" and "Appendix: the MCP tools
+  (D-28)" are headings; the appendix is a two-column table (Tool | Plain path) with server_info,
+  list_targets, get_target(target_id) … in rows, inside the page width with no horizontal scroll;
+  long sh lines scroll inside their own pre (as before).
+  Counted on the rendered docs/index.html rather than by eye: grep -c '```' → 0; grep -c '|---|' → 0;
+  <table class="doc"> → 3 (the guide has three pipe tables); "expected output (fragments)" → 28
+  (the guide has 28 ```output fences).
+
+== make verify (rebased on main 800a08e) ==
+$ make verify
+ruff check .: All checks passed! · ruff format --check .: 304 files already formatted · mypy --strict: no issues
+= 1836 passed, 13 skipped, 67 deselected, 47 xfailed, 2 warnings in 349.92s (0:05:49) =
+exit 0
+(Before that rebase, on 39b5154 + working tree: 1833 passed, 13 skipped, 67 deselected, 47 xfailed; exit 0.
+ The commit's own pre-commit hook on 800a08e: 1836 passed, 13 skipped, 67 deselected, 47 xfailed; exit 0.)
+
+== Rebased onto F04-T11 (main 0651801) ==
+One conflict, site/opn_site/render.py: F04-T11's comment above FRONTIER_COLUMNS and this task's
+CAUSE_WORDS / CLAIMABLE_STATUSES were inserted at the same line; both kept, T11's comment and
+FRONTIER_COLUMNS unchanged. test_render.py and the frontier golden are not in this commit.
+$ uv run --frozen pytest site/tests
+146 passed, 2 xfailed
+The frontier-row test still fails for its own reason, not for a shape change: it finds the row by
+the node's link (never by cell index), and with --runxfail on the 17-column row
+(... <td>listed-target</td><td>ready</td> ... <td>no</td><td>no</td><td>no</td><td>no</td><td>no</td>)
+it fails only on: assert 'Not claimable' in '<tr>...'.
+$ make verify (on 0651801 + this commit)
+ruff check .: All checks passed! · ruff format --check .: 304 files already formatted · mypy --strict gate/api/site: no issues
+= 1837 passed, 13 skipped, 67 deselected, 47 xfailed, 2 warnings in 149.75s (0:02:29) =
+exit 0

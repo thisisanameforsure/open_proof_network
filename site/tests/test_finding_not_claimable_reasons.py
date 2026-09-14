@@ -14,6 +14,9 @@ claimable" and each reason in ``intake.explain``'s words. Strict xfails until F0
 
 from __future__ import annotations
 
+import dataclasses
+from pathlib import Path
+
 import pytest
 from fixture import LISTED_ROOT, LISTED_TARGET, build_with_listed_target
 
@@ -40,10 +43,6 @@ def listed(tmp_path_factory: pytest.TempPathFactory) -> tuple[list[str], dict[st
     return reasons, render.render_site(site, repo_url=REPO)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=FINDING.format("the target card's status line reads 'listed, listed, not claimable'"),
-)
 def test_targets_page_does_not_say_listed_twice(
     listed: tuple[list[str], dict[str, str]],
 ) -> None:
@@ -52,13 +51,6 @@ def test_targets_page_does_not_say_listed_twice(
     assert "listed, listed" not in page
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=FINDING.format(
-        "a listed target's node page shows no not-claimable reasons, though targets/index.json "
-        "carries them"
-    ),
-)
 def test_node_page_of_a_listed_target_says_why_it_is_not_claimable(
     listed: tuple[list[str], dict[str, str]],
 ) -> None:
@@ -71,8 +63,9 @@ def test_node_page_of_a_listed_target_says_why_it_is_not_claimable(
 
 @pytest.mark.xfail(
     strict=True,
-    reason=FINDING.format(
-        "a listed target's frontier row says only 'no' under Claimable, with no reason"
+    reason=(
+        "finding site-not-claimable-reasons (F04-R7): the frontier row carries no reason; "
+        "after F04-T11 (another session's Frontier page rewrite)"
     ),
 )
 def test_frontier_row_of_a_listed_target_says_why_it_is_not_claimable(
@@ -86,3 +79,59 @@ def test_frontier_row_of_a_listed_target_says_why_it_is_not_claimable(
     assert "Not claimable" in row, row
     for reason in reasons:
         assert render.esc(intake.explain(reason)) in row, reason
+
+
+# --- edge cases (F04-T10 part 2) ---------------------------------------------------------------
+
+
+def _site_and_node(tmp_path: Path) -> tuple[model.Site, model.NodeView]:
+    from fixture import COMMIT  # noqa: PLC0415
+
+    site = model.load_site(build_with_listed_target(tmp_path), COMMIT)
+    return site, site.targets[LISTED_TARGET].nodes[LISTED_ROOT]
+
+
+def test_a_reason_carrying_html_is_escaped_on_the_node_page(tmp_path: Path) -> None:
+    """A reason explain() has no words for is shown as itself, and escaped (F04-R3)."""
+    site, nv = _site_and_node(tmp_path)
+    tv = site.targets[LISTED_TARGET]
+    payload = '<script>alert(1)</script>"x'
+    entry = {**tv.index_entry, "not_claimable": [payload]}
+    targets = {**site.targets, LISTED_TARGET: dataclasses.replace(tv, index_entry=entry)}
+    page = render.Renderer(
+        dataclasses.replace(site, targets=targets), repo_url=REPO, decisions_doc=None
+    ).node(nv)
+    assert "<script>alert" not in page
+    assert f"<li>{render.esc(payload)}</li>" in page
+
+
+def test_an_empty_reasons_list_still_says_not_claimable(tmp_path: Path) -> None:
+    """A not-claimable target whose index row names no reason (no curated record, D-6) says so on
+    a ready node's page rather than saying nothing."""
+    site, nv = _site_and_node(tmp_path)
+    tv = site.targets[LISTED_TARGET]
+    entry = {**tv.index_entry, "claimable": False, "not_claimable": []}
+    targets = {**site.targets, LISTED_TARGET: dataclasses.replace(tv, index_entry=entry)}
+    page = render.Renderer(
+        dataclasses.replace(site, targets=targets), repo_url=REPO, decisions_doc=None
+    ).node(nv)
+    assert "Not claimable: this target has no curated intake record" in page
+
+
+def test_a_node_whose_target_has_no_index_row_says_nothing_about_claims(tmp_path: Path) -> None:
+    """No index row, no record to state: the page renders and invents no reason."""
+    site, nv = _site_and_node(tmp_path)
+    page = render.Renderer(site, repo_url=REPO, decisions_doc=None).node(
+        dataclasses.replace(nv, target_id="no-such-target")
+    )
+    assert "Not claimable" not in page
+    assert "<h1>listed-lemma</h1>" in page
+
+
+def test_a_proved_node_carries_no_claim_reasons(tmp_path: Path) -> None:
+    """F03-Q8: only a ready or speculative node could be claimed, so only its page explains why
+    it cannot; a proved node under the same target says nothing about claims."""
+    site, nv = _site_and_node(tmp_path)
+    proved = dataclasses.replace(nv, graph_entry={**nv.graph_entry, "status": "proved"})
+    page = render.Renderer(site, repo_url=REPO, decisions_doc=None).node(proved)
+    assert "Not claimable" not in page
