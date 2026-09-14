@@ -30,7 +30,9 @@ from opn_api import identity as identitymod
 from opn_api.app import ApiError
 from opn_api.githost import Author, GitHostError, PullRequest
 from opn_gate import bounce, submission
+from opn_gate import paths as gate_paths
 from opn_gate.paths import ALTERNATE_SUFFIX, Claim
+from opn_gate.postmerge import PARTIAL_SUFFIX
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -192,13 +194,65 @@ def bound_job(
     return job
 
 
+#: D-12: where each artifact type lands. A proof, counterexample or vacuity certificate is the
+#: node's ``Proof.lean`` (D-3), or for a proof also an alternate of a proved node (D-25 v3.13);
+#: a partial, and a reduction (a partial with one hole, the gate's ``Artifact.is_reduction``), is
+#: an assembly under ``attempts/`` (F11-Q28) — the gate's path role ``partial``.
+PROOF_TYPES: tuple[str, ...] = ("proof", "counterexample", "vacuity")
+PARTIAL_TYPES: tuple[str, ...] = ("partial", "reduction")
+PARTIAL_PATTERN = "attempts/<ts>-<pseudonym>" + PARTIAL_SUFFIX
+
+
+def roles_of(files: Mapping[str, str]) -> dict[str, list[str]]:
+    """The gate's role of every bundle path (``opn_gate.paths.locate``), paths sorted per role.
+    ``bundles.validate`` has already refused a path with no role, so none is dropped here."""
+    out: dict[str, list[str]] = {}
+    for path in sorted(files):
+        where = gate_paths.locate(path)
+        if where is not None:
+            out.setdefault(where.role, []).append(path)
+    return out
+
+
+def check_artifact_path(claim: Claim, files: Mapping[str, str], artifact_type: str) -> None:
+    """F07-T7 (finding 4): the declared type and the path it lands at agree, by the gate's own
+    roles. A partial or reduction carries an assembly and no ``Proof.lean`` (the gate's partial
+    mode is the assembly plus appends, ``modes._mode_for``); the other three carry no assembly.
+    A mismatch is a 400 naming the path the type belongs at."""
+    roles = roles_of(files)
+    proof = claim.node_prefix + bundles.PROOF_FILE
+    partial = claim.node_prefix + PARTIAL_PATTERN
+    if artifact_type in PARTIAL_TYPES:
+        if "proof" in roles or "partial" not in roles:
+            found = ", ".join(roles.get("proof") or sorted(files))
+            raise ApiError(
+                400,
+                "artifact-path-mismatch",
+                f"a {artifact_type} is an assembly at {partial} (D-12, F11-Q28), not {found}; "
+                f"a proof of the node is {proof} with artifact_type proof",
+            )
+    elif "partial" in roles:
+        raise ApiError(
+            400,
+            "artifact-path-mismatch",
+            f"a {artifact_type} is the node's {proof} (D-3), not {roles['partial'][0]}; an "
+            f"assembly under attempts/ is artifact_type partial, named {partial}",
+        )
+
+
 def check_placement(
-    claim: Claim, files: Mapping[str, str], *, proved: bool, tutorial: bool
+    claim: Claim,
+    files: Mapping[str, str],
+    *,
+    artifact_type: str,
+    proved: bool,
+    tutorial: bool,
 ) -> None:
     """R7, D-25 v3.13: where a proof lands depends on whether the node is proved, and the
     gate refuses the wrong place (``proof-replaces-merged``, ``alternate-unproved``). Refused
     here first, before a precheck is bound or anything pushed. The tutorial node's proof stays
-    open to rehearsal (D-27)."""
+    open to rehearsal (D-27). F07-T7: the type must match its path first."""
+    check_artifact_path(claim, files, artifact_type)
     proof = claim.node_prefix + bundles.PROOF_FILE
     if proved and not tutorial and proof in files:
         raise ApiError(
@@ -243,6 +297,7 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
     check_placement(
         claim,
         bundle.files,
+        artifact_type=artifact_type,
         proved=claim.node_prefix + bundles.PROOF_FILE in existing,
         tutorial=bool(facts["tutorial"]),
     )

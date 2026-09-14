@@ -1,0 +1,109 @@
+F07-T7, service half — the artifact type and its path agree (2026-09-14)
+=======================================================================
+
+Finding 4 (2026-09-13, the live MCP contribution): POST /submissions never compared artifact_type
+with the bundle's paths. artifact_type partial with a Proof.lean bundle opened a pull request, and
+so did artifact_type proof with a bundle under attempts/; the tester paid two prechecks to find
+the path by trial. Specification: api/tests/test_finding_partial_path.py (two strict xfails plus
+one pin, committed red in the prior pass).
+
+Worktree branch worktree-agent-a4bc9f319e9b10429, rebased onto main 0651801 (F04-T11), above
+F07-T16 fd5c85f and F06-T6 783c915. The red and green runs and the mutants below ran on 800a08e,
+before that rebase; make verify in §6 ran after it, on 0651801.
+
+1. Red, before any change
+-------------------------
+Edge tests added to the same file first (no production code yet):
+  test_a_two_file_partial_carrying_proof_lean_is_refused   assembly + Proof.lean, type partial
+  test_a_two_file_partial_with_an_append_is_accepted (PIN) assembly + a postmortem, type partial
+  test_the_other_kinds_follow_their_path[reduction|counterexample|vacuity]
+  test_a_partial_with_only_an_append_is_refused            a postmortem alone, type partial
+
+$ uv run --frozen pytest --runxfail -q --tb=line api/tests/test_finding_partial_path.py
+FAILED ::test_a_partial_may_not_be_filed_as_proof_lean
+  :91: AssertionError: a partial at Proof.lean was accepted: 201 {..."artifact_type":"partial"}
+FAILED ::test_a_proof_may_not_be_filed_under_attempts
+  :114: AssertionError: a proof under attempts/ was accepted: 201 {..."artifact_type":"proof"}
+FAILED ::test_a_two_file_partial_carrying_proof_lean_is_refused
+  :155: AssertionError: {..."pr_number":1,...,"artifact_type":"partial"}
+FAILED ::test_the_other_kinds_follow_their_path[reduction-...Proof.lean--partial.lean]
+  :187: AssertionError: {..."artifact_type":"reduction"}
+FAILED ::test_the_other_kinds_follow_their_path[counterexample-...-alice-partial.lean-Proof.lean]
+  :187: AssertionError: {..."artifact_type":"counterexample"}
+FAILED ::test_the_other_kinds_follow_their_path[vacuity-...-alice-partial.lean-Proof.lean]
+  :187: AssertionError: {..."artifact_type":"vacuity"}
+FAILED ::test_a_partial_with_only_an_append_is_refused
+  :198: AssertionError: {..."artifact_type":"partial"}
+7 failed, 2 passed   (the two pins: a partial under attempts/, and a partial with an append)
+
+2. The change (api/opn_api/submissions.py; check_placement extended, no parallel check)
+---------------------------------------------------------------------------------------
+check_placement gains artifact_type and calls check_artifact_path first, so every refusal about
+where a file lands stays in one function, before the precheck is bound or anything pushed.
+check_artifact_path reads each bundle path's role from the gate itself (opn_gate.paths.locate):
+  PARTIAL_TYPES = (partial, reduction)   must carry a role-"partial" file and no role-"proof" file.
+                                         That is the gate's partial mode (modes._mode_for: the
+                                         assembly plus appends). A reduction is a one-hole partial
+                                         (steps/artifact.py is_reduction), so it lands the same way.
+  PROOF_TYPES   = (proof, counterexample, vacuity)   must carry no role-"partial" file. The
+                                         certificate is Proof.lean (paths Role "proof", D-3); an
+                                         alternate (role "alternate") is not a partial, so the D-25
+                                         rules below it are untouched.
+Refusal: 400 artifact-path-mismatch, naming the path the type belongs at, e.g.
+  "a partial is an assembly at targets/propositional/nodes/tutorial-and-swap/attempts/<ts>-<pseudonym>-partial.lean
+   (D-12, F11-Q28), not targets/.../Proof.lean; a proof of the node is targets/.../Proof.lean with
+   artifact_type proof"
+The suffix is postmerge.PARTIAL_SUFFIX, imported rather than restated; postmerge's imports are
+stdlib plus opn_gate.attestation/schemas/signer, which precheck.py already imports in the api.
+
+Not made stricter than the gate: two assembly files, or an assembly plus appends, stay accepted
+(the pin above), because the gate's partial mode takes a set of roles, not a count.
+
+3. Existing tests that pinned old behaviour
+-------------------------------------------
+None rewritten: test_submissions.py and test_submissions_alternate.py submit proofs at Proof.lean
+and alternates at attempts/<ts>-<pseudonym>-alternate.lean, both of which still pass.
+Marks removed: test_a_partial_may_not_be_filed_as_proof_lean, test_a_proof_may_not_be_filed_under_attempts
+(the module docstring now says the marks came off).
+
+4. Green
+--------
+$ uv run --frozen pytest -q -rfxX api/tests/test_finding_partial_path.py api/tests/test_submissions.py \
+    api/tests/test_submissions_alternate.py api/tests/test_finding_submission_blocked.py \
+    api/tests/test_finding_pending_submissions.py api/tests/test_pending_submissions.py
+XFAIL test_finding_pending_submissions.py::test_list_submissions_is_a_tool_and_equals_the_snapshot (MCP registration)
+53 passed, 1 xfailed
+
+5. Mutation check (pytest plugins in a scratch dir, patching submissions.check_artifact_path)
+-------------------------------------------------------------------------------------------
+mutant_path_partial_only.py         the rule runs for partial/reduction only
+mutant_path_no_assembly_needed.py   a partial is refused only when it carries Proof.lean
+
+$ PYTHONPATH=<scratch>/mutants uv run --frozen pytest -q --tb=no -rf -p no:cacheprovider \
+    -p mutant_path_partial_only api/tests/test_finding_partial_path.py api/tests/test_submissions.py \
+    api/tests/test_submissions_alternate.py
+FAILED api/tests/test_finding_partial_path.py::test_a_proof_may_not_be_filed_under_attempts
+FAILED api/tests/test_finding_partial_path.py::test_the_other_kinds_follow_their_path[counterexample-...]
+FAILED api/tests/test_finding_partial_path.py::test_the_other_kinds_follow_their_path[vacuity-...]
+3 failed, 13 passed
+
+$ ... -p mutant_path_no_assembly_needed (same files)
+FAILED api/tests/test_finding_partial_path.py::test_a_partial_with_only_an_append_is_refused
+1 failed, 15 passed
+
+6. make verify (fast tier)
+--------------------------
+$ env -u VIRTUAL_ENV make verify        (on 0651801 + fd5c85f + 783c915 + this change)
+ruff check: All checks passed!   ruff format --check: 305 files already formatted
+mypy gate: Success: no issues found in 150 source files
+mypy api:  Success: no issues found in 89 source files
+mypy site: Success: no issues found in 23 source files
+pytest -m "not lean and not docker and not network":
+  1839 passed, 13 skipped, 67 deselected, 42 xfailed, 2 warnings in 160.39s
+exit 0
+(The xfail count fell from 44 to 42: these two marks came off.)
+
+7. Not in this half
+-------------------
+The plan's F07-T7 also names the provenance model and the duplicate hole on the post-merge side
+(gate/opn_gate, the other agent's files); nothing here touches them.
