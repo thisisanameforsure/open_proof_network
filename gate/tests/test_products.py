@@ -994,14 +994,14 @@ def test_dormant_target_stays_claimable(tmp_path: Path) -> None:
 
 def test_the_target_grade_is_its_weakest_subject_in_the_index(tmp_path: Path) -> None:
     """R3 through to the product: an uncertified definition holds the whole target down, and
-    the index says so rather than publishing the root's grade alone."""
+    the index says so rather than publishing the root's grade alone. Since F14-R1 the grade is
+    published beside claimability and does not close it."""
     root = claimable_target(tmp_path)
     target = root / "targets" / F11_TARGET
     (target / "defs" / "Later.lean").write_text("def Opn.Later : Nat := 1\n", encoding="utf-8")
     row = f11_row(root)
     assert row["fidelity"] == "mechanical-only"
-    assert row["claimable"] is False
-    assert "grade-below-screened-and-signed" in row["not_claimable"]
+    assert row["claimable"] is True and row["not_claimable"] == []
     assert {s["subject"] for s in row["subjects"]} == {"root", "Later"}
 
 

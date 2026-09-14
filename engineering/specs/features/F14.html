@@ -165,7 +165,7 @@ version is meant.</p>
     with no posting, when claimability is derived, then it is claimable with no reasons; given the
     same target under a drift freeze, then it is not, with <code>upstream-drift</code>.</td>
     <td><code>gate/tests/test_intake.py::test_listed_unsigned_target_is_claimable</code>,
-    <code>gate/tests/test_watcher.py::test_drift_freezes_claiming</code></td></tr>
+    <code>gate/tests/test_watcher.py::test_upstream_drift</code></td></tr>
   <tr><td>F14-AC2</td><td>Given a listed unposted unsigned target, when it is activated by either
     command, then the record is written; given a resolved target, then activation is refused naming
     the status.</td><td><code>gate/tests/test_intake.py::test_activation_needs_only_the_status_rule</code></td></tr>
@@ -296,7 +296,7 @@ version is meant.</p>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> spec · <strong>Tasks:</strong> T1 ✓ 2026-09-14 (<code>make verify</code> 2030 passed; <code>engineering/evidence/F14/task-1.txt</code>) · T2&ndash;T16 todo</div>
+<div class="rule"><strong>status:</strong> spec · <strong>Tasks:</strong> T1 ✓ 2026-09-14 (<code>make verify</code> 2030 passed; <code>engineering/evidence/F14/task-1.txt</code>) · T2 ✓ 2026-09-14 (<code>make verify</code> 2032 passed; a listed target is claimable, activation keeps the status rule and the drift freeze; the api's listed fixtures regenerated from the gate and a frozen pair added, the site's reasons tests moved to a frozen fixture; <code>engineering/evidence/F14/task-2.txt</code>) · T3&ndash;T16 todo</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its

@@ -25,7 +25,7 @@ from typing import Any
 
 from api_fakes import Harness
 from mcp_client import TARGET, McpClient
-from test_claims import LISTED_NODE, serve_listed
+from test_claims import FROZEN_NODE, serve_frozen
 from test_finding_mcp_bootstrap import HOLE, add_hole
 
 from opn_gate import intake
@@ -111,14 +111,16 @@ def test_an_unknown_node_is_refused_as_unknown(harness: Harness) -> None:
     assert (status, body.get("error")) == (404, "node-unknown"), body
 
 
-def test_a_listed_node_is_refused_with_every_not_claimable_reason(harness: Harness) -> None:
-    serve_listed(harness)
-    index = json.loads((FIXTURES / "targets-index-listed.json").read_bytes())
-    row = next(t for t in index["targets"] if t["target_id"] == "listed-target")
+def test_a_frozen_node_is_refused_with_every_not_claimable_reason(harness: Harness) -> None:
+    """F14-R1 left a curated target one reason besides a closed status: the drift freeze. The
+    refusal still names every reason the index carries, in ``intake.explain``'s words."""
+    serve_frozen(harness)
+    index = json.loads((FIXTURES / "targets-index-frozen.json").read_bytes())
+    row = next(t for t in index["targets"] if t["target_id"] == "frozen-target")
     reasons = [str(r) for r in row["not_claimable"]]
     assert reasons, "guard: the fixture row names reasons"
 
-    status, body = claim(harness, LISTED_NODE)
+    status, body = claim(harness, FROZEN_NODE)
     assert (status, body.get("error")) == (409, "node-not-claimable"), body
     for reason in reasons:
         assert intake.explain(reason) in body["message"], (reason, body["message"])

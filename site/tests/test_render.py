@@ -388,18 +388,17 @@ def listed_pages(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
 
 
 def test_listed_target_reasons(listed_pages: dict[str, str]) -> None:
-    """AC9, R10: the Targets page carries the not-claimable reasons, the source link, the
-    attribution and licence, and the QA summary — and does not reproduce the informal statement
-    of a source that states no licence."""
+    """AC9, R10: the Targets page carries the source link, the attribution and licence, and the
+    QA summary — and does not reproduce the informal statement of a source that states no
+    licence. Since F14-R1 a listed, unsigned target is claimable, so it names no reasons."""
     page = listed_pages["targets/index.html"]
-
-    assert "Not claimable, because:" in page
-    for reason in (
-        "D-33 status is listed",
-        "fidelity grade is below screened-and-signed",
-        "not been posted upstream",
-    ):
-        assert reason in page, reason
+    [card] = [
+        c
+        for c in page.split('<section class="target-card">')[1:]
+        if f">{fixture.LISTED_TARGET}<" in c
+    ]
+    assert "Not claimable" not in card
+    assert "<dt>Status</dt><dd>listed, claimable</dd>" in card
 
     assert fixture.UNLICENSED["url"] in page, "the source is not linked"
     assert escape(fixture.UNLICENSED["attribution"]) in page, "the attribution is missing"
@@ -413,11 +412,20 @@ def test_listed_target_reasons(listed_pages: dict[str, str]) -> None:
     assert all(fixture.UNLICENSED_WORDING not in html for html in listed_pages.values())
 
 
-def test_a_claimable_target_states_no_reasons(listed_pages: dict[str, str]) -> None:
-    """The block is a fact about this target, not boilerplate: it appears once, for the listed
-    target, and the propositional target's own card does not claim reasons it does not have."""
-    page = listed_pages["targets/index.html"]
+@pytest.fixture(scope="module")
+def frozen_pages(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
+    root = fixture.build_with_frozen_target(tmp_path_factory.mktemp("frozen"))
+    return render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
+
+
+def test_a_claimable_target_states_no_reasons(frozen_pages: dict[str, str]) -> None:
+    """The block is a fact about this target, not boilerplate: it appears once, for the target
+    under a drift freeze (the reason F14-R1 kept), and the propositional target's own card does
+    not claim reasons it does not have."""
+    page = frozen_pages["targets/index.html"]
     assert page.count("Not claimable, because:") == 1
+    assert "changed upstream" in page and "D-10 v3.12" in page
+    assert "fidelity grade is below" not in page and "not been posted upstream" not in page
     assert "Fidelity by subject:" in page and "root mechanical-only" in page
 
 

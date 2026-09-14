@@ -148,18 +148,17 @@ def test_a_revised_root_drops_below_the_signed_rung(tmp_path: Path) -> None:
     assert fidelity.target_grade(target_dir(root)) == fidelity.DEFAULT_GRADE
 
 
-def test_a_revised_root_is_not_claimable_and_says_why(tmp_path: Path) -> None:
-    """F11-R4: claimable needs grade ≥ screened-and-signed, and D-9: "No proving compute is
-    allocated below screened-and-signed". The reason is the existing grade code, so the Targets
-    page explains it with the words it already has (``intake.explain``).
-
-    Today: ``claimable: true`` and ``not_claimable: []``."""
+def test_a_revised_root_loses_its_grade_and_stays_claimable(tmp_path: Path) -> None:
+    """F14-R1 replaced F11-R4's grade condition: the revised root falls to the machine's grade,
+    the index says so, and work on it stays open — a proof of the new statement is what waits,
+    for a reviewer (D-4 step 9). The old grade reason keeps its words for products rendered
+    before F14 (``intake.explain``)."""
     root = active_signed_target(tmp_path)
     revise_root(root, ROOT, REVISED)
     row = index_row(root, NEW)
     assert row["status"] == "active"  # the status record is not what changed
-    assert row["claimable"] is False
-    assert GRADE_REASON in row["not_claimable"]
+    assert row["fidelity"] == fidelity.DEFAULT_GRADE
+    assert row["claimable"] is True and row["not_claimable"] == []
     assert "D-9" in intake.explain(GRADE_REASON)
 
 
@@ -191,7 +190,7 @@ def test_re_running_the_screens_does_not_resurrect_the_old_signature(tmp_path: P
     assert qa.pass_state(t, "root").complete
     row = index_row(root, NEW)
     assert row["fidelity"] == fidelity.DEFAULT_GRADE
-    assert row["claimable"] is False and GRADE_REASON in row["not_claimable"]
+    assert row["claimable"] is True  # F14-R1: the grade is shown, not a condition
 
 
 def test_a_fresh_signature_on_the_revised_root_restores_the_rung(tmp_path: Path) -> None:
@@ -221,7 +220,7 @@ def test_a_signature_on_an_unchanged_definition_still_counts(tmp_path: Path) -> 
     assert primes["grade"] == SIGNED and primes["signers"] == ["reviewer"]
     assert primes["qa"]["stale"] is False
     assert subject_row(row, "root")["grade"] == fidelity.DEFAULT_GRADE
-    assert row["fidelity"] == fidelity.DEFAULT_GRADE and row["claimable"] is False
+    assert row["fidelity"] == fidelity.DEFAULT_GRADE and row["claimable"] is True
 
 
 def test_an_edited_definition_loses_its_signature_too(tmp_path: Path) -> None:
@@ -237,7 +236,7 @@ def test_an_edited_definition_loses_its_signature_too(tmp_path: Path) -> None:
     row = index_row(root, NEW)
     assert subject_row(row, "Primes")["qa"]["stale"] is True
     assert subject_row(row, "Primes")["grade"] == fidelity.DEFAULT_GRADE
-    assert row["claimable"] is False and GRADE_REASON in row["not_claimable"]
+    assert row["fidelity"] == fidelity.DEFAULT_GRADE and row["claimable"] is True
 
 
 # --- F11-T9: the counting rule and what it must not disturb ---------------------------------------
@@ -298,9 +297,10 @@ def test_a_v1_signature_counts_for_nothing(tmp_path: Path) -> None:
     root_grade = next(r for r in fidelity.subject_grades(t) if r.subject == "root")
     assert root_grade.grade == fidelity.DEFAULT_GRADE and root_grade.signers == ()
     assert fidelity.target_grade(t) == fidelity.DEFAULT_GRADE
-    intake.post(root, NEW, venue="erdosproblems.com", url="https://example.org/p", date=LATER)
-    with pytest.raises(intake.IntakeError, match="below screened-and-signed"):
-        intake.activate(root, NEW, author="curator", date="2026-09-12T00:00:00Z")
+    # F14-R2: activation no longer reads the grade, so the uncounted signature changes nothing
+    # there either; the index still publishes the machine's grade.
+    intake.activate(root, NEW, author="curator", date="2026-09-12T00:00:00Z")
+    assert index_row(root, NEW)["fidelity"] == fidelity.DEFAULT_GRADE
 
 
 def test_a_v1_certificate_still_names_the_subjects_author(tmp_path: Path) -> None:
@@ -387,13 +387,13 @@ def test_a_mathlib_pin_move_keeps_the_grade(tmp_path: Path) -> None:
 
 def test_a_revised_root_keeps_its_posting(tmp_path: Path) -> None:
     """Mike, 2026-09-13: the D-10 posting is a fact about the world and survives the revision;
-    only the grade reason stands between the revised target and claimable."""
+    since F14-R1 nothing stands between the revised target and claimable."""
     root = active_signed_target(tmp_path)
     posting = index_row(root, NEW)["posting"]
     revise_root(root, ROOT, REVISED)
     row = index_row(root, NEW)
     assert row["posting"] == posting and posting is not None
-    assert row["not_claimable"] == [GRADE_REASON]
+    assert row["not_claimable"] == [] and row["fidelity"] == fidelity.DEFAULT_GRADE
 
 
 def test_a_certificate_for_a_removed_definition_counts_for_nothing(tmp_path: Path) -> None:

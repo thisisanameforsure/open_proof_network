@@ -1096,10 +1096,12 @@ def check_certificate(  # noqa: PLR0911, PLR0912, PLR0915 — one return per rul
 def check_activation(
     graph_root: Path, located: Located, data: bytes, classification: Classification
 ) -> list[Diagnostic]:
-    """F11-R4, R5 (D-6, D-33): a curated target is declared ``active`` only as activation allows.
+    """F14-R2 (was F11-R4, R5; D-33): a curated target is declared ``active`` only as activation
+    allows.
 
     The rule is ``intake.activation_refusal`` — the one both ``intake activate`` and ``opn-gate
-    status <target> active`` apply (F11-T10): from ``listed`` or ``dormant`` only, and claimable.
+    status <target> active`` apply (F11-T10): from ``listed`` or ``dormant`` only, and not while an
+    upstream edit freezes the root (the grade and the posting left the rule with F14-R1).
     A record written any other way reaches the graph through this check instead. The gate sees
     the tree *after* the pull request, whose latest status record is this one, so the status it
     flips from is read with the pull request's own status records left out — the base's, since

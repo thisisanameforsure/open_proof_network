@@ -20,7 +20,7 @@ from typing import Any
 import pytest
 import samples
 import yaml
-from harness import TARGET, copy_graph, take_in
+from harness import TARGET, copy_graph, freeze_upstream, take_in
 
 from opn_gate import fidelity, intake, products, schemas
 from opn_gate.intake import IntakeError
@@ -190,7 +190,8 @@ def test_an_unlicensed_source_may_not_have_its_statement_reproduced(tmp_path: Pa
 
 def test_scaffold_state(tmp_path: Path) -> None:
     """AC3: the spec pins the given SHA, every certificate is mechanical-only, the status is
-    listed, and the target is not claimable."""
+    listed — and, since F14-R1, the target is claimable: nobody has signed or posted it, and work
+    on it is open anyway."""
     root = copy_graph(tmp_path, publish=True)
     take_in(root, defs=DEFS)
     target = root / "targets" / "euclid-primes"
@@ -206,50 +207,67 @@ def test_scaffold_state(tmp_path: Path) -> None:
     assert all(row.signers == () for row in rows.values()), "the machine's grade signs for nobody"
 
     row = index_row(root, "euclid-primes")
-    assert row["status"] == "listed" and row["claimable"] is False
+    assert row["status"] == "listed" and row["claimable"] is True
     assert row["fidelity"] == "mechanical-only" and row["track"] == "formalization"
-    assert set(row["not_claimable"]) == {
-        "status-listed",
-        "grade-below-screened-and-signed",
-        "no-posting",
-    }
+    assert row["posting"] is None and row["not_claimable"] == []
     entries = [
         e for e in generate(root)["frontier.json"]["entries"] if e["target_id"] == "euclid-primes"
     ]
-    assert entries and all(e["claimable"] is False for e in entries)
+    assert entries and all(e["claimable"] is True for e in entries)
     assert all(e["dormant"] is False for e in entries)
 
 
-def test_activation_requires_posting(tmp_path: Path) -> None:
-    """AC5: screened-and-signed with no posting is refused naming the posting; with one, the
-    target is active and its nodes are claimable."""
+def test_listed_unsigned_target_is_claimable() -> None:
+    """F14-AC1, R1: the grade and the posting no longer decide; a closed status and the drift
+    freeze still do, each named."""
+    doc = samples.target_record(posting=None)
+    for status in (intake.LISTED, intake.ACTIVE, intake.DORMANT):
+        assert intake.claimability(doc, status=status, grade="mechanical-only") == (True, ())
+        assert intake.claimability(doc, status=status, grade=None) == (True, ())
+    for closing in ("resolved", "known-result"):
+        assert intake.claimability(doc, status=closing, grade="expert-attested") == (
+            False,
+            (f"status-{closing}",),
+        )
+    assert intake.claimability(doc, status=intake.LISTED, grade=None, drifted=True) == (
+        False,
+        ("upstream-drift",),
+    )
+    assert intake.claimability(doc, status="resolved", grade=None, drifted=True) == (
+        False,
+        ("status-resolved", "upstream-drift"),
+    )
+    # Products rendered before F14 still carry the old reasons, and the site still words them.
+    assert "D-9" in intake.explain("grade-below-screened-and-signed")
+    assert "D-10" in intake.explain("no-posting")
+
+
+def test_activation_needs_only_the_status_rule(tmp_path: Path) -> None:
+    """F14-AC2, R2: an unsigned, unposted listed target activates; a second activation is refused
+    naming the status it flips from (D-33); a drift-frozen target is refused naming the freeze,
+    and nothing is written for either refusal."""
     root = copy_graph(tmp_path, publish=True)
     take_in(root)
-    target = root / "targets" / "euclid-primes"
-    fidelity.attest(
-        target,
-        "root",
-        "screened-and-signed",
-        attestor="reviewer",
-        date="2026-09-11",
-        evidence="read the Lean against the English",
-    )
-    with pytest.raises(IntakeError) as refusal:
-        intake.activate(root, "euclid-primes", author="curator", date=LATER)
-    assert "posted upstream" in str(refusal.value) and "D-10" in str(refusal.value)
-
-    intake.post(
-        root,
-        "euclid-primes",
-        venue="erdosproblems.com",
-        url="https://example.org/posting",
-        date=LATER,
-    )
     intake.activate(root, "euclid-primes", author="curator", date=LATER)
     row = index_row(root, "euclid-primes")
     assert row["status"] == "active" and row["claimable"] is True
-    assert row["not_claimable"] == [] and row["posting"]["venue"] == "erdosproblems.com"
-    assert row["fidelity"] == "screened-and-signed"
+    assert row["not_claimable"] == [] and row["posting"] is None
+    assert row["fidelity"] == "mechanical-only"
+
+    status_dir = root / "targets" / "euclid-primes" / "status"
+    before = sorted(p.name for p in status_dir.iterdir())
+    with pytest.raises(IntakeError, match="activated from listed or dormant"):
+        intake.activate(root, "euclid-primes", author="curator", date="2026-09-13T00:00:00Z")
+    assert sorted(p.name for p in status_dir.iterdir()) == before
+
+    take_in(root, "frozen-primes")
+    frozen = root / "targets" / "frozen-primes"
+    freeze_upstream(frozen)
+    held = sorted(p.name for p in (frozen / "status").iterdir())
+    with pytest.raises(IntakeError) as refusal:
+        intake.activate(root, "frozen-primes", author="curator", date=LATER)
+    assert "changed upstream" in str(refusal.value) and "D-10" in str(refusal.value)
+    assert sorted(p.name for p in (frozen / "status").iterdir()) == held
 
 
 def test_a_posting_is_recorded_once(tmp_path: Path) -> None:
@@ -343,7 +361,7 @@ def import_fc(root: Path, **kw: Any) -> Any:
 
 def test_import_fc_provenance(tmp_path: Path) -> None:
     """AC7: the target's provenance names the path, the commit and the author, and the root is
-    admitted — as an open-track target that is listed and not claimable (R9)."""
+    admitted — as an open-track target that is listed, and claimable while unsigned (R9, F14-R1)."""
     root = copy_graph(tmp_path, publish=True)
     result = import_fc(root)
     assert result.commit == FC_COMMIT
@@ -360,7 +378,7 @@ def test_import_fc_provenance(tmp_path: Path) -> None:
     assert doc["track"] == "open" and doc["posting"] is None
 
     row = index_row(root, "fc-42")
-    assert row["status"] == "listed" and row["claimable"] is False
+    assert row["status"] == "listed" and row["claimable"] is True
     assert row["fidelity"] == "mechanical-only" and row["track"] == "open"
 
 

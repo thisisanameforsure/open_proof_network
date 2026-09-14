@@ -35,7 +35,7 @@ from typing import Any
 
 import pytest
 import yaml
-from harness import TARGET, copy_graph, take_in
+from harness import TARGET, copy_graph, freeze_upstream, take_in
 
 from opn_gate import cli, fidelity, intake, modes, qa, records
 from opn_gate.paths import Change
@@ -693,33 +693,29 @@ def test_post_sign_and_activate_bundled_are_refused(
 # --- 4. activation re-checked at merge (F11-R4, R5; D-33) -----------------------------------------
 
 
-def test_an_active_declaration_on_an_unclaimable_curated_target_is_refused(
+def test_an_active_declaration_on_an_unsigned_unposted_target_passes(
     repo: Repo, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """F11-R5: activation "shall refuse while claimable would remain false, naming the missing
-    condition". A hand-written ``active`` record on a listed, unsigned, unposted target — what a
-    record written outside ``intake activate`` could say — is refused at the gate as
-    ``activation-refused``, naming the grade (D-9) and the posting (D-10)."""
+    """F14-R2: activation no longer waits for a signature or a posting, so a hand-written
+    ``active`` record on a listed, unsigned, unposted target is a clean curator pull request."""
     declare(repo, "active", date="2026-09-13T00:00:00Z")
     repo.commit("declared active by hand")
     code, out = classify(repo, capsys)
-    assert code != 0 and out["ok"] is False, out
-    assert codes(out) == ["activation-refused"], out
-    assert "D-9" in messages(out) and "D-10" in messages(out), out
+    assert code == 0 and out["mode"] == "curator" and codes(out) == [], out
 
 
-def test_an_active_declaration_names_only_the_condition_still_missing(
+def test_an_active_declaration_on_a_frozen_target_is_refused_naming_the_freeze(
     repo: Repo, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """F11-R5: with the signature on the base and no posting, the refusal names the posting
-    alone."""
-    sign(repo)
-    repo.commit("signed, on the base")
+    """F14-R2, F12-R11: with an upstream edit flagged on the base, an ``active`` record is refused
+    at the gate as ``activation-refused`` naming the drift (D-10), and not the grade or posting."""
+    freeze_upstream(repo.target)
+    repo.commit("flagged upstream, on the base")
     declare(repo, "active", date="2026-09-13T00:00:00Z")
-    repo.commit("declared active before posting")
-    _code, out = classify(repo, capsys)
-    assert codes(out) == ["activation-refused"], out
-    assert "D-10" in messages(out) and "D-9" not in messages(out), out
+    repo.commit("declared active while frozen")
+    code, out = classify(repo, capsys)
+    assert code != 0 and codes(out) == ["activation-refused"], out
+    assert "changed upstream" in messages(out) and "D-9)" not in messages(out), out
 
 
 def test_an_active_target_is_not_declared_active_again(

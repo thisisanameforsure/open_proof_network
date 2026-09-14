@@ -51,9 +51,11 @@ LICENCE_NONE = "none-stated"
 LISTED = "listed"
 ACTIVE = "active"
 DORMANT = "dormant"
-#: D-33's statuses under which a node may be claimed (R4). A dormancy declaration refuses no
-#: claim — it is a signal to the curator, not a lock on the target.
-CLAIMING_STATUSES: tuple[str, ...] = (ACTIVE, DORMANT)
+#: D-33's statuses under which a node may be claimed (F14-R1). Work on a target is always possible
+#: while it is open: a listed target is claimable before anyone signs or posts it, because the
+#: human check sits on the proof (D-4 step 9), not on the claim. A dormancy declaration refuses no
+#: claim either — it is a signal to the curator, not a lock on the target.
+CLAIMING_STATUSES: tuple[str, ...] = (LISTED, ACTIVE, DORMANT)
 
 #: D-6's Stage 0 exclusions. Not a judgment about the mathematics: these are the domains where a
 #: statement's fidelity cannot be screened by anyone the network can currently reach.
@@ -208,22 +210,25 @@ def check(doc: dict[str, Any], root_dir: Path) -> None:
 def claimability(
     doc: dict[str, Any] | None, *, status: str, grade: str | None, drifted: bool = False
 ) -> tuple[bool, tuple[str, ...]]:
-    """R4: ``(claimable, reasons)``. The reasons are empty exactly when it is claimable.
+    """F14-R1: ``(claimable, reasons)``. The reasons are empty exactly when it is claimable.
+
+    Two things close claiming: a status that is not open (``resolved``, ``known-result``) and
+    F12-R11's drift freeze, where an upstream edit stands on the root as it is and proving compute
+    waits for a person (D-10 v3.12). The fidelity grade and the D-10 posting are published beside
+    the answer but no longer decide it: a low-grade statement is worked on, and its proof waits
+    for a reviewer (D-4 step 9). ``grade`` is kept in the signature so callers still hand it over
+    and the old reason strings stay readable (``explain``) on products rendered before F14.
 
     ``doc`` is ``None`` for a pre-F11 target, which this does not decide for: the caller keeps
-    F03's rule there. ``drifted`` is F12-R11's freeze: an upstream edit stands on the root as it
-    is, and proving compute waits for a person (D-10 v3.12).
+    F03's rule there.
     """
+    del grade  # F14-R1: published, not a condition
     if doc is None:
         msg = "claimability is derived from a target record; this target has none"
         raise IntakeError(msg)
     reasons: list[str] = []
     if status not in CLAIMING_STATUSES:
         reasons.append(f"status-{status}")
-    if not fidelity.meets(grade):
-        reasons.append(f"grade-below-{fidelity.CLAIMABLE_GRADE}")
-    if doc.get("posting") is None:
-        reasons.append("no-posting")
     if drifted:
         reasons.append("upstream-drift")
     return not reasons, tuple(reasons)
@@ -362,8 +367,9 @@ def new(  # noqa: PLR0913 — one argument per input the target is built from
             destination,
             status_doc(
                 LISTED,
-                f"taken in by {author} (D-6 intake); not claimable until a non-author signs the "
-                "statement and the target is posted upstream (D-9, D-10)",
+                f"taken in by {author} (D-6 intake); claimable now, and a proof waits for a "
+                "non-author reviewer until the statement is signed or carries catalog evidence "
+                "(D-4 step 9, F14)",
                 author=author,
                 date=date,
                 root=root_id,
@@ -437,7 +443,7 @@ ACTIVATABLE: tuple[str, ...] = (LISTED, DORMANT)
 
 
 def activation_refusal(destination: Path, doc: dict[str, Any]) -> str | None:
-    """Why this curated target cannot be declared active, or ``None`` (R4, R5; D-33).
+    """Why this curated target cannot be declared active, or ``None`` (F14-R2; D-33).
 
     One rule for both ways of saying it — ``intake activate`` and the curator's
     ``opn-gate status <target> active`` — so a second command cannot publish an ``active`` target
@@ -458,7 +464,12 @@ def activation_refusal_from(
             f"its status is {current!r}, and a target is activated from "
             f"{' or '.join(ACTIVATABLE)} only (D-33; R4)"
         )
-    claimable, reasons = claimability(doc, status=ACTIVE, grade=fidelity.target_grade(destination))
+    from opn_gate import qa, watch  # noqa: PLC0415 — both import this module
+
+    frozen = watch.drift_state(destination, qa.subject_hash(destination, fidelity.ROOT_SUBJECT))
+    claimable, reasons = claimability(
+        doc, status=ACTIVE, grade=fidelity.target_grade(destination), drifted=frozen.frozen
+    )
     if not claimable:
         return "; ".join(explain(r) for r in reasons)
     return None
@@ -467,11 +478,11 @@ def activation_refusal_from(
 def activate(
     graph_root: Path, target_id: str, *, author: str, date: str, status: str | None = None
 ) -> tuple[str, ...]:
-    """R5: flip the target to ``active``, or refuse naming what is still missing.
+    """F14-R2: flip the target to ``active``, or refuse naming why not.
 
-    The refusal is the useful half. Activation is the moment a curator says "this is open for
-    work", and D-6's whole point is that it cannot be said before the statement has been screened
-    and the problem posted — so the command derives claimability and reads the reasons back.
+    Work is open from intake (F14-R1), so activation is a curator's statement that the target is
+    being worked on or back from dormancy (D-33). It is refused only from a closed status or
+    while an upstream edit freezes the root.
     """
     destination = target_dir(graph_root, target_id)
     doc = load_doc(destination)
@@ -486,7 +497,7 @@ def activate(
         destination,
         status_doc(
             status or ACTIVE,
-            f"activated by {author}: grade {grade} and a D-10 posting are on record (D-6)",
+            f"activated by {author} at grade {grade} (D-33, F14-R2)",
             author=author,
             date=date,
             root=records.declared_root(destination),

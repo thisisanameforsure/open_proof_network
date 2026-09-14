@@ -204,11 +204,7 @@ def test_an_unchanged_path_and_an_unpinned_target_write_nothing(tmp_path: Path) 
     assert by_id["euclid-primes"].drift == "not watched"
     assert by_id["propositional"].drift == "not watched"  # pre-F11: no record at all
     assert not (root / "targets/erdos-68/drift").exists()
-    assert index_row(root, "erdos-68")["not_claimable"] == [
-        "status-listed",
-        "grade-below-screened-and-signed",
-        "no-posting",
-    ]
+    assert index_row(root, "erdos-68")["not_claimable"] == []  # F14-R1: listed and unsigned is open
 
 
 def test_one_head_fetch_per_repository(tmp_path: Path) -> None:
@@ -242,11 +238,8 @@ def test_a_revision_lifts_the_flag_and_a_curator_can_clear_it(tmp_path: Path) ->
         note="the upstream edit is a docstring change",
     )
     assert not watch.drift_state(target, current).frozen
-    assert index_row(root, "erdos-68")["not_claimable"] == [
-        "status-listed",
-        "grade-below-screened-and-signed",
-        "no-posting",
-    ]
+    row = index_row(root, "erdos-68")
+    assert row["claimable"] is True and row["not_claimable"] == []  # the freeze lifted (F14-R1)
 
 
 # --- AC9: resolved elsewhere is a flag for dormancy, and the status is untouched ------------------

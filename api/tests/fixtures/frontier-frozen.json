@@ -28,14 +28,14 @@
       "annex_present": false,
       "attempts": 0,
       "bounty": false,
-      "claimable": true,
+      "claimable": false,
       "claims": {
         "active": [],
         "history_count": 0
       },
       "dormant": false,
       "failure_class_histogram": {},
-      "node_id": "listed-lemma",
+      "node_id": "frozen-lemma",
       "origin": "authored",
       "ready_since": "2026-09-09T12:00:00Z",
       "refuted_route_classes": [],
@@ -45,7 +45,7 @@
         "deps": [],
         "library": []
       },
-      "target_id": "listed-target",
+      "target_id": "frozen-target",
       "tutorial": false
     },
     {

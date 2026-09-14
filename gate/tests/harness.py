@@ -81,6 +81,31 @@ def always_admits(path: Path, subject: str) -> Any:
     return intake.SubjectCheck(subject, True, "admission faked in the fast tier")
 
 
+def freeze_upstream(target_dir: Path, *, date: str = "2026-09-12T04:17:00Z") -> Path:
+    """F12-R11's flag on a curated target's root as it stands: the one condition besides a closed
+    status that still makes a target not claimable (F14-R1). Written through ``watch.write_drift``
+    so it is the record the products and activation read."""
+    from opn_gate import qa, watch  # noqa: PLC0415 — only the F14 helpers need them
+
+    return watch.write_drift(
+        target_dir,
+        watch.DriftRecord(
+            kind=watch.KIND_EDIT,
+            state=watch.FLAGGED,
+            statement_hash=qa.subject_hash(target_dir, "root"),
+            date=date,
+            author=watch.WATCHER,
+            upstream={
+                "repo": "google-deepmind/formal-conjectures",
+                "path": "FormalConjectures/ErdosProblems/42.lean",
+                "pinned_commit": "c" * 40,
+                "head_commit": "d" * 40,
+            },
+            diff="-theorem old : True := by sorry\n+theorem new : True := by sorry\n",
+        ),
+    )
+
+
 def take_in(
     graph_root: Path,
     target_id: str = "euclid-primes",

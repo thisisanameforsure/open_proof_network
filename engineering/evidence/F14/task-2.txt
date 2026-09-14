@@ -1,0 +1,56 @@
+F14-T2 — claimability and activation (R1, R2)
+worktree: /Users/mikehiggins/Desktop/repos/opn-f14 at 6605afa + T2 changes
+command: make verify
+2026-09-14T13:49:06Z
+
+...........................................                              [ 90%]
+api/tests/test_submissions.py ......                                     [ 91%]
+api/tests/test_submissions_alternate.py .                                [ 91%]
+api/tests/test_tokens.py ................                                [ 91%]
+site/tests/test_branches_round4.py ...                                   [ 92%]
+site/tests/test_config.py ......                                         [ 92%]
+site/tests/test_dag.py ...........                                       [ 92%]
+site/tests/test_escaping.py ....                                         [ 93%]
+site/tests/test_fast_check.py ...                                        [ 93%]
+site/tests/test_finding_dag_labels.py .                                  [ 93%]
+site/tests/test_finding_docs_agents_md.py .......                        [ 93%]
+site/tests/test_finding_not_claimable_reasons.py .............           [ 94%]
+site/tests/test_finding_status_cause.py .....                            [ 94%]
+site/tests/test_links.py ......................                          [ 95%]
+site/tests/test_rejection.py ......................................      [ 97%]
+site/tests/test_render.py ............................                   [ 98%]
+site/tests/test_render_alternates.py .                                   [ 98%]
+site/tests/test_untrusted.py .....................                       [100%]
+
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:29
+  /Users/mikehiggins/Desktop/repos/opn-f14/api/tests/api_fakes.py:29: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-f14/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========= 2032 passed, 68 deselected, 2 warnings in 153.15s (0:02:33) ==========
+
+Tests rewritten for F14-R1/R2 (each asserted the old grade-and-posting rule):
+  gate/tests/test_intake.py (scaffold state claimable; new test_listed_unsigned_target_is_claimable,
+    AC1; test_activation_needs_only_the_status_rule, AC2; import-fc provenance claimable)
+  gate/tests/test_products.py, test_watcher.py, test_finding_c_stale_signature.py (grade still
+    published, no longer a reason), test_finding_a_post_fidelity.py (a hand-written active record
+    passes; one on a frozen target is refused naming the drift), test_finding_de_qa_status.py (E on
+    a frozen target)
+  gate/tests/harness.py: freeze_upstream(), the one not-claimable case a curated target has left
+  site/tests: build_with_frozen_target(); the reasons tests render it; the listed card says
+    "listed, claimable"
+  api/tests: test_listed_is_claimable (201), test_a_frozen_target_is_not_claimable (409
+    upstream-drift), refusal-reasons test on the frozen fixture
+
+api fixtures, regenerated from the gate (F05-Q5; recipe engineering/evidence/F12/task-6.txt, plus
+harness.freeze_upstream for the frozen pair):
+  targets-index-listed.json: differs from the committed copy only at targets[0].claimable
+    (false -> true) and targets[0].not_claimable ([status-listed, grade-below-screened-and-signed,
+    no-posting] -> [])
+  frontier-listed.json: differs only at entries[1].claimable (false -> true)
+  targets-index-frozen.json / frontier-frozen.json: new; frozen-target not_claimable [upstream-drift]

@@ -10,6 +10,10 @@ Mike's decision (2026-09-14, plan F04-T10): the target row's claimable word stop
 status; the node page and the frontier row of a node under a not-claimable target carry "Not
 claimable" and each reason in ``intake.explain``'s words. Strict xfails until F04-T10 lands
 (conventions §2).
+
+F14-R1 (2026-09-14) made a listed, unsigned target claimable, so the fixture these tests render is
+the listed target with an upstream edit flagged on its root — the reason that still closes
+claiming on a curated target that is otherwise open.
 """
 
 from __future__ import annotations
@@ -18,7 +22,8 @@ import dataclasses
 from pathlib import Path
 
 import pytest
-from fixture import LISTED_ROOT, LISTED_TARGET, build_with_listed_target
+from fixture import LISTED_ROOT, LISTED_TARGET
+from fixture import build_with_frozen_target as build_with_listed_target  # F14-R1, see below
 
 from opn_gate import intake
 from opn_site import model, render

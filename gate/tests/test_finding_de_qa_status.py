@@ -306,7 +306,12 @@ def test_e_status_active_on_a_curated_target_refuses_what_activation_refuses(gra
     unchanged (``test_cli_curator.py::test_status_command_declares_a_target_active_and_branches_it``
     runs on ``propositional``, which has no ``target.yaml``)."""
     target = target_of(graph)
-    with pytest.raises(intake.IntakeError, match="posted upstream"):  # guard: R5 refuses
+    # F14-R2 (2026-09-14): the grade and posting left the rule; the drift freeze is what activation
+    # still refuses, so the bypass is tested on a frozen target.
+    from harness import freeze_upstream  # noqa: PLC0415
+
+    freeze_upstream(target)
+    with pytest.raises(intake.IntakeError, match="changed upstream"):  # guard: R2 refuses
         intake.activate(graph, TARGET_ID, author="curator", date=LATER)
     before = sorted(p.name for p in (target / "status").iterdir())
 
@@ -330,7 +335,7 @@ def test_e_status_active_on_a_curated_target_refuses_what_activation_refuses(gra
         f"status active bypassed F11-R5: exit {code}, {out}; index now "
         f"status={row['status']} claimable={row['claimable']}"
     )
-    assert "D-10" in json.dumps(out) and "D-9" in json.dumps(out)
+    assert "changed upstream" in json.dumps(out) and "D-10" in json.dumps(out)
     assert sorted(p.name for p in (target / "status").iterdir()) == before
     assert row["status"] == "listed"
 

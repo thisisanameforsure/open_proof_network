@@ -120,6 +120,18 @@ def build_with_listed_target(tmp_path: Path) -> Path:
     return root
 
 
+def build_with_frozen_target(tmp_path: Path) -> Path:
+    """The listed fixture with an upstream edit flagged on its root: since F14-R1 a listed target
+    is claimable, and the drift freeze is the live case of a curated target that is not, so the
+    pages that explain why keep a real reason to explain."""
+    from harness import freeze_upstream  # noqa: PLC0415
+
+    root = build_with_listed_target(tmp_path)
+    freeze_upstream(root / "targets" / LISTED_TARGET)
+    products.generate(root, rendered_from=COMMIT, commit_time=NOW).write(root)
+    return root
+
+
 # --- F12: a curated target with a QA pass, two signers, three attempts and a drift flag (AC11) ----
 
 QA_TARGET = "qa-target"

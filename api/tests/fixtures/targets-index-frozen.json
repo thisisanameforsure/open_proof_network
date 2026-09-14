@@ -7,8 +7,20 @@
         "counted": 0,
         "recorded": 0
       },
-      "claimable": true,
-      "drift": null,
+      "claimable": false,
+      "drift": {
+        "citation": null,
+        "date": "2026-09-12T04:17:00Z",
+        "frozen": true,
+        "kind": "upstream-edit",
+        "record": "20260912T041700Z-opn-watcher-upstream-edit.yaml",
+        "upstream": {
+          "head_commit": "dddddddddddddddddddddddddddddddddddddddd",
+          "path": "FormalConjectures/ErdosProblems/42.lean",
+          "pinned_commit": "cccccccccccccccccccccccccccccccccccccccc",
+          "repo": "google-deepmind/formal-conjectures"
+        }
+      },
       "fidelity": "mechanical-only",
       "mathlib_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "node_counts": {
@@ -23,9 +35,11 @@
         "stale": 0,
         "superseded": 0
       },
-      "not_claimable": [],
+      "not_claimable": [
+        "upstream-drift"
+      ],
       "posting": null,
-      "root": "listed-lemma",
+      "root": "frozen-lemma",
       "root_statement_hash": "22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7",
       "status": "listed",
       "subjects": [
@@ -74,7 +88,7 @@
           "subject": "Primes"
         }
       ],
-      "target_id": "listed-target",
+      "target_id": "frozen-target",
       "track": "formalization"
     },
     {
