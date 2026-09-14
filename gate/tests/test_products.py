@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -616,6 +617,34 @@ def test_resolved_nodes_leave_the_frontier(tmp_path: Path) -> None:
     node = tg.nodes["tutorial-and-swap"]
     assert not products.in_frontier(tg.statuses["tutorial-and-swap"], node)
     assert products.in_frontier("ready", node)
+
+
+def test_a_blocked_variant_is_listed_but_not_claimable(tmp_path: Path) -> None:
+    """Q4, R5 (T6): an open variant stays on the frontier while it waits on its holes, but a
+    claim on it could not be worked, so ``claimable`` follows the node's status as well as the
+    target's — true only for a ``ready`` or ``speculative`` node on a claimable target. (Found
+    live: ``variant-93e79cb5`` on the tutorial target, blocked on two witness-missing holes.)"""
+    root = copy_graph(tmp_path)
+    tg = graph.load_target(root, TARGET)
+    assert tg.statuses[ROOT_NODE] == "blocked"
+    variant = replace(tg.nodes[ROOT_NODE], origin="variant")
+
+    def entry(status: str, *, target_claimable: bool = True) -> dict[str, Any]:
+        return products.frontier_entry(
+            replace(tg, statuses={**tg.statuses, ROOT_NODE: status}),
+            variant,
+            claimable=target_claimable,
+            dormant=False,
+            ready_since=None,
+            tags=[],
+        )
+
+    assert products.in_frontier("blocked", variant), "an open variant stays listed"
+    assert entry("blocked")["claimable"] is False
+    assert entry("abandoned")["claimable"] is False
+    assert entry("ready")["claimable"] is True
+    assert entry("speculative")["claimable"] is True
+    assert entry("ready", target_claimable=False)["claimable"] is False
 
 
 def test_node_counts_carry_the_new_statuses(tmp_path: Path) -> None:

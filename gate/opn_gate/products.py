@@ -305,7 +305,9 @@ def frontier_entry(
         "claims": claims if claims is not None else {"active": [], "history_count": 0},
         "annex_present": annex_present(node.path),
         "bounty": False,
-        "claimable": claimable and in_frontier(status, node),
+        # Q4 (T6): the target's claimability and the node's status. An open variant is listed
+        # while it waits on its holes (R5), but a claim on it could not be worked.
+        "claimable": claimable and status in graphmod.FRONTIER_STATUSES,
         "tutorial": node.tutorial,
         # D-33: a dormancy declaration refuses no claim, so this is a fact and not a gate. It
         # rides on the entry rather than only on the index so an agent choosing work sees it

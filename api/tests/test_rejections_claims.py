@@ -211,6 +211,29 @@ def test_a_blocked_node_with_no_cause_and_no_unproved_dependency_still_says_bloc
     assert "names no cause" in body["message"]
 
 
+def test_a_blocked_variant_on_the_frontier_is_refused_as_blocked(harness: Harness) -> None:
+    """F03-T6: an open variant stays on the frontier while it waits on its holes, with
+    ``claimable: false``. The refusal is the shared ``node-blocked`` naming what it waits on — not
+    a bare ``node-not-claimable``, whose target reasons are empty on a claimable target."""
+    doc = json.loads(harness.githost.files["frontier.json"])
+    for e in doc["entries"]:
+        if e["node_id"] == NODE:
+            e["claimable"] = False
+    harness.githost.files["frontier.json"] = json.dumps(doc).encode()
+    edit_graph(
+        harness,
+        {"node_id": "hole-1", "status": "blocked", "cause": "witness-missing"},
+        {"node_id": NODE, "status": "blocked", "origin": "variant", "deps": ["hole-1"]},
+        drop=NODE,
+    )
+    token = harness.token_for("code_alice", "alice-p")
+    r = post(harness, token)
+    body = r.json()
+    assert (r.status_code, body["error"]) == (409, "node-blocked"), r.text
+    assert body["details"] == {"status": "blocked", "cause": None, "unproved_deps": ["hole-1"]}
+    assert harness.store.claims == {}
+
+
 def test_a_target_row_with_an_empty_reason_list_gives_the_bare_refusal(harness: Harness) -> None:
     """``listed-only`` is on the fixture frontier with ``claimable: false``; a row naming no
     reasons adds none to the message, and ``details.not_claimable`` is the empty list."""

@@ -1,0 +1,26 @@
+F03-T6 · a blocked variant is listed but not claimable (Q4, Q8; AC14) · 2026-09-14T08:50:32Z · network 261982e + working tree
+
+Red first, before the fix: test_a_blocked_variant_is_listed_but_not_claimable failed at
+  assert entry("blocked")["claimable"] is False  ->  assert True is False
+and test_a_blocked_variant_on_the_frontier_is_refused_as_blocked failed (1 failed; the claim route had
+no graph check for a frontier entry, so it answered the target's refusal rather than node-blocked).
+
+$ uv run --frozen pytest gate/tests/test_products.py api/tests/test_rejections_claims.py -m "not lean and not docker and not network" -p no:warnings -q
+............................................................             [100%]
+60 passed in 2.24s
+
+$ uv run --frozen pytest -m "not lean and not docker and not network" -p no:warnings -q -k "blocked_variant" -v gate/tests/test_products.py api/tests/test_rejections_claims.py
+======================= 2 passed, 58 deselected in 0.38s =======================
+
+Live graph, regenerated in process (products.generate over git archive of open_proof_network_graph origin/main
+at 0801922, no scanner: every Mathlib statement hash is in its tag cache):
+  erdos-172                claimable committed=False regenerated=False
+  erdos-376                claimable committed=False regenerated=False
+  erdos-406                claimable committed=False regenerated=False
+  erdos-52                 claimable committed=False regenerated=False
+  erdos-68                 claimable committed=False regenerated=False
+  infinitude-of-primes     claimable committed=False regenerated=False
+  variant-93e79cb5         claimable committed=True  regenerated=False
+
+Only variant-93e79cb5 changes (graph.json: blocked, deps --h1 and --h2 blocked witness-missing).
+The live effect waits on a push of this repository and a re-pin of the graph's gate-spec.json.

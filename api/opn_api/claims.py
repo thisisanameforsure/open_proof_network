@@ -71,8 +71,25 @@ def find_entry(ctx: Context, node_id: str, target_id: str | None) -> dict[str, A
         raise ambiguous(node_id)
     entry: dict[str, Any] = entries[0]
     if not entry.get("claimable"):
-        raise not_claimable(ctx, node_id, str(entry["target_id"]))
+        raise unclaimable(ctx, node_id, str(entry["target_id"]))
     return entry
+
+
+def unclaimable(ctx: Context, node_id: str, target_id: str) -> ApiError:
+    """A frontier entry that is not claimable. An open variant stays listed while it waits on its
+    holes (F03-R5, T6), and that is ``node-blocked`` like any blocked node; otherwise the reasons
+    are the target's. A graph that cannot be read gives the target's refusal, never a pass."""
+    try:
+        graph = precheck.graph_doc(ctx)
+    except ApiError as exc:
+        log.warning("claim refusal for %s without the graph: %s", node_id, exc.message)
+        return not_claimable(ctx, node_id, target_id)
+    row = next((n for n in graph.get(target_id, []) if n.get("node_id") == node_id), None)
+    if row is not None:
+        facts = precheck.facts_of(target_id, row)
+        if facts["status"] == "blocked":
+            return precheck.blocked_error(node_id, facts, graph)
+    return not_claimable(ctx, node_id, target_id)
 
 
 def ambiguous(node_id: str) -> ApiError:
