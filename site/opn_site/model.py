@@ -19,7 +19,7 @@ from opn_gate import intake, layout, paths, records, schemas, watch
 #: snapshots keep rendering (D-34), so this is a set per product, not a pin: `targets-index/v2`
 #: and `graph/v2` add F07-R8's two statuses, which the site shows without needing to know them.
 PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
-    "frontier.json": ("frontier/v1", "frontier/v2"),
+    "frontier.json": ("frontier/v1", "frontier/v2", "frontier/v3"),
     "info.json": ("info/v1",),
     "targets/index.json": (
         "targets-index/v1",

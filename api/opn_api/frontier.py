@@ -36,7 +36,7 @@ INFO_PATH = "info.json"
 #: The frontier versions this service will serve. A product names its own version and
 #: several are live at once (D-34, F11-R4), so what is pinned is the set: a graph that
 #: published something outside it is refused rather than passed through unvalidated.
-FRONTIER_SCHEMAS: tuple[str, ...] = ("frontier/v1", "frontier/v2")
+FRONTIER_SCHEMAS: tuple[str, ...] = ("frontier/v1", "frontier/v2", "frontier/v3")
 CLAIMS_SCHEMA = "claims/v1"
 EMPTY_CLAIMS: dict[str, Any] = {"active": [], "history_count": 0}
 

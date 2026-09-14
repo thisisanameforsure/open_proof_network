@@ -1,0 +1,43 @@
+F04-T11 · the frontier table's Status and Dormant columns and a lead that says a listed node need not be claimable (R7, Q11; AC14) · 2026-09-14T09:22:52Z · network 800a08e + branch frontier-t7-t11
+
+Red first, before the renderer change:
+  test_frontier_table                                  assert 15 == 17
+  test_the_frontier_page_says_where_each_node_stands   ValueError: substring not found (no <th>Status</th>)
+
+$ uv run --frozen pytest site/tests -q -rxX
+XFAIL site/tests/test_finding_docs_agents_md.py::test_agents_md_renders_as_a_document - finding site-docs-agents-md (F04-R9, F10-R9, D-27): AGENTS.md 
+XFAIL site/tests/test_finding_not_claimable_reasons.py::test_targets_page_does_not_say_listed_twice - finding site-not-claimable-reasons (F04-R5, F04-
+XFAIL site/tests/test_finding_not_claimable_reasons.py::test_node_page_of_a_listed_target_says_why_it_is_not_claimable - finding site-not-claimable-re
+XFAIL site/tests/test_finding_not_claimable_reasons.py::test_frontier_row_of_a_listed_target_says_why_it_is_not_claimable - finding site-not-claimable
+XFAIL site/tests/test_finding_status_cause.py::test_status_mark_says_a_witness_is_missing - finding site-status-cause (F04-R5, D-29, F07-R6): status_m
+XFAIL site/tests/test_finding_status_cause.py::test_node_page_of_a_witness_missing_hole_names_the_cause - finding site-status-cause (F04-R5, D-29, F07
+XFAIL site/tests/test_render.py::test_frontier_page_says_which_products_its_claims_come_from_and_links_the_live_ones - finding 9 (F04-R7, F05-R10, D-2
+129 passed, 7 xfailed in 14.31s
+
+$ uv run --frozen pytest -v site/tests/test_render.py -k "frontier_table or where_each_node_stands"
+site/tests/test_render.py::test_frontier_table PASSED                    [ 50%]
+site/tests/test_render.py::test_the_frontier_page_says_where_each_node_stands PASSED [100%]
+
+Golden: site/tests/golden/frontier/index.html is the only page that changed (the lead, a Status header and
+cell after Target, a Dormant header and cell after Claimable). The strict xfails for T9 (claims label and
+live link) and T10 part 2 (not-claimable reasons in a row) stay red.
+
+The live graph rendered with this branch (git archive of open_proof_network_graph origin/main at
+17814a2, products regenerated in process with F03-T6 and T7, then opn_site.render):
+  Node | Status | Attempts | Claimable | Dormant
+  erdos-172 | ready | 0 | no | no
+  erdos-376 | ready | 0 | no | no
+  erdos-406 | ready | 0 | no | no
+  erdos-52 | ready | 0 | no | no
+  erdos-68 | ready | 0 | no | no
+  infinitude-of-primes | ready | 2 | no | no
+  variant-93e79cb5 | blocked | 1 | no | no
+
+Screenshot: engineering/evidence/F04/task-11-frontier.png — that rendered live site served locally and captured
+with headless Google Chrome at 2600x560. The table scrolls inside a 72ch column on the site, so the capture is
+of a copy of the page with one evidence-only style (main and masthead max-width none, .table-wrap overflow
+visible) to show all 17 columns at once; the shipped page is unchanged by it. Checked by eye: the new lead;
+Status third; variant-93e79cb5 blocked, 1 attempt, Claimable no; the Euclid root ready with 2 attempts;
+Dormant no on every row. A first capture on port 8765 caught another local server's fixture site and was
+discarded. Claims read 0 past here because the export has no claims.json; the live page takes the api's
+snapshot at the next graph merge (OPN_API_CLAIMS_URL is set).

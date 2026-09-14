@@ -176,3 +176,39 @@ def test_status_files_outside_the_yaml_suffixes_are_ignored(tmp_path: Path) -> N
     (st / "README.md").write_text("not a record")
     (st / ".gitkeep").write_text("")
     assert records.load_node_status(tmp_path) is None
+
+
+def test_a_partial_assembly_counts_as_an_attempt(tmp_path: Path) -> None:
+    """R7 (T7): a merged partial is an attempt on its node (D-3 files it under ``attempts/``,
+    D-12 #5), so it counts beside the postmortems. An alternate is a proof, not an attempt
+    (D-25 v3.13); a precheck record, a keep file and a non-``.lean`` note are not attempts
+    either. A partial carries no route class or failure class, so only the count moves."""
+    att = tmp_path / "attempts"
+    write_yaml(att / "20260912T100000Z-alice.yaml", samples.postmortem(route_class="induction"))
+    (att / "20260912T110722Z-bob-partial.lean").write_text("theorem t : True := by\n  sorry\n")
+    (att / "20260913T160600Z-carol-partial.lean").write_text("theorem t : True := by\n  sorry\n")
+    (att / "20260914T000000Z-dave-alternate.lean").write_text("theorem t : True := trivial\n")
+    (att / "precheck").mkdir()
+    (att / "precheck" / "000001.json").write_text("{}")
+    (att / ".gitkeep").write_text("")
+    (att / "notes.txt").write_text("not an attempt")
+    summary = records.load_attempts(tmp_path)
+    assert summary.count == 3
+    assert summary.refuted_route_classes == ("induction",)
+    assert summary.failure_class_histogram == {"route-dead-ends": 1}
+    assert summary.invalid_files == ()
+
+
+def test_a_partial_its_postmortem_names_counts_once(tmp_path: Path) -> None:
+    """R7 (T7): D-13 lets a postmortem name its partial (``artifacts.partial_proof``, a path
+    under ``attempts/``); the two files are one attempt. A partial nobody names still counts."""
+    att = tmp_path / "attempts"
+    named = "20260912T110722Z-bob-partial.lean"
+    write_yaml(
+        att / "20260912T110723Z-bob.yaml",
+        samples.postmortem(artifacts={"partial_proof": f"attempts/{named}"}),
+    )
+    (att / named).write_text("theorem t : True := by\n  sorry\n")
+    assert records.load_attempts(tmp_path).count == 1
+    (att / "20260912T120000Z-erin-partial.lean").write_text("theorem t : True := by\n  sorry\n")
+    assert records.load_attempts(tmp_path).count == 2

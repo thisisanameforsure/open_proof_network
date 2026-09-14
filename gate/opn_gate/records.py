@@ -14,11 +14,12 @@ from __future__ import annotations
 
 import logging
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
-from opn_gate import schemas
+from opn_gate import paths, schemas
 
 log = logging.getLogger(__name__)
 
@@ -48,12 +49,27 @@ class AttemptSummary:
         }
 
 
+def count_attempts(records: int, lean_names: Iterable[str], named: Iterable[str]) -> int:
+    """T7: the postmortem files, plus each partial assembly beside them that no valid record
+    names in ``artifacts.partial_proof``. An alternate is a proof, not an attempt (D-25 v3.13).
+    One rule for the frontier and for ``CONTEXT.json``, which reads through a host (F10-Q7)."""
+    partials = {n for n in lean_names if not n.endswith(paths.ALTERNATE_SUFFIX)}
+    return records + len(partials - {PurePosixPath(n).name for n in named})
+
+
 def load_attempts(node_dir: Path) -> AttemptSummary:
-    """Aggregate ``attempts/*.yaml``; invalid files count under ``invalid`` and are named."""
+    """Aggregate ``attempts/*.yaml``; invalid files count under ``invalid`` and are named.
+
+    T7: the count also takes the partial assemblies filed beside them (D-3, D-12 #5), each an
+    attempt on the node. A partial that a valid record names in ``artifacts.partial_proof`` is
+    that record's attempt, counted once; an alternate is a proof, not an attempt (D-25 v3.13).
+    """
     attempts_dir = node_dir / "attempts"
     if not attempts_dir.is_dir():
         return AttemptSummary()
     files = sorted(p for p in attempts_dir.iterdir() if p.suffix in ATTEMPT_SUFFIXES)
+    lean_names = [p.name for p in attempts_dir.iterdir() if p.is_file() and p.suffix == ".lean"]
+    named: set[str] = set()
     refuted: set[str] = set()
     histogram: Counter[str] = Counter()
     invalid: list[str] = []
@@ -70,8 +86,11 @@ def load_attempts(node_dir: Path) -> AttemptSummary:
         failure_class = doc.get("failure_class")
         if failure_class is not None:
             histogram[str(failure_class)] += 1
+        partial = (doc.get("artifacts") or {}).get("partial_proof")
+        if isinstance(partial, str):
+            named.add(PurePosixPath(partial).name)
     return AttemptSummary(
-        count=len(files),
+        count=count_attempts(len(files), lean_names, named),
         refuted_route_classes=tuple(sorted(refuted)),
         failure_class_histogram=dict(histogram),
         invalid_files=tuple(invalid),

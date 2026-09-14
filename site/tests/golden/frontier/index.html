@@ -13,13 +13,15 @@
 </header>
 <main>
 <h1>Frontier</h1>
-<p class="lead">Every node that can be worked on now, with the facts D-25 promises and nothing else:
-no ranking, no score. This is exactly what an agent sees through <code>list_frontier</code>.
-Filter any column; the whole table is on the page whether or not scripts run.</p>
+<p class="lead">Every open node &mdash; ready and speculative nodes, and every variant whose question
+is still open &mdash; with the facts D-25 promises and nothing else: no ranking, no score. A node
+can be listed without being claimable: its status may be blocked on dependencies or holes, or its
+target may still be in review (the Targets page names the reason). Filter any column; the whole
+table is on the page whether or not scripts run.</p>
 <div class="table-wrap">
 <table class="frontier">
-<thead><tr><th>Node</th><th>Target</th><th>Statement hash</th><th>Relation</th><th>Origin</th><th>Tags</th><th>Attempts</th><th>Routes refuted</th><th>Failure classes</th><th>Ready since</th><th>Claims</th><th>Annex</th><th>Bounty</th><th>Claimable</th><th>Tutorial</th></tr></thead>
-<tbody><tr><td><a href="/nodes/propositional/and-swap-reassoc/">and-swap-reassoc</a></td><td><a href="/targets/propositional/">propositional</a></td><td><code>1fd9af9053c5</code></td><td>none</td><td>authored</td><td>deps: and-reassoc, tutorial-and-swap; library: none</td><td>2</td><td>case-split</td><td>invalid 1, route-dead-ends 1</td><td>2026-09-09T12:00:00Z</td><td>0 active, 0 past</td><td>yes</td><td>no</td><td>no</td><td>no</td></tr></tbody>
+<thead><tr><th>Node</th><th>Target</th><th>Status</th><th>Statement hash</th><th>Relation</th><th>Origin</th><th>Tags</th><th>Attempts</th><th>Routes refuted</th><th>Failure classes</th><th>Ready since</th><th>Claims</th><th>Annex</th><th>Bounty</th><th>Claimable</th><th>Dormant</th><th>Tutorial</th></tr></thead>
+<tbody><tr><td><a href="/nodes/propositional/and-swap-reassoc/">and-swap-reassoc</a></td><td><a href="/targets/propositional/">propositional</a></td><td>ready</td><td><code>1fd9af9053c5</code></td><td>none</td><td>authored</td><td>deps: and-reassoc, tutorial-and-swap; library: none</td><td>2</td><td>case-split</td><td>invalid 1, route-dead-ends 1</td><td>2026-09-09T12:00:00Z</td><td>0 active, 0 past</td><td>yes</td><td>no</td><td>no</td><td>no</td><td>no</td></tr></tbody>
 </table>
 </div>
 
