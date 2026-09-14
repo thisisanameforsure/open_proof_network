@@ -330,13 +330,6 @@ def test_a_target_with_no_curator_on_record_bars_nobody() -> None:
 # --- F07-T15: which line each mode's merge earns (R12; D-19, D-13, D-25, F08-R13) ----------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "finding ledger-credits-merges (F07-R12, D-19, D-25): ledger has no MERGE_LINES, the "
-        "mode-to-line table run_ledger should dispatch on; fix: F07-T15 (Mike, 2026-09-14)"
-    ),
-)
 def test_merge_line_table() -> None:
     """Every classified mode, and the one line its merge can earn (``None``: nothing, ever, at
     merge). An alternate is credited at write-up (D-25 v3.13), not when it merges."""

@@ -37,6 +37,20 @@ Line = Literal["statement", "proof", "review", "attempts", "upstreaming", "write
 
 #: The artifacts that earn the proof line (D-12, D-19). A reduction is a partial (F07-Q1).
 PROOF_ARTIFACTS: tuple[str, ...] = ("proof", "counterexample", "vacuity", "partial", "reduction")
+#: F07-R12, T15: the one line each classified mode's merge can earn, ``None`` for nothing at
+#: merge. ``append`` earns only for a postmortem (D-13; an annex earns nothing, D-31), and an
+#: alternate proof is credited at write-up, not when it merges (D-25 v3.13).
+MERGE_LINES: dict[str, Line | None] = {
+    "proof": "proof",
+    "partial": "proof",
+    "alternate": None,
+    "append": "attempts",
+    "explainer": None,
+    "proposal": "statement",
+    "curator": None,
+    "intake": None,
+    "fidelity": None,
+}
 #: D-21, F11 §7: the curator of a target earns no proof credit on it. They chose the statement,
 #: its decomposition and its difficulty, so a proof of one of its nodes is not a result they
 #: competed for. It bars the *proof* line only: their postmortems, statements and write-ups are
@@ -236,6 +250,25 @@ def statement_entry(  # noqa: PLR0913 — one argument per fact the entry record
         date=date,
         tooling=tooling,
     )
+
+
+def merge_tooling(graph_root: Path, merge_commit: str) -> str:
+    """The ``model_and_tooling`` the post-merge job attested for ``merge_commit`` (R13, T14), or
+    ``undeclared``. Read from the committed attestations rather than passed as a flag, because the
+    ledger is derived from the graph (D-35) and a pinned gate cannot learn a new flag (T15, Q22).
+    A record that does not parse is skipped: it cannot be this merge's."""
+    directory = graph_root / "attestations"
+    if not directory.is_dir():
+        return UNDECLARED
+    for path in sorted(directory.glob("*.json")):
+        try:
+            doc = schemas.load_json(path)
+        except schemas.SchemaError:
+            continue
+        if isinstance(doc, dict) and doc.get("merge_commit") == merge_commit:
+            declared = doc.get("model_and_tooling")
+            return str(declared) if isinstance(declared, str) and declared else UNDECLARED
+    return UNDECLARED
 
 
 def record(graph_root: Path, identity: str, entry: Entry | None) -> Path | None:

@@ -1063,18 +1063,17 @@ def commit_proposal(root: Path, git: Git, node_id: str, **kw: Any) -> str:
     return git("rev-parse", "HEAD")
 
 
-def test_ledger_earns_nothing_for_a_proof_or_a_hole_and_says_why(
+def test_ledger_earns_nothing_for_the_tutorial_proof_or_a_hole_and_says_why(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """F07-T15: a merged proof earns the proof line now, except the tutorial node's (D-27); this
+    test pinned "a merged proof earns nothing" until then."""
     root, git, _base = git_repo(tmp_path, author="alice")
     head = git("rev-parse", "HEAD")
     code, out, _err = run(capsys, "ledger", "--graph", str(root), "--commit", head)
     assert code == cli.EXIT_PASS
-    assert out == {
-        "earned": False,
-        "commit": head,
-        "reason": "not a merged node proposal (mode 'proof')",
-    }
+    assert out["earned"] is False and out["commit"] == head
+    assert out["reason"] == "tutorial-and-swap is the tutorial node, which earns no credit (D-27)"
 
     hole = commit_proposal(root, git, "spec-hole", origin="compiler-derived")
     code, out, _err = run(capsys, "ledger", "--graph", str(root), "--commit", hole)

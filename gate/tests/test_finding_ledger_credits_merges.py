@@ -10,6 +10,8 @@ and assert what it should write.
 
 Identity stays the commit author (``proposer_of``); tooling is the ``model_and_tooling`` of the
 attestation the same post-merge job wrote for this merge commit, else ``undeclared``.
+
+Held as strict expected failures from f80151b until F07-T15 (2026-09-14).
 """
 
 from __future__ import annotations
@@ -30,14 +32,6 @@ from opn_gate import graph as graphmod
 PROVED = "and-reassoc"  # non-tutorial, proved in the fixture
 OTHER = "and-swap-reassoc"
 DECLARED = "claude-opus-5 2026-09 claude-code"
-XFAIL = pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "finding ledger-credits-merges (F07-R12, D-19, D-13, D-21, D-25, D-27): cli.run_ledger "
-        "writes only F08-R13's statement line and answers every other merge 'not a merged node "
-        "proposal'; fix: F07-T15 (Mike, 2026-09-14)"
-    ),
-)
 
 
 def ledger_run(capsys: pytest.CaptureFixture[str], root: Path, commit: str) -> dict[str, Any]:
@@ -80,7 +74,6 @@ def entries(root: Path, identity: str) -> list[dict[str, Any]]:
     return ledger.entries_of(doc)
 
 
-@XFAIL
 def test_a_merged_proof_earns_the_proof_line(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -101,7 +94,6 @@ def test_a_merged_proof_earns_the_proof_line(
     assert entry["tooling"] == ledger.UNDECLARED  # no attestation for this merge on disk
 
 
-@XFAIL
 def test_the_tutorial_proof_earns_nothing_and_says_d27(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -112,7 +104,6 @@ def test_the_tutorial_proof_earns_nothing_and_says_d27(
     assert not (root / "ledger").exists()
 
 
-@XFAIL
 def test_a_merged_partial_earns_the_proof_line_for_the_assembly(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -126,7 +117,6 @@ def test_a_merged_partial_earns_the_proof_line_for_the_assembly(
     assert entry["merge_commit"] == head
 
 
-@XFAIL
 def test_a_merged_alternate_earns_nothing_until_write_up(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -142,7 +132,6 @@ def test_a_merged_alternate_earns_nothing_until_write_up(
     assert not (root / "ledger").exists()
 
 
-@XFAIL
 def test_postmortems_earn_attempts_first_per_route_class(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -166,7 +155,6 @@ def test_postmortems_earn_attempts_first_per_route_class(
     assert (root / "ledger" / "alice.json").read_bytes() == before
 
 
-@XFAIL
 def test_the_curator_earns_no_proof_line_but_does_earn_attempts(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -194,7 +182,6 @@ def test_the_curator_earns_no_proof_line_but_does_earn_attempts(
     assert [e["line"] for e in entries(root, "alice")] == ["attempts"]
 
 
-@XFAIL
 def test_tooling_comes_from_the_attestation_of_this_merge(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:

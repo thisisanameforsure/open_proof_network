@@ -1,0 +1,106 @@
+F07-T15 · the ledger credits every merge it should (R12; D-19, D-13, D-21, D-25, D-27) · red run before any change
+worktree of 4092af7, branch f07-t15, 2026-09-14T05:00:39Z
+
+$ uv run --frozen pytest gate/tests/test_finding_ledger_credits_merges.py gate/tests/test_ledger.py::test_merge_line_table --runxfail -q
+E       AssertionError: {'earned': False, 'commit': '38394d650a62ac416a30437b5f2c2cd1f8fc6461', 'reason': "not a merged node proposal (mode 'proof')"}
+E       assert False is True
+E       AssertionError: not a merged node proposal (mode 'proof')
+E       assert 'D-27' in "not a merged node proposal (mode 'proof')"
+E       AssertionError: {'earned': False, 'commit': '280852a66bdc2df6f5275841f46e135a22cb8bb2', 'reason': "not a merged node proposal (mode 'partial')"}
+E       assert False is True
+E       AssertionError: not a merged node proposal (mode 'alternate')
+E       assert ('D-25' in "not a merged node proposal (mode 'alternate')")
+E       AssertionError: {'earned': False, 'commit': 'b5c5f71eaf14488f65a57777ffe680bef7384d06', 'reason': "not a merged node proposal (mode 'append')"}
+E       assert False is True
+E       AssertionError: not a merged node proposal (mode 'proof')
+E       assert 'D-21' in "not a merged node proposal (mode 'proof')"
+E       AssertionError: {'earned': False, 'commit': 'a6f572fecbdfd40af7bf2853fe4f51ef8ff4aed0', 'reason': "not a merged node proposal (mode 'proof')"}
+E       assert False is True
+E       AssertionError: assert None == {'proof': 'proof', 'partial': 'proof', 'alternate': None, 'append': 'attempts', ...}
+FAILED gate/tests/test_finding_ledger_credits_merges.py::test_a_merged_proof_earns_the_proof_line
+FAILED gate/tests/test_finding_ledger_credits_merges.py::test_the_tutorial_proof_earns_nothing_and_says_d27
+FAILED gate/tests/test_finding_ledger_credits_merges.py::test_a_merged_partial_earns_the_proof_line_for_the_assembly
+FAILED gate/tests/test_finding_ledger_credits_merges.py::test_a_merged_alternate_earns_nothing_until_write_up
+FAILED gate/tests/test_finding_ledger_credits_merges.py::test_postmortems_earn_attempts_first_per_route_class
+FAILED gate/tests/test_finding_ledger_credits_merges.py::test_the_curator_earns_no_proof_line_but_does_earn_attempts
+FAILED gate/tests/test_finding_ledger_credits_merges.py::test_tooling_comes_from_the_attestation_of_this_merge
+FAILED gate/tests/test_ledger.py::test_merge_line_table
+8 failed in 3.03s
+
+--- the change ---
+gate/opn_gate/ledger.py  MERGE_LINES: the one line each classified mode's merge can earn (proof, partial ->
+                         proof; append -> attempts; proposal -> statement; alternate, explainer, curator,
+                         intake, fidelity -> nothing). merge_tooling(graph, commit): the model_and_tooling
+                         of the attestation whose merge_commit is this commit, else undeclared; a record
+                         that does not parse is skipped.
+gate/opn_gate/cli.py     run_ledger dispatches every mode: proof and partial earn the proof line (tutorial
+                         D-27 and the target's curator D-21 refused with the decision named); an append
+                         earns attempts per postmortem, first per route class, checked against the ledger
+                         as it grows inside one merge (D-13); an alternate earns nothing until write-up
+                         (D-25); a proposal keeps F08-R13's statement line unchanged. One ledger write per
+                         merge. Output: earned, commit, identity, entries, skipped, written (node and line
+                         of the first entry kept for existing callers).
+gate/tests/test_cli_sandboxed.py  the one test that pinned 'a merged proof earns nothing' is now
+                         test_ledger_earns_nothing_for_the_tutorial_proof_or_a_hole_and_says_why.
+Marks came off the 7 finding tests and test_ledger.py::test_merge_line_table; gate/tests/test_ledger_merges.py
+adds 9 edges (merge_tooling with no records, an unparseable record, an unusable declaration, another merge's
+record; an annex-only append; two postmortems of one class in one merge; an author that cannot hold a
+ledger on a postmortem; the entry's target and artifact path).
+
+--- green ---
+$ uv run --frozen pytest gate/tests/test_finding_ledger_credits_merges.py gate/tests/test_ledger.py gate/tests/test_ledger_merges.py gate/tests/test_cli_sandboxed.py --runxfail -m "not lean and not docker and not network" -q
+69 passed
+ruff check / format --check clean; mypy gate: no issues in 148 source files
+
+Mutation check: each mutant is a pytest plugin (-p) that monkeypatches one piece of F07-T15 in memory;
+the ledger tests must fail under every mutant for the reason it introduces.
+
+--- mut15_tooling: Mutant: the ledger never reads the merge's attestation for its tooling.
+FAILED gate/tests/test_finding_ledger_credits_merges.py::test_tooling_comes_from_the_attestation_of_this_merge
+FAILED gate/tests/test_ledger_merges.py::test_merge_tooling_skips_a_record_it_cannot_parse
+2 failed, 39 passed in 6.11s
+
+--- mut15_curator: Mutant: D-21 is never applied; a curator is paid for a proof on their own target.
+        curator who writes up a failed route has told everyone something true."""
+FAILED gate/tests/test_finding_ledger_credits_merges.py::test_the_curator_earns_no_proof_line_but_does_earn_attempts
+FAILED gate/tests/test_ledger.py::test_curator_earns_no_proof_credit_on_own_target
+2 failed, 39 passed in 5.55s
+
+--- mut15_first_per_class: Mutant: D-13 is never applied; every postmortem earns the attempts line.
+FAILED gate/tests/test_finding_ledger_credits_merges.py::test_postmortems_earn_attempts_first_per_route_class
+FAILED gate/tests/test_ledger.py::test_first_per_route_class
+FAILED gate/tests/test_ledger.py::test_first_is_per_identity_not_per_graph
+FAILED gate/tests/test_ledger_merges.py::test_two_postmortems_of_one_route_class_in_one_merge_earn_once
+4 failed, 37 passed in 6.13s
+
+--- mut15_identity: Mutant: the ledger identity is not the pull request's commit author.
+FAILED gate/tests/test_finding_ledger_credits_merges.py::test_a_merged_proof_earns_the_proof_line
+FAILED gate/tests/test_finding_ledger_credits_merges.py::test_a_merged_partial_earns_the_proof_line_for_the_assembly
+FAILED gate/tests/test_finding_ledger_credits_merges.py::test_postmortems_earn_attempts_first_per_route_class
+FAILED gate/tests/test_finding_ledger_credits_merges.py::test_the_curator_earns_no_proof_line_but_does_earn_attempts
+FAILED gate/tests/test_finding_ledger_credits_merges.py::test_tooling_comes_from_the_attestation_of_this_merge
+FAILED gate/tests/test_ledger_merges.py::test_two_postmortems_of_one_route_class_in_one_merge_earn_once
+FAILED gate/tests/test_ledger_merges.py::test_an_author_that_cannot_hold_a_ledger_earns_nothing_on_a_postmortem
+FAILED gate/tests/test_ledger_merges.py::test_the_entry_names_the_target_it_was_earned_on
+8 failed, 33 passed in 4.50s
+
+Two refusals are not reachable by a module-level mutant (the tutorial check and the alternate dispatch are
+inline in run_ledger): their evidence is the red run above, where both tests failed on the old reason.
+
+--- not in this commit ---
+Spec: F07 R12 (the 'no caller' badge off), AC29, Q22, the T15 row and ledger line, the index Status cell —
+applied at merge, because another session holds uncommitted edits to engineering/specs/features/F07.html.
+Graph: gate.yml runs the ledger step for every merged pull request after signing (inert on network 0e3bab6,
+whose ledger exits 0 with earned false for every non-proposal); pushed with F07-T8.
+Live: after the re-pin, the first merged proof's bot commit carries ledger/<pseudonym>.json and the
+Contributors page lists it.
+
+--- make verify on the branch (worktree of 4092af7 + this change) ---
+All checks passed!
+296 files already formatted
+Success: no issues found in 148 source files
+Success: no issues found in 83 source files
+Success: no issues found in 22 source files
+= 1710 passed, 13 skipped, 65 deselected, 71 xfailed, 2 warnings in 103.91s (0:01:43) =
+exit 0
+The 13 skips are the tests that read the graph repo beside this one, absent from a scratch worktree.

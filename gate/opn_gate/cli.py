@@ -50,6 +50,7 @@ from opn_gate import (
     toolchain,
 )
 from opn_gate import graph as graphmod
+from opn_gate import records as recordsmod
 from opn_gate import submission as submissionmod
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Change, Claim
@@ -2016,16 +2017,27 @@ def run_missing_library(args: argparse.Namespace, settings: config.Settings) -> 
 
 
 def run_ledger(args: argparse.Namespace, settings: config.Settings) -> int:
-    """F08-R13: after a proposal merges, the proposer's statement line — for a variant or a
-    speculative crux, never a hole (D-31) and never a revision (D-19)."""
+    """F07-R12, F08-R13: what a merge earns, written to the identity's ledger.
+
+    The proof line for a merged proof or partial assembly, the attempts line for the first
+    postmortem of each route class, the statement line for an admitted proposal (never a hole,
+    D-31; never a revision, D-19). Nothing for an alternate proof (credited at write-up, D-25),
+    the tutorial node (D-27), a curator's proof on their own target (D-21) or any other mode, and
+    every refusal says which decision refused it.
+    """
     graph, commit = _checkout_and_commit(args.graph, args.commit)
     classification = modes.classify(commit_changes(graph, commit), author=settings.pr_author)
-    roles = {loc.role for loc in classification.located}
+    mode = classification.mode
     nothing: dict[str, Any] = {"earned": False, "commit": commit}
-    if classification.mode != "proposal" or classification.admit is None or "node" not in roles:
-        nothing["reason"] = f"not a merged node proposal (mode {classification.mode!r})"
-        sys.stdout.write(json.dumps(nothing, indent=2) + "\n")
-        return EXIT_PASS
+    if mode in ("proof", "partial", "append"):
+        return _write_merge_entries(graph, commit, classification, nothing)
+    if mode == "alternate":
+        nothing["reason"] = "an alternate proof is credited at write-up, not when it merges (D-25)"
+        return _say(nothing)
+    roles = {loc.role for loc in classification.located}
+    if mode != "proposal" or classification.admit is None or "node" not in roles:
+        nothing["reason"] = f"a merged {mode} pull request earns no ledger line (D-19)"
+        return _say(nothing)
     target_id, node_id = str(classification.target_id), classification.admit
     meta = schemas.load_yaml(layout.graph_nodes_dir(graph, target_id) / node_id / "META.yaml")
     identity = proposer_of(graph, commit)
@@ -2059,6 +2071,127 @@ def run_ledger(args: argparse.Namespace, settings: config.Settings) -> int:
     }
     sys.stdout.write(json.dumps(doc, indent=2) + "\n")
     return EXIT_PASS
+
+
+def _say(doc: dict[str, Any]) -> int:
+    sys.stdout.write(json.dumps(doc, indent=2) + "\n")
+    return EXIT_PASS
+
+
+def _write_merge_entries(
+    graph: Path, commit: str, classification: modes.Classification, nothing: dict[str, Any]
+) -> int:
+    """R12 for the building modes and appends: every entry the merge earns, written once."""
+    identity = proposer_of(graph, commit)
+    date = graphmod.commit_timestamp(graph, commit)
+    tooling = ledger.merge_tooling(graph, commit)
+    try:
+        doc = ledger.load(graph, identity)
+        earned, skipped, doc = _merge_entries(
+            graph,
+            classification,
+            identity=identity,
+            commit=commit,
+            date=date,
+            tooling=tooling,
+            doc=doc,
+        )
+    except schemas.SchemaError as exc:
+        nothing["reason"] = f"identity {identity!r} cannot hold a ledger: {exc}"
+        return _say(nothing)
+    if not earned:
+        nothing["reason"] = (
+            skipped[0] if skipped else f"the merge earns nothing ({classification.mode})"
+        )
+        nothing["skipped"] = skipped
+        return _say(nothing)
+    try:
+        path = ledger.write(graph, doc)
+    except schemas.SchemaError as exc:
+        nothing["reason"] = f"identity {identity!r} cannot hold a ledger: {exc}"
+        return _say(nothing)
+    first = earned[0]
+    return _say(
+        {
+            "earned": True,
+            "commit": commit,
+            "identity": identity,
+            "node": first.node,
+            "line": first.line,
+            "entries": [{"line": e.line, "node": e.node, "artifact": e.artifact} for e in earned],
+            "skipped": skipped,
+            "written": path.resolve().relative_to(graph.resolve()).as_posix(),
+        }
+    )
+
+
+def _merge_entries(  # noqa: PLR0913 — one argument per fact every entry records
+    graph: Path,
+    classification: modes.Classification,
+    *,
+    identity: str,
+    commit: str,
+    date: str,
+    tooling: str,
+    doc: dict[str, Any],
+) -> tuple[list[ledger.Entry], list[str], dict[str, Any]]:
+    """The entries a proof, partial or append merge earns, the reasons for what it does not, and
+    the ledger with the earned entries appended (validated as it grows, so a second postmortem of
+    a class in the same merge is refused against the first — D-13)."""
+    earned: list[ledger.Entry] = []
+    skipped: list[str] = []
+    wanted = {"proof": ("proof",), "partial": ("partial",), "append": ("postmortem",)}
+    roles = wanted[str(classification.mode)]
+    located = [loc for loc in classification.located if loc.role in roles and loc.node_id]
+    if not located:
+        skipped.append(
+            f"a merged {classification.mode} earns the attempts line only for a postmortem "
+            "(D-13); an annex or approach record earns nothing (D-31, D-14)"
+        )
+        return earned, skipped, doc
+    for loc in located:
+        target_id, node_id = loc.target_id, str(loc.node_id)
+        node_dir = layout.graph_nodes_dir(graph, target_id) / node_id
+        meta = schemas.load_yaml(node_dir / "META.yaml")
+        tutorial = bool(meta.get("tutorial", False))
+        artifact = loc.path.split(f"/nodes/{node_id}/", 1)[1]
+        if tutorial:
+            skipped.append(f"{node_id} is the tutorial node, which earns no credit (D-27)")
+            continue
+        entry: ledger.Entry | None
+        if loc.role == "postmortem":
+            record = schemas.load_yaml(graph / loc.path, recordsmod.POSTMORTEM_SCHEMA)
+            route_class = str(record["route_class"])
+            entry = ledger.postmortem_entry(
+                doc, identity=identity, target=target_id, node=node_id, route_class=route_class,
+                artifact=artifact, merge_commit=commit, date=date, tooling=tooling,
+            )  # fmt: skip
+            if entry is None:
+                skipped.append(
+                    f"{identity} already earned the attempts line for route class "
+                    f"{route_class!r} on {node_id} (D-13)"
+                )
+                continue
+        else:
+            curator = intake.curator_of(graph / "targets" / target_id)
+            bar = ledger.curator_bar(
+                identity=identity, curator=curator, line="proof", target=target_id
+            )
+            if bar is not None:
+                skipped.append(bar)
+                continue
+            entry = ledger.proof_entry(
+                identity=identity, target=target_id, node=node_id,
+                artifact_type="partial" if loc.role == "partial" else "proof",
+                artifact=artifact, merge_commit=commit, date=date, tooling=tooling,
+                curator=curator,
+            )  # fmt: skip
+            if entry is None:
+                skipped.append(f"{node_id}'s {loc.role} earns no proof line (R12)")
+                continue
+        doc = ledger.append(doc, entry)
+        earned.append(entry)
+    return earned, skipped, doc
 
 
 def proposer_of(graph: Path, commit: str) -> str:
