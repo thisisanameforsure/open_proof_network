@@ -1,0 +1,79 @@
+F04-T9 · the frontier page says where its claims come from: a label naming the products' commit and a link to the service's live /claims.json through a configured api URL admitted by the link checker's allowlist (R7, R13; C6, C7; finding 9 of the 2026-09-13 live contribution) · 2026-09-14 · network 48f4a93 + working tree
+
+== Red first (before any change, 2026-09-14T09:41Z) ==
+$ uv run --frozen pytest --runxfail site/tests/test_render.py::test_frontier_page_says_which_products_its_claims_come_from_and_links_the_live_ones
+FAILED ... AssertionError: the site's config carries no api URL (OPN_SITE_API_URL)
+  assert None == 'https://api.example.test'
+
+== The change ==
+site/opn_site/config.py — Settings.api_url from OPN_SITE_API_URL; no default (nothing here knows a
+  hostname); unset, empty or blank all mean None.
+site/opn_site/render.py
+  - CLAIMS_PATH = "/claims.json" (the api route, F05); the origin is config only.
+  - Renderer(api_url=None) stores it with trailing slashes stripped (the repo_url precedent).
+  - Renderer.claims_note(): <p class="claims-note">The Claims column is a snapshot from the
+    products at <code>{frontier.rendered_from[:12]}</code>: a claim made or released since then is
+    not counted here. The live count is the service's <a href="{api}/claims.json">/claims.json</a>.
+    Without an api URL the same sentence ends "the service's <code>/claims.json</code> (this build
+    names no service)" and no link is drawn (C7). The sha is rendered_from, not the site commit:
+    the products are rendered from the merge commit and committed by the bot after it.
+  - live_urls(api_url): the one exact url config admits; render_site(api_url=None) passes
+    cited_urls(site) | live_urls(api_url) to links.check, so the checker still refuses any other
+    url on the service and the renderer cannot invent an outbound link (F11-Q11's shape).
+site/opn_site/templates/frontier.html — $claims_note after the lead.
+site/opn_site/cli.py — passes settings.api_url.
+.github/workflows/site-deploy.yml — the Render step gets
+  OPN_SITE_API_URL: ${{ vars.OPN_API_URL }}
+  i.e. the network repository's existing Actions variable OPN_API_URL (api-deploy.yml already
+  uses it for the smoke). An unset variable expands to "", which config reads as no service: the
+  build renders the label without a link and does not fail.
+Tests
+  site/tests/test_render.py — the strict xfail mark removed (body unchanged); five edge tests:
+    test_without_an_api_url_the_claims_label_renders_and_no_live_link_is_drawn
+    test_an_api_url_with_a_trailing_slash_does_not_double_up            ("<api>//" → <api>/claims.json)
+    test_the_live_claims_link_passes_the_link_checker_only_through_the_allowlist
+      (without live_urls the checker names exactly the api link; with it, <api>/claims.json.evil
+       and <api>/ are still refused)
+    test_the_claims_label_names_the_commit_the_products_were_rendered_from
+    test_render_command_reads_the_api_url_from_the_environment          (cli, monkeypatched env)
+  site/tests/test_config.py — test_api_url_comes_from_the_environment_and_has_no_default
+    (unset, "", "  " → None; OPN_API_URL alone is not read by the site).
+Pins
+  test_frontier_table and test_the_frontier_page_says_where_each_node_stands needed no rewrite:
+  they render without an api URL, so "https://" still appears nowhere in <main> but the repo, the
+  <th> count stays 17 and the rows are untouched.
+  site/tests/golden/frontier/index.html — regenerated alone, exactly as write_goldens renders it
+  (scratchpad/f04t9/regen_frontier_golden.py); the diff is the one added line:
+  +<p class="claims-note">The Claims column is a snapshot from the products at <code>666666666666</code>: a claim made or released since then is not counted here. The live count is the service's <code>/claims.json</code> (this build names no service).</p>
+
+== Green ==
+$ uv run --frozen pytest site/tests -q -rxX
+153 passed, 1 xfailed (the frontier-row reasons, F04-T10's, still strict and red)
+ruff check site: All checks passed · ruff format --check site: 23 files already formatted · mypy --strict site: no issues
+
+== Mutants (pytest plugins patching in memory, scratchpad/f04t9/mutants/) ==
+$ PYTHONPATH=<mutants> uv run --frozen pytest -p <mutant> site/tests/test_render.py site/tests/test_config.py site/tests/test_links.py -q
+mut_t9_allowlist_bypass (links._check_page drops every href ending in /claims.json, so the link
+  passes without the allowlist): 1 failed, 55 passed
+  FAILED test_the_live_claims_link_passes_the_link_checker_only_through_the_allowlist
+mut_t9_label_needs_url (claims_note returns "" when no api URL is set): 2 failed, 54 passed
+  FAILED test_t2_golden_pages (the frontier golden)
+  FAILED test_without_an_api_url_the_claims_label_renders_and_no_live_link_is_drawn
+Both killed.
+
+== Screenshot ==
+engineering/evidence/F04/task-9-frontier.png — site/tests/fixture.build_with_listed_target rendered with
+config.load({"OPN_SITE_API_URL": "https://api.example.test/"}) (trailing slash on purpose), written
+by render.write, served with python -m http.server on 127.0.0.1:18431 (checked first with curl that
+the served page carries href="https://api.example.test/claims.json", so it is this render) and
+captured with headless Google Chrome at 1200x900, the shipped CSS unmodified.
+Checked by eye: the new paragraph sits directly under the lead and above the table, wholly on
+screen; it names 666666666666; "/claims.json" is an underlined link; the table below is unchanged
+(scrolls inside its box as T11 left it: and-swap-reassoc and listed-lemma rows, 2 nodes on the
+frontier); the footer still names the commit.
+
+== make verify (48f4a93 + this change; the T10 frontier-row test edits set aside) ==
+ruff check .: All checks passed! · ruff format --check .: 304 files already formatted
+mypy --strict: no issues (150, 88, 23 source files)
+= 1844 passed, 13 skipped, 67 deselected, 46 xfailed, 2 warnings in 208.90s (0:03:28) =
+exit 0

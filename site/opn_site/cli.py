@@ -26,7 +26,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     settings = config.load()
     try:
         site = model.load_site(args.graph, args.commit)
-        files = render.render_site(site, repo_url=settings.graph_repo_url)
+        files = render.render_site(site, repo_url=settings.graph_repo_url, api_url=settings.api_url)
     except (model.SiteError, ValueError) as exc:
         sys.stdout.write(json.dumps({"ok": False, "error": str(exc)}) + "\n")
         sys.stderr.write(f"opn-site: nothing written: {exc}\n")

@@ -67,6 +67,9 @@ jobs:
         if: steps.stale.outputs.deploy == 'true'
         env:
           PYTHONPATH: gate:site
+          # F04-T9: the api origin the Frontier page links /claims.json on. The repository variable
+          # api-deploy already uses; unset, it is empty and the page draws no link (C7).
+          OPN_SITE_API_URL: ${{ vars.OPN_API_URL }}
         run: |
           set -euo pipefail
           uv sync --frozen --quiet

@@ -3,6 +3,11 @@
 ``OPN_SITE_GRAPH_REPO_URL``
     The graph repository every page links files into at the rendered commit (F04-R2).
     Default: the Stage 0 graph under the founder's account (D-35, conventions §1).
+
+``OPN_SITE_API_URL``
+    The network service's origin, so the Frontier page can link its live ``/claims.json``
+    (F04-T9). Unset or blank: no default, because nothing here knows a hostname; the page still
+    says its claims are the products' snapshot and draws no link (C7).
 """
 
 from __future__ import annotations
@@ -16,8 +21,13 @@ DEFAULT_GRAPH_REPO_URL = "https://github.com/thisisanameforsure/open_proof_netwo
 @dataclass(frozen=True)
 class Settings:
     graph_repo_url: str = DEFAULT_GRAPH_REPO_URL
+    api_url: str | None = None
 
 
 def load(environ: dict[str, str] | None = None) -> Settings:
     env = os.environ if environ is None else environ
-    return Settings(graph_repo_url=env.get("OPN_SITE_GRAPH_REPO_URL", DEFAULT_GRAPH_REPO_URL))
+    api_url = env.get("OPN_SITE_API_URL", "").strip() or None
+    return Settings(
+        graph_repo_url=env.get("OPN_SITE_GRAPH_REPO_URL", DEFAULT_GRAPH_REPO_URL),
+        api_url=api_url,
+    )

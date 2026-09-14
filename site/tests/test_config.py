@@ -24,6 +24,19 @@ def test_repo_url_comes_from_the_environment_only() -> None:
     assert unrelated.graph_repo_url == config.DEFAULT_GRAPH_REPO_URL
 
 
+def test_api_url_comes_from_the_environment_and_has_no_default() -> None:
+    """T9: the service's origin is config with no default, since nothing here knows a hostname;
+    unset and blank both mean "no service to link" (site-deploy passes an unset repository
+    variable as an empty string)."""
+    assert config.load({}).api_url is None
+    assert config.load({"OPN_SITE_API_URL": ""}).api_url is None
+    assert config.load({"OPN_SITE_API_URL": "  "}).api_url is None
+    assert config.load({"OPN_SITE_API_URL": "https://api.example/"}).api_url == (
+        "https://api.example/"
+    )
+    assert config.load({"OPN_API_URL": "https://api.example"}).api_url is None
+
+
 def test_trailing_slash_on_repo_url_does_not_double_up_in_links(tmp_path: Path) -> None:
     root = fixture.build(tmp_path)
     site = model.load_site(root, fixture.COMMIT)
