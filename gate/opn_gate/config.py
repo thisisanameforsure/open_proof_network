@@ -68,7 +68,8 @@ DEFAULT_RUNNER: Runner = "local"
 DEFAULT_LOG_LEVEL = "INFO"
 DEFAULT_ELAN_HOME = Path.home() / ".elan"
 DEFAULT_DIAGNOSTIC_MAX_BYTES = 8192
-DEFAULT_LISTED_TARGETS_MAX = 5  # F11-R9 §6: the Stage 0 count, config rather than a constant
+#: F11-R9 §6's count, config rather than a constant; F14-R12 raised the default from 5 for wave one.
+DEFAULT_LISTED_TARGETS_MAX = 64
 DEFAULT_LEAN_PKG_BIN = Path(__file__).resolve().parents[1] / "lean" / ".lake" / "build" / "bin"
 DEFAULT_MATHLIB_HOME = Path.home() / ".opn" / "mathlib"  # F11-R6: one checkout per pinned sha
 DEFAULT_QA_ATTEMPT_BUDGET_S = 60.0  # F12 §6: per screen attempt, provisional (F12-Q4)

@@ -528,4 +528,22 @@ def generate(
     products.files[Path("info.json")] = schemas.canonical_json(
         schemas.validate(info_doc(graph_root, products.targets, rendered_from), INFO_SCHEMA)
     )
+    notices = notices_text(products.targets)
+    if notices is not None:
+        products.files[Path(intake.NOTICES_FILE)] = notices
     return products
+
+
+def notices_text(targets: list[TargetGraph]) -> bytes | None:
+    """F14-R12: ``THIRD_PARTY_NOTICES.md`` rendered from every target record's licensed sources,
+    sorted by target id — rebuildable from the graph (D-35) instead of appended by an import whose
+    branch could never merge it (F11-Q26). ``None`` when no statement was copied in, so a graph
+    with no imports gains no file."""
+    entries: list[str] = []
+    for tg in sorted(targets, key=lambda t: t.target_id):
+        doc = intake.load_doc(tg.path)
+        if doc is not None:
+            entries.extend(intake.notices_entries(tg.target_id, doc))
+    if not entries:
+        return None
+    return intake.render_notices(entries).encode("utf-8")

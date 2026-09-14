@@ -124,9 +124,9 @@ LATER = "2026-09-12T00:00:00Z"
 
 
 def generate(root: Path) -> dict[str, Any]:
-    """The products, as documents keyed by path."""
+    """The JSON products, as documents keyed by path (F14-R12 adds a Markdown one, the notices)."""
     prod = products.generate(root, rendered_from="5" * 40, commit_time="2026-09-11T00:00:00Z")
-    return {p.as_posix(): json.loads(data) for p, data in prod.files.items()}
+    return {p.as_posix(): json.loads(data) for p, data in prod.files.items() if p.suffix == ".json"}
 
 
 def index_row(root: Path, target_id: str) -> dict[str, Any]:
@@ -405,7 +405,10 @@ def test_import_licence_gate(tmp_path: Path) -> None:
     assert header is not None and "Copyright 2026" in header
     assert header in copied, "the upstream copyright header did not survive the import"
 
-    notices = (root / intake.NOTICES_FILE).read_text(encoding="utf-8")
+    assert not (root / intake.NOTICES_FILE).exists(), "an import writes only its target (F14-R12)"
+    schemas.publish(root)
+    rendered = products.generate(root, rendered_from="5" * 40, commit_time=LATER)
+    notices = rendered.files[Path(intake.NOTICES_FILE)].decode("utf-8")
     assert ATTRIBUTION in notices and "Apache-2.0" in notices and FC_REPO in notices
 
 
@@ -443,11 +446,75 @@ def test_the_stage_0_count_is_a_refusal_not_a_flag(tmp_path: Path) -> None:
     import_fc(root, target_id="fc-43", listed_max=2)
 
 
-def test_the_notice_file_is_appended_never_rewritten(tmp_path: Path) -> None:
-    """R9: a notice is a licence obligation, so it outlives the import that added it."""
-    root = copy_graph(tmp_path)
-    import_fc(root, target_id="fc-42")
+def test_notices_are_rendered_from_the_records(tmp_path: Path) -> None:
+    """F14-AC12, R12: the notices are a product of the target records — one entry per licensed
+    source, sorted by target id whatever order the imports came in — and a graph with no
+    imports gains no file (so every pre-F14 product golden is unchanged)."""
+    root = copy_graph(tmp_path, publish=True)
+
+    def files() -> dict[Path, bytes]:
+        return products.generate(root, rendered_from="5" * 40, commit_time=LATER).files
+
+    assert Path(intake.NOTICES_FILE) not in files()
     import_fc(root, target_id="fc-43")
-    notices = (root / intake.NOTICES_FILE).read_text(encoding="utf-8")
-    assert notices.count("## fc-4") == 2
-    assert notices.startswith("# Third-party notices")
+    import_fc(root, target_id="fc-42")
+    notices = files()[Path(intake.NOTICES_FILE)].decode("utf-8")
+    assert notices.startswith(intake.NOTICES_HEAD.rstrip("\n") + "\n\n## fc-42\n")
+    assert notices.index("## fc-42") < notices.index("## fc-43") and notices.endswith("\n")
+    assert notices.count("## fc-4") == 2 and not notices.endswith("\n\n")
+
+
+def test_import_writes_only_its_target(tmp_path: Path) -> None:
+    """F14-AC12: every file an import writes is under its own target, so its pull request is
+    one target and nothing the gate refuses (F11-Q26)."""
+    root = copy_graph(tmp_path)
+    before = {p.relative_to(root) for p in root.rglob("*") if p.is_file()}
+    import_fc(root)
+    after = {p.relative_to(root) for p in root.rglob("*") if p.is_file()}
+    assert after - before and all(p.parts[:2] == ("targets", "fc-42") for p in after - before)
+    assert after >= before
+
+
+def test_import_carries_ported_definitions(tmp_path: Path) -> None:
+    """F14-R12: ``import-fc --defs`` brings a statement's file-local definitions in as the
+    target's defs/, each a fidelity subject admitted with the root (F11-R2)."""
+    root = copy_graph(tmp_path)
+    defs = tmp_path / "ported"
+    defs.mkdir()
+    (defs / "Primes.lean").write_text("def Opn.IsPrime (p : Nat) : Prop := 2 ≤ p\n")
+    import_fc(root, defs_dir=defs)
+    target = root / "targets" / "fc-42"
+    assert (target / "defs" / "Primes.lean").is_file()
+    assert sorted(fidelity.subjects_of(target)) == ["Primes", "root"]
+
+
+LIVE_NOTICES = Path(__file__).resolve().parent / "golden" / "notices" / "THIRD_PARTY_NOTICES.md"
+
+
+def test_the_renderer_reproduces_the_live_notices_format() -> None:
+    """F14-AC12: the graph's notices file as F11's appends left it (copied 2026-09-14): its head is
+    ours byte for byte, and each entry is exactly what the renderer produces from its fields, so
+    the first rendering changes only the order (sorted by target id)."""
+    text = LIVE_NOTICES.read_text(encoding="utf-8")
+    head, *blocks = text.split("\n\n## ")
+    assert head + "\n" == intake.NOTICES_HEAD.rstrip("\n") + "\n"
+    entries = []
+    for block in blocks:
+        target_id, _, rest = block.partition("\n\n")
+        fields = dict(line[2:].split(": ", 1) for line in rest.strip("\n").splitlines())
+        repo, url = fields["upstream"].split(" (", 1)
+        entry = intake.notices_entry(
+            target_id=target_id,
+            repo=repo,
+            url=url.rstrip(")"),
+            licence=fields["licence"],
+            attribution=fields["attribution"],
+        )
+        assert "## " + block.rstrip("\n") + "\n" == entry, target_id
+        entries.append(entry)
+    assert len(entries) == 5
+    assert intake.github_repo(url.rstrip(")")) == "google-deepmind/formal-conjectures"
+    sorted_text = intake.render_notices(sorted(entries))
+    rendered_blocks = [b.rstrip("\n") for b in sorted_text.split("\n\n## ")[1:]]
+    assert sorted(rendered_blocks) == sorted(b.rstrip("\n") for b in blocks)
+    assert sorted_text.endswith("\n") and not sorted_text.endswith("\n\n")

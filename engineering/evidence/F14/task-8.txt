@@ -1,0 +1,23 @@
+F14-T8 — the notices product, import-fc --defs, the listed-target cap (R12)
+worktree: /Users/mikehiggins/Desktop/repos/opn-f14 at 2a33d44 + T8 changes
+command: make verify
+2026-09-14T14:37:39Z
+
+
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:29
+  /Users/mikehiggins/Desktop/repos/opn-f14/api/tests/api_fakes.py:29: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-f14/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========= 2081 passed, 69 deselected, 2 warnings in 149.36s (0:02:29) ==========
+
+Live check (read-only, the new renderer over ../open_proof_network_graph's own target records):
+targets with a notice entry: ['erdos-172', 'erdos-376', 'erdos-406', 'erdos-52', 'erdos-68']
+head identical: True
+entry blocks identical as a set: True
+byte-identical file: False (expected False: the live order is import order)

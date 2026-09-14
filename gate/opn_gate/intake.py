@@ -579,21 +579,47 @@ def notices_entry(*, target_id: str, repo: str, url: str, licence: str, attribut
     )
 
 
-def write_notice(graph_root: Path, entry: str) -> str:
-    """R9: the attribution goes in the graph's third-party notice file, appended never rewritten.
+#: The notices file's opening, as the live graph carries it (F11-R9), kept byte for byte so the
+#: rendered product reproduces the file it replaces (F14-R12).
+NOTICES_HEAD = (
+    "# Third-party notices\n\n"
+    "Statements copied into this graph from elsewhere, with the licence that permitted it "
+    "and the attribution it requires (D-10, F11-R9). Append-only.\n"
+)
 
-    A notice is a licence obligation, so it outlives the target it was added for: nothing here
-    removes an entry, and a re-import of the same target is a refusal upstream of this.
-    """
-    path = graph_root / NOTICES_FILE
-    head = (
-        "# Third-party notices\n\n"
-        "Statements copied into this graph from elsewhere, with the licence that permitted it "
-        "and the attribution it requires (D-10, F11-R9). Append-only.\n"
-    )
-    existing = path.read_text(encoding="utf-8") if path.is_file() else head
-    path.write_text(existing.rstrip("\n") + "\n\n" + entry, encoding="utf-8")
-    return NOTICES_FILE
+
+def github_repo(url: str) -> str:
+    """``owner/name`` for a GitHub url, else the url's host: the ``upstream`` a notice names."""
+    from urllib.parse import urlparse  # noqa: PLC0415 — only the notices need it
+
+    parsed = urlparse(url)
+    parts = [p for p in parsed.path.split("/") if p]
+    if parsed.netloc == "github.com" and len(parts) >= 2:  # owner and name
+        return f"{parts[0]}/{parts[1]}"
+    return parsed.netloc or url
+
+
+def notices_entries(target_id: str, doc: dict[str, Any]) -> list[str]:
+    """F14-R12: the notice entries a target record owes — one per source whose licence let a
+    statement be copied in. A source that states no licence was cited, never copied (R10), and
+    owes none."""
+    return [
+        notices_entry(
+            target_id=target_id,
+            repo=github_repo(str(source["url"])),
+            url=str(source["url"]),
+            licence=str(source["licence"]),
+            attribution=str(source["attribution"]),
+        )
+        for source in doc.get("sources") or []
+        if source.get("licence") in LICENCE_ALLOWLIST
+    ]
+
+
+def render_notices(entries: list[str]) -> str:
+    """The notices file for ``entries``, in the shape F11-R9's appends produced: the head, then
+    each entry after one blank line, ending in one newline."""
+    return NOTICES_HEAD.rstrip("\n") + "".join("\n\n" + e.rstrip("\n") for e in entries) + "\n"
 
 
 @dataclass(frozen=True)
@@ -668,6 +694,7 @@ def import_fc(  # noqa: PLR0913 — one argument per fact the import records
     base: dict[str, Any],
     witness: str,
     statement: str | None = None,
+    defs_dir: Path | None = None,
     repo: str,
     url: str,
     licence: str,
@@ -752,20 +779,16 @@ def import_fc(  # noqa: PLR0913 — one argument per fact the import records
         target_id,
         doc=doc,
         root_dir=staged,
+        defs_dir=defs_dir,  # F14-R12: ported definitions, admitted with the root (F11-R2)
         spec_template=spec_template,
         checker=checker,
         author=author,
         date=date,
     )
-    notice = write_notice(
-        graph_root,
-        notices_entry(
-            target_id=target_id,
-            repo=repo,
-            url=url,
-            licence=licence,
-            attribution=attribution,
-        ),
+    # F14-R12: the notice is rendered by the products from the record's sources; the import
+    # writes nothing outside its own target, so its branch always merges (F11-Q26).
+    notice = notices_entry(
+        target_id=target_id, repo=repo, url=url, licence=licence, attribution=attribution
     )
     written_evidence: tuple[str, ...] = ()
     if evidence_catalog is not None and evidence_key is not None and network_commit is not None:

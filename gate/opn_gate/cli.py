@@ -339,6 +339,7 @@ def _add_import_parser(acts: argparse._SubParsersAction[argparse.ArgumentParser]
     imp.add_argument("--from", dest="record", required=True, type=Path, help="the curator's half")
     imp.add_argument("--witness", required=True, type=Path, help="the root's Witness.lean")
     imp.add_argument("--statement", type=Path, help="the statement adapted to D-3's shape")
+    imp.add_argument("--defs", type=Path, help="ported definitions: the target's defs/ (F14-R12)")
     imp.add_argument("--path", dest="rel_path", help="the file's path in the upstream repository")
     imp.add_argument("--repo", required=True, help="the upstream repository, e.g. owner/name")
     imp.add_argument("--url", required=True, help="where the file can be read upstream")
@@ -1809,6 +1810,7 @@ def run_import_fc(args: argparse.Namespace, settings: config.Settings, graph: Pa
         base=base,
         witness=_read_flag_file(args.witness, "--witness"),
         statement=(_read_flag_file(args.statement, "--statement") if args.statement else None),
+        defs_dir=args.defs.resolve() if args.defs else None,
         repo=args.repo,
         url=args.url,
         licence=args.licence,
@@ -1824,7 +1826,7 @@ def run_import_fc(args: argparse.Namespace, settings: config.Settings, graph: Pa
         network_commit=args.network_commit,
     )
     doc: dict[str, Any] = {"ok": True, **result.as_dict()}
-    doc["written"] = [*doc.get("written", []), result.notice]
+    doc["written"] = [*doc.get("written", []), *result.evidence]
     return _emit_curator(doc, graph, args.branch, f"intake: import {args.target_id}")
 
 
