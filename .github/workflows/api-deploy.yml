@@ -12,6 +12,8 @@ on:
       - "api/**"
       - "gate/opn_gate/schemas.py"
       - "gate/schemas/**"
+      - "gate/hosted-checkers.yaml"  # F13: POST /check reads it at runtime
+      - "gate/opn_gate/hosted.py"
       - "pyproject.toml"
       - "uv.lock"
       - ".github/workflows/api-deploy.yml"

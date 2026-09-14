@@ -69,7 +69,7 @@ def api_error(status: int, code: str, message: str, **kwargs: Any) -> Exception:
     return ApiError(status, code, message, **kwargs)
 
 
-def mapping(ctx: Context | None = None) -> dict[str, hosted.Hosted]:
+def mapping(ctx: Context | None = None) -> hosted.HostedMapping:
     """The shared mapping (``opn_gate.hosted``), or a 503 naming the file: a package without it
     must not look like a pin with no checker (F13-T4)."""
     try:
@@ -143,7 +143,7 @@ def hosted_for(ctx: Context, target_id: str) -> tuple[str | None, hosted.Hosted 
         raise api_error(404, "target-unknown", f"{target_id} is not a target of this graph")
     spec = json.loads(frontier.committed(ctx, f"targets/{target_id}/gate-spec.json"))
     sha = spec.get("mathlib_sha")
-    return sha, mapping().get(sha) if isinstance(sha, str) else None
+    return sha, hosted.lookup(mapping(), sha if isinstance(sha, str) else None)
 
 
 def statement_of(ctx: Context, target_id: str, node_id: str) -> layout.Statement | None:
@@ -450,11 +450,11 @@ async def get_hosted_checkers(ctx: Context, request: Request) -> Response:
     """R11 (Q12): the mapping as data, and each listed target's pin and environment, so an agent
     learns before its first check which targets have a hosted checker and how exact it is. A read
     of network configuration, not of the graph; ``info.json`` stays the graph's product."""
-    pins = mapping()
+    known = mapping()
     targets: dict[str, dict[str, Any]] = {}
     for entry in precheck.index_doc(ctx).get("targets", []):
         sha = entry.get("mathlib_sha")
-        found = pins.get(sha) if isinstance(sha, str) else None
+        found = hosted.lookup(known, sha if isinstance(sha, str) else None)
         targets[str(entry["target_id"])] = {
             "mathlib_sha": sha,
             "environment": found.environment if found is not None else None,
@@ -466,7 +466,8 @@ async def get_hosted_checkers(ctx: Context, request: Request) -> Response:
             "service": SERVICE,
             "endpoint": "POST /check",
             "authoritative": False,
-            "pins": {sha: asdict(entry) for sha, entry in sorted(pins.items())},
+            "pins": {sha: asdict(entry) for sha, entry in sorted(known.pins.items())},
+            "core": asdict(known.core) if known.core is not None else None,
             "targets": dict(sorted(targets.items())),
         }
     )

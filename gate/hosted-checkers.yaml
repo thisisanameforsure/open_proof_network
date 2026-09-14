@@ -8,6 +8,15 @@
 # before adding an entry, and record the probe in the task's evidence.
 schema: hosted-checkers/v1
 service: axle
+# F13-Q9 (Mike, 2026-09-14): a graph that pins no Mathlib (the tutorial) is checked too. Every
+# AXLE environment substitutes `import Mathlib`; the tutorial's proof passes, a broken one fails
+# with its error, and its hole checks alike (probed 2026-09-14, evidence task-9.txt).
+core:
+  environment: lean-4.33.0
+  exact: false
+  note: >-
+    a Lean-core-only statement is checked under the environment's `import Mathlib` header, so a
+    name Mathlib also defines could elaborate differently there than in the gate
 pins:
   0df444a360eaa60ab8c11dca51a86af692955474:
     mathlib_tag: v4.33.1

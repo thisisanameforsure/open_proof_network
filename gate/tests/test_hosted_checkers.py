@@ -155,14 +155,30 @@ def test_the_shared_loader_reads_the_committed_mapping() -> None:
     doc = yaml.safe_load(CHECKERS.read_text(encoding="utf-8"))
     mapping = hosted.load()
     assert hosted.MAPPING_PATH == CHECKERS
-    assert set(mapping) == set(doc["pins"])
+    assert set(mapping.pins) == set(doc["pins"])
     for sha, entry in doc["pins"].items():
-        got = mapping[sha]
+        got = mapping.pins[sha]
         assert (got.mathlib_tag, got.environment, got.exact) == (
             entry["mathlib_tag"],
             entry["environment"],
             entry["exact"],
         )
+        assert hosted.lookup(mapping, sha) == got
+    # Q9: the core entry serves a graph that pins no Mathlib, and says why it is not exact.
+    assert mapping.core is not None and doc["core"]["environment"] == mapping.core.environment
+    assert mapping.core.exact is False and mapping.core.note and mapping.core.mathlib_tag is None
+    assert hosted.lookup(mapping, None) == mapping.core
+    assert hosted.lookup(mapping, "1" * 40) is None
+
+
+def test_a_mapping_without_a_core_entry_serves_no_core_target(tmp_path: Path) -> None:
+    """Q9: the core entry is optional; without it a Lean-core-only target has no checker."""
+    from opn_gate import hosted  # noqa: PLC0415
+
+    path = tmp_path / "hosted-checkers.yaml"
+    path.write_text("schema: hosted-checkers/v1\nservice: axle\npins: {}\n", encoding="utf-8")
+    loaded = hosted.load(path)
+    assert loaded.core is None and hosted.lookup(loaded, None) is None
 
 
 @pytest.mark.parametrize(
@@ -172,6 +188,7 @@ def test_the_shared_loader_reads_the_committed_mapping() -> None:
         ("- a list\n", "is not hosted-checkers/v1"),
         ("schema: hosted-checkers/v1\nservice: elsewhere\n", "names service 'elsewhere'"),
         ("schema: hosted-checkers/v1\nservice: axle\npins:\n  abc: 3\n", "is not a mapping"),
+        ("schema: hosted-checkers/v1\nservice: axle\ncore: lean-4.33.0\n", "for core is not"),
         ("schema: [unclosed\n", "hosted-checkers.yaml"),
     ],
 )

@@ -74,7 +74,8 @@ D-28, D-35, D-36.</p>
   <tr><td>F13-R2</td><td>The system shall keep <code>gate/hosted-checkers.yaml</code>
     (<code>hosted-checkers/v1</code>) with exactly one entry per pinned sha: the tag, the hosted
     environment or <code>null</code>, whether it is <code>exact</code>, and a note saying what differs
-    when it is not.</td></tr>
+    when it is not; and at most one <code>core</code> entry, the environment for a graph that pins no
+    Mathlib (Q9).</td></tr>
   <tr><td>F13-R3</td><td>When <code>POST /check</code> receives {target_id, node_id?, content, mode ∈
     {check, verify}}, the system shall resolve the target's <code>mathlib_sha</code> from its
     gate-spec, map it to an environment, and forward the content to AXLE's <code>check</code>, or in
@@ -242,12 +243,15 @@ D-28, D-35, D-36.</p>
     a lease in the store or reserved concurrency on the function; neither is built until T7's smoke or
     the first week's log shows AXLE refusing us (429s appear in the log as
     <code>upstream-unavailable</code> with their status).</td></tr>
-  <tr><td>F13-Q9</td><td>A Mathlib-free graph is refused <code>no-hosted-environment</code>, as R7
-    reads. This includes the tutorial node, the first node an agent meets. Every hosted environment
-    imports all of Mathlib, and a core-only statement is not guaranteed to mean the same under it
-    (names can collide), so forwarding it would answer a different question. The alternative, an
-    entry keyed by toolchain for core-only graphs, is one mapping line if Mike wants the tutorial
-    fast-checkable.</td></tr>
+  <tr><td>F13-Q9</td><td><strong>DECIDED 2026-09-14 (Mike): the tutorial is fast-checkable.</strong>
+    T3 refused a Mathlib-free graph <code>no-hosted-environment</code>, which shut out the tutorial
+    node, the first node an agent meets, because every hosted environment imports all of Mathlib and
+    a core-only statement is not guaranteed to mean the same under it. T9 adds one optional
+    <code>core</code> entry to the mapping, used when a target pins no Mathlib, marked
+    <code>exact: false</code> with a note naming that risk. Probed live before building: the
+    tutorial's proof passes under <code>lean-4.33.0</code>, a broken one fails with its type error,
+    and a tutorial hole checks alike (<code>engineering/evidence/F13/task-9.txt</code>). Without the
+    entry a core-only target is still refused, as before.</td></tr>
   <tr><td>F13-Q10</td><td><code>POST /check</code> refuses an unknown top-level key
     (<code>unknown-field</code>) from its first commit, which finding 5 asks of every write route.
     It first did so in its own parser, with the finding's strict expected failure marked per route so
@@ -302,7 +306,10 @@ D-28, D-35, D-36.</p>
   · T6 ✓ 2026-09-14 (<code>uv run pytest api/tests/test_mcp_surface.py api/tests/test_mcp_equivalence.py</code>;
   <code>check_lean</code> declared anonymous through its endpoint, its bijection row, result schema and
   equivalence row; <code>engineering/evidence/F13/task-6.txt</code>)
-  · T7, T8 wait on Mike's call to deploy <code>POST /check</code> (held off <code>main</code>)</div>
+  · T9 ✓ 2026-09-14 (<code>uv run pytest gate/tests/test_hosted_checkers.py api/tests/test_checks.py site/tests/test_fast_check.py</code>;
+  the <code>core</code> entry so the tutorial is fast-checkable, Q9 decided; api-deploy also runs on a
+  mapping change; <code>engineering/evidence/F13/task-9.txt</code>)
+  · T7, T8 todo: Mike approved the deploy 2026-09-14</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its
@@ -361,6 +368,15 @@ one verification command (conventions §3, §6).</p>
     <td><code>gate/agents/AGENTS.md</code>, <code>../open_proof_network_graph/AGENTS.md</code>,
     <code>gate/tests/test_walkthrough.py</code></td>
     <td>T7</td><td><code>uv run pytest gate/tests/test_walkthrough.py</code></td></tr>
+  <tr><td>F13-T9</td><td>The tutorial is fast-checkable (Q9): an optional <code>core</code> entry in
+    the mapping for a graph that pins no Mathlib, read through <code>hosted.lookup</code> by the route,
+    <code>GET /hosted-checkers.json</code> and the site; api-deploy runs on a mapping change.</td>
+    <td><code>gate/hosted-checkers.yaml</code>, <code>gate/opn_gate/hosted.py</code>,
+    <code>gate/tests/test_hosted_checkers.py</code>, <code>api/opn_api/checks.py</code>,
+    <code>api/tests/test_checks.py</code>, <code>site/opn_site/render.py</code>,
+    <code>site/tests/test_fast_check.py</code>, <code>site/tests/golden/targets/propositional/index.html</code>,
+    <code>.github/workflows/api-deploy.yml</code></td>
+    <td>T5</td><td><code>uv run pytest gate/tests/test_hosted_checkers.py api/tests/test_checks.py site/tests/test_fast_check.py</code></td></tr>
 </table>
 
 <footer>Open Proof Network · F13 spec v1 · 2026-09-14</footer>

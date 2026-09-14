@@ -373,16 +373,13 @@ class Renderer:
         """F13-R11: the hosted checker serving this target's Mathlib pin, from the network's
         configuration (``opn_gate.hosted``), never from the graph. The check is ``POST /check``;
         its answer carries no authority (D-4 v3.14)."""
-        if sha is None:
-            return (
-                "none: this target uses Lean core only, and every hosted environment imports "
-                "all of Mathlib"
-            )
         try:
-            found = hosted.load().get(sha)
+            found = hosted.lookup(hosted.load(), sha)
         except hosted.MappingError:
             return "unknown: the hosted-checker mapping could not be read"
         if found is None or found.environment is None:
+            if sha is None:
+                return "none: no hosted environment serves a Lean-core-only target"
             return "none: no hosted environment serves this Mathlib pin"
         if found.exact:
             return f"{found.environment} on AXLE (exact)"

@@ -1,0 +1,11 @@
+F13-T9 — the tutorial is fast-checkable: a core entry in the mapping (Q9, Mike 2026-09-14)
+Probe run 2026-09-14T11:01:46Z, keyless, against https://axle.axiommath.ai/api/v1/, environment lean-4.33.0,
+with the live graph's targets/tutorial/nodes files (graph 578454e). Each line: okay, first Lean error, first tool error, first tool info.
+
+check proof       (True, [], [], ['Imports mismatch detected. Overriding with default header. If this behavior is not desired, please turn `ignoreImports` off. Default header:\n\nimport Mathlib\n'])
+check broken      (False, ['-:7:9-7:12: error: Application type mismatch: The argument\n  h.left\nhas type\n  p\nbut is expected to have type\n  q\nin the application\n  And.intro h.left\n'], [], ['Imports mismatch detected. Overriding with default header. If this behavior is not desired, please turn `ignoreImports` off. Default header:\n\nimport Mathlib\n'])
+verify proof      (True, [], [], ['Imports mismatch detected. Overriding with default header. If this behavior is not desired, please turn `ignoreImports` off. Default header:\n\nimport Mathlib\n'])
+verify broken     (False, ['-:7:9-7:12: error: Application type mismatch: The argument\n  h.left\nhas type\n  p\nbut is expected to have type\n  q\nin the application\n  And.intro h.left\n'], [], ['Imports mismatch detected. Overriding with default header. If this behavior is not desired, please turn `ignoreImports` off. Default header:\n\nimport Mathlib\n'])
+check hole h2     (True, [], [], ['Imports mismatch detected. Overriding with default header. If this behavior is not desired, please turn `ignoreImports` off. Default header:\n\nimport Mathlib\n'])
+
+Reading: the tutorial statement has no imports; AXLE substitutes import Mathlib (the info line), and OpnProp.and_swap elaborates there. The committed proof passes check and verify_proof; swapping the components fails both with the type error at 7:9; the h2 hole's statement with a proof checks. So core-only statements are forwarded, marked exact: false with a note naming the one risk (a name Mathlib also defines).

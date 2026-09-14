@@ -166,13 +166,11 @@ def test_refusals_are_named_and_logged() -> None:
         assert h.store.checks[doc["details"]["log_id"]].outcome == code
     assert h.axle.calls == []
 
-    seed(h, sha=None)  # a Mathlib-free graph, like the tutorial's (Q9)
+    seed(h, sha="1" * 40)  # a pin the mapping does not list
     doc = refused(post(h, base), 422, "no-hosted-environment")
-    assert doc["details"]["mathlib_sha"] is None and "Mathlib-free" in doc["message"]
+    assert doc["details"]["mathlib_sha"] == "1" * 40 and "1" * 40 in doc["message"]
     record = h.store.checks[doc["details"]["log_id"]]
     assert (record.outcome, record.environment) == ("no-hosted-environment", None)
-    seed(h, sha="1" * 40)  # a pin the mapping does not list
-    refused(post(h, base), 422, "no-hosted-environment")
     assert h.axle.calls == []
 
     failing = FakeAxle(replies=[AxleError("AXLE check returned 503", status=503)])
@@ -318,7 +316,7 @@ def test_a_new_application_never_inherits_an_old_cap() -> None:
 
 def test_hosted_checkers_route_publishes_the_mapping() -> None:
     """AC9, R11, Q12: open, the committed mapping as data, and each listed target's pin and
-    environment from targets/index.json; a Mathlib-free target maps to none."""
+    environment from targets/index.json; a Mathlib-free target maps to the core entry (Q9)."""
     h = harness_with()
     r = h.client.get("/hosted-checkers.json")
     assert r.status_code == 200, r.text
@@ -330,10 +328,11 @@ def test_hosted_checkers_route_publishes_the_mapping() -> None:
         False,
     )
     assert doc["pins"][PIN]["environment"] == "lean-4.33.0" and doc["pins"][PIN]["exact"] is False
+    assert doc["core"]["environment"] == "lean-4.33.0" and doc["core"]["mathlib_tag"] is None
     assert doc["targets"]["propositional"] == {
         "mathlib_sha": None,
-        "environment": None,
-        "exact": None,
+        "environment": "lean-4.33.0",
+        "exact": False,
     }
 
 
@@ -342,7 +341,7 @@ def test_an_unreadable_mapping_is_a_named_503(monkeypatch: pytest.MonkeyPatch) -
     pin with no checker."""
     from opn_gate import hosted  # noqa: PLC0415
 
-    def broken(path: Any = None) -> dict[str, hosted.Hosted]:
+    def broken(path: Any = None) -> hosted.HostedMapping:
         msg = "hosted-checkers.yaml is not hosted-checkers/v1"
         raise hosted.MappingError(msg)
 
@@ -354,6 +353,26 @@ def test_an_unreadable_mapping_is_a_named_503(monkeypatch: pytest.MonkeyPatch) -
     )
     assert "hosted-checkers.yaml" in doc["message"]
     refused(h.client.get("/hosted-checkers.json"), 503, "hosted-checkers-unreadable")
+
+
+def test_a_core_only_target_is_checked_in_the_core_environment() -> None:
+    """Q9 (Mike, 2026-09-14): a graph that pins no Mathlib — the tutorial — is forwarded to the
+    mapping's core environment, and the answer says it is not exact and why."""
+    from opn_gate import hosted  # noqa: PLC0415
+
+    h = harness_with()
+    seed(h, sha=None)
+    r = post(h, {"target_id": TARGET, "node_id": NODE, "content": PROOF, "mode": "verify"})
+    assert r.status_code == 200, r.text
+    core = hosted.load().core
+    assert core is not None
+    doc = r.json()
+    assert (doc["environment"], doc["exact"], doc["note"]) == (core.environment, False, core.note)
+    assert (h.axle.calls[-1].method, h.axle.calls[-1].environment) == (
+        "verify_proof",
+        core.environment,
+    )
+    assert h.store.checks[doc["log_id"]].environment == core.environment
 
 
 class Blocking(FakeAxle):
