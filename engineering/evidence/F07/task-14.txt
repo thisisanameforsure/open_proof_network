@@ -1,0 +1,82 @@
+F07-T14 · attestations carry the submission (R13; D-23, D-34, D-5) · red run before any production change
+worktree of f80151b, branch f07-t14, 2026-09-14T04:51:43Z
+
+$ uv run --frozen pytest gate/tests/test_finding_attestation_drops_submission.py --runxfail -q
+E       AssertionError: None
+E       assert None == 'euclid-tester-7c2'
+E       AssertionError: None
+E       assert None == 'euclid-tester-7c2'
+E       AssertionError: assert ['precheck_attestation'] == []
+E       AssertionError: None
+E       assert None == 'octocat'
+E       AssertionError: {'identical': False, 'differing_fields': ['model_and_tooling', 'precheck_attestation', 'submitter', 'tooling']}
+E       assert {'identical':...', 'tooling']} == {'identical':...g_fields': []}
+FAILED gate/tests/test_finding_attestation_drops_submission.py::test_the_gate_run_records_the_submission_block
+FAILED gate/tests/test_finding_attestation_drops_submission.py::test_postmerge_records_the_block_and_the_consumed_precheck
+FAILED gate/tests/test_finding_attestation_drops_submission.py::test_the_gate_run_and_the_post_merge_record_agree_once_step_9_is_masked
+FAILED gate/tests/test_finding_attestation_drops_submission.py::test_a_hand_opened_merge_names_the_login_as_submitter
+FAILED gate/tests/test_finding_attestation_drops_submission.py::test_reproduce_compare_copies_the_declared_fields
+5 failed in 8.55s
+
+--- green, after the change (same command, marks still ignored) ---
+$ uv run --frozen pytest gate/tests/test_finding_attestation_drops_submission.py --runxfail -q
+5 passed in 9.33s
+
+--- the change ---
+gate/opn_gate/submission.py  tooling(doc): the attestation's {model, harness} from the opn-submission block
+gate/opn_gate/bounce.py      consumed(pr_body): hash and signature kind of the attached precheck block,
+                             the digest evaluate() takes, with no rule re-applied at post-merge (Q21)
+gate/opn_gate/cli.py         run_gate builds with the block and falls back to OPN_PR_AUTHOR;
+                             run_postmerge reads --pr-body-file for every mode, records the consumed
+                             precheck before the pipeline, builds with the block, falls back to --author;
+                             run_reproduce copies DECLARED_FIELDS from the committed record after step 9
+                             (with_declared, declare_submitter)
+The strict xfail marks came off the five finding tests; gate/tests/test_declared_fields.py adds 15 edge
+cases for the helpers (absent and malformed blocks, partial tooling, a schema-invalid login, no mutation).
+
+$ uv run --frozen pytest gate/tests/test_declared_fields.py -q
+15 passed
+$ uv run --frozen pytest gate/tests/test_attestation.py gate/tests/test_bounce.py gate/tests/test_cli_sandboxed.py gate/tests/test_postmerge.py gate/tests/test_postmerge_apply.py -m "not lean and not docker and not network" -q
+92 passed, 1 xfailed   (the xfail is F07-T7's provenance-model test, not this task's)
+
+Mutation check: each mutant is a pytest plugin (-p) that monkeypatches one F07-T14 function in memory;
+the five finding tests must fail under every mutant for the reason the mutant introduces.
+
+--- mut_consumed
+FAILED gate/tests/test_finding_attestation_drops_submission.py::test_postmerge_records_the_block_and_the_consumed_precheck
+FAILED gate/tests/test_finding_attestation_drops_submission.py::test_the_gate_run_and_the_post_merge_record_agree_once_step_9_is_masked
+2 failed, 3 passed in 4.49s
+
+--- mut_with_declared
+FAILED gate/tests/test_finding_attestation_drops_submission.py::test_reproduce_compare_copies_the_declared_fields
+1 failed, 4 passed in 4.51s
+
+--- mut_declare_submitter
+FAILED gate/tests/test_finding_attestation_drops_submission.py::test_a_hand_opened_merge_names_the_login_as_submitter
+1 failed, 4 passed in 4.80s
+
+--- mut_tooling
+FAILED gate/tests/test_finding_attestation_drops_submission.py::test_the_gate_run_records_the_submission_block
+FAILED gate/tests/test_finding_attestation_drops_submission.py::test_postmerge_records_the_block_and_the_consumed_precheck
+2 failed, 3 passed in 4.11s
+
+Every finding test is killed by at least one mutant: postmerge (consumed, tooling), agree-once-masked
+(consumed), hand-opened (declare_submitter), reproduce (with_declared), gate run (tooling).
+
+--- not in this commit ---
+Spec: F07 R13 amended, AC28, Q21, the T14 row and ledger line, the index Status cell. Applied when this
+branch merges, because another session holds uncommitted edits to engineering/specs/features/F07.html.
+Graph: gate.yml hands every merge its body and author (inert on network 0e3bab6: its postmerge already
+takes --pr-body-file and --author); pushed with F07-T8. Live evidence (the first populated attestation)
+follows the re-pin.
+
+--- make verify on the branch (worktree of f80151b + this change) ---
+All checks passed!
+295 files already formatted
+Success: no issues found in 147 source files
+Success: no issues found in 83 source files
+Success: no issues found in 22 source files
+= 1692 passed, 13 skipped, 65 deselected, 79 xfailed, 2 warnings in 100.05s (0:01:40) =
+exit 0
+1692 = 1672 on f80151b + 5 finding tests un-marked + 15 helper edge cases; 79 = 84 - 5 xfails.
+The 13 skips are the tests that read the graph repo beside this one, absent from a scratch worktree.

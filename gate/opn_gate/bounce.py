@@ -78,6 +78,28 @@ def render_block(attestation: dict[str, Any]) -> str:
     return render_marked_block(MARKER, attestation)
 
 
+def consumed(pr_body: str) -> dict[str, str | None]:
+    """What the post-merge record says it consumed: the attached block's hash (the digest
+    ``evaluate`` takes) and its signature kind, or two ``None`` s when no block is attached.
+
+    No rule is applied here. The merge already passed the bounce rule when it was gated, and
+    re-evaluating it on the merge commit would refuse a merge for being older than the graph's
+    max age (F07-T14, Q21); the record only names what was attached (D-34).
+    """
+    body = extract_block(pr_body)
+    if body is None:
+        return {"hash": None, "signature_kind": None}
+    kind: str | None = None
+    try:
+        doc = json.loads(body)
+    except json.JSONDecodeError:
+        doc = None
+    signature = doc.get("signature") if isinstance(doc, dict) else None
+    if isinstance(signature, dict) and signature.get("kind") is not None:
+        kind = str(signature["kind"])
+    return {"hash": schemas.content_hash(body.encode("utf-8")), "signature_kind": kind}
+
+
 def parse_timestamp(value: str) -> datetime:
     return datetime.strptime(value, TIMESTAMP_FORMAT).replace(tzinfo=UTC)
 

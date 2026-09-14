@@ -693,6 +693,35 @@ def cache_report(ctx: RunContext, fetched: cache.FetchResult) -> dict[str, Any]:
     return report
 
 
+#: F07-R13, T14: what a submission declares rather than what the tree proves. A reproduction
+#: copies them from the committed record, as it copies step 9, because none is a function of
+#: the checked tree (D-5).
+DECLARED_FIELDS: tuple[str, ...] = (
+    "submitter",
+    "model_and_tooling",
+    "tooling",
+    "precheck_attestation",
+)
+
+
+def with_declared(reproduction: dict[str, Any], committed: dict[str, Any]) -> dict[str, Any]:
+    """The reproduction with the committed record's declared fields (D-5, F07-T14)."""
+    out = dict(reproduction)
+    for key in DECLARED_FIELDS:
+        if key in committed:
+            out[key] = committed[key]
+    return out
+
+
+def declare_submitter(doc: dict[str, Any], login: str | None) -> dict[str, Any]:
+    """R13's second clause: with no pseudonym in a submission block, the record names the
+    login that opened the pull request (``--author`` or ``OPN_PR_AUTHOR``), never nobody."""
+    if doc.get("submitter") is None and login:
+        doc = {**doc, "submitter": login}
+        schemas.validate(doc, attestation.SCHEMA)
+    return doc
+
+
 def emit(
     verdict: pipeline.Verdict,
     doc: dict[str, Any],
@@ -748,7 +777,8 @@ def run_reproduce(args: argparse.Namespace, settings: config.Settings) -> int:
     doc = attestation.build(ctx, verdict, graph_commit=commit)
     code = emit(verdict, doc, out_dir, settings)
     if committed is not None:
-        differing = attestation.compare(committed, attestation.with_step9(doc, committed))
+        reproduction = with_declared(attestation.with_step9(doc, committed), committed)
+        differing = attestation.compare(committed, reproduction)
         result = {"identical": not differing, "differing_fields": differing}
         sys.stdout.write(json.dumps(result) + "\n")
         return EXIT_PASS if not differing else EXIT_FAIL
@@ -788,7 +818,11 @@ def run_gate(args: argparse.Namespace, settings: config.Settings) -> int:
     )
     fetched = attach_cache(ctx, graph, head, out_dir)
     verdict = pipeline.run_submission(ctx, precheck=policy)
-    doc = attestation.build(ctx, verdict, graph_commit=head)
+    block = submissionmod.extract(pr_body)
+    doc = attestation.build(
+        ctx, verdict, graph_commit=head, tooling=submissionmod.tooling(block), submission=block
+    )
+    doc = declare_submitter(doc, settings.pr_author)
     return emit(verdict, doc, out_dir, settings, olean_cache=cache_report(ctx, fetched))
 
 
@@ -1045,6 +1079,7 @@ def run_postmerge(args: argparse.Namespace, settings: config.Settings) -> int:
     except ValueError as exc:
         raise CliError(str(exc)) from exc
     bodies = [_read_flag_file(p, "--approval-body-file") for p in args.approval_body_file]
+    pr_body = _read_flag_file(args.pr_body_file, "--pr-body-file") if args.pr_body_file else ""
     out_dir = _out_dir(args.out, "opn-postmerge-")
     ctx = _sandboxed_context(
         graph,
@@ -1056,8 +1091,15 @@ def run_postmerge(args: argparse.Namespace, settings: config.Settings) -> int:
         image=args.image,
         no_build=args.no_build,
     )
+    # F07-T14: the record names the precheck the merge consumed and the submission it declared;
+    # the bounce rule itself was the gate run's, so none is re-applied here (Q21).
+    ctx.data["precheck_attestation"] = bounce.consumed(pr_body)
     verdict = pipeline.run_submission(ctx)
-    doc = attestation.build(ctx, verdict, graph_commit=commit)
+    block = submissionmod.extract(pr_body)
+    doc = attestation.build(
+        ctx, verdict, graph_commit=commit, tooling=submissionmod.tooling(block), submission=block
+    )
+    doc = declare_submitter(doc, args.author or settings.pr_author)
     doc = postmerge.record_step9(doc, merge_commit=commit, review=review)
     refusal = postmerge.check_waiver(doc, bodies)
     if refusal is not None:  # F02-R9: refuse to attest; nothing is written

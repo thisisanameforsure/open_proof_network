@@ -9,6 +9,8 @@ copies step 9 from the committed record but not these four declared fields, so a
 could never reproduce. Every live attestation so far says ``submitter: null, undeclared``.
 
 The pseudonym and tooling are deliberately not the defaults, so a default cannot pass.
+
+Held as strict xfails from f80151b until F07-T14 made every record carry the block (2026-09-14).
 """
 
 from __future__ import annotations
@@ -34,10 +36,6 @@ from opn_gate import attestation, bounce, cli, schemas, submission
 PSEUDONYM = "euclid-tester-7c2"
 TOOLING = {"model": "claude-opus-5", "version": "2026-09", "harness": "claude-code"}
 DECLARED = "claude-opus-5 2026-09 claude-code"
-REASON = (
-    "finding attestation-drops-submission (F07-R13, D-23, D-34, D-5): {defect}; "
-    "fix: F07-T14 (Mike, 2026-09-14)"
-)
 
 
 def submission_block() -> str:
@@ -67,13 +65,6 @@ def assert_declared(doc: dict[str, Any]) -> None:
     assert doc["tooling"] == {"model": TOOLING["model"], "harness": TOOLING["harness"]}
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=REASON.format(
-        defect="cli.run_gate never passes the opn-submission block to attestation.build, so "
-        "submitter is null and tooling undeclared"
-    ),
-)
 def test_the_gate_run_records_the_submission_block(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -90,13 +81,6 @@ def test_the_gate_run_records_the_submission_block(
     assert schemas.violations(doc) == []
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=REASON.format(
-        defect="cli.run_postmerge reads the body only for --apply-partial and records neither "
-        "the submission block nor the precheck it consumed"
-    ),
-)
 def test_postmerge_records_the_block_and_the_consumed_precheck(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -146,13 +130,6 @@ def test_postmerge_records_the_block_and_the_consumed_precheck(
     assert_declared(old)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=REASON.format(
-        defect="the gate run records the consumed precheck and the post-merge record does not, "
-        "so the two records of one merge disagree"
-    ),
-)
 def test_the_gate_run_and_the_post_merge_record_agree_once_step_9_is_masked(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -173,13 +150,6 @@ def test_the_gate_run_and_the_post_merge_record_agree_once_step_9_is_masked(
     assert attestation.compare(gate_doc, attestation.with_step9(post_doc, gate_doc)) == []
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=REASON.format(
-        defect="with no opn-submission block neither postmerge's --author nor the gate's "
-        "OPN_PR_AUTHOR reaches the record, so a hand-opened merge names nobody"
-    ),
-)
 def test_a_hand_opened_merge_names_the_login_as_submitter(
     tmp_path: Path, seam: Seam, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -208,13 +178,6 @@ def test_a_hand_opened_merge_names_the_login_as_submitter(
     assert gated["tooling"] == {"model": None, "harness": None}
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=REASON.format(
-        defect="cli.run_reproduce copies only step 9 from the committed record, so a record "
-        "carrying submitter, model_and_tooling, tooling and precheck_attestation never reproduces"
-    ),
-)
 def test_reproduce_compare_copies_the_declared_fields(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:

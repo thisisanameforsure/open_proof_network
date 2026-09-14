@@ -52,3 +52,13 @@ def model_and_tooling(doc: dict[str, Any] | None) -> str:
     tooling = (doc or {}).get("tooling") or {}
     parts = [str(tooling[k]) for k in ("model", "version", "harness") if tooling.get(k)]
     return " ".join(parts) if parts else UNDECLARED
+
+
+def tooling(doc: dict[str, Any] | None) -> dict[str, str | None]:
+    """The attestation's ``tooling`` object from the block: the model and the harness declared,
+    each ``None`` when the block (or the field) is absent (F07-R13, T14)."""
+    declared = (doc or {}).get("tooling") or {}
+    return {
+        "model": str(declared["model"]) if declared.get("model") else None,
+        "harness": str(declared["harness"]) if declared.get("harness") else None,
+    }
