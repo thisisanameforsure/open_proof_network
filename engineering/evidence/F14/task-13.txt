@@ -1,0 +1,21 @@
+F14-T13 — the bench, promoted (R14)
+worktree at c2ff1bd + T13 changes
+2026-09-14T15:20:30Z
+
+command: uv run pytest gate/tests/test_bench.py -v
+gate/tests/test_bench.py::test_serve_answers_on_both_urls PASSED         [ 20%]
+gate/tests/test_bench.py::test_replay_merges_an_explainer_and_the_page_changes PASSED [ 40%]
+gate/tests/test_bench.py::test_assert_fails_on_a_refused_push PASSED     [ 60%]
+gate/tests/test_bench.py::test_a_push_in_a_mode_with_problems_is_refused_not_skipped PASSED [ 80%]
+gate/tests/test_bench.py::test_push_records_keep_the_fake_hosts_shape PASSED [100%]
+======================== 5 passed, 2 warnings in 6.63s =========================
+
+ruff check, ruff format --check, mypy --strict on gate/tools/bench.py and gate/tests/test_bench.py: clean
+
+Defects found while building it:
+- The first replay test named an explainer bench.md; classify wants its SHA-256 name. Test fixed.
+- The replay counted a push that classify put in a mode with problems as 'skipped, needs the toolchain',
+  so --assert could not see the refusal. Now refused whenever problems are non-empty;
+  test_a_push_in_a_mode_with_problems_is_refused_not_skipped covers it.
+- The old check.py called products --no-build, which needs the sandbox image. The replay renders products
+  and pages in process, so it runs without Docker or Lean. git dates are taken with TZ=UTC so the Z is true.
