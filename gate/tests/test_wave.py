@@ -84,6 +84,16 @@ EXTRA: dict[int, str] = {
         "@[category research open, AMS 11]\ntheorem erdos_7010 : answer(sorry) ↔\n"
         "    ∀ a : ℕ → ℕ, StrictMono a → a 0 ≤ a 1 :=\n  sorry\n\nend Erdos7010\n"
     ),
+    # F14-T15, live: hypotheses after the colon make step 7's witness type something other than
+    # `True`, so these are refused; an `∃` (bounded or not) carries none and is drafted.
+    7015: registry_file(7015, " : ∀ n > 1, n ≤ n * n"),
+    7016: registry_file(7016, " : ∀ (A : Set ℕ), A.Infinite → A.Nonempty"),
+    7020: registry_file(7020, " : ∀ᵉ (m ≥ 2) (n ≥ 2), m ≤ m * n"),
+    7017: registry_file(7017, " : ∃ n > 1, n = 2"),
+    # erdos-812's shape: a file-local notation, which is neither a def nor a helper declaration.
+    7018: registry_file(7018, " : ∃ c > 0, R 1 = c", before='local notation "R" => Nat.succ\n\n'),
+    # erdos-1139's shape: a `letI` opening whose body is on the next line.
+    7019: registry_file(7019, " :\n    letI u := (3 : ℕ)\n    u = 3"),
 }
 
 
@@ -129,12 +139,18 @@ def catalog_doc() -> dict[str, Any]:
             row(
                 7009, decl="erdos_7009.parts.i"
             ),  # a dotted declaration name, as the file writes it
-            row(7010),  # a term-mode `:= sorry` body
+            row(7010),  # a term-mode `:= sorry` body, whose `StrictMono a →` is a hypothesis
             # The open statement is a variant of a problem resolved upstream: never drafted as it.
             row(7011, decl="erdos_7011.variants.generalisation"),
             row(7012),
             row(7013),
             row(7014),
+            row(7015),
+            row(7016),
+            row(7017),
+            row(7018),
+            row(7019),
+            row(7020),
             row(7007, score=4, letter="B"),  # below the minimum: not chosen at all
             row(7008, site_status="PROVED (LEAN)"),  # closed: not chosen
         ],
@@ -174,7 +190,17 @@ def test_the_clean_rows_are_drafted_and_the_rest_refused_by_name(
 ) -> None:
     out, _result, _doc = wave
     report = (out / "REPORT.md").read_text(encoding="utf-8")
-    assert "Drafted 4, refused 8." in report
+    assert "Drafted 4, refused 14." in report
+    hypotheses = "leading ∀ binders carry hypotheses (a bounded binder or an implication)"
+    for key in (7010, 7015, 7016, 7020):
+        assert f"`erdos:{key}`: {hypotheses}" in report, key
+    assert "`erdos:7018`: uses file-local notation (port into defs/): R" in report
+    assert "`erdos:7019`: the statement opens with a `let`/`have` binding spanning lines" in report
+    assert (
+        (out / "erdos-7017" / "Witness.lean")
+        .read_text(encoding="utf-8")
+        .endswith("theorem witness : True := trivial\n")
+    )
     assert (
         "`erdos:7014`: uses names FormalConjecturesForMathlib declares (port first): hyperRamsey"
         in report
@@ -196,7 +222,7 @@ def test_the_clean_rows_are_drafted_and_the_rest_refused_by_name(
         "erdos-7001",
         "erdos-7006",
         "erdos-7009",
-        "erdos-7010",
+        "erdos-7017",
         "upstream",
     ]
     # The bound `S` and the dotted Mathlib member `card` in erdos_7009 are not helper uses.

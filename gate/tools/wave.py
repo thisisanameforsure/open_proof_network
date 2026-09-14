@@ -16,7 +16,9 @@ It refuses, naming why, what it cannot draft honestly (F14-Q11): a statement tha
 registry's own helper library declares (``FormalConjecturesForMathlib``) or a file-local definition,
 both of which need a port into ``defs/``; a value-typed statement (``= answer(sorry)``), which is a
 question and not a conjecture; a theorem with binders before its colon, whose witness is not
-``True`` and must be written by hand; a file with no copyright header to keep. Every draft is a
+``True`` and must be written by hand, and for the same reason one whose leading ``∀`` binders
+carry hypotheses (F14-T15); a use of a file-local ``notation``; a ``let``/``have`` opening spanning
+lines; a file with no copyright header to keep. Every draft is a
 curator's to read before the import runs (R13): the driver writes files, never the graph.
 """
 
@@ -204,6 +206,69 @@ def extract(text: str, decl: str) -> tuple[str | None, str]:
     return prop, "as stated"
 
 
+_OPENERS = {"(": ")", "[": "]", "{": "}", "⦃": "⦄", "⟨": "⟩"}
+_CLOSERS = frozenset(_OPENERS.values())
+_RELATION_RE = re.compile(r"[<>≤≥∈∉⊆⊂≠]")
+_LEADING_FORALL_RE = re.compile(r"^(?:∀ᵉ|∀)\s*")
+
+
+def _top_level(text: str, target: str) -> int:
+    """The index of the first ``target`` outside every bracket, or -1."""
+    depth = 0
+    for i, ch in enumerate(text):
+        if ch in _OPENERS:
+            depth += 1
+        elif ch in _CLOSERS:
+            depth = max(depth - 1, 0)
+        elif depth == 0 and text.startswith(target, i):
+            return i
+    return -1
+
+
+def _binder_has_condition(segment: str) -> bool:
+    """A binder carries a hypothesis when a name is bounded (``n > 1``, ``(m ≥ 2)``, ``x ∈ S``):
+    the relation sits before any ``:`` of the binder, never inside its type."""
+    groups = re.findall(r"[(⦃{]([^()⦃⦄{}]*)[)⦄}]", segment)
+    bare = re.sub(r"[(\[⦃{][^()\[\]⦃⦄{}]*[)\]⦄}]", " ", segment)
+    return any(_RELATION_RE.search(part.split(":", 1)[0]) for part in [bare, *groups])
+
+
+def leading_hypotheses(prop: str) -> bool:
+    """Whether the proposition opens with ``∀``/``∀ᵉ`` binders that carry hypotheses, a bounded
+    binder or an implication among them. Step 7 takes its witness type from those (F14-T15: nine
+    live intakes drafted ``True`` for such statements and failed admission), so they are hand work.
+    """
+    body = prop.strip()
+    seen_forall = False
+    while (m := _LEADING_FORALL_RE.match(body)) is not None:
+        seen_forall = True
+        rest = body[m.end() :]
+        comma = _top_level(rest, ",")
+        if comma < 0:
+            return False
+        if _binder_has_condition(rest[:comma]):
+            return True
+        body = rest[comma + 1 :].strip()
+    return seen_forall and _top_level(body, "→") >= 0
+
+
+_NOTATION_RE = re.compile(r'^\s*(?:local\s+|scoped\s+)?notation\s*"([^"]+)"', re.M)
+
+
+def shape_refusal(prop: str) -> str | None:
+    """Why a proposition's shape needs a hand-written draft, or ``None``."""
+    if re.match(r"(?:letI|haveI|let|have)\b", prop) and "\n" in prop:
+        # erdos-1139, live: a `letI` binding followed by the body on the next line does not parse
+        # once re-indented under the drafted theorem (Lean 4.33, "expected ';' or line break").
+        return "the statement opens with a `let`/`have` binding spanning lines: restate it by hand"
+    if leading_hypotheses(prop):
+        return (
+            "leading ∀ binders carry hypotheses (a bounded binder or an implication): the "
+            "witness is not `True`, write it by hand"
+        )
+    return None
+
+
 def record_for(row: dict[str, Any], catalog: dict[str, Any], curator: str) -> dict[str, Any]:
     number = row["key"].split(":", 1)[1] if row["kind"] == "erdos" else None
     site = f"https://www.erdosproblems.com/{number}" if number else None
@@ -254,7 +319,7 @@ def record_for(row: dict[str, Any], catalog: dict[str, Any], curator: str) -> di
     return doc
 
 
-def draft_row(  # noqa: PLR0911, PLR0913, PLR0917 — one return per refusal, one input per fact
+def draft_row(  # noqa: PLR0911, PLR0913, PLR0915, PLR0917 — a check per refusal, an input per fact
     row: dict[str, Any],
     catalog: dict[str, Any],
     fc: Path,
@@ -285,7 +350,15 @@ def draft_row(  # noqa: PLR0911, PLR0913, PLR0917 — one return per refusal, on
     if prop is None:
         draft.reasons.append(how)
         return draft
+    shape = shape_refusal(prop)
+    if shape is not None:
+        draft.reasons.append(shape)
     tokens = set(_TOKEN_RE.findall(prop))
+    notations = sorted(n for n in _NOTATION_RE.findall(text) if n in tokens)
+    if notations:
+        # erdos-812, live: `local notation "R" => hypergraphRamsey 2` is neither a def nor a
+        # helper-library declaration, and it does not survive the statement leaving its file.
+        draft.reasons.append("uses file-local notation (port into defs/): " + ", ".join(notations))
     local = sorted(n for n in row.get("local_defs") or [] if n.rsplit(".", 1)[-1] in tokens)
     if local:
         draft.reasons.append("uses file-local definitions (port into defs/): " + ", ".join(local))

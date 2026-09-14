@@ -82,3 +82,36 @@ Carries F14 to the live gate:
     Gap: wave.py drafts cannot run the Lean hazard checkers without a Mathlib checkout, so a draft's first
     hazard verdict comes from its own pull request. For wave two: run the step-6 checkers in the Mathlib image
     before pushing, which is T11L's docker-tier admission.
+
+11. Wave, second pass: #48 erdos-212, #53 erdos-324, #62 erdos-850, #65 riemann-hypothesis and #46 erdos-1094
+    (with its acknowledgement) merged. Fifteen were held. Each hold was read from its current head's run:
+    - Witness `True`, but the hypotheses need a real witness (9): erdos-247, 257, 260, 341, 410, 412, 727,
+      849, 931. wave.py drafted `True` whenever no binders came before the colon, but the gate reads
+      hypotheses after it: a leading bounded binder or an implication. Driver defect, being fixed with tests.
+    - Unacknowledged hazard (4): erdos-251 div-zero at 2^n; erdos-51 div-zero at n a / a plus an unused
+      hygienic binder; erdos-417 div-zero at a ncard ratio plus off-by-one-range at 1 ≤ m; erdos-952 an
+      unused hygienic binder.
+    - Statement does not elaborate (2): erdos-812 (`R`, a registry helper the driver missed); erdos-1139
+      (`letI` needs a separator under Lean 4.33).
+    Fixed and requeued (10):
+    - Real witnesses for erdos-257, 410, 412, 727, 849 and 931, e.g. `⟨Set.univ, Set.infinite_univ⟩` and
+      `⟨2, by norm_num⟩`.
+    - Acknowledgements with justifications for erdos-251, 51, 417 and 952, each META validated against its schema.
+    Closed for wave two, each with a comment naming why (5):
+    - #60 erdos-812: helper port needed (F14-Q11).
+    - #47 erdos-1139: a statement fix changes the hash, so re-import.
+    - #49 erdos-247, #52 erdos-260, #54 erdos-341: the witnesses are real proofs, not written without a
+      Mathlib checkout.
+
+12. Driver fix (F14-T11 follow-up), gate/tools/wave.py and gate/tests/test_wave.py:
+    - it refuses leading ∀/∀ᵉ binders that carry hypotheses (a bounded binder or a top-level implication),
+      because the witness must be written by hand;
+    - it refuses a statement that uses file-local notation (erdos-812 defines R as local notation for
+      hypergraphRamsey 2);
+    - it refuses a statement that opens with a multi-line let/letI/have (erdos-1139).
+    New fixture rows 7015-7020; the expected report is "Drafted 4, refused 14"; test_wave passes; ruff and mypy
+    are clean.
+    A recheck against the live catalog drafts 11 and refuses 37. The newly refused wave-one drafts are exactly
+    the eleven that failed admission for driver reasons: erdos-247, 257, 260, 341, 410, 412, 727, 849, 931
+    (hypotheses), 812 (notation) and 1139 (let). The four hazard holds are drafted still, as they should be:
+    a hazard needs a curator judgment, not a refusal.
