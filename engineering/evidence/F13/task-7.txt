@@ -1,0 +1,30 @@
+F13-T7 — the live smoke: the deployed service against the real AXLE
+Deploy: api-deploy run 34836634884 on network 9505776, green in 47 s (build, package check, update, its read-only smoke).
+Run 2026-09-14T11:09:53Z from the founder's laptop, anonymous, no token.
+
+$ uv run python api/tools/smoke_check.py https://api.openproofnetwork.org
+GET /hosted-checkers.json -> 200: 7 targets
+  tutorial: lean-4.33.0
+  erdos-376: lean-4.33.0
+verify tutorial proof -> okay=True env=lean-4.33.0 lint=[] log=01M2FSR1VGMZKCWJNJTKAJS51Y
+verify broken proof -> okay=False error lines=[7]
+check erdos-376 statement -> env=lean-4.33.0 exact=False lint=['sorry-present'] okay=True
+check_lean (MCP, no token) -> status 200
+  mcp: get_node({"node_id": "tutorial-and-swap"}) -> ok {"node_id": "tutorial-and-swap", "target_id": "tutorial", "context": {"annexes": [], "attempts": {"assemblies": [], "count": 0, "failure_class_histogram": {}, "
+  mcp: get_node({"node_id": "erdos-376"}) -> ok {"node_id": "erdos-376", "target_id": "erdos-376", "context": {"annexes": [], "attempts": {"assemblies": [], "count": 0, "failure_class_histogram": {}, "records
+  mcp: check_lean({"target_id": "tutorial", "node_id": "tutorial-and-swap", "content": "/-! The tu) -> ok {"status": 200, "body": {"authoritative": false, "service": "axle", "environment": "lean-4.33.0", "exact": false, "note": "a Lean-core-only statement is checked
+OK
+exit=
+
+The exit status above was lost in the capture (the brace group swallowed PIPESTATUS). Re-run at 2026-09-14T11:11:04Z, exit status taken directly:
+  GET /hosted-checkers.json -> 200: 7 targets
+    tutorial: lean-4.33.0
+    erdos-376: lean-4.33.0
+  verify tutorial proof -> okay=True env=lean-4.33.0 lint=[] log=01M2FSRZ503P53YDG4BGYTRB14
+  verify broken proof -> okay=False error lines=[7]
+  check erdos-376 statement -> env=lean-4.33.0 exact=False lint=['sorry-present'] okay=True
+  check_lean (MCP, no token) -> status 200
+  OK
+  exit=0
+
+The log record. A log_id is returned only after the store accepted the record: write_log answers None when put_check raises (C7, api/tests/test_checks.py::test_a_store_failure_does_not_fail_the_check). Both runs returned ids (01M2FSR1VGMZKCWJNJTKAJS51Y, 01M2FSRZ503P53YDG4BGYTRB14), so each call's check# record is in the live tokens table. A direct DynamoDB read was attempted and not possible from this shell (no AWS credentials in the environment); the ids are the evidence.
