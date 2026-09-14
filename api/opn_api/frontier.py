@@ -2,13 +2,15 @@
 
 ``committed`` fetches a file at the graph's ``main`` through the ``GitHost`` seam, reusing it
 for ``frontier_max_stale_s`` seconds and revalidating by ETag after that; a fetch failure
-serves the last good copy with a warning, or 503 when there is none (C7). ``registry`` turns
+serves the last good copy with a warning, or 503 when there is none (C7). All entries share
+one freshness generation keyed on ``info.json``'s ETag (``generation``). ``registry`` turns
 the claims table into the per-node ``{active, history_count}`` shape, treating a claim past
 its expiry as released on every read (R8: no background job).
 """
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import time
@@ -29,6 +31,8 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 FRONTIER_PATH = "frontier.json"
+#: The generation marker (F05-T10): every committed file follows this one to a new commit.
+INFO_PATH = "info.json"
 #: The frontier versions this service will serve. A product names its own version and
 #: several are live at once (D-34, F11-R4), so what is pinned is the set: a graph that
 #: published something outside it is refused rather than passed through unvalidated.
@@ -37,7 +41,31 @@ CLAIMS_SCHEMA = "claims/v1"
 EMPTY_CLAIMS: dict[str, Any] = {"active": [], "history_count": 0}
 
 
+def generation(ctx: Context) -> None:
+    """One freshness generation for every committed file (F05-R9, F05-T10).
+
+    ``info.json`` is the marker: its cache entry is revalidated once per window (a 304 costs
+    nothing), and a 200 carrying a new ETag means ``main`` moved, so every other entry is
+    marked stale at once and revalidates by its own ETag on its next use. Without it each
+    file aged on its own clock and ``/frontier.json`` served the commit before a merge while
+    ``/info.json`` served the one after. A marker that cannot be read invalidates nothing:
+    each entry keeps its last good copy (C7)."""
+    with contextlib.suppress(ApiError):  # logged by committed; the file read decides (C7)
+        committed(ctx, INFO_PATH)
+
+
+def stale_all_but(ctx: Context, keep: str, now: float) -> None:
+    """Age every entry but ``keep`` past the window, relative to *now*: ``time.monotonic()``
+    counts from boot, so an epoch of 0.0 can still be inside the window on a fresh host."""
+    aged = now - (ctx.settings.frontier_max_stale_s + 1)
+    for path, entry in ctx.files.items():
+        if path != keep:
+            entry.fetched_at = min(entry.fetched_at, aged)
+
+
 def committed(ctx: Context, path: str) -> bytes:
+    if path != INFO_PATH:
+        generation(ctx)
     cached = ctx.files.setdefault(path, CachedFile(path))
     now = time.monotonic()
     if cached.body is not None and now - cached.fetched_at < ctx.settings.frontier_max_stale_s:
@@ -50,6 +78,8 @@ def committed(ctx: Context, path: str) -> bytes:
         got = None
         log.warning("%s: %s", path, exc)
     if got is not None and got.status == 200 and got.body is not None:
+        if path == INFO_PATH and got.etag != cached.etag:
+            stale_all_but(ctx, INFO_PATH, now)
         cached.body, cached.etag, cached.fetched_at = got.body, got.etag, now
     elif got is not None and got.status == 304 and cached.body is not None:
         cached.fetched_at = now

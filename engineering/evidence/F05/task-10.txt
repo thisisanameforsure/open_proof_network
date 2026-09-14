@@ -1,0 +1,115 @@
+F05-T10 — one freshness generation (R9 amended; finding frontier-lag, 2026-09-13 Euclid tester)
+Date: 2026-09-14. Worktree branch worktree-agent-a606eadaaf47b3129, fast-forwarded to main 4092af7
+(the worktree had been cut from 96566dc, before the red tests of f80151b existed).
+
+== 1. Red, before any change ==
+$ uv run --frozen pytest api/tests/test_finding_frontier_lag.py --runxfail -q
+>       assert served["rendered_from"] == NEW, "the frontier lags info.json by the cache window"
+E       AssertionError: the frontier lags info.json by the cache window
+E       assert '555555555555...5555555555555' == '666666666666...6666666666666'
+>       assert (listed["rendered_from"], graph["rendered_from"]) == (NEW, NEW)
+E       AssertionError: assert ('55555555555...555555555555') == ('66666666666...666666666666')
+FAILED api/tests/test_finding_frontier_lag.py::test_the_frontier_follows_info_json_to_the_new_commit
+FAILED api/tests/test_finding_frontier_lag.py::test_mcp_reads_follow_server_info_to_the_new_commit
+2 failed, 2 warnings in 0.95s
+(The guards before each failing line passed: /info.json and server_info had already moved to 6*40.)
+
+== 2. The change ==
+api/opn_api/frontier.py
+  - INFO_PATH = "info.json" is the generation marker.
+  - committed(ctx, path): for any path but info.json, generation(ctx) runs first. When info.json's
+    own revalidation returns a 200 whose ETag differs from the one held, stale_all_but() ages every
+    other ctx.files entry to now - (window + 1) (relative to now, never 0.0: time.monotonic()
+    counts from boot), so each revalidates by its own ETag on next use (a 304 keeps its body).
+  - generation(ctx) is committed(ctx, INFO_PATH) with ApiError suppressed: an unreadable marker
+    (unreachable host, or a graph with no info.json) invalidates nothing and the file being read
+    decides for itself, serving its last good copy (C7).
+  - info.json is its own marker, so GET /info.json still costs one fetch per window, not two.
+api/opn_api/mcp/reads.py
+  - committed() calls frontier.generation(ctx) first; nothing else changed.
+No config change, no schema change, app.py untouched.
+
+== 3. Existing tests changed ==
+api/tests/test_frontier.py::test_committed_file_is_cached_and_revalidated (the only one that failed)
+  was:  fetches == [("frontier.json", None)]; counts 1, 2; fetches[1][1] is not None
+  now:  fetches == [("info.json", None), ("frontier.json", None)]; counts 2, 3;
+        fetches[2] is ("frontier.json", <etag>)
+  why:  the one new fetch is the generation check this task adds (info.json, first request, empty
+        cache). The window and ETag revalidation it pins are unchanged; forcing frontier.json
+        stale alone still costs exactly one conditional GET of frontier.json, because the marker
+        is inside its window.
+No other fetch-count assertion moved (api suite: 467 passed; test_rejections_claims'
+`fetches == []` reads no committed file at all).
+api/tests/test_finding_frontier_lag.py: both strict xfail marks removed (and the unused FINDING
+  string and pytest import); the docstring notes they were held from f80151b until F05-T10.
+
+== 4. New edge-case tests: api/tests/test_frontier_generation.py ==
+  test_the_marker_is_the_file_info_json_serves            info.INFO_PATH == frontier.INFO_PATH
+  test_a_first_request_reads_the_marker_then_the_file     empty cache via the route copy
+  test_a_first_mcp_read_reads_the_marker_then_the_file    empty cache via the MCP copy
+  test_info_json_is_its_own_marker_and_costs_one_fetch    no double fetch of info.json
+  test_the_marker_is_checked_at_most_once_per_window      3 rounds of 4 reads -> 1 info.json fetch
+  test_an_unchanged_marker_invalidates_nothing            304 -> only info.json asked, clocks equal
+  test_a_moved_marker_ages_every_entry_and_each_revalidates_by_its_own_etag
+                                                          every entry aged; each refetch carries
+                                                          its old ETag; unchanged index.json 304s
+  test_an_mcp_read_alone_finds_that_main_moved            get_target is the first reader to see it
+  test_an_unreachable_marker_invalidates_nothing_and_serves_the_last_good_copies
+                                                          C7; recovery then moves everything
+  test_a_graph_without_info_json_still_serves_its_other_files
+
+== 5. Green ==
+$ uv run --frozen pytest api/tests/test_finding_frontier_lag.py api/tests/test_frontier.py api/tests/test_frontier_generation.py -v
+test_finding_frontier_lag.py::test_the_frontier_follows_info_json_to_the_new_commit PASSED
+test_finding_frontier_lag.py::test_mcp_reads_follow_server_info_to_the_new_commit PASSED
+test_frontier.py (4) PASSED
+test_frontier_generation.py (10) PASSED
+======================== 16 passed, 2 warnings in 0.73s ========================
+
+== 6. Mutation check (pytest plugins in the session scratchpad, monkeypatched in memory) ==
+mutant_no_invalidate.py:
+    def pytest_sessionstart(session):
+        from opn_api import frontier
+        frontier.stale_all_but = lambda ctx, keep, now: None
+mutant_reads_skip_generation.py:
+    def pytest_sessionstart(session):
+        from opn_api import frontier
+        from opn_api.mcp import reads
+        class NoGeneration(types.ModuleType):
+            def __getattr__(self, name): return getattr(frontier, name)
+        proxy = NoGeneration("frontier_without_generation"); proxy.generation = lambda ctx: None
+        reads.frontier = proxy
+
+$ PYTHONPATH=<scratchpad> uv run --frozen pytest -p mutant_no_invalidate -q <the three files>
+FAILED api/tests/test_finding_frontier_lag.py::test_the_frontier_follows_info_json_to_the_new_commit
+FAILED api/tests/test_finding_frontier_lag.py::test_mcp_reads_follow_server_info_to_the_new_commit
+FAILED api/tests/test_frontier_generation.py::test_a_moved_marker_ages_every_entry_and_each_revalidates_by_its_own_etag
+FAILED api/tests/test_frontier_generation.py::test_an_mcp_read_alone_finds_that_main_moved
+FAILED api/tests/test_frontier_generation.py::test_an_unreachable_marker_invalidates_nothing_and_serves_the_last_good_copies
+5 failed, 11 passed          -> killed by both finding tests
+
+$ PYTHONPATH=<scratchpad> uv run --frozen pytest -p mutant_reads_skip_generation -q <the three files>
+FAILED api/tests/test_frontier_generation.py::test_a_first_mcp_read_reads_the_marker_then_the_file
+    E  At index 0 diff: ('targets/propositional/graph.json', None) != ('info.json', None)
+FAILED api/tests/test_frontier_generation.py::test_an_mcp_read_alone_finds_that_main_moved
+    E  assert '555555555555...5555555555555' == '666666666666...6666666666666'
+2 failed, 14 passed          -> NOT killed by a finding test; killed by the record-level new test
+  Why the finding test cannot kill it: test_mcp_reads_follow_server_info_to_the_new_commit reads
+  server_info (-> frontier.committed(info.json)) before get_target, and that read already ages the
+  MCP copy's entries, so whether reads.committed checks the marker itself is invisible there.
+  test_an_mcp_read_alone_finds_that_main_moved was added for exactly this (get_target first).
+
+== 7. make verify ==
+ruff check: All checks passed!   ruff format --check: 296 files already formatted
+mypy gate: 147 files, mypy api: 84 files, mypy site: 22 files — Success: no issues found
+= 1704 passed, 13 skipped, 65 deselected, 77 xfailed, 2 warnings in 118.50s (0:01:58) =
+(The first run failed lint only, SIM105 on a try/except/pass in generation(); replaced by
+contextlib.suppress, all of the above re-run on the final code.)
+
+== 8. Residual, by design ==
+- A file first fetched during a window can lead info.json by up to one window (it reads main
+  as it is now while the marker still holds the older ETag). The finding was the opposite —
+  a reader behind info.json — and that can no longer happen: info.json only moves through a 200,
+  which ages every other entry at the same moment.
+- A graph with no info.json costs one 404 fetch of info.json per request (the marker is never
+  cached). Every graph renders info.json (F03), so this is not a live cost.

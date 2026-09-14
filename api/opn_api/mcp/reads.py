@@ -57,7 +57,9 @@ def committed(ctx: Context, path: str, *, optional: bool = False) -> bytes | Non
     """A file at ``main`` through the seam, reused for ``frontier_max_stale_s`` and then
     revalidated by ETag — ``frontier.committed``'s rule, with one addition: a file the graph
     does not have answers ``None`` when ``optional`` and a not-found error otherwise, instead
-    of being mistaken for an outage."""
+    of being mistaken for an outage. It follows the same freshness generation first, so a
+    moved ``info.json`` makes this copy revalidate too (F05-T10)."""
+    frontier.generation(ctx)
     cached = ctx.files.setdefault(path, CachedFile(path))
     now = time.monotonic()
     if cached.body is not None and now - cached.fetched_at < ctx.settings.frontier_max_stale_s:

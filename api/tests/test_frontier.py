@@ -70,15 +70,17 @@ def test_claims_json_is_the_registry_alone(harness: Harness) -> None:
 def test_committed_file_is_cached_and_revalidated(harness: Harness) -> None:
     """R9: at most 60 s stale, then an ETag revalidation rather than a refetch."""
     harness.client.get("/frontier.json")
-    assert harness.githost.fetches == [("frontier.json", None)]
+    # info.json first: the generation marker every committed file follows (F05-T10).
+    assert harness.githost.fetches == [("info.json", None), ("frontier.json", None)]
     harness.client.get("/frontier.json")
-    assert len(harness.githost.fetches) == 1  # inside the window: no call at all
+    assert len(harness.githost.fetches) == 2  # inside the window: no call at all
 
     harness.clock.advance(seconds=61)  # the cache window is wall clock, so force it directly
     force_stale(harness)
     harness.client.get("/frontier.json")
-    assert len(harness.githost.fetches) == 2
-    assert harness.githost.fetches[1][1] is not None  # If-None-Match carried the ETag
+    assert len(harness.githost.fetches) == 3
+    assert harness.githost.fetches[2][0] == "frontier.json"
+    assert harness.githost.fetches[2][1] is not None  # If-None-Match carried the ETag
 
 
 def test_unreachable_graph_serves_the_last_good_copy(harness: Harness) -> None:

@@ -10,7 +10,7 @@ Mike's decision (2026-09-14, plan F05-T10): one freshness generation. ``info.jso
 marker: when its revalidation finds a new one, every other cached file is stale at once, in both
 ``committed()`` copies (``frontier.py`` and ``mcp/reads.py``). The tests move ``main`` from
 ``5*40`` to ``6*40`` in the fake host and age ``info.json`` alone; the frontier and the target
-graph must follow. Strict xfails until F05-T10 lands (conventions §2).
+graph must follow. Both were held as strict xfails from f80151b until F05-T10 (conventions §2).
 """
 
 from __future__ import annotations
@@ -18,7 +18,6 @@ from __future__ import annotations
 import json
 from typing import Any
 
-import pytest
 from api_fakes import Harness
 from mcp_client import TARGET, McpClient
 from test_frontier import force_stale
@@ -27,7 +26,6 @@ OLD = "5" * 40
 NEW = "6" * 40
 GRAPH_PATH = f"targets/{TARGET}/graph.json"
 MOVED = "and-reassoc"  # proved at NEW, so it leaves the frontier
-FINDING = "finding frontier-lag (F05-R9, D-25, D-35): {}; fix: F05-T10 (Mike, 2026-09-14)"
 
 
 def move_main(harness: Harness) -> None:
@@ -53,13 +51,6 @@ def frontier_fetches(harness: Harness) -> int:
     return sum(1 for path, _ in harness.githost.fetches if path == "frontier.json")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=FINDING.format(
-        "after main moves, GET /info.json revalidates and serves the new rendered_from while "
-        "GET /frontier.json serves the old commit's frontier from its own cache entry"
-    ),
-)
 def test_the_frontier_follows_info_json_to_the_new_commit(harness: Harness) -> None:
     assert harness.client.get("/info.json").json()["rendered_from"] == OLD
     assert harness.client.get("/frontier.json").json()["rendered_from"] == OLD
@@ -78,13 +69,6 @@ def test_the_frontier_follows_info_json_to_the_new_commit(harness: Harness) -> N
     assert MOVED not in {e["node_id"] for e in served["entries"]}
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=FINDING.format(
-        "over the MCP, server_info shows the new rendered_from while list_frontier and "
-        "get_target serve the old commit's frontier and graph"
-    ),
-)
 def test_mcp_reads_follow_server_info_to_the_new_commit(harness: Harness) -> None:
     """Both cache copies: ``list_frontier`` reads through ``frontier.committed`` (via the route)
     and ``get_target`` through ``mcp.reads.committed``."""
