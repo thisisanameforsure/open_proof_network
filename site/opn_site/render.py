@@ -36,9 +36,12 @@ STATUS_WORDS = {
     "disputed": "disputed",
     "abandoned": "abandoned",
 }
+#: One column per frontier entry field, plus the node's status from its target's graph (T11, Q11):
+#: the frontier lists open variants that wait on their holes, so Claimable needs a status beside it.
 FRONTIER_COLUMNS = (
     ("node_id", "Node"),
     ("target_id", "Target"),
+    ("status", "Status"),
     ("statement_hash", "Statement hash"),
     ("relation", "Relation"),
     ("origin", "Origin"),
@@ -51,6 +54,7 @@ FRONTIER_COLUMNS = (
     ("annex_present", "Annex"),
     ("bounty", "Bounty"),
     ("claimable", "Claimable"),
+    ("dormant", "Dormant"),
     ("tutorial", "Tutorial"),
 )
 DECISIONS_DOC = Path(__file__).resolve().parents[2] / "docs" / "architecture_decisions_v_3_12.html"
@@ -531,6 +535,14 @@ class Renderer:
         return self.page("Frontier", body, renders=["frontier.json"])
 
     def frontier_cell(self, key: str, e: dict[str, Any]) -> str:  # noqa: PLR0911 — one per field kind
+        if key == "status":
+            # T11: not an entry field; the node's row in its target's graph.json, which the site
+            # loaded beside the frontier from the same commit.
+            tv = self.site.targets.get(str(e["target_id"]))
+            node = tv.nodes.get(str(e["node_id"])) if tv is not None else None
+            return esc(node.status) if node is not None else "unknown"
+        if key not in e:  # a field an older frontier version does not carry (D-34)
+            return "none"
         value = e[key]
         if key == "node_id":
             return self.node_link(str(e["target_id"]), str(value))

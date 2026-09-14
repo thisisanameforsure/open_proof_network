@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from html import escape
+from html import escape, unescape
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, ClassVar
@@ -189,13 +189,66 @@ T2_PAGES = ("frontier/index.html", "contributors/index.html", "docs/index.html")
 def test_frontier_table(rendered: dict[str, str]) -> None:
     """AC9: one row per frontier entry, one column per F03-R5 field, a same-origin script."""
     page = rendered["frontier/index.html"]
-    assert page.count("<th>") == 15
+    assert page.count("<th>") == 17  # the 16 entry fields and the node's status (T11)
     assert page.count("<tr>") == 1 + 1  # header + the one frontier entry (the ready root)
     assert 'href="/nodes/propositional/and-swap-reassoc/"' in page
     assert '<script src="/frontier.js"></script>' in page
     assert "https://" not in page.split("<main>")[1].split("</main>")[0].replace(REPO, "")
     assert "frontier.js" in rendered and "querySelector" in rendered["frontier.js"]
     assert "deps: and-reassoc, tutorial-and-swap; library: none" in page
+
+
+def frontier_row(page: str) -> dict[str, str]:
+    """The table's one row as ``{header: cell text}``."""
+    head = page.split("<thead>", 1)[1].split("</thead>", 1)[0]
+    body = page.split("<tbody>", 1)[1].split("</tbody>", 1)[0]
+    headers = [h.split("</th>", 1)[0] for h in head.split("<th>")[1:]]
+    cells = [c.split("</td>", 1)[0] for c in body.split("<td>")[1:]]
+    assert len(headers) == len(cells), (headers, cells)
+    return {h: unescape(_text(c)) for h, c in zip(headers, cells, strict=True)}
+
+
+def _text(cell: str) -> str:
+    out, inside = [], False
+    for ch in cell:
+        if ch == "<":
+            inside = True
+        elif ch == ">":
+            inside = False
+        elif not inside:
+            out.append(ch)
+    return "".join(out)
+
+
+def test_the_frontier_page_says_where_each_node_stands(tmp_path: Path) -> None:
+    """T11 (R7, Q11): the frontier lists open variants that wait on their holes (F03-R5), so
+    the page carries each node's status from its target's graph, beside Claimable, and the
+    target's D-33 dormancy the entry already carries; and it no longer says every listed node
+    "can be worked on now". Found live: ``variant-93e79cb5`` read Claimable yes with nothing on
+    the page saying it was blocked."""
+    root = fixture.build(tmp_path)
+    site = model.load_site(root, fixture.COMMIT)
+    page = render.render_site(site, repo_url=REPO)["frontier/index.html"]
+    headers = page.split("<thead>", 1)[1].split("</thead>", 1)[0]
+    assert headers.index("<th>Node</th>") < headers.index("<th>Status</th>")
+    assert headers.index("<th>Status</th>") < headers.index("<th>Statement hash</th>")
+    assert headers.index("<th>Claimable</th>") < headers.index("<th>Dormant</th>")
+    row = frontier_row(page)
+    assert row["Status"] == "ready" and row["Dormant"] == "no"
+    assert "can be worked on now" not in page
+    assert "exactly what an agent sees through" not in page
+    assert "listed without being claimable" in page
+
+    entry = site.frontier["entries"][0]
+    node = site.targets[entry["target_id"]].nodes[entry["node_id"]]
+    node.graph_entry["status"] = "blocked"
+    entry["claimable"] = False
+    entry["dormant"] = True
+    row = frontier_row(render.Renderer(site, repo_url=REPO).frontier())
+    assert (row["Status"], row["Claimable"], row["Dormant"]) == ("blocked", "no", "yes")
+
+    del entry["dormant"]  # a frontier/v1 snapshot has no such field, and still renders (D-34)
+    assert frontier_row(render.Renderer(site, repo_url=REPO).frontier())["Dormant"] == "none"
 
 
 def test_contributors_empty_state(rendered: dict[str, str]) -> None:
