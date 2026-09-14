@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, Any
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from opn_api import bundles, precheck
+from opn_api import bundles, pending, precheck
 from opn_api import clock as clockmod
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
@@ -269,6 +269,18 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
         body=submission_body(job, meta),
     )
     log.info("submission %s opened %s for %s", submission_id, pr.url, identity.id)
+    # F07-T16: remembered so GET /submissions/{id} can answer its live state; advisory — a store
+    # failure is logged inside and the pull request is still answered (C7, C9).
+    pending.record(
+        ctx,
+        identity,
+        submission_id=submission_id,
+        kind=artifact_type,
+        target_id=claim.target_id,
+        node_id=node_id,
+        pr=pr,
+        precheck_job_id=job.id,
+    )
     return JSONResponse(
         {
             "submission_id": submission_id,

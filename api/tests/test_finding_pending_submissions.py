@@ -70,11 +70,6 @@ SERVICE = (
     "finding pending-submissions (F07-R1, F07-R11, D-28, C7): {}; fix: F07-T16 (Mike, 2026-09-14)"
 )
 MCP = "finding pending-submissions (F09-R5, D-28): {}; fix: F09-T7 (Mike, 2026-09-14)"
-#: F07-T16 built the store, the host read, the cache and both routes, and records every pull
-#: request the append and proposal routes open; these tests drive ``POST /submissions``, whose
-#: record call is one line at the end of ``submissions.post_submissions`` — a file another
-#: session holds uncommitted edits to (2026-09-14). They stay strict until that line lands.
-WAITS = "needs the submissions.py record call; after the other session's commit"
 
 
 @pytest.fixture(scope="module")
@@ -177,13 +172,6 @@ def seed_attestation(h: Harness, number: int) -> str:
 # --- F07-T16: the record --------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=SERVICE.format(
-        "POST /submissions opens the pull request and records nothing, so the service cannot "
-        "say afterwards what it opened; " + WAITS
-    ),
-)
 def test_post_submissions_records_the_submission(harness: Harness, key: PrecheckKey) -> None:
     """The store keeps ``{id, node_id, target_id, kind, pr_number, pr_url, pseudonym,
     precheck_job_id, created}`` for the pull request the service opened, reachable by id and
@@ -217,14 +205,6 @@ def test_post_submissions_records_the_submission(harness: Harness, key: Precheck
 # --- F07-T16: GET /submissions/{id} ---------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=SERVICE.format(
-        "GET /submissions/{id} answers only what the service recorded or the graph attested, and "
-        "POST /submissions records nothing, so its open pull request's gate run and reviews are "
-        "visible only through GitHub's anonymous API; " + WAITS
-    ),
-)
 def test_get_submission_by_ulid_or_pr_number_answers_the_live_pull_request(
     harness: Harness, key: PrecheckKey
 ) -> None:
@@ -271,13 +251,6 @@ def test_get_submission_by_ulid_or_pr_number_answers_the_live_pull_request(
     assert by_ulid["attestation_note"] == "not-merged"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=SERVICE.format(
-        "a merged POST /submissions pull request has no record to close, so it is answered as a "
-        "hand-opened one and costs a host call on every read after the window; " + WAITS
-    ),
-)
 def test_a_merged_proof_links_its_attestation_and_is_never_looked_up_again(
     harness: Harness, key: PrecheckKey
 ) -> None:
@@ -356,13 +329,6 @@ def test_unknown_is_404_and_a_hand_opened_pull_request_answers_without_a_record(
     assert get_submission(harness, "000033") == doc
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=SERVICE.format(
-        "the pull-request cache serves recorded submissions, and POST /submissions records "
-        "nothing, so its pull request is unknown to GET /submissions/{id}; " + WAITS
-    ),
-)
 def test_the_pull_request_state_is_cached_and_survives_a_host_failure(
     harness: Harness, key: PrecheckKey
 ) -> None:
@@ -393,13 +359,6 @@ def test_the_pull_request_state_is_cached_and_survives_a_host_failure(
     assert isinstance(served["pull_request_error"], str) and served["pull_request_error"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=SERVICE.format(
-        "GET /submissions.json lists recorded pull requests, and POST /submissions records "
-        "nothing, so a proof's open pull request is missing from it; " + WAITS
-    ),
-)
 def test_submissions_json_lists_open_work_and_drops_the_merged(
     harness: Harness, key: PrecheckKey
 ) -> None:
@@ -432,13 +391,6 @@ def test_submissions_json_lists_open_work_and_drops_the_merged(
 # --- F09-T7: the MCP side -------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=MCP.format(
-        "get_node carries the node's recorded open submissions, and POST /submissions records "
-        "nothing, so a proof's open pull request is missing from it; " + WAITS
-    ),
-)
 def test_get_node_lists_the_open_submissions_on_the_node(
     harness: Harness, key: PrecheckKey
 ) -> None:
@@ -457,13 +409,6 @@ def test_get_node_lists_the_open_submissions_on_the_node(
     assert entry["node_id"] == NODE
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=MCP.format(
-        "get_submission is GET /submissions/{id}, which does not know a POST /submissions pull "
-        "request that was never recorded; " + WAITS
-    ),
-)
 def test_get_submission_tool_equals_the_route(harness: Harness, key: PrecheckKey) -> None:
     """The tool is ``GET /submissions/{submission_id}``, body for body."""
     set_state = state_setter(harness)
@@ -479,9 +424,8 @@ def test_get_submission_tool_equals_the_route(harness: Harness, key: PrecheckKey
 @pytest.mark.xfail(
     strict=True,
     reason=MCP.format(
-        "list_submissions is built (reads.list_submissions) but not registered: a tool needs a "
-        "D-28 row test_d28_rows_verbatim finds in the decisions doc, which another session holds; "
-        "and the snapshot misses a POST /submissions pull request; " + WAITS
+        "list_submissions is built (reads.list_submissions) but not registered as a tool; "
+        "the MCP adapter's registration is another agent's work (2026-09-14)"
     ),
 )
 def test_list_submissions_is_a_tool_and_equals_the_snapshot(
