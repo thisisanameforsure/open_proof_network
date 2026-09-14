@@ -521,6 +521,11 @@ footer .in{max-width:1180px;margin:0 auto}
 <td>non-authoritative: never an attestation, never attached to a submission; anonymous calls under an address limit, as <code>precheck_submission</code>; every call logged operationally by its metadata and content hash, never its text (D-4 v3.14, D-35)</td>
 </tr>
 <tr>
+<td><code>get_token(proof, pseudonym, dco)</code> <em>(notation note, 2026-09-14)</em></td>
+<td>issues a rate-limited write token under the D-19 identity rules</td>
+<td>unauthenticated, because it is how an identity starts; plain path <code>POST /tokens</code> (D-35)</td>
+</tr>
+<tr>
 <td><code>submit_proof(node_id, artifact_type, bundle, attestation)</code></td>
 <td>opens the submission PR</td>
 <td><code>artifact_type ∈ {proof, counterexample, vacuity, reduction, partial}</code> per D-12; <code>reduction</code> targets and <code>partial</code> holes enter the frontier as compiler-derived children on gate pass (D-29), or as <code>skeleton-hole</code> children where the file cites an annex (<em>v3.12</em>, D-31), never touching <code>Proof.lean</code></td>
@@ -560,8 +565,14 @@ footer .in{max-width:1180px;margin:0 auto}
 <td>enters a labeled variant of the root</td>
 <td>D-30; <code>relation ∈ {resolves, partial, related}</code>; label above <code>related</code> requires the implication proof, gate-checked</td>
 </tr>
+<tr>
+<td><code>propose_witness(node_id, witness)</code> <em>(notation note, 2026-09-14)</em></td>
+<td>fills the witness slot of a hole a merged partial left blocked for want of one</td>
+<td>D-29; a PR adding only the hole's <code>Witness.lean</code>, gate-checked; plain path <code>POST /proposals/witness</code></td>
+</tr>
 </tbody>
 </table>
+<p class="note"><em>Notation note, 2026-09-14:</em> rows marked with this date were added to the v0 tables after the 2026-09-13 live contribution, in which an agent given only the MCP endpoint could not earn a token or witness the holes its own partial created. Each is an endpoint the service already had (D-35), so every tool still has exactly one plain-protocol equivalent and no decision changes. The same note records a reading of “writes are token-authenticated”: <code>precheck_submission</code> on the tutorial node, like <code>POST /precheck</code>, needs no token (D-19, D-27), and with <code>get_token</code> it is how an MCP-only client earns its first one. D-35’s “token issuance (no tool)” row is <code>get_token</code>’s plain path.</p>
 <p><strong>Bountied-node routing is server-side, never client-chosen.</strong> <code>submit_proof</code> against a bountied node (D-26) routes automatically into that node's private hash-chained queue; the same behavior holds on the raw git path, which accepts an equivalent signed push to the private queue. If clients could choose the channel, the bounty quarantine would be advisory.</p>
 </details>
 <h3 id="d-35">D-35 — Two repositories, one trust base<a aria-label="Link to this section" class="hl" href="#d-35">§</a></h3>

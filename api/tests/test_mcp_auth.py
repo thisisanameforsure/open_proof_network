@@ -14,6 +14,12 @@ MINIMAL: dict[str, dict[str, Any]] = {
     "claim_node": {"node_id": NODE},
     "release_claim": {"claim_id": "0" * 26},
     "precheck_submission": {"node_id": TUTORIAL_NODE, "bundle": {}},
+    "get_token": {
+        "proof": {"kind": "tutorial", "job_id": "0" * 26, "nonce": "n"},
+        "pseudonym": "anon",
+        "dco": {"version": "v", "accepted": True},
+    },
+    "propose_witness": {"node_id": NODE, "witness": "w"},
     "submit_proof": {"node_id": NODE, "artifact_type": "proof", "bundle": {}, "attestation": {}},
     "submit_postmortem": {"node_id": NODE, "yaml": {}},
     "submit_informal_annex": {"node_id": NODE, "text": "t"},
@@ -29,17 +35,34 @@ MINIMAL: dict[str, dict[str, Any]] = {
 }
 
 
+#: The writes anonymous by design (F09-T6, Mike 2026-09-13): get_token mints the identity, so it
+#: can carry none; precheck_submission lets POST /precheck decide, which opens the tutorial node
+#: (F06-R2). A new write is refused without a bearer unless it is added here, deliberately.
+ANONYMOUS_WRITES = {"get_token": "anyone", "precheck_submission": "endpoint"}
+
+
 def test_token_required_for_writes_only(harness: Harness) -> None:
-    """AC5: every write tool without a token is the SDK's unauthorized result and reaches no
-    endpoint; every read tool without a token succeeds."""
+    """AC5, amended by F09-T6: every write tool without a token is the unauthorized result (the
+    route's shape) and reaches no endpoint — except the two anonymous by design, listed above,
+    which reach their endpoint and return its own answer; every read tool without a token
+    succeeds."""
+    assert {t.name: t.access for t in TOOLS if t.write and not t.needs_bearer} == ANONYMOUS_WRITES
     client = McpClient(harness)
     for tool in TOOLS:
-        if not tool.write:
+        if not tool.write or tool.name in ANONYMOUS_WRITES:
             continue
         doc = client.failed(tool.name, MINIMAL[tool.name])
         assert doc == {"status": auth.UNAUTHORIZED_STATUS, "body": auth.UNAUTHORIZED}, tool.name
     assert harness.store.list_claims() == []
     assert harness.githost.pushes == []
+    assert harness.githost.dispatches == []
+    for name in sorted(ANONYMOUS_WRITES):
+        # The minimal arguments are refused, but by the endpoint (a 400 naming the field), not
+        # by the adapter's gate.
+        doc = client.failed(name, MINIMAL[name])
+        assert doc["status"] == 400, (name, doc)
+        assert doc["body"]["error"] != auth.UNAUTHORIZED["error"], (name, doc)
+    assert harness.githost.dispatches == []
     for name in ("server_info", "list_targets", "list_frontier"):
         client.ok(name)
     # An unknown or revoked token is anonymous too: the same result, never a 500 or a leak.

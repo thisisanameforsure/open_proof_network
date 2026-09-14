@@ -5,7 +5,11 @@ and body through in an envelope ``{status, body}`` (``retry_after`` beside them 
 identity layer sent one), adding nothing: a 201 is the receipt, a 400 is the endpoint's named
 refusal, a 429 is the identity layer's limit (R8) — all of them the same answer curl would get.
 A refusal is an error result carrying that envelope. Without a verified bearer, a write tool
-answers the SDK's unauthorized body at 401 and never reaches its endpoint (R2).
+declared ``bearer`` is refused by the server at 401 with ``auth.UNAUTHORIZED`` — the route's
+own shape — and never reaches its endpoint (R2). Two writes are anonymous by declaration
+(F09-T6): ``precheck_submission`` forwards whatever bearer there is and lets ``POST /precheck``
+decide, which opens the tutorial node (F06-R2); ``get_token`` is ``POST /tokens``, the call that
+mints an identity, so it never carries one.
 
 Parameter names follow D-28's rows. Where the endpoint's body spells a field differently
 (``ttl`` is ``ttl_hours``, ``stmt`` is ``statement``, ``attestation`` binds through the job id
@@ -38,9 +42,9 @@ def unauthorized() -> ToolError:
 async def forward(
     call: Call, method: str, path: str, body: Mapping[str, Any] | None = None
 ) -> dict[str, Any]:
-    """One endpoint call with the bearer; the envelope, as a failure when the endpoint refused."""
-    if not call.token:
-        raise unauthorized()
+    """One endpoint call with the caller's bearer, if the server gave the call one; the envelope,
+    as a failure when the endpoint refused. Whether a bearer is required is the tool's
+    declaration, enforced by the server before the handler runs (``Tool.access``)."""
     answer = await call.endpoint(method, path, json=body)
     if answer.refused:
         raise ToolError(answer.envelope())
@@ -125,6 +129,14 @@ async def propose_variant(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     return await forward(call, "POST", "/proposals/variant", body)
 
 
+async def get_token(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    return await forward(call, "POST", "/tokens", present(args, "proof", "pseudonym", "dco"))
+
+
+async def propose_witness(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    return await forward(call, "POST", "/proposals/witness", present(args, "node_id", "witness"))
+
+
 TOOLING = {
     "type": "object",
     "description": "the D-23 declaration: model, version, harness (each a string)",
@@ -160,10 +172,32 @@ TOOLS: tuple[Tool, ...] = (
         "precheck_submission",
         "Run the gate's steps 1-2 and 4-8 on a bundle server-side, structurally identical to "
         "pregate.sh, and get back a job id to poll; a passing precheck yields the signed "
-        "attestation submit_proof needs.",
+        "attestation submit_proof needs. On the tutorial node no token is needed: the job is "
+        "answered with a single-use nonce, and its passing {id, nonce} is the proof get_token "
+        "takes. Every other node needs a token.",
         params({"node_id": ID_PARAM, "bundle": BUNDLE}, ("node_id", "bundle")),
         precheck_submission,
         write=True,
+        access="endpoint",
+    ),
+    Tool(
+        "get_token",
+        "Mint a write token (D-19); no token needed, since this is how an identity starts. "
+        "`proof` is {kind: tutorial, job_id, nonce} from a passing precheck_submission of the "
+        "tutorial node made without a token (or a GitHub proof); `pseudonym` is the name your "
+        "contributions carry; `dco` is {version, accepted: true} with the version GET /dco.json "
+        "publishes. The token is shown once: send it as `Authorization: Bearer <token>`.",
+        params(
+            {
+                "proof": {"type": "object", "description": "{kind: tutorial, job_id, nonce}"},
+                "pseudonym": {"type": "string"},
+                "dco": {"type": "object", "description": "{version, accepted: true}"},
+            },
+            ("proof", "pseudonym", "dco"),
+        ),
+        get_token,
+        write=True,
+        access="anyone",
     ),
     Tool(
         "submit_proof",
@@ -285,6 +319,15 @@ TOOLS: tuple[Tool, ...] = (
             ("target_id", "stmt", "witness"),
         ),
         propose_variant,
+        write=True,
+    ),
+    Tool(
+        "propose_witness",
+        "Fill the witness slot of a hole blocked `witness-missing` (a node a merged partial "
+        "created, F08-R5): opens the pull request adding only its Witness.lean. `witness` is "
+        "the Lean file.",
+        params({"node_id": ID_PARAM, "witness": LEAN}, ("node_id", "witness")),
+        propose_witness,
         write=True,
     ),
 )

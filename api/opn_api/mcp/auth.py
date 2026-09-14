@@ -4,8 +4,8 @@ The SDK's ``TokenVerifier`` protocol is implemented over F05's token store: the 
 hash and the same lookup ``opn_api.auth.authenticate`` makes, minus the 401 — a missing or
 unknown token leaves the request anonymous, because D-28's read tools are unauthenticated and
 must keep working. The SDK's bearer backend puts the verified token in a context variable;
-a write tool reads it back through ``bearer`` and, finding none, answers the SDK's own
-unauthorized body (``UNAUTHORIZED``) without touching its endpoint.
+the server reads it back through ``bearer`` and, finding none for a tool that needs one, answers
+``UNAUTHORIZED`` without touching the endpoint.
 
 The SDK's ``AuthSettings`` wrapper is deliberately not used: it gates the whole transport,
 ``tools/list`` included, which is the opposite of R2 (Q3). The raw token lives in memory for
@@ -25,11 +25,16 @@ from opn_api import auth
 if TYPE_CHECKING:
     from opn_api.app import Context
 
-#: The body the SDK's ``RequireAuthMiddleware`` sends for a request without a valid bearer,
-#: reproduced verbatim so a client sees one unauthorized shape on both paths (R2).
+#: The refusal body of a tool that needs a bearer and has none: the HTTP route's own shape and
+#: ``error`` (``opn_api.auth.authenticate``), so a client sees one unauthorized answer on both
+#: paths, with a message naming the way to a token that stays inside the MCP (F09-T6, D-19).
 UNAUTHORIZED: dict[str, Any] = {
-    "error": "invalid_token",
-    "error_description": "Authentication required",
+    "error": "unauthenticated",
+    "message": (
+        "this tool needs `Authorization: Bearer <token>`. To mint one without leaving the MCP: "
+        "run precheck_submission on the tutorial node with no token, poll get_precheck until "
+        "it passes, then call get_token with proof {kind: tutorial, job_id, nonce}"
+    ),
 }
 UNAUTHORIZED_STATUS = 401
 WRITE_SCOPE = "write"
