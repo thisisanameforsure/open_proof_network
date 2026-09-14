@@ -292,6 +292,12 @@ class Renderer:
             f'<ul class="why-not">{items}</ul>{signatures}'
         )
 
+    def target_claimable(self, tv: TargetView) -> str:
+        """F14-R10: the target page says in words whether it can be claimed, and if not, why."""
+        if tv.index_entry.get("claimable"):
+            return '<p class="claimable">This target is open for claims.</p>'
+        return self.why_not_claimable(tv, detail=False)
+
     def sources_block(self, tv: TargetView) -> str:
         """R10: where the statement came from, its attribution, and its licence."""
         if tv.record is None:
@@ -365,6 +371,7 @@ class Renderer:
             note=note,
             qa=self.qa_section(tv),
             review=esc(self.review_sentence(tv)),
+            claimable=self.target_claimable(tv),
             graph_link=self.file_link(f"targets/{tid}/graph.json"),
             fast_check=esc(self.fast_check(e.get("mathlib_sha"))),
         )

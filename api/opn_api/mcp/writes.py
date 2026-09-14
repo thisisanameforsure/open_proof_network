@@ -85,7 +85,7 @@ async def release_claim(call: Call, args: dict[str, Any]) -> dict[str, Any]:
 
 
 async def precheck_submission(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    body = present("precheck_submission", args, "node_id", "bundle")
+    body = present("precheck_submission", args, "node_id", "bundle", "artifact_type")
     out = await forward(call, "POST", "/precheck", body)
     body = out["body"] if isinstance(out["body"], dict) else {}
     return {**out, "job_id": body.get("id"), "poll": POLL}
@@ -216,7 +216,18 @@ TOOLS: tuple[Tool, ...] = (
         "attestation submit_proof needs. On the tutorial node no token is needed: the job is "
         "answered with a single-use nonce, and its passing {id, nonce} is the proof get_token "
         "takes. Every other node needs a token.",
-        params({"node_id": ID_PARAM, "bundle": BUNDLE}, ("node_id", "bundle")),
+        params(
+            {
+                "node_id": ID_PARAM,
+                "bundle": BUNDLE,
+                "artifact_type": {
+                    "enum": ["proof", "counterexample", "vacuity", "reduction", "partial"],
+                    "description": "optional: the type this bundle will be submitted as; a "
+                    "bundle at the wrong path for it is refused before any job starts",
+                },
+            },
+            ("node_id", "bundle"),
+        ),
         precheck_submission,
         write=True,
         access="endpoint",

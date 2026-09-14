@@ -15,7 +15,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-import pytest
 from fixture import (
     COMMIT,
     LISTED_TARGET,
@@ -35,9 +34,6 @@ def words(root: Path) -> str:
     return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", page))
 
 
-@pytest.mark.xfail(
-    strict=True, reason="F14 bench finding: target.html never states claimability; F14-R10"
-)
 def test_a_claimable_listed_target_page_says_it_is_open_for_claims(tmp_path: Path) -> None:
     """F14-R1: listed and no drift freeze is claimable. F14-R10: the page says what a reader can
     do, and must never say a listed target is not claimable."""
@@ -48,9 +44,6 @@ def test_a_claimable_listed_target_page_says_it_is_open_for_claims(tmp_path: Pat
     assert "not claimable" not in text.lower()
 
 
-@pytest.mark.xfail(
-    strict=True, reason="F14 bench finding: target.html does not use why_not_claimable; F14-R10"
-)
 def test_a_frozen_target_page_says_it_is_not_claimable_and_why(tmp_path: Path) -> None:
     """F14-R1: an upstream drift freeze (F12-R11) is the one curated not-claimable reason besides
     status. F14-R10 and F11-R10: the reason is named rather than implied."""

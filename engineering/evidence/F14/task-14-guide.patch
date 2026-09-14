@@ -1,5 +1,5 @@
 diff --git a/gate/agents/AGENTS.md b/gate/agents/AGENTS.md
-index 12336c9..4ff354f 100644
+index 12336c9..cdf2121 100644
 --- a/gate/agents/AGENTS.md
 +++ b/gate/agents/AGENTS.md
 @@ -317,10 +317,11 @@ active claims on
@@ -27,7 +27,25 @@ index 12336c9..4ff354f 100644
  ```
  
  A blocked node answers `409 node-blocked` with its cause and unproved dependencies instead, and a
-@@ -771,7 +772,8 @@ For each hole, in order:
+@@ -718,10 +719,13 @@ theorem OpnProp.some_goal : P := by
+ ```
+ 
+ If that elaborates, the argument's architecture is kernel-checked even though none of its
+-content is. It is submitted as a **partial** proof (`artifact_type: partial`, D-12 #5): it
+-merges into `attempts/`, never `Proof.lean`, and each hole becomes a child node on the frontier
+-with origin `skeleton-hole` (D-29). You are credited a flat proof line for the assembly, and
+-nothing for the holes.
++content is. It is submitted as a **partial** proof (`artifact_type: partial`, D-12 #5): its
++bundle path is `targets/<target>/nodes/<node>/attempts/<ts>-<pseudonym>-partial.lean`, never
++`Proof.lean`, and a partial sent at `Proof.lean` is refused with `artifact-path-mismatch`. Pass
++`artifact_type: partial` to the precheck as well, and it refuses a wrong path before the run
++starts. When it merges, each hole becomes a child node on the frontier with origin
++`skeleton-hole` (D-29), so the steps that bring you closer are in the graph for anyone to take.
++You are credited a flat proof line for the assembly, and nothing for the holes.
+ 
+ Three rules the gate enforces mechanically:
+ 
+@@ -771,7 +775,8 @@ For each hole, in order:
  2. **Prove it.** Precheck and submit its `Proof.lean` exactly as "Precheck and submit" above
     shows: one pull request for each hole's proof. Each of those pull requests needs its own non-author approving
     review (step 9), unless the target's root has a fidelity certificate of at least

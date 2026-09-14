@@ -16,8 +16,8 @@ The pin keeps a precheck without the field working as it does today.
 
 from __future__ import annotations
 
-import pytest
 from api_fakes import PROOF_PREFIX, TUTORIAL_NODE, TUTORIAL_PROOF, Harness
+from mcp_client import McpClient
 
 PROOF_PATH = f"{PROOF_PREFIX}{TUTORIAL_NODE}/Proof.lean"
 PARTIAL_ASSEMBLY = (
@@ -25,13 +25,38 @@ PARTIAL_ASSEMBLY = (
 )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "F14 bench finding: "
-        "needs an optional artifact_type on POST /precheck, an F06-R1 amendment (owner's call)"
-    ),
-)
+def test_precheck_refuses_an_unknown_artifact_type(harness: Harness) -> None:
+    token = harness.token_for("code_alice", "alice")
+    pushed = len(harness.githost.pushes)
+    r = harness.client.post(
+        "/precheck",
+        json={
+            "node_id": TUTORIAL_NODE,
+            "artifact_type": "lemma",
+            "bundle": {PROOF_PATH: TUTORIAL_PROOF},
+        },
+        headers=harness.auth(token),
+    )
+    assert r.status_code == 400, r.text
+    assert r.json()["error"] == "artifact-type-invalid", r.text
+    assert "partial" in r.json()["message"], r.text
+    assert len(harness.githost.pushes) == pushed
+
+
+def test_precheck_accepts_a_proof_declared_at_proof_lean(harness: Harness) -> None:
+    token = harness.token_for("code_alice", "alice")
+    r = harness.client.post(
+        "/precheck",
+        json={
+            "node_id": TUTORIAL_NODE,
+            "artifact_type": "proof",
+            "bundle": {PROOF_PATH: TUTORIAL_PROOF},
+        },
+        headers=harness.auth(token),
+    )
+    assert r.status_code == 202, r.text
+
+
 def test_precheck_refuses_a_partial_declared_at_proof_lean(harness: Harness) -> None:
     token = harness.token_for("code_alice", "alice")
     pushed = len(harness.githost.pushes)
@@ -60,3 +85,21 @@ def test_pin_precheck_without_artifact_type_is_unchanged(harness: Harness) -> No
         headers=harness.auth(token),
     )
     assert r.status_code == 202, r.text
+
+
+def test_mcp_precheck_submission_forwards_artifact_type(harness: Harness) -> None:
+    """The adapter's ``precheck_submission`` passes the optional type through, so the same
+    refusal reaches an MCP client, and nothing is pushed."""
+    client = McpClient(harness)
+    pushed = len(harness.githost.pushes)
+    refused = client.failed(
+        "precheck_submission",
+        {
+            "node_id": TUTORIAL_NODE,
+            "artifact_type": "partial",
+            "bundle": {PROOF_PATH: PARTIAL_ASSEMBLY},
+        },
+    )
+    assert refused["status"] == 400, refused
+    assert refused["body"]["error"] == "artifact-path-mismatch", refused
+    assert len(harness.githost.pushes) == pushed

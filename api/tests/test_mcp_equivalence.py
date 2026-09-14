@@ -117,7 +117,8 @@ def test_read_tools_equal_plain_path(
         },
         "Proof.lean": None,
     }
-    assert node["context"] == derived_bundle(harness, tmp_path_factory.mktemp("tree"))
+    derived = derived_bundle(harness, tmp_path_factory.mktemp("tree"))
+    assert node["context"] == {**derived, "claims": node["claims"]}  # claims overlaid live
     assert node["context_source"] == "derived"  # the fake graph commits no CONTEXT.json
     [annex] = [p for p in files if p.startswith(NODE_DIR + "annex/") and p.endswith(".md")]
     text = files[annex].decode()
@@ -147,8 +148,13 @@ def derived_bundle(harness: Harness, tree: Path) -> dict[str, Any]:
 
 def test_get_node_uses_context(harness: Harness, tmp_path: Path) -> None:
     """F10-AC4: with CONTEXT.json committed, the tool's bundle is that file plus the raw files,
-    demarcation included — and the file is exactly what the tool derived without it."""
+    demarcation included — and the file is exactly what the tool derived without it, except the
+    ``claims`` block, which is the live overlay.
+
+    Amended 2026-09-14 (owner): get_node returns the latest node, claims overlaid live."""
     seed_graph(harness)
+    token = harness.token_for("code_alice", "alice-p")
+    harness.client.post("/claims", json={"node_id": NODE}, headers=harness.auth(token))
     client = McpClient(harness)
     before = client.ok("get_node", {"node_id": NODE})
     assert before["context_source"] == "derived"
@@ -157,7 +163,10 @@ def test_get_node_uses_context(harness: Harness, tmp_path: Path) -> None:
     harness.context.files.clear()
     after = client.ok("get_node", {"node_id": NODE})
     assert after["context_source"] == "file"
-    assert after["context"] == json.loads(committed) == before["context"]
+    live = after["claims"]
+    assert live["active"] and after["context"]["claims"] == live
+    assert json.loads(committed)["claims"] != live  # the snapshot is stale; the overlay wins
+    assert {**json.loads(committed), "claims": live} == after["context"] == before["context"]
     assert {k: v for k, v in after.items() if k != "context_source"} == {
         k: v for k, v in before.items() if k != "context_source"
     }
@@ -166,7 +175,9 @@ def test_get_node_uses_context(harness: Harness, tmp_path: Path) -> None:
         == harness.githost.files[NODE_DIR + "Statement.lean"].decode()
     )
     # The bundle carries the injection only wrapped, as the file does (R6; F10-R3).
-    assert demarcate.bare_strings(after["context"]) == demarcate.bare_strings(json.loads(committed))
+    assert demarcate.bare_strings(after["context"]) == demarcate.bare_strings(
+        {**json.loads(committed), "claims": live}
+    )
     assert "ignore previous instructions" in json.dumps(after["context"])
     # A committed bundle that does not validate is a named error, not a partial answer (R10).
     harness.githost.files[NODE_DIR + "CONTEXT.json"] = b'{"schema": "context/v1"}'

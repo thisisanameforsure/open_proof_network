@@ -268,15 +268,25 @@ def existing_paths(ctx: Context, node_id: str, target_id: str) -> frozenset[str]
 
 
 #: F05-T8: the fields ``POST /precheck`` reads; any other top-level key is refused.
-PRECHECK_FIELDS: tuple[str, ...] = ("node_id", "bundle")
+#: ``artifact_type`` is optional (F14 bench finding): when given, the bundle's paths are held to
+#: the submission route's type-to-path rule before any job exists. It is not recorded on the job.
+PRECHECK_FIELDS: tuple[str, ...] = ("node_id", "bundle", "artifact_type")
 
 
 async def post_precheck(ctx: Context, request: Request) -> Response:
     """R1, R2, R3, R10. Authentication is decided by the node: the tutorial one is open (Q2)."""
+    # Imported here: ``submissions`` imports this module, and owns the type-to-path rule.
+    from opn_api import submissions  # noqa: PLC0415
+
     fields, _ = await identitymod.body_fields(request, PRECHECK_FIELDS)
     node_id = fields.get("node_id")
     if not isinstance(node_id, str) or not node_id:
         raise ApiError(400, "node-id-missing", "node_id is required")
+    artifact_type = (
+        submissions.check_artifact_type(fields["artifact_type"])
+        if "artifact_type" in fields
+        else None
+    )
     facts = node_facts(ctx, node_id)
     # F06-T6: a blocked node can only fail at the dependency check, so it is refused before any
     # token is read, any limit charged or any job exists. A proved node stays precheckable (D-19).
@@ -299,6 +309,9 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
     if rejection is not None or bundle is None:
         assert rejection is not None
         raise ApiError(400, rejection.code, rejection.message, headers={})
+    if artifact_type is not None:
+        # A precheck that the submission would refuse by path is refused before it costs a job.
+        submissions.check_artifact_path(claim, bundle.files, artifact_type)
 
     now = ctx.clock.now()
     job = Job(

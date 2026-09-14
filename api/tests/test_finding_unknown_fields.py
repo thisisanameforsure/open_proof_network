@@ -41,8 +41,8 @@ STATEMENT = "theorem OpnProp.and_weaken : ∀ p q : Prop, p ∧ q → p ∨ q :=
 WITNESS = "theorem witness : ∃ p q : Prop, p ∧ q := ⟨True, True, trivial, trivial⟩\n"
 EXHIBIT = "import Nodes.«tutorial-and-swap».Context\n\nexample : True := trivial\n"
 HOLE = "and-reassoc--h1"
-#: A key no write route defines (the tester's own, ``artifact_type``, is a field of
-#: ``POST /submissions``, so it is the precheck test's key alone).
+#: A key no write route defines. (The tester's own, ``artifact_type``, became an optional field
+#: of ``POST /precheck`` too on 2026-09-14, so it is no longer stray anywhere.)
 STRAY = "stray_key"
 FINDING_5 = "finding 5 (F05-R1, F06-R1, F09-R2): {}; fix: F05-T8 (Mike, 2026-09-13)"
 
@@ -200,14 +200,15 @@ def test_the_table_covers_every_body_taking_write_route() -> None:
 
 
 def test_precheck_refuses_the_testers_stray_key(harness: Harness) -> None:
-    """The exact request the tester made: the tutorial precheck plus ``artifact_type``. A 400
-    naming the key, and no job is created or dispatched."""
+    """The tutorial precheck plus a key it does not define. A 400 naming the key, and no job is
+    created or dispatched. (The tester's key, ``artifact_type``, is a precheck field since
+    2026-09-14: ``test_finding_bench_partial_path``.)"""
     r = harness.client.post(
-        "/precheck", json={"node_id": TUTORIAL_NODE, "bundle": BUNDLE, "artifact_type": "partial"}
+        "/precheck", json={"node_id": TUTORIAL_NODE, "bundle": BUNDLE, STRAY: "partial"}
     )
     assert r.status_code == 400, f"the stray key was accepted: {r.status_code} {r.text}"
     assert r.json()["error"] == "unknown-field", r.text
-    assert "artifact_type" in r.json()["message"], r.text
+    assert STRAY in r.json()["message"], r.text
     assert harness.githost.dispatches == []
 
 

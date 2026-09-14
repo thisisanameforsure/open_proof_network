@@ -334,6 +334,11 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     overlay = service_answer(await call.endpoint("GET", "/frontier.json"), "/frontier.json")
     entry = next((e for e in overlay.get("entries", []) if e.get("node_id") == node_id), None)
     pending = service_answer(await call.endpoint("GET", "/submissions.json"), "/submissions.json")
+    claims = dict(entry["claims"]) if entry is not None else None
+    if claims is not None:
+        # Owner, 2026-09-14: get_node returns the latest node, so the bundle's committed claims
+        # snapshot is replaced by the live overlay and the two blocks can never disagree.
+        bundle = {**bundle, "claims": dict(claims)}
     return {
         "node_id": node_id,
         "target_id": target_id,

@@ -1,0 +1,17 @@
+F14 — the owner's rulings on the bench findings, and the v3.15 edit (F14-Q13)
+date: 2026-09-14
+command: make verify
+result: ruff clean; mypy --strict clean (166, 98, 26 files); 2098 passed, 69 deselected, 2 xfailed in 149.68 s
+
+Rulings, from Mike on 2026-09-14, and what was done:
+- **Duplicate claims.** Two people may claim the same problem. The duplicate-claim tests were deleted.
+- **The resolved tutorial.** It may stay claimable. Its test was deleted.
+- **Target pages.** A page says whether its target can be claimed. render.py and target.html were changed, the two site xfails now pass, the golden diff is one line, and the screenshot is target-page-claimable-1200.png.
+- **Partial proofs.** They belong in the graph, and they already enter it: a partial merges under attempts/ and its holes become child nodes. Two fixes follow:
+  - POST /precheck and the MCP precheck_submission tool take an optional artifact_type. A path the submission route would refuse gets 400 artifact-path-mismatch, and an unknown type gets 400 artifact-type-invalid. Nothing is pushed. Four tests cover it, and the stray-key test now uses a different stray key.
+  - The guide names the partial path. That text is in task-14-guide.patch, applied at the T15 re-pin with the graph copy. The two guide xfails pass with the patch applied.
+- **get_node.** It returns the latest node: context.claims is the live overlay, equal to the top-level claims. There is one new test, and test_mcp_equivalence has two amended tests.
+- **v3.15.** Applied to docs/architecture_decisions_v_3_12.html: D-4 step 9, D-6, D-33, a note on D-9 and a note on D-10. PROTOCOL_VERSION moved from 3.12 to 3.15, and three product goldens and one assertion were updated.
+- **Q12.** Answered no.
+
+The remaining xfails: the two guide tests, which flip when the patched guide lands in T15.
