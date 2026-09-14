@@ -123,7 +123,7 @@ def exchange_nonce(
     print(f"POST /claims {ABSENT_NODE} -> {status} {error}")
     if status == 401:
         problems.append(f"the issued token was not accepted: {body}")
-    elif status != 404 or error != "node-not-in-frontier":
+    elif status != 404 or error != "node-unknown":  # F05-T9: was node-not-in-frontier
         problems.append(f"unexpected answer for an absent node: {status} {body}")
 
     # Single use (AC10): the same nonce a second time is refused.

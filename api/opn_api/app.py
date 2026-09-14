@@ -5,7 +5,8 @@ the seams — ``Store``, ``GitHost``, ``Clock`` — and the configuration. Every
 signature ``async (ctx, request) -> Response``; the binding applies, in order: the R13 gate
 (503 while a table or parameter is missing), bearer authentication for authenticated routes
 (R5), the per-identity write limit (R6), then the handler. Errors are ``ApiError`` and render
-as ``{"error": code, "message": ...}``; anything else is logged and becomes a 500 (C7).
+as ``{"error": code, "message": ...}``, plus ``details`` when the refusal carries them (F05-T9);
+anything else is logged and becomes a 500 (C7).
 
 Before any of that, ``BodyCap`` refuses a request body larger than ``settings.max_body_bytes``
 with a 413 ``body-too-large`` (§6): the one place the cap is enforced, ahead of every parser.
@@ -48,21 +49,31 @@ access_log = logging.getLogger("opn_api.access")
 
 
 class ApiError(Exception):
-    """A response the handler chose: status, machine-readable code, human message."""
+    """A response the handler chose: status, machine-readable code, human message, and — for a
+    refusal whose reason is data as well as prose — ``details``, rendered only when given
+    (F05-T9: a blocked node's cause and unproved dependencies, a listed node's reasons)."""
 
     def __init__(
-        self, status: int, code: str, message: str, *, headers: Mapping[str, str] | None = None
+        self,
+        status: int,
+        code: str,
+        message: str,
+        *,
+        headers: Mapping[str, str] | None = None,
+        details: Mapping[str, Any] | None = None,
     ) -> None:
         super().__init__(message)
         self.status = status
         self.code = code
         self.message = message
         self.headers = dict(headers or {})
+        self.details = dict(details) if details is not None else None
 
     def response(self) -> JSONResponse:
-        return JSONResponse(
-            {"error": self.code, "message": self.message}, self.status, headers=self.headers
-        )
+        body: dict[str, Any] = {"error": self.code, "message": self.message}
+        if self.details is not None:
+            body["details"] = self.details
+        return JSONResponse(body, self.status, headers=self.headers)
 
 
 @dataclass

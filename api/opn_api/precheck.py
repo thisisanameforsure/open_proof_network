@@ -33,6 +33,7 @@ from opn_api import identity as identitymod
 from opn_api.app import ApiError
 from opn_api.githost import GitHostError, WorkflowRun
 from opn_gate import attestation, schemas, signer
+from opn_gate import graph as graphmod
 from opn_gate.paths import Claim
 
 if TYPE_CHECKING:
@@ -126,42 +127,110 @@ def store_key(job_id: str) -> str:
 # --- the node this job is about ------------------------------------------------------------------
 
 
+def facts_of(target_id: str, node: dict[str, Any]) -> dict[str, Any]:
+    """One ``graph.json`` row as the facts the routes act on (F05-T9): where it lives, what it
+    states, and where it stands — status, cause and dependencies, and whether a proof landed."""
+    cause = node.get("cause")
+    return {
+        "target_id": target_id,
+        "statement_hash": str(node["statement_hash"]),
+        "tutorial": bool(node["tutorial"]),
+        "status": str(node["status"]) if node.get("status") is not None else None,
+        "cause": str(cause) if cause is not None else None,
+        "deps": [str(d) for d in node.get("deps") or []],
+        "proof_commit": node.get("proof_commit"),
+    }
+
+
 def node_facts(ctx: Context, node_id: str) -> dict[str, Any]:
-    """The node as the graph's ``main`` has it: its target, statement hash and whether it is the
-    tutorial node. Read from the committed frontier and targets index rather than a checkout,
-    because the service holds no copy of the graph (D-35)."""
+    """The node as the graph's ``main`` has it: its target, statement hash, whether it is the
+    tutorial node, and its status, cause, dependencies and proof commit. Read from the committed
+    ``graph.json`` files rather than a checkout, because the service holds no copy of the graph
+    (D-35).
+
+    The graph comes first because it is the only product that says where a node *stands*: the
+    frontier lists open nodes alone, so a proved node (the tutorial node, normally — D-19) and a
+    blocked one are both simply absent from it. A node the frontier lists but no ``graph.json``
+    row carries is still served from its frontier entry, with no status to act on.
+    """
+    for target_id, nodes in graph_doc(ctx).items():
+        for node in nodes:
+            if node["node_id"] == node_id:
+                return facts_of(target_id, node)
     for entry in frontier.committed_frontier(ctx)["entries"]:
         if entry["node_id"] == node_id:
             return {
                 "target_id": str(entry["target_id"]),
                 "statement_hash": str(entry["statement_hash"]),
                 "tutorial": bool(entry["tutorial"]),
+                "status": None,
+                "cause": None,
+                "deps": [],
+                "proof_commit": None,
             }
-    # A proved node has left the frontier but may still be prechecked — the tutorial node is
-    # normally in exactly that state, and it is the one D-19 depends on.
-    graph = graph_doc(ctx)
-    for target_id, nodes in graph.items():
-        for node in nodes:
-            if node["node_id"] == node_id:
-                return {
-                    "target_id": target_id,
-                    "statement_hash": str(node["statement_hash"]),
-                    "tutorial": bool(node["tutorial"]),
-                }
     raise ApiError(404, "node-unknown", f"{node_id} is not a node of this graph")
+
+
+TARGETS_INDEX = "targets/index.json"
+
+
+def index_doc(ctx: Context) -> dict[str, Any]:
+    """``targets/index.json`` at ``main``, through the same committed-file cache as every other
+    product: absent or unreachable with no good copy is the cache's ``503 graph-unreachable``."""
+    doc = json.loads(frontier.committed(ctx, TARGETS_INDEX))
+    return doc if isinstance(doc, dict) else {}
 
 
 def graph_doc(ctx: Context) -> dict[str, list[dict[str, Any]]]:
     """Every target's nodes, from the committed ``targets/<id>/graph.json`` files."""
-    import json  # noqa: PLC0415 — one caller
-
-    index = json.loads(frontier.committed(ctx, "targets/index.json"))
     out: dict[str, list[dict[str, Any]]] = {}
-    for target in index.get("targets", []):
+    for target in index_doc(ctx).get("targets", []):
         target_id = str(target["target_id"])
         doc = json.loads(frontier.committed(ctx, f"targets/{target_id}/graph.json"))
         out[target_id] = list(doc.get("nodes", []))
     return out
+
+
+def unproved_deps(facts: dict[str, Any], graph: dict[str, list[dict[str, Any]]]) -> list[str]:
+    """The node's dependencies that are not ``proved`` in its target's graph — the ones that
+    block it, as the gate derives ``blocked`` (a refuted dependency is one of them; a dependency
+    the graph does not carry cannot be taken as proved)."""
+    statuses = {str(n["node_id"]): n.get("status") for n in graph.get(facts["target_id"], [])}
+    return [dep for dep in facts.get("deps") or [] if statuses.get(dep) != "proved"]
+
+
+def blocked_error(
+    node_id: str, facts: dict[str, Any], graph: dict[str, list[dict[str, Any]]]
+) -> ApiError:
+    """The one ``409 node-blocked`` every route gives a blocked node (F05-T9, F06-T6): the cause
+    and the unproved dependencies, in the message and as ``details``, and the way out where the
+    service offers one — a hole blocked ``witness-missing`` takes ``POST /proposals/witness``."""
+    cause = facts.get("cause")
+    unproved = unproved_deps(facts, graph)
+    if unproved:
+        why = "it waits on unproved dependencies: " + ", ".join(unproved)
+        if cause == graphmod.CAUSE_DEP_REFUTED:
+            why += (
+                f" (cause {cause}: a refuted dependency cannot be proved as it stands; "
+                "a curator has to act, D-12)"
+            )
+        elif cause:
+            why += f" (cause {cause})"
+    elif cause == graphmod.CAUSE_WITNESS_MISSING:
+        why = (
+            f"cause {cause}: its witness slot is empty, and a witness goes in through "
+            "POST /proposals/witness (F08-R5) before the node opens"
+        )
+    elif cause:
+        why = f"cause {cause}"
+    else:
+        why = "the graph names no cause and no unproved dependency"
+    return ApiError(
+        409,
+        "node-blocked",
+        f"{node_id} is blocked: {why}",
+        details={"status": "blocked", "cause": cause, "unproved_deps": unproved},
+    )
 
 
 def rendered_from(ctx: Context) -> str:

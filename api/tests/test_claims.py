@@ -41,13 +41,17 @@ def test_ttl_caps(harness: Harness) -> None:
 
 
 def test_only_claimable_nodes(harness: Harness) -> None:
-    """AC10: absent from the frontier -> 404; present but not claimable -> 409."""
+    """AC10: not a node of the graph -> 404; present but not claimable -> 409.
+
+    Rewritten for F05-T9: the 404 was ``node-not-in-frontier`` for any node off the frontier;
+    a node the graph does not have is now ``node-unknown``, and blocked or proved nodes get
+    their own 409s (``test_finding_refusal_reasons.py``)."""
     token = harness.token_for("code_alice", "alice-p")
     absent = harness.client.post(
         "/claims", json={"node_id": "no-such-node"}, headers=harness.auth(token)
     )
     assert absent.status_code == 404
-    assert absent.json()["error"] == "node-not-in-frontier"
+    assert absent.json()["error"] == "node-unknown"
 
     listed = harness.client.post(
         "/claims", json={"node_id": "listed-only"}, headers=harness.auth(token)

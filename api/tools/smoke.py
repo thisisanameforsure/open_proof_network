@@ -102,10 +102,10 @@ def token_authenticates(base: str, token: str, problems: list[str]) -> bool:
     if status == 401:
         problems.append(f"the token was not accepted: {status} {body}")
         return False
-    if status != 404 or error != "node-not-in-frontier":
+    if status != 404 or error != "node-unknown":  # F05-T9: was node-not-in-frontier
         problems.append(f"unexpected answer for an absent node: {status} {body}")
         return False
-    print(f"POST /claims {ABSENT_NODE} -> 404 node-not-in-frontier (the token authenticates)")
+    print(f"POST /claims {ABSENT_NODE} -> 404 node-unknown (the token authenticates)")
     return True
 
 

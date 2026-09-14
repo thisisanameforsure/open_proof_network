@@ -1,0 +1,94 @@
+F05-T9 · refusals name their reason (R7 amended; D-25, D-29, D-33; F09-R7) · red run before any production change
+worktree of 4092af7 (f80151b's red tests), branch worktree-agent-a23ab5add8db8b864, 2026-09-14
+
+$ uv run --frozen pytest api/tests/test_finding_refusal_reasons.py --runxfail -q
+E       AssertionError: {'error': 'node-not-in-frontier', 'message': 'and-reassoc--h1 is not in the frontier at main'}
+E       assert (404, 'node-not-in-frontier') == (409, 'node-blocked')
+E       AssertionError: {'error': 'node-not-in-frontier', 'message': 'swap-corollary is not in the frontier at main'}
+E       assert (404, 'node-not-in-frontier') == (409, 'node-blocked')
+E       AssertionError: {'error': 'node-not-in-frontier', 'message': 'already-proved is not in the frontier at main'}
+E       assert (404, 'node-not-in-frontier') == (409, 'node-not-open')
+E       AssertionError: {'error': 'node-not-in-frontier', 'message': 'no-such-node is not in the frontier at main'}
+E       assert (404, 'node-not-in-frontier') == (404, 'node-unknown')
+E       AssertionError: ('status-listed', 'listed-lemma is not claimable')
+E       assert "the target's D-33 status is listed" in 'listed-lemma is not claimable'
+E       AssertionError: {'error': 'node-not-in-frontier', 'message': 'and-reassoc--h1 is not in the frontier at main'}
+E       assert 'node-not-in-frontier' == 'node-blocked'
+FAILED api/tests/test_finding_refusal_reasons.py::test_a_witness_missing_hole_is_refused_with_its_cause_and_the_way_out
+FAILED api/tests/test_finding_refusal_reasons.py::test_a_dep_blocked_node_is_refused_naming_the_unproved_dependency
+FAILED api/tests/test_finding_refusal_reasons.py::test_a_proved_node_is_refused_as_not_open_naming_its_status
+FAILED api/tests/test_finding_refusal_reasons.py::test_an_unknown_node_is_refused_as_unknown
+FAILED api/tests/test_finding_refusal_reasons.py::test_a_listed_node_is_refused_with_every_not_claimable_reason
+FAILED api/tests/test_finding_refusal_reasons.py::test_claim_node_over_mcp_carries_the_same_refusal
+6 failed, 2 warnings in 1.15s
+
+--- the change ---
+api/opn_api/app.py      ApiError(..., details=None); the body carries "details" only when given.
+api/opn_api/precheck.py node_facts reads graph.json first (facts_of: target, statement hash, tutorial,
+                        status, cause, deps, proof_commit), falls back to the frontier entry with no
+                        status; index_doc(ctx) reads targets/index.json through the committed-file
+                        cache (graph_doc uses it); unproved_deps (a dep not "proved", or with no row);
+                        blocked_error(node_id, facts, graph) is the one 409 node-blocked builder:
+                        unproved deps named (and dep-refuted explained), else witness-missing naming
+                        POST /proposals/witness, details {status, cause, unproved_deps}.
+api/opn_api/claims.py   find_entry: off the frontier -> off_frontier() reads the graph: 404 node-unknown
+                        (naming the target when one was passed) | 409 node-blocked | 409 node-not-open
+                        naming the status; claimable false -> 409 node-not-claimable with
+                        intake.explain(r) per reason and details.not_claimable (an unreadable index
+                        costs the reasons, not the refusal — C7).
+MCP                     unchanged: claim_node forwards the body verbatim, so details arrive through it;
+                        no MCP result schema touched (the envelope's body is already open).
+
+Existing tests rewritten (they pinned the old code):
+  api/tests/test_claims.py::test_only_claimable_nodes           no-such-node: node-not-in-frontier -> node-unknown
+  api/tests/test_rejections_claims.py::test_node_in_two_targets_needs_a_target_id
+                                                                target_id=nowhere: node-not-in-frontier -> node-unknown
+Tools updated: api/tools/smoke.py, api/tools/smoke_precheck.py expect 404 node-unknown for the absent node.
+Checked, unchanged: test_mcp_auth.py (listed-only still node-not-claimable), test_frontier.py,
+  test_rejections_precheck.py, gate/agents/AGENTS.md (names none of the old codes).
+
+Edge tests added (api/tests/test_rejections_claims.py, "F05-T9: the edges of the refusal reasons"):
+  a node under a refuted dep -> cause dep-refuted, unproved_deps == [the refuted dep], proved dep unnamed
+  a dep the graph lacks is listed as unproved
+  blocked with no cause and no unproved dep still answers node-blocked
+  a target row with an empty not_claimable list -> the bare message, details {not_claimable: []}
+  targets/index.json absent -> index_doc raises 503 graph-unreachable; the claim is still 409, no reasons
+  a frontier node with no graph row -> node_facts from the frontier, status None, still claimable
+  node_facts carries the graph row (proved, proof_commit)
+  a refusal without details renders only {error, message}
+
+--- green, after the change (xfail marks removed) ---
+$ uv run --frozen pytest api/tests/test_finding_refusal_reasons.py api/tests/test_claims.py api/tests/test_mcp_auth.py api/tests/test_rejections_claims.py -q
+37 passed in 0.61s
+
+--- mutation check: each wrong implementation loaded as a -p plugin, nothing on disk changed ---
+$ PYTHONPATH=scratchpad/mutants uv run --frozen pytest -p mut_t9_reasons_dropped api/tests/test_finding_refusal_reasons.py api/tests/test_rejections_claims.py -q
+  (claims.not_claimable_reasons -> [])
+FAILED api/tests/test_finding_refusal_reasons.py::test_a_listed_node_is_refused_with_every_not_claimable_reason
+1 failed, 22 passed in 0.30s
+
+$ PYTHONPATH=scratchpad/mutants uv run --frozen pytest -p mut_t9_proved_deps_listed ... (same files)
+  (precheck.unproved_deps -> every dep, proved ones included)
+FAILED api/tests/test_finding_refusal_reasons.py::test_a_dep_blocked_node_is_refused_naming_the_unproved_dependency
+FAILED api/tests/test_rejections_claims.py::test_a_node_under_a_refuted_dependency_names_the_cause_and_the_dependency
+FAILED api/tests/test_rejections_claims.py::test_a_blocked_node_with_no_cause_and_no_unproved_dependency_still_says_blocked
+3 failed, 20 passed in 0.30s
+
+$ PYTHONPATH=scratchpad/mutants uv run --frozen pytest -p mut_t9_blocked_as_not_open ... (same files)
+  (precheck.blocked_error -> 409 node-not-open, no cause, no details)
+FAILED api/tests/test_finding_refusal_reasons.py::test_a_witness_missing_hole_is_refused_with_its_cause_and_the_way_out
+FAILED api/tests/test_finding_refusal_reasons.py::test_a_dep_blocked_node_is_refused_naming_the_unproved_dependency
+FAILED api/tests/test_finding_refusal_reasons.py::test_claim_node_over_mcp_carries_the_same_refusal
+FAILED api/tests/test_rejections_claims.py::test_a_node_under_a_refuted_dependency_names_the_cause_and_the_dependency
+FAILED api/tests/test_rejections_claims.py::test_a_dependency_the_graph_lacks_is_listed_as_unproved
+FAILED api/tests/test_rejections_claims.py::test_a_blocked_node_with_no_cause_and_no_unproved_dependency_still_says_blocked
+6 failed, 17 passed in 0.30s
+
+--- make verify ---
+All checks passed!
+295 files already formatted
+Success: no issues found in 147 source files
+Success: no issues found in 83 source files
+Success: no issues found in 22 source files
+= 1706 passed, 13 skipped, 65 deselected, 73 xfailed, 2 warnings in 107.30s (0:01:47) =
+(the three F06-T6 finding tests are still strict xfails at this commit)

@@ -5,9 +5,14 @@ from __future__ import annotations
 import json
 from typing import Any
 
+import pytest
 from api_fakes import Harness
 
+from opn_api import precheck
+from opn_api.app import ApiError
+
 NODE = "and-reassoc"
+GRAPH_PATH = "targets/propositional/graph.json"
 
 
 def duplicate_node_in_another_target(harness: Harness) -> None:
@@ -49,9 +54,11 @@ def test_node_in_two_targets_needs_a_target_id(harness: Harness) -> None:
     assert twin.status_code == 201
     assert twin.json()["target_id"] == "other"
 
+    # F05-T9: a target that does not hold the node is ``node-unknown`` (was node-not-in-frontier).
     elsewhere = post(harness, token, target_id="nowhere")
     assert elsewhere.status_code == 404
-    assert elsewhere.json()["error"] == "node-not-in-frontier"
+    assert elsewhere.json()["error"] == "node-unknown"
+    assert "in target nowhere" in elsewhere.json()["message"]
 
 
 def test_node_id_is_checked_before_the_ttl(harness: Harness) -> None:
@@ -129,3 +136,134 @@ def test_claim_receipt_never_carries_the_identity_id(harness: Harness) -> None:
     assert identity_id not in json.dumps(receipt)
     assert identity_id not in harness.client.get("/frontier.json").text
     assert identity_id not in harness.client.get("/claims.json").text
+
+
+# --- F05-T9: the edges of the refusal reasons -----------------------------------------------------
+
+
+def edit_graph(harness: Harness, *rows: dict[str, Any], drop: str | None = None) -> None:
+    """Add rows to (or drop one from) the committed graph.json, and forget the cached copies."""
+    doc = json.loads(harness.githost.files[GRAPH_PATH])
+    doc["nodes"] = [n for n in doc["nodes"] if n["node_id"] != drop] + [
+        {
+            "cause": None,
+            "deps": [],
+            "origin": "authored",
+            "statement_hash": "3" * 64,
+            "relation": None,
+            "tutorial": False,
+            "trust_base": None,
+            "proof_commit": None,
+            **row,
+        }
+        for row in rows
+    ]
+    harness.githost.files[GRAPH_PATH] = json.dumps(doc).encode()
+    harness.context.files.clear()
+
+
+def test_a_node_under_a_refuted_dependency_names_the_cause_and_the_dependency(
+    harness: Harness,
+) -> None:
+    """A refuted dependency is one of the unproved ones and ``dep-refuted`` is named with it; a
+    proved dependency beside it is not listed, and no witness route is offered."""
+    edit_graph(
+        harness,
+        {"node_id": "refuted-lemma", "status": "refuted"},
+        {
+            "node_id": "under-refuted",
+            "status": "blocked",
+            "cause": "dep-refuted",
+            "deps": ["already-proved", "refuted-lemma"],
+        },
+    )
+    token = harness.token_for("code_alice", "alice-p")
+    r = post(harness, token, node_id="under-refuted")
+    body = r.json()
+    assert (r.status_code, body["error"]) == (409, "node-blocked"), r.text
+    assert body["details"] == {
+        "status": "blocked",
+        "cause": "dep-refuted",
+        "unproved_deps": ["refuted-lemma"],
+    }
+    assert "refuted-lemma" in body["message"] and "dep-refuted" in body["message"]
+    assert "already-proved" not in body["message"]
+    assert "/proposals/witness" not in body["message"]
+
+
+def test_a_dependency_the_graph_lacks_is_listed_as_unproved(harness: Harness) -> None:
+    """A dependency with no row cannot be taken as proved."""
+    edit_graph(harness, {"node_id": "orphan-dep", "status": "blocked", "deps": ["gone-node"]})
+    token = harness.token_for("code_alice", "alice-p")
+    r = post(harness, token, node_id="orphan-dep")
+    assert r.json()["details"]["unproved_deps"] == ["gone-node"], r.text
+
+
+def test_a_blocked_node_with_no_cause_and_no_unproved_dependency_still_says_blocked(
+    harness: Harness,
+) -> None:
+    edit_graph(harness, {"node_id": "odd-blocked", "status": "blocked", "deps": ["already-proved"]})
+    token = harness.token_for("code_alice", "alice-p")
+    r = post(harness, token, node_id="odd-blocked")
+    body = r.json()
+    assert (r.status_code, body["error"]) == (409, "node-blocked"), r.text
+    assert body["details"] == {"status": "blocked", "cause": None, "unproved_deps": []}
+    assert "names no cause" in body["message"]
+
+
+def test_a_target_row_with_an_empty_reason_list_gives_the_bare_refusal(harness: Harness) -> None:
+    """``listed-only`` is on the fixture frontier with ``claimable: false``; a row naming no
+    reasons adds none to the message, and ``details.not_claimable`` is the empty list."""
+    index = json.loads(harness.githost.files["targets/index.json"])
+    for row in index["targets"]:
+        row["not_claimable"] = []
+    harness.githost.files["targets/index.json"] = json.dumps(index).encode()
+    harness.context.files.clear()
+    token = harness.token_for("code_alice", "alice-p")
+    r = post(harness, token, node_id="listed-only")
+    assert r.status_code == 409
+    assert r.json() == {
+        "error": "node-not-claimable",
+        "message": "listed-only is not claimable",
+        "details": {"not_claimable": []},
+    }
+
+
+def test_an_unreadable_targets_index_still_refuses_without_reasons(harness: Harness) -> None:
+    """C7: the refusal is certain from the frontier; the reasons are what the index adds, so an
+    index the service cannot read costs the reasons, not the answer."""
+    del harness.githost.files["targets/index.json"]
+    harness.context.files.clear()
+    with pytest.raises(ApiError) as caught:
+        precheck.index_doc(harness.context)
+    assert (caught.value.status, caught.value.code) == (503, "graph-unreachable")
+
+    token = harness.token_for("code_alice", "alice-p")
+    r = post(harness, token, node_id="listed-only")
+    assert r.status_code == 409
+    assert r.json()["details"] == {"not_claimable": []}
+
+
+def test_node_facts_serves_a_frontier_node_the_graph_does_not_carry(harness: Harness) -> None:
+    """The graph is read first; a node only the frontier lists keeps its frontier facts, with no
+    status for a route to act on — so nothing refuses it as blocked, and it stays claimable."""
+    edit_graph(harness, drop=NODE)
+    facts = precheck.node_facts(harness.context, NODE)
+    assert facts["target_id"] == "propositional"
+    assert (facts["status"], facts["cause"], facts["deps"]) == (None, None, [])
+
+    token = harness.token_for("code_alice", "alice-p")
+    assert post(harness, token).status_code == 201
+
+
+def test_node_facts_carries_what_the_graph_row_says(harness: Harness) -> None:
+    facts = precheck.node_facts(harness.context, "already-proved")
+    assert (facts["status"], facts["cause"], facts["deps"]) == ("proved", None, [])
+    assert facts["proof_commit"] == "7" * 40
+
+
+def test_a_refusal_without_details_renders_no_details_key(harness: Harness) -> None:
+    token = harness.token_for("code_alice", "alice-p")
+    r = post(harness, token, node_id="no-such-node")
+    assert r.status_code == 404
+    assert set(r.json()) == {"error", "message"}

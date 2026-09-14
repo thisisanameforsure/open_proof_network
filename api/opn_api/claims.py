@@ -1,13 +1,15 @@
 """Claims (F05-R7, R8; D-25; Q1): advisory, non-exclusive, with a TTL inside published caps.
 
 ``POST /claims`` checks the node against the committed frontier at ``main`` (present and
-claimable), clamps an undeclared TTL to the minimum, rejects one above the maximum, enforces
-the active-claim cap, and returns the receipt. ``DELETE /claims/<id>`` releases the holder's
+claimable; a refusal names why not, from the graph and the targets index — F05-T9), clamps
+an undeclared TTL to the minimum, rejects one above the maximum, enforces the active-claim cap,
+and returns the receipt. ``DELETE /claims/<id>`` releases the holder's
 own claim. Expiry is lazy: a claim past ``expires`` counts as released wherever it is read.
 """
 
 from __future__ import annotations
 
+import logging
 import re
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
@@ -16,13 +18,16 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from opn_api import clock as clockmod
-from opn_api import frontier, ratelimit
+from opn_api import frontier, precheck, ratelimit
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
 from opn_api.store import Claim, Identity, release
+from opn_gate import intake
 
 if TYPE_CHECKING:
     from opn_api.app import Context
+
+log = logging.getLogger(__name__)
 
 NODE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
@@ -52,21 +57,75 @@ def ttl_hours(ctx: Context, raw: Any) -> int:
 
 
 def find_entry(ctx: Context, node_id: str, target_id: str | None) -> dict[str, Any]:
+    """R7 (F05-T9): the node's claimable frontier entry, or a refusal that says why not —
+    unknown, blocked (cause and unproved dependencies), otherwise not open (its status), or on
+    the frontier but not claimable (the target's reasons from ``targets/index.json``)."""
     entries = [
         e
         for e in frontier.committed_frontier(ctx)["entries"]
         if e["node_id"] == node_id and (target_id is None or e["target_id"] == target_id)
     ]
     if not entries:
-        raise ApiError(404, "node-not-in-frontier", f"{node_id} is not in the frontier at main")
+        raise off_frontier(ctx, node_id, target_id)
     if len(entries) > 1:
-        raise ApiError(
-            409, "node-ambiguous", f"{node_id} exists in several targets; pass target_id"
-        )
+        raise ambiguous(node_id)
     entry: dict[str, Any] = entries[0]
     if not entry.get("claimable"):
-        raise ApiError(409, "node-not-claimable", f"{node_id} is not claimable")
+        raise not_claimable(ctx, node_id, str(entry["target_id"]))
     return entry
+
+
+def ambiguous(node_id: str) -> ApiError:
+    return ApiError(409, "node-ambiguous", f"{node_id} exists in several targets; pass target_id")
+
+
+def off_frontier(ctx: Context, node_id: str, target_id: str | None) -> ApiError:
+    """A node the frontier does not list: what the graph says it is (D-25). Only the graph
+    knows, because the frontier holds open nodes alone."""
+    graph = precheck.graph_doc(ctx)
+    rows = [
+        (tid, node)
+        for tid, nodes in graph.items()
+        if target_id is None or tid == target_id
+        for node in nodes
+        if node["node_id"] == node_id
+    ]
+    if not rows:
+        where = f" in target {target_id}" if target_id is not None else ""
+        return ApiError(404, "node-unknown", f"{node_id} is not a node of this graph{where}")
+    if len(rows) > 1:
+        return ambiguous(node_id)
+    facts = precheck.facts_of(*rows[0])
+    if facts["status"] == "blocked":
+        return precheck.blocked_error(node_id, facts, graph)
+    return ApiError(
+        409,
+        "node-not-open",
+        f"{node_id} is {facts['status']} and not on the frontier at main; only an open node on "
+        "the frontier can be claimed (D-25)",
+    )
+
+
+def not_claimable_reasons(ctx: Context, target_id: str) -> list[str]:
+    """The target's ``not_claimable`` list as ``targets/index.json`` publishes it (F11-R4). The
+    refusal stands without it: an index that cannot be read, or a row with no list, gives none."""
+    try:
+        index = precheck.index_doc(ctx)
+    except ApiError as exc:
+        log.warning("claim refusal for %s without reasons: %s", target_id, exc.message)
+        return []
+    row = next((t for t in index.get("targets", []) if t.get("target_id") == target_id), None)
+    reasons = row.get("not_claimable") if isinstance(row, dict) else None
+    return [str(r) for r in reasons] if isinstance(reasons, list) else []
+
+
+def not_claimable(ctx: Context, node_id: str, target_id: str) -> ApiError:
+    """``409 node-not-claimable`` in the words the Targets page uses, one per reason (F05-T9)."""
+    reasons = not_claimable_reasons(ctx, target_id)
+    message = f"{node_id} is not claimable"
+    if reasons:
+        message += ": " + "; ".join(intake.explain(r) for r in reasons)
+    return ApiError(409, "node-not-claimable", message, details={"not_claimable": reasons})
 
 
 def active_for(ctx: Context, identity_id: str) -> list[Claim]:
