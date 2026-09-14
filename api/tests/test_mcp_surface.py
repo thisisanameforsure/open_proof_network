@@ -36,6 +36,7 @@ WRITES = {
     "claim_node",
     "release_claim",
     "precheck_submission",
+    "check_lean",  # F13-T6: D-28 v3.14
     "get_token",  # F09-T6: D-28's notation note of 2026-09-14
     "propose_witness",  # F09-T6: idem
     "submit_proof",
@@ -115,6 +116,7 @@ def test_results_match_schemas(harness: Harness, tmp_path: Path) -> None:
         "claim_node": {"node_id": NODE},
         "release_claim": {"claim_id": "0" * 26},
         "precheck_submission": {"node_id": TUTORIAL_NODE, "bundle": {}},
+        "check_lean": {"target_id": TARGET, "content": "theorem x : True := trivial\n"},
         "get_token": {
             "proof": {"kind": "tutorial", "job_id": "0" * 26, "nonce": "n"},
             "pseudonym": "surface",

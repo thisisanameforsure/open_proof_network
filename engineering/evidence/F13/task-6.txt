@@ -1,0 +1,22 @@
+F13-T6 — the MCP tool check_lean
+Captured 2026-09-14 on branch f13-fast-check.
+
+Declared as a write with access "endpoint" (anonymous through POST /check, like
+precheck_submission; F13-Q2), its bijection row ("check_lean", write, POST /check, "POST /check"
+— D-35 v3.14's plain path, verbatim), its result schema mcp/check_lean/v1 (the pass-through
+envelope or the adapter error), and the server instructions now say three writes need no token.
+
+$ uv run pytest api/tests/test_mcp_surface.py api/tests/test_mcp_equivalence.py api/tests/test_mcp_auth.py -q
+  14 passed
+  - test_tool_surface_frozen: check_lean is in the frozen write set
+  - test_d28_rows_verbatim: the row's "POST /check" is in D-35 v3.14
+  - test_results_match_schemas: an answer and a refusal both validate against mcp/check_lean/v1
+  - test_write_tools_forward_once: check_lean makes exactly one POST /check and its result equals
+    the endpoint's own on a second harness with the same pin (log ids masked as ULIDs); coverage
+    of every write tool still holds
+  - test_token_required_for_writes_only: ANONYMOUS_WRITES declares check_lean "endpoint"; without a
+    token it reaches the endpoint, whose own 400 (verify without a node) comes back
+
+Not in T6: the guide's MCP appendix gains no row here. Its only machine check compares the
+"Argument -> body field" column with writes.RENAMES, and check_lean renames nothing; the guide
+section for the fast check as a whole is T8, after the deploy (Q12).

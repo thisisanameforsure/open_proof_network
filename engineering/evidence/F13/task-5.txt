@@ -1,0 +1,37 @@
+F13-T5 — publication: the shared loader, GET /hosted-checkers.json, the target page's fast-check line
+Captured 2026-09-14 on branch f13-fast-check.
+
+Why not info.json (Q12): gate/schemas/info/v1.json is additionalProperties: false with required
+[schema, protocol_version, schemas, targets, rate_limit_policy, rendered_from], and hash-pinned
+(D-34). A hosted_check field would have meant info/v2, every product golden and a graph re-pin,
+and would have put network configuration into a graph product. The mapping is served at
+GET /hosted-checkers.json instead; one loader, opn_gate.hosted, serves the api and the site.
+
+$ uv run pytest site/tests/test_fast_check.py api/tests/test_checks.py gate/tests/test_hosted_checkers.py -v
+  site/tests/test_fast_check.py::test_target_page_names_fast_check PASSED
+  site/tests/test_fast_check.py::test_an_unreadable_mapping_is_said_not_hidden PASSED
+  api/tests/test_checks.py::test_hosted_checkers_route_publishes_the_mapping PASSED
+  api/tests/test_checks.py::test_an_unreadable_mapping_is_a_named_503 PASSED
+  gate/tests/test_hosted_checkers.py::test_the_shared_loader_reads_the_committed_mapping PASSED
+  gate/tests/test_hosted_checkers.py::test_a_malformed_mapping_is_named[5 cases] PASSED
+  gate/tests/test_hosted_checkers.py::test_a_missing_mapping_is_named PASSED
+  (and every earlier test in those files)
+  30 passed
+
+Golden: test_render.write_goldens() changed exactly one file by one line:
+  site/tests/golden/targets/propositional/index.html | 1 +
+  +<p>Fast check (POST /check, non-authoritative): none: this target uses Lean core only, and every
+   hosted environment imports all of Mathlib.</p>
+
+Static after the change: ruff check . and ruff format --check . clean; mypy gate (154 files),
+mypy api (95), mypy site (24): no issues.
+
+The live graph, rendered by this branch's generator (opn_site.cli render --graph
+../open_proof_network_graph --commit <HEAD>): 34 pages; the line on each target page, counted:
+  6  Fast check (POST /check, non-authoritative): lean-4.33.0 on AXLE (nearest: Mathlib v4.33.1 is
+     one commit after v4.33.0 ("chore: bump toolchain to v4.33.1"); AXLE hosts lean-4.33.0 and no
+     4.33.1 environment (probed 2026-09-14).).
+  1  Fast check (POST /check, non-authoritative): none: this target uses Lean core only, and every
+     hosted environment imports all of Mathlib.
+The six are erdos-52, -68, -172, -376, -406 and euclid-primes; the one is tutorial.
+Screenshot: task-5-erdos-376.png (headless Chrome; the Playwright MCP could not reach a browser).

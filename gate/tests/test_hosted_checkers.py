@@ -145,3 +145,48 @@ def test_the_workflows_still_read_the_tagged_line() -> None:
         check=True,
     ).stdout.split()
     assert out == [sha for sha, _ in pin_lines(PINS.read_text(encoding="utf-8"))]
+
+
+def test_the_shared_loader_reads_the_committed_mapping() -> None:
+    """R2, T5: ``opn_gate.hosted`` is the one reader the api and the site share. It resolves the
+    file beside ``schemas/`` and returns one entry per pin with the committed values."""
+    from opn_gate import hosted  # noqa: PLC0415
+
+    doc = yaml.safe_load(CHECKERS.read_text(encoding="utf-8"))
+    mapping = hosted.load()
+    assert hosted.MAPPING_PATH == CHECKERS
+    assert set(mapping) == set(doc["pins"])
+    for sha, entry in doc["pins"].items():
+        got = mapping[sha]
+        assert (got.mathlib_tag, got.environment, got.exact) == (
+            entry["mathlib_tag"],
+            entry["environment"],
+            entry["exact"],
+        )
+
+
+@pytest.mark.parametrize(
+    ("text", "words"),
+    [
+        ("schema: other/v1\nservice: axle\n", "is not hosted-checkers/v1"),
+        ("- a list\n", "is not hosted-checkers/v1"),
+        ("schema: hosted-checkers/v1\nservice: elsewhere\n", "names service 'elsewhere'"),
+        ("schema: hosted-checkers/v1\nservice: axle\npins:\n  abc: 3\n", "is not a mapping"),
+        ("schema: [unclosed\n", "hosted-checkers.yaml"),
+    ],
+)
+def test_a_malformed_mapping_is_named(tmp_path: Path, text: str, words: str) -> None:
+    """R2, C7: the loader names what is wrong with the file rather than serving a guess."""
+    from opn_gate import hosted  # noqa: PLC0415
+
+    bad = tmp_path / "hosted-checkers.yaml"
+    bad.write_text(text, encoding="utf-8")
+    with pytest.raises(hosted.MappingError, match=re.escape(words)):
+        hosted.load(bad)
+
+
+def test_a_missing_mapping_is_named(tmp_path: Path) -> None:
+    from opn_gate import hosted  # noqa: PLC0415
+
+    with pytest.raises(hosted.MappingError, match=re.escape("hosted-checkers.yaml")):
+        hosted.load(tmp_path / "absent" / "hosted-checkers.yaml")

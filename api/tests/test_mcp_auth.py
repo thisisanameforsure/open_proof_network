@@ -14,6 +14,8 @@ MINIMAL: dict[str, dict[str, Any]] = {
     "claim_node": {"node_id": NODE},
     "release_claim": {"claim_id": "0" * 26},
     "precheck_submission": {"node_id": TUTORIAL_NODE, "bundle": {}},
+    # F13-T6: verify without a node is the endpoint's own 400, reached without a token.
+    "check_lean": {"target_id": "propositional", "content": "x", "mode": "verify"},
     "get_token": {
         "proof": {"kind": "tutorial", "job_id": "0" * 26, "nonce": "n"},
         "pseudonym": "anon",
@@ -38,7 +40,13 @@ MINIMAL: dict[str, dict[str, Any]] = {
 #: The writes anonymous by design (F09-T6, Mike 2026-09-13): get_token mints the identity, so it
 #: can carry none; precheck_submission lets POST /precheck decide, which opens the tutorial node
 #: (F06-R2). A new write is refused without a bearer unless it is added here, deliberately.
-ANONYMOUS_WRITES = {"get_token": "anyone", "precheck_submission": "endpoint"}
+#: F13-T6 (Mike, 2026-09-14, F13-Q2): check_lean lets POST /check decide, which charges an
+#: anonymous caller by address.
+ANONYMOUS_WRITES = {
+    "get_token": "anyone",
+    "precheck_submission": "endpoint",
+    "check_lean": "endpoint",
+}
 
 
 def test_token_required_for_writes_only(harness: Harness) -> None:

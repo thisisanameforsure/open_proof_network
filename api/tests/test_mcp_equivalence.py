@@ -235,6 +235,20 @@ def with_hole(h: Harness, token: str) -> dict[str, Any]:
     return {}
 
 
+#: F13-T6: gate/mathlib-pins.txt's v4.33.1, which the hosted-checker mapping serves.
+PIN = "0df444a360eaa60ab8c11dca51a86af692955474"
+CHECKED = "theorem OpnProp.and_reassoc : True := by\n  trivial\n"
+
+
+def with_pin(h: Harness, token: str) -> dict[str, Any]:
+    """A target pinned to a Mathlib the mapping serves, so POST /check answers (FakeAxle)."""
+    h.githost.files[f"targets/{TARGET}/gate-spec.json"] = schemas.canonical_json(
+        samples.gate_spec(mathlib_sha=PIN)
+    )
+    h.context.files.clear()
+    return {}
+
+
 def postmortem() -> dict[str, Any]:
     doc = samples.postmortem()
     del doc["schema"], doc["node"]
@@ -256,6 +270,12 @@ WRITES: dict[str, tuple[dict[str, Any], str, dict[str, Any], Setup]] = {
         "POST /precheck",
         {"node_id": TUTORIAL_NODE, "bundle": BUNDLE},
         no_setup,
+    ),
+    "check_lean": (
+        {"target_id": TARGET, "content": CHECKED},
+        "POST /check",
+        {"target_id": TARGET, "content": CHECKED},
+        with_pin,
     ),
     "submit_postmortem": (
         {"node_id": TUTORIAL_NODE, "yaml": postmortem()},

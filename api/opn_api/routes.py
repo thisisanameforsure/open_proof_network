@@ -150,4 +150,7 @@ ROUTES: tuple[RouteSpec, ...] = (
     RouteSpec(
         "GET", "/checks/{check_id}", "checks:get_check", None, authenticated=True, feature="F13"
     ),
+    # F13-R11, Q12: which hosted environment serves each pin and each target. Network
+    # configuration, open like /dco.json; info.json stays the graph's product (info/v1).
+    RouteSpec("GET", "/hosted-checkers.json", "checks:get_hosted_checkers", None, feature="F13"),
 )

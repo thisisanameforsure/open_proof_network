@@ -53,9 +53,10 @@ BY_NAME: dict[str, Tool] = {t.name: t for t in TOOLS}
 INSTRUCTIONS = (
     "The Open Proof Network's reference MCP server (D-28). Every tool is a lens over plain git "
     "and HTTP and holds no state: reads need no token; writes need `Authorization: Bearer "
-    "<token>` and pass their endpoint's status and body through. Two writes need none: "
-    "precheck_submission on the tutorial node, and get_token, which turns that passing precheck "
-    "into a token. " + demarcate.UNTRUSTED_NOTE
+    "<token>` and pass their endpoint's status and body through. Three writes need none: "
+    "precheck_submission on the tutorial node; get_token, which turns that passing precheck "
+    "into a token; and check_lean, the non-authoritative fast check (F13). "
+    + demarcate.UNTRUSTED_NOTE
 )
 
 

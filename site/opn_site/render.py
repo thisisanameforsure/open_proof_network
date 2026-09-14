@@ -16,7 +16,7 @@ from pathlib import Path
 from string import Template
 from typing import Any
 
-from opn_gate import intake
+from opn_gate import hosted, intake
 from opn_gate import ledger as ledgermod
 from opn_site import dag, links, prose
 from opn_site.model import NodeView, Prose, Site, SiteError, TargetView
@@ -354,8 +354,29 @@ class Renderer:
             note=note,
             qa=self.qa_section(tv),
             graph_link=self.file_link(f"targets/{tid}/graph.json"),
+            fast_check=esc(self.fast_check(e.get("mathlib_sha"))),
         )
         return self.page(f"Target {tid}", body, renders=[f"targets/{tid}/graph.json"])
+
+    @staticmethod
+    def fast_check(sha: str | None) -> str:
+        """F13-R11: the hosted checker serving this target's Mathlib pin, from the network's
+        configuration (``opn_gate.hosted``), never from the graph. The check is ``POST /check``;
+        its answer carries no authority (D-4 v3.14)."""
+        if sha is None:
+            return (
+                "none: this target uses Lean core only, and every hosted environment imports "
+                "all of Mathlib"
+            )
+        try:
+            found = hosted.load().get(sha)
+        except hosted.MappingError:
+            return "unknown: the hosted-checker mapping could not be read"
+        if found is None or found.environment is None:
+            return "none: no hosted environment serves this Mathlib pin"
+        if found.exact:
+            return f"{found.environment} on AXLE (exact)"
+        return f"{found.environment} on AXLE (nearest: {found.note or 'not the same Mathlib'})"
 
     # --- F12-R14: what was checked, who signed, what was attempted, what moved upstream -------
 

@@ -316,6 +316,46 @@ def test_a_new_application_never_inherits_an_old_cap() -> None:
             worker.join(15)
 
 
+def test_hosted_checkers_route_publishes_the_mapping() -> None:
+    """AC9, R11, Q12: open, the committed mapping as data, and each listed target's pin and
+    environment from targets/index.json; a Mathlib-free target maps to none."""
+    h = harness_with()
+    r = h.client.get("/hosted-checkers.json")
+    assert r.status_code == 200, r.text
+    doc = r.json()
+    assert (doc["schema"], doc["service"], doc["endpoint"], doc["authoritative"]) == (
+        "hosted-checkers/v1",
+        "axle",
+        "POST /check",
+        False,
+    )
+    assert doc["pins"][PIN]["environment"] == "lean-4.33.0" and doc["pins"][PIN]["exact"] is False
+    assert doc["targets"]["propositional"] == {
+        "mathlib_sha": None,
+        "environment": None,
+        "exact": None,
+    }
+
+
+def test_an_unreadable_mapping_is_a_named_503(monkeypatch: pytest.MonkeyPatch) -> None:
+    """C7, T4: a package without the mapping answers 503 naming it on both routes, never a
+    pin with no checker."""
+    from opn_gate import hosted  # noqa: PLC0415
+
+    def broken(path: Any = None) -> dict[str, hosted.Hosted]:
+        msg = "hosted-checkers.yaml is not hosted-checkers/v1"
+        raise hosted.MappingError(msg)
+
+    monkeypatch.setattr(hosted, "load", broken)
+    h = harness_with()
+    seed(h)
+    doc = refused(
+        post(h, {"target_id": TARGET, "content": PROOF}), 503, "hosted-checkers-unreadable"
+    )
+    assert "hosted-checkers.yaml" in doc["message"]
+    refused(h.client.get("/hosted-checkers.json"), 503, "hosted-checkers-unreadable")
+
+
 class Blocking(FakeAxle):
     """A checker that holds its first call until released, so a second call meets the cap."""
 

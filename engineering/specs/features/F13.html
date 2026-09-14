@@ -27,7 +27,8 @@ and returns the checker's answer verbatim beside the lint and an explicit
 <code>authoritative: false</code>. Every call is logged by its metadata and content hash. The pin
 policy that keeps targets on hosted environments is written down (a Mathlib release tag, matching
 the Formal Conjectures registry at intake), and the mapping from pin to environment is network
-configuration shown in the guide, <code>info.json</code> and the target page. This required
+configuration served as <code>GET /hosted-checkers.json</code> and shown on the target page and,
+once the endpoint is live, in the guide. This required
 decisions v3.14 (D-4, D-28, D-35) and constitution v2 (C9), because the network had promised that
 no contributor Lean is ever elaborated outside the gate's sandbox. Cites: D-1, D-4, D-7, D-19,
 D-28, D-35, D-36.</p>
@@ -49,8 +50,7 @@ D-28, D-35, D-36.</p>
 <p><strong>In:</strong> the pin-tag rule on <code>gate/mathlib-pins.txt</code>; the
 <code>gate/hosted-checkers.yaml</code> mapping; the AXLE client seam and its fake;
 <code>POST /check</code> with lint, limits and a concurrency cap; the call log and
-<code>GET /checks/&lt;id&gt;</code>; the <code>hosted_check</code> block in <code>info.json</code> and
-<code>server_info</code>; the target page line; the guide section; the MCP tool
+<code>GET /checks/&lt;id&gt;</code>; <code>GET /hosted-checkers.json</code> (Q12); the target page line; the guide section; the MCP tool
 <code>check_lean</code>; a network-tier smoke.</p>
 <p><strong>Non-goals:</strong></p>
 <ul>
@@ -107,11 +107,12 @@ D-28, D-35, D-36.</p>
   <tr><td>F13-R10</td><td>When <code>GET /checks/&lt;id&gt;</code> is called by the identity that made
     the call, the system shall return that record; any other caller shall get
     <code>not-found</code>.</td></tr>
-  <tr><td>F13-R11</td><td>The system shall publish the mapping as <code>hosted_check</code> in the
-    service's <code>info.json</code> and <code>server_info</code>, show the environment and its
-    exactness on each target page, and document the endpoint in the graph's
+  <tr><td>F13-R11</td><td><span class="tag">amended 2026-09-14, Q12</span> The system shall publish
+    the mapping at <code>GET /hosted-checkers.json</code> — every pin's environment and exactness
+    and every listed target's pin — show the environment and its exactness on each target page, and,
+    once <code>POST /check</code> is deployed, document the endpoint in the graph's
     <code>AGENTS.md</code>, naming AXLE as a third party, the precheck as the only verdict, and the
-    lint's three gaps.</td></tr>
+    lint's three gaps (T8).</td></tr>
   <tr><td>F13-R12</td><td>The system shall expose <code>check_lean</code> on the MCP server as the
     one tool over <code>POST /check</code> (D-28, D-35 v3.14), with the same arguments, limits and
     log.</td></tr>
@@ -148,11 +149,14 @@ D-28, D-35, D-36.</p>
     <code>api/tests/test_checks.py::test_log_readable_only_by_owner</code>,
     <code>api/tests/test_store_seam.py::test_check_log_item_carries_no_content</code>,
     <code>api/tests/test_checks.py::test_a_store_failure_does_not_fail_the_check</code></td></tr>
-  <tr><td>F13-AC9</td><td>Given the mapping, when <code>info.json</code>, <code>server_info</code>
-    and a target page are rendered, then each shows the target's environment and whether it is
-    exact.</td><td><code>api/tests/test_checks.py::test_info_carries_hosted_check</code>,
-    <code>site/tests/test_render.py::test_target_page_names_fast_check</code></td></tr>
-  <tr><td>F13-AC10</td><td>Given the guide, when its runner executes, then the new section's
+  <tr><td>F13-AC9</td><td>Given the mapping, when <code>GET /hosted-checkers.json</code> is read and
+    a target page is rendered, then each shows the target's environment and whether it is exact, a
+    Lean-core-only target says why it has none, and an unreadable mapping is a named 503 on the
+    service and a named "unknown" on the page.</td><td><code>api/tests/test_checks.py::test_hosted_checkers_route_publishes_the_mapping</code>,
+    <code>api/tests/test_checks.py::test_an_unreadable_mapping_is_a_named_503</code>,
+    <code>site/tests/test_fast_check.py::test_target_page_names_fast_check</code>,
+    <code>site/tests/test_fast_check.py::test_an_unreadable_mapping_is_said_not_hidden</code></td></tr>
+  <tr><td>F13-AC10</td><td>(T8, after the deploy) Given the guide, when its runner executes, then the new section's
     commands are in the frozen manual set and its text names AXLE, the precheck as the verdict and
     the three gaps.</td><td><code>gate/tests/test_walkthrough.py::test_fast_check_section</code></td></tr>
   <tr><td>F13-AC11</td><td>Given the MCP server, when <code>check_lean</code> is called, then the
@@ -260,6 +264,18 @@ D-28, D-35, D-36.</p>
     <code>log_id</code> is then <code>null</code>. <code>GET /checks/&lt;id&gt;</code> needs a
     token and answers the owner alone; an anonymous call's record is readable by no one through the
     service, only by the gate owner in the table.</td></tr>
+  <tr><td>F13-Q12</td><td>R11 first put the mapping into <code>info.json</code> and
+    <code>server_info</code>. Priced at T5, that was wrong twice: <code>info/v1</code> is
+    <code>additionalProperties: false</code> and hash-pinned (D-34), so a field meant
+    <code>info/v2</code>, a regenerated golden in every product test and a graph re-pin; and
+    <code>info.json</code> is the graph's product, while the mapping is network configuration that
+    D-35 keeps out of the graph. So the service serves it at <code>GET /hosted-checkers.json</code>,
+    an open read with no D-35 row (like <code>/dco.json</code>), <code>check_lean</code>'s own answer
+    already names the environment, and the site reads the same file at build time. One loader,
+    <code>opn_gate.hosted</code>, serves the api and the site; no gate step imports it (D-1). The guide
+    section moved to T8, because the graph's copy of <code>AGENTS.md</code> must equal the tested
+    one byte for byte and a section describing an endpoint that is not yet deployed would send agents
+    to a 404.</td></tr>
 </table>
 
 <h2>10. Status</h2>
@@ -279,7 +295,14 @@ D-28, D-35, D-36.</p>
   check, and the package rehearsal proving <code>hosted-checkers.yaml</code> resolves beside
   <code>schemas/</code> in the deploy layout; what is logged, Q11;
   <code>engineering/evidence/F13/task-4.txt</code>)
-  · T5&ndash;T7 todo</div>
+  · T5 ✓ 2026-09-14 (<code>uv run pytest site/tests/test_fast_check.py api/tests/test_checks.py gate/tests/test_hosted_checkers.py</code>;
+  the shared loader <code>opn_gate.hosted</code>, <code>GET /hosted-checkers.json</code>, the target
+  page's fast-check line with the golden regenerated (one line) and a screenshot of the live graph's
+  pages; R11 amended, Q12; <code>engineering/evidence/F13/task-5.txt</code>)
+  · T6 ✓ 2026-09-14 (<code>uv run pytest api/tests/test_mcp_surface.py api/tests/test_mcp_equivalence.py</code>;
+  <code>check_lean</code> declared anonymous through its endpoint, its bijection row, result schema and
+  equivalence row; <code>engineering/evidence/F13/task-6.txt</code>)
+  · T7, T8 wait on Mike's call to deploy <code>POST /check</code> (held off <code>main</code>)</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its
@@ -313,21 +336,31 @@ one verification command (conventions §3, §6).</p>
     <code>api/opn_api/routes.py</code>, <code>api/tests/test_store_seam.py</code>,
     <code>api/tests/test_checks.py</code>, <code>.github/workflows/api-deploy.yml</code></td>
     <td>T3</td><td><code>uv run pytest api/tests/test_checks.py api/tests/test_store_seam.py</code></td></tr>
-  <tr><td>F13-T5</td><td>Publication: <code>info.json</code> and <code>server_info</code>, the target
-    page line with a screenshot, the guide section.</td>
-    <td><code>api/opn_api/info.py</code>, <code>site/opn_site/render.py</code>,
-    <code>site/tests/test_render.py</code>, <code>gate/agents/AGENTS.md</code>,
-    <code>../open_proof_network_graph/AGENTS.md</code>, <code>gate/tests/test_walkthrough.py</code></td>
-    <td>T3</td><td><code>make verify</code></td></tr>
+  <tr><td>F13-T5</td><td>Publication (Q12): the shared loader, <code>GET /hosted-checkers.json</code>,
+    and the target page's fast-check line with a screenshot.</td>
+    <td><code>gate/opn_gate/hosted.py</code>, <code>gate/tests/test_hosted_checkers.py</code>,
+    <code>api/opn_api/checks.py</code>, <code>api/opn_api/routes.py</code>,
+    <code>api/tests/test_checks.py</code>, <code>site/opn_site/render.py</code>,
+    <code>site/opn_site/templates/target.html</code>, <code>site/tests/test_fast_check.py</code>,
+    <code>site/tests/golden/targets/propositional/index.html</code></td>
+    <td>T3</td><td><code>uv run pytest site/tests/test_fast_check.py api/tests/test_checks.py gate/tests/test_hosted_checkers.py</code></td></tr>
   <tr><td>F13-T6</td><td>MCP <code>check_lean</code>, its bijection row, result schema and
     equivalence test.</td>
     <td><code>api/opn_api/mcp/writes.py</code>, <code>api/opn_api/mcp/server.py</code>,
     <code>api/opn_api/mcp/bijection.py</code>, <code>api/opn_api/mcp/schemas/check_lean/v1.json</code>,
-    <code>api/tests/test_mcp_surface.py</code>, <code>api/tests/test_mcp_equivalence.py</code></td>
+    <code>api/tests/test_mcp_surface.py</code>, <code>api/tests/test_mcp_equivalence.py</code>,
+    <code>api/tests/test_mcp_auth.py</code></td>
     <td>T3</td><td><code>uv run pytest api/tests/test_mcp_surface.py api/tests/test_mcp_equivalence.py</code></td></tr>
   <tr><td>F13-T7</td><td>Network-tier smoke against the deployed service and the real checker.</td>
     <td><code>api/tools/smoke_check.py</code>, <code>engineering/evidence/F13/</code></td>
     <td>T4, T5, T6</td><td><code>uv run python api/tools/smoke_check.py --api "$OPN_API"</code></td></tr>
+  <tr><td>F13-T8</td><td>The guide section "Iterating fast: <code>POST /check</code>", after the deploy
+    (Q12): AXLE named as a third party, the precheck as the verdict, the lint's three gaps,
+    <code>GET /hosted-checkers.json</code>; the runner's manual set and the graph's copy updated in the
+    same sitting.</td>
+    <td><code>gate/agents/AGENTS.md</code>, <code>../open_proof_network_graph/AGENTS.md</code>,
+    <code>gate/tests/test_walkthrough.py</code></td>
+    <td>T7</td><td><code>uv run pytest gate/tests/test_walkthrough.py</code></td></tr>
 </table>
 
 <footer>Open Proof Network · F13 spec v1 · 2026-09-14</footer>

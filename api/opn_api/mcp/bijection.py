@@ -79,6 +79,8 @@ TABLE: tuple[Row, ...] = (
     Row("claim_node", "write", ("POST /claims",), "POST /claims"),
     Row("release_claim", "write", ("DELETE /claims/{claim_id}",), "DELETE /claims/<id>"),
     Row("precheck_submission", "write", ("POST /precheck",), "POST /precheck with the bundle"),
+    # F13-T6: D-28 v3.14's write row and D-35 v3.14's plain path.
+    Row("check_lean", "write", ("POST /check",), "POST /check"),
     # F09-T6: D-28's write table, notation note of 2026-09-14 — both existing endpoints.
     Row("get_token", "write", ("POST /tokens",), "POST /tokens"),
     Row("submit_proof", "write", ("POST /submissions",), "POST /submissions opens that PR"),

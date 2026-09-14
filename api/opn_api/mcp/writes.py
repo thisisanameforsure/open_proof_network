@@ -91,6 +91,13 @@ async def precheck_submission(call: Call, args: dict[str, Any]) -> dict[str, Any
     return {**out, "job_id": body.get("id"), "poll": POLL}
 
 
+async def check_lean(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """F13-R12: ``POST /check``, with whatever bearer there is; the endpoint charges an identity
+    or an address and answers in the same response, so there is nothing to poll."""
+    body = present("check_lean", args, "target_id", "node_id", "content", "mode")
+    return await forward(call, "POST", "/check", body)
+
+
 #: The two ways to name the passing precheck a submission binds to; exactly one is given.
 PRECHECK_REFS = ("attestation", "precheck_job_id")
 
@@ -211,6 +218,27 @@ TOOLS: tuple[Tool, ...] = (
         "takes. Every other node needs a token.",
         params({"node_id": ID_PARAM, "bundle": BUNDLE}, ("node_id", "bundle")),
         precheck_submission,
+        write=True,
+        access="endpoint",
+    ),
+    Tool(
+        "check_lean",
+        "Check Lean text in about a second on the hosted checker matched to the target's pinned "
+        "Mathlib (AXLE, a third party) and get its errors, goal states and, with mode verify and "
+        "a node_id, its comparison against the node's statement, plus warnings wherever the gate "
+        "would refuse what the checker accepted. Never authoritative: a precheck is the verdict. "
+        "No token needed; a token raises the limit. Every call is logged without its text; "
+        "GET /hosted-checkers.json says which targets have a checker.",
+        params(
+            {
+                "target_id": ID_PARAM,
+                "node_id": ID_PARAM,
+                "content": LEAN,
+                "mode": {"enum": ["check", "verify"], "description": "verify needs node_id"},
+            },
+            ("target_id", "content"),
+        ),
+        check_lean,
         write=True,
         access="endpoint",
     ),

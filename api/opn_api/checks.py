@@ -31,11 +31,8 @@ import re
 import threading
 import time
 from dataclasses import asdict, dataclass
-from functools import lru_cache
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import yaml
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
@@ -43,18 +40,14 @@ from opn_api import auth, frontier, identity, precheck, ratelimit
 from opn_api import clock as clockmod
 from opn_api.axle import AxleAnswer, AxleError
 from opn_api.store import CheckLog
-from opn_gate import layout, schemas
+from opn_gate import hosted, layout
 
 if TYPE_CHECKING:
     from opn_api.app import Context
 
 log = logging.getLogger("opn_api.checks")
 
-#: The mapping sits beside the gate's schemas in the repository (``gate/``) and at the package
-#: root on Lambda, where the deploy copies both (F13-T4) — the rule ``opn_gate.schemas`` uses.
-MAPPING_PATH = schemas.SCHEMAS_DIR.parent / "hosted-checkers.yaml"
-MAPPING_SCHEMA = "hosted-checkers/v1"
-SERVICE = "axle"
+SERVICE = hosted.SERVICE
 FIELDS = frozenset({"target_id", "node_id", "content", "mode"})
 MODES = ("check", "verify")
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
@@ -70,45 +63,19 @@ IMPORT_LINE_RE = re.compile(r"^import\s+\S+[ \t]*$", re.M)
 ANSWERED = "answered"
 
 
-@dataclass(frozen=True)
-class Hosted:
-    """One pin's entry in ``hosted-checkers.yaml`` (F13-R2)."""
-
-    mathlib_tag: str
-    environment: str | None
-    exact: bool
-    note: str | None
-
-
 def api_error(status: int, code: str, message: str, **kwargs: Any) -> Exception:
     from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
 
     return ApiError(status, code, message, **kwargs)
 
 
-@lru_cache(maxsize=4)
-def load_mapping(path: Path = MAPPING_PATH) -> dict[str, Hosted]:
-    """The pin -> environment mapping, read once per process. A missing or malformed file is a
-    503 naming it: a package without the mapping must not look like a pin with no checker."""
+def mapping(ctx: Context | None = None) -> dict[str, hosted.Hosted]:
+    """The shared mapping (``opn_gate.hosted``), or a 503 naming the file: a package without it
+    must not look like a pin with no checker (F13-T4)."""
     try:
-        doc = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError) as exc:
-        raise api_error(503, "hosted-checkers-unreadable", f"{path.name}: {exc}") from exc
-    if not isinstance(doc, dict) or doc.get("schema") != MAPPING_SCHEMA:
-        msg = f"{path.name} is not {MAPPING_SCHEMA}"
-        raise api_error(503, "hosted-checkers-unreadable", msg)
-    if doc.get("service") != SERVICE:
-        msg = f"{path.name} names service {doc.get('service')!r}; only {SERVICE!r} is known (Q5)"
-        raise api_error(503, "hosted-checkers-unreadable", msg)
-    out: dict[str, Hosted] = {}
-    for sha, entry in (doc.get("pins") or {}).items():
-        out[str(sha)] = Hosted(
-            mathlib_tag=str(entry.get("mathlib_tag")),
-            environment=entry.get("environment"),
-            exact=bool(entry.get("exact")),
-            note=entry.get("note"),
-        )
-    return out
+        return hosted.load()
+    except hosted.MappingError as exc:
+        raise api_error(503, "hosted-checkers-unreadable", str(exc)) from exc
 
 
 # --- the body and the caller ---------------------------------------------------------------------
@@ -170,13 +137,13 @@ def charge(ctx: Context, request: Request) -> Caller:
 # --- the graph -----------------------------------------------------------------------------------
 
 
-def hosted_for(ctx: Context, target_id: str) -> tuple[str | None, Hosted | None]:
+def hosted_for(ctx: Context, target_id: str) -> tuple[str | None, hosted.Hosted | None]:
     """The target's pinned Mathlib and its mapping entry (``None`` when the pin has none)."""
     if target_id not in precheck.graph_doc(ctx):
         raise api_error(404, "target-unknown", f"{target_id} is not a target of this graph")
     spec = json.loads(frontier.committed(ctx, f"targets/{target_id}/gate-spec.json"))
     sha = spec.get("mathlib_sha")
-    return sha, load_mapping().get(sha) if isinstance(sha, str) else None
+    return sha, mapping().get(sha) if isinstance(sha, str) else None
 
 
 def statement_of(ctx: Context, target_id: str, node_id: str) -> layout.Statement | None:
@@ -477,3 +444,29 @@ async def get_check(ctx: Context, request: Request) -> Response:
     if record is None or record.caller_kind != "identity" or record.caller != who:
         raise api_error(404, "check-unknown", "no such check for this identity")
     return JSONResponse(asdict(record))
+
+
+async def get_hosted_checkers(ctx: Context, request: Request) -> Response:
+    """R11 (Q12): the mapping as data, and each listed target's pin and environment, so an agent
+    learns before its first check which targets have a hosted checker and how exact it is. A read
+    of network configuration, not of the graph; ``info.json`` stays the graph's product."""
+    pins = mapping()
+    targets: dict[str, dict[str, Any]] = {}
+    for entry in precheck.index_doc(ctx).get("targets", []):
+        sha = entry.get("mathlib_sha")
+        found = pins.get(sha) if isinstance(sha, str) else None
+        targets[str(entry["target_id"])] = {
+            "mathlib_sha": sha,
+            "environment": found.environment if found is not None else None,
+            "exact": found.exact if found is not None else None,
+        }
+    return JSONResponse(
+        {
+            "schema": hosted.MAPPING_SCHEMA,
+            "service": SERVICE,
+            "endpoint": "POST /check",
+            "authoritative": False,
+            "pins": {sha: asdict(entry) for sha, entry in sorted(pins.items())},
+            "targets": dict(sorted(targets.items())),
+        }
+    )
