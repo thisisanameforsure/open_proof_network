@@ -325,3 +325,35 @@ def test_a_target_with_no_curator_on_record_bars_nobody() -> None:
     """A pre-F11 target has no target.yaml and so no curator; D-21 then has nothing to say."""
     assert proof(identity="curator", curator=None) is not None
     assert ledger.curator_bar(identity="a", curator=None, line="proof", target=TARGET) is None
+
+
+# --- F07-T15: which line each mode's merge earns (R12; D-19, D-13, D-25, F08-R13) ----------------
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "finding ledger-credits-merges (F07-R12, D-19, D-25): ledger has no MERGE_LINES, the "
+        "mode-to-line table run_ledger should dispatch on; fix: F07-T15 (Mike, 2026-09-14)"
+    ),
+)
+def test_merge_line_table() -> None:
+    """Every classified mode, and the one line its merge can earn (``None``: nothing, ever, at
+    merge). An alternate is credited at write-up (D-25 v3.13), not when it merges."""
+    import typing  # noqa: PLC0415
+
+    from opn_gate import modes  # noqa: PLC0415
+
+    expected: dict[str, str | None] = {
+        "proof": "proof",
+        "partial": "proof",
+        "alternate": None,
+        "append": "attempts",
+        "explainer": None,
+        "proposal": "statement",
+        "curator": None,
+        "intake": None,
+        "fidelity": None,
+    }
+    assert set(expected) == set(typing.get_args(modes.Mode))
+    assert getattr(ledger, "MERGE_LINES", None) == expected

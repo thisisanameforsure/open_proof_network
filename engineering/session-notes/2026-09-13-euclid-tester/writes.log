@@ -1,0 +1,50 @@
+# writes log (UTC)
+2026-09-13T19:16:16Z W01 MCP precheck_submission (no token) node=tutorial-and-swap file=lean/tutorial-Proof.lean
+2026-09-13T19:16:25Z W02 HTTP POST /precheck (no token) node=tutorial-and-swap file=lean/tutorial-Proof.lean
+2026-09-13T19:19:12Z W03 HTTP POST /tokens proof=tutorial job=01M2E363QR17336XNQCW8EY1HZ pseudonym=euclid-tester-7c2
+   -> W03 sent an EMPTY body by my script bug; service answered 400 pseudonym-invalid
+2026-09-13T19:19:24Z W03b HTTP POST /tokens proof=tutorial job=01M2E363QR17336XNQCW8EY1HZ pseudonym=euclid-tester-7c2
+2026-09-13T19:20:22Z W05 MCP precheck_submission (token) node=infinitude-of-primes--h1 file=lean/h1-Proof.lean
+2026-09-13T19:20:25Z W04 MCP claim_node (token) node=infinitude-of-primes target=euclid-primes ttl=6
+   -> job 01M2E3DB606BCKJH3Y9MMYXFR3 state=queued authenticated=True
+2026-09-13T19:20:26Z W06 MCP precheck_submission (token) node=infinitude-of-primes--h2 file=lean/h2-Proof.lean
+   ->  {"status": 404, "body": {"error": "node-not-in-frontier", "message": "infinitude-of-primes is not in the frontier at main"}}
+   -> job 01M2E3DE3RZSB6P6B41Q19MF46 state=queued authenticated=True
+2026-09-13T19:20:29Z W07 MCP precheck_submission (token) node=infinitude-of-primes--h3 file=lean/h3-Proof.lean
+2026-09-13T19:20:38Z W11 MCP claim_node (token) node=infinitude-of-primes--h1 target=euclid-primes ttl=6
+   ->  {"status": 409, "body": {"error": "node-not-claimable", "message": "infinitude-of-primes--h1 is not claimable"}}
+   -> job 01M2E3EK7834SRCTKFVGN2XRCR state=queued authenticated=True
+2026-09-13T19:21:08Z W08 MCP precheck_submission (token) node=infinitude-of-primes--h4 file=lean/h4-Proof.lean
+   -> job 01M2E3EQ48GSF3F02JE7XZR6BG state=queued authenticated=True
+2026-09-13T19:21:12Z W09 MCP precheck_submission (token) node=infinitude-of-primes file=lean/root-A-assembly-Proof.lean
+   -> job 01M2E3ET20TTWSXA5TVTQXA637 state=queued authenticated=True
+2026-09-13T19:21:16Z W10 MCP precheck_submission (token) node=infinitude-of-primes file=lean/root-B-direct-Proof.lean
+   -> job 01M2E3EXZ076NV3AV31F8WW7FE state=queued authenticated=True
+   -> W09 rootA (assembly over holes) precheck 01M2E3ET20TTWSXA5TVTQXA637: done, verdict fail, step 4 kernel-replay dep-unproved (all four holes lack merged Proof.lean); steps 5-8 skipped
+   -> W10 rootB (direct, uses no dep) precheck 01M2E3EXZ076NV3AV31F8WW7FE: done, verdict fail, step 4 dep-unproved (same four problems) although the file references no hole theorem
+2026-09-13T19:30:41Z W12 MCP submit_proof (token) node=infinitude-of-primes--h1 artifact=proof file=lean/h1-Proof.lean precheck=01M2E3DB606BCKJH3Y9MMYXFR3
+   -> {"status": 201, "body": {"submission_id": "01M2E406PG0SZ9GVH7Y3E9P6GP", "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/34", "pr_number": 34, "node_id": "infinitude-of-primes--h1", "target_id": "euclid-primes", "artifact_type": "proof"}}
+2026-09-13T19:30:45Z W13 MCP submit_proof (token) node=infinitude-of-primes--h2 artifact=proof file=lean/h2-Proof.lean precheck=01M2E3DE3RZSB6P6B41Q19MF46
+   -> {"status": 201, "body": {"submission_id": "01M2E40AKGTW475YAYD43ABZ49", "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/35", "pr_number": 35, "node_id": "infinitude-of-primes--h2", "target_id": "euclid-primes", "artifact_type": "proof"}}
+2026-09-13T19:30:48Z W14 MCP submit_proof (token) node=infinitude-of-primes--h3 artifact=proof file=lean/h3-Proof.lean precheck=01M2E3EK7834SRCTKFVGN2XRCR
+   -> {"status": 201, "body": {"submission_id": "01M2E40DH83WR21X7R2KXP7F5D", "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/36", "pr_number": 36, "node_id": "infinitude-of-primes--h3", "target_id": "euclid-primes", "artifact_type": "proof"}}
+   (W12-W14 results) W12 h1 -> submission 01M2E406PG0SZ9GVH7Y3E9P6GP PR https://github.com/thisisanameforsure/open_proof_network_graph/pull/34 ; W13 h2 -> 01M2E40AKGTW475YAYD43ABZ49 PR #35 ; W14 h3 -> 01M2E40DH83WR21X7R2KXP7F5D PR #36
+   gate check on #34/#35/#36 at 19:31Z: completed/failure in ~13 s: "step 9: this node's root has no fidelity certificate or registry provenance, so a non-author approving review is required before merge". #34 got a pull_request_review-triggered gate run at 19:31:46Z (in progress).
+2026-09-13T19:33:01Z W15 MCP submit_proof (token) node=infinitude-of-primes--h4 artifact=proof file=lean/h4-Proof.lean precheck=01M2E3EQ48GSF3F02JE7XZR6BG
+   -> {"status": 201, "body": {"submission_id": "01M2E44FDGZ41F5RJTSJXHGKAC", "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/37", "pr_number": 37, "node_id": "infinitude-of-primes--h4", "target_id": "euclid-primes", "artifact_type": "proof"}}
+   (W15 result) h4 -> submission 01M2E44FDGZ41F5RJTSJXHGKAC PR https://github.com/thisisanameforsure/open_proof_network_graph/pull/37 (precheck 01M2E3EQ48GSF3F02JE7XZR6BG pass)
+   19:32Z: #34 approved by thisisanameforsure 19:31:44Z ("Step 9 review ... live agent test"); review-triggered gate run in progress. #35/#36 no review yet, gate red on step 9.
+   19:38Z #34 review-triggered gate job 103779439673: step 7 "Step 9 — a non-author approving review" success 19:31:57Z; "Run the gate" (sandbox build) in progress since 19:31:57Z.
+   19:41:38Z #34 review-triggered gate run 103779439673: completed SUCCESS (sandbox build 19:31:57–19:41:38). Awaiting merge + post-merge.
+   19:43:03Z state: #34 open, gate-green, unmerged; #35/#36/#37 open, no review, gate red at step 9; GitHub anon budget 24 left (resets 20:35Z).
+   19:53:45Z #34 (h1) MERGED. #35/#36/#37 open, no review at 19:54:38Z.
+#34 merged True at 2026-09-13T19:53:45Z by thisisanameforsure merge_commit a9f10904c0377843dc9b1cffd62bb1c365bec66b
+   20:02:12Z post-merge for #34: bot commit f345529 "gate: #34 pass", attestations/000034.json (verdict pass, trust_base kernel, reviewer thisisanameforsure); h1 Proof.lean on main; site renders f345529 with h1 "proved", home "2 nodes proved".
+   20:13:34Z #35 (h2) MERGED by thisisanameforsure (after the owner merged main into the branch at 20:02:48Z and approved; review-triggered gate run started 20:02:56Z).
+   20:23:37Z: no post-merge commit for #35 yet (10 min after merge); GitHub anon API budget exhausted until 20:35:08Z
+   20:24:28Z post-merge for #35: bot commit ef04537 "gate: #35 pass", attestations/000035.json; service info rendered_from b134abc. h1+h2 proved on main; #36 (h3), #37 (h4) still open.
+   20:34:10Z: main unchanged since ef04537; #36/#37 not merged
+   20:35:13Z: #36 (h3) approved by thisisanameforsure 20:25:03Z, branch updated (head 8bf2333); pull_request gate run 34780691786 SUCCESS 20:35:08Z; review-triggered run 34780695908 in progress. #37 (h4): no review.
+   20:35:58Z #36 (h3) MERGED by thisisanameforsure (merge f5880e7; after 'Merge branch main' 8bf2333 at 20:24:57Z, approval 20:25:03Z, pull_request gate run success 20:35:08Z). Awaiting post-merge. #37 (h4) open, no review at 20:35Z.
+   20:45:43Z post-merge for #36: bot commit b3779de "gate: #36 pass", attestations/000036.json. h1, h2, h3 proved on main; #37 (h4) open.
+   20:57:18Z #37 (h4) MERGED by thisisanameforsure (merge 7f81053; 'Merge branch main' cb890ba 20:46:16Z, approval 20:46:21Z, pull_request gate run success 20:56:08Z). All four hole proofs on main; awaiting #37 post-merge before the root assembly precheck.

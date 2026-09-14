@@ -13,9 +13,10 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 from harness import TARGET, copy_graph
 
-from opn_gate import cli, sandbox, schemas
+from opn_gate import cli, config, sandbox, schemas
 
 ROOT = Path(__file__).resolve().parents[2]
 GRAPH_REPO = ROOT.parent / "open_proof_network_graph"
@@ -229,3 +230,83 @@ def test_verify_checks_the_mathlib_label_against_the_pin(tmp_path: Path) -> None
     assert f"not the graph's mathlib_sha '{sha}'" in problem
     problems = pin_image.verify(DIGEST, "2" * 40, mathlib_sha=sha, docker=str(docker))
     assert len(problems) == 2 and "revision label" in problems[0]
+
+
+# --- finding 7 (2026-09-13): the order of step 9 in the graph's gate.yml -------------------------
+#
+# The workflow is the graph's file (D-35), read here from the fetched remote because the local
+# clone's main is stale; skipped where the graph is not checked out beside this repo (CI) or has
+# no origin/main. A static read of the YAML, never a run of it.
+
+STEP9_REASON = (
+    "finding 7 (D-4 step order, C8, F07-Q16): the graph's gate job evaluates step 9 before the "
+    "sandbox, so a valid non-certified submission is a red check within seconds and its build "
+    "never runs; the mark stays until Phase 2 lands the split gate.yml on the graph; "
+    "fix: F07-T8 (Mike, 2026-09-13)"
+)
+
+
+def _live_gate_jobs() -> dict[str, Any]:
+    """The ``jobs`` of the graph's gate.yml at ``origin/main``."""
+    if not GRAPH_REPO.is_dir():
+        pytest.skip("the graph repo is not checked out beside this repo")
+    proc = subprocess.run(
+        ["git", "-C", str(GRAPH_REPO), "show", "origin/main:.github/workflows/gate.yml"],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=config.child_environment(drop=config.GIT_REPO_VARIABLES),  # the hook exports GIT_DIR
+    )
+    if proc.returncode != 0:
+        pytest.skip(f"origin/main:.github/workflows/gate.yml is not readable: {proc.stderr[:200]}")
+    doc = yaml.safe_load(proc.stdout)
+    assert isinstance(doc, dict) and isinstance(doc.get("jobs"), dict), "gate.yml has no jobs"
+    jobs: dict[str, Any] = doc["jobs"]
+    return jobs
+
+
+def _job_named(jobs: dict[str, Any], prefix: str) -> dict[str, Any] | None:
+    for job in jobs.values():
+        if isinstance(job, dict) and str(job.get("name", "")).lower().startswith(prefix):
+            return job
+    return None
+
+
+def test_the_gate_jobs_build_step_holds_no_secret_and_no_write_permission() -> None:
+    """C8 today, and after F07-T8: the job that runs contributor Lean is granted read
+    permissions only, names no ``secrets.``, and its build step (``Run the gate``) carries no
+    token at all (the log, 2026-09-09: no step before signing is granted any secret)."""
+    jobs = _live_gate_jobs()
+    gate = jobs["gate"]
+    perms = gate.get("permissions") or {}
+    assert perms and all(v == "read" for v in perms.values()), perms
+    assert "secrets." not in json.dumps(gate)
+    build = next(s for s in gate["steps"] if s.get("name") == "Run the gate")
+    assert "secrets." not in json.dumps(build) and "github.token" not in json.dumps(build)
+
+
+@pytest.mark.xfail(strict=True, reason=STEP9_REASON)
+def test_step_9_is_its_own_job_after_the_sandbox_build() -> None:
+    """D-4's order: the sandbox build (steps 1-8) is job ``gate``, which exports the classify
+    step's ``needs_review`` and ``tutorial`` as job outputs; step 9 is a job of its own that
+    ``needs: gate``, runs only when the gate says a review is needed, holds nothing beyond
+    ``pull-requests: read``, names no secret, and prints its verdict to the step summary — so
+    a valid submission shows build green + review pending, and the build always runs."""
+    jobs = _live_gate_jobs()
+    gate = jobs["gate"]
+    review = _job_named(jobs, "step 9")
+    assert review is not None, "no job named 'step 9 …' in the graph's gate.yml"
+    needs = review.get("needs")
+    assert needs == "gate" or (isinstance(needs, list) and "gate" in needs), needs
+    assert "needs.gate.outputs.needs_review" in str(review.get("if", "")), review.get("if")
+    perms = review.get("permissions") or {}
+    assert set(perms.items()) <= {("pull-requests", "read")}, perms
+    text = json.dumps(review)
+    assert "secrets." not in text
+    assert "$GITHUB_STEP_SUMMARY" in text, "the step-9 job writes no step summary"
+    outputs = gate.get("outputs") or {}
+    assert {"needs_review", "tutorial"} <= set(outputs), outputs
+    in_gate = [
+        s.get("name") for s in gate["steps"] if str(s.get("name", "")).lower().startswith("step 9")
+    ]
+    assert in_gate == [], f"the gate job still evaluates step 9 itself: {in_gate}"

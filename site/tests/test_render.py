@@ -6,13 +6,13 @@ import json
 from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import ClassVar
+from typing import Any, ClassVar
 
 import fixture
 import pytest
 
 from opn_gate import schemas
-from opn_site import cli, model, render
+from opn_site import cli, config, model, render
 
 GOLDEN = Path(__file__).resolve().parent / "golden"
 REPO = "https://github.com/example/graph"
@@ -430,3 +430,44 @@ def test_related_variant_pertinence_on_the_target_page(tmp_path: Path) -> None:
         "targets/propositional/index.html"
     ]
     assert "pertinent to the target, signed by mike on 2026-09-12" in page
+
+
+# --- finding 9 (2026-09-13): the frontier page says what it is showing ---------------------------
+
+API = "https://api.example.test"
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "finding 9 (F04-R7, F05-R10, D-25): the frontier page says it is 'exactly what an agent "
+        "sees through list_frontier' while its claims column is the products' committed "
+        "snapshot (zero while OPN_API_CLAIMS_URL is unset) and the api's list_frontier overlays "
+        "live claims; the page names neither the commit its claims come from nor where the live "
+        "count is, and the site's config carries no api URL to link; "
+        "fix: F04-T9 (Mike, 2026-09-13)"
+    ),
+)
+def test_frontier_page_says_which_products_its_claims_come_from_and_links_the_live_ones(
+    tmp_path: Path,
+) -> None:
+    """The site is a view of the committed products (D-36), so its claims column is a snapshot
+    from the products at ``rendered_from``; the live count is the api's ``/claims.json``. The
+    page says both: a label naming the commit the claims come from, next to the sha the site
+    already prints, and a link to ``/claims.json`` on the api whose origin comes from the site's
+    config (``OPN_SITE_API_URL``, C6) — never a hostname in a template. The sentence that
+    claimed parity with ``list_frontier`` is gone."""
+    root = fixture.build(tmp_path)
+    site = model.load_site(root, fixture.COMMIT)
+    settings = config.load({"OPN_SITE_API_URL": API})
+    api_url = getattr(settings, "api_url", None)
+    assert api_url == API, "the site's config carries no api URL (OPN_SITE_API_URL)"
+    kwargs: dict[str, Any] = {"api_url": api_url}  # render_site takes it once F04-T9 lands
+    files = render.render_site(site, repo_url=REPO, **kwargs)
+    page = files["frontier/index.html"]
+
+    assert "exactly what an agent sees through" not in page
+    assert "from the products at" in page, "no label says which products the claims come from"
+    label = page.index("from the products at")
+    assert fixture.COMMIT[:12] in page[label : label + 300], page[label : label + 300]
+    assert f'href="{API}/claims.json"' in page, "no link to the api's live /claims.json"

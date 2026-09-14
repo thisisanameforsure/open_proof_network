@@ -1,0 +1,42 @@
+Phase 0 red tests — make verify on the shared tree, 2026-09-14 (04:47Z)
+network HEAD d06404d; another session's F07-T10..T13 work uncommitted in the same tree
+
+All checks passed!
+298 files already formatted
+Success: no issues found in 148 source files
+Success: no issues found in 84 source files
+Success: no issues found in 23 source files
+==== 1680 passed, 67 deselected, 95 xfailed, 2 warnings in 98.32s (0:01:38) ====
+exit 0
+
+Before the red tests (04:35Z): 1676 passed, 33 xfailed.
+After: +62 strict xfails (13 attestation/ledger, 18 step-9/guide, 13 pending submissions/MCP, 18 refusals/lag/precheck/site)
+and +4 passing pins (three precheck pins, one site status pin). No XPASS, no failure.
+
+Each new red test was run alone with --runxfail by the agent that wrote it and failed at the assertion
+encoding its defect; per-test failure lines are in the four agents' reports summarised in the register.
+
+Strict xfail reasons in this run, by fix task:
+   3 fix: F03-T6
+   7 fix: F04-T10
+   1 fix: F04-T9
+   2 fix: F05-T10
+  13 fix: F05-T8
+   6 fix: F05-T9
+   3 fix: F06-T6
+   5 fix: F07-T14
+   8 fix: F07-T15
+   7 fix: F07-T16
+   5 fix: F07-T7
+  10 fix: F07-T8
+   5 fix: F09-T6
+   6 fix: F09-T7
+   1 fix: F10-T6
+   9 fix: F10-T7
+   4 fix: F11-T12
+
+Landing check (the shape that lands): a clean worktree of d06404d plus exactly the
+committed paths, no other session's work. ruff, ruff format --check, mypy gate/api/site all clean;
+1672 passed, 13 skipped, 65 deselected, 84 xfailed, 2 warnings in 98.84s (0:01:38)
+The 11 xfails fewer and 11 extra skips are the tests that read the graph repo beside this one
+(gate.yml, step9-refresh.yml, the graph README, test_pins), which a scratch worktree does not have.

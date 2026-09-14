@@ -85,7 +85,8 @@ declares its root at listing, so inference only speaks for pre-F11 targets (Q29)
       the run dies at kernel replay on the <code>sorry</code>s with nothing saying the file was
       merely in the wrong place. The guide never names the path a partial takes
       (<code>attempts/&lt;stamp&gt;-&lt;pseudonym&gt;-partial.lean</code>), and shows only a
-      <code>Proof.lean</code> bundle throughout.</td>
+      <code>Proof.lean</code> bundle throughout. <strong>Re-found live 2026-09-13</strong>, where it
+      cost two prechecks (<a href="#second-pass">second pass</a>, section 7).</td>
     <td>F07 (submissions) and F10 (the guide)</td>
     <td>The service already has <code>opn_gate.paths</code>, which knows the role of every path:
       refuse <code>partial</code> at <code>Proof.lean</code> and <code>proof</code> under
@@ -123,7 +124,8 @@ declares its root at listing, so inference only speaks for pre-F11 targets (Q29)
       graph, which carries four files; <code>info.json</code> advertises 27 schema families and
       the guide says <code>get_schema("postmortem/v1")</code> has the whole shape. Every family
       the service actually validates against lives in this repo's <code>gate/schemas/</code> at
-      the pinned <code>network_commit</code>.</td>
+      the pinned <code>network_commit</code>. <strong>Re-found live 2026-09-13</strong>
+      (<a href="#second-pass">second pass</a>, section 7).</td>
     <td>F09 (adapter), F10 (the guide)</td>
     <td>Serve the pinned gate's schema directory, or say plainly in both the tool's error and the
       guide which schemas the graph publishes and where the rest live. The bijection rule (D-28)
@@ -216,14 +218,16 @@ declares its root at listing, so inference only speaks for pre-F11 targets (Q29)
     <code>attestation</code> (an object) not <code>precheck_job_id</code>; and
     <code>submit_postmortem</code> takes only an object where the HTTP route takes a YAML string,
     refusing it with a raw validator message. The guide's appendix maps tool names to paths and
-    says every tool <em>is</em> one of the calls, which reads as a promise about arguments.</td>
+    says every tool <em>is</em> one of the calls, which reads as a promise about arguments.
+    <strong>Re-found live 2026-09-13</strong> (<a href="#second-pass">second pass</a>, section 9).</td>
     <td>F09 (bijection), F10 (the appendix)</td>
     <td>Either align the names or state the mapping per argument. The demarcation and auth
     behaviour were otherwise exactly as D-28 describes.</td></tr>
   <tr><td><strong>Attestation ids are zero-padded and nothing says so.</strong> (tester #13)
     Submissions return <code>pr_number: 7</code>; the file is
     <code>attestations/000007.json</code>; <code>get_submission("7")</code> misses. A merged
-    proposal has no attestation at all and the tool cannot say why.</td>
+    proposal has no attestation at all and the tool cannot say why. <strong>Re-found live
+    2026-09-13</strong> (<a href="#second-pass">second pass</a>, section 9).</td>
     <td>F09, F10</td>
     <td>Accept either spelling; answer &ldquo;this mode earns no attestation&rdquo; distinctly
     from &ldquo;not found&rdquo;.</td></tr>
@@ -241,7 +245,9 @@ declares its root at listing, so inference only speaks for pre-F11 targets (Q29)
     perfectly good state if it is the intended one.</td></tr>
   <tr><td><strong>The docs page contradicts the running service.</strong> (tester #16) It says no
     licence text and no DCO text are committed yet, while every write requires accepting the DCO
-    the service serves and every annex requires an SPDX licence.</td>
+    the service serves and every annex requires an SPDX licence. <strong>Re-found live
+    2026-09-13</strong>: the copy is accurate, and the gap is the missing files, which D-23 makes the
+    owner's act (<a href="#second-pass">second pass</a>, section 10).</td>
     <td>F04 (docs page)</td>
     <td>Stale copy.</td></tr>
   <tr><td><strong>Explainers are advertised as appendable and have no endpoint.</strong>
@@ -328,7 +334,402 @@ in its report, and its annex's numerical aside is wrong (this session recomputed
 25000; the Kummer reduction agrees with the direct computation on every one). The two annexes
 should not be merged as they stand.</div>
 
+<h1 id="second-pass">Second pass — a live contribution through the MCP (2026-09-13)</h1>
+<p class="subtitle">A fresh agent was given two strings, the website and the MCP endpoint, and
+nothing else. On the live network it earned a token, filed an annex and landed a two-hole skeleton
+on the tutorial variant (graph pull requests #32 and #33, both merged). It reported 14 bugs. The
+orchestrating session approved, merged and read what the record and the site did with them, which
+added five more findings. The raw material is
+<a href="../session-notes/2026-09-13-live-contribution-tester.md">engineering/session-notes/2026-09-13-live-contribution-tester.md</a>
+and the directory beside it. The plan that takes these findings is test-first. Every finding
+becomes a test before any fix. A finding whose fix has not landed is held as a strict expected
+failure that names its task. Then the tester is run again, on the bench and then live.</p>
+
+<div class="rule"><strong>decided (Mike, 2026-09-13):</strong>
+<ol>
+  <li><strong>The MCP path can bootstrap an identity and finish a contribution.</strong>
+    <code>precheck_submission</code> passes an anonymous tutorial precheck through, as
+    <code>POST /precheck</code> already does (F06-R2). Two tools are added,
+    <code>get_token</code> for <code>POST /tokens</code> and <code>propose_witness</code> for
+    <code>POST /proposals/witness</code>. Both are existing endpoints, so the bijection holds; D-28's
+    v0 tool table gets a dated notation note, not an overturn. Owner: F09.</li>
+  <li><strong>Step 9 runs after the build, as its own required check.</strong> A valid submission
+    shows a green build and a red review check until a non-author approves, in D-4's order. No new
+    permission. Owner: F07 (the workflow and a <code>review-check</code> command), then the graph's
+    ruleset.</li>
+  <li><strong>A hole that is an existing node becomes a dependency edge, not a node.</strong> When a
+    hole's closed type is definitionally equal to the statement of a node already in the target
+    (the offload rule's test, widened from the parent's goal to any sibling), the post-merge job
+    adds the edge and creates no <code>--h</code> node. Near-duplicates stay the curator's
+    <code>consolidate</code> (D-12). Owner: F07.</li>
+  <li><strong>The licence and DCO files (D-23) are out of scope for this pass</strong>: see the
+    owner's-act row below.</li>
+</ol></div>
+
+<h2>7. Blocks or misleads a contributor</h2>
+<table>
+  <tr><th>Finding</th><th>Owner</th><th>What the fix looks like</th></tr>
+  <tr>
+    <td><strong>An MCP-only client can never earn a token.</strong> (tester #1) Every write tool,
+      <code>precheck_submission</code> included, refuses without a bearer
+      (<code>api/opn_api/mcp/writes.py</code>, <code>forward()</code>), while the HTTP route lets the
+      tutorial node be anonymous. There is no token tool. The one anonymous write the protocol allows
+      is the one that mints every identity, so a client added with <code>claude mcp add</code> is
+      read-only forever.</td>
+    <td>F09</td>
+    <td>Decision 1 above.</td>
+  </tr>
+  <tr>
+    <td><strong>A correct submission shows as a failed check.</strong> (tester #7) The workflow runs
+      step 9 before the sandbox. With no non-author approval the job exits 1 within eight seconds and
+      steps 1&ndash;8 never run. The reason exists only as a check-run annotation, and the job log is
+      admin-only.</td>
+    <td>F07, the graph's ruleset</td>
+    <td>Decision 2 above. The step-9 job prints its reason to the job summary, which any reader of
+      the pull request can open.</td>
+  </tr>
+  <tr>
+    <td><strong>The guide's skeleton is refused by the gate.</strong> (tester #3) The example puts
+      <code>-- annex:</code> between the imports and the theorem; step 2 compares the header with
+      <code>Statement.lean</code> (F00-R19) and answers <code>proof-not-statement</code>. The same
+      line inside the body passes.</td>
+    <td>F10</td>
+    <td>Move the citation into the body and say why. The skeleton section becomes executed blocks,
+      so the document's own test holds the shape.</td>
+  </tr>
+  <tr>
+    <td><strong>Nothing says where a partial goes.</strong> (tester #4; re-finds the first pass's
+      partial-path row) The file that passes is
+      <code>attempts/&lt;timestamp&gt;-&lt;pseudonym&gt;-partial.lean</code>; the permitted-paths
+      table says that file is written &ldquo;by the gate&rdquo;, because F11 made the submission
+      <em>be</em> the attempts file and the guide was not updated. It cost the tester two
+      prechecks.</td>
+    <td>F07 (refuse the wrong path), F10 (the guide)</td>
+    <td>As the first pass proposed: refuse <code>partial</code> at <code>Proof.lean</code> and
+      <code>proof</code> under <code>attempts/</code> before a pull request opens, and state the path
+      in the skeleton section.</td>
+  </tr>
+  <tr>
+    <td><strong>Nobody can witness the holes a skeleton leaves.</strong> (session) The merged
+      skeleton created two <code>blocked / witness-missing</code> holes. They are off the frontier,
+      the guide mentions <code>/proposals/witness</code> once, and the MCP has no witness tool. The
+      one node a newcomer could work on became &ldquo;blocked on a dependency&rdquo;.</td>
+    <td>F09 (the tool), F10 (the guide)</td>
+    <td>Decision 1's <code>propose_witness</code>, and one sentence in the skeleton section: the
+      holes are yours to witness next.</td>
+  </tr>
+  <tr>
+    <td><strong><code>get_schema</code> finds no protocol schema.</strong> (tester #2; re-finds the
+      first pass's row) The graph carries four schema files; <code>info.json</code> advertises
+      twenty-six families.</td>
+    <td>F03</td>
+    <td>The graph publishes every schema its <code>info.json</code> advertises, copied at the
+      re-pin, and the products refuse a graph that does not. <code>get_schema</code> keeps reading
+      the graph, so the plain path is the same file.</td>
+  </tr>
+  <tr>
+    <td><strong>The annex hash is not the hash of the text.</strong> (tester #6) The service hashes
+      the file it writes, front matter included (F07-R11, by design). The guide reads as &ldquo;hash
+      your text&rdquo;, which is fatal for a pre-computed citation.</td>
+    <td>F10</td>
+    <td>Say what is hashed, and cite the <code>hash</code> the service returns.</td>
+  </tr>
+</table>
+
+<h2>8. Loses or corrupts a record</h2>
+<table>
+  <tr><th>Finding</th><th>Owner</th><th>What the fix looks like</th></tr>
+  <tr>
+    <td><strong>A hole that is already a proved node was filed as a new blocked node.</strong>
+      (session) <code>variant-93e79cb5--h1</code> is <code>∀ p q, p ∧ q → q ∧ p</code>, the statement
+      of <code>tutorial-and-swap</code>, proved since day one in the same target. D-12's offload
+      rule compares a hole only with its parent's goal, and F08's consolidation runs only on
+      proposals.</td>
+    <td>F07</td>
+    <td>Decision 3 above. A node's <code>statement_hash</code> is over the file's bytes and a
+      generated hole never matches a hand-written file, so the comparison is definitional equality
+      in the extractor, with one lean-tier test on the real pair.</td>
+  </tr>
+  <tr>
+    <td><strong>Hole provenance loses the declared model.</strong> (session) The submission's
+      <code>submission-meta</code> block named the model; both holes' <code>META.yaml</code> say
+      <code>provenance.model: null</code>.</td>
+    <td>F07 (R13)</td>
+    <td>Pass the declared model into the scaffolded hole.</td>
+  </tr>
+  <tr>
+    <td><strong>Committed products always say zero claims.</strong> (tester #11)
+      <code>OPN_API_CLAIMS_URL</code> was never set on the graph repository, so F05-R10's overlay
+      has never run; <code>CONTEXT.json</code> and the site's claims column read zero.</td>
+    <td>the owner's act (one variable), F11 (readiness)</td>
+    <td>Set the variable. The readiness rehearsal lists the variables the workflows read and fails
+      on a missing one, so the next one cannot be forgotten.</td>
+  </tr>
+</table>
+
+<h2>9. Friction</h2>
+<table>
+  <tr><th>Finding</th><th>Owner</th><th>Note</th></tr>
+  <tr><td><strong><code>POST /precheck</code> accepts and ignores unknown fields.</strong>
+    (tester #5) <code>artifact_type</code> was accepted and ignored, costing a 2.5-minute run; the MCP
+    input schemas already refuse extra keys, so the two paths disagree.</td>
+    <td>F05</td>
+    <td>Every write route refuses a key it does not define, with 400 <code>unknown-field</code>.</td></tr>
+  <tr><td><strong>The MCP's refusal body differs from the route's.</strong> (tester #10) The MCP
+    answers the SDK's <code>invalid_token</code>; the route answers a sentence with the fix.</td>
+    <td>F09</td>
+    <td>One shape on both paths, naming <code>get_token</code>.</td></tr>
+  <tr><td><strong>Attestation ids are zero-padded.</strong> (tester #8; re-finds the first pass's
+    row) <code>get_submission("33")</code> misses <code>000033.json</code>.</td>
+    <td>F09, F10</td>
+    <td>Accept either spelling; say the padding in the guide.</td></tr>
+  <tr><td><strong>The site does not say what its claims column is.</strong> (tester #9) The page
+    stamp and the products' <code>rendered_from</code> differ with no explanation, and the frontier
+    page says it is &ldquo;exactly what an agent sees through list_frontier&rdquo;, which is untrue
+    for claims.</td>
+    <td>F04</td>
+    <td>Label the claims as from the products at their commit, and link the live
+    <code>/claims.json</code>.</td></tr>
+  <tr><td><strong>MCP argument names differ from the routes' fields.</strong> (tester #12; re-finds
+    the first pass's row)</td>
+    <td>F10</td>
+    <td>The appendix states the rename per tool.</td></tr>
+  <tr><td><strong>A precheck job carries no start time or run link.</strong> (tester #13)</td>
+    <td>F06</td>
+    <td>Not taken in this pass.</td></tr>
+</table>
+
+<h2>10. Not taken in this pass</h2>
+<table>
+  <tr><th>Finding</th><th>Owner</th><th>Why</th></tr>
+  <tr><td><strong>The graph has no licence and no DCO file, while the api issues tokens against a
+    DCO.</strong> (tester #14; re-finds the first pass's docs-page row) The served DCO's clauses
+    point at a licence file the graph does not have, and the docs page truthfully says none is
+    committed. D-23 calls this a one-way door that closes before the first external
+    contributor.</td>
+    <td>the owner's act (D-23)</td>
+    <td>Out of scope for this pass (Mike, 2026-09-13). Recorded so it is not lost: it is the
+      decision D-23 says must close before an external contributor arrives.</td></tr>
+  <tr><td><strong>&ldquo;My pending submissions, claims and prechecks.&rdquo;</strong> (wanted in
+    both passes)</td><td>F07, F09</td><td>Still open.</td></tr>
+  <tr><td><strong>Step 9 satisfied by a certificate or registry provenance.</strong> The workflow
+    still says F00 knows no certificates, so every non-tutorial building pull request needs a human
+    even where D-4 v3.11 says a certificate suffices.</td><td>F07, F11</td>
+    <td>A follow-up once <code>classify</code> consults F11's fidelity records.</td></tr>
+  <tr><td><strong>Every generated hole's witness slot says <code>True</code>.</strong> Seen while
+    planning, not by the tester: <code>apply_partial</code> fills the slot template with
+    <code>expected="True"</code> rather than the hole's own hypotheses. Checked: step 7 derives the
+    expected type from the statement itself and compares the witness with it
+    (<code>steps/witness.py</code>), so the verdict is right and only the hint is wrong. A
+    contributor who fills the slot as written gets <code>witness-type-mismatch</code>, and the
+    message names the type it wanted.</td><td>F07</td>
+    <td>Friction, not a record defect. Taken with the guide's witness sentence if cheap.</td></tr>
+</table>
+
+
+<h1 id="third-pass">Third pass — a fresh agent finishes Euclid's theorem from the website alone (2026-09-13)</h1>
+<p class="subtitle">A fresh agent was given one string, the website, and told to finalize a proof of
+<code>infinitude-of-primes</code> through the gate, prove it another way, and report every issue with
+the stack, the documentation and the MCP. It proved the skeleton's four holes (graph pull requests
+#34&ndash;#37, merged by the orchestrating session as the non-author reviewer) and wrote two root
+proofs it never submitted: the owner stopped the run when another agent began changing how a theorem
+keeps several proofs (D-25 v3.13). The raw material is
+<a href="../session-notes/2026-09-13-euclid-tester.md">engineering/session-notes/2026-09-13-euclid-tester.md</a>
+and the directory beside it. Method as in the second pass: every finding is a failing test before any
+fix, held as a strict expected failure naming its task.</p>
+
+<div class="rule"><strong>decided (Mike, 2026-09-14):</strong>
+<ol>
+  <li><strong>A pending submission is readable through the network.</strong> The service records
+    every pull request it opens, and <code>GET /submissions/&lt;id&gt;</code> (by submission id or
+    pull request number, padded or not) answers the record plus the pull request's runs, reviews and
+    merge state read through the App. Open work appears on <code>get_node</code>, in
+    <code>GET /submissions.json</code> and through a <code>list_submissions</code> tool. The frontier
+    schema does not change. Owner: F07, F09.</li>
+  <li><strong>Step 9 is its own job after the build, and a review refreshes it in place.</strong> A
+    separate review-triggered workflow holding only <code>actions: write</code> re-runs the step-9
+    job, so an approval turns the check green with no manual re-run. It never checks out or runs
+    contributor code. C8 lists it. Owner: F07 (supersedes decision 2 of the second pass on the
+    question of permission).</li>
+  <li><strong>The session may set <code>OPN_API_CLAIMS_URL</code> and fix the graph README</strong>
+    itself.</li>
+  <li><strong>A direct proof refused on a parent whose skeleton merged</strong> belongs to the agent
+    changing how a theorem keeps several proofs; recorded below, not taken here.</li>
+  <li><strong>A variant claimable while blocked</strong> is registered, not changed.</li>
+</ol></div>
+
+<h2>11. Loses or corrupts a record</h2>
+<table>
+  <tr><th>Finding</th><th>Owner</th><th>What the fix looks like</th></tr>
+  <tr>
+    <td><strong>Every merged attestation drops what the submitter declared.</strong> (session)
+      <code>attestations/000034.json</code> to <code>000036.json</code> say <code>submitter: null</code>,
+      <code>model_and_tooling: undeclared</code> and null <code>tooling</code> and
+      <code>precheck_attestation</code>, beside pull request bodies carrying the pseudonym, the model
+      and a service-signed precheck. <code>cli.run_gate</code> reads the body only for the bounce rule;
+      <code>cli.run_postmerge</code> runs the pipeline with no policy; the workflow fetches the body
+      only for a partial. D-34 names all four as minimum content.</td>
+    <td>F07 (R13)</td>
+    <td>Both runs build with the parsed block and the consumed precheck's hash and kind; a
+      reproduction copies these declared fields as it copies step 9 (D-5); the workflow hands every
+      merge its body and author. Records #33&ndash;#37 stay as written.</td>
+  </tr>
+  <tr>
+    <td><strong>No merge has ever credited anyone.</strong> (session, tester #36) There is no
+      <code>ledger/</code> on the graph and the Contributors page says the first merged proof will
+      start it. <code>ledger.proof_entry</code> and <code>postmortem_entry</code> have no production
+      caller; <code>opn-gate ledger</code> and its workflow step run for proposals only.</td>
+    <td>F07 (R12)</td>
+    <td><code>ledger</code> runs for every merge: the proof line for a proof or partial (tooling from
+      the merge's attestation), the attempts line for the first postmortem per route class, nothing for
+      an alternate (D-25 v3.13), the tutorial (D-27) or a curator's proof on their own target (D-21).</td>
+  </tr>
+  <tr>
+    <td><strong>Committed products still say zero claims.</strong> (re-found from the second pass,
+      section 8) <code>OPN_API_CLAIMS_URL</code> is still unset on the graph repository.</td>
+    <td>the session (decision 3)</td>
+    <td>Set the variable; F11-T12's readiness check keeps it set.</td>
+  </tr>
+</table>
+
+<h2>12. Blocks or misleads a contributor</h2>
+<table>
+  <tr><th>Finding</th><th>Owner</th><th>What the fix looks like</th></tr>
+  <tr>
+    <td><strong>Approval alone does not unblock a valid pull request.</strong> (session; sharpens the
+      second pass's step-9 row) After a non-author approved, the review-triggered run passed, but the
+      earlier failed run stayed in the rollup under the same required check name and
+      <code>mergeable_state</code> stayed <code>blocked</code> until that run was re-run by hand.</td>
+    <td>F07, the graph's ruleset</td>
+    <td>Decision 2. The ruleset requires both check names, verified on a live pull request's
+      <code>mergeable_state</code>.</td>
+  </tr>
+  <tr>
+    <td><strong>A contributor cannot see what happened to a submission.</strong> (tester #25, #38)
+      <code>get_submission</code> reads merged attestations only; there is no route for a pending one,
+      and the service records nothing when it opens a pull request. The tester watched its own pull
+      requests through GitHub's anonymous API until the hourly budget ran out.</td>
+    <td>F07, F09</td>
+    <td>Decision 1.</td>
+  </tr>
+  <tr>
+    <td><strong>Open work is invisible to the next contributor.</strong> (tester #30) With four pull
+      requests open against the holes, the frontier, <code>list_frontier</code> and
+      <code>get_node</code> showed four untouched holes, and claims are refused on a listed target, so
+      nobody can signal work in flight.</td>
+    <td>F07, F09</td>
+    <td>Decision 1.</td>
+  </tr>
+  <tr>
+    <td><strong>A refusal does not say why.</strong> (tester #11; re-finds the first pass's claim row)
+      A claim on the blocked root answers <code>404 node-not-in-frontier</code>; a claim on a hole of a
+      listed target answers <code>409 node-not-claimable</code> with no reason, while
+      <code>targets/index.json</code> carries them.</td>
+    <td>F05</td>
+    <td><code>404 node-unknown</code>, <code>409 node-blocked</code> naming the cause and the unproved
+      dependencies, <code>409 node-not-open</code>, and <code>409 node-not-claimable</code> stating each
+      reason in <code>intake.explain</code>'s words.</td>
+  </tr>
+  <tr>
+    <td><strong>Precheck runs a job that cannot pass.</strong> (tester #20) The blocked root was
+      prechecked twice; each hosted run ended at step 4 <code>dep-unproved</code>.</td>
+    <td>F06</td>
+    <td>Refuse a blocked node with the same <code>node-blocked</code> answer before any job; a proved
+      node stays precheckable.</td>
+  </tr>
+  <tr>
+    <td><strong>The guide does not say how a skeleton is finished.</strong> (tester #20) Every hole must
+      merge, one pull request and one approval each, one merge at a time, before the parent can be
+      prechecked; nor does it say attestation ids are zero-padded, where the not-claimable reasons are,
+      or how to watch a submission.</td>
+    <td>F10</td>
+    <td>State all four; the watching command is an executed block.</td>
+  </tr>
+</table>
+
+<h2>13. Friction and cosmetic</h2>
+<table>
+  <tr><th>Finding</th><th>Owner</th><th>Note</th></tr>
+  <tr>
+    <td><strong><code>/frontier.json</code> lagged <code>/info.json</code> and <code>get_node</code> by
+      up to 4.5 minutes after a merge.</strong> (tester #35) Every committed file has its own cache
+      window, per Lambda instance.</td>
+    <td>F05</td>
+    <td>One freshness generation keyed on <code>info.json</code>'s ETag.</td>
+  </tr>
+  <tr>
+    <td><strong>A witness-missing hole with no dependencies is "blocked on a dependency".</strong>
+      (tester #17) The site's status words ignore <code>cause</code>.</td>
+    <td>F04</td>
+    <td>Name the cause and the witness route.</td>
+  </tr>
+  <tr>
+    <td><strong>The target page's graph labels four holes identically.</strong> (session)
+      <code>dag.py</code> keeps the first 21 characters, and <code>infinitude-of-primes-</code> is 21.</td>
+    <td>F04</td>
+    <td>Keep the distinguishing tail.</td>
+  </tr>
+  <tr>
+    <td><strong>The docs page renders the guide's expected-output fragments as bare text and its tables
+      as run-on lines.</strong> (tester #9) The guide goes through the minimal prose renderer.</td>
+    <td>F04</td>
+    <td>Render it as a document; label <code>output</code> blocks as expected fragments.</td>
+  </tr>
+  <tr>
+    <td><strong>"Status listed, listed, not claimable".</strong> (re-found from the first pass) The
+      reason is on the Targets index only, not the node page or the frontier row.</td>
+    <td>F04</td>
+    <td>As the first pass proposed.</td>
+  </tr>
+  <tr>
+    <td><strong>MCP argument names still differ from the routes' fields</strong> (tester #15; re-finds
+      the first and second passes).</td>
+    <td>F09, F10</td>
+    <td>One machine-readable rename map the handlers use and the guide's appendix is tested against;
+      <code>submit_proof</code> also takes <code>precheck_job_id</code>.</td>
+  </tr>
+  <tr>
+    <td><strong>The graph's README cites decisions v3.10.</strong> (tester #7)</td>
+    <td>the session (decision 3), F10</td>
+    <td>A test reads the graph's README and checks the cited file exists.</td>
+  </tr>
+</table>
+
+<h2>14. For the agent changing how a theorem keeps several proofs, and registered only</h2>
+<table>
+  <tr><th>Finding</th><th>Owner</th><th>Why it is here</th></tr>
+  <tr>
+    <td><strong>A merged skeleton locks its parent against every proof.</strong> (tester #22) The
+      tester's direct proof, which uses no hole, failed step 4 <code>dep-unproved</code> like the
+      assembly (<code>steps/stage.py</code>). Both files are beside the session note.</td>
+    <td>F07 (D-25 v3.13 work)</td>
+    <td>Decision 4.</td>
+  </tr>
+  <tr>
+    <td><strong>The pinned gate lets a second <code>Proof.lean</code> overwrite the first.</strong>
+      (session) At network <code>0e3bab6</code> the paths rule allows a modified <code>Proof.lean</code>
+      and classifies any <code>.lean</code> under <code>attempts/</code> as a partial.</td>
+    <td>F07 (the re-pin after T9)</td>
+    <td>Until the re-pin, no merge of a second proof.</td>
+  </tr>
+  <tr>
+    <td><strong>A variant is claimable while blocked on its holes.</strong> (tester #18, #23)
+      <code>products.in_frontier</code> keeps every open variant on the frontier (F03-R5).</td>
+    <td>F03</td>
+    <td>Decision 5.</td>
+  </tr>
+  <tr>
+    <td>The root's <code>META.yaml</code> is <code>meta/v1</code> and its holes' <code>meta/v3</code>
+      (tester #12); the root's <code>attempts/</code> holds one partial twice (tester #13).</td>
+    <td>&mdash;</td>
+    <td>Not defects: a record validates against the version it declares, and the duplicate predates
+      F11-Q28's fix on an append-only directory.</td>
+  </tr>
+</table>
+
 <footer>Open Proof Network · findings register · opened 2026-09-12 from the Erdős 376 tester pass ·
+second pass 2026-09-13 from the live MCP contribution ·
+third pass 2026-09-13 from the Euclid proof ·
 findings are retired by the task that lands them, not by editing this page</footer>
 </body>
 </html>

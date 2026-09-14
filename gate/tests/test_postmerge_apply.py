@@ -232,3 +232,49 @@ def test_the_diff_of_the_merge_is_what_step2_reads(tmp_path: Path, seam: Seam) -
         Change("A", f"{NODES}/{ROOT}/attempts/{STAMP_FILE}")
     ]
     json.dumps([c.path for c in changes])  # serialisable, as the workflow's tee expects
+
+
+# --- finding: provenance.model null (the 2026-09-13 live contribution, record side) --------------
+
+MODEL = "claude-fable-5-1"
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "finding record-provenance-model-null (F07-R6, R13, D-23): the submission block names "
+        "the model, both hole children's META.yaml say provenance.model: null because "
+        "cli.apply_merged_partial never passes model= to scaffold.Proposal; fix: F07-T7 "
+        "(Mike, 2026-09-13)"
+    ),
+)
+def test_hole_children_carry_the_declared_model(
+    tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Each hole child's ``provenance.model`` is the ``submission-meta/v1`` block's model — the
+    D-23 disclosure the submitter made, carried to the nodes the merge derived from it."""
+    root, _assembly, _ = merged_partial(tmp_path)
+    partial_seam(seam)
+    body = tmp_path / "body.md"
+    body.write_text(
+        "Submitted through the service.\n\n"
+        + submission.render_block(
+            {
+                "schema": "submission-meta/v1",
+                "submission_id": "01JXYZABCDEFGHJKMNPQRSTVWX",
+                "identity": {"pseudonym": "some-prover", "proof_kind": "github"},
+                "artifact_type": "partial",
+                "tooling": {"model": MODEL, "version": "2026-09", "harness": "claude-code"},
+                "precheck_job_id": "01JXYZABCDEFGHJKMNPQRSTVWY",
+            }
+        )
+    )
+    code, out, err = run(
+        capsys, *argv(root, tmp_path / "o", "--apply-partial", "--pr-body-file", str(body))
+    )
+    assert code == cli.EXIT_PASS, err
+    assert out["partial"]["children"] == [f"{ROOT}--h1", f"{ROOT}--h2"]
+    for child in out["partial"]["children"]:
+        meta = yaml.safe_load((root / NODES / child / "META.yaml").read_text())
+        assert meta["provenance"]["author"] == "some-prover"
+        assert meta["provenance"]["model"] == MODEL, (child, meta["provenance"])
