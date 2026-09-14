@@ -478,9 +478,16 @@ def _add_qa_parsers(  # noqa: PLR0915 — one statement per flag
     bt = acts.add_parser("backtranslate", help="English from the Lean alone (F12-R7)")
     common(bt)
 
-    eq = acts.add_parser("equivalence", help="both implications between two nodes (F12-R8)")
+    eq = acts.add_parser(
+        "equivalence", help="both implications between the root and a node or formalization (R8)"
+    )
     common(eq)
-    eq.add_argument("other", help="the node that formalizes the same statement independently")
+    eq.add_argument("other", help="the node or formalization stating the conjecture independently")
+    eq.add_argument(
+        "--formalization",
+        action="store_true",
+        help="`other` names a formalization under formalizations/, never a node (F14-R8)",
+    )
     eq.add_argument("--out", type=Path, help="work directory (default: a fresh temp dir)")
     eq.add_argument("--install", action="store_true", help="let elan install the pinned toolchain")
     eq.add_argument("--sandbox", action="store_true", help="elaborate inside the step-3 image")
@@ -2014,7 +2021,11 @@ def run_qa(args: argparse.Namespace, settings: config.Settings) -> int:  # noqa:
             msg = "an equivalence is between the root and another node; the subject is `root`"
             raise CliError(msg)
         layer = qa.equivalence(
-            ctx, args.other, date=date, attempt_budget_s=settings.qa_attempt_budget_s
+            ctx,
+            args.other,
+            date=date,
+            attempt_budget_s=settings.qa_attempt_budget_s,
+            formalization=args.formalization,
         )
         return _emit_layer(layer, graph, args)
     run = qa.screen(

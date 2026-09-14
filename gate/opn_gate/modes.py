@@ -804,6 +804,8 @@ def check(
             problems.extend(check_explainer_file(graph_root, located, classification))
         elif located.role == "statement-evidence":
             problems.extend(check_evidence(graph_root, located))
+        elif located.role in ("formalization", "formalization-statement"):
+            problems.extend(check_formalization(graph_root, located))
         elif located.role in paths.CURATOR_ROLES:
             problems.extend(check_status_record(graph_root, located, classification))
         elif located.role == "target-record" and classification.mode == "curator":
@@ -847,6 +849,24 @@ def check_status_record(  # noqa: PLR0911 — one return per rule
             )
         ]
     return []
+
+
+def check_formalization(graph_root: Path, located: Located) -> list[Diagnostic]:
+    """F14-R7: a formalization arrives as its record and its statement, and the pair is sound —
+    one sorry-bodied theorem, declared and hashed as the record says, never a node's name, library
+    and ``Defs.*`` imports only (``formalizations.problems``). The record's path carries the
+    check; its statement is checked through it, so a pair is reported once, and a statement with no
+    record beside it is ``formalization-incomplete``. That it is added, not modified, is the curator
+    mode's rule (a formalization is not a modifiable role)."""
+    from opn_gate import formalizations  # noqa: PLC0415 — only these paths need it
+
+    parts = PurePosixPath(located.path).parts
+    name = parts[3] if len(parts) > 3 else ""
+    target_dir = graph_root / "targets" / located.target_id
+    record = formalizations.formalizations_dir(target_dir) / name / formalizations.RECORD_FILE
+    if located.role == "formalization-statement" and record.is_file():
+        return []
+    return formalizations.problems(target_dir, name)
 
 
 def check_evidence(graph_root: Path, located: Located) -> list[Diagnostic]:

@@ -24,7 +24,18 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from opn_gate import context, defs, evidence, intake, layout, qa, records, schemas, watch
+from opn_gate import (
+    context,
+    defs,
+    evidence,
+    formalizations,
+    intake,
+    layout,
+    qa,
+    records,
+    schemas,
+    watch,
+)
 from opn_gate import fidelity as fidelitymod
 from opn_gate import graph as graphmod
 from opn_gate.graph import GraphError, NodeFacts, TargetGraph
@@ -381,7 +392,7 @@ def index_doc(targets: list[TargetGraph], rendered_from: str | None) -> dict[str
                 # F14-R9: the root's catalog evidence (T4); the formalizations arrive with T6.
                 "statement_evidence": evidence.summary(tg.path, tg.nodes[tg.root].statement_hash),
                 "step9": step9_basis(tg),
-                "formalizations": [],
+                "formalizations": formalizations.summary(tg.path),
             }
         )
     return {"schema": INDEX_SCHEMA, "rendered_from": rendered_from, "targets": out}

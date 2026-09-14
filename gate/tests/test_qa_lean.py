@@ -186,3 +186,55 @@ def test_exhibit_is_replayed_before_it_counts(
     assert (target / "fidelity").is_dir() is False or not any(
         "screened" in p.read_text() for p in (target / "fidelity").glob("root-*.yaml")
     )
+
+
+# --- F14-AC8: an equivalence against a second formalization, on the real toolchain ---------------
+
+FORMALIZATION = (
+    "theorem OpnAlt.swap_reassoc : ∀ p q r : Prop, (p ∧ q) ∧ r → (r ∧ q) ∧ p := by\n  sorry\n"
+)
+
+
+def test_equivalence_with_formalization(
+    tmp_path: Path, real_toolchain: LocalToolchain, lean_pkg: Path
+) -> None:
+    """F14-R8 on the real toolchain: the propositional root and a formalization of the same
+    tautology outside ``nodes/`` — core Lean only, as a formalization's imports must be — prove
+    equivalent in both directions, the pair is one replayed exhibit, and the row names the
+    formalization and its hash (``qa/v2``)."""
+    import yaml  # noqa: PLC0415
+
+    from opn_gate import formalizations  # noqa: PLC0415
+
+    real_toolchain.lean_pkg_bin = lean_pkg
+    root = copy_graph(tmp_path, GRAPH)
+    target = root / "targets" / TARGET
+    directory = formalizations.formalizations_dir(target) / "alt"
+    directory.mkdir(parents=True)
+    (directory / formalizations.STATEMENT_FILE).write_text(FORMALIZATION, encoding="utf-8")
+    digest = schemas.content_hash(FORMALIZATION.encode("utf-8"))
+    record = {
+        "schema": formalizations.SCHEMA,
+        "name": "alt",
+        "declaration": "OpnAlt.swap_reassoc",
+        "statement_hash": digest,
+        "author": "curator",
+        "source": {
+            "kind": "network",
+            "ref": "the root restated with its conclusion reordered",
+            "url": None,
+            "licence": "Apache-2.0",
+            "attribution": "the Open Proof Network curators",
+        },
+        "provenance": {"upstream_commit": None, "upstream_path": None},
+        "date": "2026-09-14",
+    }
+    (directory / formalizations.RECORD_FILE).write_text(yaml.safe_dump(record), encoding="utf-8")
+    assert formalizations.problems(target, "alt") == []
+
+    ctx = context(root, TARGET, PROPOSITIONAL_ROOT, real_toolchain, tmp_path / "work")
+    run = qa.equivalence(ctx, "alt", date=WHEN, attempt_budget_s=120.0, formalization=True)
+    assert run.row.verdict == "pass", run.row.note
+    assert run.row.exhibit is not None and run.row.exhibit_sha256 is not None
+    assert run.row.against == {"kind": "formalization", "ref": "alt", "statement_hash": digest}
+    assert formalizations.summary(target)[0]["equivalence"] == "pass"

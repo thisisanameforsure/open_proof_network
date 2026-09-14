@@ -1967,23 +1967,27 @@ EQUIVALENCE_MODULE = "OpnQa.Equivalence"
 EQUIVALENCE_DECLS: tuple[str, ...] = ("OpnQa.equiv_forward", "OpnQa.equiv_backward")
 
 
-def equivalence(  # noqa: PLR0911, PLR0912, PLR0915 — one return per way the pair is not an exhibit
+def equivalence(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915 — one return per way it is not an exhibit
     ctx: RunContext,
     other: str,
     *,
     date: str,
     attempt_budget_s: float,
     tool_version: str = "0.0.0",
+    formalization: bool = False,
 ) -> LayerRun:
-    """R8: both implications between the root and ``other``, another node of the target that
-    formalizes the same statement. A proved pair is an exhibit; anything less is
-    ``inconclusive`` and never negative evidence (AC6, Q3)."""
+    """R8: both implications between the root and ``other`` — another node of the target, or
+    (F14-R8) a second formalization under ``formalizations/``, which ``formalization=True`` asks
+    for by name and which is otherwise taken when no node has that id. A proved pair is an
+    exhibit; anything less is ``inconclusive`` and never negative evidence (AC6, Q3). The row
+    names what it compared against (``qa/v2``)."""
     from opn_gate import exhibits as exhibitsmod  # noqa: PLC0415 — stages the other node
     from opn_gate.steps.hazards import StatementStep  # noqa: PLC0415
     from opn_gate.steps.toolchain_step import ToolchainStep  # noqa: PLC0415
 
     target_dir = ctx.graph_root / "targets" / ctx.claim.target_id
     subject = fidelity.ROOT_SUBJECT
+    against: dict[str, str] | None = None  # set once ``other`` resolves (F14-R8)
 
     def inconclusive(note: str, problems: list[Diagnostic] | None = None) -> LayerRun:
         row_ = row(
@@ -1994,6 +1998,7 @@ def equivalence(  # noqa: PLR0911, PLR0912, PLR0915 — one return per way the p
             timestamp=date,
             budget_s=attempt_budget_s,
             note=_capped(f"{ctx.claim.node_id} vs {other}", note),
+            against=against,
         )
         run = LayerRun(subject, row_, problems=problems or [])
         run.record = _write_layer(target_dir, subject, run, EQUIVALENCE_TOOL, date)
@@ -2009,22 +2014,55 @@ def equivalence(  # noqa: PLR0911, PLR0912, PLR0915 — one return per way the p
     if not staged.ok or node is None:
         problem = staged.diagnostic or Diagnostic("compile", "the root did not stage")
         return inconclusive(f"{problem.code}: {problem.message}", [problem])
+    from opn_gate import defs as defsmod  # noqa: PLC0415 — a formalization's Defs.* imports
+    from opn_gate import formalizations as formalizationsmod  # noqa: PLC0415
+
     other_dir = layout.graph_nodes_dir(ctx.graph_root, ctx.claim.target_id) / other
-    loaded = layout.load_node(other_dir, ctx.claim.target_id)
-    if isinstance(loaded, list):
-        msg = f"{other!r} is not a node of {ctx.claim.target_id}: {loaded[0].message}"
-        raise QaError("record", msg)
-    staging = exhibitsmod.stage_node(ctx, tc, ctx.claim.target_id, other)
+    staging: Diagnostic | None
+    if formalization or not other_dir.is_dir():
+        try:
+            found = formalizationsmod.get(target_dir, other)
+        except formalizationsmod.FormalizationError as exc:
+            raise QaError("record", f"{other!r} is not a sound formalization: {exc}") from exc
+        if found is None:
+            what = "a formalization" if formalization else "a node or a formalization"
+            msg = f"{other!r} is not {what} of {ctx.claim.target_id}"
+            raise QaError("record", msg)
+        other_statement = found.statement
+        against = {
+            "kind": "formalization",
+            "ref": other,
+            "statement_hash": found.statement_hash,
+        }
+        # Nothing to stage but the definitions its imports may name (F11-R2): no Context.
+        uses_defs = any(
+            layout.module_origin(m)[0] == "defs" for m in layout.imports_of(other_statement.text)
+        )
+        staging = (
+            defsmod.compile_all(
+                ctx.toolchain, tc, target_dir, ctx.workdir, timeout_s=ctx.wallclock_s
+            )
+            if uses_defs
+            else None
+        )
+    else:
+        loaded = layout.load_node(other_dir, ctx.claim.target_id)
+        if isinstance(loaded, list):
+            msg = f"{other!r} is not a node of {ctx.claim.target_id}: {loaded[0].message}"
+            raise QaError("record", msg)
+        other_statement = loaded.statement
+        against = {"kind": "node", "ref": other, "statement_hash": other_statement.statement_hash}
+        staging = exhibitsmod.stage_node(ctx, tc, ctx.claim.target_id, other)
     if staging is not None:
         return inconclusive(f"{staging.code}: {staging.message}", [staging])
-    a, b = signature_of(node.statement), signature_of(loaded.statement)
+    a, b = signature_of(node.statement), signature_of(other_statement)
     if isinstance(a, Diagnostic):
         return inconclusive(f"{a.code}: {a.message}", [a])
     if isinstance(b, Diagnostic):
         return inconclusive(f"{b.code}: {b.message}", [b])
     imports = list(
         dict.fromkeys(
-            [*layout.imports_of(node.statement.text), *layout.imports_of(loaded.statement.text)]
+            [*layout.imports_of(node.statement.text), *layout.imports_of(other_statement.text)]
         )
     )
     mathlib = tc.mathlib_sha is not None
@@ -2090,6 +2128,7 @@ def equivalence(  # noqa: PLR0911, PLR0912, PLR0915 — one return per way the p
         exhibit=rel,
         exhibit_sha256=digest,
         note=f"{ctx.claim.node_id} <-> {other}: both implications proved and replayed",
+        against=against,
     )
     run = LayerRun(subject, row_, written=[rel])
     run.record = _write_layer(target_dir, subject, run, EQUIVALENCE_TOOL, date)

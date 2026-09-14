@@ -1,0 +1,5 @@
+F14-T6 lean tier — equivalence against a formalization on the real toolchain (AC8)
+command: uv run pytest -m lean gate/tests/test_qa_lean.py::test_equivalence_with_formalization
+2026-09-14T14:24:52Z
+.                                                                        [100%]
+1 passed in 188.37s (0:03:08)

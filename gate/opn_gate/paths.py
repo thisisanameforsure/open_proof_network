@@ -186,6 +186,8 @@ Role = Literal[
     "drift-record",  # targets/<id>/drift/<name>.yaml: the watcher's flag (F12-R11, R12)
     "relevance",  # nodes/<id>/relevance.yaml: a related variant's one signature (F12-R13)
     "statement-evidence",  # targets/<id>/evidence/root-<n>.yaml: catalog evidence (F14-R3)
+    "formalization",  # targets/<id>/formalizations/<name>/formalization.yaml (F14-R7)
+    "formalization-statement",  # targets/<id>/formalizations/<name>/Statement.lean (F14-R7)
 ]
 
 #: Roles that claim nothing and merge on schema and path checks alone (F07-R9).
@@ -215,6 +217,8 @@ CURATOR_ROLES: tuple[Role, ...] = (
     "drift-record",
     "relevance",
     "statement-evidence",  # F14-R4: a curator records the catalog's evidence for a root
+    "formalization",  # F14-R7: a curator adds a second formalization, never a node
+    "formalization-statement",
 )
 
 #: What a curated intake adds beside the root node (F11-R2; D-6): the target's own files. A pull
@@ -251,6 +255,7 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "drift-record": ("drift/v1",),
     "relevance": ("relevance/v1",),
     "statement-evidence": ("statement-evidence/v1",),
+    "formalization": ("formalization/v1",),
 }
 
 #: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers).
@@ -339,6 +344,13 @@ def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912 — one branc
         # F14-R3: the root's catalog evidence, beside the certificates it does not replace.
         if head == "evidence" and _is_flat(name, YAML_SUFFIXES):
             return Located("statement-evidence", path, target_match.group("target"), None)
+        # F14-R7: a second formalization, outside nodes/, so never a node.
+        if head == "formalizations":
+            directory, _, leaf = name.partition("/")
+            if _ID_RE.match(directory) and leaf == "formalization.yaml":
+                return Located("formalization", path, target_match.group("target"), None)
+            if _ID_RE.match(directory) and leaf == "Statement.lean":
+                return Located("formalization-statement", path, target_match.group("target"), None)
         # F12-R1: the QA record beside the certificates, and the files a run leaves.
         if head == "qa" and _is_flat(name, YAML_SUFFIXES):
             return Located("qa-record", path, target_match.group("target"), None)
