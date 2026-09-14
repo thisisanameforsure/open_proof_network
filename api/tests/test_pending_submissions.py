@@ -299,6 +299,9 @@ def test_a_merged_proof_is_pending_until_its_attestation_lands(harness: Harness)
 def test_a_merged_annex_leaves_the_snapshot(harness: Harness) -> None:
     token = harness.token_for("code_alice", "alice")
     annex(harness, token)
+    # A second apart: the snapshot is ordered by id, and two ULIDs minted in the same millisecond
+    # order by their 80 random bits, not by which came first (this test flaked until it said so).
+    harness.clock.advance(seconds=1)
     annex(harness, token)
     first = harness.client.get("/submissions.json").json()
     assert set(first) == {"snapshot_at", "open"}

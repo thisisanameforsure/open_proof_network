@@ -201,6 +201,21 @@ mypy site: Success: no issues found in 22 source files
 pytest -m "not lean and not docker and not network":
   1761 passed, 13 skipped, 65 deselected, 65 xfailed in 100.85s
 
+7b. After merging main (061f709: F05-T9, F06-T6) — a flaky test found
+---------------------------------------------------------------------
+$ git merge --no-edit main        (clean; app.py auto-merged: ApiError.details beside Context.pulls)
+$ make verify
+  ruff, format, mypy x3 clean; FAILED test_pending_submissions.py::test_a_merged_annex_leaves_the_snapshot
+  assert [2, 1] == [1, 2]
+Not the merge: six runs of that test alone failed four times. The fake clock stands still, so the
+two annexes' ULIDs share a millisecond and order by identity.new_ulid's 80 random bits; the
+snapshot's documented order is by id. The two green make verify runs and both commit hooks above
+were lucky. Fixed in the test (the clock advances a second between the two annexes), not in the
+store: the order is by id, which is time to the millisecond, and nothing promises more.
+After the fix:
+  20 consecutive runs of the test: 20 passed
+  make verify: see the F07-T16 follow-up commit's hook (summary in the report)
+
 8. Still red, and what each waits on
 ------------------------------------
 Strict xfail, waiting on the submissions.py record call (after the other session's commit):
