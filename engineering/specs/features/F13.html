@@ -232,7 +232,10 @@ D-28, D-35, D-36.</p>
 <div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1 ✓ 2026-09-14
   (<code>uv run pytest gate/tests/test_hosted_checkers.py api/tests/test_mcp_surface.py</code>; pin
   tags and the mapping; decisions v3.14 and constitution v2; <code>engineering/evidence/F13/task-1.txt</code>)
-  · T2&ndash;T7 todo</div>
+  · T2 ✓ 2026-09-14 (<code>uv run pytest api/tests/test_axle.py</code>: 14 passed; the seam over the
+  wire shapes probed live, its fake, <code>Context.axle</code>, <code>OPN_API_AXLE_URL</code> and
+  <code>OPN_API_CHECK_TIMEOUT_S</code>; <code>engineering/evidence/F13/task-2.txt</code>)
+  · T3&ndash;T7 todo</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its
@@ -250,7 +253,8 @@ one verification command (conventions §3, §6).</p>
     <code>environments</code>) over <code>httpx</code>, and its fake; timeouts and 5xx as
     <code>upstream-unavailable</code>.</td>
     <td><code>api/opn_api/axle.py</code>, <code>api/opn_api/config.py</code>,
-    <code>api/tests/api_fakes.py</code>, <code>api/tests/test_axle.py</code></td>
+    <code>api/opn_api/app.py</code>, <code>api/tests/api_fakes.py</code>,
+    <code>api/tests/test_axle.py</code></td>
     <td>T1</td><td><code>uv run pytest api/tests/test_axle.py</code></td></tr>
   <tr><td>F13-T3</td><td><code>POST /check</code>: mapping lookup, lint, Defs inlining, refusals,
     limits, concurrency cap.</td>

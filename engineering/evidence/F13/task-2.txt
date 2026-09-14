@@ -1,0 +1,21 @@
+F13-T2 — the AXLE client seam (HttpxAxle), its fake (FakeAxle), the Context seam and two settings
+Captured 2026-09-14T09:30:03Z on branch f13-fast-check.
+
+Wire shapes are the ones the live service accepted on 2026-09-14 (task-1.txt §1; the probes in the session: POST /api/v1/check, POST /api/v1/verify_proof, GET /v1/environments, keyless).
+
+$ uv run pytest api/tests/test_axle.py -v
+api/tests/test_axle.py::test_check_sends_the_verified_wire_shape_and_returns_the_body_verbatim PASSED [  7%]
+api/tests/test_axle.py::test_verify_proof_sends_the_formal_statement PASSED [ 14%]
+api/tests/test_axle.py::test_environments_lists_names PASSED             [ 21%]
+api/tests/test_axle.py::test_a_key_is_sent_as_bearer_and_never_named_in_an_error PASSED [ 28%]
+api/tests/test_axle.py::test_each_failure_is_an_axle_error_naming_the_call[reply0-None-check failed: ConnectTimeout] PASSED [ 35%]
+api/tests/test_axle.py::test_each_failure_is_an_axle_error_naming_the_call[reply1-429-check returned 429] PASSED [ 42%]
+api/tests/test_axle.py::test_each_failure_is_an_axle_error_naming_the_call[reply2-502-check returned 502] PASSED [ 50%]
+api/tests/test_axle.py::test_each_failure_is_an_axle_error_naming_the_call[reply3-200-non-JSON body for check] PASSED [ 57%]
+api/tests/test_axle.py::test_each_failure_is_an_axle_error_naming_the_call[reply4-200-list, not an object, for check] PASSED [ 64%]
+api/tests/test_axle.py::test_environment_listing_failures_are_axle_errors[reply0-environments failed: ReadTimeout] PASSED [ 71%]
+api/tests/test_axle.py::test_environment_listing_failures_are_axle_errors[reply1-environments returned 500] PASSED [ 78%]
+api/tests/test_axle.py::test_environment_listing_failures_are_axle_errors[reply2-non-JSON body for environments] PASSED [ 85%]
+api/tests/test_axle.py::test_environment_listing_failures_are_axle_errors[reply3-dict, not an array, for environments] PASSED [ 92%]
+api/tests/test_axle.py::test_settings_name_the_service_and_the_budget PASSED [100%]
+======================== 14 passed, 2 warnings in 0.05s ========================

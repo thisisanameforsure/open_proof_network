@@ -36,9 +36,11 @@ from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
 from opn_api import auth, config, ratelimit
+from opn_api import axle as axlemod
 from opn_api import clock as clockmod
 from opn_api import githost as githostmod
 from opn_api import store as storemod
+from opn_api.axle import Axle
 from opn_api.clock import Clock
 from opn_api.githost import GitHost, PullRequestState
 from opn_api.routes import ROUTES, RouteSpec
@@ -102,6 +104,7 @@ class Context:
     store: Store
     githost: GitHost
     clock: Clock
+    axle: Axle  # F13: the hosted fast checker (D-4 v3.14)
     missing: list[str] = field(default_factory=list)
     files: dict[str, CachedFile] = field(default_factory=dict)
     pulls: dict[int, CachedPull] = field(default_factory=dict)
@@ -248,6 +251,7 @@ def create_app(
     store: Store | None = None,
     githost: GitHost | None = None,
     clock: Clock | None = None,
+    axle: Axle | None = None,
 ) -> Starlette:
     """Build the application. Seams default to the real implementations the settings name."""
     missing = settings.missing()
@@ -265,6 +269,7 @@ def create_app(
         store=store,
         githost=githost if githost is not None else githostmod.build(settings),
         clock=clock if clock is not None else clockmod.SystemClock(),
+        axle=axle if axle is not None else axlemod.build(settings),
         missing=missing,
     )
     if missing:

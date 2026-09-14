@@ -52,6 +52,11 @@ Variables (prefix ``OPN_API_``):
     the 512 KiB precheck bundle (F06 §6) with room for its JSON envelope.
 ``OPN_API_LOG_LEVEL``
     Python logging level name. Default ``INFO``.
+``OPN_API_AXLE_URL``
+    The hosted fast checker's origin (F13-R3; D-4 v3.14). Default
+    ``https://axle.axiommath.ai``. Keyless at Stage 0 (F13-Q5): no secret is read for it.
+``OPN_API_CHECK_TIMEOUT_S``
+    The per-call budget handed to the checker, in seconds (F13 §6). Default ``60``.
 ``OPN_API_GITHUB_APP_ID`` / ``OPN_API_GITHUB_CLIENT_ID``
     The GitHub App's ids (not secret, but issued with the App, so they travel with its secrets).
 ``OPN_API_GITHUB_CLIENT_SECRET`` / ``OPN_API_GITHUB_PRIVATE_KEY``
@@ -94,6 +99,8 @@ DEFAULT_CLAIM_TTL_MAX_H = 168
 DEFAULT_STATE_TTL_S = 600
 DEFAULT_MAX_BODY_BYTES = 1024 * 1024  # F05 §6: above bundles.MAX_BUNDLE_BYTES (512 KiB)
 DEFAULT_LOG_LEVEL = "INFO"
+DEFAULT_AXLE_URL = "https://axle.axiommath.ai"  # F13-R3
+DEFAULT_CHECK_TIMEOUT_S = 60  # F13 §6
 
 # Parameter Store name (under the prefix) -> the variable it populates (C8 item 3).
 PARAMETERS: dict[str, str] = {
@@ -142,6 +149,8 @@ class Settings:
     state_ttl_s: int = DEFAULT_STATE_TTL_S
     max_body_bytes: int = DEFAULT_MAX_BODY_BYTES
     log_level: str = DEFAULT_LOG_LEVEL
+    axle_url: str = DEFAULT_AXLE_URL
+    check_timeout_s: int = DEFAULT_CHECK_TIMEOUT_S
     github_app_id: str | None = None
     github_client_id: str | None = None
     github_client_secret: str | None = field(default=None, repr=False)
@@ -255,6 +264,8 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
         state_ttl_s=_int(env, "OPN_API_STATE_TTL_S", DEFAULT_STATE_TTL_S),
         max_body_bytes=_int(env, "OPN_API_MAX_BODY_BYTES", DEFAULT_MAX_BODY_BYTES),
         log_level=env.get("OPN_API_LOG_LEVEL", DEFAULT_LOG_LEVEL),
+        axle_url=env.get("OPN_API_AXLE_URL", DEFAULT_AXLE_URL).rstrip("/"),
+        check_timeout_s=_int(env, "OPN_API_CHECK_TIMEOUT_S", DEFAULT_CHECK_TIMEOUT_S),
         github_app_id=env.get("OPN_API_GITHUB_APP_ID") or None,
         github_client_id=env.get("OPN_API_GITHUB_CLIENT_ID") or None,
         github_client_secret=env.get("OPN_API_GITHUB_CLIENT_SECRET") or None,

@@ -8,6 +8,9 @@ store or a log (AC5).
 F06 adds the App-authenticated half of the seam: the fake records every branch push and
 dispatch, and a test drives the polling state machine by putting a run — and, when the run
 completes, an artifact — where the fake will find it.
+
+F13 adds ``FakeAxle``: it records every check it is asked for and answers from a script — a body,
+or an ``AxleError`` — so a route test never reaches the hosted checker.
 """
 
 from __future__ import annotations
@@ -27,6 +30,7 @@ from starlette.testclient import TestClient
 
 from opn_api import config, identity
 from opn_api.app import create_app
+from opn_api.axle import AxleAnswer, AxleError
 from opn_api.githost import (
     Author,
     Fetched,
@@ -358,6 +362,7 @@ class Harness:
     clock: FakeClock
     client: TestClient
     app: Any
+    axle: FakeAxle
 
     def token_for(self, code: str, pseudonym: str) -> str:
         """Drive the three-step GitHub flow and return the raw token."""
@@ -430,11 +435,62 @@ class Harness:
         return doc
 
 
+#: What the fake checker answers when a test scripts nothing: a clean compile.
+AXLE_OKAY: dict[str, Any] = {
+    "okay": True,
+    "failed_declarations": [],
+    "lean_messages": {"errors": [], "warnings": [], "infos": []},
+    "tool_messages": {"errors": [], "warnings": [], "infos": []},
+    "info": {"request_id": "fake-request"},
+}
+
+
+@dataclass
+class AxleCall:
+    method: str  # "check" or "verify_proof"
+    content: str
+    environment: str
+    timeout_s: float
+    formal_statement: str | None = None
+
+
+@dataclass
+class FakeAxle:
+    """The F13 seam's fake: answers from ``replies`` in order, then ``AXLE_OKAY``."""
+
+    calls: list[AxleCall] = field(default_factory=list)
+    replies: list[dict[str, Any] | AxleError] = field(default_factory=list)
+    hosted: list[str] = field(default_factory=lambda: ["lean-4.33.0"])
+
+    def _answer(self, call: AxleCall) -> AxleAnswer:
+        self.calls.append(call)
+        reply = self.replies.pop(0) if self.replies else AXLE_OKAY
+        if isinstance(reply, AxleError):
+            raise reply
+        info = reply.get("info")
+        rid = info.get("request_id") if isinstance(info, dict) else None
+        return AxleAnswer(body=reply, request_id=rid, latency_ms=1)
+
+    def check(self, content: str, *, environment: str, timeout_s: float) -> AxleAnswer:
+        return self._answer(AxleCall("check", content, environment, timeout_s))
+
+    def verify_proof(
+        self, content: str, *, formal_statement: str, environment: str, timeout_s: float
+    ) -> AxleAnswer:
+        return self._answer(
+            AxleCall("verify_proof", content, environment, timeout_s, formal_statement)
+        )
+
+    def environments(self) -> list[str]:
+        return list(self.hosted)
+
+
 def make_harness(env: dict[str, str] | None = None, **seams: Any) -> Harness:
     settings = config.load({**TEST_ENV, **(env or {})})
     store = seams.get("store") or MemoryStore()
     githost = seams.get("githost") or FakeGitHost.with_fixtures(code_alice=alice(), code_bob=bob())
     clock = seams.get("clock") or FakeClock()
-    app = create_app(settings, store=store, githost=githost, clock=clock)
+    axle = seams.get("axle") or FakeAxle()
+    app = create_app(settings, store=store, githost=githost, clock=clock, axle=axle)
     client = TestClient(app, raise_server_exceptions=False)
-    return Harness(settings, store, githost, clock, client, app)
+    return Harness(settings, store, githost, clock, client, app, axle)
