@@ -103,6 +103,9 @@ def test_without_inputs_the_optional_steps_are_skipped(
     assert "skipped  precheck+submit:http  — no --proof given" in record
     assert "skipped  variant:mcp  — no --variant-statement" in record
     assert "ok       claim:http" in record and "ok       postmortem:mcp" in record
+    # F11-T12: the repository's variables are the last step, and without --graph/--repo not
+    # attempted — which is why this run cannot be READY even with every act passing.
+    assert "skipped  repository-variables  — no --graph and --repo given" in record
 
 
 def test_a_node_off_the_frontier_fails_the_first_step(

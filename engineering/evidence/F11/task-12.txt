@@ -1,0 +1,128 @@
+F11-T12 — the rehearsal checks the repository's variables (findings §8, "Committed products
+always say zero claims"; tester #11; F05-R10, F11-R11, C7)
+run on 2026-09-14, worktree branch worktree-agent-aafe03ed976c85034 from main at bd7dbfa
+
+OPN_API_CLAIMS_URL was never set on the graph repository, so every committed product said zero
+claims; it was set by hand on 2026-09-14. The rehearsal said READY without ever asking the
+repository whether the variables its workflows read exist. The specification is
+gate/tests/test_finding_readiness_vars.py, committed red in f80151b.
+
+== 1. Red, before any change ==========================================================
+$ uv run --frozen pytest gate/tests/test_finding_readiness_vars.py --runxfail -q
+E       AssertionError: rehearsal.py has no repository_variables(names, listing) check
+FAILED gate/tests/test_finding_readiness_vars.py::test_variable_names_are_read_from_the_workflow_text
+FAILED gate/tests/test_finding_readiness_vars.py::test_the_check_is_not_attempted_without_gh_and_says_so
+FAILED gate/tests/test_finding_readiness_vars.py::test_every_missing_variable_fails_the_step_by_name
+FAILED gate/tests/test_finding_readiness_vars.py::test_the_check_passes_when_every_referenced_variable_is_defined
+4 failed, 1 passed in 1.60s
+
+(The file held four strict xfails and one unmarked guard, test_a_step_not_attempted_counts_
+against_the_verdict, which passed before and after: a skipped step is PENDING.)
+
+== 2. The change ======================================================================
+gate/tools/rehearsal.py
+  variable_names(text)            the set of vars.<NAME> in a workflow's text: ${{ vars.X }} with
+                                  or without spaces, a bare if:, inside format(...) or after &&.
+                                  Not secrets.X, env.X, steps.vars.outputs.X (the name must not
+                                  follow a word character, '.' or '-').
+  workflow_variable_names(graph)  the union over <graph>/.github/workflows/*.yml and *.yaml.
+  parse_variable_listing(stdout)  gh variable list --json name's answer as a set, or None when it
+                                  is not a JSON list of {"name": str}.
+  gh_variables(repo)              (listing, "") or (None, why): gh not on PATH, gh exited non-zero
+                                  (stderr quoted), timed out, or answered no list of names.
+                                  Fixed argv, no shell, 60 s timeout; it only reads.
+  repository_variables(names, listing, unavailable)
+                                  "skipped" (not attempted, names gh and the reason) when listing
+                                  is None — even for an empty set, since not looking is never a
+                                  pass; "failed" naming every missing variable once, and none of
+                                  the defined ones; "ok" otherwise. Names compare
+                                  case-insensitively: GitHub's docs say variable names "are case
+                                  insensitive when referenced" and are stored uppercase.
+  variables_step(record, graph, repo)
+                                  the step "repository-variables": skipped without --graph and
+                                  --repo; failed when the checkout has no workflows or they cannot
+                                  be read; otherwise the check above.
+  run() now calls drive() (the old body) and then variables_step, so the step is recorded last
+  and also when the frontier step fails and the service steps stop early.
+  New flags --graph DIR and --repo OWNER/NAME. There is no default for either: a default checkout
+  path would make the fast-tier tests call the real gh.
+
+gate/tests/test_finding_readiness_vars.py
+  The four strict xfail marks removed (the docstring says they were held from f80151b until
+  F11-T12), and the now-unused FINDING/FIX reason constants with them. Added edge cases:
+  expressions with and without spaces; format(...), && and bare if: forms; lookalikes that are
+  not variables; a name referenced twice (one name, named once); a workflow with no variables
+  (empty set; ok with a listing, skipped without one); case-insensitive comparison; seven
+  malformed gh answers; well-formed answers; and the step as the rehearsal records it, with
+  shutil.which and subprocess.run faked (no gh, no network): every workflow file read and gh
+  asked once with the exact argv, pass, three not-attempted causes (each PENDING, never READY),
+  and no inputs or no workflows (gh never asked).
+
+gate/tests/test_rehearsal.py
+  One assertion added to test_without_inputs_the_optional_steps_are_skipped: the record carries
+  "skipped  repository-variables  — no --graph and --repo given". It proves the step is wired
+  into run(); no existing assertion changed.
+
+== 3. Green ============================================================================
+$ uv run --frozen pytest gate/tests/test_finding_readiness_vars.py gate/tests/test_rehearsal.py -q
+32 passed
+
+== 4. Mutants (pytest plugins in a scratch dir, patching the loaded module in memory) ==
+Each plugin monkeypatches item.module.rehearsal in pytest_runtest_setup and undoes it in
+teardown; no file in the repository is touched.
+$ PYTHONPATH=<scratch>/mutants uv run --frozen pytest -p <mutant> \
+      gate/tests/test_finding_readiness_vars.py gate/tests/test_rehearsal.py -q
+
+mutant_if_missed — variable_names reads only ${{ vars.X }} (misses bare if:, && and format):
+FAILED gate/tests/test_finding_readiness_vars.py::test_format_and_if_expressions_are_read
+FAILED gate/tests/test_finding_readiness_vars.py::test_lookalikes_are_not_variables
+2 failed, 30 passed
+  Note: the committed red test survives this mutant, because GATE_YML's bare-if: name
+  (OPN_CACHE_UPLOAD_ROLE_ARN) also appears inside ${{ }}. Only the new edge case kills it.
+
+mutant_skip_passes — not attempted counted as a pass (listing None answers "ok"):
+FAILED gate/tests/test_finding_readiness_vars.py::test_the_check_is_not_attempted_without_gh_and_says_so
+FAILED gate/tests/test_finding_readiness_vars.py::test_a_workflow_with_no_variables
+FAILED gate/tests/test_finding_readiness_vars.py::test_the_step_is_not_attempted_when_gh_cannot_say[None-gh is not on PATH]
+FAILED gate/tests/test_finding_readiness_vars.py::test_the_step_is_not_attempted_when_gh_cannot_say[proc1-exited 4: HTTP 403]
+FAILED gate/tests/test_finding_readiness_vars.py::test_the_step_is_not_attempted_when_gh_cannot_say[proc2-answered no list of names]
+5 failed, 27 passed
+
+mutant_unwired — the check exists but run() never records the step:
+FAILED gate/tests/test_finding_readiness_vars.py::test_the_step_reads_every_workflow_and_asks_gh_once
+FAILED gate/tests/test_finding_readiness_vars.py::test_the_step_passes_when_the_repository_defines_them
+FAILED gate/tests/test_finding_readiness_vars.py::test_the_step_is_not_attempted_when_gh_cannot_say[None-gh is not on PATH]
+FAILED gate/tests/test_finding_readiness_vars.py::test_the_step_is_not_attempted_when_gh_cannot_say[proc1-exited 4: HTTP 403]
+FAILED gate/tests/test_finding_readiness_vars.py::test_the_step_is_not_attempted_when_gh_cannot_say[proc2-answered no list of names]
+FAILED gate/tests/test_finding_readiness_vars.py::test_the_step_without_its_inputs_or_workflows
+FAILED gate/tests/test_rehearsal.py::test_without_inputs_the_optional_steps_are_skipped
+7 failed, 25 passed
+  (test_rehearsal's is the wiring kill; the others call the patched function directly.)
+
+== 5. The live graph, read-only ========================================================
+Only the new step was run, in process. The service was not called and nothing was written
+anywhere. Graph checkout ../open_proof_network_graph at 17814a2; gh authenticated as
+thisisanameforsure.
+$ uv run --frozen python <scratch>/live_vars_check.py
+workflows read: ['gate.yml', 'step9-refresh.yml']
+variables referenced: ['OPN_API_CLAIMS_URL', 'OPN_AWS_REGION', 'OPN_CACHE_BUCKET', 'OPN_CACHE_PREFIX', 'OPN_CACHE_UPLOAD_ROLE_ARN']
+defined on thisisanameforsure/open_proof_network_graph: ['OPN_API_CLAIMS_URL', 'OPN_AWS_REGION', 'OPN_CACHE_BUCKET', 'OPN_CACHE_PREFIX', 'OPN_CACHE_UPLOAD_ROLE_ARN']
+
+ seconds  status   step
+     0.3  ok       repository-variables  — thisisanameforsure/open_proof_network_graph: every variable the workflows read is defined: OPN_API_CLAIMS_URL, OPN_AWS_REGION, OPN_CACHE_BUCKET, OPN_CACHE_PREFIX, OPN_CACHE_UPLOAD_ROLE_ARN
+
+verdict: READY
+exit code: 0
+
+OPN_API_CLAIMS_URL is defined now (set by hand 2026-09-14). Before that, the same step would
+have answered "failed — read by the workflows but not defined on the repository:
+OPN_API_CLAIMS_URL", which is the live state test_every_missing_variable_fails_the_step_by_name
+reproduces. The READY above is this single step's verdict, not an AC14 run.
+
+== 6. make verify ======================================================================
+$ make verify
+ruff check: All checks passed!   ruff format --check: 296 files already formatted
+mypy gate: Success: no issues found in 148 source files
+mypy api:  Success: no issues found in 83 source files
+mypy site: Success: no issues found in 22 source files
+= 1739 passed, 13 skipped, 65 deselected, 66 xfailed, 2 warnings in 114.43s (0:01:54) =

@@ -4,12 +4,19 @@
     uv run python gate/tools/rehearsal.py <api-url> --node <on-ramp node> --proof FILE
         [--target ID] [--variant-statement FILE --variant-witness FILE]
         [--merge-timeout SECONDS] [--site https://host] [--out FILE] [--timeout SECONDS]
+        [--graph DIR --repo OWNER/NAME]
 
 Both paths a contributor has — the plain HTTP routes and the MCP tools — driven end to end with
 a test identity each, on an on-ramp node: claim, precheck, submit; a postmortem; a variant
 proposal; then the wait for the root to close when its last hole merges, and the site reflecting
 it. Every step is timed and written to the readiness record (default
 ``engineering/evidence/F11/invited-run-readiness.txt``).
+
+Last, the repository's variables (F11-T12): every ``vars.<NAME>`` the graph checkout's
+``.github/workflows/*.yml`` read must be defined on the repository, as ``gh variable list``
+answers it. ``OPN_API_CLAIMS_URL`` went unset for a week and every committed product said zero
+claims (F05-R10); a step that cannot look — no ``--graph``/``--repo``, no ``gh`` — is skipped,
+and a skipped step is never READY. This step only reads.
 
 What it cannot do itself is merge: nothing merges on green (F07-Q16), so the pull requests it
 opens wait for a person, and the root-closing step reports *pending* until the merges land —
@@ -25,7 +32,11 @@ caller (C5); the MCP path is the official SDK client, the same one Claude Code s
 from __future__ import annotations
 
 import argparse
+import json
+import re
 import secrets
+import shutil
+import subprocess
 import sys
 import time
 import urllib.error
@@ -369,6 +380,105 @@ def check_site(site: str, target: str, node: str, base: str) -> tuple[str, str]:
     return "ok", f"site at {live[:12]}; target and node pages load"
 
 
+# --- the repository's variables (F11-T12) ---------------------------------------------------------
+
+VARIABLES_STEP = "repository-variables"
+#: ``vars.NAME`` in an expression: ``${{ vars.X }}``, ``format('{0}', vars.X)``, a bare ``if:``.
+#: Not ``secrets.X`` or ``steps.vars.outputs.X`` — the name must stand alone before the dot.
+VARIABLE_REFERENCE = re.compile(r"(?<![\w.-])vars\.([A-Za-z_][A-Za-z0-9_]*)")
+GH_TIMEOUT_S = 60
+
+
+def variable_names(text: str) -> frozenset[str]:
+    """The repository variables a workflow's text reads."""
+    return frozenset(m.group(1) for m in VARIABLE_REFERENCE.finditer(text))
+
+
+def workflow_variable_names(graph: Path) -> tuple[frozenset[str], list[Path]]:
+    """Every variable the checkout's workflows read, and the workflow files read."""
+    workflows = graph / ".github" / "workflows"
+    files = sorted([*workflows.glob("*.yml"), *workflows.glob("*.yaml")])
+    names: set[str] = set()
+    for path in files:
+        names |= variable_names(path.read_text(encoding="utf-8"))
+    return frozenset(names), files
+
+
+def parse_variable_listing(stdout: str) -> frozenset[str] | None:
+    """The names in ``gh variable list --json name``'s answer; ``None`` if it is not that shape."""
+    try:
+        doc = json.loads(stdout)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(doc, list):
+        return None
+    names: set[str] = set()
+    for item in doc:
+        if not isinstance(item, dict) or not isinstance(item.get("name"), str):
+            return None
+        names.add(item["name"])
+    return frozenset(names)
+
+
+def gh_variables(repo: str) -> tuple[frozenset[str] | None, str]:
+    """(the names defined on ``repo``, "") or (None, why gh could not say). Reads only."""
+    if shutil.which("gh") is None:
+        return None, "gh is not on PATH"
+    argv = ["gh", "variable", "list", "--repo", repo, "--json", "name"]
+    try:
+        proc = subprocess.run(
+            argv, capture_output=True, text=True, timeout=GH_TIMEOUT_S, check=False
+        )
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        return None, f"gh variable list --repo {repo} did not answer: {exc}"
+    if proc.returncode != 0:
+        return None, (
+            f"gh variable list --repo {repo} exited {proc.returncode}: {proc.stderr.strip()[:200]}"
+        )
+    listing = parse_variable_listing(proc.stdout)
+    if listing is None:
+        return (
+            None,
+            f"gh variable list --repo {repo} answered no list of names: {proc.stdout[:80]!r}",
+        )
+    return listing, ""
+
+
+def repository_variables(
+    names: frozenset[str], listing: frozenset[str] | None, unavailable: str = "gh is not on PATH"
+) -> tuple[str, str]:
+    """The check: every referenced name is defined. ``listing`` is ``None`` when gh could not
+    read it, which is not attempted — never a pass. Names compare case-insensitively, as GitHub
+    resolves them."""
+    wanted = ", ".join(sorted(names)) or "none"
+    if listing is None:
+        return "skipped", f"not attempted: {unavailable}; the workflows read {wanted}"
+    defined = {name.upper() for name in listing}
+    missing = sorted(name for name in names if name.upper() not in defined)
+    if missing:
+        return "failed", "read by the workflows but not defined on the repository: " + ", ".join(
+            missing
+        )
+    return "ok", f"every variable the workflows read is defined: {wanted}"
+
+
+def variables_step(record: Record, graph: Path | None, repo: str | None) -> Step:
+    t = time.monotonic()
+    if graph is None or repo is None:
+        return record.add(
+            VARIABLES_STEP, "skipped", t, "no --graph and --repo given: the variables were not read"
+        )
+    try:
+        names, files = workflow_variable_names(graph)
+    except (OSError, UnicodeDecodeError) as exc:
+        return record.add(VARIABLES_STEP, "failed", t, f"reading {graph}'s workflows: {exc}")
+    if not files:
+        return record.add(VARIABLES_STEP, "failed", t, f"no .github/workflows/*.yml under {graph}")
+    listing, why = gh_variables(repo)
+    status, detail = repository_variables(names, listing, why)
+    return record.add(VARIABLES_STEP, status, t, f"{repo}: {detail}")
+
+
 def acts(
     path: HttpPath | McpPath,
     target: str,
@@ -394,8 +504,15 @@ def acts(
 
 
 def run(args: argparse.Namespace) -> Record:
-    base = args.url.rstrip("/")
-    record = Record(base)
+    record = Record(args.url.rstrip("/"))
+    drive(args, record)
+    # Last, and whether or not the service answered: the variables are the repository's.
+    variables_step(record, args.graph, args.repo)
+    return record
+
+
+def drive(args: argparse.Namespace, record: Record) -> None:
+    base = record.base
     anonymous = Client(base, None)
     t0 = time.monotonic()
     try:
@@ -410,7 +527,7 @@ def run(args: argparse.Namespace) -> Record:
         )
     except RuntimeError as exc:
         record.add("frontier", "failed", t0, str(exc))
-        return record
+        return
     proof = args.proof.read_text(encoding="utf-8") if args.proof else None
     variant = (
         (
@@ -463,7 +580,6 @@ def run(args: argparse.Namespace) -> Record:
         record.add("site", status, t, detail)
     else:
         record.add("site", "skipped", t, "no --site given")
-    return record
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -484,6 +600,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--site", help="the site's origin, e.g. https://openproofnetwork.org")
     parser.add_argument("--timeout", type=int, default=900, help="seconds per precheck job")
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="the readiness record")
+    parser.add_argument(
+        "--graph", type=Path, help="a checkout of the graph, whose workflows name the variables"
+    )
+    parser.add_argument("--repo", help="the graph repository as OWNER/NAME, for gh variable list")
     args = parser.parse_args(argv)
     base = args.url.rstrip("/")
     if not base.startswith("https://") and not base.startswith("http://127.0.0.1"):
