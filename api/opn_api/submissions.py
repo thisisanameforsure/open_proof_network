@@ -273,10 +273,20 @@ def check_placement(
         )
 
 
+#: F05-T8: the fields ``POST /submissions`` reads; any other top-level key is refused.
+SUBMISSION_FIELDS: tuple[str, ...] = (
+    "node_id",
+    "artifact_type",
+    "bundle",
+    "tooling",
+    "precheck_job_id",
+)
+
+
 async def post_submissions(ctx: Context, request: Request) -> Response:
     """R1, R2: bind to a passing precheck, then open the pull request on the graph."""
     identity: Identity = request.state.identity
-    fields, _ = await identitymod.body_fields(request)
+    fields, _ = await identitymod.body_fields(request, SUBMISSION_FIELDS)
     artifact_type = check_artifact_type(fields.get("artifact_type"))
     tooling = check_tooling(fields.get("tooling"))
 

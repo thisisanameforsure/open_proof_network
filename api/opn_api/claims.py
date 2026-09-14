@@ -154,9 +154,13 @@ def active_for(ctx: Context, identity_id: str) -> list[Claim]:
     ]
 
 
+#: F05-T8: the fields ``POST /claims`` reads; any other top-level key is refused.
+CLAIM_FIELDS: tuple[str, ...] = ("node_id", "target_id", "ttl_hours")
+
+
 async def post_claims(ctx: Context, request: Request) -> Response:
     identity: Identity = request.state.identity
-    fields, _ = await identitymod.body_fields(request)
+    fields, _ = await identitymod.body_fields(request, CLAIM_FIELDS)
     node_id = fields.get("node_id")
     if not isinstance(node_id, str) or not NODE_ID_RE.match(node_id):
         raise ApiError(400, "node-id-invalid", "node_id must match ^[a-z0-9][a-z0-9-]*$")

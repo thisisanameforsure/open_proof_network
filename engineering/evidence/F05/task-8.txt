@@ -1,0 +1,123 @@
+F05-T8 — a write route refuses a top-level key it does not define (2026-09-14)
+=============================================================================
+
+Finding 5 (2026-09-13, the live MCP contribution): the tester sent artifact_type: partial to
+POST /precheck; the job ran to the same digest and verdict, 2.5 minutes for nothing (job
+01M2DR4M70JSXZT8FJTAEA4HRH). Every write handler read its fields with fields.get and never looked
+at what else the body carried. Specification: api/tests/test_finding_unknown_fields.py (strict
+xfails plus one pin, committed red in the prior pass).
+
+Worktree branch worktree-agent-a4bc9f319e9b10429, rebased onto main 48f4a93 (F04-T10 part 2),
+above F07-T16 0fbc7e5, F06-T6 52314a9 and F07-T7 (service half) 415715a. The red, green and
+mutant runs below ran on 0651801, before that rebase; make verify in §6 ran after it.
+
+1. Red, before any change
+-------------------------
+Edge tests appended to the same file first (no production code yet):
+  test_the_refusal_names_every_stray_key_and_lists_the_accepted_ones   two stray keys on /claims
+  test_only_top_level_keys_are_refused      a stray key inside tooling still opens (pin)
+  test_an_empty_body_is_not_an_unknown_field  b"" and b"{}" on /claims -> node-id-invalid (pin)
+  test_a_form_body_with_an_unknown_field_is_refused  POST /tokens as a urlencoded form
+
+$ uv run --frozen pytest --runxfail -q --tb=line api/tests/test_finding_unknown_fields.py
+FAILED ::test_precheck_refuses_the_testers_stray_key
+  :207: AssertionError: the stray key was accepted: 202 {"id":"01M230M2G0CGRT9S6QD9YRJY7Z",
+  "node_id":"tutorial-and-swap","target_id":"propositional","state":"queued",...}
+FAILED ::test_every_write_route_refuses_one_unknown_key[<route>], for all twelve routes:
+  :228: AssertionError: /annexes accepted the stray key: 201 {"id":...,"path":".../annex/8e5274e3c982...
+  :228: AssertionError: /approach-records accepted the stray key: 201 {...}
+  :228: AssertionError: /claims accepted the stray key: 201 {"id":...,"node_id":"and-reassoc",...}
+  :228: AssertionError: /defect-claims accepted the stray key: 201 {...}
+  :228: AssertionError: /postmortems accepted the stray key: 201 {...}
+  :228: AssertionError: /precheck accepted the stray key: 202 {...,"state":"queued"...}
+  :228: AssertionError: /proposals/speculative accepted the stray key: 201 {"proposal_id":...}
+  :228: AssertionError: /proposals/variant accepted the stray key: 201 {"proposal_id":...}
+  :228: AssertionError: /proposals/witness accepted the stray key: 201 {"proposal_id":...}
+  :228: AssertionError: /revision-requests accepted the stray key: 201 {...}
+  :228: AssertionError: /submissions accepted the stray key: 201 {"submission_id":...}
+  :228: AssertionError: /tokens accepted the stray key: 201 {"token":"...","identity":{...}}
+FAILED ::test_the_refusal_names_every_stray_key_and_lists_the_accepted_ones
+  :256: AssertionError: {"id":"01M230M2G0K6W60SWRHT797453","node_id":"and-reassoc",...}   (201)
+FAILED ::test_a_form_body_with_an_unknown_field_is_refused
+  :303: AssertionError: <!doctype html>...<title>Open Proof Network — token</title>...   (201, a token page)
+15 failed, 4 passed   (the table guard, the known-field pin, and the two edge pins above)
+
+2. The change
+-------------
+api/opn_api/identity.py, implemented once:
+  _parse_body(request)            the old body_fields, unchanged: JSON, or a urlencoded form nested
+                                  so proof.id is proof and dco.accepted is a boolean.
+  refuse_unknown(fields, accepted) 400 unknown-field naming every stray top-level key, sorted, and
+                                  listing the accepted ones; details {unknown, accepted}.
+  body_fields(request, accepted)  parse, then refuse; the allowlist is a required argument, so a
+                                  body-taking handler cannot omit it (mypy --strict holds that).
+  Only top-level keys are refused. Keys inside a field's object are that field's business
+  (check_tooling keeps its three names; records are schema-validated). Forms get the same rule
+  after nesting. An empty body is {} and has no stray key.
+Each handler passes its allowlist, a module constant beside it:
+  identity.TOKEN_FIELDS         proof, pseudonym, dco
+  claims.CLAIM_FIELDS           node_id, target_id, ttl_hours
+  precheck.PRECHECK_FIELDS      node_id, bundle
+  submissions.SUBMISSION_FIELDS node_id, artifact_type, bundle, tooling, precheck_job_id
+  appends.POSTMORTEM_FIELDS     node_id, yaml
+  appends.ANNEX_FIELDS          node_id, text, licence, model_and_tooling
+  appends.APPROACH_FIELDS       target_id, record
+  requests.REVISION_FIELDS      node_id, defect_class, evidence
+  requests.DEFECT_FIELDS        stmt_ref, class, line, exhibit
+  proposals.SPECULATIVE_FIELDS  target_id, statement, witness, deps, model
+  proposals.VARIANT_FIELDS      the same plus relation, relation_proof
+  proposals.WITNESS_FIELDS      node_id, witness
+Each list is exactly what the handler reads (checked against every fields.get in the module).
+The refusal runs as the handler's first body read: before a token proof is spent, a rate limit
+charged, a job created or a branch pushed.
+Checked against every client in the repo before landing: the MCP write tools' present(...) key
+lists (mcp/writes.py), the bodies gate/agents/AGENTS.md executes against the fake service
+(precheck, token, claim, submission, postmortem, annex, proposal), the token form's hidden fields,
+and api/tools/smoke*.py bodies. All use only allowlisted keys.
+The edits were one script asserting each replacement's count (the 2026-09-09 log lesson), then
+ruff format for quote style.
+
+3. Existing tests that pinned old behaviour
+-------------------------------------------
+api/tests/test_body_cap.py::test_a_body_exactly_at_the_cap_is_parsed
+  failed with: assert 'unknown-field' == 'pseudonym-invalid'
+  Its padded_json filled the body with a "pad" key that no route defines, and asserted that the
+  parser answered pseudonym-invalid (proof the body reached the parser). "pad" is now correctly an
+  unknown field. The test is about the cap, not about stray keys, so the padding moved into a
+  field POST /tokens reads (a 47-character pseudonym, past the 39 allowed) and the assertion is
+  unchanged. The 413 test that shares the helper is unaffected (refused before parsing).
+test_finding_unknown_fields.py: the two strict xfail marks removed (every write route, and the
+tester's precheck key); no assertion edited; the module docstring says the marks came off.
+
+4. Green
+--------
+$ uv run --frozen pytest -q api/tests
+563 passed, 7 xfailed
+test_finding_unknown_fields.py alone: 19 passed (12 routes, the tester's key, the table guard,
+the known-field pin, the four edges).
+
+5. Mutation check (pytest plugins in a scratch dir, monkeypatching identity in memory)
+--------------------------------------------------------------------------------------
+mutant_unknown_json_only.py   body_fields applies refuse_unknown to JSON bodies only
+mutant_unknown_first_only.py  refuse_unknown names the first stray key and lists nothing
+
+$ PYTHONPATH=<scratch>/mutants uv run --frozen pytest -q --tb=no -rf -p no:cacheprovider \
+    -p mutant_unknown_json_only api/tests/test_finding_unknown_fields.py api/tests/test_tokens.py \
+    api/tests/test_branches_round4.py
+FAILED api/tests/test_finding_unknown_fields.py::test_a_form_body_with_an_unknown_field_is_refused
+1 failed, 53 passed
+
+$ ... -p mutant_unknown_first_only api/tests/test_finding_unknown_fields.py
+FAILED api/tests/test_finding_unknown_fields.py::test_the_refusal_names_every_stray_key_and_lists_the_accepted_ones
+1 failed, 18 passed
+
+6. make verify (fast tier)
+--------------------------
+$ env -u VIRTUAL_ENV make verify        (on 48f4a93 + 0fbc7e5 + 52314a9 + 415715a + this change)
+ruff check: All checks passed!   ruff format --check: 305 files already formatted
+mypy gate: Success: no issues found in 150 source files
+mypy api:  Success: no issues found in 89 source files
+mypy site: Success: no issues found in 23 source files
+pytest -m "not lean and not docker and not network":
+  1873 passed, 13 skipped, 67 deselected, 24 xfailed, 2 warnings in 126.78s
+exit 0

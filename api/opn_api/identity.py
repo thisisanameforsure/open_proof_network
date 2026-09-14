@@ -23,7 +23,7 @@ import json
 import os
 import re
 import secrets
-from collections.abc import Callable
+from collections.abc import Callable, Collection, Mapping
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs
@@ -103,7 +103,7 @@ def new_ulid(now: datetime) -> str:
 # --- request bodies ------------------------------------------------------------------------------
 
 
-async def body_fields(request: Request) -> tuple[dict[str, Any], bool]:
+async def _parse_body(request: Request) -> tuple[dict[str, Any], bool]:
     """(fields, was_form): JSON, or a urlencoded form (parsed here; no multipart package, C5)."""
     raw = await request.body()
     content_type = request.headers.get("content-type", "").split(";")[0].strip().lower()
@@ -120,6 +120,33 @@ async def body_fields(request: Request) -> tuple[dict[str, Any], bool]:
     if not isinstance(doc, dict):
         raise ApiError(400, "malformed-body", "the body must be a JSON object")
     return doc, False
+
+
+def refuse_unknown(fields: Mapping[str, Any], accepted: Collection[str]) -> None:
+    """F05-T8 (finding 5): a top-level key the route does not define is a 400 naming every such
+    key and listing the accepted ones, never silently ignored. Only top-level keys: what sits
+    inside a field's object is that field's own business (``tooling`` keeps its three names, a
+    record is validated by its schema). A form is checked after nesting, so ``proof.id`` counts
+    as ``proof``."""
+    unknown = sorted(k for k in fields if k not in accepted)
+    if unknown:
+        allowed = sorted(accepted)
+        raise ApiError(
+            400,
+            "unknown-field",
+            f"unknown field{'s' if len(unknown) > 1 else ''} {', '.join(unknown)}; "
+            f"this route accepts {', '.join(allowed)}",
+            details={"unknown": unknown, "accepted": allowed},
+        )
+
+
+async def body_fields(request: Request, accepted: Collection[str]) -> tuple[dict[str, Any], bool]:
+    """(fields, was_form), after refusing any top-level key outside ``accepted`` (F05-T8). The
+    allowlist is required, so a body-taking handler cannot forget the rule; it runs before the
+    handler reads a field, and so before any token is spent, limit charged or branch pushed."""
+    fields, was_form = await _parse_body(request)
+    refuse_unknown(fields, accepted)
+    return fields, was_form
 
 
 def _nest(flat: dict[str, Any]) -> dict[str, Any]:
@@ -289,12 +316,16 @@ def tutorial_reference(ctx: Context, request: Request, proof: dict[str, Any]) ->
 # --- POST /tokens --------------------------------------------------------------------------------
 
 
+#: F05-T8: the fields ``POST /tokens`` reads, JSON or form (after ``proof.*`` and ``dco.*`` nest).
+TOKEN_FIELDS: tuple[str, ...] = ("proof", "pseudonym", "dco")
+
+
 async def post_tokens(ctx: Context, request: Request) -> Response:
     """R4: proof + pseudonym + DCO -> identity and one token, shown once.
 
     Two proof kinds, one issuance path: ``github`` (F05-R4) and ``tutorial`` (F06-R7).
     """
-    fields, was_form = await body_fields(request)
+    fields, was_form = await body_fields(request, TOKEN_FIELDS)
     pseudonym = check_pseudonym(fields.get("pseudonym"))
     check_dco(fields.get("dco"))
     proof = fields.get("proof")
