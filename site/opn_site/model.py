@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from opn_gate import intake, layout, paths, records, schemas, watch
+from opn_gate import evidence, intake, layout, paths, records, schemas, watch
 
 #: The product schema versions this generator can render. A consumer parses by version and old
 #: snapshots keep rendering (D-34), so this is a set per product, not a pin: `targets-index/v2`
@@ -102,6 +102,8 @@ class TargetView:
     note: str | None  # the D-32 note, when targets/<id>/note.md exists
     record: dict[str, Any] | None = None  # targets/<id>/target.yaml (F11-R1), when curated
     drift: tuple[watch.DriftRecord, ...] = ()  # targets/<id>/drift/*.yaml (F12-R11, R12)
+    #: F14-R10: the root's newest statement-evidence record, for the reasons behind its score.
+    evidence: dict[str, Any] | None = None
 
     @property
     def root(self) -> str:
@@ -323,6 +325,17 @@ def _check_graph_rows(target_id: str, graph: dict[str, Any]) -> None:
         raise SiteError(msg)
 
 
+def _load_evidence(target_dir: Path) -> dict[str, Any] | None:
+    """F14-R10: the root's newest statement-evidence record, whose reasons the index does not
+    carry. A record that does not read is unrenderable, like any other graph defect (R13)."""
+    try:
+        record = evidence.newest(target_dir)
+    except (ValueError, OSError) as exc:  # SchemaError, EvidenceError
+        msg = f"target {target_dir.name}: an evidence record does not read: {exc}"
+        raise SiteError(msg) from exc
+    return record.doc if record is not None else None
+
+
 def load_site(root: Path, commit: str) -> Site:
     """Load a checkout and its products; raise ``SiteError`` on anything unrenderable."""
     root = root.resolve()
@@ -360,5 +373,6 @@ def load_site(root: Path, commit: str) -> Site:
             note=note_path.read_text(encoding="utf-8") if note_path.is_file() else None,
             record=_load_record(target_dir),
             drift=_load_drift(target_dir),
+            evidence=_load_evidence(target_dir),
         )
     return site

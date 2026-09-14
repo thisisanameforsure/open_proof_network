@@ -1,0 +1,31 @@
+F14-T7 — site: evidence section, review sentence, formalizations (R10)
+worktree: /Users/mikehiggins/Desktop/repos/opn-f14 at e64cf5f + T7 changes
+command: make verify
+2026-09-14T14:28:57Z
+
+
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:29
+  /Users/mikehiggins/Desktop/repos/opn-f14/api/tests/api_fakes.py:29: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-f14/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========= 2078 passed, 69 deselected, 2 warnings in 148.10s (0:02:28) ==========
+
+Visual evidence (site/tests/fixture.build_with_evidenced_target rendered by opn_site.render, served
+locally on 127.0.0.1:8761, captured with headless Chrome; the Playwright MCP could not reach a
+browser, ECONNREFUSED 127.0.0.1:9222). Each image was read before this note was written.
+  target-page-1200.png — evidence section: score 6 (A) for erdos:42, pinned to the root as it
+    stands, the four reasons (the injected <script> shown as escaped text), registry history,
+    hazards; the formalization `alt` with equivalence pass and its exhibit link; the review
+    sentence under the lead: a proof merges on the gate without a human reviewer.
+  targets-page-1200.png — listed-target reads "listed, claimable" with the Review line; the
+    propositional (pre-F11) target's Review line says a proof waits for a non-author's review.
+  target-page-500.png — the narrow layout wraps; only the QA table scrolls in its own wrapper (F12).
+    A 390 px capture was attempted and discarded: headless Chrome lays out at a 500 px minimum
+    (probe: innerWidth=500 at --window-size=390), so the image cropped a 500 px page. The page
+    carries the viewport meta and the <600 px media rule; 500 px is the narrowest honest capture here.

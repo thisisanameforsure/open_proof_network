@@ -227,6 +227,7 @@ class Renderer:
                     why_not=self.why_not_claimable(tv),
                     sources=self.sources_block(tv),
                     qa=self.qa_block(tv),
+                    review=esc(self.review_sentence(tv)),
                 )
             )
         body = _template("targets.html").substitute(rows="".join(rows))
@@ -363,10 +364,113 @@ class Renderer:
             approaches=approaches,
             note=note,
             qa=self.qa_section(tv),
+            review=esc(self.review_sentence(tv)),
             graph_link=self.file_link(f"targets/{tid}/graph.json"),
             fast_check=esc(self.fast_check(e.get("mathlib_sha"))),
         )
         return self.page(f"Target {tid}", body, renders=[f"targets/{tid}/graph.json"])
+
+    # --- F14-R10: what a proof needs, and the evidence behind it ----------------------------------
+
+    @staticmethod
+    def review_sentence(tv: TargetView) -> str:
+        """One sentence: whether a proof of this root merges on the gate or waits for a person, and
+        why (F14-R5, R9). Empty for an index version older than v5, which does not say."""
+        e = tv.index_entry
+        basis = e.get("step9")
+        if basis == "certificate":
+            return (
+                "A proof of this statement merges on the gate: the root carries a non-author's "
+                "fidelity certificate (D-4 step 9)."
+            )
+        if basis == "evidence":
+            summary = e.get("statement_evidence") or {}
+            return (
+                "A proof of this statement merges on the gate without a human reviewer: its "
+                f"recorded catalog evidence scores {summary.get('score')} "
+                f"({summary.get('letter')}), at or above the high grade (D-4 step 9, F14)."
+            )
+        if basis == "review":
+            return (
+                "A proof of this statement waits for a non-author's approving review on its pull "
+                "request: the root has no counting signature and no catalog evidence at the high "
+                "grade (D-4 step 9)."
+            )
+        return ""
+
+    def evidence_section(self, tv: TargetView) -> str:
+        """F14-R10: the catalog evidence for the root — score, letter and the reasons that sum to
+        it, the registry history, misformalization issues and hazards — and each second
+        formalization with its equivalence verdict. Every value from the graph is escaped."""
+        e = tv.index_entry
+        if "statement_evidence" not in e:  # an index older than v5
+            return ""
+        parts: list[str] = []
+        doc = tv.evidence
+        summary = e.get("statement_evidence")
+        if doc is None or summary is None:
+            parts.append(
+                '<p class="evidence">No catalog evidence is recorded for this root (F14-R3).</p>'
+            )
+        else:
+            catalog = doc["catalog"]
+            standing = (
+                "pinned to the root as it stands"
+                if summary.get("current")
+                else "recorded against an earlier statement, so it counts for nothing now"
+            )
+            reasons = "".join(f"<li>{esc(str(r))}</li>" for r in catalog.get("reasons") or [])
+            history = doc.get("registry_history")
+            history_line = (
+                f" In the registry since {esc(str(history['first']))}, last changed "
+                f"{esc(str(history['last']))}, {esc(str(history['commits']))} commits."
+                if history
+                else ""
+            )
+            issues = doc.get("misformalization") or []
+            issue_line = (
+                "No misformalization issue on record."
+                if not issues
+                else "Misformalization issues: "
+                + "; ".join(
+                    f"#{esc(str(i['number']))} {esc(str(i['state']))} ({esc(str(i['created']))})"
+                    for i in issues
+                )
+                + "."
+            )
+            hazards = doc.get("hazards") or []
+            hazard_line = (
+                f" Wording hazards: {esc(', '.join(str(h) for h in hazards))}." if hazards else ""
+            )
+            parts.append(
+                '<div class="evidence"><p class="label">Catalog evidence (F14): score '
+                f"<strong>{esc(str(catalog['score']))}</strong> "
+                f"({esc(str(catalog['letter']))}) for <code>{esc(str(catalog['key']))}</code>, "
+                f"{esc(standing)}; recorded by {esc(str(doc['recorded_by']))} on "
+                f"{esc(str(doc['date']))} from the catalog at "
+                f"<code>{esc(str(catalog['network_commit'])[:12])}</code>.</p>"
+                f'<ul class="reasons">{reasons}</ul>'
+                f"<p>{issue_line}{history_line}{hazard_line}</p></div>"
+            )
+        formalizations = e.get("formalizations") or []
+        if formalizations:
+            items = "".join(
+                f"<li><code>{esc(str(f['name']))}</code>: equivalence with the root "
+                + (
+                    f"<strong>{esc(str(f['equivalence']))}</strong>"
+                    if f.get("equivalence")
+                    else "not run yet"
+                )
+                + (f" ({self.file_link(str(f['exhibit']))})" if f.get("exhibit") else "")
+                + "</li>"
+                for f in formalizations
+            )
+            parts.append(
+                '<div class="formalizations"><p class="label">Second formalizations of this '
+                "conjecture, kept outside the graph's nodes (D-9 layer 4). A proved equivalence is "
+                f"kernel-checked evidence; a failure is never negative:</p><ul>{items}</ul></div>"
+            )
+        return "".join(parts)
 
     @staticmethod
     def fast_check(sha: str | None) -> str:
@@ -458,6 +562,7 @@ class Renderer:
             )
             + "</p>"
         )
+        parts.append(self.evidence_section(tv))
         drift = e.get("drift")
         if not drift:
             parts.append('<p class="drift">No upstream drift on record (D-10 v3.12).</p>')

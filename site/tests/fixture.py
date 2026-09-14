@@ -132,6 +132,107 @@ def build_with_frozen_target(tmp_path: Path) -> Path:
     return root
 
 
+EVIDENCE_INJECTION = "<script>alert('reason')</script>"
+
+
+def build_with_evidenced_target(tmp_path: Path) -> Path:
+    """The listed fixture with F14's evidence on its root: a catalog row at six points (one reason
+    carries an injection string), and a second formalization proved equivalent to the root through
+    a QA row that names it (F14-R3, R7, R8, R10)."""
+    import re  # noqa: PLC0415
+
+    from opn_gate import evidence, formalizations, qa  # noqa: PLC0415
+
+    root = build_with_listed_target(tmp_path)
+    target = root / "targets" / LISTED_TARGET
+    row = {
+        "key": "erdos:42",
+        "file": "FormalConjectures/ErdosProblems/42.lean",
+        "score": 6,
+        "letter": "A",
+        "reasons": [
+            "+2 Bloom selected it for FrontierMath Erdős",
+            "+2 attempted by AlphaProof Nexus (Feb 2026), not solved",
+            f"+1 no misformalization issue ever filed {EVIDENCE_INJECTION}",
+            "+1 Lean statement public for 180+ days",
+        ],
+        "history": {"first": "2025-04-26", "last": "2026-07-16", "n": 13},
+        "issues": [],
+        "local_defs": [],
+        "hazards": ["density"],
+        "site_status": "OPEN",
+        "mathlib_definition": None,
+    }
+    catalog = {"schema": evidence.CATALOG_SCHEMA, "fc_commit": "b" * 40, "rows": [row]}
+    evidence.write(
+        target,
+        evidence.doc_from_row(
+            catalog,
+            row,
+            statement_hash=qa.subject_hash(target, "root"),
+            network_commit="1" * 40,
+            recorded_by="curator",
+            date="2026-09-14",
+            attempts_recorded=0,
+        ),
+    )
+
+    statement = (target / "nodes" / LISTED_ROOT / "Statement.lean").read_text(encoding="utf-8")
+    alt = re.sub(r"theorem\s+\S+", "theorem OpnAlt.listed", statement, count=1)
+    alt = "\n".join(line for line in alt.splitlines() if not line.startswith("import ")) + "\n"
+    directory = formalizations.formalizations_dir(target) / "alt"
+    directory.mkdir(parents=True)
+    (directory / formalizations.STATEMENT_FILE).write_text(alt, encoding="utf-8")
+    alt_hash = schemas.content_hash(alt.encode("utf-8"))
+    (directory / formalizations.RECORD_FILE).write_text(
+        yaml.safe_dump(
+            {
+                "schema": formalizations.SCHEMA,
+                "name": "alt",
+                "declaration": "OpnAlt.listed",
+                "statement_hash": alt_hash,
+                "author": "curator",
+                "source": {
+                    "kind": "network",
+                    "ref": "the root restated",
+                    "url": None,
+                    "licence": "Apache-2.0",
+                    "attribution": "the Open Proof Network curators",
+                },
+                "provenance": {"upstream_commit": None, "upstream_path": None},
+                "date": "2026-09-14",
+            }
+        ),
+        encoding="utf-8",
+    )
+    rel, digest = qa.store_exhibit(
+        target,
+        "root-equivalence-1.lean",
+        "theorem OpnQa.equiv_forward : True := trivial\n"
+        "theorem OpnQa.equiv_backward : True := trivial\n",
+    )
+    qa.write(
+        target,
+        "root",
+        [
+            qa.row(
+                "equivalence",
+                "pass",
+                tool="opn-gate qa equivalence",
+                tool_version="0.0.0",
+                timestamp="2026-09-14T10:00:00Z",
+                exhibit=rel,
+                exhibit_sha256=digest,
+                against={"kind": "formalization", "ref": "alt", "statement_hash": alt_hash},
+            )
+        ],
+        date="2026-09-14T10:00:00Z",
+        produced_by="opn-gate qa equivalence",
+    )
+    products.generate(root, rendered_from=COMMIT, commit_time=NOW).write(root)
+    return root
+
+
 # --- F12: a curated target with a QA pass, two signers, three attempts and a drift flag (AC11) ----
 
 QA_TARGET = "qa-target"
