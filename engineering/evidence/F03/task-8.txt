@@ -1,0 +1,132 @@
+F03-T8 · the graph serves every schema info.json advertises (R10; D-34, D-35; finding 2 of
+2026-09-13, 2026-09-12 finding 5) · 2026-09-14 · network f3abee2 + worktree branch, rebased onto main
+
+The finding's strict xfails named F03-T6; that number was spent on Q8 (a blocked variant is not
+claimable) the same day, and T7 on Q9, so the fix takes T8 — the next free row in the ledger, and
+grep over engineering/, gate/, api/, site/ and the git log found no other T8.
+
+Red first, marks on (reasons re-worded to T8), then --runxfail, before any production change:
+
+$ uv run --frozen pytest -v -p no:cacheprovider gate/tests/test_finding_schemas_published.py
+test_generate_refuses_a_graph_that_publishes_none_of_the_schemas_it_advertises XFAIL
+test_the_refusal_names_the_families_the_graph_lacks_and_not_the_ones_it_holds XFAIL
+test_publish_seeds_every_advertised_family_with_a_pin_and_generate_passes XFAIL
+============================= 3 xfailed in 12.21s ==============================
+
+$ uv run --frozen pytest -v -p no:cacheprovider --runxfail gate/tests/test_finding_schemas_published.py
+test_generate_refuses_a_graph_that_publishes_none_of_the_schemas_it_advertises FAILED
+    E       Failed: DID NOT RAISE GraphError
+test_the_refusal_names_the_families_the_graph_lacks_and_not_the_ones_it_holds FAILED
+    E       Failed: DID NOT RAISE GraphError
+test_publish_seeds_every_advertised_family_with_a_pin_and_generate_passes FAILED
+    E       AssertionError: opn_gate.schemas.publish(graph_root) does not exist
+============================== 3 failed in 0.27s ===============================
+
+The diagnosis holds on today's main: frontier/v3 did not touch info_doc, which still builds the
+index from schemas.known_schemas() (43 versions, 27 families) and never looks at the graph, and
+the decisions doc's graph layout (D-35) puts "schemas/  # every record shape, versioned (D-34)" in
+the graph, the path get_schema reads (api/opn_api/mcp/reads.py).
+
+What the refusal cost the suite. With only products.generate's check in place, the fast tier went
+135 failed + 31 errors, every one `schema-unpublished` (321 occurrences in the log): the fixture
+graphs publish no schemas/ (the finding's first test pins that as its setup guard), so every test
+that renders products had to publish first. harness.copy_graph gained `publish=False`; the call
+sites that render pass `publish=True` (site/tests/fixture.py build, which covers every site test;
+test_products, test_context, test_finding_c_stale_signature, test_intake_root,
+test_finding_b_revise_v2, test_finding_de_qa_status, test_watcher throughout; one helper or test
+each in test_finding_fg_friction, test_curator, test_branches_round3, test_postmerge, and four tests
+in test_intake); build_graph_repo in test_walkthrough (walkthrough and rehearsal), the sandboxed
+products test and test_admit's root_of test call schemas.publish directly. No production caller
+creates a graph, so no tool changed.
+
+Green:
+
+$ uv run --frozen pytest -v -p no:cacheprovider gate/tests/test_finding_schemas_published.py gate/tests/test_schemas.py gate/tests/test_products.py -k "schemas_published or publish or lacking_one_version"
+gate/tests/test_finding_schemas_published.py::test_generate_refuses_a_graph_that_publishes_none_of_the_schemas_it_advertises PASSED [ 12%]
+gate/tests/test_finding_schemas_published.py::test_the_refusal_names_the_families_the_graph_lacks_and_not_the_ones_it_holds PASSED [ 25%]
+gate/tests/test_finding_schemas_published.py::test_publish_seeds_every_advertised_family_with_a_pin_and_generate_passes PASSED [ 37%]
+gate/tests/test_schemas.py::test_known_schemas_are_the_published_set PASSED [ 50%]
+gate/tests/test_schemas.py::test_publish_adds_only_what_is_missing_and_keeps_the_graphs_own_pins PASSED [ 62%]
+gate/tests/test_schemas.py::test_publish_refuses_an_edited_copy_and_writes_nothing PASSED [ 75%]
+gate/tests/test_schemas.py::test_publish_refuses_a_pin_that_disagrees_with_its_file PASSED [ 87%]
+gate/tests/test_products.py::test_a_graph_lacking_one_version_is_refused_for_that_version_alone PASSED [100%]
+====================== 8 passed, 141 deselected in 0.29s =======================
+
+Mutants: pytest -p plugins that monkeypatch opn_gate in memory; no file touched. Command shape:
+PYTHONPATH=gate:<scratchpad>/mutants uv run --frozen pytest -p <mutant> -p no:cacheprovider -q <tests>
+
+mut_no_refusal (schemas.unpublished always [], the pre-T8 behaviour)
+  vs test_finding_schemas_published.py
+    E       Failed: DID NOT RAISE GraphError
+    E       Failed: DID NOT RAISE GraphError
+    FAILED ...::test_generate_refuses_a_graph_that_publishes_none_of_the_schemas_it_advertises
+    FAILED ...::test_the_refusal_names_the_families_the_graph_lacks_and_not_the_ones_it_holds
+    2 failed, 1 passed
+  vs test_products.py -k lacking_one_version
+    E       Failed: DID NOT RAISE GraphError
+    FAILED ...::test_a_graph_lacking_one_version_is_refused_for_that_version_alone
+    1 failed
+
+mut_names_everything (refuses, but names all 43 versions, held ones included)
+  vs test_finding_schemas_published.py
+    E       AssertionError: schema-unpublished: info.json would advertise 43 schema(s) ...
+    E        +  where False = <built-in method isdisjoint ...>(('attestation/v1', 'attestation/v2', 'gate-spec/v1', 'meta/v1'))
+    FAILED ...::test_the_refusal_names_the_families_the_graph_lacks_and_not_the_ones_it_holds
+    1 failed, 2 passed
+
+mut_no_hashes (publish copies the files, writes no HASHES)
+  vs test_finding_schemas_published.py
+    E       AssertionError: publish wrote no HASHES
+    FAILED ...::test_publish_seeds_every_advertised_family_with_a_pin_and_generate_passes
+    1 failed, 2 passed
+
+mut_not_idempotent (each publish stamps HASHES with a run counter)
+  vs test_finding_schemas_published.py
+    E       AssertionError: assert {PosixPath('/... }\n}\n', ...} == {PosixPath('/... }\n}\n', ...}
+    E         Omitting 43 identical items ... Differing items: ... HASHES
+    FAILED ...::test_publish_seeds_every_advertised_family_with_a_pin_and_generate_passes
+    1 failed, 2 passed
+  (A first version appended a fixed comment line and survived, 3 passed: the real publish
+  normalises HASHES before the mutant appended, so every run ended in the same bytes. The mutant
+  was wrong, not the test; the counter makes it a real edit.)
+
+mut_overwrites_edited (restores an edited copy and re-pins instead of refusing)
+  vs test_schemas.py -k publish
+    E       Failed: DID NOT RAISE SchemaError
+    E       Failed: DID NOT RAISE SchemaError
+    FAILED ...::test_publish_refuses_an_edited_copy_and_writes_nothing
+    FAILED ...::test_publish_refuses_a_pin_that_disagrees_with_its_file
+    2 failed, 2 passed
+
+mut_registry_only_pins (HASHES rewritten from registry files alone, the graph's own pins dropped)
+  vs test_schemas.py -k publish
+    E       KeyError: 'local/v1.json'
+    FAILED ...::test_publish_adds_only_what_is_missing_and_keeps_the_graphs_own_pins
+    1 failed, 3 passed
+
+Goldens and fixtures: none regenerated. No schema was added, so info.json's index is unchanged and
+every F03 golden, the site goldens and api/tests/fixtures compare byte for byte; the products never
+include schemas/. No version string moved, so no consumer sweep (api routes, MCP field filter,
+smokes, api-deploy.yml, the site's accepted-versions map) was due.
+
+Deploy window (for the re-pin, the owner's act): the live graph holds 4 of the 43 files, so a graph
+pinned to a network commit with this check refuses its products on the first post-merge run. The
+graph needs its schemas/ seeded — `PYTHONPATH=<network>/gate python -c "from pathlib import Path;
+from opn_gate import schemas; print(schemas.publish(Path('.')))"` from the graph checkout, run with
+the gate at the commit being pinned — in the same pull request as the gate-spec.json re-pin, or
+before it. Not done here: this session does not touch ../open_proof_network_graph.
+
+$ make verify   (before the rebase, as the pre-commit hook, on f3abee2)
+All checks passed! · 312 files already formatted · mypy gate 153, api 93, site 23: no issues
+= 1951 passed, 17 skipped, 67 deselected, 14 xfailed, 2 warnings in 117.61s (0:01:57) =
+
+$ make verify   (after rebasing onto main at 8455f47, F04-T9/T10 and F10-T6/T7 included)
+All checks passed!
+312 files already formatted
+Success: no issues found in 153 source files
+Success: no issues found in 93 source files
+Success: no issues found in 23 source files
+= 1974 passed, 17 skipped, 67 deselected, 3 xfailed, 2 warnings in 146.23s (0:02:26) =
+
+The 17 skips are the tests that read ../open_proof_network_graph, absent beside a worktree; none of
+them calls products.generate.

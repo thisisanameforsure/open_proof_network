@@ -20,7 +20,7 @@ NODES = Path("targets") / TARGET / "nodes"
 
 def curated(tmp_path: Path) -> Path:
     """The fixture with attempts, an annex, an explainer and a claim snapshot on the root."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     attest(root, TUTORIAL, 1)
     attest(root, "and-reassoc", 2)
     node = root / NODES / "and-swap-reassoc"
@@ -162,7 +162,7 @@ def _resolve(doc: object, path: str) -> object:
 
 
 def test_proved_node_carries_its_merge(tmp_path: Path) -> None:
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     attest(root, TUTORIAL, 1)
     bundle = json.loads(generate(root).files[NODES / TUTORIAL / "CONTEXT.json"])
     assert bundle["status"] == "proved"
@@ -177,7 +177,7 @@ def test_proved_node_carries_its_merge(tmp_path: Path) -> None:
 
 def test_record_cap_and_budget(tmp_path: Path) -> None:
     """§6: the newest fifty records, and the byte cap dropping the oldest first."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     node = root / NODES / TUTORIAL
     for i in range(context.RECORD_LIMIT + 3):
         (node / "attempts" / f"2026-01-01T{i:04d}-a.yaml").write_text(
@@ -209,7 +209,7 @@ def test_record_cap_and_budget(tmp_path: Path) -> None:
 
 def test_defective_node_is_refused(tmp_path: Path) -> None:
     """C7: a node whose files do not render is an error naming the file, never a partial bundle."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     states = context.graph_states({"nodes": [{"node_id": TUTORIAL, "status": "ready"}]})
     reader = context.DiskReader(root)
     (root / NODES / TUTORIAL / "Statement.lean").write_text(
@@ -228,7 +228,7 @@ def test_defective_node_is_refused(tmp_path: Path) -> None:
 def test_context_file_is_bot_owned(tmp_path: Path) -> None:
     """Q2: the layout tolerates CONTEXT.json and no submission may touch it — step 2 and the mode
     grammar both refuse the path — while a proposal adding one is refused as an extra."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     node = root / NODES / TUTORIAL
     generate(root).write(root)
     assert (node / "CONTEXT.json").is_file()
@@ -244,7 +244,7 @@ def test_context_file_is_bot_owned(tmp_path: Path) -> None:
 
 def test_products_write_and_rewrite_bundles(tmp_path: Path) -> None:
     """The products pass writes every bundle and, unchanged, rewrites none (R11's shape)."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     written = generate(root).write(root)
     assert NODES / TUTORIAL / "CONTEXT.json" in written
     assert generate(root).write(root) == []

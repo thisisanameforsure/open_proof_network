@@ -87,7 +87,7 @@ def ready_to_activate(root: Path) -> None:
 def test_intake_new_declares_the_root_it_scaffolds(tmp_path: Path) -> None:
     """R14: the listed record names the scaffolded root and validates, and the three places the
     fact appears — the record, what intake reports, what the products publish — agree."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     result = take_in(root)
     doc = latest(root)
     assert doc["status"] == "listed"
@@ -101,7 +101,7 @@ def test_a_new_targets_first_variant_keeps_the_products_rendering(tmp_path: Path
     target with no curator follow-up, and the products still render, naming the declared root.
     The control shows the test can see the failure: a later record that drops the root puts the
     products back where every live target stood before graph PRs #25-#30."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     take_in(root)
     add_related_variant(root)
     target = graphmod.load_target(root, NEW)
@@ -116,7 +116,7 @@ def test_a_new_targets_first_variant_keeps_the_products_rendering(tmp_path: Path
 def test_an_imported_target_declares_itself_as_root(tmp_path: Path) -> None:
     """R9 runs through R2, so the live Erdős shape — one node whose id is the target's — is
     covered by the same rule, and its first variant renders too."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     result = import_fc(root)
     assert latest(root, "fc-42")["root"] == "fc-42" == result.intake.root
     add_related_variant(root, "fc-42")
@@ -130,7 +130,7 @@ def test_the_cli_prints_the_root_the_record_declares(
     """R14 through the entry point the curator actually runs: ``intake new`` reports the root,
     and the record it wrote names the same one. The record's Mathlib pin is not the fixture
     target's, so no target can supply its image and the curator passes ``--spec`` (F11-R6)."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     record = tmp_path / "target.yaml"
     record.write_text(yaml.safe_dump(samples.target_record(id=NEW)), encoding="utf-8")
     code = cli.main(
@@ -167,7 +167,7 @@ def test_later_declarations_carry_the_root_forward(tmp_path: Path) -> None:
     """AC18 over the life a target actually has: listed, activated, dormant, active again. Every
     record in the directory names the root, not only the last, and the products still render
     once a variant has landed."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     take_in(root)
     ready_to_activate(root)
     intake.activate(root, NEW, author="curator", date="2026-09-12T00:00:00Z")
@@ -199,7 +199,7 @@ def test_later_declarations_carry_the_root_forward(tmp_path: Path) -> None:
 def test_a_curator_declaration_carries_the_root_forward(tmp_path: Path, status: str) -> None:
     """AC18, one declaration at a time, straight after intake. An ``active`` declaration on a
     curated target needs it claimable first (F11-R5; finding E)."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     take_in(root)
     if status == "active":
         ready_to_activate(root)
@@ -217,7 +217,7 @@ def test_the_status_command_carries_the_root_forward(
 ) -> None:
     """AC18 through ``opn-gate status``, on a graph with two targets so ``--target`` is needed,
     and a target claimable enough to be declared active (F11-R5; finding E)."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     take_in(root)
     ready_to_activate(root)
     code = cli.main(
@@ -246,7 +246,7 @@ def test_the_status_command_carries_the_root_forward(
 def test_a_target_that_never_declared_a_root_gets_none(tmp_path: Path) -> None:
     """R14 carries forward; it does not invent. The fixture's pre-F11 target has one sink and no
     declaration, a curator's record on it stays root-less, and F03's inference still speaks."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     curator.declare_status(
         root, TARGET, TARGET, "active", "a merge landed", author="curator", date=LATER, now=NOW
     )
@@ -280,7 +280,7 @@ def test_a_revised_declared_root_is_followed_to_its_revision(tmp_path: Path) -> 
     revision as the one sink left (F08-R9); declaring the root at intake must not turn that into
     a superseded node published as the root. A variant is present, so inference alone cannot
     rescue the answer: it has to come from following the declaration."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     take_in(root)
     add_related_variant(root)
     revision = revise_root(root, ROOT, f"{ROOT}-v2")
@@ -292,7 +292,7 @@ def test_a_revised_declared_root_is_followed_to_its_revision(tmp_path: Path) -> 
 
 def test_a_twice_revised_declared_root_is_followed_to_the_end(tmp_path: Path) -> None:
     """Q29: the chain is followed to its end, not one step."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     take_in(root)
     add_related_variant(root)
     first = revise_root(root, ROOT, f"{ROOT}-v2")
@@ -303,7 +303,7 @@ def test_a_twice_revised_declared_root_is_followed_to_the_end(tmp_path: Path) ->
 def test_a_consolidated_declared_root_is_followed_to_the_node_kept(tmp_path: Path) -> None:
     """Q29, D-29's other way to supersede: the root consolidated into a byte-identical duplicate
     names the kept node as its successor, and the declaration follows it."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     take_in(root)
     nodes = layout.graph_nodes_dir(root, NEW)
     shutil.copytree(nodes / ROOT, nodes / "and-reassoc-again")
@@ -330,7 +330,7 @@ def supersede_by_hand(root: Path, node_id: str, successor: str, date: str) -> No
 
 def test_a_superseded_root_with_no_successor_is_a_loud_refusal(tmp_path: Path) -> None:
     """C7: a successor that never became a node is refused by name, never published as root."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     take_in(root)
     supersede_by_hand(root, ROOT, "ghost", "2026-09-13T00:00:00Z")
     with pytest.raises(graphmod.GraphError, match="successor 'ghost' is not a node"):
@@ -339,7 +339,7 @@ def test_a_superseded_root_with_no_successor_is_a_loud_refusal(tmp_path: Path) -
 
 def test_a_supersession_loop_is_a_loud_refusal(tmp_path: Path) -> None:
     """C7: a chain that comes back to itself is refused, not followed forever."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     take_in(root)
     revision = revise_root(root, ROOT, f"{ROOT}-v2")
     supersede_by_hand(root, revision.new_id, ROOT, "2026-09-14T00:00:00Z")
@@ -351,7 +351,7 @@ def test_the_carried_root_is_the_one_the_products_read(tmp_path: Path) -> None:
     """The writers mirror the reader (F03-Q5: the latest record wins). A later hand record that
     drops the root has undeclared it as far as the products are concerned, so the next tool
     record does not resurrect an older one behind the curator's back (Q29)."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     take_in(root)
     hand_record_without_root(root)
     curator.declare_status(

@@ -94,7 +94,7 @@ def test_generate_writes_the_tag_cache_only_when_a_scan_changed_it(tmp_path: Pat
     """R6 on a Mathlib-pinned graph: the first render scans every frontier node and emits
     `.tags-cache.json` as a product; a second render over the written cache scans nothing and
     emits no cache file (R11: byte-identical products need no rewrite)."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     spec_path = layout.gate_spec_path(root, TARGET)
     spec = schemas.load_json(spec_path)
     spec["mathlib_sha"] = samples.SHA1

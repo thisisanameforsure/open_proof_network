@@ -435,6 +435,15 @@ def generate(
     claims: dict[str, dict[str, Any]] | None = None,
 ) -> Products:
     """Build and validate every product without writing anything (R11; AC5)."""
+    # F03-T8 (R10, D-34): info.json advertises the registry, so the graph must serve every
+    # family it lists. Checked first: a cheap refusal before any scan (C7).
+    lacking = schemas.unpublished(graph_root)
+    if lacking:
+        msg = (
+            f"schema-unpublished: info.json would advertise {len(lacking)} schema(s) the graph's "
+            f"schemas/ does not hold: {', '.join(lacking)}; seed it with opn_gate.schemas.publish"
+        )
+        raise GraphError(msg)
     if previous_frontier is None:
         committed = graph_root / "frontier.json"
         if committed.is_file():

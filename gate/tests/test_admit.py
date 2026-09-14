@@ -427,10 +427,11 @@ def test_relation_without_a_known_root_is_refused(tmp_path: Path) -> None:
 def test_root_of_prefers_the_rendered_graph_then_the_declaration(tmp_path: Path) -> None:
     """A rendered graph.json is read only when it validates; then the declaration; then the
     one un-depended-on node — and a graph.json that is not one falls through, never in."""
-    from opn_gate import products  # noqa: PLC0415
+    from opn_gate import products, schemas  # noqa: PLC0415
 
     ctx = make_context(tmp_path, node_id="good")
     target_dir = ctx.graph_root / "targets" / TARGET
+    schemas.publish(ctx.graph_root)  # F03-T8: a graph that renders products serves its schemas
     products.generate(ctx.graph_root, rendered_from=None, commit_time="2026-09-10T00:00:00Z").write(
         ctx.graph_root, write_meta=False
     )

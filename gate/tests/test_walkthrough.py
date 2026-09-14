@@ -96,6 +96,7 @@ def build_graph_repo(tmp: Path, key: PrecheckKey) -> Path:
     attested, the target claimable, the products rendered, the precheck key committed."""
     root = tmp / "graph"
     shutil.copytree(GRAPH, root)
+    schemas.publish(root)  # F03-T8: the live graph serves every schema info.json advertises
     nodes = root / "targets" / TARGET / "nodes"
     attestation = samples.attestation(
         node_id=TUTORIAL,

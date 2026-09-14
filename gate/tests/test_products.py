@@ -67,7 +67,7 @@ def node_status_record(root: Path, node_id: str, status: str) -> None:
 
 def test_status_ready_blocked(tmp_path: Path) -> None:
     """AC1: no attestations — the interior nodes are ready, the root is blocked."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     tg = graph.load_target(root, TARGET)
     assert tg.statuses == {
         "and-reassoc": "ready",
@@ -81,7 +81,7 @@ def test_status_ready_blocked(tmp_path: Path) -> None:
 
 def test_status_proved_unblocks(tmp_path: Path) -> None:
     """AC2: merged passing attestations for both interior nodes make the root ready."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     attest(root, "tutorial-and-swap", n=1)
     attest(root, "and-reassoc", n=2, trust_base="compiler")
     tg = graph.load_target(root, TARGET)
@@ -106,7 +106,7 @@ def test_a_merged_partial_does_not_prove_its_parent(tmp_path: Path) -> None:
     is — with a matching attestation. No test had attested a node whose proof file was absent,
     which is the state a merged partial leaves behind; this one does.
     """
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     node = nodes_dir(root) / ROOT_NODE
     proof = (node / "Proof.lean").read_text(encoding="utf-8")
     (node / "Proof.lean").unlink()
@@ -126,7 +126,7 @@ def test_a_merged_partial_does_not_prove_its_parent(tmp_path: Path) -> None:
 
 def test_unmerged_pass_does_not_prove(tmp_path: Path) -> None:
     """AC3: a pass without a merge commit is a precheck, not a proof; a stale hash neither."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     attest(root, "tutorial-and-swap", merge_commit=None, n=1)
     attest(root, "and-reassoc", n=2)
     tg = graph.load_target(root, TARGET)
@@ -146,7 +146,7 @@ def test_unmerged_pass_does_not_prove(tmp_path: Path) -> None:
 
 def test_curator_status_precedence(tmp_path: Path) -> None:
     """AC4: a curator record overrides the derived status."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     node_status_record(root, "and-reassoc", "abandoned")
     tg = graph.load_target(root, TARGET)
     assert tg.statuses["and-reassoc"] == "abandoned"
@@ -157,7 +157,7 @@ def test_curator_status_precedence(tmp_path: Path) -> None:
 
 def test_cycle_fails_writes_nothing(tmp_path: Path) -> None:
     """AC5 (derivation half): a cycle is named; T3 checks that no product is written."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     set_deps(root, "and-reassoc", [ROOT_NODE])
     with pytest.raises(GraphError, match="cycle: and-reassoc -> and-swap-reassoc -> and-reassoc"):
         graph.load_target(root, TARGET)
@@ -165,7 +165,7 @@ def test_cycle_fails_writes_nothing(tmp_path: Path) -> None:
 
 def test_missing_dep_fails(tmp_path: Path) -> None:
     """AC6."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     set_deps(root, "and-reassoc", ["ghost"])
     with pytest.raises(GraphError, match="ghost"):
         graph.load_target(root, TARGET)
@@ -173,7 +173,7 @@ def test_missing_dep_fails(tmp_path: Path) -> None:
 
 def test_root_declared_or_unique(tmp_path: Path) -> None:
     """Q5: two sinks need a declaration; a declaration must name a node."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     set_deps(root, ROOT_NODE, ["and-reassoc"])  # now tutorial-and-swap is a second sink
     with pytest.raises(GraphError, match="ambiguous"):
         graph.load_target(root, TARGET)
@@ -211,7 +211,7 @@ def test_ready_since_carry_forward() -> None:
 
 def test_write_meta_status_touches_only_the_status_line(tmp_path: Path) -> None:
     """R2, Q1."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     meta = nodes_dir(root) / "and-reassoc" / "META.yaml"
     before = meta.read_text()
     assert graph.write_meta_status(meta.parent, "proved") is True
@@ -228,7 +228,7 @@ def test_commit_timestamp_is_git_committer_time(tmp_path: Path) -> None:
     """Q2."""
     import subprocess  # noqa: PLC0415
 
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     env = {
         "GIT_AUTHOR_NAME": "t",
         "GIT_AUTHOR_EMAIL": "t@x",
@@ -269,9 +269,21 @@ def frontier_ids(prod: products.Products) -> list[str]:
     return [str(e["node_id"]) for e in doc["entries"]]
 
 
+def test_a_graph_lacking_one_version_is_refused_for_that_version_alone(tmp_path: Path) -> None:
+    """F03-T8 (R10, D-34): the state a schema bump leaves when the gate moves before the graph —
+    every family published but ``frontier/v3`` — is refused naming that version and no other."""
+    root = copy_graph(tmp_path, publish=True)
+    (root / "schemas" / "frontier" / "v3.json").unlink()
+    with pytest.raises(GraphError, match="schema-unpublished") as excinfo:
+        generate(root)
+    message = str(excinfo.value)
+    assert "1 schema(s)" in message and "frontier/v3" in message, message
+    assert "frontier/v2" not in message, message
+
+
 def test_products_of_the_fixture(tmp_path: Path) -> None:
     """R4, R5, R9, R10 on the pristine fixture: two ready interior nodes, a blocked root."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     prod = generate(root)
     assert sorted(p.as_posix() for p in prod.files) == [
         "frontier.json",
@@ -316,13 +328,13 @@ def test_products_of_the_fixture(tmp_path: Path) -> None:
 
 def test_curator_status_removes_from_frontier(tmp_path: Path) -> None:
     """AC4, second half: an abandoned node is absent from the frontier."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     node_status_record(root, "and-reassoc", "abandoned")
     assert frontier_ids(generate(root)) == ["tutorial-and-swap"]
 
 
 def test_proved_nodes_carry_trust_base_and_commit(tmp_path: Path) -> None:
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     attest(root, "tutorial-and-swap", n=1)
     attest(root, "and-reassoc", n=2, trust_base="compiler")
     prod = generate(root)
@@ -339,7 +351,7 @@ def test_proved_nodes_carry_trust_base_and_commit(tmp_path: Path) -> None:
 
 def test_cycle_writes_no_product(tmp_path: Path) -> None:
     """AC5: the generator raises before any file exists."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     set_deps(root, "and-reassoc", [ROOT_NODE])
     with pytest.raises(GraphError, match="cycle"):
         generate(root)
@@ -349,7 +361,7 @@ def test_cycle_writes_no_product(tmp_path: Path) -> None:
 
 def test_attempt_aggregation(tmp_path: Path) -> None:
     """AC7: three postmortems and one invalid file on a frontier node."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     att = nodes_dir(root) / "and-reassoc" / "attempts"
     docs = [
         samples.postmortem(node="and-reassoc", route_class="induction"),
@@ -381,7 +393,7 @@ def test_a_merged_partial_is_an_attempt_on_the_frontier(tmp_path: Path) -> None:
     """R7 (T7): the frontier's ``attempts`` counts the partials filed under ``attempts/`` beside
     the postmortems, which ``frontier/v3`` says; an alternate is not an attempt. (Found live: the
     Euclid root and ``variant-93e79cb5`` each carry merged partials and showed 0 attempts.)"""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     att = nodes_dir(root) / "and-reassoc" / "attempts"
     write = samples.postmortem(node="and-reassoc", route_class="induction")
     (att / "20260912T100000Z-alice.yaml").write_text(yaml.safe_dump(write), encoding="utf-8")
@@ -400,7 +412,7 @@ def test_a_merged_partial_is_an_attempt_on_the_frontier(tmp_path: Path) -> None:
 
 def test_ready_since_from_previous_frontier(tmp_path: Path) -> None:
     """AC8 with files: the committed frontier.json feeds the carry-forward."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     first = generate(root, commit_time="2026-09-01T00:00:00Z")
     first.write(root)
     attest(root, "and-reassoc", n=1)
@@ -418,7 +430,7 @@ def test_ready_since_from_previous_frontier(tmp_path: Path) -> None:
 
 def test_deterministic_and_valid(tmp_path: Path) -> None:
     """AC9: two generations are byte-identical and every product validates."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     attest(root, "tutorial-and-swap", n=1)
     node_status_record(root, "and-reassoc", "speculative")
     a = generate(root)
@@ -448,7 +460,7 @@ def test_deterministic_and_valid(tmp_path: Path) -> None:
 
 
 def test_target_declaration_drives_index(tmp_path: Path) -> None:
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     st = root / "targets" / TARGET / "status"
     st.mkdir()
     (st / "2026-09-09-1.yaml").write_text(
@@ -486,7 +498,7 @@ def test_products_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) ->
     """The CLI writes into a git checkout and refuses a defective graph without writing."""
     import subprocess  # noqa: PLC0415
 
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     env = {
         "GIT_AUTHOR_NAME": "t",
         "GIT_AUTHOR_EMAIL": "t@x",
@@ -519,7 +531,7 @@ STATES = ("unproved", "interior-proved", "curated")
 
 def build_state(tmp_path: Path, state: str) -> Path:
     """The fixture graph in one of three states, with every timestamp and hash fixed."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     if state == "unproved":
         return root
     attest(root, "tutorial-and-swap", n=1)
@@ -597,7 +609,7 @@ def refute(root: Path, node_id: str, suffix: str) -> None:
 def test_refuted_and_defective_statuses(tmp_path: Path) -> None:
     """AC10: a merged counterexample refutes the node and its dependents carry dep-refuted; a
     merged vacuity certificate makes it defective."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     refute(root, "tutorial-and-swap", "_refuted")
     attest(root, "tutorial-and-swap", n=1)
     attest(root, "and-reassoc", n=2)
@@ -620,7 +632,7 @@ def test_refuted_and_defective_statuses(tmp_path: Path) -> None:
     assert by_id["and-reassoc"]["cause"] is None
 
     # A vacuity certificate is the other resolution, and it is not a refutation.
-    other = copy_graph(tmp_path / "b")
+    other = copy_graph(tmp_path / "b", publish=True)
     refute(other, "tutorial-and-swap", "_vacuous")
     attest(other, "tutorial-and-swap", n=1)
     tg2 = graph.load_target(other, TARGET)
@@ -631,7 +643,7 @@ def test_refuted_and_defective_statuses(tmp_path: Path) -> None:
 
 def test_resolved_nodes_leave_the_frontier(tmp_path: Path) -> None:
     """R5, R8: the frontier is what is still worth attacking, so a refuted node is not on it."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     refute(root, "tutorial-and-swap", "_refuted")
     attest(root, "tutorial-and-swap", n=1)
     tg = graph.load_target(root, TARGET)
@@ -645,7 +657,7 @@ def test_a_blocked_variant_is_listed_but_not_claimable(tmp_path: Path) -> None:
     claim on it could not be worked, so ``claimable`` follows the node's status as well as the
     target's — true only for a ``ready`` or ``speculative`` node on a claimable target. (Found
     live: ``variant-93e79cb5`` on the tutorial target, blocked on two witness-missing holes.)"""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     tg = graph.load_target(root, TARGET)
     assert tg.statuses[ROOT_NODE] == "blocked"
     variant = replace(tg.nodes[ROOT_NODE], origin="variant")
@@ -670,7 +682,7 @@ def test_a_blocked_variant_is_listed_but_not_claimable(tmp_path: Path) -> None:
 
 def test_node_counts_carry_the_new_statuses(tmp_path: Path) -> None:
     """R8: targets-index/v2 counts them, so the counts still sum to the node total."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     refute(root, "tutorial-and-swap", "_refuted")
     attest(root, "tutorial-and-swap", n=1)
     tg = graph.load_target(root, TARGET)
@@ -699,7 +711,7 @@ def assert_nothing_generated(root: Path) -> None:
 def test_malformed_attestation_is_a_graph_defect(tmp_path: Path) -> None:
     """A committed attestation that does not parse or validate stops generation naming the file;
     it is never skipped, because skipping it would silently un-prove a node."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     att = root / "attestations"
     att.mkdir()
     (att / "000001.json").write_text("{not json", encoding="utf-8")
@@ -718,14 +730,14 @@ def test_malformed_attestation_is_a_graph_defect(tmp_path: Path) -> None:
 
 def test_malformed_meta_names_the_node(tmp_path: Path) -> None:
     """A node whose META does not parse, or names another id, is refused by name (R3)."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     meta = nodes_dir(root) / "and-reassoc" / "META.yaml"
     meta.write_text("id: [unterminated\n", encoding="utf-8")
     with pytest.raises(GraphError, match="node and-reassoc"):
         generate(root)
     assert_nothing_generated(root)
 
-    other = copy_graph(tmp_path / "b")
+    other = copy_graph(tmp_path / "b", publish=True)
     meta = nodes_dir(other) / "and-reassoc" / "META.yaml"
     meta.write_text(meta.read_text().replace("id: and-reassoc", "id: tutorial-and-swap"))
     with pytest.raises(GraphError, match=r"node and-reassoc: .*differs from directory"):
@@ -735,7 +747,7 @@ def test_malformed_meta_names_the_node(tmp_path: Path) -> None:
 def test_missing_status_is_refused_by_the_meta_writer(tmp_path: Path) -> None:
     """R2: the bot rewrites only the status line; a META with none to rewrite is a defect, not a
     file the bot appends to."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     meta = nodes_dir(root) / "and-reassoc" / "META.yaml"
     meta.write_text(meta.read_text().replace("status: ready\n", ""), encoding="utf-8")
     with pytest.raises(GraphError, match="no status line"):
@@ -743,7 +755,7 @@ def test_missing_status_is_refused_by_the_meta_writer(tmp_path: Path) -> None:
 
 
 def test_target_without_nodes_is_refused(tmp_path: Path) -> None:
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     for node in nodes_dir(root).iterdir():
         import shutil  # noqa: PLC0415
 
@@ -756,7 +768,7 @@ def test_target_without_nodes_is_refused(tmp_path: Path) -> None:
 def test_stray_target_directory_stops_generation(tmp_path: Path) -> None:
     """A directory under targets/ that is not a target (no gate-spec.json) is a defect of the
     whole graph, and the good target's products are not written either (R3, C7)."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     (root / "targets" / "stray").mkdir()
     with pytest.raises(schemas.SchemaError, match=r"gate-spec\.json"):
         generate(root)
@@ -771,7 +783,7 @@ def test_invalid_committed_claims_are_dropped_with_a_warning(
     carries no claims and the log says why."""
     import logging  # noqa: PLC0415
 
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     (root / "claims.json").write_text('{"schema": "claims/v1"}', encoding="utf-8")
     with caplog.at_level(logging.WARNING):
         assert products.load_claims(root) == {}
@@ -788,7 +800,7 @@ def test_invalid_committed_claims_are_dropped_with_a_warning(
 def test_statement_scan_failures_are_graph_errors(tmp_path: Path) -> None:
     """R6 through the seam: a Context that does not elaborate, or a metaprogram that returns no
     verdict, names the node rather than tagging it with nothing."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     tg = graph.load_target(root, TARGET)
     node = tg.nodes["and-reassoc"]
     from fakes import FAKE_RESOLVED  # noqa: PLC0415
@@ -809,7 +821,7 @@ def test_tag_cache_ignores_a_file_that_is_not_an_object(tmp_path: Path) -> None:
     path.write_text("[1, 2]", encoding="utf-8")
     cache = products.TagCache(path)
     assert cache.entries == {}
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     node = graph.load_target(root, TARGET).nodes["and-reassoc"]
     scans: list[str] = []
 
@@ -825,7 +837,7 @@ def test_tag_cache_ignores_a_file_that_is_not_an_object(tmp_path: Path) -> None:
 def test_find_root_edge_cases_with_revisions(tmp_path: Path) -> None:
     """F08-Q16: superseded sinks and revisions of interior nodes are set aside — but when nothing
     is left, or two candidates remain, the root is still ambiguous rather than guessed."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     tg = graph.load_target(root, TARGET)
 
     def facts(base: str, **kw: object) -> graph.NodeFacts:
@@ -870,7 +882,7 @@ F11_DEFS = {"Primes.lean": "def Opn.IsPrime (p : Nat) : Prop := 2 ≤ p\n"}
 
 def claimable_target(tmp_path: Path, *, defs: dict[str, str] | None = None) -> Path:
     """A curated target that satisfies every one of R4's three conditions."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     harness.take_in(root, defs=defs)
     target = root / "targets" / F11_TARGET
     fidelity.attest(
@@ -927,7 +939,7 @@ def declare(root: Path, status: str, date: str = "2026-09-13") -> None:
 def test_signature_count(tmp_path: Path) -> None:
     """AC13: two certificates by different attestors give a signature count of 2 and both names
     in targets-index/v3, and the untouched v1 schema still validates a v1 document."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     harness.take_in(root)
     target = root / "targets" / F11_TARGET
     for who, date in (("reviewer", "2026-09-12"), ("auditor", "2026-09-13")):
@@ -1029,7 +1041,7 @@ def test_related_variant_needs_signature(tmp_path: Path) -> None:
     once."""
     from opn_gate import qa  # noqa: PLC0415
 
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     related_variant(root)
     prod = generate(root)
     rows = {
@@ -1087,7 +1099,7 @@ def test_index_carries_the_qa_state_attempts_and_drift(tmp_path: Path) -> None:
     drift flag; a target with no QA record shows every check unrun and the pass incomplete."""
     from opn_gate import qa, watch  # noqa: PLC0415
 
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     harness.take_in(root)
     target = root / "targets" / F11_TARGET
     row = f11_row(root)
