@@ -69,6 +69,21 @@ def place(nodes: list[dict[str, Any]]) -> tuple[list[Placed], int, int]:
     return placed, width, height
 
 
+#: What fits NODE_W: 21 characters and the ellipsis.
+LABEL_MAX = 22
+#: F04-T10: a long id keeps its tail, because a skeleton's holes differ only there
+#: (``<parent>--h1`` ... ``--h4``); the whole id stays in the node's ``<title>``.
+LABEL_TAIL = 8
+
+
+def short_label(node_id: str) -> str:
+    """The visible label of a node: the id when it fits, else its head, an ellipsis and its tail."""
+    if len(node_id) <= LABEL_MAX:
+        return node_id
+    head = LABEL_MAX - 1 - LABEL_TAIL
+    return node_id[:head] + "…" + node_id[-LABEL_TAIL:]
+
+
 def svg(nodes: list[dict[str, Any]], *, href: dict[str, str]) -> str:
     """The SVG markup; ``href`` maps node ids to page paths (every id must be present)."""
     placed, width, height = place(nodes)
@@ -91,7 +106,7 @@ def svg(nodes: list[dict[str, Any]], *, href: dict[str, str]) -> str:
                 'marker-end="url(#arrow)"/>'
             )
     for p in placed:
-        label = p.node_id if len(p.node_id) <= 22 else p.node_id[:21] + "…"
+        label = short_label(p.node_id)
         parts.append(
             f'<a href="{escape(href[p.node_id])}"><g class="node status-{escape(p.status)}" '
             f'data-node="{escape(p.node_id)}" transform="translate({p.x},{p.y})">'

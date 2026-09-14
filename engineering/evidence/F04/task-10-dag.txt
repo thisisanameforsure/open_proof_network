@@ -1,0 +1,40 @@
+F04-T10 (part 1 of 2) · the DAG keeps the distinguishing tail of a long node id (R6; F07-R6, D-29) · 2026-09-14T05:10:24Z
+worktree of 4092af7, branch f04-t10-dag
+
+Red: site/tests/test_finding_dag_labels.py was a strict xfail from f80151b; with --runxfail it failed at
+  assert len(set(hole_labels)) == len(HOLES)  — all four holes of infinitude-of-primes labelled
+  'infinitude-of-primes-…' (engineering/session-notes/2026-09-13-euclid-tester/phase0-verify.txt).
+The same red reproduced here by restoring the old rule as a mutant:
+
+$ PYTHONPATH=mutants uv run --frozen pytest -p mut_dag_head site/tests/test_finding_dag_labels.py site/tests/test_dag.py -q
+E       assert 1 == 4
+E       assert '>bbbbbbbbbbbbb…cccccccc</text>' in '<svg class="dag" viewBox="0 0 208 68" width="208" height="68" role="img" aria-label="dependency graph">\n<defs><marke...><text x="12" y="23">bbbbbbbbbbbbbaaaaaaaa…</text><title>bbbbbbbbbbbbbaaaaaaaaacccccccc: ready</title></g></a>\n</svg>'
+FAILED site/tests/test_finding_dag_labels.py::test_hole_labels_are_distinct_and_keep_their_suffix
+FAILED site/tests/test_dag.py::test_long_node_id_is_truncated_in_the_label_but_whole_in_the_title
+FAILED site/tests/test_dag.py::test_short_label_keeps_a_fitting_id_whole_and_every_long_one_at_the_limit
+3 failed, 9 passed in 0.03s
+
+--- the change ---
+site/opn_site/dag.py  short_label(node_id): the id when it fits in LABEL_MAX = 22, else 13 characters of
+                      head, an ellipsis and LABEL_TAIL = 8 of tail; the whole id stays in <title> and
+                      data-node. infinitude-of-primes--h1..h4 read 'infinitude-of…imes--h1' .. '--h4'.
+site/tests/test_dag.py  the truncation test that pinned head-only labels now pins head, ellipsis and
+                      tail; a new edge test at 0, 22 and 23 characters.
+The strict xfail mark came off test_hole_labels_are_distinct_and_keep_their_suffix.
+
+$ uv run --frozen pytest site/tests -q
+127 passed, 7 xfailed in 3.45s
+
+--- not in this part ---
+Part 2 (status cause words, not-claimable reasons on the node page and frontier row, AGENTS.md rendered
+as a document) needs site/opn_site/render.py, model.py and templates/node.html, which another session
+holds uncommitted; it lands after their commit. Spec lines for F04 (R6, AC) are applied at that merge.
+
+--- make verify on the branch (worktree of 4092af7 + this change) ---
+All checks passed!
+295 files already formatted
+Success: no issues found in 147 source files
+Success: no issues found in 83 source files
+Success: no issues found in 22 source files
+= 1694 passed, 13 skipped, 65 deselected, 78 xfailed, 2 warnings in 105.12s (0:01:45) =
+exit 0

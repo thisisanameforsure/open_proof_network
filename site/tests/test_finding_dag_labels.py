@@ -7,15 +7,13 @@ boxes read ``infinitude-of-primes-…`` — the part that tells them apart is th
 
 Mike's decision (2026-09-14, plan F04-T10): tail-preserving labels that still fit the box.
 ``test_dag.py``'s truncation test pins today's head-only rule and is rewritten with the fix.
-Strict xfail until F04-T10 lands (conventions §2).
+Held as a strict xfail from f80151b until F04-T10 (2026-09-14).
 """
 
 from __future__ import annotations
 
 import re
 from typing import Any
-
-import pytest
 
 from opn_site import dag
 
@@ -34,14 +32,6 @@ def labels(out: str) -> dict[str, str]:
     return dict(found)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "finding site-dag-labels (F04-R6, F07-R6, D-29): ids longer than 22 characters keep "
-        "their head, so the four holes of infinitude-of-primes carry one identical label; "
-        "fix: F04-T10 (Mike, 2026-09-14)"
-    ),
-)
 def test_hole_labels_are_distinct_and_keep_their_suffix() -> None:
     out = dag.svg(NODES, href={n["node_id"]: f"/nodes/t/{n['node_id']}/" for n in NODES})
     got = labels(out)
