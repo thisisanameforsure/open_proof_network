@@ -629,3 +629,11 @@ The law of the project:
   frontier; one helper serves both now. When a product field is computed in two places, grep for
   the second before changing the first. And a local screenshot server can collide with another
   session's on the same port: read the page you captured, not the one you meant to.
+- 2026-09-14 — F13 (the fast check through AXLE) is live as network 9505776, and it needed the
+  decisions doc first: D-4 and D-35 promised contributor Lean never runs outside the gate's
+  sandbox, so a forwarding endpoint was a v3.14 amendment before it was code. Two findings worth
+  keeping. A table keyed by `id(ctx)` is a bug in waiting: CPython hands a collected object's
+  address to the next one (189 of 200 rounds in a probe), so a new app inherited an old app's
+  semaphore and the test failed once in a full run and never alone; per-app state lives on the
+  app's own object. And price a "just add a field to info.json" before promising it: `info/v1` is
+  closed and hash-pinned and is the graph's product, so the mapping became its own route instead.

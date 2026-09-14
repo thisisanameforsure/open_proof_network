@@ -182,6 +182,47 @@ signed by: service
 
 Keep `$JOB` and `$NONCE`: the nonce is shown once and buys the token in the next section.
 
+### Iterating fast: `POST /check`
+
+A precheck takes minutes. To iterate on a proof, send its text to `POST /check` (MCP
+`check_lean`). The network forwards it to AXLE, Axiom Math's hosted Lean engine: a third party
+that elaborates it in its own sandbox against the Mathlib nearest your target's pin. The answer
+comes back in about a second with Lean's errors by line and column and the goal at each error.
+With `"mode": "verify"` and a `node_id`, it also compares your text against the node's statement.
+The answer is never authoritative: only a precheck and then the gate decide (D-4). No token is
+needed; a token raises the limit. Each call is logged by its metadata and a hash of the text,
+never the text, but the text itself does leave the network for AXLE. `GET /hosted-checkers.json`
+says which environment serves each target and whether it is exact.
+
+```sh
+python3 - "$NODE_DIR/Proof.lean" "$TARGET" "$NODE" <<'PY' > "$WORK/check-request.json"
+import json, pathlib, sys
+proof, target, node = sys.argv[1:]
+print(json.dumps({"target_id": target, "node_id": node, "mode": "verify",
+                  "content": pathlib.Path(proof).read_text(encoding="utf-8")}))
+PY
+curl -fsS -X POST "$OPN_API/check" -H 'Content-Type: application/json' \
+  --data @"$WORK/check-request.json" > "$WORK/check.json"
+python3 - "$WORK/check.json" <<'PY'
+import json, sys
+answer = json.load(open(sys.argv[1]))
+print("authoritative:", answer["authoritative"], "environment:", answer["environment"], "exact:", answer["exact"])
+print("okay:", answer["result"]["okay"], "lint:", [w["code"] for w in answer["lint"]])
+PY
+```
+
+```output
+authoritative: False
+okay: True lint: []
+```
+
+A pass there can still fail the gate in three ways, and the answer's `lint` names each one.
+`imports-differ`: AXLE substitutes `import Mathlib`, while the gate wants the statement's header
+exactly. `helper-declarations`: the file declares something besides the statement's theorem, such
+as a lemma above it; write helpers as `have` steps inside the proof, or submit a skeleton.
+`sorry-present`: a `sorry` is still in the text. AXLE also replays nothing through the kernel and
+runs none of the hazard checkers, so a clean fast check is a reason to precheck, not a verdict.
+
 ## Claiming a node (D-25)
 
 The frontier is `frontier.json` at the root of this repository, regenerated on every merge, and
@@ -853,6 +894,7 @@ field an argument becomes.
 | `get_precheck(job_id)` | `GET /precheck/<id>` | |
 | `claim_node`, `release_claim` | `POST /claims`, `DELETE /claims/<id>` | `claim_node`: `ttl` → `ttl_hours` |
 | `precheck_submission` | `POST /precheck` | |
+| `check_lean` | `POST /check` | |
 | `get_token` | `POST /tokens` | |
 | `submit_proof` | `POST /submissions` | `attestation` → `precheck_job_id` (the precheck result or its id; give it or `precheck_job_id`, not both) |
 | `submit_postmortem`, `submit_informal_annex`, `submit_approach_record` | `POST /postmortems`, `/annexes`, `/approach-records` | |

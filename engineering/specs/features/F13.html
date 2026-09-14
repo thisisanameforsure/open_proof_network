@@ -283,7 +283,7 @@ D-28, D-35, D-36.</p>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> building · <strong>Tasks:</strong> T1 ✓ 2026-09-14
+<div class="rule"><strong>status:</strong> done 2026-09-14 (tag F13-done; live as network 9505776) · <strong>Tasks:</strong> T1 ✓ 2026-09-14
   (<code>uv run pytest gate/tests/test_hosted_checkers.py api/tests/test_mcp_surface.py</code>; pin
   tags and the mapping; decisions v3.14 and constitution v2; <code>engineering/evidence/F13/task-1.txt</code>)
   · T2 ✓ 2026-09-14 (<code>uv run pytest api/tests/test_axle.py</code>: 14 passed; the seam over the
@@ -314,7 +314,10 @@ D-28, D-35, D-36.</p>
   verified clean, the broken proof failed at line 7, erdos-376's statement answered with
   <code>sorry-present</code> on <code>lean-4.33.0</code>, <code>check_lean</code> answered 200 through
   a real MCP client with no token, every call logged; <code>engineering/evidence/F13/task-7.txt</code>)
-  · T8 todo</div>
+  · T8 ✓ 2026-09-14 (<code>uv run pytest gate/tests/test_walkthrough.py</code>: the section's command
+  executed in the AC1 run, <code>test_fast_check_section</code> passed, the appendix row added; the
+  graph's copy travels with the graph re-pin push, so <code>test_graph_copy_is_identical</code> keeps
+  its strict mark until then; <code>engineering/evidence/F13/task-8.txt</code>)</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its

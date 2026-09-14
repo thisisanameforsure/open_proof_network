@@ -1,0 +1,16 @@
+F13-T8 — the guide section "Iterating fast: POST /check" and the check_lean appendix row
+Captured 2026-09-14T11:16:41Z on network main after 9024fa1 (the service live as 9505776).
+
+The section's command is an ordinary sh block, so the AC1 run executes it against the fixture clone and the served api (FakeAxle, the fixture target Lean-core-only and so on the mapping's core entry); its documented output lines "authoritative: False" and "okay: True lint: []" were matched in order. The manual set is unchanged (two blocks).
+
+$ uv run pytest gate/tests/test_walkthrough.py -v -rx
+gate/tests/test_walkthrough.py::test_required_sections PASSED            [ 16%]
+gate/tests/test_walkthrough.py::test_graph_copy_is_identical XFAIL (...) [ 33%]
+gate/tests/test_walkthrough.py::test_manual_blocks_are_the_known_two PASSED [ 50%]
+gate/tests/test_walkthrough.py::test_fast_check_section PASSED           [ 66%]
+gate/tests/test_walkthrough.py::test_agents_md_executes PASSED           [ 83%]
+gate/tests/test_walkthrough.py::test_agents_md_executes_with_toolchain PASSED [100%]
+XFAIL gate/tests/test_walkthrough.py::test_graph_copy_is_identical - F10-T6, F10-T7: the guide changed in this repo first; graph copy pushed by the lead (gate/agents/AGENTS.md copied byte for byte to the graph's AGENTS.md), then this mark comes off
+============= 5 passed, 1 xfailed, 2 warnings in 161.64s (0:02:41) =============
+
+The graph's copy of AGENTS.md is not written here: the session re-pinning the graph (open-proof-network-20) recopies gate/agents/AGENTS.md into its staged graph commit, so one graph push carries both, and test_graph_copy_is_identical keeps its strict mark until then.

@@ -254,6 +254,34 @@ def test_manual_blocks_are_the_known_two() -> None:
     assert all(s.command.tags <= {"lean", "manual"} for s in plan), "unknown block tag"
 
 
+def test_fast_check_section() -> None:
+    """F13-AC10: the fast check is documented where an agent iterates, after the precheck: it
+    names AXLE as a third party, says the answer is not a verdict and the text leaves the network,
+    names the three gaps the lint reports and where the mapping is served, and the MCP appendix
+    lists the tool. Its command is an ordinary block, executed by the AC1 run like any other."""
+    markdown = DOC.read_text(encoding="utf-8")
+    start = markdown.index("### Iterating fast: `POST /check`")
+    assert markdown.index("### On the HTTP path: `POST /precheck`") < start
+    end = markdown.index("\n## ", start)
+    section = markdown[start:end]
+    for needle in (
+        "AXLE",
+        "third party",
+        "never authoritative",
+        "leave the network",
+        "imports-differ",
+        "helper-declarations",
+        "sorry-present",
+        "GET /hosted-checkers.json",
+        "check_lean",
+        '"mode": "verify"',
+    ):
+        assert needle in section, f"the fast-check section does not say {needle!r}"
+    assert "```sh manual" not in section, "the fast-check command must run in the AC1 walkthrough"
+    appendix = markdown[markdown.index("## Appendix: the MCP tools") :]
+    assert "| `check_lean` | `POST /check` |" in appendix
+
+
 # --- AC1 -----------------------------------------------------------------------------------------
 
 
