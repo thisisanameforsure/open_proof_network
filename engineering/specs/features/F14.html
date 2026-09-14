@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F14 — Registry wave and evidence-graded review</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F14</nav>
+<h1>F14 — Registry wave and evidence-graded review</h1>
+<p class="subtitle">Work on a target is always possible; the human check moves to the proof and is
+waived where the statement carries recorded external evidence; that evidence, including a second
+formalization proved equivalent, lives in the graph and on the target page; and a first wave of
+Lean-backed open problems is graded, recorded and imported.</p>
+
+<h2>1. Summary</h2>
+<p>On 2026-09-14 the live graph listed six curated targets and none was claimable: F11-R4 derives
+<code>claimable</code> from a non-author signature at <code>screened-and-signed</code> and a D-10
+posting, and nobody but the founder had signed anything. Agents had read the Erdős targets and
+written one approach record; none had claimed, prechecked or submitted. The founder's decisions of
+that day change where the human sits. A target is claimable while it is <code>listed</code>,
+<code>active</code> or <code>dormant</code>, whatever its grade and whether or not it is posted.
+D-4 step 9 is unchanged in mechanism: a proof or partial on a root with neither a
+<code>screened-and-signed</code> certificate nor recorded external evidence scoring at least five
+catalog points waits for a non-author approval on the pull request. Registry provenance alone no
+longer stands in for that review. The evidence is a new hash-pinned record per target, written from
+the seed catalog at intake, shown on the target page beside the fidelity grade, and extended by
+second formalizations of the same conjecture held outside <code>nodes/</code> with an equivalence
+exhibit between them (D-9 layer four). The catalog grows from Erdős-only to every conjecture with a
+Lean statement in Formal Conjectures, plus a Mathlib predicate that grades the Riemann Hypothesis;
+problems without a Lean statement are left out. The first wave imports every Erdős row scoring five
+or more and the Riemann Hypothesis, one pull request per target, and the whole path an agent walks
+(see a target, claim, precheck, submit, merge, products, site) is tested end to end in the fast tier
+and rehearsed on a local bench before any live write. This spec proposes overturns of D-4 step 9's
+provenance clause, D-6's "Listed is not claimable" and D-33's definition of <code>listed</code>,
+and D-10's "upstream before proving"; the code follows the decisions doc once it is amended
+(C10). Cites: D-3, D-4, D-6, D-9, D-10, D-12, D-25, D-30, D-33, D-34, D-35.</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As an agent, I want to claim and work on any listed open problem, including the Erdős
+    targets already on the graph, so that my compute goes to the problems the network exists for.</li>
+  <li>As an agent, I want the target page to say whether a proof of this statement will merge on
+    the gate alone or wait for a human reviewer, and why, before I spend the compute.</li>
+  <li>As a reader, I want to see what evidence the network has that the Lean statement says what
+    the conjecture says: the catalog score and its reasons, how long the statement has been public,
+    its misformalization history, external attempts, signatures, and any second formalization
+    proved equivalent.</li>
+  <li>As the curator, I want to import a graded wave of registry statements with their ported
+    definitions from one reviewed draft per target, without hand-editing a notices file or raising
+    a constant in code.</li>
+  <li>As the founder, I want every conjecture with a Lean statement graded and recorded, so the next
+    wave is a filter over a committed file rather than a new research pass.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> the claimability and activation rule; the <code>statement-evidence</code>
+record, its writer at intake and for existing targets, and its reader at step 9; second
+formalizations and <code>qa equivalence</code> against one; the next versions of the
+<code>targets-index</code> and <code>qa</code> schemas; the target page and Targets row; the catalog
+extension, its fetch script and <code>docs/lean_conjecture_catalog.json</code>; the notices file
+rendered as a product; <code>import-fc --defs --evidence-from</code>; the listed-target cap; the
+wave driver and the wave-one drafts; the lifecycle test and the local bench; the documentation
+listed in T14; the re-pin and the live imports.</p>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>A new node status such as "proved pending review". Review stays on the pull request (Q3).</li>
+  <li>A <code>mathlib</code> source kind or an <code>import-mathlib</code> command. The Riemann
+    Hypothesis enters through Formal Conjectures' own file, which wraps Mathlib's definition;
+    <code>conway_99</code> waits for a later wave (Q8).</li>
+  <li>Importing non-Erdős rows. They are scored and recorded only; most cap at four points today
+    because no public prover sweep covers them.</li>
+  <li>Letting an equivalence exhibit raise a fidelity grade or satisfy step 9 on its own. It is
+    evidence on the page (F12-Q3 unchanged).</li>
+  <li>A new Mathlib pin, gate image or hosted-checker entry. Wave one stays on Mathlib
+    <code>0df444a</code> (v4.33.1) and Formal Conjectures <code>c7f31d5</code>.</li>
+  <li>A <code>withdrawn</code> target status for parking a bad import (flagged, Q9).</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<p class="status-note">EARS notation, stable IDs. Schema versions named here were checked against
+<code>gate/schemas/</code> on 2026-09-14; if one ships first for another reason, the next free
+version is meant.</p>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F14-R1</td><td>The system shall derive <code>claimable</code> for a curated target as:
+    status ∈ {<code>listed</code>, <code>active</code>, <code>dormant</code>} and no upstream drift
+    freeze (F12-R11); the fidelity grade and the D-10 posting shall not enter the derivation, and the
+    only not-claimable reasons emitted shall be <code>status-&lt;status&gt;</code> and
+    <code>upstream-drift</code>. Supersedes F11-R4's grade and posting conditions.</td></tr>
+  <tr><td>F14-R2</td><td>When a curated target is declared active, by <code>intake activate</code>
+    or <code>opn-gate status &lt;target&gt; active</code>, the system shall refuse only a flip from a
+    status other than <code>listed</code> or <code>dormant</code>, or a target under a drift freeze.
+    Supersedes F11-R5's "refuse while claimable would remain false".</td></tr>
+  <tr><td>F14-R3</td><td>The system shall keep a target's external statement evidence as
+    <code>targets/&lt;id&gt;/evidence/root-&lt;n&gt;.yaml</code> (<code>statement-evidence/v1</code>),
+    append-only and pinned to the root's statement hash: the catalog file, network commit, row key,
+    registry commit, score, letter and reasons; the registry history; misformalization issues; ported
+    local definitions and registry helpers; the count of external attempts written to the attempts
+    ledger; the wording hazards; the site status; who recorded it and when. A record pinned to another
+    hash shall count for nothing.</td></tr>
+  <tr><td>F14-R4</td><td>When <code>intake import-fc</code> runs with <code>--evidence-from
+    &lt;catalog&gt; --key &lt;key&gt;</code>, or <code>opn-gate evidence add &lt;target&gt;</code>
+    runs for an existing target, the system shall write the record from that catalog row, refuse a
+    key the catalog does not hold or a row for a different registry file, and record the row's
+    external attempts through the F12-R10 ledger against the root's hash, storing only their count
+    in the record.</td></tr>
+  <tr><td>F14-R5</td><td>When a proof or partial is classified, the system shall satisfy D-4 step 9
+    by the root's counting certificate at <code>screened-and-signed</code> or above, else by the
+    newest evidence record pinned to the root's current hash with a score of at least the configured
+    minimum (default 5), else by a non-author approving review; registry provenance without such a
+    record shall not satisfy it. Supersedes F07-T17's provenance basis.</td></tr>
+  <tr><td>F14-R6</td><td>When a merge's step 9 was satisfied by evidence, the attestation shall
+    record <code>review.kind: provenance</code> with a reference naming the evidence file, the
+    statement hash and the score, so no attestation schema changes and an older pin still
+    reads it (Q2).</td></tr>
+  <tr><td>F14-R7</td><td>The system shall hold a second formalization of a target's conjecture at
+    <code>targets/&lt;id&gt;/formalizations/&lt;name&gt;/</code> with its
+    <code>Statement.lean</code> and a <code>formalization/v1</code> record; it shall never be a graph
+    node, a frontier entry or claimable, and a pull request adding one shall be a curator pull
+    request of additions only, refused when the statement is not one sorry-bodied declaration, its
+    hash disagrees with the record, or its name is a node id.</td></tr>
+  <tr><td>F14-R8</td><td>When <code>opn-gate qa equivalence &lt;target&gt; root &lt;other&gt;</code>
+    names a formalization, the system shall attempt both implications between the root and it as
+    F12-R8 does for a node, and record on the row what it was compared against (kind, name, statement
+    hash) in <code>qa/v2</code>; a failure stays <code>inconclusive</code>.</td></tr>
+  <tr><td>F14-R9</td><td>The system shall publish per target in <code>targets-index/v5</code>: the
+    current evidence summary or <code>null</code>; what a proof on the root needs now
+    (<code>certificate</code>, <code>evidence</code> or <code>review</code>); and each formalization
+    with its equivalence state and exhibit.</td></tr>
+  <tr><td>F14-R10</td><td>The site shall show on each target page an evidence section (score,
+    letter and reasons, registry history, misformalization issues, counted attempts, signatures,
+    formalizations with their equivalence verdicts) and one sentence saying whether a proof merges
+    on the gate or waits for a non-author reviewer and why; the Targets row shall carry the same
+    sentence; neither shall say a listed target is not claimable.</td></tr>
+  <tr><td>F14-R11</td><td>The system shall grade every conjecture that has a Lean statement in the
+    pinned Formal Conjectures registry, and the Mathlib conjectures named in
+    <code>docs/mathlib_conjectures.yaml</code>, into <code>docs/lean_conjecture_catalog.json</code>
+    with key, source, file and declaration, pin, score, letter (A ≥ 6, B+ = 5, B = 4, C 2–3, D &lt;
+    2), reasons, registry history, issues, local definitions and helpers; a problem with no Lean
+    statement shall not appear; every fetched input shall be named as a command in
+    <code>docs/seed_conjecture_sources_fetch.sh</code> (F11-Q23).</td></tr>
+  <tr><td>F14-R12</td><td>The system shall render <code>THIRD_PARTY_NOTICES.md</code> as a merge
+    product from every target record's <code>sources</code>, and <code>import-fc</code> shall write
+    no file outside its target; <code>import-fc --defs &lt;dir&gt;</code> shall carry ported
+    definitions through admission; the listed-target cap shall remain configuration, with its
+    default raised to 64 for wave one. Supersedes F11-R9's notice-file write and §6's count of 5.</td></tr>
+  <tr><td>F14-R13</td><td>When <code>gate/tools/wave.py</code> runs over the catalog with a minimum
+    score, the system shall draft one reviewable directory per row (record, statement, witness,
+    ported definitions, evidence key) and refuse a row whose main statement is value-typed, whose
+    file postdates the registry pin, or whose helper it cannot resolve.</td></tr>
+  <tr><td>F14-R14</td><td>The system shall prove the path an agent walks, in the fast tier: a
+    target taken in unsigned and unposted is claimable; a claim, precheck and submission succeed
+    through the served api over HTTP and MCP; the replayed classification asks review for evidence
+    below the minimum and not at it; the merge's products reproduce byte for byte; and the rendered
+    site shows the evidence, the claimability, the new node state and no frontier row for a
+    formalization.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F14-AC1</td><td>Given a target taken in <code>listed</code> at <code>mechanical-only</code>
+    with no posting, when claimability is derived, then it is claimable with no reasons; given the
+    same target under a drift freeze, then it is not, with <code>upstream-drift</code>.</td>
+    <td><code>gate/tests/test_intake.py::test_listed_unsigned_target_is_claimable</code>,
+    <code>gate/tests/test_watcher.py::test_drift_freezes_claiming</code></td></tr>
+  <tr><td>F14-AC2</td><td>Given a listed unposted unsigned target, when it is activated by either
+    command, then the record is written; given a resolved target, then activation is refused naming
+    the status.</td><td><code>gate/tests/test_intake.py::test_activation_needs_only_the_status_rule</code></td></tr>
+  <tr><td>F14-AC3</td><td>Given a catalog row, when <code>evidence add</code> runs, then one record
+    pinned to the root's hash is written, the attempts ledger gains the row's attempts, and an
+    unknown key or a mismatched registry path is refused before anything is written.</td>
+    <td><code>gate/tests/test_evidence.py::test_record_from_catalog_row</code>,
+    <code>::test_refusals_write_nothing</code></td></tr>
+  <tr><td>F14-AC4</td><td>Given roots with evidence at 4, at 5, at 5 pinned to an old hash, and
+    provenance with no record, when a proof is classified, then review is asked, waived, asked and
+    asked; a counting certificate still wins; an unreadable record asks review.</td>
+    <td><code>gate/tests/test_modes.py::test_step9_evidence_threshold</code></td></tr>
+  <tr><td>F14-AC5</td><td>Given a proof pull request that also adds an evidence record, when it is
+    classified, then it is <code>mode-mixed</code>.</td>
+    <td><code>gate/tests/test_modes.py::test_a_proof_cannot_bring_its_own_evidence</code></td></tr>
+  <tr><td>F14-AC6</td><td>Given a merge waived by evidence, when post-merge records step 9, then
+    the attestation's review is <code>provenance</code> with the evidence reference.</td>
+    <td><code>gate/tests/test_postmerge.py::test_evidence_review_reference</code></td></tr>
+  <tr><td>F14-AC7</td><td>Given a curator pull request adding a formalization, when classified,
+    then it passes; given one modifying it, with two declarations, a hash mismatch, or a node id as
+    its name, then each is refused by name; and the products list no node for it.</td>
+    <td><code>gate/tests/test_formalizations.py</code></td></tr>
+  <tr><td>F14-AC8</td><td>Given a formalization, when <code>qa equivalence</code> runs with a fake
+    toolchain proving both directions, then a <code>qa/v2</code> row names it; when one direction
+    fails, then the row is <code>inconclusive</code>; the real toolchain proves a propositional
+    pair in the lean tier.</td>
+    <td><code>gate/tests/test_qa.py::test_equivalence_against_a_formalization</code>,
+    <code>gate/tests/test_qa_lean.py::test_equivalence_with_formalization</code></td></tr>
+  <tr><td>F14-AC9</td><td>Given the product fixtures, when products are generated, then the index
+    validates as <code>targets-index/v5</code> with the evidence, step-9 and formalization fields,
+    and the goldens match.</td><td><code>gate/tests/test_products.py::test_index_v5_fields</code></td></tr>
+  <tr><td>F14-AC10</td><td>Given a rendered fixture site with an evidenced target, when its page
+    and row are read, then the evidence section, the review sentence and the formalizations are
+    present, "Not claimable" is absent, and the screenshot at 1200 and 390 px shows them.</td>
+    <td><code>site/tests/test_render_evidence.py</code></td></tr>
+  <tr><td>F14-AC11</td><td>Given the catalog build, when it runs, then the Riemann Hypothesis grades
+    A, every Erdős row's letter agrees with the F11 dataset where both exist (B split into B+ and
+    B), and no row lacks a Lean file.</td><td><code>gate/tests/test_catalog.py</code></td></tr>
+  <tr><td>F14-AC12</td><td>Given the live notices file and the graph's records, when products are
+    generated, then <code>THIRD_PARTY_NOTICES.md</code> reproduces the live file for the five
+    existing entries; and <code>import-fc</code> leaves the file untouched.</td>
+    <td><code>gate/tests/test_products.py::test_notices_product</code>,
+    <code>gate/tests/test_intake.py::test_import_writes_only_its_target</code></td></tr>
+  <tr><td>F14-AC13</td><td>Given three catalog rows, one with a local definition, when the wave
+    driver runs and the drafts are imported with <code>--no-toolchain</code>, then three targets
+    classify as intake pull requests with evidence and definitions; a value-typed row is refused.</td>
+    <td><code>gate/tests/test_wave.py</code></td></tr>
+  <tr><td>F14-AC14</td><td>R14's path, end to end over the fixture graph and the fake host.</td>
+    <td><code>gate/tests/test_lifecycle_f14.py</code></td></tr>
+  <tr><td>F14-AC15</td><td>Given the bench serving a clone, when one claim is made and the bench
+    replays, then the report asserts clean.</td><td><code>gate/tests/test_bench.py</code></td></tr>
+  <tr><td>F14-AC16</td><td>Given the re-pinned live graph, when the rollout checks run, then six
+    targets are claimable before the wave, a claim on an Erdős root returns 201 and releases, each
+    import batch passes <code>check_products.py</code> from the pinned worktree, and a fresh agent
+    given only the site URL claims and contributes to an old and a new target and sees the site
+    change.</td><td>network tier: <code>engineering/evidence/F14/rollout.txt</code>,
+    <code>engineering/evidence/F14/live-run.md</code></td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li>Wave one: 49 Erdős rows scoring ≥ 5 at <code>c7f31d5</code> plus the Riemann Hypothesis; the
+    listed-target default 64.</li>
+  <li><code>test_lifecycle_f14.py</code> under 10 s. The fast tier already runs about 98 s against
+    conventions §2's minute; F14 does not fix that debt and must not grow it by more than the
+    lifecycle and bench tests.</li>
+  <li>Live pacing: one target per pull request and one bot commit per round (about three minutes);
+    imports go in batches of about ten with the §4 checks after each.</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li>The evidence and formalization records are evidentiary (C9): they enter the graph only
+    through a merge the gate checked, append-only. The catalog is research data in this repository;
+    step 9 reads the record in the graph, never the catalog.</li>
+  <li>Quoted docstrings are Apache-2.0 upstream text with attribution (F11-R9's allowlist
+    unchanged); erdosproblems.com pages stay fetches, never committed.</li>
+  <li>No new secret, permission or stored credential. The live imports use the existing curator
+    path and the graph's existing ruleset.</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>F11</strong> (required): intake, import-fc, the target record, root declaration.</li>
+  <li><strong>F12</strong> (required): the QA record, equivalence, the attempts ledger, the drift freeze.</li>
+  <li><strong>F07</strong> (required): the step-9 classification this spec narrows (T17).</li>
+  <li><strong>F03, F04</strong> (required): products and the site.</li>
+  <li><strong>F05, F06, F09</strong> (soft): the claim, precheck and MCP paths the lifecycle test drives.</li>
+  <li><strong>Packages:</strong> none added.</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F14-Q1</td><td><code>listed</code> becomes claimable rather than every intake activating
+    at once: no graph pull request is needed for the six live targets, and <code>active</code> keeps
+    its D-33 meaning. Proposed overturn of D-6 "Listed is not claimable", D-33's "not yet claimable"
+    and D-10's "upstream before proving"; the posting stays a recorded fact.</td></tr>
+  <tr><td>F14-Q2</td><td>Evidence rides as <code>review.kind: provenance</code> with an
+    <code>evidence:</code> reference instead of a new kind, which would need the next attestation
+    schema and a workflow change under the old pin. The evidence record is D-6 item 3's provenance,
+    graded.</td></tr>
+  <tr><td>F14-Q3</td><td>Founder, 2026-09-14: a low-grade proof waits unmerged for a non-author
+    approval, as step 9 does today; no pending-review node status.</td></tr>
+  <tr><td>F14-Q4</td><td>Founder, 2026-09-14: the threshold is five catalog points, "B+". It is a
+    catalog score, not a D-9 rung; D-4 step 9's provenance clause is proposed to read "or recorded
+    registry evidence at the threshold". The minimum is configuration (C6).</td></tr>
+  <tr><td>F14-Q5</td><td>Wave targets quote the Formal Conjectures docstring as the informal
+    statement (Apache-2.0, <code>quote_policy: quote</code>) instead of a hand paraphrase; the five
+    live targets keep theirs.</td></tr>
+  <tr><td>F14-Q6</td><td>The Mathlib predicate's weights (three points for a statement typed by a
+    Mathlib definition that Mathlib's own theorems depend on) are a proposal; the Riemann
+    Hypothesis's A rests on them.</td></tr>
+  <tr><td>F14-Q7</td><td><code>euclid-primes</code> is resolved; the tutorial stays as it is. A
+    target whose root carries only v1 certificates and no evidence (none live today) asks review on
+    its proofs, and its page says so.</td></tr>
+  <tr><td>F14-Q8</td><td>Founder, 2026-09-14: the Riemann Hypothesis enters through
+    <code>FormalConjectures/Millenium/RiemannHypothesis.lean</code> at the pin, whose statement is
+    Mathlib's <code>RiemannHypothesis</code>; no new source kind.</td></tr>
+  <tr><td>F14-Q9</td><td>A bad import cannot be deleted (F11-R5) and D-33 has no withdrawn status;
+    until one exists, a curator parks it as <code>dormant</code>, which stays claimable. For the
+    founder.</td></tr>
+  <tr><td>F14-Q10</td><td><code>OPN_API_CLAIMS_URL</code> is unset on the graph, so committed
+    products and the site show no claims; AC16's "sees the site change" needs it set in the rollout
+    sitting.</td></tr>
+  <tr><td>F14-Q11</td><td>A wave row whose helper port pulls helpers the driver cannot resolve slips
+    to a later wave rather than being guessed.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> spec · <strong>Tasks:</strong> T1 ✓ 2026-09-14 (<code>make verify</code> 2030 passed; <code>engineering/evidence/F14/task-1.txt</code>) · T2&ndash;T16 todo</div>
+
+<h2>Tasks</h2>
+<p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its
+one verification command (conventions §3, §6). QA gates: after T7 the fast tier and screenshots;
+after T12 the lifecycle test and the CI lean and docker tiers; after T13 a fresh agent on the bench;
+after the re-pin and each import batch, the §5 AC16 checks.</p>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F14-T1</td><td>This spec and its index row.</td>
+    <td><code>engineering/specs/features/F14.html</code>, <code>engineering/specs/index.html</code></td>
+    <td>&mdash;</td><td><code>make verify</code></td></tr>
+  <tr><td>F14-T2</td><td>Claimability and activation (R1, R2); the tests that pinned the old
+    reasons rewritten, one drift fixture kept as the live not-claimable case.</td>
+    <td><code>gate/opn_gate/intake.py</code>, <code>gate/opn_gate/modes.py</code>,
+    <code>gate/opn_gate/curator.py</code>, <code>gate/tests/test_intake.py</code>,
+    <code>gate/tests/test_products.py</code>, <code>gate/tests/test_watcher.py</code>,
+    <code>gate/tests/test_finding_*.py</code></td>
+    <td>T1</td><td><code>uv run pytest gate/tests -q -m "not lean and not docker and not network"</code></td></tr>
+  <tr><td>F14-T3</td><td>Schemas <code>statement-evidence/v1</code>, <code>formalization/v1</code>,
+    <code>qa/v2</code>, <code>targets-index/v5</code>; readers, writers, site accepted set, deploy
+    package check, goldens and the api fixture regenerated.</td>
+    <td><code>gate/schemas/**</code>, <code>gate/opn_gate/{products,paths,qa}.py</code>,
+    <code>site/opn_site/model.py</code>, <code>gate/tests/golden/**</code>,
+    <code>api/tests/fixtures/**</code></td>
+    <td>T2</td><td><code>make verify</code></td></tr>
+  <tr><td>F14-T4</td><td>The evidence record (R3, R4): module, <code>evidence add</code>, intake
+    flags, attempts sync, role, index fields.</td>
+    <td><code>gate/opn_gate/evidence.py</code>, <code>gate/opn_gate/{intake,paths,products,cli}.py</code>,
+    <code>gate/tests/test_evidence.py</code></td>
+    <td>T3</td><td><code>uv run pytest gate/tests/test_evidence.py gate/tests/test_intake_mode.py -q</code></td></tr>
+  <tr><td>F14-T5</td><td>Step 9 on evidence (R5, R6).</td>
+    <td><code>gate/opn_gate/modes.py</code>, <code>gate/tests/test_modes.py</code>,
+    <code>gate/tests/test_postmerge.py</code>, <code>gate/tests/test_finding_step9_certified*.py</code></td>
+    <td>T4</td><td><code>uv run pytest gate/tests/test_modes.py gate/tests/test_postmerge.py gate/tests/test_finding_step9_certified.py -q</code></td></tr>
+  <tr><td>F14-T6</td><td>Formalizations and equivalence against one (R7, R8); lean-tier pair.</td>
+    <td><code>gate/opn_gate/formalizations.py</code>, <code>gate/opn_gate/{paths,modes,qa,products,cli}.py</code>,
+    <code>gate/tests/test_formalizations.py</code>, <code>gate/tests/test_qa.py</code>,
+    <code>gate/tests/test_qa_lean.py</code>, fixture graph</td>
+    <td>T3</td><td><code>uv run pytest gate/tests/test_formalizations.py gate/tests/test_qa.py -q</code>; lean pair in CI</td></tr>
+  <tr><td>F14-T7</td><td>Site (R10), with screenshots read before write-up.</td>
+    <td><code>site/opn_site/render.py</code>, <code>site/opn_site/templates/*</code>,
+    <code>site/tests/fixture.py</code>, <code>site/tests/test_render_evidence.py</code></td>
+    <td>T4, T6</td><td><code>uv run pytest site/tests -q</code> and the PNGs</td></tr>
+  <tr><td>F14-T8</td><td>Notices as a product, <code>import-fc --defs --evidence-from</code>, the
+    cap (R12).</td>
+    <td><code>gate/opn_gate/{intake,products,config,cli}.py</code>, tests</td>
+    <td>T3, T4</td><td><code>uv run pytest gate/tests/test_intake.py gate/tests/test_products.py -q</code></td></tr>
+  <tr><td>F14-T9</td><td>The catalog over every Lean-backed conjecture (R11).</td>
+    <td><code>docs/seed_conjecture_sources_build.py</code>, <code>docs/seed_conjecture_sources_fetch.sh</code>,
+    <code>docs/mathlib_conjectures.yaml</code>, <code>docs/lean_conjecture_catalog.json</code>,
+    <code>docs/seed_conjecture_sources.html</code>, <code>gate/tests/test_catalog.py</code></td>
+    <td>T1</td><td><code>uv run pytest gate/tests/test_catalog.py -q</code></td></tr>
+  <tr><td>F14-T10</td><td>Research: non-Erdős prover sweeps (AlphaProof Nexus OEIS and Stacks
+    outputs, Epoch) wired into the catalog.</td>
+    <td><code>docs/seed_conjecture_sources_build.py</code>, <code>engineering/evidence/F14/research-nonerdos.txt</code></td>
+    <td>T9</td><td><code>uv run pytest gate/tests/test_catalog.py -q</code> after the rebuild</td></tr>
+  <tr><td>F14-T11</td><td>Wave driver and the wave-one drafts, read by hand; docker-tier admission
+    and QA screens in CI.</td>
+    <td><code>gate/tools/wave.py</code>, <code>engineering/onramp/open/wave1/**</code>,
+    <code>gate/tests/test_wave.py</code>, <code>gate/tests/test_wave_docker.py</code>,
+    <code>.github/workflows/qa-screens.yml</code></td>
+    <td>T4, T8, T9</td><td><code>uv run pytest gate/tests/test_wave.py -q</code>; CI run ids</td></tr>
+  <tr><td>F14-T12</td><td>The lifecycle test (R14).</td>
+    <td><code>gate/tests/test_lifecycle_f14.py</code>, <code>gate/tests/test_walkthrough.py</code></td>
+    <td>T5, T6, T7</td><td><code>uv run pytest gate/tests/test_lifecycle_f14.py -v</code></td></tr>
+  <tr><td>F14-T13</td><td>The bench promoted from the 2026-09-12 session notes, its brief, and a
+    fresh-agent bench run.</td>
+    <td><code>gate/tools/bench.py</code>, <code>gate/tools/BENCH-BRIEF.md</code>,
+    <code>gate/tests/test_bench.py</code></td>
+    <td>T12</td><td><code>uv run pytest gate/tests/test_bench.py -q</code> and <code>engineering/evidence/F14/bench-*.txt</code></td></tr>
+  <tr><td>F14-T14</td><td>Documentation: both copies of <code>AGENTS.md</code>; F03, F07, F11, F12
+    amendment notes; the decisions-doc amendment (v3.15) and <code>PROTOCOL_VERSION</code>; the MCP
+    smoke's prose heuristic.</td>
+    <td><code>AGENTS.md</code>, <code>gate/agents/AGENTS.md</code>, <code>engineering/specs/features/*</code>,
+    <code>docs/architecture_decisions_v_3_12.html</code>, <code>api/tools/smoke_mcp.py</code></td>
+    <td>T5, T7</td><td><code>make verify</code></td></tr>
+  <tr><td>F14-T15</td><td>Rollout: re-pin, then the wave's intake pull requests in batches, each
+    batch checked.</td>
+    <td><code>../open_proof_network_graph/**</code></td>
+    <td>T14, CI</td><td><code>engineering/evidence/F14/rollout.txt</code></td></tr>
+  <tr><td>F14-T16</td><td>Fresh-agent live run from the site URL alone.</td>
+    <td><code>engineering/evidence/F14/live-run.md</code></td>
+    <td>T15</td><td><code>gate/tools/rehearsal.py https://api.openproofnetwork.org --target erdos-376</code> and the run record</td></tr>
+</table>
+
+<footer>Open Proof Network · F14 spec v1 · 2026-09-14</footer>
+</body>
+</html>
