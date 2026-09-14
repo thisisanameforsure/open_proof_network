@@ -1,0 +1,164 @@
+F07-T17 — step 9 is satisfied by the root's certificate or its D-10 registry provenance (D-4 v3.11)
+2026-09-14 · network worktree: built on 39b5154, fast-forwarded to 800a08e (F03-T7) before the
+first commit, rebased onto 0651801 (F04-T11) after it; neither touched a file this task changes
+
+THE RULE (D-4 step 9, v3.11; restated by Mike 2026-09-14)
+  "satisfied by the root's fidelity certificate (D-9, at least screened-and-signed) or its D-10
+  registry provenance, checked at merge; a per-pull-request approving review by a non-author only
+  where the root has neither" — and "the attestation records the certificate or provenance it
+  relied on in place of a reviewer". Before T17 Classification.needs_review was True for every
+  proof and partial, so the gate never consulted either.
+
+== 1. RED FIRST ==================================================================================
+$ uv run --frozen pytest -q -rA gate/tests/test_finding_step9_certified.py     (before any code)
+20 failed, 4 passed in 11.37s
+
+FAILED test_a_a_signed_root_certificate_satisfies_step9
+FAILED test_a_the_reference_is_the_newest_signing_certificate
+FAILED test_b_a_mechanical_only_certificate_needs_a_review
+FAILED test_b_a_later_downgrade_takes_the_certificate_away
+FAILED test_c_a_certificate_for_another_statement_does_not_count[pinned-to-an-old-root]
+FAILED test_c_a_certificate_for_another_statement_does_not_count[v1-pins-nothing]
+FAILED test_d_formal_conjectures_provenance_satisfies_step9
+FAILED test_e_incomplete_or_non_registry_provenance_needs_a_review[no-upstream-commit]
+FAILED test_e_incomplete_or_non_registry_provenance_needs_a_review[empty-upstream-path]
+FAILED test_e_incomplete_or_non_registry_provenance_needs_a_review[no-upstream-path]
+FAILED test_e_incomplete_or_non_registry_provenance_needs_a_review[not-a-registry]
+FAILED test_f_a_certificate_is_preferred_over_provenance
+FAILED test_f_a_stale_certificate_falls_back_to_provenance
+FAILED test_g_a_partial_is_treated_like_a_proof[certificate]
+FAILED test_g_a_partial_is_treated_like_a_proof[fc]
+FAILED test_g_a_partial_is_treated_like_a_proof[neither]
+FAILED test_i_a_curator_record_is_unchanged_under_a_certified_root[second-curator]
+FAILED test_i_an_intake_is_unchanged_by_its_own_provenance
+FAILED test_j_the_fields_are_published_on_a_target_that_predates_f11
+FAILED test_j_an_unreadable_certificate_asks_for_a_review_rather_than_failing_open
+PASSED test_h_an_alternate_still_asks_no_review                     (regression guard: nothing asked)
+PASSED test_i_a_curator_record_is_unchanged_under_a_certified_root[waived]   (regression guard)
+PASSED test_k_postmerge_records_what_stood_in_for_the_reviewer[certificate-fidelity/root-2.yaml]
+PASSED test_k_postmerge_records_what_stood_in_for_the_reviewer[provenance-formal-conjectures:...]
+
+Representative failure lines (the certified and imported cases; the others differ only in the tuple):
+  (a) E  assert (True, None, None) == (False, 'certificate', 'fidelity/root-2.yaml')
+         At index 0 diff: True != False
+  (d) E  assert (True, None, None) == (False, 'provenance', 'formal-conjectures:...@c7f31d5...')
+         At index 0 diff: True != False
+  (b) E  assert (True, None, None) == (True, 'pr-approval', None)
+         At index 1 diff: None != 'pr-approval'
+  (i) intake E  assert (True, None, ...ond-curator']) == (True, 'pr-ap...ond-curator'])
+         At index 1 diff: None != 'pr-approval'
+  (j) unreadable E  assert (True, None, None) == (True, 'pr-approval', None)
+
+(k) was green before any code: `postmerge --review-kind certificate|provenance --review-reference
+<ref>` already wrote review {kind, reviewer: null, reference} (postmerge.review_block). It is
+pinned by the test and needed no change.
+
+One test was added after the red run, as a regression guard that passed when written:
+test_c_a_proof_cannot_bring_its_own_certificate — a pull request adding fidelity/root-2.yaml
+beside the Proof.lean it would excuse is mode-mixed, which is why reading certificates from the
+merge checkout reads what stood on the base.
+
+== 2. THE CHANGE ==================================================================================
+gate/opn_gate/modes.py
+  - STATEMENT_REVIEW_MODES = ("proof", "partial"); STEP9_GRADE = fidelity.SIGNED_FROM
+    ("screened-and-signed"); STEP9_REGISTRIES = {"formal-conjectures"} (intake.FC_SOURCE_KIND).
+  - Classification gains review_basis ("certificate" | "provenance" | None) and review_reference.
+  - needs_review: False for proof/partial when review_basis is set; everything else as before.
+  - review_kind (property): "pr-approval" when needs_review, else the basis for proof/partial,
+    else None. as_dict publishes review_kind and review_reference (the reference only beside a
+    certificate or provenance kind).
+  - with_statement_review(graph_root, classification): for proof/partial on target T, the root's
+    certificate first, then registry provenance, else unchanged.
+  - root_certificate(target_dir): the root's certificates counted as F11-R3 counts them
+    (fidelity.counting against fidelity.current_hash: v2 pinned to the root as it stands); if
+    fidelity.grade_of(counted) meets screened-and-signed, "fidelity/<newest counting signing
+    certificate>". Unreadable certificates or root -> None with a logged warning (C7).
+  - registry_provenance(target_dir): target.yaml provenance.statement_source in STEP9_REGISTRIES
+    and non-empty upstream_commit and upstream_path -> "formal-conjectures:<path>@<commit>".
+    Unreadable record -> None with a logged warning.
+gate/opn_gate/cli.py
+  - run_classify calls modes.with_statement_review(graph, classification) right after classify.
+Unchanged: alternate (no review), curator/intake (reviewers rule; review_kind "pr-approval" when a
+second curator is asked, null when waived), appends, proposals, fidelity mode, the tutorial flag
+(still the workflow's; the classifier says pr-approval on the tutorial node as it said
+needs_review true before), postmerge, the sandbox, the pipeline, products.
+
+== 3. REWRITTEN PINS ==============================================================================
+gate/tests/test_modes.py::test_classify_command (the append-mode exact-dict pin) gains
+  "review_kind": None, "review_reference": None — the document grew two keys; nothing else moved.
+No existing test pinned needs_review True for a building mode on a target carrying a signing
+certificate or formal-conjectures provenance: the propositional fixture has no target.yaml, and the
+curated-target tests (test_finding_a_post_fidelity, test_intake_mode) assert step 9 only for the
+fidelity, curator and intake modes, which T17 does not change.
+
+== 4. GREEN =======================================================================================
+$ uv run --frozen pytest -q -rA gate/tests/test_finding_step9_certified.py
+25 passed in 12.46s   (every case above PASSED, plus test_c_a_proof_cannot_bring_its_own_certificate)
+
+$ uv run --frozen pytest -q gate/tests/test_modes.py gate/tests/test_alternate.py
+    gate/tests/test_intake_mode.py gate/tests/test_finding_a_post_fidelity.py
+    gate/tests/test_cli_sandboxed.py gate/tests/test_postmerge.py
+    gate/tests/test_finding_step9_stale_run.py gate/tests/test_pins.py
+217 passed, 12 skipped in 42.98s   (the skips read the graph checkout, absent beside a worktree)
+
+== 5. MUTANTS (pytest plugins, patched in memory; no file touched) ===============================
+$ PYTHONPATH=<scratch>/mutants uv run --frozen pytest -q -p <mutant> gate/tests/test_finding_step9_certified.py
+
+mutant_ignores_hash — fidelity.counting counts every v2 certificate, whatever root it pins
+  FAILED test_c_a_certificate_for_another_statement_does_not_count[pinned-to-an-old-root]
+  FAILED test_f_a_stale_certificate_falls_back_to_provenance
+  2 failed, 23 passed
+mutant_provenance_no_commit — registry_provenance checks source and path, not upstream_commit
+  FAILED test_e_incomplete_or_non_registry_provenance_needs_a_review[no-upstream-commit]
+  FAILED test_j_an_unreadable_certificate_asks_for_a_review_rather_than_failing_open
+  2 failed, 23 passed
+mutant_provenance_first — with_statement_review consults provenance before the certificate
+  FAILED test_f_a_certificate_is_preferred_over_provenance
+  1 failed, 24 passed
+mutant_any_signature — any counting signature satisfies step 9, ignoring a later downgrade
+  FAILED test_b_a_later_downgrade_takes_the_certificate_away
+  FAILED test_j_an_unreadable_certificate_asks_for_a_review_rather_than_failing_open
+  2 failed, 23 passed
+(Mutants 2 and 4 also drop the fail-safe try/except, which the unreadable-record test sees.)
+
+== 6. make verify =================================================================================
+On 800a08e (and again as the pre-commit hook of the first commit):
+$ make verify    exit 0
+  ruff check: All checks passed! · ruff format --check: 305 files already formatted
+  mypy gate: Success (151 files) · mypy api: Success (88) · mypy site: Success (23)
+  pytest -m "not lean and not docker and not network":
+  1844 passed, 13 skipped, 67 deselected, 52 xfailed, 2 warnings in 281.91s
+
+Rebased onto 0651801 (F04-T11 adds one site test):
+$ make verify    exit 0
+  ruff check: All checks passed! · ruff format --check: 305 files already formatted
+  mypy gate: Success (151 files) · mypy api: Success (88) · mypy site: Success (23)
+  pytest -m "not lean and not docker and not network":
+  1845 passed, 13 skipped, 67 deselected, 52 xfailed, 2 warnings in 159.99s
+
+== 7. WHAT THE GRAPH WORKFLOW READS ===============================================================
+`opn-gate classify --graph . --base <base> --head HEAD` prints one JSON document. T17 adds:
+
+  review_kind       "certificate" | "provenance" | "pr-approval" | null
+  review_reference  string | null
+
+  proof / partial, root certificate grade >= screened-and-signed (counting, v2, current hash):
+      needs_review: false, review_kind: "certificate",
+      review_reference: "fidelity/<subject>-<n>.yaml"   (relative to targets/<target>/)
+  proof / partial, else provenance.statement_source "formal-conjectures" with upstream_commit and
+  upstream_path non-empty:
+      needs_review: false, review_kind: "provenance",
+      review_reference: "formal-conjectures:<upstream_path>@<upstream_commit>"
+  proof / partial, neither (including the tutorial node; its exemption stays the workflow's flag):
+      needs_review: true,  review_kind: "pr-approval", review_reference: null
+  curator / intake with a second listed curator:  needs_review: true, review_kind: "pr-approval",
+      review_reference: null (reviewers still names who may approve)
+  alternate, append, explainer, proposal, fidelity, waived curator/intake, a refused diff:
+      needs_review: false, review_kind: null, review_reference: null
+
+Post-merge: pass them straight through —
+  opn-gate postmerge ... --review-kind "$review_kind" --review-reference "$review_reference"
+  -> attestation review {kind: "certificate"|"provenance", reviewer: null, reference: <ref>}
+  (pr-approval keeps --reviewer; the tutorial keeps --review-kind tutorial).
+Read both with a default (null): a pin that predates T17 omits them and keeps needs_review true,
+which is today's behaviour.
