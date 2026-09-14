@@ -1,0 +1,68 @@
+F06-T6 · precheck refuses a blocked node (R1 amended; D-19, D-25, D-29; F09-R7) · red run before any production change
+worktree of 4092af7 (f80151b's red tests), branch worktree-agent-a23ab5add8db8b864, 2026-09-14
+
+$ uv run --frozen pytest api/tests/test_finding_precheck_blocked.py --runxfail -q
+E   AssertionError: {'id': '01M230M2G0BQ6F4G9KJ9VXGZ3C', 'node_id': 'and-reassoc', 'target_id': 'propositional', 'state': 'queued', ...}
+    assert (202, None) == (409, 'node-blocked')
+E   AssertionError: {'id': '01M230M2G0T8063A7VXVQ9MKB0', 'node_id': 'and-reassoc--h1', 'target_id': 'propositional', 'state': 'queued', ...}
+    assert (202, None) == (409, 'node-blocked')
+E   AssertionError: {'status': 202, 'body': {'id': '01M230M2G0YCWGQCVDAJ29FF6H', 'node_id': 'and-reassoc', ... 'authenticated': True, 'public': True}, 'job_id': '01M230M2G0YCWGQCVDAJ29FF6H', 'poll': ...}
+    (mcp_client.failed: the tool result was not an error — a hosted run had been dispatched)
+FAILED api/tests/test_finding_precheck_blocked.py::test_a_dep_blocked_node_is_refused_before_any_job
+FAILED api/tests/test_finding_precheck_blocked.py::test_a_witness_missing_hole_is_refused_naming_the_witness_route
+FAILED api/tests/test_finding_precheck_blocked.py::test_precheck_submission_over_mcp_passes_the_refusal_through
+3 failed, 3 passed in 0.33s   (the three pins passed before the change and after it)
+
+--- the change (on top of F05-T9) ---
+api/opn_api/precheck.py  check_open(ctx, node_id, facts): a node whose graph row says "blocked" raises
+                         F05-T9's shared blocked_error (unproved deps named, or POST /proposals/witness
+                         for witness-missing; details {status, cause, unproved_deps}). Only "blocked"
+                         is refused: proved stays precheckable (D-19), and a node with no graph row has
+                         no status to refuse on.
+                         post_precheck calls it right after node_facts — before the bearer is read,
+                         before either rate-limit charge, before the bundle is validated, before any
+                         job is saved, pushed or dispatched.
+MCP                      unchanged: precheck_submission forwards the endpoint's 409 body verbatim.
+Not done here (plan: "after their commit"): the same check_open call at submissions.py:232 — another
+session holds uncommitted edits to api/opn_api/submissions.py.
+
+Existing tests rewritten: none. test_precheck.py::test_proved_tutorial_node_is_still_precheckable and
+test_unknown_node_is_404 pass unchanged.
+
+Edge tests added (api/tests/test_rejections_precheck.py, "F06-T6: a blocked node is refused before anything else"):
+  a blocked non-tutorial node with no bearer -> 409 node-blocked (not 401); no job, no push, no dispatch
+  a blocked refusal is not charged: OPN_API_PRECHECKS_PER_HOUR=1, three refusals, then an open node -> 202
+  a frontier node whose graph row is missing stays precheckable -> 202
+
+--- green, after the change (xfail marks removed) ---
+$ uv run --frozen pytest api/tests/test_finding_precheck_blocked.py api/tests/test_precheck.py -q
+33 passed in 0.62s
+$ uv run --frozen pytest api/tests/test_finding_precheck_blocked.py api/tests/test_precheck.py api/tests/test_rejections_precheck.py -q
+56 passed in 0.88s
+
+--- mutation check: each wrong implementation loaded as a -p plugin, nothing on disk changed ---
+$ PYTHONPATH=scratchpad/mutants uv run --frozen pytest -p mut_t6_refusal_skipped api/tests/test_finding_precheck_blocked.py api/tests/test_precheck.py -q
+  (precheck.check_open -> no-op: the fix removed)
+FAILED api/tests/test_finding_precheck_blocked.py::test_a_dep_blocked_node_is_refused_before_any_job
+FAILED api/tests/test_finding_precheck_blocked.py::test_a_witness_missing_hole_is_refused_naming_the_witness_route
+FAILED api/tests/test_finding_precheck_blocked.py::test_precheck_submission_over_mcp_passes_the_refusal_through
+3 failed, 30 passed in 0.52s
+$ PYTHONPATH=scratchpad/mutants uv run --frozen pytest -p mut_t6_refusal_skipped api/tests/test_rejections_precheck.py -q
+FAILED api/tests/test_rejections_precheck.py::test_a_blocked_node_is_refused_before_authentication
+FAILED api/tests/test_rejections_precheck.py::test_a_blocked_refusal_is_not_charged_to_the_identity
+2 failed, 21 passed in 0.46s
+
+$ PYTHONPATH=scratchpad/mutants uv run --frozen pytest -p mut_t6_refuses_every_closed_node api/tests/test_finding_precheck_blocked.py api/tests/test_precheck.py -q
+  (check_open refuses every status other than ready — proved included)
+FAILED api/tests/test_finding_precheck_blocked.py::test_pin_a_proved_node_stays_precheckable
+FAILED api/tests/test_precheck.py::test_proved_tutorial_node_is_still_precheckable
+2 failed, 31 passed in 0.65s
+
+--- make verify ---
+All checks passed!
+295 files already formatted
+Success: no issues found in 147 source files
+Success: no issues found in 83 source files
+Success: no issues found in 22 source files
+= 1712 passed, 13 skipped, 65 deselected, 70 xfailed, 2 warnings in 111.56s (0:01:51) =
+(73 -> 70 xfailed: the three F06-T6 findings pass; +6 passed with the three edge tests)

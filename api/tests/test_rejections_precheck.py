@@ -329,3 +329,61 @@ def test_precheck_response_never_carries_the_bundle_or_the_proof(harness: Harnes
     assert TUTORIAL_PROOF not in r.text
     got = harness.client.get(f"/precheck/{r.json()['id']}")
     assert TUTORIAL_PROOF not in got.text
+
+
+# --- F06-T6: a blocked node is refused before anything else -------------------------------------
+
+GRAPH_PATH = "targets/propositional/graph.json"
+
+
+def set_row(h: Harness, node_id: str, **fields: Any) -> None:
+    """Change (or, with no fields, drop) one row of the committed graph.json."""
+    doc = json.loads(h.githost.files[GRAPH_PATH])
+    if fields:
+        for node in doc["nodes"]:
+            if node["node_id"] == node_id:
+                node.update(fields)
+    else:
+        doc["nodes"] = [n for n in doc["nodes"] if n["node_id"] != node_id]
+    h.githost.files[GRAPH_PATH] = json.dumps(doc).encode()
+    h.context.files.clear()
+
+
+def test_a_blocked_node_is_refused_before_authentication(harness: Harness) -> None:
+    """The refusal is about the node, so it comes before the caller: without a bearer a blocked
+    non-tutorial node answers 409 node-blocked, not 401, and nothing is started."""
+    set_row(harness, NODE, status="blocked", deps=["tutorial-and-swap"])
+    r = harness.client.post("/precheck", json={"node_id": NODE, "bundle": bundle_for(NODE)})
+    assert (r.status_code, r.json()["error"]) == (409, "node-blocked"), r.text
+    assert r.json()["details"]["unproved_deps"] == ["tutorial-and-swap"]
+    assert harness.store.jobs == {}
+    assert harness.githost.pushes == [] and harness.githost.dispatches == []
+
+
+def test_a_blocked_refusal_is_not_charged_to_the_identity() -> None:
+    """R8: the refusal comes before the rate-limit charge, so refused prechecks do not use up
+    the allowance an open node's precheck needs."""
+    h = make_harness({"OPN_API_PRECHECKS_PER_HOUR": "1"})
+    token = h.token_for("code_alice", "alice-p")
+    set_row(h, "tutorial-and-swap", status="blocked", deps=["and-reassoc"])
+    for _ in range(3):
+        refused = h.client.post(
+            "/precheck",
+            json={"node_id": "tutorial-and-swap", "bundle": bundle_for("tutorial-and-swap")},
+            headers=h.auth(token),
+        )
+        assert refused.status_code == 409, refused.text
+    r = h.client.post(
+        "/precheck", json={"node_id": NODE, "bundle": bundle_for(NODE)}, headers=h.auth(token)
+    )
+    assert r.status_code == 202, r.text
+
+
+def test_a_frontier_node_the_graph_does_not_carry_stays_precheckable(harness: Harness) -> None:
+    """With no graph row there is no status to refuse on: the frontier's facts serve the job."""
+    set_row(harness, NODE)
+    token = harness.token_for("code_alice", "alice-p")
+    r = harness.client.post(
+        "/precheck", json={"node_id": NODE, "bundle": bundle_for(NODE)}, headers=harness.auth(token)
+    )
+    assert r.status_code == 202, r.text

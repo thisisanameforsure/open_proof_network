@@ -10,8 +10,8 @@ Mike's decision (2026-09-14, plan F06-T6): after ``node_facts`` and before any j
 gives (F05-T9) — naming the unproved dependencies, or ``/proposals/witness`` for a hole blocked
 ``witness-missing`` — and dispatches nothing. A proved node stays precheckable (D-19 depends on
 the tutorial node), and ``get_node`` still serves a blocked node: both pinned here unmarked. The
-MCP ``precheck_submission`` passes the refusal through (F09-R7). Strict xfails until F06-T6
-lands (conventions §2).
+MCP ``precheck_submission`` passes the refusal through (F09-R7). The three findings were held as
+strict xfails from f80151b until F06-T6 landed (conventions §2); the marks came off with the fix.
 """
 
 from __future__ import annotations
@@ -19,7 +19,6 @@ from __future__ import annotations
 import json
 from typing import Any
 
-import pytest
 from api_fakes import TUTORIAL_PROOF, Harness
 from mcp_client import NODE, STATEMENT, TARGET, McpClient, seed_node
 from test_finding_mcp_bootstrap import HOLE, add_hole
@@ -28,7 +27,6 @@ GRAPH_PATH = f"targets/{TARGET}/graph.json"
 PREFIX = f"targets/{TARGET}/nodes/"
 UNPROVED_DEP = "tutorial-and-swap"  # ready in the fixture graph
 PROVED = "already-proved"  # proved, and the fixture's proved tutorial node
-FINDING = "finding precheck-blocked (F06-R1, D-19, D-25, D-29): {}; fix: F06-T6 (Mike, 2026-09-14)"
 
 
 def bundle(node_id: str) -> dict[str, str]:
@@ -55,13 +53,6 @@ def nothing_started(harness: Harness) -> None:
     assert harness.store.jobs == {}
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=FINDING.format(
-        "POST /precheck on a node blocked on an unproved dependency answers 202 and dispatches a "
-        "hosted run that can only fail at the dependency check"
-    ),
-)
 def test_a_dep_blocked_node_is_refused_before_any_job(harness: Harness) -> None:
     block_node(harness)
     token = harness.token_for("code_alice", "alice-p")
@@ -74,13 +65,6 @@ def test_a_dep_blocked_node_is_refused_before_any_job(harness: Harness) -> None:
     nothing_started(harness)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=FINDING.format(
-        "POST /precheck on a hole blocked witness-missing answers 202 and dispatches a run "
-        "instead of pointing at POST /proposals/witness"
-    ),
-)
 def test_a_witness_missing_hole_is_refused_naming_the_witness_route(harness: Harness) -> None:
     add_hole(harness)
     token = harness.token_for("code_alice", "alice-p")
@@ -93,12 +77,6 @@ def test_a_witness_missing_hole_is_refused_naming_the_witness_route(harness: Har
     nothing_started(harness)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=FINDING.format(
-        "the MCP precheck_submission forwards a blocked node's precheck and a run is dispatched"
-    ),
-)
 def test_precheck_submission_over_mcp_passes_the_refusal_through(harness: Harness) -> None:
     block_node(harness)
     token = harness.token_for("code_alice", "alice-p")

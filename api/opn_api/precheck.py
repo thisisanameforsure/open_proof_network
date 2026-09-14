@@ -233,6 +233,16 @@ def blocked_error(
     )
 
 
+def check_open(ctx: Context, node_id: str, facts: dict[str, Any]) -> None:
+    """F06-T6 (R1 amended): refuse a ``blocked`` node with the shared ``409 node-blocked``.
+
+    Only ``blocked`` is refused. A proved node stays precheckable — the tutorial node is normally
+    proved, and its anonymous precheck is how D-19 mints every identity — and a node the graph
+    carries no status for has nothing to refuse it on."""
+    if facts.get("status") == "blocked":
+        raise blocked_error(node_id, facts, graph_doc(ctx))
+
+
 def rendered_from(ctx: Context) -> str:
     """The graph commit the products were rendered from: what a job is pinned to (R3)."""
     commit = frontier.committed_frontier(ctx).get("rendered_from")
@@ -264,6 +274,9 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
     if not isinstance(node_id, str) or not node_id:
         raise ApiError(400, "node-id-missing", "node_id is required")
     facts = node_facts(ctx, node_id)
+    # F06-T6: a blocked node can only fail at the dependency check, so it is refused before any
+    # token is read, any limit charged or any job exists. A proved node stays precheckable (D-19).
+    check_open(ctx, node_id, facts)
     claim = Claim(facts["target_id"], node_id)
 
     identity = None
