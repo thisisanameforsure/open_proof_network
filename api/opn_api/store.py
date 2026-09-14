@@ -27,6 +27,12 @@ KEY_RATE = "rate#"
 KEY_JOB = "job#"
 KEY_PSEUDONYM = "pseudonym#"
 KEY_PROOF_REF = "proofref#"
+# F07-T16: the pull requests the service opened. Three prefixes in the tokens table, no TTL, rather
+# than a fourth table: a stack update adding a table would answer 503 under R13 between the deploy
+# and the update.
+KEY_SUBMISSION = "submission#"
+KEY_SUBMISSION_PR = "submissionpr#"
+KEY_SUBMISSIONS_OPEN = "submissions#open"
 
 
 class ConflictError(Exception):
@@ -63,6 +69,31 @@ class Claim:
     created: str
     expires: str
     released: str | None = None
+
+
+@dataclass(frozen=True)
+class Submission:
+    """A pull request the service opened on the graph (F07-T16): what it was, where it is, and —
+    once a live read found it merged or closed — when that was seen and the state it was in, so
+    a finished pull request never costs another host call.
+
+    ``kind`` is the artifact type for ``POST /submissions`` (``proof``, ``partial``, …) and the
+    record's kind for the other routes (``postmortem``, ``annex``, ``approach-record``,
+    ``speculative``, ``variant``, ``witness``). ``node_id`` is ``None`` for a target-level record.
+    Operational, not evidentiary (C9): the graph's attestations are the record of what merged.
+    """
+
+    id: str
+    kind: str
+    node_id: str | None
+    target_id: str
+    pr_number: int
+    pr_url: str
+    pseudonym: str
+    precheck_job_id: str | None
+    created: str
+    closed: str | None = None
+    final_state: dict[str, Any] | None = None
 
 
 class Store(Protocol):
@@ -104,6 +135,24 @@ class Store(Protocol):
         """Increment and return the counter at ``key``; it disappears after ``expires``."""
         ...
 
+    def put_submission(self, submission: Submission) -> None:
+        """Record an opened pull request, reachable by id and by number; open unless closed."""
+        ...
+
+    def get_submission(self, submission_id: str) -> Submission | None: ...
+
+    def get_submission_by_pr(self, pr_number: int) -> Submission | None: ...
+
+    def list_open_submissions(self) -> list[Submission]:
+        """Every record no live read has found finished, by id (ULIDs sort by time)."""
+        ...
+
+    def close_submission(
+        self, submission_id: str, *, closed: str, final_state: dict[str, Any]
+    ) -> Submission | None:
+        """Mark a record finished with the state that finished it; ``None`` when absent."""
+        ...
+
 
 # --- memory ------------------------------------------------------------------------------------
 
@@ -117,6 +166,9 @@ class MemoryStore:
     jobs: dict[str, dict[str, Any]] = field(default_factory=dict)
     ephemeral: dict[str, tuple[dict[str, Any], datetime]] = field(default_factory=dict)
     counters: dict[str, tuple[int, datetime]] = field(default_factory=dict)
+    submissions: dict[str, Submission] = field(default_factory=dict)
+    submissions_by_pr: dict[int, str] = field(default_factory=dict)
+    open_submissions: set[str] = field(default_factory=set)
 
     def check(self) -> list[str]:
         return []
@@ -174,6 +226,34 @@ class MemoryStore:
         count, _ = self.counters.get(key, (0, expires))
         self.counters[key] = (count + 1, expires)
         return count + 1
+
+    def put_submission(self, submission: Submission) -> None:
+        self.submissions[submission.id] = submission
+        self.submissions_by_pr[submission.pr_number] = submission.id
+        if submission.closed is None:
+            self.open_submissions.add(submission.id)
+        else:
+            self.open_submissions.discard(submission.id)
+
+    def get_submission(self, submission_id: str) -> Submission | None:
+        return self.submissions.get(submission_id)
+
+    def get_submission_by_pr(self, pr_number: int) -> Submission | None:
+        found = self.submissions_by_pr.get(pr_number)
+        return self.submissions.get(found) if found is not None else None
+
+    def list_open_submissions(self) -> list[Submission]:
+        return [self.submissions[i] for i in sorted(self.open_submissions) if i in self.submissions]
+
+    def close_submission(
+        self, submission_id: str, *, closed: str, final_state: dict[str, Any]
+    ) -> Submission | None:
+        found = self.submissions.get(submission_id)
+        if found is None:
+            return None
+        done = replace(found, closed=closed, final_state=dict(final_state))
+        self.put_submission(done)
+        return done
 
 
 def _unique_keys(identity: Identity) -> list[tuple[str, str]]:
@@ -246,7 +326,9 @@ class DynamoStore:
     ``proofref#<kind>#<ref>``) written in the same transaction as the identity (R4, R6).
     tokens: ``key`` — ``token#<hash>`` rows, plus ``state#``, ``proof#``, ``rate#`` and
     ``job#`` items carrying ``expires_at`` (the table's TTL attribute). A job is readable
-    until it expires, unlike the single-use ephemeral items.
+    until it expires, unlike the single-use ephemeral items. Submissions (F07-T16) carry no
+    TTL: ``submission#<ulid>`` is the record, ``submissionpr#<n>`` points a pull-request number at
+    it, and ``submissions#open`` holds the open ids as a string set.
     claims: ``id`` — one row per claim; the registry is read by scan (Stage 0 volume).
     """
 
@@ -380,6 +462,59 @@ class DynamoStore:
         )
         return int(updated["Attributes"]["count"])
 
+    # --- submissions (F07-T16): three key prefixes in the tokens table, no TTL -----------------
+
+    def put_submission(self, submission: Submission) -> None:
+        self._tokens.put_item(
+            Item={"key": KEY_SUBMISSION + submission.id, "submission": storable(asdict(submission))}
+        )
+        self._tokens.put_item(
+            Item={
+                "key": KEY_SUBMISSION_PR + str(submission.pr_number),
+                "submission_id": submission.id,
+            }
+        )
+        self._open_index("DELETE" if submission.closed is not None else "ADD", submission.id)
+
+    def _open_index(self, action: str, submission_id: str) -> None:
+        """``ADD`` or ``DELETE`` one id in the open index's string set — atomic on DynamoDB's side,
+        so two requests closing two records cannot lose each other's write."""
+        self._tokens.update_item(
+            Key={"key": KEY_SUBMISSIONS_OPEN},
+            UpdateExpression=f"{action} #ids :one",
+            ExpressionAttributeNames={"#ids": "ids"},
+            ExpressionAttributeValues={":one": {submission_id}},
+        )
+
+    def get_submission(self, submission_id: str) -> Submission | None:
+        item = self._tokens.get_item(Key={"key": KEY_SUBMISSION + submission_id}).get("Item")
+        record = item.get("submission") if item else None
+        return _submission(plain(dict(record))) if isinstance(record, dict) else None
+
+    def get_submission_by_pr(self, pr_number: int) -> Submission | None:
+        item = self._tokens.get_item(Key={"key": KEY_SUBMISSION_PR + str(pr_number)}).get("Item")
+        found = item.get("submission_id") if item else None
+        return self.get_submission(str(found)) if found else None
+
+    def list_open_submissions(self) -> list[Submission]:
+        item = self._tokens.get_item(Key={"key": KEY_SUBMISSIONS_OPEN}).get("Item") or {}
+        out: list[Submission] = []
+        for submission_id in sorted(str(i) for i in item.get("ids") or ()):
+            found = self.get_submission(submission_id)
+            if found is not None and found.closed is None:
+                out.append(found)
+        return out
+
+    def close_submission(
+        self, submission_id: str, *, closed: str, final_state: dict[str, Any]
+    ) -> Submission | None:
+        found = self.get_submission(submission_id)
+        if found is None:
+            return None
+        done = replace(found, closed=closed, final_state=dict(final_state))
+        self.put_submission(done)
+        return done
+
 
 def _identity(item: dict[str, Any]) -> Identity:
     return Identity(
@@ -400,6 +535,25 @@ def _claim(item: dict[str, Any]) -> Claim:
         created=str(item["created"]),
         expires=str(item["expires"]),
         released=str(item["released"]) if item.get("released") else None,
+    )
+
+
+def _submission(record: dict[str, Any]) -> Submission:
+    final = record.get("final_state")
+    return Submission(
+        id=str(record["id"]),
+        kind=str(record["kind"]),
+        node_id=str(record["node_id"]) if record.get("node_id") is not None else None,
+        target_id=str(record["target_id"]),
+        pr_number=int(record["pr_number"]),
+        pr_url=str(record["pr_url"]),
+        pseudonym=str(record["pseudonym"]),
+        precheck_job_id=(
+            str(record["precheck_job_id"]) if record.get("precheck_job_id") is not None else None
+        ),
+        created=str(record["created"]),
+        closed=str(record["closed"]) if record.get("closed") is not None else None,
+        final_state=dict(final) if isinstance(final, dict) else None,
     )
 
 

@@ -54,8 +54,14 @@ def test_routes_match_d35() -> None:
 
 
 def test_f07_routes_are_authenticated_writes() -> None:
-    """F07-R1, R11: every submission and append route needs a token and names its D-35 row."""
-    f07 = {r.label: r for r in routes.ROUTES if r.feature == "F07"}
+    """F07-R1, R11: every submission and append route needs a token and names its D-35 row.
+    F07-T16 added F07's two reads, which are neither: open, like ``/frontier.json``, and with
+    no D-35 row, since D-28 lists reads as mirrors rather than endpoints of their own."""
+    f07_reads = {r.label: r for r in routes.ROUTES if r.feature == "F07" and not r.write}
+    assert set(f07_reads) == {"GET /submissions.json", "GET /submissions/{submission_id}"}
+    for spec in f07_reads.values():
+        assert not spec.authenticated and spec.d35 is None, spec
+    f07 = {r.label: r for r in routes.ROUTES if r.feature == "F07" and r.write}
     assert set(f07) == {
         "POST /submissions",
         "POST /postmortems",

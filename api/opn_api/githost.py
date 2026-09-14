@@ -99,6 +99,44 @@ class WorkflowRun:
         return self.completed and self.conclusion == "success"
 
 
+@dataclass(frozen=True)
+class PullRequestState:
+    """A pull request's live state as the App reads it (F07-T16): open or closed, merged, what
+    GitHub says about mergeability, the Actions runs on its head commit and its reviews.
+
+    ``runs`` are ``{name, status, conclusion, url}`` and ``reviews`` ``{login, state}``, in
+    GitHub's vocabulary — the service reports them and decides nothing from them.
+    """
+
+    number: int
+    url: str
+    state: str  # open | closed
+    merged: bool
+    mergeable_state: str  # clean | blocked | behind | dirty | unknown | …
+    head_sha: str
+    merge_commit_sha: str | None
+    runs: tuple[dict[str, Any], ...] = ()
+    reviews: tuple[dict[str, Any], ...] = ()
+
+    @property
+    def finished(self) -> bool:
+        """Merged or closed: nothing about it will change that the service reports."""
+        return self.merged or self.state == "closed"
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "number": self.number,
+            "url": self.url,
+            "state": self.state,
+            "merged": self.merged,
+            "mergeable_state": self.mergeable_state,
+            "head_sha": self.head_sha,
+            "merge_commit_sha": self.merge_commit_sha,
+            "runs": [dict(r) for r in self.runs],
+            "reviews": [dict(r) for r in self.reviews],
+        }
+
+
 class GitHost(Protocol):
     def exchange_code(self, code: str, *, redirect_uri: str) -> GitHubUser:
         """Trade the OAuth ``code`` for the user's login and creation date; the access token
@@ -153,6 +191,11 @@ class GitHost(Protocol):
 
     def download_artifact(self, repo: str, run_id: int, name: str) -> bytes | None:
         """The named artifact's zip, or ``None`` when the run produced no such artifact."""
+        ...
+
+    def get_pull_request(self, repo: str, number: int) -> PullRequestState | None:
+        """A pull request's live state, its reviews and the runs on its head commit, read as the
+        App (F07-T16); ``None`` when the host has no such pull request. Read-only."""
         ...
 
 
@@ -453,6 +496,77 @@ class HttpxGitHost:
             )
         return zipped.content
 
+    def get_pull_request(self, repo: str, number: int) -> PullRequestState | None:
+        """Three reads as the App (F07-T16): ``pulls/{n}`` (Pull requests: read, held for
+        opening them), its ``reviews``, and ``actions/runs?head_sha=`` (Actions: read, held since
+        F06) — not the check-runs API, whose Checks permission C8 does not list. One page of
+        each (100 items) is Stage 0's volume."""
+        base = f"{GITHUB_API}/repos/{repo}"
+        with self._api(repo) as http:
+            try:
+                resp = http.get(f"{base}/pulls/{number}")
+            except httpx.HTTPError as exc:
+                msg = f"GET /repos/{repo}/pulls/{number} failed: {type(exc).__name__}"
+                raise GitHostError(msg) from exc
+            if resp.status_code == 404:
+                return None
+            if resp.status_code != 200:
+                detail = _error_field(resp, "", field="message")
+                msg = (
+                    f"GET /repos/{repo}/pulls/{number} returned {resp.status_code}"
+                    f"{': ' + detail if detail else ''}"
+                )
+                raise GitHostError(msg)
+            pr = _json(resp, f"pull request #{number}")
+            reviews = _json_list(
+                _send(http, "GET", f"{base}/pulls/{number}/reviews", params={"per_page": 100}),
+                f"the reviews of pull request #{number}",
+            )
+            head = pr.get("head")
+            head_sha = str(head.get("sha") or "") if isinstance(head, dict) else ""
+            page = (
+                _json(
+                    _send(
+                        http,
+                        "GET",
+                        f"{base}/actions/runs",
+                        params={"head_sha": head_sha, "per_page": 100},
+                    )
+                )
+                if head_sha
+                else {}
+            )
+        runs = page.get("workflow_runs") or []
+        return PullRequestState(
+            number=number,
+            url=str(pr.get("html_url") or ""),
+            state=str(pr.get("state") or ""),
+            merged=bool(pr.get("merged")),
+            mergeable_state=str(pr.get("mergeable_state") or "unknown"),
+            head_sha=head_sha,
+            merge_commit_sha=str(pr["merge_commit_sha"]) if pr.get("merge_commit_sha") else None,
+            runs=tuple(
+                {
+                    "name": run.get("name"),
+                    "status": run.get("status"),
+                    "conclusion": run.get("conclusion"),
+                    "url": run.get("html_url"),
+                }
+                for run in runs
+                if isinstance(run, dict)
+            ),
+            reviews=tuple(
+                {
+                    "login": (r.get("user") or {}).get("login")
+                    if isinstance(r.get("user"), dict)
+                    else None,
+                    "state": r.get("state"),
+                }
+                for r in reviews
+                if isinstance(r, dict)
+            ),
+        )
+
 
 def _b64url(raw: bytes) -> bytes:
     return base64.urlsafe_b64encode(raw).rstrip(b"=")
@@ -485,6 +599,19 @@ def _json(resp: httpx.Response, call: str | None = None) -> dict[str, Any]:
         raise GitHostError(msg) from exc
     if not isinstance(doc, dict):
         msg = f"GitHub returned {type(doc).__name__}, not an object, for {what}"
+        raise GitHostError(msg)
+    return doc
+
+
+def _json_list(resp: httpx.Response, call: str) -> list[Any]:
+    """``_json`` for the endpoints that answer an array (a pull request's reviews)."""
+    try:
+        doc = resp.json()
+    except ValueError as exc:
+        msg = f"GitHub returned a non-JSON body for {call}"
+        raise GitHostError(msg) from exc
+    if not isinstance(doc, list):
+        msg = f"GitHub returned {type(doc).__name__}, not an array, for {call}"
         raise GitHostError(msg)
     return doc
 

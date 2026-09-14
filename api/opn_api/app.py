@@ -40,7 +40,7 @@ from opn_api import clock as clockmod
 from opn_api import githost as githostmod
 from opn_api import store as storemod
 from opn_api.clock import Clock
-from opn_api.githost import GitHost
+from opn_api.githost import GitHost, PullRequestState
 from opn_api.routes import ROUTES, RouteSpec
 from opn_api.store import Store
 
@@ -87,6 +87,16 @@ class CachedFile:
 
 
 @dataclass
+class CachedPull:
+    """A pull request's live state read through the App (F07-T16), reused for
+    ``frontier_max_stale_s``; ``state`` is ``None`` when the host had no such pull request."""
+
+    number: int
+    state: PullRequestState | None = None
+    fetched_at: float = 0.0
+
+
+@dataclass
 class Context:
     settings: config.Settings
     store: Store
@@ -94,6 +104,7 @@ class Context:
     clock: Clock
     missing: list[str] = field(default_factory=list)
     files: dict[str, CachedFile] = field(default_factory=dict)
+    pulls: dict[int, CachedPull] = field(default_factory=dict)
 
 
 Handler = Callable[[Context, Request], Awaitable[Response]]

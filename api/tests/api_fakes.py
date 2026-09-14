@@ -27,7 +27,15 @@ from starlette.testclient import TestClient
 
 from opn_api import config, identity
 from opn_api.app import create_app
-from opn_api.githost import Author, Fetched, GitHostError, GitHubUser, PullRequest, WorkflowRun
+from opn_api.githost import (
+    Author,
+    Fetched,
+    GitHostError,
+    GitHubUser,
+    PullRequest,
+    PullRequestState,
+    WorkflowRun,
+)
 from opn_api.store import MemoryStore
 from opn_gate import schemas
 
@@ -96,6 +104,11 @@ class FakeGitHost:
     app_failure: str | None = None  # when set, every App call raises it (R10, AC12)
     lookup_failure: str | None = None  # when set, only find_run raises (C7: a transient outage)
     pr_failure: str | None = None  # when set, the branch pushes and the pull request does not
+    # A pull request's live state (F07-T16): what set_pull_request_state seeded, by number; every
+    # read is counted in pull_lookups, and pr_lookup_failure makes only that read raise (C7).
+    pull_states: dict[int, dict[str, Any]] = field(default_factory=dict)
+    pull_lookups: list[int] = field(default_factory=list)
+    pr_lookup_failure: str | None = None
 
     @classmethod
     def with_fixtures(cls, **users: GitHubUser) -> FakeGitHost:
@@ -193,7 +206,57 @@ class FakeGitHost:
         self._app_call()
         return self.artifacts.get((run_id, name))
 
+    def get_pull_request(self, repo: str, number: int) -> PullRequestState | None:
+        """The seeded state; a pull request this fake opened and nobody seeded is open, not
+        merged, with no runs and no reviews; any other number is unknown to the host."""
+        self.pull_lookups.append(number)
+        self._app_call()
+        if self.pr_lookup_failure:
+            raise GitHostError(self.pr_lookup_failure)
+        seeded = self.pull_states.get(number)
+        if seeded is None and not 1 <= number <= len(self.pulls):
+            return None
+        s = seeded or {}
+        return PullRequestState(
+            number=number,
+            url=f"https://github.com/{repo}/pull/{number}",
+            state=s.get("state", "open"),
+            merged=s.get("merged", False),
+            mergeable_state=s.get("mergeable_state", "unknown"),
+            head_sha=s.get("head_sha") or f"{number:040d}",
+            merge_commit_sha=s.get("merge_commit_sha"),
+            runs=tuple(s.get("runs") or ()),
+            reviews=tuple(s.get("reviews") or ()),
+        )
+
     # --- what a test sets up ---------------------------------------------------------------------
+
+    def set_pull_request_state(
+        self,
+        number: int,
+        *,
+        state: str = "open",
+        merged: bool = False,
+        mergeable_state: str = "unknown",
+        head_sha: str | None = None,
+        merge_commit_sha: str | None = None,
+        runs: list[dict[str, Any]] | None = None,
+        reviews: list[dict[str, Any]] | None = None,
+    ) -> None:
+        """What the host will say about pull request ``number`` from now on. Runs keep
+        ``{name, status, conclusion, url}`` and reviews ``{login, state}``, as the real host's
+        reader shapes them."""
+        self.pull_states[number] = {
+            "state": state,
+            "merged": merged,
+            "mergeable_state": mergeable_state,
+            "head_sha": head_sha,
+            "merge_commit_sha": merge_commit_sha,
+            "runs": [
+                {k: r.get(k) for k in ("name", "status", "conclusion", "url")} for r in runs or []
+            ],
+            "reviews": [{k: r.get(k) for k in ("login", "state")} for r in reviews or []],
+        }
 
     def start_run(self, branch: str, run_id: int = 4242) -> WorkflowRun:
         run = WorkflowRun(run_id, "in_progress", None, f"https://github.com/runs/{run_id}")

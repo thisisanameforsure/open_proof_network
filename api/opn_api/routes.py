@@ -76,6 +76,10 @@ ROUTES: tuple[RouteSpec, ...] = (
         authenticated=True,
         feature="F07",
     ),
+    # F07-T16: reads, like /frontier.json — what the service opened and how it is doing. The plain
+    # path is the pull request on the host and, once merged, attestations/<n>.json.
+    RouteSpec("GET", "/submissions.json", "pending:get_submissions", None, feature="F07"),
+    RouteSpec("GET", "/submissions/{submission_id}", "pending:get_submission", None, feature="F07"),
     RouteSpec(
         "POST",
         "/postmortems",

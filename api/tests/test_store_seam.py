@@ -114,10 +114,11 @@ class FakeTable:
 
     def update_item(self, **kwargs: Any) -> dict[str, Any]:
         self._fail("update_item", kwargs)
-        # The one expression the store uses (bump_counter); anything else is a test error.
-        assert kwargs["UpdateExpression"] == (
-            "ADD #c :one SET expires_at = if_not_exists(expires_at, :exp)"
-        )
+        expression = kwargs["UpdateExpression"]
+        if expression in ("ADD #ids :one", "DELETE #ids :one"):
+            return self._set_update(expression.split()[0], kwargs)
+        # The counter expression (bump_counter); anything else is a test error.
+        assert expression == ("ADD #c :one SET expires_at = if_not_exists(expires_at, :exp)")
         counter = kwargs["ExpressionAttributeNames"]["#c"]
         values = through_dynamo(kwargs["ExpressionAttributeValues"])
         key = str(kwargs["Key"][self.key])
@@ -126,6 +127,23 @@ class FakeTable:
         item.setdefault("expires_at", values[":exp"])
         assert kwargs["ReturnValues"] == "UPDATED_NEW"
         return {"Attributes": {counter: item[counter]}}
+
+    def _set_update(self, action: str, kwargs: dict[str, Any]) -> dict[str, Any]:
+        """The submissions index (F07-T16): ``ADD``/``DELETE`` on a string set, as DynamoDB does
+        it — an absent attribute is created by ``ADD``, and a set emptied by ``DELETE`` is
+        removed, because DynamoDB cannot store an empty set."""
+        attribute = kwargs["ExpressionAttributeNames"]["#ids"]
+        values = through_dynamo(kwargs["ExpressionAttributeValues"])[":one"]
+        assert isinstance(values, set) and all(isinstance(v, str) for v in values), values
+        key = str(kwargs["Key"][self.key])
+        item = self.items.setdefault(key, {self.key: key})
+        current = set(item.get(attribute) or set())
+        current = current | values if action == "ADD" else current - values
+        if current:
+            item[attribute] = current
+        else:
+            item.pop(attribute, None)
+        return {}
 
     def scan(self, **kwargs: Any) -> dict[str, Any]:
         self._fail("scan", kwargs)

@@ -24,7 +24,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from opn_api import clock as clockmod
-from opn_api import frontier, precheck, submissions
+from opn_api import frontier, pending, precheck, submissions
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
 from opn_gate import schemas
@@ -108,9 +108,19 @@ def node_dir(target_id: str, node_id: str) -> str:
 
 
 def append_pr(  # noqa: PLR0913 — one pull request, described
-    ctx: Context, identity: Identity, *, path: str, content: str, subject: str, what: str
+    ctx: Context,
+    identity: Identity,
+    *,
+    path: str,
+    content: str,
+    subject: str,
+    what: str,
+    kind: str,
+    target_id: str,
+    node_id: str | None,
 ) -> dict[str, Any]:
-    """One appended file, one branch, one pull request (R11, R2)."""
+    """One appended file, one branch, one pull request (R11, R2), recorded as ``kind`` so its
+    state can be watched through ``GET /submissions/{id}`` (F07-T16)."""
     append_id = identitymod.new_ulid(ctx.clock.now())
     pr = submissions.open_pr(
         ctx,
@@ -126,6 +136,15 @@ def append_pr(  # noqa: PLR0913 — one pull request, described
         ),
     )
     log.info("%s %s opened %s for %s", what, append_id, pr.url, identity.id)
+    pending.record(
+        ctx,
+        identity,
+        submission_id=append_id,
+        kind=kind,
+        target_id=target_id,
+        node_id=node_id,
+        pr=pr,
+    )
     return {"id": append_id, "path": path, "pr_url": pr.url, "pr_number": pr.number}
 
 
@@ -152,6 +171,9 @@ async def post_postmortems(ctx: Context, request: Request) -> Response:
             content=content,
             subject=f"postmortem: {node_id}",
             what="postmortem",
+            kind="postmortem",
+            target_id=target_id,
+            node_id=node_id,
         ),
         status_code=201,
     )
@@ -209,6 +231,9 @@ async def post_annexes(ctx: Context, request: Request) -> Response:
         content=content,
         subject=f"annex: {node_id}",
         what="annex",
+        kind="annex",
+        target_id=target_id,
+        node_id=node_id,
     )
     body["hash"] = digest  # what a skeleton cites (D-31)
     return JSONResponse(body, status_code=201)
@@ -256,6 +281,9 @@ async def post_approach_records(ctx: Context, request: Request) -> Response:
             content=yaml.safe_dump(doc, sort_keys=True, allow_unicode=True),
             subject=f"approach record: {target_id}",
             what="approach record",
+            kind="approach-record",
+            target_id=target_id,
+            node_id=None,
         ),
         status_code=201,
     )

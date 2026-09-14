@@ -77,6 +77,7 @@ jobs:
 
           pkg = Path("build/package")
           for entry in ("opn_api/app.py", "opn_api/routes.py", "opn_api/lambda_handler.py",
+                        "opn_api/pending.py",  # F07-T16: GET /submissions/{id} and .json
                         "opn_gate/schemas.py", "mangum/__init__.py", "starlette/applications.py",
                         "opn_api/mcp/server.py", "mcp/server/lowlevel/server.py"):
               assert (pkg / entry).is_file(), f"missing from the package: {entry}"

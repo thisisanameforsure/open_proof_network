@@ -137,6 +137,9 @@ async def post_revision_requests(ctx: Context, request: Request) -> Response:
             content=yaml.safe_dump(doc, sort_keys=True, allow_unicode=True),
             subject=f"revision request: {node_id}",
             what="revision request",
+            kind="revision-request",
+            target_id=target_id,
+            node_id=node_id,
         ),
         status_code=201,
     )
@@ -208,5 +211,8 @@ async def post_defect_claims(ctx: Context, request: Request) -> Response:
         content=yaml.safe_dump(doc, sort_keys=True, allow_unicode=True),
         subject=f"defect claim: {stmt_ref}",
         what="defect claim",
+        kind="defect-claim",
+        target_id=target_id,
+        node_id=None if stmt_ref.startswith(DEFS_PREFIX) else stmt_ref,
     )
     return JSONResponse(body, status_code=201)

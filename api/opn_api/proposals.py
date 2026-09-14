@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Any
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from opn_api import appends, frontier, precheck, ratelimit, submissions
+from opn_api import appends, frontier, pending, precheck, ratelimit, submissions
 from opn_api import clock as clockmod
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
@@ -115,8 +115,10 @@ def open_proposal(  # noqa: PLR0913 — one pull request, described
     node_id: str,
     files: dict[str, str],
     what: str,
+    kind: str,
 ) -> dict[str, Any]:
-    """R3, R5 -> F07-R2: one branch, one authored commit, one pull request the gate admits."""
+    """R3, R5 -> F07-R2: one branch, one authored commit, one pull request the gate admits,
+    recorded as ``kind`` so its state can be watched (F07-T16)."""
     ratelimit.check_proposal(ctx, identity.id)
     proposal_id = identitymod.new_ulid(ctx.clock.now())
     subject = f"proposal: {node_id}"
@@ -136,6 +138,15 @@ def open_proposal(  # noqa: PLR0913 — one pull request, described
         ),
     )
     log.info("%s %s opened %s for %s", what, proposal_id, pr.url, identity.id)
+    pending.record(
+        ctx,
+        identity,
+        submission_id=proposal_id,
+        kind=kind,
+        target_id=target_id,
+        node_id=node_id,
+        pr=pr,
+    )
     return {
         "proposal_id": proposal_id,
         "node_id": node_id,
@@ -188,6 +199,7 @@ async def post_speculative(ctx: Context, request: Request) -> Response:
             node_id=node_id,
             files=files,
             what="speculative node",
+            kind="speculative",
         ),
         status_code=201,
     )
@@ -229,7 +241,13 @@ async def post_variant(ctx: Context, request: Request) -> Response:
     )
     return JSONResponse(
         open_proposal(
-            ctx, identity, target_id=target_id, node_id=node_id, files=files, what="variant"
+            ctx,
+            identity,
+            target_id=target_id,
+            node_id=node_id,
+            files=files,
+            what="variant",
+            kind="variant",
         ),
         status_code=201,
     )
@@ -279,6 +297,7 @@ async def post_witness(ctx: Context, request: Request) -> Response:
             node_id=node_id,
             files={path: witness},
             what="witness for a hole",
+            kind="witness",
         ),
         status_code=201,
     )

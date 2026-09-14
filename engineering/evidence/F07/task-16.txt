@@ -1,0 +1,218 @@
+F07-T16 — pending submissions, service side (2026-09-14)
+===========================================================
+
+Finding: a pending submission is invisible through the network (Euclid tester, 2026-09-13).
+Decision (Mike, 2026-09-14): live pull-request state from the host through the App (read-only);
+open work on get_node, GET /submissions.json and list_submissions; no frontier/v3.
+Specification: api/tests/test_finding_pending_submissions.py (committed red in f80151b).
+
+Worktree branch worktree-agent-ae1215e77794b5e17, based on main fe761d9.
+
+1. Red, before any change
+-------------------------
+$ uv run --frozen pytest --runxfail -q api/tests/test_finding_pending_submissions.py \
+    api/tests/test_finding_argument_renames.py api/tests/test_finding_submission_ids.py
+FAILED test_finding_pending_submissions.py::test_post_submissions_records_the_submission
+  AssertionError: Store.get_submission does not exist
+FAILED ...::test_get_submission_by_ulid_or_pr_number_answers_the_live_pull_request
+  AssertionError: FakeGitHost.set_pull_request_state does not exist (F07-T16)
+FAILED ...::test_a_merged_proof_links_its_attestation_and_is_never_looked_up_again   (same)
+FAILED ...::test_a_merged_annex_answers_no_attestation_for_mode                      (same)
+FAILED ...::test_unknown_is_404_and_a_hand_opened_pull_request_answers_without_a_record
+  AssertionError: (UNKNOWN_ULID, 404, '{"error":"not-found","message":"no such route"}')
+FAILED ...::test_the_pull_request_state_is_cached_and_survives_a_host_failure       (setter)
+FAILED ...::test_submissions_json_lists_open_work_and_drops_the_merged              (setter)
+FAILED ...::test_get_node_lists_the_open_submissions_on_the_node
+FAILED ...::test_get_submission_tool_equals_the_route
+FAILED ...::test_list_submissions_is_a_tool_and_equals_the_snapshot
+FAILED test_finding_argument_renames.py::test_renames_is_what_the_handlers_send
+FAILED test_finding_argument_renames.py::test_submit_proof_accepts_precheck_job_id_and_forwards_the_same_body
+FAILED test_finding_submission_ids.py::test_get_submission_resolves_the_padded_and_unpadded_id[33]
+FAILED test_finding_submission_ids.py::test_get_submission_answers_pending_state_for_an_open_pull_request
+14 failed, 1 passed   (the passing one is the unmarked padded case, [000033])
+
+2. The change
+-------------
+store.py      Submission record; Store gains put_submission, get_submission, get_submission_by_pr,
+              list_open_submissions, close_submission. MemoryStore: three dicts/sets. DynamoStore:
+              key prefixes in the existing tokens table, no TTL — submission#<ulid> (the record),
+              submissionpr#<n> (pointer), submissions#open (a string set updated with ADD/DELETE,
+              atomic on DynamoDB's side). No fourth table: adding one is a stack update, and R13
+              answers 503 between the code deploy and that update.
+githost.py    PullRequestState {number, url, state, merged, mergeable_state, head_sha,
+              merge_commit_sha, runs[{name,status,conclusion,url}], reviews[{login,state}]};
+              GitHost.get_pull_request(repo, n) = GET pulls/{n} (404 -> None), GET
+              pulls/{n}/reviews, GET actions/runs?head_sha= — Actions runs rather than check-runs,
+              because Checks: read is not a permission C8 lists. One page (100) of each.
+app.py        CachedPull and Context.pulls only (ApiError untouched).
+pending.py    new. record() — a store failure is logged at ERROR and the route still answers 201
+              (the pull request exists; the record is advisory, C7/C9). GET /submissions/{id}:
+              ULID (case-insensitive) or a number with any leading zeros; malformed -> 400
+              submission-id-invalid. Live state cached for frontier_max_stale_s; a host failure
+              serves the last state with pull_request_error (no last state: pull_request null +
+              the error); a fresh read that finds the PR merged or closed closes the record with
+              that state, so it is never looked up again. Attestation: kinds outside POST
+              /submissions' artifact types -> no-attestation-for-mode; known unmerged ->
+              not-merged; else attestations/<n:06d>.json when on main (note null), otherwise
+              attestation-pending (merged, the post-merge commit not there yet) or
+              pull-request-unavailable (host could not say, nothing on main). No record: answered
+              only when main has the attestation (submission null); otherwise 404
+              submission-unknown WITHOUT a host lookup, so nobody can spend the App's rate budget
+              by enumerating numbers. GET /submissions.json -> {snapshot_at, open}.
+routes.py     GET /submissions.json, GET /submissions/{submission_id}; unauthenticated reads, d35
+              None, feature F07.
+appends.py    append_pr takes kind/target_id/node_id and records (postmortem, annex,
+              approach-record).
+proposals.py  open_proposal takes kind and records (speculative, variant, witness).
+requests.py   NOT in the plan's file list, but it calls appends.append_pr, whose signature changed
+              (the suite caught it: TypeError -> 500 on /defect-claims). It now passes
+              kind revision-request / defect-claim, so those pull requests are recorded too.
+api_fakes.py  FakeGitHost.set_pull_request_state(number, *, state, merged, mergeable_state,
+              head_sha, merge_commit_sha, runs, reviews), pull_lookups, pr_lookup_failure,
+              get_pull_request (a PR the fake opened defaults to open/unmerged/no runs/no reviews;
+              any other number is unknown).
+api-deploy.yml  opn_api/pending.py added to the package check's entry list.
+
+NOT landed (ownership, 2026-09-14): the one-line pending.record(...) at the end of
+submissions.post_submissions — submissions.py holds another session's uncommitted edits. The
+call it needs is:
+    pending.record(ctx, identity, submission_id=submission_id, kind=artifact_type,
+                   target_id=claim.target_id, node_id=node_id, pr=pr, precheck_job_id=job.id)
+(pending does not import submissions, so the call adds no import cycle; ATTESTING_KINDS is held
+equal to submissions.ARTIFACT_TYPES by a test instead.)
+Spec text (F07 R/AC/Q, the Tasks ledger, index.html) not written: engineering/specs/* is held by
+the other session; the lead adds it at merge.
+
+3. Tests rewritten, and why
+---------------------------
+api/tests/test_routes.py::test_f07_routes_are_authenticated_writes
+  pinned "every F07 route is an authenticated POST"; F07 now owns two reads. The test splits
+  them: the reads are unauthenticated GETs with no D-35 row, the writes keep every old assertion.
+api/tests/test_store_seam.py FakeTable.update_item
+  asserted the one counter expression; it now also implements ADD/DELETE on a string set the way
+  DynamoDB does (absent attribute created, emptied set removed). The counter branch is unchanged.
+test_finding_pending_submissions.py
+  xfail marks removed from test_a_merged_annex_answers_no_attestation_for_mode and
+  test_unknown_is_404_and_a_hand_opened_pull_request_answers_without_a_record (now green).
+  The other eight keep strict marks; each reason now names the actual wait:
+  "needs the submissions.py record call; after the other session's commit". No assertion edited.
+
+New tests (api/tests/test_pending_submissions.py, 26; test_githost_seam.py, 5 for the seam):
+  the append routes and a witness proposal record their kind; a store failure still answers 201
+  and logs ERROR; ATTESTING_KINDS == submissions.ARTIFACT_TYPES; 1 / 000001 / 0000000001 / ULID /
+  lower-case ULID are one answer; 0, 000000 and a 13-digit number are 404 with no host lookup;
+  malformed ids are 400; the window is one lookup, an aged read looks again, a failure serves the
+  last state and closes nothing, the next read retries; a failure on the first read ever is a
+  null state with the error; a number the host no longer knows is a null state with the error,
+  cached for the window; closed-unmerged closes the record and a cold app answers with no lookup;
+  merged proof -> attestation-pending, then the attestation with no further lookup; the snapshot
+  drops a merged record; MemoryStore and DynamoStore parity (round trip, closing, the index
+  emptying, the three-prefix layout with no expires_at). Seam: the three GETs and their shaping,
+  404 -> None with no reviews call, 403 names the call and GitHub's message and no credential,
+  transport failure and a non-array reviews body are GitHostErrors, no head sha -> no runs call.
+
+4. Green
+--------
+$ uv run --frozen pytest -q api/tests/test_finding_pending_submissions.py \
+    api/tests/test_pending_submissions.py api/tests/test_submissions.py api/tests/test_appends.py \
+    api/tests/test_routes.py api/tests/test_store_seam.py api/tests/test_githost_seam.py
+(run inside make verify below; api alone: 472 passed, 39 xfailed before the new test files)
+test_finding_pending_submissions.py: 2 passed (the two above), 8 xfailed (strict, waiting).
+
+5. Mutation check (pytest plugins, monkeypatching in memory; transcript lines)
+-------------------------------------------------------------------------------
+$ PYTHONPATH=<scratch>/mutants uv run pytest -q --tb=no -rf -p <mutant> \
+    api/tests/test_pending_submissions.py api/tests/test_mcp_pending_submissions.py \
+    api/tests/test_finding_pending_submissions.py api/tests/test_finding_submission_ids.py
+
+mutant_cache_never_expires   (pending.time.monotonic -> 0.0: the window never passes)
+  FAILED test_pending_submissions.py::test_reads_inside_the_window_are_one_lookup_and_a_failure_serves_the_last_state
+  FAILED test_pending_submissions.py::test_a_merged_annex_leaves_the_snapshot
+  FAILED test_mcp_pending_submissions.py::test_get_node_carries_only_its_own_open_submissions_and_drops_the_merged
+  3 failed, 30 passed, 9 xfailed
+mutant_merged_not_closed     (PullRequestState.finished -> False)
+  FAILED test_pending_submissions.py::test_a_pull_request_closed_unmerged_closes_the_record
+  FAILED test_pending_submissions.py::test_a_merged_proof_is_pending_until_its_attestation_lands
+  FAILED test_pending_submissions.py::test_a_merged_annex_leaves_the_snapshot
+  FAILED test_mcp_pending_submissions.py::test_get_node_carries_only_its_own_open_submissions_and_drops_the_merged
+  4 failed, 29 passed, 9 xfailed
+mutant_padding_not_normalised (a digit id with a leading zero -> 404)
+  FAILED test_pending_submissions.py::test_every_spelling_of_the_id_is_the_same_answer[000001]
+  FAILED test_pending_submissions.py::test_every_spelling_of_the_id_is_the_same_answer[0000000001]
+  FAILED test_mcp_pending_submissions.py::test_get_submission_tool_is_the_route_for_an_open_append
+  FAILED test_finding_pending_submissions.py::test_unknown_is_404_and_a_hand_opened_pull_request_answers_without_a_record
+  FAILED test_finding_submission_ids.py::test_get_submission_resolves_the_padded_and_unpadded_id[000033]
+  FAILED test_finding_submission_ids.py::test_get_submission_resolves_the_padded_and_unpadded_id[0000000033]
+  6 failed, 27 passed, 9 xfailed
+Note: the specification's own cache and closing tests are still strict xfails (they need the
+submissions.py record call), so the first two mutants are killed by this task's tests, not by
+the finding file. Once the record call lands, re-run these mutants against the finding file.
+
+6. Live probe — read-only, in process, real graph, real App credentials
+-----------------------------------------------------------------------
+Settings from /Users/mikehiggins/Desktop/repos/open_proof_network/.env (store forced to memory,
+so no DynamoDB call at all); create_app with the real HttpxGitHost wrapped to name each call;
+starlette TestClient. No writes of any kind: the only host calls were these —
+  host: fetch_raw('thisisanameforsure/open_proof_network_graph', 'main', 'info.json') 0.47s
+  host: fetch_raw(..., 'main', 'attestations/000033.json') 0.36s
+  host: get_pull_request('thisisanameforsure/open_proof_network_graph', 33) 1.91s
+  host: fetch_raw(..., 'main', 'attestations/999999.json') 0.34s
+graph_repo=thisisanameforsure/open_proof_network_graph branch=main missing=[]
+GET /submissions/33 -> 200
+{
+  "submission": null,
+  "pull_request": {
+    "number": 33,
+    "url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/33",
+    "state": "closed", "merged": true, "mergeable_state": "unknown",
+    "head_sha": "29f30856b130bc5f51566c63823f0f11ba310cf1",
+    "merge_commit_sha": "e559debaa39a437425ce4f4b25e07bc3235f366c",
+    "runs": [
+      {"name": "gate", "status": "completed", "conclusion": "success",
+       "url": ".../actions/runs/34767839747"},
+      {"name": "gate", "status": "completed", "conclusion": "success",
+       "url": ".../actions/runs/34767833795"}
+    ],
+    "reviews": [{"login": "thisisanameforsure", "state": "APPROVED"}]
+  },
+  "pull_request_error": null,
+  "attestation_path": "attestations/000033.json",
+  "attestation": {"schema": "attestation/v4", "node_id": "variant-93e79cb5", "verdict": "pass",
+                  "merge_commit": "e559debaa39a437425ce4f4b25e07bc3235f366c",
+                  "submitter": null, "...": "24 fields in all"},   (abridged by the probe)
+  "attestation_note": null
+}
+GET /submissions/000033 -> 200   (identical body; served from the cache, no second host call)
+GET /submissions.json -> 200  {"snapshot_at": "2026-09-14T05:36:41Z", "open": []}
+GET /submissions/999999 -> 404
+  {"error": "submission-unknown", "message": "999999 is neither a pull request the service opened
+   nor one the graph has attested"}   (no pull-request lookup was made for it)
+Permissions: the App read pulls/33, its reviews and actions/runs?head_sha= with no 403 — Pull
+requests: read and Actions: read are held, and Checks is not needed. The merge commit matches the
+attestation's merge_commit. PR #33 was opened by the service before records existed, so it
+answers as a hand-opened pull request (submission null), as designed.
+
+7. make verify (fast tier, the worktree with both F07-T16 and F09-T7 applied)
+-----------------------------------------------------------------------------
+ruff check: All checks passed!   ruff format --check: clean
+mypy gate: Success: no issues found in 148 source files
+mypy api:  Success: no issues found in 87 source files
+mypy site: Success: no issues found in 22 source files
+pytest -m "not lean and not docker and not network":
+  1761 passed, 13 skipped, 65 deselected, 65 xfailed in 100.85s
+
+8. Still red, and what each waits on
+------------------------------------
+Strict xfail, waiting on the submissions.py record call (after the other session's commit):
+  test_finding_pending_submissions.py::test_post_submissions_records_the_submission
+  ::test_get_submission_by_ulid_or_pr_number_answers_the_live_pull_request
+  ::test_a_merged_proof_links_its_attestation_and_is_never_looked_up_again
+  ::test_the_pull_request_state_is_cached_and_survives_a_host_failure
+  ::test_submissions_json_lists_open_work_and_drops_the_merged
+MCP side (F09-T7, see engineering/evidence/F09/task-7.txt):
+  ::test_get_node_lists_the_open_submissions_on_the_node       (record call)
+  ::test_get_submission_tool_equals_the_route                  (record call)
+  ::test_list_submissions_is_a_tool_and_equals_the_snapshot    (D-28 row + record call)
+Deferred: the plan's local rehearsal of the Lambda build (uv pip install --python-platform
+aarch64-manylinux2014 --target) was not run; pending.py travels inside api/opn_api, which the
+build copies whole, and no new dependency or schema file was added to the package.

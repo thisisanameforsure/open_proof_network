@@ -944,6 +944,132 @@ def test_download_returns_an_oversized_body_whole(script: Script, host: HttpxGit
     assert host.download_artifact(REPO, 4242, "result-1") == big
 
 
+# --- get_pull_request (F07-T16) ----------------------------------------------------------------
+
+
+PULL = f"/repos/{REPO}/pulls/33"
+REVIEWS = f"/repos/{REPO}/pulls/33/reviews"
+ACTION_RUNS = f"/repos/{REPO}/actions/runs"
+HEAD_SHA = "e" * 40
+
+
+def test_get_pull_request_reads_the_pull_its_reviews_and_the_runs_on_its_head(
+    script: Script, host: HttpxGitHost
+) -> None:
+    """Three GETs as the App, shaped into ``{name, status, conclusion, url}`` runs and
+    ``{login, state}`` reviews — the wire's extra fields dropped, nothing written."""
+    install_app(script).on(
+        "GET",
+        PULL,
+        json={
+            "number": 33,
+            "html_url": "https://github.com/owner/scratch/pull/33",
+            "state": "closed",
+            "merged": True,
+            "mergeable_state": "unknown",
+            "head": {"sha": HEAD_SHA, "ref": "submit/x"},
+            "merge_commit_sha": COMMIT_SHA,
+            "body": "ignored",
+        },
+    ).on(
+        "GET",
+        REVIEWS,
+        json=[{"user": {"login": "bob", "id": 2}, "state": "APPROVED", "body": "lgtm"}, "junk"],
+    ).on(
+        "GET",
+        ACTION_RUNS,
+        json={
+            "workflow_runs": [
+                {
+                    "id": 9,
+                    "name": "gate",
+                    "status": "completed",
+                    "conclusion": "success",
+                    "html_url": "https://github.com/runs/9",
+                }
+            ]
+        },
+    )
+    state = host.get_pull_request(REPO, 33)
+    assert state == githost.PullRequestState(
+        number=33,
+        url="https://github.com/owner/scratch/pull/33",
+        state="closed",
+        merged=True,
+        mergeable_state="unknown",
+        head_sha=HEAD_SHA,
+        merge_commit_sha=COMMIT_SHA,
+        runs=(
+            {
+                "name": "gate",
+                "status": "completed",
+                "conclusion": "success",
+                "url": "https://github.com/runs/9",
+            },
+        ),
+        reviews=({"login": "bob", "state": "APPROVED"},),
+    )
+    assert state is not None and state.finished
+    (runs_call,) = script.to("GET", ACTION_RUNS)
+    assert dict(runs_call.url.params) == {"head_sha": HEAD_SHA, "per_page": "100"}
+    assert {c.method for c in script.calls} == {"GET", "POST"}  # the POST is the token exchange
+    assert [c.url.path for c in script.calls if c.method == "POST"] == [
+        "/app/installations/99/access_tokens"
+    ]
+
+
+def test_get_pull_request_the_host_does_not_have_is_none(
+    script: Script, host: HttpxGitHost
+) -> None:
+    install_app(script).on("GET", PULL, 404, json={"message": "Not Found"})
+    assert host.get_pull_request(REPO, 33) is None
+    assert script.to("GET", REVIEWS) == []
+
+
+def test_get_pull_request_refusal_names_the_call_and_the_permission_message(
+    script: Script, host: HttpxGitHost, secrets: list[str]
+) -> None:
+    install_app(script).on(
+        "GET", PULL, 403, json={"message": "Resource not accessible by integration"}
+    )
+    with pytest.raises(GitHostError) as exc:
+        host.get_pull_request(REPO, 33)
+    assert str(exc.value) == (
+        f"GET /repos/{REPO}/pulls/33 returned 403: Resource not accessible by integration"
+    )
+    assert not any(s in str(exc.value) for s in secrets)
+
+
+def test_get_pull_request_transport_failure_and_bad_bodies_are_host_errors(
+    script: Script, host: HttpxGitHost
+) -> None:
+    install_app(script).fail("GET", PULL, httpx.ConnectError("boom"))
+    with pytest.raises(GitHostError, match=r"pulls/33 failed: ConnectError"):
+        host.get_pull_request(REPO, 33)
+
+    script.routes.clear()
+    install_app(script).on("GET", PULL, json={"state": "open", "head": {"sha": HEAD_SHA}}).on(
+        "GET", REVIEWS, json={"message": "not a list"}
+    )
+    with pytest.raises(GitHostError, match="not an array, for the reviews of pull request #33"):
+        host.get_pull_request(REPO, 33)
+
+
+def test_get_pull_request_without_a_head_asks_for_no_runs(
+    script: Script, host: HttpxGitHost
+) -> None:
+    install_app(script).on("GET", PULL, json={"state": "open"}).on("GET", REVIEWS, json=[])
+    state = host.get_pull_request(REPO, 33)
+    assert state is not None
+    assert (state.head_sha, state.runs, state.mergeable_state, state.finished) == (
+        "",
+        (),
+        "unknown",
+        False,
+    )
+    assert script.to("GET", ACTION_RUNS) == []
+
+
 # --- authorize_url (F05-R3) --------------------------------------------------------------------
 
 
