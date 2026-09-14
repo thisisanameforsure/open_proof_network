@@ -105,6 +105,8 @@ table.frontier { font-size: 0.85rem; width: max-content; min-width: 100%; }
 table.frontier th, table.frontier td { padding-right: 1rem; white-space: nowrap; }
 table.frontier .filters input { width: 9ch; font: inherit; padding: 0.15rem 0.3rem; border: 1px solid var(--rule); background: #fff; }
 .filter-note { color: var(--muted); }
+/* F04-T10: a not-claimable row's reasons wrap under its Claimable word instead of widening the table. */
+table.frontier td .why-not-row { display: block; white-space: normal; min-width: 22ch; max-width: 30ch; color: var(--muted); font-size: 0.8rem; }
 button { font: inherit; padding: 0.3rem 0.8rem; border: 1px solid var(--rule); background: var(--well); color: var(--ink); }
 
 /* F12-R14: the statement-QA table and the drift flag on a target page. */

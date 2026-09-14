@@ -44,6 +44,8 @@ CAUSE_WORDS = {
 }
 #: F03-Q8: the statuses a claim could take, so the only ones a target's reasons explain.
 CLAIMABLE_STATUSES = ("ready", "speculative")
+#: The frontier row's words for a not-claimable target whose index row names no reason (D-6).
+NO_RECORD_WORDS = "this target has no curated intake record (D-6)"
 #: One column per frontier entry field, plus the node's status from its target's graph (T11, Q11):
 #: the frontier lists open variants that wait on their holes, so Claimable needs a status beside it.
 FRONTIER_COLUMNS = (
@@ -587,13 +589,40 @@ class Renderer:
             f"here. The live count is {live}.</p>"
         )
 
+    def frontier_node(self, e: dict[str, Any]) -> NodeView | None:
+        """T11: the entry's node in its target's graph.json, which the site loaded beside the
+        frontier from the same commit; ``None`` when the target or node is not there."""
+        tv = self.site.targets.get(str(e["target_id"]))
+        return tv.nodes.get(str(e["node_id"])) if tv is not None else None
+
+    def row_not_claimable(self, tv: TargetView) -> str:
+        """F04-T10 (frontier row): the target's reasons as a sub-line of the Claimable cell, in
+        ``intake.explain``'s words and escaped, so the table gains no column; empty when the
+        target is claimable."""
+        e = tv.index_entry
+        if e.get("claimable"):
+            return ""
+        reasons = [str(r) for r in e.get("not_claimable") or []]
+        words = "; ".join(esc(intake.explain(r)) for r in reasons) or esc(NO_RECORD_WORDS)
+        return f'<span class="why-not-row">Not claimable: {words}.</span>'
+
+    def claimable_cell(self, e: dict[str, Any]) -> str:
+        """The entry's own word first, so the column's filter keeps its meaning (R7); then, for a
+        node a claim could take (F03-Q8), why its target will not take one."""
+        word = "yes" if e["claimable"] else "no"
+        tv = self.site.targets.get(str(e["target_id"]))
+        node = self.frontier_node(e)
+        if tv is None or node is None or node.status not in CLAIMABLE_STATUSES:
+            return word
+        why = self.row_not_claimable(tv)
+        return f"{word} {why}" if why else word
+
     def frontier_cell(self, key: str, e: dict[str, Any]) -> str:  # noqa: PLR0911 — one per field kind
         if key == "status":
-            # T11: not an entry field; the node's row in its target's graph.json, which the site
-            # loaded beside the frontier from the same commit.
-            tv = self.site.targets.get(str(e["target_id"]))
-            node = tv.nodes.get(str(e["node_id"])) if tv is not None else None
+            node = self.frontier_node(e)
             return esc(node.status) if node is not None else "unknown"
+        if key == "claimable" and isinstance(e.get(key), bool):
+            return self.claimable_cell(e)
         if key not in e:  # a field an older frontier version does not carry (D-34)
             return "none"
         value = e[key]

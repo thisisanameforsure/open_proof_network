@@ -61,13 +61,6 @@ def test_node_page_of_a_listed_target_says_why_it_is_not_claimable(
         assert render.esc(intake.explain(reason)) in page, reason
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "finding site-not-claimable-reasons (F04-R7): the frontier row carries no reason; "
-        "after F04-T11 (another session's Frontier page rewrite)"
-    ),
-)
 def test_frontier_row_of_a_listed_target_says_why_it_is_not_claimable(
     listed: tuple[list[str], dict[str, str]],
 ) -> None:
@@ -79,6 +72,109 @@ def test_frontier_row_of_a_listed_target_says_why_it_is_not_claimable(
     assert "Not claimable" in row, row
     for reason in reasons:
         assert render.esc(intake.explain(reason)) in row, reason
+
+
+# --- edge cases (F04-T10 frontier row) ---------------------------------------------------------
+
+
+def _row(page: str, node_id: str) -> str:
+    table = page.split("<tbody>", 1)[1].split("</tbody>", 1)[0]
+    [row] = [r for r in table.split("</tr>") if f">{node_id}</a>" in r]
+    return row
+
+
+def _claimable_cell(row: str) -> str:
+    """The Claimable cell, found by the header's position (the table's column order is T11's)."""
+    keys = [key for key, _label in render.FRONTIER_COLUMNS]
+    return row.split("<td>")[1:][keys.index("claimable")].split("</td>", 1)[0]
+
+
+def test_the_reasons_sit_in_the_claimable_cell_and_add_no_column(
+    listed: tuple[list[str], dict[str, str]],
+) -> None:
+    """Readable at 1200px: the reasons are a sub-line of the Claimable cell, which still starts
+    with the entry's own "no" so the column's filter keeps its meaning (R7)."""
+    reasons, pages = listed
+    page = pages["frontier/index.html"]
+    assert page.split("<thead>", 1)[1].count("<th>") == len(render.FRONTIER_COLUMNS) == 17
+    cell = _claimable_cell(_row(page, LISTED_ROOT))
+    assert cell.startswith("no "), cell
+    assert "Not claimable" in cell
+    for reason in reasons:
+        assert render.esc(intake.explain(reason)) in cell, reason
+
+
+def test_a_reason_carrying_html_is_escaped_in_the_frontier_row(tmp_path: Path) -> None:
+    site, _nv = _site_and_node(tmp_path)
+    tv = site.targets[LISTED_TARGET]
+    payload = '<script>alert(1)</script>"x'
+    entry = {**tv.index_entry, "not_claimable": [payload]}
+    targets = {**site.targets, LISTED_TARGET: dataclasses.replace(tv, index_entry=entry)}
+    page = render.Renderer(
+        dataclasses.replace(site, targets=targets), repo_url=REPO, decisions_doc=None
+    ).frontier()
+    row = _row(page, LISTED_ROOT)
+    assert "<script>alert" not in page
+    assert render.esc(payload) in row
+
+
+def test_an_empty_reasons_list_still_says_not_claimable_in_the_row(tmp_path: Path) -> None:
+    site, _nv = _site_and_node(tmp_path)
+    tv = site.targets[LISTED_TARGET]
+    entry = {**tv.index_entry, "claimable": False, "not_claimable": []}
+    targets = {**site.targets, LISTED_TARGET: dataclasses.replace(tv, index_entry=entry)}
+    page = render.Renderer(
+        dataclasses.replace(site, targets=targets), repo_url=REPO, decisions_doc=None
+    ).frontier()
+    assert "Not claimable: this target has no curated intake record (D-6)" in _row(
+        page, LISTED_ROOT
+    )
+
+
+def test_a_claimable_targets_row_carries_no_reasons(tmp_path: Path) -> None:
+    site, _nv = _site_and_node(tmp_path)
+    tv = site.targets[LISTED_TARGET]
+    entry = {**tv.index_entry, "claimable": True, "not_claimable": []}
+    targets = {**site.targets, LISTED_TARGET: dataclasses.replace(tv, index_entry=entry)}
+    for e in site.frontier["entries"]:
+        if e["node_id"] == LISTED_ROOT:
+            e["claimable"] = True
+    page = render.Renderer(
+        dataclasses.replace(site, targets=targets), repo_url=REPO, decisions_doc=None
+    ).frontier()
+    cell = _claimable_cell(_row(page, LISTED_ROOT))
+    assert cell == "yes"
+
+
+def test_a_blocked_row_under_a_listed_target_carries_no_reasons(tmp_path: Path) -> None:
+    """F03-Q8, as on the node page: only a ready or speculative node could be claimed, so a
+    blocked row's Status column is its reason and the target's reasons are not repeated."""
+    site, nv = _site_and_node(tmp_path)
+    nv.graph_entry["status"] = "blocked"
+    page = render.Renderer(site, repo_url=REPO, decisions_doc=None).frontier()
+    row = _row(page, LISTED_ROOT)
+    assert _claimable_cell(row) == "no"
+    assert "Not claimable" not in row
+
+
+def test_the_tutorial_row_carries_no_reasons(tmp_path: Path) -> None:
+    """D-27: a target without a curated record is claimable exactly when its root is the
+    tutorial (F03-Q4), so a tutorial row reads as claimable and explains nothing."""
+    site, _nv = _site_and_node(tmp_path)
+    tv = site.targets[LISTED_TARGET]
+    entry = {**tv.index_entry, "claimable": True, "not_claimable": []}
+    targets = {**site.targets, LISTED_TARGET: dataclasses.replace(tv, index_entry=entry)}
+    for e in site.frontier["entries"]:
+        if e["node_id"] == LISTED_ROOT:
+            e["claimable"], e["tutorial"] = True, True
+    page = render.Renderer(
+        dataclasses.replace(site, targets=targets), repo_url=REPO, decisions_doc=None
+    ).frontier()
+    row = _row(page, LISTED_ROOT)
+    assert "Not claimable" not in row
+    cells = row.split("<td>")[1:]
+    keys = [key for key, _label in render.FRONTIER_COLUMNS]
+    assert cells[keys.index("tutorial")].startswith("yes")
 
 
 # --- edge cases (F04-T10 part 2) ---------------------------------------------------------------
