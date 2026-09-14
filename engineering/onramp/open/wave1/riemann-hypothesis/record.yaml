@@ -1,0 +1,44 @@
+schema: target/v1
+id: riemann-hypothesis
+title: 'The **Riemann Hypothesis**: all non-trivial zeros of the Riemann zeta function
+  have real part $\frac{1}{2}$.'
+informal: 'The **Riemann Hypothesis**: all non-trivial zeros of the Riemann zeta function
+  have real part $\frac{1}{2}$. That is, if $\zeta(s) = 0$, $s \neq 1$, and $s$ is
+  not a trivial zero $-2(n+1)$ for some $n \in \mathbb{N}$, then $\operatorname{Re}(s)
+  = \frac{1}{2}$. This is the official Millennium Prize Problem as posed by the [Clay
+  Mathematics Institute](https://www.claymath.org/wp-content/uploads/2022/05/riemann.pdf).
+  This uses the `RiemannHypothesis` type from Mathlib, which is defined as `∀ (s :
+  ℂ), riemannZeta s = 0 → (¬∃ n : ℕ, s = -2 * (n + 1)) → s ≠ 1 → s.re = 1 / 2`.'
+paraphrase: null
+track: open
+source:
+  kind: formal-conjectures
+  ref: FormalConjectures/Millenium/RiemannHypothesis.lean
+  url: https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/Millenium/RiemannHypothesis.lean
+curator: thisisanameforsure
+prior_art:
+  arxiv_query: null
+  forum_url: null
+  summary: 'Catalog score 6 (A) at registry commit c7f31d5fd3d2: +3 the statement
+    is Mathlib''s own `RiemannHypothesis` (Mathlib/NumberTheory/LSeries/RiemannZeta.lean),
+    a definition merged through Mathlib''s maintainer review; +1 the statement has
+    been public in Mathlib since 2023-06-29 (180+ days); +0 not counted: #3931 (Extended
+    Riemann Hypothesis (ERH) is false as currently stated) names another statement
+    in the file, not `RiemannHypothesis`; +1 no misformalization issue naming `RiemannHypothesis`;
+    +1 no file-local definitions in the statement (Mathlib vocabulary only). AlphaProof
+    Nexus attempts: none on record. In the registry since 2026-03-01. Drafted by gate/tools/wave.py
+    (F14-T11); the curator reads it before import (R13).'
+library_coverage:
+  mathlib_sha: 0df444a360eaa60ab8c11dca51a86af692955474
+  missing_prerequisites: []
+provenance:
+  statement_source: formal-conjectures
+  author: The Formal Conjectures Authors
+  adversarially_reviewed: false
+  upstream_commit: c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae
+sources: []
+attack_routes: []
+posting: null
+domains:
+- number-theory
+qa_summary: null

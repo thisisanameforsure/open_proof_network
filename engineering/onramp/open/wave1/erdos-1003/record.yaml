@@ -1,0 +1,37 @@
+schema: target/v1
+id: erdos-1003
+title: 'Erdős problem 1003: Are there infinitely many solutions to $\phi(n) = \phi(n+1)$,
+  where $\phi$ is the Euler totient function?'
+informal: Are there infinitely many solutions to $\phi(n) = \phi(n+1)$, where $\phi$
+  is the Euler totient function?
+paraphrase: null
+track: open
+source:
+  kind: formal-conjectures
+  ref: FormalConjectures/ErdosProblems/1003.lean
+  url: https://www.erdosproblems.com/1003
+curator: thisisanameforsure
+prior_art:
+  arxiv_query: null
+  forum_url: https://www.erdosproblems.com/1003
+  summary: 'Catalog score 7 (A) at registry commit c7f31d5fd3d2: +2 Bloom selected
+    it for FrontierMath Erdős; +1 FC statement vendored and asserted `research open`
+    at Epoch''s pin; +2 attempted by AlphaProof Nexus (Feb 2026), not solved; +0 misformalization
+    issue(s) filed and closed; +1 Lean statement public for 180+ days; +1 no file-local
+    definitions (Mathlib vocabulary only). AlphaProof Nexus attempts: erdos_1003,
+    erdos_1003.variants.Icc. In the registry since 2025-10-06. Drafted by gate/tools/wave.py
+    (F14-T11); the curator reads it before import (R13).'
+library_coverage:
+  mathlib_sha: 0df444a360eaa60ab8c11dca51a86af692955474
+  missing_prerequisites: []
+provenance:
+  statement_source: formal-conjectures
+  author: The Formal Conjectures Authors
+  adversarially_reviewed: false
+  upstream_commit: c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae
+sources: []
+attack_routes: []
+posting: null
+domains:
+- number-theory
+qa_summary: null

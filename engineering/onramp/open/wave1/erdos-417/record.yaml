@@ -1,0 +1,36 @@
+schema: target/v1
+id: erdos-417
+title: 'Erdős problem 417, part i: Let$$V''(x)=\#\{\phi(m) : 1\leq m\leq x\}$$and$$V(x)=\#\{\phi(m)
+  \leq x : 1\leq m\}.$$ Does $\lim V(x)/V''(x)$ exist?'
+informal: 'Let$$V''(x)=\#\{\phi(m) : 1\leq m\leq x\}$$and$$V(x)=\#\{\phi(m) \leq x
+  : 1\leq m\}.$$ Does $\lim V(x)/V''(x)$ exist?'
+paraphrase: null
+track: open
+source:
+  kind: formal-conjectures
+  ref: FormalConjectures/ErdosProblems/417.lean
+  url: https://www.erdosproblems.com/417
+curator: thisisanameforsure
+prior_art:
+  arxiv_query: null
+  forum_url: https://www.erdosproblems.com/417
+  summary: 'Catalog score 5 (B+) at registry commit c7f31d5fd3d2: +2 attempted by
+    AlphaProof Nexus (Feb 2026), not solved; +1 no misformalization issue ever filed;
+    +1 Lean statement public for 180+ days; +1 no file-local definitions (Mathlib
+    vocabulary only). AlphaProof Nexus attempts: erdos_417.parts.i, erdos_417.parts.ii.
+    In the registry since 2026-01-22. Drafted by gate/tools/wave.py (F14-T11); the
+    curator reads it before import (R13).'
+library_coverage:
+  mathlib_sha: 0df444a360eaa60ab8c11dca51a86af692955474
+  missing_prerequisites: []
+provenance:
+  statement_source: formal-conjectures
+  author: The Formal Conjectures Authors
+  adversarially_reviewed: false
+  upstream_commit: c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae
+sources: []
+attack_routes: []
+posting: null
+domains:
+- number-theory
+qa_summary: null

@@ -1,0 +1,38 @@
+schema: target/v1
+id: erdos-952
+title: 'Erdős problem 952: Is there an infinite sequence of distinct Gaussian primes
+  $x_1,x_2,\ldots$ such that $\lvert x_{n+1}-x_n\rvert \ll 1$?'
+informal: Is there an infinite sequence of distinct Gaussian primes $x_1,x_2,\ldots$
+  such that $\lvert x_{n+1}-x_n\rvert \ll 1$?
+paraphrase: null
+track: open
+source:
+  kind: formal-conjectures
+  ref: FormalConjectures/ErdosProblems/952.lean
+  url: https://www.erdosproblems.com/952
+curator: thisisanameforsure
+prior_art:
+  arxiv_query: null
+  forum_url: https://www.erdosproblems.com/952
+  summary: 'Catalog score 6 (A) at registry commit c7f31d5fd3d2: +2 Bloom selected
+    it for FrontierMath Erdős; +1 FC statement vendored and asserted `research open`
+    at Epoch''s pin; +2 attempted by AlphaProof Nexus (Feb 2026), not solved; +1 no
+    misformalization issue ever filed; +1 Lean statement public for 180+ days; -1
+    file modified in the last 30 days; +1 no file-local definitions (Mathlib vocabulary
+    only); -1 wording hazard: asymptotic notation. AlphaProof Nexus attempts: erdos_952.
+    In the registry since 2025-11-21. Drafted by gate/tools/wave.py (F14-T11); the
+    curator reads it before import (R13).'
+library_coverage:
+  mathlib_sha: 0df444a360eaa60ab8c11dca51a86af692955474
+  missing_prerequisites: []
+provenance:
+  statement_source: formal-conjectures
+  author: The Formal Conjectures Authors
+  adversarially_reviewed: false
+  upstream_commit: c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae
+sources: []
+attack_routes: []
+posting: null
+domains:
+- number-theory
+qa_summary: null

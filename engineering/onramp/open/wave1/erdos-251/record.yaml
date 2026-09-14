@@ -1,0 +1,35 @@
+schema: target/v1
+id: erdos-251
+title: 'Erdős problem 251: Is $\sum_{n=1}^\infty \frac{p_n}{2^n}$ irrational?'
+informal: Is $\sum_{n=1}^\infty \frac{p_n}{2^n}$ irrational? Here $p_n$ is the $n$-th
+  prime ($p_1=2, p_2=3, \dots$).
+paraphrase: null
+track: open
+source:
+  kind: formal-conjectures
+  ref: FormalConjectures/ErdosProblems/251.lean
+  url: https://www.erdosproblems.com/251
+curator: thisisanameforsure
+prior_art:
+  arxiv_query: null
+  forum_url: https://www.erdosproblems.com/251
+  summary: 'Catalog score 5 (B+) at registry commit c7f31d5fd3d2: +2 attempted by
+    AlphaProof Nexus (Feb 2026), not solved; +1 no misformalization issue ever filed;
+    +1 Lean statement public for 180+ days; +1 no file-local definitions (Mathlib
+    vocabulary only). AlphaProof Nexus attempts: erdos_251. In the registry since
+    2025-07-18. Drafted by gate/tools/wave.py (F14-T11); the curator reads it before
+    import (R13).'
+library_coverage:
+  mathlib_sha: 0df444a360eaa60ab8c11dca51a86af692955474
+  missing_prerequisites: []
+provenance:
+  statement_source: formal-conjectures
+  author: The Formal Conjectures Authors
+  adversarially_reviewed: false
+  upstream_commit: c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae
+sources: []
+attack_routes: []
+posting: null
+domains:
+- number-theory
+qa_summary: null

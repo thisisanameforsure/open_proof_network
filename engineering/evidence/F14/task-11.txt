@@ -1,0 +1,31 @@
+F14-T11 — the wave driver and the wave-one drafts (R13)
+worktree: /Users/mikehiggins/Desktop/repos/opn-f14 at 1cd18d1 + T11 changes
+command: make verify
+2026-09-14T14:50:50Z
+
+
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:29
+  /Users/mikehiggins/Desktop/repos/opn-f14/api/tests/api_fakes.py:29: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-f14/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========= 2084 passed, 69 deselected, 2 warnings in 150.15s (0:02:30) ==========
+
+Notes
+- ruff check and ruff format --check clean; mypy --strict clean (part of make verify above).
+- uv run pytest gate/tests/test_wave.py -q: 3 passed; fixture report "Drafted 4, refused 8."
+- Real run against Formal Conjectures c7f31d5: engineering/onramp/open/wave1/REPORT.md
+  "Drafted 22, refused 26." Drafts: erdos 51, 212, 247, 251, 257, 260, 324, 341, 410, 412, 417,
+  727, 812, 849, 850, 931, 952, 1003, 1065, 1094, 1139, and riemann-hypothesis.
+- Every draft read by hand. Defects found that way and fixed with a fixture row each:
+  dotted declaration names; term-mode `:= sorry`; bound variables misread as helpers; a
+  `.variants.` declaration drafted as the problem (Erdős 267); a narrowed helper rule letting
+  hypergraphRamsey, sumRep, lcmInterval and triangle_area through; a type ascription read as a
+  binder group (sumRep in Erdős 66).
+- Not done here: T11L, docker-tier admission of the drafts in the Mathlib image and the
+  qa-screens workflow. Those need CI.
