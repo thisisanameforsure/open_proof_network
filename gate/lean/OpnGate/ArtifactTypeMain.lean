@@ -16,8 +16,40 @@ proof declares the statement's own name: putting both in one environment is a du
 declaration, not a comparison. Comparing across the two is sound here because the statement's
 type mentions only constants from the imports both files share — and if it ever mentions one the
 artifact does not import, the comparison fails, which is the right answer.
+
+`--siblings <manifest.json>` (F07-T7, optional) names the target's other statements, each staged
+by the gate as a probe: imports removed and the theorem renamed, so elaborating it on these imports
+never redeclares a name the artifact's environment already holds. The manifest is a JSON array of
+`{"node", "file", "decl"}`, `file` relative to the manifest. Each hole then reports
+`defeq_sibling`, the first node whose statement it is. A probe that does not elaborate here cannot
+be what a hole restates, so it is skipped and never fails the check.
 -/
 open Lean Meta Elab OpnGate
+
+/-- One sibling's statement type, or `none` when its probe does not elaborate on `base`. -/
+def siblingType (base : Environment) (path : System.FilePath) (node decl : String)
+    : IO (Option (String × Expr)) := do
+  try
+    let (env, log) ← elabFile path `OpnGate.SiblingProbe (some base)
+    if log.hasErrors then return none
+    return (env.find? decl.toName).map fun info => (node, info.type)
+  catch _ => return none
+
+/-- The sibling statements a manifest names, in its order. -/
+def siblingTypes (manifest : System.FilePath) (base : Environment)
+    : IO (Array (String × Expr)) := do
+  let dir := manifest.parent.getD "."
+  let json ← IO.ofExcept (Json.parse (← IO.FS.readFile manifest))
+  let entries ← IO.ofExcept json.getArr?
+  let mut out := #[]
+  for entry in entries do
+    match entry.getObjValAs? String "node", entry.getObjValAs? String "file",
+        entry.getObjValAs? String "decl" with
+    | .ok node, .ok file, .ok decl =>
+      if let some found ← siblingType base (dir / file) node decl then
+        out := out.push found
+    | _, _, _ => pure ()
+  return out
 
 unsafe def main (args : List String) : IO UInt32 := runMain do
   let (kv, _) := parseArgs args
@@ -44,6 +76,9 @@ unsafe def main (args : List String) : IO UInt32 := runMain do
   if let some code ← failIfErrors "artifact" artLog then return code
   let some artInfo := artEnv.find? artDecl.toName
     | fail s!"{artPath} does not declare {artDecl}"
+  let siblings ← match getArg kv "siblings" with
+    | some manifest => siblingTypes manifest base
+    | none => pure #[]
 
   let ctx : Core.Context := { fileName := artPath, fileMap := default }
   let state : Core.State := { env := artEnv }
@@ -53,7 +88,7 @@ unsafe def main (args : List String) : IO UInt32 := runMain do
       -- `allowOpaque := true`: a theorem's proof term is opaque for reduction, and this is the
       -- one place that wants to look at it rather than use it.
       let holes ← match artInfo.value? (allowOpaque := true) with
-        | some value => holeReport stmtInfo.type value
+        | some value => holeReport stmtInfo.type value siblings
         | none => pure { holes := #[], unnamed := 0, body_is_hole := false }
       return (toString (← ppExpr expected), toString (← ppExpr artInfo.type), ok, holes)
       : MetaM (String × String × Bool × HoleReport)).toIO ctx state

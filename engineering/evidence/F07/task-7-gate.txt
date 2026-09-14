@@ -1,0 +1,265 @@
+F07-T7 (gate half): the hole's model and the duplicate hole — 2026-09-14
+==========================================================================
+
+Scope. F07-T7's service half (R1, AC38, Q26) landed as bf71871 with task-7-service.txt. This is
+the other two parts, each held as a strict xfail naming F07-T7:
+
+  * the hole's model (R6, R13): gate/tests/test_postmerge_apply.py
+      test_hole_children_carry_the_declared_model
+  * the duplicate hole (R6, D-12 #5, D-29; the 2026-09-13 live contribution):
+      gate/tests/test_finding_duplicate_hole.py
+        test_a_hole_that_restates_a_sibling_becomes_a_dep_not_a_child
+        test_the_state_a_reused_hole_leaves_behind
+      gate/tests/test_finding_duplicate_hole_lean.py   (lean tier)
+        test_the_extractor_names_the_sibling_a_hole_restates
+
+Verification command (T7 row): uv run --frozen pytest api/tests/test_finding_partial_path.py
+gate/tests/test_postmerge_apply.py gate/tests/test_finding_duplicate_hole.py and the lean tier.
+
+
+What changed
+------------
+
+gate/opn_gate/cli.py            apply_merged_partial passes model=submission.tooling(block)["model"]
+gate/opn_gate/postmerge.py      apply_partial(model=...) records it in each child's provenance;
+                                reused_node() confirms, before anything is written, that a hole's
+                                defeq_sibling names another node of the target (else
+                                GraphWriteError); a reused hole becomes an edge, the others keep the
+                                index of their position (--h2 stays --h2); deps are appended in hole
+                                order; PartialMerge gains holes [{name, child, reused_node}].
+gate/opn_gate/steps/artifact.py Hole.defeq_sibling (default None, read with a default: an older
+                                extractor reports no field). For a partial, judge() stages every
+                                sibling statement under <workdir>/siblings/ — the sandbox reads the
+                                node and the work directory only — as a probe with its imports
+                                removed and its theorem renamed OpnSibling.probe (a probe elaborated
+                                on the parent's imports could otherwise redeclare a dep's statement
+                                reached through the parent's Context), plus siblings.json.
+                                sibling_candidates() leaves out the node itself, every node that
+                                depends on it however indirectly (an edge to one would close a
+                                cycle), and superseded nodes (D-29: the successor is offered).
+gate/opn_gate/toolchain.py      ArtifactRequest.siblings: Path | None; --siblings only when staged.
+gate/lean/OpnGate/Holes.lean    Hole.defeq_sibling : Option String with a hand-written ToJson (null,
+                                not omitted); holeReport(stmt, value, siblings := #[]) names the
+                                first sibling the closed type is defeq to — the goal check's two
+                                transparencies, a comparison that throws is not a match.
+gate/lean/OpnGate/ArtifactTypeMain.lean
+                                --siblings <manifest.json> (optional): each probe is elaborated on
+                                the union-import base environment (imports once per process); a
+                                probe that does not elaborate there is skipped, never fatal.
+gate/tests/golden/artifact-types.json
+                                regenerated with write_golden(): the diff is exactly one added
+                                `"defeq_sibling": null` on each of the five holes, nothing else.
+
+No new CLI flag reaches the graph's workflow: the post-merge job already passes --pr-body-file,
+and the sibling question is asked inside step 4 by the extractor the pin carries. The workflow
+needs no change; the behaviour is live from the re-pin that carries this commit.
+
+
+1. Red first (on f3abee2, marks lifted with --runxfail)
+-------------------------------------------------------
+
+$ uv run --frozen pytest tests/test_postmerge_apply.py::test_hole_children_carry_the_declared_model \
+    tests/test_finding_duplicate_hole.py --runxfail -q -rf
+E           AssertionError: ('and-swap-reassoc--h1', {'author': 'some-prover', 'model': None, 'source': None, 'date': '2026-09-14'})
+E           assert None == 'claude-fable-5-1'
+tests/test_postmerge_apply.py:280: AssertionError
+E       AssertionError: the restated hole must not become a node
+E       assert not True
+E        +  where True = exists()
+E        +    where exists = (PosixPath('.../graph/targets/propositional/nodes') / 'and-swap-reassoc--h1').exists
+tests/test_finding_duplicate_hole.py:136: AssertionError
+E       AssertionError: assert 'and-swap-reassoc--h1' not in {'and-reassoc': NodeFacts(...), ...}
+tests/test_finding_duplicate_hole.py:167: AssertionError
+FAILED tests/test_postmerge_apply.py::test_hole_children_carry_the_declared_model
+FAILED tests/test_finding_duplicate_hole.py::test_a_hole_that_restates_a_sibling_becomes_a_dep_not_a_child
+FAILED tests/test_finding_duplicate_hole.py::test_the_state_a_reused_hole_leaves_behind
+3 failed, 1 passed in 2.97s        (the 1 pass is the consolidate guard, which passes by design)
+
+Each failure is the one its reason names: model None where the block says claude-fable-5-1, and
+--h1 created for a hole that restates a sibling. The diagnoses held on today's main.
+
+Lean-tier red. A second git worktree at f3abee2 (to run the old binary) was refused by this
+session's worktree isolation, so the red is shown two ways instead:
+  $ git show HEAD:gate/lean/OpnGate/Holes.lean | grep -c defeq_sibling          -> 0
+  $ git show HEAD:gate/lean/OpnGate/ArtifactTypeMain.lean | grep -c siblings    -> 0
+  i.e. the pre-T7 extractor emits no defeq_sibling field, so holes[0].get("defeq_sibling") is
+  None != "tutorial-and-swap"; and the lean mutant below (siblings never staged, the pinned gate's
+  behaviour) reproduces that failure through the real extractor.
+
+Live confirmation of the model finding (read-only, ../open_proof_network_graph at the time):
+  targets/tutorial/nodes/variant-93e79cb5--h1/META.yaml        provenance: author: open-proof-network[bot], model: null
+  targets/euclid-primes/nodes/infinitude-of-primes--h1/META.yaml provenance: author: open-proof-network[bot], model: null
+
+
+2. Green (marks removed)
+------------------------
+
+$ uv run --frozen pytest tests/test_postmerge_apply.py tests/test_finding_duplicate_hole.py \
+    tests/test_branches_round3.py tests/test_artifacts.py tests/test_postmerge.py tests/test_modes.py -q -rA
+PASSED tests/test_postmerge_apply.py::test_a_merged_partial_becomes_children_in_the_checkout
+PASSED tests/test_postmerge_apply.py::test_children_carry_the_parents_imports
+PASSED tests/test_postmerge_apply.py::test_a_cited_annex_makes_skeleton_holes
+PASSED tests/test_postmerge_apply.py::test_without_the_flag_nothing_is_written
+PASSED tests/test_postmerge_apply.py::test_the_flag_on_a_proof_merge_writes_nothing_and_says_so
+PASSED tests/test_postmerge_apply.py::test_a_partial_with_nobody_to_credit_is_a_usage_error
+PASSED tests/test_postmerge_apply.py::test_a_failing_partial_creates_no_children
+PASSED tests/test_postmerge_apply.py::test_the_diff_of_the_merge_is_what_step2_reads
+PASSED tests/test_postmerge_apply.py::test_hole_children_carry_the_declared_model
+PASSED tests/test_postmerge_apply.py::test_without_a_block_the_children_declare_no_model
+PASSED tests/test_finding_duplicate_hole.py::test_a_hole_that_restates_a_sibling_becomes_a_dep_not_a_child
+PASSED tests/test_finding_duplicate_hole.py::test_the_state_a_reused_hole_leaves_behind
+PASSED tests/test_finding_duplicate_hole.py::test_consolidate_still_takes_two_identical_statements
+PASSED tests/test_finding_duplicate_hole.py::test_siblings_leave_out_the_node_its_dependents_and_the_superseded
+PASSED tests/test_finding_duplicate_hole.py::test_a_sibling_probe_has_no_imports_and_a_name_of_its_own
+PASSED tests/test_finding_duplicate_hole.py::test_a_partial_run_stages_each_sibling_in_the_work_directory
+PASSED tests/test_finding_duplicate_hole.py::test_the_extractor_is_asked_about_siblings_only_when_they_are_staged
+PASSED tests/test_finding_duplicate_hole.py::test_a_hole_restating_no_other_node_is_refused_before_anything_is_written[no-such-node]
+PASSED tests/test_finding_duplicate_hole.py::test_a_hole_restating_no_other_node_is_refused_before_anything_is_written[and-swap-reassoc]
+185 passed in 16.59s
+
+One existing pin moved with the shape: test_branches_round3::test_partial_merge_as_dict_names_what_it_produced
+now expects "holes": [] in PartialMerge.as_dict() (it failed with "Left contains 1 more item").
+
+Lean tier, the finding's own test, against a freshly built Lake package:
+$ (gate/lean) elan run leanprover/lean4:v4.33.1 lake build     -> Build completed successfully (40 jobs), 3m28s
+$ uv run --frozen pytest -m lean tests/test_finding_duplicate_hole_lean.py -q
+.                                                                        [100%]
+1 passed in 69.78s
+$ uv run --frozen pytest -m lean tests/test_artifacts_lean.py -q   (after write_golden())
+2 passed in 26.26s
+
+
+3. Mutants (pytest -p plugin, patched in memory, no file touched)
+-----------------------------------------------------------------
+
+Plugin: scratchpad/mutants/opn_mutants.py, selected by OPN_MUTANT; each run is
+  OPN_MUTANT=<m> PYTHONPATH=<scratch>/mutants:. uv run --frozen pytest -p opn_mutants \
+    tests/test_postmerge_apply.py tests/test_finding_duplicate_hole.py -q
+
+model-dropped        (apply_partial called with model=None — the pre-T7 defect)
+  FAILED tests/test_postmerge_apply.py::test_hole_children_carry_the_declared_model
+  1 failed, 18 passed
+no-reuse             (reused_node always None — every hole becomes a child)
+  FAILED ...::test_a_hole_that_restates_a_sibling_becomes_a_dep_not_a_child
+  FAILED ...::test_the_state_a_reused_hole_leaves_behind
+  FAILED ...::test_a_hole_restating_no_other_node_is_refused_before_anything_is_written[no-such-node]
+  FAILED ...::test_a_hole_restating_no_other_node_is_refused_before_anything_is_written[and-swap-reassoc]
+  4 failed, 15 passed
+edges-children-only  (the reused sibling is not written into the parent's deps)
+  FAILED ...::test_a_hole_that_restates_a_sibling_becomes_a_dep_not_a_child
+  FAILED ...::test_the_state_a_reused_hole_leaves_behind
+  2 failed, 17 passed
+unchecked-reuse      (defeq_sibling trusted without confirming it names another node)
+  FAILED ...::test_a_hole_restating_no_other_node_is_refused_before_anything_is_written[no-such-node]
+      (ScaffoldError from context_for — after the first child had already been written)
+  FAILED ...::test_a_hole_restating_no_other_node_is_refused_before_anything_is_written[and-swap-reassoc]
+      (DID NOT RAISE: the parent would have depended on itself)
+  2 failed, 17 passed
+candidates-all       (dependents and superseded nodes offered as siblings)
+  FAILED ...::test_siblings_leave_out_the_node_its_dependents_and_the_superseded
+  1 failed, 18 passed
+probe-keeps-name     (imports removed, theorem name kept)
+  FAILED ...::test_a_sibling_probe_has_no_imports_and_a_name_of_its_own
+  FAILED ...::test_a_partial_run_stages_each_sibling_in_the_work_directory
+  2 failed, 17 passed
+not-staged           (the extractor is never asked — what the pinned pre-T7 gate does)
+  FAILED ...::test_a_partial_run_stages_each_sibling_in_the_work_directory
+  1 failed, 18 passed
+
+Every record-level test fails under at least one wrong implementation.
+
+
+4. make verify (pre-commit hook)
+--------------------------------
+
+On the rebased commit (onto a96cc2e, amended with this file):
+=== 1984 passed, 17 skipped, 68 deselected, 2 warnings in 134.12s (0:02:14) ====
+
+On the first commit, before the rebase (f3abee2 base):
+= 1954 passed, 17 skipped, 68 deselected, 14 xfailed, 2 warnings in 134.03s =
+ruff check: All checks passed · ruff format --check: all formatted · mypy gate: no issues (154 files)
+
+T7 row's fast command:
+$ uv run --frozen pytest api/tests/test_finding_partial_path.py gate/tests/test_postmerge_apply.py \
+    gate/tests/test_finding_duplicate_hole.py -q
+28 passed, 2 warnings in 10.53s
+
+
+5. Lean tier (the whole of it, on this laptop, elan at ~/.elan; no Mathlib checkout)
+-----------------------------------------------------------------------------------
+
+df before: /dev/disk3s5 460Gi 390Gi 39Gi 91% /System/Volumes/Data
+$ uv run --frozen pytest -m lean -q -rfEs
+FAILED tests/test_onramp_lean.py::test_the_on_ramp_node_passes_on_the_pinned_mathlib
+FAILED tests/test_onramp_lean.py::test_skeleton_admits
+FAILED tests/test_qa_lean.py::test_onramp_screens_clean
+3 failed, 48 passed, 1254 deselected, 2 warnings in 1217.04s (0:20:17)
+
+All three failures are step 1 / ToolchainMissingError on the environment, not this change:
+  "no Mathlib checkout for 0df444a360eaa60ab8c11dca51a86af692955474 under
+   /Users/mikehiggins/.opn/mathlib; run gate/scripts/install-mathlib.sh 0df444a3..."
+(~/.opn/mathlib does not exist on this laptop; the tests' own docstring names this failure.)
+They are pending CI, where the Mathlib image carries the checkout. The Mathlib-free twin of the
+skeleton test, test_onramp_lean.py::test_skeleton_mechanics_without_mathlib, passed — it drives
+the real extractor over a skeleton's holes with siblings staged. Passing among the 48:
+test_finding_duplicate_hole_lean.py::test_the_extractor_names_the_sibling_a_hole_restates and
+test_artifacts_lean.py::test_artifact_types_golden (the regenerated golden).
+
+Lean mutant (the extractor never asked, the pinned pre-T7 gate's behaviour) — the red, reproduced
+through the real toolchain:
+$ OPN_MUTANT=not-staged PYTHONPATH=<scratch>/mutants:. uv run --frozen pytest -p opn_mutants -m lean \
+    tests/test_finding_duplicate_hole_lean.py -q
+>       assert holes[0].get("defeq_sibling") == TUTORIAL
+E        +  where None = <built-in method get of dict object at 0x...>('defeq_sibling')
+FAILED tests/test_finding_duplicate_hole_lean.py::test_the_extractor_names_the_sibling_a_hole_restates
+1 failed in 56.27s
+
+
+6. Rebase onto local main (a96cc2e, F03-T8 included)
+----------------------------------------------------
+
+$ git rebase main          -> Successfully rebased (no conflict)
+$ uv run --frozen mypy gate -> Success: no issues found in 154 source files
+$ uv run --frozen pytest gate/tests/test_postmerge_apply.py gate/tests/test_finding_duplicate_hole.py \
+    gate/tests/test_branches_round3.py gate/tests/test_postmerge.py gate/tests/test_cli_sandboxed.py \
+    gate/tests/test_artifacts.py api/tests/test_finding_partial_path.py -m "not lean and not docker and not network"
+128 passed, 2 warnings in 31.68s
+None of this task's tests renders products, so F03-T8's copy_graph(publish=True) is not needed by
+any of them (the state test reads graph.load_target, which does not check schemas/).
+
+
+7. Docker tier: the post-merge job in the real step-3 sandbox (on the rebased tree)
+-----------------------------------------------------------------------------------
+
+Why: the sandbox holds the node under check and the work directory only, and three checks in the
+Log passed every laptop tier and failed only in the container. The probes are staged under the
+work directory; only a container run shows they reach it. The new test
+gate/tests/test_finding_duplicate_hole_docker.py drives `postmerge --image <step-3 image>
+--apply-partial` over the 2026-09-13 live shape (a variant beside the tutorial, a skeleton whose
+h₁ is the tutorial's theorem) and asserts holes == [{h₁, child None, reused tutorial-and-swap},
+{h₂, child <variant>--h2}], no --h1 directory, and the variant's deps [tutorial-and-swap, --h2].
+
+df before: /dev/disk3s5 460Gi 390Gi 39Gi 91%
+$ uv run --frozen pytest -m docker gate/tests/test_finding_duplicate_hole_docker.py -q -rfE
+.                                                                        [100%]
+1 passed in 472.48s (0:07:52)            (includes building the step-3 image, no Mathlib)
+df after:  /dev/disk3s5 460Gi 393Gi 36Gi 92%
+
+Cleanup after the docker session (the Log's 2026-09-14 rule):
+$ docker builder prune -f   -> Total reclaimed space: 1.23MB
+$ docker image prune -f     -> Total reclaimed space: 0B (nothing dangling)
+Left: opn-gate:leanprover-lean4-v4.33.1 4.72GB (tagged, reused by the next docker-tier run);
+36 GiB free.
+
+
+8. What this leaves for the owner
+---------------------------------
+
+* Live from the re-pin that carries this commit; the graph's workflows need no change (no new
+  flag; step 4 stages the siblings itself, and --pr-body-file already reaches postmerge).
+* The hole already filed on 2026-09-13, targets/tutorial/nodes/variant-93e79cb5--h1, is not
+  rewritten by this change (it only decides future merges); retiring it is a curator
+  `consolidate` into tutorial-and-swap, which the guard test above keeps possible.
+* Not changed here: the live children's provenance.author is `open-proof-network[bot]`, because
+  the workflow passes --author with the pull request's login and apply_partial prefers --author to
+  the block's pseudonym. R13 names the pseudonym as the submitter; reported for a follow-up task.

@@ -352,6 +352,9 @@ class PartialMerge:
     attempt_path: str
     origin: str
     annex: str | None
+    #: F07-T7: per hole, in extraction order, ``{name, child, reused_node}`` — exactly one of the
+    #: last two is set: the node created for it, or the existing node it restates.
+    holes: tuple[dict[str, str | None], ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -359,6 +362,7 @@ class PartialMerge:
             "attempt": self.attempt_path,
             "origin": self.origin,
             "annex": self.annex,
+            "holes": [dict(h) for h in self.holes],
         }
 
 
@@ -397,14 +401,20 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
     stamp: str,
     author: str | None = None,
     assembly_path: str | None = None,
+    model: str | None = None,
 ) -> PartialMerge:
     """R6: turn a merged partial into child nodes, with the assembly on record under ``attempts/``.
 
-    Order matters and is chosen so a failure leaves nothing behind: the citation is checked and
-    the attempt's name reserved, then the children are written, then the parent's ``deps`` and
-    ``Context.lean`` are regenerated to match, then the assembly is filed. The parent's statement
-    is never touched — only the two bot-owned files change, which is what keeps D-3's
-    immutability intact (F07-Q2).
+    Order matters and is chosen so a failure leaves nothing behind: the citation is checked, the
+    attempt's name reserved and every reused node confirmed, then the children are written, then
+    the parent's ``deps`` and ``Context.lean`` are regenerated to match, then the assembly is
+    filed. The parent's statement is never touched — only the two bot-owned files change, which
+    is what keeps D-3's immutability intact (F07-Q2).
+
+    A hole the extractor found to be an existing node's statement (``defeq_sibling``, F07-T7) is
+    that node: it becomes a dependency edge and no ``--h<n>`` directory, and the other holes keep
+    the index of their position. ``model`` is the submission block's declared model, recorded in
+    each child's provenance as the D-23 disclosure it came from (R13).
 
     ``assembly_path`` is the merged assembly's own path under the node when the submission was
     the ``attempts/*.lean`` file partial mode takes (F11-T4): that file *is* the attempt record,
@@ -428,6 +438,7 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
     annex = annex_citation(partial_text)
     nodes_dir = node_dir.parent
     parent = node_dir.name
+    reused = [reused_node(nodes_dir, parent, hole) for hole in holes]
     parent_statement = node_dir / "Statement.lean"
     imports = (
         parent_imports(parent_statement.read_text(encoding="utf-8"))
@@ -435,7 +446,13 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
         else []
     )
     created: list[str] = []
-    for index, hole in enumerate(holes, start=1):
+    edges: list[str] = []
+    placed: list[dict[str, str | None]] = []
+    for index, (hole, existing) in enumerate(zip(holes, reused, strict=True), start=1):
+        if existing is not None:
+            edges.append(existing)
+            placed.append({"name": hole.name, "child": None, "reused_node": existing})
+            continue
         child = child_id(parent, index)
         statement = child_statement(child, hole, imports=imports)
         proposal = scaffold.Proposal(
@@ -446,16 +463,39 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
             author=author or pseudonym,
             origin=origin,  # type: ignore[arg-type]
             date=stamp_to_date(stamp),
+            model=model,
         )
         scaffold.write(nodes_dir, proposal)
         created.append(child)
+        edges.append(child)
+        placed.append({"name": hole.name, "child": child, "reused_node": None})
 
-    add_deps(node_dir, created)
+    add_deps(node_dir, edges)
     regenerate_context(node_dir, nodes_dir)
     attempt = (
         str(assembly_path) if on_record else record_attempt(node_dir, attempt_file, partial_text)
     )
-    return PartialMerge(tuple(created), attempt, origin, annex)
+    return PartialMerge(tuple(created), attempt, origin, annex, tuple(placed))
+
+
+def reused_node(nodes_dir: Path, parent: str, hole: Any) -> str | None:
+    """F07-T7, D-29: the existing node a hole restates, or ``None`` when it needs a node of its own.
+
+    The extractor names the sibling (``defeq_sibling``) after checking definitional equality in
+    the sandbox; this only confirms the name is another node of the target, asked before anything
+    is written. A name that is not would be an edge to nothing, so it is refused (C7).
+    """
+    sibling = getattr(hole, "defeq_sibling", None)
+    if not sibling:
+        return None
+    sibling = str(sibling)
+    if sibling == parent or not (nodes_dir / sibling / "Statement.lean").is_file():
+        msg = (
+            f"hole {hole.name} is reported to restate {sibling!r}, which is not another node of "
+            "this target; no child or edge was written"
+        )
+        raise GraphWriteError(msg)
+    return sibling
 
 
 def stamp_to_date(stamp: str) -> str:

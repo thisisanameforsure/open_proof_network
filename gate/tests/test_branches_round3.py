@@ -340,6 +340,7 @@ def test_partial_merge_as_dict_names_what_it_produced() -> None:
         "attempt": "attempts/x-partial.lean",
         "origin": "skeleton-hole",
         "annex": "a" * 64,
+        "holes": [],  # F07-T7: per-hole placement, empty when the caller names none
     }
 
 

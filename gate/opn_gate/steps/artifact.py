@@ -26,12 +26,14 @@ taken on what it reports.
 
 from __future__ import annotations
 
+import json
+import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
-from opn_gate import layout
+from opn_gate import layout, records, schemas
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.steps.base import RunContext, StepResult
 from opn_gate.toolchain import ArtifactRequest, MetaprogramResult, ResolvedToolchain
@@ -59,15 +61,21 @@ class Hole:
     #: ``Statement.lean`` declares, because a hole's own type is rarely a closed proposition.
     closed_type: str
     defeq_goal: bool
+    #: F07-T7: the node of the target whose statement the closed type is, definitionally — the
+    #: post-merge job makes it a dependency edge instead of a new node. ``None`` when there is none
+    #: or when the extractor was not asked (an older pin reports no field).
+    defeq_sibling: str | None = None
 
     @classmethod
     def of(cls, doc: dict[str, Any]) -> Hole:
         local = str(doc.get("type", ""))
+        sibling = doc.get("defeq_sibling")
         return cls(
             name=str(doc.get("name", "")),
             type=local,
             closed_type=str(doc.get("closed_type") or local),
             defeq_goal=bool(doc.get("defeq_goal")),
+            defeq_sibling=str(sibling) if sibling else None,
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -76,6 +84,7 @@ class Hole:
             "type": self.type,
             "closed_type": self.closed_type,
             "defeq_goal": self.defeq_goal,
+            "defeq_sibling": self.defeq_sibling,
         }
 
 
@@ -243,11 +252,102 @@ def _partial_problems(artifact: Artifact, max_holes: int) -> list[Diagnostic]:
     return problems
 
 
+# --- the target's other statements, for a hole to be named against (F07-T7) --------------------
+
+#: Where the probes and their manifest go, under the work directory: the sandbox sees the node
+#: under check and the work directory and nothing else, so a sibling is read only once staged.
+SIBLINGS_DIR = "siblings"
+SIBLINGS_MANIFEST = "siblings.json"
+#: A probe's own declaration name. Elaborated on the artifact's imports, a sibling's statement
+#: under its own name could redeclare what those imports hold — a dep's statement, reached
+#: through the parent's Context — so every probe is renamed (the consolidation probe's lesson).
+SIBLING_PROBE_NAME = "OpnSibling.probe"
+_THEOREM_NAME_RE = re.compile(r"^(?P<kw>theorem|lemma)\s+[^\s:({\[]+", re.M)
+_IMPORT_LINE_RE = re.compile(r"^import\s+\S+[ \t]*(?:\n|$)", re.M)
+
+
+def sibling_candidates(nodes_dir: Path, node_id: str) -> list[str]:
+    """The nodes a hole of ``node_id`` may restate, in id order (F07-T7, D-29).
+
+    Every other node of the target, except one that depends on ``node_id`` however indirectly —
+    an edge from the parent to it would close a cycle — and a superseded one, whose statement
+    lives on in the node that superseded it. A node whose ``META.yaml`` does not load is left
+    out: naming a hole against it would be a guess.
+    """
+    deps: dict[str, list[str]] = {}
+    for node_dir in sorted(p for p in nodes_dir.iterdir() if p.is_dir()):
+        try:
+            meta = schemas.load_yaml(node_dir / "META.yaml")
+        except (OSError, schemas.SchemaError):
+            continue
+        raw = meta.get("deps")
+        deps[node_dir.name] = [str(d) for d in raw] if isinstance(raw, list) else []
+    dependents: set[str] = set()
+    pending = [node_id]
+    while pending:
+        current = pending.pop()
+        for other, its_deps in deps.items():
+            if current in its_deps and other not in dependents:
+                dependents.add(other)
+                pending.append(other)
+    out: list[str] = []
+    for other in deps:
+        if other == node_id or other in dependents:
+            continue
+        try:
+            override = records.load_node_status(nodes_dir / other)
+        except (OSError, schemas.SchemaError):
+            continue
+        if override is not None and override.status == "superseded":
+            continue
+        out.append(other)
+    return out
+
+
+def sibling_probe(statement_text: str) -> str:
+    """A sibling's statement as a probe: imports removed (the artifact's are the environment) and
+    the theorem renamed to ``SIBLING_PROBE_NAME``."""
+    body = _IMPORT_LINE_RE.sub("", statement_text)
+    return _THEOREM_NAME_RE.sub(rf"\g<kw> {SIBLING_PROBE_NAME}", body, count=1)
+
+
+def stage_siblings(workdir: Path, node: layout.Node) -> Path | None:
+    """Stage each candidate's probe in ``workdir`` and write the manifest ``opn-artifact-type
+    --siblings`` reads; ``None`` when there is no sibling to ask about."""
+    nodes_dir = node.path.parent
+    dest = workdir / SIBLINGS_DIR
+    entries: list[dict[str, str]] = []
+    for index, sibling in enumerate(sibling_candidates(nodes_dir, node.node_id)):
+        try:
+            text = (nodes_dir / sibling / "Statement.lean").read_text(encoding="utf-8")
+        except OSError:
+            continue
+        probe = sibling_probe(text)
+        decl = layout.parse_declaration(probe, f"{sibling}/Statement.lean")
+        if isinstance(decl, Diagnostic):
+            continue
+        name = f"Sibling{index}.lean"
+        dest.mkdir(parents=True, exist_ok=True)
+        (dest / name).write_text(probe, encoding="utf-8")
+        entries.append({"node": sibling, "file": name, "decl": decl})
+    if not entries:
+        return None
+    manifest = dest / SIBLINGS_MANIFEST
+    manifest.write_text(json.dumps(entries, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    return manifest
+
+
 # --- running it ----------------------------------------------------------------------------------
 
 
-def request(
-    ctx: RunContext, kind: Kind, *, node_dir: Path, artifact: Path, artifact_module: str
+def request(  # noqa: PLR0913 — the request's inputs, each named
+    ctx: RunContext,
+    kind: Kind,
+    *,
+    node_dir: Path,
+    artifact: Path,
+    artifact_module: str,
+    siblings: Path | None = None,
 ) -> ArtifactRequest:
     node = ctx.node
     assert node is not None
@@ -259,6 +359,7 @@ def request(
         artifact_module=artifact_module,
         artifact_decl=expected_decl(kind, node.statement.decl_name),
         kind=kind,
+        siblings=siblings,
     )
 
 
@@ -350,6 +451,8 @@ def judge(ctx: RunContext, tc: ResolvedToolchain) -> StepResult:
         node_dir=staged_dir,
         artifact=proof,
         artifact_module=layout.node_module(node.node_id, "Proof"),
+        # F07-T7: only a partial's holes become nodes, so only a partial asks about siblings.
+        siblings=stage_siblings(ctx.workdir, node) if kind == "partial" else None,
     )
     artifact, failure = run(ctx, tc, req, kind)
     if failure is not None:

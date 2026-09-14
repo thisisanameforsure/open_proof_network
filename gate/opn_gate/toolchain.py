@@ -165,8 +165,12 @@ class ArtifactRequest:
     artifact_module: str
     artifact_decl: str
     kind: str  # proof | counterexample | vacuity | partial | reduction
+    #: F07-T7: the manifest of the target's other statements, staged as probes; ``None`` asks no
+    #: sibling question and every hole reports ``defeq_sibling: null``.
+    siblings: Path | None = None
 
     def args(self) -> list[str]:
+        extra = ["--siblings", str(self.siblings.resolve())] if self.siblings is not None else []
         return [
             "--statement",
             str(self.statement.resolve()),
@@ -182,6 +186,7 @@ class ArtifactRequest:
             self.artifact_decl,
             "--kind",
             self.kind,
+            *extra,
         ]
 
 

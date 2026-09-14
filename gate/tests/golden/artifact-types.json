@@ -74,13 +74,15 @@
         "name": "right",
         "type": "q",
         "closed_type": "∀ (p q : Prop), p ∧ q → q",
-        "defeq_goal": false
+        "defeq_goal": false,
+        "defeq_sibling": null
       },
       {
         "name": "left",
         "type": "p",
         "closed_type": "∀ (p q : Prop), p ∧ q → q → p",
-        "defeq_goal": false
+        "defeq_goal": false,
+        "defeq_sibling": null
       }
     ],
     "unnamed": 0,
@@ -99,7 +101,8 @@
         "name": "comm",
         "type": "∀ (a b : Prop), a ∧ b ↔ b ∧ a",
         "closed_type": "∀ (p q : Prop), p ∧ q → ∀ (a b : Prop), a ∧ b ↔ b ∧ a",
-        "defeq_goal": false
+        "defeq_goal": false,
+        "defeq_sibling": null
       }
     ],
     "unnamed": 0,
@@ -118,7 +121,8 @@
         "name": "restated",
         "type": "∀ (p q : Prop), p ∧ q → q ∧ p",
         "closed_type": "∀ (p q : Prop), p ∧ q → q ∧ p",
-        "defeq_goal": true
+        "defeq_goal": true,
+        "defeq_sibling": null
       }
     ],
     "unnamed": 0,
@@ -139,7 +143,8 @@
         "name": "same",
         "type": "q ∧ p",
         "closed_type": "∀ (p q : Prop), p ∧ q → q ∧ p",
-        "defeq_goal": true
+        "defeq_goal": true,
+        "defeq_sibling": null
       }
     ],
     "unnamed": 0,

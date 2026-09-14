@@ -1151,7 +1151,8 @@ def apply_merged_partial(
         msg = f"the merged assembly {assembly} is not in the checkout"
         raise CliError(msg)
     body = _read_flag_file(args.pr_body_file, "--pr-body-file") if args.pr_body_file else ""
-    pseudonym = attestation.submitter_of(submissionmod.extract(body)) or args.author
+    block = submissionmod.extract(body)
+    pseudonym = attestation.submitter_of(block) or args.author
     if not pseudonym:
         msg = "--apply-partial needs the pull request body (--pr-body-file) or --author"
         raise CliError(msg)
@@ -1166,6 +1167,7 @@ def apply_merged_partial(
             stamp=stamp,
             author=args.author,
             assembly_path=str(partial["path"]),
+            model=submissionmod.tooling(block)["model"],  # R13: the block's declared model
         )
     except postmerge.GraphWriteError as exc:
         raise CliError(str(exc)) from exc

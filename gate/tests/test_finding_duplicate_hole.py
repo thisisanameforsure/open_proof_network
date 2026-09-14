@@ -12,24 +12,29 @@ into the work directory. Near-duplicates stay curator ``consolidate`` (D-12, D-2
 Fast tier: ``FakeToolchain`` reports the new field; these tests prove the plumbing from the
 metaprogram's answer to what the merge leaves in the checkout. The lean tier
 (``test_finding_duplicate_hole_lean.py``) proves the extractor answers it for the real tutorial
-pair. Held as strict xfails until F07-T7 lands; the consolidate guard passes today and must keep
-passing, because the fix must not widen D-29's same-statement rule.
+pair. Held as strict xfails until F07-T7 landed (2026-09-14); the consolidate guard passed before
+and must keep passing, because the fix must not widen D-29's same-statement rule. The edges at
+the end are F07-T7's own: which siblings are asked about, where their probes are staged, and what
+the job refuses before it writes anything.
 """
 
 from __future__ import annotations
 
+import json
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 import yaml
 from fakes import FakeToolchain, artifact_result
-from harness import TARGET, copy_graph
+from harness import TARGET, TUTORIAL, copy_graph
 from test_cli_sandboxed import NODES, Seam, git_repo, run
 from test_postmerge_apply import BODY, HOLES, ROOT, STAMP_FILE, WITNESS, argv
 
-from opn_gate import cli, curator, layout, schemas
+from opn_gate import cli, curator, layout, postmerge, schemas
 from opn_gate import graph as graphmod
+from opn_gate.steps import artifact as art
+from opn_gate.toolchain import ArtifactRequest
 
 #: The sibling whose statement is the first hole's closed type (``right`` in ``HOLES``).
 SIBLING = "reassoc-right"
@@ -41,12 +46,6 @@ CHILD_1 = f"{ROOT}--h1"
 CHILD_2 = f"{ROOT}--h2"
 AUTHOR = "curator"
 DATE = "2026-09-13T00:00:00Z"
-
-REASON = (
-    "finding record-duplicate-hole (F07-R6, D-12 #5, D-29): a hole whose closed type is an "
-    "existing sibling's statement becomes a new --h<n> node instead of a dependency edge to that "
-    "sibling; fix: F07-T7 (Mike, 2026-09-13)"
-)
 
 
 def clone_node(root: Path, source: str, new_id: str, *, statement: str) -> Path:
@@ -121,7 +120,6 @@ def sibling_reported(seam: Seam) -> None:
     seam.fake = FakeToolchain(witness=WITNESS, artifact=report)
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_a_hole_that_restates_a_sibling_becomes_a_dep_not_a_child(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -149,7 +147,6 @@ def test_a_hole_that_restates_a_sibling_becomes_a_dep_not_a_child(
     ]
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_the_state_a_reused_hole_leaves_behind(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -196,3 +193,113 @@ def test_consolidate_still_takes_two_identical_statements(tmp_path: Path) -> Non
     assert doc["status"] == "superseded" and doc["reference"] == "and-reassoc"
     assert "identical statement" in doc["cause"]
     assert record.parent == nodes / "and-reassoc-again" / "status"
+
+
+# --- F07-T7 edges -----------------------------------------------------------------------------
+
+
+def test_siblings_leave_out_the_node_its_dependents_and_the_superseded(tmp_path: Path) -> None:
+    """An edge from a parent to a node that depends on it, however indirectly, would close a
+    cycle; a superseded node's statement lives on in its successor (D-29). Neither is asked."""
+    root = copy_graph(tmp_path)
+    nodes = layout.graph_nodes_dir(root, TARGET)
+    tutorial = (nodes / TUTORIAL / "Statement.lean").read_text(encoding="utf-8")
+    clone_node(root, "and-reassoc", "tutorial-again", statement=tutorial)
+    curator.consolidate(root, TARGET, TUTORIAL, "tutorial-again", author=AUTHOR, date=DATE)
+    # A node two edges above and-reassoc: reassoc-top -> and-swap-reassoc -> and-reassoc.
+    clone_node(root, "and-reassoc", "reassoc-top", statement=SIBLING_STATEMENT)
+    meta_path = nodes / "reassoc-top" / "META.yaml"
+    meta = yaml.safe_load(meta_path.read_text())
+    meta["deps"] = [ROOT]
+    meta_path.write_text(yaml.safe_dump(meta, sort_keys=False))
+
+    assert art.sibling_candidates(nodes, "and-reassoc") == [TUTORIAL]
+    assert art.sibling_candidates(nodes, ROOT) == ["and-reassoc", TUTORIAL]
+    assert art.sibling_candidates(nodes, "reassoc-top") == ["and-reassoc", ROOT, TUTORIAL]
+
+
+def test_a_sibling_probe_has_no_imports_and_a_name_of_its_own(tmp_path: Path) -> None:
+    """Elaborated on the parent's imports, a probe under its own name could redeclare a dep's
+    statement the parent's Context imports; so it carries no import and the probe's name."""
+    root = copy_graph(tmp_path)
+    text = (layout.graph_nodes_dir(root, TARGET) / ROOT / "Statement.lean").read_text("utf-8")
+    assert layout.imports_of(text) == [f"Nodes.«{ROOT}».Context"]
+    probe = art.sibling_probe(text)
+    assert layout.imports_of(probe) == []
+    assert layout.parse_declaration(probe) == art.SIBLING_PROBE_NAME
+    assert "OpnProp.and_swap_reassoc" not in probe
+    assert f"theorem {art.SIBLING_PROBE_NAME} : ∀ p q r : Prop, (p ∧ q) ∧ r → r ∧ (q ∧ p)" in probe
+    namespaced = "namespace Opn\n\ntheorem thing : True := by\n  sorry\n\nend Opn\n"
+    assert layout.parse_declaration(art.sibling_probe(namespaced)) == "Opn.OpnSibling.probe"
+
+
+def test_a_partial_run_stages_each_sibling_in_the_work_directory(
+    tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The sandbox reads the work directory and the node under check, nothing else, so the probes
+    and their manifest are written there; the parent is never among them."""
+    root = merged_partial_beside_sibling(tmp_path)
+    sibling_reported(seam)
+    code, _out, err = run(
+        capsys, *argv(root, tmp_path / "o", "--apply-partial", "--author", AUTHOR)
+    )
+    assert code == cli.EXIT_PASS, err
+    [manifest] = list((tmp_path / "o").rglob(art.SIBLINGS_MANIFEST))
+    assert manifest.parent.name == art.SIBLINGS_DIR
+    entries = json.loads(manifest.read_text(encoding="utf-8"))
+    assert [e["node"] for e in entries] == ["and-reassoc", SIBLING, TUTORIAL]
+    for entry in entries:
+        probe = (manifest.parent / entry["file"]).read_text(encoding="utf-8")
+        assert layout.imports_of(probe) == [] and entry["decl"] == art.SIBLING_PROBE_NAME
+
+
+def test_the_extractor_is_asked_about_siblings_only_when_they_are_staged(tmp_path: Path) -> None:
+    """No manifest, no flag: the request an older caller builds is byte for byte what it was."""
+    base = ArtifactRequest(
+        statement=tmp_path / "Statement.lean",
+        statement_module="S",
+        decl="d",
+        artifact=tmp_path / "Proof.lean",
+        artifact_module="P",
+        artifact_decl="d",
+        kind="partial",
+    )
+    assert "--siblings" not in base.args()
+    staged = replace(base, siblings=tmp_path / "siblings.json")
+    assert staged.args() == [
+        *base.args(),
+        "--siblings",
+        str((tmp_path / "siblings.json").resolve()),
+    ]
+
+
+@pytest.mark.parametrize("named", ["no-such-node", ROOT])
+def test_a_hole_restating_no_other_node_is_refused_before_anything_is_written(
+    tmp_path: Path, named: str
+) -> None:
+    """An edge to nothing, or from the parent to itself, would corrupt the DAG; the refusal comes
+    before the first hole's child is written, so the checkout is as the merge left it (C7)."""
+    root = copy_graph(tmp_path)
+    node_dir = layout.graph_nodes_dir(root, TARGET) / ROOT
+    before = {n: (node_dir / n).read_text(encoding="utf-8") for n in ("META.yaml", "Context.lean")}
+    holes = [
+        art.Hole(name="right", type="r", closed_type=HOLES[0][1], defeq_goal=False),
+        art.Hole(
+            name="left",
+            type="q ∧ p",
+            closed_type=HOLES[1][1],
+            defeq_goal=False,
+            defeq_sibling=named,
+        ),
+    ]
+    with pytest.raises(postmerge.GraphWriteError, match="not another node"):
+        postmerge.apply_partial(
+            node_dir,
+            holes,
+            partial_text="theorem OpnProp.and_swap_reassoc : True := by\n  sorry\n",
+            pseudonym="someone",
+            stamp="20260914T000000Z",
+            assembly_path=f"attempts/{STAMP_FILE}",
+        )
+    assert not (node_dir.parent / CHILD_1).exists()
+    assert {n: (node_dir / n).read_text(encoding="utf-8") for n in before} == before

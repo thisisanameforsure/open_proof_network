@@ -239,15 +239,6 @@ def test_the_diff_of_the_merge_is_what_step2_reads(tmp_path: Path, seam: Seam) -
 MODEL = "claude-fable-5-1"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "finding record-provenance-model-null (F07-R6, R13, D-23): the submission block names "
-        "the model, both hole children's META.yaml say provenance.model: null because "
-        "cli.apply_merged_partial never passes model= to scaffold.Proposal; fix: F07-T7 "
-        "(Mike, 2026-09-13)"
-    ),
-)
 def test_hole_children_carry_the_declared_model(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -278,3 +269,19 @@ def test_hole_children_carry_the_declared_model(
         meta = yaml.safe_load((root / NODES / child / "META.yaml").read_text())
         assert meta["provenance"]["author"] == "some-prover"
         assert meta["provenance"]["model"] == MODEL, (child, meta["provenance"])
+
+
+def test_without_a_block_the_children_declare_no_model(
+    tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A hand-opened pull request declares nothing (R13's ``undeclared``), so the children record
+    no model rather than inventing one."""
+    root, _assembly, _ = merged_partial(tmp_path)
+    partial_seam(seam)
+    code, out, err = run(
+        capsys, *argv(root, tmp_path / "o", "--apply-partial", "--author", "login")
+    )
+    assert code == cli.EXIT_PASS, err
+    for child in out["partial"]["children"]:
+        meta = yaml.safe_load((root / NODES / child / "META.yaml").read_text())
+        assert meta["provenance"]["author"] == "login" and meta["provenance"]["model"] is None

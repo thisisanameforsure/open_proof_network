@@ -6,7 +6,7 @@ and its first hole was ``have h₁ : q ∧ p := sorry`` — closed over the bind
 ``Statement.lean`` is byte-identical to the live one). The fast tier proves what the post-merge
 job does with a ``defeq_sibling`` the fake reports; only this tier proves the extractor reports
 it, because definitional equality is a question for Lean (F07-T7: one lean-tier test per new
-Lean-facing seam). Strict xfail until the extractor carries the field.
+Lean-facing seam). A strict xfail until F07-T7 gave the extractor the field (2026-09-14).
 """
 
 from __future__ import annotations
@@ -35,13 +35,6 @@ SKELETON_BODY = (
     "  intro p q h\n  have h₁ : q ∧ p := sorry\n  have h₂ : p ∧ q := sorry\n  exact h₁.2\n"
 )
 
-REASON = (
-    "finding record-duplicate-hole (F07-R5, R6, D-12, D-29): the extractor reports defeq_goal "
-    "for the parent's goal only, so a hole that is definitionally a sibling's statement carries "
-    "no defeq_sibling and the post-merge job cannot reuse the sibling; fix: F07-T7 "
-    "(Mike, 2026-09-13)"
-)
-
 
 def write_variant_with_skeleton(root: Path) -> None:
     """The variant beside the tutorial node, unproved, with the skeleton as its one attempt."""
@@ -66,7 +59,6 @@ def write_variant_with_skeleton(root: Path) -> None:
     (dest / "attempts" / SKELETON).write_text(head + ":= by\n" + SKELETON_BODY, encoding="utf-8")
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_the_extractor_names_the_sibling_a_hole_restates(
     tmp_path: Path, real_toolchain: LocalToolchain, pinned: ResolvedToolchain, lean_pkg: Path
 ) -> None:

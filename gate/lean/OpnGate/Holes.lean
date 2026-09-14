@@ -15,6 +15,11 @@ Shape, checked against Lean 4.33 rather than assumed: `have x : T := v; b` elabo
 `Expr.letE x T v b`, and `sorry` to an application headed by `sorryAx`. A `sorry` that is not the
 value of such a binder is counted as unnamed: it is a hole nobody named, and a child node cannot
 be made from it.
+
+A hole may also restate a statement the target already has (F07-T7): the 2026-09-13 live skeleton's
+first hole was the tutorial's own theorem. Each hole therefore names the first sibling statement
+its closed type is definitionally equal to, and the post-merge job makes that a dependency edge
+instead of a new node.
 -/
 open Lean Meta
 
@@ -31,7 +36,21 @@ structure Hole where
   closed_type : String
   /-- The offload rule's question: is this hole the node's own goal wearing a new name? -/
   defeq_goal : Bool
-deriving ToJson
+  /-- The node of the target whose statement the closed type is, definitionally, if any
+  (F07-T7). -/
+  defeq_sibling : Option String := none
+
+/-- Written by hand rather than derived: a derived instance omits an absent `Option` field, and
+the report says `null` so a reader can tell "no sibling" from an extractor that never asked. -/
+instance : ToJson Hole where
+  toJson h := Json.mkObj [
+    ("name", Json.str h.name),
+    ("type", Json.str h.type),
+    ("closed_type", Json.str h.closed_type),
+    ("defeq_goal", Json.bool h.defeq_goal),
+    ("defeq_sibling", match h.defeq_sibling with
+      | some node => Json.str node
+      | none => Json.null)]
 
 /-- What a partial proof's body is made of. -/
 structure HoleReport where
@@ -62,8 +81,18 @@ private def restatesGoal (goal stmt t closed : Expr) : MetaM Bool := do
     return false
   catch _ => return false
 
-private partial def scan (goal stmt : Expr) (binders : Array Expr) (e : Expr) (acc : Acc)
-    : MetaM Acc := do
+/-- The first sibling, in the order given, whose statement the closed hole is (F07-T7). The same
+two transparencies as the goal check; a comparison that throws is not a match. -/
+private def restatesSibling (siblings : Array (String × Expr)) (closed : Expr)
+    : MetaM (Option String) := do
+  for (node, ty) in siblings do
+    let same ← try withReducible (isDefEq closed ty) <||> isDefEq closed ty
+      catch _ => pure false
+    if same then return some node
+  return none
+
+private partial def scan (goal stmt : Expr) (siblings : Array (String × Expr))
+    (binders : Array Expr) (e : Expr) (acc : Acc) : MetaM Acc := do
   let e := e.consumeMData
   if isSorry e then
     return { acc with unnamed := acc.unnamed + 1 }
@@ -75,30 +104,32 @@ private partial def scan (goal stmt : Expr) (binders : Array Expr) (e : Expr) (a
         name := n.toString,
         type := toString (← ppExpr t),
         closed_type := toString (← ppExpr closed),
-        defeq_goal := ← restatesGoal goal stmt t closed }
+        defeq_goal := ← restatesGoal goal stmt t closed,
+        defeq_sibling := ← restatesSibling siblings closed }
       let acc := { acc with holes := acc.holes.push hole }
-      withLocalDeclD n t fun x => scan goal stmt (binders.push x) (b.instantiate1 x) acc
+      withLocalDeclD n t fun x => scan goal stmt siblings (binders.push x) (b.instantiate1 x) acc
     else
-      let acc ← scan goal stmt binders t acc
-      let acc ← scan goal stmt binders v acc
-      withLetDecl n t v fun x => scan goal stmt (binders.push x) (b.instantiate1 x) acc
+      let acc ← scan goal stmt siblings binders t acc
+      let acc ← scan goal stmt siblings binders v acc
+      withLetDecl n t v fun x => scan goal stmt siblings (binders.push x) (b.instantiate1 x) acc
   | .app f a =>
-    let acc ← scan goal stmt binders f acc
-    scan goal stmt binders a acc
+    let acc ← scan goal stmt siblings binders f acc
+    scan goal stmt siblings binders a acc
   | .lam n t b bi =>
-    let acc ← scan goal stmt binders t acc
-    withLocalDecl n bi t fun x => scan goal stmt (binders.push x) (b.instantiate1 x) acc
+    let acc ← scan goal stmt siblings binders t acc
+    withLocalDecl n bi t fun x => scan goal stmt siblings (binders.push x) (b.instantiate1 x) acc
   | .forallE n t b bi =>
-    let acc ← scan goal stmt binders t acc
-    withLocalDecl n bi t fun x => scan goal stmt (binders.push x) (b.instantiate1 x) acc
-  | .proj _ _ s => scan goal stmt binders s acc
+    let acc ← scan goal stmt siblings binders t acc
+    withLocalDecl n bi t fun x => scan goal stmt siblings (binders.push x) (b.instantiate1 x) acc
+  | .proj _ _ s => scan goal stmt siblings binders s acc
   | _ => return acc
 
-/-- Every hole in `value`, a proof of `stmt`. -/
-def holeReport (stmt value : Expr) : MetaM HoleReport := do
+/-- Every hole in `value`, a proof of `stmt`; each named against `siblings`, the target's other
+statements as `(node id, type)` (F07-T7; empty when the caller staged none). -/
+def holeReport (stmt value : Expr) (siblings : Array (String × Expr) := #[]) : MetaM HoleReport := do
   lambdaTelescope value fun xs body => do
     let goal ← inferType body
-    let acc ← scan goal stmt xs body {}
+    let acc ← scan goal stmt siblings xs body {}
     return { holes := acc.holes, unnamed := acc.unnamed, body_is_hole := isSorry body }
 
 end OpnGate
