@@ -48,7 +48,7 @@ def attest(root: Path, node_id: str, n: int, **kw: object) -> None:
 
 def build(tmp_path: Path) -> Path:
     """The graph in its curated state with products written; returns the checkout root."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     attest(root, "tutorial-and-swap", 1)
     attest(root, "and-reassoc", 2, trust_base="compiler")
     st = nodes_dir(root) / "and-swap-reassoc" / "status"

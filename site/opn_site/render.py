@@ -44,6 +44,8 @@ CAUSE_WORDS = {
 }
 #: F03-Q8: the statuses a claim could take, so the only ones a target's reasons explain.
 CLAIMABLE_STATUSES = ("ready", "speculative")
+#: The frontier row's words for a not-claimable target whose index row names no reason (D-6).
+NO_RECORD_WORDS = "this target has no curated intake record (D-6)"
 #: One column per frontier entry field, plus the node's status from its target's graph (T11, Q11):
 #: the frontier lists open variants that wait on their holes, so Claimable needs a status beside it.
 FRONTIER_COLUMNS = (
@@ -65,6 +67,8 @@ FRONTIER_COLUMNS = (
     ("dormant", "Dormant"),
     ("tutorial", "Tutorial"),
 )
+#: T9: the api route for the live claims (F05); its origin is config (C6), never a literal here.
+CLAIMS_PATH = "/claims.json"
 DECISIONS_DOC = Path(__file__).resolve().parents[2] / "docs" / "architecture_decisions_v_3_12.html"
 FUNNEL_DOCS = Path(__file__).resolve().parents[1] / "docs"  # F10-R9: site/docs/*.md
 
@@ -110,11 +114,17 @@ def _template(name: str) -> Template:
 
 class Renderer:
     def __init__(
-        self, site: Site, *, repo_url: str, decisions_doc: Path | None = DECISIONS_DOC
+        self,
+        site: Site,
+        *,
+        repo_url: str,
+        decisions_doc: Path | None = DECISIONS_DOC,
+        api_url: str | None = None,
     ) -> None:
         self.site = site
         self.repo_url = repo_url.rstrip("/")
         self.decisions_doc = decisions_doc
+        self.api_url = api_url.rstrip("/") if api_url else None
         self.base = _template("base.html")
 
     # -- links -------------------------------------------------------------------------------
@@ -578,17 +588,62 @@ class Renderer:
             rows.append("<tr>" + "".join(cells) + "</tr>")
         empty = "" if rows else "<p>The frontier is empty: nothing is ready to prove right now.</p>"
         body = _template("frontier.html").substitute(
-            headers=headers, rows="".join(rows), empty=empty
+            headers=headers, rows="".join(rows), empty=empty, claims_note=self.claims_note()
         )
         return self.page("Frontier", body, renders=["frontier.json"])
 
+    def claims_note(self) -> str:
+        """T9: the Claims column is the committed products' snapshot (D-36), not the live count
+        the api overlays (F05-R10). Name the commit the products were rendered from, and link the
+        service's live claims when the site's config names the service (C6); without it, say so
+        and draw no link (C7)."""
+        at = str(self.site.frontier.get("rendered_from") or self.site.commit)
+        if self.api_url:
+            live = (
+                f'the service\'s <a href="{esc(self.api_url + CLAIMS_PATH)}">{esc(CLAIMS_PATH)}</a>'
+            )
+        else:
+            live = f"the service's <code>{esc(CLAIMS_PATH)}</code> (this build names no service)"
+        return (
+            '<p class="claims-note">The Claims column is a snapshot from the products at '
+            f"<code>{esc(at[:12])}</code>: a claim made or released since then is not counted "
+            f"here. The live count is {live}.</p>"
+        )
+
+    def frontier_node(self, e: dict[str, Any]) -> NodeView | None:
+        """T11: the entry's node in its target's graph.json, which the site loaded beside the
+        frontier from the same commit; ``None`` when the target or node is not there."""
+        tv = self.site.targets.get(str(e["target_id"]))
+        return tv.nodes.get(str(e["node_id"])) if tv is not None else None
+
+    def row_not_claimable(self, tv: TargetView) -> str:
+        """F04-T10 (frontier row): the target's reasons as a sub-line of the Claimable cell, in
+        ``intake.explain``'s words and escaped, so the table gains no column; empty when the
+        target is claimable."""
+        e = tv.index_entry
+        if e.get("claimable"):
+            return ""
+        reasons = [str(r) for r in e.get("not_claimable") or []]
+        words = "; ".join(esc(intake.explain(r)) for r in reasons) or esc(NO_RECORD_WORDS)
+        return f'<span class="why-not-row">Not claimable: {words}.</span>'
+
+    def claimable_cell(self, e: dict[str, Any]) -> str:
+        """The entry's own word first, so the column's filter keeps its meaning (R7); then, for a
+        node a claim could take (F03-Q8), why its target will not take one."""
+        word = "yes" if e["claimable"] else "no"
+        tv = self.site.targets.get(str(e["target_id"]))
+        node = self.frontier_node(e)
+        if tv is None or node is None or node.status not in CLAIMABLE_STATUSES:
+            return word
+        why = self.row_not_claimable(tv)
+        return f"{word} {why}" if why else word
+
     def frontier_cell(self, key: str, e: dict[str, Any]) -> str:  # noqa: PLR0911 — one per field kind
         if key == "status":
-            # T11: not an entry field; the node's row in its target's graph.json, which the site
-            # loaded beside the frontier from the same commit.
-            tv = self.site.targets.get(str(e["target_id"]))
-            node = tv.nodes.get(str(e["node_id"])) if tv is not None else None
+            node = self.frontier_node(e)
             return esc(node.status) if node is not None else "unknown"
+        if key == "claimable" and isinstance(e.get(key), bool):
+            return self.claimable_cell(e)
         if key not in e:  # a field an older frontier version does not carry (D-34)
             return "none"
         value = e[key]
@@ -814,11 +869,21 @@ def cited_urls(site: Site) -> frozenset[str]:
     return frozenset(urls)
 
 
+def live_urls(api_url: str | None) -> frozenset[str]:
+    """T9: the one off-site url the site's own config admits, the service's live claims. An
+    exact url, like ``cited_urls``, so a page cannot link anywhere else on the service."""
+    return frozenset({api_url.rstrip("/") + CLAIMS_PATH}) if api_url else frozenset()
+
+
 def render_site(
-    site: Site, *, repo_url: str, decisions_doc: Path | None = DECISIONS_DOC
+    site: Site,
+    *,
+    repo_url: str,
+    decisions_doc: Path | None = DECISIONS_DOC,
+    api_url: str | None = None,
 ) -> dict[str, str]:
     """Every output file (path relative to the site root -> content)."""
-    r = Renderer(site, repo_url=repo_url, decisions_doc=decisions_doc)
+    r = Renderer(site, repo_url=repo_url, decisions_doc=decisions_doc, api_url=api_url)
     docs_page, extra = r.docs()
     files: dict[str, str] = {
         "index.html": r.home(),
@@ -835,7 +900,10 @@ def render_site(
         for nid, nv in tv.nodes.items():
             files[f"nodes/{tid}/{nid}/index.html"] = r.node(nv)
     problems = links.check(
-        files, repo_url=r.repo_url, foreign=frozenset(extra), cited=cited_urls(site)
+        files,
+        repo_url=r.repo_url,
+        foreign=frozenset(extra),
+        cited=cited_urls(site) | live_urls(r.api_url),
     )
     if problems:  # R13: a link that would not resolve is a build failure, not a 404
         msg = "rendered site has broken links: " + "; ".join(problems[:5])

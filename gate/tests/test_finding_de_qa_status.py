@@ -35,7 +35,7 @@ CURATOR = "thisisanameforsure"
 
 @pytest.fixture
 def graph(tmp_path: Path) -> Path:
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     take_in(root)
     return root
 
@@ -132,7 +132,7 @@ def test_d_a_rows_kind_is_its_checks_not_what_the_record_claims(tmp_path: Path) 
     ``PassState.exhibits`` and ``certificate_citations`` cites it as an exhibit.
 
     Expected: the mislabelled brief is not cited as an exhibit."""
-    graph = copy_graph(tmp_path)
+    graph = copy_graph(tmp_path, publish=True)
     take_in(graph)
     target = target_of(graph)
     briefs = qa.qa_dir(target) / qa.BRIEFS_DIR

@@ -135,7 +135,7 @@ def test_the_watcher_writes_a_v2_request_the_append_path_accepts() -> None:
 def test_revise_acts_on_a_v2_request(tmp_path: Path) -> None:
     """Failed before F12-T7: ``revise`` validated against v1 alone and raised SchemaError
     ``$['schema']: 'revision-request/v1' was expected`` (F12-Q18)."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     add_dependent(root, TUTORIAL, INTERIOR)
     request = write_doc(root, INTERIOR, v2_request_doc(INTERIOR))
     revision = curator.revise(
@@ -146,7 +146,7 @@ def test_revise_acts_on_a_v2_request(tmp_path: Path) -> None:
 
 def test_revise_still_acts_on_a_v1_request(tmp_path: Path) -> None:
     """Passes today and must keep passing: v1 stays live (D-34)."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     add_dependent(root, TUTORIAL, INTERIOR)
     request = write_doc(root, INTERIOR, v1_request_doc(INTERIOR))
     revision = curator.revise(
@@ -158,7 +158,7 @@ def test_revise_still_acts_on_a_v1_request(tmp_path: Path) -> None:
 def test_revise_refuses_an_unknown_version_naming_the_accepted_set(tmp_path: Path) -> None:
     """A version outside the set is refused, the refusal names every accepted version, and
     nothing is written (C7). Failed before F12-T7: the message named v1 only."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     request = write_doc(
         root, INTERIOR, {**v1_request_doc(INTERIOR), "schema": "revision-request/v9"}
     )
@@ -178,7 +178,7 @@ def test_revise_refuses_an_unknown_version_naming_the_accepted_set(tmp_path: Pat
 def run_revise(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], doc_for: Any
 ) -> tuple[Path, int, dict[str, Any], str]:
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     request = write_doc(root, INTERIOR, doc_for(INTERIOR))
     statement = tmp_path / "S.lean"
     statement.write_text(NEW_STATEMENT)

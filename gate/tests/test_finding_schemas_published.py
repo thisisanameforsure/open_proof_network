@@ -9,11 +9,12 @@ same file, the bijection), and D-34 says a published schema is versioned and nev
 and never asks whether the graph carries the files, so the index advertises what the graph does
 not hold; the fixture graphs carry no ``schemas/`` at all and every products test passes.
 
-Each test asserts the behaviour F03-T6 lands: ``generate`` refuses a graph whose ``schemas/`` lacks
-an advertised family, naming ``schema-unpublished`` and the family as ``<name>/v<n>``; and a new
+Each test asserts the behaviour F03-T8 landed (the finding first named F03-T6, since spent on Q8):
+``generate`` refuses a graph whose ``schemas/`` lacks an advertised family, naming
+``schema-unpublished`` and the family as ``<name>/v<n>``; and a new
 ``opn_gate.schemas.publish(graph_root)`` seeds a graph so that the index and the files agree, with
-a ``HASHES`` pin per file. Held as strict xfails until the task lands (conventions §2); the helper
-is looked up with ``getattr`` so a missing name is a failed test, never a collection error.
+a ``HASHES`` pin per file. The helper is looked up with ``getattr`` so a missing name is a
+failed test, never a collection error.
 """
 
 from __future__ import annotations
@@ -33,8 +34,6 @@ COMMIT_TIME = "2026-09-13T00:00:00Z"
 #: What the live graph holds at origin/main on 2026-09-13 (``git ls-tree origin/main schemas/``).
 LIVE_GRAPH_HOLDS = ("attestation/v1", "attestation/v2", "gate-spec/v1", "meta/v1")
 FAMILY_RE = re.compile(r"[a-z][a-z0-9-]*/v[1-9][0-9]*")
-FINDING = "finding 2 (F03-R10, D-34; 2026-09-12 finding 5): "
-FIX = "; fix: F03-T6 (Mike, 2026-09-13)"
 
 
 def generate(root: Path) -> products.Products:
@@ -64,13 +63,6 @@ def families_named(message: str) -> set[str]:
     return set(FAMILY_RE.findall(message))
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=FINDING
-    + "products.generate builds info.json's schema index from the network registry and never "
-    + "checks the graph's schemas/ holds the files, so a graph publishing none passes"
-    + FIX,
-)
 def test_generate_refuses_a_graph_that_publishes_none_of_the_schemas_it_advertises(
     tmp_path: Path,
 ) -> None:
@@ -84,13 +76,6 @@ def test_generate_refuses_a_graph_that_publishes_none_of_the_schemas_it_advertis
     assert named & set(schemas.known_schemas()), str(excinfo.value)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=FINDING
-    + "products.generate accepts the live graph's shape (4 of 27 families published) and "
-    + "advertises all 27, so get_schema answers not-found for the 23 the index lists"
-    + FIX,
-)
 def test_the_refusal_names_the_families_the_graph_lacks_and_not_the_ones_it_holds(
     tmp_path: Path,
 ) -> None:
@@ -105,13 +90,6 @@ def test_the_refusal_names_the_families_the_graph_lacks_and_not_the_ones_it_hold
     assert named.isdisjoint(LIVE_GRAPH_HOLDS), str(excinfo.value)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=FINDING
-    + "opn_gate.schemas has no publish(graph_root) helper, so nothing seeds a graph's schemas/ "
-    + "from the registry and no fixture or re-pin can make the index and the files agree"
-    + FIX,
-)
 def test_publish_seeds_every_advertised_family_with_a_pin_and_generate_passes(
     tmp_path: Path,
 ) -> None:

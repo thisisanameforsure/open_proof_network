@@ -19,9 +19,14 @@ TARGET = "propositional"
 TUTORIAL = "tutorial-and-swap"
 
 
-def copy_graph(tmp_path: Path, graph: Path = GRAPH) -> Path:
+def copy_graph(tmp_path: Path, graph: Path = GRAPH, *, publish: bool = False) -> Path:
+    """A scratch copy of a fixture graph. The fixtures publish no ``schemas/``; a test that
+    renders products passes ``publish=True``, since ``products.generate`` refuses a graph that
+    does not serve every schema ``info.json`` advertises (F03-T8)."""
     root = tmp_path / "graph"
     shutil.copytree(graph, root)
+    if publish:
+        schemas.publish(root)
     return root
 
 

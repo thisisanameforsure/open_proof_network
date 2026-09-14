@@ -22,16 +22,8 @@ import sys
 from pathlib import Path
 from types import ModuleType
 
-import pytest
-
 ROOT = Path(__file__).resolve().parents[2]
 GUIDE = ROOT / "gate" / "agents" / "AGENTS.md"
-
-REASON = (
-    "finding guide-pending-work (F10-R2, D-31, D-4 step 9, D-28, D-33): the guide omits the "
-    "hole workflow after a skeleton, pads no attestation id, and documents neither a pending "
-    "submission nor why a node is not claimable; fix: F10-T7 (Mike, 2026-09-14)"
-)
 
 
 def _load_walkthrough() -> ModuleType:
@@ -83,7 +75,6 @@ def says(text: str, *patterns: str) -> bool:
 # --- Skeletonization ----------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_the_skeleton_section_says_the_holes_are_yours_to_witness_and_prove() -> None:
     text = prose(section("Skeletonization"))
     assert says(text, r"\bwitness"), "the skeleton section never mentions a hole's witness"
@@ -96,7 +87,6 @@ def test_the_skeleton_section_says_the_holes_are_yours_to_witness_and_prove() ->
     ), "the skeleton section does not say the holes are the submitter's to witness and prove"
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_the_skeleton_section_says_one_pull_request_and_one_approval_per_hole() -> None:
     text = prose(section("Skeletonization"))
     assert says(
@@ -115,7 +105,6 @@ def test_the_skeleton_section_says_one_pull_request_and_one_approval_per_hole() 
     ), "the skeleton section does not say each pull request needs its own approval"
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_the_skeleton_section_says_merge_one_at_a_time_and_the_parent_last() -> None:
     text = prose(section("Skeletonization"))
     assert says(
@@ -141,7 +130,6 @@ def test_the_skeleton_section_says_merge_one_at_a_time_and_the_parent_last() -> 
 # --- Precheck and submit ------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_precheck_and_submit_names_the_zero_padded_attestation() -> None:
     text = section("Precheck and submit")
     assert "attestations/<pull request number>.json" not in text, (
@@ -155,7 +143,6 @@ def test_precheck_and_submit_names_the_zero_padded_attestation() -> None:
     )
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_precheck_and_submit_says_how_to_watch_a_pending_submission() -> None:
     """``GET /submissions/<id>`` (or ``get_submission``) documented in the same paragraph as the
     pull request's review and check state — what an open submission is waiting on."""
@@ -171,7 +158,6 @@ def test_precheck_and_submit_says_how_to_watch_a_pending_submission() -> None:
     )
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_the_appendix_lists_list_submissions() -> None:
     text = section("Appendix: the MCP tools")
     assert "`list_submissions" in text, "the MCP appendix has no list_submissions row"
@@ -180,7 +166,6 @@ def test_the_appendix_lists_list_submissions() -> None:
 # --- Claiming a node ----------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason=REASON)
 def test_the_claiming_section_says_why_a_node_is_not_claimable() -> None:
     text = section("Claiming a node")
     missing = [

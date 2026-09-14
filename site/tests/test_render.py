@@ -12,7 +12,7 @@ import fixture
 import pytest
 
 from opn_gate import schemas
-from opn_site import cli, config, model, render
+from opn_site import cli, config, links, model, render
 
 GOLDEN = Path(__file__).resolve().parent / "golden"
 REPO = "https://github.com/example/graph"
@@ -490,17 +490,6 @@ def test_related_variant_pertinence_on_the_target_page(tmp_path: Path) -> None:
 API = "https://api.example.test"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "finding 9 (F04-R7, F05-R10, D-25): the frontier page says it is 'exactly what an agent "
-        "sees through list_frontier' while its claims column is the products' committed "
-        "snapshot (zero while OPN_API_CLAIMS_URL is unset) and the api's list_frontier overlays "
-        "live claims; the page names neither the commit its claims come from nor where the live "
-        "count is, and the site's config carries no api URL to link; "
-        "fix: F04-T9 (Mike, 2026-09-13)"
-    ),
-)
 def test_frontier_page_says_which_products_its_claims_come_from_and_links_the_live_ones(
     tmp_path: Path,
 ) -> None:
@@ -524,3 +513,78 @@ def test_frontier_page_says_which_products_its_claims_come_from_and_links_the_li
     label = page.index("from the products at")
     assert fixture.COMMIT[:12] in page[label : label + 300], page[label : label + 300]
     assert f'href="{API}/claims.json"' in page, "no link to the api's live /claims.json"
+
+
+# --- F04-T9 edge cases ---------------------------------------------------------------------------
+
+
+def test_without_an_api_url_the_claims_label_renders_and_no_live_link_is_drawn(
+    tmp_path: Path,
+) -> None:
+    """C7: an unset OPN_SITE_API_URL is the boring failure — the build succeeds, the label still
+    names the products' commit, and nothing points off-site."""
+    root = fixture.build(tmp_path)
+    site = model.load_site(root, fixture.COMMIT)
+    page = render.render_site(site, repo_url=REPO, api_url=config.load({}).api_url)[
+        "frontier/index.html"
+    ]
+    label = page.index("from the products at")
+    assert fixture.COMMIT[:12] in page[label : label + 300]
+    assert "claims.json" in page[label : label + 400], "the label names where the live count is"
+    assert 'claims.json"' not in page, "no href to a service the build was not given"
+    assert "this build names no service" in page
+
+
+def test_an_api_url_with_a_trailing_slash_does_not_double_up(tmp_path: Path) -> None:
+    root = fixture.build(tmp_path)
+    site = model.load_site(root, fixture.COMMIT)
+    page = render.render_site(site, repo_url=REPO, api_url=f"{API}//")["frontier/index.html"]
+    assert f'href="{API}/claims.json"' in page
+    assert "test//" not in page
+
+
+def test_the_live_claims_link_passes_the_link_checker_only_through_the_allowlist(
+    tmp_path: Path,
+) -> None:
+    """R13 as F11-Q11 applied it: the api link is admitted as one exact url, so without the
+    allowlist the checker names it, and any other url on the service is still refused."""
+    root = fixture.build(tmp_path)
+    site = model.load_site(root, fixture.COMMIT)
+    files = render.render_site(site, repo_url=REPO, api_url=API)
+    problems = links.check(files, repo_url=REPO, cited=render.cited_urls(site))
+    assert [p for p in problems if "api.example.test" in p] == [
+        f"frontier/index.html: external link {API}/claims.json"
+    ]
+    assert render.live_urls(API) == frozenset({f"{API}/claims.json"})
+    assert render.live_urls(f"{API}/") == render.live_urls(API)
+    assert render.live_urls(None) == frozenset()
+    elsewhere = {"x.html": f'<p><a href="{API}/claims.json.evil">x</a><a href="{API}/">y</a></p>'}
+    assert links.check(elsewhere, repo_url=REPO, cited=render.live_urls(API)) == [
+        f"x.html: external link {API}/claims.json.evil",
+        f"x.html: external link {API}/",
+    ]
+
+
+def test_the_claims_label_names_the_commit_the_products_were_rendered_from(
+    tmp_path: Path,
+) -> None:
+    """The products are rendered from the merge commit and committed by the bot after it, so the
+    snapshot's commit is ``rendered_from``, which need not be the commit the site renders."""
+    root = fixture.build(tmp_path)
+    site = model.load_site(root, fixture.COMMIT)
+    site.frontier["rendered_from"] = "a" * 40
+    page = render.Renderer(site, repo_url=REPO, api_url=API).frontier()
+    label = page.index("from the products at")
+    assert "<code>aaaaaaaaaaaa</code>" in page[label : label + 60]
+
+
+def test_render_command_reads_the_api_url_from_the_environment(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = fixture.build(tmp_path)
+    out = tmp_path / "out"
+    monkeypatch.setenv("OPN_SITE_API_URL", API)
+    argv = ["render", "--graph", str(root), "--commit", fixture.COMMIT, "--out", str(out)]
+    assert cli.main(argv) == 0, capsys.readouterr()
+    page = (out / "frontier" / "index.html").read_text(encoding="utf-8")
+    assert f'href="{API}/claims.json"' in page

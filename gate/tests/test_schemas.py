@@ -544,3 +544,49 @@ def test_canonical_json_is_stable() -> None:
     assert a == b
     assert a.endswith(b"\n")
     assert schemas.content_hash(a) == schemas.content_hash(b)
+
+
+# --- a graph's published copy (F03-T8; D-34) -----------------------------------------------------
+
+
+def test_publish_adds_only_what_is_missing_and_keeps_the_graphs_own_pins(tmp_path: Path) -> None:
+    """A graph that already holds one version and pins a file of its own: publish adds the rest,
+    reports exactly what it added, and keeps the pin it did not write."""
+    base = tmp_path / "schemas"
+    (base / "annex").mkdir(parents=True)
+    (base / "annex" / "v1.json").write_bytes(schemas.schema_path("annex/v1").read_bytes())
+    (base / "local").mkdir()
+    (base / "local" / "v1.json").write_bytes(b"{}\n")
+    local_pin = schemas.content_hash(b"{}\n")
+    (base / "HASHES").write_text(f"{local_pin}  local/v1.json\n", encoding="utf-8")
+
+    added = schemas.publish(tmp_path)
+
+    assert added == [sid for sid in schemas.known_schemas() if sid != "annex/v1"]
+    assert schemas.read_pins(base / "HASHES")["local/v1.json"] == local_pin
+    assert schemas.verify_pins(base, base / "HASHES") == []
+    assert schemas.unpublished(tmp_path) == []
+    assert schemas.publish(tmp_path) == []
+
+
+def test_publish_refuses_an_edited_copy_and_writes_nothing(tmp_path: Path) -> None:
+    """D-34: a graph's copy that differs from the registry is an edit, never something to restore
+    or re-pin; the refusal names it and leaves the graph as it was (C7)."""
+    edited = tmp_path / "schemas" / "annex" / "v1.json"
+    edited.parent.mkdir(parents=True)
+    edited.write_bytes(schemas.schema_path("annex/v1").read_bytes() + b" ")
+    with pytest.raises(SchemaError, match=r"schema-edited: .*annex/v1"):
+        schemas.publish(tmp_path)
+    assert sorted(p for p in (tmp_path / "schemas").rglob("*") if p.is_file()) == [edited]
+
+
+def test_publish_refuses_a_pin_that_disagrees_with_its_file(tmp_path: Path) -> None:
+    """A HASHES line that no longer matches its file is refused, not rewritten to agree."""
+    schemas.publish(tmp_path)
+    hashes = tmp_path / "schemas" / "HASHES"
+    text = hashes.read_text(encoding="utf-8")
+    pin = schemas.read_pins(hashes)["annex/v1.json"]
+    hashes.write_text(text.replace(pin, "0" * 64), encoding="utf-8")
+    with pytest.raises(SchemaError, match=r"schema-edited: .*annex/v1\.json"):
+        schemas.publish(tmp_path)
+    assert schemas.read_pins(hashes)["annex/v1.json"] == "0" * 64

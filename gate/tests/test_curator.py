@@ -71,7 +71,7 @@ def latest_status(root: Path, node_id: str) -> records.StatusRecord:
 def test_revise_flow(tmp_path: Path) -> None:
     """AC13: N-v2 exists with supersedes N, N is superseded, D1 and D2 are stale with the
     revision as cause, and the products reflect all of it."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     add_dependent(root, TUTORIAL, INTERIOR)  # D2; the root is D1 already
     request = write_request(root, INTERIOR)
 

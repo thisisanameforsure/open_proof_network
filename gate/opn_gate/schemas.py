@@ -156,3 +156,58 @@ def verify_pins(schemas_dir: Path = SCHEMAS_DIR, hashes_file: Path = HASHES_FILE
         if name in pinned and pinned[name] != actual[name]
     ]
     return problems
+
+
+# --- the graph's published copy (D-34, D-35; F03-T8) ------------------------------------------
+
+#: A graph publishes every record shape at ``schemas/<name>/v<n>.json``, the path ``get_schema``
+#: reads for ``<name>/v<n>``, pinned by ``schemas/HASHES`` in the registry's own format.
+GRAPH_SCHEMAS_DIR = "schemas"
+_HASHES_HEADER = (
+    "# sha256 pins of every schema this graph publishes (D-34: versioned, never edited).\n"
+    "# Written by opn_gate.schemas.publish, which adds versions and never edits one.\n"
+)
+
+
+def unpublished(graph_root: Path) -> list[str]:
+    """Every registry schema id the graph does not hold at ``schemas/<name>/v<n>.json``."""
+    base = graph_root / GRAPH_SCHEMAS_DIR
+    return [sid for sid in known_schemas() if not (base / f"{sid}.json").is_file()]
+
+
+def publish(graph_root: Path) -> list[str]:
+    """Copy every registry schema the graph lacks into its ``schemas/`` and pin each file in
+    ``schemas/HASHES``; return the ids added, sorted. Idempotent: a second run writes nothing.
+
+    D-34 is enforced, not assumed: a copy that differs from the registry, or a file whose pin
+    disagrees with its bytes, raises ``SchemaError`` before anything is written (C7).
+    """
+    base = graph_root / GRAPH_SCHEMAS_DIR
+    hashes = base / "HASHES"
+    pinned = read_pins(hashes) if hashes.is_file() else {}
+    missing: list[str] = []
+    for sid in known_schemas():
+        source = schema_path(sid).read_bytes()
+        dest = base / f"{sid}.json"
+        if not dest.is_file():
+            missing.append(sid)
+        elif dest.read_bytes() != source:
+            msg = f"schema-edited: the graph's {sid} differs from the registry's (D-34)"
+            raise SchemaError(msg)
+    edited = [
+        name
+        for name, digest in compute_hashes(base).items()
+        if name in pinned and pinned[name] != digest
+    ]
+    if edited:
+        msg = f"schema-edited: the graph's HASHES disagrees with {', '.join(edited)} (D-34)"
+        raise SchemaError(msg)
+    for sid in missing:
+        dest = base / f"{sid}.json"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(schema_path(sid).read_bytes())
+    pins = {**pinned, **compute_hashes(base)}
+    rendered = _HASHES_HEADER + "".join(f"{pins[name]}  {name}\n" for name in sorted(pins))
+    if not hashes.is_file() or hashes.read_text(encoding="utf-8") != rendered:
+        hashes.write_text(rendered, encoding="utf-8")
+    return missing

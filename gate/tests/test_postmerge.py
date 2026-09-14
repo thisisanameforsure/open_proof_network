@@ -198,7 +198,7 @@ def test_claims_snapshot_fallback(tmp_path: Path, caplog: pytest.LogCaptureFixtu
     assert (graph / "claims.json").read_bytes() == previous
 
     # And the generator merges what stands into the frontier it renders.
-    root = copy_graph(tmp_path / "gen")
+    root = copy_graph(tmp_path / "gen", publish=True)
     (root / "claims.json").write_bytes(previous)
     prod = products.generate(root, rendered_from="5" * 40, commit_time="2026-09-09T00:00:00Z")
     frontier = json.loads(prod.files[Path("frontier.json")])

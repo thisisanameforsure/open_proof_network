@@ -139,3 +139,81 @@ $ make verify (on 0651801 + this commit)
 ruff check .: All checks passed! · ruff format --check .: 304 files already formatted · mypy --strict gate/api/site: no issues
 = 1837 passed, 13 skipped, 67 deselected, 47 xfailed, 2 warnings in 149.75s (0:02:29) =
 exit 0
+
+== Frontier row (after F04-T11 and F04-T9) · 2026-09-14 · network d8ab75b (F04-T9) + working tree ==
+
+Red first (before any change, 2026-09-14T09:41Z, on 48f4a93):
+$ uv run --frozen pytest --runxfail site/tests/test_finding_not_claimable_reasons.py::test_frontier_row_of_a_listed_target_says_why_it_is_not_claimable
+FAILED ... assert 'Not claimable' in '<tr><td><a href="/nodes/listed-target/listed-lemma/">listed-lemma</a></td>...<td>0 active, 0 past</td><td>no</td><td>no</td><td>no</td><td>no</td><td>no</td>'
+It failed on its own assertion, not on the row shape: the row is found by the node's link, and T11's
+17 cells were already there.
+
+The change
+site/opn_site/render.py
+  - NO_RECORD_WORDS = "this target has no curated intake record (D-6)".
+  - frontier_node(e): the entry's node in its target's graph.json (T11's Status lookup, now shared).
+  - row_not_claimable(tv): "" for a claimable target; otherwise
+    <span class="why-not-row">Not claimable: {esc(intake.explain(r)) joined by "; "}.</span>, or the
+    NO_RECORD_WORDS line when the index row names no reason.
+  - claimable_cell(e), called from frontier_cell for a boolean claimable: the entry's own word
+    ("yes"/"no") first, so the column filter still matches "no"; then, only for a node whose status
+    is in CLAIMABLE_STATUSES (ready, speculative; F03-Q8, the node page's rule), a space and the
+    sub-line. A blocked or proved row keeps the bare word; its Status column is its reason.
+  - No column added: FRONTIER_COLUMNS, the headers and the 17-cell count are unchanged.
+site/opn_site/static/site.css — table.frontier td .why-not-row { display: block; white-space: normal;
+  min-width: 22ch; max-width: 30ch; color: var(--muted); font-size: 0.8rem } — the table's cells are
+  nowrap (T2), so without this the reasons would widen the Claimable column to one long line.
+Tests (site/tests/test_finding_not_claimable_reasons.py)
+  - the strict xfail mark removed from test_frontier_row_of_a_listed_target_says_why_it_is_not_claimable
+    (body unchanged);
+  - edge tests: test_the_reasons_sit_in_the_claimable_cell_and_add_no_column (17 headers; the cell starts
+    "no "), test_a_reason_carrying_html_is_escaped_in_the_frontier_row, test_an_empty_reasons_list_still_says_not_claimable_in_the_row,
+    test_a_claimable_targets_row_carries_no_reasons (cell == "yes"), test_a_blocked_row_under_a_listed_target_carries_no_reasons
+    (cell == "no"), test_the_tutorial_row_carries_no_reasons (a claimable tutorial row; D-27, F03-Q4:
+    a target with no curated record is claimable exactly when its root is the tutorial).
+Pins
+  test_frontier_table and test_the_frontier_page_says_where_each_node_stands pass unchanged: the header
+  count is still 17, and the second test's row is blocked, so its Claimable cell is still exactly "no".
+  site/tests/golden/frontier/index.html — regenerated alone as write_goldens renders it; the one changed
+  cell is the fixture's ready root under propositional (claimable: false, not_claimable: [], no curated
+  record), which matches the node page golden's line from part 2:
+  -<td>no</td>  +<td>no <span class="why-not-row">Not claimable: this target has no curated intake record (D-6).</span></td>
+
+Green
+$ uv run --frozen pytest site/tests -q -rxX
+160 passed (no xfail left in site/tests)
+ruff check site, ruff format --check site, mypy --strict site: clean
+
+Mutants (pytest plugins, scratchpad/f04t9/mutants/)
+$ PYTHONPATH=<mutants> uv run --frozen pytest -p <mutant> site/tests/test_finding_not_claimable_reasons.py site/tests/test_render.py -q
+mut_t10_row_unescaped (row_not_claimable joins intake.explain(r) without esc, and ignores claimable): 5 failed, 36 passed
+  FAILED test_frontier_row_of_a_listed_target_says_why_it_is_not_claimable, test_the_reasons_sit_in_the_claimable_cell_and_add_no_column,
+  test_a_reason_carrying_html_is_escaped_in_the_frontier_row, test_a_claimable_targets_row_carries_no_reasons,
+  test_the_tutorial_row_carries_no_reasons
+mut_t10_row_ignores_status (CLAIMABLE_STATUSES widened to blocked and proved): 4 failed, 37 passed
+  FAILED test_a_blocked_row_under_a_listed_target_carries_no_reasons, test_a_proved_node_carries_no_claim_reasons,
+  test_golden_pages, test_the_frontier_page_says_where_each_node_stands
+Both killed; the escape test and the blocked-row test are each among the kills.
+
+Screenshots — site/tests/fixture.build_with_listed_target rendered with OPN_SITE_API_URL=https://api.example.test/
+(scratchpad/f04t9/render_listed.py), served with python -m http.server on 127.0.0.1:18431 (curl-checked
+first), captured with headless Google Chrome. Both captures are of evidence-only copies of the page; the
+shipped page is unchanged by them.
+engineering/evidence/F04/task-10-frontier-row-scrolled.png — 1200x900, the shipped layout with one script
+  line setting the table box's scrollLeft to its end (what a reader at 1200px sees after scrolling right).
+  Checked by eye: the Claimable column reads "no" on both rows, with the reasons beneath in smaller muted
+  text wrapped to about 30ch — "Not claimable: this target has no curated intake record (D-6)." and
+  "Not claimable: the target's D-33 status is listed; its fidelity grade is below screened-and-signed
+  (D-9); it has not been posted upstream (D-10)."; Dormant and Tutorial stay beside it on screen; the
+  T9 claims note is above the table.
+engineering/evidence/F04/task-10-frontier-row-full.png — 2600x700, main's 72ch limit and the scroll box
+  lifted (T11's precedent), so the whole of both rows shows: the 17 headers in T11's order, each row one
+  line high except for the Claimable cell's wrapped reasons, no new column.
+At 1200px the table still scrolls inside its box as it has since T2 (Tags alone is ~40ch); the reasons
+add height to a row, not width to the table. A first 1200px capture without the scroll showed only the
+left columns and was discarded.
+
+make verify (d8ab75b + this change)
+ruff check .: All checks passed! · ruff format --check .: 304 files already formatted · mypy --strict gate/api/site: no issues
+= 1851 passed, 13 skipped, 67 deselected, 45 xfailed, 2 warnings in 105.47s (0:01:45) =
+exit 0

@@ -81,7 +81,8 @@ class FakeUpstream:
 
 def imported_target(tmp_path: Path, target_id: str = "erdos-68", **overrides: Any) -> Path:
     """A curated target imported from Formal Conjectures at ``PINNED``, as import-fc leaves it."""
-    root = copy_graph(tmp_path) if not (tmp_path / "graph").exists() else tmp_path / "graph"
+    existing = tmp_path / "graph"
+    root = existing if existing.exists() else copy_graph(tmp_path, publish=True)
     take_in(
         root,
         target_id=target_id,

@@ -191,7 +191,7 @@ def test_an_unlicensed_source_may_not_have_its_statement_reproduced(tmp_path: Pa
 def test_scaffold_state(tmp_path: Path) -> None:
     """AC3: the spec pins the given SHA, every certificate is mechanical-only, the status is
     listed, and the target is not claimable."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     take_in(root, defs=DEFS)
     target = root / "targets" / "euclid-primes"
 
@@ -223,7 +223,7 @@ def test_scaffold_state(tmp_path: Path) -> None:
 def test_activation_requires_posting(tmp_path: Path) -> None:
     """AC5: screened-and-signed with no posting is refused naming the posting; with one, the
     target is active and its nodes are claimable."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     take_in(root)
     target = root / "targets" / "euclid-primes"
     fidelity.attest(
@@ -288,7 +288,7 @@ def test_intake_never_touches_an_existing_target(tmp_path: Path) -> None:
 def test_a_pre_f11_target_keeps_f03s_rule(tmp_path: Path) -> None:
     """R4 applies to curated targets. The tutorial graph has no target.yaml and its declaration
     still speaks for it (F03-Q4, Q5) — the one thing the rung rename must not break."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     status = root / "targets" / TARGET / "status"
     status.mkdir()
     (status / "2026-09-09-1.yaml").write_text(
@@ -344,7 +344,7 @@ def import_fc(root: Path, **kw: Any) -> Any:
 def test_import_fc_provenance(tmp_path: Path) -> None:
     """AC7: the target's provenance names the path, the commit and the author, and the root is
     admitted — as an open-track target that is listed and not claimable (R9)."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     result = import_fc(root)
     assert result.commit == FC_COMMIT
     assert all(check.ok for check in result.intake.checks)

@@ -1151,6 +1151,8 @@ def test_products_scans_a_mathlib_pinned_graph_inside_the_sandbox(
     spec = schemas.load_json(spec_path)
     spec["mathlib_sha"] = samples.SHA1
     spec_path.write_bytes(schemas.canonical_json(spec))
+    schemas.publish(root)  # F03-T8: a graph that renders products serves its schemas
+    git("add", "schemas")
     git("commit", "-q", "-am", "pin mathlib")
     seam.fake.constants = used_constants_result(
         [("Nat.Prime", "Mathlib.Data.Nat.Prime.Basic"), ("le_refl", "Mathlib.Order.Basic")]

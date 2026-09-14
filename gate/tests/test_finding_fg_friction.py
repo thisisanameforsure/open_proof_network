@@ -255,7 +255,7 @@ LISTED = "euclid-primes"
 
 def claimable_target(tmp_path: Path) -> Path:
     """A listed target that activation accepts: a non-author's signature and a posting (AC5)."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     take_in(root)
     fidelity.attest(
         root / "targets" / LISTED,

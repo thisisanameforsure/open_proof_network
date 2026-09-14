@@ -74,7 +74,7 @@ MANUAL_FIRST_LINES: tuple[str, ...] = (
     'git -C "$GRAPH" push -u origin "$BRANCH"',
     "claude mcp add --transport http open-proof-network",
 )
-MIN_EXECUTED = 20  # a document that lost most of its commands is not the document
+MIN_EXECUTED = 22  # a document that lost most of its commands is not the document
 
 
 # --- the fixture graph as a clone -----------------------------------------------------------------
@@ -96,6 +96,7 @@ def build_graph_repo(tmp: Path, key: PrecheckKey) -> Path:
     attested, the target claimable, the products rendered, the precheck key committed."""
     root = tmp / "graph"
     shutil.copytree(GRAPH, root)
+    schemas.publish(root)  # F03-T8: the live graph serves every schema info.json advertises
     nodes = root / "targets" / TARGET / "nodes"
     attestation = samples.attestation(
         node_id=TUTORIAL,
@@ -227,6 +228,14 @@ def test_required_sections() -> None:
     assert cited <= anchors, f"cited decisions with no section in the protocol: {cited - anchors}"
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "F10-T6, F10-T7: the guide changed in this repo first; graph copy pushed by the lead "
+        "(gate/agents/AGENTS.md copied byte for byte to the graph's AGENTS.md), then this mark "
+        "comes off"
+    ),
+)
 def test_graph_copy_is_identical() -> None:
     """D-35: the graph carries a copy of the tested document, byte for byte (skipped when the
     sibling checkout is not present, as in CI)."""

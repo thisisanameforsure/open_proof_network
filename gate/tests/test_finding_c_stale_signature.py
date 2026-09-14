@@ -65,7 +65,7 @@ def sign(root: Path, subject: str, by: str = "reviewer", date: str = "2026-09-11
 
 def active_signed_target(tmp_path: Path, *, defs: dict[str, str] | None = None) -> Path:
     """Listed, QA complete for every subject, signed by a non-author, posted, activated."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     take_in(root, defs=defs)
     t = target_dir(root)
     for subject in fidelity.subjects_of(t):
@@ -259,7 +259,7 @@ def v1_signature(**overrides: Any) -> dict[str, Any]:
 def test_intake_writes_its_certificates_at_v2_pinned_to_each_subject(tmp_path: Path) -> None:
     """T9: intake's mechanical-only certificates are v2 and carry the hash of the subject they
     were written for — the value the QA record pins — so they count for that subject."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     take_in(root, defs=DEFS)
     t = target_dir(root)
     for subject in ("root", "Primes"):
@@ -288,7 +288,7 @@ def test_the_v2_schema_requires_a_statement_hash_and_v1_is_unchanged() -> None:
 def test_a_v1_signature_counts_for_nothing(tmp_path: Path) -> None:
     """Mike, 2026-09-13: a v1 certificate above mechanical-only pins no statement, so it counts
     for nothing until someone re-signs at v2 — even on a statement that has never changed."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     take_in(root)
     t = target_dir(root)
     write_qa(t, floor_rows("root"))
@@ -306,7 +306,7 @@ def test_a_v1_signature_counts_for_nothing(tmp_path: Path) -> None:
 def test_a_v1_certificate_still_names_the_subjects_author(tmp_path: Path) -> None:
     """The live graph's nine certificates are v1. Authorship is not a grade: a v1 certificate
     still establishes who wrote the subject, so the non-author rule holds across the versions."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     take_in(root)
     t = target_dir(root)
     first = fidelity.fidelity_dir(t) / "root-1.yaml"
@@ -325,7 +325,7 @@ def test_a_stale_v2_signature_counts_for_nothing_and_a_fresh_one_counts(tmp_path
     """The rule itself: a v2 certificate counts only when its hash is the subject's current one.
     A signature pinned to another statement adds neither a grade nor a name; one pinned to this
     statement adds both, and only its own name."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     take_in(root)
     t = target_dir(root)
     write_qa(t, floor_rows("root"))
@@ -349,7 +349,7 @@ def test_a_stale_v2_signature_counts_for_nothing_and_a_fresh_one_counts(tmp_path
 def test_a_later_stale_certificate_does_not_mask_a_counting_one(tmp_path: Path) -> None:
     """The latest *counting* certificate decides: a stale one dated after a fresh signature
     neither lowers nor raises the grade."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     take_in(root)
     t = target_dir(root)
     write_qa(t, floor_rows("root"))
@@ -415,7 +415,7 @@ def test_a_certificate_for_a_removed_definition_counts_for_nothing(tmp_path: Pat
 def test_a_certificate_of_an_unreadable_version_stops_the_grade(tmp_path: Path) -> None:
     """C7: a file under fidelity/ that is not a fidelity certificate of a readable version is a
     graph defect, not a certificate that quietly counts for nothing."""
-    root = copy_graph(tmp_path)
+    root = copy_graph(tmp_path, publish=True)
     take_in(root)
     write_certificate(root, "root-2.yaml", **samples.target_status())
     with pytest.raises(schemas.SchemaError, match="not a fidelity certificate"):
