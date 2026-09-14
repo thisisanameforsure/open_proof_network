@@ -45,3 +45,26 @@ Carries F14 to the live gate:
 
 6. Not yet true, by construction: the committed products still render under the old pin until the first
    merged pull request (the erdos-52 evidence PR) re-renders them as targets-index/v5.
+
+7. First merge under the new pin: graph PR #39 (evidence/erdos-52), merged, with its bot commit on main. The live
+   targets/index.json is now targets-index/v5, rendered_from 171533c:
+     erdos-172, -376, -406, -68  claimable True []  step9 review  (their evidence PRs #40 onward are still merging)
+     erdos-52                    claimable True []  step9 evidence  score 6
+     euclid-primes               claimable False ['status-resolved']
+     tutorial                    claimable True []
+   THIRD_PARTY_NOTICES.md is present on main as a product.
+   site-deploy runs 34873855217 and 34874242993 succeeded. https://openproofnetwork.org/targets/erdos-52/ shows
+   "open for claims", "Catalog evidence" and "without a human reviewer", and does not show "Not claimable".
+
+8. Wave one: all 22 intake branches (21 Erdős and riemann-hypothesis) were cut from 171533c, imported with
+   --no-toolchain and their catalog evidence, and classified as intake with no problems. None touches a
+   path outside its own target. All were pushed. They merge one at a time after the evidence PRs, and
+   admission runs in the graph's CI on each pull request.
+
+9. The five evidence PRs merged in sequence, each after its bot commit: #39 erdos-52, #40 erdos-68, #41 erdos-172,
+   #42 erdos-376, #43 erdos-406. The live targets/index.json (targets-index/v5, rendered_from 4c5187f):
+     erdos-52  claimable True  step9 evidence  score 6
+     erdos-68, -172, -376, -406  claimable True  step9 evidence  score 8
+     euclid-primes  claimable False (status-resolved)
+     tutorial  claimable True  step9 review
+   The wave merges started at #44 (intake/erdos-1003).
