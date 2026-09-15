@@ -362,7 +362,7 @@ The law of the project:
   'true/false' statements" on open problems, and D-6's first-priority source is the Erdős list
   chosen for its "demonstrated resolution regime" — as written, the mission is the condemned
   activity, and the people D-22 recruits are the signatories. Researched in
-  `docs/research_digestion_2026-09.html`: the protocol already answers most of Leiden (public
+  `docs/research_math_and_ai_2026-09.html` (renamed 2026-09-15): the protocol already answers most of Leiden (public
   failures, human credit, no leaderboard, prior art, report-back) but digestion is optional and
   unstated. Proposed amendments A1–A5, the load-bearing one being a named digester at intake
   (D-32's writer appointed at listing, not at resolution). Two things the evidence killed: AI-drafted
