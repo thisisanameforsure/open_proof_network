@@ -43,3 +43,17 @@ Verification:
   test_graph_copy_is_identical, before the graph's AGENTS.md copy was pushed.
 - Still to measure live: a precheck of the same erdos-376 skeleton after the re-pin, with step 4 inside 600 s.
   No Mathlib checkout exists on this laptop, so the timing can only be measured on the hosted runner.
+
+Rollout, 2026-09-15:
+- Network CI on c7faed3 (run 34935373855): fast tier success; make verify-lean (real toolchain and sandbox)
+  success.
+- Tag gate-c7faed3, image-publish run 34939175179 success:
+    gate-c7faed3                          ghcr.io/thisisanameforsure/opn-gate@sha256:abcabf6237e8eecea5a27059c1372fc4a115cc06a9be21291805368e1f41f90b
+    gate-c7faed3-mathlib-0df444a360ea     ghcr.io/thisisanameforsure/opn-gate@sha256:e1299f2805c63d5cccd6f788bf27f4806c1464af1f1fe7a9363108fa9b79ab42
+- Pins, written by pin_all2.sh: tutorial got the plain image; the other 23 targets the Mathlib image, with
+  euclid-primes last. pin_image --check: 23 "pin ok"; tutorial 1 problem (the devcontainer runs the Mathlib
+  image, as at every re-pin). 24 of 24 gate-spec.json files name c7faed3. Committed on the graph as 3f370e1.
+- Pregate on the committed re-pin with the gate at c7faed3, tutorial-and-swap: exit 0, verdict pass, steps
+  1, 2 and 4-8 pass, 69 s.
+- A precheck reads the network pin from the commit the products were last rendered on (F06-Q10). So the
+  re-measure of the erdos-376 partial waits for one merged pull request to re-render under c7faed3.
