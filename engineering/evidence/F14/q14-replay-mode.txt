@@ -57,3 +57,17 @@ Rollout, 2026-09-15:
   1, 2 and 4-8 pass, 69 s.
 - A precheck reads the network pin from the commit the products were last rendered on (F06-Q10). So the
   re-measure of the erdos-376 partial waits for one merged pull request to re-render under c7faed3.
+
+Live re-measure, 2026-09-15:
+- Graph PR #66 (the T16 annex on erdos-376) merged, and its bot commit re-rendered the products under the new pin
+  (frontier rendered_from be9eb92).
+- POST /precheck with the exact body of the failed job 01M2GVGNY0W96NESCZ8HG1V1T4 (erdos-376, artifact_type partial,
+  attempts/20260914T205933Z-agent-t16-2a4b-partial.lean, bundle digest 0b0513c8...): http 202, job
+  01M2HYWEQGQ6QC7YE31T80JH3A, graph_commit be9eb92.
+- Done 236 s after the request, queueing included. verdict pass, network_commit c7faed3:
+    step 1 toolchain pass (mathlib-pinned)
+    step 2 paths pass (partial-submission)
+    step 4 kernel-replay pass (artifact-partial: Opn.erdos_376, 2 holes)
+    steps 5 axioms, 6 hazards, 7 witness, 8 deps pass
+  Before the change the same body failed step 4 at the 600 s cap with leanchecker --fresh.
+Result: proofs and partials on the 22 import-Mathlib targets can pass precheck and the gate. The blocker is resolved.
