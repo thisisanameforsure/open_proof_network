@@ -33,7 +33,7 @@ def test_trivial_theorem_through_the_seam(
     assert elab.ok, elab
     assert elab.errors == ()
 
-    replay = real_toolchain.kernel_replay(pinned, "Proof", [out], timeout_s=300)
+    replay = real_toolchain.kernel_replay(pinned, ["Proof"], [out], fresh=True, timeout_s=300)
     assert replay.ok, replay.output
 
     ax = real_toolchain.axioms(pinned, "Proof", "OpnSmoke.trivial_and", [out], tmp_path / "ax")

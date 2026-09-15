@@ -510,7 +510,8 @@ def test_false_screen_files_unrouted_claim(target: Path) -> None:
     assert exhibit == f"targets/{target.name}/qa/exhibits/root-screen-false-1.lean"
     graph_root = target.parents[1]
     assert (graph_root / exhibit).is_file()
-    assert f"kernel_replay:{SCREEN_MODULES['screen-false']}" in proves_false.calls
+    # A Mathlib-pinned target: the finding is replayed over the graph's prefixes plus itself.
+    assert f"kernel_replay-prefix:Nodes,Defs,{SCREEN_MODULES['screen-false']}" in proves_false.calls
     assert f"axioms:{SCREEN_MODULES['screen-false']}:OpnQa.screen_false" in proves_false.calls
 
     claim_path = graph_root / run.claims[0]
@@ -1206,7 +1207,7 @@ def test_the_gate_replays_every_exhibit_before_it_counts(target: Path) -> None:
     assert [r.check for r in state.exhibits] == ["equivalence"]
     assert "axioms:OpnQa.Replay0:OpnQa.equiv_forward" in good.calls
     assert "axioms:OpnQa.Replay0:OpnQa.equiv_backward" in good.calls
-    assert "kernel_replay:OpnQa.Replay0" in good.calls
+    assert "kernel_replay-prefix:Nodes,Defs,OpnQa.Replay0" in good.calls  # Mathlib-pinned
 
     native = FakeToolchain(
         axiom_result=AxiomResult(ok=True, axioms=frozenset({"Lean.ofReduceBool"}))
@@ -1217,7 +1218,7 @@ def test_the_gate_replays_every_exhibit_before_it_counts(target: Path) -> None:
     outside = FakeToolchain(axiom_result=AxiomResult(ok=True, axioms=frozenset({"sorryAx"})))
     with pytest.raises(QaError, match="sorryAx"):
         qa.grade_gate(target, "root", replay=replay_with(outside))
-    with pytest.raises(QaError, match="leanchecker"):
+    with pytest.raises(QaError, match="kernel replay"):
         qa.grade_gate(
             target, "root", replay=replay_with(FakeToolchain(replay=ReplayResult(ok=False)))
         )

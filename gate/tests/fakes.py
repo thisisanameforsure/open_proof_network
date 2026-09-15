@@ -24,6 +24,7 @@ from opn_gate.toolchain import (
     UsedConstantsRequest,
     WitnessRequest,
     module_output_path,
+    replay_command,
 )
 
 FAKE_RESOLVED = ResolvedToolchain(
@@ -158,6 +159,8 @@ class FakeToolchain:
     resolved: ResolvedToolchain = FAKE_RESOLVED
     elab: ElabResult = field(default_factory=lambda: ElabResult(ok=True))
     replay: ReplayResult = field(default_factory=lambda: ReplayResult(ok=True))
+    #: every kernel replay as ``(modules, fresh)``, in call order.
+    replays: list[tuple[tuple[str, ...], bool]] = field(default_factory=list)
     axiom_result: AxiomResult = field(default_factory=lambda: AxiomResult(ok=True))
     witness: MetaprogramResult = field(
         default_factory=lambda: witness_result(expected="∃ p q, p ∧ q", witness="∃ p q, p ∧ q")
@@ -219,12 +222,18 @@ class FakeToolchain:
     def kernel_replay(
         self,
         tc: ResolvedToolchain,
-        module: str,
+        modules: Sequence[str],
         search_path: Sequence[Path],
         *,
+        fresh: bool,
         timeout_s: float | None = None,
     ) -> ReplayResult:
-        self.calls.append(f"kernel_replay:{module}")
+        replay_command(modules, fresh=fresh)  # the real seam's argument rules
+        self.replays.append((tuple(modules), fresh))
+        if fresh:
+            self.calls.append(f"kernel_replay:{modules[0]}")
+        else:
+            self.calls.append(f"kernel_replay-prefix:{','.join(modules)}")
         self._maybe_raise("kernel_replay")
         return self.replay
 

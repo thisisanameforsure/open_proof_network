@@ -303,7 +303,9 @@ def test_kernel_replay_failure_carries_both_streams(tmp_path: Path) -> None:
         ("leanchecker --fresh", (1, "replaying...\n", "kernel: declaration has metavars\n")),
     )
     tc = lt.resolve(PIN)
-    result = lt.kernel_replay(tc, "Nodes.«n».Proof", [tmp_path / "build"], timeout_s=5)
+    result = lt.kernel_replay(
+        tc, ["Nodes.«n».Proof"], [tmp_path / "build"], fresh=True, timeout_s=5
+    )
     assert result.ok is False
     assert result.output == "replaying...\nkernel: declaration has metavars\n"
     cmd, _cwd, env, timeout = lt.calls[-1]
@@ -493,7 +495,7 @@ def test_resolve_with_a_mathlib_pin_puts_its_oleans_on_every_search_path(tmp_pat
     src.write_text("theorem t : True := trivial\n")
     lt.elaborate(tc, src, "Nodes.«n».Proof", build, root=tmp_path / "src")
     assert lt.calls[-1][2] == {"LEAN_PATH": expected}
-    lt.kernel_replay(tc, "Nodes.«n».Proof", [build])
+    lt.kernel_replay(tc, ["Nodes.«n».Proof"], [build], fresh=True)
     assert lt.calls[-1][2] == {"LEAN_PATH": expected}
     lt.axioms(tc, "Nodes.«n».Proof", "t", [build], tmp_path / "scratch")
     assert lt.calls[-1][2] == {"LEAN_PATH": expected}

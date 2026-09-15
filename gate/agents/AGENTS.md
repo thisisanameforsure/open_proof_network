@@ -418,7 +418,10 @@ failure:
 3. **sandbox**: the authoritative run builds inside a container with no network, no secrets and
    the caps `step3_caps` declares; `pregate.sh` uses an ordinary local build here.
 4. **kernel-replay**: the proof is compiled against its dependencies' merged proofs and replayed
-   through the kernel from clean with `leanchecker --fresh`.
+   through the kernel with `leanchecker`. On a graph without Mathlib the replay is `--fresh`. On a
+   graph that pins Mathlib, every module the graph builds is replayed (the node, its dependencies
+   and `defs/`), while Lean's and the pinned Mathlib's own compiled files in the gate image are
+   trusted, because a fresh replay of all of Mathlib cannot finish within the step cap (D-4 v3.16).
 5. **axioms**: every axiom the proof rests on is in `axiom_allowlist`; `native_decide` is
    refused unless the graph accepts a waiver.
 6. **hazards**: the statement passes the enabled hazard checkers (division by zero, natural

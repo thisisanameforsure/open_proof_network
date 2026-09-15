@@ -4,7 +4,8 @@ Conventions §1 names this seam; §2 requires that its fake returns structured r
 imitates Lean's stdout. Everything the gate learns from the toolchain therefore crosses this
 boundary as one of the small records below.
 
-Kernel replay uses ``leanchecker --fresh``: lean4checker was merged into the Lean toolchain at
+Kernel replay uses ``leanchecker`` (``--fresh`` for one module, or a list of module prefixes):
+lean4checker was merged into the Lean toolchain at
 v4.28.0 and ships under that name (F00-Q10), so no separate checker is installed.
 
 Run ``python -m opn_gate.toolchain --require`` to check that elan is reachable; it exits 1 with a
@@ -341,12 +342,16 @@ class Toolchain(Protocol):
     def kernel_replay(
         self,
         tc: ResolvedToolchain,
-        module: str,
+        modules: Sequence[str],
         search_path: Sequence[Path],
         *,
+        fresh: bool,
         timeout_s: float | None = None,
     ) -> ReplayResult:
-        """Step 4: ``leanchecker --fresh module`` over ``search_path``."""
+        """Step 4 over ``search_path``. ``fresh``: ``leanchecker --fresh <module>`` for exactly one
+        module, re-checking every import. Otherwise ``leanchecker <prefix> ...``: every module
+        whose name has one of ``modules`` as a prefix has its own declarations replayed into the
+        environment built from its imports' oleans (``replayFromImports``)."""
 
     def axioms(
         self,
@@ -525,6 +530,21 @@ def mathlib_library_path(home: Path, sha: str, toolchain: str) -> tuple[Path, ..
     return (own, *extra)
 
 
+def replay_command(modules: Sequence[str], *, fresh: bool) -> list[str]:
+    """The ``leanchecker`` argv for :meth:`Toolchain.kernel_replay`. ``--fresh`` takes exactly one
+    module (the toolchain refuses more); the prefix form takes one or more."""
+    if isinstance(modules, str):
+        raise TypeError("kernel_replay takes a sequence of module names, not one string")
+    names = list(modules)
+    if not names:
+        raise ValueError("kernel_replay needs at least one module")
+    if fresh:
+        if len(names) != 1:
+            raise ValueError("leanchecker --fresh replays exactly one module")
+        return ["leanchecker", "--fresh", names[0]]
+    return ["leanchecker", *names]
+
+
 def module_output_path(module: str, suffix: str) -> Path:
     """``Nodes.«a-b».Proof`` -> ``Nodes/a-b/Proof<suffix>``; bare ``Proof`` -> ``Proof<suffix>``."""
     parts: list[str] = []
@@ -695,14 +715,15 @@ class LocalToolchain:
     def kernel_replay(
         self,
         tc: ResolvedToolchain,
-        module: str,
+        modules: Sequence[str],
         search_path: Sequence[Path],
         *,
+        fresh: bool,
         timeout_s: float | None = None,
     ) -> ReplayResult:
         proc = self._run(
             tc.name,
-            ["leanchecker", "--fresh", module],
+            replay_command(modules, fresh=fresh),
             lean_path=tc.search_path(*search_path),
             timeout_s=timeout_s,
         )

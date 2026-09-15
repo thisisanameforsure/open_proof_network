@@ -1311,18 +1311,22 @@ def _attempt(  # noqa: PLR0913 — the seam's inputs
     """Elaborate one scratch theorem. ``None``: it did not prove (a clean screen). A set of
     axioms: it proved and the kernel replayed it under the graph's allowlist (a finding). A
     ``Diagnostic``: it elaborated but replay or the axiom check refused it (inconclusive)."""
+    from opn_gate.steps.replay import replay as kernel_replay  # noqa: PLC0415 — an import cycle
+
     src = ctx.workdir / "src"
     elab = ctx.toolchain.elaborate(
         tc, scratch, module, ctx.build_dir, root=src, timeout_s=timeout_s
     )
     if not elab.ok:
         return None
-    replay = ctx.toolchain.kernel_replay(tc, module, [ctx.build_dir], timeout_s=timeout_s)
+    mode, _, replay = kernel_replay(
+        ctx.toolchain, tc, ctx.spec, module, ctx.build_dir, timeout_s=timeout_s
+    )
     if not replay.ok:
         return Diagnostic(
             "kernel-replay-failed",
-            "the proof elaborated but leanchecker refused it",
-            {"output": replay.output[:2000]},
+            "the proof elaborated but the kernel replay refused it",
+            {"output": replay.output[:2000], "replay_mode": mode},
         )
     axioms = ctx.toolchain.axioms(
         tc, module, decl, [ctx.build_dir], ctx.workdir / "axioms", timeout_s=timeout_s
@@ -2282,10 +2286,12 @@ def replay_exhibits(
     ctx: RunContext, rows: tuple[Row, ...], *, timeout_s: float
 ) -> list[Diagnostic]:
     """R15: replay every exhibit a grade would rest on through the toolchain seam under the
-    gate's own checks — it elaborates against the root's Context, ``leanchecker --fresh``
-    accepts it, and every theorem it declares rests on the allowlist alone (no ``sorryAx``, no
+    gate's own checks — it elaborates against the root's Context, the kernel replay accepts it
+    (``--fresh``, or the graph's prefixes on a Mathlib target — ``steps.replay.replay_plan``),
+    and every theorem it declares rests on the allowlist alone (no ``sorryAx``, no
     ``native_decide``). Each refusal is named; the first refusal is enough to hold the grade."""
     from opn_gate.steps.hazards import StatementStep  # noqa: PLC0415 — an import cycle
+    from opn_gate.steps.replay import replay as kernel_replay  # noqa: PLC0415
     from opn_gate.steps.toolchain_step import ToolchainStep  # noqa: PLC0415
     from opn_gate.toolchain import is_native_decide_axiom  # noqa: PLC0415
 
@@ -2319,9 +2325,11 @@ def replay_exhibits(
             if not elab.ok:
                 problems.append(_replay_problem(row_, "does not elaborate under the pin"))
                 continue
-            replay = ctx.toolchain.kernel_replay(tc, module, [ctx.build_dir], timeout_s=timeout_s)
+            mode, _, replay = kernel_replay(
+                ctx.toolchain, tc, ctx.spec, module, ctx.build_dir, timeout_s=timeout_s
+            )
             if not replay.ok:
-                problems.append(_replay_problem(row_, "leanchecker --fresh refused it"))
+                problems.append(_replay_problem(row_, f"the kernel replay ({mode}) refused it"))
                 continue
             decls = declared_theorems(text)
             if not decls:

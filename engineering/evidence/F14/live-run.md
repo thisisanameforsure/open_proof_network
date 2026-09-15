@@ -41,3 +41,19 @@ All 22 Erdős targets and riemann-hypothesis import `Mathlib`. If one replay is 
 ## Pull requests the service opened
 
 #66 annex erdos-376, #67 annex erdos-1003, #68 postmortem erdos-1003, #69 postmortem erdos-376. All were open and clean when checked. Nothing was merged or approved by the agent.
+
+## The hosted fast check tried as a fix, 2026-09-15
+
+Mike asked for the new endpoint first. The T16 erdos-376 skeleton (`import Mathlib`, two `sorry` holes) went to `POST https://api.openproofnetwork.org/check` with `mode: verify`:
+
+- The response was http 200, 7.9 s end to end. AXLE reported `total_request_time_ms` 95 and `execution_time_ms` 92.
+- The answer said `authoritative: false`, environment `lean-4.33.0`, `exact: false`.
+- `okay: false` because of `sorry-present` alone. `failed_declarations` was `[Opn.erdos_376]`, because of the holes.
+
+So the hosted check elaborates a full-Mathlib file in about a tenth of a second. It still cannot replace step 4, for three reasons:
+
+- It replays nothing through the kernel, and step 4 is the kernel replay.
+- It runs Lean 4.33.0 against the gate's pinned 4.33.1.
+- D-4 v3.14 makes its answer non-authoritative and forbids attaching it to a submission.
+
+The owner's backup, option 3, was taken (F14-Q14, decisions v3.16). On a Mathlib-pinned graph, step 4 replays every graph-built module without `--fresh`. Only Lean's own compiled files and the pinned Mathlib oleans in the gate image are trusted.

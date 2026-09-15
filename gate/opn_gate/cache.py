@@ -9,9 +9,12 @@ archive at or before their own commit and skip compiling any dependency whose st
 hashes to what the manifest says it was built from.
 
 What the cache can never do: change a verdict. The node under check is always compiled, and
-``leanchecker --fresh`` replays every imported declaration, so a poisoned olean fails step 4
-(D-4, D-5). It can waste time, which is why every archive carries a SHA-256 manifest and a
-fetch that does not verify is discarded and the build proceeds as on a miss (R8).
+step 4's kernel replay still re-checks every cached graph olean, so a poisoned one fails step 4
+(D-4, D-5): without Mathlib, ``leanchecker --fresh`` replays every imported declaration; with
+Mathlib pinned, ``leanchecker Nodes [Defs]`` replays every graph module's own declarations, and
+only Lean core's and the pinned image's Mathlib oleans are trusted (``steps/replay.py``). It can
+waste time, which is why every archive carries a SHA-256 manifest and a fetch that does not
+verify is discarded and the build proceeds as on a miss (R8).
 
 Layout in the store (``objectstore``): ``<target>/<commit>/manifest.json``,
 ``<target>/<commit>/oleans.tar.gz`` and ``<target>/index.json`` listing the commits that have

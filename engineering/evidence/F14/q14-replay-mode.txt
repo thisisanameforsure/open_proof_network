@@ -1,0 +1,45 @@
+F14-Q14 — step 4's kernel replay on Mathlib-pinned graphs (decisions v3.16)
+date: 2026-09-15
+
+Finding (F14-T16, live): precheck job 01M2GVGNY0W96NESCZ8HG1V1T4 on an erdos-376 partial failed step 4 with
+  timeout: step 4 exceeded the 600s wall-clock cap
+  cmd: elan run leanprover/lean4:v4.33.1 leanchecker --fresh Nodes.«erdos-376».Proof
+The statement imports all of Mathlib, and --fresh replays every imported constant. Euclid's proof, whose statement
+imports Mathlib.Tactic, passed every step on the same image and cap (job 01M2FV7Y2R1R37QGYWWXGSPWVN).
+
+Owner (Mike, 2026-09-15): "try to use the new api endpoint", "and then use 3 as backup".
+
+1. POST /check, the hosted fast check (F13), tried first on the same skeleton:
+   http 200; AXLE execution_time_ms 92; authoritative false; environment lean-4.33.0, exact false;
+   okay false (sorry-present only).
+   It elaborates a full-Mathlib file in about a tenth of a second. It cannot be step 4, because:
+   - it replays nothing through the kernel;
+   - it runs Lean 4.33.0, not the gate's 4.33.1;
+   - D-4 v3.14 forbids its answer to decide or attach to a submission.
+
+2. Option 3, taken. From the toolchain source (src/lean/LeanChecker.lean, v4.33.1): `leanchecker <Target>`
+   without --fresh replays, for every module whose name has <Target> as a prefix, that module's own declarations
+   into the environment built from its imports' oleans. --fresh takes one module and replays every constant.
+   Step 4 now works as follows:
+     gate-spec mathlib_sha null    -> leanchecker --fresh Nodes.«<node>».Proof            (unchanged)
+     gate-spec mathlib_sha pinned  -> leanchecker Nodes [Defs]                            (Defs only when built)
+   On a Mathlib graph, every graph-built module is still replayed through the kernel: the node, its dependencies
+   (including ones taken from the network's olean cache) and defs/. Only Lean core's and the pinned Mathlib's
+   oleans in the gate image, fixed by its digest, are trusted.
+   The mode is recorded in ctx.data["replay_mode"] and in a failure's diagnostic details. No hash-pinned schema
+   changed. QA exhibit replay (qa.py) follows the same rule.
+   Files: gate/opn_gate/toolchain.py (kernel_replay(modules, fresh=)), gate/opn_gate/steps/replay.py
+   (replay_plan, graph_prefixes), gate/opn_gate/qa.py, gate/opn_gate/cache.py (docstring), gate/tests/fakes.py,
+   gate/tests/test_replay_mode.py (new), gate/tests/test_toolchain.py, gate/tests/test_toolchain_lean.py,
+   gate/tests/test_qa.py.
+   Docs: decisions v3.16 (D-4 step 4 and the version line), gate/agents/AGENTS.md step 4 (graph copy pushed first),
+   F14-Q14, PROTOCOL_VERSION 3.16 (three product goldens and one assertion).
+
+Verification:
+- uv run pytest -m lean gate/tests/test_replay_mode.py -q: 1 passed in 63.96 s (local Lean v4.33.1).
+  The prefix form replays a graph-shaped build of Nodes and Defs and passes; a prefix with no oleans is
+  refused; the fresh form still passes.
+- make verify: ruff clean; mypy --strict clean (167, 98, 26 files); 2112 passed, 1 failed. The failure was
+  test_graph_copy_is_identical, before the graph's AGENTS.md copy was pushed.
+- Still to measure live: a precheck of the same erdos-376 skeleton after the re-pin, with step 4 inside 600 s.
+  No Mathlib checkout exists on this laptop, so the timing can only be measured on the hosted runner.
