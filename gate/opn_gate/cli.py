@@ -1957,6 +1957,10 @@ def run_fidelity(args: argparse.Namespace, settings: config.Settings) -> int:
         state = qa.grade_gate(directory, subject, replay=replay)
         cited["exhibits"], cited["files"] = qa.certificate_citations(state)
 
+    # F15-R5: a prover does not sign — refused first, before the QA replay is paid for.
+    barred = fidelity.prover_bar(graph, directory, args.by, args.grade)
+    if barred is not None:
+        raise fidelity.FidelityError(barred)
     if fidelity.is_signature(args.grade):
         gate(args.subject, args.grade)  # before the author rules, so the refusal is the useful one
     path = fidelity.attest(
@@ -2410,9 +2414,13 @@ def _merge_entries(  # noqa: PLR0913 — one argument per fact every entry recor
                 )
                 continue
         else:
-            curator = intake.curator_of(graph / "targets" / target_id)
+            target_dir = graph / "targets" / target_id
+            curator = intake.curator_of(target_dir)
+            signers = fidelity.counting_signers(target_dir)  # F15-R5: a signer does not prove
             bar = ledger.curator_bar(
                 identity=identity, curator=curator, line="proof", target=target_id
+            ) or ledger.signer_bar(
+                identity=identity, signers=signers, line="proof", target=target_id
             )
             if bar is not None:
                 skipped.append(bar)
@@ -2421,7 +2429,7 @@ def _merge_entries(  # noqa: PLR0913 — one argument per fact every entry recor
                 identity=identity, target=target_id, node=node_id,
                 artifact_type="partial" if loc.role == "partial" else "proof",
                 artifact=artifact, merge_commit=commit, date=date, tooling=tooling,
-                curator=curator,
+                curator=curator, signers=signers,
             )  # fmt: skip
             if entry is None:
                 skipped.append(f"{node_id}'s {loc.role} earns no proof line (R12)")

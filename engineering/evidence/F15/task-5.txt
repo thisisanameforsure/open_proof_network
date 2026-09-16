@@ -1,0 +1,16 @@
+F15-T5 — a signer takes no proof credit: ledger.signer_bar over the target's counting signers (fidelity.counting_signers) in the ledger command, and fidelity.prover_bar refusing a signing-grade certificate from an identity holding an active proof line on the target — in opn-gate fidelity and in the gate's certificate check (certificate-prover) (R5; AC5).
+2026-09-16T19:09:54Z  commit: 09c922b (+ working tree)
+
+$ uv run pytest gate/tests/test_ledger.py gate/tests/test_fidelity.py -q
+....................................                                     [100%]
+36 passed in 8.40s
+
+$ make verify
+site/tests/test_render_alternates.py .                                   [ 98%]
+site/tests/test_render_evidence.py .......                               [ 99%]
+site/tests/test_untrusted.py .....................                       [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:29
+    from starlette.testclient import TestClient
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========= 2153 passed, 72 deselected, 2 warnings in 165.15s (0:02:45) ==========

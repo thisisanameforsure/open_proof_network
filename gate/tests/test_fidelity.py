@@ -153,3 +153,61 @@ def test_a_certificate_records_its_exhibits_and_evidence_files(target: Path) -> 
     doc = yaml.safe_load(path.read_text(encoding="utf-8"))
     assert doc["evidence_files"] == ["targets/euclid-primes/qa/root.md"]
     assert doc["exhibits"][0]["kind"] == "back-translation"
+
+
+# --- F15-T5 / AC5: a prover does not sign (R5; D-9, D-21 v3.17) -----------------------------------
+
+
+def test_prover_cannot_sign_the_target(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """AC5: an identity with an active proof line on the target is refused a signing-grade
+    certificate before anything is written — by the command and by the gate's certificate
+    check — while the machine's own grade is never barred and a revoked line bars nobody."""
+    import json  # noqa: PLC0415
+
+    from opn_gate import cli, ledger, modes  # noqa: PLC0415
+    from opn_gate.paths import Change  # noqa: PLC0415
+
+    root = copy_graph(tmp_path)
+    take_in(root)
+    target = root / "targets" / "euclid-primes"
+    entry = ledger.Entry(
+        line="proof",
+        target="euclid-primes",
+        node="and-reassoc",
+        artifact="Proof.lean",
+        merge_commit="a" * 40,
+        date="2026-09-15T00:00:00Z",
+    )
+    ledger.record(root, "reviewer", entry)
+    assert ledger.holds_proof_line(root, "reviewer", "euclid-primes")
+    assert not ledger.holds_proof_line(root, "reviewer", "other-target")
+    barred = fidelity.prover_bar(root, target, "reviewer", "screened-and-signed")
+    assert barred is not None and "proof credit" in barred and "F15-R5" in barred
+    assert fidelity.prover_bar(root, target, "reviewer", "mechanical-only") is None
+    assert fidelity.prover_bar(root, target, "auditor", "screened-and-signed") is None
+
+    # The command refuses with exit 1 and writes nothing.
+    evidence = tmp_path / "evidence.txt"
+    evidence.write_text("read the Lean against the English\n", encoding="utf-8")
+    before = sorted(p.name for p in (target / "fidelity").iterdir())
+    argv = [
+        "fidelity", "euclid-primes", "root", "screened-and-signed",
+        "--graph", str(root), "--by", "reviewer", "--evidence", str(evidence),
+        "--date", "2026-09-16T00:00:00Z",
+    ]  # fmt: skip
+    code = cli.main(argv)
+    out = json.loads(capsys.readouterr().out)
+    assert code == cli.EXIT_FAIL and out["ok"] is False and "proof credit" in out["refused"]
+    assert sorted(p.name for p in (target / "fidelity").iterdir()) == before
+
+    # The gate's check on a certificate pull request names the same rule.
+    path = sign(target, "root", "screened-and-signed", "reviewer")
+    change = Change("A", path.relative_to(root).as_posix())
+    found = modes.check(root, modes.classify([change], author="reviewer"))
+    assert "certificate-prover" in [d.code for d in found], found
+
+    # A revoked proof line bars nobody: D-18 revokes credit by marking it.
+    doc = ledger.load(root, "reviewer")
+    doc["entries"][0]["status"] = "revoked"
+    ledger.write(root, doc)
+    assert fidelity.prover_bar(root, target, "reviewer", "screened-and-signed") is None

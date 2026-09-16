@@ -351,3 +351,64 @@ def test_merge_line_table() -> None:
     }
     assert set(expected) == set(typing.get_args(modes.Mode))
     assert getattr(ledger, "MERGE_LINES", None) == expected
+
+
+# --- F15-T5 / AC5: a signer earns no proof line (R5; D-9, D-21 v3.17) ---------------------------
+
+
+def test_signer_earns_no_proof_line(tmp_path: Path) -> None:
+    """AC5: an identity holding a counting signature on the target's root earns no proof line
+    when their proof merges, the reason names the signature, and an attempts line still pays;
+    a mechanical-only certificate is no signature and bars nobody; the bar covers the whole
+    target (Q3) and every kernel-checked artifact."""
+    import samples  # noqa: PLC0415
+    import yaml  # noqa: PLC0415
+    from harness import copy_graph, take_in  # noqa: PLC0415
+
+    from opn_gate import cli, fidelity, modes  # noqa: PLC0415
+    from opn_gate.paths import Change  # noqa: PLC0415
+
+    # The pure rule.
+    signers = frozenset({"alice"})
+    reason = ledger.signer_bar(identity="alice", signers=signers, line="proof", target=TARGET)
+    assert reason is not None and "signed the fidelity" in reason and "D-21 v3.17" in reason
+    assert ledger.signer_bar(identity="bob", signers=signers, line="proof", target=TARGET) is None
+    assert (
+        ledger.signer_bar(identity="alice", signers=signers, line="attempts", target=TARGET) is None
+    )
+    assert proof(identity="alice", signers=signers) is None
+    assert proof(identity="alice", artifact_type="partial", signers=signers) is None
+    assert proof(identity="bob", signers=signers) is not None
+    assert postmortem(empty(), identity="alice") is not None  # attempts still pay
+
+    # The merge path: the ledger command's entries over a curated target alice has signed.
+    root = copy_graph(tmp_path)
+    take_in(root, "euclid-primes")
+    target = root / "targets" / "euclid-primes"
+    assert fidelity.counting_signers(target) == frozenset()  # intake's grade is the machine's
+    fidelity.attest(
+        target, "root", "screened-and-signed", attestor="alice", date="2026-09-16", evidence="read"
+    )
+    assert fidelity.counting_signers(target) == frozenset({"alice"})
+    node = "targets/euclid-primes/nodes/and-reassoc"
+    classification = modes.classify([Change("A", f"{node}/Proof.lean")])
+    earned, skipped, _doc = cli._merge_entries(
+        root, classification, identity="alice", commit="a" * 40, date="2026-09-16T00:00:00Z",
+        tooling=ledger.UNDECLARED, doc=empty() | {"identity": "alice"},
+    )  # fmt: skip
+    assert earned == [] and len(skipped) == 1 and "signed the fidelity" in skipped[0]
+    earned, skipped, _doc = cli._merge_entries(
+        root, classification, identity="bob", commit="a" * 40, date="2026-09-16T00:00:00Z",
+        tooling=ledger.UNDECLARED, doc=empty() | {"identity": "bob"},
+    )  # fmt: skip
+    assert [e.line for e in earned] == ["proof"] and skipped == []
+    attempt = f"{node}/attempts/20260916T000000Z-alice.yaml"
+    (root / attempt).write_text(
+        yaml.safe_dump(samples.postmortem(node="and-reassoc", contributor="alice")),
+        encoding="utf-8",
+    )
+    earned, skipped, _doc = cli._merge_entries(
+        root, modes.classify([Change("A", attempt)]), identity="alice", commit="b" * 40,
+        date="2026-09-16T00:00:00Z", tooling=ledger.UNDECLARED, doc=empty() | {"identity": "alice"},
+    )  # fmt: skip
+    assert [e.line for e in earned] == ["attempts"] and skipped == []
