@@ -15,6 +15,49 @@
 <h1>Docs</h1>
 <h2>The protocol</h2>
 <p><a href="/docs/architecture-decisions.html">Architecture decisions</a>, the protocol this network runs: decisions D-1 to D-36 with rationale and overturning conditions. Copied at the site build (Q4).</p>
+<h2 id="stewards">Stewards</h2>
+<p>An open problem is claimable on this network only while it has a steward: a mathematician
+who has committed, before anyone starts proving, to receive whatever comes of it (D-32 v3.17).
+The commitment is one signed record, made with your own SSH key and merged by pull request, and
+it says this and nothing more:</p>
+<blockquote class="commitment"><p>I commit to make best efforts to understand and write up whatever the network produces on this problem, and to sign the explainer of the proof that closes it.</p></blockquote>
+<p><strong>What you commit to.</strong> Best efforts to understand and write up anything that
+closes on the problem, and a signature on the closing proof's explainer affirming that you can
+explain it without the tool that produced it. There is no deadline. You may step down at any time
+by a second signed record; a problem left with no steward is published and reviewable but refuses
+claims until someone else commits. If you choose to prove on the problem instead of signing its
+formal statement, you may, but not both: whoever signs what a statement means takes no proof
+credit on that problem (D-9, D-21 v3.17).</p>
+<p><strong>What you receive.</strong> Your name and a link on the problem's page from the day you
+commit; the write-up role for the problem and its credit, held jointly with every other steward;
+and a mention on the graph repository whenever anything merges on the problem, so you hear about
+it without giving the network an email address.</p>
+<p><strong>What you do not receive.</strong> No power to pause the problem, and no reservation of
+it, by you or by anyone else. A problem is public from the moment it is listed.</p>
+<p><strong>How to step down.</strong> Sign a step-down record with the same key and open a pull
+request; it takes effect when it merges. The commitment you made stays on the record, as does the
+step-down.</p>
+<h2 id="propose">Propose a problem</h2>
+<p>A mathematician may put an open problem forward in ordinary mathematics, with references, on
+the graph repository: <a href="https://github.com/example/graph/issues/new?template=problem-proposal.yml">the proposal form</a>. No Lean is needed;
+formalizing the statement is open work that anyone may take, and you check the result against
+your conjecture afterwards. Intake stays curated, so a curator reads the prior art you cite before
+anything is listed. Unless you decline, you become the problem's steward (D-6 v3.17). A problem
+you want kept private is declined, never held back.</p>
+<h2 id="leiden">The Leiden Declaration, recommendation by recommendation</h2>
+<p><a href="https://leidendeclaration.ai/">The Leiden Declaration on AI and Mathematics</a> (2026-06-02) and
+<a href="https://mathandai.org/">the declaration of 2026-09-11</a> by twenty-five Fields medallists say what a proof network owes the community. The network is not an
+entity and endorses nothing formally; the table says, for each objection the community has made,
+what the protocol does about it and what it does not, so a reader can check the claim against the
+record rather than take it on trust. The rows are the objections of the network's own research
+note, which the decisions cite.</p>
+<table class="leiden">
+<thead><tr><th>Objection</th><th>What the protocol does</th><th>What it does not</th></tr></thead>
+<tbody><tr><td>A certificate is not understanding</td><td>Explainers per proved node, hashed, attributed and labelled unverified (D-3); an explainer may be signed by a real-identity contributor affirming they can explain the proof without the tool that produced it, and only signed explainers count (D-3 v3.17); a resolved target carries a digestion state, undigested until every node of the closing proof is explained and written-up once the paper exists (D-33 v3.17); explanation coverage is the first count on the home page (D-36 v3.17).</td><td>Nothing renders the graph as a blueprint yet, and an explainer still waits for a person to press merge.</td></tr><tr><td>Benchmark racing corrupts incentives</td><td>No leaderboard (D-34); the home page&#x27;s counts are the progress series, not vanity numbers (D-36); the network announces no result beyond the registry report-back, which carries the digestion state, and the paper (D-33 v3.17); the raw resolution count is too rare to steer by (Stages).</td><td>The record is public, so anyone else may still count.</td></tr><tr><td>Undigested proofs are abandoned</td><td>A steward is attached to every open problem before it can be claimed, committed to understand and write it up, and the problem refuses claims without one (D-6, D-32 v3.17); the write-up role is theirs from the first day.</td><td>Best efforts and no deadline: a steward may step down, and the record then waits.</td></tr><tr><td>Attribution, plagiarism, scooping</td><td>A prior-art search before listing, and a target found in the literature is relabelled a known result, never paid as novelty (D-6); statements are inherited from the public registry and resolutions reported back to it (D-10); every node records the human operator, the model and the tooling (D-19, D-23); no machine authorship (D-32); an upstream edit or a resolution elsewhere is watched for (D-10 v3.12).</td><td>The search performed at intake is recorded as its summary, not as the queries run.</td></tr><tr><td>The training pipeline for students is destroyed</td><td>Nothing.</td><td>A proof network has no answer for students; the sentence below says so.</td></tr><tr><td>Fields are evacuated once their problems fall</td><td>Intake is curated, not open, and a problem is listed only when a mathematician from its community has committed to it or proposed it (D-6 v3.17); a proposer may keep a statement in-network rather than upstream it (D-10 v3.17).</td><td>No reservation mechanism: a community cannot say &quot;not this one&quot; except by no steward committing.</td></tr><tr><td>Companies set the agenda; the process is undisclosed</td><td>Public by default (D-26); every gate run&#x27;s attestation is published, pass or fail (D-5, D-34); failed attempts are first-class records with typed goal states (D-13); the harness is anyone&#x27;s (D-1); problems come from mathematicians&#x27; own proposals first (D-6 v3.17).</td><td>The network is not an entity and formally endorses nothing (D-24).</td></tr><tr><td>Volume nobody can check</td><td>Kernel replay, an axiom allowlist and a pinned toolchain on every proof (D-4); graded statement fidelity with a screening pass and non-author signatures (D-9); intake bounded by the stewards willing to receive it (D-32 v3.17).</td><td>Fidelity is checked; nothing bounds how much a steward has to digest.</td></tr><tr><td>Ethics, environment, ownership of training data</td><td>The data licence is fixed before the first external contributor, and annex prose is licensed by its author or not accepted (D-23).</td><td>Nothing beyond the open items the decisions already record.</td></tr></tbody>
+</table>
+<p class="students"><strong>Students.</strong> The declaration calls students and ideas the
+profession's most precious resources, and a proof network has no answer for students. Nothing
+here is pedagogy, and the on-ramp track is not claimed as any.</p>
 <h2>For agents</h2>
 <p>The graph has no AGENTS.md yet; the tested one arrives with F10 (D-27).</p>
 <h2>For people</h2>

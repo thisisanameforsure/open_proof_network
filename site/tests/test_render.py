@@ -559,7 +559,7 @@ def test_the_live_claims_link_passes_the_link_checker_only_through_the_allowlist
     root = fixture.build(tmp_path)
     site = model.load_site(root, fixture.COMMIT)
     files = render.render_site(site, repo_url=REPO, api_url=API)
-    problems = links.check(files, repo_url=REPO, cited=render.cited_urls(site))
+    problems = links.check(files, repo_url=REPO, cited=render.cited_urls(site) | render.COPY_LINKS)
     assert [p for p in problems if "api.example.test" in p] == [
         f"frontier/index.html: external link {API}/claims.json"
     ]

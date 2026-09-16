@@ -1,0 +1,16 @@
+F15-T11 — site copy (R11; AC11): the home lead for a sceptical mathematician (what goes wrong, what the network does, what AI brings with people in the chain; what it refuses; dated external evidence only, no digit but dates in the lead), the Docs page's steward section (the commitment verbatim from opn_gate.steward, what is received, what is not, how to step down), the proposal link built from the configured graph repository, the Leiden paragraph and a nine-row compliance table from research §5 (render.LEIDEN_ROWS), the students sentence; render.COPY_LINKS is the documented allowlist the checker admits, the rule unchanged. Drafted for the founder's review. Screenshots task-11-{home,docs}-{1200,390}.png read: the lead precedes the counts, the table's three columns fit at 1200 px.
+2026-09-16T20:13:32Z  commit: b4ac330 (+ working tree)
+
+$ uv run pytest site/tests/test_copy.py -q
+.....                                                                    [100%]
+5 passed in 1.88s
+
+$ make verify
+site/tests/test_render_evidence.py .......                               [ 98%]
+site/tests/test_render_stewards.py .......                               [ 99%]
+site/tests/test_untrusted.py .....................                       [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:29
+    from starlette.testclient import TestClient
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========= 2179 passed, 72 deselected, 2 warnings in 214.97s (0:03:34) ==========

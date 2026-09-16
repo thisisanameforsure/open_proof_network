@@ -22,14 +22,14 @@ def test_internal_links_resolve(rendered: dict[str, str]) -> None:
     """AC5: every internal href resolves; the only external hrefs are graph file links and the
     copied document's cited sources."""
     foreign = frozenset({"docs/architecture-decisions.html", "docs/decisions.css"})
-    assert links.check(rendered, repo_url=REPO, foreign=foreign) == []
+    assert links.check(rendered, repo_url=REPO, foreign=foreign, cited=render.COPY_LINKS) == []
     broken = dict(rendered, **{"index.html": rendered["index.html"] + '<a href="/nowhere/">x</a>'})
-    problems = links.check(broken, repo_url=REPO, foreign=foreign)
+    problems = links.check(broken, repo_url=REPO, foreign=foreign, cited=render.COPY_LINKS)
     assert problems == ["index.html: internal link /nowhere/ does not resolve"]
     external = dict(
         rendered, **{"index.html": rendered["index.html"] + '<a href="https://evil.example/">x</a>'}
     )
-    assert links.check(external, repo_url=REPO, foreign=foreign) == [
+    assert links.check(external, repo_url=REPO, foreign=foreign, cited=render.COPY_LINKS) == [
         "index.html: external link https://evil.example/"
     ]
 
@@ -39,7 +39,12 @@ def test_no_external_resources(rendered: dict[str, str]) -> None:
     foreign = frozenset({"docs/architecture-decisions.html"})
     for rel, html in rendered.items():
         if rel.endswith(".html") and rel not in foreign:
-            assert links.check({rel: html, **rendered}, repo_url=REPO, foreign=foreign) == []
+            assert (
+                links.check(
+                    {rel: html, **rendered}, repo_url=REPO, foreign=foreign, cited=render.COPY_LINKS
+                )
+                == []
+            )
     offsite = dict(
         rendered,
         **{
@@ -96,7 +101,9 @@ def test_active_or_off_origin_hrefs_are_reported(rendered: dict[str, str], href:
     paths and links under the configured repository URL are allowed."""
     foreign = frozenset({"docs/architecture-decisions.html"})
     page = rendered["index.html"] + f'<a href="{href}">x</a>'
-    problems = links.check({**rendered, "index.html": page}, repo_url=REPO, foreign=foreign)
+    problems = links.check(
+        {**rendered, "index.html": page}, repo_url=REPO, foreign=foreign, cited=render.COPY_LINKS
+    )
     assert problems == [f"index.html: external link {href}"]
 
 

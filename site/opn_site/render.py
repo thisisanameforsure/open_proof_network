@@ -16,7 +16,7 @@ from pathlib import Path
 from string import Template
 from typing import Any
 
-from opn_gate import hosted, intake
+from opn_gate import hosted, intake, steward
 from opn_gate import ledger as ledgermod
 from opn_site import dag, links, prose
 from opn_site.model import NodeView, Prose, Site, SiteError, TargetView
@@ -71,6 +71,92 @@ FRONTIER_COLUMNS = (
 CLAIMS_PATH = "/claims.json"
 DECISIONS_DOC = Path(__file__).resolve().parents[2] / "docs" / "architecture_decisions_v_3_12.html"
 FUNNEL_DOCS = Path(__file__).resolve().parents[1] / "docs"  # F10-R9: site/docs/*.md
+#: F15-R11: the off-site links the site's own copy may carry — dated external evidence, each
+#: url exact, the one other way past F04-R13's checker besides a validated record (F11-Q11). A
+#: page that links anywhere else off-origin is a build failure; the rule itself is unchanged.
+COPY_LINKS: frozenset[str] = frozenset(
+    {
+        "https://mathandai.org/",  # the declaration of 2026-09-11, 25 Fields medallists
+        "https://leidendeclaration.ai/",  # the Leiden Declaration, 2026-06-02
+        "https://terrytao.wordpress.com/2026/08/12/a-digestion-of-the-proof-of-sendovs-conjecture/",
+        "https://terrytao.wordpress.com/2026/09/11/a-severe-misalignment-of-ai-in-mathematics/",
+    }
+)
+#: F15-R11: the Leiden compliance table, one row per objection of the research note's §5
+#: (docs/research_math_and_ai_2026-09.html), read against decisions v3.17: (objection, what
+#: the protocol does, what it does not).
+LEIDEN_ROWS: tuple[tuple[str, str, str], ...] = (
+    (
+        "A certificate is not understanding",
+        "Explainers per proved node, hashed, attributed and labelled unverified (D-3); an "
+        "explainer may be signed by a real-identity contributor affirming they can explain the "
+        "proof without the tool that produced it, and only signed explainers count (D-3 v3.17); "
+        "a resolved target carries a digestion state, undigested until every node of the closing "
+        "proof is explained and written-up once the paper exists (D-33 v3.17); explanation "
+        "coverage is the first count on the home page (D-36 v3.17).",
+        "Nothing renders the graph as a blueprint yet, and an explainer still waits for a person "
+        "to press merge.",
+    ),
+    (
+        "Benchmark racing corrupts incentives",
+        "No leaderboard (D-34); the home page's counts are the progress series, not vanity "
+        "numbers (D-36); the network announces no result beyond the registry report-back, which "
+        "carries the digestion state, and the paper (D-33 v3.17); the raw resolution count is "
+        "too rare to steer by (Stages).",
+        "The record is public, so anyone else may still count.",
+    ),
+    (
+        "Undigested proofs are abandoned",
+        "A steward is attached to every open problem before it can be claimed, committed to "
+        "understand and write it up, and the problem refuses claims without one (D-6, D-32 "
+        "v3.17); the write-up role is theirs from the first day.",
+        "Best efforts and no deadline: a steward may step down, and the record then waits.",
+    ),
+    (
+        "Attribution, plagiarism, scooping",
+        "A prior-art search before listing, and a target found in the literature is relabelled "
+        "a known result, never paid as novelty (D-6); statements are inherited from the public "
+        "registry and resolutions reported back to it (D-10); every node records the human "
+        "operator, the model and the tooling (D-19, D-23); no machine authorship (D-32); an "
+        "upstream edit or a resolution elsewhere is watched for (D-10 v3.12).",
+        "The search performed at intake is recorded as its summary, not as the queries run.",
+    ),
+    (
+        "The training pipeline for students is destroyed",
+        "Nothing.",
+        "A proof network has no answer for students; the sentence below says so.",
+    ),
+    (
+        "Fields are evacuated once their problems fall",
+        "Intake is curated, not open, and a problem is listed only when a mathematician from its "
+        "community has committed to it or proposed it (D-6 v3.17); a proposer may keep a "
+        "statement in-network rather than upstream it (D-10 v3.17).",
+        'No reservation mechanism: a community cannot say "not this one" except by no steward '
+        "committing.",
+    ),
+    (
+        "Companies set the agenda; the process is undisclosed",
+        "Public by default (D-26); every gate run's attestation is published, pass or fail (D-5, "
+        "D-34); failed attempts are first-class records with typed goal states (D-13); the "
+        "harness is anyone's (D-1); problems come from mathematicians' own proposals first "
+        "(D-6 v3.17).",
+        "The network is not an entity and formally endorses nothing (D-24).",
+    ),
+    (
+        "Volume nobody can check",
+        "Kernel replay, an axiom allowlist and a pinned toolchain on every proof (D-4); graded "
+        "statement fidelity with a screening pass and non-author signatures (D-9); intake "
+        "bounded by the stewards willing to receive it (D-32 v3.17).",
+        "Fidelity is checked; nothing bounds how much a steward has to digest.",
+    ),
+    (
+        "Ethics, environment, ownership of training data",
+        "The data licence is fixed before the first external contributor, and annex prose is "
+        "licensed by its author or not accepted (D-23).",
+        "Nothing beyond the open items the decisions already record.",
+    ),
+)
+PROPOSAL_FORM = "problem-proposal.yml"  # the graph's .github/ISSUE_TEMPLATE/ (F15-R13)
 #: F15-R10 (D-10 v3.17): the report-back sentence per digestion state, the words a source
 #: registry reads instead of "solved".
 DIGESTION_WORDS: dict[str, str] = {
@@ -135,6 +221,11 @@ class Renderer:
         self.base = _template("base.html")
 
     # -- links -------------------------------------------------------------------------------
+
+    @property
+    def proposal_url(self) -> str:
+        """F15-R13: the proposal form on the graph repository — an issue, never a commit."""
+        return f"{self.repo_url}/issues/new?template={PROPOSAL_FORM}"
 
     def file_link(self, rel: str, *, commit: str | None = None, label: str | None = None) -> str:
         """A link to a graph file at the rendered commit (R2), labelled with its path."""
@@ -1015,8 +1106,20 @@ class Renderer:
                     f"<p>No {what} text is committed to the graph yet; D-23 settles it before the "
                     "first external contributor.</p>"
                 )
+        # F15-R11: the steward section, the proposal form on the graph repository (from the
+        # site's configured repository, never a hostname in a template) and the Leiden table.
+        leiden_rows = "".join(
+            f"<tr><td>{esc(objection)}</td><td>{esc(does)}</td><td>{esc(gap)}</td></tr>"
+            for objection, does, gap in LEIDEN_ROWS
+        )
         body = _template("docs.html").substitute(
-            decisions=decisions, agents=agents, funnel=funnel, license="".join(parts)
+            decisions=decisions,
+            agents=agents,
+            funnel=funnel,
+            license="".join(parts),
+            commitment=esc(steward.COMMITMENT),  # one sentence, one home (opn_gate.steward)
+            proposal_url=esc(self.proposal_url),
+            leiden_rows=leiden_rows,
         )
         renders = [n for n in ("AGENTS.md", "LICENSE", "DCO") if (self.site.root / n).is_file()]
         return self.page("Docs", body, renders=renders), extra
@@ -1141,7 +1244,7 @@ def render_site(
         files,
         repo_url=r.repo_url,
         foreign=frozenset(extra),
-        cited=cited_urls(site) | live_urls(r.api_url),
+        cited=cited_urls(site) | live_urls(r.api_url) | COPY_LINKS,
     )
     if problems:  # R13: a link that would not resolve is a build failure, not a 404
         msg = "rendered site has broken links: " + "; ".join(problems[:5])
