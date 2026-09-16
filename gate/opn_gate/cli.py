@@ -46,7 +46,9 @@ from opn_gate import (
     sandbox,
     scaffold,
     schemas,
+    signed,
     signer,
+    steward,
     toolchain,
 )
 from opn_gate import graph as graphmod
@@ -75,7 +77,17 @@ class CliError(Exception):
 #: The curator's commands (F08-R9 to R12): what one of them refuses is answered as
 #: ``{"ok": false, "refused": ...}`` and exit 1, whichever module raised it.
 CURATOR_COMMANDS: frozenset[str] = frozenset(
-    {"revise", "consolidate", "status", "missing-library", "intake", "fidelity", "qa", "evidence"}
+    {
+        "revise",
+        "consolidate",
+        "status",
+        "missing-library",
+        "intake",
+        "fidelity",
+        "qa",
+        "evidence",
+        "steward",
+    }
 )
 #: What a curator command refuses on: a record that does not satisfy its schema, a statement the
 #: scaffold cannot take, a graph that does not derive. Anywhere else these are exit 2.
@@ -86,6 +98,7 @@ _REFUSALS: tuple[type[Exception], ...] = (
     intake.IntakeError,
     fidelity.FidelityError,
     qa.QaError,
+    steward.StewardError,
 )
 #: The gate's own error family, plus the OS's for a flag file that cannot be read: an input or
 #: environment problem, reported on stderr as exit 2 — never a traceback (conventions §5; F08-Q18).
@@ -426,6 +439,8 @@ def _add_intake_parsers(  # noqa: PLR0915 — one statement per flag
     fid.add_argument("--image", help="sandbox image tag (default: from the spec)")
     fid.add_argument("--no-build", action="store_true", help="fail if the image is not present")
 
+    _add_steward_parsers(sub)
+
     ev = sub.add_parser("evidence", help="record a root's catalog evidence (F14-R3, R4)")
     ev_acts = ev.add_subparsers(dest="action", required=True)
     ev_add = ev_acts.add_parser("add", help="write the evidence record and the attempts it names")
@@ -437,6 +452,43 @@ def _add_intake_parsers(  # noqa: PLR0915 — one statement per flag
     ev_add.add_argument("--author", required=True, help="the curator recording it")
     ev_add.add_argument("--date", help="UTC timestamp of the act (default: now)")
     ev_add.add_argument("--branch", help="also commit what was written on this branch")
+
+
+def _add_steward_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    """The steward's two acts and the curator's check (F15-R2; D-32 v3.17)."""
+    top = sub.add_parser("steward", help="a steward's signed commitment or step-down (F15-R1)")
+    acts = top.add_subparsers(dest="action", required=True)
+
+    def act(name: str, help_text: str, *, identity: bool) -> argparse.ArgumentParser:
+        p = acts.add_parser(name, help=help_text)
+        p.add_argument("target_id", help="the target the record is for")
+        p.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+        p.add_argument("--login", required=True, help="the steward's GitHub login")
+        if identity:
+            p.add_argument("--name", required=True, help="the steward's display name")
+            p.add_argument(
+                "--link", required=True, help="one identity link: an institutional page or ORCID"
+            )
+        p.add_argument(
+            "--key", required=True, type=Path, help="the steward's own SSH private key (ed25519)"
+        )
+        p.add_argument("--date", help="UTC timestamp of the act (default: now)")
+        p.add_argument("--branch", help="also commit what was written on this branch")
+        return p
+
+    act("commit", "sign the commitment to digest and write up the target", identity=True)
+    act("step-down", "sign a step-down; the target refuses claims with no steward", identity=False)
+
+    chk = acts.add_parser(
+        "check", help="for a curator: does the record verify, is the key the login's?"
+    )
+    chk.add_argument("record", type=Path, help="the stewards/<n>.yaml file")
+    chk.add_argument(
+        "--keys-from",
+        type=Path,
+        help="a file holding the login's published keys (default: fetch github.com/<login>.keys)",
+    )
+    chk.add_argument("--offline", action="store_true", help="verify the signature only; no fetch")
 
 
 def _add_qa_parsers(  # noqa: PLR0915 — one statement per flag
@@ -588,6 +640,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "qa": run_qa,
         "fidelity": run_fidelity,
         "evidence": run_evidence,
+        "steward": run_steward,
         "postmerge": run_postmerge,
         "admit": run_admit,
         "hazards": run_hazards,
@@ -1929,6 +1982,94 @@ def run_fidelity(args: argparse.Namespace, settings: config.Settings) -> int:
     }
     message = f"fidelity: {args.target_id} {args.subject} {args.grade}"
     return _emit_curator(doc, graph, args.branch, message)
+
+
+# --- steward (F15-R1, R2) -------------------------------------------------------------------------
+
+
+PUBLISHED_KEYS_URL = "https://github.com/{login}.keys"
+KEYS_TIMEOUT_S = 10
+
+
+def published_keys(login: str) -> list[str]:
+    """The keys GitHub publishes for ``login`` — network, never run by the gate (F15-R2)."""
+    import urllib.request  # noqa: PLC0415 — the one command that reaches the network
+
+    if not steward.LOGIN_RE.match(login):
+        msg = f"{login!r} is not a GitHub login"
+        raise CliError(msg)
+    request = urllib.request.Request(  # noqa: S310 — https, the login validated above
+        PUBLISHED_KEYS_URL.format(login=login), headers={"User-Agent": "opn-gate"}
+    )
+    with urllib.request.urlopen(request, timeout=KEYS_TIMEOUT_S) as resp:  # noqa: S310
+        text = resp.read().decode("utf-8", errors="replace")
+    return [line.strip() for line in text.splitlines() if line.strip()]
+
+
+def key_matches(record_key: str, published: list[str]) -> bool:
+    """Whether the record's key is one the login publishes: the type and the key material,
+    ignoring the comment either side may carry."""
+    wanted = record_key.split()[:2]
+    return any(line.split()[:2] == wanted for line in published)
+
+
+def run_steward(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F15-R2: ``steward commit``, ``steward step-down`` and, for a curator, ``steward check``."""
+    verifier = signed.default_signer()
+    if args.action == "check":
+        record = steward.read_record(args.record.resolve())
+        doc: dict[str, Any] = {
+            "ok": True,
+            "record": args.record.name,
+            "login": record.login,
+            "action": record.action,
+            "verifies": signed.verifies(record.doc, verifier),
+            "sentence_fixed": record.commitment == steward.SENTENCE_FOR.get(record.action),
+            "key_id": verifier.fingerprint(record.key),
+            "published": None,
+        }
+        if args.keys_from is not None:
+            keys = [
+                line.strip()
+                for line in _read_flag_file(args.keys_from, "--keys-from").splitlines()
+                if line.strip()
+            ]
+            doc["published"] = key_matches(record.key, keys)
+        elif not args.offline:
+            try:
+                doc["published"] = key_matches(record.key, published_keys(record.login))
+            except OSError as exc:
+                doc["published"] = None
+                doc["fetch_error"] = f"{type(exc).__name__}: {exc}"
+        doc["ok"] = bool(
+            doc["verifies"] and doc["sentence_fixed"] and doc["published"] is not False
+        )
+        sys.stdout.write(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
+        return EXIT_PASS if doc["ok"] else EXIT_FAIL
+    graph = _intake_graph(args)
+    directory = intake.target_dir(graph, args.target_id)
+    date = _intake_date(args)
+    path = steward.write(
+        directory,
+        action=steward.COMMIT if args.action == "commit" else steward.STEP_DOWN,
+        login=args.login,
+        name=str(getattr(args, "name", "") or ""),
+        link=str(getattr(args, "link", "") or ""),
+        date=date,
+        key_path=args.key.resolve(),
+        signer=verifier,
+    )
+    doc = {
+        "ok": True,
+        "target": args.target_id,
+        "action": args.action,
+        "login": args.login,
+        "active": [s.as_dict() for s in steward.active(directory, verifier)],
+        "written": [path.resolve().relative_to(graph.resolve()).as_posix()],
+    }
+    return _emit_curator(
+        doc, graph, args.branch, f"steward: {args.login} {args.action} {args.target_id}"
+    )
 
 
 # --- qa (F12-R3, R4) ------------------------------------------------------------------------------

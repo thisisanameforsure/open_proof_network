@@ -204,14 +204,20 @@ def active_logins(target_dir: Path, signer: Signer) -> tuple[str, ...]:
     return tuple(s.login for s in active(target_dir, signer))
 
 
-def commit_key_of(target_dir: Path, login: str, signer: Signer) -> str | None:
-    """The key ``login`` is active under, or ``None`` when they are not active."""
-    key: str | None = None
+def latest_commit(target_dir: Path, login: str, signer: Signer) -> Record | None:
+    """The counting commit ``login`` is active under, or ``None`` when they are not active."""
+    current: Record | None = None
     for checked in check(load(target_dir), signer):
         if not checked.counts or checked.record.login != login:
             continue
-        key = checked.record.key if checked.record.action == COMMIT else None
-    return key
+        current = checked.record if checked.record.action == COMMIT else None
+    return current
+
+
+def commit_key_of(target_dir: Path, login: str, signer: Signer) -> str | None:
+    """The key ``login`` is active under, or ``None`` when they are not active."""
+    current = latest_commit(target_dir, login, signer)
+    return current.key if current is not None else None
 
 
 # --- writing (F15-R2: the steward's own key, through the seam) ----------------------------------
@@ -268,35 +274,38 @@ def write(  # noqa: PLR0913 — one argument per fact the record carries
     *,
     action: str,
     login: str,
-    name: str,
-    link: str,
     date: str,
     key_path: Path,
     signer: Signer,
+    name: str = "",
+    link: str = "",
 ) -> Path:
     """R2: write and sign one record with the contributor's own key, or refuse by name with
-    nothing written (C7). A step-down is refused unless ``login`` is active under this very key —
-    the record would otherwise merge and count for nothing."""
+    nothing written (C7). A commit carries the steward's name and link; a step-down carries the
+    ones on the commitment it undoes and is refused unless ``login`` is active under this very
+    key — the record would otherwise merge and count for nothing."""
     if not target_dir.is_dir():
         msg = f"no such target directory: {target_dir}"
         raise StewardError(msg)
-    doc = document(
-        target_id=target_dir.name, action=action, login=login, name=name, link=link, date=date
-    )
-    doc = signed.sign(doc, key_path, signer)
+    current: Record | None = None
     if action == STEP_DOWN:
-        current = commit_key_of(target_dir, login, signer)
+        current = latest_commit(target_dir, login, signer)
         if current is None:
             msg = (
                 f"{login} is not an active steward of {target_dir.name}; nothing to step down from"
             )
             raise StewardError(msg)
-        if current != doc["key"]:
-            msg = (
-                f"the step-down key is not the key {login} committed with; a step-down is signed "
-                "with the same key as the commitment (F15-R1)"
-            )
-            raise StewardError(msg)
+        name, link = current.name, current.link
+    doc = document(
+        target_id=target_dir.name, action=action, login=login, name=name, link=link, date=date
+    )
+    doc = signed.sign(doc, key_path, signer)
+    if current is not None and current.key != doc["key"]:
+        msg = (
+            f"the step-down key is not the key {login} committed with; a step-down is signed "
+            "with the same key as the commitment (F15-R1)"
+        )
+        raise StewardError(msg)
     schemas.validate(doc, SCHEMA)
     path = next_path(target_dir)
     path.parent.mkdir(parents=True, exist_ok=True)

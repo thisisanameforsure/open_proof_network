@@ -1,0 +1,17 @@
+F15-T3 — signed records through the Signer seam (opn_gate.signed); the steward module: the fixed sentences, the active set, refusals by name; opn-gate steward commit|step-down|check; the steward path role and the steward mode (R1, R2; AC1–AC3).
+2026-09-16T18:51:49Z  commit: 5a06cd3 (+ working tree)
+
+$ uv run pytest gate/tests/test_steward.py gate/tests/test_modes.py -q
+........................................................................ [ 71%]
+.............................                                            [100%]
+101 passed in 3.89s
+
+$ make verify
+site/tests/test_render_alternates.py .                                   [ 98%]
+site/tests/test_render_evidence.py .......                               [ 99%]
+site/tests/test_untrusted.py .....................                       [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:29
+    from starlette.testclient import TestClient
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========= 2147 passed, 72 deselected, 2 warnings in 168.43s (0:02:48) ==========

@@ -32,6 +32,11 @@ So the diff is classified into exactly one mode before anything else runs:
 ``fidelity``     only new certificates for one subject of an existing curated target, opened by
                  their attestor (F11-R3, D-9): the signature is the review, so nobody else
                  approves it, and it builds nothing
+``steward``      only new steward records — a signed commitment or step-down (F15-R1, R2;
+                 D-32 v3.17) — each checked by name and nothing built; the signature binds
+                 the record, not the pull request's author (F15-Q8), and the merge is the
+                 curator's check of the identity link (F15-Q7). Inside an intake or a
+                 curator pull request the records are checked the same way
 ===============  ==========================================================================
 
 A diff that fits none of them is rejected at step 2, naming the paths — never guessed at.
@@ -56,10 +61,23 @@ from typing import Any, Literal
 
 import yaml
 
-from opn_gate import config, evidence, fidelity, intake, layout, paths, qa, records, schemas
+from opn_gate import (
+    config,
+    evidence,
+    fidelity,
+    intake,
+    layout,
+    paths,
+    qa,
+    records,
+    schemas,
+    signed,
+    steward,
+)
 from opn_gate import graph as graphmod
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Change, Located, Role
+from opn_gate.signer import Signer
 
 Mode = Literal[
     "proof",
@@ -71,6 +89,7 @@ Mode = Literal[
     "curator",
     "intake",
     "fidelity",
+    "steward",
 ]
 
 #: The modes that run the Lean pipeline; the others never build a proof (R9, R10; F08-R2).
@@ -314,7 +333,7 @@ def step9_evidence(target_dir: Path, minimum: int = config.DEFAULT_STEP9_MIN_SCO
     return record.reference()
 
 
-def classify(  # noqa: PLR0911 — one return per rejection
+def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per rejection
     changes: Iterable[Change],
     *,
     author: str | None = None,
@@ -396,6 +415,10 @@ def classify(  # noqa: PLR0911 — one return per rejection
         return _classify_curator(
             located, changes, target_id, new_dirs, author=author, curators=curators or Curators()
         )
+    # F15-R2: steward records alone are their own mode, whoever opened the pull request (Q8);
+    # brought by anything else that is not an intake or a curator record, they are a mixture.
+    if all(loc.role == "steward" for loc in located):
+        return Classification("steward", target_id, None, tuple(located), author=author)
 
     nodes = sorted({loc.node_id for loc in located if loc.node_id is not None})
     if len(nodes) > 1:
@@ -449,7 +472,8 @@ def _classify_curator(  # noqa: PLR0913 — the diff, its located paths and the 
     proposal (F08-R5) — is refused before the author is asked (F08-Q18).
     """
     roles = {loc.role for loc in located}
-    allowed = set(paths.NODE_ROLES) | set(paths.CURATOR_ROLES)
+    # F15-R2: a curator may carry a steward's signed record (Q8); it is checked like any other.
+    allowed = set(paths.NODE_ROLES) | set(paths.CURATOR_ROLES) | {"steward"}
     if "qa-record" in roles:
         # F12-R4: the screen's own claim rides with the QA record that produced it; the claim is
         # then held to being a screen-finding (``check_defect_claim``), not a contributor's.
@@ -561,6 +585,7 @@ def _classify_intake(  # noqa: PLR0913 — one return per refusal; the diff and 
     """
     roles = {loc.role for loc in located}
     # F14-R4: an import may carry the root's catalog evidence and the attempts its row names.
+    # F15-R13, Q8: a proposal's intake carries the proposer's steward record, signed offline.
     allowed = (
         set(paths.INTAKE_ROLES)
         | set(paths.NODE_ROLES)
@@ -568,6 +593,7 @@ def _classify_intake(  # noqa: PLR0913 — one return per refusal; the diff and 
             "target-status",
             "statement-evidence",
             "attempts-ledger",
+            "steward",
         }
     )
     if not roles <= allowed:
@@ -771,7 +797,9 @@ def _mode_for(roles: set[Role]) -> Mode | None:  # noqa: PLR0911 — one return 
         return "partial" if roles <= ({"partial"} | appendish) else None
     if "explainer" in roles:
         return "explainer" if roles == {"explainer"} else None
-    return "append"
+    # F15: a steward record, a write-up or a policy file is nobody's append; only D-13's,
+    # D-31's and D-14's records reach the append mode.
+    return "append" if roles <= appendish else None
 
 
 def _rejected(problems: list[Diagnostic]) -> Classification:
@@ -806,6 +834,8 @@ def check(
             problems.extend(check_evidence(graph_root, located))
         elif located.role in ("formalization", "formalization-statement"):
             problems.extend(check_formalization(graph_root, located))
+        elif located.role == "steward":
+            problems.extend(check_steward_record(graph_root, located, classification))
         elif located.role in paths.CURATOR_ROLES:
             problems.extend(check_status_record(graph_root, located, classification))
         elif located.role == "target-record" and classification.mode == "curator":
@@ -849,6 +879,84 @@ def check_status_record(  # noqa: PLR0911 — one return per rule
             )
         ]
     return []
+
+
+def check_steward_record(  # noqa: PLR0911 — one return per rule
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    *,
+    signer: Signer | None = None,
+) -> list[Diagnostic]:
+    """F15-R1, R2: a steward record validates, names the target it sits under, is numbered as
+    R1 lays them out, and *counts* — its signature verifies under its own key, its sentence is
+    the fixed one, and a step-down is signed with the key its login committed with. A record
+    that would merge and count for nothing is refused here by name instead.
+
+    The verdict is sequential: the target's records are checked in order with the pull
+    request's own among them, so a step-down is judged against the commit it undoes, and only
+    the pull request's files are reported.
+    """
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    if problems:
+        return problems
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    if doc.get("target") != located.target_id:
+        return [
+            Diagnostic(
+                "steward-target",
+                f"{located.path} is a record for target {doc.get('target')!r}, and it sits under "
+                f"targets/{located.target_id}/ (F15-R1)",
+                {"path": located.path, "target": doc.get("target")},
+            )
+        ]
+    name = PurePosixPath(located.path).name
+    if not re.match(r"^[1-9][0-9]*\.ya?ml$", name):
+        return [
+            Diagnostic(
+                "steward-name",
+                f"{located.path}: a steward record is stewards/<n>.yaml, numbered (F15-R1)",
+                {"path": located.path},
+            )
+        ]
+    target_dir = graph_root / "targets" / located.target_id
+    if not intake.record_path(target_dir).is_file() and not any(
+        loc.role == "target-record" for loc in classification.located
+    ):
+        return [
+            Diagnostic(
+                "steward-uncurated",
+                f"{located.target_id} has no {intake.TARGET_FILE}: a steward commits to a "
+                "curated target (F15-R1, D-6 v3.17)",
+                {"target": located.target_id},
+            )
+        ]
+    try:
+        checked = steward.check(steward.load(target_dir), signer or signed.default_signer())
+    except schemas.SchemaError as exc:  # an earlier record no longer reads: a graph defect
+        return [Diagnostic("record-invalid", str(exc), {"path": located.path})]
+    verdict = next((c for c in checked if c.record.path.name == name), None)
+    if verdict is None:  # defence in depth: the file was read above
+        return [
+            Diagnostic(
+                "steward-name",
+                f"{located.path} is not among the target's numbered records",
+                {"path": located.path},
+            )
+        ]
+    return [
+        Diagnostic(
+            problem.split(":", 1)[0],
+            f"{located.path}: {problem}",
+            {"path": located.path, "login": verdict.record.login},
+        )
+        for problem in verdict.problems
+    ]
 
 
 def check_formalization(graph_root: Path, located: Located) -> list[Diagnostic]:

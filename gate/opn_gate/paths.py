@@ -188,6 +188,7 @@ Role = Literal[
     "statement-evidence",  # targets/<id>/evidence/root-<n>.yaml: catalog evidence (F14-R3)
     "formalization",  # targets/<id>/formalizations/<name>/formalization.yaml (F14-R7)
     "formalization-statement",  # targets/<id>/formalizations/<name>/Statement.lean (F14-R7)
+    "steward",  # targets/<id>/stewards/<n>.yaml: a signed commitment or step-down (F15-R1)
 ]
 
 #: Roles that claim nothing and merge on schema and path checks alone (F07-R9).
@@ -256,6 +257,7 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "relevance": ("relevance/v1",),
     "statement-evidence": ("statement-evidence/v1",),
     "formalization": ("formalization/v1",),
+    "steward": ("steward/v1",),
 }
 
 #: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers).
@@ -344,6 +346,9 @@ def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912 — one branc
         # F14-R3: the root's catalog evidence, beside the certificates it does not replace.
         if head == "evidence" and _is_flat(name, YAML_SUFFIXES):
             return Located("statement-evidence", path, target_match.group("target"), None)
+        # F15-R1: a steward's signed commitment or step-down, append-only.
+        if head == "stewards" and _is_flat(name, YAML_SUFFIXES):
+            return Located("steward", path, target_match.group("target"), None)
         # F14-R7: a second formalization, outside nodes/, so never a node.
         if head == "formalizations":
             directory, _, leaf = name.partition("/")

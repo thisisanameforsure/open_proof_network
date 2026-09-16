@@ -1508,3 +1508,128 @@ def test_pr_author_absent_or_blank_is_no_author(
     monkeypatch.setenv("OPN_PR_AUTHOR", CURATOR)
     assert classify("--author", "")["mode"] == "curator"
     assert classify("--author", "stranger")["mode"] is None  # the flag, when given, wins
+
+
+# --- F15-T3 / AC3: the steward mode (R1, R2) ------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def steward_key(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    key = tmp_path_factory.mktemp("steward-key") / "steward"
+    subprocess.run(
+        ["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(key), "-C", "steward"],
+        check=True,
+    )
+    return key
+
+
+def curated(tmp_path: Path) -> tuple[Path, Path]:
+    """A curated target, and the intake's changes committed as the base: the steward records
+    a later pull request adds are the only additions."""
+    from harness import take_in  # noqa: PLC0415
+
+    root = copy_graph(tmp_path)
+    take_in(root, "euclid-primes")
+    return root, root / "targets" / "euclid-primes"
+
+
+def steward_record(target_dir: Path, key: Path, **overrides: Any) -> Change:
+    from opn_gate import signed, steward  # noqa: PLC0415
+    from opn_gate.signer import SshKeygenSigner  # noqa: PLC0415
+
+    doc = steward.document(
+        target_id=target_dir.name,
+        action=overrides.pop("action", steward.COMMIT),
+        login=overrides.pop("login", "alice-steward"),
+        name="Alice",
+        link="https://orcid.org/0000-0002-1825-0097",
+        date="2026-09-16",
+    )
+    doc = signed.sign(doc, key, SshKeygenSigner())
+    doc.update(overrides)  # after signing: a tampered field is what the gate must refuse
+    n = overrides.pop("n", None) or len(list((target_dir / "stewards").glob("*.yaml"))) + 1
+    path = target_dir / "stewards" / f"{n}.yaml"
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(yaml.safe_dump(doc, sort_keys=False), encoding="utf-8")
+    return Change("A", path.relative_to(target_dir.parents[1]).as_posix())
+
+
+def test_steward_mode(tmp_path: Path, steward_key: Path) -> None:
+    """AC3: a pull request adding only steward records is ``steward`` mode — no build, no
+    review, whoever opened it (Q8); a valid record passes the check, a tampered one, a foreign
+    step-down and a record for another target are each refused by name; an intake carrying one
+    is ``intake`` and the record is checked the same way."""
+    root, target = curated(tmp_path)
+    valid = steward_record(target, steward_key)
+    c = modes.classify([valid], author="anyone")
+    assert c.mode == "steward" and c.problems == ()
+    assert not c.needs_gate and not c.needs_review and not c.needs_admission
+    assert c.review_waived is None and c.review_kind is None
+    assert modes.check(root, c) == []
+
+    tampered = steward_record(target, steward_key, name="Somebody Else")
+    found = modes.check(root, modes.classify([tampered]))
+    assert [d.code for d in found] == ["steward-signature"], found
+
+    (root / target.relative_to(root) / "stewards" / "2.yaml").unlink()
+    other_target = steward_record(target, steward_key, target="other-target")
+    found = modes.check(root, modes.classify([other_target]))
+    assert [d.code for d in found] == ["steward-target"], found
+    (root / other_target.path).unlink()
+
+    # A step-down for a login that never committed counts for nothing: refused before merge.
+    orphan = steward_record(target, steward_key, action="step-down", login="bob-steward")
+    found = modes.check(root, modes.classify([orphan]))
+    assert [d.code for d in found] == ["steward-not-active"], found
+    (root / orphan.path).unlink()
+
+    # A record is append-only and numbered.
+    assert modes.classify([Change("M", valid.path)]).problems[0].code == "path-forbidden"
+    named = steward_record(target, steward_key)
+    renamed = target / "stewards" / "alice.yaml"
+    (root / named.path).rename(renamed)
+    found = modes.check(root, modes.classify([Change("A", renamed.relative_to(root).as_posix())]))
+    assert [d.code for d in found] == ["steward-name"], found
+    renamed.unlink()
+
+    # Inside an intake the record rides along and is checked (F15-R13, Q8).
+    intake_changes = [
+        Change("A", p.relative_to(root).as_posix())
+        for p in sorted(target.rglob("*"))
+        if p.is_file()
+    ]
+    (target / "nodes" / "and-reassoc" / "Proof.lean").unlink()
+    intake_changes = [c for c in intake_changes if not c.path.endswith("Proof.lean")]
+    c = modes.classify(intake_changes, author=CURATOR, curators=curators(CURATOR))
+    assert c.mode == "intake", c.as_dict()
+    assert [d.code for d in modes.check(root, c)] == []
+    # ...and a stewardless target has no steward-mode record to check against at all.
+    (root / "targets" / "euclid-primes" / "target.yaml").unlink()
+    found = modes.check(root, modes.classify([valid]))
+    assert [d.code for d in found] == ["steward-uncurated"]
+
+
+def test_a_proof_cannot_bring_a_steward(tmp_path: Path, steward_key: Path) -> None:
+    """AC3: a proof, partial, alternate or append that brings a steward record is mode-mixed."""
+    _root, target = curated(tmp_path)
+    record = steward_record(target, steward_key)
+    node = "targets/euclid-primes/nodes/and-reassoc"
+    for other in (
+        f"{node}/Proof.lean",
+        f"{node}/attempts/2026-09-16-alice-partial.lean",
+        f"{node}/attempts/2026-09-16-alice-alternate.lean",
+        f"{node}/attempts/2026-09-16-alice.yaml",
+        f"{node}/annex/{'a' * 64}.md",
+        f"{node}/explainer/{'b' * 64}.md",
+    ):
+        c = modes.classify([record, Change("A", other)], author="anyone")
+        assert c.mode is None, other
+        assert [d.code for d in c.problems] == ["mode-mixed"], other
+    # A curator record beside it is a curator pull request, by a listed login only (F08-R8).
+    status = Change("A", "targets/euclid-primes/status/2026-09-17-curator.yaml")
+    assert modes.classify([record, status], author=CURATOR, curators=curators(CURATOR)).mode == (
+        "curator"
+    )
+    assert modes.classify([record, status], author="stranger").problems[0].code == (
+        "curator-unlisted"
+    )

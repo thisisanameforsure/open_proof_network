@@ -50,6 +50,7 @@ MERGE_LINES: dict[str, Line | None] = {
     "curator": None,
     "intake": None,
     "fidelity": None,
+    "steward": None,  # F15-R8's sibling rule: a commitment is a stake, not an artifact (D-32)
 }
 #: D-21, F11 §7: the curator of a target earns no proof credit on it. They chose the statement,
 #: its decomposition and its difficulty, so a proof of one of its nodes is not a result they
