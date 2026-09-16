@@ -1,0 +1,168 @@
+# F14-T11L: the D-9 soundness screens over every live target root, on a schedule (F12-R3, C9).
+#
+# The screens try to prove the root statement, its negation and `False`, and report a *finding*
+# when one of them succeeds — a statement that a tactic can prove outright is not the conjecture
+# anybody meant. F12 built them as `opn-gate qa screen`; nothing has ever run them over the live
+# graph as a whole, which is what a registry wave makes worth doing: wave one took 17 targets in
+# on one afternoon, each a statement adapted from an upstream file by a tool.
+#
+# Why this workflow is in the `network` repository and not the graph's: it has no authority over
+# any graph (D-35), writes nothing and pushes nothing. It clones the graph read-only, reads the
+# roots out of the products, and reports. `qa screen` does leave a QA record in its working tree
+# (the `--branch` flag is what would commit one); here that tree is a runner's scratch clone and
+# is thrown away. Recording a screen on the graph stays the curator's act, by pull request.
+#
+# Contributor-shaped Lean either way, so every screen runs `--sandbox` in the step-3 image the
+# target pins by digest (F10-R5, C9) — pulled, never built, so a wrong pin fails loudly instead
+# of silently compiling something else. The 24 live targets pin two digests between them today —
+# the Mathlib image for 23, the plain one for the core-only tutorial — so each is pulled once.
+#
+# No secret and no write permission (C8): `contents: read`, nothing else, and the graph is public.
+#
+# A cron on Actions is a hope, not a schedule — site-deploy's `*/5` ran every two to five hours
+# for two days (F04-Q7). Weekly is chosen so drift is caught while nobody depends on the timing,
+# and `workflow_dispatch` is how it is actually run on demand.
+name: qa screens
+
+on:
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "screen only this target id (default: every live root)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  GRAPH_REPO: https://github.com/thisisanameforsure/open_proof_network_graph
+
+jobs:
+  screen:
+    name: soundness screens over the live roots
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: network
+
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          version: "0.12.10"
+          enable-cache: true
+
+      - name: Clone the graph (read-only, shallow; D-35)
+        run: git clone --depth 1 "$GRAPH_REPO" graph
+
+      - name: Make room for the Mathlib image
+        run: |
+          set -euo pipefail
+          df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h / | tail -1
+
+      - name: Screen every root and report
+        id: screens
+        env:
+          ONLY: ${{ inputs.target }}
+          PYTHONPATH: network/gate
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+
+          # The roots come from the products the pinned gate rendered, not from a directory
+          # listing: targets/index.json is what the network publishes as its target list (F03).
+          mapfile -t targets < <(
+            python3 - "$ONLY" <<'PY'
+          import json, sys
+          only = (sys.argv[1] or "").strip()
+          doc = json.load(open("graph/targets/index.json"))
+          for row in doc.get("targets") or []:
+              tid = row.get("target_id")
+              if tid and (not only or tid == only):
+                  print(tid)
+          PY
+          )
+          if [ "${#targets[@]}" -eq 0 ]; then
+            echo "::error::no targets to screen (is --target a live id?)"
+            exit 1
+          fi
+          echo "screening ${#targets[@]} target(s): ${targets[*]}"
+
+          # Every target pins its step-3 image by digest; pull each distinct one once.
+          mapfile -t images < <(
+            python3 - "${targets[@]}" <<'PY'
+          import json, sys
+          seen = []
+          for tid in sys.argv[1:]:
+              spec = json.load(open(f"graph/targets/{tid}/gate-spec.json"))
+              ref = spec.get("devcontainer_ref")
+              if ref and ref not in seen:
+                  seen.append(ref)
+          print("\n".join(seen))
+          PY
+          )
+          for image in "${images[@]}"; do
+            echo "pulling $image"
+            docker pull --quiet "$image"
+          done
+
+          findings=0
+          errors=0
+          {
+            echo "## Soundness screens over the live roots"
+            echo
+            echo "Graph at \`$(git -C graph rev-parse --short HEAD)\`, $(date -u +%Y-%m-%dT%H:%M:%SZ)."
+            echo
+            echo "| target | verdict | detail |"
+            echo "| --- | --- | --- |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          for tid in "${targets[@]}"; do
+            image="$(python3 -c 'import json,sys; print(json.load(open(f"graph/targets/{sys.argv[1]}/gate-spec.json")).get("devcontainer_ref") or "")' "$tid")"
+            if [ -z "$image" ]; then
+              echo "| \`$tid\` | error | its gate-spec.json pins no image |" >> "$GITHUB_STEP_SUMMARY"
+              errors=$((errors + 1))
+              continue
+            fi
+            echo "::group::qa screen $tid"
+            set +e
+            uv run --frozen --project network python -m opn_gate.cli qa screen "$tid" root \
+              --graph graph --sandbox --image "$image" --no-build > "screen-$tid.json" 2> "screen-$tid.err"
+            code=$?
+            set -e
+            cat "screen-$tid.json" "screen-$tid.err" || true
+            echo "::endgroup::"
+            if [ "$code" -eq 0 ]; then
+              echo "| \`$tid\` | clean | &mdash; |" >> "$GITHUB_STEP_SUMMARY"
+            else
+              detail="$(head -c 300 "screen-$tid.err" | tr '\n|' '  ')"
+              echo "| \`$tid\` | **finding** | $detail |" >> "$GITHUB_STEP_SUMMARY"
+              findings=$((findings + 1))
+            fi
+          done
+
+          {
+            echo
+            echo "${#targets[@]} screened, $findings with a finding or inconclusive, $errors unscreenable."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # A finding is the point of the run, not an accident: a red scheduled run is how anyone
+          # learns of one. `qa screen` already exits non-zero for a finding *and* for anything
+          # short of a clean pass, because an inconclusive screen is not one either (F12-R3, C7).
+          if [ "$findings" -gt 0 ] || [ "$errors" -gt 0 ]; then
+            echo "::error::$findings target(s) reported a finding or were inconclusive; $errors unscreenable"
+            exit 1
+          fi
+
+      - name: Keep the screen output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-screens
+          path: screen-*.json
+          if-no-files-found: ignore

@@ -1,0 +1,102 @@
+F14-T11L · docker-tier wave admission and the QA screens in CI · 2026-09-16
+
+The two artefacts F14-T11's ledger line deferred ("docker-tier admission and qa-screens.yml
+remain T11L for CI"):
+
+  gate/tests/test_wave_docker.py     a drafted wave row is admitted in the step-3 sandbox
+  .github/workflows/qa-screens.yml   the D-9 soundness screens over every live root, scheduled
+
+STATUS: built, docker tier pending CI.
+
+The owner's call this session (2026-09-16) was CI-only for anything wanting the Mathlib image:
+the laptop has 22 GiB free against a ~6.6 GiB image on top of a 7 GiB checkout, and the build log
+records two Mathlib builds killing the daemon and a two-hour prune. So the docker tier is not run
+here. This file records what *was* verified locally and what CI still owes, in the shape the log
+already uses for a task whose tier belongs to CI ("built, lean tier pending CI", F12-T2/T4).
+
+WHAT THE TEST CLAIMS (R13; D-29, C9)
+------------------------------------
+The fast tier proves the driver drafts the clean rows and refuses the rest by name, and that a
+draft imports and classifies as an intake (test_wave.py). None of that runs Lean, while every
+draft the tool writes opens with `import Mathlib`. The two cases here are the two shapes wave one
+actually met live (F14-T15, repin-3c63578.txt):
+
+  test_a_drafted_row_is_admitted_in_the_sandbox
+      the drafted root passes all nine admission checks on the Mathlib image, in order:
+      toolchain, layout, declaration, statement, witness, hazards, context, graph, relation.
+      (`relation` passes rather than being skipped: admit.py's RelationCheck returns passed()
+      when origin != "variant" and no Relation.lean is present.)
+
+  test_a_stub_witness_is_refused_by_the_containers_lean
+      the same row with a `sorry`-bearing Witness.lean is refused at step 7 with
+      first_failing_check "witness" and diagnostic code "witness-sorry", and the checks after it
+      record "skipped" rather than passing silently. Six of wave one's twenty-two needed a real
+      witness written by hand before admission would take them, so this is the live failure.
+
+The graph under test is a copy of the on-ramp fixture, the one fixture whose gate-spec.json
+carries a mathlib_sha; the imported target takes that spec, since intake.spec_for varies only
+graph_id and mathlib_sha ("the axiom allowlist, the hazard checkers and the step-3 caps are
+properties of the gate the graph pins", D-35). That is also why the negative case is a stub
+witness and not an unacknowledged hazard: the on-ramp fixture's spec lists no hazard_checkers,
+and giving this one target its own list is exactly the second trust base spec_for refuses. The
+live wave targets do list all six checkers; that path is covered by F02's tests and by the four
+live acknowledgements wave one wrote (erdos-251, -51, -417, -952).
+
+The image is the session `mathlib_image` fixture, built for gate/mathlib-pins.txt's one commit
+0df444a360eaa60ab8c11dca51a86af692955474 — which is the mathlib_sha all 23 Mathlib-pinned live
+targets carry, so CI builds one image rather than two.
+
+VERIFIED LOCALLY
+----------------
+$ uv run --frozen ruff check gate/tests/test_wave_docker.py
+  All checks passed!
+$ uv run --frozen ruff format --check gate/tests/test_wave_docker.py
+  1 file already formatted
+$ uv run --frozen mypy gate
+  Success: no issues found in 168 source files
+$ uv run --frozen pytest gate/tests/test_wave_docker.py --collect-only -q
+  gate/tests/test_wave_docker.py::test_a_drafted_row_is_admitted_in_the_sandbox
+  gate/tests/test_wave_docker.py::test_a_stub_witness_is_refused_by_the_containers_lean
+  2 tests collected in 0.03s
+$ make verify
+  2113 passed, 70 deselected  (the file is docker-marked, so it is deselected here by design)
+
+The first ruff run failed RUF003, not RUF001: test_wave.py's ambiguous characters are in its
+string fixtures and this file's were in a comment quoting the statement it drafts. Both rules are
+now named in the file's noqa line.
+
+THE WORKFLOW, AND WHAT DRY-RUNNING IT FOUND
+--------------------------------------------
+qa-screens.yml runs `opn-gate qa screen <target> root --graph <clone> --sandbox --image <ref>
+--no-build` over every root in the live targets/index.json, weekly and on workflow_dispatch, and
+reports each verdict to the job summary. It lives in the network repo, holds `contents: read` and
+no secret (C8), clones the public graph read-only and pushes nothing: `qa screen` leaves a QA
+record in its working tree, which here is a runner's scratch clone that is thrown away. Recording
+a screen on the graph stays the curator's act, by pull request.
+
+A finding fails the job deliberately — `qa screen` already exits non-zero for a finding and for
+anything short of a clean pass, because an inconclusive screen is not one either (F12-R3, C7),
+and a red scheduled run is how anyone learns of one. The schedule is weekly because a cron on
+Actions is a hope, not a schedule (F04-Q7: site-deploy's */5 ran every two to five hours for two
+days), so workflow_dispatch is how it is run on demand.
+
+Checked without Actions:
+  - the YAML parses, and both `python3 - <<'PY'` heredoc bodies and their PY terminators sit at
+    column 0 after YAML strips the block-scalar indent (an indented body is an IndentationError
+    that only a scheduled run would ever show).
+  - both python snippets were executed against the live graph clone:
+      24 targets read out of targets/index.json;
+      2 distinct devcontainer_ref digests, not 1 — the Mathlib image for 23 targets and the
+      plain image for the core-only tutorial (mathlib_sha None).
+    The loop already pulls each distinct digest once; the header comment had claimed a single
+    image and was corrected. The dry run is the only reason that was caught.
+
+WHAT CI OWES
+------------
+`make verify-lean` on this commit runs both tests on a hosted runner, which builds the Mathlib
+image as it already does for test_onramp_docker.py. Record the run id and the two results here
+when it is green, and only then does T11L become done.
+
+qa-screens.yml is inert until its first scheduled or dispatched run; a first dispatch against the
+live graph is worth doing in the same sitting, since it is the only thing that proves the pull,
+the sandbox flag and the summary against 24 real roots.
