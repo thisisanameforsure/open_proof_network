@@ -1223,3 +1223,94 @@ def test_index_v6_fields(tmp_path: Path) -> None:
     (root / "policy.json").write_text('{"schema": "policy/v1"}', encoding="utf-8")
     with pytest.raises(schemas.SchemaError):
         generate(root)
+
+
+# --- F15-T7 / AC6: the digestion state (R7; D-33 v3.17) -------------------------------------------
+
+
+def test_digestion_state(tmp_path: Path) -> None:
+    """AC6: a resolved target is ``undigested``; with a valid signature on every proved node of
+    the closing proof's closure it is ``explained``; one closure node unsigned makes it
+    ``undigested`` again with the counts saying which; a valid ``paper`` write-up record makes
+    it ``written-up``; an active target carries ``null`` with its proved counts."""
+    import subprocess  # noqa: PLC0415
+
+    from opn_gate import explainers, writeup  # noqa: PLC0415
+    from opn_gate.signer import SshKeygenSigner  # noqa: PLC0415
+
+    signer = SshKeygenSigner()
+    key = tmp_path / "key"
+    subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(key)], check=True)
+    root = copy_graph(tmp_path, publish=True)
+    for n, node_id in enumerate(("tutorial-and-swap", "and-reassoc", ROOT_NODE), start=1):
+        attest(root, node_id, n=n)
+    row = loads(generate(root), "targets/index.json")["targets"][0]
+    assert row["status"] == "resolved"
+    assert row["digestion"] == {
+        "state": "undigested",
+        "closure": 3,
+        "closure_explained": 0,
+        "proved": 3,
+        "proved_explained": 0,
+    }
+
+    def explain(node_id: str) -> str:
+        text = f"---\nauthor: someone\ndate: 2026-09-16\n---\nWhy {node_id} holds.\n"
+        digest = schemas.content_hash(text.encode("utf-8"))
+        (nodes_dir(root) / node_id / "explainer" / f"{digest}.md").write_text(text)
+        explainers.sign(
+            nodes_dir(root) / node_id, digest, target_id=TARGET, signer_login="curator",
+            date="2026-09-16", key_path=key, signer=signer,
+        )  # fmt: skip
+        return digest
+
+    for node_id in ("tutorial-and-swap", "and-reassoc"):
+        explain(node_id)
+    row = loads(generate(root), "targets/index.json")["targets"][0]
+    assert row["digestion"]["state"] == "undigested"
+    assert row["digestion"]["closure_explained"] == 2 and row["digestion"]["proved_explained"] == 2
+    explain(ROOT_NODE)
+    row = loads(generate(root), "targets/index.json")["targets"][0]
+    assert row["digestion"] == {
+        "state": "explained",
+        "closure": 3,
+        "closure_explained": 3,
+        "proved": 3,
+        "proved_explained": 3,
+    }
+
+    # A signature that no longer verifies does not count (R8): tamper with the root's.
+    sig = next(iter(explainers.signed_dir(nodes_dir(root) / ROOT_NODE).iterdir()))
+    doc = yaml.safe_load(sig.read_text(encoding="utf-8"))
+    doc["date"] = "2026-01-01"
+    sig.write_text(yaml.safe_dump(doc), encoding="utf-8")
+    row = loads(generate(root), "targets/index.json")["targets"][0]
+    assert row["digestion"]["state"] == "undigested"
+    assert row["digestion"]["closure_explained"] == 2
+
+    # A paper record, valid, makes it written-up whatever the explainers say.
+    writeup.write(
+        root / "targets" / TARGET, kind="note", title="Notes", url="https://example.org/n",
+        date="2026-09-16", signer_login="curator", key_path=key, signer=signer,
+    )  # fmt: skip
+    assert loads(generate(root), "targets/index.json")["targets"][0]["digestion"]["state"] == (
+        "undigested"
+    )
+    writeup.write(
+        root / "targets" / TARGET, kind="paper", title="The paper", url="https://arxiv.org/abs/1",
+        date="2026-09-16", signer_login="curator", key_path=key, signer=signer,
+    )  # fmt: skip
+    row = loads(generate(root), "targets/index.json")["targets"][0]
+    assert row["digestion"]["state"] == "written-up"
+
+    # An active target: no state, the proved counts still there for the home page.
+    (root / "attestations" / "000003.json").unlink()  # the root's proof
+    row = loads(generate(root), "targets/index.json")["targets"][0]
+    assert row["status"] != "resolved"
+    assert row["digestion"] == {
+        "state": None,
+        "closure": 0,
+        "closure_explained": 0,
+        "proved": 2,
+        "proved_explained": 2,
+    }

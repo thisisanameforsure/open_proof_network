@@ -510,6 +510,19 @@ def _add_steward_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser
     esign.add_argument("--date", help="UTC timestamp of the act (default: now)")
     esign.add_argument("--branch", help="also commit what was written on this branch")
 
+    wu = sub.add_parser("writeup", help="record a paper or a note about a target (F15-R6; D-32)")
+    wu_acts = wu.add_subparsers(dest="action", required=True)
+    wrec = wu_acts.add_parser("record", help="sign that a paper or note exists, and where")
+    wrec.add_argument("target_id")
+    wrec.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    wrec.add_argument("--kind", required=True, choices=list(writeup.KINDS))
+    wrec.add_argument("--title", required=True)
+    wrec.add_argument("--url", required=True, help="where the write-up is published (https)")
+    wrec.add_argument("--by", required=True, dest="by", help="the signer's GitHub login")
+    wrec.add_argument("--key", required=True, type=Path, help="the signer's own SSH private key")
+    wrec.add_argument("--date", help="UTC timestamp of the act (default: now)")
+    wrec.add_argument("--branch", help="also commit what was written on this branch")
+
 
 def _add_qa_parsers(  # noqa: PLR0915 — one statement per flag
     sub: argparse._SubParsersAction[argparse.ArgumentParser],
@@ -662,6 +675,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "evidence": run_evidence,
         "steward": run_steward,
         "explainer": run_explainer,
+        "writeup": run_writeup,
         "postmerge": run_postmerge,
         "admit": run_admit,
         "hazards": run_hazards,
@@ -2123,6 +2137,33 @@ def run_explainer(args: argparse.Namespace, settings: config.Settings) -> int:
     }
     message = f"explainer: {args.by} signed {args.explainer[:12]} on {args.node_id}"
     return _emit_curator(doc, graph, args.branch, message)
+
+
+def run_writeup(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F15-R6: ``writeup record`` — one signed record that a paper or note exists."""
+    graph = _intake_graph(args)
+    directory = intake.target_dir(graph, args.target_id)
+    if not directory.is_dir():
+        msg = f"{args.target_id} is not a target of {graph}"
+        raise CliError(msg)
+    path = writeup.write(
+        directory,
+        kind=args.kind,
+        title=args.title,
+        url=args.url,
+        date=_intake_date(args),
+        signer_login=args.by,
+        key_path=args.key.resolve(),
+        signer=signed.default_signer(),
+    )
+    doc = {
+        "ok": True,
+        "target": args.target_id,
+        "kind": args.kind,
+        "signer": args.by,
+        "written": [path.resolve().relative_to(graph.resolve()).as_posix()],
+    }
+    return _emit_curator(doc, graph, args.branch, f"writeup: {args.kind} on {args.target_id}")
 
 
 # --- qa (F12-R3, R4) ------------------------------------------------------------------------------

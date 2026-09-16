@@ -423,9 +423,10 @@ def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per reject
         return _classify_curator(
             located, changes, target_id, new_dirs, author=author, curators=curators or Curators()
         )
-    # F15-R2: steward records alone are their own mode, whoever opened the pull request (Q8);
-    # brought by anything else that is not an intake or a curator record, they are a mixture.
-    if all(loc.role == "steward" for loc in located):
+    # F15-R2, R6: steward records and write-up records alone are the steward mode — both are a
+    # steward's signed acts — whoever opened the pull request (Q8); brought by anything else
+    # that is not an intake or a curator record, they are a mixture.
+    if all(loc.role in ("steward", "writeup") for loc in located):
         return Classification("steward", target_id, None, tuple(located), author=author)
 
     nodes = sorted({loc.node_id for loc in located if loc.node_id is not None})
@@ -480,8 +481,9 @@ def _classify_curator(  # noqa: PLR0913 — the diff, its located paths and the 
     proposal (F08-R5) — is refused before the author is asked (F08-Q18).
     """
     roles = {loc.role for loc in located}
-    # F15-R2: a curator may carry a steward's signed record (Q8); it is checked like any other.
-    allowed = set(paths.NODE_ROLES) | set(paths.CURATOR_ROLES) | {"steward"}
+    # F15-R2, R6: a curator may carry a steward's signed record or a write-up record (Q8);
+    # each is checked like any other.
+    allowed = set(paths.NODE_ROLES) | set(paths.CURATOR_ROLES) | {"steward", "writeup"}
     if "qa-record" in roles:
         # F12-R4: the screen's own claim rides with the QA record that produced it; the claim is
         # then held to being a screen-finding (``check_defect_claim``), not a contributor's.
@@ -847,6 +849,8 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
             problems.extend(check_formalization(graph_root, located))
         elif located.role == "steward":
             problems.extend(check_steward_record(graph_root, located, classification))
+        elif located.role == "writeup":
+            problems.extend(check_writeup_record(graph_root, located, classification))
         elif located.role == "policy":
             # F15-R3: the switch validates; who may flip it is the curator mode's author rule.
             data = _read(graph_root, located)
@@ -974,6 +978,69 @@ def check_steward_record(  # noqa: PLR0911 — one return per rule
         )
         for problem in verdict.problems
     ]
+
+
+def check_writeup_record(
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    *,
+    signer: Signer | None = None,
+) -> list[Diagnostic]:
+    """F15-R6: a write-up record validates, names the target it sits under, is numbered, its
+    signature verifies under its own key, and its signer is an active steward of the target or
+    a listed curator (``real_identities``) — the stewards read with the pull request's own
+    records in the tree, so a steward may commit and record in one pull request."""
+    from opn_gate import writeup  # noqa: PLC0415 — only this check reads write-ups
+
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    if problems:
+        return problems
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    if doc.get("target") != located.target_id:
+        return [
+            Diagnostic(
+                "writeup-target",
+                f"{located.path} is a record for target {doc.get('target')!r}, and it sits under "
+                f"targets/{located.target_id}/ (F15-R6)",
+                {"path": located.path, "target": doc.get("target")},
+            )
+        ]
+    if not re.match(r"^[1-9][0-9]*\.ya?ml$", PurePosixPath(located.path).name):
+        return [
+            Diagnostic(
+                "writeup-name",
+                f"{located.path}: a write-up record is writeup/<n>.yaml, numbered (F15-R6)",
+                {"path": located.path},
+            )
+        ]
+    verifier = signer or signed.default_signer()
+    found: list[Diagnostic] = []
+    if not signed.verifies(doc, verifier):
+        found.append(
+            Diagnostic(
+                "writeup-signature",
+                f"{located.path}: the signature does not verify under the record's key",
+                {"path": located.path},
+            )
+        )
+    who = str(doc.get("signer"))
+    if who not in real_identities(graph_root, located.target_id, signer=verifier):
+        found.append(
+            Diagnostic(
+                "writeup-signer",
+                f"{located.path}: {who!r} is neither an active steward of {located.target_id} "
+                "nor a listed curator; a write-up record is theirs to sign (F15-R6, Q4)",
+                {"path": located.path, "signer": who},
+            )
+        )
+    del writeup  # the record's shape is the schema's; nothing else is read here
+    return found
 
 
 def check_formalization(graph_root: Path, located: Located) -> list[Diagnostic]:

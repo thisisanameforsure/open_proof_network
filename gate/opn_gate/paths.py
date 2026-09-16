@@ -191,6 +191,7 @@ Role = Literal[
     "formalization-statement",  # targets/<id>/formalizations/<name>/Statement.lean (F14-R7)
     "steward",  # targets/<id>/stewards/<n>.yaml: a signed commitment or step-down (F15-R1)
     "policy",  # policy.json at the graph root: the steward rule's switch (F15-R3, Q2)
+    "writeup",  # targets/<id>/writeup/<n>.yaml: a signed paper or note record (F15-R6)
 ]
 
 #: Roles that claim nothing and merge on schema and path checks alone (F07-R9).
@@ -265,6 +266,7 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "steward": ("steward/v1",),
     "policy": ("policy/v1",),
     "explainer-signature": ("explainer-signature/v1",),
+    "writeup": ("writeup/v1",),
 }
 
 #: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers).
@@ -365,6 +367,9 @@ def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912 — one branc
         # F15-R1: a steward's signed commitment or step-down, append-only.
         if head == "stewards" and _is_flat(name, YAML_SUFFIXES):
             return Located("steward", path, target_match.group("target"), None)
+        # F15-R6: a signed write-up record, append-only; the note's text stays note.md.
+        if head == "writeup" and _is_flat(name, YAML_SUFFIXES):
+            return Located("writeup", path, target_match.group("target"), None)
         # F14-R7: a second formalization, outside nodes/, so never a node.
         if head == "formalizations":
             directory, _, leaf = name.partition("/")

@@ -1,0 +1,16 @@
+F15-T7 — write-up records (writeup/v1 under targets/<id>/writeup/<n>.yaml; the writeup role; carried in the steward mode alone or with a commitment, and inside intake and curator pull requests; refused by name for a failed signature, a signer who is neither an active steward nor a listed curator, or another target) and opn-gate writeup record; the digestion state derived in the products (T2's rule) proved through AC6: undigested → explained → written-up, null for an active target, with the counts (R6, R7; AC6, AC8).
+2026-09-16T19:27:32Z  commit: 5523763 (+ working tree)
+
+$ uv run pytest gate/tests/test_writeup.py gate/tests/test_products.py -q
+................................................                         [100%]
+48 passed in 15.55s
+
+$ make verify
+site/tests/test_render_alternates.py .                                   [ 98%]
+site/tests/test_render_evidence.py .......                               [ 99%]
+site/tests/test_untrusted.py .....................                       [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:29
+    from starlette.testclient import TestClient
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========= 2160 passed, 72 deselected, 2 warnings in 192.29s (0:03:12) ==========
