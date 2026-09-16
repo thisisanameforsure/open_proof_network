@@ -242,17 +242,32 @@ def check(doc: dict[str, Any], root_dir: Path) -> None:
 # --- R4: claimability, derived -----------------------------------------------------------
 
 
-def claimability(
-    doc: dict[str, Any] | None, *, status: str, grade: str | None, drifted: bool = False
-) -> tuple[bool, tuple[str, ...]]:
-    """F14-R1: ``(claimable, reasons)``. The reasons are empty exactly when it is claimable.
+NO_STEWARD = "no-steward"
 
-    Two things close claiming: a status that is not open (``resolved``, ``known-result``) and
+
+def claimability(  # noqa: PLR0913 — one argument per input the rule reads
+    doc: dict[str, Any] | None,
+    *,
+    status: str,
+    grade: str | None,
+    drifted: bool = False,
+    steward_rule: bool = False,
+    stewards: tuple[str, ...] | list[str] = (),
+) -> tuple[bool, tuple[str, ...]]:
+    """F14-R1, F15-R4: ``(claimable, reasons)``. The reasons are empty exactly when it is claimable.
+
+    Three things close claiming: a status that is not open (``resolved``, ``known-result``),
     F12-R11's drift freeze, where an upstream edit stands on the root as it is and proving compute
-    waits for a person (D-10 v3.12). The fidelity grade and the D-10 posting are published beside
-    the answer but no longer decide it: a low-grade statement is worked on, and its proof waits
-    for a reviewer (D-4 step 9). ``grade`` is kept in the signature so callers still hand it over
-    and the old reason strings stay readable (``explain``) on products rendered before F14.
+    waits for a person (D-10 v3.12), and — while the graph's ``policy.json`` enforces the steward
+    rule (F15-R3) — an ``open``-track target with no active steward (D-6 v3.17, D-32 v3.17). The
+    ``formalization`` track is exempt: on-ramp and calibration targets exercise the protocol, not
+    the mathematics. Every other input is unchanged, so a stewardless target stays published, on
+    the frontier and open to fidelity review; it only refuses claims.
+
+    The fidelity grade and the D-10 posting are published beside the answer but no longer decide
+    it: a low-grade statement is worked on, and its proof waits for a reviewer (D-4 step 9).
+    ``grade`` is kept in the signature so callers still hand it over and the old reason strings
+    stay readable (``explain``) on products rendered before F14.
 
     ``doc`` is ``None`` for a pre-F11 target, which this does not decide for: the caller keeps
     F03's rule there.
@@ -266,6 +281,8 @@ def claimability(
         reasons.append(f"status-{status}")
     if drifted:
         reasons.append("upstream-drift")
+    if steward_rule and str(doc.get("track")) == OPEN_TRACK and not stewards:
+        reasons.append(NO_STEWARD)
     return not reasons, tuple(reasons)
 
 
@@ -273,6 +290,8 @@ def explain(reason: str) -> str:
     """One reason, in the words the Targets page uses (R10)."""
     if reason.startswith("status-"):
         return f"the target's D-33 status is {reason.removeprefix('status-')}"
+    if reason == NO_STEWARD:
+        return "no steward has committed to digest and write it up (D-32 v3.17)"
     if reason.startswith("grade-below-"):
         return f"its fidelity grade is below {reason.removeprefix('grade-below-')} (D-9)"
     if reason == "no-posting":
@@ -499,11 +518,17 @@ def activation_refusal_from(
             f"its status is {current!r}, and a target is activated from "
             f"{' or '.join(ACTIVATABLE)} only (D-33; R4)"
         )
-    from opn_gate import qa, watch  # noqa: PLC0415 — both import this module
+    from opn_gate import policy, qa, signed, steward, watch  # noqa: PLC0415 — they import this
 
     frozen = watch.drift_state(destination, qa.subject_hash(destination, fidelity.ROOT_SUBJECT))
+    rule = policy.load(destination.parents[1])  # targets/<id> sits two below the graph root
     claimable, reasons = claimability(
-        doc, status=ACTIVE, grade=fidelity.target_grade(destination), drifted=frozen.frozen
+        doc,
+        status=ACTIVE,
+        grade=fidelity.target_grade(destination),
+        drifted=frozen.frozen,
+        steward_rule=rule.enforced,
+        stewards=steward.active_logins(destination, signed.default_signer()),
     )
     if not claimable:
         return "; ".join(explain(r) for r in reasons)

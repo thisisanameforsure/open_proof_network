@@ -1,0 +1,16 @@
+F15-T4 — policy.json (policy/v1, path role policy, curator mode only, modifiable both ways) and the no-steward reason: intake.claimability refuses an open-track target with no active steward while the rule is enforced, the formalization track exempt; activation follows the same rule; products publish the policy state and the reason; the api's refusal text reads the index as today (a stewardless golden pair from the recipe) (R3, R4; AC4).
+2026-09-16T19:00:46Z  commit: 6978494 (+ working tree)
+
+$ uv run pytest gate/tests/test_intake.py gate/tests/test_products.py api/tests/test_claims.py -q
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+80 passed, 2 warnings in 13.32s
+
+$ make verify
+site/tests/test_render_alternates.py .                                   [ 98%]
+site/tests/test_render_evidence.py .......                               [ 99%]
+site/tests/test_untrusted.py .....................                       [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:29
+    from starlette.testclient import TestClient
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========= 2151 passed, 72 deselected, 2 warnings in 180.89s (0:03:00) ==========

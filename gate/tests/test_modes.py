@@ -1633,3 +1633,41 @@ def test_a_proof_cannot_bring_a_steward(tmp_path: Path, steward_key: Path) -> No
     assert modes.classify([record, status], author="stranger").problems[0].code == (
         "curator-unlisted"
     )
+
+
+# --- F15-T4 / R3: the policy file is a curator's switch -------------------------------------------
+
+
+def test_policy_file_is_curator_mode_only(graph: Path) -> None:
+    """R3, Q2: ``policy.json`` has the ``policy`` role; adding or flipping it is a curator pull
+    request by a listed login, refused for anyone else; it validates as ``policy/v1``; and a
+    pull request mixing it with a target's files is refused as touching two targets."""
+    from opn_gate import policy as policymod  # noqa: PLC0415
+
+    doc = policymod.document(enforced=True, since="2026-09-16", evidence="calibration.md")
+    change = write(graph, "policy.json", schemas.canonical_json(doc))
+    assert paths.locate("policy.json") == paths.Located("policy", "policy.json", "", None)
+    for status in ("A", "M"):
+        c = modes.classify(
+            [Change(status, "policy.json")], author=CURATOR, curators=curators(CURATOR)
+        )
+        assert c.mode == "curator" and c.problems == (), (status, c.as_dict())
+        assert not c.needs_gate and not c.needs_admission
+    assert (
+        modes.check(graph, modes.classify([change], author=CURATOR, curators=curators(CURATOR)))
+        == []
+    )
+    refused = modes.classify([change], author="stranger", curators=curators(CURATOR))
+    assert [d.code for d in refused.problems] == ["curator-unlisted"]
+    assert modes.classify([Change("D", "policy.json")]).problems[0].code == "path-forbidden"
+
+    (graph / "policy.json").write_text('{"schema": "policy/v1"}', encoding="utf-8")
+    found = modes.check(graph, modes.classify([change], author=CURATOR, curators=curators(CURATOR)))
+    assert [d.code for d in found] == ["append-invalid"] and "steward_rule" in found[0].message
+
+    mixed = modes.classify(
+        [change, Change("A", f"{T}/status/2026-09-16-curator.yaml")],
+        author=CURATOR,
+        curators=curators(CURATOR),
+    )
+    assert [d.code for d in mixed.problems] == ["mode-multi-target"]

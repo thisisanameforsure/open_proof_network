@@ -276,7 +276,9 @@ def digestion(tg: TargetGraph, *, status: str, signer: Signer) -> dict[str, Any]
     return out
 
 
-def target_facts(tg: TargetGraph, *, signer: Signer | None = None) -> TargetFacts:
+def target_facts(
+    tg: TargetGraph, *, signer: Signer | None = None, policy: policymod.Policy | None = None
+) -> TargetFacts:
     """(status, claimable, fidelity) and the rest, for the index (R9; Q4, Q5; F11-R3, R4).
 
     Two eras meet here. A target with no ``target.yaml`` predates F11: its declaration says
@@ -287,9 +289,11 @@ def target_facts(tg: TargetGraph, *, signer: Signer | None = None) -> TargetFact
     writable home is a value that will disagree with itself.
 
     ``signer`` verifies the F15 records (stewards, explainer signatures, write-ups); the default
-    is the platform's ssh-keygen, which is where the products are generated (F15 §7).
+    is the platform's ssh-keygen, which is where the products are generated (F15 §7). ``policy``
+    is the graph's ``policy.json`` (F15-R3), read from the target's graph root when not given.
     """
     verifier = signer if signer is not None else signed.default_signer()
+    rule = policy if policy is not None else policymod.load(tg.path.parents[1])
     decl = tg.declaration.doc if tg.declaration is not None else {}
     doc = intake.load_doc(tg.path)
     subjects = tuple(fidelitymod.subject_grades(tg.path))
@@ -318,7 +322,14 @@ def target_facts(tg: TargetGraph, *, signer: Signer | None = None) -> TargetFact
     # F12-R11: an upstream edit that stands on the root as it is freezes proving compute.
     root_hash = tg.nodes[tg.root].statement_hash
     drift = watch.drift_state(tg.path, root_hash)
-    claimable, reasons = intake.claimability(doc, status=status, grade=grade, drifted=drift.frozen)
+    claimable, reasons = intake.claimability(
+        doc,
+        status=status,
+        grade=grade,
+        drifted=drift.frozen,
+        steward_rule=rule.enforced,  # F15-R4: only while the switch is on
+        stewards=tuple(s.login for s in stewards),
+    )
     # F12-R14: the pass state per subject, the counted attempts and the flag, all derived.
     routed = qa.routed_by_claims(tg.path, tg.root)
     pass_states = {
@@ -497,7 +508,7 @@ def index_doc(
 ) -> dict[str, Any]:
     out = []
     for tg in targets:
-        facts = target_facts(tg, signer=signer)
+        facts = target_facts(tg, signer=signer, policy=policy)
         counts = dict.fromkeys(graphmod.ALL_STATUSES, 0)
         for status in tg.statuses.values():
             counts[status] += 1
@@ -642,7 +653,7 @@ def generate(
             products.files[Path(context.context_path(target_id, node_id))] = context.render(
                 reader, target_id, node_id, states=states, rendered_from=rendered_from
             )
-        facts = target_facts(tg, signer=verifier)
+        facts = target_facts(tg, signer=verifier, policy=policy)
         ready_since = graphmod.ready_since_map(previous, tg.statuses, commit_time)
         # R6: only a Mathlib-pinned graph has library tags to scan for and a cache to keep.
         cache = TagCache(tg.path / TAGS_CACHE) if tg.spec["mathlib_sha"] is not None else None

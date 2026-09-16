@@ -443,7 +443,9 @@ that cites a v3.17 clause is built only once that clause is in the decisions doc
 v3.17 applied 2026-09-16 (network <code>e93a049</code>, Q1 closed) &middot; T2 ✓ 2026-09-16
 (<code>make verify</code>; <code>engineering/evidence/F15/task-2.txt</code>) &middot; T3 ✓ 2026-09-16
 (<code>uv run pytest gate/tests/test_steward.py gate/tests/test_modes.py -q</code>;
-<code>engineering/evidence/F15/task-3.txt</code>) &middot; T4&ndash;T15 todo</div>
+<code>engineering/evidence/F15/task-3.txt</code>) &middot; T4 ✓ 2026-09-16
+(<code>uv run pytest gate/tests/test_intake.py gate/tests/test_products.py api/tests/test_claims.py -q</code>;
+<code>engineering/evidence/F15/task-4.txt</code>) &middot; T5&ndash;T15 todo</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its

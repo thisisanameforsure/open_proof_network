@@ -518,3 +518,73 @@ def test_the_renderer_reproduces_the_live_notices_format() -> None:
     rendered_blocks = [b.rstrip("\n") for b in sorted_text.split("\n\n## ")[1:]]
     assert sorted(rendered_blocks) == sorted(b.rstrip("\n") for b in blocks)
     assert sorted_text.endswith("\n") and not sorted_text.endswith("\n\n")
+
+
+# --- F15-T4 / AC4: the steward rule, switched by policy.json (R3, R4) ---------------------------
+
+
+def sign_steward(target: Path, login: str, key: Path) -> None:
+    from opn_gate import steward  # noqa: PLC0415
+    from opn_gate.signer import SshKeygenSigner  # noqa: PLC0415
+
+    steward.write(
+        target,
+        action=steward.COMMIT,
+        login=login,
+        name=login,
+        link="https://orcid.org/0000-0002-1825-0097",
+        date="2026-09-16T00:00:00Z",
+        key_path=key,
+        signer=SshKeygenSigner(),
+    )
+
+
+def test_no_steward_refuses_claims_only_under_policy(tmp_path: Path) -> None:
+    """AC4: with no ``policy.json`` an open target with no steward is claimable; with the rule
+    enforced it is not, for ``no-steward`` and nothing else; a ``formalization`` target under the
+    same rule is claimable; a steward record makes the open target claimable again — and at no
+    point does it leave the frontier or lose its fidelity subjects (R4). Activation follows the
+    same rule and names the missing steward."""
+    import subprocess  # noqa: PLC0415
+
+    from opn_gate import policy  # noqa: PLC0415
+
+    root = copy_graph(tmp_path, publish=True)
+    take_in(root, "open-problem", track="open")
+    take_in(root, "known-result", track="formalization")
+    for target_id in ("open-problem", "known-result"):
+        row = index_row(root, target_id)
+        assert row["claimable"] is True and row["not_claimable"] == []
+        assert row["stewards"] == []
+    index = generate(root)["targets/index.json"]
+    assert index["policy"]["steward_rule"]["enforced"] is False
+
+    policy.write(
+        root,
+        policy.document(
+            enforced=True, since="2026-09-16", evidence="engineering/evidence/F15/calibration.md"
+        ),
+    )
+    prod = generate(root)
+    index = prod["targets/index.json"]
+    assert index["policy"]["steward_rule"]["enforced"] is True
+    rows = {r["target_id"]: r for r in index["targets"]}
+    assert rows["open-problem"]["claimable"] is False
+    assert rows["open-problem"]["not_claimable"] == ["no-steward"]
+    assert rows["open-problem"]["status"] == "listed"  # published, on the frontier, reviewable
+    assert [s["subject"] for s in rows["open-problem"]["subjects"]] == ["root"]
+    assert rows["known-result"]["claimable"] is True  # the formalization track is exempt
+    on_frontier = {e["node_id"]: e for e in prod["frontier.json"]["entries"]}
+    assert on_frontier["and-reassoc"]["claimable"] is False  # the open root, still listed
+    assert "D-32" in intake.explain("no-steward")
+    with pytest.raises(IntakeError, match="no steward"):
+        intake.activate(root, "open-problem", author="curator", date=LATER)
+
+    key = tmp_path / "steward-key"
+    subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(key)], check=True)
+    sign_steward(root / "targets" / "open-problem", "alice-steward", key)
+    row = index_row(root, "open-problem")
+    assert row["claimable"] is True and row["not_claimable"] == []
+    assert [s["login"] for s in row["stewards"]] == ["alice-steward"]
+    intake.activate(root, "open-problem", author="curator", date=LATER)
+    assert index_row(root, "open-problem")["status"] == "active"

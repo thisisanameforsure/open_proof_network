@@ -22,33 +22,54 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 RENDERED_FROM = "5" * 40
 COMMIT_TIME = "2026-09-09T12:00:00Z"
 DEFS = {"Primes.lean": "def Opn.IsPrime (p : Nat) : Prop := 2 ≤ p\n"}
-#: fixture stem -> (target id, root id, frozen)
-RECIPES: dict[str, tuple[str, str, bool]] = {
-    "listed": ("listed-target", "listed-lemma", False),
-    "frozen": ("frozen-target", "frozen-lemma", True),
+#: fixture stem -> (target id, root id, frozen, the steward rule enforced on an open target)
+RECIPES: dict[str, tuple[str, str, bool, bool]] = {
+    "listed": ("listed-target", "listed-lemma", False, False),
+    "frozen": ("frozen-target", "frozen-lemma", True, False),
+    # F15-R4: an open-track target with no steward while policy.json enforces the rule.
+    "stewardless": ("stewardless-target", "stewardless-lemma", False, True),
 }
 
 
-def render(tmp: Path, target_id: str, root_id: str, *, frozen: bool) -> products.Products:
+def render(
+    tmp: Path, target_id: str, root_id: str, *, frozen: bool, stewardless: bool = False
+) -> products.Products:
+    from opn_gate import policy  # noqa: PLC0415
+
     root = copy_graph(tmp, publish=True)
     staged = tmp / root_id
     shutil.copytree(root / "targets/propositional/nodes/and-reassoc", staged)
     meta = yaml.safe_load((staged / "META.yaml").read_text(encoding="utf-8"))
     meta["id"] = root_id
     (staged / "META.yaml").write_text(yaml.safe_dump(meta, sort_keys=False), encoding="utf-8")
-    take_in(root, target_id, root_dir=staged, defs=DEFS)
+    take_in(
+        root,
+        target_id,
+        root_dir=staged,
+        defs=DEFS,
+        track="open" if stewardless else "formalization",
+    )
     if frozen:
         freeze_upstream(root / "targets" / target_id)
+    if stewardless:
+        policy.write(
+            root,
+            policy.document(
+                enforced=True,
+                since="2026-09-16",
+                evidence="engineering/evidence/F15/calibration.md",
+            ),
+        )
     return products.generate(root, rendered_from=RENDERED_FROM, commit_time=COMMIT_TIME)
 
 
 def write_fixtures(base: Path = FIXTURES) -> None:
-    """Regenerate the four fixtures (review the diff before committing it with its task)."""
+    """Regenerate the six fixtures (review the diff before committing it with its task)."""
     import tempfile  # noqa: PLC0415
 
-    for stem, (target_id, root_id, frozen) in RECIPES.items():
+    for stem, (target_id, root_id, frozen, stewardless) in RECIPES.items():
         with tempfile.TemporaryDirectory() as tmp:
-            prod = render(Path(tmp), target_id, root_id, frozen=frozen)
+            prod = render(Path(tmp), target_id, root_id, frozen=frozen, stewardless=stewardless)
             (base / f"targets-index-{stem}.json").write_bytes(
                 prod.files[Path("targets/index.json")]
             )
@@ -57,8 +78,8 @@ def write_fixtures(base: Path = FIXTURES) -> None:
 
 @pytest.mark.parametrize("stem", sorted(RECIPES))
 def test_fixture_is_a_golden_copy(tmp_path: Path, stem: str) -> None:
-    target_id, root_id, frozen = RECIPES[stem]
-    prod = render(tmp_path, target_id, root_id, frozen=frozen)
+    target_id, root_id, frozen, stewardless = RECIPES[stem]
+    prod = render(tmp_path, target_id, root_id, frozen=frozen, stewardless=stewardless)
     assert (
         prod.files[Path("targets/index.json")]
         == (FIXTURES / f"targets-index-{stem}.json").read_bytes()

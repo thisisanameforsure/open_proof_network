@@ -32,6 +32,9 @@ So the diff is classified into exactly one mode before anything else runs:
 ``fidelity``     only new certificates for one subject of an existing curated target, opened by
                  their attestor (F11-R3, D-9): the signature is the review, so nobody else
                  approves it, and it builds nothing
+``curator``      … and the graph's ``policy.json``, the steward rule's switch (F15-R3, Q2),
+                 flipped either way by a listed curator and nothing else in the same pull
+                 request
 ``steward``      only new steward records — a signed commitment or step-down (F15-R1, R2;
                  D-32 v3.17) — each checked by name and nothing built; the signature binds
                  the record, not the pull request's author (F15-Q8), and the merge is the
@@ -836,6 +839,12 @@ def check(
             problems.extend(check_formalization(graph_root, located))
         elif located.role == "steward":
             problems.extend(check_steward_record(graph_root, located, classification))
+        elif located.role == "policy":
+            # F15-R3: the switch validates; who may flip it is the curator mode's author rule.
+            data = _read(graph_root, located)
+            problems.extend(
+                [data] if isinstance(data, Diagnostic) else _check_schema(located, data)
+            )
         elif located.role in paths.CURATOR_ROLES:
             problems.extend(check_status_record(graph_root, located, classification))
         elif located.role == "target-record" and classification.mode == "curator":

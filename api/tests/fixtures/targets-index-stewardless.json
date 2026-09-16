@@ -1,0 +1,144 @@
+{
+  "policy": {
+    "steward_rule": {
+      "enforced": true,
+      "evidence": "engineering/evidence/F15/calibration.md",
+      "since": "2026-09-16"
+    }
+  },
+  "rendered_from": "5555555555555555555555555555555555555555",
+  "schema": "targets-index/v6",
+  "targets": [
+    {
+      "attempts": {
+        "counted": 0,
+        "recorded": 0
+      },
+      "calibration": false,
+      "claimable": false,
+      "digestion": {
+        "closure": 0,
+        "closure_explained": 0,
+        "proved": 0,
+        "proved_explained": 0,
+        "state": null
+      },
+      "drift": null,
+      "fidelity": "mechanical-only",
+      "formalizations": [],
+      "mathlib_sha": null,
+      "node_counts": {
+        "abandoned": 0,
+        "blocked": 1,
+        "defective": 0,
+        "disputed": 0,
+        "proved": 0,
+        "ready": 2,
+        "refuted": 0,
+        "speculative": 0,
+        "stale": 0,
+        "superseded": 0
+      },
+      "not_claimable": [],
+      "posting": null,
+      "root": "and-swap-reassoc",
+      "root_statement_hash": "1fd9af9053c56877f4e7ec2ad69aa16602d39e826259da3878a8cc30a3b6791c",
+      "statement_evidence": null,
+      "status": "listed",
+      "step9": "review",
+      "stewards": [],
+      "subjects": [],
+      "target_id": "propositional",
+      "track": null
+    },
+    {
+      "attempts": {
+        "counted": 0,
+        "recorded": 0
+      },
+      "calibration": false,
+      "claimable": false,
+      "digestion": {
+        "closure": 0,
+        "closure_explained": 0,
+        "proved": 0,
+        "proved_explained": 0,
+        "state": null
+      },
+      "drift": null,
+      "fidelity": "mechanical-only",
+      "formalizations": [],
+      "mathlib_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "node_counts": {
+        "abandoned": 0,
+        "blocked": 0,
+        "defective": 0,
+        "disputed": 0,
+        "proved": 0,
+        "ready": 1,
+        "refuted": 0,
+        "speculative": 0,
+        "stale": 0,
+        "superseded": 0
+      },
+      "not_claimable": [
+        "no-steward"
+      ],
+      "posting": null,
+      "root": "stewardless-lemma",
+      "root_statement_hash": "22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7",
+      "statement_evidence": null,
+      "status": "listed",
+      "step9": "review",
+      "stewards": [],
+      "subjects": [
+        {
+          "grade": "mechanical-only",
+          "qa": {
+            "checks": {
+              "backtranslation": null,
+              "brief": null,
+              "compile": null,
+              "equivalence": null,
+              "screen-consequence": null,
+              "screen-false": null,
+              "screen-negation": null,
+              "screen-statement": null
+            },
+            "complete": false,
+            "fresh_records": 0,
+            "stale": false,
+            "unrouted_findings": 0
+          },
+          "signature_count": 0,
+          "signers": [],
+          "subject": "root"
+        },
+        {
+          "grade": "mechanical-only",
+          "qa": {
+            "checks": {
+              "backtranslation": null,
+              "brief": null,
+              "compile": null,
+              "equivalence": null,
+              "screen-consequence": null,
+              "screen-false": null,
+              "screen-negation": null,
+              "screen-statement": null
+            },
+            "complete": false,
+            "fresh_records": 0,
+            "stale": false,
+            "unrouted_findings": 0
+          },
+          "signature_count": 0,
+          "signers": [],
+          "subject": "Primes"
+        }
+      ],
+      "target_id": "stewardless-target",
+      "track": "open"
+    }
+  ]
+}

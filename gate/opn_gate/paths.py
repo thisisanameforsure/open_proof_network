@@ -189,6 +189,7 @@ Role = Literal[
     "formalization",  # targets/<id>/formalizations/<name>/formalization.yaml (F14-R7)
     "formalization-statement",  # targets/<id>/formalizations/<name>/Statement.lean (F14-R7)
     "steward",  # targets/<id>/stewards/<n>.yaml: a signed commitment or step-down (F15-R1)
+    "policy",  # policy.json at the graph root: the steward rule's switch (F15-R3, Q2)
 ]
 
 #: Roles that claim nothing and merge on schema and path checks alone (F07-R9).
@@ -220,6 +221,7 @@ CURATOR_ROLES: tuple[Role, ...] = (
     "statement-evidence",  # F14-R4: a curator records the catalog's evidence for a root
     "formalization",  # F14-R7: a curator adds a second formalization, never a node
     "formalization-statement",
+    "policy",  # F15-R3: the steward rule is switched by a curator, in the open
 )
 
 #: What a curated intake adds beside the root node (F11-R2; D-6): the target's own files. A pull
@@ -231,12 +233,14 @@ INTAKE_ROLES: tuple[Role, ...] = ("target-record", "gate-spec", "definition", "f
 #: The attempts ledger is one file that grows (F12-R10): modified in place, entries only added.
 #: The target record takes its D-10 posting in place (F11-R5): ``modes.check_posting`` holds the
 #: modification to that one field, null to a posting, and a target record is never deleted.
+#: The policy file is the one switch that flips both ways (F15-Q2), by a curator's pull request.
 MODIFIABLE_ROLES: tuple[Role, ...] = (
     "proof",
     "waiver",
     "witness",
     "attempts-ledger",
     "target-record",
+    "policy",
 )
 
 #: The schema versions each record may declare; an annex validates its YAML front matter.
@@ -258,6 +262,7 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "statement-evidence": ("statement-evidence/v1",),
     "formalization": ("formalization/v1",),
     "steward": ("steward/v1",),
+    "policy": ("policy/v1",),
 }
 
 #: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers).
@@ -311,8 +316,17 @@ class Located:
     node_id: str | None  # None for the target-scoped approach record
 
 
+#: The target id a graph-scoped file is located under: no target's id can be empty, so the
+#: one graph-root file a pull request may touch (``policy.json``, F15-R3) sits under it alone,
+#: and a pull request mixing it with any target's files is refused as touching two targets.
+GRAPH_SCOPE = ""
+POLICY_FILE = "policy.json"
+
+
 def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912 — one branch per D-3 entry
     """The role of ``path``, or ``None`` when no mode may touch it (F07-R3's rejection)."""
+    if path == POLICY_FILE:
+        return Located("policy", path, GRAPH_SCOPE, None)
     node_match = _NODE_PATH_RE.match(path)
     if node_match is not None:
         target, node = node_match.group("target"), node_match.group("node")
