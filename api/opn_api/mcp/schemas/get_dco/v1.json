@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/mcp/get_dco/v1.json",
+  "title": "mcp/get_dco/v1",
+  "description": "The result of the get_dco tool (F09-R9; D-28 notation note 2026-09-16): GET /dco.json, the Developer Certificate of Origin and the version a token request must name (D-23), or an error result naming the source that did not answer (R10).",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "version",
+        "text"
+      ],
+      "properties": {
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "The plain path did not answer, or the arguments were refused (F09-R10)",
+      "required": [
+        "error",
+        "message",
+        "source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "graph",
+            "service",
+            "adapter"
+          ]
+        },
+        "status": {
+          "type": "integer"
+        }
+      }
+    }
+  ]
+}

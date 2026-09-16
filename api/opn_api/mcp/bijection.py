@@ -75,6 +75,9 @@ TABLE: tuple[Row, ...] = (
     Row("list_submissions", "read", ("GET /submissions.json",), "GET /submissions.json"),
     Row("get_schema", "read", ("schemas/<name>.json",), "schemas/<name>.json"),
     Row("get_precheck", "read", ("GET /precheck/{job_id}",), "GET /precheck/<id>"),
+    # F09: D-28's read table, notation note of 2026-09-16 — an existing route (F05), and the one
+    # value get_token demands that no other read published, so the bootstrap was HTTP-only.
+    Row("get_dco", "read", ("GET /dco.json",), "GET /dco.json"),
     # --- writes (D-35's plain-path table) -----------------------------------------------------
     Row("claim_node", "write", ("POST /claims",), "POST /claims"),
     Row("release_claim", "write", ("DELETE /claims/{claim_id}",), "DELETE /claims/<id>"),

@@ -911,10 +911,20 @@ first one-hole skeleton to merge on a real Erdős target.</p>
       against the hole is refused and nobody can close it. This is F07-Q19 ("a node the gate
       itself creates must still pass the gate") on a live target.</td>
     <td>F07</td>
-    <td>Not yet confirmed: the hazard checkers are Lean metaprograms and need the real toolchain,
-      so this wants one lean-tier run over the generated statement before it is called a defect.
-      If it is armed, the post-merge job must carry the parent's acknowledgements down to a hole
-      that inherits the same bounds, or run step 6 over what it writes.</td>
+    <td><strong>Confirmed 2026-09-16</strong>, on a Mathlib-free mock of the same bounds through
+      the gate's own step 6 and the locally pinned Lean — no Mathlib checkout, no docker (the
+      2026-09-12 technique): <code>verdict: fail</code>, "3 unacknowledged hazard finding(s)",
+      <code>off-by-one-range</code> at <code>2 ≤ m'</code>, <code>2 ≤ x</code> and
+      <code>3 ≤ m</code>, <code>acknowledged: []</code>. Control: the euclid holes are proved with
+      no acknowledgements on a spec that runs the same checker, because their bounds are
+      <code>0 &lt; k</code> and variable-to-variable, which the checker does not flag — so the
+      erdos result means what it says. <strong>Carrying the parent's acknowledgements down does
+      not fix it</strong>: the parent acknowledges <code>m ≥ 2</code> and <code>n ≥ 2</code>, while
+      the child's bounds are introduced by the decomposition. And since F03-T9 the hole is
+      claimable, so the frontier now advertises work that cannot pass. The remaining choice is the
+      owner's: refuse to create a node the gate would reject; let a gate-authored statement's
+      findings be acknowledged by the gate, naming the merge that derived it; or give the hole a
+      cause of its own and keep it unclaimable until a curator acknowledges.</td>
   </tr>
 </table>
 

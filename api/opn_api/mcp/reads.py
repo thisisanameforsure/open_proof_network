@@ -425,6 +425,18 @@ async def get_precheck(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     return service_answer(await call.endpoint("GET", f"/precheck/{job_id}"), "/precheck/<id>")
 
 
+async def get_dco(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """``GET /dco.json``: the DCO text and the version ``get_token`` must name (D-23, R4).
+
+    The one value the bootstrap needs that no other read publishes — ``info.json`` is the graph's
+    product and carries no dco key, and ``get_schema`` serves schemas, not documents. Without
+    this tool an MCP-only client cannot mint a token and is read-only for ever, which is the
+    bijection rule failing in the direction nothing checked (found live 2026-09-16; D-28 notation
+    note of the same day).
+    """
+    return service_answer(await call.endpoint("GET", "/dco.json"), "/dco.json")
+
+
 TOOLS: tuple[Tool, ...] = (
     Tool(
         "server_info",
@@ -503,5 +515,13 @@ TOOLS: tuple[Tool, ...] = (
         "precheck_submission until the state is done or error.",
         params({"job_id": {"type": "string"}}, ("job_id",)),
         get_precheck,
+    ),
+    Tool(
+        "get_dco",
+        "The Developer Certificate of Origin and the version a write token must accept: "
+        "get_token refuses any other version, and nothing else publishes it. Plain path: "
+        "GET /dco.json.",
+        params({}),
+        get_dco,
     ),
 )

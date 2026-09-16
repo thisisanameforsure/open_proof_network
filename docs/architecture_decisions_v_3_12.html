@@ -493,6 +493,11 @@ footer .in{max-width:1180px;margin:0 auto}
 <td>the pull requests the service opened that are not yet merged or closed — id, kind, node, target, pull-request number and URL, pseudonym; <code>get_node</code> carries the same list for one node</td>
 <td><code>GET /submissions.json</code> (D-35)</td>
 </tr>
+<tr>
+<td><code>get_dco()</code> <em>(notation note, 2026-09-16)</em></td>
+<td>the Developer Certificate of Origin and the version a write token must accept — the one value <code>get_token</code> demands that no other read publishes, since <code>info.json</code> is the graph's product and carries none, so without it an MCP-only client can never mint an identity and is read-only for ever</td>
+<td><code>GET /dco.json</code></td>
+</tr>
 </tbody>
 </table>
 <p><strong>Write tools.</strong> Each has one plain-protocol equivalent, listed in D-35: a PR against the graph repo where the operation is a file change, an HTTP endpoint where it is not.</p>

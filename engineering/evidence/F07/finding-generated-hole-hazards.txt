@@ -1,0 +1,81 @@
+F07-Q19 CONFIRMED: a gate-generated hole can carry hazards nothing acknowledged,
+which makes the node permanently unsubmittable.
+
+The live node, written by the post-merge job of graph PR #71 (2026-09-16):
+  targets/erdos-412/nodes/erdos-412--h1/Statement.lean  carries  3 <= m, 2 <= x, x < m, 2 <= m', m' < m
+  targets/erdos-412/nodes/erdos-412--h1/META.yaml       has NO acknowledged_hazards
+  targets/erdos-412/gate-spec.json hazard_checkers      includes off-by-one-range
+
+The parent acknowledges off-by-one-range twice, at 'm >= 2' and 'n >= 2'. Those are NOT the
+child's locations: the child's bounds (3 <= m, 2 <= m', 2 <= x) are introduced by the
+decomposition, so there is nothing to carry down from the parent.
+
+Confirmed on a Mathlib-free mock of the same bounds (the 2026-09-12 technique), with the
+gate's own step 6 and the locally installed Lean 4.33.1 - no Mathlib checkout, no docker:
+
+$ opn-gate hazards <mock node with 3 <= m, 2 <= x /\ x < m, 2 <= m' /\ m' < m>
+     "off-by-one-range",
+      "nat-sub",
+      "div-zero",
+      "int-trunc",
+      "junk-value",
+      "unused-binder"
+    ],
+    "findings": [
+      {
+        "checker": "off-by-one-range",
+        "location": "2 ≤ m'",
+        "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+      },
+      {
+        "checker": "off-by-one-range",
+        "location": "2 ≤ x",
+        "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+      },
+      {
+        "checker": "off-by-one-range",
+        "location": "3 ≤ m",
+        "message": "comparison against an explicit literal: check whether the boundary is inclusive or exclusive"
+      }
+    ],
+    "acknowledged": [],
+    "capped": false
+  }
+}
+
+
+Not universal, and that is the point: it depends on the generated statement's shape.
+The four euclid-primes holes are proved with no acknowledged_hazards; the tutorial's two
+and erdos-412--h1 are blocked.
+
+Why it cannot be fixed from the contributor side: Statement.lean is immutable (D-3) and
+META.yaml is a path no submission may touch, so only intake or a curator revision can add
+the acknowledgement. And since F03-T9 the hole is CLAIMABLE, so the frontier now advertises
+work that cannot pass step 6.
+
+The fix is a design choice and is the owner's, not this session's:
+  (a) the post-merge job runs step 6 over what it writes and refuses to create a node it
+      would reject - but then the merge has nowhere to put the hole;
+  (b) a gate-authored statement's findings are acknowledged by the gate, with a
+      justification naming the merge that derived it (a machine claim, not a human one);
+  (c) the hole is created with a cause of its own (hazards-unacknowledged) and is not
+      claimable until a curator acknowledges - honest, but it re-blocks what F03-T9 opened.
+
+--- CONTROL: why the euclid holes passed, and the erdos one will not -------
+
+The four euclid-primes holes are proved with no acknowledged_hazards, on a gate-spec that DOES
+enable off-by-one-range. That looked like a contradiction, so it was tested rather than assumed.
+
+infinitude-of-primes--h1's statement is
+
+    theorem infinitude_of_primes__h1 : forall (n k : N), 0 < k -> k <= n -> Opn.Divides k n.factorial
+
+The same bounds, Mathlib-free, through the same step 6 and the same checker list:
+
+    theorem ... : forall (n k : Nat), 0 < k -> k <= n -> k <= n + 1
+    verdict: pass   findings: NONE
+
+So the checker flags a comparison against an explicit literal (2 <= x, 3 <= m) and does not flag
+`0 <` or a variable-to-variable comparison. That is why every euclid hole passed, and it is the
+control that makes the erdos-412--h1 result mean what it says: three real findings, none
+acknowledged, on a target whose spec runs the checker.
