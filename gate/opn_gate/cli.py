@@ -324,6 +324,12 @@ def _add_curator_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser
     led.add_argument("--graph", required=True, type=Path)
     led.add_argument("--commit", required=True, help="the merge commit")
 
+    stw = sub.add_parser(
+        "stewards", help="a target's active stewards and the merge mention (F15-R12)"
+    )
+    stw.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    stw.add_argument("--target", required=True, help="the target the merge landed on")
+
 
 def _add_cache_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     """The olean cache (F10-R7, R8): ``cache fetch`` for a checkout, ``cache publish`` for the
@@ -669,6 +675,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "status": run_status,
         "missing-library": run_missing_library,
         "ledger": run_ledger,
+        "stewards": run_stewards,
         "intake": run_intake,
         "qa": run_qa,
         "fidelity": run_fidelity,
@@ -2402,6 +2409,24 @@ def run_ledger(args: argparse.Namespace, settings: config.Settings) -> int:
     }
     sys.stdout.write(json.dumps(doc, indent=2) + "\n")
     return EXIT_PASS
+
+
+def run_stewards(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F15-R12: the active stewards of a target from the merged tree, and the ``· cc @login …``
+    suffix the bot commit carries — validated against the login grammar, so a record cannot put
+    anything else into a commit message. Empty for a target with none, or none curated."""
+    graph = _intake_graph(args)
+    directory = intake.target_dir(graph, args.target)
+    active = steward.active(directory, signed.default_signer()) if directory.is_dir() else []
+    logins = [s.login for s in active]
+    return _say(
+        {
+            "target": args.target,
+            "active": [s.as_dict() for s in active],
+            "logins": logins,
+            "mention": postmerge.mention_line(logins),
+        }
+    )
 
 
 def _say(doc: dict[str, Any]) -> int:

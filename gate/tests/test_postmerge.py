@@ -589,3 +589,87 @@ def test_claims_snapshot_that_is_not_json_is_kept_out(tmp_path: Path) -> None:
         postmerge.fetch_claims_snapshot("http://127.0.0.1:8000/c.json", opener=lambda _u, _t: b"{}")
         == b"{}"
     )
+
+
+# --- F15-T8 / AC12: the merge mention (R12; D-32 v3.17) ------------------------------------------
+
+
+def test_bot_commit_mentions_stewards(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """AC12: the message names each active steward's login and nothing else from the records;
+    a login outside the grammar is refused rather than written; the message still parses; and
+    ``opn-gate stewards`` reads the logins from the merged tree."""
+    from harness import take_in  # noqa: PLC0415
+
+    from opn_gate import cli, steward  # noqa: PLC0415
+    from opn_gate.signer import SshKeygenSigner  # noqa: PLC0415
+
+    assert postmerge.mention_line([]) == ""
+    assert postmerge.mention_line(["alice", "bob-b", "alice"]) == " · cc @alice @bob-b"
+    assert postmerge.bot_commit_message(7, "pass", ["alice"]) == "gate: #7 pass · cc @alice"
+    assert postmerge.parse_bot_commit_message("gate: #7 pass · cc @alice @bob") == (7, "pass")
+    assert postmerge.mentioned_in("gate: #7 pass · cc @alice @bob\n\nbody") == ("alice", "bob")
+    assert postmerge.mentioned_in("gate: #7 pass") == ()
+    assert postmerge.parse_bot_commit_message("gate: #7 pass · cc alice") is None
+    for bad in ("-alice", "alice--b", "a" * 40, "al ice", "@alice"):
+        with pytest.raises(ValueError, match="not a GitHub login"):
+            postmerge.mention_line([bad])
+    assert postmerge.bot_commit_message(7, "pass") == "gate: #7 pass"  # no stewards: as before
+
+    root = copy_graph(tmp_path)
+    take_in(root, "euclid-primes")
+    target = root / "targets" / "euclid-primes"
+    for login in ("alice-steward", "bob-steward"):
+        key = tmp_path / login
+        subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(key)], check=True)
+        steward.write(
+            target, action=steward.COMMIT, login=login, name=f"{login} Name",
+            link="https://orcid.org/0000-0002-1825-0097", date="2026-09-16", key_path=key,
+            signer=SshKeygenSigner(),
+        )  # fmt: skip
+    code = cli.main(["stewards", "--graph", str(root), "--target", "euclid-primes"])
+    out = json.loads(capsys.readouterr().out)
+    assert code == cli.EXIT_PASS
+    assert out["logins"] == ["alice-steward", "bob-steward"]
+    assert out["mention"] == " · cc @alice-steward @bob-steward"
+    assert "Name" not in out["mention"]  # nothing else from the records reaches the message
+    code = cli.main(["stewards", "--graph", str(root), "--target", "propositional"])
+    assert code == cli.EXIT_PASS and json.loads(capsys.readouterr().out)["mention"] == ""
+
+
+GRAPH_REPO = Path(__file__).resolve().parents[2].parent / "open_proof_network_graph"
+
+
+def test_mention_line_is_inert_on_the_old_pin(tmp_path: Path) -> None:
+    """AC12: the workflow builds the mention from the pinned gate's ``stewards`` command behind a
+    guard that turns a pin without the command into an empty suffix, so the bot commit message
+    is exactly what it was before; and a ``policy.json``-only pull request takes its pin from a
+    target (F15-R3). Read from the sibling checkout's working tree; skipped where it is absent."""
+    workflow = GRAPH_REPO / ".github" / "workflows" / "gate.yml"
+    if not workflow.is_file():
+        pytest.skip(f"{workflow} is not checked out beside this repo")
+    doc = yaml.safe_load(workflow.read_text(encoding="utf-8"))
+    steps = {str(s.get("name", "")): s for s in doc["jobs"]["postmerge"]["steps"] if "name" in s}
+    commit = next(run for name, run in steps.items() if name.startswith("Commit the attestation"))
+    run = str(commit["run"])
+    assert "opn_gate.cli stewards" in run
+    assert "|| true" in run and "2>/dev/null" in run
+    number, verdict = "${{ steps.pr.outputs.number }}", "${{ steps.products.outputs.verdict }}"
+    assert f'git commit -m "gate: #{number} {verdict}${{mention}}"' in run
+    # The guard's shape, run for real with a command the old pin would refuse (exit 2, no JSON):
+    # the suffix is empty and the message is the old one.
+    shape = (
+        "mention=\"$(false 2>/dev/null | python3 -c 'import json,sys; "
+        'print(json.load(sys.stdin).get("mention", ""))\' 2>/dev/null || true)"; '
+        'printf "gate: #7 pass%s" "$mention"'
+    )
+    proc = subprocess.run(["bash", "-c", shape], capture_output=True, text=True, check=True)
+    assert proc.stdout == "gate: #7 pass"
+    # ...and with the command answering, the suffix rides along.
+    shape_ok = shape.replace("false 2>/dev/null", 'echo \'{"mention": " · cc @alice"}\'')
+    proc = subprocess.run(["bash", "-c", shape_ok], capture_output=True, text=True, check=True)
+    assert proc.stdout == "gate: #7 pass · cc @alice"
+    for job, step_name in (("gate", "Find the target"), ("postmerge", "Find the merged")):
+        pin = next(
+            s for s in doc["jobs"][job]["steps"] if str(s.get("name", "")).startswith(step_name)
+        )
+        assert "grep -qx 'policy.json' changed.txt" in str(pin["run"]), job

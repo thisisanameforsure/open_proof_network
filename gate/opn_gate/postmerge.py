@@ -52,7 +52,13 @@ def check_waiver(doc: dict[str, Any], approval_bodies: Sequence[str]) -> Diagnos
     )
 
 
-_BOT_MESSAGE_RE = re.compile(r"^gate: #(?P<n>\d+) (?P<verdict>pass|fail)$")
+#: F15-R12: the bot commit may carry ``· cc @login …`` after the verdict — one mention per active
+#: steward of the target, each a login the grammar admits, and nothing else from the records.
+MENTION_SEPARATOR = " · cc "
+_BOT_MESSAGE_RE = re.compile(
+    r"^gate: #(?P<n>\d+) (?P<verdict>pass|fail)"
+    r"(?: · cc (?P<cc>@[A-Za-z0-9-]+(?: @[A-Za-z0-9-]+)*))?$"
+)
 PRODUCT_FILES: tuple[str, ...] = ("frontier.json", "info.json", "targets/index.json")
 CLAIMS_FILE = "claims.json"
 CLAIMS_TIMEOUT_S = 10
@@ -97,12 +103,31 @@ def refresh_claims(
     return None
 
 
-def bot_commit_message(pr_number: int, verdict: str) -> str:
-    """F03-R12: the one bot commit carrying the attestation and every product."""
+def mention_line(stewards: Sequence[str]) -> str:
+    """F15-R12: the suffix that mentions each active steward, or ``""`` when there is none. A
+    login outside GitHub's grammar is refused (``ValueError``): the gate refused its record
+    upstream, so one reaching here is a defect, not a mention."""
+    from opn_gate import steward  # noqa: PLC0415 — the grammar has one home
+
+    logins: list[str] = []
+    for login in stewards:
+        if not steward.LOGIN_RE.match(login):
+            msg = f"{login!r} is not a GitHub login; a steward record with it was refused (F15-R1)"
+            raise ValueError(msg)
+        if login not in logins:
+            logins.append(login)
+    return MENTION_SEPARATOR + " ".join(f"@{login}" for login in logins) if logins else ""
+
+
+def bot_commit_message(pr_number: int, verdict: str, stewards: Sequence[str] = ()) -> str:
+    """F03-R12: the one bot commit carrying the attestation and every product; F15-R12: with
+    each active steward of the target mentioned after the verdict."""
     if verdict not in ("pass", "fail"):
         msg = f"a bot commit records pass or fail, not {verdict!r}"
         raise ValueError(msg)
-    return f"gate: #{attestation_id(pr_number).lstrip('0') or '0'} {verdict}"
+    return f"gate: #{attestation_id(pr_number).lstrip('0') or '0'} {verdict}" + mention_line(
+        stewards
+    )
 
 
 def parse_bot_commit_message(message: str) -> tuple[int, str] | None:
@@ -110,6 +135,15 @@ def parse_bot_commit_message(message: str) -> tuple[int, str] | None:
     first = message.splitlines()[0] if message else ""
     m = _BOT_MESSAGE_RE.match(first)
     return (int(m.group("n")), m.group("verdict")) if m else None
+
+
+def mentioned_in(message: str) -> tuple[str, ...]:
+    """The logins a bot commit's first line mentions, in order; ``()`` for none."""
+    first = message.splitlines()[0] if message else ""
+    m = _BOT_MESSAGE_RE.match(first)
+    if m is None or not m.group("cc"):
+        return ()
+    return tuple(part[1:] for part in m.group("cc").split())
 
 
 def attestation_id(pr_number: int) -> str:

@@ -1,0 +1,16 @@
+F15-T8 — the merge mention: postmerge.mention_line / bot_commit_message(stewards) validate every login against GitHub's grammar and parse_bot_commit_message accepts the suffix; opn-gate stewards prints a target's active stewards and the suffix; the graph's gate.yml commit step builds the suffix from the pinned gate behind a guard that is inert on a pin without the command, and a policy.json-only pull request takes its pin from a target in both jobs (R12; AC12). The live notification probe is T15's (Q5).
+2026-09-16T19:43:53Z  commit: b74ff8b (+ working tree); graph gate.yml working tree
+
+$ uv run pytest gate/tests/test_postmerge.py -q
+.................................                                        [100%]
+33 passed in 11.07s
+
+$ make verify
+site/tests/test_render_alternates.py .                                   [ 98%]
+site/tests/test_render_evidence.py .......                               [ 99%]
+site/tests/test_untrusted.py .....................                       [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:29
+    from starlette.testclient import TestClient
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========= 2162 passed, 72 deselected, 2 warnings in 196.04s (0:03:16) ==========
