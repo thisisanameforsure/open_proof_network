@@ -13,7 +13,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from opn_gate import evidence, intake, layout, paths, records, schemas, watch
+from opn_gate import evidence, explainers, intake, layout, paths, records, schemas, signed, watch
+from opn_gate import writeup as writeupmod
 
 #: The product schema versions this generator can render. A consumer parses by version and old
 #: snapshots keep rendering (D-34), so this is a set per product, not a pin: `targets-index/v2`
@@ -60,6 +61,16 @@ class AlternateView:
 
 
 @dataclass(frozen=True)
+class SignatureView:
+    """One valid explainer signature (F15-R8): who vouched, when, for which explainer."""
+
+    signer: str
+    date: str
+    explainer: str
+    path: str
+
+
+@dataclass(frozen=True)
 class NodeView:
     target_id: str
     node_id: str
@@ -76,6 +87,9 @@ class NodeView:
     tutorial: bool
     #: D-25 v3.13: later proofs of this node, in the order their files are stamped.
     alternates: tuple[AlternateView, ...] = ()
+    #: F15-R10: the valid signatures on the node's explainers — verified at render, since only
+    #: a valid one is a comprehension claim (D-3 v3.17).
+    signatures: tuple[SignatureView, ...] = ()
 
     @property
     def status(self) -> str:
@@ -105,10 +119,28 @@ class TargetView:
     drift: tuple[watch.DriftRecord, ...] = ()  # targets/<id>/drift/*.yaml (F12-R11, R12)
     #: F14-R10: the root's newest statement-evidence record, for the reasons behind its score.
     evidence: dict[str, Any] | None = None
+    #: F15-R10: the valid write-up records — a paper or a note, with where it lives (R6).
+    writeups: tuple[dict[str, Any], ...] = ()
 
     @property
     def root(self) -> str:
         return str(self.graph["root"])
+
+    @property
+    def stewards(self) -> list[dict[str, Any]]:
+        """The active stewards the index publishes (``targets-index/v6``); none before it."""
+        raw = self.index_entry.get("stewards")
+        return [dict(s) for s in raw] if isinstance(raw, list) else []
+
+    @property
+    def digestion(self) -> dict[str, Any] | None:
+        """The digestion state and its counts (v6), or ``None`` on an older index."""
+        raw = self.index_entry.get("digestion")
+        return dict(raw) if isinstance(raw, dict) else None
+
+    @property
+    def calibration(self) -> bool:
+        return bool(self.index_entry.get("calibration", False))
 
 
 @dataclass(frozen=True)
@@ -281,7 +313,7 @@ def load_node(root: Path, target_id: str, entry: dict[str, Any]) -> NodeView:
     attestation, att_path = _attestation_for(
         root, node_id, loaded.statement.statement_hash, entry.get("proof_commit")
     )
-    explainers = _prose_files(node_dir / "explainer", root)
+    explainer_files = _prose_files(node_dir / "explainer", root)
     raw_acks = loaded.meta.get("acknowledged_hazards")
     acks = tuple(
         {str(k): str(v) for k, v in a.items()}
@@ -298,12 +330,43 @@ def load_node(root: Path, target_id: str, entry: dict[str, Any]) -> NodeView:
         attestation=attestation,
         attestation_path=att_path,
         attempts=records.load_attempts(node_dir),
-        explainer=explainers[0] if explainers else None,
+        explainer=explainer_files[0] if explainer_files else None,
         annexes=_prose_files(node_dir / "annex", root),
         acknowledgments=acks,
         tutorial=bool(entry.get("tutorial")),
         alternates=_alternates_for(root, node_dir, node_id, loaded.statement.statement_hash),
+        signatures=_signatures_for(root, node_dir),
     )
+
+
+def _signatures_for(root: Path, node_dir: Path) -> tuple[SignatureView, ...]:
+    """F15-R10: the node's valid explainer signatures, verified through the gate's own seam
+    (ssh-keygen, which the site build has where the gate has it). A signature file that does not
+    read is a ``SiteError`` like any other invalid graph file."""
+    try:
+        valid = explainers.valid(node_dir, signed.default_signer())
+    except schemas.SchemaError as exc:
+        msg = f"{node_dir.name}: an explainer signature does not validate: {exc}"
+        raise SiteError(msg) from exc
+    return tuple(
+        SignatureView(
+            signer=sig.signer,
+            date=sig.date,
+            explainer=sig.explainer,
+            path=sig.path.relative_to(root).as_posix(),
+        )
+        for sig in valid
+    )
+
+
+def _writeups_for(target_dir: Path) -> tuple[dict[str, Any], ...]:
+    """F15-R10: the target's valid write-up records (R6), verified through the gate's seam."""
+    try:
+        valid = writeupmod.valid(target_dir, signed.default_signer())
+    except schemas.SchemaError as exc:
+        msg = f"targets/{target_dir.name}: a write-up record does not validate: {exc}"
+        raise SiteError(msg) from exc
+    return tuple(record.as_dict() for record in valid)
 
 
 def _check_graph_rows(target_id: str, graph: dict[str, Any]) -> None:
@@ -375,5 +438,6 @@ def load_site(root: Path, commit: str) -> Site:
             record=_load_record(target_dir),
             drift=_load_drift(target_dir),
             evidence=_load_evidence(target_dir),
+            writeups=_writeups_for(target_dir),
         )
     return site

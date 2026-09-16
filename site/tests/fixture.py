@@ -315,3 +315,118 @@ def build_with_qa_target(tmp_path: Path) -> Path:
     )
     products.generate(root, rendered_from=COMMIT, commit_time=NOW).write(root)
     return root
+
+
+# --- F15: stewards, the digestion state, a signed explainer, a calibration target (AC10) ---------
+
+STEWARDED_TARGET = "stewarded-target"
+STEWARDLESS_TARGET = "stewardless-target"
+RESOLVED_TARGET = "resolved-target"
+CALIBRATION_TARGET = "calibration-target"
+STEWARD_LOGIN = "alice-steward"
+STEWARD_NAME = "Alice Steward <b>not bold</b>"
+STEWARD_LINK = "https://orcid.org/0000-0002-1825-0097"
+SIGNER_LOGIN = "curator-one"
+
+
+def _staged_root(root: Path, tmp_path: Path, node_id: str, *, proved: bool) -> Path:
+    import shutil  # noqa: PLC0415
+
+    staged = tmp_path / node_id
+    shutil.copytree(nodes_dir(root) / "and-reassoc", staged)
+    meta = yaml.safe_load((staged / "META.yaml").read_text())
+    meta["id"] = node_id
+    (staged / "META.yaml").write_text(yaml.safe_dump(meta, sort_keys=False), encoding="utf-8")
+    if not proved:
+        (staged / "Proof.lean").unlink(missing_ok=True)
+    return staged
+
+
+def build_with_stewards(tmp_path: Path) -> Path:
+    """The curated fixture plus, under an enforced steward rule: an open target with a steward
+    (claimable), an open target with none (``no-steward``), a resolved target with no explainer
+    signed (undigested), a signed explainer on the fixture's proved interior node, and a
+    calibration target on the formalization track (F15-R10; AC10)."""
+    import subprocess  # noqa: PLC0415
+
+    from harness import take_in  # noqa: PLC0415
+
+    from opn_gate import explainers, policy, steward  # noqa: PLC0415
+    from opn_gate.signer import SshKeygenSigner  # noqa: PLC0415
+
+    root = build(tmp_path)
+    signer = SshKeygenSigner()
+    key = tmp_path / "steward-key"
+    subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(key)], check=True)
+
+    take_in(
+        root,
+        target_id=STEWARDED_TARGET,
+        root_dir=_staged_root(root, tmp_path, "stewarded-lemma", proved=False),
+        title="An open problem with a steward",
+        track="open",
+    )
+    steward.write(
+        root / "targets" / STEWARDED_TARGET,
+        action=steward.COMMIT,
+        login=STEWARD_LOGIN,
+        name=STEWARD_NAME,
+        link=STEWARD_LINK,
+        date="2026-09-16",
+        key_path=key,
+        signer=signer,
+    )
+    take_in(
+        root,
+        target_id=STEWARDLESS_TARGET,
+        root_dir=_staged_root(root, tmp_path, "stewardless-lemma", proved=False),
+        title="An open problem waiting for a steward",
+        track="open",
+    )
+    take_in(
+        root,
+        target_id=RESOLVED_TARGET,
+        root_dir=_staged_root(root, tmp_path, "resolved-lemma", proved=True),
+        title="A resolved known result",
+        track="formalization",
+    )
+    resolved_node = root / "targets" / RESOLVED_TARGET / "nodes" / "resolved-lemma"
+    doc = samples.attestation(
+        node_id="resolved-lemma",
+        statement_hash=schemas.content_hash((resolved_node / "Statement.lean").read_bytes()),
+        merge_commit=MERGE,
+        graph_commit=MERGE,
+        runner="hosted",
+        review={"kind": "pr-approval", "reviewer": "reviewer-one", "reference": None},
+        graph_id=RESOLVED_TARGET,
+    )
+    (root / "attestations" / "000009.json").write_bytes(schemas.canonical_json(doc))
+    take_in(
+        root,
+        target_id=CALIBRATION_TARGET,
+        root_dir=_staged_root(root, tmp_path, "calibration-lemma", proved=False),
+        title="A calibration target",
+        track="formalization",
+        calibration=True,
+    )
+    # A hash-named explainer on the fixture's proved interior node, signed by a curator.
+    text = "---\nauthor: someone\ndate: 2026-09-16\n---\nReassociate; both halves are in hand.\n"
+    digest = schemas.content_hash(text.encode("utf-8"))
+    (nodes_dir(root) / "and-reassoc" / "explainer" / f"{digest}.md").write_text(text)
+    explainers.sign(
+        nodes_dir(root) / "and-reassoc",
+        digest,
+        target_id=TARGET,
+        signer_login=SIGNER_LOGIN,
+        date="2026-09-16",
+        key_path=key,
+        signer=signer,
+    )
+    policy.write(
+        root,
+        policy.document(
+            enforced=True, since="2026-09-16", evidence="engineering/evidence/F15/calibration.md"
+        ),
+    )
+    products.generate(root, rendered_from=COMMIT, commit_time=NOW).write(root)
+    return root

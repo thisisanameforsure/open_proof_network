@@ -1,0 +1,16 @@
+F15-T10 — site structure (R10; AC10): the target page's Stewards and Digestion sections (name, link, date, or the cue linking /docs/#stewards; 'resolved — undigested' with the D-10 report-back sentence, the closure counts, the write-up records), the calibration label, the no-steward reason in words; the Targets row's Stewards and Digestion facts; the node page's 'Explained and vouched for by <name>, <date>' above the unverified label; the home counts led by 'explained: n of m proved nodes'; steward links and write-up urls on the link allowlist from validated records. Fixture: site/tests/fixture.build_with_stewards (a stewarded open target, a stewardless one under the enforced rule, a resolved-undigested target, a signed explainer, a calibration target). Screenshots: task-10-{home,targets,target-stewarded,target-stewardless,target-resolved,target-calibration,node-vouched}-{1200,390}.png, headless Chromium (Playwright's chromium_headless_shell-1228) over the rendered fixture served locally; read before this write-up: the four states and the vouched line are on screen, the Statement QA table still scrolls at 390 px as before.
+2026-09-16T20:03:01Z  commit: c02ea0f (+ working tree)
+
+$ uv run pytest site/tests -q
+...................................                                      [100%]
+179 passed in 12.36s
+
+$ make verify
+site/tests/test_render_evidence.py .......                               [ 98%]
+site/tests/test_render_stewards.py .......                               [ 99%]
+site/tests/test_untrusted.py .....................                       [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:29
+    from starlette.testclient import TestClient
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========= 2174 passed, 72 deselected, 2 warnings in 182.38s (0:03:02) ==========

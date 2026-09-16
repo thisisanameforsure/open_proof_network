@@ -71,6 +71,13 @@ FRONTIER_COLUMNS = (
 CLAIMS_PATH = "/claims.json"
 DECISIONS_DOC = Path(__file__).resolve().parents[2] / "docs" / "architecture_decisions_v_3_12.html"
 FUNNEL_DOCS = Path(__file__).resolve().parents[1] / "docs"  # F10-R9: site/docs/*.md
+#: F15-R10 (D-10 v3.17): the report-back sentence per digestion state, the words a source
+#: registry reads instead of "solved".
+DIGESTION_WORDS: dict[str, str] = {
+    "undigested": "kernel-checked, not yet explained",
+    "explained": "kernel-checked and explained by a person",
+    "written-up": "kernel-checked, explained and written up",
+}
 
 
 def document_head(text: str) -> tuple[str, str]:
@@ -186,17 +193,34 @@ class Renderer:
         partial = sum(
             1 for n in nodes if n.graph_entry["relation"] == "partial" and n.status == "proved"
         )
+        # F15-R10 (D-36 v3.17): explanation coverage leads — proved nodes carrying a valid
+        # signed explainer, of all proved nodes, summed over every target's digestion counts.
+        proved = sum(int((tv.digestion or {}).get("proved", 0)) for tv in site.targets.values())
+        explained = sum(
+            int((tv.digestion or {}).get("proved_explained", 0)) for tv in site.targets.values()
+        )
         counts = [
-            ("targets", len(site.targets), "/targets/"),
-            ("nodes proved", sum(1 for n in nodes if n.status == "proved"), "/targets/"),
-            ("nodes on the frontier", len(entries), "/frontier/"),
-            ("routes refuted", refuted, "/frontier/"),
-            ("variants resolved", resolved, "/targets/"),
-            ("variants partial", partial, "/targets/"),
+            (
+                "explained",
+                explained,
+                "/targets/",
+                f"explained: {explained} of {proved} proved nodes",
+            ),
+            ("targets", len(site.targets), "/targets/", "targets"),
+            (
+                "nodes proved",
+                sum(1 for n in nodes if n.status == "proved"),
+                "/targets/",
+                "nodes proved",
+            ),
+            ("nodes on the frontier", len(entries), "/frontier/", "nodes on the frontier"),
+            ("routes refuted", refuted, "/frontier/", "routes refuted"),
+            ("variants resolved", resolved, "/targets/", "variants resolved"),
+            ("variants partial", partial, "/targets/", "variants partial"),
         ]
         rows = "".join(
-            f'<tr><td class="n">{c}</td><td><a href="{esc(href)}">{esc(label)}</a></td></tr>'
-            for label, c, href in counts
+            f'<tr><td class="n">{c}</td><td><a href="{esc(href)}">{esc(words)}</a></td></tr>'
+            for _label, c, href, words in counts
         )
         body = _template("home.html").substitute(counts=rows)
         return self.page(SITE_NAME, body, renders=["targets/index.json", "frontier.json"])
@@ -219,7 +243,7 @@ class Renderer:
                     statement=esc(root.statement.strip()),
                     statement_link=self.file_link(root.statement_path),
                     informal=self.informal_line(tv),
-                    status=esc(e["status"]),
+                    status=esc(self.status_words(tv)),  # F15-R10: "resolved — undigested"
                     fidelity=esc(e["fidelity"]),
                     mathlib=esc(mathlib),
                     progress=esc(progress or "nothing proved yet"),
@@ -228,6 +252,9 @@ class Renderer:
                     sources=self.sources_block(tv),
                     qa=self.qa_block(tv),
                     review=esc(self.review_sentence(tv)),
+                    stewards=self.stewards_line(tv),
+                    digestion=esc(self.digestion_words(tv) or "not resolved"),
+                    calibration=self.calibration_label(tv),
                 )
             )
         body = _template("targets.html").substitute(rows="".join(rows))
@@ -362,7 +389,10 @@ class Renderer:
         e = tv.index_entry
         body = _template("target.html").substitute(
             target_id=esc(tid),
-            status=esc(e["status"]),
+            status=esc(self.status_words(tv)),
+            calibration=self.calibration_label(tv),
+            stewards=self.stewards_section(tv),
+            digestion=self.digestion_section(tv),
             fidelity=esc(e["fidelity"]),
             root=self.node_link(tid, tv.root),
             dag=svg,
@@ -376,6 +406,99 @@ class Renderer:
             fast_check=esc(self.fast_check(e.get("mathlib_sha"))),
         )
         return self.page(f"Target {tid}", body, renders=[f"targets/{tid}/graph.json"])
+
+    # --- F15-R10: stewards, the digestion state, the calibration label ----------------------------
+
+    def status_words(self, tv: TargetView) -> str:
+        """The status, and for a resolved target its digestion state beside it: "resolved —
+        undigested" until the state moves (D-33 v3.17)."""
+        status = str(tv.index_entry["status"])
+        digestion = tv.digestion
+        if status == "resolved" and digestion and digestion.get("state"):
+            return f"{status} — {digestion['state']}"
+        return status
+
+    def digestion_words(self, tv: TargetView) -> str:
+        """The D-10 report-back sentence for a resolved target, or "" for any other status."""
+        digestion = tv.digestion
+        state = str(digestion.get("state") or "") if digestion else ""
+        return DIGESTION_WORDS.get(state, "")
+
+    def calibration_label(self, tv: TargetView) -> str:
+        if not tv.calibration:
+            return ""
+        return (
+            '<p class="flag calibration">A calibration target: a result already known, taken in '
+            "on the formalization track to exercise the pipeline (Stages v3.17). It counts toward "
+            "no open-problem claim and needs no steward.</p>"
+        )
+
+    def steward_link(self, s: dict[str, Any]) -> str:
+        """A steward's name linked to the identity link the validated record carries; the url is
+        on the allowlist because the record validated (F15 §7, F11-Q11)."""
+        return f'<a href="{esc(str(s["link"]))}">{esc(str(s["name"]))}</a>'
+
+    def stewards_line(self, tv: TargetView) -> str:
+        stewards = tv.stewards
+        if not stewards:
+            return '<a href="/docs/#stewards">none yet</a>'
+        return ", ".join(f"{self.steward_link(s)} (since {esc(str(s['since']))})" for s in stewards)
+
+    def stewards_section(self, tv: TargetView) -> str:
+        """The target page's stewards: each by name and link with the date they committed, or
+        one cue saying what a steward commits to and receives, linked to the Docs section."""
+        stewards = tv.stewards
+        if stewards:
+            items = "".join(
+                f"<li>{self.steward_link(s)} (<code>{esc(str(s['login']))}</code>), committed "
+                f"{esc(str(s['since']))}</li>"
+                for s in stewards
+            )
+            return f'<ul class="stewards">{items}</ul>'
+        if tv.record is None or tv.record.get("track") != "open" or tv.calibration:
+            return "<p>No stewards: this target is not an open problem (D-6 v3.17).</p>"
+        return (
+            '<p class="cue">No steward yet. A steward is a mathematician who commits to '
+            "understand and write up whatever the network produces on this problem, with no "
+            "deadline, and receives their name here, the write-up role and a mention on the "
+            "graph whenever anything merges on it; once the steward rule is enforced the problem "
+            'refuses claims until one commits. <a href="/docs/#stewards">What a steward commits '
+            "to and receives.</a></p>"
+        )
+
+    def digestion_section(self, tv: TargetView) -> str:
+        """For a resolved target: the digestion state, the report-back sentence D-10 carries,
+        the closure counts and the write-up records; for any other status, one line."""
+        digestion = tv.digestion
+        if not digestion or not digestion.get("state"):
+            return "<p>Not resolved, so no digestion state yet (D-33 v3.17).</p>"
+        state = str(digestion["state"])
+        parts = [
+            f'<p class="lead">Resolved — <strong>{esc(state)}</strong>. Reported back as: '
+            f"<em>{esc(DIGESTION_WORDS[state])}</em> (D-10 v3.17).</p>",
+            f"<p>{esc(str(digestion['closure_explained']))} of "
+            f"{esc(str(digestion['closure']))} proved nodes in the closing proof's dependency "
+            "closure carry a signed explainer.</p>",
+        ]
+        if tv.writeups:
+            items = "".join(
+                f'<li>{esc(str(w["kind"]))}: <a href="{esc(str(w["url"]))}">'
+                f"{esc(str(w['title']))}</a>, {esc(str(w['signer']))}, {esc(str(w['date']))}</li>"
+                for w in tv.writeups
+            )
+            parts.append(f'<ul class="writeups">{items}</ul>')
+        else:
+            parts.append("<p>No paper or note recorded yet (D-32).</p>")
+        return "".join(parts)
+
+    def vouched_lines(self, nv: NodeView) -> str:
+        """R10: above the unverified label, one line per valid signature."""
+        return "".join(
+            f'<p class="vouched">Explained and vouched for by <strong>{esc(v.signer)}</strong>, '
+            f"{esc(v.date)} (<em>I can explain this proof without the tool that produced it</em>; "
+            f"D-3 v3.17). Rendered from {self.file_link(v.path)}.</p>"
+            for v in nv.signatures
+        )
 
     # --- F14-R10: what a proof needs, and the evidence behind it ----------------------------------
 
@@ -628,8 +751,11 @@ class Renderer:
         hist = ", ".join(f"{k} {v}" for k, v in sorted(attempts.failure_class_histogram.items()))
         refuted = ", ".join(attempts.refuted_route_classes)
         if nv.explainer is not None:
-            explainer = self.untrusted_block("unverified", nv.explainer, what="explainer")
+            explainer = self.vouched_lines(nv) + self.untrusted_block(
+                "unverified", nv.explainer, what="explainer"
+            )
             renders.append(nv.explainer.path)
+            renders.extend(v.path for v in nv.signatures)
         else:
             explainer = (
                 '<p class="cue">No explainer yet. A plain-language account of this proof, '
@@ -962,10 +1088,13 @@ class Renderer:
 
 
 def cited_urls(site: Site) -> frozenset[str]:
-    """Every off-site url a validated target record names (F11-R1): its sources and its D-10
-    posting. Nothing else on the site may point off-origin (R13)."""
+    """Every off-site url a validated record names (F11-R1): a target's sources and its D-10
+    posting, and since F15 each active steward's identity link and each valid write-up's url —
+    both from records the gate checked. Nothing else on the site may point off-origin (R13)."""
     urls: set[str] = set()
     for tv in site.targets.values():
+        urls.update(str(s["link"]) for s in tv.stewards)
+        urls.update(str(w["url"]) for w in tv.writeups)
         if tv.record is None:
             continue
         urls.update(str(s["url"]) for s in tv.record.get("sources") or [])
