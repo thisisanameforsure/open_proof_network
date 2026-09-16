@@ -2291,14 +2291,32 @@ def _merge_entries(  # noqa: PLR0913 — one argument per fact every entry recor
 
 
 def proposer_of(graph: Path, commit: str) -> str:
-    """The ledger identity behind a merge: the author of the pull request's commit (F07-R2 puts
-    the pseudonym there) — the second parent's for a merge commit, the commit's own otherwise."""
-    head = (
-        f"{commit}^2"
-        if _git(graph, "rev-parse", "--verify", "--quiet", f"{commit}^2").returncode == 0
-        else commit
-    )
-    return _git(graph, "log", "-1", "--format=%an", head).stdout.strip()
+    """The ledger identity behind a merge: the author of the commits the merge brought in.
+
+    F07-R2 puts the contributor's pseudonym in the submission commit's author, and D-23 puts the
+    App in the committer. Reading the **second parent's** author was right only while a branch
+    was never brought up to date: the graph's ruleset requires a branch to be up to date before
+    it merges, so every pull request that is not first in the queue carries an "update branch"
+    merge — authored by whoever pressed it — and that commit becomes the second parent.
+
+    Found on graph PR #71 (2026-09-16), the first merged partial by an outside pseudonym: the
+    ledger resolved the earner as the merger, and D-21 then barred the line because that identity
+    curated the target, so the contributor earned nothing. Where the merger is not a curator it
+    is worse — the contributor's proof line is written to the merger's ledger.
+
+    So take the newest non-merge commit the merge actually introduced (reachable from the second
+    parent, not from the first), which is the submission's own commit however many times the
+    branch was updated. A merge that introduced nothing but merges falls back to the second
+    parent, and a plain commit is its own author.
+    """
+    if _git(graph, "rev-parse", "--verify", "--quiet", f"{commit}^2").returncode != 0:
+        return _git(graph, "log", "-1", "--format=%an", commit).stdout.strip()
+    brought_in = _git(
+        graph, "log", "--no-merges", "-1", "--format=%an", f"{commit}^1..{commit}^2"
+    ).stdout.strip()
+    if brought_in:
+        return brought_in
+    return _git(graph, "log", "-1", "--format=%an", f"{commit}^2").stdout.strip()
 
 
 def _checkout_and_commit(graph_arg: Path, ref: str) -> tuple[Path, str]:

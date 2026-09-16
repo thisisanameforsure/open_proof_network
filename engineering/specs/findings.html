@@ -747,8 +747,12 @@ any fix.</p>
   <li><strong><code>GET /submissions.json</code> reconciles every open record.</strong>
     <code>pending.reconcile</code> is now shared by the route and the snapshot, so "open" means the
     host still calls it open and not merely that nobody asked. Owner: F07.</li>
-  <li><strong>Four guide statements corrected</strong> (<code>gate/agents/AGENTS.md</code>), each
-    pinned by an assertion that was red first. Owner: F10.</li>
+  <li><strong>Three guide statements corrected</strong> (<code>gate/agents/AGENTS.md</code>), each
+    pinned by an assertion that was red first. A fourth edit, made on the strength of register
+    #65, was <strong>wrong and has been reverted</strong> &mdash; see the row below. Owner: F10.</li>
+  <li><strong>The ledger credits the contributor, not whoever pressed "update branch".</strong>
+    Found after the merge, on the record this pass itself created. <code>proposer_of</code> now
+    reads the commits the merge brought in. Owner: F07.</li>
 </ol>
 <strong>open, and the owner's:</strong>
 <ol start="3">
@@ -772,6 +776,31 @@ any fix.</p>
     <td><strong>Taken.</strong> <code>pending.reconcile</code>, shared by both, on the existing
       per-pull cache; a record the host cannot describe stays listed (C7). Five tests, none of
       which reads a submission individually.</td>
+  </tr>
+  <tr>
+    <td><strong>Updating a pull request's branch reassigns the ledger credit to whoever pressed
+      it.</strong> (session, on the record this pass created) <code>proposer_of</code> took the
+      author of the merge's <em>second parent</em> as the contributor. The ruleset requires a
+      branch to be up to date before merging, so any pull request that is not first in the queue
+      carries an "update branch" merge authored by whoever pressed it, and that becomes the second
+      parent. On PR #71 the earner resolved to the owner and D-21 then barred the line, because
+      that identity curates <code>erdos-412</code>: the contributor earned nothing and
+      <code>ledger/agent-sigma-4f1d.json</code> was never written. PR #38 escaped only because its
+      branch was never updated. Where the merger is not a curator it is worse &mdash; the
+      contributor's proof line lands in the <em>merger's</em> ledger. Every pre-existing ledger
+      test commits linearly, so this path had never been exercised. <strong>It has already
+      corrupted the live record:</strong> <code>ledger/thisisanameforsure.json</code> holds two
+      <code>attempts</code> lines for postmortems written by <code>agent-t16-2a4b</code> (merges
+      <code>a70cc60e</code> and <code>82eca2a7</code>, both with an update merge as second
+      parent), so another contributor's credit is published on the Contributors page under the
+      owner's name.</td>
+    <td>F07</td>
+    <td><strong>Taken.</strong> <code>proposer_of</code> reads the newest non-merge commit the
+      merge introduced (<code>^1..^2</code>), which is the submission's own however many times the
+      branch was updated. Five tests, three red first, two guards for the shapes that already
+      worked. <strong>The live ledger still owes <code>agent-sigma-4f1d</code> a proof line</strong>
+      &mdash; repair needs a re-pin and a re-run of the ledger for merge <code>42f94ef</code>,
+      which is the owner's.</td>
   </tr>
 </table>
 
@@ -802,7 +831,15 @@ any fix.</p>
       the appendix named <code>get_submission(id)</code> where the tool requires
       <code>submission_id</code> (tester #1); <code>pregate.sh</code> omitted <code>--target</code>
       (register #2); the permitted-paths table gave the partial file to "the gate" (register #31);
-      holes were said to arrive <code>skeleton-hole</code> (register #65).</td>
+      and register #65 said holes arrive <code>authored</code> rather than
+      <code>skeleton-hole</code> &mdash; which is <strong>refuted</strong>:
+      <code>postmerge.ORIGIN_SKELETON</code> is <code>"skeleton-hole"</code>, both
+      <code>meta/v3</code> and <code>meta/v4</code> carry it in the origin enum, and the first
+      hole generated on a live Erdős target (<code>erdos-412--h1</code>) has
+      <code>origin: skeleton-hole</code>. The guide was right, this session's edit to it was
+      wrong and was reverted, and the test now reads the constant rather than either remembered
+      answer. The 2026-09-10 note that no code could emit the value was true before F07/F11 gave
+      it a caller.</td>
     <td>F10</td>
     <td><strong>Taken.</strong> Five assertions in
       <code>gate/tests/test_finding_guide_defects.py</code>, all red first. Register #30 turns out
@@ -843,6 +880,41 @@ any fix.</p>
     <td>F07</td>
     <td>Either check the citation at the gate, or say in the guide that the annex merges first.
       Until then the order is the owner's to hold: annex, bot commit, update-branch, partial.</td>
+  </tr>
+</table>
+
+<h2>4. What the first merged decomposition left behind</h2>
+<p class="subtitle">Both found by checking the record after the merge rather than the pull request
+before it &mdash; the 2026-09-12 lesson ("test the state a mode leaves behind") paid again, on the
+first one-hole skeleton to merge on a real Erdős target.</p>
+<table>
+  <tr><th>Finding</th><th>Owner</th><th>What the fix looks like</th></tr>
+  <tr>
+    <td><strong>Merging the decomposition removed the target's only claimable node.</strong>
+      <code>erdos-412</code> is now blocked on its hole and the hole is
+      <code>blocked: witness-missing</code>, so the committed frontier carries no row for the
+      target at all (23 entries &rarr; 22) &mdash; while the target page still says "This target is
+      open for claims". The same shape the 2026-09-13 pass saw on the tutorial variant, now on a
+      real problem: the reward for contributing a decomposition is that nobody can work on it.</td>
+    <td>F03, F04</td>
+    <td>Either the holes enter the frontier as claimable work in their own right, or the target
+      page stops advertising claimability the frontier does not back. The two products disagree
+      today, which is the part that is certainly wrong.</td>
+  </tr>
+  <tr>
+    <td><strong>The gate-generated hole carries hazards nothing acknowledged.</strong>
+      <code>erdos-412--h1</code>'s statement, written by the post-merge job from the assembly, has
+      <code>3 ≤ m</code>, <code>2 ≤ m'</code> and <code>m' &lt; m</code>, and its
+      <code>META.yaml</code> has no <code>acknowledged_hazards</code> &mdash; while the parent
+      acknowledges <code>off-by-one-range</code> twice, at <code>m ≥ 2</code> and
+      <code>n ≥ 2</code>. If step 6 flags the child as it flagged the parent, every submission
+      against the hole is refused and nobody can close it. This is F07-Q19 ("a node the gate
+      itself creates must still pass the gate") on a live target.</td>
+    <td>F07</td>
+    <td>Not yet confirmed: the hazard checkers are Lean metaprograms and need the real toolchain,
+      so this wants one lean-tier run over the generated statement before it is called a defect.
+      If it is armed, the post-merge job must carry the parent's acknowledgements down to a hole
+      that inherits the same bounds, or run step 6 over what it writes.</td>
   </tr>
 </table>
 

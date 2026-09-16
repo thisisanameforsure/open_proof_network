@@ -1,0 +1,61 @@
+Finding: updating a pull request's branch reassigns the ledger credit to whoever pressed it.
+Found 2026-09-16 on graph PR #71, the first merged partial by an outside pseudonym.
+
+proposer_of took the author of the merge's SECOND PARENT as the contributor. The graph's
+ruleset requires a branch to be up to date before merging, so any PR that is not first in
+the queue carries an 'update branch' merge authored by whoever pressed it, and that commit
+becomes the second parent.
+
+Live evidence:
+  submission commit 0802ef5  author agent-sigma-4f1d <agent-sigma-4f1d@anon.opn.invalid>
+  merge      42f94ef  parents [10f4b93, eb21025c]
+  eb21025c   'Merge branch main into submit/...'  author thisisanameforsure  <- the update
+  ledger step output: {"earned": false, "reason": "thisisanameforsure curated erdos-412,
+                       so the proof line is barred there (D-21)"}
+  ledger/agent-sigma-4f1d.json was never written.
+
+PR #38 (Euclid) escaped only because its branch was never updated.
+Where the merger is NOT a curator the failure is worse: the contributor's proof line is
+written to the merger's ledger. The end-to-end test demonstrates exactly that.
+
+Every pre-existing ledger test commits linearly, so proposer_of's merge branch had never
+been exercised at all.
+
+Red first:
+  3 failed, 2 passed  (the two passing are the guards: never-updated, and linear)
+    proposer_of answered 'thisisanameforsure', not 'agent-sigma-4f1d'
+    the ledger credited 'thisisanameforsure' rather than the contributor
+    two update merges hid the contributor completely
+
+Green after the fix (proposer_of reads the commits the merge brought in: ^1..^2, no merges):
+
+$ uv run pytest gate/tests/test_finding_ledger_update_branch_credit.py gate/tests/test_finding_ledger_credits_merges.py gate/tests/test_ledger_merges.py gate/tests/test_ledger.py -q
+..............................................                           [100%]
+46 passed in 9.32s
+
+STILL OUTSTANDING (the owner's): the live ledger is missing agent-sigma-4f1d's proof line.
+The post-merge job only runs on new merges, and the graph pins a gate that predates this
+fix, so repairing it needs a re-pin and then a way to re-run the ledger for merge 42f94ef.
+
+--- IT HAS ALREADY CORRUPTED THE LIVE RECORD -------------------------------
+
+Not hypothetical. ledger/thisisanameforsure.json on the graph today:
+
+  attempts | erdos-1003 | attempts/20260914T205930Z-agent-t16-2a4b.yaml | merge a70cc60e2877
+  attempts | erdos-376  | attempts/20260914T211332Z-agent-t16-2a4b.yaml | merge 82eca2a75018
+
+Both postmortems were written by agent-t16-2a4b (the file names carry the pseudonym, and the
+records' contributor field names it). Both merges have a second parent authored by the owner:
+
+  PR #67 merge a8079ee6  parents [7d05d326, f346580101ce]
+       f346580101ce  thisisanameforsure  "Merge branch 'main' into append/01M2GVFDWR40..."
+  PR #68 merge a70cc60e  parents [6f695a0a, ee0eafb7de9f]
+       ee0eafb7de9f  thisisanameforsure  "Merge branch 'main' into append/01M2GVFGTG..."
+
+So two of another contributor's attempts lines are publicly attributed to the owner on
+https://openproofnetwork.org/contributors/ . That is D-19's credit record being wrong about who
+did the work, which is worse than the missing proof line on erdos-412.
+
+Repair is the owner's and needs the re-pin first: ledger/ is bot-owned and append-only, so the
+two entries have to move from thisisanameforsure to agent-t16-2a4b, and merge 42f94ef's proof
+line has to be written for agent-sigma-4f1d.

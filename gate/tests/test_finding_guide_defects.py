@@ -1,6 +1,7 @@
-"""Findings: four places the contributor guide tells an agent something that is not true.
+"""Findings: three places the contributor guide tells an agent something that is not true.
 
-Three were re-found by the Erdős 412 live run (2026-09-16), one is the register's finding 2.
+Two were re-found by the Erdős 412 live run (2026-09-16), one is the register's finding 2. A
+fourth was claimed by register #65 and turned out to be false — see the origin test below.
 Docs are tests (F10-Q3), so each of these is an assertion over ``gate/agents/AGENTS.md`` and the
 fix is the guide's own edit.
 
@@ -12,9 +13,12 @@ fix is the guide's own edit.
    prechecked and submitted at, which the Skeletonization section says correctly two hundred
    lines later. A contributor who reads the table first learns the path is not theirs to write.
    (register #31; cost the 2026-09-13 tester two prechecks)
-3. The Skeletonization section says a merged skeleton's holes arrive with origin
-   ``skeleton-hole``. They arrive ``authored``: D-25's enum lost ``skeleton-hole`` and
-   ``postmerge.ORIGIN_SKELETON`` is what the code writes. (register #65)
+3. NOT a defect, and recorded here because acting on it was a mistake: register #65 said the
+   Skeletonization section's ``skeleton-hole`` was stale and holes arrive ``authored``. They do
+   not. ``postmerge.ORIGIN_SKELETON`` is ``"skeleton-hole"``, ``meta/v3`` and ``meta/v4`` both
+   carry it in the origin enum, and the first hole generated on a live Erdős target has it. The
+   guide was right, an edit made on #65's word was reverted, and the test below reads the
+   constant so neither remembered answer can be asserted again. (register #65, refuted)
 4. The appendix's tool table calls the argument ``get_submission(id)``; the tool's schema
    requires ``submission_id`` and refuses ``id`` with ``arguments-invalid``. The guide promises
    "every command in it runs as written", but the appendix is a table, not an ``sh`` block, so
@@ -32,6 +36,8 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+
+from opn_gate import postmerge, schemas
 
 ROOT = Path(__file__).resolve().parents[2]
 GUIDE = ROOT / "gate" / "agents" / "AGENTS.md"
@@ -87,14 +93,25 @@ def test_the_permitted_paths_table_gives_the_partial_to_the_contributor() -> Non
 
 
 def test_the_skeleton_section_names_the_origin_holes_actually_get() -> None:
-    """``skeleton-hole`` is not a value any code can write (D-25's enum, F07); it is
-    ``authored``."""
+    """The guide must name the origin the post-merge job actually writes, read from the code.
+
+    Register #65 said holes arrive ``authored`` and the guide's ``skeleton-hole`` was stale. That
+    is **refuted**: ``postmerge.ORIGIN_SKELETON`` is ``"skeleton-hole"``, both ``meta/v3`` and
+    ``meta/v4`` carry it in the origin enum, and the first hole generated on a live Erdős target
+    (``erdos-412--h1``, 2026-09-16) has ``origin: skeleton-hole`` in its ``META.yaml``. The
+    2026-09-10 note that no code could emit the value was true before F07/F11 gave it a caller.
+
+    So this asserts the guide against the constant rather than against either remembered answer:
+    a rename of ``ORIGIN_SKELETON`` now fails here instead of rotting the guide.
+    """
     body = section("## Skeletonization")
-    assert "skeleton-hole" not in body, (
-        "finding guide-hole-origin (register #65): the Skeletonization section still says holes "
-        "arrive with origin `skeleton-hole`; they arrive `authored`"
+    assert f"`{postmerge.ORIGIN_SKELETON}`" in body, (
+        f"the Skeletonization section must name the origin the gate writes, "
+        f"{postmerge.ORIGIN_SKELETON!r} (postmerge.ORIGIN_SKELETON)"
     )
-    assert "`authored`" in body, "the section should name the origin a hole really carries"
+    assert (
+        postmerge.ORIGIN_SKELETON in schemas.load_schema("meta/v4")["properties"]["origin"]["enum"]
+    ), "the origin the gate writes is not in the meta schema's enum"
 
 
 def test_the_appendix_names_the_submission_argument_the_tool_requires() -> None:

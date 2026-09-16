@@ -9,3 +9,22 @@ $ uv run pytest gate/tests/test_finding_guide_defects.py gate/tests/test_finding
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
 12 passed, 1 deselected, 2 warnings in 11.01s
+
+--- CORRECTION, same day, after PR #71 merged -------------------------------
+
+Register #65 ("the guide says holes arrive `skeleton-hole`; they arrive `authored`") is REFUTED,
+and this session's guide edit acting on it was wrong and has been reverted.
+
+  postmerge.py:240   ORIGIN_SKELETON = "skeleton-hole"
+  gate/schemas/meta/v3.json, v4.json   origin enum includes "skeleton-hole"
+  the first hole generated on a live Erdos target, targets/erdos-412/nodes/erdos-412--h1/META.yaml:
+      origin: skeleton-hole
+
+The 2026-09-10 log entry calling `skeleton-hole` "an enum value no code can emit" was true when
+written and went stale once F07/F11 gave it a caller. The guide's original wording was right.
+
+The test no longer asserts either remembered answer: it reads postmerge.ORIGIN_SKELETON and the
+meta schema's enum, so a rename fails the test instead of rotting the guide.
+
+So three guide statements were wrong, not four: #2 (pregate --target), #31 (partial path owner),
+and get_submission(id) in the appendix, plus the skeleton example's import header.

@@ -726,7 +726,7 @@ bundle path is `targets/<target>/nodes/<node>/attempts/<ts>-<pseudonym>-partial.
 `Proof.lean`, and a partial sent at `Proof.lean` is refused with `artifact-path-mismatch`. Pass
 `artifact_type: partial` to the precheck as well, and it refuses a wrong path before the run
 starts. When it merges, each hole becomes a child node on the frontier with origin
-`authored` (D-29), so the steps that bring you closer are in the graph for anyone to take.
+`skeleton-hole` (D-29), so the steps that bring you closer are in the graph for anyone to take.
 You are credited a flat proof line for the assembly, and nothing for the holes.
 
 Three rules the gate enforces mechanically:
