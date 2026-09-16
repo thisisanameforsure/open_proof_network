@@ -647,3 +647,46 @@ The law of the project:
   seconds rather than a ten-minute Mathlib build. The first approval arrived mid-build and passed without
   ever showing red. AC32's red state was seen after a dismissal, which is why the check approves, dismisses
   and approves again rather than approving once.
+- 2026-09-16 — An empty result is a claim about the accessor until proved otherwise. An audit session
+  reported three findings that were all its own misreads, each one a guessed accessor where the contract
+  was one file away: `check_cache.py` keys the store by the **full** 40-char commit while its index prints
+  `c[:12]`, so two short-SHA queries answered "no cache" for caches that were there; `cache.candidates`
+  returns **newest first**, so `cs[-4:]` sampled the oldest four and reported 0 modules for a euclid cache
+  whose newest entry holds 10; and `frontier.json`'s top-level key is **`entries`**, not `nodes`, so
+  `d.get("nodes")` reported an empty frontier to the founder when the live one carries 23 entries, 22
+  claimable, and the public page lists them. The rule that would have caught all three: before asserting a
+  shape, read the schema (`gate/schemas/<name>/vN.json` names every required field) or the function's own
+  source; and when a probe returns zero, empty or missing, re-derive the accessor *before* reporting it as
+  a fact about the system. This is "read the shape before asserting on it" (2026-09-09) paid three more
+  times in one session, and the cost is worse here, because a false "the frontier is empty" is a claim
+  that the network is broken. Also seen the same morning: `cut -d= -f1 .env` to list key names printed a
+  multi-line PEM in full, because line-oriented tools do not know a dotenv value can span lines — the
+  GitHub App key had to be rotated. Use `grep -oE '^[A-Z_]+=' .env`, or do not read the file.
+- 2026-09-16 — A shared graph checkout moves under a running session. Mid-audit the sibling clone
+  fast-forwarded from `dc455f8` to `10f4b93` (`reflog HEAD@{0}: merge origin/main`), so a `cat` of a file
+  that `git ls-tree HEAD` listed failed with "No such file", and two reads of the same product disagreed.
+  Nothing was corrupt. When a working-tree read contradicts itself, read the committed blob
+  (`git show <ref>:<path>`) and check the reflog before believing either — and never suppress stderr on
+  the diagnostic command itself (`git show ... 2>/dev/null` threw away the one message that explained an
+  empty result). Same hazard as the 2026-09-14 shared-index entry, one layer down.
+- 2026-09-16 — A product rule that keys off *status* hides a whole class of node. `in_frontier` admitted
+  `ready`/`speculative` plus open variants, and a hole is `blocked` from the moment the post-merge job
+  writes it — so no hole created since F07/F11 gave that job a caller had ever reached the frontier, while
+  D-29 says holes enter the frontier as children in four separate places and D-25 publishes
+  `origin: skeleton-hole` as a frontier field to *filter on*, dead weight for as long as no hole was ever
+  an entry. Nothing surfaced it until an agent's partial merged on `erdos-412`: the job created the hole,
+  derived the root blocked on it, and the target left the frontier entirely (23 entries to 22) while
+  `targets/index.json` went on publishing `claimable: true` with no reasons against it — the Targets page
+  inviting a contributor to a target the frontier offered nothing on. Membership now keys off the *reason*
+  (`graph.blocked_because`), so a node waiting on an unproved dependency still stays off. When a decision
+  says a thing enters a product, grep the product's membership rule for that class rather than for the
+  word; and a rule phrased over a derived enum is the shape to distrust, because the enum was chosen for
+  a different question. (F03-Q11. Ruff also caught the fix's own bug: a `lambda` defined in the node loop
+  closed over the loop's `tg` (B023), which would have read the last target's statuses for every entry.)
+- 2026-09-16 — Measure against the commit you mean, not the checkout you have. The first before/after of
+  that fix reported two newly listed nodes and missed the very hole it was written for, because the
+  sibling graph checkout sat at `10f4b93` while the hole arrived in `cdf91ae` — the tree had
+  fast-forwarded under the session twice that morning. `git worktree add -q --detach <dir> origin/main`
+  costs seconds, is read-only, and makes the measured ref explicit in the command; against it the same
+  script said 22 entries become 25. Remove the worktree afterwards (`worktree remove --force`), and leave
+  another session's worktrees alone — `worktree list` shows whose is whose.
