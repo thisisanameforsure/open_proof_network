@@ -1,0 +1,54 @@
+import random
+from math import gcd
+def is_prime(n):
+    if n<2: return False
+    for p in (2,3,5,7,11,13,17,19,23,29,31,37):
+        if n%p==0: return n==p
+    d=n-1;r=0
+    while d%2==0: d//=2;r+=1
+    for a in (2,3,5,7,11,13,17,19,23,29,31,37):
+        x=pow(a,d,n)
+        if x in (1,n-1): continue
+        for _ in range(r-1):
+            x=x*x%n
+            if x==n-1: break
+        else: return False
+    return True
+def pollard(n):
+    if n%2==0: return 2
+    while True:
+        x=random.randrange(2,n);y=x;c=random.randrange(1,n);d=1
+        while d==1:
+            x=(x*x+c)%n; y=(y*y+c)%n; y=(y*y+c)%n; d=gcd(abs(x-y),n)
+        if d!=n: return d
+def factor(n,res=None):
+    if res is None: res={}
+    if n==1: return res
+    if is_prime(n): res[n]=res.get(n,0)+1; return res
+    d=pollard(n); factor(d,res); factor(n//d,res); return res
+def S(n):
+    if n==1: return 1
+    s=1
+    for p,e in factor(n).items(): s*=(p**(e+1)-1)//(p-1)
+    return s
+LIM,STEPS=240,25
+def orbit(x,steps=STEPS):
+    o=[x];c=x
+    for _ in range(steps): c=S(c);o.append(c)
+    return o
+orb={m:orbit(m) for m in range(2,LIM+1)}
+downstream=[m for m in range(3,LIM+1) if any(m in orb[x][1:] for x in range(2,m))]
+rest=[m for m in range(3,LIM+1) if m not in downstream]
+resolved,residual=[],[]
+for m in rest:
+    sm=set(orb[m]); f=next((mp for mp in range(2,m) if sm & set(orb[mp])),None)
+    (resolved if f else residual).append(m)
+print("m in 3..%d considered: %d"%(LIM,LIM-2))
+print("downstream of a smaller start :",len(downstream))
+print("resolved by a visible partner :",len(resolved))
+print("residual                      :",len(residual))
+print("residual list                 :",residual)
+print("witnesses: s^3(9)=",orbit(9)[3]," s^6(2)=",orbit(2)[6])
+print("           s^1(11)=",orbit(11)[1]," s^2(5)=",orbit(5)[2])
+print("           s^1(25)=",orbit(25)[1]," s^1(16)=",orbit(16)[1])
+print("2 vs 5 disjoint in %d steps:"%STEPS, not(set(orbit(2))&set(orbit(5))))

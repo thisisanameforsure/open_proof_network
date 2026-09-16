@@ -1,0 +1,22 @@
+Finding: GET /submissions.json listed merged pull requests as open, for ever.
+Found 2026-09-16 orchestrating the Erdos 412 live run; fixed by pending.reconcile,
+shared by GET /submissions/{id} and GET /submissions.json.
+
+Red first — the five new tests against the unfixed service:
+
+$ uv run pytest api/tests/test_finding_stale_open_submissions.py -q   (before the fix)
+3 failed, 2 passed  — the two that passed are the guard rails (cache reuse, host-failure safety)
+
+Green after the fix:
+
+$ uv run pytest api/tests/test_finding_stale_open_submissions.py api/tests/test_pending_submissions.py api/tests/test_finding_pending_submissions.py -q
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+40 passed, 2 warnings in 8.76s
+
+Live proof of the defect, before the fix (the service as deployed):
+  list_submissions open = [66, 67, 68, 69, 70, 71]
+  gh: #66-#69 all MERGED 2026-09-15
+  get_submission("66")  ->  reconciled that one row
+  list_submissions open = [67, 68, 69, 70, 71]
+  (#67-#69 reconciled by hand the same way; the live open list now reads [70, 71])

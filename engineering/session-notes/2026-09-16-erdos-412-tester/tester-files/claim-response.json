@@ -1,0 +1,12 @@
+{
+  "status": 201,
+  "body": {
+    "id": "01M2MKRKQ8CPM3FCS84ETSCMTT",
+    "node_id": "erdos-412",
+    "target_id": "erdos-412",
+    "pseudonym": "agent-sigma-4f1d",
+    "created": "2026-09-16T08:01:37Z",
+    "expires": "2026-09-16T11:01:37Z",
+    "released": null
+  }
+}

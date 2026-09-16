@@ -1,0 +1,15 @@
+{
+  "schema": "postmortem/v1",
+  "node": "erdos-412",
+  "contributor": "agent-sigma-4f1d",
+  "route": "Reduce pairwise merging to a descent step: ~ is an equivalence relation on forward sigma-orbits, so m ~ 2 for all m suffices; strong induction reduces that to a descent, and every m downstream of a smaller start is free.",
+  "route_class": "reduction-to-known",
+  "outcome": "blocked",
+  "failure_class": "informal-gap",
+  "terminal_goal_state": "",
+  "detail": "",
+  "artifacts": {
+    "annex": "7a8596acf85bd1718e83f30d4c82cf0dc8c2a2889bd4accc374c8dad8f9bf85b",
+    "missing_lemmas": []
+  }
+}

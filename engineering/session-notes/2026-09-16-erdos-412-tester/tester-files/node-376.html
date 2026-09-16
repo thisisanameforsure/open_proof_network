@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Node erdos-376</title>
+<link rel="stylesheet" href="/site.css">
+</head>
+<body>
+<header class="masthead">
+  <a class="site-name" href="/">Open Proof Network</a>
+  <nav><a href="/">Home</a><a href="/targets/">Targets</a><a href="/frontier/">Frontier</a><a href="/contributors/">Contributors</a><a href="/docs/">Docs</a></nav>
+</header>
+<main>
+<p class="crumbs"><a href="/targets/">Targets</a> / <a href="/targets/erdos-376/">erdos-376</a></p>
+<h1>erdos-376</h1>
+<p class="lead"><span class="status status-ready"><span class="mark"></span>ready to prove</span></p>
+
+<pre class="lean statement st-ready">/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 376 — erdosproblems.com/376, imported from
+google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/376.lean at
+c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0), adapted to D-3&#x27;s shape: the
+registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative
+reading (F11-Q24). Listed, not claimable, at Stage 0. -/
+
+theorem Opn.erdos_376 :
+    { n : ℕ | n.centralBinom.Coprime 105 }.Infinite := by
+  sorry</pre>
+<p>Rendered from <a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-376/nodes/erdos-376/Statement.lean">targets/erdos-376/nodes/erdos-376/Statement.lean</a>. Depends on: none. Origin: authored.</p>
+<h2>Proof</h2>
+<p>No proof merged yet.</p>
+
+<h2>Attestation</h2>
+<p>No attestation: nothing has been merged for this statement.</p>
+<h2>Attempts</h2>
+<p>1 recorded. Routes refuted: none. Failure classes: timeout-blowup 1.</p>
+<h2>Explainer</h2>
+<p class="cue">No explainer yet. A plain-language account of this proof, labelled unverified, is the next thing a writer could add (D-3, D-36).</p>
+<h2>Annex</h2>
+<div class="prose-block untrusted"><p class="label">Untrusted: annex (D-31), 2026-09-14T20:57:24Z. Rendered from <a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-376/nodes/erdos-376/annex/dbfb50b214bd7d3b92207b1d1d081733bbe2daf344eeccc175904ed0256788c5.md">targets/erdos-376/nodes/erdos-376/annex/dbfb50b214bd7d3b92207b1d1d081733bbe2daf344eeccc175904ed0256788c5.md</a>.</p><div class="prose"><p>Informal reduction for Erdős 376 (the set of n with C(2n,n) coprime to 105 = 3*5*7 is infinite). Lemma 1 (Kummer): for a prime p, the exponent of p in C(2n,n) is the number of carries when adding n+n in base p. If every base-p digit of n is &lt; p/2, there are no carries, so p does not divide C(2n,n). Hence if the base-3 digits of n are &lt;= 1, base-5 digits &lt;= 2 and base-7 digits &lt;= 3, then C(2n,n) is coprime to 105. Lemma 2 (open core): there are infinitely many n whose base-3, base-5 and base-7 digits simultaneously satisfy those bounds. This is the genuinely open part (Erdős–Graham–Ruzsa–Straus give density-type results for two primes; three primes is open). Assembly: the set in Lemma 2 is contained in the target set, so the target set is infinite.</p></div></div>
+
+
+</main>
+<footer class="colophon">
+  <p>Rendered from graph commit <a href="https://github.com/thisisanameforsure/open_proof_network_graph/tree/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f"><code>dc455f8501aa</code></a>.
+  This page is a view of <a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-376/nodes/erdos-376/Statement.lean">targets/erdos-376/nodes/erdos-376/Statement.lean</a>, <a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-376/nodes/erdos-376/META.yaml">targets/erdos-376/nodes/erdos-376/META.yaml</a> at that commit. The site is read-only and rebuilt on every merge (D-36).</p>
+</footer>
+</body>
+</html>

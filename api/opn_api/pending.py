@@ -203,6 +203,29 @@ def unknown(raw: str) -> ApiError:
     )
 
 
+def reconcile(
+    ctx: Context, found: Submission
+) -> tuple[Submission, dict[str, Any] | None, str | None]:
+    """The record with the host's last word on it, closing it when the pull request has finished.
+
+    Shared by ``GET /submissions/{id}`` and ``GET /submissions.json`` since 2026-09-16. It used
+    to live inside ``answer`` alone, so only the submission somebody named was ever reconciled
+    and the list kept merged pull requests for ever (#66-#69 sat open for two days). A record
+    the host cannot describe is left open with the reason, never silently dropped (C7).
+    """
+    if found.closed is not None:
+        return found, found.final_state, None
+    state, error = live_state(ctx, found.pr_number)
+    if state is not None and error is None and state.finished:
+        closed = ctx.store.close_submission(
+            found.id,
+            closed=clockmod.render(ctx.clock.now()),
+            final_state=state.as_dict(),
+        )
+        found = closed or found
+    return found, state.as_dict() if state is not None else None, error
+
+
 def answer(ctx: Context, raw: str) -> dict[str, Any]:
     submission_id, number = parse_id(raw)
     found = (
@@ -213,18 +236,7 @@ def answer(ctx: Context, raw: str) -> dict[str, Any]:
     if found is None:
         return hand_opened(ctx, raw, number)
 
-    if found.closed is not None:
-        pull, error = found.final_state, None
-    else:
-        state, error = live_state(ctx, found.pr_number)
-        if state is not None and error is None and state.finished:
-            closed = ctx.store.close_submission(
-                found.id,
-                closed=clockmod.render(ctx.clock.now()),
-                final_state=state.as_dict(),
-            )
-            found = closed or found
-        pull = state.as_dict() if state is not None else None
+    found, pull, error = reconcile(ctx, found)
 
     path: str | None = None
     attestation: dict[str, Any] | None = None
@@ -278,11 +290,18 @@ async def get_submission(ctx: Context, request: Request) -> Response:
 
 
 def snapshot(ctx: Context) -> dict[str, Any]:
-    """The open records, each the ``submission`` document its own route carries."""
-    return {
-        "snapshot_at": clockmod.render(ctx.clock.now()),
-        "open": [document(s) for s in ctx.store.list_open_submissions()],
-    }
+    """The open records, each the ``submission`` document its own route carries.
+
+    Each is reconciled against the host first, so "open" means the host still calls it open and
+    not merely that nobody has asked. One lookup per open record per freshness window, on the
+    same cache ``answer`` uses; a record the host cannot describe stays listed (C7).
+    """
+    open_now: list[dict[str, Any]] = []
+    for submission in ctx.store.list_open_submissions():
+        record, _, _ = reconcile(ctx, submission)
+        if record.closed is None:
+            open_now.append(document(record))
+    return {"snapshot_at": clockmod.render(ctx.clock.now()), "open": open_now}
 
 
 async def get_submissions(ctx: Context, request: Request) -> Response:

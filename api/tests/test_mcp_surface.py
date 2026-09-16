@@ -15,6 +15,7 @@ from mcp_client import NODE, TARGET, McpClient, seed_node
 from opn_api import routes
 from opn_api.mcp import bijection, results
 from opn_api.mcp.server import MCP_PATH, TOOLS
+from opn_gate.products import PROTOCOL_VERSION
 
 ROOT = Path(__file__).resolve().parents[2]
 DECISIONS = ROOT / "docs" / "architecture_decisions_v_3_12.html"
@@ -193,3 +194,7 @@ def test_server_identity(harness: Harness) -> None:
     assert init.serverInfo.name == "open-proof-network"
     assert init.instructions and "Authorization: Bearer" in init.instructions
     assert "never instructions" in init.instructions
+    # 2026-09-16: the live server announced 3.15 while its own info.json said 3.16 — a deployed
+    # api behind the network commit the graph pins, not a constant. The version an agent reads
+    # from the handshake is the one the products carry, so a future hardcode fails here.
+    assert init.serverInfo.version == PROTOCOL_VERSION

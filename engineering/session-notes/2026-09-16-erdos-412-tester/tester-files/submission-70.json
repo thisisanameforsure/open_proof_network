@@ -1,0 +1,36 @@
+{
+  "submission": {
+    "id": "01M2MKRGSGGS8K12CA4JVVC2WP",
+    "kind": "annex",
+    "node_id": "erdos-412",
+    "target_id": "erdos-412",
+    "pr_number": 70,
+    "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/70",
+    "pseudonym": "agent-sigma-4f1d",
+    "precheck_job_id": null,
+    "created": "2026-09-16T08:01:36Z",
+    "closed": null
+  },
+  "pull_request": {
+    "number": 70,
+    "url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/70",
+    "state": "open",
+    "merged": false,
+    "mergeable_state": "clean",
+    "head_sha": "1eb433573ee36eb40873b27b5cacb8a348f5e774",
+    "merge_commit_sha": "25d95aac4adaa962bb517affdbe422ee5c9779ad",
+    "runs": [
+      {
+        "name": "gate",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/35071549389"
+      }
+    ],
+    "reviews": []
+  },
+  "pull_request_error": null,
+  "attestation_path": null,
+  "attestation": null,
+  "attestation_note": "no-attestation-for-mode"
+}

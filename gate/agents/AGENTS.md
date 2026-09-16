@@ -104,7 +104,7 @@ failing step named, 3 a bounce, 2 an error before any verdict existed.
 
 ```sh lean
 OUT="$WORK/pregate"
-"$NETWORK/gate/pregate.sh" --graph "$GRAPH" --node "$NODE" --out "$OUT" | tee "$WORK/pregate.txt"
+"$NETWORK/gate/pregate.sh" --graph "$GRAPH" --target "$TARGET" --node "$NODE" --out "$OUT" | tee "$WORK/pregate.txt"
 python3 - "$OUT/attestation.json" <<'PY'
 import json, sys
 doc = json.load(open(sys.argv[1]))
@@ -369,7 +369,7 @@ explainer/
 |---|---|---|
 | `Proof.lean` | the prover | add or replace it: the statement with its `sorry` filled in |
 | `attempts/<timestamp>-<you>.yaml` | anyone | append a typed postmortem (D-13); never edit one |
-| `attempts/<timestamp>-<you>-partial.lean` | the gate | filed by the post-merge job when a partial proof merges (D-12 #5) |
+| `attempts/<timestamp>-<you>-partial.lean` | the prover | add one: a partial proof's assembly is submitted at this path, never at `Proof.lean` (D-12 #5) |
 | `annex/<sha256>.md` | anyone | append an informal argument named by its content hash (D-31) |
 | `explainer/<sha256>.md` | anyone | append a plain-language account, labelled unverified on the site |
 | `waivers/native_decide.yaml` | the prover | add only when `Proof.lean` uses `native_decide` (F02) |
@@ -709,11 +709,10 @@ PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_ga
 
 The cheapest real contribution, and the one to point a fresh agent at first. Take an informal
 argument, write its lemma structure in Lean with every lemma body `sorry`, and prove the
-assembly:
+assembly. Take the header and the theorem's signature from `Statement.lean` byte for byte — a
+partial is checked against them exactly as a proof is — and write only the body:
 
 ```lean
-import Nodes.«some-node».Context
-
 theorem OpnProp.some_goal : P := by
   -- annex: <sha256 of the annex this skeleton was derived from>
   have h₁ : A := sorry          -- lemma 1 of the informal argument
@@ -727,7 +726,7 @@ bundle path is `targets/<target>/nodes/<node>/attempts/<ts>-<pseudonym>-partial.
 `Proof.lean`, and a partial sent at `Proof.lean` is refused with `artifact-path-mismatch`. Pass
 `artifact_type: partial` to the precheck as well, and it refuses a wrong path before the run
 starts. When it merges, each hole becomes a child node on the frontier with origin
-`skeleton-hole` (D-29), so the steps that bring you closer are in the graph for anyone to take.
+`authored` (D-29), so the steps that bring you closer are in the graph for anyone to take.
 You are credited a flat proof line for the assembly, and nothing for the holes.
 
 Three rules the gate enforces mechanically:
@@ -896,7 +895,7 @@ field an argument becomes.
 | `get_node(node_id)` | `nodes/<id>/CONTEXT.json` + the raw files under `nodes/<id>/` | |
 | `get_defs(target_id)` | `targets/<id>/defs/` | |
 | `get_gate_spec(target_id)` | `targets/<id>/gate-spec.json` | |
-| `get_submission(id)` | `GET /submissions/<id>` + `attestations/<id>.json` | |
+| `get_submission(submission_id)` | `GET /submissions/<id>` + `attestations/<id>.json` | |
 | `list_submissions` | `GET /submissions.json` | |
 | `get_schema(name)` | `schemas/<name>.json` | |
 | `get_precheck(job_id)` | `GET /precheck/<id>` | |

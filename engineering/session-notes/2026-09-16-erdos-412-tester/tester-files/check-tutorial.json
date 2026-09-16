@@ -1,0 +1,52 @@
+{
+  "status": 200,
+  "body": {
+    "authoritative": false,
+    "service": "axle",
+    "environment": "lean-4.33.0",
+    "exact": false,
+    "note": "a Lean-core-only statement is checked under the environment's `import Mathlib` header, so a name Mathlib also defines could elaborate differently there than in the gate",
+    "mode": "verify",
+    "lint": [],
+    "inlined_defs": [],
+    "result": {
+      "content": "import Mathlib\n\n/-! The tutorial node (D-27): permanently open, off-ledger. Lean core only. -/\n\ntheorem OpnProp.and_swap : \u2200 p q : Prop, p \u2227 q \u2192 q \u2227 p := by\n  rintro p q \u27e8hp, hq\u27e9\n  exact \u27e8hq, hp\u27e9\n\n",
+      "failed_declarations": [],
+      "lean_messages": {
+        "errors": [],
+        "infos": [],
+        "warnings": []
+      },
+      "negation": null,
+      "okay": true,
+      "timings": {
+        "candidate_ms": 8,
+        "declarations_ms": 0,
+        "formal_statement_ms": 11,
+        "total_ms": 19
+      },
+      "tool_messages": {
+        "errors": [],
+        "infos": [
+          "Imports mismatch detected. Overriding with default header. If this behavior is not desired, please turn `ignoreImports` off. Default header:\n\nimport Mathlib\n"
+        ],
+        "warnings": []
+      },
+      "info": {
+        "request_id": "2a3e6223-459d-433b-a8f3-f1cc11de8800",
+        "environment": "lean-4.33.0",
+        "total_request_time_ms": 71,
+        "queue_time_ms": 7,
+        "execution_time_ms": 63,
+        "cached_response": false,
+        "_executor_commit_sha": "c7ff197",
+        "_executor_docker_image_id": "sha256:8c1dafc5e514f26944925383401c14fd48333d1dd9a2c77336e820c1b1e239b7",
+        "_executor_artifact_sha256": "72572061366e799abb214789ee4f0506a29da445bc4e176c05b7d75182e6af6c",
+        "environment_wait_time_us": 16,
+        "environment_total_time_us": 62552,
+        "environment_pool_size": 64
+      }
+    },
+    "log_id": "01M2MKF8WRAHA38771RFCS15B6"
+  }
+}

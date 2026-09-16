@@ -1,0 +1,30 @@
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"status\": 202,\n  \"body\": {\n    \"id\": \"01M2MKGYKGFVJEG14ED8D365R4\",\n    \"node_id\": \"tutorial-and-swap\",\n    \"target_id\": \"tutorial\",\n    \"state\": \"queued\",\n    \"created\": \"2026-09-16T07:57:26Z\",\n    \"graph_commit\": \"82eca2a7501842f729ff5863a86da9ab8cb6a283\",\n    \"bundle_digest\": \"d85e288f949a1e7962d09c458d2a7944cbfefec982bba5e08bd4d0c928daaa4a\",\n    \"authenticated\": false,\n    \"nonce\": \"REDACTED-single-use-nonce-already-spent\",\n    \"public\": true\n  },\n  \"job_id\": \"01M2MKGYKGFVJEG14ED8D365R4\",\n  \"poll\": \"poll get_precheck with job_id until state is done or error; a precheck takes minutes\"\n}"
+      }
+    ],
+    "structuredContent": {
+      "status": 202,
+      "body": {
+        "id": "01M2MKGYKGFVJEG14ED8D365R4",
+        "node_id": "tutorial-and-swap",
+        "target_id": "tutorial",
+        "state": "queued",
+        "created": "2026-09-16T07:57:26Z",
+        "graph_commit": "82eca2a7501842f729ff5863a86da9ab8cb6a283",
+        "bundle_digest": "d85e288f949a1e7962d09c458d2a7944cbfefec982bba5e08bd4d0c928daaa4a",
+        "authenticated": false,
+        "nonce": "REDACTED-single-use-nonce-already-spent",
+        "public": true
+      },
+      "job_id": "01M2MKGYKGFVJEG14ED8D365R4",
+      "poll": "poll get_precheck with job_id until state is done or error; a precheck takes minutes"
+    },
+    "isError": false
+  }
+}

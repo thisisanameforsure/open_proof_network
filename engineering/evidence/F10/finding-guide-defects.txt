@@ -1,0 +1,11 @@
+Finding: four statements in the contributor guide that are not true (2026-09-16).
+register #2 (pregate --target), #31 (partial path owner), #65 (hole origin),
+plus get_submission(id) in the appendix and the skeleton example's import header.
+
+$ uv run pytest gate/tests/test_finding_guide_defects.py -q   (before the guide edits)
+5 failed in 0.04s
+
+$ uv run pytest gate/tests/test_finding_guide_defects.py gate/tests/test_finding_guide_skeleton.py gate/tests/test_walkthrough.py -q   (after)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+12 passed, 1 deselected, 2 warnings in 11.01s

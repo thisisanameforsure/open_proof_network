@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Targets</title>
+<link rel="stylesheet" href="/site.css">
+</head>
+<body>
+<header class="masthead">
+  <a class="site-name" href="/">Open Proof Network</a>
+  <nav><a href="/">Home</a><a href="/targets/">Targets</a><a href="/frontier/">Frontier</a><a href="/contributors/">Contributors</a><a href="/docs/">Docs</a></nav>
+</header>
+<main>
+<h1>Targets</h1>
+<p class="lead">Every target: its root statement in Lean, the informal statement it was curated
+against, its status, fidelity grade and progress.</p>
+<section class="target-card">
+<h2><a href="/targets/erdos-1003/">erdos-1003</a></h2>
+<pre class="lean">/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 1003: Are there infinitely many solutions to $\phi(n) = \phi(n+1)$, where $\phi$ is the Euler totient function? — imported from google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/1003.lean at c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0); the registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative reading (F11-Q24). Drafted by gate/tools/wave.py (F14-T11) and read by the curator before import (R13). -/
+
+open scoped Nat
+open Filter
+
+theorem Opn.erdos_1003 :
+    Set.Infinite {n | φ n = φ (n + 1)} := by
+  sorry</pre>
+<p class="informal">Are there infinitely many solutions to $\phi(n) = \phi(n+1)$, where $\phi$ is the Euler totient function?</p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/erdos-1003/erdos-1003/">erdos-1003</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-1003/nodes/erdos-1003/Statement.lean">targets/erdos-1003/nodes/erdos-1003/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 7 (A), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/1003.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/1003.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">No statement-QA pass is recorded yet (D-9 v3.12).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/erdos-1065/">erdos-1065</a></h2>
+<pre class="lean">/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 1065, part i: Are there infinitely many primes $p$ such that $p = 2^k * q + 1$ for some prime $q$ and $k ≥ 0$? — imported from google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/1065.lean at c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0); the registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative reading (F11-Q24). Drafted by gate/tools/wave.py (F14-T11) and read by the curator before import (R13). -/
+
+theorem Opn.erdos_1065 :
+    Set.Infinite {p | ∃ q k, p.Prime ∧ q.Prime ∧ p = 2^k * q + 1} := by
+  sorry</pre>
+<p class="informal">Are there infinitely many primes $p$ such that $p = 2^k * q + 1$ for some prime $q$ and $k ≥ 0$? This is mentioned as B46 in [Unsolved Problems in Number Theory](https://doi.org/10.1007/978-0-387-26677-0) by *Richard K. Guy*</p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/erdos-1065/erdos-1065/">erdos-1065</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-1065/nodes/erdos-1065/Statement.lean">targets/erdos-1065/nodes/erdos-1065/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 5 (B+), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/1065.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/1065.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">No statement-QA pass is recorded yet (D-9 v3.12).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/erdos-1094/">erdos-1094</a></h2>
+<pre class="lean">/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 1094: For all $n\ge 2k$ the least prime factor of $\binom{n}{k}$ is $\le\max(n/k,k)$, with only finitely many exceptions. — imported from google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/1094.lean at c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0); stated as the registry states it. Drafted by gate/tools/wave.py (F14-T11) and read by the curator before import (R13). -/
+
+open scoped Nat
+
+theorem Opn.erdos_1094 :
+    {(n, k) : ℕ × ℕ | 0 &lt; k ∧ 2 * k ≤ n ∧ (n.choose k).minFac &gt; max (n / k) k}.Finite := by
+  sorry</pre>
+<p class="informal">For all $n\ge 2k$ the least prime factor of $\binom{n}{k}$ is $\le\max(n/k,k)$, with only finitely many exceptions.</p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/erdos-1094/erdos-1094/">erdos-1094</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-1094/nodes/erdos-1094/Statement.lean">targets/erdos-1094/nodes/erdos-1094/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 5 (B+), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/1094.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/1094.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">No statement-QA pass is recorded yet (D-9 v3.12).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/erdos-172/">erdos-172</a></h2>
+<pre class="lean">/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 172 — erdosproblems.com/172, imported from
+google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/172.lean at
+c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0), adapted to D-3&#x27;s shape: the
+registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative
+reading (F11-Q24). Listed, not claimable, at Stage 0. -/
+
+theorem Opn.erdos_172 :
+    ∀ (n : ℕ) (color : ℕ → Fin n) (m : ℕ), ∃ (A : Finset ℕ), A.card ≥ m ∧ ∃ c, ∀ (S : Finset A),
+      S.Nonempty → color (∑ x ∈ S, x) = c ∧ color (∏ x ∈ S, x) = c := by
+  sorry</pre>
+<p class="informal">Whether every finite colouring of the natural numbers has arbitrarily large finite sets all of whose distinct-element sums and products share one colour. <span class="note">(the network's own paraphrase: the source states no licence, so its wording is cited rather than reproduced)</span></p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/erdos-172/erdos-172/">erdos-172</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-172/nodes/erdos-172/Statement.lean">targets/erdos-172/nodes/erdos-172/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 8 (A), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/172.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/172.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">Statement QA (D-9 v3.12): Hand QA pass 2026-09-12 (engineering/evidence/F11/open-targets.md): the Lean statement back-translates to — For every finite colouring and every m there is a finite set of at least m naturals such that every nonempty subset&#x27;s sum and product carry one common colour c. — which matches erdosproblems.com/172; no hypothesis is vacuous; licence Apache-2.0 (Formal Conjectures), header kept verbatim; external attempts counted in the record&#x27;s prior art. Grade mechanical-only until a non-author signs it (D-9).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/erdos-212/">erdos-212</a></h2>
+<pre class="lean">/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 212: Is there a dense subset of ℝ^2 such that all pairwise distances are rational? — imported from google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/212.lean at c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0); the registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative reading (F11-Q24). Drafted by gate/tools/wave.py (F14-T11) and read by the curator before import (R13). -/
+
+theorem Opn.erdos_212 :
+    ∃ u : Set ℂ, Dense u ∧ u.Pairwise fun c₁ c₂ =&gt; dist c₁ c₂ ∈ Set.range Rat.cast := by
+  sorry</pre>
+<p class="informal">Is there a dense subset of ℝ^2 such that all pairwise distances are rational?</p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/erdos-212/erdos-212/">erdos-212</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-212/nodes/erdos-212/Statement.lean">targets/erdos-212/nodes/erdos-212/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 5 (B+), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/212.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/212.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">No statement-QA pass is recorded yet (D-9 v3.12).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/erdos-251/">erdos-251</a></h2>
+<pre class="lean">/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 251: Is $\sum_{n=1}^\infty \frac{p_n}{2^n}$ irrational? — imported from google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/251.lean at c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0); the registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative reading (F11-Q24). Drafted by gate/tools/wave.py (F14-T11) and read by the curator before import (R13). -/
+
+theorem Opn.erdos_251 :
+    Irrational (∑&#x27; n : ℕ, (Nat.nth Nat.Prime n) / (2 ^ n)) := by
+  sorry</pre>
+<p class="informal">Is $\sum_{n=1}^\infty \frac{p_n}{2^n}$ irrational? Here $p_n$ is the $n$-th prime ($p_1=2, p_2=3, \dots$).</p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/erdos-251/erdos-251/">erdos-251</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-251/nodes/erdos-251/Statement.lean">targets/erdos-251/nodes/erdos-251/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 5 (B+), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/251.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/251.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">No statement-QA pass is recorded yet (D-9 v3.12).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/erdos-257/">erdos-257</a></h2>
+<pre class="lean">/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 257: Let $A\subseteq\mathbb{N}$ be an infinite set. — imported from google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/257.lean at c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0); the registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative reading (F11-Q24). Drafted by gate/tools/wave.py (F14-T11) and read by the curator before import (R13). -/
+
+theorem Opn.erdos_257 :
+    ∀ (A : Set ℕ), A.Infinite →
+    Irrational (∑&#x27; n : A, (1 : ℝ) / (2 ^ n.1 - 1)) := by
+  sorry</pre>
+<p class="informal">Let $A\subseteq\mathbb{N}$ be an infinite set. Is $$ \sum_{n\in A} \frac{1}{2^n - 1} $$ irrational?</p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/erdos-257/erdos-257/">erdos-257</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-257/nodes/erdos-257/Statement.lean">targets/erdos-257/nodes/erdos-257/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 5 (B+), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/257.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/257.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">No statement-QA pass is recorded yet (D-9 v3.12).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/erdos-324/">erdos-324</a></h2>
+<pre class="lean">/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 324: Does there exist a polynomial $f(x)\in\mathbb{Z}[x]$ such that all the sums $f(a)+f(b)$ with $a &lt; b$ nonnegative integers are distinct? — imported from google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/324.lean at c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0); the registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative reading (F11-Q24). Drafted by gate/tools/wave.py (F14-T11) and read by the curator before import (R13). -/
+
+open scoped Polynomial
+
+theorem Opn.erdos_324 :
+    ∃ f : ℤ[X], {(a, b) : ℕ × ℕ | a &lt; b}.InjOn fun (a, b) =&gt; f.eval (a : ℤ) + f.eval (b : ℤ) := by
+  sorry</pre>
+<p class="informal">Does there exist a polynomial $f(x)\in\mathbb{Z}[x]$ such that all the sums $f(a)+f(b)$ with $a &lt; b$ nonnegative integers are distinct?</p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/erdos-324/erdos-324/">erdos-324</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-324/nodes/erdos-324/Statement.lean">targets/erdos-324/nodes/erdos-324/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 8 (A), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/324.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/324.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">No statement-QA pass is recorded yet (D-9 v3.12).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/erdos-376/">erdos-376</a></h2>
+<pre class="lean">/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 376 — erdosproblems.com/376, imported from
+google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/376.lean at
+c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0), adapted to D-3&#x27;s shape: the
+registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative
+reading (F11-Q24). Listed, not claimable, at Stage 0. -/
+
+theorem Opn.erdos_376 :
+    { n : ℕ | n.centralBinom.Coprime 105 }.Infinite := by
+  sorry</pre>
+<p class="informal">Whether infinitely many n have the central binomial coefficient C(2n, n) coprime to 105. <span class="note">(the network's own paraphrase: the source states no licence, so its wording is cited rather than reproduced)</span></p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/erdos-376/erdos-376/">erdos-376</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-376/nodes/erdos-376/Statement.lean">targets/erdos-376/nodes/erdos-376/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 8 (A), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/376.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/376.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">Statement QA (D-9 v3.12): Hand QA pass 2026-09-12 (engineering/evidence/F11/open-targets.md): the Lean statement back-translates to — The set of n whose central binomial coefficient is coprime to 105 is infinite. — which matches erdosproblems.com/376; no hypothesis is vacuous; licence Apache-2.0 (Formal Conjectures), header kept verbatim; external attempts counted in the record&#x27;s prior art. Grade mechanical-only until a non-author signs it (D-9).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/erdos-406/">erdos-406</a></h2>
+<pre class="lean">/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 406 — erdosproblems.com/406, imported from
+google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/406.lean at
+c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0), adapted to D-3&#x27;s shape: the
+registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative
+reading (F11-Q24). Listed, not claimable, at Stage 0. -/
+
+theorem Opn.erdos_406 :
+    { n : ℕ | n.isPowerOfTwo ∧ Nat.digits 3 n ⊆ [0, 1] }.Finite := by
+  sorry</pre>
+<p class="informal">Whether only finitely many powers of two have base-three expansions using only the digits 0 and 1. <span class="note">(the network's own paraphrase: the source states no licence, so its wording is cited rather than reproduced)</span></p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/erdos-406/erdos-406/">erdos-406</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-406/nodes/erdos-406/Statement.lean">targets/erdos-406/nodes/erdos-406/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 8 (A), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/406.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/406.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">Statement QA (D-9 v3.12): Hand QA pass 2026-09-12 (engineering/evidence/F11/open-targets.md): the Lean statement back-translates to — The set of powers of two whose base-3 digits are all 0 or 1 is finite (the affirmative answer to the registry&#x27;s yes/no form). — which matches erdosproblems.com/406; no hypothesis is vacuous; licence Apache-2.0 (Formal Conjectures), header kept verbatim; external attempts counted in the record&#x27;s prior art. Grade mechanical-only until a non-author signs it (D-9).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/erdos-410/">erdos-410</a></h2>
+<pre class="lean">/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 410: Let $σ_1(n) = σ(n)$, the sum of divisors function, and $σ_k(n) = σ(σ_{k-1}(n))$. — imported from google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/410.lean at c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0); the registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative reading (F11-Q24). Drafted by gate/tools/wave.py (F14-T11) and read by the curator before import (R13). -/
+
+open ArithmeticFunction Filter
+
+theorem Opn.erdos_410 :
+    ∀ n &gt; 1,
+    Tendsto (fun k : ℕ ↦ ((sigma 1)^[k] n : ℝ) ^ (1 / (k : ℝ))) atTop atTop := by
+  sorry</pre>
+<p class="informal">Let $σ_1(n) = σ(n)$, the sum of divisors function, and $σ_k(n) = σ(σ_{k-1}(n))$. Is it true that $\lim_{k → ∞} σ_k(n)^{\frac 1 k} = ∞$? This is problem (iii) from Erdos, Granville, Pomerance, Spiro &quot;On the normal behavior of the iterates of some arithmetical functions&quot; (page 169 of the book &quot;Analytic Number Theory&quot;, 1990).</p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/erdos-410/erdos-410/">erdos-410</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-410/nodes/erdos-410/Statement.lean">targets/erdos-410/nodes/erdos-410/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 5 (B+), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/410.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/410.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">No statement-QA pass is recorded yet (D-9 v3.12).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/erdos-412/">erdos-412</a></h2>
+<pre class="lean">/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 412: Let $σ_1(n)=σ(n)$, the sum of divisors function, and $σ_k(n) = σ(σ_{k-1}(n))$. — imported from google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/412.lean at c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0); the registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative reading (F11-Q24). Drafted by gate/tools/wave.py (F14-T11) and read by the curator before import (R13). -/
+
+open ArithmeticFunction.sigma
+
+theorem Opn.erdos_412 :
+    ∀ᵉ (m ≥ 2) (n ≥ 2), ∃ i j, (σ 1)^[i] m = (σ 1)^[j] n := by
+  sorry</pre>
+<p class="informal">Let $σ_1(n)=σ(n)$, the sum of divisors function, and $σ_k(n) = σ(σ_{k-1}(n))$. Is it true that, for every $m, n ≥ 2$, there exist some $i, j$ such that $σ_i(m) = σ_j(n)$?</p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/erdos-412/erdos-412/">erdos-412</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-412/nodes/erdos-412/Statement.lean">targets/erdos-412/nodes/erdos-412/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 5 (B+), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/412.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/412.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">No statement-QA pass is recorded yet (D-9 v3.12).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/erdos-417/">erdos-417</a></h2>
+<pre class="lean">/-
+Copyright 2026 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 417, part i: Let$$V&#x27;(x)=\#\{\phi(m) : 1\leq m\leq x\}$$and$$V(x)=\#\{\phi(m) \leq x : 1\leq m\}.$$ Does $\lim V(x)/V&#x27;(x)$ exist? — imported from google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/417.lean at c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0); the registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative reading (F11-Q24). Drafted by gate/tools/wave.py (F14-T11) and read by the curator before import (R13). -/
+
+open Nat Set Filter
+open scoped Topology
+
+theorem Opn.erdos_417 :
+    ∃ L : ENNReal, Tendsto (fun x ↦
+      ({ k | k ∈ range totient ∧ (k : ℝ) ≤ x }.ncard : ENNReal) /
+      ((totient &#x27;&#x27; { m | 1 ≤ m ∧ (m : ℝ) ≤ x }).ncard : ENNReal))
+      atTop (𝓝 L) := by
+  sorry</pre>
+<p class="informal">Let$$V&#x27;(x)=\#\{\phi(m) : 1\leq m\leq x\}$$and$$V(x)=\#\{\phi(m) \leq x : 1\leq m\}.$$ Does $\lim V(x)/V&#x27;(x)$ exist?</p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/erdos-417/erdos-417/">erdos-417</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-417/nodes/erdos-417/Statement.lean">targets/erdos-417/nodes/erdos-417/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 5 (B+), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/417.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/417.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">No statement-QA pass is recorded yet (D-9 v3.12).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/erdos-51/">erdos-51</a></h2>
+<pre class="lean">/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 51: Is there an infinite set $A \subset \mathbb{N}$ such that for every $a \in A$, there is an integer n such that $\phi(n)=a$, and yet if $n_a$ is the smallest such integer, then $\frac — imported from google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/51.lean at c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0); the registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative reading (F11-Q24). Drafted by gate/tools/wave.py (F14-T11) and read by the curator before import (R13). -/
+
+open Filter
+open scoped Nat
+
+theorem Opn.erdos_51 :
+    ∃ A : Set ℕ, ∃ n : A → ℕ,
+      A.Infinite ∧
+      (∀ a : A, IsLeast (φ ⁻¹&#x27; {(a : ℕ)}) (n a)) ∧
+      Tendsto (fun a : A =&gt; (n a : ℝ) / (a : ℝ)) atTop atTop := by
+  sorry</pre>
+<p class="informal">Is there an infinite set $A \subset \mathbb{N}$ such that for every $a \in A$, there is an integer n such that $\phi(n)=a$, and yet if $n_a$ is the smallest such integer, then $\frac{n_a}{a} → \infty$ as $a → ∞$?</p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/erdos-51/erdos-51/">erdos-51</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-51/nodes/erdos-51/Statement.lean">targets/erdos-51/nodes/erdos-51/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 5 (B+), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/51.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/51.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">No statement-QA pass is recorded yet (D-9 v3.12).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/erdos-52/">erdos-52</a></h2>
+<pre class="lean">/-
+Copyright 2026 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 52 — erdosproblems.com/52, imported from
+google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/52.lean at
+c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0), adapted to D-3&#x27;s shape: the
+registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative
+reading (F11-Q24). Listed, not claimable, at Stage 0. -/
+
+open scoped Pointwise
+
+theorem Opn.erdos_52 :
+    ∀ (ε : ℝ), 0 &lt; ε → ε &lt; 1 → ∃ (C : ℝ), 0 &lt; C ∧ ∀ (A : Finset ℤ),
+      (max (A + A).card (A * A).card : ℝ) ≥ C * (A.card : ℝ) ^ (2 - ε) := by
+  sorry</pre>
+<p class="informal">Whether for every ε&gt;0 a finite set of integers has either its sumset or its product set of size at least a constant times |A|^(2−ε). <span class="note">(the network's own paraphrase: the source states no licence, so its wording is cited rather than reproduced)</span></p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/erdos-52/erdos-52/">erdos-52</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-52/nodes/erdos-52/Statement.lean">targets/erdos-52/nodes/erdos-52/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 6 (A), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/52.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/52.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">Statement QA (D-9 v3.12): Hand QA pass 2026-09-12 (engineering/evidence/F11/open-targets.md): the Lean statement back-translates to — For each ε in (0,1) there is C&gt;0 such that every finite set of integers has max(|A+A|, |A·A|) ≥ C·|A|^(2−ε). — which matches erdosproblems.com/52; no hypothesis is vacuous; licence Apache-2.0 (Formal Conjectures), header kept verbatim; external attempts counted in the record&#x27;s prior art. Grade mechanical-only until a non-author signs it (D-9).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/erdos-68/">erdos-68</a></h2>
+<pre class="lean">/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 68 — erdosproblems.com/68, imported from
+google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/68.lean at
+c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0), adapted to D-3&#x27;s shape: the
+registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative
+reading (F11-Q24). Listed, not claimable, at Stage 0. -/
+
+theorem Opn.erdos_68 :
+    Irrational (∑&#x27; n : ℕ, 1 / ((n + 2).factorial - 1 : ℝ)) := by
+  sorry</pre>
+<p class="informal">Whether the series summing 1/(n!-1) over n at least 2 has an irrational value. <span class="note">(the network's own paraphrase: the source states no licence, so its wording is cited rather than reproduced)</span></p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/erdos-68/erdos-68/">erdos-68</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-68/nodes/erdos-68/Statement.lean">targets/erdos-68/nodes/erdos-68/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 8 (A), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/68.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/68.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">Statement QA (D-9 v3.12): Hand QA pass 2026-09-12 (engineering/evidence/F11/open-targets.md): the Lean statement back-translates to — The value of the series ∑_{n≥2} 1/(n!−1) is irrational (the affirmative answer to the registry&#x27;s yes/no form). — which matches erdosproblems.com/68; no hypothesis is vacuous; licence Apache-2.0 (Formal Conjectures), header kept verbatim; external attempts counted in the record&#x27;s prior art. Grade mechanical-only until a non-author signs it (D-9).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/erdos-727/">erdos-727</a></h2>
+<pre class="lean">/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 727: Let $k ≥ 2$. — imported from google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/727.lean at c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0); the registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative reading (F11-Q24). Drafted by gate/tools/wave.py (F14-T11) and read by the curator before import (R13). -/
+
+open scoped Nat
+
+theorem Opn.erdos_727 :
+    ∀ k ≥ 2,
+    Set.Infinite {n : ℕ | (Nat.factorial (n + k)) ^ 2 ∣ Nat.factorial (2 * n)} := by
+  sorry</pre>
+<p class="informal">Let $k ≥ 2$. Does $((n+k)!)^2∣(2n)!$ hold for infinitely many $n$?</p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/erdos-727/erdos-727/">erdos-727</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-727/nodes/erdos-727/Statement.lean">targets/erdos-727/nodes/erdos-727/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 5 (B+), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/727.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/727.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">No statement-QA pass is recorded yet (D-9 v3.12).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/erdos-849/">erdos-849</a></h2>
+<pre class="lean">/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 849: Is it true that, for every integer $t\geq1$, there is some integer $a$ such that ${n \choose k} = a$ with $1\leq k \le \frac{n}{2}$ has exactly $t$ solutions? — imported from google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/849.lean at c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0); the registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative reading (F11-Q24). Drafted by gate/tools/wave.py (F14-T11) and read by the curator before import (R13). -/
+
+open Nat
+
+theorem Opn.erdos_849 :
+    ∀ t ≥ 1, ∃ a : ℕ,
+      {n : ℕ | ∃ k ≥ 1, 2 * k ≤ n ∧ choose n k = a}.ncard = t := by
+  sorry</pre>
+<p class="informal">Is it true that, for every integer $t\geq1$, there is some integer $a$ such that ${n \choose k} = a$ with $1\leq k \le \frac{n}{2}$ has exactly $t$ solutions?</p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/erdos-849/erdos-849/">erdos-849</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-849/nodes/erdos-849/Statement.lean">targets/erdos-849/nodes/erdos-849/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 5 (B+), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/849.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/849.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">No statement-QA pass is recorded yet (D-9 v3.12).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/erdos-850/">erdos-850</a></h2>
+<pre class="lean">/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 850: Can there exist two distinct integers $x$ and $y$ such that $x,y$ have the same prime factors, $x+1,y+1$ have the same prime factors, and $x+2,y+2$ also have the same prime factors? — imported from google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/850.lean at c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0); the registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative reading (F11-Q24). Drafted by gate/tools/wave.py (F14-T11) and read by the curator before import (R13). -/
+
+theorem Opn.erdos_850 :
+    ∃ x y : ℕ, x ≠ y ∧ x.primeFactors = y.primeFactors
+      ∧ (x + 1).primeFactors = (y + 1).primeFactors
+      ∧ (x + 2).primeFactors = (y + 2).primeFactors := by
+  sorry</pre>
+<p class="informal">Can there exist two distinct integers $x$ and $y$ such that $x,y$ have the same prime factors, $x+1,y+1$ have the same prime factors, and $x+2,y+2$ also have the same prime factors?</p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/erdos-850/erdos-850/">erdos-850</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-850/nodes/erdos-850/Statement.lean">targets/erdos-850/nodes/erdos-850/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 5 (B+), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/850.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/850.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">No statement-QA pass is recorded yet (D-9 v3.12).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/erdos-931/">erdos-931</a></h2>
+<pre class="lean">/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 931: Let $k_1 \geq k_2 \geq 3$. — imported from google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/931.lean at c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0); the registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative reading (F11-Q24). Drafted by gate/tools/wave.py (F14-T11) and read by the curator before import (R13). -/
+
+theorem Opn.erdos_931 :
+    ∀ᵉ (k₁ : ℕ) (k₂ ≥ 3), k₂ ≤ k₁ →
+    { (n₁, n₂) | n₁ + k₁ ≤ n₂ ∧
+      (∏ i ∈ Finset.Icc 1 k₁, (n₁ + i)).primeFactors =
+      (∏ j ∈ Finset.Icc 1 k₂, (n₂ + j)).primeFactors }.Finite := by
+  sorry</pre>
+<p class="informal">Let $k_1 \geq k_2 \geq 3$. Are there only finitely many $n_2\geq n_1 + k_1$ such that $$ \prod_{1\leq i\leq k_1}(n_1 + i)\ \text{and}\ \prod_{1\leq j\leq k_2} (n_2 + j) $$ have the same prime factors?</p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/erdos-931/erdos-931/">erdos-931</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-931/nodes/erdos-931/Statement.lean">targets/erdos-931/nodes/erdos-931/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 5 (B+), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/931.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/931.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">No statement-QA pass is recorded yet (D-9 v3.12).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/erdos-952/">erdos-952</a></h2>
+<pre class="lean">/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 952: Is there an infinite sequence of distinct Gaussian primes $x_1,x_2,\ldots$ such that $\lvert x_{n+1}-x_n\rvert \ll 1$? — imported from google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/952.lean at c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0); the registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative reading (F11-Q24). Drafted by gate/tools/wave.py (F14-T11) and read by the curator before import (R13). -/
+
+theorem Opn.erdos_952 :
+    ∃ (x : ℕ → GaussianInt) (C : ℤ),
+    Function.Injective x ∧
+      ∀ n, Prime (x n) ∧ (x (n + 1) - x n).norm &lt; C := by
+  sorry</pre>
+<p class="informal">Is there an infinite sequence of distinct Gaussian primes $x_1,x_2,\ldots$ such that $\lvert x_{n+1}-x_n\rvert \ll 1$?</p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/erdos-952/erdos-952/">erdos-952</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-952/nodes/erdos-952/Statement.lean">targets/erdos-952/nodes/erdos-952/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 6 (A), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/952.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/ErdosProblems/952.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">No statement-QA pass is recorded yet (D-9 v3.12).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/euclid-primes/">euclid-primes</a></h2>
+<pre class="lean">import Defs.IsPrime
+import Mathlib.Tactic
+import Nodes.«infinitude-of-primes».Context
+
+/-! Euclid&#x27;s theorem (Elements IX.20), over the graph&#x27;s own `IsPrime` (F11-T1): for every `n`
+there is a prime greater than `n`. The statement carries `Mathlib.Tactic` so a prover may use
+Mathlib&#x27;s tactics beneath the local definitions (F11-R7, Q16); a proof is this file with the
+`sorry` replaced, header included. -/
+
+theorem Opn.infinitude_of_primes : ∀ n : Nat, ∃ p : Nat, n &lt; p ∧ Opn.IsPrime p := by
+  sorry</pre>
+<p class="informal">For every natural number n there is a prime greater than n.</p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/euclid-primes/infinitude-of-primes/">infinitude-of-primes</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/euclid-primes/nodes/infinitude-of-primes/Statement.lean">targets/euclid-primes/nodes/infinitude-of-primes/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>resolved, not claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement waits for a non-author&#x27;s approving review on its pull request: the root has no counting signature and no catalog evidence at the high grade (D-4 step 9).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>5 proved</dd>
+</dl>
+<p class="why-not">Not claimable, because:</p><ul class="why-not"><li>the target&#x27;s D-33 status is resolved</li></ul><p class="signatures">Fidelity by subject: root mechanical-only (0 signatures); Divides mechanical-only (0 signatures); Fact mechanical-only (0 signatures); IsPrime mechanical-only (0 signatures).</p>
+<p class="sources">No external source: this statement is the network's own.</p>
+<p class="qa">No statement-QA pass is recorded yet (D-9 v3.12).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/riemann-hypothesis/">riemann-hypothesis</a></h2>
+<pre class="lean">/-
+Copyright 2026 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! The **Riemann Hypothesis**: all non-trivial zeros of the Riemann zeta function have real part $\frac{1}{2}$. — imported from google-deepmind/formal-conjectures (FormalConjectures/Millenium/RiemannHypothesis.lean at c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0); stated as the registry states it. Drafted by gate/tools/wave.py (F14-T11) and read by the curator before import (R13). -/
+
+theorem Opn.riemannHypothesis :
+    RiemannHypothesis := by
+  sorry</pre>
+<p class="informal">The **Riemann Hypothesis**: all non-trivial zeros of the Riemann zeta function have real part $\frac{1}{2}$. That is, if $\zeta(s) = 0$, $s \neq 1$, and $s$ is not a trivial zero $-2(n+1)$ for some $n \in \mathbb{N}$, then $\operatorname{Re}(s) = \frac{1}{2}$. This is the official Millennium Prize Problem as posed by the [Clay Mathematics Institute](https://www.claymath.org/wp-content/uploads/2022/05/riemann.pdf). This uses the `RiemannHypothesis` type from Mathlib, which is defined as `∀ (s : ℂ), riemannZeta s = 0 → (¬∃ n : ℕ, s = -2 * (n + 1)) → s ≠ 1 → s.re = 1 / 2`.</p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/riemann-hypothesis/riemann-hypothesis/">riemann-hypothesis</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/riemann-hypothesis/nodes/riemann-hypothesis/Statement.lean">targets/riemann-hypothesis/nodes/riemann-hypothesis/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>listed, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement merges on the gate without a human reviewer: its recorded catalog evidence scores 6 (A), at or above the high grade (D-4 step 9, F14).</dd>
+<dt>Mathlib</dt><dd>0df444a360eaa60ab8c11dca51a86af692955474</dd>
+<dt>Progress</dt><dd>1 ready</dd>
+</dl>
+
+<p class="sources">Sources and licences (D-10):</p><ul class="sources"><li><a href="https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/Millenium/RiemannHypothesis.lean">https://github.com/google-deepmind/formal-conjectures/blob/c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae/FormalConjectures/Millenium/RiemannHypothesis.lean</a> &mdash; The Formal Conjectures Authors (google-deepmind/formal-conjectures), Apache-2.0; licence Apache-2.0; cite only</li></ul>
+<p class="qa">No statement-QA pass is recorded yet (D-9 v3.12).</p>
+</section>
+<section class="target-card">
+<h2><a href="/targets/tutorial/">tutorial</a></h2>
+<pre class="lean">/-! The tutorial node (D-27): permanently open, off-ledger. Lean core only. -/
+
+theorem OpnProp.and_swap : ∀ p q : Prop, p ∧ q → q ∧ p := by
+  sorry</pre>
+<p class="informal">No informal statement is recorded for this target yet (D-6 intake, F11).</p>
+<dl class="facts">
+<dt>Root</dt><dd><a href="/nodes/tutorial/tutorial-and-swap/">tutorial-and-swap</a> (<a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/tutorial/nodes/tutorial-and-swap/Statement.lean">targets/tutorial/nodes/tutorial-and-swap/Statement.lean</a>)</dd>
+<dt>Status</dt><dd>resolved, claimable</dd>
+<dt>Fidelity</dt><dd>mechanical-only</dd>
+<dt>Review</dt><dd>A proof of this statement waits for a non-author&#x27;s approving review on its pull request: the root has no counting signature and no catalog evidence at the high grade (D-4 step 9).</dd>
+<dt>Mathlib</dt><dd>Lean core only</dd>
+<dt>Progress</dt><dd>1 proved, 3 blocked</dd>
+</dl>
+
+
+
+</section>
+
+
+</main>
+<footer class="colophon">
+  <p>Rendered from graph commit <a href="https://github.com/thisisanameforsure/open_proof_network_graph/tree/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f"><code>dc455f8501aa</code></a>.
+  This page is a view of <a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/index.json">targets/index.json</a> at that commit. The site is read-only and rebuilt on every merge (D-36).</p>
+</footer>
+</body>
+</html>

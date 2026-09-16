@@ -1,0 +1,63 @@
+{
+  "status": 200,
+  "body": {
+    "authoritative": false,
+    "service": "axle",
+    "environment": "lean-4.33.0",
+    "exact": false,
+    "note": "Mathlib v4.33.1 is one commit after v4.33.0 (\"chore: bump toolchain to v4.33.1\"); AXLE hosts lean-4.33.0 and no 4.33.1 environment (probed 2026-09-14).",
+    "mode": "verify",
+    "lint": [
+      {
+        "code": "sorry-present",
+        "message": "the text still uses sorry; a proof with sorry fails the axiom step, and a skeleton is submitted as a partial"
+      }
+    ],
+    "inlined_defs": [],
+    "result": {
+      "content": "/-\nCopyright 2025 The Formal Conjectures Authors.\n\nLicensed under the Apache License, Version 2.0 (the \"License\");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n    https://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an \"AS IS\" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.\n-/\n\nimport Mathlib\n\n/-! Erd\u0151s problem 412: Let $\u03c3_1(n)=\u03c3(n)$, the sum of divisors function, and $\u03c3_k(n) = \u03c3(\u03c3_{k-1}(n))$. \u2014 imported from google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/412.lean at c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0); the registry states a yes/no question as `answer(sorry) \u2194 P`; this states P, its affirmative reading (F11-Q24). Drafted by gate/tools/wave.py (F14-T11) and read by the curator before import (R13). -/\n\nopen ArithmeticFunction.sigma\n\ntheorem Opn.erdos_412 :\n    \u2200\u1d49 (m \u2265 2) (n \u2265 2), \u2203 i j, (\u03c3 1)^[i] m = (\u03c3 1)^[j] n := by\n  -- annex: 0000000000000000000000000000000000000000000000000000000000000000\n  -- Hole 1 (the core): consecutive integers have merging sigma-trajectories.\n  have consec : \u2200 k, 2 \u2264 k \u2192 \u2203 i j, (\u03c3 1)^[i] k = (\u03c3 1)^[j] (k + 1) := sorry\n  -- Assembly. \"x and y merge\" is an equivalence relation on forward orbits.\n  have symm : \u2200 x y : \u2115, (\u2203 i j, (\u03c3 1)^[i] x = (\u03c3 1)^[j] y) \u2192\n      \u2203 i j, (\u03c3 1)^[i] y = (\u03c3 1)^[j] x := by\n    rintro x y \u27e8a, b, h\u27e9\n    exact \u27e8b, a, h.symm\u27e9\n  have trans : \u2200 x y z : \u2115, (\u2203 i j, (\u03c3 1)^[i] x = (\u03c3 1)^[j] y) \u2192\n      (\u2203 i j, (\u03c3 1)^[i] y = (\u03c3 1)^[j] z) \u2192 \u2203 i j, (\u03c3 1)^[i] x = (\u03c3 1)^[j] z := by\n    rintro x y z \u27e8a, b, hab\u27e9 \u27e8c, d, hcd\u27e9\n    refine \u27e8c + a, b + d, ?_\u27e9\n    rw [Function.iterate_add_apply, hab, \u2190 Function.iterate_add_apply, Nat.add_comm c b,\n      Function.iterate_add_apply, hcd, \u2190 Function.iterate_add_apply]\n  -- Every m \u2265 2 merges with 2, by induction from 2 upwards.\n  have up : \u2200 m, 2 \u2264 m \u2192 \u2203 i j, (\u03c3 1)^[i] m = (\u03c3 1)^[j] 2 := by\n    intro m hm\n    induction m, hm using Nat.le_induction with\n    | base => exact \u27e80, 0, rfl\u27e9\n    | succ k hk ih => exact trans (k + 1) k 2 (symm k (k + 1) (consec k hk)) ih\n  intro m hm n hn\n  exact trans m 2 n (up m hm) (symm n 2 (up n hn))\n\n",
+      "failed_declarations": [
+        "Opn.erdos_412"
+      ],
+      "lean_messages": {
+        "errors": [],
+        "infos": [],
+        "warnings": [
+          "-:23:8-23:21: warning: declaration uses `sorry`\n"
+        ]
+      },
+      "negation": null,
+      "okay": false,
+      "timings": {
+        "candidate_ms": 42,
+        "declarations_ms": 10,
+        "formal_statement_ms": 22,
+        "total_ms": 79
+      },
+      "tool_messages": {
+        "errors": [
+          "Declaration 'Opn.erdos_412' is incomplete (uses 'sorry' or has errors)"
+        ],
+        "infos": [
+          "-:27:71: info: unsolved goals at sorry:\n\u22a2 \u2200 (k : \u2115), 2 \u2264 k \u2192 \u2203 i j, (\u21d1(\u03c3 1))^[i] k = (\u21d1(\u03c3 1))^[j] (k + 1)"
+        ],
+        "warnings": []
+      },
+      "info": {
+        "request_id": "bee932af-86a7-406f-9453-9e74f6649c20",
+        "environment": "lean-4.33.0",
+        "total_request_time_ms": 131,
+        "queue_time_ms": 0,
+        "execution_time_ms": 131,
+        "cached_response": false,
+        "_executor_commit_sha": "c7ff197",
+        "_executor_docker_image_id": "sha256:8c1dafc5e514f26944925383401c14fd48333d1dd9a2c77336e820c1b1e239b7",
+        "_executor_artifact_sha256": "72572061366e799abb214789ee4f0506a29da445bc4e176c05b7d75182e6af6c",
+        "environment_wait_time_us": 9,
+        "environment_total_time_us": 129191,
+        "environment_pool_size": 64
+      }
+    },
+    "log_id": "01M2MKB33GRJ504TYYSA8XJW5S"
+  }
+}

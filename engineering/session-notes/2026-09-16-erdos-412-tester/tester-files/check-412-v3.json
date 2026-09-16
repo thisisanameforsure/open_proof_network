@@ -1,0 +1,63 @@
+{
+  "status": 200,
+  "body": {
+    "authoritative": false,
+    "service": "axle",
+    "environment": "lean-4.33.0",
+    "exact": false,
+    "note": "Mathlib v4.33.1 is one commit after v4.33.0 (\"chore: bump toolchain to v4.33.1\"); AXLE hosts lean-4.33.0 and no 4.33.1 environment (probed 2026-09-14).",
+    "mode": "verify",
+    "lint": [
+      {
+        "code": "sorry-present",
+        "message": "the text still uses sorry; a proof with sorry fails the axiom step, and a skeleton is submitted as a partial"
+      }
+    ],
+    "inlined_defs": [],
+    "result": {
+      "content": "/-\nCopyright 2025 The Formal Conjectures Authors.\n\nLicensed under the Apache License, Version 2.0 (the \"License\");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n    https://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an \"AS IS\" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.\n-/\n\nimport Mathlib\n\n/-! Erd\u0151s problem 412: Let $\u03c3_1(n)=\u03c3(n)$, the sum of divisors function, and $\u03c3_k(n) = \u03c3(\u03c3_{k-1}(n))$. \u2014 imported from google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/412.lean at c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0); the registry states a yes/no question as `answer(sorry) \u2194 P`; this states P, its affirmative reading (F11-Q24). Drafted by gate/tools/wave.py (F14-T11) and read by the curator before import (R13). -/\n\nopen ArithmeticFunction.sigma\n\ntheorem Opn.erdos_412 :\n    \u2200\u1d49 (m \u2265 2) (n \u2265 2), \u2203 i j, (\u03c3 1)^[i] m = (\u03c3 1)^[j] n := by\n  -- annex: 0000000000000000000000000000000000000000000000000000000000000000\n  -- HOLE (the open core, in its weakest useful form).  Call m \"reachable\" if\n  -- m = \u03c3 x for some 2 \u2264 x < m; for a reachable m the descent below is free,\n  -- so only the unreachable m need an argument.\n  have descent : \u2200 m, 3 \u2264 m \u2192 (\u00ac \u2203 x, 2 \u2264 x \u2227 x < m \u2227 (\u03c3 1) x = m) \u2192\n      \u2203 m', 2 \u2264 m' \u2227 m' < m \u2227 \u2203 i j, (\u03c3 1)^[i] m = (\u03c3 1)^[j] m' := sorry\n  -- ASSEMBLY.\n  -- (1) merging is symmetric and transitive along the forward orbits.\n  have symm : \u2200 x y : \u2115, (\u2203 i j, (\u03c3 1)^[i] x = (\u03c3 1)^[j] y) \u2192\n      \u2203 i j, (\u03c3 1)^[i] y = (\u03c3 1)^[j] x := by\n    rintro x y \u27e8a, b, h\u27e9\n    exact \u27e8b, a, h.symm\u27e9\n  have trans : \u2200 x y z : \u2115, (\u2203 i j, (\u03c3 1)^[i] x = (\u03c3 1)^[j] y) \u2192\n      (\u2203 i j, (\u03c3 1)^[i] y = (\u03c3 1)^[j] z) \u2192 \u2203 i j, (\u03c3 1)^[i] x = (\u03c3 1)^[j] z := by\n    rintro x y z \u27e8a, b, hab\u27e9 \u27e8c, d, hcd\u27e9\n    refine \u27e8c + a, b + d, ?_\u27e9\n    rw [Function.iterate_add_apply, hab, \u2190 Function.iterate_add_apply, Nat.add_comm c b,\n      Function.iterate_add_apply, hcd, \u2190 Function.iterate_add_apply]\n  -- (2) every m \u2265 2 merges with 2, by strong induction: either m is reachable\n  -- from a smaller x in one \u03c3 step, or the hole hands us a smaller partner.\n  have up : \u2200 m, 2 \u2264 m \u2192 \u2203 i j, (\u03c3 1)^[i] m = (\u03c3 1)^[j] 2 := by\n    intro m\n    induction m using Nat.strong_induction_on with\n    | _ m ih =>\n      intro hm\n      rcases Nat.lt_or_ge m 3 with hlt | h3\n      \u00b7 have : m = 2 := by omega\n        subst this\n        exact \u27e80, 0, rfl\u27e9\n      \u00b7 by_cases hx : \u2203 x, 2 \u2264 x \u2227 x < m \u2227 (\u03c3 1) x = m\n        \u00b7 obtain \u27e8x, hx2, hxm, hxeq\u27e9 := hx\n          refine trans m x 2 \u27e80, 1, ?_\u27e9 (ih x hxm hx2)\n          rw [Function.iterate_zero_apply, Function.iterate_one, hxeq]\n        \u00b7 obtain \u27e8m', hm'2, hm'lt, hmerge\u27e9 := descent m h3 hx\n          exact trans m m' 2 hmerge (ih m' hm'lt hm'2)\n  -- (3) two numbers that both merge with 2 merge with each other.\n  intro m hm n hn\n  exact trans m 2 n (up m hm) (symm n 2 (up n hn))\n\n",
+      "failed_declarations": [
+        "Opn.erdos_412"
+      ],
+      "lean_messages": {
+        "errors": [],
+        "infos": [],
+        "warnings": [
+          "-:23:8-23:21: warning: declaration uses `sorry`\n"
+        ]
+      },
+      "negation": null,
+      "okay": false,
+      "timings": {
+        "candidate_ms": 65,
+        "declarations_ms": 10,
+        "formal_statement_ms": 18,
+        "total_ms": 100
+      },
+      "tool_messages": {
+        "errors": [
+          "Declaration 'Opn.erdos_412' is incomplete (uses 'sorry' or has errors)"
+        ],
+        "infos": [
+          "-:30:67: info: unsolved goals at sorry:\n\u22a2 \u2200 (m : \u2115),\n    3 \u2264 m \u2192 (\u00ac\u2203 x, 2 \u2264 x \u2227 x < m \u2227 (\u03c3 1) x = m) \u2192 \u2203 m', 2 \u2264 m' \u2227 m' < m \u2227 \u2203 i j, (\u21d1(\u03c3 1))^[i] m = (\u21d1(\u03c3 1))^[j] m'"
+        ],
+        "warnings": []
+      },
+      "info": {
+        "request_id": "540c2c2e-4332-48fa-b841-2f853be94e63",
+        "environment": "lean-4.33.0",
+        "total_request_time_ms": 163,
+        "queue_time_ms": 4,
+        "execution_time_ms": 158,
+        "cached_response": false,
+        "_executor_commit_sha": "c7ff197",
+        "_executor_docker_image_id": "sha256:8c1dafc5e514f26944925383401c14fd48333d1dd9a2c77336e820c1b1e239b7",
+        "_executor_artifact_sha256": "72572061366e799abb214789ee4f0506a29da445bc4e176c05b7d75182e6af6c",
+        "environment_wait_time_us": 8,
+        "environment_total_time_us": 155803,
+        "environment_pool_size": 64
+      }
+    },
+    "log_id": "01M2MKHF6R935A8YX1W2HJ4VYP"
+  }
+}

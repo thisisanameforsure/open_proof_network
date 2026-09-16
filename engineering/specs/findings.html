@@ -727,9 +727,129 @@ fix, held as a strict expected failure naming its task.</p>
   </tr>
 </table>
 
+<h1 id="fourth-pass">Fourth pass — a fresh agent decomposes an open Erdős problem (2026-09-16)</h1>
+<p class="subtitle">A fresh agent was given one string, the website, and told to take an open
+problem and either prove it or break it into easier pieces &mdash; the first pass whose objective
+was mathematics rather than the mechanics. It chose <code>erdos-412</code> (do the σ-iteration
+trajectories of any two integers ≥ 2 meet?) after <code>get_node</code> showed it the previous
+agent's identical decomposition of <code>erdos-376</code>, and landed a kernel-checked one-hole
+skeleton: graph pull requests #70 (annex) and #71 (partial), the first agent-authored
+decomposition of a genuinely open problem on the record. This session recomputed its arithmetic
+independently and read its proof structure by hand; both hold, and the tester itself recorded, in
+the committed annex, that the hole and the conjecture imply each other &mdash; a reduction of
+shape, not of depth. The raw material is
+<a href="../session-notes/2026-09-16-erdos-412-tester.md">engineering/session-notes/2026-09-16-erdos-412-tester.md</a>
+and the directory beside it. Method as in the second pass: every finding is a failing test before
+any fix.</p>
+
+<div class="rule"><strong>taken this session (test-first, 2113 → 2123 fast tests):</strong>
+<ol>
+  <li><strong><code>GET /submissions.json</code> reconciles every open record.</strong>
+    <code>pending.reconcile</code> is now shared by the route and the snapshot, so "open" means the
+    host still calls it open and not merely that nobody asked. Owner: F07.</li>
+  <li><strong>Four guide statements corrected</strong> (<code>gate/agents/AGENTS.md</code>), each
+    pinned by an assertion that was red first. Owner: F10.</li>
+</ol>
+<strong>open, and the owner's:</strong>
+<ol start="3">
+  <li><strong>A <code>get_dco</code> tool</strong>, held as two strict expected failures: a
+    bijection row must quote the decisions document verbatim and <code>/dco.json</code> is nowhere
+    in it, so the fix is a D-28 notation note like 2026-09-14's.</li>
+  <li><strong>A believed-direction field on targets</strong> &mdash; a D-6/D-9 intake change.</li>
+</ol></div>
+
+<h2>1. Wrong record</h2>
+<table>
+  <tr><th>Finding</th><th>Owner</th><th>What the fix looks like</th></tr>
+  <tr>
+    <td><strong><code>GET /submissions.json</code> listed merged pull requests as open, for
+      ever.</strong> (session, not the tester &mdash; it was forbidden <code>gh</code>)
+      Reconciliation was lazy <em>and per-submission</em>: <code>pending.answer()</code> did the
+      live read for the one id it was handed, <code>snapshot()</code> did none. #66&ndash;#69 had
+      merged on 2026-09-15 and sat in the open list for two days; the tester read that as slow
+      humans and built its finding 9 on it.</td>
+    <td>F07</td>
+    <td><strong>Taken.</strong> <code>pending.reconcile</code>, shared by both, on the existing
+      per-pull cache; a record the host cannot describe stays listed (C7). Five tests, none of
+      which reads a submission individually.</td>
+  </tr>
+</table>
+
+<h2>2. Blocks or misleads a contributor</h2>
+<table>
+  <tr><th>Finding</th><th>Owner</th><th>What the fix looks like</th></tr>
+  <tr>
+    <td><strong>An MCP-only client still cannot mint an identity.</strong> (tester #6)
+      <code>get_token</code> needs <code>dco.version</code>; only <code>GET /dco.json</code>
+      publishes it, <code>info.json</code> carries no dco key and there is no tool. F09-T6 closed
+      the other half, so the refusal now explains a bootstrap the client cannot finish.</td>
+    <td>F09 + D-28</td>
+    <td>Two strict expected failures, one naming <code>get_dco</code> and one stating the property
+      so it survives a different fix. Needs the notation note first.</td>
+  </tr>
+  <tr>
+    <td><strong>A target states the affirmative reading of a yes/no question, and nothing records
+      which way the answer is believed to go.</strong> (tester #5) <code>erdos-212</code>
+      (Erdős&ndash;Ulam) and <code>erdos-952</code> (the Gaussian moat) are both expected to be
+      <em>false</em>; the tester avoided them by recognising them on sight, which a less-read agent
+      would not.</td>
+    <td>F11 intake, D-6/D-9</td>
+    <td>One <code>believed_direction</code> field from the registry entry the curator already reads
+      at intake, surfaced on the target page and the frontier.</td>
+  </tr>
+  <tr>
+    <td>The skeleton example showed an <code>import</code> header that fails step 2 (tester #10);
+      the appendix named <code>get_submission(id)</code> where the tool requires
+      <code>submission_id</code> (tester #1); <code>pregate.sh</code> omitted <code>--target</code>
+      (register #2); the permitted-paths table gave the partial file to "the gate" (register #31);
+      holes were said to arrive <code>skeleton-hole</code> (register #65).</td>
+    <td>F10</td>
+    <td><strong>Taken.</strong> Five assertions in
+      <code>gate/tests/test_finding_guide_defects.py</code>, all red first. Register #30 turns out
+      to have been half-fixed: the citation moved into the body, the import line did not.</td>
+  </tr>
+</table>
+
+<h2>3. Friction and cosmetic</h2>
+<table>
+  <tr><th>Finding</th><th>Owner</th><th>What the fix looks like</th></tr>
+  <tr>
+    <td>The frontier does not show work in flight (tester #7): <code>erdos-412</code> read
+      <code>annex_present: false, attempts: 0</code> while #70 and #71 were open.</td>
+    <td>F03</td>
+    <td>An <code>open_submissions</code> count &mdash; a <code>frontier/v4</code> bump, so budget
+      the consumer sweep into the same commit.</td>
+  </tr>
+  <tr>
+    <td><code>serverInfo.version</code> answered 3.15 while <code>protocol_version</code> said 3.16
+      (tester #3).</td>
+    <td>F09</td>
+    <td>Not a constant: the tree already reads <code>PROTOCOL_VERSION</code>, so the deployed api
+      is behind the network commit the graph pins. A deploy, plus the guard test now in
+      <code>test_mcp_surface</code>.</td>
+  </tr>
+  <tr>
+    <td>The partial's path is hand-built and must match across the precheck and the submission
+      (tester #8); 404s serve the home page and there is no robots.txt or sitemap (tester #4).</td>
+    <td>F07, F04</td>
+    <td>Let the service name the path when a <code>precheck_job_id</code> is given; a real 404 body.
+      Neither taken.</td>
+  </tr>
+  <tr>
+    <td><strong>Merge order between a skeleton and its annex is load-bearing, and nothing enforces
+      it before the merge.</strong> (tester #2; register #8 confirmed live)
+      <code>apply_partial</code> raises when the cited annex is not on the node, and the gate
+      passed #71 while #70 was unmerged.</td>
+    <td>F07</td>
+    <td>Either check the citation at the gate, or say in the guide that the annex merges first.
+      Until then the order is the owner's to hold: annex, bot commit, update-branch, partial.</td>
+  </tr>
+</table>
+
 <footer>Open Proof Network · findings register · opened 2026-09-12 from the Erdős 376 tester pass ·
 second pass 2026-09-13 from the live MCP contribution ·
 third pass 2026-09-13 from the Euclid proof ·
+fourth pass 2026-09-16 from the Erdős 412 decomposition ·
 findings are retired by the task that lands them, not by editing this page</footer>
 </body>
 </html>

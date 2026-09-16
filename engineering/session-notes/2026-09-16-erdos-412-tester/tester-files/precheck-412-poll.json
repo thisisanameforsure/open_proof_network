@@ -1,0 +1,220 @@
+{
+  "id": "01M2MKS87GR3V4JJF4CWTEFMG7",
+  "node_id": "erdos-412",
+  "target_id": "erdos-412",
+  "state": "done",
+  "created": "2026-09-16T08:01:58Z",
+  "graph_commit": "82eca2a7501842f729ff5863a86da9ab8cb6a283",
+  "bundle_digest": "10470b7d7a32993a82f992aaa47bd418ddccdef33eb6f6a9f8b82f53020259a6",
+  "authenticated": true,
+  "result": {
+    "attestation": {
+      "artifact_hash": null,
+      "diagnostic": null,
+      "first_failing_step": null,
+      "gate_spec_hash": "e0c4b14dd2074af2191fb45c2952853d8bcaf2f18747eef3bd9d7077b59174a7",
+      "graph_commit": "82eca2a7501842f729ff5863a86da9ab8cb6a283",
+      "graph_id": "erdos-412",
+      "lean_toolchain": "leanprover/lean4:v4.33.1",
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "merge_commit": null,
+      "model_and_tooling": "undeclared",
+      "network_commit": "c7faed3f8dff13aaa61f262ef2d9ceb7bbb2cdeb",
+      "node_id": "erdos-412",
+      "precheck_attestation": {
+        "hash": null,
+        "signature_kind": null
+      },
+      "review": null,
+      "runner": "hosted",
+      "schema": "attestation/v4",
+      "signature": {
+        "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+        "kind": "service",
+        "timestamp": "2026-09-16T08:04:44Z",
+        "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQMMEzjPHgPaxUKW1Vica09RgZ8q6Sc+JMDbJmS+Fno4k0I6R4m\naEatCDvTD+tQ8qyh5H1kMfiRawfzVm4GXN5wE=\n-----END SSH SIGNATURE-----\n"
+      },
+      "statement_hash": "e1bc11e00a8cda4e6517b72a192f46e7a16089439fda343c97be4ff22a1f1a49",
+      "steps": [
+        {
+          "diagnostic": {
+            "code": "mathlib-pinned",
+            "details": {
+              "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+              "packages": 8
+            },
+            "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+          },
+          "name": "toolchain",
+          "result": "pass",
+          "step": 1
+        },
+        {
+          "diagnostic": {
+            "code": "partial-submission",
+            "details": {
+              "path": "attempts/20260916T080157Z-agent-sigma-4f1d-partial.lean"
+            },
+            "message": "a partial proof: attempts/20260916T080157Z-agent-sigma-4f1d-partial.lean (D-12 #5)"
+          },
+          "name": "paths",
+          "result": "pass",
+          "step": 2
+        },
+        {
+          "diagnostic": {
+            "code": "artifact-reduction",
+            "details": {
+              "holes": [
+                "descent"
+              ],
+              "kind": "partial"
+            },
+            "message": "partial: Opn.erdos_412 declares \u2200 m \u2265 2, \u2200 n \u2265 2, \u2203 i j, (\u21d1(\u03c3 1))^[i] m = (\u21d1(\u03c3 1))^[j] n; 1 hole(s)"
+          },
+          "name": "kernel-replay",
+          "result": "pass",
+          "step": 4
+        },
+        {
+          "diagnostic": null,
+          "name": "axioms",
+          "result": "pass",
+          "step": 5
+        },
+        {
+          "diagnostic": {
+            "code": "hazards-acknowledged",
+            "details": {
+              "acknowledged": [
+                {
+                  "checker": "off-by-one-range",
+                  "justification": "Deliberate: sigma 1 fixes 1, so the problem is stated for m, n >= 2, inclusive, as in the informal statement.",
+                  "location": "m \u2265 2"
+                },
+                {
+                  "checker": "off-by-one-range",
+                  "justification": "Deliberate: sigma 1 fixes 1, so the problem is stated for m, n >= 2, inclusive, as in the informal statement.",
+                  "location": "n \u2265 2"
+                }
+              ]
+            },
+            "message": "2 hazard finding(s) acknowledged in META.yaml"
+          },
+          "name": "hazards",
+          "result": "pass",
+          "step": 6
+        },
+        {
+          "diagnostic": null,
+          "name": "witness",
+          "result": "pass",
+          "step": 7
+        },
+        {
+          "diagnostic": null,
+          "name": "deps",
+          "result": "pass",
+          "step": 8
+        }
+      ],
+      "submitter": null,
+      "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+      "tooling": {
+        "harness": null,
+        "model": null
+      },
+      "trust_base": "kernel",
+      "verdict": "pass"
+    },
+    "bundle_digest": "10470b7d7a32993a82f992aaa47bd418ddccdef33eb6f6a9f8b82f53020259a6",
+    "first_failing_step": null,
+    "job_id": "01M2MKS87GR3V4JJF4CWTEFMG7",
+    "node_id": "erdos-412",
+    "steps": [
+      {
+        "diagnostic": {
+          "code": "mathlib-pinned",
+          "details": {
+            "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+            "packages": 8
+          },
+          "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+        },
+        "name": "toolchain",
+        "result": "pass",
+        "step": 1
+      },
+      {
+        "diagnostic": {
+          "code": "partial-submission",
+          "details": {
+            "path": "attempts/20260916T080157Z-agent-sigma-4f1d-partial.lean"
+          },
+          "message": "a partial proof: attempts/20260916T080157Z-agent-sigma-4f1d-partial.lean (D-12 #5)"
+        },
+        "name": "paths",
+        "result": "pass",
+        "step": 2
+      },
+      {
+        "diagnostic": {
+          "code": "artifact-reduction",
+          "details": {
+            "holes": [
+              "descent"
+            ],
+            "kind": "partial"
+          },
+          "message": "partial: Opn.erdos_412 declares \u2200 m \u2265 2, \u2200 n \u2265 2, \u2203 i j, (\u21d1(\u03c3 1))^[i] m = (\u21d1(\u03c3 1))^[j] n; 1 hole(s)"
+        },
+        "name": "kernel-replay",
+        "result": "pass",
+        "step": 4
+      },
+      {
+        "diagnostic": null,
+        "name": "axioms",
+        "result": "pass",
+        "step": 5
+      },
+      {
+        "diagnostic": {
+          "code": "hazards-acknowledged",
+          "details": {
+            "acknowledged": [
+              {
+                "checker": "off-by-one-range",
+                "justification": "Deliberate: sigma 1 fixes 1, so the problem is stated for m, n >= 2, inclusive, as in the informal statement.",
+                "location": "m \u2265 2"
+              },
+              {
+                "checker": "off-by-one-range",
+                "justification": "Deliberate: sigma 1 fixes 1, so the problem is stated for m, n >= 2, inclusive, as in the informal statement.",
+                "location": "n \u2265 2"
+              }
+            ]
+          },
+          "message": "2 hazard finding(s) acknowledged in META.yaml"
+        },
+        "name": "hazards",
+        "result": "pass",
+        "step": 6
+      },
+      {
+        "diagnostic": null,
+        "name": "witness",
+        "result": "pass",
+        "step": 7
+      },
+      {
+        "diagnostic": null,
+        "name": "deps",
+        "result": "pass",
+        "step": 8
+      }
+    ],
+    "verdict": "pass"
+  },
+  "public": true
+}

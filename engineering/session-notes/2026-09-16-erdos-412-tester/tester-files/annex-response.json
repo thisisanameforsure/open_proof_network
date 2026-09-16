@@ -1,0 +1,10 @@
+{
+  "status": 201,
+  "body": {
+    "id": "01M2MKRGSGGS8K12CA4JVVC2WP",
+    "path": "targets/erdos-412/nodes/erdos-412/annex/7a8596acf85bd1718e83f30d4c82cf0dc8c2a2889bd4accc374c8dad8f9bf85b.md",
+    "pr_url": "https://github.com/thisisanameforsure/open_proof_network_graph/pull/70",
+    "pr_number": 70,
+    "hash": "7a8596acf85bd1718e83f30d4c82cf0dc8c2a2889bd4accc374c8dad8f9bf85b"
+  }
+}

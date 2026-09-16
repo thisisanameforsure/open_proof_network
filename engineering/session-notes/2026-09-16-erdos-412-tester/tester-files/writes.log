@@ -1,0 +1,54 @@
+# Writes log — Open Proof Network tester run, 2026-09-16, identity agent-sigma-4f1d
+# Every state-changing call, in order, as it happened. Interface: MCP
+# (https://api.openproofnetwork.org/mcp) for all nine. No git, no gh, no credential
+# from this machine. The "final state" lines were observed before the session ended.
+
+07:57:26Z | MCP precheck_submission (NO token) | tutorial-and-swap
+  ids: job 01M2MKGYKGFVJEG14ED8D365R4, nonce (returned once)
+  files: targets/tutorial/nodes/tutorial-and-swap/Proof.lean
+  final state: done 07:59:23Z, verdict PASS, service-signed, steps 1,2,4,5,6,7,8 all pass
+
+08:00:45Z | MCP get_token | (identity)
+  sent: proof {kind tutorial, job_id 01M2MKGYKGFVJEG14ED8D365R4, nonce}, pseudonym agent-sigma-4f1d,
+        dco {version f7ac75b443f4ca16, accepted true}   <- version came from GET /dco.json (HTTP; no MCP tool)
+  ids: identity 01M2MKQ0Y8R1BZEJG5N0NAVPQT; token shown once, kept only in this scratch dir
+
+08:01:36Z | MCP submit_informal_annex | erdos-412
+  sent: annex markdown, licence CC-BY-4.0, model_and_tooling declared
+  ids: 01M2MKRGSGGS8K12CA4JVVC2WP, hash 7a8596acf85bd1718e83f30d4c82cf0dc8c2a2889bd4accc374c8dad8f9bf85b
+       path targets/erdos-412/nodes/erdos-412/annex/7a8596ac….md
+  pr_url: https://github.com/thisisanameforsure/open_proof_network_graph/pull/70
+  final state: open, gate success, mergeable_state clean, 0 reviews, UNMERGED
+
+08:01:37Z | MCP claim_node ttl=3 | erdos-412
+  ids: claim 01M2MKRKQ8CPM3FCS84ETSCMTT, expires 2026-09-16T11:01:37Z
+  final state: released 08:11:08Z (see below); was live in /claims.json and /frontier.json meanwhile
+
+08:01:58Z | MCP precheck_submission artifact_type=partial (token) | erdos-412
+  files: targets/erdos-412/nodes/erdos-412/attempts/20260916T080157Z-agent-sigma-4f1d-partial.lean
+  ids: job 01M2MKS87GR3V4JJF4CWTEFMG7, bundle_digest 10470b7d7a32993a82f992aaa47bd418ddccdef33eb6f6a9f8b82f53020259a6
+  final state: done 08:04:44Z (166 s), verdict PASS, service-signed,
+               step 4 "partial: Opn.erdos_412 …; 1 hole(s)", holes ["descent"]
+
+08:04:14Z | MCP claim_node WITHOUT token — deliberate refusal probe, made once | erdos-412
+  result: 401 {"error":"unauthenticated"} with a message naming the exact MCP recipe to mint a token
+  final state: nothing changed
+
+08:06:04Z | MCP submit_proof artifact_type=partial (token) | erdos-412
+  sent: same single file as the precheck, precheck_job_id 01M2MKS87GR3V4JJF4CWTEFMG7,
+        tooling {model claude-opus-5, version 1m-context, harness "Claude Code, MCP http transport"}
+  ids: submission 01M2MM0PGGC2PTZNZS8MNCQTTK
+  pr_url: https://github.com/thisisanameforsure/open_proof_network_graph/pull/71
+  gate run: https://github.com/thisisanameforsure/open_proof_network_graph/actions/runs/35071954509
+  final state: open, gate completed SUCCESS (~08:09:45Z), mergeable_state clean,
+               0 reviews required (target step9 = evidence), UNMERGED, attestation_note "not-merged"
+
+08:11:08Z | MCP release_claim | erdos-412
+  ids: claim 01M2MKRKQ8CPM3FCS84ETSCMTT, released 08:11:08Z
+  final state: node claims.active = []
+
+# Reads (no credential needed, all succeeded): site pages (/, /targets/, /frontier/,
+# /contributors/, /docs/, node pages), GET /health, /info.json, /dco.json, /claims.json,
+# /frontier.json, /hosted-checkers.json, GET /precheck/<id>; MCP initialize, tools/list,
+# server_info, list_targets, get_target, list_frontier (+filters), get_node, get_defs,
+# get_gate_spec, get_schema, get_precheck, get_submission, list_submissions, check_lean (6 calls).

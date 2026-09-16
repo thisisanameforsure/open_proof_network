@@ -1,0 +1,21 @@
+HTTP/2 200 
+content-type: text/html
+content-length: 2232
+last-modified: Tue, 15 Sep 2026 09:11:40 GMT
+x-amz-server-side-encryption: AES256
+accept-ranges: bytes
+server: AmazonS3
+date: Wed, 16 Sep 2026 07:40:07 GMT
+cache-control: public, max-age=60
+etag: "a2a1d0db9047fee332358bb435d9669d"
+x-cache: RefreshHit from cloudfront
+via: 1.1 7c78d171dd58ce2ec125ea6ebc1c01c0.cloudfront.net (CloudFront)
+x-amz-cf-pop: TLV55-P3
+alt-svc: h3=":443"; ma=86400
+x-amz-cf-id: SHV2MDPHY6YbtgZDQpmR3Q7YSizdTM2zAlqAneYEhyW5Z2vaXuD86Q==
+x-frame-options: DENY
+referrer-policy: no-referrer
+content-security-policy: default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'
+x-content-type-options: nosniff
+strict-transport-security: max-age=31536000; includeSubDomains
+

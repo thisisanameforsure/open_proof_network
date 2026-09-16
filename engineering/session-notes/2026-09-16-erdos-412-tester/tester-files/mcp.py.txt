@@ -1,0 +1,72 @@
+import json, sys, urllib.request, urllib.error, pathlib
+BASE = "https://api.openproofnetwork.org/mcp"
+STATE = pathlib.Path(__file__).with_name("mcp-session.txt")
+
+def post(payload, session=None, token=None, notify=False):
+    data = json.dumps(payload).encode()
+    req = urllib.request.Request(BASE, data=data, method="POST")
+    req.add_header("Content-Type", "application/json")
+    req.add_header("Accept", "application/json, text/event-stream")
+    req.add_header("MCP-Protocol-Version", "2025-06-18")
+    if session: req.add_header("Mcp-Session-Id", session)
+    if token: req.add_header("Authorization", "Bearer " + token)
+    try:
+        with urllib.request.urlopen(req, timeout=120) as r:
+            body = r.read().decode()
+            return r.status, dict(r.headers), body
+    except urllib.error.HTTPError as e:
+        return e.code, dict(e.headers), e.read().decode()
+
+def parse(body):
+    if not body.strip(): return None
+    if body.lstrip().startswith("{"): return json.loads(body)
+    out = []
+    for line in body.splitlines():
+        if line.startswith("data:"):
+            out.append(json.loads(line[5:].strip()))
+    return out[-1] if len(out)==1 else out
+
+def handshake(token=None):
+    st, hd, body = post({"jsonrpc":"2.0","id":1,"method":"initialize","params":{
+        "protocolVersion":"2025-06-18","capabilities":{},
+        "clientInfo":{"name":"opn-tester","version":"1.0"}}}, token=token)
+    sid = hd.get("Mcp-Session-Id") or hd.get("mcp-session-id")
+    print("initialize:", st, "session:", sid)
+    print(json.dumps(parse(body), indent=2)[:1500] if body else "(empty)")
+    if sid: STATE.write_text(sid)
+    post({"jsonrpc":"2.0","method":"notifications/initialized"}, session=sid, token=token)
+    return sid
+
+def call(method, params=None, token=None, sid=None, rid=2):
+    sid = sid or (STATE.read_text().strip() if STATE.exists() else None)
+    p = {"jsonrpc":"2.0","id":rid,"method":method}
+    if params is not None: p["params"] = params
+    st, hd, body = post(p, session=sid, token=token)
+    return st, parse(body)
+
+if __name__ == "__main__":
+    cmd = sys.argv[1]
+    token = None
+    tf = pathlib.Path(__file__).with_name("token.txt")
+    if tf.exists(): token = tf.read_text().strip()
+    if cmd == "init":
+        handshake(token)
+    elif cmd == "tools":
+        st, r = call("tools/list", {}, token=token)
+        print("status", st)
+        tools = r.get("result",{}).get("tools",[]) if isinstance(r,dict) else r
+        if isinstance(tools, list) and tools and isinstance(tools[0], dict) and "name" in tools[0]:
+            for t in tools:
+                print("-", t["name"], "::", (t.get("description") or "").split("\n")[0][:160])
+        else:
+            print(json.dumps(r, indent=2)[:3000])
+    elif cmd == "schema":
+        st, r = call("tools/list", {}, token=token)
+        for t in r["result"]["tools"]:
+            if t["name"] in sys.argv[2:]:
+                print(json.dumps(t, indent=2))
+    elif cmd == "call":
+        args = json.loads(sys.argv[3]) if len(sys.argv)>3 else {}
+        st, r = call("tools/call", {"name": sys.argv[2], "arguments": args}, token=token)
+        print("status", st)
+        print(json.dumps(r, indent=2)[:6000])

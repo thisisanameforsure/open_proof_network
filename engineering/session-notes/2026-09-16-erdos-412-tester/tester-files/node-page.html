@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Node erdos-412</title>
+<link rel="stylesheet" href="/site.css">
+</head>
+<body>
+<header class="masthead">
+  <a class="site-name" href="/">Open Proof Network</a>
+  <nav><a href="/">Home</a><a href="/targets/">Targets</a><a href="/frontier/">Frontier</a><a href="/contributors/">Contributors</a><a href="/docs/">Docs</a></nav>
+</header>
+<main>
+<p class="crumbs"><a href="/targets/">Targets</a> / <a href="/targets/erdos-412/">erdos-412</a></p>
+<h1>erdos-412</h1>
+<p class="lead"><span class="status status-ready"><span class="mark"></span>ready to prove</span></p>
+
+<pre class="lean statement st-ready">/-
+Copyright 2025 The Formal Conjectures Authors.
+
+Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-/
+
+import Mathlib
+
+/-! Erdős problem 412: Let $σ_1(n)=σ(n)$, the sum of divisors function, and $σ_k(n) = σ(σ_{k-1}(n))$. — imported from google-deepmind/formal-conjectures (FormalConjectures/ErdosProblems/412.lean at c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae, Apache-2.0); the registry states a yes/no question as `answer(sorry) ↔ P`; this states P, its affirmative reading (F11-Q24). Drafted by gate/tools/wave.py (F14-T11) and read by the curator before import (R13). -/
+
+open ArithmeticFunction.sigma
+
+theorem Opn.erdos_412 :
+    ∀ᵉ (m ≥ 2) (n ≥ 2), ∃ i j, (σ 1)^[i] m = (σ 1)^[j] n := by
+  sorry</pre>
+<p>Rendered from <a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-412/nodes/erdos-412/Statement.lean">targets/erdos-412/nodes/erdos-412/Statement.lean</a>. Depends on: none. Origin: authored.</p>
+<h2>Proof</h2>
+<p>No proof merged yet.</p>
+
+<h2>Attestation</h2>
+<p>No attestation: nothing has been merged for this statement.</p>
+<h2>Attempts</h2>
+<p>0 recorded. Routes refuted: none. Failure classes: none.</p>
+<h2>Explainer</h2>
+<p class="cue">No explainer yet. A plain-language account of this proof, labelled unverified, is the next thing a writer could add (D-3, D-36).</p>
+<h2>Annex</h2>
+<p>No annex.</p>
+<div class="prose-block untrusted"><p class="label">Untrusted: acknowledgment of a <code>off-by-one-range</code> finding at <code>m ≥ 2</code></p><div class="prose"><p>Deliberate: sigma 1 fixes 1, so the problem is stated for m, n &gt;= 2, inclusive, as in the informal statement.</p></div></div><div class="prose-block untrusted"><p class="label">Untrusted: acknowledgment of a <code>off-by-one-range</code> finding at <code>n ≥ 2</code></p><div class="prose"><p>Deliberate: sigma 1 fixes 1, so the problem is stated for m, n &gt;= 2, inclusive, as in the informal statement.</p></div></div>
+
+</main>
+<footer class="colophon">
+  <p>Rendered from graph commit <a href="https://github.com/thisisanameforsure/open_proof_network_graph/tree/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f"><code>dc455f8501aa</code></a>.
+  This page is a view of <a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-412/nodes/erdos-412/Statement.lean">targets/erdos-412/nodes/erdos-412/Statement.lean</a>, <a class="file" href="https://github.com/thisisanameforsure/open_proof_network_graph/blob/dc455f8501aae02ca2dea4d8842e9afc8d6c5e5f/targets/erdos-412/nodes/erdos-412/META.yaml">targets/erdos-412/nodes/erdos-412/META.yaml</a> at that commit. The site is read-only and rebuilt on every merge (D-36).</p>
+</footer>
+</body>
+</html>

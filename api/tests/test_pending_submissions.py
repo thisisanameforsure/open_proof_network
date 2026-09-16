@@ -309,6 +309,12 @@ def test_a_merged_annex_leaves_the_snapshot(harness: Harness) -> None:
     assert [e["pr_number"] for e in first["open"]] == [1, 2]
 
     harness.githost.set_pull_request_state(1, state="closed", merged=True)
+    # Since 2026-09-16 the snapshot above reconciles every open record, so both pull requests are
+    # in the cache for the freshness window (60 s, C7) and the detail read below is served from
+    # it — as `test_the_pull_request_state_is_cached_and_survives_a_host_failure` pins for any
+    # two reads inside the window. Age it, the way every other freshness test here does. Before
+    # the list reconciled it did no live read at all, so this line happened to find a cold cache.
+    age(harness)
     assert get(harness, "1")["submission"]["closed"] is not None
     snapshot = harness.client.get("/submissions.json").json()
     assert [e["pr_number"] for e in snapshot["open"]] == [2]
