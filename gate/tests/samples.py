@@ -366,10 +366,89 @@ def frontier_entry(**overrides: Any) -> dict[str, Any]:
     return doc
 
 
-def target_record(**overrides: Any) -> dict[str, Any]:
-    """A ``target/v1`` intake record with every D-6 artifact present (F11-R1)."""
+#: A signature block of the right shape, for schema tests; ``opn_gate.signed`` makes real ones.
+FAKE_SSHSIG = (
+    "-----BEGIN SSH SIGNATURE-----\n"
+    "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg\n"
+    "-----END SSH SIGNATURE-----\n"
+)
+FAKE_KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGxvbGxvbGxvbGxvbGxvbGxvbGxvbGxvbGxvbGxvbGxv test"
+
+
+def steward_record(**overrides: Any) -> dict[str, Any]:
+    """A ``steward/v1`` commitment (F15-R1), signature-shaped but not verifiable."""
     doc: dict[str, Any] = {
-        "schema": "target/v1",
+        "schema": "steward/v1",
+        "target": "euclid-primes",
+        "action": "commit",
+        "login": "steward-one",
+        "name": "A. Steward",
+        "link": "https://orcid.org/0000-0002-1825-0097",
+        "commitment": (
+            "I commit to make best efforts to understand and write up whatever the network "
+            "produces on this problem, and to sign the explainer of the proof that closes it."
+        ),
+        "date": "2026-09-16",
+        "key": FAKE_KEY,
+        "signature": FAKE_SSHSIG,
+    }
+    doc.update(overrides)
+    return doc
+
+
+def explainer_signature(**overrides: Any) -> dict[str, Any]:
+    """An ``explainer-signature/v1`` record (F15-R8), signature-shaped but not verifiable."""
+    doc: dict[str, Any] = {
+        "schema": "explainer-signature/v1",
+        "target": "euclid-primes",
+        "node": "infinitude-of-primes",
+        "explainer": "b" * 64,
+        "affirmation": "I can explain this proof without the tool that produced it.",
+        "signer": "steward-one",
+        "date": "2026-09-16",
+        "key": FAKE_KEY,
+        "signature": FAKE_SSHSIG,
+    }
+    doc.update(overrides)
+    return doc
+
+
+def writeup_record(**overrides: Any) -> dict[str, Any]:
+    """A ``writeup/v1`` record (F15-R6), signature-shaped but not verifiable."""
+    doc: dict[str, Any] = {
+        "schema": "writeup/v1",
+        "target": "euclid-primes",
+        "kind": "paper",
+        "title": "On the infinitude of primes, digested",
+        "url": "https://arxiv.org/abs/2609.00001",
+        "date": "2026-09-16",
+        "signer": "steward-one",
+        "key": FAKE_KEY,
+        "signature": FAKE_SSHSIG,
+    }
+    doc.update(overrides)
+    return doc
+
+
+def policy(**overrides: Any) -> dict[str, Any]:
+    """A ``policy/v1`` document with the steward rule enforced (F15-R3)."""
+    doc: dict[str, Any] = {
+        "schema": "policy/v1",
+        "steward_rule": {
+            "enforced": True,
+            "since": "2026-09-16",
+            "evidence": "engineering/evidence/F15/calibration.md",
+        },
+    }
+    doc.update(overrides)
+    return doc
+
+
+def target_record(**overrides: Any) -> dict[str, Any]:
+    """A ``target/v2`` intake record with every D-6 artifact present (F11-R1; F15-R13 fields
+    left at their defaults, so the record is what a v1 one was)."""
+    doc: dict[str, Any] = {
+        "schema": "target/v2",
         "id": "euclid-primes",
         "title": "Euclid's theorem",
         "informal": "For every natural number n there is a prime greater than n.",

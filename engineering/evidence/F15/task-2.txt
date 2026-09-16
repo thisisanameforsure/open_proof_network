@@ -1,0 +1,16 @@
+F15-T2 — schemas steward/v1, explainer-signature/v1, writeup/v1, policy/v1, target/v2, targets-index/v6, pinned; opn_gate.signed (the canonical body, sign and verify through the Signer seam), steward/policy/explainers/writeup readers and writers; products at targets-index/v6 with the policy state, stewards, digestion and calibration per target (R7's derivation, R9); intake reads target/v1 and v2 and writes v2; the version-string sweep (site accepted set); goldens and the api fixtures regenerated (api/tests/test_fixture_is_golden.py is the recipe, AC9); PROTOCOL_VERSION 3.17 (R15).
+2026-09-16T18:40:07Z  commit: e93a049 (+ working tree)
+
+$ make verify
+site/tests/test_finding_status_cause.py .....                            [ 94%]
+site/tests/test_links.py ......................                          [ 95%]
+site/tests/test_rejection.py ......................................      [ 97%]
+site/tests/test_render.py ............................                   [ 98%]
+site/tests/test_render_alternates.py .                                   [ 98%]
+site/tests/test_render_evidence.py .......                               [ 99%]
+site/tests/test_untrusted.py .....................                       [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:29
+    from starlette.testclient import TestClient
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========= 2140 passed, 72 deselected, 2 warnings in 163.77s (0:02:43) ==========

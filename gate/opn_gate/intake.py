@@ -43,7 +43,12 @@ from opn_gate import fidelity, layout, records, schemas
 
 log = logging.getLogger(__name__)
 
-SCHEMA = "target/v1"
+#: New records are written at v2 (F15-R13): a proposal source, the proposer, the calibration flag
+#: and the upstream opt-out, each optional, so a v1 record carries over by its schema string.
+SCHEMA = "target/v2"
+#: Every version the reader accepts (D-34: versioned, never edited). A record is validated
+#: against the version it declares; anything outside the set is a graph defect.
+READABLE_SCHEMAS: tuple[str, ...] = ("target/v1", "target/v2")
 TARGET_FILE = "target.yaml"
 TARGET_STATUS_SCHEMA = "target-status/v2"
 GATE_SPEC_SCHEMA = "gate-spec/v1"
@@ -105,22 +110,52 @@ def curator_of(target_directory: Path) -> str | None:
     return None if doc is None else str(doc["curator"])
 
 
+def read_record(path: Path) -> dict[str, Any]:
+    """A target record file, validated against the version it declares (``READABLE_SCHEMAS``)."""
+    doc = schemas.load_yaml(path)
+    if doc.get("schema") not in READABLE_SCHEMAS:
+        msg = (
+            f"{path} declares {doc.get('schema')!r}; a target record is one of "
+            f"{', '.join(READABLE_SCHEMAS)}"
+        )
+        raise schemas.SchemaError(msg)
+    return doc
+
+
+def record_schema(doc: dict[str, Any]) -> str:
+    """The version a record declares, when it is one the reader accepts; else the current one,
+    so validating a malformed document names the shape it should have."""
+    declared = doc.get("schema")
+    return str(declared) if declared in READABLE_SCHEMAS else SCHEMA
+
+
 def load_doc(target_directory: Path) -> dict[str, Any] | None:
     """The target's ``target.yaml``, or ``None`` for a target that predates F11."""
     path = record_path(target_directory)
     if not path.is_file():
         return None
-    return schemas.load_yaml(path, SCHEMA)
+    return read_record(path)
 
 
 def write_doc(target_directory: Path, doc: dict[str, Any]) -> Path:
     path = record_path(target_directory)
     path.parent.mkdir(parents=True, exist_ok=True)
+    validated = schemas.validate(doc, record_schema(doc))
     path.write_text(
-        yaml.safe_dump(schemas.validate(doc, SCHEMA), sort_keys=False, allow_unicode=True),
-        encoding="utf-8",
+        yaml.safe_dump(validated, sort_keys=False, allow_unicode=True), encoding="utf-8"
     )
     return path
+
+
+def is_calibration(doc: dict[str, Any] | None) -> bool:
+    """F15-R13, Q9: whether the record marks a calibration target; absent reads as false."""
+    return bool(doc.get("calibration", False)) if doc is not None else False
+
+
+def proposer_of(doc: dict[str, Any] | None) -> str | None:
+    """F15-R13: the login of the mathematician who proposed the problem, or ``None``."""
+    value = doc.get("proposer") if doc is not None else None
+    return str(value) if value else None
 
 
 # --- R2's refusals -------------------------------------------------------------------------
@@ -659,6 +694,7 @@ def fc_record(  # noqa: PLR0913 — one argument per fact the import records
     other than what it is.
     """
     doc = dict(base)
+    doc["schema"] = SCHEMA  # an import is written at the current version
     doc["id"] = target_id
     doc["track"] = OPEN_TRACK
     doc["source"] = {"kind": FC_SOURCE_KIND, "ref": path, "url": url}

@@ -311,7 +311,7 @@ def test_products_of_the_fixture(tmp_path: Path) -> None:
     assert idx["fidelity"] == "mechanical-only" and idx["mathlib_sha"] is None
     assert idx["node_counts"]["ready"] == 2 and idx["node_counts"]["blocked"] == 1
     info = loads(prod, "info.json")
-    assert info["protocol_version"] == "3.16"
+    assert info["protocol_version"] == "3.17"
     assert info["schemas"]["attestation"] == [1, 2, 3, 4] and info["schemas"]["meta"] == [
         1,
         2,
@@ -963,6 +963,7 @@ def test_signature_count(tmp_path: Path) -> None:
     # D-34: v1 was not edited, so a v1 consumer still validates a v1 document.
     old = json.loads((GOLDEN / "unproved" / "targets" / "index.json").read_bytes())
     old["schema"] = "targets-index/v1"
+    old.pop("policy", None)  # F15: v6
     for entry in old["targets"]:
         for key in (
             "track",
@@ -974,6 +975,9 @@ def test_signature_count(tmp_path: Path) -> None:
             "statement_evidence",  # F14: v5
             "step9",
             "formalizations",
+            "stewards",  # F15: v6
+            "digestion",
+            "calibration",
         ):
             entry.pop(key, None)
         for key in ("refuted", "defective"):
@@ -1169,7 +1173,53 @@ def test_index_carries_the_qa_state_attempts_and_drift(tmp_path: Path) -> None:
     assert row["claimable"] is False and "upstream-drift" in row["not_claimable"]
     assert (
         schemas.violations(
-            json.loads(generate(root).files[Path("targets/index.json")]), "targets-index/v5"
+            json.loads(generate(root).files[Path("targets/index.json")]), "targets-index/v6"
         )
         == []
     )
+
+
+# --- F15-T2 / AC9: targets-index/v6 — policy, stewards, digestion, calibration (R9) -------------
+
+
+def test_index_v6_fields(tmp_path: Path) -> None:
+    """AC9: the index validates as ``targets-index/v6``; with no ``policy.json`` the rule reads
+    not enforced; a curated target with no records has no stewards, a null digestion state
+    with its proved counts, and is no calibration target; ``info.json`` names every F15 schema."""
+    from opn_gate import policy as policymod  # noqa: PLC0415
+
+    root = copy_graph(tmp_path, publish=True)
+    harness.take_in(root)
+    prod = generate(root)
+    index = loads(prod, "targets/index.json")
+    assert schemas.violations(index, "targets-index/v6") == []
+    assert index["schema"] == "targets-index/v6"
+    assert index["policy"] == {"steward_rule": {"enforced": False, "since": None, "evidence": None}}
+    row = f11_row(root, prod)
+    assert row["stewards"] == [] and row["calibration"] is False
+    assert row["digestion"] == {
+        "state": None,
+        "closure": 0,
+        "closure_explained": 0,
+        "proved": 0,
+        "proved_explained": 0,
+    }
+    info = loads(prod, "info.json")
+    for name in ("steward", "explainer-signature", "writeup", "policy"):
+        assert info["schemas"][name] == [1], name
+    assert info["schemas"]["target"] == [1, 2] and info["schemas"]["targets-index"][-1] == 6
+
+    # R3: the policy file, present and enforced, is published at the top; a malformed one is a
+    # graph defect that stops the products (C7).
+    policymod.write(
+        root, policymod.document(enforced=True, since="2026-09-16", evidence="calibration.md")
+    )
+    index = loads(generate(root), "targets/index.json")
+    assert index["policy"]["steward_rule"] == {
+        "enforced": True,
+        "since": "2026-09-16",
+        "evidence": "calibration.md",
+    }
+    (root / "policy.json").write_text('{"schema": "policy/v1"}', encoding="utf-8")
+    with pytest.raises(schemas.SchemaError):
+        generate(root)

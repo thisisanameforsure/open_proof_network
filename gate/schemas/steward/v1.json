@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/steward/v1.json",
+  "title": "steward/v1",
+  "description": "targets/<id>/stewards/<n>.yaml (F15-R1; D-32 v3.17, D-6 v3.17): one signed act by a steward — a commitment to understand and write up whatever the network produces on the target, or a step-down. Append-only; a target's active stewards are the logins whose latest record is a commit. The record is signed with the steward's own SSH key (SSHSIG, opn_gate.signed) over its canonical body, the document without `signature`; a record whose signature does not verify under its own key, whose step-down key differs from that login's commit key, or whose sentence differs from the fixed one counts for nothing and is refused at the gate by name. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "target",
+    "action",
+    "login",
+    "name",
+    "link",
+    "commitment",
+    "date",
+    "key",
+    "signature"
+  ],
+  "properties": {
+    "schema": { "const": "steward/v1" },
+    "target": { "$ref": "#/$defs/identifier" },
+    "action": { "enum": ["commit", "step-down"] },
+    "login": {
+      "description": "The steward's GitHub login (the login grammar: alphanumerics and single hyphens, at most 39 characters). Validated before it enters any message or page (F15 §7).",
+      "$ref": "#/$defs/login"
+    },
+    "name": {
+      "description": "The steward's display name, as they wish to be named on the target page (D-32 v3.17). Free text, escaped wherever it is shown.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "link": {
+      "description": "One identity link — an institutional page or an ORCID record — that a curator reads before merging (F15-Q7; D-22 v3.17). Rendered as a link only after the record validates, through the site's allowlist (F11-Q11).",
+      "$ref": "#/$defs/url"
+    },
+    "commitment": {
+      "description": "The fixed sentence for the action, verbatim (opn_gate.steward.COMMITMENT for a commit, STEP_DOWN for a step-down). A record with any other text counts for nothing.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "date": { "$ref": "#/$defs/day" },
+    "key": {
+      "description": "The steward's SSH public key, one OpenSSH public-key line. The signature verifies under this key and nothing else; `opn-gate steward check` tells a curator whether the login publishes it.",
+      "$ref": "#/$defs/public_key"
+    },
+    "signature": {
+      "description": "An OpenSSH SSHSIG armored signature over the record's canonical body, made with the private half of `key`.",
+      "$ref": "#/$defs/sshsig"
+    }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "login": { "type": "string", "pattern": "^[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}$" },
+    "day": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "url": { "type": "string", "pattern": "^https://", "maxLength": 500 },
+    "public_key": { "type": "string", "pattern": "^ssh-ed25519 [A-Za-z0-9+/=]+( [^\\n]*)?$", "maxLength": 1000 },
+    "sshsig": {
+      "type": "string",
+      "pattern": "^-----BEGIN SSH SIGNATURE-----\\n[A-Za-z0-9+/=\\n]+-----END SSH SIGNATURE-----\\n?$",
+      "maxLength": 4000
+    }
+  }
+}

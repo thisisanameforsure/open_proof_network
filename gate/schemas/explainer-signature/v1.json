@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/explainer-signature/v1.json",
+  "title": "explainer-signature/v1",
+  "description": "nodes/<id>/explainer/signed/<hash>-<n>.yaml (F15-R8; D-3 v3.17): a real-identity contributor's signature on one explainer, affirming one sentence — I can explain this proof without the tool that produced it. It claims nothing about the mathematics, changes no verdict and earns nothing at merge; only signed explainers count toward a resolved target's digestion state (D-33 v3.17). Signed with the signer's own SSH key (SSHSIG, opn_gate.signed) over the canonical body, the document without `signature`. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "target",
+    "node",
+    "explainer",
+    "affirmation",
+    "signer",
+    "date",
+    "key",
+    "signature"
+  ],
+  "properties": {
+    "schema": { "const": "explainer-signature/v1" },
+    "target": { "$ref": "#/$defs/identifier" },
+    "node": { "$ref": "#/$defs/identifier" },
+    "explainer": {
+      "description": "The SHA-256 of the explainer file the signature is on — its name under explainer/ (D-3: content-hashed). A signature whose explainer is absent is refused by name.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "affirmation": {
+      "description": "The fixed sentence, verbatim (opn_gate.explainers.AFFIRMATION). Any other text is refused.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "signer": {
+      "description": "The signer's GitHub login. At Stage 0 a real-identity contributor is an active steward of the target or a listed curator (F15-Q4).",
+      "$ref": "#/$defs/login"
+    },
+    "date": { "$ref": "#/$defs/day" },
+    "key": { "$ref": "#/$defs/public_key" },
+    "signature": { "$ref": "#/$defs/sshsig" }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "login": { "type": "string", "pattern": "^[A-Za-z0-9](?:-?[A-Za-z0-9]){0,38}$" },
+    "day": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "public_key": { "type": "string", "pattern": "^ssh-ed25519 [A-Za-z0-9+/=]+( [^\\n]*)?$", "maxLength": 1000 },
+    "sshsig": {
+      "type": "string",
+      "pattern": "^-----BEGIN SSH SIGNATURE-----\\n[A-Za-z0-9+/=\\n]+-----END SSH SIGNATURE-----\\n?$",
+      "maxLength": 4000
+    }
+  }
+}

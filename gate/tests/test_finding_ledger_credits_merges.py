@@ -161,7 +161,7 @@ def test_the_curator_earns_no_proof_line_but_does_earn_attempts(
     root, git, _base = git_repo(tmp_path)
     record = root / "targets" / TARGET / "target.yaml"
     doc = samples.target_record(id=TARGET, curator="alice")
-    record.write_text(yaml.safe_dump(schemas.validate(doc, "target/v1"), sort_keys=False))
+    record.write_text(yaml.safe_dump(schemas.validate(doc), sort_keys=False))
     git("add", "--", f"targets/{TARGET}/target.yaml")
     git("commit", "-q", "-m", "curated by alice")
 

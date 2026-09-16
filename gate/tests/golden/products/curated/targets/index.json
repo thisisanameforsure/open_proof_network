@@ -1,13 +1,28 @@
 {
+  "policy": {
+    "steward_rule": {
+      "enforced": false,
+      "evidence": null,
+      "since": null
+    }
+  },
   "rendered_from": "5555555555555555555555555555555555555555",
-  "schema": "targets-index/v5",
+  "schema": "targets-index/v6",
   "targets": [
     {
       "attempts": {
         "counted": 0,
         "recorded": 0
       },
+      "calibration": false,
       "claimable": true,
+      "digestion": {
+        "closure": 0,
+        "closure_explained": 0,
+        "proved": 1,
+        "proved_explained": 0,
+        "state": null
+      },
       "drift": null,
       "fidelity": "screened-and-signed",
       "formalizations": [],
@@ -31,6 +46,7 @@
       "statement_evidence": null,
       "status": "active",
       "step9": "review",
+      "stewards": [],
       "subjects": [],
       "target_id": "propositional",
       "track": null

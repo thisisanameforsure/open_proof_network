@@ -27,6 +27,7 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "targets-index/v3",
         "targets-index/v4",
         "targets-index/v5",  # F14: evidence, step 9 basis, formalizations
+        "targets-index/v6",  # F15: policy, stewards, digestion, calibration
     ),
     "graph.json": ("graph/v1", "graph/v2", "graph/v3"),
 }

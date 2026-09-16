@@ -947,13 +947,14 @@ def check_posting(  # noqa: PLR0911 — one return per rule
                 {"path": located.path},
             )
         ]
-    violations = schemas.violations(after, intake.SCHEMA)
+    declared = intake.record_schema(after)  # D-34: validated at the version it declares
+    violations = schemas.violations(after, declared)
     if violations:
         return [
             Diagnostic(
                 "record-invalid",
-                f"{located.path} does not satisfy {intake.SCHEMA}: {v.path}: {v.message}",
-                {"path": located.path, "schema": intake.SCHEMA, "field": v.path},
+                f"{located.path} does not satisfy {declared}: {v.path}: {v.message}",
+                {"path": located.path, "schema": declared, "field": v.path},
             )
             for v in violations[:5]
         ]

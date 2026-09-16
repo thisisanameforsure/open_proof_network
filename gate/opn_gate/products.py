@@ -29,22 +29,28 @@ from opn_gate import (
     context,
     defs,
     evidence,
+    explainers,
     formalizations,
     intake,
     layout,
     qa,
     records,
     schemas,
+    signed,
+    steward,
     watch,
+    writeup,
 )
 from opn_gate import fidelity as fidelitymod
 from opn_gate import graph as graphmod
+from opn_gate import policy as policymod
 from opn_gate.graph import GraphError, NodeFacts, TargetGraph
+from opn_gate.signer import Signer
 from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsRequest
 
 log = logging.getLogger(__name__)
 
-PROTOCOL_VERSION = "3.16"  # docs/architecture_decisions_v_3_12.html (v3.16, F14-Q14)
+PROTOCOL_VERSION = "3.17"  # docs/architecture_decisions_v_3_12.html (v3.17, F15-R15)
 GRAPH_SCHEMA = "graph/v3"  # F12-R13: a related variant's relevance signature (v2: F07-R8)
 FRONTIER_SCHEMA = "frontier/v3"  # T7: attempts counts partials (v2, F11-R4: D-33 dormancy)
 #: F11-R12 renames D-9's second rung and F11-R3/R4 add the derived fields. v2 was already spent
@@ -52,7 +58,9 @@ FRONTIER_SCHEMA = "frontier/v3"  # T7: attempts counts partials (v2, F11-R4: D-3
 #: F12-R14 adds the QA pass state per subject, the counted attempts and the drift flag: v4.
 #: F14-R1, R9: claimable while listed; the statement evidence, the step-9 basis and the
 #: formalizations: v5.
-INDEX_SCHEMA = "targets-index/v5"
+#: F15-R9: the policy state at the top; per target the active stewards, the digestion state with
+#: its counts, the calibration flag, and `no-steward` among the reasons: v6.
+INDEX_SCHEMA = "targets-index/v6"
 INFO_SCHEMA = "info/v1"
 CLAIMS_SCHEMA = "claims/v1"
 CLAIMS_FILE = "claims.json"
@@ -185,13 +193,90 @@ class TargetFacts:
     qa: dict[str, dict[str, Any]] = field(default_factory=dict)  # subject -> pass state (F12)
     attempts: dict[str, int] = field(default_factory=lambda: {"counted": 0, "recorded": 0})
     drift: dict[str, Any] | None = None
+    #: F15-R1, R7, R13: the active stewards, the digestion state with its counts, and whether
+    #: the target is a calibration target — derived for every target, curated or not.
+    stewards: tuple[steward.Steward, ...] = ()
+    digestion: dict[str, Any] = field(default_factory=lambda: dict(NO_DIGESTION))
+    calibration: bool = False
 
     @property
     def dormant(self) -> bool:
         return self.status == intake.DORMANT
 
 
-def target_facts(tg: TargetGraph) -> TargetFacts:
+#: F15-R7: what a target in any status but ``resolved`` carries — no state, and the counts.
+NO_DIGESTION: dict[str, Any] = {
+    "state": None,
+    "closure": 0,
+    "closure_explained": 0,
+    "proved": 0,
+    "proved_explained": 0,
+}
+UNDIGESTED = "undigested"
+EXPLAINED = "explained"
+WRITTEN_UP = "written-up"
+
+
+def closing_node(tg: TargetGraph) -> str | None:
+    """F15-Q11: the node whose proof closed the target — the root, or the ``resolves`` variant
+    where the target resolved by variant (D-30); ``None`` while nothing has. A ``partial``
+    variant closes nothing and starts no digestion state."""
+    if tg.statuses[tg.root] == "proved":
+        return tg.root
+    for node_id in tg.order:
+        n = tg.nodes[node_id]
+        if n.relation == "resolves" and tg.statuses[node_id] == "proved":
+            return node_id
+    return None
+
+
+def dependency_closure(tg: TargetGraph, node_id: str) -> list[str]:
+    """``node_id`` and every node it depends on, transitively, in id order."""
+    seen: set[str] = set()
+    stack = [node_id]
+    while stack:
+        current = stack.pop()
+        if current in seen or current not in tg.nodes:
+            continue
+        seen.add(current)
+        stack.extend(tg.nodes[current].deps)
+    return sorted(seen)
+
+
+def digestion(tg: TargetGraph, *, status: str, signer: Signer) -> dict[str, Any]:
+    """F15-R7 (D-33 v3.17): the digestion state of a resolved target and the counts behind it.
+
+    ``written-up`` when a valid ``paper`` write-up record exists; else ``explained`` when every
+    proved node in the closing artifact's dependency closure carries at least one valid signed
+    explainer; else ``undigested``. A target in any other status carries ``null``, with the
+    proved-node counts still filled in, because the home page's coverage count ("explained: n of
+    m proved nodes") sums over every target, resolved or not (F15-R10, Q10).
+    """
+    proved = [n for n in tg.order if tg.statuses[n] == "proved"]
+    explained = {n for n in proved if explainers.valid(tg.nodes[n].path, signer)}
+    out: dict[str, Any] = {
+        **NO_DIGESTION,
+        "proved": len(proved),
+        "proved_explained": len(explained),
+    }
+    if status != "resolved":
+        return out
+    closing = closing_node(tg)
+    closure = dependency_closure(tg, closing) if closing is not None else []
+    closure_proved = [n for n in closure if tg.statuses[n] == "proved"]
+    closure_explained = [n for n in closure_proved if n in explained]
+    out["closure"] = len(closure_proved)
+    out["closure_explained"] = len(closure_explained)
+    if writeup.has_paper(tg.path, signer):
+        out["state"] = WRITTEN_UP
+    elif closure_proved and len(closure_explained) == len(closure_proved):
+        out["state"] = EXPLAINED
+    else:
+        out["state"] = UNDIGESTED
+    return out
+
+
+def target_facts(tg: TargetGraph, *, signer: Signer | None = None) -> TargetFacts:
     """(status, claimable, fidelity) and the rest, for the index (R9; Q4, Q5; F11-R3, R4).
 
     Two eras meet here. A target with no ``target.yaml`` predates F11: its declaration says
@@ -200,7 +285,11 @@ def target_facts(tg: TargetGraph) -> TargetFacts:
     (F11-R3), claimability from status, grade and posting (F11-R4) — and the declaration's own
     ``claimable`` and ``fidelity`` fields are ignored, because a derived value with a second
     writable home is a value that will disagree with itself.
+
+    ``signer`` verifies the F15 records (stewards, explainer signatures, write-ups); the default
+    is the platform's ssh-keygen, which is where the products are generated (F15 §7).
     """
+    verifier = signer if signer is not None else signed.default_signer()
     decl = tg.declaration.doc if tg.declaration is not None else {}
     doc = intake.load_doc(tg.path)
     subjects = tuple(fidelitymod.subject_grades(tg.path))
@@ -216,8 +305,16 @@ def target_facts(tg: TargetGraph) -> TargetFacts:
         status = intake.LISTED
     else:
         status = "active" if legacy_claimable else "listed"
+    stewards = tuple(steward.active(tg.path, verifier))
+    digested = digestion(tg, status=status, signer=verifier)
     if doc is None:
-        return TargetFacts(status=status, claimable=legacy_claimable, fidelity=grade)
+        return TargetFacts(
+            status=status,
+            claimable=legacy_claimable,
+            fidelity=grade,
+            stewards=stewards,
+            digestion=digested,
+        )
     # F12-R11: an upstream edit that stands on the root as it is freezes proving compute.
     root_hash = tg.nodes[tg.root].statement_hash
     drift = watch.drift_state(tg.path, root_hash)
@@ -241,6 +338,9 @@ def target_facts(tg: TargetGraph) -> TargetFacts:
         qa=pass_states,
         attempts={"counted": attempts.m, "recorded": attempts.m + len(attempts.stale)},
         drift=drift.as_dict(),
+        stewards=stewards,
+        digestion=digested,
+        calibration=intake.is_calibration(doc),
     )
 
 
@@ -388,10 +488,16 @@ def step9_basis(tg: TargetGraph) -> str:
     return "review"
 
 
-def index_doc(targets: list[TargetGraph], rendered_from: str | None) -> dict[str, Any]:
+def index_doc(
+    targets: list[TargetGraph],
+    rendered_from: str | None,
+    *,
+    policy: policymod.Policy | None = None,
+    signer: Signer | None = None,
+) -> dict[str, Any]:
     out = []
     for tg in targets:
-        facts = target_facts(tg)
+        facts = target_facts(tg, signer=signer)
         counts = dict.fromkeys(graphmod.ALL_STATUSES, 0)
         for status in tg.statuses.values():
             counts[status] += 1
@@ -418,9 +524,18 @@ def index_doc(targets: list[TargetGraph], rendered_from: str | None) -> dict[str
                 "statement_evidence": evidence.summary(tg.path, tg.nodes[tg.root].statement_hash),
                 "step9": step9_basis(tg),
                 "formalizations": formalizations.summary(tg.path),
+                # F15-R9: the active stewards, the digestion state and the calibration flag.
+                "stewards": [s.as_dict() for s in facts.stewards],
+                "digestion": dict(facts.digestion),
+                "calibration": facts.calibration,
             }
         )
-    return {"schema": INDEX_SCHEMA, "rendered_from": rendered_from, "targets": out}
+    return {
+        "schema": INDEX_SCHEMA,
+        "rendered_from": rendered_from,
+        "policy": (policy if policy is not None else policymod.Policy()).as_dict(),
+        "targets": out,
+    }
 
 
 def info_doc(
@@ -489,8 +604,15 @@ def generate(
     scanner: Scanner | None = None,
     previous_frontier: dict[str, Any] | None = None,
     claims: dict[str, dict[str, Any]] | None = None,
+    signer: Signer | None = None,
 ) -> Products:
-    """Build and validate every product without writing anything (R11; AC5)."""
+    """Build and validate every product without writing anything (R11; AC5).
+
+    ``signer`` verifies the signed F15 records the index derives from (stewards, explainer
+    signatures, write-ups); the default is the platform's ssh-keygen (F15 §7).
+    """
+    verifier = signer if signer is not None else signed.default_signer()
+    policy = policymod.load(graph_root)  # F15-R3: absent means not enforced
     # F03-T8 (R10, D-34): info.json advertises the registry, so the graph must serve every
     # family it lists. Checked first: a cheap refusal before any scan (C7).
     lacking = schemas.unpublished(graph_root)
@@ -520,7 +642,7 @@ def generate(
             products.files[Path(context.context_path(target_id, node_id))] = context.render(
                 reader, target_id, node_id, states=states, rendered_from=rendered_from
             )
-        facts = target_facts(tg)
+        facts = target_facts(tg, signer=verifier)
         ready_since = graphmod.ready_since_map(previous, tg.statuses, commit_time)
         # R6: only a Mathlib-pinned graph has library tags to scan for and a cache to keep.
         cache = TagCache(tg.path / TAGS_CACHE) if tg.spec["mathlib_sha"] is not None else None
@@ -552,7 +674,10 @@ def generate(
         schemas.validate(frontier, FRONTIER_SCHEMA)
     )
     products.files[Path("targets") / "index.json"] = schemas.canonical_json(
-        schemas.validate(index_doc(products.targets, rendered_from), INDEX_SCHEMA)
+        schemas.validate(
+            index_doc(products.targets, rendered_from, policy=policy, signer=verifier),
+            INDEX_SCHEMA,
+        )
     )
     products.files[Path("info.json")] = schemas.canonical_json(
         schemas.validate(info_doc(graph_root, products.targets, rendered_from), INFO_SCHEMA)

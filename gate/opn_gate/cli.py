@@ -1761,7 +1761,7 @@ def run_intake(args: argparse.Namespace, settings: config.Settings) -> int:
         return _emit_curator(doc, graph, args.branch, f"intake: {args.target_id} active")
     if args.action == "import-fc":
         return run_import_fc(args, settings, graph)
-    record = schemas.load_yaml(args.record.resolve(), intake.SCHEMA)
+    record = intake.read_record(args.record.resolve())
     checker: intake.Checker = (
         _fake_checker
         if args.no_toolchain
@@ -1795,7 +1795,7 @@ def run_import_fc(args: argparse.Namespace, settings: config.Settings, graph: Pa
     and the track — is derived from the import, so a copied target cannot describe itself as
     anything but a copy.
     """
-    base = schemas.load_yaml(args.record.resolve(), intake.SCHEMA)
+    base = intake.read_record(args.record.resolve())
     checker: intake.Checker = (
         _fake_checker
         if args.no_toolchain
