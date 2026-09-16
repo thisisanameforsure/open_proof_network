@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F15 — Stewards, digestion and mathematicians' own problems</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F15</nav>
+<h1>F15 — Stewards, digestion and mathematicians' own problems</h1>
+<p class="subtitle">An open problem is claimable only while a named mathematician has committed to
+understand and write up whatever the network produces on it; whoever signs a statement's fidelity
+takes no proof credit on that target; an explainer can be signed as a comprehension claim and a
+resolved target shows how far it has been digested; mathematicians propose their own problems
+through an issue form; the site speaks to a sceptical mathematician; and none of the claimability
+enforcement goes live until fresh agents have carried three known results through the pipeline
+unattended.</p>
+
+<h2>1. Summary</h2>
+<p>On 2026-09-11 twenty-five Fields medallists condemned "the mass production of 'true/false'
+statements" on open problems, and the research note
+<code>docs/research_math_and_ai_2026-09.html</code> found that the network's mission as written
+(Erdős problems chosen for a "demonstrated resolution regime", "spare subscription credits
+tonight") is the condemned activity, while its design already answers most of the Leiden
+recommendations. The founder's four-round grill of 2026-09-15
+(<code>engineering/session-notes/2026-09-15-stewards-and-digestion.md</code>) settled the answer,
+and <code>engineering/session-notes/2026-09-15-f15-decisions-amendment.md</code> drafts it as
+decisions v3.17. This spec builds that record. A <strong>steward</strong> is the D-32 writer
+appointed at listing rather than at resolution: a real-identity mathematician who signs a
+commitment to best-efforts digestion and write-up of the problem, is named on the target page,
+holds the write-up role jointly with every other steward, is mentioned on the graph whenever
+anything merges on the target, and has no power to pause or reserve anything. Under the rule, an
+open-problem target with no active steward is published, on the frontier and open to fidelity
+review, but refuses claims (D-6 v3.17); on-ramp and calibration targets are exempt. Because a
+prover gains from a statement slightly weaker than the conjecture, whoever signs a root's fidelity
+takes no proof credit on the target, and a steward chooses to sign or to prove (D-9, D-21 v3.17).
+An explainer may carry a signature affirming one sentence, <em>I can explain this proof without
+the tool that produced it</em>; only signed explainers count toward a resolved target's digestion
+state, <code>undigested</code>, <code>explained</code> or <code>written-up</code>, which the site
+shows beside <code>resolved</code> and the D-10 report-back carries (D-3, D-33 v3.17). A
+mathematician proposes a problem informally through an issue form on the graph repository;
+formalizing it is open work; the proposer is steward by default; intake stays curated (D-6
+v3.17). The home and Docs pages are rewritten for a mathematician who has just read the
+declaration, with dated external evidence only and a Leiden compliance table. Last, and first in
+time: the steward rule is enforced only after a calibration run in which fresh agents, with no
+help from the founder or the build, carry three solved Erdős problems from the literature through
+the pipeline, at least one to <code>resolved</code>, every failure a typed record (Stages v3.17).
+Until then the 23 claimable targets stay claimable, an exposure the founder accepted. The switch
+is one visible file in the graph, never a quiet relaxation (D-32 v3.17 "Overturns if"). The code
+follows the decisions doc once v3.17 is applied (C10); until then <code>PROTOCOL_VERSION</code>
+stays 3.16 (Q1). Cites: D-3, D-4, D-6, D-9, D-10, D-13, D-19, D-21, D-22, D-27, D-32, D-33,
+D-34, D-35, D-36, Stages.</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a mathematician who has read the declaration, I want the home page to say what goes
+    wrong with AI-only proofs and what this network does about it, before it asks me for
+    anything, so that I can decide in a minute whether to read on.</li>
+  <li>As a mathematician, I want to put my own open problem forward in ordinary mathematics, with
+    references, without writing Lean, and to be the person who receives whatever comes of it.</li>
+  <li>As a steward, I want to know exactly what I have committed to and what I get, to be named
+    on the problem's page, and to hear on GitHub when anything merges on it, without giving the
+    network an email address or a deadline.</li>
+  <li>As a prover, I want a target page to say whether the problem can be claimed and, if not,
+    that it is waiting for a steward rather than for me, so that I do not spend compute on a
+    problem nobody will read.</li>
+  <li>As a reader of a resolved target, I want to see whether anyone has understood the proof:
+    which nodes carry a signed explainer, who vouched for them, and whether a paper exists, so
+    that "resolved" never reads as "solved" before a human can explain it.</li>
+  <li>As the founder, I want the steward rule to switch on only after an unattended run on known
+    results has shown the pipeline works, and to be able to show that run to the first
+    mathematician I approach.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> the steward record, its signature and its gate mode; the graph policy
+file that enforces the steward rule; the <code>no-steward</code> claimability reason; the
+signer-takes-no-proof-credit exclusion in the ledger and at attestation; signed explainers; the
+write-up record and the derived digestion state; the next <code>targets-index</code> and
+<code>target</code> versions; the merge mention; the problem proposal form and its intake path;
+the site's target, node, home and Docs pages, including the new copy and the Leiden table; both
+copies of the guide; the calibration pool, the three calibration targets, the unattended run and
+its record; the re-pin and the policy switch after the run passes.</p>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>A4's adoption list and the generated-vs-explained wording of the contribution statement;
+    blueprint rendering and leanblueprint export; reuse counts; the unused-hypothesis report; the
+    prior-art search as a graph artifact. None has a consumer until a target closes and is written
+    up (design record, "Deferred").</li>
+  <li>Any reservation or pause mechanism, for stewards or for outsiders (design record, item 4).</li>
+  <li>A private problem. A proposal is public from the moment it is listed; a proposer may only
+    ask that the statement not be upstreamed (D-10 fail-open), never that it be hidden.</li>
+  <li>A real-identity registry beyond what exists. At Stage 0 the real-identity contributors are
+    the graph's curators and each target's stewards (Q4); widening that set is a later feature.</li>
+  <li>Merge-on-green for any mode. F07-Q16 stands; the calibration run defines the owner's merge
+    act as the protocol's, not as intervention (Q6).</li>
+  <li>An MCP tool for stewards or proposals. Stewards are people; their records go by pull
+    request and their proposals by issue, both on the graph repository, and the read side is
+    <code>targets/index.json</code> as today.</li>
+  <li>The Stage 0 Zulip post itself. It is drafted with the founder after the calibration run
+    passes (design record, order of work, item 4) and is not a spec task.</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<p class="status-note">EARS notation, stable IDs. Schema versions named here were checked against
+<code>gate/schemas/</code> on 2026-09-16 (<code>target/v1</code>, <code>targets-index/v5</code>
+current); if one ships first for another reason, the next free version is meant. Every rule below
+that cites a v3.17 clause is built only once that clause is in the decisions doc (Q1).</p>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F15-R1</td><td>The system shall keep a target's steward records as
+    <code>targets/&lt;id&gt;/stewards/&lt;n&gt;.yaml</code> (<code>steward/v1</code>), append-only:
+    the target id; an <code>action</code> of <code>commit</code> or <code>step-down</code>; the
+    steward's GitHub login (login grammar), display name and one identity link (an institutional
+    page or ORCID record); the commitment sentence verbatim; the date; the steward's SSH public
+    key; and an SSHSIG signature over the record's canonical body. A target's active stewards
+    shall be the logins whose latest record is a <code>commit</code>. A record whose signature
+    does not verify under its own key, whose <code>step-down</code> key differs from that login's
+    <code>commit</code> key, or whose commitment text differs from the fixed sentence shall count
+    for nothing and be refused at the gate by name.</td></tr>
+  <tr><td>F15-R2</td><td>When a pull request adds only steward records, the system shall classify
+    it as <code>steward</code> mode: additions only, each record checked by R1, no build; when
+    steward records arrive inside an <code>intake</code> or <code>curator</code> pull request they
+    shall be checked the same way; a proof, partial, alternate or append that brings one shall be
+    <code>mode-mixed</code>. The command <code>opn-gate steward commit|step-down</code> shall write
+    and sign a record with the contributor's own key through the <code>Signer</code> seam, and
+    <code>opn-gate steward check &lt;record&gt;</code> shall report, for a curator, whether the
+    signature verifies and whether the key is one the login publishes at
+    <code>github.com/&lt;login&gt;.keys</code> (network; never run by the gate).</td></tr>
+  <tr><td>F15-R3</td><td>The system shall read a graph-root <code>policy.json</code>
+    (<code>policy/v1</code>) carrying <code>steward_rule: {enforced, since, evidence}</code>; an
+    absent file shall mean not enforced; the file shall have the path role <code>policy</code>,
+    changeable only in <code>curator</code> mode; and its state shall be published in the
+    targets index and shown on the site (Q2).</td></tr>
+  <tr><td>F15-R4</td><td>When the steward rule is enforced and a target's <code>track</code> is
+    <code>open</code> and it has no active steward, the system shall derive
+    <code>claimable: false</code> with the reason <code>no-steward</code>, explained as "no
+    steward has committed to digest and write it up (D-32 v3.17)"; a <code>formalization</code>
+    track target shall be exempt; every other input to F14-R1 shall be unchanged, so a
+    stewardless target stays published, on the frontier and open to fidelity review.</td></tr>
+  <tr><td>F15-R5</td><td>The system shall pay no proof-line ledger entry on a target to an
+    identity holding a counting fidelity signature (a non-mechanical grade, F11-R3) on any of the
+    target's subjects, returning the reason as <code>curator_bar</code> does; and
+    <code>opn-gate fidelity</code> shall refuse a signing-grade certificate from an attestor who
+    holds an active proof-line entry on that target. Neither rule shall touch the statement,
+    review, attempts, upstreaming or write-up lines (D-9, D-21 v3.17; Q3).</td></tr>
+  <tr><td>F15-R6</td><td>The system shall keep a target's write-up records as
+    <code>targets/&lt;id&gt;/writeup/&lt;n&gt;.yaml</code> (<code>writeup/v1</code>): kind
+    <code>paper</code> or <code>note</code>, title, URL, date, the signer, their key and SSHSIG
+    signature; a record shall be refused unless its signer is an active steward of the target or a
+    listed curator. <code>targets/&lt;id&gt;/note.md</code> stays the note's text.</td></tr>
+  <tr><td>F15-R7</td><td>The system shall derive a <code>resolved</code> target's digestion state
+    as <code>written-up</code> when a <code>paper</code> write-up record exists, else
+    <code>explained</code> when every proved node in the closing artifact's dependency closure
+    carries at least one explainer with a valid signature (R8), else <code>undigested</code>; a
+    target in any other status shall carry <code>null</code>. The derivation shall also yield, per
+    target, the closure size, the count of closure nodes explained, and the counts of proved nodes
+    and of proved nodes with a signed explainer, for the home page.</td></tr>
+  <tr><td>F15-R8</td><td>The system shall keep explainer signatures as
+    <code>nodes/&lt;id&gt;/explainer/signed/&lt;hash&gt;-&lt;n&gt;.yaml</code>
+    (<code>explainer-signature/v1</code>): node, explainer hash, the affirmation sentence
+    <em>I can explain this proof without the tool that produced it</em> verbatim, signer, date,
+    key and SSHSIG signature. The <code>explainer</code> mode shall accept signature files alone
+    or with new explainers, refusing by name a signature whose explainer file is absent, whose
+    sentence differs, whose signature fails, or whose signer is not a real-identity contributor
+    (Stage 0: an active steward of the target or a listed curator, Q4). A signature shall claim
+    nothing about the mathematics, change no verdict and earn nothing at merge; the command
+    <code>opn-gate explainer sign</code> shall write one.</td></tr>
+  <tr><td>F15-R9</td><td>The system shall publish per target in <code>targets-index/v6</code>: the
+    active stewards (login, name, link, since), the digestion state with its counts,
+    <code>no-steward</code> among the possible not-claimable reasons, and the policy state once at
+    the top; and every consumer of the version string (the site's accepted set, the api's fixture,
+    the MCP field filter, the deploy package check, the smokes) shall be moved in the same
+    commit.</td></tr>
+  <tr><td>F15-R10</td><td>The site shall show: on each target page its stewards by name and link
+    with the date each committed, or, when it has none, one cue saying what a steward commits to
+    and receives with a link to the Docs section; for a resolved target the lead
+    "resolved — undigested / explained / written-up" and the report-back sentence ("kernel-checked,
+    not yet explained" or its counterpart) that D-10 carries; the <code>no-steward</code> reason in
+    words when it applies; a calibration target labelled as such; on the Targets row the same
+    steward and digestion facts; on each node page, above the unverified label, "explained and
+    vouched for by <em>name</em>, <em>date</em>" for each valid signature; and on the home page the
+    counts table led by "explained: <em>n</em> of <em>m</em> proved nodes".</td></tr>
+  <tr><td>F15-R11</td><td>The site's home page shall lead, before any count, with copy for a
+    sceptical mathematician: what goes wrong with AI-only proofs, what this network does about
+    some of it, and what AI brings when humans stay involved; its evidence shall be dated external
+    examples only, with no network number in the lead until the calibration run passes; it shall
+    state what the network refuses to do (no announcements, no leaderboard, failures published).
+    The Docs page shall carry a steward section (the commitment, what is received, what is not,
+    how to step down), the link to the proposal form on the graph repository (from configuration,
+    never a hostname in a template), a Leiden Declaration paragraph with a recommendation-by-
+    recommendation compliance table drawn from research §5, and one honest sentence that the
+    network has no answer for students. Outbound links in this copy shall pass F04-R13's checker
+    through a documented allowlist, never by loosening the rule.</td></tr>
+  <tr><td>F15-R12</td><td>When a merge lands on a target with active stewards, the post-merge job
+    shall mention each steward's login in the bot commit message
+    (<code>gate: #N pass · cc @login …</code>), the logins taken from the merged tree's records and
+    validated against the login grammar; the message helper shall take the stewards and the
+    workflow change shall be inert on the old pin. The notification's arrival shall be verified
+    live before the rule is relied on, with a pull-request comment as the priced fallback
+    (Q5).</td></tr>
+  <tr><td>F15-R13</td><td>The graph repository shall carry a problem proposal issue form,
+    <code>.github/ISSUE_TEMPLATE/problem-proposal.yml</code>, asking for the statement in ordinary
+    mathematics, references, why it is believed open, the area, whether the proposer will steward
+    it, whether to skip upstreaming and why, and a checkbox acknowledging that listing publishes
+    the problem; <code>target/v2</code> shall add <code>source.kind: proposal</code> (ref: the
+    issue URL), <code>proposer</code>, <code>calibration</code> (default false) and
+    <code>upstream_opt_out</code>; <code>intake new</code> shall refuse a proposal whose ref is not
+    an issue on the graph repository, and <code>calibration: true</code> on the <code>open</code>
+    track. The proposer's steward record, signed offline, shall travel in the intake pull request
+    when they accept (Q8); without one the target is listed and, under the rule, refuses claims.
+    Formalizing a proposal's statement is open work done on the issue, not in the graph.</td></tr>
+  <tr><td>F15-R14</td><td>The calibration run: (a) the pool shall be every problem in the
+    committed seed dataset with a Lean statement in the pinned registry whose erdosproblems.com
+    status is proved, solved or disproved without a Lean proof, computed by a committed query (29
+    rows at the 2026-09 dataset); (b) three shall be chosen from it, graded easy, medium and one
+    needing a skeleton, with the reasons recorded; (c) each shall be taken in on the
+    <code>formalization</code> track with <code>calibration: true</code>, the literature proof
+    cited as prior art, through the wave driver; (d) fresh agents given only the site URL shall
+    carry them with no help on mathematics, tooling or Lean from the founder or the build, the
+    founder acting only as the merge actor on a green check (Q6), every other act logged and
+    failing the run; (e) the run passes when all three go claim → precheck → submit → merge, at
+    least one target reaches <code>resolved</code>, and every failure leaves a typed D-13 record;
+    (f) the record is <code>engineering/evidence/F15/calibration.md</code>; (g) only after a pass
+    shall the policy switch pull request be opened.</td></tr>
+  <tr><td>F15-R15</td><td>Both copies of <code>AGENTS.md</code> and the human-funnel document shall
+    describe steward records, explainer signatures, write-up records, proposals and calibration
+    targets, executed by the guide's runner where a command is shown; amendment notes shall be
+    added to F03 (products), F07 (explainer mode), F11-R4/F14-R1 (claimability) and F14
+    (<code>target/v2</code>); <code>PROTOCOL_VERSION</code> shall become <code>3.17</code> in the
+    first code commit after the decisions doc carries v3.17.</td></tr>
+  <tr><td>F15-R16</td><td>The system shall prove the path in the fast tier: a proposal-shaped
+    target taken in with a signed steward record is claimable under the enforced rule and
+    unclaimable after the steward steps down, and claimable either way with the rule off; a
+    fidelity signer's proof pays nothing and a prover's signature is refused; a resolved target
+    moves <code>undigested</code> → <code>explained</code> → <code>written-up</code> as signatures
+    and the write-up record land; the merge message names the stewards; the products reproduce
+    byte for byte; and the rendered site shows each state.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F15-AC1</td><td>Given a steward's key, when <code>steward commit</code> runs, then one
+    record validating as <code>steward/v1</code> is written and verifies; given a record with a
+    tampered body, a different key on the step-down, or an altered sentence, then each is refused
+    by name and nothing is written.</td>
+    <td><code>gate/tests/test_steward.py::test_record_round_trip</code>,
+    <code>::test_refusals_write_nothing</code></td></tr>
+  <tr><td>F15-AC2</td><td>Given commit records for two logins and a step-down for one, when the
+    active set is read, then it holds the other; given a step-down under a foreign key, then the
+    login stays active and the record is flagged.</td>
+    <td><code>gate/tests/test_steward.py::test_step_down_leaves_the_other_steward</code></td></tr>
+  <tr><td>F15-AC3</td><td>Given a pull request adding only steward records, when classified, then
+    it is <code>steward</code> mode with no build; given an intake pull request carrying one, then
+    it is <code>intake</code> and the record is checked; given a proof bringing one, then it is
+    <code>mode-mixed</code>.</td>
+    <td><code>gate/tests/test_modes.py::test_steward_mode</code>,
+    <code>::test_a_proof_cannot_bring_a_steward</code></td></tr>
+  <tr><td>F15-AC4</td><td>Given no <code>policy.json</code>, when claimability is derived for an
+    open target with no steward, then it is claimable; given the rule enforced, then it is not,
+    with <code>no-steward</code>; given the same rule and a <code>formalization</code> target, then
+    it is claimable; given a steward record, then the open target is claimable again.</td>
+    <td><code>gate/tests/test_intake.py::test_no_steward_refuses_claims_only_under_policy</code></td></tr>
+  <tr><td>F15-AC5</td><td>Given an identity with a counting signature on a target's root, when a
+    proof of theirs merges on that target, then the ledger pays no proof line and the reason names
+    the signature, while an attempts line still pays; given an identity with an active proof line
+    on the target, when they attest the root at <code>screened-and-signed</code>, then it is
+    refused before anything is written.</td>
+    <td><code>gate/tests/test_ledger.py::test_signer_earns_no_proof_line</code>,
+    <code>gate/tests/test_fidelity.py::test_prover_cannot_sign_the_target</code></td></tr>
+  <tr><td>F15-AC6</td><td>Given a resolved fixture target, when products are generated, then its
+    digestion is <code>undigested</code>; given a valid signature on every closure node, then
+    <code>explained</code>; given one closure node unsigned, then <code>undigested</code> with the
+    counts saying which; given a <code>paper</code> write-up record, then <code>written-up</code>;
+    given an active target, then <code>null</code>.</td>
+    <td><code>gate/tests/test_products.py::test_digestion_state</code></td></tr>
+  <tr><td>F15-AC7</td><td>Given an explainer on a proved node, when a curator signs it, then the
+    pull request is <code>explainer</code> mode and merges on the path check alone; given a
+    signature naming an absent explainer, an altered sentence, a failed signature, or a signer who
+    is neither steward nor curator, then each is refused by name.</td>
+    <td><code>gate/tests/test_explainer_signature.py</code></td></tr>
+  <tr><td>F15-AC8</td><td>Given a write-up record signed by a steward, when classified, then it is
+    accepted; given one signed by a prover, then it is refused.</td>
+    <td><code>gate/tests/test_writeup.py</code></td></tr>
+  <tr><td>F15-AC9</td><td>Given the product fixtures, when products are generated, then the index
+    validates as <code>targets-index/v6</code> with stewards, digestion, policy and the
+    <code>no-steward</code> reason, the goldens match, and the api fixture is a golden copy.</td>
+    <td><code>gate/tests/test_products.py::test_index_v6_fields</code>,
+    <code>api/tests/test_fixture_is_golden.py</code></td></tr>
+  <tr><td>F15-AC10</td><td>Given a rendered fixture site with a stewarded target, a stewardless
+    open target under the rule, a resolved-undigested target, a signed explainer and a calibration
+    target, when the pages are read, then each shows what R10 names and the screenshots at 1200
+    and 390 px show them.</td>
+    <td><code>site/tests/test_render_stewards.py</code></td></tr>
+  <tr><td>F15-AC11</td><td>Given the home and Docs templates, when rendered, then the lead carries
+    no digit that is a network count, every outbound link passes the checker through the
+    allowlist, the Leiden table has one row per recommendation, and the proposal link is the
+    configured graph URL.</td>
+    <td><code>site/tests/test_copy.py</code></td></tr>
+  <tr><td>F15-AC12</td><td>Given a merged tree with two active stewards, when the bot commit
+    message is built, then it names both logins and nothing else from the records; given a login
+    outside the grammar, then the record was refused upstream and the message names none; and the
+    workflow line is guarded so the old pin ignores it.</td>
+    <td><code>gate/tests/test_postmerge.py::test_bot_commit_mentions_stewards</code>,
+    <code>::test_mention_line_is_inert_on_the_old_pin</code></td></tr>
+  <tr><td>F15-AC13</td><td>Given a <code>target/v2</code> record with <code>source.kind:
+    proposal</code>, when <code>intake new</code> runs, then a ref that is not an issue on the graph
+    repository is refused, <code>calibration: true</code> on the <code>open</code> track is
+    refused, and a well-formed record is listed; and the issue form declares every field R13
+    names.</td>
+    <td><code>gate/tests/test_intake.py::test_proposal_source_needs_a_graph_issue</code>,
+    <code>::test_calibration_only_on_the_formalization_track</code>,
+    <code>gate/tests/test_proposal_form.py</code></td></tr>
+  <tr><td>F15-AC14</td><td>Given the committed seed dataset, when the pool query runs, then it
+    yields the recorded rows (29 at the 2026-09 dataset) and the three chosen targets are among
+    them with their grades recorded.</td>
+    <td><code>gate/tests/test_calibration_pool.py</code></td></tr>
+  <tr><td>F15-AC15</td><td>R16's path, end to end over the fixture graph and the fake host.</td>
+    <td><code>gate/tests/test_lifecycle_f15.py</code></td></tr>
+  <tr><td>F15-AC16</td><td>Given the three calibration targets live, when fresh agents run
+    unattended, then the record shows every step per target, the interventions log is empty but
+    for merge acts, at least one target is <code>resolved</code>, and every failure is a D-13
+    record.</td>
+    <td>network tier: <code>engineering/evidence/F15/calibration.md</code></td></tr>
+  <tr><td>F15-AC17</td><td>Given the re-pinned live graph, when the rollout checks run, then a
+    steward record merges and its login is notified by the bot commit (or the fallback is
+    adopted, Q5), the policy switch pull request flips exactly the stewardless open targets to
+    <code>no-steward</code> and no <code>formalization</code> target, <code>check_products.py</code>
+    from the pinned worktree is clean, and the site shows the stewards, the switch and the new
+    copy.</td>
+    <td>network tier: <code>engineering/evidence/F15/rollout.txt</code></td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li>The fast tier grows by no more than 10 s; <code>test_lifecycle_f15.py</code> under 10 s.
+    The tier already runs about 98 s against conventions §2's minute, a debt this spec does not
+    add to beyond that.</li>
+  <li>Calibration: three targets, one pull request each at intake; the run is bounded by the
+    agents' own budgets, recorded per target; the founder's merge acts are the only pacing.</li>
+  <li>The Mathlib image belongs to CI; the calibration targets import Mathlib, so any docker-tier
+    admission test runs there (F11-Q17).</li>
+  <li>Stewards per target: any number; one is enough. No cap.</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li>Steward, write-up and explainer-signature records are evidentiary (C9): they enter the graph
+    only through a merge the gate checked, append-only, and are verified offline through the
+    <code>Signer</code> seam (ssh-keygen in the gate). The api verifies none of them.</li>
+  <li>No email is stored for a steward; the mention is a login in a commit message. A login is
+    validated against GitHub's grammar before it enters any message or page, so a record cannot
+    inject text there.</li>
+  <li>A steward's identity link is contributor-supplied free text: rendered as a link only after
+    the record validates, through the same allowlist mechanism F11-Q11 built for target sources;
+    the site never invents an outbound link.</li>
+  <li>The proposal form's text lives in GitHub issues, never in the graph; only a curator's intake
+    moves any of it across the boundary, quoted under the existing quotation policy.</li>
+  <li><code>policy.json</code> is curator-mode only, so the steward rule cannot be switched by a
+    submission. Switching it either way is a visible diff on the record repository.</li>
+  <li>No new secret or permission unless Q5's fallback is taken, in which case the post-merge job
+    (a push-triggered job that runs no contributor code before the step) would gain
+    <code>pull-requests: write</code>, an owner's call recorded in C8 if made.</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>Decisions v3.17</strong> (required for every code task after T1): the amendment note
+    awaits the founder (Q1).</li>
+  <li><strong>F07</strong> (required): explainer mode, the ledger and its bars, the post-merge job.</li>
+  <li><strong>F11, F12</strong> (required): intake, the target record, fidelity certificates and
+    who signed them.</li>
+  <li><strong>F14</strong> (required): the claimability derivation this narrows, the wave driver,
+    the bench and the lifecycle-test shape.</li>
+  <li><strong>F03, F04</strong> (required): products and the site.</li>
+  <li><strong>F09</strong> (soft): the MCP field filter over the targets index.</li>
+  <li><strong>Packages:</strong> none added.</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F15-Q1</td><td><strong>The doc leads.</strong> Decisions v3.17 is drafted in
+    <code>engineering/session-notes/2026-09-15-f15-decisions-amendment.md</code> and not applied
+    (the doc is v3.16 on 2026-09-16). T2 onward is built only once it is; T1, the site copy draft
+    (T11) and the calibration pool research (T14a) can proceed now. The five gaps the amendment
+    lists for a yes or no are the founder's, and Q3 below depends on the second.</td></tr>
+  <tr><td>F15-Q2</td><td><strong>The switch is a file, not a re-pin.</strong> The design record
+    said the rule goes live "with a re-pin"; but any re-pin during the calibration run (a bug fix,
+    say) would then flip 23 targets unclaimable. A graph-root <code>policy.json</code>, absent
+    until the run passes and flipped by one curator pull request naming the evidence, is a visible
+    diff that honours D-32 v3.17's "never quietly relaxed" in both directions. Proposed addition
+    to the v3.17 text: D-35's list of what the graph holds gains <code>policy.json</code> and
+    <code>.github/ISSUE_TEMPLATE/</code>, both curator-owned.</td></tr>
+  <tr><td>F15-Q3</td><td>The signer's proof bar covers the whole target, not only the root, because
+    every interior node is proved in service of the root (amendment gap 2). It bars the proof line
+    only; attempts, statements and write-ups pay as for a curator.</td></tr>
+  <tr><td>F15-Q4</td><td><strong>Who is real-identity at Stage 0.</strong> D-22 says reviewers,
+    adjudicators and writers are real-identity, and nothing in the graph records who is. For
+    explainer signatures and write-up records the set is the target's active stewards plus the
+    listed curators, both curator-checked; anyone else's signature is refused by name rather than
+    recorded as a second class. Widening the set is one function when a registry exists.</td></tr>
+  <tr><td>F15-Q5</td><td><strong>The mention channel.</strong> GitHub's notification docs list
+    "your username @mentioned" as a trigger without saying whether a commit message counts, and
+    the bot commit is the one place the post-merge job already writes with no new permission. So
+    the message carries the mention, and T15 verifies the notification arrives live (the F06
+    pattern: probe, then rely). Fallback: a comment on the merged pull request, which needs
+    <code>pull-requests: write</code> on the post-merge job (§7).</td></tr>
+  <tr><td>F15-Q6</td><td><strong>What "no intervention" means.</strong> Nothing merges on green
+    (F07-Q16), so a person must press merge. The run counts a merge on a green check as the
+    protocol's own act and every other act by the founder or the build (a hint, a fix, a re-run, a
+    witness) as an intervention that fails the run. The alternative is to build merge-on-green
+    first; the founder's call.</td></tr>
+  <tr><td>F15-Q7</td><td><strong>How identity is checked.</strong> The steward's record carries
+    the link and the key; <code>steward check</code> tells the curator whether the key is one the
+    login publishes; the curator reads the link; the merge is the check, recorded by the merge
+    itself. No second signature.</td></tr>
+  <tr><td>F15-Q8</td><td>The signature binds the record, not the pull request's author, so a
+    curator may carry a steward's signed record in an intake pull request. A steward with a
+    GitHub account may equally open their own.</td></tr>
+  <tr><td>F15-Q9</td><td><strong>Calibration targets.</strong> They sit on the
+    <code>formalization</code> track (D-6's second-class row, which the amendment widens to
+    "results already known"), flagged <code>calibration: true</code> so the site labels them and
+    no count of open-problem work includes them. They are never relabelled
+    <code>known-result</code>, which is a closed status; they are known from day one.</td></tr>
+  <tr><td>F15-Q10</td><td><strong>Numbers on the home page.</strong> The design record says no
+    network numbers until the run passes; D-36 says the home page shows live counts. The lead
+    paragraph carries none; the counts table stays below it, led by explanation coverage, because
+    a count the site already publishes is not an announcement.</td></tr>
+  <tr><td>F15-Q11</td><td>The closing artifact for the closure is the root's proof, or the
+    <code>resolves</code> variant's where the target resolved by variant (D-30); a
+    <code>partial</code> variant closes nothing and starts no digestion state.</td></tr>
+  <tr><td>F15-Q12</td><td>The calibration pool query is committed beside the seed dataset and
+    read by a test, so the number in R14 is a fact the suite checks, not a sentence that rots.
+    The three chosen targets and their grades are recorded in T14a's evidence before any intake.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> spec &middot; <strong>Tasks:</strong> T1 ✓ 2026-09-16
+(<code>make verify</code>; <code>engineering/evidence/F15/task-1.txt</code>) &middot; T2&ndash;T15
+todo &mdash; T2 onward waits on decisions v3.17 being applied (Q1); T11 and T14a may run
+first</div>
+
+<h2>Tasks</h2>
+<p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its
+one verification command (conventions §3, §6). QA gates: after T10 the fast tier and screenshots;
+after T13 the lifecycle test and the CI tiers; after T14 the calibration record read by the
+founder; after T15 the §5 AC17 checks. Agents never edit spec HTML; the lead folds their proposed
+questions in at merge (the 2026-09-13 rule).</p>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F15-T1</td><td>This spec and its index row.</td>
+    <td><code>engineering/specs/features/F15.html</code>, <code>engineering/specs/index.html</code></td>
+    <td>&mdash;</td><td><code>make verify</code></td></tr>
+  <tr><td>F15-T2</td><td>Schemas <code>steward/v1</code>, <code>explainer-signature/v1</code>,
+    <code>writeup/v1</code>, <code>policy/v1</code>, <code>target/v2</code>,
+    <code>targets-index/v6</code>; pins; readers and writers; the version-string sweep (R9);
+    goldens and the api fixture regenerated; <code>PROTOCOL_VERSION</code> 3.17.</td>
+    <td><code>gate/schemas/**</code>, <code>gate/opn_gate/{products,paths,intake,schemas}.py</code>,
+    <code>site/opn_site/model.py</code>, <code>api/opn_api/mcp/reads.py</code>,
+    <code>api/tools/*.py</code>, <code>.github/workflows/*.yml</code>, <code>gate/tests/golden/**</code>,
+    <code>api/tests/fixtures/**</code></td>
+    <td>T1, v3.17</td><td><code>make verify</code></td></tr>
+  <tr><td>F15-T3</td><td>Signed records: the canonical body, sign and verify through the
+    <code>Signer</code> seam; the steward module, its three commands, the active set, the path
+    role and the <code>steward</code> mode (R1, R2).</td>
+    <td><code>gate/opn_gate/signed.py</code>, <code>gate/opn_gate/steward.py</code>,
+    <code>gate/opn_gate/{paths,modes,cli}.py</code>, <code>gate/tests/test_steward.py</code>,
+    <code>gate/tests/test_modes.py</code></td>
+    <td>T2</td><td><code>uv run pytest gate/tests/test_steward.py gate/tests/test_modes.py -q</code></td></tr>
+  <tr><td>F15-T4</td><td>The policy file and the <code>no-steward</code> reason (R3, R4); the
+    api's refusal text reads the index as today.</td>
+    <td><code>gate/opn_gate/{policy,intake,products,paths,modes}.py</code>,
+    <code>gate/tests/test_intake.py</code>, <code>gate/tests/test_products.py</code>,
+    <code>api/tests/test_claims.py</code></td>
+    <td>T3</td><td><code>uv run pytest gate/tests/test_intake.py gate/tests/test_products.py api/tests/test_claims.py -q</code></td></tr>
+  <tr><td>F15-T5</td><td>Signer takes no proof credit: the ledger bar and the attestation refusal
+    (R5).</td>
+    <td><code>gate/opn_gate/{ledger,fidelity,postmerge,cli}.py</code>,
+    <code>gate/tests/test_ledger.py</code>, <code>gate/tests/test_fidelity.py</code></td>
+    <td>T2</td><td><code>uv run pytest gate/tests/test_ledger.py gate/tests/test_fidelity.py -q</code></td></tr>
+  <tr><td>F15-T6</td><td>Signed explainers: the role, the checks, <code>explainer sign</code>, the
+    mode's acceptance (R8).</td>
+    <td><code>gate/opn_gate/{paths,modes,cli}.py</code>, <code>gate/opn_gate/explainers.py</code>,
+    <code>gate/tests/test_explainer_signature.py</code></td>
+    <td>T3</td><td><code>uv run pytest gate/tests/test_explainer_signature.py -q</code></td></tr>
+  <tr><td>F15-T7</td><td>Write-up records and the digestion state, with the home coverage counts
+    (R6, R7).</td>
+    <td><code>gate/opn_gate/{writeup,products,graph,cli}.py</code>,
+    <code>gate/tests/test_writeup.py</code>, <code>gate/tests/test_products.py</code></td>
+    <td>T6</td><td><code>uv run pytest gate/tests/test_writeup.py gate/tests/test_products.py -q</code></td></tr>
+  <tr><td>F15-T8</td><td>The merge mention: the message helper and the guarded workflow line
+    (R12).</td>
+    <td><code>gate/opn_gate/{postmerge,cli}.py</code>, <code>gate/tests/test_postmerge.py</code>,
+    <code>../open_proof_network_graph/.github/workflows/gate.yml</code></td>
+    <td>T3</td><td><code>uv run pytest gate/tests/test_postmerge.py -q</code></td></tr>
+  <tr><td>F15-T9</td><td>Proposals: the issue form, <code>target/v2</code>'s proposal source,
+    proposer, calibration and opt-out fields, intake's refusals (R13).</td>
+    <td><code>../open_proof_network_graph/.github/ISSUE_TEMPLATE/problem-proposal.yml</code>,
+    <code>gate/opn_gate/intake.py</code>, <code>gate/tests/test_intake.py</code>,
+    <code>gate/tests/test_proposal_form.py</code></td>
+    <td>T2</td><td><code>uv run pytest gate/tests/test_intake.py gate/tests/test_proposal_form.py -q</code></td></tr>
+  <tr><td>F15-T10</td><td>Site structure (R10): target page, Targets row, node page signer line,
+    home counts led by coverage, calibration label; screenshots read before write-up.</td>
+    <td><code>site/opn_site/{render,model,links}.py</code>, <code>site/opn_site/templates/*</code>,
+    <code>site/tests/fixture.py</code>, <code>site/tests/test_render_stewards.py</code></td>
+    <td>T4, T7</td><td><code>uv run pytest site/tests -q</code> and the PNGs</td></tr>
+  <tr><td>F15-T11</td><td>Site copy (R11): the home lead, the Docs steward section, the proposal
+    link, the Leiden paragraph and table, the students sentence; the link allowlist. Drafted
+    for the founder's review; may start before v3.17.</td>
+    <td><code>site/opn_site/templates/{home,docs}.html</code>, <code>site/opn_site/links.py</code>,
+    <code>site/tests/test_copy.py</code></td>
+    <td>T1</td><td><code>uv run pytest site/tests/test_copy.py -q</code> and the PNGs</td></tr>
+  <tr><td>F15-T12</td><td>Documentation (R15): both guide copies, the human-funnel document, the
+    amendment notes on F03, F07, F11 and F14.</td>
+    <td><code>AGENTS.md</code>, <code>gate/agents/AGENTS.md</code>, <code>gate/agents/*.md</code>,
+    <code>engineering/specs/features/{F03,F07,F11,F14}.html</code></td>
+    <td>T3, T6, T9</td><td><code>make verify</code></td></tr>
+  <tr><td>F15-T13</td><td>The lifecycle test (R16).</td>
+    <td><code>gate/tests/test_lifecycle_f15.py</code></td>
+    <td>T4, T5, T7, T8, T10</td><td><code>uv run pytest gate/tests/test_lifecycle_f15.py -v</code></td></tr>
+  <tr><td>F15-T14</td><td>Calibration (R14). <strong>T14a</strong>, may start now: the committed
+    pool query, the three choices with grades and reasons, the wave-driver drafts read by hand.
+    <strong>T14b</strong>: intake on the live graph, one pull request each (the founder's
+    sitting). <strong>T14c</strong>: the unattended fresh-agent run and its record.</td>
+    <td><code>docs/calibration_pool.py</code>, <code>gate/tests/test_calibration_pool.py</code>,
+    <code>engineering/onramp/calibration/**</code>, <code>../open_proof_network_graph/targets/**</code>,
+    <code>engineering/evidence/F15/calibration.md</code></td>
+    <td>T14a: T1; T14b: T9, T12; T14c: T14b</td>
+    <td><code>uv run pytest gate/tests/test_calibration_pool.py -q</code>; the calibration record</td></tr>
+  <tr><td>F15-T15</td><td>Rollout: re-pin; the live mention probe; after T14c passes, the policy
+    switch pull request and the AC17 checks.</td>
+    <td><code>../open_proof_network_graph/**</code>, <code>engineering/evidence/F15/rollout.txt</code></td>
+    <td>T13, T14c, CI</td><td><code>engineering/evidence/F15/rollout.txt</code></td></tr>
+</table>
+
+<footer>Open Proof Network · F15 spec v1 · 2026-09-16</footer>
+</body>
+</html>

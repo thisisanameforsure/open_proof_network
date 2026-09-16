@@ -1,0 +1,26 @@
+# F15-T1: the spec and its index row — make verify, 2026-09-16T17:59:37Z, 5ffc31f
+site/tests/test_escaping.py ....                                         [ 93%]
+site/tests/test_fast_check.py ...                                        [ 93%]
+site/tests/test_finding_bench_claimable_words.py ..                      [ 93%]
+site/tests/test_finding_dag_labels.py .                                  [ 93%]
+site/tests/test_finding_docs_agents_md.py .......                        [ 93%]
+site/tests/test_finding_not_claimable_reasons.py .............           [ 94%]
+site/tests/test_finding_status_cause.py .....                            [ 94%]
+site/tests/test_links.py ......................                          [ 95%]
+site/tests/test_rejection.py ......................................      [ 97%]
+site/tests/test_render.py ............................                   [ 98%]
+site/tests/test_render_alternates.py .                                   [ 98%]
+site/tests/test_render_evidence.py .......                               [ 99%]
+site/tests/test_untrusted.py .....................                       [100%]
+
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:29
+  /Users/mikehiggins/Desktop/repos/open_proof_network/api/tests/api_fakes.py:29: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========= 2137 passed, 72 deselected, 2 warnings in 162.31s (0:02:42) ==========
