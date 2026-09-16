@@ -1,0 +1,16 @@
+F15-T9 — proposals: the issue form gate/agents/problem-proposal.yml, copied to the graph's .github/ISSUE_TEMPLATE/ (every R13 field, the publishes acknowledgement required); OPN_GRAPH_REPO_URL in the gate's config; intake new refuses a proposal-sourced record whose ref is not an issue on that repository and calibration: true on the open track, before anything is written (R13; AC13).
+2026-09-16T19:52:03Z  commit: d306a4c (+ working tree)
+
+$ uv run pytest gate/tests/test_intake.py gate/tests/test_proposal_form.py -q
+............................                                             [100%]
+28 passed in 10.49s
+
+$ make verify
+site/tests/test_render_alternates.py .                                   [ 98%]
+site/tests/test_render_evidence.py .......                               [ 99%]
+site/tests/test_untrusted.py .....................                       [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:29
+    from starlette.testclient import TestClient
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========= 2167 passed, 72 deselected, 2 warnings in 181.44s (0:03:01) ==========

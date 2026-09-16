@@ -31,6 +31,10 @@ Variables (prefix ``OPN_``):
     an environment variable rather than only a flag so the graph's workflow can set it before its
     pinned gate understands the flag (F08-Q8). Default ``None``: no author is known, and a
     curator-shaped pull request is refused.
+``OPN_GRAPH_REPO_URL``
+    The graph repository's web URL (D-35), the one place a problem proposal may be filed: an
+    issue there is the only ``ref`` a ``proposal``-sourced target record may carry (F15-R13).
+    Default: the Stage 0 graph under the founder's account.
 ``OPN_LISTED_TARGETS_MAX``
     How many open-track targets may be listed at once (F11-R9; Stages: Stage 0 lists a handful so
     the mission is visible, and none of them is claimable). Default ``5``.
@@ -70,6 +74,7 @@ DEFAULT_ELAN_HOME = Path.home() / ".elan"
 DEFAULT_DIAGNOSTIC_MAX_BYTES = 8192
 #: F11-R9 §6's count, config rather than a constant; F14-R12 raised the default from 5 for wave one.
 DEFAULT_LISTED_TARGETS_MAX = 64
+DEFAULT_GRAPH_REPO_URL = "https://github.com/thisisanameforsure/open_proof_network_graph"
 DEFAULT_LEAN_PKG_BIN = Path(__file__).resolve().parents[1] / "lean" / ".lake" / "build" / "bin"
 DEFAULT_MATHLIB_HOME = Path.home() / ".opn" / "mathlib"  # F11-R6: one checkout per pinned sha
 DEFAULT_QA_ATTEMPT_BUDGET_S = 60.0  # F12 §6: per screen attempt, provisional (F12-Q4)
@@ -96,6 +101,7 @@ class Settings:
     lean_pkg_bin: Path = DEFAULT_LEAN_PKG_BIN
     mathlib_home: Path = DEFAULT_MATHLIB_HOME
     listed_targets_max: int = DEFAULT_LISTED_TARGETS_MAX
+    graph_repo_url: str = DEFAULT_GRAPH_REPO_URL
     step9_min_score: int = DEFAULT_STEP9_MIN_SCORE
     qa_attempt_budget_s: float = DEFAULT_QA_ATTEMPT_BUDGET_S
     qa_subject_budget_s: float = DEFAULT_QA_SUBJECT_BUDGET_S
@@ -194,6 +200,7 @@ def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0915 �
         elan_home=Path(env.get("OPN_ELAN_HOME", str(DEFAULT_ELAN_HOME))).expanduser(),
         diagnostic_max_bytes=diagnostic_max_bytes,
         listed_targets_max=listed_targets_max,
+        graph_repo_url=(env.get("OPN_GRAPH_REPO_URL") or DEFAULT_GRAPH_REPO_URL).rstrip("/"),
         step9_min_score=step9_min_score,
         qa_attempt_budget_s=budgets["OPN_QA_ATTEMPT_BUDGET_S"],
         qa_subject_budget_s=budgets["OPN_QA_SUBJECT_BUDGET_S"],

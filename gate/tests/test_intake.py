@@ -588,3 +588,52 @@ def test_no_steward_refuses_claims_only_under_policy(tmp_path: Path) -> None:
     assert [s["login"] for s in row["stewards"]] == ["alice-steward"]
     intake.activate(root, "open-problem", author="curator", date=LATER)
     assert index_row(root, "open-problem")["status"] == "active"
+
+
+# --- F15-T9 / AC13: proposals and calibration targets (R13; D-6 v3.17) ---------------------------
+
+GRAPH_URL = "https://github.com/thisisanameforsure/open_proof_network_graph"
+
+
+def test_proposal_source_needs_a_graph_issue(tmp_path: Path) -> None:
+    """AC13: a ``proposal``-sourced record whose ref is not an issue on the graph repository is
+    refused naming the repository, before anything is written; a well-formed one is listed with
+    its proposer on record; with no repository configured every proposal is refused."""
+    root = copy_graph(tmp_path)
+    proposal = {"kind": "proposal", "ref": f"{GRAPH_URL}/issues/12", "url": None}
+    for bad_ref in (
+        "https://github.com/someone-else/repo/issues/12",
+        f"{GRAPH_URL}/pull/12",
+        f"{GRAPH_URL}/issues/",
+        "issue 12",
+    ):
+        with pytest.raises(IntakeError, match="not an issue on the graph repository"):
+            take_in(
+                root, "proposed", source={**proposal, "ref": bad_ref}, proposer="a-mathematician",
+                repo_url=GRAPH_URL,
+            )  # fmt: skip
+        assert not (root / "targets" / "proposed").exists()
+    with pytest.raises(IntakeError, match="none is configured"):
+        take_in(root, "proposed", source=proposal, proposer="a-mathematician")
+    result = take_in(
+        root, "proposed", source=proposal, proposer="a-mathematician", repo_url=GRAPH_URL
+    )
+    assert result.target_id == "proposed"
+    doc = intake.load_doc(root / "targets" / "proposed")
+    assert doc is not None and doc["schema"] == "target/v2"
+    assert intake.proposer_of(doc) == "a-mathematician" and not intake.is_calibration(doc)
+    # A record from another source is not held to the issue rule, configured or not.
+    take_in(root, "ordinary", repo_url=None)
+
+
+def test_calibration_only_on_the_formalization_track(tmp_path: Path) -> None:
+    """AC13: ``calibration: true`` on the open track is refused by name; on the formalization
+    track it is listed and the index says so."""
+    root = copy_graph(tmp_path, publish=True)
+    with pytest.raises(IntakeError, match="formalization track"):
+        take_in(root, "known", track="open", calibration=True)
+    assert not (root / "targets" / "known").exists()
+    take_in(root, "known", track="formalization", calibration=True)
+    row = index_row(root, "known")
+    assert row["calibration"] is True and row["track"] == "formalization"
+    assert index_row(root, "known")["claimable"] is True

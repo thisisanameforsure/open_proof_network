@@ -116,6 +116,7 @@ def take_in(
     checker: Any = None,
     author: str = "curator",
     date: str = "2026-09-11T00:00:00Z",
+    repo_url: str | None = None,
     **record_overrides: Any,
 ) -> Any:
     """Take a target in, reusing one of the fixture's nodes as its root."""
@@ -142,4 +143,5 @@ def take_in(
         checker=checker if checker is not None else always_admits,
         author=author,
         date=date,
+        repo_url=repo_url,
     )

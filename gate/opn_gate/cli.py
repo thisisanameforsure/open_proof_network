@@ -1872,6 +1872,7 @@ def run_intake(args: argparse.Namespace, settings: config.Settings) -> int:
         checker=checker,
         author=args.author,
         date=_intake_date(args),
+        repo_url=settings.graph_repo_url,  # F15-R13: a proposal's ref is an issue there
     )
     return _emit_curator(
         {"ok": True, **result.as_dict()}, graph, args.branch, f"intake: list {args.target_id}"

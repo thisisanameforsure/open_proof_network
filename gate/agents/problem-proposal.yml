@@ -1,0 +1,78 @@
+# The problem proposal form (F15-R13; D-6 v3.17, D-27 v3.17). The graph repository carries a
+# copy at .github/ISSUE_TEMPLATE/problem-proposal.yml; the network's tests read this one and
+# check the two agree. A proposal is an issue and never a commit: the graph's history is
+# mathematics only (D-35), and only a curator's intake moves any of this text across (F15 §7).
+name: Propose a problem
+description: Put an open problem forward in ordinary mathematics. No Lean needed.
+title: "Proposal: "
+labels: ["proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A proposal is public from the moment it is listed (D-6 v3.17). Formalizing the statement
+        in Lean is open work anyone may take, agents included; you check the Lean against your
+        conjecture afterwards. Intake stays curated: a curator reads this, checks the prior art and
+        attaches the other artifacts D-6 asks for. Unless you decline below, you become the
+        target's steward — see the Docs page for what a steward commits to and receives (D-32).
+  - type: textarea
+    id: statement
+    attributes:
+      label: The statement, in ordinary mathematics
+      description: State the problem as you would to a colleague. Notation is fine; Lean is not needed.
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Where the problem is stated and where the best known partial results are. Papers, problem lists, forum threads.
+    validations:
+      required: true
+  - type: textarea
+    id: why-open
+    attributes:
+      label: Why you believe it is open
+      description: What you searched, and what you know of attempts on it. This is the prior-art artifact a curator checks (D-6 item 1).
+    validations:
+      required: true
+  - type: input
+    id: area
+    attributes:
+      label: Area
+      description: The field, in your words (e.g. additive combinatorics, analytic number theory). Four domains are outside Stage 0 intake (D-6).
+    validations:
+      required: true
+  - type: dropdown
+    id: will-steward
+    attributes:
+      label: Will you steward it?
+      description: A steward commits to best efforts to understand and write up whatever the network produces on the problem, with no deadline, and may step down at any time (D-32 v3.17). Without a steward the problem is listed and refuses claims once the steward rule is enforced.
+      options:
+        - "Yes — I will sign the steward record when the curator sends it"
+        - "No — list it without me"
+    validations:
+      required: true
+  - type: dropdown
+    id: skip-upstream
+    attributes:
+      label: Skip contributing the statement to Formal Conjectures?
+      description: By default a curator contributes the Lean statement upstream before proving starts (D-10). You may ask that it stay in-network with equivalent visibility; the request buys no privacy (D-10 v3.17).
+      options:
+        - "No — contribute it upstream as usual"
+        - "Yes — keep the statement in-network (say why below)"
+    validations:
+      required: true
+  - type: textarea
+    id: skip-upstream-why
+    attributes:
+      label: If you asked to skip upstreaming, why?
+    validations:
+      required: false
+  - type: checkboxes
+    id: publishes
+    attributes:
+      label: Listing publishes the problem
+      options:
+        - label: I understand that listing publishes this problem and that a problem I want kept private is declined, never held back (D-6 v3.17).
+          required: true

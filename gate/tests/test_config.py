@@ -119,6 +119,14 @@ def test_only_config_module_reads_the_environment() -> None:
 # --- F11-R9 §6: the Stage 0 listed-target count is config, not a constant (C6) ------------------
 
 
+def test_graph_repo_url_defaults_and_reads() -> None:
+    """F15-R13: the graph repository a proposal's issue must live on, trailing slash dropped."""
+    assert config.load({}).graph_repo_url == config.DEFAULT_GRAPH_REPO_URL
+    assert config.load({"OPN_GRAPH_REPO_URL": "https://example.org/g/"}).graph_repo_url == (
+        "https://example.org/g"
+    )
+
+
 def test_listed_targets_max_defaults_and_reads() -> None:
     assert config.load({}).listed_targets_max == config.DEFAULT_LISTED_TARGETS_MAX == 64  # F14-R12
     assert config.load({"OPN_LISTED_TARGETS_MAX": "12"}).listed_targets_max == 12

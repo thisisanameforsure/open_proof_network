@@ -31,6 +31,7 @@ pre-F11 target and keeps F03's rule (Q4, Q5), so the tutorial graph is untouched
 from __future__ import annotations
 
 import logging
+import re
 import shutil
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -231,11 +232,49 @@ def check_witness(root_dir: Path) -> None:
         raise IntakeError(msg)
 
 
-def check(doc: dict[str, Any], root_dir: Path) -> None:
+PROPOSAL_SOURCE_KIND = "proposal"
+_ISSUE_RE = re.compile(r"^(?P<repo>https://github\.com/[^/]+/[^/]+)/issues/(?P<n>[1-9][0-9]*)$")
+
+
+def check_proposal(doc: dict[str, Any], *, repo_url: str | None) -> None:
+    """F15-R13 (D-6 v3.17): a proposed problem's source is the issue it was filed as, on the
+    graph repository and nowhere else — the form is the one channel, and its text stays in the
+    issue (F15 §7). A ``proposal`` record with any other ref is refused by name; with no
+    repository URL to check against, so is every proposal, since the check cannot be made."""
+    source = doc.get("source") or {}
+    if str(source.get("kind")) != PROPOSAL_SOURCE_KIND:
+        return
+    ref = str(source.get("ref", ""))
+    m = _ISSUE_RE.match(ref)
+    if repo_url is None:
+        msg = "a proposal's ref is checked against the graph repository, and none is configured"
+        raise IntakeError(msg)
+    if m is None or m.group("repo").rstrip("/") != repo_url.rstrip("/"):
+        msg = (
+            f"source.ref {ref!r} is not an issue on the graph repository ({repo_url}/issues/<n>); "
+            "a proposal is filed through the repository's form and nowhere else (F15-R13)"
+        )
+        raise IntakeError(msg)
+
+
+def check_calibration(doc: dict[str, Any]) -> None:
+    """F15-R13, Q9 (Stages v3.17): a calibration target is a known result on the formalization
+    track; the flag on an open-track target would exempt an open problem from the steward rule."""
+    if is_calibration(doc) and str(doc.get("track")) == OPEN_TRACK:
+        msg = (
+            "calibration: true is for known results on the formalization track (Stages v3.17, "
+            "F15-Q9); an open-track target is never a calibration target"
+        )
+        raise IntakeError(msg)
+
+
+def check(doc: dict[str, Any], root_dir: Path, *, repo_url: str | None = None) -> None:
     """Every refusal R2 names, in the order a curator would hit them."""
     check_artifacts(doc)
     check_domains(doc)
     check_quotation(doc)
+    check_proposal(doc, repo_url=repo_url)
+    check_calibration(doc)
     check_witness(root_dir)
 
 
@@ -361,6 +400,7 @@ def new(  # noqa: PLR0913 — one argument per input the target is built from
     checker: Checker,
     author: str,
     date: str,
+    repo_url: str | None = None,
 ) -> Intake:
     """R2: take the target in, or leave the graph exactly as it was.
 
@@ -380,7 +420,7 @@ def new(  # noqa: PLR0913 — one argument per input the target is built from
     if not root_dir.is_dir():
         msg = f"--root {root_dir} is not a directory"
         raise IntakeError(msg)
-    check(doc, root_dir)
+    check(doc, root_dir, repo_url=repo_url)
     mathlib_sha = doc["library_coverage"]["mathlib_sha"]
     spec = spec_for(spec_template, target_id=target_id, mathlib_sha=mathlib_sha)
     root_id = root_dir.name
