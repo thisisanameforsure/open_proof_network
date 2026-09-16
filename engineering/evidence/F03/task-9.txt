@@ -1,0 +1,123 @@
+F03-T9 · a hole waiting only for its witness is on the frontier, and claimable (R5, Q11) · 2026-09-16
+
+THE FINDING, LIVE
+-----------------
+An agent testing the network submitted a partial on erdos-412; graph PR #71 merged at 09:10:26,
+step 9 skipped because the target's registry evidence waives it (F14-T5). The post-merge job then
+did exactly what D-29 asks: it created the hole
+
+  erdos-412--h1   origin: skeleton-hole   status: blocked   cause: witness-missing
+
+with a generated statement (a descent lemma over (σ 1) iterates) and a witness *slot* —
+`theorem witness : True := by sorry` — and derived the root `blocked` on it.
+
+The target then left the frontier entirely: 23 entries to 22, with no erdos-412 entry at all,
+while targets/index.json went on publishing `claimable: true, not_claimable: []`. So the Targets
+page invited a contributor to a target whose frontier offered nothing to work on, and
+`list_frontier` — what an agent actually reads — showed the conjecture as gone.
+
+WHY IT HAPPENED
+---------------
+products.in_frontier admitted `status in FRONTIER_STATUSES` ("ready", "speculative") plus open
+variants. A hole is `blocked` from the moment the job writes it, so *no hole created since F07/F11
+gave that job a caller had ever reached the frontier* — the tutorial's two have been invisible
+since 2026-09-13, which the live contribution tester reported as "they are off the frontier" and
+only half of which was fixed (the propose_witness tool landed; the visibility did not).
+
+That is a defect against D-29, not a design choice. The decisions document says it four times:
+"partial holes enter the frontier as compiler-derived children on gate pass"; "Residual holes
+enter the frontier directly as compiler-derived children (D-29) once they pass the mechanical
+gate; no human promotion step"; "k holes enter the frontier as compiler-derived children (D-29);
+root stays open; its holes are new attack-route nodes"; "the holes enter the frontier as children
+under D-29 once they pass the statement-side gate". D-25 publishes `origin: skeleton-hole` as a
+frontier field to filter on, which is dead weight if no hole is ever an entry. So no decisions
+amendment was needed; R5's enumeration was the stale text and it is corrected.
+
+THE CHANGE
+----------
+gate/opn_gate/graph.py      awaiting_witness(node, status_of) — blocked *only* by an unfilled
+                            witness slot, built on blocked_because so the distinction is drawn
+                            once: a node waiting on an unproved dependency is not this.
+gate/opn_gate/products.py   in_frontier gains status_of and admits such a hole; frontier_entry's
+                            claimable expression gains the same case; status_or_ready +
+                            functools.partial so the predicate is bound per target.
+engineering/specs/features/F03.html   R5's membership clause, F03-Q11, the T9 ledger line.
+
+Claimable as well as listed (the owner's call, 2026-09-16): Q8's premise — "a claim on it could
+not be worked" — is false here. The witness *is* the work, and POST /proposals/witness accepts
+exactly a hole whose cause is witness-missing (hole_awaiting_witness) and refuses a witness
+carrying a sorry. The variant rule is untouched, and a dependency-blocked node stays off.
+
+RED FIRST
+---------
+$ uv run --frozen pytest gate/tests/test_finding_hole_frontier.py -x -q
+  1 failed, 1 passed
+  TypeError: in_frontier() takes 2 positional arguments but 3 were given
+  (test_the_stub_witness_is_what_blocks_it passed from the start: the premise holds, because
+  blocked_because already returned CAUSE_WITNESS_MISSING for such a node. Only the frontier
+  never asked.)
+
+After the production change, two tests still failed — a defect in my fixture, not the code:
+  GraphError: node and-swap-reassoc--h1: missing required directory attempts/; annex/; explainer/
+layout.load_node requires all three, and the post-merge job writes them (the live erdos-412--h1
+carries each with a .gitkeep). The fixture now writes them too. The fixture also declares the
+root: a hole nothing depends on is a second sink, and root inference refuses without it
+(F08-Q19) — the build log's standing warning, paid again.
+
+GREEN
+-----
+$ uv run --frozen pytest gate/tests/test_finding_hole_frontier.py -q
+  7 passed
+    test_the_stub_witness_is_what_blocks_it
+    test_a_witness_missing_hole_is_on_the_frontier
+    test_a_hole_blocked_on_an_unproved_dependency_is_not
+    test_a_witness_missing_hole_is_claimable
+    test_the_variant_rule_is_untouched
+    test_the_generated_frontier_carries_the_hole      (end to end over a tree, via products.generate)
+    test_a_filled_slot_leaves_the_hole_ready
+
+$ uv run --frozen pytest gate/tests/test_products.py -q
+  44 passed   (test_a_blocked_variant_is_listed_but_not_claimable among them, unchanged: F03-T6
+               stands, because for a variant the premise is still true)
+
+$ ruff check / ruff format --check   clean (4 files)
+$ mypy gate                          Success: no issues found in 171 source files
+$ make verify                        2135 passed, 72 deselected, 2 xfailed — no golden moved.
+  (The two xfails are another session's, api/tests/test_finding_mcp_dco_bootstrap.py, held the
+  same day pending an owner's call; nothing here holds an expected failure.)
+
+Ruff earned its keep on the fix itself: B023, a lambda defined in the node loop closing over the
+loop's `tg`, which would have read the last target's statuses for every entry. Bound per target
+with functools.partial instead.
+
+THE LIVE EFFECT
+---------------
+Measured in process — graph.load_target and products.in_frontier over a read-only worktree at
+origin/main, never `products` on a Mathlib target, which pulls the 3.5 GiB image even to report
+an error (the 2026-09-13 note that filled the disk):
+
+  $ git -C ../open_proof_network_graph worktree add -q --detach <tmp> origin/main   # cdf91ae
+  frontier entries: 22 before -> 25 after
+  NEWLY LISTED: 3
+    erdos-412   erdos-412--h1           status=blocked  origin=skeleton-hole  cause=witness-missing
+    tutorial    variant-93e79cb5--h1    status=blocked  origin=skeleton-hole  cause=witness-missing
+    tutorial    variant-93e79cb5--h2    status=blocked  origin=skeleton-hole  cause=witness-missing
+
+Nothing else moves. The worktree was removed afterwards; the two worktrees another session holds
+were left alone.
+
+A first attempt at this measurement reported 2 and missed erdos-412--h1 entirely, because the
+sibling checkout sat at 10f4b93 while the hole arrived in cdf91ae — the shared tree had
+fast-forwarded twice that morning. Measure against the commit you mean, not the checkout you
+have.
+
+WHAT IS NOT DONE HERE
+---------------------
+- It reaches the record at the next re-pin: the products a graph serves are rendered by the
+  pinned gate, so the live frontier keeps 22 entries until then.
+- R5's sentence carries two further staleness bugs, left to a task that owns them: it says
+  `frontier/v1` where the schema is `frontier/v3`, and its field list omits `dormant`, which v3
+  requires.
+- targets/index.json's claimable flag and the frontier's membership are still computed in two
+  places; they agree again after this change, but the second home is why the disagreement was
+  invisible (the shape F11-Q10 and F03-Q4 both record).

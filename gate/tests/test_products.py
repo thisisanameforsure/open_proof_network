@@ -648,8 +648,9 @@ def test_resolved_nodes_leave_the_frontier(tmp_path: Path) -> None:
     attest(root, "tutorial-and-swap", n=1)
     tg = graph.load_target(root, TARGET)
     node = tg.nodes["tutorial-and-swap"]
-    assert not products.in_frontier(tg.statuses["tutorial-and-swap"], node)
-    assert products.in_frontier("ready", node)
+    status_of = lambda n: tg.statuses.get(n, "ready")  # noqa: E731 — one expression, read twice
+    assert not products.in_frontier(tg.statuses["tutorial-and-swap"], node, status_of)
+    assert products.in_frontier("ready", node, status_of)
 
 
 def test_a_blocked_variant_is_listed_but_not_claimable(tmp_path: Path) -> None:
@@ -672,7 +673,9 @@ def test_a_blocked_variant_is_listed_but_not_claimable(tmp_path: Path) -> None:
             tags=[],
         )
 
-    assert products.in_frontier("blocked", variant), "an open variant stays listed"
+    assert products.in_frontier("blocked", variant, lambda n: tg.statuses.get(n, "ready")), (
+        "an open variant stays listed"
+    )
     assert entry("blocked")["claimable"] is False
     assert entry("abandoned")["claimable"] is False
     assert entry("ready")["claimable"] is True

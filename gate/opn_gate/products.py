@@ -16,10 +16,11 @@ are ``[]`` without a scan.
 
 from __future__ import annotations
 
+import functools
 import json
 import logging
 import shutil
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -276,13 +277,30 @@ def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
     }
 
 
-def in_frontier(status: str, node: NodeFacts) -> bool:
-    """R5: ready or speculative, plus every variant whose question is still open.
+def status_or_ready(statuses: Mapping[str, str], node_id: str) -> str:
+    """A node's derived status, defaulting to ``ready`` for an id the map does not carry — the
+    reading :func:`graph.derive_causes` already takes."""
+    return statuses.get(node_id, "ready")
+
+
+def in_frontier(status: str, node: NodeFacts, status_of: Callable[[str], str]) -> bool:
+    """R5: ready or speculative, every variant whose question is still open, and every hole
+    waiting only for its witness.
 
     A refuted or defective variant is as settled as a proved one (D-12), so it leaves the
     frontier too — the frontier is what is still worth attacking, not what still lacks a proof.
+
+    A hole is ``blocked`` from the moment the post-merge job creates it, because its witness slot
+    is a stub; D-29 nevertheless says holes enter the frontier as children with no human
+    promotion step, and D-25 publishes ``origin: skeleton-hole`` as a field to filter on. Keying
+    membership off status alone hid every hole ever created (found live 2026-09-16, when the
+    first hole on an open Erdős target took its whole target off the frontier). The witness is
+    work anyone can do — ``POST /proposals/witness`` takes exactly this node — so it belongs
+    here, while a node waiting on an unproved dependency does not.
     """
     if status in graphmod.FRONTIER_STATUSES:
+        return True
+    if graphmod.awaiting_witness(node, status_of):
         return True
     return node.origin == "variant" and status not in graphmod.RESOLVED_STATUSES
 
@@ -319,8 +337,15 @@ def frontier_entry(
         "annex_present": annex_present(node.path),
         "bounty": False,
         # Q4 (T6): the target's claimability and the node's status. An open variant is listed
-        # while it waits on its holes (R5), but a claim on it could not be worked.
-        "claimable": claimable and status in graphmod.FRONTIER_STATUSES,
+        # while it waits on its holes (R5), but a claim on it could not be worked. A hole waiting
+        # only for its witness is the exception that premise does not cover: the witness *is* the
+        # work, and ``POST /proposals/witness`` accepts it today, so a claim on it is workable
+        # (owner's call, 2026-09-16).
+        "claimable": claimable
+        and (
+            status in graphmod.FRONTIER_STATUSES
+            or graphmod.awaiting_witness(node, functools.partial(status_or_ready, tg.statuses))
+        ),
         "tutorial": node.tutorial,
         # D-33: a dormancy declaration refuses no claim, so this is a fact and not a gate. It
         # rides on the entry rather than only on the index so an agent choosing work sees it
@@ -499,10 +524,14 @@ def generate(
         ready_since = graphmod.ready_since_map(previous, tg.statuses, commit_time)
         # R6: only a Mathlib-pinned graph has library tags to scan for and a cache to keep.
         cache = TagCache(tg.path / TAGS_CACHE) if tg.spec["mathlib_sha"] is not None else None
+        # Bound per target, not per node: a lambda defined in the node loop would close over the
+        # loop's ``tg`` and read the last target's statuses (ruff B023).
+        statuses = tg.statuses
+        status_of = functools.partial(status_or_ready, statuses)
         for node_id in tg.order:
             node = tg.nodes[node_id]
             products.meta_status[node.path.relative_to(graph_root)] = tg.statuses[node_id]
-            if not in_frontier(tg.statuses[node_id], node):
+            if not in_frontier(tg.statuses[node_id], node, status_of):
                 continue
             entries.append(
                 frontier_entry(

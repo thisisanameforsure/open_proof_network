@@ -353,6 +353,21 @@ def blocked_because(node: NodeFacts, status_of: Callable[[str], str]) -> tuple[b
     return False, None
 
 
+def awaiting_witness(node: NodeFacts, status_of: Callable[[str], str]) -> bool:
+    """D-29, R6: a hole blocked *only* by its unfilled witness slot — the witness is the work.
+
+    The decisions document says holes enter the frontier as children with no human promotion
+    step, and D-25 publishes ``origin: skeleton-hole`` as a frontier field to filter on. Such a
+    node is ``blocked``, so membership cannot key off status alone; it keys off the reason. A
+    node waiting on a dependency nobody has proved is *not* this: nothing about it can be worked
+    yet, so it stays off the frontier. That is the distinction :func:`blocked_because` already
+    draws, and this reuses it rather than deriving it a second time (found live 2026-09-16, when
+    the first hole on an open Erdős target took its target off the frontier entirely).
+    """
+    blocked, cause = blocked_because(node, status_of)
+    return blocked and cause == CAUSE_WITNESS_MISSING
+
+
 def derive_causes(nodes: dict[str, NodeFacts], statuses: dict[str, str]) -> dict[str, str | None]:
     """R8, R6: the machine-readable reason a blocked node is blocked, or ``None``.
 
