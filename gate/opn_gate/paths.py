@@ -167,6 +167,7 @@ Role = Literal[
     "precheck-record",  # attempts/precheck/<name>.json (D-34)
     "annex",  # annex/<hash>.md (D-31)
     "explainer",  # explainer/<hash>.md (D-3, D-36)
+    "explainer-signature",  # explainer/signed/<hash>-<n>.yaml: a comprehension claim (F15-R8)
     "approach-record",  # targets/<id>/approaches/<name>.yaml (D-14 mechanism 3)
     "node",  # META.yaml, Statement.lean, Context.lean: the node's definition, added once (D-3)
     "witness",  # Witness.lean: added with the node, or filled in on a hole's slot (F08-R5)
@@ -263,6 +264,7 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "formalization": ("formalization/v1",),
     "steward": ("steward/v1",),
     "policy": ("policy/v1",),
+    "explainer-signature": ("explainer-signature/v1",),
 }
 
 #: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers).
@@ -408,6 +410,9 @@ def _node_role(rest: str) -> Role | None:  # noqa: PLR0911, PLR0912 — one bran
         return "postmortem" if _is_flat(name, YAML_SUFFIXES) else None
     if rest.startswith("annex/"):
         return "annex" if _is_flat(rest[len("annex/") :], (".md",)) else None
+    if rest.startswith("explainer/signed/"):
+        name = rest[len("explainer/signed/") :]
+        return "explainer-signature" if _is_flat(name, YAML_SUFFIXES) else None
     if rest.startswith("explainer/"):
         return "explainer" if _is_flat(rest[len("explainer/") :], (".md",)) else None
     return None

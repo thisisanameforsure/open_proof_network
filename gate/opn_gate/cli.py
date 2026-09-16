@@ -30,6 +30,7 @@ from opn_gate import (
     curator,
     defs,
     exhibits,
+    explainers,
     fidelity,
     intake,
     layout,
@@ -50,6 +51,7 @@ from opn_gate import (
     signer,
     steward,
     toolchain,
+    writeup,
 )
 from opn_gate import graph as graphmod
 from opn_gate import records as recordsmod
@@ -87,6 +89,8 @@ CURATOR_COMMANDS: frozenset[str] = frozenset(
         "qa",
         "evidence",
         "steward",
+        "explainer",
+        "writeup",
     }
 )
 #: What a curator command refuses on: a record that does not satisfy its schema, a statement the
@@ -99,6 +103,8 @@ _REFUSALS: tuple[type[Exception], ...] = (
     fidelity.FidelityError,
     qa.QaError,
     steward.StewardError,
+    explainers.ExplainerError,
+    writeup.WriteupError,
 )
 #: The gate's own error family, plus the OS's for a flag file that cannot be read: an input or
 #: environment problem, reported on stderr as exit 2 — never a traceback (conventions §5; F08-Q18).
@@ -490,6 +496,20 @@ def _add_steward_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser
     )
     chk.add_argument("--offline", action="store_true", help="verify the signature only; no fetch")
 
+    exp = sub.add_parser("explainer", help="sign an explainer as a comprehension claim (F15-R8)")
+    exp_acts = exp.add_subparsers(dest="action", required=True)
+    esign = exp_acts.add_parser(
+        "sign", help="I can explain this proof without the tool that produced it"
+    )
+    esign.add_argument("target_id")
+    esign.add_argument("node_id")
+    esign.add_argument("explainer", help="the explainer's hash, its file name under explainer/")
+    esign.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    esign.add_argument("--by", required=True, dest="by", help="the signer's GitHub login")
+    esign.add_argument("--key", required=True, type=Path, help="the signer's own SSH private key")
+    esign.add_argument("--date", help="UTC timestamp of the act (default: now)")
+    esign.add_argument("--branch", help="also commit what was written on this branch")
+
 
 def _add_qa_parsers(  # noqa: PLR0915 — one statement per flag
     sub: argparse._SubParsersAction[argparse.ArgumentParser],
@@ -641,6 +661,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "fidelity": run_fidelity,
         "evidence": run_evidence,
         "steward": run_steward,
+        "explainer": run_explainer,
         "postmerge": run_postmerge,
         "admit": run_admit,
         "hazards": run_hazards,
@@ -2074,6 +2095,34 @@ def run_steward(args: argparse.Namespace, settings: config.Settings) -> int:
     return _emit_curator(
         doc, graph, args.branch, f"steward: {args.login} {args.action} {args.target_id}"
     )
+
+
+def run_explainer(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F15-R8: ``explainer sign`` — one signature file, signed with the signer's own key."""
+    graph = _intake_graph(args)
+    node_dir = layout.graph_nodes_dir(graph, args.target_id) / args.node_id
+    if not node_dir.is_dir():
+        msg = f"{args.target_id}/{args.node_id} is not a node of {graph}"
+        raise CliError(msg)
+    path = explainers.sign(
+        node_dir,
+        args.explainer,
+        target_id=args.target_id,
+        signer_login=args.by,
+        date=_intake_date(args),
+        key_path=args.key.resolve(),
+        signer=signed.default_signer(),
+    )
+    doc = {
+        "ok": True,
+        "target": args.target_id,
+        "node": args.node_id,
+        "explainer": args.explainer,
+        "signer": args.by,
+        "written": [path.resolve().relative_to(graph.resolve()).as_posix()],
+    }
+    message = f"explainer: {args.by} signed {args.explainer[:12]} on {args.node_id}"
+    return _emit_curator(doc, graph, args.branch, message)
 
 
 # --- qa (F12-R3, R4) ------------------------------------------------------------------------------

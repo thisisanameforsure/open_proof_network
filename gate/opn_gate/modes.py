@@ -17,7 +17,12 @@ So the diff is classified into exactly one mode before anything else runs:
 ``append``       only new postmortems, precheck records, annexes, approach records, revision
                  requests or defect claims (the last two may carry a Lean exhibit, which is
                  elaborated in the sandbox — ``opn_gate.exhibits``)
-``explainer``    only new files under ``explainer/`` (D-3), on a node that already has a proof
+``explainer``    only new files under ``explainer/`` (D-3), on a node that already has a proof —
+                 and, since F15-R8, signature files under ``explainer/signed/``, alone or with
+                 new explainers: a real-identity contributor's comprehension claim on one
+                 explainer, refused by name when the explainer is absent, the sentence
+                 differs, the signature fails or the signer is neither an active steward of
+                 the target nor a listed curator (F15-Q4)
 ``proposal``     exactly one new node directory and nothing else — or only ``Witness.lean``
                  on a hole whose slot is unfilled (F08-R2, R5); admission decides, nobody
                  reviews (D-29)
@@ -798,8 +803,9 @@ def _mode_for(roles: set[Role]) -> Mode | None:  # noqa: PLR0911 — one return 
         return "alternate" if roles <= ({"alternate"} | appendish) else None
     if "partial" in roles:
         return "partial" if roles <= ({"partial"} | appendish) else None
-    if "explainer" in roles:
-        return "explainer" if roles == {"explainer"} else None
+    if roles & {"explainer", "explainer-signature"}:
+        # F15-R8: signature files alone, or with new explainers, are the explainer mode.
+        return "explainer" if roles <= {"explainer", "explainer-signature"} else None
     # F15: a steward record, a write-up or a policy file is nobody's append; only D-13's,
     # D-31's and D-14's records reach the append mode.
     return "append" if roles <= appendish else None
@@ -816,7 +822,7 @@ def _verb(status: str) -> str:
 # --- the checks the non-building modes run instead of a build ----------------------------------
 
 
-def check(
+def check(  # noqa: PLR0912 — one branch per role with a check of its own
     graph_root: Path, classification: Classification, *, base: BaseReader | None = None
 ) -> list[Diagnostic]:
     """R9, R10, F08-R2, R5, R8: everything a pull request is checked for before any sandbox.
@@ -833,6 +839,8 @@ def check(
             problems.extend(check_append_file(graph_root, located, mode=classification.mode))
         elif located.role == "explainer":
             problems.extend(check_explainer_file(graph_root, located, classification))
+        elif located.role == "explainer-signature":
+            problems.extend(check_explainer_signature(graph_root, located, classification))
         elif located.role == "statement-evidence":
             problems.extend(check_evidence(graph_root, located))
         elif located.role in ("formalization", "formalization-statement"):
@@ -1646,6 +1654,75 @@ def check_explainer_file(
         return [data]
     naming = paths.check_content_hash_name(located, data)
     return [naming] if naming is not None else []
+
+
+def real_identities(graph_root: Path, target_id: str, *, signer: Signer) -> frozenset[str]:
+    """F15-Q4: who is real-identity at Stage 0 — the target's active stewards and the graph's
+    listed curators, both curator-checked. Widening the set is one function when a registry
+    exists (D-22)."""
+    try:
+        listed = load_curators(graph_root).logins
+    except CuratorsError:
+        listed = frozenset()
+    target_dir = graph_root / "targets" / target_id
+    return frozenset(steward.active_logins(target_dir, signer)) | listed
+
+
+def check_explainer_signature(
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    *,
+    signer: Signer | None = None,
+) -> list[Diagnostic]:
+    """F15-R8: a signature validates, sits under the node and target it names, is named for
+    the explainer it signs, and is valid — the explainer is on the node (at head, so one
+    arriving in the same pull request counts), the affirmation is the fixed sentence, the
+    signature verifies under its own key — and its signer is a real-identity contributor
+    (``real_identities``). Each failure is refused by name; a signature claims nothing about
+    the mathematics and changes no verdict, so nothing else is asked of it."""
+    from opn_gate import explainers  # noqa: PLC0415 — only this check reads signatures
+
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    if problems:
+        return problems
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    if doc.get("target") != located.target_id or doc.get("node") != located.node_id:
+        return [
+            Diagnostic(
+                "signature-node",
+                f"{located.path} signs an explainer on {doc.get('target')}/{doc.get('node')}, "
+                f"and it sits under {located.target_id}/{located.node_id} (F15-R8)",
+                {"path": located.path, "target": doc.get("target"), "node": doc.get("node")},
+            )
+        ]
+    node_dir = graph_root / "targets" / located.target_id / "nodes" / str(located.node_id)
+    verifier = signer or signed.default_signer()
+    sig = explainers.signature_of(doc, graph_root / located.path)
+    found = [
+        Diagnostic(
+            problem.split(":", 1)[0],
+            f"{located.path}: {problem}",
+            {"path": located.path, "signer": sig.signer},
+        )
+        for problem in explainers.problems_of(sig, node_dir, verifier)
+    ]
+    if sig.signer not in real_identities(graph_root, located.target_id, signer=verifier):
+        found.append(
+            Diagnostic(
+                "signer-unlisted",
+                f"{located.path}: {sig.signer!r} is neither an active steward of "
+                f"{located.target_id} nor a listed curator; at Stage 0 a signature is a "
+                "real-identity contributor's (F15-R8, Q4; D-22)",
+                {"path": located.path, "signer": sig.signer},
+            )
+        )
+    return found
 
 
 def _has_proof(graph_root: Path, located: Located) -> bool:

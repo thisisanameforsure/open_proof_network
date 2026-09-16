@@ -1,0 +1,16 @@
+F15-T6 — signed explainers: the explainer-signature path role (explainer/signed/<hash>-<n>.yaml), the explainer mode accepting signature files alone or with new explainers, the checks (explainer-absent, affirmation-differs, signature-invalid, signature-name, signature-node, signer-unlisted — Stage 0 real identity is an active steward of the target or a listed curator, F15-Q4), and opn-gate explainer sign (R8; AC7).
+2026-09-16T19:19:05Z  commit: e6b5c16 (+ working tree)
+
+$ uv run pytest gate/tests/test_explainer_signature.py -q
+....                                                                     [100%]
+4 passed in 10.84s
+
+$ make verify
+site/tests/test_render_alternates.py .                                   [ 98%]
+site/tests/test_render_evidence.py .......                               [ 99%]
+site/tests/test_untrusted.py .....................                       [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:29
+    from starlette.testclient import TestClient
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========= 2157 passed, 72 deselected, 2 warnings in 202.44s (0:03:22) ==========
