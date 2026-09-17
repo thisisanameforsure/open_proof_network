@@ -252,6 +252,22 @@ rules and a re-pin, not a curator act**, and so the owner's call. A caution for 
 erdos-402 witness elaborated cleanly *while still stating the natural-number reading*, so a witness
 that compiles is not a witness that matches; only step 7 answers that.
 
+**The correction paid for itself within the hour.** `erdos-69--h1-v2` came out `ready` rather than
+blocked, because a revision inherits the old node's witness and that hole's witness had been filled
+(#81). So the agent's full proof of the Lambert identity — verified on AXLE at 14:41, refused by
+the network all afternoon because the node it targeted stated the natural-number reading — was
+grafted onto the revised statement unchanged and elaborated **sorry-free with no lint**. Precheck
+`01M2R88DRG1X1HPFZCCFQD83E1` passed on the first attempt; submission
+`01M2R8DVK05RG69GP2BFZV30WR` opened **graph PR #99**, under the agent's own pseudonym, needing only
+the step 9 review erdos-69's root asks for. The hole-2 partial follows the same way against
+`erdos-69--h2-v2`, which is also `ready`; its first `POST /check` answered `404 node-unknown`
+minutes after #95 merged, which is the product lag again, so it retries rather than being worked
+around.
+
+So of the run's three verified-but-unlandable artifacts, two become landable purely by correcting
+the statements, and the third (`erdos-402--h1`'s sibling proof, withheld on purpose) waits on a
+witness rule that is the owner's call.
+
 **The generator is fixed separately**, as F07-T18 in the network repo (R19, AC40, network
 `a6086c0`): the extractor prints each hole's type with its coercions and numerals typed, elaborates
 the printed form back and reports `closed_roundtrip`, and `apply_partial` refuses a hole that fails,
