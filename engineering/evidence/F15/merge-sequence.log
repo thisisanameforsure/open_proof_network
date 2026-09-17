@@ -80,3 +80,13 @@
 15:44:21Z sequence 87,88 on thisisanameforsure/open_proof_network_graph
 15:44:22Z #87 start: 'defect claim: erdos-69--h1' merge state BLOCKED checks {'gate (steps 1, 2 and 4-8 in the sandbox)': 'IN_PROGRESS', 'postmerge (step 9 record, gate signature, attestation commit)': 'SKIPPED'}
 15:44:23Z #87 check 'gate (steps ' = IN_PROGRESS (merge state BLOCKED)
+15:46:27Z #87 check 'gate (steps ' = SUCCESS (merge state CLEAN)
+15:46:31Z #87 merged
+15:49:42Z bot commit for #87: ebfa890 gate: #87 pass
+15:49:43Z #88 start: 'defect claim: erdos-69--h2' merge state UNKNOWN checks {'gate (steps 1, 2 and 4-8 in the sandbox)': 'SUCCESS', 'postmerge (step 9 record, gate signature, attestation commit)': 'SKIPPED', 'step 9 (a non-author approving review)': 'SKIPPED'}
+15:49:45Z #88 branch updated; waiting for the gate to re-run
+15:50:32Z #88 check 'gate (steps ' = IN_PROGRESS (merge state BLOCKED)
+15:52:35Z #88 check 'gate (steps ' = SUCCESS (merge state CLEAN)
+15:52:39Z #88 merged
+15:55:49Z bot commit for #88: 519c2a4 gate: #88 pass
+15:55:49Z sequence complete
