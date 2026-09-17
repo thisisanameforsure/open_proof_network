@@ -808,3 +808,16 @@ The law of the project:
   code and tests were already green, and the formatter then wanted the dict literals exploded: run
   `make lint` before `git commit`, since the hook runs it after the suite and the suite is the slow
   part.
+- 2026-09-17 — A revision of an unwitnessed hole cannot pass admission, and that asymmetry is the
+  gate's, not the curator's. `opn-gate revise` copies the superseded node's `Witness.lean`, so four
+  of five corrections arrived carrying the post-merge writer's `sorry` slot and step 7 refused each
+  with `witness-sorry` — while the writer itself *creates* hole children with an empty slot directly,
+  never passing admission at all. Two of the four were rescued with witnesses their calibration
+  agents had already written; the other two were closed, because a witness exhibits satisfied
+  hypotheses and writing one there is real mathematics (an explicit set meeting the earlier holes'
+  conclusions, an integer with no smaller predecessor in its sigma orbit). Correcting such a hole at
+  all wants a rule change — let a revision of a `skeleton-hole` carry the slot as the writer may —
+  plus a re-pin, so it is the owner's call, not a curator act. And the trap inside the trap: the
+  erdos-402 witness elaborated cleanly *while still stating the natural-number reading*, so a
+  witness that compiles is not a witness that matches. Only step 7 answers that, which is why the
+  repaired ones were pushed to the gate rather than argued about locally.

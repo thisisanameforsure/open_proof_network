@@ -230,6 +230,28 @@ lets a revision keep the original theorem name**, because a node may restate a d
 when it supersedes the node holding it (`admit.py`, D-8) — so no `-v2` belongs in the Lean; and a
 **curator revision has no step 9 check at all**, so the five merge on the gate alone.
 
+**Then four of the five were refused, and the reason is the run's second structural finding:
+`revise` cannot correct an unwitnessed hole.** It copies the superseded node's `Witness.lean`, and
+only `erdos-69--h1` had ever been witnessed (PR #81), so the other four revisions arrived carrying
+the post-merge writer's `sorry` slot and admission refused each at step 7 with `witness-sorry`. The
+asymmetry is the point: the writer *creates* hole children with an empty slot directly, while a
+curator's revision of one must pass admission. Outcome:
+
+| Revision | Outcome |
+|---|---|
+| `erdos-69--h1-v2` | **merged** (#94, bot commit `d5d725b`) — its hole was already witnessed |
+| `erdos-69--h2-v2` | witness supplied and re-gating (#95): the agent's Lambert-identity proof, its declared type restated with the corrected statement's ascriptions, sorry-free on `POST /check` |
+| `erdos-402--h2-v2` | witness supplied and re-gating (#96): the agent's, with the rational ascription restored on the clause the corrected statement ascribes |
+| `erdos-402--h3-v2` | **closed** (#97): no witness exists, and writing one needs the earlier holes' conclusions as terms |
+| `erdos-412--h1-v2` | **closed** (#98): no witness exists, and writing one needs an integer with no smaller predecessor in its sigma orbit |
+
+The two closures carry that reasoning in the pull request, and their merged revision requests stay
+on the nodes as the record of the defect. Making such a hole correctable at all means letting a
+revision of a `skeleton-hole` carry the witness slot as the writer may — **a change to the gate's
+rules and a re-pin, not a curator act**, and so the owner's call. A caution for whoever does it: the
+erdos-402 witness elaborated cleanly *while still stating the natural-number reading*, so a witness
+that compiles is not a witness that matches; only step 7 answers that.
+
 **The generator is fixed separately**, as F07-T18 in the network repo (R19, AC40, network
 `a6086c0`): the extractor prints each hole's type with its coercions and numerals typed, elaborates
 the printed form back and reports `closed_roundtrip`, and `apply_partial` refuses a hole that fails,
