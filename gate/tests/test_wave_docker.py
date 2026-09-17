@@ -101,6 +101,7 @@ def admit(
 ) -> dict[str, Any]:
     from opn_gate import cli  # noqa: PLC0415 — docker-tier only
 
+    capsys.readouterr()  # the wave driver's own report is on stdout already; only admit's is read
     code = cli.main(["admit", str(node_dir), "--sandbox", "--image", image, "--out", str(out)])
     summary: dict[str, Any] = json.loads(capsys.readouterr().out)
     assert (code == 0) is (summary["verdict"] == "pass"), summary
