@@ -1,0 +1,26 @@
+F13 follow-up, 2026-09-17: gate/hosted-checkers.yaml repointed from lean-4.33.0 to lean-4.33.1.
+
+Found by all three agents of the F15 calibration run (engineering/evidence/F15/calibration.md):
+every POST /check on a Mathlib target answered
+
+    user_error: Unknown environment: lean-4.33.0
+    (call-log ids 01M2QV6GQ0YZBS53HXZ2DNZ20M, 01M2QV94PGR5PRX4A3DFS1K55D, 01M2QVM3984A90W2FTF6TB8C3P)
+
+Probe, 14:4x UTC (the mapping's own instruction: probe before editing an entry):
+
+    $ curl -s https://axle.axiommath.ai/v1/environments
+    [{"name": "lean-4.34.0", "lean_toolchain": "leanprover/lean4:v4.34.0", ..., "imports": "import Mathlib"},
+     {"name": "lean-4.33.1", "lean_toolchain": "leanprover/lean4:v4.33.1", ..., "imports": "import Mathlib"},
+     {"name": "lean-4.32.2", "lean_toolchain": "leanprover/lean4:v4.32.2", ...}, ...]
+    -- no lean-4.33.0 entry (it existed when the mapping was written, 2026-09-14)
+
+Change: pin 0df444a3… -> environment lean-4.33.1, exact: true (the pin's own toolchain), note
+dropped; core -> lean-4.33.1, still exact: false with its Q9 note. The site golden for the core
+fixture target and the api/site tests that pinned the old name and `exact: false` updated to
+the new truth (the pinned target page now reads "lean-4.33.1 on AXLE (exact)").
+
+    $ uv run pytest gate/tests/test_hosted_checkers.py api/tests/test_checks.py api/tests/test_axle.py site/tests -q
+    229 passed, 2 warnings in 40.95s
+
+Live only after the api deploy that the push of this commit triggers; the agents iterated by
+calling AXLE directly under lean-4.33.1 meanwhile (outside the network's call log, F13-Q5).

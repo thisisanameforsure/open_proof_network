@@ -38,7 +38,7 @@ def test_target_page_names_fast_check(tmp_path_factory: pytest.TempPathFactory) 
     assert f"{LEAD}{mapping.core.environment} on AXLE (nearest: a Lean-core-only statement" in core
 
     pinned = page_for(fixture.build(tmp_path_factory.mktemp("pinned")), PIN)
-    assert f"{LEAD}{mapping.pins[PIN].environment} on AXLE (nearest: Mathlib v4.33.1" in pinned
+    assert f"{LEAD}{mapping.pins[PIN].environment} on AXLE (exact)" in pinned
 
     unmapped = page_for(fixture.build(tmp_path_factory.mktemp("unmapped")), "1" * 40)
     assert f"{LEAD}none: no hosted environment serves this Mathlib pin" in unmapped

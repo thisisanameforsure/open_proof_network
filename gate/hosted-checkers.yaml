@@ -12,7 +12,7 @@ service: axle
 # AXLE environment substitutes `import Mathlib`; the tutorial's proof passes, a broken one fails
 # with its error, and its hole checks alike (probed 2026-09-14, evidence task-9.txt).
 core:
-  environment: lean-4.33.0
+  environment: lean-4.33.1
   exact: false
   note: >-
     a Lean-core-only statement is checked under the environment's `import Mathlib` header, so a
@@ -20,8 +20,8 @@ core:
 pins:
   0df444a360eaa60ab8c11dca51a86af692955474:
     mathlib_tag: v4.33.1
-    environment: lean-4.33.0
-    exact: false
-    note: >-
-      Mathlib v4.33.1 is one commit after v4.33.0 ("chore: bump toolchain to v4.33.1"); AXLE
-      hosts lean-4.33.0 and no 4.33.1 environment (probed 2026-09-14).
+    # AXLE retired lean-4.33.0 and hosts lean-4.33.1, the pin's own toolchain (probed 2026-09-17
+    # during the F15 calibration run, when every fast check on a Mathlib target answered
+    # "Unknown environment: lean-4.33.0"; evidence engineering/evidence/F15/calibration.md).
+    environment: lean-4.33.1
+    exact: true

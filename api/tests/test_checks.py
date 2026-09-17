@@ -79,11 +79,11 @@ def test_check_and_verify_forward_to_the_mapped_environment() -> None:
     assert r.status_code == 200, r.text
     doc = r.json()
     assert doc["authoritative"] is False and doc["service"] == "axle"
-    assert (doc["environment"], doc["exact"], doc["mode"]) == ("lean-4.33.0", False, "check")
-    assert "toolchain" in doc["note"]
+    assert (doc["environment"], doc["exact"], doc["mode"]) == ("lean-4.33.1", True, "check")
+    assert doc["note"] is None
     assert doc["result"] == AXLE_OKAY and doc["lint"] == [] and doc["inlined_defs"] == []
     (call,) = h.axle.calls
-    assert (call.method, call.content, call.environment) == ("check", PROOF, "lean-4.33.0")
+    assert (call.method, call.content, call.environment) == ("check", PROOF, "lean-4.33.1")
     assert call.timeout_s == h.settings.check_timeout_s
 
     r = post(h, {"target_id": TARGET, "node_id": NODE, "content": PROOF, "mode": "verify"})
@@ -182,7 +182,7 @@ def test_refusals_are_named_and_logged() -> None:
     assert (record.outcome, record.upstream_status, record.environment) == (
         "upstream-unavailable",
         503,
-        "lean-4.33.0",
+        "lean-4.33.1",
     )
 
 
@@ -249,7 +249,7 @@ def test_log_readable_only_by_owner(caplog: pytest.LogCaptureFixture) -> None:
         False,
     )
     assert (record["error_count"], record["axle_request_id"]) == (2, "req-42")
-    assert record["lint"] == ["sorry-present"] and record["environment"] == "lean-4.33.0"
+    assert record["lint"] == ["sorry-present"] and record["environment"] == "lean-4.33.1"
 
     bob = h.token_for("code_bob", "bob")
     refused(h.client.get(f"/checks/{log_id}", headers=h.auth(bob)), 404, "check-unknown")
@@ -327,11 +327,11 @@ def test_hosted_checkers_route_publishes_the_mapping() -> None:
         "POST /check",
         False,
     )
-    assert doc["pins"][PIN]["environment"] == "lean-4.33.0" and doc["pins"][PIN]["exact"] is False
-    assert doc["core"]["environment"] == "lean-4.33.0" and doc["core"]["mathlib_tag"] is None
+    assert doc["pins"][PIN]["environment"] == "lean-4.33.1" and doc["pins"][PIN]["exact"] is True
+    assert doc["core"]["environment"] == "lean-4.33.1" and doc["core"]["mathlib_tag"] is None
     assert doc["targets"]["propositional"] == {
         "mathlib_sha": None,
-        "environment": "lean-4.33.0",
+        "environment": "lean-4.33.1",
         "exact": False,
     }
 
