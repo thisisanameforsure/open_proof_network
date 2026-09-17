@@ -690,3 +690,30 @@ The law of the project:
   costs seconds, is read-only, and makes the measured ref explicit in the command; against it the same
   script said 22 entries become 25. Remove the worktree afterwards (`worktree remove --force`), and leave
   another session's worktrees alone — `worktree list` shows whose is whose.
+- 2026-09-17 — F15 built unattended on "go until the end of it": decisions v3.17 applied first (the
+  three "not settled" items taken as drafted, reversible in one commit), then T2–T13 and T14a as
+  fourteen verified commits, nothing pushed. Four things worth keeping. Every new signed record
+  went through one seam (`opn_gate.signed`: the body is the document without its signature and
+  with its key), so a steward commitment, an explainer signature and a write-up record cost one
+  verifier each and the site re-verifies with the gate's own ssh-keygen. The mode table's
+  fallthrough was `return "append"` for any unknown role, so the first new role (a steward record
+  beside a postmortem) classified as an append until the test caught it: a fallthrough over an
+  open set is a bug waiting for the next role. A `zsh` loop variable named `path` clobbers `PATH`
+  (every command after it "not found"), and `echo ====` fails in zsh because `=cmd` is a path
+  expansion; use `rel` and `'----'`. And `pgrep -f pytest` matches the shell running the wait
+  loop itself, so an `until … pgrep` never exits; key a wait on `git log`, never on the process
+  table.
+- 2026-09-17 — The calibration pool is 30 rows, not the spec's 29, and its "solved" problems are
+  research mathematics (Freiman, Tao, Aharoni–Berger, Rankin), not textbook exercises; the three
+  chosen are graded against that pool (F15-Q13). The wave driver refuses a registry theorem with
+  binders before the colon, and the catalog's rows for solved problems carry no score or
+  declaration, so `docs/calibration_pool.py` reads the registry file through the driver's own
+  extractor and 402's statement and witness are a hand guess flagged as unelaborated until the
+  intake's sandboxed admission. A laptop with no Mathlib checkout cannot check a Mathlib witness;
+  say so in the draft rather than pretend.
+- 2026-09-17 — A `policy.json`-only pull request touches no target, so the graph's workflow said
+  "nothing to gate" and would have merged the steward switch unclassified. The pin step now takes
+  its network pin from any target when only `policy.json` changed (every target agrees on one);
+  the classifier then puts the file under an empty target scope, so mixing it with a target's
+  files is refused as two targets. Live only after the re-pin, which is when the switch can be
+  opened at all.
