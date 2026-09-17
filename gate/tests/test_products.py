@@ -837,6 +837,34 @@ def test_tag_cache_ignores_a_file_that_is_not_an_object(tmp_path: Path) -> None:
     assert scans == ["and-reassoc"] and cache.dirty
 
 
+def test_tag_cache_survives_one_nodes_scan_failure(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A node whose statement does not elaborate gets no library tags and no cache entry, and the
+    products still render: the first hole on erdos-412 stopped every product at the post-merge
+    job (2026-09-17) because one scan raised. The log names the node; a later scan runs again."""
+    cache = products.TagCache(tmp_path / ".tags-cache.json")
+    root = copy_graph(tmp_path, publish=True)
+    tg = graph.load_target(root, TARGET)
+    broken, fine = tg.nodes["and-reassoc"], tg.nodes["and-swap-reassoc"]
+    calls: list[str] = []
+
+    def scanner(n: graph.NodeFacts) -> list[str]:
+        calls.append(n.node_id)
+        if n.node_id == "and-reassoc":
+            msg = "opn-used-constants failed on and-reassoc: file does not elaborate"
+            raise GraphError(msg)
+        return ["Order"]
+
+    with caplog.at_level("WARNING", logger="opn_gate.products"):
+        assert cache.tags(broken, scanner) == []
+        assert cache.tags(fine, scanner) == ["Order"]
+        assert cache.tags(broken, scanner) == []
+    assert calls == ["and-reassoc", "and-swap-reassoc", "and-reassoc"]
+    assert broken.statement_hash not in cache.entries and fine.statement_hash in cache.entries
+    assert "library tags skipped for and-reassoc: opn-used-constants failed" in caplog.text
+
+
 def test_find_root_edge_cases_with_revisions(tmp_path: Path) -> None:
     """F08-Q16: superseded sinks and revisions of interior nodes are set aside — but when nothing
     is left, or two candidates remain, the root is still ambiguous rather than guessed."""

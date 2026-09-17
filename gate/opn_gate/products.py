@@ -144,7 +144,19 @@ class TagCache:
     def tags(self, node: NodeFacts, scanner: Scanner | None) -> list[str]:
         if node.statement_hash in self.entries:
             return list(self.entries[node.statement_hash])
-        found = scanner(node) if scanner is not None else []
+        if scanner is None:
+            found: list[str] = []
+        else:
+            try:
+                found = scanner(node)
+            except GraphError as exc:
+                # One node's statement failing to elaborate is that node's defect, not a reason
+                # to publish no products for the whole graph: the post-merge job stopped on the
+                # first hole on erdos-412 (its statement lacked its parent's ``open`` line,
+                # 2026-09-17) and every merge after it would have lost its bot commit. The node
+                # gets no tags, the cache keeps no entry, and the log names it.
+                log.warning("library tags skipped for %s: %s", node.node_id, exc)
+                return []
         self.entries[node.statement_hash] = sorted(found)
         self.dirty = True
         return list(self.entries[node.statement_hash])

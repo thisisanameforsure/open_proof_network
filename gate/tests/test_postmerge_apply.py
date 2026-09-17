@@ -160,6 +160,52 @@ def test_children_carry_the_parents_imports(
     assert not list((root / NODES / ROOT / "attempts").glob("*-login-partial.lean"))
 
 
+def test_children_carry_the_parents_open_lines(
+    tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A hole's closed type is printed under the parent's ``open`` lines, so the child carries
+    them after its imports; without them erdos-412's first hole (``sigma 1`` under
+    ``open ArithmeticFunction.sigma``) never elaborated, and the first products scan to reach
+    it stopped every product (2026-09-17). Only lines before the theorem count."""
+    root, _assembly, _ = merged_partial(
+        tmp_path,
+        extra_imports="import Mathlib.Tactic\n\nopen ArithmeticFunction.sigma\nopen scoped Nat\n\n",
+    )
+    partial_seam(seam)
+    code, out, err = run(
+        capsys, *argv(root, tmp_path / "o", "--apply-partial", "--author", "login")
+    )
+    assert code == cli.EXIT_PASS, (err, out.get("first_failing_step"), out.get("diagnostic"))
+    child = (root / NODES / f"{ROOT}--h1" / "Statement.lean").read_text(encoding="utf-8")
+    header = child.split("/-!")[0]
+    assert header.startswith("import Mathlib.Tactic\n")
+    assert header.rstrip().endswith("open ArithmeticFunction.sigma\nopen scoped Nat")
+    assert header.index("import") < header.index("open ")
+    assert child.count("open ") == 2
+
+
+def test_parent_opens_reads_only_the_header() -> None:
+    from opn_gate import postmerge  # noqa: PLC0415
+
+    text = (
+        "import Mathlib\n\nopen Finset\nopen scoped BigOperators\n\n/-! doc -/\n\n"
+        "theorem t : True := by\n  open Nat in trivial\n"
+    )
+    assert postmerge.parent_opens(text) == ["open Finset", "open scoped BigOperators"]
+    assert postmerge.parent_opens("import Mathlib\n\ntheorem t : True := trivial\n") == []
+    stmt = postmerge.child_statement(
+        "x--h1", _Hole("h", "True"), imports=["Mathlib"], opens=["open Nat"]
+    )
+    assert stmt.startswith("import Mathlib\n\nopen Nat\n\n/-! Hole `h`")
+    assert postmerge.child_statement("x--h1", _Hole("h", "True")).startswith("/-! Hole `h`")
+
+
+class _Hole:
+    def __init__(self, name: str, closed_type: str) -> None:
+        self.name = name
+        self.closed_type = closed_type
+
+
 def test_a_cited_annex_makes_skeleton_holes(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
