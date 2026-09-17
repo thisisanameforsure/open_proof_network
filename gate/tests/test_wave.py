@@ -201,6 +201,18 @@ def test_the_clean_rows_are_drafted_and_the_rest_refused_by_name(
         .read_text(encoding="utf-8")
         .endswith("theorem witness : True := trivial\n")
     )
+    # Step 7 closes every leading binder, hypotheses or not: a data binder's witness is the closure
+    # over `True`, inhabited by `default` (F14-T11L's sandbox admission found `True` refused).
+    assert (
+        (out / "erdos-7001" / "Witness.lean")
+        .read_text(encoding="utf-8")
+        .endswith("theorem witness : ∃ (n : ℕ), True := ⟨default, trivial⟩\n")
+    )
+    assert (
+        (out / "erdos-7009" / "Witness.lean")
+        .read_text(encoding="utf-8")
+        .endswith("theorem witness : ∃ (S : Finset ℕ), True := ⟨default, trivial⟩\n")
+    )
     assert (
         "`erdos:7014`: uses names FormalConjecturesForMathlib declares (port first): hyperRamsey"
         in report
@@ -294,3 +306,54 @@ def test_the_drafts_import_with_their_evidence_and_classify_as_intakes(
         c = modes.classify(changes, author="curator", curators=CURATORS)
         assert c.mode == "intake", (target_id, c.as_dict())
         assert modes.check(root, c) == [], target_id
+
+
+# --- the witness the driver writes follows step 7's closure rule ---------------------------------
+
+
+@pytest.mark.parametrize(
+    ("prop", "closed"),
+    [
+        ("Irrational (Real.sqrt 2)", None),
+        ("∃ n : ℕ, n = 7006", None),
+        ("∀ n : ℕ, n ≤ n + 1", ("(n : ℕ)", 1)),
+        ("∀ n m : ℕ, n ≤ m", ("(n m : ℕ)", 2)),
+        ("∀ (a b : ℕ) (S : Finset ℕ), a ≤ b", ("(a b : ℕ) (S : Finset ℕ)", 3)),
+        ("∀ n : ℕ, ∀ S : Finset ℕ, n ∈ S ∨ n ∉ S", ("(n : ℕ) (S : Finset ℕ)", 2)),
+    ],
+)
+def test_data_binders_close_into_the_witness(prop: str, closed: tuple[str, int] | None) -> None:
+    """Step 7 expects ``∃ x…, True`` for leading data binders and ``True`` for none; the driver
+    writes exactly that, inhabited by ``default``, and refuses nothing it can close."""
+    tool = load_tool()
+    assert tool.leading_binders(prop) == closed
+    assert tool.shape_refusal(prop) is None
+    witness = tool.witness_for(prop)
+    if closed is None:
+        assert witness == tool.WITNESS
+    else:
+        binders, names = closed
+        terms = ", ".join(["default"] * names + ["trivial"])
+        assert witness.endswith(f"theorem witness : ∃ {binders}, True := ⟨{terms}⟩\n")
+
+
+@pytest.mark.parametrize(
+    "prop",
+    ["∀ {n : ℕ}, n = n", "∀ ⦃n : ℕ⦄, n = n", "∀ [Fintype α], True", "∀ n, n = n"],
+)
+def test_binders_the_driver_cannot_close_are_refused_by_name(prop: str) -> None:
+    """An implicit, strict-implicit, instance or untyped leading binder is hand work: the
+    driver names the refusal rather than drafting a witness the gate would refuse."""
+    tool = load_tool()
+    assert tool.leading_binders(prop) is None
+    refusal = tool.shape_refusal(prop)
+    assert refusal is not None and refusal.startswith("leading ∀ binders the driver cannot close")
+
+
+def test_hypotheses_still_win_over_closure() -> None:
+    """A bounded binder or an implication is the hypotheses rule's, as before (F14-T15)."""
+    tool = load_tool()
+    for prop in ("∀ n > 1, n = n", "∀ n : ℕ, 0 < n → n = n"):
+        assert tool.leading_binders(prop) is None
+        refusal = tool.shape_refusal(prop)
+        assert refusal is not None and refusal.startswith("leading ∀ binders carry hypotheses")

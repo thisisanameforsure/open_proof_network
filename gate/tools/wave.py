@@ -61,6 +61,14 @@ WITNESS = (
     "/-! Non-vacuity witness (D-4 step 7): the statement has no hypotheses, so the expected\n"
     "witness type is `True`. -/\n\ntheorem witness : True := trivial\n"
 )
+#: The witness for a statement whose leading ``∀`` binders bind data and no hypothesis: step 7
+#: closes every leading binder, so ``∀ n : Nat, P n`` expects ``∃ n, True``, which ``default``
+#: inhabits (the docker-tier admission of a drafted row found the driver writing ``True``).
+CLOSED_WITNESS = (
+    "/-! Non-vacuity witness (D-4 step 7): the statement opens with binders that carry no\n"
+    "hypothesis, so the expected witness type is their closure over `True`, inhabited by\n"
+    "`default`. -/\n\ntheorem witness : ∃ {binders}, True := ⟨{terms}⟩\n"
+)
 _DECL_NAME_RE = re.compile(
     r"^\s*(?:noncomputable\s+)?(?:def|abbrev|structure|class|theorem|lemma|instance|inductive)\s+"
     r"(?P<name>[A-Za-z_][A-Za-z0-9_.']*)",
@@ -253,6 +261,52 @@ def leading_hypotheses(prop: str) -> bool:
 
 
 _NOTATION_RE = re.compile(r'^\s*(?:local\s+|scoped\s+)?notation\s*"([^"]+)"', re.M)
+_GROUP_RE = re.compile(r"\(([^()]*)\)")
+
+
+def leading_binders(prop: str) -> tuple[str, int] | None:
+    """The leading ``∀`` binders as one ``∃`` binder list and the number of names they bind, or
+    ``None`` when the driver cannot close them: none at all, an implicit, strict-implicit or
+    instance binder, an untyped name, or a binder the hypotheses rule owns. Each group is
+    parenthesised (``∀ n m : Nat`` becomes ``(n m : Nat)``) so several ``∀``s chain into one ``∃``.
+    """
+    body = prop.strip()
+    groups: list[str] = []
+    names = 0
+    while (m := _LEADING_FORALL_RE.match(body)) is not None:
+        rest = body[m.end() :]
+        comma = _top_level(rest, ",")
+        if comma < 0:
+            return None
+        segment = rest[:comma].strip()
+        if any(ch in segment for ch in "{⦃[") or _binder_has_condition(segment):
+            return None
+        parts = _GROUP_RE.findall(segment) if segment.startswith("(") else [segment]
+        if segment.startswith("(") and _GROUP_RE.sub("", segment).strip():
+            return None  # something beside parenthesised groups
+        for part in parts:
+            head, colon, _typ = part.partition(":")
+            bound = head.split()
+            if not colon or not bound or any(not _TOKEN_RE.fullmatch(n) for n in bound):
+                return None
+            groups.append(f"({part.strip()})")
+            names += len(bound)
+        body = rest[comma + 1 :].strip()
+    if not groups or _top_level(body, "→") >= 0:
+        return None
+    return " ".join(groups), names
+
+
+def witness_for(prop: str) -> str:
+    """``Witness.lean`` for a proposition the driver drafts: ``True`` when nothing is bound,
+    the closure over ``True`` when leading binders bind data (``leading_binders``)."""
+    closed = leading_binders(prop)
+    if closed is None:
+        return WITNESS
+    binders, names = closed
+    return CLOSED_WITNESS.format(
+        binders=binders, terms=", ".join(["default"] * names + ["trivial"])
+    )
 
 
 def shape_refusal(prop: str) -> str | None:
@@ -265,6 +319,11 @@ def shape_refusal(prop: str) -> str | None:
         return (
             "leading ∀ binders carry hypotheses (a bounded binder or an implication): the "
             "witness is not `True`, write it by hand"
+        )
+    if _LEADING_FORALL_RE.match(prop.strip()) and leading_binders(prop) is None:
+        return (
+            "leading ∀ binders the driver cannot close (implicit, instance or untyped): the "
+            "witness is their closure over `True`, write it by hand"
         )
     return None
 
@@ -407,7 +466,7 @@ def draft_row(  # noqa: PLR0911, PLR0913, PLR0915, PLR0917 — a check per refus
         yaml.safe_dump(doc, sort_keys=False, allow_unicode=True), encoding="utf-8"
     )
     (directory / "Statement.lean").write_text(statement, encoding="utf-8")
-    (directory / "Witness.lean").write_text(WITNESS, encoding="utf-8")
+    (directory / "Witness.lean").write_text(witness_for(prop), encoding="utf-8")
     upstream = out / "upstream" / row["file"]
     upstream.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(source, upstream)
