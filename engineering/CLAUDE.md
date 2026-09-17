@@ -717,3 +717,15 @@ The law of the project:
   the classifier then puts the file under an empty target scope, so mixing it with a target's
   files is refused as two targets. Live only after the re-pin, which is when the switch can be
   opened at all.
+- 2026-09-17 — An "assumption taken as drafted" is a decision the owner has not made, and the first
+  one reviewed was reversed. v3.17's "a signer does not prove" (F15-T5) was built unattended from
+  the amendment note and withdrawn the same morning on Mike's reading: the mathematician who
+  proposes a problem and vows to understand it is exactly who will want to prove on it, and the
+  2026 fidelity failures were provers misreading statements, not mathematicians misrepresenting
+  their own. The reversal cost one commit because the doc was unreleased (revised in place, no
+  version bump), every bar sat behind one function each (`ledger.signer_bar`, `fidelity.prover_bar`,
+  one diagnostic block in `modes`), and the tests that had pinned the bar were rewritten to assert
+  the opposite rather than deleted. Two rules to keep: when the doc leads and the owner is asleep,
+  build the smallest mechanism that states the rule, so the reversal is a deletion; and record the
+  ruling as a Q entry in the spec, verbatim in substance, so the next session does not re-derive
+  the bar from the research note that proposed it.
