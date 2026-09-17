@@ -350,6 +350,64 @@ stale, and `blocked_because` compares each dep's status to `proved`, following n
 superseded child and stays blocked, which is the state it was already in; but closing such a parent
 later needs a curator act no command provides.
 
+## The fixes, the re-pin, and the last three corrections (the founder's decision, 2026-09-17 evening)
+
+Mike took all four suggestions ("alright i like all your suggestions. plan out the fixes, with
+tests"), answered the plan's two questions (add the clarifying sentence to D-29; include the re-pin),
+and left the steward switch off. Three spec tasks, each red first, each committed with the suite
+green (2223 passed), then one re-pin:
+
+| Task | Network commit | What binds at the re-pin |
+|---|---|---|
+| F07-T19 | `4416180` | a hole that does not read back is refused **at step 4, before the merge** (`hole-not-roundtrip`), so a bad partial can no longer merge and then break the post-merge job; the writer's refusal stays as the backstop for an older pin. The artifact-types golden T18 had left red now carries `closed_roundtrip`. |
+| F08-T9 | `b0f2c9e` | a D-8 revision of a never-witnessed hole is admitted with its slot open (`witness-slot-open`), under four conditions: a hole origin, a `supersedes`, a superseded node that is itself a hole, and a `Witness.lean` byte for byte the writer's slot. `revise --witness <file>` for a curator who has one. D-29 gained one sentence (F08-Q21). |
+| F03-T10 | `ffc50b9` | the frontier advertises no superseded node and no statement the toolchain refuses: one predicate (`products.workable`) for membership and for `claimable`, and a node whose tag scan raises is left out with a warning (F03-R13; Q12, Q13 for what it does not cover). Measured in process at graph `4b2c019`: 31 entries become 29, exactly the two superseded holes leaving. |
+
+The re-pin (`engineering/evidence/F15/repin-ffc50b9.txt`): tag `gate-ffc50b9`, both images published,
+27 targets pinned in a detached worktree, pregate on the tutorial node pass, pushed as graph
+`1e053bf` at 21:44Z after a green Lean tier. One thing the diff review caught that the pin check does
+not: `pin_image.py` without `--api-url` rewrites the devcontainer without `OPN_API`.
+
+The three corrections that had been refused or closed (#97, #98) or could not be filed (#101's node)
+were then written again by `opn-gate revise` from the re-pinned main, with no witness, and opened as
+graph PRs **#102** (`erdos-402--h3-v2`), **#103** (`erdos-412--h1-v2`) and **#104**
+(`erdos-69--h2-v2--h1-v2`), merged one bot commit at a time by the sequencer. **All three were
+admitted and merged** (bot commits `ef024ac`, `5205b41`, `28261e9`, 21:48–22:03 UTC), each with the
+witness check passing as
+
+    witness-slot-open: <revision> revises hole <old> and carries its unfilled witness slot; admitted
+    blocked until a witness is supplied, as the hole was (D-29, F08-R14)
+
+and hazards recorded, not refused. The same nodes had been refused `witness-sorry` five hours
+earlier under the old pin.
+
+**The frontier after the renders** (committed, api and site agree, rendered_from `59169f6`): 31
+entries become 28, 30 claimable become 27. Leaving: the two superseded originals that had stayed
+listed (`erdos-402--h2`, `erdos-69--h2`), the three holes just superseded, and `erdos-1050--h1`.
+Joining: the three revisions, `blocked: witness-missing` and claimable, the state D-29 gives a hole.
+
+**`erdos-1050--h1` is a fourth gate-written hole that never elaborated**, found by the new rule on
+its first live render: the log names it ("its statement does not elaborate under the pinned
+toolchain, so it is not on the frontier (F03-R13)"). Nobody had checked it: the affected list above
+named the erdos-69, erdos-402 and erdos-412 holes. Its statement reads `∃ a b,` where the assembly's
+`have borwein` says `∃ a b : ℕ → ℤ,`, with the real-number ascriptions dropped too, so `a` and `b`
+are untyped and cannot be applied (`POST /check`: "Function expected at b", four times). Until this
+render it was published as claimable work on a target whose Targets-page row says claimable. The
+assembly's own `have` type elaborates (sorry-present only); filed as revision request **#105** under
+`calib-lead-83dd`, merged, and revised the same way as graph PR **#106** (`erdos-1050--h1-v2`,
+admitted `witness-slot-open`, merged 22:10 UTC, bot commit `89346af`).
+
+**Final frontier** (rendered_from `7c30e12`; committed product, api and site agree): 31 entries
+become **29**, 30 claimable become **28**. Out: the six dead entries. In: the four revisions. The
+last render logged no scan warning: every frontier candidate on the graph now elaborates, and no
+advertised node is superseded.
+
+So the count of mis-generated holes the run produced is **seven**, not six: the five corrected
+first, the one the next merge manufactured under the old pin, and this one, which only a rule that
+elaborates every frontier candidate could have found. All seven now have revisions stating their
+parent assembly's obligation; six are blocked on a witness like any hole, one (`erdos-69--h1-v2`) is
+proved. Evidence for the whole sequence: `engineering/evidence/F15/repin-ffc50b9.txt`.
+
 ## Findings about the network (R14 e: every failure a typed record)
 
 1. **A calibration target is not live when its intake merges.** The products are rendered only by a

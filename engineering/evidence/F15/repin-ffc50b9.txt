@@ -1,0 +1,146 @@
+Re-pin to network ffc50b9 — 2026-09-17/18, the fixes the calibration run asked for (Mike: "alright i like
+all your suggestions. plan out the fixes, with tests"; the re-pin included on his answer to the plan's
+question). Carries three tasks to the live gate:
+- F07-T19 (4416180): a hole that does not read back is refused at step 4, before the merge
+  (`hole-not-roundtrip`); the artifact-types golden carries `closed_roundtrip`;
+- F08-T9 (b0f2c9e): a D-8 revision of an unwitnessed hole is admitted with its slot open
+  (`witness-slot-open`); `revise --witness`; D-29 clarified (F08-Q21);
+- F03-T10 (ffc50b9): the frontier advertises no superseded node and no statement the toolchain refuses
+  (`products.workable`, `TagCache.failed`; F03-R13, Q12, Q13).
+
+0. Before the tag
+   - Each of the three commits ran the pre-commit suite: 2223 passed (183.84 s, 173.72 s for the last
+     two). `make lint` and `make types` clean on each.
+   - The three CI runs before them (8463c2a, a77d42b, 090dc46: the F15-T14c record commits) were red on
+     the Lean tier only, and only at `test_artifacts_lean.py::test_artifact_types_golden`
+     (1 failed, 71 passed in 47:50): the golden F07-T18 had left without `closed_roundtrip`. T19
+     regenerated it; the diff was the five hole objects gaining `"closed_roundtrip": true` and nothing
+     else.
+   - Pushed 20:50Z as origin/main 4b2c019 -> ffc50b9 (three commits). CI run 35273266422: fast tier
+     success at 20:5xZ; Lean tier PENDING at the time of writing (~48 min).
+   - No api deploy started, and none was needed: api-deploy.yml filters on api/**, schemas.py,
+     gate/schemas/**, hosted-checkers.yaml, hosted.py, pyproject.toml and uv.lock, none touched; the
+     api takes only PROTOCOL_VERSION from the products module, so nothing of the three changes reaches
+     the Lambda. The precheck and post-merge jobs run the pinned gate on the graph's own runners.
+
+1. Tag gate-ffc50b9 pushed 20:51Z (while the Lean tier ran; the graph push waits for green).
+   image-publish run 35273268069 success (both jobs):
+     gate-ffc50b9                        ghcr.io/thisisanameforsure/opn-gate@sha256:58cd01956bb183298f88da07e75a41abb781a3660a5fc47f48eec9ac047742f8
+     gate-ffc50b9-mathlib-0df444a360ea   ghcr.io/thisisanameforsure/opn-gate@sha256:969d9e43dc6b2ab42d4fff017941131adf5804bed0990e4e57a8fa023fdfd32f
+   Both read from the run's "Push and record the digest" steps and confirmed against the registry
+   without a pull: an anonymous pull token and a HEAD on the manifest by tag returns
+   `docker-content-digest`, and the same route on gate-0401858 gave 52a3eb36…, the tutorial's pin at the
+   time. (`gh api .../packages/.../versions` needs read:packages, which the CLI token lacks.)
+
+2. Schemas: `schemas.unpublished(<worktree>)` is `[]`; no schema version moved in the three tasks, so
+   the graph's `schemas/` and `HASHES` are untouched by this re-pin.
+
+3. Pins, written by gate/tools/pin_image.py in a detached worktree of the graph at origin/main 4b2c019
+   ("gate: #101 pass"): tutorial the plain image first, the 26 Mathlib targets after it,
+   riemann-hypothesis last, so the shared .devcontainer/devcontainer.json runs the Mathlib image. Three
+   script mistakes, all caught before the commit:
+     - bash 3.2 (macOS) has no `mapfile`;
+     - `ls targets/` lists `index.json` beside the 27 target directories, so the loop tried to pin a
+       file and died there, leaving riemann-hypothesis unpinned (the fixed listing keys on
+       `targets/*/gate-spec.json`);
+     - `pin_image.py` without `--api-url` rewrites the devcontainer WITHOUT `OPN_API`, so the first diff
+       review showed the service URL dropped from `containerEnv`. The last target was re-pinned with
+       `--api-url https://api.openproofnetwork.org` and the devcontainer diff is then the name and the
+       image only. Read the devcontainer diff at every re-pin; the check does not cover that field.
+   pin_image --check on the commit that stands: 26 "pin ok"; tutorial 1 problem (the devcontainer runs
+   the Mathlib image, as at every re-pin). 27 of 27 gate-spec.json name
+   ffc50b99e2e26d2840db31952291a92d9fbcac2f; `olean_cache_url`, `mathlib_sha` and the rest unchanged
+   (56 insertions, 56 deletions over 28 files). Committed as 1e053bf on top of 4b2c019.
+
+4. Pregate on the committed re-pin with the gate at ffc50b9:
+   $ gate/pregate.sh --graph <repin worktree> --target tutorial --node tutorial-and-swap
+   verdict pass; steps 1 toolchain, 2 paths, 4 kernel-replay, 5 axioms, 6 hazards, 7 witness, 8 deps,
+   all pass; olean cache hit.
+
+5. CI run 35273266422 on ffc50b9: fast tier success, Lean tier success (the first green Lean tier since
+   the T18 golden went red). The graph push, 21:44Z: origin/main 4b2c019 -> 1e053bf by fast-forward
+   (the parent checked equal to origin/main first); the push's gate run 35278356761 succeeded.
+
+6. The three remaining corrections, cut from origin/main 1e053bf AFTER the re-pin (the 2026-09-17 pin
+   lesson), written by `opn-gate revise` under `calib-lead-83dd`, one pull request each, without
+   `--witness` (no witness exists for any of them; the point of F08-T9 is that the slot may stay open):
+     erdos-402--h3        -> erdos-402--h3-v2        request #92   graph PR #102
+     erdos-412--h1        -> erdos-412--h1-v2        request #93   graph PR #103
+     erdos-69--h2-v2--h1  -> erdos-69--h2-v2--h1-v2  request #101  graph PR #104
+   Each commit: the revision's Context, META (meta/v4 with `supersedes`), Statement, Witness (the
+   inherited slot), the three .gitkeep dirs, a `superseded` record on the old node and a `stale`
+   record on its parent (9 files). Merged by the sequencer (`merge_sequence.py "102,103,104"`), one
+   bot commit at a time; the log is engineering/evidence/F15/merge-sequence.log from 21:45:47Z.
+   #102: gate run 35278415334 success in the sandbox, mode curator, verdict pass, first_failing_check
+   null; the witness check as F08-T9 wrote it:
+       "check": "witness", "result": "pass",
+       "diagnostic": {"code": "witness-slot-open",
+         "message": "erdos-402--h3-v2 revises hole erdos-402--h3 and carries its unfilled witness
+                     slot; admitted blocked until a witness is supplied, as the hole was (D-29, F08-R14)",
+         "details": {"origin": "compiler-derived", "supersedes": "erdos-402--h3"}}
+   and hazards `hazards-derived-statement` (the findings recorded, not refused, F07-Q19). The same
+   node had been refused `witness-sorry` at step 7 as #97 under the old pin. Merged 21:47:57Z.
+   #103: gate run 35278949657 success, verdict pass, first_failing_check null, `witness-slot-open`
+   with supersedes erdos-412--h1, hazards `hazards-derived-statement` (the node that had been refused
+   as #98). Merged 21:54:03Z.
+   #104: gate run 35279491420 success, verdict pass, first_failing_check null, `witness-slot-open`
+   with supersedes erdos-69--h2-v2--h1, hazards `hazards-derived-statement`. Merged 22:00:15Z.
+   Bot commits: #102 ef024ac, #103 5205b41, #104 28261e9; sequence complete 22:02:54Z. Each curator
+   pull request gated in about two minutes in the Mathlib sandbox and needed no step 9.
+
+7. The frontier, before and after. Before (committed at 4b2c019, rendered_from cdf014a): 31 entries,
+   30 claimable, among them the superseded `erdos-402--h2` and `erdos-69--h2` (both claimable) and
+   the non-elaborating `erdos-412--h1` and `erdos-69--h2-v2--h1` (both claimable).
+   After the first render under the new pin (#102's post-merge run 35278658038, bot commit ef024ac,
+   rendered_from f4b8366): 26 entries, 25 claimable.
+     leaving: erdos-402--h2, erdos-69--h2            (superseded: `workable` says no)
+              erdos-402--h3                          (superseded by this merge)
+              erdos-412--h1, erdos-69--h2-v2--h1     (scan raised: left out by name, F03-R13)
+              erdos-1050--h1                         (scan raised: NOT predicted, see below)
+     joining: erdos-402--h3-v2                       (blocked, witness-missing; claimable)
+   The run's log carries one pair of warnings per node the scan refused, e.g.
+     WARNING opn_gate.products: library tags skipped for erdos-412--h1: opn-used-constants failed on
+       erdos-412--h1: file does not elaborate
+     WARNING opn_gate.products: erdos-412/erdos-412--h1: its statement does not elaborate under the
+       pinned toolchain, so it is not on the frontier (F03-R13)
+   and the same pair for erdos-69--h2-v2--h1 and for erdos-1050--h1.
+   After the third render (#104's post-merge run, bot commit 28261e9, rendered_from 59169f6):
+   28 entries, 27 claimable. Against 4b2c019:
+     leaving: erdos-1050--h1, erdos-402--h2, erdos-402--h3, erdos-412--h1, erdos-69--h2,
+              erdos-69--h2-v2--h1
+     joining: erdos-402--h3-v2, erdos-412--h1-v2, erdos-69--h2-v2--h1-v2
+   Exactly the six dead entries out and the three revisions in; every other entry unchanged. The
+   revisions are `blocked` with cause `witness-missing` and claimable, the state D-29 gives a hole.
+   The api's /frontier.json (rendered_from 59169f6, 28 entries, 27 claimable) and the public
+   /frontier/ page agree at 22:05Z: the six absent, the three revisions listed.
+
+   **erdos-1050--h1 is a fourth gate-written hole that never elaborated, found by the rule on its
+   first live render.** Nobody had checked it: the calibration record's affected list named the
+   erdos-69 and erdos-402 holes and erdos-412--h1. Its statement reads `∃ a b,` where the parent
+   assembly's `have borwein` says `∃ a b : ℕ → ℤ,`, with the real-number ascriptions dropped too, so
+   `a` and `b` are untyped and cannot be applied: POST /check on the committed file answers
+   "Function expected at b … this term has type ?m.214 a", four times (log 01M2RNRVN0DG3F9MX2VH1KZ9BE).
+   The assembly's own `have` type elaborates with sorry-present as its only statement lint (log
+   01M2RNRWM80AQPGSXV0BBY189R). Filed as revision request #105
+   (`revisions/20260917T215432Z-calib-lead-83dd.yaml`, class other-with-exhibit, the same class and
+   identity as #93). #105 gated and merged by the sequencer (22:04:23Z; bot commit 6ca7b03), then
+   `opn-gate revise erdos-1050--h1` from that main, statement `stmt/c1050h1.lean` (the assembly's
+   `have borwein` type), no witness: `erdos-1050--h1-v2`, graph PR #106 (22:07Z). Gate run
+   35280441298 success, verdict pass, `witness-slot-open` with supersedes erdos-1050--h1, hazards
+   `hazards-derived-statement`; merged 22:10:37Z, bot commit 89346af (22:13:47Z). Its render (run
+   35280684903 on merge commit 7c30e12) logged NO scan warning: every frontier candidate on the graph
+   now elaborates. erdos-1050's graph.json: root `stale`, h1 `superseded`, h1-v2 `blocked` with
+   cause `witness-missing`. (Between the first render and this one, about twenty minutes, the
+   Targets page said erdos-1050 was claimable while the frontier offered nothing on it, the
+   2026-09-16 shape.)
+
+8. Final frontier (committed at 89346af, rendered_from 7c30e12; the api and the /frontier/ page
+   agree at 22:15Z): 29 entries, 28 claimable. Against 4b2c019 (31, 30):
+     leaving: erdos-1050--h1, erdos-402--h2, erdos-402--h3, erdos-412--h1, erdos-69--h2,
+              erdos-69--h2-v2--h1
+     joining: erdos-1050--h1-v2, erdos-402--h3-v2, erdos-412--h1-v2, erdos-69--h2-v2--h1-v2
+   No entry the graph advertises is superseded, and none has a statement the pinned toolchain
+   refuses. Every gate-written hole that had been published broken now has a revision that states
+   its parent assembly's obligation, blocked on a witness like any hole (D-29). Nothing rewires a
+   parent's deps to its revision (the gap the calibration record names), so each parent is `stale`
+   naming its superseded child; closing one later is a curator act no command provides.

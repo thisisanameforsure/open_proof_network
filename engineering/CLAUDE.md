@@ -847,3 +847,15 @@ The law of the project:
   leaves the golden red until regenerated (grep the goldens for the object, not the field), and
   `frontier_entry` reads a node's status from the target's map, so a record fabricated on the
   dataclass can test membership but not claimability — put the record on disk for that.
+- 2026-09-17 — A rule that elaborates every frontier candidate finds what no reader did. The re-pin
+  to ffc50b9 (F07-T19, F08-T9, F03-T10) went through in one sitting: tag, images, 27 pins in a
+  detached worktree, pregate, push after a green Lean tier, then the three corrections the old pin
+  had refused merged as #102–#104 with `witness-slot-open` in each verdict, and the frontier went
+  31 → 28 with exactly the dead entries gone. On its first live render the new scan rule also named
+  `erdos-1050--h1` — a fourth gate-written hole that never elaborated (`∃ a b,` untyped), which
+  nobody had checked because the affected list had been written by hand from what the agents hit.
+  Three smaller things: `pin_image.py` without `--api-url` rewrites the devcontainer *without*
+  `OPN_API`, and the pin check does not look at that field, so read the devcontainer diff at every
+  re-pin; `ls targets/` lists `index.json` beside the target directories, so key a target loop on
+  `targets/*/gate-spec.json`; and macOS ships bash 3.2 (no `mapfile`, no associative arrays), so a
+  script written for bash 4 dies on its first line here.
