@@ -399,7 +399,7 @@ def find_root(nodes: dict[str, NodeFacts], declaration: StatusRecord | None) -> 
         return _current_node(nodes, root)
     depended_on = {dep for n in nodes.values() for dep in n.deps}
     sinks = sorted(n for n in nodes if n not in depended_on)
-    superseded = {n for n in sinks if _is_superseded(nodes[n])}
+    superseded = {n for n in sinks if is_superseded(nodes[n])}
     if len(sinks) > 1 and superseded:
         sinks = [n for n in sinks if n not in superseded]
     # A revision is set aside only when the node it revises is depended on: that revision is a
@@ -418,7 +418,9 @@ def find_root(nodes: dict[str, NodeFacts], declaration: StatusRecord | None) -> 
     return sinks[0]
 
 
-def _is_superseded(node: NodeFacts) -> bool:
+def is_superseded(node: NodeFacts) -> bool:
+    """D-8: a status record has replaced this node with the one its ``reference`` names. Never
+    the root (``find_root``), never work (``products.in_frontier``, F03-R13)."""
     return node.override is not None and node.override.status == "superseded"
 
 

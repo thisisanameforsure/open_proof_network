@@ -159,15 +159,18 @@ def declare_root(root: Path) -> None:
     )
 
 
-def write_hole(root: Path, *, witness: str) -> None:
+def write_hole(
+    root: Path, *, witness: str, node_id: str = HOLE, supersedes: str | None = None
+) -> None:
     """A hole on disk as the post-merge job writes one, so the product is generated from a tree
     rather than from a ``replace``d dataclass (the fixture's passes are worth less than the live
-    shape otherwise)."""
-    node_dir = root / "targets" / TARGET / "nodes" / HOLE
+    shape otherwise). With ``supersedes`` it is the hole's D-8 revision instead (``meta/v4``),
+    as ``curator.revise`` scaffolds one (F03-T10)."""
+    node_dir = root / "targets" / TARGET / "nodes" / node_id
     node_dir.mkdir(parents=True)
     statement = (
         "/-! Hole of a merged partial proof, as a node (D-12 #5, D-29). -/\n\n"
-        f"theorem {HOLE.replace('-', '_')} : True := by\n  sorry\n"
+        f"theorem {node_id.replace('-', '_')} : True := by\n  sorry\n"
     )
     (node_dir / "Statement.lean").write_text(statement, encoding="utf-8")
     (node_dir / "Witness.lean").write_text(witness, encoding="utf-8")
@@ -177,15 +180,18 @@ def write_hole(root: Path, *, witness: str) -> None:
     for name in ("attempts", "annex", "explainer"):
         (node_dir / name).mkdir()
         (node_dir / name / layout.KEEP_FILE).write_text("", encoding="utf-8")
-    doc = samples.meta(
-        schema="meta/v3",
-        id=HOLE,
-        status="blocked",
-        deps=[],
-        origin="skeleton-hole",
-        tutorial=False,
-        **{"statement-hash": schemas.content_hash(statement.encode())},
-    )
+    fields: dict[str, Any] = {
+        "schema": "meta/v3",
+        "id": node_id,
+        "status": "blocked",
+        "deps": [],
+        "origin": "skeleton-hole",
+        "tutorial": False,
+        "statement-hash": schemas.content_hash(statement.encode()),
+    }
+    if supersedes is not None:
+        fields.update(schema="meta/v4", supersedes=supersedes)
+    doc = samples.meta(**fields)
     (node_dir / "META.yaml").write_text(yaml.safe_dump(doc, sort_keys=True), encoding="utf-8")
     declare_root(root)
 

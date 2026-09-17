@@ -863,6 +863,8 @@ def test_tag_cache_survives_one_nodes_scan_failure(
     assert calls == ["and-reassoc", "and-swap-reassoc", "and-reassoc"]
     assert broken.statement_hash not in cache.entries and fine.statement_hash in cache.entries
     assert "library tags skipped for and-reassoc: opn-used-constants failed" in caplog.text
+    # F03-R13: the cache remembers whose scan raised, so the frontier can leave that node out.
+    assert cache.failed == {"and-reassoc"}
 
 
 def test_find_root_edge_cases_with_revisions(tmp_path: Path) -> None:

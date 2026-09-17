@@ -837,3 +837,13 @@ The law of the project:
   a hole, never whether the node has been replaced. The sibling whose witness had been filled
   correctly drops off, which is what makes the asymmetry legible. When a node gains a new fact
   (superseded, revised, dormant), grep every product rule that keys off the old one.
+- 2026-09-17 — A guard in the post-merge job is a guard after the fact. F07-T18's round-trip
+  refusal sat in `apply_partial`, which runs once the pull request has merged, so a bad partial
+  would have landed and then broken the job that renders the products — the same shape as that
+  morning's outage. The extractor's report existed pre-merge all along, at step 4, and the
+  diagnostic's `details` is the only route to the verdict JSON the workflow prints. Put a refusal
+  where its evidence is first available, and keep the later one as the backstop for an older pin.
+  Two smaller ones from the same sitting: adding a field to a dataclass that a golden serialises
+  leaves the golden red until regenerated (grep the goldens for the object, not the field), and
+  `frontier_entry` reads a node's status from the target's map, so a record fabricated on the
+  dataclass can test membership but not claimability — put the record on disk for that.

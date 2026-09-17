@@ -140,6 +140,9 @@ class TagCache:
             if isinstance(raw, dict):
                 self.entries = {str(k): [str(t) for t in v] for k, v in raw.items()}
         self.dirty = False
+        #: R13: node ids whose scan raised this run. No tags, no entry, not on the frontier, and
+        #: never written: a cached failure would hide a transient toolchain fault forever (C7).
+        self.failed: set[str] = set()
 
     def tags(self, node: NodeFacts, scanner: Scanner | None) -> list[str]:
         if node.statement_hash in self.entries:
@@ -154,8 +157,10 @@ class TagCache:
                 # to publish no products for the whole graph: the post-merge job stopped on the
                 # first hole on erdos-412 (its statement lacked its parent's ``open`` line,
                 # 2026-09-17) and every merge after it would have lost its bot commit. The node
-                # gets no tags, the cache keeps no entry, and the log names it.
+                # gets no tags, the cache keeps no entry, and the log names it; ``failed`` names
+                # it too, so the frontier leaves it out (R13).
                 log.warning("library tags skipped for %s: %s", node.node_id, exc)
+                self.failed.add(node.node_id)
                 return []
         self.entries[node.statement_hash] = sorted(found)
         self.dirty = True
@@ -406,6 +411,21 @@ def status_or_ready(statuses: Mapping[str, str], node_id: str) -> str:
     return statuses.get(node_id, "ready")
 
 
+def workable(status: str, node: NodeFacts, status_of: Callable[[str], str]) -> bool:
+    """R13: what a claim could be worked on. A ready or speculative node, or a hole waiting only
+    for its witness while ``blocked`` is still its status. A record status is the curator's word
+    over the mechanical reason, the reading ``graph.derive_causes`` takes for ``cause`` and the
+    api's witness route keys off; and a superseded node is refused on the fact itself (D-8),
+    whatever its slot says. Found live 2026-09-17: ``erdos-69--h2``, replaced by a D-8 revision,
+    was still ``claimable: true`` because the hole clause asked only about the slot. One predicate
+    for membership and for ``claimable``, so the two cannot drift (the 2026-09-14 lesson)."""
+    if graphmod.is_superseded(node):
+        return False
+    if status in graphmod.FRONTIER_STATUSES:
+        return True
+    return status == "blocked" and graphmod.awaiting_witness(node, status_of)
+
+
 def in_frontier(status: str, node: NodeFacts, status_of: Callable[[str], str]) -> bool:
     """R5: ready or speculative, every variant whose question is still open, and every hole
     waiting only for its witness.
@@ -421,9 +441,9 @@ def in_frontier(status: str, node: NodeFacts, status_of: Callable[[str], str]) -
     work anyone can do — ``POST /proposals/witness`` takes exactly this node — so it belongs
     here, while a node waiting on an unproved dependency does not.
     """
-    if status in graphmod.FRONTIER_STATUSES:
-        return True
-    if graphmod.awaiting_witness(node, status_of):
+    if graphmod.is_superseded(node):
+        return False  # R13: its successor carries the question, variant or not
+    if workable(status, node, status_of):
         return True
     return node.origin == "variant" and status not in graphmod.RESOLVED_STATUSES
 
@@ -465,10 +485,7 @@ def frontier_entry(
         # work, and ``POST /proposals/witness`` accepts it today, so a claim on it is workable
         # (owner's call, 2026-09-16).
         "claimable": claimable
-        and (
-            status in graphmod.FRONTIER_STATUSES
-            or graphmod.awaiting_witness(node, functools.partial(status_or_ready, tg.statuses))
-        ),
+        and workable(status, node, functools.partial(status_or_ready, tg.statuses)),
         "tutorial": node.tutorial,
         # D-33: a dormancy declaration refuses no claim, so this is a fact and not a gate. It
         # rides on the entry rather than only on the index so an agent choosing work sees it
@@ -678,6 +695,20 @@ def generate(
             products.meta_status[node.path.relative_to(graph_root)] = tg.statuses[node_id]
             if not in_frontier(tg.statuses[node_id], node, status_of):
                 continue
+            # R6 before R13: the scan is the one place the products elaborate a statement, so a
+            # statement the pinned toolchain refuses is learned here, and such a node is not
+            # work anyone can take (found live 2026-09-17: a hole the pinned extractor wrote
+            # without its ascriptions was published claimable). Loud, never silent (C7): the
+            # log names it, and graph.json and META.yaml still carry the derived status.
+            tags = cache.tags(node, scanner) if cache is not None else []
+            if cache is not None and node_id in cache.failed:
+                log.warning(
+                    "%s/%s: its statement does not elaborate under the pinned toolchain, so it "
+                    "is not on the frontier (F03-R13)",
+                    target_id,
+                    node_id,
+                )
+                continue
             entries.append(
                 frontier_entry(
                     tg,
@@ -685,7 +716,7 @@ def generate(
                     claimable=facts.claimable,
                     dormant=facts.dormant,
                     ready_since=ready_since[node_id],
-                    tags=cache.tags(node, scanner) if cache is not None else [],
+                    tags=tags,
                     claims=registry.get(node_id),
                 )
             )

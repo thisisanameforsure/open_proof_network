@@ -1,0 +1,95 @@
+F03-T10 (R13, AC17, Q12, Q13): the frontier advertises no superseded node and no statement the
+toolchain refuses. 2026-09-17, from the calibration record (engineering/evidence/F15/calibration.md,
+"The last merge proved why the re-pin matters").
+
+THE FINDINGS, LIVE
+  (a) After a D-8 revision, `erdos-69--h2` carried `status: superseded, reference: erdos-69--h2-v2`
+      and `frontier.json` still listed it `claimable: true`, in the committed product and the api's
+      alike. The sibling whose slot had been filled (#81) correctly dropped off, which made the
+      asymmetry legible. The graph's own `graph.json` disagreed with the frontier the whole time:
+      `derive_causes` publishes `cause` only while `blocked` is the status, so the superseded hole
+      had `cause: null` and the api's witness route (`hole_awaiting_witness`) already refused it.
+  (b) The pinned extractor wrote `erdos-69--h2-v2--h1` with its ascriptions dropped, so its
+      statement does not typecheck (`failed to synthesize HMul` on the naturals against an
+      integer); the products rendered, nothing went red, and the node was on the live frontier.
+
+WHY
+  products.py `in_frontier`: admitted anything `graph.awaiting_witness` accepts, and that asks only
+  whether the witness is a stub and the origin is a hole, never whether the node has a record
+  (graph.py `blocked_because` is override-blind). The only elaboration in the products is the
+  library-tag scan; since 0401858 `TagCache.tags` swallows the failure, writes no entry, and the
+  caller cannot tell "elaborated, no Mathlib namespace" from "did not elaborate". And the scan ran
+  as an argument expression after membership was decided.
+
+THE CHANGE
+  gate/opn_gate/graph.py     `_is_superseded` promoted to `is_superseded` (its one caller,
+                             `find_root`, updated).
+  gate/opn_gate/products.py  `workable(status, node, status_of)`: superseded -> False; ready or
+                             speculative -> True; else `blocked` and awaiting its witness. One
+                             predicate for `in_frontier` and for `frontier_entry`'s `claimable`,
+                             so the two cannot drift (the 2026-09-14 lesson). `in_frontier` guards
+                             on `is_superseded` first, which also drops a superseded variant.
+                             `TagCache.failed`, filled where the scan raises, never written to
+                             disk. The entry loop scans before it appends and leaves out a node
+                             whose scan raised, with a warning naming target, node and reason.
+  Not built: a `cause` for the scan failure in `graph.json` (it renders before the scan; the fact
+  would have to flow backwards) — Q13.
+
+RED FIRST
+  $ uv run --frozen pytest gate/tests/test_finding_frontier_superseded_defective.py \
+      "gate/tests/test_products.py::test_tag_cache_survives_one_nodes_scan_failure" \
+      gate/tests/test_finding_hole_frontier.py -q
+    FAILED ::test_a_superseded_hole_is_not_on_the_frontier
+    FAILED ::test_a_superseded_hole_is_not_claimable
+    FAILED ::test_a_curator_record_takes_a_hole_off_the_frontier[stale|disputed|abandoned]
+    FAILED ::test_the_variant_rule_is_untouched
+    (and the scan and end-to-end tests) plus, in test_products.py:
+      AttributeError: 'TagCache' object has no attribute 'failed'
+
+GREEN
+  $ uv run --frozen pytest gate/tests/test_finding_frontier_superseded_defective.py \
+      gate/tests/test_finding_hole_frontier.py gate/tests/test_products.py \
+      gate/tests/test_branches_round3.py -q
+    85 passed in 5.40s        (test_products.py::test_golden among them: no golden moved)
+  $ make lint    -> All checks passed! 376 files already formatted
+  $ make types   -> mypy gate: Success, 186 source files
+
+WHAT THE TESTS ASSERT
+  - premise then rule: `awaiting_witness` still says yes for a superseded hole (it cannot tell);
+    `in_frontier` says no, for the superseded status and for a stale `blocked` map alike; the same
+    hole with no record is still on the frontier (T9 stands);
+  - `frontier_entry` says `claimable: false` for it and `true` for the live hole;
+  - a stale, disputed or abandoned hole is off the frontier; a speculative node is on;
+  - the variant rule is untouched: an abandoned variant is listed (AC14, Q12), a superseded one
+    is not;
+  - end to end over a tree, in the live shape (hole, its meta/v4 revision with `supersedes`, the
+    curator writer's record): old hole absent, successor present and claimable, `graph.json` still
+    carries the old node as `superseded`, `derive_causes` gives None vs `witness-missing` (the
+    api's view), the frontier validates;
+  - a raising scanner on a Mathlib-pinned fixture: the node absent, the others' tags kept, no
+    cache entry for it, both warnings logged, its `graph.json` status untouched, and the next
+    render scans it again (no negative cache);
+  - a Mathlib-free graph never scans, so the frontier is byte-identical with or without a scanner;
+  - `test_tag_cache_survives_one_nodes_scan_failure` extended: `cache.failed == {"and-reassoc"}`.
+  A mistake of mine on the way: the parametrized record test first asserted claimability through
+  `frontier_entry` with a record fabricated on the dataclass, but `frontier_entry` reads the status
+  from the target's map, which such a record does not change; membership is the substance there,
+  and claimability is proved end to end where the record is on disk.
+
+THE LIVE EFFECT, IN PROCESS
+  Measured against a detached worktree of the graph at origin/main 4b2c019 ("gate: #101 pass"),
+  never running `products` on a Mathlib target on this laptop: for every target, `graph.load_target`
+  then the new `products.in_frontier` per node, compared with the committed `frontier.json`.
+    committed entries: 31  in-process membership: 29
+    leaving: ['erdos-402--h2', 'erdos-69--h2']    both status superseded, both were claimable: true
+    joining: []
+  Exactly the two superseded holes, and nothing else moves. `erdos-69--h2-v2--h1`, whose statement
+  does not typecheck, stays in this count: the scan rule fires only where the scanner runs, which
+  is the post-merge job with the Mathlib image, so that node leaves at the first render after the
+  re-pin (Q13). The worktree was removed afterwards; other sessions' worktrees were left alone.
+
+NOT COVERED
+  Q13's list: Mathlib-free graphs never scan; a node is scanned only once it is a frontier
+  candidate; no `cause` is published for a scan failure; no negative cache, so each render re-scans
+  each defective node until it is corrected. A target whose `Defs` fail to compile raises inside
+  the scanner for every candidate and loses its whole frontier, one warning per node.
