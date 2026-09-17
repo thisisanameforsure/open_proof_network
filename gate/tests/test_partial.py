@@ -117,6 +117,32 @@ def test_the_offload_rule_fails_step4(tmp_path: Path) -> None:
     assert verdict.diagnostic is not None and verdict.diagnostic.code == "hole-unnamed"
 
 
+def test_a_hole_that_does_not_read_back_fails_step4(tmp_path: Path) -> None:
+    """F07-R20, AC41: a hole whose printed type does not elaborate back to its obligation is
+    refused at step 4, before anything merges, and the diagnostic the workflow prints names it.
+    The artifact record still carries every hole with its flag, for the reader of the verdict."""
+    report = artifact_result(holes=HOLES)
+    report.doc["holes"][0]["closed_roundtrip"] = False
+    ctx, _ = partial_context(tmp_path, toolchain=FakeToolchain(witness=WITNESS, artifact=report))
+    verdict = pipeline.run_steps(ctx)
+    assert verdict.first_failing_step == 4
+    assert verdict.diagnostic is not None and verdict.diagnostic.code == "hole-not-roundtrip"
+    assert verdict.diagnostic.details["holes"] == ["right"]
+    assert {s.result for s in verdict.steps if s.step > 4} == {"skipped"}
+    holes = ctx.data[ARTIFACT_KEY]["holes"]
+    assert [h["closed_roundtrip"] for h in holes] == [False, True]
+    assert verdict.as_dict()["diagnostic"]["details"]["holes"] == ["right"]
+
+
+def test_a_report_without_the_field_passes_as_before(tmp_path: Path) -> None:
+    """D-35: an extractor pinned before the check reports no field, and its holes are round
+    trips; the fake reports none, so this is every other partial test's premise made explicit."""
+    ctx, _ = partial_context(tmp_path)
+    verdict = pipeline.run_steps(ctx)
+    assert verdict.first_failing_step is None
+    assert all(h["closed_roundtrip"] is True for h in ctx.data[ARTIFACT_KEY]["holes"])
+
+
 def test_sorry_is_accepted_only_through_a_partials_holes(tmp_path: Path) -> None:
     """R5: step 5 lets a partial rest on sorryAx; a *proof* resting on it is still refused."""
     from opn_gate.toolchain import AxiomResult  # noqa: PLC0415

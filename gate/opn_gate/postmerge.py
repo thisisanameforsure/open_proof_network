@@ -491,7 +491,9 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
     # proposition: erdos-69's two holes were published over the naturals while the assembly had
     # discharged them over the reals, so a proof of the real obligation could not be admitted and
     # the node published was not the hole (2026-09-17). A node the gate itself writes must be one
-    # the gate would admit. Checked over every hole before anything is written, so that a refusal
+    # the gate would admit. Step 4 refuses such a partial before it merges (F07-T19,
+    # `hole-not-roundtrip`); this loop is the backstop for a partial merged under a pin that
+    # predates that check. Checked over every hole before anything is written, so that a refusal
     # leaves nothing behind (C7).
     for hole in holes:
         if not getattr(hole, "closed_roundtrip", True):

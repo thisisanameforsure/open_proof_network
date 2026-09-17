@@ -230,6 +230,29 @@ def _partial_problems(artifact: Artifact, max_holes: int) -> list[Diagnostic]:
                 {"holes": [h.name for h in restated]},
             )
         )
+    # R20: a hole whose printed closed type does not elaborate back to its obligation would be
+    # written into a child that states a different proposition (found live 2026-09-17: two holes
+    # published over the naturals that the assembly discharged over the reals, one that did not
+    # typecheck at all). Refused here, before the merge, in every pre-merge caller; the post-merge
+    # writer's refusal (R19) is the backstop for a partial merged under an older pin.
+    unwritable = [h for h in artifact.holes if not h.closed_roundtrip]
+    if unwritable:
+        problems.append(
+            Diagnostic(
+                "hole-not-roundtrip",
+                "a hole's printed type does not elaborate back to the obligation it came from, "
+                "so the child node written from it would state a different proposition: "
+                + ", ".join(f"{h.name} : {h.closed_type}" for h in unwritable)
+                + " (F07-R19; refused before the merge, F07-R20)",
+                {
+                    "holes": [h.name for h in unwritable],
+                    "unwritable": [
+                        {"name": h.name, "type": h.type, "closed_type": h.closed_type}
+                        for h in unwritable
+                    ],
+                },
+            )
+        )
     if artifact.unnamed:
         problems.append(
             Diagnostic(

@@ -6,7 +6,9 @@ coercion ascriptions dropped, and the text elaborates again as natural-number di
 truncates. The nodes looked well formed, the gate refused the real proof against them (step 7
 `witness-elaboration`), and nothing said why. The extractor now
 reports whether each hole's printed closed type elaborates back to the same obligation, and this
-is the writer's half: it refuses the merge rather than publishing a node that is not the hole.
+is the writer's half. Step 4 refuses such a partial before it merges (F07-T19, as
+`hole-not-roundtrip`); this refusal is the backstop for a partial merged under a pin that
+predates that check.
 
 The lean tier proves the extractor's half, because whether a printed type reads back is a question
 for Lean (`test_finding_hole_roundtrip_lean.py`).

@@ -75,14 +75,16 @@
         "type": "q",
         "closed_type": "∀ (p q : Prop), p ∧ q → q",
         "defeq_goal": false,
-        "defeq_sibling": null
+        "defeq_sibling": null,
+        "closed_roundtrip": true
       },
       {
         "name": "left",
         "type": "p",
         "closed_type": "∀ (p q : Prop), p ∧ q → q → p",
         "defeq_goal": false,
-        "defeq_sibling": null
+        "defeq_sibling": null,
+        "closed_roundtrip": true
       }
     ],
     "unnamed": 0,
@@ -102,7 +104,8 @@
         "type": "∀ (a b : Prop), a ∧ b ↔ b ∧ a",
         "closed_type": "∀ (p q : Prop), p ∧ q → ∀ (a b : Prop), a ∧ b ↔ b ∧ a",
         "defeq_goal": false,
-        "defeq_sibling": null
+        "defeq_sibling": null,
+        "closed_roundtrip": true
       }
     ],
     "unnamed": 0,
@@ -122,7 +125,8 @@
         "type": "∀ (p q : Prop), p ∧ q → q ∧ p",
         "closed_type": "∀ (p q : Prop), p ∧ q → q ∧ p",
         "defeq_goal": true,
-        "defeq_sibling": null
+        "defeq_sibling": null,
+        "closed_roundtrip": true
       }
     ],
     "unnamed": 0,
@@ -144,7 +148,8 @@
         "type": "q ∧ p",
         "closed_type": "∀ (p q : Prop), p ∧ q → q ∧ p",
         "defeq_goal": true,
-        "defeq_sibling": null
+        "defeq_sibling": null,
+        "closed_roundtrip": true
       }
     ],
     "unnamed": 0,

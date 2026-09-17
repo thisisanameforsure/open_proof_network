@@ -166,3 +166,6 @@ def test_the_golden_says_what_the_rules_say(bench: Bench) -> None:
     assert "offload-restated-goal" in got["Offload"]["problems"]
     assert "offload-restated-goal" in got["RestateConclusion"]["problems"]
     assert "offload-whole-goal" in got["BareHole"]["problems"]
+    # R19, R20: the real extractor's holes read back, and T19's refusal fires on no fixture.
+    assert all(h["closed_roundtrip"] is True for case in got.values() for h in case["holes"])
+    assert not any("hole-not-roundtrip" in case["problems"] for case in got.values())

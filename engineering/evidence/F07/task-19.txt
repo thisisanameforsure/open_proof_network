@@ -1,0 +1,69 @@
+F07-T19 (R20, AC41): the round trip is refused before the merge.
+2026-09-17, the same day as T18, after the calibration run's corrections.
+
+WHY, IN ONE LINE
+  T18 put the round-trip refusal in the post-merge job, which runs after a pull request has
+  merged: a partial with a bad hole would merge, the job would fail, and the graph would be left
+  with no products and no bot commit, the failure that took every product down that morning. The
+  refusal belongs where the extractor's report already exists pre-merge: step 4, in every caller.
+
+WHAT CHANGED
+  gate/opn_gate/steps/artifact.py   `_partial_problems` gains `hole-not-roundtrip` over every hole
+                                    whose `closed_roundtrip` is false, beside the offload rule;
+                                    details name the holes (`holes`) and carry name, type and
+                                    printed closed type (`unwritable`). `run()` already stores the
+                                    artifact record before returning the failure, so the verdict's
+                                    reader sees every hole with its flag.
+  gate/opn_gate/postmerge.py        comment only: step 4 refuses first; the loop is the backstop
+                                    for a partial merged under a pin that predates the check.
+  gate/tests/golden/artifact-types.json   regenerated: the lean-tier golden test had been red since
+                                    T18 because `Hole.as_dict()` gained a field the golden lacked.
+
+RED FIRST
+  $ uv run --frozen pytest gate/tests/test_artifacts.py gate/tests/test_partial.py -q
+    FAILED test_artifacts.py::test_a_hole_that_does_not_read_back_is_refused
+      AssertionError: assert [] == ['hole-not-roundtrip']
+    FAILED test_artifacts.py::test_a_round_trip_failure_is_reported_beside_the_offload_rule
+      AssertionError: assert ['offload-restated-goal'] == ['offload-restated-goal', 'hole-not-roundtrip']
+    FAILED test_partial.py::test_a_hole_that_does_not_read_back_fails_step4
+    3 failed, 29 passed in 9.06s
+  $ uv run --frozen pytest gate/tests/test_artifacts_lean.py -m lean -q
+    FAILED test_artifacts_lean.py::test_artifact_types_golden   (the field missing from the golden)
+    1 failed, 1 passed in 23.92s
+
+THE GOLDEN, REGENERATED AND READ
+  $ PYTHONPATH=gate uv run python -c "import sys; sys.path.insert(0, 'gate/tests'); \
+      import test_artifacts_lean as t; t.write_golden()"
+  $ diff <before> gate/tests/golden/artifact-types.json | grep -E '^[<>]' | sort | uniq -c
+     5 > "closed_roundtrip": true
+     5 > "defeq_sibling": null,      (the same five lines, now with a trailing comma)
+     5 < "defeq_sibling": null
+  Five hole objects gained the field; no type, closed type or problems list moved. Had any other
+  line changed, the golden would not have been committed (the module docstring's rule).
+
+GREEN
+  $ uv run --frozen pytest gate/tests/test_artifacts.py gate/tests/test_partial.py \
+      gate/tests/test_finding_hole_roundtrip.py gate/tests/test_postmerge.py -q
+    70 passed in 1.94s
+  $ uv run --frozen pytest gate/tests/test_artifacts_lean.py \
+      gate/tests/test_finding_hole_roundtrip_lean.py -m lean -q
+    3 passed in 82.93s
+  $ make lint    -> All checks passed! 376 files already formatted
+  $ make types   -> mypy gate: Success, 186 source files (api 101, site 28)
+
+WHAT THE TESTS ASSERT
+  - one hole false: the only problem is `hole-not-roundtrip`, `details.holes == ["left"]`,
+    `details.unwritable` carries its printed closed type, the message names `left : p` (unit);
+  - a restated goal beside a round-trip failure: both codes, offload first (C7, every reason);
+  - through the pipeline: `first_failing_step == 4`, later steps skipped, the artifact record still
+    carries both holes with their flags, and `verdict.as_dict()["diagnostic"]["details"]["holes"]`
+    names the hole, which is the JSON the graph workflow prints;
+  - a report with no field (an older pinned extractor) passes as before (D-35);
+  - lean tier: every fixture hole reports `closed_roundtrip: true` through the real extractor and
+    no fixture reports `hole-not-roundtrip`.
+
+NOT COVERED
+  No Lean-core fixture yields a hole that fails the round trip with confidence (the delaborator
+  names bound binders accessibly in a closed forall), so the extractor's `false` path rests on
+  T18's probe against Mathlib obligations. Both refusals bind the graph only at the next re-pin
+  (D-35); until then the post-merge backstop stands.

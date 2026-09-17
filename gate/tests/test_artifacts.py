@@ -128,6 +128,34 @@ def test_a_mismatched_partial_reports_both_problems() -> None:
     assert codes(problems) == ["artifact-type-mismatch", "partial-without-holes"]
 
 
+# --- R20, AC41: a hole whose printed type does not read back is refused before the merge --------
+
+
+def test_a_hole_that_does_not_read_back_is_refused() -> None:
+    """R20: the extractor says a hole's printed type elaborates to something else, so the child
+    node written from it would state a different proposition; step 4 refuses and names it."""
+    report = artifact_result(
+        kind="partial", matches=True, holes=[("right", "q", False), ("left", "p", False)]
+    )
+    report.doc["holes"][0]["closed_roundtrip"] = True
+    report.doc["holes"][1]["closed_roundtrip"] = False
+    problems = art.check(art.Artifact.of("partial", report.doc))
+    assert codes(problems) == ["hole-not-roundtrip"]
+    assert problems[0].details["holes"] == ["left"]
+    assert problems[0].details["unwritable"] == [{"name": "left", "type": "p", "closed_type": "p"}]
+    assert "left : p" in problems[0].message and "F07-R19" in problems[0].message
+
+
+def test_a_round_trip_failure_is_reported_beside_the_offload_rule() -> None:
+    """C7: every reason is reported; the offload violation stays first as the step's code."""
+    report = artifact_result(
+        kind="partial", matches=True, holes=[("goal", "q", True), ("left", "p", False)]
+    )
+    report.doc["holes"][1]["closed_roundtrip"] = False
+    problems = art.check(art.Artifact.of("partial", report.doc))
+    assert codes(problems) == ["offload-restated-goal", "hole-not-roundtrip"]
+
+
 # --- which artifact a Proof.lean is (R4, Q9) -----------------------------------------------------
 
 
