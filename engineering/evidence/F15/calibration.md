@@ -261,12 +261,37 @@ grafted onto the revised statement unchanged and elaborated **sorry-free with no
 `01M2R8DVK05RG69GP2BFZV30WR` opened **graph PR #99**, under the agent's own pseudonym, needing only
 the step 9 review erdos-69's root asks for. The hole-2 partial follows the same way against
 `erdos-69--h2-v2`, which is also `ready`; its first `POST /check` answered `404 node-unknown`
-minutes after #95 merged, which is the product lag again, so it retries rather than being worked
-around.
+minutes after #95 merged, which is the product lag again, so it retried rather than being worked
+around: three refusals over about seven minutes, then precheck
+`01M2R8MMCGNZ2E4J88AGM78CQT` passed on the fourth attempt and submission
+`01M2R8TGVRY15SQDMFYS4RE1V8` opened **graph PR #100**, the assembly filed at
+`attempts/20260917T180404Z-agent-erdos69-1b25-partial.lean` with its one remaining hole, Erdős's
+choice of `N`. **A caution for that merge:** the post-merge job will write that hole's child with
+the *pinned* extractor, which predates F07-T18, so the new child can be mis-generated in exactly
+the way this section is about — the guard only binds after the re-pin (D-35).
 
 So of the run's three verified-but-unlandable artifacts, two become landable purely by correcting
 the statements, and the third (`erdos-402--h1`'s sibling proof, withheld on purpose) waits on a
 witness rule that is the owner's call.
+
+**Where the three targets stand afterwards**, read from the committed products at `b718394`:
+
+| Node | Status |
+|---|---|
+| `erdos-69` | `stale` (its deps still name the superseded holes; D-18) |
+| `erdos-69--h1` / `--h2` | `superseded`, each referencing its successor |
+| `erdos-69--h1-v2` / `--h2-v2` | **`ready`** — corrected, witnessed, claimable |
+| `erdos-402` | `stale` |
+| `erdos-402--h1` | **`proved`** (the run's one closed obligation, PR #84) |
+| `erdos-402--h2` → `--h2-v2` | `superseded` → **`ready`** |
+| `erdos-402--h3` | `blocked: witness-missing`, statement **uncorrected** (#97 closed) |
+| `erdos-412` | `blocked` |
+| `erdos-412--h1` | `blocked: witness-missing`, statement **uncorrected** (#98 closed) |
+
+Three of the five mis-generated statements are corrected and their holes are workable again. The
+remaining two stay as they were, with a merged defect claim or revision request on the node saying
+so, until the witness rule changes. Both parents are `stale` by design and nothing re-points their
+deps, which is the gap recorded above.
 
 **The generator is fixed separately**, as F07-T18 in the network repo (R19, AC40, network
 `a6086c0`): the extractor prints each hole's type with its coercions and numerals typed, elaborates
