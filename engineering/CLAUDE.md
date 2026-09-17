@@ -785,3 +785,26 @@ The law of the project:
   The fix was a follow-up comment on the closed pull request and a softened record, not a quiet edit:
   the overstatement was already public. Check the strong half of a claim before it is the half people
   quote.
+- 2026-09-17 — A statement the gate writes must be one the gate would admit, and printing is where
+  that breaks. `ppExpr`'s defaults drop coercion ascriptions and numeral types, so a hole's
+  obligation over the reals was written into its child over the naturals, where division truncates:
+  the node elaborated, its hash was taken of what was written, and the real proof could not be
+  admitted against it. Both halves of the fix were probed at the pin before any code — printed bare,
+  three sample obligations fail a round trip; printed under `pp.coercions.types` and
+  `pp.numericTypes`, all three pass — so the options are the cure and the round trip is the
+  detector (`Parser.runParserCategory`, `Term.elabType`, `isDefEq` at Lean 4.33.1, which is why
+  `scan` and `holeReport` are now `TermElabM`). Whenever the gate writes Lean, ask whether the text
+  it wrote still means what it had.
+- 2026-09-17 — Correcting an immutable statement needed no new mechanism: `opn-gate revise` plus a
+  merged revision request per node is D-8's own route, and it was already built. Two things that
+  would have cost a wrong guess: the declaration check lets a revision keep the original theorem
+  name, because a node may restate a declaration exactly when it supersedes the node holding it, so
+  no `-v2` rename belongs in the statement; and a curator revision pull request has no step-9 check
+  at all, so the merges run unattended. What the route does not do is rewire a parent's deps, so
+  each corrected hole leaves its parent stale and still naming the superseded child — closing such a
+  parent later has no command.
+- 2026-09-17 — ruff rejects the double-struck letters for the naturals, reals and integers in Python
+  docstrings and comments (RUF002, RUF003), so write the words. Eight of them blocked a commit whose
+  code and tests were already green, and the formatter then wanted the dict literals exploded: run
+  `make lint` before `git commit`, since the hook runs it after the suite and the suite is the slow
+  part.

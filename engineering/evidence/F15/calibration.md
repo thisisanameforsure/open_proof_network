@@ -180,6 +180,70 @@ Both pages render from the merged tree, so the run's artifacts are visible to a 
   `erdos-402: blocked`. A stranger can see which hole of Graham's conjecture is now closed and which
   two remain, which is what the calibration was for.
 
+## Correcting the five mis-generated holes (the founder's instruction, 2026-09-17)
+
+Mike: "yeah correct mis generated holes." The route is D-8's own, not a bot rewrite: a revision
+request per node, then `opn-gate revise`, which scaffolds `<id>-v2` from the corrected statement,
+marks the old node superseded with a `reference` to its successor, and marks every dependent stale.
+Five nodes need it — the four coercion cases and `erdos-412--h1`, whose statement never elaborated
+at all because it was written before the 0401858 fix that makes a child inherit its parent's `open`
+lines.
+
+**The corrected statement of each hole is its parent assembly's own `have` type, verbatim.** That is
+what the decomposition declared and what D-31 finalization will need, so nothing here is invented:
+
+| Node | What the gate wrote | What the assembly declared |
+|---|---|---|
+| `erdos-69--h1` | `↑(ω n) / 2 ^ n`, `1 / (2 ^ ↑p - 1)` | `(ω n : ℝ) / 2 ^ n`, `(1 : ℝ) / (2 ^ (p : ℕ) - 1)` |
+| `erdos-69--h2` | same, as the hypothesis of `Irrational …` | same, ascribed |
+| `erdos-402--h2` | `↑(a.gcd b) ≤ ↑a / ↑A.card` | `a.gcd b ≤ (a / A.card : ℚ)` |
+| `erdos-402--h3` | same, twice over | same, ascribed |
+| `erdos-412--h1` | `(⇑(σ 1))^[k]` with no `open` line | the same under `open ArithmeticFunction.sigma` |
+
+Each corrected statement was checked on the live service before any request was filed: all five
+elaborate with `sorry-present` as the only lint. For the two erdos-402 holes, where the correction
+was a substitution on the gate's text rather than a copy of the assembly's, the two forms were also
+proved to be **the same proposition** by `rfl` on `POST /check`, with no lint at all — so the
+revision cannot quietly restate the obligation.
+
+Revision requests: `erdos-69--h1` **#89**, `erdos-69--h2` **#90**, `erdos-402--h2` **#91**,
+`erdos-402--h3` **#92** (class `wrong-domain`, filed under the pseudonym that found the defect on
+each target), and `erdos-412--h1` **#93** (class `other-with-exhibit`, filed under `calib-lead-83dd`,
+an identity minted through the tutorial on-ramp because neither calibration agent ever touched that
+node and borrowing one of their pseudonyms would misattribute the finding).
+
+**The revisions themselves**, written by `opn-gate revise` in a detached worktree of `origin/main`,
+one pull request per node, author `calib-lead-83dd`:
+
+| Node | Revision | Pull request |
+|---|---|---|
+| `erdos-69--h1` | `erdos-69--h1-v2` | **#94** |
+| `erdos-69--h2` | `erdos-69--h2-v2` | **#95** |
+| `erdos-402--h2` | `erdos-402--h2-v2` | **#96** |
+| `erdos-402--h3` | `erdos-402--h3-v2` | **#97** |
+| `erdos-412--h1` | `erdos-412--h1-v2` | **#98** |
+
+Each carries the corrected `Statement.lean`, the old node's witness and deps with
+`supersedes: <old id>`, a `superseded` record on the old node naming its successor, and a `stale`
+record on the parent (D-18). Two facts that would have cost a wrong guess: the **declaration check
+lets a revision keep the original theorem name**, because a node may restate a declaration exactly
+when it supersedes the node holding it (`admit.py`, D-8) — so no `-v2` belongs in the Lean; and a
+**curator revision has no step 9 check at all**, so the five merge on the gate alone.
+
+**The generator is fixed separately**, as F07-T18 in the network repo (R19, AC40, network
+`a6086c0`): the extractor prints each hole's type with its coercions and numerals typed, elaborates
+the printed form back and reports `closed_roundtrip`, and `apply_partial` refuses a hole that fails,
+before writing anything. Both halves were probed at the pin first: bare printing fails the round
+trip on three sample obligations, and with the options all three pass. **That guard is live on the
+graph only at the next re-pin (D-35)** — until then the live gate still runs the extractor that
+wrote these five.
+
+**A gap found on the way: nothing rewires a parent's deps to a revision.** `revise` marks dependents
+stale, and `blocked_because` compares each dep's status to `proved`, following no `reference` — only
+`find_root` follows the supersession chain. So after these revisions each parent still names its
+superseded child and stays blocked, which is the state it was already in; but closing such a parent
+later needs a curator act no command provides.
+
 ## Findings about the network (R14 e: every failure a typed record)
 
 1. **A calibration target is not live when its intake merges.** The products are rendered only by a
