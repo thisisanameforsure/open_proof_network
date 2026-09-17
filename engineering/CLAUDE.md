@@ -771,3 +771,17 @@ The law of the project:
   because the route reads the committed products. The same lag had hidden all three calibration targets
   from precheck for two and a half hours that morning. Anything derived from products inherits their
   freshness; a retry loop is the only way through from outside.
+- 2026-09-17 — A defect claim is a Lean artifact, not a bug report. `POST /defect-claims` takes an
+  `exhibit`, and the gate elaborates it in the step-3 sandbox (`opn-gate exhibits`), so two claims
+  filed with prose were refused `exhibit-elaboration` and had to be closed and re-filed. The
+  replacement is stronger than the prose ever was: one `rfl` showing the node's statement and the
+  same statement with every coercion deleted are the same term, checked by the toolchain that checks
+  the node. The guide's `defects/` row says "append a defect claim (D-16)" and says nothing about
+  Lean; it should.
+- 2026-09-17 — Do not let a claim outrun what was checked, and correct it in public when it does. I
+  wrote that a mis-generated hole "says 0 = 0, provable by `simp`" into the evidence, a commit
+  message and a pull request comment; the `simp` proof then did not close and no bound on `ω n` was
+  pinned down. What was machine-checked was the *domain* error, which is the defect and is enough.
+  The fix was a follow-up comment on the closed pull request and a softened record, not a quiet edit:
+  the overstatement was already public. Check the strong half of a claim before it is the half people
+  quote.

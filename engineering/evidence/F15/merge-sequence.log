@@ -60,3 +60,23 @@
 15:21:36Z #83 check 'gate (steps ' = IN_PROGRESS (merge state BLOCKED)
 15:23:40Z #83 check 'gate (steps ' = SUCCESS (merge state CLEAN)
 15:23:44Z #83 merged
+15:26:21Z bot commit for #83: 871d638 gate: #83 pass
+15:26:21Z sequence complete
+15:30:40Z sequence 84p,85,86 on thisisanameforsure/open_proof_network_graph
+15:30:41Z #84 start: 'proof: erdos-402--h1' merge state BLOCKED checks {'gate (steps 1, 2 and 4-8 in the sandbox)': 'IN_PROGRESS', 'postmerge (step 9 record, gate signature, attestation commit)': 'SKIPPED'}
+15:30:42Z #84 check 'gate (steps ' = IN_PROGRESS (merge state BLOCKED)
+15:33:17Z #84 check 'gate (steps ' = SUCCESS (merge state BLOCKED)
+15:33:19Z #84 approved (step 9); waiting for the step 9 check
+15:33:30Z #84 check 'step 9 (a no' = QUEUED (merge state BLOCKED)
+15:34:01Z #84 check 'step 9 (a no' = SUCCESS (merge state CLEAN)
+15:34:07Z #84 merged
+15:37:17Z bot commit for #84: 86ffcfb gate: #84 pass
+15:37:18Z #85 start: 'defect claim: erdos-69--h1' merge state UNKNOWN checks {'gate (steps 1, 2 and 4-8 in the sandbox)': 'FAILURE', 'postmerge (step 9 record, gate signature, attestation commit)': 'SKIPPED', 'step 9 (a non-author approving review)': 'SKIPPED'}
+15:37:20Z #85 branch updated; waiting for the gate to re-run
+15:38:07Z #85 check 'gate (steps ' = IN_PROGRESS (merge state BLOCKED)
+15:40:42Z #85 check 'gate (steps ' = FAILURE (merge state BLOCKED)
+15:40:42Z #85 gate check ended FAILURE; stopping the sequence
+15:40:42Z stopped at #85
+15:44:21Z sequence 87,88 on thisisanameforsure/open_proof_network_graph
+15:44:22Z #87 start: 'defect claim: erdos-69--h1' merge state BLOCKED checks {'gate (steps 1, 2 and 4-8 in the sandbox)': 'IN_PROGRESS', 'postmerge (step 9 record, gate signature, attestation commit)': 'SKIPPED'}
+15:44:23Z #87 check 'gate (steps ' = IN_PROGRESS (merge state BLOCKED)

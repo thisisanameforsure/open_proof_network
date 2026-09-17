@@ -128,12 +128,37 @@ the gate's own defect (finding 3b below), not the mathematics.**
 | `erdos-69--h2` witness | **refused by the gate** at step 7 (`witness-elaboration`), graph PR #82 **closed** with the reason and its branch deleted |
 | `erdos-69--h2` partial | **not submitted**: same statement defect |
 | `erdos-402--h1` witness | **graph PR #83**, merging |
-| `erdos-402--h1` full proof | submitted behind #83 — the one round-two artifact whose statement round-trips |
+| `erdos-402--h1` full proof | **precheck `01M2QZM2ZRATTFC3B5QK8NVV3G` verdict pass on the first attempt; submitted as `01M2QZT2CRNEG162PP2YXR0VJD` → graph PR #84, step 9 approved, merged 15:34 with bot commit `86ffcfb gate: #84 pass`** — the run's one proved hole |
 | `erdos-402--h2` proof | **withheld deliberately**: the child states ℕ division, so a proof of it would launder the defect |
+
+`erdos-402--h1` is **proved on the graph**: `targets/erdos-402/graph.json` reads `status: proved`
+for it after the bot commit, while `--h2` and `--h3` stay `witness-missing`, and the parent stays
+blocked on them. That is the run's one closed obligation, and it is a real lemma of the
+Balasubramanian–Soundararajan argument rather than an artefact.
 
 Nothing was submitted against a mis-generated node. Two of the run's three agents therefore end with
 their best work verified, recorded, and unlandable until the statements are corrected — which is a
 finding about the network, not about them.
+
+**The defective holes are flagged on the graph, not just in this file.** Leaving them as they were
+would have left the frontier offering a contributor an obligation the network cannot accept a proof
+of, so a defect claim (D-16) was filed against each, under the erdos-69 agent's own pseudonym, class
+`wrong-domain`, at line 8 of each statement:
+
+- `targets/erdos-69/nodes/erdos-69--h1/defects/20260917T154343Z-agent-erdos69-1b25.yaml` → **PR #87**
+- `targets/erdos-69/nodes/erdos-69--h2/defects/20260917T154347Z-agent-erdos69-1b25.yaml` → **PR #88**
+
+The first pair (#85, #86) was **refused by the gate and closed**: a claim's `exhibit` is elaborated
+as Lean in the step-3 sandbox (`opn-gate exhibits`) and I had filed prose, so the gate answered
+`exhibit-elaboration`. The refusal was right. The replacements carry a Lean exhibit that elaborates
+and settles the point by `rfl`, which is also the strongest form the claim can take: it is checked
+by the same toolchain the node is checked by. **A finding in its own right: a defect claim is a Lean
+artifact, not a bug report, and nothing in the contributor guide's `defects/` row says so.**
+
+Each names the cure for the curator: print the hole with `pp.coercions.types true`, or compare the
+child's elaborated type against the hole's closed `Expr` before writing it, then revise the four
+affected statements (D-8). Whether to correct a gate-written "immutable" statement by revision or by
+bot correction is the owner's call, as it was for `erdos-412--h1` on 2026-09-17.
 
 ## The work is public (checked 15:1x UTC)
 
@@ -150,6 +175,10 @@ Both pages render from the merged tree, so the run's artifacts are visible to a 
 - Neither target page mentions its annex (`annex: 0` in the page text) though the annexes are merged
   (#75, #76, #80); whether the node page surfaces them was not checked. Worth a look, not filed as a
   defect.
+- After #84 merged, the same page publishes the run's one closed obligation. Its dependency graph
+  reads `erdos-402--h1: proved`, `erdos-402--h2: blocked`, `erdos-402--h3: blocked`,
+  `erdos-402: blocked`. A stranger can see which hole of Graham's conjecture is now closed and which
+  two remain, which is what the calibration was for.
 
 ## Findings about the network (R14 e: every failure a typed record)
 
@@ -193,11 +222,16 @@ Both pages render from the merged tree, so the run's artifacts are visible to a 
        but is expected to have type
          ∑' (n : ℕ), ω n / 2 ^ n = ∑' (p : Nat.Primes), 1 / (2 ^ p - 1)
 
-   The expected type is the node's own statement, and it is the **ℕ-division** reading, in which
-   every term on both sides floors to 0: the child says `0 = 0`. So the hole the network published
-   is trivially true, provable by `simp`, and closing it would finalize the parent's assembly with a
-   lemma that says nothing. The agents' real proofs (the Lambert identity over ℝ) cannot be
-   submitted against it, and were not. Affected: `erdos-69--h1`, `erdos-69--h2`,
+   The expected type is the node's own statement, and it is the **ℕ-division** reading. What is
+   machine-checked here is the domain, by `rfl` on the live service (`POST /check`, `okay: true`):
+   the statement as the node carries it and the same statement with every coercion deleted are the
+   *same term*. So the published node is a natural-number identity whose divisions truncate, not the
+   real-number obligation the parent's assembly discharges, and the agents' real proofs cannot be
+   submitted against it, and were not. Every term of the ℕ reading looks like a truncating division
+   that floors to 0, which would make the node `0 = 0` and trivially provable; a `simp` proof of that
+   was tried and **did not close** (`simp made no progress`), and a bound on `ω n` was not pinned
+   down here, so treat the triviality as the likely consequence rather than as checked. The domain
+   error alone is enough: it is the defect, and it is what the claims below assert. Affected: `erdos-69--h1`, `erdos-69--h2`,
    `erdos-402--h2`, `erdos-402--h3`. Unaffected: `erdos-402--h1`, whose type is coercion-free and
    round-trips, and whose proof is the one artifact of round two that can be submitted.
    **This is the run's most serious finding**: it is silent, it is on the live graph now, and it
