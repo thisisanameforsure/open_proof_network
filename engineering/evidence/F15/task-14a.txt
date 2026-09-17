@@ -1,0 +1,14 @@
+F15-T14a — the calibration pool (R14 a, b; Q12, Q13): docs/calibration_pool.py is the committed query (30 rows at the 2026-09 dataset) and holds the three choices with grades and reasons; docs/calibration_pool.py draft wrote engineering/onramp/calibration/{erdos-1050,erdos-69,erdos-402} from the registry files at the pin (the helper library fetched at the pin for the driver's name check); erdos-402's statement and witness are hand-written and unelaborated (README). Read by hand before this file.
+2026-09-17T06:05:21Z  commit: 721af33 (+ working tree)
+
+$ uv run python docs/calibration_pool.py pool | python3 -c "import json,sys; d=json.load(sys.stdin); print(d[\"count\"], [r[\"number\"] for r in d[\"rows\"]])"
+30 [4, 67, 69, 92, 193, 245, 318, 321, 346, 372, 387, 402, 421, 477, 494, 587, 591, 599, 633, 697, 705, 730, 822, 851, 920, 946, 1050, 1064, 1105, 1214]
+
+$ uv run pytest gate/tests/test_calibration_pool.py -q
+3 passed in 0.06s
+
+$ make verify
+api/tests/api_fakes.py:29
+    from starlette.testclient import TestClient
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========= 2183 passed, 72 deselected, 2 warnings in 184.28s (0:03:04) ==========

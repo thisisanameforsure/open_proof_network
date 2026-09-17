@@ -1,0 +1,43 @@
+schema: target/v2
+id: erdos-69
+title: 'Erdős problem 69 (calibration): a known result'
+informal: Is $$ \sum_{n\geq 2}\frac{\omega(n)}{2^n} $$ irrational? (Here $\omega(n)$
+  counts the number of distinct prime divisors of $n$.)
+paraphrase: null
+track: formalization
+calibration: true
+source:
+  kind: formal-conjectures
+  ref: FormalConjectures/ErdosProblems/69.lean
+  url: https://www.erdosproblems.com/69
+curator: thisisanameforsure
+prior_art:
+  arxiv_query: null
+  forum_url: https://www.erdosproblems.com/69
+  summary: 'A known result, on the calibration track (Stages v3.17, F15-R14): solved
+    in the literature by P. Erdős, On arithmetical properties of Lambert series, J.
+    Indian Math. Soc. 12 (1948), 63-66, with no Lean proof at registry commit c7f31d5fd3d2
+    (erdosproblems.com status PROVED, standing since 1948). Graded medium: The irrationality
+    of the sum of omega(n)/2^n, with omega the number of distinct prime divisors,
+    a Mathlib arithmetic function; the registry files it as textbook. The route is
+    two lemmas — the Lambert-series identity sum omega(n)/2^n = sum over primes p
+    of 1/(2^p - 1), a rearrangement of absolutely convergent series, and Erdős''s
+    1948 irrationality argument for the prime sum — each ordinary analysis with no
+    known Lean proof, so the agent has to decompose and prove rather than transcribe.
+    Drafted by docs/calibration_pool.py and read by the curator before intake.'
+library_coverage:
+  mathlib_sha: 0df444a360eaa60ab8c11dca51a86af692955474
+  missing_prerequisites: []
+provenance:
+  statement_source: formal-conjectures
+  author: The Formal Conjectures Authors
+  adversarially_reviewed: false
+  upstream_commit: c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae
+sources: []
+attack_routes:
+- 'the literature proof: P. Erdős, On arithmetical properties of Lambert series, J.
+  Indian Math. Soc. 12 (1948), 63-66'
+posting: null
+domains:
+- number-theory
+qa_summary: null

@@ -1,0 +1,47 @@
+schema: target/v2
+id: erdos-1050
+title: 'Erdős problem 1050 (calibration): a known result'
+informal: '**Erdős Problem 1050.** The series $\sum_{n=1}^\infty \frac{1}{2^n - 3}$
+  is irrational. The source sum runs over $n \ge 1$; as a `tsum` over `ℕ` (which starts
+  at $0$) it is reindexed $n \mapsto n + 1$, i.e. $\sum_{n=0}^\infty 1/(2^{n+1} -
+  3)$.'
+paraphrase: null
+track: formalization
+calibration: true
+source:
+  kind: formal-conjectures
+  ref: FormalConjectures/ErdosProblems/1050.lean
+  url: https://www.erdosproblems.com/1050
+curator: thisisanameforsure
+prior_art:
+  arxiv_query: null
+  forum_url: https://www.erdosproblems.com/1050
+  summary: 'A known result, on the calibration track (Stages v3.17, F15-R14): solved
+    in the literature by P. B. Borwein, On the irrationality of sum 1/(q^n + r), J.
+    Number Theory 37 (1991), 253-259; a self-contained proof in Math. Proc. Camb.
+    Phil. Soc. 112 (1992), 141-146, with no Lean proof at registry commit c7f31d5fd3d2
+    (erdosproblems.com status PROVED, standing since 1948). Graded easy: One closed
+    proposition over the reals, the irrationality of the sum of 1/(2^(n+1) - 3), with
+    no local definitions, no registry helpers and no hazard flag. Borwein''s 1992
+    proof is a few pages of elementary analysis, and the registry itself records that
+    a complete Lean 4 proof of this statement exists in an external gallery at a comparable
+    Mathlib generation, so the mathematics is known to formalize; the calibration
+    question is whether a fresh agent produces one under the gate with no help. Drafted
+    by docs/calibration_pool.py and read by the curator before intake.'
+library_coverage:
+  mathlib_sha: 0df444a360eaa60ab8c11dca51a86af692955474
+  missing_prerequisites: []
+provenance:
+  statement_source: formal-conjectures
+  author: The Formal Conjectures Authors
+  adversarially_reviewed: false
+  upstream_commit: c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae
+sources: []
+attack_routes:
+- 'the literature proof: P. B. Borwein, On the irrationality of sum 1/(q^n + r), J.
+  Number Theory 37 (1991), 253-259; a self-contained proof in Math. Proc. Camb. Phil.
+  Soc. 112 (1992), 141-146'
+posting: null
+domains:
+- number-theory
+qa_summary: null

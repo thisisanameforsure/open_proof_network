@@ -435,6 +435,21 @@ that cites a v3.17 clause is built only once that clause is in the decisions doc
   <tr><td>F15-Q12</td><td>The calibration pool query is committed beside the seed dataset and
     read by a test, so the number in R14 is a fact the suite checks, not a sentence that rots.
     The three chosen targets and their grades are recorded in T14a's evidence before any intake.</td></tr>
+  <tr><td>F15-Q13</td><td><strong>The pool is 30 rows, not 29, and the skeleton target's witness is a hand
+    guess.</strong> The committed query (<code>docs/calibration_pool.py</code>: a Lean statement in the pinned
+    registry and a site status of <code>PROVED</code>, <code>SOLVED</code> or <code>DISPROVED</code> without
+    <code>(LEAN)</code>) yields 30 rows at the 2026-09 dataset; R14 (a) named 29 from the design record's
+    "about thirty", and the number the suite holds is the query's. The three chosen are
+    <code>erdos-1050</code> (easy), <code>erdos-69</code> (medium) and <code>erdos-402</code> (needs a
+    skeleton), reasons in <code>CHOICES</code> and <code>engineering/onramp/calibration/README.md</code>.
+    Two cost judgment: the catalog's rows for solved problems carry no score or declaration, so the drafts
+    read the registry file through the wave driver's own extractor instead of the driver; and 402's
+    registry theorem has binders before the colon, which the driver refuses (F14-T15), so its statement is
+    restated by hand as one closed <code>∀</code> with the witness the gate's metaprogram expects
+    (<code>∃ A, 0 ∉ A ∧ A.Nonempty</code>), unelaborated on a laptop with no Mathlib checkout and checked
+    first by the intake's sandboxed admission (T14b). Reversal: choose another skeleton row, or port
+    <code>Nat.maxPrimeFac</code> into <code>defs/</code> for <code>erdos-372</code>. Decided 2026-09-17 in
+    T14a, unattended.</td></tr>
 </table>
 
 <h2>10. Status</h2>
@@ -464,7 +479,12 @@ v3.17 applied 2026-09-16 (network <code>e93a049</code>, Q1 closed) &middot; T2 �
 <code>task-11-{home,docs}-{1200,390}.png</code> screenshots; the copy is drafted for the founder's review)
 &middot; T12 ✓ 2026-09-17
 (<code>make verify</code>; <code>engineering/evidence/F15/task-12.txt</code>; the graph's <code>AGENTS.md</code>
-copy committed locally, unpushed) &middot; T13&ndash;T15 todo</div>
+copy committed locally, unpushed) &middot; T13 ✓ 2026-09-17
+(<code>uv run pytest gate/tests/test_lifecycle_f15.py -v</code>, under 10 s;
+<code>engineering/evidence/F15/task-13.txt</code>) &middot; T14a ✓ 2026-09-17
+(<code>uv run pytest gate/tests/test_calibration_pool.py -q</code>; <code>engineering/evidence/F15/task-14a.txt</code>;
+the pool is 30 rows, Q13; the three drafts in <code>engineering/onramp/calibration/</code>) &middot; T14b, T14c,
+T15 todo &mdash; the founder's sitting: intake of the three, the unattended run, the re-pin and the switch</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its

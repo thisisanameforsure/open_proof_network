@@ -1,0 +1,45 @@
+schema: target/v2
+id: erdos-402
+title: 'Erdős problem 402 (calibration): a known result'
+informal: Prove that, for any finite set $A\subset\mathbb{N}$, there exist $a, b\in
+  A$ such that $$ \gcd(a, b)\leq a/|A|. $$
+paraphrase: null
+track: formalization
+calibration: true
+source:
+  kind: formal-conjectures
+  ref: FormalConjectures/ErdosProblems/402.lean
+  url: https://www.erdosproblems.com/402
+curator: thisisanameforsure
+prior_art:
+  arxiv_query: null
+  forum_url: https://www.erdosproblems.com/402
+  summary: 'A known result, on the calibration track (Stages v3.17, F15-R14): solved
+    in the literature by R. Balasubramanian and K. Soundararajan, On a conjecture
+    of R. L. Graham, Acta Arith. 75 (1996), 1-38 (Graham''s conjecture; Szegedy 1986
+    and Zaharescu 1987 for large sets), with no Lean proof at registry commit c7f31d5fd3d2
+    (erdosproblems.com status PROVED, standing since 1970). Graded skeleton: For every
+    finite set A of positive integers there are a, b in A with gcd(a, b) at most a/|A|:
+    Graham''s 1970 conjecture, stated over Finset Nat and Rat with nothing but Mathlib.
+    The proof is a multi-lemma argument (a Szemerédi-style reduction, a structure
+    lemma for the extremal sets, and analytic estimates for large |A|) that no agent
+    will close in one session; the honest first artifact is a skeleton whose holes
+    are those lemmas (D-12 #5, D-31), which is the third shape the run must exercise.
+    Drafted by docs/calibration_pool.py and read by the curator before intake.'
+library_coverage:
+  mathlib_sha: 0df444a360eaa60ab8c11dca51a86af692955474
+  missing_prerequisites: []
+provenance:
+  statement_source: formal-conjectures
+  author: The Formal Conjectures Authors
+  adversarially_reviewed: false
+  upstream_commit: c7f31d5fd3d2ca3d69979f2d213eb9b58fe956ae
+sources: []
+attack_routes:
+- 'the literature proof: R. Balasubramanian and K. Soundararajan, On a conjecture
+  of R. L. Graham, Acta Arith. 75 (1996), 1-38 (Graham''s conjecture; Szegedy 1986
+  and Zaharescu 1987 for large sets)'
+posting: null
+domains:
+- number-theory
+qa_summary: null
