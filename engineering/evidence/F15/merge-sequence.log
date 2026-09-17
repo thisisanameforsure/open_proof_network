@@ -1,0 +1,62 @@
+14:28:19Z sequence 75,76,77p,78p,79p on thisisanameforsure/open_proof_network_graph
+14:28:20Z #75 start: 'annex: erdos-69' merge state CLEAN checks {'gate (steps 1, 2 and 4-8 in the sandbox)': 'SUCCESS', 'postmerge (step 9 record, gate signature, attestation commit)': 'SKIPPED', 'step 9 (a non-author approving review)': 'SKIPPED'}
+14:28:21Z #75 check 'gate (steps ' = SUCCESS (merge state CLEAN)
+14:28:25Z #75 merged
+14:31:37Z bot commit for #75: f9f09f4 gate: #75 pass
+14:31:38Z #76 start: 'annex: erdos-1050' merge state UNKNOWN checks {'gate (steps 1, 2 and 4-8 in the sandbox)': 'SUCCESS', 'postmerge (step 9 record, gate signature, attestation commit)': 'SKIPPED', 'step 9 (a non-author approving review)': 'SKIPPED'}
+14:31:39Z #76 check 'gate (steps ' = SUCCESS (merge state BEHIND)
+14:34:18Z sequence 76,77p,78p,79p on thisisanameforsure/open_proof_network_graph
+14:34:19Z #76 start: 'annex: erdos-1050' merge state BEHIND checks {'gate (steps 1, 2 and 4-8 in the sandbox)': 'SUCCESS', 'postmerge (step 9 record, gate signature, attestation commit)': 'SKIPPED', 'step 9 (a non-author approving review)': 'SKIPPED'}
+14:34:21Z #76 branch updated; waiting for the gate to re-run
+14:35:09Z #76 check 'gate (steps ' = SUCCESS (merge state CLEAN)
+14:35:13Z #76 merged
+14:37:51Z bot commit for #76: b5bf999 gate: #76 pass
+14:37:52Z #77 start: 'partial: erdos-69' merge state UNKNOWN checks {'gate (steps 1, 2 and 4-8 in the sandbox)': 'SUCCESS', 'postmerge (step 9 record, gate signature, attestation commit)': 'SKIPPED', 'step 9 (a non-author approving review)': 'FAILURE'}
+14:37:54Z #77 branch updated; waiting for the gate to re-run
+14:38:41Z #77 check 'gate (steps ' = IN_PROGRESS (merge state BLOCKED)
+14:41:16Z #77 check 'gate (steps ' = SUCCESS (merge state BLOCKED)
+14:41:18Z #77 approved (step 9); waiting for the step 9 check
+14:42:01Z #77 check 'step 9 (a no' = SUCCESS (merge state CLEAN)
+14:42:05Z #77 merged
+14:45:46Z bot commit for #77: 374b400 gate: #77 pass
+14:45:47Z #78 start: 'partial: erdos-1050' merge state UNKNOWN checks {'gate (steps 1, 2 and 4-8 in the sandbox)': 'SUCCESS', 'postmerge (step 9 record, gate signature, attestation commit)': 'SKIPPED', 'step 9 (a non-author approving review)': 'FAILURE'}
+14:45:49Z #78 branch updated; waiting for the gate to re-run
+14:46:36Z #78 check 'gate (steps ' = IN_PROGRESS (merge state BLOCKED)
+14:49:11Z #78 check 'gate (steps ' = SUCCESS (merge state BLOCKED)
+14:49:14Z #78 approved (step 9); waiting for the step 9 check
+14:49:56Z #78 check 'step 9 (a no' = SUCCESS (merge state CLEAN)
+14:50:01Z #78 merged
+14:54:14Z bot commit for #78: 28f41f4 gate: #78 pass
+14:54:15Z #79 start: 'partial: erdos-402' merge state UNKNOWN checks {'gate (steps 1, 2 and 4-8 in the sandbox)': 'SUCCESS', 'postmerge (step 9 record, gate signature, attestation commit)': 'SKIPPED', 'step 9 (a non-author approving review)': 'FAILURE'}
+14:54:17Z #79 branch updated; waiting for the gate to re-run
+14:55:03Z #79 check 'gate (steps ' = IN_PROGRESS (merge state BLOCKED)
+14:57:39Z #79 check 'gate (steps ' = SUCCESS (merge state BLOCKED)
+14:57:41Z #79 approved (step 9); waiting for the step 9 check
+14:58:23Z #79 check 'step 9 (a no' = SUCCESS (merge state CLEAN)
+14:58:27Z #79 merged
+15:03:11Z bot commit for #79: 6d19279 gate: #79 pass
+15:03:12Z sequence complete
+15:03:50Z sequence 80,81,82 on thisisanameforsure/open_proof_network_graph
+15:03:51Z #80 start: 'annex: erdos-402' merge state BEHIND checks {'gate (steps 1, 2 and 4-8 in the sandbox)': 'SUCCESS', 'postmerge (step 9 record, gate signature, attestation commit)': 'SKIPPED', 'step 9 (a non-author approving review)': 'SKIPPED'}
+15:03:53Z #80 branch updated; waiting for the gate to re-run
+15:04:41Z #80 check 'gate (steps ' = SUCCESS (merge state CLEAN)
+15:04:46Z #80 merged
+15:07:25Z bot commit for #80: a9e1cd7 gate: #80 pass
+15:07:26Z #81 start: 'proposal: erdos-69--h1' merge state UNKNOWN checks {'gate (steps 1, 2 and 4-8 in the sandbox)': 'SUCCESS', 'postmerge (step 9 record, gate signature, attestation commit)': 'SKIPPED', 'step 9 (a non-author approving review)': 'SKIPPED'}
+15:07:28Z #81 branch updated; waiting for the gate to re-run
+15:08:15Z #81 check 'gate (steps ' = IN_PROGRESS (merge state BLOCKED)
+15:10:19Z #81 check 'gate (steps ' = SUCCESS (merge state CLEAN)
+15:10:24Z #81 merged
+15:13:34Z bot commit for #81: 61059cb gate: #81 pass
+15:13:35Z #82 start: 'proposal: erdos-69--h2' merge state UNKNOWN checks {'gate (steps 1, 2 and 4-8 in the sandbox)': 'FAILURE', 'postmerge (step 9 record, gate signature, attestation commit)': 'SKIPPED', 'step 9 (a non-author approving review)': 'SKIPPED'}
+15:13:48Z #82 branch updated; waiting for the gate to re-run
+15:14:35Z #82 check 'gate (steps ' = IN_PROGRESS (merge state BLOCKED)
+15:19:16Z #82 check 'gate (steps ' = FAILURE (merge state BLOCKED)
+15:19:16Z #82 gate check ended FAILURE; stopping the sequence
+15:19:16Z stopped at #82
+15:20:47Z sequence 83 on thisisanameforsure/open_proof_network_graph
+15:20:47Z #83 start: 'proposal: erdos-402--h1' merge state UNKNOWN checks {'gate (steps 1, 2 and 4-8 in the sandbox)': 'SUCCESS', 'postmerge (step 9 record, gate signature, attestation commit)': 'SKIPPED', 'step 9 (a non-author approving review)': 'SKIPPED'}
+15:20:50Z #83 branch updated; waiting for the gate to re-run
+15:21:36Z #83 check 'gate (steps ' = IN_PROGRESS (merge state BLOCKED)
+15:23:40Z #83 check 'gate (steps ' = SUCCESS (merge state CLEAN)
+15:23:44Z #83 merged

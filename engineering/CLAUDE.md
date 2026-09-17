@@ -744,3 +744,30 @@ The law of the project:
   the whole graph, so two merges lost their bot commits. The products now skip a node's tags with a warning
   and render; the hole writer inherits `open` lines. Whenever a job writes a Lean file, elaborate it in
   that job; and never let one node's defect decide whether the graph has products.
+- 2026-09-17 — The calibration run (F15-T14c) was ordered by the founder over that morning's hold, and
+  the model's spend limit ended it mid-flight: all three agents died with HTTP 429 twenty minutes into
+  round two, and nothing of theirs survived but the one file each had been told to keep current. That
+  file is what let the lead finish their submissions on another model — the Lean, the check ids, the
+  pseudonym's token, the next step. An unattended run needs a per-agent log written as it goes, and a
+  budget ceiling is a failure mode to design for like any other. What the run itself says: on three
+  known results graded easy, medium and needs-a-skeleton, three fresh agents produced three *partials*
+  and no proof in fifty minutes each.
+- 2026-09-17 — The fast check a contributor is told to iterate on had been dead for every Mathlib
+  target: AXLE retired `lean-4.33.0` and hosts `lean-4.33.1`, the pin's own toolchain, while
+  `gate/hosted-checkers.yaml` still named the retired one. All three agents found it independently and
+  all three fell back to calling AXLE directly, which is keyless at Stage 0 — so their checking left no
+  trace in the network's own call log. A pinned upstream moves under you: probe the environment list on
+  a schedule, not once (`engineering/evidence/F13/hosted-checkers-2026-09-17.txt`).
+- 2026-09-17 — A gate-written statement can differ from the hole it was written from, silently. The
+  hole writer prints `closed_type` with default `pp` options, so a conclusion in ℚ
+  (`↑(a.gcd b) ≤ ↑a / ↑A.card`) reaches the child as bare `↑`s that re-elaborate as the identity
+  coercion ℕ → ℕ: the child is the ℕ-division statement, it elaborates, and its hash is taken of what
+  was written. Found by proving the child and watching the goal come back with no casts. D-31
+  finalization cannot use such a child, so the agent's proof of one was deliberately not submitted —
+  proving a mis-generated statement launders the defect into the record. Print with
+  `pp.coercions.types true`, or compare the child's elaborated type against the hole's Expr.
+- 2026-09-17 — A hole is unaddressable while the service's view of the products lags the bot commit
+  that created it: `POST /proposals/witness` answered `404 node-unknown` for a child already on `main`,
+  because the route reads the committed products. The same lag had hidden all three calibration targets
+  from precheck for two and a half hours that morning. Anything derived from products inherits their
+  freshness; a retry loop is the only way through from outside.
