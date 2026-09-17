@@ -1,0 +1,16 @@
+F15-T13 — the lifecycle test (R16; AC15): a proposal-shaped target with a signed steward record is claimable under the enforced rule, unclaimable after the step-down (the api answers 201 then 409 no-steward), claimable either way with the rule off; a fidelity signer's proof pays nothing and a prover's signature is barred; a resolved target moves undigested → explained → written-up; the merge message names the stewards; the products reproduce byte for byte; the site shows each state.
+2026-09-17T05:58:46Z  commit: 5fb2a83 (+ working tree)
+
+$ uv run pytest gate/tests/test_lifecycle_f15.py -v
+gate/tests/test_lifecycle_f15.py::test_the_whole_life PASSED             [100%]
+======================== 1 passed, 2 warnings in 11.79s ========================
+
+$ make verify
+site/tests/test_render_evidence.py .......                               [ 98%]
+site/tests/test_render_stewards.py .......                               [ 99%]
+site/tests/test_untrusted.py .....................                       [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:29
+    from starlette.testclient import TestClient
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========= 2183 passed, 72 deselected, 2 warnings in 199.87s (0:03:19) ==========
