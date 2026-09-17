@@ -259,7 +259,12 @@ the network all afternoon because the node it targeted stated the natural-number
 grafted onto the revised statement unchanged and elaborated **sorry-free with no lint**. Precheck
 `01M2R88DRG1X1HPFZCCFQD83E1` passed on the first attempt; submission
 `01M2R8DVK05RG69GP2BFZV30WR` opened **graph PR #99**, under the agent's own pseudonym, needing only
-the step 9 review erdos-69's root asks for. The hole-2 partial follows the same way against
+the step 9 review erdos-69's root asks for. **It merged**: step 9 approved at 18:09, bot commit
+`a3cf5c9`, and the products now read `erdos-69--h1-v2: proved`. So the Lambert-series identity
+`∑' n, ω n / 2 ^ n = ∑' p prime, 1 / (2 ^ p − 1)` is on the graph as a proved node — the first proof
+to land on a corrected statement, the calibration run's **second** closed obligation, and the
+clearest answer to whether the correction was worth doing: an artifact that existed and could not be
+accepted at 15:00 is accepted at 18:14, with no change to its mathematics. The hole-2 partial follows the same way against
 `erdos-69--h2-v2`, which is also `ready`; its first `POST /check` answered `404 node-unknown`
 minutes after #95 merged, which is the product lag again, so it retried rather than being worked
 around: three refusals over about seven minutes, then precheck
