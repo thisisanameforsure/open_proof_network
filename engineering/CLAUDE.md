@@ -821,3 +821,19 @@ The law of the project:
   erdos-402 witness elaborated cleanly *while still stating the natural-number reading*, so a
   witness that compiles is not a witness that matches. Only step 7 answers that, which is why the
   repaired ones were pushed to the gate rather than argued about locally.
+- 2026-09-17 — A fix that lives in the network binds the graph only at the re-pin, and the gap is not
+  theoretical: twenty minutes after five mis-generated holes were corrected by revision, merging the
+  next partial made a sixth with the *pinned* extractor — and that one does not typecheck at all
+  (`failed to synthesize HMul ℕ ℕ ℤ`, because with the ascriptions dropped the sums resolve over the
+  naturals and the comparison against an integer has no instance). Nothing went red: the post-merge
+  run logged nothing naming it, the products rendered, and the node was published as claimable work.
+  While a graph pins a commit that predates a writer fix, every merge of that kind manufactures
+  another defect, so the re-pin is the fix, not the tidying afterwards.
+- 2026-09-17 — A product rule phrased over one fact about a node breaks when a second fact arrives.
+  Three instances in one day: membership keyed on *status* hid every hole ever created (2026-09-16);
+  a hole's type printed without its ascriptions published the wrong proposition; and now
+  `products.in_frontier` advertises a **superseded** hole as claimable, because it admits anything
+  `graph.awaiting_witness` accepts and that asks only whether the witness is a stub and the origin is
+  a hole, never whether the node has been replaced. The sibling whose witness had been filled
+  correctly drops off, which is what makes the asymmetry legible. When a node gains a new fact
+  (superseded, revised, dormant), grep every product rule that keys off the old one.

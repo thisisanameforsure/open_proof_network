@@ -298,6 +298,44 @@ remaining two stay as they were, with a merged defect claim or revision request 
 so, until the witness rule changes. Both parents are `stale` by design and nothing re-points their
 deps, which is the gap recorded above.
 
+## The last merge proved why the re-pin matters (18:22)
+
+Graph #100 merged (bot commit `2704ffc`) and its post-merge job created the partial's remaining hole
+as `erdos-69--h2-v2--h1` — written by the **pinned** extractor, which predates F07-T18. So the
+network manufactured a sixth mis-generated hole, twenty minutes after the five corrections, and this
+one is worse than the originals: its statement does not typecheck at all. `POST /check` on the
+committed file answers
+
+    error: failed to synthesize instance of type class
+      HMul ℕ ℕ ℤ
+
+because with the ascriptions dropped the sums resolve over ℕ and the comparison against `z : ℤ` has
+no instance. Nothing went red: the post-merge run logged nothing naming the node that I could find,
+the products rendered, and the node is published `blocked: witness-missing`. Filed as revision
+request **#101** with the verified corrected statement (the assembly's own `hB` type, which
+elaborates with `sorry-present` alone). It cannot be acted on until the witness rule changes, like
+the other two.
+
+**Two product defects fall out of this, both verified rather than inferred:**
+
+1. **The broken node is on the live frontier, `claimable: true`**, origin `compiler-derived`, in both
+   the committed `frontier.json` and the api's, at `rendered_from e726b76`. The public network is
+   inviting a contributor to work a node whose statement cannot elaborate.
+2. **A superseded hole is advertised as claimable too.** `erdos-69--h2` is `superseded` in the same
+   products and still a frontier entry with `claimable: true`. The mechanism is in
+   `products.in_frontier`: it admits anything `graph.awaiting_witness` accepts, and that asks only
+   whether the witness is a stub and the origin is a hole — it never consults the node's override
+   status. So a superseded hole whose slot was never filled stays on the frontier for good, while
+   `erdos-69--h1`, whose witness had been filled, correctly drops off. That is the third defect of
+   this shape today, after the status-keyed membership rule of 2026-09-16 and the printing defect
+   above: **a product rule phrased over one fact about a node goes wrong when a second fact
+   arrives.**
+
+**So the re-pin is no longer housekeeping.** Every partial merged under the current pin produces
+another hole like this, and each one lands on the frontier as work nobody can do. The guard exists,
+is tested and is pushed; it binds the graph only when `gate-spec.json` names the commit that carries
+it.
+
 **The generator is fixed separately**, as F07-T18 in the network repo (R19, AC40, network
 `a6086c0`): the extractor prints each hole's type with its coercions and numerals typed, elaborates
 the printed form back and reports `closed_roundtrip`, and `apply_partial` refuses a hole that fails,
