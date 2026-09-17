@@ -21,7 +21,7 @@ first hole was the tutorial's own theorem. Each hole therefore names the first s
 its closed type is definitionally equal to, and the post-merge job makes that a dependency edge
 instead of a new node.
 -/
-open Lean Meta
+open Lean Elab Meta
 
 namespace OpnGate
 
@@ -39,6 +39,13 @@ structure Hole where
   /-- The node of the target whose statement the closed type is, definitionally, if any
   (F07-T7). -/
   defeq_sibling : Option String := none
+  /-- Whether `closed_type`, read back as Lean source, elaborates to this same obligation
+  (F07-R19). A type printed without its coercion ascriptions can elaborate at another type
+  entirely and say nothing about the hole: `(ω n : ℝ) / 2 ^ n` prints as `↑(ω n) / 2 ^ n`, which
+  reads back over `ℕ`, where the division truncates (found live on erdos-69, 2026-09-17). The
+  post-merge writer refuses to make a child from a hole that reports `false`, because such a
+  child's `Statement.lean` would not be the obligation the assembly discharged. -/
+  closed_roundtrip : Bool := true
 
 /-- Written by hand rather than derived: a derived instance omits an absent `Option` field, and
 the report says `null` so a reader can tell "no sibling" from an extractor that never asked. -/
@@ -50,7 +57,8 @@ instance : ToJson Hole where
     ("defeq_goal", Json.bool h.defeq_goal),
     ("defeq_sibling", match h.defeq_sibling with
       | some node => Json.str node
-      | none => Json.null)]
+      | none => Json.null),
+    ("closed_roundtrip", Json.bool h.closed_roundtrip)]
 
 /-- What a partial proof's body is made of. -/
 structure HoleReport where
@@ -60,6 +68,27 @@ structure HoleReport where
   /-- The body is one hole and nothing else — the offload rule's second shape. -/
   body_is_hole : Bool
 deriving ToJson
+
+/-- Print `e` as source that can be elaborated back (F07-R19).
+
+`ppExpr`'s defaults drop the information a reader needs to recover the type: a coercion prints as
+a bare `↑` and a numeral prints without its type, so `(ω n : ℝ) / 2 ^ n` comes out as
+`↑(ω n) / 2 ^ n` and reads back over `ℕ`. Both options were checked against Lean 4.33.1 rather
+than assumed: with them the three obligations that failed round-trip true. -/
+def ppRoundTrippable (e : Expr) : MetaM String :=
+  withOptions (fun o => (o.setBool `pp.coercions.types true).setBool `pp.numericTypes true) do
+    return toString (← ppExpr e)
+
+/-- Does `src`, elaborated as a type, mean the same as `e`? The guard on what the post-merge
+writer may put in a child's `Statement.lean`: anything that fails here would publish a node that
+is not the hole. A `src` that does not parse or elaborate answers `false` rather than throwing. -/
+def reElaboratesTo (src : String) (e : Expr) : TermElabM Bool := do
+  try
+    let stx ← ofExcept (Parser.runParserCategory (← getEnv) `term src)
+    let e2 ← Term.elabType stx
+    Term.synthesizeSyntheticMVarsNoPostponing
+    isDefEq e (← instantiateMVars e2)
+  catch _ => pure false
 
 /-- Is `e` an application of `sorryAx`? (`sorry` elaborates to `sorryAx (Name → α) _ <tag>`.) -/
 def isSorry (e : Expr) : Bool :=
@@ -92,7 +121,7 @@ private def restatesSibling (siblings : Array (String × Expr)) (closed : Expr)
   return none
 
 private partial def scan (goal stmt : Expr) (siblings : Array (String × Expr))
-    (binders : Array Expr) (e : Expr) (acc : Acc) : MetaM Acc := do
+    (binders : Array Expr) (e : Expr) (acc : Acc) : TermElabM Acc := do
   let e := e.consumeMData
   if isSorry e then
     return { acc with unnamed := acc.unnamed + 1 }
@@ -100,12 +129,14 @@ private partial def scan (goal stmt : Expr) (siblings : Array (String × Expr))
   | .letE n t v b _ =>
     if isSorry v then
       let closed ← instantiateMVars (← mkForallFVars binders t)
+      let printed ← ppRoundTrippable closed
       let hole : Hole := {
         name := n.toString,
-        type := toString (← ppExpr t),
-        closed_type := toString (← ppExpr closed),
+        type := ← ppRoundTrippable t,
+        closed_type := printed,
         defeq_goal := ← restatesGoal goal stmt t closed,
-        defeq_sibling := ← restatesSibling siblings closed }
+        defeq_sibling := ← restatesSibling siblings closed,
+        closed_roundtrip := ← reElaboratesTo printed closed }
       let acc := { acc with holes := acc.holes.push hole }
       withLocalDeclD n t fun x => scan goal stmt siblings (binders.push x) (b.instantiate1 x) acc
     else
@@ -126,7 +157,8 @@ private partial def scan (goal stmt : Expr) (siblings : Array (String × Expr))
 
 /-- Every hole in `value`, a proof of `stmt`; each named against `siblings`, the target's other
 statements as `(node id, type)` (F07-T7; empty when the caller staged none). -/
-def holeReport (stmt value : Expr) (siblings : Array (String × Expr) := #[]) : MetaM HoleReport := do
+def holeReport (stmt value : Expr) (siblings : Array (String × Expr) := #[])
+    : TermElabM HoleReport := do
   lambdaTelescope value fun xs body => do
     let goal ← inferType body
     let acc ← scan goal stmt siblings xs body {}

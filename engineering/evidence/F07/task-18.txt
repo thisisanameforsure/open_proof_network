@@ -1,0 +1,61 @@
+F07-T18 (R19, AC40): a hole's statement must survive being written.
+2026-09-17, after the F15-T14c calibration run found four live holes stating something other than
+the obligation their assembly discharged.
+
+WHY, IN ONE LINE
+  The extractor printed a hole's closed type with `ppExpr`'s defaults, so `(ω n : ℝ) / 2 ^ n` came
+  out as `↑(ω n) / 2 ^ n`, which elaborates again over ℕ where the division truncates. The child
+  node published that reading, looked well formed, and could not admit a proof of the real
+  obligation: step 7 answered `witness-elaboration` and `POST /check` refused the proof, both
+  saying the calc expression had the ℝ type but the node expected the ℕ one.
+
+THE DESIGN WAS PROBED BEFORE IT WAS WRITTEN (POST /check, lean-4.33.1, the graph's own pin)
+  Three sample obligations, printed bare and then under the options, each read back and compared
+  with `isDefEq`:
+
+    bare:  ∀ (n : ℕ), ↑n / 2 = ↑n / 2                       round-trips: false
+    fixed: ∀ (n : ℕ), (↑n : ℝ) / (2 : ℝ) = (↑n : ℝ) / (2 : ℝ)  round-trips: true
+
+    bare:  1 / (2 ^ 3 - 1) = 0                              round-trips: false
+    fixed: (1 : ℝ) / ((2 : ℝ) ^ (3 : ℕ) - (1 : ℝ)) = (0 : ℝ)  round-trips: true
+
+    bare:  ∑' (n : ℕ), ↑(ω n) / 2 ^ n = ∑' (p : Nat.Primes), 1 / (2 ^ ↑p - 1)   round-trips: false
+    fixed: ∑' (n : ℕ), (↑((ω : ℕ → ℕ) n) : ℝ) / (2 : ℝ) ^ n
+             = ∑' (p : Nat.Primes), (1 : ℝ) / ((2 : ℝ) ^ (↑p : ℕ) - (1 : ℝ))    round-trips: true
+
+  So `pp.coercions.types` plus `pp.numericTypes` is the cure and the round trip is the detector,
+  both confirmed at the pinned toolchain rather than assumed. `Parser.runParserCategory` +
+  `Term.elabType` + `isDefEq` are the API names that work there.
+
+WHAT CHANGED
+  gate/lean/OpnGate/Holes.lean         `ppRoundTrippable`, `reElaboratesTo`, the `closed_roundtrip`
+                                       field and its encoder; `scan`/`holeReport` in TermElabM
+  gate/lean/OpnGate/ArtifactTypeMain.lean  the report block runs in TermElabM (`.run'`)
+  gate/opn_gate/steps/artifact.py      `Hole.closed_roundtrip`, defaulting to True so a graph
+                                       pinned before this check keeps working (D-35)
+  gate/opn_gate/postmerge.py           `apply_partial` refuses any hole that fails the round trip,
+                                       checked over every hole before a byte is written (C7)
+
+VERIFICATION
+  $ cd gate/lean && lake build
+    ✔ [36/40] Built OpnGate.Holes (47s)
+    ✔ [38/40] Built OpnGate.ArtifactTypeMain (47s)
+    ✔ [40/40] Built «opn-artifact-type»:exe (3.5s)
+    Build completed successfully (40 jobs).
+
+  $ uv run pytest gate/tests/test_finding_hole_roundtrip.py gate/tests/test_postmerge.py \
+      gate/tests/test_partial.py -q
+    47 passed in 10.09s
+
+  $ uv run pytest gate/tests/test_finding_hole_roundtrip_lean.py -m lean -q
+    1 passed in 69.10s
+
+  The lean-tier test drives a real coercion hole through the real extractor and asserts the printed
+  closed type names its types and reports `closed_roundtrip: true`. It spells the types `Nat` and
+  `Int`, not `ℕ` and `ℤ`: the propositional fixture is Mathlib-free and those notations do not
+  resolve there (`failed to synthesize OfNat ℕ 2`, probed the same day).
+
+NOT COVERED HERE
+  The four live holes this found are corrected by D-8 revision, not by this task: requests as graph
+  PRs #89-#93, the revisions themselves separately. This task only stops the generator from doing
+  it again, and the guard becomes live on the graph at the next re-pin (D-35).

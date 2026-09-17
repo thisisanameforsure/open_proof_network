@@ -486,6 +486,21 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
     if not on_record:
         check_attempt_free(node_dir, attempt_file)
 
+    # F07-R19: the extractor says whether each hole's printed type elaborates back to the
+    # obligation it came from. Where it does not, the child's Statement.lean would be a different
+    # proposition: erdos-69's two holes were published over the naturals while the assembly had
+    # discharged them over the reals, so a proof of the real obligation could not be admitted and
+    # the node published was not the hole (2026-09-17). A node the gate itself writes must be one
+    # the gate would admit. Checked over every hole before anything is written, so that a refusal
+    # leaves nothing behind (C7).
+    for hole in holes:
+        if not getattr(hole, "closed_roundtrip", True):
+            msg = (
+                f"hole {getattr(hole, 'name', '?')!r}: its type does not survive being printed "
+                "and read back, so a child node would state a different proposition (F07-R19)"
+            )
+            raise GraphWriteError(msg)
+
     origin = child_origin(partial_text)
     annex = annex_citation(partial_text)
     nodes_dir = node_dir.parent

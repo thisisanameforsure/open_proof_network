@@ -91,7 +91,10 @@ unsafe def main (args : List String) : IO UInt32 := runMain do
         | some value => holeReport stmtInfo.type value siblings
         | none => pure { holes := #[], unnamed := 0, body_is_hole := false }
       return (toString (← ppExpr expected), toString (← ppExpr artInfo.type), ok, holes)
-      : MetaM (String × String × Bool × HoleReport)).toIO ctx state
+      -- `TermElabM` rather than `MetaM`: a hole's printed type is elaborated back and compared
+      -- with the obligation it came from (F07-R19), and reading a type from source is term
+      -- elaboration. Nothing else in the block needs it; `MetaM` actions lift unchanged.
+      : TermElabM (String × String × Bool × HoleReport)).run'.toIO ctx state
   let (axioms, _) ← (collectAxioms artDecl.toName : CoreM (Array Name)).toIO ctx state
 
   printJson <| Json.mkObj [

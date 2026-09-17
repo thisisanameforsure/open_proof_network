@@ -65,17 +65,23 @@ class Hole:
     #: post-merge job makes it a dependency edge instead of a new node. ``None`` when there is none
     #: or when the extractor was not asked (an older pin reports no field).
     defeq_sibling: str | None = None
+    #: F07-R19: whether ``closed_type`` elaborates back to the hole's own obligation. A pinned
+    #: extractor that predates the check reports no field, and its holes are taken as round-trips:
+    #: the guard arrives with the re-pin that carries it, as every gate rule does (D-35).
+    closed_roundtrip: bool = True
 
     @classmethod
     def of(cls, doc: dict[str, Any]) -> Hole:
         local = str(doc.get("type", ""))
         sibling = doc.get("defeq_sibling")
+        roundtrip = doc.get("closed_roundtrip")
         return cls(
             name=str(doc.get("name", "")),
             type=local,
             closed_type=str(doc.get("closed_type") or local),
             defeq_goal=bool(doc.get("defeq_goal")),
             defeq_sibling=str(sibling) if sibling else None,
+            closed_roundtrip=True if roundtrip is None else bool(roundtrip),
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -85,6 +91,7 @@ class Hole:
             "closed_type": self.closed_type,
             "defeq_goal": self.defeq_goal,
             "defeq_sibling": self.defeq_sibling,
+            "closed_roundtrip": self.closed_roundtrip,
         }
 
 
