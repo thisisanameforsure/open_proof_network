@@ -10,8 +10,7 @@
 <nav class="crumbs"><a href="../index.html">specs</a> / F15</nav>
 <h1>F15 — Stewards, digestion and mathematicians' own problems</h1>
 <p class="subtitle">An open problem is claimable only while a named mathematician has committed to
-understand and write up whatever the network produces on it; whoever signs a statement's fidelity
-takes no proof credit on that target; an explainer can be signed as a comprehension claim and a
+understand and write up whatever the network produces on it; an explainer can be signed as a comprehension claim and a
 resolved target shows how far it has been digested; mathematicians propose their own problems
 through an issue form; the site speaks to a sceptical mathematician; and none of the claimability
 enforcement goes live until fresh agents have carried three known results through the pipeline
@@ -32,9 +31,8 @@ commitment to best-efforts digestion and write-up of the problem, is named on th
 holds the write-up role jointly with every other steward, is mentioned on the graph whenever
 anything merges on the target, and has no power to pause or reserve anything. Under the rule, an
 open-problem target with no active steward is published, on the frontier and open to fidelity
-review, but refuses claims (D-6 v3.17); on-ramp and calibration targets are exempt. Because a
-prover gains from a statement slightly weaker than the conjecture, whoever signs a root's fidelity
-takes no proof credit on the target, and a steward chooses to sign or to prove (D-9, D-21 v3.17).
+review, but refuses claims (D-6 v3.17); on-ramp and calibration targets are exempt. A steward may sign the statement's fidelity and prove on it, both (D-9, D-21 v3.17 as revised
+2026-09-17, Q14).
 An explainer may carry a signature affirming one sentence, <em>I can explain this proof without
 the tool that produced it</em>; only signed explainers count toward a resolved target's digestion
 state, <code>undigested</code>, <code>explained</code> or <code>written-up</code>, which the site
@@ -139,12 +137,13 @@ that cites a v3.17 clause is built only once that clause is in the decisions doc
     steward has committed to digest and write it up (D-32 v3.17)"; a <code>formalization</code>
     track target shall be exempt; every other input to F14-R1 shall be unchanged, so a
     stewardless target stays published, on the frontier and open to fidelity review.</td></tr>
-  <tr><td>F15-R5</td><td>The system shall pay no proof-line ledger entry on a target to an
-    identity holding a counting fidelity signature (a non-mechanical grade, F11-R3) on any of the
-    target's subjects, returning the reason as <code>curator_bar</code> does; and
-    <code>opn-gate fidelity</code> shall refuse a signing-grade certificate from an attestor who
-    holds an active proof-line entry on that target. Neither rule shall touch the statement,
-    review, attempts, upstreaming or write-up lines (D-9, D-21 v3.17; Q3).</td></tr>
+  <tr><td>F15-R5</td><td><strong>Rescinded 2026-09-17 (Q14).</strong> Built as T5 and reversed the
+    same day on the founder's ruling: a fidelity signature bars nobody from the proof line, and a
+    proof line bars nobody from signing; D-9's non-author rule is the only exclusion. The text as
+    built: the system shall pay no proof-line ledger entry on a target to an identity holding a
+    counting fidelity signature on any of the target's subjects, and <code>opn-gate fidelity</code>
+    shall refuse a signing-grade certificate from an attestor holding an active proof-line entry
+    there.</td></tr>
   <tr><td>F15-R6</td><td>The system shall keep a target's write-up records as
     <code>targets/&lt;id&gt;/writeup/&lt;n&gt;.yaml</code> (<code>writeup/v1</code>): kind
     <code>paper</code> or <code>note</code>, title, URL, date, the signer, their key and SSHSIG
@@ -263,13 +262,12 @@ that cites a v3.17 clause is built only once that clause is in the decisions doc
     with <code>no-steward</code>; given the same rule and a <code>formalization</code> target, then
     it is claimable; given a steward record, then the open target is claimable again.</td>
     <td><code>gate/tests/test_intake.py::test_no_steward_refuses_claims_only_under_policy</code></td></tr>
-  <tr><td>F15-AC5</td><td>Given an identity with a counting signature on a target's root, when a
-    proof of theirs merges on that target, then the ledger pays no proof line and the reason names
-    the signature, while an attempts line still pays; given an identity with an active proof line
-    on the target, when they attest the root at <code>screened-and-signed</code>, then it is
-    refused before anything is written.</td>
-    <td><code>gate/tests/test_ledger.py::test_signer_earns_no_proof_line</code>,
-    <code>gate/tests/test_fidelity.py::test_prover_cannot_sign_the_target</code></td></tr>
+  <tr><td>F15-AC5</td><td><strong>Rescinded with R5 (Q14).</strong> Now the reverse: given an
+    identity with a counting signature on a target's root, when a proof of theirs merges, then the
+    ledger pays the proof line; given an identity with an active proof line, when they attest the
+    root at <code>screened-and-signed</code>, then it is accepted as any non-author's.</td>
+    <td><code>gate/tests/test_ledger.py::test_a_signer_earns_the_proof_line</code>,
+    <code>gate/tests/test_fidelity.py::test_a_prover_may_sign_the_target</code></td></tr>
   <tr><td>F15-AC6</td><td>Given a resolved fixture target, when products are generated, then its
     digestion is <code>undigested</code>; given a valid signature on every closure node, then
     <code>explained</code>; given one closure node unsigned, then <code>undigested</code> with the
@@ -394,9 +392,8 @@ that cites a v3.17 clause is built only once that clause is in the decisions doc
     diff that honours D-32 v3.17's "never quietly relaxed" in both directions. Proposed addition
     to the v3.17 text: D-35's list of what the graph holds gains <code>policy.json</code> and
     <code>.github/ISSUE_TEMPLATE/</code>, both curator-owned.</td></tr>
-  <tr><td>F15-Q3</td><td>The signer's proof bar covers the whole target, not only the root, because
-    every interior node is proved in service of the root (amendment gap 2). It bars the proof line
-    only; attempts, statements and write-ups pay as for a curator.</td></tr>
+  <tr><td>F15-Q3</td><td>Moot since Q14: the signer's proof bar was to cover the whole target, not
+    only the root (amendment gap 2); there is no bar.</td></tr>
   <tr><td>F15-Q4</td><td><strong>Who is real-identity at Stage 0.</strong> D-22 says reviewers,
     adjudicators and writers are real-identity, and nothing in the graph records who is. For
     explainer signatures and write-up records the set is the target's active stewards plus the
@@ -450,6 +447,17 @@ that cites a v3.17 clause is built only once that clause is in the decisions doc
     first by the intake's sandboxed admission (T14b). Reversal: choose another skeleton row, or port
     <code>Nat.maxPrimeFac</code> into <code>defs/</code> for <code>erdos-372</code>. Decided 2026-09-17 in
     T14a, unattended.</td></tr>
+  <tr><td>F15-Q14</td><td><strong>A steward may sign and prove (Mike, 2026-09-17).</strong> The bar
+    drafted as D-9/D-21 v3.17 "a signer does not prove" and built as T5 is withdrawn before the
+    doc's release: the person who puts a problem forward, vows to understand it and says the Lean
+    matches the conjecture is exactly the person who will want to work on it, guiding provers and
+    proving, and should earn proof credit; verification of the statement is other people's act,
+    which D-9's non-author rule already makes it for whoever wrote the Lean; and mathematicians
+    misrepresenting their own statements is not a risk the network needs a rule for. Asked whether
+    a steward's own signature should stop counting toward the grade so that verification is
+    another person's: no, drop the bars only. The v3.17 text is revised in place (unreleased), the
+    ledger bar, the certificate refusal and the gate's <code>certificate-prover</code> check are
+    removed, and the site's and the guide's sentences with them.</td></tr>
 </table>
 
 <h2>10. Status</h2>
@@ -462,7 +470,10 @@ v3.17 applied 2026-09-16 (network <code>e93a049</code>, Q1 closed) &middot; T2 �
 (<code>uv run pytest gate/tests/test_intake.py gate/tests/test_products.py api/tests/test_claims.py -q</code>;
 <code>engineering/evidence/F15/task-4.txt</code>) &middot; T5 ✓ 2026-09-16
 (<code>uv run pytest gate/tests/test_ledger.py gate/tests/test_fidelity.py -q</code>;
-<code>engineering/evidence/F15/task-5.txt</code>) &middot; T6 ✓ 2026-09-16
+<code>engineering/evidence/F15/task-5.txt</code>) &middot; T5 rescinded 2026-09-17 (Q14; the bars
+removed, the tests assert the reverse; <code>uv run pytest gate/tests/test_ledger.py
+gate/tests/test_fidelity.py gate/tests/test_lifecycle_f15.py site/tests -q</code>;
+<code>engineering/evidence/F15/task-5-rescinded.txt</code>) &middot; T6 ✓ 2026-09-16
 (<code>uv run pytest gate/tests/test_explainer_signature.py -q</code>;
 <code>engineering/evidence/F15/task-6.txt</code>) &middot; T7 ✓ 2026-09-16
 (<code>uv run pytest gate/tests/test_writeup.py gate/tests/test_products.py -q</code>;
@@ -520,7 +531,8 @@ questions in at merge (the 2026-09-13 rule).</p>
     <code>api/tests/test_claims.py</code></td>
     <td>T3</td><td><code>uv run pytest gate/tests/test_intake.py gate/tests/test_products.py api/tests/test_claims.py -q</code></td></tr>
   <tr><td>F15-T5</td><td>Signer takes no proof credit: the ledger bar and the attestation refusal
-    (R5).</td>
+    (R5). <strong>Built, then reversed 2026-09-17 (Q14):</strong> the bars are removed and the
+    tests assert the opposite.</td>
     <td><code>gate/opn_gate/{ledger,fidelity,postmerge,cli}.py</code>,
     <code>gate/tests/test_ledger.py</code>, <code>gate/tests/test_fidelity.py</code></td>
     <td>T2</td><td><code>uv run pytest gate/tests/test_ledger.py gate/tests/test_fidelity.py -q</code></td></tr>

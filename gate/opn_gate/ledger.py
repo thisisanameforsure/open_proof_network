@@ -156,34 +156,10 @@ def curator_bar(*, identity: str, curator: str | None, line: Line, target: str) 
     )
 
 
-#: D-9, D-21 v3.17 (F15-R5): whoever signs a target's fidelity takes no proof credit on it.
-SIGNER_BARRED_LINES: tuple[Line, ...] = ("proof",)
-
-
-def signer_bar(
-    *, identity: str, signers: frozenset[str] | set[str], line: Line, target: str
-) -> str | None:
-    """F15-R5 (D-9 v3.17): why ``identity`` may not earn ``line`` on ``target``, or ``None``.
-
-    A prover gains from a statement slightly weaker than the conjecture, so the person who signed
-    what the statement means must not profit from proving it. ``signers`` is every identity
-    holding a *counting* signature (a non-mechanical grade, F11-R3) on any of the target's
-    subjects — the whole target, not the root alone, because every interior node is proved in
-    service of the root (F15-Q3). It bars the proof line only: the statement, review, attempts,
-    upstreaming and write-up lines pay as for anyone.
-    """
-    if identity not in signers or line not in SIGNER_BARRED_LINES:
-        return None
-    return (
-        f"{identity} signed the fidelity of {target}, so the {line} line is barred there "
-        "(D-9, D-21 v3.17); their statements, attempts and write-ups on it are unaffected"
-    )
-
-
 def holds_proof_line(graph_root: Path, identity: str, target: str) -> bool:
-    """F15-R5: whether ``identity`` holds an active proof-line entry on ``target`` — the fact
-    that bars them from signing its fidelity at a counting grade. Read from the committed
-    ledger, so a malformed one raises rather than answering no (C7)."""
+    """Whether ``identity`` holds an active proof-line entry on ``target``. Read from the
+    committed ledger, so a malformed one raises rather than answering no (C7). F15-R5 read this
+    to bar a prover from signing; that bar was withdrawn (F15-Q14) and nothing bars on it now."""
     return any(
         e.get("line") == "proof" and e.get("target") == target and e.get("status") == "active"
         for e in entries_of(load(graph_root, identity))
@@ -202,21 +178,18 @@ def proof_entry(  # noqa: PLR0913 — one argument per fact the entry records
     tooling: str = UNDECLARED,
     tutorial: bool = False,
     curator: str | None = None,
-    signers: frozenset[str] | set[str] = frozenset(),
 ) -> Entry | None:
     """R12: the proof line for a merged D-12 artifact, or ``None`` when it earns nothing.
 
     ``tutorial`` is the one exclusion that is not about the artifact: D-27's node is how an
     identity is minted, so paying for it would make minting an identity a way to be paid.
     ``curator`` is the second (D-21, F11-AC16): the target's curator earns nothing on the proof
-    line of their own target, whoever else may. ``signers`` is the third (D-9 v3.17, F15-R5):
-    the identities holding a counting fidelity signature on the target.
+    line of their own target, whoever else may. A fidelity signer is barred from nothing (D-9
+    v3.17 as revised, F15-Q14).
     """
     if tutorial or artifact_type not in PROOF_ARTIFACTS:
         return None
     if curator_bar(identity=identity, curator=curator, line="proof", target=target) is not None:
-        return None
-    if signer_bar(identity=identity, signers=signers, line="proof", target=target) is not None:
         return None
     return Entry(
         line="proof",

@@ -3,7 +3,7 @@
 1. A proposal-shaped target taken in with a signed steward record is claimable under the
    enforced rule, unclaimable after the steward steps down, and claimable either way with the
    rule off; the api's claim answers 201 and then 409 ``no-steward``.
-2. A fidelity signer's proof pays nothing on the ledger, and a prover's signature is refused.
+2. A fidelity signer's proof pays like anyone's, and a prover may sign (Q14: no bar).
 3. A resolved target moves undigested → explained → written-up as signatures and the write-up
    record land.
 4. The merge message names the stewards.
@@ -147,7 +147,8 @@ def test_the_whole_life(  # noqa: PLR0915 — one life, walked in order
     render_products(root)
     assert row_of(root, PROPOSED)["claimable"] is True
 
-    # 2. A fidelity signer's proof pays nothing; a prover's signature is refused.
+    # 2. A fidelity signer's proof pays like anyone's (Q14 rescinded R5's bar), and a prover may
+    # sign: D-9's non-author rule is the only exclusion.
     fidelity.attest(
         target, "root", "screened-and-signed", attestor=SIGNER_ID, date="2026-09-16",
         evidence="read the Lean against the English",
@@ -158,16 +159,10 @@ def test_the_whole_life(  # noqa: PLR0915 — one life, walked in order
         date="2026-09-16T00:00:00Z", tooling=ledger.UNDECLARED,
         doc={"schema": ledger.SCHEMA, "identity": SIGNER_ID, "entries": []},
     )  # fmt: skip
-    assert earned == [] and "signed the fidelity" in skipped[0]
-    earned, skipped, _ = cli._merge_entries(
-        root, modes.classify([proof]), identity=PROVER, commit="a" * 40,
-        date="2026-09-16T00:00:00Z", tooling=ledger.UNDECLARED,
-        doc={"schema": ledger.SCHEMA, "identity": PROVER, "entries": []},
-    )  # fmt: skip
-    assert [e.line for e in earned] == ["proof"]
-    ledger.record(root, PROVER, earned[0])
-    assert fidelity.prover_bar(root, target, PROVER, "screened-and-signed") is not None
-    assert fidelity.prover_bar(root, target, SIGNER_ID, "screened-and-signed") is None
+    assert [e.line for e in earned] == ["proof"] and skipped == []
+    ledger.record(root, SIGNER_ID, earned[0])
+    assert ledger.holds_proof_line(root, SIGNER_ID, PROPOSED)
+    assert not hasattr(fidelity, "prover_bar")
 
     # 3. A resolved target: undigested → explained → written-up.
     take_in(

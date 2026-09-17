@@ -72,10 +72,9 @@ only from a closed status, under an upstream-drift freeze, or, under the rule, w
   institutional page or an ORCID record) before merging: the merge is the identity check, and no
   second signature exists. A step-down under a different key, an altered sentence or a failed
   signature is refused at the gate by name.
-- **Signing or proving, never both** (D-9, D-21 v3.17): whoever signs a subject's fidelity at a
-  counting grade earns no proof line on the target, and `opn-gate fidelity` refuses a signing
-  grade from an identity holding an active proof line there. A steward who wants to prove needs
-  another signer before the grade can rise.
+- **Signing and proving, both** (D-9, D-21 v3.17): a steward who did not write the Lean may sign
+  its fidelity and may prove on the problem, and earns proof credit like anyone; only the
+  author of the Lean cannot sign it. A bar on signers proving was withdrawn before release.
 - **An explainer signature** (`nodes/<id>/explainer/signed/<hash>-<n>.yaml`) affirms one
   sentence, *I can explain this proof without the tool that produced it*. At Stage 0 the signer
   is an active steward of the target or a listed curator; the gate refuses anyone else by name.

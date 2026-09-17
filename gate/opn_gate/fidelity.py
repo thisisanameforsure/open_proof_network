@@ -277,32 +277,6 @@ def meets(grade: str | None, wanted: str = CLAIMABLE_GRADE) -> bool:
     return grade is not None and rank(grade) >= rank(wanted)
 
 
-def counting_signers(target_dir: Path) -> frozenset[str]:
-    """F15-R5: every identity holding a counting signature on any subject of the target — the
-    set the ledger bars from the proof line (D-9, D-21 v3.17). Empty for a target with no
-    certificates, and for one whose every certificate is the machine's own grade."""
-    if not load(target_dir):
-        return frozenset()
-    return frozenset(name for row in subject_grades(target_dir) for name in row.signers)
-
-
-def prover_bar(graph_root: Path, target_dir: Path, attestor: str, grade: str) -> str | None:
-    """F15-R5 (D-9 v3.17): why ``attestor`` may not sign ``target_dir`` at ``grade``, or ``None``
-    — they hold an active proof line on the target, and a steward chooses to sign or to prove,
-    never both. The machine's own grade signs for nobody and is never barred."""
-    from opn_gate import ledger  # noqa: PLC0415 — the ledger reads this module's grades
-
-    if not is_signature(grade) or not ledger.holds_proof_line(
-        graph_root, attestor, target_dir.name
-    ):
-        return None
-    return (
-        f"{attestor!r} holds proof credit on {target_dir.name}, so they cannot attest its "
-        f"fidelity at {grade!r}: whoever signs a statement takes no proof credit on the target, "
-        "and whoever proved on it does not sign (D-9, D-21 v3.17; F15-R5)"
-    )
-
-
 # --- writing -----------------------------------------------------------------------------------
 
 

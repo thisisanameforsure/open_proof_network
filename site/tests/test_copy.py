@@ -67,7 +67,7 @@ def test_the_home_lead_comes_first_and_carries_no_network_number(pages: dict[str
         "already in the literature",
         "did not say what the conjecture said",
         "its steward",
-        "takes no proof credit",
+        "signed by someone who did not write it",
         "kernel-checked, not yet explained",
         "announces nothing",
         "no leaderboard",

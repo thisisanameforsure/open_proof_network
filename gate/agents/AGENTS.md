@@ -935,8 +935,8 @@ PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_ga
 writeup/1.yaml
 ```
 
-Whoever signs a target's fidelity takes no proof credit on it (D-9 v3.17): a proof by a signer
-pays no proof line, and a prover on the target cannot sign its fidelity. A mathematician who
+A steward may sign the statement's fidelity and prove on it, both: signing bars nothing, and
+only whoever wrote the Lean cannot sign it (D-9). A mathematician who
 wants to put a problem forward files the repository's proposal form
 (`.github/ISSUE_TEMPLATE/problem-proposal.yml`), an issue and never a commit; a curator takes it
 in, and the proposer is its steward unless they decline. A target marked `calibration: true` is

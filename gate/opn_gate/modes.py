@@ -1343,19 +1343,6 @@ def check_certificate(  # noqa: PLR0911, PLR0912, PLR0915 — one return per rul
                     {"path": located.path, "attestor": attestor, "grade": grade},
                 )
             )
-        # F15-R5 (D-9 v3.17): a prover on the target does not sign its fidelity.
-        try:
-            prover = fidelity.prover_bar(graph_root, target_dir, attestor, grade)
-        except schemas.SchemaError as exc:  # a malformed ledger: a graph defect, named
-            prover = f"the ledger of {attestor!r} does not read: {exc}"
-        if prover is not None:
-            problems.append(
-                Diagnostic(
-                    "certificate-prover",
-                    f"{located.path}: {prover}",
-                    {"path": located.path, "attestor": attestor, "grade": grade},
-                )
-            )
     if problems:
         return problems
     if any(fidelity.is_signature(str(doc["grade"])) for _, doc in docs):

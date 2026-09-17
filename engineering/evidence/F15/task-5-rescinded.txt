@@ -1,0 +1,37 @@
+F15-T5 rescinded — 2026-09-17
+
+Ruling (Mike, 2026-09-17, recorded as F15-Q14): the person who presents a problem and vows to
+understand it, and says the Lean matches the conjecture, will want to work on it and should get
+proof credit; other people verify the statement; mathematicians misrepresenting their own statement
+is not a risk to legislate for. Asked whether a steward's own signature should also stop counting
+toward the grade: no — drop the bars only. D-9's non-author rule stands unchanged.
+
+Changed: docs/architecture_decisions_v_3_12.html (v3.17 revised in place, unreleased: meta line,
+role table, D-9 bullet, D-21 row and closing paragraph, D-32 exclusion, glossary);
+engineering/specs/features/F15.html (R5, AC5, Q3, T5 marked rescinded; Q14 added; subtitle and
+summary); engineering/specs/index.html; gate/opn_gate/ledger.py (signer_bar, SIGNER_BARRED_LINES,
+proof_entry(signers=) removed; holds_proof_line kept); gate/opn_gate/fidelity.py (counting_signers,
+prover_bar removed); gate/opn_gate/cli.py (run_fidelity refusal and _merge_entries wiring removed);
+gate/opn_gate/modes.py (certificate-prover check removed); gate/agents/AGENTS.md and the graph copy;
+site/docs/curator-intake.md; site templates home.html, docs.html and their goldens; site/tests/test_copy.py.
+Tests: test_signer_earns_no_proof_line -> test_a_signer_earns_the_proof_line;
+test_prover_cannot_sign_the_target -> test_a_prover_may_sign_the_target; lifecycle step 2 flipped.
+
+$ grep -rn "takes no proof credit\|signer_bar\|prover_bar\|counting_signers\|certificate-prover" gate site api docs engineering/specs (outside F15.html, goldens, the decisions doc)
+gate/tests/test_ledger.py:362:    withdrawn before release (Q14), so the ledger has no ``signer_bar``."""
+gate/tests/test_ledger.py:368:    assert not hasattr(ledger, "signer_bar")
+gate/tests/test_lifecycle_f15.py:165:    assert not hasattr(fidelity, "prover_bar")
+gate/tests/test_fidelity.py:170:    assert not hasattr(fidelity, "prover_bar")
+$ cmp gate/agents/AGENTS.md ../open_proof_network_graph/AGENTS.md && echo identical
+identical
+$ uv run --frozen ruff check gate site && uv run --frozen mypy gate | tail -1
+All checks passed!
+Success: no issues found in 182 source files
+$ uv run --frozen pytest gate/tests/test_ledger.py gate/tests/test_fidelity.py gate/tests/test_lifecycle_f15.py gate/tests/test_modes.py site/tests -q -m "not lean and not docker and not network"
+318 passed, 2 warnings in 24.62s
+$ uv run --frozen pytest gate/tests/test_ledger.py gate/tests/test_fidelity.py gate/tests/test_lifecycle_f15.py -v -k "signer_earns or prover_may or lifecycle" | grep -E "PASSED|FAILED"
+gate/tests/test_ledger.py::test_a_signer_earns_the_proof_line PASSED     [ 33%]
+gate/tests/test_fidelity.py::test_a_prover_may_sign_the_target PASSED    [ 66%]
+gate/tests/test_lifecycle_f15.py::test_the_whole_life PASSED             [100%]
+
+make verify runs as the pre-commit hook of the commit carrying this file.
