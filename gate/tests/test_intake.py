@@ -346,9 +346,6 @@ def import_fc(root: Path, **kw: Any) -> Any:
         "licence": "Apache-2.0",
         "attribution": ATTRIBUTION,
         "upstream_author": "the Formal Conjectures authors",
-        "spec_template": schemas.load_json(
-            root / "targets" / TARGET / "gate-spec.json", "gate-spec/v1"
-        ),
         "checker": lambda path, subject: intake.SubjectCheck(subject, True, "faked"),
         "author": "curator",
         "date": "2026-09-11T00:00:00Z",
@@ -356,6 +353,13 @@ def import_fc(root: Path, **kw: Any) -> Any:
     }
     target_id = kw.pop("target_id", "fc-42")
     args.update(kw)
+    # The harness graph's spec is the default, read only when the caller passes none: the
+    # docker-tier wave tests import into the on-ramp graph, which has no propositional target,
+    # and pass its own (red on CI from F14-T11L until this read became lazy).
+    if "spec_template" not in args:
+        args["spec_template"] = schemas.load_json(
+            root / "targets" / TARGET / "gate-spec.json", "gate-spec/v1"
+        )
     return intake.import_fc(root, target_id, **args)
 
 
