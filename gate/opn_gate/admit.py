@@ -475,6 +475,68 @@ def dep_edges(nodes_dir: Path) -> dict[str, tuple[str, ...]]:
 # --- the order, and running it -------------------------------------------------------------------
 
 
+def witness_slot_is_open(node: layout.Node, target_id: str) -> bool:
+    """R14 (Q21): a hole's D-8 revision carrying the witness slot it inherited, and nothing looser.
+
+    D-29 admits a hole without a witness and leaves it blocked until one is supplied; the
+    post-merge job creates such a node with the slot and never passes admission. A revision of
+    that hole copies the slot (R9) and *does* pass admission, where step 7 refused it as
+    ``witness-sorry``, so a mis-generated hole could not be corrected (2026-09-17: four of five
+    calibration corrections refused). Four conditions, each carrying weight: a hole origin; a
+    ``supersedes`` naming a node of the target; that node itself a hole; and the witness byte for
+    byte the slot the writer writes. The last is what keeps this from weakening step 7: anything a
+    curator touched, a hand-written ``sorry`` included, meets D-4 step 7 in full.
+    """
+    from opn_gate.postmerge import WITNESS_SLOT  # noqa: PLC0415 (postmerge imports admit)
+
+    if str(node.meta.get("origin", "")) not in graphmod.HOLE_ORIGINS:
+        return False
+    superseded = str(node.meta.get("supersedes") or "")
+    if not superseded:
+        return False
+    old = layout.load_node(node.path.parent / superseded, target_id)
+    if not isinstance(old, layout.Node):
+        return False
+    if str(old.meta.get("origin", "")) not in graphmod.HOLE_ORIGINS:
+        return False
+    witness = node.path / "Witness.lean"
+    return witness.is_file() and witness.read_text(encoding="utf-8") == WITNESS_SLOT.format(
+        expected="True"
+    )
+
+
+class WitnessSlotCheck:
+    """Step 7 under admission, with D-29's one carve-out (R14, Q21).
+
+    Registered under the stable name ``witness``; the submission pipeline's own step 7 is not
+    this class and is untouched. The pass is recorded, never silent (C7): the verdict names the
+    hole revised, and the products then derive ``blocked``/``witness-missing`` for the revision
+    exactly as they do for the hole (F03-T9), so it stays on the frontier for its witness.
+    """
+
+    number = 7
+    name = "witness"
+
+    def __init__(self, inner: Step | None = None) -> None:
+        self.inner: Step = inner or WitnessStep()
+
+    def run(self, ctx: RunContext) -> StepResult:
+        node = ctx.node
+        if node is not None and witness_slot_is_open(node, ctx.claim.target_id):
+            origin = str(node.meta.get("origin"))
+            superseded = str(node.meta.get("supersedes"))
+            ctx.data["witness"] = {"slot": "open", "origin": origin, "supersedes": superseded}
+            return StepResult.passed_with(
+                "witness-slot-open",
+                f"{node.node_id} revises hole {superseded} and carries its unfilled witness "
+                "slot; admitted blocked until a witness is supplied, as the hole was (D-29, "
+                "F08-R14)",
+                origin=origin,
+                supersedes=superseded,
+            )
+        return self.inner.run(ctx)
+
+
 def default_checks() -> list[tuple[str, Step]]:
     """R1's order. The names are the verdict's vocabulary, so they are stable."""
     return [
@@ -482,7 +544,7 @@ def default_checks() -> list[tuple[str, Step]]:
         ("layout", StatementStep()),
         ("declaration", DeclarationCheck()),
         ("statement", StatementAxiomsCheck()),
-        ("witness", WitnessStep()),
+        ("witness", WitnessSlotCheck()),
         ("hazards", HazardsStep()),
         ("context", ContextCheck()),
         ("graph", GraphCheck()),

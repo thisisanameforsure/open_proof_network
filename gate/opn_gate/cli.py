@@ -293,6 +293,11 @@ def _add_curator_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser
     rev.add_argument("node_id", help="the node whose statement is defective")
     rev.add_argument("--statement", required=True, type=Path, help="the new Statement.lean")
     rev.add_argument("--request", required=True, type=Path, help="the revision request acted on")
+    rev.add_argument(
+        "--witness",
+        type=Path,
+        help="a Witness.lean for the revision, replacing the copied one (F08-R14)",
+    )
 
     con = sub.add_parser("consolidate", help="mark a duplicate node superseded (F08-R10; D-29)")
     common(con)
@@ -1615,11 +1620,19 @@ def _emit_curator(doc: dict[str, Any], graph: Path, branch: str | None, message:
 def run_revise(args: argparse.Namespace, settings: config.Settings) -> int:
     graph, target_id, date = _curator_common(args)
     statement = _read_flag_file(args.statement, "--statement")
+    witness = _read_flag_file(args.witness, "--witness") if args.witness is not None else None
     if not args.request.is_file():
         msg = f"--request {args.request} is not a file"
         raise CliError(msg)
     revision = curator.revise(
-        graph, target_id, args.node_id, statement, args.request, author=args.author, date=date
+        graph,
+        target_id,
+        args.node_id,
+        statement,
+        args.request,
+        author=args.author,
+        date=date,
+        witness=witness,
     )
     doc = {"ok": True, **revision.as_dict()}
     return _emit_curator(doc, graph, args.branch, f"revise: {args.node_id} -> {revision.new_id}")

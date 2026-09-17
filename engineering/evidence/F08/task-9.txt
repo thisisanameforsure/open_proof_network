@@ -1,0 +1,77 @@
+F08-T9 (R14, AC20, Q21): a D-8 revision of an unwitnessed hole is admitted with its slot open.
+2026-09-17, after four of the five calibration corrections were refused (F15-T14c, network dab5544).
+
+THE DEFECT
+  The post-merge writer creates a hole child with the witness slot (`postmerge.WITNESS_SLOT`,
+  formatted with `expected="True"`) and never passes admission: D-29 says a hole is admitted
+  without a witness and stays blocked until one is supplied. `curator.revise` copies the old
+  node's witness (R9), so a revision of a never-witnessed hole arrived carrying that slot, and
+  admission ran step 7 on it and refused `witness-sorry`. Graph PRs #95 and #96 landed only with
+  witnesses written by hand; #97 and #98 were closed for want of one. The asymmetry was the gate's:
+  the writer may create such a node, a curator may not correct one.
+
+THE FIX
+  gate/opn_gate/admit.py     `witness_slot_is_open(node, target_id)` and `WitnessSlotCheck`,
+                             registered under the stable name `witness` in `default_checks()`.
+                             Four conditions, all required: the node's origin is a hole origin;
+                             `supersedes` names a node of the target; that node's own origin is a
+                             hole origin; the witness is byte for byte the writer's slot. Then
+                             `passed_with("witness-slot-open", origin=..., supersedes=...)` and
+                             `ctx.data["witness"] = {"slot": "open", ...}` (C7, never silent);
+                             otherwise `WitnessStep().run(ctx)`, step 7 in full. The submission
+                             pipeline's own step 7 (`steps/__init__.py`) is not this class.
+  gate/opn_gate/curator.py   `revise(..., witness=None)`: the copied witness is the default, a
+                             given one replaces it; an empty one is refused by `scaffold.validate`
+                             before a byte is written.
+  gate/opn_gate/cli.py       `revise --witness <file>`, read like `--statement`.
+  docs/architecture_decisions_v_3_12.html   D-29, one clarifying sentence: a revision of such a
+                             hole, carrying the slot it inherited, is admitted the same way; the
+                             statement changed, not the witness rule. A clarification, not an
+                             overturn (D-4 step 7's line is unqualified and stays so).
+
+RED FIRST
+  $ uv run --frozen pytest gate/tests/test_finding_hole_revision_witness.py -q
+    FAILED ::test_a_revision_of_an_unwitnessed_hole_is_admitted_with_its_slot_open[compiler-derived]
+    FAILED ::test_a_revision_of_an_unwitnessed_hole_is_admitted_with_its_slot_open[skeleton-hole]
+      (both at ("witness", "witness-sorry"), the live defect)
+    FAILED ::test_revise_takes_a_witness_of_its_own            (TypeError: unexpected keyword 'witness')
+    FAILED ::test_revise_refuses_an_empty_witness_and_writes_nothing   (same)
+    FAILED ::test_cli_revise_with_a_witness_file
+      opn-gate: error: unrecognized arguments: --witness ...
+    5 failed, 3 passed in 9.62s
+  The three that passed already are the guards: the four negatives still `witness-sorry`, a real
+  witness still takes step 7 in full, a hole revision still derives blocked/witness-missing.
+
+GREEN
+  $ uv run --frozen pytest gate/tests/test_finding_hole_revision_witness.py gate/tests/test_admit.py \
+      gate/tests/test_curator.py gate/tests/test_witness.py gate/tests/test_finding_b_revise_v2.py -q
+    77 passed in 2.49s
+  $ make lint    -> All checks passed! 376 files already formatted
+  $ make types   -> mypy gate: Success, 186 source files
+
+WHAT THE TESTS ASSERT
+  - the carve-out, for both hole origins: admitted; the `witness` check passes with
+    `witness-slot-open` and details `{origin, supersedes}`; `ctx.data["witness"]["slot"] == "open"`;
+    the verdict JSON carries the code; the fake toolchain's `calls` show no `witness_type:` (the
+    metaprogram was not consulted, as it never was for the hole);
+  - the four edges, each still `("witness", "witness-sorry")` with the metaprogram consulted: a
+    fresh hole (no supersedes); an authored node revised with the slot; a hole revision whose slot
+    was edited by one character; a revision whose META claims a hole origin of a node that is not
+    one;
+  - a hole revision with a real witness: passes step 7 in full, or fails `witness-type-mismatch`;
+  - `revise(witness=...)` replaces the copy and leaves the old file alone; an empty witness is
+    refused with the tree unchanged (C7); the products derive `blocked` / `witness-missing` for
+    the revision and list it claimable (F03-T9); through the entry point `--witness` is read like
+    `--statement`, and a path that is not a file is a usage refusal with nothing written.
+  A bug of mine on the way: the CLI test's second run sliced its own argument list wrong
+  (argparse "unrecognized arguments"); rebuilt explicitly.
+
+LEAN TIER
+  No new Lean-facing seam: the carve-out never runs the metaprogram, and every other path is the
+  unchanged `WitnessStep`. `make verify-lean` is the regression (`test_admit_lean.py`'s
+  `bad-witness` fixture keeps proving `witness-sorry` against the real toolchain).
+
+LIVE
+  Binds the graph at the next re-pin (D-35). The refused corrections (erdos-402--h3,
+  erdos-412--h1, erdos-69--h2-v2--h1; requests merged as graph #92, #93, #101) can then be revised
+  and admitted with their slots open.

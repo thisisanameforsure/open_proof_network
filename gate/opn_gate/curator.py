@@ -203,9 +203,11 @@ def revise(  # noqa: PLR0913 — one argument per fact of the revision
     *,
     author: str,
     date: str,
+    witness: str | None = None,
 ) -> Revision:
-    """R9: scaffold ``<node>-v<n>`` from the new statement, carrying the old witness, deps and
-    relation for the curator to adjust; mark the old node superseded and each dependent stale.
+    """R9: scaffold ``<node>-v<n>`` from the new statement, carrying the old witness (or the one
+    given, R14), deps and relation for the curator to adjust; mark the old node superseded and
+    each dependent stale.
 
     The old node is never touched beyond its status record (D-3, D-8): its history and its
     credit stay where they are (D-19), and the products derive the rest. Every record is built
@@ -257,7 +259,11 @@ def revise(  # noqa: PLR0913 — one argument per fact of the revision
         node_id=new_id,
         target_id=target_id,
         statement=statement,
-        witness=(old.path / "Witness.lean").read_text(encoding="utf-8"),
+        witness=(
+            witness
+            if witness is not None
+            else (old.path / "Witness.lean").read_text(encoding="utf-8")
+        ),
         author=author,
         deps=deps,
         origin=origin,  # type: ignore[arg-type]
