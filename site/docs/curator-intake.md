@@ -2,8 +2,8 @@
 
 Implements D-6 (intake is curated, not open), with the fidelity ladder of D-9, the registry
 posting of D-10 and the role separation of D-21. A proposal becomes a target only when a
-signed curator attaches all five artifacts below; nothing is claimable until the root's
-fidelity grade reaches `screened-and-signed` and the D-10 posting is made. The file shapes and
+signed curator attaches all five artifacts below; a listed target is claimable at once (v3.15),
+except an open problem with no steward once the steward rule is enforced (v3.17). The file shapes and
 the intake commands are F11's; this page is the judgment the commands cannot make for you.
 
 ## Before anything: is it in scope?
@@ -49,17 +49,56 @@ the intake commands are F11's; this page is the judgment the commands cannot mak
   witness, hazards, acyclicity. What the machine catches should never reach the intake pull
   request.
 
-## Listed is not claimable
+## Listed is claimable; the steward rule (v3.15, v3.17)
 
-The root appears on the frontier immediately, unclaimable, and the public comment period runs
-on it (D-6). Claims open only when both hold:
+The root appears on the frontier and may be claimed the moment the target is listed (D-6
+v3.15): the fidelity grade and the D-10 posting are published beside it and decide who must look
+at a proof (D-4 step 9), not whether work may begin. One thing does refuse a claim on an open
+problem once the graph's `policy.json` enforces it: no active **steward** (D-6, D-32 v3.17).
+On-ramp and calibration targets are exempt. The switch is flipped by a curator's pull request
+naming the calibration evidence, never by a re-pin, and its state is published at the top of
+`targets/index.json`.
 
-- the root's fidelity grade is `screened-and-signed` or above (D-9), recorded by the fidelity
-  commands F11 delivers;
-- the D-10 posting to the source registry exists, so the network authors nothing in private.
+Activation is a curator declaration (`intake activate`, or `status <target> active`), refused
+only from a closed status, under an upstream-drift freeze, or, under the rule, with no steward.
 
-Activation is a curator declaration (`target-status/v1`, F08-R11's `status` command), and it
-refuses while either condition is missing.
+## Stewards, signed explainers and write-ups (D-32, D-3, D-33 v3.17)
+
+- **A steward record** (`targets/<id>/stewards/<n>.yaml`, `steward/v1`) is a mathematician's
+  signed commitment to understand and write up whatever the network produces on the target, or
+  their step-down. It is signed with their own SSH key over the fixed sentence and merged by pull
+  request under any account; `opn-gate steward check <record>` tells you whether the signature
+  verifies and whether the key is one the login publishes on GitHub. Read the identity link (an
+  institutional page or an ORCID record) before merging: the merge is the identity check, and no
+  second signature exists. A step-down under a different key, an altered sentence or a failed
+  signature is refused at the gate by name.
+- **Signing or proving, never both** (D-9, D-21 v3.17): whoever signs a subject's fidelity at a
+  counting grade earns no proof line on the target, and `opn-gate fidelity` refuses a signing
+  grade from an identity holding an active proof line there. A steward who wants to prove needs
+  another signer before the grade can rise.
+- **An explainer signature** (`nodes/<id>/explainer/signed/<hash>-<n>.yaml`) affirms one
+  sentence, *I can explain this proof without the tool that produced it*. At Stage 0 the signer
+  is an active steward of the target or a listed curator; the gate refuses anyone else by name.
+  Only signed explainers count toward the target's digestion state, and a signature you cannot
+  stand behind is a D-17 ground (iii) matter (D-22).
+- **A write-up record** (`targets/<id>/writeup/<n>.yaml`) says a paper or note exists and where,
+  signed the same way; a `paper` record makes a resolved target `written-up`. The note's text is
+  still `targets/<id>/note.md`.
+- **The digestion state** is derived, never written: `undigested`, `explained` (every proved
+  node of the closing proof's closure carries a valid signature) or `written-up`; the site shows
+  "resolved — undigested" and the report-back to the source registry carries it (D-10 v3.17).
+
+## Proposals and calibration targets (D-6 v3.17, Stages v3.17)
+
+- A mathematician's **proposal** arrives as an issue on the graph repository's form, never a
+  commit. Its `target.yaml` (`target/v2`) carries `source: {kind: proposal, ref: <the issue
+  URL>}` and `proposer`; `intake new` refuses any other ref. The proposer's signed steward record
+  travels in the intake pull request when they accept; without one the target is listed and,
+  under the rule, refuses claims. A proposer may ask to skip upstreaming (`upstream_opt_out`),
+  which buys no privacy: publish in-network with equivalent visibility (D-10 fail-open).
+- A **calibration target** is a known result taken in on the formalization track with
+  `calibration: true`; the site labels it, it needs no steward, and no count of open-problem
+  work includes it. `intake new` refuses the flag on the open track.
 
 ## Two curators, one pull request
 

@@ -88,7 +88,7 @@ version is meant.</p>
     status ∈ {<code>listed</code>, <code>active</code>, <code>dormant</code>} and no upstream drift
     freeze (F12-R11); the fidelity grade and the D-10 posting shall not enter the derivation, and the
     only not-claimable reasons emitted shall be <code>status-&lt;status&gt;</code> and
-    <code>upstream-drift</code>. Supersedes F11-R4's grade and posting conditions.</td></tr>
+    <code>upstream-drift</code>. Supersedes F11-R4's grade and posting conditions. <em>Amended 2026-09-16 by F15 (T4, R4):</em> a third reason, <code>no-steward</code>, while <code>policy.json</code> enforces the steward rule and an <code>open</code>-track target has no active steward (D-6, D-32 v3.17); the record is <code>target/v2</code> since F15-T2, with the <code>calibration</code> flag the exemption reads.</td></tr>
   <tr><td>F14-R2</td><td>When a curated target is declared active, by <code>intake activate</code>
     or <code>opn-gate status &lt;target&gt; active</code>, the system shall refuse only a flip from a
     status other than <code>listed</code> or <code>dormant</code>, or a target under a drift freeze.

@@ -1,0 +1,12 @@
+F15-T12 — documentation (R15): the guide's section 'Stewards, signed explainers and write-ups' in both copies, four executable blocks (the index's policy/stewards/digestion fields; steward commit and steward check --offline over a fresh key; explainer sign on a hash-named explainer; writeup record), the signer-does-not-prove rule, the proposal form and calibration targets; site/docs/curator-intake.md rewritten where it said listed is not claimable, with steward, signature, write-up, proposal and calibration sections; amendment notes on F03-R9, F07-R10, F11-R1, F11-R4 and F14-R1.
+2026-09-17T04:18:53Z  commit: 252ab10 (+ working tree)
+
+$ make verify
+site/tests/test_render_evidence.py .......                               [ 98%]
+site/tests/test_render_stewards.py .......                               [ 99%]
+site/tests/test_untrusted.py .....................                       [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:29
+    from starlette.testclient import TestClient
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========= 2179 passed, 72 deselected, 2 warnings in 215.58s (0:03:35) ==========
