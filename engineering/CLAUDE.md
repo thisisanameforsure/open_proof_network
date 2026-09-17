@@ -729,3 +729,18 @@ The law of the project:
   build the smallest mechanism that states the rule, so the reversal is a deletion; and record the
   ruling as a Q entry in the spec, verbatim in substance, so the next session does not re-derive
   the bar from the research note that proposed it.
+- 2026-09-17 — A re-pin is only as wide as the targets that exist when it is written. An intake branch cut
+  before the re-pin carries the old pin in its own new gate-spec.json, the post-merge job reads the pin
+  from the *merged target's* spec, and so #73 rendered products with the gate the re-pin had already
+  replaced. Cut intake branches after the re-pin, or re-pin the new target on the branch first; and
+  `pin_image.py` renames `.devcontainer/devcontainer.json` after whatever it last pinned, which an intake
+  pull request may not touch. Also: four CI rounds (47 min each) on a docker-tier test nobody had run
+  locally — a helper's eager fixture read, two JSON documents on one captured stdout, then the real defect,
+  the wave driver's `True` witness for bare data binders. Read the whole test for every step that could
+  fail before the first push, not just the step that failed.
+- 2026-09-17 — The first post-merge run under a new pin found a node the gate itself wrote that never
+  elaborated: erdos-412's hole carries its parent's imports but not its `open` line, and nothing had ever
+  scanned it until F03-T9 put holes on the frontier. One node's failed tag scan took every product down for
+  the whole graph, so two merges lost their bot commits. The products now skip a node's tags with a warning
+  and render; the hole writer inherits `open` lines. Whenever a job writes a Lean file, elaborate it in
+  that job; and never let one node's defect decide whether the graph has products.

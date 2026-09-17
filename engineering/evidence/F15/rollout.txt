@@ -1,0 +1,152 @@
+F15-T15 (first half) and F15-T14b — the graph re-pinned to network 26e86c4, then 0401858, 2026-09-17
+(Mike: "You can push it", "you repin it", "do it" for the intake; T14c and the policy switch held, Q15)
+
+Carries F15 to the live gate:
+- steward records, the steward mode and the no-steward claimability reason (dormant: policy.json absent);
+- signed explainers, write-up records and the digestion state; targets-index/v6, target/v2 (proposal
+  sources, calibration);
+- the bot commit's steward mention line (gate.yml, F15-T8) and the policy.json-only pin step;
+- the problem-proposal issue form (F15-T9); the guide's steward section in the graph copy;
+- decisions v3.17 as revised by Q14 and Q15, PROTOCOL_VERSION 3.17.
+
+0. Before the tag
+   - Network main 1ea76dd (F15 T2-T14a, T5 rescinded, Q15) pushed. api-deploy 35195294168 success;
+     /health ok. site-deploy 35197994546 (dispatched) success; the live home page reads "signed by someone
+     who did not write it" and the Docs page "earn proof credit like anyone"; "takes no proof credit"
+     occurs 0 times.
+   - The graph checkout held another session's uncommitted ledger edits (ledger/thisisanameforsure.json
+     deleted; agent-sigma-4f1d.json and agent-t16-2a4b.json untracked). Set aside in the session
+     scratchpad and the checkout restored to origin's state: a ledger edit is the post-merge job's act,
+     not a direct push's.
+1. CI on 1ea76dd (run 35195294053): fast tier success; make verify-lean FAILED on two docker-tier tests,
+   test_wave_docker::test_a_drafted_row_is_admitted_in_the_sandbox and ::test_a_stub_witness_is_refused_by_the_containers_lean,
+   both at the import step: the shared test_intake.import_fc helper read targets/propositional/gate-spec.json
+   eagerly, and the on-ramp graph those tests import into has no propositional target. Pre-existing: the same
+   two failed on 5ffc31f (run 35088255807, 2026-09-16), the first CI run after F14-T11L (d5b9f47) added the
+   tests; not F15's. Reproduced in process without docker (draft_one + import_draft), fixed by reading the
+   harness spec only when the caller passes none. Pushed as 9a4f6c4; CI run 35200329626: fast tier success;
+   verify-lean FAILED on the same two tests one step further: json.loads of the captured stdout saw two
+   documents, the wave driver's report and admit's summary. Fixed by draining the capture before admit runs;
+   the summary shape and check order are those test_admit_docker asserts and passes. Pushed as 4f4271c;
+   CI run 35205444673: fast tier success; verify-lean FAILED, now on the mathematics: the drafted row
+   `∀ n : ℕ, n ≤ n + 1` was refused at the witness check, witness-type-mismatch, expected `∃ n, True`,
+   witness `True`. Step 7 closes every leading binder, hypotheses or not; the driver wrote `True` for
+   bare data binders (the same defect nine wave-one intakes paid for hypotheses, F14-T15, in its other
+   half). Fixed in gate/tools/wave.py: data-only leading binders close into `∃ (n : ℕ), True :=
+   ⟨default, trivial⟩`, chained across several ∀s; an implicit, strict-implicit, instance or untyped
+   binder is refused by name; eleven shapes in the fast tier (test_wave). The stub-witness test passed
+   that round (70 passed), so the sorry check reports before the type check. Pushed as 26e86c4;
+   CI run 35210761849: fast tier success; verify-lean success (the first green Lean tier since d5b9f47).
+   Three rounds of a docker-tier test nobody had run: the tags gate-9a4f6c4 and gate-4f4271c were built
+   and superseded; the pins and the intake branches were redone on each.
+
+2. Tag gate-26e86c4, pushed while the Lean tier ran (the graph push waited for green).
+   image-publish run 35210764204 success:
+     gate-26e86c4                        ghcr.io/thisisanameforsure/opn-gate@sha256:724e49ee01df6b971bdd881c12ff2605c22a21f4b71007b82a147507f46b5721
+     gate-26e86c4-mathlib-0df444a360ea   ghcr.io/thisisanameforsure/opn-gate@sha256:bc6877a8cb1205380ec928e132e1e1233c07e94dc24b9ebada525f98bfd566db
+   Both digests read from each job's "Push and record the digest" step.
+
+3. Pins, written by gate/tools/pin_image.py in a detached worktree of the graph at local main (a3a4684, the
+   four F15 commits): tutorial the plain image; the 23 Mathlib targets the Mathlib image, euclid-primes last
+   so the shared .devcontainer/devcontainer.json runs the Mathlib image. Two loop mistakes on the way, both
+   caught by the check before any commit was pushed: an alphabetical loop left the devcontainer on the plain
+   image (23 checks said so), and a zsh variable holding the target list was not word-split, so one target
+   was pinned (the check said 1 of 24). pin_image --check on the commit that stands: 23 "pin ok"; tutorial
+   1 problem (the devcontainer runs the Mathlib image, as at every re-pin). 24 of 24 gate-spec.json name
+   26e86c47ec59ec68b424612e7df3795f2ef529e8; the devcontainer names the Mathlib digest. In the same commit,
+   schemas.publish added explainer-signature/v1, policy/v1, steward/v1, target/v2, targets-index/v6 and
+   writeup/v1, pinned in schemas/HASHES. Committed as 13cdc9d (32 files) on top of a3a4684.
+
+4. Pregate on the committed re-pin with the gate at 26e86c4:
+   $ gate/pregate.sh --graph <repin worktree> --target tutorial --node tutorial-and-swap
+   exit 0, verdict pass; steps 1 toolchain, 2 paths, 4 kernel-replay, 5 axioms, 6 hazards, 7 witness, 8 deps.
+
+5. T14b rehearsal before any push: the three calibration targets taken in with `intake new` on one detached
+   worktree each, cut from 13cdc9d, --no-toolchain (no Mathlib checkout on this laptop; the pull request's
+   gate admits each root in the sandbox, as wave one did):
+     intake/erdos-1050 32d0613, intake/erdos-69 61ea606, intake/erdos-402 f194306 — 11 files each
+     (gate-spec.json at 26e86c4 and the Mathlib image, target.yaml target/v2 track formalization
+     calibration: true, the root node with Context/META/Statement/Witness, fidelity root-1 mechanical-only,
+     the listed status record).
+   classify --base 13cdc9d --author thisisanameforsure: mode intake, target erdos-N, problems [] for all three.
+
+6. The graph push, 2026-09-17 11:2xZ: origin/main cdf91ae -> 13cdc9d by fast-forward (the four F15 commits and
+   the re-pin); the shared checkout fast-forwarded with it. The push's workflow run 35215386278 succeeded
+   (postmerge found no merged pull request). The three intake branches pushed; pull requests #72 erdos-1050,
+   #73 erdos-69, #74 erdos-402 opened.
+
+7. First gate runs: all three failed admission at the hazards check, one `div-zero` finding each, the
+   gate's first hazard verdict on a draft as wave one's evidence said it would be (no Mathlib on the laptop):
+     erdos-1050  1 / (2 ^ (n + 1) - 3)        the real divisor is -1 at n = 0 and >= 1 after, never 0
+     erdos-69    ↑(ω (n + 2)) / 2 ^ (n + 2)   the real divisor is positive for every n
+     erdos-402   ↑a / ↑A.card                 A.Nonempty is a hypothesis, so A.card >= 1
+   erdos-402's hand-written witness (⟨{1}, by simp, by simp⟩) elaborated: the witness check sits before
+   hazards and passed. Each acknowledged in the node's META (checker, location, justification; validated
+   against meta/v2) as d439958, 347d8b4, 4b68415; every gate then passed; all three CLEAN.
+
+8. #72 merged (c1480c9, 11:31Z). Its post-merge run 35216138763 FAILED at "Regenerate the merge products":
+     opn-gate: products not written: opn-used-constants failed on erdos-412--h1: file does not elaborate
+   Not the calibration target: erdos-412--h1 is the hole the post-merge job wrote for the skeleton merged as
+   #71 on 2026-09-16. Its statement is `∀ m, 3 ≤ m → … (⇑(σ 1))^[k] x …` under `import Mathlib` alone; the
+   parent's Statement.lean has `open ArithmeticFunction.sigma`, and child_statement (F07-T4) carried the
+   parent's imports but not its open lines, so the hole never elaborated. Nothing had scanned it: F03-T9
+   (78cfed7, 2026-09-16, the other session) put holes awaiting their witness on the frontier, and the
+   frontier's library-tag scan then reached the hole for the first time under this pin. One node's failure
+   stopped every product for the graph. So no `gate: #72 pass` bot commit exists; #73 and #74 were not merged
+   onto a broken post-merge job.
+   Two network fixes, both tested in the fast tier (99 passed across the post-merge, products and
+   hole-frontier suites): the hole writer inherits the parent's `open` lines before the theorem
+   (postmerge.parent_opens, child_statement(opens=)); and TagCache.tags catches a GraphError from one node's
+   scan, logs "library tags skipped for <node>: …", keeps no cache entry and returns no tags, so the products
+   render and a later scan runs again. Pushed as 0401858 and tagged gate-0401858; CI run 35217736343 fast tier success, verify-lean success; image-publish 35217739333 success:
+     gate-0401858                        ghcr.io/thisisanameforsure/opn-gate@sha256:52a3eb36b2edf1712cca48fc9d94189f8199aec0e913fac9e5efac8bb8f74e83
+     gate-0401858-mathlib-0df444a360ea   ghcr.io/thisisanameforsure/opn-gate@sha256:0a300f39b16cc729cb18a83a7ebc65d4996b7f7756a939982fdb1e3841d6ffda
+   The live hole itself stays as it is: its Statement.lean is gate-written and "immutable (D-3)", and
+   whether it is corrected by a D-8 revision or by a bot correction is the founder's call (recorded for
+   Mike). Until then it carries no library tags and is on the frontier as a node whose statement does not
+   elaborate.
+
+9. Second re-pin, to 0401858: pins written in the worktree at origin/main c1480c9 (erdos-1050 now among the
+   targets): 24 "pin ok" plus the tutorial's known devcontainer note, 25 of 25 gate-spec.json name
+   0401858a22694a190ee23d75dd66e1b1008d9d48. Committed as a27accb (26 files). Pregate on it, tutorial-and-swap:
+   exit 0, verdict pass, steps 1, 2, 4-8 (the first attempt stalled for fifty minutes across a laptop sleep and
+   was killed; the rerun took 84 s). Pushed by fast-forward; the push's run 35230184553 succeeded.
+
+10. #73 (erdos-69) updated onto main, gate passed, merged as 980344c — and its post-merge run 35230599357
+    FAILED with the same erdos-412--h1 error, because the job reads the network pin from the merged target's
+    own gate-spec.json (workflow line 326), and erdos-69's was minted when its branch was cut, at 26e86c4:
+    the re-pin rewrites the targets that exist, not a branch's new one. Fixed on main by a direct re-pin of
+    erdos-69 alone (bdcd64e, pin ok; the push run 35231476346 succeeded) and on #74's branch by the same pin
+    (d952016) plus a commit restoring .devcontainer/devcontainer.json to main's, because pin_image renames
+    the devcontainer after the target it last pinned and an intake may touch only its own target. The
+    devcontainer on main now reads "erdos-69" in its name, cosmetic. The rule for the next intake under a
+    fresh pin: cut the branch after the re-pin, or re-pin the new target on the branch before merging.
+    #73's bot commit is lost (a failed post-merge run has no second chance for that commit); its products
+    were rendered by #74's run.
+
+11. #74 (erdos-402) updated onto main, gate passed, merged as 1f9fb28; post-merge run 35231966825 succeeded
+    and its bot commit is 456997d "gate: #74 pass". The products on main:
+      targets/index.json  targets-index/v6, rendered_from 1f9fb28, 27 targets, policy steward_rule enforced false
+        erdos-1050  listed formalization claimable True [] calibration True stewards [] step9 review
+        erdos-69    listed formalization claimable True [] calibration True stewards [] step9 review
+        erdos-402   listed formalization claimable True [] calibration True stewards [] step9 review
+      frontier.json  frontier/v3, rendered_from 1f9fb28, 28 entries: the three roots with library tags
+        (1050 and 69: Algebra, Data, NumberTheory, Topology; 402: Data); erdos-412--h1 present, claimable,
+        tags [] — the run's log carries
+        "WARNING opn_gate.products: library tags skipped for erdos-412--h1: opn-used-constants failed on
+        erdos-412--h1: file does not elaborate", the fixed TagCache doing what it says.
+    site-deploy dispatched after the bot commit: run 35232325180 success; /targets/erdos-1050/, /targets/erdos-69/ and
+    /targets/erdos-402/ answer 200 and read "calibration target: a result already known, taken in on the formalization
+    track to exercise the pipeline"; the home page's count reads "explained: 0 of 6 proved nodes".
+
+12. Not done, by the founder's ruling (Q15): T14c, the unattended run, and the policy.json switch. The three
+    calibration targets sit listed and claimable like any other. (A peer session reported at 14:1xZ that it
+    is running calibration agents on the three targets at Mike's request; that run and its pull requests are
+    that session's to report.)
+
+Left for Mike:
+- erdos-412--h1's Statement.lean never elaborated (no `open ArithmeticFunction.sigma`). It is gate-written
+  and D-3 calls it immutable; a D-8 revision or a bot correction is the owner's call. The gate now tolerates
+  it; nobody can prove on it as it stands.
+- The other session's uncommitted ledger edits in the graph checkout (ledger/thisisanameforsure.json deleted,
+  two agent ledgers added) are set aside in this session's scratchpad, not pushed.
