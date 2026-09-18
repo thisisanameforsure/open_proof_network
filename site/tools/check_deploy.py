@@ -3,9 +3,10 @@
     uv run python site/tools/check_deploy.py <hostname> [--graph PATH]
 
 Fetches Home over HTTPS, checks the Content-Security-Policy header F04 §7 requires, that the
-page names the graph's current main commit (or the commit ``rendered-from.txt`` reports), and
-that a target and a node page load with the same commit. Exit 0 only when all of that holds.
-Standard library only (C5).
+page names the graph's current main commit (or the commit ``rendered-from.txt`` reports), that
+a problem and a statement page load with the same commit, and that a vendored font is served
+(T16: the policy once blocked the site's own fonts, and nothing here looked). Exit 0 only when
+all of that holds. Standard library only (C5).
 """
 
 from __future__ import annotations
@@ -18,8 +19,24 @@ import sys
 import urllib.request
 from pathlib import Path
 
-CSP = "default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'"
+CSP = "default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'; font-src 'self'"
+FONT = "/vendor/katex/fonts/KaTeX_Main-Regular.woff2"
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def footer_commit(page: str) -> str | None:
+    """The twelve hex digits the page's footer names (``base.html``), or None."""
+    m = re.search(r"graph commit <a href=\"[^\"]*\"><code>([0-9a-f]{12})</code>", page)
+    return m.group(1) if m else None
+
+
+def head(url: str) -> tuple[int, dict[str, str]]:
+    if not url.startswith("https://"):
+        msg = f"only https is fetched: {url}"
+        raise ValueError(msg)
+    req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "opn-check-deploy"})  # noqa: S310
+    with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310
+        return resp.status, {k.lower(): v for k, v in resp.headers.items()}
 
 
 def fetch(url: str) -> tuple[int, dict[str, str], str]:
@@ -46,11 +63,13 @@ def main(argv: list[str] | None = None) -> int:
     _s, _h, live = fetch(f"{base}/rendered-from.txt")
     live = live.strip()
     print(f"rendered-from.txt: {live}")
-    m = re.search(
-        r"Rendered from graph commit <a href=\"[^\"]*\"><code>([0-9a-f]{12})</code>", home
-    )
-    if not m or not live.startswith(m.group(1)):
+    named = footer_commit(home)
+    if named is None or not live.startswith(named):
         problems.append("Home does not name the deployed commit")
+    s, font_headers = head(f"{base}{FONT}")
+    print(f"HEAD {FONT} -> {s} {font_headers.get('content-type')}")
+    if s != 200 or "font-src 'self'" not in headers.get("content-security-policy", ""):
+        problems.append("the vendored fonts are not loadable under the served policy")
     try:
         subprocess.run(["git", "-C", str(args.graph), "fetch", "-q", "origin", "main"], check=True)
         main_sha = subprocess.run(
@@ -64,12 +83,12 @@ def main(argv: list[str] | None = None) -> int:
             problems.append(f"site renders {live[:12]}, graph main is {main_sha[:12]}")
     except (subprocess.CalledProcessError, FileNotFoundError) as exc:
         print(f"could not compare with the graph checkout: {exc}")
-    for path in ("/targets/", "/frontier/"):
+    for path in ("/problems/", "/docs/"):
         s, _h, body = fetch(f"{base}{path}")
         print(f"GET {path} -> {s}")
         if live[:12] not in body:
             problems.append(f"{path} does not name the deployed commit")
-    target = re.search(r'href="(/targets/[^"/]+/)"', home + fetch(f"{base}/targets/")[2])
+    target = re.search(r'href="(/problems/[^"/?]+/)"', home + fetch(f"{base}/problems/")[2])
     if target:
         s, _h, body = fetch(f"{base}{target.group(1)}")
         print(f"GET {target.group(1)} -> {s}")

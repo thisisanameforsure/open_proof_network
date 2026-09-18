@@ -76,7 +76,7 @@ MATH_SCRIPTS = (
 )
 #: The static tree's text files ship as pages do; its binary files (the fonts) are copied by
 #: ``write``.
-STATIC_TEXT_SUFFIXES = frozenset({".css", ".js", ".txt", ""})
+STATIC_TEXT_SUFFIXES = frozenset({".css", ".js", ".svg", ".txt", ""})
 #: F04-T12 (Q14): the Glossary, one row per site word — (key, on the site, meaning, in the
 #: protocol). It is the single source for every hover card and for the Docs page's table, so a
 #: definition can never differ between the two.
