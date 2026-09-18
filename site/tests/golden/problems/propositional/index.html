@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>propositional · Open Proof Network</title>
+<link rel="stylesheet" href="/site.css">
+
+</head>
+<body>
+<header class="masthead">
+  <a class="site-name" href="/"><span class="brand-mark"></span>Open Proof Network</a>
+  <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="menu">
+  <label for="nav-toggle" class="nav-burger" aria-hidden="true"><span></span><span></span></label>
+  <nav class="site-nav"><a href="/">Home</a><a href="/problems/" aria-current="page">Problems</a><a href="/contributors/">Contributors</a><a href="/docs/">Docs</a><a href="/about/">About</a><a class="btn btn-primary nav-action" href="/problems/?filter=open">Work on a statement</a></nav>
+</header>
+<main>
+<section class="problem-head">
+<div class="problem-head-main">
+<p class="crumbs"><a href="/problems/">Problems</a> / propositional</p>
+<div class="problem-id-row"><h1 class="mono">propositional</h1><span class="term tag" tabindex="0">open<span class="term-card" role="tooltip">Listed, has a steward, and its statements accept work.<span class="why">Not claimable: this target has no curated intake record (D-6).</span></span></span><span class="term tag tag-outline" tabindex="0">statement unchecked<span class="term-card" role="tooltip">Nobody other than its author has yet judged whether the Lean says what the conjecture says. The kernel cannot decide this; a person must.<span class="proto">protocol: fidelity: mechanical-only</span></span></span></div>
+<p class="informal-big">No informal statement is recorded for this problem yet.</p>
+<p class="provenance-line">No curated record yet.</p>
+<span class="stages"><span class="stage off"><span class="dot dot-blocked"></span>Proved</span><span class="stage off"><span class="dot dot-blocked"></span>Explained</span><span class="stage off"><span class="dot dot-blocked"></span>Written up</span></span>
+<p class="why-not">Not claimable: this target has no curated intake record (D-6), so nothing may be claimed under it.</p>
+</div>
+<aside class="card steward-card"><span class="kicker">Steward</span><span class="names">None</span><p>Not an open problem, so it has no steward.</p></aside>
+</section>
+<section class="statements-section">
+<div class="section-head">
+<div><h2>Statements</h2><p class="cue">3 statements. The problem's own statement is at the top; the rest are pieces its proof needs. Select one to see its record.</p></div>
+<div class="mini-legend"><span><span class="dot dot-proved"></span>proved</span><span><span class="dot dot-open"></span>open</span><span><span class="dot dot-blocked"></span>blocked</span></div>
+</div>
+<div class="graph-grid">
+<div class="dag-wrap card"><svg class="dag" viewBox="0 0 367 160" width="367" height="160" role="img" aria-label="dependency graph">
+<line class="edge" data-from="tutorial-and-swap" data-to="and-swap-reassoc" x1="261" y1="108" x2="183" y2="52"/>
+<line class="edge" data-from="and-reassoc" data-to="and-swap-reassoc" x1="82" y1="108" x2="183" y2="52"/>
+<a href="/nodes/propositional/and-reassoc/"><g class="node status-proved" data-node="and-reassoc" transform="translate(16,108)"><rect width="132" height="36" rx="8"/><circle cx="16" cy="18" r="4"/><text x="28" y="23">and-reassoc</text><circle class="halo" cx="118" cy="18" r="3"/><title>and-reassoc: proved</title></g></a>
+<a href="/nodes/propositional/tutorial-and-swap/"><g class="node status-proved" data-node="tutorial-and-swap" transform="translate(172,108)"><rect width="179" height="36" rx="8"/><circle cx="16" cy="18" r="4"/><text x="28" y="23">tutorial-and-swap</text><circle class="halo" cx="165" cy="18" r="3"/><title>tutorial-and-swap: proved</title></g></a>
+<a href="/nodes/propositional/and-swap-reassoc/"><g class="node status-ready" data-node="and-swap-reassoc" transform="translate(98,16)"><rect width="171" height="36" rx="8"/><circle cx="16" cy="18" r="4"/><text x="28" y="23">and-swap-reassoc</text><circle class="halo" cx="157" cy="18" r="3"/><title>and-swap-reassoc: ready</title></g></a>
+</svg><span class="dag-caption">lines join a statement to the statements its proof depends on</span></div>
+<div class="panels">
+<div class="card panel" data-node="and-swap-reassoc">
+<span class="kicker">Selected statement</span>
+<span class="panel-id">and-swap-reassoc</span>
+<dl class="panel-facts"><dt>status</dt><dd><span class="dot dot-open"></span>open</dd><dt>attempts</dt><dd>2 attempts</dd></dl>
+<p class="panel-note">The problem&#x27;s statement; open.</p>
+<pre class="lean statement st-open">theorem OpnProp.and_swap_reassoc : ∀ p q r : Prop, (p ∧ q) ∧ r → r ∧ (q ∧ p) := by
+  sorry</pre>
+<details class="record"><summary>Record details (hash, origin, files)</summary>
+<dl class="record-grid"><dt>hash</dt><dd>1fd9af9053c5</dd><dt>origin</dt><dd>authored</dd><dt>mathlib</dt><dd>Lean core only</dd><dt>files</dt><dd><a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-swap-reassoc/Statement.lean">Statement.lean ↗</a></dd></dl>
+</details>
+<a class="btn btn-primary btn-block" href="/nodes/propositional/and-swap-reassoc/">Work on this statement</a>
+</div>
+<div class="card panel" data-node="and-reassoc" hidden>
+<span class="kicker">Selected statement</span>
+<span class="panel-id">and-reassoc</span>
+<dl class="panel-facts"><dt>status</dt><dd><span class="dot dot-proved"></span>proved</dd><dt>attempts</dt><dd>0 attempts</dd></dl>
+<p class="panel-note">A statement the proof needs; proved. Proof merged in 444444444444.</p>
+<pre class="lean statement st-proved">theorem OpnProp.and_reassoc : ∀ p q r : Prop, (p ∧ q) ∧ r → p ∧ (q ∧ r) := by
+  sorry</pre>
+<details class="record"><summary>Record details (hash, origin, files)</summary>
+<dl class="record-grid"><dt>hash</dt><dd>22d574bed099</dd><dt>origin</dt><dd>authored</dd><dt>mathlib</dt><dd>Lean core only</dd><dt>files</dt><dd><a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/Statement.lean">Statement.lean ↗</a> · <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/attestations/000002.json">attestation ↗</a> · <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/Proof.lean">Proof.lean ↗</a></dd></dl>
+</details>
+<a class="btn btn-primary btn-block" href="/nodes/propositional/and-reassoc/">View the proof →</a>
+</div>
+<div class="card panel" data-node="tutorial-and-swap" hidden>
+<span class="kicker">Selected statement</span>
+<span class="panel-id">tutorial-and-swap</span>
+<dl class="panel-facts"><dt>status</dt><dd><span class="dot dot-proved"></span>proved</dd><dt>attempts</dt><dd>0 attempts</dd></dl>
+<p class="panel-note">A statement the proof needs; proved. Proof merged in 444444444444.</p>
+<pre class="lean statement st-proved">theorem OpnProp.and_swap : ∀ p q : Prop, p ∧ q → q ∧ p := by
+  sorry</pre>
+<details class="record"><summary>Record details (hash, origin, files)</summary>
+<dl class="record-grid"><dt>hash</dt><dd>749fdf4930d9</dd><dt>origin</dt><dd>authored</dd><dt>mathlib</dt><dd>Lean core only</dd><dt>files</dt><dd><a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/Statement.lean">Statement.lean ↗</a> · <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/attestations/000001.json">attestation ↗</a> · <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/Proof.lean">Proof.lean ↗</a></dd></dl>
+</details>
+<a class="btn btn-primary btn-block" href="/nodes/propositional/tutorial-and-swap/">View the proof →</a>
+</div>
+
+</div>
+</div>
+</section>
+<section class="detail">
+<h2>Proved, explained, written up</h2>
+<p>Not resolved, so no digestion state yet (D-33 v3.17).</p>
+<h2>Steward</h2>
+<p>No stewards: this target is not an open problem (D-6 v3.17).</p>
+<h2>Where the statement comes from</h2>
+<p class="informal">No informal statement is recorded for this target yet (D-6 intake, F11).</p>
+
+
+<p>Fast check (POST /check, non-authoritative): lean-4.33.1 on AXLE (nearest: a Lean-core-only statement is checked under the environment&#x27;s `import Mathlib` header, so a name Mathlib also defines could elaborate differently there than in the gate). Rendered from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/graph.json">targets/propositional/graph.json</a>.</p>
+<p class="review">A proof of this statement waits for a non-author&#x27;s approving review on its pull request: the root has no counting signature and no catalog evidence at the high grade (D-4 step 9).</p>
+<h2>Does the Lean say the conjecture?</h2>
+<p class="cue">What the mechanizable pass checked on each subject, who signed, the attempts that count, and whether the statement moved upstream.</p>
+<p>No statement-QA record: this target has no curated record (F11), so the pass has no subject to check.</p><p class="attempts">Documented external attempts counting toward D-9's M: <strong>0</strong> against the statement as it stands.</p><p class="evidence">No catalog evidence is recorded for this root (F14-R3).</p><p class="drift">No upstream drift on record (D-10 v3.12).</p>
+<h2>Approach records</h2>
+<p>No approach records yet (D-14).</p>
+<h2>State of the problem</h2>
+<p>No state-of-the-problem note yet (D-32).</p>
+</section>
+
+</main>
+<footer class="provenance">
+  <span>graph commit <a href="https://github.com/example/graph/tree/6666666666666666666666666666666666666666"><code>666666666666</code></a></span>
+  <span>read-only · rebuilt on every merge</span>
+  <span class="sources">a view of <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/graph.json">targets/propositional/graph.json</a></span>
+  <span class="links"><a href="https://github.com/example/graph/tree/6666666666666666666666666666666666666666">repository ↗</a> · <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>
+</footer>
+<script src="/problem.js"></script>
+</body>
+</html>

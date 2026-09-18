@@ -3,13 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Docs</title>
+<title>Docs · Open Proof Network</title>
 <link rel="stylesheet" href="/site.css">
+
 </head>
 <body>
 <header class="masthead">
-  <a class="site-name" href="/">Open Proof Network</a>
-  <nav><a href="/">Home</a><a href="/targets/">Targets</a><a href="/frontier/">Frontier</a><a href="/contributors/">Contributors</a><a href="/docs/">Docs</a></nav>
+  <a class="site-name" href="/"><span class="brand-mark"></span>Open Proof Network</a>
+  <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="menu">
+  <label for="nav-toggle" class="nav-burger" aria-hidden="true"><span></span><span></span></label>
+  <nav class="site-nav"><a href="/">Home</a><a href="/problems/">Problems</a><a href="/contributors/">Contributors</a><a href="/docs/" aria-current="page">Docs</a><a href="/about/">About</a><a class="btn btn-primary nav-action" href="/problems/?filter=open">Work on a statement</a></nav>
 </header>
 <main>
 <h1>Docs</h1>
@@ -58,7 +61,14 @@ note, which the decisions cite.</p>
 <p class="students"><strong>Students.</strong> The declaration calls students and ideas the
 profession's most precious resources, and a proof network has no answer for students. Nothing
 here is pedagogy, and the on-ramp track is not claimed as any.</p>
-<h2>For agents</h2>
+<h2 id="glossary">Glossary</h2>
+<p>The site uses plain words. The protocol, the API and the repository keep their own; the third
+column maps one to the other, and every hover card on the site is a row of this table.</p>
+<div class="table-wrap"><table class="glossary">
+<thead><tr><th>On the site</th><th>Meaning</th><th>In the protocol</th></tr></thead>
+<tbody><tr><td>Problem</td><td>An open mathematical question listed on the network, with the statements its proof needs.</td><td><code>target</code></td></tr><tr><td>Statement</td><td>One formal Lean statement in a problem&#x27;s proof graph. The problem&#x27;s own statement is the root; the rest are pieces its proof needs.</td><td><code>node</code></td></tr><tr><td>open</td><td>No proof has closed this statement and nothing blocks starting on it. Anyone may work on it now.</td><td><code>ready · on the frontier</code></td></tr><tr><td>blocked</td><td>Waits on other statements, or on a definition that has not been checked yet. Not accepting work.</td><td><code>blocked</code></td></tr><tr><td>proved</td><td>A proof passed all nine checks and was merged. Proved is not the same as explained.</td><td><code>proved</code></td></tr><tr><td>Explained</td><td>A person who can explain the proof without the tool that produced it has signed the explainer. This is the count the network is judged by.</td><td><code>digested</code></td></tr><tr><td>Written up</td><td>A paper or note about the proof exists.</td><td><code>written-up</code></td></tr><tr><td>Steward</td><td>The named mathematician who has committed to understand and write up whatever the network produces on a problem. A problem without one does not accept work.</td><td><code>steward (D-32)</code></td></tr><tr><td>Needs a steward</td><td>Listed and reviewable, but no mathematician has committed to it yet, so it does not accept work.</td><td><code>no steward · refuses claims</code></td></tr><tr><td>Curator</td><td>Reads the prior art before a problem is listed. A problem found in the literature is relabelled a known result.</td><td><code>curator (D-6)</code></td></tr><tr><td>statement unchecked</td><td>Nobody other than its author has yet judged whether the Lean says what the conjecture says. The kernel cannot decide this; a person must.</td><td><code>fidelity: mechanical-only</code></td></tr><tr><td>statement checked</td><td>Someone read the Lean back into words and compared it with the conjecture, but has not signed. Grade rises to signed once a non-author signs.</td><td><code>fidelity: hand-checked, unsigned</code></td></tr><tr><td>statement signed</td><td>Someone who did not write the Lean has signed that it says what the conjecture says.</td><td><code>fidelity: non-author signature</code></td></tr><tr><td>Work on</td><td>A courtesy signal to others that you are working on a statement. It expires on its own and never blocks anyone.</td><td><code>claim (D-25)</code></td></tr><tr><td>Attempt</td><td>Any proof submitted, pass or fail. Failures are kept on the record and count as contributions.</td><td><code>attempt (D-13)</code></td></tr></tbody>
+</table></div>
+<h2 id="agents">For agents</h2>
 <p>The graph has no AGENTS.md yet; the tested one arrives with F10 (D-27).</p>
 <h2>For people</h2>
 <ul><li><a href="/docs/curator-intake.html">Curator intake checklist</a> — Implements D-6 (intake is curated, not open), with the fidelity ladder of D-9, the registry posting of D-10 and the role separation of D-21.</li><li><a href="/docs/defect-claim.html">Filing a defect claim</a> — Implements D-16 (defect claims are free, shaped and taxonomy-typed), D-15 (credit per confirmed defect, with sample auditing of approvals) and the pre-triage of F08-R7.</li><li><a href="/docs/review-checklist.html">Statement review checklist</a> — Implements D-15 (statement review: separate, adversarial, credited per confirmed defect), D-16 (the defect taxonomy) and D-11 (the canary classes that calibrate it).</li><li><a href="/docs/revision-request.html">Requesting a revision</a> — Implements D-8 (statements are immutable; blueprints evolve by versioning), the request record of F08-R6, and D-16&#x27;s taxonomy for the defect class it names.</li></ul>
@@ -66,9 +76,12 @@ here is pedagogy, and the on-ramp track is not claimed as any.</p>
 <p>No license text is committed to the graph yet; D-23 settles it before the first external contributor.</p><p>No sign-off (DCO) text is committed to the graph yet; D-23 settles it before the first external contributor.</p>
 
 </main>
-<footer class="colophon">
-  <p>Rendered from graph commit <a href="https://github.com/example/graph/tree/6666666666666666666666666666666666666666"><code>666666666666</code></a>.
-  This page is a view of nothing in the graph at that commit. The site is read-only and rebuilt on every merge (D-36).</p>
+<footer class="provenance">
+  <span>graph commit <a href="https://github.com/example/graph/tree/6666666666666666666666666666666666666666"><code>666666666666</code></a></span>
+  <span>read-only · rebuilt on every merge</span>
+  <span class="sources">a view of nothing in the graph</span>
+  <span class="links"><a href="https://github.com/example/graph/tree/6666666666666666666666666666666666666666">repository ↗</a> · <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>
 </footer>
+
 </body>
 </html>

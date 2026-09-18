@@ -363,11 +363,13 @@ def test_empty_graph_renders_every_fixed_page(tmp_path: Path) -> None:
     frontier["entries"] = []
     _write(root, "frontier.json", frontier)
     files = render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)
-    assert {"index.html", "targets/index.html", "frontier/index.html"} <= set(files)
+    assert {"index.html", "problems/index.html", "about/index.html"} <= set(files)
+    assert {"targets/index.html", "frontier/index.html"} <= set(files)  # the redirects
     assert not any(rel.startswith("nodes/") for rel in files)
-    assert '<td class="n">0</td><td><a href="/targets/">targets</a>' in files["index.html"]
-    assert "The frontier is empty" in files["frontier/index.html"]
-    assert '<section class="target-card">' not in files["targets/index.html"]
+    assert '<span class="n">0</span><span class="l">problems</span>' in files["index.html"]
+    assert "No problems are listed yet." in files["problems/index.html"]
+    assert "No problems are listed yet." in files["index.html"]
+    assert '<article class="card problem"' not in files["problems/index.html"]
 
 
 def test_proved_node_without_proof_commit_renders_without_a_proof_link(tmp_path: Path) -> None:

@@ -25,7 +25,7 @@ from fixture import (
 from opn_site import model, render
 
 REPO = "https://github.com/example/graph"
-TARGET_PAGE = f"targets/{LISTED_TARGET}/index.html"
+TARGET_PAGE = f"problems/{LISTED_TARGET}/index.html"
 
 
 def words(root: Path) -> str:

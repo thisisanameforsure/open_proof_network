@@ -1,24 +1,42 @@
-<h1>$target_id</h1>
-<p class="lead">Status $status, fidelity $fidelity. Root: $root. Rendered from $graph_link.</p>
-$calibration$claimable
-<h2>Stewards</h2>
-$stewards
-<h2>Digestion</h2>
+<section class="problem-head">
+<div class="problem-head-main">
+<p class="crumbs"><a href="/problems/">Problems</a> / $target_id</p>
+<div class="problem-id-row"><h1 class="mono">$target_id</h1>$status_tag$fidelity_tag</div>
+<p class="informal-big">$informal</p>
+<p class="provenance-line">$provenance</p>
+$stages
+$claimable$calibration
+</div>
+$steward_card
+</section>
+<section class="statements-section">
+<div class="section-head">
+<div><h2>Statements</h2><p class="cue">$count_words. The problem's own statement is at the top; the rest are pieces its proof needs. Select one to see its record.</p></div>
+<div class="mini-legend"><span><span class="dot dot-proved"></span>proved</span><span><span class="dot dot-open"></span>open</span><span><span class="dot dot-blocked"></span>blocked</span></div>
+</div>
+<div class="graph-grid">
+<div class="dag-wrap card">$dag<span class="dag-caption">lines join a statement to the statements its proof depends on</span></div>
+<div class="panels">
+$panels
+</div>
+</div>
+</section>
+<section class="detail">
+<h2>Proved, explained, written up</h2>
 $digestion
-<p>Fast check (POST /check, non-authoritative): $fast_check.</p>
+<h2>Steward</h2>
+$stewards
+<h2>Where the statement comes from</h2>
+<p class="informal">$informal_full</p>
+$sources
+$qa_block
+<p>Fast check (POST /check, non-authoritative): $fast_check. Rendered from $graph_link.</p>
 <p class="review">$review</p>
-<h2>Dependency graph</h2>
-<p>Deps below, root on top; a node is coloured by its status.</p>
-<div class="dag-wrap">$dag</div>
-<h2>Nodes</h2>
-<table class="nodes">
-<thead><tr><th>Node</th><th>Status</th><th>Depends on</th><th>Origin</th></tr></thead>
-<tbody>$node_rows</tbody>
-</table>
-<h2>Statement QA (D-9 v3.12)</h2>
-<p>What the mechanizable pass checked on each subject, who signed, the attempts that count, and whether the statement moved upstream.</p>
+<h2>Does the Lean say the conjecture?</h2>
+<p class="cue">What the mechanizable pass checked on each subject, who signed, the attempts that count, and whether the statement moved upstream.</p>
 $qa
 <h2>Approach records</h2>
 $approaches
 <h2>State of the problem</h2>
 $note
+</section>

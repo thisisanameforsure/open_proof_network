@@ -216,12 +216,14 @@ def test_the_whole_life(  # noqa: PLR0915 — one life, walked in order
 
     # 6. The site shows each state.
     pages = render.render_site(model.load_site(root, COMMIT), repo_url="https://github.com/x/g")
-    proposed = pages[f"targets/{PROPOSED}/index.html"]
+    proposed = pages[f"problems/{PROPOSED}/index.html"]  # F04-T12: the problem page
     assert "Alice" in proposed and "committed 2026-09-18" in proposed
-    assert "This target is open for claims." in proposed
-    resolved = pages[f"targets/{RESOLVED}/index.html"]
-    assert "Status resolved — written-up" in resolved and "The paper" in resolved
+    assert "This problem is open for work." in proposed
+    resolved = pages[f"problems/{RESOLVED}/index.html"]
+    assert "Resolved — <strong>written-up</strong>" in resolved and "The paper" in resolved
+    written_up = '<span class="stage on"><span class="dot dot-proved"></span>Written up</span>'
+    assert written_up in resolved
     node = pages[f"nodes/{RESOLVED}/{ROOTS[RESOLVED]}/index.html"]
     assert f"Explained and vouched for by <strong>{CURATOR}</strong>" in node
-    assert "explained: 1 of" in pages["index.html"]
+    assert '<span class="big">1 / ' in pages["index.html"]  # explained of proved (D-36 v3.17)
     assert time.monotonic() - started < 10, "the lifecycle test must stay under 10 s (§6)"

@@ -3,20 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>$title</title>
+<title>$title · $site</title>
 <link rel="stylesheet" href="/site.css">
+$head
 </head>
 <body>
 <header class="masthead">
-  <a class="site-name" href="/">$site</a>
-  <nav>$nav</nav>
+  <a class="site-name" href="/"><span class="brand-mark"></span>$site</a>
+  <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="menu">
+  <label for="nav-toggle" class="nav-burger" aria-hidden="true"><span></span><span></span></label>
+  <nav class="site-nav">$nav<a class="btn btn-primary nav-action" href="$action_href">$action_label</a></nav>
 </header>
 <main>
 $body
 </main>
-<footer class="colophon">
-  <p>Rendered from graph commit <a href="$commit_url"><code>$commit_short</code></a>.
-  This page is a view of $sources at that commit. The site is read-only and rebuilt on every merge (D-36).</p>
+<footer class="provenance">
+  <span>graph commit <a href="$commit_url"><code>$commit_short</code></a></span>
+  <span>read-only · rebuilt on every merge</span>
+  <span class="sources">a view of $sources</span>
+  <span class="links"><a href="$commit_url">repository ↗</a> · $frontier_link$live</span>
 </footer>
+$script
 </body>
 </html>

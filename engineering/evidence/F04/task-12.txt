@@ -1,0 +1,58 @@
+F04-T12 · the site redesign (Q14; the owner's handoff in site/docs/design_handoff_site_redesign, option 3a) · 2026-09-18
+
+What was built
+  Home: hero, the counts card (explained / proved leads; problems, open statements, distinct stewards),
+  "Open now" (up to five: unproved first, then proved-but-unexplained), the two cards, the provenance bar.
+  Problems: Targets and Frontier merged — one card per target (status tag, fidelity tag, informal, source
+  line, stage marks, steward line) over one row per statement (dot, id, role, state, attempts, action);
+  the segmented control and search filter client-side (problems.js), the options are plain links carrying
+  ?filter= without it; the legend's chips are hover cards; on mobile the legend is a <details>.
+  Problem page (/problems/<id>/): breadcrumb, monospace id with the tags, informal, provenance line, stage
+  marks, claimability sentence; the steward card; the statement graph as pills sized to their labels with
+  one "Selected statement" panel per node (problem.js selects on click, keeps #node=<id>; without it every
+  pill is a link and the root's panel shows); the record's detail sections below with rewritten headings.
+  About: the former home lead verbatim but for the handoff's two edits, the four rules, the commitment card.
+  Docs: the Glossary at /docs/#glossary, rendered from the same GLOSSARY dict as every hover card.
+  Statement record and Contributors: kept, breadcrumb and words renamed. /targets/, /frontier/ and
+  /targets/<id>/ render as meta-refresh redirects inside the frame. site.css rewritten to the Nocturne
+  dark tokens; frontier.js retired.
+
+Tests
+  $ uv run --frozen pytest site/tests -q
+  183 passed in 12.64s
+  Goldens regenerated (site/tests/golden: about/, problems/, problems/propositional/; targets/ and frontier/
+  removed). Word-asserting tests updated: test_copy (the lead is About's), test_finding_bench_claimable_words
+  (path), test_finding_not_claimable_reasons (the reasons live in the status tag's hover card), the frontier
+  tests of test_render became Problems-page tests, test_render_stewards/evidence/fast_check/untrusted paths.
+  DAG: pills sized to their labels, LABEL_MAX 32; test_dag and test_finding_dag_labels adjusted for the width.
+
+Screenshots (the live graph at 4b2c019 rendered locally with this generator, served with python -m
+http.server, captured through Playwright at 1440 and 390 CSS px; each compared by eye with the mock):
+  task-12-home-desktop.png          vs screenshots/01-home-desktop.png     — layout, copy and counts card match;
+                                       the open-now rows are the live graph's (its paraphrases carry upstream
+                                       markdown, which is the record's text, shown escaped)
+  task-12-home-mobile.png           vs 02-home-mobile.png                  — single column, block buttons, the
+                                       full-bleed counts band, id + steward on one line
+  task-12-problems-desktop.png      vs 03-problems-desktop.png             — header, segmented control, search,
+                                       legend, cards and statement rows match; task-12-problems-hover.png shows
+                                       the "open" chip's card with its protocol line
+  task-12-problems-mobile.png       vs 04-problems-mobile.png              — three-option control, the legend
+                                       expanded, cards with dot · id · action rows
+  task-12-problem-detail-desktop.png vs 05-problem-detail-desktop.png      — header, steward card, graph and
+                                       selected-statement panel match; the record sections follow below
+  task-12-about-desktop.png         vs 06-about-desktop.png                — matches
+  task-12-glossary.png              vs 07-glossary.png                     — the fifteen rows (the handoff's
+                                       fourteen plus "statement signed", which the Vocabulary table lists)
+  Interactions checked in the browser: clicking a pill switches the panel and writes #node=; the record
+  toggle opens; ?filter=proved shows 2 of 27; clicking "Open statements" shows 22 cards with only open rows
+  and updates the note; the mobile burger and legend open.
+
+Two false alarms worth recording (both in engineering/CLAUDE.md): headless Chrome's --window-size=390 lays
+the page out wider and crops, which read as a mobile overflow (Playwright measured scrollWidth 390); and a
+browser session kept across re-renders served a stale site.css, which read as every panel visible.
+
+make verify
+  $ make verify
+  ruff: All checks passed! · mypy gate/api/site: no issues · pytest: 2222 passed, 73 deselected in 198.57s
+  (the first run failed two gate lifecycle tests that read the site by the old /targets/<id>/ path; both now
+  read /problems/<id>/ and the problem page's words.)

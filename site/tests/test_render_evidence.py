@@ -23,7 +23,7 @@ from fixture import (
 from opn_site import model, render
 
 REPO = "https://github.com/example/graph"
-TARGET_PAGE = f"targets/{LISTED_TARGET}/index.html"
+TARGET_PAGE = f"problems/{LISTED_TARGET}/index.html"
 
 
 @pytest.fixture(scope="module")
@@ -33,7 +33,7 @@ def pages(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
 
 
 def card(page: str, target_id: str) -> str:
-    [found] = [c for c in page.split('<section class="target-card">')[1:] if f">{target_id}<" in c]
+    [found] = [c for c in page.split('<article class="card problem"')[1:] if f">{target_id}<" in c]
     return found
 
 
@@ -67,21 +67,24 @@ def test_the_formalization_and_its_verdict_are_listed(pages: dict[str, str]) -> 
     assert "Second formalizations of this conjecture" in page
     assert "<code>alt</code>: equivalence with the root <strong>pass</strong>" in page
     assert "qa/exhibits/root-equivalence-1.lean" in page
-    frontier = pages["frontier/index.html"]
-    assert ">alt</a>" not in frontier, "a formalization is never a frontier row (F14-R7)"
+    problems = pages["problems/index.html"]
+    assert ">alt</a>" not in problems, "a formalization is never a statement row (F14-R7)"
     assert f"nodes/{LISTED_TARGET}/alt/index.html" not in pages
 
 
-def test_the_targets_row_carries_the_review_sentence(pages: dict[str, str]) -> None:
-    row = card(pages["targets/index.html"], LISTED_TARGET)
-    assert "<dt>Review</dt><dd>A proof of this statement merges on the gate" in row
-    assert "<dt>Status</dt><dd>listed, claimable</dd>" in row
-    assert "Not claimable" not in row
+def test_the_problems_card_is_open_and_the_page_carries_the_review_sentence(
+    pages: dict[str, str],
+) -> None:
+    """F04-T12: the card says open and names no reason; the review sentence is the problem
+    page's, under the record's detail sections."""
+    row = card(pages["problems/index.html"], LISTED_TARGET)
+    assert ">open<" in row and "Not claimable" not in row
+    assert "A proof of this statement merges on the gate" in pages[TARGET_PAGE]
 
 
 def test_a_root_without_evidence_waits_for_a_person(pages: dict[str, str]) -> None:
     """The propositional target has no certificate and no evidence: a proof waits for review."""
-    page = pages["targets/propositional/index.html"]
+    page = pages["problems/propositional/index.html"]
     assert "waits for a non-author&#x27;s approving review" in page or (
         "waits for a non-author's approving review" in page
     )

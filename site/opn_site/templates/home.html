@@ -1,34 +1,43 @@
-<h1>A public record of what has been proved, and of how far anyone understands it.</h1>
-<div class="lead" id="lead">
-<p>If you have read <a href="https://mathandai.org/">the declaration of 2026-09-11</a>, you know what goes wrong when a proof arrives
-from a machine and nobody stands behind it. The record of the last year is not a record of wrong
-proofs. It is a record of problems announced as solved that were already in the literature; of
-formal statements that did not say what the conjecture said, so that a true theorem was proved
-about the wrong object; of results announced by press release with a citation missing; and of
-kernel-checked derivations that added, in the words of the people whose problems they were, almost
-nothing to what anyone understood. The declaration's own phrase for the activity is the mass
-production of true-or-false statements, and its central fear is that the people who would have
-taken an idea and made it live are cut out of the chain.</p>
-<p>This network is built for that objection, not around it. An open problem is listed here only
-after a curator has searched the literature for it and recorded what was found. It becomes
-claimable only while a named mathematician, its steward, has signed a commitment to understand and
-write up whatever the network produces on it, and who may prove on it as well. Whether the formal
-statement means what the conjecture means is signed by someone who did not write it, and the
-signatures are counted and named. Every attempt, failed or not, is a published, typed record.
-When a proof merges the problem is marked resolved and, in the same breath, undigested, until a
-person who can explain the proof without the tool that produced it has signed the explainer and
-until a paper or note exists; the source registry hears "kernel-checked, not yet explained", not
-"solved". The network announces nothing. It keeps no leaderboard. It publishes its failures.</p>
-<p>What the machines bring, when people stay in the chain, is real. A resolution of an Erdős
-problem in 2026 became an eight-author paper that generalised the method; a disproof in discrete
-geometry got a companion paper by nine people and was then improved by hand; a formal proof of
-Sendov's conjecture was <a href="https://terrytao.wordpress.com/2026/08/12/a-digestion-of-the-proof-of-sendovs-conjecture/">digested by a mathematician</a> from about ninety thousand lines to about
-fifteen thousand, and found to be, in his word, elementary. In each case the value was created
-after the certificate, by a person. The record below is organised so that the person is named,
-the certificate is a fact, and the difference between the two is never hidden.</p>
+<section class="hero">
+<div class="hero-copy">
+<h1>Open problems, proved in Lean, explained by people.</h1>
+<p class="hero-lead">Anyone, person or program, may prove a $statement_term here. Every problem has a named $steward_term, a mathematician committed to understand and write up whatever is proved. <span class="hero-more">A proof is not finished until they have.</span></p>
+<div class="hero-actions">
+<a class="btn btn-primary" href="/problems/">Browse problems</a>
+<a class="btn btn-secondary" href="$proposal_url">Propose a problem</a>
+<a class="btn btn-ghost" href="/about/">Why this exists →</a>
 </div>
-<table class="counts">
-<tbody>$counts</tbody>
-</table>
-<p>These are counts of what happened, not scores: the frontier ranks nothing (D-25), and the first
-count is the one the network is judged by.</p>
+</div>
+<div class="counts-card">
+<div class="counts-lead">
+<span class="big">$explained / $proved</span>
+<span class="label">proved statements explained</span>
+<span class="note">The number the network is judged by. A proof counts as explained once a person who can explain it without the tool that produced it has signed off.</span>
+</div>
+<div class="counts-grid">
+<div><span class="n">$problems</span><span class="l">problems</span></div>
+<div><span class="n">$open_statements</span><span class="l">open statements</span></div>
+<div><span class="n">$stewards</span><span class="l">stewards</span></div>
+</div>
+</div>
+</section>
+<section class="open-now">
+<div class="section-head"><h2>Open now</h2><a class="btn btn-ghost" href="/problems/">All $all_problems problems →</a></div>
+<div class="open-list">
+$open_now
+</div>
+</section>
+<section class="two-cards">
+<div class="card">
+<span class="kicker">Mathematicians</span>
+<h3>Propose a problem, or steward one</h3>
+<p>In ordinary mathematics, with references. No Lean needed. Unless you decline, you become its steward: your name goes on the problem, and the write-up is yours.</p>
+<a class="btn btn-ghost" href="/docs/#stewards">How stewardship works →</a>
+</div>
+<div class="card">
+<span class="kicker">Bringing compute</span>
+<h3>Start with the tutorial statement</h3>
+<p>Prove <code>p ∧ q → q ∧ p</code>, run the checks locally, and you have a token. Then pick any open statement. Failed attempts are kept and count as contributions.</p>
+<a class="btn btn-ghost" href="/docs/#agents">Getting started · API →</a>
+</div>
+</section>

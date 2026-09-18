@@ -51,13 +51,14 @@ def parsed(html: str) -> _Text:
 
 
 def test_the_home_lead_comes_first_and_carries_no_network_number(pages: dict[str, str]) -> None:
-    """R11, Q10: the lead precedes the counts table; once dates are removed it holds no digit,
-    so no count of the network's own can hide in it; it says what goes wrong, what the network
-    does and what AI brings with people in the chain, and what the network refuses to do."""
-    home = pages["index.html"]
+    """R11, Q10: the lead opens the About page (F04-T12 moved it off the home page, where the
+    counts now lead) and precedes the four rules; once dates are removed it holds no digit, so no
+    count of the network's own can hide in it; it says what goes wrong, what the network does
+    and what AI brings with people in the chain, and what the network refuses to do."""
+    home = pages["about/index.html"]
     lead_start = home.index('<div class="lead" id="lead">')
     lead_end = home.index("</div>", lead_start)
-    assert lead_end < home.index('<table class="counts">')
+    assert lead_end < home.index('<div class="rules"')
     lead = parsed(home[lead_start:lead_end])
     text = " ".join(lead.text)
     without_dates = re.sub(r"\b\d{4}(?:-\d{2}){0,2}\b", "", text)
@@ -85,12 +86,13 @@ def test_every_outbound_link_in_the_copy_is_on_the_allowlist(pages: dict[str, st
     links pass because each exact url is in ``render.COPY_LINKS``, and the checker refuses the
     same pages with the allowlist withheld."""
     into_repo = REPO + "/"
-    for rel in ("index.html", "docs/index.html"):
+    for rel in ("index.html", "about/index.html", "docs/index.html"):
         for href in parsed(pages[rel]).hrefs:
             if links.resolve(href) is not None or href.startswith(("#", into_repo)):
                 continue
             assert href in render.COPY_LINKS, (rel, href)
-    copy_pages = {k: v for k, v in pages.items() if k in ("index.html", "docs/index.html")}
+    copy = ("index.html", "about/index.html", "docs/index.html")
+    copy_pages = {k: v for k, v in pages.items() if k in copy}
     refused = links.check(
         {**copy_pages, **{k: v for k, v in pages.items() if k not in copy_pages}},
         repo_url=REPO,

@@ -847,6 +847,18 @@ The law of the project:
   leaves the golden red until regenerated (grep the goldens for the object, not the field), and
   `frontier_entry` reads a node's status from the target's map, so a record fabricated on the
   dataclass can test membership but not claimability — put the record on disk for that.
+- 2026-09-18 — The site redesign (F04-T12, Q14) landed in one sitting from the owner's handoff.
+  Three things worth keeping. Headless Chrome's `--window-size=390` lays the page out wider than
+  390 and crops, so the first mobile captures showed an overflow that did not exist; measure
+  `scrollWidth` through Playwright before touching CSS for a "mobile bug". A browser session kept
+  open across re-renders serves a stale `site.css` from cache, so two "defects" (every statement
+  panel visible, the doc comment still in the panel) were the old stylesheet and the old HTML,
+  not the code; `fetch(url, {cache: "reload"})` then reload, or read the served file with curl,
+  before debugging. And `hidden` loses to any `display:` rule on the same element (`.card {
+  display: flex }` un-hid every panel), so the stylesheet carries `[hidden] { display: none
+  !important }` first. Also: a handoff that says "keep every old path" is two lines in
+  `render_site` (a meta-refresh page through the same frame, so it names the commit like every
+  page) and no CloudFront change.
 - 2026-09-17 — A rule that elaborates every frontier candidate finds what no reader did. The re-pin
   to ffc50b9 (F07-T19, F08-T9, F03-T10) went through in one sitting: tag, images, 27 pins in a
   detached worktree, pregate, push after a green Lean tier, then the three corrections the old pin

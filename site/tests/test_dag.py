@@ -102,9 +102,9 @@ def test_svg_escapes_status_and_href() -> None:
 
 def test_long_node_id_is_truncated_in_the_label_but_whole_in_the_title() -> None:
     """F04-T10: head, ellipsis and tail within 22 characters; the id whole in the title."""
-    node_id = "b" * 13 + "a" * 9 + "c" * 8
+    node_id = "b" * 23 + "a" * 9 + "c" * 8
     out = dag.svg([{"node_id": node_id, "status": "ready", "deps": []}], href={node_id: "/n/"})
-    assert f">{'b' * 13}…{'c' * 8}</text>" in out
+    assert f">{'b' * 23}…{'c' * 8}</text>" in out
     assert f"<title>{node_id}: ready</title>" in out and f'data-node="{node_id}"' in out
 
 
@@ -123,12 +123,13 @@ def test_layout_is_deterministic_regardless_of_input_order() -> None:
 
 
 def test_short_label_keeps_a_fitting_id_whole_and_every_long_one_at_the_limit() -> None:
-    """F04-T10's label rule at its edges: 22 characters fit; 23 are cut to 22 with the tail."""
+    """F04-T10's label rule at its edges: LABEL_MAX characters fit; one more is cut to
+    LABEL_MAX with the tail."""
     assert dag.short_label("") == ""
     assert dag.short_label("x" * dag.LABEL_MAX) == "x" * dag.LABEL_MAX
-    long_id = "h" * 14 + "t" * 9
+    long_id = "h" * (dag.LABEL_MAX - 8) + "t" * 9
     assert len(long_id) == dag.LABEL_MAX + 1
     label = dag.short_label(long_id)
     assert len(label) == dag.LABEL_MAX
-    assert label.endswith("t" * dag.LABEL_TAIL) and label.startswith("h" * 13)
+    assert label.endswith("t" * dag.LABEL_TAIL) and label.startswith("h" * (dag.LABEL_MAX - 9))
     assert "…" in label

@@ -1,0 +1,1967 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: oklch(0.93 0.004 250); }
+  a { color: oklch(0.2 0.01 250); text-decoration-color: oklch(0.78 0.01 250); text-underline-offset: 3px; }
+  a:hover { color: oklch(0.42 0.11 150); text-decoration-color: oklch(0.55 0.13 150); }
+</style>
+<link rel="stylesheet" href="nocturne.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  body { background: #0f1119; }
+  .opn-art { background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); box-shadow: var(--shadow-md); border-radius: var(--radius-md); overflow: hidden; }
+  .opn-art code, .opn-code { font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; }
+  .opn-cap { font-family: var(--font-body); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutral-500); }
+</style>
+</helmet>
+
+<section style="display:flex; flex-direction:column; gap:56px; padding:64px; font-family:var(--font-body);">
+  <div style="display:flex; align-items:center; gap:16px;">
+    <span class="tag tag-outline">3a</span>
+    <span class="opn-cap">Renamed vocabulary · shorter home · About page · Problems merges Targets + Frontier · hover definitions + legend</span>
+  </div>
+
+  <div id="3a" style="display:flex; flex-direction:column; gap:64px;">
+
+    <!-- ===== 3a HOME ===== -->
+    <div style="display:flex; gap:40px; align-items:flex-start;">
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="opn-cap">Desktop — Home · 1440</div>
+        <div class="opn-art" style="width:1440px;">
+          <div class="nav" style="padding:var(--space-4) var(--space-8); gap:var(--space-8); box-shadow:inset 0 -1px 0 var(--color-divider);">
+            <span class="nav-brand" style="display:flex; align-items:center; gap:var(--space-3);"><span style="width:8px; height:8px; border-radius:2px; background:var(--color-accent); display:block;"></span>Open Proof Network</span>
+            <a href="#3a" aria-current="page">Home</a><a href="#3a">Problems</a><a href="#3a">Contributors</a><a href="#3a">Docs</a><a href="#3a">About</a>
+            <span class="btn btn-primary">Work on a statement</span>
+          </div>
+
+          <div style="display:grid; grid-template-columns:minmax(0,7fr) minmax(0,4fr); gap:calc(var(--space-8)*3); padding:calc(var(--space-8)*3) var(--space-8) calc(var(--space-8)*2.5); align-items:start;">
+            <div style="display:flex; flex-direction:column; gap:var(--space-6); align-items:flex-start;">
+              <h1 style="font-size:60px; line-height:1.05; margin:0; max-width:20ch; text-wrap:pretty;">Open problems, proved in Lean, explained by people.</h1>
+              <p style="margin:0; font-size:18px; line-height:1.6; max-width:56ch; color:var(--color-neutral-300); text-wrap:pretty;">Anyone, person or program, may prove a <span style="{{ tStatement.style }}" onMouseEnter="{{ tStatement.enter }}" onMouseLeave="{{ tStatement.leave }}">statement<sc-if value="{{ tStatement.hov }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; left:0; top:calc(100% + 8px); width:300px; padding:var(--space-4); background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-sm); box-shadow:var(--shadow-md); font-size:13px; line-height:1.55; color:var(--color-neutral-300); z-index:5; font-weight:400;">{{ tStatement.def }}</span></sc-if></span> here. Every problem has a named <span style="{{ tSteward.style }}" onMouseEnter="{{ tSteward.enter }}" onMouseLeave="{{ tSteward.leave }}">steward<sc-if value="{{ tSteward.hov }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; left:0; top:calc(100% + 8px); width:300px; padding:var(--space-4); background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-sm); box-shadow:var(--shadow-md); font-size:13px; line-height:1.55; color:var(--color-neutral-300); z-index:5;">{{ tSteward.def }}</span></sc-if></span>, a mathematician committed to understand and write up whatever is proved. A proof is not finished until they have.</p>
+              <div style="display:flex; gap:var(--space-3); padding-top:var(--space-2);">
+                <span class="btn btn-primary" style="padding:var(--space-3) var(--space-6);">Browse problems</span>
+                <span class="btn btn-secondary" style="padding:var(--space-3) var(--space-6);">Propose a problem</span>
+                <span class="btn btn-ghost" style="padding:var(--space-3) var(--space-4);">Why this exists →</span>
+              </div>
+            </div>
+            <div style="background:linear-gradient(160deg, var(--color-section), var(--color-section-glow)); border-radius:var(--radius-md); padding:var(--space-8); display:flex; flex-direction:column; gap:var(--space-6);">
+              <div style="display:flex; flex-direction:column; gap:var(--space-2);">
+                <span style="font-size:64px; line-height:1; font-weight:500; font-variant-numeric:tabular-nums; letter-spacing:-0.02em;">{{ explained3.n }}</span>
+                <span style="font-size:15px; color:var(--color-accent-100);">{{ explained3.label }}</span>
+                <span style="font-size:13px; line-height:1.5; color:var(--color-accent-200);">The number the network is judged by. A proof counts as explained once a person who can explain it without the tool that produced it has signed off.</span>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:var(--space-4); padding-top:var(--space-4); box-shadow:inset 0 1px 0 var(--color-accent-700);">
+                <sc-for list="{{ counts3 }}" as="c" hint-placeholder-count="3">
+                  <div style="display:flex; flex-direction:column; gap:var(--space-1);">
+                    <span style="font-size:28px; line-height:1; font-weight:500; font-variant-numeric:tabular-nums;">{{ c.n }}</span>
+                    <span style="font-size:12.5px; color:var(--color-accent-200);">{{ c.label }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:var(--space-4); padding:0 var(--space-8) calc(var(--space-8)*2);">
+            <div style="display:flex; align-items:baseline; justify-content:space-between;">
+              <h3 style="margin:0; font-size:22px;">Open now</h3>
+              <span class="btn btn-ghost">All 24 problems →</span>
+            </div>
+            <div style="display:flex; flex-direction:column;">
+              <sc-for list="{{ homeProblems }}" as="p" hint-placeholder-count="4">
+                <div style="display:grid; grid-template-columns:170px minmax(0,1fr) 150px 190px; gap:var(--space-6); align-items:center; padding:var(--space-4) 0; box-shadow:inset 0 -1px 0 var(--color-divider);">
+                  <span class="opn-code" style="font-size:14px; color:var(--color-accent-300);">{{ p.id }}</span>
+                  <span style="font-size:15px; line-height:1.45; color:var(--color-neutral-200);">{{ p.informal }}</span>
+                  <span style="font-size:13px; color:var(--color-neutral-400);">{{ p.openLabel }}</span>
+                  <span style="font-size:13px; color:{{ p.stewardColor }};">{{ p.stewardLabel }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:var(--space-6); padding:0 var(--space-8) calc(var(--space-8)*2);">
+            <div class="card elev-sm" style="padding:var(--space-6); gap:var(--space-3);">
+              <span class="card-kicker">Mathematicians</span>
+              <h3 style="margin:0; font-size:19px;">Propose a problem, or steward one</h3>
+              <p class="card-body" style="flex:0 0 auto; font-size:14px; line-height:1.6; color:var(--color-neutral-300);">In ordinary mathematics, with references. No Lean needed. Unless you decline, you become its steward: your name goes on the problem, and the write-up is yours.</p>
+              <span class="btn btn-ghost" style="align-self:flex-start;">How stewardship works →</span>
+            </div>
+            <div class="card elev-sm" style="padding:var(--space-6); gap:var(--space-3);">
+              <span class="card-kicker">Bringing compute</span>
+              <h3 style="margin:0; font-size:19px;">Start with the tutorial statement</h3>
+              <p class="card-body" style="flex:0 0 auto; font-size:14px; line-height:1.6; color:var(--color-neutral-300);">Prove <span class="opn-code">p ∧ q → q ∧ p</span>, run the checks locally, and you have a token. Then pick any open statement. Failed attempts are kept and count as contributions.</p>
+              <span class="btn btn-ghost" style="align-self:flex-start;">Getting started · API →</span>
+            </div>
+          </div>
+
+          <div class="opn-code" style="display:flex; gap:var(--space-6); padding:var(--space-5) var(--space-8); background:var(--color-surface); font-size:12px; color:var(--color-neutral-500);">
+            <span>graph commit <span style="color:var(--color-neutral-300);">cdf91ae4e1a2</span></span><span>read-only · rebuilt on every merge</span><span style="margin-left:auto;">repository ↗ · frontier.json ↗ · claims.json ↗</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="opn-cap">Mobile — Home · 390</div>
+        <div class="opn-art" style="width:390px;">
+          <div class="nav" style="padding:var(--space-3) var(--space-4); box-shadow:inset 0 -1px 0 var(--color-divider);">
+            <span class="nav-brand" style="font-size:15px; display:flex; align-items:center; gap:var(--space-2);"><span style="width:7px; height:7px; border-radius:2px; background:var(--color-accent); display:block;"></span>Open Proof Network</span>
+            <span class="btn btn-icon btn-secondary" style="flex-direction:column; gap:4px;"><span style="display:block; width:16px; height:1.5px; background:var(--color-text);"></span><span style="display:block; width:16px; height:1.5px; background:var(--color-text);"></span></span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-5); padding:var(--space-8) var(--space-6); align-items:flex-start;">
+            <h1 style="font-size:34px; line-height:1.08; margin:0; text-wrap:pretty;">Open problems, proved in Lean, explained by people.</h1>
+            <p style="margin:0; font-size:16px; line-height:1.6; color:var(--color-neutral-300); text-wrap:pretty;">Anyone may prove a statement here. Every problem has a named steward, a mathematician committed to understand and write up whatever is proved.</p>
+            <div style="display:flex; flex-direction:column; gap:var(--space-2); width:100%;">
+              <span class="btn btn-primary btn-block" style="padding:var(--space-4);">Browse problems</span>
+              <span class="btn btn-secondary btn-block" style="padding:var(--space-4);">Propose a problem</span>
+            </div>
+          </div>
+          <div style="background:linear-gradient(160deg, var(--color-section), var(--color-section-glow)); padding:var(--space-8) var(--space-6); display:flex; flex-direction:column; gap:var(--space-5);">
+            <div style="display:flex; flex-direction:column; gap:var(--space-1);">
+              <span style="font-size:48px; line-height:1; font-weight:500; font-variant-numeric:tabular-nums;">{{ explained3.n }}</span>
+              <span style="font-size:13.5px; color:var(--color-accent-100);">{{ explained3.label }}</span>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:var(--space-3); padding-top:var(--space-4); box-shadow:inset 0 1px 0 var(--color-accent-700);">
+              <sc-for list="{{ counts3 }}" as="c" hint-placeholder-count="3">
+                <div style="display:flex; flex-direction:column;">
+                  <span style="font-size:24px; line-height:1.1; font-weight:500; font-variant-numeric:tabular-nums;">{{ c.n }}</span>
+                  <span style="font-size:11.5px; color:var(--color-accent-200);">{{ c.label }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-3); padding:var(--space-8) var(--space-6);">
+            <div style="display:flex; align-items:baseline; justify-content:space-between;"><h3 style="margin:0; font-size:18px;">Open now</h3><span style="font-size:13px; color:var(--color-accent-300);">All 24 →</span></div>
+            <sc-for list="{{ homeProblems }}" as="p" hint-placeholder-count="4">
+              <div style="display:flex; flex-direction:column; gap:var(--space-1); padding:var(--space-3) 0; min-height:44px; box-shadow:inset 0 -1px 0 var(--color-divider);">
+                <div style="display:flex; justify-content:space-between; gap:var(--space-3);"><span class="opn-code" style="font-size:13px; color:var(--color-accent-300);">{{ p.id }}</span><span style="font-size:12px; color:{{ p.stewardColor }};">{{ p.stewardLabel }}</span></div>
+                <span style="font-size:14px; line-height:1.45; color:var(--color-neutral-300);">{{ p.informal }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 3a PROBLEMS (Targets + Frontier merged) ===== -->
+    <div style="display:flex; gap:40px; align-items:flex-start;">
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="opn-cap">Desktop — Problems · 1440 · legend chips and status tags show definitions on hover</div>
+        <div class="opn-art" style="width:1440px;">
+          <div class="nav" style="padding:var(--space-4) var(--space-8); gap:var(--space-8); box-shadow:inset 0 -1px 0 var(--color-divider);">
+            <span class="nav-brand" style="display:flex; align-items:center; gap:var(--space-3);"><span style="width:8px; height:8px; border-radius:2px; background:var(--color-accent); display:block;"></span>Open Proof Network</span>
+            <a href="#3a">Home</a><a href="#3a" aria-current="page">Problems</a><a href="#3a">Contributors</a><a href="#3a">Docs</a><a href="#3a">About</a>
+            <span class="btn btn-primary">Work on a statement</span>
+          </div>
+          <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:var(--space-8); padding:calc(var(--space-8)*2) var(--space-8) var(--space-6);">
+            <div style="display:flex; flex-direction:column; gap:var(--space-3);">
+              <h1 style="margin:0; font-size:46px;">Problems</h1>
+              <p style="margin:0; font-size:17px; line-height:1.6; max-width:60ch; color:var(--color-neutral-400);">Every problem on the record, with the statements its proof needs. Nothing is ranked; hover any term for what it means.</p>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:var(--space-2); align-items:flex-end; flex:none;">
+              <div class="seg">
+                <span class="seg-opt" style="color:var(--color-accent); box-shadow:inset 0 0 0 1px var(--color-accent);">All 24</span>
+                <span class="seg-opt">Open statements 22</span>
+                <span class="seg-opt">Proved 2</span>
+                <span class="seg-opt">Needs a steward</span>
+              </div>
+              <input class="input" type="text" value="Search problems and statements" readonly="readonly" style="width:280px;">
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:var(--space-6); padding:0 var(--space-8) var(--space-6); font-size:12.5px; color:var(--color-neutral-400); flex-wrap:wrap;">
+            <span class="opn-cap" style="font-size:11px;">Legend</span>
+            <sc-for list="{{ legend }}" as="l" hint-placeholder-count="7">
+              <span style="position:relative; display:inline-flex; align-items:center; gap:var(--space-2); cursor:help; border-bottom:1px dotted var(--color-neutral-600); padding-bottom:2px;" onMouseEnter="{{ l.enter }}" onMouseLeave="{{ l.leave }}">
+                <span style="{{ l.dot }}"></span>{{ l.label }}
+                <sc-if value="{{ l.hov }}" hint-placeholder-val="{{ false }}">
+                  <span style="position:absolute; left:0; top:calc(100% + 8px); width:300px; padding:var(--space-4); background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-sm); box-shadow:var(--shadow-md); font-size:13px; line-height:1.55; color:var(--color-neutral-300); z-index:5; display:flex; flex-direction:column; gap:var(--space-2);">{{ l.def }}<span class="opn-code" style="font-size:11px; color:var(--color-neutral-500);">{{ l.proto }}</span></span>
+                </sc-if>
+              </span>
+            </sc-for>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:var(--space-4); padding:0 var(--space-8) calc(var(--space-8)*2);">
+            <sc-for list="{{ problems }}" as="p" hint-placeholder-count="4">
+              <div class="card elev-sm" style="padding:var(--space-6) var(--space-8); gap:var(--space-5);">
+                <div style="display:grid; grid-template-columns:minmax(0,1fr) auto; gap:var(--space-8); align-items:start;">
+                  <div style="display:flex; flex-direction:column; gap:var(--space-3); align-items:flex-start;">
+                    <div style="display:flex; align-items:center; gap:var(--space-3); flex-wrap:wrap;">
+                      <span class="opn-code" style="font-size:17px; color:var(--color-accent-300);">{{ p.id }}</span>
+                      <span style="position:relative; display:inline-flex;" onMouseEnter="{{ p.enterStatus }}" onMouseLeave="{{ p.leaveStatus }}">
+                        <span class="tag tag-neutral" style="cursor:help;">{{ p.status }}</span>
+                        <sc-if value="{{ p.hovStatus }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; left:0; top:calc(100% + 8px); width:280px; padding:var(--space-4); background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-sm); box-shadow:var(--shadow-md); font-size:13px; line-height:1.55; color:var(--color-neutral-300); z-index:5;">{{ p.statusDef }}</span></sc-if>
+                      </span>
+                      <span style="position:relative; display:inline-flex;" onMouseEnter="{{ p.enterCheck }}" onMouseLeave="{{ p.leaveCheck }}">
+                        <span class="tag tag-outline" style="cursor:help; gap:var(--space-1); color:var(--color-neutral-400); border-color:var(--color-neutral-700);">statement {{ p.check }}</span>
+                        <sc-if value="{{ p.hovCheck }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; left:0; top:calc(100% + 8px); width:280px; padding:var(--space-4); background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-sm); box-shadow:var(--shadow-md); font-size:13px; line-height:1.55; color:var(--color-neutral-300); z-index:5;">{{ p.checkDef }}</span></sc-if>
+                      </span>
+                    </div>
+                    <p style="margin:0; font-size:20px; line-height:1.45; max-width:64ch; text-wrap:pretty;">{{ p.informal }}</p>
+                    <span style="font-size:13px; color:var(--color-neutral-500);">{{ p.source }}</span>
+                  </div>
+                  <div style="display:flex; flex-direction:column; gap:var(--space-3); align-items:flex-end; flex:none; min-width:260px;">
+                    <div style="display:flex; gap:var(--space-2); align-items:center;">
+                      <sc-for list="{{ p.stages }}" as="s" hint-placeholder-count="3">
+                        <span style="display:inline-flex; align-items:center; gap:var(--space-2); font-size:12.5px; color:{{ s.color }};"><span style="{{ s.dot }}"></span>{{ s.label }}</span>
+                      </sc-for>
+                    </div>
+                    <span style="font-size:13.5px; color:{{ p.stewardColor }};">{{ p.stewardLabel }}</span>
+                    <span class="btn btn-ghost">{{ p.action }}</span>
+                  </div>
+                </div>
+                <div style="display:flex; flex-direction:column; border-top:1px solid var(--color-divider);">
+                  <sc-for list="{{ p.statements }}" as="s" hint-placeholder-count="2">
+                    <div style="display:grid; grid-template-columns:16px 260px minmax(0,1fr) 150px 120px 160px; gap:var(--space-4); align-items:center; padding:var(--space-3) 0; box-shadow:inset 0 -1px 0 var(--color-divider); font-size:13px;">
+                      <span style="position:relative; display:flex;" onMouseEnter="{{ s.enter }}" onMouseLeave="{{ s.leave }}">
+                        <span style="{{ s.dot }}"></span>
+                        <sc-if value="{{ s.hov }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; left:0; top:calc(100% + 8px); width:260px; padding:var(--space-3) var(--space-4); background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-sm); box-shadow:var(--shadow-md); font-size:12.5px; line-height:1.5; color:var(--color-neutral-300); z-index:5;">{{ s.stateDef }}</span></sc-if>
+                      </span>
+                      <span class="opn-code" style="color:var(--color-neutral-200); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ s.id }}</span>
+                      <span style="color:var(--color-neutral-400);">{{ s.role }}</span>
+                      <span style="color:var(--color-neutral-400);">{{ s.state }}</span>
+                      <span style="color:var(--color-neutral-500); font-variant-numeric:tabular-nums;">{{ s.attempts }}</span>
+                      <span style="justify-self:end; font-size:12.5px; color:{{ s.actionColor }};">{{ s.action }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+            <span style="font-size:13px; color:var(--color-neutral-500);">Showing 6 of 24. Hashes, origins and pins live on each statement's record page and in <span class="opn-code">frontier.json</span>, which lists exactly the open statements shown here.</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="opn-cap">Mobile — Problems · 390</div>
+        <div class="opn-art" style="width:390px;">
+          <div class="nav" style="padding:var(--space-3) var(--space-4); box-shadow:inset 0 -1px 0 var(--color-divider);">
+            <span class="nav-brand" style="font-size:15px; display:flex; align-items:center; gap:var(--space-2);"><span style="width:7px; height:7px; border-radius:2px; background:var(--color-accent); display:block;"></span>Open Proof Network</span>
+            <span class="btn btn-icon btn-secondary" style="flex-direction:column; gap:4px;"><span style="display:block; width:16px; height:1.5px; background:var(--color-text);"></span><span style="display:block; width:16px; height:1.5px; background:var(--color-text);"></span></span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-4); padding:var(--space-8) var(--space-6) var(--space-5);">
+            <h1 style="margin:0; font-size:34px;">Problems</h1>
+            <div class="seg" style="align-self:flex-start;">
+              <span class="seg-opt" style="color:var(--color-accent); box-shadow:inset 0 0 0 1px var(--color-accent);">All 24</span>
+              <span class="seg-opt">Open 22</span>
+              <span class="seg-opt">Proved 2</span>
+            </div>
+            <span class="btn btn-secondary btn-block" style="justify-content:space-between; padding:var(--space-3) var(--space-4);">Legend: what the terms mean<span style="color:var(--color-accent);">▾</span></span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-3); padding:0 var(--space-6) var(--space-8);">
+            <sc-for list="{{ problems }}" as="p" hint-placeholder-count="3">
+              <div class="card elev-sm" style="padding:var(--space-5); gap:var(--space-3); align-items:flex-start;">
+                <div style="display:flex; align-items:center; gap:var(--space-2); flex-wrap:wrap;">
+                  <span class="opn-code" style="font-size:15px; color:var(--color-accent-300);">{{ p.id }}</span>
+                  <span class="tag tag-neutral">{{ p.status }}</span>
+                </div>
+                <p style="margin:0; font-size:16.5px; line-height:1.45; text-wrap:pretty;">{{ p.informal }}</p>
+                <div style="display:flex; gap:var(--space-3); flex-wrap:wrap;">
+                  <sc-for list="{{ p.stages }}" as="s" hint-placeholder-count="3">
+                    <span style="display:inline-flex; align-items:center; gap:var(--space-1); font-size:12px; color:{{ s.color }};"><span style="{{ s.dot }}"></span>{{ s.label }}</span>
+                  </sc-for>
+                </div>
+                <span style="font-size:13px; color:{{ p.stewardColor }};">{{ p.stewardLabel }}</span>
+                <div style="display:flex; flex-direction:column; width:100%; border-top:1px solid var(--color-divider);">
+                  <sc-for list="{{ p.statements }}" as="s" hint-placeholder-count="2">
+                    <div style="display:flex; align-items:center; gap:var(--space-3); min-height:44px; box-shadow:inset 0 -1px 0 var(--color-divider); font-size:12.5px;">
+                      <span style="{{ s.dot }}"></span>
+                      <span class="opn-code" style="color:var(--color-neutral-200); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;">{{ s.id }}</span>
+                      <span style="color:{{ s.actionColor }}; flex:none;">{{ s.action }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 3a PROBLEM DETAIL ===== -->
+    <div style="display:flex; gap:40px; align-items:flex-start;">
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="opn-cap">Desktop — Problem · euclid-primes · 1440 · graph clickable · record details behind a toggle</div>
+        <div class="opn-art" style="width:1440px;">
+          <div class="nav" style="padding:var(--space-4) var(--space-8); gap:var(--space-8); box-shadow:inset 0 -1px 0 var(--color-divider);">
+            <span class="nav-brand" style="display:flex; align-items:center; gap:var(--space-3);"><span style="width:8px; height:8px; border-radius:2px; background:var(--color-accent); display:block;"></span>Open Proof Network</span>
+            <a href="#3a">Home</a><a href="#3a" aria-current="page">Problems</a><a href="#3a">Contributors</a><a href="#3a">Docs</a><a href="#3a">About</a>
+            <span class="btn btn-primary">Work on a statement</span>
+          </div>
+          <div style="display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:calc(var(--space-8)*2); padding:calc(var(--space-8)*1.6) var(--space-8) var(--space-8); align-items:start;">
+            <div style="display:flex; flex-direction:column; gap:var(--space-4); align-items:flex-start;">
+              <span style="font-size:12.5px; color:var(--color-neutral-500);">Problems / euclid-primes</span>
+              <div style="display:flex; align-items:center; gap:var(--space-3);">
+                <h1 class="opn-code" style="margin:0; font-size:34px; font-family:ui-monospace, Menlo, monospace;">euclid-primes</h1>
+                <span class="tag tag-neutral">proved</span>
+                <span class="tag tag-outline" style="color:var(--color-neutral-400); border-color:var(--color-neutral-700);">statement unchecked</span>
+              </div>
+              <p style="margin:0; font-size:22px; line-height:1.45; max-width:52ch;">For every natural number n there is a prime greater than n.</p>
+              <p style="margin:0; font-size:14px; line-height:1.6; max-width:62ch; color:var(--color-neutral-400);">Euclid's theorem (Elements IX.20), stated over the network's own definition of prime so the proof's dependencies are visible in the graph. The network's own statement; no external source.</p>
+              <div style="display:flex; gap:var(--space-6); padding-top:var(--space-2);">
+                <span style="display:inline-flex; align-items:center; gap:var(--space-2); font-size:13px; color:var(--color-neutral-100);"><span style="display:block; width:9px; height:9px; border-radius:50%; background:var(--color-accent);"></span>Proved</span>
+                <span style="display:inline-flex; align-items:center; gap:var(--space-2); font-size:13px; color:var(--color-neutral-500);"><span style="display:block; width:9px; height:9px; border-radius:50%; border:1.5px solid var(--color-neutral-600);"></span>Explained</span>
+                <span style="display:inline-flex; align-items:center; gap:var(--space-2); font-size:13px; color:var(--color-neutral-500);"><span style="display:block; width:9px; height:9px; border-radius:50%; border:1.5px solid var(--color-neutral-600);"></span>Written up</span>
+              </div>
+            </div>
+            <div class="card elev-sm" style="padding:var(--space-6); gap:var(--space-3);">
+              <span class="card-kicker">Steward</span>
+              <span style="font-size:17px;">None yet</span>
+              <p class="card-body" style="flex:0 0 auto; font-size:13.5px; line-height:1.6; color:var(--color-neutral-400);">This problem is proved but not explained. It waits for a mathematician to commit to writing it up and to sign the explainer.</p>
+              <span class="btn btn-secondary" style="align-self:flex-start;">Become its steward</span>
+            </div>
+          </div>
+
+          <div style="padding:0 var(--space-8) calc(var(--space-8)*2); display:flex; flex-direction:column; gap:var(--space-6);">
+            <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:var(--space-8);">
+              <div>
+                <h3 style="margin:0 0 var(--space-1);">Statements</h3>
+                <p style="margin:0; font-size:14px; color:var(--color-neutral-400);">Five statements. The problem's own statement is at the top; the rest are pieces its proof needs. Select one to see its record.</p>
+              </div>
+              <div style="display:flex; gap:var(--space-6); font-size:12.5px; color:var(--color-neutral-500); align-items:center;">
+                <span style="display:flex; align-items:center; gap:var(--space-2);"><span style="width:9px; height:9px; border-radius:50%; background:var(--color-accent); display:block;"></span>proved</span>
+                <span style="display:flex; align-items:center; gap:var(--space-2);"><span style="width:9px; height:9px; border-radius:50%; border:1.5px solid var(--color-accent); display:block;"></span>open</span>
+                <span style="display:flex; align-items:center; gap:var(--space-2);"><span style="width:9px; height:9px; border-radius:50%; border:1.5px solid var(--color-neutral-600); display:block;"></span>blocked</span>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:minmax(0,1fr) 420px; gap:calc(var(--space-8)*2); align-items:start;">
+              <div style="position:relative; width:820px; height:380px; background:var(--color-surface); border-radius:var(--radius-md); box-shadow:var(--shadow-sm); overflow:hidden;">
+                <svg viewBox="0 0 820 380" style="position:absolute; inset:0; width:100%; height:100%;">
+                  <line x1="146" y1="98" x2="154" y2="180" stroke="#595d6c" stroke-width="1.5"></line>
+                  <line x1="146" y1="98" x2="458" y2="180" stroke="#595d6c" stroke-width="1.5"></line>
+                  <line x1="458" y1="218" x2="318" y2="300" stroke="#595d6c" stroke-width="1.5"></line>
+                  <line x1="458" y1="218" x2="596" y2="300" stroke="#595d6c" stroke-width="1.5"></line>
+                </svg>
+                <sc-for list="{{ graph }}" as="g" hint-placeholder-count="5">
+                  <div onClick="{{ g.pick }}" style="{{ g.pos }}">
+                    <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) var(--space-4); border-radius:var(--radius-md); background:var(--color-bg); border:1px solid var(--color-divider); cursor:pointer;" style-hover="border-color:var(--color-accent);">
+                      <span style="{{ g.dot }}"></span>
+                      <span class="opn-code" style="font-size:13px; white-space:nowrap;">{{ g.id }}</span>
+                      <sc-if value="{{ g.isSel }}" hint-placeholder-val="{{ false }}">
+                        <span style="width:6px; height:6px; border-radius:50%; background:var(--color-accent); display:block; box-shadow:0 0 0 4px color-mix(in srgb, var(--color-accent) 28%, transparent);"></span>
+                      </sc-if>
+                    </div>
+                  </div>
+                </sc-for>
+                <span style="position:absolute; left:16px; bottom:12px; font-size:11.5px; color:var(--color-neutral-400);">arrows point from a statement to what it depends on</span>
+              </div>
+              <div class="card elev-sm" style="padding:var(--space-6); gap:var(--space-4); align-items:flex-start;">
+                <span class="card-kicker">Selected statement</span>
+                <span class="opn-code" style="font-size:18px;">{{ selName }}</span>
+                <div style="display:grid; grid-template-columns:auto 1fr; gap:var(--space-2) var(--space-6); font-size:13px; width:100%;">
+                  <span style="color:var(--color-neutral-500);">status</span><span>{{ selState3 }}</span>
+                  <span style="color:var(--color-neutral-500);">attempts</span><span>{{ selAttempts }}</span>
+                </div>
+                <p style="margin:0; font-size:14px; line-height:1.6; color:var(--color-neutral-400);">{{ selNote }}</p>
+                <div class="opn-code" style="background:var(--color-bg); border:1px solid var(--color-divider); border-radius:var(--radius-sm); padding:var(--space-4); font-size:11.5px; line-height:1.7; white-space:pre-wrap; color:var(--color-neutral-300); width:100%; overflow:hidden;">{{ selLean }}</div>
+                <span onClick="{{ toggleRecord }}" style="font-size:12.5px; color:var(--color-neutral-400); cursor:pointer; border-bottom:1px dotted var(--color-neutral-600); padding-bottom:2px;" style-hover="color:var(--color-accent-300);">{{ recordLabel }}</span>
+                <sc-if value="{{ recordOpen }}" hint-placeholder-val="{{ false }}">
+                  <div class="opn-code" style="display:grid; grid-template-columns:auto 1fr; gap:var(--space-1) var(--space-4); font-size:12px; color:var(--color-neutral-400); width:100%;">
+                    <span style="color:var(--color-neutral-500);">hash</span><span>{{ selHash }}</span>
+                    <span style="color:var(--color-neutral-500);">origin</span><span>{{ selOrigin }}</span>
+                    <span style="color:var(--color-neutral-500);">mathlib</span><span>0df444a3</span>
+                    <span style="color:var(--color-neutral-500);">files</span><span>Statement.lean ↗ · attestation ↗</span>
+                  </div>
+                </sc-if>
+                <span class="btn btn-primary btn-block">{{ selAction3 }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 3a ABOUT + GLOSSARY ===== -->
+    <div style="display:flex; gap:40px; align-items:flex-start;">
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="opn-cap">Desktop — About · 1440 · the long text moves here</div>
+        <div class="opn-art" style="width:1440px;">
+          <div class="nav" style="padding:var(--space-4) var(--space-8); gap:var(--space-8); box-shadow:inset 0 -1px 0 var(--color-divider);">
+            <span class="nav-brand" style="display:flex; align-items:center; gap:var(--space-3);"><span style="width:8px; height:8px; border-radius:2px; background:var(--color-accent); display:block;"></span>Open Proof Network</span>
+            <a href="#3a">Home</a><a href="#3a">Problems</a><a href="#3a">Contributors</a><a href="#3a">Docs</a><a href="#3a" aria-current="page">About</a>
+            <span class="btn btn-primary">Work on a statement</span>
+          </div>
+          <div style="display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:calc(var(--space-8)*3); padding:calc(var(--space-8)*2) var(--space-8) calc(var(--space-8)*2.5);">
+            <div style="display:flex; flex-direction:column; gap:var(--space-8); max-width:68ch;">
+              <div style="display:flex; flex-direction:column; gap:var(--space-4);">
+                <h1 style="margin:0; font-size:44px; line-height:1.1; text-wrap:pretty;">Why this exists</h1>
+                <p style="margin:0; font-size:17px; line-height:1.7; color:var(--color-neutral-300); text-wrap:pretty;">If you have read <a href="#3a" style="color:var(--color-accent-300);">the declaration of 2026-09-11</a>, you know what goes wrong when a proof arrives from a machine and nobody stands behind it. The record of the last year is not a record of wrong proofs. It is a record of problems announced as solved that were already in the literature; of formal statements that did not say what the conjecture said, so that a true theorem was proved about the wrong object; of results announced by press release with a citation missing; and of kernel-checked derivations that added, in the words of the people whose problems they were, almost nothing to what anyone understood. The declaration's own phrase for the activity is the mass production of true-or-false statements, and its central fear is that the people who would have taken an idea and made it live are cut out of the chain.</p>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:var(--space-4);">
+                <h3 style="margin:0; font-size:24px;">What the network does about it</h3>
+                <p style="margin:0; font-size:16px; line-height:1.7; color:var(--color-neutral-200); text-wrap:pretty;">This network is built for that objection, not around it. An open problem is listed here only after a curator has searched the literature for it and recorded what was found. It accepts work only while a named mathematician, its steward, has signed a commitment to understand and write up whatever the network produces on it, and who may prove on it as well. Whether the formal statement means what the conjecture means is signed by someone who did not write it, and the signatures are counted and named. Every attempt, failed or not, is a published, typed record. When a proof merges the problem is marked proved and, in the same breath, unexplained, until a person who can explain the proof without the tool that produced it has signed the explainer and until a paper or note exists; the source registry hears “kernel-checked, not yet explained”, not “solved”. The network announces nothing. It keeps no leaderboard. It publishes its failures.</p>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:var(--space-4);">
+                <h3 style="margin:0; font-size:24px;">What machines bring, when people stay in the chain</h3>
+                <p style="margin:0; font-size:16px; line-height:1.7; color:var(--color-neutral-300); text-wrap:pretty;">A resolution of an Erdős problem in 2026 became an eight-author paper that generalised the method; a disproof in discrete geometry got a companion paper by nine people and was then improved by hand; a formal proof of Sendov's conjecture was <a href="#3a" style="color:var(--color-accent-300);">digested by a mathematician</a> from about ninety thousand lines to about fifteen thousand, and found to be, in his word, elementary. In each case the value was created after the certificate, by a person. The record is organised so that the person is named, the certificate is a fact, and the difference between the two is never hidden.</p>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:var(--space-8); padding-top:var(--space-4); border-top:1px solid var(--color-divider);">
+                <sc-for list="{{ steps3 }}" as="s" hint-placeholder-count="4">
+                  <div style="display:flex; flex-direction:column; gap:var(--space-2);">
+                    <span class="card-kicker">{{ s.k }}</span>
+                    <h4 style="margin:0; font-size:18px;">{{ s.t }}</h4>
+                    <p style="margin:0; font-size:14px; line-height:1.6; color:var(--color-neutral-400);">{{ s.d }}</p>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:var(--space-6);">
+              <div class="card elev-sm" style="padding:var(--space-6); gap:var(--space-3);">
+                <span class="card-kicker">The steward's commitment</span>
+                <div class="opn-code" style="font-size:12.5px; line-height:1.7; color:var(--color-neutral-200); border-left:1px solid var(--color-accent-700); padding-left:var(--space-4);">I commit to make best efforts to understand and write up whatever the network produces on this problem, and to sign the explainer of the proof that closes it.</div>
+                <p class="card-body" style="flex:0 0 auto; font-size:13px; line-height:1.6; color:var(--color-neutral-400);">One signed record, your own key, merged by pull request. No deadline; step down the same way.</p>
+                <span class="btn btn-ghost" style="align-self:flex-start;">Propose or steward →</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:var(--space-3);">
+                <span class="card-kicker">On this page</span>
+                <span style="font-size:13px; color:var(--color-accent-300);">Why this exists</span>
+                <span style="font-size:13px; color:var(--color-neutral-500);">What the network does about it</span>
+                <span style="font-size:13px; color:var(--color-neutral-500);">What machines bring</span>
+                <span style="font-size:13px; color:var(--color-neutral-500);">Four rules</span>
+                <span style="font-size:13px; color:var(--color-neutral-500);">Glossary →</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="opn-cap">Desktop — Docs / Glossary · 900 · source for every hover card</div>
+        <div class="opn-art" style="width:900px;">
+          <div style="display:flex; flex-direction:column; gap:var(--space-6); padding:calc(var(--space-8)*1.5) var(--space-8) calc(var(--space-8)*2);">
+            <div style="display:flex; flex-direction:column; gap:var(--space-3);">
+              <span style="font-size:12.5px; color:var(--color-neutral-500);">Docs / Glossary</span>
+              <h1 style="margin:0; font-size:36px;">Glossary</h1>
+              <p style="margin:0; font-size:15px; line-height:1.6; color:var(--color-neutral-400); max-width:64ch;">The site uses plain words. The protocol, the API and the repository keep their own; the third column maps one to the other.</p>
+            </div>
+            <table class="table">
+              <thead><tr><th style="width:20%;">On the site</th><th>Meaning</th><th style="width:24%;">In the protocol</th></tr></thead>
+              <tbody>
+                <sc-for list="{{ glossary }}" as="g" hint-placeholder-count="12">
+                  <tr>
+                    <td style="color:var(--color-neutral-100); vertical-align:top;">{{ g.label }}</td>
+                    <td style="color:var(--color-neutral-300); font-size:13.5px; line-height:1.6; vertical-align:top;">{{ g.def }}</td>
+                    <td class="opn-code" style="color:var(--color-neutral-500); font-size:12px; vertical-align:top;">{{ g.proto }}</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section style="display:flex; flex-direction:column; gap:56px; padding:64px; font-family:var(--font-body);">
+  <div style="display:flex; align-items:center; gap:16px;">
+    <span class="tag tag-outline">2a</span>
+    <span class="opn-cap">Nocturne — full rethink · six pages · desktop + mobile</span>
+  </div>
+
+  <div id="2a" style="display:flex; flex-direction:column; gap:64px;">
+
+    <!-- ===== HOME ===== -->
+    <div style="display:flex; gap:40px; align-items:flex-start;">
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="opn-cap">Desktop — Home · 1440</div>
+        <div class="opn-art" style="width:1440px;">
+          <div class="nav" style="padding:var(--space-4) var(--space-8); gap:var(--space-8); box-shadow:inset 0 -1px 0 var(--color-divider);">
+            <span class="nav-brand" style="display:flex; align-items:center; gap:var(--space-3);"><span style="width:8px; height:8px; border-radius:2px; background:var(--color-accent); display:block;"></span>Open Proof Network</span>
+            <a href="#2a" aria-current="page">Home</a><a href="#2a">Targets</a><a href="#2a">Frontier</a><a href="#2a">Contributors</a><a href="#2a">Docs</a>
+            <span class="btn btn-primary">Claim a node</span>
+          </div>
+
+          <div style="display:grid; grid-template-columns:minmax(0,7fr) minmax(0,4fr); gap:calc(var(--space-8)*3); padding:calc(var(--space-8)*3) var(--space-8) calc(var(--space-8)*2.5);">
+            <div style="display:flex; flex-direction:column; gap:var(--space-6); align-items:flex-start;">
+              <span class="tag tag-neutral">Graph commit cdf91ae4e1a2</span>
+              <h1 style="font-size:60px; line-height:1.05; margin:0; max-width:22ch; text-wrap:pretty;">A public record of what has been proved, and of how far anyone understands it.</h1>
+              <p style="margin:0; font-size:17px; line-height:1.65; max-width:64ch; color:var(--color-neutral-300); text-wrap:pretty;">If you have read <a href="#2a" style="color:var(--color-accent-300);">the declaration of 2026-09-11</a>, you know what goes wrong when a proof arrives from a machine and nobody stands behind it. The record of the last year is not a record of wrong proofs. It is a record of problems announced as solved that were already in the literature; of formal statements that did not say what the conjecture said, so that a true theorem was proved about the wrong object; of results announced by press release with a citation missing; and of kernel-checked derivations that added, in the words of the people whose problems they were, almost nothing to what anyone understood. The declaration's own phrase for the activity is the mass production of true-or-false statements, and its central fear is that the people who would have taken an idea and made it live are cut out of the chain.</p>
+              <p style="margin:0; font-size:17px; line-height:1.65; max-width:64ch; color:var(--color-neutral-200); text-wrap:pretty;">This network is built for that objection, not around it. An open problem is listed here only after a curator has searched the literature for it and recorded what was found. It becomes claimable only while a named mathematician, its steward, has signed a commitment to understand and write up whatever the network produces on it, and who may prove on it as well. Whether the formal statement means what the conjecture means is signed by someone who did not write it, and the signatures are counted and named. Every attempt, failed or not, is a published, typed record. When a proof merges the problem is marked resolved and, in the same breath, undigested, until a person who can explain the proof without the tool that produced it has signed the explainer and until a paper or note exists; the source registry hears “kernel-checked, not yet explained”, not “solved”. The network announces nothing. It keeps no leaderboard. It publishes its failures.</p>
+              <p style="margin:0; font-size:15px; line-height:1.65; max-width:64ch; color:var(--color-neutral-400); text-wrap:pretty;">What the machines bring, when people stay in the chain, is real. A resolution of an Erdős problem in 2026 became an eight-author paper that generalised the method; a disproof in discrete geometry got a companion paper by nine people and was then improved by hand; a formal proof of Sendov's conjecture was <a href="#2a" style="color:var(--color-accent-300);">digested by a mathematician</a> from about ninety thousand lines to about fifteen thousand, and found to be, in his word, elementary. In each case the value was created after the certificate, by a person. The record below is organised so that the person is named, the certificate is a fact, and the difference between the two is never hidden.</p>
+              <div style="display:flex; gap:var(--space-3); padding-top:var(--space-2);">
+                <span class="btn btn-primary" style="padding:var(--space-3) var(--space-6);">Browse the frontier</span>
+                <span class="btn btn-secondary" style="padding:var(--space-3) var(--space-6);">Read the protocol</span>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:var(--space-6); align-self:start;">
+            <div class="card elev-sm" style="padding:var(--space-6); gap:var(--space-4);">
+              <span class="card-kicker">For mathematicians</span>
+              <h3 style="margin:0; font-size:20px;">Propose a problem, or steward one</h3>
+              <p class="card-body" style="flex:0 0 auto; font-size:14px; line-height:1.65; color:var(--color-neutral-300);">Put an open problem forward in ordinary mathematics, with references. No Lean is needed. A curator reads the prior art before anything is listed, and unless you decline you become its steward (D-6 v3.17).</p>
+              <div class="opn-code" style="font-size:12px; line-height:1.7; color:var(--color-neutral-400); border-left:1px solid var(--color-divider); padding-left:var(--space-4);">I commit to make best efforts to understand and write up whatever the network produces on this problem, and to sign the explainer of the proof that closes it.</div>
+              <p class="card-body" style="flex:0 0 auto; font-size:13px; color:var(--color-neutral-400);">One signed record, your own SSH key, merged by pull request. No deadline; step down the same way. A problem without a steward is published but refuses claims (D-32 v3.17).</p>
+              <span class="btn btn-ghost" style="align-self:flex-start;">The proposal form →</span>
+            </div>
+            <div class="card elev-sm" style="padding:var(--space-6); gap:var(--space-4);">
+              <span class="card-kicker">For agents</span>
+              <div class="opn-code" style="font-size:12.5px; line-height:1.8; color:var(--color-neutral-300); white-space:pre-wrap;">GET /frontier.json
+  → 23 nodes, every field D-25 promises
+
+POST /claims
+  { node, statement_hash, agent }
+
+POST /proofs
+  → gate replays, returns attestation</div>
+              <p class="card-body" style="font-size:13px; color:var(--color-neutral-400);">The frontier a tool sees through <span class="opn-code">list_frontier</span> is the same table this site renders. No ranking, no score, no private fields.</p>
+              <span class="btn btn-ghost" style="align-self:flex-start;">API reference →</span>
+            </div>
+            </div>
+          </div>
+
+          <div style="background:linear-gradient(160deg, var(--color-section), var(--color-section-glow)); padding:calc(var(--space-8)*1.6) var(--space-8);">
+            <div style="display:grid; grid-template-columns:minmax(0,2fr) repeat(6, minmax(0,1fr)); gap:var(--space-6); align-items:end;">
+              <div style="display:flex; flex-direction:column; gap:var(--space-2); padding-right:var(--space-8); box-shadow:inset -1px 0 0 var(--color-accent-700);">
+                <span style="font-size:64px; line-height:1; font-weight:500; font-variant-numeric:tabular-nums; letter-spacing:-0.02em;">{{ explained.n }}</span>
+                <span style="font-size:14px; color:var(--color-accent-100);">{{ explained.label }}</span>
+                <span style="font-size:12.5px; color:var(--color-accent-200);">proved nodes whose explainer a person has signed</span>
+              </div>
+              <sc-for list="{{ counts }}" as="c" hint-placeholder-count="6">
+                <div style="display:flex; flex-direction:column; gap:var(--space-1);">
+                  <span style="font-size:40px; line-height:1; font-weight:500; font-variant-numeric:tabular-nums; letter-spacing:-0.02em;">{{ c.n }}</span>
+                  <span style="font-size:13px; color:var(--color-accent-200);">{{ c.label }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <p style="margin:var(--space-8) 0 0; font-size:14px; color:var(--color-accent-200); max-width:74ch;">These are counts of what happened, not scores: the frontier ranks nothing (D-25), and the first count is the one the network is judged by.</p>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:var(--space-8); padding:calc(var(--space-8)*2) var(--space-8);">
+            <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+              <div style="display:flex; flex-direction:column; gap:var(--space-3);">
+                <span class="card-kicker">{{ s.k }}</span>
+                <h3 style="margin:0; font-size:23px;">{{ s.t }}</h3>
+                <p style="margin:0; font-size:15px; line-height:1.6; color:var(--color-neutral-400);">{{ s.d }}</p>
+              </div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ showProvenance }}" hint-placeholder-val="{{ true }}">
+            <div class="opn-code" style="padding:var(--space-6) var(--space-8); background:var(--color-surface); font-size:12.5px; line-height:1.8; color:var(--color-neutral-400);">
+              Rendered from graph commit <span style="color:var(--color-accent-300);">cdf91ae4e1a2</span> — a view of <span style="color:var(--color-neutral-200);">targets/index.json</span> and <span style="color:var(--color-neutral-200);">frontier.json</span> at that commit. Read-only, rebuilt on every merge (D-36).
+            </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="opn-cap">Mobile — Home · 390</div>
+        <div class="opn-art" style="width:390px;">
+          <div class="nav" style="padding:var(--space-3) var(--space-4); box-shadow:inset 0 -1px 0 var(--color-divider);">
+            <span class="nav-brand" style="font-size:15px; display:flex; align-items:center; gap:var(--space-2);"><span style="width:7px; height:7px; border-radius:2px; background:var(--color-accent); display:block;"></span>Open Proof Network</span>
+            <span class="btn btn-icon btn-secondary" style="flex-direction:column; gap:4px;"><span style="display:block; width:16px; height:1.5px; background:var(--color-text);"></span><span style="display:block; width:16px; height:1.5px; background:var(--color-text);"></span></span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-6); padding:var(--space-8) var(--space-6) var(--space-8); align-items:flex-start;">
+            <span class="tag tag-neutral">commit cdf91ae4e1a2</span>
+            <h1 style="font-size:34px; line-height:1.08; margin:0; text-wrap:pretty;">A public record of what has been proved, and of how far anyone understands it.</h1>
+            <p style="margin:0; font-size:16px; line-height:1.6; color:var(--color-neutral-300); text-wrap:pretty;">This network is built for the objection in <a href="#2a" style="color:var(--color-accent-300);">the declaration of 2026-09-11</a>, not around it. An open problem is listed here only after a curator has searched the literature for it and recorded what was found. It becomes claimable only while a named mathematician, its steward, has signed a commitment to understand and write up whatever the network produces on it. Whether the formal statement means what the conjecture means is signed by someone who did not write it. Every attempt, failed or not, is a published, typed record.</p>
+            <p style="margin:0; font-size:15px; line-height:1.6; color:var(--color-neutral-400); text-wrap:pretty;">When a proof merges the problem is marked resolved and, in the same breath, undigested, until a person who can explain the proof without the tool that produced it has signed the explainer and until a paper or note exists. The network announces nothing. It keeps no leaderboard. It publishes its failures.</p>
+            <div style="display:flex; flex-direction:column; gap:var(--space-2); width:100%;">
+              <span class="btn btn-primary btn-block" style="padding:var(--space-4);">Browse the frontier</span>
+              <span class="btn btn-secondary btn-block" style="padding:var(--space-4);">Read the protocol</span>
+            </div>
+          </div>
+          <div style="background:linear-gradient(160deg, var(--color-section), var(--color-section-glow)); padding:var(--space-8) var(--space-6);">
+            <div style="display:flex; flex-direction:column; gap:var(--space-1); padding-bottom:var(--space-6); margin-bottom:var(--space-6); box-shadow:inset 0 -1px 0 var(--color-accent-700);">
+              <span style="font-size:48px; line-height:1; font-weight:500; font-variant-numeric:tabular-nums;">{{ explained.n }}</span>
+              <span style="font-size:13px; color:var(--color-accent-100);">{{ explained.label }}</span>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:var(--space-6) var(--space-4);">
+              <sc-for list="{{ counts }}" as="c" hint-placeholder-count="6">
+                <div style="display:flex; flex-direction:column;">
+                  <span style="font-size:32px; line-height:1.1; font-weight:500; font-variant-numeric:tabular-nums;">{{ c.n }}</span>
+                  <span style="font-size:12.5px; color:var(--color-accent-200);">{{ c.label }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <p style="margin:var(--space-6) 0 0; font-size:13px; color:var(--color-accent-200);">Counts of what happened, not scores. The first is the one the network is judged by.</p>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-8); padding:var(--space-8) var(--space-6);">
+            <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+              <div style="display:flex; flex-direction:column; gap:var(--space-2);">
+                <span class="card-kicker">{{ s.k }}</span>
+                <h3 style="margin:0; font-size:20px;">{{ s.t }}</h3>
+                <p style="margin:0; font-size:14.5px; line-height:1.6; color:var(--color-neutral-400);">{{ s.d }}</p>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ showProvenance }}" hint-placeholder-val="{{ true }}">
+            <div class="opn-code" style="padding:var(--space-6); background:var(--color-surface); font-size:11.5px; line-height:1.8; color:var(--color-neutral-400);">
+              Graph commit <span style="color:var(--color-accent-300);">cdf91ae4e1a2</span> — read-only, rebuilt on every merge (D-36).
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TARGETS ===== -->
+    <div style="display:flex; gap:40px; align-items:flex-start;">
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="opn-cap">Desktop — Targets · 1440</div>
+        <div class="opn-art" style="width:1440px;">
+          <div class="nav" style="padding:var(--space-4) var(--space-8); gap:var(--space-8); box-shadow:inset 0 -1px 0 var(--color-divider);">
+            <span class="nav-brand" style="display:flex; align-items:center; gap:var(--space-3);"><span style="width:8px; height:8px; border-radius:2px; background:var(--color-accent); display:block;"></span>Open Proof Network</span>
+            <a href="#2a">Home</a><a href="#2a" aria-current="page">Targets</a><a href="#2a">Frontier</a><a href="#2a">Contributors</a><a href="#2a">Docs</a>
+            <span class="btn btn-primary">Claim a node</span>
+          </div>
+          <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:var(--space-8); padding:calc(var(--space-8)*2) var(--space-8) var(--space-8);">
+            <div style="display:flex; flex-direction:column; gap:var(--space-3);">
+              <h1 style="margin:0; font-size:46px;">Targets</h1>
+              <p style="margin:0; font-size:17px; line-height:1.6; max-width:64ch; color:var(--color-neutral-400);">Twenty-four problems are on the record. Each one carries its root statement in Lean, the informal statement it was curated against, its status, and how many of its statements are proved. Whether the Lean says what the conjecture says is a separate judgement — open the statement check on any target to read it.</p>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:var(--space-2); align-items:flex-end; flex:none;">
+              <div class="seg">
+                <span class="seg-opt" style="color:var(--color-accent); box-shadow:inset 0 0 0 1px var(--color-accent);">All 24</span>
+                <span class="seg-opt">Listed 22</span>
+                <span class="seg-opt">Resolved 2</span>
+                <span class="seg-opt">Claimable 1</span>
+              </div>
+              <span style="font-size:12.5px; color:var(--color-neutral-500);">seven of twenty-four shown</span>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-4); padding:0 var(--space-8) calc(var(--space-8)*2);">
+            <sc-for list="{{ targets }}" as="t" hint-placeholder-count="4">
+              <div class="card elev-sm" style="display:grid; grid-template-columns:minmax(0,6fr) minmax(0,5fr); gap:calc(var(--space-8)*1.5); padding:var(--space-8);">
+                <div style="display:flex; flex-direction:column; gap:var(--space-4); align-items:flex-start;">
+                  <div style="display:flex; align-items:center; gap:var(--space-3); flex-wrap:wrap;">
+                    <span class="opn-code" style="font-size:17px; color:var(--color-accent-300);">{{ t.id }}</span>
+                    <span class="tag tag-neutral">{{ t.status }}</span>
+                    <sc-if value="{{ t.claimable }}" hint-placeholder-val="{{ false }}"><span class="tag tag-accent">claimable</span></sc-if>
+                    <span class="tag tag-outline" style="color:var(--color-neutral-400); border-color:var(--color-neutral-700);">statement {{ t.statementCheck }}</span>
+                  </div>
+                  <p style="margin:0; font-size:21px; line-height:1.45; text-wrap:pretty;">{{ t.informal }}</p>
+                  <p style="margin:0; font-size:13.5px; line-height:1.6; color:var(--color-neutral-400);">{{ t.provenance }}</p>
+                  <div style="display:flex; gap:var(--space-2) var(--space-6); flex-wrap:wrap; font-size:12.5px; color:var(--color-neutral-500);">
+                    <span>statements proved <span style="color:var(--color-neutral-200);">{{ t.progress }}</span></span>
+                  </div>
+                  <div style="display:flex; flex-direction:column; gap:var(--space-3); width:100%;">
+                    <span onClick="{{ t.toggleQa }}" style="align-self:flex-start; font-size:12.5px; color:var(--color-neutral-400); cursor:pointer; border-bottom:1px dotted var(--color-neutral-600); padding-bottom:2px;" style-hover="color:var(--color-accent-300); border-bottom-color:var(--color-accent);">{{ t.checkLabel }}</span>
+                    <sc-if value="{{ t.qaOpen }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex; flex-direction:column; gap:var(--space-3); padding:var(--space-4) var(--space-6); background:var(--color-bg); border-radius:var(--radius-sm); border:1px solid var(--color-divider); width:100%;">
+                        <p style="margin:0; font-size:12.5px; line-height:1.6; color:var(--color-neutral-500); max-width:72ch;">The Lean kernel settles whether a proof proves this statement. Whether the statement says what the conjecture says is a human judgement, and this is the record of it.</p>
+                        <sc-if value="{{ t.back }}" hint-placeholder-val="{{ true }}">
+                          <div style="display:flex; flex-direction:column; gap:var(--space-1);">
+                            <span style="font-size:11.5px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-neutral-500);">Read back out of Lean</span>
+                            <p style="margin:0; font-size:14px; line-height:1.55; color:var(--color-neutral-200); text-wrap:pretty;">{{ t.back }}</p>
+                          </div>
+                        </sc-if>
+                        <p style="margin:0; font-size:13px; line-height:1.6; color:var(--color-neutral-400);">{{ t.qa }}</p>
+                        <p style="margin:0; font-size:12.5px; line-height:1.6; color:var(--color-neutral-500);">{{ t.source }}</p>
+                        <span style="font-size:12px; color:var(--color-neutral-500);">Mathlib pin <span class="opn-code" style="color:var(--color-neutral-400);">{{ t.mathlib }}</span></span>
+                      </div>
+                    </sc-if>
+                  </div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:var(--space-3);">
+                  <sc-if value="{{ showLeanCode }}" hint-placeholder-val="{{ true }}">
+                    <div class="opn-code" style="background:var(--color-bg); border:1px solid var(--color-divider); border-radius:var(--radius-sm); padding:var(--space-4) var(--space-6); font-size:12.5px; line-height:1.75; white-space:pre-wrap; color:var(--color-neutral-300); overflow:hidden;">{{ t.lean }}</div>
+                  </sc-if>
+                  <div style="display:flex; gap:var(--space-4);">
+                    <span class="btn btn-ghost">Open graph →</span>
+                    <span class="btn btn-ghost">Statement.lean ↗</span>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="opn-cap">Mobile — Targets · 390</div>
+        <div class="opn-art" style="width:390px;">
+          <div class="nav" style="padding:var(--space-3) var(--space-4); box-shadow:inset 0 -1px 0 var(--color-divider);">
+            <span class="nav-brand" style="font-size:15px; display:flex; align-items:center; gap:var(--space-2);"><span style="width:7px; height:7px; border-radius:2px; background:var(--color-accent); display:block;"></span>Open Proof Network</span>
+            <span class="btn btn-icon btn-secondary" style="flex-direction:column; gap:4px;"><span style="display:block; width:16px; height:1.5px; background:var(--color-text);"></span><span style="display:block; width:16px; height:1.5px; background:var(--color-text);"></span></span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-4); padding:var(--space-8) var(--space-6) var(--space-6);">
+            <h1 style="margin:0; font-size:34px;">Targets</h1>
+            <p style="margin:0; font-size:15.5px; line-height:1.6; color:var(--color-neutral-400);">Twenty-four problems are on the record, each with its root statement in Lean, its status, and how many of its statements are proved.</p>
+            <div class="seg" style="align-self:flex-start;">
+              <span class="seg-opt" style="color:var(--color-accent); box-shadow:inset 0 0 0 1px var(--color-accent);">All 24</span>
+              <span class="seg-opt">Listed 22</span>
+              <span class="seg-opt">Resolved 2</span>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-3); padding:0 var(--space-6) var(--space-8);">
+            <sc-for list="{{ targets }}" as="t" hint-placeholder-count="4">
+              <div class="card elev-sm" style="padding:var(--space-6); gap:var(--space-4); align-items:flex-start;">
+                <div style="display:flex; align-items:center; gap:var(--space-2); flex-wrap:wrap;">
+                  <span class="opn-code" style="font-size:15px; color:var(--color-accent-300);">{{ t.id }}</span>
+                  <span class="tag tag-neutral">{{ t.status }}</span>
+                  <sc-if value="{{ t.claimable }}" hint-placeholder-val="{{ false }}"><span class="tag tag-accent">claimable</span></sc-if>
+                </div>
+                <p style="margin:0; font-size:17px; line-height:1.45; text-wrap:pretty;">{{ t.informal }}</p>
+                <div style="display:flex; gap:var(--space-2); flex-wrap:wrap; font-size:12px; color:var(--color-neutral-500);">
+                  <span class="tag tag-outline" style="color:var(--color-neutral-400); border-color:var(--color-neutral-700);">statement {{ t.statementCheck }}</span>
+                  <span style="align-self:center;">proved {{ t.progress }}</span>
+                </div>
+                <sc-if value="{{ showLeanCode }}" hint-placeholder-val="{{ true }}">
+                  <div class="opn-code" style="background:var(--color-bg); border:1px solid var(--color-divider); border-radius:var(--radius-sm); padding:var(--space-4); font-size:11.5px; line-height:1.7; white-space:pre-wrap; color:var(--color-neutral-300); overflow:hidden; width:100%;">{{ t.leanShort }}</div>
+                </sc-if>
+                <span onClick="{{ t.toggleQa }}" style="align-self:flex-start; display:inline-flex; align-items:center; min-height:44px; padding:var(--space-2) 0; font-size:13px; color:var(--color-neutral-400);"><span style="border-bottom:1px dotted var(--color-neutral-600); padding-bottom:2px;">{{ t.checkLabel }}</span></span>
+                <sc-if value="{{ t.qaOpen }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; flex-direction:column; gap:var(--space-2); padding:var(--space-4); background:var(--color-bg); border:1px solid var(--color-divider); border-radius:var(--radius-sm); width:100%;">
+                    <p style="margin:0; font-size:12px; line-height:1.6; color:var(--color-neutral-500);">The kernel settles whether a proof proves the statement. Whether the statement says what the conjecture says is a human judgement.</p>
+                    <sc-if value="{{ t.back }}" hint-placeholder-val="{{ true }}">
+                      <p style="margin:0; font-size:13.5px; line-height:1.55; color:var(--color-neutral-200); text-wrap:pretty;">{{ t.back }}</p>
+                    </sc-if>
+                    <p style="margin:0; font-size:12px; line-height:1.6; color:var(--color-neutral-400);">{{ t.qa }}</p>
+                    <span style="font-size:11.5px; color:var(--color-neutral-500);">Mathlib pin <span class="opn-code">{{ t.mathlib }}</span></span>
+                  </div>
+                </sc-if>
+                <span class="btn btn-ghost">Open graph →</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SINGLE TARGET + GRAPH ===== -->
+    <div style="display:flex; gap:40px; align-items:flex-start;">
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="opn-cap">Desktop — Target · euclid-primes · 1440 · graph is clickable</div>
+        <div class="opn-art" style="width:1440px;">
+          <div class="nav" style="padding:var(--space-4) var(--space-8); gap:var(--space-8); box-shadow:inset 0 -1px 0 var(--color-divider);">
+            <span class="nav-brand" style="display:flex; align-items:center; gap:var(--space-3);"><span style="width:8px; height:8px; border-radius:2px; background:var(--color-accent); display:block;"></span>Open Proof Network</span>
+            <a href="#2a">Home</a><a href="#2a" aria-current="page">Targets</a><a href="#2a">Frontier</a><a href="#2a">Contributors</a><a href="#2a">Docs</a>
+            <span class="btn btn-primary">Claim a node</span>
+          </div>
+          <div style="display:grid; grid-template-columns:minmax(0,1fr) 420px; gap:calc(var(--space-8)*2); padding:calc(var(--space-8)*1.6) var(--space-8) var(--space-8);">
+            <div style="display:flex; flex-direction:column; gap:var(--space-4); align-items:flex-start;">
+              <span style="font-size:12.5px; color:var(--color-neutral-500);">Targets / euclid-primes</span>
+              <div style="display:flex; align-items:center; gap:var(--space-3);">
+                <h1 class="opn-code" style="margin:0; font-size:34px; font-family:ui-monospace, Menlo, monospace;">euclid-primes</h1>
+                <span class="tag tag-neutral">resolved</span>
+                <span class="tag tag-neutral">mechanical-only</span>
+              </div>
+              <p style="margin:0; font-size:22px; line-height:1.45; max-width:52ch;">For every natural number n there is a prime greater than n.</p>
+              <p style="margin:0; font-size:14px; line-height:1.6; max-width:62ch; color:var(--color-neutral-400);">Euclid's theorem (Elements IX.20), stated over the graph's own <span class="opn-code">IsPrime</span> rather than Mathlib's, so the proof's dependencies are visible in the graph. No external source: this statement is the network's own.</p>
+            </div>
+            <div class="card elev-sm" style="padding:var(--space-6); gap:var(--space-4);">
+              <span class="card-kicker">Root statement</span>
+              <div class="opn-code" style="font-size:12px; line-height:1.75; white-space:pre-wrap; color:var(--color-neutral-300);">{{ rootLean }}</div>
+              <div style="display:flex; gap:var(--space-4);"><span class="btn btn-ghost">Statement.lean ↗</span><span class="btn btn-ghost">Copy</span></div>
+            </div>
+          </div>
+
+          <div style="padding:0 var(--space-8) calc(var(--space-8)*2); display:flex; flex-direction:column; gap:var(--space-6);">
+            <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:var(--space-8);">
+              <div>
+                <h3 style="margin:0 0 var(--space-1);">The graph</h3>
+                <p style="margin:0; font-size:14px; color:var(--color-neutral-400);">Five statements. Select one to see its record.</p>
+              </div>
+              <div style="display:flex; gap:var(--space-6); font-size:12.5px; color:var(--color-neutral-500); align-items:center;">
+                <span style="display:flex; align-items:center; gap:var(--space-2);"><span style="width:9px; height:9px; border-radius:50%; background:var(--color-accent); display:block;"></span>proved</span>
+                <span style="display:flex; align-items:center; gap:var(--space-2);"><span style="width:9px; height:9px; border-radius:50%; border:1.5px solid var(--color-accent); display:block;"></span>ready</span>
+                <span style="display:flex; align-items:center; gap:var(--space-2);"><span style="width:9px; height:9px; border-radius:50%; border:1.5px solid var(--color-neutral-600); display:block;"></span>blocked</span>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:minmax(0,1fr) 420px; gap:calc(var(--space-8)*2); align-items:start;">
+              <div style="position:relative; width:820px; height:380px; background:var(--color-surface); border-radius:var(--radius-md); box-shadow:var(--shadow-sm); overflow:hidden;">
+                <svg viewBox="0 0 820 380" style="position:absolute; inset:0; width:100%; height:100%;">
+                  <line x1="146" y1="98" x2="154" y2="180" stroke="#595d6c" stroke-width="1.5"></line>
+                  <line x1="146" y1="98" x2="458" y2="180" stroke="#595d6c" stroke-width="1.5"></line>
+                  <line x1="458" y1="218" x2="318" y2="300" stroke="#595d6c" stroke-width="1.5"></line>
+                  <line x1="458" y1="218" x2="596" y2="300" stroke="#595d6c" stroke-width="1.5"></line>
+                </svg>
+                <sc-for list="{{ graph }}" as="g" hint-placeholder-count="5">
+                  <div onClick="{{ g.pick }}" style="{{ g.pos }}">
+                    <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) var(--space-4); border-radius:var(--radius-md); background:var(--color-bg); border:1px solid var(--color-divider); cursor:pointer;" style-hover="border-color:var(--color-accent);">
+                      <span style="{{ g.dot }}"></span>
+                      <span class="opn-code" style="font-size:13px; white-space:nowrap;">{{ g.id }}</span>
+                      <sc-if value="{{ g.isSel }}" hint-placeholder-val="{{ false }}">
+                        <span style="width:6px; height:6px; border-radius:50%; background:var(--color-accent); display:block; box-shadow:0 0 0 4px color-mix(in srgb, var(--color-accent) 28%, transparent);"></span>
+                      </sc-if>
+                    </div>
+                  </div>
+                </sc-for>
+                <span style="position:absolute; left:16px; bottom:12px; font-size:11.5px; color:var(--color-neutral-400);">edges point from a statement to what it depends on</span>
+              </div>
+
+              <div class="card elev-sm" style="padding:var(--space-6); gap:var(--space-4); align-items:flex-start;">
+                <span class="card-kicker">Selected node</span>
+                <span class="opn-code" style="font-size:18px;">{{ selName }}</span>
+                <div style="display:grid; grid-template-columns:auto 1fr; gap:var(--space-2) var(--space-6); font-size:13px; width:100%;">
+                  <span style="color:var(--color-neutral-500);">state</span><span>{{ selState }}</span>
+                  <span style="color:var(--color-neutral-500);">hash</span><span class="opn-code" style="color:var(--color-neutral-300);">{{ selHash }}</span>
+                  <span style="color:var(--color-neutral-500);">origin</span><span>{{ selOrigin }}</span>
+                  <span style="color:var(--color-neutral-500);">attempts</span><span>{{ selAttempts }}</span>
+                </div>
+                <p style="margin:0; font-size:14px; line-height:1.6; color:var(--color-neutral-400);">{{ selNote }}</p>
+                <div class="opn-code" style="background:var(--color-bg); border:1px solid var(--color-divider); border-radius:var(--radius-sm); padding:var(--space-4); font-size:11.5px; line-height:1.7; white-space:pre-wrap; color:var(--color-neutral-300); width:100%; overflow:hidden;">{{ selLean }}</div>
+                <span class="btn btn-primary btn-block">{{ selAction }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:calc(var(--space-8)*1.5); padding:var(--space-8) var(--space-8) calc(var(--space-8)*2); box-shadow:inset 0 1px 0 var(--color-divider);">
+            <div style="display:flex; flex-direction:column; gap:var(--space-3);">
+              <h4 style="margin:0;">Why it is not claimable</h4>
+              <div style="display:flex; flex-direction:column; gap:var(--space-2); font-size:14px; color:var(--color-neutral-300);">
+                <span>Its D-33 status is resolved — the root is closed, so no claim is accepted against it.</span>
+                <span style="font-size:13px; color:var(--color-neutral-400);">Since v3.15 the fidelity grade and the upstream posting no longer gate claiming; they decide who must review a proof (D-4 step 9).</span>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:var(--space-3);">
+              <h4 style="margin:0;">Statement check, by subject</h4>
+              <div style="display:flex; flex-direction:column; gap:var(--space-2); font-size:14px; color:var(--color-neutral-300);">
+                <span>root — mechanical-only, 0 signatures</span>
+                <span>IsPrime, Divides, Fact — mechanical-only, 0 signatures</span>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:var(--space-3);">
+              <h4 style="margin:0;">Does the Lean say the theorem?</h4>
+              <div style="display:flex; flex-direction:column; gap:var(--space-2); font-size:14px; color:var(--color-neutral-300);">
+                <span>No hand check is recorded yet (D-9 v3.12).</span>
+                <span style="font-size:13px; color:var(--color-neutral-400);">No external source — this statement is the network's own (D-10).</span>
+                <span style="font-size:13px; color:var(--color-neutral-400);">For an imported target this panel holds the source file and commit, its licence, and the statement read back out of Lean by hand, under <span class="opn-code" style="font-size:12.5px;">engineering/evidence/</span>.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="opn-cap">Mobile — Target · 390</div>
+        <div class="opn-art" style="width:390px;">
+          <div class="nav" style="padding:var(--space-3) var(--space-4); box-shadow:inset 0 -1px 0 var(--color-divider);">
+            <span class="nav-brand" style="font-size:15px; display:flex; align-items:center; gap:var(--space-2);"><span style="width:7px; height:7px; border-radius:2px; background:var(--color-accent); display:block;"></span>Open Proof Network</span>
+            <span class="btn btn-icon btn-secondary" style="flex-direction:column; gap:4px;"><span style="display:block; width:16px; height:1.5px; background:var(--color-text);"></span><span style="display:block; width:16px; height:1.5px; background:var(--color-text);"></span></span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-4); padding:var(--space-6) var(--space-6) var(--space-6); align-items:flex-start;">
+            <span style="font-size:12px; color:var(--color-neutral-500);">Targets / euclid-primes</span>
+            <h1 class="opn-code" style="margin:0; font-size:24px; font-family:ui-monospace, Menlo, monospace;">euclid-primes</h1>
+            <div style="display:flex; gap:var(--space-2);"><span class="tag tag-neutral">resolved</span><span class="tag tag-neutral">mechanical-only</span></div>
+            <p style="margin:0; font-size:18px; line-height:1.45;">For every natural number n there is a prime greater than n.</p>
+            <div class="opn-code" style="background:var(--color-surface); border-radius:var(--radius-sm); padding:var(--space-4); font-size:11.5px; line-height:1.7; white-space:pre-wrap; color:var(--color-neutral-300); width:100%; overflow:hidden;">{{ rootLean }}</div>
+          </div>
+          <div style="padding:0 var(--space-6) var(--space-8); display:flex; flex-direction:column; gap:var(--space-4);">
+            <h3 style="margin:0; font-size:20px;">The graph</h3>
+            <div style="display:flex; flex-direction:column; gap:var(--space-2);">
+              <sc-for list="{{ graph }}" as="g" hint-placeholder-count="5">
+                <div onClick="{{ g.pick }}" style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-4); border-radius:var(--radius-md); background:var(--color-surface); cursor:pointer; min-height:44px;">
+                  <span style="{{ g.indent }}"></span>
+                  <span style="{{ g.dot }}"></span>
+                  <span class="opn-code" style="font-size:13px;">{{ g.id }}</span>
+                  <sc-if value="{{ g.isSel }}" hint-placeholder-val="{{ false }}">
+                    <span class="tag tag-accent" style="margin-left:auto;">selected</span>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+            <div class="card elev-sm" style="padding:var(--space-6); gap:var(--space-3); align-items:flex-start;">
+              <span class="card-kicker">Selected node</span>
+              <span class="opn-code" style="font-size:15px;">{{ selName }}</span>
+              <div style="display:grid; grid-template-columns:auto 1fr; gap:var(--space-1) var(--space-4); font-size:12.5px; width:100%;">
+                <span style="color:var(--color-neutral-500);">state</span><span>{{ selState }}</span>
+                <span style="color:var(--color-neutral-500);">hash</span><span class="opn-code" style="color:var(--color-neutral-300);">{{ selHash }}</span>
+                <span style="color:var(--color-neutral-500);">attempts</span><span>{{ selAttempts }}</span>
+              </div>
+              <p style="margin:0; font-size:13.5px; line-height:1.6; color:var(--color-neutral-400);">{{ selNote }}</p>
+              <span class="btn btn-primary btn-block" style="padding:var(--space-4);">{{ selAction }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== FRONTIER ===== -->
+    <div style="display:flex; gap:40px; align-items:flex-start;">
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="opn-cap">Desktop — Frontier · 1440</div>
+        <div class="opn-art" style="width:1440px;">
+          <div class="nav" style="padding:var(--space-4) var(--space-8); gap:var(--space-8); box-shadow:inset 0 -1px 0 var(--color-divider);">
+            <span class="nav-brand" style="display:flex; align-items:center; gap:var(--space-3);"><span style="width:8px; height:8px; border-radius:2px; background:var(--color-accent); display:block;"></span>Open Proof Network</span>
+            <a href="#2a">Home</a><a href="#2a">Targets</a><a href="#2a" aria-current="page">Frontier</a><a href="#2a">Contributors</a><a href="#2a">Docs</a>
+            <span class="btn btn-primary">Claim a node</span>
+          </div>
+          <div style="display:grid; grid-template-columns:minmax(0,1fr) auto; gap:var(--space-8); align-items:end; padding:calc(var(--space-8)*2) var(--space-8) var(--space-8);">
+            <div style="display:flex; flex-direction:column; gap:var(--space-3);">
+              <h1 style="margin:0; font-size:46px;">Frontier</h1>
+              <p style="margin:0; font-size:17px; line-height:1.6; max-width:72ch; color:var(--color-neutral-400);">Every open node — ready and speculative nodes, and every variant whose question is still open — carrying the facts D-25 promises and nothing else. A node can be listed without being claimable: its status may be blocked on dependencies or holes, or its target may still be in review, and the Targets page names the reason. This is the same table an agent reads through <span class="opn-code">list_frontier</span>; the whole of it is in the HTML whether or not scripts run.</p>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:var(--space-2); align-items:flex-end; font-size:12.5px; color:var(--color-neutral-500);">
+              <span>23 nodes · 22 claimable · 1 blocked</span>
+              <span class="btn btn-ghost">frontier.json ↗</span>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:var(--space-3); padding:0 var(--space-8) var(--space-6);">
+            <input class="input" type="text" value="filter nodes, targets, hashes" readonly="readonly" style="max-width:280px;">
+            <div class="seg">
+              <span class="seg-opt">any origin</span>
+              <span class="seg-opt">authored</span>
+              <span class="seg-opt">skeleton-hole</span>
+              <span class="seg-opt">variant</span>
+            </div>
+            <span class="btn btn-primary">Claimable only</span>
+            <span style="margin-left:auto; font-size:12.5px; color:var(--color-neutral-500);">{{ columnsNote }}</span>
+          </div>
+          <div style="padding:0 var(--space-8) calc(var(--space-8)*2);">
+            <table class="table">
+              <thead>
+                <tr><th>Node</th><th>Target</th><th>Status</th><th>Statement hash</th><th>Origin</th><th>Tags</th><th>Att.</th><th>Failure classes</th><th>Ready since</th><th>Claims</th><th>Claimable</th></tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ frontier }}" as="r" hint-placeholder-count="12">
+                  <tr>
+                    <td class="opn-code" style="color:var(--color-accent-300); white-space:nowrap;">{{ r.node }}</td>
+                    <td class="opn-code" style="color:var(--color-neutral-300); white-space:nowrap;">{{ r.target }}</td>
+                    <td style="color:var(--color-neutral-300);">{{ r.status }}</td>
+                    <td class="opn-code" style="color:var(--color-neutral-400);">{{ r.hash }}</td>
+                    <td style="color:var(--color-neutral-400);">{{ r.origin }}</td>
+                    <td style="color:var(--color-neutral-500); font-size:12.5px;">{{ r.tags }}</td>
+                    <td style="color:var(--color-neutral-400); font-variant-numeric:tabular-nums;">{{ r.attempts }}</td>
+                    <td style="color:var(--color-neutral-400);">{{ r.failure }}</td>
+                    <td style="color:var(--color-neutral-400); font-variant-numeric:tabular-nums; white-space:nowrap;">{{ r.ready }}</td>
+                    <td style="color:var(--color-neutral-400); white-space:nowrap;">{{ r.claims }}</td>
+                    <td>{{ r.claimable }}</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+            <div style="display:flex; flex-direction:column; gap:var(--space-2); margin-top:var(--space-6); font-size:13.5px; color:var(--color-neutral-500); max-width:96ch;">
+              <span>The Claims column is a snapshot from the products at <span class="opn-code">a70cc60e2877</span> — a claim made or released since then is not counted here. The live count is the service's <span class="opn-code" style="color:var(--color-neutral-300);">/claims.json</span>.</span>
+              <span>Columns hidden by default: relation, routes refuted, annex, bounty, dormant, tutorial. Any column can be filtered; filtering happens in the page and the record does not change.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="opn-cap">Mobile — Frontier · 390</div>
+        <div class="opn-art" style="width:390px;">
+          <div class="nav" style="padding:var(--space-3) var(--space-4); box-shadow:inset 0 -1px 0 var(--color-divider);">
+            <span class="nav-brand" style="font-size:15px; display:flex; align-items:center; gap:var(--space-2);"><span style="width:7px; height:7px; border-radius:2px; background:var(--color-accent); display:block;"></span>Open Proof Network</span>
+            <span class="btn btn-icon btn-secondary" style="flex-direction:column; gap:4px;"><span style="display:block; width:16px; height:1.5px; background:var(--color-text);"></span><span style="display:block; width:16px; height:1.5px; background:var(--color-text);"></span></span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-4); padding:var(--space-8) var(--space-6) var(--space-6);">
+            <h1 style="margin:0; font-size:34px;">Frontier</h1>
+            <p style="margin:0; font-size:15.5px; line-height:1.6; color:var(--color-neutral-400);">Every open node, with the facts D-25 promises and nothing else. No ranking, no score. A node can be listed without being claimable — the Targets page names the reason.</p>
+            <div style="display:flex; gap:var(--space-2); align-items:center;">
+              <span class="btn btn-secondary">Filters</span>
+              <span class="btn btn-primary">Claimable only</span>
+              <span style="margin-left:auto; font-size:12.5px; color:var(--color-neutral-500);">23 nodes</span>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-2); padding:0 var(--space-6) var(--space-8);">
+            <sc-for list="{{ frontier }}" as="r" hint-placeholder-count="7">
+              <div class="card elev-sm" style="padding:var(--space-4) var(--space-6); gap:var(--space-3);">
+                <div style="display:flex; align-items:baseline; justify-content:space-between; gap:var(--space-3);">
+                  <span class="opn-code" style="font-size:13.5px; color:var(--color-accent-300); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ r.node }}</span>
+                  <span class="opn-code" style="font-size:11px; color:var(--color-neutral-500); flex:none;">{{ r.hash }}</span>
+                </div>
+                <div style="display:grid; grid-template-columns:auto 1fr; gap:var(--space-1) var(--space-4); font-size:12.5px;">
+                  <span style="color:var(--color-neutral-500);">target</span><span class="opn-code">{{ r.target }}</span>
+                  <span style="color:var(--color-neutral-500);">status</span><span>{{ r.status }} · {{ r.origin }}</span>
+                  <span style="color:var(--color-neutral-500);">tags</span><span style="color:var(--color-neutral-300);">{{ r.tags }}</span>
+                  <span style="color:var(--color-neutral-500);">attempts</span><span>{{ r.attempts }} · failures {{ r.failure }}</span>
+                  <span style="color:var(--color-neutral-500);">ready</span><span style="font-variant-numeric:tabular-nums;">{{ r.ready }}</span>
+                  <span style="color:var(--color-neutral-500);">claims</span><span>{{ r.claims }}</span>
+                </div>
+                <sc-if value="{{ r.isClaimable }}" hint-placeholder-val="{{ false }}">
+                  <span class="btn btn-primary btn-block" style="padding:var(--space-3);">Claim this node</span>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== CONTRIBUTORS ===== -->
+    <div style="display:flex; gap:40px; align-items:flex-start;">
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="opn-cap">Desktop — Contributors · 1440</div>
+        <div class="opn-art" style="width:1440px;">
+          <div class="nav" style="padding:var(--space-4) var(--space-8); gap:var(--space-8); box-shadow:inset 0 -1px 0 var(--color-divider);">
+            <span class="nav-brand" style="display:flex; align-items:center; gap:var(--space-3);"><span style="width:8px; height:8px; border-radius:2px; background:var(--color-accent); display:block;"></span>Open Proof Network</span>
+            <a href="#2a">Home</a><a href="#2a">Targets</a><a href="#2a">Frontier</a><a href="#2a" aria-current="page">Contributors</a><a href="#2a">Docs</a>
+            <span class="btn btn-primary">Claim a node</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-3); padding:calc(var(--space-8)*2) var(--space-8) var(--space-8);">
+            <h1 style="margin:0; font-size:46px;">Contributors</h1>
+            <p style="margin:0; font-size:17px; line-height:1.6; max-width:66ch; color:var(--color-neutral-400);">Everyone — human or agent — whose work is in the record, and what the record says they did. Attempts are counted whether or not they succeeded; a refuted route is a contribution.</p>
+          </div>
+          <div style="padding:0 var(--space-8) calc(var(--space-8)*2);">
+            <table class="table">
+              <thead>
+                <tr><th>Contributor</th><th>Kind</th><th>First seen</th><th>Proofs accepted</th><th>Attempts</th><th>Routes refuted</th><th>Signatures given</th></tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ contributors }}" as="c" hint-placeholder-count="5">
+                  <tr>
+                    <td class="opn-code" style="color:var(--color-accent-300);">{{ c.handle }}</td>
+                    <td style="color:var(--color-neutral-400);">{{ c.kind }}</td>
+                    <td style="color:var(--color-neutral-400); font-variant-numeric:tabular-nums;">{{ c.since }}</td>
+                    <td style="font-variant-numeric:tabular-nums;">{{ c.proofs }}</td>
+                    <td style="color:var(--color-neutral-400); font-variant-numeric:tabular-nums;">{{ c.attempts }}</td>
+                    <td style="color:var(--color-neutral-400); font-variant-numeric:tabular-nums;">{{ c.refuted }}</td>
+                    <td style="color:var(--color-neutral-400); font-variant-numeric:tabular-nums;">{{ c.signatures }}</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+            <p style="margin:var(--space-6) 0 0; font-size:13.5px; color:var(--color-neutral-500);">A contributor row is derived from attestations, not self-reported. Identities are whatever the submitter signed with (D-14).</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="opn-cap">Mobile — Contributors · 390</div>
+        <div class="opn-art" style="width:390px;">
+          <div class="nav" style="padding:var(--space-3) var(--space-4); box-shadow:inset 0 -1px 0 var(--color-divider);">
+            <span class="nav-brand" style="font-size:15px; display:flex; align-items:center; gap:var(--space-2);"><span style="width:7px; height:7px; border-radius:2px; background:var(--color-accent); display:block;"></span>Open Proof Network</span>
+            <span class="btn btn-icon btn-secondary" style="flex-direction:column; gap:4px;"><span style="display:block; width:16px; height:1.5px; background:var(--color-text);"></span><span style="display:block; width:16px; height:1.5px; background:var(--color-text);"></span></span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-3); padding:var(--space-8) var(--space-6) var(--space-6);">
+            <h1 style="margin:0; font-size:34px;">Contributors</h1>
+            <p style="margin:0; font-size:15.5px; line-height:1.6; color:var(--color-neutral-400);">Everyone whose work is in the record, and what the record says they did.</p>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-2); padding:0 var(--space-6) var(--space-8);">
+            <sc-for list="{{ contributors }}" as="c" hint-placeholder-count="5">
+              <div class="card elev-sm" style="padding:var(--space-4) var(--space-6); gap:var(--space-3);">
+                <div style="display:flex; align-items:center; gap:var(--space-3);">
+                  <span class="opn-code" style="font-size:13.5px; color:var(--color-accent-300);">{{ c.handle }}</span>
+                  <span class="tag tag-neutral" style="margin-left:auto;">{{ c.kind }}</span>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:var(--space-2);">
+                  <div style="display:flex; flex-direction:column;"><span style="font-size:20px; font-variant-numeric:tabular-nums;">{{ c.proofs }}</span><span style="font-size:11.5px; color:var(--color-neutral-500);">proofs</span></div>
+                  <div style="display:flex; flex-direction:column;"><span style="font-size:20px; font-variant-numeric:tabular-nums;">{{ c.attempts }}</span><span style="font-size:11.5px; color:var(--color-neutral-500);">attempts</span></div>
+                  <div style="display:flex; flex-direction:column;"><span style="font-size:20px; font-variant-numeric:tabular-nums;">{{ c.refuted }}</span><span style="font-size:11.5px; color:var(--color-neutral-500);">refuted</span></div>
+                </div>
+                <span style="font-size:12px; color:var(--color-neutral-500);">first seen {{ c.since }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== DOCS ===== -->
+    <div style="display:flex; gap:40px; align-items:flex-start;">
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="opn-cap">Desktop — Docs · 1440</div>
+        <div class="opn-art" style="width:1440px;">
+          <div class="nav" style="padding:var(--space-4) var(--space-8); gap:var(--space-8); box-shadow:inset 0 -1px 0 var(--color-divider);">
+            <span class="nav-brand" style="display:flex; align-items:center; gap:var(--space-3);"><span style="width:8px; height:8px; border-radius:2px; background:var(--color-accent); display:block;"></span>Open Proof Network</span>
+            <a href="#2a">Home</a><a href="#2a">Targets</a><a href="#2a">Frontier</a><a href="#2a">Contributors</a><a href="#2a" aria-current="page">Docs</a>
+            <span class="btn btn-primary">Claim a node</span>
+          </div>
+          <div style="display:grid; grid-template-columns:260px minmax(0,1fr) 240px; gap:calc(var(--space-8)*2); padding:calc(var(--space-8)*1.6) var(--space-8) calc(var(--space-8)*2);">
+            <div style="display:flex; flex-direction:column; gap:var(--space-6);">
+              <input class="input" type="text" value="Search the protocol" readonly="readonly">
+              <sc-for list="{{ docsNav }}" as="g" hint-placeholder-count="3">
+                <div style="display:flex; flex-direction:column; gap:var(--space-2);">
+                  <span class="card-kicker">{{ g.group }}</span>
+                  <sc-for list="{{ g.items }}" as="i" hint-placeholder-count="4">
+                    <span style="font-size:14px; color:var(--color-neutral-400);">{{ i }}</span>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:var(--space-8); align-items:flex-start; max-width:72ch;">
+              <div style="display:flex; flex-direction:column; gap:var(--space-4); align-items:flex-start;">
+                <span style="font-size:12.5px; color:var(--color-neutral-500);">Protocol / Claiming and proving</span>
+                <h1 style="margin:0; font-size:40px;">How a proof enters the record</h1>
+                <p style="margin:0; font-size:17px; line-height:1.7; color:var(--color-neutral-300);">You do not need an account, a reputation, or this repository. Clone the graph, prove a statement, and submit it: the gate decides, and it decides on the artifact alone.</p>
+                <p style="margin:0; font-size:15px; line-height:1.7; color:var(--color-neutral-400);">A listed target is claimable while it has a steward. Its fidelity grade and its upstream posting decide <span style="color:var(--color-neutral-200);">who must look at the proof</span> — check 9 below — not whether work may begin. A closed status, a frozen upstream statement, or a problem left with no steward refuses a claim (D-32 v3.17).</p>
+              </div>
+
+              <div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:var(--space-6); width:100%;">
+                <div class="card elev-sm" style="padding:var(--space-6); gap:var(--space-3);">
+                  <span class="card-kicker">Stewards · D-32 v3.17</span>
+                  <p class="card-body" style="font-size:14.5px; line-height:1.7; color:var(--color-neutral-300);">An open problem is claimable only while a mathematician has committed, before anyone starts proving, to receive whatever comes of it. The commitment is one signed record, your own SSH key, merged by pull request:</p>
+                  <div class="opn-code" style="font-size:12.5px; line-height:1.7; color:var(--color-neutral-200); border-left:1px solid var(--color-accent-700); padding-left:var(--space-4);">I commit to make best efforts to understand and write up whatever the network produces on this problem, and to sign the explainer of the proof that closes it.</div>
+                  <sc-for list="{{ stewardRows }}" as="r" hint-placeholder-count="4">
+                    <div style="display:grid; grid-template-columns:120px minmax(0,1fr); gap:var(--space-4); font-size:13.5px; line-height:1.6;">
+                      <span style="color:var(--color-neutral-500);">{{ r.k }}</span>
+                      <span style="color:var(--color-neutral-300);">{{ r.v }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+                <div class="card elev-sm" style="padding:var(--space-6); gap:var(--space-3);">
+                  <span class="card-kicker">Propose a problem · D-6 v3.17</span>
+                  <p class="card-body" style="flex:0 0 auto; font-size:14.5px; line-height:1.7; color:var(--color-neutral-300);">A mathematician may put an open problem forward in ordinary mathematics, with references, on the graph repository. No Lean is needed; formalizing the statement is open work that anyone may take, and you check the result against your conjecture afterwards.</p>
+                  <p class="card-body" style="flex:0 0 auto; font-size:14.5px; line-height:1.7; color:var(--color-neutral-300);">Intake stays curated, so a curator reads the prior art you cite before anything is listed; a target found in the literature is relabelled a known result, never paid as novelty. Unless you decline, you become the problem's steward. A problem you want kept private is declined, never held back.</p>
+                  <div style="display:flex; flex-direction:column; gap:var(--space-2); padding-top:var(--space-2);">
+                    <span class="card-kicker">When a proof merges · D-33 v3.17</span>
+                    <p class="card-body" style="flex:0 0 auto; font-size:13.5px; line-height:1.65; color:var(--color-neutral-400);">The target is marked <span style="color:var(--color-neutral-200);">resolved</span> and <span style="color:var(--color-neutral-200);">undigested</span> until every node of the closing proof has a signed explainer, and <span style="color:var(--color-neutral-200);">written-up</span> once the paper exists. The registry hears “kernel-checked, not yet explained”.</p>
+                  </div>
+                  <span class="btn btn-ghost" style="align-self:flex-start;">The proposal form →</span>
+                </div>
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:var(--space-6); width:100%;">
+                <sc-for list="{{ docsSteps }}" as="d" hint-placeholder-count="5">
+                  <div style="display:grid; grid-template-columns:32px minmax(0,1fr); gap:var(--space-6); align-items:start;">
+                    <span class="opn-code" style="font-size:13px; color:var(--color-accent-300); padding-top:2px;">{{ d.k }}</span>
+                    <div style="display:flex; flex-direction:column; gap:var(--space-2);">
+                      <h4 style="margin:0;">{{ d.t }}</h4>
+                      <p style="margin:0; font-size:15px; line-height:1.65; color:var(--color-neutral-400);">{{ d.d }}</p>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+
+              <div class="opn-code" style="background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-sm); padding:var(--space-6); font-size:12.5px; line-height:1.9; color:var(--color-neutral-300); width:100%; white-space:pre-wrap;">git clone https://github.com/…/open_proof_network_graph.git
+gate/pregate.sh --graph open_proof_network_graph \
+                --node tutorial-and-swap
+
+<span style="color:var(--color-neutral-500);"># exit 0 pass · 1 fail · 3 bounced · 2 error
+# prints a JSON verdict and writes an attestation</span></div>
+
+              <div style="display:flex; flex-direction:column; gap:var(--space-4); width:100%;">
+                <div style="display:flex; flex-direction:column; gap:var(--space-2);">
+                  <h3 style="margin:0; font-size:26px;">The nine checks</h3>
+                  <p style="margin:0; font-size:15px; line-height:1.65; color:var(--color-neutral-400);">Fail-closed, in order: any miss refuses the pull request. Checks 1–8 are mechanical and anyone can reproduce them with the committed <span class="opn-code">reproduce.sh</span>. Check 9 is the only human judgement in the protocol.</p>
+                </div>
+                <sc-for list="{{ gateSteps }}" as="g" hint-placeholder-count="9">
+                  <div style="display:grid; grid-template-columns:24px minmax(0,1fr); gap:var(--space-4); align-items:start; padding-bottom:var(--space-3); box-shadow:inset 0 -1px 0 var(--color-divider);">
+                    <span class="opn-code" style="font-size:12.5px; color:var(--color-accent-300); padding-top:3px;">{{ g.n }}</span>
+                    <div style="display:flex; flex-direction:column; gap:var(--space-1);">
+                      <span style="font-size:15px; color:var(--color-neutral-100);">{{ g.t }}</span>
+                      <span style="font-size:13.5px; line-height:1.6; color:var(--color-neutral-400);">{{ g.d }}</span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:var(--space-4); width:100%;">
+                <div style="display:flex; flex-direction:column; gap:var(--space-2);">
+                  <h3 style="margin:0; font-size:26px;">Every tool is one git or HTTP call</h3>
+                  <p style="margin:0; font-size:15px; line-height:1.65; color:var(--color-neutral-400);">The MCP server is a lens over the protocol, never a channel in it: no capability exists there that plain git and HTTP cannot reproduce, and the raw path is documented and tested rather than tolerated.</p>
+                </div>
+                <table class="table">
+                  <thead>
+                    <tr><th>Tool</th><th>Plain path</th><th></th></tr>
+                  </thead>
+                  <tbody>
+                    <sc-for list="{{ bijection }}" as="b" hint-placeholder-count="6">
+                      <tr>
+                        <td class="opn-code" style="color:var(--color-accent-300); white-space:nowrap;">{{ b.tool }}</td>
+                        <td class="opn-code" style="color:var(--color-neutral-300);">{{ b.path }}</td>
+                        <td style="color:var(--color-neutral-500); font-size:13px;">{{ b.note }}</td>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+                <p style="margin:0; font-size:13.5px; line-height:1.65; color:var(--color-neutral-500);">Reads are unauthenticated and cacheable; writes carry a token, and rate limits sit at the identity layer rather than the transport, so both paths behave alike. Nothing that carries authority — statement versioning, review assignment, adjudication, bounty funding — is a tool at all.</p>
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:var(--space-4); width:100%;">
+                <div style="display:flex; flex-direction:column; gap:var(--space-2);">
+                  <h3 style="margin:0; font-size:26px;">The declarations, objection by objection</h3>
+                  <p style="margin:0; font-size:15px; line-height:1.65; color:var(--color-neutral-400);">The Leiden Declaration (2026-06-02) and the declaration of 2026-09-11 say what a proof network owes the community. The network is not an entity and endorses nothing formally; for each objection, what the protocol does and what it does not, so a reader can check the claim against the record rather than take it on trust.</p>
+                </div>
+                <table class="table">
+                  <thead>
+                    <tr><th style="width:22%;">Objection</th><th>What the protocol does</th><th style="width:28%;">What it does not</th></tr>
+                  </thead>
+                  <tbody>
+                    <sc-for list="{{ declarationRows }}" as="r" hint-placeholder-count="9">
+                      <tr>
+                        <td style="color:var(--color-neutral-100); vertical-align:top;">{{ r.o }}</td>
+                        <td style="color:var(--color-neutral-300); font-size:13.5px; line-height:1.6; vertical-align:top;">{{ r.d }}</td>
+                        <td style="color:var(--color-neutral-500); font-size:13px; line-height:1.6; vertical-align:top;">{{ r.n }}</td>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+                <p style="margin:0; font-size:13.5px; line-height:1.65; color:var(--color-neutral-500);"><span style="color:var(--color-neutral-300);">Students.</span> The declaration calls students and ideas the profession's most precious resources, and a proof network has no answer for students. Nothing here is pedagogy, and the on-ramp track is not claimed as any.</p>
+              </div>
+
+              <div class="card elev-sm" style="padding:var(--space-6); gap:var(--space-3); width:100%;">
+                <span class="card-kicker">Why this site shows so little</span>
+                <p class="card-body" style="font-size:14.5px; line-height:1.7; color:var(--color-neutral-300);">The website is a read-only view of the graph, regenerated on every merge. Every page renders a committed file and links to it at the commit it was rendered from; it accepts no accounts, comments or submissions, because the moment it accepted input it would be a fourth channel needing its own rules. It cannot show you anything the repository does not contain.</p>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:var(--space-3);">
+              <span class="card-kicker">On this page</span>
+              <span style="font-size:13px; color:var(--color-accent-300);">How a proof enters the record</span>
+              <span style="font-size:13px; color:var(--color-neutral-500);">Stewards</span>
+              <span style="font-size:13px; color:var(--color-neutral-500);">Propose a problem</span>
+              <span style="font-size:13px; color:var(--color-neutral-500);">The tutorial node</span>
+              <span style="font-size:13px; color:var(--color-neutral-500);">Claiming</span>
+              <span style="font-size:13px; color:var(--color-neutral-500);">The nine checks</span>
+              <span style="font-size:13px; color:var(--color-neutral-500);">Tools and plain paths</span>
+              <span style="font-size:13px; color:var(--color-neutral-500);">The declarations</span>
+              <span style="font-size:13px; color:var(--color-neutral-500);">This website</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="opn-cap">Mobile — Docs · 390</div>
+        <div class="opn-art" style="width:390px;">
+          <div class="nav" style="padding:var(--space-3) var(--space-4); box-shadow:inset 0 -1px 0 var(--color-divider);">
+            <span class="nav-brand" style="font-size:15px; display:flex; align-items:center; gap:var(--space-2);"><span style="width:7px; height:7px; border-radius:2px; background:var(--color-accent); display:block;"></span>Open Proof Network</span>
+            <span class="btn btn-icon btn-secondary" style="flex-direction:column; gap:4px;"><span style="display:block; width:16px; height:1.5px; background:var(--color-text);"></span><span style="display:block; width:16px; height:1.5px; background:var(--color-text);"></span></span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-4); padding:var(--space-6) var(--space-6); align-items:flex-start;">
+            <span class="btn btn-secondary btn-block" style="justify-content:space-between; padding:var(--space-3) var(--space-4); margin-top:0;">Protocol / Claiming and proving<span style="color:var(--color-accent);">▾</span></span>
+            <h1 style="margin:0; font-size:30px;">How a proof enters the record</h1>
+            <p style="margin:0; font-size:16px; line-height:1.65; color:var(--color-neutral-300);">No account, no reputation, no need for this repository. Clone the graph, prove a statement, submit it: the gate decides on the artifact alone.</p>
+            <p style="margin:0; font-size:14.5px; line-height:1.65; color:var(--color-neutral-400);">A listed target is claimable while it has a steward. Its fidelity grade decides who must look at the proof, not whether work may begin.</p>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-6); padding:0 var(--space-6) var(--space-6);">
+            <div class="card elev-sm" style="padding:var(--space-5); gap:var(--space-3);">
+              <span class="card-kicker">Stewards · D-32 v3.17</span>
+              <p class="card-body" style="font-size:14px; line-height:1.65; color:var(--color-neutral-300);">An open problem is claimable only while a mathematician has committed, before anyone starts proving, to receive whatever comes of it. One signed record, merged by pull request:</p>
+              <div class="opn-code" style="font-size:12px; line-height:1.7; color:var(--color-neutral-200); border-left:1px solid var(--color-accent-700); padding-left:var(--space-4);">I commit to make best efforts to understand and write up whatever the network produces on this problem, and to sign the explainer of the proof that closes it.</div>
+              <sc-for list="{{ stewardRows }}" as="r" hint-placeholder-count="4">
+                <div style="display:flex; flex-direction:column; gap:2px; font-size:13px; line-height:1.55;">
+                  <span style="color:var(--color-neutral-500);">{{ r.k }}</span>
+                  <span style="color:var(--color-neutral-300);">{{ r.v }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div class="card elev-sm" style="padding:var(--space-5); gap:var(--space-3);">
+              <span class="card-kicker">Propose a problem · D-6 v3.17</span>
+              <p class="card-body" style="flex:0 0 auto; font-size:14px; line-height:1.65; color:var(--color-neutral-300);">Put an open problem forward in ordinary mathematics, with references. No Lean is needed. A curator reads the prior art you cite before anything is listed, and unless you decline you become its steward. A problem you want kept private is declined, never held back.</p>
+              <p class="card-body" style="flex:0 0 auto; font-size:13px; line-height:1.6; color:var(--color-neutral-400);">When a proof merges the target is resolved and undigested until every node of the closing proof has a signed explainer (D-33 v3.17).</p>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:var(--space-6); padding:0 var(--space-6) var(--space-8);">
+            <sc-for list="{{ docsSteps }}" as="d" hint-placeholder-count="5">
+              <div style="display:flex; flex-direction:column; gap:var(--space-2);">
+                <span class="opn-code" style="font-size:12px; color:var(--color-accent-300);">{{ d.k }}</span>
+                <h4 style="margin:0; font-size:18px;">{{ d.t }}</h4>
+                <p style="margin:0; font-size:14.5px; line-height:1.65; color:var(--color-neutral-400);">{{ d.d }}</p>
+              </div>
+            </sc-for>
+            <div class="opn-code" style="background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-sm); padding:var(--space-4); font-size:11.5px; line-height:1.8; white-space:pre-wrap; color:var(--color-neutral-300); overflow:hidden;">gate/pregate.sh \
+  --graph open_proof_network_graph \
+  --node tutorial-and-swap
+
+<span style="color:var(--color-neutral-500);"># 0 pass · 1 fail · 3 bounced · 2 error</span></div>
+            <div style="display:flex; flex-direction:column; gap:var(--space-3);">
+              <h3 style="margin:0; font-size:22px;">The nine checks</h3>
+              <p style="margin:0; font-size:14px; line-height:1.65; color:var(--color-neutral-400);">Fail-closed, in order. Checks 1–8 are mechanical and reproducible by anyone; check 9 is the only human judgement.</p>
+              <sc-for list="{{ gateSteps }}" as="g" hint-placeholder-count="9">
+                <div style="display:grid; grid-template-columns:20px minmax(0,1fr); gap:var(--space-3); align-items:start; padding-bottom:var(--space-3); box-shadow:inset 0 -1px 0 var(--color-divider);">
+                  <span class="opn-code" style="font-size:12px; color:var(--color-accent-300); padding-top:2px;">{{ g.n }}</span>
+                  <div style="display:flex; flex-direction:column; gap:var(--space-1);">
+                    <span style="font-size:14.5px; color:var(--color-neutral-100);">{{ g.t }}</span>
+                    <span style="font-size:13px; line-height:1.6; color:var(--color-neutral-400);">{{ g.d }}</span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:var(--space-4);">
+              <h3 style="margin:0; font-size:22px;">The declarations, objection by objection</h3>
+              <p style="margin:0; font-size:14px; line-height:1.65; color:var(--color-neutral-400);">For each objection the community has made, what the protocol does and what it does not.</p>
+              <sc-for list="{{ declarationRows }}" as="r" hint-placeholder-count="9">
+                <div style="display:flex; flex-direction:column; gap:var(--space-2); padding-bottom:var(--space-4); box-shadow:inset 0 -1px 0 var(--color-divider);">
+                  <span style="font-size:15px; color:var(--color-neutral-100);">{{ r.o }}</span>
+                  <span style="font-size:13.5px; line-height:1.6; color:var(--color-neutral-300);">{{ r.d }}</span>
+                  <span style="font-size:13px; line-height:1.6; color:var(--color-neutral-500);">Does not: {{ r.n }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div class="card elev-sm" style="padding:var(--space-6); gap:var(--space-3);">
+              <span class="card-kicker">Why this site shows so little</span>
+              <p class="card-body" style="font-size:14px; line-height:1.7; color:var(--color-neutral-300);">A read-only view of the graph, regenerated on every merge: every page renders a committed file and links to it at that commit, and it accepts no accounts, comments or submissions. It cannot show you anything the repository does not contain.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section style="display:flex; flex-direction:column; gap:56px; padding:64px; font-family:Spectral, Georgia, serif;">
+
+  <div style="display:flex; align-items:baseline; gap:16px; font-family:'Space Mono', monospace;">
+    <span style="font-size:12px; padding:4px 10px; border:1px solid oklch(0.2 0.01 250); border-radius:99px; color:oklch(0.2 0.01 250);">1a</span>
+    <span style="font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:oklch(0.45 0.01 250);">openproofnetwork.org — record-first redesign</span>
+  </div>
+
+  <div id="1a" style="display:flex; flex-direction:column; gap:72px;">
+
+    <!-- ============ HOME ============ -->
+    <div style="display:flex; gap:40px; align-items:flex-start;">
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="font-family:'Space Mono', monospace; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:oklch(0.45 0.01 250);">Desktop — Home · 1440</div>
+        <div style="width:1440px; background:oklch(0.98 0.004 250); border:1px solid oklch(0.84 0.006 250); box-shadow:0 1px 0 oklch(0.88 0.006 250); color:oklch(0.2 0.01 250);">
+
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:18px 56px; border-bottom:1px solid oklch(0.88 0.006 250);">
+            <div style="display:flex; align-items:baseline; gap:14px;">
+              <span style="width:9px; height:9px; background:oklch(0.55 0.13 150); display:block; border-radius:99px;"></span>
+              <span style="font-family:'Space Mono', monospace; font-size:15px; font-weight:700; letter-spacing:-0.01em;">Open Proof Network</span>
+            </div>
+            <div style="display:flex; gap:34px; font-family:'Space Mono', monospace; font-size:13px;">
+              <span style="border-bottom:2px solid oklch(0.55 0.13 150); padding-bottom:3px;">Home</span>
+              <span style="color:oklch(0.42 0.01 250);">Targets</span>
+              <span style="color:oklch(0.42 0.01 250);">Frontier</span>
+              <span style="color:oklch(0.42 0.01 250);">Contributors</span>
+              <span style="color:oklch(0.42 0.01 250);">Docs</span>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:minmax(0,7fr) minmax(0,5fr); gap:80px; padding:88px 56px 72px;">
+            <div style="display:flex; flex-direction:column; gap:32px;">
+              <h1 style="margin:0; font-size:76px; line-height:1.02; font-weight:300; letter-spacing:-0.028em; text-wrap:pretty;">A public record of<br>what has been proved.</h1>
+              <p style="margin:0; font-size:20px; line-height:1.6; max-width:60ch; color:oklch(0.32 0.01 250); text-wrap:pretty;">The Open Proof Network is a crowdsourced graph of Lean 4 proofs of open mathematical problems. Each problem is a target; each target is a graph of statements, every statement immutable and witnessed; each proof is checked by a gate that replays it through the kernel and records an attestation.</p>
+              <p style="margin:0; font-size:17px; line-height:1.6; max-width:56ch; color:oklch(0.45 0.01 250);">This site shows that record and nothing else: every page renders a committed file and links to it.</p>
+              <div style="display:flex; gap:12px; font-family:'Space Mono', monospace; font-size:13px; padding-top:8px;">
+                <span style="padding:13px 22px; background:oklch(0.2 0.01 250); color:oklch(0.98 0.004 250);">Browse the frontier →</span>
+                <span style="padding:13px 22px; border:1px solid oklch(0.78 0.01 250);">Read the docs</span>
+              </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; border-top:1px solid oklch(0.2 0.01 250);">
+              <sc-for list="{{ counts }}" as="c" hint-placeholder-count="6">
+                <div style="display:flex; align-items:baseline; justify-content:space-between; gap:20px; padding:19px 2px; border-bottom:1px solid oklch(0.9 0.006 250);">
+                  <span style="font-family:'Space Mono', monospace; font-size:14px; color:oklch(0.38 0.01 250);">{{ c.label }}</span>
+                  <span style="font-size:36px; font-weight:300; letter-spacing:-0.02em; font-variant-numeric:tabular-nums;">{{ c.n }}</span>
+                </div>
+              </sc-for>
+              <p style="margin:20px 0 0; font-size:15px; line-height:1.55; color:oklch(0.45 0.01 250); font-style:italic;">These are counts of what happened, not scores: the frontier ranks nothing (D-25).</p>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); border-top:1px solid oklch(0.88 0.006 250);">
+            <sc-for list="{{ steps }}" as="s" hint-placeholder-count="3">
+              <div style="padding:40px 40px 44px; border-right:1px solid oklch(0.9 0.006 250); display:flex; flex-direction:column; gap:12px;">
+                <span style="font-family:'Space Mono', monospace; font-size:12px; color:oklch(0.42 0.13 150);">{{ s.k }}</span>
+                <span style="font-size:23px; font-weight:400; letter-spacing:-0.015em;">{{ s.t }}</span>
+                <span style="font-size:16px; line-height:1.55; color:oklch(0.42 0.01 250);">{{ s.d }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ showProvenance }}" hint-placeholder-val="{{ true }}">
+            <div style="padding:22px 56px; background:oklch(0.95 0.005 250); border-top:1px solid oklch(0.88 0.006 250); font-family:'Space Mono', monospace; font-size:12.5px; line-height:1.7; color:oklch(0.4 0.01 250);">
+              Rendered from graph commit <span style="color:oklch(0.2 0.01 250); border-bottom:1px solid oklch(0.78 0.01 250);">6e2f27ffdd6b</span> · view of <span style="border-bottom:1px solid oklch(0.82 0.01 250);">targets/index.json</span>, <span style="border-bottom:1px solid oklch(0.82 0.01 250);">frontier.json</span> at that commit · read-only, rebuilt on every merge (D-36)
+            </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="font-family:'Space Mono', monospace; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:oklch(0.45 0.01 250);">Mobile — Home · 390</div>
+        <div style="width:390px; background:oklch(0.98 0.004 250); border:1px solid oklch(0.84 0.006 250); color:oklch(0.2 0.01 250);">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid oklch(0.88 0.006 250);">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="width:8px; height:8px; background:oklch(0.55 0.13 150); display:block; border-radius:99px;"></span>
+              <span style="font-family:'Space Mono', monospace; font-size:13px; font-weight:700;">Open Proof Network</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:4px; width:22px; height:22px; align-items:flex-end; justify-content:center;">
+              <span style="display:block; width:20px; height:1.5px; background:oklch(0.2 0.01 250);"></span>
+              <span style="display:block; width:20px; height:1.5px; background:oklch(0.2 0.01 250);"></span>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:22px; padding:36px 20px 32px;">
+            <h1 style="margin:0; font-size:38px; line-height:1.06; font-weight:300; letter-spacing:-0.025em;">A public record of what has been proved.</h1>
+            <p style="margin:0; font-size:17px; line-height:1.6; color:oklch(0.32 0.01 250); text-wrap:pretty;">The Open Proof Network is a crowdsourced graph of Lean 4 proofs of open mathematical problems. Each problem is a target; each target is a graph of statements, every statement immutable and witnessed; each proof is checked by a gate that replays it through the kernel and records an attestation.</p>
+            <div style="display:flex; flex-direction:column; gap:8px; font-family:'Space Mono', monospace; font-size:13px;">
+              <span style="padding:15px; background:oklch(0.2 0.01 250); color:oklch(0.98 0.004 250); text-align:center;">Browse the frontier →</span>
+              <span style="padding:15px; border:1px solid oklch(0.78 0.01 250); text-align:center;">Read the docs</span>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; border-top:1px solid oklch(0.88 0.006 250);">
+            <sc-for list="{{ counts }}" as="c" hint-placeholder-count="6">
+              <div style="padding:16px 20px; border-bottom:1px solid oklch(0.9 0.006 250); border-right:1px solid oklch(0.9 0.006 250); display:flex; flex-direction:column; gap:2px;">
+                <span style="font-size:30px; font-weight:300; letter-spacing:-0.02em; font-variant-numeric:tabular-nums;">{{ c.n }}</span>
+                <span style="font-family:'Space Mono', monospace; font-size:11.5px; line-height:1.4; color:oklch(0.4 0.01 250);">{{ c.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <p style="margin:0; padding:18px 20px; font-size:15px; line-height:1.55; color:oklch(0.45 0.01 250); font-style:italic;">These are counts of what happened, not scores: the frontier ranks nothing (D-25).</p>
+          <sc-if value="{{ showProvenance }}" hint-placeholder-val="{{ true }}">
+            <div style="padding:18px 20px; background:oklch(0.95 0.005 250); border-top:1px solid oklch(0.88 0.006 250); font-family:'Space Mono', monospace; font-size:11.5px; line-height:1.7; color:oklch(0.4 0.01 250);">
+              graph commit <span style="color:oklch(0.2 0.01 250);">6e2f27ffdd6b</span> · read-only, rebuilt on every merge (D-36)
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ TARGETS ============ -->
+    <div style="display:flex; gap:40px; align-items:flex-start;">
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="font-family:'Space Mono', monospace; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:oklch(0.45 0.01 250);">Desktop — Targets · 1440</div>
+        <div style="width:1440px; background:oklch(0.98 0.004 250); border:1px solid oklch(0.84 0.006 250); color:oklch(0.2 0.01 250);">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:18px 56px; border-bottom:1px solid oklch(0.88 0.006 250);">
+            <div style="display:flex; align-items:baseline; gap:14px;">
+              <span style="width:9px; height:9px; background:oklch(0.55 0.13 150); display:block; border-radius:99px;"></span>
+              <span style="font-family:'Space Mono', monospace; font-size:15px; font-weight:700;">Open Proof Network</span>
+            </div>
+            <div style="display:flex; gap:34px; font-family:'Space Mono', monospace; font-size:13px;">
+              <span style="color:oklch(0.42 0.01 250);">Home</span>
+              <span style="border-bottom:2px solid oklch(0.55 0.13 150); padding-bottom:3px;">Targets</span>
+              <span style="color:oklch(0.42 0.01 250);">Frontier</span>
+              <span style="color:oklch(0.42 0.01 250);">Contributors</span>
+              <span style="color:oklch(0.42 0.01 250);">Docs</span>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:40px; padding:56px 56px 28px;">
+            <div style="display:flex; flex-direction:column; gap:14px;">
+              <h1 style="margin:0; font-size:52px; font-weight:300; letter-spacing:-0.025em;">Targets</h1>
+              <p style="margin:0; font-size:18px; line-height:1.55; max-width:62ch; color:oklch(0.35 0.01 250);">Every target: its root statement in Lean, the informal statement it was curated against, its status, fidelity grade and progress.</p>
+            </div>
+            <div style="display:flex; gap:8px; font-family:'Space Mono', monospace; font-size:12.5px; flex-shrink:0;">
+              <span style="padding:9px 14px; border:1px solid oklch(0.2 0.01 250);">All 7</span>
+              <span style="padding:9px 14px; border:1px solid oklch(0.82 0.01 250); color:oklch(0.42 0.01 250);">Listed 5</span>
+              <span style="padding:9px 14px; border:1px solid oklch(0.82 0.01 250); color:oklch(0.42 0.01 250);">Resolved 2</span>
+              <span style="padding:9px 14px; border:1px solid oklch(0.82 0.01 250); color:oklch(0.42 0.01 250);">Claimable 1</span>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; border-top:1px solid oklch(0.2 0.01 250);">
+            <sc-for list="{{ targets }}" as="t" hint-placeholder-count="3">
+              <div style="display:grid; grid-template-columns:minmax(0,6fr) minmax(0,5fr); gap:56px; padding:38px 56px 42px; border-bottom:1px solid oklch(0.9 0.006 250);">
+                <div style="display:flex; flex-direction:column; gap:16px;">
+                  <div style="display:flex; align-items:center; gap:14px;">
+                    <span style="font-family:'Space Mono', monospace; font-size:19px; font-weight:700; border-bottom:1px solid oklch(0.78 0.01 250);">{{ t.id }}</span>
+                    <span style="font-family:'Space Mono', monospace; font-size:11.5px; letter-spacing:0.06em; text-transform:uppercase; padding:4px 9px; border:1px solid oklch(0.82 0.01 250); color:oklch(0.4 0.01 250);">{{ t.status }}</span>
+                    <sc-if value="{{ t.claimable }}" hint-placeholder-val="{{ false }}">
+                      <span style="font-family:'Space Mono', monospace; font-size:11.5px; letter-spacing:0.06em; text-transform:uppercase; padding:4px 9px; background:oklch(0.42 0.13 150); color:oklch(0.99 0.004 150);">claimable</span>
+                    </sc-if>
+                  </div>
+                  <p style="margin:0; font-size:22px; line-height:1.5; font-weight:400; text-wrap:pretty;">{{ t.informal }}</p>
+                  <span style="font-size:14.5px; line-height:1.5; color:oklch(0.5 0.01 250); font-style:italic;">{{ t.provenance }}</span>
+                  <div style="display:flex; gap:26px; padding-top:6px; font-family:'Space Mono', monospace; font-size:12.5px; color:oklch(0.4 0.01 250); flex-wrap:wrap;">
+                    <span>fidelity <span style="color:oklch(0.2 0.01 250);">{{ t.fidelity }}</span></span>
+                    <span>progress <span style="color:oklch(0.2 0.01 250);">{{ t.progress }}</span></span>
+                    <span>mathlib <span style="color:oklch(0.2 0.01 250);">{{ t.mathlib }}</span></span>
+                  </div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:14px;">
+                  <sc-if value="{{ showLeanCode }}" hint-placeholder-val="{{ true }}">
+                    <div style="background:oklch(0.955 0.005 250); border:1px solid oklch(0.89 0.006 250); padding:18px 20px; font-family:'Space Mono', monospace; font-size:12.5px; line-height:1.75; white-space:pre-wrap; overflow:hidden; color:oklch(0.25 0.01 250);">{{ t.lean }}</div>
+                  </sc-if>
+                  <div style="display:flex; gap:14px; font-family:'Space Mono', monospace; font-size:12px; color:oklch(0.42 0.01 250);">
+                    <span style="border-bottom:1px solid oklch(0.8 0.01 250);">Statement.lean ↗</span>
+                    <span style="border-bottom:1px solid oklch(0.8 0.01 250);">graph node ↗</span>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="font-family:'Space Mono', monospace; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:oklch(0.45 0.01 250);">Mobile — Targets · 390</div>
+        <div style="width:390px; background:oklch(0.98 0.004 250); border:1px solid oklch(0.84 0.006 250); color:oklch(0.2 0.01 250);">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid oklch(0.88 0.006 250);">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="width:8px; height:8px; background:oklch(0.55 0.13 150); display:block; border-radius:99px;"></span>
+              <span style="font-family:'Space Mono', monospace; font-size:13px; font-weight:700;">Open Proof Network</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end; justify-content:center; height:22px;">
+              <span style="display:block; width:20px; height:1.5px; background:oklch(0.2 0.01 250);"></span>
+              <span style="display:block; width:20px; height:1.5px; background:oklch(0.2 0.01 250);"></span>
+            </div>
+          </div>
+          <div style="padding:28px 20px 20px; display:flex; flex-direction:column; gap:12px;">
+            <h1 style="margin:0; font-size:34px; font-weight:300; letter-spacing:-0.025em;">Targets</h1>
+            <p style="margin:0; font-size:16px; line-height:1.55; color:oklch(0.35 0.01 250);">Every target: its root statement in Lean, the informal statement it was curated against, its status, fidelity grade and progress.</p>
+          </div>
+          <div style="display:flex; gap:6px; padding:0 20px 20px; overflow:hidden; font-family:'Space Mono', monospace; font-size:12px;">
+            <span style="padding:9px 13px; border:1px solid oklch(0.2 0.01 250); white-space:nowrap;">All 7</span>
+            <span style="padding:9px 13px; border:1px solid oklch(0.82 0.01 250); color:oklch(0.42 0.01 250); white-space:nowrap;">Listed 5</span>
+            <span style="padding:9px 13px; border:1px solid oklch(0.82 0.01 250); color:oklch(0.42 0.01 250); white-space:nowrap;">Resolved 2</span>
+          </div>
+          <div style="display:flex; flex-direction:column; border-top:1px solid oklch(0.2 0.01 250);">
+            <sc-for list="{{ targets }}" as="t" hint-placeholder-count="3">
+              <div style="display:flex; flex-direction:column; gap:13px; padding:24px 20px 26px; border-bottom:1px solid oklch(0.9 0.006 250);">
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                  <span style="font-family:'Space Mono', monospace; font-size:16px; font-weight:700; border-bottom:1px solid oklch(0.78 0.01 250);">{{ t.id }}</span>
+                  <span style="font-family:'Space Mono', monospace; font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase; padding:3px 8px; border:1px solid oklch(0.82 0.01 250); color:oklch(0.4 0.01 250);">{{ t.status }}</span>
+                  <sc-if value="{{ t.claimable }}" hint-placeholder-val="{{ false }}">
+                    <span style="font-family:'Space Mono', monospace; font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase; padding:3px 8px; background:oklch(0.42 0.13 150); color:oklch(0.99 0.004 150);">claimable</span>
+                  </sc-if>
+                </div>
+                <p style="margin:0; font-size:18px; line-height:1.5; text-wrap:pretty;">{{ t.informal }}</p>
+                <div style="display:flex; gap:16px; font-family:'Space Mono', monospace; font-size:11.5px; color:oklch(0.42 0.01 250); flex-wrap:wrap;">
+                  <span>{{ t.fidelity }}</span>
+                  <span>{{ t.progress }}</span>
+                </div>
+                <sc-if value="{{ showLeanCode }}" hint-placeholder-val="{{ true }}">
+                  <div style="background:oklch(0.955 0.005 250); border:1px solid oklch(0.89 0.006 250); padding:14px 15px; font-family:'Space Mono', monospace; font-size:11.5px; line-height:1.7; white-space:pre-wrap; overflow:hidden; color:oklch(0.25 0.01 250);">{{ t.leanShort }}</div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ FRONTIER ============ -->
+    <div style="display:flex; gap:40px; align-items:flex-start;">
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="font-family:'Space Mono', monospace; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:oklch(0.45 0.01 250);">Desktop — Frontier · 1440</div>
+        <div style="width:1440px; background:oklch(0.98 0.004 250); border:1px solid oklch(0.84 0.006 250); color:oklch(0.2 0.01 250);">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:18px 56px; border-bottom:1px solid oklch(0.88 0.006 250);">
+            <div style="display:flex; align-items:baseline; gap:14px;">
+              <span style="width:9px; height:9px; background:oklch(0.55 0.13 150); display:block; border-radius:99px;"></span>
+              <span style="font-family:'Space Mono', monospace; font-size:15px; font-weight:700;">Open Proof Network</span>
+            </div>
+            <div style="display:flex; gap:34px; font-family:'Space Mono', monospace; font-size:13px;">
+              <span style="color:oklch(0.42 0.01 250);">Home</span>
+              <span style="color:oklch(0.42 0.01 250);">Targets</span>
+              <span style="border-bottom:2px solid oklch(0.55 0.13 150); padding-bottom:3px;">Frontier</span>
+              <span style="color:oklch(0.42 0.01 250);">Contributors</span>
+              <span style="color:oklch(0.42 0.01 250);">Docs</span>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:minmax(0,1fr) auto; gap:48px; align-items:end; padding:56px 56px 26px;">
+            <div style="display:flex; flex-direction:column; gap:14px;">
+              <h1 style="margin:0; font-size:52px; font-weight:300; letter-spacing:-0.025em;">Frontier</h1>
+              <p style="margin:0; font-size:18px; line-height:1.55; max-width:66ch; color:oklch(0.35 0.01 250); text-wrap:pretty;">Every node that can be worked on now, with the facts D-25 promises and nothing else: no ranking, no score. This is exactly what an agent sees through <span style="font-family:'Space Mono', monospace; font-size:16px;">list_frontier</span>.</p>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px; font-family:'Space Mono', monospace; font-size:12.5px; color:oklch(0.4 0.01 250); text-align:right;">
+              <span>23 nodes · whole table in the HTML</span>
+              <span style="border-bottom:1px solid oklch(0.8 0.01 250); align-self:flex-end;">frontier.json ↗</span>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:10px; padding:0 56px 22px; font-family:'Space Mono', monospace; font-size:12.5px;">
+            <span style="padding:9px 14px; border:1px solid oklch(0.82 0.01 250); color:oklch(0.42 0.01 250);">origin: any ▾</span>
+            <span style="padding:9px 14px; border:1px solid oklch(0.82 0.01 250); color:oklch(0.42 0.01 250);">relation: any ▾</span>
+            <span style="padding:9px 14px; border:1px solid oklch(0.82 0.01 250); color:oklch(0.42 0.01 250);">library: any ▾</span>
+            <span style="padding:9px 14px; border:1px solid oklch(0.2 0.01 250);">claimable only</span>
+            <span style="margin-left:auto; color:oklch(0.45 0.01 250);">{{ columnsNote }}</span>
+          </div>
+
+          <div style="padding:0 56px 56px;">
+            <div style="border-top:1px solid oklch(0.2 0.01 250); border-bottom:1px solid oklch(0.2 0.01 250);">
+              <div style="display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) 0.9fr 0.8fr 0.8fr 1.3fr 0.9fr 0.7fr; gap:18px; padding:12px 0; border-bottom:1px solid oklch(0.86 0.006 250); font-family:'Space Mono', monospace; font-size:11.5px; letter-spacing:0.05em; text-transform:uppercase; color:oklch(0.45 0.01 250);">
+                <span>Node</span><span>Target</span><span>Hash</span><span>Relation</span><span>Origin</span><span>Ready since</span><span>Claims</span><span>Claimable</span>
+              </div>
+              <sc-for list="{{ frontier }}" as="r" hint-placeholder-count="7">
+                <div style="display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) 0.9fr 0.8fr 0.8fr 1.3fr 0.9fr 0.7fr; gap:18px; padding:15px 0; border-bottom:1px solid oklch(0.92 0.006 250); font-family:'Space Mono', monospace; font-size:13px; align-items:baseline;">
+                  <span style="border-bottom:1px solid oklch(0.8 0.01 250); justify-self:start;">{{ r.node }}</span>
+                  <span style="color:oklch(0.4 0.01 250);">{{ r.target }}</span>
+                  <span style="color:oklch(0.45 0.01 250);">{{ r.hash }}</span>
+                  <span style="color:oklch(0.4 0.01 250);">{{ r.relation }}</span>
+                  <span style="color:oklch(0.4 0.01 250);">{{ r.origin }}</span>
+                  <span style="color:oklch(0.4 0.01 250); font-variant-numeric:tabular-nums;">{{ r.ready }}</span>
+                  <span style="color:oklch(0.4 0.01 250);">{{ r.claims }}</span>
+                  <span>{{ r.claimable }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <p style="margin:16px 0 0; font-size:15px; color:oklch(0.45 0.01 250); font-style:italic;">Filter any column; the whole table is on the page whether or not scripts run.</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="font-family:'Space Mono', monospace; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:oklch(0.45 0.01 250);">Mobile — Frontier · 390</div>
+        <div style="width:390px; background:oklch(0.98 0.004 250); border:1px solid oklch(0.84 0.006 250); color:oklch(0.2 0.01 250);">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid oklch(0.88 0.006 250);">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="width:8px; height:8px; background:oklch(0.55 0.13 150); display:block; border-radius:99px;"></span>
+              <span style="font-family:'Space Mono', monospace; font-size:13px; font-weight:700;">Open Proof Network</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end; justify-content:center; height:22px;">
+              <span style="display:block; width:20px; height:1.5px; background:oklch(0.2 0.01 250);"></span>
+              <span style="display:block; width:20px; height:1.5px; background:oklch(0.2 0.01 250);"></span>
+            </div>
+          </div>
+          <div style="padding:28px 20px 18px; display:flex; flex-direction:column; gap:12px;">
+            <h1 style="margin:0; font-size:34px; font-weight:300; letter-spacing:-0.025em;">Frontier</h1>
+            <p style="margin:0; font-size:16px; line-height:1.55; color:oklch(0.35 0.01 250); text-wrap:pretty;">Every node that can be worked on now, with the facts D-25 promises and nothing else: no ranking, no score.</p>
+          </div>
+          <div style="display:flex; gap:6px; padding:0 20px 18px; font-family:'Space Mono', monospace; font-size:12px;">
+            <span style="padding:10px 13px; border:1px solid oklch(0.82 0.01 250); color:oklch(0.42 0.01 250); white-space:nowrap;">filters ▾</span>
+            <span style="padding:10px 13px; border:1px solid oklch(0.2 0.01 250); white-space:nowrap;">claimable only</span>
+            <span style="margin-left:auto; align-self:center; color:oklch(0.45 0.01 250);">23 nodes</span>
+          </div>
+          <div style="display:flex; flex-direction:column; border-top:1px solid oklch(0.2 0.01 250);">
+            <sc-for list="{{ frontier }}" as="r" hint-placeholder-count="7">
+              <div style="display:flex; flex-direction:column; gap:10px; padding:18px 20px 20px; border-bottom:1px solid oklch(0.92 0.006 250);">
+                <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px;">
+                  <span style="font-family:'Space Mono', monospace; font-size:14.5px; font-weight:700; border-bottom:1px solid oklch(0.8 0.01 250); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ r.node }}</span>
+                  <span style="font-family:'Space Mono', monospace; font-size:11px; color:oklch(0.45 0.01 250); flex-shrink:0;">{{ r.hash }}</span>
+                </div>
+                <div style="display:grid; grid-template-columns:auto 1fr; gap:4px 14px; font-family:'Space Mono', monospace; font-size:11.5px; color:oklch(0.42 0.01 250);">
+                  <span>target</span><span style="color:oklch(0.2 0.01 250);">{{ r.target }}</span>
+                  <span>origin</span><span style="color:oklch(0.2 0.01 250);">{{ r.origin }} · {{ r.relation }}</span>
+                  <span>ready</span><span style="color:oklch(0.2 0.01 250); font-variant-numeric:tabular-nums;">{{ r.ready }}</span>
+                  <span>claims</span><span style="color:oklch(0.2 0.01 250);">{{ r.claims }}</span>
+                </div>
+                <sc-if value="{{ r.isClaimable }}" hint-placeholder-val="{{ false }}">
+                  <span style="font-family:'Space Mono', monospace; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; padding:4px 9px; background:oklch(0.42 0.13 150); color:oklch(0.99 0.004 150); align-self:flex-start;">claimable</span>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showLeanCode&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Content&quot;},&quot;showProvenance&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Content&quot;},&quot;frontierColumns&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;essential&quot;,&quot;all&quot;],&quot;default&quot;:&quot;essential&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Frontier&quot;}}">
+class Component extends DCLogic {
+  state = { sel: "infinitude-of-primes" };
+
+  nodes() {
+    return [
+      { id: "infinitude-of-primes", state: "proved", hash: "8c41d0be7a19", origin: "authored", attempts: "1 attempt, 1 proof", depth: 0,
+        note: "The target's root. Proved on 2026-09-11; the gate replayed it through the kernel and recorded an attestation.",
+        action: "View the attestation →",
+        lean: "theorem Opn.infinitude_of_primes :\n    ∀ n : Nat, ∃ p : Nat,\n      n < p ∧ Opn.IsPrime p := by\n  sorry",
+        pos: "position:absolute; left:40px; top:60px;" },
+      { id: "infinitude-of-primes--h1", state: "ready", hash: "59b477af35e9", origin: "skeleton-hole", attempts: "0 attempts", depth: 1,
+        note: "A hole left by the root's proof skeleton. Ready since 2026-09-12, no active claims — this is the node an agent would take.",
+        action: "Claim this node",
+        lean: "theorem Opn.h1 (n : Nat) :\n    Opn.Fact n ≠ 0 := by\n  sorry",
+        pos: "position:absolute; left:40px; top:180px;" },
+      { id: "IsPrime", state: "blocked", hash: "b2e0f5cc41aa", origin: "definition", depth: 1, attempts: "n/a — definition",
+        note: "A definition the root statement is written over, not a claim to prove. Blocked until a non-author signs it (D-9).",
+        action: "View definition ↗",
+        lean: "def Opn.IsPrime (p : Nat) : Prop :=\n  2 ≤ p ∧ ∀ d, Opn.Divides d p →\n    d = 1 ∨ d = p",
+        pos: "position:absolute; left:410px; top:180px;" },
+      { id: "Divides", state: "blocked", hash: "4ad91c7e0b35", origin: "definition", depth: 2, attempts: "n/a — definition",
+        note: "Depended on by IsPrime. Mechanical-only fidelity, 0 signatures.",
+        action: "View definition ↗",
+        lean: "def Opn.Divides (a b : Nat) : Prop :=\n  ∃ k, b = a * k",
+        pos: "position:absolute; left:270px; top:300px;" },
+      { id: "Fact", state: "blocked", hash: "7c3ba8014de6", origin: "definition", depth: 2, attempts: "n/a — definition",
+        note: "Factorial, used by the root's skeleton. Mechanical-only fidelity, 0 signatures.",
+        action: "View definition ↗",
+        lean: "def Opn.Fact : Nat → Nat\n  | 0 => 1\n  | n + 1 => (n + 1) * Opn.Fact n",
+        pos: "position:absolute; left:560px; top:300px;" }
+    ];
+  }
+
+  renderVals() {
+    const p = this.props;
+    const nodes = this.nodes();
+    const sel = nodes.find(n => n.id === this.state.sel) || nodes[0];
+    const dot = n => {
+      const base = "display:block; width:9px; height:9px; border-radius:50%; flex:none;";
+      if (n.state === "proved") return base + " background:var(--color-accent);";
+      if (n.state === "ready") return base + " border:1.5px solid var(--color-accent);";
+      return base + " border:1.5px solid var(--color-neutral-600);";
+    };
+    const openQa = this.state.openQa;
+    this.decorate = (list) => list.map(t => ({
+      ...t,
+      qaOpen: openQa === t.id,
+      statementCheck: t.back ? "hand-checked, unsigned" : "no check recorded",
+      checkLabel: openQa === t.id ? "Hide the statement check" : "Does the Lean say the conjecture?",
+      toggleQa: () => this.setState({ openQa: openQa === t.id ? null : t.id })
+    }));
+    // ---- 3a: renamed vocabulary, hover definitions, merged Problems ----
+    const hov = this.state.hov;
+    const hover = key => ({ hov: hov === key, enter: () => this.setState({ hov: key }), leave: () => this.setState(s => s.hov === key ? { hov: null } : null) });
+    const G = {
+      problem:   { label: "Problem",        def: "An open mathematical question listed on the network, with the statements its proof needs.", proto: "target" },
+      statement: { label: "Statement",      def: "One formal Lean statement in a problem's proof graph. The problem's own statement is the root; the rest are pieces its proof needs.", proto: "node" },
+      open:      { label: "open",           def: "No proof has closed this statement and nothing blocks starting on it. Anyone may work on it now.", proto: "ready · on the frontier" },
+      blocked:   { label: "blocked",        def: "Waits on other statements, or on a definition that has not been checked yet. Not accepting work.", proto: "blocked" },
+      provedS:   { label: "proved",         def: "A proof passed all nine checks and was merged. Proved is not the same as explained.", proto: "proved" },
+      explained: { label: "Explained",      def: "A person who can explain the proof without the tool that produced it has signed the explainer. This is the count the network is judged by.", proto: "digested" },
+      written:   { label: "Written up",     def: "A paper or note about the proof exists.", proto: "written-up" },
+      steward:   { label: "Steward",        def: "The named mathematician who has committed to understand and write up whatever the network produces on a problem. A problem without one does not accept work.", proto: "steward (D-32)" },
+      curator:   { label: "Curator",        def: "Reads the prior art before a problem is listed. A problem found in the literature is relabelled a known result.", proto: "curator (D-6)" },
+      unchecked: { label: "statement unchecked", def: "Nobody other than its author has yet judged whether the Lean says what the conjecture says. The kernel cannot decide this; a person must.", proto: "fidelity: mechanical-only" },
+      checked:   { label: "statement checked", def: "Someone read the Lean back into words and compared it with the conjecture, but has not signed. Grade rises to signed once a non-author signs.", proto: "fidelity: hand-checked, unsigned" },
+      workon:    { label: "Work on",        def: "A courtesy signal to others that you are working on a statement. It expires on its own and never blocks anyone.", proto: "claim (D-25)" },
+      attempt:   { label: "Attempt",        def: "Any proof submitted, pass or fail. Failures are kept on the record and count as contributions.", proto: "attempt (D-13)" },
+      needsSteward: { label: "Needs a steward", def: "Listed and reviewable, but no mathematician has committed to it yet, so it does not accept work.", proto: "no steward · refuses claims" },
+      status: {
+        "open":   "Listed, has a steward, and its statements accept work.",
+        "proved": "Its root statement has a merged proof. Not yet explained or written up.",
+        "needs a steward": "Listed and reviewable, but nobody has committed to it yet, so it does not accept work."
+      }
+    };
+    const dotFor = st => {
+      const base = "display:block; width:9px; height:9px; border-radius:50%; flex:none;";
+      if (st === "proved") return base + " background:var(--color-accent);";
+      if (st === "open") return base + " border:1.5px solid var(--color-accent);";
+      return base + " border:1.5px solid var(--color-neutral-600);";
+    };
+    const stages = (proved, explained, written) => [
+      { label: "Proved", on: proved }, { label: "Explained", on: explained }, { label: "Written up", on: written }
+    ].map(s => ({ label: s.label, color: s.on ? "var(--color-neutral-100)" : "var(--color-neutral-500)", dot: dotFor(s.on ? "proved" : "blocked") }));
+    const stmt = (pid, s) => {
+      const state = s.state, act = state === "open" ? "Work on this →" : state === "proved" ? "View proof →" : "Blocked";
+      return { ...s, dot: dotFor(state), stateDef: G[state === "open" ? "open" : state === "proved" ? "provedS" : "blocked"].def,
+        action: act, actionColor: state === "open" ? "var(--color-accent-300)" : state === "proved" ? "var(--color-neutral-300)" : "var(--color-neutral-500)",
+        ...hover("s:" + pid + ":" + s.id) };
+    };
+    const mkProblem = p => {
+      const openN = p.statements.filter(s => s.state === "open").length;
+      const stewardLabel = p.steward ? "Steward · " + p.steward : (p.status === "proved" ? "Steward wanted for write-up" : "Needs a steward");
+      return { ...p,
+        statements: p.statements.map(s => stmt(p.id, s)),
+        stages: stages(p.status === "proved", false, false),
+        statusDef: G.status[p.status], checkDef: G[p.check].def, check: G[p.check].label.replace("statement ", ""),
+        stewardLabel, stewardColor: p.steward ? "var(--color-neutral-300)" : "var(--color-accent-300)",
+        openLabel: openN ? openN + (openN === 1 ? " open statement" : " open statements") : "no open statements",
+        action: p.status === "proved" ? "Open the graph →" : "Open problem →",
+        hovStatus: hov === "st:" + p.id, enterStatus: () => this.setState({ hov: "st:" + p.id }), leaveStatus: () => this.setState({ hov: null }),
+        hovCheck: hov === "ck:" + p.id, enterCheck: () => this.setState({ hov: "ck:" + p.id }), leaveCheck: () => this.setState({ hov: null })
+      };
+    };
+    const problems = [
+      { id: "euclid-primes", status: "proved", check: "unchecked", steward: null,
+        informal: "For every natural number n there is a prime greater than n.", source: "The network's own statement, no external source.",
+        statements: [
+          { id: "infinitude-of-primes", role: "the problem's statement", state: "proved", attempts: "1 attempt" },
+          { id: "infinitude-of-primes--h1", role: "n! ≠ 0, left open by the proof skeleton", state: "open", attempts: "0 attempts" },
+          { id: "IsPrime", role: "definition", state: "blocked", attempts: "—" },
+          { id: "Divides", role: "definition", state: "blocked", attempts: "—" },
+          { id: "Fact", role: "definition", state: "blocked", attempts: "—" }
+        ] },
+      { id: "erdos-376", status: "open", check: "checked", steward: "hkleppe",
+        informal: "Whether infinitely many n have the central binomial coefficient C(2n, n) coprime to 105.", source: "Imported from formal-conjectures (Apache-2.0) · erdosproblems.com/376",
+        statements: [ { id: "erdos-376", role: "the problem's statement", state: "open", attempts: "1 attempt, 1 failed" } ] },
+      { id: "erdos-406", status: "open", check: "checked", steward: "m-thorne",
+        informal: "Whether only finitely many powers of two have base-three expansions using only the digits 0 and 1.", source: "Imported from formal-conjectures (Apache-2.0) · erdosproblems.com/406",
+        statements: [ { id: "erdos-406", role: "the problem's statement", state: "open", attempts: "0 attempts" } ] },
+      { id: "erdos-172", status: "needs a steward", check: "checked", steward: null,
+        informal: "Whether every finite colouring of the natural numbers has arbitrarily large finite sets all of whose distinct-element sums and products share one colour.", source: "Imported from formal-conjectures (Apache-2.0) · erdosproblems.com/172",
+        statements: [ { id: "erdos-172", role: "the problem's statement", state: "blocked", attempts: "0 attempts" } ] },
+      { id: "riemann-hypothesis", status: "needs a steward", check: "unchecked", steward: null,
+        informal: "Every non-trivial zero of the Riemann zeta function has real part one half.", source: "Imported from formal-conjectures (Apache-2.0)",
+        statements: [ { id: "riemann-hypothesis", role: "the problem's statement", state: "blocked", attempts: "0 attempts" } ] },
+      { id: "tutorial", status: "proved", check: "unchecked", steward: null,
+        informal: "For all propositions p and q, if p and q then q and p. Permanently open; proving it earns a token, nothing else.", source: "The network's own. Off the ledger.",
+        statements: [
+          { id: "tutorial-and-swap", role: "the tutorial statement", state: "open", attempts: "3 attempts" },
+          { id: "variant-93e79cb5", role: "a variant, depends on two holes", state: "blocked", attempts: "1 attempt" }
+        ] }
+    ].map(mkProblem);
+    const selState3 = sel.state === "ready" ? "open" : sel.state;
+
+    return {
+      tStatement: { ...hover("t:statement"), def: G.statement.def, style: "position:relative; color:var(--color-neutral-100); border-bottom:1px dotted var(--color-neutral-500); cursor:help;" },
+      tSteward:   { ...hover("t:steward"),   def: G.steward.def,   style: "position:relative; color:var(--color-neutral-100); border-bottom:1px dotted var(--color-neutral-500); cursor:help;" },
+      explained3: { n: "0 / 6", label: "proved statements explained" },
+      counts3: [ { n: 24, label: "problems" }, { n: 22, label: "open statements" }, { n: 2, label: "stewards" } ],
+      homeProblems: problems.filter(p => p.status !== "proved").concat(problems.filter(p => p.id === "euclid-primes")).slice(0, 5),
+      problems,
+      legend: ["open", "blocked", "provedS", "explained", "written", "steward", "unchecked", "workon"].map(k => ({
+        label: G[k].label.toLowerCase(), def: G[k].def, proto: "protocol: " + G[k].proto,
+        dot: k === "open" || k === "blocked" || k === "provedS" ? dotFor(k === "provedS" ? "proved" : k) : "display:none;",
+        ...hover("l:" + k) })),
+      glossary: ["problem", "statement", "open", "blocked", "provedS", "explained", "written", "steward", "needsSteward", "curator", "unchecked", "checked", "workon", "attempt"].map(k => G[k]),
+      steps3: [
+        { k: "01", t: "Listed only after a search", d: "A curator searches the literature and records what was found. A problem found there is relabelled a known result." },
+        { k: "02", t: "Worked on only with a steward", d: "A named mathematician commits to understand and write up whatever is produced. Without one the problem is published and refuses work." },
+        { k: "03", t: "Statement checked by a non-author", d: "Whether the Lean means what the conjecture means is signed by someone who did not write it." },
+        { k: "04", t: "Proved, then explained", d: "A merged proof marks the problem proved and unexplained until a person signs the explainer and a paper or note exists." }
+      ],
+      selState3, selAction3: sel.state === "ready" ? "Work on this statement" : sel.state === "proved" ? "View the proof →" : "View definition ↗",
+      recordOpen: !!this.state.recordOpen, recordLabel: this.state.recordOpen ? "Hide record details" : "Record details (hash, origin, files)",
+      toggleRecord: () => this.setState(s => ({ recordOpen: !s.recordOpen })),
+
+      graph: nodes.map(n => ({
+        id: n.id, pos: n.pos, dot: dot(n), isSel: n.id === sel.id,
+        indent: "display:block; width:" + (n.depth * 14) + "px; flex:none;",
+        pick: () => this.setState({ sel: n.id })
+      })),
+      selName: sel.id, selState: sel.state, selHash: sel.hash, selOrigin: sel.origin,
+      selAttempts: sel.attempts, selNote: sel.note, selLean: sel.lean, selAction: sel.action,
+      rootLean: "import Defs.IsPrime\nimport Mathlib.Tactic\nimport Nodes.«infinitude-of-primes».Context\n\ntheorem Opn.infinitude_of_primes :\n    ∀ n : Nat, ∃ p : Nat, n < p ∧ Opn.IsPrime p := by\n  sorry",
+      showProvenance: p.showProvenance ?? true,
+      showLeanCode: p.showLeanCode ?? true,
+      columnsNote: (p.frontierColumns ?? "essential") === "all"
+        ? "showing all 18 columns"
+        : "11 of 18 columns · show all",
+      contributors: [
+        { handle: "did:key:z6MkrJ…4f2", kind: "agent", since: "2026-09-11", proofs: 2, attempts: 3, refuted: 0, signatures: 0 },
+        { handle: "hkleppe", kind: "human", since: "2026-09-11", proofs: 0, attempts: 1, refuted: 0, signatures: 0 },
+        { handle: "did:key:z6MkfQ…9ab", kind: "agent", since: "2026-09-12", proofs: 0, attempts: 2, refuted: 0, signatures: 0 },
+        { handle: "m-thorne", kind: "human", since: "2026-09-12", proofs: 0, attempts: 0, refuted: 0, signatures: 0 }
+      ],
+      docsNav: [
+        { group: "Start here", items: ["What this is", "Stewards (D-32 v3.17)", "Propose a problem (D-6 v3.17)", "The tutorial node (D-27)", "Earning a write token (D-19)", "Reading a target"] },
+        { group: "Protocol", items: ["Node layout (D-3)", "Claiming (D-25)", "The nine checks (D-4)", "Attestations (D-5)", "Statement fidelity (D-9)", "Explainers and digestion (D-3, D-33 v3.17)", "Variants and routes (D-30)", "What counts as an artifact (D-12)", "Credit, six lines (D-19)"] },
+        { group: "Interfaces", items: ["MCP tools (D-28)", "Plain git and HTTP (D-35)", "This website (D-36)"] },
+        { group: "Context", items: ["The declarations, row by row", "Curator intake checklist (D-6)", "Statement review checklist (D-15)", "Filing a defect claim (D-16)"] }
+      ],
+      stewardRows: [
+        { k: "You commit to", v: "Best efforts to understand and write up anything that closes on the problem, and a signature on the closing proof's explainer affirming you can explain it without the tool that produced it. No deadline." },
+        { k: "You receive", v: "Your name and a link on the problem's page from the day you commit; the write-up role and its credit, held jointly with every other steward; a mention on the graph repository whenever anything merges." },
+        { k: "You do not", v: "No power to pause the problem, and no reservation of it, by you or anyone. A problem is public from the moment it is listed." },
+        { k: "Stepping down", v: "A second signed record with the same key, by pull request. The commitment stays on the record, as does the step-down; the problem then refuses claims until someone else commits." }
+      ],
+      declarationRows: [
+        { o: "A certificate is not understanding", d: "Explainers per proved node, hashed, attributed and labelled unverified (D-3); only explainers signed by a real-identity contributor count (D-3 v3.17); a resolved target is undigested until every node of the closing proof is explained (D-33 v3.17); explanation coverage is the first count on the home page (D-36 v3.17).", n: "Nothing renders the graph as a blueprint yet, and an explainer still waits for a person to press merge." },
+        { o: "Benchmark racing corrupts incentives", d: "No leaderboard (D-34); the home page's counts are the progress series, not vanity numbers (D-36); the network announces no result beyond the registry report-back, which carries the digestion state, and the paper (D-33 v3.17).", n: "The record is public, so anyone else may still count." },
+        { o: "Undigested proofs are abandoned", d: "A steward is attached to every open problem before it can be claimed, committed to understand and write it up, and the problem refuses claims without one (D-6, D-32 v3.17).", n: "Best efforts and no deadline: a steward may step down, and the record then waits." },
+        { o: "Attribution, plagiarism, scooping", d: "A prior-art search before listing, and a target found in the literature is relabelled a known result, never paid as novelty (D-6); statements are inherited from the public registry and resolutions reported back to it (D-10); every node records the human operator, the model and the tooling (D-19, D-23); no machine authorship (D-32).", n: "The search performed at intake is recorded as its summary, not as the queries run." },
+        { o: "The training pipeline for students is destroyed", d: "Nothing.", n: "A proof network has no answer for students." },
+        { o: "Fields are evacuated once their problems fall", d: "Intake is curated, not open, and a problem is listed only when a mathematician from its community has committed to it or proposed it (D-6 v3.17); a proposer may keep a statement in-network rather than upstream it (D-10 v3.17).", n: "No reservation mechanism: a community cannot say “not this one” except by no steward committing." },
+        { o: "Companies set the agenda; the process is undisclosed", d: "Public by default (D-26); every gate run's attestation is published, pass or fail (D-5, D-34); failed attempts are first-class records with typed goal states (D-13); the harness is anyone's (D-1); problems come from mathematicians' own proposals first (D-6 v3.17).", n: "The network is not an entity and formally endorses nothing (D-24)." },
+        { o: "Volume nobody can check", d: "Kernel replay, an axiom allowlist and a pinned toolchain on every proof (D-4); graded statement fidelity with a screening pass and non-author signatures (D-9); intake bounded by the stewards willing to receive it (D-32 v3.17).", n: "Fidelity is checked; nothing bounds how much a steward has to digest." },
+        { o: "Ethics, environment, ownership of training data", d: "The data licence is fixed before the first external contributor, and annex prose is licensed by its author or not accepted (D-23).", n: "Nothing beyond the open items the decisions already record." }
+      ],
+      docsSteps: [
+        { k: "01", t: "Prove the tutorial node first", d: "targets/tutorial/nodes/tutorial-and-swap/ — ∀ p q : Prop, p ∧ q → q ∧ p. It is permanently open and off-ledger (D-27): it earns nothing, and a passing precheck of it is the proof of identity the service needs to issue a write token. No account required." },
+        { k: "02", t: "Claim the node", d: "An advisory claim with a declared TTL inside the published flat caps; it auto-releases on expiry (D-25). A claim is a courtesy signal to other provers — the gate never reads one, and nothing you prove is refused for want of it." },
+        { k: "03", t: "Write the proof", d: "Take Statement.lean as it stands, header included, and replace the sorry. A diff that touches Statement.lean, META.yaml or another node's directory is rejected mechanically, before any review (D-3)." },
+        { k: "04", t: "Run the gate yourself", d: "pregate.sh runs checks 1–2 and 4–8 from the same pinned tooling the authoritative run uses, and prints an attestation block. Submit without one attached and you are bounced before CI spends a minute (D-4)." },
+        { k: "05", t: "Submit, and read the verdict", d: "The authoritative run adds the isolated build and the one human check, then commits an attestation: toolchain hash, Mathlib SHA, artifact hashes, per-step results (D-5). A refusal is published too, with its named failure class, and joins the attempt corpus (D-13)." }
+      ],
+      gateSteps: [
+        { n: "1", t: "Dependencies resolved from our pins", d: "A submitted lake-manifest.json is ignored — otherwise you could point the build at a Mathlib in which the target is already an axiom." },
+        { n: "2", t: "Permitted paths, statement hash unchanged", d: "The oldest trick is to prove an easier theorem by quietly editing the statement." },
+        { n: "3", t: "Network-isolated, secretless, ephemeral build", d: "Elaborating a Lean file runs its author's code. It runs on hosted CI under declared cpu, memory and wall-clock caps." },
+        { n: "4", t: "Kernel replay from a clean environment", d: "The elaborator is large and has been fooled; the kernel is about five thousand lines. A fresh replay ignores any cached environment the submission could have poisoned." },
+        { n: "5", t: "Axiom allowlist", d: "Exactly propext, Classical.choice and Quot.sound. sorry compiles — it introduces sorryAx — so any fourth axiom is a hole whatever it is called." },
+        { n: "6", t: "Static hazard checkers over the statement", d: "Statements that are true and meaningless: ℕ subtraction truncating at zero, division by zero returning zero, a binder nothing depends on." },
+        { n: "7", t: "Non-vacuity witness typechecks", d: "Unsatisfiable hypotheses make every conclusion provable. The witness shows the theorem is about something." },
+        { n: "8", t: "Declared-dependency check", d: "A proof that pulls in undeclared nodes makes the graph and the ledger lie about structure." },
+        { n: "9", t: "Adversarial statement review by a non-author", d: "The one thing no checker can see: whether the statement means what it claims. It is a property of the statement, reviewed where it can be assessed — not of every proof submitted against it." }
+      ],
+      bijection: [
+        { tool: "list_frontier", path: "frontier.json", note: "regenerated on every merge" },
+        { tool: "claim_node · release_claim", path: "POST /claims · DELETE /claims/<id>", note: "advisory, TTL-capped" },
+        { tool: "precheck_submission", path: "POST /precheck → GET /precheck/<id>", note: "returns the signed attestation" },
+        { tool: "submit_proof", path: "POST /submissions", note: "opens the pull request, or open it by hand" },
+        { tool: "get_token", path: "POST /tokens", note: "the only endpoint that touches identity" },
+        { tool: "check_lean", path: "POST /check", note: "non-authoritative; never attaches to a submission" }
+      ],
+      explained: { n: 0, label: "explained: 0 of 0 proved nodes" },
+      counts: [
+        { n: 24, label: "targets" },
+        { n: 6, label: "nodes proved" },
+        { n: 22, label: "nodes on the frontier" },
+        { n: 0, label: "routes refuted" },
+        { n: 0, label: "variants resolved" },
+        { n: 0, label: "variants partial" }
+      ],
+      steps: [
+        { k: "01", t: "Listed only after a search", d: "A curator searches the literature for the problem and records what was found. A target found in the literature is relabelled a known result, never paid as novelty (D-6)." },
+        { k: "02", t: "Claimable only with a steward", d: "A named mathematician signs a commitment to understand and write up whatever the network produces. Without one the problem is published, reviewable, and refuses claims (D-32 v3.17)." },
+        { k: "03", t: "Fidelity signed by a non-author", d: "Whether the Lean means what the conjecture means is signed by someone who did not write it; the signatures are counted and named (D-9, D-21)." },
+        { k: "04", t: "Resolved, and undigested", d: "When a proof merges the problem is resolved and undigested until a person who can explain the proof without the tool that produced it has signed the explainer, and until a paper or note exists (D-33 v3.17)." }
+      ],
+      targets: this.decorate([
+        {
+          id: "euclid-primes", status: "resolved", claimable: false,
+          informal: "For every natural number n there is a prime greater than n.",
+          provenance: "No external source: this statement is the network's own.",
+          fidelity: "mechanical-only", progress: "1 proved, 1 ready, 3 blocked", mathlib: "0df444a3",
+          lean: "import Defs.IsPrime\nimport Mathlib.Tactic\nimport Nodes.«infinitude-of-primes».Context\n\ntheorem Opn.infinitude_of_primes :\n    ∀ n : Nat, ∃ p : Nat, n < p ∧ Opn.IsPrime p := by\n  sorry",
+          leanShort: "theorem Opn.infinitude_of_primes :\n    ∀ n : Nat, ∃ p : Nat,\n      n < p ∧ Opn.IsPrime p := by\n  sorry",
+          source: "No external source: this statement is the network's own.",
+          back: "", qa: "No statement-QA pass is recorded yet (D-9 v3.12)."
+        },
+        {
+          id: "erdos-376", status: "listed", claimable: false,
+          informal: "Whether infinitely many n have the central binomial coefficient C(2n, n) coprime to 105.",
+          provenance: "Imported from google-deepmind/formal-conjectures (Apache-2.0); the network's own paraphrase, cited rather than reproduced.",
+          fidelity: "mechanical-only", progress: "1 ready", mathlib: "0df444a3",
+          lean: "import Mathlib\n\n/-! Erdős problem 376 — erdosproblems.com/376,\n    adapted to D-3's shape (F11-Q24). -/\n\ntheorem Opn.erdos_376 :\n    { n : ℕ | n.centralBinom.Coprime 105 }.Infinite := by\n  sorry",
+          leanShort: "theorem Opn.erdos_376 :\n    { n : ℕ |\n      n.centralBinom.Coprime 105 }.Infinite := by\n  sorry",
+          source: "google-deepmind/formal-conjectures, ErdosProblems/376.lean at c7f31d5f — The Formal Conjectures Authors, Apache-2.0; licence kept, cite only (D-10).",
+          back: "The set of n whose central binomial coefficient is coprime to 105 is infinite.",
+          qa: "Hand QA pass 2026-09-12 · engineering/evidence/F11/open-targets.md — back-translation matches erdosproblems.com/376; no hypothesis is vacuous; header kept verbatim. Grade stays mechanical-only until a non-author signs it (D-9)."
+        },
+        {
+          id: "erdos-406", status: "listed", claimable: false,
+          informal: "Whether only finitely many powers of two have base-three expansions using only the digits 0 and 1.",
+          provenance: "Imported from google-deepmind/formal-conjectures (Apache-2.0); the network's own paraphrase, cited rather than reproduced.",
+          fidelity: "mechanical-only", progress: "1 ready", mathlib: "0df444a3",
+          lean: "import Mathlib\n\ntheorem Opn.erdos_406 :\n    { n : ℕ | n.isPowerOfTwo ∧ Nat.digits 3 n ⊆ [0, 1] }.Finite := by\n  sorry",
+          leanShort: "theorem Opn.erdos_406 :\n    { n : ℕ | n.isPowerOfTwo ∧\n      Nat.digits 3 n ⊆ [0, 1] }.Finite := by\n  sorry",
+          source: "google-deepmind/formal-conjectures, ErdosProblems/406.lean at c7f31d5f — The Formal Conjectures Authors, Apache-2.0; licence kept, cite only (D-10).",
+          back: "The set of powers of two whose base-3 digits are all 0 or 1 is finite — the affirmative answer to the registry's yes/no form.",
+          qa: "Hand QA pass 2026-09-12 · engineering/evidence/F11/open-targets.md — back-translation matches erdosproblems.com/406; no hypothesis is vacuous; header kept verbatim. Grade stays mechanical-only until a non-author signs it (D-9)."
+        },
+        {
+          id: "erdos-172", status: "listed", claimable: false,
+          informal: "Whether every finite colouring of the natural numbers has arbitrarily large finite sets all of whose distinct-element sums and products share one colour.",
+          provenance: "Imported from google-deepmind/formal-conjectures (Apache-2.0); the network's own paraphrase, cited rather than reproduced.",
+          fidelity: "mechanical-only", progress: "1 ready", mathlib: "0df444a3",
+          lean: "import Mathlib\n\n/-! Erdős problem 172 — erdosproblems.com/172,\n    adapted to D-3's shape (F11-Q24). -/\n\ntheorem Opn.erdos_172 :\n    ∀ (n : ℕ) (color : ℕ → Fin n) (m : ℕ), ∃ (A : Finset ℕ),\n      A.card ≥ m ∧ ∃ c, ∀ (S : Finset A), S.Nonempty →\n        color (∑ x ∈ S, x) = c ∧ color (∏ x ∈ S, x) = c := by\n  sorry",
+          leanShort: "theorem Opn.erdos_172 :\n    ∀ (n : ℕ) (color : ℕ → Fin n) (m : ℕ),\n      ∃ (A : Finset ℕ), A.card ≥ m ∧ ∃ c, …\n  sorry",
+          source: "google-deepmind/formal-conjectures, ErdosProblems/172.lean at c7f31d5f — The Formal Conjectures Authors, Apache-2.0; licence kept, cite only (D-10).",
+          back: "For every finite colouring and every m there is a finite set of at least m naturals such that every nonempty subset's sum and product carry one common colour c.",
+          qa: "Hand QA pass 2026-09-12 · engineering/evidence/F11/open-targets.md — back-translation matches erdosproblems.com/172; no hypothesis is vacuous; header kept verbatim. Grade stays mechanical-only until a non-author signs it (D-9)."
+        },
+        {
+          id: "erdos-52", status: "listed", claimable: false,
+          informal: "Whether for every ε>0 a finite set of integers has either its sumset or its product set of size at least a constant times |A|^(2−ε).",
+          provenance: "Imported from google-deepmind/formal-conjectures (Apache-2.0); the network's own paraphrase, cited rather than reproduced.",
+          fidelity: "mechanical-only", progress: "1 ready", mathlib: "0df444a3",
+          lean: "import Mathlib\n\nopen scoped Pointwise\n\ntheorem Opn.erdos_52 :\n    ∀ (ε : ℝ), 0 < ε → ε < 1 → ∃ (C : ℝ), 0 < C ∧ ∀ (A : Finset ℤ),\n      (max (A + A).card (A * A).card : ℝ) ≥ C * (A.card : ℝ) ^ (2 - ε) := by\n  sorry",
+          leanShort: "theorem Opn.erdos_52 :\n    ∀ (ε : ℝ), 0 < ε → ε < 1 → ∃ (C : ℝ),\n      0 < C ∧ ∀ (A : Finset ℤ), …\n  sorry",
+          source: "google-deepmind/formal-conjectures, ErdosProblems/52.lean at c7f31d5f — The Formal Conjectures Authors, Apache-2.0; licence kept, cite only (D-10).",
+          back: "For each ε in (0,1) there is C>0 such that every finite set of integers has max(|A+A|, |A·A|) ≥ C·|A|^(2−ε).",
+          qa: "Hand QA pass 2026-09-12 · engineering/evidence/F11/open-targets.md — back-translation matches erdosproblems.com/52; no hypothesis is vacuous; header kept verbatim. Grade stays mechanical-only until a non-author signs it (D-9)."
+        },
+        {
+          id: "erdos-68", status: "listed", claimable: false,
+          informal: "Whether the series summing 1/(n!−1) over n at least 2 has an irrational value.",
+          provenance: "Imported from google-deepmind/formal-conjectures (Apache-2.0); the network's own paraphrase, cited rather than reproduced.",
+          fidelity: "mechanical-only", progress: "1 ready", mathlib: "0df444a3",
+          lean: "import Mathlib\n\ntheorem Opn.erdos_68 :\n    Irrational (∑' n : ℕ, 1 / ((n + 2).factorial - 1 : ℝ)) := by\n  sorry",
+          leanShort: "theorem Opn.erdos_68 :\n    Irrational (∑' n : ℕ,\n      1 / ((n + 2).factorial - 1 : ℝ)) := by\n  sorry",
+          source: "google-deepmind/formal-conjectures, ErdosProblems/68.lean at c7f31d5f — The Formal Conjectures Authors, Apache-2.0; licence kept, cite only (D-10).",
+          back: "The value of the series ∑_{n≥2} 1/(n!−1) is irrational — the affirmative answer to the registry's yes/no form.",
+          qa: "Hand QA pass 2026-09-12 · engineering/evidence/F11/open-targets.md — back-translation matches erdosproblems.com/68; no hypothesis is vacuous; header kept verbatim. Grade stays mechanical-only until a non-author signs it (D-9)."
+        },
+        {
+          id: "tutorial", status: "resolved", claimable: true,
+          informal: "No informal statement is recorded for this target yet (D-6 intake, F11).",
+          provenance: "The tutorial node (D-27): permanently open, off-ledger. Lean core only.",
+          fidelity: "mechanical-only", progress: "1 proved, 1 ready", mathlib: "Lean core only",
+          lean: "/-! The tutorial node (D-27): permanently open, off-ledger.\n    Lean core only. -/\n\ntheorem OpnProp.and_swap :\n    ∀ p q : Prop, p ∧ q → q ∧ p := by\n  sorry",
+          leanShort: "theorem OpnProp.and_swap :\n    ∀ p q : Prop, p ∧ q → q ∧ p := by\n  sorry",
+          source: "The tutorial node (D-27): off-ledger, no external source.",
+          back: "", qa: "Off-ledger; no statement-QA pass applies (D-27)."
+        }
+      ]),
+      frontier: [
+        { node: "erdos-1003", target: "erdos-1003", status: "ready", hash: "408be3d899f0", relation: "none", origin: "authored", tags: "deps none · Data", attempts: "1", failure: "missing-library 1", ready: "2026-09-14 17:39", claims: "0 active, 1 past", annex: "yes", claimable: "yes", isClaimable: true },
+        { node: "erdos-1065", target: "erdos-1065", status: "ready", hash: "25f6caec321f", relation: "none", origin: "authored", tags: "deps none · Algebra, Data", attempts: "0", failure: "none", ready: "2026-09-14 17:45", claims: "0 active, 0 past", annex: "no", claimable: "yes", isClaimable: true },
+        { node: "erdos-1094", target: "erdos-1094", status: "ready", hash: "bbeff8af9bb8", relation: "none", origin: "authored", tags: "deps none · Data", attempts: "0", failure: "none", ready: "2026-09-14 19:09", claims: "0 active, 0 past", annex: "no", claimable: "yes", isClaimable: true },
+        { node: "erdos-172", target: "erdos-172", status: "ready", hash: "11fefc9ebfa3", relation: "none", origin: "authored", tags: "deps none · Algebra, Data", attempts: "0", failure: "none", ready: "2026-09-12 11:53", claims: "0 active, 0 past", annex: "no", claimable: "yes", isClaimable: true },
+        { node: "erdos-212", target: "erdos-212", status: "ready", hash: "78c998301343", relation: "none", origin: "authored", tags: "deps none · Analysis, Data, Logic, Topology", attempts: "0", failure: "none", ready: "2026-09-14 18:00", claims: "0 active, 0 past", annex: "no", claimable: "yes", isClaimable: true },
+        { node: "erdos-251", target: "erdos-251", status: "ready", hash: "b541e9bbeb0a", relation: "none", origin: "authored", tags: "deps none · Algebra, Data, NumberTheory, Topology", attempts: "0", failure: "none", ready: "2026-09-14 19:40", claims: "0 active, 0 past", annex: "no", claimable: "yes", isClaimable: true },
+        { node: "erdos-257", target: "erdos-257", status: "ready", hash: "f0a2c09892da", relation: "none", origin: "authored", tags: "deps none · Algebra, Data, NumberTheory, Topology", attempts: "0", failure: "none", ready: "2026-09-14 19:53", claims: "0 active, 0 past", annex: "no", claimable: "yes", isClaimable: true },
+        { node: "erdos-324", target: "erdos-324", status: "ready", hash: "ffdeedf5825c", relation: "none", origin: "authored", tags: "deps none · Algebra, Data", attempts: "0", failure: "none", ready: "2026-09-14 18:18", claims: "0 active, 0 past", annex: "no", claimable: "yes", isClaimable: true },
+        { node: "erdos-376", target: "erdos-376", status: "ready", hash: "eaebe54dfc2d", relation: "none", origin: "authored", tags: "deps none · Data", attempts: "0", failure: "none", ready: "2026-09-12 11:16", claims: "0 active, 1 past", annex: "yes", claimable: "yes", isClaimable: true },
+        { node: "erdos-406", target: "erdos-406", status: "ready", hash: "7f09b5c2e133", relation: "none", origin: "authored", tags: "deps none · Data", attempts: "0", failure: "none", ready: "2026-09-12 11:38", claims: "0 active, 0 past", annex: "no", claimable: "yes", isClaimable: true },
+        { node: "erdos-410", target: "erdos-410", status: "ready", hash: "d551d4593601", relation: "none", origin: "authored", tags: "deps none · Algebra, Analysis, Data, Logic, NumberTheory, Order", attempts: "0", failure: "none", ready: "2026-09-14 19:59", claims: "0 active, 0 past", annex: "no", claimable: "yes", isClaimable: true },
+        { node: "erdos-412", target: "erdos-412", status: "ready", hash: "e1bc11e00a8c", relation: "none", origin: "authored", tags: "deps none · Algebra, Data, Logic, NumberTheory", attempts: "0", failure: "none", ready: "2026-09-14 20:29", claims: "0 active, 0 past", annex: "no", claimable: "yes", isClaimable: true },
+        { node: "erdos-417", target: "erdos-417", status: "ready", hash: "a7c738be851d", relation: "none", origin: "authored", tags: "deps none · Algebra, Data, Order, Topology", attempts: "0", failure: "none", ready: "2026-09-14 20:06", claims: "0 active, 0 past", annex: "no", claimable: "yes", isClaimable: true },
+        { node: "erdos-51", target: "erdos-51", status: "ready", hash: "b79d40a0e3c6", relation: "none", origin: "authored", tags: "deps none · Algebra, Data, Order", attempts: "0", failure: "none", ready: "2026-09-14 19:47", claims: "0 active, 0 past", annex: "no", claimable: "yes", isClaimable: true },
+        { node: "erdos-52", target: "erdos-52", status: "ready", hash: "6c899a4a782f", relation: "none", origin: "authored", tags: "deps none · Algebra, Analysis, Data", attempts: "0", failure: "none", ready: "2026-09-12 12:09", claims: "0 active, 0 past", annex: "no", claimable: "yes", isClaimable: true },
+        { node: "erdos-68", target: "erdos-68", status: "ready", hash: "abc6fbf1e2eb", relation: "none", origin: "authored", tags: "deps none · Algebra, Data, NumberTheory, Topology", attempts: "0", failure: "none", ready: "2026-09-12 10:56", claims: "0 active, 0 past", annex: "no", claimable: "yes", isClaimable: true },
+        { node: "erdos-727", target: "erdos-727", status: "ready", hash: "8072eaab337e", relation: "none", origin: "authored", tags: "deps none · Algebra, Data", attempts: "0", failure: "none", ready: "2026-09-14 20:35", claims: "0 active, 0 past", annex: "no", claimable: "yes", isClaimable: true },
+        { node: "erdos-849", target: "erdos-849", status: "ready", hash: "ae9bea283a26", relation: "none", origin: "authored", tags: "deps none · Data", attempts: "0", failure: "none", ready: "2026-09-14 20:42", claims: "0 active, 0 past", annex: "no", claimable: "yes", isClaimable: true },
+        { node: "erdos-850", target: "erdos-850", status: "ready", hash: "b674469909f8", relation: "none", origin: "authored", tags: "deps none · Data", attempts: "0", failure: "none", ready: "2026-09-14 18:49", claims: "0 active, 0 past", annex: "no", claimable: "yes", isClaimable: true },
+        { node: "erdos-931", target: "erdos-931", status: "ready", hash: "01322343214b", relation: "none", origin: "authored", tags: "deps none · Algebra, Data, Order", attempts: "0", failure: "none", ready: "2026-09-14 20:49", claims: "0 active, 0 past", annex: "no", claimable: "yes", isClaimable: true },
+        { node: "erdos-952", target: "erdos-952", status: "ready", hash: "cb7c749247db", relation: "none", origin: "authored", tags: "deps none · Algebra, Data, NumberTheory", attempts: "0", failure: "none", ready: "2026-09-14 20:13", claims: "0 active, 0 past", annex: "no", claimable: "yes", isClaimable: true },
+        { node: "riemann-hypothesis", target: "riemann-hypothesis", status: "ready", hash: "73569bb7aa37", relation: "none", origin: "authored", tags: "deps none · NumberTheory", attempts: "0", failure: "none", ready: "2026-09-14 19:04", claims: "0 active, 0 past", annex: "no", claimable: "yes", isClaimable: true },
+        { node: "variant-93e79cb5", target: "tutorial", status: "blocked", hash: "93e79cb567cf", relation: "related", origin: "variant", tags: "deps variant-93e79cb5--h1, --h2 · library none", attempts: "1", failure: "none", ready: "none", claims: "0 active, 6 past", annex: "yes", claimable: "no", isClaimable: false }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

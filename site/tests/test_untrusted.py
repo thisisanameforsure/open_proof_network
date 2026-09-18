@@ -50,7 +50,7 @@ def _assert_clean(page: str) -> None:
     p.feed(page)
     for tag, attrs in p.tags:
         assert tag not in ("img", "iframe", "object", "embed"), (tag, attrs)
-        assert tag != "script" or attrs == {"src": "/frontier.js"}, attrs
+        assert tag != "script" or attrs in ({"src": "/problems.js"}, {"src": "/problem.js"}), attrs
         assert not any(k.lower().startswith("on") for k in attrs), (tag, attrs)
         for k in ("href", "src"):
             v = (attrs.get(k) or "").strip().lower()
@@ -114,7 +114,7 @@ def test_crlf_front_matter_is_read_like_lf(tmp_path: Path) -> None:
 def test_state_of_the_problem_note_is_escaped_in_an_untrusted_block(tmp_path: Path) -> None:
     root = fixture.build(tmp_path)
     (root / "targets" / TARGET / "note.md").write_text(f"Note {PAYLOAD}\n", encoding="utf-8")
-    page = _render(root)["targets/propositional/index.html"]
+    page = _render(root)["problems/propositional/index.html"]
     _assert_clean(page)
     block = page[page.index('<div class="prose-block untrusted">') :]
     assert "Untrusted: state-of-the-problem note (D-32)" in block
@@ -130,7 +130,7 @@ def test_approach_file_names_are_escaped_in_href_and_label(tmp_path: Path) -> No
     # No path separator: that is the one character a file name cannot carry.
     (approaches / 'x"><script>alert(1)<script>.yaml').write_text("kind: x\n", encoding="utf-8")
     (approaches / "javascript:alert(2).yaml").write_text("kind: x\n", encoding="utf-8")
-    page = _render(root)["targets/propositional/index.html"]
+    page = _render(root)["problems/propositional/index.html"]
     _assert_clean(page)
     assert (
         f'href="{REPO}/blob/{fixture.COMMIT}/targets/propositional/approaches/'
@@ -275,29 +275,32 @@ def test_docs_page_graph_files_are_escaped(name: str, tmp_path: Path) -> None:
     assert f"{REPO}/blob/{fixture.COMMIT}/{name}" in page
 
 
-# --- the frontier page: free-text fields inside otherwise patterned entries -----------------------
+# --- the Problems page: free-text fields of the index row and the curated record ---------------
 
 
-def test_frontier_free_text_cells_are_escaped(tmp_path: Path) -> None:
-    """The frontier schema patterns ids and hashes but not library tags, failure-class keys or
-    active claim ids; each is rendered escaped, and None/bools take fixed words."""
+def test_problems_page_free_text_is_escaped(tmp_path: Path) -> None:
+    """The index row's fidelity grade, its not-claimable reasons and a steward's name land in a
+    tag, its hover card and the steward line; each is rendered escaped (F04-T12)."""
     root = fixture.build(tmp_path)
     site = model.load_site(root, fixture.COMMIT)
-    entry = dict(site.frontier["entries"][0])
-    entry["tags"] = {"deps": [], "library": [PAYLOAD]}
-    entry["failure_class_histogram"] = {PAYLOAD: 1}
-    entry["claims"] = {"active": [PAYLOAD], "history_count": 0}
-    entry["ready_since"] = None
-    entry["bounty"] = True
-    doc = dict(site.frontier, entries=[entry])
+    tv = site.targets[TARGET]
+    entry = {
+        **tv.index_entry,
+        "fidelity": PAYLOAD,
+        "claimable": False,
+        "not_claimable": [PAYLOAD],
+        "stewards": [
+            {"login": "x", "name": PAYLOAD, "link": "https://example.org/x", "since": "2026"}
+        ],
+    }
+    targets = {**site.targets, TARGET: dataclasses.replace(tv, index_entry=entry)}
     page = render.Renderer(
-        dataclasses.replace(site, frontier=doc), repo_url=REPO, decisions_doc=None
-    ).frontier()
+        dataclasses.replace(site, targets=targets), repo_url=REPO, decisions_doc=None
+    ).problems()
     _assert_clean(page)
-    assert f"library: {ESCAPED}" in page
-    assert f"{ESCAPED} 1" in page
-    assert "<td>1 active, 0 past</td>" in page and PAYLOAD not in page
-    assert "<td>none</td>" in page and "<td>yes</td>" in page
+    assert PAYLOAD not in page and page.count(ESCAPED) == 3
+    assert f'<span class="tag tag-outline">{ESCAPED}</span>' in page
+    assert f"Not claimable: {ESCAPED}." in page
 
 
 # --- the prose renderer's edges (Q2) --------------------------------------------------------------

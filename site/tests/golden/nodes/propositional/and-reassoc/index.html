@@ -3,17 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Node and-reassoc</title>
+<title>and-reassoc · Open Proof Network</title>
 <link rel="stylesheet" href="/site.css">
+
 </head>
 <body>
 <header class="masthead">
-  <a class="site-name" href="/">Open Proof Network</a>
-  <nav><a href="/">Home</a><a href="/targets/">Targets</a><a href="/frontier/">Frontier</a><a href="/contributors/">Contributors</a><a href="/docs/">Docs</a></nav>
+  <a class="site-name" href="/"><span class="brand-mark"></span>Open Proof Network</a>
+  <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="menu">
+  <label for="nav-toggle" class="nav-burger" aria-hidden="true"><span></span><span></span></label>
+  <nav class="site-nav"><a href="/">Home</a><a href="/problems/" aria-current="page">Problems</a><a href="/contributors/">Contributors</a><a href="/docs/">Docs</a><a href="/about/">About</a><a class="btn btn-primary nav-action" href="/problems/?filter=open">Work on a statement</a></nav>
 </header>
 <main>
-<p class="crumbs"><a href="/targets/">Targets</a> / <a href="/targets/propositional/">propositional</a></p>
-<h1>and-reassoc</h1>
+<p class="crumbs"><a href="/problems/">Problems</a> / <a href="/problems/propositional/">propositional</a> / and-reassoc</p>
+<h1 class="mono">and-reassoc</h1>
 <p class="lead"><span class="status status-proved"><span class="mark"></span>proved</span></p>
 
 <pre class="lean statement st-proved">theorem OpnProp.and_reassoc : ∀ p q r : Prop, (p ∧ q) ∧ r → p ∧ (q ∧ r) := by
@@ -43,9 +46,12 @@
 
 
 </main>
-<footer class="colophon">
-  <p>Rendered from graph commit <a href="https://github.com/example/graph/tree/6666666666666666666666666666666666666666"><code>666666666666</code></a>.
-  This page is a view of <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/Statement.lean">targets/propositional/nodes/and-reassoc/Statement.lean</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/META.yaml">targets/propositional/nodes/and-reassoc/META.yaml</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/Proof.lean">targets/propositional/nodes/and-reassoc/Proof.lean</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/attestations/000002.json">attestations/000002.json</a> at that commit. The site is read-only and rebuilt on every merge (D-36).</p>
+<footer class="provenance">
+  <span>graph commit <a href="https://github.com/example/graph/tree/6666666666666666666666666666666666666666"><code>666666666666</code></a></span>
+  <span>read-only · rebuilt on every merge</span>
+  <span class="sources">a view of <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/Statement.lean">targets/propositional/nodes/and-reassoc/Statement.lean</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/META.yaml">targets/propositional/nodes/and-reassoc/META.yaml</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/Proof.lean">targets/propositional/nodes/and-reassoc/Proof.lean</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/attestations/000002.json">attestations/000002.json</a></span>
+  <span class="links"><a href="https://github.com/example/graph/tree/6666666666666666666666666666666666666666">repository ↗</a> · <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>
 </footer>
+
 </body>
 </html>

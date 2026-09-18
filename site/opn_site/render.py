@@ -24,9 +24,11 @@ from opn_site.model import NodeView, Prose, Site, SiteError, TargetView
 TEMPLATES = Path(__file__).resolve().parent / "templates"
 STATIC = Path(__file__).resolve().parent / "static"
 SITE_NAME = "Open Proof Network"
+#: F04-T12: the site's words for a node's status (the Vocabulary table of the redesign handoff:
+#: ``ready`` reads "open"); the protocol's words stay in ``frontier.json``, the API and Docs.
 STATUS_WORDS = {
     "proved": "proved",
-    "ready": "ready to prove",
+    "ready": "open",
     "blocked": "blocked on a dependency",
     "refuted": "refuted by a counterexample",
     "defective": "defective: the statement is vacuous",
@@ -46,29 +48,174 @@ CAUSE_WORDS = {
 CLAIMABLE_STATUSES = ("ready", "speculative")
 #: The frontier row's words for a not-claimable target whose index row names no reason (D-6).
 NO_RECORD_WORDS = "this target has no curated intake record (D-6)"
-#: One column per frontier entry field, plus the node's status from its target's graph (T11, Q11):
-#: the frontier lists open variants that wait on their holes, so Claimable needs a status beside it.
-FRONTIER_COLUMNS = (
-    ("node_id", "Node"),
-    ("target_id", "Target"),
-    ("status", "Status"),
-    ("statement_hash", "Statement hash"),
-    ("relation", "Relation"),
-    ("origin", "Origin"),
-    ("tags", "Tags"),
-    ("attempts", "Attempts"),
-    ("refuted_route_classes", "Routes refuted"),
-    ("failure_class_histogram", "Failure classes"),
-    ("ready_since", "Ready since"),
-    ("claims", "Claims"),
-    ("annex_present", "Annex"),
-    ("bounty", "Bounty"),
-    ("claimable", "Claimable"),
-    ("dormant", "Dormant"),
-    ("tutorial", "Tutorial"),
-)
 #: T9: the api route for the live claims (F05); its origin is config (C6), never a literal here.
 CLAIMS_PATH = "/claims.json"
+#: F04-T12 (Q14): the Glossary, one row per site word — (key, on the site, meaning, in the
+#: protocol). It is the single source for every hover card and for the Docs page's table, so a
+#: definition can never differ between the two.
+GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
+    (
+        "problem",
+        "Problem",
+        "An open mathematical question listed on the network, with the statements its proof needs.",
+        "target",
+    ),
+    (
+        "statement",
+        "Statement",
+        "One formal Lean statement in a problem's proof graph. The problem's own statement is "
+        "the root; the rest are pieces its proof needs.",
+        "node",
+    ),
+    (
+        "open",
+        "open",
+        "No proof has closed this statement and nothing blocks starting on it. Anyone may work "
+        "on it now.",
+        "ready · on the frontier",
+    ),
+    (
+        "blocked",
+        "blocked",
+        "Waits on other statements, or on a definition that has not been checked yet. Not "
+        "accepting work.",
+        "blocked",
+    ),
+    (
+        "proved",
+        "proved",
+        "A proof passed all nine checks and was merged. Proved is not the same as explained.",
+        "proved",
+    ),
+    (
+        "explained",
+        "Explained",
+        "A person who can explain the proof without the tool that produced it has signed the "
+        "explainer. This is the count the network is judged by.",
+        "digested",
+    ),
+    ("written", "Written up", "A paper or note about the proof exists.", "written-up"),
+    (
+        "steward",
+        "Steward",
+        "The named mathematician who has committed to understand and write up whatever the "
+        "network produces on a problem. A problem without one does not accept work.",
+        "steward (D-32)",
+    ),
+    (
+        "needs-steward",
+        "Needs a steward",
+        "Listed and reviewable, but no mathematician has committed to it yet, so it does not "
+        "accept work.",
+        "no steward · refuses claims",
+    ),
+    (
+        "curator",
+        "Curator",
+        "Reads the prior art before a problem is listed. A problem found in the literature is "
+        "relabelled a known result.",
+        "curator (D-6)",
+    ),
+    (
+        "unchecked",
+        "statement unchecked",
+        "Nobody other than its author has yet judged whether the Lean says what the conjecture "
+        "says. The kernel cannot decide this; a person must.",
+        "fidelity: mechanical-only",
+    ),
+    (
+        "checked",
+        "statement checked",
+        "Someone read the Lean back into words and compared it with the conjecture, but has not "
+        "signed. Grade rises to signed once a non-author signs.",
+        "fidelity: hand-checked, unsigned",
+    ),
+    (
+        "signed",
+        "statement signed",
+        "Someone who did not write the Lean has signed that it says what the conjecture says.",
+        "fidelity: non-author signature",
+    ),
+    (
+        "work-on",
+        "Work on",
+        "A courtesy signal to others that you are working on a statement. It expires on its own "
+        "and never blocks anyone.",
+        "claim (D-25)",
+    ),
+    (
+        "attempt",
+        "Attempt",
+        "Any proof submitted, pass or fail. Failures are kept on the record and count as "
+        "contributions.",
+        "attempt (D-13)",
+    ),
+)
+GLOSSARY_BY_KEY: dict[str, tuple[str, str, str]] = {
+    key: (label, meaning, proto) for key, label, meaning, proto in GLOSSARY
+}
+#: The Problems page's legend, in order: the glossary keys it shows and which carry a status dot.
+LEGEND_KEYS = (
+    "open",
+    "blocked",
+    "proved",
+    "explained",
+    "written",
+    "steward",
+    "unchecked",
+    "work-on",
+)
+#: A problem's status on the public pages (the handoff's three words), each with its definition.
+PROBLEM_STATUS_DEFS: dict[str, str] = {
+    "open": "Listed, has a steward, and its statements accept work.",
+    "proved": "Its root statement has a merged proof. Not yet explained or written up.",
+    "needs a steward": (
+        "Listed and reviewable, but nobody has committed to it yet, so it does not accept work."
+    ),
+    "dormant": "Set aside: its source lists it as resolved elsewhere, or a curator paused it.",
+    "known result": "Found in the literature after listing, so it is a known result, not open.",
+}
+#: The fidelity grades the index publishes, as the site's tag words (Vocabulary).
+FIDELITY_KEYS: dict[str, str] = {
+    "mechanical-only": "unchecked",
+    "hand-checked": "checked",
+    "screened-and-signed": "signed",
+    "signed": "signed",
+}
+#: The words for a statement's place in its problem, by origin (graph/v3).
+ORIGIN_ROLES: dict[str, str] = {
+    "skeleton-hole": "left open by a proof skeleton",
+    "compiler-derived": "derived by the compiler",
+    "authored": "a statement the proof needs",
+}
+RELATION_ROLES: dict[str, str] = {
+    "resolves": "a variant that resolves the problem",
+    "partial": "a partial route to the problem",
+    "related": "a related variant",
+}
+#: F15-R13 copy for the About page's four rules (the design file's ``steps3``).
+ABOUT_RULES: tuple[tuple[str, str], ...] = (
+    (
+        "Listed only after a search",
+        "A curator searches the literature and records what was found. A problem found there "
+        "is relabelled a known result.",
+    ),
+    (
+        "Worked on only with a steward",
+        "A named mathematician commits to understand and write up whatever is produced. "
+        "Without one the problem is published and refuses work.",
+    ),
+    (
+        "Statement checked by a non-author",
+        "Whether the Lean means what the conjecture means is signed by someone who did not "
+        "write it.",
+    ),
+    (
+        "Proved, then explained",
+        "A merged proof marks the problem proved and unexplained until a person signs the "
+        "explainer and a paper or note exists.",
+    ),
+)
 DECISIONS_DOC = Path(__file__).resolve().parents[2] / "docs" / "architecture_decisions_v_3_12.html"
 FUNNEL_DOCS = Path(__file__).resolve().parents[1] / "docs"  # F10-R9: site/docs/*.md
 #: F15-R11: the off-site links the site's own copy may carry — dated external evidence, each
@@ -189,16 +336,46 @@ _STRIP_RE = re.compile(r"<link\b[^>]*>|<script\b.*?</script>", re.S | re.I)
 _STYLE_RE = re.compile(r"<style\b[^>]*>(.*?)</style>", re.S | re.I)
 NAV = (
     ("/", "Home"),
-    ("/targets/", "Targets"),
-    ("/frontier/", "Frontier"),
+    ("/problems/", "Problems"),
     ("/contributors/", "Contributors"),
     ("/docs/", "Docs"),
+    ("/about/", "About"),
+)
+#: The masthead's one primary action (F04-T12): every open statement, filtered client-side.
+NAV_ACTION = ("/problems/?filter=open", "Work on a statement")
+#: Where the merged Problems page lives, and the old paths that now redirect to it (Q14).
+PROBLEMS_PATH = "/problems/"
+REDIRECTS = (("targets/index.html", PROBLEMS_PATH), ("frontier/index.html", PROBLEMS_PATH))
+#: A definition's Lean, for the statement row's role word (the mock's "definition" rows).
+_DECL_RE = re.compile(
+    r"^\s*(?:@\[[^\]]*\]\s*)?(?:noncomputable\s+|private\s+|protected\s+)*"
+    r"(def|abbrev|inductive|structure|class)\b",
+    re.M,
 )
 
 
 def esc(value: object) -> str:
     """The one escaping function: everything from the graph goes through it (R3)."""
     return escape(str(value), quote=True)
+
+
+def declaration_only(statement: str) -> str:
+    """A statement's Lean without its header: the panel shows the declaration and its doc
+    comment; the whole file, imports included, is on the statement's own page."""
+    lines = statement.rstrip("\n").splitlines()
+    last_import = max(
+        (i for i, line in enumerate(lines) if line.startswith(("import ", "open "))), default=-1
+    )
+    body = lines[last_import + 1 :]
+    while body and not body[0].strip():
+        body.pop(0)
+    if body and body[0].startswith("/-"):  # the module doc comment: prose, kept on the page
+        end = next((i for i, line in enumerate(body) if line.rstrip().endswith("-/")), None)
+        if end is not None:
+            body = body[end + 1 :]
+            while body and not body[0].strip():
+                body.pop(0)
+    return "\n".join(body) if body else statement.rstrip("\n")
 
 
 def _template(name: str) -> Template:
@@ -235,7 +412,7 @@ class Renderer:
 
     @staticmethod
     def target_path(target_id: str) -> str:
-        return f"/targets/{target_id}/"
+        return f"{PROBLEMS_PATH}{target_id}/"
 
     @staticmethod
     def node_path(target_id: str, node_id: str) -> str:
@@ -258,98 +435,355 @@ class Renderer:
 
     # -- pages -------------------------------------------------------------------------------
 
-    def page(self, title: str, body: str, *, renders: list[str]) -> str:
-        nav = "".join(f'<a href="{esc(path)}">{esc(label)}</a>' for path, label in NAV)
+    def page(  # noqa: PLR0913 — one argument per part of the frame
+        self,
+        title: str,
+        body: str,
+        *,
+        renders: list[str],
+        path: str | None = None,
+        head: str = "",
+        script: str = "",
+    ) -> str:
+        """The frame: masthead, the body, the provenance bar (R2). ``path`` marks the current
+        nav entry; ``head`` and ``script`` are the page's own same-origin extras (R10)."""
+        links_ = []
+        for p, label in NAV:
+            current = ' aria-current="page"' if p == path else ""
+            links_.append(f'<a href="{esc(p)}"{current}>{esc(label)}</a>')
+        nav = "".join(links_)
         commit = self.site.commit
         sources = ", ".join(self.file_link(r) for r in renders) or "nothing in the graph"
+        live = (
+            f' · <a href="{esc(self.api_url + CLAIMS_PATH)}">claims.json ↗</a>'
+            if self.api_url
+            else ""
+        )
         return self.base.substitute(
             title=esc(title),
             site=esc(SITE_NAME),
             nav=nav,
+            action_href=esc(NAV_ACTION[0]),
+            action_label=esc(NAV_ACTION[1]),
+            head=head,
             body=body,
+            script=script,
             commit=esc(commit),
             commit_short=esc(commit[:12]),
             commit_url=esc(f"{self.repo_url}/tree/{commit}"),
             sources=sources,
+            frontier_link=self.file_link("frontier.json", label="frontier.json ↗"),
+            live=live,
         )
+
+    def redirect(self, to: str) -> str:
+        """A page at an old path that sends the reader to the new one (Q14): a meta refresh and
+        a link, inside the frame so it names the commit like every page (R2)."""
+        body = f'<p class="lead">This page moved to <a href="{esc(to)}">{esc(to)}</a>.</p>'
+        head = f'<meta http-equiv="refresh" content="0; url={esc(to)}">'
+        return self.page("Moved", body, renders=[], head=head)
+
+    # -- hover cards (the Glossary, F04-T12) ---------------------------------------------------
+
+    @staticmethod
+    def hover(label: str, body: str, *, classes: str = "") -> str:
+        """A term with its definition card: shown on hover or focus, plain CSS, no pointer
+        needed (``tabindex``). ``label`` and ``body`` are HTML already escaped by the caller."""
+        cls = f"term {classes}".strip()
+        return (
+            f'<span class="{esc(cls)}" tabindex="0">{label}'
+            f'<span class="term-card" role="tooltip">{body}</span></span>'
+        )
+
+    def term(self, key: str, *, label: str | None = None, dot: bool = False) -> str:
+        """A glossary word with its card; the legend's status chips carry a dot."""
+        word, meaning, proto = GLOSSARY_BY_KEY[key]
+        mark = self.dot(key) if dot else ""
+        body = f'{esc(meaning)}<span class="proto">protocol: {esc(proto)}</span>'
+        return self.hover(mark + esc(label or word), body)
+
+    @staticmethod
+    def dot(state: str) -> str:
+        """A 9px status dot: filled for proved, an accent ring for open, a neutral ring else."""
+        return f'<span class="dot dot-{esc(state)}"></span>'
+
+    # -- what the site says about a problem (F04-T12) ----------------------------------------
+
+    @staticmethod
+    def node_state(nv: NodeView) -> str:
+        """The row's word: proved, open (a claim could take it, F03-Q8) or the status itself."""
+        if nv.status == "proved":
+            return "proved"
+        if nv.status in CLAIMABLE_STATUSES:
+            return "open"
+        return nv.status
+
+    @staticmethod
+    def dot_state(state: str) -> str:
+        return state if state in ("proved", "open") else "blocked"
+
+    def open_count(self, tv: TargetView) -> int:
+        return sum(1 for n in tv.nodes.values() if self.node_state(n) == "open")
+
+    @staticmethod
+    def problem_status(tv: TargetView) -> str:
+        """open · proved · needs a steward, or the D-33 word for a dormant or known result."""
+        status = str(tv.index_entry["status"])
+        if status == "resolved":
+            return "proved"
+        if status == "dormant":
+            return "dormant"
+        if status == "known-result":
+            return "known result"
+        reasons = [str(r) for r in tv.index_entry.get("not_claimable") or []]
+        if intake.NO_STEWARD in reasons:
+            return "needs a steward"
+        return "open"
+
+    def status_tag(self, tv: TargetView) -> str:
+        """The status tag with its definition, and for a problem that refuses work, why."""
+        status = self.problem_status(tv)
+        body = esc(PROBLEM_STATUS_DEFS.get(status, status))
+        e = tv.index_entry
+        if not e.get("claimable") and status != "proved":
+            reasons = [esc(intake.explain(str(r))) for r in e.get("not_claimable") or []]
+            why = "; ".join(reasons) or esc(NO_RECORD_WORDS)
+            body += f'<span class="why">Not claimable: {why}.</span>'
+        return self.hover(esc(status), body, classes="tag")
+
+    def fidelity_tag(self, tv: TargetView) -> str:
+        grade = str(tv.index_entry.get("fidelity") or "")
+        key = FIDELITY_KEYS.get(grade)
+        if key is None:  # a grade this generator has no word for: shown as itself
+            return f'<span class="tag tag-outline">{esc(grade)}</span>'
+        word, meaning, proto = GLOSSARY_BY_KEY[key]
+        body = f'{esc(meaning)}<span class="proto">protocol: {esc(proto)}</span>'
+        return self.hover(esc(word), body, classes="tag tag-outline")
+
+    def stage_marks(self, tv: TargetView) -> str:
+        """Proved · Explained · Written up: which of the three a problem has reached."""
+        digestion = tv.digestion or {}
+        state = str(digestion.get("state") or "")
+        proved = str(tv.index_entry["status"]) == "resolved"
+        reached = (
+            ("Proved", proved),
+            ("Explained", state in ("explained", "written-up")),
+            ("Written up", state == "written-up"),
+        )
+        marks = "".join(
+            f'<span class="stage {"on" if on else "off"}">'
+            f"{self.dot('proved' if on else 'blocked')}{esc(label)}</span>"
+            for label, on in reached
+        )
+        return f'<span class="stages">{marks}</span>'
+
+    def steward_words(self, tv: TargetView) -> str:
+        """ "Steward · name" (linked), or the cue for a problem that has none."""
+        stewards = tv.stewards
+        if stewards:
+            names = ", ".join(self.steward_link(s) for s in stewards)
+            return f'<span class="steward has">Steward · {names}</span>'
+        if tv.calibration:
+            return '<span class="steward">Calibration target, no steward needed</span>'
+        if str(tv.index_entry["status"]) == "resolved":
+            return '<span class="steward wanted">Steward wanted for write-up</span>'
+        if tv.record is None or tv.record.get("track") != "open":
+            return '<span class="steward">No steward: not an open problem</span>'
+        return '<span class="steward wanted">Needs a steward</span>'
+
+    def informal_words(self, tv: TargetView) -> str:
+        """The informal statement, or the paraphrase that stands in for an unlicensed source."""
+        if tv.record is None:
+            return "No informal statement is recorded for this problem yet."
+        text = tv.record.get("informal") or tv.record.get("paraphrase")
+        return esc(str(text)) if text else "No informal statement is recorded for this problem yet."
+
+    def source_line(self, tv: TargetView) -> str:
+        """One line: where the statement came from, each source linked (its url is a validated
+        record's, F11-Q11); the licence prose stays on the problem page."""
+        if tv.record is None:
+            return "No curated record yet."
+        sources = tv.record.get("sources") or []
+        if not sources:
+            return "The network's own statement, no external source."
+        parts = []
+        for s in sources:
+            kind, licence = esc(str(s.get("kind", "source"))), esc(str(s.get("licence", "")))
+            parts.append(
+                f'Imported from <a href="{esc(str(s["url"]))}">{kind}</a>'
+                + (f" ({licence})" if licence else "")
+            )
+        forum = ((tv.record.get("prior_art") or {}).get("forum_url")) if tv.record else None
+        if forum:
+            shown = esc(str(forum).removeprefix("https://").removeprefix("www."))
+            parts.append(f'<a href="{esc(str(forum))}">{shown}</a>')
+        return " · ".join(parts)
+
+    def node_role(self, tv: TargetView, nv: NodeView) -> str:
+        if nv.node_id == tv.root:
+            return "the tutorial statement" if nv.tutorial else "the problem's statement"
+        if _DECL_RE.search(nv.statement):
+            return "definition"
+        e = nv.graph_entry
+        if e.get("origin") == "variant":
+            return RELATION_ROLES.get(str(e.get("relation")), "a variant")
+        return ORIGIN_ROLES.get(str(e.get("origin")), str(e.get("origin")))
+
+    def state_hover(self, nv: NodeView) -> str:
+        """The row's status dot with the state's definition, and a blocked node's cause."""
+        state = self.node_state(nv)
+        if state in ("proved", "open"):
+            _word, meaning, proto = GLOSSARY_BY_KEY[state]
+            body = f'{esc(meaning)}<span class="proto">protocol: {esc(proto)}</span>'
+        else:
+            words = STATUS_WORDS.get(nv.status, nv.status)
+            if nv.status == "blocked" and nv.cause:
+                words = CAUSE_WORDS.get(nv.cause, f"blocked: {nv.cause}")
+            meaning = GLOSSARY_BY_KEY["blocked"][1] if nv.status == "blocked" else ""
+            body = f"{esc(words)}. {esc(meaning)}".strip()
+        return self.hover(self.dot(self.dot_state(state)), body, classes="dot-term")
+
+    @staticmethod
+    def attempts_words(nv: NodeView) -> str:
+        n = nv.attempts.count
+        return f"{n} attempt{'' if n == 1 else 's'}"
+
+    def node_action(self, tv: TargetView, nv: NodeView) -> str:
+        state = self.node_state(nv)
+        href = esc(self.node_path(tv.target_id, nv.node_id))
+        if state == "open":
+            return f'<a class="act act-open" href="{href}">Work on this →</a>'
+        if state == "proved":
+            return f'<a class="act act-proved" href="{href}">View proof →</a>'
+        return f'<a class="act act-blocked" href="{href}">Blocked</a>'
 
     def home(self) -> str:
         site = self.site
-        entries = site.frontier["entries"]
-        nodes = site.nodes
-        refuted = sum(len(e["refuted_route_classes"]) for e in entries)
-        resolved = sum(
-            1 for n in nodes if n.graph_entry["relation"] == "resolves" and n.status == "proved"
-        )
-        partial = sum(
-            1 for n in nodes if n.graph_entry["relation"] == "partial" and n.status == "proved"
-        )
+        targets = [tv for _tid, tv in sorted(site.targets.items())]
         # F15-R10 (D-36 v3.17): explanation coverage leads — proved nodes carrying a valid
         # signed explainer, of all proved nodes, summed over every target's digestion counts.
-        proved = sum(int((tv.digestion or {}).get("proved", 0)) for tv in site.targets.values())
-        explained = sum(
-            int((tv.digestion or {}).get("proved_explained", 0)) for tv in site.targets.values()
-        )
-        counts = [
-            (
-                "explained",
-                explained,
-                "/targets/",
-                f"explained: {explained} of {proved} proved nodes",
-            ),
-            ("targets", len(site.targets), "/targets/", "targets"),
-            (
-                "nodes proved",
-                sum(1 for n in nodes if n.status == "proved"),
-                "/targets/",
-                "nodes proved",
-            ),
-            ("nodes on the frontier", len(entries), "/frontier/", "nodes on the frontier"),
-            ("routes refuted", refuted, "/frontier/", "routes refuted"),
-            ("variants resolved", resolved, "/targets/", "variants resolved"),
-            ("variants partial", partial, "/targets/", "variants partial"),
+        proved = sum(int((tv.digestion or {}).get("proved", 0)) for tv in targets)
+        explained = sum(int((tv.digestion or {}).get("proved_explained", 0)) for tv in targets)
+        open_statements = sum(self.open_count(tv) for tv in targets)
+        stewards = len({str(s["login"]) for tv in targets for s in tv.stewards})
+        unproved = [tv for tv in targets if str(tv.index_entry["status"]) != "resolved"]
+        unexplained = [
+            tv
+            for tv in targets
+            if str(tv.index_entry["status"]) == "resolved"
+            and str((tv.digestion or {}).get("state") or "") not in ("explained", "written-up")
         ]
-        rows = "".join(
-            f'<tr><td class="n">{c}</td><td><a href="{esc(href)}">{esc(words)}</a></td></tr>'
-            for _label, c, href, words in counts
+        rows = "".join(self.open_now_row(tv) for tv in (*unproved, *unexplained)[:5])
+        if not rows:
+            rows = '<p class="cue">No problems are listed yet.</p>'
+        body = _template("home.html").substitute(
+            explained=explained,
+            proved=proved,
+            problems=len(targets),
+            open_statements=open_statements,
+            stewards=stewards,
+            open_now=rows,
+            all_problems=len(targets),
+            statement_term=self.term("statement", label="statement"),
+            steward_term=self.term("steward", label="steward"),
+            proposal_url=esc(self.proposal_url),
         )
-        body = _template("home.html").substitute(counts=rows)
-        return self.page(SITE_NAME, body, renders=["targets/index.json", "frontier.json"])
+        return self.page(SITE_NAME, body, renders=["targets/index.json", "frontier.json"], path="/")
 
-    def targets(self) -> str:
-        rows = []
-        for tid, tv in sorted(self.site.targets.items()):
-            e = tv.index_entry
-            root = tv.nodes[tv.root]
-            counts = e["node_counts"]
-            progress = ", ".join(
-                f"{counts[s]} {s}" for s in ("proved", "ready", "blocked") if counts[s]
-            )
-            mathlib = e["mathlib_sha"] or "Lean core only"
-            rows.append(
-                _template("target-row.html").substitute(
-                    href=esc(self.target_path(tid)),
-                    target_id=esc(tid),
-                    root=self.node_link(tid, tv.root),
-                    statement=esc(root.statement.strip()),
-                    statement_link=self.file_link(root.statement_path),
-                    informal=self.informal_line(tv),
-                    status=esc(self.status_words(tv)),  # F15-R10: "resolved — undigested"
-                    fidelity=esc(e["fidelity"]),
-                    mathlib=esc(mathlib),
-                    progress=esc(progress or "nothing proved yet"),
-                    claimable="claimable" if e["claimable"] else "not claimable",
-                    why_not=self.why_not_claimable(tv),
-                    sources=self.sources_block(tv),
-                    qa=self.qa_block(tv),
-                    review=esc(self.review_sentence(tv)),
-                    stewards=self.stewards_line(tv),
-                    digestion=esc(self.digestion_words(tv) or "not resolved"),
-                    calibration=self.calibration_label(tv),
-                )
-            )
-        body = _template("targets.html").substitute(rows="".join(rows))
-        return self.page("Targets", body, renders=["targets/index.json"])
+    def open_now_row(self, tv: TargetView) -> str:
+        n = self.open_count(tv)
+        open_words = f"{n} open statement{'' if n == 1 else 's'}" if n else "no open statements"
+        return (
+            '<div class="open-row">'
+            f'<a class="id" href="{esc(self.target_path(tv.target_id))}">{esc(tv.target_id)}</a>'
+            f'<span class="informal">{self.informal_words(tv)}</span>'
+            f'<span class="open-count">{esc(open_words)}</span>'
+            f"{self.steward_words(tv)}</div>"
+        )
+
+    # -- the Problems page: Targets and Frontier merged (F04-T12, Q14) -------------------------
+
+    def problems(self) -> str:
+        targets = [tv for _tid, tv in sorted(self.site.targets.items())]
+        cards = "".join(self.problem_card(tv) for tv in targets)
+        if not cards:
+            cards = '<p class="cue">No problems are listed yet.</p>'
+        legend = "".join(self.term(k, dot=k in ("open", "blocked", "proved")) for k in LEGEND_KEYS)
+        legend_list = "".join(
+            f"<dt>{esc(GLOSSARY_BY_KEY[k][0])}</dt><dd>{esc(GLOSSARY_BY_KEY[k][1])}</dd>"
+            for k in LEGEND_KEYS
+        )
+        open_statements = sum(self.open_count(tv) for tv in targets)
+        proved = sum(1 for tv in targets if str(tv.index_entry["status"]) == "resolved")
+        body = _template("problems.html").substitute(
+            cards=cards,
+            legend=legend,
+            legend_list=legend_list,
+            total=len(targets),
+            open_statements=open_statements,
+            proved=proved,
+            claims_note=self.claims_note(),
+        )
+        return self.page(
+            "Problems",
+            body,
+            renders=["targets/index.json", "frontier.json"],
+            path=PROBLEMS_PATH,
+            script='<script src="/problems.js"></script>',
+        )
+
+    def problem_card(self, tv: TargetView) -> str:
+        tid = tv.target_id
+        status = self.problem_status(tv)
+        rows = "".join(self.statement_row(tv, nv) for nv in self.ordered_nodes(tv))
+        action = "Open the graph →" if status == "proved" else "Open problem →"
+        return _template("problem-card.html").substitute(
+            target_id=esc(tid),
+            href=esc(self.target_path(tid)),
+            status=esc(status),
+            open_count=self.open_count(tv),
+            status_tag=self.status_tag(tv),
+            fidelity_tag=self.fidelity_tag(tv),
+            informal=self.informal_words(tv),
+            source=self.source_line(tv),
+            stages=self.stage_marks(tv),
+            steward=self.steward_words(tv),
+            action=esc(action),
+            rows=rows,
+        )
+
+    @staticmethod
+    def ordered_nodes(tv: TargetView) -> list[NodeView]:
+        """The problem's own statement first, then the rest by id."""
+        root = tv.nodes[tv.root]
+        return [root, *(nv for nid, nv in sorted(tv.nodes.items()) if nid != tv.root)]
+
+    def statement_row(self, tv: TargetView, nv: NodeView) -> str:
+        state = self.node_state(nv)
+        return _template("problem-row.html").substitute(
+            state=esc(state),
+            dot=self.state_hover(nv),
+            node=self.node_link(tv.target_id, nv.node_id),
+            role=esc(self.node_role(tv, nv)),
+            state_word=esc(state),
+            attempts=esc(self.attempts_words(nv)),
+            action=self.node_action(tv, nv),
+        )
+
+    # -- the About page (F04-T12): the long argument, moved off the home page -----------------
+
+    def about(self) -> str:
+        rules = "".join(
+            f'<div class="rule-item"><span class="kicker">0{i}</span><h4>{esc(title)}</h4>'
+            f"<p>{esc(words)}</p></div>"
+            for i, (title, words) in enumerate(ABOUT_RULES, start=1)
+        )
+        body = _template("about.html").substitute(
+            rules=rules,
+            commitment=esc(steward.COMMITMENT),
+            proposal_url=esc(self.proposal_url),
+        )
+        return self.page("Why this exists", body, renders=[], path="/about/")
 
     # --- F11-R10: why a listed target cannot be claimed, and under what licence it is quoted ---
 
@@ -413,8 +847,10 @@ class Renderer:
     def target_claimable(self, tv: TargetView) -> str:
         """F14-R10: the target page says in words whether it can be claimed, and if not, why."""
         if tv.index_entry.get("claimable"):
-            return '<p class="claimable">This target is open for claims.</p>'
-        return self.why_not_claimable(tv, detail=False)
+            return '<p class="claimable">This problem is open for work.</p>'
+        if str(tv.index_entry["status"]) == "resolved":
+            return '<p class="claimable">Proved: its statement no longer accepts work.</p>'
+        return self.why_not_claimable(tv)
 
     def sources_block(self, tv: TargetView) -> str:
         """R10: where the statement came from, its attribution, and its licence."""
@@ -445,18 +881,13 @@ class Renderer:
         return f'<p class="qa">Statement QA (D-9 v3.12): {esc(str(summary))}</p>'
 
     def target(self, tv: TargetView) -> str:
+        """The problem page (F04-T12): header, steward card, the statement graph with one panel
+        per statement, then the record's detail sections as before."""
         tid = tv.target_id
         href = {nid: self.node_path(tid, nid) for nid in tv.nodes}
         svg = dag.svg(tv.graph["nodes"], href=href)
-        node_rows = "".join(
-            f"<tr><td>{self.node_link(tid, nid)}</td><td>{self.status_mark(n.status, n.cause)}</td>"
-            f"<td>{esc(', '.join(n.deps) or 'none')}</td>"
-            f"<td>{esc(n.graph_entry['origin'])}"
-            f"{' (' + esc(n.graph_entry['relation']) + ')' if n.graph_entry['relation'] else ''}"
-            f"{self.pertinence(n.graph_entry)}"
-            "</td></tr>"
-            for nid, n in sorted(tv.nodes.items())
-        )
+        panels = "".join(self.statement_panel(tv, nv) for nv in self.ordered_nodes(tv))
+        n = len(tv.nodes)
         if tv.approaches:
             approaches = (
                 "<ul>"
@@ -478,25 +909,124 @@ class Renderer:
             else "<p>No state-of-the-problem note yet (D-32).</p>"
         )
         e = tv.index_entry
+        title = str(tv.record.get("title") or "") if tv.record else ""
         body = _template("target.html").substitute(
             target_id=esc(tid),
-            status=esc(self.status_words(tv)),
+            status_tag=self.status_tag(tv),
+            fidelity_tag=self.fidelity_tag(tv),
+            informal=self.informal_words(tv),
+            provenance=(f"{esc(title)}. " if title else "") + self.source_line(tv),
+            stages=self.stage_marks(tv),
+            claimable=self.target_claimable(tv),
             calibration=self.calibration_label(tv),
-            stewards=self.stewards_section(tv),
-            digestion=self.digestion_section(tv),
-            fidelity=esc(e["fidelity"]),
-            root=self.node_link(tid, tv.root),
+            steward_card=self.steward_card(tv),
+            count_words=esc(f"{n} statement{'' if n == 1 else 's'}"),
             dag=svg,
-            node_rows=node_rows,
+            panels=panels,
+            digestion=self.digestion_section(tv),
+            stewards=self.stewards_section(tv),
+            sources=self.sources_block(tv),
+            qa_block=self.qa_block(tv),
+            informal_full=self.informal_line(tv),
             approaches=approaches,
             note=note,
             qa=self.qa_section(tv),
             review=esc(self.review_sentence(tv)),
-            claimable=self.target_claimable(tv),
             graph_link=self.file_link(f"targets/{tid}/graph.json"),
             fast_check=esc(self.fast_check(e.get("mathlib_sha"))),
         )
-        return self.page(f"Target {tid}", body, renders=[f"targets/{tid}/graph.json"])
+        return self.page(
+            tid,
+            body,
+            renders=[f"targets/{tid}/graph.json"],
+            path=PROBLEMS_PATH,
+            script='<script src="/problem.js"></script>',
+        )
+
+    def steward_card(self, tv: TargetView) -> str:
+        """The problem page's steward card: the names, or why there is none and how to be it."""
+        stewards = tv.stewards
+        if stewards:
+            names = ", ".join(self.steward_link(s) for s in stewards)
+            since = ", ".join(
+                f"{esc(str(s['login']))} since {esc(str(s['since']))}" for s in stewards
+            )
+            words = (
+                "Committed to understand and write up whatever the network produces here, and "
+                f"to sign the explainer of the proof that closes it. {since}."
+            )
+            button = ""
+        elif tv.calibration:
+            names, words, button = (
+                "None needed",
+                "A calibration target: a known result taken in to exercise the pipeline. It "
+                "counts toward no open-problem claim and has no steward.",
+                "",
+            )
+        elif str(tv.index_entry["status"]) == "resolved":
+            names, words = (
+                "None yet",
+                "This problem is proved but not explained. It waits for a mathematician to "
+                "commit to writing it up and to sign the explainer.",
+            )
+            button = '<a class="btn btn-secondary" href="/docs/#stewards">Become its steward</a>'
+        elif tv.record is None or tv.record.get("track") != "open":
+            names, words, button = "None", "Not an open problem, so it has no steward.", ""
+        else:
+            names, words = (
+                "None yet",
+                "A steward is a mathematician who commits to understand and write up whatever "
+                "the network produces on this problem, with no deadline. Their name goes here, "
+                "and the write-up is theirs.",
+            )
+            button = '<a class="btn btn-secondary" href="/docs/#stewards">Become its steward</a>'
+        return (
+            '<aside class="card steward-card"><span class="kicker">Steward</span>'
+            f'<span class="names">{names}</span><p>{words}</p>{button}</aside>'
+        )
+
+    def statement_panel(self, tv: TargetView, nv: NodeView) -> str:
+        """One "Selected statement" panel per node; the script shows the selected one and the
+        page without it shows the root's. Hashes, origin, pin and files sit behind a toggle."""
+        tid, nid = tv.target_id, nv.node_id
+        e = nv.graph_entry
+        state = self.node_state(nv)
+        words = STATUS_WORDS.get(nv.status, nv.status)
+        if nv.status == "blocked" and nv.cause:
+            words = CAUSE_WORDS.get(nv.cause, f"blocked: {nv.cause}")
+        note = esc(f"{self.node_role(tv, nv).capitalize()}; {words}.")
+        if state == "proved" and e.get("proof_commit"):
+            note += esc(f" Proof merged in {str(e['proof_commit'])[:12]}.")
+        note += self.pertinence(e)
+        files = [self.file_link(nv.statement_path, label="Statement.lean ↗")]
+        if nv.attestation_path:
+            files.append(self.file_link(nv.attestation_path, label="attestation ↗"))
+        if nv.proof_path and state == "proved":
+            files.append(self.file_link(nv.proof_path, label="Proof.lean ↗"))
+        href = esc(self.node_path(tid, nid))
+        if state == "open":
+            action = (
+                f'<a class="btn btn-primary btn-block" href="{href}">Work on this statement</a>'
+            )
+        elif state == "proved":
+            action = f'<a class="btn btn-primary btn-block" href="{href}">View the proof →</a>'
+        else:
+            action = f'<a class="btn btn-secondary btn-block" href="{href}">View the record →</a>'
+        origin = str(e.get("origin", "")) + (f" ({e['relation']})" if e.get("relation") else "")
+        return _template("statement-panel.html").substitute(
+            node_id=esc(nid),
+            hidden="" if nid == tv.root else " hidden",
+            state=esc(state),
+            dot=self.dot(self.dot_state(state)),
+            attempts=esc(self.attempts_words(nv)),
+            note=note,
+            statement=esc(declaration_only(nv.statement)),
+            hash=esc(str(e.get("statement_hash", ""))[:12]),
+            origin=esc(origin),
+            mathlib=esc(str(tv.index_entry.get("mathlib_sha") or "")[:12] or "Lean core only"),
+            files=" · ".join(files),
+            action=action,
+        )
 
     # --- F15-R10: stewards, the digestion state, the calibration label ----------------------------
 
@@ -890,7 +1420,12 @@ class Renderer:
             annexes=annexes,
             acknowledgments=acks,
         )
-        return self.page(f"Node {nid}", body, renders=renders)
+        return self.page(
+            nid,
+            body,
+            renders=renders,
+            path=PROBLEMS_PATH,
+        )
 
     def node_not_claimable(self, nv: NodeView) -> str:
         """F04-T10: a node a claim could take (F03-Q8) under a target that is not claimable says
@@ -902,27 +1437,12 @@ class Renderer:
         block = self.why_not_claimable(tv, detail=False)
         return f"{block}\n" if block else ""
 
-    def frontier(self) -> str:
-        """R7: one column per F03-R5 field, one row per entry, filterable by the same-origin
-        script and complete without it."""
-        headers = "".join(f"<th>{esc(label)}</th>" for _key, label in FRONTIER_COLUMNS)
-        rows = []
-        for e in self.site.frontier["entries"]:
-            cells = []
-            for key, _label in FRONTIER_COLUMNS:
-                cells.append(f"<td>{self.frontier_cell(key, e)}</td>")
-            rows.append("<tr>" + "".join(cells) + "</tr>")
-        empty = "" if rows else "<p>The frontier is empty: nothing is ready to prove right now.</p>"
-        body = _template("frontier.html").substitute(
-            headers=headers, rows="".join(rows), empty=empty, claims_note=self.claims_note()
-        )
-        return self.page("Frontier", body, renders=["frontier.json"])
-
     def claims_note(self) -> str:
-        """T9: the Claims column is the committed products' snapshot (D-36), not the live count
-        the api overlays (F05-R10). Name the commit the products were rendered from, and link the
-        service's live claims when the site's config names the service (C6); without it, say so
-        and draw no link (C7)."""
+        """T9: a claim count on the site is the committed products' snapshot (D-36), not the live
+        count the api overlays (F05-R10). Name the commit the products were rendered from, and
+        link the service's live claims when the site's config names the service (C6); without
+        it, say so and draw no link (C7). Since F04-T12 the Problems page carries it as its
+        footer note, beside the sentence naming ``frontier.json``."""
         at = str(self.site.frontier.get("rendered_from") or self.site.commit)
         if self.api_url:
             live = (
@@ -931,70 +1451,10 @@ class Renderer:
         else:
             live = f"the service's <code>{esc(CLAIMS_PATH)}</code> (this build names no service)"
         return (
-            '<p class="claims-note">The Claims column is a snapshot from the products at '
+            '<span class="claims-note">Claims are a snapshot from the products at '
             f"<code>{esc(at[:12])}</code>: a claim made or released since then is not counted "
-            f"here. The live count is {live}.</p>"
+            f"here. The live count is {live}.</span>"
         )
-
-    def frontier_node(self, e: dict[str, Any]) -> NodeView | None:
-        """T11: the entry's node in its target's graph.json, which the site loaded beside the
-        frontier from the same commit; ``None`` when the target or node is not there."""
-        tv = self.site.targets.get(str(e["target_id"]))
-        return tv.nodes.get(str(e["node_id"])) if tv is not None else None
-
-    def row_not_claimable(self, tv: TargetView) -> str:
-        """F04-T10 (frontier row): the target's reasons as a sub-line of the Claimable cell, in
-        ``intake.explain``'s words and escaped, so the table gains no column; empty when the
-        target is claimable."""
-        e = tv.index_entry
-        if e.get("claimable"):
-            return ""
-        reasons = [str(r) for r in e.get("not_claimable") or []]
-        words = "; ".join(esc(intake.explain(r)) for r in reasons) or esc(NO_RECORD_WORDS)
-        return f'<span class="why-not-row">Not claimable: {words}.</span>'
-
-    def claimable_cell(self, e: dict[str, Any]) -> str:
-        """The entry's own word first, so the column's filter keeps its meaning (R7); then, for a
-        node a claim could take (F03-Q8), why its target will not take one."""
-        word = "yes" if e["claimable"] else "no"
-        tv = self.site.targets.get(str(e["target_id"]))
-        node = self.frontier_node(e)
-        if tv is None or node is None or node.status not in CLAIMABLE_STATUSES:
-            return word
-        why = self.row_not_claimable(tv)
-        return f"{word} {why}" if why else word
-
-    def frontier_cell(self, key: str, e: dict[str, Any]) -> str:  # noqa: PLR0911 — one per field kind
-        if key == "status":
-            node = self.frontier_node(e)
-            return esc(node.status) if node is not None else "unknown"
-        if key == "claimable" and isinstance(e.get(key), bool):
-            return self.claimable_cell(e)
-        if key not in e:  # a field an older frontier version does not carry (D-34)
-            return "none"
-        value = e[key]
-        if key == "node_id":
-            return self.node_link(str(e["target_id"]), str(value))
-        if key == "target_id":
-            return f'<a href="{esc(self.target_path(str(value)))}">{esc(value)}</a>'
-        if key == "statement_hash":
-            return f"<code>{esc(str(value)[:12])}</code>"
-        if key == "tags":
-            deps = ", ".join(str(d) for d in value["deps"]) or "none"
-            lib = ", ".join(str(x) for x in value["library"]) or "none"
-            return esc(f"deps: {deps}; library: {lib}")
-        if key == "refuted_route_classes":
-            return esc(", ".join(str(x) for x in value) or "none")
-        if key == "failure_class_histogram":
-            return esc(", ".join(f"{k} {v}" for k, v in sorted(value.items())) or "none")
-        if key == "claims":
-            active = len(value["active"])
-            return esc(f"{active} active, {value['history_count']} past")
-        if value is None:
-            return "none"
-        if isinstance(value, bool):
-            return "yes" if value else "no"
-        return esc(value)
 
     def contributors(self) -> str:
         """R8, F07-R12: the ledger read as entries, not as a list of files.
@@ -1023,7 +1483,7 @@ class Renderer:
                 )
             ledger = "".join(blocks)
         body = _template("contributors.html").substitute(ledger=ledger)
-        return self.page("Contributors", body, renders=renders)
+        return self.page("Contributors", body, renders=renders, path="/contributors/")
 
     def _ledger_row(self, entry: dict[str, Any]) -> str:
         """One ledger entry. A revoked entry stays listed and says so (D-18)."""
@@ -1112,6 +1572,10 @@ class Renderer:
             f"<tr><td>{esc(objection)}</td><td>{esc(does)}</td><td>{esc(gap)}</td></tr>"
             for objection, does, gap in LEIDEN_ROWS
         )
+        glossary_rows = "".join(
+            f"<tr><td>{esc(label)}</td><td>{esc(meaning)}</td><td><code>{esc(proto)}</code></td></tr>"
+            for _key, label, meaning, proto in GLOSSARY
+        )
         body = _template("docs.html").substitute(
             decisions=decisions,
             agents=agents,
@@ -1120,9 +1584,10 @@ class Renderer:
             commitment=esc(steward.COMMITMENT),  # one sentence, one home (opn_gate.steward)
             proposal_url=esc(self.proposal_url),
             leiden_rows=leiden_rows,
+            glossary_rows=glossary_rows,
         )
         renders = [n for n in ("AGENTS.md", "LICENSE", "DCO") if (self.site.root / n).is_file()]
-        return self.page("Docs", body, renders=renders), extra
+        return self.page("Docs", body, renders=renders, path="/docs/"), extra
 
     def alternates_block(self, nv: NodeView) -> str:
         """D-25 v3.13: every later proof of the node, each linked at the commit that merged it.
@@ -1207,6 +1672,9 @@ def cited_urls(site: Site) -> frozenset[str]:
         source = tv.record.get("source") or {}
         if source.get("url"):
             urls.add(str(source["url"]))
+        forum = (tv.record.get("prior_art") or {}).get("forum_url")  # F04-T12: the source line
+        if forum:
+            urls.add(str(forum))
     return frozenset(urls)
 
 
@@ -1228,16 +1696,20 @@ def render_site(
     docs_page, extra = r.docs()
     files: dict[str, str] = {
         "index.html": r.home(),
-        "targets/index.html": r.targets(),
-        "frontier/index.html": r.frontier(),
+        "problems/index.html": r.problems(),
+        "about/index.html": r.about(),
         "contributors/index.html": r.contributors(),
         "docs/index.html": docs_page,
         "site.css": (STATIC / "site.css").read_text(encoding="utf-8"),
-        "frontier.js": (STATIC / "frontier.js").read_text(encoding="utf-8"),
+        "problems.js": (STATIC / "problems.js").read_text(encoding="utf-8"),
+        "problem.js": (STATIC / "problem.js").read_text(encoding="utf-8"),
         **extra,
     }
+    for old, to in REDIRECTS:  # Q14: the old paths keep resolving, to the merged page
+        files[old] = r.redirect(to)
     for tid, tv in site.targets.items():
-        files[f"targets/{tid}/index.html"] = r.target(tv)
+        files[f"problems/{tid}/index.html"] = r.target(tv)
+        files[f"targets/{tid}/index.html"] = r.redirect(r.target_path(tid))
         for nid, nv in tv.nodes.items():
             files[f"nodes/{tid}/{nid}/index.html"] = r.node(nv)
     problems = links.check(

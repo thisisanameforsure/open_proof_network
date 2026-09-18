@@ -3,13 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Contributors</title>
+<title>Contributors · Open Proof Network</title>
 <link rel="stylesheet" href="/site.css">
+
 </head>
 <body>
 <header class="masthead">
-  <a class="site-name" href="/">Open Proof Network</a>
-  <nav><a href="/">Home</a><a href="/targets/">Targets</a><a href="/frontier/">Frontier</a><a href="/contributors/">Contributors</a><a href="/docs/">Docs</a></nav>
+  <a class="site-name" href="/"><span class="brand-mark"></span>Open Proof Network</a>
+  <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="menu">
+  <label for="nav-toggle" class="nav-burger" aria-hidden="true"><span></span><span></span></label>
+  <nav class="site-nav"><a href="/">Home</a><a href="/problems/">Problems</a><a href="/contributors/" aria-current="page">Contributors</a><a href="/docs/">Docs</a><a href="/about/">About</a><a class="btn btn-primary nav-action" href="/problems/?filter=open">Work on a statement</a></nav>
 </header>
 <main>
 <h1>Contributors</h1>
@@ -18,9 +21,12 @@ earned it. Revoked entries stay listed as revoked; nothing is removed (D-18).</p
 <p>No ledger files exist yet: nothing has been credited. The first merged proof and the first postmortem will start the ledger (D-19, F07).</p>
 
 </main>
-<footer class="colophon">
-  <p>Rendered from graph commit <a href="https://github.com/example/graph/tree/6666666666666666666666666666666666666666"><code>666666666666</code></a>.
-  This page is a view of nothing in the graph at that commit. The site is read-only and rebuilt on every merge (D-36).</p>
+<footer class="provenance">
+  <span>graph commit <a href="https://github.com/example/graph/tree/6666666666666666666666666666666666666666"><code>666666666666</code></a></span>
+  <span>read-only · rebuilt on every merge</span>
+  <span class="sources">a view of nothing in the graph</span>
+  <span class="links"><a href="https://github.com/example/graph/tree/6666666666666666666666666666666666666666">repository ↗</a> · <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>
 </footer>
+
 </body>
 </html>

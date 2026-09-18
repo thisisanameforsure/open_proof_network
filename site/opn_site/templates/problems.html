@@ -1,0 +1,21 @@
+<section class="page-head problems-head">
+<div>
+<h1>Problems</h1>
+<p class="lead">Every problem on the record, with the statements its proof needs. Nothing is ranked; hover any term for what it means.</p>
+</div>
+<div class="controls">
+<nav class="seg" aria-label="filter">
+<a class="seg-opt" href="/problems/?filter=all" data-filter="all" aria-current="true">All <span class="n">$total</span></a>
+<a class="seg-opt" href="/problems/?filter=open" data-filter="open">Open<span class="long"> statements</span> <span class="n">$open_statements</span></a>
+<a class="seg-opt" href="/problems/?filter=proved" data-filter="proved">Proved <span class="n">$proved</span></a>
+<a class="seg-opt" href="/problems/?filter=unstewarded" data-filter="unstewarded">Needs a steward</a>
+</nav>
+<input class="input search" type="search" placeholder="Search problems and statements" aria-label="Search problems and statements" hidden>
+</div>
+</section>
+<div class="legend"><span class="kicker">Legend</span>$legend</div>
+<details class="legend-mobile"><summary class="btn btn-secondary btn-block">Legend: what the terms mean <span class="caret">▾</span></summary><dl>$legend_list</dl></details>
+<section class="problem-list">
+$cards
+<p class="list-note"><span class="showing" data-total="$total">Showing $total of $total.</span> Hashes, origins and pins live on each statement's record page and in <code>frontier.json</code>, which lists exactly the open statements shown here. $claims_note</p>
+</section>

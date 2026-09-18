@@ -250,8 +250,8 @@ def test_the_whole_life(graph: Graph, tmp_path: Path, capsys: pytest.CaptureFixt
 
     # 5. The site shows it.
     pages = render.render_site(model.load_site(root, COMMIT), repo_url="https://github.com/x/g")
-    high = pages[f"targets/{HIGH}/index.html"]
-    low = pages[f"targets/{LOW}/index.html"]
+    high = pages[f"problems/{HIGH}/index.html"]  # F04-T12: the problem page
+    low = pages[f"problems/{LOW}/index.html"]
     assert "score <strong>5</strong> (B+)" in high
     assert "without a human reviewer" in high
     assert "alt" in high

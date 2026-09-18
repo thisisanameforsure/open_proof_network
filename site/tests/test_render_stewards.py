@@ -33,13 +33,15 @@ def pages(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
 
 
 def target_page(pages: dict[str, str], target_id: str) -> str:
-    return pages[f"targets/{target_id}/index.html"]
+    return pages[f"problems/{target_id}/index.html"]
 
 
 def card(pages: dict[str, str], target_id: str) -> str:
-    page = pages["targets/index.html"]
-    start = page.index(f'<h2><a href="/targets/{target_id}/">')
-    return page[start : page.index("</section>", start)]
+    page = pages["problems/index.html"]
+    start = page.index('<article class="card problem" data-status="')
+    while f'id="p-{target_id}"' not in page[start : page.index(">", start)]:
+        start = page.index('<article class="card problem"', start + 1)
+    return page[start : page.index("</article>", start)]
 
 
 def test_the_stewarded_target_names_its_steward(pages: dict[str, str]) -> None:
@@ -49,10 +51,10 @@ def test_the_stewarded_target_names_its_steward(pages: dict[str, str]) -> None:
     assert f'<a href="{STEWARD_LINK}">{escape(STEWARD_NAME)}</a>' in page
     assert "<b>not bold</b>" not in page
     assert f"<code>{STEWARD_LOGIN}</code>" in page and "committed 2026-09-16" in page
-    assert "This target is open for claims." in page
+    assert "This problem is open for work." in page
     row = card(pages, STEWARDED_TARGET)
-    assert f'<a href="{STEWARD_LINK}">{escape(STEWARD_NAME)}</a> (since 2026-09-16)' in row
-    assert "<dt>Digestion</dt><dd>not resolved</dd>" in row
+    assert f'Steward · <a href="{STEWARD_LINK}">{escape(STEWARD_NAME)}</a>' in row
+    assert 'data-status="open"' in row and row.count('class="stage off"') == 3
 
 
 def test_the_stewardless_target_says_so_in_words(pages: dict[str, str]) -> None:
@@ -64,8 +66,8 @@ def test_the_stewardless_target_says_so_in_words(pages: dict[str, str]) -> None:
     assert escape(intake.explain("no-steward")) in page
     assert "Not claimable" in page
     row = card(pages, STEWARDLESS_TARGET)
-    assert '<dt>Stewards</dt><dd><a href="/docs/#stewards">none yet</a></dd>' in row
-    assert escape(intake.explain("no-steward")) in row
+    assert 'data-status="needs a steward"' in row and ">Needs a steward</span>" in row
+    assert escape(intake.explain("no-steward")) in row  # the status tag's hover card
     # The root's node page and the frontier row say the same (F04-T10).
     node = pages[f"nodes/{STEWARDLESS_TARGET}/stewardless-lemma/index.html"]
     assert escape(intake.explain("no-steward")) in node
@@ -74,22 +76,25 @@ def test_the_stewardless_target_says_so_in_words(pages: dict[str, str]) -> None:
 def test_the_resolved_target_shows_its_digestion_state(pages: dict[str, str]) -> None:
     """R10: the lead "resolved — undigested" and the report-back sentence D-10 carries."""
     page = target_page(pages, RESOLVED_TARGET)
-    assert "Status resolved — undigested" in page
+    assert 'tabindex="0">proved<span class="term-card"' in page
+    assert "None yet" in page and "proved but not explained" in page
     assert "Resolved — <strong>undigested</strong>" in page
     assert "kernel-checked, not yet explained" in page
     assert "0 of 1 proved nodes in the closing proof" in page
     assert "No paper or note recorded yet (D-32)." in page
     assert "No stewards: this target is not an open problem" in page
     row = card(pages, RESOLVED_TARGET)
-    assert "<dt>Status</dt><dd>resolved — undigested" in row
-    assert "<dt>Digestion</dt><dd>kernel-checked, not yet explained</dd>" in row
+    assert 'data-status="proved"' in row
+    assert '<span class="stage on"><span class="dot dot-proved"></span>Proved</span>' in row
+    assert '<span class="stage off"><span class="dot dot-blocked"></span>Explained</span>' in row
+    assert "Steward wanted for write-up" in row
 
 
 def test_the_calibration_target_is_labelled(pages: dict[str, str]) -> None:
     page = target_page(pages, CALIBRATION_TARGET)
     assert "A calibration target" in page and "Stages v3.17" in page
-    assert "A calibration target" in card(pages, CALIBRATION_TARGET)
-    assert "This target is open for claims." in page  # exempt from the steward rule (R4)
+    assert "Calibration target, no steward needed" in card(pages, CALIBRATION_TARGET)
+    assert "This problem is open for work." in page  # exempt from the steward rule (R4)
     for other in (STEWARDED_TARGET, STEWARDLESS_TARGET, RESOLVED_TARGET):
         assert "A calibration target:" not in target_page(pages, other)
 
@@ -107,12 +112,12 @@ def test_the_signed_explainer_is_vouched_for_above_the_label(pages: dict[str, st
 
 
 def test_the_home_counts_lead_with_coverage(pages: dict[str, str]) -> None:
-    """R10, Q10: the counts table is led by "explained: n of m proved nodes"."""
+    """R10, Q10: the counts card leads with explained / proved (F04-T12's big number), and the
+    steward count is of distinct stewards."""
     home = pages["index.html"]
-    table = home.split('<table class="counts">', 1)[1].split("</table>", 1)[0]
-    first = table.split("</tr>", 1)[0]
-    assert "explained: 1 of 3 proved nodes" in first, first
-    assert '<td class="n">1</td>' in first
+    assert '<span class="big">1 / 3</span>' in home
+    assert "proved statements explained" in home
+    assert '<span class="n">1</span><span class="l">stewards</span>' in home
 
 
 def test_every_new_link_is_on_the_allowlist(pages: dict[str, str]) -> None:

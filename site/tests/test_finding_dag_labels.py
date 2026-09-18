@@ -17,13 +17,13 @@ from typing import Any
 
 from opn_site import dag
 
-ROOT = "infinitude-of-primes"
+ROOT = "infinitude-of-primes-progression"  # 32 characters: F04-T12 pills keep that many
 HOLES = [f"{ROOT}--h{i}" for i in range(1, 5)]
 NODES: list[dict[str, Any]] = [
     {"node_id": ROOT, "status": "blocked", "deps": HOLES},
     *({"node_id": h, "status": "blocked", "deps": []} for h in HOLES),
 ]
-LABEL_MAX = 22  # what fits NODE_W today (21 characters and the ellipsis)
+LABEL_MAX = dag.LABEL_MAX  # what a pill keeps whole (31 characters and the ellipsis)
 
 
 def labels(out: str) -> dict[str, str]:

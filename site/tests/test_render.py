@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from html import escape, unescape
+from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, ClassVar
@@ -19,8 +19,8 @@ REPO = "https://github.com/example/graph"
 COPIED_DOC = "docs/architecture-decisions.html"  # a verbatim copy of a network file (R9, Q4)
 PAGES = (
     "index.html",
-    "targets/index.html",
-    "targets/propositional/index.html",
+    "problems/index.html",
+    "problems/propositional/index.html",
     "nodes/propositional/and-reassoc/index.html",
     "nodes/propositional/and-swap-reassoc/index.html",
     "nodes/propositional/tutorial-and-swap/index.html",
@@ -71,7 +71,7 @@ def test_commit_and_file_links(rendered: dict[str, str]) -> None:
         in node
     )
     assert f"{REPO}/blob/{fixture.COMMIT}/attestations/000001.json" in node
-    target = rendered["targets/propositional/index.html"]
+    target = rendered["problems/propositional/index.html"]
     assert f"{REPO}/blob/{fixture.COMMIT}/targets/propositional/graph.json" in target
 
 
@@ -110,17 +110,21 @@ def test_no_explainer_cue(rendered: dict[str, str]) -> None:
 
 
 def test_target_page_has_dag_and_nodes(rendered: dict[str, str]) -> None:
-    target = rendered["targets/propositional/index.html"]
+    target = rendered["problems/propositional/index.html"]
     assert '<svg class="dag"' in target
     assert target.count('<g class="node status-') == 3
     assert "No approach records yet" in target and "No state-of-the-problem note yet" in target
 
 
 def test_home_counts(rendered: dict[str, str]) -> None:
+    """F04-T12: the counts card leads with explained / proved (D-36 v3.17), then problems,
+    open statements and stewards."""
     home = rendered["index.html"]
-    assert '<td class="n">1</td><td><a href="/targets/">targets</a>' in home
-    assert '<td class="n">2</td><td><a href="/targets/">nodes proved</a>' in home
-    assert '<td class="n">1</td><td><a href="/frontier/">nodes on the frontier</a>' in home
+    assert '<span class="big">0 / 2</span>' in home
+    assert '<span class="n">1</span><span class="l">problems</span>' in home
+    assert '<span class="n">1</span><span class="l">open statements</span>' in home
+    assert '<span class="n">0</span><span class="l">stewards</span>' in home
+    assert 'href="/problems/"' in home and 'href="/about/"' in home
 
 
 class _Balance(HTMLParser):
@@ -183,72 +187,49 @@ def test_render_command_writes_everything(
 
 # --- T2: frontier, contributors, docs ---------------------------------------------------------
 
-T2_PAGES = ("frontier/index.html", "contributors/index.html", "docs/index.html")
+T2_PAGES = ("about/index.html", "contributors/index.html", "docs/index.html")
 
 
-def test_frontier_table(rendered: dict[str, str]) -> None:
-    """AC9: one row per frontier entry, one column per F03-R5 field, a same-origin script."""
-    page = rendered["frontier/index.html"]
-    assert page.count("<th>") == 17  # the 16 entry fields and the node's status (T11)
-    assert page.count("<tr>") == 1 + 1  # header + the one frontier entry (the ready root)
+def test_problems_page(rendered: dict[str, str]) -> None:
+    """AC9 as F04-T12 reshaped it: one card per target with one row per statement, the whole
+    list on the page, a same-origin script that only filters, and the old paths redirecting."""
+    page = rendered["problems/index.html"]
+    assert page.count('<article class="card problem"') == 1
+    assert page.count('<div class="stmt"') == 3  # the target's three nodes
     assert 'href="/nodes/propositional/and-swap-reassoc/"' in page
-    assert '<script src="/frontier.js"></script>' in page
+    assert '<script src="/problems.js"></script>' in page
     assert "https://" not in page.split("<main>")[1].split("</main>")[0].replace(REPO, "")
-    assert "frontier.js" in rendered and "querySelector" in rendered["frontier.js"]
-    assert "deps: and-reassoc, tutorial-and-swap; library: none" in page
+    assert "problems.js" in rendered and "querySelector" in rendered["problems.js"]
+    for old in ("targets/index.html", "frontier/index.html", "targets/propositional/index.html"):
+        assert 'http-equiv="refresh"' in rendered[old], old
+    assert 'url=/problems/"' in rendered["frontier/index.html"]
+    assert 'url=/problems/propositional/"' in rendered["targets/propositional/index.html"]
 
 
-def frontier_row(page: str) -> dict[str, str]:
-    """The table's one row as ``{header: cell text}``."""
-    head = page.split("<thead>", 1)[1].split("</thead>", 1)[0]
-    body = page.split("<tbody>", 1)[1].split("</tbody>", 1)[0]
-    headers = [h.split("</th>", 1)[0] for h in head.split("<th>")[1:]]
-    cells = [c.split("</td>", 1)[0] for c in body.split("<td>")[1:]]
-    assert len(headers) == len(cells), (headers, cells)
-    return {h: unescape(_text(c)) for h, c in zip(headers, cells, strict=True)}
+def statement_row(page: str, node_id: str) -> str:
+    """One statement row of the Problems page, by its node link."""
+    [row] = [r for r in page.split('<div class="stmt"')[1:] if f">{node_id}</a>" in r]
+    return row.split("</div>", 1)[0]
 
 
-def _text(cell: str) -> str:
-    out, inside = [], False
-    for ch in cell:
-        if ch == "<":
-            inside = True
-        elif ch == ">":
-            inside = False
-        elif not inside:
-            out.append(ch)
-    return "".join(out)
-
-
-def test_the_frontier_page_says_where_each_node_stands(tmp_path: Path) -> None:
-    """T11 (R7, Q11): the frontier lists open variants that wait on their holes (F03-R5), so
-    the page carries each node's status from its target's graph, beside Claimable, and the
-    target's D-33 dormancy the entry already carries; and it no longer says every listed node
-    "can be worked on now". Found live: ``variant-93e79cb5`` read Claimable yes with nothing on
-    the page saying it was blocked."""
+def test_the_problems_page_says_where_each_statement_stands(tmp_path: Path) -> None:
+    """T11's fact on the merged page (R7, Q11, Q14): a row's word and action follow the node's
+    status from the target's graph — an open statement invites work, a blocked one says so and
+    the card's open count drops with it; nothing on the page says every row can be worked on."""
     root = fixture.build(tmp_path)
     site = model.load_site(root, fixture.COMMIT)
-    page = render.render_site(site, repo_url=REPO)["frontier/index.html"]
-    headers = page.split("<thead>", 1)[1].split("</thead>", 1)[0]
-    assert headers.index("<th>Node</th>") < headers.index("<th>Status</th>")
-    assert headers.index("<th>Status</th>") < headers.index("<th>Statement hash</th>")
-    assert headers.index("<th>Claimable</th>") < headers.index("<th>Dormant</th>")
-    row = frontier_row(page)
-    assert row["Status"] == "ready" and row["Dormant"] == "no"
+    page = render.render_site(site, repo_url=REPO)["problems/index.html"]
+    row = statement_row(page, "and-swap-reassoc")
+    assert 'data-state="open"' in row and "Work on this →" in row
+    assert 'data-open="1"' in page
     assert "can be worked on now" not in page
-    assert "exactly what an agent sees through" not in page
-    assert "listed without being claimable" in page
 
-    entry = site.frontier["entries"][0]
-    node = site.targets[entry["target_id"]].nodes[entry["node_id"]]
+    node = site.targets["propositional"].nodes["and-swap-reassoc"]
     node.graph_entry["status"] = "blocked"
-    entry["claimable"] = False
-    entry["dormant"] = True
-    row = frontier_row(render.Renderer(site, repo_url=REPO).frontier())
-    assert (row["Status"], row["Claimable"], row["Dormant"]) == ("blocked", "no", "yes")
-
-    del entry["dormant"]  # a frontier/v1 snapshot has no such field, and still renders (D-34)
-    assert frontier_row(render.Renderer(site, repo_url=REPO).frontier())["Dormant"] == "none"
+    page = render.Renderer(site, repo_url=REPO).problems()
+    row = statement_row(page, "and-swap-reassoc")
+    assert 'data-state="blocked"' in row and ">Blocked</a>" in row
+    assert 'data-open="0"' in page and "Work on this" not in page
 
 
 def test_contributors_empty_state(rendered: dict[str, str]) -> None:
@@ -391,14 +372,15 @@ def test_listed_target_reasons(listed_pages: dict[str, str]) -> None:
     """AC9, R10: the Targets page carries the source link, the attribution and licence, and the
     QA summary — and does not reproduce the informal statement of a source that states no
     licence. Since F14-R1 a listed, unsigned target is claimable, so it names no reasons."""
-    page = listed_pages["targets/index.html"]
+    page = listed_pages["problems/index.html"]
     [card] = [
         c
-        for c in page.split('<section class="target-card">')[1:]
+        for c in page.split('<article class="card problem"')[1:]
         if f">{fixture.LISTED_TARGET}<" in c
     ]
-    assert "Not claimable" not in card
-    assert "<dt>Status</dt><dd>listed, claimable</dd>" in card
+    assert "Not claimable" not in card and 'data-status="open"' in card
+    assert escape(fixture.PARAPHRASE) in card
+    page = listed_pages[f"problems/{fixture.LISTED_TARGET}/index.html"]  # the record's facts
 
     assert fixture.UNLICENSED["url"] in page, "the source is not linked"
     assert escape(fixture.UNLICENSED["attribution"]) in page, "the attribution is missing"
@@ -422,10 +404,12 @@ def test_a_claimable_target_states_no_reasons(frozen_pages: dict[str, str]) -> N
     """The block is a fact about this target, not boilerplate: it appears once, for the target
     under a drift freeze (the reason F14-R1 kept), and the propositional target's own card does
     not claim reasons it does not have."""
-    page = frozen_pages["targets/index.html"]
-    assert page.count("Not claimable, because:") == 1
-    assert "changed upstream" in page and "D-10 v3.12" in page
+    page = frozen_pages["problems/index.html"]
+    assert page.count("changed upstream") == 1  # the frozen target's status tag, in its card
+    assert "D-10 v3.12" in page
     assert "fidelity grade is below" not in page and "not been posted upstream" not in page
+    page = frozen_pages[f"problems/{fixture.LISTED_TARGET}/index.html"]
+    assert page.count("Not claimable, because:") == 1
     assert "Fidelity by subject:" in page and "root mechanical-only" in page
 
 
@@ -442,8 +426,8 @@ def test_qa_summary(qa_pages: dict[str, str]) -> None:
     """AC11, R14: two signers, one drift flag and three attempts (two counted) are visible on
     the target page, and the upstream diff excerpt is escaped — the injection string appears
     nowhere unescaped on any page."""
-    page = qa_pages[f"targets/{fixture.QA_TARGET}/index.html"]
-    assert "Statement QA (D-9 v3.12)" in page
+    page = qa_pages[f"problems/{fixture.QA_TARGET}/index.html"]
+    assert "Does the Lean say the conjecture?" in page
     assert "screened-and-signed; 2 signatures (reviewer-one, reviewer-two)" in page
     assert "complete" in page and 'class="qa-pass">pass' in page
     assert "<strong>2</strong> against the statement as it stands" in page
@@ -452,11 +436,11 @@ def test_qa_summary(qa_pages: dict[str, str]) -> None:
     assert "google-deepmind/formal-conjectures" in page and "Proving compute is frozen" in page
     assert escape(fixture.DIFF_INJECTION) in page, "the diff excerpt is shown, escaped"
     assert all(fixture.DIFF_INJECTION not in html for html in qa_pages.values()), "unescaped"
-    assert "the statement it was imported from changed upstream" in qa_pages["targets/index.html"]
+    assert "the statement it was imported from changed upstream" in qa_pages["problems/index.html"]
 
     # A target that predates the pass says so rather than showing an empty table.
-    old = qa_pages["targets/propositional/index.html"]
-    assert "Statement QA (D-9 v3.12)" in old and (
+    old = qa_pages["problems/propositional/index.html"]
+    assert "Does the Lean say the conjecture?" in old and (
         "No statement-QA record" in old or "incomplete" in old
     )
 
@@ -475,7 +459,7 @@ def test_related_variant_pertinence_on_the_target_page(tmp_path: Path) -> None:
     related_variant(root)
     products.generate(root, rendered_from=fixture.COMMIT, commit_time=fixture.NOW).write(root)
     page = render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)[
-        "targets/propositional/index.html"
+        "problems/propositional/index.html"
     ]
     assert "not yet signed as pertinent" in page
     qa.sign_relevance(
@@ -488,7 +472,7 @@ def test_related_variant_pertinence_on_the_target_page(tmp_path: Path) -> None:
     )
     products.generate(root, rendered_from=fixture.COMMIT, commit_time=fixture.NOW).write(root)
     page = render.render_site(model.load_site(root, fixture.COMMIT), repo_url=REPO)[
-        "targets/propositional/index.html"
+        "problems/propositional/index.html"
     ]
     assert "pertinent to the target, signed by mike on 2026-09-12" in page
 
@@ -514,7 +498,7 @@ def test_frontier_page_says_which_products_its_claims_come_from_and_links_the_li
     assert api_url == API, "the site's config carries no api URL (OPN_SITE_API_URL)"
     kwargs: dict[str, Any] = {"api_url": api_url}  # render_site takes it once F04-T9 lands
     files = render.render_site(site, repo_url=REPO, **kwargs)
-    page = files["frontier/index.html"]
+    page = files["problems/index.html"]
 
     assert "exactly what an agent sees through" not in page
     assert "from the products at" in page, "no label says which products the claims come from"
@@ -534,7 +518,7 @@ def test_without_an_api_url_the_claims_label_renders_and_no_live_link_is_drawn(
     root = fixture.build(tmp_path)
     site = model.load_site(root, fixture.COMMIT)
     page = render.render_site(site, repo_url=REPO, api_url=config.load({}).api_url)[
-        "frontier/index.html"
+        "problems/index.html"
     ]
     label = page.index("from the products at")
     assert fixture.COMMIT[:12] in page[label : label + 300]
@@ -546,7 +530,7 @@ def test_without_an_api_url_the_claims_label_renders_and_no_live_link_is_drawn(
 def test_an_api_url_with_a_trailing_slash_does_not_double_up(tmp_path: Path) -> None:
     root = fixture.build(tmp_path)
     site = model.load_site(root, fixture.COMMIT)
-    page = render.render_site(site, repo_url=REPO, api_url=f"{API}//")["frontier/index.html"]
+    page = render.render_site(site, repo_url=REPO, api_url=f"{API}//")["problems/index.html"]
     assert f'href="{API}/claims.json"' in page
     assert "test//" not in page
 
@@ -560,9 +544,11 @@ def test_the_live_claims_link_passes_the_link_checker_only_through_the_allowlist
     site = model.load_site(root, fixture.COMMIT)
     files = render.render_site(site, repo_url=REPO, api_url=API)
     problems = links.check(files, repo_url=REPO, cited=render.cited_urls(site) | render.COPY_LINKS)
-    assert [p for p in problems if "api.example.test" in p] == [
-        f"frontier/index.html: external link {API}/claims.json"
-    ]
+    # F04-T12: the provenance bar on every page of the site's own markup links the live count.
+    own = {rel for rel in files if rel.endswith(".html") and rel != COPIED_DOC}
+    assert {p for p in problems if "api.example.test" in p} == {
+        f"{rel}: external link {API}/claims.json" for rel in own
+    }  # a set: the Problems page links it twice, in the bar and in its footer note
     assert render.live_urls(API) == frozenset({f"{API}/claims.json"})
     assert render.live_urls(f"{API}/") == render.live_urls(API)
     assert render.live_urls(None) == frozenset()
@@ -581,7 +567,7 @@ def test_the_claims_label_names_the_commit_the_products_were_rendered_from(
     root = fixture.build(tmp_path)
     site = model.load_site(root, fixture.COMMIT)
     site.frontier["rendered_from"] = "a" * 40
-    page = render.Renderer(site, repo_url=REPO, api_url=API).frontier()
+    page = render.Renderer(site, repo_url=REPO, api_url=API).problems()
     label = page.index("from the products at")
     assert "<code>aaaaaaaaaaaa</code>" in page[label : label + 60]
 
@@ -594,5 +580,5 @@ def test_render_command_reads_the_api_url_from_the_environment(
     monkeypatch.setenv("OPN_SITE_API_URL", API)
     argv = ["render", "--graph", str(root), "--commit", fixture.COMMIT, "--out", str(out)]
     assert cli.main(argv) == 0, capsys.readouterr()
-    page = (out / "frontier" / "index.html").read_text(encoding="utf-8")
+    page = (out / "problems" / "index.html").read_text(encoding="utf-8")
     assert f'href="{API}/claims.json"' in page
