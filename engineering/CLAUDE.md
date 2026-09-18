@@ -859,6 +859,13 @@ The law of the project:
   !important }` first. Also: a handoff that says "keep every old path" is two lines in
   `render_site` (a meta-refresh page through the same frame, so it names the commit like every
   page) and no CloudFront change.
+- 2026-09-18 — "No external resources" (F04-R10) is a rule about origins, not about libraries: the
+  math in twenty records' prose was shown as raw TeX for a week because nothing on the site rendered
+  it, and the fix was 549 KiB of KaTeX vendored under `static/` with a sha256 manifest a test checks,
+  not a CDN tag. Mark the one element class the renderer may touch (`.math`, the informal statement)
+  and run it with trust off; never let a client-side renderer scan the whole page, since Lean and file
+  names carry dollar signs too. Ship the static tree by walking it (fonts as bytes), not by naming
+  files one by one in `render_site`.
 - 2026-09-17 — A rule that elaborates every frontier candidate finds what no reader did. The re-pin
   to ffc50b9 (F07-T19, F08-T9, F03-T10) went through in one sitting: tag, images, 27 pins in a
   detached worktree, pregate, push after a green Lean tier, then the three corrections the old pin

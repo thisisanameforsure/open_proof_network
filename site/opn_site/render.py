@@ -50,6 +50,25 @@ CLAIMABLE_STATUSES = ("ready", "speculative")
 NO_RECORD_WORDS = "this target has no curated intake record (D-6)"
 #: T9: the api route for the live claims (F05); its origin is config (C6), never a literal here.
 CLAIMS_PATH = "/claims.json"
+#: F04-T13 (Q15): the same-origin scripts a page may load (R10), and the KaTeX head and tail the
+#: pages carrying a record's informal text take — KaTeX vendored under static/vendor/katex,
+#: pinned by its MANIFEST.txt, rendering only inside ``.math`` with trust off (math.js).
+SCRIPTS: tuple[str, ...] = (
+    "/problems.js",
+    "/problem.js",
+    "/vendor/katex/katex.min.js",
+    "/vendor/katex/auto-render.min.js",
+    "/math.js",
+)
+MATH_HEAD = '<link rel="stylesheet" href="/vendor/katex/katex.min.css">'
+MATH_SCRIPTS = (
+    '<script src="/vendor/katex/katex.min.js"></script>'
+    '<script src="/vendor/katex/auto-render.min.js"></script>'
+    '<script src="/math.js"></script>'
+)
+#: The static tree's text files ship as pages do; its binary files (the fonts) are copied by
+#: ``write``.
+STATIC_TEXT_SUFFIXES = frozenset({".css", ".js", ".txt", ""})
 #: F04-T12 (Q14): the Glossary, one row per site word — (key, on the site, meaning, in the
 #: protocol). It is the single source for every hover card and for the Docs page's table, so a
 #: definition can never differ between the two.
@@ -359,6 +378,26 @@ def esc(value: object) -> str:
     return escape(str(value), quote=True)
 
 
+def math(text: str) -> str:
+    """Record prose that may carry TeX between dollar signs (F04-T13): escaped like everything
+    from the graph, then marked for the same-origin renderer, which reads the text back."""
+    return f'<span class="math">{esc(text)}</span>'
+
+
+def static_files() -> tuple[dict[str, str], dict[str, bytes]]:
+    """The static tree, text files (stylesheets, scripts, the vendor manifest and licence) apart
+    from binary ones (the fonts), each keyed by its path under the site root."""
+    text: dict[str, str] = {}
+    binary: dict[str, bytes] = {}
+    for path in sorted(p for p in STATIC.rglob("*") if p.is_file()):
+        rel = path.relative_to(STATIC).as_posix()
+        if path.suffix in STATIC_TEXT_SUFFIXES:
+            text[rel] = path.read_text(encoding="utf-8")
+        else:
+            binary[rel] = path.read_bytes()
+    return text, binary
+
+
 def declaration_only(statement: str) -> str:
     """A statement's Lean without its header: the panel shows the declaration and its doc
     comment; the whole file, imports included, is on the statement's own page."""
@@ -596,7 +635,9 @@ class Renderer:
         if tv.record is None:
             return "No informal statement is recorded for this problem yet."
         text = tv.record.get("informal") or tv.record.get("paraphrase")
-        return esc(str(text)) if text else "No informal statement is recorded for this problem yet."
+        if not text:
+            return "No informal statement is recorded for this problem yet."
+        return math(str(text))
 
     def source_line(self, tv: TargetView) -> str:
         """One line: where the statement came from, each source linked (its url is a validated
@@ -688,7 +729,14 @@ class Renderer:
             steward_term=self.term("steward", label="steward"),
             proposal_url=esc(self.proposal_url),
         )
-        return self.page(SITE_NAME, body, renders=["targets/index.json", "frontier.json"], path="/")
+        return self.page(
+            SITE_NAME,
+            body,
+            renders=["targets/index.json", "frontier.json"],
+            path="/",
+            head=MATH_HEAD,
+            script=MATH_SCRIPTS,
+        )
 
     def open_now_row(self, tv: TargetView) -> str:
         n = self.open_count(tv)
@@ -729,7 +777,8 @@ class Renderer:
             body,
             renders=["targets/index.json", "frontier.json"],
             path=PROBLEMS_PATH,
-            script='<script src="/problems.js"></script>',
+            head=MATH_HEAD,
+            script=MATH_SCRIPTS + '<script src="/problems.js"></script>',
         )
 
     def problem_card(self, tv: TargetView) -> str:
@@ -798,11 +847,11 @@ class Renderer:
             return "No informal statement is recorded for this target yet (D-6 intake, F11)."
         informal = tv.record.get("informal")
         if informal:
-            return esc(str(informal))
+            return math(str(informal))
         paraphrase = tv.record.get("paraphrase")
         if paraphrase:
             return (
-                f'{esc(str(paraphrase))} <span class="note">(the network\'s own paraphrase: the '
+                f'{math(str(paraphrase))} <span class="note">(the network\'s own paraphrase: the '
                 "source states no licence, so its wording is cited rather than reproduced)</span>"
             )
         return "No informal statement is recorded for this target yet (D-6 intake, F11)."
@@ -940,7 +989,8 @@ class Renderer:
             body,
             renders=[f"targets/{tid}/graph.json"],
             path=PROBLEMS_PATH,
-            script='<script src="/problem.js"></script>',
+            head=MATH_HEAD,
+            script=MATH_SCRIPTS + '<script src="/problem.js"></script>',
         )
 
     def steward_card(self, tv: TargetView) -> str:
@@ -1700,9 +1750,7 @@ def render_site(
         "about/index.html": r.about(),
         "contributors/index.html": r.contributors(),
         "docs/index.html": docs_page,
-        "site.css": (STATIC / "site.css").read_text(encoding="utf-8"),
-        "problems.js": (STATIC / "problems.js").read_text(encoding="utf-8"),
-        "problem.js": (STATIC / "problem.js").read_text(encoding="utf-8"),
+        **static_files()[0],
         **extra,
     }
     for old, to in REDIRECTS:  # Q14: the old paths keep resolving, to the merged page
@@ -1725,11 +1773,17 @@ def render_site(
 
 
 def write(files: dict[str, str], out_dir: Path) -> list[Path]:
-    """Write every rendered file; called only once all of them rendered (R13)."""
+    """Write every rendered file, and the static tree's binary files (the vendored fonts)
+    beside them; called only once all of them rendered (R13)."""
     written: list[Path] = []
     for rel, content in sorted(files.items()):
         path = out_dir / rel
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
+        written.append(path)
+    for rel, data in sorted(static_files()[1].items()):
+        path = out_dir / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
         written.append(path)
     return written

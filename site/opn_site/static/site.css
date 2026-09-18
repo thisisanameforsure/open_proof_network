@@ -332,6 +332,9 @@ main > h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
 .sources, ul.sources { color: var(--n400); font-size: 14px; }
 .qa, .signatures, .attempts, .evidence, .drift { color: var(--n300); }
 .note { color: var(--n500); }
+/* F04-T13: KaTeX output inside a record's informal text sits on the prose's own size. */
+.math .katex { font-size: 1.04em; }
+.math .katex-display { margin: var(--s2) 0; overflow-x: auto; overflow-y: hidden; }
 
 /* — mobile — */
 @media (max-width: 900px) {

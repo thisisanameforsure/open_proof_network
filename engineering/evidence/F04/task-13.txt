@@ -1,0 +1,42 @@
+F04-T13 · math in record prose renders (Q15; KaTeX vendored same-origin) · 2026-09-18
+
+Mike's report: "The math is not formatting on the page. basically everything between the money signs."
+Twenty of the 27 live records carry TeX between dollar signs in their informal text (the registry's
+docstrings); the site showed it verbatim, because R10 forbids external resources and nothing rendered TeX.
+Mike chose option 1 of three: vendor KaTeX.
+
+Vendoring (the recipe, so the copy can be redone)
+  $ curl -sL https://registry.npmjs.org/katex/-/katex-0.18.7.tgz -o katex.tgz   # npm's latest on 2026-09-18
+  $ shasum katex.tgz  → 972327a0c0f83be54423c8cc50d0bc3693523fa7 (the registry's dist.shasum)
+  dist/katex.min.js, dist/contrib/auto-render.min.js, LICENSE (MIT) copied verbatim; dist/katex.min.css
+  with the woff and ttf font sources removed (woff2 kept, every browser the site supports takes it);
+  dist/fonts/*.woff2 (20 files). 24 files, 549 KiB, under site/opn_site/static/vendor/katex/.
+  MANIFEST.txt names the version, the tarball and each file's sha256; test_vendor.py checks the tree
+  against it, so the copy cannot drift without the test saying so.
+
+Wiring
+  render.math() wraps a record's informal statement (informal or paraphrase) in <span class="math">,
+  escaped like everything from the graph; nothing else is marked — not Lean, ids, file names or
+  contributor prose — so a dollar sign elsewhere is never a delimiter. The Home, Problems and problem
+  pages carry the stylesheet in the head and the three scripts at the end (render.MATH_HEAD,
+  MATH_SCRIPTS); the statement record and Docs pages carry none. math.js calls renderMathInElement on
+  each .math with $$ and $ delimiters, throwOnError false, trust false (no TeX command can emit markup).
+  render.static_files() ships the static tree: text files as pages do, the fonts as bytes through write().
+  render.SCRIPTS is the allowlist the escaping tests check every <script> against.
+
+Tests
+  $ uv run --frozen pytest site/tests -q
+  188 passed in 19.60s   (test_vendor.py: manifest, local woff2 only, which pages load it, only the
+  informal text is marked, the fonts land beside the pages; goldens regenerated for the head and tail)
+
+Screenshots (the live graph rendered locally, served with python -m http.server, Playwright at 1440):
+  task-13-problems-math.png — erdos-1003, -1050, -1065 with φ(n), the sums and the fraction rendered
+  task-13-erdos-69.png      — the display sum in the header; the six-statement graph below
+  task-13-home-math.png     — the "Open now" rows
+  In the browser on the Problems page: 71 .katex elements rendered, 0 .katex-error, 0 .math elements
+  still holding a $…$ pair, document.fonts.check('12px KaTeX_Main') true; the console's one error is
+  the favicon 404. The markdown the same paraphrases carry (**bold**, backticks, a [text](url) link)
+  is untouched, as agreed.
+
+make verify
+  ruff: All checks passed! · mypy gate/api/site: no issues · pytest: 2227 passed, 73 deselected in 180.60s

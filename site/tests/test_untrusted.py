@@ -50,7 +50,7 @@ def _assert_clean(page: str) -> None:
     p.feed(page)
     for tag, attrs in p.tags:
         assert tag not in ("img", "iframe", "object", "embed"), (tag, attrs)
-        assert tag != "script" or attrs in ({"src": "/problems.js"}, {"src": "/problem.js"}), attrs
+        assert tag != "script" or attrs.get("src") in render.SCRIPTS, attrs
         assert not any(k.lower().startswith("on") for k in attrs), (tag, attrs)
         for k in ("href", "src"):
             v = (attrs.get(k) or "").strip().lower()

@@ -27,7 +27,9 @@ def test_prose_is_escaped(rendered: dict[str, str]) -> None:
     annex_page = rendered["nodes/propositional/and-swap-reassoc/index.html"]
     for page in (explainer_page, annex_page):
         assert "<script>" not in page and "<img" not in page
-        assert re.search(r"<script\b(?! src=\"/problems?\.js\")", page) is None
+        for m in re.finditer(r"<script\b[^>]*>", page):
+            assert re.fullmatch(r'<script src="(/[^"]+)">', m.group(0)), m.group(0)
+            assert m.group(1) in render.SCRIPTS, m.group(0)
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in explainer_page
     assert "&lt;img src=x onerror=alert(1)&gt;" in annex_page
     assert "&lt;b&gt;tags&lt;/b&gt;" in annex_page and " &amp; " in annex_page

@@ -413,4 +413,5 @@ def test_rendering_is_deterministic(tmp_path: Path) -> None:
     render.write(second, out_b)
     rel_a = {p.relative_to(out_a): p.read_bytes() for p in out_a.rglob("*") if p.is_file()}
     rel_b = {p.relative_to(out_b): p.read_bytes() for p in out_b.rglob("*") if p.is_file()}
-    assert rel_a == rel_b and set(rel_a) == {Path(rel) for rel in first}
+    binaries = render.static_files()[1]  # F04-T13: the vendored fonts, written beside the pages
+    assert rel_a == rel_b and set(rel_a) == {Path(rel) for rel in (*first, *binaries)}
