@@ -1,0 +1,19 @@
+F04-T19 evidence — 2026-09-18
+
+## Red first: uv run --frozen pytest site/tests/test_finding_statement_markdown.py -q
+11 failed (every test: prose.inline_statement did not exist)
+11 failed in 0.41s
+
+## Green
+11 passed in 0.36s
+
+## Whole site suite (no golden moved; test_vendor's exact-string contract holds): uv run --frozen pytest site/tests -q
+254 passed in 14.21s
+
+## The live graph at 4c58adb rendered locally (the link checker passed: 146 pages), /problems/ in a browser, page re-fetched with cache: reload
+cards whose informal text still shows ** or a backtick or a ](http link: none
+KaTeX: 71 formulas rendered, 0 .katex-error (erdos-931's display formula, full of underscores, renders: 3 of 3)
+erdos-1050: strong ["Erdős Problem 1050."], code ["tsum", the naturals' symbol]
+erdos-1065: em ["Richard K. Guy"]; its [Unsolved Problems in Number Theory](https://doi.org/...) is text, not a link — the url is cited by no validated record, so R13's allowlist refuses it
+riemann-hypothesis: strong ["Riemann Hypothesis"], code ["RiemannHypothesis", the Lean proposition]; its [Clay Mathematics Institute](...) is text, not a link, for the same reason
+screenshot: task-19-riemann-hypothesis-card-1440.png

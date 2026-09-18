@@ -467,10 +467,11 @@ def esc(value: object) -> str:
     return escape(str(value), quote=True)
 
 
-def math(text: str) -> str:
-    """Record prose that may carry TeX between dollar signs (F04-T13): escaped like everything
-    from the graph, then marked for the same-origin renderer, which reads the text back."""
-    return f'<span class="math">{esc(text)}</span>'
+def math(text: str, *, allowed_urls: frozenset[str] = frozenset()) -> str:
+    """Record prose that may carry TeX between dollar signs (F04-T13) and a registry
+    docstring's inline Markdown (T19): escaped like everything from the graph, the four inline
+    forms rendered, then marked for the same-origin math renderer, which reads the text back."""
+    return f'<span class="math">{prose.inline_statement(text, allowed_urls=allowed_urls)}</span>'
 
 
 def static_files() -> tuple[dict[str, str], dict[str, bytes]]:
@@ -524,6 +525,8 @@ class Renderer:
         self.decisions_doc = decisions_doc
         self.api_url = api_url.rstrip("/") if api_url else None
         self.base = _template("base.html")
+        #: T19: the urls record prose may link, which are the ones the link checker admits.
+        self.cited = cited_urls(site)
 
     # -- links -------------------------------------------------------------------------------
 
@@ -741,7 +744,7 @@ class Renderer:
         text = tv.record.get("informal") or tv.record.get("paraphrase")
         if not text:
             return "No informal statement is recorded for this problem yet."
-        return math(str(text))
+        return math(str(text), allowed_urls=self.cited)
 
     def source_line(self, tv: TargetView) -> str:
         """One line: where the statement came from, each source linked (its url is a validated
@@ -954,11 +957,12 @@ class Renderer:
             return "No informal statement is recorded for this target yet (D-6 intake, F11)."
         informal = tv.record.get("informal")
         if informal:
-            return math(str(informal))
+            return math(str(informal), allowed_urls=self.cited)
         paraphrase = tv.record.get("paraphrase")
         if paraphrase:
             return (
-                f'{math(str(paraphrase))} <span class="note">(the network\'s own paraphrase: the '
+                f"{math(str(paraphrase), allowed_urls=self.cited)} "
+                '<span class="note">(the network\'s own paraphrase: the '
                 "source states no licence, so its wording is cited rather than reproduced)</span>"
             )
         return "No informal statement is recorded for this target yet (D-6 intake, F11)."
