@@ -149,6 +149,14 @@ class NodeView:
     witness: LeanFile | None = None
     witness_open: bool = False
     partials: tuple[PartialView, ...] = ()
+    #: F04-T18 (Q20): both ends of a D-8 revision, read from where the curator's command wrote
+    #: them — the old node's ``superseded`` status record (``reference`` names the successor,
+    #: ``cause`` is the curator's sentence naming the request and its defect class) and the
+    #: successor's ``META.yaml``. The page had said one word, "superseded".
+    superseded_by: str | None = None
+    superseded_cause: str | None = None
+    superseded_record: str | None = None
+    supersedes: str | None = None
 
     @property
     def status(self) -> str:
@@ -455,6 +463,11 @@ def load_node(root: Path, target_id: str, entry: dict[str, Any]) -> NodeView:
             proof_file.content_hash,
         )
     explainer_files = _prose_files(node_dir / "explainer", root)
+    override = records.load_node_status(node_dir)
+    replaced = override if override is not None and override.status == "superseded" else None
+    successor = replaced.doc.get("reference") if replaced is not None else None
+    why = replaced.doc.get("cause") if replaced is not None else None
+    predecessor = loaded.meta.get("supersedes")
     raw_acks = loaded.meta.get("acknowledged_hazards")
     acks = tuple(
         {str(k): str(v) for k, v in a.items()}
@@ -481,6 +494,10 @@ def load_node(root: Path, target_id: str, entry: dict[str, Any]) -> NodeView:
         witness=_lean_file(root, node_dir / paths.WITNESS_FILE),
         witness_open=graphmod.witness_is_stub(node_dir),
         partials=_partials_for(root, node_dir),
+        superseded_by=str(successor) if successor else None,
+        superseded_cause=str(why) if why else None,
+        superseded_record=replaced.path.relative_to(root).as_posix() if replaced else None,
+        supersedes=str(predecessor) if predecessor else None,
     )
 
 

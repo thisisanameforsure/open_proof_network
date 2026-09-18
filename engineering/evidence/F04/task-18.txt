@@ -1,0 +1,28 @@
+F04-T18 evidence — 2026-09-18
+
+## Red first: uv run --frozen pytest site/tests/test_finding_superseded_links.py -q
+=========================== short test summary info ============================
+FAILED site/tests/test_finding_superseded_links.py::test_the_model_reads_both_ends_of_a_revision
+FAILED site/tests/test_finding_superseded_links.py::test_the_superseded_page_links_its_replacement_and_says_why
+FAILED site/tests/test_finding_superseded_links.py::test_the_replacement_page_links_what_it_revises
+FAILED site/tests/test_finding_superseded_links.py::test_the_panel_a_deep_link_selects_points_at_the_live_statement
+FAILED site/tests/test_finding_superseded_links.py::test_the_curators_sentence_is_escaped
+FAILED site/tests/test_finding_superseded_links.py::test_a_superseded_record_with_no_reference_says_only_what_it_knows
+6 failed in 0.40s
+
+## Green
+6 passed in 1.95s
+
+## Whole site suite (no golden moved): uv run --frozen pytest site/tests -q
+243 passed in 14.19s
+
+## The live graph at 4c58adb rendered locally
+revision notes on /problems/erdos-69/: 6 (three superseded panels, three revisions)
+statement pages carrying a revision note, all targets: 14 (seven superseded holes, seven revisions)
+
+## In a browser, the URL the outside contributor was given: /problems/erdos-69/#node=erdos-69--h2-v2--h1
+panel shown on load: erdos-69--h2-v2--h1 (superseded; history stays addressable)
+its note links: #node=erdos-69--h2-v2--h1-v2 -> click -> panel shown: erdos-69--h2-v2--h1-v2, selected pill: the same
+history.back() -> panel shown: erdos-69--h2-v2--h1
+scrollWidth/clientWidth 1440/1440; assets fetched with cache: reload before reading
+screenshot: task-18-erdos-69-superseded-panel-1440.png

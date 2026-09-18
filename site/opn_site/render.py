@@ -1150,6 +1150,35 @@ class Renderer:
             f'<span class="names">{names}</span><p>{words}</p>{button}</aside>'
         )
 
+    def revision_note(self, tid: str, nv: NodeView, *, in_page: bool) -> str:
+        """F04-T18 (Q20): a superseded statement names its replacement and the curator's reason;
+        the replacement names what it revises. On the problem page the link selects the other
+        statement's panel (``#node=``); on a statement's own page it goes to the other's page.
+        An id that is not a statement of this problem is shown, never linked (R13)."""
+        target = self.site.targets.get(tid)
+        known = target.nodes if target is not None else {}
+
+        def link(nid: str) -> str:
+            if nid not in known:
+                return f"<code>{esc(nid)}</code>"
+            href = f"#node={nid}" if in_page else self.node_path(tid, nid)
+            return f'<a href="{esc(href)}">{esc(nid)}</a>'
+
+        parts: list[str] = []
+        if nv.status == "superseded":
+            if nv.superseded_by:
+                parts.append(
+                    f"Superseded by {link(nv.superseded_by)}. Work continues on the replacement; "
+                    "this statement is kept for its history (D-8)."
+                )
+            if nv.superseded_cause:
+                parts.append(
+                    f'<span class="why">The curator\'s record: {esc(nv.superseded_cause)}</span>'
+                )
+        if nv.supersedes:
+            parts.append(f"Revises {link(nv.supersedes)}, which it replaced (D-8).")
+        return f'<p class="revision-note">{" ".join(parts)}</p>' if parts else ""
+
     def statement_panel(self, tv: TargetView, nv: NodeView) -> str:
         """One "Selected statement" panel per node; the script shows the selected one and the
         page without it shows the root's. Hashes, origin, pin and files sit behind a toggle."""
@@ -1188,6 +1217,7 @@ class Renderer:
             dot=self.dot(self.dot_state(state)),
             attempts=esc(self.attempts_words(nv)),
             note=note,
+            revision=self.revision_note(tid, nv, in_page=True),
             statement=esc(declaration_only(nv.statement)),
             hash=esc(str(e.get("statement_hash", ""))[:12]),
             origin=esc(origin),
@@ -1586,6 +1616,8 @@ class Renderer:
         witness = self.witness_block(nv)
         if nv.witness is not None:
             renders.append(nv.witness.path)
+        if nv.superseded_record is not None:
+            renders.append(nv.superseded_record)
         partials = self.partials_block(nv)
         for p in nv.partials:
             renders.append(p.file.path)
@@ -1597,6 +1629,7 @@ class Renderer:
             target_href=esc(self.target_path(tid)),
             status=self.status_mark(nv.status, nv.cause),
             status_class=esc(nv.status),
+            revision=self.revision_note(tid, nv, in_page=False),
             claimable=self.node_not_claimable(nv),
             tutorial=(
                 '<p class="cue">The tutorial node: permanently open and off the ledger (D-27).</p>'
