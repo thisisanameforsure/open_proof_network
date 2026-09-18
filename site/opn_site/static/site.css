@@ -99,6 +99,7 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; flex: none; vertical-align: -1px; margin-right: var(--s2); border: 1.5px solid var(--n600); }
 .dot-proved { background: var(--accent); border-color: var(--accent); }
 .dot-open { border-color: var(--accent); }
+.dot-needs-witness { border-color: var(--accent); border-style: dashed; }
 /* F04-T14: the other statuses wear the node pages' colours — amber waits on a repair, red is off the route */
 .dot-stale, .dot-disputed { border-color: var(--warn); }
 .dot-superseded, .dot-abandoned, .dot-refuted, .dot-defective { border-color: var(--bad); }
@@ -229,6 +230,7 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .dag circle { fill: none; stroke: var(--n600); stroke-width: 1.5; }
 .dag .status-proved circle { fill: var(--accent); stroke: var(--accent); }
 .dag .status-ready circle, .dag .status-speculative circle { stroke: var(--accent); }
+.dag .status-needs-witness circle { stroke: var(--accent); stroke-dasharray: 2 2; }
 .dag .status-stale circle, .dag .status-disputed circle { stroke: var(--warn); }
 .dag .status-superseded circle, .dag .status-abandoned circle, .dag .status-refuted circle, .dag .status-defective circle { stroke: var(--bad); }
 .dag .status-superseded rect, .dag .status-abandoned rect { stroke-dasharray: 4 3; }

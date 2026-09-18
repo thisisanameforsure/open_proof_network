@@ -12,8 +12,9 @@ from pathlib import Path
 import samples
 import yaml
 from harness import TARGET, copy_graph
+from test_finding_hole_frontier import write_hole
 
-from opn_gate import products, schemas
+from opn_gate import curator, products, schemas
 
 COMMIT = "6" * 40
 MERGE = "4" * 40
@@ -70,6 +71,14 @@ WITNESS_STEP = {"step": 7, "name": "witness", "result": "pass", "diagnostic": No
 
 def build(tmp_path: Path) -> Path:
     """The graph in its curated state with products written; returns the checkout root."""
+    root = curated(tmp_path)
+    prod = products.generate(root, rendered_from=COMMIT, commit_time=NOW)
+    prod.write(root)
+    return root
+
+
+def curated(tmp_path: Path) -> Path:
+    """``build`` before its products are rendered, so a builder can grow the tree first."""
     root = copy_graph(tmp_path, publish=True)
     attest(
         root,
@@ -97,6 +106,36 @@ def build(tmp_path: Path) -> Path:
     (nodes_dir(root) / "and-swap-reassoc" / "annex" / "sketch.md").write_text(ANNEX)
     (nodes_dir(root) / "tutorial-and-swap" / "explainer" / "why.md").write_text(EXPLAINER)
     assert not st.exists()
+    return root
+
+
+# --- F04-T17, T18: a hole awaiting its witness, and a hole a D-8 revision replaced -------------
+
+#: The shapes the live graph has carried since 2026-09-17 and no site fixture had: a hole whose
+#: only obstacle is its witness slot (``blocked``, cause ``witness-missing``, claimable on the
+#: frontier), and a hole a curator revised — the original ``superseded`` with a record naming its
+#: successor, the successor carrying ``supersedes`` and the slot it inherited.
+HOLE = "and-swap-reassoc--h1"
+REVISED_HOLE = "and-swap-reassoc--h2"
+REVISION = REVISED_HOLE + "-v2"
+REVISION_CAUSE = (
+    f"superseded by {REVISION} on revision request targets/{TARGET}/nodes/{REVISED_HOLE}/"
+    "revisions/20260917T173437Z-curator.yaml (wrong-domain; D-8)"
+)
+STUB_WITNESS = "theorem witness : True := by\n  sorry\n"
+
+
+def build_with_revised_hole(tmp_path: Path) -> Path:
+    """The curated graph plus the three nodes above, written as the gate's own writers write
+    them (the gate tests' ``write_hole`` and the curator's record writer), products rendered."""
+    root = curated(tmp_path)
+    write_hole(root, witness=STUB_WITNESS, node_id=HOLE)
+    write_hole(root, witness=STUB_WITNESS, node_id=REVISED_HOLE)
+    write_hole(root, witness=STUB_WITNESS, node_id=REVISION, supersedes=REVISED_HOLE)
+    doc = curator.node_status_doc(
+        "superseded", REVISION_CAUSE, author="curator", date="2026-09-17", reference=REVISION
+    )
+    curator.write_record(nodes_dir(root) / REVISED_HOLE, doc, author="curator", date="2026-09-17")
     prod = products.generate(root, rendered_from=COMMIT, commit_time=NOW)
     prod.write(root)
     return root
