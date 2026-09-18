@@ -25,8 +25,16 @@ theorem OpnProp.and_swap : ∀ p q : Prop, p ∧ q → q ∧ p := by
   sorry</pre>
 <p>Rendered from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/Statement.lean">targets/propositional/nodes/tutorial-and-swap/Statement.lean</a>. Depends on: none. Origin: authored.</p>
 <h2>Proof</h2>
-<p>Proof merged in commit <code>444444444444</code>: <a class="file" href="https://github.com/example/graph/blob/4444444444444444444444444444444444444444/targets/propositional/nodes/tutorial-and-swap/Proof.lean">targets/propositional/nodes/tutorial-and-swap/Proof.lean</a></p>
+<p>Proof merged in commit <code>444444444444</code>: <a class="file" href="https://github.com/example/graph/blob/4444444444444444444444444444444444444444/targets/propositional/nodes/tutorial-and-swap/Proof.lean">targets/propositional/nodes/tutorial-and-swap/Proof.lean</a></p><figure class="artifact"><figcaption class="artifact-cap">Proof.lean — its sha256 is the <code>artifact_hash</code> of the attestation below, so these are the bytes the gate checked. Rendered from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/Proof.lean">targets/propositional/nodes/tutorial-and-swap/Proof.lean</a>, sha256 <code>721b98ef9704</code>.</figcaption><pre class="lean">/-! The tutorial node (D-27): permanently open, off-ledger. Lean core only. -/
 
+theorem OpnProp.and_swap : ∀ p q : Prop, p ∧ q → q ∧ p := by
+  intro p q h
+  exact ⟨h.2, h.1⟩</pre></figure>
+
+<h2>Witness</h2>
+<figure class="artifact"><figcaption class="artifact-cap">Witness.lean — checked at step 7 of the run recorded below: <span class="result-pass">pass</span>. Rendered from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/Witness.lean">targets/propositional/nodes/tutorial-and-swap/Witness.lean</a>, sha256 <code>6a1f2eaf02f1</code>.</figcaption><pre class="lean">/-! Non-vacuity witness (D-4 step 7): the hypothesis `p ∧ q` is satisfiable. -/
+
+theorem witness : ∃ p q : Prop, p ∧ q := ⟨True, True, trivial, trivial⟩</pre></figure>
 <h2>Attestation</h2>
 <p>Verdict <strong>pass</strong>, from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/attestations/000001.json">attestations/000001.json</a>.</p>
 <dl class="facts">
@@ -36,11 +44,12 @@ theorem OpnProp.and_swap : ∀ p q : Prop, p ∧ q → q ∧ p := by
 </dl>
 <table class="steps">
 <thead><tr><th>Step</th><th>Check</th><th>Result</th></tr></thead>
-<tbody><tr><td>1</td><td>toolchain</td><td class="result-pass">pass</td></tr><tr><td>2</td><td>paths</td><td class="result-pass">pass</td></tr><tr><td>4</td><td>kernel-replay</td><td class="result-pass">pass</td></tr><tr><td>5</td><td>axioms</td><td class="result-pass">pass</td></tr></tbody>
+<tbody><tr><td>1</td><td>toolchain</td><td class="result-pass">pass</td></tr><tr><td>2</td><td>paths</td><td class="result-pass">pass</td></tr><tr><td>4</td><td>kernel-replay</td><td class="result-pass">pass</td></tr><tr><td>5</td><td>axioms</td><td class="result-pass">pass</td></tr><tr><td>7</td><td>witness</td><td class="result-pass">pass</td></tr></tbody>
 </table>
 
 <h2>Attempts</h2>
 <p>0 recorded. Routes refuted: none. Failure classes: none.</p>
+<p class="cue">No partial assembly filed.</p>
 <h2>Explainer</h2>
 <div class="prose-block unverified"><p class="label">Unverified: explainer, by thisisanameforsure, drafted with claude-fable-5-1, 2026-09-09. Rendered from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/explainer/why.md">targets/propositional/nodes/tutorial-and-swap/explainer/why.md</a>.</p><div class="prose"><p>Swap the two halves of the conjunction.</p>
 <p>&lt;script&gt;alert(1)&lt;/script&gt;</p></div></div>
@@ -52,7 +61,7 @@ theorem OpnProp.and_swap : ∀ p q : Prop, p ∧ q → q ∧ p := by
 <footer class="provenance">
   <span>graph commit <a href="https://github.com/example/graph/tree/6666666666666666666666666666666666666666"><code>666666666666</code></a></span>
   <span>read-only · rebuilt on every merge</span>
-  <span class="sources">a view of <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/Statement.lean">targets/propositional/nodes/tutorial-and-swap/Statement.lean</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/META.yaml">targets/propositional/nodes/tutorial-and-swap/META.yaml</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/Proof.lean">targets/propositional/nodes/tutorial-and-swap/Proof.lean</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/attestations/000001.json">attestations/000001.json</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/explainer/why.md">targets/propositional/nodes/tutorial-and-swap/explainer/why.md</a></span>
+  <span class="sources">a view of <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/Statement.lean">targets/propositional/nodes/tutorial-and-swap/Statement.lean</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/META.yaml">targets/propositional/nodes/tutorial-and-swap/META.yaml</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/Proof.lean">targets/propositional/nodes/tutorial-and-swap/Proof.lean</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/attestations/000001.json">attestations/000001.json</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/explainer/why.md">targets/propositional/nodes/tutorial-and-swap/explainer/why.md</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/tutorial-and-swap/Witness.lean">targets/propositional/nodes/tutorial-and-swap/Witness.lean</a></span>
   <span class="links"><a href="https://github.com/example/graph/tree/6666666666666666666666666666666666666666">repository ↗</a> · <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>
 </footer>
 

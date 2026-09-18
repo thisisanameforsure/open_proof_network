@@ -23,8 +23,12 @@
   sorry</pre>
 <p>Rendered from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/Statement.lean">targets/propositional/nodes/and-reassoc/Statement.lean</a>. Depends on: none. Origin: authored.</p>
 <h2>Proof</h2>
-<p>Proof merged in commit <code>444444444444</code>: <a class="file" href="https://github.com/example/graph/blob/4444444444444444444444444444444444444444/targets/propositional/nodes/and-reassoc/Proof.lean">targets/propositional/nodes/and-reassoc/Proof.lean</a></p>
+<p>Proof merged in commit <code>444444444444</code>: <a class="file" href="https://github.com/example/graph/blob/4444444444444444444444444444444444444444/targets/propositional/nodes/and-reassoc/Proof.lean">targets/propositional/nodes/and-reassoc/Proof.lean</a></p><figure class="artifact"><figcaption class="artifact-cap">Proof.lean — its sha256 is the <code>artifact_hash</code> of the attestation below, so these are the bytes the gate checked. Rendered from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/Proof.lean">targets/propositional/nodes/and-reassoc/Proof.lean</a>, sha256 <code>b378cb7cadba</code>.</figcaption><pre class="lean">theorem OpnProp.and_reassoc : ∀ p q r : Prop, (p ∧ q) ∧ r → p ∧ (q ∧ r) := by
+  intro p q r h
+  exact ⟨h.1.1, h.1.2, h.2⟩</pre></figure>
 <p class="flag">This proof used <code>native_decide</code> under a recorded waiver: its trust base is the compiler, not the kernel (D-4).</p>
+<h2>Witness</h2>
+<figure class="artifact"><figcaption class="artifact-cap">Witness.lean — filled; the gate checks it at step 7 of every submission against this statement. Rendered from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/Witness.lean">targets/propositional/nodes/and-reassoc/Witness.lean</a>, sha256 <code>a9781478814c</code>.</figcaption><pre class="lean">theorem witness : ∃ p q r : Prop, (p ∧ q) ∧ r := ⟨True, True, True, ⟨trivial, trivial⟩, trivial⟩</pre></figure>
 <h2>Attestation</h2>
 <p>Verdict <strong>pass</strong>, from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/attestations/000002.json">attestations/000002.json</a>.</p>
 <dl class="facts">
@@ -39,6 +43,7 @@
 
 <h2>Attempts</h2>
 <p>0 recorded. Routes refuted: none. Failure classes: none.</p>
+<p class="cue">No partial assembly filed.</p>
 <h2>Explainer</h2>
 <p class="cue">No explainer yet. A plain-language account of this proof, labelled unverified, is the next thing a writer could add (D-3, D-36).</p>
 <h2>Annex</h2>
@@ -49,7 +54,7 @@
 <footer class="provenance">
   <span>graph commit <a href="https://github.com/example/graph/tree/6666666666666666666666666666666666666666"><code>666666666666</code></a></span>
   <span>read-only · rebuilt on every merge</span>
-  <span class="sources">a view of <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/Statement.lean">targets/propositional/nodes/and-reassoc/Statement.lean</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/META.yaml">targets/propositional/nodes/and-reassoc/META.yaml</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/Proof.lean">targets/propositional/nodes/and-reassoc/Proof.lean</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/attestations/000002.json">attestations/000002.json</a></span>
+  <span class="sources">a view of <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/Statement.lean">targets/propositional/nodes/and-reassoc/Statement.lean</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/META.yaml">targets/propositional/nodes/and-reassoc/META.yaml</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/Proof.lean">targets/propositional/nodes/and-reassoc/Proof.lean</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/attestations/000002.json">attestations/000002.json</a>, <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/Witness.lean">targets/propositional/nodes/and-reassoc/Witness.lean</a></span>
   <span class="links"><a href="https://github.com/example/graph/tree/6666666666666666666666666666666666666666">repository ↗</a> · <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>
 </footer>
 

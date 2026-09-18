@@ -87,7 +87,8 @@ def test_node_page_states(rendered: dict[str, str]) -> None:
     assert "No proof merged yet." in unproved
     assert "/Proof.lean" not in unproved
     assert "No attestation" in unproved
-    assert "1 recorded" not in unproved and "2 recorded" in unproved  # attempts incl. invalid
+    # attempts: two records (one invalid) plus the partial no record names (T14)
+    assert "2 recorded" not in unproved and "3 recorded" in unproved
     assert "invalid 1" in unproved and "case-split" in unproved
 
 

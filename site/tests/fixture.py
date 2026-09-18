@@ -23,6 +23,14 @@ EXPLAINER = (
     "Swap the two halves of the conjunction.\n\n<script>alert(1)</script>\n"
 )
 ANNEX = "Informal sketch <img src=x onerror=alert(1)> with & and <b>tags</b>.\n"
+#: T15: a partial assembly a postmortem names, and one nothing names — the live graph carries
+#: both. The payload rides in the Lean so the escaping tests cover an artifact, not only prose.
+PARTIAL = (
+    "theorem partial_swap : ∀ p q : Prop, p ∧ q → q ∧ p := by\n"
+    "  intro p q h -- <script>alert(1)</script>\n"
+    "  sorry\n"
+)
+UNNAMED_PARTIAL = "theorem unnamed_route : ∀ p : Prop, p → p := by\n  sorry\n"
 
 
 def nodes_dir(root: Path) -> Path:
@@ -30,6 +38,13 @@ def nodes_dir(root: Path) -> Path:
 
 
 def attest(root: Path, node_id: str, n: int, **kw: object) -> None:
+    # The attestation covers the Proof.lean in the tree, as a live one does: every proved node
+    # on the graph has artifact_hash equal to its proof's sha256 (checked 2026-09-18, 8 of 8).
+    # The sample's placeholder would leave every fixture proof unverifiable against its record.
+    proof = nodes_dir(root) / node_id / "Proof.lean"
+    covered: dict[str, object] = (
+        {"artifact_hash": schemas.content_hash(proof.read_bytes())} if proof.is_file() else {}
+    )
     doc = samples.attestation(
         node_id=node_id,
         statement_hash=schemas.content_hash(
@@ -39,26 +54,46 @@ def attest(root: Path, node_id: str, n: int, **kw: object) -> None:
         graph_commit=MERGE,
         runner="hosted",
         review={"kind": "pr-approval", "reviewer": "reviewer-one", "reference": None},
-        **kw,
+        **{**covered, **kw},
     )
     att = root / "attestations"
     att.mkdir(exist_ok=True)
     (att / f"{n:06d}.json").write_bytes(schemas.canonical_json(doc))
 
 
+#: T15: the sample attestation lists steps 1, 2, 4 and 5 only, so nothing in it names step 7 —
+#: the step a live attestation always carries (checked on the graph's own attestations). The
+#: tutorial's run carries it, so the witness block's "checked at step 7" branch is reachable by
+#: a test and not only by the live graph.
+WITNESS_STEP = {"step": 7, "name": "witness", "result": "pass", "diagnostic": None}
+
+
 def build(tmp_path: Path) -> Path:
     """The graph in its curated state with products written; returns the checkout root."""
     root = copy_graph(tmp_path, publish=True)
-    attest(root, "tutorial-and-swap", 1)
+    attest(
+        root,
+        "tutorial-and-swap",
+        1,
+        steps=[*samples.attestation()["steps"], WITNESS_STEP],
+    )
     attest(root, "and-reassoc", 2, trust_base="compiler")
     st = nodes_dir(root) / "and-swap-reassoc" / "status"
     # The root stays ready (both deps proved); give it attempts and prose.
     att = nodes_dir(root) / "and-swap-reassoc" / "attempts"
     (att / "2026-09-01-a.yaml").write_text(
-        yaml.safe_dump(samples.postmortem(node="and-swap-reassoc", route_class="case-split")),
+        yaml.safe_dump(
+            samples.postmortem(
+                node="and-swap-reassoc",
+                route_class="case-split",
+                artifacts={"partial_proof": "attempts/2026-09-01-a-partial.lean"},
+            )
+        ),
         encoding="utf-8",
     )
     (att / "2026-09-02-b.yaml").write_text("route: [oops\n", encoding="utf-8")
+    (att / "2026-09-01-a-partial.lean").write_text(PARTIAL, encoding="utf-8")
+    (att / "2026-09-03-c-partial.lean").write_text(UNNAMED_PARTIAL, encoding="utf-8")
     (nodes_dir(root) / "and-swap-reassoc" / "annex" / "sketch.md").write_text(ANNEX)
     (nodes_dir(root) / "tutorial-and-swap" / "explainer" / "why.md").write_text(EXPLAINER)
     assert not st.exists()

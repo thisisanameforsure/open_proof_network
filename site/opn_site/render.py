@@ -19,7 +19,7 @@ from typing import Any
 from opn_gate import hosted, intake, steward
 from opn_gate import ledger as ledgermod
 from opn_site import dag, links, prose
-from opn_site.model import NodeView, Prose, Site, SiteError, TargetView
+from opn_site.model import LeanFile, NodeView, Prose, Site, SiteError, TargetView
 
 TEMPLATES = Path(__file__).resolve().parent / "templates"
 STATIC = Path(__file__).resolve().parent / "static"
@@ -44,6 +44,14 @@ CAUSE_WORDS = {
     "witness-missing": "blocked: witness missing (propose one through /proposals/witness)",
     "dep-refuted": "blocked: a dependency was refuted",
 }
+#: F04-T15 (Q17): the statuses that owe nobody a witness. A node with an unfilled slot is
+#: normally work someone can take, but a D-8 revision leaves the superseded original holding its
+#: empty slot for good, and a refuted or abandoned statement is off the route — so the witness
+#: block invites work on every *other* open slot. Keyed on these rather than on the gate's
+#: ``witness-missing`` cause, which is narrower than it looks: ``blocked_because`` sets it only
+#: for a compiler-derived hole that is currently blocked, so a hand-authored node with an
+#: unfilled slot has no cause at all and would have been silenced wrongly.
+NO_WITNESS_OWED = frozenset({"superseded", "abandoned", "refuted"})
 #: F03-Q8: the statuses a claim could take, so the only ones a target's reasons explain.
 CLAIMABLE_STATUSES = ("ready", "speculative")
 #: The frontier row's words for a not-claimable target whose index row names no reason (D-6).
@@ -1461,6 +1469,28 @@ class Renderer:
                 f"<code>{esc(str(e['proof_commit'])[:12])}</code>: "
                 f"{self.file_link(nv.proof_path, commit=str(e['proof_commit']))}</p>"
             )
+            if nv.proof is not None and nv.proof.mismatched:
+                # Q17: the bytes disagree with the attested hash, so they are not shown at all
+                # — a page that prints unverified Lean under a passing verdict is worse than a
+                # page that says it cannot. The rest of the record still renders.
+                proof += (
+                    '<p class="flag">The <code>Proof.lean</code> in this checkout is not the '
+                    "file the attestation covers: its sha256 is "
+                    f"<code>{esc(nv.proof.content_hash[:12])}</code> and the attestation names "
+                    f"<code>{esc(str(nv.proof.attested_hash)[:12])}</code>. Its text is "
+                    "withheld here; the file itself is linked above.</p>"
+                )
+            elif nv.proof is not None:
+                proof += self.lean_artifact(
+                    nv.proof,
+                    what="Proof.lean",
+                    provenance=(
+                        "its sha256 is the <code>artifact_hash</code> of the attestation below, "
+                        "so these are the bytes the gate checked."
+                        if nv.proof.verified
+                        else "no attestation names a hash for these bytes."
+                    ),
+                )
             renders.append(nv.proof_path)
         else:
             proof = "<p>No proof merged yet.</p>"
@@ -1500,6 +1530,14 @@ class Renderer:
             f'<div class="prose">{prose.render(a.get("justification", ""))}</div></div>'
             for a in nv.acknowledgments
         )
+        witness = self.witness_block(nv)
+        if nv.witness is not None:
+            renders.append(nv.witness.path)
+        partials = self.partials_block(nv)
+        for p in nv.partials:
+            renders.append(p.file.path)
+            if p.record_path is not None:
+                renders.append(p.record_path)
         body = _template("node.html").substitute(
             node_id=esc(nid),
             target_id=esc(tid),
@@ -1517,6 +1555,8 @@ class Renderer:
             deps=", ".join(self.node_link(tid, d) for d in nv.deps) or "none",
             origin=esc(e["origin"]) + (f" ({esc(e['relation'])})" if e["relation"] else ""),
             proof=proof,
+            witness=witness,
+            partials=partials,
             attestation=attestation,
             alternates=alternates,
             trust=trust,
@@ -1739,6 +1779,99 @@ class Renderer:
             reviewer=esc(reviewer),
             steps=steps,
         )
+
+    # -- the mathematics itself (F04-T15; R14) -------------------------------------------------
+
+    def lean_artifact(self, lean: LeanFile, *, what: str, provenance: str) -> str:
+        """A Lean artifact's own text on the page, with what is known about those bytes.
+
+        ``provenance`` is HTML the caller has already escaped. The sentence differs per artifact
+        because only a proof's bytes are attested (``artifact_hash``): a witness and a partial
+        have no hash anywhere in the protocol, so their callers are unable to claim one.
+        """
+        text = esc(lean.text.rstrip("\n"))
+        return (
+            '<figure class="artifact"><figcaption class="artifact-cap">'
+            f"{esc(what)} — {provenance} Rendered from {self.file_link(lean.path)}, "
+            f"sha256 <code>{esc(lean.content_hash[:12])}</code>.</figcaption>"
+            f'<pre class="lean">{text}</pre></figure>'
+        )
+
+    def witness_block(self, nv: NodeView) -> str:
+        """The non-vacuity witness (D-4 step 7), shown rather than linked.
+
+        Nothing in the protocol hashes a witness, so the page says what the gate *checked* — the
+        step's own result in this node's attestation — and never that the bytes were attested.
+        """
+        if nv.witness is None:
+            return '<p class="cue">No witness file: this node carries no step 7 obligation.</p>'
+        if nv.witness_open:
+            # The invitation is withheld only from a statement nobody owes work on: six of the
+            # twelve live nodes with an unfilled slot are superseded by a D-8 revision, and
+            # telling a reader to witness one of those is asking for wasted work. Same shape as
+            # the frontier's own membership rule (F03-T10), one day earlier.
+            words = (
+                f"its slot was never filled, and this statement is {esc(nv.status)}, so no "
+                "witness is owed here — the node that replaced it carries the obligation "
+                "(D-8, D-29)."
+                if nv.status in NO_WITNESS_OWED
+                else (
+                    "its slot is still open, so step 7 cannot pass and the node stays blocked "
+                    "until someone fills it (D-29); propose one through "
+                    "<code>/proposals/witness</code>."
+                )
+            )
+            return self.lean_artifact(nv.witness, what="Witness.lean", provenance=words)
+        result = next(
+            (
+                str(s.get("result"))
+                for s in (nv.attestation or {}).get("steps", [])
+                if s.get("name") == "witness"
+            ),
+            None,
+        )
+        words = (
+            "filled; the gate checks it at step 7 of every submission against this statement."
+            if result is None
+            else (
+                "checked at step 7 of the run recorded below: "
+                f'<span class="result-{esc(result)}">{esc(result)}</span>.'
+            )
+        )
+        return self.lean_artifact(nv.witness, what="Witness.lean", provenance=words)
+
+    def partials_block(self, nv: NodeView) -> str:
+        """Each partial assembly filed under ``attempts/`` (D-3, D-12 #5), as text.
+
+        No attestation covers a partial, so each is untrusted contributor content (R4), beside
+        the record naming it — or beside the fact that no record does, which the live graph
+        carries and ``records.count_attempts`` already counts as an attempt in its own right.
+        """
+        blocks = []
+        for p in nv.partials:
+            facts = [f"by {esc(p.contributor)}" if p.contributor else "author not recorded"]
+            if p.outcome:
+                facts.append(f"outcome <strong>{esc(p.outcome)}</strong>")
+            if p.route_class:
+                facts.append(f"route class {esc(p.route_class)}")
+            if p.failure_class:
+                facts.append(f"failure class {esc(p.failure_class)}")
+            if p.route:
+                facts.append(f"route &ldquo;{esc(p.route)}&rdquo;")
+            named = (
+                f"recorded in {self.file_link(p.record_path)}"
+                if p.record_path
+                else "no postmortem record names this file"
+            )
+            text = esc(p.file.text.rstrip("\n"))
+            blocks.append(
+                '<div class="prose-block untrusted"><p class="label">'
+                f"Untrusted: partial assembly (D-12 #5), {', '.join(facts)}; {named}. "
+                "No attestation covers a partial — it records an attempt, not a proof. "
+                f"Rendered from {self.file_link(p.file.path)}.</p>"
+                f'<pre class="lean">{text}</pre></div>'
+            )
+        return "".join(blocks) or '<p class="cue">No partial assembly filed.</p>'
 
     def untrusted_block(
         self, label: str, prose_: Prose, *, what: str, document: bool = False

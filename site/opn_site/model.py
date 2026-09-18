@@ -8,12 +8,14 @@ the graph is trusted here — escaping is the renderer's job, and it escapes eve
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from opn_gate import evidence, explainers, intake, layout, paths, records, schemas, signed, watch
+from opn_gate import graph as graphmod
 from opn_gate import writeup as writeupmod
 
 #: The product schema versions this generator can render. A consumer parses by version and old
@@ -32,6 +34,7 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
     ),
     "graph.json": ("graph/v1", "graph/v2", "graph/v3"),
 }
+log = logging.getLogger(__name__)
 KEEP_FILE = ".gitkeep"
 _FRONT_MATTER_RE = re.compile(r"\A---\n(?P<head>.*?)\n---\n(?P<body>.*)\Z", re.S)
 
@@ -49,6 +52,55 @@ class Prose:
     author: str | None = None
     model: str | None = None
     date: str | None = None
+
+
+@dataclass(frozen=True)
+class LeanFile:
+    """One Lean artifact from the checkout, shown on the site rather than only linked (R14).
+
+    ``attested_hash`` is the ``artifact_hash`` of the attestation naming this file, when one
+    does. Only ``Proof.lean`` has one: nothing in the protocol hashes a witness or a partial, so
+    those carry ``None`` and the page says what *was* checked instead of claiming a match.
+    """
+
+    path: str  # relative to the graph root
+    text: str
+    content_hash: str  # sha256 of the bytes in the checkout
+    attested_hash: str | None = None
+
+    @property
+    def verified(self) -> bool:
+        """The bytes on the page are the bytes the gate attested."""
+        return self.attested_hash is not None and self.attested_hash == self.content_hash
+
+    @property
+    def mismatched(self) -> bool:
+        """An attestation names a hash for this file and the checkout's bytes are not it.
+
+        Told apart from "no hash anywhere", because they are different facts: a witness has no
+        hash by design, while a proof whose hash disagrees is a defect. The renderer withholds
+        the text in this case and says why — one node's defect must not decide whether the
+        whole graph has a site (the rule the products learned on 2026-09-17).
+        """
+        return self.attested_hash is not None and self.attested_hash != self.content_hash
+
+
+@dataclass(frozen=True)
+class PartialView:
+    """One ``attempts/*.lean`` partial assembly (D-3, D-12 #5) and the postmortem naming it.
+
+    A partial is contributor text no attestation covers, so it renders untrusted (R4). The
+    record is optional: the live graph carries partials that no ``postmortem/v1`` file names,
+    and ``records.count_attempts`` already counts those as attempts in their own right.
+    """
+
+    file: LeanFile
+    contributor: str | None = None
+    route: str | None = None
+    route_class: str | None = None
+    outcome: str | None = None
+    failure_class: str | None = None
+    record_path: str | None = None
 
 
 @dataclass(frozen=True)
@@ -90,6 +142,13 @@ class NodeView:
     #: F15-R10: the valid signatures on the node's explainers — verified at render, since only
     #: a valid one is a comprehension claim (D-3 v3.17).
     signatures: tuple[SignatureView, ...] = ()
+    #: F04-T15 (R14): the mathematics itself, so the site shows it rather than sending a reader
+    #: to the record host. The proof is present only when its bytes are the attested ones; the
+    #: witness is whatever the gate checked at step 7, open when its slot is unfilled.
+    proof: LeanFile | None = None
+    witness: LeanFile | None = None
+    witness_open: bool = False
+    partials: tuple[PartialView, ...] = ()
 
     @property
     def status(self) -> str:
@@ -299,6 +358,73 @@ def _alternates_for(
     return tuple(views)
 
 
+def _lean_file(root: Path, path: Path, *, attested_hash: str | None = None) -> LeanFile | None:
+    """A Lean artifact's text and the hash of its bytes, or ``None`` when it is not here.
+
+    A file that is not UTF-8 is a ``SiteError`` like any other unrenderable graph file: the page
+    would otherwise show replacement characters where the mathematics is (R13, C7).
+    """
+    if not path.is_file():
+        return None
+    rel = path.relative_to(root).as_posix()
+    data = path.read_bytes()
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        msg = f"{rel} is not valid UTF-8, so its text cannot be rendered: {exc}"
+        raise SiteError(msg) from exc
+    return LeanFile(
+        path=rel, text=text, content_hash=schemas.content_hash(data), attested_hash=attested_hash
+    )
+
+
+def _partials_for(root: Path, node_dir: Path) -> tuple[PartialView, ...]:
+    """Every partial assembly under ``attempts/``, with the record naming it when one does.
+
+    An alternate is a proof, not an attempt (D-25 v3.13), and has its own view. A postmortem
+    that does not validate is skipped rather than refused: ``records.load_attempts`` already
+    counts it as invalid and the page says so, and one contributor's malformed yaml must not
+    take down every page on the site.
+    """
+    attempts = node_dir / "attempts"
+    if not attempts.is_dir():
+        return ()
+    named: dict[str, tuple[dict[str, Any], str]] = {}
+    for path in sorted(p for p in attempts.iterdir() if p.suffix in records.ATTEMPT_SUFFIXES):
+        try:
+            doc = schemas.load_yaml(path, records.POSTMORTEM_SCHEMA)
+        except schemas.SchemaError:
+            continue
+        partial = (doc.get("artifacts") or {}).get("partial_proof")
+        if isinstance(partial, str):
+            named[PurePosixPath(partial).name] = (doc, path.relative_to(root).as_posix())
+    views: list[PartialView] = []
+    for path in sorted(attempts.glob("*.lean")):
+        if path.name.endswith(paths.ALTERNATE_SUFFIX):
+            continue
+        lean = _lean_file(root, path)
+        if lean is None:  # pragma: no cover — glob yields only files
+            continue
+        doc, record_path = named.get(path.name, ({}, ""))
+
+        def field(key: str, doc: dict[str, Any] = doc) -> str | None:
+            value = doc.get(key)
+            return str(value) if value else None
+
+        views.append(
+            PartialView(
+                file=lean,
+                contributor=field("contributor"),
+                route=field("route"),
+                route_class=field("route_class"),
+                outcome=field("outcome"),
+                failure_class=field("failure_class"),
+                record_path=record_path or None,
+            )
+        )
+    return tuple(views)
+
+
 def load_node(root: Path, target_id: str, entry: dict[str, Any]) -> NodeView:
     node_id = str(entry["node_id"])
     node_dir = layout.graph_nodes_dir(root, target_id) / node_id
@@ -313,6 +439,21 @@ def load_node(root: Path, target_id: str, entry: dict[str, Any]) -> NodeView:
     attestation, att_path = _attestation_for(
         root, node_id, loaded.statement.statement_hash, entry.get("proof_commit")
     )
+    # R14: the proof is shown, not just linked, so the bytes on the page must be the bytes the
+    # gate attested. A difference is carried, not raised: the renderer withholds that one
+    # proof's text and says why, and every other page still renders (Q17, Mike 2026-09-18).
+    raw_hash = attestation.get("artifact_hash") if attestation else None
+    attested = str(raw_hash) if raw_hash else None
+    proof_file = _lean_file(root, proof, attested_hash=attested)
+    if proof_file is not None and proof_file.mismatched:
+        log.warning(
+            "%s: Proof.lean is not the file attestation %s covers (attested %s, found %s); "
+            "its text is withheld from the page",
+            node_id,
+            att_path,
+            attested,
+            proof_file.content_hash,
+        )
     explainer_files = _prose_files(node_dir / "explainer", root)
     raw_acks = loaded.meta.get("acknowledged_hazards")
     acks = tuple(
@@ -336,6 +477,10 @@ def load_node(root: Path, target_id: str, entry: dict[str, Any]) -> NodeView:
         tutorial=bool(entry.get("tutorial")),
         alternates=_alternates_for(root, node_dir, node_id, loaded.statement.statement_hash),
         signatures=_signatures_for(root, node_dir),
+        proof=proof_file,
+        witness=_lean_file(root, node_dir / paths.WITNESS_FILE),
+        witness_open=graphmod.witness_is_stub(node_dir),
+        partials=_partials_for(root, node_dir),
     )
 
 
