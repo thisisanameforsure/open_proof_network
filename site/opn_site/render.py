@@ -106,6 +106,49 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "A proof passed all nine checks and was merged. Proved is not the same as explained.",
         "proved",
     ),
+    # F04-T14 (Q16): the statuses the statement graph's key can show beyond the three above.
+    (
+        "stale",
+        "stale",
+        "A statement this one depends on was replaced or invalidated, so this one waits to be "
+        "re-derived against the replacement. Not accepting work.",
+        "stale (D-8, D-18)",
+    ),
+    (
+        "superseded",
+        "superseded",
+        "Replaced by a corrected version of the same statement. It keeps its history and any "
+        "credit already earned; work goes to the newer version.",
+        "superseded (D-8)",
+    ),
+    (
+        "disputed",
+        "disputed",
+        "A dispute about this statement has been accepted for review. New work that depends on "
+        "it is on hold until the dispute is settled.",
+        "disputed (D-18)",
+    ),
+    (
+        "abandoned",
+        "abandoned",
+        "A route given up as unreachable, or killed by a counterexample. It stays on the record "
+        "with its cause and is never deleted.",
+        "abandoned (D-14)",
+    ),
+    (
+        "refuted",
+        "refuted",
+        "A counterexample to this statement passed the checks and was merged. The statement is "
+        "false as written.",
+        "refuted (D-12)",
+    ),
+    (
+        "defective",
+        "defective",
+        "A proof that the statement is vacuous passed the checks and was merged. A curator "
+        "repairs it with a new version; nobody edits a statement.",
+        "defective (D-12, D-8)",
+    ),
     (
         "explained",
         "Explained",
@@ -184,6 +227,11 @@ LEGEND_KEYS = (
     "unchecked",
     "work-on",
 )
+#: F04-T14 (Q16): the statement graph's key. The three base states are always shown; a status
+#: from ``LEGEND_EXTRA`` is shown, in this order, when a statement in the graph has it. Each is a
+#: glossary key and a ``dot-<key>`` / ``status-<key>`` class in the stylesheet.
+LEGEND_BASE = ("proved", "open", "blocked")
+LEGEND_EXTRA = ("stale", "disputed", "superseded", "abandoned", "refuted", "defective")
 #: A problem's status on the public pages (the handoff's three words), each with its definition.
 PROBLEM_STATUS_DEFS: dict[str, str] = {
     "open": "Listed, has a steward, and its statements accept work.",
@@ -559,7 +607,15 @@ class Renderer:
 
     @staticmethod
     def dot_state(state: str) -> str:
-        return state if state in ("proved", "open") else "blocked"
+        """The dot a state wears: its own when the key has one (T14), the neutral ring else."""
+        return state if state in (*LEGEND_BASE, *LEGEND_EXTRA) else "blocked"
+
+    def graph_legend(self, tv: TargetView) -> str:
+        """The statement graph's key (F04-T14, Q16): the three base states, then every other
+        status a statement in this graph has, each a glossary hover card with its dot."""
+        present = {self.node_state(nv) for nv in tv.nodes.values()}
+        keys = (*LEGEND_BASE, *(k for k in LEGEND_EXTRA if k in present))
+        return "".join(self.term(k, dot=True) for k in keys)
 
     def open_count(self, tv: TargetView) -> int:
         return sum(1 for n in tv.nodes.values() if self.node_state(n) == "open")
@@ -673,7 +729,7 @@ class Renderer:
     def state_hover(self, nv: NodeView) -> str:
         """The row's status dot with the state's definition, and a blocked node's cause."""
         state = self.node_state(nv)
-        if state in ("proved", "open"):
+        if state in ("proved", "open") or state in LEGEND_EXTRA:
             _word, meaning, proto = GLOSSARY_BY_KEY[state]
             body = f'{esc(meaning)}<span class="proto">protocol: {esc(proto)}</span>'
         else:
@@ -970,6 +1026,7 @@ class Renderer:
             calibration=self.calibration_label(tv),
             steward_card=self.steward_card(tv),
             count_words=esc(f"{n} statement{'' if n == 1 else 's'}"),
+            legend=self.graph_legend(tv),
             dag=svg,
             panels=panels,
             digestion=self.digestion_section(tv),

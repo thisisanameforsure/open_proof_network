@@ -1,0 +1,41 @@
+F04-T14 · the statement graph's key: inside the graph, every status encoded, each defined on hover (Q16) · 2026-09-18
+
+The finding (Mike, 2026-09-18): https://openproofnetwork.org/problems/erdos-402/#node=erdos-402 "says proved, on
+the top right hand side, but I don't see a proof". Nothing on the record says proved: graph.json at 89346af has the
+root erdos-402 as stale (two status records, its holes --h2 and --h3 superseded by --h2-v2 and --h3-v2), no
+Proof.lean in its directory, one merged partial under attempts/. Only erdos-402--h1 is proved. What read as a
+status was the graph's key, "proved · open · blocked", in the section head directly above the "Selected statement"
+card, its first word carrying the one filled dot (task-14-before-live-1440.png). The page also could not show the
+truth: every status but proved and open wore the neutral ring, so stale and superseded looked blocked.
+
+What changed
+  render.py      six GLOSSARY rows (stale, disputed, superseded, abandoned, refuted, defective; worded from D-8,
+                 D-12, D-14, D-18), LEGEND_BASE / LEGEND_EXTRA, Renderer.graph_legend (the three base states, then
+                 each other status present in this graph, each a term() hover card with its dot), dot_state keeps
+                 a status's own dot, state_hover defines the six from the Glossary.
+  target.html    the key leaves .section-head and is the first child of .dag-wrap; the svg sits in .dag-scroll.
+  site.css       .dot-<status> and .dag .status-<status> circle for the six (amber: stale, disputed; red: the
+                 rest), superseded/abandoned pills dashed and dimmed, overflow moved from .dag-wrap to .dag-scroll
+                 so a hover card is not clipped, cards hang from the key's left edge, the halo keeps no stroke.
+  goldens        problems/propositional (the key moved) and docs (six Glossary rows).
+
+Red first: the 15 tests in site/tests/test_graph_legend.py failed at collection before the change
+(render.LEGEND_EXTRA missing), and the full site suite then failed only test_golden_pages and test_t2_golden_pages
+until the goldens were regenerated and the diff read (exactly the two changes above).
+
+Measured in the browser (Playwright, the live graph at 89346af rendered locally from a detached worktree and served
+with python -m http.server; the stale key item hovered):
+wide {"scrollWidth":1440,"inner":1440,"card":[39,339],"wrap":[22,953],"legend":["dot dot-proved:proved","dot dot-open:open","dot dot-blocked:blocked","dot dot-stale:stale","dot dot-superseded:superseded"],"panelDot":"dot dot-stale","rootStroke":"rgb(217, 164, 65)"}
+narrow {"scrollWidth":390,"inner":390,"card":[34,334],"wrap":[17,373],"legend":["dot dot-proved:proved","dot dot-open:open","dot dot-blocked:blocked","dot dot-stale:stale","dot dot-superseded:superseded"],"panelDot":"dot dot-stale","rootStroke":"rgb(217, 164, 65)"}
+  scrollWidth equals the viewport at both widths (no horizontal overflow); the hover card's left and right edges
+  lie inside .dag-wrap at both; the root's panel dot is dot-stale and its pill's ring is rgb(217, 164, 65) (--warn).
+  Not changed and seen: at 390 the six-node graph scales to 323x57 px; the live site does the same today.
+
+Screenshots
+  task-14-before-live-1440.png          the live page before: the key above the selected statement
+  task-14-erdos-402-1440.png            after: the key inside the graph card, five items
+  task-14-erdos-402-1440-hover.png      after: "stale" hovered, its definition and "protocol: stale (D-8, D-18)"
+  task-14-erdos-402-390-hover.png       after, 390 px: the key wraps to two lines, the card stays in the card
+
+$ uv run --frozen pytest site/tests
+203 passed in 18.55s

@@ -878,3 +878,12 @@ The law of the project:
   re-pin; `ls targets/` lists `index.json` beside the target directories, so key a target loop on
   `targets/*/gate-spec.json`; and macOS ships bash 3.2 (no `mapfile`, no associative arrays), so a
   script written for bash 4 dies on its first line here.
+- 2026-09-18 — A key is read as a label by whatever it sits next to. The statement graph's key
+  (`proved · open · blocked`) sat in the section head directly above the "Selected statement"
+  card, and the owner read its first word as the status of a stale root with no proof; the page
+  could not correct him, because every status but proved and open wore the same neutral dot
+  (F04-T14, Q16). A key belongs inside the drawing it explains and must name every state the
+  drawing can show, or the reader fills the gap from the nearest word. Mechanics worth keeping: an
+  `overflow-x: auto` container clips a hover card, so the scroll goes on an inner wrapper and the
+  card hangs from the key's own left edge (`position: static` on the item); and the ledger's test
+  count was written before the run and was wrong by fifteen. Run, then write the number.

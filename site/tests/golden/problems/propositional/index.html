@@ -29,16 +29,15 @@
 <section class="statements-section">
 <div class="section-head">
 <div><h2>Statements</h2><p class="cue">3 statements. The problem's own statement is at the top; the rest are pieces its proof needs. Select one to see its record.</p></div>
-<div class="mini-legend"><span><span class="dot dot-proved"></span>proved</span><span><span class="dot dot-open"></span>open</span><span><span class="dot dot-blocked"></span>blocked</span></div>
 </div>
 <div class="graph-grid">
-<div class="dag-wrap card"><svg class="dag" viewBox="0 0 367 160" width="367" height="160" role="img" aria-label="dependency graph">
+<div class="dag-wrap card"><div class="dag-legend"><span class="term" tabindex="0"><span class="dot dot-proved"></span>proved<span class="term-card" role="tooltip">A proof passed all nine checks and was merged. Proved is not the same as explained.<span class="proto">protocol: proved</span></span></span><span class="term" tabindex="0"><span class="dot dot-open"></span>open<span class="term-card" role="tooltip">No proof has closed this statement and nothing blocks starting on it. Anyone may work on it now.<span class="proto">protocol: ready · on the frontier</span></span></span><span class="term" tabindex="0"><span class="dot dot-blocked"></span>blocked<span class="term-card" role="tooltip">Waits on other statements, or on a definition that has not been checked yet. Not accepting work.<span class="proto">protocol: blocked</span></span></span></div><div class="dag-scroll"><svg class="dag" viewBox="0 0 367 160" width="367" height="160" role="img" aria-label="dependency graph">
 <line class="edge" data-from="tutorial-and-swap" data-to="and-swap-reassoc" x1="261" y1="108" x2="183" y2="52"/>
 <line class="edge" data-from="and-reassoc" data-to="and-swap-reassoc" x1="82" y1="108" x2="183" y2="52"/>
 <a href="/nodes/propositional/and-reassoc/"><g class="node status-proved" data-node="and-reassoc" transform="translate(16,108)"><rect width="132" height="36" rx="8"/><circle cx="16" cy="18" r="4"/><text x="28" y="23">and-reassoc</text><circle class="halo" cx="118" cy="18" r="3"/><title>and-reassoc: proved</title></g></a>
 <a href="/nodes/propositional/tutorial-and-swap/"><g class="node status-proved" data-node="tutorial-and-swap" transform="translate(172,108)"><rect width="179" height="36" rx="8"/><circle cx="16" cy="18" r="4"/><text x="28" y="23">tutorial-and-swap</text><circle class="halo" cx="165" cy="18" r="3"/><title>tutorial-and-swap: proved</title></g></a>
 <a href="/nodes/propositional/and-swap-reassoc/"><g class="node status-ready" data-node="and-swap-reassoc" transform="translate(98,16)"><rect width="171" height="36" rx="8"/><circle cx="16" cy="18" r="4"/><text x="28" y="23">and-swap-reassoc</text><circle class="halo" cx="157" cy="18" r="3"/><title>and-swap-reassoc: ready</title></g></a>
-</svg><span class="dag-caption">lines join a statement to the statements its proof depends on</span></div>
+</svg></div><span class="dag-caption">lines join a statement to the statements its proof depends on</span></div>
 <div class="panels">
 <div class="card panel" data-node="and-swap-reassoc">
 <span class="kicker">Selected statement</span>
