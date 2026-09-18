@@ -1,0 +1,25 @@
+F04-T20 evidence — 2026-09-18
+
+## Red first: uv run --frozen pytest site/tests/test_finding_copy_wayfinding.py -q
+FAILED site/tests/test_finding_copy_wayfinding.py::test_a_partial_is_not_listed_as_a_proof
+FAILED site/tests/test_finding_copy_wayfinding.py::test_the_footer_names_the_products_commit_when_it_differs
+13 failed, 2 passed in 0.58s
+
+## Green
+15 passed in 2.17s
+
+## Whole site suite: uv run --frozen pytest site/tests -q
+269 passed in 17.66s
+
+## The live graph at 4c58adb rendered locally with the production service url; sentences as they land
+erdos-69 source line: "Statement from formal-conjectures (FormalConjectures/ErdosProblems/69.lean) · erdosproblems.com/69; the record lists no licensed source text."
+euclid-primes source line: "Statement from Euclid, Elements IX.20; the record lists no licensed source text."
+cards still saying "The network's own statement": 0 (was 4: three calibration targets and euclid-primes, none of whose records says network)
+erdos-69 problem page: "This problem is open for work. How to contribute →"
+footer: "graph commit 4c58adb8c876 · products rendered at 69a252742a10"
+Docs: "Sign-off: a token is issued only against the Developer Certificate of Origin the service serves at /dco.json ↗ ..."
+Contributors lines: attempts 2, partial proof 4, proof 3 (the four partials were listed as "proof")
+hole page wayfinding: "How to contribute → · Pull requests in flight ↗"
+Home: 28 open statements; hero says "A problem's steward is a mathematician committed to ...; a problem without one says so."
+link checker: render ok, 146 pages (submissions.json and dco.json admitted as exact urls through live_urls)
+screenshot: task-20-home-1440.png (scrollWidth/clientWidth 1440/1440)

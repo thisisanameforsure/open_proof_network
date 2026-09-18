@@ -71,6 +71,16 @@ STATE_LABELS = {NEEDS_WITNESS: "needs a witness"}
 NO_RECORD_WORDS = "this target has no curated intake record (D-6)"
 #: T9: the api route for the live claims (F05); its origin is config (C6), never a literal here.
 CLAIMS_PATH = "/claims.json"
+#: F04-T20 (Q22): two more exact service urls a page may link, both open reads: the pull
+#: requests in flight, and the sign-off text a token is issued against (D-23).
+SUBMISSIONS_PATH = "/submissions.json"
+DCO_PATH = "/dco.json"
+#: The contributor guide's place on the Docs page, and the licences annex prose may carry
+#: (``annex/v1`` takes any SPDX id; these are the three the service accepts, D-23).
+GUIDE_HREF = "/docs/#agents"
+#: The file-name tail of a merged partial proof under ``attempts/`` (F07).
+PARTIAL_SUFFIX = "-partial.lean"
+ANNEX_LICENCES = ("CC-BY-4.0", "CDLA-Permissive-2.0", "Apache-2.0")
 #: F04-T13 (Q15): the same-origin scripts a page may load (R10), and the KaTeX head and tail the
 #: pages carrying a record's informal text take — KaTeX vendored under static/vendor/katex,
 #: pinned by its MANIFEST.txt, rendering only inside ``.math`` with trust off (math.js).
@@ -275,7 +285,7 @@ DOTTED_KEYS = (*LEGEND_BASE, NEEDS_WITNESS)
 LEGEND_EXTRA = ("stale", "disputed", "superseded", "abandoned", "refuted", "defective")
 #: A problem's status on the public pages (the handoff's three words), each with its definition.
 PROBLEM_STATUS_DEFS: dict[str, str] = {
-    "open": "Listed, has a steward, and its statements accept work.",
+    "open": "Listed, and its statements accept work.",
     "proved": "Its root statement has a merged proof. Not yet explained or written up.",
     "needs a steward": (
         "Listed and reviewable, but nobody has committed to it yet, so it does not accept work."
@@ -584,6 +594,14 @@ class Renderer:
             links_.append(f'<a href="{esc(p)}"{current}>{esc(label)}</a>')
         nav = "".join(links_)
         commit = self.site.commit
+        # T20: the footer names the checkout; the products in it may have been rendered at an
+        # earlier commit (the bot's own commit follows each merge), and then the page says so.
+        rendered = str(self.site.frontier.get("rendered_from") or commit)
+        products = (
+            f" · products rendered at <code>{esc(rendered[:12])}</code>"
+            if rendered != commit
+            else ""
+        )
         sources = ", ".join(self.file_link(r) for r in renders) or "nothing in the graph"
         live = (
             f' · <a href="{esc(self.api_url + CLAIMS_PATH)}">claims.json ↗</a>'
@@ -602,6 +620,7 @@ class Renderer:
             commit=esc(commit),
             commit_short=esc(commit[:12]),
             commit_url=esc(f"{self.repo_url}/tree/{commit}"),
+            products=products,
             sources=sources,
             frontier_link=self.file_link("frontier.json", label="frontier.json ↗"),
             live=live,
@@ -753,7 +772,7 @@ class Renderer:
             return "No curated record yet."
         sources = tv.record.get("sources") or []
         if not sources:
-            return "The network's own statement, no external source."
+            return self.origin_words(tv)
         parts = []
         for s in sources:
             kind, licence = esc(str(s.get("kind", "source"))), esc(str(s.get("licence", "")))
@@ -766,6 +785,28 @@ class Renderer:
             shown = esc(str(forum).removeprefix("https://").removeprefix("www."))
             parts.append(f'<a href="{esc(str(forum))}">{shown}</a>')
         return " · ".join(parts)
+
+    def origin_words(self, tv: TargetView) -> str:
+        """T20: what a record with no ``sources`` list says of its statement. Only a statement
+        the record calls the network's is called that; three live calibration targets name
+        ``formal-conjectures`` in ``source`` and ``provenance`` and were called the network's
+        own, because the page read the plural list alone."""
+        record = tv.record or {}
+        source = record.get("source") or {}
+        stated = str((record.get("provenance") or {}).get("statement_source") or "")
+        kind = str(source.get("kind") or stated)
+        if not kind or kind == "network":
+            return "The network's own statement, no external source."
+        ref = str(source.get("ref") or "")
+        if kind == "other" and ref:  # the schema's catch-all: the reference is the name
+            words = f"Statement from {esc(ref)}"
+        else:
+            words = f"Statement from {esc(kind)}" + (f" ({esc(ref)})" if ref else "")
+        if source.get("url"):  # a validated record's url, already in ``cited_urls``
+            url = str(source["url"])
+            shown = esc(url.removeprefix("https://").removeprefix("www."))
+            words += f' · <a href="{esc(url)}">{shown}</a>'
+        return words + "; the record lists no licensed source text."
 
     def node_role(self, tv: TargetView, nv: NodeView) -> str:
         if nv.node_id == tv.root:
@@ -894,7 +935,7 @@ class Renderer:
         tid = tv.target_id
         status = self.problem_status(tv)
         rows = "".join(self.statement_row(tv, nv) for nv in self.ordered_nodes(tv))
-        action = "Open the graph →" if status == "proved" else "Open problem →"
+        action = "View the graph →" if status == "proved" else "View problem →"
         return _template("problem-card.html").substitute(
             target_id=esc(tid),
             href=esc(self.target_path(tid)),
@@ -1007,7 +1048,13 @@ class Renderer:
     def target_claimable(self, tv: TargetView) -> str:
         """F14-R10: the target page says in words whether it can be claimed, and if not, why."""
         if tv.index_entry.get("claimable"):
-            return '<p class="claimable">This problem is open for work.</p>'
+            guide = f'<a href="{GUIDE_HREF}">How to contribute →</a>'
+            if self.open_count(tv):
+                return f'<p class="claimable">This problem is open for work. {guide}</p>'
+            return (
+                '<p class="claimable">This problem accepts work, but no statement of it is '
+                f"workable right now: each one waits on another. {guide}</p>"
+            )
         if str(tv.index_entry["status"]) == "resolved":
             return '<p class="claimable">Proved: its statement no longer accepts work.</p>'
         return self.why_not_claimable(tv)
@@ -1018,9 +1065,7 @@ class Renderer:
             return ""
         sources = tv.record.get("sources") or []
         if not sources:
-            return (
-                '<p class="sources">No external source: this statement is the network\'s own.</p>'
-            )
+            return f'<p class="sources">{self.origin_words(tv)}</p>'
         items = "".join(
             f'<li><a href="{esc(str(s["url"]))}">{esc(str(s["url"]))}</a> &mdash; '
             f"{esc(str(s['attribution']))}; licence {esc(str(s['licence']))}; "
@@ -1595,17 +1640,10 @@ class Renderer:
         attempts = nv.attempts
         hist = ", ".join(f"{k} {v}" for k, v in sorted(attempts.failure_class_histogram.items()))
         refuted = ", ".join(attempts.refuted_route_classes)
+        explainer = self.explainer_block(nv)
         if nv.explainer is not None:
-            explainer = self.vouched_lines(nv) + self.untrusted_block(
-                "unverified", nv.explainer, what="explainer"
-            )
             renders.append(nv.explainer.path)
             renders.extend(v.path for v in nv.signatures)
-        else:
-            explainer = (
-                '<p class="cue">No explainer yet. A plain-language account of this proof, '
-                "labelled unverified, is the next thing a writer could add (D-3, D-36).</p>"
-            )
         annexes = (
             "".join(self.untrusted_block("untrusted", a, what="annex (D-31)") for a in nv.annexes)
             or "<p>No annex.</p>"
@@ -1634,6 +1672,7 @@ class Renderer:
             status=self.status_mark(nv.status, nv.cause),
             status_class=esc(nv.status),
             revision=self.revision_note(tid, nv, in_page=False),
+            wayfinding=self.wayfinding(),
             claimable=self.node_not_claimable(nv),
             tutorial=(
                 '<p class="cue">The tutorial node: permanently open and off the ledger (D-27).</p>'
@@ -1663,6 +1702,36 @@ class Renderer:
             renders=renders,
             path=PROBLEMS_PATH,
         )
+
+    def explainer_block(self, nv: NodeView) -> str:
+        """The explainer, or the cue in its place. T20: the cue invited "an account of this
+        proof" on statements with no proof; an explainer needs a merged proof (D-3), so only a
+        proved statement is invited, and told how one arrives."""
+        if nv.explainer is not None:
+            return self.vouched_lines(nv) + self.untrusted_block(
+                "unverified", nv.explainer, what="explainer"
+            )
+        if nv.status == "proved":
+            return (
+                '<p class="cue">No explainer yet. A plain-language account of this proof, '
+                "labelled unverified, is the next thing a writer could add, by pull request "
+                f'(D-3, D-36; <a href="{GUIDE_HREF}">the guide</a> shows how).</p>'
+            )
+        return (
+            '<p class="cue">No explainer yet. An explainer is a plain-language account of a '
+            "merged proof, so there is nothing to explain until this statement is proved "
+            "(D-3).</p>"
+        )
+
+    def wayfinding(self) -> str:
+        """T20: a statement's page leads to the guide and, where the site knows the service, to
+        the pull requests in flight (a link: the policy forbids the page fetching them)."""
+        links_ = [f'<a href="{GUIDE_HREF}">How to contribute →</a>']
+        if self.api_url:
+            links_.append(
+                f'<a href="{esc(self.api_url + SUBMISSIONS_PATH)}">Pull requests in flight ↗</a>'
+            )
+        return " · ".join(links_)
 
     def node_not_claimable(self, nv: NodeView) -> str:
         """F04-T10: a node a claim could take (F03-Q8) under a target that is not claimable says
@@ -1729,6 +1798,10 @@ class Renderer:
         path = f"targets/{target}/nodes/{node}/{artifact}"
         revoked = entry.get("status") == "revoked"
         line = esc(str(entry.get("line", "")))
+        if artifact.endswith(PARTIAL_SUFFIX):
+            # T20: the ledger's *line* is the credit category, and a partial earns on the proof
+            # line (ledger.MERGE_LINES); the artifact says what was merged.
+            line = "partial proof"
         if revoked:
             line += ' <span class="status status-revoked">revoked</span>'
         return (
@@ -1798,10 +1871,25 @@ class Renderer:
             if path.is_file():
                 text = path.read_text(encoding="utf-8")
                 parts.append(f'<h3>{esc(name)}</h3><pre class="prose">{esc(text)}</pre>')
+            elif name == "LICENSE":
+                parts.append(
+                    "<p>No license text is committed to the graph yet (D-23). Annex prose "
+                    "carries the licence its author chose: "
+                    f"{', '.join(esc(x) for x in ANNEX_LICENCES)}.</p>"
+                )
+            elif self.api_url:
+                # T20: the page said no sign-off text existed while the service refused a token
+                # without one. The text is the service's, so the page links it, never copies it.
+                parts.append(
+                    "<p>Sign-off: a token is issued only against the Developer Certificate of "
+                    f'Origin the service serves at <a href="{esc(self.api_url + DCO_PATH)}">'
+                    "/dco.json ↗</a>, and every commit the service makes for a contributor "
+                    "carries their sign-off (D-23). No copy is committed to the graph.</p>"
+                )
             else:
                 parts.append(
-                    f"<p>No {what} text is committed to the graph yet; D-23 settles it before the "
-                    "first external contributor.</p>"
+                    f"<p>No {what} text is committed to the graph; the service serves the text a "
+                    "token is issued against (D-23).</p>"
                 )
         # F15-R11: the steward section, the proposal form on the graph repository (from the
         # site's configured repository, never a hostname in a template) and the Leiden table.
@@ -2011,7 +2099,10 @@ def cited_urls(site: Site) -> frozenset[str]:
 def live_urls(api_url: str | None) -> frozenset[str]:
     """T9: the one off-site url the site's own config admits, the service's live claims. An
     exact url, like ``cited_urls``, so a page cannot link anywhere else on the service."""
-    return frozenset({api_url.rstrip("/") + CLAIMS_PATH}) if api_url else frozenset()
+    if not api_url:
+        return frozenset()
+    base = api_url.rstrip("/")
+    return frozenset({base + CLAIMS_PATH, base + SUBMISSIONS_PATH, base + DCO_PATH})
 
 
 def render_site(

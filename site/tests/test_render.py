@@ -547,10 +547,16 @@ def test_the_live_claims_link_passes_the_link_checker_only_through_the_allowlist
     problems = links.check(files, repo_url=REPO, cited=render.cited_urls(site) | render.COPY_LINKS)
     # F04-T12: the provenance bar on every page of the site's own markup links the live count.
     own = {rel for rel in files if rel.endswith(".html") and rel != COPIED_DOC}
-    assert {p for p in problems if "api.example.test" in p} == {
-        f"{rel}: external link {API}/claims.json" for rel in own
-    }  # a set: the Problems page links it twice, in the bar and in its footer note
-    assert render.live_urls(API) == frozenset({f"{API}/claims.json"})
+    # T20: two more exact urls, each on the one kind of page that has a use for it.
+    statements = {rel for rel in own if rel.startswith("nodes/")}
+    assert {p for p in problems if "api.example.test" in p} == (
+        {f"{rel}: external link {API}/claims.json" for rel in own}
+        | {f"{rel}: external link {API}/submissions.json" for rel in statements}
+        | {f"docs/index.html: external link {API}/dco.json"}
+    )  # a set: the Problems page links claims.json twice, in the bar and in its footer note
+    assert render.live_urls(API) == frozenset(
+        {f"{API}/claims.json", f"{API}/submissions.json", f"{API}/dco.json"}
+    )
     assert render.live_urls(f"{API}/") == render.live_urls(API)
     assert render.live_urls(None) == frozenset()
     elsewhere = {"x.html": f'<p><a href="{API}/claims.json.evil">x</a><a href="{API}/">y</a></p>'}
