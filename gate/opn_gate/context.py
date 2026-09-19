@@ -81,6 +81,9 @@ class NodeState:
     cause: str | None
     proof_commit: str | None
     trust_base: str | None
+    #: F08-T10: the node's deps as ``graph.json`` publishes them — read through any revision
+    #: (D-8 v3.18). ``None`` when the states did not come from a graph document that has them.
+    deps: tuple[str, ...] | None = None
 
 
 def graph_states(doc: Mapping[str, Any]) -> dict[str, NodeState]:
@@ -91,6 +94,7 @@ def graph_states(doc: Mapping[str, Any]) -> dict[str, NodeState]:
             cause=_optional(n.get("cause")),
             proof_commit=_optional(n.get("proof_commit")),
             trust_base=_optional(n.get("trust_base")),
+            deps=(tuple(str(d) for d in n["deps"]) if isinstance(n.get("deps"), list) else None),
         )
         for n in doc.get("nodes", [])
         if isinstance(n, dict)
@@ -174,11 +178,18 @@ def _proof(reader: Reader, node_dir: str, statement_decl: str, state: NodeState)
 
 
 def _deps(
-    reader: Reader, target_id: str, meta: Mapping[str, Any], states: Mapping[str, NodeState]
+    reader: Reader,
+    target_id: str,
+    meta: Mapping[str, Any],
+    states: Mapping[str, NodeState],
+    effective: tuple[str, ...] | None = None,
 ) -> list[dict[str, Any]]:
+    """The deps a prover builds against. F08-T10: ``effective`` is the node's deps as the graph
+    product has them, read through any revision; ``meta`` keeps the record as it was written."""
     out = []
     raw_deps = meta.get("deps")
-    for dep in [str(d) for d in raw_deps] if isinstance(raw_deps, list) else []:
+    recorded = [str(d) for d in raw_deps] if isinstance(raw_deps, list) else []
+    for dep in recorded if effective is None else list(effective):
         path = f"{node_path(target_id, dep)}/Statement.lean"
         raw = _must(reader, path)
         if dep not in states:
@@ -371,7 +382,7 @@ def build(
         "statement": statement,
         "witness": _witness(reader, node_dir),
         "proof": _proof(reader, node_dir, statement["decl"], state),
-        "deps": _deps(reader, target_id, meta, states),
+        "deps": _deps(reader, target_id, meta, states, states[node_id].deps),
         "meta": _meta(reader, node_dir, meta, meta_path),
         "gate_spec": _gate_spec(reader, target_id),
         "claims": _claims(reader, node_id),

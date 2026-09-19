@@ -159,8 +159,7 @@ class ContextCheck:
         node = ctx.node
         if node is None:
             return StepResult.failed("check-order", "the context check needs the layout check")
-        raw = node.meta.get("deps")
-        declared = [str(d) for d in raw] if isinstance(raw, list) else []
+        declared = list(graphmod.effective_deps(node.path.parent, node.meta.get("deps")))
         problem = check_context(node, declared)
         return problem if problem is not None else StepResult.passed()
 
@@ -467,8 +466,7 @@ def dep_edges(nodes_dir: Path) -> dict[str, tuple[str, ...]]:
             msg = f"{node_dir.name} has no META.yaml"
             raise schemas.SchemaError(msg)
         meta = schemas.load_yaml(meta_path)
-        raw = meta.get("deps")
-        edges[node_dir.name] = tuple(str(d) for d in raw) if isinstance(raw, list) else ()
+        edges[node_dir.name] = graphmod.effective_deps(nodes_dir, meta.get("deps"))
     return edges
 
 

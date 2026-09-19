@@ -14,6 +14,7 @@ import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from opn_gate import graph as graphmod
 from opn_gate import layout, schemas
 from opn_gate.diagnostic import Diagnostic
 
@@ -60,8 +61,9 @@ def stage(node: layout.Node, workdir: Path, *, proof_override: Path | None = Non
         except schemas.SchemaError as exc:
             problems.append(Diagnostic("dep-meta", f"{node_dir.name}: {exc}"))
             return []
-        raw = meta.get("deps")
-        return [str(d) for d in raw] if isinstance(raw, list) else []
+        # F08-T10 (D-8 v3.18): a superseded dep is staged as the node that replaced it, so a
+        # parent is built against its revised hole's proof, never against a dead statement.
+        return list(graphmod.effective_deps(nodes_dir, meta.get("deps")))
 
     def visit(node_id: str, chain: tuple[str, ...]) -> None:
         if node_id in seen:

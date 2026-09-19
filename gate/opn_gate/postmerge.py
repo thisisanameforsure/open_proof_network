@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from opn_gate import attestation, schemas
+from opn_gate import graph as graphmod
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.signer import Signer
 
@@ -598,10 +599,41 @@ def regenerate_context(node_dir: Path, nodes_dir: Path) -> str:
     from opn_gate import scaffold  # noqa: PLC0415
 
     meta = yaml.safe_load((node_dir / "META.yaml").read_text(encoding="utf-8"))
-    deps = tuple(str(d) for d in (meta.get("deps") or []))
+    deps = graphmod.effective_deps(nodes_dir, meta.get("deps"))  # F08-T10: through any revision
     text = scaffold.context_for(nodes_dir, deps)
     (node_dir / "Context.lean").write_text(text, encoding="utf-8")
     return text
+
+
+def refresh_contexts(nodes_dir: Path) -> list[Path]:
+    """F08-T10 (D-8 v3.18): regenerate every ``Context.lean`` that no longer carries its deps'
+    signatures, and return the files rewritten.
+
+    ``Context.lean`` is generated, never authored (D-3: it is not a submission path), and step 8
+    holds it to each dep's ``Statement.lean`` byte for byte. A D-8 revision changes what a dep
+    *is* without touching the dependent's record, so the dependent's context goes out of date
+    and nothing a contributor may submit can mend it. This pass does, for every node whose
+    context fails the gate's own check against its effective deps, and leaves a context that
+    passes alone. It is a pure function of the tree in both directions: run after a reverted
+    revision it writes the old context back, which is what makes the revert complete."""
+    from opn_gate import layout  # noqa: PLC0415
+    from opn_gate.steps import deps as depstep  # noqa: PLC0415
+
+    rewritten: list[Path] = []
+    for node_dir in sorted(p for p in nodes_dir.iterdir() if p.is_dir()):
+        node = layout.load_node(node_dir, nodes_dir.parent.name)
+        if not isinstance(node, layout.Node):
+            continue  # a node the layout refuses is not this pass's to judge
+        declared = list(graphmod.effective_deps(nodes_dir, node.meta.get("deps")))
+        if not declared or depstep.check_context(node, declared) is None:
+            continue
+        try:
+            regenerate_context(node_dir, nodes_dir)
+        except ValueError as exc:  # scaffold.ScaffoldError: a dep with no statement
+            log.warning("%s: Context.lean not regenerated: %s", node_dir.name, exc)
+            continue
+        rewritten.append(node_dir / "Context.lean")
+    return rewritten
 
 
 def record_alternate(node_dir: Path, proof_text: str, *, pseudonym: str, stamp: str) -> str:

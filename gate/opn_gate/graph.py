@@ -8,6 +8,7 @@ ambiguous root is a graph defect: ``GraphError`` names it and the caller writes 
 
 from __future__ import annotations
 
+import logging
 import re
 import subprocess
 from collections.abc import Callable, Mapping
@@ -16,7 +17,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from opn_gate import layout, paths, records, schemas
+from opn_gate import config, layout, paths, records, schemas
 from opn_gate.bounce import TIMESTAMP_FORMAT
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.records import StatusRecord
@@ -40,6 +41,9 @@ HOLE_ORIGINS: tuple[str, ...] = ("compiler-derived", "skeleton-hole")
 TRUST_KERNEL = "kernel"
 _RELATION_RE = re.compile(r"^\s*--\s*relation:\s*(?P<label>resolves|partial|related)\s*$", re.M)
 _META_STATUS_RE = re.compile(r"^status:[ \t]*[^\n]*$", re.M)
+
+
+log = logging.getLogger(__name__)
 
 
 class GraphError(ValueError):
@@ -70,6 +74,12 @@ class NodeFacts:
     artifact: str | None = None  # which of D-12's artifacts Proof.lean is (F07-R8)
     witness_stub: bool = False  # R6: the witness slot is unfilled, so the node cannot be ready
     supersedes: str | None = None  # F08-R9, D-8: the node this one revises
+    #: F08-T10 (D-8 v3.18): ``deps`` is what the node depends on *now* — each recorded dep read
+    #: through its revision chain — and this is the record itself, ``META.yaml``'s list, which
+    #: nothing rewrites. Every derivation reads ``deps``; the record stays for the reader.
+    declared_deps: tuple[str, ...] = ()
+    #: A ``stale`` override the gate's own evidence has lifted (see ``stale_lifted``).
+    stale_lifted: bool = False
 
 
 @dataclass(frozen=True)
@@ -213,16 +223,25 @@ def load_nodes(
             msg = f"node {node_dir.name}: " + "; ".join(d.message for d in loaded)
             raise GraphError(msg)
         raw_deps = loaded.meta.get("deps")
-        deps = tuple(str(d) for d in raw_deps) if isinstance(raw_deps, list) else ()
+        declared = tuple(str(d) for d in raw_deps) if isinstance(raw_deps, list) else ()
         origin = str(loaded.meta.get("origin", "authored"))
         statement_hash = loaded.statement.statement_hash
         hashes = recorded_hashes(node_dir)
+        override = records.load_node_status(node_dir)
         facts[loaded.node_id] = NodeFacts(
             node_id=loaded.node_id,
             target_id=target_id,
             path=node_dir,
             statement_hash=statement_hash,
-            deps=deps,
+            deps=effective_deps(nodes_dir, declared),
+            declared_deps=declared,
+            stale_lifted=(
+                override is not None
+                and override.status == "stale"
+                and stale_lifted(
+                    graph_root, override.path, loaded.node_id, statement_hash, attestations
+                )
+            ),
             origin=origin,
             tutorial=bool(loaded.meta.get("tutorial", False)),
             relation=relation_of(node_dir, origin),
@@ -233,7 +252,7 @@ def load_nodes(
                 proof_hash=hashes[0],
                 alternate_hashes=hashes[1],
             ),
-            override=records.load_node_status(node_dir),
+            override=override,
             artifact=artifact_of(node_dir, loaded.statement.decl_name),
             witness_stub=witness_is_stub(node_dir),
             supersedes=_optional_str(loaded.meta.get("supersedes")),
@@ -315,7 +334,7 @@ def derive_statuses(nodes: dict[str, NodeFacts]) -> dict[str, str]:
         if node_id in statuses:
             return statuses[node_id]
         node = nodes[node_id]
-        if node.override is not None:
+        if node.override is not None and not stale_is_void(node):
             result = node.override.status
         elif node.proof is not None and node.artifact in STATUS_FOR_ARTIFACT:
             # F03-Q7 (2026-09-12): settled only by an artifact that is *in the tree* — a
@@ -334,6 +353,68 @@ def derive_statuses(nodes: dict[str, NodeFacts]) -> dict[str, str]:
     for node_id in sorted(nodes):
         status_of(node_id)
     return dict(sorted(statuses.items()))
+
+
+def settled(node: NodeFacts) -> bool:
+    """The node has a merged artifact in the tree with its attestation (F03-Q7)."""
+    return node.proof is not None and node.artifact in STATUS_FOR_ARTIFACT
+
+
+def stale_is_void(node: NodeFacts) -> bool:
+    """F08-T10 (D-8, D-18 v3.18): when a ``stale`` record does not decide the status.
+
+    ``stale`` says a merged proof must be re-derived against a revised dependency. A node with
+    no merged artifact has nothing to re-derive, so the mark says nothing of it (and the seven
+    live parents that carry one were frozen by it: a record outranks everything, and
+    ``node-status/v1`` has no value that clears one). On a settled node it lifts when the gate's
+    own evidence says the re-run happened (``stale_lifted``). Evidence lifts it; no record and
+    no date does, because a record is an assertion by whoever holds a key."""
+    if node.override is None or node.override.status != "stale":
+        return False
+    return not settled(node) or node.stale_lifted
+
+
+def _git(graph_root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", "-C", str(graph_root), *args],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=config.child_environment(drop=config.GIT_REPO_VARIABLES),
+    )
+
+
+def stale_lifted(
+    graph_root: Path,
+    record: Path,
+    node_id: str,
+    statement_hash: str,
+    attestations: list[tuple[str, dict[str, Any]]],
+) -> bool:
+    """Whether a passing attestation for this node's statement comes from a run that included
+    the commit that marked it stale: its ``graph_commit`` descends from the commit that added
+    ``record``. Commit ancestry, never dates — a status record's date is whatever its author
+    typed, and an attestation carries none. With no history to ask (not a git tree, the record
+    uncommitted, a commit this clone has never seen) the answer is no: the mark stays."""
+    try:
+        rel = record.relative_to(graph_root).as_posix()
+    except ValueError:
+        return False
+    added = _git(graph_root, "log", "--diff-filter=A", "--format=%H", "-1", "--", rel)
+    marked = added.stdout.strip() if added.returncode == 0 else ""
+    if not marked:
+        return False
+    for _name, doc in attestations:
+        if (
+            doc.get("node_id") == node_id
+            and doc.get("statement_hash") == statement_hash
+            and doc.get("verdict") == "pass"
+            and doc.get("graph_commit")
+        ):
+            ran_at = str(doc["graph_commit"])
+            if _git(graph_root, "merge-base", "--is-ancestor", marked, ran_at).returncode == 0:
+                return True
+    return False
 
 
 def blocked_because(node: NodeFacts, status_of: Callable[[str], str]) -> tuple[bool, str | None]:
@@ -416,6 +497,67 @@ def find_root(nodes: dict[str, NodeFacts], declaration: StatusRecord | None) -> 
         )
         raise GraphError(msg)
     return sinks[0]
+
+
+def _supersedes_of(node_dir: Path) -> str | None:
+    try:
+        meta = schemas.load_yaml(node_dir / "META.yaml")
+    except (OSError, schemas.SchemaError):
+        return None
+    named = meta.get("supersedes") if isinstance(meta, dict) else None
+    return str(named) if named else None
+
+
+def current_id(nodes_dir: Path, node_id: str) -> str:
+    """F08-T10 (D-8 v3.18): the node ``node_id`` has become — the end of its revision chain, read
+    from the tree. A ``superseded`` status record's ``reference`` names the successor (``revise``
+    and ``consolidate`` both write it), and the chain is followed while each step is sound:
+    the successor is a node of this target, the chain does not loop, and a successor that says
+    what it supersedes (a D-8 revision's ``META.yaml``) says *this* node. A consolidation's
+    survivor says nothing and is followed as before. An unsound step is not followed and is
+    logged by name; the walk stops at the last node soundly reached, because one bad record
+    must never decide whether a target has products (2026-09-17)."""
+    chain = [node_id]
+    while True:
+        here = nodes_dir / chain[-1]
+        record = records.load_node_status(here) if here.is_dir() else None
+        if record is None or record.status != "superseded":
+            return chain[-1]
+        successor = str(record.doc.get("reference") or "")
+        if not successor:
+            return chain[-1]
+        if not (nodes_dir / successor).is_dir():
+            problem = "which is not a node of this target"
+        elif successor in chain:
+            problem = "which loops"
+        else:
+            named = _supersedes_of(nodes_dir / successor)
+            problem = (
+                f"whose own record says it supersedes {named}"
+                if named is not None and named != chain[-1]
+                else ""
+            )
+        if problem:
+            log.warning(
+                "%s: its superseded record names %s, %s; the revision is not followed",
+                chain[-1],
+                successor,
+                problem,
+            )
+            return chain[-1]
+        chain.append(successor)
+
+
+def effective_deps(nodes_dir: Path, declared: object) -> tuple[str, ...]:
+    """The deps a node has *now*: each recorded dep read through its revision chain, in the
+    record's order, a dep two records reach once kept once. ``declared`` is ``META.yaml``'s
+    ``deps`` as loaded, so anything but a list is no deps."""
+    out: list[str] = []
+    for dep in declared if isinstance(declared, (list, tuple)) else ():
+        current = current_id(nodes_dir, str(dep))
+        if current not in out:
+            out.append(current)
+    return tuple(out)
 
 
 def is_superseded(node: NodeFacts) -> bool:

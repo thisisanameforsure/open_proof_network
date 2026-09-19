@@ -126,15 +126,16 @@ def _write_yaml(path: Path, doc: dict[str, Any]) -> Path:
 
 
 def dependents_of(nodes_dir: Path, node_id: str) -> list[str]:
-    """Every node of the target whose META declares ``node_id`` as a dep (D-18's stale set)."""
+    """Every node of the target that depends on ``node_id`` as things stand (D-18's stale set):
+    its recorded deps read through any revision (F08-T10), so revising a revision still finds
+    the parent whose ``META.yaml`` names the original."""
     out: list[str] = []
     for node_dir in sorted(p for p in nodes_dir.iterdir() if p.is_dir()):
         meta_path = node_dir / "META.yaml"
         if not meta_path.is_file():
             continue
         meta = schemas.load_yaml(meta_path)
-        deps = meta.get("deps")
-        if isinstance(deps, list) and node_id in deps:
+        if node_id in graphmod.effective_deps(nodes_dir, meta.get("deps")):
             out.append(node_dir.name)
     return out
 
@@ -235,7 +236,12 @@ def revise(  # noqa: PLR0913 — one argument per fact of the revision
             ),
         )
     ]
-    dependents = tuple(dependents_of(nodes_dir, node_id))
+    # F08-T10 (D-8 v3.18): ``stale`` says a merged proof must be re-derived, so only a dependent
+    # that has one is marked; on a node with no proof the record would mark nothing, and the
+    # seven written before this rule froze their nodes (``graph.stale_is_void``).
+    dependents = tuple(
+        d for d in dependents_of(nodes_dir, node_id) if (nodes_dir / d / "Proof.lean").is_file()
+    )
     records.extend(
         (
             record_path(nodes_dir / dependent, author=author, date=date),

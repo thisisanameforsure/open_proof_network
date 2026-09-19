@@ -33,6 +33,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
+from opn_gate import graph as graphmod
 from opn_gate import layout, records, schemas
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.steps.base import RunContext, StepResult
@@ -310,8 +311,7 @@ def sibling_candidates(nodes_dir: Path, node_id: str) -> list[str]:
             meta = schemas.load_yaml(node_dir / "META.yaml")
         except (OSError, schemas.SchemaError):
             continue
-        raw = meta.get("deps")
-        deps[node_dir.name] = [str(d) for d in raw] if isinstance(raw, list) else []
+        deps[node_dir.name] = list(graphmod.effective_deps(nodes_dir, meta.get("deps")))
     dependents: set[str] = set()
     pending = [node_id]
     while pending:
