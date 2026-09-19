@@ -366,7 +366,10 @@ def derive_statuses(nodes: dict[str, NodeFacts]) -> dict[str, str]:
     A merged artifact resolves its node, and *which* resolution it is comes from what the
     artifact declares: a proof proves it, a counterexample refutes it, a vacuity certificate
     marks it defective (D-12). All three are settled, and none of them lets a dependent proceed,
-    because only a proof discharges the obligation a dependent inherited.
+    because only a proof discharges the obligation a dependent inherited. Two records yield to
+    the tree's own evidence rather than override it: ``stale`` on a node the gate has re-run
+    (``stale_is_void``) and ``speculative`` on a node an artifact has settled
+    (``speculative_is_void``, R14).
     """
     check_dag(nodes)
     statuses: dict[str, str] = {}
@@ -375,7 +378,7 @@ def derive_statuses(nodes: dict[str, NodeFacts]) -> dict[str, str]:
         if node_id in statuses:
             return statuses[node_id]
         node = nodes[node_id]
-        if node.override is not None and not stale_is_void(node):
+        if node.override is not None and not stale_is_void(node) and not speculative_is_void(node):
             result = node.override.status
         elif node.proof is not None and node.artifact in STATUS_FOR_ARTIFACT:
             # F03-Q7 (2026-09-12): settled only by an artifact that is *in the tree* — a
@@ -399,6 +402,22 @@ def derive_statuses(nodes: dict[str, NodeFacts]) -> dict[str, str]:
 def settled(node: NodeFacts) -> bool:
     """The node has a merged artifact in the tree with its attestation (F03-Q7)."""
     return node.proof is not None and node.artifact in STATUS_FOR_ARTIFACT
+
+
+def speculative_is_void(node: NodeFacts) -> bool:
+    """F03-T11 (D-14 v3.19): when a ``speculative`` record does not decide the status.
+
+    ``speculative`` is the proposer's own label on an open statement (F08-Q2) — the one status a
+    proposal may give its node — and a label is not a verdict. Once a D-12 artifact settles the
+    node (``settled``: a ``Proof.lean`` the gate accepted, with its merged attestation) the
+    artifact decides and the label is history; no record lifts it, because a proposer's word
+    never outranked the kernel's. Every other record status keeps its precedence: each is a
+    person's judgment over the derivation, and an abandoned node with a merged proof still reads
+    abandoned. Found by reading this function's caller for the Docs state map (F04-T21).
+    """
+    if node.override is None or node.override.status != "speculative":
+        return False
+    return settled(node)
 
 
 def stale_is_void(node: NodeFacts) -> bool:

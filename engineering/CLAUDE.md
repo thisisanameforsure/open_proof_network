@@ -939,3 +939,12 @@ The law of the project:
   as a principle ("leave the root open") can contradict a decision the same owner made on a case
   (F07-T7's sibling edge); take the principle, rewrite the case's tests rather than delete them, and
   say in the Q entry and the test docstrings which decision gave way.
+- 2026-09-19 — "The latest record wins" is a rule about people's judgments, and one record status
+  was never a judgment. `speculative` is the proposer's own label (F08-Q2), and the derivation let it
+  outrank a merged proof because every status record sat in one branch. The fix is the shape
+  F08-T10 already had for `stale`: a record that speaks of an open node says nothing of a settled
+  one (`speculative_is_void`), and no record is written to lift it (F03-T11, D-14 v3.19). Two tests
+  of the five were green before the fix and belong in the file anyway: they pin what the fix must
+  not change (an attestation without an artifact keeps the label; a curator's `abandoned` still
+  outranks a proof). When a derivation has one branch for "record", ask which records are verdicts
+  and which are labels before adding a status to the enum.

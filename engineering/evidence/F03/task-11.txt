@@ -1,0 +1,46 @@
+F03-T11 · a speculative label yields to a merged artifact (R14, AC18, Q14; D-14 v3.19) · 2026-09-19
+
+The ask (Mike, 2026-09-19): "Update documents appropriately. Create test to capture bad behavior now. Then
+iterate til its green." The bad behaviour: the finding F04-T21 left open — derive_statuses let the latest
+status record win over the artifact for every record status, and nothing writes a record when a proof
+merges, so a crux node born `speculative` (F08-Q2) would read `speculative` after its proof landed: on
+the frontier, claimable, with the kernel's verdict in the tree. Not seen live (no speculative node has
+been proved yet); read from graph.derive_statuses and confirmed by the red run below.
+
+The document led (docs/architecture_decisions.html, v3.19)
+  D-14 mechanism 2: "Clarified 2026-09-19 (v3.19): speculative is the proposer's label on an open
+  statement, and a label is not a verdict. The moment a D-12 artifact settles the node ... the node reads
+  proved, refuted or defective, and the label is history; no record has to be written to lift it."
+  The version note names it beside the decomposition rule of the same day.
+
+What changed
+  graph.py       speculative_is_void(node) = the override is `speculative` and settled(node); read beside
+                 stale_is_void in derive_statuses. Nothing else: every other record keeps its precedence.
+  states.html    the Docs state map's first rule now ends "speculative is the proposer's label on an open
+                 statement and yields once an artifact settles it (D-14 v3.19)"; docs golden regenerated
+                 (the two lines). No drawing changed, so no new capture.
+  F04.html       Q23's finding list says the speculative item was fixed here.
+
+Red first (the test written before the fix)
+  $ uv run --frozen pytest gate/tests/test_finding_speculative_yields.py -q
+  3 failed, 2 passed in 2.65s
+    failed: a merged proof settles a speculative node (read `speculative`, wanted `proved`);
+            a merged counterexample settles one (wanted `refuted`); speculative_is_void (not defined)
+    passed: an attestation without an artifact leaves the label; every other record keeps its precedence
+            (both pin behaviour the fix must not change)
+  fix applied
+  $ uv run --frozen pytest gate/tests/test_finding_speculative_yields.py -q
+  5 passed in 0.19s
+
+$ uv run --frozen pytest gate/tests/test_finding_speculative_yields.py gate/tests/test_products.py \
+    gate/tests/test_finding_parent_stays_open.py -q
+62 passed
+$ uv run --frozen pytest site/tests -q
+275 passed
+$ make verify
+=== 2351 passed, 19 skipped, 75 deselected, 2 warnings in 143.67s (0:02:23) ====
+
+Live effect: bound at the re-pin, like every derivation change. No live node is affected today.
+
+Left as found: `disputed` is a schema value with no command or route that writes it (D-18's panel is
+unbuilt); that is a missing mechanism and an owner's call on who the adjudicator is, not a wrong derivation.

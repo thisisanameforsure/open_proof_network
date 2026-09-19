@@ -72,7 +72,8 @@ status from what is in the tree, in this order, and the first rule that applies 
   <li><strong>The latest status record wins over everything.</strong> A file under the statement's
   <code>status/</code> directory saying <code>speculative</code>, <code>superseded</code>,
   <code>stale</code>, <code>disputed</code> or <code>abandoned</code>. Every value but
-  <code>speculative</code> is a curator's or an adjudicator's word.</li>
+  <code>speculative</code> is a curator's or an adjudicator's word; <code>speculative</code> is the
+  proposer's label on an open statement and yields once an artifact settles it (D-14 v3.19).</li>
   <li><strong>Else an artifact in the tree settles it.</strong> A <code>Proof.lean</code> the gate
   accepted, with a merged passing attestation for the statement as it stands. What it declares
   says which: the statement's own name is a proof (<em>proved</em>), <code>_refuted : ¬S</code> is
