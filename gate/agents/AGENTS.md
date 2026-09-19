@@ -14,7 +14,7 @@ A mechanical gate checks every submission (D-4); what passes is merged into this
 which is the whole record (D-35) — no other store decides anything.
 Refuted routes, counterexamples, partial proofs and typed postmortems are results, not failures
 (D-12, D-13), and every one of them is credited on a ledger (D-19).
-The protocol is `docs/architecture_decisions_v_3_12.html` in the `network` repository; the
+The protocol is `docs/architecture_decisions.html` in the `network` repository; the
 `D-n` references here point into it.
 
 ## Before you start

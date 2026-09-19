@@ -334,7 +334,7 @@ ABOUT_RULES: tuple[tuple[str, str], ...] = (
         "explainer and a paper or note exists.",
     ),
 )
-DECISIONS_DOC = Path(__file__).resolve().parents[2] / "docs" / "architecture_decisions_v_3_12.html"
+DECISIONS_DOC = Path(__file__).resolve().parents[2] / "docs" / "architecture_decisions.html"
 FUNNEL_DOCS = Path(__file__).resolve().parents[1] / "docs"  # F10-R9: site/docs/*.md
 #: F15-R11: the off-site links the site's own copy may carry — dated external evidence, each
 #: url exact, the one other way past F04-R13's checker besides a validated record (F11-Q11). A
