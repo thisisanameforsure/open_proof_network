@@ -394,3 +394,46 @@ main > h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
   .provenance .links { margin-left: 0; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* — Docs: how a statement and a problem change state (F04-T15) — */
+.states { display: flex; flex-direction: column; gap: var(--s6); }
+.states h3 { margin-top: var(--s4); }
+.states ol.rules-order { margin: 0; padding-left: 1.4em; max-width: 72ch; color: var(--n300); font-size: 14px; line-height: 1.6; }
+.states ol.rules-order li { margin-bottom: var(--s2); }
+.states ol.rules-order strong { color: var(--n100); font-weight: 500; }
+.smap-wrap { position: relative; display: flex; flex-direction: column; gap: var(--s3); padding: var(--s6); }
+.smap-key { position: relative; display: flex; flex-wrap: wrap; gap: var(--s2) var(--s6); font-size: 12.5px; color: var(--n400); align-items: center; }
+.smap-key .kicker { display: inline; font-size: 11px; color: var(--n500); }
+.smap-key .term { position: static; padding-bottom: 2px; border-bottom-color: var(--n600); white-space: nowrap; }
+.smap-key .term.tag { padding-bottom: 2px; }
+.smap-key .term-card { width: min(300px, 100%); }
+.smap-scroll { overflow-x: auto; }
+.smap { display: block; width: 100%; min-width: 760px; height: auto; }
+.smap text { fill: var(--text); font-family: var(--sans); font-size: 11.5px; }
+.smap .name { font-size: 14px; font-weight: 500; }
+.smap .sub { font-size: 10.5px; fill: var(--n400); }
+.smap .proto { font-family: var(--mono); font-size: 10px; fill: var(--n500); }
+.smap .lbl { font-size: 11px; fill: var(--n300); }
+.smap .lbl.mech { fill: var(--accent-300); }
+.smap .lbl.cur { fill: var(--warn); }
+.smap .lbl.head { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; fill: var(--n500); }
+.smap .code { font-family: var(--mono); font-size: 10px; }
+.smap .box { fill: var(--bg); stroke: var(--n600); stroke-width: 1.2; }
+.smap .box.st-open { stroke: var(--accent); }
+.smap .box.st-proved { fill: rgba(145, 132, 217, 0.22); stroke: var(--accent); }
+.smap .box.st-stale, .smap .box.st-disputed { stroke: var(--warn); }
+.smap .box.st-refuted, .smap .box.st-defective { stroke: var(--bad); }
+.smap .box.st-superseded, .smap .box.st-abandoned { stroke: var(--bad); stroke-dasharray: 4 3; }
+.smap .box.chip { stroke: var(--n700); }
+.smap .frontier { fill: rgba(145, 132, 217, 0.07); stroke: var(--accent-700); stroke-dasharray: 6 4; }
+.smap .mech { stroke: var(--accent); stroke-width: 1.6; fill: none; }
+.smap .cur { stroke: var(--warn); stroke-width: 1.6; fill: none; stroke-dasharray: 6 4; }
+.smap .thin { stroke: var(--divider); stroke-width: 1; fill: none; }
+.smap .junction { fill: var(--accent); }
+.smap marker .m-mech { fill: var(--accent); }
+.smap marker .m-cur { fill: var(--warn); }
+.smap-caption { font-size: 12.5px; color: var(--n400); margin: 0; max-width: 84ch; line-height: 1.6; }
+table.actions { font-size: 13.5px; }
+table.actions td.who { white-space: nowrap; color: var(--n300); }
+table.actions td:first-child { color: var(--n100); }
+table.actions code { color: var(--n400); font-size: 12px; }

@@ -1,66 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Docs · Open Proof Network</title>
-<link rel="stylesheet" href="/site.css">
-
-</head>
-<body>
-<header class="masthead">
-  <a class="site-name" href="/"><span class="brand-mark"></span>Open Proof Network</a>
-  <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="menu">
-  <label for="nav-toggle" class="nav-burger" aria-hidden="true"><span></span><span></span></label>
-  <nav class="site-nav"><a href="/">Home</a><a href="/problems/">Problems</a><a href="/contributors/">Contributors</a><a href="/docs/" aria-current="page">Docs</a><a href="/about/">About</a><a class="btn btn-primary nav-action" href="/problems/?filter=open">Work on a statement</a></nav>
-</header>
-<main>
-<h1>Docs</h1>
-<h2>The protocol</h2>
-<p><a href="/docs/architecture-decisions.html">Architecture decisions</a>, the protocol this network runs: decisions D-1 to D-36 with rationale and overturning conditions. Copied at the site build (Q4).</p>
-<h2 id="stewards">Stewards</h2>
-<p>An open problem is claimable on this network only while it has a steward: a mathematician
-who has committed, before anyone starts proving, to receive whatever comes of it (D-32 v3.17).
-The commitment is one signed record, made with your own SSH key and merged by pull request, and
-it says this and nothing more:</p>
-<blockquote class="commitment"><p>I commit to make best efforts to understand and write up whatever the network produces on this problem, and to sign the explainer of the proof that closes it.</p></blockquote>
-<p><strong>What you commit to.</strong> Best efforts to understand and write up anything that
-closes on the problem, and a signature on the closing proof's explainer affirming that you can
-explain it without the tool that produced it. There is no deadline. You may step down at any time
-by a second signed record; a problem left with no steward is published and reviewable but refuses
-claims until someone else commits. You may prove on the problem, guide provers and earn proof
-credit like anyone, and you may sign that its formal statement means what the conjecture means
-unless you wrote the Lean yourself (D-9, D-21 v3.17).</p>
-<p><strong>What you receive.</strong> Your name and a link on the problem's page from the day you
-commit; the write-up role for the problem and its credit, held jointly with every other steward;
-and a mention on the graph repository whenever anything merges on the problem, so you hear about
-it without giving the network an email address.</p>
-<p><strong>What you do not receive.</strong> No power to pause the problem, and no reservation of
-it, by you or by anyone else. A problem is public from the moment it is listed.</p>
-<p><strong>How to step down.</strong> Sign a step-down record with the same key and open a pull
-request; it takes effect when it merges. The commitment you made stays on the record, as does the
-step-down.</p>
-<h2 id="propose">Propose a problem</h2>
-<p>A mathematician may put an open problem forward in ordinary mathematics, with references, on
-the graph repository: <a href="https://github.com/example/graph/issues/new?template=problem-proposal.yml">the proposal form</a>. No Lean is needed;
-formalizing the statement is open work that anyone may take, and you check the result against
-your conjecture afterwards. Intake stays curated, so a curator reads the prior art you cite before
-anything is listed. Unless you decline, you become the problem's steward (D-6 v3.17). A problem
-you want kept private is declined, never held back.</p>
-<h2 id="leiden">The Leiden Declaration, recommendation by recommendation</h2>
-<p><a href="https://leidendeclaration.ai/">The Leiden Declaration on AI and Mathematics</a> (2026-06-02) and
-<a href="https://mathandai.org/">the declaration of 2026-09-11</a> by twenty-five Fields medallists say what a proof network owes the community. The network is not an
-entity and endorses nothing formally; the table says, for each objection the community has made,
-what the protocol does about it and what it does not, so a reader can check the claim against the
-record rather than take it on trust. The rows are the objections of the network's own research
-note, which the decisions cite.</p>
-<table class="leiden">
-<thead><tr><th>Objection</th><th>What the protocol does</th><th>What it does not</th></tr></thead>
-<tbody><tr><td>A certificate is not understanding</td><td>Explainers per proved node, hashed, attributed and labelled unverified (D-3); an explainer may be signed by a real-identity contributor affirming they can explain the proof without the tool that produced it, and only signed explainers count (D-3 v3.17); a resolved target carries a digestion state, undigested until every node of the closing proof is explained and written-up once the paper exists (D-33 v3.17); explanation coverage is the first count on the home page (D-36 v3.17).</td><td>Nothing renders the graph as a blueprint yet, and an explainer still waits for a person to press merge.</td></tr><tr><td>Benchmark racing corrupts incentives</td><td>No leaderboard (D-34); the home page&#x27;s counts are the progress series, not vanity numbers (D-36); the network announces no result beyond the registry report-back, which carries the digestion state, and the paper (D-33 v3.17); the raw resolution count is too rare to steer by (Stages).</td><td>The record is public, so anyone else may still count.</td></tr><tr><td>Undigested proofs are abandoned</td><td>A steward is attached to every open problem before it can be claimed, committed to understand and write it up, and the problem refuses claims without one (D-6, D-32 v3.17); the write-up role is theirs from the first day.</td><td>Best efforts and no deadline: a steward may step down, and the record then waits.</td></tr><tr><td>Attribution, plagiarism, scooping</td><td>A prior-art search before listing, and a target found in the literature is relabelled a known result, never paid as novelty (D-6); statements are inherited from the public registry and resolutions reported back to it (D-10); every node records the human operator, the model and the tooling (D-19, D-23); no machine authorship (D-32); an upstream edit or a resolution elsewhere is watched for (D-10 v3.12).</td><td>The search performed at intake is recorded as its summary, not as the queries run.</td></tr><tr><td>The training pipeline for students is destroyed</td><td>Nothing.</td><td>A proof network has no answer for students; the sentence below says so.</td></tr><tr><td>Fields are evacuated once their problems fall</td><td>Intake is curated, not open, and a problem is listed only when a mathematician from its community has committed to it or proposed it (D-6 v3.17); a proposer may keep a statement in-network rather than upstream it (D-10 v3.17).</td><td>No reservation mechanism: a community cannot say &quot;not this one&quot; except by no steward committing.</td></tr><tr><td>Companies set the agenda; the process is undisclosed</td><td>Public by default (D-26); every gate run&#x27;s attestation is published, pass or fail (D-5, D-34); failed attempts are first-class records with typed goal states (D-13); the harness is anyone&#x27;s (D-1); problems come from mathematicians&#x27; own proposals first (D-6 v3.17).</td><td>The network is not an entity and formally endorses nothing (D-24).</td></tr><tr><td>Volume nobody can check</td><td>Kernel replay, an axiom allowlist and a pinned toolchain on every proof (D-4); graded statement fidelity with a screening pass and non-author signatures (D-9); intake bounded by the stewards willing to receive it (D-32 v3.17).</td><td>Fidelity is checked; nothing bounds how much a steward has to digest.</td></tr><tr><td>Ethics, environment, ownership of training data</td><td>The data licence is fixed before the first external contributor, and annex prose is licensed by its author or not accepted (D-23).</td><td>Nothing beyond the open items the decisions already record.</td></tr></tbody>
-</table>
-<p class="students"><strong>Students.</strong> The declaration calls students and ideas the
-profession's most precious resources, and a proof network has no answer for students. Nothing
-here is pedagogy, and the on-ramp track is not claimed as any.</p>
 <h2 id="states">How a statement and a problem change state</h2>
 <div class="states">
 <p class="lead">Two things carry a status: a statement (one node of a problem's proof graph) and
@@ -85,7 +22,7 @@ status from what is in the tree, in this order, and the first rule that applies 
 
 <h3>A statement</h3>
 <div class="card smap-wrap">
-<div class="smap-key"><span class="kicker">Key</span><span class="term" tabindex="0"><span class="dot dot-open"></span>open<span class="term-card" role="tooltip">No proof has closed this statement and nothing blocks starting on it. Anyone may work on it now.<span class="proto">protocol: ready · on the frontier</span></span></span><span class="term" tabindex="0"><span class="dot dot-blocked"></span>blocked<span class="term-card" role="tooltip">Waits on other statements, or on a definition that has not been checked yet. Not accepting work.<span class="proto">protocol: blocked</span></span></span><span class="term" tabindex="0"><span class="dot dot-proved"></span>proved<span class="term-card" role="tooltip">A proof passed all nine checks and was merged. Proved is not the same as explained.<span class="proto">protocol: proved</span></span></span><span class="term" tabindex="0"><span class="dot dot-refuted"></span>refuted<span class="term-card" role="tooltip">A counterexample to this statement passed the checks and was merged. The statement is false as written.<span class="proto">protocol: refuted (D-12)</span></span></span><span class="term" tabindex="0"><span class="dot dot-defective"></span>defective<span class="term-card" role="tooltip">A proof that the statement is vacuous passed the checks and was merged. A curator repairs it with a new version; nobody edits a statement.<span class="proto">protocol: defective (D-12, D-8)</span></span></span><span class="term" tabindex="0"><span class="dot dot-stale"></span>stale<span class="term-card" role="tooltip">A statement this one depends on was replaced or invalidated, so this one waits to be re-derived against the replacement. Not accepting work.<span class="proto">protocol: stale (D-8, D-18)</span></span></span><span class="term" tabindex="0"><span class="dot dot-disputed"></span>disputed<span class="term-card" role="tooltip">A dispute about this statement has been accepted for review. New work that depends on it is on hold until the dispute is settled.<span class="proto">protocol: disputed (D-18)</span></span></span><span class="term" tabindex="0"><span class="dot dot-superseded"></span>superseded<span class="term-card" role="tooltip">Replaced by a corrected version of the same statement. It keeps its history and any credit already earned; work goes to the newer version.<span class="proto">protocol: superseded (D-8)</span></span></span><span class="term" tabindex="0"><span class="dot dot-abandoned"></span>abandoned<span class="term-card" role="tooltip">A route given up as unreachable, or killed by a counterexample. It stays on the record with its cause and is never deleted.<span class="proto">protocol: abandoned (D-14)</span></span></span></div>
+<div class="smap-key"><span class="kicker">Key</span>$statement_key</div>
 <div class="smap-scroll">
 <svg class="smap" viewBox="0 0 1210 660" role="img" aria-label="State diagram of a statement: born open, or born blocked as a hole with an empty witness slot; open moves to proved, refuted or defective when an artifact merges, or to blocked when a partial merges on it; curator records move a statement to superseded, stale, abandoned or disputed.">
   <defs>
@@ -229,7 +166,7 @@ only proved lets a dependent proceed.</p>
 
 <h3>A problem</h3>
 <div class="card smap-wrap">
-<div class="smap-key"><span class="kicker">Key</span><span class="term tag" tabindex="0">open<span class="term-card" role="tooltip">Listed, has a steward, and its statements accept work.</span></span><span class="term tag" tabindex="0">needs a steward<span class="term-card" role="tooltip">Listed and reviewable, but nobody has committed to it yet, so it does not accept work.</span></span><span class="term tag" tabindex="0">proved<span class="term-card" role="tooltip">Its root statement has a merged proof. Not yet explained or written up.</span></span><span class="term tag" tabindex="0">dormant<span class="term-card" role="tooltip">Set aside: its source lists it as resolved elsewhere, or a curator paused it.</span></span><span class="term tag" tabindex="0">known result<span class="term-card" role="tooltip">Found in the literature after listing, so it is a known result, not open.</span></span></div>
+<div class="smap-key"><span class="kicker">Key</span>$problem_key</div>
 <div class="smap-scroll">
 <svg class="smap" viewBox="0 0 1200 400" role="img" aria-label="State diagram of a problem: listed to active by a curator; active to dormant by an evidence-gated curator declaration; dormant back to active on the next merged progress artifact; any state to resolved when the root or a resolves-variant is proved; listed to known-result by a curator relabel; a resolved problem carries a digestion state from undigested to explained to written-up.">
   <defs>
@@ -343,28 +280,3 @@ merge is the only thing that changes truth (D-35).</p>
 </tbody>
 </table></div>
 </div>
-
-<h2 id="glossary">Glossary</h2>
-<p>The site uses plain words. The protocol, the API and the repository keep their own; the third
-column maps one to the other, and every hover card on the site is a row of this table.</p>
-<div class="table-wrap"><table class="glossary">
-<thead><tr><th>On the site</th><th>Meaning</th><th>In the protocol</th></tr></thead>
-<tbody><tr><td>Problem</td><td>An open mathematical question listed on the network, with the statements its proof needs.</td><td><code>target</code></td></tr><tr><td>Statement</td><td>One formal Lean statement in a problem&#x27;s proof graph. The problem&#x27;s own statement is the root; the rest are pieces its proof needs.</td><td><code>node</code></td></tr><tr><td>open</td><td>No proof has closed this statement and nothing blocks starting on it. Anyone may work on it now.</td><td><code>ready · on the frontier</code></td></tr><tr><td>blocked</td><td>Waits on other statements, or on a definition that has not been checked yet. Not accepting work.</td><td><code>blocked</code></td></tr><tr><td>proved</td><td>A proof passed all nine checks and was merged. Proved is not the same as explained.</td><td><code>proved</code></td></tr><tr><td>stale</td><td>A statement this one depends on was replaced or invalidated, so this one waits to be re-derived against the replacement. Not accepting work.</td><td><code>stale (D-8, D-18)</code></td></tr><tr><td>superseded</td><td>Replaced by a corrected version of the same statement. It keeps its history and any credit already earned; work goes to the newer version.</td><td><code>superseded (D-8)</code></td></tr><tr><td>disputed</td><td>A dispute about this statement has been accepted for review. New work that depends on it is on hold until the dispute is settled.</td><td><code>disputed (D-18)</code></td></tr><tr><td>abandoned</td><td>A route given up as unreachable, or killed by a counterexample. It stays on the record with its cause and is never deleted.</td><td><code>abandoned (D-14)</code></td></tr><tr><td>refuted</td><td>A counterexample to this statement passed the checks and was merged. The statement is false as written.</td><td><code>refuted (D-12)</code></td></tr><tr><td>defective</td><td>A proof that the statement is vacuous passed the checks and was merged. A curator repairs it with a new version; nobody edits a statement.</td><td><code>defective (D-12, D-8)</code></td></tr><tr><td>Explained</td><td>A person who can explain the proof without the tool that produced it has signed the explainer. This is the count the network is judged by.</td><td><code>digested</code></td></tr><tr><td>Written up</td><td>A paper or note about the proof exists.</td><td><code>written-up</code></td></tr><tr><td>Steward</td><td>The named mathematician who has committed to understand and write up whatever the network produces on a problem. A problem without one does not accept work.</td><td><code>steward (D-32)</code></td></tr><tr><td>Needs a steward</td><td>Listed and reviewable, but no mathematician has committed to it yet, so it does not accept work.</td><td><code>no steward · refuses claims</code></td></tr><tr><td>Curator</td><td>Reads the prior art before a problem is listed. A problem found in the literature is relabelled a known result.</td><td><code>curator (D-6)</code></td></tr><tr><td>statement unchecked</td><td>Nobody other than its author has yet judged whether the Lean says what the conjecture says. The kernel cannot decide this; a person must.</td><td><code>fidelity: mechanical-only</code></td></tr><tr><td>statement checked</td><td>Someone read the Lean back into words and compared it with the conjecture, but has not signed. Grade rises to signed once a non-author signs.</td><td><code>fidelity: hand-checked, unsigned</code></td></tr><tr><td>statement signed</td><td>Someone who did not write the Lean has signed that it says what the conjecture says.</td><td><code>fidelity: non-author signature</code></td></tr><tr><td>Work on</td><td>A courtesy signal to others that you are working on a statement. It expires on its own and never blocks anyone.</td><td><code>claim (D-25)</code></td></tr><tr><td>Attempt</td><td>Any proof submitted, pass or fail. Failures are kept on the record and count as contributions.</td><td><code>attempt (D-13)</code></td></tr></tbody>
-</table></div>
-<h2 id="agents">For agents</h2>
-<p>The graph has no AGENTS.md yet; the tested one arrives with F10 (D-27).</p>
-<h2>For people</h2>
-<ul><li><a href="/docs/curator-intake.html">Curator intake checklist</a> — Implements D-6 (intake is curated, not open), with the fidelity ladder of D-9, the registry posting of D-10 and the role separation of D-21.</li><li><a href="/docs/defect-claim.html">Filing a defect claim</a> — Implements D-16 (defect claims are free, shaped and taxonomy-typed), D-15 (credit per confirmed defect, with sample auditing of approvals) and the pre-triage of F08-R7.</li><li><a href="/docs/review-checklist.html">Statement review checklist</a> — Implements D-15 (statement review: separate, adversarial, credited per confirmed defect), D-16 (the defect taxonomy) and D-11 (the canary classes that calibrate it).</li><li><a href="/docs/revision-request.html">Requesting a revision</a> — Implements D-8 (statements are immutable; blueprints evolve by versioning), the request record of F08-R6, and D-16&#x27;s taxonomy for the defect class it names.</li></ul>
-<h2>License and sign-off</h2>
-<p>No license text is committed to the graph yet; D-23 settles it before the first external contributor.</p><p>No sign-off (DCO) text is committed to the graph yet; D-23 settles it before the first external contributor.</p>
-
-</main>
-<footer class="provenance">
-  <span>graph commit <a href="https://github.com/example/graph/tree/6666666666666666666666666666666666666666"><code>666666666666</code></a></span>
-  <span>read-only · rebuilt on every merge</span>
-  <span class="sources">a view of nothing in the graph</span>
-  <span class="links"><a href="https://github.com/example/graph/tree/6666666666666666666666666666666666666666">repository ↗</a> · <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>
-</footer>
-
-</body>
-</html>

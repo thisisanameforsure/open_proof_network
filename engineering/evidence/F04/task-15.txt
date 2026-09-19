@@ -1,0 +1,81 @@
+F04-T15 · the Docs page draws how a statement and a problem change state, and names the action behind each arrow (R14, AC18, Q17) · 2026-09-19
+
+The ask (Mike, 2026-09-18/19): a diagram of the states a statement (node) and a problem (target) can be in,
+how they relate, and what action moves one to another; then "integrate this information into the webpage's
+Docs tab, use diagrams where you can, keep the styling of the webpage".
+
+Read before drawing (the mechanism, not the doc's names)
+  gate/opn_gate/graph.py       derive_statuses: a status record wins, else the artifact in Proof.lean by the
+                               name it declares (proof / _refuted / _vacuous), else blocked, else ready;
+                               blocked_because: an unproved dep (cause dep-refuted if refuted) or a hole's
+                               empty witness slot (cause witness-missing); is_superseded, find_root
+  gate/opn_gate/products.py    in_frontier / workable: ready, speculative, a hole waiting only on its witness,
+                               an open variant; never a superseded node. target_facts: resolved from the
+                               root's status; digestion undigested / explained / written-up (D-33 v3.17)
+  gate/opn_gate/modes.py       the mode table (proof, partial, alternate, append, explainer, proposal,
+                               curator, intake, fidelity, steward), check_witness_completion, check_activation
+  gate/opn_gate/curator.py     revise -> superseded (reference: the new version) + each dependent stale;
+                               consolidate -> superseded; status <node> abandoned; status <target> dormant
+                               (D-33 (a) evidence-gated) / active (from listed or dormant)
+  gate/opn_gate/postmerge.py   apply_partial: one child per hole, born with a witness slot; deps rewritten
+  gate/opn_gate/intake.py      claimability: status-resolved / status-known-result, upstream-drift, no-steward
+  gate/schemas                 node-status/v1 (speculative, superseded, stale, disputed, abandoned),
+                               target-status/v2 (listed, active, resolved, dormant, known-result), graph/v3
+  docs/architecture_decisions  D-4, D-6, D-8, D-12, D-14, D-17, D-18, D-29, D-30, D-31, D-33
+
+What changed
+  templates/states.html   the section: the derivation order (four rules), the statement drawing (inline
+                          SVG, 1210x660), the problem drawing (1200x400, with the digestion strip), a key
+                          above each drawing, a caption under each, and the actions table (twenty rows)
+  templates/docs.html     $states before the Glossary
+  render.py               STATE_MAP_STATEMENT_KEYS, STATE_MAP_PROBLEM_KEYS, Renderer.states(): the keys
+                          are term() hover cards and the Problems page's status tag (Q14: one home per word)
+  static/site.css         .states, .smap-wrap, .smap-key, .smap-scroll, .smap (the site's tokens: accent
+                          for mechanical arrows and the open/proved boxes, warn dashed for a curator's
+                          record, warn for stale/disputed, bad for refuted/defective, bad dashed for
+                          superseded/abandoned as the graph's pills are), table.actions
+  tests/test_docs_states.py   six tests; the enums come from the gate (graph.ALL_STATUSES, the latest
+                          target-status schema, modes.Mode), so a new status or mode turns the page red
+  golden/docs/index.html  regenerated; the diff is the new section only (283 lines added, nothing removed)
+
+Red first
+  $ sed -i 's/^\$states$//' site/opn_site/templates/docs.html && uv run --frozen pytest site/tests/test_docs_states.py -q
+  6 failed in 0.43s
+  (template restored)
+  $ uv run --frozen pytest site/tests/test_docs_states.py -q
+  6 passed in 0.68s
+
+Measured in the browser (Playwright over the fixture site served by python -m http.server; the site's own
+stylesheet, the container's system fonts)
+  Every <text> whose anchor lies inside a rect.box, its getBBox right edge against the box's right edge
+  minus 3px; and every text against the viewBox width. First render: nine labels over their box by 2..40px
+  (the monospace protocol lines and three sans sub-lines), two arrow labels on the problem drawing sitting
+  on the boxes they joined, the digestion strip under a mechanical label. After the rewrites:
+  {"overflows":[[0,"credit kept, annotated as modulo the change",-1]]}
+  (a negative number is inside the box by that much; nothing is over)
+  390  scrollWidth 390 inner 390  card [left,right] [17, 373]  svg [w,h] [[760, 415], [760, 253]]  scroll [content,client] [760, 323]  stale hover card [left,right,display] [34, 334, 'block']
+  1440  scrollWidth 1440 inner 1440  card [left,right] [22, 1418]  svg [w,h] [[1362, 743], [1362, 454]]  scroll [content,client] [1362, 1362]  stale hover card [left,right,display] [39, 339, 'block']
+  keys [['open', 'blocked', 'proved', 'refuted', 'defective', 'stale', 'disputed', 'superseded', 'abandoned'], ['open', 'needs a steward', 'proved', 'dormant', 'known result']]
+  scrollWidth equals the viewport at both widths (no horizontal page scroll); at 390 the drawings scroll
+  inside their card (content 760, client 323) rather than scale, so the 11px labels stay readable; the
+  stale key item's hover card lies inside the card at both widths (the T14 rule); the statement key is the
+  nine glossary statuses in LEGEND order and the problem key the five status-tag words.
+
+Screenshots
+  task-15-docs-1440.png / -390.png             the section head and the derivation order
+  task-15-statement-1440.png / -390.png        the statement drawing in its card
+  task-15-statement-1440-hover.png / -390-hover.png   "stale" hovered: the Glossary card, "protocol: stale (D-8, D-18)"
+  task-15-problem-1440.png / -390.png          the problem drawing and the digestion strip
+
+$ uv run --frozen pytest site/tests -q
+209 passed in 19.01s
+$ make verify
+=== 2229 passed, 19 skipped, 73 deselected, 2 warnings in 139.22s (0:02:19) ====
+(ssh-keygen was absent in this container; apt-get install openssh-client, per the 2026-09-11 log entry)
+
+Three things the reading found that the page does not say (Q17; the gate's to settle, not the site's)
+  1. A proposer's `speculative` record outlives a merged proof: derive_statuses takes the latest record over
+     the artifact, and nothing writes a later record when a proof merges. As the code reads; not seen live.
+  2. `stale` has no mechanical exit: revise writes the record and D-18's re-run is unbuilt, so a stale node
+     leaves that state only when the curator revises it too.
+  3. `disputed` is a schema value with no command or route that writes it.

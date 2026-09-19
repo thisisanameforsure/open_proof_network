@@ -232,6 +232,21 @@ LEGEND_KEYS = (
 #: glossary key and a ``dot-<key>`` / ``status-<key>`` class in the stylesheet.
 LEGEND_BASE = ("proved", "open", "blocked")
 LEGEND_EXTRA = ("stale", "disputed", "superseded", "abandoned", "refuted", "defective")
+#: F04-T15 (Q17): the Docs state map's keys. Every status ``graph.json`` can publish, as the
+#: site's word (F03-Q8: ``speculative`` reads open, so nine words for ten statuses), and the five
+#: words a problem's status tag can wear; each key item is the hover card those pages use.
+STATE_MAP_STATEMENT_KEYS = (
+    "open",
+    "blocked",
+    "proved",
+    "refuted",
+    "defective",
+    "stale",
+    "disputed",
+    "superseded",
+    "abandoned",
+)
+STATE_MAP_PROBLEM_KEYS = ("open", "needs a steward", "proved", "dormant", "known result")
 #: A problem's status on the public pages (the handoff's three words), each with its definition.
 PROBLEM_STATUS_DEFS: dict[str, str] = {
     "open": "Listed, has a steward, and its statements accept work.",
@@ -1685,6 +1700,7 @@ class Renderer:
         )
         body = _template("docs.html").substitute(
             decisions=decisions,
+            states=self.states(),
             agents=agents,
             funnel=funnel,
             license="".join(parts),
@@ -1695,6 +1711,20 @@ class Renderer:
         )
         renders = [n for n in ("AGENTS.md", "LICENSE", "DCO") if (self.site.root / n).is_file()]
         return self.page("Docs", body, renders=renders, path="/docs/"), extra
+
+    def states(self) -> str:
+        """F04-T15 (Q17): the Docs section that draws how a statement and a problem change state
+        and names the action behind each arrow. The drawings are inline SVG in the template; the
+        two keys are built here so each item is the same hover card the graph key and the
+        Problems page use, and a definition keeps its one home (Q14)."""
+        statement_key = "".join(self.term(k, dot=True) for k in STATE_MAP_STATEMENT_KEYS)
+        problem_key = "".join(
+            self.hover(esc(word), esc(PROBLEM_STATUS_DEFS[word]), classes="tag")
+            for word in STATE_MAP_PROBLEM_KEYS
+        )
+        return _template("states.html").substitute(
+            statement_key=statement_key, problem_key=problem_key
+        )
 
     def alternates_block(self, nv: NodeView) -> str:
         """D-25 v3.13: every later proof of the node, each linked at the commit that merged it.

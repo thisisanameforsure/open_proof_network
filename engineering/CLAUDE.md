@@ -887,3 +887,10 @@ The law of the project:
   `overflow-x: auto` container clips a hover card, so the scroll goes on an inner wrapper and the
   card hangs from the key's own left edge (`position: static` on the item); and the ledger's test
   count was written before the run and was wrong by fifteen. Run, then write the number.
+- 2026-09-19 — A drawing's labels are measured, not eyeballed. The Docs state map (F04-T15) was
+  laid out with a per-character width guess, and the first render at the site's own font had nine
+  monospace sub-lines running past their boxes, two arrow labels sitting on the boxes they joined,
+  and a legend text under a chip. Playwright's `getBBox` against each text's enclosing `rect`
+  found every one in a second and is what the evidence records now; the eye on a 1440px capture
+  caught four of the nine. When a page carries hand-placed text in SVG, measure each label against
+  its box before the screenshot, and keep the measurement script beside the shot script.
