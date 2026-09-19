@@ -1,0 +1,20 @@
+F13-T10 evidence — 2026-09-18/19
+
+## The live finding (the outside contributor's log, 2026-09-18)
+POST /check {"target_id":"erdos-69","node_id":"erdos-69--h2-v2--h1","mode":"verify",...} -> 200 with
+result: {"user_error": "failed to compile formal_statement: ... HMul N N Z", "info": ...} and no okay key;
+the guide's snippet reads answer["result"]["okay"] and would raise KeyError.
+A file with an unsolved goal answered okay: false with failed_declarations: [].
+
+## Red first: uv run --frozen pytest api/tests/test_finding_check_okay.py -q
+_____ test_a_failed_check_says_okay_false_even_with_no_failed_declaration ______
+    def test_a_failed_check_says_okay_false_even_with_no_failed_declaration() -> None:
+FAILED api/tests/test_finding_check_okay.py::test_a_clean_answer_says_okay_true_beside_the_verbatim_result
+FAILED api/tests/test_finding_check_okay.py::test_a_statement_that_does_not_compile_says_okay_null_and_why
+FAILED api/tests/test_finding_check_okay.py::test_a_failed_check_says_okay_false_even_with_no_failed_declaration
+FAILED api/tests/test_finding_check_okay.py::test_a_non_boolean_okay_is_no_verdict
+FAILED api/tests/test_finding_check_okay.py::test_the_record_and_the_response_agree
+5 failed, 2 warnings in 0.45s
+
+## Green, with the fast-check and MCP surface suites
+23 passed, 2 warnings in 28.23s

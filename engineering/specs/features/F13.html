@@ -280,6 +280,7 @@ D-28, D-35, D-36.</p>
     section moved to T8, because the graph's copy of <code>AGENTS.md</code> must equal the tested
     one byte for byte and a section describing an endpoint that is not yet deployed would send agents
     to a 404.</td></tr>
+  <tr><td>F13-Q13</td><td><strong>The response always says <code>okay</code>, tri-state, beside the verbatim body (T10, 2026-09-18).</strong> R5 passes AXLE's body through untouched as <code>result</code>, and the guide's snippet read <code>answer["result"]["okay"]</code>. An outside contributor ran <code>verify</code> against a node whose <em>statement</em> does not compile (a mis-generated hole, since superseded): AXLE answered <code>{"user_error": &hellip;, "info": &hellip;}</code> with no <code>okay</code> key, so the guide's own snippet raises <code>KeyError</code> on the answer a contributor most needs to read. The service already knew the key could be absent &mdash; the call log stores <code>okay</code> as <code>bool | None</code> &mdash; and never told the caller. Decided: <code>result</code> stays verbatim (R5 is the promise that the network does not interpret a third party's answer), and the response gains two lifted fields, <code>okay</code> (true, false, or null when the body carries no boolean verdict) and <code>user_error</code> (the checker's reason, or null). One function, <code>checks.verdict</code>, serves the response and the call log, so the two cannot disagree. A second shape seen the same day is pinned as it is rather than reinterpreted: <code>okay: false</code> with an empty <code>failed_declarations</code> (an unsolved goal in a file whose declarations all elaborated). The <code>check_lean</code> tool's description says the same; its result schema already passes any body through. Reversal: the two keys.</td></tr>
 </table>
 
 <h2>10. Status</h2>
@@ -317,7 +318,7 @@ D-28, D-35, D-36.</p>
   · T8 ✓ 2026-09-14 (<code>uv run pytest gate/tests/test_walkthrough.py</code>: the section's command
   executed in the AC1 run, <code>test_fast_check_section</code> passed, the appendix row added; the
   graph's copy travels with the graph re-pin push, so <code>test_graph_copy_is_identical</code> keeps
-  its strict mark until then; <code>engineering/evidence/F13/task-8.txt</code>)</div>
+  its strict mark until then; <code>engineering/evidence/F13/task-8.txt</code>) &middot; <strong>reopened 2026-09-18</strong> for the outside contributor's finding &middot; <strong>T10 &#10003; 2026-09-19</strong> (Q13; red first 5 failed in <code>api/tests/test_finding_check_okay.py</code>, green 5 passed with <code>test_checks.py</code> and <code>test_mcp_surface.py</code>, 23 passed; <code>engineering/evidence/F13/task-10.txt</code>; live at the next api deploy)</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its
@@ -385,6 +386,9 @@ one verification command (conventions §3, §6).</p>
     <code>site/tests/test_fast_check.py</code>, <code>site/tests/golden/targets/propositional/index.html</code>,
     <code>.github/workflows/api-deploy.yml</code></td>
     <td>T5</td><td><code>uv run pytest gate/tests/test_hosted_checkers.py api/tests/test_checks.py site/tests/test_fast_check.py</code></td></tr>
+  <tr><td>F13-T10</td><td><strong><code>POST /check</code> always says <code>okay</code> (Q13).</strong> Top-level <code>okay</code> (true, false, null) and <code>user_error</code> beside the verbatim <code>result</code>; <code>checks.verdict</code> shared with the call log; the two unpinned AXLE shapes tested; the MCP tool's description updated. The guide's snippet moves with the guide task.</td>
+    <td><code>api/opn_api/checks.py</code>, <code>api/opn_api/mcp/writes.py</code>, <code>api/tests/test_finding_check_okay.py</code></td>
+    <td>T9</td><td><code>uv run --frozen pytest api/tests/test_finding_check_okay.py api/tests/test_checks.py</code></td></tr>
 </table>
 
 <footer>Open Proof Network · F13 spec v1 · 2026-09-14</footer>

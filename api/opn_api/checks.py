@@ -293,6 +293,14 @@ def call_checker(
 # --- the log -------------------------------------------------------------------------------------
 
 
+def verdict(body: dict[str, Any]) -> bool | None:
+    """F13-T10: the checker's ``okay`` as the caller and the call log both read it — true, false,
+    or ``None`` when the body carries no boolean verdict. AXLE answers a statement that does not
+    compile with ``user_error`` and no ``okay`` at all, which is a third answer, not a false."""
+    okay = body.get("okay")
+    return okay if isinstance(okay, bool) else None
+
+
 def error_count(body: dict[str, Any]) -> int | None:
     """Lean's errors plus the tool's, when the body has the shape AXLE answers with."""
     total, seen = 0, False
@@ -319,7 +327,6 @@ def write_log(  # noqa: PLR0913 — one argument per fact the record keeps
     """R9: one record and one log line; the record's id, or ``None`` when the store refused it."""
     now = ctx.clock.now()
     body = answer.body if answer is not None else {}
-    okay = body.get("okay")
     record = CheckLog(
         id=identity.new_ulid(now),
         created=clockmod.render(now),
@@ -332,7 +339,7 @@ def write_log(  # noqa: PLR0913 — one argument per fact the record keeps
         content_sha256=hashlib.sha256(req.content.encode("utf-8")).hexdigest(),
         content_bytes=len(req.content.encode("utf-8")),
         outcome=outcome,
-        okay=okay if isinstance(okay, bool) else None,
+        okay=verdict(body),
         error_count=error_count(body) if answer is not None else None,
         lint=list(lint_codes or []),
         axle_request_id=answer.request_id if answer is not None else None,
@@ -420,6 +427,7 @@ async def post_check(ctx: Context, request: Request) -> Response:
         lint_codes=[w["code"] for w in warnings],
         answer=answer,
     )
+    user_error = answer.body.get("user_error")
     return JSONResponse(
         {
             "authoritative": False,
@@ -430,6 +438,10 @@ async def post_check(ctx: Context, request: Request) -> Response:
             "mode": req.mode,
             "lint": warnings,
             "inlined_defs": [module for module, _ in defs],
+            # T10: the two facts a caller reads first, lifted beside the verbatim body, so a
+            # body with no ``okay`` (a statement that does not compile) is still an answer.
+            "okay": verdict(answer.body),
+            "user_error": user_error if isinstance(user_error, str) else None,
             "result": answer.body,
             "log_id": log_id,
         }

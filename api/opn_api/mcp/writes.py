@@ -237,7 +237,10 @@ TOOLS: tuple[Tool, ...] = (
         "Check Lean text in about a second on the hosted checker matched to the target's pinned "
         "Mathlib (AXLE, a third party) and get its errors, goal states and, with mode verify and "
         "a node_id, its comparison against the node's statement, plus warnings wherever the gate "
-        "would refuse what the checker accepted. Never authoritative: a precheck is the verdict. "
+        "would refuse what the checker accepted. The body's `okay` is true, false, or null when "
+        "the checker gave no verdict (then `user_error` says why, e.g. the node's statement did "
+        "not compile); `result` is the checker's body verbatim. Never authoritative: a precheck "
+        "is the verdict. "
         "No token needed; a token raises the limit. Every call is logged without its text; "
         "GET /hosted-checkers.json says which targets have a checker.",
         params(
