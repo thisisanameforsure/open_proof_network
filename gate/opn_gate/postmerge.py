@@ -280,6 +280,25 @@ WITNESS_SLOT = (
     "satisfying this statement's hypotheses; until then the node is blocked. -/\n\n"
     "theorem witness : {expected} := by\n  sorry\n"
 )
+#: F07-T20 (R21): the slot when the extractor reported no expected type. It used to say ``True``
+#: for every hole, which for any hole with a hypothesis is the wrong obligation, stated in the
+#: one place a contributor looks. A declaration must still be there, so the comment says what
+#: the line is.
+WITNESS_SLOT_UNKNOWN = (
+    "/-! The witness slot for a hole (D-29, F07-R6). The `True` below is a placeholder, not the\n"
+    "obligation. A witness is one declaration named `witness` whose type is: exists, over this\n"
+    "statement's variables, of the conjunction of its hypotheses (`True` only if it has none).\n"
+    "The gate computes that type at step 7, and a mismatch names it. Replace the placeholder\n"
+    "type and `sorry` with that type and its proof; until a witness merges the node is\n"
+    "blocked. -/\n\n"
+    "theorem witness : True := by\n  sorry\n"
+)
+
+
+def witness_slot(expected: str | None) -> str:
+    """The ``Witness.lean`` a hole is born with: the obligation step 7 will hold a witness to,
+    when the extractor reported it, and otherwise a slot that claims nothing."""
+    return WITNESS_SLOT.format(expected=expected) if expected else WITNESS_SLOT_UNKNOWN
 
 
 class MalformedCitationError(ValueError):
@@ -527,7 +546,7 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
             node_id=child,
             target_id=nodes_dir.parent.name,
             statement=statement,
-            witness=WITNESS_SLOT.format(expected="True"),
+            witness=witness_slot(getattr(hole, "expected_witness", None)),
             author=author or pseudonym,
             origin=origin,  # type: ignore[arg-type]
             date=stamp_to_date(stamp),

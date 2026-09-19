@@ -1,4 +1,5 @@
 import Lean
+import OpnGate.WitnessType
 
 /-!
 Hole extraction for D-12's partial proofs (F07-R5, R6).
@@ -46,6 +47,14 @@ structure Hole where
   post-merge writer refuses to make a child from a hole that reports `false`, because such a
   child's `Statement.lean` would not be the obligation the assembly discharged. -/
   closed_roundtrip : Bool := true
+  /-- Step 7's expected witness type for the node this hole becomes (F07-R21): exists over the
+  closed obligation's variables of the conjunction of its hypotheses, the same function step 7
+  calls. Every hole's slot used to be written as `theorem witness : True`, whatever its
+  hypotheses, so the one file that names the obligation named the wrong one (found by an outside
+  contributor on erdos-69, 2026-09-18). Reported only when the printed text reads back to the
+  same type, for the reason `closed_roundtrip` exists; otherwise absent, and the slot claims
+  nothing. -/
+  expected_witness : Option String := none
 
 /-- Written by hand rather than derived: a derived instance omits an absent `Option` field, and
 the report says `null` so a reader can tell "no sibling" from an extractor that never asked. -/
@@ -58,7 +67,10 @@ instance : ToJson Hole where
     ("defeq_sibling", match h.defeq_sibling with
       | some node => Json.str node
       | none => Json.null),
-    ("closed_roundtrip", Json.bool h.closed_roundtrip)]
+    ("closed_roundtrip", Json.bool h.closed_roundtrip),
+    ("expected_witness", match h.expected_witness with
+      | some t => Json.str t
+      | none => Json.null)]
 
 /-- What a partial proof's body is made of. -/
 structure HoleReport where
@@ -130,13 +142,17 @@ private partial def scan (goal stmt : Expr) (siblings : Array (String × Expr))
     if isSorry v then
       let closed ← instantiateMVars (← mkForallFVars binders t)
       let printed ← ppRoundTrippable closed
+      let expected ← expectedWitnessType closed
+      let expectedPrinted ← ppRoundTrippable expected
+      let expectedOk ← reElaboratesTo expectedPrinted expected
       let hole : Hole := {
         name := n.toString,
         type := ← ppRoundTrippable t,
         closed_type := printed,
         defeq_goal := ← restatesGoal goal stmt t closed,
         defeq_sibling := ← restatesSibling siblings closed,
-        closed_roundtrip := ← reElaboratesTo printed closed }
+        closed_roundtrip := ← reElaboratesTo printed closed,
+        expected_witness := if expectedOk then some expectedPrinted else none }
       let acc := { acc with holes := acc.holes.push hole }
       withLocalDeclD n t fun x => scan goal stmt siblings (binders.push x) (b.instantiate1 x) acc
     else
