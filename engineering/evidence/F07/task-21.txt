@@ -84,3 +84,11 @@ Not done, and said so
   A lean-tier run of a direct proof over a node with open holes (the fake toolchain proved the staging and
   the pipeline; the real elaborator would see the same generated Context). A merged proof's effect on its
   open holes is left as the document says: none.
+
+CI, lean tier on 496b31d (run 35449383616, job 105913777316): 1 failed, 73 passed in 50 min
+  FAILED gate/tests/test_finding_duplicate_hole_docker.py::test_the_sandboxed_post_merge_makes_the_restated_hole_an_edge_to_the_tutorial
+    assert ['and-left-of-and-swap--h2'] == ['tutorial-and-swap', 'and-left-of-and-swap--h2']
+  The docker-tier twin of the two F07-T7 tests rewritten above: it still asserted the sibling edge that
+  T21 removed, and the container cannot run it here (no docker, no elan). The gate did what R22 says
+  (the tutorial placed as reused_node, no --h1 node, no edge); the test was rewritten to assert that and
+  say which decision gave way. Every lean- and docker-tier test but this one passed on the T21 tree.

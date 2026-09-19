@@ -6,6 +6,12 @@ and nothing else (three sandbox-only failures in the Log), so the probes are sta
 directory — and only a run through the container shows the staging reaches it. The shape is the
 2026-09-13 live contribution's: a variant beside the tutorial, and a skeleton on the variant whose
 first hole is the tutorial's own theorem.
+
+Revised 2026-09-19 (F07-T21, D-12 v3.19): the restated hole is still no ``--h1`` node and the
+verdict still names the tutorial as its placement, but it is no edge either. F07-T7 made it a
+dependency of the variant; a dependency is what the variant would then wait on, and a decomposition
+must not add one (F07-R22, Q29). The edge gave way; the placement and the sandbox staging it proves
+did not.
 """
 
 from __future__ import annotations
@@ -24,7 +30,7 @@ from opn_gate import cli
 pytestmark = pytest.mark.docker
 
 
-def test_the_sandboxed_post_merge_makes_the_restated_hole_an_edge_to_the_tutorial(
+def test_the_sandboxed_post_merge_places_the_restated_hole_on_the_tutorial_without_an_edge(
     sandbox_image: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     root, git, _base = git_repo(tmp_path)
@@ -54,4 +60,4 @@ def test_the_sandboxed_post_merge_makes_the_restated_hole_an_edge_to_the_tutoria
     nodes = root / NODES
     assert not (nodes / f"{VARIANT}--h1").exists()
     meta = yaml.safe_load((nodes / VARIANT / "META.yaml").read_text(encoding="utf-8"))
-    assert meta["deps"] == [TUTORIAL, f"{VARIANT}--h2"]
+    assert meta["deps"] == [f"{VARIANT}--h2"]  # the tutorial is placed, not depended on (T21)
