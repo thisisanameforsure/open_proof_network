@@ -929,3 +929,13 @@ The law of the project:
   found every one in a second and is what the evidence records now; the eye on a 1440px capture
   caught four of the nine. When a page carries hand-placed text in SVG, measure each label against
   its box before the screenshot, and keep the measurement script beside the shot script.
+- 2026-09-19 — A guard can be doing a second job nobody wrote down. `scaffold.write`'s refusal of an
+  existing directory was also what made a re-run of the post-merge job on the same merge harmless,
+  because child ids were a function of the parent; the moment a later route numbered its holes after
+  the earlier ones (F07-T21, D-12 v3.19), a re-run would have written a second set, and the test that
+  said "applied twice is refused" was the only thing that knew. Before changing how a name is chosen,
+  ask what else the old collision was protecting, and rebuild that protection on its own (here an
+  exact-text floor beneath the extractor's definitional check). Same sitting: a rule the owner states
+  as a principle ("leave the root open") can contradict a decision the same owner made on a case
+  (F07-T7's sibling edge); take the principle, rewrite the case's tests rather than delete them, and
+  say in the Q entry and the test docstrings which decision gave way.

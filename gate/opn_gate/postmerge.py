@@ -261,7 +261,7 @@ def verify(doc: dict[str, Any], public_key: str, signer: Signer) -> bool:
 
 ANNEX_DIR = "annex"
 ATTEMPTS_DIR = "attempts"
-CHILD_SEPARATOR = "--h"
+CHILD_SEPARATOR = graphmod.HOLE_SEPARATOR
 PARTIAL_SUFFIX = "-partial.lean"
 ALTERNATE_SUFFIX = "-alternate.lean"
 #: D-31 v3.12: the skeleton names its annex in the file, as a comment, so the gate re-derives the
@@ -367,6 +367,25 @@ def child_origin(partial_text: str) -> str:
 def child_id(parent: str, index: int) -> str:
     """R6: ``<parent>--h<n>``, one-based, stable in the order the holes were extracted."""
     return f"{parent}{CHILD_SEPARATOR}{index}"
+
+
+_CHILD_INDEX_RE = re.compile(r"^(?P<n>[1-9][0-9]*)(?:-v[0-9]+)?$")
+
+
+def next_child_index(nodes_dir: Path, parent: str) -> int:
+    """R22 (D-12 v3.19): where a further decomposition's holes are numbered from — one past
+    the highest ``<parent>--h<n>`` on disk, a revision (``-v<k>``) counting as its number. The
+    first decomposition starts at 1; a later one never reuses an earlier one's ids, so two
+    routes to one node coexist as two sets of children."""
+    prefix = parent + CHILD_SEPARATOR
+    highest = 0
+    if nodes_dir.is_dir():
+        for path in nodes_dir.iterdir():
+            if path.is_dir() and path.name.startswith(prefix):
+                m = _CHILD_INDEX_RE.match(path.name[len(prefix) :])
+                if m:
+                    highest = max(highest, int(m.group("n")))
+    return highest + 1
 
 
 def child_statement(
@@ -484,9 +503,11 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
     is what keeps D-3's immutability intact (F07-Q2).
 
     A hole the extractor found to be an existing node's statement (``defeq_sibling``, F07-T7) is
-    that node: it becomes a dependency edge and no ``--h<n>`` directory, and the other holes keep
-    the index of their position. ``model`` is the submission block's declared model, recorded in
-    each child's provenance as the D-23 disclosure it came from (R13).
+    that node: no ``--h<n>`` directory is written for it and the other holes keep the index of
+    their position; it is an edge only when it is one of the parent's own holes (R22, D-12
+    v3.19), since the parent must not come to wait on a sibling because of a route. ``model``
+    is the submission block's declared model, recorded in each child's provenance as the D-23
+    disclosure it came from (R13).
 
     ``assembly_path`` is the merged assembly's own path under the node when the submission was
     the ``attempts/*.lean`` file partial mode takes (F11-T4): that file *is* the attempt record,
@@ -527,7 +548,10 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
     annex = annex_citation(partial_text)
     nodes_dir = node_dir.parent
     parent = node_dir.name
-    reused = [reused_node(nodes_dir, parent, hole) for hole in holes]
+    reused = [
+        reused_node(nodes_dir, parent, hole) or existing_hole_for(nodes_dir, parent, hole)
+        for hole in holes
+    ]
     parent_statement = node_dir / "Statement.lean"
     parent_text = parent_statement.read_text(encoding="utf-8") if parent_statement.is_file() else ""
     imports = parent_imports(parent_text)
@@ -535,9 +559,16 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
     created: list[str] = []
     edges: list[str] = []
     placed: list[dict[str, str | None]] = []
-    for index, (hole, existing) in enumerate(zip(holes, reused, strict=True), start=1):
+    # R22 (D-12 v3.19): a later decomposition numbers its holes after the earlier ones'.
+    first = next_child_index(nodes_dir, parent)
+    for index, (hole, existing) in enumerate(zip(holes, reused, strict=True), start=first):
         if existing is not None:
-            edges.append(existing)
+            # R22: a hole that restates one of the node's own holes is that hole again, and the
+            # edge is already on the record. One that restates any other sibling adds no edge:
+            # an edge the node would wait on is exactly what a decomposition must not add, so
+            # the restatement is recorded in the verdict's placement and nowhere else.
+            if graphmod.is_hole_child(nodes_dir, parent, existing):
+                edges.append(existing)
             placed.append({"name": hole.name, "child": None, "reused_node": existing})
             continue
         child = child_id(parent, index)
@@ -563,6 +594,31 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
         str(assembly_path) if on_record else record_attempt(node_dir, attempt_file, partial_text)
     )
     return PartialMerge(tuple(created), attempt, origin, annex, tuple(placed))
+
+
+_HOLE_TYPE_RE = re.compile(r"^theorem\s+\S+\s*:\s*(?P<type>.*?)\s*:=\s*by\s*$", re.M | re.S)
+_WS_RE = re.compile(r"\s+")
+
+
+def existing_hole_for(nodes_dir: Path, parent: str, hole: Any) -> str | None:
+    """R22: the parent's own hole child that already states this hole, by text — the child's
+    ``Statement.lean`` declares the closed type ``child_statement`` wrote, so a re-run of the
+    job, or a later route with the same lemma, finds it here without the sandbox and writes no
+    second node. The extractor's ``defeq_sibling`` answers the same question up to definitional
+    equality; this is the exact-text floor beneath it."""
+    closed = getattr(hole, "closed_type", None)
+    if not closed or not nodes_dir.is_dir():
+        return None
+    wanted = _WS_RE.sub(" ", str(closed)).strip()
+    prefix = parent + CHILD_SEPARATOR
+    for path in sorted(p for p in nodes_dir.iterdir() if p.name.startswith(prefix)):
+        statement = path / "Statement.lean"
+        if not statement.is_file():
+            continue
+        m = _HOLE_TYPE_RE.search(statement.read_text(encoding="utf-8"))
+        if m and _WS_RE.sub(" ", m.group("type")).strip() == wanted:
+            return path.name
+    return None
 
 
 def reused_node(nodes_dir: Path, parent: str, hole: Any) -> str | None:

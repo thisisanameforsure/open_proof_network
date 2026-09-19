@@ -12,7 +12,7 @@ import logging
 import re
 import subprocess
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -38,6 +38,10 @@ CAUSE_DEP_REFUTED = "dep-refuted"  # R8: a dependent of a refuted node, for cura
 CAUSE_WITNESS_MISSING = "witness-missing"  # R6: a compiler-derived child with a stub witness
 #: Origins whose nodes are created by the post-merge job with a witness slot, not a witness.
 HOLE_ORIGINS: tuple[str, ...] = ("compiler-derived", "skeleton-hole")
+#: A hole child's id is its parent's id, this separator and the hole's number (F07-R6):
+#: ``<parent>--h<n>``, and a revision of one keeps the prefix (``<parent>--h<n>-v2``). It is
+#: how the derivation tells a hole the parent may draw on from a dependency it waits on.
+HOLE_SEPARATOR = "--h"
 TRUST_KERNEL = "kernel"
 _RELATION_RE = re.compile(r"^\s*--\s*relation:\s*(?P<label>resolves|partial|related)\s*$", re.M)
 _META_STATUS_RE = re.compile(r"^status:[ \t]*[^\n]*$", re.M)
@@ -80,6 +84,11 @@ class NodeFacts:
     declared_deps: tuple[str, ...] = ()
     #: A ``stale`` override the gate's own evidence has lifted (see ``stale_lifted``).
     stale_lifted: bool = False
+    #: D-12 v3.19 (F07-R22): the entries of ``deps`` that are this node's own hole children —
+    #: written there by the post-merge job when a decomposition merged. The node may draw on
+    #: one once it is proved; it never waits on one, so they are set aside when the node's
+    #: status is derived (``blocked_because``).
+    holes: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -257,7 +266,39 @@ def load_nodes(
             witness_stub=witness_is_stub(node_dir),
             supersedes=_optional_str(loaded.meta.get("supersedes")),
         )
+    # D-12 v3.19: which of a node's deps are its own holes is a fact about two nodes, so it is
+    # read once every node is loaded; a dep that is not a node is left for ``check_dag``.
+    for node_id, node in list(facts.items()):
+        holes = tuple(
+            d for d in node.deps if d in facts and is_hole_of(node_id, d, facts[d].origin)
+        )
+        if holes:
+            facts[node_id] = replace(node, holes=holes)
     return facts
+
+
+def is_hole_of(parent: str, node_id: str, origin: str) -> bool:
+    """D-12 v3.19: ``node_id`` is a hole the post-merge job wrote for ``parent`` — its id is the
+    parent's with :data:`HOLE_SEPARATOR` and a number (a revision keeps the prefix), and its
+    origin is a hole's. Only that pair is a child; a dep the author declared, or a sibling a
+    hole restated, is a dependency the parent waits on."""
+    return node_id.startswith(parent + HOLE_SEPARATOR) and origin in HOLE_ORIGINS
+
+
+def is_hole_child(nodes_dir: Path, parent: str, node_id: str) -> bool:
+    """``is_hole_of`` read from the tree: the candidate's ``META.yaml`` names its origin. A
+    directory that is not a node, or a META that does not read, is no hole (C7: the gate then
+    treats it as an ordinary dep and says what is wrong with it)."""
+    if not node_id.startswith(parent + HOLE_SEPARATOR):
+        return False
+    meta = nodes_dir / node_id / "META.yaml"
+    if not meta.is_file():
+        return False
+    try:
+        doc = schemas.load_yaml(meta)
+    except schemas.SchemaError:
+        return False
+    return isinstance(doc, dict) and str(doc.get("origin")) in HOLE_ORIGINS
 
 
 # --- derivation --------------------------------------------------------------------------------
@@ -424,8 +465,13 @@ def blocked_because(node: NodeFacts, status_of: Callable[[str], str]) -> tuple[b
     a witness slot nobody has filled. Only some of those have a *nameable* cause — a dep that is
     merely unproved is the ordinary case and says nothing worth publishing, while a dep that has
     been refuted is a dead end a curator has to look at (D-12, D-14).
+
+    A node's own holes are not dependencies it waits on (D-12 v3.19, F07-R22): a decomposition
+    that merged on it left them on the record as lemmas it may draw on once they are proved,
+    and the node stays open — provable directly, open to another decomposition — until one of
+    the three closing artifacts settles it. A refuted hole is a dead route, not a dead node.
     """
-    unproved = [dep for dep in node.deps if status_of(dep) != "proved"]
+    unproved = [dep for dep in node.deps if dep not in node.holes and status_of(dep) != "proved"]
     if unproved:
         refuted = any(status_of(dep) == "refuted" for dep in unproved)
         return True, CAUSE_DEP_REFUTED if refuted else None

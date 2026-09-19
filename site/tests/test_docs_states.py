@@ -70,6 +70,9 @@ def test_the_statement_drawing_shows_every_status_the_products_can_publish(docs:
     assert "ready · speculative" in statement  # the protocol words under the open box
     assert statement.count(">blocked</text>") == 1  # a wait on a dependency
     assert "witness-missing" in statement and "dep-refuted" in statement
+    # D-12 v3.19 (F07-R22): nothing moves an open statement to blocked; a route leaves it open.
+    assert "its holes become its dependencies" not in statement
+    assert "stays open" in statement and "v3.19" in statement
 
 
 def test_the_problem_drawing_shows_every_status_a_target_can_declare(docs: str) -> None:

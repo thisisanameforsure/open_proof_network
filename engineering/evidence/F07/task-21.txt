@@ -1,0 +1,86 @@
+F07-T21 · a decomposition never blocks the node it decomposes (R22, AC43, Q29; decisions v3.19) · 2026-09-19
+
+The ask (Mike, 2026-09-19), on reading the Docs state map: "if you break down a root into some easier parts, you
+don't want to block the root node, because what if somebody else comes along and wants to break it down in
+another way, or attack the proof directly?" Then: "Leave it open. Allow multiple proofs on one graph."
+
+What the record did before (read from the code, then confirmed on the tests that pinned it)
+  postmerge.apply_partial  appended the holes to the parent's deps and regenerated Context.lean
+  graph.derive_statuses    read every dep as one the node waits on, so the parent derived blocked (cause none)
+  products.in_frontier     a blocked non-variant is not listed and not claimable
+  api precheck.check_open  409 node-blocked on every precheck or submission naming the parent
+  steps/stage.py           dep-unproved for every hole without a Proof.lean, so no direct proof could build
+  D-6 / D-31               say competing routes coexist and competing skeletons are normal; both impossible
+                           once the first route merged. D-12 row 4 said "node becomes a dependent".
+
+The document led (docs/architecture_decisions.html, v3.18 -> v3.19)
+  D-12: rows 4 and 5 read "node stays open"; a "Clarified 2026-09-19 (v3.19)" paragraph states the rule
+  (children the parent may draw on, never dependencies it waits on; only artifacts 1-3 close it; later
+  routes number their holes after the earlier ones; a restated own hole is that hole, a restated sibling
+  adds no edge; a merged proof leaves open holes where they are); the figure's row 4 and the version note.
+
+What changed in the code (derive, never rewrite: no record moves, no schema moves)
+  graph.py       HOLE_SEPARATOR; is_hole_of(parent, id, origin) = the writer's id prefix plus a hole origin;
+                 is_hole_child reads it from the tree; NodeFacts.holes = the deps that pass it, filled once
+                 every node is loaded; blocked_because sets a node's own holes aside
+  stage.py       an unproved hole of the node being staged is left out (no dep-unproved, no import); a
+                 proved one is staged and imported like a dep, so the assembly route still compiles
+  postmerge.py   next_child_index numbers a later route's holes after the highest --h<n> on disk (a
+                 revision counts by its number); existing_hole_for is the exact-text floor beneath the
+                 extractor's defeq_sibling, so a re-run of the job or the same lemma again writes no
+                 second node; a restated sibling that is not the parent's own hole adds no edge
+  products.py    PROTOCOL_VERSION 3.19; the three products goldens re-written (the one field)
+  states.html    the Docs state map: no arrow from open to blocked any more; the open box says a merged
+                 route leaves it open; the blocked box says it is born by a proposal, never by a route;
+                 the hole's birth note and the caption cite v3.19; the actions table's partial row
+  Untouched on purpose: steps/deps.py (the holes are declared deps; an unused declared dep is a warning,
+  F01-R7), the service (409 keys off status, and the parent is ready now), meta/v4, graph/v3, frontier/v3,
+  the service's CONTEXT.json builder (F10-Q7: Context.lean is generated from deps exactly as before).
+
+Where the rule overrides an earlier decision (Q29 call 4)
+  F07-T7 (Mike, 2026-09-13) made a hole that restates an existing sibling a dependency edge to that node.
+  Under v3.19 an edge the parent would wait on is what a route must not add, so the edge is gone for a
+  sibling that is not one of the parent's own holes; the reuse stays in the job's holes block. The two
+  F07-T7 tests were rewritten to the new rule and say so in their docstrings. A finisher who needs that
+  sibling's theorem inlines it; the DAG loses that one edge.
+
+Red first
+  $ git stash push -- gate/opn_gate/graph.py gate/opn_gate/postmerge.py gate/opn_gate/steps/stage.py
+  $ uv run --frozen pytest gate/tests/test_finding_parent_stays_open.py -q
+  9 failed, 1 passed in 0.78s        (the one pass is is_hole_of's pure cases)
+  $ git stash pop
+  $ uv run --frozen pytest gate/tests/test_finding_parent_stays_open.py -q
+  10 passed in 0.50s
+  Three existing tests pinned the old behaviour and were rewritten rather than deleted:
+  test_postmerge::test_a_partial_applied_twice_is_refused_and_the_parent_is_untouched (now ..._writes_no_
+  second_set_of_children: the scaffold's "already exists" was doing double duty as the re-run guard, and
+  the text floor takes that duty), and the two F07-T7 tests above.
+
+$ uv run --frozen pytest gate/tests/test_finding_parent_stays_open.py gate/tests/test_products.py \
+    gate/tests/test_stage.py gate/tests/test_pipeline.py gate/tests/test_postmerge.py \
+    gate/tests/test_postmerge_apply.py gate/tests/test_finding_revised_hole_parent.py \
+    gate/tests/test_finding_duplicate_hole.py gate/tests/test_finding_hole_roundtrip.py -q
+171 passed, 1 skipped
+$ uv run --frozen pytest site/tests -q
+275 passed
+$ make verify
+=== 2346 passed, 19 skipped, 75 deselected, 2 warnings in 133.88s (0:02:13) ====
+
+The Docs state map, measured in the browser (Playwright over the fixture site; every <text> inside a
+rect.box against the box's right edge minus 3px, and against the viewBox):
+  {"overflows":[]}
+  390  scrollWidth 390 inner 390  card [left,right] [17, 373]  svg [w,h] [[760, 408], [760, 253]]  scroll [content,client] [760, 323]  stale hover card [left,right,display] [34, 334, 'block']
+  1440  scrollWidth 1440 inner 1440  card [left,right] [22, 1418]  svg [w,h] [[1362, 731], [1362, 454]]  scroll [content,client] [1362, 1362]  stale hover card [left,right,display] [39, 339, 'block']
+  f07-task-21-statement-1440.png / -390.png / -hover     the redrawn statement drawing
+  f07-task-21-docs-*.png, f07-task-21-problem-*.png       the rest of the section, unchanged
+
+What this does and does not do to the live graph
+  The gate binds a graph only at the re-pin (2026-09-17). Until the graph's gate-spec.json pins a commit
+  carrying this change, its products are rendered by the old reading: the seven live parents stay blocked
+  and the service keeps answering 409 for them. After the re-pin, the next render derives each of them
+  ready with no record rewritten, and a second route on any of them is accepted. Nothing needs a migration.
+
+Not done, and said so
+  A lean-tier run of a direct proof over a node with open holes (the fake toolchain proved the staging and
+  the pipeline; the real elaborator would see the same generated Context). A merged proof's effect on its
+  open holes is left as the document says: none.

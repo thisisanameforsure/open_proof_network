@@ -5,7 +5,9 @@
 proof compiles against the deps' merged proofs, never against the repo's sorry-bodied
 signatures (which step 8 checks textually instead). Deps are staged recursively and every one of
 them must already carry a ``Proof.lean``; a node whose deps are unproved is blocked (F03) and
-cannot pass steps 4-8.
+cannot pass steps 4-8. A node's own holes are the exception (D-12 v3.19, F07-R22): a proved one
+is staged and imported like a dep, an unproved one is left out and refuses nothing, because the
+node may draw on its holes and never waits on them.
 """
 
 from __future__ import annotations
@@ -77,7 +79,15 @@ def stage(node: layout.Node, workdir: Path, *, proof_override: Path | None = Non
         if not src.is_dir():
             problems.append(Diagnostic("dep-missing", f"declared dep {node_id!r} is not a node"))
             return
-        deps = deps_of(src)
+        deps = [
+            dep
+            for dep in deps_of(src)
+            # R22: an unproved hole of this node is not staged and blocks nothing.
+            if not (
+                graphmod.is_hole_child(nodes_dir, node_id, dep)
+                and not (nodes_dir / dep / "Proof.lean").is_file()
+            )
+        ]
         for dep in deps:
             visit(dep, (*chain, node_id))
         if node_id != node.node_id and not (src / "Proof.lean").is_file():

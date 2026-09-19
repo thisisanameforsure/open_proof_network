@@ -16,6 +16,12 @@ pair. Held as strict xfails until F07-T7 landed (2026-09-14); the consolidate gu
 and must keep passing, because the fix must not widen D-29's same-statement rule. The edges at
 the end are F07-T7's own: which siblings are asked about, where their probes are staged, and what
 the job refuses before it writes anything.
+
+Revised 2026-09-19 (F07-T21, D-12 v3.19): a decomposition never blocks the node it decomposes,
+so a restated sibling that is not one of the parent's own holes is still no child — but it is no
+edge either, because an edge the parent would wait on is exactly what a route must not add. The
+reuse is on the record in the job's ``holes`` block; the parent's deps and Context carry only
+its declared deps and its own holes.
 """
 
 from __future__ import annotations
@@ -123,9 +129,9 @@ def sibling_reported(seam: Seam) -> None:
 def test_a_hole_that_restates_a_sibling_becomes_a_dep_not_a_child(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """No ``--h1`` directory; the parent depends on the sibling instead; the other hole still
-    becomes ``--h2``; the postmerge JSON's ``partial`` block names the reuse per hole (the
-    proposed shape: ``holes[i]`` with ``child`` and ``reused_node``, one of them null)."""
+    """No ``--h1`` directory and, since T21, no edge to the sibling either; the other hole still
+    becomes ``--h2``; the postmerge JSON's ``partial`` block names the reuse per hole
+    (``holes[i]`` with ``child`` and ``reused_node``, one of them null)."""
     root = merged_partial_beside_sibling(tmp_path)
     sibling_reported(seam)
     code, out, err = run(capsys, *argv(root, tmp_path / "o", "--apply-partial", "--author", AUTHOR))
@@ -135,10 +141,10 @@ def test_a_hole_that_restates_a_sibling_becomes_a_dep_not_a_child(
     assert (nodes / CHILD_2 / "Statement.lean").is_file()
     assert HOLES[1][1] in (nodes / CHILD_2 / "Statement.lean").read_text(encoding="utf-8")
     parent = yaml.safe_load((nodes / ROOT / "META.yaml").read_text())
-    assert parent["deps"] == ["tutorial-and-swap", "and-reassoc", SIBLING, CHILD_2]
-    # The regenerated Context carries the sibling's signature, verbatim (F01-R6), not a twin's.
+    assert parent["deps"] == ["tutorial-and-swap", "and-reassoc", CHILD_2]
+    # The regenerated Context carries the surviving hole's signature and no twin of the sibling.
     context = (nodes / ROOT / "Context.lean").read_text(encoding="utf-8")
-    assert f"`{SIBLING}`" in context and "theorem OpnProp.reassoc_right" in context
+    assert f"`{SIBLING}`" not in context and "theorem OpnProp.reassoc_right" not in context
     assert CHILD_1 not in context and f"`{CHILD_2}`" in context
     assert out["partial"]["children"] == [CHILD_2]
     assert out["partial"]["holes"] == [
@@ -150,10 +156,10 @@ def test_a_hole_that_restates_a_sibling_becomes_a_dep_not_a_child(
 def test_the_state_a_reused_hole_leaves_behind(
     tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """The products still load the target (the edge names a real node, no cycle); the sibling's
-    own status is untouched by the merge; the surviving hole is blocked on its witness as any
-    hole is; and the parent's status is derived from the sibling like any other dep — once every
-    dep is proved the parent is ready, with no phantom ``--h1`` left to block it."""
+    """The products still load the target; the sibling's own status is untouched by the merge;
+    the surviving hole is blocked on its witness as any hole is; and the parent waits on
+    neither (T21): with its declared deps proved it is ready while the sibling and the hole are
+    still open, with no phantom ``--h1`` anywhere."""
     root = merged_partial_beside_sibling(tmp_path)
     sibling_reported(seam)
     code, _out, err = run(
@@ -162,21 +168,23 @@ def test_the_state_a_reused_hole_leaves_behind(
     assert code == cli.EXIT_PASS, err
     target = graphmod.load_target(root, TARGET)
     assert CHILD_1 not in target.nodes
-    assert target.nodes[ROOT].deps == ("tutorial-and-swap", "and-reassoc", SIBLING, CHILD_2)
+    assert target.nodes[ROOT].deps == ("tutorial-and-swap", "and-reassoc", CHILD_2)
+    assert target.nodes[ROOT].holes == (CHILD_2,)
     assert target.statuses[SIBLING] == "ready"  # unproved, as before: the merge left it alone
     assert target.statuses[CHILD_2] == "blocked"
     causes = graphmod.derive_causes(target.nodes, target.statuses)
     assert causes[CHILD_2] == graphmod.CAUSE_WITNESS_MISSING
-    assert target.statuses[ROOT] == "blocked"
-    # A proved sibling does not block the parent: with every dep proved, the parent is ready.
+    # The parent waits on its declared deps only: with those two proved it is ready while its
+    # hole and the restated sibling are both still open (D-12 v3.19).
     proved = graphmod.Proof(merge_commit="0" * 40, trust_base=graphmod.TRUST_KERNEL, attestation="")
     facts = {
-        node_id: node
-        if node_id == ROOT
-        else replace(node, proof=proved, artifact="proof", witness_stub=False)
+        node_id: replace(node, proof=proved, artifact="proof", witness_stub=False)
+        if node_id in ("tutorial-and-swap", "and-reassoc")
+        else node
         for node_id, node in target.nodes.items()
     }
-    assert graphmod.derive_statuses(facts)[ROOT] == "ready"
+    statuses = graphmod.derive_statuses(facts)
+    assert statuses[ROOT] == "ready" and statuses[CHILD_2] == "blocked"
 
 
 def test_consolidate_still_takes_two_identical_statements(tmp_path: Path) -> None:

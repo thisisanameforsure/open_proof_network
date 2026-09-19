@@ -394,20 +394,26 @@ def test_a_partial_with_no_holes_creates_nothing(tmp_path: Path) -> None:
     assert snapshot(node_dir) == before
 
 
-def test_a_partial_applied_twice_is_refused_and_the_parent_is_untouched(tmp_path: Path) -> None:
-    """The child ids are a function of the parent, so re-applying a merge lands on existing
-    directories, which the scaffold never writes into (D-3); the parent stays as the first
-    application left it."""
+def test_a_partial_applied_twice_writes_no_second_set_of_children(tmp_path: Path) -> None:
+    """F07-T21 (D-12 v3.19): a later route numbers its holes after the earlier ones, so the
+    scaffold's refusal of an existing directory no longer guards a re-application; the text
+    floor does (``existing_hole_for``). The same holes applied again are the same children —
+    nothing written, no edge added — and only the second route's attempt is filed. (Before T21
+    the second application was refused on ``--h1`` already existing.)"""
     node_dir = parent_dir(tmp_path)
     postmerge.apply_partial(
         node_dir, HOLES, partial_text=ASSEMBLY, pseudonym=PSEUDONYM, stamp=STAMP
     )
     after_first = snapshot(node_dir)
-    with pytest.raises(scaffold.ScaffoldError, match="already exists"):
-        postmerge.apply_partial(
-            node_dir, HOLES, partial_text=ASSEMBLY, pseudonym="carol", stamp="20260911T000000Z"
-        )
-    assert snapshot(node_dir) == after_first
+    result = postmerge.apply_partial(
+        node_dir, HOLES, partial_text=ASSEMBLY, pseudonym="carol", stamp="20260911T000000Z"
+    )
+    assert result.children == ()
+    assert [h["reused_node"] for h in result.holes] == [f"{PARENT}--h1", f"{PARENT}--h2"]
+    after_second = snapshot(node_dir)
+    added = set(after_second) - set(after_first)
+    assert added == {f"{PARENT}/{result.attempt_path}"}
+    assert {k: v for k, v in after_second.items() if k not in added} == after_first
 
 
 def test_a_refusal_at_the_attempt_file_leaves_nothing_behind(tmp_path: Path) -> None:
