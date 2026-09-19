@@ -1,16 +1,20 @@
 <p class="crumbs"><a href="/problems/">Problems</a> / <a href="$target_href">$target_id</a> / $node_id</p>
 <h1 class="mono">$node_id</h1>
-<p class="lead">$status</p>
+<p class="lead">$status</p>$revision
+<p class="wayfinding">$wayfinding</p>
 $claimable$tutorial
 <pre class="lean statement st-$status_class">$statement</pre>
 <p>Rendered from $statement_link. Depends on: $deps. Origin: $origin.</p>
 <h2>Proof</h2>
 $proof
 $trust
+<h2>Witness</h2>
+$witness
 <h2>Attestation</h2>
 $attestation$alternates
 <h2>Attempts</h2>
 <p>$attempt_count recorded. Routes refuted: $refuted. Failure classes: $histogram.</p>
+$partials
 <h2>Explainer</h2>
 $explainer
 <h2>Annex</h2>

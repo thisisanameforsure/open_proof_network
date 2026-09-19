@@ -59,6 +59,50 @@ def inline(text: str) -> str:
     return _STRONG_RE.sub(lambda m: f"<strong>{m.group(1)}</strong>", escaped)
 
 
+#: F04-T19 (Q21): the inline forms a curated record's informal statement may carry, copied from
+#: a registry's docstrings. Code is set aside first and math second, so neither is ever read as
+#: emphasis; what is left is escaped and then given three forms. A link needs an http(s) url.
+_MATH_RE = re.compile(r"(\$\$.+?\$\$|\$[^$\n]+?\$)", re.DOTALL)
+_EM_RE = re.compile(r"(?<![\w*])\*([^*\s](?:[^*\n]*[^*\s])?)\*(?![\w*])")
+_LINK_RE = re.compile(r"\[([^\]\n]+)\]\((https?://[^\s)]+)\)")
+
+
+def _emphasis(text: str) -> str:
+    escaped = escape(text, quote=True)
+    escaped = _STRONG_RE.sub(lambda m: f"<strong>{m.group(1)}</strong>", escaped)
+    return _EM_RE.sub(lambda m: f"<em>{m.group(1)}</em>", escaped)
+
+
+def _links(text: str, allowed_urls: frozenset[str]) -> str:
+    out: list[str] = []
+    at = 0
+    for m in _LINK_RE.finditer(text):
+        out.append(_emphasis(text[at : m.start()]))
+        label, url = _emphasis(m.group(1)), m.group(2)
+        # R13: only a url a validated record already cites may leave the site; any other link
+        # keeps its words and loses its target, so record prose cannot mint an outbound link.
+        out.append(
+            f'<a href="{escape(url, quote=True)}">{label}</a>' if url in allowed_urls else label
+        )
+        at = m.end()
+    out.append(_emphasis(text[at:]))
+    return "".join(out)
+
+
+def inline_statement(text: str, *, allowed_urls: frozenset[str]) -> str:
+    """A record's informal statement as HTML: escaped, with `code`, **strong**, *emphasis* and
+    [cited links](url). Text between dollar signs is passed through escaped and untouched, for
+    the same-origin math renderer to read back (T13)."""
+    out: list[str] = []
+    for i, piece in enumerate(_CODE_SPAN_RE.split(text)):
+        if i % 2:  # the inside of a code span
+            out.append(f"<code>{escape(piece, quote=True)}</code>")
+            continue
+        for j, part in enumerate(_MATH_RE.split(piece)):
+            out.append(escape(part, quote=True) if j % 2 else _links(part, allowed_urls))
+    return "".join(out)
+
+
 #: F04-T10: the label an ``output`` fence carries. The guide's output blocks are fragments a
 #: reader should find in what the command printed, not a transcript of it (F10-R9).
 OUTPUT_LABEL = "expected output (fragments)"

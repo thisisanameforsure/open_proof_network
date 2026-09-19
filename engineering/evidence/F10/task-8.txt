@@ -1,0 +1,18 @@
+F10-T8 evidence — 2026-09-19
+
+## Every test that reads the guide, after the edits and the byte-identical copy into the graph checkout
+uv run --frozen pytest gate/tests/test_walkthrough.py gate/tests/test_finding_guide_pending_work.py gate/tests/test_finding_guide_defects.py gate/tests/test_finding_guide_skeleton.py gate/tests/test_finding_guide_mcp_renames.py gate/tests/test_finding_graph_readme.py site/tests/test_finding_docs_agents_md.py -q
+29 passed (the walkthrough executes the guide's commands against a fixture clone and the real service in process,
+so the fast-check block's new answer["okay"] read ran against the F13-T10 response)
+
+## Before the copy: the one failure, as it should be
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - the graph's AGENTS.md drifted; recopy it
+
+## The worked witness example, checked with the gate's own tool before it went into the guide
+Statement.lean: theorem t : ∀ n : Nat, 0 < n → n ∣ 12 → n ≤ 12 := by sorry
+Witness.lean:   theorem witness : ∃ n : Nat, 0 < n ∧ n ∣ 12 := ⟨1, by decide, by decide⟩
+lake env .lake/build/bin/opn-witness-type --statement ... --decl t --witness ... ->
+{"defeq":true,"expected":"∃ n, 0 < n ∧ n ∣ 12","ok":true,"witness":"∃ n, 0 < n ∧ n ∣ 12","witness_axioms":["propext"]}
+
+## The diff, by section
+ 1 file changed, 54 insertions(+), 8 deletions(-)

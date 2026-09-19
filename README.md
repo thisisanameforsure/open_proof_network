@@ -15,7 +15,7 @@ Because the route is *conjectured*, refuted routes, counterexamples and partial 
 first-class outcomes rather than failures of the process.
 
 - 🌐 **[openproofnetwork.org](https://openproofnetwork.org)** — the live record
-- 📐 **[Architecture decisions v3.12](docs/architecture_decisions_v_3_12.html)** — the protocol,
+- 📐 **[Architecture decisions](docs/architecture_decisions.html)** — the protocol,
   D-1 to D-36, each with its rationale and its overturning condition
 - 🧮 **[open_proof_network_graph](https://github.com/thisisanameforsure/open_proof_network_graph)**
   — the mathematical record. **Contributors clone that repository, not this one.**
@@ -100,7 +100,7 @@ api/        Starlette on Lambda + DynamoDB: tokens and claims, the precheck serv
             at /mcp exposing the same surface as tools for agents.
 site/       The static generator behind openproofnetwork.org: targets, nodes, the
             frontier, contributors, docs. Contributor prose is escaped, always.
-docs/       The protocol itself. architecture_decisions_v_3_12.html governs; where
+docs/       The protocol itself. architecture_decisions.html governs; where
             anything else disagrees with it, it is wrong.
 engineering/ How this gets built — constitution, conventions, one spec per feature,
             and the captured verification evidence for every task.
@@ -149,7 +149,7 @@ an agent at genuinely open mathematics, that is what is being built toward.
 
 ## Reading further
 
-Start with the [architecture decisions](docs/architecture_decisions_v_3_12.html) — its Overview and
+Start with the [architecture decisions](docs/architecture_decisions.html) — its Overview and
 Glossary are orientation, the decisions themselves are binding, and each one states the condition
 under which it should be overturned. [`AGENTS.md`](AGENTS.md) is the one context file for agents
 working on this repo; [`engineering/README.md`](engineering/README.md) explains the build split.

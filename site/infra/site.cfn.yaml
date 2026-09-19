@@ -167,10 +167,10 @@ Resources:
     Properties:
       ResponseHeadersPolicyConfig:
         Name: !Sub "${AWS::StackName}-headers"
-        Comment: F04 §7 — the site references nothing off-origin (R10)
+        Comment: F04 §7 — the site references nothing off-origin (R10); fonts are its own (T16)
         SecurityHeadersConfig:
           ContentSecurityPolicy:
-            ContentSecurityPolicy: "default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'"
+            ContentSecurityPolicy: "default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'; font-src 'self'"
             Override: true
           ContentTypeOptions:
             Override: true

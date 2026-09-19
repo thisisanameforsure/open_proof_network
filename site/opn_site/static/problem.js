@@ -33,7 +33,17 @@
     });
   });
 
-  var m = /^#node=(.+)$/.exec(location.hash);
-  var initial = m ? decodeURIComponent(m[1]) : panels[0].getAttribute("data-node");
+  function fromHash() {
+    var m = /^#node=(.+)$/.exec(location.hash);
+    return m ? decodeURIComponent(m[1]) : null;
+  }
+
+  var initial = fromHash() || panels[0].getAttribute("data-node");
   if (!select(initial)) { select(panels[0].getAttribute("data-node")); }
+  // T18: a panel's "Superseded by" link is an in-page #node= link, so the hash can change
+  // without a pill being clicked.
+  window.addEventListener("hashchange", function () {
+    var id = fromHash();
+    if (id) { select(id); }
+  });
 })();

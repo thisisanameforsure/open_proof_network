@@ -1,0 +1,37 @@
+F04-T16 evidence — 2026-09-18
+
+## Live finding (before): the served header and the favicon
+content-security-policy: default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'
+GET /favicon.ico -> 404
+
+## Red first (before any fix): uv run --frozen pytest site/tests/test_finding_csp_fonts.py -q
+=========================== short test summary info ============================
+FAILED site/tests/test_finding_csp_fonts.py::test_the_policy_allows_the_fonts_the_static_tree_ships
+FAILED site/tests/test_finding_csp_fonts.py::test_the_site_ships_an_icon_and_every_page_names_it
+FAILED site/tests/test_finding_csp_fonts.py::test_the_deploy_check_reads_the_commit_the_footer_names
+3 failed, 2 passed in 2.14s
+
+## Green: uv run --frozen pytest site/tests/test_finding_csp_fonts.py -q
+.....                                                                    [100%]
+5 passed in 0.32s
+
+## Whole site suite: uv run --frozen pytest site/tests -q
+228 passed in 15.44s
+
+## Goldens: every changed line
+   9 +<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+
+## Stack update (2026-09-18): change set f04-t16-font-src on opn-site, every parameter UsePreviousValue
+changes: 1 — Modify ResponseHeaders (AWS::CloudFront::ResponseHeadersPolicy), Replacement False, scope Properties
+execute-change-set -> UPDATE_COMPLETE
+
+## Live header after
+content-security-policy: default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'; font-src 'self'
+
+## Live browser check (headless Chrome 153 through Playwright), https://openproofnetwork.org/problems/erdos-69/
+document.fonts after fonts.ready: 20 declared, loaded = KaTeX_Main 400 normal, KaTeX_Math 400 italic,
+KaTeX_Size2 400 normal (the three this page uses), status error = 0; .katex spans rendered = 6.
+Before the update the tester's browser logged 20 refusals and document.fonts reported none loaded.
+Console: no font refusal. Two refusals were this check's own fetch() probe of a font (connect-src
+falls back to default-src 'none'), which is the policy working; /favicon.ico still 404 until the
+site is redeployed with favicon.svg and its link (the next push).

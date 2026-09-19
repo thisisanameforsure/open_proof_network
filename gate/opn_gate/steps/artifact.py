@@ -33,6 +33,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
+from opn_gate import graph as graphmod
 from opn_gate import layout, records, schemas
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.steps.base import RunContext, StepResult
@@ -69,12 +70,18 @@ class Hole:
     #: extractor that predates the check reports no field, and its holes are taken as round-trips:
     #: the guard arrives with the re-pin that carries it, as every gate rule does (D-35).
     closed_roundtrip: bool = True
+    #: F07-T20 (R21): step 7's expected witness type for the node this hole becomes — exists over
+    #: the closed obligation's variables of the conjunction of its hypotheses — printed the way
+    #: ``closed_type`` is, and reported only when that text reads back to the same type. ``None``
+    #: from an older pin, or when it does not survive printing: the slot then claims nothing.
+    expected_witness: str | None = None
 
     @classmethod
     def of(cls, doc: dict[str, Any]) -> Hole:
         local = str(doc.get("type", ""))
         sibling = doc.get("defeq_sibling")
         roundtrip = doc.get("closed_roundtrip")
+        expected = doc.get("expected_witness")
         return cls(
             name=str(doc.get("name", "")),
             type=local,
@@ -82,6 +89,7 @@ class Hole:
             defeq_goal=bool(doc.get("defeq_goal")),
             defeq_sibling=str(sibling) if sibling else None,
             closed_roundtrip=True if roundtrip is None else bool(roundtrip),
+            expected_witness=str(expected) if isinstance(expected, str) and expected else None,
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -92,6 +100,7 @@ class Hole:
             "defeq_goal": self.defeq_goal,
             "defeq_sibling": self.defeq_sibling,
             "closed_roundtrip": self.closed_roundtrip,
+            "expected_witness": self.expected_witness,
         }
 
 
@@ -310,8 +319,7 @@ def sibling_candidates(nodes_dir: Path, node_id: str) -> list[str]:
             meta = schemas.load_yaml(node_dir / "META.yaml")
         except (OSError, schemas.SchemaError):
             continue
-        raw = meta.get("deps")
-        deps[node_dir.name] = [str(d) for d in raw] if isinstance(raw, list) else []
+        deps[node_dir.name] = list(graphmod.effective_deps(nodes_dir, meta.get("deps")))
     dependents: set[str] = set()
     pending = [node_id]
     while pending:

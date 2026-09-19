@@ -115,11 +115,14 @@ def off_frontier(ctx: Context, node_id: str, target_id: str | None) -> ApiError:
     facts = precheck.facts_of(*rows[0])
     if facts["status"] == "blocked":
         return precheck.blocked_error(node_id, facts, graph)
+    details = precheck.standing(ctx, node_id, facts)
+    successor = f" {details['replacement']} replaced it." if details["replacement"] else ""
     return ApiError(
         409,
         "node-not-open",
         f"{node_id} is {facts['status']} and not on the frontier at main; only an open node on "
-        "the frontier can be claimed (D-25)",
+        f"the frontier can be claimed (D-25).{successor}",
+        details=details,
     )
 
 

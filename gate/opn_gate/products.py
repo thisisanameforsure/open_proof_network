@@ -33,6 +33,7 @@ from opn_gate import (
     formalizations,
     intake,
     layout,
+    postmerge,
     qa,
     records,
     schemas,
@@ -50,7 +51,7 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 
 log = logging.getLogger(__name__)
 
-PROTOCOL_VERSION = "3.17"  # docs/architecture_decisions_v_3_12.html (v3.17, F15-R15)
+PROTOCOL_VERSION = "3.18"  # docs/architecture_decisions.html (v3.18, F08-R15)
 GRAPH_SCHEMA = "graph/v3"  # F12-R13: a related variant's relevance signature (v2: F07-R8)
 FRONTIER_SCHEMA = "frontier/v3"  # T7: attempts counts partials (v2, F11-R4: D-33 dormancy)
 #: F11-R12 renames D-9's second rung and F11-R3/R4 add the derived fields. v2 was already spent
@@ -626,6 +627,12 @@ class Products:
             for node_dir, status in sorted(self.meta_status.items()):
                 if graphmod.write_meta_status(root / node_dir, status):
                     written.append(node_dir / "META.yaml")
+            # F08-T10 (D-8 v3.18): the other bot-owned file. A revision puts its dependents'
+            # generated contexts out of date and no submission may mend one, so the job that
+            # renders the products after every merge regenerates them, in both directions.
+            for target_id in target_ids(root):
+                nodes_dir = layout.graph_nodes_dir(root, target_id)
+                written.extend(p.relative_to(root) for p in postmerge.refresh_contexts(nodes_dir))
         return written
 
 

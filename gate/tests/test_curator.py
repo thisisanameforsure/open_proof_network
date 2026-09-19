@@ -68,11 +68,29 @@ def latest_status(root: Path, node_id: str) -> records.StatusRecord:
 # --- AC13: revise --------------------------------------------------------------------------------
 
 
+def attest_proved(root: Path, node_id: str, n: int) -> None:
+    """The node's merged proof has its attestation, so it is *proved*, not just a file."""
+    statement = nodes_dir(root) / node_id / "Statement.lean"
+    doc = samples.attestation(
+        node_id=node_id,
+        statement_hash=schemas.content_hash(statement.read_bytes()),
+        merge_commit="4" * 40,
+        graph_commit="1" * 40,
+        runner="hosted",
+    )
+    (root / "attestations").mkdir(exist_ok=True)
+    (root / "attestations" / f"{n:06d}.json").write_bytes(schemas.canonical_json(doc))
+
+
 def test_revise_flow(tmp_path: Path) -> None:
     """AC13: N-v2 exists with supersedes N, N is superseded, D1 and D2 are stale with the
-    revision as cause, and the products reflect all of it."""
+    revision as cause, and the products reflect all of it. D1 and D2 are *proved* dependents:
+    since F08-T10 (D-8 v3.18) ``stale`` says a merged proof must be re-derived, and marks nothing
+    on a node that has none (``test_finding_revised_hole_parent.py``)."""
     root = copy_graph(tmp_path, publish=True)
     add_dependent(root, TUTORIAL, INTERIOR)  # D2; the root is D1 already
+    attest_proved(root, ROOT, 1)
+    attest_proved(root, TUTORIAL, 2)
     request = write_request(root, INTERIOR)
 
     revision = curator.revise(

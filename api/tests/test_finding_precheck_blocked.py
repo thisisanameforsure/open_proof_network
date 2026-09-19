@@ -44,6 +44,15 @@ def block_node(harness: Harness) -> None:
     frontier["entries"] = [e for e in frontier["entries"] if e["node_id"] != NODE]
     files[GRAPH_PATH] = json.dumps(graph).encode()
     files["frontier.json"] = json.dumps(frontier).encode()
+    # The dependency is a node of the tree, as any dep ``graph.json`` names is: since F08-T10
+    # the node bundle reads a node's deps from the graph product (through any revision), so a
+    # dep that exists only in a hand-edited graph.json would be unreadable, which no real graph
+    # can be.
+    files.setdefault(
+        f"{PREFIX}{UNPROVED_DEP}/Statement.lean",
+        b"theorem OpnProp.and_swap : \xe2\x88\x80 p q : Prop, p \xe2\x88\xa7 q \xe2\x86\x92 "
+        b"q \xe2\x88\xa7 p := by\n  sorry\n",
+    )
     harness.context.files.clear()
 
 

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>propositional · Open Proof Network</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/site.css">
 <link rel="stylesheet" href="/vendor/katex/katex.min.css">
 </head>
@@ -18,7 +19,7 @@
 <section class="problem-head">
 <div class="problem-head-main">
 <p class="crumbs"><a href="/problems/">Problems</a> / propositional</p>
-<div class="problem-id-row"><h1 class="mono">propositional</h1><span class="term tag" tabindex="0">open<span class="term-card" role="tooltip">Listed, has a steward, and its statements accept work.<span class="why">Not claimable: this target has no curated intake record (D-6).</span></span></span><span class="term tag tag-outline" tabindex="0">statement unchecked<span class="term-card" role="tooltip">Nobody other than its author has yet judged whether the Lean says what the conjecture says. The kernel cannot decide this; a person must.<span class="proto">protocol: fidelity: mechanical-only</span></span></span></div>
+<div class="problem-id-row"><h1 class="mono">propositional</h1><span class="term tag" tabindex="0">open<span class="term-card" role="tooltip">Listed, and its statements accept work.<span class="why">Not claimable: this target has no curated intake record (D-6).</span></span></span><span class="term tag tag-outline" tabindex="0">statement unchecked<span class="term-card" role="tooltip">Nobody other than its author has yet judged whether the Lean says what the conjecture says. The kernel cannot decide this; a person must.<span class="proto">protocol: fidelity: mechanical-only</span></span></span></div>
 <p class="informal-big">No informal statement is recorded for this problem yet.</p>
 <p class="provenance-line">No curated record yet.</p>
 <span class="stages"><span class="stage off"><span class="dot dot-blocked"></span>Proved</span><span class="stage off"><span class="dot dot-blocked"></span>Explained</span><span class="stage off"><span class="dot dot-blocked"></span>Written up</span></span>
@@ -31,7 +32,7 @@
 <div><h2>Statements</h2><p class="cue">3 statements. The problem's own statement is at the top; the rest are pieces its proof needs. Select one to see its record.</p></div>
 </div>
 <div class="graph-grid">
-<div class="dag-wrap card"><div class="dag-legend"><span class="term" tabindex="0"><span class="dot dot-proved"></span>proved<span class="term-card" role="tooltip">A proof passed all nine checks and was merged. Proved is not the same as explained.<span class="proto">protocol: proved</span></span></span><span class="term" tabindex="0"><span class="dot dot-open"></span>open<span class="term-card" role="tooltip">No proof has closed this statement and nothing blocks starting on it. Anyone may work on it now.<span class="proto">protocol: ready · on the frontier</span></span></span><span class="term" tabindex="0"><span class="dot dot-blocked"></span>blocked<span class="term-card" role="tooltip">Waits on other statements, or on a definition that has not been checked yet. Not accepting work.<span class="proto">protocol: blocked</span></span></span></div><div class="dag-scroll"><svg class="dag" viewBox="0 0 367 160" width="367" height="160" role="img" aria-label="dependency graph">
+<div class="dag-wrap card"><div class="dag-legend"><span class="term" tabindex="0"><span class="dot dot-proved"></span>proved<span class="term-card" role="tooltip">A proof passed all nine checks and was merged. Proved is not the same as explained.<span class="proto">protocol: proved</span></span></span><span class="term" tabindex="0"><span class="dot dot-open"></span>open<span class="term-card" role="tooltip">No proof has closed this statement and nothing blocks starting on it. Anyone may work on it now.<span class="proto">protocol: ready · on the frontier</span></span></span><span class="term" tabindex="0"><span class="dot dot-blocked"></span>blocked<span class="term-card" role="tooltip">Waits on other statements, or on a definition that has not been checked yet. Not accepting work. A statement waiting only for its witness is not blocked in this sense: it needs a witness.<span class="proto">protocol: blocked</span></span></span></div><div class="dag-scroll"><svg class="dag" viewBox="0 0 367 160" width="367" height="160" role="img" aria-label="dependency graph">
 <line class="edge" data-from="tutorial-and-swap" data-to="and-swap-reassoc" x1="261" y1="108" x2="183" y2="52"/>
 <line class="edge" data-from="and-reassoc" data-to="and-swap-reassoc" x1="82" y1="108" x2="183" y2="52"/>
 <a href="/nodes/propositional/and-reassoc/"><g class="node status-proved" data-node="and-reassoc" transform="translate(16,108)"><rect width="132" height="36" rx="8"/><circle cx="16" cy="18" r="4"/><text x="28" y="23">and-reassoc</text><circle class="halo" cx="118" cy="18" r="3"/><title>and-reassoc: proved</title></g></a>
@@ -42,7 +43,7 @@
 <div class="card panel" data-node="and-swap-reassoc">
 <span class="kicker">Selected statement</span>
 <span class="panel-id">and-swap-reassoc</span>
-<dl class="panel-facts"><dt>status</dt><dd><span class="dot dot-open"></span>open</dd><dt>attempts</dt><dd>2 attempts</dd></dl>
+<dl class="panel-facts"><dt>status</dt><dd><span class="dot dot-open"></span>open</dd><dt>attempts</dt><dd>3 attempts</dd></dl>
 <p class="panel-note">The problem&#x27;s statement; open.</p>
 <pre class="lean statement st-open">theorem OpnProp.and_swap_reassoc : ∀ p q r : Prop, (p ∧ q) ∧ r → r ∧ (q ∧ p) := by
   sorry</pre>
@@ -88,7 +89,7 @@
 <p class="informal">No informal statement is recorded for this target yet (D-6 intake, F11).</p>
 
 
-<p>Fast check (POST /check, non-authoritative): lean-4.33.1 on AXLE (nearest: a Lean-core-only statement is checked under the environment&#x27;s `import Mathlib` header, so a name Mathlib also defines could elaborate differently there than in the gate). Rendered from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/graph.json">targets/propositional/graph.json</a>.</p>
+<p>Fast check (<a href="/docs/#agents">POST /check</a>, non-authoritative): lean-4.33.1 on AXLE (nearest: a Lean-core-only statement is checked under the environment&#x27;s `import Mathlib` header, so a name Mathlib also defines could elaborate differently there than in the gate). Rendered from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/graph.json">targets/propositional/graph.json</a>.</p>
 <p class="review">A proof of this statement waits for a non-author&#x27;s approving review on its pull request: the root has no counting signature and no catalog evidence at the high grade (D-4 step 9).</p>
 <h2>Does the Lean say the conjecture?</h2>
 <p class="cue">What the mechanizable pass checked on each subject, who signed, the attempts that count, and whether the statement moved upstream.</p>

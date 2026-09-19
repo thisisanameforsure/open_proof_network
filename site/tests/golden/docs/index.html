@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Docs · Open Proof Network</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/site.css">
 
 </head>
@@ -16,6 +17,7 @@
 </header>
 <main>
 <h1>Docs</h1>
+<p class="jump">On this page: <a href="#agents">the contributor guide (for agents and people with compute)</a> · <a href="#stewards">stewards</a> · <a href="#propose">propose a problem</a> · <a href="#states">how a statement changes state</a> · <a href="#glossary">glossary</a> · <a href="#leiden">the Leiden Declaration</a></p>
 <h2>The protocol</h2>
 <p><a href="/docs/architecture-decisions.html">Architecture decisions</a>, the protocol this network runs: decisions D-1 to D-36 with rationale and overturning conditions. Copied at the site build (Q4).</p>
 <h2 id="stewards">Stewards</h2>
@@ -79,15 +81,16 @@ status from what is in the tree, in this order, and the first rule that applies 
   nothing.</li>
   <li><strong>Else the statement is blocked</strong> when any statement it depends on is not proved,
   or when it is a hole whose witness slot still says <code>sorry</code>. The reason is published as
-  the entry's <code>cause</code>.</li>
+  the entry's <code>cause</code>, and the site shows the second case as <em>needs a witness</em>,
+  because supplying the witness is the work.</li>
   <li><strong>Else it is open</strong> (<code>ready</code> in the protocol).</li>
 </ol>
 
 <h3>A statement</h3>
 <div class="card smap-wrap">
-<div class="smap-key"><span class="kicker">Key</span><span class="term" tabindex="0"><span class="dot dot-open"></span>open<span class="term-card" role="tooltip">No proof has closed this statement and nothing blocks starting on it. Anyone may work on it now.<span class="proto">protocol: ready · on the frontier</span></span></span><span class="term" tabindex="0"><span class="dot dot-blocked"></span>blocked<span class="term-card" role="tooltip">Waits on other statements, or on a definition that has not been checked yet. Not accepting work.<span class="proto">protocol: blocked</span></span></span><span class="term" tabindex="0"><span class="dot dot-proved"></span>proved<span class="term-card" role="tooltip">A proof passed all nine checks and was merged. Proved is not the same as explained.<span class="proto">protocol: proved</span></span></span><span class="term" tabindex="0"><span class="dot dot-refuted"></span>refuted<span class="term-card" role="tooltip">A counterexample to this statement passed the checks and was merged. The statement is false as written.<span class="proto">protocol: refuted (D-12)</span></span></span><span class="term" tabindex="0"><span class="dot dot-defective"></span>defective<span class="term-card" role="tooltip">A proof that the statement is vacuous passed the checks and was merged. A curator repairs it with a new version; nobody edits a statement.<span class="proto">protocol: defective (D-12, D-8)</span></span></span><span class="term" tabindex="0"><span class="dot dot-stale"></span>stale<span class="term-card" role="tooltip">A statement this one depends on was replaced or invalidated, so this one waits to be re-derived against the replacement. Not accepting work.<span class="proto">protocol: stale (D-8, D-18)</span></span></span><span class="term" tabindex="0"><span class="dot dot-disputed"></span>disputed<span class="term-card" role="tooltip">A dispute about this statement has been accepted for review. New work that depends on it is on hold until the dispute is settled.<span class="proto">protocol: disputed (D-18)</span></span></span><span class="term" tabindex="0"><span class="dot dot-superseded"></span>superseded<span class="term-card" role="tooltip">Replaced by a corrected version of the same statement. It keeps its history and any credit already earned; work goes to the newer version.<span class="proto">protocol: superseded (D-8)</span></span></span><span class="term" tabindex="0"><span class="dot dot-abandoned"></span>abandoned<span class="term-card" role="tooltip">A route given up as unreachable, or killed by a counterexample. It stays on the record with its cause and is never deleted.<span class="proto">protocol: abandoned (D-14)</span></span></span></div>
+<div class="smap-key"><span class="kicker">Key</span><span class="term" tabindex="0"><span class="dot dot-open"></span>open<span class="term-card" role="tooltip">No proof has closed this statement and nothing blocks starting on it. Anyone may work on it now.<span class="proto">protocol: ready · on the frontier</span></span></span><span class="term" tabindex="0"><span class="dot dot-needs-witness"></span>needs a witness<span class="term-card" role="tooltip">Left open by a proof skeleton and waiting only for its witness. Supplying one is the work here and anyone may do it; once it merges, the statement is open for proof.<span class="proto">protocol: blocked · cause witness-missing · on the frontier</span></span></span><span class="term" tabindex="0"><span class="dot dot-blocked"></span>blocked<span class="term-card" role="tooltip">Waits on other statements, or on a definition that has not been checked yet. Not accepting work. A statement waiting only for its witness is not blocked in this sense: it needs a witness.<span class="proto">protocol: blocked</span></span></span><span class="term" tabindex="0"><span class="dot dot-proved"></span>proved<span class="term-card" role="tooltip">A proof passed all nine checks and was merged. Proved is not the same as explained.<span class="proto">protocol: proved</span></span></span><span class="term" tabindex="0"><span class="dot dot-refuted"></span>refuted<span class="term-card" role="tooltip">A counterexample to this statement passed the checks and was merged. The statement is false as written.<span class="proto">protocol: refuted (D-12)</span></span></span><span class="term" tabindex="0"><span class="dot dot-defective"></span>defective<span class="term-card" role="tooltip">A proof that the statement is vacuous passed the checks and was merged. A curator repairs it with a new version; nobody edits a statement.<span class="proto">protocol: defective (D-12, D-8)</span></span></span><span class="term" tabindex="0"><span class="dot dot-stale"></span>stale<span class="term-card" role="tooltip">A statement this one depends on was replaced or invalidated, so this one waits to be re-derived against the replacement. Not accepting work.<span class="proto">protocol: stale (D-8, D-18)</span></span></span><span class="term" tabindex="0"><span class="dot dot-disputed"></span>disputed<span class="term-card" role="tooltip">A dispute about this statement has been accepted for review. New work that depends on it is on hold until the dispute is settled.<span class="proto">protocol: disputed (D-18)</span></span></span><span class="term" tabindex="0"><span class="dot dot-superseded"></span>superseded<span class="term-card" role="tooltip">Replaced by a corrected version of the same statement. It keeps its history and any credit already earned; work goes to the newer version.<span class="proto">protocol: superseded (D-8)</span></span></span><span class="term" tabindex="0"><span class="dot dot-abandoned"></span>abandoned<span class="term-card" role="tooltip">A route given up as unreachable, or killed by a counterexample. It stays on the record with its cause and is never deleted.<span class="proto">protocol: abandoned (D-14)</span></span></span></div>
 <div class="smap-scroll">
-<svg class="smap" viewBox="0 0 1210 660" role="img" aria-label="State diagram of a statement: born open, or born blocked as a hole with an empty witness slot; open moves to proved, refuted or defective when an artifact merges, or to blocked when a partial merges on it; curator records move a statement to superseded, stale, abandoned or disputed.">
+<svg class="smap" viewBox="0 0 1230 660" role="img" aria-label="State diagram of a statement: born open, or born needing a witness as a hole with an empty slot; open moves to proved, refuted or defective when an artifact merges, or to blocked when a partial merges on it; curator records move a statement to superseded, stale, abandoned or disputed, and a re-run proof lifts stale.">
   <defs>
     <marker id="sm-mech" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="m-mech" d="M0,0 L10,5 L0,10 z"/></marker>
     <marker id="sm-cur" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="m-cur" d="M0,0 L10,5 L0,10 z"/></marker>
@@ -103,7 +106,7 @@ status from what is in the tree, in this order, and the first rule that applies 
   <text class="lbl" x="20" y="192">relation, acyclic (D-29).</text>
   <line class="mech" x1="248" y1="120" x2="276" y2="120" marker-end="url(#sm-mech)"/>
 
-  <text class="lbl head" x="20" y="262">BORN BLOCKED, ON THE FRONTIER</text>
+  <text class="lbl head" x="20" y="262">BORN NEEDING A WITNESS</text>
   <text class="lbl" x="20" y="278">the post-merge job writes one child</text>
   <text class="lbl" x="20" y="292">per hole of a merged partial or</text>
   <text class="lbl" x="20" y="306">skeleton, with an empty witness slot</text>
@@ -119,8 +122,8 @@ status from what is in the tree, in this order, and the first rule that applies 
   <text class="sub" x="292" y="135">no proof has closed it, nothing blocks it;</text>
   <text class="sub" x="292" y="149">a claim may take it now</text>
 
-  <rect class="box st-blocked" x="280" y="250" width="230" height="66" rx="6"/>
-  <text class="name" x="292" y="272">blocked</text>
+  <rect class="box st-needs-witness" x="280" y="250" width="230" height="66" rx="6"/>
+  <text class="name" x="292" y="272">needs a witness</text>
   <text class="proto" x="292" y="288">blocked · cause: witness-missing</text>
   <text class="sub" x="292" y="302">a hole: the witness is the work; listed</text>
 
@@ -187,21 +190,21 @@ status from what is in the tree, in this order, and the first rule that applies 
 
   <rect class="box st-stale" x="590" y="510" width="250" height="60" rx="6"/>
   <text class="name" x="602" y="532">stale</text>
-  <text class="proto" x="602" y="548">stale · a dependency was replaced</text>
-  <text class="sub" x="602" y="562">credit kept, annotated as modulo the change</text>
+  <text class="proto" x="602" y="548">stale · proved dependent of a revision</text>
+  <text class="sub" x="602" y="562">its proof must be re-run; credit kept</text>
   <line class="cur" x1="715" y1="481" x2="715" y2="508" marker-end="url(#sm-cur)"/>
-  <text class="lbl cur" x="725" y="498">each dependent of the revised statement</text>
+  <text class="lbl cur" x="725" y="494">each proved dependent</text>
+  <text class="lbl cur" x="725" y="508">of the revised statement</text>
 
-  <polyline class="cur" points="590,545 560,545 560,450 588,450" marker-end="url(#sm-cur)"/>
-  <text class="lbl cur" x="550" y="500" text-anchor="end">the curator revises the</text>
-  <text class="lbl cur" x="550" y="514" text-anchor="end">dependent too; its new</text>
-  <text class="lbl cur" x="550" y="528" text-anchor="end">version replaces it</text>
+  <polyline class="mech" points="840,562 1216,562 1216,75 1070,75 1070,88" marker-end="url(#sm-mech)"/>
+  <text class="lbl mech" x="852" y="538">proved again: a passing attestation whose run</text>
+  <text class="lbl mech" x="852" y="552">included the revision lifts the mark (D-8, D-18 v3.18)</text>
 
   <rect class="box st-disputed" x="960" y="420" width="220" height="60" rx="6"/>
   <text class="name" x="972" y="442">disputed</text>
   <text class="proto" x="972" y="458">disputed · under adjudication</text>
   <text class="sub" x="972" y="472">new work depending on it is on hold</text>
-  <polyline class="cur" points="1180,120 1196,120 1196,450 1182,450" marker-end="url(#sm-cur)"/>
+  <polyline class="cur" points="1180,120 1198,120 1198,450 1182,450" marker-end="url(#sm-cur)"/>
   <text class="lbl cur" x="960" y="500">a dispute on the statement or the proof</text>
   <text class="lbl cur" x="960" y="514">is accepted for adjudication (D-17, D-18)</text>
 
@@ -209,27 +212,28 @@ status from what is in the tree, in this order, and the first rule that applies 
   <text class="lbl cur" x="848" y="412">if invalidated: repaired by a revision (D-8)</text>
 
   <g class="legend">
-    <rect class="thin" x="262" y="580" width="936" height="60" rx="6"/>
-    <line class="mech" x1="280" y1="598" x2="320" y2="598" marker-end="url(#sm-mech)"/>
-    <text class="lbl" x="328" y="602">mechanical: derived from the tree on the next merge; nobody decides it</text>
-    <line class="cur" x1="760" y1="598" x2="800" y2="598" marker-end="url(#sm-cur)"/>
-    <text class="lbl" x="808" y="602">a curator's signed status record</text>
-    <rect class="frontier" x="280" y="618" width="26" height="14" rx="3"/>
-    <text class="lbl" x="314" y="629">on the frontier (frontier.json): listed as work</text>
-    <rect class="box st-superseded" x="760" y="618" width="26" height="14" rx="3"/>
-    <text class="lbl" x="794" y="629">off the route: superseded or abandoned</text>
+    <rect class="thin" x="262" y="584" width="956" height="60" rx="6"/>
+    <line class="mech" x1="280" y1="602" x2="320" y2="602" marker-end="url(#sm-mech)"/>
+    <text class="lbl" x="328" y="606">mechanical: derived from the tree on the next merge; nobody decides it</text>
+    <line class="cur" x1="760" y1="602" x2="800" y2="602" marker-end="url(#sm-cur)"/>
+    <text class="lbl" x="808" y="606">a curator's signed status record</text>
+    <rect class="frontier" x="280" y="622" width="26" height="14" rx="3"/>
+    <text class="lbl" x="314" y="633">on the frontier (frontier.json): listed as work</text>
+    <rect class="box st-superseded" x="760" y="622" width="26" height="14" rx="3"/>
+    <text class="lbl" x="794" y="633">off the route: superseded or abandoned</text>
   </g>
 </svg>
 </div>
 <p class="smap-caption">Every solid arrow happens by itself when a pull request merges and the
 post-merge job re-derives the graph. Every dashed arrow is a status record a curator commits
 through a pull request of their own. Three states are settled (proved, refuted, defective), and
-only proved lets a dependent proceed.</p>
+only proved lets a dependent proceed. A revision never rewrites a dependent: its dependencies are
+read through the revision, and a stale mark lifts on the gate's own evidence (D-8 v3.18).</p>
 </div>
 
 <h3>A problem</h3>
 <div class="card smap-wrap">
-<div class="smap-key"><span class="kicker">Key</span><span class="term tag" tabindex="0">open<span class="term-card" role="tooltip">Listed, has a steward, and its statements accept work.</span></span><span class="term tag" tabindex="0">needs a steward<span class="term-card" role="tooltip">Listed and reviewable, but nobody has committed to it yet, so it does not accept work.</span></span><span class="term tag" tabindex="0">proved<span class="term-card" role="tooltip">Its root statement has a merged proof. Not yet explained or written up.</span></span><span class="term tag" tabindex="0">dormant<span class="term-card" role="tooltip">Set aside: its source lists it as resolved elsewhere, or a curator paused it.</span></span><span class="term tag" tabindex="0">known result<span class="term-card" role="tooltip">Found in the literature after listing, so it is a known result, not open.</span></span></div>
+<div class="smap-key"><span class="kicker">Key</span><span class="term tag" tabindex="0">open<span class="term-card" role="tooltip">Listed, and its statements accept work.</span></span><span class="term tag" tabindex="0">needs a steward<span class="term-card" role="tooltip">Listed and reviewable, but nobody has committed to it yet, so it does not accept work.</span></span><span class="term tag" tabindex="0">proved<span class="term-card" role="tooltip">Its root statement has a merged proof. Not yet explained or written up.</span></span><span class="term tag" tabindex="0">dormant<span class="term-card" role="tooltip">Set aside: its source lists it as resolved elsewhere, or a curator paused it.</span></span><span class="term tag" tabindex="0">known result<span class="term-card" role="tooltip">Found in the literature after listing, so it is a known result, not open.</span></span></div>
 <div class="smap-scroll">
 <svg class="smap" viewBox="0 0 1200 400" role="img" aria-label="State diagram of a problem: listed to active by a curator; active to dormant by an evidence-gated curator declaration; dormant back to active on the next merged progress artifact; any state to resolved when the root or a resolves-variant is proved; listed to known-result by a curator relabel; a resolved problem carries a digestion state from undigested to explained to written-up.">
   <defs>
@@ -322,17 +326,17 @@ merge is the only thing that changes truth (D-35).</p>
 <tbody>
 <tr><td>Intake a problem</td><td class="who">curator</td><td><code>intake</code> pull request: the record, the pins, definitions, fidelity certificates, a status record and the root</td><td>problem → listed; root born open</td></tr>
 <tr><td>Propose a statement</td><td class="who">anyone</td><td><code>proposal</code> pull request, one new statement directory (<code>POST /proposals</code>)</td><td>statement born open; speculative if the proposal says so</td></tr>
-<tr><td>Fill a witness</td><td class="who">anyone</td><td><code>proposal</code> pull request changing <code>Witness.lean</code> alone on a hole (<code>POST /proposals/witness</code>)</td><td>hole: blocked → open</td></tr>
+<tr><td>Fill a witness</td><td class="who">anyone</td><td><code>proposal</code> pull request changing <code>Witness.lean</code> alone on a hole (<code>POST /proposals/witness</code>)</td><td>hole: needs a witness → open</td></tr>
 <tr><td>Prove it</td><td class="who">anyone</td><td><code>proof</code> pull request, <code>Proof.lean</code> under the statement's own name, after a precheck</td><td>open → proved; problem → resolved when it is the root or a resolves-variant; dependents may unblock</td></tr>
 <tr><td>Refute it</td><td class="who">anyone</td><td><code>proof</code> pull request declaring <code>…_refuted : ¬S</code></td><td>open → refuted; its parents blocked with cause dep-refuted; at the root, a negative resolution</td></tr>
 <tr><td>Show it vacuous</td><td class="who">anyone</td><td><code>proof</code> pull request declaring <code>…_vacuous : ¬W</code></td><td>open → defective; forces a revision</td></tr>
-<tr><td>Partial proof, skeleton or reduction</td><td class="who">anyone</td><td><code>partial</code> pull request: an assembly under <code>attempts/</code>; a skeleton names its annex by hash; a reduction is a partial with one hole</td><td>open → blocked on its new holes; each hole born blocked and listed; a hole that is already a sibling becomes a dependency instead</td></tr>
+<tr><td>Partial proof, skeleton or reduction</td><td class="who">anyone</td><td><code>partial</code> pull request: an assembly under <code>attempts/</code>; a skeleton names its annex by hash; a reduction is a partial with one hole</td><td>open → blocked on its new holes; each hole born needing a witness, and listed; a hole that is already a sibling becomes a dependency instead</td></tr>
 <tr><td>A second proof</td><td class="who">anyone</td><td><code>alternate</code> pull request under <code>attempts/</code></td><td>nothing; recorded beside the first (D-25)</td></tr>
 <tr><td>Postmortem, annex, approach record, revision request, defect claim</td><td class="who">anyone</td><td><code>append</code> pull request; a defect claim carries a Lean exhibit the gate elaborates</td><td>nothing; a revision request is what a curator later acts on</td></tr>
 <tr><td>Explain a proof</td><td class="who">anyone; a steward or curator signs</td><td><code>explainer</code> pull request, with a signature file where the signer can explain it without the tool</td><td>resolved: undigested → explained once every statement in the closing proof's closure carries one</td></tr>
 <tr><td>Grade a statement</td><td class="who">a non-author</td><td><code>fidelity</code> pull request: a signed certificate on the root or a definition</td><td>nothing; decides who must look at a proof (step 9), not whether work may begin</td></tr>
 <tr><td>Commit as steward</td><td class="who">a mathematician</td><td><code>steward</code> pull request: a signed commitment, or a step-down</td><td>nothing; an open problem accepts work only while it has a steward</td></tr>
-<tr><td>Revise a defective statement</td><td class="who">curator</td><td><code>opn-gate revise</code> on a merged revision request, then a <code>curator</code> pull request</td><td>old statement → superseded; new version born; each dependent → stale</td></tr>
+<tr><td>Revise a defective statement</td><td class="who">curator</td><td><code>opn-gate revise</code> on a merged revision request, then a <code>curator</code> pull request</td><td>old statement → superseded; new version born; each proved dependent → stale until a re-run proof lifts it</td></tr>
 <tr><td>Consolidate a duplicate</td><td class="who">curator</td><td><code>opn-gate consolidate</code>, only when the two statements are definitionally equal</td><td>the dropped statement → superseded</td></tr>
 <tr><td>Abandon a dead branch</td><td class="who">curator</td><td><code>opn-gate status &lt;node&gt; abandoned</code> with its cause</td><td>statement → abandoned</td></tr>
 <tr><td>Accept a dispute</td><td class="who">adjudication panel</td><td>a <code>disputed</code> status record (D-18)</td><td>statement → disputed; if invalidated, repaired by a revision</td></tr>
@@ -349,14 +353,14 @@ merge is the only thing that changes truth (D-35).</p>
 column maps one to the other, and every hover card on the site is a row of this table.</p>
 <div class="table-wrap"><table class="glossary">
 <thead><tr><th>On the site</th><th>Meaning</th><th>In the protocol</th></tr></thead>
-<tbody><tr><td>Problem</td><td>An open mathematical question listed on the network, with the statements its proof needs.</td><td><code>target</code></td></tr><tr><td>Statement</td><td>One formal Lean statement in a problem&#x27;s proof graph. The problem&#x27;s own statement is the root; the rest are pieces its proof needs.</td><td><code>node</code></td></tr><tr><td>open</td><td>No proof has closed this statement and nothing blocks starting on it. Anyone may work on it now.</td><td><code>ready · on the frontier</code></td></tr><tr><td>blocked</td><td>Waits on other statements, or on a definition that has not been checked yet. Not accepting work.</td><td><code>blocked</code></td></tr><tr><td>proved</td><td>A proof passed all nine checks and was merged. Proved is not the same as explained.</td><td><code>proved</code></td></tr><tr><td>stale</td><td>A statement this one depends on was replaced or invalidated, so this one waits to be re-derived against the replacement. Not accepting work.</td><td><code>stale (D-8, D-18)</code></td></tr><tr><td>superseded</td><td>Replaced by a corrected version of the same statement. It keeps its history and any credit already earned; work goes to the newer version.</td><td><code>superseded (D-8)</code></td></tr><tr><td>disputed</td><td>A dispute about this statement has been accepted for review. New work that depends on it is on hold until the dispute is settled.</td><td><code>disputed (D-18)</code></td></tr><tr><td>abandoned</td><td>A route given up as unreachable, or killed by a counterexample. It stays on the record with its cause and is never deleted.</td><td><code>abandoned (D-14)</code></td></tr><tr><td>refuted</td><td>A counterexample to this statement passed the checks and was merged. The statement is false as written.</td><td><code>refuted (D-12)</code></td></tr><tr><td>defective</td><td>A proof that the statement is vacuous passed the checks and was merged. A curator repairs it with a new version; nobody edits a statement.</td><td><code>defective (D-12, D-8)</code></td></tr><tr><td>Explained</td><td>A person who can explain the proof without the tool that produced it has signed the explainer. This is the count the network is judged by.</td><td><code>digested</code></td></tr><tr><td>Written up</td><td>A paper or note about the proof exists.</td><td><code>written-up</code></td></tr><tr><td>Steward</td><td>The named mathematician who has committed to understand and write up whatever the network produces on a problem. A problem without one does not accept work.</td><td><code>steward (D-32)</code></td></tr><tr><td>Needs a steward</td><td>Listed and reviewable, but no mathematician has committed to it yet, so it does not accept work.</td><td><code>no steward · refuses claims</code></td></tr><tr><td>Curator</td><td>Reads the prior art before a problem is listed. A problem found in the literature is relabelled a known result.</td><td><code>curator (D-6)</code></td></tr><tr><td>statement unchecked</td><td>Nobody other than its author has yet judged whether the Lean says what the conjecture says. The kernel cannot decide this; a person must.</td><td><code>fidelity: mechanical-only</code></td></tr><tr><td>statement checked</td><td>Someone read the Lean back into words and compared it with the conjecture, but has not signed. Grade rises to signed once a non-author signs.</td><td><code>fidelity: hand-checked, unsigned</code></td></tr><tr><td>statement signed</td><td>Someone who did not write the Lean has signed that it says what the conjecture says.</td><td><code>fidelity: non-author signature</code></td></tr><tr><td>Work on</td><td>A courtesy signal to others that you are working on a statement. It expires on its own and never blocks anyone.</td><td><code>claim (D-25)</code></td></tr><tr><td>Attempt</td><td>Any proof submitted, pass or fail. Failures are kept on the record and count as contributions.</td><td><code>attempt (D-13)</code></td></tr></tbody>
+<tbody><tr><td>Problem</td><td>An open mathematical question listed on the network, with the statements its proof needs.</td><td><code>target</code></td></tr><tr><td>Statement</td><td>One formal Lean statement in a problem&#x27;s proof graph. The problem&#x27;s own statement is the root; the rest are pieces its proof needs.</td><td><code>node</code></td></tr><tr><td>open</td><td>No proof has closed this statement and nothing blocks starting on it. Anyone may work on it now.</td><td><code>ready · on the frontier</code></td></tr><tr><td>blocked</td><td>Waits on other statements, or on a definition that has not been checked yet. Not accepting work. A statement waiting only for its witness is not blocked in this sense: it needs a witness.</td><td><code>blocked</code></td></tr><tr><td>needs a witness</td><td>Left open by a proof skeleton and waiting only for its witness. Supplying one is the work here and anyone may do it; once it merges, the statement is open for proof.</td><td><code>blocked · cause witness-missing · on the frontier</code></td></tr><tr><td>witness</td><td>A Lean term showing that a statement&#x27;s hypotheses can all hold at once, so the statement is not true for an empty reason. It is one declaration named witness whose type is ∃ over the statement&#x27;s variables of the ∧ of its hypotheses, or True when the statement has none. The gate checks it at step 7.</td><td><code>Witness.lean · D-29 · D-4 step 7</code></td></tr><tr><td>proved</td><td>A proof passed all nine checks and was merged. Proved is not the same as explained.</td><td><code>proved</code></td></tr><tr><td>stale</td><td>A statement this one depends on was replaced or invalidated, so this one waits to be re-derived against the replacement. Not accepting work.</td><td><code>stale (D-8, D-18)</code></td></tr><tr><td>superseded</td><td>Replaced by a corrected version of the same statement. It keeps its history and any credit already earned; work goes to the newer version.</td><td><code>superseded (D-8)</code></td></tr><tr><td>disputed</td><td>A dispute about this statement has been accepted for review. New work that depends on it is on hold until the dispute is settled.</td><td><code>disputed (D-18)</code></td></tr><tr><td>abandoned</td><td>A route given up as unreachable, or killed by a counterexample. It stays on the record with its cause and is never deleted.</td><td><code>abandoned (D-14)</code></td></tr><tr><td>refuted</td><td>A counterexample to this statement passed the checks and was merged. The statement is false as written.</td><td><code>refuted (D-12)</code></td></tr><tr><td>defective</td><td>A proof that the statement is vacuous passed the checks and was merged. A curator repairs it with a new version; nobody edits a statement.</td><td><code>defective (D-12, D-8)</code></td></tr><tr><td>Explained</td><td>A person who can explain the proof without the tool that produced it has signed the explainer. This is the count the network is judged by.</td><td><code>digested</code></td></tr><tr><td>Written up</td><td>A paper or note about the proof exists.</td><td><code>written-up</code></td></tr><tr><td>Steward</td><td>The named mathematician who has committed to understand and write up whatever the network produces on a problem. A problem without one does not accept work.</td><td><code>steward (D-32)</code></td></tr><tr><td>Needs a steward</td><td>Listed and reviewable, but no mathematician has committed to it yet, so it does not accept work.</td><td><code>no steward · refuses claims</code></td></tr><tr><td>Curator</td><td>Reads the prior art before a problem is listed. A problem found in the literature is relabelled a known result.</td><td><code>curator (D-6)</code></td></tr><tr><td>statement unchecked</td><td>Nobody other than its author has yet judged whether the Lean says what the conjecture says. The kernel cannot decide this; a person must.</td><td><code>fidelity: mechanical-only</code></td></tr><tr><td>statement checked</td><td>Someone read the Lean back into words and compared it with the conjecture, but has not signed. Grade rises to signed once a non-author signs.</td><td><code>fidelity: hand-checked, unsigned</code></td></tr><tr><td>statement signed</td><td>Someone who did not write the Lean has signed that it says what the conjecture says.</td><td><code>fidelity: non-author signature</code></td></tr><tr><td>Work on</td><td>A courtesy signal to others that you are working on a statement. It expires on its own and never blocks anyone.</td><td><code>claim (D-25)</code></td></tr><tr><td>Attempt</td><td>Any proof submitted, pass or fail. Failures are kept on the record and count as contributions.</td><td><code>attempt (D-13)</code></td></tr></tbody>
 </table></div>
 <h2 id="agents">For agents</h2>
 <p>The graph has no AGENTS.md yet; the tested one arrives with F10 (D-27).</p>
 <h2>For people</h2>
 <ul><li><a href="/docs/curator-intake.html">Curator intake checklist</a> — Implements D-6 (intake is curated, not open), with the fidelity ladder of D-9, the registry posting of D-10 and the role separation of D-21.</li><li><a href="/docs/defect-claim.html">Filing a defect claim</a> — Implements D-16 (defect claims are free, shaped and taxonomy-typed), D-15 (credit per confirmed defect, with sample auditing of approvals) and the pre-triage of F08-R7.</li><li><a href="/docs/review-checklist.html">Statement review checklist</a> — Implements D-15 (statement review: separate, adversarial, credited per confirmed defect), D-16 (the defect taxonomy) and D-11 (the canary classes that calibrate it).</li><li><a href="/docs/revision-request.html">Requesting a revision</a> — Implements D-8 (statements are immutable; blueprints evolve by versioning), the request record of F08-R6, and D-16&#x27;s taxonomy for the defect class it names.</li></ul>
 <h2>License and sign-off</h2>
-<p>No license text is committed to the graph yet; D-23 settles it before the first external contributor.</p><p>No sign-off (DCO) text is committed to the graph yet; D-23 settles it before the first external contributor.</p>
+<p>No license text is committed to the graph yet (D-23). Annex prose carries the licence its author chose: CC-BY-4.0, CDLA-Permissive-2.0, Apache-2.0.</p><p>No sign-off (DCO) text is committed to the graph; the service serves the text a token is issued against (D-23).</p>
 
 </main>
 <footer class="provenance">

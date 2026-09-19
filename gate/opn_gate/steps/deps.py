@@ -15,6 +15,7 @@ import re
 import subprocess
 from pathlib import Path
 
+from opn_gate import graph as graphmod
 from opn_gate import layout, schemas
 from opn_gate.steps.base import RunContext, StepResult
 from opn_gate.steps.replay import PROOF_MODULE
@@ -86,8 +87,8 @@ class DepsStep:
         tc: ResolvedToolchain | None = ctx.data.get("toolchain")
         if node is None or tc is None:
             return StepResult.failed("step-order", "step 8 needs steps 1 and 2 to have passed")
-        raw_deps = node.meta.get("deps")
-        declared = [str(d) for d in raw_deps] if isinstance(raw_deps, list) else []
+        # F08-T10 (D-8 v3.18): the declared deps as they stand now, read through any revision.
+        declared = list(graphmod.effective_deps(node.path.parent, node.meta.get("deps")))
 
         context_problem = self._check_context(node, declared)
         if context_problem is not None:

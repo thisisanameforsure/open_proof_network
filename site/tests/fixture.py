@@ -12,8 +12,9 @@ from pathlib import Path
 import samples
 import yaml
 from harness import TARGET, copy_graph
+from test_finding_hole_frontier import write_hole
 
-from opn_gate import products, schemas
+from opn_gate import curator, products, schemas
 
 COMMIT = "6" * 40
 MERGE = "4" * 40
@@ -23,6 +24,14 @@ EXPLAINER = (
     "Swap the two halves of the conjunction.\n\n<script>alert(1)</script>\n"
 )
 ANNEX = "Informal sketch <img src=x onerror=alert(1)> with & and <b>tags</b>.\n"
+#: T15: a partial assembly a postmortem names, and one nothing names — the live graph carries
+#: both. The payload rides in the Lean so the escaping tests cover an artifact, not only prose.
+PARTIAL = (
+    "theorem partial_swap : ∀ p q : Prop, p ∧ q → q ∧ p := by\n"
+    "  intro p q h -- <script>alert(1)</script>\n"
+    "  sorry\n"
+)
+UNNAMED_PARTIAL = "theorem unnamed_route : ∀ p : Prop, p → p := by\n  sorry\n"
 
 
 def nodes_dir(root: Path) -> Path:
@@ -30,6 +39,13 @@ def nodes_dir(root: Path) -> Path:
 
 
 def attest(root: Path, node_id: str, n: int, **kw: object) -> None:
+    # The attestation covers the Proof.lean in the tree, as a live one does: every proved node
+    # on the graph has artifact_hash equal to its proof's sha256 (checked 2026-09-18, 8 of 8).
+    # The sample's placeholder would leave every fixture proof unverifiable against its record.
+    proof = nodes_dir(root) / node_id / "Proof.lean"
+    covered: dict[str, object] = (
+        {"artifact_hash": schemas.content_hash(proof.read_bytes())} if proof.is_file() else {}
+    )
     doc = samples.attestation(
         node_id=node_id,
         statement_hash=schemas.content_hash(
@@ -39,29 +55,87 @@ def attest(root: Path, node_id: str, n: int, **kw: object) -> None:
         graph_commit=MERGE,
         runner="hosted",
         review={"kind": "pr-approval", "reviewer": "reviewer-one", "reference": None},
-        **kw,
+        **{**covered, **kw},
     )
     att = root / "attestations"
     att.mkdir(exist_ok=True)
     (att / f"{n:06d}.json").write_bytes(schemas.canonical_json(doc))
 
 
+#: T15: the sample attestation lists steps 1, 2, 4 and 5 only, so nothing in it names step 7 —
+#: the step a live attestation always carries (checked on the graph's own attestations). The
+#: tutorial's run carries it, so the witness block's "checked at step 7" branch is reachable by
+#: a test and not only by the live graph.
+WITNESS_STEP = {"step": 7, "name": "witness", "result": "pass", "diagnostic": None}
+
+
 def build(tmp_path: Path) -> Path:
     """The graph in its curated state with products written; returns the checkout root."""
+    root = curated(tmp_path)
+    prod = products.generate(root, rendered_from=COMMIT, commit_time=NOW)
+    prod.write(root)
+    return root
+
+
+def curated(tmp_path: Path) -> Path:
+    """``build`` before its products are rendered, so a builder can grow the tree first."""
     root = copy_graph(tmp_path, publish=True)
-    attest(root, "tutorial-and-swap", 1)
+    attest(
+        root,
+        "tutorial-and-swap",
+        1,
+        steps=[*samples.attestation()["steps"], WITNESS_STEP],
+    )
     attest(root, "and-reassoc", 2, trust_base="compiler")
     st = nodes_dir(root) / "and-swap-reassoc" / "status"
     # The root stays ready (both deps proved); give it attempts and prose.
     att = nodes_dir(root) / "and-swap-reassoc" / "attempts"
     (att / "2026-09-01-a.yaml").write_text(
-        yaml.safe_dump(samples.postmortem(node="and-swap-reassoc", route_class="case-split")),
+        yaml.safe_dump(
+            samples.postmortem(
+                node="and-swap-reassoc",
+                route_class="case-split",
+                artifacts={"partial_proof": "attempts/2026-09-01-a-partial.lean"},
+            )
+        ),
         encoding="utf-8",
     )
     (att / "2026-09-02-b.yaml").write_text("route: [oops\n", encoding="utf-8")
+    (att / "2026-09-01-a-partial.lean").write_text(PARTIAL, encoding="utf-8")
+    (att / "2026-09-03-c-partial.lean").write_text(UNNAMED_PARTIAL, encoding="utf-8")
     (nodes_dir(root) / "and-swap-reassoc" / "annex" / "sketch.md").write_text(ANNEX)
     (nodes_dir(root) / "tutorial-and-swap" / "explainer" / "why.md").write_text(EXPLAINER)
     assert not st.exists()
+    return root
+
+
+# --- F04-T17, T18: a hole awaiting its witness, and a hole a D-8 revision replaced -------------
+
+#: The shapes the live graph has carried since 2026-09-17 and no site fixture had: a hole whose
+#: only obstacle is its witness slot (``blocked``, cause ``witness-missing``, claimable on the
+#: frontier), and a hole a curator revised — the original ``superseded`` with a record naming its
+#: successor, the successor carrying ``supersedes`` and the slot it inherited.
+HOLE = "and-swap-reassoc--h1"
+REVISED_HOLE = "and-swap-reassoc--h2"
+REVISION = REVISED_HOLE + "-v2"
+REVISION_CAUSE = (
+    f"superseded by {REVISION} on revision request targets/{TARGET}/nodes/{REVISED_HOLE}/"
+    "revisions/20260917T173437Z-curator.yaml (wrong-domain; D-8)"
+)
+STUB_WITNESS = "theorem witness : True := by\n  sorry\n"
+
+
+def build_with_revised_hole(tmp_path: Path) -> Path:
+    """The curated graph plus the three nodes above, written as the gate's own writers write
+    them (the gate tests' ``write_hole`` and the curator's record writer), products rendered."""
+    root = curated(tmp_path)
+    write_hole(root, witness=STUB_WITNESS, node_id=HOLE)
+    write_hole(root, witness=STUB_WITNESS, node_id=REVISED_HOLE)
+    write_hole(root, witness=STUB_WITNESS, node_id=REVISION, supersedes=REVISED_HOLE)
+    doc = curator.node_status_doc(
+        "superseded", REVISION_CAUSE, author="curator", date="2026-09-17", reference=REVISION
+    )
+    curator.write_record(nodes_dir(root) / REVISED_HOLE, doc, author="curator", date="2026-09-17")
     prod = products.generate(root, rendered_from=COMMIT, commit_time=NOW)
     prod.write(root)
     return root

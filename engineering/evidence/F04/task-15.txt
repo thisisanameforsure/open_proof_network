@@ -1,81 +1,111 @@
-F04-T15 · the Docs page draws how a statement and a problem change state, and names the action behind each arrow (R14, AC18, Q17) · 2026-09-19
+F04-T15 · the statement page shows the Lean itself: the proof, the witness, every partial (Q17) · 2026-09-18
 
-The ask (Mike, 2026-09-18/19): a diagram of the states a statement (node) and a problem (target) can be in,
-how they relate, and what action moves one to another; then "integrate this information into the webpage's
-Docs tab, use diagrams where you can, keep the styling of the webpage".
+The finding (Mike, 2026-09-18): "right now the proofs are links to github. How can we bring them into the site
+in a way that makes sense?", citing https://openproofnetwork.org/problems/erdos-402/#node=erdos-402--h1
+A node's Statement.lean has been rendered into its page since T1, but the proof was one sentence and a file
+link, so the redesign's "View the proof →" button led to a page containing no proof. On erdos-402--h1 — proved,
+40 lines of real tactic proof — a reader was sent to github to see any of it.
 
-Read before drawing (the mechanism, not the doc's names)
-  gate/opn_gate/graph.py       derive_statuses: a status record wins, else the artifact in Proof.lean by the
-                               name it declares (proof / _refuted / _vacuous), else blocked, else ready;
-                               blocked_because: an unproved dep (cause dep-refuted if refuted) or a hole's
-                               empty witness slot (cause witness-missing); is_superseded, find_root
-  gate/opn_gate/products.py    in_frontier / workable: ready, speculative, a hole waiting only on its witness,
-                               an open variant; never a superseded node. target_facts: resolved from the
-                               root's status; digestion undigested / explained / written-up (D-33 v3.17)
-  gate/opn_gate/modes.py       the mode table (proof, partial, alternate, append, explainer, proposal,
-                               curator, intake, fidelity, steward), check_witness_completion, check_activation
-  gate/opn_gate/curator.py     revise -> superseded (reference: the new version) + each dependent stale;
-                               consolidate -> superseded; status <node> abandoned; status <target> dormant
-                               (D-33 (a) evidence-gated) / active (from listed or dormant)
-  gate/opn_gate/postmerge.py   apply_partial: one child per hole, born with a witness slot; deps rewritten
-  gate/opn_gate/intake.py      claimability: status-resolved / status-known-result, upstream-drift, no-steward
-  gate/schemas                 node-status/v1 (speculative, superseded, stale, disputed, abandoned),
-                               target-status/v2 (listed, active, resolved, dormant, known-result), graph/v3
-  docs/architecture_decisions  D-4, D-6, D-8, D-12, D-14, D-17, D-18, D-29, D-30, D-31, D-33
+Decisions (Mike, in the session): all three artifacts, not only proofs; the whole file, hash-verified; the
+statement page as their home, not the problem page's panel. The fourth decision was his reversal, below.
 
 What changed
-  templates/states.html   the section: the derivation order (four rules), the statement drawing (inline
-                          SVG, 1210x660), the problem drawing (1200x400, with the digestion strip), a key
-                          above each drawing, a caption under each, and the actions table (twenty rows)
-  templates/docs.html     $states before the Glossary
-  render.py               STATE_MAP_STATEMENT_KEYS, STATE_MAP_PROBLEM_KEYS, Renderer.states(): the keys
-                          are term() hover cards and the Problems page's status tag (Q14: one home per word)
-  static/site.css         .states, .smap-wrap, .smap-key, .smap-scroll, .smap (the site's tokens: accent
-                          for mechanical arrows and the open/proved boxes, warn dashed for a curator's
-                          record, warn for stale/disputed, bad for refuted/defective, bad dashed for
-                          superseded/abandoned as the graph's pills are), table.actions
-  tests/test_docs_states.py   six tests; the enums come from the gate (graph.ALL_STATUSES, the latest
-                          target-status schema, modes.Mode), so a new status or mode turns the page red
-  golden/docs/index.html  regenerated; the diff is the new section only (283 lines added, nothing removed)
+  model.py     LeanFile (path, text, content_hash, attested_hash; .verified, .mismatched) and PartialView
+               (the file plus the postmortem's typed fields). NodeView gains proof, witness, witness_open,
+               partials. _lean_file reads the bytes and hashes them; _partials_for pairs each attempts/*.lean
+               with the record whose artifacts.partial_proof names it. A non-UTF-8 artifact is a named
+               SiteError. Reuses the gate's graph.witness_is_stub rather than testing for "sorry" in the text.
+  render.py    lean_artifact (a captioned <pre class="lean">), witness_block, partials_block; the proof block
+               keeps its merge-commit link and appends the text; NO_WITNESS_OWED.
+  node.html    a Witness section between Proof and Attestation; the partials under Attempts.
+  site.css     .artifact, .artifact-cap, and the pre margins inside a figure and a prose-block.
+  fixture.py   attest() now computes artifact_hash from the Proof.lean in the tree (the sample carries a
+               placeholder, "d"*64); WITNESS_STEP so a run recording step 7 exists; two partials, one named
+               by a postmortem and one named by nothing, the payload in the Lean.
+
+What each artifact may claim — the load-bearing part
+  Proof.lean      attested. attestation/v4 carries artifact_hash, so the caption says the bytes are the ones
+                  the gate checked, and only a proof's caption can say it.
+  Witness.lean    not hashed anywhere in the protocol. The caption names the step that checked it — step 7 of
+                  the run recorded on the page, or, when that run lists no step 7, that the gate checks it on
+                  every submission. It never claims the bytes were attested.
+  attempts/*.lean covered by no attestation at all: an untrusted block (R4) beside the postmortem naming it,
+                  or beside the fact that none does.
+
+Two defects found while building it, both in my own first design
+  1. Severity. The first version raised SiteError when a proof's bytes were not the attested ones. That took
+     the whole site down: 49 errors and 70 failures across the suite, because the sample attestation's
+     artifact_hash is a placeholder. The blast radius was the real bug, not the fixture — one node's defect
+     deciding whether the graph has a site is the rule the products learned on 2026-09-17. Put to Mike, who
+     reversed his own earlier choice: the text is withheld with both hashes named and every other page renders.
+  2. The superseded slot. The witness block invited a reader to fill any open slot. On the live graph 6 of the
+     12 nodes with an unfilled slot are superseded by a D-8 revision, so the page was asking for work nobody
+     owes — the shape F03-T10 fixed on the frontier one day earlier. The first fix keyed on the gate's
+     witness-missing cause and was wrong the other way: blocked_because sets that only for a compiler-derived
+     hole that is blocked, so a hand-authored node with an open slot has no cause and was silenced wrongly
+     (caught by the existing open-slot test going red). Final rule: withhold the invitation from
+     superseded/abandoned/refuted, invite on every other open slot. Both branches are pinned by tests.
 
 Red first
-  $ sed -i 's/^\$states$//' site/opn_site/templates/docs.html && uv run --frozen pytest site/tests/test_docs_states.py -q
-  6 failed in 0.43s
-  (template restored)
-  $ uv run --frozen pytest site/tests/test_docs_states.py -q
-  6 passed in 0.68s
+  test_render_artifacts.py: 18 tests, 2 of them failing on their own assertions before the fixes (the link
+  checker's constant, and a non-UTF-8 refusal that cannot fire on a node file — layout.check_imports decodes
+  Statement/Proof/Witness/Context before load_node returns, so the refusal is reachable only for a partial,
+  which is what that test now drives). 2 more added for the superseded slot: 20 in the file, 223 in the suite.
+  The proof assertion is on the proof's *body* (exact ⟨h.2, h.1⟩): its declaration line was already on the page
+  from the statement block, since a proof restates its statement verbatim (F00-R19), so asserting that would
+  have passed before this task existed.
 
-Measured in the browser (Playwright over the fixture site served by python -m http.server; the site's own
-stylesheet, the container's system fonts)
-  Every <text> whose anchor lies inside a rect.box, its getBBox right edge against the box's right edge
-  minus 3px; and every text against the viewBox width. First render: nine labels over their box by 2..40px
-  (the monospace protocol lines and three sans sub-lines), two arrow labels on the problem drawing sitting
-  on the boxes they joined, the digestion strip under a mechanical label. After the rewrites:
-  {"overflows":[[0,"credit kept, annotated as modulo the change",-1]]}
-  (a negative number is inside the box by that much; nothing is over)
-  390  scrollWidth 390 inner 390  card [left,right] [17, 373]  svg [w,h] [[760, 415], [760, 253]]  scroll [content,client] [760, 323]  stale hover card [left,right,display] [34, 334, 'block']
-  1440  scrollWidth 1440 inner 1440  card [left,right] [22, 1418]  svg [w,h] [[1362, 743], [1362, 454]]  scroll [content,client] [1362, 1362]  stale hover card [left,right,display] [39, 339, 'block']
-  keys [['open', 'blocked', 'proved', 'refuted', 'defective', 'stale', 'disputed', 'superseded', 'abandoned'], ['open', 'needs a steward', 'proved', 'dormant', 'known result']]
-  scrollWidth equals the viewport at both widths (no horizontal page scroll); at 390 the drawings scroll
-  inside their card (content 760, client 323) rather than scale, so the 11px labels stay readable; the
-  stale key item's hover card lies inside the card at both widths (the T14 rule); the statement key is the
-  nine glossary statuses in LEGEND order and the problem key the five status-tag words.
+$ uv run --frozen pytest site/tests
+223 passed in 14.38s
+$ make lint
+All checks passed! · 379 files already formatted
 
-Screenshots
-  task-15-docs-1440.png / -390.png             the section head and the derivation order
-  task-15-statement-1440.png / -390.png        the statement drawing in its card
-  task-15-statement-1440-hover.png / -390-hover.png   "stale" hovered: the Glossary card, "protocol: stale (D-8, D-18)"
-  task-15-problem-1440.png / -390.png          the problem drawing and the digestion strip
+Measured on the live graph at 89346af (read-only worktree of origin/main, rendered locally, 145 pages)
+  proof hashes         8 of 8 proved nodes: Proof.lean sha256 == its attestation's artifact_hash, 0 mismatches
+  withheld path        0 pages — nothing on the network is in that state today
+  open witness slots   12, of which 6 invite work (erdos-1050--h1-v2, erdos-402--h3-v2, erdos-412--h1-v2,
+                       erdos-69--h2-v2--h1-v2, variant-93e79cb5--h1, variant-93e79cb5--h2) and 6 are silenced
+                       (erdos-1050--h1, erdos-402--h2, erdos-402--h3, erdos-412--h1, erdos-69--h2,
+                       erdos-69--h2-v2--h1) — the two sets disjoint, every silenced one superseded
+  partials             8 across 7 nodes (erdos-402, erdos-412, erdos-1050, erdos-69, erdos-69--h2-v2,
+                       infinitude-of-primes, variant-93e79cb5)
 
-$ uv run --frozen pytest site/tests -q
-209 passed in 19.01s
-$ make verify
-=== 2229 passed, 19 skipped, 73 deselected, 2 warnings in 139.22s (0:02:19) ====
-(ssh-keygen was absent in this container; apt-get install openssh-client, per the 2026-09-11 log entry)
+Measured in the browser (headless Chrome 153 over the locally rendered live graph, erdos-402--h1)
+  1440  docScrollWidth 1440 == innerWidth 1440, no page overflow; 3 pre.lean (statement, proof, witness), none
+        overflowing its box; 2 figure.artifact with the two expected captions; h2 order Proof, Witness,
+        Attestation, Attempts, Explainer, Annex
+  390   docScrollWidth 390 == innerWidth 390, no page overflow; each pre.lean scrolls inside itself
+        (785, 785, 895 px of content in ~355 px) — the existing overflow-x on pre.lean contains the wide Lean,
+        which is what keeps the body from scrolling sideways
+  console  one error only: GET /favicon.ico 404, from python -m http.server, not from the page
 
-Three things the reading found that the page does not say (Q17; the gate's to settle, not the site's)
-  1. A proposer's `speculative` record outlives a merged proof: derive_statuses takes the latest record over
-     the artifact, and nothing writes a later record when a proof merges. As the code reads; not seen live.
-  2. `stale` has no mechanical exit: revise writes the record and D-18's re-run is unbuilt, so a stale node
-     leaves that state only when the curator revises it too.
-  3. `disputed` is a schema value with no command or route that writes it.
+Screenshots (checked by eye, not only by assertion)
+  task-15-erdos-402-h1-1440.png      the proof inline: the caption naming artifact_hash and sha256
+                                     ca9775523b30, the whole tactic block through the closing calc, the
+                                     Witness section citing step 7 pass, and step 7 in the attestation table
+  task-15-erdos-402-h1-390.png       the same page at phone width: captions wrap, each Lean block scrolls
+                                     inside itself, the page does not
+  task-15-open-slot-h2-1440.png      erdos-402--h2, superseded with an unfilled slot. NOTE: this capture is
+                                     the *defect* — it shows the first wording inviting a witness on a
+                                     superseded node, which is what defect 2 above fixes. Kept deliberately as
+                                     the before state; the after is asserted by the two new tests and by the
+                                     live counts above.
+  task-15-partial-erdos-412-1440.png the partial case: no proof, a filled witness with no attestation to cite,
+                                     and the 87-line skeleton in an untrusted block reading "author not
+                                     recorded; no postmortem record names this file". Its Apache-2.0 header
+                                     from formal-conjectures rides along inside the file, which is why showing
+                                     the whole file is also the right licence posture.
+
+Numbering
+  T15 and Q17, not T14 and Q16: a parallel session in this same checkout committed F04-T14 (the statement
+  graph's key, Q16) as c867bdd while this was being built. Its finding was the same page and the same reading
+  of it — the key's first word looked like the selected statement's status — and the two fixes are
+  complementary: it made the page say what the status is, this makes the page show the mathematics. Their
+  staged evidence was in the shared index for part of this session; their commit and this one touch disjoint
+  regions of render.py and site.css, and nothing of either was swept into the other (verified by git show
+  --stat c867bdd against this diff).
+
+Not done
+  Syntax highlighting: it needs a vendored Lean tokenizer and a new entry in render.SCRIPTS, and the statement
+  block has never had it either. A partial's terminal_goal_state and detail, which D-28 serves as untrusted
+  data and which are their own call. Both recorded in Q17.

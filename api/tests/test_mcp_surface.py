@@ -18,7 +18,7 @@ from opn_api.mcp.server import MCP_PATH, TOOLS
 from opn_gate.products import PROTOCOL_VERSION
 
 ROOT = Path(__file__).resolve().parents[2]
-DECISIONS = ROOT / "docs" / "architecture_decisions_v_3_12.html"
+DECISIONS = ROOT / "docs" / "architecture_decisions.html"
 
 READS = {
     "server_info",

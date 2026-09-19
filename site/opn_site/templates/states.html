@@ -16,7 +16,8 @@ status from what is in the tree, in this order, and the first rule that applies 
   nothing.</li>
   <li><strong>Else the statement is blocked</strong> when any statement it depends on is not proved,
   or when it is a hole whose witness slot still says <code>sorry</code>. The reason is published as
-  the entry's <code>cause</code>.</li>
+  the entry's <code>cause</code>, and the site shows the second case as <em>needs a witness</em>,
+  because supplying the witness is the work.</li>
   <li><strong>Else it is open</strong> (<code>ready</code> in the protocol).</li>
 </ol>
 
@@ -24,7 +25,7 @@ status from what is in the tree, in this order, and the first rule that applies 
 <div class="card smap-wrap">
 <div class="smap-key"><span class="kicker">Key</span>$statement_key</div>
 <div class="smap-scroll">
-<svg class="smap" viewBox="0 0 1210 660" role="img" aria-label="State diagram of a statement: born open, or born blocked as a hole with an empty witness slot; open moves to proved, refuted or defective when an artifact merges, or to blocked when a partial merges on it; curator records move a statement to superseded, stale, abandoned or disputed.">
+<svg class="smap" viewBox="0 0 1230 660" role="img" aria-label="State diagram of a statement: born open, or born needing a witness as a hole with an empty slot; open moves to proved, refuted or defective when an artifact merges, or to blocked when a partial merges on it; curator records move a statement to superseded, stale, abandoned or disputed, and a re-run proof lifts stale.">
   <defs>
     <marker id="sm-mech" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="m-mech" d="M0,0 L10,5 L0,10 z"/></marker>
     <marker id="sm-cur" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="m-cur" d="M0,0 L10,5 L0,10 z"/></marker>
@@ -40,7 +41,7 @@ status from what is in the tree, in this order, and the first rule that applies 
   <text class="lbl" x="20" y="192">relation, acyclic (D-29).</text>
   <line class="mech" x1="248" y1="120" x2="276" y2="120" marker-end="url(#sm-mech)"/>
 
-  <text class="lbl head" x="20" y="262">BORN BLOCKED, ON THE FRONTIER</text>
+  <text class="lbl head" x="20" y="262">BORN NEEDING A WITNESS</text>
   <text class="lbl" x="20" y="278">the post-merge job writes one child</text>
   <text class="lbl" x="20" y="292">per hole of a merged partial or</text>
   <text class="lbl" x="20" y="306">skeleton, with an empty witness slot</text>
@@ -56,8 +57,8 @@ status from what is in the tree, in this order, and the first rule that applies 
   <text class="sub" x="292" y="135">no proof has closed it, nothing blocks it;</text>
   <text class="sub" x="292" y="149">a claim may take it now</text>
 
-  <rect class="box st-blocked" x="280" y="250" width="230" height="66" rx="6"/>
-  <text class="name" x="292" y="272">blocked</text>
+  <rect class="box st-needs-witness" x="280" y="250" width="230" height="66" rx="6"/>
+  <text class="name" x="292" y="272">needs a witness</text>
   <text class="proto" x="292" y="288">blocked · cause: witness-missing</text>
   <text class="sub" x="292" y="302">a hole: the witness is the work; listed</text>
 
@@ -124,21 +125,21 @@ status from what is in the tree, in this order, and the first rule that applies 
 
   <rect class="box st-stale" x="590" y="510" width="250" height="60" rx="6"/>
   <text class="name" x="602" y="532">stale</text>
-  <text class="proto" x="602" y="548">stale · a dependency was replaced</text>
-  <text class="sub" x="602" y="562">credit kept, annotated as modulo the change</text>
+  <text class="proto" x="602" y="548">stale · proved dependent of a revision</text>
+  <text class="sub" x="602" y="562">its proof must be re-run; credit kept</text>
   <line class="cur" x1="715" y1="481" x2="715" y2="508" marker-end="url(#sm-cur)"/>
-  <text class="lbl cur" x="725" y="498">each dependent of the revised statement</text>
+  <text class="lbl cur" x="725" y="494">each proved dependent</text>
+  <text class="lbl cur" x="725" y="508">of the revised statement</text>
 
-  <polyline class="cur" points="590,545 560,545 560,450 588,450" marker-end="url(#sm-cur)"/>
-  <text class="lbl cur" x="550" y="500" text-anchor="end">the curator revises the</text>
-  <text class="lbl cur" x="550" y="514" text-anchor="end">dependent too; its new</text>
-  <text class="lbl cur" x="550" y="528" text-anchor="end">version replaces it</text>
+  <polyline class="mech" points="840,562 1216,562 1216,75 1070,75 1070,88" marker-end="url(#sm-mech)"/>
+  <text class="lbl mech" x="852" y="538">proved again: a passing attestation whose run</text>
+  <text class="lbl mech" x="852" y="552">included the revision lifts the mark (D-8, D-18 v3.18)</text>
 
   <rect class="box st-disputed" x="960" y="420" width="220" height="60" rx="6"/>
   <text class="name" x="972" y="442">disputed</text>
   <text class="proto" x="972" y="458">disputed · under adjudication</text>
   <text class="sub" x="972" y="472">new work depending on it is on hold</text>
-  <polyline class="cur" points="1180,120 1196,120 1196,450 1182,450" marker-end="url(#sm-cur)"/>
+  <polyline class="cur" points="1180,120 1198,120 1198,450 1182,450" marker-end="url(#sm-cur)"/>
   <text class="lbl cur" x="960" y="500">a dispute on the statement or the proof</text>
   <text class="lbl cur" x="960" y="514">is accepted for adjudication (D-17, D-18)</text>
 
@@ -146,22 +147,23 @@ status from what is in the tree, in this order, and the first rule that applies 
   <text class="lbl cur" x="848" y="412">if invalidated: repaired by a revision (D-8)</text>
 
   <g class="legend">
-    <rect class="thin" x="262" y="580" width="936" height="60" rx="6"/>
-    <line class="mech" x1="280" y1="598" x2="320" y2="598" marker-end="url(#sm-mech)"/>
-    <text class="lbl" x="328" y="602">mechanical: derived from the tree on the next merge; nobody decides it</text>
-    <line class="cur" x1="760" y1="598" x2="800" y2="598" marker-end="url(#sm-cur)"/>
-    <text class="lbl" x="808" y="602">a curator's signed status record</text>
-    <rect class="frontier" x="280" y="618" width="26" height="14" rx="3"/>
-    <text class="lbl" x="314" y="629">on the frontier (frontier.json): listed as work</text>
-    <rect class="box st-superseded" x="760" y="618" width="26" height="14" rx="3"/>
-    <text class="lbl" x="794" y="629">off the route: superseded or abandoned</text>
+    <rect class="thin" x="262" y="584" width="956" height="60" rx="6"/>
+    <line class="mech" x1="280" y1="602" x2="320" y2="602" marker-end="url(#sm-mech)"/>
+    <text class="lbl" x="328" y="606">mechanical: derived from the tree on the next merge; nobody decides it</text>
+    <line class="cur" x1="760" y1="602" x2="800" y2="602" marker-end="url(#sm-cur)"/>
+    <text class="lbl" x="808" y="606">a curator's signed status record</text>
+    <rect class="frontier" x="280" y="622" width="26" height="14" rx="3"/>
+    <text class="lbl" x="314" y="633">on the frontier (frontier.json): listed as work</text>
+    <rect class="box st-superseded" x="760" y="622" width="26" height="14" rx="3"/>
+    <text class="lbl" x="794" y="633">off the route: superseded or abandoned</text>
   </g>
 </svg>
 </div>
 <p class="smap-caption">Every solid arrow happens by itself when a pull request merges and the
 post-merge job re-derives the graph. Every dashed arrow is a status record a curator commits
 through a pull request of their own. Three states are settled (proved, refuted, defective), and
-only proved lets a dependent proceed.</p>
+only proved lets a dependent proceed. A revision never rewrites a dependent: its dependencies are
+read through the revision, and a stale mark lifts on the gate's own evidence (D-8 v3.18).</p>
 </div>
 
 <h3>A problem</h3>
@@ -259,17 +261,17 @@ merge is the only thing that changes truth (D-35).</p>
 <tbody>
 <tr><td>Intake a problem</td><td class="who">curator</td><td><code>intake</code> pull request: the record, the pins, definitions, fidelity certificates, a status record and the root</td><td>problem → listed; root born open</td></tr>
 <tr><td>Propose a statement</td><td class="who">anyone</td><td><code>proposal</code> pull request, one new statement directory (<code>POST /proposals</code>)</td><td>statement born open; speculative if the proposal says so</td></tr>
-<tr><td>Fill a witness</td><td class="who">anyone</td><td><code>proposal</code> pull request changing <code>Witness.lean</code> alone on a hole (<code>POST /proposals/witness</code>)</td><td>hole: blocked → open</td></tr>
+<tr><td>Fill a witness</td><td class="who">anyone</td><td><code>proposal</code> pull request changing <code>Witness.lean</code> alone on a hole (<code>POST /proposals/witness</code>)</td><td>hole: needs a witness → open</td></tr>
 <tr><td>Prove it</td><td class="who">anyone</td><td><code>proof</code> pull request, <code>Proof.lean</code> under the statement's own name, after a precheck</td><td>open → proved; problem → resolved when it is the root or a resolves-variant; dependents may unblock</td></tr>
 <tr><td>Refute it</td><td class="who">anyone</td><td><code>proof</code> pull request declaring <code>…_refuted : ¬S</code></td><td>open → refuted; its parents blocked with cause dep-refuted; at the root, a negative resolution</td></tr>
 <tr><td>Show it vacuous</td><td class="who">anyone</td><td><code>proof</code> pull request declaring <code>…_vacuous : ¬W</code></td><td>open → defective; forces a revision</td></tr>
-<tr><td>Partial proof, skeleton or reduction</td><td class="who">anyone</td><td><code>partial</code> pull request: an assembly under <code>attempts/</code>; a skeleton names its annex by hash; a reduction is a partial with one hole</td><td>open → blocked on its new holes; each hole born blocked and listed; a hole that is already a sibling becomes a dependency instead</td></tr>
+<tr><td>Partial proof, skeleton or reduction</td><td class="who">anyone</td><td><code>partial</code> pull request: an assembly under <code>attempts/</code>; a skeleton names its annex by hash; a reduction is a partial with one hole</td><td>open → blocked on its new holes; each hole born needing a witness, and listed; a hole that is already a sibling becomes a dependency instead</td></tr>
 <tr><td>A second proof</td><td class="who">anyone</td><td><code>alternate</code> pull request under <code>attempts/</code></td><td>nothing; recorded beside the first (D-25)</td></tr>
 <tr><td>Postmortem, annex, approach record, revision request, defect claim</td><td class="who">anyone</td><td><code>append</code> pull request; a defect claim carries a Lean exhibit the gate elaborates</td><td>nothing; a revision request is what a curator later acts on</td></tr>
 <tr><td>Explain a proof</td><td class="who">anyone; a steward or curator signs</td><td><code>explainer</code> pull request, with a signature file where the signer can explain it without the tool</td><td>resolved: undigested → explained once every statement in the closing proof's closure carries one</td></tr>
 <tr><td>Grade a statement</td><td class="who">a non-author</td><td><code>fidelity</code> pull request: a signed certificate on the root or a definition</td><td>nothing; decides who must look at a proof (step 9), not whether work may begin</td></tr>
 <tr><td>Commit as steward</td><td class="who">a mathematician</td><td><code>steward</code> pull request: a signed commitment, or a step-down</td><td>nothing; an open problem accepts work only while it has a steward</td></tr>
-<tr><td>Revise a defective statement</td><td class="who">curator</td><td><code>opn-gate revise</code> on a merged revision request, then a <code>curator</code> pull request</td><td>old statement → superseded; new version born; each dependent → stale</td></tr>
+<tr><td>Revise a defective statement</td><td class="who">curator</td><td><code>opn-gate revise</code> on a merged revision request, then a <code>curator</code> pull request</td><td>old statement → superseded; new version born; each proved dependent → stale until a re-run proof lifts it</td></tr>
 <tr><td>Consolidate a duplicate</td><td class="who">curator</td><td><code>opn-gate consolidate</code>, only when the two statements are definitionally equal</td><td>the dropped statement → superseded</td></tr>
 <tr><td>Abandon a dead branch</td><td class="who">curator</td><td><code>opn-gate status &lt;node&gt; abandoned</code> with its cause</td><td>statement → abandoned</td></tr>
 <tr><td>Accept a dispute</td><td class="who">adjudication panel</td><td>a <code>disputed</code> status record (D-18)</td><td>statement → disputed; if invalidated, repaired by a revision</td></tr>

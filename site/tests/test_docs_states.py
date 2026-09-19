@@ -1,4 +1,4 @@
-"""F04-T15 (Q17): the Docs page draws how a statement and a problem change state, and names
+"""F04-T21 (Q23): the Docs page draws how a statement and a problem change state, and names
 the action behind each arrow.
 
 The drawings are documentation of the gate, so the tests hold them to the gate's own vocabulary:
@@ -64,9 +64,11 @@ def test_the_statement_drawing_shows_every_status_the_products_can_publish(docs:
     (F03-Q8: speculative reads open, and the drawing says so in the protocol's words)."""
     statement, _problem = drawings(section(docs))
     expected = {"open" if s in render.CLAIMABLE_STATUSES else s for s in graph.ALL_STATUSES}
+    # F04-T17: a hole waiting only for its witness is "needs a witness", not blocked.
+    expected.add(render.STATE_LABELS[render.NEEDS_WITNESS])
     assert names(statement) == expected
     assert "ready · speculative" in statement  # the protocol words under the open box
-    assert statement.count(">blocked</text>") == 2  # a hole, and a wait on a dependency
+    assert statement.count(">blocked</text>") == 1  # a wait on a dependency
     assert "witness-missing" in statement and "dep-refuted" in statement
 
 
@@ -87,10 +89,10 @@ def test_each_key_item_is_the_site_hover_card_for_that_word(docs: str) -> None:
     keys = re.findall(r'<div class="smap-key">(.*?)</div>', html, re.S)
     assert len(keys) == 2
     statement_key, problem_key = keys
-    dot_item = r'<span class="dot dot-([a-z]+)"></span>([a-z]+)<span class="term-card"'
+    dot_item = r'<span class="dot dot-([a-z-]+)"></span>([a-z ]+)<span class="term-card"'
     dots = re.findall(dot_item, statement_key)
     assert [d for d, _ in dots] == list(render.STATE_MAP_STATEMENT_KEYS)
-    assert {d for d, _ in dots} == set(render.LEGEND_BASE) | set(render.LEGEND_EXTRA)
+    assert {d for d, _ in dots} == set(render.DOTTED_KEYS) | set(render.LEGEND_EXTRA)
     for key in render.STATE_MAP_STATEMENT_KEYS:
         _word, meaning, proto = render.GLOSSARY_BY_KEY[key]
         assert render.esc(meaning) in statement_key and render.esc(proto) in statement_key

@@ -35,7 +35,7 @@
       if (ok) { shown += 1; }
       var rows = card.querySelectorAll(".stmt");
       Array.prototype.forEach.call(rows, function (row) {
-        var keep = filter !== "open" || row.getAttribute("data-state") === "open";
+        var keep = filter !== "open" || row.getAttribute("data-workable") === "1";
         if (keep && query) {
           keep = card.textContent.toLowerCase().indexOf(query) !== -1 &&
             (row.textContent.toLowerCase().indexOf(query) !== -1 ||

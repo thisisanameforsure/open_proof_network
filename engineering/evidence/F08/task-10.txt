@@ -1,0 +1,34 @@
+F08-T10 evidence — 2026-09-19
+
+## The live state this fixes (graph origin/main 4c58adb, targets/erdos-69/graph.json)
+erdos-69 (root)            stale       deps [erdos-69--h1, erdos-69--h2]        both superseded
+erdos-69--h2-v2            stale       deps [erdos-69--h2-v2--h1]               superseded
+erdos-69--h1-v2            proved      depended on by nobody
+erdos-69--h2-v2--h1-v2     blocked     witness-missing; depended on by nobody
+Seven parents across the live graph carry a terminal stale record; none has a merged proof.
+
+## Red first: uv run --frozen pytest gate/tests/test_finding_revised_hole_parent.py -q
+15 failed, 2 passed in 12.71s
+(the 2 passes are the pins that must not change: no history to ask, and a backdated record, both leave stale standing)
+
+## Green (18: one test added for a hand-seeded context)
+18 passed in 13.24s
+
+## Lean tier and docker tier, the real gate: uv run --frozen pytest -m 'lean or docker' gate/tests/test_finding_revised_hole_parent_lean.py gate/tests/test_finding_revised_hole_parent_docker.py
+2 passed in 130.03s (0:02:10)
+the parent's real proof passes steps 1, 2, 4, 5, 6, 7, 8 against the *revision's* proof, by pregate.sh on the laptop toolchain and by
+reproduce.sh inside the step-3 sandbox image, with the original child unproved (the live shape) and META.yaml byte-identical.
+Two failures on the way were the test's, not the gate's: the revision left uncommitted read as the submission (path-forbidden),
+then one commit holding the whole revision did too; the merged history and the submission are separate commits now, as they are for real.
+
+## Full fast suite after the change: uv run --frozen pytest -m 'not lean and not docker and not network'
+2344 passed (the one failure was the test pinning "3.17", updated with the version), 75 deselected, 2 warnings in 184.85s (0:03:04)
+
+## Goldens: every changed line
+   3 +  "protocol_version": "3.18",
+   3 -  "protocol_version": "3.17",
+No other product golden moved: with no revision in a tree, effective deps are the recorded deps.
+
+## Two existing tests had pinned the old world
+gate/tests/test_curator.py::test_revise_flow (AC13) expected stale on dependents that were proof files with no attestation; it attests them now.
+api/tests/test_finding_precheck_blocked.py blocked a node on a dep that existed only in a hand-edited graph.json; the dep's statement is seeded on the fake host.

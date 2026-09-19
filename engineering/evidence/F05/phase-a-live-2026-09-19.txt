@@ -1,0 +1,24 @@
+Live evidence for F04-T16..T20, F05-T11, F05-T12, F13-T10 — 2026-09-19
+
+network main pushed at 9e989ae; api-deploy run 35425388054 success; site-deploy run 35425409685
+(workflow_dispatch from main: the site redeploys on a graph move or by hand, never on a network push) success.
+
+## Site: uv run --frozen python site/tools/check_deploy.py openproofnetwork.org
+GET / -> 200
+rendered-from.txt: 4c58adb8c8767da709fefd47acf302c6a049d1a0
+HEAD /vendor/katex/fonts/KaTeX_Main-Regular.woff2 -> 200 font/woff2
+graph origin/main: 4c58adb8c8767da709fefd47acf302c6a049d1a0
+GET /problems/ -> 200 · GET /docs/ -> 200 · GET /problems/erdos-1003/ -> 200 · GET /nodes/erdos-1003/erdos-1003/ -> 200
+{"hostname": "openproofnetwork.org", "commit": "4c58adb8...", "ok": true}
+GET /favicon.svg -> 200 image/svg+xml
+Problems page, Open statements segment: 28 (was 22; frontier.json has 28 claimable entries)
+erdos-69 card: "Statement from formal-conjectures (FormalConjectures/ErdosProblems/69.lean)" (was "The network's own statement")
+
+## Service
+GET / -> 27 routes; guide https://github.com/thisisanameforsure/open_proof_network_graph/blob/main/AGENTS.md
+POST /precheck {"node_id":"erdos-69--h2-v2--h1", bundle with a wrong path}, no token ->
+  409 node-superseded, details {"status":"superseded","replacement":"erdos-69--h2-v2--h1-v2"}
+  (the replacement read from the live graph's status record; refused before auth and before the path check; nothing dispatched)
+POST /check {"target_id":"erdos-69","node_id":"erdos-69--h2-v2--h1","mode":"verify",...} ->
+  200, okay: null, user_error: "failed to compile formal_statement: ... failed to synthesize ... HMul N N Z",
+  result keys: ["info","user_error"] (verbatim, no okay key: the shape that raised KeyError in the guide's old snippet)

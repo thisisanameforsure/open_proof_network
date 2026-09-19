@@ -19,7 +19,7 @@ from typing import Any
 from opn_gate import hosted, intake, steward
 from opn_gate import ledger as ledgermod
 from opn_site import dag, links, prose
-from opn_site.model import NodeView, Prose, Site, SiteError, TargetView
+from opn_site.model import LeanFile, NodeView, Prose, Site, SiteError, TargetView
 
 TEMPLATES = Path(__file__).resolve().parent / "templates"
 STATIC = Path(__file__).resolve().parent / "static"
@@ -41,15 +41,46 @@ STATUS_WORDS = {
 #: F04-T10: a blocked node's words name its cause when graph.json records one (F03-R8, F07-R6,
 #: D-29); a blocked node with no cause is blocked by its dependencies and keeps STATUS_WORDS.
 CAUSE_WORDS = {
-    "witness-missing": "blocked: witness missing (propose one through /proposals/witness)",
+    "witness-missing": (
+        "needs a witness: nothing else blocks it, and supplying one is the work "
+        "(propose it through /proposals/witness)"
+    ),
     "dep-refuted": "blocked: a dependency was refuted",
 }
+#: F04-T15 (Q17): the statuses that owe nobody a witness. A node with an unfilled slot is
+#: normally work someone can take, but a D-8 revision leaves the superseded original holding its
+#: empty slot for good, and a refuted or abandoned statement is off the route — so the witness
+#: block invites work on every *other* open slot. Keyed on these rather than on the gate's
+#: ``witness-missing`` cause, which is narrower than it looks: ``blocked_because`` sets it only
+#: for a compiler-derived hole that is currently blocked, so a hand-authored node with an
+#: unfilled slot has no cause at all and would have been silenced wrongly.
+NO_WITNESS_OWED = frozenset({"superseded", "abandoned", "refuted"})
 #: F03-Q8: the statuses a claim could take, so the only ones a target's reasons explain.
 CLAIMABLE_STATUSES = ("ready", "speculative")
+#: F04-T17 (Q19): the site's third workable state. The gate's frontier rule is
+#: ``products.workable``: ready, speculative, or a hole blocked *only* by its unfilled witness
+#: slot (F03-T9, D-29), which graph.json publishes as ``blocked`` with this cause. The site had
+#: kept the older two-status rule, so it called seven claimable statements "Not accepting work".
+WITNESS_CAUSE = "witness-missing"
+NEEDS_WITNESS = "needs-witness"
+#: The states the site invites work on; the set a test holds to the frontier's claimable entries.
+WORKABLE_STATES = ("open", NEEDS_WITNESS)
+#: A state's word where it differs from its key.
+STATE_LABELS = {NEEDS_WITNESS: "needs a witness"}
 #: The frontier row's words for a not-claimable target whose index row names no reason (D-6).
 NO_RECORD_WORDS = "this target has no curated intake record (D-6)"
 #: T9: the api route for the live claims (F05); its origin is config (C6), never a literal here.
 CLAIMS_PATH = "/claims.json"
+#: F04-T20 (Q22): two more exact service urls a page may link, both open reads: the pull
+#: requests in flight, and the sign-off text a token is issued against (D-23).
+SUBMISSIONS_PATH = "/submissions.json"
+DCO_PATH = "/dco.json"
+#: The contributor guide's place on the Docs page, and the licences annex prose may carry
+#: (``annex/v1`` takes any SPDX id; these are the three the service accepts, D-23).
+GUIDE_HREF = "/docs/#agents"
+#: The file-name tail of a merged partial proof under ``attempts/`` (F07).
+PARTIAL_SUFFIX = "-partial.lean"
+ANNEX_LICENCES = ("CC-BY-4.0", "CDLA-Permissive-2.0", "Apache-2.0")
 #: F04-T13 (Q15): the same-origin scripts a page may load (R10), and the KaTeX head and tail the
 #: pages carrying a record's informal text take — KaTeX vendored under static/vendor/katex,
 #: pinned by its MANIFEST.txt, rendering only inside ``.math`` with trust off (math.js).
@@ -68,7 +99,7 @@ MATH_SCRIPTS = (
 )
 #: The static tree's text files ship as pages do; its binary files (the fonts) are copied by
 #: ``write``.
-STATIC_TEXT_SUFFIXES = frozenset({".css", ".js", ".txt", ""})
+STATIC_TEXT_SUFFIXES = frozenset({".css", ".js", ".svg", ".txt", ""})
 #: F04-T12 (Q14): the Glossary, one row per site word — (key, on the site, meaning, in the
 #: protocol). It is the single source for every hover card and for the Docs page's table, so a
 #: definition can never differ between the two.
@@ -97,8 +128,25 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "blocked",
         "blocked",
         "Waits on other statements, or on a definition that has not been checked yet. Not "
-        "accepting work.",
+        "accepting work. A statement waiting only for its witness is not blocked in this "
+        "sense: it needs a witness.",
         "blocked",
+    ),
+    (
+        NEEDS_WITNESS,
+        "needs a witness",
+        "Left open by a proof skeleton and waiting only for its witness. Supplying one is the "
+        "work here and anyone may do it; once it merges, the statement is open for proof.",
+        "blocked · cause witness-missing · on the frontier",
+    ),
+    (
+        "witness",
+        "witness",
+        "A Lean term showing that a statement's hypotheses can all hold at once, so the "
+        "statement is not true for an empty reason. It is one declaration named witness whose "
+        "type is ∃ over the statement's variables of the ∧ of its hypotheses, or True when the "
+        "statement has none. The gate checks it at step 7.",
+        "Witness.lean · D-29 · D-4 step 7",
     ),
     (
         "proved",
@@ -219,6 +267,7 @@ GLOSSARY_BY_KEY: dict[str, tuple[str, str, str]] = {
 #: The Problems page's legend, in order: the glossary keys it shows and which carry a status dot.
 LEGEND_KEYS = (
     "open",
+    NEEDS_WITNESS,
     "blocked",
     "proved",
     "explained",
@@ -231,12 +280,15 @@ LEGEND_KEYS = (
 #: from ``LEGEND_EXTRA`` is shown, in this order, when a statement in the graph has it. Each is a
 #: glossary key and a ``dot-<key>`` / ``status-<key>`` class in the stylesheet.
 LEGEND_BASE = ("proved", "open", "blocked")
+#: The keys that wear a status dot wherever a legend shows them.
+DOTTED_KEYS = (*LEGEND_BASE, NEEDS_WITNESS)
 LEGEND_EXTRA = ("stale", "disputed", "superseded", "abandoned", "refuted", "defective")
-#: F04-T15 (Q17): the Docs state map's keys. Every status ``graph.json`` can publish, as the
+#: F04-T21 (Q23): the Docs state map's keys. Every status ``graph.json`` can publish, as the
 #: site's word (F03-Q8: ``speculative`` reads open, so nine words for ten statuses), and the five
 #: words a problem's status tag can wear; each key item is the hover card those pages use.
 STATE_MAP_STATEMENT_KEYS = (
     "open",
+    NEEDS_WITNESS,
     "blocked",
     "proved",
     "refuted",
@@ -249,7 +301,7 @@ STATE_MAP_STATEMENT_KEYS = (
 STATE_MAP_PROBLEM_KEYS = ("open", "needs a steward", "proved", "dormant", "known result")
 #: A problem's status on the public pages (the handoff's three words), each with its definition.
 PROBLEM_STATUS_DEFS: dict[str, str] = {
-    "open": "Listed, has a steward, and its statements accept work.",
+    "open": "Listed, and its statements accept work.",
     "proved": "Its root statement has a merged proof. Not yet explained or written up.",
     "needs a steward": (
         "Listed and reviewable, but nobody has committed to it yet, so it does not accept work."
@@ -298,7 +350,7 @@ ABOUT_RULES: tuple[tuple[str, str], ...] = (
         "explainer and a paper or note exists.",
     ),
 )
-DECISIONS_DOC = Path(__file__).resolve().parents[2] / "docs" / "architecture_decisions_v_3_12.html"
+DECISIONS_DOC = Path(__file__).resolve().parents[2] / "docs" / "architecture_decisions.html"
 FUNNEL_DOCS = Path(__file__).resolve().parents[1] / "docs"  # F10-R9: site/docs/*.md
 #: F15-R11: the off-site links the site's own copy may carry — dated external evidence, each
 #: url exact, the one other way past F04-R13's checker besides a validated record (F11-Q11). A
@@ -441,10 +493,11 @@ def esc(value: object) -> str:
     return escape(str(value), quote=True)
 
 
-def math(text: str) -> str:
-    """Record prose that may carry TeX between dollar signs (F04-T13): escaped like everything
-    from the graph, then marked for the same-origin renderer, which reads the text back."""
-    return f'<span class="math">{esc(text)}</span>'
+def math(text: str, *, allowed_urls: frozenset[str] = frozenset()) -> str:
+    """Record prose that may carry TeX between dollar signs (F04-T13) and a registry
+    docstring's inline Markdown (T19): escaped like everything from the graph, the four inline
+    forms rendered, then marked for the same-origin math renderer, which reads the text back."""
+    return f'<span class="math">{prose.inline_statement(text, allowed_urls=allowed_urls)}</span>'
 
 
 def static_files() -> tuple[dict[str, str], dict[str, bytes]]:
@@ -498,6 +551,8 @@ class Renderer:
         self.decisions_doc = decisions_doc
         self.api_url = api_url.rstrip("/") if api_url else None
         self.base = _template("base.html")
+        #: T19: the urls record prose may link, which are the ones the link checker admits.
+        self.cited = cited_urls(site)
 
     # -- links -------------------------------------------------------------------------------
 
@@ -555,6 +610,14 @@ class Renderer:
             links_.append(f'<a href="{esc(p)}"{current}>{esc(label)}</a>')
         nav = "".join(links_)
         commit = self.site.commit
+        # T20: the footer names the checkout; the products in it may have been rendered at an
+        # earlier commit (the bot's own commit follows each merge), and then the page says so.
+        rendered = str(self.site.frontier.get("rendered_from") or commit)
+        products = (
+            f" · products rendered at <code>{esc(rendered[:12])}</code>"
+            if rendered != commit
+            else ""
+        )
         sources = ", ".join(self.file_link(r) for r in renders) or "nothing in the graph"
         live = (
             f' · <a href="{esc(self.api_url + CLAIMS_PATH)}">claims.json ↗</a>'
@@ -573,6 +636,7 @@ class Renderer:
             commit=esc(commit),
             commit_short=esc(commit[:12]),
             commit_url=esc(f"{self.repo_url}/tree/{commit}"),
+            products=products,
             sources=sources,
             frontier_link=self.file_link("frontier.json", label="frontier.json ↗"),
             live=live,
@@ -618,22 +682,29 @@ class Renderer:
             return "proved"
         if nv.status in CLAIMABLE_STATUSES:
             return "open"
+        if nv.status == "blocked" and nv.cause == WITNESS_CAUSE:
+            return NEEDS_WITNESS  # T17: the witness is the work (D-29), so this is not "blocked"
         return nv.status
+
+    @staticmethod
+    def state_label(state: str) -> str:
+        return STATE_LABELS.get(state, state)
 
     @staticmethod
     def dot_state(state: str) -> str:
         """The dot a state wears: its own when the key has one (T14), the neutral ring else."""
-        return state if state in (*LEGEND_BASE, *LEGEND_EXTRA) else "blocked"
+        return state if state in (*DOTTED_KEYS, *LEGEND_EXTRA) else "blocked"
 
     def graph_legend(self, tv: TargetView) -> str:
         """The statement graph's key (F04-T14, Q16): the three base states, then every other
         status a statement in this graph has, each a glossary hover card with its dot."""
         present = {self.node_state(nv) for nv in tv.nodes.values()}
-        keys = (*LEGEND_BASE, *(k for k in LEGEND_EXTRA if k in present))
+        keys = (*LEGEND_BASE, *(k for k in (NEEDS_WITNESS, *LEGEND_EXTRA) if k in present))
         return "".join(self.term(k, dot=True) for k in keys)
 
     def open_count(self, tv: TargetView) -> int:
-        return sum(1 for n in tv.nodes.values() if self.node_state(n) == "open")
+        """The statements the site invites work on: the frontier's workable set (T17)."""
+        return sum(1 for n in tv.nodes.values() if self.node_state(n) in WORKABLE_STATES)
 
     @staticmethod
     def problem_status(tv: TargetView) -> str:
@@ -708,7 +779,7 @@ class Renderer:
         text = tv.record.get("informal") or tv.record.get("paraphrase")
         if not text:
             return "No informal statement is recorded for this problem yet."
-        return math(str(text))
+        return math(str(text), allowed_urls=self.cited)
 
     def source_line(self, tv: TargetView) -> str:
         """One line: where the statement came from, each source linked (its url is a validated
@@ -717,7 +788,7 @@ class Renderer:
             return "No curated record yet."
         sources = tv.record.get("sources") or []
         if not sources:
-            return "The network's own statement, no external source."
+            return self.origin_words(tv)
         parts = []
         for s in sources:
             kind, licence = esc(str(s.get("kind", "source"))), esc(str(s.get("licence", "")))
@@ -730,6 +801,28 @@ class Renderer:
             shown = esc(str(forum).removeprefix("https://").removeprefix("www."))
             parts.append(f'<a href="{esc(str(forum))}">{shown}</a>')
         return " · ".join(parts)
+
+    def origin_words(self, tv: TargetView) -> str:
+        """T20: what a record with no ``sources`` list says of its statement. Only a statement
+        the record calls the network's is called that; three live calibration targets name
+        ``formal-conjectures`` in ``source`` and ``provenance`` and were called the network's
+        own, because the page read the plural list alone."""
+        record = tv.record or {}
+        source = record.get("source") or {}
+        stated = str((record.get("provenance") or {}).get("statement_source") or "")
+        kind = str(source.get("kind") or stated)
+        if not kind or kind == "network":
+            return "The network's own statement, no external source."
+        ref = str(source.get("ref") or "")
+        if kind == "other" and ref:  # the schema's catch-all: the reference is the name
+            words = f"Statement from {esc(ref)}"
+        else:
+            words = f"Statement from {esc(kind)}" + (f" ({esc(ref)})" if ref else "")
+        if source.get("url"):  # a validated record's url, already in ``cited_urls``
+            url = str(source["url"])
+            shown = esc(url.removeprefix("https://").removeprefix("www."))
+            words += f' · <a href="{esc(url)}">{shown}</a>'
+        return words + "; the record lists no licensed source text."
 
     def node_role(self, tv: TargetView, nv: NodeView) -> str:
         if nv.node_id == tv.root:
@@ -744,7 +837,7 @@ class Renderer:
     def state_hover(self, nv: NodeView) -> str:
         """The row's status dot with the state's definition, and a blocked node's cause."""
         state = self.node_state(nv)
-        if state in ("proved", "open") or state in LEGEND_EXTRA:
+        if state in ("proved", *WORKABLE_STATES) or state in LEGEND_EXTRA:
             _word, meaning, proto = GLOSSARY_BY_KEY[state]
             body = f'{esc(meaning)}<span class="proto">protocol: {esc(proto)}</span>'
         else:
@@ -765,6 +858,8 @@ class Renderer:
         href = esc(self.node_path(tv.target_id, nv.node_id))
         if state == "open":
             return f'<a class="act act-open" href="{href}">Work on this →</a>'
+        if state == NEEDS_WITNESS:
+            return f'<a class="act act-open" href="{href}">Supply a witness →</a>'
         if state == "proved":
             return f'<a class="act act-proved" href="{href}">View proof →</a>'
         return f'<a class="act act-blocked" href="{href}">Blocked</a>'
@@ -827,7 +922,7 @@ class Renderer:
         cards = "".join(self.problem_card(tv) for tv in targets)
         if not cards:
             cards = '<p class="cue">No problems are listed yet.</p>'
-        legend = "".join(self.term(k, dot=k in ("open", "blocked", "proved")) for k in LEGEND_KEYS)
+        legend = "".join(self.term(k, dot=k in DOTTED_KEYS) for k in LEGEND_KEYS)
         legend_list = "".join(
             f"<dt>{esc(GLOSSARY_BY_KEY[k][0])}</dt><dd>{esc(GLOSSARY_BY_KEY[k][1])}</dd>"
             for k in LEGEND_KEYS
@@ -856,7 +951,7 @@ class Renderer:
         tid = tv.target_id
         status = self.problem_status(tv)
         rows = "".join(self.statement_row(tv, nv) for nv in self.ordered_nodes(tv))
-        action = "Open the graph →" if status == "proved" else "Open problem →"
+        action = "View the graph →" if status == "proved" else "View problem →"
         return _template("problem-card.html").substitute(
             target_id=esc(tid),
             href=esc(self.target_path(tid)),
@@ -882,10 +977,11 @@ class Renderer:
         state = self.node_state(nv)
         return _template("problem-row.html").substitute(
             state=esc(state),
+            workable="1" if state in WORKABLE_STATES else "0",
             dot=self.state_hover(nv),
             node=self.node_link(tv.target_id, nv.node_id),
             role=esc(self.node_role(tv, nv)),
-            state_word=esc(state),
+            state_word=esc(self.state_label(state)),
             attempts=esc(self.attempts_words(nv)),
             action=self.node_action(tv, nv),
         )
@@ -918,11 +1014,12 @@ class Renderer:
             return "No informal statement is recorded for this target yet (D-6 intake, F11)."
         informal = tv.record.get("informal")
         if informal:
-            return math(str(informal))
+            return math(str(informal), allowed_urls=self.cited)
         paraphrase = tv.record.get("paraphrase")
         if paraphrase:
             return (
-                f'{math(str(paraphrase))} <span class="note">(the network\'s own paraphrase: the '
+                f"{math(str(paraphrase), allowed_urls=self.cited)} "
+                '<span class="note">(the network\'s own paraphrase: the '
                 "source states no licence, so its wording is cited rather than reproduced)</span>"
             )
         return "No informal statement is recorded for this target yet (D-6 intake, F11)."
@@ -967,7 +1064,13 @@ class Renderer:
     def target_claimable(self, tv: TargetView) -> str:
         """F14-R10: the target page says in words whether it can be claimed, and if not, why."""
         if tv.index_entry.get("claimable"):
-            return '<p class="claimable">This problem is open for work.</p>'
+            guide = f'<a href="{GUIDE_HREF}">How to contribute →</a>'
+            if self.open_count(tv):
+                return f'<p class="claimable">This problem is open for work. {guide}</p>'
+            return (
+                '<p class="claimable">This problem accepts work, but no statement of it is '
+                f"workable right now: each one waits on another. {guide}</p>"
+            )
         if str(tv.index_entry["status"]) == "resolved":
             return '<p class="claimable">Proved: its statement no longer accepts work.</p>'
         return self.why_not_claimable(tv)
@@ -978,9 +1081,7 @@ class Renderer:
             return ""
         sources = tv.record.get("sources") or []
         if not sources:
-            return (
-                '<p class="sources">No external source: this statement is the network\'s own.</p>'
-            )
+            return f'<p class="sources">{self.origin_words(tv)}</p>'
         items = "".join(
             f'<li><a href="{esc(str(s["url"]))}">{esc(str(s["url"]))}</a> &mdash; '
             f"{esc(str(s['attribution']))}; licence {esc(str(s['licence']))}; "
@@ -1005,7 +1106,14 @@ class Renderer:
         per statement, then the record's detail sections as before."""
         tid = tv.target_id
         href = {nid: self.node_path(tid, nid) for nid in tv.nodes}
-        svg = dag.svg(tv.graph["nodes"], href=href)
+        # T17: the pill wears the state the key and the rows name, not the bare graph status.
+        drawn = [
+            {**n, "status": NEEDS_WITNESS}
+            if n.get("status") == "blocked" and n.get("cause") == WITNESS_CAUSE
+            else n
+            for n in tv.graph["nodes"]
+        ]
+        svg = dag.svg(drawn, href=href)
         panels = "".join(self.statement_panel(tv, nv) for nv in self.ordered_nodes(tv))
         n = len(tv.nodes)
         if tv.approaches:
@@ -1107,6 +1215,35 @@ class Renderer:
             f'<span class="names">{names}</span><p>{words}</p>{button}</aside>'
         )
 
+    def revision_note(self, tid: str, nv: NodeView, *, in_page: bool) -> str:
+        """F04-T18 (Q20): a superseded statement names its replacement and the curator's reason;
+        the replacement names what it revises. On the problem page the link selects the other
+        statement's panel (``#node=``); on a statement's own page it goes to the other's page.
+        An id that is not a statement of this problem is shown, never linked (R13)."""
+        target = self.site.targets.get(tid)
+        known = target.nodes if target is not None else {}
+
+        def link(nid: str) -> str:
+            if nid not in known:
+                return f"<code>{esc(nid)}</code>"
+            href = f"#node={nid}" if in_page else self.node_path(tid, nid)
+            return f'<a href="{esc(href)}">{esc(nid)}</a>'
+
+        parts: list[str] = []
+        if nv.status == "superseded":
+            if nv.superseded_by:
+                parts.append(
+                    f"Superseded by {link(nv.superseded_by)}. Work continues on the replacement; "
+                    "this statement is kept for its history (D-8)."
+                )
+            if nv.superseded_cause:
+                parts.append(
+                    f'<span class="why">The curator\'s record: {esc(nv.superseded_cause)}</span>'
+                )
+        if nv.supersedes:
+            parts.append(f"Revises {link(nv.supersedes)}, which it replaced (D-8).")
+        return f'<p class="revision-note">{" ".join(parts)}</p>' if parts else ""
+
     def statement_panel(self, tv: TargetView, nv: NodeView) -> str:
         """One "Selected statement" panel per node; the script shows the selected one and the
         page without it shows the root's. Hashes, origin, pin and files sit behind a toggle."""
@@ -1130,6 +1267,8 @@ class Renderer:
             action = (
                 f'<a class="btn btn-primary btn-block" href="{href}">Work on this statement</a>'
             )
+        elif state == NEEDS_WITNESS:
+            action = f'<a class="btn btn-primary btn-block" href="{href}">Supply a witness →</a>'
         elif state == "proved":
             action = f'<a class="btn btn-primary btn-block" href="{href}">View the proof →</a>'
         else:
@@ -1139,9 +1278,11 @@ class Renderer:
             node_id=esc(nid),
             hidden="" if nid == tv.root else " hidden",
             state=esc(state),
+            state_word=esc(self.state_label(state)),
             dot=self.dot(self.dot_state(state)),
             attempts=esc(self.attempts_words(nv)),
             note=note,
+            revision=self.revision_note(tid, nv, in_page=True),
             statement=esc(declaration_only(nv.statement)),
             hash=esc(str(e.get("statement_hash", ""))[:12]),
             origin=esc(origin),
@@ -1476,6 +1617,28 @@ class Renderer:
                 f"<code>{esc(str(e['proof_commit'])[:12])}</code>: "
                 f"{self.file_link(nv.proof_path, commit=str(e['proof_commit']))}</p>"
             )
+            if nv.proof is not None and nv.proof.mismatched:
+                # Q17: the bytes disagree with the attested hash, so they are not shown at all
+                # — a page that prints unverified Lean under a passing verdict is worse than a
+                # page that says it cannot. The rest of the record still renders.
+                proof += (
+                    '<p class="flag">The <code>Proof.lean</code> in this checkout is not the '
+                    "file the attestation covers: its sha256 is "
+                    f"<code>{esc(nv.proof.content_hash[:12])}</code> and the attestation names "
+                    f"<code>{esc(str(nv.proof.attested_hash)[:12])}</code>. Its text is "
+                    "withheld here; the file itself is linked above.</p>"
+                )
+            elif nv.proof is not None:
+                proof += self.lean_artifact(
+                    nv.proof,
+                    what="Proof.lean",
+                    provenance=(
+                        "its sha256 is the <code>artifact_hash</code> of the attestation below, "
+                        "so these are the bytes the gate checked."
+                        if nv.proof.verified
+                        else "no attestation names a hash for these bytes."
+                    ),
+                )
             renders.append(nv.proof_path)
         else:
             proof = "<p>No proof merged yet.</p>"
@@ -1493,17 +1656,10 @@ class Renderer:
         attempts = nv.attempts
         hist = ", ".join(f"{k} {v}" for k, v in sorted(attempts.failure_class_histogram.items()))
         refuted = ", ".join(attempts.refuted_route_classes)
+        explainer = self.explainer_block(nv)
         if nv.explainer is not None:
-            explainer = self.vouched_lines(nv) + self.untrusted_block(
-                "unverified", nv.explainer, what="explainer"
-            )
             renders.append(nv.explainer.path)
             renders.extend(v.path for v in nv.signatures)
-        else:
-            explainer = (
-                '<p class="cue">No explainer yet. A plain-language account of this proof, '
-                "labelled unverified, is the next thing a writer could add (D-3, D-36).</p>"
-            )
         annexes = (
             "".join(self.untrusted_block("untrusted", a, what="annex (D-31)") for a in nv.annexes)
             or "<p>No annex.</p>"
@@ -1515,12 +1671,24 @@ class Renderer:
             f'<div class="prose">{prose.render(a.get("justification", ""))}</div></div>'
             for a in nv.acknowledgments
         )
+        witness = self.witness_block(nv)
+        if nv.witness is not None:
+            renders.append(nv.witness.path)
+        if nv.superseded_record is not None:
+            renders.append(nv.superseded_record)
+        partials = self.partials_block(nv)
+        for p in nv.partials:
+            renders.append(p.file.path)
+            if p.record_path is not None:
+                renders.append(p.record_path)
         body = _template("node.html").substitute(
             node_id=esc(nid),
             target_id=esc(tid),
             target_href=esc(self.target_path(tid)),
             status=self.status_mark(nv.status, nv.cause),
             status_class=esc(nv.status),
+            revision=self.revision_note(tid, nv, in_page=False),
+            wayfinding=self.wayfinding(),
             claimable=self.node_not_claimable(nv),
             tutorial=(
                 '<p class="cue">The tutorial node: permanently open and off the ledger (D-27).</p>'
@@ -1532,6 +1700,8 @@ class Renderer:
             deps=", ".join(self.node_link(tid, d) for d in nv.deps) or "none",
             origin=esc(e["origin"]) + (f" ({esc(e['relation'])})" if e["relation"] else ""),
             proof=proof,
+            witness=witness,
+            partials=partials,
             attestation=attestation,
             alternates=alternates,
             trust=trust,
@@ -1548,6 +1718,36 @@ class Renderer:
             renders=renders,
             path=PROBLEMS_PATH,
         )
+
+    def explainer_block(self, nv: NodeView) -> str:
+        """The explainer, or the cue in its place. T20: the cue invited "an account of this
+        proof" on statements with no proof; an explainer needs a merged proof (D-3), so only a
+        proved statement is invited, and told how one arrives."""
+        if nv.explainer is not None:
+            return self.vouched_lines(nv) + self.untrusted_block(
+                "unverified", nv.explainer, what="explainer"
+            )
+        if nv.status == "proved":
+            return (
+                '<p class="cue">No explainer yet. A plain-language account of this proof, '
+                "labelled unverified, is the next thing a writer could add, by pull request "
+                f'(D-3, D-36; <a href="{GUIDE_HREF}">the guide</a> shows how).</p>'
+            )
+        return (
+            '<p class="cue">No explainer yet. An explainer is a plain-language account of a '
+            "merged proof, so there is nothing to explain until this statement is proved "
+            "(D-3).</p>"
+        )
+
+    def wayfinding(self) -> str:
+        """T20: a statement's page leads to the guide and, where the site knows the service, to
+        the pull requests in flight (a link: the policy forbids the page fetching them)."""
+        links_ = [f'<a href="{GUIDE_HREF}">How to contribute →</a>']
+        if self.api_url:
+            links_.append(
+                f'<a href="{esc(self.api_url + SUBMISSIONS_PATH)}">Pull requests in flight ↗</a>'
+            )
+        return " · ".join(links_)
 
     def node_not_claimable(self, nv: NodeView) -> str:
         """F04-T10: a node a claim could take (F03-Q8) under a target that is not claimable says
@@ -1614,6 +1814,10 @@ class Renderer:
         path = f"targets/{target}/nodes/{node}/{artifact}"
         revoked = entry.get("status") == "revoked"
         line = esc(str(entry.get("line", "")))
+        if artifact.endswith(PARTIAL_SUFFIX):
+            # T20: the ledger's *line* is the credit category, and a partial earns on the proof
+            # line (ledger.MERGE_LINES); the artifact says what was merged.
+            line = "partial proof"
         if revoked:
             line += ' <span class="status status-revoked">revoked</span>'
         return (
@@ -1683,10 +1887,25 @@ class Renderer:
             if path.is_file():
                 text = path.read_text(encoding="utf-8")
                 parts.append(f'<h3>{esc(name)}</h3><pre class="prose">{esc(text)}</pre>')
+            elif name == "LICENSE":
+                parts.append(
+                    "<p>No license text is committed to the graph yet (D-23). Annex prose "
+                    "carries the licence its author chose: "
+                    f"{', '.join(esc(x) for x in ANNEX_LICENCES)}.</p>"
+                )
+            elif self.api_url:
+                # T20: the page said no sign-off text existed while the service refused a token
+                # without one. The text is the service's, so the page links it, never copies it.
+                parts.append(
+                    "<p>Sign-off: a token is issued only against the Developer Certificate of "
+                    f'Origin the service serves at <a href="{esc(self.api_url + DCO_PATH)}">'
+                    "/dco.json ↗</a>, and every commit the service makes for a contributor "
+                    "carries their sign-off (D-23). No copy is committed to the graph.</p>"
+                )
             else:
                 parts.append(
-                    f"<p>No {what} text is committed to the graph yet; D-23 settles it before the "
-                    "first external contributor.</p>"
+                    f"<p>No {what} text is committed to the graph; the service serves the text a "
+                    "token is issued against (D-23).</p>"
                 )
         # F15-R11: the steward section, the proposal form on the graph repository (from the
         # site's configured repository, never a hostname in a template) and the Leiden table.
@@ -1713,7 +1932,7 @@ class Renderer:
         return self.page("Docs", body, renders=renders, path="/docs/"), extra
 
     def states(self) -> str:
-        """F04-T15 (Q17): the Docs section that draws how a statement and a problem change state
+        """F04-T21 (Q23): the Docs section that draws how a statement and a problem change state
         and names the action behind each arrow. The drawings are inline SVG in the template; the
         two keys are built here so each item is the same hover card the graph key and the
         Problems page use, and a definition keeps its one home (Q14)."""
@@ -1770,6 +1989,99 @@ class Renderer:
             steps=steps,
         )
 
+    # -- the mathematics itself (F04-T15; R14) -------------------------------------------------
+
+    def lean_artifact(self, lean: LeanFile, *, what: str, provenance: str) -> str:
+        """A Lean artifact's own text on the page, with what is known about those bytes.
+
+        ``provenance`` is HTML the caller has already escaped. The sentence differs per artifact
+        because only a proof's bytes are attested (``artifact_hash``): a witness and a partial
+        have no hash anywhere in the protocol, so their callers are unable to claim one.
+        """
+        text = esc(lean.text.rstrip("\n"))
+        return (
+            '<figure class="artifact"><figcaption class="artifact-cap">'
+            f"{esc(what)} — {provenance} Rendered from {self.file_link(lean.path)}, "
+            f"sha256 <code>{esc(lean.content_hash[:12])}</code>.</figcaption>"
+            f'<pre class="lean">{text}</pre></figure>'
+        )
+
+    def witness_block(self, nv: NodeView) -> str:
+        """The non-vacuity witness (D-4 step 7), shown rather than linked.
+
+        Nothing in the protocol hashes a witness, so the page says what the gate *checked* — the
+        step's own result in this node's attestation — and never that the bytes were attested.
+        """
+        if nv.witness is None:
+            return '<p class="cue">No witness file: this node carries no step 7 obligation.</p>'
+        if nv.witness_open:
+            # The invitation is withheld only from a statement nobody owes work on: six of the
+            # twelve live nodes with an unfilled slot are superseded by a D-8 revision, and
+            # telling a reader to witness one of those is asking for wasted work. Same shape as
+            # the frontier's own membership rule (F03-T10), one day earlier.
+            words = (
+                f"its slot was never filled, and this statement is {esc(nv.status)}, so no "
+                "witness is owed here — the node that replaced it carries the obligation "
+                "(D-8, D-29)."
+                if nv.status in NO_WITNESS_OWED
+                else (
+                    "its slot is still open, so step 7 cannot pass and the node stays blocked "
+                    "until someone fills it (D-29); propose one through "
+                    "<code>/proposals/witness</code>."
+                )
+            )
+            return self.lean_artifact(nv.witness, what="Witness.lean", provenance=words)
+        result = next(
+            (
+                str(s.get("result"))
+                for s in (nv.attestation or {}).get("steps", [])
+                if s.get("name") == "witness"
+            ),
+            None,
+        )
+        words = (
+            "filled; the gate checks it at step 7 of every submission against this statement."
+            if result is None
+            else (
+                "checked at step 7 of the run recorded below: "
+                f'<span class="result-{esc(result)}">{esc(result)}</span>.'
+            )
+        )
+        return self.lean_artifact(nv.witness, what="Witness.lean", provenance=words)
+
+    def partials_block(self, nv: NodeView) -> str:
+        """Each partial assembly filed under ``attempts/`` (D-3, D-12 #5), as text.
+
+        No attestation covers a partial, so each is untrusted contributor content (R4), beside
+        the record naming it — or beside the fact that no record does, which the live graph
+        carries and ``records.count_attempts`` already counts as an attempt in its own right.
+        """
+        blocks = []
+        for p in nv.partials:
+            facts = [f"by {esc(p.contributor)}" if p.contributor else "author not recorded"]
+            if p.outcome:
+                facts.append(f"outcome <strong>{esc(p.outcome)}</strong>")
+            if p.route_class:
+                facts.append(f"route class {esc(p.route_class)}")
+            if p.failure_class:
+                facts.append(f"failure class {esc(p.failure_class)}")
+            if p.route:
+                facts.append(f"route &ldquo;{esc(p.route)}&rdquo;")
+            named = (
+                f"recorded in {self.file_link(p.record_path)}"
+                if p.record_path
+                else "no postmortem record names this file"
+            )
+            text = esc(p.file.text.rstrip("\n"))
+            blocks.append(
+                '<div class="prose-block untrusted"><p class="label">'
+                f"Untrusted: partial assembly (D-12 #5), {', '.join(facts)}; {named}. "
+                "No attestation covers a partial — it records an attempt, not a proof. "
+                f"Rendered from {self.file_link(p.file.path)}.</p>"
+                f'<pre class="lean">{text}</pre></div>'
+            )
+        return "".join(blocks) or '<p class="cue">No partial assembly filed.</p>'
+
     def untrusted_block(
         self, label: str, prose_: Prose, *, what: str, document: bool = False
     ) -> str:
@@ -1818,7 +2130,10 @@ def cited_urls(site: Site) -> frozenset[str]:
 def live_urls(api_url: str | None) -> frozenset[str]:
     """T9: the one off-site url the site's own config admits, the service's live claims. An
     exact url, like ``cited_urls``, so a page cannot link anywhere else on the service."""
-    return frozenset({api_url.rstrip("/") + CLAIMS_PATH}) if api_url else frozenset()
+    if not api_url:
+        return frozenset()
+    base = api_url.rstrip("/")
+    return frozenset({base + CLAIMS_PATH, base + SUBMISSIONS_PATH, base + DCO_PATH})
 
 
 def render_site(

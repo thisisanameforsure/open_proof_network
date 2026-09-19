@@ -49,7 +49,7 @@ def _load_runner() -> Any:
 
 walkthrough = _load_runner()
 GRAPH_COPY = ROOT.parent / "open_proof_network_graph" / "AGENTS.md"
-DECISIONS = ROOT / "docs" / "architecture_decisions_v_3_12.html"
+DECISIONS = ROOT / "docs" / "architecture_decisions.html"
 COMMIT = "6" * 40
 MERGE = "4" * 40
 

@@ -1,0 +1,34 @@
+F04-T17 evidence — 2026-09-18
+
+## Red first (the renderer stashed, the new fixture and tests in place)
+uv run --frozen pytest site/tests/test_finding_needs_witness.py -q
+=========================== short test summary info ============================
+FAILED site/tests/test_finding_needs_witness.py::test_the_sites_workable_statements_are_the_frontiers
+FAILED site/tests/test_finding_needs_witness.py::test_a_hole_awaiting_its_witness_reads_as_work
+FAILED site/tests/test_finding_needs_witness.py::test_a_superseded_hole_is_not_work
+FAILED site/tests/test_finding_needs_witness.py::test_the_counts_include_witness_work
+FAILED site/tests/test_finding_needs_witness.py::test_the_filter_keeps_every_workable_row
+FAILED site/tests/test_finding_needs_witness.py::test_the_panel_offers_the_witness_as_the_work
+FAILED site/tests/test_finding_needs_witness.py::test_the_glossary_defines_the_witness_and_the_state
+FAILED site/tests/test_finding_needs_witness.py::test_the_footnote_claims_only_what_is_true
+FAILED site/tests/test_finding_needs_witness.py::test_the_graph_key_names_the_state_when_a_statement_has_it
+9 failed in 1.89s
+
+## Green
+9 passed in 1.97s
+
+## Whole site suite: uv run --frozen pytest site/tests -q
+237 passed in 16.69s
+
+## The live graph at 4c58adb (detached worktree of origin/main), rendered locally, read in a browser
+live site before this change, Open statements segment: 22
+frontier.json entries: 29 claimable: 28
+site rows with data-workable=1: 28 | Open segment count: 28 | rows visible under ?filter=open: 28
+claimable but not workable on the site: []
+workable on the site but not claimable: []
+the one frontier entry that is not claimable: ['variant-93e79cb5'] (a blocked open variant; listed, not workable)
+erdos-69 hidden under ?filter=open: False
+needs-a-witness rows: ['erdos-1050--h1-v2', 'erdos-402--h3-v2', 'erdos-412--h1-v2', 'erdos-69--h2-v2--h1-v2', 'variant-93e79cb5--h1', 'variant-93e79cb5--h2']
+
+scrollWidth/clientWidth: 1440/1440 and 390/390 (no horizontal overflow)
+screenshots: task-17-problems-open-erdos-69-1440.png, task-17-problems-open-erdos-69-390.png, task-17-erdos-69-hole-1440.png

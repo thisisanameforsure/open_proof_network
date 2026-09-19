@@ -53,6 +53,8 @@ D35_POST_CHECK = "POST /check"
 D35_OWNED_BY_F13: frozenset[str] = frozenset({D35_POST_CHECK})
 
 ROUTES: tuple[RouteSpec, ...] = (
+    # F05-T12, Q13: the index of this table, served at the root. Open, no D-35 row.
+    RouteSpec("GET", "/", "index:get_index", None),
     RouteSpec("GET", "/health", "app:health", None),
     RouteSpec("GET", "/info.json", "info:get_info", None),
     RouteSpec("GET", "/dco.json", "identity:get_dco", None),
@@ -154,3 +156,36 @@ ROUTES: tuple[RouteSpec, ...] = (
     # configuration, open like /dco.json; info.json stays the graph's product (info/v1).
     RouteSpec("GET", "/hosted-checkers.json", "checks:get_hosted_checkers", None, feature="F13"),
 )
+
+#: F05-T12 (Q13): one sentence per route, keyed by its label and served by ``GET /``. A test
+#: holds this to ``ROUTES`` in both directions, so a route cannot ship without saying what it
+#: is for. The guide is where each is documented; these are for finding the way there.
+PURPOSES: dict[str, str] = {
+    "GET /": "This index: every route, whether it needs a bearer, and what it is for.",
+    "GET /health": "Whether the service is configured and which store it runs on.",
+    "GET /info.json": "The graph's info.json with the rate limits in force filled in.",
+    "GET /dco.json": "The sign-off text a token is issued against, and its version.",
+    "GET /frontier.json": "The open statements, with the live claim counts laid over them.",
+    "GET /claims.json": "The live claims registry alone, as the post-merge job commits it.",
+    "GET /auth/github/start": "Begin the GitHub proof of identity for a token (browser).",
+    "GET /auth/github/callback": "Finish the GitHub proof of identity and issue the token.",
+    "POST /tokens": "Issue a token: from a passing tutorial precheck (no account) or GitHub.",
+    "POST /claims": "Claim an open statement for a time, so others can see it is being worked.",
+    "DELETE /claims/{claim_id}": "Release a claim you hold.",
+    "POST /precheck": "Run the gate on a bundle in the hosted sandbox before submitting it.",
+    "GET /precheck/{job_id}": "A precheck job's state, and its signed attestation when done.",
+    "POST /submissions": "Open the pull request for a prechecked proof or partial proof.",
+    "GET /submissions.json": "Every pull request the service opened that is still open.",
+    "GET /submissions/{submission_id}": "One submission: its pull request and where it stands.",
+    "POST /postmortems": "Record a failed attempt on a statement, by pull request.",
+    "POST /annexes": "Attach informal mathematics to a statement, by pull request.",
+    "POST /approach-records": "Record an approach to a whole problem, by pull request.",
+    "POST /proposals/speculative": "Propose a new statement under a problem, by pull request.",
+    "POST /proposals/variant": "Propose a variant of a problem's statement, by pull request.",
+    "POST /proposals/witness": "Supply the witness a statement is waiting for, by pull request.",
+    "POST /revision-requests": "Ask a curator to revise a statement, with the reason.",
+    "POST /defect-claims": "Claim a statement is defective, with a Lean exhibit the gate checks.",
+    "POST /check": "Check Lean text in about a second on a hosted checker; never authoritative.",
+    "GET /checks/{check_id}": "The record of one of your own fast-check calls.",
+    "GET /hosted-checkers.json": "Which hosted checker environment serves each pin and target.",
+}

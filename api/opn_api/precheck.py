@@ -24,6 +24,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Literal
 
+import yaml
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
@@ -233,14 +234,63 @@ def blocked_error(
     )
 
 
-def check_open(ctx: Context, node_id: str, facts: dict[str, Any]) -> None:
-    """F06-T6 (R1 amended): refuse a ``blocked`` node with the shared ``409 node-blocked``.
+def replacement_of(ctx: Context, target_id: str, node_id: str) -> str | None:
+    """F05-T11: the node a superseded one was replaced by, or ``None`` when the graph does not
+    say. ``opn-gate revise`` writes it as ``reference`` on the old node's ``superseded`` status
+    record (D-8), and no product carries it, so the service reads the newest such record at
+    ``main``. Best effort by design: this only ever decorates a refusal that stands without it,
+    so a host that cannot list or serve the record yields ``None``, never an error."""
+    path = f"targets/{target_id}/nodes/{node_id}/status"
+    try:
+        names = ctx.githost.list_dir(ctx.settings.graph_repo, ctx.settings.graph_branch, path)
+        for name in sorted((n for n in names or [] if n.endswith(".yaml")), reverse=True):
+            doc = yaml.safe_load(frontier.committed(ctx, f"{path}/{name}"))
+            if isinstance(doc, dict) and doc.get("status") == "superseded":
+                reference = doc.get("reference")
+                return str(reference) if reference else None
+    except (GitHostError, ApiError, yaml.YAMLError) as exc:
+        log.warning("%s: no replacement read for %s: %s", path, node_id, exc)
+    return None
 
-    Only ``blocked`` is refused. A proved node stays precheckable — the tutorial node is normally
+
+def standing(ctx: Context, node_id: str, facts: dict[str, Any]) -> dict[str, Any]:
+    """The ``details`` of a refusal on a node that is not open: its status, and for a superseded
+    node the one that replaced it (null otherwise, and when the graph does not say)."""
+    status = facts.get("status")
+    replacement = (
+        replacement_of(ctx, str(facts["target_id"]), node_id) if status == "superseded" else None
+    )
+    return {"status": status, "replacement": replacement}
+
+
+def superseded_error(ctx: Context, node_id: str, facts: dict[str, Any]) -> ApiError:
+    details = standing(ctx, node_id, facts)
+    successor = details["replacement"]
+    where = (
+        f"; {successor} replaced it, and work continues there"
+        if successor
+        else "; its status record names the node that replaced it"
+    )
+    return ApiError(
+        409,
+        "node-superseded",
+        f"{node_id} is superseded by a D-8 revision{where}. A proof of a replaced statement "
+        "closes nothing.",
+        details=details,
+    )
+
+
+def check_open(ctx: Context, node_id: str, facts: dict[str, Any]) -> None:
+    """F06-T6 (R1 amended): refuse a ``blocked`` node with the shared ``409 node-blocked``, and
+    (F05-T11) a ``superseded`` one with ``409 node-superseded`` naming its replacement.
+
+    Nothing else is refused. A proved node stays precheckable — the tutorial node is normally
     proved, and its anonymous precheck is how D-19 mints every identity — and a node the graph
     carries no status for has nothing to refuse it on."""
     if facts.get("status") == "blocked":
         raise blocked_error(node_id, facts, graph_doc(ctx))
+    if facts.get("status") == "superseded":
+        raise superseded_error(ctx, node_id, facts)
 
 
 def rendered_from(ctx: Context) -> str:

@@ -1,7 +1,7 @@
 # Open Proof Network — build instructions for Claude
 
 A distributed crowdsourced Lean 4 proof network for open mathematical problems, built spec-first.
-The protocol is decided (`docs/architecture_decisions_v_3_12.html`, decisions D-1 to D-36 with
+The protocol is decided (`docs/architecture_decisions.html`, decisions D-1 to D-36 with
 frozen identifiers); the implementation stack is locked (conventions §1). Everything in
 `engineering/` is about how to build it, not what it is (`engineering/README.md`). The workflow
 below is in force from the first line of code.
@@ -887,7 +887,42 @@ The law of the project:
   `overflow-x: auto` container clips a hover card, so the scroll goes on an inner wrapper and the
   card hangs from the key's own left edge (`position: static` on the item); and the ledger's test
   count was written before the run and was wrong by fifteen. Run, then write the number.
-- 2026-09-19 — A drawing's labels are measured, not eyeballed. The Docs state map (F04-T15) was
+- 2026-09-19 — A record that outranks everything, on files nobody may touch, is a dead node. An
+  outside contributor given one URL (`erdos-69`) landed three green pull requests in fifteen
+  minutes and asked what his witness would close: nothing. The parent of a D-8-revised hole could
+  never close, four ways at once (deps named the superseded child, `Context.lean` carried the old
+  signature, the `stale` record was terminal because `node-status/v1` has no value that clears
+  one, and `META.yaml` is `path-forbidden` in every mode); seven live parents were frozen and
+  nothing was red. Mike asked that the mechanism be chosen against four principles — published
+  state is actual state, fully trackable, easily reversed, hard to tamper with — and they picked
+  *derive, never rewrite* over a bot rewrite or a curator mode (F08-T10, decisions v3.18): no
+  record mutates, one commit's revert restores everything (tested byte for byte), no new write
+  path, and Lean, not the pointer, is the guard. The same principles caught my own first rule:
+  "stale lifts on a newer attestation" compares dates, a status record's date is whatever its
+  author typed and an attestation has none, so the rule is commit ancestry. When a rule needs
+  "newer", ask who wrote the clock.
+- 2026-09-19 — Four things re-learned the expensive way in that sitting. `pregate.sh` and
+  `reproduce.sh` read uncommitted changes, or a commit's diff, as *the submission* (2026-09-12,
+  paid twice more): merged history and the submission are separate commits in a test, as they
+  are for real. The ledger takes a merge's tooling from its *attestation*, and only building
+  modes get one, so the planned disclosure block on witness and postmortem writes would have
+  reached nothing; the plan had named that a stop condition, and checking it first cost one
+  grep. `CONTEXT.json` has a second, toolchain-free builder in the service that must produce
+  the same bytes (F10-Q7), so a Lean-computed field cannot simply be added to it: re-price a
+  schema field against *every* builder of the document, not only every reader. And a network
+  push deploys the service but never the site, which moves on a graph merge or a manual
+  `gh workflow run site-deploy.yml --ref main`.
+- 2026-09-19 — A sentence on a page is a claim, and an outside reader checks it. The site said
+  "Not accepting work" of six statements the frontier listed as claimable (its "open" rule was a
+  week older than the gate's), "the network's own statement" of four whose record names a source
+  (it read the plural `sources` only), "every problem has a named steward" beside a count of
+  zero, and blocked its own fonts with its own header, which no test could see because only
+  CloudFront sets it. Hold a derived count to the product it claims to mirror in a test (the
+  site's workable set now equals the frontier's claimable set), read a policy string out of the
+  template that serves it, and check a worked example with the toolchain before it goes in a
+  guide: the witness example was run through `opn-witness-type` first.
+  count was written before the run and was wrong by fifteen. Run, then write the number.
+- 2026-09-19 — A drawing's labels are measured, not eyeballed. The Docs state map (F04-T21) was
   laid out with a per-character width guess, and the first render at the site's own font had nine
   monospace sub-lines running past their boxes, two arrow labels sitting on the boxes they joined,
   and a legend text under a chip. Playwright's `getBBox` against each text's enclosing `rect`

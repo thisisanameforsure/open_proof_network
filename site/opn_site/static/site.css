@@ -99,6 +99,7 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; flex: none; vertical-align: -1px; margin-right: var(--s2); border: 1.5px solid var(--n600); }
 .dot-proved { background: var(--accent); border-color: var(--accent); }
 .dot-open { border-color: var(--accent); }
+.dot-needs-witness { border-color: var(--accent); border-style: dashed; }
 /* F04-T14: the other statuses wear the node pages' colours — amber waits on a repair, red is off the route */
 .dot-stale, .dot-disputed { border-color: var(--warn); }
 .dot-superseded, .dot-abandoned, .dot-refuted, .dot-defective { border-color: var(--bad); }
@@ -229,6 +230,7 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .dag circle { fill: none; stroke: var(--n600); stroke-width: 1.5; }
 .dag .status-proved circle { fill: var(--accent); stroke: var(--accent); }
 .dag .status-ready circle, .dag .status-speculative circle { stroke: var(--accent); }
+.dag .status-needs-witness circle { stroke: var(--accent); stroke-dasharray: 2 2; }
 .dag .status-stale circle, .dag .status-disputed circle { stroke: var(--warn); }
 .dag .status-superseded circle, .dag .status-abandoned circle, .dag .status-refuted circle, .dag .status-defective circle { stroke: var(--bad); }
 .dag .status-superseded rect, .dag .status-abandoned rect { stroke-dasharray: 4 3; }
@@ -282,6 +284,11 @@ blockquote.commitment { margin: 0; font-family: var(--mono); font-size: 12.5px; 
 
 /* — node page and the record's detail sections — */
 pre.lean { background: var(--surface); padding: var(--s4) var(--s6); overflow-x: auto; white-space: pre; line-height: 1.6; margin: var(--s4) 0; border-radius: var(--radius-sm); font-size: 13px; }
+/* F04-T15: a Lean artifact shown on the site, with the caption saying what was checked. */
+.artifact { margin: var(--s4) 0 var(--s6); }
+.artifact-cap { color: var(--n500); font-size: 13px; margin: 0; }
+.artifact pre.lean { margin: var(--s2) 0 0; }
+.prose-block pre.lean { margin: var(--s3) 0 var(--s2); }
 pre.lean.statement { border-left: 3px solid var(--n700); }
 pre.statement.st-proved { border-left-color: var(--proved); }
 pre.statement.st-ready, pre.statement.st-open { border-left-color: var(--accent); }
@@ -394,8 +401,13 @@ main > h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
   .provenance .links { margin-left: 0; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* F04-T18: a superseded statement's way forward, and a revision's way back. */
+.revision-note { border-left: 2px solid var(--bad); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
+.revision-note .why { display: block; margin-top: var(--s2); color: var(--n500); font-size: 12.5px; overflow-wrap: anywhere; }
+/* F04-T20: wayfinding lines. */
+.wayfinding, .jump { font-size: 13.5px; color: var(--n400); }
 
-/* — Docs: how a statement and a problem change state (F04-T15) — */
+/* — Docs: how a statement and a problem change state (F04-T21) — */
 .states { display: flex; flex-direction: column; gap: var(--s6); }
 .states h3 { margin-top: var(--s4); }
 .states ol.rules-order { margin: 0; padding-left: 1.4em; max-width: 72ch; color: var(--n300); font-size: 14px; line-height: 1.6; }
@@ -420,6 +432,7 @@ main > h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
 .smap .code { font-family: var(--mono); font-size: 10px; }
 .smap .box { fill: var(--bg); stroke: var(--n600); stroke-width: 1.2; }
 .smap .box.st-open { stroke: var(--accent); }
+.smap .box.st-needs-witness { stroke: var(--accent); stroke-dasharray: 2 2; }
 .smap .box.st-proved { fill: rgba(145, 132, 217, 0.22); stroke: var(--accent); }
 .smap .box.st-stale, .smap .box.st-disputed { stroke: var(--warn); }
 .smap .box.st-refuted, .smap .box.st-defective { stroke: var(--bad); }
