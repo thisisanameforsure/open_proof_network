@@ -92,3 +92,6 @@ CI, lean tier on 496b31d (run 35449383616, job 105913777316): 1 failed, 73 passe
   T21 removed, and the container cannot run it here (no docker, no elan). The gate did what R22 says
   (the tutorial placed as reused_node, no --h1 node, no edge); the test was rewritten to assert that and
   say which decision gave way. Every lean- and docker-tier test but this one passed on the T21 tree.
+
+CI, lean tier on 6cad370 (run 35452524482, job 105922042276): 74 passed in 60 min, the docker-tier
+  duplicate-hole test among them; fast tier green (job 105922042109). PR #4 mergeable_state clean.
