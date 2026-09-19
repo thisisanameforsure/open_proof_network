@@ -1,0 +1,55 @@
+F05-T12 evidence — 2026-09-19
+
+## The live finding (2026-09-18)
+GET https://api.openproofnetwork.org/ -> 404   GET /openapi.json -> 404
+
+## Red first: uv run --frozen pytest api/tests/test_finding_route_index.py -q
+FAILED api/tests/test_finding_route_index.py::test_the_index_is_an_open_read_with_no_d35_row
+FAILED api/tests/test_finding_route_index.py::test_every_route_says_what_it_is_for
+FAILED api/tests/test_finding_route_index.py::test_the_index_lists_exactly_the_routes_table
+FAILED api/tests/test_finding_route_index.py::test_the_index_points_at_the_guide_and_the_mcp_endpoint
+4 failed, 1 passed, 2 warnings in 0.47s
+(the one pass: /openapi.json stays 404)
+
+## Green, with the routes, health and MCP surface suites
+24 passed
+
+## Service suite plus the guide walkthrough: uv run --frozen pytest api/tests gate/tests/test_walkthrough.py -q
+657 passed
+
+## The index in process (the fake host)
+/Users/mikehiggins/Desktop/repos/open_proof_network/api/tests/api_fakes.py:29: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+  from starlette.testclient import TestClient
+{
+ "service": "Open Proof Network service",
+ "authoritative_for": "nothing: the graph repository is the record (D-35)",
+ "guide": "https://github.com/thisisanameforsure/open_proof_network_graph/blob/main/AGENTS.md",
+ "mcp": "/mcp"
+}
+GET    /                                  none   This index: every route, whether it needs a bearer, and what it is for.
+GET    /health                            none   Whether the service is configured and which store it runs on.
+GET    /info.json                         none   The graph's info.json with the rate limits in force filled in.
+GET    /dco.json                          none   The sign-off text a token is issued against, and its version.
+GET    /frontier.json                     none   The open statements, with the live claim counts laid over them.
+GET    /claims.json                       none   The live claims registry alone, as the post-merge job commits it.
+GET    /auth/github/start                 none   Begin the GitHub proof of identity for a token (browser).
+GET    /auth/github/callback              none   Finish the GitHub proof of identity and issue the token.
+POST   /tokens                            none   Issue a token: from a passing tutorial precheck (no account) or GitHub.
+POST   /claims                            bearer Claim an open statement for a time, so others can see it is being worked.
+DELETE /claims/{claim_id}                 bearer Release a claim you hold.
+POST   /precheck                          none   Run the gate on a bundle in the hosted sandbox before submitting it.
+GET    /precheck/{job_id}                 none   A precheck job's state, and its signed attestation when done.
+POST   /submissions                       bearer Open the pull request for a prechecked proof or partial proof.
+GET    /submissions.json                  none   Every pull request the service opened that is still open.
+GET    /submissions/{submission_id}       none   One submission: its pull request and where it stands.
+POST   /postmortems                       bearer Record a failed attempt on a statement, by pull request.
+POST   /annexes                           bearer Attach informal mathematics to a statement, by pull request.
+POST   /approach-records                  bearer Record an approach to a whole problem, by pull request.
+POST   /proposals/speculative             bearer Propose a new statement under a problem, by pull request.
+POST   /proposals/variant                 bearer Propose a variant of a problem's statement, by pull request.
+POST   /proposals/witness                 bearer Supply the witness a statement is waiting for, by pull request.
+POST   /revision-requests                 bearer Ask a curator to revise a statement, with the reason.
+POST   /defect-claims                     bearer Claim a statement is defective, with a Lean exhibit the gate checks.
+POST   /check                             none   Check Lean text in about a second on a hosted checker; never authoritative.
+GET    /checks/{check_id}                 bearer The record of one of your own fast-check calls.
+GET    /hosted-checkers.json              none   Which hosted checker environment serves each pin and target.
