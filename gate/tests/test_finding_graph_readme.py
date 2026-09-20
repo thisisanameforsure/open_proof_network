@@ -18,7 +18,8 @@ from opn_gate import config
 
 ROOT = Path(__file__).resolve().parents[2]
 GRAPH_REPO = ROOT.parent / "open_proof_network_graph"
-CITATION = re.compile(r"docs/architecture_decisions_v_\d+_\d+\.html")
+#: F10-T9 (2026-09-19) took the version out of the filename; an older README may still carry one.
+CITATION = re.compile(r"docs/architecture_decisions(?:_v_\d+_\d+)?\.html")
 
 REASON = (
     "finding graph-readme (D-35, F10-R2): the graph's README cites "
@@ -44,7 +45,7 @@ def _live_readme() -> str:
 
 def test_the_graph_readme_cites_a_decisions_document_that_exists() -> None:
     cited = sorted(set(CITATION.findall(_live_readme())))
-    assert cited, "the graph's README cites no docs/architecture_decisions_v_<n>_<m>.html"
+    assert cited, "the graph's README cites no docs/architecture_decisions*.html"
     missing = [path for path in cited if not (ROOT / path).is_file()]
-    present = sorted(p.name for p in (ROOT / "docs").glob("architecture_decisions_v_*.html"))
+    present = sorted(p.name for p in (ROOT / "docs").glob("architecture_decisions*.html"))
     assert missing == [], f"cited but absent: {missing}; this repo has {present}"
