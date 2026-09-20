@@ -399,13 +399,21 @@ def child_statement(
     imports are what make it elaborate: a hole over the on-ramp's ``Opn.IsPrime`` names a
     definition only ``Defs.IsPrime`` provides, and the tactics a prover may use on the child are
     the ones the parent's statement imported (F11-Q16). Library and ``Defs.*`` imports only —
-    the parent's own Context is not the child's (F01-Q2). The ``open`` lines come along for the
+    the parent's own Context is not the child's (F01-Q2), and the child imports its own (F07-T23).
+    The ``open`` lines come along for the
     same reason: a hole's closed type is printed in the parent's namespace, so ``sigma 1`` under
     ``open ArithmeticFunction.sigma`` names nothing without that line (found live on erdos-412's
     first hole, 2026-09-17, when the first products scan of it said the file does not elaborate).
     """
     decl = child.replace("-", "_")
-    header = "".join(f"import {m}\n" for m in imports)
+    # F07-T23: the child's *own* Context, as an intake root imports its own. A hole is a node
+    # like any other and may be decomposed in turn; its holes then arrive in its Context.lean,
+    # a proof may not add an import (F00-R19), and so a statement born without this line can
+    # never be closed through them (found live on variant-2a7919a9, graph PR #123).
+    from opn_gate import layout  # noqa: PLC0415 — as below: layout imports schemas
+
+    own = layout.node_module(child, "Context")
+    header = "".join(f"import {m}\n" for m in [*imports, own])
     opened = "".join(f"{line}\n" for line in opens)
     return (
         header

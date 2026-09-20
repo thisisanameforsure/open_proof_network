@@ -19,7 +19,7 @@ import yaml
 from fakes import FakeToolchain, artifact_result, witness_result
 from test_cli_sandboxed import NODES, Seam, git_repo, run
 
-from opn_gate import cli, schemas, submission
+from opn_gate import cli, layout, schemas, submission
 from opn_gate.paths import Change
 
 ROOT = "and-swap-reassoc"
@@ -152,8 +152,13 @@ def test_children_carry_the_parents_imports(
     )
     assert code == cli.EXIT_PASS, (err, out.get("first_failing_step"), out.get("diagnostic"))
     child = (root / NODES / f"{ROOT}--h1" / "Statement.lean").read_text(encoding="utf-8")
-    assert child.startswith("import Defs.Divides\nimport Mathlib.Tactic\n\n")
-    assert "Context" not in child.split("/-!")[0]
+    # F07-T23: the parent's library and Defs imports, then the child's *own* Context — never the
+    # parent's (F01-Q2). A hole is a node that may be decomposed in turn, its holes arrive in its
+    # Context.lean, and a proof may not add an import, so the line has to be there from birth.
+    own = f"import Nodes.«{ROOT}--h1».Context\n"
+    assert child.startswith("import Defs.Divides\nimport Mathlib.Tactic\n" + own + "\n")
+    assert f"«{ROOT}»" not in child.split("/-!")[0]
+    assert layout.check_imports(root / NODES / f"{ROOT}--h1", f"{ROOT}--h1") == []
     # With no block in the body the login the workflow passed credits the children; the
     # attempt on record is still the submitted file, not a copy under that login (F11-Q28).
     assert out["partial"]["attempt"] == f"attempts/{STAMP_FILE}"
@@ -196,8 +201,12 @@ def test_parent_opens_reads_only_the_header() -> None:
     stmt = postmerge.child_statement(
         "x--h1", _Hole("h", "True"), imports=["Mathlib"], opens=["open Nat"]
     )
-    assert stmt.startswith("import Mathlib\n\nopen Nat\n\n/-! Hole `h`")
-    assert postmerge.child_statement("x--h1", _Hole("h", "True")).startswith("/-! Hole `h`")
+    assert stmt.startswith(
+        "import Mathlib\nimport Nodes.«x--h1».Context\n\nopen Nat\n\n/-! Hole `h`"
+    )
+    assert postmerge.child_statement("x--h1", _Hole("h", "True")).startswith(
+        "import Nodes.«x--h1».Context\n\n/-! Hole `h`"
+    )
 
 
 class _Hole:

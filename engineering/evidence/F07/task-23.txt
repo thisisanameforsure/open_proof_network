@@ -1,0 +1,15 @@
+F07-T23 — a gate-written hole's statement imports its own Context (R6, Q31)
+date: 2026-09-20
+
+## found live, graph PR #123 (agent D, 2026-09-20): both holes of variant-2a7919a9 witnessed, proved and merged (#119-#122); the closing proof's precheck 01M2YKC9VGQ8AVKTJSPH0QKK5J failed step 4, elaboration-failed: Unknown identifier `variant_2a7919a9__h1`
+origin/main:targets/euclid-primes/nodes/variant-2a7919a9/Context.lean  holds both hole theorems
+origin/main:targets/euclid-primes/nodes/variant-2a7919a9/Statement.lean imports Defs.IsPrime, Mathlib.Tactic and no Context
+origin/main:targets/euclid-primes/nodes/infinitude-of-primes/Statement.lean (the intake root) imports Nodes.«infinitude-of-primes».Context
+origin/main:targets/euclid-primes/nodes/infinitude-of-primes--h1/Statement.lean (a gate-written hole) imports Defs.IsPrime, Mathlib.Tactic and no Context; the live graph has a hole of a hole, erdos-69--h2-v2--h1-v2
+
+## red: the two tests that pinned the old header failed against the change (test_children_carry_the_parents_imports, test_parent_opens_reads_only_the_header); restated
+## fast tier:
+56 passed in 9.93s
+## lean tier, real toolchain: uv run --frozen pytest gate/tests/test_finding_hole_own_context_lean.py -m lean -q
+1 passed in 52.45s  (a hole written by child_statement, scaffolded, witnessed and proved: steps 1, 2, 4-8 pass)
+also: test_finding_duplicate_hole_lean.py, test_finding_revised_hole_parent_lean.py -m lean: 2 passed in 105.65s

@@ -1,0 +1,12 @@
+F08-T13 — every proposed statement imports its own Context (R3, Q25)
+date: 2026-09-20
+
+## found live, graph PR #123 (agent D, 2026-09-20): both holes of variant-2a7919a9 witnessed, proved and merged (#119-#122); the closing proof's precheck 01M2YKC9VGQ8AVKTJSPH0QKK5J failed step 4, elaboration-failed: Unknown identifier `variant_2a7919a9__h1`
+origin/main:targets/euclid-primes/nodes/variant-2a7919a9/Context.lean  holds both hole theorems
+origin/main:targets/euclid-primes/nodes/variant-2a7919a9/Statement.lean imports Defs.IsPrime, Mathlib.Tactic and no Context
+origin/main:targets/euclid-primes/nodes/infinitude-of-primes/Statement.lean (the intake root) imports Nodes.«infinitude-of-primes».Context
+
+## red first: 1 failed (test_a_statement_imports_its_own_context_even_with_no_deps)
+## green:
+10 passed, 2 warnings in 0.53s
+api suite: 678 passed

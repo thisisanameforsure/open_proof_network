@@ -69,10 +69,18 @@ def test_a_proposal_with_deps_imports_its_own_context(harness: Harness, tmp_path
     assert layout.check_imports(node_dir, node_id) == []
 
 
-def test_a_proposal_without_deps_lands_byte_for_byte(harness: Harness) -> None:
-    """The agents valued this: the statement in the pull request is the text they sent."""
-    _, files = propose(harness, LIBRARY_STATEMENT)
-    assert files["Statement.lean"] == LIBRARY_STATEMENT
+def test_a_statement_imports_its_own_context_even_with_no_deps(harness: Harness) -> None:
+    """F08-T13 (agent D, graph PR #123): a node gains dependencies *later*, when a skeleton
+    merges and the post-merge job writes its holes into ``Context.lean``. A proof may not add an
+    import, so a statement born without the line can never be closed through its holes: the
+    closing proof of ``variant-2a7919a9`` failed step 4, "Unknown identifier
+    `variant_2a7919a9__h1`", with both holes proved. An intake root has always carried the
+    import; a proposed statement now does too. The witness needs no dependency and lands as
+    sent."""
+    node_id, files = propose(harness, LIBRARY_STATEMENT)
+    own = f"import {layout.node_module(node_id, 'Context')}"
+    assert files["Statement.lean"].splitlines()[:2] == ["import Mathlib.Tactic", own]
+    assert files["Statement.lean"].endswith(STATEMENT)
     assert files["Witness.lean"] == WITNESS
 
 

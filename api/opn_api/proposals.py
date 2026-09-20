@@ -176,15 +176,18 @@ def node_files(
 ) -> tuple[str, dict[str, str], str]:
     """The target, the files and the node id of a speculative or variant proposal. The id is
     the caller's statement's, so the same statement proposed twice still collides by name
-    (F08-R3); with deps declared, each Lean file then imports the node's own ``Context``."""
+    (F08-R3). The statement then imports the node's own ``Context``, as an intake root does;
+    with deps declared the witness and the relation proof do too."""
     target_id = appends.known_target(ctx, fields.get("target_id"))
     statement = lean_text(fields, "statement")
     witness = lean_text(fields, "witness")
     assert statement is not None and witness is not None
     deps, statements = dep_statements(ctx, target_id, fields.get("deps"))
     node_id = scaffold.speculative_id(statement, kwargs.pop("prefix"))
+    # F08-T13: the statement always — a node gains dependencies later, when a skeleton merges
+    # and its holes are written into Context.lean, and a proof may not add an import.
+    statement = with_own_context(statement, node_id)
     if deps:
-        statement = with_own_context(statement, node_id)
         witness = with_own_context(witness, node_id)
         if kwargs.get("relation_proof"):
             kwargs["relation_proof"] = with_own_context(kwargs["relation_proof"], node_id)
