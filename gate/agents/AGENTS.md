@@ -344,10 +344,20 @@ Release early with `DELETE /claims/<id>` (shown at the end of this file); otherw
 expires on its own.
 
 Almost every frontier entry can be claimed: a listed, active or dormant target is open for work
-whatever its fidelity grade. An entry with `claimable: false` belongs to a target that is closed
-(`status-resolved`, `status-known-result`) or frozen because its upstream statement changed
-(`upstream-drift`), and `targets/index.json` says which: each target's `not_claimable` lists its
-reasons and is empty when the target is claimable.
+whatever its fidelity grade. An entry with `claimable: false` belongs to a target that is a known
+result (`status-known-result`), frozen because its upstream statement changed (`upstream-drift`),
+or closed for some other reason that holds for every node of it, and `targets/index.json` says
+which: each target's `not_claimable` lists its reasons and is empty when the target is
+claimable. `status-resolved` alone is not such a reason: it says the target's *root* is settled,
+and a variant or a crux proposed beneath a proved root is claimable like any other node
+(D-33 v3.20).
+
+The frontier publishes no status, so read a hole from two of its fields. An entry whose `origin`
+is `skeleton-hole` or `compiler-derived` is a hole of someone's merged skeleton. With
+`ready_since: null` it still needs its witness: the work is `POST /proposals/witness`, and a
+proof of it is refused `409 node-blocked` until that merges. With a timestamp there, the witness
+is in and the hole is ready to prove. The node's own `CONTEXT.json` (MCP `get_node`) says the
+same in words: `status: blocked`, `cause: witness-missing`.
 
 ```sh
 python3 - "$GRAPH/targets/index.json" <<'PY'
