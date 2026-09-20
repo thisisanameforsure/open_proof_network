@@ -26,7 +26,7 @@ from opn_api import clock as clockmod
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
 from opn_gate import graph as graphmod
-from opn_gate import scaffold
+from opn_gate import layout, scaffold
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -156,16 +156,38 @@ def open_proposal(  # noqa: PLR0913 — one pull request, described
     }
 
 
+def with_own_context(text: str, node_id: str) -> str:
+    """``text`` importing the node's own ``Context``, after its last import line or leading the
+    file when it has none (Lean takes imports first). F08-T12: a node reaches its dependencies
+    through that one module (F00's import rule), and its name carries the node id, which the
+    service derives from the statement — so no caller can write the line, and the service does."""
+    own = f"import {layout.node_module(node_id, 'Context')}"
+    lines = text.splitlines(keepends=True)
+    if any(line.strip() == own for line in lines):
+        return text
+    imports = [i for i, line in enumerate(lines) if line.startswith("import ")]
+    at = imports[-1] + 1 if imports else 0
+    gap = "" if imports or not lines or not lines[0].strip() else "\n"
+    return "".join([*lines[:at], own + "\n" + gap, *lines[at:]])
+
+
 def node_files(
     ctx: Context, identity: Identity, fields: dict[str, Any], **kwargs: Any
 ) -> tuple[str, dict[str, str], str]:
-    """The target, the files and the node id of a speculative or variant proposal."""
+    """The target, the files and the node id of a speculative or variant proposal. The id is
+    the caller's statement's, so the same statement proposed twice still collides by name
+    (F08-R3); with deps declared, each Lean file then imports the node's own ``Context``."""
     target_id = appends.known_target(ctx, fields.get("target_id"))
     statement = lean_text(fields, "statement")
     witness = lean_text(fields, "witness")
     assert statement is not None and witness is not None
     deps, statements = dep_statements(ctx, target_id, fields.get("deps"))
     node_id = scaffold.speculative_id(statement, kwargs.pop("prefix"))
+    if deps:
+        statement = with_own_context(statement, node_id)
+        witness = with_own_context(witness, node_id)
+        if kwargs.get("relation_proof"):
+            kwargs["relation_proof"] = with_own_context(kwargs["relation_proof"], node_id)
     proposal = scaffold.Proposal(
         node_id=node_id,
         target_id=target_id,

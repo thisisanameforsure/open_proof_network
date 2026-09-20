@@ -101,8 +101,12 @@ def test_speculative_scaffold(harness: Harness, tmp_path: Path) -> None:
     assert record.author == "alice"
     # F01-R6: the dep's signature, verbatim.
     assert DEP_STATEMENT.strip() in (node_dir / "Context.lean").read_text()
-    assert (node_dir / "Statement.lean").read_text() == STATEMENT
-    assert (node_dir / "Witness.lean").read_text() == WITNESS
+    # F08-T12: deps are declared, so each Lean file imports the node's own Context, the one
+    # module a node reaches its dependencies through, and is otherwise the text that was sent.
+    own = f"import {layout.node_module(node_id, 'Context')}\n\n"
+    assert (node_dir / "Statement.lean").read_text() == own + STATEMENT
+    assert (node_dir / "Witness.lean").read_text() == own + WITNESS
+    assert layout.check_imports(node_dir, node_id) == []
     assert not (node_dir / "Relation.lean").exists()
 
     # What the service pushed is what the gate classifies as a proposal, and nothing else.

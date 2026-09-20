@@ -1,0 +1,15 @@
+F08-T12 — a proposal's declared deps are usable (R3, Q24)
+date: 2026-09-20
+
+## found by: agents A and C, the 2026-09-19 primes run, read from the public tooling (not exercised live):
+api/opn_api/proposals.py: node_id = scaffold.speculative_id(statement, prefix) = <prefix>-<content_hash(statement)[:8]>
+gate/opn_gate/layout.py check_imports: a node file may import library, Defs.*, or Nodes.«<own id>».Context only
+=> the statement would have to contain its own hash; every fixture under gate/tests/fixtures/proposals names its node by hand
+checked: grep speculative_id gate/opn_gate -> only scaffold.py defines it; the gate never compares an id with a hash
+
+## red first: 1 failed (the import absent), 2 passed (no-deps byte-for-byte; no doubled import)
+## one existing test restated: test_speculative_scaffold had pinned a deps statement landing with no import
+
+## green:
+34 passed, 2 warnings in 0.38s
+api suite: 678 passed
