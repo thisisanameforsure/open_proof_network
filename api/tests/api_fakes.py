@@ -106,6 +106,12 @@ class FakeGitHost:
     runs: dict[str, WorkflowRun] = field(default_factory=dict)  # branch -> run
     artifacts: dict[tuple[int, str], bytes] = field(default_factory=dict)  # (run, name) -> zip
     artifact_reads: int = 0  # latest_artifact calls (F07-T26: one per head commit)
+    # F05-T13: where ``main`` is, per the API. Empty means the API cannot say, so the service
+    # reads by branch name, which is what every test written before it expects.
+    head: str = ""
+    head_failure: str = ""
+    head_reads: int = 0
+    refs: list[str] = field(default_factory=list)
     artifact_failure: str = ""
     app_failure: str | None = None  # when set, every App call raises it (R10, AC12)
     lookup_failure: str | None = None  # when set, only find_run raises (C7: a transient outage)
@@ -136,8 +142,15 @@ class FakeGitHost:
             raise GitHostError(msg)
         return user
 
+    def head_sha(self, repo: str, branch: str) -> str:
+        self.head_reads += 1
+        if self.head_failure or not self.head:
+            raise GitHostError(self.head_failure or "no head configured")
+        return self.head
+
     def fetch_raw(self, repo: str, ref: str, path: str, *, etag: str | None) -> Fetched:
         self.fetches.append((path, etag))
+        self.refs.append(ref)
         if self.unreachable:
             msg = f"fetching {path} failed: ConnectError"
             raise GitHostError(msg)

@@ -345,7 +345,7 @@
             "string",
             "null"
           ],
-          "description": "What an open pull request waits for: gate, step9-review, gate-failed (nothing: the submission was refused), branch-update or merge; null once merged or closed"
+          "description": "What the pull request waits for: gate, step9-review, gate-failed (nothing: the submission was refused), branch-update or merge while it is open; products for a merged proposal whose node the post-merge job has not rendered yet; null otherwise"
         }
       }
     }

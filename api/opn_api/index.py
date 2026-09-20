@@ -1,4 +1,4 @@
-"""``GET /`` (F05-T12, Q13): what this service offers, read off the routes table itself.
+"""``GET /`` (F05-T13, Q13): what this service offers, read off the routes table itself.
 
 A caller who arrives at the hostname with nothing else gets every route, whether it needs a
 bearer and what it is for, plus the two places the rest is written down: the contributor guide

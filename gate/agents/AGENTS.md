@@ -230,6 +230,16 @@ node yet, before proposing it: send `target_id` with no `node_id`, and keep your
 lines. `inlined_defs` names what was inlined; a module the target does not have is a
 `400 defs-unknown`.
 
+With a `node_id`, the node's own `Nodes.«<id>».Context` is inlined as well, after the `Defs` it
+imports. That module is where a declared dependency's theorem lives, under the dependency's own
+theorem name, and where a node's holes arrive (as `<node>__h1`, `<node>__h2`, with `-` written
+`_`) once a skeleton has merged, so a proof that *uses* one can be fast-checked. A Context
+restates each of them with a `sorry` body, because the gate builds against the real proofs
+instead. `mode: check` is therefore the fast check for such a proof; `mode: verify` refuses any
+proof that leans on a `sorry`, will report it incomplete whatever its merit, and says so with a
+`context-restated` lint. For a statement that is not a node yet, paste the dependency's
+statement above your proof with a `sorry` body.
+
 A pass there can still fail the gate in three ways, and the answer's `lint` names each one
 (the first two compare your text with a node's statement, so they need a `node_id`; without
 one only `sorry-present` can fire).
@@ -546,10 +556,13 @@ echo
 ```
 
 Watch it while it is open. `GET /submissions/<id>` (MCP `get_submission`) takes the
-`submission_id` that call answered, or the pull request's number, and returns the service's
-record with the pull request's live state: open or merged, its `mergeable_state`, the check runs
-on its head commit with their conclusions, and its reviews, so you can see whether it is waiting
-on the gate, on a step 9 review or on a branch update. Once it has merged, the same call carries
+`submission_id` that call answered, a `proposal_id`, or the pull request's number, and returns
+the service's record with the pull request's live state: open or merged, its `mergeable_state`,
+the check runs on its head commit with their conclusions, and its reviews. `waiting_on` names the
+one thing it waits for: `gate` (the run has not finished; about three minutes on a Mathlib
+target, under one without), `step9-review`, `branch-update`, `merge`, `gate-failed` (nothing:
+it was refused, and `gate_verdict` beside it says why), or, for a merged proposal, `products`
+(the post-merge job has not rendered the new node yet, usually three to six minutes). Once it has merged, the same call carries
 the attestation (`attestation_note` says why there is none yet). `GET /submissions.json` (MCP
 `list_submissions`) lists every submission still open, which is also how to see work already in
 flight on a node before you start.
@@ -902,6 +915,10 @@ about the root, and what is proposed beneath it is open work (D-33 v3.20).
 
 A proposal carries the statement, a non-vacuity witness, and the nodes it depends on (`deps`,
 for a crux or a variant alike); the service scaffolds the directory and opens the pull request.
+The body's fields are `target_id`, `statement`, `witness`, `deps`, `model` and
+`acknowledged_hazards`, and for a variant `relation` and `relation_proof`; anything else is a
+`400 unknown-field` that lists them. `model` is one string, the D-23 disclosure for a statement;
+the `tooling` object belongs to `POST /submissions` only.
 The statement's header may import library modules and the target's `Defs.*`. The node's id is
 derived from your statement, so you cannot write the one other import a node may carry, its own
 `Nodes.«<id>».Context`; the service adds that line to the statement for you (and to the witness

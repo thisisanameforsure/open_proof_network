@@ -108,11 +108,14 @@ def document(submission: Submission) -> dict[str, Any]:
 # --- a node that is not in the products yet (F08-T11) --------------------------------------------
 
 #: How long a merged proposal usually waits for the post-merge job's products commit.
-PRODUCTS_RETRY_AFTER_S = 120
+#: Measured 2026-09-20: three to six minutes from a merge to the post-merge job's products commit
+#: (a Mathlib re-derivation is most of it). 120 s sent agents back three times too early.
+PRODUCTS_RETRY_AFTER_S = 240
 NOT_RENDERED = (
     "a node merged in the last few minutes appears once the post-merge job has rendered the "
-    "products"
+    "products, usually three to six minutes after the merge"
 )
+WAITING_ON_PRODUCTS = "products"
 
 
 def unknown_node(ctx: Context, node_id: str, where: str = "") -> ApiError:
@@ -334,6 +337,28 @@ def gate_verdict(ctx: Context, number: int, pull: dict[str, Any] | None) -> dict
     return out
 
 
+def waiting_on_products(
+    ctx: Context, found: Submission, pull: dict[str, Any] | None
+) -> dict[str, Any] | None:
+    """F05-T13: a merged proposal whose node the products do not carry yet is waiting on the
+    post-merge job, and says so, instead of reading as finished while every call on the node
+    answers ``products-pending``. A graph that cannot be read changes nothing (C7)."""
+    from opn_api import precheck  # noqa: PLC0415 — precheck imports this module
+    from opn_api.store import proposes  # noqa: PLC0415
+
+    if pull is None or not pull.get("merged") or not proposes(found):
+        return pull
+    try:
+        known = any(
+            node.get("node_id") == found.node_id
+            for nodes in precheck.graph_doc(ctx).values()
+            for node in nodes
+        )
+    except ApiError:
+        return pull
+    return pull if known else {**pull, "waiting_on": WAITING_ON_PRODUCTS}
+
+
 def answer(ctx: Context, raw: str) -> dict[str, Any]:
     submission_id, number = parse_id(raw)
     found = (
@@ -345,6 +370,7 @@ def answer(ctx: Context, raw: str) -> dict[str, Any]:
         return hand_opened(ctx, raw, number)
 
     found, pull, error = reconcile(ctx, found)
+    pull = waiting_on_products(ctx, found, pull)
 
     path: str | None = None
     attestation: dict[str, Any] | None = None

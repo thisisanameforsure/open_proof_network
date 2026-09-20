@@ -105,3 +105,32 @@ def test_a_host_failure_never_hides_the_node_behind_a_500(harness: Harness, toke
     r = precheck_new_node(harness, token)
     assert r.status_code == 409 and r.json()["error"] == "node-pending"
     assert r.json()["details"]["waiting_on"] is None
+
+
+def test_a_merged_proposal_whose_node_is_not_rendered_yet_waits_on_products(
+    harness: Harness,
+) -> None:
+    """F05-T13 (agent E's request): between the merge and the post-merge job's products commit a
+    proposal's record said ``waiting_on: null``, as if nothing were left, while every call on the
+    node answered ``products-pending``. The record now names the wait; once the node is in the
+    products it is null again."""
+    harness.store.put_submission(proposal(7))
+    harness.githost.set_pull_request_state(7, state="closed", merged=True)
+    doc = harness.client.get("/submissions/7").json()
+    assert doc["pull_request"]["merged"] is True
+    assert doc["pull_request"]["waiting_on"] == "products"
+
+    known = replace(proposal(8), node_id="and-reassoc")  # a node the products already carry
+    harness.store.put_submission(known)
+    harness.githost.set_pull_request_state(8, state="closed", merged=True)
+    assert harness.client.get("/submissions/8").json()["pull_request"]["waiting_on"] is None
+
+
+def test_retry_after_is_honest_about_the_post_merge_job(harness: Harness, token: str) -> None:
+    """Measured 2026-09-20: 3 to 6 minutes from a merge to its products commit. 120 s sent agents
+    back three times too early."""
+    harness.store.put_submission(proposal(7))
+    harness.githost.set_pull_request_state(7, state="closed", merged=True)
+    r = precheck_new_node(harness, token)
+    assert int(r.headers["Retry-After"]) >= 180
+    assert "minutes" in r.json()["message"]

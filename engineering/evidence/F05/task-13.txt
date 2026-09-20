@@ -1,0 +1,13 @@
+F05-T13 — the graph is read at the commit main points to (R9, Q14)
+date: 2026-09-20
+
+## measured by agents: a merged node invisible 6 to 13 min (E: #125 ~13 min, #127 ~5.7 min); a witnessed hole still 409 witness-missing ~2 min after main said ready (D, #119)
+## the cause, read from the host: curl -D - raw.githubusercontent.com/<graph>/main/info.json -> cache-control: max-age=300
+## the two assumptions, probed live 2026-09-20:
+GET api.github.com/repos/<graph>/git/ref/heads/main -> object.sha fe691b46…
+GET raw.githubusercontent.com/<graph>/fe691b46…/info.json -> 200, rendered_from 2dc1bffd
+
+## red first: test_finding_graph_head_pin.py 5 failed; test_finding_node_pending.py 2 failed
+## green:
+28 passed, 2 warnings in 0.72s
+api suite: 702 passed

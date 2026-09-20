@@ -50,8 +50,42 @@ def generation(ctx: Context) -> None:
     file aged on its own clock and ``/frontier.json`` served the commit before a merge while
     ``/info.json`` served the one after. A marker that cannot be read invalidates nothing:
     each entry keeps its last good copy (C7)."""
+    pin_head(ctx)
     with contextlib.suppress(ApiError):  # logged by committed; the file read decides (C7)
         committed(ctx, INFO_PATH)
+
+
+def pin_head(ctx: Context) -> None:
+    """F05-T13: once per window, ask the API where ``main`` is, and read every file at that
+    commit. The raw host is a CDN that caches a *branch* path for minutes, beyond anything this
+    cache controls: a merged node stayed invisible for 6 to 13 minutes and a witnessed hole was
+    still refused ``witness-missing`` after ``main`` said ``ready``. A raw URL at a commit sha is
+    immutable, so it is never stale, and every product in one answer comes from one commit. A
+    head that moved ages every entry at once. An API that cannot be reached keeps the last head,
+    or the branch name when there never was one (C7)."""
+    now = time.monotonic()
+    checked = ctx.head_checked_at
+    if checked is not None and now - checked < ctx.settings.frontier_max_stale_s:
+        return
+    ctx.head_checked_at = now
+    try:
+        head = ctx.githost.head_sha(ctx.settings.graph_repo, ctx.settings.graph_branch)
+    except GitHostError as exc:
+        log.warning(
+            "the graph's head could not be read, serving %s: %s", ctx.head or "the branch", exc
+        )
+        return
+    if head != ctx.head:
+        ctx.head = head
+        stale_all_but(ctx, "", now)
+
+
+def expire(ctx: Context) -> None:
+    """Age the head check and every entry past the window, relative to now (tests, and any
+    caller that knows the graph just moved)."""
+    now = time.monotonic()
+    ctx.head_checked_at = now - (ctx.settings.frontier_max_stale_s + 1)
+    stale_all_but(ctx, "", now)
 
 
 def stale_all_but(ctx: Context, keep: str, now: float) -> None:
@@ -66,13 +100,15 @@ def stale_all_but(ctx: Context, keep: str, now: float) -> None:
 def committed(ctx: Context, path: str) -> bytes:
     if path != INFO_PATH:
         generation(ctx)
+    else:
+        pin_head(ctx)
     cached = ctx.files.setdefault(path, CachedFile(path))
     now = time.monotonic()
     if cached.body is not None and now - cached.fetched_at < ctx.settings.frontier_max_stale_s:
         return cached.body
     try:
         got = ctx.githost.fetch_raw(
-            ctx.settings.graph_repo, ctx.settings.graph_branch, path, etag=cached.etag
+            ctx.settings.graph_repo, ctx.head or ctx.settings.graph_branch, path, etag=cached.etag
         )
     except GitHostError as exc:
         got = None

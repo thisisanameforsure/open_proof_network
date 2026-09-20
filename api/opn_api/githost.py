@@ -173,6 +173,10 @@ class GitHost(Protocol):
         is discarded before this returns (R3)."""
         ...
 
+    def head_sha(self, repo: str, branch: str) -> str:
+        """The commit ``branch`` points to, read without a CDN in between (F05-T13)."""
+        ...
+
     def fetch_raw(self, repo: str, ref: str, path: str, *, etag: str | None) -> Fetched:
         """Read a committed file, honoring ``If-None-Match`` (R9)."""
         ...
@@ -290,6 +294,17 @@ class HttpxGitHost:
         except (KeyError, TypeError, ValueError) as exc:
             msg = "GitHub user document is missing login, id or created_at"
             raise GitHostError(msg) from exc
+
+    def head_sha(self, repo: str, branch: str) -> str:
+        """The commit ``branch`` points to, from the API as the App (F05-T13). Not the raw host:
+        that is a CDN which caches a branch path for minutes, and the point is to see past it."""
+        with self._api(repo) as http:
+            ref = _json(_send(http, "GET", f"{GITHUB_API}/repos/{repo}/git/ref/heads/{branch}"))
+        sha = str((ref.get("object") or {}).get("sha") or "")
+        if not sha:
+            msg = f"{repo} has no {branch} branch"
+            raise GitHostError(msg)
+        return sha
 
     def fetch_raw(self, repo: str, ref: str, path: str, *, etag: str | None) -> Fetched:
         url = RAW_URL.format(repo=repo, ref=ref, path=path)

@@ -1,4 +1,4 @@
-"""F05-T12: ``GET /`` lists the service's routes (F05-Q13).
+"""F05-T13: ``GET /`` lists the service's routes (F05-Q13).
 
 An outside contributor, 2026-09-18, arrived at the service's hostname from a link on the site
 and asked it what it offers: ``/`` and ``/openapi.json`` both answered ``404 not-found``. The

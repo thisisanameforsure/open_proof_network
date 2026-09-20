@@ -112,6 +112,10 @@ class Context:
     # F07-T26: a failed gate run's verdict, by the head commit it ran on. A verdict is a fact
     # about a commit, so it is read once; ``None`` is kept too (the run kept no artifact).
     verdicts: dict[str, dict[str, Any] | None] = field(default_factory=dict)
+    # F05-T13: the commit ``main`` pointed to when last asked, and when that was. Every committed
+    # file is read at it; ``None`` until the API has answered once.
+    head: str | None = None
+    head_checked_at: float | None = None
     # F13-R8, Q8: this application's in-flight cap on the hosted checker, made on first use. It
     # lives here rather than in a table keyed by id(ctx), because a collected Context's address
     # is reused by the next one (checks.slots).

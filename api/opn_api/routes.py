@@ -53,7 +53,7 @@ D35_POST_CHECK = "POST /check"
 D35_OWNED_BY_F13: frozenset[str] = frozenset({D35_POST_CHECK})
 
 ROUTES: tuple[RouteSpec, ...] = (
-    # F05-T12, Q13: the index of this table, served at the root. Open, no D-35 row.
+    # F05-T13, Q13: the index of this table, served at the root. Open, no D-35 row.
     RouteSpec("GET", "/", "index:get_index", None),
     RouteSpec("GET", "/health", "app:health", None),
     RouteSpec("GET", "/info.json", "info:get_info", None),
@@ -157,7 +157,7 @@ ROUTES: tuple[RouteSpec, ...] = (
     RouteSpec("GET", "/hosted-checkers.json", "checks:get_hosted_checkers", None, feature="F13"),
 )
 
-#: F05-T12 (Q13): one sentence per route, keyed by its label and served by ``GET /``. A test
+#: F05-T13 (Q13): one sentence per route, keyed by its label and served by ``GET /``. A test
 #: holds this to ``ROUTES`` in both directions, so a route cannot ship without saying what it
 #: is for. The guide is where each is documented; these are for finding the way there.
 PURPOSES: dict[str, str] = {
