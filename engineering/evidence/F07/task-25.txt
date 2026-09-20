@@ -14,3 +14,20 @@ merge actor: update #107   (number=107 sha=597de448... action=update; #107 and #
 16 passed in 0.17s
 
 ## not yet evidenced: a real merge by the actor. It needs the owner's token; until then every run is a dry run by construction.
+
+## 2026-09-20, later: the owner's token, checked before it was installed (its value never printed)
+shape: github_pat_…, 93 chars, no whitespace; expiry header 2026-12-31 22:00:00 UTC
+inert probes (a head sha of forty zeros can match nothing, so nothing can change):
+  PUT pulls/107/update-branch  -> 422 "expected head sha didn't match current head ref"   (authorised)
+  PUT pulls/107/merge          -> 409 "Head branch was modified"                           (authorised)
+  POST <network repo>/git/refs -> 403 "Resource not accessible by personal access token"   (out of reach: good)
+  GET  <graph>/actions/secrets -> 403                                                      (cannot read secrets: good)
+ruleset 22508489 bypass_actors: DeployKey always; RepositoryRole id 5 (admin) always; current_user_can_bypass: always
+=> the token is the owner's, so it CAN bypass. The design's claim "GitHub refuses anything not green" was false as written.
+   Not tested by attempting a red merge: a working bypass would have merged a failed proof (#123).
+a second guard considered and measured, then dropped: mergeable_state as seen by a viewer who cannot bypass
+  anonymous: #123 (gate red) -> unstable; #107 (green, behind) -> clean     owner: #123 -> blocked; #107 -> behind
+  the host does not evaluate the ruleset for an unprivileged viewer, so that signal is wrong, not merely weak.
+what guards instead: required check names read from rules/branches/main on every run (no credential needed:
+  strict = True, required = the gate job and the step 9 job, by exact name); the post-merge job's re-derivation (F03-Q7).
+the revised decision program, run read-only against the live graph: "merge actor: update #107". Tests: 17 passed.

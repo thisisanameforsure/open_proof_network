@@ -129,6 +129,17 @@ def check(name: str, conclusion: str | None, *, id_: int = 1) -> dict[str, Any]:
 
 
 GREEN = [check(GATE_JOB, "success"), check(STEP9_JOB, "skipped", id_=2)]
+REQUIRED = [GATE_JOB, STEP9_JOB]
+RULES = [
+    {"type": "deletion"},
+    {
+        "type": "required_status_checks",
+        "parameters": {
+            "strict_required_status_checks_policy": True,
+            "required_status_checks": [{"context": GATE_JOB}, {"context": STEP9_JOB}],
+        },
+    },
+]
 
 
 def test_only_branches_the_service_opened_are_candidates(pick: dict[str, Any]) -> None:
@@ -167,7 +178,29 @@ def test_only_branches_the_service_opened_are_candidates(pick: dict[str, Any]) -
 def test_green_is_both_required_checks_finished_and_passed(
     pick: dict[str, Any], runs: list[dict[str, Any]], expected: str
 ) -> None:
-    assert pick["verdict"](runs) == expected
+    assert pick["verdict"](runs, REQUIRED) == expected
+
+
+def test_the_required_checks_come_from_the_ruleset_by_exact_name(pick: dict[str, Any]) -> None:
+    """The file names no check of its own, so it cannot drift from what GitHub enforces. A job
+    renamed in gate.yml without the ruleset following reads as pending here — nothing merges —
+    which is the loud version of the silent failure of 2026-09-10."""
+    assert pick["required_checks"](RULES) == (sorted(REQUIRED), True)
+    assert pick["required_checks"]([{"type": "deletion"}]) == ([], False)
+    renamed = [check("gate (steps 1 to 8)", "success"), check(STEP9_JOB, "skipped", id_=2)]
+    assert pick["verdict"](renamed, REQUIRED) == "pending"
+
+
+def test_a_ruleset_that_requires_no_gate_merges_nothing(pick: dict[str, Any]) -> None:
+    """C7: with the rule deleted or emptied, "every required check passed" is vacuously true."""
+    assert pick["verdict"](GREEN, []) == "red"
+    assert pick["verdict"](GREEN, [STEP9_JOB]) == "red"
+    pulls = [pull(5, "propose/x")]
+    assert pick["decide"](pulls, [{"type": "deletion"}], lambda _s: GREEN, lambda _s: 0) == (
+        "",
+        "",
+        "",
+    )
 
 
 def test_it_takes_the_oldest_green_one_and_updates_before_it_merges(pick: dict[str, Any]) -> None:
@@ -175,22 +208,7 @@ def test_it_takes_the_oldest_green_one_and_updates_before_it_merges(pick: dict[s
     red = [check(GATE_JOB, "failure"), check(STEP9_JOB, "skipped", id_=2)]
     checks = {f"{5:040d}": red, f"{6:040d}": GREEN, f"{7:040d}": GREEN}
     decide = pick["decide"]
-    assert decide(pulls, checks.__getitem__, lambda _sha: 2) == (6, f"{6:040d}", "update")
-    assert decide(pulls, checks.__getitem__, lambda _sha: 0) == (6, f"{6:040d}", "merge")
-    assert decide(pulls, lambda _sha: red, lambda _sha: 0) == ("", "", "")
-    assert decide([], checks.__getitem__, lambda _sha: 0) == ("", "", "")
-
-
-def test_the_names_it_reads_are_the_ones_the_ruleset_requires(pick: dict[str, Any]) -> None:
-    """A required check is matched by exact name, and a renamed job silently disarms the rule
-    (2026-09-10). The prefixes here must be prefixes of the live gate workflow's job names."""
-    env = config.child_environment(drop=config.GIT_REPO_VARIABLES)
-    proc = subprocess.run(
-        ["git", "-C", str(GRAPH_REPO), "show", "origin/main:.github/workflows/gate.yml"],
-        capture_output=True, text=True, check=False, env=env,
-    )  # fmt: skip
-    if proc.returncode != 0:
-        pytest.skip("the graph's gate.yml is not readable")
-    names = [str(job.get("name", "")) for job in yaml.safe_load(proc.stdout)["jobs"].values()]
-    for prefix in pick["REQUIRED"]:
-        assert any(name.startswith(prefix) for name in names), (prefix, names)
+    assert decide(pulls, RULES, checks.__getitem__, lambda _sha: 2) == (6, f"{6:040d}", "update")
+    assert decide(pulls, RULES, checks.__getitem__, lambda _sha: 0) == (6, f"{6:040d}", "merge")
+    assert decide(pulls, RULES, lambda _sha: red, lambda _sha: 0) == ("", "", "")
+    assert decide([], RULES, checks.__getitem__, lambda _sha: 0) == ("", "", "")
