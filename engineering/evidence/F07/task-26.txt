@@ -1,0 +1,12 @@
+F07-T26 — a failed gate says why, through the service (R17, Q34)
+date: 2026-09-20
+
+## found twice: agent D on #123 (bug 11, the primes run) and agent E on #124 (the end-to-end run)
+GET /submissions/124 -> waiting_on: gate-failed, and nothing else about the refusal
+the run's artifact gate-124-1 (887 B), admission.json: verdict fail, first_failing_check hazards,
+  diagnostic {"code":"hazard-unacknowledged","details":{"findings":[{"checker":"off-by-one-range","location":"100 ≤ p",…}]}}
+
+## red first: 5 failed
+## green:
+33 passed, 2 warnings in 0.78s
+api suite: 693 passed

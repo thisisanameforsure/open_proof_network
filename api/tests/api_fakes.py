@@ -105,6 +105,8 @@ class FakeGitHost:
     dispatches: list[Dispatch] = field(default_factory=list)
     runs: dict[str, WorkflowRun] = field(default_factory=dict)  # branch -> run
     artifacts: dict[tuple[int, str], bytes] = field(default_factory=dict)  # (run, name) -> zip
+    artifact_reads: int = 0  # latest_artifact calls (F07-T26: one per head commit)
+    artifact_failure: str = ""
     app_failure: str | None = None  # when set, every App call raises it (R10, AC12)
     lookup_failure: str | None = None  # when set, only find_run raises (C7: a transient outage)
     pr_failure: str | None = None  # when set, the branch pushes and the pull request does not
@@ -209,6 +211,14 @@ class FakeGitHost:
     def download_artifact(self, repo: str, run_id: int, name: str) -> bytes | None:
         self._app_call()
         return self.artifacts.get((run_id, name))
+
+    def latest_artifact(self, repo: str, run_id: int, prefix: str) -> bytes | None:
+        self._app_call()
+        self.artifact_reads += 1
+        if self.artifact_failure:
+            raise GitHostError(self.artifact_failure)
+        names = sorted(n for (r, n) in self.artifacts if r == run_id and n.startswith(prefix))
+        return self.artifacts[(run_id, names[-1])] if names else None
 
     def get_pull_request(self, repo: str, number: int) -> PullRequestState | None:
         """The seeded state; a pull request this fake opened and nobody seeded is open, not

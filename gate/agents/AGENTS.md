@@ -916,6 +916,12 @@ gate's `hazard-unacknowledged` refusal prints the `checker` and the `location` t
 justification is your one sentence on why the statement means what it says. Without it the
 proposal's pull request fails admission at `hazards` and `waiting_on` reads `gate-failed`.
 
+Whenever `waiting_on` is `gate-failed`, the same `GET /submissions/<id>` answer carries
+`gate_verdict`: the gate's verdict, where it first failed (the step number for a proof, the
+check's name for a proposal) and its diagnostic, code, message and details, exactly as the gate
+printed them. You do not need a GitHub login or the run's log to learn why a pull request was
+refused.
+
 ```sh
 python3 - "$TARGET" "$NODE" <<'PY' > "$WORK/proposal.json"
 import json, sys

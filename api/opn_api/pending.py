@@ -30,7 +30,7 @@ from starlette.responses import JSONResponse, Response
 from opn_api import clock as clockmod
 from opn_api import frontier
 from opn_api.app import ApiError, CachedFile, CachedPull
-from opn_api.githost import GitHostError, PullRequest, PullRequestState
+from opn_api.githost import GATE_WORKFLOW, GitHostError, PullRequest, PullRequestState
 from opn_api.store import Submission
 
 if TYPE_CHECKING:
@@ -273,6 +273,67 @@ def reconcile(
     return found, state.as_dict() if state is not None else None, error
 
 
+# --- why the gate said no (F07-T26) --------------------------------------------------------------
+
+GATE_ARTIFACT_PREFIX = "gate-"  # the graph's gate.yml: gate-<pr>-<attempt>
+RUN_ID_RE = re.compile(r"/actions/runs/(\d+)")
+MAX_VERDICT_BYTES = 256 * 1024
+
+
+def _verdict_document(zipped: bytes) -> dict[str, Any] | None:
+    """The one JSON document in the artifact that carries a verdict: ``admission.json`` for a
+    proposal, the verdict for a proof. Anything unreadable is no verdict, never an error (C7)."""
+    import io  # noqa: PLC0415
+    import zipfile  # noqa: PLC0415
+
+    try:
+        with zipfile.ZipFile(io.BytesIO(zipped)) as archive:
+            for name in sorted(archive.namelist()):
+                info = archive.getinfo(name)
+                if not name.endswith(".json") or info.file_size > MAX_VERDICT_BYTES:
+                    continue
+                doc = json.loads(archive.read(name))
+                if isinstance(doc, dict) and "verdict" in doc and "diagnostic" in doc:
+                    return doc
+    except (zipfile.BadZipFile, ValueError, KeyError) as exc:
+        log.warning("gate artifact unreadable: %s", exc)
+    return None
+
+
+def gate_verdict(ctx: Context, number: int, pull: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Why the gate refused an open pull request, in the gate's own words, or ``None``. The
+    service said ``waiting_on: gate-failed`` and nothing else, and the reason sat in a run log an
+    HTTP or MCP contributor cannot read. The gate run keeps its verdict as an artifact; it is read
+    once per head commit. The diagnostic is the gate's, quoted as data: it can carry a fragment of
+    the contributor's own Lean (a hazard's location), and nothing here interprets it (D-28)."""
+    if pull is None or pull.get("waiting_on") != "gate-failed":
+        return None
+    sha = str(pull.get("head_sha") or "")
+    if sha in ctx.verdicts:
+        return ctx.verdicts[sha]
+    out: dict[str, Any] | None = None
+    gate = next((r for r in pull.get("runs") or [] if r.get("name") == GATE_WORKFLOW), None)
+    found = RUN_ID_RE.search(str((gate or {}).get("url") or ""))
+    if found is not None:
+        try:
+            zipped = ctx.githost.latest_artifact(
+                ctx.settings.graph_repo, int(found.group(1)), f"{GATE_ARTIFACT_PREFIX}{number}-"
+            )
+        except GitHostError as exc:
+            log.warning("pull request #%d: the gate's artifact could not be read: %s", number, exc)
+            return None  # not cached: the next read may reach the host
+        doc = _verdict_document(zipped) if zipped is not None else None
+        if doc is not None:
+            out = {
+                "verdict": doc.get("verdict"),
+                "first_failing": doc.get("first_failing_step") or doc.get("first_failing_check"),
+                "diagnostic": doc.get("diagnostic"),
+            }
+    if sha:
+        ctx.verdicts[sha] = out
+    return out
+
+
 def answer(ctx: Context, raw: str) -> dict[str, Any]:
     submission_id, number = parse_id(raw)
     found = (
@@ -302,6 +363,7 @@ def answer(ctx: Context, raw: str) -> dict[str, Any]:
         "submission": document(found),
         "pull_request": pull,
         "pull_request_error": error,
+        "gate_verdict": gate_verdict(ctx, found.pr_number, pull),
         "attestation_path": path,
         "attestation": attestation,
         "attestation_note": note,

@@ -109,6 +109,9 @@ class Context:
     missing: list[str] = field(default_factory=list)
     files: dict[str, CachedFile] = field(default_factory=dict)
     pulls: dict[int, CachedPull] = field(default_factory=dict)
+    # F07-T26: a failed gate run's verdict, by the head commit it ran on. A verdict is a fact
+    # about a commit, so it is read once; ``None`` is kept too (the run kept no artifact).
+    verdicts: dict[str, dict[str, Any] | None] = field(default_factory=dict)
     # F13-R8, Q8: this application's in-flight cap on the hosted checker, made on first use. It
     # lives here rather than in a table keyed by id(ctx), because a collected Context's address
     # is reused by the next one (checks.slots).

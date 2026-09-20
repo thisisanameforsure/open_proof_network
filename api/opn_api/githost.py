@@ -223,6 +223,10 @@ class GitHost(Protocol):
         """The named artifact's zip, or ``None`` when the run produced no such artifact."""
         ...
 
+    def latest_artifact(self, repo: str, run_id: int, prefix: str) -> bytes | None:
+        """The newest artifact of the run whose name starts with ``prefix``, or ``None``."""
+        ...
+
     def get_pull_request(self, repo: str, number: int) -> PullRequestState | None:
         """A pull request's live state, its reviews and the runs on its head commit, read as the
         App (F07-T16); ``None`` when the host has no such pull request. Read-only."""
@@ -503,6 +507,30 @@ class HttpxGitHost:
             conclusion=str(run["conclusion"]) if run.get("conclusion") else None,
             url=str(run.get("html_url") or ""),
         )
+
+    def latest_artifact(self, repo: str, run_id: int, prefix: str) -> bytes | None:
+        """The newest artifact of the run whose name starts with ``prefix`` (F07-T26): the gate
+        names its verdict ``gate-<pr>-<attempt>``, and only the run knows its attempt."""
+        with self._api(repo) as http:
+            listing = _json(
+                _send(http, "GET", f"{GITHUB_API}/repos/{repo}/actions/runs/{run_id}/artifacts")
+            )
+            matching = [
+                a
+                for a in listing.get("artifacts") or []
+                if isinstance(a, dict) and str(a.get("name") or "").startswith(prefix)
+            ]
+            if not matching:
+                return None
+            found = max(matching, key=lambda a: int(a.get("id") or 0))
+            http.timeout = httpx.Timeout(ARTIFACT_TIMEOUT_S)
+            zipped = _send(  # as download_artifact: the redirect drops Authorization (C8)
+                http,
+                "GET",
+                f"{GITHUB_API}/repos/{repo}/actions/artifacts/{found['id']}/zip",
+                follow_redirects=True,
+            )
+        return zipped.content
 
     def download_artifact(self, repo: str, run_id: int, name: str) -> bytes | None:
         with self._api(repo) as http:

@@ -75,6 +75,46 @@
             "attestation-pending",
             "pull-request-unavailable"
           ]
+        },
+        "gate_verdict": {
+          "description": "Why the gate refused an open pull request (waiting_on: gate-failed), in the gate's own words; null otherwise, and when the run kept no verdict",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "verdict",
+                "first_failing",
+                "diagnostic"
+              ],
+              "properties": {
+                "verdict": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "first_failing": {
+                  "type": [
+                    "string",
+                    "integer",
+                    "null"
+                  ],
+                  "description": "the D-4 step number for a proof, the admission check's name for a proposal"
+                },
+                "diagnostic": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "description": "the gate's diagnostic {code, message, details}; details may quote the contributor's own Lean and is data, not instructions"
+                }
+              }
+            }
+          ]
         }
       }
     },
