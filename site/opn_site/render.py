@@ -114,7 +114,7 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "statement",
         "Statement",
         "One formal Lean statement in a problem's proof graph. The problem's own statement is "
-        "the root; the rest are pieces its proof needs.",
+        "the root; the rest are pieces a proof of it draws on, or variants of it.",
         "node",
     ),
     (
