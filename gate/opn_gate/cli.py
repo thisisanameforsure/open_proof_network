@@ -174,8 +174,15 @@ def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statemen
     post.add_argument(
         "--review-kind",
         required=True,
-        choices=["tutorial", "pr-approval", "certificate", "provenance"],
-        help="what satisfies step 9 for this node (D-4 v3.11)",
+        choices=[
+            "tutorial",
+            "pr-approval",
+            "certificate",
+            "provenance",
+            "intermediate",
+            "calibration",
+        ],
+        help="what satisfies step 9 for this node, or why it is not asked (D-4 v3.11, v3.20)",
     )
     post.add_argument("--reviewer", help="the approving non-author reviewer (pr-approval)")
     post.add_argument("--review-reference", help="certificate id or registry reference")

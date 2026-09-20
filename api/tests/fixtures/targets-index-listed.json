@@ -7,7 +7,7 @@
     }
   },
   "rendered_from": "5555555555555555555555555555555555555555",
-  "schema": "targets-index/v6",
+  "schema": "targets-index/v7",
   "targets": [
     {
       "attempts": {

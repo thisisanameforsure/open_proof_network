@@ -64,7 +64,7 @@ def test_attestation_fields_and_schema(tmp_path: Path) -> None:
     }
     assert [s["result"] for s in doc["steps"]] == ["pass"] * 7
     assert doc["merge_commit"] is None and doc["review"] is None
-    assert doc["schema"] == "attestation/v4"
+    assert doc["schema"] == "attestation/v5"
     assert doc["trust_base"] == "kernel"  # F02-R9: no waiver, the kernel checked everything
 
 
@@ -131,7 +131,7 @@ def test_signed_bytes_exclude_signature_and_are_canonical(tmp_path: Path) -> Non
 
 def test_a_small_diagnostic_budget_still_yields_a_valid_record(tmp_path: Path) -> None:
     """F00-R18, C7, F08-Q18: with OPN_DIAGNOSTIC_MAX_BYTES=100 the code is not clipped, so the
-    record still satisfies attestation/v4 and the verdict is written rather than crashed on."""
+    record still satisfies attestation/v5 and the verdict is written rather than crashed on."""
     fake = FakeToolchain(replay=ReplayResult(ok=False, output="y" * 20_000))
     small = config.load({"OPN_DIAGNOSTIC_MAX_BYTES": "100"})
     ctx = make_context(tmp_path, toolchain=fake, settings=small)

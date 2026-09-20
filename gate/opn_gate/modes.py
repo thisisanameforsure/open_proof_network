@@ -117,8 +117,13 @@ STEP9_GRADE = fidelity.SIGNED_FROM
 #: F14-R5 (Mike, 2026-09-14): registry provenance alone no longer satisfies step 9; a root's
 #: recorded catalog evidence at the configured minimum does (``step9_evidence``).
 #: What stood in for the review; ``pr-approval`` is the person D-4 asks for otherwise.
-StatementBasis = Literal["certificate", "provenance"]
-ReviewKind = Literal["certificate", "provenance", "pr-approval"]
+#: D-4 v3.20: ``intermediate`` and ``calibration`` are not things that stood in for a person —
+#: they are why no person was asked: the artifact settles no root, or the target claims nothing
+#: new. Recorded all the same, so an attestation never reads as if a review had happened.
+StatementBasis = Literal["certificate", "provenance", "intermediate", "calibration"]
+ReviewKind = Literal["certificate", "provenance", "intermediate", "calibration", "pr-approval"]
+NOT_ASKED_INTERMEDIATE: StatementBasis = "intermediate"
+NOT_ASKED_CALIBRATION: StatementBasis = "calibration"
 
 log = logging.getLogger(__name__)
 
@@ -298,6 +303,9 @@ def with_statement_review(
     if classification.mode not in STATEMENT_REVIEW_MODES or classification.target_id is None:
         return classification
     target_dir = graph_root / "targets" / classification.target_id
+    not_asked = step9_not_asked(graph_root, classification)
+    if not_asked is not None:
+        return replace(classification, review_basis=not_asked, review_reference=None)
     certificate = root_certificate(target_dir)
     if certificate is not None:
         return replace(classification, review_basis="certificate", review_reference=certificate)
@@ -306,6 +314,40 @@ def with_statement_review(
         # F14-R6: recorded as provenance, so the attestation schema and an older pin still read it.
         return replace(classification, review_basis="provenance", review_reference=recorded)
     return classification
+
+
+def step9_not_asked(graph_root: Path, classification: Classification) -> StatementBasis | None:
+    """D-4 v3.20 (F07-T24): why step 9 is not asked of this proof or partial at all, or ``None``
+    when it is. The review is a mathematician confirming that the Lean statement says what the
+    conjecture says, at the moment the conjecture would be called settled, so it is asked only of
+    an artifact that settles the target: a proof on the root, or on a ``resolves`` variant (D-30:
+    it implies the root) while the root is still open. A skeleton settles nothing (D-12 v3.19),
+    and neither does a hole, a crux, or a variant beneath a closed root. A calibration target
+    (``target.yaml``, curator-only and unmodifiable by a proof's diff) is a result already in the
+    literature and asks nothing, as the tutorial node does not (D-27).
+
+    Read from the checkout, like the certificate. A graph that does not load answers ``None``:
+    the review stays asked, because nothing stands in for a person on a guess (C7)."""
+    from opn_gate import graph as graphmod  # noqa: PLC0415 — graph imports records
+    from opn_gate import intake  # noqa: PLC0415
+
+    assert classification.target_id is not None
+    target_dir = graph_root / "targets" / classification.target_id
+    try:
+        if intake.is_calibration(intake.load_doc(target_dir)):
+            return NOT_ASKED_CALIBRATION
+        if classification.mode == "partial":
+            return NOT_ASKED_INTERMEDIATE
+        tg = graphmod.load_target(graph_root, classification.target_id)
+    except (ValueError, OSError) as exc:  # SchemaError, GraphError, IntakeError: a graph defect
+        log.warning("step 9: %s does not load, so a review is asked: %s", target_dir.name, exc)
+        return None
+    node = tg.nodes.get(classification.node_id or "")
+    root_open = tg.statuses.get(tg.root) not in graphmod.RESOLVED_STATUSES
+    settles = node is None or node.node_id == tg.root or (node.relation == "resolves" and root_open)
+    # ``resolves`` while the root is open is a proof of the root by another road; a node the
+    # graph does not carry is treated as if it settled, so the review stays asked (C7).
+    return None if settles else NOT_ASKED_INTERMEDIATE
 
 
 def root_certificate(target_dir: Path) -> str | None:

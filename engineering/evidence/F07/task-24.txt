@@ -1,0 +1,16 @@
+F07-T24 — step 9 is for the root; calibration targets ask nothing (R18, Q32; decisions v3.20)
+date: 2026-09-20
+
+## the ruling (Mike, 2026-09-19, on the primes run):
+"the INTENTION is that claimed proofs for the root node should not be automatically accepted ... at the point where a proof is made, a mathematician should verify the conjecture and the original lean statement match. That is the spirit of requiring a final human step. Intermediate nodes should not qualify for this."
+and, 2026-09-20, on the three calibration targets: exempt (scoring the solved rows was priced first: erdos-69 = 3, erdos-402 = 3, erdos-1050 = 1, threshold 5).
+
+## the live state this changes (targets/index.json at graph origin/main, 2026-09-20): step9=review on euclid-primes, erdos-69, erdos-402, erdos-1050, tutorial; step9=evidence on the other 22
+graph PRs #115-#122: every proof, skeleton and hole proof under euclid-primes showed 'step 9 (a non-author approving review) fail' until approved by hand
+
+## red first: 6 failed, 5 passed (the five pin what must not change: the uncertified root still asks; an open root's resolves variant still asks; a proof cannot declare its own target calibration; an unreadable graph keeps asking)
+
+## goldens: products (3 states x info.json, targets/index.json): only protocol_version 3.19->3.20, schema targets-index/v6->v7, and the schema index gaining attestation 5 and targets-index 7. site: one sentence. api fixtures: the schema string, by write_fixtures().
+
+## green:
+213 passed in 20.26s

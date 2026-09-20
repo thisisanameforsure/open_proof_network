@@ -183,7 +183,9 @@ def approving_reviewer(reviews: list[dict[str, Any]], author: str) -> str | None
     return str(login)
 
 
-ReviewKind = Literal["tutorial", "pr-approval", "certificate", "provenance"]
+ReviewKind = Literal[
+    "tutorial", "pr-approval", "certificate", "provenance", "intermediate", "calibration"
+]
 
 
 def review_block(
@@ -195,6 +197,10 @@ def review_block(
         raise ValueError(msg)
     if kind in ("certificate", "provenance") and not reference:
         msg = f"a {kind} review needs a reference"
+        raise ValueError(msg)
+    if kind in ("intermediate", "calibration") and (reviewer or reference):
+        # D-4 v3.20: nobody was asked, so nobody is named — the record must not read otherwise.
+        msg = f"a step 9 that was not asked ({kind}) names no reviewer and no reference"
         raise ValueError(msg)
     return {"kind": kind, "reviewer": reviewer, "reference": reference}
 

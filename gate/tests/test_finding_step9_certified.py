@@ -421,14 +421,16 @@ def test_f_a_stale_certificate_falls_back_to_evidence(
 def test_g_a_partial_is_treated_like_a_proof(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], basis: str
 ) -> None:
-    """(g) D-4 v3.11: "every kernel-checked artifact of D-12 is treated alike"."""
+    """(g) D-4 v3.20 (F07-T24): a skeleton settles nothing, so step 9 is not asked of it whatever
+    stands behind the root; whoever later closes the root is the one the rule speaks to. Until
+    v3.20 a partial was treated like a proof ("every kernel-checked artifact of D-12 alike"),
+    which still holds among the artifacts that *close* a node."""
     repo, _proof = curated(tmp_path, provenance=fc_provenance())
-    expected: tuple[Any, Any, Any] = (True, "pr-approval", None)
+    expected: tuple[Any, Any, Any] = (False, "intermediate", None)
     if basis == "certificate":
         certificate(repo, "root-2.yaml")
-        expected = (False, "certificate", "fidelity/root-2.yaml")
     elif basis == "evidence":
-        expected = (False, "provenance", evidence_record(repo, score=5))
+        evidence_record(repo, score=5)
     repo.commit("base")
     submit_partial(repo)
     code, out = classify(repo, capsys)
@@ -514,8 +516,10 @@ def test_j_the_fields_are_published_on_a_target_that_predates_f11(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """(j) The workflow reads ``review_kind`` and ``review_reference`` from the classify JSON.
-    On a target with no target.yaml and no certificates — the tutorial's shape — a proof asks
-    for a review exactly as before; the tutorial exemption stays the workflow's flag."""
+    On a target with no target.yaml and no certificates — the tutorial's shape — the fields are
+    still published. The fixture's tutorial node is not its target's root, so since v3.20
+    (F07-T24) a proof of it is ``intermediate``; the tutorial exemption stays the workflow's
+    flag either way."""
     root, _git, _base = git_repo(tmp_path)
     capsys.readouterr()
     code = cli.main(["classify", "--graph", str(root), "--base", "HEAD~1", "--author", PROVER])
@@ -523,7 +527,7 @@ def test_j_the_fields_are_published_on_a_target_that_predates_f11(
     assert code == 0 and out["mode"] == "proof" and out["target"] == TARGET, out
     assert out["node"] == TUTORIAL, out
     assert {"review_kind", "review_reference"} <= set(out), sorted(out)
-    assert step9(out) == (True, "pr-approval", None), out
+    assert step9(out) == (False, "intermediate", None), out
 
 
 def test_j_an_unreadable_certificate_asks_for_a_review_rather_than_failing_open(

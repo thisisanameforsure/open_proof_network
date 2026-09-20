@@ -19,7 +19,7 @@ from opn_gate.pipeline import Verdict
 from opn_gate.steps.base import RunContext
 from opn_gate.toolchain import ResolvedToolchain
 
-SCHEMA = "attestation/v4"  # v4 (F07-R13): submitter and model_and_tooling
+SCHEMA = "attestation/v5"  # v5 (F07-T24, D-4 v3.20): review kinds intermediate and calibration
 #: One list, defined in ``bounce`` because this module imports that one (F07-T5).
 ACCEPTED_SCHEMAS: tuple[str, ...] = bounce.ACCEPTED_SCHEMAS
 MASKED_FIELDS: tuple[str, ...] = ("runner", "merge_commit", "signature")

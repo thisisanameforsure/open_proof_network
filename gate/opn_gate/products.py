@@ -51,7 +51,7 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 
 log = logging.getLogger(__name__)
 
-PROTOCOL_VERSION = "3.19"  # docs/architecture_decisions.html (v3.19, F07-R22)
+PROTOCOL_VERSION = "3.20"  # docs/architecture_decisions.html (v3.20, F07-T24)
 GRAPH_SCHEMA = "graph/v3"  # F12-R13: a related variant's relevance signature (v2: F07-R8)
 FRONTIER_SCHEMA = "frontier/v3"  # T7: attempts counts partials (v2, F11-R4: D-33 dormancy)
 #: F11-R12 renames D-9's second rung and F11-R3/R4 add the derived fields. v2 was already spent
@@ -61,7 +61,7 @@ FRONTIER_SCHEMA = "frontier/v3"  # T7: attempts counts partials (v2, F11-R4: D-3
 #: formalizations: v5.
 #: F15-R9: the policy state at the top; per target the active stewards, the digestion state with
 #: its counts, the calibration flag, and `no-steward` among the reasons: v6.
-INDEX_SCHEMA = "targets-index/v6"
+INDEX_SCHEMA = "targets-index/v7"  # v7 (F07-T24): step9 gains `calibration`
 INFO_SCHEMA = "info/v1"
 CLAIMS_SCHEMA = "claims/v1"
 CLAIMS_FILE = "claims.json"
@@ -520,8 +520,10 @@ def step9_basis(tg: TargetGraph) -> str:
     tree (``modes.with_statement_review``): a counting certificate, recorded evidence, or a
     non-author's review. Rendered with the default minimum, since the products are what the gate
     at this pin decides without configuration (F14-R5)."""
-    from opn_gate import modes  # noqa: PLC0415 — modes owns the rule; products only reports it
+    from opn_gate import intake, modes  # noqa: PLC0415 — modes owns the rule; products reports it
 
+    if intake.is_calibration(intake.load_doc(tg.path)):
+        return "calibration"  # D-4 v3.20: a known result asks no review, even of its root
     if modes.root_certificate(tg.path) is not None:
         return "certificate"
     if modes.step9_evidence(tg.path) is not None:

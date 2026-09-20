@@ -22,6 +22,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "attestation/v2",
         "attestation/v3",
         "attestation/v4",
+        "attestation/v5",
         "claims/v1",
         "context/v1",
         "defect-claim/v1",
@@ -66,6 +67,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "targets-index/v4",
         "targets-index/v5",
         "targets-index/v6",
+        "targets-index/v7",
         "waiver/v1",
         "writeup/v1",
     )

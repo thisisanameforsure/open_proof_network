@@ -1408,7 +1408,14 @@ class Renderer:
             return (
                 "A proof of this statement waits for a non-author's approving review on its pull "
                 "request: the root has no counting signature and no catalog evidence at the high "
-                "grade (D-4 step 9)."
+                "grade (D-4 step 9). Nothing beneath it waits for anyone: a hole, a crux, a "
+                "skeleton or a variant merges on the gate (v3.20)."
+            )
+        if basis == "calibration":
+            return (
+                "Everything on this problem merges on the gate, its root included: it is a "
+                "calibration target, a result already in the literature, and a proof of it "
+                "settles no open conjecture (D-4 step 9, v3.20)."
             )
         return ""
 

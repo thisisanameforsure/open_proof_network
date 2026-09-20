@@ -47,7 +47,7 @@ def meta(**overrides: Any) -> dict[str, Any]:
 
 def attestation(**overrides: Any) -> dict[str, Any]:
     doc: dict[str, Any] = {
-        "schema": "attestation/v4",
+        "schema": "attestation/v5",
         "graph_id": "propositional",
         "node_id": "tutorial-and-swap",
         "statement_hash": SHA256,

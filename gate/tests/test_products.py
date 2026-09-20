@@ -311,8 +311,8 @@ def test_products_of_the_fixture(tmp_path: Path) -> None:
     assert idx["fidelity"] == "mechanical-only" and idx["mathlib_sha"] is None
     assert idx["node_counts"]["ready"] == 2 and idx["node_counts"]["blocked"] == 1
     info = loads(prod, "info.json")
-    assert info["protocol_version"] == "3.19"
-    assert info["schemas"]["attestation"] == [1, 2, 3, 4] and info["schemas"]["meta"] == [
+    assert info["protocol_version"] == "3.20"
+    assert info["schemas"]["attestation"] == [1, 2, 3, 4, 5] and info["schemas"]["meta"] == [
         1,
         2,
         3,
@@ -1203,7 +1203,7 @@ def test_index_carries_the_qa_state_attempts_and_drift(tmp_path: Path) -> None:
     assert row["claimable"] is False and "upstream-drift" in row["not_claimable"]
     assert (
         schemas.violations(
-            json.loads(generate(root).files[Path("targets/index.json")]), "targets-index/v6"
+            json.loads(generate(root).files[Path("targets/index.json")]), "targets-index/v7"
         )
         == []
     )
@@ -1222,8 +1222,8 @@ def test_index_v6_fields(tmp_path: Path) -> None:
     harness.take_in(root)
     prod = generate(root)
     index = loads(prod, "targets/index.json")
-    assert schemas.violations(index, "targets-index/v6") == []
-    assert index["schema"] == "targets-index/v6"
+    assert schemas.violations(index, "targets-index/v7") == []  # v7 adds a step9 value only
+    assert index["schema"] == "targets-index/v7"
     assert index["policy"] == {"steward_rule": {"enforced": False, "since": None, "evidence": None}}
     row = f11_row(root, prod)
     assert row["stewards"] == [] and row["calibration"] is False
@@ -1237,7 +1237,7 @@ def test_index_v6_fields(tmp_path: Path) -> None:
     info = loads(prod, "info.json")
     for name in ("steward", "explainer-signature", "writeup", "policy"):
         assert info["schemas"][name] == [1], name
-    assert info["schemas"]["target"] == [1, 2] and info["schemas"]["targets-index"][-1] == 6
+    assert info["schemas"]["target"] == [1, 2] and info["schemas"]["targets-index"][-1] == 7
 
     # R3: the policy file, present and enforced, is published at the top; a malformed one is a
     # graph defect that stops the products (C7).
