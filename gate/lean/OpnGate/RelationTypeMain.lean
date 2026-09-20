@@ -43,9 +43,18 @@ unsafe def main (args : List String) : IO UInt32 := runMain do
   let some variantInfo := variantEnv.find? variantDecl.toName
     | fail s!"declaration {variantDecl} not found in {variantPath}"
 
-  let (rootEnv, rootLog) ← elabFile rootPath rootMod.toName (some base)
-  if let some code ← failIfErrors "root statement" rootLog then return code
-  let some rootInfo := rootEnv.find? rootDecl.toName
+  -- F08-T15: when the root is one of the variant's declared deps, the variant's own Context,
+  -- which its statement imports, already restates the root's theorem, and elaborating the root's
+  -- file on top of it is "already declared". The declaration in the imported environment is the
+  -- one to relate to: admission's `context` check, which runs before this one, has verified that
+  -- the Context carries each declared dep's signature (F01-R6). A probe that imports the thing
+  -- it is compared against must not declare it again.
+  let mut rootInfo? := base.find? rootDecl.toName
+  if rootInfo?.isNone then
+    let (rootEnv, rootLog) ← elabFile rootPath rootMod.toName (some base)
+    if let some code ← failIfErrors "root statement" rootLog then return code
+    rootInfo? := rootEnv.find? rootDecl.toName
+  let some rootInfo := rootInfo?
     | fail s!"declaration {rootDecl} not found in {rootPath}"
 
   if label == RelationLabel.related then

@@ -1,0 +1,13 @@
+F08-T15 — a variant that depends on the root can carry a relation proof (R4, Q27)
+date: 2026-09-20
+
+## found live, graph PR #126 (agent E), read through the service (F07-T26, shipped an hour earlier):
+GET /submissions/126 -> gate_verdict: first_failing "relation", code "relation-elaboration", message "root statement does not elaborate",
+  details.messages[0].text: "`Opn.infinitude_of_primes` has already been declared"
+the proposal: relation partial + relation_proof, deps [infinitude-of-primes], the statement importing its own Context (F08-T13)
+
+## red first (lean tier, real toolchain): 1 failed, diagnostic code relation-elaboration, the live failure reproduced by a node the gate's own scaffold wrote
+## lake build: Build completed successfully (40 jobs)
+## green (lean tier):
+gate/tests/test_finding_relation_root_dep_lean.py: 2 passed in 21.60s  (admitted with expected == declared; the same proof labelled partial refused relation-direction)
+gate/tests/test_admit_lean.py + the new file: 10 passed in 44.77s  (the admission matrix, the redeclaration refusal, the direction test)
