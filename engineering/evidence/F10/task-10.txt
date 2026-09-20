@@ -1,0 +1,11 @@
+F10-T10 — the guide's corrections from the primes run (R2, Q16)
+date: 2026-09-20
+
+## each claim checked before the sentence changed:
+- 'stays open but blocked' vs 'never blocks': both on the live /docs/ page 2026-09-19; agent D's precheck 01M2YH24T0YFYNVFTW4C4T201Q of a direct proof with both holes open: pass
+- witness: live step 7 accepted 'True' for a binder-less statement (#113) and '∃ n : Nat, True' / '∃ l : List Nat, True' for ∀-statements (#110, #112, #111)
+- relation_proof: gate/opn_gate/admit.py: declaration RELATION_DECL = relation; resolves = variant → root, partial = root → variant
+- tutorial: targets/index.json tutorial status resolved, node proved
+
+## tests:
+24 passed in 9.96s

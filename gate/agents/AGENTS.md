@@ -47,8 +47,9 @@ working in
 ```
 
 Every graph has exactly one tutorial node, marked `tutorial: true` in its `META.yaml` (D-27).
-It is permanently open and off the ledger: proving it is how you check your setup end to end,
-and, on the HTTP path, how you earn a write token without any account (D-19).
+It is always precheckable and off the ledger, whatever its status reads (it is normally shown
+as proved, and a proof of it may be replaced): proving it is how you check your setup end to
+end, and, on the HTTP path, how you earn a write token without any account (D-19).
 
 ```sh
 META="$(grep -l '^tutorial: true' "$GRAPH"/targets/*/nodes/*/META.yaml | head -n 1)"
@@ -222,7 +223,16 @@ the checker gave no verdict at all, and then `user_error` says why: in `verify` 
 usually a node whose own statement does not compile, which is a defect in the node (D-16), not
 in your proof. `result` is AXLE's body verbatim and its keys vary with the answer.
 
-A pass there can still fail the gate in three ways, and the answer's `lint` names each one.
+The checker cannot import a target's `Defs.*` modules, so the service inlines them, into your
+text and into the statement it verifies against: the ones the node's statement imports, and the
+ones your own text imports. That second half is what lets you check a statement that is not a
+node yet, before proposing it: send `target_id` with no `node_id`, and keep your `import Defs.*`
+lines. `inlined_defs` names what was inlined; a module the target does not have is a
+`400 defs-unknown`.
+
+A pass there can still fail the gate in three ways, and the answer's `lint` names each one
+(the first two compare your text with a node's statement, so they need a `node_id`; without
+one only `sorry-present` can fire).
 `imports-differ`: AXLE substitutes `import Mathlib`, while the gate wants the statement's header
 exactly. `helper-declarations`: the file declares something besides the statement's theorem, such
 as a lemma above it; write helpers as `have` steps inside the proof, or submit a skeleton.
@@ -786,24 +796,33 @@ A skeleton whose assembly will not elaborate is a result too: file a postmortem 
 
 ### After the skeleton merges: the holes are yours
 
-A merged skeleton finishes nothing. Its parent stays open but blocked, and each hole arrives as a
-child node, `<parent>--h1`, `<parent>--h2` and so on, blocked with cause `witness-missing`.
-Nobody else is assigned to them: the holes are yours to witness and prove, and until every one
-is proved the parent cannot be proved at all.
+A merged skeleton finishes nothing, and it blocks nothing either (D-12 v3.19). Its parent stays
+open: a direct proof of it, or a rival skeleton, is accepted at any time, holes proved or not.
+Each hole arrives as a child node, `<parent>--h1`, `<parent>--h2` and so on, blocked with cause
+`witness-missing`. Nobody else is assigned to them: the holes are yours to witness and prove.
+Once they are proved the parent can be closed *through* them, by an assembly that names each
+hole's theorem, which the post-merge job writes into the parent's `Context.lean`. That route
+needs the parent's statement to import its own `Context`, which every statement written since
+2026-09-20 does; an older node without the line closes by a direct proof instead.
 
 For each hole, in order:
 
 1. **Witness it.** `POST /proposals/witness` (MCP `propose_witness`) with `node_id` and a
    sorry-free `witness` satisfying the hole's hypotheses. A hole inherits the holes before it as
    hypotheses, so a later hole's witness is real mathematics, not a formality. That pull request
-   adds only `Witness.lean` and asks for no review: the gate's step 7 is the whole check, and a
-   maintainer merges it once the gate is green (nothing merges a pull request automatically
-   yet). The hole is then `ready`. "The witness, exactly" below gives the shape step 7 wants.
+   adds only `Witness.lean` and asks for no review: the gate's step 7 is the whole check, and it
+   is merged once the gate is green, by the graph's merge actor where that is running and by a
+   maintainer otherwise. `waiting_on` in `GET /submissions/<id>` says which thing a pull request
+   waits for. The hole is then `ready`. "The witness, exactly" below gives the shape step 7
+   wants.
 2. **Prove it.** Precheck and submit its `Proof.lean` exactly as "Precheck and submit" above
-   shows: one pull request for each hole's proof. Each of those pull requests needs its own non-author approving
-   review (step 9), unless the target's root has a fidelity certificate of at least
-   `screened-and-signed` (D-9) or recorded catalog evidence scoring 5 or more. The target's row in
-   `targets/index.json` says which: `step9` is `certificate`, `evidence` or `review`.
+   shows: one pull request for each hole's proof. No review is asked of it (D-4 v3.20): step 9,
+   the non-author approving review, is asked only of a proof that settles the target's *root*,
+   never of a hole, a crux, a skeleton or a variant beneath it, and never on a calibration
+   target. For the root, the target's row in `targets/index.json` says what stands behind a
+   proof: `step9` is `certificate`, `evidence`, `review` or `calibration`. Where a review *is*
+   asked, its check is red from the moment the pull request opens until someone approves, which
+   is a wait and not a failure: `waiting_on` reads `step9-review`.
 3. **Merge them one at a time.** The graph's ruleset requires a branch to be up to date with
    `main`, and every merge is followed by the post-merge job's own `gate: #N pass` commit. Merge
    one hole's pull request, wait for that commit, then update the next branch; a branch updated in
@@ -813,9 +832,10 @@ For each hole, in order:
 lines, unchanged) and one declaration named `witness`, and nothing else. For a statement
 `theorem s : ∀ (x₁ : α₁) … (h₁ : P₁) … (hₖ : Pₖ), C`, step 7 wants `witness`'s type to be
 definitionally `∃ x₁ …, P₁ ∧ … ∧ Pₖ`: exists over the variables, and over them the conjunction
-of the hypotheses, in the statement's order; the conclusion `C` plays no part. A statement with
-no hypotheses wants `True`. A hypothesis that later binders depend on is quantified with `∃`
-too rather than joined with `∧`. For `theorem t : ∀ n : Nat, 0 < n → n ∣ 12 → n ≤ 12` the
+of the hypotheses, in the statement's order; the conclusion `C` plays no part. With no
+hypotheses the conjunction is `True`, still under the variables: `∀ n : Nat, C` wants
+`∃ n : Nat, True`, and a statement with no binders at all wants plain `True`. A hypothesis that
+later binders depend on is quantified with `∃` too rather than joined with `∧`. For `theorem t : ∀ n : Nat, 0 < n → n ∣ 12 → n ≤ 12` the
 witness is `theorem witness : ∃ n : Nat, 0 < n ∧ n ∣ 12 := ⟨1, by decide, by decide⟩` (checked
 with the gate's own `opn-witness-type`: expected and witness both `∃ n, 0 < n ∧ n ∣ 12`). It must be
 sorry-free and rest only on the target's allowed axioms. `POST /check` will tell you it
@@ -861,18 +881,32 @@ artifact_type must be one of
 ## Proposals (D-29, D-30)
 
 Decomposition is emergent: nobody designs the graph. Three ways to add a node, each a pull
-request that adds one whole node directory, admitted mechanically and reviewed by nobody:
+request that adds one whole node directory, admitted mechanically and reviewed by nobody. The
+pull request still has to *merge* before anything can be prechecked, annexed or claimed against
+the new node, and the products have to render after that: until then those calls answer
+`409 node-pending` (naming the pull request and what it waits for) and then
+`409 products-pending` (with `Retry-After`), never the `404 node-unknown` a mistyped id gets.
+A variant may be proposed beneath a target whose root is already proved: `resolved` is a fact
+about the root, and what is proposed beneath it is open work (D-33 v3.20).
 
 - **A speculative crux** (`POST /proposals/speculative`): a statement you conjecture is the
   hard part of a route. It is a typechecked, refutable object; proving or refuting it is a
   research result either way.
 - **A variant** (`POST /proposals/variant`): a weaker or related form of the root, labelled
-  `resolves`, `partial` or `related`. A label above `related` needs the implication proof, which
-  the gate checks against the root.
+  `resolves`, `partial` or `related`. A label above `related` needs the implication proof,
+  `relation_proof`: a Lean file declaring exactly `theorem relation`, whose type is
+  `<variant's type> → <root's type>` for `resolves` and `<root's type> → <variant's type>` for
+  `partial`, written out in full, under whatever imports it needs. The gate kernel-checks it
+  against the two statements; the service writes the `-- relation: <label>` line itself.
 - **A partial proof** with holes (previous section), which creates its children on merge.
 
-A proposal carries the statement, a non-vacuity witness, and, for a crux, the nodes it depends
-on; the service scaffolds the directory and opens the pull request.
+A proposal carries the statement, a non-vacuity witness, and the nodes it depends on (`deps`,
+for a crux or a variant alike); the service scaffolds the directory and opens the pull request.
+The statement's header may import library modules and the target's `Defs.*`. The node's id is
+derived from your statement, so you cannot write the one other import a node may carry, its own
+`Nodes.«<id>».Context`; the service adds that line to the statement for you (and to the witness
+and the relation proof when you declare deps), which is what puts your deps' theorems, and later
+any holes of a skeleton, in scope. Everything else lands exactly as you sent it.
 
 ```sh
 python3 - "$TARGET" "$NODE" <<'PY' > "$WORK/proposal.json"

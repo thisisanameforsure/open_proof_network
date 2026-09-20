@@ -87,7 +87,7 @@ def test_the_skeleton_section_says_the_holes_are_yours_to_witness_and_prove() ->
     ), "the skeleton section does not say the holes are the submitter's to witness and prove"
 
 
-def test_the_skeleton_section_says_one_pull_request_and_one_approval_per_hole() -> None:
+def test_the_skeleton_section_says_one_pull_request_per_hole_and_no_approval() -> None:
     text = prose(section("Skeletonization"))
     assert says(
         text,
@@ -96,13 +96,19 @@ def test_the_skeleton_section_says_one_pull_request_and_one_approval_per_hole() 
         r"\b(each|every) (hole|witness|proof)\b[^.]*\b(its own|one|a separate) pull request\b",
         r"\bone pull request each\b",
     ), "the skeleton section does not say each hole is its own pull request"
+    # D-4 v3.20 (F07-T24): until 2026-09-20 each of those pull requests needed its own non-author
+    # approval, and the guide had to say so, since an agent that did not know waited forever. The
+    # rule is gone for everything beneath a root, and the guide has to say *that*, and say where
+    # the review is still asked, or the same agent now waits for an approval nobody owes it.
     assert says(text, r"\bnon-author\b"), "no non-author review is mentioned"
     assert says(
         text,
-        r"\b(each|every)\b[^.]*\bapprov",
-        r"\bapprov\w*\b[^.]*\b(each|every|per)\b",
-        r"\ban approv\w+ each\b",
-    ), "the skeleton section does not say each pull request needs its own approval"
+        r"\bno review is asked\b",
+        r"\basks? (for )?no review\b",
+    ), "the skeleton section does not say a hole's proof asks no review"
+    assert says(text, r"\bonly of a proof that settles the target'?s \*?root\*?"), (
+        "the skeleton section does not say where step 9 is still asked"
+    )
 
 
 def test_the_skeleton_section_says_merge_one_at_a_time_and_the_parent_last() -> None:
