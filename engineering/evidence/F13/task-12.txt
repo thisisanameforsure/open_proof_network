@@ -6,3 +6,11 @@ date: 2026-09-20
 ## red first: 1 failed, 1 passed (a sibling's Context is never inlined)
 ## green:
 21 passed, 2 warnings in 22.82s
+
+## live, after the deploy of 10da589 (agent E's own node and its v4 proof, Proof-term.lean):
+check  -> okay = True  | inlined = [Defs.Divides, Defs.IsPrime, Nodes.«variant-aceabdc4».Context] | lint = []
+verify -> okay = False | same inlining | AXLE tool_messages: "Declaration 'Opn.infinitude_of_primes' is incomplete (uses 'sorry' or has errors)"
+The false negative E reported is gone in check mode. Verify cannot pass for a proof that uses a dependency: a Context
+restates each dependency with a sorry body (the gate builds against the real proofs), and the hosted verifier refuses any
+proof that leans on one. The service now says so with a `context-restated` lint in verify mode rather than leaving a bare
+"false"; 16 passed.

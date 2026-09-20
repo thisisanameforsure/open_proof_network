@@ -467,7 +467,12 @@ def test_a_nodes_own_context_is_inlined_with_the_defs_it_needs() -> None:
         assert r.status_code == 200, r.text
         module = f"Nodes.«{NODE}».Context"
         assert r.json()["inlined_defs"] == ["Defs.Base", "Defs.Fact", module], mode
-        assert r.json()["lint"] == [], mode  # the Context's own sorry is not the contributor's
+        # The Context's own sorry is not the contributor's, so `sorry-present` stays quiet. In
+        # verify mode it still decides the answer: the hosted verifier refuses a proof that
+        # leans on a sorry-bodied restatement (seen live on variant-aceabdc4), so the lint says
+        # that a "no" there is not about the proof, and to use check mode.
+        codes = [w["code"] for w in r.json()["lint"]]
+        assert codes == (["context-restated"] if mode == "verify" else []), mode
         call = h.axle.calls[-1]
         for sent in [call.content] + ([call.formal_statement] if mode == "verify" else []):
             assert sent is not None and "import Nodes" not in sent and "import Defs" not in sent

@@ -443,6 +443,20 @@ async def post_check(ctx: Context, request: Request) -> Response:
         defs = inline_defs(ctx, req.target_id, statement, req.content, req.node_id)
         text = forwarded_text(req.content, defs)
         warnings = lint(req.content, statement)
+        if req.mode == "verify" and req.node_id is not None:
+            own = layout.node_module(req.node_id, "Context")
+            if any(module == own for module, _ in defs):
+                # F13-T12: a Context restates each dependency with a sorry body (the gate builds
+                # against the real proofs instead), and a verifier refuses any proof that leans on
+                # one, so its "no" here says nothing about the contributor's proof.
+                warnings.append(
+                    {
+                        "code": "context-restated",
+                        "message": "this node's Context restates its dependencies with sorry "
+                        "bodies, so verify reports a proof that uses one as incomplete whatever "
+                        "its merit; use mode check for it, and the precheck for the verdict",
+                    }
+                )
         try:
             formal = forwarded_text(statement.text, defs) if statement is not None else None
             answer = await asyncio.to_thread(call_checker, ctx, req, text, environment, formal)
