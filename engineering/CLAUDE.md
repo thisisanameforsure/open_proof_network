@@ -1006,3 +1006,28 @@ The law of the project:
   ones: a bare `pytest gate/tests` runs the lean and docker tiers, so use the Makefile's marker
   expression; and zsh reads `$n:t` as a path modifier (`pr/$n:targets/...` became
   `pr/110argets/...`), so brace every variable that is followed by a colon.
+- 2026-09-20 — A diagnostic that tells the truth pays for itself the same day. F02-T6 made a memory
+  kill say `memory-exceeded` instead of "timeout"; hours later an agent's three prechecks all said
+  it, and reading that against the attestation record showed what nobody had seen: since v3.16 no
+  proof with a *proved* dependency had ever passed step 4 on a Mathlib target (every pass with deps
+  was an old gate or a partial, whose holes are never staged), because one `leanchecker Nodes Defs`
+  held every module's Mathlib environment at once. The decomposition model had never completed
+  there. One process per module (F02-T7) fixed it, shown live: the same proof, unchanged, passed
+  and merged with no person. When a fix cannot be measured locally, say "built, not shown" in the
+  ledger and go and show it; and query the *record* for the pattern before believing one failure
+  is one proof's problem.
+- 2026-09-20 — Check a credential's reach before building an argument on it. The merge actor was
+  designed around "a token that does not bypass the ruleset, so GitHub refuses anything not
+  green"; the owner's token does bypass, because the ruleset lists the admin role (it is how a
+  re-pin is pushed). Inert probes (a head sha of forty zeros: 422 and 409 mean authorised, 403
+  means not) showed the reach without changing anything, and the bypass was read from the
+  ruleset, not tested by merging something red. A second guard I reached for, `mergeable_state`
+  seen by an unprivileged viewer, was *measured* and was wrong (`clean` where the owner sees
+  `behind`). The record now says what guards what. Correct a safety claim the moment it is false.
+- 2026-09-20 — An end-to-end run with nobody watching is the test that finds the next layer. One
+  agent, one URL, "use the proved root as a dependency": no step needed a human, and it still
+  found five defects, three of them *caused by that morning's fixes meeting parts of the gate no
+  fixture combined* (a statement that imports its own Context vs the relation check; vs the fast
+  check; a literal bound vs the hazard checker with no way to acknowledge it). Run the fresh agent
+  *after* the re-pin, not instead of it, and fix what it finds while it is still running: the
+  `gate_verdict` field shipped mid-run was used an hour later to read the next defect.
