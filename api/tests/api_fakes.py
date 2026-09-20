@@ -257,7 +257,11 @@ class FakeGitHost:
             "head_sha": head_sha,
             "merge_commit_sha": merge_commit_sha,
             "runs": [
-                {k: r.get(k) for k in ("name", "status", "conclusion", "url")} for r in runs or []
+                {
+                    **{k: r.get(k) for k in ("name", "status", "conclusion", "url")},
+                    **({"jobs": r["jobs"]} if "jobs" in r else {}),
+                }
+                for r in runs or []
             ],
             "reviews": [{k: r.get(k) for k in ("login", "state")} for r in reviews or []],
         }

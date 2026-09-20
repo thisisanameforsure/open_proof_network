@@ -99,13 +99,22 @@ class WorkflowRun:
         return self.completed and self.conclusion == "success"
 
 
+#: The graph's gate workflow and the prefix of its step 9 job (``.github/workflows/gate.yml``). A
+#: review is a job of the same run, so a red run alone does not say the sandbox failed (F07-T22).
+GATE_WORKFLOW = "gate"
+STEP9_JOB_PREFIX = "step 9"
+JOB_KEYS = ("name", "status", "conclusion")
+
+
 @dataclass(frozen=True)
 class PullRequestState:
     """A pull request's live state as the App reads it (F07-T16): open or closed, merged, what
     GitHub says about mergeability, the Actions runs on its head commit and its reviews.
 
     ``runs`` are ``{name, status, conclusion, url}`` and ``reviews`` ``{login, state}``, in
-    GitHub's vocabulary — the service reports them and decides nothing from them.
+    GitHub's vocabulary — the service reports them and decides nothing from them. A gate run
+    that failed on an open pull request also carries ``jobs``, ``{name, status, conclusion}`` of
+    its latest attempt, which is what tells a failed sandbox from a review not yet given.
     """
 
     number: int
@@ -123,8 +132,29 @@ class PullRequestState:
         """Merged or closed: nothing about it will change that the service reports."""
         return self.merged or self.state == "closed"
 
+    @property
+    def waiting_on(self) -> str | None:
+        """F07-T22: the one thing an open pull request waits for — ``gate`` (the run has not
+        finished), ``step9-review`` (the sandbox passed and only the review job is red),
+        ``gate-failed`` (nothing: the submission itself was refused), ``branch-update`` or
+        ``merge`` — and ``None`` once it is merged or closed. Read from the newest gate run; a
+        failed run whose jobs could not be read says ``gate-failed``, the run's own word."""
+        if self.finished:
+            return None
+        gate = next((r for r in self.runs if r.get("name") == GATE_WORKFLOW), None)
+        if gate is None or gate.get("status") != "completed":
+            return "gate"
+        if gate.get("conclusion") != "success":
+            failed = [j for j in gate.get("jobs") or () if j.get("conclusion") == "failure"]
+            only_review = bool(failed) and all(
+                str(j.get("name") or "").startswith(STEP9_JOB_PREFIX) for j in failed
+            )
+            return "step9-review" if only_review else "gate-failed"
+        return "branch-update" if self.mergeable_state == "behind" else "merge"
+
     def as_dict(self) -> dict[str, Any]:
         return {
+            "waiting_on": self.waiting_on,
             "number": self.number,
             "url": self.url,
             "state": self.state,
@@ -536,7 +566,26 @@ class HttpxGitHost:
                 if head_sha
                 else {}
             )
-        runs = page.get("workflow_runs") or []
+            runs = [r for r in page.get("workflow_runs") or [] if isinstance(r, dict)]
+            # F07-T22: one more read, and only where the run's colour is ambiguous.
+            jobs: dict[Any, list[dict[str, Any]]] = {}
+            if pr.get("state") == "open":
+                for run in runs:
+                    if run.get("name") == GATE_WORKFLOW and run.get("conclusion") == "failure":
+                        listing = _json(
+                            _send(
+                                http,
+                                "GET",
+                                f"{base}/actions/runs/{run.get('id')}/jobs",
+                                params={"filter": "latest", "per_page": 100},
+                            ),
+                            f"the jobs of run {run.get('id')}",
+                        )
+                        jobs[run.get("id")] = [
+                            {k: j.get(k) for k in JOB_KEYS}
+                            for j in listing.get("jobs") or []
+                            if isinstance(j, dict)
+                        ]
         return PullRequestState(
             number=number,
             url=str(pr.get("html_url") or ""),
@@ -551,9 +600,9 @@ class HttpxGitHost:
                     "status": run.get("status"),
                     "conclusion": run.get("conclusion"),
                     "url": run.get("html_url"),
+                    **({"jobs": jobs[run.get("id")]} if run.get("id") in jobs else {}),
                 }
                 for run in runs
-                if isinstance(run, dict)
             ),
             reviews=tuple(
                 {

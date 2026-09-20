@@ -1018,6 +1018,57 @@ def test_get_pull_request_reads_the_pull_its_reviews_and_the_runs_on_its_head(
     ]
 
 
+GATE_JOB = "gate (steps 1, 2 and 4-8 in the sandbox)"
+STEP9_JOB = "step 9 (a non-author approving review)"
+JOBS = f"/repos/{REPO}/actions/runs/9/jobs"
+
+
+def test_a_failed_gate_run_on_an_open_pull_request_carries_its_jobs(
+    script: Script, host: HttpxGitHost
+) -> None:
+    """One more GET, only in the ambiguous case; the latest attempt, because a review re-runs the
+    step 9 job in place (F07-T8)."""
+    install_app(script).on(
+        "GET",
+        PULL,
+        json={
+            "number": 33,
+            "html_url": "u",
+            "state": "open",
+            "merged": False,
+            "mergeable_state": "blocked",
+            "head": {"sha": HEAD_SHA},
+        },
+    ).on("GET", REVIEWS, json=[]).on(
+        "GET",
+        ACTION_RUNS,
+        json={
+            "workflow_runs": [
+                {"id": 9, "name": "gate", "status": "completed", "conclusion": "failure"}
+            ]
+        },
+    ).on(
+        "GET",
+        JOBS,
+        json={
+            "jobs": [
+                {"name": GATE_JOB, "status": "completed", "conclusion": "success", "steps": []},
+                {"name": STEP9_JOB, "status": "completed", "conclusion": "failure"},
+                "junk",
+            ]
+        },
+    )
+    pull = host.get_pull_request(REPO, 33)
+    assert pull is not None
+    assert pull.runs[0]["jobs"] == [
+        {"name": GATE_JOB, "status": "completed", "conclusion": "success"},
+        {"name": STEP9_JOB, "status": "completed", "conclusion": "failure"},
+    ]
+    assert pull.waiting_on == "step9-review"
+    (jobs_call,) = script.to("GET", JOBS)
+    assert dict(jobs_call.url.params) == {"filter": "latest", "per_page": "100"}
+
+
 def test_get_pull_request_the_host_does_not_have_is_none(
     script: Script, host: HttpxGitHost
 ) -> None:

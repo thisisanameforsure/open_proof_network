@@ -240,6 +240,38 @@
                   "string",
                   "null"
                 ]
+              },
+              "jobs": {
+                "type": "array",
+                "description": "The latest attempt's jobs of a gate run that failed on an open pull request",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "status",
+                    "conclusion"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "conclusion": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
               }
             }
           }
@@ -267,6 +299,13 @@
               }
             }
           }
+        },
+        "waiting_on": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "What an open pull request waits for: gate, step9-review, gate-failed (nothing: the submission was refused), branch-update or merge; null once merged or closed"
         }
       }
     }
