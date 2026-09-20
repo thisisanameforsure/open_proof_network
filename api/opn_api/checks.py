@@ -160,8 +160,22 @@ def defs_modules(text: str) -> list[str]:
     return [m for m in layout.imports_of(text) if layout.module_origin(m)[0] == "defs"]
 
 
+def own_context_module(node_id: str | None, *texts: str) -> str | None:
+    """The node's own ``Context`` module, when one of the texts imports it (F13-T12). Only its
+    own: a node may import no other node's module (F00's import rule), and the fast check does
+    not widen that by fetching a sibling's."""
+    if node_id is None:
+        return None
+    own = layout.node_module(node_id, "Context")
+    return own if any(own in layout.imports_of(text) for text in texts) else None
+
+
 def inline_defs(
-    ctx: Context, target_id: str, statement: layout.Statement | None, content: str
+    ctx: Context,
+    target_id: str,
+    statement: layout.Statement | None,
+    content: str,
+    node_id: str | None = None,
 ) -> list[tuple[str, str]]:
     """R5: the statement's ``Defs`` modules, then the content's own (F13-T11: a proposer's
     statement is not a node yet, so its header is the only thing that names them), and everything
@@ -196,6 +210,16 @@ def inline_defs(
 
     for module in (*named, *defs_modules(content)):
         visit(module, ())
+    # F13-T12: the node's own Context, last, after the Defs it imports. It is where a declared
+    # dependency's theorem lives (and, after a skeleton merges, a node's holes), so without it a
+    # proof that uses one reads "Unknown identifier" on a checker that would otherwise pass it.
+    own = own_context_module(node_id, content, statement.text if statement is not None else "")
+    if own is not None and node_id is not None:
+        raw = frontier.committed(ctx, f"targets/{target_id}/nodes/{node_id}/Context.lean")
+        source = raw.decode("utf-8")
+        for dep in defs_modules(source):
+            visit(dep, (own,))
+        ordered.append((own, IMPORT_LINE_RE.sub("", source).strip("\n")))
     return ordered
 
 
@@ -204,10 +228,14 @@ def forwarded_text(content: str, defs: list[tuple[str, str]]) -> str:
     after its remaining header, where a module's own declarations would begin."""
     if not defs:
         return content
+    inlined = {module for module, _ in defs}
     lines = [
         line
         for line in content.splitlines(keepends=True)
-        if not (line.startswith("import ") and layout.module_origin(line.split()[1])[0] == "defs")
+        if not (
+            line.startswith("import ")
+            and (layout.module_origin(line.split()[1])[0] == "defs" or line.split()[1] in inlined)
+        )
     ]
     last_import = max((i for i, line in enumerate(lines) if line.startswith("import ")), default=-1)
     block = "".join(
@@ -412,7 +440,7 @@ async def post_check(ctx: Context, request: Request) -> Response:
         if req.mode == "verify" and statement is None:
             msg = f"{req.node_id}'s Statement.lean has no single sorry-bodied theorem to verify"
             raise api_error(409, "statement-unparsable", msg)
-        defs = inline_defs(ctx, req.target_id, statement, req.content)
+        defs = inline_defs(ctx, req.target_id, statement, req.content, req.node_id)
         text = forwarded_text(req.content, defs)
         warnings = lint(req.content, statement)
         try:

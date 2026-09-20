@@ -1,0 +1,8 @@
+F13-T12 — a node's own Context is inlined (Q15)
+date: 2026-09-20
+
+## found by agent E, 08:37Z: POST /check mode=verify node_id=variant-aceabdc4 with the exact Proof.lean -> okay:false, Unknown identifier Opn.infinitude_of_primes (the declared dep, restated in the node's Context.lean)
+
+## red first: 1 failed, 1 passed (a sibling's Context is never inlined)
+## green:
+21 passed, 2 warnings in 22.82s

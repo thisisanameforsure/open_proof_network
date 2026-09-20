@@ -440,3 +440,47 @@ class Blocking(FakeAxle):
         self.entered.set()
         self.release.wait(15)
         return super().check(content, environment=environment, timeout_s=timeout_s)
+
+
+CONTEXT = (
+    "import Defs.Fact\n\n/-! Declared dependencies (D-4 step 8): `dep`. -/\n\n"
+    "theorem OpnProp.dep : Opn.fact = 1 := by\n  sorry\n"
+)
+OWN = f"import Nodes.«{NODE}».Context"
+CONTEXT_STATEMENT = f"{OWN}\n\ntheorem OpnProp.and_reassoc : Opn.fact = 1 := by\n  sorry\n"
+CONTEXT_PROOF = f"{OWN}\n\ntheorem OpnProp.and_reassoc : Opn.fact = 1 := by\n  exact OpnProp.dep\n"
+
+
+def test_a_nodes_own_context_is_inlined_with_the_defs_it_needs() -> None:
+    """F13-T12 (agent E, 2026-09-20): a proof that *uses* a declared dependency got "Unknown
+    identifier" from the fast check, because the dependency's theorem lives in the node's
+    ``Context.lean`` and only ``Defs.*`` was inlined. Since F08-T13 every proposed statement
+    imports its own Context, so this is every such node. The Context is inlined like a Defs
+    module, after the Defs it imports, into the content and into the formal statement."""
+    h = harness_with()
+    seed(h, statement=CONTEXT_STATEMENT, defs=DEFS)
+    h.githost.files[NODE_DIR + "Context.lean"] = CONTEXT.encode()
+    h.context.files.clear()
+    for mode in ("check", "verify"):
+        body = {"target_id": TARGET, "node_id": NODE, "content": CONTEXT_PROOF, "mode": mode}
+        r = post(h, body)
+        assert r.status_code == 200, r.text
+        module = f"Nodes.«{NODE}».Context"
+        assert r.json()["inlined_defs"] == ["Defs.Base", "Defs.Fact", module], mode
+        assert r.json()["lint"] == [], mode  # the Context's own sorry is not the contributor's
+        call = h.axle.calls[-1]
+        for sent in [call.content] + ([call.formal_statement] if mode == "verify" else []):
+            assert sent is not None and "import Nodes" not in sent and "import Defs" not in sent
+            order = [sent.index(s) for s in ("def Opn.fact", "theorem OpnProp.dep", "and_reassoc")]
+            assert order == sorted(order), mode
+
+
+def test_another_nodes_context_is_never_inlined() -> None:
+    """A node may import only its own Context (F00's import rule); the fast check does not widen
+    that by fetching a sibling's."""
+    h = harness_with()
+    seed(h, defs=DEFS)
+    content = "import Nodes.«some-other-node».Context\n\n" + PROOF
+    r = post(h, {"target_id": TARGET, "node_id": NODE, "content": content})
+    assert r.status_code == 200, r.text
+    assert r.json()["inlined_defs"] == []
