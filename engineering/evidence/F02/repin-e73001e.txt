@@ -1,0 +1,46 @@
+Re-pin to network e73001e — 2026-09-20, the second of the day (Mike: "check to see if its fixed").
+Carries F02-T7 (step 4 replays one module per process) and F08-T15 (the relation check reads the root's
+declaration from the imported environment when the variant depends on the root). Recipe: F07/repin-bb667de.txt.
+
+1. Tag gate-e73001e; image-publish success. Digests by tag from the registry, without a pull:
+     gate-e73001e                        ghcr.io/thisisanameforsure/opn-gate@sha256:d0cb84809db14b5face070cead2d1d9e5db924f14a0f4956e532ae26c77262f4
+     gate-e73001e-mathlib-0df444a360ea   ghcr.io/thisisanameforsure/opn-gate@sha256:67b451d2ba4357b91f70f3afd37b0bb46367d2f1db7850950cede04556be0628
+2. schemas.unpublished(<worktree>) == []: no schema moved.
+3. 27 of 27 gate-spec.json name e73001ea…; the devcontainer diff is the image line only. Committed as graph 73cac5d
+   before the pregate. Pregate (network checkout's gate code byte-identical to the pin, checkout clean; the whole
+   output kept in a file): verdict pass, steps 1, 2, 4, 5, 6, 7, 8 all pass.
+4. CI on e73001e: fast tier success, Lean tier success (12:05Z to 13:03Z). Graph push 13:05Z, 7fde928 -> 73cac5d,
+   by fast-forward. Re-render (--no-build, no image pulled, no statement failed): graph 503b3be; 37 entries, 37 claimable.
+
+5. IS IT FIXED? The proof that was killed at the 4096 MiB cap three times out of three that morning, unchanged:
+   node variant-aceabdc4 (deps [infinitude-of-primes]), agent E's bundle, agent E's own network-issued token.
+     POST /precheck -> job 01M2ZEQEQR7A97C38C1NCC1TB1, graph_commit 73cac5da (the re-pin itself)
+     verdict pass, first_failing_step null:
+       1 toolchain pass (mathlib-pinned)  2 paths pass  4 kernel-replay PASS  5 axioms pass
+       6 hazards pass (hazards-acknowledged: 1 finding acknowledged in META.yaml, F08-T14)  7 witness pass  8 deps pass
+     attestation.network_commit e73001ea
+   POST /submissions -> 01M2ZF0PMG6JDWC9F5ZFJDZJBE, graph PR #129, opened 13:10Z.
+     13:10:28Z waiting_on gate   13:14:40Z merged (the merge actor; reviews: 0)   13:20Z attestations/000129.json
+     attestation/v5, verdict pass, review {"kind":"intermediate","reviewer":null,"reference":null}, gate e73001ea,
+     submitter agent-e-cb6009.  graph.json: variant-aceabdc4 PROVED, deps [infinitude-of-primes].
+   => the first proof with a PROVED dependency to pass step 4 on a Mathlib target since v3.16, end to end with no
+      person: 4 min from opening to merge, 10 min to the attestation.
+
+6. Graph PR #123 (agent D's list form, deps its two proved holes; killed twice under the old gate as "timeout").
+   Its branch updated 13:20Z so the new gate ran: gate 13:21Z, merged 13:24:33Z by the merge actor, reviews 0;
+   attestations/000123.json: verdict pass, review intermediate, gate e73001ea, submitter euclid-list-61d1ea.
+   graph.json: variant-2a7919a9 PROVED.
+
+7. Every version asked for on 2026-09-19 is proved on the live record, and agent E's fifth:
+     variant-f15ce396  the set of primes is infinite              proved  resolves
+     variant-4cb87a03  n < p <= n! + 1                            proved  resolves
+     variant-dea95969  infinitely many primes 3 mod 4             proved  resolves
+     variant-2a7919a9  no finite list holds all the primes        proved  related   (holes --h1, --h2 proved)
+     variant-aceabdc4  infinitely many primes at least 100        proved  related   deps [infinitude-of-primes]
+   Left on the graph and not proved: variant-6e71b160, agent E's reworded near-duplicate of the last one (ready).
+
+8. NOT shown live: F08-T15. #126 was the case (a variant with a relation proof that depends on the root); re-gated
+   under the new pin it is refused `declaration-clash`, correctly, because #127 merged the same theorem name. Read
+   through GET /submissions/126's gate_verdict, with no GitHub login (F07-T26). The fix rests on its lean-tier
+   test; no node was manufactured to tick it off (the graph's history is mathematics, D-35). #124 and #126 closed
+   with a comment: a contributor cannot yet withdraw a pull request.
