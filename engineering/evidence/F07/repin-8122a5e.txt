@@ -1,0 +1,28 @@
+Re-pin to network 8122a5e — 2026-09-20, the third of the day, carrying the two gate changes from the
+second pass over the agents' findings (Mike: "yeah can you just keep going please"). Recipe: repin-bb667de.txt.
+- F07-T27 (0d431e3): a skeleton's cited annex is checked at step 2, before the merge;
+- F07-T28 (289bdf6): a hole's provenance credits whoever decomposed the node, not the bot.
+Gate code changed since e73001e in exactly two files: gate/opn_gate/steps/paths_step.py, gate/opn_gate/postmerge.py.
+
+1. Tag gate-8122a5e; image-publish success. Digests by tag from the registry, without a pull:
+     gate-8122a5e                        ghcr.io/thisisanameforsure/opn-gate@sha256:18a3b364326510c002424be8a56a1e92cc0e8028238bf5a7d35740a073b38059
+     gate-8122a5e-mathlib-0df444a360ea   ghcr.io/thisisanameforsure/opn-gate@sha256:3dc08f8e1a971304a6d8681fa4c6c23eedd9cea06e52b296dd448fb0948cc14e
+2. No schema moved. 27 of 27 gate-spec.json name 8122a5e5…; the devcontainer diff is the image line only.
+   Committed as graph bf8425da BEFORE the pregate (network checkout's gate code byte-identical to the pin,
+   checkout clean, whole output kept in a file): verdict pass, steps 1, 2, 4, 5, 6, 7, 8 all pass.
+3. CI on 8122a5e: fast tier success, Lean tier success (15:23Z to ~16:20Z). Graph push by fast-forward,
+   02de99eb -> bf8425da. Re-render (--no-build, no image pulled, no statement failed): graph 8f57000b;
+   35 entries, 35 claimable; rendered_from bf8425da.
+
+4. F07-T27 shown live, inertly (a precheck runs in the scratch repository and lands nothing on the graph):
+   a skeleton citing annex aaaa…a (64 a's, on no node) against variant-6e71b160, agent E's own unproved node,
+   under agent E's network-issued token.
+     POST /precheck {artifact_type: partial} -> job 01M2ZT7RW002DZF71A2PQMTQDW, graph_commit bf8425da
+     verdict fail, first_failing_step 2:
+       step 1 toolchain pass
+       step 2 paths FAIL annex-uncited "the skeleton cites annex aaaaaaaaaaaa…, which is not on this node;
+              submit the annex first and cite the hash it returns (D-31)"
+       steps 4-8 skipped  (no Lean was built)
+     attestation.network_commit 8122a5e5
+   The day before, the same shape (graph PR #115 over the unmerged #114) passed precheck and the gate.
+5. F07-T28 is not shown live: it acts when the next skeleton merges. Holes already written keep their META (D-3).
