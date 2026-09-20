@@ -1,0 +1,63 @@
+Re-pin to network bb667de — 2026-09-20, the primes run's fixes and the owner's rulings (Mike: "you can
+push"; "please continue with the plan execution"). Recipe: engineering/evidence/F15/repin-ffc50b9.txt.
+Carries to the live gate:
+- F07-T24 (d440b61): decisions v3.20 — step 9 asked only of a proof that settles a root, never on a
+  calibration target; attestation/v5, targets-index/v7, PROTOCOL_VERSION 3.20;
+- F03-T12 (a5bd1c0): a node beneath a resolved root is claimable (products.open_beneath);
+- F07-T23 (d9c58d5): a gate-written hole's statement imports its own Context;
+- F02-T6 (4bcacf0): a run killed at the memory cap is memory-exceeded, not a timeout.
+Service-side fixes (F13-T11, F07-T22, F06-T7, F08-T11 to T13) went live with the api deploys of
+368dc41 and bb667de and need no pin.
+
+0. Before the tag: every commit ran the pre-commit suite (2442 passed on bb667de). CI on 368dc41, the
+   first batch: fast tier and Lean tier success (06:00Z to 06:59Z).
+
+1. Tag gate-bb667de pushed 06:5xZ; image-publish run 35495362792 success. Digests resolved from the
+   registry by tag, without a pull (anonymous token, HEAD on the manifest):
+     gate-bb667de                        ghcr.io/thisisanameforsure/opn-gate@sha256:54c1cd41af6193f6ca18075c04440a185a5511d01988deebd1b9a85eb2b0a27a
+     gate-bb667de-mathlib-0df444a360ea   ghcr.io/thisisanameforsure/opn-gate@sha256:029f388d8a49a35a1d679e69ffe9eb5b5e58c5a8bc5251022a28af6ecd89e8da
+
+2. Schemas: schemas.unpublished(<worktree>) was ['attestation/v5', 'targets-index/v7'];
+   schemas.publish wrote both and their two HASHES lines; unpublished is [] after.
+
+3. Pins, by gate/tools/pin_image.py in a worktree of the graph on origin/main 5973512 ("gate: #122
+   pass") plus the three workflow/guide commits: tutorial the plain image first, the 25 other Mathlib
+   targets, riemann-hypothesis last with --api-url https://api.openproofnetwork.org. The target loop
+   keys on targets/*/gate-spec.json (the 2026-09-17 lesson). 27 of 27 name
+   bb667def9f8c8a5d6c512c694847faa8bf2c4501. The devcontainer diff is the image line only, OPN_API
+   kept. pin_image --check on erdos-69: pin ok. 29 files, 57 insertions, 55 deletions, plus the two
+   schema files. Committed as graph 7244cf9 BEFORE the pregate (pregate reads uncommitted changes as
+   a submission).
+
+4. Pregate on the committed re-pin with the network checkout at bb667de:
+   $ gate/pregate.sh --graph <worktree> --target tutorial --node tutorial-and-swap
+   verdict pass; steps 1, 2, 4, 5, 6, 7, 8 all pass.
+
+5. CI run on bb667de: fast tier success, Lean tier success (06:52Z to 07:48Z). The graph push, 07:49Z:
+   origin/main 5973512 -> 7244cf9 by fast-forward (the parent checked equal to origin/main first), five
+   commits: merge.yml (eaa511d), the post-merge branch for the two new review kinds (1ead52f), the guide
+   copy (fd874d3), the merge actor reading the ruleset (71ea2a2), the re-pin (7244cf9). The push's own
+   gate run succeeded.
+
+6. The re-render (the 2026-09-19 lesson: a re-pin never re-renders), graph d2809a2, 07:5xZ:
+   $ PYTHONPATH=gate python -m opn_gate.cli products --graph <worktree at 7244cf9> --no-build --claims-url …
+   run from a checkout whose gate code is byte-identical to the pin (git diff bb667de -- gate/opn_gate
+   gate/lean gate/schemas: nothing). exit 0, no statement failed to elaborate, no image pulled: every
+   live statement's tags were cached. 86 files. What moved, measured against the committed products:
+     frontier.json      35 entries -> 35; claimable 34 -> 35; the one change: variant-2a7919a9 False -> True
+     targets/index.json targets-index/v6 -> v7; step9 {evidence 22, review 5} -> {evidence 22,
+                        calibration 3 (erdos-1050, erdos-402, erdos-69), review 2 (euclid-primes, whose
+                        root is proved, and tutorial, which D-27 exempts)}
+     info.json          protocol_version 3.19 -> 3.20; schema index gains attestation 5, targets-index 7
+
+7. The site, read after the post-merge dispatch deployed it (curl, 08:0xZ):
+     /problems/euclid-primes/  "Proved: the problem's own statement is closed. 1 statement proposed
+                               beneath it is open for work." and, of the root, "Nothing beneath it waits
+                               for anyone: a hole, a crux, a skeleton or a variant merges on the gate (v3.20)."
+     /nodes/euclid-primes/variant-2a7919a9/  no "Not claimable" block
+     /problems/erdos-69/       "Everything on this problem merges on the gate, its root included: it is a
+                               calibration target …"
+     /docs/                    carries "only of a proof that settles the target's root"
+   Screenshot: engineering/evidence/F04/task-22-euclid-primes.png. Seen on it and NOT fixed here: the
+   Statements line still says "the rest are pieces its proof needs", which is false of variants (agent
+   C's doc problem 5), and with 11 statements the graph's nodes are barely legible.

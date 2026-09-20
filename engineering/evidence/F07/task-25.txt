@@ -31,3 +31,15 @@ a second guard considered and measured, then dropped: mergeable_state as seen by
 what guards instead: required check names read from rules/branches/main on every run (no credential needed:
   strict = True, required = the gate job and the step 9 job, by exact name); the post-merge job's re-derivation (F03-Q7).
 the revised decision program, run read-only against the live graph: "merge actor: update #107". Tests: 17 passed.
+
+## 2026-09-20, live: the first merges no person pressed (graph, after the push at 07:49Z; secret set 07:15Z)
+07:49:42Z merge actor: update #107   -> "updated the branch of #107; the gate re-runs on it and wakes this workflow"
+07:52:38Z merge actor: merge  #108   -> "merged #108 at c6737e6"   (the oldest GREEN one while #107's gate was still running)
+          post-merge: "gate: #108 pass" (2257ef9)
+07:55:24Z, 07:58:00Z                 -> updated the branch of #107 twice more, as main moved under it (the re-render
+                                        push d2809a2, then #108's merge and bot commit)
+08:00:37Z merge actor: merge  #107   -> "merged #107 at 87fd37b"; gh: merged 2026-09-20T08:00:38Z; post-merge "gate: #107 pass" (c8e5ba6)
+Both were an outside contributor's gate-green pull requests (the erdos-69 tester), open since 2026-09-18.
+The merges are attributed to the token's owner (mergedBy thisisanameforsure), as C8 says they would be.
+Twelve merge runs in eleven minutes, all success; the no-op ones (woken by a gate run with nothing green)
+cost about ten seconds each.
