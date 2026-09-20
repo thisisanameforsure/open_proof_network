@@ -67,6 +67,19 @@ with its single home:
     It checks nothing out, runs no gate or contributor code and names no secret; a review on a pull
     request from a fork receives a read-only token by GitHub's rule, and there the reviewer re-runs
     the check by hand.</li>
+  <li><strong>Merge token</strong> (<code>OPN_GRAPH_MERGE_TOKEN</code>): a fine-grained token on
+  the graph repository alone, with contents and pull requests read and write and nothing else, an
+  Actions secret on the graph repo, read by the one acting step of <code>merge.yml</code>
+  (F07-T25, F07-Q33; added 2026-09-20). It presses the merge and update-branch buttons D-4 says no
+  person should have to press. It does <em>not</em> bypass the <code>main</code> ruleset, which
+  is the point of it: GitHub refuses any merge whose required checks (the sandbox gate, and step 9
+  where it is asked) are not green, so a defect in the workflow can merge late or not at all, never
+  something red. The workflow is woken by the gate's completion in the base repository's context,
+  checks nothing out and runs no gate or contributor code; the job's own token only reads. Without
+  the secret it is a dry run. Losing it costs merges that wait for a person again; leaking it lets
+  its holder push to a branch or merge a pull request the ruleset already allows, and nothing the
+  ruleset forbids. The job's own <code>GITHUB_TOKEN</code> cannot stand in, since what it merges
+  starts no workflow.</li>
   <li><strong>GitHub App private key and client secret</strong> (the App also serves as the OAuth
     app for GitHub-proof identities, F05) and the <strong>api token-signing secret</strong>: AWS
     Systems Manager Parameter Store (SecureString), read by the api function at startup.</li>
@@ -76,7 +89,7 @@ with its single home:
     founder's machine only — never in GitHub, never in any deployed environment.</li>
 </ol>
 Three doors, then: the local <code>.env</code>, Parameter Store, and Actions secrets for the two
-signing keys, the graph's deploy key and the site dispatch token, each read only by the job named
+signing keys, the graph's deploy key, the site dispatch token and the merge token, each read only by the job named
 above. Code reads every secret through the one config module named in conventions §1; no
 other module touches the environment. Secrets never appear in client bundles, logs, git history,
 generated site pages, or attestations. The authoritative gate's build step is secretless by

@@ -1,0 +1,16 @@
+F07-T25 — the merge actor (R9, R10, Q33, closing Q16; D-4)
+date: 2026-09-20
+
+## why: D-4 (since v3.11): 'the merge happens with no person pressing a button'. Nothing did. 2026-09-19 primes run: PR #110 gate-green and clean at 18:42Z, merged by hand at 19:14Z; agents A-D idle 21-35 min each behind a green proposal
+
+## the credential question (the owner asked whether an existing OPN_GRAPH_MERGE_TOKEN had been tried): none exists.
+gh secret list -R <graph>: OPN_GATE_SIGNING_KEY, OPN_GRAPH_DEPLOY_KEY, OPN_SITE_DEPLOY_TOKEN. .env key names: AWS_*, MY_USERNAME, MY_TOKEN, OPN_API_*. The name was this plan's own invention.
+ruleset 22508489: required checks 'gate (steps 1, 2 and 4-8 in the sandbox)' and 'step 9 (a non-author approving review)', strict up-to-date; allow_auto_merge=false; merge queues are not offered to a personal account
+
+## the shipped decision program, extracted from the YAML and run read-only against the live graph:
+merge actor: update #107   (number=107 sha=597de448... action=update; #107 and #108 are the erdos-69 tester's open service PRs, both green and behind)
+
+## tests (against graph branch f07-t25-merge-actor until it is on origin/main):
+16 passed in 0.17s
+
+## not yet evidenced: a real merge by the actor. It needs the owner's token; until then every run is a dry run by construction.
