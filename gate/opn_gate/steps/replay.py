@@ -24,7 +24,7 @@ import subprocess
 from collections.abc import Mapping
 from pathlib import Path
 
-from opn_gate import cache, defs, layout
+from opn_gate import cache, defs, layout, sandbox
 from opn_gate.steps import artifact
 from opn_gate.steps import stage as staging
 from opn_gate.steps.artifact import ALTERNATE_KEY, PARTIAL_KEY
@@ -120,6 +120,14 @@ class KernelReplayStep:
             ctx.data[REPLAY_MODE_KEY] = mode
             result = ctx.toolchain.kernel_replay(
                 tc, modules, [staged.build], fresh=mode == MODE_FRESH, timeout_s=ctx.wallclock_s
+            )
+        except sandbox.MemoryExceeded as exc:
+            return StepResult.failed(
+                "memory-exceeded",
+                f"step 4 was killed at the {exc.memory_mib} MiB memory cap, not by the clock",
+                cmd=str(exc.cmd),
+                replay_mode=ctx.data.get(REPLAY_MODE_KEY),
+                memory_mib=exc.memory_mib,
             )
         except subprocess.TimeoutExpired as exc:
             return StepResult.failed(

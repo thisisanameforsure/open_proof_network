@@ -33,6 +33,21 @@ CONTAINER_MATHLIB_HOME = Path("/opt/opn/mathlib")
 CONTAINER_UID = 1000
 GRACE_S = 30.0  # host-side slack beyond the in-container `timeout`
 _KILLED_BY_TIMEOUT = (124, 137)
+_SIGKILL = 137  # `timeout -s KILL`, and equally the kernel's OOM killer at ``--memory``
+
+
+class MemoryExceeded(subprocess.TimeoutExpired):
+    """The container was killed at its memory cap, not by the clock (F02-T6). Exit 137 is any
+    SIGKILL, so docker's own ``State.OOMKilled`` is what tells the two apart. A subclass of
+    ``TimeoutExpired`` on purpose: every step already fails a killed run safely through that
+    ``except``, and a step that names the cause catches this first."""
+
+    def __init__(self, cmd: list[str], timeout: float, memory_mib: int) -> None:
+        super().__init__(cmd, timeout)
+        self.memory_mib = memory_mib
+
+    def __str__(self) -> str:
+        return f"Command '{self.cmd}' was killed at the {self.memory_mib} MiB memory cap"
 
 
 class SandboxError(RuntimeError):
@@ -283,6 +298,8 @@ class SandboxToolchain(LocalToolchain):
                 subprocess.run([self.docker, "kill", name], capture_output=True, check=False)
                 raise
             code = self._exit_code(name)
+            if code == _SIGKILL and self._oom_killed(name):
+                raise MemoryExceeded(list(cmd), wall, self.caps.memory_mib)
             if code in _KILLED_BY_TIMEOUT:
                 raise subprocess.TimeoutExpired(list(cmd), wall, run.stdout, run.stderr)
             self._copy_out(name)
@@ -293,6 +310,10 @@ class SandboxToolchain(LocalToolchain):
     def _exit_code(self, name: str) -> int:
         proc = self._docker("inspect", "-f", "{{.State.ExitCode}}", name)
         return int(proc.stdout.decode().strip() or "1")
+
+    def _oom_killed(self, name: str) -> bool:
+        proc = self._docker("inspect", "-f", "{{.State.OOMKilled}}", name)
+        return proc.stdout.decode().strip().lower() == "true"
 
     def resolve(
         self, toolchain: str, *, install: bool = False, mathlib_sha: str | None = None

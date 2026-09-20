@@ -16,7 +16,7 @@ from harness import (
     proof_only_changes,
 )
 
-from opn_gate import attestation, pipeline, schemas
+from opn_gate import attestation, pipeline, sandbox, schemas
 from opn_gate.paths import Change
 from opn_gate.steps import default_steps
 from opn_gate.steps.base import RunContext, Step, StepResult
@@ -332,6 +332,43 @@ class TimingOutToolchain(FakeToolchain):
         if name == self.timeout_in:
             raise subprocess.TimeoutExpired([name], 300.0)
         super()._maybe_raise(name)
+
+
+@dataclass
+class MemoryKilledToolchain(FakeToolchain):
+    """The fake seam with one call the sandbox killed at the memory cap (F02-T6)."""
+
+    killed_in: str = ""
+
+    def _maybe_raise(self, name: str) -> None:
+        if name == self.killed_in:
+            raise sandbox.MemoryExceeded([name], 300.0, 4096)
+        super()._maybe_raise(name)
+
+
+@pytest.mark.parametrize("call", ["elaborate", "kernel_replay"])
+def test_a_run_killed_for_memory_at_step_4_says_so(tmp_path: Path, call: str) -> None:
+    """F02-T6: graph PR #123 reported "step 4 exceeded the 600s wall-clock cap" 28 seconds into
+    step 4. The diagnostic names the memory cap, so a contributor shrinks the proof's footprint
+    instead of its running time."""
+    ctx = make_context(tmp_path, toolchain=MemoryKilledToolchain(killed_in=call))
+    verdict = pipeline.run_steps(ctx)
+    assert verdict.first_failing_step == 4, verdict
+    d = verdict.diagnostic
+    assert d is not None and d.code == "memory-exceeded"
+    assert "4096 MiB" in d.message and "wall-clock" not in d.message
+
+
+@pytest.mark.parametrize("call", ["axioms", "hazards", "witness_type", "used_constants"])
+def test_a_step_that_has_not_learned_the_difference_still_fails_safe(
+    tmp_path: Path, call: str
+) -> None:
+    """C7: ``MemoryExceeded`` is a ``TimeoutExpired``, so steps 5 to 8 go on failing a killed
+    run as their own failure rather than letting it escape."""
+    fake = MemoryKilledToolchain(killed_in=call)
+    ctx = make_context(tmp_path, toolchain=fake, spec_overrides={"hazard_checkers": ["nat-sub"]})
+    verdict = pipeline.run_steps(ctx)
+    assert verdict.verdict == "fail" and verdict.diagnostic is not None
 
 
 @pytest.mark.parametrize(

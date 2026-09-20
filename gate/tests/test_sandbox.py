@@ -21,8 +21,11 @@ from opn_gate.toolchain import ToolchainMissingError
 CAPS = Caps(cpu=1.5, memory_mib=1024, wallclock_s=30)
 
 
-def fake_docker(tmp_path: Path, *, inspect_exit: int = 0, fail_on: str = "") -> Path:
-    """A `docker` that logs every invocation and answers `inspect` with a chosen exit code."""
+def fake_docker(
+    tmp_path: Path, *, inspect_exit: int = 0, fail_on: str = "", oom_killed: bool = False
+) -> Path:
+    """A `docker` that logs every invocation and answers `inspect` with a chosen exit code, and
+    the ``OOMKilled`` question with ``oom_killed``."""
     script = tmp_path / "docker"
     log = tmp_path / "docker.log"
     script.write_text(
@@ -32,7 +35,8 @@ def fake_docker(tmp_path: Path, *, inspect_exit: int = 0, fail_on: str = "") -> 
         '  echo "simulated failure" >&2; exit 1\n'
         "fi\n"
         'case "$1" in\n'
-        f"  inspect) echo {inspect_exit} ;;\n"
+        f'  inspect) case "$*" in *OOMKilled*) echo {str(oom_killed).lower()} ;; '
+        f"*) echo {inspect_exit} ;; esac ;;\n"
         '  cp) [ "$2" = "-" ] && cat > /dev/null ;;\n'
         "esac\n"
         "exit 0\n"
@@ -118,6 +122,28 @@ def test_exec_runs_in_a_fresh_container_and_removes_it(tmp_path: Path) -> None:
     assert log[0].endswith(f"timeout -s KILL {CAPS.wallclock_s} lean --version")
     assert [line.split()[0] for line in log] == ["create", "cp", "start", "inspect", "rm"]
     assert log[-1].startswith("rm -f opn-gate-")
+
+
+def test_killed_at_the_memory_cap_is_not_a_timeout(tmp_path: Path) -> None:
+    """F02-T6 (graph PR #123, 2026-09-20): exit 137 is any SIGKILL. The kernel's OOM killer at
+    ``--memory`` sends one too, and the run that found this reported "step 4 exceeded the 600s
+    wall-clock cap" 28 seconds into step 4. Docker records which it was; a run killed for memory
+    raises ``MemoryExceeded`` naming the cap. It is still a ``TimeoutExpired``, so every step
+    that has not learned the difference goes on failing safe (C7)."""
+    docker = fake_docker(tmp_path, inspect_exit=137, oom_killed=True)
+    tc = SandboxToolchain("opn-gate:test", CAPS, docker=str(docker))
+    with pytest.raises(sandbox.MemoryExceeded) as info:
+        tc._exec(["lean", "Big.lean"], timeout_s=7)
+    assert info.value.memory_mib == CAPS.memory_mib
+    assert isinstance(info.value, subprocess.TimeoutExpired)
+    assert log_of(tmp_path)[-1].startswith("rm -f")
+    # exit 124 is `timeout`'s own code: the clock, whatever the flag says
+    (tmp_path / "docker.log").unlink()
+    docker = fake_docker(tmp_path, inspect_exit=124, oom_killed=True)
+    tc = SandboxToolchain("opn-gate:test", CAPS, docker=str(docker))
+    with pytest.raises(subprocess.TimeoutExpired) as clock:
+        tc._exec(["lean", "Loop.lean"], timeout_s=7)
+    assert not isinstance(clock.value, sandbox.MemoryExceeded)
 
 
 def test_killed_by_the_cap_is_a_timeout(tmp_path: Path) -> None:

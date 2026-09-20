@@ -1,0 +1,14 @@
+F02-T6 — a run killed for memory is not a timeout (R12, Q6)
+date: 2026-09-20
+
+## found live: graph PR #123 (proof: variant-2a7919a9), gate run 35491033780
+05:13:13.310Z INFO opn_gate.cache: olean cache hit: 8c31571316de
+05:13:41.983Z INFO opn_gate.pipeline: step 4 (kernel-replay) failed: timeout
+  "code": "timeout", "message": "step 4 exceeded the 600s wall-clock cap"   <- 28 s into step 4
+the same bundle's precheck 01M2YH24T0YFYNVFTW4C4T201Q passed at 04:29Z, before the node's two holes were proved
+agent D's re-precheck 01M2YM4K6GT37DX5HJC8Y76QZW: the same diagnostic, on leanchecker Nodes Defs, replay_mode prefix
+INFERENCE, not observation: a kill 28 s into a 600 s cap is not the clock; exit 137 is also the OOM killer's. The run kept nothing that says which.
+
+## red first: 1 failed (test_killed_at_the_memory_cap_is_not_a_timeout)
+## green:
+73 passed, 1 deselected in 12.72s
