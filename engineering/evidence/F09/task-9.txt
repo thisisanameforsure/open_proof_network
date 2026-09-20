@@ -1,0 +1,10 @@
+F09-T9 evidence, 2026-09-20: list_routes and get_hosted_checkers (F09-Q11, D-28 notation rows)
+
+$ uv run --frozen pytest api/tests/test_finding_mcp_plain_reads.py api/tests/test_mcp_surface.py -q
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+9 passed, 2 warnings in 11.13s
+
+Live, after api-deploy of network ba3ff63 (tools/call over POST https://api.openproofnetwork.org/mcp, no bearer):
+list_routes: isError False; keys service, authoritative_for, guide, mcp, routes (the same document GET / serves)
+get_hosted_checkers: isError False; schema hosted-checkers/v1, service axle, pins 0df444a3 -> lean-4.33.1 exact (the same document GET /hosted-checkers.json serves)

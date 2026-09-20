@@ -1053,3 +1053,14 @@ The law of the project:
   are the same job. Work through them in priority order; stop only for what is his: a protocol
   surface (a D-35 route, a D-28 tool), an act on the mathematical record, a credential, or a fork
   whose options trade off differently.
+- 2026-09-20 — My own direct push to the graph raced a post-merge job and the graph lost a
+  merge's products: #130's job had rendered and was about to push when a guide copy landed on
+  `main`, the push was refused as a non-fast-forward, and nothing retried (re-rendered by hand,
+  graph b4828f78; the push step now rebases and retries, and refuses if the record moved,
+  F07-T29). Before any direct graph push, `gh run list -R <graph>` and wait for a gate run in
+  flight; the merge actor made such runs frequent and unannounced. Same evening: a change I had
+  written red-first (abandoned variants leave the frontier) failed on an older test whose
+  docstring named F03-Q12, and Q12 reserved exactly that change to the owner. The owner had asked
+  for a label, not a frontier rule, and the label alone already gave `claimable: false`. When a
+  test that blocks you cites a Q entry, read the entry before touching the test: it may be
+  telling you the change is not yours to make (F03-Q16).
