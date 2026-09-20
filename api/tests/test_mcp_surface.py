@@ -33,6 +33,10 @@ READS = {
     "get_schema",
     "get_precheck",
     "get_dco",  # D-28's notation note of 2026-09-16: the bootstrap's one HTTP-only value
+    # D-28's notation note of 2026-09-20 (agent C, the primes run): the two plain reads that had
+    # no tool, so "no MCP-only capability" was true and its converse was not.
+    "list_routes",
+    "get_hosted_checkers",
 }
 WRITES = {
     "claim_node",

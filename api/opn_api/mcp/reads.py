@@ -437,6 +437,19 @@ async def get_dco(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     return service_answer(await call.endpoint("GET", "/dco.json"), "/dco.json")
 
 
+async def list_routes(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """``GET /``: the service's own route index (F05-T12), so an MCP-only agent can see the plain
+    path behind each tool (D-28 notation note 2026-09-20)."""
+    return service_answer(await call.endpoint("GET", "/"), "/")
+
+
+async def get_hosted_checkers(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """``GET /hosted-checkers.json``: which targets ``check_lean`` can serve, and how exactly
+    (F13-R11; D-28 notation note 2026-09-20)."""
+    path = "/hosted-checkers.json"
+    return service_answer(await call.endpoint("GET", path), path)
+
+
 TOOLS: tuple[Tool, ...] = (
     Tool(
         "server_info",
@@ -525,5 +538,21 @@ TOOLS: tuple[Tool, ...] = (
         "GET /dco.json.",
         params({}),
         get_dco,
+    ),
+    Tool(
+        "list_routes",
+        "The service's own index: every plain HTTP route with its method, whether it needs a "
+        "bearer and what it is for, beside the guide's and this adapter's addresses. Every tool "
+        "here has a plain path in it. Plain path: GET /.",
+        params({}),
+        list_routes,
+    ),
+    Tool(
+        "get_hosted_checkers",
+        "Which targets check_lean can serve: each pinned Mathlib commit mapped to the hosted "
+        "checker's environment, whether that match is exact, and the environment for a "
+        "Mathlib-free target. Plain path: GET /hosted-checkers.json.",
+        params({}),
+        get_hosted_checkers,
     ),
 )

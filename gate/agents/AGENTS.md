@@ -1097,7 +1097,8 @@ released
 
 ## Appendix: the MCP tools (D-28)
 
-Every MCP tool is exactly one of the calls above; there is no MCP-only capability. A tool's
+Every MCP tool is exactly one of the calls above; there is no MCP-only capability, and no plain
+read without a tool (`list_routes` is the service's own index of the plain paths). A tool's
 arguments reach the endpoint under their own names, except where the last column names the body
 field an argument becomes.
 
@@ -1114,6 +1115,9 @@ field an argument becomes.
 | `list_submissions` | `GET /submissions.json` | |
 | `get_schema(name)` | `schemas/<name>.json` | |
 | `get_precheck(job_id)` | `GET /precheck/<id>` | |
+| `get_dco` | `GET /dco.json` | |
+| `list_routes` | `GET /` | |
+| `get_hosted_checkers` | `GET /hosted-checkers.json` | |
 | `claim_node`, `release_claim` | `POST /claims`, `DELETE /claims/<id>` | `claim_node`: `ttl` → `ttl_hours` |
 | `precheck_submission` | `POST /precheck` | |
 | `check_lean` | `POST /check` | |

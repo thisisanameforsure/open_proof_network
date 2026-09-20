@@ -1,0 +1,15 @@
+F07-T29 — the post-merge products commit survives main moving under it (Q37)
+date: 2026-09-20
+
+## found live: graph PR #130 merged 17:29Z; owner push 3a0b604f (a guide copy) 17:31Z; post-merge run 35526030986: failure at 'Commit the attestation and the products', push rejected; no 'gate: #130' commit on main
+
+## the loop, taken out of gate.yml and run against a local bare repository:
+--- unrelated
+postmerge: main moved (attempt 1) without touching the products' inputs; rebasing
+remote main: gate: #130 pass|owner push touching AGENTS.md|merge|
+--- target-moved
+::error::PR #130: main moved under the post-merge job and touched what its products derive from (targets/t/node); re-render by hand
+remote main: owner push touching targets/t/node|merge|
+
+## static tests:
+3 passed in 0.09s

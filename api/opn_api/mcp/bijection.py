@@ -78,6 +78,15 @@ TABLE: tuple[Row, ...] = (
     # F09: D-28's read table, notation note of 2026-09-16 — an existing route (F05), and the one
     # value get_token demands that no other read published, so the bootstrap was HTTP-only.
     Row("get_dco", "read", ("GET /dco.json",), "GET /dco.json"),
+    # F09-T9: D-28's read table, notation note of 2026-09-20 — two existing routes (F05-T12, F13)
+    # that had no tool: "no MCP-only capability" held and its converse did not (agent C).
+    Row("list_routes", "read", ("GET /",), "GET /"),
+    Row(
+        "get_hosted_checkers",
+        "read",
+        ("GET /hosted-checkers.json",),
+        "GET /hosted-checkers.json",
+    ),
     # --- writes (D-35's plain-path table) -----------------------------------------------------
     Row("claim_node", "write", ("POST /claims",), "POST /claims"),
     Row("release_claim", "write", ("DELETE /claims/{claim_id}",), "DELETE /claims/<id>"),
