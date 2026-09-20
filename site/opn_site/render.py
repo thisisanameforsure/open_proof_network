@@ -1063,6 +1063,15 @@ class Renderer:
 
     def target_claimable(self, tv: TargetView) -> str:
         """F14-R10: the target page says in words whether it can be claimed, and if not, why."""
+        if self.is_tutorial(tv):
+            # F04-T23: it read "proved" and "open for work" at once. Both are true of the
+            # tutorial and mean something else there, so the page says what it is for.
+            guide = f'<a href="{GUIDE_HREF}">Start here →</a>'
+            return (
+                '<p class="claimable">The tutorial. Its statement reads proved and may be proved '
+                "again by anyone: that is how you check your setup and, with no account, earn a "
+                f"write token (D-19, D-27). {guide}</p>"
+            )
         if tv.index_entry.get("claimable"):
             guide = f'<a href="{GUIDE_HREF}">How to contribute →</a>'
             if self.open_count(tv):
@@ -1191,10 +1200,25 @@ class Renderer:
             script=MATH_SCRIPTS + '<script src="/problem.js"></script>',
         )
 
+    @staticmethod
+    def is_tutorial(tv: TargetView) -> bool:
+        """The graph's tutorial target (D-27): its root is the tutorial statement."""
+        root = tv.nodes.get(str(tv.index_entry.get("root") or ""))
+        return bool(root is not None and root.tutorial)
+
     def steward_card(self, tv: TargetView) -> str:
         """The problem page's steward card: the names, or why there is none and how to be it."""
         stewards = tv.stewards
-        if stewards:
+        if self.is_tutorial(tv):
+            # F04-T23: the tutorial read "proved but not explained … Become its steward" (agent
+            # A, 2026-09-19). It is off the ledger and nobody writes it up (D-27).
+            names, words, button = (
+                "None needed",
+                "The tutorial: a statement kept for checking a setup end to end and for earning "
+                "a write token. It is off the ledger and has no steward (D-27).",
+                "",
+            )
+        elif stewards:
             names = ", ".join(self.steward_link(s) for s in stewards)
             since = ", ".join(
                 f"{esc(str(s['login']))} since {esc(str(s['since']))}" for s in stewards

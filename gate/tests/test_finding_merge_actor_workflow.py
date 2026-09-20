@@ -212,3 +212,15 @@ def test_it_takes_the_oldest_green_one_and_updates_before_it_merges(pick: dict[s
     assert decide(pulls, RULES, checks.__getitem__, lambda _sha: 0) == (6, f"{6:040d}", "merge")
     assert decide(pulls, RULES, lambda _sha: red, lambda _sha: 0) == ("", "", "")
     assert decide([], RULES, checks.__getitem__, lambda _sha: 0) == ("", "", "")
+
+
+def test_a_green_pull_request_that_conflicts_with_main_is_passed_over(pick: dict[str, Any]) -> None:
+    """Without this the oldest green pull request with a conflict fails the acting step on every
+    run and holds everything behind it; the next one is taken and the conflicted one waits for a
+    person, which it needed anyway."""
+    pulls = [pull(5, "propose/x"), pull(6, "append/x")]
+    decide = pick["decide"]
+    took = decide(pulls, RULES, lambda _s: GREEN, lambda _s: 0, lambda number: number == 5)
+    assert took == (6, f"{6:040d}", "merge")
+    none = decide(pulls, RULES, lambda _s: GREEN, lambda _s: 0, lambda _number: True)
+    assert none == ("", "", "")
