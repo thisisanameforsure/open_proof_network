@@ -427,11 +427,16 @@ def workable(status: str, node: NodeFacts, status_of: Callable[[str], str]) -> b
     return status == "blocked" and graphmod.awaiting_witness(node, status_of)
 
 
+#: D-14: the curator's status for a dead branch; on the graph with its cause, off the frontier.
+ABANDONED = "abandoned"
+
+
 def in_frontier(status: str, node: NodeFacts, status_of: Callable[[str], str]) -> bool:
     """R5: ready or speculative, every variant whose question is still open, and every hole
     waiting only for its witness.
 
-    A refuted or defective variant is as settled as a proved one (D-12), so it leaves the
+    A refuted or defective variant is as settled as a proved one (D-12), and one the curator
+    has abandoned is closed by that record (Q16), so each leaves the
     frontier too — the frontier is what is still worth attacking, not what still lacks a proof.
 
     A hole is ``blocked`` from the moment the post-merge job creates it, because its witness slot
@@ -446,7 +451,8 @@ def in_frontier(status: str, node: NodeFacts, status_of: Callable[[str], str]) -
         return False  # R13: its successor carries the question, variant or not
     if workable(status, node, status_of):
         return True
-    return node.origin == "variant" and status not in graphmod.RESOLVED_STATUSES
+    # F03-T13: a curator's ``abandoned`` closes a variant as it closes any node (AC4, Q16).
+    return node.origin == "variant" and status not in (*graphmod.RESOLVED_STATUSES, ABANDONED)
 
 
 #: D-33 v3.20: the one reason that closes a target's *root* and nothing beneath it.

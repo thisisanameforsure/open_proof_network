@@ -122,12 +122,18 @@ def test_a_curator_record_takes_a_hole_off_the_frontier(tmp_path: Path, status: 
     assert products.in_frontier("speculative", hole_of(tg), status_of(tg))
 
 
-def test_the_variant_rule_is_untouched(tmp_path: Path) -> None:
-    """AC14 as written: an unresolved variant is listed even when abandoned (Q12 owns any change
-    to that); a superseded variant is not, because its successor carries the question."""
+def test_an_abandoned_variant_is_off_the_frontier_and_the_other_records_are_untouched(
+    tmp_path: Path,
+) -> None:
+    """F03-T13 (Q16, the owner's word 2026-09-20): a variant the curator has marked abandoned
+    leaves the frontier as an abandoned ordinary node does (AC4); Q12's clause that kept it
+    listed gave way. A stale or disputed variant is still listed, as AC14 says, and a superseded
+    variant is not, because its successor carries the question."""
     tg = graph.load_target(copy_graph(tmp_path), TARGET)
     variant = replace(tg.nodes[ROOT_NODE], origin="variant")
-    assert products.in_frontier("abandoned", variant, status_of(tg))
+    assert not products.in_frontier("abandoned", variant, status_of(tg))
+    for kept in ("stale", "disputed", "blocked"):
+        assert products.in_frontier(kept, variant, status_of(tg))
     gone = replace(variant, override=superseded_by(ROOT_NODE + "-v2"))
     assert not products.in_frontier("superseded", gone, status_of(tg))
 

@@ -1,0 +1,13 @@
+F03-T13 evidence, 2026-09-20: an abandoned variant is off the frontier (R5, AC14, AC17, Q16)
+
+Red first (test restated, rule unchanged): 1 failed, 8 passed
+  FAILED gate/tests/test_finding_frontier_superseded_defective.py::test_an_abandoned_variant_is_off_the_frontier_and_the_other_records_are_untouched
+
+$ uv run --frozen pytest gate/tests/test_finding_frontier_superseded_defective.py gate/tests/test_products.py -q
+58 passed in 15.68s
+
+Gate fast tier after the change: 1495 passed, 78 deselected (no golden moved)
+
+In process against the live graph (worktree at origin/main e854bb23, copy rendered with this tree's gate,
+opn_gate.cli products --no-build --claims-url https://api.openproofnetwork.org/claims.json):
+  frontier entries 35 -> 34; left: {'variant-6e71b160'}; joined: set()

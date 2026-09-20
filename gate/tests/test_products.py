@@ -677,7 +677,8 @@ def test_a_blocked_variant_is_listed_but_not_claimable(tmp_path: Path) -> None:
         "an open variant stays listed"
     )
     assert entry("blocked")["claimable"] is False
-    assert entry("abandoned")["claimable"] is False
+    # F03-T13 (Q16): an abandoned variant is not an entry at all, so there is nothing to claim.
+    assert not products.in_frontier("abandoned", variant, lambda n: tg.statuses.get(n, "ready"))
     assert entry("ready")["claimable"] is True
     assert entry("speculative")["claimable"] is True
     assert entry("ready", target_claimable=False)["claimable"] is False
