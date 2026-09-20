@@ -488,9 +488,11 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "get_submission",
-        "A submission by its ULID or pull-request number (padded or not): the record, the pull "
-        "request's live state (checks, reviews, mergeability) and, once merged, the attestation "
-        "it earned or why there is none.",
+        "A submission or proposal by its ULID, or by pull-request number (padded or not): the "
+        "record, the pull request's live state and, once merged, the attestation it earned or "
+        "why there is none. `pull_request.waiting_on` names the one thing it waits for (gate, "
+        "step9-review, branch-update, merge, products, or gate-failed), and when that is "
+        "gate-failed, `gate_verdict` carries the gate's own diagnostic: why it was refused.",
         params({"submission_id": {"type": "string"}}, ("submission_id",)),
         get_submission,
     ),

@@ -264,8 +264,11 @@ TOOLS: tuple[Tool, ...] = (
         "a node_id, its comparison against the node's statement, plus warnings wherever the gate "
         "would refuse what the checker accepted. The body's `okay` is true, false, or null when "
         "the checker gave no verdict (then `user_error` says why, e.g. the node's statement did "
-        "not compile); `result` is the checker's body verbatim. Never authoritative: a precheck "
-        "is the verdict. "
+        "not compile); `result` is the checker's body verbatim. The target's Defs modules and, "
+        "with a node_id, the node's own Context (its dependencies' and holes' theorems) are "
+        "inlined for you (`inlined_defs`); without a node_id you can check a statement that is "
+        "not a node yet. A proof that uses a dependency is checked with mode check, not verify. "
+        "Never authoritative: a precheck is the verdict. "
         "No token needed; a token raises the limit. Every call is logged without its text; "
         "GET /hosted-checkers.json says which targets have a checker.",
         params(
