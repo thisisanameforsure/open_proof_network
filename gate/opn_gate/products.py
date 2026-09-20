@@ -449,6 +449,20 @@ def in_frontier(status: str, node: NodeFacts, status_of: Callable[[str], str]) -
     return node.origin == "variant" and status not in graphmod.RESOLVED_STATUSES
 
 
+#: D-33 v3.20: the one reason that closes a target's *root* and nothing beneath it.
+ROOT_SETTLED_REASON = "status-resolved"
+
+
+def open_beneath(reasons: tuple[str, ...]) -> bool:
+    """F03-T12 (D-33 v3.20): whether the nodes beneath a target's root take claims, given why the
+    target itself does not. ``resolved`` is a fact about the root: a variant or a crux proposed
+    beneath a settled root is open work, and the root itself is off the frontier anyway. Every
+    other reason (a frozen upstream, no steward, a listing not yet activated, a known result) is
+    about the whole target and still closes every node of it. No reasons at all says nothing: a
+    target that predates F11 publishes none, and its own flag decides."""
+    return bool(reasons) and all(reason == ROOT_SETTLED_REASON for reason in reasons)
+
+
 def frontier_entry(
     tg: TargetGraph,
     node: NodeFacts,
@@ -722,7 +736,7 @@ def generate(
                 frontier_entry(
                     tg,
                     node,
-                    claimable=facts.claimable,
+                    claimable=facts.claimable or open_beneath(facts.reasons),
                     dormant=facts.dormant,
                     ready_since=ready_since[node_id],
                     tags=tags,

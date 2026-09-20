@@ -1344,3 +1344,63 @@ def test_digestion_state(tmp_path: Path) -> None:
         "proved": 2,
         "proved_explained": 2,
     }
+
+
+# --- F03-T12 (decisions v3.20, D-33): resolved is a fact about the root --------------------------
+
+
+def test_a_variant_beneath_a_resolved_root_is_open_work(tmp_path: Path) -> None:
+    """The 2026-09-19 primes run: four variants proposed beneath the proved infinitude of primes
+    were listed ``claimable: false``, claims on them were refused ``status-resolved``, the problem
+    page said "no longer accepts work", and the service accepted their proofs all the same. The
+    owner's ruling: a variant under a resolved target is open work, per node. The target's own row
+    does not move: its root is closed, and that is what ``resolved`` says."""
+    from opn_gate import scaffold  # noqa: PLC0415
+
+    curated = "euclid-primes"
+    root = copy_graph(tmp_path, publish=True)
+    harness.take_in(root, curated)  # the live shape: target.yaml, fidelity, a declared root
+    nodes = root / "targets" / curated / "nodes"
+    statement = (nodes / "and-reassoc" / "Statement.lean").read_bytes()
+    doc = samples.attestation(
+        node_id="and-reassoc",
+        statement_hash=schemas.content_hash(statement),
+        merge_commit=MERGE,
+        graph_commit="1" * 40,
+        runner="hosted",
+    )
+    (root / "attestations").mkdir(exist_ok=True)
+    (root / "attestations" / "000009.json").write_bytes(schemas.canonical_json(doc))
+    scaffold.write(
+        nodes,
+        scaffold.Proposal(
+            node_id="variant-related",
+            target_id=curated,
+            statement="theorem OpnProp.related_one : ∀ p : Prop, p → p := by\n  sorry\n",
+            witness="theorem witness : True := trivial\n",
+            author="proposer",
+            origin="variant",
+            relation="related",
+            date="2026-09-12T00:00:00Z",
+        ),
+    )
+    prod = generate(root)
+    (row,) = [r for r in loads(prod, "targets/index.json")["targets"] if r["target_id"] == curated]
+    assert row["status"] == "resolved" and row["claimable"] is False
+    assert row["not_claimable"] == ["status-resolved"]
+    entries = loads(prod, "frontier.json")["entries"]
+    (entry,) = [e for e in entries if e["node_id"] == "variant-related"]
+    assert entry["claimable"] is True
+
+
+def test_any_other_reason_still_closes_every_node_beneath_the_target(tmp_path: Path) -> None:
+    """Only the root's being settled is set aside. A frozen upstream, a missing steward or a
+    closed listing is a fact about the whole target, and dormancy is the curator's word on it."""
+    assert products.open_beneath(("status-resolved",)) is True
+    assert products.open_beneath(()) is False  # a legacy target lists none: its flag decides
+    for reasons in (
+        ("status-resolved", "upstream-drift"),
+        ("no-steward",),
+        ("status-known-result",),
+    ):
+        assert products.open_beneath(reasons) is False, reasons

@@ -1,0 +1,9 @@
+F03-T12 — a node beneath a resolved root is claimable (R5, Q15; decisions v3.20)
+date: 2026-09-20
+
+## the live state (graph origin/main, 2026-09-19/20): targets/index.json euclid-primes claimable=false, not_claimable=[status-resolved]; frontier.json variant-2a7919a9, -4cb87a03, -dea95969, -f15ce396 all claimable=false; agent C: claim_node variant-4cb87a03 -> 409 node-not-claimable, 'the target's D-33 status is resolved'; precheck and submit_proof on the same node accepted
+
+## red first: 2 failed (the entry claimable=false; open_beneath absent)
+## a first cut read 'no reasons' as open and moved three goldens (a legacy target that is not claimable lists none); tightened, no golden moves
+## green:
+49 passed in 4.81s

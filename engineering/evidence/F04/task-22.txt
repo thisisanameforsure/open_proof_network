@@ -1,0 +1,8 @@
+F04-T22 — a proved problem names the open statements beneath it (R10, Q24; decisions v3.20)
+date: 2026-09-20
+
+## live, 2026-09-19 (agents A, B, C): /problems/euclid-primes/ 'Proved: its statement no longer accepts work' above three open variants; /nodes/euclid-primes/variant-f15ce396/ 'Not claimable, because: the target's D-33 status is resolved'
+## tests written with the change, not before it
+## green:
+280 passed in 14.58s
+## visual evidence: the sentence only appears once the graph's products carry claimable variants, i.e. after the re-pin; a screenshot of the live page belongs to that step

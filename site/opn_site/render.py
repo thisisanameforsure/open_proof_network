@@ -16,7 +16,7 @@ from pathlib import Path
 from string import Template
 from typing import Any
 
-from opn_gate import hosted, intake, steward
+from opn_gate import hosted, intake, products, steward
 from opn_gate import ledger as ledgermod
 from opn_site import dag, links, prose
 from opn_site.model import LeanFile, NodeView, Prose, Site, SiteError, TargetView
@@ -1072,8 +1072,26 @@ class Renderer:
                 f"workable right now: each one waits on another. {guide}</p>"
             )
         if str(tv.index_entry["status"]) == "resolved":
+            # D-33 v3.20 (F04-T22): resolved is a fact about the root. What was proposed beneath
+            # it is open work, and the page says how much rather than closing the door on it.
+            beneath = self.open_count(tv) if self.open_beneath(tv) else 0
+            if beneath:
+                guide = f'<a href="{GUIDE_HREF}">How to contribute →</a>'
+                noun = "statement" if beneath == 1 else "statements"
+                return (
+                    '<p class="claimable">Proved: the problem\'s own statement is closed. '
+                    f"{beneath} {noun} proposed beneath it {'is' if beneath == 1 else 'are'} "
+                    f"open for work. {guide}</p>"
+                )
             return '<p class="claimable">Proved: its statement no longer accepts work.</p>'
         return self.why_not_claimable(tv)
+
+    @staticmethod
+    def open_beneath(tv: TargetView) -> bool:
+        """The gate's own rule (``products.open_beneath``), so the page and the frontier cannot
+        disagree about whether the statements under a settled root take work."""
+        reasons = tuple(str(r) for r in tv.index_entry.get("not_claimable") or [])
+        return products.open_beneath(reasons)
 
     def sources_block(self, tv: TargetView) -> str:
         """R10: where the statement came from, its attribution, and its licence."""
@@ -1763,6 +1781,8 @@ class Renderer:
         tv = self.site.targets.get(nv.target_id)
         if tv is None or nv.status not in CLAIMABLE_STATUSES:
             return ""
+        if self.open_beneath(tv):
+            return ""  # D-33 v3.20: the root's being settled closes nothing beneath it
         block = self.why_not_claimable(tv, detail=False)
         return f"{block}\n" if block else ""
 
