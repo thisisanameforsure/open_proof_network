@@ -1,0 +1,18 @@
+Re-pin to network 2c3030a — 2026-09-20/21, the fourth of the run, carrying F03-T13 (an abandoned variant is
+off the frontier; the owner's word, F03-Q16). Recipe: engineering/evidence/F07/repin-bb667de.txt.
+Gate code changed since 8122a5e in one file: gate/opn_gate/products.py (one tuple in in_frontier).
+
+1. Tag gate-2c3030a; image-publish success. Digests by tag from the registry, without a pull:
+     gate-2c3030a                        ghcr.io/thisisanameforsure/opn-gate@sha256:9e0bb6675edcf6f5f9f68283fb208de8a83f74e562287c495003a291da0fd259
+     gate-2c3030a-mathlib-0df444a360ea   ghcr.io/thisisanameforsure/opn-gate@sha256:5f3caa8d74873da1987cce87d5cd88262ead045e580f51c326a708755f6de16b
+   (the resolver was first checked against gate-8122a5e's two recorded digests and reproduced both)
+2. schemas.unpublished(<worktree>) == []. 27 of 27 gate-spec.json name 2c3030a; the devcontainer diff is the
+   image line only. Committed as graph 040f0558 BEFORE the pregate (gate code byte-identical to the pin, whole
+   output kept in a file): verdict pass, steps 1, 2, 4, 5, 6, 7, 8 all pass.
+3. CI on 2c3030a (run 35535648380): fast tier success, Lean tier success. No gate run in flight and no open
+   pull request on the graph; push by fast-forward e854bb23 -> 040f0558.
+4. Re-render (--no-build, no image pulled, no warning): graph cb197ad9; rendered_from 040f0558;
+   frontier 35 -> 34 entries, 34 claimable; variant-6e71b160 absent from frontier.json and still on
+   targets/euclid-primes/graph.json as abandoned, with its cause.
+5. Live, GET https://api.openproofnetwork.org/frontier.json: 34 entries, rendered_from 040f0558,
+   variant-6e71b160 not among them. site-deploy dispatched by hand (a direct push starts none).
