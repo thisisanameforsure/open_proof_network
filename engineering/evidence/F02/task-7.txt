@@ -1,0 +1,20 @@
+F02-T7 — step 4 replays one module per process (R12, Q7; D-4 v3.16 unchanged)
+date: 2026-09-20
+
+## the live evidence (F02-T6's diagnostic, hours after it shipped): agent E, node variant-aceabdc4, deps [infinitude-of-primes]
+precheck 01M2YZCSJ8G8N731Q77F8R0HQP, 01M2YZMHKRA4NYMKVF1RVPJ9X3, 01M2YZVF9GAFBYKV14DY0ACWV5 (tactic, tactic, term mode):
+  verdict fail, first_failing_step 4, {"code":"memory-exceeded","details":{"cmd":"[… leanchecker, Nodes, Defs]","memory_mib":4096,"replay_mode":"prefix"}}
+graph PR #123 (variant-2a7919a9, deps its two proved holes): the same kill twice, labelled 'timeout' 28 s into step 4 by the old gate
+
+## the record: every passing attestation on a Mathlib target, with its node's dep count and the gate that checked it
+deps>0 and PASS: #19, #38 (euclid root, gates dc25d2b and f3abee2, both before v3.16's replay); #71, #77, #78, #79, #100, #115 (all PARTIALS: their deps are unproved holes, never staged)
+deps=0 and PASS: #34-37, #84, #99, #116, #117, #118, #121, #122
+=> since v3.16, proofs with a PROVED dependency that passed step 4 on a Mathlib target: 0. Attempts: 5. Killed: 5.
+
+## the owner's choice (2026-09-20): replay one module per process, over raising the cap
+
+## tests: four that pinned the single process restated (two in test_replay_mode.py, two in test_qa.py)
+113 passed, 1 deselected in 13.13s
+lean tier, real toolchain: gate/tests/test_replay_mode.py -m lean: 1 passed in 64.44s (leanchecker takes an exact module name without --fresh; the plan passes run a process each; a name with no olean is refused)
+
+## NOT yet shown: the memory. It needs the Mathlib image under the 4 GiB cap, which this laptop cannot hold. To be shown live by re-running agent E's precheck after the re-pin.

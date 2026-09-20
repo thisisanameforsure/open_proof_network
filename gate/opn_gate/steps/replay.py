@@ -7,13 +7,16 @@ the target's ``gate-spec.json``:
 
 * **No Mathlib pinned** (``mathlib_sha`` null): ``leanchecker --fresh Nodes.«id».Proof``, which
   re-checks every imported declaration, Lean core's included.
-* **Mathlib pinned**: ``leanchecker Nodes [Defs]`` without ``--fresh``. Every module under the
-  graph's own prefixes — the node, every dependency (including one taken from the olean cache,
-  F10-R7) and every compiled ``Defs.*`` module — has its own declarations replayed through the
-  kernel against its imports. Fresh-replaying all of Mathlib exceeds the wall-clock cap, so
-  Lean core's and the pinned image's Mathlib oleans are trusted as built, not re-checked.
-  ``Defs`` is passed only when the build holds a ``Defs`` olean (leanchecker refuses a prefix
-  with none).
+* **Mathlib pinned**: ``leanchecker <module>`` without ``--fresh``, once for every module under
+  the graph's own prefixes — the node, every dependency (including one taken from the olean
+  cache, F10-R7) and every compiled ``Defs.*`` module — each having its own declarations
+  replayed through the kernel against its imports. Fresh-replaying all of Mathlib exceeds the
+  wall-clock cap, so Lean core's and the pinned image's Mathlib oleans are trusted as built, not
+  re-checked. **One process per module, in sequence** (F02-T7): a single ``leanchecker Nodes
+  Defs`` holds every module's Mathlib-sized environment at once, and every proof with a proved
+  dependency was killed at the 4 GiB memory cap (5 of 5 on the live graph; nothing with a proved
+  dependency had passed step 4 since v3.16). What is replayed is unchanged; the modules share the
+  step's one wall-clock budget.
 
 The mode that ran is recorded in ``ctx.data["replay_mode"]`` and on a failure's details.
 """
@@ -21,6 +24,7 @@ The mode that ran is recorded in ``ctx.data["replay_mode"]`` and on a failure's 
 from __future__ import annotations
 
 import subprocess
+import time
 from collections.abc import Mapping
 from pathlib import Path
 
@@ -49,16 +53,34 @@ def graph_prefixes(build: Path) -> list[str]:
     ]
 
 
+def built_modules(build: Path) -> list[str]:
+    """Every module under the graph's own prefixes that has an olean in ``build``, by name:
+    ``Defs.*`` first, then ``Nodes.«id».*``, each sorted. A node id is always quoted, as
+    ``layout.node_module`` writes it."""
+    names: list[str] = []
+    for prefix in (layout.DEFS_PREFIX, layout.NODES_PREFIX):
+        base = build / prefix
+        if not base.is_dir():
+            continue
+        for olean in sorted(base.rglob("*.olean")):
+            parts = olean.relative_to(base).with_suffix("").parts
+            if prefix == layout.NODES_PREFIX and len(parts) >= 2:
+                names.append(layout.node_module(parts[0], ".".join(parts[1:])))
+            else:
+                names.append(".".join((prefix, *parts)))
+    return names
+
+
 def replay_plan(spec: Mapping[str, object], module: str, build: Path) -> tuple[str, list[str]]:
     """The replay for ``module`` under ``spec``: ``(mode, modules)``. A Mathlib-free spec replays
-    ``module`` fresh; a Mathlib-pinned one replays ``module``'s own prefix-set — the graph's
-    prefixes present in ``build``, plus ``module`` itself when it lies outside them."""
+    ``module`` fresh; a Mathlib-pinned one replays every module the graph built (``built_modules``)
+    plus ``module`` itself when it is not among them, each in a process of its own."""
     if spec.get("mathlib_sha") is None:
         return MODE_FRESH, [module]
-    prefixes = graph_prefixes(build)
-    if not any(module == p or module.startswith(p + ".") for p in prefixes):
-        prefixes.append(module)
-    return MODE_PREFIX, prefixes
+    modules = built_modules(build)
+    if module not in modules:
+        modules.append(module)
+    return MODE_PREFIX, modules
 
 
 def replay(  # noqa: PLR0913 — the seam's inputs
@@ -70,12 +92,24 @@ def replay(  # noqa: PLR0913 — the seam's inputs
     *,
     timeout_s: float | None,
 ) -> tuple[str, list[str], ReplayResult]:
-    """Run :func:`replay_plan`'s replay through the seam."""
+    """Run :func:`replay_plan`'s replay through the seam: one call for a fresh replay, one call
+    per module otherwise (F02-T7), stopping at the first that fails. The calls share
+    ``timeout_s``: each is given what is left of it, and running out is the step's timeout."""
     mode, modules = replay_plan(spec, module, build)
-    result = toolchain.kernel_replay(
-        tc, modules, [build], fresh=mode == MODE_FRESH, timeout_s=timeout_s
-    )
-    return mode, modules, result
+    if mode == MODE_FRESH:
+        result = toolchain.kernel_replay(tc, modules, [build], fresh=True, timeout_s=timeout_s)
+        return mode, modules, result
+    started = time.monotonic()
+    output: list[str] = []
+    for name in modules:
+        left = None if timeout_s is None else timeout_s - (time.monotonic() - started)
+        if left is not None and left <= 0:
+            raise subprocess.TimeoutExpired(["leanchecker", name], float(timeout_s or 0))
+        result = toolchain.kernel_replay(tc, [name], [build], fresh=False, timeout_s=left)
+        output.append(result.output)
+        if not result.ok:
+            return mode, modules, ReplayResult(ok=False, output="".join(output))
+    return mode, modules, ReplayResult(ok=True, output="".join(output))
 
 
 class KernelReplayStep:
@@ -114,12 +148,10 @@ class KernelReplayStep:
                     failure = self._compile(ctx, tc, staged, node_id, stem)
                     if failure is not None:
                         return failure
-            mode, modules = replay_plan(
-                ctx.spec, layout.node_module(node.node_id, PROOF_MODULE), staged.build
-            )
-            ctx.data[REPLAY_MODE_KEY] = mode
-            result = ctx.toolchain.kernel_replay(
-                tc, modules, [staged.build], fresh=mode == MODE_FRESH, timeout_s=ctx.wallclock_s
+            proof_module = layout.node_module(node.node_id, PROOF_MODULE)
+            ctx.data[REPLAY_MODE_KEY] = replay_plan(ctx.spec, proof_module, staged.build)[0]
+            mode, modules, result = replay(
+                ctx.toolchain, tc, ctx.spec, proof_module, staged.build, timeout_s=ctx.wallclock_s
             )
         except sandbox.MemoryExceeded as exc:
             return StepResult.failed(

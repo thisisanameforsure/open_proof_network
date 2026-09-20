@@ -8,10 +8,12 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from fakes import FAKE_RESOLVED as TC
 from fakes import FakeToolchain
 from harness import TUTORIAL, make_context
 
 from opn_gate import pipeline
+from opn_gate.steps import replay as replaymod
 from opn_gate.steps.replay import (
     MODE_FRESH,
     MODE_PREFIX,
@@ -68,13 +70,26 @@ def test_plan_without_mathlib_is_fresh(tmp_path: Path) -> None:
     assert replay_plan({"mathlib_sha": None}, PROOF, tmp_path) == (MODE_FRESH, [PROOF])
 
 
-def test_plan_with_mathlib_names_defs_only_when_built(tmp_path: Path) -> None:
+def test_plan_with_mathlib_names_every_built_module(tmp_path: Path) -> None:
+    """F02-T7: the plan names the modules the graph built, not their prefixes, so each can be
+    replayed in a process of its own. Defs first, then the nodes, each sorted; a node id is
+    quoted as ``layout.node_module`` writes it."""
     _olean(tmp_path, f"Nodes/{TUTORIAL}/Proof.olean")
-    assert replay_plan(MATHLIB, PROOF, tmp_path) == (MODE_PREFIX, ["Nodes"])
+    assert replay_plan(MATHLIB, PROOF, tmp_path) == (MODE_PREFIX, [PROOF])
     (tmp_path / "Defs").mkdir()  # a Defs directory with no olean does not count
     assert graph_prefixes(tmp_path) == ["Nodes"]
     _olean(tmp_path, "Defs/IsPrime.olean")
-    assert replay_plan(MATHLIB, PROOF, tmp_path) == (MODE_PREFIX, ["Nodes", "Defs"])
+    _olean(tmp_path, f"Nodes/{TUTORIAL}/Context.olean")
+    _olean(tmp_path, "Nodes/a-dep/Proof.olean")
+    assert replay_plan(MATHLIB, PROOF, tmp_path) == (
+        MODE_PREFIX,
+        [
+            "Defs.IsPrime",
+            "Nodes.«a-dep».Proof",
+            f"Nodes.«{TUTORIAL}».Context",
+            PROOF,
+        ],
+    )
 
 
 def test_plan_with_mathlib_adds_a_module_outside_the_prefixes(tmp_path: Path) -> None:
@@ -82,7 +97,7 @@ def test_plan_with_mathlib_adds_a_module_outside_the_prefixes(tmp_path: Path) ->
     _olean(tmp_path, "Defs/IsPrime.olean")
     assert replay_plan(MATHLIB, "OpnQa.Replay0", tmp_path) == (
         MODE_PREFIX,
-        ["Defs", "OpnQa.Replay0"],
+        ["Defs.IsPrime", "OpnQa.Replay0"],
     )
 
 
@@ -99,11 +114,19 @@ def test_mathlib_free_spec_replays_the_proof_fresh(tmp_path: Path) -> None:
     assert ctx.data[REPLAY_MODE_KEY] == MODE_FRESH
 
 
-def test_mathlib_spec_replays_the_graph_prefixes(tmp_path: Path) -> None:
+def test_mathlib_spec_replays_each_built_module_in_a_process_of_its_own(tmp_path: Path) -> None:
+    """F02-T7: one ``leanchecker`` per module. A single process over ``Nodes Defs`` held every
+    module's Mathlib-sized environment at once and was killed at the 4 GiB cap for every proof
+    with a proved dependency (5 of 5 on the live graph, PRs #123 and agent E's prechecks)."""
     fake = FakeToolchain()
     ctx = make_context(tmp_path, toolchain=fake, spec_overrides=MATHLIB)
-    pipeline.run_steps(ctx)
-    assert fake.replays == [(("Nodes",), False)]  # the propositional fixture has no defs/
+    verdict = pipeline.run_steps(ctx)
+    assert verdict.ok, verdict.as_dict()
+    assert fake.replays, "nothing was replayed"
+    assert all(len(modules) == 1 and not fresh for modules, fresh in fake.replays)
+    replayed = [modules[0] for modules, _ in fake.replays]
+    assert PROOF in replayed and replayed == sorted(set(replayed), key=replayed.index)
+    assert all(name.startswith("Nodes.") for name in replayed)  # the fixture has no defs/
     assert ctx.data[REPLAY_MODE_KEY] == MODE_PREFIX
 
 
@@ -114,7 +137,60 @@ def test_mathlib_spec_with_defs_replays_defs_too(tmp_path: Path) -> None:
     defs.mkdir(exist_ok=True)  # the fixture keeps an empty defs/ (a .gitkeep)
     (defs / "Fact.lean").write_text("def Opn.fact : Nat → Nat\n  | _ => 1\n", encoding="utf-8")
     pipeline.run_steps(ctx)
-    assert fake.replays == [(("Nodes", "Defs"), False)]
+    replayed = [modules[0] for modules, _ in fake.replays]
+    assert replayed[0] == "Defs.Fact" and PROOF in replayed
+
+
+class Recording(FakeToolchain):
+    """Records each call's budget, spends ``cost`` seconds of a fake clock, fails on ``bad``."""
+
+    def __init__(self, clock: list[float], cost: float, bad: str = "") -> None:
+        super().__init__()
+        self.clock, self.cost, self.bad = clock, cost, bad
+        self.budgets: list[tuple[str, float | None]] = []
+
+    def kernel_replay(self, tc, modules, search_path, *, fresh, timeout_s=None):  # type: ignore[no-untyped-def]
+        self.budgets.append((modules[0], timeout_s))
+        self.clock[0] += self.cost
+        return ReplayResult(ok=modules[0] != self.bad, output=f"[{modules[0]}]")
+
+
+def _three(build: Path) -> None:
+    for rel in ("Defs/Fact.olean", "Nodes/a-dep/Proof.olean", f"Nodes/{TUTORIAL}/Proof.olean"):
+        _olean(build, rel)
+
+
+def test_the_modules_share_one_wallclock_budget(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    clock = [1000.0]
+    monkeypatch.setattr("opn_gate.steps.replay.time.monotonic", lambda: clock[0])
+    _three(tmp_path)
+    fake = Recording(clock, cost=100.0)
+    mode, modules, result = replaymod.replay(fake, TC, MATHLIB, PROOF, tmp_path, timeout_s=600)
+    assert result.ok and mode == MODE_PREFIX and len(modules) == 3
+    assert [b for _, b in fake.budgets] == [600.0, 500.0, 400.0]
+    assert result.output == "".join(f"[{m}]" for m in modules)
+
+
+def test_running_out_of_the_budget_is_the_steps_timeout(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    clock = [0.0]
+    monkeypatch.setattr("opn_gate.steps.replay.time.monotonic", lambda: clock[0])
+    _three(tmp_path)
+    fake = Recording(clock, cost=350.0)
+    with pytest.raises(subprocess.TimeoutExpired):
+        replaymod.replay(fake, TC, MATHLIB, PROOF, tmp_path, timeout_s=600)
+    assert len(fake.budgets) == 2  # the third is never started
+
+
+def test_the_first_module_that_fails_ends_the_replay(tmp_path: Path) -> None:
+    _three(tmp_path)
+    fake = Recording([0.0], cost=0.0, bad="Nodes.«a-dep».Proof")
+    _, _, result = replaymod.replay(fake, TC, MATHLIB, PROOF, tmp_path, timeout_s=600)
+    assert not result.ok and "[Nodes.«a-dep».Proof]" in result.output
+    assert [m for m, _ in fake.budgets] == ["Defs.Fact", "Nodes.«a-dep».Proof"]
 
 
 @pytest.mark.parametrize(("overrides", "mode"), [({}, MODE_FRESH), (MATHLIB, MODE_PREFIX)])
@@ -174,9 +250,17 @@ def test_prefix_replay_runs_on_the_real_toolchain(
     elab = real.elaborate(tc, proof, PROOF, build, root=src, timeout_s=120)
     assert elab.ok, elab
     mode, modules = replay_plan(MATHLIB, PROOF, build)
-    assert (mode, modules) == (MODE_PREFIX, ["Nodes", "Defs"])
-    result = real.kernel_replay(tc, modules, [build], fresh=False, timeout_s=300)
+    assert (mode, modules) == (MODE_PREFIX, ["Defs.Fact", PROOF])
+    # F02-T7: leanchecker takes an exact module name as it takes a prefix, so each module can be
+    # replayed in a process of its own; the whole plan, run that way, passes.
+    for name in modules:
+        one = real.kernel_replay(tc, [name], [build], fresh=False, timeout_s=300)
+        assert one.ok, (name, one.output)
+    _, _, result = replaymod.replay(real, tc, MATHLIB, PROOF, build, timeout_s=300)
     assert result.ok, result.output
+    # ...and a name with no olean behind it is refused, as a prefix with none is.
+    missing = real.kernel_replay(tc, ["Nodes.«no-such-node».Proof"], [build], fresh=False)
+    assert not missing.ok
 
     fresh = real.kernel_replay(tc, [PROOF], [build], fresh=True, timeout_s=300)
     assert fresh.ok, fresh.output

@@ -511,7 +511,9 @@ def test_false_screen_files_unrouted_claim(target: Path) -> None:
     graph_root = target.parents[1]
     assert (graph_root / exhibit).is_file()
     # A Mathlib-pinned target: the finding is replayed over the graph's prefixes plus itself.
-    assert f"kernel_replay-prefix:Nodes,Defs,{SCREEN_MODULES['screen-false']}" in proves_false.calls
+    # F02-T7: one leanchecker per module, the scratch exhibit replayed by its own name.
+    assert f"kernel_replay-prefix:{SCREEN_MODULES['screen-false']}" in proves_false.calls
+    assert "kernel_replay-prefix:Defs.Primes" in proves_false.calls
     assert f"axioms:{SCREEN_MODULES['screen-false']}:OpnQa.screen_false" in proves_false.calls
 
     claim_path = graph_root / run.claims[0]
@@ -1207,7 +1209,9 @@ def test_the_gate_replays_every_exhibit_before_it_counts(target: Path) -> None:
     assert [r.check for r in state.exhibits] == ["equivalence"]
     assert "axioms:OpnQa.Replay0:OpnQa.equiv_forward" in good.calls
     assert "axioms:OpnQa.Replay0:OpnQa.equiv_backward" in good.calls
-    assert "kernel_replay-prefix:Nodes,Defs,OpnQa.Replay0" in good.calls  # Mathlib-pinned
+    # Mathlib-pinned: every graph-built module and the exhibit, a process each (F02-T7)
+    assert "kernel_replay-prefix:OpnQa.Replay0" in good.calls
+    assert "kernel_replay-prefix:Defs.Primes" in good.calls
 
     native = FakeToolchain(
         axiom_result=AxiomResult(ok=True, axioms=frozenset({"Lean.ofReduceBool"}))
