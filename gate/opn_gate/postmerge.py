@@ -592,7 +592,9 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
             target_id=nodes_dir.parent.name,
             statement=statement,
             witness=witness_slot(getattr(hole, "expected_witness", None)),
-            author=author or pseudonym,
+            # F07-T28: who decomposed the node, not who opened the pull request. The caller's
+            # pseudonym is already the block's, or the login when there is no block.
+            author=pseudonym or author or "",
             origin=origin,  # type: ignore[arg-type]
             date=stamp_to_date(stamp),
             model=model,

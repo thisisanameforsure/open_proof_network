@@ -1,0 +1,8 @@
+F08-T16 — a repeated theorem name is refused at POST (Q28)
+date: 2026-09-20
+
+## live: graph PR #126 re-gated 13:32Z -> gate_verdict declaration-clash, node variant-aceabdc4 already declares Opn.infinitude_of_primes_at_least_hundred; agent E had renamed a theorem to avoid the same refusal earlier
+## red first: 1 failed, 2 passed
+## green:
+10 passed, 2 warnings in 0.45s
+api suite: 705 passed

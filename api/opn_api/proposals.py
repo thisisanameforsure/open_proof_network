@@ -189,6 +189,37 @@ def acknowledged_hazards(fields: dict[str, Any]) -> list[dict[str, Any]] | None:
     return raw or None
 
 
+def check_declaration_free(ctx: Context, target_id: str, statement: str) -> None:
+    """F08-T16: refuse a theorem name a node of the target already declares, here rather than
+    three minutes and one unwithdrawable pull request later at the gate (``declaration-clash``,
+    F08-Q18). A courtesy ahead of the gate, which still decides: a sibling whose statement cannot
+    be read or parsed is skipped, never a reason to refuse (C7). A proposal never supersedes, so
+    D-8's exception for a revision does not arise on this route."""
+    parsed = layout.parse_statement(statement)
+    if not isinstance(parsed, layout.Statement):
+        return  # the scaffold refuses a statement that does not parse, in its own words
+    try:
+        nodes = precheck.graph_doc(ctx).get(target_id, [])
+    except ApiError:
+        return
+    for node in nodes:
+        node_id = str(node.get("node_id"))
+        try:
+            raw = frontier.committed(ctx, f"targets/{target_id}/nodes/{node_id}/Statement.lean")
+        except ApiError:
+            continue
+        other = layout.parse_statement(raw.decode("utf-8", errors="replace"))
+        if isinstance(other, layout.Statement) and other.decl_name == parsed.decl_name:
+            raise ApiError(
+                409,
+                "declaration-clash",
+                f"node {node_id!r} already declares {parsed.decl_name}; give your theorem a name "
+                "of its own (a node may restate a declaration only by superseding the node that "
+                "holds it, D-8)",
+                details={"declaration": parsed.decl_name, "node": node_id},
+            )
+
+
 def with_own_context(text: str, node_id: str) -> str:
     """``text`` importing the node's own ``Context``, after its last import line or leading the
     file when it has none (Lean takes imports first). F08-T12: a node reaches its dependencies
@@ -216,6 +247,7 @@ def node_files(
     witness = lean_text(fields, "witness")
     assert statement is not None and witness is not None
     deps, statements = dep_statements(ctx, target_id, fields.get("deps"))
+    check_declaration_free(ctx, target_id, statement)
     node_id = scaffold.speculative_id(statement, kwargs.pop("prefix"))
     # F08-T13: the statement always — a node gains dependencies later, when a skeleton merges
     # and its holes are written into Context.lean, and a proof may not add an import.

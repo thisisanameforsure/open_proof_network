@@ -315,8 +315,22 @@ def test_hole_children_carry_the_declared_model(
             }
         )
     )
+    # F07-T28: with the login the workflow always passes. The service opens every pull request
+    # as the App, so that login is the bot's, and ``author or pseudonym`` let it win: every live
+    # hole credited ``open-proof-network[bot]`` while carrying the contributor's model (agent D,
+    # variant-2a7919a9--h1). The block's pseudonym names who decomposed the node, as it names the
+    # attestation's submitter (R13).
     code, out, err = run(
-        capsys, *argv(root, tmp_path / "o", "--apply-partial", "--pr-body-file", str(body))
+        capsys,
+        *argv(
+            root,
+            tmp_path / "o",
+            "--apply-partial",
+            "--pr-body-file",
+            str(body),
+            "--author",
+            "open-proof-network[bot]",
+        ),
     )
     assert code == cli.EXIT_PASS, err
     assert out["partial"]["children"] == [f"{ROOT}--h1", f"{ROOT}--h2"]

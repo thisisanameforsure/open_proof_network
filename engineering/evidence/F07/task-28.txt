@@ -1,0 +1,7 @@
+F07-T28 — a hole credits whoever decomposed the node (Q36)
+date: 2026-09-20
+
+## live: origin/main targets/euclid-primes/nodes/variant-2a7919a9--h1/META.yaml -> provenance.author open-proof-network[bot], model claude (agent D's declared model)
+## red: test_hole_children_carry_the_declared_model given --author open-proof-network[bot], as the workflow passes it: author was the bot
+## green:
+59 passed in 10.74s
