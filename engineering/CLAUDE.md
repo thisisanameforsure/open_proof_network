@@ -948,3 +948,61 @@ The law of the project:
   not change (an attestation without an artifact keeps the label; a curator's `abandoned` still
   outranks a proof). When a derivation has one branch for "record", ask which records are verdicts
   and which are labels before adding a status to the enum.
+- 2026-09-19 — A re-pin can never re-render the products, and nothing goes red to say so. The
+  post-merge job renders them only for a merged pull request touching exactly one target; a
+  27-target re-pin is refused by that same one-target rule (`exit 1`) and a direct push leaves
+  `run=false`, so the gate changes go live while the site keeps publishing the *old* gate's
+  statuses. Found while carrying F07-T21, F03-T11 and F08-T10 to the record: the re-render is a
+  second, deliberate curator commit (network 84bec41 → graph `a35f747` pins, `b976b66` products),
+  and it is what actually revived the five frozen parents (`stale`→`ready`) and took the frontier
+  29 → 34. Ask, at every re-pin, which consumer re-derives and which merely re-reads. A
+  scanner-free render is byte-safe (every live node's `statement_hash` is already cached bar the
+  superseded holes), so it needs no Mathlib image — worth knowing on a laptop at 12 GiB free.
+- 2026-09-19 — Before waiting on a run, ask whether that commit is already green under another
+  event. I watched a `push`-triggered lean tier for 49 minutes while the `pull_request` run on the
+  *identical* sha had already passed both tiers; the duplicate was never a gate on anything. One
+  `gh run list --commit` would have said so at minute zero. Recent lean tiers run 46–60 min, so
+  "it's taking a while" is not evidence of a hang — read the step timings, not the elapsed clock.
+- 2026-09-19 — My own pipe destroyed the evidence I then went to read: `pregate.sh … | tail -30`
+  kept steps 6, 7 and 8 and discarded the `"verdict"` line, and "exit 0 with three passing steps"
+  is not a pass. When the output *is* the evidence, redirect the whole of it to a file and grep
+  that; never let a convenience filter stand between a verdict and its record.
+- 2026-09-19 — Five measurement errors in one sitting, all one shape: a guessed accessor, then a
+  number reported as if it meant something. `nodes[].id` for `node_id`; `derive_statuses(tg)` when
+  it takes the nodes mapping (27 swallowed errors printed as "0 status changes"); a `rendered_from`
+  confound making 79 of 80 product files look changed when 14 had moved; and a set keyed on an
+  attribute the element does not carry, collapsing 34 workable rows to "1". The cure each time was
+  the same and cheap — read the schema in `gate/schemas/<name>/vN.json` or the function's own
+  signature first — and the tell is that a *count* or an *empty set* is never a measurement until
+  the key is proved present. Prefer a literal count over a set whenever the key might be absent.
+- 2026-09-20 — Four agents given one URL each proposed and proved a version of the infinitude of
+  primes on the resolved `euclid-primes` (graph PRs #110–#123): three proved, the fourth with both
+  holes proved and its parent still open. Between half and 70% of every session was a wait for a
+  person: nothing merges a green proposal, and until it merges every call on the node answered
+  `404 node-unknown`, the words a typo gets. Three of four independently found verify mode dead
+  on any target with `defs/` (the definitions reached the proof and never the formal statement),
+  and all four read a red step 9 as a failed proof. Mike's rulings, which lead the next sitting:
+  step 9 is for a proof that settles the *root* and nothing else; calibration targets are exempt
+  as the tutorial is; a variant under a resolved root is open work per node; build the merge
+  actor (F07-Q16). Plan: `~/.claude/plans/i-want-you-to-eventual-marshmallow.md`.
+- 2026-09-20 — Ask when a node *gains* a thing, not whether it has it at birth. F08-T12 wrote the
+  own-Context import only into proposals that declared deps and kept the rest byte for byte; twenty
+  minutes later the live record showed a node whose two holes were proved and whose closing proof
+  could not name them, because holes arrive in `Context.lean` after a skeleton merges and a proof
+  may not add an import. Every statement the network writes now imports its own Context (F08-T13,
+  F07-T23), and nodes already merged without the line close only by a direct proof or a D-8
+  revision. Three times that morning an existing test had pinned the defect being fixed; restate
+  such a test to the rule it was really about rather than deleting it.
+- 2026-09-20 — Price the option you recommend before the owner picks it. "Score the solved rows"
+  was offered as the way to rate the three calibration targets and could not deliver: on the
+  scorer's honest reasons they reach 3, 3 and 1 against a threshold of 5, because the points that
+  carry an open problem (Bloom, Epoch, a failed Nexus attempt) are facts about open problems. The
+  arithmetic took one read of `score_row` and would have been cheaper before the question than
+  after it. Inventing a weight to cross the line was the alternative, and is how a rating stops
+  meaning anything.
+- 2026-09-20 — Exit 137 is not a timeout; it is a SIGKILL, and the OOM killer sends one too. PR #123
+  said "exceeded the 600s wall-clock cap" 28 seconds into step 4 (F02-T6). That it was a memory
+  kill is an inference, written down as one: the fix is that the next run says which. Two smaller
+  ones: a bare `pytest gate/tests` runs the lean and docker tiers, so use the Makefile's marker
+  expression; and zsh reads `$n:t` as a path modifier (`pr/$n:targets/...` became
+  `pr/110argets/...`), so brace every variable that is followed by a colon.
