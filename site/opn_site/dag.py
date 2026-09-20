@@ -1,4 +1,5 @@
-"""The target DAG as inline SVG (F04-R6; Q3): longest-path layering, deps below, root on top.
+"""The target DAG as inline SVG (F04-R6; Q3): longest-path layering, deps below. The root is on
+top only while nothing depends on it; a variant that uses the root is drawn above it (F04-T24).
 
 Layer 0 holds the nodes with no deps; a node sits one layer above its highest dep. Within a
 layer nodes are ordered lexically. No crossing minimisation (Q3). Every node is a ``<g>`` with
@@ -20,6 +21,12 @@ PAD = 16
 #: and room for the selection halo — so every id short enough to keep is shown whole.
 CHAR_W = 7.8
 PILL_PAD = 46
+#: F04-T24: the widest a row of pills may be. The stylesheet scales a drawing down to its column
+#: (about 740px on the problem page), so a wider row shrinks every label with it; a layer that
+#: would be wider is wrapped onto more rows instead, at full size.
+MAX_ROW_W = 720
+#: The gap between the wrapped rows of one layer: closer than two layers, which an edge crosses.
+WRAP_GAP_Y = 14
 
 
 def node_width(node_id: str) -> int:
@@ -56,29 +63,50 @@ def layers(nodes: list[dict[str, Any]]) -> dict[str, int]:
     return memo
 
 
+def wrap(ids: list[str]) -> list[list[str]]:
+    """One layer's nodes, in order, split into rows no wider than ``MAX_ROW_W`` (F04-T24). A
+    single pill wider than that still gets a row of its own."""
+    rows: list[list[str]] = [[]]
+    used = 0
+    for node_id in ids:
+        w = node_width(node_id)
+        extra = w if not rows[-1] else GAP_X + w
+        if rows[-1] and used + extra > MAX_ROW_W:
+            rows.append([])
+            used, extra = 0, w
+        rows[-1].append(node_id)
+        used += extra
+    return rows
+
+
+def row_width(ids: list[str]) -> int:
+    return sum(node_width(n) for n in ids) + max(len(ids) - 1, 0) * GAP_X
+
+
 def place(nodes: list[dict[str, Any]]) -> tuple[list[Placed], int, int]:
-    """Coordinates for every node and the drawing's width and height."""
+    """Coordinates for every node and the drawing's width and height. Layers stack bottom-up,
+    the topmost first; a layer too wide for one row is wrapped (``wrap``), its rows kept close
+    together so they still read as one layer."""
     by_layer: dict[int, list[str]] = {}
     status = {str(n["node_id"]): str(n["status"]) for n in nodes}
     for node_id, layer in layers(nodes).items():
         by_layer.setdefault(layer, []).append(node_id)
-    top = max(by_layer) if by_layer else 0
-    for ids in by_layer.values():
-        ids.sort()
-    row_widths = {
-        layer: sum(node_width(n) for n in ids) + (len(ids) - 1) * GAP_X
-        for layer, ids in by_layer.items()
-    }
-    width = PAD * 2 + max(row_widths.values(), default=0)
-    height = PAD * 2 + (top + 1) * NODE_H + top * GAP_Y
+    rows_of = {layer: wrap(sorted(ids)) for layer, ids in by_layer.items()}
+    width = PAD * 2 + max((row_width(r) for rows in rows_of.values() for r in rows), default=0)
     placed: list[Placed] = []
-    for layer, ids in sorted(by_layer.items()):
-        x = (width - row_widths[layer]) // 2
-        y = PAD + (top - layer) * (NODE_H + GAP_Y)
-        for node_id in ids:
-            w = node_width(node_id)
-            placed.append(Placed(node_id, status[node_id], layer, x, y, w))
-            x += w + GAP_X
+    y = PAD
+    for layer in sorted(rows_of, reverse=True):  # the top layer first
+        for index, ids in enumerate(rows_of[layer]):
+            if index:
+                y += NODE_H + WRAP_GAP_Y
+            x = (width - row_width(ids)) // 2
+            for node_id in ids:
+                w = node_width(node_id)
+                placed.append(Placed(node_id, status[node_id], layer, x, y, w))
+                x += w + GAP_X
+        y += NODE_H + GAP_Y
+    height = (y - GAP_Y + PAD) if rows_of else PAD * 2 + NODE_H
+    placed.sort(key=lambda p: (p.layer, p.y, p.x))
     return placed, width, height
 
 

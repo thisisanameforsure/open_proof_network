@@ -133,3 +133,47 @@ def test_short_label_keeps_a_fitting_id_whole_and_every_long_one_at_the_limit() 
     assert len(label) == dag.LABEL_MAX
     assert label.endswith("t" * dag.LABEL_TAIL) and label.startswith("h" * (dag.LABEL_MAX - 9))
     assert "…" in label
+
+
+# --- F04-T24: a wide layer wraps -----------------------------------------------------------------
+
+
+def _wide() -> list[dict[str, object]]:
+    """The live euclid-primes shape (2026-09-20): a root over nine statements in one layer."""
+    leaves = [f"variant-{i:08x}" for i in range(9)]
+    nodes: list[dict[str, object]] = [
+        {"node_id": n, "deps": [], "status": "proved"} for n in leaves
+    ]
+    nodes.append({"node_id": "root", "deps": leaves[:4], "status": "proved"})
+    return nodes
+
+
+def test_a_wide_layer_wraps_instead_of_shrinking_the_drawing() -> None:
+    """The stylesheet scales a drawing down to its column, so nine pills in one row were drawn
+    at a few pixels high: unreadable labels in a mostly empty box (seen on the live page). A
+    layer wider than ``MAX_ROW_W`` is laid out on as many rows as it needs, at full size."""
+    placed, width, height = dag.place(_wide())
+    assert width <= dag.MAX_ROW_W + 2 * dag.PAD
+    rows = {p.y for p in placed if p.layer == 0}
+    assert len(rows) > 1, "the wide layer stayed on one row"
+    assert all(p.x >= 0 and p.x + p.w <= width and p.y + dag.NODE_H <= height for p in placed)
+    # no two pills overlap
+    for a in placed:
+        for b in placed:
+            if a is not b and a.y == b.y:
+                assert a.x + a.w <= b.x or b.x + b.w <= a.x, (a, b)
+    # the root is still above everything it depends on
+    root = next(p for p in placed if p.node_id == "root")
+    assert all(root.y < p.y for p in placed if p.layer == 0)
+
+
+def test_a_graph_that_fits_is_laid_out_exactly_as_before() -> None:
+    nodes = [
+        {"node_id": "a", "deps": [], "status": "proved"},
+        {"node_id": "b", "deps": [], "status": "ready"},
+        {"node_id": "r", "deps": ["a", "b"], "status": "ready"},
+    ]
+    placed, width, height = dag.place(nodes)
+    assert {p.y for p in placed if p.layer == 0} == {dag.PAD + dag.NODE_H + dag.GAP_Y}
+    assert height == dag.PAD * 2 + 2 * dag.NODE_H + dag.GAP_Y
+    assert width == dag.PAD * 2 + dag.node_width("a") + dag.GAP_X + dag.node_width("b")
