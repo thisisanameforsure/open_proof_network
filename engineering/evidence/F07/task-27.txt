@@ -1,0 +1,9 @@
+F07-T27 — a cited annex is checked before the merge (R6, Q35)
+date: 2026-09-20
+
+## found by agent D (bug 8, the primes run), unverified until 2026-09-20: partial precheck 01M2XGJQ3032NP4AWC2D23BJYG PASS and graph PR #115's sandbox gate PASS while the annex it cited (953980ae…) existed only in unmerged PR #114
+grep check_annex_citation gate/opn_gate: one caller, postmerge.apply_partial (after the merge)
+
+## red first: 3 failed
+## green:
+108 passed in 10.92s

@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from opn_gate import layout, paths
+from opn_gate.diagnostic import Diagnostic
 from opn_gate.steps import artifact
 from opn_gate.steps.artifact import ALTERNATE_KEY, PARTIAL_KEY
 from opn_gate.steps.base import RunContext, StepResult
@@ -54,9 +55,9 @@ class PathsStep:
             if assembly is None:
                 return StepResult.failed("proof-missing", "the claimed node has no Proof.lean")
             text = assembly.read_text(encoding="utf-8")
-            shape_problem = paths.check_proof_is_statement(loaded.statement, text)
-            if shape_problem:
-                return StepResult(ok=False, diagnostic=shape_problem)
+            refusal = partial_refusal(loaded.statement, node_dir, text)
+            if refusal is not None:
+                return StepResult(ok=False, diagnostic=refusal)
             ctx.data[PARTIAL_KEY] = {
                 "path": assembly.relative_to(node_dir).as_posix(),
                 "file": str(assembly),
@@ -184,3 +185,18 @@ def take_alternate(
         f"an alternate proof: {rel} (D-25); the node's Proof.lean is unchanged",
         path=rel,
     )
+
+
+def partial_refusal(statement: layout.Statement, node_dir: Path, text: str) -> Diagnostic | None:
+    """Why step 2 refuses an assembly, or ``None``. Its header and signature are the statement's
+    (F00-R19), and an annex it cites is on the node (F07-T27): that was checked only by the
+    post-merge job, so a skeleton citing an annex that lived in an unmerged pull request passed
+    the gate, would merge — by the merge actor, with nobody watching — and then failed the job
+    that writes its holes and renders the products. Refused here, where the text is first read
+    and before any Lean is built; the post-merge check stays as the backstop for an older pin."""
+    from opn_gate import postmerge  # noqa: PLC0415 — postmerge imports the steps
+
+    shape_problem = paths.check_proof_is_statement(statement, text)
+    if shape_problem:
+        return shape_problem
+    return postmerge.check_annex_citation(node_dir, text)

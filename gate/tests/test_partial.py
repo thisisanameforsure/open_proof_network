@@ -15,7 +15,7 @@ from pathlib import Path
 from fakes import FakeToolchain, artifact_result, witness_result
 from harness import TARGET, make_context, node_dir
 
-from opn_gate import pipeline
+from opn_gate import pipeline, schemas
 from opn_gate.paths import Change
 from opn_gate.steps.artifact import ARTIFACT_KEY, PARTIAL_KEY
 
@@ -252,3 +252,47 @@ def test_a_counterexample_is_judged_by_the_metaprogram(tmp_path: Path) -> None:
     assert verdict.first_failing_step is None
     assert plain.data[ARTIFACT_KEY] == {"kind": "proof", "decl": "OpnProp.and_swap"}
     assert not any(c.startswith("artifact_type:") for c in plain.toolchain.calls)  # type: ignore[attr-defined]
+
+
+# --- F07-T27: a cited annex is checked before the merge ------------------------------------------
+
+
+def cite(ctx, stamp: str, digest: str) -> None:  # type: ignore[no-untyped-def]
+    """Put ``-- annex: <digest>`` as the assembly's first body line, where D-31 v3.12 wants it."""
+    path = node_dir(ctx) / "attempts" / stamp
+    text = path.read_text(encoding="utf-8")
+    path.write_text(text.replace(":= by\n", f":= by\n  -- annex: {digest}\n", 1), encoding="utf-8")
+
+
+def test_a_skeleton_citing_an_annex_the_node_does_not_carry_fails_step_2(tmp_path: Path) -> None:
+    """Agent D, the 2026-09-19 primes run: a skeleton citing an annex that existed only in an
+    unmerged pull request passed precheck and the pull request's gate. ``check_annex_citation``
+    ran only in the post-merge job, so such a skeleton would merge — by the merge actor, with
+    nobody watching, since 2026-09-20 — and then fail the job that writes its holes and renders
+    the products. Refused where the text is first read, before any Lean is built."""
+    ctx, stamp = partial_context(tmp_path)
+    cite(ctx, stamp, "a" * 64)
+    verdict = pipeline.run_steps(ctx)
+    assert verdict.first_failing_step == 2, verdict.as_dict()
+    assert verdict.diagnostic is not None and verdict.diagnostic.code == "annex-uncited"
+    assert verdict.diagnostic.details == {"annex": "a" * 64}
+
+
+def test_a_citation_that_is_not_a_hash_is_refused_by_name_at_step_2(tmp_path: Path) -> None:
+    ctx, stamp = partial_context(tmp_path)
+    cite(ctx, stamp, "A" * 64)  # upper case: a citation its author got wrong, not no citation
+    verdict = pipeline.run_steps(ctx)
+    assert verdict.first_failing_step == 2
+    assert verdict.diagnostic is not None and verdict.diagnostic.code == "annex-malformed"
+
+
+def test_a_skeleton_citing_an_annex_on_the_node_passes(tmp_path: Path) -> None:
+    ctx, stamp = partial_context(tmp_path)
+    prose = b"---\nschema: annex/v1\n---\nSwap, then reassociate.\n"
+    digest = schemas.content_hash(prose)
+    annex = node_dir(ctx) / "annex"
+    annex.mkdir(exist_ok=True)
+    (annex / f"{digest}.md").write_bytes(prose)
+    cite(ctx, stamp, digest)
+    verdict = pipeline.run_steps(ctx)
+    assert verdict.ok, verdict.as_dict()
