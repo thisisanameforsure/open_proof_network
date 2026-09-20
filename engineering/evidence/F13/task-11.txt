@@ -1,0 +1,14 @@
+F13-T11 — verify inlines defs into the formal statement; content's own Defs imports are inlined (Q14)
+date: 2026-09-20
+
+## found by: the 2026-09-19 primes run (three of four agents), replayed live before the fix:
+POST /check verify on euclid-primes/infinitude-of-primes--h1 with its merged Proof.lean -> okay=None, user_error: failed to compile formal_statement: Unknown identifier `Opn.Divides`; mode=check -> okay=True
+POST /check {target_id: euclid-primes, content: import Defs.IsPrime ...} (no node_id) -> inlined_defs: [], Unknown identifier `Opn.IsPrime`
+
+## red first (before the fix): 2 failed, 12 deselected
+FAILED api/tests/test_checks.py::test_verify_inlines_the_defs_into_the_formal_statement_too
+FAILED api/tests/test_checks.py::test_defs_are_inlined_from_the_content_when_no_node_is_named
+
+## green: uv run --frozen pytest api/tests/test_checks.py api/tests/test_finding_check_okay.py
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+19 passed, 2 warnings in 22.86s

@@ -141,6 +141,57 @@ def test_defs_are_inlined() -> None:
     assert sent.index("def Opn.base") < sent.index("def Opn.fact") < sent.index("theorem OpnProp")
 
 
+DEFS = {
+    "Base": "def Opn.base : Nat := 1\n",
+    "Fact": "import Defs.Base\n\ndef Opn.fact : Nat := Opn.base\n",
+}
+DEFS_STATEMENT = "import Defs.Fact\n\ntheorem OpnProp.and_reassoc : Opn.fact = 1 := by\n  sorry\n"
+DEFS_PROOF = "import Defs.Fact\n\ntheorem OpnProp.and_reassoc : Opn.fact = 1 := by\n  rfl\n"
+
+
+def test_verify_inlines_the_defs_into_the_formal_statement_too() -> None:
+    """AC5, F13-T11 (the 2026-09-19 primes run): the checker compiles the formal statement on its
+    own, so a statement over the target's definitions needs them as much as the proof does.
+    Forwarded raw, every verify on a target with ``defs/`` answered ``okay: null`` with an unknown
+    identifier, which the guide reads as a defect in the node."""
+    h = harness_with()
+    seed(h, statement=DEFS_STATEMENT, defs=DEFS)
+    body = {"target_id": TARGET, "node_id": NODE, "content": DEFS_PROOF, "mode": "verify"}
+    r = post(h, body)
+    assert r.status_code == 200, r.text
+    call = h.axle.calls[-1]
+    assert call.method == "verify_proof" and call.formal_statement is not None
+    for sent in (call.content, call.formal_statement):
+        assert "import Defs" not in sent
+        assert sent.index("def Opn.base") < sent.index("def Opn.fact") < sent.index("theorem Opn")
+    assert call.formal_statement.rstrip().endswith("sorry")  # the statement, not the proof
+
+
+def test_defs_are_inlined_from_the_content_when_no_node_is_named() -> None:
+    """F13-T11: a proposer's statement is not a node yet, so the content's own ``import Defs.*``
+    lines name what to inline; a module the target does not have is refused by name."""
+    h = harness_with()
+    seed(h, defs=DEFS)
+    r = post(h, {"target_id": TARGET, "content": DEFS_PROOF})
+    assert r.status_code == 200, r.text
+    assert r.json()["inlined_defs"] == ["Defs.Base", "Defs.Fact"]
+    sent = h.axle.calls[-1].content
+    assert "import Defs" not in sent
+    assert sent.index("def Opn.base") < sent.index("def Opn.fact") < sent.index("theorem OpnProp")
+
+    calls = len(h.axle.calls)
+    r = post(h, {"target_id": TARGET, "content": "import Defs.Nope\n\n" + PROOF})
+    doc = refused(r, 400, "defs-unknown")
+    assert "Defs.Nope" in doc["message"] and len(h.axle.calls) == calls
+
+    # With a node, a module the content adds beyond the statement's is inlined as well: the lint
+    # already says the headers differ, and an unknown identifier would say nothing useful.
+    seed(h, defs=DEFS)
+    r = post(h, {"target_id": TARGET, "node_id": NODE, "content": DEFS_PROOF})
+    assert r.json()["inlined_defs"] == ["Defs.Base", "Defs.Fact"], r.text
+    assert [w["code"] for w in r.json()["lint"]] == ["imports-differ"]
+
+
 def test_refusals_are_named_and_logged() -> None:
     """AC6: a refusal of the body is named and leaves no record (Q11); a refusal past the limit
     is named, carries its log id and leaves a record with its code; the checker's own failure

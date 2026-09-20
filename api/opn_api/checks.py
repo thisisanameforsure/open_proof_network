@@ -160,9 +160,17 @@ def defs_modules(text: str) -> list[str]:
     return [m for m in layout.imports_of(text) if layout.module_origin(m)[0] == "defs"]
 
 
-def inline_defs(ctx: Context, target_id: str, statement: layout.Statement) -> list[tuple[str, str]]:
-    """R5: the statement's ``Defs`` modules and everything they import, dependencies first, as
-    (module, source without its import lines)."""
+def inline_defs(
+    ctx: Context, target_id: str, statement: layout.Statement | None, content: str
+) -> list[tuple[str, str]]:
+    """R5: the statement's ``Defs`` modules, then the content's own (F13-T11: a proposer's
+    statement is not a node yet, so its header is the only thing that names them), and everything
+    they import, dependencies first, as (module, source without its import lines). A module the
+    content names and the target does not have is refused by name rather than forwarded to fail
+    as an unknown identifier."""
+    from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
+
+    named = defs_modules(statement.text) if statement is not None else []
     ordered: list[tuple[str, str]] = []
     seen: set[str] = set()
 
@@ -173,13 +181,20 @@ def inline_defs(ctx: Context, target_id: str, statement: layout.Statement) -> li
             msg = f"the definitions import each other: {' -> '.join((*trail, module))}"
             raise api_error(409, "defs-cycle", msg)
         stem = module.partition(".")[2]
-        source = frontier.committed(ctx, f"targets/{target_id}/defs/{stem}.lean").decode("utf-8")
+        try:
+            raw = frontier.committed(ctx, f"targets/{target_id}/defs/{stem}.lean")
+        except ApiError as exc:
+            if module in named or trail:
+                raise  # the graph's own module: an outage, not the caller's mistake
+            msg = f"{target_id} has no {module} (defs/{stem}.lean could not be read)"
+            raise api_error(400, "defs-unknown", msg) from exc
+        source = raw.decode("utf-8")
         for dep in defs_modules(source):
             visit(dep, (*trail, module))
         seen.add(module)
         ordered.append((module, IMPORT_LINE_RE.sub("", source).strip("\n")))
 
-    for module in defs_modules(statement.text):
+    for module in (*named, *defs_modules(content)):
         visit(module, ())
     return ordered
 
@@ -270,18 +285,20 @@ def slots(ctx: Context) -> threading.BoundedSemaphore:
 
 
 def call_checker(
-    ctx: Context, req: CheckRequest, text: str, environment: str, statement: layout.Statement | None
+    ctx: Context, req: CheckRequest, text: str, environment: str, formal: str | None
 ) -> AxleAnswer:
+    """``formal`` is the node's statement as the checker must compile it: with the definitions
+    inlined exactly as they are into ``text`` (F13-T11), and ``None`` outside verify."""
     gate = slots(ctx)
     if not gate.acquire(timeout=ctx.settings.check_timeout_s):
         msg = f"{ctx.settings.check_concurrency} checks are already in flight; retry shortly"
         raise api_error(503, "checker-busy", msg, headers={"Retry-After": "5"})
     try:
         if req.mode == "verify":
-            assert statement is not None  # parse_body refuses verify without a node
+            assert formal is not None  # parse_body refuses verify without a node
             return ctx.axle.verify_proof(
                 text,
-                formal_statement=statement.text,
+                formal_statement=formal,
                 environment=environment,
                 timeout_s=ctx.settings.check_timeout_s,
             )
@@ -395,11 +412,12 @@ async def post_check(ctx: Context, request: Request) -> Response:
         if req.mode == "verify" and statement is None:
             msg = f"{req.node_id}'s Statement.lean has no single sorry-bodied theorem to verify"
             raise api_error(409, "statement-unparsable", msg)
-        defs = inline_defs(ctx, req.target_id, statement) if statement is not None else []
+        defs = inline_defs(ctx, req.target_id, statement, req.content)
         text = forwarded_text(req.content, defs)
         warnings = lint(req.content, statement)
         try:
-            answer = await asyncio.to_thread(call_checker, ctx, req, text, environment, statement)
+            formal = forwarded_text(statement.text, defs) if statement is not None else None
+            answer = await asyncio.to_thread(call_checker, ctx, req, text, environment, formal)
         except AxleError as exc:
             raise api_error(
                 502, "upstream-unavailable", str(exc), details={"upstream_status": exc.status}
