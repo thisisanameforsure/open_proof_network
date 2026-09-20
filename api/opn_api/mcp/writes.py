@@ -148,7 +148,14 @@ async def file_revision_request(call: Call, args: dict[str, Any]) -> dict[str, A
 
 async def propose_speculative_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     body = present(
-        "propose_speculative_node", args, "target_id", "stmt", "witness", "deps", "model"
+        "propose_speculative_node",
+        args,
+        "target_id",
+        "stmt",
+        "witness",
+        "deps",
+        "model",
+        "acknowledged_hazards",
     )
     return await forward(call, "POST", "/proposals/speculative", body)
 
@@ -164,6 +171,7 @@ async def propose_variant(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         "relation_proof",
         "deps",
         "model",
+        "acknowledged_hazards",
     )
     return await forward(call, "POST", "/proposals/variant", body)
 
@@ -189,6 +197,23 @@ TOOLING = {
 }
 DEPS = {"type": "array", "items": ID_PARAM, "description": "node ids the statement depends on"}
 MODEL = {"type": "string", "description": "the model or tooling that produced the statement"}
+#: F08-T14: META.yaml's own shape (F02-R4), so a statement that carries an intended step-6 finding
+#: can be proposed at all.
+HAZARDS = {
+    "type": "array",
+    "description": "step-6 hazard findings you intend, each as the gate's hazard-unacknowledged "
+    "diagnostic prints it: checker, location, and your justification",
+    "items": {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["checker", "location", "justification"],
+        "properties": {
+            "checker": {"type": "string"},
+            "location": {"type": "string"},
+            "justification": {"type": "string", "maxLength": 500},
+        },
+    },
+}
 
 TOOLS: tuple[Tool, ...] = (
     Tool(
@@ -378,7 +403,14 @@ TOOLS: tuple[Tool, ...] = (
         "Enter a crux statement as a speculative node (D-14): `stmt` and `witness` are Lean "
         "files; admission is mechanical (D-29).",
         params(
-            {"target_id": ID_PARAM, "stmt": LEAN, "witness": LEAN, "deps": DEPS, "model": MODEL},
+            {
+                "target_id": ID_PARAM,
+                "stmt": LEAN,
+                "witness": LEAN,
+                "deps": DEPS,
+                "model": MODEL,
+                "acknowledged_hazards": HAZARDS,
+            },
             ("target_id", "stmt", "witness"),
         ),
         propose_speculative_node,
@@ -397,6 +429,7 @@ TOOLS: tuple[Tool, ...] = (
                 "relation_proof": LEAN,
                 "deps": DEPS,
                 "model": MODEL,
+                "acknowledged_hazards": HAZARDS,
             },
             ("target_id", "stmt", "witness"),
         ),

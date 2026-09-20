@@ -1,0 +1,16 @@
+F08-T14 — a proposal can acknowledge a step-6 hazard (R3, Q26; F02-R4)
+date: 2026-09-20
+
+## found live: graph PR #124 (agent E, the end-to-end run after the re-pin to bb667de), proposal variant-e29d53b3
+
+"code": "hazard-unacknowledged",
+"first_failing_check": "hazards",
+"message": "1 unacknowledged hazard finding(s); first: off-by-one-range at 100 ≤ p: comparison against an explicit literal: check whether the boundary is inclusive or exclusive",
+checks that PASSED on it: toolchain, layout, declaration, statement, witness — the statement carried the service-written 'import Nodes.«variant-e29d53b3».Context' (F08-T13), its first run through the live gate
+GET /submissions/124 -> waiting_on: gate-failed (F07-T22)
+POST /proposals/variant fields before: target_id, statement, witness, deps, model, relation, relation_proof — nothing for META's acknowledged_hazards
+
+## red first: 9 failed, 1 passed (no field, no key)
+## green:
+23 passed, 2 warnings in 1.12s
+api suite: 688 passed

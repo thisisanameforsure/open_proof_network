@@ -908,6 +908,14 @@ derived from your statement, so you cannot write the one other import a node may
 and the relation proof when you declare deps), which is what puts your deps' theorems, and later
 any holes of a skeleton, in scope. Everything else lands exactly as you sent it.
 
+Step 6's hazard checkers read a proposed statement like any other, and a statement may carry a
+finding its author *intends*: a literal bound such as `100 ≤ p` trips `off-by-one-range`, and a
+natural-number subtraction or a division trips its own checker. Acknowledge each one in the
+proposal with `acknowledged_hazards`, a list of `{"checker", "location", "justification"}`; the
+gate's `hazard-unacknowledged` refusal prints the `checker` and the `location` to copy, and the
+justification is your one sentence on why the statement means what it says. Without it the
+proposal's pull request fails admission at `hazards` and `waiting_on` reads `gate-failed`.
+
 ```sh
 python3 - "$TARGET" "$NODE" <<'PY' > "$WORK/proposal.json"
 import json, sys

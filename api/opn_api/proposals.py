@@ -156,6 +156,39 @@ def open_proposal(  # noqa: PLR0913 — one pull request, described
     }
 
 
+#: The META schema a proposal's node carries (``scaffold.META_SCHEMA``); its
+#: ``acknowledged_hazards`` property is the one shape step 6 reads (F02-R4).
+ACK_FIELD = "acknowledged_hazards"
+
+
+def acknowledged_hazards(fields: dict[str, Any]) -> list[dict[str, Any]] | None:
+    """F08-T14: the step-6 findings the proposer intends, in ``META.yaml``'s own shape (checker,
+    location, justification), or ``None``. Step 6 lets a statement carry a finding its author
+    acknowledges (F02-R4), and the proposal routes had no way to say so, which made any statement
+    with a literal bound, a natural subtraction or a division unproposable through the service.
+    Checked against the META schema's own property here, before a pull request exists; whether an
+    acknowledgment matches a finding is the gate's to say. The justification is contributor free
+    text and is served as such (D-28)."""
+    raw = fields.get(ACK_FIELD)
+    if raw is None:
+        return None
+    import jsonschema  # noqa: PLC0415 — only this path validates a fragment
+
+    from opn_gate import schemas  # noqa: PLC0415
+
+    prop = schemas.load_schema(scaffold.META_SCHEMA)["properties"][ACK_FIELD]
+    validator = jsonschema.Draft202012Validator(prop)
+    problems = sorted(e.message[:160] for e in validator.iter_errors(raw))
+    if problems or not isinstance(raw, list):
+        raise ApiError(
+            400,
+            "acknowledged-hazards-invalid",
+            f"{ACK_FIELD} must be a list of {{checker, location, justification}}, each as the "
+            "gate's hazard-unacknowledged finding prints them (F02-R4): " + "; ".join(problems[:3]),
+        )
+    return raw or None
+
+
 def with_own_context(text: str, node_id: str) -> str:
     """``text`` importing the node's own ``Context``, after its last import line or leading the
     file when it has none (Lean takes imports first). F08-T12: a node reaches its dependencies
@@ -191,6 +224,7 @@ def node_files(
         witness = with_own_context(witness, node_id)
         if kwargs.get("relation_proof"):
             kwargs["relation_proof"] = with_own_context(kwargs["relation_proof"], node_id)
+    acknowledged = acknowledged_hazards(fields)
     proposal = scaffold.Proposal(
         node_id=node_id,
         target_id=target_id,
@@ -200,6 +234,7 @@ def node_files(
         deps=deps,
         date=clockmod.render(ctx.clock.now()),
         model=model_of(fields),
+        extra_meta={ACK_FIELD: acknowledged} if acknowledged else {},
         **kwargs,
     )
     return target_id, scaffolded(proposal, statements), node_id
@@ -209,7 +244,14 @@ def node_files(
 
 
 #: F05-T8: the fields ``POST /proposals/speculative`` reads; any other top-level key is refused.
-SPECULATIVE_FIELDS: tuple[str, ...] = ("target_id", "statement", "witness", "deps", "model")
+SPECULATIVE_FIELDS: tuple[str, ...] = (
+    "target_id",
+    "statement",
+    "witness",
+    "deps",
+    "model",
+    "acknowledged_hazards",
+)
 
 
 async def post_speculative(ctx: Context, request: Request) -> Response:
@@ -246,6 +288,7 @@ VARIANT_FIELDS: tuple[str, ...] = (
     "model",
     "relation",
     "relation_proof",
+    "acknowledged_hazards",
 )
 
 
