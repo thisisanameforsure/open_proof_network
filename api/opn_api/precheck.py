@@ -293,8 +293,19 @@ def check_open(ctx: Context, node_id: str, facts: dict[str, Any]) -> None:
         raise superseded_error(ctx, node_id, facts)
 
 
-def rendered_from(ctx: Context) -> str:
-    """The graph commit the products were rendered from: what a job is pinned to (R3)."""
+def rendered_from(ctx: Context, target_id: str | None = None) -> str:
+    """The graph commit the products were rendered from: what a job is pinned to (R3).
+
+    F06-T7: with a target, the commit of that target's own ``graph.json`` — the document the node
+    was found in — and the frontier's only when it names none. Each product is cached on its own
+    entry, so a ``graph.json`` this process had never read is fetched new while ``frontier.json``
+    is still inside its window; pinned to the frontier's commit, a job for a freshly merged node
+    ran at a commit from before the merge and failed step 2 on the contributor's bundle."""
+    if target_id is not None:
+        doc = json.loads(frontier.committed(ctx, f"targets/{target_id}/graph.json"))
+        own = doc.get("rendered_from")
+        if isinstance(own, str) and own:
+            return own
     commit = frontier.committed_frontier(ctx).get("rendered_from")
     if not isinstance(commit, str) or not commit:
         raise ApiError(503, "graph-unrendered", "the graph has no rendered_from commit to pin to")
@@ -369,7 +380,9 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
         node_id=node_id,
         target_id=claim.target_id,
         statement_hash=facts["statement_hash"],
-        graph_commit=rendered_from(ctx),
+        # A node served from its frontier entry alone (no graph.json row: no status) keeps the
+        # frontier's commit, the document it was found in.
+        graph_commit=rendered_from(ctx, claim.target_id if facts["status"] is not None else None),
         bundle_digest=bundle.digest,
         created=clockmod.render(now),
         identity_id=identity.id if identity else None,

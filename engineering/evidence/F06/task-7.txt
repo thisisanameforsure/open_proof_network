@@ -1,0 +1,15 @@
+F06-T7 — a precheck job is pinned to the commit its node was found at (R3, Q12)
+date: 2026-09-20
+
+## found by: agent A, the 2026-09-19 primes run (scratchpad agent-a/REPORT.md, bug 2):
+POST /precheck {node_id: variant-f15ce396} at 19:04:06Z -> 202, graph_commit ab21602a (the merge of #111, before #113 which added the node)
+result: verdict fail, first_failing_step 2, layout-missing: missing required file META.yaml, Statement.lean, ...
+
+## the live graph: every product names one commit
+euclid-primes/graph.json, erdos-69/graph.json, tutorial/graph.json, frontier.json -> rendered_from da6cf0ae09 (origin/main, 2026-09-20)
+
+## red first: 1 failed (job pinned to the frontier's old commit), 1 passed (the fallback pin)
+## one existing test restated: test_graph_without_a_rendered_from_commit_is_503 now removes the commit from both documents
+
+## green:
+52 passed, 2 warnings in 1.00s

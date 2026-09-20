@@ -150,11 +150,14 @@ def test_authenticated_tutorial_precheck_is_charged_to_the_identity_not_the_addr
 
 
 def test_graph_without_a_rendered_from_commit_is_503(harness: Harness) -> None:
-    """Q10: a job pins ``rendered_from``; without one there is nothing to pin to (C7)."""
-    doc = json.loads(harness.githost.files["frontier.json"])
-    del doc["rendered_from"]
-    harness.githost.files["frontier.json"] = json.dumps(doc).encode()
-    harness.context.files.pop("frontier.json", None)
+    """Q10: a job pins ``rendered_from``; without one there is nothing to pin to (C7). Since
+    F06-T7 the node's own ``graph.json`` names the commit first, so nothing to pin to means
+    neither document names one."""
+    for path in [p for p in harness.githost.files if p.endswith("graph.json")] + ["frontier.json"]:
+        doc = json.loads(harness.githost.files[path])
+        doc.pop("rendered_from", None)
+        harness.githost.files[path] = json.dumps(doc).encode()
+    harness.context.files.clear()
     r = harness.client.post("/precheck", json={"node_id": TUTORIAL_NODE, "bundle": bundle_for()})
     assert r.status_code == 503
     assert r.json()["error"] == "graph-unrendered"
