@@ -1031,3 +1031,25 @@ The law of the project:
   check; a literal bound vs the hazard checker with no way to acknowledge it). Run the fresh agent
   *after* the re-pin, not instead of it, and fix what it finds while it is still running: the
   `gate_verdict` field shipped mid-run was used an hour later to read the next defect.
+- 2026-09-20 — The raw host is a CDN, and a branch path is cached for five minutes
+  (`cache-control: max-age=300`, read from its own header). Agents measured a merged node invisible
+  for 6 to 13 minutes and a witnessed hole still refused two minutes after `main` said ready, and
+  no tuning of the service's own 60-second window could have fixed it. A raw URL at a *commit sha*
+  is immutable and never stale: ask the API where the branch is, once per window, and read
+  everything at that commit (F05-T13). It also makes every product in one answer come from one
+  commit, which is the bug F06-T7 had patched on a single route that morning. When a lag is longer
+  than your own cache, look at whose cache sits in front of yours before tuning yours.
+- 2026-09-20 — Go back through every report line by line before saying "done". A second pass over
+  the five agents' reports found one claim nobody had checked: a skeleton's cited annex was
+  verified only by the post-merge job, and the merge actor built that same day had just made it
+  dangerous (a green skeleton citing an unmerged annex would merge unattended and break the job
+  that writes its holes). It had "worked" the day before only because the annex happened to be
+  merged first. Two other things from that pass: a test that *skips* is evidence of nothing (the
+  tutorial-page tests skipped for want of a fixture and had to be rewritten against the
+  functions), and a route named from memory in a guide (`GET /nodes/<id>`) did not exist — the
+  service's own route index is one curl away.
+- 2026-09-20 — Mike, on stopping to ask about a list of leftovers: "can you just keep going
+  please… why can't you work continuously on it?" Findings that arrive after a plan was approved
+  are the same job. Work through them in priority order; stop only for what is his: a protocol
+  surface (a D-35 route, a D-28 tool), an act on the mathematical record, a credential, or a fork
+  whose options trade off differently.
