@@ -1,0 +1,12 @@
+F08-T11 — a pending node is named as pending (R3, R13, Q23)
+date: 2026-09-20
+
+## found by: all four agents, the 2026-09-19 primes run. Live, before the fix:
+POST /annexes, /precheck, /check verify on variant-2a7919a9 while PR #111 was open and gate-green -> 404 {"error":"node-unknown","message":"variant-2a7919a9 is not a node of this graph"}
+the same for ~2.5 to 6.5 min after each merge, until the bot's products commit (agents A, B, C, D; their REPORT.md timelines)
+
+## red first: 7 failed
+
+## green:
+145 passed, 2 warnings in 0.77s
+api suite: 675 passed

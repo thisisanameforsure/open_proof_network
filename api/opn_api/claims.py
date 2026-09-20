@@ -18,7 +18,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from opn_api import clock as clockmod
-from opn_api import frontier, precheck, ratelimit
+from opn_api import frontier, pending, precheck, ratelimit
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
 from opn_api.store import Claim, Identity, release
@@ -109,7 +109,7 @@ def off_frontier(ctx: Context, node_id: str, target_id: str | None) -> ApiError:
     ]
     if not rows:
         where = f" in target {target_id}" if target_id is not None else ""
-        return ApiError(404, "node-unknown", f"{node_id} is not a node of this graph{where}")
+        return pending.unknown_node(ctx, node_id, where)
     if len(rows) > 1:
         return ambiguous(node_id)
     facts = precheck.facts_of(*rows[0])

@@ -290,7 +290,7 @@ def hole_awaiting_witness(ctx: Context, node_id: Any) -> str:
                     "(F08-R5)",
                 )
             return str(target_id)
-    raise ApiError(404, "node-unknown", f"{node_id} is not a node of this graph")
+    raise pending.unknown_node(ctx, node_id)
 
 
 #: F05-T8: the fields ``POST /proposals/witness`` reads; any other top-level key is refused.

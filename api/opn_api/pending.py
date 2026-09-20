@@ -105,6 +105,53 @@ def document(submission: Submission) -> dict[str, Any]:
     return doc
 
 
+# --- a node that is not in the products yet (F08-T11) --------------------------------------------
+
+#: How long a merged proposal usually waits for the post-merge job's products commit.
+PRODUCTS_RETRY_AFTER_S = 120
+NOT_RENDERED = (
+    "a node merged in the last few minutes appears once the post-merge job has rendered the "
+    "products"
+)
+
+
+def unknown_node(ctx: Context, node_id: str, where: str = "") -> ApiError:
+    """What to answer for a node the products do not carry. The service recorded every proposal
+    it opened (T16), so it can tell three cases apart instead of saying "not a node" to all of
+    them: ``409 node-pending`` (its pull request is open: named, with what it waits for),
+    ``409 products-pending`` (merged; the products are not rendered yet) and ``404 node-unknown``
+    (nobody proposed it, or the proposal was closed unmerged). A host that cannot be read still
+    names the pull request (C7)."""
+    unknown = ApiError(
+        404, "node-unknown", f"{node_id} is not a node of this graph{where}; {NOT_RENDERED}"
+    )
+    found = ctx.store.get_submission_by_node(node_id)
+    if found is None:
+        return unknown
+    details: dict[str, Any] = {"pr_number": found.pr_number, "pr_url": found.pr_url}
+    state = None if found.closed is not None else live_state(ctx, found.pr_number)[0]
+    merged = (found.final_state or {}).get("merged") if state is None else state.merged
+    if merged:
+        return ApiError(
+            409,
+            "products-pending",
+            f"{node_id} merged as pull request #{found.pr_number}; {NOT_RENDERED}. Retry shortly.",
+            details=details,
+            headers={"Retry-After": str(PRODUCTS_RETRY_AFTER_S)},
+        )
+    if found.closed is not None or (state is not None and state.finished):
+        return unknown  # closed unmerged: the node never entered the graph
+    waiting = state.waiting_on if state is not None else None
+    what = f", which is waiting on: {waiting}" if waiting else ""
+    return ApiError(
+        409,
+        "node-pending",
+        f"{node_id} is proposed in pull request #{found.pr_number}{what}; nothing can be "
+        "prechecked or appended against it until that merges",
+        details={**details, "waiting_on": waiting},
+    )
+
+
 # --- the live state (C7) -------------------------------------------------------------------------
 
 

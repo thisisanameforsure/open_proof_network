@@ -28,7 +28,7 @@ import yaml
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from opn_api import auth, bundles, frontier, ratelimit, sshsig
+from opn_api import auth, bundles, frontier, pending, ratelimit, sshsig
 from opn_api import clock as clockmod
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
@@ -169,7 +169,7 @@ def node_facts(ctx: Context, node_id: str) -> dict[str, Any]:
                 "deps": [],
                 "proof_commit": None,
             }
-    raise ApiError(404, "node-unknown", f"{node_id} is not a node of this graph")
+    raise pending.unknown_node(ctx, node_id)
 
 
 TARGETS_INDEX = "targets/index.json"

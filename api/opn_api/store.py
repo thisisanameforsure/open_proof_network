@@ -33,6 +33,10 @@ KEY_PROOF_REF = "proofref#"
 KEY_SUBMISSION = "submission#"
 KEY_SUBMISSION_PR = "submissionpr#"
 KEY_SUBMISSIONS_OPEN = "submissions#open"
+KEY_SUBMISSION_NODE = "submissionnode#"
+#: The kinds that *create* a node (F08-T11): a record of one is findable by the node it proposes,
+#: so a route can tell a node waiting on its pull request from one nobody proposed.
+PROPOSAL_KINDS = ("speculative", "variant")
 # F13-T4: one record per fast check, no TTL (Q3), in the tokens table like the submissions.
 KEY_CHECK = "check#"
 
@@ -96,6 +100,10 @@ class Submission:
     created: str
     closed: str | None = None
     final_state: dict[str, Any] | None = None
+
+
+def proposes(submission: Submission) -> bool:
+    return submission.kind in PROPOSAL_KINDS and submission.node_id is not None
 
 
 @dataclass(frozen=True)
@@ -171,6 +179,10 @@ class Store(Protocol):
 
     def get_submission_by_pr(self, pr_number: int) -> Submission | None: ...
 
+    def get_submission_by_node(self, node_id: str) -> Submission | None:
+        """The newest record that proposed ``node_id`` (``PROPOSAL_KINDS``), open or closed."""
+        ...
+
     def list_open_submissions(self) -> list[Submission]:
         """Every record no live read has found finished, by id (ULIDs sort by time)."""
         ...
@@ -202,6 +214,7 @@ class MemoryStore:
     counters: dict[str, tuple[int, datetime]] = field(default_factory=dict)
     submissions: dict[str, Submission] = field(default_factory=dict)
     submissions_by_pr: dict[int, str] = field(default_factory=dict)
+    submissions_by_node: dict[str, str] = field(default_factory=dict)
     open_submissions: set[str] = field(default_factory=set)
     checks: dict[str, CheckLog] = field(default_factory=dict)
 
@@ -265,6 +278,10 @@ class MemoryStore:
     def put_submission(self, submission: Submission) -> None:
         self.submissions[submission.id] = submission
         self.submissions_by_pr[submission.pr_number] = submission.id
+        if proposes(submission) and submission.id >= self.submissions_by_node.get(
+            str(submission.node_id), ""
+        ):  # ULIDs sort by time: closing an older record never hides a newer proposal
+            self.submissions_by_node[str(submission.node_id)] = submission.id
         if submission.closed is None:
             self.open_submissions.add(submission.id)
         else:
@@ -275,6 +292,10 @@ class MemoryStore:
 
     def get_submission_by_pr(self, pr_number: int) -> Submission | None:
         found = self.submissions_by_pr.get(pr_number)
+        return self.submissions.get(found) if found is not None else None
+
+    def get_submission_by_node(self, node_id: str) -> Submission | None:
+        found = self.submissions_by_node.get(node_id)
         return self.submissions.get(found) if found is not None else None
 
     def list_open_submissions(self) -> list[Submission]:
@@ -517,6 +538,15 @@ class DynamoStore:
                 "submission_id": submission.id,
             }
         )
+        if proposes(submission):
+            current = self.get_submission_by_node(str(submission.node_id))
+            if current is None or submission.id >= current.id:  # as MemoryStore: newest wins
+                self._tokens.put_item(
+                    Item={
+                        "key": KEY_SUBMISSION_NODE + str(submission.node_id),
+                        "submission_id": submission.id,
+                    }
+                )
         self._open_index("DELETE" if submission.closed is not None else "ADD", submission.id)
 
     def _open_index(self, action: str, submission_id: str) -> None:
@@ -536,6 +566,11 @@ class DynamoStore:
 
     def get_submission_by_pr(self, pr_number: int) -> Submission | None:
         item = self._tokens.get_item(Key={"key": KEY_SUBMISSION_PR + str(pr_number)}).get("Item")
+        found = item.get("submission_id") if item else None
+        return self.get_submission(str(found)) if found else None
+
+    def get_submission_by_node(self, node_id: str) -> Submission | None:
+        item = self._tokens.get_item(Key={"key": KEY_SUBMISSION_NODE + node_id}).get("Item")
         found = item.get("submission_id") if item else None
         return self.get_submission(str(found)) if found else None
 
