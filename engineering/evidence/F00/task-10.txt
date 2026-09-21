@@ -1,0 +1,29 @@
+# F00-T10 evidence — a proof may add one import, its own node's Context (testers 2026-09-21, finding 2; Mike's ruling)
+
+## RED (the node_id keyword added and ignored; no rule yet)
+E       AssertionError: assert Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 3 (header or signature)', details={'line': 3, 'expected': '', 'got': 'import Nodes.
+E       AssertionError: assert Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 1 (header or signature...'line': 1, 'expected': 'theorem OpnProp.and_swap_reassoc :
+E       AssertionError: Diagnostic(code='proof-not-statement', message='Proof.lean diverges from Statement.lean at line 3 (header or signature)', details={'line': 3, 'expected': '', 'got': 'import Nodes.«and-s
+E       assert 2 != 2
+FAILED gate/tests/test_finding_proof_own_context_import.py::test_a_proof_may_add_its_own_context_import_after_the_statements_last_import
+FAILED gate/tests/test_finding_proof_own_context_import.py::test_a_statement_with_no_import_takes_the_line_first
+FAILED gate/tests/test_finding_proof_own_context_import.py::test_step_2_takes_the_assembly_of_an_old_statement
+3 failed, 13 passed in 0.07s
+(the 13 that pass are the refusals and the unchanged-header case: green before the rule, so it cannot be loosened past them)
+
+## RED, the service half (api/tests/test_finding_check_own_context_import.py)
+FAILED api/tests/test_finding_check_own_context_import.py::test_the_allowed_line_is_not_a_header_the_gate_would_refuse
+1 failed, 1 passed, 2 warnings in 0.27s
+
+## GREEN
+gate/tests/test_finding_proof_own_context_import.py: 16 passed (3 acceptance, 13 refusals and guards)
+api/tests/test_finding_check_own_context_import.py: 2 passed; gate + api fast suites 2257 passed
+lean tier, real toolchain (gate/tests/test_finding_proof_own_context_import_lean.py): 1 passed in 71 s —
+  pregate on a parent of the live shape (licence comment, import, module doc, open; no own-Context import), its
+  Proof.lean adding the one line and naming two dependencies' theorems: steps 1, 2, 4, 5, 6, 7, 8 all pass.
+  The first lean run failed at step 4 on my own test's proof text (the body had lost its 'by'); the fake toolchain
+  could not see it. Fixed in the test, not the rule.
+
+## MUTANTS (pytest -p plugins)
+forgive any added import lines            -> 9 failed, 7 passed
+forgive one added import of any Nodes.*   -> 6 failed, 10 passed

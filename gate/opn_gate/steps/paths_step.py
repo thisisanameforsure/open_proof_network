@@ -72,7 +72,9 @@ class PathsStep:
         # the shape rule. A proof is the statement with its sorry replaced, textually
         # (F00-R19); a counterexample or a vacuity certificate declares another theorem, whose
         # *type* step 4 checks with the metaprogram. The file says which, never the submitter.
-        shape_problem = paths.check_proof_is_statement(loaded.statement, proof_text)
+        shape_problem = paths.check_proof_is_statement(
+            loaded.statement, proof_text, node_id=ctx.claim.node_id
+        )
         if shape_problem is None:
             return StepResult.passed()
         kind, _unknown = artifact.declared_kind(loaded.statement.decl_name, proof_text)
@@ -166,7 +168,9 @@ def take_alternate(
             path=rel,
         )
     text = alternate.read_text(encoding="utf-8")
-    shape_problem = paths.check_proof_is_statement(loaded.statement, text)
+    shape_problem = paths.check_proof_is_statement(
+        loaded.statement, text, node_id=ctx.claim.node_id
+    )
     if shape_problem is not None:
         kind, _unknown = artifact.declared_kind(loaded.statement.decl_name, text)
         if kind is not None and kind != "proof":
@@ -196,7 +200,9 @@ def partial_refusal(statement: layout.Statement, node_dir: Path, text: str) -> D
     and before any Lean is built; the post-merge check stays as the backstop for an older pin."""
     from opn_gate import postmerge  # noqa: PLC0415 — postmerge imports the steps
 
-    shape_problem = paths.check_proof_is_statement(statement, text)
+    # F00-T10: a skeleton of an old statement may carry the own-Context import too (the node's
+    # directory is named for its id).
+    shape_problem = paths.check_proof_is_statement(statement, text, node_id=node_dir.name)
     if shape_problem:
         return shape_problem
     return postmerge.check_annex_citation(node_dir, text)

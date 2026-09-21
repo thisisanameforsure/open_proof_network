@@ -167,7 +167,7 @@ def own_context_module(node_id: str | None, *texts: str) -> str | None:
     if node_id is None:
         return None
     own = layout.node_module(node_id, "Context")
-    return own if any(own in layout.imports_of(text) for text in texts) else None
+    return own if any(layout.imports_own_context(node_id, text) for text in texts) else None
 
 
 def inline_defs(
@@ -247,12 +247,21 @@ def forwarded_text(content: str, defs: list[tuple[str, str]]) -> str:
 # --- the lint ------------------------------------------------------------------------------------
 
 
-def lint(content: str, statement: layout.Statement | None) -> list[dict[str, Any]]:
+def lint(
+    content: str, statement: layout.Statement | None, node_id: str | None = None
+) -> list[dict[str, Any]]:
     """R4: where the gate would refuse what the checker accepts. Warnings only."""
     warnings: list[dict[str, Any]] = []
     if statement is not None:
         expected, got = layout.imports_of(statement.text), layout.imports_of(content)
-        if expected != got:
+        # F00-T10: the one header the gate takes besides the statement's own — its imports with
+        # the node's own Context placed where ``layout.with_own_context`` puts it.
+        allowed = (
+            layout.imports_of(layout.with_own_context(statement.text, node_id))
+            if node_id is not None
+            else expected
+        )
+        if got not in (expected, allowed):
             warnings.append(
                 {
                     "code": "imports-differ",
@@ -462,7 +471,7 @@ async def post_check(ctx: Context, request: Request) -> Response:
             raise api_error(409, "statement-unparsable", msg)
         defs = inline_defs(ctx, req.target_id, statement, req.content, req.node_id)
         text = forwarded_text(req.content, defs)
-        warnings = lint(req.content, statement)
+        warnings = lint(req.content, statement, req.node_id)
         if req.mode == "verify" and req.node_id is not None:
             own = layout.node_module(req.node_id, "Context")
             if any(module == own for module, _ in defs):

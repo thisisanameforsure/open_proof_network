@@ -207,6 +207,27 @@ def imports_of(text: str) -> list[str]:
     return [m.group("module") for m in _IMPORT_RE.finditer(text)]
 
 
+def imports_own_context(node_id: str, text: str) -> bool:
+    """Whether ``text`` imports the node's own ``Context``: the one module through which a node
+    reaches its dependencies and, once a skeleton of it merges, its holes (F08-T13, F07-T23)."""
+    return node_module(node_id, "Context") in imports_of(text)
+
+
+def with_own_context(text: str, node_id: str) -> str:
+    """``text`` importing the node's own ``Context``, after its last import line or leading the
+    file when it has none (Lean takes imports first). The one place the line may go: the service
+    writes a proposed statement with it (F08-T12), and step 2 allows a proof exactly this header
+    when its statement predates the line (F00-T10)."""
+    own = f"import {node_module(node_id, 'Context')}"
+    lines = text.splitlines(keepends=True)
+    if any(line.strip() == own for line in lines):
+        return text
+    imports = [i for i, line in enumerate(lines) if line.startswith("import ")]
+    at = imports[-1] + 1 if imports else 0
+    gap = "" if imports or not lines or not lines[0].strip() else "\n"
+    return "".join([*lines[:at], own + "\n" + gap, *lines[at:]])
+
+
 def check_imports(node_dir: Path, node_id: str) -> list[Diagnostic]:
     """Every import in a node file must be library, ``Defs.*``, or the node's own Context."""
     found: list[Diagnostic] = []

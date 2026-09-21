@@ -221,18 +221,11 @@ def check_declaration_free(ctx: Context, target_id: str, statement: str) -> None
 
 
 def with_own_context(text: str, node_id: str) -> str:
-    """``text`` importing the node's own ``Context``, after its last import line or leading the
-    file when it has none (Lean takes imports first). F08-T12: a node reaches its dependencies
-    through that one module (F00's import rule), and its name carries the node id, which the
-    service derives from the statement — so no caller can write the line, and the service does."""
-    own = f"import {layout.node_module(node_id, 'Context')}"
-    lines = text.splitlines(keepends=True)
-    if any(line.strip() == own for line in lines):
-        return text
-    imports = [i for i, line in enumerate(lines) if line.startswith("import ")]
-    at = imports[-1] + 1 if imports else 0
-    gap = "" if imports or not lines or not lines[0].strip() else "\n"
-    return "".join([*lines[:at], own + "\n" + gap, *lines[at:]])
+    """``layout.with_own_context``: the gate owns where the line goes, since step 2 allows a
+    proof exactly that header (F00-T10). F08-T12: a node reaches its dependencies through that
+    one module, and its name carries the node id, which the service derives from the statement
+    — so no caller can write the line, and the service does."""
+    return layout.with_own_context(text, node_id)
 
 
 def node_files(

@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Literal
 
-from opn_gate import schemas
+from opn_gate import layout, schemas
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.layout import Statement
 
@@ -111,9 +111,22 @@ def check_statement_hash(statement: Statement, meta: dict[str, object]) -> Diagn
     return None
 
 
-def check_proof_is_statement(statement: Statement, proof_text: str) -> Diagnostic | None:
-    """R19: Proof.lean is Statement.lean with only the sorry body replaced."""
+def check_proof_is_statement(
+    statement: Statement, proof_text: str, *, node_id: str | None = None
+) -> Diagnostic | None:
+    """R19: Proof.lean is Statement.lean with only the sorry body replaced.
+
+    F00-T10: with one allowance, for the caller that names the node. A statement written before
+    2026-09-20 does not import its own ``Context``, so a proof of it could never name the holes a
+    merged skeleton had put there, and a statement is immutable (D-3). Such a proof may carry
+    that one line, exactly where ``layout.with_own_context`` puts it; any other header is refused
+    as before. Sound because step 4 stages only proved dependencies: a name that is not proved
+    is not there to be used."""
     prefix = statement.prefix
+    if node_id is not None and not proof_text.startswith(prefix):
+        allowed = layout.with_own_context(prefix, node_id)
+        if allowed != prefix and proof_text.startswith(allowed):
+            prefix = allowed
     if not proof_text.startswith(prefix):
         line = _first_divergent_line(prefix, proof_text)
         return Diagnostic(
