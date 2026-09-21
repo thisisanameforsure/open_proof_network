@@ -124,7 +124,11 @@ def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
         try:
             jsonschema.validate(instance=arguments, schema=tool.input_schema)
         except jsonschema.ValidationError as exc:
-            return error_result(name, error("arguments-invalid", exc.message, "adapter").doc)
+            # F09-T10: the argument is named, as results.violations names a result's. The
+            # envelope is closed, so the path rides in the message.
+            where = "$" + "".join(f"[{p!r}]" for p in exc.absolute_path)
+            message = exc.message if where == "$" else f"{where}: {exc.message}"
+            return error_result(name, error("arguments-invalid", message, "adapter").doc)
         token = auth.bearer() if tool.forwards_bearer else None
         if tool.needs_bearer and not token:  # R2: refused here, the endpoint never reached
             return error_result(name, writes.unauthorized().doc)

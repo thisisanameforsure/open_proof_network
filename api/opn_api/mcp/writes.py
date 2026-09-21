@@ -26,6 +26,7 @@ from collections.abc import Mapping
 from types import MappingProxyType
 from typing import Any
 
+from opn_api import submissions
 from opn_api.mcp import auth
 from opn_api.mcp.calls import ID_PARAM, Answer, Call, Tool, ToolError, error, params
 
@@ -186,13 +187,17 @@ async def propose_witness(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     return await forward(call, "POST", "/proposals/witness", body)
 
 
+#: One declared tooling string as ``submissions.check_tooling`` reads it: a string of at most
+#: ``MAX_TOOLING_CHARS``, or ``null`` for undeclared (F09-T10: the guide's own example says
+#: ``"version": None``, and the adapter refused what the endpoint takes).
+DECLARED = {"type": ["string", "null"], "maxLength": submissions.MAX_TOOLING_CHARS}
 TOOLING = {
     "type": "object",
-    "description": "the D-23 declaration: model, version, harness (each a string)",
+    "description": "the D-23 declaration: model, version, harness (each a string or null)",
     "properties": {
-        "model": {"type": "string"},
-        "version": {"type": "string"},
-        "harness": {"type": "string"},
+        "model": DECLARED,
+        "version": DECLARED,
+        "harness": DECLARED,
     },
 }
 DEPS = {"type": "array", "items": ID_PARAM, "description": "node ids the statement depends on"}

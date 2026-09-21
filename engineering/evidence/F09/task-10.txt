@@ -1,0 +1,33 @@
+# F09-T10 evidence — the MCP takes the tooling the endpoint takes, and names a refused field (tester finding 8)
+
+## RED (before any production change)
+E       AssertionError: {'error': 'arguments-invalid', 'message': "None is not of type 'string'", 'source': 'adapter'}
+E       assert 'arguments-invalid' != 'arguments-invalid'
+        doc = McpClient(harness).failed("submit_proof", submit_args({"version": 5}))
+E       AssertionError: 5 is not of type 'string'
+E       assert ('tooling' in "5 is not of type 'string'")
+E       AssertionError: ('model', None)
+E       assert False == True
+E       AssertionError: ('version', None)
+E       assert False == True
+E       AssertionError: ('harness', None)
+E       assert False == True
+E       AssertionError: ('model', 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+E       assert True == False
+E       AssertionError: ('version', 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+E       assert True == False
+E       AssertionError: ('harness', 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
+E       assert True == False
+FAILED api/tests/test_finding_mcp_tooling_null.py::test_the_guides_own_tooling_reaches_the_endpoint
+FAILED api/tests/test_finding_mcp_tooling_null.py::test_a_refused_argument_names_its_field
+FAILED api/tests/test_finding_mcp_tooling_null.py::test_the_adapter_and_the_endpoint_agree_on_every_tooling_value[None-model]
+FAILED api/tests/test_finding_mcp_tooling_null.py::test_the_adapter_and_the_endpoint_agree_on_every_tooling_value[None-version]
+FAILED api/tests/test_finding_mcp_tooling_null.py::test_the_adapter_and_the_endpoint_agree_on_every_tooling_value[None-harness]
+FAILED api/tests/test_finding_mcp_tooling_null.py::test_the_adapter_and_the_endpoint_agree_on_every_tooling_value['zzzzzzzzzzz-model]
+FAILED api/tests/test_finding_mcp_tooling_null.py::test_the_adapter_and_the_endpoint_agree_on_every_tooling_value['zzzzzzzzzzz-version]
+FAILED api/tests/test_finding_mcp_tooling_null.py::test_the_adapter_and_the_endpoint_agree_on_every_tooling_value['zzzzzzzzzzz-harness]
+8 failed, 15 passed, 2 warnings in 0.31s
+
+## GREEN
+35 passed, 2 warnings in 12.86s
+whole api suite: 735 passed. The parity test also found a second drift: the endpoint caps each string at 200 characters and the tool's schema had no cap.
