@@ -273,6 +273,10 @@ TOOLS: tuple[Tool, ...] = (
         "with a node_id, the node's own Context (its dependencies' and holes' theorems) are "
         "inlined for you (`inlined_defs`); without a node_id you can check a statement that is "
         "not a node yet. A proof that uses a dependency is checked with mode check, not verify. "
+        "Mode witness, with a node_id, answers `witness`: the `expected` type step 7 will hold a "
+        "witness of that node to (paste it as your witness's type), and with your witness as "
+        "content its `given` type and whether it `matches`; without content, the expected type "
+        "alone. "
         "Never authoritative: a precheck is the verdict. "
         "No token needed; a token raises the limit. Every call is logged without its text; "
         "GET /hosted-checkers.json says which targets have a checker.",
@@ -281,9 +285,12 @@ TOOLS: tuple[Tool, ...] = (
                 "target_id": ID_PARAM,
                 "node_id": ID_PARAM,
                 "content": LEAN,
-                "mode": {"enum": ["check", "verify"], "description": "verify needs node_id"},
+                "mode": {
+                    "enum": ["check", "verify", "witness"],
+                    "description": "verify and witness need node_id; witness needs no content",
+                },
             },
-            ("target_id", "content"),
+            ("target_id",),
         ),
         check_lean,
         write=True,

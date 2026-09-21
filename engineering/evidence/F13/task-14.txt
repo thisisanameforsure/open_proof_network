@@ -1,0 +1,38 @@
+# F13-T14 evidence — mode: witness, the expected witness type before the pull request (testers 2026-09-21; asked for by all three)
+
+## PROBE through AXLE, keyless, before any code (engineering/evidence/F13/task-14-probe.lean; lean-4.33.1; 1.1 s)
+statement: theorem demo : ∀ (n : ℕ) (h : 2 ≤ n) (x : ℝ), 0 < x → ∀ k : ℕ, x ^ k > 0
+my guessed witness type: ∃ (n : ℕ) (_ : 2 ≤ n) (x : ℝ) (k : ℕ), 0 < x
+lean_messages.infos[0]: "-:65:0-65:8: info: OPN-WITNESS {"expected":"∃ (n : ℕ) (x : ℝ) (k : ℕ), (2 : ℕ) ≤ n ∧ (0 : ℝ) < x","given":"∃ (n : ℕ) (_ : (2 : ℕ) ≤ n) (x : ℝ) (k : ℕ), (0 : ℝ) < x","matches":false}"
+So: the gate's WitnessType.lean elaborates on the hosted checker as it stands; an info line carries the JSON; and the guess
+was wrong, which is the six-minute gate round this mode replaces.
+
+## RED (the specification, before the mode existed)
+E       assert 'mode-invalid' == 'node-id-required'
+reply = {'okay': True, 'failed_declarations': [], 'lean_messages': {'errors': [], 'warnings': [], 'infos': []}, 'tool_messages': {'errors': [], 'warnings': [], 
+E       assert 400 == 200
+reply = {'okay': False, 'failed_declarations': [], 'lean_messages': {'errors': [], 'warnings': [], 'infos': []}, 'tool_messages': {'errors': [], 'warnings': [],
+E       assert 400 == 200
+FAILED api/tests/test_check_witness_mode.py::test_the_mode_needs_a_node - Ass...
+FAILED api/tests/test_check_witness_mode.py::test_a_matching_witness_is_told_so_with_both_types
+FAILED api/tests/test_check_witness_mode.py::test_a_mismatch_shows_the_type_the_gate_wants
+FAILED api/tests/test_check_witness_mode.py::test_without_a_witness_the_answer_is_the_expected_type_alone
+FAILED api/tests/test_check_witness_mode.py::test_the_checker_is_sent_the_statement_the_witness_and_the_gates_own_metaprogram
+FAILED api/tests/test_check_witness_mode.py::test_a_witness_is_not_linted_as_a_proof
+FAILED api/tests/test_check_witness_mode.py::test_a_witness_that_does_not_elaborate_has_no_verdict
+7 failed, 1 passed, 2 warnings in 0.38s
+
+## GREEN
+api/tests/test_check_witness_mode.py: 10 passed (the mode, the composed text, the parsed line, no proof lints,
+  the packaging of the file it reads, the MCP tool's enum); api suite 756 passed
+lean tier, real toolchain (gate/tests/test_finding_witness_preview_lean.py): 2 passed —
+  the composed text elaborates at 4.33.1; for  P → ∀ (N k : Nat), C  the expected type is
+  '∃ (N : Nat), ∃ (k : Nat), ∀ (n : Nat), n + (0 : Nat) = n'; a right witness matches, a wrong one does not,
+  no witness gives the expected type alone; and the printed expected type, pasted back as a witness's type, matches.
+  The first lean run FAILED where the fake could not: 'typeclass instance problem is stuck' on the log line as I had
+  written it (a ← inside an expression joined with ++). Rewritten as the probe had it: strings first, then interpolate.
+
+## LIVE, the service's own composed text through AXLE, on graph node erdos-69--h2-v2--h1-v2--h4 (Mathlib, the pin)
+[no witness]          1.3 s, 0 errors, expected = '∃ (b : ℕ), ∑' (n : ℕ), (↑((ω : ℕ → ℕ) n) : ℝ) / (2 : ℝ) ^ n = … ∧ (∀ (N k : ℕ), …'
+[the merged witness]  4.1 s, 0 errors, matches = true — the witness the gate's step 7 accepted in graph PR #144,
+                      so the preview and the gate agree on a live node.

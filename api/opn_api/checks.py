@@ -40,7 +40,7 @@ from opn_api import auth, frontier, identity, precheck, ratelimit
 from opn_api import clock as clockmod
 from opn_api.axle import AxleAnswer, AxleError
 from opn_api.store import CheckLog
-from opn_gate import hosted, layout
+from opn_gate import hosted, layout, schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -49,7 +49,15 @@ log = logging.getLogger("opn_api.checks")
 
 SERVICE = hosted.SERVICE
 FIELDS = frozenset({"target_id", "node_id", "content", "mode"})
-MODES = ("check", "verify")
+MODES = ("check", "verify", "witness")
+#: F13-T14: the modes that read the node's own statement, so cannot do without a node.
+NODE_MODES = ("verify", "witness")
+#: The prefix of the one info line the witness program logs; what follows it is JSON.
+WITNESS_TAG = "OPN-WITNESS"
+#: Step 7's own metaprogram (F01-R3), shipped beside the schemas as ``hosted-checkers.yaml`` is.
+#: Read, never restated: the preview and the gate cannot disagree about a type they compute with
+#: one file.
+WITNESS_SOURCE = schemas.SCHEMAS_DIR.parent / "lean" / "OpnGate" / "WitnessType.lean"
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 #: A top-level declaration, after comments are blanked: optional attributes and modifiers, the
 #: keyword, and the written name (empty for ``example`` and anonymous instances).
@@ -108,11 +116,13 @@ def parse_body(ctx: Context, fields: dict[str, Any]) -> CheckRequest:
     mode = fields.get("mode", "check")
     if mode not in MODES:
         raise api_error(400, "mode-invalid", f"mode must be one of {', '.join(MODES)}")
-    if mode == "verify" and node_id is None:
-        msg = "verify compares against a node's statement: node_id is required"
+    if mode in NODE_MODES and node_id is None:
+        msg = f"{mode} reads a node's statement: node_id is required"
         raise api_error(400, "node-id-required", msg)
     content = fields.get("content")
-    if not isinstance(content, str) or not content.strip():
+    if mode == "witness" and content is None:
+        content = ""  # F13-T14: no witness yet; the answer is the expected type alone
+    if not isinstance(content, str) or (mode != "witness" and not content.strip()):
         raise api_error(400, "content-missing", "content must be the Lean text to check")
     size = len(content.encode("utf-8"))
     if size > ctx.settings.check_max_bytes:
@@ -304,6 +314,89 @@ def _written_name(statement_text: str) -> str | None:
     return None
 
 
+# --- the witness preview (F13-T14) ---------------------------------------------------------------
+
+
+def witness_program(decl_name: str, has_witness: bool) -> str:
+    """The gate's ``WitnessType.lean`` and the few lines that ask it one question: the type step
+    7 will hold a witness of ``decl_name`` to, the given witness's type, and whether they are the
+    same. Printed under the options the hole writer prints under (F07-R19, T30), so the text can
+    be pasted back as a witness's type."""
+    try:
+        source = WITNESS_SOURCE.read_text(encoding="utf-8")
+    except OSError as exc:
+        msg = f"the witness metaprogram is not in this package: {WITNESS_SOURCE.name}"
+        raise api_error(503, "witness-program-unreadable", msg) from exc
+    body = IMPORT_LINE_RE.sub("", source).strip("\n")
+    given = (
+        "  let w ← getConstInfo `witness\n"
+        "  let same ← withReducible (isDefEq expected w.type) <||> isDefEq expected w.type\n"
+        "  let given := Json.str (← pp w.type)\n"
+        "  let verdict := Json.bool same\n"
+        if has_witness
+        else "  let given := Json.null\n  let verdict := Json.null\n"
+    )
+    return (
+        "\n-- the network's witness preview (F13-T14): gate/lean/OpnGate/WitnessType.lean\n"
+        f"{body}\n\n"
+        "open Lean Meta in\n"
+        "run_meta do\n"
+        f"  let s ← getConstInfo `{decl_name}\n"
+        "  let expected ← OpnGate.expectedWitnessType s.type\n"
+        "  let pp (e : Expr) : MetaM String :=\n"
+        "    withOptions (fun o => ((o.setBool `pp.coercions.types true).setBool\n"
+        "        `pp.numericTypes true).setBool `pp.funBinderTypes true) do\n"
+        "      return toString (← ppExpr e)\n"
+        f"{given}"
+        "  let wanted ← pp expected\n"
+        '  let answer := Json.mkObj [("expected", Json.str wanted), ("given", given), '
+        '("matches", verdict)]\n'
+        f'  logInfo m!"{WITNESS_TAG} {{Json.compress answer}}"\n'
+    )
+
+
+def witness_text(formal: str, content: str, decl_name: str) -> str:
+    """What the checker is sent in witness mode: the node's statement under its own header (the
+    definitions already inlined), ``import Lean`` for the metaprogram, the witness without its
+    import lines, then the program."""
+    lines = formal.splitlines(keepends=True)
+    imports = [i for i, line in enumerate(lines) if line.startswith("import ")]
+    at = imports[-1] + 1 if imports else 0
+    header = "" if "Lean" in layout.imports_of(formal) else "import Lean\n"
+    witness = IMPORT_LINE_RE.sub("", content).strip("\n")
+    return (
+        "".join(lines[:at])
+        + header
+        + "".join(lines[at:])
+        + (f"\n{witness}\n" if witness else "")
+        + witness_program(decl_name, bool(witness))
+    )
+
+
+def witness_verdict(body: dict[str, Any]) -> dict[str, Any] | None:
+    """The program's one line, read back out of the checker's info messages; ``None`` when it
+    never ran (the witness or the statement did not elaborate). The checker's text is untrusted
+    data: only the three keys are read, each held to its type."""
+    messages = body.get("lean_messages")
+    infos = messages.get("infos") if isinstance(messages, dict) else None
+    for info in infos if isinstance(infos, list) else ():
+        _, tag, rest = str(info).partition(WITNESS_TAG + " ")
+        if not tag:
+            continue
+        try:
+            doc = json.loads(rest.strip())
+        except ValueError:
+            continue
+        if isinstance(doc, dict) and isinstance(doc.get("expected"), str):
+            given, same = doc.get("given"), doc.get("matches")
+            return {
+                "expected": doc["expected"],
+                "given": given if isinstance(given, str) else None,
+                "matches": same if isinstance(same, bool) else None,
+            }
+    return None
+
+
 # --- the checker ---------------------------------------------------------------------------------
 
 _SLOTS_LOCK = threading.Lock()
@@ -466,12 +559,14 @@ async def post_check(ctx: Context, request: Request) -> Response:
             raise api_error(422, "no-hosted-environment", msg, details={"mathlib_sha": sha})
         environment = hosted.environment
         statement = statement_of(ctx, req.target_id, req.node_id) if req.node_id else None
-        if req.mode == "verify" and statement is None:
+        if req.mode in NODE_MODES and statement is None:
             msg = f"{req.node_id}'s Statement.lean has no single sorry-bodied theorem to verify"
             raise api_error(409, "statement-unparsable", msg)
         defs = inline_defs(ctx, req.target_id, statement, req.content, req.node_id)
         text = forwarded_text(req.content, defs)
-        warnings = lint(req.content, statement, req.node_id)
+        # F13-T14: a witness is not a proof. It declares ``witness`` and its header is its own,
+        # so the gate-gap lints (R4), which are about proofs, say nothing true of it.
+        warnings = [] if req.mode == "witness" else lint(req.content, statement, req.node_id)
         if req.mode == "verify" and req.node_id is not None:
             own = layout.node_module(req.node_id, "Context")
             if any(module == own for module, _ in defs):
@@ -488,6 +583,9 @@ async def post_check(ctx: Context, request: Request) -> Response:
                 )
         try:
             formal = forwarded_text(statement.text, defs) if statement is not None else None
+            if req.mode == "witness":
+                assert statement is not None and formal is not None  # NODE_MODES, above
+                text = witness_text(formal, text, statement.decl_name)
             answer = await asyncio.to_thread(call_checker, ctx, req, text, environment, formal)
             if answer.body.get("error_type") == LEAN_TIMEOUT:
                 raise timed_out(ctx, answer.request_id)
@@ -537,6 +635,7 @@ async def post_check(ctx: Context, request: Request) -> Response:
             "user_error": user_error if isinstance(user_error, str) else None,
             "result": answer.body,
             "log_id": log_id,
+            **({"witness": witness_verdict(answer.body)} if req.mode == "witness" else {}),
         }
     )
 

@@ -13,6 +13,7 @@ on:
       - "gate/opn_gate/schemas.py"
       - "gate/schemas/**"
       - "gate/hosted-checkers.yaml"  # F13: POST /check reads it at runtime
+      - "gate/lean/OpnGate/WitnessType.lean"  # F13-T14: mode witness sends the gate's own program
       - "gate/opn_gate/hosted.py"
       - "pyproject.toml"
       - "uv.lock"
@@ -62,6 +63,10 @@ jobs:
           # F13-T4: POST /check resolves the pin -> environment mapping beside the schemas, the
           # same rule, so it must travel too or every check answers 503 hosted-checkers-unreadable.
           cp gate/hosted-checkers.yaml build/package/
+          # F13-T14: mode witness sends the checker step 7's own metaprogram, read beside the
+          # schemas by the same rule; without it the mode answers 503 witness-program-unreadable.
+          mkdir -p build/package/lean/OpnGate
+          cp gate/lean/OpnGate/WitnessType.lean build/package/lean/OpnGate/WitnessType.lean
           find build/package -name '__pycache__' -type d -prune -exec rm -rf {} +
           # The dist-info directories stay: the MCP SDK reads its own version through
           # importlib.metadata at import, and stripping them took the function down (F09-T5).
@@ -85,6 +90,7 @@ jobs:
                         "opn_api/pending.py",  # F07-T16: GET /submissions/{id} and .json
                         "opn_api/checks.py", "opn_api/axle.py",  # F13: POST /check
                         "hosted-checkers.yaml",  # F13-T4: read beside schemas/ at runtime
+                        "lean/OpnGate/WitnessType.lean",  # F13-T14: read by mode witness
                         "opn_gate/schemas.py", "mangum/__init__.py", "starlette/applications.py",
                         "opn_api/mcp/server.py", "mcp/server/lowlevel/server.py"):
               assert (pkg / entry).is_file(), f"missing from the package: {entry}"

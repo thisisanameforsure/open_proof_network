@@ -34,3 +34,10 @@ no wait for the post-merge job     -> 2 failed (the wasted round, the building-v
 ## LIVE, read-only (2026-09-21): the branch's pick.py run against the live graph with a read token
 merge actor: nothing to do  (no pull request open) — exit 0
 actions/runs?branch=main&event=push&status=in_progress -> {total: 0, names: []}; check-runs carry started_at
+
+## LIVE (2026-09-21): pushed to the graph as 59d2b38d after `gh run list` showed nothing in flight and no pull request open
+first run of the new actor: merge run 35599720537, success, "merge actor: nothing to do" (the job now holds actions: read).
+The record's last word on the old actor, seen while pushing: #144 merged before #143, and #143's branch was re-merged
+with main three times (10:38, 10:41, 10:45) before it landed at 10:48.
+NOT YET SHOWN LIVE: the two hold rules under load. No pull request was open to hold for; the next building pull request
+opened beside an append is the check, and its run log will say "holding for it".
