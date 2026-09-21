@@ -1,0 +1,28 @@
+# F07-T30 evidence — a hole that binds under ∃ keeps its binder types (testers 2026-09-21, finding 3)
+
+## PROBE at Lean 4.33.1, before any code (engineering/evidence/F07/task-30-probe.lean; lean <file> in gate/lean)
+[gate today: coercions.types + numericTypes] DIFFERENT TYPE
+    ∀ (b : Nat), (0 : Nat) < b → ∃ N k m, (↑m : Int) * (2 : Int) ≤ (↑N : Int) + (↑k : Int)
+[+ pp.funBinderTypes] round-trips
+    ∀ (b : Nat), (0 : Nat) < b → ∃ (N : Nat), ∃ (k : Nat), ∃ (m : Nat), (↑m : Int) * (2 : Int) ≤ (↑N : Int) + (↑k : Int)
+[+ pp.binderTypes] DIFFERENT TYPE (the option does not reach an ∃ binder)
+[+ funBinderTypes + piBinderTypes] round-trips (piBinderTypes adds nothing: ∀ binders already print typed)
+
+## RED
+gate/tests/test_finding_exists_binder_types_lean.py (real toolchain, 67 s): 1 failed —
+  verdict fail, first_failing_step 4, diagnostic hole-not-roundtrip: the agent's refusal, reproduced in core Lean
+gate/tests/test_finding_hole_roundtrip_message.py: 2 failed — no word on what to change; the hole's text 3 times (assert 3 == 1)
+
+## GREEN
+gate/tests/test_finding_exists_binder_types_lean.py (real toolchain): 1 passed — verdict pass, closed_roundtrip true,
+  closed_type carries (m : Nat), expected_witness carries (b : Nat) and no untyped binder
+gate/tests/test_finding_hole_roundtrip_message.py: 2 passed; test_artifacts.py 21 passed (one test restated, below)
+lean tier, -k 'hole or witness or partial or artifact or lean_pkg': 13 passed in 357 s
+golden regenerated (gate/tests/golden/artifact-types.json): 5 lines, each an expected_witness gaining its binder types,
+  e.g. '∃ p q, p ∧ q' -> '∃ (p : Prop), ∃ (q : Prop), p ∧ q'; nothing else moved.
+
+One existing test restated: test_a_hole_that_does_not_read_back_is_refused pinned 'left : p' in the message and
+the type twice in the details, which is the repetition the agent reported.
+
+Left as it was, on purpose: step 7's own printed 'expected' (WitnessTypeMain, plain ppExpr). Two lean-tier tests pin
+its text and it is a diagnostic, not a statement anyone writes to disk; the witness preview prints with the round-trip options.

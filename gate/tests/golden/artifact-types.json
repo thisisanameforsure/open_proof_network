@@ -77,7 +77,7 @@
         "defeq_goal": false,
         "defeq_sibling": null,
         "closed_roundtrip": true,
-        "expected_witness": "∃ p q, p ∧ q"
+        "expected_witness": "∃ (p : Prop), ∃ (q : Prop), p ∧ q"
       },
       {
         "name": "left",
@@ -86,7 +86,7 @@
         "defeq_goal": false,
         "defeq_sibling": null,
         "closed_roundtrip": true,
-        "expected_witness": "∃ p q, (p ∧ q) ∧ q"
+        "expected_witness": "∃ (p : Prop), ∃ (q : Prop), (p ∧ q) ∧ q"
       }
     ],
     "unnamed": 0,
@@ -108,7 +108,7 @@
         "defeq_goal": false,
         "defeq_sibling": null,
         "closed_roundtrip": true,
-        "expected_witness": "∃ p q a b, p ∧ q"
+        "expected_witness": "∃ (p : Prop), ∃ (q : Prop), ∃ (a : Prop), ∃ (b : Prop), p ∧ q"
       }
     ],
     "unnamed": 0,
@@ -130,7 +130,7 @@
         "defeq_goal": true,
         "defeq_sibling": null,
         "closed_roundtrip": true,
-        "expected_witness": "∃ p q, p ∧ q"
+        "expected_witness": "∃ (p : Prop), ∃ (q : Prop), p ∧ q"
       }
     ],
     "unnamed": 0,
@@ -154,7 +154,7 @@
         "defeq_goal": true,
         "defeq_sibling": null,
         "closed_roundtrip": true,
-        "expected_witness": "∃ p q, p ∧ q"
+        "expected_witness": "∃ (p : Prop), ∃ (q : Prop), p ∧ q"
       }
     ],
     "unnamed": 0,

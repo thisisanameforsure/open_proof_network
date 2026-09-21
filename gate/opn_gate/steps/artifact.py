@@ -249,14 +249,20 @@ def _partial_problems(artifact: Artifact, max_holes: int) -> list[Diagnostic]:
         problems.append(
             Diagnostic(
                 "hole-not-roundtrip",
-                "a hole's printed type does not elaborate back to the obligation it came from, "
-                "so the child node written from it would state a different proposition: "
-                + ", ".join(f"{h.name} : {h.closed_type}" for h in unwritable)
-                + " (F07-R19; refused before the merge, F07-R20)",
+                "the printed type of "
+                + ", ".join(h.name for h in unwritable)
+                + " does not elaborate back to the obligation it came from, so the child node "
+                "written from it would state a different proposition. What usually cures it: "
+                "ascribe the type where a bound variable or a numeral is used, so it does not "
+                "depend on what surrounds it, or restate the hole over one type. The text as "
+                "printed is in details.unwritable (F07-R19; refused before the merge, F07-R20)",
+                # F07-T30: each hole's text once. The local type rides only when it differs from
+                # the closed one, which it does for a hole under binders.
                 {
                     "holes": [h.name for h in unwritable],
                     "unwritable": [
-                        {"name": h.name, "type": h.type, "closed_type": h.closed_type}
+                        {"name": h.name, "closed_type": h.closed_type}
+                        | ({"type": h.type} if h.type != h.closed_type else {})
                         for h in unwritable
                     ],
                 },

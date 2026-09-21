@@ -86,9 +86,17 @@ deriving ToJson
 `ppExpr`'s defaults drop the information a reader needs to recover the type: a coercion prints as
 a bare `↑` and a numeral prints without its type, so `(ω n : ℝ) / 2 ^ n` comes out as
 `↑(ω n) / 2 ^ n` and reads back over `ℕ`. Both options were checked against Lean 4.33.1 rather
-than assumed: with them the three obligations that failed round-trip true. -/
+than assumed: with them the three obligations that failed round-trip true.
+
+F07-T30: a binder under `∃` prints without its type (`∃ N k m, …`), and one that the body uses
+only through a coercion cannot be recovered from it, so the text read back as a different type
+(found live 2026-09-21 on `erdos-69`). `pp.funBinderTypes` prints `∃ (m : ℤ), …`; probed at
+4.33.1, where `pp.binderTypes` does not reach an `∃` binder. It also gives an unused binder a
+type, which a witness slot written from this text needs in order to elaborate at all. -/
 def ppRoundTrippable (e : Expr) : MetaM String :=
-  withOptions (fun o => (o.setBool `pp.coercions.types true).setBool `pp.numericTypes true) do
+  withOptions (fun o =>
+      ((o.setBool `pp.coercions.types true).setBool `pp.numericTypes true).setBool
+        `pp.funBinderTypes true) do
     return toString (← ppExpr e)
 
 /-- Does `src`, elaborated as a type, mean the same as `e`? The guard on what the post-merge
