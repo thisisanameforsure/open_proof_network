@@ -1,0 +1,41 @@
+Re-pin to network 53d7bf1 — 2026-09-21, the calibration testers' gate-side fixes. Recipe: engineering/evidence/F07/repin-bb667de.txt.
+Carries to the live gate:
+- F00-T10 (e17370f): a proof may add one import, its own node's Context (R19 amended; Mike's ruling);
+- F07-T30 (5c2c024): a hole that binds under an existential keeps its binder types (pp.funBinderTypes);
+- F02-T8  (3b2d55a): a function type is not an unused binder.
+Service-side work (F13-T13/T14/T15, F09-T10/T11, F06-T8) went live with the api deploys of 8283f36, 65b968d and 53d7bf1
+and needs no pin. The merge actor (F07-T31, graph 59d2b38d) and the guide copy (graph e88abf3a) were pushed earlier in the day.
+
+0. Every commit ran the pre-commit suite (2595 passed on 53d7bf1). Nothing under gate/, api/ or site/ changed after 53d7bf1.
+1. Tag gate-53d7bf1; image-publish run 35606642134 success. Digests by tag from the registry, without a pull
+   (the resolver first reproduced gate-2c3030a's recorded 9e0bb667…):
+     gate-53d7bf1                        ghcr.io/thisisanameforsure/opn-gate@sha256:94eac0b6af77ae4b103972d5f74aea7ec85a73b2f1990b245775d83e5fc72de9
+     gate-53d7bf1-mathlib-0df444a360ea   ghcr.io/thisisanameforsure/opn-gate@sha256:1ce76e868cf94b070c99598e6a3aa56979dcf469c9586737128ccd0c1133db86
+2. schemas.unpublished(<worktree>) == [] (no schema was added today). Pins by gate/tools/pin_image.py in a worktree on
+   origin/main e88abf3a: tutorial the plain image, the 25 other Mathlib targets, riemann-hypothesis last with --api-url.
+   27 of 27 gate-spec.json name 53d7bf1ee71463cddadc7c277e39f4a316f37497; 28 files, 55 insertions, 55 deletions; the
+   devcontainer diff is the image line only. Committed as graph 8d875930 BEFORE the pregate.
+3. Pregate on the committed re-pin, gate code identical to the pin (git diff 53d7bf1 HEAD -- gate: nothing), whole output kept:
+   $ gate/pregate.sh --graph <worktree> --target tutorial --node tutorial-and-swap
+   verdict pass; steps 1, 2, 4, 5, 6, 7, 8 all pass.
+4. CI: run 35599816639 on 8283f36 and run 35604977202 on 53d7bf1, fast tier success and Lean tier success on both.
+   No gate run in flight and no open pull request; pushed by fast-forward e88abf3a -> 8d875930.
+5. Re-render (--no-build, no image pulled, exit 0, no warning): graph 029f79b5. 94 files; measured against the committed
+   products, every difference is the pin (gate_spec_hash, network_commit), rendered_from and the claims snapshot time.
+   No node's status moved; frontier 39 entries, 39 claimable, before and after. (My first count said "65 files differ
+   beyond the commit stamp": the stamp is nested in CONTEXT.json too. Read one diff before believing a count.)
+6. Live:
+   GET /frontier.json: 39 entries, rendered_from 8d875930.
+   https://openproofnetwork.org/problems/erdos-402/ carries the closing line with `import Nodes.«erdos-402».Context`
+   (site-deploy dispatched by hand, as a direct push starts none).
+
+7. THE RULE ON THE LIVE GATE, fixture-free. A token was minted the guide's way (anonymous tutorial precheck, then
+   POST /tokens; pseudonym lead-0921-verify; the token deleted afterwards) and POST /precheck sent erdos-402's root a
+   Proof.lean whose header is the statement's plus `import Nodes.«erdos-402».Context` after `import Mathlib`, its body
+   naming erdos_402__h3:
+     attestation: network_commit 53d7bf1, graph_commit 8d875930
+     steps: 1 pass, 2 PASS, 4 fail, 5 to 8 skipped
+     step 4: elaboration-failed, line 27: Unknown identifier `erdos_402__h3`
+   Step 2 takes the header (it was proof-not-statement under every earlier pin), and the one failure is the hole nobody
+   has proved: an unproved hole is not staged (R22), so its theorem is not there. When h3 is proved the same header
+   reaches it. A precheck runs in the scratch repository and wrote nothing to the graph.
