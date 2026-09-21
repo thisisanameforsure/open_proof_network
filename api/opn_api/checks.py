@@ -389,7 +389,7 @@ def witness_text(formal: str, content: str, decl_name: str) -> str:
     imports = [i for i, line in enumerate(lines) if line.startswith("import ")]
     at = imports[-1] + 1 if imports else 0
     header = "" if "Lean" in layout.imports_of(formal) else "import Lean\n"
-    witness = IMPORT_LINE_RE.sub("", content).strip("\n")
+    witness = IMPORT_LINE_RE.sub("", content).strip()
     return (
         "".join(lines[:at])
         + header
@@ -618,7 +618,9 @@ async def post_check(ctx: Context, request: Request) -> Response:
             formal = forwarded_text(statement.text, defs) if statement is not None else None
             if req.mode == "witness":
                 assert statement is not None and formal is not None  # NODE_MODES, above
-                text = witness_text(formal, text, statement.decl_name)
+                # The caller's own text, not ``text``: the definitions and the Context are
+                # already in ``formal``, and inlined into an empty witness they read as one.
+                text = witness_text(formal, req.content, statement.decl_name)
             answer = await asyncio.to_thread(call_checker, ctx, req, text, environment, formal)
             if answer.body.get("error_type") == LEAN_TIMEOUT:
                 raise timed_out(ctx, answer.request_id)

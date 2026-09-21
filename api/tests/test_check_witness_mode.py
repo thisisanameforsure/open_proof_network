@@ -149,3 +149,27 @@ def test_the_mcp_tool_offers_the_mode() -> None:
     assert tool.input_schema["properties"]["mode"]["enum"] == list(checks.MODES)
     assert tool.input_schema["required"] == ["target_id"]  # content is optional in witness mode
     assert "witness" in tool.description
+
+
+def test_a_node_with_a_context_and_no_witness_asks_for_the_expected_type_alone() -> None:
+    """Found live, minutes after the deploy: on ``erdos-69--h2-v2--h1-v2--h4`` the mode answered
+    ``witness: null``, "Unknown constant `witness`". With no content the *inlined Context* was
+    taken for the witness, so the program looked one up. The first fixture had no Context to
+    inline; this one has the live shape (2026-09-12: keep one fixture with the live shape)."""
+    own = f"import Nodes.«{NODE}».Context"
+    statement = (
+        f"import Init\n{own}\n\ntheorem OpnProp.and_reassoc : ∀ p : Prop, p → p := by\n  sorry\n"
+    )
+    context = "theorem OpnProp.dep : True := by\n  sorry\n"
+    h = harness_with(
+        axle=FakeAxle(replies=[answer({"expected": "X", "given": None, "matches": None})])
+    )
+    seed(h, statement=statement)
+    h.githost.files[f"targets/{TARGET}/nodes/{NODE}/Context.lean"] = context.encode()
+    h.context.files.clear()
+    r = post(h, {"target_id": TARGET, "node_id": NODE, "mode": "witness"})
+    assert r.status_code == 200, r.text
+    (sent,) = h.axle.calls
+    assert "getConstInfo `witness" not in sent.content
+    assert sent.content.count("theorem OpnProp.dep") == 1  # the Context, inlined once
+    assert r.json()["witness"] == {"expected": "X", "given": None, "matches": None}

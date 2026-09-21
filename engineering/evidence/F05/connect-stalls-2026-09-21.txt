@@ -1,0 +1,39 @@
+# The 20 to 75 second stalls the three testers reported (finding 5): root cause, 2026-09-21
+
+All three agents measured calls that usually take 0.5 s taking 20, 36 or 68 s, on every route, and read it as the service.
+
+## What it is
+The whole delay is the TCP connect, before any request exists:
+  curl -w: dns=0.004 conn=19.164 tls=19.319 ttfb=19.845   (a normal call: conn=0.152)
+19, 35 and 67 s are macOS's SYN retransmission schedule (1,1,1,1,1,2,4,8,16,32 s, cumulative 19 / 35 / 67);
+40 s is curl giving up on the first address at half its budget and connecting to the second in 0.15 s.
+So a first SYN is lost and every retransmission of that connection is lost with it, while a new connection works at once.
+
+## Where
+From this laptop (AS12849 Hot-Net, IL), --connect-timeout 3, 40 connects each:
+  api.openproofnetwork.org            8/40 fail   (25 earlier: 7/25 on /health, which the agents had called always fast)
+  dynamodb / s3 / lambda us-east-1    0/40 each   (same region, other AWS front ends)
+  dynamodb us-west-2, eu-west-1       0/40 each
+  openproofnetwork.org (CloudFront)   0/40
+  api.github.com                      0/40
+  apigateway.us-east-1.amazonaws.com  2/25        (API Gateway's own control plane: the same family of addresses)
+All six addresses the api name resolves to are affected (1 or 2 of 6 tries each); no address is dead; a fixed source port
+fails on one pass and succeeds on the next, so it is not one bad 4-tuple.
+
+From a second vantage, a GitHub-hosted runner (AS8075 Microsoft, Virginia), 200 connects each, run 35603981496:
+  api.openproofnetwork.org            0/200 fail, 0/200 over 1 s
+  dynamodb.us-east-1                  0/200
+  openproofnetwork.org                0/200
+
+## Conclusion
+Not the service's code, not the Lambda, not API Gateway as such: SYNs to API Gateway's regional address ranges are being
+dropped on the path from this network (the ISP, or something between it and AWS), about one connection in five. Every
+agent ran on this laptop, so all three saw it. One other vantage is clean; that is evidence, not proof, that outside users
+are unaffected.
+
+## What would remove it for everyone, if it is ever seen elsewhere
+CloudFront in front of the api: the site's distribution never lost a connect from here, because the connection ends at a
+nearby edge. That is a stack change (a distribution, the api's domain moved onto it) and the owner's decision; nothing was
+changed. A client-side mitigation costs nothing: --connect-timeout 3 with a retry turns a 19 s stall into a 3 s one.
+
+The probe workflow lived on branch probe/connect, which was deleted after the one run.
