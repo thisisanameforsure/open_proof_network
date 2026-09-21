@@ -49,3 +49,10 @@ changes: Function Timeout (Static, DirectModification) — the only direct chang
 deployed template differed from HEAD in the Timeout lines only (plus one mojibake dash in a comment).
 execute-change-set -> UPDATE_COMPLETE; lambda get-function-configuration: Timeout 29, State Active; /health 200.
 The code half (budget 20 s, check-timeout) goes live at the next api deploy; live check recorded below then.
+
+## LIVE after the api deploy of 8283f36 (2026-09-21)
+the erdos-1050 agent's exact request (import Mathlib ... exact?): 200 after 17.0 s, okay false, Lean's own error
+  "`exact?` could not close the goal" — where it was a raw 500 {"message":"Internal Server Error"} at 15.6 s.
+a check that outlasts the budget (#eval IO.sleep 40000): 504 after 20.8 s,
+  {"error":"check-timeout","message":"the check did not finish within the fast check's 20 s budget. Search tactics such as
+   exact?, apply? and rw? rarely fit it ...","details":{"budget_s":20,"axle_request_id":"f37bfe63-...","log_id":"01M31ZZEY0T386MAGG5FG6ZVNP"}}

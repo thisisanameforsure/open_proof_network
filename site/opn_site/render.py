@@ -16,7 +16,8 @@ from pathlib import Path
 from string import Template
 from typing import Any
 
-from opn_gate import hosted, intake, products, steward
+from opn_gate import graph as graphmod
+from opn_gate import hosted, intake, layout, products, steward
 from opn_gate import ledger as ledgermod
 from opn_site import dag, links, prose
 from opn_site.model import LeanFile, NodeView, Prose, Site, SiteError, TargetView
@@ -1286,6 +1287,36 @@ class Renderer:
             parts.append(f"Revises {link(nv.supersedes)}, which it replaced (D-8).")
         return f'<p class="revision-note">{" ".join(parts)}</p>' if parts else ""
 
+    def closing_note(self, tv: TargetView, nv: NodeView) -> str:
+        """The "closable through its holes" line (2026-09-21), on a node that has holes and is
+        not settled. Two outside agents worked a target's holes for a session before finding, by
+        experiment, that the root could not be assembled from them. Since F00-T10 it can: the
+        holes' theorems reach a proof through the node's own Context, which a statement written
+        since 2026-09-20 imports and an older one's proof may import itself. The panel says
+        which, with the line to add. ``layout.imports_own_context`` decides, as it does for the
+        MCP's ``get_node``; a hole is what the graph calls one (``graph.is_hole_of``)."""
+        if nv.status in ("proved", "superseded"):
+            return ""
+        holes = [
+            other
+            for other, ov in tv.nodes.items()
+            if graphmod.is_hole_of(nv.node_id, other, str(ov.graph_entry.get("origin")))
+            and ov.status != "superseded"
+        ]
+        if not holes:
+            return ""
+        lead = "Closable through its holes: once they are proved, a proof of this statement may "
+        if layout.imports_own_context(nv.node_id, nv.statement):
+            words = lead + "name their theorems, which its Context already carries."
+        else:
+            line = f"import {layout.node_module(nv.node_id, 'Context')}"
+            words = (
+                lead + "name their theorems. This statement predates the Context import, so the "
+                f"proof adds <code>{esc(line)}</code> directly after the statement's last "
+                "import: the one import the gate allows a proof to add."
+            )
+        return f'<p class="closing-note">{words} A direct proof is accepted at any time.</p>'
+
     def statement_panel(self, tv: TargetView, nv: NodeView) -> str:
         """One "Selected statement" panel per node; the script shows the selected one and the
         page without it shows the root's. Hashes, origin, pin and files sit behind a toggle."""
@@ -1325,6 +1356,7 @@ class Renderer:
             attempts=esc(self.attempts_words(nv)),
             note=note,
             revision=self.revision_note(tid, nv, in_page=True),
+            closing=self.closing_note(tv, nv),
             statement=esc(declaration_only(nv.statement)),
             hash=esc(str(e.get("statement_hash", ""))[:12]),
             origin=esc(origin),

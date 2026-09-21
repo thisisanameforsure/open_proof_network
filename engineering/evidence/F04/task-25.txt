@@ -1,0 +1,21 @@
+# F04-T25 / F09-T11 evidence — the 'closable through its holes' line and flag (Mike, 2026-09-21; testers finding 2)
+
+## RED
+api/tests/test_finding_node_closing_route.py: 2 failed, KeyError 'closing' (the key did not exist)
+site/tests/test_finding_closing_route.py: 3 failed — the line on no panel (assert set() == {'and-swap-reassoc'}); no closing_note
+
+## GREEN
+api: 2 passed, MCP suites 92 passed, result schema get_node/v1 edited in place (F09-Q5: not a protocol record)
+site: 3 passed, site suite 291 passed, no golden moved (no golden fixture has an open node with holes)
+
+## The live graph rendered with this tree (graph 59d2b38d, 160 pages): the line appears on 8 panels
+erdos-1050: 2   erdos-402: 1   erdos-412: 1   erdos-69: 3   tutorial: 1
+erdos-402's root: 'Closable through its holes: once they are proved, a proof of this statement may name their theorems.
+  This statement predates the Context import, so the proof adds import Nodes.«erdos-402».Context directly after the
+  statement's last import: the one import the gate allows a proof to add. A direct proof is accepted at any time.'
+screenshot: engineering/evidence/F04/closing-note-erdos-402.png (headless Chrome, 1440 wide; looked at: the line sits under
+  the panel note, wraps inside the card, the import line is monospace and does not overflow).
+
+## The window to know about
+The service deploys at the push; the graph's gate takes the rule only at the re-pin. Between the two, get_node says a proof
+may add the import while the pinned gate still refuses it. The site moves with the graph, so its line appears after the re-pin.

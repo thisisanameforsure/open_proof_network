@@ -11,6 +11,7 @@
         "target_id",
         "context",
         "context_source",
+        "closing",
         "files",
         "claims",
         "annexes",
@@ -44,6 +45,30 @@
             "file",
             "derived"
           ]
+        },
+        "closing": {
+          "type": "object",
+          "description": "How the node is closed through its holes and dependencies (F00-T10): their theorems reach a proof through the node's own Context. context_import says where that import lives: 'statement' (already in Statement.lean, so the proof's header is the statement's) or 'proof' (the statement predates the line, and the proof adds import_line directly after the statement's last import; the one import step 2 allows).",
+          "additionalProperties": false,
+          "required": [
+            "through_holes",
+            "context_import",
+            "import_line"
+          ],
+          "properties": {
+            "through_holes": {
+              "type": "boolean"
+            },
+            "context_import": {
+              "enum": [
+                "statement",
+                "proof"
+              ]
+            },
+            "import_line": {
+              "type": "string"
+            }
+          }
         },
         "files": {
           "type": "object",

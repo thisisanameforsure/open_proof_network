@@ -28,7 +28,7 @@ from opn_api.app import ApiError, CachedFile
 from opn_api.githost import GitHostError
 from opn_api.mcp import demarcate, results
 from opn_api.mcp.calls import ID_PARAM, Call, Source, Tool, error, params
-from opn_gate import context, schemas
+from opn_gate import context, layout, schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -318,6 +318,21 @@ def node_context(ctx: Context, target_id: str, node_id: str) -> tuple[dict[str, 
     return doc, "derived"
 
 
+def closing_route(node_id: str, statement: str | None) -> dict[str, Any]:
+    """How this node is closed through its holes and dependencies (F00-T10). Their theorems
+    reach a proof through the node's own ``Context``; a statement written since 2026-09-20
+    imports it, and a proof of an older one adds the line itself, which is the one import step 2
+    allows. Two agents learned that a root could not be assembled from its holes at minute 37,
+    by experiment; now it can, and the node says how. One function decides
+    (``layout.imports_own_context``), so the site's line and this one cannot disagree."""
+    in_statement = statement is not None and layout.imports_own_context(node_id, statement)
+    return {
+        "through_holes": True,
+        "context_import": "statement" if in_statement else "proof",
+        "import_line": f"import {layout.node_module(node_id, 'Context')}",
+    }
+
+
 async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     node_id = check_id(args.get("node_id"), "node_id")
     try:
@@ -344,6 +359,7 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         "target_id": target_id,
         "context": bundle,
         "context_source": source,
+        "closing": closing_route(node_id, files.get("Statement.lean")),
         "files": files,
         "claims": dict(entry["claims"]) if entry is not None else None,
         "annexes": _prose(call.ctx, f"{node_dir}/annex"),
