@@ -174,7 +174,9 @@ Resources:
       Handler: opn_api.lambda_handler.handler
       Role: !GetAtt ExecutionRole.Arn
       MemorySize: 512
-      Timeout: 15
+      # F13-T13: under the HTTP API's 30 s integration ceiling, and above the fast check's whole
+      # budget (slot wait + connect + 20 s + grace), so the service answers and is never killed.
+      Timeout: 29
       Code:
         # Replaced on the first api-deploy run; this placeholder only lets the stack create.
         ZipFile: |

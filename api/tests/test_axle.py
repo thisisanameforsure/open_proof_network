@@ -153,7 +153,7 @@ def test_environment_listing_failures_are_axle_errors(
 def test_settings_name_the_service_and_the_budget() -> None:
     """R3, §6: the base URL and the per-call budget are config with documented defaults (C6)."""
     default = config.load({})
-    assert default.axle_url == "https://axle.axiommath.ai" and default.check_timeout_s == 60
+    assert default.axle_url == "https://axle.axiommath.ai" and default.check_timeout_s == 20  # T13
     custom = config.load({"OPN_API_AXLE_URL": BASE + "/", "OPN_API_CHECK_TIMEOUT_S": "5"})
     assert custom.axle_url == BASE and custom.check_timeout_s == 5
     with pytest.raises(config.ConfigError, match="OPN_API_CHECK_TIMEOUT_S"):

@@ -26,16 +26,21 @@ import httpx
 CHECK_PATH = "/api/v1/check"
 VERIFY_PATH = "/api/v1/verify_proof"
 ENVIRONMENTS_PATH = "/v1/environments"
-CONNECT_TIMEOUT_S = 10.0
+CONNECT_TIMEOUT_S = 3.0
+#: What the read waits beyond the checker's own budget, so a slow elaboration is reported by AXLE
+#: (a ``LeanTimeout`` body) rather than cut off by us mid-answer. Kept small: connect, budget and
+#: grace together must fit inside the function's timeout (test_finding_check_timeout).
+READ_GRACE_S = 1.0
 
 
 class AxleError(Exception):
     """The checker refused or failed. ``status`` is its HTTP status, or ``None`` when no response
     arrived; the message is safe to log."""
 
-    def __init__(self, message: str, *, status: int | None = None) -> None:
+    def __init__(self, message: str, *, status: int | None = None, timed_out: bool = False) -> None:
         super().__init__(message)
         self.status = status
+        self.timed_out = timed_out
 
 
 @dataclass(frozen=True)
@@ -104,10 +109,9 @@ class HttpxAxle:
         headers = {"Accept": "application/json"}
         if self._api_key:
             headers["Authorization"] = f"Bearer {self._api_key}"
-        # The read timeout is the checker's own budget plus the connect allowance, so a slow
-        # elaboration is reported by AXLE rather than cut off by us mid-answer.
+        # The read waits the checker's own budget plus READ_GRACE_S (see there).
         return httpx.Client(
-            timeout=httpx.Timeout(timeout_s + CONNECT_TIMEOUT_S, connect=CONNECT_TIMEOUT_S),
+            timeout=httpx.Timeout(timeout_s + READ_GRACE_S, connect=CONNECT_TIMEOUT_S),
             headers=headers,
         )
 
@@ -118,7 +122,7 @@ class HttpxAxle:
                 resp = http.post(self._base + path, json=body)
             except httpx.HTTPError as exc:
                 msg = f"AXLE {call} failed: {type(exc).__name__}"
-                raise AxleError(msg) from exc
+                raise AxleError(msg, timed_out=isinstance(exc, httpx.TimeoutException)) from exc
         latency_ms = int((time.monotonic() - started) * 1000)
         if resp.status_code != 200:
             msg = f"AXLE {call} returned {resp.status_code}"

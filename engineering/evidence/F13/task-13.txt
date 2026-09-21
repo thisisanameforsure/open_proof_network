@@ -1,0 +1,51 @@
+# F13-T13 evidence — a slow check is answered, never killed (tester finding 4, 2026-09-21)
+
+## Probe: what AXLE answers when its own budget runs out (direct, keyless, 2026-09-21)
+POST https://axle.axiommath.ai/api/v1/check {content: "import Mathlib ... exact?", environment: lean-4.33.1, timeout_seconds: 5}
+-> 200 after 6.2 s: {"error":"lean worker timeout after 5.0s","exit_status":-9,"error_type":"LeanTimeout","info":{"request_id":"458f671b-...","execution_time_ms":5226,...}}
+So AXLE honours timeout_seconds and answers a body; the raw 500 was the function (Timeout: 15) dying under a 60 s budget.
+
+## RED (before any production change)
+E       AttributeError: module 'opn_api.checks' has no attribute 'SLOT_WAIT_S'
+>       for reply in (LEAN_TIMEOUT, AxleError("AXLE check failed: ReadTimeout", timed_out=True)):
+E       TypeError: AxleError.__init__() got an unexpected keyword argument 'timed_out'
+E       AttributeError: 'AxleError' object has no attribute 'timed_out'
+E       AttributeError: module 'opn_api.checks' has no attribute 'SLOT_WAIT_S'
+FAILED api/tests/test_finding_check_timeout.py::test_the_checkers_whole_budget_fits_inside_the_functions_timeout
+FAILED api/tests/test_finding_check_timeout.py::test_a_checker_that_ran_out_of_time_is_a_named_refusal_with_a_record
+FAILED api/tests/test_finding_check_timeout.py::test_a_transport_timeout_is_marked_by_the_client
+FAILED api/tests/test_finding_check_timeout.py::test_a_full_cap_answers_busy_after_the_slot_wait_not_the_checkers_budget
+4 failed, 2 warnings in 0.29s
+
+## RED, second run: the seams named with today's values (SLOT_WAIT_S 60, READ_GRACE_S 0, timed_out never set),
+## so each test fails on the defect and not on a missing name
+E       AssertionError: (130.0, 15)
+E       assert (130.0 + 2) <= 15
+E        +  where 15 = function_timeout_s()
+        for reply in (LEAN_TIMEOUT, AxleError("AXLE check failed: ReadTimeout", timed_out=True)):
+E       AssertionError: {"authoritative":false,"service":"axle","environment":"lean-4.33.1","exact":true,"note":null,"mode":"check","lint":[],"inlined_defs":[],"okay":null,"user_error":null,"result":{"error":"lean worker timeout after 20.0s","exit_status":-9,"error_type":"LeanTimeout","info":{"request_id":"req-timeout"}},"log_id":"01M230M2G02G6CVZBZD5DFJRPA"}
+E       assert 200 == 504
+E        +  where 200 = <Response [200 OK]>.status_code
+E       AssertionError: assert (False is True)
+E        +  where False = AxleError('AXLE check failed: ReadTimeout').timed_out
+E        +    where AxleError('AXLE check failed: ReadTimeout') = <ExceptionInfo AxleError('AXLE check failed: ReadTimeout') tblen=3>.value
+E       assert 60.0 <= 5
+E        +  where 60.0 = checks.SLOT_WAIT_S
+FAILED api/tests/test_finding_check_timeout.py::test_the_checkers_whole_budget_fits_inside_the_functions_timeout
+FAILED api/tests/test_finding_check_timeout.py::test_a_checker_that_ran_out_of_time_is_a_named_refusal_with_a_record
+FAILED api/tests/test_finding_check_timeout.py::test_a_transport_timeout_is_marked_by_the_client
+FAILED api/tests/test_finding_check_timeout.py::test_a_full_cap_answers_busy_after_the_slot_wait_not_the_checkers_budget
+4 failed, 2 warnings in 0.38s
+
+## GREEN
+34 passed, 2 warnings in 25.19s
+whole api suite: 712 passed
+one existing test restated: test_axle.py pinned the default budget at 60; it now says 20 (T13).
+
+## Stack update (2026-09-21): change set f13-t13-timeout-29 on opn-api, every parameter UsePreviousValue
+changes: Function Timeout (Static, DirectModification) — the only direct change;
+         DeployRole Policies and Integration IntegrationUri (Dynamic, caused by Function.Arn, Replacement False):
+         re-evaluations of an ARN that does not change.
+deployed template differed from HEAD in the Timeout lines only (plus one mojibake dash in a comment).
+execute-change-set -> UPDATE_COMPLETE; lambda get-function-configuration: Timeout 29, State Active; /health 200.
+The code half (budget 20 s, check-timeout) goes live at the next api deploy; live check recorded below then.

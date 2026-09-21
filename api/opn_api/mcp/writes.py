@@ -259,7 +259,7 @@ TOOLS: tuple[Tool, ...] = (
     ),
     Tool(
         "check_lean",
-        "Check Lean text in about a second on the hosted checker matched to the target's pinned "
+        "Check Lean text within 20 s on the hosted checker matched to the target's pinned "
         "Mathlib (AXLE, a third party) and get its errors, goal states and, with mode verify and "
         "a node_id, its comparison against the node's statement, plus warnings wherever the gate "
         "would refuse what the checker accepted. The body's `okay` is true, false, or null when "

@@ -298,6 +298,26 @@ def _written_name(statement_text: str) -> str | None:
 # --- the checker ---------------------------------------------------------------------------------
 
 _SLOTS_LOCK = threading.Lock()
+#: How long a check waits for a free slot (R8). Its own short budget, not the checker's: the
+#: function lives 29 s, and a caller held for the checker's whole budget had none left (T13).
+SLOT_WAIT_S = 2.0
+#: The hosted checker's word for its own budget running out, in a 200 body (probed 2026-09-21).
+LEAN_TIMEOUT = "LeanTimeout"
+
+
+def timed_out(ctx: Context, request_id: str | None) -> Exception:
+    """F13-T13: the one answer for a check that ran out of time, whether the checker said so or
+    the transport did. Named, with the budget, so a contributor learns what does not fit instead
+    of reading a gateway's 500."""
+    budget = ctx.settings.check_timeout_s
+    return api_error(
+        504,
+        "check-timeout",
+        f"the check did not finish within the fast check's {budget} s budget. Search tactics such "
+        "as exact?, apply? and rw? rarely fit it: find the lemma another way and name it. The "
+        "precheck (POST /precheck) has the gate's full budget",
+        details={"budget_s": budget, "axle_request_id": request_id},
+    )
 
 
 def slots(ctx: Context) -> threading.BoundedSemaphore:
@@ -318,7 +338,7 @@ def call_checker(
     """``formal`` is the node's statement as the checker must compile it: with the definitions
     inlined exactly as they are into ``text`` (F13-T11), and ``None`` outside verify."""
     gate = slots(ctx)
-    if not gate.acquire(timeout=ctx.settings.check_timeout_s):
+    if not gate.acquire(timeout=min(SLOT_WAIT_S, ctx.settings.check_timeout_s)):
         msg = f"{ctx.settings.check_concurrency} checks are already in flight; retry shortly"
         raise api_error(503, "checker-busy", msg, headers={"Retry-After": "5"})
     try:
@@ -460,7 +480,11 @@ async def post_check(ctx: Context, request: Request) -> Response:
         try:
             formal = forwarded_text(statement.text, defs) if statement is not None else None
             answer = await asyncio.to_thread(call_checker, ctx, req, text, environment, formal)
+            if answer.body.get("error_type") == LEAN_TIMEOUT:
+                raise timed_out(ctx, answer.request_id)
         except AxleError as exc:
+            if exc.timed_out:
+                raise timed_out(ctx, None) from exc
             raise api_error(
                 502, "upstream-unavailable", str(exc), details={"upstream_status": exc.status}
             ) from exc
