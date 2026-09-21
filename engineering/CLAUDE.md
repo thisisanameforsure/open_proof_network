@@ -1064,3 +1064,29 @@ The law of the project:
   for a label, not a frontier rule, and the label alone already gave `claimable: false`. When a
   test that blocks you cites a Q entry, read the entry before touching the test: it may be
   telling you the change is not yours to make (F03-Q16).
+- 2026-09-21 — Three outside agents on the calibration targets (one URL each; graph PRs #131 to #145,
+  nobody merged anything by hand), then their findings fixed in one sitting, test first on Mike's
+  word: "make a test that captures the current bug, and use it to iterate the code until it
+  passes". Notes in `engineering/session-notes/2026-09-21-calibration-testers.md`. What is worth
+  keeping. **A red test that fails on a missing name is not red.** Four of my first red runs were
+  `AttributeError`s; adding the seam at today's values first (`SLOT_WAIT_S = 60`, a `node_id`
+  keyword nobody reads) made each test fail on the defect itself, and twice that second run showed
+  the test was wrong rather than the code. **A replay of the record is the best red test.** The
+  merge actor's starvation was reproduced by driving the shipped `decide()` through PR #131's
+  morning as a forty-line simulation: merged at second 1080 after all ten appends, against 13 to
+  33 minutes live; with the fix, second 180. The rule that fixed it is a barrier, not a priority:
+  the pull request the actor just updated is *pending*, and "oldest green" walked straight past it.
+  **The real toolchain found what the fakes could not, three times in one day**: a test proof that
+  had lost its `by`, a log line Lean could not type (`←` inside an expression joined with `++`),
+  and the agents' `hole-not-roundtrip`, which a probe at 4.33.1 pinned to one missing option
+  (`pp.funBinderTypes`; `pp.binderTypes` does not reach an `∃`). **And the deployed route found
+  what the lean tier could not**: witness mode answered `witness: null` on its first live call,
+  because with no content the inlined Context was taken for the witness, and my "live check" had
+  called the composer directly rather than the route. Call the route. **A finding's cause is not
+  the finder's guess**: all three agents blamed the service for 20 to 75 second stalls that were
+  lost SYNs on this laptop's path to API Gateway (19/35/67 s is macOS's retransmission schedule;
+  0 of 200 from a hosted runner). **Some findings are not defects**: "reproduce before doing
+  anything" turned three of ten into a guide sentence, because two tests already pinned the
+  behaviour as design. Smaller: `$S:gate` is a zsh modifier (brace it, again); a function type is
+  a `∀` to the kernel, which is how `unused-binder` came to report `ℕ → ℤ`; and three literal
+  backticks inside a guide sentence reach the Docs page as a fence.
