@@ -33,7 +33,7 @@ from opn_api import clock as clockmod
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
 from opn_api.githost import GitHostError, WorkflowRun
-from opn_gate import attestation, schemas, signer
+from opn_gate import attestation, layout, postmerge, schemas, signer
 from opn_gate import graph as graphmod
 from opn_gate.paths import Claim
 
@@ -280,6 +280,33 @@ def superseded_error(ctx: Context, node_id: str, facts: dict[str, Any]) -> ApiEr
     )
 
 
+def witness_awaits_render(ctx: Context, node_id: str, facts: dict[str, Any]) -> bool:
+    """F06-T8: the products say ``witness-missing`` and ``main`` already carries a filled slot,
+    so the witness merged and the post-merge job has not rendered yet. Read from the tree, not
+    from a record: any merged witness counts, whoever opened its pull request. A host that
+    cannot be read changes nothing (C7)."""
+    if facts.get("cause") != graphmod.CAUSE_WITNESS_MISSING:
+        return False
+    path = f"targets/{facts['target_id']}/nodes/{node_id}/Witness.lean"
+    try:
+        raw = pending.optional_committed(ctx, path)
+    except ApiError:
+        return False
+    return raw is not None and not layout.mentions_sorry(raw.decode("utf-8", "replace"))
+
+
+def awaits_render(node_id: str, what: str, details: dict[str, Any] | None = None) -> ApiError:
+    """The ``409 products-pending`` of F05-T13, for something merged that the products a job is
+    pinned to do not carry yet."""
+    return ApiError(
+        409,
+        "products-pending",
+        f"{what}; {pending.NOT_RENDERED}. Retry shortly.",
+        details={"node_id": node_id, **(details or {})},
+        headers={"Retry-After": str(pending.PRODUCTS_RETRY_AFTER_S)},
+    )
+
+
 def check_open(ctx: Context, node_id: str, facts: dict[str, Any]) -> None:
     """F06-T6 (R1 amended): refuse a ``blocked`` node with the shared ``409 node-blocked``, and
     (F05-T11) a ``superseded`` one with ``409 node-superseded`` naming its replacement.
@@ -288,6 +315,8 @@ def check_open(ctx: Context, node_id: str, facts: dict[str, Any]) -> None:
     proved, and its anonymous precheck is how D-19 mints every identity — and a node the graph
     carries no status for has nothing to refuse it on."""
     if facts.get("status") == "blocked":
+        if witness_awaits_render(ctx, node_id, facts):
+            raise awaits_render(node_id, f"{node_id}'s witness has merged")
         raise blocked_error(node_id, facts, graph_doc(ctx))
     if facts.get("status") == "superseded":
         raise superseded_error(ctx, node_id, facts)
@@ -323,6 +352,58 @@ def existing_paths(ctx: Context, node_id: str, target_id: str) -> frozenset[str]
         if node["node_id"] == node_id and node.get("proof_commit"):
             return frozenset({prefix + bundles.PROOF_FILE})
     return frozenset()
+
+
+def check_cited_annex(
+    ctx: Context, claim: Claim, bundle: bundles.Bundle, graph_commit: str
+) -> None:
+    """F06-T8: a partial's ``-- annex:`` citation is checked against the tree the job will run
+    at, before the job exists. Step 2 refuses a skeleton whose annex is not on the node
+    (F07-T27), and a job runs at the commit the products were rendered from, so an annex in an
+    open pull request, or merged a minute ago, cost a hosted run that then blamed the contributor
+    (``annex-uncited``). Three answers instead: ``409 annex-pending`` naming the pull request,
+    ``409 products-pending`` for one on ``main`` and not yet rendered, ``400 annex-unknown``.
+    A malformed citation is left to the gate, which names the line; an unreadable host refuses
+    nothing (C7)."""
+    node_dir = f"targets/{claim.target_id}/nodes/{claim.node_id}/"
+    for path, text in sorted(bundle.files.items()):
+        if not (path.startswith(node_dir + "attempts/") and path.endswith(".lean")):
+            continue
+        try:
+            digest = postmerge.annex_citation(text)
+        except postmerge.MalformedCitationError:
+            continue
+        if digest is None:
+            continue
+        annex = f"{node_dir}annex/{digest}.md"
+        try:
+            pinned = ctx.githost.fetch_raw(ctx.settings.graph_repo, graph_commit, annex, etag=None)
+            if pinned.status != 404:  # there, or not known to be absent
+                continue
+            on_main = pending.optional_committed(ctx, annex) is not None
+        except (GitHostError, ApiError):
+            continue
+        details = {"annex": digest}
+        if on_main:
+            raise awaits_render(claim.node_id, f"annex {digest[:12]}… has merged", details)
+        for found in ctx.store.list_open_submissions():
+            if found.kind == "annex" and found.node_id == claim.node_id:
+                raise ApiError(
+                    409,
+                    "annex-pending",
+                    f"the skeleton cites annex {digest[:12]}…, which is not on {claim.node_id} "
+                    f"yet; an annex for this node is open as pull request #{found.pr_number}. "
+                    "Precheck again once it has merged and the products are rendered",
+                    details={**details, "pr_number": found.pr_number, "pr_url": found.pr_url},
+                )
+        raise ApiError(
+            400,
+            "annex-unknown",
+            f"the skeleton cites annex {digest[:12]}…, which is not on {claim.node_id} and is in "
+            "no open pull request; submit the annex first through POST /annexes and cite the "
+            "hash it returns (D-31)",
+            details=details,
+        )
 
 
 # --- POST /precheck ------------------------------------------------------------------------------
@@ -374,6 +455,8 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
         # A precheck that the submission would refuse by path is refused before it costs a job.
         submissions.check_artifact_path(claim, bundle.files, artifact_type)
 
+    graph_commit = rendered_from(ctx, claim.target_id if facts["status"] is not None else None)
+    check_cited_annex(ctx, claim, bundle, graph_commit)
     now = ctx.clock.now()
     job = Job(
         id=identitymod.new_ulid(now),
@@ -382,7 +465,7 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
         statement_hash=facts["statement_hash"],
         # A node served from its frontier entry alone (no graph.json row: no status) keeps the
         # frontier's commit, the document it was found in.
-        graph_commit=rendered_from(ctx, claim.target_id if facts["status"] is not None else None),
+        graph_commit=graph_commit,
         bundle_digest=bundle.digest,
         created=clockmod.render(now),
         identity_id=identity.id if identity else None,

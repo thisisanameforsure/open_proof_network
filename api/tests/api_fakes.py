@@ -112,6 +112,9 @@ class FakeGitHost:
     head_failure: str = ""
     head_reads: int = 0
     refs: list[str] = field(default_factory=list)
+    #: F06-T8: paths a given ref does not carry, so a test can put a file on ``main`` that the
+    #: commit the products were rendered from lacks.
+    absent_at: dict[str, set[str]] = field(default_factory=dict)
     artifact_failure: str = ""
     app_failure: str | None = None  # when set, every App call raises it (R10, AC12)
     lookup_failure: str | None = None  # when set, only find_run raises (C7: a transient outage)
@@ -154,7 +157,7 @@ class FakeGitHost:
         if self.unreachable:
             msg = f"fetching {path} failed: ConnectError"
             raise GitHostError(msg)
-        body = self.files.get(path)
+        body = None if path in self.absent_at.get(ref, ()) else self.files.get(path)
         if body is None:
             return Fetched(404, None, None)
         current = f'"{len(body)}-{hash(body) & 0xFFFF:x}"'

@@ -1,0 +1,23 @@
+# F06-T8 evidence — a precheck that cannot pass yet says so at once (testers 2026-09-21, finding 7)
+
+## RED (before any production change; the fake host gained absent_at, nothing else)
+E       assert (202, None) == (409, 'annex-pending')
+E       assert (202, None) == (409, 'products-pending')
+E       assert (202, None) == (400, 'annex-unknown')
+E       assert (409, 'node-blocked') == (409, 'products-pending')
+FAILED api/tests/test_finding_precheck_not_yet.py::test_an_annex_whose_pull_request_is_open_is_annex_pending
+FAILED api/tests/test_finding_precheck_not_yet.py::test_an_annex_merged_but_not_rendered_is_products_pending
+FAILED api/tests/test_finding_precheck_not_yet.py::test_an_annex_nobody_submitted_is_annex_unknown
+FAILED api/tests/test_finding_precheck_not_yet.py::test_a_witness_merged_but_not_rendered_is_products_pending
+4 failed, 3 passed, 2 warnings in 0.31s
+
+## GREEN
+api/tests/test_finding_precheck_not_yet.py: 9 passed (the four red ones, the claim route's, and four guards); api suite 744
+
+## MUTANTS (pytest -p plugins, no file touched)
+never read main for an annex        -> test_an_annex_merged_but_not_rendered_is_products_pending FAILED, 8 passed
+any node's open annex counts        -> test_an_open_annex_on_another_node_does_not_count FAILED, 8 passed
+
+Design note: both checks read the tree, not the submission store. A merged annex or witness is on main
+whoever opened its pull request, and a finished record leaves the open list, so the store could not have
+answered 'merged, not rendered'. The store is asked one thing: is an annex pull request open on this node.
