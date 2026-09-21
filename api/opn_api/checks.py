@@ -314,6 +314,32 @@ def _written_name(statement_text: str) -> str | None:
     return None
 
 
+def superseded_warning(ctx: Context, node_id: str | None) -> list[dict[str, Any]]:
+    """T15: a check against a node that has been replaced says so and names the replacement, as
+    a claim on it does (F05-T11). A warning, not a refusal: checking a superseded statement is
+    how a defect in it is shown. A graph that cannot say is no reason to fail a check (C7)."""
+    from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
+
+    if node_id is None:
+        return []
+    try:
+        facts = precheck.node_facts(ctx, node_id)
+        if facts.get("status") != "superseded":
+            return []
+        replacement = precheck.standing(ctx, node_id, facts)["replacement"]
+    except ApiError:
+        return []
+    successor = f" by {replacement}; work continues there" if replacement else ""
+    return [
+        {
+            "code": "node-superseded",
+            "message": f"{node_id} has been superseded{successor} (D-8). Nothing can be "
+            "submitted against it; its statement is kept for its history",
+            "replacement": replacement,
+        }
+    ]
+
+
 # --- the witness preview (F13-T14) ---------------------------------------------------------------
 
 
@@ -567,9 +593,16 @@ async def post_check(ctx: Context, request: Request) -> Response:
         # F13-T14: a witness is not a proof. It declares ``witness`` and its header is its own,
         # so the gate-gap lints (R4), which are about proofs, say nothing true of it.
         warnings = [] if req.mode == "witness" else lint(req.content, statement, req.node_id)
+        warnings += superseded_warning(ctx, req.node_id)
         if req.mode == "verify" and req.node_id is not None:
             own = layout.node_module(req.node_id, "Context")
-            if any(module == own for module, _ in defs):
+            # T15: only a Context that declares something restates anything. Every statement
+            # imports its own Context since F08-T13, so an empty one ("dependencies: none")
+            # set the warning off on every node, where it said nothing true.
+            if any(
+                module == own and DECLARATION_RE.search(layout.strip_comments(source))
+                for module, source in defs
+            ):
                 # F13-T12: a Context restates each dependency with a sorry body (the gate builds
                 # against the real proofs instead), and a verifier refuses any proof that leans on
                 # one, so its "no" here says nothing about the contributor's proof.

@@ -1,0 +1,35 @@
+# F13-T15, F02-T8 evidence — the testers' small findings, each reproduced before anything was touched (item 10)
+
+Rule (Mike, 2026-09-21): try to reproduce before doing anything. A test asserting the right behaviour is the reproduction;
+red means real, green at once means the agent misread.
+
+## REPRODUCED, fixed
+1. context-restated fires on a Context that restates nothing (erdos-402 agent, on variant-d865c9c6).
+   RED  api/tests/test_finding_context_restated_lint.py: 1 failed (the empty Context), 1 passed (a restating one: the guard)
+   fix  the lint fires only when the inlined Context declares something. GREEN 2 passed, test_checks.py unchanged.
+2. /check on a superseded node does not say so (erdos-1050 agent, on erdos-1050--h1).
+   RED  api/tests/test_finding_check_superseded.py: 1 failed (no warning), 1 passed (the replacement is not warned about)
+   fix  a node-superseded warning naming the replacement, as POST /claims does; not a refusal. GREEN 2 passed.
+3. unused-binder on `∃ a b : ℕ → ℤ` (erdos-1050 agent, step 6 of precheck 01M31BA8QGBV80K81P94STYNQM).
+   RED  gate/tests/test_hazards_lean.py::test_a_function_type_is_not_an_unused_binder, real toolchain:
+        "binder a._@._internal._hyg.0 is quantified but nothing after it mentions it" — the agent's message, word for word.
+   cause a function type is a ∀ in the kernel, and its anonymous binder is never mentioned.
+   fix  only a ∀ that is a proposition is reported. GREEN 8 passed (the fixture's real unused `m` still fires).
+4. helper-declarations on `theorem witness`: real; cured by mode witness, which runs no proof lints (F13-T14).
+
+## REPRODUCED, not changed: the owner's call or by design
+5. claims.active[] carries no claim id. Confirmed in api/opn_api/frontier.py: {pseudonym, expires}. Releasing is holder-only
+   (403 not-holder), so an id is no secret; but claims/v1 is closed and hash-pinned, so publishing it is a schema bump
+   (claims/v2 and its consumers), and the other cure, an authenticated GET /claims, is a new D-35 route. Both are Mike's.
+6. /submissions.json entries have no waiting_on. Confirmed, and by design: two tests pin that each entry equals the
+   `submission` document GET /submissions/<id> carries, which is the record; the live state is the per-id route's. Guide sentence.
+7. waiting_on never says branch-update. By design: once the actor updates a branch the gate is running again, and "gate" is
+   the one thing it waits for. The cause of the complaint was the starvation itself (F07-T31). Guide sentence on the queue.
+8. The MCP's two result shapes ({status, body} on writes, the bare document on reads): F09's design, stated in the server
+   instructions and each tool's schema, absent from the guide. Guide sentence.
+9. An annex's Lean lost its line breaks on the site: the renderer keeps ``` fences (site/opn_site/prose.py); the agent did not
+   fence. Guide sentence, which is what the agent asked for.
+
+## NOT REPRODUCED
+10. "get_submission said gate while gh showed BEHIND with the run completed": the agent's own note says the two reads were
+    not simultaneous and a new run had started 30 s later. Nothing to fix.

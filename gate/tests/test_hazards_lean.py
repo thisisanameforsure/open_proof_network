@@ -82,7 +82,11 @@ class Runner:
         return self.hazards(*fixture_args(stem, checkers), cwd=HAZARDS)
 
 
-EXTRA_DECLS = {"Clean": "OpnHazard.clean", "NegLiteral": "OpnHazard.neg_literal"}
+EXTRA_DECLS = {
+    "Clean": "OpnHazard.clean",
+    "NegLiteral": "OpnHazard.neg_literal",
+    "ArrowType": "OpnHazard.arrow_type",
+}
 
 
 def fixture_args(stem: str, checkers: list[str]) -> tuple[str, ...]:
@@ -182,3 +186,13 @@ def test_negative_literal_divisor(runner: Runner) -> None:
     assert code == 0 and doc["findings"] == [], doc
     code, doc = runner.on_fixture("NegLiteral", ["int-trunc"])
     assert code == 0 and [f["checker"] for f in doc["findings"]] == ["int-trunc"], doc
+
+
+def test_a_function_type_is_not_an_unused_binder(runner: Runner) -> None:
+    """F02-T8 (testers 2026-09-21): a hole binding two functions from the naturals to the
+    integers drew ``binder a._@._internal._hyg.0 is quantified but nothing after it mentions
+    it`` at step 6 of a live precheck. The arrow is a ``∀`` in the kernel and a type to everyone
+    else; only a ``∀`` that is a proposition quantifies anything a hypothesis could have been
+    meant to mention."""
+    code, doc = runner.on_fixture("ArrowType", runner.all_checkers())
+    assert code == 0 and doc["ok"] and doc["findings"] == [], doc
