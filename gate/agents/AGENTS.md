@@ -22,7 +22,10 @@ The protocol is `docs/architecture_decisions.html` in the `network` repository; 
 Three paths reach the same protocol, and this file walks two of them side by side: the **git
 path** (a clone, `pregate.sh`, a pull request) and the **HTTP path** (a small service with a
 handful of JSON endpoints). The third, the **MCP path**, is the same endpoints behind D-28's tool
-names; the table at the end maps them.
+names; the table at the end maps them. The MCP server is at `$OPN_API/mcp` (streamable HTTP;
+for the live graph `https://api.openproofnetwork.org/mcp`). A write tool answers
+`{status, body}`, the endpoint's status and body passed through; a read tool answers the
+document itself, with no envelope.
 
 Set three variables. `GRAPH` is a clone of this repository; `NETWORK` is a clone of the tooling
 repository (`https://github.com/thisisanameforsure/open_proof_network`) at the commit this
@@ -189,8 +192,15 @@ Keep `$JOB` and `$NONCE`: the nonce is shown once and buys the token in the next
 A precheck takes minutes. To iterate on a proof, send its text to `POST /check` (MCP
 `check_lean`). The network forwards it to AXLE, Axiom Math's hosted Lean engine: a third party
 that elaborates it in its own sandbox against the Mathlib nearest your target's pin. The answer
-comes back in about a second with Lean's errors by line and column and the goal at each error.
-With `"mode": "verify"` and a `node_id`, it also compares your text against the node's statement.
+usually comes back in a few seconds with Lean's errors by line and column and the goal at each
+error. The budget is 20 seconds: a check that outlasts it answers `504 check-timeout`, and search
+tactics (`exact?`, `apply?`, `rw?`) are the usual cause, so find the lemma another way and name
+it. With `"mode": "verify"` and a `node_id`, it also compares your text against the node's
+statement. With `"mode": "witness"` and a `node_id` it answers `witness`: the `expected` type
+step 7 will hold a witness of that node to, printed so that you can paste it as your witness's
+type, and, when `content` is your witness, its `given` type and whether it `matches`; with no
+`content`, the expected type alone. A check against a node that has been replaced carries a
+`node-superseded` warning naming the replacement.
 The answer is never authoritative: only a precheck and then the gate decide (D-4). No token is
 needed; a token raises the limit. Each call is logged by its metadata and a hash of the text,
 never the text, but the text itself does leave the network for AXLE. `GET /hosted-checkers.json`
@@ -569,13 +579,22 @@ Watch it while it is open. `GET /submissions/<id>` (MCP `get_submission`) takes 
 `submission_id` that call answered, a `proposal_id`, or the pull request's number, and returns
 the service's record with the pull request's live state: open or merged, its `mergeable_state`,
 the check runs on its head commit with their conclusions, and its reviews. `waiting_on` names the
-one thing it waits for: `gate` (the run has not finished; about three minutes on a Mathlib
-target, under one without), `step9-review`, `branch-update`, `merge`, `gate-failed` (nothing:
+one thing it waits for: `gate` (the run has not finished; one gate round is about three minutes
+on a Mathlib target, under one without), `step9-review`, `branch-update`, `merge`, `gate-failed` (nothing:
 it was refused, and `gate_verdict` beside it says why), or, for a merged proposal, `products`
 (the post-merge job has not rendered the new node yet, usually three to six minutes). Once it has merged, the same call carries
 the attestation (`attestation_note` says why there is none yet). `GET /submissions.json` (MCP
 `list_submissions`) lists every submission still open, which is also how to see work already in
-flight on a node before you start.
+flight on a node before you start. Each entry there is the record alone and carries no
+`waiting_on`: the live state is the per-id call's.
+
+One gate round is not the time to merge. Pull requests merge one at a time, oldest first, because
+every merge puts the others behind `main` and the ruleset wants an up-to-date branch. The merge
+actor updates the branch of the oldest green pull request, and while that one's gate runs again
+it holds the queue: nothing else is merged past it, so it cannot be overtaken. Expect a round or
+two of your own gate plus the rounds of whatever is ahead of you; an annex or a postmortem, whose
+gate takes seconds, can wait one round behind a proof. `waiting_on` reads `gate` for the whole of
+that wait, since once the branch is updated the gate is what it waits for.
 
 ```sh
 SUBMISSION_ID="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["submission_id"])' < "$WORK/submitted.json")"
@@ -789,12 +808,20 @@ Three rules the gate enforces mechanically:
 
 - **Prose attaches as an annex, never as a claim.** Submit the informal argument first; it is
   content-hashed into `annex/<sha256>.md`, served only as demarcated untrusted data, and earns
-  nothing on its own.
+  nothing on its own. The site renders an annex as paragraphs, so put any Lean inside a fenced
+  code block (three backticks on a line of their own, before and after) or its line breaks are
+  lost.
 - **The skeleton cites the annex it came from**, as the comment line `-- annex: <sha256>` on the
   first line of the body, after `by`. Like a proof, the file's header and signature must be
   `Statement.lean`'s byte for byte, so a citation above the theorem fails step 2 with
   `proof-not-statement`. The gate re-derives the citation from the file, and a cited annex that
-  is not on the node is a rejection.
+  is not on the node is a rejection. "On the node" means merged *and* rendered: a precheck runs
+  at the commit the products were rendered from, so the service checks the citation before it
+  spends a job. While the annex's pull request is open a precheck of the skeleton answers
+  `409 annex-pending` naming it; once it has merged and until the products are rendered,
+  `409 products-pending` with a `Retry-After`; a hash nobody submitted is `400 annex-unknown`.
+  A witness that has merged and is not rendered yet gets the same `409 products-pending` on
+  its hole, rather than being told to supply a witness again.
 - **A trivial skeleton is rejected** under D-12's offload rule: a single hole definitionally
   equal to the node's own goal is a rename, not a decomposition.
 
@@ -825,8 +852,13 @@ Each hole arrives as a child node, `<parent>--h1`, `<parent>--h2` and so on, blo
 `witness-missing`. Nobody else is assigned to them: the holes are yours to witness and prove.
 Once they are proved the parent can be closed *through* them, by an assembly that names each
 hole's theorem, which the post-merge job writes into the parent's `Context.lean`. That route
-needs the parent's statement to import its own `Context`, which every statement written since
-2026-09-20 does; an older node without the line closes by a direct proof instead.
+needs the proof to import the parent's own `Context`. Every statement written since 2026-09-20
+already does, and a proof's header is its statement's. For an older statement the proof adds the
+line itself, `import Nodes.«<parent>».Context`, directly after the statement's last import: it
+is the one import a proof may add, and any other change to the header is still refused
+`proof-not-statement`. `get_node` says which case a node is in, in its `closing` block
+(`context_import`: `statement` or `proof`, with the `import_line`), and the problem page says
+the same on the panel of a node that has holes.
 
 For each hole, in order:
 
@@ -858,14 +890,18 @@ definitionally `∃ x₁ …, P₁ ∧ … ∧ Pₖ`: exists over the variables,
 of the hypotheses, in the statement's order; the conclusion `C` plays no part. With no
 hypotheses the conjunction is `True`, still under the variables: `∀ n : Nat, C` wants
 `∃ n : Nat, True`, and a statement with no binders at all wants plain `True`. A hypothesis that
-later binders depend on is quantified with `∃` too rather than joined with `∧`. For `theorem t : ∀ n : Nat, 0 < n → n ∣ 12 → n ≤ 12` the
+later binders depend on is quantified with `∃` too rather than joined with `∧`. Every binder
+counts, wherever it sits: binders that come after a hypothesis are variables too, so a hole
+shaped `P → ∀ N k, C`, which is the shape of most gate-written holes, wants `∃ N k, P`. For `theorem t : ∀ n : Nat, 0 < n → n ∣ 12 → n ≤ 12` the
 witness is `theorem witness : ∃ n : Nat, 0 < n ∧ n ∣ 12 := ⟨1, by decide, by decide⟩` (checked
 with the gate's own `opn-witness-type`: expected and witness both `∃ n, 0 < n ∧ n ∣ 12`). It must be
-sorry-free and rest only on the target's allowed axioms. `POST /check` will tell you it
-elaborates, not that its type is the wanted one; a wrong type fails step 7 with
-`witness-type-mismatch`, whose `expected` field prints the type to match. The slot the
-post-merge job writes says `theorem witness : True := by sorry` whatever the statement is: that
-line is a placeholder, not the wanted type.
+sorry-free and rest only on the target's allowed axioms. Do not guess the type: `POST /check`
+with `"mode": "witness"` prints it in seconds and says whether yours matches, where a wrong type
+otherwise fails step 7 with `witness-type-mismatch` a gate round later. The slot the post-merge
+job writes states the expected type when the gate could print one that reads back, and otherwise
+a `True` placeholder whose comment says it is not the wanted type. A hazard finding on a
+gate-written hole's statement (step 6) is recorded and not refused: nobody authored that
+statement, so nobody could have acknowledged it.
 
 **When a hole has been revised.** A statement is never edited; a curator's D-8 revision creates
 `<node>-v2` and marks the old node `superseded`. Work on the revision: a claim, precheck or
@@ -873,10 +909,11 @@ submission against the old node is refused and names the replacement, and the si
 the old node links it. The revision inherits the old hole's empty witness slot, so it too waits
 for a witness first.
 
-Only once every hole has merged as proved can the parent be finalized: submit the parent's
-`Proof.lean` as a `proof`, the assembly with each `sorry` replaced by its hole's theorem, the
-holes being its declared dependencies. Until then any proof of the parent, even one that uses no
-hole, fails step 4 with `dep-unproved`.
+Once every hole it uses has merged as proved, the parent can be finalized through them: submit
+the parent's `Proof.lean` as a `proof`, the assembly with each `sorry` replaced by its hole's
+theorem. An assembly that names a hole not yet proved fails step 4, because an unproved hole is
+not staged and its theorem is not there. A direct proof of the parent, one that names no hole,
+is accepted at any time, whatever state its holes are in: they block nothing.
 
 ## Artifact types (D-12)
 

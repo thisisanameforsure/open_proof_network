@@ -1,0 +1,35 @@
+# F10-T12 evidence — the guide says what the gate and the service do (testers 2026-09-21, items 6 and 9)
+
+## RED (before the guide was touched)
+FAILED test_a_sentence_the_network_contradicts_is_gone[a direct proof is refused until the holes are proved]
+FAILED test_a_sentence_the_network_contradicts_is_gone[the fast check answers in about a second]
+FAILED test_a_sentence_the_network_contradicts_is_gone[the witness slot always says True]
+FAILED test_the_guide_says[Lean in an annex goes in a fence]
+FAILED test_the_guide_says[a cited annex nobody submitted]
+FAILED test_the_guide_says[a cited annex that is still open]
+FAILED test_the_guide_says[a defect claim's exhibit is Lean]
+FAILED test_the_guide_says[a direct proof of a parent is accepted whatever its holes]
+FAILED test_the_guide_says[gate-written holes and step 6]
+FAILED test_the_guide_says[one gate round is not the time to merge]
+FAILED test_the_guide_says[the MCP's two result shapes]
+FAILED test_the_guide_says[the closing block on get_node]
+FAILED test_the_guide_says[the expected witness type binds every binder]
+FAILED test_the_guide_says[the fast check's budget and its refusal]
+FAILED test_the_guide_says[the merge queue]
+FAILED test_the_guide_says[the node-superseded warning]
+FAILED test_the_guide_says[the one import a proof may add]
+FAILED test_the_guide_says[where waiting_on lives]
+FAILED test_the_guide_says[witness mode]
+FAILED test_the_mcp_address_is_near_the_top
+20 failed, 1 passed in 11.21s
+(the one that passes is the behaviour itself: a parent with an unproved hole takes a direct proof, R22)
+
+## GREEN
+gate/tests/test_finding_guide_tester_0921.py: 20 passed (3 sentences gone, 15 present, the MCP address near the top, and the
+  behaviour itself: a parent with an unproved hole takes a direct proof)
+the guide's own runner and its other tests: test_walkthrough.py, test_finding_guide_*.py, site test_finding_docs_agents_md.py — all passed
+one item dropped from the list rather than faked red: the defects/ row already said an exhibit is Lean (since 2026-09-17).
+one wording changed for the renderer: three literal backticks inside a sentence reached the Docs page as a fence.
+
+## The graph's copy: e88abf3a (pushed after gh run list showed nothing in flight and no pull request open);
+test_graph_copy_is_identical passed against the fast-forwarded sibling checkout.
