@@ -29,8 +29,9 @@ from opn_gate import config
 ROOT = Path(__file__).resolve().parents[2]
 GRAPH_REPO = ROOT.parent / "open_proof_network_graph"
 PATH = ".github/workflows/merge.yml"
-#: The branch a change to the actor lives on until the owner pushes it comes first (T31).
-REFS = ("f07-t31-merge-queue", "origin/main", "f07-t25-merge-actor")
+#: ``origin/main`` first. A change to the actor lives on a graph branch until the owner pushes it;
+#: put that branch first while it does (T31 did), and take it out again once it is on main.
+REFS = ("origin/main", "f07-t25-merge-actor")
 SECRET = "OPN_GRAPH_MERGE_TOKEN"  # noqa: S105 — the secret's name, not a secret
 GATE_JOB = "gate (steps 1, 2 and 4-8 in the sandbox)"
 STEP9_JOB = "step 9 (a non-author approving review)"
