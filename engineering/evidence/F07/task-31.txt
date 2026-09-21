@@ -1,0 +1,36 @@
+# F07-T31 evidence — the merge actor holds the line (testers 2026-09-21, finding 1, all three agents)
+
+## The record (graph pull requests, opened -> merged, UTC 2026-09-21)
+#131 witness, Mathlib   06:28:05 -> 06:40:53  (13 min; four green gate runs)
+#134 witness            06:32:18 -> 06:49:52  (18 min)      #136 proof   06:38:26 -> 06:57:27 (19 min)
+#139 partial            06:44:37 -> 07:04:04  (20 min)      #140 partial 06:47:58 -> 07:18:44 (31 min)
+#137 variant            06:39:05 -> 07:11:43  (33 min; at least eight green runs)
+#132 annex 30 s, #133 annex 61 s, #135 postmortem 37 s, #138 postmortem 39 s
+
+## RED: the replay against the actor as shipped on origin/main (gate/tests/test_finding_merge_actor_queue.py)
+E       AssertionError: {132: 75, 133: 135, 134: 210, 135: 270, ...}
+E       assert 1080 <= ((2 * 180) + 15)
+E       AssertionError: [132, 133, 134, 135, 136, 137, ...]
+E       assert [132, 133, 13...136, 137, ...] == [131, 132, 13...135, 136, ...]
+E       AssertionError: [(180, 'merge', 201), (195, 'update', 202), (375, 'update', 202), (555, 'merge', 202)]
+E       assert 2 == 1
+FAILED gate/tests/test_finding_merge_actor_queue.py::test_a_green_mathlib_pull_request_is_not_starved_by_appends
+FAILED gate/tests/test_finding_merge_actor_queue.py::test_the_queue_is_first_in_first_out_and_everything_merges
+FAILED gate/tests/test_finding_merge_actor_queue.py::test_no_gate_round_is_wasted_on_a_bot_commit_about_to_land
+3 failed in 0.09s
+Read: #131 opens on an up-to-date main at second 0 with a 180 s gate and merges at second 1080 (18 min), after all ten
+appends; a second Mathlib pull request is updated twice (195 and 375), its first round wasted on a bot commit about to land.
+
+## GREEN: the same replay against the actor on graph branch f07-t31-merge-queue (59d2b38d)
+merged_at (s): {131: 180, 132: 210, 133: 240, 134: 270, 135: 315, 136: 345, 137: 375, 138: 450, 139: 510, 140: 555, 141: 615}
+Read: #131 merges at second 180, one gate round; the appends follow in order, each behind the bot commit before it.
+gate/tests/test_finding_merge_actor_queue.py 10 passed; test_finding_merge_actor_workflow.py 18 passed, unchanged (decide keeps its positional signature).
+
+## MUTANTS of the shipped program (text replaced as the test fixture reads it)
+no barrier                         -> 3 failed (the replay, the FIFO order, the one-call starvation case), 25 passed
+a hold never expires               -> 1 failed (a run that never reports holds nothing), 27 passed
+no wait for the post-merge job     -> 2 failed (the wasted round, the building-vs-append rule), 26 passed
+
+## LIVE, read-only (2026-09-21): the branch's pick.py run against the live graph with a read token
+merge actor: nothing to do  (no pull request open) — exit 0
+actions/runs?branch=main&event=push&status=in_progress -> {total: 0, names: []}; check-runs carry started_at

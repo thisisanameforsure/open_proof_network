@@ -29,7 +29,8 @@ from opn_gate import config
 ROOT = Path(__file__).resolve().parents[2]
 GRAPH_REPO = ROOT.parent / "open_proof_network_graph"
 PATH = ".github/workflows/merge.yml"
-REFS = ("origin/main", "f07-t25-merge-actor")
+#: The branch a change to the actor lives on until the owner pushes it comes first (T31).
+REFS = ("f07-t31-merge-queue", "origin/main", "f07-t25-merge-actor")
 SECRET = "OPN_GRAPH_MERGE_TOKEN"  # noqa: S105 — the secret's name, not a secret
 GATE_JOB = "gate (steps 1, 2 and 4-8 in the sandbox)"
 STEP9_JOB = "step 9 (a non-author approving review)"
@@ -50,19 +51,12 @@ def _text() -> str:
     pytest.skip(f"no {PATH} on {' or '.join(REFS)} of the graph")
 
 
-@pytest.fixture(scope="module")
-def text() -> str:
-    return _text()
-
-
-@pytest.fixture(scope="module")
-def doc(text: str) -> dict[Any, Any]:
-    loaded: dict[Any, Any] = yaml.safe_load(text)
+def load_doc() -> dict[Any, Any]:
+    loaded: dict[Any, Any] = yaml.safe_load(_text())
     return loaded
 
 
-@pytest.fixture(scope="module")
-def pick(doc: dict[Any, Any]) -> dict[str, Any]:
+def load_pick(doc: dict[Any, Any]) -> dict[str, Any]:
     """The decision program, exactly as the workflow writes it to ``pick.py``."""
     (step,) = [s for s in doc["jobs"]["merge"]["steps"] if s.get("id") == "pick"]
     script = step["run"]
@@ -70,6 +64,21 @@ def pick(doc: dict[Any, Any]) -> dict[str, Any]:
     namespace: dict[str, Any] = {"__name__": "pick"}
     exec(compile(textwrap.dedent(body), "pick.py", "exec"), namespace)  # noqa: S102
     return namespace
+
+
+@pytest.fixture(scope="module")
+def text() -> str:
+    return _text()
+
+
+@pytest.fixture(scope="module")
+def doc() -> dict[Any, Any]:
+    return load_doc()
+
+
+@pytest.fixture(scope="module")
+def pick(doc: dict[Any, Any]) -> dict[str, Any]:
+    return load_pick(doc)
 
 
 # --- static: what makes it safe to hold a write token -------------------------------------------
