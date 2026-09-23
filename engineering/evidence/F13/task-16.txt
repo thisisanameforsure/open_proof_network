@@ -69,3 +69,9 @@ real AXLE against #168's text. The composer is the same one T14 probed live (wit
 task-14-probe.lean), with one difference: the statement's own Context is now inlined from the proposal's
 generated Context.lean instead of fetched from the graph. The first live proposal after deploy is the
 check that still needs to be made.
+
+--- LIVE, 2026-09-23T20:26:36Z, after the api deploy of ac4f6e2 ---
+POST /check {target_id: erdos-402, mode: witness, statement: <#168's Statement.lean, own-Context import dropped>, content: <#168's Witness.lean>}:
+okay: True
+{"expected": "∃ (A : Finset ℕ) (x : ℕ), (0 : ℕ) ∉ A ∧ x ∈ A ∧ A.card ≤ x.minFac", "given": "∃ (A : Finset ℕ), (0 : ℕ) ∉ A ∧ ∃ x ∈ A, A.card ≤ x.minFac", "matches": false}
+The expected type is the one the gate's step 7 gave #168 a gate round later (witness-type-mismatch), now in one call, before any pull request.

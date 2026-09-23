@@ -1090,3 +1090,17 @@ The law of the project:
   behaviour as design. Smaller: `$S:gate` is a zsh modifier (brace it, again); a function type is
   a `∀` to the kernel, which is how `unused-binder` came to report `ℕ → ℤ`; and three literal
   backticks inside a guide sentence reach the Docs page as a fence.
+- 2026-09-23 — Nine Opus agents on the three calibration targets (40 min, three entry styles each),
+  then their findings fixed test first in one sitting (`engineering/session-notes/2026-09-23-erdos-testers.md`).
+  **A replay that does not model the host's lag cannot find a stall.** The merge queue froze twice
+  while T31's replay stayed green, because it ran the actor every fifteen seconds and read statuses
+  exactly; the host reports a finished check late, a push run `in_progress` for minutes after its jobs,
+  `mergeable: null` while it computes, drops pending wakes, and runs a cron every three to six hours.
+  The replay that wakes the actor only when the host would reproduced both freezes on its first run.
+  **An exemption granted for speed was a hole in the record**: T31 let appends merge while a post-merge
+  job ran, each merge moved `main` under the job, and six merges lost their bot commits (#145's proof
+  unattested for two days). Recovery was a replay by dispatch, and the attesting gate must be the one the
+  merge's own tree pinned. **Key a rule on the fact, not on the host's flag**: racers waited for
+  `dirty`, which GitHub withheld for five minutes. And **a probe that writes re-reads right before it
+  writes**: re-running a reproduction after the service had already acted, mine pushed the winner's
+  proof as #172's alternate; repaired from the saved original within a minute, and recorded.

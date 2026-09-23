@@ -53,3 +53,18 @@ Live: acts at the next read of a racer after the api deploy; erdos-69's #164/#17
 and the rule waited for `dirty`. Red: test_a_racer_is_moved_whatever_the_host_says_about_mergeability
 (assert 0 == 1). Fix: the trigger is the fact itself — an open proof on a node whose proof has merged, whose
 branch still carries Proof.lean — not the host's lagging flag. Green: 7 passed.
+
+--- After the fix deployed (ac4f6e2), and an error of mine on the live record ---
+#172's once-only mark read count 5 in the tokens table, its first bump at 20:25:57Z, and a read-only probe
+run from the laptop (the service's own functions over the real host) found every condition true. The PR
+timeline (issues/172/timeline, head_ref_force_pushed) shows what then happened:
+  20:29:44Z open-proof-network[bot] b12bf01e  the service's conversion — its alternate is byte for byte
+                                               the racer's original text (checked against 897ebf44's blob)
+  20:30:38Z open-proof-network[bot] bdc60679  MY probe, re-run to reproduce the push: it read "Proof.lean
+                                               at the PR head", which after the conversion is main's file,
+                                               i.e. the WINNER's proof, and pushed that as #172's alternate
+  20:31:15Z open-proof-network[bot] e1ab8f44  my repair: the racer's original text (saved from 897ebf44),
+                                               checked byte for byte after the push
+The service was right; the probe acted on a state it had read a minute earlier. #164, #162, #163 and #167's
+alternates were each checked to differ from their node's winner, and #164's equals its original head's text.
+Rule kept: a probe that writes re-reads the state immediately before acting, and never re-runs a write.

@@ -71,3 +71,8 @@ api/tests/test_finding_duplicate_submissions.py::test_the_tutorial_node_may_be_r
 ======================= 15 passed, 2 warnings in 13.93s ========================
 
 make verify: ========= 2650 passed, 83 deselected, 2 warnings in 292.58s (0:04:52) ==========
+
+--- LIVE, after the api deploy (7ed57b2) ---
+POST /submissions with variant-d865c9c6's merged Proof.lean, one comment added, as an alternate:
+409 duplicate-submission: this is, comments and whitespace aside, the text already merged at targets/erdos-402/nodes/variant-d865c9c6/Proof.lean; a node keeps every different proof but never a copy (D-25) | details {'path': 'targets/erdos-402/nodes/variant-d865c9c6/Proof.lean'}
+No pull request opened (the refusal comes before the precheck binding and before any push).

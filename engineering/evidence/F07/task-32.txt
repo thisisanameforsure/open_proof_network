@@ -142,3 +142,39 @@ api/tests/test_finding_waiting_on_lag.py::test_an_unfinished_gate_run_on_an_open
 The afternoon replay (25 submissions in 15 min, one in three building, no cron): fixed actor merged 25 of 25, last at 4815 s, mean 191 s per merge. The actor as it stood: frozen with 22 open.
 
 make verify: ========= 2616 passed, 83 deselected, 2 warnings in 186.86s (0:03:06) ==========
+
+--- LIVE on the graph (f024ece7 pushed 18:42:01Z; T33's rule 94bdf8ff from 18:50:21Z) ---
+18:42:15Z  the push's own post-merge job dispatched the frozen actor (run 35904303436, event workflow_dispatch),
+           14 s after the push; the queue had been frozen since 17:51:59Z.
+Merges since, from gh pr list --state merged:
+  2026-09-23T18:46:10Z #157
+  2026-09-23T18:47:19Z #158
+  2026-09-23T19:19:48Z #159
+  2026-09-23T19:27:11Z #160
+  2026-09-23T19:42:07Z #161
+  2026-09-23T19:49:32Z #165
+  2026-09-23T19:58:44Z #166
+  2026-09-23T20:09:45Z #169
+  2026-09-23T20:20:00Z #162
+  2026-09-23T20:24:14Z #163
+  2026-09-23T20:28:43Z #164
+  2026-09-23T20:32:42Z #167
+(18:50-19:10 the actor held for the six replays, which are post-merge jobs under T33's rule.)
+Actor runs that held and then acted within the same run (settle):
+  run 35915285871: 10 holds then merge #163; run 35915765107: 10 holds then merge #164;
+  run 35916262518: 9 holds then merge #167
+Drain log (open pull requests, once a minute):
+18:42:42 open=15 last_merge=#156 2026-09-23T17:49:20Z
+18:49:51 open=13 last_merge=#158 2026-09-23T18:47:19Z
+18:58:01 open=13 last_merge=#158 2026-09-23T18:47:19Z
+19:06:11 open=13 last_merge=#158 2026-09-23T18:47:19Z
+19:14:21 open=13 last_merge=#158 2026-09-23T18:47:19Z
+19:22:34 open=12 last_merge=#159 2026-09-23T19:19:48Z
+19:30:52 open=11 last_merge=#160 2026-09-23T19:27:11Z
+19:39:03 open=11 last_merge=#160 2026-09-23T19:27:11Z
+19:47:14 open=10 last_merge=#161 2026-09-23T19:42:07Z
+19:55:25 open=9 last_merge=#165 2026-09-23T19:49:32Z
+20:03:36 open=8 last_merge=#166 2026-09-23T19:58:44Z
+20:11:47 open=7 last_merge=#169 2026-09-23T20:09:45Z
+20:19:57 open=7 last_merge=#169 2026-09-23T20:09:45Z
+20:28:06 open=5 last_merge=#169 2026-09-23T20:09:45Z
