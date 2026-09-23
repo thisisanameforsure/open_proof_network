@@ -253,7 +253,8 @@ class Classification:
         or provenance when it stands in (D-4 v3.11), and ``None`` where step 9 is not asked."""
         if self.needs_review:
             return "pr-approval"
-        if self.mode in STATEMENT_REVIEW_MODES:
+        if self.mode in STATEMENT_REVIEW_MODES or self.mode == "alternate":
+            # F07-T38: an alternate is not asked (v3.13) and says why, as v3.20's words do
             return self.review_basis
         return None
 
@@ -300,6 +301,10 @@ def with_statement_review(
     what is read here is what stood on the base: nobody vouches for the statement in the pull
     request that proves it.
     """
+    if classification.mode == "alternate" and classification.target_id is not None:
+        # F07-T38: an alternate settles nothing (its node is proved), so the post-merge record says
+        # which of v3.20's reasons applies; without one the job's --review-kind had nothing to take.
+        return replace(classification, review_basis=alternate_basis(graph_root, classification))
     if classification.mode not in STATEMENT_REVIEW_MODES or classification.target_id is None:
         return classification
     target_dir = graph_root / "targets" / classification.target_id
@@ -314,6 +319,23 @@ def with_statement_review(
         # F14-R6: recorded as provenance, so the attestation schema and an older pin still read it.
         return replace(classification, review_basis="provenance", review_reference=recorded)
     return classification
+
+
+def alternate_basis(graph_root: Path, classification: Classification) -> StatementBasis:
+    """Why an alternate asks no review: ``calibration`` on a calibration target, else
+    ``intermediate`` (it settles nothing: the node it proves is already proved)."""
+    from opn_gate import intake  # noqa: PLC0415
+
+    assert classification.target_id is not None
+    target_dir = graph_root / "targets" / classification.target_id
+    try:
+        if intake.is_calibration(intake.load_doc(target_dir)):
+            return NOT_ASKED_CALIBRATION
+    except (ValueError, OSError) as exc:
+        log.warning(
+            "step 9: %s does not load; the alternate is intermediate: %s", target_dir.name, exc
+        )
+    return NOT_ASKED_INTERMEDIATE
 
 
 def step9_not_asked(graph_root: Path, classification: Classification) -> StatementBasis | None:

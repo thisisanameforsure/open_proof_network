@@ -1,0 +1,28 @@
+F07-T38 — an alternate's post-merge job records why step 9 was not asked (Q46)
+
+Found live 2026-09-23: the post-merge runs of #162 (35915225551), #163 (35915709878), #164 (35916215709),
+#167 (35916666634) and #172 (35919050434) all failed at argument parsing:
+  usage: opn-gate postmerge ... --review-kind {tutorial,pr-approval,certificate,provenance,intermediate,calibration}
+because Classification.review_kind is None for mode alternate and the workflow passes it as --review-kind "".
+No gate: #N commit and no attestation for any of the five. They were the first alternates to merge live
+(F07-T36 moved them), so the path had never run on the graph.
+
+--- RED ---
+E       AssertionError: {'mode': 'alternate', 'target': 'euclid-primes', 'node': 'and-reassoc', 'needs_gate': True, ...}
+E       assert (False, None, None) == (False, 'intermediate', None)
+E         
+E         At index 1 diff: None != 'intermediate'
+E         Use -v to get more diff
+E       AssertionError: {'mode': 'alternate', 'target': 'euclid-primes', 'node': 'and-reassoc', 'needs_gate': True, ...}
+E       assert (False, None, None) == (False, 'calibration', None)
+E         
+E         At index 1 diff: None != 'calibration'
+E         Use -v to get more diff
+2 failed in 11.09s
+
+--- GREEN ---
+gate/tests/test_finding_alternate_postmerge.py::test_an_alternate_says_why_nobody_was_asked[False-expected0] PASSED [ 50%]
+gate/tests/test_finding_alternate_postmerge.py::test_an_alternate_says_why_nobody_was_asked[True-expected1] PASSED [100%]
+============================== 2 passed in 0.69s ===============================
+
+Then: re-pin, and replay #162, #163, #164, #167, #172 (gh workflow run gate.yml -f replay_pr=N).

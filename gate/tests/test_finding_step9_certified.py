@@ -444,8 +444,10 @@ def test_g_a_partial_is_treated_like_a_proof(
 def test_h_an_alternate_still_asks_no_review(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """(h) D-4 v3.13: step 9 is not asked of an alternate, certified root or not; its review_kind
-    is null, not the certificate, because the alternate's record names no step-9 basis."""
+    """(h) D-4 v3.13: step 9 is not asked of an alternate, certified root or not, and its record
+    never names the certificate. Restated by F07-T38: the kind was null, and a null kind is what
+    made every live alternate's post-merge job die at --review-kind; it now says why nobody was
+    asked (``intermediate``: the node is already proved), naming no reviewer and no reference."""
     repo, _proof = curated(tmp_path, keep_proof=True, provenance=fc_provenance())
     certificate(repo, "root-2.yaml")
     repo.commit("base: a proved, certified root")
@@ -455,7 +457,7 @@ def test_h_an_alternate_still_asks_no_review(
     repo.commit("an alternate proof")
     code, out = classify(repo, capsys)
     assert code == 0 and out["mode"] == "alternate", out
-    assert step9(out) == (False, None, None), out
+    assert step9(out) == (False, "intermediate", None), out
 
 
 @pytest.mark.parametrize(
