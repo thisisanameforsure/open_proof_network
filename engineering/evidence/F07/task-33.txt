@@ -1,0 +1,208 @@
+F07-T33 — nothing moves main under a post-merge job; a lost job is replayed (Q41)
+Mike, 2026-09-23: "I do want you to recover the proof."
+
+What the record said (gh run list/view on the graph, read-only):
+- Push runs on main that failed since 2026-09-20: 35499428539 (#125), 35526030986 (#130),
+  35568871501 (#132), 35568917086 (#133), 35573363686 (#145). Each: "failed to push some refs",
+  then F07-T29's "main moved under the post-merge job ... re-render by hand". None of the five has
+  a `gate: #N` commit on main. #145 (a proof of variant-d865c9c6, merged 2026-09-21T07:31:24Z)
+  has no attestations/000145.json; graph.json said `ready`, /frontier.json `claimable: true`,
+  GET /submissions/145 `attestation_note: attestation-pending`.
+- What moved main each time was the merge actor: T31 held a building PR's update while a
+  post-merge job ran, exempted appends, and never held a merge. #145's job was refused by #142.
+- Reproduced live during this session, before the fix was pushed: #157 merged 18:46:10, #158
+  (an append) merged 18:47:19 inside #157's window, and #157's post-merge run 35904755294 failed.
+
+Fix (graph, pushed 94bdf8ff then 8e4075c8; tests here):
+- decide(): nothing is updated or merged while a post-merge job (push or replay) has not committed.
+- gate.yml: workflow_dispatch input replay_pr; the find step takes the merge commit from the PR,
+  refuses a merge that already has its `gate: #N` commit (the ledger appends, so a replay is
+  idempotent only through that guard); every later step reads the `merge` output, not GITHUB_SHA;
+  a moved main dispatches the job's own replay (exit 0 with a warning) instead of asking for hands.
+- Found on the first replay (#145): the attestation named network_commit 2c3030a (the pin in the
+  merge commit's own tree, whose image ran the Lean) while the Python came from main's 53d7bf1.
+  Fixed in 8e4075c8: the attesting gate is checked out at the merge tree's pin; main's pin
+  (network-render) renders products, ledger and cache. Both gates pass #145, so the verdict stands.
+- Restated, not deleted: T31's "an append does not wait for the post-merge job" test (now: nothing
+  is updated or merged while one runs); F07-T8's trigger test (now: no review starts the gate; a
+  replay dispatch is the only other trigger and the gate job stays pull_request-only).
+
+--- RED (before the graph change) ---
+E       AssertionError: ('append/annex', (142, '0000000000000000000000000000000000000142', 'merge'))
+E       assert (142, '000000...142', 'merge') == ('', '', 'hold')
+E         
+E         At index 0 diff: 142 != ''
+E         Use -v to get more diff
+E       AssertionError: ('propose/variant', (142, '0000000000000000000000000000000000000142', 'merge'))
+E       assert (142, '000000...142', 'merge') == ('', '', 'hold')
+E         
+E         At index 0 diff: 142 != ''
+E         Use -v to get more diff
+E       AssertionError: ('submit/proof', (142, '0000000000000000000000000000000000000142', 'merge'))
+E       assert (142, '000000...142', 'merge') == ('', '', 'hold')
+E         
+E         At index 0 diff: 142 != ''
+E         Use -v to get more diff
+E       AssertionError: assert (142, '000000...42', 'update') == ('', '', 'hold')
+E         
+E         At index 0 diff: 142 != ''
+E         Use -v to get more diff
+E       AssertionError: these merges' post-merge jobs had main moved under them
+E       assert [148, 149, 15...154, 156, ...] == []
+E         
+E         Left contains 13 more items, first extra item: 148
+E         Use -v to get more diff
+text = '# The merge actor (F07-T25; D-4, F07-Q16, C8): "when steps 1-8 are green and step 9 is satisfied,\n# the merge happen...rkflow run merge.yml --repo "$REPO" --ref main\n          echo "dispatched the merge actor again after a failed run"\n'
+E       assert 'event=workflow_dispatch' in '# The merge actor (F07-T25; D-4, F07-Q16, C8): "when steps 1-8 are green and step 9 is satisfied,\n# the merge happen...rkflow run merge.yml --repo "$REPO" --ref main\n          echo "dispatched the merge actor again after a failed run"\n'
+E       KeyError: 'workflow_dispatch'
+E       assert ('merge_commit_sha' in 'set -euo pipefail\npulls="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls")"\nnumber="$(printf \'%s\...$target"; echo "pin=$pin"\n} >> "$GITHUB_OUTPUT"\necho "postmerge: PR #$number by $author; target $target; pin $pin"\n')
+E       AssertionError: set -euo pipefail
+E         pulls="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls")"
+E         number="$(printf '%s' "$pulls" | python3 -c "import json,sys; ps=[p for p in json.load(sys.stdin) if p.get('merged_at')]; print(ps[0]['number'] if ps else '')")"
+E         if [ -z "$number" ]; then
+E           echo "postmerge: ${GITHUB_SHA} did not merge a pull request; nothing to record"
+E           echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
+E         fi
+E         author="$(printf '%s' "$pulls" | python3 -c "import json,sys; ps=[p for p in json.load(sys.stdin) if p.get('merged_at')]; print(ps[0]['user']['login'])")"
+E         git diff --name-only "${GITHUB_SHA}^...${GITHUB_SHA}" > changed.txt
+E         target="$(sed -n 's#^targets/\([^/]*\)/.*#\1#p' changed.txt | sort -u)"
+E         if [ -z "$target" ] && grep -qx 'policy.json' changed.txt; then
+E           # F15-R3: the policy switch merged; the products re-derive claimability under it.
+E           target="$(ls -d targets/*/ 2>/dev/null | head -n 1 | xargs -r basename)"
+E           echo "postmerge: policy.json changed; taking the network pin from targets/$target"
+E         fi
+E         if [ -z "$target" ]; then
+E           echo "postmerge: PR #$number touched no target; nothing to record"
+E           echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
+E         fi
+E         if [ "$(printf '%s\n' "$target" | wc -l)" -ne 1 ]; then
+E           echo "::error::PR #$number touched more than one target (D-2, D-3):"; cat changed.txt; exit 1
+E         fi
+E         pin="$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['network_commit'])" "targets/$target/gate-spec.json")"
+E         {
+E           echo "run=true"; echo "number=$number"; echo "author=$author"
+E           echo "target=$target"; echo "pin=$pin"
+E         } >> "$GITHUB_OUTPUT"
+E         echo "postmerge: PR #$number by $author; target $target; pin $pin"
+E         
+E       assert ('grep -q "^gate: #$number "' in 'set -euo pipefail\npulls="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls")"\nnumber="$(printf \'%s\...$target"; echo "pin=$pin"\n} >> "$GITHUB_OUTPUT"\necho "postmerge: PR #$number by $author; target $target; pin $pin"\n' or 'gate: #$number ' in 'set -euo pipefail\npulls="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls")"\nnumber="$(printf \'%s\...$target"; echo "pin=$pin"\n} >> "$GITHUB_OUTPUT"\necho "postmerge: PR #$number by $author; target $target; pin $pin"\n')
+E                   AssertionError: ('Classify the merged diff with the pinned gate', 'classify')
+E                   assert 'GITHUB_SHA' not in 'set -euo pi...\')}")\nPY\n'
+E                     
+E                     'GITHUB_SHA' is contained here:
+E                       --base "${GITHUB_SHA}^" --head "$GITHUB_SHA" | tee classification.json
+E                     ?           ++++++++++
+E                       python3 - <<'PY' >> "$GITHUB_OUTPUT"
+E                       import json, pathlib
+E                       doc = json.loads(pathlib.Path("classification.json").read_text())...
+E                     
+E                     ...Full output truncated (6 lines hidden), use '-vv' to show
+E       assert 're-render by hand' not in 'set -euo pi...exit 1\nfi\n'
+E         
+E         're-render by hand' is contained here:
+E           ($moved); re-render by hand"; exit 1
+E             fi
+E             echo "postmerge: main moved (attempt $attempt) without touching the products' inputs; rebasing"
+E             git rebase FETCH_HEAD
+E           done...
+E         
+E         ...Full output truncated (3 lines hidden), use '-vv' to show
+E       assert '(replayed)' in 'set -euo pipefail\numask 077\ntrap \'rm -f "$RUNNER_TEMP/deploy_key"\' EXIT  # C8: on every path out of this step\npr...error::PR #${{ steps.pr.outputs.number }}: the products commit could not be pushed after three attempts"; exit 1\nfi\n'
+E        +  where 'set -euo pipefail\numask 077\ntrap \'rm -f "$RUNNER_TEMP/deploy_key"\' EXIT  # C8: on every path out of this step\npr...error::PR #${{ steps.pr.outputs.number }}: the products commit could not be pushed after three attempts"; exit 1\nfi\n' = str('set -euo pipefail\numask 077\ntrap \'rm -f "$RUNNER_TEMP/deploy_key"\' EXIT  # C8: on every path out of this step\npr...error::PR #${{ steps.pr.outputs.number }}: the products commit could not be pushed after three attempts"; exit 1\nfi\n')
+FAILED gate/tests/test_finding_postmerge_replay.py::test_nothing_is_merged_while_a_post_merge_job_runs[append/annex]
+FAILED gate/tests/test_finding_postmerge_replay.py::test_nothing_is_merged_while_a_post_merge_job_runs[propose/variant]
+FAILED gate/tests/test_finding_postmerge_replay.py::test_nothing_is_merged_while_a_post_merge_job_runs[submit/proof]
+FAILED gate/tests/test_finding_postmerge_replay.py::test_an_append_is_not_updated_into_the_window_either
+FAILED gate/tests/test_finding_postmerge_replay.py::test_the_afternoon_loses_no_post_merge_commit
+FAILED gate/tests/test_finding_postmerge_replay.py::test_a_replayed_post_merge_job_is_one_the_actor_waits_for
+FAILED gate/tests/test_finding_postmerge_replay.py::test_the_gate_workflow_can_be_asked_to_replay_one_merged_pull_request
+FAILED gate/tests/test_finding_postmerge_replay.py::test_a_replay_takes_the_merge_commit_from_the_pull_request
+FAILED gate/tests/test_finding_postmerge_replay.py::test_a_replay_of_a_merge_that_has_its_commit_does_nothing
+FAILED gate/tests/test_finding_postmerge_replay.py::test_every_step_reads_the_merge_commit_not_the_event_commit
+FAILED gate/tests/test_finding_postmerge_replay.py::test_a_moved_main_dispatches_the_replay_instead_of_asking_for_hands
+FAILED gate/tests/test_finding_postmerge_replay.py::test_a_replay_says_so_in_its_commit
+12 failed in 0.18s
+
+--- GREEN (against the graph's origin/main 8e4075c8) ---
+gate/tests/test_finding_postmerge_replay.py::test_nothing_is_merged_while_a_post_merge_job_runs[append/annex] PASSED [  1%]
+gate/tests/test_finding_postmerge_replay.py::test_nothing_is_merged_while_a_post_merge_job_runs[propose/variant] PASSED [  3%]
+gate/tests/test_finding_postmerge_replay.py::test_nothing_is_merged_while_a_post_merge_job_runs[submit/proof] PASSED [  4%]
+gate/tests/test_finding_postmerge_replay.py::test_an_append_is_not_updated_into_the_window_either PASSED [  6%]
+gate/tests/test_finding_postmerge_replay.py::test_the_afternoon_loses_no_post_merge_commit PASSED [  7%]
+gate/tests/test_finding_postmerge_replay.py::test_a_replayed_post_merge_job_is_one_the_actor_waits_for PASSED [  9%]
+gate/tests/test_finding_postmerge_replay.py::test_the_gate_workflow_can_be_asked_to_replay_one_merged_pull_request PASSED [ 10%]
+gate/tests/test_finding_postmerge_replay.py::test_a_replay_takes_the_merge_commit_from_the_pull_request PASSED [ 12%]
+gate/tests/test_finding_postmerge_replay.py::test_a_replay_of_a_merge_that_has_its_commit_does_nothing PASSED [ 13%]
+gate/tests/test_finding_postmerge_replay.py::test_every_step_reads_the_merge_commit_not_the_event_commit PASSED [ 15%]
+gate/tests/test_finding_postmerge_replay.py::test_a_moved_main_dispatches_the_replay_instead_of_asking_for_hands PASSED [ 16%]
+gate/tests/test_finding_postmerge_replay.py::test_a_replay_says_so_in_its_commit PASSED [ 18%]
+gate/tests/test_finding_postmerge_replay.py::test_the_gate_that_attests_is_the_one_the_merge_pinned PASSED [ 20%]
+gate/tests/test_finding_merge_actor_wakes.py::test_a_stale_read_after_the_wake_does_not_strand_the_pull_request PASSED [ 21%]
+gate/tests/test_finding_merge_actor_wakes.py::test_a_finished_post_merge_job_does_not_hold_the_next_update PASSED [ 23%]
+gate/tests/test_finding_merge_actor_wakes.py::test_the_afternoon_of_148_drains_with_no_cron PASSED [ 24%]
+gate/tests/test_finding_merge_actor_wakes.py::test_a_run_whose_jobs_have_all_finished_is_not_running PASSED [ 26%]
+gate/tests/test_finding_merge_actor_wakes.py::test_a_hold_is_decided_again_until_it_resolves PASSED [ 27%]
+gate/tests/test_finding_merge_actor_wakes.py::test_a_hold_that_never_resolves_ends_the_run_at_the_cap PASSED [ 29%]
+gate/tests/test_finding_merge_actor_wakes.py::test_nothing_to_do_is_not_waited_on PASSED [ 30%]
+gate/tests/test_finding_merge_actor_wakes.py::test_a_pull_request_whose_mergeability_is_unknown_is_not_updated PASSED [ 32%]
+gate/tests/test_finding_merge_actor_wakes.py::test_the_post_merge_job_wakes_the_actor_whatever_happened PASSED [ 33%]
+gate/tests/test_finding_merge_actor_wakes.py::test_a_failed_act_wakes_the_actor_again PASSED [ 35%]
+gate/tests/test_finding_merge_actor_wakes.py::test_the_job_is_capped_above_the_settle_loop PASSED [ 36%]
+gate/tests/test_finding_merge_actor_queue.py::test_a_green_mathlib_pull_request_is_not_starved_by_appends PASSED [ 38%]
+gate/tests/test_finding_merge_actor_queue.py::test_the_queue_is_first_in_first_out_and_everything_merges PASSED [ 40%]
+gate/tests/test_finding_merge_actor_queue.py::test_no_gate_round_is_wasted_on_a_bot_commit_about_to_land PASSED [ 41%]
+gate/tests/test_finding_merge_actor_queue.py::test_an_up_to_date_gating_pull_request_holds_everything_behind_it PASSED [ 43%]
+gate/tests/test_finding_merge_actor_queue.py::test_a_run_that_never_reports_holds_nothing PASSED [ 44%]
+gate/tests/test_finding_merge_actor_queue.py::test_a_pending_pull_request_that_is_behind_holds_nothing PASSED [ 46%]
+gate/tests/test_finding_merge_actor_queue.py::test_the_oldest_green_one_goes_first_even_past_a_newer_gating_one PASSED [ 47%]
+gate/tests/test_finding_merge_actor_queue.py::test_nothing_is_updated_or_merged_while_a_post_merge_job_runs PASSED [ 49%]
+gate/tests/test_finding_merge_actor_queue.py::test_a_hold_names_no_pull_request_so_the_acting_step_is_skipped PASSED [ 50%]
+gate/tests/test_finding_merge_actor_queue.py::test_the_job_may_read_the_runs_it_asks_about_and_nothing_more PASSED [ 52%]
+gate/tests/test_finding_merge_actor_workflow.py::test_it_is_woken_in_the_base_context_and_never_by_a_pull_request PASSED [ 53%]
+gate/tests/test_finding_merge_actor_workflow.py::test_it_checks_nothing_out_and_runs_no_gate_code PASSED [ 55%]
+gate/tests/test_finding_merge_actor_workflow.py::test_the_jobs_own_token_can_only_read PASSED [ 56%]
+gate/tests/test_finding_merge_actor_workflow.py::test_exactly_one_step_names_the_secret_and_it_dry_runs_without_it PASSED [ 58%]
+gate/tests/test_finding_merge_actor_workflow.py::test_only_branches_the_service_opened_are_candidates PASSED [ 60%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs0-green] PASSED [ 61%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs1-green] PASSED [ 63%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs2-red] PASSED [ 64%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs3-red] PASSED [ 66%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs4-red] PASSED [ 67%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs5-pending] PASSED [ 69%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs6-pending] PASSED [ 70%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs7-pending] PASSED [ 72%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs8-green] PASSED [ 73%]
+gate/tests/test_finding_merge_actor_workflow.py::test_the_required_checks_come_from_the_ruleset_by_exact_name PASSED [ 75%]
+gate/tests/test_finding_merge_actor_workflow.py::test_a_ruleset_that_requires_no_gate_merges_nothing PASSED [ 76%]
+gate/tests/test_finding_merge_actor_workflow.py::test_it_takes_the_oldest_green_one_and_updates_before_it_merges PASSED [ 78%]
+gate/tests/test_finding_merge_actor_workflow.py::test_a_green_pull_request_that_conflicts_with_main_is_passed_over PASSED [ 80%]
+gate/tests/test_finding_postmerge_push_race.py::test_a_rejected_push_is_rebased_and_retried PASSED [ 81%]
+gate/tests/test_finding_postmerge_push_race.py::test_it_refuses_to_rebase_over_anything_the_products_derive_from PASSED [ 83%]
+gate/tests/test_finding_postmerge_push_race.py::test_the_deploy_key_never_outlives_the_step PASSED [ 84%]
+gate/tests/test_finding_step9_stale_run.py::test_the_gate_workflow_is_not_started_by_a_review PASSED [ 86%]
+gate/tests/test_finding_step9_stale_run.py::test_the_step_9_job_reads_eligible_reviewers_from_the_gate_jobs_output PASSED [ 87%]
+gate/tests/test_finding_step9_stale_run.py::test_the_gate_step_hands_the_author_to_the_pinned_gate PASSED [ 89%]
+gate/tests/test_finding_step9_stale_run.py::test_postmerge_fetches_the_body_for_every_mode PASSED [ 90%]
+gate/tests/test_finding_step9_stale_run.py::test_postmerge_passes_the_body_and_the_author_unconditionally PASSED [ 92%]
+gate/tests/test_finding_step9_stale_run.py::test_postmerge_writes_the_ledger_for_every_merge_after_signing PASSED [ 93%]
+gate/tests/test_finding_step9_stale_run.py::test_the_refresh_workflow_runs_on_a_review_and_holds_one_job PASSED [ 95%]
+gate/tests/test_finding_step9_stale_run.py::test_the_refresh_workflow_holds_nothing_but_the_rerun_permission PASSED [ 96%]
+gate/tests/test_finding_step9_stale_run.py::test_the_refresh_workflow_reruns_the_step_9_job_of_the_existing_gate_run PASSED [ 98%]
+gate/tests/test_finding_step9_stale_run.py::test_the_ruleset_requires_the_gate_and_the_step_9_job PASSED [100%]
+============================== 65 passed in 2.36s ==============================
+
+--- LIVE: the six lost merges replayed (gh workflow run gate.yml -f replay_pr=N) ---
+#145 run 35905246960 -> 1c466ba1 gate: #145 pass (replayed): attestations/000145.json (verdict pass,
+     graph_commit = merge_commit = 64f96346, node variant-d865c9c6, submitter tester-402-e514,
+     review {kind: calibration}, signed); ledger/tester-402-e514.json +1 proof line;
+     targets/erdos-402/graph.json variant-d865c9c6: proved.
+#125 run 35905682265 -> 0bf887bc (replayed): ledger/agent-e-cb6009.json +1 statement line (the lost credit)
+#130 run 35906061594 -> 302b443f (replayed): curator record, nothing earned
+#132 run 35906512687 -> 3bf05873 (replayed): annex, nothing earned
+#133 run 35906847415 -> 683d32e3 (replayed): annex, nothing earned
+#157 run 35907291893 -> c0e94e3d (replayed): proposal, statement line restored
+The site: https://openproofnetwork.org/nodes/erdos-402/variant-d865c9c6/ reads "proved", Proof section,
+Attestation "Verdict pass, from attestations/000145.json", reviewer "none needed (calibration)";
+screenshot engineering/evidence/F07/task-33-variant-d865c9c6.png.
+
+make verify: ========= 2650 passed, 83 deselected, 2 warnings in 292.58s (0:04:52) ==========

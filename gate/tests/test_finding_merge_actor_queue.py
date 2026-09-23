@@ -208,30 +208,30 @@ def test_the_oldest_green_one_goes_first_even_past_a_newer_gating_one(pick: dict
     assert got == (6, pulls[0]["head"]["sha"], "update")
 
 
-def test_a_building_pull_request_waits_for_the_postmerge_job_and_an_append_does_not(
-    pick: dict[str, Any],
-) -> None:
-    for ref, expected in (("propose/slow", ("", "", "hold")), ("submit/slow", ("", "", "hold"))):
-        pulls = [pull(6, ref)]
-        got = pick["decide"](
-            pulls, RULES, lambda _s: green(), lambda _s: 1, now=NOW, postmerge_running=lambda: True
-        )
-        assert got == expected, ref
+def test_nothing_is_updated_or_merged_while_a_post_merge_job_runs(pick: dict[str, Any]) -> None:
+    """Restated by F07-T33 (Q41). T31 held only a building pull request's update here and let an
+    append through, and never held a merge ("the branch is up to date, so main has not moved");
+    an append updated in the window re-gated in fifteen seconds and was merged while the job was
+    still rendering, so the job's push was refused and its record lost (#125, #132, #133, #145).
+    The rule this test was about stands: no round is wasted on a commit about to land. It now
+    covers every kind, and the merge as well as the update."""
+    for ref in ("propose/slow", "submit/slow", "append/fast"):
+        for behind in (1, 0):  # the update, and the merge
+            got = pick["decide"](
+                [pull(6, ref)],
+                RULES,
+                lambda _s: green(),
+                lambda _s, b=behind: b,
+                now=NOW,
+                postmerge_running=lambda: True,
+            )
+            assert got == ("", "", "hold"), (ref, behind, got)
+    # and once the job has committed, the same pull request is acted on
     pulls = [pull(6, "append/fast")]
     got = pick["decide"](
-        pulls, RULES, lambda _s: green(), lambda _s: 1, now=NOW, postmerge_running=lambda: True
+        pulls, RULES, lambda _s: green(), lambda _s: 1, now=NOW, postmerge_running=lambda: False
     )
     assert got == (6, pulls[0]["head"]["sha"], "update")
-    # and a merge is never held for it: the branch is up to date, so main has not moved
-    got = pick["decide"](
-        [pull(6, "propose/slow")],
-        RULES,
-        lambda _s: green(),
-        lambda _s: 0,
-        now=NOW,
-        postmerge_running=lambda: True,
-    )
-    assert got[2] == "merge"
 
 
 def test_a_hold_names_no_pull_request_so_the_acting_step_is_skipped(doc: dict[Any, Any]) -> None:

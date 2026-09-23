@@ -121,14 +121,19 @@ def _step9_job(jobs: dict[str, Any]) -> dict[str, Any] | None:
 
 def test_the_gate_workflow_is_not_started_by_a_review() -> None:
     """A review re-runs step 9 in place (step9-refresh.yml); it never starts the gate again, so
-    the workflow triggers on ``pull_request`` and ``push`` only and the gate job runs for a pull
-    request event alone."""
+    the workflow triggers on ``pull_request`` and ``push`` — and, since F07-T33, on a dispatch
+    that replays one merged pull request's post-merge job — and the gate job runs for a pull
+    request event alone. Restated by T33: the property is that no review starts it."""
     doc = _gate_workflow()
     on = _triggers(doc)
     assert isinstance(on, dict), on
-    assert set(on) == {"pull_request", "push"}, sorted(on)
+    assert set(on) <= {"pull_request", "push", "workflow_dispatch"}, sorted(on)
+    assert "pull_request_review" not in on
+    dispatch = on.get("workflow_dispatch")
+    if dispatch is not None:  # the replay, and nothing else a person could start it with
+        assert set(dispatch["inputs"]) == {"replay_pr"}, dispatch
     gate_if = str(doc["jobs"]["gate"].get("if", ""))
-    assert "pull_request_review" not in gate_if, gate_if
+    assert gate_if == "github.event_name == 'pull_request'", gate_if
 
 
 def test_the_step_9_job_reads_eligible_reviewers_from_the_gate_jobs_output() -> None:
