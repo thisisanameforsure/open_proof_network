@@ -103,3 +103,13 @@ def test_the_host_moves_an_existing_branch_and_creates_no_ref(script: Script, ho
         "force": True,
     }
     assert script.to("POST", f"/repos/{REPO}/git/refs") == []
+
+
+def test_a_racer_is_moved_whatever_the_host_says_about_mergeability(harness: Harness) -> None:
+    """Found live on #172: GitHub answered ``mergeable_state: unknown`` for minutes while main
+    kept moving, and a rule that waited for ``dirty`` waited with it. A pull request that adds
+    ``Proof.lean`` to a node whose proof has merged can never merge, so that fact is the trigger."""
+    _node, loser = racing(harness)
+    harness.githost.set_pull_request_state(12, mergeable_state="unknown", head_sha=HEAD)
+    harness.client.get(f"/submissions/{loser.id}")
+    assert len(replaced(harness)) == 1

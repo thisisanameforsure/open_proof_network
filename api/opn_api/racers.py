@@ -7,7 +7,8 @@ proof pull request writes the node's ``Proof.lean``, so once one merges the othe
 proof, byte for byte, to the path an alternate takes (F07-T12) on a fresh commit from ``main``,
 and the gate checks it there as the alternate it now is.
 
-It happens on a live read that finds the pull request conflicting and the node's proof merged,
+It happens on a live read of an open proof whose node's proof has merged and whose branch still
+carries ``Proof.lean`` (such a pull request can never merge, whatever the host says of it),
 once per submission (a store counter marks it), and never for a copy of the winner, which the
 gate refuses as ``alternate-duplicate`` and the duplicate rule refuses before that (F07-T35).
 A host or store failure leaves the pull request as it was (C7).
@@ -37,9 +38,10 @@ FILE_TIMESTAMP = "%Y%m%dT%H%M%SZ"
 
 
 def is_losing_racer(ctx: Context, found: Submission, state: PullRequestState) -> bool:
+    # Not ``mergeable_state == "dirty"``: the host answered ``unknown`` for #172 for minutes while
+    # main kept moving. A proof pull request on a node whose proof has merged cannot merge; that
+    # it still carries ``Proof.lean`` is checked where the file is read.
     if found.kind != "proof" or found.node_id is None or state.finished:
-        return False
-    if state.mergeable_state != "dirty":
         return False
     for node in precheck.graph_doc(ctx).get(found.target_id, []):
         if node.get("node_id") == found.node_id:

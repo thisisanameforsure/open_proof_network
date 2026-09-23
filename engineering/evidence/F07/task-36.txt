@@ -41,3 +41,15 @@ api/tests/test_finding_racer_alternate.py::test_the_host_moves_an_existing_branc
 make verify: ========= 2650 passed, 83 deselected, 2 warnings in 292.58s (0:04:52) ==========
 
 Live: acts at the next read of a racer after the api deploy; erdos-69's #164/#172 are the first candidates once #159 merges.
+
+--- LIVE, 2026-09-23 after the api deploy of 7ed57b2 ---
+20:13:35 GET /submissions/164: waiting_on merge, mergeable_state unknown (the host computing), nothing moved.
+20:14:54 again: waiting_on conflict, mergeable_state dirty; the service moved the branch 6e230519 -> ea765025.
+20:16:19 again: waiting_on gate, head ea765025; the pull request's one file is now
+         targets/erdos-69/nodes/erdos-69--h2-v2--h1-v2--h1/attempts/20260923T145210Z-t0923-69-b-alternate.lean
+20:17:28 after one GET /submissions.json: #162, #163, #167 moved the same way
+         (20260923T145151Z-t0923-69-b-, 20260923T145155Z-t0923-69-b-, 20260923T145630Z-t0923-69-a-alternate.lean).
+#172 did not: the host answered mergeable_state `unknown` on every read for five minutes while main kept moving,
+and the rule waited for `dirty`. Red: test_a_racer_is_moved_whatever_the_host_says_about_mergeability
+(assert 0 == 1). Fix: the trigger is the fact itself — an open proof on a node whose proof has merged, whose
+branch still carries Proof.lean — not the host's lagging flag. Green: 7 passed.
