@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Any
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from opn_api import appends, frontier, pending, precheck, ratelimit, submissions
+from opn_api import appends, duplicates, frontier, pending, precheck, ratelimit, submissions
 from opn_api import clock as clockmod
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
@@ -118,25 +118,33 @@ def open_proposal(  # noqa: PLR0913 — one pull request, described
     kind: str,
 ) -> dict[str, Any]:
     """R3, R5 -> F07-R2: one branch, one authored commit, one pull request the gate admits,
-    recorded as ``kind`` so its state can be watched (F07-T16)."""
+    recorded as ``kind`` so its state can be watched (F07-T16). F07-T35: a copy is refused
+    first — a second witness for a hole, a statement already proposed — before any budget is
+    spent or anything pushed."""
+    if kind == "witness":
+        duplicates.check_witness(ctx, node_id)
+    else:
+        duplicates.check_proposal(ctx, node_id)
     ratelimit.check_proposal(ctx, identity.id)
+    what_slot = "witness" if kind == "witness" else "proposal"
     proposal_id = identitymod.new_ulid(ctx.clock.now())
     subject = f"proposal: {node_id}"
-    pr = submissions.open_pr(
-        ctx,
-        identity,
-        branch=PROPOSE_BRANCH_PREFIX + proposal_id,
-        files=files,
-        subject=subject,
-        title=subject,
-        body=(
-            f"A {what} proposed through the Open Proof Network service by "
-            f"`{identity.pseudonym}`. Admission is mechanical (D-29): the gate checks the "
-            "layout, the statement, the witness, the hazards, the context, the graph and any "
-            "relation proof (F08-R1), and no one approves structure.\n\n"
-            f"`targets/{target_id}/nodes/{node_id}/`\n"
-        ),
-    )
+    with duplicates.holding(ctx, [duplicates.slot(what_slot, node_id)], what_slot):
+        pr = submissions.open_pr(
+            ctx,
+            identity,
+            branch=PROPOSE_BRANCH_PREFIX + proposal_id,
+            files=files,
+            subject=subject,
+            title=subject,
+            body=(
+                f"A {what} proposed through the Open Proof Network service by "
+                f"`{identity.pseudonym}`. Admission is mechanical (D-29): the gate checks the "
+                "layout, the statement, the witness, the hazards, the context, the graph and any "
+                "relation proof (F08-R1), and no one approves structure.\n\n"
+                f"`targets/{target_id}/nodes/{node_id}/`\n"
+            ),
+        )
     log.info("%s %s opened %s for %s", what, proposal_id, pr.url, identity.id)
     pending.record(
         ctx,

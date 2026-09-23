@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, Any
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from opn_api import bundles, pending, precheck
+from opn_api import bundles, duplicates, pending, precheck
 from opn_api import clock as clockmod
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
@@ -312,6 +312,12 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
         tutorial=bool(facts["tutorial"]),
     )
 
+    # F07-T35 (D-25 v3.21): a copy of a proof merged on the node or open for it is refused
+    # before the precheck job is spent on it; a different proof races as before.
+    prints = duplicates.check_proof(
+        ctx, claim.target_id, node_id, dict(bundle.files), tutorial=bool(facts["tutorial"])
+    )
+
     # A job for another node cannot reach here: the bundle was just path-checked against this
     # node, and a job's digest is over its bundle's paths, so a foreign job's bundle fails
     # `path-forbidden` above before its digest could match (F05-Q7).
@@ -328,15 +334,16 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
         "precheck_job_id": job.id,
     }
     subject = f"{artifact_type}: {node_id}"
-    pr = open_pr(
-        ctx,
-        identity,
-        branch=SUBMIT_BRANCH_PREFIX + submission_id,
-        files=dict(bundle.files),
-        subject=subject,
-        title=subject,
-        body=submission_body(job, meta),
-    )
+    with duplicates.holding(ctx, [duplicates.slot("proof", node_id, fp) for fp in prints], "proof"):
+        pr = open_pr(
+            ctx,
+            identity,
+            branch=SUBMIT_BRANCH_PREFIX + submission_id,
+            files=dict(bundle.files),
+            subject=subject,
+            title=subject,
+            body=submission_body(job, meta),
+        )
     log.info("submission %s opened %s for %s", submission_id, pr.url, identity.id)
     # F07-T16: remembered so GET /submissions/{id} can answer its live state; advisory — a store
     # failure is logged inside and the pull request is still answered (C7, C9).
@@ -349,6 +356,7 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
         node_id=node_id,
         pr=pr,
         precheck_job_id=job.id,
+        fingerprints=prints,
     )
     return JSONResponse(
         {

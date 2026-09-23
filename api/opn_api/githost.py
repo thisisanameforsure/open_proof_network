@@ -209,8 +209,11 @@ class GitHost(Protocol):
         message: str,
         author: Author | None = None,
         committer: Author | None = None,
+        replace: bool = False,
     ) -> str:
-        """Create ``branch`` from ``base`` with ``files`` added, returning the commit sha.
+        """Create ``branch`` from ``base`` with ``files`` added, returning the commit sha. With
+        ``replace`` the branch already exists and is moved to the new commit (F07-T36: a branch
+        the service opened, rebuilt from ``base``); nothing else is ever force-moved.
 
         The tree is the base branch's tree plus these paths, so the branch carries the scratch
         repository's own workflow as ``base`` has it — the api never pushes runnable code
@@ -442,6 +445,7 @@ class HttpxGitHost:
         message: str,
         author: Author | None = None,
         committer: Author | None = None,
+        replace: bool = False,
     ) -> str:
         with self._api(repo) as http:
             ref = _json(_send(http, "GET", f"{GITHUB_API}/repos/{repo}/git/ref/heads/{base}"))
@@ -481,12 +485,20 @@ class HttpxGitHost:
             commit = _json(
                 _send(http, "POST", f"{GITHUB_API}/repos/{repo}/git/commits", json=payload)
             )
-            _send(
-                http,
-                "POST",
-                f"{GITHUB_API}/repos/{repo}/git/refs",
-                json={"ref": f"refs/heads/{branch}", "sha": commit["sha"]},
-            )
+            if replace:
+                _send(
+                    http,
+                    "PATCH",
+                    f"{GITHUB_API}/repos/{repo}/git/refs/heads/{branch}",
+                    json={"sha": commit["sha"], "force": True},
+                )
+            else:
+                _send(
+                    http,
+                    "POST",
+                    f"{GITHUB_API}/repos/{repo}/git/refs",
+                    json={"ref": f"refs/heads/{branch}", "sha": commit["sha"]},
+                )
         return str(commit["sha"])
 
     def open_pull_request(

@@ -32,10 +32,13 @@ MERGE_SHA = "7" * 40
 FAILED_GATE = {"name": "gate", "status": "completed", "conclusion": "failure", "url": "u"}
 
 
+_ANNEXES = iter(range(1_000_000))
+
+
 def annex(h: Harness, token: str, node: str = TUTORIAL_NODE) -> dict[str, Any]:
-    r = h.client.post(
-        "/annexes", json={"node_id": node, "text": "An informal argument.\n"}, headers=h.auth(token)
-    )
+    # each a different argument: an identical annex open for the node is refused (F07-T35)
+    text = f"An informal argument, number {next(_ANNEXES)}.\n"
+    r = h.client.post("/annexes", json={"node_id": node, "text": text}, headers=h.auth(token))
     assert r.status_code == 201, r.text
     doc: dict[str, Any] = r.json()
     return doc

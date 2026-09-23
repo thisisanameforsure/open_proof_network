@@ -1,0 +1,73 @@
+F07-T35 — a copy is refused before a pull request opens (Q42; decisions v3.21, D-25)
+Mike, 2026-09-23: "Duplicate work ... should not be allowed. Throw these out, and report back to the
+agent." Then: "actually there can be multiple proofs per node ... its just they cant be duplicates."
+
+Found: every write route opened a PR without looking at what was open for the node. Under the rule
+(same node, same content once Lean comments and whitespace are set aside) exactly two of the day's
+PRs were copies, found by hashing each PR's added files normalised:
+  #146 / #150  erdos-1050--h1-v2--h1/Witness.lean  8a4a471369 = 8a4a471369  (#146 merged 14:47:28)
+  #168 / #171  variant-3377fd96/Statement.lean, Relation.lean, META.yaml identical; Witness differs
+The erdos-69 proofs (#159/#164/#172, #160/#162/#167, #161/#163) are all different texts: kept.
+
+Thrown out (T0, 2026-09-23 ~18:30Z): gh pr close 150 and 168, each with a comment naming the original
+and the rule; SendMessage to the two authoring agents, both acknowledged (#150 -> #146; #168 -> #171).
+
+The rule (api/opn_api/duplicates.py), before any PR opens, 409 duplicate-submission naming the PR/path:
+- proof/partial/alternate: a Lean file whose fingerprint equals the node's merged Proof.lean (only if
+  the graph says proved) or attempts/*.lean, or the fingerprint recorded on an open submission;
+- witness: any open witness for the hole (one slot);
+- proposal: the same node id (statement-derived) open;
+- annex/postmortem/approach record: the same written text open for the same node (the annex's text,
+  not the rendered file, which carries the contributor and the date).
+An open PR blocks only while it can merge: gate-failed, conflict and closed block nothing.
+The tutorial node is exempt (D-27 rehearsal). Race: an atomic store counter per slot and 120 s window,
+taken last (after every other check) and released if the PR fails to open (Store.drop_counter, both
+stores, parity test). Submission records carry `fingerprints` (not served).
+Restated, not deleted: test_pending_submissions' annex helper (now distinct texts), the daily-budget
+test (a second, different statement), the variant-label test (closes the first proposal before
+re-proposing), the rehearsal (the MCP path's copy of the HTTP path's proof is refused, and that is its
+pass: "the copy refused as #N's (D-25)"), F07-T8's trigger test.
+
+--- RED (routes as they stood) ---
+api/tests/test_finding_duplicate_submissions.py::test_comments_and_whitespace_do_not_make_a_different_proof PASSED [ 10%]
+api/tests/test_finding_duplicate_submissions.py::test_a_second_witness_while_one_is_open_is_refused FAILED [ 20%]
+api/tests/test_finding_duplicate_submissions.py::test_a_witness_after_the_open_one_failed_its_gate_goes_through PASSED [ 30%]
+api/tests/test_finding_duplicate_submissions.py::test_a_witness_after_the_open_one_was_closed_goes_through PASSED [ 40%]
+api/tests/test_finding_duplicate_submissions.py::test_the_same_statement_proposed_twice_is_refused FAILED [ 50%]
+api/tests/test_finding_duplicate_submissions.py::test_a_statement_whose_proposal_failed_its_gate_may_be_proposed_again PASSED [ 60%]
+api/tests/test_finding_duplicate_submissions.py::test_a_copy_of_an_open_proof_is_refused_and_a_different_proof_is_not FAILED [ 70%]
+api/tests/test_finding_duplicate_submissions.py::test_an_alternate_that_copies_the_merged_proof_is_refused FAILED [ 80%]
+api/tests/test_finding_duplicate_submissions.py::test_an_identical_annex_while_one_is_open_is_refused_and_a_different_one_is_not FAILED [ 90%]
+api/tests/test_finding_duplicate_submissions.py::test_two_identical_requests_in_the_same_seconds_cannot_both_pass FAILED [100%]
+E       assert 201 == 409
+E       assert 201 == 409
+E       assert 201 == 409
+E       assert 201 == 409
+E       assert 201 == 409
+E       assert 201 == 409
+FAILED api/tests/test_finding_duplicate_submissions.py::test_a_second_witness_while_one_is_open_is_refused
+FAILED api/tests/test_finding_duplicate_submissions.py::test_the_same_statement_proposed_twice_is_refused
+FAILED api/tests/test_finding_duplicate_submissions.py::test_a_copy_of_an_open_proof_is_refused_and_a_different_proof_is_not
+FAILED api/tests/test_finding_duplicate_submissions.py::test_an_alternate_that_copies_the_merged_proof_is_refused
+FAILED api/tests/test_finding_duplicate_submissions.py::test_an_identical_annex_while_one_is_open_is_refused_and_a_different_one_is_not
+FAILED api/tests/test_finding_duplicate_submissions.py::test_two_identical_requests_in_the_same_seconds_cannot_both_pass
+
+--- GREEN ---
+api/tests/test_finding_duplicate_submissions.py::test_comments_and_whitespace_do_not_make_a_different_proof PASSED [  6%]
+api/tests/test_finding_duplicate_submissions.py::test_a_second_witness_while_one_is_open_is_refused PASSED [ 13%]
+api/tests/test_finding_duplicate_submissions.py::test_a_witness_after_the_open_one_failed_its_gate_goes_through PASSED [ 20%]
+api/tests/test_finding_duplicate_submissions.py::test_a_witness_after_the_open_one_was_closed_goes_through PASSED [ 26%]
+api/tests/test_finding_duplicate_submissions.py::test_the_same_statement_proposed_twice_is_refused PASSED [ 33%]
+api/tests/test_finding_duplicate_submissions.py::test_a_statement_whose_proposal_failed_its_gate_may_be_proposed_again PASSED [ 40%]
+api/tests/test_finding_duplicate_submissions.py::test_a_copy_of_an_open_proof_is_refused_and_a_different_proof_is_not PASSED [ 46%]
+api/tests/test_finding_duplicate_submissions.py::test_an_alternate_that_copies_the_merged_proof_is_refused PASSED [ 53%]
+api/tests/test_finding_duplicate_submissions.py::test_an_identical_annex_while_one_is_open_is_refused_and_a_different_one_is_not PASSED [ 60%]
+api/tests/test_finding_duplicate_submissions.py::test_two_identical_requests_in_the_same_seconds_cannot_both_pass PASSED [ 66%]
+api/tests/test_finding_duplicate_submissions.py::test_a_request_refused_for_another_reason_holds_no_slot PASSED [ 73%]
+api/tests/test_finding_duplicate_submissions.py::test_a_push_that_fails_gives_its_slot_back PASSED [ 80%]
+api/tests/test_finding_duplicate_submissions.py::test_fingerprints_and_the_slot_counter_in_both_stores[memory] PASSED [ 86%]
+api/tests/test_finding_duplicate_submissions.py::test_fingerprints_and_the_slot_counter_in_both_stores[dynamodb] PASSED [ 93%]
+api/tests/test_finding_duplicate_submissions.py::test_the_tutorial_node_may_be_rehearsed_again_and_again PASSED [100%]
+======================= 15 passed, 2 warnings in 13.93s ========================
+
+make verify: ========= 2650 passed, 83 deselected, 2 warnings in 292.58s (0:04:52) ==========

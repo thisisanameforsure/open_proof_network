@@ -69,6 +69,7 @@ def record(  # noqa: PLR0913 — one opened pull request, described
     node_id: str | None,
     pr: PullRequest,
     precheck_job_id: str | None = None,
+    fingerprints: tuple[str, ...] | list[str] = (),
 ) -> Submission | None:
     """Remember a pull request the service just opened. The pull request exists whatever happens
     here, so a store failure is logged and the caller still answers 201 with its number: the
@@ -83,6 +84,7 @@ def record(  # noqa: PLR0913 — one opened pull request, described
         pseudonym=identity.pseudonym,
         precheck_job_id=precheck_job_id,
         created=clockmod.render(ctx.clock.now()),
+        fingerprints=tuple(fingerprints),
     )
     try:
         ctx.store.put_submission(submission)
@@ -102,6 +104,7 @@ def document(submission: Submission) -> dict[str, Any]:
     answer carries as ``pull_request`` instead."""
     doc = asdict(submission)
     doc.pop("final_state")
+    doc.pop("fingerprints")  # the service's own index, not part of the answer (F07-T35)
     return doc
 
 
@@ -266,6 +269,11 @@ def reconcile(
     if found.closed is not None:
         return found, found.final_state, None
     state, error = live_state(ctx, found.pr_number)
+    from opn_api import racers  # noqa: PLC0415 — racers reads the duplicate rule, which reads this
+
+    if state is not None and error is None and racers.convert(ctx, found, state):
+        # F07-T36: a losing racer was moved to its alternate path; read the new state
+        state, error = live_state(ctx, found.pr_number)
     if state is not None and error is None and state.finished:
         closed = ctx.store.close_submission(
             found.id,

@@ -206,7 +206,10 @@ def test_a_refused_proposal_does_not_spend_the_daily_budget() -> None:
         assert post(h, "/proposals/speculative", token, bad).status_code == 400
     ok = {**bad, "witness": WITNESS}
     assert post(h, "/proposals/speculative", token, ok).status_code == 201
-    assert post(h, "/proposals/speculative", token, ok).status_code == 429
+    # a second, different statement: the same one again is a copy (F07-T35), refused before the
+    # budget is asked, which is not what this test is about
+    other = {**ok, "statement": ok["statement"].replace("OpnProp.and_weaken", "OpnProp.other")}
+    assert post(h, "/proposals/speculative", token, other).status_code == 429
 
 
 def test_proposal_never_carries_the_token_or_identity_id(harness: Harness) -> None:

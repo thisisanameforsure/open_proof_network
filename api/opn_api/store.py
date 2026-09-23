@@ -100,6 +100,9 @@ class Submission:
     created: str
     closed: str | None = None
     final_state: dict[str, Any] | None = None
+    #: F07-T35: the content fingerprints (``duplicates.fingerprint``) of what the pull request
+    #: carries, so a later copy can be refused while it is open; empty for a record made before.
+    fingerprints: tuple[str, ...] = ()
 
 
 def proposes(submission: Submission) -> bool:
@@ -169,6 +172,10 @@ class Store(Protocol):
 
     def bump_counter(self, key: str, expires: datetime) -> int:
         """Increment and return the counter at ``key``; it disappears after ``expires``."""
+        ...
+
+    def drop_counter(self, key: str) -> None:
+        """Forget the counter at ``key`` at once (F07-T35: a slot whose request failed to open)."""
         ...
 
     def put_submission(self, submission: Submission) -> None:
@@ -274,6 +281,9 @@ class MemoryStore:
         count, _ = self.counters.get(key, (0, expires))
         self.counters[key] = (count + 1, expires)
         return count + 1
+
+    def drop_counter(self, key: str) -> None:
+        self.counters.pop(key, None)
 
     def put_submission(self, submission: Submission) -> None:
         self.submissions[submission.id] = submission
@@ -526,6 +536,9 @@ class DynamoStore:
         )
         return int(updated["Attributes"]["count"])
 
+    def drop_counter(self, key: str) -> None:
+        self._tokens.delete_item(Key={"key": key})
+
     # --- submissions (F07-T16): three key prefixes in the tokens table, no TTL -----------------
 
     def put_submission(self, submission: Submission) -> None:
@@ -644,6 +657,7 @@ def _submission(record: dict[str, Any]) -> Submission:
         created=str(record["created"]),
         closed=str(record["closed"]) if record.get("closed") is not None else None,
         final_state=dict(final) if isinstance(final, dict) else None,
+        fingerprints=tuple(str(fp) for fp in record.get("fingerprints") or ()),
     )
 
 

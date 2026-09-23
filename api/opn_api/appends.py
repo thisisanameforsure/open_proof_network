@@ -24,7 +24,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from opn_api import clock as clockmod
-from opn_api import frontier, pending, precheck, submissions
+from opn_api import duplicates, frontier, pending, precheck, submissions
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
 from opn_gate import schemas
@@ -118,23 +118,28 @@ def append_pr(  # noqa: PLR0913 — one pull request, described
     kind: str,
     target_id: str,
     node_id: str | None,
+    written: str | None = None,
 ) -> dict[str, Any]:
     """One appended file, one branch, one pull request (R11, R2), recorded as ``kind`` so its
-    state can be watched through ``GET /submissions/{id}`` (F07-T16)."""
+    state can be watched through ``GET /submissions/{id}`` (F07-T16). F07-T35: an append
+    identical to one open for the same node (or target) is refused before anything is pushed."""
+    owner = node_id or target_id
+    prints = duplicates.check_append(ctx, kind, owner, written or content)
     append_id = identitymod.new_ulid(ctx.clock.now())
-    pr = submissions.open_pr(
-        ctx,
-        identity,
-        branch=submissions.APPEND_BRANCH_PREFIX + append_id,
-        files={path: content},
-        subject=subject,
-        title=subject,
-        body=(
-            f"A {what} appended through the Open Proof Network service by "
-            f"`{identity.pseudonym}`. It claims nothing: the gate checks its path and its "
-            f"schema (F07-R9).\n\n`{path}`\n"
-        ),
-    )
+    with duplicates.holding(ctx, [duplicates.slot(kind, owner, fp) for fp in prints], kind):
+        pr = submissions.open_pr(
+            ctx,
+            identity,
+            branch=submissions.APPEND_BRANCH_PREFIX + append_id,
+            files={path: content},
+            subject=subject,
+            title=subject,
+            body=(
+                f"A {what} appended through the Open Proof Network service by "
+                f"`{identity.pseudonym}`. It claims nothing: the gate checks its path and its "
+                f"schema (F07-R9).\n\n`{path}`\n"
+            ),
+        )
     log.info("%s %s opened %s for %s", what, append_id, pr.url, identity.id)
     pending.record(
         ctx,
@@ -144,6 +149,7 @@ def append_pr(  # noqa: PLR0913 — one pull request, described
         target_id=target_id,
         node_id=node_id,
         pr=pr,
+        fingerprints=prints,
     )
     return {"id": append_id, "path": path, "pr_url": pr.url, "pr_number": pr.number}
 
@@ -240,6 +246,7 @@ async def post_annexes(ctx: Context, request: Request) -> Response:
         subject=f"annex: {node_id}",
         what="annex",
         kind="annex",
+        written=text,
         target_id=target_id,
         node_id=node_id,
     )

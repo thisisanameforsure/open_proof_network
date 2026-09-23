@@ -72,6 +72,7 @@ class Push:
     message: str
     author: Author | None = None
     committer: Author | None = None
+    replace: bool = False
 
 
 @dataclass
@@ -115,6 +116,8 @@ class FakeGitHost:
     #: F06-T8: paths a given ref does not carry, so a test can put a file on ``main`` that the
     #: commit the products were rendered from lacks.
     absent_at: dict[str, set[str]] = field(default_factory=dict)
+    #: A file's content at one ref, over ``files`` (F07-T36: a branch's proof beside main's).
+    files_at: dict[str, dict[str, bytes]] = field(default_factory=dict)
     artifact_failure: str = ""
     app_failure: str | None = None  # when set, every App call raises it (R10, AC12)
     lookup_failure: str | None = None  # when set, only find_run raises (C7: a transient outage)
@@ -157,7 +160,14 @@ class FakeGitHost:
         if self.unreachable:
             msg = f"fetching {path} failed: ConnectError"
             raise GitHostError(msg)
-        body = None if path in self.absent_at.get(ref, ()) else self.files.get(path)
+        at_ref = self.files_at.get(ref, {})
+        body = (
+            at_ref[path]
+            if path in at_ref
+            else None
+            if path in self.absent_at.get(ref, ())
+            else self.files.get(path)
+        )
         if body is None:
             return Fetched(404, None, None)
         current = f'"{len(body)}-{hash(body) & 0xFFFF:x}"'
@@ -197,9 +207,12 @@ class FakeGitHost:
         message: str,
         author: Author | None = None,
         committer: Author | None = None,
+        replace: bool = False,
     ) -> str:
         self._app_call()
-        self.pushes.append(Push(repo, branch, dict(files), base, message, author, committer))
+        self.pushes.append(
+            Push(repo, branch, dict(files), base, message, author, committer, replace)
+        )
         return f"{len(self.pushes):040d}"
 
     def open_pull_request(

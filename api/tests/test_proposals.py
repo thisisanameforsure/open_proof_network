@@ -178,6 +178,11 @@ def test_variant_requires_proof_for_label(harness: Harness, tmp_path: Path) -> N
     assert graphmod.relation_of(node_dir, "variant") == "related"
     assert not (node_dir / "status").exists()  # a variant is not speculative
 
+    # The same statement again is a copy while its proposal is open (F07-T35); this test is about
+    # the labels, so that proposal is closed before the statement is proposed again.
+    harness.githost.set_pull_request_state(related.json()["pr_number"], state="closed")
+    harness.clock.advance(minutes=5)
+
     # A `related` variant with a proof claims nothing the proof could prove (F08-Q6).
     r = post(harness, "/proposals/variant", token, {**base, "relation_proof": RELATION_PROOF})
     assert r.status_code == 400 and r.json()["error"] == "proposal-invalid"

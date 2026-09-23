@@ -85,9 +85,12 @@ def test_both_paths_end_to_end_and_the_rest_pending(
     assert lines["identity:http"] == lines["identity:mcp"] == "ok"
     assert lines["frontier"] == "ok"
     assert lines["root-closes"] == "pending" and lines["site"] == "skipped"
-    # Two identities, two pull requests of each kind: the acts reached the host.
+    # Two identities, two pull requests of each kind: the acts reached the host. The proof is the
+    # one exception: the MCP path sends the proof the HTTP path just opened, and the service
+    # refuses the copy (F07-T35, D-25 v3.21), which is that path's pass.
     titles = [p.title for p in host.pulls]
-    assert sum(t.startswith("proof: ") for t in titles) == 2
+    assert sum(t.startswith("proof: ") for t in titles) == 1
+    assert "the copy refused as #" in record
     assert sum(t.startswith("postmortem: ") for t in titles) == 2
     assert sum(t.startswith("proposal: ") for t in titles) == 2
 

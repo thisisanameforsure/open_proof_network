@@ -290,16 +290,26 @@ class McpPath:
         if (final.get("result") or {}).get("verdict") != "pass":
             msg = f"precheck {job['id']}: {final.get('state')}"
             raise RuntimeError(msg)
-        sub = self._ok(
-            "submit_proof",
-            {
-                "node_id": node,
-                "artifact_type": "proof",
-                "bundle": {path: proof},
-                "attestation": final,  # the get_precheck result; its id binds the submission
-                "tooling": {"harness": "rehearsal.py"},
-            },
-        )
+        args = {
+            "node_id": node,
+            "artifact_type": "proof",
+            "bundle": {path: proof},
+            "attestation": final,  # the get_precheck result; its id binds the submission
+            "tooling": {"harness": "rehearsal.py"},
+        }
+        result = self.client.call("submit_proof", args)
+        result.pop("__is_error__")
+        answered = result.get("body")
+        refusal: dict[str, Any] = answered if isinstance(answered, dict) else {}
+        if result.get("status") == 409 and refusal.get("error") == "duplicate-submission":
+            # F07-T35 (D-25 v3.21): the HTTP path has just opened this very proof, so the
+            # service must refuse the copy; that refusal, naming it, is this path's pass.
+            copy_of = (refusal.get("details") or {}).get("pr_number")
+            return f"precheck {job['id']} pass; the copy refused as #{copy_of}'s (D-25)"
+        if result.get("status") != 201:
+            msg = f"submit_proof -> {result}"
+            raise RuntimeError(msg)
+        sub = result.get("body") or {}
         return f"precheck {job['id']} pass; PR {sub.get('pr_url') or sub.get('pr_number')}"
 
     def postmortem(self, node: str) -> str:

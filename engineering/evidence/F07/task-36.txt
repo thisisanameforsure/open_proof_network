@@ -1,0 +1,43 @@
+F07-T36 — a losing racer's proof becomes an alternate (Q43; decisions v3.21, D-25)
+
+Found: D-25 v3.13 says "a losing racer's complete proof is recorded in attempts/ as an alternate
+proof"; no code did it. Every proof PR writes the node's Proof.lean, so once the first merges the rest
+conflict for ever (erdos-69's h1 had three different proofs open: #159, #164, #172).
+
+Fix (api/opn_api/racers.py, hooked into pending.reconcile, so GET /submissions/<id> and
+GET /submissions.json both do it): an open proof whose PR is dirty on a node the graph says is proved
+has its Proof.lean (read at the PR's head sha) moved unchanged to
+attempts/<submission time>-<pseudonym>-alternate.lean on a fresh commit from main, authored and
+signed off by its pseudonym, committed by the App, force-moving the service's own submit/ branch
+(GitHost.push_branch replace=True: PATCH git/refs/heads/<branch> {force: true}; seam-tested). Once per
+submission (store counter racer#<id>, released if the push fails); never for a copy of the winner.
+
+--- RED ---
+api/tests/test_finding_racer_alternate.py::test_a_losing_racer_is_moved_to_an_alternate FAILED [ 20%]
+api/tests/test_finding_racer_alternate.py::test_it_is_done_once FAILED   [ 40%]
+api/tests/test_finding_racer_alternate.py::test_a_racer_that_copies_the_winner_is_left_alone PASSED [ 60%]
+api/tests/test_finding_racer_alternate.py::test_a_conflict_on_an_unproved_node_is_not_a_race PASSED [ 80%]
+api/tests/test_finding_racer_alternate.py::test_the_snapshot_converts_too FAILED [100%]
+E       ValueError: not enough values to unpack (expected 1, got 0)
+E       assert 0 == 1
+E        +  where 0 = len([])
+E        +    where [] = replaced(Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefix='/opn/api/', public_url='http://127.0.0.1:8000', graph_repo='thisisanameforsure/open_proof_network_graph', graph_branch='main', frontier_max_stale_s=60, writes_per_hour=120, active_claims=20, tokens_per_login=1, token_starts_per_day=10, prechecks_per_hour=40, anonymous_prechecks_per_day=20, proposals_per_day=40, precheck_repo='thisisanameforsure/open_proof_network_precheck', precheck_branch='main', precheck_workflow='precheck.yml', precheck_key_path='keys/precheck.pub', committer_name='open-proof-network[bot]', committer_email='327070898+open-proof-network[bot]@users.noreply.github.com', claim_ttl_min_h=1, claim_ttl_max_h=168, state_ttl_s=600, max_body_bytes=1048576, log_level='INFO', axle_url='https://axle.axiommath.ai', check_timeout_s=20, checks_per_hour=600, anonymous_checks_per_day=200, check_max_bytes=200000, check_concurrency=8, github_app_id='1', github_client_id='Iv1.test', github_client_secret=<set>, github_private_key=<set>, token_secret=<set>), store=MemoryStore(identities={}, unique=set(), tokens={}, claims={}, jobs={}, ephemeral={}, counters={}, su...55555555555555", "root": "and-swap-reassoc", "schema": "graph/v1", "target_id": "propositional"}', 'targets/propositional/nodes/and-reassoc/Proof.lean': b'import Mathlib\n\ntheorem x : True := trivial\n'}, exchanges=[], fetches=[], unreachable=False, access_token='gho_FAKE_ACCESS_TOKEN_NEVER_STORED', pushes=[], pulls=[], dispatches=[], runs={}, artifacts={}, artifact_reads=0, head='', head_failure='', head_reads=0, refs=[], absent_at={}, files_at={'cccccccccccccccccccccccccccccccccccccccc': {'targets/propositional/nodes/and-reassoc/Proof.lean': b'import Mathlib\n\ntheorem x : True := True.intro\n'}}, artifact_failure='', app_failure=None, lookup_failure=None, pr_failure=None, pull_states={12: {'state': 'open', 'merged': False, 'mergeable_state': 'dirty', 'head_sha': 'cccccccccccccccccccccccccccccccccccccccc', 'merge_commit_sha': None, 'runs': [], 'reviews': []}}, pull_lookups=[12], pr_lookup_failure=None), clock=FakeClock(current=datetime.datetime(2026, 9, 9, 12, 0, tzinfo=datetime.timezone.utc)), client=<starlette.testclient.TestClient object at 0x109bf4050>, app=<starlette.applications.Starlette object at 0x109b4fc50>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])))
+E       assert 0 == 1
+E        +  where 0 = len([])
+E        +    where [] = replaced(Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefix='/opn/api/', public_url='http://127.0.0.1:8000', graph_repo='thisisanameforsure/open_proof_network_graph', graph_branch='main', frontier_max_stale_s=60, writes_per_hour=120, active_claims=20, tokens_per_login=1, token_starts_per_day=10, prechecks_per_hour=40, anonymous_prechecks_per_day=20, proposals_per_day=40, precheck_repo='thisisanameforsure/open_proof_network_precheck', precheck_branch='main', precheck_workflow='precheck.yml', precheck_key_path='keys/precheck.pub', committer_name='open-proof-network[bot]', committer_email='327070898+open-proof-network[bot]@users.noreply.github.com', claim_ttl_min_h=1, claim_ttl_max_h=168, state_ttl_s=600, max_body_bytes=1048576, log_level='INFO', axle_url='https://axle.axiommath.ai', check_timeout_s=20, checks_per_hour=600, anonymous_checks_per_day=200, check_max_bytes=200000, check_concurrency=8, github_app_id='1', github_client_id='Iv1.test', github_client_secret=<set>, github_private_key=<set>, token_secret=<set>), store=MemoryStore(identities={}, unique=set(), tokens={}, claims={}, jobs={}, ephemeral={}, counters={}, su...55555555555555", "root": "and-swap-reassoc", "schema": "graph/v1", "target_id": "propositional"}', 'targets/propositional/nodes/and-reassoc/Proof.lean': b'import Mathlib\n\ntheorem x : True := trivial\n'}, exchanges=[], fetches=[], unreachable=False, access_token='gho_FAKE_ACCESS_TOKEN_NEVER_STORED', pushes=[], pulls=[], dispatches=[], runs={}, artifacts={}, artifact_reads=0, head='', head_failure='', head_reads=0, refs=[], absent_at={}, files_at={'cccccccccccccccccccccccccccccccccccccccc': {'targets/propositional/nodes/and-reassoc/Proof.lean': b'import Mathlib\n\ntheorem x : True := True.intro\n'}}, artifact_failure='', app_failure=None, lookup_failure=None, pr_failure=None, pull_states={12: {'state': 'open', 'merged': False, 'mergeable_state': 'dirty', 'head_sha': 'cccccccccccccccccccccccccccccccccccccccc', 'merge_commit_sha': None, 'runs': [], 'reviews': []}}, pull_lookups=[12], pr_lookup_failure=None), clock=FakeClock(current=datetime.datetime(2026, 9, 9, 12, 0, tzinfo=datetime.timezone.utc)), client=<starlette.testclient.TestClient object at 0x109c03ce0>, app=<starlette.applications.Starlette object at 0x109c03a80>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])))
+FAILED api/tests/test_finding_racer_alternate.py::test_a_losing_racer_is_moved_to_an_alternate
+FAILED api/tests/test_finding_racer_alternate.py::test_it_is_done_once - asse...
+FAILED api/tests/test_finding_racer_alternate.py::test_the_snapshot_converts_too
+
+--- GREEN ---
+api/tests/test_finding_racer_alternate.py::test_a_losing_racer_is_moved_to_an_alternate PASSED [ 16%]
+api/tests/test_finding_racer_alternate.py::test_it_is_done_once PASSED   [ 33%]
+api/tests/test_finding_racer_alternate.py::test_a_racer_that_copies_the_winner_is_left_alone PASSED [ 50%]
+api/tests/test_finding_racer_alternate.py::test_a_conflict_on_an_unproved_node_is_not_a_race PASSED [ 66%]
+api/tests/test_finding_racer_alternate.py::test_the_snapshot_converts_too PASSED [ 83%]
+api/tests/test_finding_racer_alternate.py::test_the_host_moves_an_existing_branch_and_creates_no_ref PASSED [100%]
+======================== 6 passed, 2 warnings in 0.67s =========================
+
+make verify: ========= 2650 passed, 83 deselected, 2 warnings in 292.58s (0:04:52) ==========
+
+Live: acts at the next read of a racer after the api deploy; erdos-69's #164/#172 are the first candidates once #159 merges.
