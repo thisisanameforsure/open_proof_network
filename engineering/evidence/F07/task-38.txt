@@ -26,3 +26,13 @@ gate/tests/test_finding_alternate_postmerge.py::test_an_alternate_says_why_nobod
 ============================== 2 passed in 0.69s ===============================
 
 Then: re-pin, and replay #162, #163, #164, #167, #172 (gh workflow run gate.yml -f replay_pr=N).
+
+--- The replays, and the second half of the fix ---
+After the re-pin to 0b474b9 (graph c9fd343a, re-render 9c310d56) the five replays (runs 35929144235,
+35929194119, 35929260347, 35929311513, 35929359605) all failed again: "postmerge: step 9 = not asked", then the
+same argument error. A replay attests with the gate its merge's own tree pinned (F07-T33), and these merges
+pinned 53d7bf1, whose classifier gives an alternate no kind, so the fix in the new pin cannot reach them.
+The review step is the graph's workflow, not the pin: it now gives an alternate its kind itself
+(`calibration` when target.yaml says `calibration: true`, else `intermediate`), rehearsed on the live
+targets (erdos-69 -> calibration, euclid-primes -> intermediate). Red first: the workflow test failed on
+"the step knows an alternate"; green with the post-merge and replay suites, 53 passed. Graph 45abb6aa.

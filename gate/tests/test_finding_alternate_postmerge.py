@@ -64,3 +64,19 @@ def test_an_alternate_says_why_nobody_was_asked(
     # and the post-merge command takes it: the kind is one of the six it accepts
     review = postmerge.review_block(out["review_kind"])
     assert review["kind"] == expected[1] and review["reviewer"] is None
+
+
+def test_the_workflow_gives_an_alternate_a_kind_whatever_the_pin_says() -> None:
+    """Found when the five were replayed: a replay attests with the gate its merge pinned (F07-T33),
+    and those merges pinned a gate whose classifier gave an alternate no kind, so every replay died
+    again at --review-kind. The review step lives in the graph's workflow, not in the pin, so it
+    supplies the kind itself for an alternate that arrives without one: ``calibration`` when the
+    target's ``target.yaml`` says so, else ``intermediate``, the rule ``alternate_basis`` keeps."""
+    from test_finding_merge_actor_wakes import load_gate_doc  # noqa: PLC0415
+
+    steps = load_gate_doc()["jobs"]["postmerge"]["steps"]
+    (review,) = [s for s in steps if s.get("id") == "review"]
+    run = str(review["run"])
+    assert '"$MODE" = "alternate"' in run, "the step knows an alternate"
+    assert "calibration: true" in run and "kind=intermediate" in run
+    assert "MODE" in str(review.get("env", {}))
