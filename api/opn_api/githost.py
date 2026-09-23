@@ -136,15 +136,27 @@ class PullRequestState:
     def waiting_on(self) -> str | None:
         """F07-T22: the one thing an open pull request waits for — ``gate`` (the run has not
         finished), ``step9-review`` (the sandbox passed and only the review job is red),
-        ``gate-failed`` (nothing: the submission itself was refused), ``branch-update`` or
-        ``merge`` — and ``None`` once it is merged or closed. Read from the newest gate run; a
+        ``gate-failed`` (nothing: the submission itself was refused), ``conflict`` (it conflicts
+        with ``main`` and cannot merge as it stands, F07-T32), ``branch-update`` or ``merge`` —
+        and ``None`` once it is merged or closed. Read from the newest gate run; a
         failed run whose jobs could not be read says ``gate-failed``, the run's own word."""
         if self.finished:
             return None
+        if self.mergeable_state == "dirty":
+            return "conflict"  # F07-T32: it can never merge as it stands; #150 said "merge"
         gate = next((r for r in self.runs if r.get("name") == GATE_WORKFLOW), None)
-        if gate is None or gate.get("status") != "completed":
+        if gate is None:
             return "gate"
-        if gate.get("conclusion") != "success":
+        conclusion = gate.get("conclusion")
+        if gate.get("status") != "completed":
+            # F07-T32: the host reports a run complete minutes after its jobs end, so the jobs
+            # are the gate's word while the run's own status lags.
+            jobs = gate.get("jobs") or ()
+            if not jobs or any(j.get("status") != "completed" for j in jobs):
+                return "gate"
+            red = any(j.get("conclusion") == "failure" for j in jobs)
+            conclusion = "failure" if red else "success"
+        if conclusion != "success":
             failed = [j for j in gate.get("jobs") or () if j.get("conclusion") == "failure"]
             only_review = bool(failed) and all(
                 str(j.get("name") or "").startswith(STEP9_JOB_PREFIX) for j in failed
@@ -614,7 +626,12 @@ class HttpxGitHost:
             jobs: dict[Any, list[dict[str, Any]]] = {}
             if pr.get("state") == "open":
                 for run in runs:
-                    if run.get("name") == GATE_WORKFLOW and run.get("conclusion") == "failure":
+                    # a failed run (which job failed), or one the host has not called complete
+                    # (whether its jobs have, F07-T32)
+                    unfinished = run.get("status") != "completed"
+                    if run.get("name") == GATE_WORKFLOW and (
+                        run.get("conclusion") == "failure" or unfinished
+                    ):
                         listing = _json(
                             _send(
                                 http,

@@ -1,0 +1,144 @@
+F07-T32 — the merge actor never stops with work waiting (testers 2026-09-23, finding 1)
+
+What the record says (read-only, 2026-09-23, gh api on the graph):
+- 14:53:27 #147 merged. Post-merge run 35877508957: jobs completed 14:53:30 / 14:53:31 / 14:56:10;
+  run reported in_progress until 15:04:19. Actor runs 14:54:05 .. 15:00:44 (8) each logged
+  "#148 is next; a post-merge job is about to move main: holding".
+- #148 gate check run 107241873985 completed 15:07:07; run 35878887068 completed 15:07:18. Actor run
+  35879227783 created 15:07:21, read at 15:07:26: "#148 is up to date and its gate is running:
+  holding for it". No further actor run. The actor's own program, extracted and run read-only from a
+  laptop at 15:13:18: "merge actor: merge #148".
+- Actor runs by trigger (last 200): schedule 17, workflow_run 183 (cancelled 5, failure 1).
+  Schedule runs: 2026-09-22T18:09, 21:29, 2026-09-23T00:43, 06:06, 11:51, 17:15 — every 3-6 h,
+  for a cron of "23 * * * *".
+- 17:15:30 the schedule woke it; 8 merges followed (#148 17:15:38 .. #156 17:49:20).
+- 17:48:14 and 17:51:59: "merge actor: update #150", act step exit 1 (update-branch of a pull
+  request that conflicted with main; `mergeable` read null, so not treated as conflicted). A failed
+  run wakes nothing: no actor run after 17:51:59 up to 18:25 (15 pull requests open).
+
+Root causes: (1) the check-run view lags the check; (2) a hold ends the run and nothing re-wakes it
+when what it held for already happened; (3) a push run's status lags its jobs by minutes; (4) the
+concurrency group drops pending wakes; (5) the cron is best effort; (6) mergeable=null read as "no
+conflict"; (7) a failed act wakes nothing. The api's waiting_on shared (3) and had no word for a
+conflict (#150 read "merge").
+
+Fix (graph branch f07-t32-queue, commit below; api/opn_api/githost.py):
+- pick.settle: a hold is decided again every 20 s from fresh reads, for at most 15 min; job timeout 20.
+- pick.postmerge_running_from: a push run is running while one of its jobs is (or none started).
+- decide: conflicted() None (host computing) is a hold, never an update.
+- gate.yml postmerge: last step `if: always()` dispatches merge.yml with its own token (actions: write);
+  workflow_dispatch is the one event GITHUB_TOKEN may start a run with (docs.github.com,
+  "GITHUB_TOKEN", checked 2026-09-23).
+- merge.yml `rewake` job: needs merge, if failure(), actions: write only, dispatches once more.
+- cron */15, called a last resort.
+- api waiting_on: jobs are the gate's word while the run lags; mergeable_state dirty -> "conflict".
+
+--- RED: the new replays against the actor on the graph's origin/main ---
+F07-T32 red run: the wake replays against the actor on the graph's origin/main (f3c59825), 2026-09-23T18:27:44Z
+E       AssertionError: #148 never merged; the actor's runs: [(190, 'hold', '')]
+E       assert 148 in {}
+E        +  where {} = World(pick={'__name__': 'pick', '__builtins__': {'__name__': 'builtins', '__doc__': "Built-in functions, types, except...e_done=185)}, arrivals={}, push_runs=[], wakes=[], running=False, pending=False, merged_at={}, log=[(190, 'hold', '')]).merged_at
+E       AssertionError: left open: [1, 2]; runs: [(190, 'hold', ''), (195, 'hold', '')]
+E       assert set() == {1, 2}
+E         
+E         Extra items in the right set:
+E         1
+E         2
+E         Use -v to get more diff
+E       AssertionError: frozen with [151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172] open; last runs: [(920, 'hold', ''), (925, 'hold', ''), (1025, 'hold', ''), (1030, 'hold', ''), (1340, 'update', '151'), (1525, 'hold', '')]
+E       assert {151: Pr(numb...one=395), ...} == {}
+E         
+E         Left contains 22 more items:
+E         {151: Pr(number=151, ref='submit/p3', gate_s=180, based_on=6, gate_done=1520),
+E          152: Pr(number=152, ref='append/a4', gate_s=20, based_on=0, gate_done=165),
+E          153: Pr(number=153, ref='append/a5', gate_s=20, based_on=0, gate_done=200),
+E          154: Pr(number=154, ref='submit/p6', gate_s=180, based_on=0, gate_done=395),
+E          155: Pr(number=155, ref='append/a7', gate_s=20, based_on=0, gate_done=270),...
+E         
+E         ...Full output truncated (18 lines hidden), use '-vv' to show
+E       KeyError: 'postmerge_running_from'
+E       KeyError: 'settle'
+E       KeyError: 'settle'
+E       KeyError: 'settle'
+        that state, the update failed, and the failed run woke nothing."""
+E       AssertionError: (150, '0000000000000000000000000000000000000150', 'update')
+E       assert (150, '000000...50', 'update') == ('', '', 'hold')
+E         
+E         At index 0 diff: 150 != ''
+E         Use -v to get more diff
+E       ValueError: not enough values to unpack (expected 1, got 0)
+___________________ test_a_failed_act_wakes_the_actor_again ____________________
+    def test_a_failed_act_wakes_the_actor_again(doc: dict[Any, Any]) -> None:
+E       KeyError: 'rewake'
+E       KeyError: 'timeout-minutes'
+FAILED gate/tests/test_finding_merge_actor_wakes.py::test_a_stale_read_after_the_wake_does_not_strand_the_pull_request
+FAILED gate/tests/test_finding_merge_actor_wakes.py::test_a_finished_post_merge_job_does_not_hold_the_next_update
+FAILED gate/tests/test_finding_merge_actor_wakes.py::test_the_afternoon_of_148_drains_with_no_cron
+FAILED gate/tests/test_finding_merge_actor_wakes.py::test_a_run_whose_jobs_have_all_finished_is_not_running
+FAILED gate/tests/test_finding_merge_actor_wakes.py::test_a_hold_is_decided_again_until_it_resolves
+FAILED gate/tests/test_finding_merge_actor_wakes.py::test_a_hold_that_never_resolves_ends_the_run_at_the_cap
+FAILED gate/tests/test_finding_merge_actor_wakes.py::test_nothing_to_do_is_not_waited_on
+FAILED gate/tests/test_finding_merge_actor_wakes.py::test_a_pull_request_whose_mergeability_is_unknown_is_not_updated
+FAILED gate/tests/test_finding_merge_actor_wakes.py::test_the_post_merge_job_wakes_the_actor_whatever_happened
+FAILED gate/tests/test_finding_merge_actor_wakes.py::test_a_failed_act_wakes_the_actor_again
+FAILED gate/tests/test_finding_merge_actor_wakes.py::test_the_job_is_capped_above_the_settle_loop
+11 failed in 0.15s
+
+--- RED: api (before the githost change) ---
+test_finding_waiting_on_lag.py: 8 of 10 failed on the defect: 'gate' == 'merge', 'gate' == 'branch-update', 'gate' == 'gate-failed', 'gate' == 'step9-review', 'merge' == 'conflict', 'gate' == 'conflict'; the seam test 'gate' == 'merge'; the schema test (no 'conflict').
+
+--- GREEN: graph branch f07-t32-queue f024ece7 ---
+gate/tests/test_finding_merge_actor_wakes.py::test_a_stale_read_after_the_wake_does_not_strand_the_pull_request PASSED [  2%]
+gate/tests/test_finding_merge_actor_wakes.py::test_a_finished_post_merge_job_does_not_hold_the_next_update PASSED [  4%]
+gate/tests/test_finding_merge_actor_wakes.py::test_the_afternoon_of_148_drains_with_no_cron PASSED [  6%]
+gate/tests/test_finding_merge_actor_wakes.py::test_a_run_whose_jobs_have_all_finished_is_not_running PASSED [  8%]
+gate/tests/test_finding_merge_actor_wakes.py::test_a_hold_is_decided_again_until_it_resolves PASSED [ 10%]
+gate/tests/test_finding_merge_actor_wakes.py::test_a_hold_that_never_resolves_ends_the_run_at_the_cap PASSED [ 12%]
+gate/tests/test_finding_merge_actor_wakes.py::test_nothing_to_do_is_not_waited_on PASSED [ 14%]
+gate/tests/test_finding_merge_actor_wakes.py::test_a_pull_request_whose_mergeability_is_unknown_is_not_updated PASSED [ 16%]
+gate/tests/test_finding_merge_actor_wakes.py::test_the_post_merge_job_wakes_the_actor_whatever_happened PASSED [ 18%]
+gate/tests/test_finding_merge_actor_wakes.py::test_a_failed_act_wakes_the_actor_again PASSED [ 20%]
+gate/tests/test_finding_merge_actor_wakes.py::test_the_job_is_capped_above_the_settle_loop PASSED [ 22%]
+gate/tests/test_finding_merge_actor_queue.py::test_a_green_mathlib_pull_request_is_not_starved_by_appends PASSED [ 24%]
+gate/tests/test_finding_merge_actor_queue.py::test_the_queue_is_first_in_first_out_and_everything_merges PASSED [ 26%]
+gate/tests/test_finding_merge_actor_queue.py::test_no_gate_round_is_wasted_on_a_bot_commit_about_to_land PASSED [ 28%]
+gate/tests/test_finding_merge_actor_queue.py::test_an_up_to_date_gating_pull_request_holds_everything_behind_it PASSED [ 30%]
+gate/tests/test_finding_merge_actor_queue.py::test_a_run_that_never_reports_holds_nothing PASSED [ 32%]
+gate/tests/test_finding_merge_actor_queue.py::test_a_pending_pull_request_that_is_behind_holds_nothing PASSED [ 34%]
+gate/tests/test_finding_merge_actor_queue.py::test_the_oldest_green_one_goes_first_even_past_a_newer_gating_one PASSED [ 36%]
+gate/tests/test_finding_merge_actor_queue.py::test_a_building_pull_request_waits_for_the_postmerge_job_and_an_append_does_not PASSED [ 38%]
+gate/tests/test_finding_merge_actor_queue.py::test_a_hold_names_no_pull_request_so_the_acting_step_is_skipped PASSED [ 40%]
+gate/tests/test_finding_merge_actor_queue.py::test_the_job_may_read_the_runs_it_asks_about_and_nothing_more PASSED [ 42%]
+gate/tests/test_finding_merge_actor_workflow.py::test_it_is_woken_in_the_base_context_and_never_by_a_pull_request PASSED [ 44%]
+gate/tests/test_finding_merge_actor_workflow.py::test_it_checks_nothing_out_and_runs_no_gate_code PASSED [ 46%]
+gate/tests/test_finding_merge_actor_workflow.py::test_the_jobs_own_token_can_only_read PASSED [ 48%]
+gate/tests/test_finding_merge_actor_workflow.py::test_exactly_one_step_names_the_secret_and_it_dry_runs_without_it PASSED [ 51%]
+gate/tests/test_finding_merge_actor_workflow.py::test_only_branches_the_service_opened_are_candidates PASSED [ 53%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs0-green] PASSED [ 55%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs1-green] PASSED [ 57%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs2-red] PASSED [ 59%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs3-red] PASSED [ 61%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs4-red] PASSED [ 63%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs5-pending] PASSED [ 65%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs6-pending] PASSED [ 67%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs7-pending] PASSED [ 69%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs8-green] PASSED [ 71%]
+gate/tests/test_finding_merge_actor_workflow.py::test_the_required_checks_come_from_the_ruleset_by_exact_name PASSED [ 73%]
+gate/tests/test_finding_merge_actor_workflow.py::test_a_ruleset_that_requires_no_gate_merges_nothing PASSED [ 75%]
+gate/tests/test_finding_merge_actor_workflow.py::test_it_takes_the_oldest_green_one_and_updates_before_it_merges PASSED [ 77%]
+gate/tests/test_finding_merge_actor_workflow.py::test_a_green_pull_request_that_conflicts_with_main_is_passed_over PASSED [ 79%]
+api/tests/test_finding_waiting_on_lag.py::test_waiting_on_reads_the_jobs_and_names_a_conflict[pull0-merge] PASSED [ 81%]
+api/tests/test_finding_waiting_on_lag.py::test_waiting_on_reads_the_jobs_and_names_a_conflict[pull1-branch-update] PASSED [ 83%]
+api/tests/test_finding_waiting_on_lag.py::test_waiting_on_reads_the_jobs_and_names_a_conflict[pull2-gate-failed] PASSED [ 85%]
+api/tests/test_finding_waiting_on_lag.py::test_waiting_on_reads_the_jobs_and_names_a_conflict[pull3-step9-review] PASSED [ 87%]
+api/tests/test_finding_waiting_on_lag.py::test_waiting_on_reads_the_jobs_and_names_a_conflict[pull4-gate] PASSED [ 89%]
+api/tests/test_finding_waiting_on_lag.py::test_waiting_on_reads_the_jobs_and_names_a_conflict[pull5-gate] PASSED [ 91%]
+api/tests/test_finding_waiting_on_lag.py::test_waiting_on_reads_the_jobs_and_names_a_conflict[pull6-conflict] PASSED [ 93%]
+api/tests/test_finding_waiting_on_lag.py::test_waiting_on_reads_the_jobs_and_names_a_conflict[pull7-conflict] PASSED [ 95%]
+api/tests/test_finding_waiting_on_lag.py::test_the_schema_admits_conflict PASSED [ 97%]
+api/tests/test_finding_waiting_on_lag.py::test_an_unfinished_gate_run_on_an_open_pull_request_carries_its_jobs PASSED [100%]
+======================== 49 passed, 2 warnings in 0.38s ========================
+
+The afternoon replay (25 submissions in 15 min, one in three building, no cron): fixed actor merged 25 of 25, last at 4815 s, mean 191 s per merge. The actor as it stood: frozen with 22 open.
+
+make verify: ========= 2616 passed, 83 deselected, 2 warnings in 186.86s (0:03:06) ==========
