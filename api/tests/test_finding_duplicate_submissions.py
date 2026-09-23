@@ -288,3 +288,22 @@ def test_a_copied_proposal_spends_no_hosted_check(harness: Harness) -> None:
     asked = len(harness.axle.calls)
     assert variant(harness, harness.token_for("code_bob", "bob")).status_code == 409
     assert len(harness.axle.calls) == asked
+
+
+def test_the_same_postmortem_or_approach_record_from_two_authors_is_a_copy(
+    harness: Harness,
+) -> None:
+    """The file the service writes names its contributor and the date, so comparing files would
+    never find two authors' identical records the same; what is compared is what they wrote."""
+    from test_mcp_equivalence import postmortem  # noqa: PLC0415 — the shared sample
+
+    alice = harness.token_for("code_alice", "alice")
+    bob = harness.token_for("code_bob", "bob")
+    body = {"node_id": "and-reassoc", "yaml": postmortem()}
+    assert post(harness, "/postmortems", alice, body).status_code == 201
+    copy = post(harness, "/postmortems", bob, body)
+    assert copy.status_code == 409, copy.text
+    record = {"target_id": TARGET, "record": {"route": "normalise", "outcome": "exhausted"}}
+    assert post(harness, "/approach-records", alice, record).status_code == 201
+    again = post(harness, "/approach-records", bob, record)
+    assert again.status_code == 409, again.text

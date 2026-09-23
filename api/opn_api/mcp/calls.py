@@ -145,3 +145,5 @@ def params(
 
 
 ID_PARAM: dict[str, Any] = {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"}
+#: F09-T12: a record the route takes as an object or as its YAML text (``appends.as_mapping``).
+RECORD_PARAM: dict[str, Any] = {"type": ["object", "string"]}

@@ -660,7 +660,9 @@ def test_mention_line_is_inert_on_the_old_pin(tmp_path: Path) -> None:
     assert "opn_gate.cli stewards" in run
     assert "|| true" in run and "2>/dev/null" in run
     number, verdict = "${{ steps.pr.outputs.number }}", "${{ steps.products.outputs.verdict }}"
-    assert f'git commit -m "gate: #{number} {verdict}${{mention}}"' in run
+    # F07-T33 put `(replayed)` between the verdict and the mention on a replay; the mention is
+    # still the message's last part and empty on the old pin, which is what this test is about
+    assert f'git commit -m "gate: #{number} {verdict}${{replayed}}${{mention}}"' in run
     # The guard's shape, run for real with a command the old pin would refuse (exit 2, no JSON):
     # the suffix is empty and the message is the old one.
     shape = (

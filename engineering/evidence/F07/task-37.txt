@@ -1,0 +1,28 @@
+F07-T37 — the witness slot carries its statement's header (Q45)
+
+Found: the guide says Witness.lean holds the statement's header; the gate-written slot for erdos-1050--h1-v2--h1 had none (graph 029f79b5), and #146/#150 each added it by hand.
+Fix: postmerge.witness_slot(expected, statement) prefixes the child statement's import and open lines.
+
+--- RED ---
+E           AssertionError: ('and-swap-reassoc--h1', "/-! The witness slot for a hole (D-29, F07-R6). Replace `sorry` with an instance
+E             satisfying...statement's hypotheses; until then the node is blocked. -/
+E             
+E             theorem witness : ∃ p q r, (p ∧ q) ∧ r := by
+E               sorry
+E             ")
+E           assert [] == ['import Node...-h1».Context']
+E             
+E             Right contains one more item: 'import Nodes.«and-swap-reassoc--h1».Context'
+E             Use -v to get more diff
+1 failed in 11.15s
+
+--- GREEN ---
+gate/tests/test_finding_witness_slot_header.py::test_a_holes_slot_opens_with_its_statements_header PASSED [ 16%]
+gate/tests/test_finding_witness_slot.py::test_the_hole_report_carries_the_expected_witness_type PASSED [ 33%]
+gate/tests/test_finding_witness_slot.py::test_an_older_report_has_none_and_is_not_guessed PASSED [ 50%]
+gate/tests/test_finding_witness_slot.py::test_the_slot_states_the_type_it_was_given PASSED [ 66%]
+gate/tests/test_finding_witness_slot.py::test_with_no_type_the_slot_claims_nothing PASSED [ 83%]
+gate/tests/test_finding_witness_slot.py::test_a_merged_partial_writes_each_holes_own_obligation PASSED [100%]
+============================== 6 passed in 2.27s ===============================
+
+Live at the next re-pin.

@@ -103,6 +103,13 @@ def node_target(ctx: Context, fields: dict[str, Any]) -> tuple[str, str]:
     return node_id, str(facts["target_id"])
 
 
+def written_record(doc: dict[str, Any]) -> str:
+    """What the contributor wrote, for the duplicate rule (F07-T35): the record before the service
+    names its contributor and dates it, so two authors' identical records compare equal."""
+    kept = {k: v for k, v in doc.items() if k not in ("schema", "contributor", "date", "node")}
+    return str(yaml.safe_dump(kept, sort_keys=True, allow_unicode=True))
+
+
 def node_dir(target_id: str, node_id: str) -> str:
     return f"targets/{target_id}/nodes/{node_id}/"
 
@@ -167,6 +174,7 @@ async def post_postmortems(ctx: Context, request: Request) -> Response:
     fields, _ = await identitymod.body_fields(request, POSTMORTEM_FIELDS)
     node_id, target_id = node_target(ctx, fields)
     doc = as_mapping(fields.get("yaml"), "yaml")
+    written = written_record(doc)
     doc["schema"] = POSTMORTEM_SCHEMA
     doc["node"] = node_id
     doc["contributor"] = identity.pseudonym  # AC15: the caller, whatever the record said
@@ -184,6 +192,7 @@ async def post_postmortems(ctx: Context, request: Request) -> Response:
             kind="postmortem",
             target_id=target_id,
             node_id=node_id,
+            written=written,
         ),
         status_code=201,
     )
@@ -284,6 +293,7 @@ async def post_approach_records(ctx: Context, request: Request) -> Response:
     fields, _ = await identitymod.body_fields(request, APPROACH_FIELDS)
     target_id = known_target(ctx, fields.get("target_id"))
     doc = as_mapping(fields.get("record"), "record")
+    written = written_record(doc)
     doc["schema"] = APPROACH_SCHEMA
     doc["target"] = target_id
     doc["contributor"] = identity.pseudonym
@@ -303,6 +313,7 @@ async def post_approach_records(ctx: Context, request: Request) -> Response:
             kind="approach-record",
             target_id=target_id,
             node_id=None,
+            written=written,
         ),
         status_code=201,
     )

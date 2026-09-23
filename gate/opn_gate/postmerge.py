@@ -301,10 +301,14 @@ WITNESS_SLOT_UNKNOWN = (
 )
 
 
-def witness_slot(expected: str | None) -> str:
+def witness_slot(expected: str | None, statement: str = "") -> str:
     """The ``Witness.lean`` a hole is born with: the obligation step 7 will hold a witness to,
-    when the extractor reported it, and otherwise a slot that claims nothing."""
-    return WITNESS_SLOT.format(expected=expected) if expected else WITNESS_SLOT_UNKNOWN
+    when the extractor reported it, and otherwise a slot that claims nothing. F07-T37: it opens
+    with the statement's own ``import`` and ``open`` lines, as the guide says a witness does,
+    so the file a contributor fills already has the shape the gate takes."""
+    body = WITNESS_SLOT.format(expected=expected) if expected else WITNESS_SLOT_UNKNOWN
+    header = [line for line in statement.splitlines() if line.startswith(("import ", "open "))]
+    return "\n".join(header) + "\n\n" + body if header else body
 
 
 class MalformedCitationError(ValueError):
@@ -591,7 +595,7 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
             node_id=child,
             target_id=nodes_dir.parent.name,
             statement=statement,
-            witness=witness_slot(getattr(hole, "expected_witness", None)),
+            witness=witness_slot(getattr(hole, "expected_witness", None), statement),
             # F07-T28: who decomposed the node, not who opened the pull request. The caller's
             # pseudonym is already the block's, or the login when there is no block.
             author=pseudonym or author or "",

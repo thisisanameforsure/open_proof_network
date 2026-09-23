@@ -28,7 +28,7 @@ from typing import Any
 
 from opn_api import submissions
 from opn_api.mcp import auth
-from opn_api.mcp.calls import ID_PARAM, Answer, Call, Tool, ToolError, error, params
+from opn_api.mcp.calls import ID_PARAM, RECORD_PARAM, Answer, Call, Tool, ToolError, error, params
 
 LEAN = {"type": "string", "description": "the text of a Lean file"}
 BUNDLE = {
@@ -364,8 +364,9 @@ TOOLS: tuple[Tool, ...] = (
     Tool(
         "submit_postmortem",
         "Append a schema-checked postmortem (D-13) under the node; `yaml` is the record as an "
-        "object, validated against postmortem/v1.",
-        params({"node_id": ID_PARAM, "yaml": {"type": "object"}}, ("node_id", "yaml")),
+        "object or as its YAML text, as POST /postmortems takes it, validated against "
+        "postmortem/v1.",
+        params({"node_id": ID_PARAM, "yaml": RECORD_PARAM}, ("node_id", "yaml")),
         submit_postmortem,
         write=True,
     ),
@@ -389,7 +390,7 @@ TOOLS: tuple[Tool, ...] = (
         "submit_approach_record",
         "Record a target-scoped strategy verdict (D-14); `record` validates against "
         "approach-record/v1.",
-        params({"target_id": ID_PARAM, "record": {"type": "object"}}, ("target_id", "record")),
+        params({"target_id": ID_PARAM, "record": RECORD_PARAM}, ("target_id", "record")),
         submit_approach_record,
         write=True,
     ),
