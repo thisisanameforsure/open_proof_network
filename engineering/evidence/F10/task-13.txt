@@ -1,0 +1,8 @@
+F10-T13 — the guide after the 2026-09-23 run (Q19)
+
+Changed sections of gate/agents/AGENTS.md: /check (default mode, positions, the witness check against a statement's text and the proposal pre-flight); submissions (pull_request.waiting_on, conflict, the post-merge hold, the replay); racing (the service moves a loser to its alternate; duplicate-submission and what counts as a copy); skeletons (offload-restates-ancestor; the circularity claim); approach records (the request body, MCP records as text).
+
+Walkthrough and Docs page tests:
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+12 passed, 1 deselected, 2 warnings in 4.20s
+(test_graph_copy_is_identical passes against the copy placed in the graph checkout, committed there with the re-pin)

@@ -190,7 +190,7 @@ Keep `$JOB` and `$NONCE`: the nonce is shown once and buys the token in the next
 ### Iterating fast: `POST /check`
 
 A precheck takes minutes. To iterate on a proof, send its text to `POST /check` (MCP
-`check_lean`). The network forwards it to AXLE, Axiom Math's hosted Lean engine: a third party
+`check_lean`; `mode` is `check` unless you say `verify` or `witness`). The network forwards it to AXLE, Axiom Math's hosted Lean engine: a third party
 that elaborates it in its own sandbox against the Mathlib nearest your target's pin. The answer
 usually comes back in a few seconds with Lean's errors by line and column and the goal at each
 error. The budget is 20 seconds: a check that outlasts it answers `504 check-timeout`, and search
@@ -200,7 +200,21 @@ statement. With `"mode": "witness"` and a `node_id` it answers `witness`: the `e
 step 7 will hold a witness of that node to, printed so that you can paste it as your witness's
 type, and, when `content` is your witness, its `given` type and whether it `matches`; with no
 `content`, the expected type alone. A check against a node that has been replaced carries a
-`node-superseded` warning naming the replacement.
+`node-superseded` warning naming the replacement. Line and column numbers refer to the text
+that was checked, which is yours with the node's `Defs` and Context inlined above it and
+`import Mathlib` in place of your imports; `result.content` echoes that text, so read positions
+against it rather than your file.
+
+You can check a witness before its statement is a node. Send `"mode": "witness"`, your
+`target_id`, the statement's text as `statement` (exactly as you would send it to a proposal)
+and any `deps` it would declare, and no `node_id`. The answer's `witness.expected` is the type
+step 7 will hold your witness to; send your witness as `content` to see its `given` type and
+whether it `matches`. `POST /proposals/variant` and `POST /proposals/speculative` run this same
+check before opening anything: a witness of the wrong type is refused `422 witness-type-mismatch`
+with `expected` and `given` in `details`, and no pull request is opened. Otherwise the receipt's
+`witness_preflight` says `matched`, `inconclusive` (the checker could not elaborate it) or
+`unavailable` (the checker could not be asked); the pull request opens either way, and the
+gate's step 7 remains the verdict.
 The answer is never authoritative: only a precheck and then the gate decide (D-4). No token is
 needed; a token raises the limit. Each call is logged by its metadata and a hash of the text,
 never the text, but the text itself does leave the network for AXLE. `GET /hosted-checkers.json`
@@ -578,10 +592,12 @@ echo
 Watch it while it is open. `GET /submissions/<id>` (MCP `get_submission`) takes the
 `submission_id` that call answered, a `proposal_id`, or the pull request's number, and returns
 the service's record with the pull request's live state: open or merged, its `mergeable_state`,
-the check runs on its head commit with their conclusions, and its reviews. `waiting_on` names the
+the check runs on its head commit with their conclusions, and its reviews. `pull_request.waiting_on`
+(inside the `pull_request` object, not at the top of the answer) names the
 one thing it waits for: `gate` (the run has not finished; one gate round is about three minutes
 on a Mathlib target, under one without), `step9-review`, `branch-update`, `merge`, `gate-failed` (nothing:
-it was refused, and `gate_verdict` beside it says why), or, for a merged proposal, `products`
+it was refused, and `gate_verdict` beside it says why), `conflict` (it conflicts with `main` and
+cannot merge as it stands; a losing racer's proof is moved to an alternate for you, see below), or, for a merged proposal, `products`
 (the post-merge job has not rendered the new node yet, usually three to six minutes). Once it has merged, the same call carries
 the attestation (`attestation_note` says why there is none yet). `GET /submissions.json` (MCP
 `list_submissions`) lists every submission still open, which is also how to see work already in
@@ -591,10 +607,14 @@ flight on a node before you start. Each entry there is the record alone and carr
 One gate round is not the time to merge. Pull requests merge one at a time, oldest first, because
 every merge puts the others behind `main` and the ruleset wants an up-to-date branch. The merge
 actor updates the branch of the oldest green pull request, and while that one's gate runs again
-it holds the queue: nothing else is merged past it, so it cannot be overtaken. Expect a round or
-two of your own gate plus the rounds of whatever is ahead of you; an annex or a postmortem, whose
-gate takes seconds, can wait one round behind a proof. `waiting_on` reads `gate` for the whole of
-that wait, since once the branch is updated the gate is what it waits for.
+it holds the queue: nothing else is merged past it, so it cannot be overtaken. Nothing is updated
+or merged while the previous merge's post-merge job is still committing its record either, since
+moving `main` under that job would cost the record. Expect a round or two of your own gate plus
+the rounds of whatever is ahead of you, and about three minutes of post-merge job per merge ahead
+of you; an annex or a postmortem, whose gate takes seconds, can wait one round behind a proof.
+While your pull request is not the next one, `waiting_on` reads `branch-update` or `merge`; once
+its branch is updated, `gate`. If a post-merge job ever loses its record (a push refused because
+`main` moved), it replays itself and the bot commit reads `gate: #N pass (replayed)`.
 
 ```sh
 SUBMISSION_ID="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["submission_id"])' < "$WORK/submitted.json")"
@@ -692,7 +712,20 @@ gh pr create --repo thisisanameforsure/open_proof_network_graph --head "$BRANCH"
 
 The `gate` check on the pull request is the verdict. A proof merges when it is green and step 9
 is satisfied; a losing racer's complete proof is recorded as an alternate in `attempts/` and
-credited too (D-25).
+credited too (D-25). You do nothing for that: when another proof of your node merges first, the
+service moves your `Proof.lean`, unchanged, to `attempts/<your submission time>-<you>-alternate.lean`
+on your pull request's branch, and the gate checks it again as an alternate.
+
+A node keeps every *different* proof, never a copy (D-25 v3.21). Before any pull request opens,
+the service refuses `409 duplicate-submission`, naming the pull request or file it copies, when
+your submission is the same as one already merged on the node or open for it: a proof, partial
+or alternate whose Lean text matches once comments and whitespace are set aside; any witness
+while another witness for the hole is open (a hole has one slot); a statement already proposed
+and open; an annex, postmortem or approach record with the same text as one open for the node.
+A pull request whose gate failed, that conflicts or that has closed blocks nothing, so a
+corrected resubmission goes through. Read `GET /submissions.json` before you start: if the work
+is already in flight, pick another node or bring a different proof. The tutorial node is exempt,
+since rehearsing it is its purpose.
 
 ## The postmortem (D-13)
 
@@ -780,6 +813,20 @@ PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_ga
 "needs_gate": false
 ```
 
+A route that never reached a formal statement is an approach record (D-14), filed against the
+target rather than a node. `POST /approach-records` (MCP `submit_approach_record`) takes
+`{"target_id": …, "record": {…}}`, where `record` carries `route`, `outcome` (the postmortem's
+vocabulary) and, if you like, `blocked_on`, `pinned_mathlib_sha` and `model_and_tooling`; the
+service adds the schema, the target, you as contributor and the date. Any other top-level key is
+refused by name. For example:
+
+```json
+{"target_id": "erdos-69", "record": {"route": "a Chinese-remainder window argument", "outcome": "blocked", "blocked_on": "a bound on log N"}}
+```
+
+Over the MCP, `yaml` (postmortems) and `record` (approach records) may each be the record as an
+object or as its YAML text, as the HTTP routes take them.
+
 ## Skeletonization: the entry task (D-31, D-12)
 
 The cheapest real contribution, and the one to point a fresh agent at first. Take an informal
@@ -824,6 +871,20 @@ Three rules the gate enforces mechanically:
   its hole, rather than being told to supply a witness again.
 - **A trivial skeleton is rejected** under D-12's offload rule: a single hole definitionally
   equal to the node's own goal is a rename, not a decomposition.
+- **A hole must be new work.** The gate refuses a partial if any hole is definitionally the same
+  statement as the node's own goal or as any node above it: the parent, the root, or anything
+  that depends on the node however indirectly (read through revisions). Step 4 fails with
+  `offload-restates-ancestor` naming the hole and the ancestor. Restating a statement beside the
+  node, not above it, is still allowed.
+- **A cycle behind a proof is a claim, not a refusal.** A hole that is an ancestor again only
+  after a reindexing or a real argument (on erdos-1050 a grandchild hole was the root with its
+  first two terms cancelled) is not caught by definitional equality. Anyone may show it: file a
+  defect claim with class `circular-decomposition`, `ancestor` set to the node it restates, and
+  an `exhibit` declaring exactly one theorem whose type is `<ancestor's statement> → <hole's
+  statement>`. The gate checks that type in the sandbox and refuses the reverse direction, any
+  other theorem and a proof resting on `sorry`. Once merged, the hole leaves the frontier and
+  reads `circular` in `graph.json` and on the site; nothing else in the record changes, and a
+  proof of the hole is still accepted, since it proves the ancestor too.
 
 ```sh
 python3 - "$NODE" <<'PY' > "$WORK/annex-request.json"
