@@ -278,3 +278,13 @@ def test_the_tutorial_node_may_be_rehearsed_again_and_again(harness: Harness) ->
         )
         == []
     )
+
+
+def test_a_copied_proposal_spends_no_hosted_check(harness: Harness) -> None:
+    """The duplicate rule runs before F13-T16's witness pre-flight, so a refused copy costs the
+    caller nothing of the hosted checker's budget."""
+    token = harness.token_for("code_alice", "alice")
+    assert variant(harness, token).status_code == 201
+    asked = len(harness.axle.calls)
+    assert variant(harness, harness.token_for("code_bob", "bob")).status_code == 409
+    assert len(harness.axle.calls) == asked

@@ -40,7 +40,7 @@ from opn_api import auth, frontier, identity, precheck, ratelimit
 from opn_api import clock as clockmod
 from opn_api.axle import AxleAnswer, AxleError
 from opn_api.store import CheckLog
-from opn_gate import hosted, layout, schemas
+from opn_gate import hosted, layout, scaffold, schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -48,7 +48,7 @@ if TYPE_CHECKING:
 log = logging.getLogger("opn_api.checks")
 
 SERVICE = hosted.SERVICE
-FIELDS = frozenset({"target_id", "node_id", "content", "mode"})
+FIELDS = frozenset({"target_id", "node_id", "content", "mode", "statement", "deps"})
 MODES = ("check", "verify", "witness")
 #: F13-T14: the modes that read the node's own statement, so cannot do without a node.
 NODE_MODES = ("verify", "witness")
@@ -68,6 +68,8 @@ DECLARATION_RE = re.compile(
     re.M,
 )
 IMPORT_LINE_RE = re.compile(r"^import\s+\S+[ \t]*$", re.M)
+#: How the inlined Context of a statement that is not a node yet is labelled (F13-T16).
+PROPOSED_CONTEXT = "Context (generated from the declared deps)"
 ANSWERED = "answered"
 
 
@@ -95,6 +97,10 @@ class CheckRequest:
     node_id: str | None
     content: str
     mode: str
+    #: F13-T16: in witness mode, a statement that is not a node yet — its text, as a proposal
+    #: would carry it — and the deps that proposal would declare (unchecked until the graph is).
+    statement: str | None = None
+    deps: Any = None
 
 
 @dataclass(frozen=True)
@@ -116,8 +122,11 @@ def parse_body(ctx: Context, fields: dict[str, Any]) -> CheckRequest:
     mode = fields.get("mode", "check")
     if mode not in MODES:
         raise api_error(400, "mode-invalid", f"mode must be one of {', '.join(MODES)}")
-    if mode in NODE_MODES and node_id is None:
-        msg = f"{mode} reads a node's statement: node_id is required"
+    statement = proposed_statement_field(ctx, fields, mode, node_id)
+    if mode in NODE_MODES and node_id is None and statement is None:
+        msg = f"{mode} reads a node's statement: node_id is required" + (
+            ", or the statement's text as statement (F13-T16)" if mode == "witness" else ""
+        )
         raise api_error(400, "node-id-required", msg)
     content = fields.get("content")
     if mode == "witness" and content is None:
@@ -128,7 +137,58 @@ def parse_body(ctx: Context, fields: dict[str, Any]) -> CheckRequest:
     if size > ctx.settings.check_max_bytes:
         msg = f"content is {size} bytes; the limit is {ctx.settings.check_max_bytes}"
         raise api_error(413, "content-too-large", msg)
-    return CheckRequest(target_id, node_id, content, mode)
+    return CheckRequest(target_id, node_id, content, mode, statement, fields.get("deps"))
+
+
+def proposed_statement_field(
+    ctx: Context, fields: dict[str, Any], mode: str, node_id: str | None
+) -> str | None:
+    """F13-T16: ``statement`` and ``deps``, which let witness mode read a statement that is not a
+    node yet (a variant's or a crux's, before its proposal merges). Only there: a node's statement
+    is its own, and the other modes check content against nothing or against a node."""
+    statement, deps = fields.get("statement"), fields.get("deps")
+    if statement is None:
+        if deps is not None:
+            msg = "deps are the dependencies a statement's proposal would declare; send statement"
+            raise api_error(400, "deps-without-statement", msg)
+        return None
+    if mode != "witness":
+        msg = "statement is read in mode witness only; check a statement's text as content"
+        raise api_error(400, "statement-not-used", msg)
+    if node_id is not None:
+        msg = "a node's statement is its own: send node_id or statement, not both"
+        raise api_error(400, "statement-with-node", msg)
+    if not isinstance(statement, str):
+        raise api_error(400, "statement-invalid", "statement must be the text of a Lean file")
+    size = len(statement.encode("utf-8"))
+    if size > ctx.settings.check_max_bytes:
+        msg = f"statement is {size} bytes; the limit is {ctx.settings.check_max_bytes}"
+        raise api_error(413, "content-too-large", msg)
+    parsed = layout.parse_statement(statement)
+    if not isinstance(parsed, layout.Statement):
+        raise api_error(400, "statement-invalid", parsed.message)
+    return statement
+
+
+def without_node_imports(text: str) -> str:
+    """A proposed statement without its ``import Nodes.…`` lines: the only one a statement may
+    carry is its own Context, which the network generates and inlines itself (F13-T16), and the
+    checker has no such module to import."""
+    return "".join(
+        line
+        for line in text.splitlines(keepends=True)
+        if not (line.startswith("import ") and layout.module_origin(line.split()[1])[0] == "node")
+    )
+
+
+def proposed_context(ctx: Context, target_id: str, raw_deps: Any) -> str | None:
+    """The ``Context.lean`` a proposal declaring ``raw_deps`` would carry, built the way the
+    proposal routes build it (``scaffold.context_from`` over the deps' committed statements), or
+    ``None`` when it declares none."""
+    from opn_api import proposals  # noqa: PLC0415 — proposals imports this module
+
+    deps, statements = proposals.dep_statements(ctx, target_id, raw_deps)
+    return scaffold.context_from(deps, statements) if deps else None
 
 
 def charge(ctx: Context, request: Request) -> Caller:
@@ -180,18 +240,23 @@ def own_context_module(node_id: str | None, *texts: str) -> str | None:
     return own if any(layout.imports_own_context(node_id, text) for text in texts) else None
 
 
-def inline_defs(
+def inline_defs(  # noqa: PLR0913 — the node's Context may be given rather than fetched
     ctx: Context,
     target_id: str,
     statement: layout.Statement | None,
     content: str,
     node_id: str | None = None,
+    *,
+    context: str | None = None,
 ) -> list[tuple[str, str]]:
     """R5: the statement's ``Defs`` modules, then the content's own (F13-T11: a proposer's
     statement is not a node yet, so its header is the only thing that names them), and everything
     they import, dependencies first, as (module, source without its import lines). A module the
     content names and the target does not have is refused by name rather than forwarded to fail
-    as an unknown identifier."""
+    as an unknown identifier.
+
+    ``context`` is the node's own ``Context.lean`` when it is not on the graph yet (F13-T16: a
+    proposal's, generated from the deps it declares); it is inlined in place of a fetched one."""
     from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
 
     named = defs_modules(statement.text) if statement is not None else []
@@ -224,9 +289,14 @@ def inline_defs(
     # dependency's theorem lives (and, after a skeleton merges, a node's holes), so without it a
     # proof that uses one reads "Unknown identifier" on a checker that would otherwise pass it.
     own = own_context_module(node_id, content, statement.text if statement is not None else "")
-    if own is not None and node_id is not None:
+    source: str | None = None
+    if context is not None:
+        own = layout.node_module(node_id, "Context") if node_id else PROPOSED_CONTEXT
+        source = context
+    elif own is not None and node_id is not None:
         raw = frontier.committed(ctx, f"targets/{target_id}/nodes/{node_id}/Context.lean")
         source = raw.decode("utf-8")
+    if own is not None and source is not None:
         for dep in defs_modules(source):
             visit(dep, (own,))
         ordered.append((own, IMPORT_LINE_RE.sub("", source).strip("\n")))
@@ -429,6 +499,12 @@ _SLOTS_LOCK = threading.Lock()
 #: How long a check waits for a free slot (R8). Its own short budget, not the checker's: the
 #: function lives 29 s, and a caller held for the checker's whole budget had none left (T13).
 SLOT_WAIT_S = 2.0
+#: F13-T16: the checker's budget when a proposal is pre-flighted. Shorter than a check's own
+#: (``check_timeout_s``), because the same function must still open the pull request after it.
+PREFLIGHT_TIMEOUT_S = 12
+#: What the pull request's own calls (a branch, a commit, the pull request) are allowed after the
+#: pre-flight, within the function's timeout.
+PREFLIGHT_PR_HEADROOM_S = 8
 #: The hosted checker's word for its own budget running out, in a 200 body (probed 2026-09-21).
 LEAN_TIMEOUT = "LeanTimeout"
 
@@ -460,11 +536,19 @@ def slots(ctx: Context) -> threading.BoundedSemaphore:
         return ctx.check_slots
 
 
-def call_checker(
-    ctx: Context, req: CheckRequest, text: str, environment: str, formal: str | None
+def call_checker(  # noqa: PLR0913 — the request, and how long it may take
+    ctx: Context,
+    req: CheckRequest,
+    text: str,
+    environment: str,
+    formal: str | None,
+    *,
+    timeout_s: float | None = None,
 ) -> AxleAnswer:
     """``formal`` is the node's statement as the checker must compile it: with the definitions
-    inlined exactly as they are into ``text`` (F13-T11), and ``None`` outside verify."""
+    inlined exactly as they are into ``text`` (F13-T11), and ``None`` outside verify. The budget
+    is the check's own unless the caller sets a shorter one (the pre-flight, F13-T16)."""
+    budget = ctx.settings.check_timeout_s if timeout_s is None else timeout_s
     gate = slots(ctx)
     if not gate.acquire(timeout=min(SLOT_WAIT_S, ctx.settings.check_timeout_s)):
         msg = f"{ctx.settings.check_concurrency} checks are already in flight; retry shortly"
@@ -476,9 +560,9 @@ def call_checker(
                 text,
                 formal_statement=formal,
                 environment=environment,
-                timeout_s=ctx.settings.check_timeout_s,
+                timeout_s=budget,
             )
-        return ctx.axle.check(text, environment=environment, timeout_s=ctx.settings.check_timeout_s)
+        return ctx.axle.check(text, environment=environment, timeout_s=budget)
     finally:
         gate.release()
 
@@ -563,6 +647,87 @@ def write_log(  # noqa: PLR0913 — one argument per fact the record keeps
     return record.id
 
 
+# --- the pre-flight on a proposal (F13-T16) ------------------------------------------------------
+
+#: What a proposal's 201 says of its pre-flight: the checker found the witness's type is the one
+#: step 7 wants; it answered without a verdict (the statement or the witness did not elaborate
+#: there); or it could not be asked (no environment, down, out of time, busy, budget spent).
+PREFLIGHT_MATCHED = "matched"
+PREFLIGHT_INCONCLUSIVE = "inconclusive"
+PREFLIGHT_UNAVAILABLE = "unavailable"
+
+
+async def preflight_witness(
+    ctx: Context, identity_id: str, target_id: str, node_id: str, files: dict[str, str]
+) -> str:
+    """Witness mode over exactly the files a proposal is about to push, before its pull request
+    exists: the statement as written (own-Context import included), its generated Context
+    inlined, and the witness. A mismatch is the one refusal (422 ``witness-type-mismatch`` with
+    both types); anything else is an outcome word and the proposal proceeds, because the hosted
+    checker is a courtesy and step 7 is the authority (D-4 v3.14). Charged to the identity's
+    check budget and logged as a check, like every call to the checker (R8, R9)."""
+    from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
+
+    prefix = f"targets/{target_id}/nodes/{node_id}/"
+    parsed = layout.parse_statement(files.get(prefix + "Statement.lean", ""))
+    witness = files.get(prefix + "Witness.lean", "")
+    if not isinstance(parsed, layout.Statement) or not witness.strip():
+        return PREFLIGHT_UNAVAILABLE  # the scaffold refuses both before this is reached
+    try:
+        ratelimit.check_check(ctx, identity_id)
+    except ApiError:
+        return PREFLIGHT_UNAVAILABLE  # a spent check budget skips the courtesy, never the route
+    req = CheckRequest(target_id, node_id, witness, "witness")
+    caller = Caller("identity", identity_id)
+    started = time.monotonic()
+    environment: str | None = None
+    try:
+        _, entry = hosted_for(ctx, target_id)
+        if entry is None or entry.environment is None:
+            raise api_error(422, "no-hosted-environment", f"{target_id} has no hosted checker")
+        environment = entry.environment
+        context = files.get(prefix + "Context.lean")
+        defs = inline_defs(ctx, target_id, parsed, witness, node_id, context=context)
+        text = witness_text(forwarded_text(parsed.text, defs), witness, parsed.decl_name)
+        budget = min(PREFLIGHT_TIMEOUT_S, ctx.settings.check_timeout_s)
+        answer = await asyncio.to_thread(
+            call_checker, ctx, req, text, environment, None, timeout_s=budget
+        )
+        if answer.body.get("error_type") == LEAN_TIMEOUT:
+            raise timed_out(ctx, answer.request_id)
+    except (ApiError, AxleError) as exc:
+        code = exc.code if isinstance(exc, ApiError) else "upstream-unavailable"
+        status = exc.status if isinstance(exc, AxleError) else None
+        write_log(
+            ctx,
+            req,
+            caller,
+            outcome=code,
+            started=started,
+            environment=environment,
+            upstream_status=status,
+        )
+        log.info("preflight %s for %s: %s", PREFLIGHT_UNAVAILABLE, node_id, code)
+        return PREFLIGHT_UNAVAILABLE
+    log_id = write_log(
+        ctx, req, caller, outcome=ANSWERED, started=started, environment=environment, answer=answer
+    )
+    found = witness_verdict(answer.body)
+    if found is None or found["matches"] is None:
+        return PREFLIGHT_INCONCLUSIVE
+    if found["matches"]:
+        return PREFLIGHT_MATCHED
+    raise api_error(
+        422,
+        "witness-type-mismatch",
+        "the witness's type is not the one step 7 holds a witness of this statement to "
+        "(D-4 step 7), so nothing was opened: give the witness the type in `expected`. Checked "
+        f"on the hosted fast checker ({environment}); not authoritative, but step 7 computes the "
+        "type with the same metaprogram",
+        details={"expected": found["expected"], "given": found["given"], "log_id": log_id},
+    )
+
+
 # --- the routes ----------------------------------------------------------------------------------
 
 
@@ -584,11 +749,19 @@ async def post_check(ctx: Context, request: Request) -> Response:
             )
             raise api_error(422, "no-hosted-environment", msg, details={"mathlib_sha": sha})
         environment = hosted.environment
-        statement = statement_of(ctx, req.target_id, req.node_id) if req.node_id else None
+        context: str | None = None
+        if req.statement is not None:
+            # F13-T16: a statement that is not a node yet, with the Context its proposal would
+            # carry. parse_body has already held it to one sorry-bodied theorem.
+            parsed = layout.parse_statement(without_node_imports(req.statement))
+            statement = parsed if isinstance(parsed, layout.Statement) else None
+            context = proposed_context(ctx, req.target_id, req.deps)
+        else:
+            statement = statement_of(ctx, req.target_id, req.node_id) if req.node_id else None
         if req.mode in NODE_MODES and statement is None:
             msg = f"{req.node_id}'s Statement.lean has no single sorry-bodied theorem to verify"
             raise api_error(409, "statement-unparsable", msg)
-        defs = inline_defs(ctx, req.target_id, statement, req.content, req.node_id)
+        defs = inline_defs(ctx, req.target_id, statement, req.content, req.node_id, context=context)
         text = forwarded_text(req.content, defs)
         # F13-T14: a witness is not a proof. It declares ``witness`` and its header is its own,
         # so the gate-gap lints (R4), which are about proofs, say nothing true of it.

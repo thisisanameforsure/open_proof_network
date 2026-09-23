@@ -186,7 +186,7 @@ PURPOSES: dict[str, str] = {
     "POST /revision-requests": "Ask a curator to revise a statement, with the reason.",
     "POST /defect-claims": "Claim a statement is defective, with a Lean exhibit the gate checks.",
     "POST /check": "Check Lean text within 20 s on a hosted checker, or preview a witness's "
-    "expected type (mode witness); never authoritative.",
+    "expected type for a node or a statement's text (mode witness); never authoritative.",
     "GET /checks/{check_id}": "The record of one of your own fast-check calls.",
     "GET /hosted-checkers.json": "Which hosted checker environment serves each pin and target.",
 }

@@ -8,7 +8,10 @@ addition to an existing directory the ``proposal`` mode permits.
 
 The service scaffolds the directory with the gate's own builder (``opn_gate.scaffold``), so the
 bytes it pushes are exactly the bytes ``opn-gate admit`` will judge; it decides nothing about
-whether the statement is worth having, and it never elaborates anything (C9). The identity is
+whether the statement is worth having, and it never elaborates anything (C9): before a speculative
+or variant pull request opens, the witness is pre-flighted on the hosted fast checker
+(``checks.preflight_witness``, F13-T16), whose one refusal is a witness of the wrong type and whose
+silence never blocks a proposal. The identity is
 the caller's, the date is the service clock's, and ``Context.lean`` is generated from the deps'
 committed statements rather than accepted, because F01-R6 needs it byte-equal to them.
 """
@@ -21,7 +24,7 @@ from typing import TYPE_CHECKING, Any
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from opn_api import appends, duplicates, frontier, pending, precheck, ratelimit, submissions
+from opn_api import appends, checks, duplicates, frontier, pending, precheck, ratelimit, submissions
 from opn_api import clock as clockmod
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
@@ -295,18 +298,18 @@ async def post_speculative(ctx: Context, request: Request) -> Response:
     target_id, files, node_id = node_files(
         ctx, identity, fields, prefix=SPECULATIVE_PREFIX, origin="authored", speculative=True
     )
-    return JSONResponse(
-        open_proposal(
-            ctx,
-            identity,
-            target_id=target_id,
-            node_id=node_id,
-            files=files,
-            what="speculative node",
-            kind="speculative",
-        ),
-        status_code=201,
+    duplicates.check_proposal(ctx, node_id)  # F07-T35: a copy spends no hosted check
+    preflight = await checks.preflight_witness(ctx, identity.id, target_id, node_id, files)
+    opened = open_proposal(
+        ctx,
+        identity,
+        target_id=target_id,
+        node_id=node_id,
+        files=files,
+        what="speculative node",
+        kind="speculative",
     )
+    return JSONResponse({**opened, "witness_preflight": preflight}, status_code=201)
 
 
 # --- POST /proposals/variant (D-30) ---------------------------------------------------------------
@@ -356,18 +359,18 @@ async def post_variant(ctx: Context, request: Request) -> Response:
         relation=str(relation),
         relation_proof=proof,
     )
-    return JSONResponse(
-        open_proposal(
-            ctx,
-            identity,
-            target_id=target_id,
-            node_id=node_id,
-            files=files,
-            what="variant",
-            kind="variant",
-        ),
-        status_code=201,
+    duplicates.check_proposal(ctx, node_id)  # F07-T35: a copy spends no hosted check
+    preflight = await checks.preflight_witness(ctx, identity.id, target_id, node_id, files)
+    opened = open_proposal(
+        ctx,
+        identity,
+        target_id=target_id,
+        node_id=node_id,
+        files=files,
+        what="variant",
+        kind="variant",
     )
+    return JSONResponse({**opened, "witness_preflight": preflight}, status_code=201)
 
 
 # --- POST /proposals/witness (F07-Q3, F08-R5) -----------------------------------------------------

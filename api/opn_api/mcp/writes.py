@@ -95,7 +95,9 @@ async def precheck_submission(call: Call, args: dict[str, Any]) -> dict[str, Any
 async def check_lean(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     """F13-R12: ``POST /check``, with whatever bearer there is; the endpoint charges an identity
     or an address and answers in the same response, so there is nothing to poll."""
-    body = present("check_lean", args, "target_id", "node_id", "content", "mode")
+    body = present(
+        "check_lean", args, "target_id", "node_id", "content", "mode", "statement", "deps"
+    )
     return await forward(call, "POST", "/check", body)
 
 
@@ -276,7 +278,10 @@ TOOLS: tuple[Tool, ...] = (
         "Mode witness, with a node_id, answers `witness`: the `expected` type step 7 will hold a "
         "witness of that node to (paste it as your witness's type), and with your witness as "
         "content its `given` type and whether it `matches`; without content, the expected type "
-        "alone. "
+        "alone. Mode witness with `statement` instead of a node_id (the text of a statement that "
+        "is not a node yet, as propose_variant or propose_speculative_node would send it, and "
+        "the `deps` it would declare) answers the same for that statement, before you propose "
+        "it; those two tools run this check themselves and refuse a mismatch. "
         "Never authoritative: a precheck is the verdict. "
         "No token needed; a token raises the limit. Every call is logged without its text; "
         "GET /hosted-checkers.json says which targets have a checker.",
@@ -287,7 +292,17 @@ TOOLS: tuple[Tool, ...] = (
                 "content": LEAN,
                 "mode": {
                     "enum": ["check", "verify", "witness"],
-                    "description": "verify and witness need node_id; witness needs no content",
+                    "description": "verify needs node_id; witness needs node_id or statement, "
+                    "and no content",
+                },
+                "statement": {
+                    **LEAN,
+                    "description": "mode witness only, instead of node_id: the text of a "
+                    "statement that is not a node yet (one sorry-bodied theorem)",
+                },
+                "deps": {
+                    **DEPS,
+                    "description": "with statement: the node ids its proposal would declare",
                 },
             },
             ("target_id",),
@@ -416,7 +431,10 @@ TOOLS: tuple[Tool, ...] = (
     Tool(
         "propose_speculative_node",
         "Enter a crux statement as a speculative node (D-14): `stmt` and `witness` are Lean "
-        "files; admission is mechanical (D-29).",
+        "files; admission is mechanical (D-29). "
+        "The witness is checked on the hosted fast checker first: a witness of the wrong type is "
+        "refused 422 witness-type-mismatch with `expected` and `given` and nothing opens; "
+        "`witness_preflight` in the receipt says matched, inconclusive or unavailable.",
         params(
             {
                 "target_id": ID_PARAM,
@@ -434,7 +452,10 @@ TOOLS: tuple[Tool, ...] = (
     Tool(
         "propose_variant",
         "Enter a labeled variant of the root (D-30): relation is resolves, partial or related "
-        "(default); a label above related needs `relation_proof`, gate-checked.",
+        "(default); a label above related needs `relation_proof`, gate-checked. "
+        "The witness is checked on the hosted fast checker first: a witness of the wrong type is "
+        "refused 422 witness-type-mismatch with `expected` and `given` and nothing opens; "
+        "`witness_preflight` in the receipt says matched, inconclusive or unavailable.",
         params(
             {
                 "target_id": ID_PARAM,
