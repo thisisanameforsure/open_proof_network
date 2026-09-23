@@ -1,0 +1,19 @@
+# erdos-1050-a log
+- 14:40:26 start
+- 14:41:27 MCP precheck_submission tutorial-and-swap (anon) to mint token
+- 14:44:02 precheck tutorial done (pass) ~2.5 min; MCP get_token pseudonym t0923-1050-a
+- 14:45:09 check_lean witness mode on erdos-1050--h1-v2--h1 (~36s)
+- 14:46:11 claim_node erdos-1050--h1-v2--h1 201 (ttl 1h); check_lean witness content: matches True; propose_witness sent
+- 14:46:38 propose_witness -> PR #150 (25s). NOTE: list_submissions showed t0923-1050-b's witness PR #146 for the same node opened 14:44:12, before my claim; mine is a duplicate racer
+- 14:47:50 check_lean mode check: lemma S_eq_T (root's sum = h1-v2--h1's sum) okay=true after 3 iterations (1-36s each)
+- 14:49:36 submit_informal_annex on erdos-1050--h1-v2--h1 -> PR #156 (99s round trip, connect time not separated)
+- 14:51:07 get_submission: #146 (1050-b witness) MERGED; my #150 open, gate success, waiting_on null; #156 open gate success waiting_on null; get_submission 150 took 67.7s
+- 14:52:30 submit_postmortem with yaml as string -> arguments-invalid (MCP wants an object; guide's HTTP body uses a string); 67s
+- 14:53:03 submit_postmortem (object) -> PR #165 (23s)
+- 14:54:11 get_submission 150/156/165: no waiting_on key at all (MCP and HTTP); #150 mergeable_state dirty (conflicts with merged #146), #156 behind
+- 14:54:51 frontier: h1-v2--h1 ready_since 14:47:28 (after #146), my claim shown; release_claim sent (not proving Borwein in the time box)
+- 14:56 list_submissions on erdos-1050: #150 (mine, witness, conflicting), #151 postmortem (1050-c), #152 annex + #154 postmortem (1050-b), #156 my annex, #165 my postmortem
+- Math: root sum S = sum 1/(2^(n+1)-3) equals hole sum T = sum 1/(2^(n+3)-3) (first two terms -1, +1 cancel). Fast-checked lemma S_eq_T. So root -> h1-v2 -> h1-v2--h1 is circular; real work = Borwein 1991 for q=2,r=-3.
+- Findings so far: (1) no waiting_on in GET /submissions/<id> (MCP+HTTP); (2) propose_witness accepted duplicate while #146 open, #150 now CONFLICTING with no signal; (3) MCP submit_postmortem yaml must be object, guide shows string; (4) circular decomposition not caught by offload rule (inferred)
+- 15:11 queue: no graph merge since #147 at 14:53:27; #148 CLEAN since ~15:04, merge workflow_runs complete success at 15:03-15:07 but nothing merges; 17 PRs BEHIND incl. my #156 #165; #150 DIRTY
+- 15:13 stopping new work; final: #150 open DIRTY (duplicate witness), #156 open BEHIND, #165 open BEHIND; claim released 14:54:51

@@ -1,0 +1,19 @@
+# erdos-402-a log
+- 14:41:12 start
+- 14:42 read problem page: open nodes erdos-402 (root), erdos-402--h3-v2 (the Graham conjecture core, deep), variant-d865c9c6 (card=2 case, elementary). Plan: prove variant card=2.
+- 14:43 MCP tools/list OK (own python client mcp.py). get_node variant-d865c9c6: 24s, status ready but files include Proof.lean.
+- 14:46 FINDING: PR #145 (proof of variant-d865c9c6) merged 2026-09-21T07:31Z; post-merge run 35573363686 failed "main moved under the post-merge job ... re-render by hand"; no attestations/000145.json; node still ready/claimable on frontier + site 2 days later.
+- 14:48 precheck_submission tutorial: 202 after 78.7s wall (job 01M37BV18GTV7TGNJM4GGGETMQ); done pass by 14:52. 14:54 get_token 201 identity t0923-402-a. 14:50 check_lean mode check took 76.4s wall (budget says 20s).
+- 14:55 check_lean my minFac variant proof: okay true (2.7s); witness ok (0.9s); relation ok (35.9s). 14:56 propose_variant -> 201 variant-3377fd96, PR #168 (proposal 01M37CABG0MSGXFX5GQYBXQRBF)
+- 14:57 precheck_submission on pending node -> 409 node-pending (clear, names PR #168 waiting_on gate). 14:59 PR #168 gate pending.
+- 15:00 submit_informal_annex on erdos-402 root (argument + fast-checked Lean proof for variant-3377fd96) -> 201 PR #169. Merge queue has ~20 open PRs ahead; #168 won't merge before 15:18.
+- 15:00 get_submission 168: waiting_on gate-failed, first_failing witness, witness-type-mismatch (expected ∃ A x, 0 ∉ A ∧ x ∈ A ∧ A.card ≤ x.minFac). Jobs list shows gate job 'queued' while run conclusion failure.
+- 15:01 re-propose with fixed witness -> 201 PR #171, SAME node id variant-3377fd96; service did not refuse the duplicate while #168 open, nor offer to update/close #168.
+- 15:03 check_lean mode witness with content=statement, no node_id -> 400 node-id-required (so no pre-proposal way to learn the expected witness shape). 15:05 gh checks: #168 gate 'pending' although get_submission says gate-failed; #169 annex gate pass; #171 gate pending.
+- 15:06 check_lean witness mode with node_id of pending node -> 409 node-pending (points at #171 now).
+- 15:07 PR #171 gate PASS (3m10s, run 35878653914); now in merge queue.
+- Findings so far: (1) #145 merged proof never attested, variant-d865c9c6 still ready/claimable; (2) proposal witness shape must be ∃ A x, h1 ∧ h2 ∧ h3 (flattened binders), not documented, and check_lean witness mode needs a merged node so cannot check a proposal's witness; (3) duplicate proposal for same node id accepted (#168 and #171), #168 left open with no service way to close; (4) gh checks #168 'pending' while get_submission says gate-failed and its run 'failure' with job 'queued'; (5) serial merge queue: ~20 PRs ahead, propose->merge->precheck->submit impossible in 35 min; (6) check_lean relation call 35.9s and first check 76s wall (likely connect stalls, inferred).
+- 15:08 correction: guide DOES document the witness shape (glossary 'witness' + 'The witness, exactly' section); my miss. Remaining finding: no pre-proposal witness check.
+- 15:08 get_submission #169 and #171: open, waiting_on merge, mergeable_state clean. Last graph merge 14:53:27 (#147); 25 open PRs.
+- 15:15 FINDING: merge queue stalled. Merge actor run 35879227783 (15:07:21) logged "#148 is up to date and its gate is running: holding for it"; #148's gate (run from 15:04:36, 2m28s) had passed; no merge-actor run since, no graph merge since 14:53:27 (#147); 25 open PRs incl. #169, #171 green+clean waiting_on merge.
+- 15:16 STOP. Final: #168 open (gate-failed witness shape, superseded by #171), #169 annex open green, #171 variant proposal open green waiting on merge. Proof of variant-3377fd96 fast-checked OK (lean/Proof.final.lean), not prechecked (node-pending).

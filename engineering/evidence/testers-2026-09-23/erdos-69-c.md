@@ -1,0 +1,27 @@
+# erdos-69-c log
+- 14:41:05 start
+- 14:41:53 POST /precheck tutorial (anon) -> 01M37BECZ0B7KD5KXT5ZPVSN72
+- 14:41:57 POST /precheck tutorial anon -> 202 job 01M37BECZ0B7KD5KXT5ZPVSN72 (7s)
+- 14:43:20 POST /check verify h1.lean on erdos-69--h2-v2--h1-v2--h1 -> okay True, lint [] (2s). (earlier: mode 'plain' -> 400 mode-invalid, my error)
+- 14:43:51 POST /check verify h2.lean on --h2 -> okay True (7s incl one connect retry)
+- 14:44:27 tutorial precheck done pass; POST /tokens pseudonym t0923-69-c (token in token.json, not logged)
+- 14:44:39 claim + POST /precheck (owned) erdos-69--h2-v2--h1-v2--h1 -> 01M37BKG1RYB6D4HB9NE1ABFTC
+- 14:44:50 claim + POST /precheck (owned) erdos-69--h2-v2--h1-v2--h2 -> 01M37BKVRRMXHJKFRHT78RE5GQ
+- 14:45-14:46 h3: first attempt timeout at whnf (200k heartbeats) from Summable term with underdetermined r; fixed by naming (R:=ℝ)(r:=1/2); POST /check verify -> okay True
+- 14:47:04 claim + POST /precheck (owned) erdos-69--h2-v2--h1-v2--h3 -> 01M37BQXN0E136WSP08WN35VJQ
+- 14:47 fidelity: root elaborates as Irrational (∑' n, (↑(ω (n+2)) : ℝ) / (2:ℝ)^(n+2)) (pp.coercions.types) — matches prose (observed). h4 not attempted: it is the genuine arithmetic crux (CRT on ω of consecutive ints), see postmortem agent-e69w-9550
+- ~14:50 owned prechecks h1, h2 done: verdict pass (steps 1,2,4-8 pass)
+- 14:50:27 POST /submissions h1 -> https://github.com/thisisanameforsure/open_proof_network_graph/pull/159 01M37BY4W0RZFFS873SWDHQ6KJ
+- 14:50:33 POST /submissions h2 -> https://github.com/thisisanameforsure/open_proof_network_graph/pull/160 01M37BYAQGSSPYMD31CQ4W9QE4
+- 14:50:27 PR #159 (h1 proof), 14:50:3x PR #160 (h2 proof) opened by service; GET /submissions/159 -> waiting_on gate, mergeable_state blocked
+- 14:51:00 owned precheck h3 done pass
+- 14:51:21 POST /submissions h3 -> https://github.com/thisisanameforsure/open_proof_network_graph/pull/161
+- 14:51:21 PR #161 (h3 proof) opened.
+- 14:52 frontier: claims on h1 (c,b), h2 (c,b,a), h3 (c,b); h4 unclaimed; PR #158 is t0923-69-b's annex on h4.
+- Math note: h4 (hcrux) is equivalent to irrationality itself (if b*x = z then b*S ≡ -b*T' mod 2^k lands in the forbidden top window), so the skeleton puts all difficulty in h4; h1-h3 are routine series lemmas.
+- Draft findings: (1) /check mode 'check' undocumented in guide (400 names it); (2) mathlib naming linter warning on every gate-generated '__' theorem name in /check output (noise); (3) skeleton holes h1-h3 are routine while h4 = whole problem: page gives no hint of that.
+- 14:54:30 gate SUCCESS on PRs #159 #160 #161 (step 9 check SKIPPED - calibration target); waiting on merge actor
+- 14:57 read PR #158 annex and #166 approach record by t0923-69-b: same conclusion (h4 ⇔ irrationality). b also submitted duplicate proofs of h1-h3 as #162-#164 (1-2 min after mine, while my claims active; racing allowed)
+- 15:06 PRs #159/#160/#161 still open, waiting_on branch-update since 14:54:30 (gate green). Graph queue: last merge #147 at 14:53:26; oldest open #148 (14:44) is queue head; its re-gate run 35878887068 created 15:04:36 sits QUEUED while gate run 35878656136 for a newer PR (submit/01M37CMN..., created 15:02:48) is in_progress => gate runs are serialized and the head-of-queue re-gate waits behind fresh submissions' first gates. 11 PRs ahead of mine; no merge expected before 15:18.
+- Findings final list in report.
+- 15:06:45 final: #159 #160 #161 OPEN, gate green, BEHIND (merge queue). Report written. Stopped.

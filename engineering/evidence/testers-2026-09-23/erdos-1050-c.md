@@ -1,0 +1,23 @@
+# erdos-1050-c log
+- 14:40:42 start
+- 14:41:16 POST /precheck tutorial -> 01M37BDMHRG448C6E07YSAPYGD queued
+- 14:41:49 POST /check mode=witness erdos-1050--h1-v2--h1 content=trivial
+- 14:43:54 precheck tutorial done/pass; POST /tokens pseudonym t0923-1050-c
+- 14:44:10 POST /claims erdos-1050--h1-v2--h1 -> 201, but t0923-1050-b already held a claim from 14:44:07 (3 s earlier); witness check (mode=witness, 'trivial') matches True
+- 14:45:23 saw t0923-1050-b's witness PR #146 (opened 14:44); released my claim 01M37BJQMG004606ZDWQN1ZTQK to avoid a duplicate
+- 14:45:43 POST /check (no node) Lambert-expansion lemma geo: 1/(2^(n+3)-3) = sum_k 3^k/2^((n+3)(k+1)) -> okay true, 2.7 s, first try
+- 14:46:30 POST /postmortems on erdos-1050--h1-v2--h1 -> {"id":"01M37BQ2A0GENRGVXYH8HSX20A","path":"targets/erdos-1050/nodes/erdos-1050--h1-v2--h1/attempts/20260923T144632Z-t0923-1050-c.yaml","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/151","pr_number":151}
+- 14:47 /check mode=check: root finalization (assembly with borwein := erdos_1050__h1) okay; h1-v2 finalization (hT := erdos_1050__h1_v2__h1) okay; only Context-restated sorries remain -> chain is mechanical once the hole is proved
+- 14:46:35 postmortem PR #151 opened (gate in progress)
+- 14:47:52 PR #146 (b's witness) MERGED; my #151 gate SUCCESS, BEHIND main
+- 14:47:28 #146 merged by merge actor (login thisisanameforsure); bot commit c7c9f096 "gate: #146 pass" 14:49:58
+- 14:48-14:50 GET /frontier.json: rendered_from 8d875930, hole ready_since None throughout (products lag)
+- findings so far: (1) /check line numbers are offsets in the inlined text (theorem on my line 3 reported -:7:8), guide says "errors by line and column" only; (2) POST /claims answers 201 with no hint that another pseudonym holds an active claim (b's claim 3 s earlier) — by design (racing allowed) but a newcomer can't tell without re-reading frontier; (3) tree is circular: root <= approximants(T) <= Irrational T, and root <=> Irrational T by the tail identity already proved in the root's assembly: 4 statements, zero reduction.
+- 14:50:40 frontier rendered_from 125fa85d: hole ready_since 14:47:28Z (visible ~3 min after merge)
+- 14:51:44 observed: a's duplicate witness PR #150 (opened 14:46:10, after b's #146 at 14:44) is mergeable_state dirty on GitHub, yet GET /submissions/<id> says waiting_on=merge, mergeable_state=unknown
+- 14:52 waiting for #151 (behind) to be merged by merge actor; queue busy with other agents' PRs
+- 15:02 #151 still open/behind; GET /submissions/<151 id> waiting_on=branch-update. Only one merge (#147, 14:53:26) since 14:47.
+- 15:03 merge actor runs 35877579848..35878374141 (8 runs, 14:54-15:00) all print "#148 is next; a post-merge job is about to move main: holding". The run it waits on, gate push run 35877508957 (post-merge for #147, sha 35385e76), reports status in_progress/updated_at 14:53:34 though all 3 jobs completed by 14:56:10 and the bot commit 4166237a landed 14:56:04. Queue stalled >=7 min with ~20 PRs waiting.
+- 15:04:19 run 35877508957 finally completed (jobs done 14:56:10); actor 15:04:22 "update #148"
+- 15:07:18 #148's gate run 35878887068 completed success; actor run 35879227783 at 15:07:21 read "#148 is up to date and its gate is running: holding" and no actor run has fired since (15:14:42), #148 CLEAN. Queue stalled; #151 still open/behind at 15:14.
+- 15:15 stop new work. Final: #151 postmortem open (gate green, behind, waiting on merge queue). Witness done by b (#146 merged).

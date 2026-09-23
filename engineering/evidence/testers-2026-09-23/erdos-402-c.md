@@ -1,0 +1,22 @@
+# log t0923-402-c
+- 14:41:27 start
+- 14:42:13 POST /precheck tutorial -> 01M37BF2EGHMZMR08CXEKKBWQX
+- 14:45 found: variant-d865c9c6 proof merged as PR #145 (2026-09-21 07:31) but post-merge run 35573363686 failed ("main moved under the post-merge job ... re-render by hand"); no attestations/000145.json; graph.json + site still say ready/open, 0 attempts; frontier claimable. Not re-proving it (duplicate).
+- 14:44:16 POST /check var.lean (max-coprime variant) okay=true 1s
+- 14:44:34 POST /tokens pseudonym t0923-402-c (token in token.json, not logged)
+- 14:44:55 POST /proposals/variant (partial, max-coprime) -> 201 node variant-950630b9 PR #147 (7s)
+- 14:45:22 /check var2.lean (large-prime variant) okay=true; sanity: false theorem -> checked
+- 14:45:55 POST /proposals/variant (partial, large-prime) -> {"proposal_id":"01M37BNV808P9CKBNQ2YFE8WYR","node_id":"variant-a874fe93","target_id":"erdos-402","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/149","pr_number":149}HTTP 201
+- 14:46 GET /submissions/147 (proposal): no waiting_on key at all while gate in_progress (docs say it names gate); the 409 node-pending from /check does carry waiting_on: gate.
+- 14:46 /check mode witness on pending node -> 409 node-pending (can't learn witness type before proposing; wrote witnesses by hand from the guide's rule).
+- 14:47 waiting for gates on #147 / #149; proof files prepared (proof-variant-*.lean)
+- 14:49:28 gates pass on #147 and #149 (step 9 skipped); waiting for merge actor
+- 14:49:45 GET /submissions/145 -> merged=true, attestation_note 'attestation-pending' (merge was 2026-09-21 07:31; post-merge run failed)
+- 14:53:48 #147 MERGED
+- 14:57:12 POST /precheck variant-950630b9: 409 products-pending x8 (14:53:56-14:56:35), then 202 job 01M37CAAGR6JH1K7BH241G0650
+- 15:00:48 precheck pass (all steps) 15:00; POST /submissions -> {"submission_id":"01M37CH3A85ZMHKSW6XV8JF074","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/170","pr_number":170,"node_id":"variant-950630b9","target_id":"erdos-402","artifact_type":"proof"}HTTP 201
+- 15:01:10 GET /submissions/170 and /submissions/<submission_id>: no waiting_on key anywhere in the body while gate in_progress
+- 15:01:20 CORRECTION: waiting_on exists, nested at pull_request.waiting_on (=gate). My earlier 'missing' notes were a wrong accessor. Docs only say 'waiting_on' without the path -> docs nit.
+- 15:03 PR #170 (proof of variant-950630b9) gate SUCCESS; waiting_on merge, mergeable clean
+- 15:12 merge queue stalled: last merge #147 14:53. #148 gate completed 15:07:18 SUCCESS, CLEAN; merge actor run 35879227783 (15:07:21, triggered by that completion) printed "#148 is up to date and its gate is running: holding for it" -> hold; no actor run since (none triggered). #149, #170 green behind it.
+- 15:17:25 STOP. #147 merged; #148/#149/#170 open+green; no merge-actor run since 15:07:21 (10 min stall). Final report written.

@@ -1,0 +1,33 @@
+# erdos-69-b log
+- 14:40:57 start
+- 14:41:36 POST /precheck tutorial -> HTTP 202 11.105895
+- 14:42:21 POST /check verify h2 -> HTTP 200 12.660460
+- 14:43:54 /check verify h2 full proof -> HTTP 200 3.056516
+- 14:44:28 /check verify h1 -> HTTP 200 2.365537
+- 14:47:31 /check verify h3 -> HTTP 200 1.863564
+- 14:47:38 tutorial precheck pass; POST /tokens -> HTTP 201 (token saved, not logged)
+- 14:47:47 POST /claims h1 -> HTTP 201
+- 14:47:48 POST /claims h2 -> HTTP 201
+- 14:47:48 POST /claims h3 -> HTTP 201
+- 14:48:00 POST /precheck h1 -> HTTP 202 job 01M37BSNA8E4YX6AP063HV1HP3
+- 14:48:06 POST /precheck h2 -> HTTP 202 job 01M37BSV5R3ZC421A26N5RQ9TC
+- 14:48:16 POST /precheck h3 -> HTTP 202 job 01M37BT4Y8F1Y0VGHGTSBCRRC1
+- 14:42-14:47 fast-checked (/check verify, AXLE) proofs of hole nodes erdos-69--h2-v2--h1-v2--h1 (tail split), --h2 (tail positive), --h3 (tail <= log2(M+1)+1): all okay:true, lint [] . Drafts h1-proof.lean h2-proof.lean h3-proof.lean.
+  - failures along the way: whnf heartbeat timeout reported over the whole proof span (17:105-52:51) when the cause was `(summable_nat_add_iff (M+1)).2 hsum` unification; `tsum_pos` unknown (Mathlib: `Summable.tsum_pos`).
+- 14:47:48 frontier showed t0923-69-c already claiming h1,h2,h3 (claims advisory; I claimed too, 201).
+- 14:48 prechecks queued for h1/h2/h3 under my token.
+- 14:50:09 POST /annexes h4 -> HTTP 201 5.417604 {"id":"01M37BXJA809GYQWMFMFCXYD0S","path":"targets/erdos-69/nodes/erdos-69--h2-v2--h1-v2--h4/annex/1a02e7ac8c4cc5384971485295c6dcb0d6a673731abcac1aef5b6e0cc4ab073e.md","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/158","pr_number":158,"hash":"1a02e7ac8c4cc538497148529
+- 14:51:51 precheck h2 pass; POST /submissions h2 -> HTTP 201 7.032766 "pr_number":162
+- 14:51:55 precheck h3 pass; POST /submissions h3 -> HTTP 201 4.309896 "pr_number":163
+- 14:52:10 precheck h1 pass; POST /submissions h1 -> HTTP 201 3.510551 "pr_number":164
+- 14:52:34 erdosproblems.com/69: PROVED by Tao-Terävainen [TaTe25] (irrationality of sum_p 1/(2^p-1)); Pratt [Pr24] conditional on uniform prime k-tuples. So h4 (equivalent to target) is research-level.
+- 14:53:25 POST /approach-records erdos-69 -> HTTP 400 0.504061 
+- 14:53:37 POST /approach-records (record-wrapped) -> HTTP 201 6.427989 "pr_number":166
+- 14:50 PR 158 annex on h4 (h4 <=> target). 14:51-14:52 PRs 162 (h2), 163 (h3), 164 (h1) opened. Race: t0923-69-c opened 159 (h1), 160 (h2), 161 (h3) ~1 min earlier; submissions.json at 14:48 had none, so nobody could see it.
+- 14:53 PR 166 approach record (blocked). First try 400 unknown-field: route takes {target_id, record:{...}}; guide gives no body for /approach-records (finding).
+- Findings so far: (1) waiting_on lives at pull_request.waiting_on, guide text suggests top-level; (2) /approach-records body undocumented; (3) race on holes: 3 duplicate proof PRs.
+- 14:56 all of 158-166 gate SUCCESS; main moved, most show behind/branch-update; merge actor queue
+- 14:57:05 released claims h1-h3 (work submitted). Queue: PRs 148-157 ahead; last merges 146@14:47, 147@14:53 (~6 min/merge); PR 167 = third h2 proof by another agent
+- 15:08 no merge since #147 at 14:53. Merge actor log (run at 15:07:26): "#148 is up to date and its gate is running: holding for it". Service GET /submissions/148 at 15:08:31 said mergeable_state blocked, waiting_on "merge", runs [gate completed success] while gh showed the gate IN_PROGRESS (service view stale vs host).
+- My PRs 158/162/163/164/166: gate success, behind, waiting_on "branch-update" (guide says waiting_on reads "gate" for the whole queue wait).
+- 15:16 final: 158,162,163,164,166 OPEN BEHIND, gate green, unmerged; no graph merge since #147 14:53 (23 min). Stopped work.
