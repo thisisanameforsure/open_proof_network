@@ -422,6 +422,8 @@ def workable(status: str, node: NodeFacts, status_of: Callable[[str], str]) -> b
     for membership and for ``claimable``, so the two cannot drift (the 2026-09-14 lesson)."""
     if graphmod.is_superseded(node):
         return False
+    if graphmod.is_circular(node, status):
+        return False  # F08-T17: no easier than a node above it, by a merged claim (D-16)
     if status in graphmod.FRONTIER_STATUSES:
         return True
     return status == "blocked" and graphmod.awaiting_witness(node, status_of)
@@ -449,6 +451,8 @@ def in_frontier(status: str, node: NodeFacts, status_of: Callable[[str], str]) -
     """
     if graphmod.is_superseded(node):
         return False  # R13: its successor carries the question, variant or not
+    if graphmod.is_circular(node, status):
+        return False  # F08-T17: graph.json says why, as the cause ``circular``
     if workable(status, node, status_of):
         return True
     # F03-T13: a curator's ``abandoned`` closes a variant as it closes any node (AC4, Q16).

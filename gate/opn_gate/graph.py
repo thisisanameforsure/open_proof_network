@@ -36,6 +36,11 @@ STATUS_FOR_ARTIFACT: dict[str, str] = {
 }
 CAUSE_DEP_REFUTED = "dep-refuted"  # R8: a dependent of a refuted node, for curator attention
 CAUSE_WITNESS_MISSING = "witness-missing"  # R6: a compiler-derived child with a stub witness
+#: F08-T17 (D-16): a merged circularity claim says the node is no easier than a node above it.
+CAUSE_CIRCULAR = "circular"
+#: The statuses a circularity claim speaks of: an open node. A settled one is settled whatever it
+#: was no easier than, and a superseded or abandoned one is already off the frontier.
+CIRCULAR_OPEN_STATUSES: tuple[str, ...] = ("ready", "blocked", "speculative")
 #: Origins whose nodes are created by the post-merge job with a witness slot, not a witness.
 HOLE_ORIGINS: tuple[str, ...] = ("compiler-derived", "skeleton-hole")
 #: A hole child's id is its parent's id, this separator and the hole's number (F07-R6):
@@ -89,6 +94,9 @@ class NodeFacts:
     #: one once it is proved; it never waits on one, so they are set aside when the node's
     #: status is derived (``blocked_because``).
     holes: tuple[str, ...] = ()
+    #: F08-T17 (D-16): the merged ``circular-decomposition`` claim under this node, as
+    #: ``defects/<file>``; the node is no easier than a node above it, so it is not work (R13).
+    circular: str | None = None
 
 
 @dataclass(frozen=True)
@@ -265,6 +273,7 @@ def load_nodes(
             artifact=artifact_of(node_dir, loaded.statement.decl_name),
             witness_stub=witness_is_stub(node_dir),
             supersedes=_optional_str(loaded.meta.get("supersedes")),
+            circular=records.circular_claim(node_dir),
         )
     # D-12 v3.19: which of a node's deps are its own holes is a fact about two nodes, so it is
     # read once every node is loaded; a dep that is not a node is left for ``check_dag``.
@@ -522,9 +531,42 @@ def derive_causes(nodes: dict[str, NodeFacts], statuses: dict[str, str]) -> dict
     """
     causes: dict[str, str | None] = {}
     for node_id in sorted(nodes):
+        if is_circular(nodes[node_id], statuses[node_id]):
+            causes[node_id] = CAUSE_CIRCULAR  # F08-T17: the one reason it is not work
+            continue
         _, cause = blocked_because(nodes[node_id], lambda n: statuses.get(n, "ready"))
         causes[node_id] = cause if statuses[node_id] == "blocked" else None
     return causes
+
+
+def is_circular(node: NodeFacts, status: str) -> bool:
+    """F08-T17 (D-16): an open node under a merged circularity claim. Its status is untouched —
+    the statement did not change (D-3) and a proof of it is still a proof — but it is no easier
+    than a node above it, so the products do not offer it as work."""
+    return node.circular is not None and status in CIRCULAR_OPEN_STATUSES
+
+
+def ancestors(nodes_dir: Path, node_id: str) -> set[str]:
+    """F08-T17: every node that depends on ``node_id`` transitively, each node's deps read as
+    they are *now*, through their revision chains (``effective_deps``, F08-T10). A node is never
+    its own ancestor; a META that does not read contributes no edges."""
+    edges: dict[str, tuple[str, ...]] = {}
+    for node_dir in sorted(p for p in nodes_dir.iterdir() if p.is_dir()):
+        meta_path = node_dir / "META.yaml"
+        try:
+            meta = schemas.load_yaml(meta_path) if meta_path.is_file() else {}
+        except schemas.SchemaError:
+            meta = {}
+        edges[node_dir.name] = effective_deps(nodes_dir, meta.get("deps"))
+    found: set[str] = set()
+    frontier = [node_id]
+    while frontier:
+        below = frontier.pop()
+        for candidate, deps in edges.items():
+            if below in deps and candidate not in found and candidate != node_id:
+                found.add(candidate)
+                frontier.append(candidate)
+    return found
 
 
 def find_root(nodes: dict[str, NodeFacts], declaration: StatusRecord | None) -> str:

@@ -140,7 +140,7 @@ async def submit_approach_record(call: Call, args: dict[str, Any]) -> dict[str, 
 
 
 async def file_defect_claim(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    body = present("file_defect_claim", args, "stmt_ref", "class", "line", "exhibit")
+    body = present("file_defect_claim", args, "stmt_ref", "class", "line", "exhibit", "ancestor")
     return await forward(call, "POST", "/defect-claims", body)
 
 
@@ -396,13 +396,16 @@ TOOLS: tuple[Tool, ...] = (
     Tool(
         "file_defect_claim",
         "File a statement-defect claim (D-16): a class from the taxonomy, a line of the "
-        "referenced file, and a Lean exhibit; malformed claims bounce here with the rule named.",
+        "referenced file, and a Lean exhibit; malformed claims bounce here with the rule named. "
+        "Class `circular-decomposition` also names `ancestor`, a node above `stmt_ref`, and its "
+        "exhibit is one theorem proving `<ancestor's statement> → <stmt_ref's statement>`.",
         params(
             {
                 "stmt_ref": {"type": "string"},
                 "class": {"type": "string"},
                 "line": {"type": "integer", "minimum": 1},
                 "exhibit": LEAN,
+                "ancestor": {"type": "string"},
             },
             ("stmt_ref", "class", "line", "exhibit"),
         ),

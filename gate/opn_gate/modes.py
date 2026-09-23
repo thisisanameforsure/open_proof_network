@@ -1634,6 +1634,50 @@ def check_defect_claim(  # noqa: PLR0911 — one return per rule
                 {"path": located.path, "line": line, "lines": len(lines), "file": path},
             )
         ]
+    return check_circular_claim(graph_root, located, doc)
+
+
+def check_circular_claim(
+    graph_root: Path, located: Located, doc: dict[str, Any]
+) -> list[Diagnostic]:
+    """F08-T17 (D-16): a ``circular-decomposition`` claim names an ancestor, and the ancestor is a
+    node that depends on this claim's node transitively, read through revisions — the one fact the
+    implication the sandbox checks is about (``exhibits.check_circular``). An ``ancestor`` on any
+    other class claims something nobody checks, so it is refused rather than carried."""
+    ancestor = doc.get("ancestor")
+    if doc.get("class") != records.CIRCULAR_CLASS:
+        if ancestor is None:
+            return []
+        return [
+            Diagnostic(
+                "circular-ancestor",
+                f"{located.path}: `ancestor` belongs to a {records.CIRCULAR_CLASS} claim; a "
+                f"{doc.get('class')!r} claim names none (F08-T17)",
+                {"path": located.path, "class": doc.get("class"), "ancestor": ancestor},
+            )
+        ]
+    if located.node_id is None or not isinstance(ancestor, str):
+        lacks = "a node's defects/" if located.node_id is None else "an ancestor"
+        return [
+            Diagnostic(
+                "circular-ancestor",
+                f"{located.path}: a {records.CIRCULAR_CLASS} claim sits under a node and names "
+                f"a node above it; this one lacks {lacks} (F08-T17)",
+                {"path": located.path, "ancestor": ancestor},
+            )
+        ]
+    nodes_dir = layout.graph_nodes_dir(graph_root, located.target_id)
+    above = graphmod.ancestors(nodes_dir, located.node_id)
+    if ancestor not in above:
+        return [
+            Diagnostic(
+                "circular-ancestor",
+                f"{located.path}: {ancestor!r} does not depend on {located.node_id}, even through "
+                "revisions, so the claim relates the node to nothing it was meant to reduce; name "
+                f"one of: {', '.join(sorted(above)) or 'none (nothing depends on this node)'}",
+                {"path": located.path, "ancestor": ancestor, "ancestors": sorted(above)},
+            )
+        ]
     return []
 
 

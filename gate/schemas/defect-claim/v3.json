@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/defect-claim/v3.json",
+  "title": "defect-claim/v3",
+  "description": "nodes/<id>/defects/<timestamp>-<contributor>.yaml, or targets/<id>/defs/defects/<timestamp>-<contributor>.yaml (D-16; F08-R7; F12-R4, Q7; F08-T17): a statement-defect claim, free and shaped. v3 (2026-09-23) adds one class value, `circular-decomposition`, and the field `ancestor` it requires: the node this claim sits under is no easier than `ancestor`, a node that depends on it transitively (read through D-8 revisions), and the exhibit declares exactly one theorem whose type is `<ancestor's statement> → <this node's statement>`. The gate checks both — the ancestor in the classifier, the exhibit's type in the sandbox (C9) — and a merged claim takes the node off the frontier with the cause `circular`; no record is rewritten. An `ancestor` on any other class is refused by the classifier. Everything else is v2's; v1 and v2 stay live and unedited (D-34), and the service files a circular-decomposition claim at v3 and every other class at v1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "stmt_ref",
+    "class",
+    "line",
+    "exhibit",
+    "contributor",
+    "date"
+  ],
+  "properties": {
+    "schema": {
+      "const": "defect-claim/v3"
+    },
+    "stmt_ref": {
+      "type": "string",
+      "description": "the node id whose Statement.lean is claimed defective, or defs/<file>.lean under the target",
+      "pattern": "^([a-z0-9][a-z0-9-]*(@v[1-9][0-9]*)?|defs/[A-Za-z0-9_][A-Za-z0-9_/.-]*\\.lean)$"
+    },
+    "class": {
+      "enum": [
+        "missing-hypothesis",
+        "junk-value",
+        "vacuity",
+        "quantifier-scope",
+        "wrong-domain",
+        "definition-mismatch",
+        "strength-drift",
+        "other-with-exhibit",
+        "screen-finding",
+        "circular-decomposition"
+      ]
+    },
+    "line": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "exhibit": {
+      "type": "string",
+      "minLength": 1,
+      "description": "a Lean file"
+    },
+    "contributor": {
+      "type": "string",
+      "minLength": 1
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "qa_exhibit": {
+      "description": "For a screen-finding claim: the path, relative to the graph root, of the exhibit file under targets/<id>/qa/exhibits/ that the QA record cites (F12-R15). Null on any other claim.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        }
+      ]
+    },
+    "readings": {
+      "description": "For a screen-finding claim: the two things a derived falsehood can mean, named so nobody has to remember; the claim asserts neither (F12-R4, D-9 v3.12).",
+      "type": "array",
+      "items": {
+        "enum": [
+          "misformalization",
+          "refutation"
+        ]
+      },
+      "minItems": 2,
+      "maxItems": 2,
+      "uniqueItems": true
+    },
+    "routes": {
+      "description": "A curator's routing of an earlier screen-finding claim in the same directory: which file, and which reading. With `misformalization` this claim's own class is the D-16 class the curator chose and a D-8 revision follows; with `refutation` the finding is a D-12 counterexample in waiting and this claim's class is whatever best describes the exhibit.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "claim",
+            "reading"
+          ],
+          "properties": {
+            "claim": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "reading": {
+              "enum": [
+                "misformalization",
+                "refutation"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "note": {
+      "description": "Free text; capped and served as untrusted data (F12 §7).",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "maxLength": 2000
+        }
+      ]
+    },
+    "ancestor": {
+      "description": "For a circular-decomposition claim: the id of a node that depends on this one transitively, whose statement the exhibit shows implies this node's. Absent or null on any other class.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "class": {
+            "const": "circular-decomposition"
+          }
+        },
+        "required": [
+          "class"
+        ]
+      },
+      "then": {
+        "required": [
+          "ancestor"
+        ],
+        "properties": {
+          "ancestor": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ]
+}

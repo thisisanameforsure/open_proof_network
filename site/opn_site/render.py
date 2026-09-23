@@ -47,7 +47,21 @@ CAUSE_WORDS = {
         "(propose it through /proposals/witness)"
     ),
     "dep-refuted": "blocked: a dependency was refuted",
+    "circular": "circular: no easier than a statement it was meant to reduce",
 }
+#: F08-T17 (D-16): the one cause that speaks of a node whatever its status — a merged
+#: circularity claim takes a ready node off the frontier as surely as a blocked one.
+CIRCULAR_CAUSE = "circular"
+
+
+def status_words(status: str, cause: str | None) -> str:
+    """A status's words, or its cause's where ``graph.json`` records one: a blocked node's cause
+    always, and ``circular`` on any status it is published with (F08-T17)."""
+    if cause and (status == "blocked" or cause == CIRCULAR_CAUSE):
+        return CAUSE_WORDS.get(cause, f"blocked: {cause}")
+    return STATUS_WORDS.get(status, status)
+
+
 #: F04-T15 (Q17): the statuses that owe nobody a witness. A node with an unfilled slot is
 #: normally work someone can take, but a D-8 revision leaves the superseded original holding its
 #: empty slot for good, and a refuted or abandoned statement is off the route — so the witness
@@ -583,9 +597,7 @@ class Renderer:
     def status_mark(status: str, cause: str | None = None) -> str:
         """The status as a coloured mark and words. A blocked node's cause picks the words; an
         unknown cause is shown as itself, escaped, rather than as a reason it is not."""
-        words = STATUS_WORDS.get(status, status)
-        if status == "blocked" and cause:
-            words = CAUSE_WORDS.get(cause, f"blocked: {cause}")
+        words = status_words(status, cause)
         return (
             f'<span class="status status-{esc(status)}"><span class="mark"></span>'
             f"{esc(words)}</span>"
@@ -681,6 +693,8 @@ class Renderer:
         """The row's word: proved, open (a claim could take it, F03-Q8) or the status itself."""
         if nv.status == "proved":
             return "proved"
+        if nv.cause == CIRCULAR_CAUSE:
+            return CIRCULAR_CAUSE  # F08-T17: off the frontier by a merged claim, whatever status
         if nv.status in CLAIMABLE_STATUSES:
             return "open"
         if nv.status == "blocked" and nv.cause == WITNESS_CAUSE:
@@ -842,9 +856,7 @@ class Renderer:
             _word, meaning, proto = GLOSSARY_BY_KEY[state]
             body = f'{esc(meaning)}<span class="proto">protocol: {esc(proto)}</span>'
         else:
-            words = STATUS_WORDS.get(nv.status, nv.status)
-            if nv.status == "blocked" and nv.cause:
-                words = CAUSE_WORDS.get(nv.cause, f"blocked: {nv.cause}")
+            words = status_words(nv.status, nv.cause)
             meaning = GLOSSARY_BY_KEY["blocked"][1] if nv.status == "blocked" else ""
             body = f"{esc(words)}. {esc(meaning)}".strip()
         return self.hover(self.dot(self.dot_state(state)), body, classes="dot-term")
@@ -1323,9 +1335,7 @@ class Renderer:
         tid, nid = tv.target_id, nv.node_id
         e = nv.graph_entry
         state = self.node_state(nv)
-        words = STATUS_WORDS.get(nv.status, nv.status)
-        if nv.status == "blocked" and nv.cause:
-            words = CAUSE_WORDS.get(nv.cause, f"blocked: {nv.cause}")
+        words = status_words(nv.status, nv.cause)
         note = esc(f"{self.node_role(tv, nv).capitalize()}; {words}.")
         if state == "proved" and e.get("proof_commit"):
             note += esc(f" Proof merged in {str(e['proof_commit'])[:12]}.")
@@ -1757,6 +1767,8 @@ class Renderer:
             renders.append(nv.witness.path)
         if nv.superseded_record is not None:
             renders.append(nv.superseded_record)
+        if nv.circular_claim is not None:
+            renders.append(nv.circular_claim)
         partials = self.partials_block(nv)
         for p in nv.partials:
             renders.append(p.file.path)
@@ -1834,6 +1846,14 @@ class Renderer:
         """F04-T10: a node a claim could take (F03-Q8) under a target that is not claimable says
         so on its own page, in the target's reasons. A node whose target has no index row (never
         the case for a loaded site) says nothing, since there is no record to state."""
+        if nv.cause == CIRCULAR_CAUSE:
+            claim = self.file_link(nv.circular_claim) if nv.circular_claim else "its defects/"
+            return (
+                '<p class="why-not">Not claimable: a merged circularity claim proves that a '
+                "statement this one was meant to reduce implies it, so it is no easier than that "
+                f"statement (D-16). The claim and its Lean exhibit: {claim}. A proof of it is "
+                "still a proof.</p>\n"
+            )
         tv = self.site.targets.get(nv.target_id)
         if tv is None or nv.status not in CLAIMABLE_STATUSES:
             return ""

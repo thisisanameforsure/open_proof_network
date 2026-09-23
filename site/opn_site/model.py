@@ -158,6 +158,9 @@ class NodeView:
     superseded_cause: str | None = None
     superseded_record: str | None = None
     supersedes: str | None = None
+    #: F08-T17: the merged circularity claim (graph-root relative) that ``graph.json``'s cause
+    #: ``circular`` rests on, read by the gate's own reader so the two cannot name different files.
+    circular_claim: str | None = None
 
     @property
     def status(self) -> str:
@@ -499,6 +502,11 @@ def load_node(root: Path, target_id: str, entry: dict[str, Any]) -> NodeView:
         superseded_cause=str(why) if why else None,
         superseded_record=replaced.path.relative_to(root).as_posix() if replaced else None,
         supersedes=str(predecessor) if predecessor else None,
+        circular_claim=(
+            (node_dir / claim).relative_to(root).as_posix()
+            if (claim := records.circular_claim(node_dir))
+            else None
+        ),
     )
 
 

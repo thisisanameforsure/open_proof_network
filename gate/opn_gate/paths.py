@@ -269,7 +269,7 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "node-status": ("node-status/v1",),
     "target-status": ("target-status/v1", "target-status/v2"),
     "revision-request": ("revision-request/v1", "revision-request/v2"),
-    "defect-claim": ("defect-claim/v1", "defect-claim/v2"),
+    "defect-claim": ("defect-claim/v1", "defect-claim/v2", "defect-claim/v3"),  # v3: F08-T17
     "qa-record": ("qa/v1", "qa/v2"),  # v2: a row names what it compared against (F14-R8)
     "attempts-ledger": ("attempts/v1",),
     "drift-record": ("drift/v1",),

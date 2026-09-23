@@ -54,7 +54,7 @@ def test_a_second_reason_still_closes_the_page() -> None:
 
 
 def test_a_variant_under_a_resolved_root_is_not_told_it_is_unclaimable() -> None:
-    nv: Any = SimpleNamespace(target_id="t", status="ready")
+    nv: Any = SimpleNamespace(target_id="t", status="ready", cause=None)
     open_tv, closed_tv = target(["status-resolved"]), target(["no-steward"], status="listed")
     assert render.Renderer.node_not_claimable(renderer(1, open_tv), nv) == ""
     assert "Not claimable" in render.Renderer.node_not_claimable(renderer(1, closed_tv), nv)

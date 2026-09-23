@@ -161,3 +161,38 @@ def declared_root(target_dir: Path) -> str | None:
     latest = load_target_status(target_dir)
     root = latest.doc.get("root") if latest is not None else None
     return str(root) if root else None
+
+
+#: F08-T17 (D-16): the defect class that says a node is no easier than a node above it.
+CIRCULAR_CLASS = "circular-decomposition"
+DEFECTS_DIR = "defects"
+
+
+def circular_claim(node_dir: Path) -> str | None:
+    """The merged circularity claim that takes this node off the frontier, as ``defects/<file>``
+    relative to the node — the first by file name, so the oldest (D-13's stamp) — or ``None``.
+
+    Derive, never rewrite (F08-T10): the claim file is the fact, merged only once the gate had
+    checked its ancestor and elaborated its exhibit as ``ancestor → node`` in the sandbox, so
+    nothing here re-checks the mathematics. A file that does not read as a valid
+    ``circular-decomposition`` claim is logged and passed over: defect claims are appends anyone
+    files, and one bad file must never decide whether the graph has products (2026-09-17).
+    """
+    directory = node_dir / DEFECTS_DIR
+    if not directory.is_dir():
+        return None
+    accepted = paths.SCHEMAS_FOR_ROLE["defect-claim"]
+    for path in sorted(p for p in directory.iterdir() if p.suffix in ATTEMPT_SUFFIXES):
+        try:
+            doc = schemas.load_yaml(path)
+        except schemas.SchemaError as exc:
+            log.warning("%s: a defect claim that does not read is passed over: %s", path, exc)
+            continue
+        if doc.get("class") != CIRCULAR_CLASS:
+            continue
+        schema_id = str(doc.get("schema"))
+        if schema_id not in accepted or schemas.violations(doc, schema_id):
+            log.warning("%s: a circularity claim that does not validate is passed over", path)
+            continue
+        return f"{DEFECTS_DIR}/{path.name}"
+    return None

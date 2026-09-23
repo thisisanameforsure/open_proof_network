@@ -26,7 +26,7 @@ from opn_api import clock as clockmod
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
 from opn_api.githost import GitHostError
-from opn_gate import schemas
+from opn_gate import records, schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -48,15 +48,22 @@ DEFECT_CLASSES: tuple[str, ...] = (
     "other-with-exhibit",
 )
 DEFS_PREFIX = "defs/"
+#: F08-T17: the class that says a node is no easier than a node above it, filed at v3 with the
+#: ancestor it names; every other class is still filed at v1.
+CIRCULAR_CLASS = records.CIRCULAR_CLASS
+CIRCULAR_SCHEMA = "defect-claim/v3"
+#: A defect claim's classes: D-16's taxonomy and the circularity class. A revision request
+#: (``revision-request/v1``) takes the taxonomy alone.
+DEFECT_CLAIM_CLASSES: tuple[str, ...] = (*DEFECT_CLASSES, CIRCULAR_CLASS)
 
 
-def check_class(raw: Any, field: str) -> str:
+def check_class(raw: Any, field: str, classes: tuple[str, ...] = DEFECT_CLASSES) -> str:
     """D-16 (1): a claim names a defect class from the taxonomy or it bounces."""
-    if raw not in DEFECT_CLASSES:
+    if raw not in classes:
         raise ApiError(
             400,
             "defect-class",
-            f"{field} must be one of {', '.join(DEFECT_CLASSES)} (D-16's taxonomy; "
+            f"{field} must be one of {', '.join(classes)} (D-16's taxonomy; "
             "a claim that names no class bounces)",
         )
     return str(raw)
@@ -185,20 +192,80 @@ def check_line(ctx: Context, raw: Any, path: str) -> int:
     return raw
 
 
+def ancestors_in(graph: list[dict[str, Any]], node_id: str) -> set[str]:
+    """Every node of the target that depends on ``node_id`` transitively, from the committed
+    ``graph.json`` rows, whose ``deps`` are already each dep read through its revisions (F08-T10)
+    — the relation ``graph.ancestors`` reads from the tree, where the gate checks it again."""
+    edges = {str(n["node_id"]): [str(d) for d in n.get("deps") or []] for n in graph}
+    found: set[str] = set()
+    todo = [node_id]
+    while todo:
+        below = todo.pop()
+        for candidate, deps in edges.items():
+            if below in deps and candidate not in found and candidate != node_id:
+                found.add(candidate)
+                todo.append(candidate)
+    return found
+
+
+def check_ancestor(
+    ctx: Context, raw: Any, *, defect_class: str, target_id: str, stmt_ref: str
+) -> str | None:
+    """F08-T17: a ``circular-decomposition`` claim names a node above the one it sits under, and
+    no other claim names one. The exhibit's type is the gate's to check, in the sandbox (C9)."""
+    if defect_class != CIRCULAR_CLASS:
+        if raw is None:
+            return None
+        raise ApiError(
+            400,
+            "circular-ancestor",
+            f"ancestor belongs to a {CIRCULAR_CLASS} claim; a {defect_class} claim names none",
+        )
+    if stmt_ref.startswith(DEFS_PREFIX):
+        raise ApiError(
+            400, "circular-ancestor", f"a {CIRCULAR_CLASS} claim is about a node, not a defs/ file"
+        )
+    if not isinstance(raw, str) or not raw:
+        raise ApiError(
+            400,
+            "circular-ancestor",
+            f"a {CIRCULAR_CLASS} claim names `ancestor`: a node that depends on {stmt_ref}; the "
+            f"exhibit proves `<ancestor's statement> → <{stmt_ref}'s statement>`",
+        )
+    above = ancestors_in(precheck.graph_doc(ctx).get(target_id, []), stmt_ref)
+    if raw not in above:
+        raise ApiError(
+            400,
+            "circular-ancestor",
+            f"{raw} does not depend on {stmt_ref}, even through revisions; name one of: "
+            f"{', '.join(sorted(above)) or 'none (nothing depends on this node)'}",
+            details={"ancestors": sorted(above)},
+        )
+    return raw
+
+
 #: F05-T8: the fields ``POST /defect-claims`` reads; any other top-level key is refused.
-DEFECT_FIELDS: tuple[str, ...] = ("stmt_ref", "class", "line", "exhibit")
+DEFECT_FIELDS: tuple[str, ...] = ("stmt_ref", "class", "line", "exhibit", "ancestor")
 
 
 async def post_defect_claims(ctx: Context, request: Request) -> Response:
     """R7: D-16's pre-triage, then an append the gate re-checks the same way."""
     identity: Identity = request.state.identity
     fields, _ = await identitymod.body_fields(request, DEFECT_FIELDS)
-    defect_class = check_class(fields.get("class"), "class")
+    defect_class = check_class(fields.get("class"), "class", DEFECT_CLAIM_CLASSES)
     target_id, stmt_ref, referenced = resolve_ref(ctx, fields.get("stmt_ref"))
     line = check_line(ctx, fields.get("line"), referenced)
     exhibit = exhibit_text(fields, required=True)
+    ancestor = check_ancestor(
+        ctx,
+        fields.get("ancestor"),
+        defect_class=defect_class,
+        target_id=target_id,
+        stmt_ref=stmt_ref,
+    )
+    schema_id = DEFECT_SCHEMA if ancestor is None else CIRCULAR_SCHEMA
     doc: dict[str, Any] = {
-        "schema": DEFECT_SCHEMA,
+        "schema": schema_id,
         "stmt_ref": stmt_ref,
         "class": defect_class,
         "line": line,
@@ -206,7 +273,9 @@ async def post_defect_claims(ctx: Context, request: Request) -> Response:
         "contributor": identity.pseudonym,
         "date": clockmod.render(ctx.clock.now())[:10],
     }
-    appends.validated(doc, DEFECT_SCHEMA)
+    if ancestor is not None:
+        doc["ancestor"] = ancestor
+    appends.validated(doc, schema_id)
     name = appends.record_name(ctx, identity)
     if stmt_ref.startswith(DEFS_PREFIX):
         path = f"targets/{target_id}/{DEFS_PREFIX}defects/{name}.yaml"

@@ -1,0 +1,82 @@
+F08-T17 — a gate-checked circularity claim (D-16; derive, never rewrite)
+date: 2026-09-23   base: cce3bbf (worktree branch)
+(Assigned as "F08-T15"; F08-T15 and F08-T16 are already taken — a7c7839, 289bdf6, evidence
+task-15.txt and task-16.txt — so this is filed as the next free number, T17. The lead renumbers.)
+
+## what was found (2026-09-23, the nine testers on the calibration targets)
+Two merged skeletons produced holes that are no easier than what they were meant to reduce:
+erdos-1050--h1-v2--h1 states the root again after a reindexing identity (the sum over n >= 0 of
+1/(2^(n+1) - 3) and the sum of 1/(2^(n+3) - 3) differ by the first two terms, -1 and +1), and
+erdos-69--h2-v2--h1-v2--h4 is equivalent to the target. Both were published claimable. A D-16
+claim could not say so: no class for it, no field naming the statement it circles back to, and the
+gate only checked that an exhibit elaborates, never what it proves.
+
+## the shape
+- defect-claim/v3 (new, pinned in gate/schemas/HASHES 7c8096b9...): v2 plus the class
+  `circular-decomposition` and the field `ancestor` (required for that class by an if/then).
+- classifier (modes.check_circular_claim): the ancestor is a node that depends on the claimed node
+  transitively, deps read through D-8 revisions (graph.ancestors over effective_deps); an ancestor
+  on any other class is refused. Code: circular-ancestor.
+- sandbox (exhibits.check_circular, run by `opn-gate exhibits` on the claim's append PR): the
+  exhibit declares exactly one theorem (circular-exhibit), elaborates, and opn-relation-type with
+  label `resolves` (variant -> root), the ancestor as the variant and the claimed node as the root,
+  says its type is defeq to `ancestor -> node` (circular-direction), with no sorryAx
+  (circular-sorry) and no axiom outside the allowlist (circular-axiom). No new Lean executable.
+- products: graph.load_target reads the merged claim into NodeFacts.circular
+  (records.circular_claim); an open node with one is not workable, so off the frontier, and
+  graph.json's cause is `circular` (graph/v3's cause is a slug, so no bump). No record is written:
+  deleting the claim restores every product byte for byte (test_no_record_is_rewritten).
+- api: POST /defect-claims takes `ancestor`, files circular claims at v3 (everything else stays
+  v1), refuses a missing/non-ancestor/misplaced ancestor 400 circular-ancestor; POST /claims on a
+  circular node answers 409 node-circular naming nodes/<id>/defects/. MCP file_defect_claim passes
+  `ancestor` through (D-28 parity).
+- site: the node reads "circular: no easier than a statement it was meant to reduce", is not a
+  workable state, and its page says "Not claimable" and links the claim file.
+
+## red first (the defect, not a missing name)
+$ uv run pytest gate/tests/test_finding_circular_decomposition.py -q
+  4x  assert ['record-invalid'] == ['circular-ancestor']      (v3 unknown: the claim cannot be said)
+  1x  assert ['record-invalid'] == []                         (a valid circularity claim bounces)
+  1x  assert 'and-reassoc' not in ['and-reassoc', 'tutorial-and-swap']   (merged claim, still work)
+  1x  'relation_type:resolves:OpnProp.and_swap_reassoc' not in calls      (the exhibit is only elaborated)
+  3x  assert [] == ['circular-direction' | 'circular-sorry' | 'circular-exhibit']
+11 failed, 4 passed in 0.55s
+$ uv run pytest api/tests/test_finding_circular_claim.py -q   (against HEAD's requests.py/claims.py)
+  400 unknown-field "unknown field ancestor; this route accepts class, exhibit, line, stmt_ref"
+  (400, 'defect-class') == (400, 'circular-ancestor')
+  (409, 'node-not-open') == (409, 'node-circular')   "and-reassoc is ready and not on the frontier"
+3 failed, 1 passed
+$ uv run pytest site/tests/test_finding_circular_label.py -q
+  assert 'Not claimable' in <node page>;  status_mark('ready', cause='circular') -> "open"
+2 failed, 1 passed
+The lean test was first run after the fix and was red once on the development code: the borrowed
+exhibit (imports the ancestor's Context) failed exhibit-elaboration, because the ancestor was
+staged only after the plain elaboration. The ancestor is now staged with the node, before it.
+
+## green
+fast tier (gate 15, api 5, site 3):   23 passed, 2 warnings in 1.88s
+lean tier, real toolchain 4.33.1, core Lean only (propositional fixture; hole and-reassoc, ancestor
+and-swap-reassoc, whose statement imports its Context restating the hole's theorem with sorry):
+  ancestor -> hole                    -> []
+  hole -> ancestor (reverse)          -> ['circular-direction']
+  `theorem circular : True`           -> ['circular-direction']
+  `fun _ => OpnProp.and_reassoc` (the Context's sorry'd restatement) -> ['circular-sorry']
+  with test_exhibits_lean and test_finding_relation_root_dep_lean: 4 passed in 37.85s
+docker tier: not run (the exhibits command already runs opn-relation-type in the sandbox for
+  admission; every path handed to it is staged under the work directory).
+make verify: 2578 passed, 61 skipped, 84 deselected, 2 warnings in 241.65s (ruff, format, mypy
+  --strict gate/api/site all clean)
+
+## schema versions bumped, and their consumers
+defect-claim/v3 (new; v1, v2 unedited, D-34):
+  gate/schemas/defect-claim/v3.json, gate/schemas/HASHES
+  gate/opn_gate/paths.py SCHEMAS_FOR_ROLE["defect-claim"] (accepted set; records.circular_claim reads it)
+  api/opn_api/requests.py CIRCULAR_SCHEMA (the service files v3 for this class only)
+  gate/tests/test_schemas.py known set; gate/tests/test_products.py info index [1, 2, 3]
+  goldens: gate/tests/golden/products/{unproved,interior-proved,curated}/info.json regenerated by
+    test_products.write_goldens (only the defect-claim index changed)
+  not touched: api/tests/fixtures/info.json (already a stale copy: protocol 3.11, defect-claim [1];
+    nothing reads its index); site/docs/defect-claim.md and gate/agents/AGENTS.md (prose, the lead's)
+  live graph: products.generate refuses a graph whose schemas/ lacks an advertised schema, so the
+    re-pin must seed defect-claim/v3 with schemas.publish (F03-T8) in the same commit.
+No products schema changed: frontier/v3 loses the entry, graph/v3 carries cause "circular".
