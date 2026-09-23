@@ -169,9 +169,14 @@ class ArtifactRequest:
     #: F07-T7: the manifest of the target's other statements, staged as probes; ``None`` asks no
     #: sibling question and every hole reports ``defeq_sibling: null``.
     siblings: Path | None = None
+    #: F07-T34: the manifest of the node's ancestors, staged the same way; ``None`` asks no
+    #: ancestor question and every hole reports ``defeq_ancestor: null``.
+    ancestors: Path | None = None
 
     def args(self) -> list[str]:
         extra = ["--siblings", str(self.siblings.resolve())] if self.siblings is not None else []
+        if self.ancestors is not None:
+            extra += ["--ancestors", str(self.ancestors.resolve())]
         return [
             "--statement",
             str(self.statement.resolve()),

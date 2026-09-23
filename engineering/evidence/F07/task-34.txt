@@ -1,0 +1,58 @@
+# F07-T34 evidence — a hole may not restate any ancestor of the node it decomposes (testers 2026-09-23)
+
+## WHAT WAS FOUND
+D-12's offload rule compared each hole with the node's own goal only (Holes.lean restatesGoal ->
+defeq_goal). sibling_candidates deliberately left out every node that depends on the node under
+check ("an edge from the parent to it would close a cycle"), so a hole restating the parent, the root
+or any ancestor was reported as nobody's (defeq_goal false, defeq_sibling null) and step 4 passed:
+a cycle in the statement graph, accepted. Live shapes: erdos-1050 root -> erdos-1050--h1-v2 -> hole
+erdos-1050--h1-v2--h1 back to the root (up to a proved reindexing), erdos-69's h4 equivalent to the
+target by a real argument. Neither is definitional equality, so neither is caught by this task; that
+is the separate circularity-claim task. This task is the mechanical, definitional part.
+
+## RED (seams added at today's values first: ANCESTORS_* constants, ArtifactRequest.ancestors unused,
+## ancestor_candidates returning []; so every red is the defect, not a missing name)
+uv run --frozen pytest gate/tests/test_finding_hole_restates_ancestor.py -> 8 failed, 1 passed
+  test_a_hole_restating_an_ancestor_is_refused_at_step_4[and-swap-reassoc]  (the grandchild hole = the root)
+    E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, ...}
+    E       assert None == 4
+  test_a_hole_restating_an_ancestor_is_refused_at_step_4[and-reassoc]  (the hole = the parent)
+    E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, ...}
+    E       assert None == 4
+  test_a_partial_run_stages_every_ancestor_in_the_work_directory
+    E       AssertionError: []
+    E       assert 0 == 1            (no ancestors manifest staged)
+  test_a_superseded_ancestor_is_asked_about_in_its_successor
+    E       StopIteration            (no ancestors manifest staged)
+  test_a_report_without_the_field_passes_as_before
+    E   KeyError: 'defeq_ancestor'   (the artifact record has no such field)
+  test_a_node_with_no_dependents_stages_no_ancestors
+    E       AssertionError: assert [] == ['and-swap-reassoc']
+  test_ancestors_climb_every_path_once_and_survive_a_cycle
+    E       AssertionError: assert [] == ['and-reassoc...swap-reassoc']
+  test_the_extractor_is_asked_about_ancestors_only_when_they_are_staged
+    E       AssertionError: ... Right contains 2 more items, first extra item: '--ancestors'
+  (green before and after: test_a_hole_restating_a_sibling_that_is_no_ancestor_still_passes — the guard)
+
+## GREEN
+fast: test_finding_hole_restates_ancestor.py 9 passed; with test_finding_duplicate_hole.py,
+  test_partial.py, test_artifacts.py: 53 passed
+lake build (gate/lean, Lean 4.33.1): Build completed successfully (40 jobs)
+lean tier, uv run --frozen pytest -m lean over test_finding_hole_restates_ancestor_lean.py,
+  test_artifacts_lean.py, test_finding_duplicate_hole_lean.py, test_finding_hole_own_context_lean.py,
+  test_finding_hole_roundtrip_lean.py, test_finding_exists_binder_types_lean.py, test_onramp_lean.py:
+  11 passed, 2 failed in 742 s. The 2 are test_onramp_lean.py, both at step 1 with toolchain-missing:
+  "no Mathlib checkout for 0df444a3... under ~/.opn/mathlib" — this laptop has no Mathlib checkout;
+  environmental, not this change (the on-ramp is a Mathlib target; CI has the checkout).
+  The new file alone: 4 passed in 381 s —
+    root-before-binders / parent / root-under-binders: step 4 offload-restates-ancestor, restated
+      [{"hole": "up", "ancestor": <root or parent>}], defeq_goal false, defeq_sibling null on every hole
+    a genuinely new hole: verdict pass, defeq_ancestor null, Ancestor0.lean and Ancestor1.lean staged
+golden regenerated (gate/tests/golden/artifact-types.json): +5 lines, each '"defeq_ancestor": null,';
+  nothing else moved (test_artifacts_lean.py green against it).
+docker tier: test_finding_hole_restates_ancestor_docker.py written (the refusal through the step-3
+  sandbox, the probes read from the work directory) and collected; NOT RUN here — the Docker daemon
+  is down on this laptop (docker ps: cannot connect). It runs with CI's "lean or docker" tier.
+make verify: === 2564 passed, 61 skipped, 88 deselected, 2 warnings in 290.76s (0:04:50) ====
+  (the 61 skips include the graph-repo checks, which look for ../open_proof_network_graph beside the
+  worktree and do not find it there)

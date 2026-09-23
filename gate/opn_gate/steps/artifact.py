@@ -66,6 +66,11 @@ class Hole:
     #: post-merge job makes it a dependency edge instead of a new node. ``None`` when there is none
     #: or when the extractor was not asked (an older pin reports no field).
     defeq_sibling: str | None = None
+    #: F07-T34: the ancestor of the node — a node that depends on it, however indirectly — whose
+    #: statement the hole is, definitionally. A hole that restates one closes a cycle in the
+    #: statement graph, and D-12's offload rule refuses it (``offload-restates-ancestor``).
+    #: ``None`` when there is none, or from an older pin that was not asked.
+    defeq_ancestor: str | None = None
     #: F07-R19: whether ``closed_type`` elaborates back to the hole's own obligation. A pinned
     #: extractor that predates the check reports no field, and its holes are taken as round-trips:
     #: the guard arrives with the re-pin that carries it, as every gate rule does (D-35).
@@ -80,6 +85,7 @@ class Hole:
     def of(cls, doc: dict[str, Any]) -> Hole:
         local = str(doc.get("type", ""))
         sibling = doc.get("defeq_sibling")
+        ancestor = doc.get("defeq_ancestor")
         roundtrip = doc.get("closed_roundtrip")
         expected = doc.get("expected_witness")
         return cls(
@@ -88,6 +94,7 @@ class Hole:
             closed_type=str(doc.get("closed_type") or local),
             defeq_goal=bool(doc.get("defeq_goal")),
             defeq_sibling=str(sibling) if sibling else None,
+            defeq_ancestor=str(ancestor) if ancestor else None,
             closed_roundtrip=True if roundtrip is None else bool(roundtrip),
             expected_witness=str(expected) if isinstance(expected, str) and expected else None,
         )
@@ -99,6 +106,7 @@ class Hole:
             "closed_type": self.closed_type,
             "defeq_goal": self.defeq_goal,
             "defeq_sibling": self.defeq_sibling,
+            "defeq_ancestor": self.defeq_ancestor,
             "closed_roundtrip": self.closed_roundtrip,
             "expected_witness": self.expected_witness,
         }
@@ -239,6 +247,25 @@ def _partial_problems(artifact: Artifact, max_holes: int) -> list[Diagnostic]:
                 {"holes": [h.name for h in restated]},
             )
         )
+    # F07-T34: a hole that is the statement of a node above this one — the parent, the root, any
+    # node that depends on this one however indirectly — hands that node's question back down,
+    # and the statement graph would wait on itself. The goal check above sees only this node's
+    # own goal; the extractor compares each hole with every ancestor staged for it.
+    cyclic = [h for h in artifact.holes if h.defeq_ancestor]
+    if cyclic:
+        problems.append(
+            Diagnostic(
+                "offload-restates-ancestor",
+                "a hole is the statement of a node this one decomposes, so the statement graph "
+                "would wait on itself: "
+                + ", ".join(f"{h.name} restates {h.defeq_ancestor}" for h in cyclic)
+                + " (D-12 offload rule: a hole must be new work, not an ancestor restated)",
+                {
+                    "holes": [h.name for h in cyclic],
+                    "restated": [{"hole": h.name, "ancestor": h.defeq_ancestor} for h in cyclic],
+                },
+            )
+        )
     # R20: a hole whose printed closed type does not elaborate back to its obligation would be
     # written into a child that states a different proposition (found live 2026-09-17: two holes
     # published over the naturals that the assembly discharged over the reals, one that did not
@@ -303,6 +330,9 @@ def _partial_problems(artifact: Artifact, max_holes: int) -> list[Diagnostic]:
 #: under check and the work directory and nothing else, so a sibling is read only once staged.
 SIBLINGS_DIR = "siblings"
 SIBLINGS_MANIFEST = "siblings.json"
+#: F07-T34: the node's ancestors, staged the same way for the offload rule's cycle check.
+ANCESTORS_DIR = "ancestors"
+ANCESTORS_MANIFEST = "ancestors.json"
 #: A probe's own declaration name. Elaborated on the artifact's imports, a sibling's statement
 #: under its own name could redeclare what those imports hold — a dep's statement, reached
 #: through the parent's Context — so every probe is renamed (the consolidation probe's lesson).
@@ -311,14 +341,9 @@ _THEOREM_NAME_RE = re.compile(r"^(?P<kw>theorem|lemma)\s+[^\s:({\[]+", re.M)
 _IMPORT_LINE_RE = re.compile(r"^import\s+\S+[ \t]*(?:\n|$)", re.M)
 
 
-def sibling_candidates(nodes_dir: Path, node_id: str) -> list[str]:
-    """The nodes a hole of ``node_id`` may restate, in id order (F07-T7, D-29).
-
-    Every other node of the target, except one that depends on ``node_id`` however indirectly —
-    an edge from the parent to it would close a cycle — and a superseded one, whose statement
-    lives on in the node that superseded it. A node whose ``META.yaml`` does not load is left
-    out: naming a hole against it would be a guess.
-    """
+def _effective_deps(nodes_dir: Path) -> dict[str, list[str]]:
+    """Every node's deps as they are now (``graph.effective_deps``), keyed in id order. A node
+    whose ``META.yaml`` does not load is left out: naming a hole against it would be a guess."""
     deps: dict[str, list[str]] = {}
     for node_dir in sorted(p for p in nodes_dir.iterdir() if p.is_dir()):
         try:
@@ -326,26 +351,70 @@ def sibling_candidates(nodes_dir: Path, node_id: str) -> list[str]:
         except (OSError, schemas.SchemaError):
             continue
         deps[node_dir.name] = list(graphmod.effective_deps(nodes_dir, meta.get("deps")))
-    dependents: set[str] = set()
-    pending = [node_id]
-    while pending:
-        current = pending.pop()
-        for other, its_deps in deps.items():
-            if current in its_deps and other not in dependents:
-                dependents.add(other)
-                pending.append(other)
+    return deps
+
+
+def _dependents(deps: dict[str, list[str]], node_id: str) -> list[str]:
+    """Every node that depends on ``node_id`` however indirectly, nearest first and in id order
+    within a level, each once; never ``node_id`` itself, even when the record already loops."""
+    seen = {node_id}
+    level = [node_id]
     out: list[str] = []
-    for other in deps:
-        if other == node_id or other in dependents:
-            continue
-        try:
-            override = records.load_node_status(nodes_dir / other)
-        except (OSError, schemas.SchemaError):
-            continue
-        if override is not None and override.status == "superseded":
-            continue
-        out.append(other)
+    while level:
+        reached = [
+            other
+            for other, its_deps in deps.items()
+            if other not in seen and any(current in its_deps for current in level)
+        ]
+        seen.update(reached)
+        out.extend(reached)
+        level = reached
     return out
+
+
+def _superseded(node_dir: Path) -> bool | None:
+    """Whether a status record has replaced the node; ``None`` when its records do not load."""
+    try:
+        override = records.load_node_status(node_dir)
+    except (OSError, schemas.SchemaError):
+        return None
+    return override is not None and override.status == "superseded"
+
+
+def sibling_candidates(nodes_dir: Path, node_id: str) -> list[str]:
+    """The nodes a hole of ``node_id`` may restate, in id order (F07-T7, D-29).
+
+    Every other node of the target, except one that depends on ``node_id`` however indirectly —
+    an edge from the parent to it would close a cycle, which is F07-T34's refusal instead
+    (``ancestor_candidates``) — and a superseded one, whose statement lives on in the node that
+    superseded it. A node whose ``META.yaml`` or status records do not load is left out: naming
+    a hole against it would be a guess.
+    """
+    deps = _effective_deps(nodes_dir)
+    dependents = set(_dependents(deps, node_id))
+    return [
+        other
+        for other in deps
+        if other != node_id and other not in dependents and _superseded(nodes_dir / other) is False
+    ]
+
+
+def ancestor_candidates(nodes_dir: Path, node_id: str) -> list[str]:
+    """The nodes a hole of ``node_id`` must not restate, nearest first (F07-T34, D-12).
+
+    Every node that depends on ``node_id`` however indirectly, over each node's deps read through
+    its revision chain. A superseded node is neither asked about nor climbed through: the graph
+    means its successor now, which is reached through the revised deps of the nodes above it. A
+    node whose status records do not load is still climbed and asked about, because leaving out
+    a node that may be an ancestor would let the cycle through. The node itself is not its own
+    ancestor: its goal is ``defeq_goal``'s question.
+    """
+    deps = {
+        other: its_deps
+        for other, its_deps in _effective_deps(nodes_dir).items()
+        if other == node_id or _superseded(nodes_dir / other) is not True
+    }
+    return _dependents(deps, node_id)
 
 
 def sibling_probe(statement_text: str) -> str:
@@ -355,30 +424,51 @@ def sibling_probe(statement_text: str) -> str:
     return _THEOREM_NAME_RE.sub(rf"\g<kw> {SIBLING_PROBE_NAME}", body, count=1)
 
 
+def _stage_probes(
+    nodes_dir: Path, candidates: list[str], dest: Path, manifest_name: str, stem: str
+) -> Path | None:
+    """Each candidate's statement as a probe under ``dest``, and the manifest naming them in
+    order; ``None`` when no candidate has a statement to stage."""
+    entries: list[dict[str, str]] = []
+    for index, other in enumerate(candidates):
+        try:
+            text = (nodes_dir / other / "Statement.lean").read_text(encoding="utf-8")
+        except OSError:
+            continue
+        probe = sibling_probe(text)
+        decl = layout.parse_declaration(probe, f"{other}/Statement.lean")
+        if isinstance(decl, Diagnostic):
+            continue
+        name = f"{stem}{index}.lean"
+        dest.mkdir(parents=True, exist_ok=True)
+        (dest / name).write_text(probe, encoding="utf-8")
+        entries.append({"node": other, "file": name, "decl": decl})
+    if not entries:
+        return None
+    manifest = dest / manifest_name
+    manifest.write_text(json.dumps(entries, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    return manifest
+
+
 def stage_siblings(workdir: Path, node: layout.Node) -> Path | None:
     """Stage each candidate's probe in ``workdir`` and write the manifest ``opn-artifact-type
     --siblings`` reads; ``None`` when there is no sibling to ask about."""
     nodes_dir = node.path.parent
-    dest = workdir / SIBLINGS_DIR
-    entries: list[dict[str, str]] = []
-    for index, sibling in enumerate(sibling_candidates(nodes_dir, node.node_id)):
-        try:
-            text = (nodes_dir / sibling / "Statement.lean").read_text(encoding="utf-8")
-        except OSError:
-            continue
-        probe = sibling_probe(text)
-        decl = layout.parse_declaration(probe, f"{sibling}/Statement.lean")
-        if isinstance(decl, Diagnostic):
-            continue
-        name = f"Sibling{index}.lean"
-        dest.mkdir(parents=True, exist_ok=True)
-        (dest / name).write_text(probe, encoding="utf-8")
-        entries.append({"node": sibling, "file": name, "decl": decl})
-    if not entries:
-        return None
-    manifest = dest / SIBLINGS_MANIFEST
-    manifest.write_text(json.dumps(entries, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    return manifest
+    candidates = sibling_candidates(nodes_dir, node.node_id)
+    return _stage_probes(
+        nodes_dir, candidates, workdir / SIBLINGS_DIR, SIBLINGS_MANIFEST, "Sibling"
+    )
+
+
+def stage_ancestors(workdir: Path, node: layout.Node) -> Path | None:
+    """F07-T34: stage each ancestor's probe in ``workdir`` (the sandbox sees nothing else) and
+    write the manifest ``opn-artifact-type --ancestors`` reads; ``None`` for a node nothing
+    depends on."""
+    nodes_dir = node.path.parent
+    candidates = ancestor_candidates(nodes_dir, node.node_id)
+    return _stage_probes(
+        nodes_dir, candidates, workdir / ANCESTORS_DIR, ANCESTORS_MANIFEST, "Ancestor"
+    )
 
 
 # --- running it ----------------------------------------------------------------------------------
@@ -392,6 +482,7 @@ def request(  # noqa: PLR0913 — the request's inputs, each named
     artifact: Path,
     artifact_module: str,
     siblings: Path | None = None,
+    ancestors: Path | None = None,
 ) -> ArtifactRequest:
     node = ctx.node
     assert node is not None
@@ -404,6 +495,7 @@ def request(  # noqa: PLR0913 — the request's inputs, each named
         artifact_decl=expected_decl(kind, node.statement.decl_name),
         kind=kind,
         siblings=siblings,
+        ancestors=ancestors,
     )
 
 
@@ -497,6 +589,8 @@ def judge(ctx: RunContext, tc: ResolvedToolchain) -> StepResult:
         artifact_module=layout.node_module(node.node_id, "Proof"),
         # F07-T7: only a partial's holes become nodes, so only a partial asks about siblings.
         siblings=stage_siblings(ctx.workdir, node) if kind == "partial" else None,
+        # F07-T34: and only a partial's holes can close a cycle, so only a partial asks this.
+        ancestors=stage_ancestors(ctx.workdir, node) if kind == "partial" else None,
     )
     artifact, failure = run(ctx, tc, req, kind)
     if failure is not None:

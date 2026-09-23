@@ -23,6 +23,12 @@ never redeclares a name the artifact's environment already holds. The manifest i
 `{"node", "file", "decl"}`, `file` relative to the manifest. Each hole then reports
 `defeq_sibling`, the first node whose statement it is. A probe that does not elaborate here cannot
 be what a hole restates, so it is skipped and never fails the check.
+
+`--ancestors <manifest.json>` (F07-T34, optional) names the node's ancestors — every node that
+depends on it, nearest first — staged and read exactly as the siblings are. Each hole then reports
+`defeq_ancestor`, the first ancestor whose statement it is, which the gate refuses as a cycle. An
+ancestor's probe that does not elaborate on these imports is skipped: a hole elaborated on the same
+imports cannot be definitionally equal to a statement that needs constants they do not hold.
 -/
 open Lean Meta Elab OpnGate
 
@@ -79,6 +85,9 @@ unsafe def main (args : List String) : IO UInt32 := runMain do
   let siblings ← match getArg kv "siblings" with
     | some manifest => siblingTypes manifest base
     | none => pure #[]
+  let ancestors ← match getArg kv "ancestors" with
+    | some manifest => siblingTypes manifest base
+    | none => pure #[]
 
   let ctx : Core.Context := { fileName := artPath, fileMap := default }
   let state : Core.State := { env := artEnv }
@@ -88,7 +97,7 @@ unsafe def main (args : List String) : IO UInt32 := runMain do
       -- `allowOpaque := true`: a theorem's proof term is opaque for reduction, and this is the
       -- one place that wants to look at it rather than use it.
       let holes ← match artInfo.value? (allowOpaque := true) with
-        | some value => holeReport stmtInfo.type value siblings
+        | some value => holeReport stmtInfo.type value siblings ancestors
         | none => pure { holes := #[], unnamed := 0, body_is_hole := false }
       return (toString (← ppExpr expected), toString (← ppExpr artInfo.type), ok, holes)
       -- `TermElabM` rather than `MetaM`: a hole's printed type is elaborated back and compared

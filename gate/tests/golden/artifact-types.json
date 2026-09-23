@@ -76,6 +76,7 @@
         "closed_type": "∀ (p q : Prop), p ∧ q → q",
         "defeq_goal": false,
         "defeq_sibling": null,
+        "defeq_ancestor": null,
         "closed_roundtrip": true,
         "expected_witness": "∃ (p : Prop), ∃ (q : Prop), p ∧ q"
       },
@@ -85,6 +86,7 @@
         "closed_type": "∀ (p q : Prop), p ∧ q → q → p",
         "defeq_goal": false,
         "defeq_sibling": null,
+        "defeq_ancestor": null,
         "closed_roundtrip": true,
         "expected_witness": "∃ (p : Prop), ∃ (q : Prop), (p ∧ q) ∧ q"
       }
@@ -107,6 +109,7 @@
         "closed_type": "∀ (p q : Prop), p ∧ q → ∀ (a b : Prop), a ∧ b ↔ b ∧ a",
         "defeq_goal": false,
         "defeq_sibling": null,
+        "defeq_ancestor": null,
         "closed_roundtrip": true,
         "expected_witness": "∃ (p : Prop), ∃ (q : Prop), ∃ (a : Prop), ∃ (b : Prop), p ∧ q"
       }
@@ -129,6 +132,7 @@
         "closed_type": "∀ (p q : Prop), p ∧ q → q ∧ p",
         "defeq_goal": true,
         "defeq_sibling": null,
+        "defeq_ancestor": null,
         "closed_roundtrip": true,
         "expected_witness": "∃ (p : Prop), ∃ (q : Prop), p ∧ q"
       }
@@ -153,6 +157,7 @@
         "closed_type": "∀ (p q : Prop), p ∧ q → q ∧ p",
         "defeq_goal": true,
         "defeq_sibling": null,
+        "defeq_ancestor": null,
         "closed_roundtrip": true,
         "expected_witness": "∃ (p : Prop), ∃ (q : Prop), p ∧ q"
       }

@@ -21,6 +21,12 @@ A hole may also restate a statement the target already has (F07-T7): the 2026-09
 first hole was the tutorial's own theorem. Each hole therefore names the first sibling statement
 its closed type is definitionally equal to, and the post-merge job makes that a dependency edge
 instead of a new node.
+
+A hole must not restate an *ancestor* either (F07-T34): a node that depends on this one, however
+indirectly, is a question this one is part of the answer to, and a hole that hands it back down
+closes a cycle in the statement graph. The goal check sees only this node's own goal, so each hole
+also names the first ancestor, nearest first, whose statement it is — the same two transparencies —
+and the gate refuses the partial (`offload-restates-ancestor`).
 -/
 open Lean Elab Meta
 
@@ -40,6 +46,9 @@ structure Hole where
   /-- The node of the target whose statement the closed type is, definitionally, if any
   (F07-T7). -/
   defeq_sibling : Option String := none
+  /-- The ancestor of the node (a node that depends on it) whose statement the hole is,
+  definitionally, if any (F07-T34): a cycle, which the offload rule refuses. -/
+  defeq_ancestor : Option String := none
   /-- Whether `closed_type`, read back as Lean source, elaborates to this same obligation
   (F07-R19). A type printed without its coercion ascriptions can elaborate at another type
   entirely and say nothing about the hole: `(ω n : ℝ) / 2 ^ n` prints as `↑(ω n) / 2 ^ n`, which
@@ -65,6 +74,9 @@ instance : ToJson Hole where
     ("closed_type", Json.str h.closed_type),
     ("defeq_goal", Json.bool h.defeq_goal),
     ("defeq_sibling", match h.defeq_sibling with
+      | some node => Json.str node
+      | none => Json.null),
+    ("defeq_ancestor", match h.defeq_ancestor with
       | some node => Json.str node
       | none => Json.null),
     ("closed_roundtrip", Json.bool h.closed_roundtrip),
@@ -140,7 +152,30 @@ private def restatesSibling (siblings : Array (String × Expr)) (closed : Expr)
     if same then return some node
   return none
 
-private partial def scan (goal stmt : Expr) (siblings : Array (String × Expr))
+/-- The first ancestor, nearest first as given, whose statement the hole is (F07-T34). Asked of
+the hole's type where it sits and of its closed form, as the goal check asks both, because an
+ancestor's statement can arrive either way: written out whole under the node's binders (the type
+where it sits), or reached by closing the hole over them (the closed form). The same two
+transparencies; a comparison that throws is not a match. -/
+private def restatesAncestor (ancestors : Array (String × Expr)) (t closed : Expr)
+    : MetaM (Option String) := do
+  for (node, ty) in ancestors do
+    let same ← try
+        withReducible (isDefEq t ty) <||> withReducible (isDefEq closed ty) <||>
+          isDefEq t ty <||> isDefEq closed ty
+      catch _ => pure false
+    if same then return some node
+  return none
+
+/-- What each hole is compared with: the node's goal and statement, the target's other statements
+(F07-T7) and the node's ancestors (F07-T34). -/
+private structure Known where
+  goal : Expr
+  stmt : Expr
+  siblings : Array (String × Expr)
+  ancestors : Array (String × Expr)
+
+private partial def scan (k : Known)
     (binders : Array Expr) (e : Expr) (acc : Acc) : TermElabM Acc := do
   let e := e.consumeMData
   if isSorry e then
@@ -157,35 +192,37 @@ private partial def scan (goal stmt : Expr) (siblings : Array (String × Expr))
         name := n.toString,
         type := ← ppRoundTrippable t,
         closed_type := printed,
-        defeq_goal := ← restatesGoal goal stmt t closed,
-        defeq_sibling := ← restatesSibling siblings closed,
+        defeq_goal := ← restatesGoal k.goal k.stmt t closed,
+        defeq_sibling := ← restatesSibling k.siblings closed,
+        defeq_ancestor := ← restatesAncestor k.ancestors t closed,
         closed_roundtrip := ← reElaboratesTo printed closed,
         expected_witness := if expectedOk then some expectedPrinted else none }
       let acc := { acc with holes := acc.holes.push hole }
-      withLocalDeclD n t fun x => scan goal stmt siblings (binders.push x) (b.instantiate1 x) acc
+      withLocalDeclD n t fun x => scan k (binders.push x) (b.instantiate1 x) acc
     else
-      let acc ← scan goal stmt siblings binders t acc
-      let acc ← scan goal stmt siblings binders v acc
-      withLetDecl n t v fun x => scan goal stmt siblings (binders.push x) (b.instantiate1 x) acc
+      let acc ← scan k binders t acc
+      let acc ← scan k binders v acc
+      withLetDecl n t v fun x => scan k (binders.push x) (b.instantiate1 x) acc
   | .app f a =>
-    let acc ← scan goal stmt siblings binders f acc
-    scan goal stmt siblings binders a acc
+    let acc ← scan k binders f acc
+    scan k binders a acc
   | .lam n t b bi =>
-    let acc ← scan goal stmt siblings binders t acc
-    withLocalDecl n bi t fun x => scan goal stmt siblings (binders.push x) (b.instantiate1 x) acc
+    let acc ← scan k binders t acc
+    withLocalDecl n bi t fun x => scan k (binders.push x) (b.instantiate1 x) acc
   | .forallE n t b bi =>
-    let acc ← scan goal stmt siblings binders t acc
-    withLocalDecl n bi t fun x => scan goal stmt siblings (binders.push x) (b.instantiate1 x) acc
-  | .proj _ _ s => scan goal stmt siblings binders s acc
+    let acc ← scan k binders t acc
+    withLocalDecl n bi t fun x => scan k (binders.push x) (b.instantiate1 x) acc
+  | .proj _ _ s => scan k binders s acc
   | _ => return acc
 
 /-- Every hole in `value`, a proof of `stmt`; each named against `siblings`, the target's other
-statements as `(node id, type)` (F07-T7; empty when the caller staged none). -/
+statements as `(node id, type)` (F07-T7), and against `ancestors`, the statements of the nodes that
+depend on this one, nearest first (F07-T34); either is empty when the caller staged none. -/
 def holeReport (stmt value : Expr) (siblings : Array (String × Expr) := #[])
-    : TermElabM HoleReport := do
+    (ancestors : Array (String × Expr) := #[]) : TermElabM HoleReport := do
   lambdaTelescope value fun xs body => do
     let goal ← inferType body
-    let acc ← scan goal stmt siblings xs body {}
+    let acc ← scan { goal, stmt, siblings, ancestors } xs body {}
     return { holes := acc.holes, unnamed := acc.unnamed, body_is_hole := isSorry body }
 
 end OpnGate
