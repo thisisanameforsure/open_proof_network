@@ -23,3 +23,26 @@ FAILED api/tests/test_finding_check_naming_noise.py::test_other_warnings_are_unt
 3 failed, 1 passed in 0.54s
 The three failures are the defect (the warning on the node's own name is shown). The fourth test is a guard that
 passes before and after: the checker's body is not edited in place and the log's okay/error_count are AXLE's.
+
+## green
+fix: checks.without_generated_name_warning(body, statement, node_id) — a copy of the checker's body without the
+lean_messages.warnings entries that are Mathlib's linter.style.nameCheck warning ("The declaration '<name>' contains
+'__'") naming exactly the node's id with - made _, when that is also the theorem the node's statement declares. POST
+/check answers the copy as `result` and lists what it left out as `dropped_warnings` ([] when nothing); write_log
+still reads the checker's own body. Module docstring and the check_lean MCP description say so.
+One test added after the red run: test_a_node_whose_theorem_is_not_the_generated_name_keeps_the_warning (kills the
+mutant below that consults the id alone); it passes before and after the fix.
+$ uv run --frozen pytest -q -p no:warnings api/tests/test_finding_check_naming_noise.py api/tests/test_checks.py api/tests/test_finding_check_okay.py api/tests/test_check_witness_mode.py
+37 passed (with the fifth naming test: 5 passed in the new file)
+$ make verify
+All checks passed! / === 2646 passed, 75 skipped, 89 deselected, 2 warnings in 146.55s ===
+
+## mutants (-p plugins from the scratchpad)
+mut_t18_any_name.py OPN_MUTANT=any_name (drop every nameCheck warning, whoever's name):
+  FAILED test_a_contributors_own_double_underscore_name_still_warns — 1 failed, 3 passed
+mut_t18_any_name.py OPN_MUTANT=all_warnings (drop every warning once one is dropped):
+  FAILED test_a_contributors_own_double_underscore_name_still_warns, test_other_warnings_are_untouched — 2 failed
+mut_t18_any_name.py OPN_MUTANT=in_place (edit the checker's body in place):
+  FAILED test_the_call_log_counts_what_axle_said_not_what_was_shown — 1 failed, 3 passed
+mut_t18_no_decl_check.py (the node id alone decides; the statement's declaration not consulted):
+  FAILED test_a_node_whose_theorem_is_not_the_generated_name_keeps_the_warning — 1 failed, 4 passed

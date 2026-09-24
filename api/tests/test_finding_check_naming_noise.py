@@ -18,7 +18,6 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-import pytest
 from api_fakes import AXLE_OKAY, FakeAxle
 from mcp_client import NODE, TARGET
 from test_checks import harness_with, post, seed
@@ -53,9 +52,14 @@ def reply(*warnings: str) -> dict[str, Any]:
     }
 
 
-def check(body_reply: dict[str, Any], content: str = PROOF, node: str | None = HOLE) -> Any:
+def check(
+    body_reply: dict[str, Any],
+    content: str = PROOF,
+    node: str | None = HOLE,
+    statement: str = STATEMENT,
+) -> Any:
     h = harness_with(axle=FakeAxle(replies=[body_reply]))
-    seed(h, statement=STATEMENT)
+    seed(h, statement=statement)
     body: dict[str, Any] = {"target_id": TARGET, "content": content, "mode": "check"}
     if node is not None:
         body["node_id"] = node
@@ -64,14 +68,12 @@ def check(body_reply: dict[str, Any], content: str = PROOF, node: str | None = H
     return h, r.json()
 
 
-@pytest.mark.xfail(strict=True, reason="F13-T18: the gate-generated name warning is shown")
 def test_the_gate_generated_name_warning_is_dropped() -> None:
     _, doc = check(reply(name_check(DECL)))
     assert doc["result"]["lean_messages"]["warnings"] == []
     assert doc["dropped_warnings"] == [{"linter": "linter.style.nameCheck", "declaration": DECL}]
 
 
-@pytest.mark.xfail(strict=True, reason="F13-T18: the gate-generated name warning is shown")
 def test_a_contributors_own_double_underscore_name_still_warns() -> None:
     """A helper the contributor named ``my__lemma`` is theirs to rename: it stays."""
     theirs = name_check("my__lemma", at="-:6:8-6:17")
@@ -82,7 +84,15 @@ def test_a_contributors_own_double_underscore_name_still_warns() -> None:
     assert doc["dropped_warnings"] == []
 
 
-@pytest.mark.xfail(strict=True, reason="F13-T18: the gate-generated name warning is shown")
+def test_a_node_whose_theorem_is_not_the_generated_name_keeps_the_warning() -> None:
+    """The id alone does not make a name the gate's: an authored node's statement declares its
+    author's name, and a warning on a lookalike is the author's to act on."""
+    authored = "import Init\n\ntheorem OpnProp.and_reassoc : True := by\n  sorry\n"
+    _, doc = check(reply(name_check(DECL)), statement=authored)
+    assert doc["result"]["lean_messages"]["warnings"] == [name_check(DECL)]
+    assert doc["dropped_warnings"] == []
+
+
 def test_other_warnings_are_untouched() -> None:
     _, doc = check(reply(DEPRECATED, name_check(DECL)))
     assert doc["result"]["lean_messages"]["warnings"] == [DEPRECATED]

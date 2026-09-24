@@ -4,7 +4,8 @@ The service resolves the target's pinned Mathlib to a hosted environment through
 ``gate/hosted-checkers.yaml``, lints the text for the ways a checker's pass still fails the gate,
 inlines the target's ``Defs`` modules the checker cannot import, and forwards the text to AXLE
 through the ``Axle`` seam. The answer is AXLE's body verbatim beside the lint and
-``authoritative: false``: it never becomes an attestation and nothing reads it back (D-1).
+``authoritative: false`` (bar one warning on a gate-generated name, listed in
+``dropped_warnings``, F13-T18): it never becomes an attestation and nothing reads it back (D-1).
 
 Order of refusals, cheapest first (C7): the body's shape, then the caller's limit, then the
 graph (target, node, pin), then the checker. A refusal from the checker itself is
@@ -398,6 +399,43 @@ def _written_name(statement_text: str) -> str | None:
         if m.group("kind") in ("theorem", "lemma"):
             return m.group("name")
     return None
+
+
+#: Mathlib's style linter for a ``__`` in a declaration's name (F13-T18), and the name it quotes.
+NAME_CHECK = "linter.style.nameCheck"
+NAME_CHECK_RE = re.compile(r"The declaration '(?P<name>[^']+)' contains '__'")
+
+
+def without_generated_name_warning(
+    body: dict[str, Any], statement: layout.Statement | None, node_id: str | None
+) -> tuple[dict[str, Any], list[dict[str, str]]]:
+    """F13-T18 (D6): the checker's body with Mathlib's naming-linter warning dropped when, and
+    only when, the name it flags is the node's own gate-generated declaration: its id with ``-``
+    made ``_``, declared by its statement, as ``postmerge.child_statement`` writes every hole. A
+    contributor cannot rename that theorem, so the warning was noise on every check of a hole.
+    Every other warning passes through verbatim. A copy: the body the log reads is the
+    checker's (R9)."""
+    if node_id is None or statement is None:
+        return body, []
+    generated = node_id.replace("-", "_")
+    if statement.decl_name != generated:
+        return body, []
+    messages = body.get("lean_messages")
+    warnings = messages.get("warnings") if isinstance(messages, dict) else None
+    if not isinstance(warnings, list):
+        return body, []
+    kept: list[Any] = []
+    dropped: list[dict[str, str]] = []
+    for w in warnings:
+        m = NAME_CHECK_RE.search(w) if isinstance(w, str) and NAME_CHECK in w else None
+        if m is not None and m.group("name") == generated:
+            dropped.append({"linter": NAME_CHECK, "declaration": generated})
+        else:
+            kept.append(w)
+    if not dropped:
+        return body, []
+    assert isinstance(messages, dict)
+    return {**body, "lean_messages": {**messages, "warnings": kept}}, dropped
 
 
 def superseded_warning(ctx: Context, node_id: str | None) -> list[dict[str, Any]]:
@@ -873,6 +911,7 @@ async def post_check(ctx: Context, request: Request) -> Response:
         answer=answer,
     )
     user_error = answer.body.get("user_error")
+    shown, dropped = without_generated_name_warning(answer.body, statement, req.node_id)
     return JSONResponse(
         {
             "authoritative": False,
@@ -887,7 +926,9 @@ async def post_check(ctx: Context, request: Request) -> Response:
             # body with no ``okay`` (a statement that does not compile) is still an answer.
             "okay": verdict(answer.body),
             "user_error": user_error if isinstance(user_error, str) else None,
-            "result": answer.body,
+            "result": shown,
+            # F13-T18: what was left out of ``result`` and why; the log keeps the checker's own.
+            "dropped_warnings": dropped,
             "log_id": log_id,
             **({"witness": witness_verdict(answer.body)} if req.mode == "witness" else {}),
         }
