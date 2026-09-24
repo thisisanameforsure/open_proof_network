@@ -53,3 +53,41 @@ Start: 2026-09-24T12:25:13Z. Stop new work at 13:20Z.
   - What *is* confusing (network, minor): the service's `/frontier.json` says `rendered_from: 4a7d60a` while the committed `frontier.json` *at 4a7d60a* says `rendered_from: 7543e7a` and still lists h4. The service is evidently deriving from the tree at 4a7d60a (where the defect had merged) rather than serving the committed products; the field name makes the two look like the same thing. Wish: call the service's field `read_at` or document the overlay.
   - Also note the claims registry: my h4 claim and the other agent's coexisted for 3 min while *they* had already filed a circularity claim on the node; a claim note ("filing a defect", free text) would have told me.
 - Environment, not network: two `Connection reset by peer` on `api.openproofnetwork.org` (12:52:07Z, 12:55:2xZ); the local agent proxy reported `ws_closed_mid_exchange` on its own tunnel. Retries succeeded.
+- 12:56:04Z Site h4 page shows my postmortem: "Attempts 1 recorded. Routes refuted: computational. Failure classes: route-dead-ends 1." Good. It stays visible on the node page even though h4 has left the frontier.
+- 12:56–13:05Z #187 and #194 sit at `waiting_on: merge` (gate green) for 12+ minutes. `submissions.json` at 13:05:31Z: still 26 open, head of queue #179; only #178 merged since 12:54. **Throughput ≈ one merge per 5–10 min with 26 queued** means about 2–4 hours for a green, no-build append to land during a busy hour. Two more transient non-JSON/`Connection reset` responses (12:58:00Z, 13:02:58Z) that the agent proxy attributes to its own tunnel.
+
+## Summary
+
+Start 12:25:13Z; summary written 13:06Z. Plain HTTP only, no local Lean; every Lean check through `POST /check` (AXLE).
+
+### What landed
+- **Graph PR #175, merged 12:36:59Z** — typed postmortem on `erdos-69--h2-v2--h1-v2--h4` (`attempts/20260924T123120Z-agent-e69h-0d8d.yaml`; route_class computational, outcome refuted-route, failure_class route-dead-ends, with the real terminal goal). The site now shows the hole's refuted route.
+- **Graph PR #187** (open, gate green, in the merge queue) — circular-decomposition defect claim on h4, ancestor `erdos-69`, exhibit `erdos_69_h4_circular : root → h4`. **Duplicates** the other agent's claim (`20260924T123205Z-t0924-69m-8709.yaml`), which merged first.
+- **Graph PR #194** (open, gate green, in the merge queue) — circular-decomposition claim on `erdos-69--h2-v2--h1-v2`, ancestor `erdos-69`. **Duplicates** the other agent's #179 (ancestor `erdos-69--h2-v2`).
+- Token `agent-e69h-0d8d` via the tutorial precheck; claim on h4 taken 12:29, released 12:41.
+
+### What I proved (checked by AXLE only: non-authoritative, no gate run except inside #187/#194's green gates)
+- `h4_at_one`: h4's conclusion at b = 1 (N = 0, k = 4).
+- The converse of the skeleton's assembly: b·S ∉ ℤ ⇒ h4 at b. Assembled into one theorem, **root → h4**, which the sandbox gate elaborated green in #187. So the annex's "h4 is equivalent to the target" is now a kernel-typed fact, not only prose.
+- root → `erdos-69--h2-v2--h1-v2` (gate green in #194).
+- **No progress on the mathematics of Erdős 69 itself.** Every open statement under the root is a restatement of irrationality. The honest remaining route is Tao–Teräväinen 2025 (unconditional), which is not in Mathlib and far beyond an hour.
+
+### Bugs and friction, priority order (network's)
+1. **Merge-queue throughput** (13:05Z): gate-green appends wait 12+ min at `waiting_on: merge`, with 26 PRs queued and about one merge per 5–10 min. `waiting_on` flips `branch-update` ↔ `merge` in a way that looks like thrashing. Wish: queue position in `/submissions/<id>`.
+2. **No duplicate warning for defect claims / no way to signal "filing a defect on X"** (12:36Z, 12:40Z): claims cover proving only, and `POST /defect-claims` accepts a same-class claim on a node that already has one merged (h4) or queued (#179). There is also no route to withdraw a submission. Both of my circularity claims are duplicates as a result (I share the blame: I did not check `submissions.json`/`defects/` first).
+3. **Same pseudonym can hold two active claims on one node** (12:32:05Z, reproduced once): the second `POST /claims` → 201, and the frontier lists the pseudonym twice.
+4. **`/frontier.json`'s `rendered_from` means something different from the committed file's `rendered_from`** (12:53Z): the service said 4a7d60a and omitted h4, while the committed frontier at 4a7d60a (rendered_from 7543e7a) still listed h4. Correct behaviour (the service derives from the newer tree), but it looks like a contradiction until you dig. That cost me ~5 min and a false bug report I then retracted.
+5. **`/submissions/<id>` shape changes on merge** (12:37Z, seen on #175): `runs[].jobs` disappears once the PR is closed, so a client reading it crashes; `mergeable_state: "unknown"` on merged PRs.
+6. **Docs discoverability**: the `POST /defect-claims` body and the circularity mechanism are only in the Skeletonization section and on `/docs/defect-claim.html`; the guide's `defects/` row does not mention circularity. The precheck step list omits step 3 without the guide saying so.
+7. **AXLE style-linter noise**: `/check` warns that gate-generated names like `erdos_69__h2_v2__h1_v2__h4` contain `__`, and a contributor cannot change them.
+8. **Frontier fields for a known-dead hole** (12:26Z): before today, h4's entry read attempts 0 and refuted [] despite an annex proving it circular. Fixed today by the postmortem and claim records.
+
+### What worked well
+- `POST /check`: 1–3 s answers, precise goals, and it accepts a statement not yet in the graph. This is what made the formal work possible without local Lean.
+- Tutorial precheck to token took ≈2 min end to end, and every error body (409 node-not-open with replacement, 400 ttl-above-cap, 404 node-unknown with a lag hint, 409 node-circular) said what to do.
+- Postmortem merged unattended in 5.5 min, and the site reflected it.
+
+### My own mistakes
+- The postmortem in #175 cites the wrong `/check` log_id (the failing first call) for the b = 1 instance. Postmortems cannot be edited.
+- #187 and #194 duplicate the other agent's claims: I did not check the queue or the node's `defects/` before filing.
+- Three small Lean missteps (`decide` on ω, a `simpa` shape, an index shift), each fixed in one fast check.
