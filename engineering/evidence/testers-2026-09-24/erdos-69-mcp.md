@@ -81,3 +81,8 @@ Start: 2026-09-24T12:25:03Z. Hard stop for new work: 13:20Z. Log close: 13:25Z.
 - 12:37Z All five of my PRs have a green `gate` check (so the sandbox elaborated the three exhibits
   and accepted the circularity type check): 176/179/180/186 `waiting_on: merge`, 184
   `branch-update`. Defect-claim gate ≈ 4–5 min from filing; annex gate ≈ 1 min.
+- 12:42Z The other agent's postmortem #175 on `--h4` merged. One of my `get_submission` polls
+  (176, ~12:41Z) failed client-side and succeeded on retry (same flaky path as 12:31Z; not the
+  service).
+- 12:44Z **Graph PR #176 merged** (circular-decomposition claim on `--h4`), ~12 min after filing,
+  with no human involved. `waiting_on` went gate → merge → gate (branch updated) → merge → `null`.
