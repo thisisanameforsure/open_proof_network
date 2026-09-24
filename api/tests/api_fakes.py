@@ -183,15 +183,18 @@ class FakeGitHost:
             msg = f"listing {path} failed: ConnectError"
             raise GitHostError(msg)
         prefix = path.rstrip("/") + "/"
+        # the tree at ``ref``, as ``fetch_raw`` reads it (F05-T15: a listing at a commit)
+        absent = self.absent_at.get(ref, set())
+        tree = {k for k in self.files if k not in absent} | set(self.files_at.get(ref, {}))
         names = sorted(
             {
                 name.partition("/")[0]
-                for name in (k.removeprefix(prefix) for k in self.files if k.startswith(prefix))
+                for name in (k.removeprefix(prefix) for k in tree if k.startswith(prefix))
             }
         )
         if not names:
             return None
-        return [n for n in names if prefix + n in self.files]
+        return [n for n in names if prefix + n in tree]
 
     def _app_call(self) -> None:
         if self.app_failure:

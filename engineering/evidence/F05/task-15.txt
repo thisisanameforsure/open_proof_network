@@ -1,0 +1,19 @@
+F05-T15 — waiting_on: products for a merged annex or witness too (testers 2026-09-24,
+engineering/evidence/testers-2026-09-24/erdos-1050-mcp.md:22, graph #174).
+
+The fake host's list_dir now reads the tree at the ref it is given (absent_at / files_at, as
+fetch_raw already did); committed with the red tests, because the rule lists a directory at a commit.
+
+## red
+$ uv run --frozen pytest -q api/tests/test_finding_waiting_on_products_appends.py
+E       AssertionError: assert None == 'products'
+E        +  where None = waiting_on(Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7fc287eee900>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])), 174)
+E       AssertionError: assert None == 'products'
+E        +  where None = waiting_on(Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7fc287db4550>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])), 174)
+E       AssertionError: assert None == 'products'
+E        +  where None = waiting_on(Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7fc287db9ba0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])), 2)
+FAILED api/tests/test_finding_waiting_on_products_appends.py::test_a_merged_annex_not_yet_rendered_waits_on_products
+FAILED api/tests/test_finding_waiting_on_products_appends.py::test_it_clears_once_rendered
+FAILED api/tests/test_finding_waiting_on_products_appends.py::test_a_merged_witness_waits_until_the_node_is_no_longer_witness_missing
+3 failed, 5 passed, 2 warnings in 0.62s
+
