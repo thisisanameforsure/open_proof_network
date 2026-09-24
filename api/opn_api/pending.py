@@ -70,6 +70,7 @@ def record(  # noqa: PLR0913 — one opened pull request, described
     pr: PullRequest,
     precheck_job_id: str | None = None,
     fingerprints: tuple[str, ...] | list[str] = (),
+    defect_class: str | None = None,
 ) -> Submission | None:
     """Remember a pull request the service just opened. The pull request exists whatever happens
     here, so a store failure is logged and the caller still answers 201 with its number: the
@@ -85,6 +86,7 @@ def record(  # noqa: PLR0913 — one opened pull request, described
         precheck_job_id=precheck_job_id,
         created=clockmod.render(ctx.clock.now()),
         fingerprints=tuple(fingerprints),
+        defect_class=defect_class,
     )
     try:
         ctx.store.put_submission(submission)
@@ -105,6 +107,7 @@ def document(submission: Submission) -> dict[str, Any]:
     doc = asdict(submission)
     doc.pop("final_state")
     doc.pop("fingerprints")  # the service's own index, not part of the answer (F07-T35)
+    doc.pop("defect_class")  # likewise (F08-T18): the claim's own file says its class
     return doc
 
 
