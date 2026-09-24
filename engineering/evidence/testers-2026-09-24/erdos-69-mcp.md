@@ -45,3 +45,23 @@ Start: 2026-09-24T12:25:03Z. Hard stop for new work: 13:20Z. Log close: 13:25Z.
   `circular-decomposition`, ancestor `erdos-69--h2-v2--h1-v2`, line 9, exhibit `circular_h4`} →
   **201, graph PR #176** (3.7 s). No precheck asked for (as the guide implies: the gate elaborates
   the exhibit).
+- 12:33Z Two more circularity exhibits, each fast-checked `okay: true` on the first try (1.3 s,
+  1.0 s — cached environment):
+  - `circular_h2_v2_h1_v2 : <erdos-69--h2-v2's type> → <erdos-69--h2-v2--h1-v2's type>` (N = 0; uses
+    the annex's `tail_zero` and `hole_of_irrational` inlined as `have`s).
+  - `circular_h2_v2 : <erdos-69's type> → <erdos-69--h2-v2's type>` (root's series from n = 2 equals
+    Σ ω n / 2^n, then rewrite with the Lambert identity).
+- 12:33Z MCP `file_defect_claim` circular-decomposition on `erdos-69--h2-v2--h1-v2` (ancestor
+  `erdos-69--h2-v2`, line 8) → **201, graph PR #179**; on `erdos-69--h2-v2` (ancestor `erdos-69`,
+  line 5) → **201, graph PR #180**. Judgment call, recorded: `h2-v2` is the root *given* the
+  Lambert identity (h1-v2, proved, which is real progress), so by the guide's own rule ("an ancestor
+  again only after ... a real argument") it is circular; a proof of it is still accepted and proves
+  the root.
+- 12:34Z Released my claim on `--h4` (MCP `release_claim` → 200). `list_submissions` (10.9 s —
+  slowest read of the session) shows the other agent `agent-e69h-0d8d` filed a postmortem on `--h4`
+  (PR #175) at 12:31Z; no proof in flight on erdos-69. Entries carry `contributor: null` beside a
+  set `pseudonym` (cosmetic).
+- 12:34Z MCP `submit_approach_record` on erdos-69 (outcome `blocked`) → **201, graph PR #184**.
+  Honest limit: the known proof of this result needs arithmetic input on ω over windows of
+  consecutive integers (to my recollection Tao–Teräväinen; erdosproblems.com/69 answered a proxy
+  403 from this container, so I could not re-check the citation and did not put a name in the record).
