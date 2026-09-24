@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F17 — Prover adapters: sorry in, proof out</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F17</nav>
+<h1>F17 — Prover adapters: sorry in, proof out</h1>
+<p class="subtitle">A single-file, standard-library client, <code>opn-prove</code>, that turns a node
+into the one self-contained Lean file an automated prover expects, turns the prover's answer back
+into a submission the gate will accept, and turns a failure into a postmortem. It has a generic
+backend for any command and presets for hosted and self-run provers. Its test oracle is the gate
+itself.</p>
+
+<h2>1. Summary</h2>
+<p>Most proving systems do not browse a frontier or read a guide. They take a Lean file with
+<code>sorry</code> and return a filled one (the research doc, part 2). The network has no path from
+a node to such a file and back. The self-contained file already exists inside the service, where
+<code>POST /check</code> inlines a node's <code>Defs</code> and own <code>Context</code> before
+forwarding it to AXLE (F13-T11, T12), but only as a step on the way to a check. Nothing a
+contributor holds produces it. On the way back, a prover's answer typically:</p>
+<ul>
+  <li>adds <code>import Mathlib</code>;</li>
+  <li>adds <code>set_option</code> lines;</li>
+  <li>adds helper lemmas before the theorem;</li>
+  <li>arrives wrapped in a Markdown fence.</li>
+</ul>
+<p>Each of these fails step 2's proof-is-statement rule (F00-R19), because a proof cannot add an
+import.</p>
+<p>This feature ships <code>opn-prove</code>, one Python file with no dependencies beyond the
+standard library, delivered from the site because contributors clone only the graph (AGENTS.md).
+It has five subcommands:</p>
+<ul>
+  <li><code>export</code> writes the self-contained problem file from a graph clone.</li>
+  <li><code>run</code> hands the file to a backend.</li>
+  <li><code>import</code> normalises the answer into <code>Proof.lean</code> or a partial, in the
+    shape step 2 admits, or refuses with the gate's own diagnostic.</li>
+  <li><code>check</code> and <code>submit</code> call the existing <code>/check</code>,
+    <code>/precheck</code> and <code>/submissions</code> routes.</li>
+  <li><code>postmortem</code> writes a D-13 record when the prover fails.</li>
+</ul>
+<p>A backend is a command that reads a file path and writes a file. Named presets are only
+defaults for such a command (D-1: no prover is blessed).</p>
+<p>It closes the gap F15's hold names. The steward policy switch waits "until a prover harness
+exists and outside provers can be invited" (F15 status, 2026-09-17).</p>
+<p>Not here: coding-agent connectors (F16); orchestrating harnesses and blueprint import or export
+(the research doc, part 3, waits for a user who asks); running any prover on the network's
+infrastructure. The contributor runs the prover. The network runs only its gate (C9).</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As someone with Aristotle access or a local open-weight prover, I want one command that gives
+    my prover a node and gives the network its answer, so that I can point my compute at the
+    frontier without learning the graph's layout.</li>
+  <li>As that person, when my prover fails, I want the failure recorded as a postmortem with the
+    budget I spent, so that the next prover does not repeat it (D-13).</li>
+  <li>As the owner, I want to know from a test, not from a live refusal, that what
+    <code>import</code> writes passes step 2, and that what <code>export</code> writes elaborates
+    at the pin.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong></p>
+<ul>
+  <li>The single-file client: <code>export</code>, <code>run</code>, <code>import</code>,
+    <code>check</code>, <code>submit</code> and <code>postmortem</code>.</li>
+  <li>The generic <code>command</code> backend, and presets for the provers the research doc
+    names (Q2).</li>
+  <li>A corpus of realistic prover answers used as fixtures.</li>
+  <li>Delivery through the site with a sha256 manifest.</li>
+  <li>The guide section, run by the walkthrough runner.</li>
+  <li>One recorded live run per preset.</li>
+</ul>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>Hosting or paying for a prover. The network runs none (C9).</li>
+  <li>Changing step 2's rule to accept helper lemmas or extra imports. If the corpus shows that
+    provers need it, it is a D-4 question for the owner (Q4).</li>
+  <li>Choosing nodes for the user. <code>export</code> takes a node id. Frontier filters stay the
+    agent's or the person's (D-25).</li>
+  <li>New routes or tools (D-28, D-35).</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F17-R1</td><td><code>opn-prove</code> shall be one file,
+    <code>api/clients/prove/opn_prove.py</code>, importing only the Python standard library, and
+    shall run on the oldest Python the research finds hobbyist provers ship with (Q3).</td></tr>
+  <tr><td>F17-R2</td><td>When given <code>export --graph &lt;clone&gt; --node &lt;id&gt;</code>, it
+    shall write <code>problem.lean</code>: the node's statement with its <code>Defs</code> and own
+    <code>Context</code> inlined in dependency order. The file shall be byte-identical to what
+    <code>POST /check</code> forwards for the same statement text (the F10-Q7 precedent: two
+    builders of one document produce the same bytes). A comment header shall name the node, the
+    pinned Lean toolchain and the Mathlib commit. With <code>--project</code>, it
+    shall instead write a minimal Lake project: <code>lean-toolchain</code> and a lakefile pinning
+    the graph's Mathlib commit, plus the same file. Aristotle takes a project directory, not a
+    file, and never uploads Mathlib (research, part 2).</td></tr>
+  <tr><td>F17-R3</td><td>When given <code>run --backend command -- &lt;argv&gt;</code>, it shall
+    run the argv with the problem path and an output path substituted. It shall enforce a
+    wall-clock cap from its own config (C6), and shall record the backend name, the argv's first
+    word, the exit status and the elapsed time for <code>tooling</code> and for any
+    postmortem.</td></tr>
+  <tr><td>F17-R4</td><td>When given <code>import --node &lt;id&gt; &lt;answer&gt;</code>, it shall:
+    <ol>
+      <li>extract the theorem's body from the answer, whether it is a whole file, a file in a
+        Markdown fence, or a bare tactic block;</li>
+      <li>drop the header lines the statement already has;</li>
+      <li>write <code>Proof.lean</code> as the statement's prefix plus that body.</li>
+    </ol>
+    If the answer changes the signature, adds an import the statement lacks, or still contains
+    <code>sorry</code>, it shall write nothing and exit non-zero, naming the diagnostic
+    <code>paths.check_proof_is_statement</code> would give.</td></tr>
+  <tr><td>F17-R5</td><td>If the answer's residual <code>sorry</code>s sit only in
+    <code>have … := sorry</code> positions, <code>import</code> shall offer the partial path
+    (D-12, F07) instead of refusing: <code>attempts/&lt;ts&gt;-&lt;pseudonym&gt;-partial.lean</code>
+    in the shape the guide gives.</td></tr>
+  <tr><td>F17-R6</td><td>If the answer defines helper lemmas, <code>import</code> shall place them
+    in the body where Lean allows (<code>have</code>, or <code>where</code> clauses). If it cannot,
+    it shall refuse and name the lemma, never silently drop it (C7; Q4).</td></tr>
+  <tr><td>F17-R7</td><td><code>check</code>, <code>submit</code> and <code>postmortem</code> shall
+    call only existing routes (<code>/check</code>, <code>/precheck</code>, <code>/submissions</code>,
+    <code>/postmortems</code>), with the token from <code>OPN_TOKEN</code>. <code>submit</code>
+    shall fill <code>tooling</code> with <code>harness: "opn-prove/&lt;backend&gt;"</code> and the
+    model the user names. The gate never reads either (F16-R12).</td></tr>
+  <tr><td>F17-R8</td><td>When the backend exits without a usable answer, <code>postmortem</code>
+    shall draft a D-13 record: <code>failure_class</code> from the import diagnostic or the
+    backend's status, the budget from R3, and the prover's last message capped and demarcated as
+    untrusted (D-28). The draft shall validate against the postmortem schema and shall not be
+    sent without <code>--send</code>.</td></tr>
+  <tr><td>F17-R9</td><td>The site shall serve the file at a stable path with its sha256 in the
+    static manifest (the KaTeX precedent, F04-R10), and the guide shall show the download and the
+    checksum check. The walkthrough runner shall execute the guide's commands against the fixture
+    clone and the fake service with the stub backend.</td></tr>
+  <tr><td>F17-R11</td><td>Where a preset's service publishes the toolchain it runs (Aristotle's
+    <code>GET /version</code>), <code>run</code> shall read it before submitting and record it with
+    the result. Where a service reports "complete with errors" (Aristotle's
+    <code>COMPLETE_WITH_ERRORS</code>), <code>import</code> shall treat the answer as a candidate
+    partial (R5), not as a failure.</td></tr>
+  <tr><td>F17-R10</td><td>Before running a preset, <code>run</code> shall compare the problem's
+    pinned Lean version with the version the preset declares it targets. On a mismatch it shall
+    warn, naming both versions, and shall not refuse, because version drift is the prover's
+    risk and not a gate rule.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F17-AC1</td><td>Given the client file, when its imports are parsed, then every module is
+    in <code>sys.stdlib_module_names</code>, and it passes its tests under the oldest supported
+    Python.</td>
+    <td><code>api/tests/test_prove_client.py::test_stdlib_only</code>; the oldest-Python run in CI
+    (Q3)</td></tr>
+  <tr><td>F17-AC2</td><td>Given every node in every fixture graph, including ones with
+    <code>Defs</code>, with a declared dependency, and a skeleton hole, when <code>export</code>
+    runs and the server's <code>inline_defs</code> + <code>forwarded_text</code> run on the same
+    node, then the two outputs are byte-equal. A mutant that orders <code>Defs</code> differently
+    is caught.</td>
+    <td><code>api/tests/test_prove_export.py::test_parity[&lt;graph&gt;/&lt;node&gt;]</code>,
+    <code>::test_mutant_caught</code></td></tr>
+  <tr><td>F17-AC3</td><td>Given the exported file for each fixture node, when it is elaborated with
+    the pinned toolchain, then it elaborates with exactly one <code>sorry</code> warning and no
+    error.</td>
+    <td><code>api/tests/test_prove_export.py::test_elaborates</code> (marker <code>lean</code>)</td></tr>
+  <tr><td>F17-AC4</td><td>Given the answer corpus (<code>api/tests/fixtures/prover-answers/</code>),
+    when each case is imported, then accepted cases produce text for which
+    <code>paths.check_proof_is_statement</code> returns <code>None</code>, and refused cases exit
+    non-zero naming the diagnostic that function gives. Cases: a whole file with
+    <code>import Mathlib</code>; a fenced block; a bare tactic block; <code>set_option</code>
+    lines; a helper lemma; a changed signature; a residual <code>sorry</code>; <code>have</code>
+    holes only; a renamed theorem; CRLF line ends; trailing prose; a proof plan followed by a
+    final <code>```lean4</code> block (the prompt DeepSeek-Prover-V2, Goedel-Prover-V2 and
+    Pythagoras-Prover share); an Aristotle project archive whose task ended
+    <code>COMPLETE_WITH_ERRORS</code>. The gate function is the
+    oracle, not a copy of its rule.</td>
+    <td><code>api/tests/test_prove_import.py::test_corpus[&lt;case&gt;]</code></td></tr>
+  <tr><td>F17-AC5</td><td>Given each accepted corpus case on the lean-tier fixture, when the imported
+    <code>Proof.lean</code> goes through <code>pregate.sh</code>, then steps 1–5 pass for the
+    cases that carry a real proof.</td>
+    <td><code>api/tests/test_prove_import.py::test_pregate</code> (markers <code>lean</code>,
+    <code>docker</code>)</td></tr>
+  <tr><td>F17-AC6</td><td>Given the stub backend (a script that writes the tutorial proof), the
+    local api over the fake host, and a token, when the chain <code>export</code>, <code>run</code>,
+    <code>import</code>, <code>check</code>, <code>submit</code> runs, then the fake host records
+    one pull request whose file is the tutorial proof and whose <code>tooling.harness</code> is
+    <code>opn-prove/command</code>.</td>
+    <td><code>api/tests/test_prove_client.py::test_round_trip</code></td></tr>
+  <tr><td>F17-AC7</td><td>Given a backend that times out, one that exits 1, and one that writes an
+    unimportable answer, when <code>postmortem</code> runs, then each draft validates against the
+    postmortem schema, names a distinct <code>failure_class</code>, demarcates the prover's text,
+    and sends nothing without <code>--send</code>.</td>
+    <td><code>api/tests/test_prove_client.py::test_postmortem[&lt;case&gt;]</code></td></tr>
+  <tr><td>F17-AC8</td><td>Given the rendered site, when the static manifest is read, then the served
+    <code>opn_prove.py</code> hashes to its entry. Given the guide, when the walkthrough runs,
+    then the download-and-verify block and the stub round trip execute.</td>
+    <td><code>site/tests/test_static_manifest.py::test_prove_client_hash</code>;
+    <code>gate/tests/test_walkthrough.py::test_agents_md_executes</code></td></tr>
+  <tr><td>F17-AC9</td><td>Given a preset declaring Lean 4.9 and a problem pinned at 4.33.1, when
+    <code>run</code> starts, then it warns naming both versions and continues.</td>
+    <td><code>api/tests/test_prove_client.py::test_version_warning</code></td></tr>
+  <tr><td>F17-AC11</td><td>Given a fake Aristotle service that answers <code>/version</code> with a
+    toolchain other than the pin, when <code>run --preset aristotle</code> starts, then the
+    recorded result names both toolchains. Given a <code>COMPLETE_WITH_ERRORS</code> archive with
+    <code>have</code> holes, <code>import</code> offers the partial.</td>
+    <td><code>api/tests/test_prove_client.py::test_aristotle_version_recorded</code>,
+    <code>::test_complete_with_errors_is_partial</code></td></tr>
+  <tr><td>F17-AC12</td><td>Given the proofs the open-weight provers' repositories publish
+    (generated against Lean 4.9 and Mathlib <code>2f65ba7</code>), when a fixed sample is sent
+    through <code>/check</code> at the pin, then the evidence records the fraction that still
+    elaborate and the commonest error class. No threshold: this measures the version drift the
+    research could find no study of, and it decides whether the whole-file preset is worth
+    shipping (Q2).</td>
+    <td><code>engineering/evidence/F17/drift.txt</code> (network tier)</td></tr>
+  <tr><td>F17-AC10</td><td>Given each preset and the owner's access, when the live run takes the
+    tutorial node and one proved calibration node, then the record shows export, run, import,
+    and a <code>/check</code> verdict. For a success, a precheck pass. For a failure, the drafted
+    postmortem.</td>
+    <td><code>engineering/evidence/F17/live-&lt;preset&gt;.txt</code> (network tier)</td></tr>
+</table>
+
+<h3>5a. Why the corpus is the centre</h3>
+<p class="status-note">Every refusal this client can meet lives in <code>import</code>, and every
+one of them has already been met live: a proof that adds an import (the 2026-09-12 log entry), a
+header that is not the statement's (2026-09-13), and a hole's printed type (2026-09-17). The
+corpus holds each prover's real answer shapes as captured files, dated and labelled by prover,
+and the gate's own function judges them. When a new prover or a new version produces a shape
+<code>import</code> does not handle, the captured answer becomes a corpus case first, red, and the
+fix follows. The live runs (AC10) exist to capture those answers.</p>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li>Fast tier: under one second in total for the corpus and parity tests.</li>
+  <li><code>run</code>'s default cap is 30 minutes (config). A hosted prover's own queue time is
+    outside it and recorded separately where the preset can see it.</li>
+  <li>Postmortem prover text is capped at the schema's detail length.</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li>The client runs on the contributor's machine and runs whatever backend they name. The
+    network runs no prover and no contributor Lean outside the gate (C9).</li>
+  <li><code>OPN_TOKEN</code> is read from the environment, never from a flag (shell history) and
+    never written to a file. A prover's API key is the prover's concern, and the client never
+    reads it.</li>
+  <li>Exporting a node sends nothing anywhere. What the backend sends to a hosted prover is between
+    the contributor and that service. The guide says so plainly, because a statement is public
+    anyway, but a partial proof in progress may not be.</li>
+  <li>The served file is checksummed in the manifest, and the guide shows the check, so a
+    tampered bucket is detectable.</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>F13</strong> (required): <code>inline_defs</code> and <code>forwarded_text</code>,
+    the parity reference, and <code>/check</code>.</li>
+  <li><strong>F00</strong> (required): <code>paths.check_proof_is_statement</code>, the
+    oracle.</li>
+  <li><strong>F07</strong> (required): the partial path for R5.</li>
+  <li><strong>F04</strong> (required): the static manifest and the Docs page.</li>
+  <li><strong>F16</strong> (soft): the <code>harness</code> marker and the runner's three states,
+    reused for AC10.</li>
+  <li><strong>Packages:</strong> none, in the client or in <code>uv.lock</code>.</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F17-Q1</td><td><code>export</code> composes the file client-side from the clone, rather
+    than asking <code>/check</code> to echo what it forwards. Everything the client needs is plain
+    files in the clone, which is the bijection rule's spirit (D-28). The cost is a second builder,
+    held to the first by AC2.</td></tr>
+  <tr><td>F17-Q2</td><td>Two presets, from the research doc's part 2:
+    <ul>
+      <li><code>aristotle</code>: the only hosted prover an outsider can call today, through the
+        <code>aristotle submit … --project-dir … --wait</code> CLI of <code>aristotlelib</code>
+        2.1.0. The contributor installs it; we never import it.</li>
+      <li><code>whole-file</code>: the one prompt DeepSeek-Prover-V2, Goedel-Prover-V2 and
+        Pythagoras-Prover share, sent to any OpenAI-compatible endpoint the contributor runs
+        (vLLM, for example) through <code>urllib</code>.</li>
+    </ul>
+    Not presets:
+    <ul>
+      <li>step-level provers (BFS-Prover-V2), which need a search driver;</li>
+      <li>Seed-Prover and AlphaProof, which have no public access;</li>
+      <li>Leanstral's hosted API, which Mistral says retires on 2026-09-30 (unverified).</li>
+    </ul>
+    A preset is argv defaults plus a declared Lean version, never code specific to one prover.
+    That keeps D-1 intact: the generic backend is the real interface. The <code>whole-file</code>
+    preset ships only if AC12 shows its models' output survives the Lean 4.9 to 4.33.1 gap often
+    enough to be worth a contributor's GPU.</td></tr>
+  <tr><td>F17-Q3</td><td>The oldest supported Python is set from the research (what the prover
+    repositories pin). A CI job runs the client's tests under it with <code>uv run --python
+    &lt;that&gt;</code>. That fetches an interpreter, so it is a network-marked job, not part of
+    <code>make verify</code>.</td></tr>
+  <tr><td>F17-Q4</td><td><strong>For the owner, if the corpus shows it.</strong> If captured answers
+    routinely need top-level helper lemmas that cannot be moved into the body, the honest fix is a
+    D-4 amendment letting <code>Proof.lean</code> carry declarations between the header and the
+    theorem. Not built here. The corpus supplies the evidence.</td></tr>
+  <tr><td>F17-Q6</td><td><strong>For the owner.</strong> A submission certifies the DCO (D-19).
+    Whether Aristotle's terms let a user submit its output under that certification could not be
+    read: the site was unreachable from the research sandbox. The <code>aristotle</code> preset
+    waits for the owner to read the terms. The generic backend does not, because what a
+    contributor runs is their own certification.</td></tr>
+  <tr><td>F17-Q7</td><td>The fast inner loop is <code>/check</code>, which forwards to AXLE's
+    hosted <code>lean-4.33.1</code>. The alternative is a local checker, and the research found
+    that none pins cleanly to the graph today: the community REPL has tags v4.33.0 and v4.34.0
+    and no v4.33.1, Kimina Lean Server's version defaults need an override, and LeanInteract
+    stops at 4.32. AXLE's Mathlib revision can differ from the graph's pin. F13 already
+    publishes whether the mapping is exact, and <code>check</code> prints that line.</td></tr>
+  <tr><td>F17-Q5</td><td>Delivery is a file on the site, not a PyPI package. A package would be a
+    publishing credential, and so a new C8 door, for a file of a few hundred lines. Revisit if
+    people ask for <code>pipx install</code>.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> planned &middot; <strong>Tasks:</strong> T1 in progress
+2026-09-24 (the spec) &middot; T2&ndash;T9 todo</div>
+
+<h2>Tasks</h2>
+<p class="status-note">Dependency-ordered, red first, as F16. The corpus task comes before the
+importer, so the importer is written against the answers rather than against a guess at
+them.</p>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F17-T1</td><td>This spec and its index row.</td>
+    <td><code>engineering/specs/features/F17.html</code>, <code>engineering/specs/index.html</code></td>
+    <td>F16-T1</td><td><code>make verify</code></td></tr>
+  <tr><td>F17-T2</td><td>The answer corpus: synthetic cases for every shape in AC4, plus real
+    answers captured from each prover's published examples and labelled with their source; all
+    committed red as strict xfails naming T4.</td>
+    <td><code>api/tests/fixtures/prover-answers/**</code>, <code>api/tests/test_prove_import.py</code></td>
+    <td>T1</td><td><code>uv run pytest api/tests/test_prove_import.py -q</code> (all xfail)</td></tr>
+  <tr><td>F17-T3</td><td>The client skeleton, <code>export</code>, and the parity and
+    standard-library tests (AC1, AC2).</td>
+    <td><code>api/clients/prove/opn_prove.py</code>, <code>api/tests/test_prove_export.py</code>,
+    <code>api/tests/test_prove_client.py</code></td><td>T1</td>
+    <td><code>uv run pytest api/tests/test_prove_export.py api/tests/test_prove_client.py -q</code></td></tr>
+  <tr><td>F17-T4</td><td><code>import</code>, including the partial path and helper lemmas, until
+    the corpus is green (AC4).</td>
+    <td><code>api/clients/prove/opn_prove.py</code>, <code>api/tests/test_prove_import.py</code></td>
+    <td>T2, T3</td><td><code>uv run pytest api/tests/test_prove_import.py -q</code></td></tr>
+  <tr><td>F17-T5</td><td><code>run</code>, the stub backend, <code>check</code>,
+    <code>submit</code> and <code>postmortem</code> (AC6, AC7, AC9).</td>
+    <td><code>api/clients/prove/opn_prove.py</code>, <code>api/tests/test_prove_client.py</code></td>
+    <td>T4</td><td><code>uv run pytest api/tests/test_prove_client.py -q</code></td></tr>
+  <tr><td>F17-T6</td><td>The lean-tier tests (AC3, AC5).</td>
+    <td><code>api/tests/test_prove_export.py</code>, <code>api/tests/test_prove_import.py</code></td>
+    <td>T5</td><td><code>make verify-lean</code> (CI run id recorded)</td></tr>
+  <tr><td>F17-T7</td><td>Delivery through the site and the guide section (AC8).</td>
+    <td><code>site/opn_site/render.py</code>, <code>site/opn_site/static/**</code>,
+    <code>site/tests/test_static_manifest.py</code>, <code>gate/agents/AGENTS.md</code></td>
+    <td>T5</td><td><code>uv run pytest site/tests/test_static_manifest.py gate/tests/test_walkthrough.py -q</code></td></tr>
+  <tr><td>F17-T8</td><td>Live runs per preset (AC10); every new answer shape found is folded into
+    the corpus first.</td>
+    <td><code>engineering/evidence/F17/live-*.txt</code>, <code>api/tests/fixtures/prover-answers/**</code></td>
+    <td>T7</td><td>per-preset <code>opn_prove.py</code> chain, output captured</td></tr>
+  <tr><td>F17-T9</td><td>The drift measurement (AC12), before T8's <code>whole-file</code> run,
+    because its result decides whether that preset ships.</td>
+    <td><code>engineering/evidence/F17/drift.txt</code></td><td>T5</td>
+    <td>the sample through <code>opn_prove.py check</code>, output captured</td></tr>
+</table>
+
+<footer>Open Proof Network · F17 spec v0 · 2026-09-24 · drafted from the owner's "hobbyists first,
+then people running their own provers; focus on testing"</footer>
+</body>
+</html>
