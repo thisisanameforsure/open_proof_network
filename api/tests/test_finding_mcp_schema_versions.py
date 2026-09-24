@@ -20,15 +20,12 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-import pytest
-
 from opn_api import requests
 from opn_api.mcp.server import BY_NAME, TOOLS
 
 SCHEMAS = Path(__file__).resolve().parents[2] / "gate" / "schemas"
 #: A protocol schema id as prose names one: ``name/vN``, not preceded by a path segment or a
 #: placeholder (``mcp/<tool>/v1`` is the adapter's own family, which lives beside the adapter).
-RED = "F09-T13: the descriptions name neither version file_defect_claim writes"
 SCHEMA_ID = re.compile(r"(?<![\w/<>.-])([a-z][a-z0-9-]*)/v(\d+)\b")
 
 
@@ -47,14 +44,12 @@ def test_every_schema_id_named_in_a_tool_description_exists_in_gate_schemas() ->
     assert not missing, missing
 
 
-@pytest.mark.xfail(strict=True, reason=RED)
 def test_file_defect_claim_names_every_version_requests_writes() -> None:
     written = {requests.DEFECT_SCHEMA, requests.CIRCULAR_SCHEMA}
     described = named_ids(BY_NAME["file_defect_claim"].description)
     assert written <= described, (sorted(written), sorted(described))
 
 
-@pytest.mark.xfail(strict=True, reason=RED)
 def test_get_schema_points_a_circularity_claim_at_the_version_it_is_written_at() -> None:
     """The description's example names the defect-claim record; it must name the circularity
     version too, since that is the one whose shape differs (``ancestor``)."""

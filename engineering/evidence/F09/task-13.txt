@@ -20,3 +20,56 @@ E        +  and   {'defect-claim/v1', 'postmortem/v1'} = named_ids("A JSON Schem
 FAILED api/tests/test_finding_mcp_schema_versions.py::test_file_defect_claim_names_every_version_requests_writes
 FAILED api/tests/test_finding_mcp_schema_versions.py::test_get_schema_points_a_circularity_claim_at_the_version_it_is_written_at
 2 failed, 1 passed in 0.38s
+
+## green
+
+$ uv run --frozen pytest api/tests/test_finding_mcp_schema_versions.py -q -p no:warnings
+3 passed in 0.38s
+
+### mutant defect-claim-drops-v3 (mut_f09_t13)
+$ OPN_MUTANT=defect-claim-drops-v3 PYTHONPATH=<mut> uv run --frozen pytest -p mut_f09_t13 api/tests/test_finding_mcp_schema_versions.py -q
+FAILED api/tests/test_finding_mcp_schema_versions.py::test_file_defect_claim_names_every_version_requests_writes
+1 failed, 2 passed in 0.05s
+
+### mutant get-schema-v1-only (mut_f09_t13)
+$ OPN_MUTANT=get-schema-v1-only PYTHONPATH=<mut> uv run --frozen pytest -p mut_f09_t13 api/tests/test_finding_mcp_schema_versions.py -q
+FAILED api/tests/test_finding_mcp_schema_versions.py::test_get_schema_points_a_circularity_claim_at_the_version_it_is_written_at
+1 failed, 2 passed in 0.04s
+
+### mutant names-missing-version (mut_f09_t13)
+$ OPN_MUTANT=names-missing-version PYTHONPATH=<mut> uv run --frozen pytest -p mut_f09_t13 api/tests/test_finding_mcp_schema_versions.py -q
+FAILED api/tests/test_finding_mcp_schema_versions.py::test_every_schema_id_named_in_a_tool_description_exists_in_gate_schemas
+1 failed, 2 passed in 0.05s
+
+Plugin text (mut_f09_t13.py):
+
+```python
+"""F09-T13 mutants, chosen by OPN_MUTANT: each weakens one description in memory."""
+
+import os
+
+
+def pytest_configure(config):
+    from opn_api.mcp.server import BY_NAME
+
+    which = os.environ["OPN_MUTANT"]
+    if which == "defect-claim-drops-v3":
+        t = BY_NAME["file_defect_claim"]
+        new = t.description.replace("defect-claim/v3", "the circular record")
+    elif which == "get-schema-v1-only":
+        t = BY_NAME["get_schema"]
+        new = t.description.split(" A defect claim of class")[0]
+    elif which == "names-missing-version":
+        t = BY_NAME["get_schema"]
+        new = t.description.replace("postmortem/v1", "postmortem/v9")
+    else:
+        raise SystemExit(which)
+    assert new != t.description, which
+    object.__setattr__(t, "description", new)
+```
+
+## make verify
+
+$ make verify
+ruff: all checks passed; mypy --strict: gate 213, api 131, site 41 files, no issues
+2635 passed, 75 skipped, 89 deselected in 152.63s
