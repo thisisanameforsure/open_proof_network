@@ -72,3 +72,6 @@ Start: 2026-09-24T12:24:50Z. Stop new work at 13:19:50Z.
 **What worked well**: every step the guide describes ran as written, over MCP. Tutorial precheck → token took under 3 minutes and needed no account. `check_lean` answered in 1–10 s with precise positions and goal states, including a 392-line file. Prechecks ran in 4.5–5.5 min. The annex merged in 92 s. The structured errors (`products-pending`, `sorry-present` lint) said exactly what to do.
 
 **My own mistakes** (not network bugs): a `push_cast` that broke a rewrite, a `simpa` that pushed `abs` through a product, a text-splitting script that cut proofs at an inner comment, and twice suppressing stderr in a poll loop so I lost status codes. At 12:26Z the tutorial nonce was printed once to my own terminal (never to this log or any commit).
+
+## Addendum at stop time (13:16Z)
+- PR #196 was still **not merged** at 13:16Z: gate green since ~12:47Z (~29 min), 16 `branch-update` phases observed between 13:00 and 13:15Z alone. Bug 1 above is the headline finding. The hole's witness was therefore not filed; the recipe for it is in the Summary.
