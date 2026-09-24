@@ -191,6 +191,24 @@ Gate: `make verify` before every commit, and `make verify-lean` in CI for anythi
   helper declarations). No behaviour changes; this is the text half of B5.
 - **Red:** extend `test_checks.py` with `test_the_413_names_the_limit_and_the_remedy`.
 
+### A13. A proposal that redeclares an open or merged node's theorem is refused before it opens (F08-T19, Q31)
+- **Found at the 16:30Z queue check.** Graph #189 and #198 (402-MCP's |A| = 6 and 7 variants)
+  failed at the gate with `declaration-clash`: the other agent's #188 and #190 had already declared
+  `Opn.erdos_402_card_six` and `Opn.erdos_402_card_seven`. The service could see this before
+  opening the PR. The texts differed, so the copy rule rightly let them through.
+- **Fix:** before opening, the proposal routes run the gate's own declaration check (the string
+  comparison F08-Q18 moved to the fast tier) against:
+  - merged nodes (from the products);
+  - open proposals (the branch `Statement.lean` of each open `speculative`/`variant` record).
+
+  A clash answers `409 declaration-clash`, naming the holder and, if open, its PR.
+- **Red:** `test_finding_proposal_declaration_clash.py`
+  - `test_a_name_held_by_a_merged_node_is_refused`.
+  - `test_a_name_held_by_an_open_proposal_is_refused_with_its_pr`.
+  - `test_a_revision_that_supersedes_the_holder_is_allowed` (D-8).
+  - `test_a_fresh_name_opens`.
+  - `test_the_service_and_the_gate_agree` (the same function, imported, not re-implemented).
+
 ### A12 (if D5). Withdraw one's own pull request (F07-T43, Q50)
 - **Fix:** `DELETE /submissions/<id>`: holder only, closes the pull request and deletes its branch,
   `409` if it has merged, idempotent on an already closed one. Adds an MCP `withdraw_submission`
@@ -238,13 +256,14 @@ Gate: `make verify` before every commit, and `make verify-lean` in CI for anythi
     by string.
 - **Live:** at the next re-pin, one precheck of a two-hole skeleton on the tutorial variant.
 
-### B3. A second partial on a decomposed node (verification only)
-- F07-T21 already numbers holes after the earlier ones, and the existing tests cover it. The live
-  case is #196 then #199 on `erdos-1050--h1-v2`.
-- **Work:** one fixture test in the live shape, and read #199's post-merge run once it merges.
-  - Fixture: `test_postmerge_apply.py::test_a_second_skeleton_on_a_node_with_one_hole_numbers_from_two_and_leaves_the_first_hole_alone`.
-  - Record the run id in the evidence.
-- If the live run disagrees with the fixture, that becomes its own finding.
+### B3. A second partial on a decomposed node (verification only; seen live)
+- F07-T21 already numbers holes after the earlier ones, and the existing tests cover it.
+- **Seen live 2026-09-24:**
+  - #196 merged 15:04Z; its post-merge job (`gate: #196 pass`, bb02ddab) wrote `--h2`, after the
+    existing `--h1`.
+  - #199 merged 15:26Z; its job (`gate: #199 pass`, 2421b927) wrote `--h3` and `--h4`.
+- **Work:** one fixture test in exactly that shape, with the two commits recorded in the evidence:
+  `test_postmerge_apply.py::test_a_second_skeleton_on_a_node_with_holes_numbers_after_them`.
 
 ### B4. The network CI skips the Lean tier for docs-only diffs (conventions §2 edit) — waits on D7
 - **Fix:** in `ci.yml`, a first job computes whether the diff touches only `engineering/**`,
@@ -286,7 +305,7 @@ Also updated in the same commits:
 1. §1 decisions.
 2. One commit of all red tests, strict xfail (`evidence: the 2026-09-24 findings as red tests`).
    The suite stays green; each later fix flips its own tests.
-3. A1, A3, A7, A9, A11: small, independent. Then A2, A4, A5, A6, A8. Then A10 and A12 if approved.
+3. A1, A3, A7, A9, A11: small, independent. Then A2, A4, A5, A6, A8, A13. Then A10 and A12 if approved.
    One commit per task (`FXX-Tn:`), each with its red run, green run and mutant runs in the
    evidence.
 4. B1 (site), B4 (CI) if approved, B3 (verification).
