@@ -25,3 +25,8 @@ Start: 2026-09-24T12:24:50Z. Stop new work at 13:19:50Z.
 - 12:34:44Z `precheck_submission` of the 2-hole skeleton (holes: decay, integrality) → 202, job 01M39PJFM8QVTDJ1ZBBHW6V63A, graph_commit = the annex merge commit. Accepted 2 min after the annex merged although the 409 had said retry_after 240 s: fine.
 - 12:36:19Z ported the decay chain (Iterm geometric bound, |E(n)| ≤ 2·2^-(…), |W(n)| bound, cleared-error bound, ratio-test asymptotic) → one error (my `simpa` pushed `abs` through the product), fixed → 12:36:36Z okay:true (4.2 s). So Borwein's Lemma 4 and Lemma 5 are both fast-checked.
 - 12:36:54Z 1-hole skeleton (only `integrality`, Borwein's Lemmas 1–3, remains) fast-checks okay:true in 9.7 s — 392 lines, under AXLE's 20 s budget.
+- 12:37:14Z `precheck_submission` of the 1-hole skeleton → 202, job 01M39PQ14GSAKEPKHVPN4E3C3Y.
+- 12:37:57Z prepared the witness for the future integrality hole (its hypotheses are the four proved facts, so the witness is their conjunction) → `check_lean` okay:true (6.1 s). My own slip on the way: a text-splitting script cut two proofs at an inner comment; caught by the checker (unsolved goals), not a network issue.
+- 12:40:17Z `get_precheck` on the 2-hole job → done/**pass**, all of steps 1, 2, 4–8 pass, ≈5.5 min. (I will submit only the 1-hole version, which supersedes it; the 2-hole precheck is left unused.)
+- 12:40Z `list_frontier` → the other agent `h0924-1050-http` claimed `erdos-1050--h1-v2` too (expires 13:34Z), after my claim at 12:30. Claims are advisory; I'm going ahead with the skeleton, which they can see on the node once it opens.
+- 12:40Z **Slow**: MCP `list_submissions` took **21.5 s** (other reads take 0.3–1.5 s). Not reproduced yet.
