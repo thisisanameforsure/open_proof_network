@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 import re
 import subprocess
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -97,6 +97,13 @@ class NodeFacts:
     #: F08-T17 (D-16): the merged ``circular-decomposition`` claim under this node, as
     #: ``defects/<file>``; the node is no easier than a node above it, so it is not work (R13).
     circular: str | None = None
+    #: F08-T20 (D-12 v3.22): the merged circularity claims that circle back to this node — each
+    #: claim's ancestor is this node — as ``<hole>/defects/<file>``, relative to the target's
+    #: ``nodes/``. The node stays open and claimable; its page names them.
+    circular_below: tuple[str, ...] = ()
+    #: F08-T20: every merged circularity claim under this node as ``(defects/<file>, ancestor)``,
+    #: the ancestor read through its revision chain (``resolved_circular_claims``).
+    circular_claims: tuple[tuple[str, str], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -245,6 +252,7 @@ def load_nodes(
         statement_hash = loaded.statement.statement_hash
         hashes = recorded_hashes(node_dir)
         override = records.load_node_status(node_dir)
+        claims = resolved_circular_claims(nodes_dir, node_dir)
         facts[loaded.node_id] = NodeFacts(
             node_id=loaded.node_id,
             target_id=target_id,
@@ -273,7 +281,8 @@ def load_nodes(
             artifact=artifact_of(node_dir, loaded.statement.decl_name),
             witness_stub=witness_is_stub(node_dir),
             supersedes=_optional_str(loaded.meta.get("supersedes")),
-            circular=records.circular_claim(node_dir),
+            circular=claims[0][0] if claims else None,
+            circular_claims=claims,
         )
     # D-12 v3.19: which of a node's deps are its own holes is a fact about two nodes, so it is
     # read once every node is loaded; a dep that is not a node is left for ``check_dag``.
@@ -546,6 +555,120 @@ def is_circular(node: NodeFacts, status: str) -> bool:
     return node.circular is not None and status in CIRCULAR_OPEN_STATUSES
 
 
+def resolved_circular_claims(nodes_dir: Path, node_dir: Path) -> tuple[tuple[str, str], ...]:
+    """F08-T20: the node's merged circularity claims (``records.circular_claims``), each
+    ancestor read as the node it is *now* — the end of its revision chain (``current_id``), the
+    reading the gate's ancestor check took when it admitted the claim (F08-T17)."""
+    return tuple(
+        (ref, current_id(nodes_dir, ancestor) if ancestor else ancestor)
+        for ref, ancestor in records.circular_claims(node_dir)
+    )
+
+
+def circular_path_edge(
+    parent: str,
+    child: str,
+    holes: Mapping[str, Sequence[str]],
+    deps: Mapping[str, Sequence[str]],
+    statuses: Mapping[str, str],
+) -> bool:
+    """D-12 v3.22: ``parent → child`` is an edge of a circular path — ``child`` is one of the
+    parent's own holes, and *every other* entry of the parent's ``deps`` is proved: its other
+    holes, a rival decomposition's holes, and a declared dependency alike (conservative: a dep
+    the parent waits on is one more thing the implication back up would need). Only then does
+    the child, with what is proved beside it, imply the parent."""
+    if child not in holes.get(parent, ()):
+        return False
+    return all(statuses.get(d) == "proved" for d in deps.get(parent, ()) if d != child)
+
+
+def circular_marks(
+    holes: Mapping[str, Sequence[str]],
+    deps: Mapping[str, Sequence[str]],
+    claims: Mapping[str, Sequence[tuple[str, str]]],
+    statuses: Mapping[str, str],
+) -> tuple[dict[str, str], dict[str, tuple[str, ...]]]:
+    """F08-T20 (D-12 v3.22): what the merged circularity claims say beyond the holes they sit on.
+
+    ``claims`` maps a hole to its claims, each ``(defects/<file>, ancestor)`` with the ancestor
+    already read through its revision chain. A claim speaks while its hole is open
+    (``CIRCULAR_OPEN_STATUSES``). The ancestor implies the hole; the hole, with every sibling on
+    the way proved, implies each node back up the path — so every open node *strictly between*
+    the two, on a path of :func:`circular_path_edge` edges, is the ancestor restated, and is no
+    more work than the ancestor is. The ancestor itself stays open: it is the problem.
+
+    Returns ``(on_path, below)``: each such node mapped to the first claim (by hole, then file)
+    that takes it, and each ancestor mapped to every claim that circles back to it. A claim is
+    named ``<hole>/defects/<file>``, relative to the target's ``nodes/``. Nothing is read from
+    the tree and nothing is written: deleting the claim file removes every mark (F08-T10).
+    """
+    parents: dict[str, list[str]] = {}
+    for parent, children in holes.items():
+        for child in children:
+            parents.setdefault(child, []).append(parent)
+
+    def reach(start: str, step: Callable[[str], list[str]]) -> set[str]:
+        seen = {start}
+        todo = [start]
+        while todo:
+            for nxt in step(todo.pop()):
+                if nxt not in seen:
+                    seen.add(nxt)
+                    todo.append(nxt)
+        return seen
+
+    on_path: dict[str, str] = {}
+    below: dict[str, list[str]] = {}
+    for hole in sorted(claims):
+        if statuses.get(hole) not in CIRCULAR_OPEN_STATUSES:
+            continue
+        for ref, ancestor in claims[hole]:
+            if not ancestor or ancestor == hole:
+                continue
+            named = f"{hole}/{ref}"
+            below.setdefault(ancestor, []).append(named)
+            down = reach(
+                ancestor,
+                lambda n: [
+                    c for c in holes.get(n, ()) if circular_path_edge(n, c, holes, deps, statuses)
+                ],
+            )
+            up = reach(
+                hole,
+                lambda n: [
+                    p for p in parents.get(n, ()) if circular_path_edge(p, n, holes, deps, statuses)
+                ],
+            )
+            for node_id in sorted((down & up) - {ancestor, hole}):
+                if statuses.get(node_id) in CIRCULAR_OPEN_STATUSES:
+                    on_path.setdefault(node_id, named)
+    return on_path, {a: tuple(refs) for a, refs in below.items()}
+
+
+def with_circular_paths(
+    nodes: dict[str, NodeFacts], statuses: Mapping[str, str]
+) -> dict[str, NodeFacts]:
+    """``circular_marks`` over the loaded facts: a node on a circular path gets the claim as its
+    ``circular`` (unless a claim of its own already sits under it), an ancestor its
+    ``circular_below``. Statuses are not touched, and do not depend on either field."""
+    on_path, below = circular_marks(
+        {n: f.holes for n, f in nodes.items()},
+        {n: f.deps for n, f in nodes.items()},
+        {n: f.circular_claims for n, f in nodes.items() if f.circular_claims},
+        statuses,
+    )
+    out = dict(nodes)
+    for node_id, node in nodes.items():
+        changes: dict[str, Any] = {}
+        if node.circular is None and node_id in on_path:
+            changes["circular"] = on_path[node_id]
+        if node_id in below:
+            changes["circular_below"] = below[node_id]
+        if changes:
+            out[node_id] = replace(node, **changes)
+    return out
+
+
 def ancestors(nodes_dir: Path, node_id: str) -> set[str]:
     """F08-T17: every node that depends on ``node_id`` transitively, each node's deps read as
     they are *now*, through their revision chains (``effective_deps``, F08-T10). A node is never
@@ -712,6 +835,7 @@ def load_target(graph_root: Path, target_id: str) -> TargetGraph:
         raise GraphError(msg)
     declaration = records.load_target_status(target_dir)
     statuses = derive_statuses(nodes)
+    nodes = with_circular_paths(nodes, statuses)  # F08-T20: read after statuses, never into them
     return TargetGraph(
         target_id=target_id,
         path=target_dir,
