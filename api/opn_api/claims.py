@@ -135,7 +135,11 @@ def circular(
     where = (
         f"The claim and its Lean exhibit: {', '.join(merged)}."
         if merged
-        else f"The claim and its Lean exhibit are under nodes/{node_id}/defects/."
+        else (
+            f"The claim and its Lean exhibit are under nodes/{node_id}/defects/, or, when the "
+            f"claim was filed on a hole below it and reaches it along an established path "
+            f"(D-12 v3.22), under that hole's defects/."
+        )
     )
     details: dict[str, Any] = {"status": facts["status"], "cause": graphmod.CAUSE_CIRCULAR}
     if merged:

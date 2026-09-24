@@ -23,6 +23,7 @@ from api_fakes import Harness
 from mcp_client import McpClient
 from test_claims_defect import FIXTURE_GRAPH, gate_checks, only_file, post
 
+from opn_api import claims
 from opn_gate import paths, schemas
 
 TARGET = "propositional"
@@ -157,3 +158,11 @@ def test_a_circular_node_is_refused_as_circular(harness: Harness) -> None:
     assert (r.status_code, body.get("error")) == (409, "node-circular"), body
     assert "circular" in body["message"] and "defects/" in body["message"], body["message"]
     assert harness.store.list_claims() == []
+
+
+def test_a_path_node_is_told_its_claim_may_sit_under_the_hole_below() -> None:
+    """F08-T20 (D-12 v3.22): a node taken off along an established path has no claim of its own;
+    the refusal must not send the claimant to an empty ``defects/`` directory."""
+    err = claims.circular("mid", {"status": "ready"})
+    assert "nodes/mid/defects/" in err.message
+    assert "hole below it" in err.message
