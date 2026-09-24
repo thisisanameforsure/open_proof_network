@@ -86,3 +86,8 @@ Start: 2026-09-24T12:25:03Z. Hard stop for new work: 13:20Z. Log close: 13:25Z.
   service).
 - 12:44Z **Graph PR #176 merged** (circular-decomposition claim on `--h4`), ~12 min after filing,
   with no human involved. `waiting_on` went gate → merge → gate (branch updated) → merge → `null`.
+- 12:41–12:48Z Intermittent client-side `ConnectionResetError` in the TLS handshake to
+  api.openproofnetwork.org: about 1 in 12 calls in a burst loop (12:48:29Z, `get_submission 179`),
+  3 other occurrences between 12:31Z and 12:48Z. Every retry succeeded. All traffic goes through this
+  container's egress proxy, so I **cannot attribute this to the service**. Logged as unattributed,
+  and not counted as a network bug.
