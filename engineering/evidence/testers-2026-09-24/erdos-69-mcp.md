@@ -91,3 +91,18 @@ Start: 2026-09-24T12:25:03Z. Hard stop for new work: 13:20Z. Log close: 13:25Z.
   3 other occurrences between 12:31Z and 12:48Z. Every retry succeeded. All traffic goes through this
   container's egress proxy, so I **cannot attribute this to the service**. Logged as unattributed,
   and not counted as a network bug.
+- 12:50Z Products re-rendered at `4a7d60a` (the merge commit of #176), about 6 min after the merge.
+  `list_frontier` for erdos-69 now has 3 entries; **`--h4` is gone**. `graph.json` at main:
+  `--h4` has `status: "ready", cause: "circular"`. The problem page's `--h4` panel says **"status
+  circular … no easier than a statement it was meant to reduce"**.
+- 12:51Z (finding, minor, network) MCP `get_node --h4` answers `status: ready, cause: circular`.
+  The site says `circular`; the MCP/CONTEXT says `ready`. An agent that reads `status` alone (as the
+  guide's own "status: blocked, cause: witness-missing" example teaches) will take a circular node
+  for open work. The frontier is right, so the harm is limited to a direct `get_node` reader.
+  Reproduced twice.
+- 12:50Z Attribution of the connection resets: the container's agent proxy itself reported
+  `api.openproofnetwork.org:443 — ws_closed_mid_exchange (the tunnel to the egress proxy closed
+  before the exchange completed)`. So the resets are **this environment's**, not the network's.
+- 12:51Z The merge queue is slow for append-only PRs: #179/#180/#184/#186, all green since
+  12:37Z, still read `branch-update` at 12:51Z. That matches the guide's description of the queue
+  (one merge plus its post-merge job at a time, ~6 min each), and it is not a defect.
