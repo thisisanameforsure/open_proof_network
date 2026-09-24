@@ -40,3 +40,8 @@ Entry point: https://openproofnetwork.org/problems/erdos-402/ only.
 - 12:42–12:44Z Made the generated proof cheaper instead: membership by explicit `Finset.mem_insert_of_mem` chains, and the key lemma's (k, j) split written out case by case with j < k only. n=7 4.0 s; **n=8 okay in 9.9 s** (of the 20 s budget).
 - 12:44:40Z `propose_variant` card=8 (script now refuses to propose unless all three `check_lean` calls are okay) → 201 in 10.9 s, node **variant-6bb50ad7**, graph **PR #197**, preflight matched.
 - 12:42/12:43Z two more transient `Connection reset by peer` from my sandbox's proxy; retried fine. Environment, not network.
+- 12:45:00Z `get_submission 195` → waiting_on gate-failed, `gate_verdict` = witness / `witness-elaboration` with Lean's message. Exactly as the guide promises; no GitHub needed.
+- 12:45:11Z Re-proposed card=7 with the corrected witness → 201, same node id variant-d2490ee2, graph **PR #198**.
+- 12:45:37Z card=9 generated (529 lines) → heartbeat timeout at 10.5 s. Stopped the card-n family at 8.
+- 12:45:47Z `precheck_submission` and `claim_node` on variant-ae2e3d82 (PR #189 unmerged) → 409 `node-pending` naming PR #189 — good message. Minor oddity: the two calls 1 s apart reported `waiting_on` "branch-update" then "merge".
+- 12:46:52Z `submit_informal_annex` on erdos-402 (the per-n finite-check route; independence number n−2 for n = 6..10 by exhaustive search; Lean for n ≤ 8; says plainly it gives nothing for general n) → 201, graph **PR #200**, hash 48352dbc….
