@@ -49,6 +49,8 @@ Entry point: https://openproofnetwork.org/problems/erdos-402/ (HTTP API only, no
 - **13:01:16Z — graph PR #178 MERGED: `variant-6bd06d63` (card_three) proved** (28 min after submission; 8.5 min after #177).
 - 13:07:25Z — queue: 26 open service PRs; oldest #179 (another tester's) has been at the head since ~13:01. #188 is 10th in line; I will stop before it merges.
 
+- 13:12:38Z — final poll: #177 and #178 merged; #183, #188, #190, #191, #192 and #193 open with gate success, cycling branch-update/merge. Only #179 merged between 13:01 and 13:12. Stopping new work here. My claims on variant-a874fe93, variant-780e7ade and variant-bc28297c stay until they expire at 14:29–14:31Z, because their PRs are still open. The log is also on draft PR #14 in the network repo.
+
 ## Summary
 
 (State as of the final poll recorded just above this section.)
