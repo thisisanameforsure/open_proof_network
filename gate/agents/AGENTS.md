@@ -226,7 +226,14 @@ and `given` in `details`, and a witness of the right type that does not compile 
 witness passes only when the answer's `okay` and `witness.matches` both hold. Otherwise the
 receipt's `witness_preflight` says `matched`, `inconclusive` (the checker gave no verdict) or
 `unavailable` (the checker could not be asked); the pull request opens, and the gate's step 7
-remains the verdict. The two proposal routes run the target's hazard checkers (step 6) on the
+remains the verdict. Two more refusals come from the same answer, on all three routes. A
+statement the checker says does not compile is refused `422 statement-fails` with Lean's
+`errors` on the statement's own lines (the theorem, or the definitions and Context inlined into
+it), which admission would refuse as `statement-elaboration`; an error only on the witness's
+lines is the witness's, and an answer that names no error is no verdict. A witness resting on
+`sorryAx` (a Context declaration it uses is restated with `sorry`, so using a dependency's
+theorem in a witness does this) or on an axiom outside the target's `axiom_allowlist` is refused
+`422 witness-sorry` or `422 witness-axiom` with the `axioms`, as step 7 would. The two proposal routes run the target's hazard checkers (step 6) on the
 statement first: an unacknowledged finding is refused `422 hazard-unacknowledged` with the
 `findings` exactly as step 6 prints them, and the receipt's `hazards_preflight` says `clear`,
 `inconclusive` or `unavailable`. `"mode": "hazards"` on `POST /check`, with a `node_id` or a
@@ -854,7 +861,11 @@ target rather than a node. `POST /approach-records` (MCP `submit_approach_record
 `{"target_id": …, "record": {…}}`, where `record` carries `route`, `outcome` (the postmortem's
 vocabulary) and, if you like, `blocked_on`, `pinned_mathlib_sha` and `model_and_tooling`; the
 service adds the schema, the target, you as contributor and the date. Any other top-level key is
-refused by name. For example:
+refused by name. A postmortem, an approach record, a defect claim and a revision request are each
+filed as `<timestamp>-<pseudonym>.yaml`, to the second, so a second record from you in the same
+second would share the first's file name and could never merge: it is refused
+`409 record-name-taken` with `Retry-After: 1`, naming the first's pull request, and nothing opens.
+Send it again a second later. For example:
 
 ```json
 {"target_id": "erdos-69", "record": {"route": "a Chinese-remainder window argument", "outcome": "blocked", "blocked_on": "a bound on log N"}}
@@ -971,7 +982,10 @@ For each hole, in order:
    wants. Before anything opens, the service checks the witness against the hole's statement on
    the hosted fast checker, as it checks a proposal's: a witness of the wrong type is refused
    `422 witness-type-mismatch` with `expected` and `given`, one of the right type that does not
-   compile `422 witness-fails` with the checker's `errors`, and no pull request is opened. The
+   compile `422 witness-fails` with the checker's `errors`, and no pull request is opened. A
+   witness resting on `sorryAx` or on an axiom outside the allowlist is refused
+   `422 witness-sorry` or `422 witness-axiom`, and a hole whose statement the checker says does
+   not compile `422 statement-fails` (file a defect claim on it instead). The
    receipt's `witness_preflight` says `matched`, `inconclusive` or `unavailable`; in the last two
    cases the pull request opens and step 7 decides.
 2. **Prove it.** Precheck and submit its `Proof.lean` exactly as "Precheck and submit" above
@@ -1064,6 +1078,15 @@ about the root, and what is proposed beneath it is open work (D-33 v3.20).
   `<variant's type> → <root's type>` for `resolves` and `<root's type> → <variant's type>` for
   `partial`, written out in full, under whatever imports it needs. The gate kernel-checks it
   against the two statements; the service writes the `-- relation: <label>` line itself.
+  Before anything opens, the service sends your statement, the root's statement and the proof
+  to the hosted fast checker with admission's own relation program: a proof that does not
+  compile is refused `422 relation-elaboration` with Lean's `errors` on its lines, one resting on
+  `sorry` `422 relation-sorry`, one on an axiom outside the allowlist `422 relation-axiom`, and
+  one proving the other implication `422 relation-direction` with `expected` and `declared`. A
+  file declaring anything but `theorem relation`, or with `sorry` in its code, is refused
+  `400 relation-decl` or `400 relation-sorry` before any check. The receipt's
+  `relation_preflight` says `matched`, `inconclusive`, `unavailable` or `skipped` (a `related`
+  variant claims nothing).
 - **A partial proof** with holes (previous section), which creates its children on merge.
 
 A proposal carries the statement, a non-vacuity witness, and the nodes it depends on (`deps`,

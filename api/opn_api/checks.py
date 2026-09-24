@@ -63,6 +63,8 @@ WITNESS_TAG = "OPN-WITNESS"
 WITNESS_SOURCE = schemas.SCHEMAS_DIR.parent / "lean" / "OpnGate" / "WitnessType.lean"
 #: F13-T20: the prefix of the one info line the hazard program logs; what follows it is JSON.
 HAZARDS_TAG = "OPN-HAZARDS"
+#: F13-T23: the relation pre-flight's one tagged info line.
+RELATION_TAG = "OPN-RELATION"
 #: Step 6's checkers (F02-R1, R2) and the executable that names them, shipped beside the schemas
 #: as ``WitnessType.lean`` is. Read, never restated: the checker files are inlined as they are, and
 #: the registry is ``HazardsMain.lean``'s own.
@@ -492,7 +494,8 @@ def witness_program(decl_name: str, has_witness: bool) -> str:
     """The gate's ``WitnessType.lean`` and the few lines that ask it one question: the type step
     7 will hold a witness of ``decl_name`` to, the given witness's type, and whether they are the
     same. Printed under the options the hole writer prints under (F07-R19, T30), so the text can
-    be pasted back as a witness's type."""
+    be pasted back as a witness's type. F13-T23: and the witness's axioms, which step 7 holds to
+    the target's allowlist (``witness-sorry``, ``witness-axiom``)."""
     try:
         source = WITNESS_SOURCE.read_text(encoding="utf-8")
     except OSError as exc:
@@ -504,8 +507,10 @@ def witness_program(decl_name: str, has_witness: bool) -> str:
         "  let same ← withReducible (isDefEq expected w.type) <||> isDefEq expected w.type\n"
         "  let given := Json.str (← pp w.type)\n"
         "  let verdict := Json.bool same\n"
+        # F13-T23: step 7's axiom set, as `opn-witness-type` reads it (`witness_axioms`).
+        "  let axioms := toJson ((← collectAxioms `witness).map toString)\n"
         if has_witness
-        else "  let given := Json.null\n  let verdict := Json.null\n"
+        else "  let given := Json.null\n  let verdict := Json.null\n  let axioms := Json.null\n"
     )
     return (
         "\n-- the network's witness preview (F13-T14): gate/lean/OpnGate/WitnessType.lean\n"
@@ -521,7 +526,7 @@ def witness_program(decl_name: str, has_witness: bool) -> str:
         f"{given}"
         "  let wanted ← pp expected\n"
         '  let answer := Json.mkObj [("expected", Json.str wanted), ("given", given), '
-        '("matches", verdict)]\n'
+        '("matches", verdict), ("axioms", axioms)]\n'
         f'  logInfo m!"{WITNESS_TAG} {{Json.compress answer}}"\n'
     )
 
@@ -542,6 +547,39 @@ def witness_text(formal: str, content: str, decl_name: str) -> str:
         + (f"\n{witness}\n" if witness else "")
         + witness_program(decl_name, bool(witness))
     )
+
+
+def axiom_names(raw: Any) -> list[str] | None:
+    """F13-T23: an axiom list the program printed, or ``None`` when it printed none (an older
+    answer, or no witness): only a list of strings is read."""
+    if not isinstance(raw, list) or not all(isinstance(a, str) for a in raw):
+        return None
+    return sorted(raw)
+
+
+def tagged_line(body: dict[str, Any], tag: str) -> dict[str, Any] | None:
+    """The first info message carrying ``tag`` and a JSON object after it, parsed; ``None`` when
+    there is none. Untrusted text: the caller reads only the keys it knows, each to its type."""
+    messages = body.get("lean_messages")
+    infos = messages.get("infos") if isinstance(messages, dict) else None
+    for info in infos if isinstance(infos, list) else ():
+        _, found, rest = str(info).partition(tag + " ")
+        if not found:
+            continue
+        try:
+            doc = json.loads(rest.strip())
+        except ValueError:
+            continue
+        if isinstance(doc, dict):
+            return doc
+    return None
+
+
+def witness_axioms(body: dict[str, Any]) -> list[str] | None:
+    """F13-T23: the witness's axioms as the program printed them, or ``None`` when it printed
+    none (no witness, or an answer from before the program asked)."""
+    doc = tagged_line(body, WITNESS_TAG)
+    return axiom_names(doc.get("axioms")) if doc is not None else None
 
 
 def witness_verdict(body: dict[str, Any]) -> dict[str, Any] | None:
@@ -866,6 +904,98 @@ def write_log(  # noqa: PLR0913 — one argument per fact the record keeps
     return record.id
 
 
+# --- what an answer's errors are about (F13-T23) -------------------------------------------------
+
+#: A Lean message's position as the checker prints it: ``-:<line>:<col>…`` (the file name is
+#: ``-``), 1-based lines of the text as it was sent (probed 2026-09-21, task-14.txt).
+ERROR_LINE_RE = re.compile(r"^[^:\n]*:(?P<line>[0-9]+):[0-9]+")
+SORRY_AXIOM = "sorryAx"
+
+
+def error_line(message: str) -> int | None:
+    """The line a Lean message is on, or ``None`` when it carries no position."""
+    m = ERROR_LINE_RE.match(message)
+    return int(m.group("line")) if m else None
+
+
+def errors_on_lines(body: dict[str, Any], first: int, last: int) -> list[str]:
+    """Lean's errors (not the tool's) positioned on lines ``first`` to ``last`` of the text."""
+    return [e for e in lean_errors(body) if first <= (error_line(e) or 0) <= last]
+
+
+def statement_lines(formal: str) -> int:
+    """How many of the first lines of a text ``witness_text`` or ``hazards_text`` composed from
+    ``formal`` are the statement's: its own (header, inlined Defs and Context, the theorem), plus
+    the ``import Lean`` line inserted among its imports when it had none."""
+    return len(formal.splitlines()) + (0 if "Lean" in layout.imports_of(formal) else 1)
+
+
+def refuse_failing_statement(
+    body: dict[str, Any], lines: int, environment: str | None, log_id: str | None
+) -> None:
+    """F13-T23 (audit Q-a): the checker answered ``okay: false`` and at least one of Lean's errors
+    is on a line of the statement part — the statement, or the definitions and Context inlined
+    into it — so admission's ``statement-elaboration`` would refuse the node. Refused ``422
+    statement-fails`` with exactly those errors. An error elsewhere is the witness's or the
+    program's, and no error named is no verdict: neither is this refusal."""
+    if verdict(body) is not False:
+        return
+    errors = errors_on_lines(body, 1, lines)
+    if not errors:
+        return
+    raise api_error(
+        422,
+        "statement-fails",
+        "the statement does not compile: the checker reported Lean errors in the statement it "
+        "was sent (the theorem, or the definitions and Context inlined into it), which "
+        "admission refuses as statement-elaboration (D-29), so nothing was opened. Checked on "
+        f"the hosted fast checker ({environment}); not authoritative, but admission elaborates "
+        "the same statement",
+        details={"errors": errors, "log_id": log_id},
+    )
+
+
+def axiom_allowlist(ctx: Context, target_id: str) -> set[str]:
+    """The target's ``axiom_allowlist`` (``gate-spec.json``), which step 7 and admission's
+    relation check hold every axiom set to."""
+    spec = json.loads(frontier.committed(ctx, f"targets/{target_id}/gate-spec.json"))
+    return {str(a) for a in spec.get("axiom_allowlist") or []}
+
+
+def refuse_axioms(  # noqa: PLR0913 — the axioms, the rule, and what to call a breach of it
+    axioms: list[str],
+    allowed: set[str],
+    *,
+    sorry_code: str,
+    axiom_code: str,
+    what: str,
+    environment: str | None,
+    log_id: str | None,
+) -> None:
+    """The gate's own rule over an axiom set, in its order: ``sorryAx`` first, then any axiom
+    outside the allowlist (``steps.witness``, ``admit.relation_verdict``)."""
+    if SORRY_AXIOM in axioms:
+        raise api_error(
+            422,
+            sorry_code,
+            f"{what} depends on sorryAx (through a sorry of its own or a Context declaration it "
+            "uses, which is restated with sorry), so the gate would refuse it and nothing was "
+            f"opened. Checked on the hosted fast checker ({environment}); not authoritative, but "
+            "the gate reads the same axiom set",
+            details={"axioms": axioms, "log_id": log_id},
+        )
+    outside = [a for a in axioms if a not in allowed]
+    if outside:
+        raise api_error(
+            422,
+            axiom_code,
+            f"{what} depends on axioms outside this target's axiom_allowlist: "
+            f"{', '.join(outside)}, so the gate would refuse it and nothing was opened. Checked on "
+            f"the hosted fast checker ({environment}); not authoritative",
+            details={"axioms": outside, "allowlist": sorted(allowed), "log_id": log_id},
+        )
+
+
 # --- the pre-flight on a proposal (F13-T16) ------------------------------------------------------
 
 #: What a proposal's 201 says of its pre-flight: the checker found the witness's type is the one
@@ -909,7 +1039,9 @@ async def preflight_witness(
         environment = entry.environment
         context = files.get(prefix + "Context.lean")
         defs = inline_defs(ctx, target_id, parsed, witness, node_id, context=context)
-        text = witness_text(forwarded_text(parsed.text, defs), witness, parsed.decl_name)
+        formal = forwarded_text(parsed.text, defs)
+        text = witness_text(formal, witness, parsed.decl_name)
+        allowed = axiom_allowlist(ctx, target_id)
         budget = min(PREFLIGHT_TIMEOUT_S, ctx.settings.check_timeout_s)
         answer = await asyncio.to_thread(
             call_checker, ctx, req, text, environment, None, timeout_s=budget
@@ -933,15 +1065,28 @@ async def preflight_witness(
     log_id = write_log(
         ctx, req, caller, outcome=ANSWERED, started=started, environment=environment, answer=answer
     )
+    refuse_failing_statement(answer.body, statement_lines(formal), environment, log_id)
     found = witness_verdict(answer.body)
     if found is None or found["matches"] is None:
         return PREFLIGHT_INCONCLUSIVE
+    okay = verdict(answer.body)
+    axioms = witness_axioms(answer.body)
+    if okay is True and axioms is not None:
+        # F13-T23 (audit Q-b): step 7's axiom rule, before its type rule, as step 7 orders them.
+        refuse_axioms(
+            axioms,
+            allowed,
+            sorry_code="witness-sorry",
+            axiom_code="witness-axiom",
+            what="the witness",
+            environment=environment,
+            log_id=log_id,
+        )
     if found["matches"]:
         # F13-T17 (D1): a declaration whose proof fails keeps its stated type, so ``matches``
         # alone passed PR #195's witness, whose ``decide`` proved the statement false. It is
         # matched only when the checker's verdict is true too; a body with no verdict at all
         # (``user_error``) said nothing about the witness.
-        okay = verdict(answer.body)
         if okay is None:
             return PREFLIGHT_INCONCLUSIVE
         if okay:
@@ -1012,7 +1157,8 @@ async def preflight_hazards(  # noqa: PLR0911 — one return per outcome word
         environment = entry.environment
         context = files.get(prefix + "Context.lean")
         defs = inline_defs(ctx, target_id, parsed, "", node_id, context=context)
-        text = hazards_text(forwarded_text(parsed.text, defs), parsed.decl_name, checkers)
+        formal = forwarded_text(parsed.text, defs)
+        text = hazards_text(formal, parsed.decl_name, checkers)
         budget = min(PREFLIGHT_TIMEOUT_S, ctx.settings.check_timeout_s)
         answer = await asyncio.to_thread(
             call_checker, ctx, req, text, environment, None, timeout_s=budget
@@ -1036,6 +1182,7 @@ async def preflight_hazards(  # noqa: PLR0911 — one return per outcome word
     log_id = write_log(
         ctx, req, caller, outcome=ANSWERED, started=started, environment=environment, answer=answer
     )
+    refuse_failing_statement(answer.body, statement_lines(formal), environment, log_id)
     found = hazards_verdict(answer.body)
     if found is None:
         return PREFLIGHT_INCONCLUSIVE
@@ -1065,22 +1212,305 @@ async def preflight_hazards(  # noqa: PLR0911 — one return per outcome word
     )
 
 
-async def preflight_proposal(
-    ctx: Context, identity_id: str, target_id: str, node_id: str, files: dict[str, str]
+async def preflight_proposal(  # noqa: PLR0913 — the caller, the node, its files, its kind
+    ctx: Context,
+    identity_id: str,
+    target_id: str,
+    node_id: str,
+    files: dict[str, str],
+    *,
+    variant: bool = False,
 ) -> dict[str, str]:
-    """F13-T20: both pre-flights, side by side, so the two fit in the one budget the function has
+    """F13-T20: the pre-flights, side by side, so they fit in the one budget the function has
     before it opens the pull request (F13-T16). A hazard refusal is raised before a witness
-    refusal: the statement is what the witness is of."""
-    hazards, witness = await asyncio.gather(
+    refusal, and both before a relation refusal: the statement is what the others are of.
+    F13-T23: a variant's relation proof is the third (``relation_preflight``)."""
+    runs = [
         preflight_hazards(ctx, identity_id, target_id, node_id, files),
         preflight_witness(ctx, identity_id, target_id, node_id, files),
-        return_exceptions=True,
-    )
-    for outcome in (hazards, witness):
+    ]
+    if variant:
+        runs.append(preflight_relation(ctx, identity_id, target_id, node_id, files))
+    outcomes = await asyncio.gather(*runs, return_exceptions=True)
+    for outcome in outcomes:
         if isinstance(outcome, BaseException):
             raise outcome
-    assert isinstance(hazards, str) and isinstance(witness, str)
-    return {"hazards_preflight": hazards, "witness_preflight": witness}
+    words = [str(o) for o in outcomes]
+    out = {"hazards_preflight": words[0], "witness_preflight": words[1]}
+    if variant:
+        out["relation_preflight"] = words[2]
+    return out
+
+
+# --- the pre-flight on a variant's relation proof (F13-T23) --------------------------------------
+
+#: The gate's relation types (``expectedRelationType``) live in ``ArtifactType.lean``, which
+#: imports ``WitnessType.lean``; both are inlined, dependencies first, as ``opn-relation-type``
+#: is built from them.
+ARTIFACT_SOURCE = LEAN_DIR / "OpnGate" / "ArtifactType.lean"
+RELATION_DECL = scaffold.RELATION_DECL
+
+
+def relation_program(variant_decl: str, root_decl: str, label: str) -> str:
+    """The gate's ``WitnessType.lean`` and ``ArtifactType.lean`` and the few lines that ask them
+    what ``opn-relation-type`` asks: the implication a ``label`` variant must prove, whether
+    ``relation``'s type is it (by the same definitional equality), and ``relation``'s axioms."""
+    try:
+        sources = [
+            IMPORT_LINE_RE.sub("", path.read_text(encoding="utf-8")).strip("\n")
+            for path in (WITNESS_SOURCE, ARTIFACT_SOURCE)
+        ]
+    except OSError as exc:
+        msg = f"the relation metaprogram is not in this package: {exc.filename}"
+        raise api_error(503, "relation-program-unreadable", msg) from exc
+    body = "\n\n".join(sources)
+    return (
+        "\n-- the network's relation pre-flight (F13-T23): gate/lean/OpnGate/WitnessType.lean,\n"
+        "-- gate/lean/OpnGate/ArtifactType.lean\n"
+        f"{body}\n\n"
+        "open Lean Meta in\n"
+        "run_meta do\n"
+        f"  let v ← getConstInfo `{variant_decl}\n"
+        f"  let r ← getConstInfo `{root_decl}\n"
+        f"  let rel ← getConstInfo `{RELATION_DECL}\n"
+        f'  let some label := OpnGate.RelationLabel.ofString? "{label}"\n'
+        '    | throwError "unknown relation label"\n'
+        "  let some expected ← OpnGate.expectedRelationType label v.type r.type\n"
+        '    | throwError "a labeled variant has an expected relation type"\n'
+        "  let same ← withReducible (isDefEq expected rel.type) <||> isDefEq expected rel.type\n"
+        f"  let axioms ← collectAxioms `{RELATION_DECL}\n"
+        "  let pp (e : Expr) : MetaM String :=\n"
+        "    withOptions (fun o => ((o.setBool `pp.coercions.types true).setBool\n"
+        "        `pp.numericTypes true).setBool `pp.funBinderTypes true) do\n"
+        "      return toString (← ppExpr e)\n"
+        '  let answer := Json.mkObj [("expected", Json.str (← pp expected)),\n'
+        '    ("declared", Json.str (← pp rel.type)), ("matches", Json.bool same),\n'
+        '    ("axioms", toJson (axioms.map toString))]\n'
+        f'  logInfo m!"{RELATION_TAG} {{Json.compress answer}}"\n'
+    )
+
+
+@dataclass(frozen=True)
+class RelationText:
+    """What the checker is sent, and where its parts are: lines 1 to ``statement_end`` are the
+    variant's statement (header, Defs and Context inlined), then the root's block to ``root_end``,
+    then ``Relation.lean`` to ``relation_end``, then the program."""
+
+    text: str
+    statement_end: int
+    root_end: int
+    relation_end: int
+
+
+def _lines(text: str) -> str:
+    return text if text.endswith("\n") or not text else text + "\n"
+
+
+def relation_text(  # noqa: PLR0913 — the three files, what is inlined, and the question
+    formal: str,
+    root: str | None,
+    relation: str,
+    *,
+    variant_decl: str,
+    root_decl: str,
+    label: str,
+) -> RelationText:
+    """One file the checker can elaborate: every library import of the three, ``import Lean``,
+    then the variant's statement as ``formal`` holds it (definitions already inlined), the root's
+    block (``None`` when the variant's Context already declares the root's theorem, as the gate's
+    F08-T15 reads it), ``Relation.lean`` without its import lines, and the program."""
+    texts = [formal, root or "", relation]
+    library = [
+        m for t in texts for m in layout.imports_of(t) if layout.module_origin(m)[0] == "library"
+    ]
+    header = "".join(f"import {m}\n" for m in dict.fromkeys([*library, "Lean"]))
+    statement = header + _lines(IMPORT_LINE_RE.sub("", formal).strip("\n"))
+    root_part = _lines(IMPORT_LINE_RE.sub("", root).strip("\n")) if root else ""
+    proof = _lines(IMPORT_LINE_RE.sub("", relation).strip("\n"))
+    statement_end = statement.count("\n")
+    root_end = statement_end + root_part.count("\n")
+    relation_end = root_end + proof.count("\n")
+    program = relation_program(variant_decl, root_decl, label)
+    return RelationText(
+        statement + root_part + proof + program, statement_end, root_end, relation_end
+    )
+
+
+def relation_verdict(body: dict[str, Any]) -> dict[str, Any] | None:
+    """The program's one line: ``expected``, ``declared``, ``matches`` and ``axioms`` as
+    ``opn-relation-type`` prints them; ``None`` when it never ran."""
+    doc = tagged_line(body, RELATION_TAG)
+    if doc is None or not isinstance(doc.get("matches"), bool):
+        return None
+    axioms = axiom_names(doc.get("axioms"))
+    return {
+        "expected": doc.get("expected") if isinstance(doc.get("expected"), str) else None,
+        "declared": doc.get("declared") if isinstance(doc.get("declared"), str) else None,
+        "matches": doc["matches"],
+        "axioms": axioms if axioms is not None else [],
+    }
+
+
+def target_root(ctx: Context, target_id: str) -> str | None:
+    """The target's root as its products name it (``graph.json``'s ``root``, the first place
+    admission's ``root_of`` looks)."""
+    doc = json.loads(frontier.committed(ctx, f"targets/{target_id}/graph.json"))
+    root = doc.get("root")
+    return root if isinstance(root, str) and root else None
+
+
+def root_block(
+    ctx: Context, target_id: str, root_id: str, parsed: layout.Statement, inlined: set[str]
+) -> str:
+    """The root's committed statement with the Defs and Context it imports inlined (those the
+    variant's text has not inlined already)."""
+    defs = [
+        (m, src) for m, src in inline_defs(ctx, target_id, parsed, "", root_id) if m not in inlined
+    ]
+    return forwarded_text(parsed.text, defs)
+
+
+async def preflight_relation(  # noqa: PLR0911, PLR0912, PLR0915 — one return per outcome word
+    ctx: Context, identity_id: str, target_id: str, node_id: str, files: dict[str, str]
+) -> str:
+    """F13-T23 (audit Q-c): admission's relation check (``admit.RelationCheck``, D-30) on the
+    hosted checker, before a variant's pull request exists. The variant's statement as it will be
+    pushed, the root's committed statement and ``Relation.lean`` go in one file with the gate's own
+    ``expectedRelationType``; the refusals are admission's own codes, in its order —
+    ``relation-elaboration`` (Lean's errors on the relation proof's own lines, and none on the
+    statements'), ``relation-sorry``, ``relation-axiom``, ``relation-direction`` — each 422 and
+    nothing opened. A ``related`` variant claims nothing and is ``skipped``; a checker that cannot
+    answer is ``unavailable``, and an answer that names nothing ``inconclusive``: the gate decides.
+    Charged and logged as a check (R8, R9)."""
+    import yaml  # noqa: PLC0415 — only this path reads a META.yaml
+
+    from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
+    from opn_gate import graph as graphmod  # noqa: PLC0415
+
+    prefix = f"targets/{target_id}/nodes/{node_id}/"
+    relation = files.get(prefix + scaffold.RELATION_FILE)
+    label = graphmod.relation_label(relation, "variant") if relation else None
+    parsed = layout.parse_statement(files.get(prefix + "Statement.lean", ""))
+    if relation is None or label not in scaffold.LABELS_NEEDING_PROOF:
+        return PREFLIGHT_SKIPPED
+    if not isinstance(parsed, layout.Statement):
+        return PREFLIGHT_UNAVAILABLE  # the scaffold refuses it before this is reached
+    try:
+        meta = yaml.safe_load(files.get(prefix + "META.yaml", "")) or {}
+    except yaml.YAMLError:
+        meta = {}
+    deps = meta.get("deps") if isinstance(meta, dict) else None
+    try:
+        root_id = target_root(ctx, target_id)
+        if root_id is None or root_id == node_id:
+            return PREFLIGHT_SKIPPED  # admission refuses relation-root-unknown: nothing to relate
+        path = f"targets/{target_id}/nodes/{root_id}/Statement.lean"
+        root_parsed = layout.parse_statement(frontier.committed(ctx, path).decode("utf-8"))
+    except ApiError:
+        return PREFLIGHT_UNAVAILABLE  # the graph unread: nothing spent, the gate decides
+    if not isinstance(root_parsed, layout.Statement):
+        return PREFLIGHT_UNAVAILABLE  # the root's own defect, not this proposal's
+    try:
+        ratelimit.check_check(ctx, identity_id)
+    except ApiError:
+        return PREFLIGHT_UNAVAILABLE  # a spent check budget skips the courtesy, never the route
+    req = CheckRequest(target_id, node_id, relation, "check")
+    caller = Caller("identity", identity_id)
+    started = time.monotonic()
+    environment: str | None = None
+    try:
+        _, entry = hosted_for(ctx, target_id)
+        if entry is None or entry.environment is None:
+            raise api_error(422, "no-hosted-environment", f"{target_id} has no hosted checker")
+        environment = entry.environment
+        context = files.get(prefix + "Context.lean")
+        defs = inline_defs(ctx, target_id, parsed, relation, node_id, context=context)
+        formal = forwarded_text(parsed.text, defs)
+        # F08-T15: when the root is a declared dep, the variant's Context restates its theorem,
+        # and declaring it again is "already declared": the Context's declaration is related to.
+        declared_in_context = isinstance(deps, list) and root_id in deps
+        root_text = (
+            None
+            if declared_in_context
+            else root_block(ctx, target_id, root_id, root_parsed, {m for m, _ in defs})
+        )
+        composed = relation_text(
+            formal,
+            root_text,
+            relation,
+            variant_decl=parsed.decl_name,
+            root_decl=root_parsed.decl_name,
+            label=str(label),
+        )
+        allowed = axiom_allowlist(ctx, target_id)
+        budget = min(PREFLIGHT_TIMEOUT_S, ctx.settings.check_timeout_s)
+        answer = await asyncio.to_thread(
+            call_checker, ctx, req, composed.text, environment, None, timeout_s=budget
+        )
+        if answer.body.get("error_type") == LEAN_TIMEOUT:
+            raise timed_out(ctx, answer.request_id)
+    except (ApiError, AxleError) as exc:
+        code = exc.code if isinstance(exc, ApiError) else "upstream-unavailable"
+        status = exc.status if isinstance(exc, AxleError) else None
+        write_log(
+            ctx,
+            req,
+            caller,
+            outcome=code,
+            started=started,
+            environment=environment,
+            upstream_status=status,
+        )
+        log.info("relation preflight %s for %s: %s", PREFLIGHT_UNAVAILABLE, node_id, code)
+        return PREFLIGHT_UNAVAILABLE
+    log_id = write_log(
+        ctx, req, caller, outcome=ANSWERED, started=started, environment=environment, answer=answer
+    )
+    body = answer.body
+    refuse_failing_statement(body, composed.statement_end, environment, log_id)
+    okay = verdict(body)
+    if okay is False:
+        errors = errors_on_lines(body, composed.root_end + 1, composed.relation_end)
+        if errors and not errors_on_lines(body, 1, composed.root_end):
+            raise api_error(
+                422,
+                "relation-elaboration",
+                "the relation proof does not compile: the checker reported Lean errors on its own "
+                "lines (D-30; admission's relation check), so nothing was opened. Checked on the "
+                f"hosted fast checker ({environment}) with the variant's and the root's statements "
+                "beside it; not authoritative, but admission elaborates the same files",
+                details={"errors": errors, "log_id": log_id},
+            )
+        return PREFLIGHT_INCONCLUSIVE
+    found = relation_verdict(body)
+    if okay is None or found is None:
+        return PREFLIGHT_INCONCLUSIVE
+    refuse_axioms(
+        found["axioms"],
+        allowed,
+        sorry_code="relation-sorry",
+        axiom_code="relation-axiom",
+        what=scaffold.RELATION_FILE,
+        environment=environment,
+        log_id=log_id,
+    )
+    if not found["matches"]:
+        raise api_error(
+            422,
+            "relation-direction",
+            f"a variant labeled {label!r} must prove {found['expected']}, but "
+            f"{scaffold.RELATION_FILE} proves {found['declared']} (D-30), so nothing was opened: "
+            "resolves is variant → root, partial is root → variant. Checked on the hosted fast "
+            f"checker ({environment}) with admission's own expectedRelationType; not "
+            "authoritative",
+            details={
+                "label": label,
+                "expected": found["expected"],
+                "declared": found["declared"],
+                "log_id": log_id,
+            },
+        )
+    return PREFLIGHT_MATCHED
 
 
 # --- the pre-flight on an exhibit (F13-T22) ------------------------------------------------------
