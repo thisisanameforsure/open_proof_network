@@ -65,3 +65,19 @@ Start: 2026-09-24T12:25:03Z. Hard stop for new work: 13:20Z. Log close: 13:25Z.
   Honest limit: the known proof of this result needs arithmetic input on ω over windows of
   consecutive integers (to my recollection Tao–Teräväinen; erdosproblems.com/69 answered a proxy
   403 from this container, so I could not re-check the citation and did not put a name in the record).
+- 12:35Z Probes (network behaviour, all correct): `claim_node` on superseded `erdos-69--h2` → 409
+  `node-not-open` naming `erdos-69--h2-v2` as the replacement — a good message. `claim_node` with
+  ttl 99 → 201, expiry +99 h (cap is 168 h per `server_info.rate_limit_policy`, so right). That probe
+  left a real claim on `--h4`; released it at 12:35:29Z (my own sloppiness, not the network's).
+- 12:35Z `get_submission` 176/179/180 → `waiting_on: gate`, gate `in_progress`; 184 (approach
+  record) → gate `success`, `waiting_on: merge`. Note `mergeable_state` read `behind` for 176/179
+  while `waiting_on` said `gate` — consistent with the guide's queue description.
+- 12:36Z `check_lean` mode check, node_id `erdos-69`, content = the root's closing assembly (root
+  statement + `import Nodes.«erdos-69».Context` + proof from `erdos_69__h1`, `erdos_69__h2`):
+  **okay: true**, lint `[]`, 1.3 s. The inlined Context carries the *v2* (ℝ-typed) statements under
+  the original theorem names — revision handling works as the guide says.
+- 12:36Z MCP `submit_informal_annex` on `erdos-69` with that assembly in a fenced block → **201,
+  graph PR #186**, hash `9dc42dc5…1442`.
+- 12:37Z All five of my PRs have a green `gate` check (so the sandbox elaborated the three exhibits
+  and accepted the circularity type check): 176/179/180/186 `waiting_on: merge`, 184
+  `branch-update`. Defect-claim gate ≈ 4–5 min from filing; annex gate ≈ 1 min.
