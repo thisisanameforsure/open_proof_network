@@ -188,3 +188,18 @@ def test_mcp_propose_witness_carries_the_same_refusal() -> None:
         )
     assert out["status"] == 422 and out["body"]["error"] == "witness-fails"
     assert h.githost.pulls == []
+
+
+def test_a_hole_with_a_proved_record_is_checked_against_the_narrowed_type() -> None:
+    """F07-T44 meets F13-T21: a hole whose assembly proved some of its binders carries
+    ``proved_binders`` in its committed ``META.yaml``, and step 7 then accepts the narrowed type
+    (or the full one). The route's pre-flight must ask the same question, or it would refuse,
+    before any pull request, a witness the gate accepts."""
+    h = with_hole(harness(MATCH))
+    h.githost.files[HOLE_DIR + "META.yaml"] = b"id: and-reassoc--h1\nproved_binders: [1]\n"
+    r = propose(h, RIGHT)
+    assert r.status_code == 201, r.text
+    (sent,) = h.axle.calls
+    assert "expectedWitnessTypeNarrowed s.type #[1]" in sent.content
+    # The META is read, never pushed: the pull request still carries the witness alone.
+    assert dict(h.githost.pushes[-1].files) == {HOLE_DIR + "Witness.lean": RIGHT}

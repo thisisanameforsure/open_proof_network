@@ -15,8 +15,11 @@ import inspect
 import re
 from pathlib import Path
 
+from precheck import job
+
 from opn_api import checks, proposals, requests, routes
 from opn_api.mcp import writes
+from opn_gate import scaffold
 
 ROOT = Path(__file__).resolve().parents[2]
 GUIDE = (ROOT / "gate" / "agents" / "AGENTS.md").read_text(encoding="utf-8")
@@ -195,3 +198,13 @@ def test_the_same_second_name_is_refused_as_the_guide_says() -> None:
         "file_revision_request",
     ):
         assert "409 record-name-taken" in by_name[name], name
+
+
+def test_the_guide_says_a_proved_binder_is_not_exhibited() -> None:
+    """F07-T44 (D-29 v3.22): the witness paragraph names the record, the narrowed type, and that
+    the full type is still accepted, each tied to the code that implements it."""
+    flat = " ".join((ROOT / "gate" / "agents" / "AGENTS.md").read_text(encoding="utf-8").split())
+    assert "`proved_binders`" in flat
+    assert "A witness of the full type is accepted too." in flat
+    assert '"proved_binders"' in inspect.getsource(job.result_document)
+    assert scaffold.META_SCHEMA_PROVED == "meta/v5"

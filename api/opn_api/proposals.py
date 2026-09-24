@@ -21,6 +21,7 @@ committed statements rather than accepted, because F01-R6 needs it byte-equal to
 
 from __future__ import annotations
 
+import contextlib
 import logging
 from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any
@@ -506,12 +507,20 @@ WITNESS_FIELDS: tuple[str, ...] = ("node_id", "witness")
 def hole_statement(ctx: Context, target_id: str, node_id: str) -> dict[str, str]:
     """The hole's committed ``Statement.lean`` under its graph path, for the pre-flight to read
     (its Context is fetched there, as a check on the node fetches it); nothing when it cannot be
-    read, which leaves the pre-flight ``unavailable`` and the route as it was (C7)."""
-    path = f"targets/{target_id}/nodes/{node_id}/Statement.lean"
+    read, which leaves the pre-flight ``unavailable`` and the route as it was (C7).
+
+    F07-T44 (D-29 v3.22): and its committed ``META.yaml`` when it reads, because a hole whose
+    assembly proved some of its binders records them there and step 7 then accepts the narrowed
+    type; without the record the pre-flight would ask for the full type alone and refuse a
+    witness the gate accepts. The META is read for the check and never pushed."""
+    prefix = f"targets/{target_id}/nodes/{node_id}/"
     try:
-        return {path: frontier.committed(ctx, path).decode("utf-8")}
+        out = {prefix + "Statement.lean": frontier.committed(ctx, prefix + "Statement.lean")}
     except ApiError:
         return {}
+    with contextlib.suppress(ApiError):  # no record: the full type, as before the rule
+        out[prefix + "META.yaml"] = frontier.committed(ctx, prefix + "META.yaml")
+    return {path: raw.decode("utf-8") for path, raw in out.items()}
 
 
 async def post_witness(ctx: Context, request: Request) -> Response:

@@ -1012,7 +1012,15 @@ later binders depend on is quantified with `∃` too rather than joined with `�
 counts, wherever it sits: binders that come after a hypothesis are variables too, so a hole
 shaped `P → ∀ N k, C`, which is the shape of most gate-written holes, wants `∃ N k, P`. For `theorem t : ∀ n : Nat, 0 < n → n ∣ 12 → n ≤ 12` the
 witness is `theorem witness : ∃ n : Nat, 0 < n ∧ n ∣ 12 := ⟨1, by decide, by decide⟩` (checked
-with the gate's own `opn-witness-type`: expected and witness both `∃ n, 0 < n ∧ n ∣ 12`). It must be
+with the gate's own `opn-witness-type`: expected and witness both `∃ n, 0 < n ∧ n ∣ 12`).
+A gate-written hole whose skeleton *proved* some of what it carries does not ask you to prove it
+again (decisions v3.22, D-29): a fact the assembly obtained by taking apart something it proved
+(an `obtain ⟨x, hx⟩ := …` on a proved `have`) is listed in the hole's `META.yaml` as
+`proved_binders`, and step 7 then wants the narrowed type, in which those binders are given to
+you under `∀` and only the rest are exhibited. A witness of the full type is accepted too. A
+proved `have` that the hole's type does not use was never an obligation. The slot, the precheck's
+`holes` (each with its `proved_binders`) and `/check` witness mode all state the narrowed type.
+It must be
 sorry-free and rest only on the target's allowed axioms; the service refuses a witness with
 `sorry` in its code `400 witness-invalid` on every proposal route, since the checker compiles
 one without complaint and step 7 does not. Do not guess the type: `POST /check`

@@ -70,12 +70,14 @@ def test_a_partial_precheck_names_each_hole_with_its_statement_and_witness_type(
             "closed_type": "∀ (n : Nat), 1 ≤ n → 0 < e n",
             "expected_witness": "∃ (n : Nat), 1 ≤ n",
             "restates": None,
+            "proved_binders": [],
         },
         {
             "name": "hden",
             "closed_type": "∀ (n : Nat), W n ≠ 0",
             "expected_witness": "∃ (n : Nat), 1 ≤ n",
             "restates": None,
+            "proved_binders": [],
         },
     ]
 
@@ -110,3 +112,11 @@ def test_the_rest_of_the_result_is_unchanged() -> None:
     }
     assert out["attestation"] == {"schema": "attestation/v5"}
     assert out["steps"][0]["step"] == 4
+
+
+def test_a_hole_says_which_binders_its_assembly_proved() -> None:
+    """F07-T44 (D-29 v3.22): the extractor marks the binders the assembly proved and narrows
+    ``expected_witness`` to the rest; the precheck says which, so a skeleton author can see
+    before submitting what a witness of each hole will have to exhibit."""
+    out = result_of(partial({**HOLE, "proved_binders": [1]}, HOLE), verdict())
+    assert [h["proved_binders"] for h in out["holes"]] == [[1], []]
