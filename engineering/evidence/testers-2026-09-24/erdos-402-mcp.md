@@ -209,3 +209,5 @@ print(len(body.splitlines()),"lines")
 ```
 - 12:53:42Z Released my claims on variant-6bd06d63 and variant-3377fd96 (200). (The ids of my claims on 780e7ade and the first bc28297c claim were never printed by me, and there is no "my claims" listing — they will expire at 14:31/14:32Z.)
 - 12:53:5xZ `get_node variant-3377fd96` right after #177 merged: still `status: ready`, `proof.present: false`, rendered_from 4a7d60a4 — the products lag the merge (the guide says 3–6 min for the post-merge job). Expected, noted for timing.
+- 13:00:53Z #178 (other agent's card=3) merged. `get_node variant-3377fd96` at 13:01Z: `proved`, proof commit 1ec05014 — products caught up ~8 min after #177's merge.
+- 13:01Z My losing racer **#181** (same node, already proved by #177 eight minutes earlier) still reports `mergeable_state: behind`, `waiting_on` flipping between `merge` and `branch-update` across calls — not `conflict`. The guide says a losing racer's proof "is moved to an alternate for you"; that has not happened yet, and the status gives no hint that the node is already proved. Watching (B2, provisional).
