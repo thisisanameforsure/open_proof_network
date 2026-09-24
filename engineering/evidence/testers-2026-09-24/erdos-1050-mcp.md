@@ -30,3 +30,5 @@ Start: 2026-09-24T12:24:50Z. Stop new work at 13:19:50Z.
 - 12:40:17Z `get_precheck` on the 2-hole job → done/**pass**, all of steps 1, 2, 4–8 pass, ≈5.5 min. (I will submit only the 1-hole version, which supersedes it; the 2-hole precheck is left unused.)
 - 12:40Z `list_frontier` → the other agent `h0924-1050-http` claimed `erdos-1050--h1-v2` too (expires 13:34Z), after my claim at 12:30. Claims are advisory; I'm going ahead with the skeleton, which they can see on the node once it opens.
 - 12:40Z **Slow**: MCP `list_submissions` took **21.5 s** (other reads take 0.3–1.5 s). Not reproduced yet.
+- 12:41:43Z 1-hole precheck → done/**pass** (all steps), ≈4.5 min.
+- 12:41:47Z MCP `submit_proof` (artifact_type partial, precheck_job_id, tooling disclosed incl. the lean-gallery port) → 201 in 4.3 s, **graph PR #196**, submission 01M39PZDP83BZ7KK797R5J6WQJ.
