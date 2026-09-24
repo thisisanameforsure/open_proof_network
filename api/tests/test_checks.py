@@ -491,7 +491,6 @@ def test_another_nodes_context_is_never_inlined() -> None:
     assert r.json()["inlined_defs"] == []
 
 
-@pytest.mark.xfail(strict=True, reason="F13-T19: the 413 names no remedy")
 def test_the_413_names_the_limit_and_the_remedy() -> None:
     """F13-T19 (testers 2026-09-24, erdos-402-http at 12:45:31Z): an |A| = 8 case tree of 657 kB
     got ``content is 656745 bytes; the limit is 200000``, right and silent on what to do. The

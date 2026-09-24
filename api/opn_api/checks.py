@@ -135,9 +135,26 @@ def parse_body(ctx: Context, fields: dict[str, Any]) -> CheckRequest:
         raise api_error(400, "content-missing", "content must be the Lean text to check")
     size = len(content.encode("utf-8"))
     if size > ctx.settings.check_max_bytes:
-        msg = f"content is {size} bytes; the limit is {ctx.settings.check_max_bytes}"
-        raise api_error(413, "content-too-large", msg)
+        raise too_large(ctx, "content", size)
     return CheckRequest(target_id, node_id, content, mode, statement, fields.get("deps"))
+
+
+def too_large(ctx: Context, what: str, size: int) -> Exception:
+    """F13-T19: the size refusal says what to do, since a text this long rarely fits the gate
+    either (testers 2026-09-24: a 657 kB case tree). Splitting it into lemmas is refused, and a
+    ``set_option`` inside the proof does not raise Lean's heartbeat budget."""
+    limit = ctx.settings.check_max_bytes
+    return api_error(
+        413,
+        "content-too-large",
+        f"{what} is {size} bytes; the limit is {limit}. A proof this long rarely fits the gate "
+        "either: Lean's heartbeat budget (maxHeartbeats, 200000 by default) counts per "
+        "declaration, a set_option inside the proof does not lift it, and a proof may declare "
+        "nothing but the statement's theorem, so helper lemmas are refused (F00-R19). Make the "
+        "proof cheaper (one `have` per case with `exact` at the leaves, named lemmas instead of "
+        "search tactics), or decompose the node with a skeleton",
+        details={"bytes": size, "limit_bytes": limit},
+    )
 
 
 def proposed_statement_field(
@@ -162,8 +179,7 @@ def proposed_statement_field(
         raise api_error(400, "statement-invalid", "statement must be the text of a Lean file")
     size = len(statement.encode("utf-8"))
     if size > ctx.settings.check_max_bytes:
-        msg = f"statement is {size} bytes; the limit is {ctx.settings.check_max_bytes}"
-        raise api_error(413, "content-too-large", msg)
+        raise too_large(ctx, "statement", size)
     parsed = layout.parse_statement(statement)
     if not isinstance(parsed, layout.Statement):
         raise api_error(400, "statement-invalid", parsed.message)
