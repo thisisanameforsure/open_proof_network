@@ -437,8 +437,9 @@ TOOLS: tuple[Tool, ...] = (
         "Enter a crux statement as a speculative node (D-14): `stmt` and `witness` are Lean "
         "files; admission is mechanical (D-29). "
         "The witness is checked on the hosted fast checker first: a witness of the wrong type is "
-        "refused 422 witness-type-mismatch with `expected` and `given` and nothing opens; "
-        "`witness_preflight` in the receipt says matched, inconclusive or unavailable.",
+        "refused 422 witness-type-mismatch with `expected` and `given`, one of the right type "
+        "that does not compile 422 witness-fails with the checker's `errors`, and nothing "
+        "opens; `witness_preflight` in the receipt says matched, inconclusive or unavailable.",
         params(
             {
                 "target_id": ID_PARAM,
@@ -458,8 +459,9 @@ TOOLS: tuple[Tool, ...] = (
         "Enter a labeled variant of the root (D-30): relation is resolves, partial or related "
         "(default); a label above related needs `relation_proof`, gate-checked. "
         "The witness is checked on the hosted fast checker first: a witness of the wrong type is "
-        "refused 422 witness-type-mismatch with `expected` and `given` and nothing opens; "
-        "`witness_preflight` in the receipt says matched, inconclusive or unavailable.",
+        "refused 422 witness-type-mismatch with `expected` and `given`, one of the right type "
+        "that does not compile 422 witness-fails with the checker's `errors`, and nothing "
+        "opens; `witness_preflight` in the receipt says matched, inconclusive or unavailable.",
         params(
             {
                 "target_id": ID_PARAM,

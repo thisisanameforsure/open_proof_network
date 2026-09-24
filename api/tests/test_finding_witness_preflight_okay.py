@@ -21,7 +21,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import pytest
 from mcp_client import TARGET, McpClient
 from test_finding_check_timeout import LEAN_TIMEOUT
 from test_finding_witness_preflight import (
@@ -51,7 +50,6 @@ def fails() -> dict[str, Any]:
     return body
 
 
-@pytest.mark.xfail(strict=True, reason="F13-T17: the pre-flight ignores okay")
 def test_a_right_typed_witness_that_does_not_compile_is_not_matched() -> None:
     h = harness(fails())
     r = variant(h, RIGHT)
@@ -60,7 +58,6 @@ def test_a_right_typed_witness_that_does_not_compile_is_not_matched() -> None:
     assert h.githost.pushes == [] and h.githost.pulls == []
 
 
-@pytest.mark.xfail(strict=True, reason="F13-T17: the pre-flight ignores okay")
 def test_the_refusal_names_the_checker_errors_and_the_log_id() -> None:
     h = harness(fails())
     r = variant(h, RIGHT)
@@ -78,7 +75,6 @@ def test_a_timeout_is_still_unavailable_never_a_refusal() -> None:
     assert r.json()["witness_preflight"] == "unavailable"
 
 
-@pytest.mark.xfail(strict=True, reason="F13-T17: the pre-flight ignores okay")
 def test_no_verdict_at_all_stays_inconclusive() -> None:
     """``user_error`` and no ``okay``: the checker said nothing about the witness (D1)."""
     body = answer({"expected": EXPECTED, "given": EXPECTED, "matches": True})
@@ -97,7 +93,6 @@ def test_a_compiling_right_typed_witness_is_still_matched() -> None:
     assert r.json()["witness_preflight"] == "matched"
 
 
-@pytest.mark.xfail(strict=True, reason="F13-T17: the pre-flight ignores okay")
 def test_speculative_and_variant_routes_agree() -> None:
     h = harness(fails(), fails())
     a, b = variant(h, RIGHT), speculative(h, RIGHT)
@@ -116,7 +111,6 @@ def test_a_wrong_type_is_still_the_mismatch_whatever_okay_says() -> None:
     assert (r.status_code, r.json()["error"]) == (422, "witness-type-mismatch"), r.text
 
 
-@pytest.mark.xfail(strict=True, reason="F13-T17: the pre-flight ignores okay")
 def test_mcp_propose_variant_carries_the_same_refusal() -> None:
     h = harness(fails())
     bearer = token(h)

@@ -589,6 +589,17 @@ def error_count(body: dict[str, Any]) -> int | None:
     return total if seen else None
 
 
+def checker_errors(body: dict[str, Any]) -> list[str]:
+    """F13-T17: Lean's error messages, then the tool's, as the checker gave them (untrusted text,
+    passed back to the caller who sent it)."""
+    out: list[str] = []
+    for key in ("lean_messages", "tool_messages"):
+        block = body.get(key)
+        errors = block.get("errors") if isinstance(block, dict) else None
+        out += [str(e) for e in errors] if isinstance(errors, list) else []
+    return out
+
+
 def write_log(  # noqa: PLR0913 — one argument per fact the record keeps
     ctx: Context,
     req: CheckRequest,
@@ -650,8 +661,9 @@ def write_log(  # noqa: PLR0913 — one argument per fact the record keeps
 # --- the pre-flight on a proposal (F13-T16) ------------------------------------------------------
 
 #: What a proposal's 201 says of its pre-flight: the checker found the witness's type is the one
-#: step 7 wants; it answered without a verdict (the statement or the witness did not elaborate
-#: there); or it could not be asked (no environment, down, out of time, busy, budget spent).
+#: step 7 wants and the text compiles (F13-T17); it answered without a verdict (the statement or
+#: the witness did not elaborate there); or it could not be asked (no environment, down, out of
+#: time, busy, budget spent).
 PREFLIGHT_MATCHED = "matched"
 PREFLIGHT_INCONCLUSIVE = "inconclusive"
 PREFLIGHT_UNAVAILABLE = "unavailable"
@@ -662,10 +674,11 @@ async def preflight_witness(
 ) -> str:
     """Witness mode over exactly the files a proposal is about to push, before its pull request
     exists: the statement as written (own-Context import included), its generated Context
-    inlined, and the witness. A mismatch is the one refusal (422 ``witness-type-mismatch`` with
-    both types); anything else is an outcome word and the proposal proceeds, because the hosted
-    checker is a courtesy and step 7 is the authority (D-4 v3.14). Charged to the identity's
-    check budget and logged as a check, like every call to the checker (R8, R9)."""
+    inlined, and the witness. Two refusals: a mismatch (422 ``witness-type-mismatch`` with both
+    types), and a witness of the right type that does not compile (422 ``witness-fails`` with the
+    checker's errors, F13-T17); anything else is an outcome word and the proposal proceeds,
+    because the hosted checker is a courtesy and step 7 is the authority (D-4 v3.14). Charged to
+    the identity's check budget and logged as a check, like every call to the checker (R8, R9)."""
     from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
 
     prefix = f"targets/{target_id}/nodes/{node_id}/"
@@ -716,7 +729,24 @@ async def preflight_witness(
     if found is None or found["matches"] is None:
         return PREFLIGHT_INCONCLUSIVE
     if found["matches"]:
-        return PREFLIGHT_MATCHED
+        # F13-T17 (D1): a declaration whose proof fails keeps its stated type, so ``matches``
+        # alone passed PR #195's witness, whose ``decide`` proved the statement false. It is
+        # matched only when the checker's verdict is true too; a body with no verdict at all
+        # (``user_error``) said nothing about the witness.
+        okay = verdict(answer.body)
+        if okay is None:
+            return PREFLIGHT_INCONCLUSIVE
+        if okay:
+            return PREFLIGHT_MATCHED
+        raise api_error(
+            422,
+            "witness-fails",
+            "the witness has the type step 7 wants but does not compile: the checker reported "
+            "errors in the statement and witness it was sent (D-4 step 7), so nothing was "
+            f"opened. Checked on the hosted fast checker ({environment}); not authoritative, "
+            "but step 7 elaborates the same text",
+            details={"errors": checker_errors(answer.body), "log_id": log_id},
+        )
     raise api_error(
         422,
         "witness-type-mismatch",

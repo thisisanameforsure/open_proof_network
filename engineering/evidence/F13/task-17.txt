@@ -20,3 +20,20 @@ Every failure is the defect: the pre-flight answered 201 "matched" for a body wi
 The three that pass are guards (a timeout stays unavailable; a compiling right-typed witness is matched; a wrong
 type is the mismatch whatever okay says). Note: "no okay at all" was *also* "matched" before the fix, not
 "inconclusive" as the plan's "as today" assumed; D1 keeps it inconclusive, so that test is red too.
+
+## green
+fix: checks.preflight_witness — matches true is `matched` only when checks.verdict(body) is true; verdict None is
+`inconclusive`; verdict false raises 422 witness-fails, details {errors: checks.checker_errors(body), log_id}.
+Wording of the route docstrings and both propose_* MCP descriptions updated to name the new refusal.
+$ uv run --frozen pytest -q -p no:warnings api/tests/test_finding_witness_preflight_okay.py api/tests/test_finding_witness_preflight.py api/tests/test_check_witness_mode.py
+34 passed in 0.95s   (8 new + the 26 guards in the two F13-T14/T16 files)
+$ make verify
+All checks passed! (ruff) / mypy: no issues / === 2640 passed, 75 skipped, 89 deselected, 2 warnings in 153.44s ===
+
+## mutants (pytest plugins loaded with -p from the scratchpad; no file edited)
+mut_t17_ignore_okay.py:   checks.verdict = lambda body: True                      (drop the okay read)
+$ PYTHONPATH=<scratch>/mutants:api:gate uv run --frozen pytest -q -p mut_t17_ignore_okay api/tests/test_finding_witness_preflight_okay.py
+5 failed, 3 passed   (the five red tests fail again)
+mut_t17_null_is_false.py: checks.verdict = lambda body: body.get("okay") is True  (treat null as false)
+$ PYTHONPATH=<scratch>/mutants:api:gate uv run --frozen pytest -q -p mut_t17_null_is_false api/tests/test_finding_witness_preflight_okay.py
+FAILED test_no_verdict_at_all_stays_inconclusive — 1 failed, 7 passed

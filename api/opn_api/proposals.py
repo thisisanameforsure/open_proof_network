@@ -10,8 +10,8 @@ The service scaffolds the directory with the gate's own builder (``opn_gate.scaf
 bytes it pushes are exactly the bytes ``opn-gate admit`` will judge; it decides nothing about
 whether the statement is worth having, and it never elaborates anything (C9): before a speculative
 or variant pull request opens, the witness is pre-flighted on the hosted fast checker
-(``checks.preflight_witness``, F13-T16), whose one refusal is a witness of the wrong type and whose
-silence never blocks a proposal. The identity is
+(``checks.preflight_witness``, F13-T16), whose refusals are a witness of the wrong type and one
+that does not compile (F13-T17), and whose silence never blocks a proposal. The identity is
 the caller's, the date is the service clock's, and ``Context.lean`` is generated from the deps'
 committed statements rather than accepted, because F01-R6 needs it byte-equal to them.
 """
