@@ -45,8 +45,6 @@ from opn_api.axle import AxleAnswer, AxleError
 from opn_gate import schemas
 from opn_gate.steps import hazards as gate_hazards
 
-pytestmark = pytest.mark.xfail(strict=True, reason="F13-T20: no hazard pre-flight, no hazards mode")
-
 LEAN = schemas.SCHEMAS_DIR.parent / "lean"
 STATEMENT = (
     "import Mathlib\n\n"

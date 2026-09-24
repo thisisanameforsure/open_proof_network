@@ -61,3 +61,51 @@ Every failure is the missing mechanism, not a missing name: hazards_text is look
 not None names it); the proposal routes answered 201 with no hazards_preflight and no refusal; the side-by-side test
 got one call (the witness's) and its barrier broke (500); /check answered mode-invalid; the MCP enum and descriptions
 lack the mode and the code.
+
+## green
+fix (api/opn_api/checks.py):
+- hazard_sources(): walks HazardsMain.lean's own `import OpnGate.Hazards*` lines, dependencies first, and returns each
+  checker file without its import lines plus HazardsMain's `def registry` list, read not restated (503
+  hazards-program-unreadable when the package lacks them).
+- hazards_program()/hazards_text(): the statement (definitions and Context inlined as for witness mode), `import Lean`,
+  each checker file inside its own `section` (so its `open Lean Meta` ends with it), the registry as
+  OpnGate.Hazards.networkRegistry, and a `run_meta` that selects the target's ids in order, runs OpnGate.Hazards.run
+  under `withTheReader Lean.Core.Context` with no open namespaces, the anonymous namespace and empty options — the
+  context opn-hazards' own `.toIO ctx {env}` gives it, because a finding's location is pretty-printed and is what an
+  acknowledgment must match byte for byte — and logs `OPN-HAZARDS {checkers, findings, capped}` on one info line.
+  No `open ... in` on the run_meta, so no extra scoped notation is active while locations are printed.
+- hazards_verdict(): reads that line back, each key held to its type.
+- target_checkers(): the target's gate-spec hazard_checkers; an unknown id is refused 409 with the gate's own
+  check_config diagnostic.
+- preflight_hazards(): no checkers named -> "clear", nothing spent; else charged and logged (mode "hazards"), the
+  gate's findings_from / acknowledgments_from (read from the META.yaml being pushed) / evaluate, and 422
+  hazard-unacknowledged with details {findings, acknowledged, checkers} as HazardsStep prints them, plus log_id.
+  Down / timeout / no environment / budget spent -> "unavailable"; program never ran -> "inconclusive".
+- preflight_proposal(): the hazard and witness pre-flights under asyncio.gather, so both fit the one 12 s budget
+  the function has before its pull request (F13-T16); a hazard refusal is raised before a witness refusal.
+- POST /check: mode "hazards" (MODES, NODE_MODES, STATEMENT_MODES); reads node_id or statement(+deps); content is
+  refused 400 content-not-used; no proof lints; the answer carries `hazards`.
+proposals.py: both routes call preflight_proposal; the 201 carries hazards_preflight beside witness_preflight.
+mcp/writes.py: check_lean's mode enum and description; propose_* descriptions name hazard-unacknowledged.
+.github/workflows/api-deploy.yml: copies Hazards.lean, HazardsMain.lean and Hazards/ beside the schemas, names each in
+the package check, and deploys on a change to any of them or to gate/opn_gate/steps/hazards.py.
+gate/tests/test_hazards_through_axle_text_lean.py (marker lean): the composed text, elaborated by the pinned `lean`,
+finds exactly what opn-hazards finds on every fixture in test_hazards_lean.py (EXPECTED + EXTRA_DECLS), on the fixture
+graph's three nodes with their Context inlined as the service inlines it, and runs only the named checkers.
+UNRUN HERE: no elan in this container (collected, errors with ToolchainMissingError like test_hazards_lean.py);
+it runs in CI's lean tier.
+
+$ uv run --frozen pytest -q -p no:warnings api/tests/test_finding_hazards_preflight.py
+16 passed in 0.60s
+$ uv run --frozen pytest -q -p no:warnings <hazards, witness preflight (both), witness mode, checks, naming noise>
+72 passed
+$ make verify
+All checks passed! / mypy: no issues / === 2662 passed, 75 skipped, 92 deselected, 2 warnings in 134.29s ===
+(92 deselected = 89 + the three new lean-tier tests)
+
+## mutants (-p mut_t20 from the scratchpad, OPN_MUTANT=<name>)
+no_acks       (acknowledgments not read):            4 failed — refused/acknowledged/only-targets/check-mode tests
+no_justify    (an empty justification counts):       1 failed — test_an_empty_justification_acknowledges_nothing
+all_checkers  (every shipped checker, not the target's): 2 failed — refused (details.checkers), only_the_targets
+sequential    (the two pre-flights one after another): 1 failed — test_the_two_pre_flights_run_side_by_side
+no_verdict    (the tagged line never read):          6 failed — every refusal test and the check-mode answer

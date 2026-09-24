@@ -50,15 +50,26 @@ log = logging.getLogger("opn_api.checks")
 
 SERVICE = hosted.SERVICE
 FIELDS = frozenset({"target_id", "node_id", "content", "mode", "statement", "deps"})
-MODES = ("check", "verify", "witness")
+MODES = ("check", "verify", "witness", "hazards")
 #: F13-T14: the modes that read the node's own statement, so cannot do without a node.
-NODE_MODES = ("verify", "witness")
+NODE_MODES = ("verify", "witness", "hazards")
+#: F13-T16, T20: the modes that may read a statement that is not a node yet, sent as its text.
+STATEMENT_MODES = ("witness", "hazards")
 #: The prefix of the one info line the witness program logs; what follows it is JSON.
 WITNESS_TAG = "OPN-WITNESS"
 #: Step 7's own metaprogram (F01-R3), shipped beside the schemas as ``hosted-checkers.yaml`` is.
 #: Read, never restated: the preview and the gate cannot disagree about a type they compute with
 #: one file.
 WITNESS_SOURCE = schemas.SCHEMAS_DIR.parent / "lean" / "OpnGate" / "WitnessType.lean"
+#: F13-T20: the prefix of the one info line the hazard program logs; what follows it is JSON.
+HAZARDS_TAG = "OPN-HAZARDS"
+#: Step 6's checkers (F02-R1, R2) and the executable that names them, shipped beside the schemas
+#: as ``WitnessType.lean`` is. Read, never restated: the checker files are inlined as they are, and
+#: the registry is ``HazardsMain.lean``'s own.
+LEAN_DIR = schemas.SCHEMAS_DIR.parent / "lean"
+HAZARDS_MAIN = LEAN_DIR / "OpnGate" / "HazardsMain.lean"
+HAZARDS_PREFIX = "OpnGate.Hazards"
+REGISTRY_RE = re.compile(r"^def registry : Array Checker :=\s*(?P<list>#\[[^\]]*\])", re.M)
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 #: A top-level declaration, after comments are blanked: optional attributes and modifiers, the
 #: keyword, and the written name (empty for ``example`` and anonymous instances).
@@ -126,13 +137,19 @@ def parse_body(ctx: Context, fields: dict[str, Any]) -> CheckRequest:
     statement = proposed_statement_field(ctx, fields, mode, node_id)
     if mode in NODE_MODES and node_id is None and statement is None:
         msg = f"{mode} reads a node's statement: node_id is required" + (
-            ", or the statement's text as statement (F13-T16)" if mode == "witness" else ""
+            ", or the statement's text as statement (F13-T16)" if mode in STATEMENT_MODES else ""
         )
         raise api_error(400, "node-id-required", msg)
     content = fields.get("content")
+    if mode == "hazards":
+        # F13-T20: the checkers read a statement; there is nothing else for content to be.
+        if content not in (None, ""):
+            msg = "mode hazards reads the statement (node_id or statement); send no content"
+            raise api_error(400, "content-not-used", msg)
+        content = ""
     if mode == "witness" and content is None:
         content = ""  # F13-T14: no witness yet; the answer is the expected type alone
-    if not isinstance(content, str) or (mode != "witness" and not content.strip()):
+    if not isinstance(content, str) or (mode not in STATEMENT_MODES and not content.strip()):
         raise api_error(400, "content-missing", "content must be the Lean text to check")
     size = len(content.encode("utf-8"))
     if size > ctx.settings.check_max_bytes:
@@ -161,17 +178,21 @@ def too_large(ctx: Context, what: str, size: int) -> Exception:
 def proposed_statement_field(
     ctx: Context, fields: dict[str, Any], mode: str, node_id: str | None
 ) -> str | None:
-    """F13-T16: ``statement`` and ``deps``, which let witness mode read a statement that is not a
-    node yet (a variant's or a crux's, before its proposal merges). Only there: a node's statement
-    is its own, and the other modes check content against nothing or against a node."""
+    """F13-T16: ``statement`` and ``deps``, which let witness mode (and hazards mode, F13-T20) read
+    a statement that is not a node yet (a variant's or a crux's, before its proposal merges). Only
+    there: a node's statement is its own, and the other modes check content against nothing or
+    against a node."""
     statement, deps = fields.get("statement"), fields.get("deps")
     if statement is None:
         if deps is not None:
             msg = "deps are the dependencies a statement's proposal would declare; send statement"
             raise api_error(400, "deps-without-statement", msg)
         return None
-    if mode != "witness":
-        msg = "statement is read in mode witness only; check a statement's text as content"
+    if mode not in STATEMENT_MODES:
+        msg = (
+            "statement is read in modes witness and hazards only; "
+            "check a statement's text as content"
+        )
         raise api_error(400, "statement-not-used", msg)
     if node_id is not None:
         msg = "a node's statement is its own: send node_id or statement, not both"
@@ -547,6 +568,139 @@ def witness_verdict(body: dict[str, Any]) -> dict[str, Any] | None:
     return None
 
 
+# --- the hazard checkers (F13-T20) ---------------------------------------------------------------
+
+
+def _lean_source(module: str) -> str:
+    return (LEAN_DIR / (module.replace(".", "/") + ".lean")).read_text(encoding="utf-8")
+
+
+def hazard_sources() -> tuple[list[tuple[str, str]], str]:
+    """Step 6's checker files as ``opn-hazards`` is built from them, dependencies first, each
+    without its import lines (they import only ``Lean``, F02), and ``HazardsMain.lean``'s
+    registry of checkers, as its text. Walked from ``HazardsMain.lean``'s own imports, so a
+    checker added to the gate is inlined here without an edit."""
+    try:
+        main = HAZARDS_MAIN.read_text(encoding="utf-8")
+        ordered: list[tuple[str, str]] = []
+        seen: set[str] = set()
+
+        def visit(module: str) -> None:
+            if module in seen:
+                return
+            seen.add(module)
+            source = _lean_source(module)
+            for dep in layout.imports_of(source):
+                if dep == HAZARDS_PREFIX or dep.startswith(HAZARDS_PREFIX + "."):
+                    visit(dep)
+            ordered.append((module, IMPORT_LINE_RE.sub("", source).strip("\n")))
+
+        for module in layout.imports_of(main):
+            if module == HAZARDS_PREFIX or module.startswith(HAZARDS_PREFIX + "."):
+                visit(module)
+    except OSError as exc:
+        msg = f"the hazard checkers are not in this package: {exc.filename}"
+        raise api_error(503, "hazards-program-unreadable", msg) from exc
+    registry = REGISTRY_RE.search(main)
+    if registry is None or not ordered:
+        msg = f"{HAZARDS_MAIN.name} names no registry of checkers"
+        raise api_error(503, "hazards-program-unreadable", msg)
+    return ordered, registry.group("list")
+
+
+def hazards_program(decl_name: str, checkers: list[str]) -> str:
+    """The gate's checkers and the few lines that ask them one question: the findings of exactly
+    ``checkers``, in that order, over ``decl_name``'s type, printed as ``opn-hazards`` prints
+    them. Each file sits in a ``section`` so its ``open`` lines end with it, and the question
+    runs under the context ``opn-hazards`` gives it (no open namespaces, no options), because a
+    finding's location is pretty-printed and is what an acknowledgment must match (F02-Q4)."""
+    sources, registry = hazard_sources()
+    block = "".join(
+        f"\nsection\n-- inlined by the network from {module} (F13-T20)\n{src}\nend\n"
+        for module, src in sources
+    )
+    ids = "[" + ", ".join(json.dumps(c) for c in checkers) + "]"
+    return (
+        "\n-- the network's hazard pre-screen (F13-T20): gate/lean/OpnGate/Hazards*.lean\n"
+        f"{block}\n"
+        "namespace OpnGate.Hazards\n"
+        "-- HazardsMain.lean's registry, inlined by the network\n"
+        f"def networkRegistry : Array Checker :=\n  {registry}\n"
+        "end OpnGate.Hazards\n\n"
+        "run_meta do\n"
+        f"  let s ← Lean.getConstInfo `{decl_name}\n"
+        f"  let ids : List String := {ids}\n"
+        "  let selected := ids.toArray.filterMap fun id =>\n"
+        "    OpnGate.Hazards.networkRegistry.find? (·.id == id)\n"
+        "  let (findings, capped) ← withTheReader Lean.Core.Context\n"
+        "      (fun c => { c with openDecls := [], currNamespace := Lean.Name.anonymous,\n"
+        "                         options := Lean.Options.empty })\n"
+        "      (OpnGate.Hazards.run selected s.type)\n"
+        "  let answer := Lean.Json.mkObj [\n"
+        '    ("checkers", Lean.toJson (selected.map (·.id))),\n'
+        '    ("findings", Lean.toJson findings), ("capped", Lean.Json.bool capped)]\n'
+        f'  Lean.logInfo (Lean.MessageData.ofFormat (Std.Format.text ("{HAZARDS_TAG} " ++ '
+        "answer.compress)))\n"
+    )
+
+
+def hazards_text(formal: str, decl_name: str, checkers: list[str]) -> str:
+    """What the checker is sent in hazards mode: the statement under its own header (the
+    definitions already inlined), ``import Lean`` for the checkers, then the program."""
+    lines = formal.splitlines(keepends=True)
+    imports = [i for i, line in enumerate(lines) if line.startswith("import ")]
+    at = imports[-1] + 1 if imports else 0
+    header = "" if "Lean" in layout.imports_of(formal) else "import Lean\n"
+    return "".join(lines[:at]) + header + "".join(lines[at:]) + hazards_program(decl_name, checkers)
+
+
+def hazards_verdict(body: dict[str, Any]) -> dict[str, Any] | None:
+    """The program's one line, read back out of the checker's info messages, in the shape
+    ``opn-hazards`` prints (``checkers``, ``findings`` of ``{checker, location, message}``,
+    ``capped``); ``None`` when it never ran (the statement did not elaborate). Untrusted text:
+    only those keys are read, each held to its type."""
+    messages = body.get("lean_messages")
+    infos = messages.get("infos") if isinstance(messages, dict) else None
+    for info in infos if isinstance(infos, list) else ():
+        _, tag, rest = str(info).partition(HAZARDS_TAG + " ")
+        if not tag:
+            continue
+        try:
+            doc = json.loads(rest.strip())
+        except ValueError:
+            continue
+        if not isinstance(doc, dict):
+            continue
+        raw, ids = doc.get("findings"), doc.get("checkers")
+        if not isinstance(raw, list) or not isinstance(ids, list):
+            continue
+        findings = [
+            {k: f[k] for k in ("checker", "location", "message")}
+            for f in raw
+            if isinstance(f, dict)
+            and all(isinstance(f.get(k), str) for k in ("checker", "location", "message"))
+        ]
+        return {
+            "checkers": [c for c in ids if isinstance(c, str)],
+            "findings": findings,
+            "capped": doc.get("capped") is True,
+        }
+    return None
+
+
+def target_checkers(ctx: Context, target_id: str) -> list[str]:
+    """The hazard checkers the target's ``gate-spec.json`` names, which step 6 runs; one this
+    gate does not ship is the gate owner's configuration error, refused by the gate's own words
+    (``steps.hazards.check_config``, F02-R3)."""
+    from opn_gate.steps import hazards as gate_hazards  # noqa: PLC0415 — only this path needs it
+
+    spec = json.loads(frontier.committed(ctx, f"targets/{target_id}/gate-spec.json"))
+    problem = gate_hazards.check_config(spec)
+    if problem is not None:
+        raise api_error(409, problem.code, problem.message, details=problem.details)
+    return [str(c) for c in spec.get("hazard_checkers") or []]
+
+
 # --- the checker ---------------------------------------------------------------------------------
 
 _SLOTS_LOCK = threading.Lock()
@@ -812,7 +966,136 @@ async def preflight_witness(
     )
 
 
+#: What a proposal's 201 says of its hazard pre-flight (F13-T20): the target's checkers ran and
+#: every finding is acknowledged (or the target names none); the program did not run (the
+#: statement did not elaborate there); or the checker could not be asked.
+PREFLIGHT_CLEAR = "clear"
+
+
+async def preflight_hazards(  # noqa: PLR0911 — one return per outcome word
+    ctx: Context, identity_id: str, target_id: str, node_id: str, files: dict[str, str]
+) -> str:
+    """F13-T20 (D8): step 6 over exactly the statement a proposal is about to push, before its
+    pull request exists, on the hosted checker: the target's checkers, the gate's own matching
+    of each finding against the ``acknowledged_hazards`` in the ``META.yaml`` being pushed
+    (``steps.hazards.evaluate``), and the gate's own refusal, 422 ``hazard-unacknowledged`` with
+    ``findings``, ``acknowledged`` and ``checkers`` as step 6 prints them. Anything else is an
+    outcome word and the proposal proceeds: step 6 is the authority. Charged and logged as a
+    check (R8, R9)."""
+    import yaml  # noqa: PLC0415 — only this path reads a META.yaml
+
+    from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
+    from opn_gate.steps import hazards as gate_hazards  # noqa: PLC0415
+
+    prefix = f"targets/{target_id}/nodes/{node_id}/"
+    parsed = layout.parse_statement(files.get(prefix + "Statement.lean", ""))
+    if not isinstance(parsed, layout.Statement):
+        return PREFLIGHT_UNAVAILABLE  # the scaffold refuses it before this is reached
+    try:
+        checkers = target_checkers(ctx, target_id)
+    except ApiError:
+        return PREFLIGHT_UNAVAILABLE  # the gate owner's configuration, or the graph unread
+    if not checkers:
+        return PREFLIGHT_CLEAR  # step 6 runs nothing on this target; nothing to spend
+    try:
+        ratelimit.check_check(ctx, identity_id)
+    except ApiError:
+        return PREFLIGHT_UNAVAILABLE  # a spent check budget skips the courtesy, never the route
+    req = CheckRequest(target_id, node_id, parsed.text, "hazards")
+    caller = Caller("identity", identity_id)
+    started = time.monotonic()
+    environment: str | None = None
+    try:
+        _, entry = hosted_for(ctx, target_id)
+        if entry is None or entry.environment is None:
+            raise api_error(422, "no-hosted-environment", f"{target_id} has no hosted checker")
+        environment = entry.environment
+        context = files.get(prefix + "Context.lean")
+        defs = inline_defs(ctx, target_id, parsed, "", node_id, context=context)
+        text = hazards_text(forwarded_text(parsed.text, defs), parsed.decl_name, checkers)
+        budget = min(PREFLIGHT_TIMEOUT_S, ctx.settings.check_timeout_s)
+        answer = await asyncio.to_thread(
+            call_checker, ctx, req, text, environment, None, timeout_s=budget
+        )
+        if answer.body.get("error_type") == LEAN_TIMEOUT:
+            raise timed_out(ctx, answer.request_id)
+    except (ApiError, AxleError) as exc:
+        code = exc.code if isinstance(exc, ApiError) else "upstream-unavailable"
+        status = exc.status if isinstance(exc, AxleError) else None
+        write_log(
+            ctx,
+            req,
+            caller,
+            outcome=code,
+            started=started,
+            environment=environment,
+            upstream_status=status,
+        )
+        log.info("hazards preflight %s for %s: %s", PREFLIGHT_UNAVAILABLE, node_id, code)
+        return PREFLIGHT_UNAVAILABLE
+    log_id = write_log(
+        ctx, req, caller, outcome=ANSWERED, started=started, environment=environment, answer=answer
+    )
+    found = hazards_verdict(answer.body)
+    if found is None:
+        return PREFLIGHT_INCONCLUSIVE
+    try:
+        meta = yaml.safe_load(files.get(prefix + "META.yaml", "")) or {}
+    except yaml.YAMLError:
+        meta = {}
+    acks = gate_hazards.acknowledgments_from(meta if isinstance(meta, dict) else {})
+    ev = gate_hazards.evaluate(gate_hazards.findings_from(found), acks)
+    if not ev.unacknowledged:
+        return PREFLIGHT_CLEAR
+    first = ev.unacknowledged[0]
+    raise api_error(
+        422,
+        "hazard-unacknowledged",
+        f"{len(ev.unacknowledged)} unacknowledged hazard finding(s); first: {first.checker} at "
+        f"{first.location}: {first.message}. Nothing was opened: acknowledge each in "
+        "acknowledged_hazards with its checker, its location exactly as printed and a "
+        "justification (F02-R4), or change the statement. Checked with step 6's own checkers "
+        f"on the hosted fast checker ({environment}); not authoritative, step 6 decides",
+        details={
+            "findings": [f.as_dict() for f in ev.unacknowledged],
+            "acknowledged": [a.as_dict() for a in ev.used],
+            "checkers": checkers,
+            "log_id": log_id,
+        },
+    )
+
+
+async def preflight_proposal(
+    ctx: Context, identity_id: str, target_id: str, node_id: str, files: dict[str, str]
+) -> dict[str, str]:
+    """F13-T20: both pre-flights, side by side, so the two fit in the one budget the function has
+    before it opens the pull request (F13-T16). A hazard refusal is raised before a witness
+    refusal: the statement is what the witness is of."""
+    hazards, witness = await asyncio.gather(
+        preflight_hazards(ctx, identity_id, target_id, node_id, files),
+        preflight_witness(ctx, identity_id, target_id, node_id, files),
+        return_exceptions=True,
+    )
+    for outcome in (hazards, witness):
+        if isinstance(outcome, BaseException):
+            raise outcome
+    assert isinstance(hazards, str) and isinstance(witness, str)
+    return {"hazards_preflight": hazards, "witness_preflight": witness}
+
+
 # --- the routes ----------------------------------------------------------------------------------
+
+
+def statement_mode_text(
+    ctx: Context, req: CheckRequest, statement: layout.Statement, formal: str
+) -> str:
+    """The text sent in a mode that reads the statement: the witness program (F13-T14) or the
+    hazard checkers (F13-T20), after ``formal``, the statement with its definitions inlined."""
+    if req.mode == "hazards":
+        return hazards_text(formal, statement.decl_name, target_checkers(ctx, req.target_id))
+    # The caller's own text, not the forwarded one: the definitions and the Context are already
+    # in ``formal``, and inlined into an empty witness they read as one.
+    return witness_text(formal, req.content, statement.decl_name)
 
 
 async def post_check(ctx: Context, request: Request) -> Response:
@@ -849,7 +1132,7 @@ async def post_check(ctx: Context, request: Request) -> Response:
         text = forwarded_text(req.content, defs)
         # F13-T14: a witness is not a proof. It declares ``witness`` and its header is its own,
         # so the gate-gap lints (R4), which are about proofs, say nothing true of it.
-        warnings = [] if req.mode == "witness" else lint(req.content, statement, req.node_id)
+        warnings = [] if req.mode in STATEMENT_MODES else lint(req.content, statement, req.node_id)
         warnings += superseded_warning(ctx, req.node_id)
         if req.mode == "verify" and req.node_id is not None:
             own = layout.node_module(req.node_id, "Context")
@@ -873,11 +1156,9 @@ async def post_check(ctx: Context, request: Request) -> Response:
                 )
         try:
             formal = forwarded_text(statement.text, defs) if statement is not None else None
-            if req.mode == "witness":
+            if req.mode in STATEMENT_MODES:
                 assert statement is not None and formal is not None  # NODE_MODES, above
-                # The caller's own text, not ``text``: the definitions and the Context are
-                # already in ``formal``, and inlined into an empty witness they read as one.
-                text = witness_text(formal, req.content, statement.decl_name)
+                text = statement_mode_text(ctx, req, statement, formal)
             answer = await asyncio.to_thread(call_checker, ctx, req, text, environment, formal)
             if answer.body.get("error_type") == LEAN_TIMEOUT:
                 raise timed_out(ctx, answer.request_id)
@@ -931,6 +1212,8 @@ async def post_check(ctx: Context, request: Request) -> Response:
             "dropped_warnings": dropped,
             "log_id": log_id,
             **({"witness": witness_verdict(answer.body)} if req.mode == "witness" else {}),
+            # F13-T20: step 6's findings as opn-hazards prints them, ready to acknowledge.
+            **({"hazards": hazards_verdict(answer.body)} if req.mode == "hazards" else {}),
         }
     )
 

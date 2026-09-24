@@ -284,6 +284,11 @@ TOOLS: tuple[Tool, ...] = (
         "is not a node yet, as propose_variant or propose_speculative_node would send it, and "
         "the `deps` it would declare) answers the same for that statement, before you propose "
         "it; those two tools run this check themselves and refuse a mismatch. "
+        "Mode hazards, with a node_id or a `statement` (and its `deps`) and no content, runs "
+        "step 6's own hazard checkers, those the target's gate-spec.json names, and answers "
+        "`hazards`: {checkers, findings: [{checker, location, message}], capped}; a finding "
+        "you mean is acknowledged in acknowledged_hazards with its checker, its location "
+        "exactly as printed and a justification. "
         "Never authoritative: a precheck is the verdict. "
         "No token needed; a token raises the limit. Every call is logged without its text; "
         "GET /hosted-checkers.json says which targets have a checker.",
@@ -293,14 +298,14 @@ TOOLS: tuple[Tool, ...] = (
                 "node_id": ID_PARAM,
                 "content": LEAN,
                 "mode": {
-                    "enum": ["check", "verify", "witness"],
-                    "description": "verify needs node_id; witness needs node_id or statement, "
-                    "and no content",
+                    "enum": ["check", "verify", "witness", "hazards"],
+                    "description": "verify needs node_id; witness and hazards need node_id or "
+                    "statement; hazards takes no content",
                 },
                 "statement": {
                     **LEAN,
-                    "description": "mode witness only, instead of node_id: the text of a "
-                    "statement that is not a node yet (one sorry-bodied theorem)",
+                    "description": "modes witness and hazards only, instead of node_id: "
+                    "the text of a statement that is not a node yet (one sorry-bodied theorem)",
                 },
                 "deps": {
                     **DEPS,
@@ -441,7 +446,11 @@ TOOLS: tuple[Tool, ...] = (
         "The witness is checked on the hosted fast checker first: a witness of the wrong type is "
         "refused 422 witness-type-mismatch with `expected` and `given`, one of the right type "
         "that does not compile 422 witness-fails with the checker's `errors`, and nothing "
-        "opens; `witness_preflight` in the receipt says matched, inconclusive or unavailable.",
+        "opens; `witness_preflight` in the receipt says matched, inconclusive or unavailable. "
+        "The statement is run through the target's hazard checkers first as well: a finding "
+        "not in `acknowledged_hazards` is refused 422 hazard-unacknowledged with step 6's "
+        "`findings`, and nothing opens; `hazards_preflight` says clear, inconclusive or "
+        "unavailable.",
         params(
             {
                 "target_id": ID_PARAM,
@@ -463,7 +472,11 @@ TOOLS: tuple[Tool, ...] = (
         "The witness is checked on the hosted fast checker first: a witness of the wrong type is "
         "refused 422 witness-type-mismatch with `expected` and `given`, one of the right type "
         "that does not compile 422 witness-fails with the checker's `errors`, and nothing "
-        "opens; `witness_preflight` in the receipt says matched, inconclusive or unavailable.",
+        "opens; `witness_preflight` in the receipt says matched, inconclusive or unavailable. "
+        "The statement is run through the target's hazard checkers first as well: a finding "
+        "not in `acknowledged_hazards` is refused 422 hazard-unacknowledged with step 6's "
+        "`findings`, and nothing opens; `hazards_preflight` says clear, inconclusive or "
+        "unavailable.",
         params(
             {
                 "target_id": ID_PARAM,

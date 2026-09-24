@@ -11,7 +11,9 @@ bytes it pushes are exactly the bytes ``opn-gate admit`` will judge; it decides 
 whether the statement is worth having, and it never elaborates anything (C9): before a speculative
 or variant pull request opens, the witness is pre-flighted on the hosted fast checker
 (``checks.preflight_witness``, F13-T16), whose refusals are a witness of the wrong type and one
-that does not compile (F13-T17), and whose silence never blocks a proposal. The identity is
+that does not compile (F13-T17), and the statement through step 6's own hazard checkers
+(``checks.preflight_hazards``, F13-T20), whose refusal is an unacknowledged finding; the silence of
+either never blocks a proposal. The identity is
 the caller's, the date is the service clock's, and ``Context.lean`` is generated from the deps'
 committed statements rather than accepted, because F01-R6 needs it byte-equal to them.
 """
@@ -299,7 +301,7 @@ async def post_speculative(ctx: Context, request: Request) -> Response:
         ctx, identity, fields, prefix=SPECULATIVE_PREFIX, origin="authored", speculative=True
     )
     duplicates.check_proposal(ctx, node_id)  # F07-T35: a copy spends no hosted check
-    preflight = await checks.preflight_witness(ctx, identity.id, target_id, node_id, files)
+    preflight = await checks.preflight_proposal(ctx, identity.id, target_id, node_id, files)
     opened = open_proposal(
         ctx,
         identity,
@@ -309,7 +311,7 @@ async def post_speculative(ctx: Context, request: Request) -> Response:
         what="speculative node",
         kind="speculative",
     )
-    return JSONResponse({**opened, "witness_preflight": preflight}, status_code=201)
+    return JSONResponse({**opened, **preflight}, status_code=201)
 
 
 # --- POST /proposals/variant (D-30) ---------------------------------------------------------------
@@ -360,7 +362,7 @@ async def post_variant(ctx: Context, request: Request) -> Response:
         relation_proof=proof,
     )
     duplicates.check_proposal(ctx, node_id)  # F07-T35: a copy spends no hosted check
-    preflight = await checks.preflight_witness(ctx, identity.id, target_id, node_id, files)
+    preflight = await checks.preflight_proposal(ctx, identity.id, target_id, node_id, files)
     opened = open_proposal(
         ctx,
         identity,
@@ -370,7 +372,7 @@ async def post_variant(ctx: Context, request: Request) -> Response:
         what="variant",
         kind="variant",
     )
-    return JSONResponse({**opened, "witness_preflight": preflight}, status_code=201)
+    return JSONResponse({**opened, **preflight}, status_code=201)
 
 
 # --- POST /proposals/witness (F07-Q3, F08-R5) -----------------------------------------------------
