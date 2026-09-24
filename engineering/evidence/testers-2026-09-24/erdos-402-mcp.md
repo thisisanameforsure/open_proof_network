@@ -121,60 +121,117 @@ Generator (`gen.py`):
 import sys
 from math import gcd, lcm
 from fractions import Fraction
-n=int(sys.argv[1])
-L=1
-for k in range(2,n): L=lcm(L,k)
-fr=sorted({Fraction(j,k) for k in range(2,n) for j in range(1,k)}, key=lambda f:(f.denominator,f.numerator))
-V={int(f*L):(f.denominator,f.numerator) for f in fr}
-order=[int(f*L) for f in fr]
-conf=lambda x,y: max(x,y)//gcd(x,y)>=n
-cardnames={1:None,2:"Finset.card_le_two",3:"Finset.card_le_three",4:"Finset.card_le_four",5:"Finset.card_le_five",6:"Finset.card_le_six"}
-def eq(v,x): k,j=V[v]; return f"{k} * {x} = {j} * M"
-def T_expr(T): return "{"+", ".join(f"{V[v][1]} * M / {V[v][0]}" for v in T)+"}"
-def leaf(I,T,present,absent):
-    L_=[]
-    s=len(T)
+
+n = int(sys.argv[1])
+L = 1
+for k in range(2, n):
+    L = lcm(L, k)
+fr = sorted(
+    {Fraction(j, k) for k in range(2, n) for j in range(1, k)},
+    key=lambda f: (f.denominator, f.numerator),
+)
+V = {int(f * L): (f.denominator, f.numerator) for f in fr}
+order = [int(f * L) for f in fr]
+conf = lambda x, y: max(x, y) // gcd(x, y) >= n
+cardnames = {
+    1: None,
+    2: "Finset.card_le_two",
+    3: "Finset.card_le_three",
+    4: "Finset.card_le_four",
+    5: "Finset.card_le_five",
+    6: "Finset.card_le_six",
+}
+
+
+def eq(v, x):
+    k, j = V[v]
+    return f"{k} * {x} = {j} * M"
+
+
+def T_expr(T):
+    return "{" + ", ".join(f"{V[v][1]} * M / {V[v][0]}" for v in T) + "}"
+
+
+def leaf(I, T, present, absent):
+    L_ = []
+    s = len(T)
     if s in cardnames and cardnames[s]:
-        cl=cardnames[s]; card = cl if s==n-2 else f"le_trans {cl} (by norm_num)"
+        cl = cardnames[s]
+        card = cl if s == n - 2 else f"le_trans {cl} (by norm_num)"
     else:
-        c="Finset.card_le_six"
-        for _ in range(s-6): c=f"(Finset.card_insert_le _ _).trans (Nat.succ_le_succ ({c}))"
-        card = c if s==n-2 else f"le_trans ({c}) (by norm_num)"
+        c = "Finset.card_le_six"
+        for _ in range(s - 6):
+            c = f"(Finset.card_insert_le _ _).trans (Nat.succ_le_succ ({c}))"
+        card = c if s == n - 2 else f"le_trans ({c}) (by norm_num)"
     L_.append(f"{I}apply hsub {T_expr(T)} ({card})")
     L_.append(f"{I}intro b hb hbM")
-    L_.append(f"{I}rcases key b hb hbM with " + " | ".join(["k"]*(len(order)+1)))
+    L_.append(f"{I}rcases key b hb hbM with " + " | ".join(["k"] * (len(order) + 1)))
     L_.append(f"{I}· exact (hD b hb k).elim")
     for v in order:
         if v in T:
-            i=T.index(v); s_=len(T)
-            chain="Finset.mem_singleton_self _" if i==s_-1 else "Finset.mem_insert_self _ _"
-            for _ in range(i): chain=f"Finset.mem_insert_of_mem ({chain})"
-            k_,j_=V[v]
-            L_.append(f"{I}· rw [show b = {j_} * M / {k_} by rw [← k, Nat.mul_div_cancel_left b (by norm_num)]]; exact {chain}")
-        elif v in absent: L_.append(f"{I}· exact absurd k ({absent[v]} b hb)")
+            i = T.index(v)
+            s_ = len(T)
+            chain = "Finset.mem_singleton_self _" if i == s_ - 1 else "Finset.mem_insert_self _ _"
+            for _ in range(i):
+                chain = f"Finset.mem_insert_of_mem ({chain})"
+            k_, j_ = V[v]
+            L_.append(
+                f"{I}· rw [show b = {j_} * M / {k_} by rw [← k, Nat.mul_div_cancel_left b (by norm_num)]]; exact {chain}"
+            )
+        elif v in absent:
+            L_.append(f"{I}· exact absurd k ({absent[v]} b hb)")
         else:
-            p=[p for p in present if conf(v,p)][0]; x,hx=present[p]
-            g=gcd(v,p); vr,pr=v//g,p//g
-            if pr>=vr: L_.append(f"{I}· exact (Gen {x} {hx} b hb {pr} {vr} (by norm_num) (by norm_num) (by omega)).elim")
-            else: L_.append(f"{I}· exact (Gen b hb {x} {hx} {vr} {pr} (by norm_num) (by norm_num) (by omega)).elim")
+            p = [p for p in present if conf(v, p)][0]
+            x, hx = present[p]
+            g = gcd(v, p)
+            vr, pr = v // g, p // g
+            if pr >= vr:
+                L_.append(
+                    f"{I}· exact (Gen {x} {hx} b hb {pr} {vr} (by norm_num) (by norm_num) (by omega)).elim"
+                )
+            else:
+                L_.append(
+                    f"{I}· exact (Gen b hb {x} {hx} {vr} {pr} (by norm_num) (by norm_num) (by omega)).elim"
+                )
     return L_
-def build(C,present,absent,ind):
-    I=" "*ind
-    if len(C)<=n-2: return leaf(I,C,present,absent)
-    cand=[v for v in C if v not in present]
-    v=max(cand,key=lambda v: sum(conf(v,u) for u in C))
-    out=[f"{I}by_cases p{v} : ∃ x ∈ A, {eq(v,'x')}", f"{I}· obtain ⟨x{v}, hx{v}, e{v}⟩ := p{v}"]
-    out+=build([u for u in C if u==v or not conf(u,v)],{**present,v:(f"x{v}",f"hx{v}")},absent,ind+2)
-    out+=[f"{I}· push Not at p{v}"]
-    out+=build([u for u in C if u!=v],present,{**absent,v:f"p{v}"},ind+2)
+
+
+def build(C, present, absent, ind):
+    I = " " * ind
+    if len(C) <= n - 2:
+        return leaf(I, C, present, absent)
+    cand = [v for v in C if v not in present]
+    v = max(cand, key=lambda v: sum(conf(v, u) for u in C))
+    out = [f"{I}by_cases p{v} : ∃ x ∈ A, {eq(v, 'x')}", f"{I}· obtain ⟨x{v}, hx{v}, e{v}⟩ := p{v}"]
+    out += build(
+        [u for u in C if u == v or not conf(u, v)],
+        {**present, v: (f"x{v}", f"hx{v}")},
+        absent,
+        ind + 2,
+    )
+    out += [f"{I}· push Not at p{v}"]
+    out += build([u for u in C if u != v], present, {**absent, v: f"p{v}"}, ind + 2)
     return out
-disj=" ∨ ".join([f"{n} * M.gcd b ≤ M"]+[f"{k} * b = {j} * M" for (k,j) in [V[v] for v in order]])
-ks=" ∨ ".join([f"k = {i}" for i in range(n)])+f" ∨ {n} ≤ k"
-js=" ∨ ".join([f"j = {i}" for i in range(n-1)])+f" ∨ {n-1} ≤ j"
-head=open('c6_head.lean').read()
-head=head.replace("(A.card : ℚ) = 6","(A.card : ℚ) = "+str(n)).replace("(0:ℚ) < 6",f"(0:ℚ) < {n}").replace("M.gcd b * 6 ≤ M",f"M.gcd b * {n} ≤ M").replace("6 * M.gcd b ≤ M → False",f"{n} * M.gcd b ≤ M → False").replace("6 ≤ X →",f"{n} ≤ X →").replace("t * 6 ≤ x",f"t * {n} ≤ x").replace("T.card ≤ 4 →",f"T.card ≤ {n-2} →")
-start=head.index("  have key"); end=head.index("  by_contra hcon")
-key=f"""  have key : ∀ b ∈ A, b ≠ M →
+
+
+disj = " ∨ ".join(
+    [f"{n} * M.gcd b ≤ M"] + [f"{k} * b = {j} * M" for (k, j) in [V[v] for v in order]]
+)
+ks = " ∨ ".join([f"k = {i}" for i in range(n)]) + f" ∨ {n} ≤ k"
+js = " ∨ ".join([f"j = {i}" for i in range(n - 1)]) + f" ∨ {n - 1} ≤ j"
+head = open("c6_head.lean").read()
+head = (
+    head.replace("(A.card : ℚ) = 6", "(A.card : ℚ) = " + str(n))
+    .replace("(0:ℚ) < 6", f"(0:ℚ) < {n}")
+    .replace("M.gcd b * 6 ≤ M", f"M.gcd b * {n} ≤ M")
+    .replace("6 * M.gcd b ≤ M → False", f"{n} * M.gcd b ≤ M → False")
+    .replace("6 ≤ X →", f"{n} ≤ X →")
+    .replace("t * 6 ≤ x", f"t * {n} ≤ x")
+    .replace("T.card ≤ 4 →", f"T.card ≤ {n - 2} →")
+)
+start = head.index("  have key")
+end = head.index("  by_contra hcon")
+key = f"""  have key : ∀ b ∈ A, b ≠ M →
       {disj} := by
     intro b hb hbM
     have hbpos : 0 < b := Nat.pos_of_ne_zero (fun h => hA0 (h ▸ hb))
@@ -183,29 +240,36 @@ key=f"""  have key : ∀ b ∈ A, b ≠ M →
     obtain ⟨k, hk⟩ := Nat.gcd_dvd_left M b
     obtain ⟨j, hj⟩ := Nat.gcd_dvd_right M b
     rcases (show {ks} by omega)
-      with {' | '.join(['h']*(n+1))}
+      with {" | ".join(["h"] * (n + 1))}
 {{KCASES}}"""
-kc=["    · subst h; exfalso; omega"]
-for kk in range(1,n):
-    jl=" ∨ ".join([f"j = {i}" for i in range(kk)])+f" ∨ {kk} ≤ j"
+kc = ["    · subst h; exfalso; omega"]
+for kk in range(1, n):
+    jl = " ∨ ".join([f"j = {i}" for i in range(kk)]) + f" ∨ {kk} ≤ j"
     kc.append(f"    · subst h")
-    kc.append(f"      rcases (show {jl} by omega) with {' | '.join(['hj2']*(kk+1))}")
+    kc.append(f"      rcases (show {jl} by omega) with {' | '.join(['hj2'] * (kk + 1))}")
     for i in range(kk):
-        if i==0: kc.append(f"      · subst hj2; exfalso; omega"); continue
+        if i == 0:
+            kc.append(f"      · subst hj2; exfalso; omega")
+            continue
         from math import gcd as _g
-        g_=_g(kk,i); kr,jr=kk//g_,i//g_
-        vv=[v for v in order if V[v]==(kr,jr)][0]; d=order.index(vv)+1; N=len(order)+1
-        inner=f"(by subst hj2; omega : {kr} * b = {jr} * M)"
-        term = inner if d==N-1 else f"Or.inl {inner}"
-        for _ in range(d): term=f"Or.inr ({term})"
+
+        g_ = _g(kk, i)
+        kr, jr = kk // g_, i // g_
+        vv = [v for v in order if V[v] == (kr, jr)][0]
+        d = order.index(vv) + 1
+        N = len(order) + 1
+        inner = f"(by subst hj2; omega : {kr} * b = {jr} * M)"
+        term = inner if d == N - 1 else f"Or.inl {inner}"
+        for _ in range(d):
+            term = f"Or.inr ({term})"
         kc.append(f"      · exact {term}")
     kc.append(f"      · have := Nat.mul_le_mul_left (M.gcd b) hj2; exfalso; omega")
 kc.append(f"    · have := Nat.mul_le_mul_left (M.gcd b) h; exact Or.inl (by omega)")
-key=key.replace("{KCASES}","\n".join(kc)+"\n")
-head=head[:start]+key+head[end:]
-body=head+"\n".join(build(order,{},{},2))+"\n"
-open(f'c{n}_fast4.lean','w').write(body)
-print(len(body.splitlines()),"lines")
+key = key.replace("{KCASES}", "\n".join(kc) + "\n")
+head = head[:start] + key + head[end:]
+body = head + "\n".join(build(order, {}, {}, 2)) + "\n"
+open(f"c{n}_fast4.lean", "w").write(body)
+print(len(body.splitlines()), "lines")
 ```
 - 12:53:42Z Released my claims on variant-6bd06d63 and variant-3377fd96 (200). (The ids of my claims on 780e7ade and the first bc28297c claim were never printed by me, and there is no "my claims" listing — they will expire at 14:31/14:32Z.)
 - 12:53:5xZ `get_node variant-3377fd96` right after #177 merged: still `status: ready`, `proof.present: false`, rendered_from 4a7d60a4 — the products lag the merge (the guide says 3–6 min for the post-merge job). Expected, noted for timing.
