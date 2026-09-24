@@ -94,152 +94,210 @@ Entry point: https://openproofnetwork.org/problems/erdos-402/ (HTTP API only, no
 import sys
 from fractions import Fraction as F
 from math import gcd
-n=int(sys.argv[1])
-M="A.max' hne"
-vals=sorted({F(j,k) for k in range(2,n) for j in range(1,k)}, key=lambda f:(f.denominator,f.numerator))
-L=1
-for v in vals: L=L*v.denominator//gcd(L,v.denominator)
-def form(v,x): return f"{v.denominator} * {x} = {v.numerator} * {M}"
-def win(p,q):
-    a,b=int(p*L),int(q*L)
-    if a<b: a,b,p,q=b,a,q,p
-    g=gcd(a,b)
-    return (p,q) if a//g>=n else None
-def bezout(a,b,g):
+
+n = int(sys.argv[1])
+M = "A.max' hne"
+vals = sorted(
+    {F(j, k) for k in range(2, n) for j in range(1, k)}, key=lambda f: (f.denominator, f.numerator)
+)
+L = 1
+for v in vals:
+    L = L * v.denominator // gcd(L, v.denominator)
+
+
+def form(v, x):
+    return f"{v.denominator} * {x} = {v.numerator} * {M}"
+
+
+def win(p, q):
+    a, b = int(p * L), int(q * L)
+    if a < b:
+        a, b, p, q = b, a, q, p
+    g = gcd(a, b)
+    return (p, q) if a // g >= n else None
+
+
+def bezout(a, b, g):
     # find c,d >=0 with c*b - d*a = g or d*a - c*b = g
-    for c in range(0,60):
-        for d in range(0,60):
-            if c*b-d*a==g: return ('cv',c,d)
-            if d*a-c*b==g: return ('du',c,d)
+    for c in range(0, 60):
+        for d in range(0, 60):
+            if c * b - d * a == g:
+                return ("cv", c, d)
+            if d * a - c * b == g:
+                return ("du", c, d)
     raise Exception
-out=[]
-I="  "
-def emit(s,ind): out.append(I*ind+s)
-emit(f"intro A hA hn",1)
-emit("have hpos : 0 < A.card := by omega",1)
-emit("have hne : A.Nonempty := Finset.card_pos.mp hpos",1)
-emit("have key : ∀ a b : ℕ, a.gcd b * A.card ≤ a → (a.gcd b : ℚ) ≤ (a / A.card : ℚ) := by",1)
-emit("intro a b h",2); emit("rw [le_div_iff₀ (by exact_mod_cast hpos)]",2); emit("exact_mod_cast h",2)
-emit(f"have hM : {M} ∈ A := Finset.max'_mem A hne",1)
-emit(f"have hMpos : 0 < {M} := Nat.pos_of_ne_zero (fun h => hA (h ▸ hM))",1)
-disj=" ∨ ".join([f"({M}).gcd x * {n} ≤ {M}"]+[form(v,"x") for v in vals])
-emit(f"have aux : ∀ x ∈ A, x < {M} →",1); emit(disj+" := by",3)
-emit("intro x hx hlt",2)
-emit("have hxpos : 0 < x := Nat.pos_of_ne_zero (fun h => hA (h ▸ hx))",2)
-emit(f"obtain ⟨k, hk⟩ := Nat.gcd_dvd_left ({M}) x",2)
-emit(f"obtain ⟨j, hj⟩ := Nat.gcd_dvd_right ({M}) x",2)
-emit(f"have hgpos : 0 < ({M}).gcd x := Nat.gcd_pos_of_pos_right _ hxpos",2)
-emit(f"by_cases hkn : {n} ≤ k",2)
-emit("· left",2)
-emit(f"  calc ({M}).gcd x * {n} ≤ ({M}).gcd x * k := Nat.mul_le_mul_left _ hkn",2)
-emit(f"    _ = {M} := hk.symm",2)
-emit("· right",2)
-emit("  have hjk : j < k := by",2)
-emit("    by_contra hh",2); emit("    push_neg at hh",2)
-emit(f"    have : ({M}).gcd x * k ≤ ({M}).gcd x * j := Nat.mul_le_mul_left _ hh",2)
-emit("    omega",2)
-emit("  have hj1 : 1 ≤ j := by",2)
-emit("    rcases Nat.eq_zero_or_pos j with h | h",2)
-emit("    · subst h",2); emit("      omega",2); emit("    · exact h",2)
-ks=list(range(2,n))
-emit("  have hk' : "+" ∨ ".join(f"k = {k}" for k in ks)+" := by omega",2)
-emit("  rcases hk' with "+" | ".join("rfl" for _ in ks),2)
+
+
+out = []
+I = "  "
+
+
+def emit(s, ind):
+    out.append(I * ind + s)
+
+
+emit(f"intro A hA hn", 1)
+emit("have hpos : 0 < A.card := by omega", 1)
+emit("have hne : A.Nonempty := Finset.card_pos.mp hpos", 1)
+emit("have key : ∀ a b : ℕ, a.gcd b * A.card ≤ a → (a.gcd b : ℚ) ≤ (a / A.card : ℚ) := by", 1)
+emit("intro a b h", 2)
+emit("rw [le_div_iff₀ (by exact_mod_cast hpos)]", 2)
+emit("exact_mod_cast h", 2)
+emit(f"have hM : {M} ∈ A := Finset.max'_mem A hne", 1)
+emit(f"have hMpos : 0 < {M} := Nat.pos_of_ne_zero (fun h => hA (h ▸ hM))", 1)
+disj = " ∨ ".join([f"({M}).gcd x * {n} ≤ {M}"] + [form(v, "x") for v in vals])
+emit(f"have aux : ∀ x ∈ A, x < {M} →", 1)
+emit(disj + " := by", 3)
+emit("intro x hx hlt", 2)
+emit("have hxpos : 0 < x := Nat.pos_of_ne_zero (fun h => hA (h ▸ hx))", 2)
+emit(f"obtain ⟨k, hk⟩ := Nat.gcd_dvd_left ({M}) x", 2)
+emit(f"obtain ⟨j, hj⟩ := Nat.gcd_dvd_right ({M}) x", 2)
+emit(f"have hgpos : 0 < ({M}).gcd x := Nat.gcd_pos_of_pos_right _ hxpos", 2)
+emit(f"by_cases hkn : {n} ≤ k", 2)
+emit("· left", 2)
+emit(f"  calc ({M}).gcd x * {n} ≤ ({M}).gcd x * k := Nat.mul_le_mul_left _ hkn", 2)
+emit(f"    _ = {M} := hk.symm", 2)
+emit("· right", 2)
+emit("  have hjk : j < k := by", 2)
+emit("    by_contra hh", 2)
+emit("    push_neg at hh", 2)
+emit(f"    have : ({M}).gcd x * k ≤ ({M}).gcd x * j := Nat.mul_le_mul_left _ hh", 2)
+emit("    omega", 2)
+emit("  have hj1 : 1 ≤ j := by", 2)
+emit("    rcases Nat.eq_zero_or_pos j with h | h", 2)
+emit("    · subst h", 2)
+emit("      omega", 2)
+emit("    · exact h", 2)
+ks = list(range(2, n))
+emit("  have hk' : " + " ∨ ".join(f"k = {k}" for k in ks) + " := by omega", 2)
+emit("  rcases hk' with " + " | ".join("rfl" for _ in ks), 2)
 for k in ks:
-    js=list(range(1,k))
-    emit("  · have : "+" ∨ ".join(f"j = {j}" for j in js)+" := by omega",2)
-    if len(js)==1:
-        emit("    subst this",2); emit("    omega",2)
+    js = list(range(1, k))
+    emit("  · have : " + " ∨ ".join(f"j = {j}" for j in js) + " := by omega", 2)
+    if len(js) == 1:
+        emit("    subst this", 2)
+        emit("    omega", 2)
     else:
-        emit("    rcases this with "+" | ".join("rfl" for _ in js)+" <;> omega",2)
-emit(f"have hle : ∀ x ∈ A, x ≠ {M} → x < {M} :=",1)
-emit(f"fun x hx hxM => lt_of_le_of_ne (Finset.le_max' A x hx) hxM",2)
-emit(f"have he : (A.erase ({M})).card = {n-1} := by",1)
-emit(f"rw [Finset.card_erase_of_mem hM, hn]",2)
-emit(f"by_cases hw : ∃ x ∈ A, x < {M} ∧ ({M}).gcd x * {n} ≤ {M}",1)
-emit("· obtain ⟨x, hx, -, h⟩ := hw",1)
-emit("  exact ⟨_, hM, x, hx, key _ x (by rw [hn]; exact h)⟩",1)
-emit(f"have forms : ∀ x ∈ A, x ≠ {M} →",1)
-emit(" ∨ ".join(form(v,"x") for v in vals)+" := by",3)
-emit("intro x hx hxM",2)
-emit("rcases aux x hx (hle x hx hxM) with h | h",2)
-emit("· exact absurd ⟨x, hx, hle x hx hxM, h⟩ hw",2)
-emit("· exact h",2)
-emit("have gdvd : ∀ u v c d : ℕ, u.gcd v ∣ c * v - d * u := fun u v c d =>",1)
-emit("Nat.dvd_sub (Dvd.dvd.mul_left (Nat.gcd_dvd_right u v) c)",2)
-emit("  (Dvd.dvd.mul_left (Nat.gcd_dvd_left u v) d)",2)
-emit("have gdvd' : ∀ u v c d : ℕ, u.gcd v ∣ d * u - c * v := fun u v c d =>",1)
-emit("Nat.dvd_sub (Dvd.dvd.mul_left (Nat.gcd_dvd_left u v) d)",2)
-emit("  (Dvd.dvd.mul_left (Nat.gcd_dvd_right u v) c)",2)
-m=n-2
-names=["p","q","r","s","t","w"][:m]
-emit(f"have subm : ∀ {' '.join(names)} : ℕ, (∀ x ∈ A, x ≠ {M} → "+" ∨ ".join(f"x = {nm}" for nm in names)+") → False := by",1)
-emit(f"intro {' '.join(names)} h",2)
-emit(f"have hs : A.erase ({M}) ⊆ {{{', '.join(names)}}} := by",2)
-emit("intro x hx",3); emit("rw [Finset.mem_erase] at hx",3)
-emit("have := h x hx.2 hx.1",3)
-emit("simp only [Finset.mem_insert, Finset.mem_singleton]",3)
-emit("exact this",3)
-cardlem={3:"Finset.card_le_three",4:"Finset.card_le_four",5:"Finset.card_le_five",6:"Finset.card_le_six"}[m]
-emit(f"have := (Finset.card_le_card hs).trans {cardlem}",2)
-emit("omega",2)
-for i,v in enumerate(vals):
-    emit(f"have f{i} : ∀ x, {form(v,'x')} → x = {M} * {v.numerator} / {v.denominator} := by",1)
-    emit("intro x h",2); emit("omega",2)
-used={}
-def pairlemma(p,q,pn,qn):
-    key=(p,q)
+        emit("    rcases this with " + " | ".join("rfl" for _ in js) + " <;> omega", 2)
+emit(f"have hle : ∀ x ∈ A, x ≠ {M} → x < {M} :=", 1)
+emit(f"fun x hx hxM => lt_of_le_of_ne (Finset.le_max' A x hx) hxM", 2)
+emit(f"have he : (A.erase ({M})).card = {n - 1} := by", 1)
+emit(f"rw [Finset.card_erase_of_mem hM, hn]", 2)
+emit(f"by_cases hw : ∃ x ∈ A, x < {M} ∧ ({M}).gcd x * {n} ≤ {M}", 1)
+emit("· obtain ⟨x, hx, -, h⟩ := hw", 1)
+emit("  exact ⟨_, hM, x, hx, key _ x (by rw [hn]; exact h)⟩", 1)
+emit(f"have forms : ∀ x ∈ A, x ≠ {M} →", 1)
+emit(" ∨ ".join(form(v, "x") for v in vals) + " := by", 3)
+emit("intro x hx hxM", 2)
+emit("rcases aux x hx (hle x hx hxM) with h | h", 2)
+emit("· exact absurd ⟨x, hx, hle x hx hxM, h⟩ hw", 2)
+emit("· exact h", 2)
+emit("have gdvd : ∀ u v c d : ℕ, u.gcd v ∣ c * v - d * u := fun u v c d =>", 1)
+emit("Nat.dvd_sub (Dvd.dvd.mul_left (Nat.gcd_dvd_right u v) c)", 2)
+emit("  (Dvd.dvd.mul_left (Nat.gcd_dvd_left u v) d)", 2)
+emit("have gdvd' : ∀ u v c d : ℕ, u.gcd v ∣ d * u - c * v := fun u v c d =>", 1)
+emit("Nat.dvd_sub (Dvd.dvd.mul_left (Nat.gcd_dvd_left u v) d)", 2)
+emit("  (Dvd.dvd.mul_left (Nat.gcd_dvd_right u v) c)", 2)
+m = n - 2
+names = ["p", "q", "r", "s", "t", "w"][:m]
+emit(
+    f"have subm : ∀ {' '.join(names)} : ℕ, (∀ x ∈ A, x ≠ {M} → "
+    + " ∨ ".join(f"x = {nm}" for nm in names)
+    + ") → False := by",
+    1,
+)
+emit(f"intro {' '.join(names)} h", 2)
+emit(f"have hs : A.erase ({M}) ⊆ {{{', '.join(names)}}} := by", 2)
+emit("intro x hx", 3)
+emit("rw [Finset.mem_erase] at hx", 3)
+emit("have := h x hx.2 hx.1", 3)
+emit("simp only [Finset.mem_insert, Finset.mem_singleton]", 3)
+emit("exact this", 3)
+cardlem = {
+    3: "Finset.card_le_three",
+    4: "Finset.card_le_four",
+    5: "Finset.card_le_five",
+    6: "Finset.card_le_six",
+}[m]
+emit(f"have := (Finset.card_le_card hs).trans {cardlem}", 2)
+emit("omega", 2)
+for i, v in enumerate(vals):
+    emit(f"have f{i} : ∀ x, {form(v, 'x')} → x = {M} * {v.numerator} / {v.denominator} := by", 1)
+    emit("intro x h", 2)
+    emit("omega", 2)
+used = {}
+
+
+def pairlemma(p, q, pn, qn):
+    key = (p, q)
     if key not in used:
-        used[key]=f"w{len(used)}"
+        used[key] = f"w{len(used)}"
     return used[key]
-cnt=[0]
-def rec(i,present,absent,ind):
+
+
+cnt = [0]
+
+
+def rec(i, present, absent, ind):
     # present: list of (v,name)
-    for (p,pn) in present:
-        for (q,qn) in present:
-            if p!=q and win(p,q)==(p,q):
-                wn=pairlemma(p,q,pn,qn)
-                emit(f"exact {wn} {pn} h{pn} {qn} h{qn} h{pn}' h{qn}'",ind)
-                cnt[0]+=1
+    for p, pn in present:
+        for q, qn in present:
+            if p != q and win(p, q) == (p, q):
+                wn = pairlemma(p, q, pn, qn)
+                emit(f"exact {wn} {pn} h{pn} {qn} h{qn} h{pn}' h{qn}'", ind)
+                cnt[0] += 1
                 return
-    if i==len(vals):
-        cnt[0]+=1
-        emit("exfalso",ind)
-        pv=[pp for pp,_ in present]
+    if i == len(vals):
+        cnt[0] += 1
+        emit("exfalso", ind)
+        pv = [pp for pp, _ in present]
         # p : Fin m → ℕ
-        items=[f"{M} * {v.numerator} / {v.denominator}" for v in pv]
-        while len(items)<m: items.append("0")
-        emit(f"refine subm {' '.join('('+it+')' for it in items)} ?_",ind)
-        emit("intro x hx hxM",ind)
-        emit("rcases forms x hx hxM with "+" | ".join("h" for _ in vals),ind)
+        items = [f"{M} * {v.numerator} / {v.denominator}" for v in pv]
+        while len(items) < m:
+            items.append("0")
+        emit(f"refine subm {' '.join('(' + it + ')' for it in items)} ?_", ind)
+        emit("intro x hx hxM", ind)
+        emit("rcases forms x hx hxM with " + " | ".join("h" for _ in vals), ind)
         for v in vals:
             if v in pv:
-                idx=pv.index(v)
-                inner=f"f{vals.index(v)} x h"
-                t=inner
-                if idx<m-1: t=f"Or.inl ({t})"
-                for _ in range(idx): t=f"Or.inr ({t})"
-                emit(f"· exact {t}",ind)
+                idx = pv.index(v)
+                inner = f"f{vals.index(v)} x h"
+                t = inner
+                if idx < m - 1:
+                    t = f"Or.inl ({t})"
+                for _ in range(idx):
+                    t = f"Or.inr ({t})"
+                emit(f"· exact {t}", ind)
             else:
-                emit(f"· exact absurd ⟨x, hx, h⟩ hN{vals.index(v)}",ind)
+                emit(f"· exact absurd ⟨x, hx, h⟩ hN{vals.index(v)}", ind)
         return
-    v=vals[i]; nm=f"u{i}"
-    emit(f"by_cases hE{i} : ∃ y ∈ A, {form(v,'y')}",ind)
-    emit(f"· obtain ⟨{nm}, h{nm}, h{nm}'⟩ := hE{i}",ind)
-    rec(i+1,present+[(v,nm)],absent,ind+1)
-    emit(f"· have hN{i} := hE{i}",ind)
-    rec(i+1,present,absent+[v],ind+1)
-pre=len(out)
-rec(0,[],[],1)
-tree=out[pre:]; del out[pre:]
-for (p,q),wn in used.items():
-    a,b=int(p*L),int(q*L); g=gcd(a,b)
-    kind,c,d=bezout(a,b,g)
-    emit(f"have {wn} : ∀ u ∈ A, ∀ v ∈ A, {form(p,'u')} → {form(q,'v')} → ∃ a ∈ A, ∃ b ∈ A, a.gcd b ≤ (a / A.card : ℚ) := by",1)
-    emit("intro u hu v hv hu' hv'",2)
-    emit("refine ⟨u, hu, v, hv, key u v ?_⟩",2)
-    lem="gdvd" if kind=='cv' else "gdvd'"
-    emit(f"have := Nat.le_of_dvd (by omega) ({lem} u v {c} {d})",2)
-    emit("rw [hn]",2); emit("omega",2)
+    v = vals[i]
+    nm = f"u{i}"
+    emit(f"by_cases hE{i} : ∃ y ∈ A, {form(v, 'y')}", ind)
+    emit(f"· obtain ⟨{nm}, h{nm}, h{nm}'⟩ := hE{i}", ind)
+    rec(i + 1, present + [(v, nm)], absent, ind + 1)
+    emit(f"· have hN{i} := hE{i}", ind)
+    rec(i + 1, present, absent + [v], ind + 1)
+
+
+pre = len(out)
+rec(0, [], [], 1)
+tree = out[pre:]
+del out[pre:]
+for (p, q), wn in used.items():
+    a, b = int(p * L), int(q * L)
+    g = gcd(a, b)
+    kind, c, d = bezout(a, b, g)
+    emit(
+        f"have {wn} : ∀ u ∈ A, ∀ v ∈ A, {form(p, 'u')} → {form(q, 'v')} → ∃ a ∈ A, ∃ b ∈ A, a.gcd b ≤ (a / A.card : ℚ) := by",
+        1,
+    )
+    emit("intro u hu v hv hu' hv'", 2)
+    emit("refine ⟨u, hu, v, hv, key u v ?_⟩", 2)
+    lem = "gdvd" if kind == "cv" else "gdvd'"
+    emit(f"have := Nat.le_of_dvd (by omega) ({lem} u v {c} {d})", 2)
+    emit("rw [hn]", 2)
+    emit("omega", 2)
 out.extend(tree)
 sys.stderr.write(f"leaves {cnt[0]} lines {len(out)}\n")
 print("\n".join(out))
