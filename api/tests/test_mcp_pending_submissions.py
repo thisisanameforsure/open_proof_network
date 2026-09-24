@@ -33,7 +33,7 @@ def test_get_submission_tool_is_the_route_for_an_open_append(harness: Harness) -
     annex(harness, token)
     harness.githost.set_pull_request_state(1, mergeable_state="blocked", runs=[FAILED_GATE])
     over_http = harness.client.get("/submissions/1").json()
-    assert over_http["pull_request"]["runs"] == [FAILED_GATE]
+    assert over_http["pull_request"]["runs"] == [{**FAILED_GATE, "jobs": []}]  # F07-T42
     client = McpClient(harness)
     assert client.ok("get_submission", {"submission_id": "1"}) == over_http
     assert client.ok("get_submission", {"submission_id": "000001"}) == over_http

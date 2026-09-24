@@ -120,6 +120,11 @@ class Context:
     # lives here rather than in a table keyed by id(ctx), because a collected Context's address
     # is reused by the next one (checks.slots).
     check_slots: threading.BoundedSemaphore | None = None
+    # F07-T39, Q47: one lock per pull request, held while a record is reconciled (its live read,
+    # a racer's conversion, its closing), so two threads never do that work twice for one pull
+    # request; ``pr_locks_guard`` makes the table itself safe to grow from several threads.
+    pr_locks: dict[int, threading.RLock] = field(default_factory=dict)
+    pr_locks_guard: threading.Lock = field(default_factory=threading.Lock)
 
 
 Handler = Callable[[Context, Request], Awaitable[Response]]
