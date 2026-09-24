@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F16 — Harness connectors: coding agents</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F16</nav>
+<h1>F16 — Harness connectors: coding agents</h1>
+<p class="subtitle">A tested connector for each coding agent a hobbyist is likely to use: its config
+snippet and pointer to the guide, proved by tests at four levels: the snippet parses, the tool
+surface passes the harness's known limits, the real harness binary connects, and a fresh agent in
+that harness completes a contribution. Built so that "harness-agnostic" (D-1) is a measured
+result.</p>
+
+<h2>1. Summary</h2>
+<p>D-1 says the gate cannot tell harnesses apart, and D-28 ships an MCP server "so any MCP-speaking
+agent (Claude Code, Codex, Gemini CLI, Cursor, custom harnesses) can participate in one tool call".
+The only harness the network has ever been exercised through is Claude, and most of that through
+hand-written JSON-RPC rather than a harness's own MCP configuration (session notes 2026-09-12 to
+2026-09-23). The guide's only setup line is <code>claude mcp add</code>. D-1's claim has never been
+tested.</p>
+<p>This feature adds a <strong>connector registry</strong> under the api (<code>api/clients/</code>):
+one entry per coding-agent harness, holding:</p>
+<ul>
+  <li>its config template</li>
+  <li>how it carries the bearer token</li>
+  <li>how it finds the contributor guide</li>
+  <li>its headless command</li>
+  <li>the known limits of its MCP client</li>
+  <li>the version last verified, with that version's evidence</li>
+</ul>
+<p>The site's Docs page and a generated guide section render from it with the configured service URL.
+Most of the feature is its tests (§5a), which prove each connector at four levels, from a parse
+check that costs nothing to a fresh agent completing a contribution inside the real harness.
+A scheduled job repeats the cheap real-harness check against each harness's latest release,
+because these clients change month to month.</p>
+<p>A connector is a client of the plain protocol and nothing else. It adds no route, no tool and no
+capability (D-28's bijection rule), sits outside the trust base with the MCP server, and is
+invisible to the gate. The harness a contributor names in <code>tooling.harness</code> stays
+declared and never verified (D-23), and no gate code may read it (R12).</p>
+<p>Not here: adapters for automated provers that take a <code>sorry</code> and return a proof
+(Aristotle and self-run open-weight models), which are F17; import and export for orchestrating
+research harnesses, which waits for a user who asks (the research doc, part 3); and any change to
+D-28's tool surface, which is the owner's (Q3).</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a hobbyist with a Codex, Gemini, Cursor, Copilot or Claude subscription, I want to paste
+    one snippet and have my agent see the network's tools and read the guide, so that my first
+    contribution is about the mathematics and not about MCP configuration.</li>
+  <li>As that hobbyist, once my agent has minted a write token, I want to know exactly how my
+    harness sends it, so that writes do not fail with <code>401</code> in a session that was set up
+    for reads.</li>
+  <li>As the owner, I want a failing test the day a harness release breaks our snippet, or a new
+    MCP tool breaks a harness's limits, so that the Docs page never tells a contributor something
+    false (the 2026-09-19 log entry: a sentence on a page is a claim).</li>
+  <li>As someone adding a connector for a harness not on the list, I want a checklist that my entry
+    either passes or fails, so that my connector is accepted on evidence rather than on the
+    owner's reading.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong></p>
+<ul>
+  <li>The registry: its schema, and entries for the priority harnesses: Claude Code, OpenAI
+    Codex CLI, Gemini CLI, GitHub Copilot (the CLI, and VS Code agent mode, which reads the same
+    <code>.mcp.json</code>), and Cursor (Q1, Q9).</li>
+  <li>Rendering the registry into the Docs page and into a generated section of the guide.</li>
+  <li>A compatibility profile per harness, checked against the live tool surface.</li>
+  <li>A container image carrying the pinned harness binaries, for the real-harness tiers.</li>
+  <li>A runner that reports each harness as pass, fail or not attempted.</li>
+  <li>A weekly job that checks the latest harness releases for drift.</li>
+  <li>One recorded fresh-agent run per priority harness on the bench (F14-T13).</li>
+  <li>The contribution checklist for new entries.</li>
+</ul>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>Prover adapters ("sorry in, proof out"): F17.</li>
+  <li>New MCP tools, new routes, or changes to how a tool takes its token (D-28, D-35; Q3 proposes
+    one for the owner).</li>
+  <li>Any instruction file written into the graph repository beyond its <code>AGENTS.md</code>
+    (D-35; Q4).</li>
+  <li>Second-tier harnesses (OpenCode, Zed, Windsurf, Cline, Aider and others). They come in
+    through R15's checklist, not in this feature.</li>
+  <li>Ranking, endorsing or recommending one harness over another (D-1). The Docs page lists every
+    entry that passes, in alphabetical order.</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F16-R1</td><td>The api shall keep one connector registry,
+    <code>api/clients/registry.yaml</code>, validated by <code>api/clients/registry.schema.json</code>
+    (beside the adapter, as F09-Q5 placed the MCP result schemas). Each entry carries:
+    <ul>
+      <li><code>id</code> and display name</li>
+      <li><code>transport</code>: <code>streamable-http</code>, or <code>stdio-bridge</code> with
+        the bridge pinned</li>
+      <li><code>config</code>: format (<code>json</code>, <code>toml</code>, <code>cli</code>),
+        project and user paths, and a template</li>
+      <li><code>bearer</code>: how a header is supplied, and whether from an environment
+        variable</li>
+      <li><code>instructions</code>: which file the harness reads, and how it is pointed at
+        <code>AGENTS.md</code></li>
+      <li><code>headless</code>: the non-interactive command and its tool pre-approval</li>
+      <li><code>list_check</code>: a command that connects and lists the server's tools without a
+        model call, and what its output must contain</li>
+      <li><code>profile</code>: the harness's MCP client limits (R5), each with a source URL and
+        date</li>
+      <li><code>verified</code>: harness version, date and evidence path</li>
+    </ul></td></tr>
+  <tr><td>F16-R2</td><td>The registry shall name no hostname. Templates carry
+    <code>{mcp_url}</code> and <code>{token_env}</code> placeholders, filled at render time from
+    the site's and the api's own configured service URL (the 2026-09-09 log entry: a domain is
+    configuration).</td></tr>
+  <tr><td>F16-R3</td><td>The registry shall render in one function,
+    <code>opn_api.clients.render(entry, mcp_url)</code>, into:
+    <ul>
+      <li>the exact file contents or command a contributor pastes;</li>
+      <li>a "Connect your harness" section on the site's Docs page;</li>
+      <li>the text between two markers in <code>gate/agents/AGENTS.md</code>, which the
+        guide's graph copy carries unchanged (F10).</li>
+    </ul>
+    When the registry changes and the guide section does not, the fast tier shall fail.</td></tr>
+  <tr><td>F16-R4</td><td>Each rendered snippet shall parse in its own format (<code>json</code>,
+    <code>toml</code> via <code>tomllib</code>, or a shell command via <code>shlex</code>) and
+    shall have every key path of a dated copy of the harness's own documented example, kept
+    under <code>api/tests/fixtures/clients/&lt;id&gt;/</code>.</td></tr>
+  <tr><td>F16-R5</td><td>For every entry, every tool in <code>opn_api.mcp.server.TOOLS</code>
+    shall satisfy the entry's profile: tool count, name pattern and length, description length,
+    and the JSON Schema keywords the client refuses or drops. When a tool breaks a limit, the
+    fast tier shall fail, naming the harness, the tool and the rule, before any deploy can
+    publish the tool.</td></tr>
+  <tr><td>F16-R6</td><td>No rendered snippet shall contain a token literal. Where a harness can
+    send a header, the snippet shall read the token from the environment variable
+    <code>OPN_TOKEN</code>. Where it cannot, the entry shall say so, and the Docs page shall show
+    the HTTP path for writes (Q3).</td></tr>
+  <tr><td>F16-R7</td><td>Each entry shall point its harness at the contributor guide. Where the
+    harness reads <code>AGENTS.md</code> natively, nothing is added. Where it can be configured to
+    read another file name, the snippet does that. Otherwise the snippet's first line tells the
+    agent to read <code>AGENTS.md</code>. No file is added to the graph repository (D-35;
+    Q4).</td></tr>
+  <tr><td>F16-R8</td><td>When the harness tier runs, for each entry, it shall:
+    <ol>
+      <li>install the entry's pinned harness version in the harness image;</li>
+      <li>write the rendered snippet into a scratch home and project;</li>
+      <li>run <code>list_check</code> against the real api served locally over the fake host
+        (the walkthrough's <code>serve_in_thread</code>);</li>
+      <li>pass only if both hold: the command's output names the server as connected, and the
+        server's own request record shows <code>initialize</code> and <code>tools/list</code>
+        from that run.</li>
+    </ol>
+    This needs no model key.</td></tr>
+  <tr><td>F16-R9</td><td>When the harness tier runs with that harness's model key present, it shall
+    drive the entry's <code>headless</code> command with one fixed prompt. The prompt asks the
+    agent to call <code>server_info</code>, <code>get_node</code> on the tutorial node and
+    <code>check_lean</code> on the tutorial proof, then, with <code>OPN_TOKEN</code> set, one
+    authenticated read-back. The test shall assert only on the server's own record of calls,
+    arguments and whether a bearer arrived, never on the model's text (the 2026-09-10 log entry:
+    a green run is not a checked run).</td></tr>
+  <tr><td>F16-R10</td><td>The runner, <code>gate/tools/harness_check.py</code>, shall report each
+    entry and level as <code>pass</code>, <code>fail</code> or <code>not-attempted</code>, with
+    the reason. <code>not-attempted</code> counts against the verdict (the 2026-09-12 log entry:
+    a rehearsal that reports READY with steps skipped is lying by omission). An entry is shown as
+    verified on the Docs page only for the version and date of a run that passed R8.</td></tr>
+  <tr><td>F16-R11</td><td>A scheduled workflow, <code>harness-drift.yml</code>, shall run R8 each
+    week against each harness's latest release as well as its pinned version. When the latest
+    fails where the pin passes, the job shall go red and name the harness and both versions. The
+    pin moves only in a commit that carries a passing run's evidence.</td></tr>
+  <tr><td>F16-R12</td><td>Each rendered guide section shall tell the agent to declare its harness
+    id in <code>tooling.harness</code> (D-23). No module under <code>gate/opn_gate/</code> shall
+    read <code>tooling.harness</code> or <code>tooling.model</code> to decide anything (D-1).</td></tr>
+  <tr><td>F16-R13</td><td>No connector shall add a capability. A registry template may reference
+    only the MCP URL, the api base URL, the token environment variable and paths in the
+    contributor's own clone; every tool a connector's instructions name shall be in
+    <code>TOOLS</code> (D-28).</td></tr>
+  <tr><td>F16-R14</td><td>Each priority harness shall have one recorded fresh-agent run on the
+    F14-T13 bench, driven through that harness's own MCP configuration as rendered by this
+    feature, with no hand-written JSON-RPC. Each run shall be graded by
+    <code>bench.py replay --assert</code> and pass only if all hold:
+    <ul>
+      <li>the agent earned a token through the tutorial node;</li>
+      <li>it made at least one write that <code>classify</code> accepts;</li>
+      <li>the replayed products render.</li>
+    </ul>
+    Its report goes to <code>engineering/evidence/F16/</code>.</td></tr>
+  <tr><td>F16-R16</td><td>Each profile shall also carry the harness's result-size cap. When the
+    fast tier renders every read tool's result over a frontier and a node at least as large as the
+    live graph's (a synthetic fixture sized from the committed live products, not the small
+    fixture graph), no result shall exceed the smallest cap among the entries. Claude Code's
+    default is 25,000 tokens (research, part 1).</td></tr>
+  <tr><td>F16-R17</td><td>Every read tool shall be annotated <code>readOnlyHint: true</code> and
+    every write tool <code>readOnlyHint: false</code>. Codex's <code>exec</code> denies an
+    unannotated tool in headless mode (research, part 1), so a missing annotation silently
+    turns a read tool off in one harness.</td></tr>
+  <tr><td>F16-R15</td><td>A new entry shall be accepted when three things hold:
+    <ul>
+      <li>the fast-tier tests, which are parametrised over the registry so a new entry is tested
+        without new test code, pass;</li>
+      <li>its documented-example fixture and profile sources are present;</li>
+      <li>its R8 check passes in the harness tier.</li>
+    </ul>
+    <code>api/clients/README.md</code> states these as the contribution checklist.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F16-AC1</td><td>Given the registry, when it is loaded, then it validates against its
+    schema, and each schema rule has a failing fixture entry (a missing profile source, an unknown
+    transport, a template with a literal host) that names the rule it breaks.</td>
+    <td><code>api/tests/test_clients_registry.py::test_registry_valid</code>,
+    <code>::test_registry_refusals</code></td></tr>
+  <tr><td>F16-AC2</td><td>Given every entry, when rendered with a test URL, then no output contains
+    a hostname other than that URL's, and no output contains a string shaped like an
+    <code>opn_</code> token.</td>
+    <td><code>api/tests/test_clients_render.py::test_no_hostname</code>,
+    <code>::test_no_token_literal</code></td></tr>
+  <tr><td>F16-AC3</td><td>Given every entry, when rendered, then it parses in its format and has
+    every key path of the harness's documented example fixture.</td>
+    <td><code>api/tests/test_clients_render.py::test_parses[&lt;id&gt;]</code>,
+    <code>::test_matches_documented_shape[&lt;id&gt;]</code></td></tr>
+  <tr><td>F16-AC4</td><td>Given the current tool surface, when each tool is checked against each
+    profile, then there are no violations. Given a synthetic tool that breaks each rule in turn,
+    the check names that harness, tool and rule.</td>
+    <td><code>api/tests/test_clients_profile.py::test_surface_fits[&lt;id&gt;]</code>,
+    <code>::test_violation_named[&lt;rule&gt;]</code></td></tr>
+  <tr><td>F16-AC5</td><td>Given the registry and <code>gate/agents/AGENTS.md</code>, when the
+    marked section is compared with the render, then they are equal. After a one-character
+    registry edit they differ, and the test says which entry. The graph copy stays equal
+    (the existing <code>test_graph_copy_is_identical</code>).</td>
+    <td><code>gate/tests/test_walkthrough.py::test_connectors_section_is_rendered</code></td></tr>
+  <tr><td>F16-AC6</td><td>Given the rendered site from the fixture graph, when the Docs page is
+    read, then it lists each entry alphabetically with the rendered snippet and its verified
+    version and date. An entry with no passing R8 evidence shows "not yet verified", never a
+    version.</td>
+    <td><code>site/tests/test_docs_connectors.py::test_listed</code>,
+    <code>::test_unverified_says_so</code>; screenshot at 1440 and 390</td></tr>
+  <tr><td>F16-AC7</td><td>Given the <code>tools/list</code> answer, when each entry's
+    instructions and the guide section are scanned for tool names, then every name is in
+    <code>TOOLS</code>. Every template placeholder is one of R13's four.</td>
+    <td><code>api/tests/test_clients_render.py::test_no_new_capability</code></td></tr>
+  <tr><td>F16-AC8</td><td>Given the source of <code>gate/opn_gate/</code>, when it is parsed, then
+    no expression reads <code>tooling</code>'s <code>harness</code> or <code>model</code> except to
+    copy it into a record. A mutant module that branches on it is caught.</td>
+    <td><code>gate/tests/test_harness_blind.py::test_gate_never_reads_harness</code>,
+    <code>::test_mutant_caught</code></td></tr>
+  <tr><td>F16-AC9</td><td>Given the harness image and the local api, when R8 runs for each
+    priority entry, then the harness reports the server connected and the server's record shows
+    that run's <code>initialize</code> and <code>tools/list</code>. Given a snippet with a wrong
+    path, the same check fails with the harness's own error captured.</td>
+    <td><code>api/tests/test_clients_harness.py::test_list_check[&lt;id&gt;]</code>,
+    <code>::test_broken_snippet_fails[&lt;id&gt;]</code> (marker <code>harness</code>)</td></tr>
+  <tr><td>F16-AC10</td><td>Given a model key for an entry, when R9's prompt runs headless, then the
+    server's record shows the three read calls with the tutorial arguments and one call carrying
+    the bearer from <code>OPN_TOKEN</code>. Given no key, the runner reports
+    <code>not-attempted</code> with the reason, and the verdict is not <code>pass</code>.</td>
+    <td><code>api/tests/test_clients_harness.py::test_headless_round_trip[&lt;id&gt;]</code>
+    (markers <code>harness</code>, <code>network</code>);
+    <code>gate/tests/test_harness_check.py::test_not_attempted_is_not_pass</code></td></tr>
+  <tr><td>F16-AC11</td><td>Given the drift workflow with a stubbed "latest" that fails and a pin
+    that passes, when it runs, then the job fails and names the harness and both versions. With
+    both passing it succeeds, and it changes no file.</td>
+    <td><code>gate/tests/test_harness_check.py::test_drift_names_versions</code>,
+    <code>::test_drift_writes_nothing</code></td></tr>
+  <tr><td>F16-AC12</td><td>Given each priority harness, when a fresh agent works the bench through
+    it, then <code>bench.py replay --assert</code> exits 0, and the report records the token, the
+    accepted write and every point of friction.</td>
+    <td><code>engineering/evidence/F16/fresh-&lt;id&gt;.md</code> +
+    <code>replay-&lt;id&gt;.json</code> (network tier, one per harness)</td></tr>
+  <tr><td>F16-AC14</td><td>Given the synthetic live-sized fixture, when every read tool's result is
+    serialised, then its estimated token count (characters / 4, the conservative estimate) is under
+    the smallest profile cap, and the test prints the largest result's size. Given a cap set 1%
+    below the largest result, the test fails naming the tool.</td>
+    <td><code>api/tests/test_clients_profile.py::test_results_fit</code>,
+    <code>::test_results_cap_named</code></td></tr>
+  <tr><td>F16-AC15</td><td>Given <code>tools/list</code>, when annotations are read, then every
+    tool in <code>READS</code> has <code>readOnlyHint: true</code> and every write tool has
+    <code>false</code>. A tool added without an annotation fails, naming Codex's rule.</td>
+    <td><code>api/tests/test_clients_profile.py::test_read_tools_annotated</code></td></tr>
+  <tr><td>F16-AC13</td><td>Given a new registry entry and no new test code, when the fast tier runs,
+    then the entry is tested by AC1–AC4 and AC7, and a missing fixture or profile source fails,
+    naming the checklist item.</td>
+    <td><code>api/tests/test_clients_registry.py::test_new_entry_is_tested</code></td></tr>
+</table>
+
+<h3>5a. Test tiers</h3>
+<p class="status-note">Four levels, from cheapest to most expensive. Each catches something the
+level below cannot.</p>
+<table>
+  <tr><th>Level</th><th>What it proves</th><th>What it cannot see</th><th>Where it runs</th></tr>
+  <tr><td>1. Static (AC1–AC8, AC13)</td><td>The snippet is well formed and shaped as the harness
+    documents it. The tool surface is inside every harness's known limits. The guide and the Docs
+    page agree with the registry. The gate is blind to the harness.</td><td>Whether the harness
+    accepts the snippet: our copy of its documentation can be stale.</td><td><code>make
+    verify</code>, pre-commit, under a second.</td></tr>
+  <tr><td>2. Real client, no model (AC9)</td><td>The pinned harness binary parses our config,
+    connects over its own transport, and lists our tools. The server confirms it.</td><td>Whether a
+    model in that harness can use the tools: schema handling at call time, result size, timeouts,
+    carrying the bearer.</td><td><code>make verify-harness</code>: the harness image, CI on push
+    and weekly (R11). No secret.</td></tr>
+  <tr><td>3. Real client, real model (AC10)</td><td>A model in that harness calls read tools with
+    correct arguments and sends the bearer. Checked from the server's record.</td><td>Whether an
+    agent can find its way through the guide to a contribution.</td><td>By hand or in a nightly
+    job, only where a key exists (Q5). <code>not-attempted</code> otherwise, and never shown as a
+    pass.</td></tr>
+  <tr><td>4. Fresh agent (AC12)</td><td>A newcomer in that harness gets from the snippet to an
+    accepted write. Friction is recorded.</td><td>Live-host behaviour (the bench's precheck
+    always passes, F14-T13).</td><td>Once per harness per feature, and when a pin
+    moves.</td></tr>
+</table>
+
+<h3>5b. What each entry must get right</h3>
+<p class="status-note">Each row is a trap the research found (<code>docs/research_harnesses_2026-09.html</code>,
+part 1, read from each vendor's source or documentation on 2026-09-24). Each one is a named test,
+so each trap is caught by a test, and not by a contributor's first failed session.</p>
+<table>
+  <tr><th>Harness</th><th>Trap</th><th>Test</th></tr>
+  <tr><td>Claude Code</td><td>An <code>--mcp-config</code> or <code>.mcp.json</code> entry with
+    <code>url</code> and no <code>type: http</code> is silently skipped. It reads
+    <code>CLAUDE.md</code>, not <code>AGENTS.md</code>. Results above 25,000 tokens are
+    cut.</td><td><code>test_matches_documented_shape[claude-code]</code> requires
+    <code>type</code>; AC9's broken-snippet case drops it and must fail; Q4; AC14</td></tr>
+  <tr><td>Codex CLI</td><td>No SSE: streamable HTTP or stdio only. <code>codex exec</code> denies
+    every tool that needs approval, so write tools need
+    <code>default_tools_approval_mode = "approve"</code> and read tools need
+    <code>readOnlyHint</code>. The token comes from <code>bearer_token_env_var</code>, never from
+    the file. Default per-call timeout is 300 s.</td><td>AC3 (TOML key paths), AC15, AC10's bearer
+    call; <code>check_lean</code> and precheck polling stay under 300 s per call (the fast tier
+    asserts the route timeouts, F13-T13)</td></tr>
+  <tr><td>Gemini CLI</td><td><code>httpUrl</code> is streamable HTTP; <code>url</code> means SSE.
+    Tools are renamed <code>mcp_&lt;server&gt;_&lt;tool&gt;</code> and cut at 63 characters. A server
+    name with an underscore breaks policy rules. <code>$schema</code>,
+    <code>additionalProperties</code> and defaults inside <code>anyOf</code> are stripped. It
+    reads <code>AGENTS.md</code> only when <code>context.fileName</code> lists it. Whether
+    <code>${VAR}</code> expands in <code>headers</code> is undocumented.</td><td>AC3 requires
+    <code>httpUrl</code>; AC4's name rule is <code>len("mcp_" + server + "_" + tool) ≤ 63</code> and
+    a server name without an underscore; the api's existing unknown-field refusals
+    (<code>test_finding_unknown_fields.py</code>) stand in for the stripped
+    <code>additionalProperties</code>; AC9 with <code>OPN_TOKEN</code> set answers the header
+    question from the server's record</td></tr>
+  <tr><td>GitHub Copilot</td><td>VS Code reads <code>.vscode/mcp.json</code> under a top-level
+    <code>servers</code> key, or the portable <code>.mcp.json</code>; 128 tools per request. VS Code
+    has no headless mode, so the Copilot CLI (<code>copilot -p … --allow-tool</code>) stands in for
+    levels 2 and 3 (Q9).</td><td>AC3 for both files; AC9 and AC10 through the Copilot CLI</td></tr>
+  <tr><td>Cursor</td><td>No primary source could be read. A limit of 40 tools across all servers
+    is reported but unverified. Headless use is <code>agent -p --approve-mcps</code>
+    (unverified). A forum report says <code>mcp.json</code> headers are dropped on
+    <code>tools/call</code> over streamable HTTP. If true, a Cursor agent cannot write through
+    the MCP at all (Q3).</td><td>AC4 checks 40 until level 2 settles it; AC10's bearer call settles
+    the header report from the server's record; the entry shows "not yet verified" until AC9
+    passes (AC6)</td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li>Level 1 adds under one second to <code>make verify</code>.</li>
+  <li>Level 2: under 60 s per harness once the image is built; the image is built once per pin
+    change and cached. Its size is recorded in the evidence (the 2026-09-14 log entry: a large
+    image is a disk event).</li>
+  <li>Level 3: at most five tool calls per harness per run. Model spend per run is recorded; a key's
+    budget ceiling is a failure mode to design for (the 2026-09-17 log entry).</li>
+  <li>Level 4: 40 minutes per harness, as the 2026-09-23 run.</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li>Snippets never carry a token (R6). A config file in a contributor's project that did would
+    be committed sooner or later. The environment variable is the one door on the contributor's
+    side.</li>
+  <li>The harness image runs third-party binaries, so it never runs with a secret other than one
+    model key, never touches a live host at level 2, and gets no write token to anything but the
+    local fake service.</li>
+  <li>Model keys for level 3 would be new secrets and are not in C8's inventory. Adding one is the
+    owner's call (Q5). Until then level 3 runs by hand with the owner's own key from
+    <code>.env</code>, and CI reports <code>not-attempted</code>.</li>
+  <li>Contributor free text still reaches every harness demarcated (D-28, C9). Level 3 checks that
+    the <code>{untrusted: true}</code> wrapper survives each harness's result rendering by reading
+    an annex through <code>get_node</code> (Q6).</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>F09</strong> (required): the MCP server and <code>TOOLS</code>, the surface every
+    profile is checked against.</li>
+  <li><strong>F10</strong> (required): the guide, its runner and the graph copy.</li>
+  <li><strong>F04</strong> (required): the Docs page.</li>
+  <li><strong>F14</strong> (required): the bench (<code>gate/tools/bench.py</code>) for level 4.</li>
+  <li><strong>Research</strong>: <code>docs/research_harnesses_2026-09.html</code> (2026-09-24;
+    several vendor sites were unreachable from the research sandbox, and Cursor's facts are all
+    unverified) supplies each entry's facts. Each fact is dated and sourced there, and quoted into the entry's profile with
+    its URL.</li>
+  <li><strong>Packages:</strong> none in <code>uv.lock</code>. <code>tomllib</code> and
+    <code>shlex</code> are the standard library. The harness binaries live only in the harness
+    image, each pinned by version and checksum in its Dockerfile, and are never a Python
+    dependency (C5).</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F16-Q1</td><td>Five priority harnesses, chosen by the owner's "hobbyists first"
+    (2026-09-24) and the research's usage evidence. Tao's public list of AI contributions to Erdős
+    problems names GPT, Aristotle, Claude and Gemini, then Codex, and the official
+    <code>leanprover/skills</code> pack targets Claude Code, Gemini CLI and Codex CLI. All five
+    connect natively over streamable HTTP, so no stdio bridge is specified. OpenCode, Zed, Cline,
+    Windsurf, Kiro, Goose and Junie all support remote HTTP MCP and come in through R15. Aider has
+    no MCP support. A sixth entry needs no spec change.</td></tr>
+  <tr><td>F16-Q2</td><td>The registry lives in <code>api/clients/</code>, not a new top-level
+    directory, so D-35's list of what this repository holds does not change. Connectors are the
+    client side of D-28's server. The owner leaned towards this repository on 2026-09-24. A
+    top-level <code>connectors/</code> is a one-line D-35 amendment if wanted.</td></tr>
+  <tr><td>F16-Q3</td><td><strong>For the owner.</strong> Write tools read the bearer from the HTTP
+    header only (<code>api/opn_api/mcp/auth.py</code>). The token is minted <em>inside</em> a
+    session, by <code>get_token</code>, and most harnesses read MCP headers only at startup, so
+    the agent must stop, export <code>OPN_TOKEN</code>, and restart. No tester has been through
+    this, because every tester spoke JSON-RPC by hand. Level 3 measures the cost per harness. If
+    the cost is high, the fix is a D-28 amendment letting a write tool take the token as an
+    argument too. That is a change to the protocol surface, so it is proposed, not built.</td></tr>
+  <tr><td>F16-Q4</td><td>Codex, Copilot and Cursor read <code>AGENTS.md</code> natively. Gemini
+    does once <code>context.fileName</code> lists it, which its snippet sets. Claude Code reads only
+    <code>CLAUDE.md</code>, so a Claude Code contributor gets the guide through the snippet's first
+    line. The alternative is a one-line <code>CLAUDE.md</code> containing <code>@AGENTS.md</code> in
+    the graph (this repository's own shape), which is a file D-35 does not list, so it is the
+    owner's call. Level 4 measures whether the first-line pointer is enough.</td></tr>
+  <tr><td>F16-Q5</td><td>A model key per harness in CI would add up to five secrets to C8. The
+    default is none: level 3 is run by hand from the owner's <code>.env</code> and its output is
+    committed as evidence. CI states <code>not-attempted</code>. The cheapest place to start, if
+    the owner wants one in CI, is Gemini's free tier (1,000 requests a day with a Google login;
+    its docs recommend an API key for headless use). Claude's <code>setup-token</code> gives a
+    one-year subscription token for <code>-p</code>, and Copilot's CLI takes a personal access
+    token.</td></tr>
+  <tr><td>F16-Q6</td><td>Whether a harness shows the untrusted-data wrapper to its model as data or
+    flattens it into text is unknown for all five. Level 3 records it. A harness that flattens it
+    is noted on the Docs page, not refused (D-1).</td></tr>
+  <tr><td>F16-Q8</td><td>Chat apps' remote connectors (Claude.ai, ChatGPT) are a zero-install tier:
+    a URL pasted into a settings page, which AXLE already supports. They have no CLI, so they get
+    level 1 (the URL and the guide sentence) and a hand-run level 4 only, and the Docs page says
+    so. Not a priority entry; recorded because for many hobbyists this is the easiest way
+    in.</td></tr>
+  <tr><td>F16-Q9</td><td>VS Code agent mode has no headless mode, so its entry is proved through
+    the Copilot CLI, which reads the same <code>.mcp.json</code>. The CLI is a stand-in: it proves
+    the file and the server, not the editor. VS Code itself gets a hand-run level 4.</td></tr>
+  <tr><td>F16-Q7</td><td>A new pytest marker <code>harness</code> and a Makefile target
+    <code>verify-harness</code> amend conventions §2 (T2), because this tier needs neither Lean
+    nor the step-3 image but does need third-party binaries. The marker is excluded from
+    <code>make verify</code> in the same way as <code>docker</code>.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> planned &middot; <strong>Tasks:</strong> T1 ✓ 2026-09-24
+(<code>make verify</code>; <code>engineering/evidence/F16/task-1.txt</code>) &middot; T2&ndash;T10 todo</div>
+
+<h2>Tasks</h2>
+<p class="status-note">Dependency-ordered. Red first: each task lands its tests failing, as
+strict xfails naming the task, before the code that passes them (the 2026-09-21 log entry). An
+xfail that fails on a missing name is not red, so the seam is added at its trivial value
+first.</p>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F16-T1</td><td>This spec, its index row, and the research doc.</td>
+    <td><code>engineering/specs/features/F16.html</code>, <code>engineering/specs/index.html</code>,
+    <code>docs/research_harnesses_2026-09.html</code></td><td>&mdash;</td><td><code>make verify</code></td></tr>
+  <tr><td>F16-T2</td><td>The registry schema and loader; the <code>harness</code> marker and
+    <code>verify-harness</code> target (Q7); AC1 and AC13, with a two-entry test registry.</td>
+    <td><code>api/clients/registry.schema.json</code>, <code>api/opn_api/clients.py</code>,
+    <code>api/tests/test_clients_registry.py</code>, <code>pyproject.toml</code>,
+    <code>Makefile</code>, <code>engineering/specs/conventions.html</code></td><td>T1</td>
+    <td><code>uv run pytest api/tests/test_clients_registry.py -q</code></td></tr>
+  <tr><td>F16-T3</td><td>The five entries from the research, each with its documented-example
+    fixture and sourced profile; <code>render</code>; AC2, AC3, AC7.</td>
+    <td><code>api/clients/registry.yaml</code>, <code>api/opn_api/clients.py</code>,
+    <code>api/tests/fixtures/clients/**</code>, <code>api/tests/test_clients_render.py</code></td>
+    <td>T2</td><td><code>uv run pytest api/tests/test_clients_render.py -q</code></td></tr>
+  <tr><td>F16-T4</td><td>The profile check over <code>TOOLS</code> (AC4), the result-size check
+    over a synthetic live-sized fixture (AC14), and the annotation rule (AC15). Any violation it finds
+    in today's surface is recorded as a strict xfail naming the harness, and fixed in the tool's
+    schema only where the fix changes no D-28 row (otherwise it goes to Q3's owner
+    list).</td>
+    <td><code>api/opn_api/clients.py</code>, <code>api/tests/test_clients_profile.py</code></td>
+    <td>T3</td><td><code>uv run pytest api/tests/test_clients_profile.py -q</code></td></tr>
+  <tr><td>F16-T5</td><td>The generated guide section and its markers (AC5), and the D-1 blindness
+    test with its mutant (AC8).</td>
+    <td><code>gate/agents/AGENTS.md</code>, <code>gate/tests/test_walkthrough.py</code>,
+    <code>gate/tests/test_harness_blind.py</code></td><td>T3</td>
+    <td><code>uv run pytest gate/tests/test_walkthrough.py gate/tests/test_harness_blind.py -q</code></td></tr>
+  <tr><td>F16-T6</td><td>The Docs page section (AC6), with screenshots.</td>
+    <td><code>site/opn_site/{render,prose}.py</code>, <code>site/opn_site/templates/docs.html</code>,
+    <code>site/tests/test_docs_connectors.py</code></td><td>T3</td>
+    <td><code>uv run pytest site/tests/test_docs_connectors.py -q</code> + screenshots</td></tr>
+  <tr><td>F16-T7</td><td>The harness image, pinned by version and checksum; the runner with its
+    three states (R10); level 2 for all five (AC9), and the not-attempted rule (AC10's second
+    half).</td>
+    <td><code>api/clients/harness.Dockerfile</code>, <code>gate/tools/harness_check.py</code>,
+    <code>api/tests/test_clients_harness.py</code>, <code>gate/tests/test_harness_check.py</code></td>
+    <td>T3</td><td><code>make verify-harness</code></td></tr>
+  <tr><td>F16-T8</td><td>The drift workflow (R11, AC11) and the CI job for level 2 on push.</td>
+    <td><code>.github/workflows/harness-drift.yml</code>, <code>.github/workflows/ci.yml</code>,
+    <code>gate/tests/test_harness_check.py</code></td><td>T7</td>
+    <td><code>uv run pytest gate/tests/test_harness_check.py -q</code> + one green scheduled run id</td></tr>
+  <tr><td>F16-T9</td><td>Level 3 for each harness with the owner's keys (AC10); Q3's restart cost
+    and Q6's wrapper handling measured and written up.</td>
+    <td><code>engineering/evidence/F16/level3-*.txt</code></td><td>T7</td>
+    <td><code>uv run python gate/tools/harness_check.py --level 3 --all</code></td></tr>
+  <tr><td>F16-T10</td><td>Level 4: one fresh agent per harness on the bench (AC12); findings
+    triaged into the findings register; the checklist README (R15).</td>
+    <td><code>engineering/evidence/F16/fresh-*.md</code>, <code>api/clients/README.md</code>,
+    <code>engineering/specs/findings.html</code></td><td>T9</td>
+    <td><code>uv run python gate/tools/bench.py replay --bench &lt;dir&gt; --assert</code> per harness</td></tr>
+</table>
+
+<footer>Open Proof Network · F16 spec v0 · 2026-09-24 · drafted from the owner's "hobbyists first,
+then people running their own provers; focus on testing"</footer>
+</body>
+</html>

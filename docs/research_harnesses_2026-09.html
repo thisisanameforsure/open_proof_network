@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Harnesses — Proving Harnesses and Connectors, September 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1A2129; --ink-soft:#4A5561; --paper:#FAFAF9;
+  --teal:#0E6363; --teal-ink:#0A4A4A; --hair:#DDDAD2;
+  --amber:#8F6A1E; --card:#FFFFFF;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --serif:"Source Serif 4",Georgia,serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);
+  font-size:17px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:1fr;gap:0}
+@media(min-width:1100px){.wrap{grid-template-columns:230px minmax(0,72ch);gap:56px}}
+header.site{border-top:3px solid var(--teal);border-bottom:1px solid var(--hair);padding:44px 20px 30px}
+header.site .in{max-width:1180px;margin:0 auto}
+header.site h1{font-size:30px;line-height:1.2;margin:0 0 8px;font-weight:700;letter-spacing:-.01em}
+header.site .sub{color:var(--ink-soft);font-size:16px;max-width:64ch;margin:0}
+header.site .meta{font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);margin-top:14px;max-width:96ch}
+header.site .meta b{color:var(--teal-ink);font-weight:600}
+
+main{padding:34px 0 90px;min-width:0}
+h2{font-size:22px;margin:2.4em 0 .7em;padding-top:.9em;border-top:1px solid var(--hair);letter-spacing:-.005em}
+h2:first-of-type{border-top:none;padding-top:0;margin-top:.6em}
+h2 .sn{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--teal-ink);
+  border:1px solid var(--teal);border-radius:3px;padding:1px 6px;margin-right:9px;
+  vertical-align:3px;white-space:nowrap}
+h3{font-size:17.5px;margin:2em 0 .55em}
+h4{font-size:16px;margin:1.6em 0 .4em}
+p,li{max-width:72ch}
+a{color:var(--teal);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2.5px}
+a:hover{color:var(--teal-ink)}
+strong{font-weight:600}
+em{font-style:italic}
+code{font-family:var(--mono);font-size:.85em;background:#F1EFEA;border-radius:3px;padding:.08em .3em}
+pre{background:#F1EFEA;border:1px solid var(--hair);border-radius:4px;padding:14px 16px;
+  overflow-x:auto;font-size:13.5px;line-height:1.5}
+pre code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.2em 1em;border-left:3px solid var(--hair);color:var(--ink-soft)}
+blockquote p{margin:.4em 0}
+hr{border:none;border-top:1px solid var(--hair);margin:2.6em 0}
+.tw{overflow-x:auto;margin:1.2em 0}
+table{border-collapse:collapse;font-size:15px;width:100%}
+th,td{border-bottom:1px solid var(--hair);padding:8px 12px 8px 0;text-align:left;vertical-align:top}
+th{font-weight:600;font-size:13.5px;color:var(--ink-soft);border-bottom:2px solid var(--ink)}
+td code,th code{font-size:.9em}
+td.num{font-family:var(--mono);font-size:13.5px;line-height:1.45}
+table.cols{table-layout:fixed}
+table.cols td,table.cols th{padding-right:20px}
+ul,ol{padding-left:1.4em}
+li{margin:.35em 0}
+li::marker{color:var(--ink-soft)}
+
+p.note{font-size:15px;color:var(--ink-soft);border-left:2px solid var(--hair);
+  padding:.15em 0 .15em 14px;margin:.9em 0}
+p.note em{color:var(--teal-ink);font-style:normal;font-weight:600;font-size:13.5px}
+p.note.warn{border-left-color:var(--amber)}
+p.note.warn em{color:var(--amber)}
+
+.dref{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--teal-ink);
+  border:1px solid var(--hair);border-radius:3px;padding:1px 5px;white-space:nowrap;
+  text-decoration:none}
+.dref:hover{border-color:var(--teal)}
+
+.cf{font-family:var(--mono);font-size:11px;font-weight:600;border-radius:3px;
+  padding:1px 6px;white-space:nowrap;border:1px solid var(--hair);color:var(--ink-soft)}
+.cf-hi{border-color:var(--teal);color:var(--teal-ink)}
+.cf-lo{border-color:var(--amber);color:var(--amber)}
+
+details.more{margin:.9em 0 1.4em;border-left:2px solid var(--hair);padding-left:14px;max-width:72ch}
+details.more>summary{cursor:pointer;list-style:none;font-family:var(--mono);font-size:12.5px;color:var(--teal-ink);font-weight:600;
+  padding:2px 0;user-select:none;display:flex;gap:10px;align-items:baseline}
+details.more>summary::-webkit-details-marker{display:none}
+details.more>summary::before{content:"\25B8";font-size:11px;color:var(--teal)}
+details.more[open]>summary::before{content:"\25BE"}
+details.more>summary .tags{font-weight:400;color:var(--ink-soft)}
+details.more[open]>summary{margin-bottom:.4em}
+details.more p,details.more li{max-width:70ch}
+.xall{font-family:var(--mono);font-size:12px;margin-top:8px}
+.xall button{font:inherit;color:var(--teal);background:none;border:1px solid var(--hair);border-radius:3px;padding:2px 8px;cursor:pointer;margin-right:6px}
+.xall button:hover{border-color:var(--teal)}
+@media print{details.more{border-left:none;padding-left:0}details.more>summary{display:none}}
+
+.refuted{color:var(--ink-soft)}
+.refuted .rc{display:block;font-size:15px}
+.refuted .rv{font-family:var(--mono);font-size:12px;color:var(--amber)}
+
+/* plan items */
+.plan{border:1px solid var(--hair);border-radius:4px;padding:14px 18px;margin:1.2em 0;background:var(--card);max-width:72ch}
+.plan h4{margin:0 0 .4em;font-size:16px}
+.plan h4 .pid{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--teal-ink);
+  border:1px solid var(--teal);border-radius:3px;padding:1px 6px;margin-right:9px;vertical-align:2px}
+.plan .kv{font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);margin:0 0 .6em}
+.plan .kv b{color:var(--teal-ink);font-weight:600}
+.plan p{margin:.5em 0}
+
+.hl{margin-left:8px;font-size:.75em;color:var(--hair);text-decoration:none;opacity:0}
+h2:hover .hl,h3:hover .hl,.hl:focus-visible{opacity:1;color:var(--teal)}
+
+.rail{display:none}
+@media(min-width:1100px){
+  .rail{display:block;position:sticky;top:26px;align-self:start;max-height:calc(100vh - 52px);
+    overflow-y:auto;padding:34px 0 40px;font-size:13px;scrollbar-width:thin}
+  .rail a{text-decoration:none;display:block;color:var(--ink-soft);margin:5px 0}
+  .rail a:hover{color:var(--teal-ink)}
+  .rail .rh{font-weight:600;color:var(--ink);margin:14px 0 4px;font-size:12.5px}
+  .rail .rh:first-child{margin-top:0}
+}
+footer{border-top:1px solid var(--hair);color:var(--ink-soft);font-size:13.5px;
+  padding:20px;text-align:left}
+footer .in{max-width:1180px;margin:0 auto}
+</style>
+</head>
+<body>
+<header class="site"><div class="in">
+  <h1>Harnesses: Who Proves Through the Network, and What a Connector Must Carry</h1>
+  <p class="sub">Which proving harnesses contributors actually use as of September 2026. Part 1 covers hobbyist coding agents (weighted most). Part 2 covers hosted and self-run automated provers. Part 3 briefly covers orchestrating research harnesses. For each, the note sets out what a connector to the network's git, HTTP and MCP surfaces must contain, and closes with recommendations and how to test them. Evidence first, then a plan. It makes no decisions.</p>
+  <p class="meta"><b>Research note</b> · 2026-09-24 · target surface: the stateless remote MCP server at <code>https://api.openproofnetwork.org/mcp</code> (streamable HTTP; reads unauthenticated, writes token-authenticated), the HTTP service and git, pinned to Lean 4.33.1 and a pinned Mathlib · <b>subordinate to <a href="architecture_decisions.html">architecture_decisions.html</a></b>: where this note and the decisions disagree, the decisions govern · nothing here changes a decision.</p>
+  <p class="xall"><button data-x="1">Expand all detail</button><button data-x="0">Collapse all</button></p>
+</div></header>
+<div class="wrap">
+<nav class="rail" aria-label="Sections">
+  <a class="rh" href="#method">Method and provenance</a>
+  <a href="#s0">§0 Summary</a>
+  <a href="#s1">§1 Who actually proves, and with what</a>
+  <a href="#s2">§2 Part 1: hobbyist coding agents</a>
+  <a href="#s3">§3 Part 2: automated provers</a>
+  <a href="#s4">§4 Part 3: orchestrating harnesses</a>
+  <a href="#s5">§5 Recommendations for connectors</a>
+  <a href="#s6">§6 How to test them</a>
+  <a href="#s7">§7 Unverified and gaps</a>
+  <a href="#sources">Sources</a>
+</nav>
+
+<main>
+
+<h2 id="method"><span class="sn">Method</span>Method and provenance</h2>
+
+<p>This note was produced on 2026-09-24 from five parallel research threads:</p>
+<ul>
+<li>how the five major coding agents connect to a remote MCP server;</li>
+<li>Lean tooling for agents, plus the second-tier harnesses and the evidence of who uses what;</li>
+<li>hosted and closed provers;</li>
+<li>open-weight provers and the infrastructure to serve and check them;</li>
+<li>orchestrating research harnesses.</li>
+</ul>
+<p>Every claim below carries its URL in the <a href="#sources">sources</a> table. All sources were accessed on 2026-09-24.</p>
+
+<p class="note warn"><em>The proxy blocked primary sites.</em> The sandbox's egress proxy blocked a set of vendor and research hosts: cursor.com, developers.openai.com, code.visualstudio.com, docs.github.com, opencode.ai, agents.md, aristotle.harmonic.fun, seed.bytedance.com, mistral.ai, huggingface.co, arxiv.org, leanexplore.com and the Lean Zulip archive. Where a GitHub mirror of the primary source existed, the fact was read there at a pinned commit:</p>
+<ul>
+<li>Codex: <code>openai/codex</code> at <code>61e23bc</code>, from the Rust source, because its docs directory is now redirect stubs;</li>
+<li>Gemini CLI: <code>google-gemini/gemini-cli</code> at <code>87de0b6</code>;</li>
+<li>VS Code: <code>microsoft/vscode-docs</code> at <code>751d930</code>;</li>
+<li>Copilot CLI: <code>github/docs</code>;</li>
+<li>Aristotle: the <code>aristotlelib</code> 2.1.0 wheel, downloaded and read.</li>
+</ul>
+<p>The remaining facts come from search-engine snippets and are marked <span class="cf cf-lo">snippet</span>. <a href="#s7">§7</a> lists them. Sentences marked <span class="cf">inference</span> are this note's own reading.</p>
+
+<p>Confidence chips: <span class="cf cf-hi">primary</span> means read from the source itself, or from its repository at a pinned commit. <span class="cf">secondary</span> means a third-party write-up. <span class="cf cf-lo">snippet</span> means the page could not be fetched and the claim rests on a search-result extract.</p>
+
+<h2 id="s0"><span class="sn">§0</span>Summary</h2>
+
+<p><strong>Most contributors will arrive through three coding agents: Claude Code, Codex CLI and Gemini CLI.</strong> Copilot and Cursor come next. Every major harness now connects natively to a remote streamable-HTTP MCP server, so the network's endpoint needs no bridge anywhere. A connector's real content is therefore not transport. It is five smaller things:</p>
+<ul>
+<li>the config key and file name;</li>
+<li>the placeholder syntax for secrets;</li>
+<li>which instruction file the harness reads;</li>
+<li>how headless mode approves an MCP call (every headless mode <em>denies</em> an unapproved call rather than prompting);</li>
+<li>the client's limits on names, schemas, result size and timeouts.</li>
+</ul>
+<p>Harnesses also leave the Lean version to the contributor. That is the largest correctness risk for hobbyists: a local project off the gate's Lean or Mathlib pin passes locally and fails the gate.</p>
+<p><strong>Aristotle is the only hosted prover an outsider can drive programmatically.</strong> The strong open-weight provers were trained on Lean 4.9, about two years behind the network's 4.33.1. Seed-Prover, AlphaProof Nexus, AxiomProver and Astra publish results but offer no API. A prover connector's substance is statement preservation, version probing and a verdict taken from the gate.</p>
+<p><strong>Orchestrators already use the network's own shape.</strong> They have converged on Lean declarations with <code>sorry</code> bodies and declared dependency edges, which maps almost one to one onto the network's nodes and holes.</p>
+
+<h2 id="s1"><span class="sn">§1</span>Who actually proves, and with what</h2>
+
+<p><strong>No survey or count exists of which harness Lean hobbyists use.</strong> <span class="cf cf-hi">primary</span> Four proxies agree on the ranking.</p>
+<ol>
+<li><strong>Tao's wiki of AI contributions to Erdős problems</strong> (Oct 2025 to Jun 2026) names models more often than harnesses. Its approximate counts: GPT variants 200+, Aristotle 150+ (mostly formalization), Claude 80+, Gemini 70+, Codex 30+. "Claude Code" is named for problem 696, and no Cursor or second-tier harness appears. <span class="cf cf-lo">summariser counts</span> The counts were extracted by an automated summariser, not by hand.</li>
+<li><strong>Official Lean tooling targets.</strong> The leanprover/skills pack supports exactly Claude Code, Gemini CLI and Codex CLI. cameronfreer/lean4-skills (about 448 stars) ships native plugins for Claude Code and Codex, and documents Gemini CLI, Cursor, Windsurf, Copilot, Antigravity and OpenCode. <span class="cf cf-hi">primary</span></li>
+<li><strong>Tao's Claude Code formalization video.</strong> The first attempt took 45 minutes and crashed on its token budget. A decomposed second attempt took 25 minutes. <span class="cf cf-lo">snippet</span></li>
+<li><strong>The network's own record.</strong> Every tester run from 2026-09-12 to 2026-09-23 used Claude agents. Claude Code was an MCP client of the service through <code>claude mcp add --transport http</code> on 2026-09-11 (repo log).</li>
+</ol>
+<p><span class="cf">inference</span> The ranking follows:</p>
+<ul>
+<li><strong>Ship first:</strong> Claude Code, Codex CLI and Gemini CLI.</li>
+<li><strong>Second:</strong> Copilot (VS Code and CLI) and Cursor.</li>
+<li><strong>Document cheaply:</strong> the second tier.</li>
+<li><strong>Treat specially:</strong> Mistral Vibe with Leanstral. It is the only Lean-specialised harness with a vendor behind it, and it was trained around lean-lsp-mcp. <span class="cf cf-lo">snippet</span></li>
+</ul>
+
+<h2 id="s2"><span class="sn">§2</span>Part 1: hobbyist coding-agent harnesses</h2>
+
+<h3 id="s2-1">2.1 Summary table</h3>
+
+<div class="tw"><table>
+<thead><tr><th>Harness</th><th>Transport / config</th><th>Bearer or secret syntax</th><th>Instruction file</th><th>Headless and MCP approval</th><th>Binding MCP limits</th></tr></thead>
+<tbody>
+<tr><td><strong>Claude Code</strong> <span class="cf cf-hi">primary</span></td><td><code>claude mcp add --transport http opn &lt;url&gt;</code>; <code>.mcp.json</code> <code>mcpServers</code> with <code>"type":"http"</code>; user scope <code>~/.claude.json</code>; SSE deprecated, auto-fallback from v2.1.265</td><td><code>--header "Authorization: Bearer …"</code>; <code>${VAR}</code>, <code>${VAR:-default}</code> in <code>.mcp.json</code></td><td>CLAUDE.md (<code>@AGENTS.md</code> import); native AGENTS.md unconfirmed</td><td><code>claude -p --allowedTools "mcp__opn"</code>; <code>--permission-mode dontAsk</code>; an entry with <code>url</code> but no <code>type</code> is skipped and the run exits 0, visible only in <code>mcp_server_errors</code></td><td>25k-token result cap, warning at 10k; <code>MCP_TIMEOUT</code> 30 s startup; calls over 2 min go to background; 5 min HTTP idle timeout</td></tr>
+<tr><td><strong>Codex CLI</strong> <span class="cf cf-hi">primary</span></td><td>stdio or streamable HTTP only, <strong>no SSE</strong>; <code>codex mcp add opn --url &lt;url&gt;</code>; <code>[mcp_servers.opn]</code> in <code>~/.codex/config.toml</code>; project <code>.codex/config.toml</code> disabled when untrusted</td><td><code>bearer_token_env_var = "NAME"</code>; <code>http_headers</code>, <code>env_http_headers</code>, <code>http_headers_helper</code></td><td>AGENTS.md, root down to cwd</td><td><code>codex exec</code> approval = never, so a call needing approval is <strong>denied</strong>; <code>auto</code> exempts only <code>readOnlyHint: true</code>; set <code>default_tools_approval_mode = "approve"</code>; <code>required = true</code> fails exec on init error</td><td>30 s startup, <strong>300 s per call</strong>; 128-char tool names</td></tr>
+<tr><td><strong>Gemini CLI</strong> <span class="cf cf-hi">primary</span></td><td><code>httpUrl</code> = streamable HTTP, <strong><code>url</code> = SSE</strong>; <code>gemini mcp add --transport http</code> (default scope: project) in <code>.gemini/settings.json</code></td><td><code>--header</code>; <code>$VAR</code>/<code>${VAR}</code> documented for <code>env</code> only</td><td>GEMINI.md; add AGENTS.md via <code>context.fileName</code></td><td><code>gemini -p</code>; <code>"trust": true</code> or a user policy <code>mcpName = "opn"</code>; <code>ask_user</code> = deny when headless; workspace policy tier non-functional; untrusted folder is fatal without <code>--skip-trust</code></td><td>FQN <code>mcp_{server}_{tool}</code> truncated past 63 chars; no <code>_</code> in server name; strips <code>$schema</code>, <code>additionalProperties</code>, <code>anyOf</code> defaults; 600 s timeout</td></tr>
+<tr><td><strong>VS Code / Copilot agent</strong> <span class="cf cf-hi">primary</span></td><td><code>servers</code> (not <code>mcpServers</code>) with <code>"type":"http"</code> in <code>.vscode/mcp.json</code>; also reads a root <code>.mcp.json</code>; HTTP first, SSE fallback; blocked in restricted mode</td><td><code>${input:id}</code> with a <code>promptString</code>, <code>"password": true</code></td><td>AGENTS.md, <code>.github/copilot-instructions.md</code>, CLAUDE.md behind a setting</td><td>no true headless mode; use Copilot CLI as its proxy</td><td>128 tools per request; <code>chat.agent.maxRequests</code> 25</td></tr>
+<tr><td><strong>Copilot CLI</strong> <span class="cf cf-hi">primary</span></td><td><code>copilot mcp add --transport http</code>; <code>.mcp.json</code>, <code>.github/mcp.json</code>, <code>~/.copilot/mcp-config.json</code></td><td><code>--header "Authorization: Bearer …"</code></td><td>AGENTS.md, CLAUDE.md, GEMINI.md combined</td><td><code>copilot -p -s --allow-tool='opn' --no-ask-user</code>; CI via <code>COPILOT_GITHUB_TOKEN</code></td><td>tool search (not read)</td></tr>
+<tr><td><strong>Cursor</strong> <span class="cf cf-lo">snippet</span></td><td><code>url</code> (+<code>headers</code>) in <code>.cursor/mcp.json</code> / <code>~/.cursor/mcp.json</code></td><td><code>${env:NAME}</code>; reported bug: headers dropped on <code>tools/call</code></td><td>AGENTS.md, <code>.cursor/rules/*.mdc</code></td><td><code>agent -p --approve-mcps --force --trust</code></td><td><strong>~40 tools across all servers</strong>; the agent silently loses access past the cap</td></tr>
+</tbody></table></div>
+
+<h3 id="s2-2">2.2 What the connector must carry</h3>
+
+<p><strong>Transport is solved; do not build for it.</strong> <span class="cf cf-hi">primary</span> No surveyed harness needs <code>mcp-remote</code>. Codex has no SSE variant at all. The server must therefore keep answering plain streamable-HTTP POSTs and never lean on an SSE fallback.</p>
+
+<p><strong>The bearer is the hard part.</strong> <span class="cf">inference</span> The network's write tools read the token from the HTTP <code>Authorization</code> header only (<code>api/opn_api/mcp/auth.py</code>; corrected 2026-09-24, as a draft of this note said it was a tool argument). Each harness spells a header from the environment differently: <code>${VAR}</code> (Claude), <code>${env:VAR}</code> (Cursor), <code>${input:id}</code> (VS Code), <code>bearer_token_env_var</code> (Codex), and undocumented for Gemini's <code>headers</code>. Cursor reportedly drops <code>mcp.json</code> headers on <code>tools/call</code> over streamable HTTP. The token is also minted inside a session (<code>get_token</code>), while most harnesses read headers only at startup. Ship the unauthenticated snippet everywhere, add a header form where the harness supports one, and measure the restart cost per harness. If it is high, a token accepted as a tool argument is the fix, and that is an amendment to D-28, recorded as F16-Q3.</p>
+
+<p><strong>One file reaches three harnesses.</strong> A committed <code>.mcp.json</code> with <code>{"mcpServers":{"opn":{"type":"http","url":…}}}</code> is read by Claude Code, Copilot CLI and VS Code (its portable format). Codex, Gemini and Cursor each need their own file. Gemini's <code>httpUrl</code>/<code>url</code> distinction is the likeliest copy-paste error.</p>
+
+<p><strong>Instruction file.</strong> <span class="cf">inference</span> Use AGENTS.md as the single source, add a CLAUDE.md containing <code>@AGENTS.md</code>, and point Gemini at it with <code>context.fileName</code>. That covers all five harnesses without duplicated text.</p>
+
+<p><strong>Tool annotations are part of the connector.</strong> <span class="cf cf-hi">primary</span> Codex decides approval from MCP annotations:</p>
+<ul>
+<li>A call needs approval if <code>destructiveHint</code> is true.</li>
+<li>It needs no approval if <code>readOnlyHint</code> is true.</li>
+<li>Otherwise it needs approval whenever <code>destructiveHint</code> is unset or <code>openWorldHint</code> is unset or true.</li>
+</ul>
+<p>Every read tool needs <code>readOnlyHint: true</code> to run under <code>codex exec</code> with no configuration. A snippet that writes must opt in to approval explicitly.</p>
+
+<p><strong>Limits set the tool surface.</strong> <span class="cf">inference</span></p>
+<ul>
+<li>Name the server <code>opn</code>.</li>
+<li>Keep tool names short and lower-case, so that <code>mcp_opn_&lt;tool&gt;</code> stays under Gemini's 63 characters.</li>
+<li>Stay well under 40 tools, for Cursor.</li>
+<li>Keep results under about 10k tokens, for Claude.</li>
+<li>Never rely on <code>additionalProperties: false</code> or <code>anyOf</code> defaults for correctness, because Gemini strips them. <code>$ref</code> support is documented by no harness.</li>
+</ul>
+<p>A tutorial precheck took 138 s in the repo's log. That passes Claude's 2-minute foreground threshold into a background task and sits inside Codex's 300 s default. Longer operations need a poll-style tool.</p>
+
+<p><strong>Lean tooling is the contributor's, and the version is the risk.</strong> The typical stack is a coding agent, the local stdio server <strong>lean-lsp-mcp</strong>, and a skill pack. lean-lsp-mcp has about 517 stars and 23 tools: goals, diagnostics, <code>lean_multi_attempt</code>, <code>lean_verify</code>, and wrappers for LeanSearch, Loogle, Lean Finder, state search and hammer premise. <span class="cf cf-hi">primary</span> It states no Lean version of its own and uses whatever the local project pins. <span class="cf">inference</span> So a hobbyist needs a project at <strong>Lean 4.33.1 and the graph's exact Mathlib commit</strong>. That means a 6.8–7 GiB checkout (repo log), or local checks disagree with the gate.</p>
+<p><strong>AXLE</strong> (<code>https://mcp.axiommath.ai/mcp</code>, free key, bearer) is the only third-party remote Lean MCP found, and it hosts <code>lean-4.33.1</code>. But every AXLE environment imports only <code>import Mathlib</code> at an unexposed revision. <span class="cf cf-hi">primary, live probe</span> It cannot see the network's <code>Defs</code>/<code>Context</code> modules unless they are inlined, so it is a filter, not a verdict.</p>
+
+<details class="more"><summary>Second-tier harnesses <span class="tags">key names differ everywhere · mostly snippets</span></summary>
+<div class="tw"><table>
+<thead><tr><th>Harness</th><th>Remote entry</th><th>Config</th><th>Instruction file</th></tr></thead>
+<tbody>
+<tr><td>OpenCode</td><td><code>"type": "remote"</code>; OAuth on by default after 401, <code>"oauth": false</code> for tokens <span class="cf cf-lo">snippet</span></td><td><code>opencode.json</code> <code>mcp</code></td><td>unverified</td></tr>
+<tr><td>Zed</td><td><code>url</code> + <code>headers</code> under <code>context_servers</code>; OAuth prompt without an Authorization header <span class="cf cf-hi">primary</span></td><td>Zed <code>settings.json</code></td><td>AGENTS.md <span class="cf cf-lo">snippet</span></td></tr>
+<tr><td>Windsurf</td><td><code>serverUrl</code>/<code>url</code> + <code>headers</code> <span class="cf cf-lo">snippet</span></td><td><code>~/.codeium/windsurf/mcp_config.json</code></td><td>AGENTS.md <span class="cf cf-lo">snippet</span></td></tr>
+<tr><td>Cline</td><td><code>"type": "streamableHttp"</code>; omitted type defaults to SSE, giving a 405 <span class="cf cf-lo">snippet</span></td><td><code>cline_mcp_settings.json</code></td><td><code>.clinerules</code></td></tr>
+<tr><td>Kilo Code</td><td><code>"streamable-http"</code> <span class="cf cf-lo">snippet</span></td><td>unverified</td><td>AGENTS.md <span class="cf cf-lo">snippet</span></td></tr>
+<tr><td>Continue</td><td><code>type: streamable-http</code>, <code>requestOptions.headers</code></td><td><code>config.yaml</code></td><td>unverified</td></tr>
+<tr><td>Amp</td><td><code>amp mcp remote --personal add</code> <span class="cf cf-lo">snippet</span></td><td>Amp settings</td><td>AGENTS.md <span class="cf cf-lo">snippet</span></td></tr>
+<tr><td>Goose</td><td><code>type: streamable_http</code>; bug #12257 on protocol ≤ 2025-11-25 <span class="cf cf-lo">snippet</span></td><td><code>~/.config/goose/config.yaml</code></td><td>AGENTS.md <span class="cf cf-lo">snippet</span></td></tr>
+<tr><td>Kiro</td><td><code>"type": "streamable-http"</code>; bug #9553 misreads stateless servers as SSE (405 after OAuth)</td><td><code>~/.kiro/settings/mcp.json</code></td><td><code>.kiro/steering/</code></td></tr>
+<tr><td>JetBrains Junie</td><td><code>url</code> + <code>headers</code>, IDE ≥ 2025.3 <span class="cf cf-lo">snippet</span></td><td><code>.junie/mcp/mcp.json</code></td><td>AGENTS.md <span class="cf cf-lo">snippet</span></td></tr>
+<tr><td>Mistral Vibe</td><td>stdio documented; remote unverified</td><td><code>~/.vibe/config.toml</code></td><td>unverified</td></tr>
+<tr><td>Aider</td><td><strong>no native MCP</strong>; RFC #4506 open</td><td>—</td><td>AGENTS.md <span class="cf cf-lo">snippet</span></td></tr>
+<tr><td>Roo Code</td><td><strong>shut down 2026-05-15</strong> <span class="cf cf-lo">snippet</span></td><td>—</td><td>—</td></tr>
+</tbody></table></div>
+</details>
+
+<details class="more"><summary>Headless model auth for automated snippet tests <span class="tags">the real CI blocker is model auth, not MCP</span></summary>
+<ul>
+<li><strong>Claude Code:</strong> <code>claude setup-token</code> produces a one-year <code>CLAUDE_CODE_OAUTH_TOKEN</code> (Pro, Max, Team or Enterprise). <code>--bare</code> does not read it and needs <code>ANTHROPIC_API_KEY</code>, which in <code>-p</code> always takes precedence when present.</li>
+<li><strong>Gemini:</strong> the docs steer headless use to an API key (free AI Studio tier). A Google login's free quota is 1000 requests per user per day.</li>
+<li><strong>Copilot CLI:</strong> a PAT in <code>COPILOT_GITHUB_TOKEN</code>.</li>
+<li><strong>Codex</strong> with a ChatGPT plan, and <strong>Cursor's</strong> CLI billing, could not be verified from primary sources.</li>
+</ul>
+</details>
+
+<h2 id="s3"><span class="sn">§3</span>Part 2: hosted and self-run automated provers</h2>
+
+<h3 id="s3-1">3.1 Summary table</h3>
+
+<div class="tw"><table>
+<thead><tr><th>Prover</th><th>Access</th><th>Input → output</th><th>Lean / Mathlib</th><th>Run and verify</th></tr></thead>
+<tbody>
+<tr><td><strong>Harmonic Aristotle</strong> <span class="cf cf-hi">primary (SDK)</span></td><td><code>aristotlelib</code> 2.1.0 (2026-06-18); <code>ARISTOTLE_API_KEY</code>; base <code>/api/v3</code>; asynchronous, minutes to hours; price, quotas and terms unread</td><td>project directory + free-text prompt → tar.gz; statuses <code>COMPLETE</code>, <code>COMPLETE_WITH_ERRORS</code>, <code>OUT_OF_BUDGET</code>, <code>FAILED</code></td><td>server-defined, from <code>GET /version</code>; a mismatch only warns; 4.20.0-rc5 in 2025, now unknown</td><td>poll, untar, byte-compare the statement, gate precheck</td></tr>
+<tr><td><strong>Leanstral 1.5</strong> <span class="cf cf-lo">snippet</span></td><td>Apache-2.0 weights, 119B / 6.5B active; free hosted API reported retired 2026-09-30</td><td>agentic, via Mistral Vibe and lean-lsp-mcp</td><td>unknown</td><td>a local project at 4.33.1</td></tr>
+<tr><td><strong>DeepSeek-Prover-V2, Goedel-Prover-V2, Pythagoras-Prover</strong> <span class="cf cf-hi">primary</span></td><td>open weights (Goedel Apache-2.0; DeepSeek model licence); vLLM or HF</td><td>"Complete the following Lean 4 code …" with a full file ending in <code>sorry</code> → plan plus full file in a lean4 block</td><td><strong>trained and evaluated at Lean 4.9</strong>, Mathlib <code>2f65ba7</code></td><td>splice the proof body; verify in the gate image</td></tr>
+<tr><td><strong>BFS-Prover-V2</strong> <span class="cf cf-hi">primary</span></td><td>Apache-2.0, 7B/32B; Ollama q8</td><td>tactic state → one tactic</td><td>Lean 4.10.0</td><td>needs a search driver (repl, LeanDojo)</td></tr>
+<tr><td><strong>AXLE</strong> (checker) <span class="cf cf-hi">primary</span></td><td>free; 10 concurrent requests without a key, 20 with one; HTTP, SDK, MCP</td><td>Lean text + environment → check, repair, disprove results; no proving</td><td><strong><code>lean-4.33.1</code></strong> hosted; <code>import Mathlib</code> only; revision hidden</td><td>pre-filter before the gate</td></tr>
+<tr><td>Seed-Prover 1.5, AlphaProof Nexus, AxiomProver, Astra</td><td>no API</td><td>—</td><td>Nexus 4.27.0; Seed 4.22.0</td><td>reference proofs only</td></tr>
+</tbody></table></div>
+
+<h3 id="s3-2">3.2 What the connector must carry</h3>
+
+<p><strong>Aristotle packaging.</strong> <span class="cf">inference</span> Build a minimal Lake project containing:</p>
+<ul>
+<li><code>lean-toolchain</code> set to <code>leanprover/lean4:v4.33.1</code>;</li>
+<li>a lakefile that requires Mathlib at the pinned commit;</li>
+<li><code>Context.lean</code> and any <code>Defs/*.lean</code> it imports, under their module paths;</li>
+<li><code>Statement.lean</code> as the work file.</li>
+</ul>
+<p>Alternatively, inline everything into one self-contained file. Submit with the prompt "fill the sorry; do not modify the statement or imports", and disable agent questions for unattended runs. The prompt is free text, so the adapter must <strong>byte-compare the returned statement and header</strong> with the node's before any submission, because a proof may not add an import (F00-R19). It must also reject <code>sorry</code>, <code>admit</code> or a new <code>axiom</code>. Treat <code>COMPLETE_WITH_ERRORS</code> as a candidate partial, and <code>OUT_OF_BUDGET</code> and <code>FAILED</code> as a clean miss. Record the server's toolchain from <code>GET /version</code>. Poll with backoff, and never outlive the claim.</p>
+
+<p><strong>Open-weight adapter.</strong> <span class="cf">inference</span> One prompt template covers DeepSeek-V2, Goedel-V2 and Pythagoras. The loop is:</p>
+<ol>
+<li>Render the network header, Context and Statement as <code>formal_statement</code>.</li>
+<li>Sample through an OpenAI-compatible endpoint.</li>
+<li>Take the <em>last</em> lean block and splice only the proof body into the node.</li>
+<li>Discard the models' habitual <code>import Aesop</code> and <code>open BigOperators Real Nat Topology Rat</code> headers.</li>
+<li>Allow up to two Goedel-style repair rounds that feed compiler errors back.</li>
+</ol>
+<p>Verify in the gate's own image, not in a hand-pinned stack. <code>leanprover-community/repl</code> has <code>v4.33.0</code> and <code>v4.34.0</code> tags but no <code>v4.33.1</code>, and LeanInteract claims support only up to v4.32.0-rc1. <span class="cf cf-hi">primary</span></p>
+
+<p><strong>Expect drift, and measure it.</strong> Fixed-snapshot provers are called brittle to Mathlib renames <span class="cf cf-lo">snippet</span>, but nobody has published a before-and-after at a newer toolchain. Headline scores also rest on large budgets, such as Pythagoras's 93/657 on PutnamBench at pass@2048. A single local sample will do far worse.</p>
+
+<details class="more"><summary>Strength indicators <span class="tags">for choosing a baseline, not a ranking</span></summary>
+<ul>
+<li><strong>Aristotle:</strong> IMO-level results. It produced the Lean proof of Erdős #728 on 2026-01-06, the first Erdős problem regarded as resolved autonomously by AI. LeanMarathon reports Aristotle failing both of its 2026 papers after 40 h.</li>
+<li><strong>Seed-Prover 1.5:</strong> 88% on PutnamBench and 11 of 12 Putnam 2025 problems.</li>
+<li><strong>AlphaProof Nexus:</strong> 9 of 353 open Erdős problems and 44 of 492 OEIS conjectures. <span class="cf cf-lo">snippet</span></li>
+<li><strong>Leanstral 1.5:</strong> 587/672 on PutnamBench. <span class="cf cf-lo">snippet</span></li>
+<li><strong>Goedel-Prover-V2 32B:</strong> 88.0% on miniF2F at pass@32, rising to 90.4% with self-correction.</li>
+</ul>
+<p>The network's own calibration run on 2026-09-17 produced three partials and no proof from three fresh agents. Aristotle is the natural first external baseline on those same targets.</p>
+</details>
+
+<h2 id="s4"><span class="sn">§4</span>Part 3: orchestrating research harnesses</h2>
+
+<p><strong>The field has converged on the network's shape.</strong> Research harnesses now use a Lean file of declarations with <code>sorry</code> bodies and declared dependency edges, which is close to "node = <code>Statement.lean</code> with <code>sorry</code> + declared deps; hole = child node".</p>
+
+<div class="tw"><table>
+<thead><tr><th>System</th><th>Decomposition format</th><th>Public?</th><th>Failures kept</th><th>Import / export need</th></tr></thead>
+<tbody>
+<tr><td><strong>LeanArchitect</strong> <span class="cf cf-hi">primary</span></td><td><code>@[blueprint "label" (statement := …) (uses := …)]</code>; deps inferred from constants; <code>sorry_using [lemmas]</code>; <code>lake build :blueprint</code> → LaTeX</td><td>yes</td><td><code>discussion := &lt;issue&gt;</code></td><td>the exchange format to target</td></tr>
+<tr><td><strong>LeanMarathon</strong> <span class="cf cf-hi">primary</span></td><td>one Lean file as the system of record; CI enforces prose/Lean dependency parity; types frozen while proving; one pull request per leaf</td><td>yes; needs Codex CLI 0.128.0, Slurm, a GitHub token</td><td>GitHub issues, <code>audit.jsonl</code></td><td>helper lemmas and node splits arrive as new nodes</td></tr>
+<tr><td>leanblueprint</td><td>LaTeX <code>\lean{}</code>, <code>\uses{}</code>, <code>\leanok</code>; edges hand-typed</td><td>yes</td><td>—</td><td>via LeanArchitect's converter</td></tr>
+<tr><td>Goedel-Architect <span class="cf cf-lo">snippet</span></td><td>blueprint of formal lemmas and declared deps; global refinement</td><td>unverified</td><td>unverified</td><td>format unverified</td></tr>
+<tr><td>BlueprintRepair <span class="cf cf-lo">snippet</span></td><td>ten typed ops over a statement DAG; target immutable</td><td>unverified</td><td>accepted and rejected trajectories</td><td>ops map onto variant, revision and skeleton</td></tr>
+<tr><td>AlphaProof Nexus <span class="cf cf-lo">snippet</span></td><td>single-file sketch: target + <code>sorry</code></td><td>results only</td><td>successes only</td><td>whole-proof submissions once <code>answer( )</code> is resolved</td></tr>
+<tr><td>Aletheia <span class="cf cf-lo">snippet</span></td><td>natural language only</td><td>prompts and responses only</td><td>—</td><td>informal notes, not nodes</td></tr>
+</tbody></table></div>
+
+<p><strong>Scale.</strong> LeanMarathon formalized all seven target theorems (258 lemmas) of two 2026 Erdős papers for $189–$624 per paper. <span class="cf cf-hi">primary</span> That is formalization of existing papers, not discovery.</p>
+
+<p><strong>Export is mechanical.</strong> <span class="cf">inference</span> Concatenate the Statements in topological order. Tag each with <code>@[blueprint "&lt;node-id&gt;"]</code> and a <code>sorry_using</code> body. Put <code>defs/</code> in as global context and merge the imports into one header.</p>
+
+<p><strong>Import needs more.</strong> <span class="cf">inference</span> It needs:</p>
+<ul>
+<li>an id mapping table;</li>
+<li>the network's own admission on every harness-invented node;</li>
+<li>round-trip elaboration of every imported statement, because the repo log records gate-written holes whose coercions were lost in printing;</li>
+<li>a D-8 revision, never an in-place edit, for any statement change;</li>
+<li>a failure field distinguishing counterexample, misformalized and exhausted, if LeanMarathon's issues are to become postmortems or D-16 defect claims;</li>
+<li>provenance for each import: harness, commit, model and cost.</li>
+</ul>
+
+<h2 id="s5"><span class="sn">§5</span>Recommendations for connectors</h2>
+
+<p>The order follows the question's weighting:</p>
+<ul>
+<li>snippets for the harnesses people use;</li>
+<li>the server properties those snippets depend on;</li>
+<li>the environment pin that makes local Lean agree with the gate;</li>
+<li>then provers;</li>
+<li>then orchestrators.</li>
+</ul>
+
+<div class="plan"><h4><span class="pid">C1</span>Tier-one snippets: Claude Code, Codex CLI, Gemini CLI</h4>
+<p class="kv"><b>contains</b> URL entry, approval, instruction file, timeouts</p>
+<ul>
+<li><strong>Claude:</strong> <code>claude mcp add --transport http opn &lt;url&gt;</code>, plus a committed <code>.mcp.json</code> with an explicit <code>"type":"http"</code>. The <code>type</code> must be there, because an entry without it is silently skipped.</li>
+<li><strong>Codex:</strong> <code>[mcp_servers.opn] url = …</code>, <code>default_tools_approval_mode = "approve"</code> (or per-tool approval on the write tools), <code>required = true</code>, and <code>tool_timeout_sec</code> if any call can exceed 300 s.</li>
+<li><strong>Gemini:</strong> <code>httpUrl</code>, server name <code>opn</code>, <code>"trust": true</code> or a user policy file, and <code>context.fileName</code> including <code>AGENTS.md</code>.</li>
+</ul>
+</div>
+
+<div class="plan"><h4><span class="pid">C2</span>Tier-two snippets: Copilot (VS Code and CLI) and Cursor</h4>
+<ul>
+<li><strong>Copilot:</strong> the same <code>.mcp.json</code> serves Copilot CLI and VS Code's portable format. Also show VS Code's <code>servers</code> form.</li>
+<li><strong>Cursor:</strong> <code>.cursor/mcp.json</code> with <code>url</code>, and <code>--allow-tool='opn'</code> / <code>--approve-mcps --force</code> for headless runs.</li>
+</ul>
+<p>Mark the Cursor snippet provisional until it is checked against cursor.com.</p>
+</div>
+
+<div class="plan"><h4><span class="pid">C3</span>Server properties the snippets rely on</h4>
+<ul>
+<li><code>readOnlyHint: true</code> on every read tool.</li>
+<li>Explicit <code>destructiveHint</code> and <code>openWorldHint</code> on writes.</li>
+<li>A tool count well under 40.</li>
+<li>Short <code>[a-z_]</code> names.</li>
+<li>Self-contained schemas that stay correct after Gemini strips <code>additionalProperties</code> and <code>anyOf</code> defaults.</li>
+<li>Results under about 10k tokens.</li>
+<li>A poll-style shape for any operation that can exceed about 2 minutes.</li>
+<li>Streamable HTTP only, with no dependence on SSE.</li>
+</ul>
+</div>
+
+<div class="plan"><h4><span class="pid">C4</span>Publish the environment pin</h4>
+<p>Expose the exact <code>lean-toolchain</code> (4.33.1), the graph's Mathlib commit and a ready lakefile, so a lean-lsp-mcp project matches the gate. State plainly that AXLE's <code>lean-4.33.1</code> is <code>import Mathlib</code> at an unexposed revision: a fast filter, not the verdict.</p>
+</div>
+
+<div class="plan"><h4><span class="pid">C5</span>One instruction source</h4>
+<p>Use AGENTS.md, with a one-line CLAUDE.md (<code>@AGENTS.md</code>) and a Gemini <code>context.fileName</code> entry. Document the second tier's key names, and say that Aider cannot connect over MCP.</p>
+</div>
+
+<div class="plan"><h4><span class="pid">C6</span>Aristotle adapter</h4>
+<p>Everything in <a href="#s3-2">§3.2</a>: packaging at 4.33.1, the version probe, disabled questions, asynchronous polling within the claim window, a byte-compare of statement and header, rejection of <code>sorry</code>, <code>admit</code> and new axioms, an optional AXLE <code>check</code>/<code>repair_proofs</code> pre-filter, and the gate precheck as the verdict.</p>
+</div>
+
+<div class="plan"><h4><span class="pid">C7</span>Open-weight adapter</h4>
+<p>The DeepSeek/Goedel template, last-block extraction, a splice of the proof body only, two repair rounds, and verification in the gate image. Leanstral users connect instead through the MCP surface plus lean-lsp-mcp.</p>
+</div>
+
+<div class="plan"><h4><span class="pid">C8</span>Blueprint bridge (later)</h4>
+<p>LeanArchitect <code>@[blueprint]</code> and <code>sorry_using</code> as the exchange format, with admission and round-trip elaboration on import, and provenance recorded.</p>
+</div>
+
+<h2 id="s6"><span class="sn">§6</span>How to test them</h2>
+
+<ol>
+<li><strong>A headless matrix against the fake service.</strong> Every harness accepts an <code>http://localhost:PORT/mcp</code> URL, so the repo's fake service can stand in. Run <code>claude -p</code>, <code>codex exec</code>, <code>gemini -p</code>, <code>copilot -p</code> and, once verified, <code>agent -p</code>, each with its shipped snippet unmodified. Assert from the service's own log that one read and one write were actually called. Assert on Claude's <code>mcp_server_errors</code> and Codex's <code>required</code>. <strong>Never assert on exit 0</strong>, which a skipped server also returns.</li>
+<li><strong>A static contract test over <code>tools/list</code>.</strong> Check annotations, name length with the <code>mcp_opn_</code> prefix (≤ 63 characters), tool count, and the absence of <code>$ref</code> and of correctness-bearing <code>additionalProperties</code> or <code>anyOf</code> defaults. Add a size test on the largest real results.</li>
+<li><strong>Client-bug regressions.</strong> Probe Cline with <code>type</code> omitted (the SSE default), Kiro against a stateless server (issue #9553), Goose's protocol-version negotiation (#12257), and Cursor header forwarding.</li>
+<li><strong>Pin agreement.</strong> Test that the published toolchain and Mathlib equal <code>gate-spec.json</code>. Run a scheduled probe of AXLE's environment list, keeping the output as evidence, as on 2026-09-17.</li>
+<li><strong>Prover adapters offline.</strong> Build a fake of Aristotle's five v3 endpoints (<code>POST /project</code>, <code>GET /project/{id}</code>, <code>/tasks</code>, <code>/result</code>, <code>/version</code>) with <code>aristotlelib==2.1.0</code> pinned. Add a test that a returned file with an edited statement or an added import is refused. For the open-weight adapter, use fixture nodes with known proofs.</li>
+<li><strong>Live baselines.</strong> Run Aristotle on the three calibration targets, and run one drift measurement: the same open model on ported miniF2F statements at 4.9 and at 4.33.1.</li>
+</ol>
+
+<p class="note"><em>Cost:</em> the blocker for an automated harness matrix is model authentication, not MCP. <a href="#s2">§2</a>'s collapsed note lists the headless credential for each harness.</p>
+
+<h2 id="s7"><span class="sn">§7</span>Unverified and gaps</h2>
+
+<p><strong>Claims that rest only on search snippets or secondary sources</strong>, because the proxy blocked the primary site:</p>
+<ul>
+<li><strong>Cursor, entirely:</strong> the <code>mcp.json</code> fields, the ~40-tool cap, the CLI flags <code>--approve-mcps</code>/<code>--force</code>, the AGENTS.md and rules reading, and the header-drop bug (known by title only).</li>
+<li><strong>Second-tier harnesses:</strong> OpenCode, Windsurf, Cline, Kilo, Amp, Goose, Junie, and the Roo Code shutdown.</li>
+<li><strong>The agents.md list:</strong> its adopter list and "60,000 projects" figure.</li>
+<li><strong>Leanstral:</strong> all of its facts, including the 2026-09-30 API retirement and 587/672 on PutnamBench.</li>
+<li><strong>Aristotle's website:</strong> its pricing, terms and sponsorship pages. The SDK facts are primary.</li>
+<li><strong>Seed-Prover's</strong> stated API plans.</li>
+<li><strong>AxiomProver's</strong> Putnam 12/12.</li>
+<li><strong>Astra's</strong> releases.</li>
+<li><strong>arXiv-only content:</strong> Nexus, Aletheia, Goedel-Architect, BlueprintRepair, Delta Prover and Ax-Prover.</li>
+<li><strong>Tao's video</strong> timings.</li>
+<li><strong>The Tao wiki counts:</strong> an automated summary, not a hand count.</li>
+</ul>
+
+<p><strong>Open questions no source answered:</strong></p>
+<ul>
+<li>the first-release versions of streamable-HTTP support in Codex, Gemini and Cursor;</li>
+<li>whether Gemini expands <code>${VAR}</code> in <code>headers</code>;</li>
+<li>Claude Code's native AGENTS.md support;</li>
+<li>headless flags for OpenCode, Amp, Goose, Continue, Kiro, Junie and Cline;</li>
+<li>Mistral Vibe remote MCP;</li>
+<li>Codex's and Gemini's default result-size caps, and <code>$ref</code> support anywhere;</li>
+<li>AXLE's conflicting 15-minute and 1,800 s timeouts, and whether its MCP needs a key when the raw API was keyless at Stage 0;</li>
+<li>Aristotle's current toolchain, and whether it honours a project's Mathlib;</li>
+<li>whether repl v4.33.0 builds on 4.33.1;</li>
+<li>Kimina and Pythagoras licence text;</li>
+<li>Goedel-Architect's and BlueprintRepair's on-disk formats and code release;</li>
+<li>any measurement of prover drift to a 2026 toolchain;</li>
+<li>any count of harness use in Lean work.</li>
+</ul>
+
+<h2 id="sources">Sources</h2>
+
+<p>All accessed 2026-09-24. Repository sources were read at the commits named in <a href="#method">Method</a>.</p>
+
+<div class="tw"><table class="cols">
+<colgroup><col style="width:46%"><col style="width:18%"><col style="width:36%"></colgroup>
+<thead><tr><th>Source</th><th>Kind</th><th>Carries</th></tr></thead>
+<tbody>
+<tr><td><a href="https://code.claude.com/docs/en/mcp">Claude Code — MCP</a> · <a href="https://code.claude.com/docs/en/headless">headless</a> · <a href="https://code.claude.com/docs/en/permissions">permissions</a> · <a href="https://code.claude.com/docs/en/authentication">authentication</a></td><td>vendor docs, live</td><td>§2 config, approval, limits, auth</td></tr>
+<tr><td><a href="https://github.com/openai/codex/blob/main/codex-rs/config/src/mcp_types.rs">Codex mcp_types.rs</a> · <a href="https://github.com/openai/codex/blob/main/codex-rs/cli/src/mcp_cmd.rs">mcp_cmd.rs</a> · <a href="https://github.com/openai/codex/blob/main/codex-rs/core/src/mcp_tool_call.rs">mcp_tool_call.rs</a> · <a href="https://github.com/openai/codex/blob/main/codex-rs/exec/src/lib.rs">exec/lib.rs</a> · <a href="https://github.com/openai/codex/blob/main/codex-rs/codex-mcp/src/rmcp_client.rs">rmcp_client.rs</a> · <a href="https://github.com/openai/codex/blob/main/codex-rs/codex-mcp/src/tools.rs">tools.rs</a> · <a href="https://github.com/openai/codex/blob/main/codex-rs/config/src/loader/mod.rs">loader</a> · <a href="https://github.com/openai/codex/blob/main/codex-rs/core/src/agents_md.rs">agents_md.rs</a></td><td>source @61e23bc</td><td>§2 Codex transport, annotations, timeouts</td></tr>
+<tr><td><a href="https://github.com/google-gemini/gemini-cli/blob/main/docs/tools/mcp-server.md">Gemini CLI — MCP servers</a> · <a href="https://github.com/google-gemini/gemini-cli/blob/main/docs/reference/policy-engine.md">policy engine</a> · <a href="https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/trusted-folders.md">trusted folders</a> · <a href="https://github.com/google-gemini/gemini-cli/blob/main/docs/reference/configuration.md">configuration</a> · <a href="https://github.com/google-gemini/gemini-cli/blob/main/docs/get-started/authentication.mdx">authentication</a></td><td>repo docs @87de0b6</td><td>§2 Gemini</td></tr>
+<tr><td><a href="https://github.com/microsoft/vscode-docs/blob/main/docs/agents/reference/mcp-configuration.md">VS Code — MCP configuration</a> · <a href="https://github.com/microsoft/vscode-docs/blob/main/docs/agents/reference/ai-settings.md">AI settings</a> · <a href="https://github.com/microsoft/vscode-docs/blob/main/docs/agent-customization/custom-instructions.md">custom instructions</a></td><td>repo docs @751d930</td><td>§2 VS Code</td></tr>
+<tr><td><a href="https://github.com/github/docs/blob/main/content/copilot/how-tos/copilot-cli/customize-copilot/add-mcp-servers.md">Copilot CLI — MCP servers</a> · <a href="https://github.com/github/docs/blob/main/content/copilot/how-tos/copilot-cli/automate-copilot-cli/run-cli-programmatically.md">programmatic</a> · <a href="https://github.com/github/docs/blob/main/content/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions.md">instructions</a></td><td>repo docs</td><td>§2 Copilot CLI</td></tr>
+<tr><td><a href="https://cursor.com/docs/mcp">Cursor — MCP</a> · <a href="https://cursor.com/docs/cli/mcp">CLI MCP</a> · <a href="https://forum.cursor.com/t/streamable-http-mcp-mcp-json-headers-besides-x-domainhost-key-are-dropped-on-tools-call/169015">forum #169015</a> · <a href="https://mcpverdict.com/mcp/clients/cursor/">mcpverdict</a></td><td>snippets only</td><td>§2 Cursor</td></tr>
+<tr><td><a href="https://raw.githubusercontent.com/zed-industries/zed/main/docs/src/ai/mcp.md">Zed</a> · <a href="https://opencode.ai/docs/mcp-servers/">OpenCode</a> · <a href="https://docs.windsurf.com/plugins/cascade/mcp">Windsurf</a> · <a href="https://docs.cline.bot/mcp/mcp-overview">Cline</a> · <a href="https://github.com/continuedev/continue/blob/main/extensions/cli/spec/mcp.md">Continue</a> · <a href="https://ampcode.com/docs/customize/mcp">Amp</a> · <a href="https://goose-docs.ai/docs/getting-started/using-extensions/">Goose</a> · <a href="https://kiro.dev/blog/introducing-remote-mcp/">Kiro</a> · <a href="https://junie.jetbrains.com/docs/junie-cli-mcp-configuration.html">Junie</a> · <a href="https://github.com/Aider-AI/aider/issues/4506">Aider #4506</a> · <a href="https://www.bodegaone.ai/blog/roo-code-shutdown-alternatives">Roo shutdown</a></td><td>docs; mostly snippets</td><td>§2 second tier</td></tr>
+<tr><td><a href="https://github.com/kirodotdev/Kiro/issues/9553">Kiro #9553</a> · <a href="https://github.com/aaif-goose/goose/issues/12257">Goose #12257</a> · <a href="https://agents.md/">agents.md</a></td><td>issues; snippet</td><td>§2 client bugs, AGENTS.md</td></tr>
+<tr><td><a href="https://github.com/oOo0oOo/lean-lsp-mcp">lean-lsp-mcp</a> · <a href="https://raw.githubusercontent.com/oOo0oOo/lean-lsp-mcp/main/docs/tools.md">tools</a> · <a href="https://github.com/cameronfreer/lean4-skills">lean4-skills</a> · <a href="https://github.com/leanprover/skills">leanprover/skills</a></td><td>repos</td><td>§1, §2 Lean tooling</td></tr>
+<tr><td><a href="https://github.com/AxiomMath/axle-mcp-server">AXLE MCP server</a> · <a href="https://axle.axiommath.ai/v1/docs/">AXLE docs</a> · <a href="https://axle.axiommath.ai/v1/docs/configuration/">configuration</a> · <a href="https://axle.axiommath.ai/v1/environments">environments (live GET)</a> · <a href="https://github.com/AxiomMath/axiom-lean-engine">axiom-lean-engine</a></td><td>docs; live probe</td><td>§2, §3 AXLE</td></tr>
+<tr><td><a href="https://github.com/teorth/erdosproblems/wiki/AI-contributions-to-Erd%C5%91s-problems">Tao — AI contributions to Erdős problems</a> · <a href="https://news.ycombinator.com/item?id=47306852">HN on Tao's Claude Code video</a></td><td>wiki; snippet</td><td>§1 usage</td></tr>
+<tr><td><a href="https://pypi.org/project/aristotlelib/">aristotlelib (PyPI)</a> · <a href="https://files.pythonhosted.org/packages/c5/63/1d25b34c331deee0e667881f81b5760d4d9c10f4f787cb8c6e0992ed5c16/aristotlelib-2.1.0-py3-none-any.whl">2.1.0 wheel</a> · <a href="https://pypi.org/pypi/aristotlelib/0.1.2/json">0.1.2 README</a> · <a href="https://github.com/septract/lean-aristotle-mcp">lean-aristotle-mcp</a> · <a href="https://aristotle.harmonic.fun/terms">terms (unread)</a></td><td>SDK source; docs</td><td>§3 Aristotle</td></tr>
+<tr><td><a href="https://arxiv.org/abs/2601.07421">Erdős #728 — arXiv 2601.07421</a> · <a href="https://arxiv.org/html/2510.01346v1">Aristotle — arXiv 2510.01346</a></td><td>papers (abstracts)</td><td>§3 strength</td></tr>
+<tr><td><a href="https://github.com/ByteDance-Seed/Seed-Prover">Seed-Prover</a> · <a href="https://github.com/google-deepmind/alphaproof-nexus-results">alphaproof-nexus-results</a> · <a href="https://www.therundown.ai/tools/leanstral-1-5">Leanstral 1.5 (The Rundown)</a> · <a href="https://mistral.ai/news/leanstral/">Mistral — Leanstral</a> · <a href="https://github.com/math-inc/OpenGauss">OpenGauss</a></td><td>repos; snippets</td><td>§3 non-connectable systems</td></tr>
+<tr><td><a href="https://github.com/deepseek-ai/DeepSeek-Prover-V2">DeepSeek-Prover-V2</a> · <a href="https://github.com/deepseek-ai/DeepSeek-Prover-V1.5">V1.5</a> · <a href="https://github.com/Goedel-LM/Goedel-Prover-V2">Goedel-Prover-V2</a> · <a href="https://github.com/Pythagoras-LM/Pythagoras-Prover">Pythagoras-Prover</a> · <a href="https://github.com/ByteDance-Seed/BFS-Prover-V2">BFS-Prover-V2</a> · <a href="https://github.com/MoonshotAI/Kimina-Prover-Preview">Kimina-Prover</a></td><td>repos</td><td>§3 open weights, prompts, Lean versions</td></tr>
+<tr><td><a href="https://github.com/project-numina/kimina-lean-server">Kimina Lean Server</a> · <a href="https://github.com/leanprover-community/repl">repl</a> · <a href="https://github.com/leanprover-community/repl/tags">repl tags</a> · <a href="https://github.com/augustepoiroux/LeanInteract">LeanInteract</a> · <a href="https://github.com/stanford-centaur/PyPantograph">PyPantograph</a> · <a href="https://github.com/cmu-l3/llmlean">LLMLean</a></td><td>repos</td><td>§3 verification infrastructure</td></tr>
+<tr><td><a href="https://arxiv.org/pdf/2510.12787">Ax-Prover — arXiv 2510.12787</a></td><td>paper (snippet)</td><td>§3 drift</td></tr>
+<tr><td><a href="https://github.com/hanwenzhu/LeanArchitect">LeanArchitect</a> · <a href="https://github.com/YuanheZ/LeanMarathon">LeanMarathon</a> · <a href="https://github.com/YuanheZ/LeanMarathon/blob/main/paper.pdf">LeanMarathon paper</a> · <a href="https://github.com/PatrickMassot/leanblueprint">leanblueprint</a></td><td>repos; paper</td><td>§4</td></tr>
+<tr><td><a href="https://arxiv.org/abs/2606.06468">Goedel-Architect — arXiv 2606.06468</a> · <a href="https://arxiv.org/abs/2607.28110">BlueprintRepair — arXiv 2607.28110</a> · <a href="https://arxiv.org/html/2605.22763v1">AlphaProof Nexus — arXiv 2605.22763</a> · <a href="https://arxiv.org/abs/2601.22401">Aletheia — arXiv 2601.22401</a> · <a href="https://github.com/google-deepmind/formal-conjectures">formal-conjectures</a></td><td>papers (snippets); repo</td><td>§4</td></tr>
+</tbody></table></div>
+
+</main>
+</div>
+<footer><div class="in">Research note, not protocol. Produced 2026-09-24 from five parallel research threads. Several primary vendor and research sites were unreachable from the research environment; §7 lists what rests on search snippets. Where this note and <a href="architecture_decisions.html">the decisions</a> disagree, the decisions govern. §5's recommendations change nothing until a feature spec takes them up.</div></footer>
+<script>
+document.querySelectorAll('.xall button').forEach(function(b){
+  b.addEventListener('click',function(){
+    var open=b.dataset.x==='1';
+    document.querySelectorAll('details.more').forEach(function(d){d.open=open});
+  });
+});
+document.querySelectorAll('main h2[id],main h3[id]').forEach(function(h){
+  if(h.querySelector('.hl'))return;
+  var a=document.createElement('a');
+  a.className='hl';a.href='#'+h.id;a.textContent='§';
+  a.setAttribute('aria-label','Link to this section');
+  h.appendChild(a);
+});
+</script>
+</body>
+</html>
