@@ -121,3 +121,67 @@ Start: 2026-09-24T12:25:03Z. Hard stop for new work: 13:20Z. Log close: 13:25Z.
   `branch-update` when it is `behind`. `merge` suggests "you are next / about to merge", which was
   not true for 23 min. Wish: `waiting_on` should say `queued` with a queue position (e.g. "3rd"),
   derived from the actor's order rather than GitHub's lazily computed flag.
+- 13:11Z **#179 merged** (circular: `erdos-69--h2-v2--h1-v2`). 13:15Z **#180 merged** (circular:
+  `erdos-69--h2-v2`). At 13:15Z the frontier, rendered from `89cea4f` (after #179, before #180's
+  render), lists only `erdos-69` and `erdos-69--h2-v2`. After #180's render I expect the root
+  alone; I did not confirm that before the hard stop. #184 (approach record) and #186 (annex)
+  were still queued, `waiting_on: merge`, at 13:15Z. The other agent's duplicates #187 and #194
+  were also still open.
+- 13:16Z Stopped new work.
+
+## Summary
+
+**What landed** (graph PRs, pseudonym `t0924-69m-8709`, all filed through the MCP):
+- #176 **merged** 12:43:52Z: circular-decomposition claim on `erdos-69--h2-v2--h1-v2--h4`
+  (ancestor `erdos-69--h2-v2--h1-v2`). The node now renders `circular` and has left the frontier.
+- #179 **merged** 13:11:46Z: circular-decomposition claim on `erdos-69--h2-v2--h1-v2` (ancestor
+  `erdos-69--h2-v2`).
+- #180 **merged** 13:15:12Z: circular-decomposition claim on `erdos-69--h2-v2` (ancestor `erdos-69`).
+- #184 approach record on erdos-69 (outcome `blocked`). Gate green; queued at 13:15Z.
+- #186 annex on `erdos-69` (hash `9dc42dc5…1442`): the root's closing assembly from `erdos_69__h1` +
+  `erdos_69__h2`. Fast-checked, not gated beyond the annex gate. Queued at 13:15Z.
+
+**What I proved** (sandbox-checked by the gate as defect-claim exhibits):
+- The ancestor implies the hole in all three cases. Every open node below `erdos-69` is the root
+  restated:
+  - `--h4` follows from `--h2-v2--h1-v2` through a fractional-part and tail-estimate argument,
+    choosing k with 2^k·min(θ,1−θ) > b(log₂(N+k+1)+1).
+  - `--h2-v2--h1-v2` follows from `--h2-v2` (take N = 0).
+  - `--h2-v2` follows from the root (use ω 0 = ω 1 = 0 and the Lambert identity).
+- The decomposition's only real progress is `erdos-69--h1-v2`, the Lambert identity, which was
+  already proved.
+- **I did not prove the target**, nor any node that moves it closer. What remains is the
+  irrationality of Σ_p 1/(2^p−1) itself. To my (unverified) recollection its known proof needs
+  arithmetic information about ω on consecutive integers that Mathlib does not have.
+
+**Bug and finding list, in priority order** (network only; my own mistakes are listed after):
+1. *Duplicate work is invisible.* `file_defect_claim` accepts a claim of the same class on the same
+   node while another is open. Neither the frontier nor `get_node` shows pending defect claims, so
+   the other agent duplicated both my claims (#187, #194). Wish: a pending-claims field and a
+   warning in the receipt.
+2. *`get_node` status disagrees with the site.* A circular node reads `status: ready,
+   cause: circular` over MCP but `circular` on the site. The guide teaches reading `status`.
+3. *`waiting_on` flaps between `merge` and `branch-update`* on every poll while nothing changes
+   (#179, 12:37–13:00Z). It tracks GitHub's lazily computed `mergeable_state`. Wish: a queue
+   position.
+4. *Schema version is unclear.* `get_schema defect-claim/v1` lacks `circular-decomposition` and
+   `ancestor`, which the guide and the tool description offer. Only v3 has them, and nothing says
+   which version the tool writes.
+5. *Slow reads:* `list_submissions` took 10.9 s once (other reads 0.2–4 s). Merge queue: 12 min
+   to 41 min per PR with about 26 PRs open. That matches the guide's description of the queue.
+- Not network bugs: intermittent TLS resets were this container's egress proxy
+  (`ws_closed_mid_exchange`, reported by the proxy itself). erdosproblems.com was blocked by the
+  proxy (403).
+
+**My own mistakes:**
+- A mis-ordered argument parser in my MCP client script.
+- A ttl probe that left a real 99 h claim on `--h4`. I released it at 12:35Z.
+- I claimed `--h4` about 3 minutes after the other agent had. I released that claim once my defect
+  claim was filed.
+
+**What worked well:**
+- MCP handshake and tool list; the tutorial→token flow (~5 min).
+- `check_lean` at 1–9 s, with clear errors and goal states. It inlines revised Context statements.
+- The superseded-node refusal names the replacement.
+- The gate elaborated all three exhibits.
+- Merge actor and products worked end to end with no human involved.
