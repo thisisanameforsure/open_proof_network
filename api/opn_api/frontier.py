@@ -92,7 +92,7 @@ def stale_all_but(ctx: Context, keep: str, now: float) -> None:
     """Age every entry but ``keep`` past the window, relative to *now*: ``time.monotonic()``
     counts from boot, so an epoch of 0.0 can still be inside the window on a fresh host."""
     aged = now - (ctx.settings.frontier_max_stale_s + 1)
-    for path, entry in ctx.files.items():
+    for path, entry in list(ctx.files.items()):  # a copy: other threads may add (F07-T39)
         if path != keep:
             entry.fetched_at = min(entry.fetched_at, aged)
 

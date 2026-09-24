@@ -164,6 +164,33 @@ def test_a_later_decomposition_numbers_its_holes_after_the_earlier_ones(tmp_path
     assert tg.nodes[ROOT_NODE].holes == (H1, H2, f"{PARENT}--h3", f"{PARENT}--h4")
 
 
+def test_routes_stack_in_the_live_order_one_hole_then_two(tmp_path: Path) -> None:
+    """Seen live on 2026-09-24 on ``erdos-1050--h1-v2``, which already had ``--h1``: #196's
+    one-hole skeleton wrote ``--h2`` (post-merge bb02ddab) and #199's two-hole skeleton then
+    wrote ``--h3`` and ``--h4`` (2421b927). Here on a node that already has two holes: a one-hole
+    route takes the next number and a two-hole route after it the two after that, every route
+    stays under attempts/ and the parent keeps every hole in order."""
+    root = decomposed(tmp_path)
+    parent = root / "targets" / TARGET / "nodes" / PARENT
+    one = (hole("h_only", "∀ (p q r : Prop), (p ∧ q) ∧ r → q ∧ True", local="q ∧ True"),)
+    first = postmerge.apply_partial(
+        parent, one, partial_text=ASSEMBLY, pseudonym="carol", stamp="20260924T150451Z"
+    )
+    assert first.children == (f"{PARENT}--h3",)
+    two = (
+        hole("h_a", "∀ (p q r : Prop), (p ∧ q) ∧ r → r ∧ True", local="r ∧ True"),
+        hole("h_b", "∀ (p q r : Prop), (p ∧ q) ∧ r → r ∧ True → p ∧ True", local="p ∧ True"),
+    )
+    second = postmerge.apply_partial(
+        parent, two, partial_text=ASSEMBLY, pseudonym="dave", stamp="20260924T152653Z"
+    )
+    assert second.children == (f"{PARENT}--h4", f"{PARENT}--h5")
+    meta = yaml.safe_load((parent / "META.yaml").read_text())
+    assert meta["deps"][-5:] == [H1, H2, f"{PARENT}--h3", f"{PARENT}--h4", f"{PARENT}--h5"]
+    assert len(sorted((parent / "attempts").glob("*.lean"))) == 3
+    assert graph.load_target(root, TARGET).statuses[ROOT_NODE] == "ready"
+
+
 def test_next_child_index_counts_a_revised_hole_by_its_number(tmp_path: Path) -> None:
     nodes = tmp_path / "nodes"
     for name in (f"{PARENT}--h1", f"{PARENT}--h2-v2", f"{PARENT}--h2", "other--h7", PARENT):

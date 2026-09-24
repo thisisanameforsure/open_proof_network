@@ -3,8 +3,11 @@
 ``POST /claims`` checks the node against the committed frontier at ``main`` (present and
 claimable; a refusal names why not, from the graph and the targets index — F05-T9), clamps
 an undeclared TTL to the minimum, rejects one above the maximum, enforces the active-claim cap,
-and returns the receipt. ``DELETE /claims/<id>`` releases the holder's
-own claim. Expiry is lazy: a claim past ``expires`` counts as released wherever it is read.
+and returns the receipt — or, when the caller already holds an active claim on the node, that
+claim again with ``200`` (F05-T14); every receipt names the node's other active holders.
+``DELETE /claims/<id>`` releases the holder's own claim, and ``GET /claims/mine`` lists the
+caller's active claims with their ids. Expiry is lazy: a claim past ``expires`` counts as
+released wherever it is read.
 """
 
 from __future__ import annotations
@@ -43,6 +46,29 @@ def receipt(claim: Claim, pseudonym: str) -> dict[str, Any]:
         "expires": claim.expires,
         "released": claim.released,
     }
+
+
+def others(ctx: Context, claim: Claim, claims: list[Claim]) -> list[dict[str, str]]:
+    """F05-T14: the other active holders of ``claim``'s node, as the overlay shows them
+    (``pseudonym``, ``expires``, the registry's order) — never the holder, never a claim that has
+    expired or been released. Racing stays allowed (D-25); this only says who else is there."""
+    now = clockmod.render(ctx.clock.now())
+    names: dict[str, str] = {}
+    out: list[dict[str, str]] = []
+    for c in claims:
+        same_node = c.node_id == claim.node_id and c.target_id == claim.target_id
+        if not same_node or c.identity_id == claim.identity_id or not frontier.is_active(c, now):
+            continue
+        if c.identity_id not in names:
+            holder = ctx.store.get_identity(c.identity_id)
+            names[c.identity_id] = holder.pseudonym if holder else "?"
+        out.append({"pseudonym": names[c.identity_id], "expires": c.expires})
+    return sorted(out, key=lambda a: (a["expires"], a["pseudonym"]))
+
+
+def held_receipt(ctx: Context, claim: Claim, pseudonym: str, claims: list[Claim]) -> dict[str, Any]:
+    """A receipt for a claim its holder is looking at: the claim and who else holds the node."""
+    return {**receipt(claim, pseudonym), "others": others(ctx, claim, claims)}
 
 
 def ttl_hours(ctx: Context, raw: Any) -> int:
@@ -93,17 +119,34 @@ def unclaimable(ctx: Context, node_id: str, target_id: str) -> ApiError:
     return not_claimable(ctx, node_id, target_id)
 
 
-def circular(node_id: str, facts: dict[str, Any]) -> ApiError:
+def circular(
+    node_id: str,
+    facts: dict[str, Any],
+    *,
+    lead: str | None = None,
+    merged: tuple[str, ...] = (),
+) -> ApiError:
     """F08-T17 (D-16): a node under a merged circularity claim is off the frontier by design. Its
     status is untouched (a proof of it is still a proof), so "ready and not on the frontier"
-    would be true and useless; this names the reason and where the claim lives."""
+    would be true and useless; this names the reason and where the claim lives.
+
+    F08-T18: ``POST /defect-claims`` refuses a second circularity claim in the same words, with
+    its own ``lead`` and, when it could list them, the ``merged`` claims' paths."""
+    where = (
+        f"The claim and its Lean exhibit: {', '.join(merged)}."
+        if merged
+        else f"The claim and its Lean exhibit are under nodes/{node_id}/defects/."
+    )
+    details: dict[str, Any] = {"status": facts["status"], "cause": graphmod.CAUSE_CIRCULAR}
+    if merged:
+        details["claims"] = list(merged)
     return ApiError(
         409,
         "node-circular",
-        f"{node_id} is not claimable: it is circular — a merged circularity claim (D-16) proves a "
-        f"node above it implies it, so it is no easier than what it was meant to reduce. The "
-        f"claim and its Lean exhibit are under nodes/{node_id}/defects/.",
-        details={"status": facts["status"], "cause": graphmod.CAUSE_CIRCULAR},
+        f"{lead or f'{node_id} is not claimable'}: it is circular — a merged circularity claim "
+        f"(D-16) proves a node above it implies it, so it is no easier than what it was meant to "
+        f"reduce. {where}",
+        details=details,
     )
 
 
@@ -176,6 +219,11 @@ def active_for(ctx: Context, identity_id: str) -> list[Claim]:
     ]
 
 
+def held_on(held: list[Claim], node_id: str, target_id: str) -> Claim | None:
+    """F05-T14: the active claim, among the caller's ``held``, on this node of this target."""
+    return next((c for c in held if c.node_id == node_id and c.target_id == target_id), None)
+
+
 #: F05-T8: the fields ``POST /claims`` reads; any other top-level key is refused.
 CLAIM_FIELDS: tuple[str, ...] = ("node_id", "target_id", "ttl_hours")
 
@@ -194,6 +242,13 @@ async def post_claims(ctx: Context, request: Request) -> Response:
     entry = find_entry(ctx, node_id, target_id)
     now = ctx.clock.now()
     held = active_for(ctx, identity.id)
+    # F05-T14: one claim per holder per node. A repeat is the claim already held, unchanged and
+    # not charged against the cap; once it is released or expired, a new claim is a new id.
+    existing = held_on(held, node_id, str(entry["target_id"]))
+    if existing is not None:
+        return JSONResponse(
+            held_receipt(ctx, existing, identity.pseudonym, ctx.store.list_claims())
+        )
     if len(held) >= ctx.settings.active_claims:
         soonest = min(c.expires for c in held)
         raise ApiError(
@@ -211,7 +266,25 @@ async def post_claims(ctx: Context, request: Request) -> Response:
         expires=clockmod.render(now + timedelta(hours=hours)),
     )
     ctx.store.put_claim(claim)
-    return JSONResponse(receipt(claim, identity.pseudonym), status_code=201)
+    return JSONResponse(
+        held_receipt(ctx, claim, identity.pseudonym, ctx.store.list_claims()), status_code=201
+    )
+
+
+async def get_my_claims(ctx: Context, request: Request) -> Response:
+    """F05-T14 (ruling D3(b)): the caller's active claims with their ids, oldest first, each with
+    the other holders of its node. The public registry publishes pseudonyms and expiry only
+    (``claims/v1``), so without this a lost receipt made a claim unreleasable until it expired."""
+    identity: Identity = request.state.identity
+    claims = ctx.store.list_claims()
+    mine = sorted(active_for(ctx, identity.id), key=lambda c: c.id)
+    return JSONResponse(
+        {
+            "pseudonym": identity.pseudonym,
+            "snapshot_at": clockmod.render(ctx.clock.now()),
+            "claims": [held_receipt(ctx, c, identity.pseudonym, claims) for c in mine],
+        }
+    )
 
 
 async def delete_claim(ctx: Context, request: Request) -> Response:

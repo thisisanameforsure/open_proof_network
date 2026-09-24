@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
-from opn_api import frontier, precheck
+from opn_api import frontier, precheck, requests
 from opn_api.app import ApiError, CachedFile
 from opn_api.githost import GitHostError
 from opn_api.mcp import demarcate, results
@@ -466,6 +466,13 @@ async def get_hosted_checkers(call: Call, args: dict[str, Any]) -> dict[str, Any
     return service_answer(await call.endpoint("GET", path), path)
 
 
+async def list_my_claims(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """``GET /claims/mine``, body for body (F05-T14, ruling D3(b)): the caller's own active
+    claims with their ids. The one read that needs a bearer, because what it reads is the
+    caller's; the server refuses it without one before the route is reached."""
+    return service_answer(await call.endpoint("GET", "/claims/mine"), "/claims/mine")
+
+
 TOOLS: tuple[Tool, ...] = (
     Tool(
         "server_info",
@@ -536,7 +543,9 @@ TOOLS: tuple[Tool, ...] = (
     Tool(
         "get_schema",
         "A JSON Schema by name: a protocol record's (`postmortem/v1`, `defect-claim/v1`, ...) "
-        "or a tool result's (`mcp/<tool>/v1`).",
+        "or a tool result's (`mcp/<tool>/v1`). A defect claim of class "
+        f"`{requests.CIRCULAR_CLASS}` is written as `{requests.CIRCULAR_SCHEMA}`, every other "
+        f"class as `{requests.DEFECT_SCHEMA}`.",
         params({"name": {"type": "string"}}, ("name",)),
         get_schema,
     ),
@@ -570,5 +579,15 @@ TOOLS: tuple[Tool, ...] = (
         "Mathlib-free target. Plain path: GET /hosted-checkers.json.",
         params({}),
         get_hosted_checkers,
+    ),
+    Tool(
+        "list_my_claims",
+        "Your own active claims with their ids (what release_claim takes), oldest first, each "
+        "with `others`: who else holds that node. Needs your token, since the list is yours; "
+        "the public claims registry names pseudonyms and expiry times only. "
+        "Plain path: GET /claims/mine.",
+        params({}),
+        list_my_claims,
+        access="bearer",
     ),
 )

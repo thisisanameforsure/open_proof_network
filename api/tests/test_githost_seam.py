@@ -956,7 +956,7 @@ HEAD_SHA = "e" * 40
 def test_get_pull_request_reads_the_pull_its_reviews_and_the_runs_on_its_head(
     script: Script, host: HttpxGitHost
 ) -> None:
-    """Three GETs as the App, shaped into ``{name, status, conclusion, url}`` runs and
+    """Three GETs as the App, shaped into ``{name, status, conclusion, url, jobs}`` runs and
     ``{login, state}`` reviews — the wire's extra fields dropped, nothing written."""
     install_app(script).on(
         "GET",
@@ -1005,6 +1005,7 @@ def test_get_pull_request_reads_the_pull_its_reviews_and_the_runs_on_its_head(
                 "status": "completed",
                 "conclusion": "success",
                 "url": "https://github.com/runs/9",
+                "jobs": [],  # F07-T42: always present; none read for a merged pull request
             },
         ),
         reviews=({"login": "bob", "state": "APPROVED"},),

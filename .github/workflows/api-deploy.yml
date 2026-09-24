@@ -14,6 +14,10 @@ on:
       - "gate/schemas/**"
       - "gate/hosted-checkers.yaml"  # F13: POST /check reads it at runtime
       - "gate/lean/OpnGate/WitnessType.lean"  # F13-T14: mode witness sends the gate's own program
+      - "gate/lean/OpnGate/Hazards.lean"  # F13-T20: mode hazards sends step 6's own checkers
+      - "gate/lean/OpnGate/Hazards/**"
+      - "gate/lean/OpnGate/HazardsMain.lean"  # F13-T20: its registry of checkers
+      - "gate/opn_gate/steps/hazards.py"  # F13-T20: the matching of findings to acknowledgments
       - "gate/opn_gate/hosted.py"
       - "pyproject.toml"
       - "uv.lock"
@@ -67,6 +71,11 @@ jobs:
           # schemas by the same rule; without it the mode answers 503 witness-program-unreadable.
           mkdir -p build/package/lean/OpnGate
           cp gate/lean/OpnGate/WitnessType.lean build/package/lean/OpnGate/WitnessType.lean
+          # F13-T20: mode hazards and the proposals' hazard pre-flight send step 6's own checkers
+          # and read HazardsMain.lean's registry, by the same rule; without them, 503.
+          cp gate/lean/OpnGate/Hazards.lean build/package/lean/OpnGate/Hazards.lean
+          cp gate/lean/OpnGate/HazardsMain.lean build/package/lean/OpnGate/HazardsMain.lean
+          cp -R gate/lean/OpnGate/Hazards build/package/lean/OpnGate/Hazards
           find build/package -name '__pycache__' -type d -prune -exec rm -rf {} +
           # The dist-info directories stay: the MCP SDK reads its own version through
           # importlib.metadata at import, and stripping them took the function down (F09-T5).
@@ -91,6 +100,12 @@ jobs:
                         "opn_api/checks.py", "opn_api/axle.py",  # F13: POST /check
                         "hosted-checkers.yaml",  # F13-T4: read beside schemas/ at runtime
                         "lean/OpnGate/WitnessType.lean",  # F13-T14: read by mode witness
+                        # F13-T20: read by mode hazards and the proposals' hazard pre-flight
+                        "lean/OpnGate/Hazards.lean", "lean/OpnGate/HazardsMain.lean",
+                        "lean/OpnGate/Hazards/DivZero.lean", "lean/OpnGate/Hazards/IntTrunc.lean",
+                        "lean/OpnGate/Hazards/JunkValue.lean", "lean/OpnGate/Hazards/NatSub.lean",
+                        "lean/OpnGate/Hazards/OffByOneRange.lean",
+                        "lean/OpnGate/Hazards/UnusedBinder.lean",
                         "opn_gate/schemas.py", "mangum/__init__.py", "starlette/applications.py",
                         "opn_api/mcp/server.py", "mcp/server/lowlevel/server.py"):
               assert (pkg / entry).is_file(), f"missing from the package: {entry}"

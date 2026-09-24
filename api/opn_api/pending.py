@@ -20,7 +20,9 @@ from __future__ import annotations
 import json
 import logging
 import re
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from typing import TYPE_CHECKING, Any
 
@@ -70,6 +72,7 @@ def record(  # noqa: PLR0913 — one opened pull request, described
     pr: PullRequest,
     precheck_job_id: str | None = None,
     fingerprints: tuple[str, ...] | list[str] = (),
+    defect_class: str | None = None,
 ) -> Submission | None:
     """Remember a pull request the service just opened. The pull request exists whatever happens
     here, so a store failure is logged and the caller still answers 201 with its number: the
@@ -85,6 +88,7 @@ def record(  # noqa: PLR0913 — one opened pull request, described
         precheck_job_id=precheck_job_id,
         created=clockmod.render(ctx.clock.now()),
         fingerprints=tuple(fingerprints),
+        defect_class=defect_class,
     )
     try:
         ctx.store.put_submission(submission)
@@ -105,6 +109,7 @@ def document(submission: Submission) -> dict[str, Any]:
     doc = asdict(submission)
     doc.pop("final_state")
     doc.pop("fingerprints")  # the service's own index, not part of the answer (F07-T35)
+    doc.pop("defect_class")  # likewise (F08-T18): the claim's own file says its class
     return doc
 
 
@@ -161,8 +166,20 @@ def unknown_node(ctx: Context, node_id: str, where: str = "") -> ApiError:
 # --- the live state (C7) -------------------------------------------------------------------------
 
 
+def pr_lock(ctx: Context, number: int) -> threading.RLock:
+    """F07-T39: the lock for one pull request's reconciliation, made on first use."""
+    with ctx.pr_locks_guard:
+        return ctx.pr_locks.setdefault(number, threading.RLock())
+
+
 def live_state(ctx: Context, number: int) -> tuple[PullRequestState | None, str | None]:
-    """The pull request's state and, when it is not a fresh answer from the host, why."""
+    """The pull request's state and, when it is not a fresh answer from the host, why. Under
+    the pull request's lock, so two threads asking at once make one lookup (F07-T39)."""
+    with pr_lock(ctx, number):
+        return _live_state(ctx, number)
+
+
+def _live_state(ctx: Context, number: int) -> tuple[PullRequestState | None, str | None]:
     cached = ctx.pulls.get(number)
     now = time.monotonic()
     if cached is not None and now - cached.fetched_at < ctx.settings.frontier_max_stale_s:
@@ -256,8 +273,28 @@ def unknown(raw: str) -> ApiError:
     )
 
 
+def final_state(found: Submission) -> dict[str, Any] | None:
+    """The state that closed a record, in today's shape. A record closed before F07-T42 kept runs
+    without ``jobs`` (the host added the key only where it read the jobs), so a merged submission
+    read back in a different shape from an open one; every run carries the key now, ``[]`` where
+    nothing was read, old records included."""
+    state = found.final_state
+    runs = (state or {}).get("runs")
+    if state is None or not isinstance(runs, list):
+        return state
+    return {
+        **state,
+        "runs": [
+            {**run, "jobs": list(run.get("jobs") or [])} if isinstance(run, dict) else run
+            for run in runs
+        ],
+    }
+
+
 def reconcile(
-    ctx: Context, found: Submission
+    ctx: Context,
+    found: Submission,
+    first: tuple[PullRequestState | None, str | None] | None = None,
 ) -> tuple[Submission, dict[str, Any] | None, str | None]:
     """The record with the host's last word on it, closing it when the pull request has finished.
 
@@ -265,10 +302,23 @@ def reconcile(
     to live inside ``answer`` alone, so only the submission somebody named was ever reconciled
     and the list kept merged pull requests for ever (#66-#69 sat open for two days). A record
     the host cannot describe is left open with the reason, never silently dropped (C7).
+
+    F07-T39: ``first`` is a live read the caller already made (the snapshot's concurrent
+    lookups), and the whole reconciliation holds the pull request's lock, so a losing racer is
+    converted once however many readers arrive together.
     """
+    with pr_lock(ctx, found.pr_number):
+        return _reconcile(ctx, found, first)
+
+
+def _reconcile(
+    ctx: Context,
+    found: Submission,
+    first: tuple[PullRequestState | None, str | None] | None,
+) -> tuple[Submission, dict[str, Any] | None, str | None]:
     if found.closed is not None:
-        return found, found.final_state, None
-    state, error = live_state(ctx, found.pr_number)
+        return found, final_state(found), None
+    state, error = first if first is not None else live_state(ctx, found.pr_number)
     from opn_api import racers  # noqa: PLC0415 — racers reads the duplicate rule, which reads this
 
     if state is not None and error is None and racers.convert(ctx, found, state):
@@ -350,21 +400,68 @@ def waiting_on_products(
 ) -> dict[str, Any] | None:
     """F05-T13: a merged proposal whose node the products do not carry yet is waiting on the
     post-merge job, and says so, instead of reading as finished while every call on the node
-    answers ``products-pending``. A graph that cannot be read changes nothing (C7)."""
-    from opn_api import precheck  # noqa: PLC0415 — precheck imports this module
+    answers ``products-pending``. F05-T15: so is a merged annex the products' commit lacks, and a
+    merged witness whose node still reads ``witness-missing``, the two other things precheck
+    answers ``products-pending`` for. A merged postmortem or approach record waits on nothing.
+    A graph that cannot be read changes nothing (C7)."""
     from opn_api.store import proposes  # noqa: PLC0415
 
-    if pull is None or not pull.get("merged") or not proposes(found):
+    if pull is None or not pull.get("merged"):
+        return pull
+    if proposes(found):
+        waits = _node_unrendered
+    elif found.kind == "annex" and found.node_id is not None:
+        waits = _annex_unrendered
+    elif found.kind == "witness" and found.node_id is not None:
+        waits = _witness_unrendered
+    else:
         return pull
     try:
-        known = any(
-            node.get("node_id") == found.node_id
-            for nodes in precheck.graph_doc(ctx).values()
-            for node in nodes
-        )
-    except ApiError:
+        waiting = waits(ctx, found, pull)
+    except (ApiError, GitHostError, ValueError, KeyError) as exc:
+        log.warning("pull request #%d: products not compared: %s", found.pr_number, exc)
         return pull
-    return pull if known else {**pull, "waiting_on": WAITING_ON_PRODUCTS}
+    return {**pull, "waiting_on": WAITING_ON_PRODUCTS} if waiting else pull
+
+
+def _node_unrendered(ctx: Context, found: Submission, pull: dict[str, Any]) -> bool:
+    from opn_api import precheck  # noqa: PLC0415 — precheck imports this module
+
+    return not any(
+        node.get("node_id") == found.node_id
+        for nodes in precheck.graph_doc(ctx).values()
+        for node in nodes
+    )
+
+
+def _annex_unrendered(ctx: Context, found: Submission, pull: dict[str, Any]) -> bool:
+    """The merge commit carries an annex on the node that the commit the target's products were
+    rendered from does not: the commit ``precheck.check_cited_annex`` pins a skeleton to. The
+    record does not keep the annex's hash, so the node's two ``annex/`` listings are compared;
+    both are at immutable commits."""
+    from opn_api import precheck  # noqa: PLC0415 — precheck imports this module
+
+    merge = pull.get("merge_commit_sha")
+    if not merge:
+        return False
+    rendered = precheck.rendered_from(ctx, found.target_id)
+    directory = f"targets/{found.target_id}/nodes/{found.node_id}/annex"
+    repo = ctx.settings.graph_repo
+    merged = ctx.githost.list_dir(repo, str(merge), directory) or []
+    shown = ctx.githost.list_dir(repo, rendered, directory) or []
+    return bool(set(merged) - set(shown))
+
+
+def _witness_unrendered(ctx: Context, found: Submission, pull: dict[str, Any]) -> bool:
+    """The node still reads ``witness-missing`` and ``main`` has the filled slot, the test
+    precheck refuses on (``precheck.witness_awaits_render``)."""
+    from opn_api import precheck  # noqa: PLC0415 — precheck imports this module
+
+    for node in precheck.graph_doc(ctx).get(found.target_id, []):
+        if node.get("node_id") == found.node_id:
+            facts = precheck.facts_of(found.target_id, node)
+            return precheck.witness_awaits_render(ctx, str(found.node_id), facts)
+    return False
 
 
 def answer(ctx: Context, raw: str) -> dict[str, Any]:
@@ -393,7 +490,7 @@ def answer(ctx: Context, raw: str) -> dict[str, Any]:
             path, attestation, note = candidate, attestation_doc(raw_doc, candidate), None
         else:
             note = NOTE_PENDING if pull is not None else NOTE_UNKNOWN
-    return {
+    out = {
         "submission": document(found),
         "pull_request": pull,
         "pull_request_error": error,
@@ -402,6 +499,47 @@ def answer(ctx: Context, raw: str) -> dict[str, Any]:
         "attestation": attestation,
         "attestation_note": note,
     }
+    from opn_api.store import proposes  # noqa: PLC0415
+
+    if proposes(found):
+        out["proposed_statement"], out["proposed_statement_error"] = proposed_statement(
+            ctx, found, pull
+        )
+    return out
+
+
+#: F07-T41: how much of a proposed ``Statement.lean`` an answer carries. A statement is a few
+#: hundred bytes; the cap only keeps a pathological branch from swelling every read of it.
+PROPOSED_STATEMENT_MAX_BYTES = 16 * 1024
+
+
+def proposed_statement(
+    ctx: Context, found: Submission, pull: dict[str, Any] | None
+) -> tuple[dict[str, Any] | None, str | None]:
+    """F07-T41: the statement a proposal proposes, read from its branch at the pull request's head
+    commit (the record keeps what the pull request was, not what it says), so a contributor can
+    see whether another open proposal is the same statement without leaving the network. It
+    rides beside the ``submission`` document, never in it: ``GET /submissions.json`` lists those
+    documents and must equal them. ``None`` with the reason when the host cannot say (C7)."""
+    head = str((pull or {}).get("head_sha") or "")
+    if not head:
+        return None, "the pull request's head commit is not known, so its branch was not read"
+    path = f"targets/{found.target_id}/nodes/{found.node_id}/Statement.lean"
+    try:
+        got = ctx.githost.fetch_raw(ctx.settings.graph_repo, head, path, etag=None)
+    except GitHostError as exc:
+        log.warning("pull request #%d: statement not read: %s", found.pr_number, exc)
+        return None, f"the proposed statement could not be read from the host: {exc}"
+    if got.status != 200 or got.body is None:
+        return None, f"{path} at {head[:12]} answered {got.status}"
+    raw = got.body
+    return {
+        "path": path,
+        "head_sha": head,
+        # a cut through a multi-byte character drops it rather than inventing a replacement
+        "text": raw[:PROPOSED_STATEMENT_MAX_BYTES].decode("utf-8", errors="ignore"),
+        "truncated": len(raw) > PROPOSED_STATEMENT_MAX_BYTES,
+    }, None
 
 
 def hand_opened(ctx: Context, raw: str, number: int | None) -> dict[str, Any]:
@@ -438,10 +576,23 @@ def snapshot(ctx: Context) -> dict[str, Any]:
     Each is reconciled against the host first, so "open" means the host still calls it open and
     not merely that nobody has asked. One lookup per open record per freshness window, on the
     same cache ``answer`` uses; a record the host cannot describe stays listed (C7).
+
+    F07-T39: the lookups are what cost (22 open records took 28 s live, one after another), so
+    they run on a pool ``reconcile_concurrency`` wide. Only the host reads go on the pool: the
+    rest of each reconciliation (a racer's conversion, closing the record in the store) runs
+    here, in order, because neither the store's client nor the committed-file cache is shared
+    across threads anywhere else.
     """
+    records = ctx.store.list_open_submissions()
+    width = min(ctx.settings.reconcile_concurrency, len(records))
+    if width > 1:
+        with ThreadPoolExecutor(width, thread_name_prefix="reconcile") as pool:
+            firsts = list(pool.map(lambda s: live_state(ctx, s.pr_number), records))
+    else:
+        firsts = [live_state(ctx, s.pr_number) for s in records]
     open_now: list[dict[str, Any]] = []
-    for submission in ctx.store.list_open_submissions():
-        record, _, _ = reconcile(ctx, submission)
+    for submission, first in zip(records, firsts, strict=True):
+        record, _, _ = reconcile(ctx, submission, first)
         if record.closed is None:
             open_now.append(document(record))
     return {"snapshot_at": clockmod.render(ctx.clock.now()), "open": open_now}

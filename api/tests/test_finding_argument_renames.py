@@ -107,11 +107,11 @@ def test_renames_is_what_the_handlers_send() -> None:
         args = {n: value_for(tool.name, n) for n in names}
         body = sent_body(tool, args)
         if body is None:
-            continue  # a path-only call (release_claim)
+            continue  # a path-only call (release_claim, withdraw_submission)
         with_body += 1
         mapping = dict(renames.get(tool.name, {}))
         assert body == {mapping.get(n, n): expected_value(tool.name, n) for n in names}, tool.name
-    assert with_body == len(writes.TOOLS) - 1
+    assert with_body == len(writes.TOOLS) - 2
 
 
 def test_submit_proof_accepts_precheck_job_id_and_forwards_the_same_body(

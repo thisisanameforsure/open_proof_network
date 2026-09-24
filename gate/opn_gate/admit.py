@@ -21,7 +21,7 @@ import logging
 import shutil
 import subprocess
 import traceback
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -225,31 +225,60 @@ class DeclarationCheck:
         node = ctx.node
         if node is None:
             return StepResult.failed("check-order", "the declaration check needs the layout check")
-        allowed = str(node.meta.get("supersedes") or "") or None
         nodes_dir = layout.graph_nodes_dir(ctx.graph_root, ctx.claim.target_id)
         if not nodes_dir.is_dir():
             return StepResult.passed()
-        for sibling in sorted(p for p in nodes_dir.iterdir() if p.is_dir()):
-            if sibling.name in (node.node_id, allowed):
-                continue
-            statement_path = sibling / "Statement.lean"
-            if not statement_path.is_file():
-                continue
-            parsed = layout.parse_statement(statement_path.read_text(encoding="utf-8"))
-            if not isinstance(parsed, layout.Statement):
-                # A sibling whose own statement is malformed is that node's problem, not this
-                # one's: it cannot have been admitted, and it cannot be collided with either.
-                continue
-            if parsed.decl_name == node.statement.decl_name:
-                return StepResult.failed(
-                    "declaration-clash",
-                    f"node {sibling.name!r} already declares {node.statement.decl_name}; "
-                    f"a node may only restate a declaration by superseding the node that "
-                    f"holds it (D-8)",
-                    node=sibling.name,
-                    declaration=node.statement.decl_name,
-                )
+        siblings = (
+            (sibling.name, (sibling / "Statement.lean").read_text(encoding="utf-8"))
+            for sibling in sorted(p for p in nodes_dir.iterdir() if p.is_dir())
+            if (sibling / "Statement.lean").is_file()
+        )
+        holder = declaration_holder(
+            node.statement.decl_name,
+            siblings,
+            own=node.node_id,
+            supersedes=str(node.meta.get("supersedes") or "") or None,
+        )
+        if holder is not None:
+            return StepResult.failed(
+                "declaration-clash",
+                clash_message(holder, node.statement.decl_name),
+                node=holder,
+                declaration=node.statement.decl_name,
+            )
         return StepResult.passed()
+
+
+def declaration_holder(
+    decl_name: str,
+    siblings: Iterable[tuple[str, str]],
+    *,
+    own: str | None = None,
+    supersedes: str | None = None,
+) -> str | None:
+    """The first of ``siblings`` — ``(node id, Statement.lean text)`` — that declares
+    ``decl_name``, or ``None``. The node itself (``own``) and the node it supersedes (D-8) are
+    never holders. A sibling whose own statement is malformed is that node's problem, not this
+    one's: it cannot have been admitted, and it cannot be collided with either.
+
+    F08-T19: the service asks the same question, through this function, of the merged nodes and
+    of the proposals it has open, before it opens another (``proposals.check_declaration_free``).
+    """
+    for sibling_id, text in siblings:
+        if sibling_id in (own, supersedes):
+            continue
+        parsed = layout.parse_statement(text)
+        if isinstance(parsed, layout.Statement) and parsed.decl_name == decl_name:
+            return sibling_id
+    return None
+
+
+def clash_message(holder: str, decl_name: str) -> str:
+    """The ``declaration-clash`` refusal, as the gate words it and the service repeats it."""
+    return (
+        f"node {holder!r} already declares {decl_name}; a node may only restate a declaration "
+        f"by superseding the node that holds it (D-8)"
+    )
 
 
 class RelationCheck:

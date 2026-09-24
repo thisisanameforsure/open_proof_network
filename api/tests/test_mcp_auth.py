@@ -22,6 +22,7 @@ MINIMAL: dict[str, dict[str, Any]] = {
         "dco": {"version": "v", "accepted": True},
     },
     "propose_witness": {"node_id": NODE, "witness": "w"},
+    "withdraw_submission": {"submission_id": "1"},
     "submit_proof": {"node_id": NODE, "artifact_type": "proof", "bundle": {}, "attestation": {}},
     "submit_postmortem": {"node_id": NODE, "yaml": {}},
     "submit_informal_annex": {"node_id": NODE, "text": "t"},

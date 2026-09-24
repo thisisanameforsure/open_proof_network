@@ -17,6 +17,7 @@ from __future__ import annotations
 import base64
 import json
 import logging
+import threading
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -112,9 +113,10 @@ class PullRequestState:
     GitHub says about mergeability, the Actions runs on its head commit and its reviews.
 
     ``runs`` are ``{name, status, conclusion, url}`` and ``reviews`` ``{login, state}``, in
-    GitHub's vocabulary — the service reports them and decides nothing from them. A gate run
-    that failed on an open pull request also carries ``jobs``, ``{name, status, conclusion}`` of
-    its latest attempt, which is what tells a failed sandbox from a review not yet given.
+    GitHub's vocabulary — the service reports them and decides nothing from them. Every run
+    carries ``jobs`` (F07-T42): ``{name, status, conclusion}`` of its latest attempt for a gate run
+    that failed or has not finished on an open pull request, which is what tells a failed sandbox
+    from a review not yet given, and ``[]`` for every other run, whose jobs are not read.
     """
 
     number: int
@@ -228,6 +230,18 @@ class GitHost(Protocol):
         """Open a pull request from ``head`` into ``base`` (F07-R2). The App never merges it."""
         ...
 
+    def close_pull_request(self, repo: str, number: int) -> str | None:
+        """Close pull request ``number`` unmerged (F07-T43, a holder's withdrawal; Pull requests:
+        write, held since F07). Answers the head branch when it lives in ``repo`` — the branch the
+        service pushed — and ``None`` when the head is elsewhere (a fork), so it is never deleted.
+        The App never merges (F07-R2); this is the only other state change it makes to a PR."""
+        ...
+
+    def delete_branch(self, repo: str, branch: str) -> bool:
+        """Delete ``branch`` (Contents: write, held since F07). ``True`` when it was deleted,
+        ``False`` when the host has no such branch — a withdrawal repeated is not an error."""
+        ...
+
     def dispatch_workflow(
         self, repo: str, workflow: str, *, ref: str, inputs: Mapping[str, str]
     ) -> None:
@@ -262,6 +276,9 @@ class HttpxGitHost:
         self._private_key = private_key
         # repo -> (installation access token, unix expiry). Memory only: never stored (C8).
         self._installation_tokens: dict[str, tuple[str, float]] = {}
+        # F07-T39: the snapshot's lookups run on a pool, so a cold process asks for the token
+        # from several threads at once; one mints it and the rest read the cache.
+        self._token_lock = threading.Lock()
 
     def exchange_code(self, code: str, *, redirect_uri: str) -> GitHubUser:
         with httpx.Client(timeout=TIMEOUT_S, headers={"Accept": "application/json"}) as http:
@@ -394,7 +411,12 @@ class HttpxGitHost:
         return (signing_input + b"." + _b64url(signature)).decode("ascii")
 
     def _installation_token(self, repo: str) -> str:
-        """The App's installation access token for ``repo``, cached until it nearly expires."""
+        """The App's installation access token for ``repo``, cached until it nearly expires.
+        Minted under a lock, so threads that arrive together mint one token (F07-T39)."""
+        with self._token_lock:
+            return self._installation_token_locked(repo)
+
+    def _installation_token_locked(self, repo: str) -> str:
         cached = self._installation_tokens.get(repo)
         if cached is not None and cached[1] - TOKEN_REFRESH_MARGIN_S > time.time():
             return cached[0]
@@ -514,6 +536,43 @@ class HttpxGitHost:
                 )
             )
         return PullRequest(number=int(doc["number"]), url=str(doc.get("html_url") or ""))
+
+    def close_pull_request(self, repo: str, number: int) -> str | None:
+        with self._api(repo) as http:
+            doc = _json(
+                _send(
+                    http,
+                    "PATCH",
+                    f"{GITHUB_API}/repos/{repo}/pulls/{number}",
+                    json={"state": "closed"},
+                ),
+                f"pull request #{number}",
+            )
+        head = doc.get("head")
+        if not isinstance(head, dict):
+            return None
+        head_repo = head.get("repo")
+        full_name = head_repo.get("full_name") if isinstance(head_repo, dict) else None
+        ref = head.get("ref")
+        return str(ref) if ref and full_name == repo else None
+
+    def delete_branch(self, repo: str, branch: str) -> bool:
+        url = f"{GITHUB_API}/repos/{repo}/git/refs/heads/{branch}"
+        with self._api(repo) as http:
+            try:
+                resp = http.request("DELETE", url)
+            except httpx.HTTPError as exc:
+                msg = f"DELETE {_path(url)} failed: {type(exc).__name__}"
+                raise GitHostError(msg) from exc
+        if resp.status_code in (404, 422):  # "Reference does not exist": already gone
+            return False
+        if resp.status_code >= 400:
+            detail = _error_field(resp, "", field="message")
+            msg = (
+                f"DELETE {_path(url)} returned {resp.status_code}{': ' + detail if detail else ''}"
+            )
+            raise GitHostError(msg)
+        return True
 
     def dispatch_workflow(
         self, repo: str, workflow: str, *, ref: str, inputs: Mapping[str, str]
@@ -672,7 +731,8 @@ class HttpxGitHost:
                     "status": run.get("status"),
                     "conclusion": run.get("conclusion"),
                     "url": run.get("html_url"),
-                    **({"jobs": jobs[run.get("id")]} if run.get("id") in jobs else {}),
+                    # F07-T42: one shape, open or closed; [] where the jobs were not read
+                    "jobs": jobs.get(run.get("id"), []),
                 }
                 for run in runs
             ),

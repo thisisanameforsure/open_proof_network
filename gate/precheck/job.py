@@ -120,6 +120,36 @@ def sign_service(doc: dict[str, Any], key_path: Path) -> dict[str, Any]:
     return schemas.validate(out, str(doc["schema"]))
 
 
+def result_document(
+    job: dict[str, Any], verdict: pipeline.Verdict, ctx: Any, doc: dict[str, Any]
+) -> dict[str, Any]:
+    """The result the service serves: the verdict, its steps and the signed attestation, and for
+    a partial the holes it would leave (F06-T9): each hole's statement as the post-merge job will
+    write it and the witness type step 7 will ask of it, so a contributor reads what a skeleton
+    creates before submitting it. Like ``steps`` they sit outside the attestation."""
+    result: dict[str, Any] = {
+        "job_id": str(job["id"]),
+        "node_id": str(job["node_id"]),
+        "bundle_digest": str(job["bundle_digest"]),
+        "verdict": verdict.verdict,
+        "first_failing_step": verdict.first_failing_step,
+        "steps": verdict.as_dict(ctx.settings.diagnostic_max_bytes)["steps"],
+        "attestation": doc,
+    }
+    artifact = ctx.data.get("artifact") or {}
+    if artifact.get("kind") in ("partial", "reduction") and artifact.get("holes"):
+        result["holes"] = [
+            {
+                "name": hole.get("name"),
+                "closed_type": hole.get("closed_type"),
+                "expected_witness": hole.get("expected_witness"),
+                "restates": hole.get("defeq_sibling"),
+            }
+            for hole in artifact["holes"]
+        ]
+    return result
+
+
 def run(
     *,
     graph_root: Path,
@@ -138,15 +168,7 @@ def run(
     doc = attestation.build(ctx, verdict, graph_commit=str(job["graph_commit"]))
     if key_path is not None:
         doc = sign_service(doc, key_path)
-    result = {
-        "job_id": str(job["id"]),
-        "node_id": str(job["node_id"]),
-        "bundle_digest": str(job["bundle_digest"]),
-        "verdict": verdict.verdict,
-        "first_failing_step": verdict.first_failing_step,
-        "steps": verdict.as_dict(ctx.settings.diagnostic_max_bytes)["steps"],
-        "attestation": doc,
-    }
+    result = result_document(job, verdict, ctx, doc)
     (out_dir / RESULT_FILE).write_bytes(schemas.canonical_json(result))
     return result
 

@@ -207,7 +207,7 @@ def test_reads_inside_the_window_are_one_lookup_and_a_failure_serves_the_last_st
     first = get(harness, "1")
     assert get(harness, "1") == first
     assert harness.githost.pull_lookups == [1]
-    assert first["pull_request"]["runs"] == [FAILED_GATE]
+    assert first["pull_request"]["runs"] == [{**FAILED_GATE, "jobs": []}]  # F07-T42
     assert first["pull_request_error"] is None
 
     age(harness)

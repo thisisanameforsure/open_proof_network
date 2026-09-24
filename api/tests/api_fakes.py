@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import io
 import subprocess
+import threading
+import time
 import zipfile
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -127,6 +129,16 @@ class FakeGitHost:
     pull_states: dict[int, dict[str, Any]] = field(default_factory=dict)
     pull_lookups: list[int] = field(default_factory=list)
     pr_lookup_failure: str | None = None
+    #: F07-T43: every pull request closed and branch deleted through the App (a withdrawal).
+    closed_pulls: list[int] = field(default_factory=list)
+    deleted_branches: list[str] = field(default_factory=list)
+    #: F07-T39: a lookup's latency, the numbers whose lookup alone fails, and how many lookups
+    #: were in flight at once at most, so a test can see the snapshot's concurrency directly.
+    pull_latency_s: float = 0.0
+    pull_failures: set[int] = field(default_factory=set)
+    pulls_in_flight: int = 0
+    pulls_max_in_flight: int = 0
+    _pull_lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     @classmethod
     def with_fixtures(cls, **users: GitHubUser) -> FakeGitHost:
@@ -183,15 +195,18 @@ class FakeGitHost:
             msg = f"listing {path} failed: ConnectError"
             raise GitHostError(msg)
         prefix = path.rstrip("/") + "/"
+        # the tree at ``ref``, as ``fetch_raw`` reads it (F05-T15: a listing at a commit)
+        absent = self.absent_at.get(ref, set())
+        tree = {k for k in self.files if k not in absent} | set(self.files_at.get(ref, {}))
         names = sorted(
             {
                 name.partition("/")[0]
-                for name in (k.removeprefix(prefix) for k in self.files if k.startswith(prefix))
+                for name in (k.removeprefix(prefix) for k in tree if k.startswith(prefix))
             }
         )
         if not names:
             return None
-        return [n for n in names if prefix + n in self.files]
+        return [n for n in names if prefix + n in tree]
 
     def _app_call(self) -> None:
         if self.app_failure:
@@ -225,6 +240,22 @@ class FakeGitHost:
         number = len(self.pulls)
         return PullRequest(number, f"https://github.com/{repo}/pull/{number}")
 
+    def close_pull_request(self, repo: str, number: int) -> str | None:
+        """Close ``number`` unmerged: from now on the host says closed. Answers the branch this
+        fake opened it from; a number it never opened has none."""
+        self._app_call()
+        self.closed_pulls.append(number)
+        seeded = dict(self.pull_states.get(number) or {})
+        self.pull_states[number] = {**seeded, "state": "closed", "merged": False}
+        return self.pulls[number - 1].head if 1 <= number <= len(self.pulls) else None
+
+    def delete_branch(self, repo: str, branch: str) -> bool:
+        self._app_call()
+        if branch in self.deleted_branches:
+            return False
+        self.deleted_branches.append(branch)
+        return True
+
     def dispatch_workflow(
         self, repo: str, workflow: str, *, ref: str, inputs: Mapping[str, str]
     ) -> None:
@@ -254,8 +285,20 @@ class FakeGitHost:
         merged, with no runs and no reviews; any other number is unknown to the host."""
         self.pull_lookups.append(number)
         self._app_call()
+        with self._pull_lock:
+            self.pulls_in_flight += 1
+            self.pulls_max_in_flight = max(self.pulls_max_in_flight, self.pulls_in_flight)
+        try:
+            if self.pull_latency_s:
+                time.sleep(self.pull_latency_s)
+        finally:
+            with self._pull_lock:
+                self.pulls_in_flight -= 1
         if self.pr_lookup_failure:
             raise GitHostError(self.pr_lookup_failure)
+        if number in self.pull_failures:
+            msg = f"GET /repos/{repo}/pulls/{number} returned 502"
+            raise GitHostError(msg)
         seeded = self.pull_states.get(number)
         if seeded is None and not 1 <= number <= len(self.pulls):
             return None
@@ -287,8 +330,8 @@ class FakeGitHost:
         reviews: list[dict[str, Any]] | None = None,
     ) -> None:
         """What the host will say about pull request ``number`` from now on. Runs keep
-        ``{name, status, conclusion, url}`` and reviews ``{login, state}``, as the real host's
-        reader shapes them."""
+        ``{name, status, conclusion, url, jobs}`` (``jobs`` ``[]`` unless given) and reviews
+        ``{login, state}``, as the real host's reader shapes them."""
         self.pull_states[number] = {
             "state": state,
             "merged": merged,
@@ -298,7 +341,7 @@ class FakeGitHost:
             "runs": [
                 {
                     **{k: r.get(k) for k in ("name", "status", "conclusion", "url")},
-                    **({"jobs": r["jobs"]} if "jobs" in r else {}),
+                    "jobs": list(r.get("jobs") or []),  # the seam's shape (F07-T42)
                 }
                 for r in runs or []
             ],

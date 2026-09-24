@@ -1,0 +1,111 @@
+# F13-T20: the hazard checkers through the hosted checker — a pre-flight on proposals and a hazards mode on /check
+# (testers 2026-09-24; ruling D8; F02 owns the checkers). Found by the erdos-1050 HTTP agent: graph PR #202
+# (spec-f2b55478) went red at step 6 with 14 unacknowledged findings 3.5 min after opening; #203 re-filed with them.
+
+## red
+$ uv run --frozen pytest -q -p no:warnings api/tests/test_finding_hazards_preflight.py
+E       AssertionError: checks.hazards_text
+E       assert None is not None
+E           AssertionError: OpnGate/Hazards.lean
+E           assert 'lean/OpnGate/Hazards.lean' in '# Package and deploy the api function (F05-R12; D-35). Runs on every push to main that touches\n# api/, gate/schemas/..., the 401 on a write.\n      
+E       AssertionError: {"proposal_id":"01M230M2G0HDA93WJA151TGTH4","node_id":"spec-b99319d7","target_id":"propositional","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/
+E       assert 201 == 422
+E        +  where 201 = <Response [201 Created]>.status_code
+E       KeyError: 'hazards_preflight'
+E       KeyError: 'error'
+E       KeyError: 'error'
+E       ValueError: not enough values to unpack (expected 1, got 0)
+E           KeyError: 'hazards_preflight'
+E       AssertionError: {"error":"internal","message":"internal error"}
+E       assert 500 == 201
+E        +  where 500 = <Response [500 Internal Server Error]>.status_code
+E       AssertionError: assert ['witness'] == ['hazards', 'witness']
+E         
+E         At index 0 diff: 'witness' != 'hazards'
+E         Right contains one more item: 'witness'
+E         Use -v to get more diff
+E       AssertionError: {"error":"mode-invalid","message":"mode must be one of check, verify, witness"}
+E       assert 400 == 200
+E        +  where 400 = <Response [400 Bad Request]>.status_code
+E       AssertionError: {"error":"mode-invalid","message":"mode must be one of check, verify, witness"}
+E       assert (400, 'mode-invalid') == (400, 'content-not-used')
+E         
+E         At index 1 diff: 'mode-invalid' != 'content-not-used'
+E         Use -v to get more diff
+E       AssertionError: assert 'hazards' in ['check', 'verify', 'witness']
+    def failed(
+        """A failed call's structured content."""
+E       AssertionError: {'status': 201, 'body': {'proposal_id': '01M230M2G0ZYYRMGZ2210Y58DD', 'node_id': 'spec-b99319d7', 'target_id': 'propositional', 'pr_url': 'https://github.com/thisisanameforsure
+E       assert 'hazard-unacknowledged' in "Enter a crux statement as a speculative node (D-14): `stmt` and `witness` are Lean files; admission is mechanical (D-...e checker's `errors`, and nothing ope
+E        +  where "Enter a crux statement as a speculative node (D-14): `stmt` and `witness` are Lean files; admission is mechanical (D-...e checker's `errors`, and nothing opens; `witness_preflight` 
+E       assert 'hazard-unacknowledged' in "Enter a labeled variant of the root (D-30): relation is resolves, partial or related (default); a label above related...e checker's `errors`, and nothing ope
+E        +  where "Enter a labeled variant of the root (D-30): relation is resolves, partial or related (default); a label above related...e checker's `errors`, and nothing opens; `witness_preflight` 
+FAILED api/tests/test_finding_hazards_preflight.py::test_the_program_sent_is_the_gates_own_source
+FAILED api/tests/test_finding_hazards_preflight.py::test_the_deployed_package_carries_the_files_the_program_reads
+FAILED api/tests/test_finding_hazards_preflight.py::test_an_unacknowledged_div_zero_is_refused_before_a_pull_request_opens
+FAILED api/tests/test_finding_hazards_preflight.py::test_an_acknowledged_finding_opens
+FAILED api/tests/test_finding_hazards_preflight.py::test_an_empty_justification_acknowledges_nothing
+FAILED api/tests/test_finding_hazards_preflight.py::test_the_variant_route_refuses_too
+FAILED api/tests/test_finding_hazards_preflight.py::test_only_the_targets_checkers_run
+FAILED api/tests/test_finding_hazards_preflight.py::test_axle_unavailable_opens_as_today
+FAILED api/tests/test_finding_hazards_preflight.py::test_the_two_pre_flights_run_side_by_side
+FAILED api/tests/test_finding_hazards_preflight.py::test_the_pre_flight_is_charged_and_logged_as_a_check
+FAILED api/tests/test_finding_hazards_preflight.py::test_check_hazards_mode_answers_the_findings
+FAILED api/tests/test_finding_hazards_preflight.py::test_check_hazards_mode_takes_content_nowhere
+FAILED api/tests/test_finding_hazards_preflight.py::test_the_mcp_tool_offers_the_mode
+FAILED api/tests/test_finding_hazards_preflight.py::test_mcp_propose_speculative_node_carries_the_refusal
+FAILED api/tests/test_finding_hazards_preflight.py::test_the_mcp_descriptions_name_the_refusal[propose_speculative_node]
+FAILED api/tests/test_finding_hazards_preflight.py::test_the_mcp_descriptions_name_the_refusal[propose_variant]
+16 failed in 5.74s
+Every failure is the missing mechanism, not a missing name: hazards_text is looked up with getattr (assert None is
+not None names it); the proposal routes answered 201 with no hazards_preflight and no refusal; the side-by-side test
+got one call (the witness's) and its barrier broke (500); /check answered mode-invalid; the MCP enum and descriptions
+lack the mode and the code.
+
+## green
+fix (api/opn_api/checks.py):
+- hazard_sources(): walks HazardsMain.lean's own `import OpnGate.Hazards*` lines, dependencies first, and returns each
+  checker file without its import lines plus HazardsMain's `def registry` list, read not restated (503
+  hazards-program-unreadable when the package lacks them).
+- hazards_program()/hazards_text(): the statement (definitions and Context inlined as for witness mode), `import Lean`,
+  each checker file inside its own `section` (so its `open Lean Meta` ends with it), the registry as
+  OpnGate.Hazards.networkRegistry, and a `run_meta` that selects the target's ids in order, runs OpnGate.Hazards.run
+  under `withTheReader Lean.Core.Context` with no open namespaces, the anonymous namespace and empty options — the
+  context opn-hazards' own `.toIO ctx {env}` gives it, because a finding's location is pretty-printed and is what an
+  acknowledgment must match byte for byte — and logs `OPN-HAZARDS {checkers, findings, capped}` on one info line.
+  No `open ... in` on the run_meta, so no extra scoped notation is active while locations are printed.
+- hazards_verdict(): reads that line back, each key held to its type.
+- target_checkers(): the target's gate-spec hazard_checkers; an unknown id is refused 409 with the gate's own
+  check_config diagnostic.
+- preflight_hazards(): no checkers named -> "clear", nothing spent; else charged and logged (mode "hazards"), the
+  gate's findings_from / acknowledgments_from (read from the META.yaml being pushed) / evaluate, and 422
+  hazard-unacknowledged with details {findings, acknowledged, checkers} as HazardsStep prints them, plus log_id.
+  Down / timeout / no environment / budget spent -> "unavailable"; program never ran -> "inconclusive".
+- preflight_proposal(): the hazard and witness pre-flights under asyncio.gather, so both fit the one 12 s budget
+  the function has before its pull request (F13-T16); a hazard refusal is raised before a witness refusal.
+- POST /check: mode "hazards" (MODES, NODE_MODES, STATEMENT_MODES); reads node_id or statement(+deps); content is
+  refused 400 content-not-used; no proof lints; the answer carries `hazards`.
+proposals.py: both routes call preflight_proposal; the 201 carries hazards_preflight beside witness_preflight.
+mcp/writes.py: check_lean's mode enum and description; propose_* descriptions name hazard-unacknowledged.
+.github/workflows/api-deploy.yml: copies Hazards.lean, HazardsMain.lean and Hazards/ beside the schemas, names each in
+the package check, and deploys on a change to any of them or to gate/opn_gate/steps/hazards.py.
+gate/tests/test_hazards_through_axle_text_lean.py (marker lean): the composed text, elaborated by the pinned `lean`,
+finds exactly what opn-hazards finds on every fixture in test_hazards_lean.py (EXPECTED + EXTRA_DECLS), on the fixture
+graph's three nodes with their Context inlined as the service inlines it, and runs only the named checkers.
+UNRUN HERE: no elan in this container (collected, errors with ToolchainMissingError like test_hazards_lean.py);
+it runs in CI's lean tier.
+
+$ uv run --frozen pytest -q -p no:warnings api/tests/test_finding_hazards_preflight.py
+16 passed in 0.60s
+$ uv run --frozen pytest -q -p no:warnings <hazards, witness preflight (both), witness mode, checks, naming noise>
+72 passed
+$ make verify
+All checks passed! / mypy: no issues / === 2662 passed, 75 skipped, 92 deselected, 2 warnings in 134.29s ===
+(92 deselected = 89 + the three new lean-tier tests)
+
+## mutants (-p mut_t20 from the scratchpad, OPN_MUTANT=<name>)
+no_acks       (acknowledgments not read):            4 failed — refused/acknowledged/only-targets/check-mode tests
+no_justify    (an empty justification counts):       1 failed — test_an_empty_justification_acknowledges_nothing
+all_checkers  (every shipped checker, not the target's): 2 failed — refused (details.checkers), only_the_targets
+sequential    (the two pre-flights one after another): 1 failed — test_the_two_pre_flights_run_side_by_side
+no_verdict    (the tagged line never read):          6 failed — every refusal test and the check-mode answer

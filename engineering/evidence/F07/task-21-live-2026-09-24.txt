@@ -1,0 +1,18 @@
+F07-T21 (R22): rival decompositions number their holes after the earlier ones — seen live, 2026-09-24.
+
+Graph erdos-1050--h1-v2 already had --h1 (the circular hole, graph #173). Two testers skeletonised
+it in parallel in the 2026-09-24 run:
+  #196 (one hole)  merged 15:04:51Z; post-merge commit bb02ddab "gate: #196 pass" wrote --h2
+  #199 (two holes) merged 15:26:53Z; post-merge commit 2421b927 "gate: #199 pass" wrote --h3, --h4
+Read with: git -C <graph> ls-tree -d --name-only origin/main targets/erdos-1050/nodes/ | grep h1-v2
+  targets/erdos-1050/nodes/erdos-1050--h1-v2--h1
+  targets/erdos-1050/nodes/erdos-1050--h1-v2--h2
+  targets/erdos-1050/nodes/erdos-1050--h1-v2--h3
+  targets/erdos-1050/nodes/erdos-1050--h1-v2--h4
+
+Fixture in the same order (a one-hole route, then a two-hole route, on a node that already has
+holes): gate/tests/test_finding_parent_stays_open.py::test_routes_stack_in_the_live_order_one_hole_then_two
+$ uv run --frozen pytest gate/tests/test_finding_parent_stays_open.py -q
+11 passed
+(Its first draft reused two of the fixture's own obligations and got no new children: the
+restated-hole rule working, not a defect; the obligations were made distinct.)

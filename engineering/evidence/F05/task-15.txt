@@ -1,0 +1,130 @@
+F05-T15 — waiting_on: products for a merged annex or witness too (testers 2026-09-24,
+engineering/evidence/testers-2026-09-24/erdos-1050-mcp.md:22, graph #174).
+
+The fake host's list_dir now reads the tree at the ref it is given (absent_at / files_at, as
+fetch_raw already did); committed with the red tests, because the rule lists a directory at a commit.
+
+## red
+$ uv run --frozen pytest -q api/tests/test_finding_waiting_on_products_appends.py
+E       AssertionError: assert None == 'products'
+E        +  where None = waiting_on(Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7fc287eee900>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])), 174)
+E       AssertionError: assert None == 'products'
+E        +  where None = waiting_on(Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7fc287db4550>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])), 174)
+E       AssertionError: assert None == 'products'
+E        +  where None = waiting_on(Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7fc287db9ba0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])), 2)
+FAILED api/tests/test_finding_waiting_on_products_appends.py::test_a_merged_annex_not_yet_rendered_waits_on_products
+FAILED api/tests/test_finding_waiting_on_products_appends.py::test_it_clears_once_rendered
+FAILED api/tests/test_finding_waiting_on_products_appends.py::test_a_merged_witness_waits_until_the_node_is_no_longer_witness_missing
+3 failed, 5 passed, 2 warnings in 0.62s
+
+## green
+$ uv run --frozen pytest -v api/tests/test_finding_waiting_on_products_appends.py api/tests/test_finding_node_pending.py
+api/tests/test_finding_waiting_on_products_appends.py::test_a_merged_annex_not_yet_rendered_waits_on_products PASSED [  5%]
+api/tests/test_finding_waiting_on_products_appends.py::test_it_clears_once_rendered PASSED [ 11%]
+api/tests/test_finding_waiting_on_products_appends.py::test_an_annex_rendered_before_anyone_asked_never_waits PASSED [ 17%]
+api/tests/test_finding_waiting_on_products_appends.py::test_a_merged_witness_waits_until_the_node_is_no_longer_witness_missing PASSED [ 23%]
+api/tests/test_finding_waiting_on_products_appends.py::test_a_merged_postmortem_never_waits PASSED [ 29%]
+api/tests/test_finding_waiting_on_products_appends.py::test_a_graph_read_failure_leaves_null[annex] PASSED [ 35%]
+api/tests/test_finding_waiting_on_products_appends.py::test_a_graph_read_failure_leaves_null[witness] PASSED [ 41%]
+api/tests/test_finding_waiting_on_products_appends.py::test_a_merged_proposal_still_waits_as_before PASSED [ 47%]
+api/tests/test_finding_node_pending.py::test_a_proposal_is_found_by_its_node_in_both_stores[memory] PASSED [ 52%]
+api/tests/test_finding_node_pending.py::test_a_proposal_is_found_by_its_node_in_both_stores[dynamodb] PASSED [ 58%]
+api/tests/test_finding_node_pending.py::test_an_open_proposal_says_what_it_waits_for PASSED [ 64%]
+api/tests/test_finding_node_pending.py::test_a_merged_proposal_says_the_products_are_pending PASSED [ 70%]
+api/tests/test_finding_node_pending.py::test_a_node_nobody_proposed_or_a_closed_proposal_is_still_unknown[True] PASSED [ 76%]
+api/tests/test_finding_node_pending.py::test_a_node_nobody_proposed_or_a_closed_proposal_is_still_unknown[False] PASSED [ 82%]
+api/tests/test_finding_node_pending.py::test_a_host_failure_never_hides_the_node_behind_a_500 PASSED [ 88%]
+api/tests/test_finding_node_pending.py::test_a_merged_proposal_whose_node_is_not_rendered_yet_waits_on_products PASSED [ 94%]
+api/tests/test_finding_node_pending.py::test_retry_after_is_honest_about_the_post_merge_job PASSED [100%]
+======================== 17 passed, 2 warnings in 0.70s ========================
+
+## mutants
+Each plugin is loaded with -p and weakens the rule in memory (no file edited); its text is kept here.
+
+### mut_t15_annex_off
+```python
+"""F05-T15 mutant: a merged annex never waits (the old rule)."""
+
+from opn_api import pending
+
+pending._annex_unrendered = lambda ctx, found, pull: False
+```
+$ PYTHONPATH=<mutants dir> uv run --frozen pytest -q -p mut_t15_annex_off api/tests/test_finding_waiting_on_products_appends.py
+FAILED api/tests/test_finding_waiting_on_products_appends.py::test_a_merged_annex_not_yet_rendered_waits_on_products
+FAILED api/tests/test_finding_waiting_on_products_appends.py::test_it_clears_once_rendered
+2 failed, 6 passed, 2 warnings in 0.66s
+
+### mut_t15_annex_always
+```python
+"""F05-T15 mutant: a merged annex waits whenever the node has any annex, rendered or not."""
+
+from opn_api import pending
+
+
+def _weak(ctx, found, pull):
+    d = f"targets/{found.target_id}/nodes/{found.node_id}/annex"
+    return bool(ctx.githost.list_dir(ctx.settings.graph_repo, pull["merge_commit_sha"], d))
+
+
+pending._annex_unrendered = _weak
+```
+$ PYTHONPATH=<mutants dir> uv run --frozen pytest -q -p mut_t15_annex_always api/tests/test_finding_waiting_on_products_appends.py
+FAILED api/tests/test_finding_waiting_on_products_appends.py::test_it_clears_once_rendered
+FAILED api/tests/test_finding_waiting_on_products_appends.py::test_an_annex_rendered_before_anyone_asked_never_waits
+2 failed, 6 passed, 2 warnings in 0.69s
+
+### mut_t15_witness_off
+```python
+"""F05-T15 mutant: a merged witness never waits (the old rule)."""
+
+from opn_api import pending
+
+pending._witness_unrendered = lambda ctx, found, pull: False
+```
+$ PYTHONPATH=<mutants dir> uv run --frozen pytest -q -p mut_t15_witness_off api/tests/test_finding_waiting_on_products_appends.py
+FAILED api/tests/test_finding_waiting_on_products_appends.py::test_a_merged_witness_waits_until_the_node_is_no_longer_witness_missing
+1 failed, 7 passed, 2 warnings in 0.63s
+
+### mut_t15_witness_always
+```python
+"""F05-T15 mutant: a merged witness waits whatever the products say."""
+
+from opn_api import pending
+
+pending._witness_unrendered = lambda ctx, found, pull: True
+```
+$ PYTHONPATH=<mutants dir> uv run --frozen pytest -q -p mut_t15_witness_always api/tests/test_finding_waiting_on_products_appends.py
+FAILED api/tests/test_finding_waiting_on_products_appends.py::test_a_merged_witness_waits_until_the_node_is_no_longer_witness_missing
+FAILED api/tests/test_finding_waiting_on_products_appends.py::test_a_graph_read_failure_leaves_null[witness]
+2 failed, 6 passed, 2 warnings in 0.63s
+
+### mut_t15_every_kind
+```python
+"""F05-T15 mutant: every merged append goes through the annex test (a postmortem would wait)."""
+
+from dataclasses import replace
+
+from opn_api import pending
+
+_real = pending.waiting_on_products
+
+
+def _weak(ctx, found, pull):
+    if found.kind in ("postmortem", "approach-record"):
+        found = replace(found, kind="annex")
+    return _real(ctx, found, pull)
+
+
+pending.waiting_on_products = _weak
+```
+$ PYTHONPATH=<mutants dir> uv run --frozen pytest -q -p mut_t15_every_kind api/tests/test_finding_waiting_on_products_appends.py
+FAILED api/tests/test_finding_waiting_on_products_appends.py::test_a_merged_postmortem_never_waits
+1 failed, 7 passed, 2 warnings in 0.62s
+
+## verify
+make verify: ruff clean, mypy gate/api/site no issues, 2647 passed, 75 skipped, 89 deselected (exit 0).
+
+Deviation from the plan: the record keeps no annex hash, so "an annex whose hash the products do not
+carry yet" is tested as: the node's annex/ listing at the merge commit has a name the listing at the
+target graph.json rendered_from lacks (two Contents API reads at immutable commits, only for a merged
+annex record read by id). The witness half reuses precheck.witness_awaits_render unchanged.

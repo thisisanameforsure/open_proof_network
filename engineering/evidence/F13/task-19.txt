@@ -1,0 +1,26 @@
+# F13-T19: the 413 content-too-large names the limit and the remedy (testers 2026-09-24; plan A11)
+# Found by the erdos-402 HTTP agent at 12:45:31Z: a 657 kB case tree got "content is 656745 bytes; the limit is
+# 200000", correct and silent on what to do; the agent had separately found that a tactic-level
+# `set_option maxHeartbeats` does not lift Lean's per-declaration budget.
+
+## red
+$ uv run --frozen pytest -q -p no:warnings api/tests/test_checks.py -k 413
+E           AssertionError: content is 201 bytes; the limit is 200
+E           assert 'cheaper' in 'content is 201 bytes; the limit is 200'
+1 failed, 16 deselected in 0.50s
+
+## green
+fix: checks.too_large(ctx, what, size), used by parse_body (content) and proposed_statement_field (a witness-mode
+statement): the message names the size and the limit, then the remedy (heartbeats count per declaration and a
+set_option inside the proof does not lift them; no helper declarations, F00-R19; make the proof cheaper, or decompose
+with a skeleton), and details carry {bytes, limit_bytes}. No behaviour change: same status, same code, same point.
+$ uv run --frozen pytest -q -p no:warnings api/tests/test_checks.py
+17 passed
+$ make verify
+All checks passed! / === 2641 passed, 75 skipped, 89 deselected, 2 warnings in 145.89s ===
+
+## mutants (-p plugins from the scratchpad)
+mut_t19_bare_message.py (the old message, details kept):
+  FAILED test_the_413_names_the_limit_and_the_remedy — assert 'cheaper' in 'content is 201 bytes; the limit is 200'
+mut_t19_no_details.py (the remedy kept, details dropped):
+  FAILED test_the_413_names_the_limit_and_the_remedy — KeyError: 'details'
