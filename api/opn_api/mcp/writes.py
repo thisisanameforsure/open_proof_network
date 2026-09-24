@@ -26,7 +26,7 @@ from collections.abc import Mapping
 from types import MappingProxyType
 from typing import Any
 
-from opn_api import submissions
+from opn_api import requests, submissions
 from opn_api.mcp import auth
 from opn_api.mcp.calls import ID_PARAM, RECORD_PARAM, Answer, Call, Tool, ToolError, error, params
 
@@ -414,8 +414,10 @@ TOOLS: tuple[Tool, ...] = (
         "file_defect_claim",
         "File a statement-defect claim (D-16): a class from the taxonomy, a line of the "
         "referenced file, and a Lean exhibit; malformed claims bounce here with the rule named. "
-        "Class `circular-decomposition` also names `ancestor`, a node above `stmt_ref`, and its "
-        "exhibit is one theorem proving `<ancestor's statement> → <stmt_ref's statement>`.",
+        f"Written as `{requests.DEFECT_SCHEMA}`. Class `{requests.CIRCULAR_CLASS}` also names "
+        "`ancestor`, a node above `stmt_ref`, and is written as "
+        f"`{requests.CIRCULAR_SCHEMA}`; its exhibit is one theorem proving "
+        "`<ancestor's statement> → <stmt_ref's statement>`.",
         params(
             {
                 "stmt_ref": {"type": "string"},

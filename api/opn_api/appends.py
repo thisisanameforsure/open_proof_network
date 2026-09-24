@@ -126,6 +126,7 @@ def append_pr(  # noqa: PLR0913 — one pull request, described
     target_id: str,
     node_id: str | None,
     written: str | None = None,
+    defect_class: str | None = None,
 ) -> dict[str, Any]:
     """One appended file, one branch, one pull request (R11, R2), recorded as ``kind`` so its
     state can be watched through ``GET /submissions/{id}`` (F07-T16). F07-T35: an append
@@ -157,6 +158,7 @@ def append_pr(  # noqa: PLR0913 — one pull request, described
         node_id=node_id,
         pr=pr,
         fingerprints=prints,
+        defect_class=defect_class,
     )
     return {"id": append_id, "path": path, "pr_url": pr.url, "pr_number": pr.number}
 

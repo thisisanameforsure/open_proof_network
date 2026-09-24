@@ -1,0 +1,136 @@
+# F08-T18: a defect claim knows the node's state (plan A4, ruling D2)
+
+Finding 4 of engineering/session-notes/2026-09-24-calibration-testers.md: graph #187 and #194,
+same-class circularity claims on one node, both accepted; the route read the node's facts and
+discarded them.
+
+## red
+
+$ uv run --frozen pytest api/tests/test_finding_defect_claim_known_state.py -q -p no:warnings
+>       assert (r.status_code, body.get("error")) == (409, "node-circular"), body
+E       AssertionError: {'id': '01M230M2G0FR5CXQB84Q0KGZ2J', 'path': 'targets/propositional/nodes/and-reassoc/defects/20260909T120000Z-alice.yaml', 'pr_url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/1', 'pr_number': 1}
+E       assert (201, None) == (409, 'node-circular')
+E         
+E         At index 0 diff: 201 != 409
+E         Use -v to get more diff
+E       AssertionError: {'id': '01M230M2G0MCT4R0XPDRSYQ0Y4', 'path': 'targets/propositional/nodes/and-reassoc/defects/20260909T120000Z-bob.yaml', 'pr_url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/2', 'pr_number': 2}
+E       assert None == [{'pr_number': 1, 'pseudonym': 'alice'}]
+E        +  where None = <built-in method get of dict object at 0x7fa376ddb840>('also_open')
+E        +    where <built-in method get of dict object at 0x7fa376ddb840> = {'id': '01M230M2G0MCT4R0XPDRSYQ0Y4', 'path': 'targets/propositional/nodes/and-reassoc/defects/20260909T120000Z-bob.yaml', 'pr_url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/2', 'pr_number': 2}.get
+E        +      where {'id': '01M230M2G0MCT4R0XPDRSYQ0Y4', 'path': 'targets/propositional/nodes/and-reassoc/defects/20260909T120000Z-bob.yaml', 'pr_url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/2', 'pr_number': 2} = json()
+E        +        where json = <Response [201 Created]>.json
+FAILED api/tests/test_finding_defect_claim_known_state.py::test_a_circularity_claim_on_a_circular_node_is_refused_with_the_merged_claims_path
+FAILED api/tests/test_finding_defect_claim_known_state.py::test_an_open_same_class_claim_is_named_in_the_receipt
+2 failed, 3 passed in 0.53s
+
+## green
+
+$ uv run --frozen pytest api/tests/test_finding_defect_claim_known_state.py api/tests/test_finding_circular_claim.py api/tests/test_claims_defect.py api/tests/test_rejections_requests.py api/tests/test_finding_duplicate_submissions.py -q -p no:warnings
+42 passed in 1.36s
+
+## mutants
+
+Plugin mut_f08_t18.py (text at the end), loaded with -p, OPN_MUTANT picks one.
+
+### mutant never-refuses (mut_f08_t18)
+$ OPN_MUTANT=never-refuses PYTHONPATH=<mut> uv run --frozen pytest -p mut_f08_t18 api/tests/test_finding_defect_claim_known_state.py -q
+>       assert (r.status_code, body.get("error")) == (409, "node-circular"), body
+FAILED api/tests/test_finding_defect_claim_known_state.py::test_a_circularity_claim_on_a_circular_node_is_refused_with_the_merged_claims_path
+FAILED api/tests/test_finding_defect_claim_known_state.py::test_the_mcp_tool_carries_the_receipt_and_the_refusal
+2 failed, 6 passed in 0.74s
+
+### mutant refuses-every-class (mut_f08_t18)
+$ OPN_MUTANT=refuses-every-class PYTHONPATH=<mut> uv run --frozen pytest -p mut_f08_t18 api/tests/test_finding_defect_claim_known_state.py -q
+        assert (r.status_code, body.get("error")) == (409, "node-circular"), body
+E       AssertionError: {"error":"node-circular","message":"and-reassoc is not claimable: it is circular — a merged circularity claim (D-16) proves a node above it implies it, so it is no easier than what it was meant to reduce. The claim and its Lean exhibit are under nodes/and-reassoc/defects/.","details":{"status":"ready","cause":"circular"}}
+FAILED api/tests/test_finding_defect_claim_known_state.py::test_a_circularity_claim_on_a_circular_node_is_refused_with_the_merged_claims_path
+FAILED api/tests/test_finding_defect_claim_known_state.py::test_a_different_class_on_a_circular_node_is_still_accepted
+2 failed, 6 passed in 0.71s
+
+### mutant names-every-class (mut_f08_t18)
+$ OPN_MUTANT=names-every-class PYTHONPATH=<mut> uv run --frozen pytest -p mut_f08_t18 api/tests/test_finding_defect_claim_known_state.py -q
+FAILED api/tests/test_finding_defect_claim_known_state.py::test_an_open_claim_of_another_class_is_not_named
+1 failed, 7 passed in 0.73s
+
+### mutant names-nothing (mut_f08_t18)
+$ OPN_MUTANT=names-nothing PYTHONPATH=<mut> uv run --frozen pytest -p mut_f08_t18 api/tests/test_finding_defect_claim_known_state.py -q
+FAILED api/tests/test_finding_defect_claim_known_state.py::test_an_open_same_class_claim_is_named_in_the_receipt
+FAILED api/tests/test_finding_defect_claim_known_state.py::test_the_mcp_tool_carries_the_receipt_and_the_refusal
+2 failed, 6 passed in 0.65s
+
+### mutant no-claim-paths (mut_f08_t18)
+$ OPN_MUTANT=no-claim-paths PYTHONPATH=<mut> uv run --frozen pytest -p mut_f08_t18 api/tests/test_finding_defect_claim_known_state.py -q
+        assert (r.status_code, body.get("error")) == (409, "node-circular"), body
+FAILED api/tests/test_finding_defect_claim_known_state.py::test_a_circularity_claim_on_a_circular_node_is_refused_with_the_merged_claims_path
+1 failed, 7 passed in 0.72s
+
+### mutant store-drops-class (mut_f08_t18)
+$ OPN_MUTANT=store-drops-class PYTHONPATH=<mut> uv run --frozen pytest -p mut_f08_t18 api/tests/test_finding_defect_claim_known_state.py -q
+FAILED api/tests/test_finding_defect_claim_known_state.py::test_the_class_is_kept_in_both_stores_and_never_served[dynamodb]
+1 failed, 7 passed in 0.67s
+
+Every mutant fails at least one test (above).
+
+Plugin text (mut_f08_t18.py):
+
+```python
+"""F08-T18 mutants, chosen by OPN_MUTANT; each weakens one rule in memory, no file edited."""
+
+import os
+
+
+def pytest_configure(config):
+    from opn_api import claims, duplicates, requests, store
+    from opn_gate import graph as graphmod
+
+    which = os.environ["OPN_MUTANT"]
+    original = requests.known_state
+
+    def rivals(ctx, stmt_ref, keep):
+        return [
+            {"pr_number": f.pr_number, "pseudonym": f.pseudonym}
+            for f in duplicates.open_rivals(ctx, stmt_ref, frozenset({"defect-claim"}))
+            if keep(f)
+        ]
+
+    if which == "never-refuses":
+        def known_state(ctx, defect_class, stmt_ref, facts):
+            if facts is None:
+                return []
+            return rivals(ctx, stmt_ref, lambda f: f.defect_class == defect_class)
+    elif which == "refuses-every-class":
+        def known_state(ctx, defect_class, stmt_ref, facts):
+            if facts is not None and facts.get("cause") == graphmod.CAUSE_CIRCULAR:
+                raise claims.circular(stmt_ref, facts)
+            return original(ctx, defect_class, stmt_ref, facts)
+    elif which == "names-every-class":
+        def known_state(ctx, defect_class, stmt_ref, facts):
+            original(ctx, defect_class, stmt_ref, facts)
+            return rivals(ctx, stmt_ref, lambda f: True)
+    elif which == "names-nothing":
+        def known_state(ctx, defect_class, stmt_ref, facts):
+            original(ctx, defect_class, stmt_ref, facts)
+            return []
+    elif which == "no-claim-paths":
+        requests.merged_claims_of = lambda *a, **k: ()
+        return
+    elif which == "store-drops-class":
+        old = store._submission
+
+        def _submission(record):
+            import dataclasses
+
+            return dataclasses.replace(old(record), defect_class=None)
+
+        store._submission = _submission
+        return
+    else:
+        raise SystemExit(which)
+    requests.known_state = known_state
+```
+
+## make verify
+
+$ make verify
+ruff: all checks passed; mypy --strict: gate 213, api 132, site 41 files, no issues
+2643 passed, 75 skipped, 89 deselected in 151.15s

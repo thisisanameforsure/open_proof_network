@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
-from opn_api import frontier, precheck
+from opn_api import frontier, precheck, requests
 from opn_api.app import ApiError, CachedFile
 from opn_api.githost import GitHostError
 from opn_api.mcp import demarcate, results
@@ -543,7 +543,9 @@ TOOLS: tuple[Tool, ...] = (
     Tool(
         "get_schema",
         "A JSON Schema by name: a protocol record's (`postmortem/v1`, `defect-claim/v1`, ...) "
-        "or a tool result's (`mcp/<tool>/v1`).",
+        "or a tool result's (`mcp/<tool>/v1`). A defect claim of class "
+        f"`{requests.CIRCULAR_CLASS}` is written as `{requests.CIRCULAR_SCHEMA}`, every other "
+        f"class as `{requests.DEFECT_SCHEMA}`.",
         params({"name": {"type": "string"}}, ("name",)),
         get_schema,
     ),

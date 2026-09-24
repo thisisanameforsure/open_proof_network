@@ -119,17 +119,34 @@ def unclaimable(ctx: Context, node_id: str, target_id: str) -> ApiError:
     return not_claimable(ctx, node_id, target_id)
 
 
-def circular(node_id: str, facts: dict[str, Any]) -> ApiError:
+def circular(
+    node_id: str,
+    facts: dict[str, Any],
+    *,
+    lead: str | None = None,
+    merged: tuple[str, ...] = (),
+) -> ApiError:
     """F08-T17 (D-16): a node under a merged circularity claim is off the frontier by design. Its
     status is untouched (a proof of it is still a proof), so "ready and not on the frontier"
-    would be true and useless; this names the reason and where the claim lives."""
+    would be true and useless; this names the reason and where the claim lives.
+
+    F08-T18: ``POST /defect-claims`` refuses a second circularity claim in the same words, with
+    its own ``lead`` and, when it could list them, the ``merged`` claims' paths."""
+    where = (
+        f"The claim and its Lean exhibit: {', '.join(merged)}."
+        if merged
+        else f"The claim and its Lean exhibit are under nodes/{node_id}/defects/."
+    )
+    details: dict[str, Any] = {"status": facts["status"], "cause": graphmod.CAUSE_CIRCULAR}
+    if merged:
+        details["claims"] = list(merged)
     return ApiError(
         409,
         "node-circular",
-        f"{node_id} is not claimable: it is circular — a merged circularity claim (D-16) proves a "
-        f"node above it implies it, so it is no easier than what it was meant to reduce. The "
-        f"claim and its Lean exhibit are under nodes/{node_id}/defects/.",
-        details={"status": facts["status"], "cause": graphmod.CAUSE_CIRCULAR},
+        f"{lead or f'{node_id} is not claimable'}: it is circular — a merged circularity claim "
+        f"(D-16) proves a node above it implies it, so it is no easier than what it was meant to "
+        f"reduce. {where}",
+        details=details,
     )
 
 

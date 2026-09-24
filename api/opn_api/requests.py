@@ -21,11 +21,12 @@ import yaml
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from opn_api import appends, precheck, proposals
+from opn_api import appends, claims, duplicates, precheck, proposals
 from opn_api import clock as clockmod
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
 from opn_api.githost import GitHostError
+from opn_gate import graph as graphmod
 from opn_gate import records, schemas
 
 if TYPE_CHECKING:
@@ -159,22 +160,70 @@ async def post_revision_requests(ctx: Context, request: Request) -> Response:
 # --- POST /defect-claims (D-16) -------------------------------------------------------------------
 
 
-def resolve_ref(ctx: Context, raw: Any) -> tuple[str, str, str]:
-    """(target_id, stmt_ref as recorded, referenced path): a node id, or
-    ``<target>/defs/<file>``."""
+def resolve_ref(ctx: Context, raw: Any) -> tuple[str, str, str, dict[str, Any] | None]:
+    """(target_id, stmt_ref as recorded, referenced path, the node's facts): a node id, or
+    ``<target>/defs/<file>``, which has no facts. F08-T18: the facts are kept, since they say
+    whether the node is already circular."""
     if not isinstance(raw, str) or not raw:
         raise ApiError(400, "stmt-ref-missing", "stmt_ref is required")
     target_id, sep, rest = raw.partition("/")
     if sep and rest.startswith(DEFS_PREFIX):
         appends.known_target(ctx, target_id)
-        return target_id, rest, f"targets/{target_id}/{rest}"
+        return target_id, rest, f"targets/{target_id}/{rest}", None
     if sep:
         raise ApiError(
             400, "stmt-ref-invalid", "stmt_ref is a node id, or <target>/defs/<file>.lean"
         )
     facts = precheck.node_facts(ctx, raw)
     target_id = str(facts["target_id"])
-    return target_id, raw, f"targets/{target_id}/nodes/{raw}/Statement.lean"
+    return target_id, raw, f"targets/{target_id}/nodes/{raw}/Statement.lean", facts
+
+
+def merged_claims_of(
+    ctx: Context, target_id: str, node_id: str, defect_class: str
+) -> tuple[str, ...]:
+    """The paths of the node's merged defect claims of ``defect_class`` on ``main``. Only a
+    message reads them, so a host that cannot answer gives none and the message names the
+    directory instead (C7)."""
+    folder = appends.node_dir(target_id, node_id) + "defects"
+    try:
+        names = ctx.githost.list_dir(ctx.settings.graph_repo, ctx.settings.graph_branch, folder)
+        found = []
+        for name in names or ():
+            if not name.endswith(".yaml"):
+                continue
+            body = fetch_optional(ctx, f"{folder}/{name}")
+            doc = yaml.safe_load(body) if body is not None else None
+            if isinstance(doc, dict) and doc.get("class") == defect_class:
+                found.append(f"{folder}/{name}")
+    except Exception as exc:  # any host or parse failure: the refusal stands without the paths
+        log.warning("%s: merged defect claims not listed: %s", node_id, type(exc).__name__)
+        return ()
+    return tuple(found)
+
+
+def known_state(
+    ctx: Context, defect_class: str, stmt_ref: str, facts: dict[str, Any] | None
+) -> list[dict[str, Any]]:
+    """F08-T18 (ruling D2): a defect claim of a class already merged on the node is refused, and
+    one of a class already open is named. The products record one class's merge — a merged
+    circularity claim is the node's ``cause: circular`` (F08-T17) — so that is the refusal; the
+    open ones are the service's own records, each carrying its class. Answers ``also_open``."""
+    if facts is None:  # a definitions file: no node, no cause, no node-scoped records
+        return []
+    if defect_class == CIRCULAR_CLASS and facts.get("cause") == graphmod.CAUSE_CIRCULAR:
+        target_id = str(facts["target_id"])
+        raise claims.circular(
+            stmt_ref,
+            facts,
+            lead=f"{stmt_ref} already has a merged circularity claim, and a second adds nothing",
+            merged=merged_claims_of(ctx, target_id, stmt_ref, defect_class),
+        )
+    return [
+        {"pr_number": found.pr_number, "pseudonym": found.pseudonym}
+        for found in duplicates.open_rivals(ctx, stmt_ref, frozenset({"defect-claim"}))
+        if found.defect_class == defect_class
+    ]
 
 
 def check_line(ctx: Context, raw: Any, path: str) -> int:
@@ -253,7 +302,7 @@ async def post_defect_claims(ctx: Context, request: Request) -> Response:
     identity: Identity = request.state.identity
     fields, _ = await identitymod.body_fields(request, DEFECT_FIELDS)
     defect_class = check_class(fields.get("class"), "class", DEFECT_CLAIM_CLASSES)
-    target_id, stmt_ref, referenced = resolve_ref(ctx, fields.get("stmt_ref"))
+    target_id, stmt_ref, referenced, facts = resolve_ref(ctx, fields.get("stmt_ref"))
     line = check_line(ctx, fields.get("line"), referenced)
     exhibit = exhibit_text(fields, required=True)
     ancestor = check_ancestor(
@@ -276,6 +325,7 @@ async def post_defect_claims(ctx: Context, request: Request) -> Response:
     if ancestor is not None:
         doc["ancestor"] = ancestor
     appends.validated(doc, schema_id)
+    also_open = known_state(ctx, defect_class, stmt_ref, facts)
     name = appends.record_name(ctx, identity)
     if stmt_ref.startswith(DEFS_PREFIX):
         path = f"targets/{target_id}/{DEFS_PREFIX}defects/{name}.yaml"
@@ -291,5 +341,8 @@ async def post_defect_claims(ctx: Context, request: Request) -> Response:
         kind="defect-claim",
         target_id=target_id,
         node_id=None if stmt_ref.startswith(DEFS_PREFIX) else stmt_ref,
+        defect_class=defect_class,
     )
+    if also_open:
+        body["also_open"] = also_open
     return JSONResponse(body, status_code=201)
