@@ -178,10 +178,23 @@ def circular_claim(node_dir: Path) -> str | None:
     ``circular-decomposition`` claim is logged and passed over: defect claims are appends anyone
     files, and one bad file must never decide whether the graph has products (2026-09-17).
     """
+    claims = circular_claims(node_dir)
+    return claims[0][0] if claims else None
+
+
+def circular_claims(node_dir: Path) -> list[tuple[str, str]]:
+    """Every merged circularity claim under this node, oldest first, as ``(defects/<file>,
+    ancestor)`` — the ancestor as the claim names it, before any revision chain is followed.
+
+    F08-T20 (D-12 v3.22): each claim is a path of its own, from its ancestor down to this node,
+    so all of them are read, not only the first; a file that does not validate is passed over
+    as :func:`circular_claim` passes it over.
+    """
     directory = node_dir / DEFECTS_DIR
     if not directory.is_dir():
-        return None
+        return []
     accepted = paths.SCHEMAS_FOR_ROLE["defect-claim"]
+    found: list[tuple[str, str]] = []
     for path in sorted(p for p in directory.iterdir() if p.suffix in ATTEMPT_SUFFIXES):
         try:
             doc = schemas.load_yaml(path)
@@ -194,5 +207,5 @@ def circular_claim(node_dir: Path) -> str | None:
         if schema_id not in accepted or schemas.violations(doc, schema_id):
             log.warning("%s: a circularity claim that does not validate is passed over", path)
             continue
-        return f"{DEFECTS_DIR}/{path.name}"
-    return None
+        found.append((f"{DEFECTS_DIR}/{path.name}", str(doc.get("ancestor") or "")))
+    return found
