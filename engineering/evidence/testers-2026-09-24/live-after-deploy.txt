@@ -1,0 +1,21 @@
+Live checks after network PR #19 merged (aa0d45c, 2026-09-24 19:53Z) and api-deploy ran.
+All read-only or unauthenticated; no write was made to the live service or the graph.
+
+CI on the merged head 6848b83: make verify 2m27s pass; make verify-lean 58m24s pass (run 36044445987),
+which includes gate/tests/test_hazards_through_axle_text_lean.py (F13-T20's equality with opn-hazards)
+and F08-T19's shared declaration check.
+
+1. GET / lists the new routes within 40 s of the merge (GET /claims/mine, DELETE /submissions/{id}).
+2. GET /claims/mine without a token -> 401; DELETE /submissions/<id> without a token -> 401.
+3. GET /submissions.json with 4 open records: 6.94 s, the first call on the freshly deployed function
+   (cold start included). Before F07-T39: 28.45 s with 22 open (2026-09-24 13:35Z). The live
+   measurement with a long queue is still to take.
+4. GET /submissions/01M39PRKXG56XNZMCWKF3TCEMQ (graph #189, a variant, gate-failed): 2.38 s;
+   proposed_statement {path: targets/erdos-402/nodes/variant-ae2e3d82/Statement.lean, head_sha
+   d18b30d2df.., truncated: false, text: the statement}; every run carries jobs (F07-T41, T42).
+5. POST /check {target_id: erdos-402, mode: hazards, statement: "theorem probe_div_sub (n : ℕ) :
+   n / (n - 1) ≤ n"} anonymous: HTTP 200 in 0.88 s, environment lean-4.33.1, okay true,
+   dropped_warnings [], log_id 01M3AFRPER5SRKXXCT695F8K9M;
+   hazards.checkers = the six of erdos-402's gate-spec;
+   findings = div-zero at "n / (n - 1)", nat-sub at "n - 1" (F13-T20: step 6's checkers through AXLE,
+   the exact shape #202 met at the gate a round too late).
