@@ -1,0 +1,45 @@
+F07-T42 — runs[].jobs has one shape, open or closed (testers 2026-09-24,
+engineering/evidence/testers-2026-09-24/erdos-69-http.md:39 and :80).
+
+## red
+$ uv run --frozen pytest -q api/tests/test_finding_runs_jobs_shape.py
+E       AssertionError: ({'name': 'gate', 'status': 'completed', 'conclusion': 'success', 'url': None}, {'name': 'step9-refresh', 'status': 'completed', 'conclusion': 'skipped', 'url': None})
+E       assert [None, None] == [[], []]
+E         
+E         At index 0 diff: None != []
+E         Use -v to get more diff
+E       AssertionError: ({'name': 'gate', 'status': 'completed', 'conclusion': 'success', 'url': None}, {'name': 'step9-refresh', 'status': 'completed', 'conclusion': 'skipped', 'url': None})
+E       assert False
+E        +  where False = all(<generator object test_a_green_run_on_an_open_pull_request_carries_jobs_too.<locals>.<genexpr> at 0x7f116fba8040>)
+_____________ test_an_open_failed_gate_run_keeps_its_fetched_jobs ______________
+    def test_an_open_failed_gate_run_keeps_its_fetched_jobs(
+E       AssertionError: assert None == []
+E        +  where None = <built-in method get of dict object at 0x7f116fbe0500>('jobs')
+E        +    where <built-in method get of dict object at 0x7f116fbe0500> = {'name': 'step9-refresh', 'status': 'completed', 'conclusion': 'success', 'url': None}.get
+E           AssertionError: {'submission': {'id': '01M00000000000000000000007', 'kind': 'postmortem', 'node_id': 'tutorial-and-swap', 'target_id':...'url': 'https://github.com/o/r/pull/7', 'state': 'closed', ...}, 'pull_request_error': None, 'gate_verdict': None, ...}
+E           assert [None, None] == [[], []]
+E             
+E             At index 0 diff: None != []
+E             Use -v to get more diff
+E           AssertionError: {'submission': {'id': '01M00000000000000000000007', 'kind': 'postmortem', 'node_id': 'tutorial-and-swap', 'target_id':...'url': 'https://github.com/o/r/pull/7', 'state': 'closed', ...}, 'pull_request_error': None, 'gate_verdict': None, ...}
+E           assert [None, None] == [[], []]
+E             
+E             At index 0 diff: None != []
+E             Use -v to get more diff
+            "pull_request_error": None,
+E       AssertionError: assert [] != []
+E        +  where [] = <function violations at 0x7f116fb4cf40>('get_submission', {'submission': None, 'pull_request': {'waiting_on': None, 'number': 7, 'url': 'https://github.com/o/r/pull/7', 'state': 'closed', ...}, 'pull_request_error': None, 'attestation_path': None, ...})
+E        +    where <function violations at 0x7f116fb4cf40> = results.violations
+E       assert [None] == [[]]
+E         
+E         At index 0 diff: None != []
+E         Use -v to get more diff
+FAILED api/tests/test_finding_runs_jobs_shape.py::test_a_merged_pull_request_carries_jobs_on_every_run
+FAILED api/tests/test_finding_runs_jobs_shape.py::test_a_green_run_on_an_open_pull_request_carries_jobs_too
+FAILED api/tests/test_finding_runs_jobs_shape.py::test_an_open_failed_gate_run_keeps_its_fetched_jobs
+FAILED api/tests/test_finding_runs_jobs_shape.py::test_a_record_closed_before_the_change_reads_with_jobs[memory]
+FAILED api/tests/test_finding_runs_jobs_shape.py::test_a_record_closed_before_the_change_reads_with_jobs[dynamodb]
+FAILED api/tests/test_finding_runs_jobs_shape.py::test_the_mcp_schema_requires_jobs_on_every_run
+FAILED api/tests/test_finding_runs_jobs_shape.py::test_the_fake_host_answers_in_the_seams_shape
+7 failed, 2 warnings in 0.84s
+
