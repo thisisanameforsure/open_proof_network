@@ -1,0 +1,25 @@
+# F13-T18: /check drops the naming-linter warning on the node's own gate-generated name (testers 2026-09-24,
+# finding 7; ruling D6). Found by the erdos-69 HTTP agent at 12:32:36Z on erdos-69--h2-v2--h1-v2--h4.
+
+## red
+$ uv run --frozen pytest -q -p no:warnings api/tests/test_finding_check_naming_noise.py
+E       assert ['-:3:8-3:34:...Check false`'] == []
+E         
+E         Left contains one more item: "-:3:8-3:34: warning: The declaration 'and_reassoc' contains '__', which does not follow naming conventions. Consider using single underscores instead.\n\nNote: This linter can be d
+E         Use -v to get more diff
+E       assert ['-:3:8-3:34:...Check false`'] == ['-:6:8-6:17:...Check false`']
+E         
+E         At index 0 diff: "-:3:8-3:34: warning: The declaration 'and_reassoc' contains '__', which does not follow naming conventions. Consider using single underscores instead.\n\nNote: This linter can be disabled with
+E         Left contains one more item: "-:6:8-6:17: warning: The declaration 'my__lemma' contai...
+E         
+E         ...Full output truncated (2 lines hidden), use '-vv' to show
+E       assert ['-:4:2-4:10:...Check false`'] == ['-:4:2-4:10:...Not` instead']
+E         
+E         Left contains one more item: "-:3:8-3:34: warning: The declaration 'and_reassoc' contains '__', which does not follow naming conventions. Consider using single underscores instead.\n\nNote: This linter can be d
+E         Use -v to get more diff
+FAILED api/tests/test_finding_check_naming_noise.py::test_the_gate_generated_name_warning_is_dropped
+FAILED api/tests/test_finding_check_naming_noise.py::test_a_contributors_own_double_underscore_name_still_warns
+FAILED api/tests/test_finding_check_naming_noise.py::test_other_warnings_are_untouched
+3 failed, 1 passed in 0.54s
+The three failures are the defect (the warning on the node's own name is shown). The fourth test is a guard that
+passes before and after: the checker's body is not edited in place and the log's okay/error_count are AXLE's.
