@@ -1,0 +1,22 @@
+# F13-T17: the witness pre-flight reads `okay` (testers 2026-09-24, finding 2; ruling D1)
+# Found by the erdos-402 MCP agent, graph PR #195: witness_preflight "matched" beside okay:false.
+
+## red
+$ uv run --frozen pytest -q -p no:warnings api/tests/test_finding_witness_preflight_okay.py
+E       AssertionError: {"proposal_id":"01M230M2G0QBVDMAQ7TF2N31M1","node_id":"variant-58ac66c6",...,"witness_preflight":"matched"}
+E       assert 201 == 422
+E       AssertionError: {"proposal_id":"01M230M2G042J0BTHV8W3WQQ0W","node_id":"variant-58ac66c6",...,"witness_preflight":"matched"}
+E       assert 201 == 422
+E       AssertionError: assert 'matched' == 'inconclusive'
+E       KeyError: 'error'
+E       AssertionError: {'status': 201, 'body': {..., 'witness_preflight': 'matched'}}
+FAILED api/tests/test_finding_witness_preflight_okay.py::test_a_right_typed_witness_that_does_not_compile_is_not_matched
+FAILED api/tests/test_finding_witness_preflight_okay.py::test_the_refusal_names_the_checker_errors_and_the_log_id
+FAILED api/tests/test_finding_witness_preflight_okay.py::test_no_verdict_at_all_stays_inconclusive
+FAILED api/tests/test_finding_witness_preflight_okay.py::test_speculative_and_variant_routes_agree
+FAILED api/tests/test_finding_witness_preflight_okay.py::test_mcp_propose_variant_carries_the_same_refusal
+5 failed, 3 passed in 0.61s
+Every failure is the defect: the pre-flight answered 201 "matched" for a body with okay false (or no okay at all).
+The three that pass are guards (a timeout stays unavailable; a compiling right-typed witness is matched; a wrong
+type is the mismatch whatever okay says). Note: "no okay at all" was *also* "matched" before the fix, not
+"inconclusive" as the plan's "as today" assumed; D1 keeps it inconclusive, so that test is red too.
