@@ -38,7 +38,24 @@ each work item says which decision it waits on.
 Gate: `make verify` before every commit, and `make verify-lean` in CI for anything touching
 `gate/`.
 
-## 1. Decisions needed from Mike
+## 1. Decisions
+
+**Rulings, 2026-09-24 (Mike):**
+
+| # | Ruling |
+|---|---|
+| D1 | A witness that does not compile is refused (`422 witness-fails`). |
+| D2 | A defect claim of the same class is refused when one is merged, and named in the receipt when one is open. |
+| D3 | `GET /claims/mine`, authenticated, with an MCP `list_my_claims` tool. Public creation times are deferred. |
+| D4 | One circularity claim takes the **whole path** from the ancestor A down to the hole H off the frontier. A node in between leaves only where the other pieces along the path are proved, so its equivalence to A is established. A stays open and claimable, and says "a decomposition beneath this was circular (claim #N); prove it directly or decompose it differently". The target is never closed. **B5.** |
+| D5 | Add `DELETE /submissions/<id>` (A12). |
+| D6 | Filter the naming-linter warning (A10). |
+| D7 | Skip. B4 is dropped and CI stays as it is. |
+| D8 | The hazard checkers run through AXLE, as witness mode already runs the gate's own Lean. Unacknowledged hazards on a proposal are refused before the pull request opens, and `/check` gets a `hazards` mode. **A14.** Precheck against a *pending* node stays deferred with the queue work. |
+| D9 | Draft the amendment: a hole's witness covers only its unproved hypotheses, and the gate supplies the proved ones from the merged skeleton. The doc change is approved before any code. **C1.** |
+
+The options as first put to Mike are kept below for the record.
+
 
 | # | Question | Options | My recommendation |
 |---|---|---|---|
@@ -54,7 +71,7 @@ Gate: `make verify` before every commit, and `make verify-lean` in CI for anythi
 
 ## 2. Service fixes (live when the network pushes to `main`, no re-pin)
 
-### A1. The witness pre-flight reads `okay` (F13-T17, Q20) — waits on D1
+### A1. The witness pre-flight reads `okay` (F13-T17, Q20) — D1: refuse
 - **Fix:** `checks.preflight_witness` (checks.py ~L715): `matched` only when `matches` is true and
   `verdict(body)` is true. When `matches` is true and `okay` is false: per D1. When `okay` is null
   (`user_error`): `inconclusive`, as today.
@@ -102,10 +119,10 @@ Gate: `make verify` before every commit, and `make verify-lean` in CI for anythi
   - `test_racing_is_still_allowed_across_holders`.
 - **Guards:** `test_claims.py` (`test_racing_allowed`, the cap tests), `test_rejections_claims.py`,
   and the both-stores fixture.
-- **If D3(b):** `GET /claims/mine` gets its own red file: holder-only, lists ids, 401 without a
+- **D3(b), approved:** `GET /claims/mine` gets its own red file: holder-only, lists ids, 401 without a
   bearer, a bijection row and an MCP `list_my_claims` tool.
 
-### A4. Defect claims know the node's state (F08-T18, Q30) — waits on D2
+### A4. Defect claims know the node's state (F08-T18, Q30) — D2: refuse if merged, name if open
 - **Fix:** `requests.post_defect_claims` keeps the `node_facts` it already reads (it is discarded
   today, requests.py ~L162). A `circular-decomposition` claim on a node whose cause is `circular`
   answers `409 node-circular`, in `claims.circular()`'s words. An open defect claim of the same
@@ -176,7 +193,7 @@ Gate: `make verify` before every commit, and `make verify-lean` in CI for anythi
   - `test_file_defect_claim_names_every_version_requests_writes`, which reads `DEFECT_SCHEMA` and
     `CIRCULAR_SCHEMA` from `requests.py` rather than hard-coding them.
 
-### A10. `/check` drops the naming-linter warning on gate-generated names (F13-T18) — waits on D6
+### A10. `/check` drops the naming-linter warning on gate-generated names (F13-T18) — D6: yes
 - **Fix:** drop a warning only when it is Mathlib's naming linter *and* the flagged name is the
   node's own gate-generated declaration (`<id>` with `-` becoming `_`). All other warnings pass
   through verbatim.
@@ -209,7 +226,38 @@ Gate: `make verify` before every commit, and `make verify-lean` in CI for anythi
   - `test_a_fresh_name_opens`.
   - `test_the_service_and_the_gate_agree` (the same function, imported, not re-implemented).
 
-### A12 (if D5). Withdraw one's own pull request (F07-T43, Q50)
+### A14. Hazards are checked through AXLE before a proposal opens, and `/check` has a hazards mode (F13-T20, Q21; F02 owns the checkers) — D8
+- **Why it is possible:** the checkers (`gate/lean/OpnGate/Hazards*.lean`, about 400 lines) import
+  only `Lean`. So the service can inline them with a few lines that ask one question of one
+  declaration, exactly as `checks.witness_text` inlines `WitnessType.lean`. The findings come back
+  on one tagged info line.
+- **Fix:**
+  - `checks.hazards_text` composes the program.
+  - `POST /check` gains `mode: "hazards"`, answering
+    `{findings: [{checker, location}], checkers}`. It runs the checkers the target's
+    `gate-spec.json` names.
+  - `POST /proposals/variant` and `/speculative` run it first. A finding not covered by the
+    proposal's `acknowledged_hazards` is refused `422 hazard-unacknowledged`, with the gate's own
+    finding shape. If AXLE cannot answer, the proposal opens as today and step 6 remains the
+    verdict.
+  - Charged and logged like every check (F13-R8, R9).
+- **Red:** `api/tests/test_finding_hazards_preflight.py`
+  - `test_the_program_sent_is_the_gates_own_source` (hash of the inlined files equals the gate's).
+  - `test_an_unacknowledged_div_zero_is_refused_before_a_pull_request_opens`, replaying #202's
+    statement and finding.
+  - `test_an_acknowledged_finding_opens`.
+  - `test_only_the_targets_checkers_run`.
+  - `test_axle_unavailable_opens_as_today`.
+  - `test_check_hazards_mode_answers_the_findings`.
+  - `test_mcp_propose_speculative_node_carries_the_refusal`.
+- **Lean tier (the check that matters):** `gate/tests/test_hazards_through_axle_text_lean.py` runs
+  the composed text with the local toolchain on every fixture statement in `test_hazards_lean.py`.
+  It asserts the findings equal `opn-hazards`' own, finding for finding. This is how we know the
+  inlined program is the gate's checker and not a lookalike.
+- **Live:** `/check` hazards mode on #202's statement returns its div-zero findings.
+- **Docs:** guide line 272 ("runs none of the hazard checkers") is rewritten.
+
+### A12 (D5: yes). Withdraw one's own pull request (F07-T43, Q50)
 - **Fix:** `DELETE /submissions/<id>`: holder only, closes the pull request and deletes its branch,
   `409` if it has merged, idempotent on an already closed one. Adds an MCP `withdraw_submission`
   tool and a bijection row.
@@ -225,7 +273,7 @@ Gate: `make verify` before every commit, and `make verify-lean` in CI for anythi
 
 ## 3. Gate and site (the gate part is live only at a re-pin, which is Mike's act)
 
-### B1. Circular reads plainly (F04-T26, Q28; docs per D4)
+### B1. Circular reads plainly (F04-T26, Q28)
 - **Site fix:** `circular` joins `LEGEND_EXTRA`, `GLOSSARY` and the Docs state map keys, with its
   own dot style instead of the `blocked` ring.
 - **Red:** in `site/tests/test_graph_legend.py`, generalise the guard to
@@ -265,7 +313,7 @@ Gate: `make verify` before every commit, and `make verify-lean` in CI for anythi
 - **Work:** one fixture test in exactly that shape, with the two commits recorded in the evidence:
   `test_postmerge_apply.py::test_a_second_skeleton_on_a_node_with_holes_numbers_after_them`.
 
-### B4. The network CI skips the Lean tier for docs-only diffs (conventions §2 edit) — waits on D7
+### B4. (Dropped by D7.) The network CI skips the Lean tier for docs-only diffs
 - **Fix:** in `ci.yml`, a first job computes whether the diff touches only `engineering/**`,
   `docs/**` or `*.md` outside `gate/agents/`. `verify-lean` gets `if: needs.changes.outputs.code ==
   'true'`, so it reports `skipped`, which GitHub counts as passed for a required check. The job
@@ -277,6 +325,64 @@ Gate: `make verify` before every commit, and `make verify-lean` in CI for anythi
     it counts as code.
   - `test_a_push_to_main_always_runs_both_tiers`.
 - **Live:** one docs-only PR whose `mergeable_state` reads `clean` with the tier skipped.
+
+### B5. One circularity claim takes the whole path off the frontier (F08-T20, Q32; decisions amendment to D-16) — D4
+- **Rule (derive, never rewrite; F08-T10's principle):** a merged `circular-decomposition` claim on
+  H with ancestor A makes a node X strictly between A and H `cause: circular` when both hold:
+  - X lies on the dependency path from A down to H;
+  - every other hole of every skeleton on that path is proved.
+
+  Nothing on disk changes, and reverting the claim's commit restores every node. A gets a note,
+  not a status. Its `graph.json` entry carries `circular_below: [<claim path>]`: a new optional
+  field, so `graph/v4` or the open `cause` object. Price this against HASHES before choosing;
+  prefer the form with no schema bump.
+- **Amendment first:** D-16's circularity paragraph says the claimed hole leaves the frontier. The
+  amendment extends that to the established path, with this rule's two conditions. Drafted for
+  Mike's approval before code.
+- **Red:** `gate/tests/test_finding_circular_path.py`, on a fixture built in erdos-69's live shape
+  (root → h2 → h2--h1 → h2--h1--h4, with h1 proved).
+  - `test_one_claim_on_the_deepest_hole_takes_the_whole_chain_off_the_frontier`.
+  - `test_a_node_whose_sibling_hole_is_unproved_stays_on`.
+  - `test_it_leaves_once_that_sibling_is_proved` (no new record is needed).
+  - `test_the_ancestor_stays_claimable_and_carries_the_note`.
+  - `test_reverting_the_claim_restores_every_node_byte_for_byte`.
+  - `test_a_proof_of_a_path_node_is_still_accepted` (D-16: a proof of it would prove A).
+  - `test_the_live_erdos_69_record_is_unchanged` (its three claims already cover the chain).
+- **Mutants:** ignore the sibling-proved condition; include A itself; stop at H's parent.
+- **Site:** the ancestor's panel shows the note with a link to the claim, with a screenshot.
+- **Live:** at the re-pin, which is Mike's act.
+
+## 3b. The protocol change (drafted for approval, then built)
+
+### C1. A hole's witness covers only its unproved hypotheses (decisions amendment to D-29 and D-4 step 7; F07-T44, Q51) — D9
+- **Today:** a hole is closed over every earlier `have` in scope (F11-Q22), so its witness must show
+  every one of them can hold at once. Facts the skeleton already *proved* must be proved again: 250
+  lines on erdos-1050's #196, and the whole of `h3`/`h4` on the on-ramp in September.
+- **Amendment (drafted first, approved before code):**
+  - A hypothesis that came from a `have` the skeleton proves is discharged by the gate, from the
+    proof in the merged assembly. The witness exhibits only the hypotheses that came from holes.
+  - The hole's *statement* does not change. It stays closed over everything, so D-31
+    finalisation and the round trip are untouched. Only step 7's expected type changes.
+- **Build:**
+  - `holeReport` marks each binder of the closed type as `proved` or `hole`.
+  - `WitnessType.lean` computes the expected type over the `hole` binders only, and the proved
+    ones are instantiated with the assembly's terms.
+  - The post-merge job records which binders were proved, in the hole's `META.yaml`, which it
+    already writes.
+  - Step 7 reads that record.
+- **Red, lean tier where the Lean is:**
+  - `gate/tests/test_finding_witness_proved_haves_lean.py`
+    - `test_a_hole_after_a_proved_have_asks_only_for_the_unproved_hypotheses` (fixture: one proved
+      `have`, one hole, one later hole).
+    - `test_a_hole_after_a_hole_still_asks_for_that_hole`.
+    - `test_the_statement_text_and_hash_are_unchanged`.
+    - `test_an_old_hole_with_no_record_keeps_todays_expected_type`: nodes merged before the
+      change are unaffected, whatever pin they were witnessed under.
+  - Fast tier: `test_postmerge_apply.py::test_the_hole_meta_records_which_binders_were_proved`.
+  - api: `/check` witness mode and the A1 pre-flight use the same expected type, via the shared
+    `WitnessType.lean`.
+- **Live:** at the re-pin. The first witness filed on a new hole after a proved `have` is the
+  evidence.
 
 ## 4. The guide and other documentation (F10-T14, Q20)
 
@@ -305,14 +411,16 @@ Also updated in the same commits:
 1. §1 decisions.
 2. One commit of all red tests, strict xfail (`evidence: the 2026-09-24 findings as red tests`).
    The suite stays green; each later fix flips its own tests.
-3. A1, A3, A7, A9, A11: small, independent. Then A2, A4, A5, A6, A8, A13. Then A10 and A12 if approved.
+3. A1, A3, A7, A9, A11: small, independent. Then A2, A4, A5, A6, A8, A13, A14. Then A10 and A12.
    One commit per task (`FXX-Tn:`), each with its red run, green run and mutant runs in the
    evidence.
-4. B1 (site), B4 (CI) if approved, B3 (verification).
-5. F10-T14 (the guide) last, so it describes what shipped.
-6. Push to `main`, which deploys the service. Then the live probes for A1–A12.
-7. **Mike's:** the graph re-pin that makes B2 and the guide copy live. B2's live precheck comes
-   after it.
+4. B1 (site), B3 (verification).
+5. Drafts of the D-16 (B5) and D-29 / D-4 step 7 (C1) amendments to Mike. Then B5 and C1,
+   test first, which reach the graph at the re-pin.
+6. F10-T14 (the guide) last, so it describes what shipped.
+7. Push to `main`, which deploys the service. Then the live probes for A1–A14.
+8. **Mike's:** approving the two amendments, and the graph re-pin that makes B2, B5, C1 and the
+   guide copy live. Their live checks come after it.
 
 **Estimate:** about 60 new tests across 14 files plus 3 static CI tests, and 4 extended guard files.
 The fast tier grows by under 10 s; B2 adds one docker-tier case (about 3 min).
