@@ -55,6 +55,7 @@ WRITES = {
     "file_revision_request",
     "propose_speculative_node",
     "propose_variant",
+    "withdraw_submission",  # F07-T43 (ruling D5), D-28's notation note of 2026-09-24
 }
 
 
@@ -153,6 +154,7 @@ def test_results_match_schemas(harness: Harness, tmp_path: Path) -> None:
         },
         "propose_speculative_node": {"target_id": TARGET, "stmt": "s", "witness": "w"},
         "propose_variant": {"target_id": TARGET, "stmt": "s", "witness": "w"},
+        "withdraw_submission": {"submission_id": "000001"},
     }
     for tool in TOOLS:
         for arguments, tok in ((args.get(tool.name, {}), token), ({"bogus": 1}, None)):

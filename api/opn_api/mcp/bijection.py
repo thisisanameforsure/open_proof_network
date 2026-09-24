@@ -147,6 +147,13 @@ TABLE: tuple[Row, ...] = (
         ("POST /proposals/witness",),
         "POST /proposals/witness",
     ),
+    # F07-T43 (ruling D5): D-35's plain-path row of 2026-09-24.
+    Row(
+        "withdraw_submission",
+        "write",
+        ("DELETE /submissions/{submission_id}",),
+        "DELETE /submissions/<id>",
+    ),
 )
 
 BY_TOOL: dict[str, Row] = {row.tool: row for row in TABLE}

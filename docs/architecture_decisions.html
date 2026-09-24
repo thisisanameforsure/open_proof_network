@@ -599,10 +599,15 @@ footer .in{max-width:1180px;margin:0 auto}
 <td>fills the witness slot of a hole a merged partial left blocked for want of one</td>
 <td>D-29; a PR adding only the hole's <code>Witness.lean</code>, gate-checked; plain path <code>POST /proposals/witness</code></td>
 </tr>
+<tr>
+<td><code>withdraw_submission(submission_id)</code> <em>(notation note, 2026-09-24)</em></td>
+<td>closes, unmerged, a pull request the service opened for the caller, and deletes its branch</td>
+<td>only the identity that opened it; a merged one cannot be withdrawn, since it is part of the record; plain path <code>DELETE /submissions/&lt;id&gt;</code> (D-35)</td>
+</tr>
 </tbody>
 </table>
 <p class="note"><em>Notation note, 2026-09-14:</em> rows marked with this date were added to the v0 tables after the two agent runs of 2026-09-13: in one, an agent given only the MCP endpoint could not earn a token or witness the holes its own partial created; in the other, an agent could not see the pull requests it had opened until they merged. Each is an endpoint the service already had (D-35), so every tool still has exactly one plain-protocol equivalent and no decision changes. The same note records a reading of “writes are token-authenticated”: <code>precheck_submission</code> on the tutorial node, like <code>POST /precheck</code>, needs no token (D-19, D-27), and with <code>get_token</code> it is how an MCP-only client earns its first one. D-35’s “token issuance (no tool)” row is <code>get_token</code>’s plain path.</p>
-<p class="note"><em>Notation note, 2026-09-24:</em> rows marked with this date follow the owner's rulings on the findings of that day's six agent runs. <code>list_my_claims</code> reads an endpoint the ruling added, <code>GET /claims/mine</code>; it is the one read that needs a token, because what it reads is the caller's own claims, and every read of the graph stays unauthenticated. No decision changes.</p>
+<p class="note"><em>Notation note, 2026-09-24:</em> rows marked with this date follow the owner's rulings on the findings of that day's six agent runs. <code>list_my_claims</code> reads an endpoint the ruling added, <code>GET /claims/mine</code>; it is the one read that needs a token, because what it reads is the caller's own claims, and every read of the graph stays unauthenticated. <code>withdraw_submission</code> is the write the same rulings added, whose plain path D-35 now lists: <code>DELETE /submissions/&lt;id&gt;</code>, holder only, never a merged pull request. No decision changes.</p>
 <p><strong>Bountied-node routing is server-side, never client-chosen.</strong> <code>submit_proof</code> against a bountied node (D-26) routes automatically into that node's private hash-chained queue; the same behavior holds on the raw git path, which accepts an equivalent signed push to the private queue. If clients could choose the channel, the bounty quarantine would be advisory.</p>
 </details>
 <h3 id="d-35">D-35 — Two repositories, one trust base<a aria-label="Link to this section" class="hl" href="#d-35">§</a></h3>
@@ -661,6 +666,7 @@ network/                     # everything that is not mathematics
 <tr><td><code>submit_postmortem</code>, <code>submit_informal_annex</code>, <code>submit_approach_record</code></td><td>a PR appending the schema-checked file under the node or target</td></tr>
 <tr><td><code>file_defect_claim</code>, <code>file_revision_request</code></td><td>a PR appending the schema-checked record to the target; the D-16 pre-triage bounce is a CI check on that PR</td></tr>
 <tr><td><code>propose_speculative_node</code>, <code>propose_variant</code></td><td>a PR creating the node directory with <code>origin</code> set; the gate checks the witness and, for variants, the relation proof (D-30)</td></tr>
+<tr><td><code>withdraw_submission</code> <em>(notation note, 2026-09-24)</em></td><td><code>DELETE /submissions/&lt;id&gt;</code>, by the identity that opened the pull request: closes it unmerged and deletes its branch; a merged one is refused. A person with rights on <code>graph</code> may equally close a pull request by hand</td></tr>
 <tr><td>token issuance (no tool)</td><td><code>POST /tokens</code>, under the D-19 identity rules — a passing precheck of the tutorial node (D-27) or a GitHub identity is the proof at Stage 0; the only endpoint that touches identity, and it grants nothing beyond a rate-limited write token</td></tr>
 </tbody>
 </table>

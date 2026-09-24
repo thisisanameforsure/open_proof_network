@@ -41,7 +41,11 @@ D35_OWNED_BY_F06: frozenset[str] = frozenset({D35_POST_PRECHECK, D35_GET_PRECHEC
 # row, whose plain path is the pull request itself — the endpoint only opens it.
 D35_POST_SUBMISSIONS = "POST /submissions"
 D35_APPEND_PR = "a PR appending the schema-checked file under the node or target"
-D35_OWNED_BY_F07: frozenset[str] = frozenset({D35_POST_SUBMISSIONS, D35_APPEND_PR})
+# F07-T43 (ruling D5, 2026-09-24): the holder withdraws a pull request the service opened.
+D35_DELETE_SUBMISSION = "DELETE /submissions/<id>"
+D35_OWNED_BY_F07: frozenset[str] = frozenset(
+    {D35_POST_SUBMISSIONS, D35_APPEND_PR, D35_DELETE_SUBMISSION}
+)
 # F08's row: the two proposal tools share one, whose plain path is the pull request that creates
 # the node directory; witness completion is the same row, on a directory that already exists
 # (F08-R5). Revision requests and defect claims share the other (T4).
@@ -89,6 +93,15 @@ ROUTES: tuple[RouteSpec, ...] = (
     # path is the pull request on the host and, once merged, attestations/<n>.json.
     RouteSpec("GET", "/submissions.json", "pending:get_submissions", None, feature="F07"),
     RouteSpec("GET", "/submissions/{submission_id}", "pending:get_submission", None, feature="F07"),
+    # F07-T43 (ruling D5): the identity that opened a pull request closes it, unmerged.
+    RouteSpec(
+        "DELETE",
+        "/submissions/{submission_id}",
+        "withdraw:delete_submission",
+        D35_DELETE_SUBMISSION,
+        authenticated=True,
+        feature="F07",
+    ),
     RouteSpec(
         "POST",
         "/postmortems",
@@ -182,6 +195,7 @@ PURPOSES: dict[str, str] = {
     "POST /submissions": "Open the pull request for a prechecked proof or partial proof.",
     "GET /submissions.json": "Every pull request the service opened that is still open.",
     "GET /submissions/{submission_id}": "One submission: its pull request and where it stands.",
+    "DELETE /submissions/{submission_id}": "Withdraw a pull request you opened, closed unmerged.",
     "POST /postmortems": "Record a failed attempt on a statement, by pull request.",
     "POST /annexes": "Attach informal mathematics to a statement, by pull request.",
     "POST /approach-records": "Record an approach to a whole problem, by pull request.",

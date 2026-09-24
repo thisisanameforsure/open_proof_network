@@ -84,7 +84,6 @@ def open_ids(h: Harness) -> list[str]:
     return [s["id"] for s in h.client.get("/submissions.json").json()["open"]]
 
 
-@pytest.mark.xfail(strict=True, reason="F07-T43: no DELETE /submissions/<id>")
 def test_the_holder_closes_their_open_pull_request(h: Harness) -> None:
     alice = h.token_for("code_alice", "alice")
     opened = annex(h, alice)
@@ -108,7 +107,6 @@ def test_the_holder_closes_their_open_pull_request(h: Harness) -> None:
     assert got["pull_request"]["state"] == "closed"
 
 
-@pytest.mark.xfail(strict=True, reason="F07-T43: no DELETE /submissions/<id>")
 def test_the_pull_request_number_names_it_too(h: Harness) -> None:
     alice = h.token_for("code_alice", "alice")
     opened = annex(h, alice)
@@ -117,7 +115,6 @@ def test_the_pull_request_number_names_it_too(h: Harness) -> None:
     assert r.json()["submission"]["id"] == opened["id"]
 
 
-@pytest.mark.xfail(strict=True, reason="F07-T43: no DELETE /submissions/<id>")
 def test_another_identity_gets_403(h: Harness) -> None:
     alice = h.token_for("code_alice", "alice")
     bob = h.token_for("code_bob", "bob")
@@ -129,7 +126,6 @@ def test_another_identity_gets_403(h: Harness) -> None:
     assert open_ids(h) == [opened["id"]]
 
 
-@pytest.mark.xfail(strict=True, reason="F07-T43: no DELETE /submissions/<id>")
 def test_a_merged_submission_gets_409(h: Harness) -> None:
     alice = h.token_for("code_alice", "alice")
     opened = annex(h, alice)
@@ -140,7 +136,19 @@ def test_a_merged_submission_gets_409(h: Harness) -> None:
     assert closed_on_host(h) == [] and deleted_on_host(h) == []
 
 
-@pytest.mark.xfail(strict=True, reason="F07-T43: no DELETE /submissions/<id>")
+def test_merged_is_read_from_the_host_not_the_cache(h: Harness) -> None:
+    """A read a moment ago cached the pull request as open; it has merged since. Withdrawing it
+    must not answer "withdrawn" from the cache (added with the fix, as the guard for its
+    fresh read)."""
+    alice = h.token_for("code_alice", "alice")
+    opened = annex(h, alice)
+    assert h.client.get(f"/submissions/{opened['id']}").json()["pull_request"]["state"] == "open"
+    h.githost.set_pull_request_state(opened["pr_number"], state="closed", merged=True)
+    r = withdraw(h, alice, opened["id"])
+    assert r.status_code == 409, r.text
+    assert closed_on_host(h) == []
+
+
 def test_twice_is_harmless(h: Harness) -> None:
     alice = h.token_for("code_alice", "alice")
     opened = annex(h, alice)
@@ -152,7 +160,6 @@ def test_twice_is_harmless(h: Harness) -> None:
     assert closed_on_host(h) == [opened["pr_number"]]  # the host was asked once
 
 
-@pytest.mark.xfail(strict=True, reason="F07-T43: no DELETE /submissions/<id>")
 def test_one_closed_on_the_host_already_is_harmless(h: Harness) -> None:
     alice = h.token_for("code_alice", "alice")
     opened = annex(h, alice)
@@ -163,7 +170,6 @@ def test_one_closed_on_the_host_already_is_harmless(h: Harness) -> None:
     assert closed_on_host(h) == []  # nothing to close
 
 
-@pytest.mark.xfail(strict=True, reason="F07-T43: no DELETE /submissions/<id>")
 def test_the_snapshot_drops_it(h: Harness) -> None:
     alice = h.token_for("code_alice", "alice")
     kept, gone = annex(h, alice), annex(h, alice)
@@ -173,7 +179,6 @@ def test_the_snapshot_drops_it(h: Harness) -> None:
     assert open_ids(h) == [kept["id"]]
 
 
-@pytest.mark.xfail(strict=True, reason="F07-T43: no DELETE /submissions/<id>")
 def test_unknown_ids_are_404(h: Harness) -> None:
     alice = h.token_for("code_alice", "alice")
     for raw in ("01ARZ3NDEKTSV4RRFFQ69G5FAV", "000042"):
@@ -183,7 +188,6 @@ def test_unknown_ids_are_404(h: Harness) -> None:
     assert withdraw(h, alice, "not an id!").status_code == 400
 
 
-@pytest.mark.xfail(strict=True, reason="F07-T43: no DELETE /submissions/<id>")
 def test_without_a_bearer_is_401() -> None:
     h = make_harness()
     alice = h.token_for("code_alice", "alice")
@@ -193,7 +197,6 @@ def test_without_a_bearer_is_401() -> None:
     assert open_ids(h) == [opened["id"]]
 
 
-@pytest.mark.xfail(strict=True, reason="F07-T43: no DELETE /submissions/<id>")
 def test_a_host_failure_is_502_and_the_record_stays_open() -> None:
     h = make_harness()
     alice = h.token_for("code_alice", "alice")
@@ -207,7 +210,6 @@ def test_a_host_failure_is_502_and_the_record_stays_open() -> None:
     assert record is not None and record.closed is None
 
 
-@pytest.mark.xfail(strict=True, reason="F07-T43: no DELETE /submissions/<id>")
 def test_a_branch_the_service_did_not_name_is_never_deleted() -> None:
     """Only a branch the service itself opened (its ``submit/``, ``append/`` or ``propose/``
     prefixes) is deleted; the pull request is still closed."""
@@ -221,7 +223,6 @@ def test_a_branch_the_service_did_not_name_is_never_deleted() -> None:
     assert closed_on_host(h) == [opened["pr_number"]] and deleted_on_host(h) == []
 
 
-@pytest.mark.xfail(strict=True, reason="F07-T43: no DELETE /submissions/<id>")
 def test_the_route_is_an_authenticated_write_with_a_d35_row() -> None:
     from opn_api import routes  # noqa: PLC0415
 
@@ -232,7 +233,6 @@ def test_the_route_is_an_authenticated_write_with_a_d35_row() -> None:
     assert spec.d35 == "DELETE /submissions/<id>"
 
 
-@pytest.mark.xfail(strict=True, reason="F07-T43: no withdraw_submission tool")
 def test_withdraw_submission_over_mcp_is_the_route() -> None:
     h = make_harness()
     alice = h.token_for("code_alice", "alice")
@@ -247,7 +247,6 @@ def test_withdraw_submission_over_mcp_is_the_route() -> None:
 # --- the seam: HttpxGitHost against a scripted GitHub ---------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="F07-T43: no close_pull_request on the seam")
 def test_the_seam_closes_the_pull_request_and_names_its_branch(
     script: Script,  # noqa: F811 — the fixture imported above
     host: HttpxGitHost,  # noqa: F811
@@ -268,7 +267,6 @@ def test_the_seam_closes_the_pull_request_and_names_its_branch(
     assert script.sent("PATCH", f"/repos/{REPO}/pulls/7") == {"state": "closed"}
 
 
-@pytest.mark.xfail(strict=True, reason="F07-T43: no close_pull_request on the seam")
 def test_the_seam_names_no_branch_for_a_fork(
     script: Script,  # noqa: F811
     host: HttpxGitHost,  # noqa: F811
@@ -283,7 +281,6 @@ def test_the_seam_names_no_branch_for_a_fork(
     assert close(REPO, 7) is None
 
 
-@pytest.mark.xfail(strict=True, reason="F07-T43: no delete_branch on the seam")
 def test_the_seam_deletes_a_branch_and_a_missing_one_is_not_an_error(
     script: Script,  # noqa: F811
     host: HttpxGitHost,  # noqa: F811
@@ -296,7 +293,6 @@ def test_the_seam_deletes_a_branch_and_a_missing_one_is_not_an_error(
     assert delete(REPO, "append/01ABC") is False  # "Reference does not exist": already gone
 
 
-@pytest.mark.xfail(strict=True, reason="F07-T43: no close_pull_request on the seam")
 def test_the_seam_refusal_names_the_call(
     script: Script,  # noqa: F811
     host: HttpxGitHost,  # noqa: F811
