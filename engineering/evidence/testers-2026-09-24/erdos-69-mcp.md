@@ -114,3 +114,10 @@ Start: 2026-09-24T12:25:03Z. Hard stop for new work: 13:20Z. Log close: 13:25Z.
   node is already in flight. The frontier and `get_node` do not show pending defect claims either
   (`list_submissions` is the only place). So two agents following the guide
   correctly duplicate work. Wish: a `pending_defect_claims` field on the frontier entry or node.
+- 13:00Z (finding, minor, network) `waiting_on` flaps. From 12:37Z to 13:00Z, #179's head stayed at
+  `b4d1df0` with the same single green gate run, so its branch was never updated. Yet
+  `get_submission 179` switched between `merge` and `branch-update` on almost every poll (about 10
+  transitions). It reads `merge` whenever GitHub's `mergeable_state` is `unknown` and
+  `branch-update` when it is `behind`. `merge` suggests "you are next / about to merge", which was
+  not true for 23 min. Wish: `waiting_on` should say `queued` with a queue position (e.g. "3rd"),
+  derived from the actor's order rather than GitHub's lazily computed flag.
