@@ -1,0 +1,46 @@
+F05-T14 — claims: one per holder per node; the receipt names the other holders; GET /claims/mine and
+the MCP tool list_my_claims (ruling D3(b)). Findings of the 2026-09-24 testers (finding 3).
+
+## red
+
+Written before any production change. The six passing tests are the guards (a released or expired
+claim is not held; racing across holders stays allowed, D-25) and are not marked.
+
+$ uv run --frozen pytest -q -p no:cacheprovider --tb=line api/tests/test_finding_claim_twice.py api/tests/test_finding_claims_mine.py
+(failure lines and summary; full output is one assertion per failure)
+
+E   AssertionError: {"id":"01M230SJ908B4C9E3NRTFCSDY4","node_id":"and-reassoc","target_id":"propositional","pseudonym":"alice-p","created":"2026-09-09T12:03:00Z","expires":"2026-09-10T12:03:00Z","released":null}
+E   AssertionError: {"id":"01M230SJ907Q0KRCD34GPFWBTW","node_id":"and-reassoc","target_id":"propositional","pseudonym":"alice-p","created":"2026-09-09T12:03:00Z","expires":"2026-09-10T12:03:00Z","released":null}
+E   AssertionError: {"error":"active-claims-cap","message":"1 active claims already; release one or wait"}
+E   AssertionError: assert None == []
+E   AssertionError: assert None == []
+E   AssertionError: assert None == []
+E   AssertionError: assert None == []
+E   AssertionError: Method Not Allowed
+E   AssertionError: Method Not Allowed
+E   AssertionError: Method Not Allowed
+E   AssertionError: Method Not Allowed
+E   AssertionError: Method Not Allowed
+E   AssertionError: Method Not Allowed
+E   AssertionError: Method Not Allowed
+E   AssertionError: GET /claims/mine is not in the routes table
+E   AssertionError: {'error': 'tool-unknown', 'message': 'no such tool list_my_claims', 'source': 'adapter'}
+E   AssertionError: {'error': 'tool-unknown', 'message': 'no such tool list_my_claims', 'source': 'adapter'}
+FAILED api/tests/test_finding_claim_twice.py::test_the_same_holder_claiming_twice_gets_the_same_claim[memory]
+FAILED api/tests/test_finding_claim_twice.py::test_the_same_holder_claiming_twice_gets_the_same_claim[dynamodb]
+FAILED api/tests/test_finding_claim_twice.py::test_claiming_again_at_the_cap_returns_the_claim_rather_than_429
+FAILED api/tests/test_finding_claim_twice.py::test_the_receipt_lists_other_active_holders_and_not_the_caller[memory]
+FAILED api/tests/test_finding_claim_twice.py::test_the_receipt_lists_other_active_holders_and_not_the_caller[dynamodb]
+FAILED api/tests/test_finding_claim_twice.py::test_the_receipt_omits_expired_and_released_holders[memory]
+FAILED api/tests/test_finding_claim_twice.py::test_the_receipt_omits_expired_and_released_holders[dynamodb]
+FAILED api/tests/test_finding_claims_mine.py::test_mine_lists_the_callers_active_claims_with_ids[memory]
+FAILED api/tests/test_finding_claims_mine.py::test_mine_lists_the_callers_active_claims_with_ids[dynamodb]
+FAILED api/tests/test_finding_claims_mine.py::test_mine_leaves_out_released_and_expired_claims[memory]
+FAILED api/tests/test_finding_claims_mine.py::test_mine_leaves_out_released_and_expired_claims[dynamodb]
+FAILED api/tests/test_finding_claims_mine.py::test_mine_is_empty_for_someone_with_no_claims[memory]
+FAILED api/tests/test_finding_claims_mine.py::test_mine_is_empty_for_someone_with_no_claims[dynamodb]
+FAILED api/tests/test_finding_claims_mine.py::test_mine_without_a_bearer_is_401
+FAILED api/tests/test_finding_claims_mine.py::test_the_route_is_in_the_table_as_an_authenticated_read
+FAILED api/tests/test_finding_claims_mine.py::test_list_my_claims_over_mcp_equals_the_route
+FAILED api/tests/test_finding_claims_mine.py::test_list_my_claims_without_a_token_is_refused_before_the_route
+17 failed, 6 passed, 2 warnings in 1.15s
