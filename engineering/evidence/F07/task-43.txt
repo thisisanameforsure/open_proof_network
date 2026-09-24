@@ -1,0 +1,63 @@
+F07-T43 — DELETE /submissions/<id>: the holder withdraws their own pull request (ruling D5), and the
+MCP tool withdraw_submission. Finding of the 2026-09-24 testers (three agents asked).
+
+## red
+
+Written before any production change. Every test fails on the defect: the route answers 405 (no
+DELETE on /submissions/{id}), the routes table has no row, the MCP has no tool, and the seam has
+no close or delete call.
+
+$ uv run --frozen pytest -q -p no:cacheprovider --tb=line api/tests/test_finding_withdraw.py
+(failure lines and summary)
+
+E   AssertionError: Method Not Allowed
+E   AssertionError: Method Not Allowed
+E   AssertionError: Method Not Allowed
+E   AssertionError: Method Not Allowed
+E   AssertionError: Method Not Allowed
+E   AssertionError: Method Not Allowed
+E   AssertionError: Method Not Allowed
+E   AssertionError: Method Not Allowed
+E   AssertionError: Method Not Allowed
+E   AssertionError: Method Not Allowed
+E   AssertionError: Method Not Allowed
+E   AssertionError: Method Not Allowed
+E   AssertionError: assert 405 == 200
+E   AssertionError: assert 405 == 200
+E   AssertionError: ('01ARZ3NDEKTSV4RRFFQ69G5FAV', 'Method Not Allowed')
+E   AssertionError: ('01ARZ3NDEKTSV4RRFFQ69G5FAV', 'Method Not Allowed')
+E   AssertionError: Method Not Allowed
+E   AssertionError: Method Not Allowed
+E   AssertionError: Method Not Allowed
+E   AssertionError: DELETE /submissions/{submission_id} is not in the routes table
+E   AssertionError: {'error': 'tool-unknown', 'message': 'no such tool withdraw_submission', 'source': 'adapter'}
+E   AssertionError: HttpxGitHost has no close_pull_request
+E   AssertionError: HttpxGitHost has no close_pull_request
+E   AssertionError: HttpxGitHost has no delete_branch
+E   AssertionError: HttpxGitHost has no close_pull_request
+FAILED api/tests/test_finding_withdraw.py::test_the_holder_closes_their_open_pull_request[memory]
+FAILED api/tests/test_finding_withdraw.py::test_the_holder_closes_their_open_pull_request[dynamodb]
+FAILED api/tests/test_finding_withdraw.py::test_the_pull_request_number_names_it_too[memory]
+FAILED api/tests/test_finding_withdraw.py::test_the_pull_request_number_names_it_too[dynamodb]
+FAILED api/tests/test_finding_withdraw.py::test_another_identity_gets_403[memory]
+FAILED api/tests/test_finding_withdraw.py::test_another_identity_gets_403[dynamodb]
+FAILED api/tests/test_finding_withdraw.py::test_a_merged_submission_gets_409[memory]
+FAILED api/tests/test_finding_withdraw.py::test_a_merged_submission_gets_409[dynamodb]
+FAILED api/tests/test_finding_withdraw.py::test_twice_is_harmless[memory] - A...
+FAILED api/tests/test_finding_withdraw.py::test_twice_is_harmless[dynamodb]
+FAILED api/tests/test_finding_withdraw.py::test_one_closed_on_the_host_already_is_harmless[memory]
+FAILED api/tests/test_finding_withdraw.py::test_one_closed_on_the_host_already_is_harmless[dynamodb]
+FAILED api/tests/test_finding_withdraw.py::test_the_snapshot_drops_it[memory]
+FAILED api/tests/test_finding_withdraw.py::test_the_snapshot_drops_it[dynamodb]
+FAILED api/tests/test_finding_withdraw.py::test_unknown_ids_are_404[memory]
+FAILED api/tests/test_finding_withdraw.py::test_unknown_ids_are_404[dynamodb]
+FAILED api/tests/test_finding_withdraw.py::test_without_a_bearer_is_401 - Ass...
+FAILED api/tests/test_finding_withdraw.py::test_a_host_failure_is_502_and_the_record_stays_open
+FAILED api/tests/test_finding_withdraw.py::test_a_branch_the_service_did_not_name_is_never_deleted
+FAILED api/tests/test_finding_withdraw.py::test_the_route_is_an_authenticated_write_with_a_d35_row
+FAILED api/tests/test_finding_withdraw.py::test_withdraw_submission_over_mcp_is_the_route
+FAILED api/tests/test_finding_withdraw.py::test_the_seam_closes_the_pull_request_and_names_its_branch
+FAILED api/tests/test_finding_withdraw.py::test_the_seam_names_no_branch_for_a_fork
+FAILED api/tests/test_finding_withdraw.py::test_the_seam_deletes_a_branch_and_a_missing_one_is_not_an_error
+FAILED api/tests/test_finding_withdraw.py::test_the_seam_refusal_names_the_call
+25 failed, 2 warnings in 0.95s
