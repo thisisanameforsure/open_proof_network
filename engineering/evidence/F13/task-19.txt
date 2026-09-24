@@ -1,0 +1,10 @@
+# F13-T19: the 413 content-too-large names the limit and the remedy (testers 2026-09-24; plan A11)
+# Found by the erdos-402 HTTP agent at 12:45:31Z: a 657 kB case tree got "content is 656745 bytes; the limit is
+# 200000", correct and silent on what to do; the agent had separately found that a tactic-level
+# `set_option maxHeartbeats` does not lift Lean's per-declaration budget.
+
+## red
+$ uv run --frozen pytest -q -p no:warnings api/tests/test_checks.py -k 413
+E           AssertionError: content is 201 bytes; the limit is 200
+E           assert 'cheaper' in 'content is 201 bytes; the limit is 200'
+1 failed, 16 deselected in 0.50s
