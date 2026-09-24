@@ -30,3 +30,170 @@ FAILED api/tests/test_finding_proposal_statement.py::test_the_list_entry_still_e
 FAILED api/tests/test_finding_proposal_statement.py::test_mcp_get_submission_carries_the_statement_and_validates
 7 failed, 1 passed, 2 warnings in 0.76s
 
+## green
+$ uv run --frozen pytest -v api/tests/test_finding_proposal_statement.py api/tests/test_pending_submissions.py api/tests/test_mcp_pending_submissions.py api/tests/test_finding_node_pending.py
+api/tests/test_finding_proposal_statement.py::test_a_variant_submission_carries_its_statement_at_the_head_sha[variant] PASSED [  2%]
+api/tests/test_finding_proposal_statement.py::test_a_variant_submission_carries_its_statement_at_the_head_sha[speculative] PASSED [  4%]
+api/tests/test_finding_proposal_statement.py::test_a_proof_submission_has_no_statement_key PASSED [  6%]
+api/tests/test_finding_proposal_statement.py::test_a_host_failure_gives_null_with_the_reason PASSED [  8%]
+api/tests/test_finding_proposal_statement.py::test_a_branch_without_the_file_gives_null_with_the_reason PASSED [ 11%]
+api/tests/test_finding_proposal_statement.py::test_a_long_statement_is_capped_at_16_kb_and_says_so PASSED [ 13%]
+api/tests/test_finding_proposal_statement.py::test_the_list_entry_still_equals_the_document PASSED [ 15%]
+api/tests/test_finding_proposal_statement.py::test_mcp_get_submission_carries_the_statement_and_validates PASSED [ 17%]
+api/tests/test_pending_submissions.py::test_the_append_routes_record_what_they_open PASSED [ 20%]
+api/tests/test_pending_submissions.py::test_a_witness_proposal_is_recorded_as_a_witness PASSED [ 22%]
+api/tests/test_pending_submissions.py::test_a_store_failure_while_recording_still_answers_201 PASSED [ 24%]
+api/tests/test_pending_submissions.py::test_attesting_kinds_are_the_submission_artifact_types PASSED [ 26%]
+api/tests/test_pending_submissions.py::test_every_spelling_of_the_id_is_the_same_answer[1] PASSED [ 28%]
+api/tests/test_pending_submissions.py::test_every_spelling_of_the_id_is_the_same_answer[000001] PASSED [ 31%]
+api/tests/test_pending_submissions.py::test_every_spelling_of_the_id_is_the_same_answer[0000000001] PASSED [ 33%]
+api/tests/test_pending_submissions.py::test_every_spelling_of_the_id_is_the_same_answer[{ulid}] PASSED [ 35%]
+api/tests/test_pending_submissions.py::test_every_spelling_of_the_id_is_the_same_answer[{ulid_lower}] PASSED [ 37%]
+api/tests/test_pending_submissions.py::test_numbers_that_name_nothing_are_unknown_without_a_host_lookup[0] PASSED [ 40%]
+api/tests/test_pending_submissions.py::test_numbers_that_name_nothing_are_unknown_without_a_host_lookup[000000] PASSED [ 42%]
+api/tests/test_pending_submissions.py::test_numbers_that_name_nothing_are_unknown_without_a_host_lookup[1000000000000] PASSED [ 44%]
+api/tests/test_pending_submissions.py::test_a_malformed_id_is_refused_by_name[not-an-id] PASSED [ 46%]
+api/tests/test_pending_submissions.py::test_a_malformed_id_is_refused_by_name[01M0000000000000000000000U] PASSED [ 48%]
+api/tests/test_pending_submissions.py::test_reads_inside_the_window_are_one_lookup_and_a_failure_serves_the_last_state PASSED [ 51%]
+api/tests/test_pending_submissions.py::test_a_host_failure_on_the_first_read_ever_is_a_null_state_with_the_error PASSED [ 53%]
+api/tests/test_pending_submissions.py::test_a_number_the_host_does_not_know_is_a_null_state_with_the_error PASSED [ 55%]
+api/tests/test_pending_submissions.py::test_a_pull_request_closed_unmerged_closes_the_record PASSED [ 57%]
+api/tests/test_pending_submissions.py::test_a_merged_proof_is_pending_until_its_attestation_lands PASSED [ 60%]
+api/tests/test_pending_submissions.py::test_a_merged_annex_leaves_the_snapshot PASSED [ 62%]
+api/tests/test_pending_submissions.py::test_submissions_round_trip_in_both_stores[memory] PASSED [ 64%]
+api/tests/test_pending_submissions.py::test_submissions_round_trip_in_both_stores[dynamodb] PASSED [ 66%]
+api/tests/test_pending_submissions.py::test_closing_keeps_the_final_state_and_leaves_the_open_index_in_both_stores[memory] PASSED [ 68%]
+api/tests/test_pending_submissions.py::test_closing_keeps_the_final_state_and_leaves_the_open_index_in_both_stores[dynamodb] PASSED [ 71%]
+api/tests/test_pending_submissions.py::test_the_dynamo_layout_is_three_prefixes_in_the_tokens_table_without_a_ttl PASSED [ 73%]
+api/tests/test_mcp_pending_submissions.py::test_get_submission_tool_is_the_route_for_an_open_append PASSED [ 75%]
+api/tests/test_mcp_pending_submissions.py::test_get_node_carries_only_its_own_open_submissions_and_drops_the_merged PASSED [ 77%]
+api/tests/test_mcp_pending_submissions.py::test_list_submissions_handler_is_the_snapshot PASSED [ 80%]
+api/tests/test_finding_node_pending.py::test_a_proposal_is_found_by_its_node_in_both_stores[memory] PASSED [ 82%]
+api/tests/test_finding_node_pending.py::test_a_proposal_is_found_by_its_node_in_both_stores[dynamodb] PASSED [ 84%]
+api/tests/test_finding_node_pending.py::test_an_open_proposal_says_what_it_waits_for PASSED [ 86%]
+api/tests/test_finding_node_pending.py::test_a_merged_proposal_says_the_products_are_pending PASSED [ 88%]
+api/tests/test_finding_node_pending.py::test_a_node_nobody_proposed_or_a_closed_proposal_is_still_unknown[True] PASSED [ 91%]
+api/tests/test_finding_node_pending.py::test_a_node_nobody_proposed_or_a_closed_proposal_is_still_unknown[False] PASSED [ 93%]
+api/tests/test_finding_node_pending.py::test_a_host_failure_never_hides_the_node_behind_a_500 PASSED [ 95%]
+api/tests/test_finding_node_pending.py::test_a_merged_proposal_whose_node_is_not_rendered_yet_waits_on_products PASSED [ 97%]
+api/tests/test_finding_node_pending.py::test_retry_after_is_honest_about_the_post_merge_job PASSED [100%]
+======================== 45 passed, 2 warnings in 1.19s ========================
+
+## mutants
+Each plugin is loaded with -p and weakens the rule in memory (no file edited); its text is kept here.
+
+### mut_t41_at_main
+```python
+"""F07-T41 mutant: read the statement at main, not at the pull request's head."""
+
+from opn_api import pending
+
+_real = pending.proposed_statement
+
+
+def _weak(ctx, found, pull):
+    return _real(ctx, found, {**(pull or {}), "head_sha": ctx.settings.graph_branch})
+
+
+pending.proposed_statement = _weak
+```
+$ PYTHONPATH=<mutants dir> uv run --frozen pytest -q -p mut_t41_at_main api/tests/test_finding_proposal_statement.py
+E       AssertionError: {'submission': {'id': '01M00000000000000000000188', 'kind': 'variant', 'node_id': 'variant-e6d83e6d', 'target_id': 'pr...rsure/open_proof_network_graph/pull/188', 'state': 'open', ...}, 'pull_request_error': None, 'gate_verdict': None, ...}
+E        +    where <built-in method get of dict object at 0x7fc5ea362b80> = {'submission': {'id': '01M00000000000000000000188', 'kind': 'variant', 'node_id': 'variant-e6d83e6d', 'target_id': 'pr...rsure/open_proof_network_graph/pull/188', 'state': 'open', ...}, 'pull_request_error': None, 'gate_verdict': None, ...}.get
+E       AssertionError: {'submission': {'id': '01M00000000000000000000188', 'kind': 'speculative', 'node_id': 'variant-e6d83e6d', 'target_id':...rsure/open_proof_network_graph/pull/188', 'state': 'open', ...}, 'pull_request_error': None, 'gate_verdict': None, ...}
+E        +    where <built-in method get of dict object at 0x7fc5ea3dd7c0> = {'submission': {'id': '01M00000000000000000000188', 'kind': 'speculative', 'node_id': 'variant-e6d83e6d', 'target_id':...rsure/open_proof_network_graph/pull/188', 'state': 'open', ...}, 'pull_request_error': None, 'gate_verdict': None, ...}.get
+FAILED api/tests/test_finding_proposal_statement.py::test_a_variant_submission_carries_its_statement_at_the_head_sha[variant]
+FAILED api/tests/test_finding_proposal_statement.py::test_a_variant_submission_carries_its_statement_at_the_head_sha[speculative]
+FAILED api/tests/test_finding_proposal_statement.py::test_a_long_statement_is_capped_at_16_kb_and_says_so
+3 failed, 5 passed, 2 warnings in 0.67s
+
+### mut_t41_no_cap
+```python
+"""F07-T41 mutant: no cap on the text."""
+
+from opn_api import pending
+
+pending.PROPOSED_STATEMENT_MAX_BYTES = 10**9
+```
+$ PYTHONPATH=<mutants dir> uv run --frozen pytest -q -p mut_t41_no_cap api/tests/test_finding_proposal_statement.py
+FAILED api/tests/test_finding_proposal_statement.py::test_a_long_statement_is_capped_at_16_kb_and_says_so
+1 failed, 7 passed, 2 warnings in 0.65s
+
+### mut_t41_every_kind
+```python
+"""F07-T41 mutant: every record carries the keys, proposals or not."""
+
+from opn_api import store
+
+store.proposes = lambda submission: submission.node_id is not None
+```
+$ PYTHONPATH=<mutants dir> uv run --frozen pytest -q -p mut_t41_every_kind api/tests/test_finding_proposal_statement.py
+>           assert "proposed_statement" not in doc and "proposed_statement_error" not in doc, doc
+E           AssertionError: {'submission': {'id': '01M00000000000000000000003', 'kind': 'proof', 'node_id': 'variant-e6d83e6d', 'target_id': 'prop...st_error': 'the host has no pull request #3 on thisisanameforsure/open_proof_network_graph', 'gate_verdict': None, ...}
+E           assert ('proposed_statement' not in {'submission': {'id': '01M00000000000000000000003', 'kind': 'proof', 'node_id': 'variant-e6d83e6d', 'target_id': 'prop...st_error': 'the host has no pull request #3 on thisisanameforsure/open_proof_network_graph', 'gate_verdict': None, ...})
+FAILED api/tests/test_finding_proposal_statement.py::test_a_proof_submission_has_no_statement_key
+1 failed, 7 passed, 2 warnings in 0.64s
+
+### mut_t41_inside_document
+```python
+"""F07-T41 mutant: the statement rides inside the submission document."""
+
+from opn_api import pending
+
+_real = pending.answer
+
+
+def _weak(ctx, raw):
+    out = _real(ctx, raw)
+    if "proposed_statement" in out and out.get("submission"):
+        out["submission"] = {**out["submission"], "proposed_statement": out["proposed_statement"]}
+    return out
+
+
+pending.answer = _weak
+```
+$ PYTHONPATH=<mutants dir> uv run --frozen pytest -q -p mut_t41_inside_document api/tests/test_finding_proposal_statement.py
+E         Left contains one more item: "$: {'submission': {'id': '01M00000000000000000000188', 'kind': 'variant', 'node_id': 'variant-e6d83e6d', 'target_id':...= by\\n  sorry\\n', 'truncated': False}, 'proposed_statement_error': None} is not valid under any of the given schemas"
+FAILED api/tests/test_finding_proposal_statement.py::test_the_list_entry_still_equals_the_document
+FAILED api/tests/test_finding_proposal_statement.py::test_mcp_get_submission_carries_the_statement_and_validates
+2 failed, 6 passed, 2 warnings in 0.55s
+
+### mut_t41_failure_raises
+```python
+"""F07-T41 mutant: a host failure is not caught (the read raises through the route)."""
+
+from opn_api import pending
+from opn_api.githost import GitHostError
+
+
+def _weak(ctx, found, pull):
+    head = str((pull or {}).get("head_sha") or "")
+    path = f"targets/{found.target_id}/nodes/{found.node_id}/Statement.lean"
+    got = ctx.githost.fetch_raw(ctx.settings.graph_repo, head, path, etag=None)
+    if got.status != 200 or got.body is None:
+        raise GitHostError("absent")
+    return {"path": path, "head_sha": head, "text": got.body.decode(), "truncated": False}, None
+
+
+pending.proposed_statement = _weak
+```
+$ PYTHONPATH=<mutants dir> uv run --frozen pytest -q -p mut_t41_failure_raises api/tests/test_finding_proposal_statement.py
+E       AssertionError: {"error":"internal","message":"internal error"}
+ERROR    opn_api:app.py:252 unhandled GitHostError on /submissions/188
+  File "/home/user/open_proof_network/.claude/worktrees/agent-aadf48713bfa787c5/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    out["proposed_statement"], out["proposed_statement_error"] = proposed_statement(
+opn_api.githost.GitHostError: fetching targets/propositional/nodes/variant-e6d83e6d/Statement.lean failed: ConnectError
+E       AssertionError: {"error":"internal","message":"internal error"}
+ERROR    opn_api:app.py:252 unhandled GitHostError on /submissions/188
+  File "/home/user/open_proof_network/.claude/worktrees/agent-aadf48713bfa787c5/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    out["proposed_statement"], out["proposed_statement_error"] = proposed_statement(
+FAILED api/tests/test_finding_proposal_statement.py::test_a_host_failure_gives_null_with_the_reason
+FAILED api/tests/test_finding_proposal_statement.py::test_a_branch_without_the_file_gives_null_with_the_reason
+FAILED api/tests/test_finding_proposal_statement.py::test_a_long_statement_is_capped_at_16_kb_and_says_so
+3 failed, 5 passed, 2 warnings in 0.66s
+
+## verify
+make verify: ruff clean, mypy gate/api/site no issues, 2655 passed, 75 skipped, 89 deselected (exit 0).
+Shape: proposed_statement {path, head_sha, text, truncated} | null, and proposed_statement_error
+(string | null), top level, proposals only; the MCP result schema get_submission/v1 reshaped in place
+(F09-Q5). No cache: one raw-host read at an immutable commit per GET of a proposal by id.

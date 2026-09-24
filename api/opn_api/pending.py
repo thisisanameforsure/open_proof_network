@@ -458,7 +458,7 @@ def answer(ctx: Context, raw: str) -> dict[str, Any]:
             path, attestation, note = candidate, attestation_doc(raw_doc, candidate), None
         else:
             note = NOTE_PENDING if pull is not None else NOTE_UNKNOWN
-    return {
+    out = {
         "submission": document(found),
         "pull_request": pull,
         "pull_request_error": error,
@@ -467,6 +467,47 @@ def answer(ctx: Context, raw: str) -> dict[str, Any]:
         "attestation": attestation,
         "attestation_note": note,
     }
+    from opn_api.store import proposes  # noqa: PLC0415
+
+    if proposes(found):
+        out["proposed_statement"], out["proposed_statement_error"] = proposed_statement(
+            ctx, found, pull
+        )
+    return out
+
+
+#: F07-T41: how much of a proposed ``Statement.lean`` an answer carries. A statement is a few
+#: hundred bytes; the cap only keeps a pathological branch from swelling every read of it.
+PROPOSED_STATEMENT_MAX_BYTES = 16 * 1024
+
+
+def proposed_statement(
+    ctx: Context, found: Submission, pull: dict[str, Any] | None
+) -> tuple[dict[str, Any] | None, str | None]:
+    """F07-T41: the statement a proposal proposes, read from its branch at the pull request's head
+    commit (the record keeps what the pull request was, not what it says), so a contributor can
+    see whether another open proposal is the same statement without leaving the network. It
+    rides beside the ``submission`` document, never in it: ``GET /submissions.json`` lists those
+    documents and must equal them. ``None`` with the reason when the host cannot say (C7)."""
+    head = str((pull or {}).get("head_sha") or "")
+    if not head:
+        return None, "the pull request's head commit is not known, so its branch was not read"
+    path = f"targets/{found.target_id}/nodes/{found.node_id}/Statement.lean"
+    try:
+        got = ctx.githost.fetch_raw(ctx.settings.graph_repo, head, path, etag=None)
+    except GitHostError as exc:
+        log.warning("pull request #%d: statement not read: %s", found.pr_number, exc)
+        return None, f"the proposed statement could not be read from the host: {exc}"
+    if got.status != 200 or got.body is None:
+        return None, f"{path} at {head[:12]} answered {got.status}"
+    raw = got.body
+    return {
+        "path": path,
+        "head_sha": head,
+        # a cut through a multi-byte character drops it rather than inventing a replacement
+        "text": raw[:PROPOSED_STATEMENT_MAX_BYTES].decode("utf-8", errors="ignore"),
+        "truncated": len(raw) > PROPOSED_STATEMENT_MAX_BYTES,
+    }, None
 
 
 def hand_opened(ctx: Context, raw: str, number: int | None) -> dict[str, Any]:

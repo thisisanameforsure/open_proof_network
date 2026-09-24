@@ -56,9 +56,6 @@ def get(h: Harness, number: int) -> dict[str, Any]:
     return doc
 
 
-@pytest.mark.xfail(
-    strict=True, reason="F07-T41: a proposal's record never reads its statement back"
-)
 @pytest.mark.parametrize("kind", ["variant", "speculative"])
 def test_a_variant_submission_carries_its_statement_at_the_head_sha(
     harness: Harness, kind: str
@@ -82,9 +79,6 @@ def test_a_proof_submission_has_no_statement_key(harness: Harness) -> None:
         assert "proposed_statement" not in doc and "proposed_statement_error" not in doc, doc
 
 
-@pytest.mark.xfail(
-    strict=True, reason="F07-T41: a proposal's record never reads its statement back"
-)
 def test_a_host_failure_gives_null_with_the_reason(harness: Harness) -> None:
     open_proposal(harness)
     harness.githost.unreachable = True
@@ -93,9 +87,6 @@ def test_a_host_failure_gives_null_with_the_reason(harness: Harness) -> None:
     assert "ConnectError" in str(doc.get("proposed_statement_error")), doc
 
 
-@pytest.mark.xfail(
-    strict=True, reason="F07-T41: a proposal's record never reads its statement back"
-)
 def test_a_branch_without_the_file_gives_null_with_the_reason(harness: Harness) -> None:
     open_proposal(harness)
     harness.githost.files_at[HEAD] = {}
@@ -105,9 +96,6 @@ def test_a_branch_without_the_file_gives_null_with_the_reason(harness: Harness) 
     assert "404" in str(doc.get("proposed_statement_error")), doc
 
 
-@pytest.mark.xfail(
-    strict=True, reason="F07-T41: a proposal's record never reads its statement back"
-)
 def test_a_long_statement_is_capped_at_16_kb_and_says_so(harness: Harness) -> None:
     open_proposal(harness)
     harness.githost.files_at[HEAD] = {PATH: (STATEMENT + "-- " + "x" * CAP + "\n").encode()}
@@ -117,9 +105,6 @@ def test_a_long_statement_is_capped_at_16_kb_and_says_so(harness: Harness) -> No
     assert str(shown.get("text")).startswith(STATEMENT)
 
 
-@pytest.mark.xfail(
-    strict=True, reason="F07-T41: a proposal's record never reads its statement back"
-)
 def test_the_list_entry_still_equals_the_document(harness: Harness) -> None:
     """The pinned equality between ``submissions.json`` and the per-id ``submission`` holds: the
     statement rides beside the document, never inside it."""
@@ -131,9 +116,6 @@ def test_the_list_entry_still_equals_the_document(harness: Harness) -> None:
     assert "proposed_statement" in doc
 
 
-@pytest.mark.xfail(
-    strict=True, reason="F07-T41: a proposal's record never reads its statement back"
-)
 def test_mcp_get_submission_carries_the_statement_and_validates(harness: Harness) -> None:
     open_proposal(harness)
     over_http = get(harness, 188)

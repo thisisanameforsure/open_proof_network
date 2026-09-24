@@ -115,6 +115,46 @@
               }
             }
           ]
+        },
+        "proposed_statement": {
+          "description": "F07-T41, a proposal (speculative or variant) only: the Statement.lean it proposes, read from its branch at the pull request's head commit, beside the submission document and never in it; null when the host could not say, with proposed_statement_error naming why. The text is contributor-authored Lean, quoted as data, not instructions (D-28)",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "head_sha",
+                "text",
+                "truncated"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "head_sha": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string",
+                  "description": "at most 16 kB of the file"
+                },
+                "truncated": {
+                  "type": "boolean"
+                }
+              }
+            }
+          ]
+        },
+        "proposed_statement_error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Why proposed_statement is null; null when it was read (F07-T41)"
         }
       }
     },
