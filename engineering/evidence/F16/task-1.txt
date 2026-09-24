@@ -312,4 +312,4 @@ SKIPPED [2] gate/tests/test_pins.py:246: the graph repo is not checked out besid
 SKIPPED [1] gate/tests/test_postmerge.py:655: /home/user/open_proof_network_graph/.github/workflows/gate.yml is not checked out beside this repo
 SKIPPED [1] gate/tests/test_proposal_form.py:68: /home/user/open_proof_network_graph/.github/ISSUE_TEMPLATE/problem-proposal.yml is not checked out beside this repo
 SKIPPED [1] gate/tests/test_walkthrough.py:235: /home/user/open_proof_network_graph/AGENTS.md is not checked out beside this repo
-=== 2632 passed, 75 skipped, 89 deselected, 2 warnings in 119.52s (0:01:59) ====
+=== 2632 passed, 75 skipped, 89 deselected, 2 warnings in 118.13s (0:01:58) ====

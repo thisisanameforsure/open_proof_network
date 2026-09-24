@@ -348,8 +348,11 @@ so each trap is caught by a test, and not by a contributor's first failed sessio
     levels 2 and 3 (Q9).</td><td>AC3 for both files; AC9 and AC10 through the Copilot CLI</td></tr>
   <tr><td>Cursor</td><td>No primary source could be read. A limit of 40 tools across all servers
     is reported but unverified. Headless use is <code>agent -p --approve-mcps</code>
-    (unverified).</td><td>AC4 checks 40 until level 2 settles it; the entry shows "not yet
-    verified" until AC9 passes (AC6)</td></tr>
+    (unverified). A forum report says <code>mcp.json</code> headers are dropped on
+    <code>tools/call</code> over streamable HTTP. If true, a Cursor agent cannot write through
+    the MCP at all (Q3).</td><td>AC4 checks 40 until level 2 settles it; AC10's bearer call settles
+    the header report from the server's record; the entry shows "not yet verified" until AC9
+    passes (AC6)</td></tr>
 </table>
 
 <h2>6. Budgets / limits</h2>
@@ -448,8 +451,8 @@ so each trap is caught by a test, and not by a contributor's first failed sessio
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> planned &middot; <strong>Tasks:</strong> T1 in progress
-2026-09-24 (the spec and the research doc) &middot; T2&ndash;T10 todo</div>
+<div class="rule"><strong>status:</strong> planned &middot; <strong>Tasks:</strong> T1 ✓ 2026-09-24
+(<code>make verify</code>; <code>engineering/evidence/F16/task-1.txt</code>) &middot; T2&ndash;T10 todo</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Red first: each task lands its tests failing, as
