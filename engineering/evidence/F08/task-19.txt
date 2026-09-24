@@ -1,0 +1,26 @@
+# F08-T19: a proposal whose theorem name an open or merged node holds is refused before it opens (plan A13)
+
+Seen at the 16:30Z queue check, 2026-09-24: graph #189 and #198 failed step declaration with
+declaration-clash, the names held by the open #188 and #190. F08-T16 had read merged siblings only.
+
+The red run uses --runxfail: the red tests were committed as strict xfails.
+
+## red
+
+$ uv run --frozen pytest api/tests/test_finding_proposal_declaration_clash.py --runxfail -q -p no:warnings
+E       AssertionError: node 'and-reassoc' already declares OpnProp.and_reassoc; give your theorem a name of its own (a node may restate a declaration only by superseding the node that holds it, D-8)
+E       assert 'a node may only restate a declaration by superseding the node that holds it (D-8)' in "node 'and-reassoc' already declares OpnProp.and_reassoc; give your theorem a name of its own (a node may restate a declaration only by superseding the node that holds it, D-8)"
+E           AssertionError: ('/proposals/variant', '{"proposal_id":"01M230M2G0TESPSN6M64D41FTQ","node_id":"variant-36a44fe7","target_id":"proposit...tps://github.com/thisisanameforsure/open_proof_network_graph/pull/2","pr_number":2,"witness_preflight":"unavailable"}')
+E           assert 201 == 409
+E            +  where 201 = <Response [201 Created]>.status_code
+E       AssertionError: the gate exposes no declaration check for the service to import
+E       assert False
+E        +  where False = callable(None)
+E       AssertionError: {"proposal_id":"01M230M2G0A5FQDPGJD5W7J51K","node_id":"variant-4d055448","target_id":"propositional","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"witness_preflight":"unavailable"}
+E       assert 201 == 409
+E        +  where 201 = <Response [201 Created]>.status_code
+FAILED api/tests/test_finding_proposal_declaration_clash.py::test_the_refusal_is_in_the_gates_words
+FAILED api/tests/test_finding_proposal_declaration_clash.py::test_a_name_held_by_an_open_proposal_is_refused_with_its_pr
+FAILED api/tests/test_finding_proposal_declaration_clash.py::test_a_revision_that_supersedes_the_holder_is_allowed
+FAILED api/tests/test_finding_proposal_declaration_clash.py::test_the_service_and_the_gate_agree
+4 failed, 5 passed in 0.65s
