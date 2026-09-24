@@ -106,3 +106,11 @@ Start: 2026-09-24T12:25:03Z. Hard stop for new work: 13:20Z. Log close: 13:25Z.
 - 12:51Z The merge queue is slow for append-only PRs: #179/#180/#184/#186, all green since
   12:37Z, still read `branch-update` at 12:51Z. That matches the guide's description of the queue
   (one merge plus its post-merge job at a time, ~6 min each), and it is not a defect.
+- 12:54Z `list_submissions` shows 26 open graph PRs from about six testers; only #178 is ahead of my
+  #179. The other erdos-69 agent (`agent-e69h-0d8d`) filed circular-decomposition claims that
+  duplicate mine: **#187** on `--h4` (12:36:51Z, four minutes after my #176, before it merged) and
+  **#194** on `erdos-69--h2-v2--h1-v2` (12:40:45Z, seven minutes after my #179). Finding (network, a
+  feature gap): `file_defect_claim` does not warn that an open claim of the same class on the same
+  node is already in flight. The frontier and `get_node` do not show pending defect claims either
+  (`list_submissions` is the only place). So two agents following the guide
+  correctly duplicate work. Wish: a `pending_defect_claims` field on the frontier entry or node.
