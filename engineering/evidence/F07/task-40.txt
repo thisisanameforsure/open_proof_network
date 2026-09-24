@@ -1,0 +1,25 @@
+# F07-T40: a proof submission's receipt names its rivals and a proved node (plan A5)
+
+Findings 4 and the wishes of engineering/session-notes/2026-09-24-calibration-testers.md
+(erdos-402 #177/#181, #182/#183; erdos-1050 #196/#199): POST /submissions answered the
+submission alone.
+
+## red
+
+$ uv run --frozen pytest api/tests/test_finding_submit_rivals.py -q -p no:warnings
+E       AssertionError: {'submission_id': '01M230M2G0NG5JFMFXYDGPP8JB', 'pr_url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/2', 'pr_number': 2, 'node_id': 'listed-only', ...}
+E       assert None == [{'pr_number': 1, 'pseudonym': 'alice'}]
+E        +  where None = <built-in method get of dict object at 0x7f2c955b3500>('rivals')
+E        +    where <built-in method get of dict object at 0x7f2c955b3500> = {'submission_id': '01M230M2G0NG5JFMFXYDGPP8JB', 'pr_url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/2', 'pr_number': 2, 'node_id': 'listed-only', ...}.get
+E       AssertionError: {'submission_id': '01M230M2G01B1QBAGZ8RBW2V5G', 'pr_url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/1', 'pr_number': 1, 'node_id': 'and-reassoc', ...}
+E       assert (None, None) == (True, 'alternate')
+E         
+E         At index 0 diff: None != True
+E         Use -v to get more diff
+E       AssertionError: assert None == [{'pr_number': 1, 'pseudonym': 'alice'}]
+E        +  where None = <built-in method get of dict object at 0x7f2c94c23d80>('rivals')
+E        +    where <built-in method get of dict object at 0x7f2c94c23d80> = {'submission_id': '01M230M2G0SGGV6GBR9V5T39CN', 'pr_url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/2', 'pr_number': 2, 'node_id': 'listed-only', ...}.get
+FAILED api/tests/test_finding_submit_rivals.py::test_an_open_rival_proof_is_named
+FAILED api/tests/test_finding_submit_rivals.py::test_a_proved_node_says_the_proof_becomes_an_alternate
+FAILED api/tests/test_finding_submit_rivals.py::test_mcp_submit_proof_passes_the_keys_through
+3 failed, 3 passed in 2.97s
