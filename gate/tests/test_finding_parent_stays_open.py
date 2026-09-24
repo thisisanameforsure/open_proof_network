@@ -164,7 +164,6 @@ def test_a_later_decomposition_numbers_its_holes_after_the_earlier_ones(tmp_path
     assert tg.nodes[ROOT_NODE].holes == (H1, H2, f"{PARENT}--h3", f"{PARENT}--h4")
 
 
-
 def test_routes_stack_in_the_live_order_one_hole_then_two(tmp_path: Path) -> None:
     """Seen live on 2026-09-24 on ``erdos-1050--h1-v2``, which already had ``--h1``: #196's
     one-hole skeleton wrote ``--h2`` (post-merge bb02ddab) and #199's two-hole skeleton then
@@ -190,6 +189,7 @@ def test_routes_stack_in_the_live_order_one_hole_then_two(tmp_path: Path) -> Non
     assert meta["deps"][-5:] == [H1, H2, f"{PARENT}--h3", f"{PARENT}--h4", f"{PARENT}--h5"]
     assert len(sorted((parent / "attempts").glob("*.lean"))) == 3
     assert graph.load_target(root, TARGET).statuses[ROOT_NODE] == "ready"
+
 
 def test_next_child_index_counts_a_revised_hole_by_its_number(tmp_path: Path) -> None:
     nodes = tmp_path / "nodes"

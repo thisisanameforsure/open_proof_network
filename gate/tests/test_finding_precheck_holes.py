@@ -22,12 +22,12 @@ from opn_gate import pipeline
 HOLE = {
     "name": "hrem",
     "type": "0 < e n",
-    "closed_type": "∀ (n : ℕ), 1 ≤ n → 0 < e n",
+    "closed_type": "∀ (n : Nat), 1 ≤ n → 0 < e n",
     "defeq_goal": False,
     "defeq_sibling": None,
     "defeq_ancestor": None,
     "closed_roundtrip": True,
-    "expected_witness": "∃ (n : ℕ), 1 ≤ n",
+    "expected_witness": "∃ (n : Nat), 1 ≤ n",
 }
 JOB = {"id": "01JOB", "node_id": "erdos-1050--h1-v2", "bundle_digest": "a" * 64}
 
@@ -62,19 +62,19 @@ def partial(*holes: dict[str, Any]) -> Ctx:
 
 def test_a_partial_precheck_names_each_hole_with_its_statement_and_witness_type() -> None:
     out = result_of(
-        partial(HOLE, {**HOLE, "name": "hden", "closed_type": "∀ (n : ℕ), W n ≠ 0"}), verdict()
+        partial(HOLE, {**HOLE, "name": "hden", "closed_type": "∀ (n : Nat), W n ≠ 0"}), verdict()
     )
     assert out["holes"] == [
         {
             "name": "hrem",
-            "closed_type": "∀ (n : ℕ), 1 ≤ n → 0 < e n",
-            "expected_witness": "∃ (n : ℕ), 1 ≤ n",
+            "closed_type": "∀ (n : Nat), 1 ≤ n → 0 < e n",
+            "expected_witness": "∃ (n : Nat), 1 ≤ n",
             "restates": None,
         },
         {
             "name": "hden",
-            "closed_type": "∀ (n : ℕ), W n ≠ 0",
-            "expected_witness": "∃ (n : ℕ), 1 ≤ n",
+            "closed_type": "∀ (n : Nat), W n ≠ 0",
+            "expected_witness": "∃ (n : Nat), 1 ≤ n",
             "restates": None,
         },
     ]
