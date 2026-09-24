@@ -602,6 +602,7 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
             origin=origin,  # type: ignore[arg-type]
             date=stamp_to_date(stamp),
             model=model,
+            extra_meta=proved_record(hole),
         )
         scaffold.write(nodes_dir, proposal)
         created.append(child)
@@ -614,6 +615,16 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
         str(assembly_path) if on_record else record_attempt(node_dir, attempt_file, partial_text)
     )
     return PartialMerge(tuple(created), attempt, origin, annex, tuple(placed))
+
+
+def proved_record(hole: Any) -> dict[str, Any]:
+    """D-29 v3.22 (F07-T44): the ``META.yaml`` field that tells step 7 which of the child's
+    binders the merged assembly proved, so its witness is not asked to exhibit them; nothing when
+    the extractor marked none (or is an older pin that marks nothing), so such a child keeps the
+    META version and the expected type it had. Only this job writes it: ``META.yaml`` is
+    ``path-forbidden`` to every submission, and a D-8 revision is written without it."""
+    proved = list(getattr(hole, "proved_binders", ()) or ())
+    return {"proved_binders": proved} if proved else {}
 
 
 _HOLE_TYPE_RE = re.compile(r"^theorem\s+\S+\s*:\s*(?P<type>.*?)\s*:=\s*by\s*$", re.M | re.S)

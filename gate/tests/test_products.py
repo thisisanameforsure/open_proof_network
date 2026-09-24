@@ -311,12 +311,13 @@ def test_products_of_the_fixture(tmp_path: Path) -> None:
     assert idx["fidelity"] == "mechanical-only" and idx["mathlib_sha"] is None
     assert idx["node_counts"]["ready"] == 2 and idx["node_counts"]["blocked"] == 1
     info = loads(prod, "info.json")
-    assert info["protocol_version"] == "3.21"
+    assert info["protocol_version"] == "3.22"
     assert info["schemas"]["attestation"] == [1, 2, 3, 4, 5] and info["schemas"]["meta"] == [
         1,
         2,
         3,
         4,
+        5,
     ]
     assert info["schemas"]["defect-claim"] == [1, 2, 3] and info["schemas"]["revision-request"] == [
         1,

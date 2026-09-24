@@ -144,6 +144,8 @@ def result_document(
                 "closed_type": hole.get("closed_type"),
                 "expected_witness": hole.get("expected_witness"),
                 "restates": hole.get("defeq_sibling"),
+                # F07-T44: the binders the assembly proved, which the witness need not exhibit.
+                "proved_binders": list(hole.get("proved_binders") or []),
             }
             for hole in artifact["holes"]
         ]

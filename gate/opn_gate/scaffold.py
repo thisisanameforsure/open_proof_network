@@ -26,11 +26,14 @@ from typing import Any, Literal
 from opn_gate import layout, paths, schemas
 
 #: The oldest META version that can express the node being built. `skeleton-hole` exists
-#: only from v3 (D-3 v3.12) and `supersedes` only from v4 (F08-R9), and a node that needs
-#: neither keeps the older version so nothing already committed churns.
+#: only from v3 (D-3 v3.12), `supersedes` only from v4 (F08-R9) and `proved_binders` only from
+#: v5 (D-29 v3.22), and a node that needs none keeps the older version so nothing already
+#: committed churns.
 META_SCHEMA = "meta/v2"
 META_SCHEMA_FOR_ORIGIN: dict[str, str] = {"skeleton-hole": "meta/v3"}
 META_SCHEMA_SUPERSEDES = "meta/v4"
+#: D-29 v3.22 (F07-T44): a hole whose assembly proved some of its binders records them, from v5.
+META_SCHEMA_PROVED = "meta/v5"
 NODE_STATUS_SCHEMA = "node-status/v1"
 RELATION_FILE = "Relation.lean"
 RELATION_DECL = "relation"
@@ -154,6 +157,8 @@ def meta_for(proposal: Proposal, statement_hash: str) -> dict[str, Any]:
     schema = META_SCHEMA_FOR_ORIGIN.get(proposal.origin, META_SCHEMA)
     if "supersedes" in proposal.extra_meta:
         schema = META_SCHEMA_SUPERSEDES
+    if "proved_binders" in proposal.extra_meta:
+        schema = META_SCHEMA_PROVED
     doc: dict[str, Any] = {
         "schema": schema,
         "id": proposal.node_id,

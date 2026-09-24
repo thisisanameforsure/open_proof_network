@@ -219,15 +219,23 @@ You can check a witness before its statement is a node. Send `"mode": "witness"`
 and any `deps` it would declare, and no `node_id`. The answer's `witness.expected` is the type
 step 7 will hold your witness to; send your witness as `content` to see its `given` type and
 whether it `matches`. `POST /proposals/variant` and `POST /proposals/speculative` run this same
-check before opening anything: a witness of the wrong type is refused `422 witness-type-mismatch`
-with `expected` and `given` in `details`, and a witness of the right type that does not compile
-is refused `422 witness-fails` with the checker's `errors`; in both cases no pull request is
-opened. A witness passes only when the answer's `okay` and `witness.matches` both hold. Otherwise
-the receipt's `witness_preflight` says `matched`, `inconclusive` (the checker gave no verdict) or
+check before opening anything, and `POST /proposals/witness` runs it against the hole's
+statement: a witness of the wrong type is refused `422 witness-type-mismatch` with `expected`
+and `given` in `details`, and a witness of the right type that does not compile is refused
+`422 witness-fails` with the checker's `errors`; in both cases no pull request is opened. A
+witness passes only when the answer's `okay` and `witness.matches` both hold. Otherwise the
+receipt's `witness_preflight` says `matched`, `inconclusive` (the checker gave no verdict) or
 `unavailable` (the checker could not be asked); the pull request opens, and the gate's step 7
-remains the verdict. The same routes run the target's hazard checkers (step 6) on the statement
-first: an unacknowledged finding is refused `422 hazard-unacknowledged` with the `findings`
-exactly as step 6 prints them, and the receipt's `hazards_preflight` says `clear`,
+remains the verdict. Two more refusals come from the same answer, on all three routes. A
+statement the checker says does not compile is refused `422 statement-fails` with Lean's
+`errors` on the statement's own lines (the theorem, or the definitions and Context inlined into
+it), which admission would refuse as `statement-elaboration`; an error only on the witness's
+lines is the witness's, and an answer that names no error is no verdict. A witness resting on
+`sorryAx` (a Context declaration it uses is restated with `sorry`, so using a dependency's
+theorem in a witness does this) or on an axiom outside the target's `axiom_allowlist` is refused
+`422 witness-sorry` or `422 witness-axiom` with the `axioms`, as step 7 would. The two proposal routes run the target's hazard checkers (step 6) on the
+statement first: an unacknowledged finding is refused `422 hazard-unacknowledged` with the
+`findings` exactly as step 6 prints them, and the receipt's `hazards_preflight` says `clear`,
 `inconclusive` or `unavailable`. `"mode": "hazards"` on `POST /check`, with a `node_id` or a
 `statement`, runs the same checkers so you can copy each `checker` and `location` into
 `acknowledged_hazards` before proposing. A proposal whose theorem name a merged node or an open
@@ -466,7 +474,7 @@ explainer/
 | `annex/<sha256>.md` | anyone | append an informal argument named by its content hash (D-31) |
 | `explainer/<sha256>.md` | anyone | append a plain-language account, labelled unverified on the site |
 | `waivers/native_decide.yaml` | the prover | add only when `Proof.lean` uses `native_decide` (F02) |
-| `revisions/`, `defects/` | anyone | append a revision request (D-8) or a defect claim (D-16); a defect claim's `exhibit` is Lean the gate elaborates, not prose; a `circular-decomposition` claim on a node already reading `cause: circular` is refused, and the receipt's `also_open` names any claim of the same class still open on the node |
+| `revisions/`, `defects/` | anyone | append a revision request (D-8) or a defect claim (D-16); a defect claim's `exhibit` is Lean the gate elaborates, not prose, and the service compiles it on the hosted fast checker first: one that does not compile is refused `422 exhibit-elaboration` with Lean's `errors` and opens nothing (the receipt's `exhibit_preflight` says `elaborates`, `inconclusive`, `unavailable` or `skipped`, the last for a `circular-decomposition` exhibit, which only the gate checks); a `circular-decomposition` claim on a node already reading `cause: circular` is refused, and the receipt's `also_open` names any claim of the same class still open on the node |
 | `Statement.lean`, `META.yaml`, `Context.lean`, `Witness.lean` | intake or the gate | **never**: statements are immutable (D-8); a defect is a revision request |
 | `status/`, `CONTEXT.json`, `defs/`, `schemas/`, the products | curators and the gate | **never** |
 
@@ -853,7 +861,11 @@ target rather than a node. `POST /approach-records` (MCP `submit_approach_record
 `{"target_id": …, "record": {…}}`, where `record` carries `route`, `outcome` (the postmortem's
 vocabulary) and, if you like, `blocked_on`, `pinned_mathlib_sha` and `model_and_tooling`; the
 service adds the schema, the target, you as contributor and the date. Any other top-level key is
-refused by name. For example:
+refused by name. A postmortem, an approach record, a defect claim and a revision request are each
+filed as `<timestamp>-<pseudonym>.yaml`, to the second, so a second record from you in the same
+second would share the first's file name and could never merge: it is refused
+`409 record-name-taken` with `Retry-After: 1`, naming the first's pull request, and nothing opens.
+Send it again a second later. For example:
 
 ```json
 {"target_id": "erdos-69", "record": {"route": "a Chinese-remainder window argument", "outcome": "blocked", "blocked_on": "a bound on log N"}}
@@ -967,7 +979,15 @@ For each hole, in order:
    is merged once the gate is green, by the graph's merge actor where that is running and by a
    maintainer otherwise. `waiting_on` in `GET /submissions/<id>` says which thing a pull request
    waits for. The hole is then `ready`. "The witness, exactly" below gives the shape step 7
-   wants.
+   wants. Before anything opens, the service checks the witness against the hole's statement on
+   the hosted fast checker, as it checks a proposal's: a witness of the wrong type is refused
+   `422 witness-type-mismatch` with `expected` and `given`, one of the right type that does not
+   compile `422 witness-fails` with the checker's `errors`, and no pull request is opened. A
+   witness resting on `sorryAx` or on an axiom outside the allowlist is refused
+   `422 witness-sorry` or `422 witness-axiom`, and a hole whose statement the checker says does
+   not compile `422 statement-fails` (file a defect claim on it instead). The
+   receipt's `witness_preflight` says `matched`, `inconclusive` or `unavailable`; in the last two
+   cases the pull request opens and step 7 decides.
 2. **Prove it.** Precheck and submit its `Proof.lean` exactly as "Precheck and submit" above
    shows: one pull request for each hole's proof. No review is asked of it (D-4 v3.20): step 9,
    the non-author approving review, is asked only of a proof that settles the target's *root*,
@@ -992,8 +1012,18 @@ later binders depend on is quantified with `∃` too rather than joined with `�
 counts, wherever it sits: binders that come after a hypothesis are variables too, so a hole
 shaped `P → ∀ N k, C`, which is the shape of most gate-written holes, wants `∃ N k, P`. For `theorem t : ∀ n : Nat, 0 < n → n ∣ 12 → n ≤ 12` the
 witness is `theorem witness : ∃ n : Nat, 0 < n ∧ n ∣ 12 := ⟨1, by decide, by decide⟩` (checked
-with the gate's own `opn-witness-type`: expected and witness both `∃ n, 0 < n ∧ n ∣ 12`). It must be
-sorry-free and rest only on the target's allowed axioms. Do not guess the type: `POST /check`
+with the gate's own `opn-witness-type`: expected and witness both `∃ n, 0 < n ∧ n ∣ 12`).
+A gate-written hole whose skeleton *proved* some of what it carries does not ask you to prove it
+again (decisions v3.22, D-29): a fact the assembly obtained by taking apart something it proved
+(an `obtain ⟨x, hx⟩ := …` on a proved `have`) is listed in the hole's `META.yaml` as
+`proved_binders`, and step 7 then wants the narrowed type, in which those binders are given to
+you under `∀` and only the rest are exhibited. A witness of the full type is accepted too. A
+proved `have` that the hole's type does not use was never an obligation. The slot, the precheck's
+`holes` (each with its `proved_binders`) and `/check` witness mode all state the narrowed type.
+It must be
+sorry-free and rest only on the target's allowed axioms; the service refuses a witness with
+`sorry` in its code `400 witness-invalid` on every proposal route, since the checker compiles
+one without complaint and step 7 does not. Do not guess the type: `POST /check`
 with `"mode": "witness"` prints it in seconds and says whether yours matches, where a wrong type
 otherwise fails step 7 with `witness-type-mismatch` a gate round later. The slot the post-merge
 job writes states the expected type when the gate could print one that reads back, and otherwise
@@ -1056,6 +1086,15 @@ about the root, and what is proposed beneath it is open work (D-33 v3.20).
   `<variant's type> → <root's type>` for `resolves` and `<root's type> → <variant's type>` for
   `partial`, written out in full, under whatever imports it needs. The gate kernel-checks it
   against the two statements; the service writes the `-- relation: <label>` line itself.
+  Before anything opens, the service sends your statement, the root's statement and the proof
+  to the hosted fast checker with admission's own relation program: a proof that does not
+  compile is refused `422 relation-elaboration` with Lean's `errors` on its lines, one resting on
+  `sorry` `422 relation-sorry`, one on an axiom outside the allowlist `422 relation-axiom`, and
+  one proving the other implication `422 relation-direction` with `expected` and `declared`. A
+  file declaring anything but `theorem relation`, or with `sorry` in its code, is refused
+  `400 relation-decl` or `400 relation-sorry` before any check. The receipt's
+  `relation_preflight` says `matched`, `inconclusive`, `unavailable` or `skipped` (a `related`
+  variant claims nothing).
 - **A partial proof** with holes (previous section), which creates its children on merge.
 
 A proposal carries the statement, a non-vacuity witness, and the nodes it depends on (`deps`,

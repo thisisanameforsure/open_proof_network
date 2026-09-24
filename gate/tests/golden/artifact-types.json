@@ -78,7 +78,8 @@
         "defeq_sibling": null,
         "defeq_ancestor": null,
         "closed_roundtrip": true,
-        "expected_witness": "∃ (p : Prop), ∃ (q : Prop), p ∧ q"
+        "expected_witness": "∃ (p : Prop), ∃ (q : Prop), p ∧ q",
+        "proved_binders": []
       },
       {
         "name": "left",
@@ -88,7 +89,8 @@
         "defeq_sibling": null,
         "defeq_ancestor": null,
         "closed_roundtrip": true,
-        "expected_witness": "∃ (p : Prop), ∃ (q : Prop), (p ∧ q) ∧ q"
+        "expected_witness": "∃ (p : Prop), ∃ (q : Prop), (p ∧ q) ∧ q",
+        "proved_binders": []
       }
     ],
     "unnamed": 0,
@@ -111,7 +113,8 @@
         "defeq_sibling": null,
         "defeq_ancestor": null,
         "closed_roundtrip": true,
-        "expected_witness": "∃ (p : Prop), ∃ (q : Prop), ∃ (a : Prop), ∃ (b : Prop), p ∧ q"
+        "expected_witness": "∃ (p : Prop), ∃ (q : Prop), ∃ (a : Prop), ∃ (b : Prop), p ∧ q",
+        "proved_binders": []
       }
     ],
     "unnamed": 0,
@@ -134,7 +137,8 @@
         "defeq_sibling": null,
         "defeq_ancestor": null,
         "closed_roundtrip": true,
-        "expected_witness": "∃ (p : Prop), ∃ (q : Prop), p ∧ q"
+        "expected_witness": "∃ (p : Prop), ∃ (q : Prop), p ∧ q",
+        "proved_binders": []
       }
     ],
     "unnamed": 0,
@@ -159,7 +163,8 @@
         "defeq_sibling": null,
         "defeq_ancestor": null,
         "closed_roundtrip": true,
-        "expected_witness": "∃ (p : Prop), ∃ (q : Prop), p ∧ q"
+        "expected_witness": "∃ (p : Prop), ∃ (q : Prop), p ∧ q",
+        "proved_binders": []
       }
     ],
     "unnamed": 0,

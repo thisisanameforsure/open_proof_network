@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -161,6 +161,9 @@ class NodeView:
     #: F08-T17: the merged circularity claim (graph-root relative) that ``graph.json``'s cause
     #: ``circular`` rests on, read by the gate's own reader so the two cannot name different files.
     circular_claim: str | None = None
+    #: F08-T20 (D-12 v3.22): the merged circularity claims whose ancestor is this node
+    #: (graph-root relative). The node stays open; its page names them.
+    circular_below: tuple[str, ...] = ()
 
     @property
     def status(self) -> str:
@@ -571,6 +574,40 @@ def _load_evidence(target_dir: Path) -> dict[str, Any] | None:
     return record.doc if record is not None else None
 
 
+def _with_circular_paths(
+    root: Path, target_id: str, graph: dict[str, Any], nodes: dict[str, NodeView]
+) -> dict[str, NodeView]:
+    """F08-T20 (D-12 v3.22): which claim each circular node on a path rests on, and which claims
+    circle back to each ancestor — the gate's own ``graph.circular_marks`` over ``graph.json``'s
+    deps, origins and statuses and the claim files in the tree, so the site cannot reach a
+    different set of nodes than the products did. A path node's claim sits under the hole, not
+    under the node, which is why the node's own ``defects/`` cannot name it."""
+    nodes_dir = layout.graph_nodes_dir(root, target_id)
+    rows = {str(e["node_id"]): e for e in graph["nodes"]}
+    deps = {n: [str(d) for d in e["deps"]] for n, e in rows.items()}
+    holes = {
+        n: [d for d in ds if d in rows and graphmod.is_hole_of(n, d, str(rows[d].get("origin")))]
+        for n, ds in deps.items()
+    }
+    claims = {
+        n: found
+        for n in rows
+        if (found := graphmod.resolved_circular_claims(nodes_dir, nodes_dir / n))
+    }
+    statuses = {n: str(e["status"]) for n, e in rows.items()}
+    on_path, below = graphmod.circular_marks(holes, deps, claims, statuses)
+    prefix = nodes_dir.relative_to(root).as_posix()
+    out = dict(nodes)
+    for node_id, nv in nodes.items():
+        view = nv
+        if view.circular_claim is None and node_id in on_path:
+            view = replace(view, circular_claim=f"{prefix}/{on_path[node_id]}")
+        if node_id in below:
+            view = replace(view, circular_below=tuple(f"{prefix}/{r}" for r in below[node_id]))
+        out[node_id] = view
+    return out
+
+
 def load_site(root: Path, commit: str) -> Site:
     """Load a checkout and its products; raise ``SiteError`` on anything unrenderable."""
     root = root.resolve()
@@ -587,6 +624,7 @@ def load_site(root: Path, commit: str) -> Site:
         spec = schemas.load_json(layout.gate_spec_path(root, target_id), "gate-spec/v1")
         _check_graph_rows(target_id, graph)
         nodes = {str(e["node_id"]): load_node(root, target_id, e) for e in graph["nodes"]}
+        nodes = _with_circular_paths(root, target_id, graph, nodes)
         approaches_dir = target_dir / "approaches"
         approaches = (
             tuple(

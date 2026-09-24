@@ -1,0 +1,121 @@
+F07-T44 — a hole's witness exhibits only what the decomposition left unproved (decisions v3.22,
+D-29 and D-4 step 7). The hole's statement is untouched; step 7's expected type is narrowed by a
+record the post-merge job writes into the hole's META.yaml (meta/v5 `proved_binders`).
+
+## probe first: what actually reaches a hole's statement (Lean 4.33.1, core only)
+
+Printed proof terms (value? (allowOpaque := true)) of six assemblies, abridged:
+
+  have pq : p ∧ q := h.1                   ->  `have pq : And p q := And.left … h; …`   (letE)
+  obtain ⟨hp, hq⟩ := pq                    ->  `And.casesOn p q (motive) pq (fun hp hq => …)`
+  obtain ⟨k, hk⟩ : ∃ k, k = n + 1 := …     ->  `Exists.casesOn … (Exists.intro …) (fun k hk => …)`
+  refine ⟨fun m hm => ?_, trivial⟩         ->  `And.intro … (fun m hm => …) trivial`
+  cases n with | zero | succ k             ->  `Nat.casesAuxOn … (fun k h => …)`   (two ctors)
+  rcases Nat.lt_or_ge n 3 with h | h       ->  `Or.casesOn … (fun h => …) (fun h => …)`
+
+Through the gate's own extractor (pipeline.run_submission on and-swap-reassoc, before any change):
+  intro p q r h; have pq : p ∧ q := h.1; obtain ⟨hp, hq⟩ := pq; have hr : r := by exact h.2;
+  have h1 : q ∧ p := sorry; have h2 : r ∧ q := sorry
+  h1 closed_type     ∀ (p q r : Prop), (p ∧ q) ∧ r → p → q → q ∧ p
+  h1 expected        ∃ (p : Prop), ∃ (q : Prop), ∃ (r : Prop), ((p ∧ q) ∧ r) ∧ p ∧ q
+
+A proved `have` is a let and is dropped from the closed type when the hole's type does not use it
+(mkForallFVars, usedLetOnly), so it was never a witness obligation: pq and hr appear nowhere. What
+reaches a hole's statement is a binder the assembly introduced by destructuring a proved fact (hp,
+hq here; Qc/hQc/Qx/hQx/Aq/hAq on the live erdos-1050--h1-v2--h3 and --h4). Those are what the
+extractor now marks. The live erdos-1050--h1-v2--h2 (from graph PR #196, four proved `have`s
+before its hole) confirms it: its statement has no hypotheses and its slot is
+`theorem witness : True`. The "about 250 lines" in the amendment note was the tester's prediction
+of that witness in the MCP log, not what the gate asked.
+
+Marked proved: the field binders of `I.casesOn … major (fun fields => …)` for a structure-like I
+(one constructor, no indices, not recursive) whose major premise, with let-values unfolded and this
+file's auxiliary constants followed, rests on no sorry. Not marked: the statement's binders,
+holes, intros inside subgoals, branches of a multi-constructor cases (a witness must still show the
+branch can be reached). Narrowed type: each run of unproved binders is `∃ vars, hyps ∧ rest` as
+before; each run of proved binders is ∀-bound in front of `rest` (and dropped if nothing follows),
+so data the assembly obtained is given to the witness, not chosen by it. A witness of the full type
+is also accepted, so no hole is harder to witness than before the rule.
+
+## red (seams first at today's behaviour: meta/v5, Hole.proved_binders, WitnessRequest.proved,
+## the fake's request log, `--proved` accepted and ignored, checks.proved_binders_of -> ())
+
+$ uv run --frozen pytest -q -m 'not lean and not docker and not network' \
+    gate/tests/test_finding_witness_proved_haves.py gate/tests/test_postmerge_apply.py \
+    api/tests/test_finding_witness_proved_haves.py -rf
+E       assert () == (0, 2)
+E         
+E         Right contains 2 more items, first extra item: 0
+E         Use -v to get more diff
+E       KeyError: 'proved_binders'
+E       assert 'OpnGate.expectedWitnessTypeNarrowed s.type #[4, 5]' in 'import Init\nimport Lean\n\ntheorem OpnProp.and_reassoc : ∀ p q : Prop, p ∧ q → q ∧ p := by\n  sorry\n\ntheorem witne...pected", Json.str wanted), (
+E       assert 'OpnGate.expectedWitnessTypeNarrowed s.type #[4, 5]' in 'import Init\nimport Lean\n\ntheorem OpnProp.and_reassoc : ∀ p q : Prop, p ∧ q → q ∧ p := by\n  sorry\n\ntheorem witne...pected", Json.str wanted), (
+E        +  where 'import Init\nimport Lean\n\ntheorem OpnProp.and_reassoc : ∀ p q : Prop, p ∧ q → q ∧ p := by\n  sorry\n\ntheorem witne...pected", Json.str wanted), ("given", given), ("matches", verdict)]\n  logInfo m!"
+E       assert () == (4, 5)
+E         
+E         Right contains 2 more items, first extra item: 4
+E         Use -v to get more diff
+FAILED gate/tests/test_finding_witness_proved_haves.py::test_step_7_passes_the_record_to_the_witness_metaprogram
+FAILED gate/tests/test_postmerge_apply.py::test_the_hole_meta_records_which_binders_were_proved
+FAILED api/tests/test_finding_witness_proved_haves.py::test_witness_mode_passes_the_holes_record
+FAILED api/tests/test_finding_witness_proved_haves.py::test_the_preflight_passes_the_record_it_is_handed
+FAILED api/tests/test_finding_witness_proved_haves.py::test_the_record_is_read_as_the_gate_reads_it
+
+$ uv run --frozen pytest -q -m lean gate/tests/test_finding_witness_proved_haves_lean.py -rf
+(the first version of the file, five tests; tail)
+E       AssertionError: assert {'expected': ...tches': False} == {'expected': ...atches': True}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'expected': '∃ (p : Prop), ∃ (q : Prop), ∃ (r : Prop), ((p ∧ q) ∧ r) ∧ p ∧ q'} != {'expected': '∃ (p : Prop), ∃ (q : Prop), ∃ (r : Prop), (p ∧ q) ∧ r'}
+E         {'matches': False} != {'matches': True}
+E         Use -v to get more diff
+FAILED gate/tests/test_finding_witness_proved_haves_lean.py::test_a_hole_after_a_proved_have_asks_only_for_the_unproved_hypotheses
+FAILED gate/tests/test_finding_witness_proved_haves_lean.py::test_a_hole_after_a_hole_still_asks_for_that_hole
+FAILED gate/tests/test_finding_witness_proved_haves_lean.py::test_an_old_hole_with_no_record_keeps_todays_expected_type
+FAILED gate/tests/test_finding_witness_proved_haves_lean.py::test_the_fast_check_asks_the_same_narrowed_type
+4 failed, 1 passed in 290.28s (0:04:50)
+test_the_statement_text_and_hash_are_unchanged passed before the change, as a pin should.
+test_an_old_hole_with_no_record_keeps_todays_expected_type was red only on its own fixture (it
+deleted a key that was not there yet); written as a pop, it is a pin that passes before and after.
+
+## green
+
+$ uv run --frozen pytest -q -m lean gate/tests/test_artifacts_lean.py \
+    gate/tests/test_finding_witness_proved_haves_lean.py
+........                                                                 [100%]
+8 passed in 160.67s (0:02:40)
+
+Six in the new file: the four planned, the fast check's program through the real `lean`
+(test_the_fast_check_asks_the_same_narrowed_type), and
+test_a_case_branch_is_an_obligation_and_an_obtained_value_is_given (an obtained existential's data
+is ∀-given, an Or-branch hypothesis stays asked). golden/artifact-types.json regenerated with
+write_golden(): the diff is one `"proved_binders": []` per hole, no expected type moved.
+
+Fast tier: the 5 red above now pass; the other new fast tests (meta/v5 accepts and v4 refuses
+the field, malformed records read as none, a request without a record is byte for byte an older
+pin's, no record means today's program text) passed before and after, as pins.
+
+## the lean tier here (no docker: ghcr refused by the proxy; no Mathlib checkout)
+
+$ uv run --frozen pytest -q -m "lean and not docker" gate/tests api/tests site/tests
+(before the golden regeneration)
+FAILED gate/tests/test_artifacts_lean.py::test_artifact_types_golden - Assert...
+FAILED gate/tests/test_onramp_lean.py::test_the_on_ramp_node_passes_on_the_pinned_mathlib
+FAILED gate/tests/test_onramp_lean.py::test_skeleton_admits - AssertionError: {
+FAILED gate/tests/test_qa_lean.py::test_onramp_screens_clean - opn_gate.toolc...
+4 failed, 73 passed, 2925 deselected, 2 warnings in 2701.13s (0:45:01)
+exit 1
+test_artifact_types_golden: the new key, regenerated above and green. The other three need the
+pinned Mathlib checkout (`toolchain-missing: no Mathlib checkout for 0df444a…`), environmental,
+unrelated to this task. Docker tier: pending CI.
+
+## make verify
+
+$ make verify; echo $?
+All checks passed!
+Success: no issues found in 218 source files
+Success: no issues found in 145 source files
+Success: no issues found in 42 source files
+=== 2828 passed, 76 skipped, 98 deselected, 2 warnings in 136.83s (0:02:16) ====
+0

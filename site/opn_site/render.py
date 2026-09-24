@@ -1310,7 +1310,24 @@ class Renderer:
                 )
         if nv.supersedes:
             parts.append(f"Revises {link(nv.supersedes)}, which it replaced (D-8).")
-        return f'<p class="revision-note">{" ".join(parts)}</p>' if parts else ""
+        note = f'<p class="revision-note">{" ".join(parts)}</p>' if parts else ""
+        return note + self.circular_below_note(nv)
+
+    def circular_below_note(self, nv: NodeView) -> str:
+        """F08-T20 (D-12 v3.22): a statement a circularity claim circles back to stays open and
+        claimable — it is the problem, and the claim says only that one route to it made no
+        progress. Its page and its panel name each claim and invite the other two routes."""
+        if not nv.circular_below or nv.status in ("proved", "superseded"):
+            return ""
+        claims = ", ".join(self.file_link(c) for c in nv.circular_below)
+        one = len(nv.circular_below) == 1
+        return (
+            '<p class="circular-note">'
+            f"{'A merged circularity claim shows' if one else 'Merged circularity claims show'} "
+            "that a statement meant to reduce this one is no easier than it, so that "
+            f"decomposition made no progress (D-12, D-16): {claims}. This statement stays open: "
+            "a direct proof, or a different decomposition, is welcome.</p>"
+        )
 
     def closing_note(self, tv: TargetView, nv: NodeView) -> str:
         """The "closable through its holes" line (2026-09-21), on a node that has holes and is
@@ -1780,8 +1797,9 @@ class Renderer:
             renders.append(nv.witness.path)
         if nv.superseded_record is not None:
             renders.append(nv.superseded_record)
-        if nv.circular_claim is not None:
-            renders.append(nv.circular_claim)
+        # F08-T17: the claim this node rests on; F08-T20: those its note names, circling back.
+        below = nv.circular_below if self.circular_below_note(nv) else ()
+        renders.extend(c for c in (nv.circular_claim, *below) if c is not None)
         partials = self.partials_block(nv)
         for p in nv.partials:
             renders.append(p.file.path)

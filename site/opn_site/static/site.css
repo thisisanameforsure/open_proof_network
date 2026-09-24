@@ -409,6 +409,9 @@ main > h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
 .revision-note { border-left: 2px solid var(--bad); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
 .closing-note { border-left: 2px solid var(--n600); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
 .closing-note code { overflow-wrap: anywhere; }
+/* F08-T20: an ancestor a circularity claim circles back to: open, one route closed (dotted, as circular). */
+.circular-note { border-left: 2px dotted var(--bad); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
+.circular-note a.file { overflow-wrap: anywhere; }
 .revision-note .why { display: block; margin-top: var(--s2); color: var(--n500); font-size: 12.5px; overflow-wrap: anywhere; }
 /* F04-T20: wayfinding lines. */
 .wayfinding, .jump { font-size: 13.5px; color: var(--n400); }

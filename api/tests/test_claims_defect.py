@@ -181,7 +181,9 @@ def test_revision_request(harness: Harness, tmp_path: Path) -> None:
     assert gate_checks(tmp_path, path, content) == []
     assert gate_checks(tmp_path, path, content, elab_ok=False) == ["exhibit-elaboration"]
 
-    # Text alone is evidence too; the cap is the schema's and is named without the text.
+    # Text alone is evidence too; the cap is the schema's and is named without the text. A second
+    # later: in the same second it would share the first's file name (F13-T23, 409).
+    harness.clock.advance(seconds=1)
     plain = post(harness, "/revision-requests", token, {**body, "evidence": "just prose"})
     assert plain.status_code == 201
     _, content = only_file(harness)

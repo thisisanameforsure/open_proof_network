@@ -1,0 +1,116 @@
+F13-T21 / F13-T22 — no pull request for what the service can refuse first (2026-09-24)
+Audit: engineering/evidence/F13/task-21-audit.md
+
+== RED, F13-T21: POST /proposals/witness opened a PR on a wrong-typed or non-compiling
+   witness, and its '"sorry" in witness' test refused a real witness whose comment names it ==
+$ uv run pytest api/tests/test_finding_witness_route_preflight.py -q -rf   (before the fix)
+E       AssertionError: {"proposal_id":"01M230M2G04V4WJ37VDT23BXJV","node_id":"and-reassoc--h1","target_id":"propositional","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1}
+E       assert 201 == 422
+E        +  where 201 = <Response [201 Created]>.status_code
+E       AssertionError: {"proposal_id":"01M230M2G0ZWKXF2SGXGF5PRYH","node_id":"and-reassoc--h1","target_id":"propositional","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1}
+E       assert 201 == 422
+E        +  where 201 = <Response [201 Created]>.status_code
+E       KeyError: 'witness_preflight'
+E           KeyError: 'witness_preflight'
+E       AssertionError: assert 0 == 1
+E        +  where 0 = len([])
+E        +    where [] = FakeAxle(calls=[], replies=[{'okay': True, 'failed_declarations': [], 'lean_messages': {'errors': [], 'warnings': [], ...ssages': {'errors': [], 'warnings': [], 'infos': []}, 'info': {'request_id': 'fake-request'}}], hosted=['lean-4.33.0']).calls
+E        +      where FakeAxle(calls=[], replies=[{'okay': True, 'failed_declarations': [], 'lean_messages': {'errors': [], 'warnings': [], ...ssages': {'errors': [], 'warnings': [], 'infos': []}, 'info': {'request_id': 'fake-request'}}], hosted=['lean-4.33.0']) = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...sages': {'errors': [], 'warnings': [], 'infos': []}, 'info': {'request_id': 'fake-request'}}], hosted=['lean-4.33.0'])).axle
+E       AssertionError: {"error":"witness-invalid","message":"a witness with a sorry leaves the slot empty"}
+E       assert 400 == 201
+E        +  where 400 = <Response [400 Bad Request]>.status_code
+>           out = McpClient(h).failed(
+    def failed(
+        """A failed call's structured content."""
+E       AssertionError: {'status': 201, 'body': {'proposal_id': '01M230M2G0FEPWGKVJE2E8YTJW', 'node_id': 'and-reassoc--h1', 'target_id': 'propositional', 'pr_url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/1', 'pr_number': 1}}
+FAILED api/tests/test_finding_witness_route_preflight.py::test_a_witness_of_the_wrong_type_opens_no_pull_request
+FAILED api/tests/test_finding_witness_route_preflight.py::test_a_right_typed_witness_that_does_not_compile_opens_no_pull_request
+FAILED api/tests/test_finding_witness_route_preflight.py::test_a_matching_witness_opens_and_the_receipt_says_it_was_checked
+FAILED api/tests/test_finding_witness_route_preflight.py::test_a_checker_that_cannot_answer_lets_the_witness_proceed_as_before
+FAILED api/tests/test_finding_witness_route_preflight.py::test_a_second_witness_for_the_hole_spends_no_check
+FAILED api/tests/test_finding_witness_route_preflight.py::test_a_comment_naming_sorry_is_not_a_sorry
+FAILED api/tests/test_finding_witness_route_preflight.py::test_mcp_propose_witness_carries_the_same_refusal
+7 failed, 1 passed, 2 warnings in 0.66s
+
+== RED, F13-T21: variant/speculative pre-flighted a sorry witness 'matched' (a sorry compiles
+   with a warning), and step 7 then refused it as witness-sorry ==
+$ uv run pytest api/tests/test_finding_witness_route_preflight.py -k sorry_witness (before)
+        ``okay: true``) and so pre-flighted ``matched``, then failed step 7 as ``witness-sorry``. The
+E           KeyError: 'error'
+FAILED api/tests/test_finding_witness_route_preflight.py::test_a_proposals_sorry_witness_is_refused_before_any_check
+1 failed, 8 deselected, 2 warnings in 0.42s
+
+== RED, F13-T22: defect claims and revision requests opened a PR on an exhibit that does not
+   compile; the gate's sandbox refused it (exhibit-elaboration) a queue slot later ==
+$ uv run pytest api/tests/test_finding_exhibit_preflight.py -q -rf   (before the fix)
+E       AssertionError: {"id":"01M230M2G0TDQ3C2TX0MY9N72M","path":"targets/propositional/nodes/and-reassoc/defects/20260909T120000Z-alice.yaml","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1}
+E       assert 201 == 422
+E        +  where 201 = <Response [201 Created]>.status_code
+E       KeyError: 'exhibit_preflight'
+E       ValueError: not enough values to unpack (expected 1, got 0)
+E           KeyError: 'exhibit_preflight'
+E       KeyError: 'exhibit_preflight'
+E       KeyError: 'exhibit_preflight'
+E       KeyError: 'error'
+E       IndexError: list index out of range
+FAILED api/tests/test_finding_exhibit_preflight.py::test_an_exhibit_that_does_not_elaborate_opens_no_pull_request
+FAILED api/tests/test_finding_exhibit_preflight.py::test_an_exhibit_that_elaborates_opens_and_the_receipt_says_so
+FAILED api/tests/test_finding_exhibit_preflight.py::test_an_exhibit_importing_only_the_nodes_context_gets_the_context
+FAILED api/tests/test_finding_exhibit_preflight.py::test_a_checker_that_cannot_decide_lets_the_claim_open_as_before
+FAILED api/tests/test_finding_exhibit_preflight.py::test_an_exhibit_naming_another_nodes_module_is_not_sent
+FAILED api/tests/test_finding_exhibit_preflight.py::test_a_circularity_claims_exhibit_is_the_gates_to_check
+FAILED api/tests/test_finding_exhibit_preflight.py::test_a_revision_requests_exhibit_is_elaborated_too
+FAILED api/tests/test_finding_exhibit_preflight.py::test_the_statement_is_the_committed_one
+8 failed, 1 passed, 2 warnings in 0.62s
+
+== the guide's new sentences at HEAD (aa0d45c), before this task ==
+sentences present: 0 of 3
+
+== GREEN ==
+$ uv run pytest api/tests/test_finding_witness_route_preflight.py \
+    api/tests/test_finding_exhibit_preflight.py gate/tests/test_finding_guide_route_preflights.py -v
+api/tests/test_finding_witness_route_preflight.py::test_a_witness_of_the_wrong_type_opens_no_pull_request PASSED [  3%]
+api/tests/test_finding_witness_route_preflight.py::test_a_right_typed_witness_that_does_not_compile_opens_no_pull_request PASSED [  7%]
+api/tests/test_finding_witness_route_preflight.py::test_a_matching_witness_opens_and_the_receipt_says_it_was_checked PASSED [ 10%]
+api/tests/test_finding_witness_route_preflight.py::test_a_checker_that_cannot_answer_lets_the_witness_proceed_as_before PASSED [ 14%]
+api/tests/test_finding_witness_route_preflight.py::test_a_second_witness_for_the_hole_spends_no_check PASSED [ 17%]
+api/tests/test_finding_witness_route_preflight.py::test_a_comment_naming_sorry_is_not_a_sorry PASSED [ 21%]
+api/tests/test_finding_witness_route_preflight.py::test_a_sorry_token_is_still_refused_before_any_check PASSED [ 25%]
+api/tests/test_finding_witness_route_preflight.py::test_a_proposals_sorry_witness_is_refused_before_any_check PASSED [ 28%]
+api/tests/test_finding_witness_route_preflight.py::test_mcp_propose_witness_carries_the_same_refusal PASSED [ 32%]
+api/tests/test_finding_exhibit_preflight.py::test_an_exhibit_that_does_not_elaborate_opens_no_pull_request PASSED [ 35%]
+api/tests/test_finding_exhibit_preflight.py::test_an_exhibit_that_elaborates_opens_and_the_receipt_says_so PASSED [ 39%]
+api/tests/test_finding_exhibit_preflight.py::test_an_exhibit_importing_only_the_nodes_context_gets_the_context PASSED [ 42%]
+api/tests/test_finding_exhibit_preflight.py::test_a_checker_that_cannot_decide_lets_the_claim_open_as_before PASSED [ 46%]
+api/tests/test_finding_exhibit_preflight.py::test_an_exhibit_naming_another_nodes_module_is_not_sent PASSED [ 50%]
+api/tests/test_finding_exhibit_preflight.py::test_a_circularity_claims_exhibit_is_the_gates_to_check PASSED [ 53%]
+api/tests/test_finding_exhibit_preflight.py::test_a_revision_requests_exhibit_is_elaborated_too PASSED [ 57%]
+api/tests/test_finding_exhibit_preflight.py::test_a_revision_request_without_an_exhibit_spends_no_check PASSED [ 60%]
+api/tests/test_finding_exhibit_preflight.py::test_the_statement_is_the_committed_one PASSED [ 64%]
+gate/tests/test_finding_guide_route_preflights.py::test_the_route_is_the_services PASSED [ 67%]
+gate/tests/test_finding_guide_route_preflights.py::test_the_refusals_are_the_pre_flights_own PASSED [ 71%]
+gate/tests/test_finding_guide_route_preflights.py::test_the_witness_step_names_both_refusals_and_the_receipt PASSED [ 75%]
+gate/tests/test_finding_guide_route_preflights.py::test_the_check_paragraph_says_the_witness_route_runs_it_too PASSED [ 78%]
+gate/tests/test_finding_guide_route_preflights.py::test_a_sorry_witness_is_refused_on_every_proposal_route PASSED [ 82%]
+gate/tests/test_finding_guide_route_preflights.py::test_the_hazard_pre_flight_is_said_of_the_proposal_routes_only PASSED [ 85%]
+gate/tests/test_finding_guide_route_preflights.py::test_the_mcp_tool_says_the_same PASSED [ 89%]
+gate/tests/test_finding_guide_route_preflights.py::test_the_exhibit_refusal_is_the_pre_flights_own PASSED [ 92%]
+gate/tests/test_finding_guide_route_preflights.py::test_the_guide_row_for_defects_names_the_refusal_and_the_receipt PASSED [ 96%]
+gate/tests/test_finding_guide_route_preflights.py::test_the_mcp_defect_tools_say_the_same PASSED [100%]
+======================== 28 passed, 2 warnings in 0.86s ========================
+
+== make verify (run bare; exit status read from $?) ==
+uv run --frozen ruff check .
+All checks passed!
+uv run --frozen ruff format --check .
+uv run --frozen mypy gate
+Success: no issues found in 217 source files
+uv run --frozen mypy api
+Success: no issues found in 146 source files
+uv run --frozen mypy site
+Success: no issues found in 42 source files
+uv run --frozen pytest -m "not lean and not docker and not network"
+=== 2840 passed, 76 skipped, 92 deselected, 2 warnings in 146.75s (0:02:26) ====
+exit=0
+
+Fast tier before this task: 2812 passed (2840 minus the 28 tests added here).

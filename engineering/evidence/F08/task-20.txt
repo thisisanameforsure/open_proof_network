@@ -1,0 +1,152 @@
+F08-T20 (D-12 v3.22, "No cycles"): one circularity claim takes a whole established path off
+the frontier; the ancestor stays open and claimable and its page names the claim.
+
+Finding: 2026-09-24 on erdos-69 the deepest hole erdos-69--h2-v2--h1-v2--h4 was shown equivalent to
+the root, and the two holes between stayed on the frontier until testers filed one claim per node
+(three circularity claims on the live record, one pull request each).
+
+## red (gate) — seam first: NodeFacts.circular_below = () at today's behaviour
+$ uv run --frozen pytest gate/tests/test_finding_circular_path.py -q -rf
+E           AssertionError: and-swap-reassoc--h2
+E           assert 'and-swap-reassoc--h2' not in ['and-swap-reassoc', 'and-swap-reassoc--h2', 'and-swap-reassoc--h2--h1']
+E       AssertionError: assert ('and-swap-reassoc--h2--h1' not in ['and-swap-reassoc', 'and-swap-reassoc--h2', 'and-swap-reassoc--h2--h1'])
+E       AssertionError: assert not ({'and-swap-reassoc--h2', 'and-swap-reassoc--h2--h1'} & {'and-swap-reassoc', 'and-swap-reassoc--h2', 'and-swap-reassoc--h2--h1'})
+E        +  where {'and-swap-reassoc--h2', 'and-swap-reassoc--h2--h1'} = set(('and-swap-reassoc--h2', 'and-swap-reassoc--h2--h1'))
+E        +  and   {'and-swap-reassoc', 'and-swap-reassoc--h2', 'and-swap-reassoc--h2--h1'} = set(['and-swap-reassoc', 'and-swap-reassoc--h2', 'and-swap-reassoc--h2--h1'])
+E       AssertionError: assert () == ('and-swap-re...-alice.yaml',)
+E         
+E         Right contains one more item: 'and-swap-reassoc--h2--h1--h2/defects/20260924T123647Z-alice.yaml'
+E         Use -v to get more diff
+E       AssertionError: assert () == ('and-swap-re...-alice.yaml',)
+E         
+E         Right contains one more item: 'and-swap-reassoc--h2--h1--h2/defects/20260924T123647Z-alice.yaml'
+E         Use -v to get more diff
+FAILED gate/tests/test_finding_circular_path.py::test_one_claim_on_the_deepest_hole_takes_the_whole_chain_off
+FAILED gate/tests/test_finding_circular_path.py::test_a_nearer_ancestor_takes_only_the_nodes_below_it
+FAILED gate/tests/test_finding_circular_path.py::test_it_leaves_once_the_sibling_is_proved_with_no_new_record
+FAILED gate/tests/test_finding_circular_path.py::test_the_ancestor_stays_claimable_and_carries_the_note
+FAILED gate/tests/test_finding_circular_path.py::test_the_ancestor_is_read_through_its_revision_chain
+5 failed, 8 passed in 2.04s
+
+## red (site) — seam first: NodeView.circular_below = ()
+$ uv run --frozen pytest site/tests/test_finding_circular_path_note.py -q -rf
+E       AssertionError: assert () == ('targets/pro...-alice.yaml',)
+E         
+E         Right contains one more item: 'targets/propositional/nodes/and-swap-reassoc--h2--h1--h2/defects/20260924T123647Z-alice.yaml'
+E         Use -v to get more diff
+E       assert 'class="circular-note"' in '>\n<span class="kicker">Selected statement</span>\n<span class="panel-id">and-swap-reassoc</span>\n<dl class="panel-f...a class="btn btn-primary btn-block" href="/nodes/propositional/and-swap-reassoc/">Work on this statement</a>\n</div>\n'
+E       AssertionError: the claim sits under the hole, not under this node
+E       assert None == 'targets/propositional/nodes/and-swap-reassoc--h2--h1--h2/defects/20260924T123647Z-alice.yaml'
+E        +  where None = NodeView(target_id='propositional', node_id='and-swap-reassoc--h2', graph_entry={'cause': 'circular', 'deps': ['and-sw...rseded_by=None, superseded_cause=None, superseded_record=None, supersedes=None, circular_claim=None, circular_below=()).circular_claim
+E       AssertionError: the claim sits under the hole, not under this node
+E       assert None == 'targets/propositional/nodes/and-swap-reassoc--h2--h1--h2/defects/20260924T123647Z-alice.yaml'
+E        +  where None = NodeView(target_id='propositional', node_id='and-swap-reassoc--h2--h1', graph_entry={'cause': 'circular', 'deps': ['an...rseded_by=None, superseded_cause=None, superseded_record=None, supersedes=None, circular_claim=None, circular_below=()).circular_claim
+FAILED site/tests/test_finding_circular_path_note.py::test_the_ancestors_page_names_the_claim_and_invites_other_routes
+FAILED site/tests/test_finding_circular_path_note.py::test_the_ancestors_panel_on_the_problem_page_carries_the_note
+FAILED site/tests/test_finding_circular_path_note.py::test_a_path_node_reads_circular_and_links_the_claim_under_the_hole[and-swap-reassoc--h2]
+FAILED site/tests/test_finding_circular_path_note.py::test_a_path_node_reads_circular_and_links_the_claim_under_the_hole[and-swap-reassoc--h2--h1]
+4 failed, 1 passed in 0.55s
+(The site red was run after the gate fix, so graph.json already said `circular` for the path
+nodes; what failed is the site's own half: no claim link for them, no note on the ancestor. The
+eight gate tests green before the fix pin what the fix must not change: the guard, the unproved-
+sibling cases, the declared-dep case, the revert, and a proof of a path node still accepted.)
+
+## fix
+gate/opn_gate/records.py: circular_claims(node_dir) reads every valid circular-decomposition claim
+  under a node with its ancestor; circular_claim is its first ref, unchanged.
+gate/opn_gate/graph.py: resolved_circular_claims (ancestor through current_id, F08-T10's reading);
+  circular_path_edge (child is one of the parent's holes and every other entry of the parent's
+  deps is proved — holes, rival holes and declared deps alike); circular_marks (pure: for each
+  claim whose hole is open, the nodes reachable down from the ancestor and up from the hole by
+  such edges, strictly between, open only; plus ancestor -> claims); with_circular_paths applies
+  it in load_target *after* derive_statuses. NodeFacts gains circular_claims and circular_below;
+  a path node's `circular` is `<hole>/defects/<file>` (relative to nodes/), a hole's own stays
+  `defects/<file>`. is_circular, derive_causes, in_frontier, workable are untouched and now see
+  the path nodes. No schema touched: graph.json already carries cause `circular`.
+site/opn_site/model.py: _with_circular_paths runs the gate's circular_marks over graph.json's
+  deps/origins/statuses and the claim files, so a path node links the claim under the hole and
+  the ancestor gets circular_below. render.py: circular_below_note on the statement page and the
+  problem page's panel ("... This statement stays open: a direct proof, or a different
+  decomposition, is welcome."), the claims listed among the page's rendered files. site.css:
+  .circular-note, a dotted red rule as circular's mark. Goldens unchanged (no golden fixture has
+  a circularity claim).
+
+## green
+$ uv run --frozen pytest gate/tests/test_finding_circular_path.py site/tests/test_finding_circular_path_note.py gate/tests/test_finding_circular_decomposition.py site/tests/test_finding_circular_label.py -q
+36 passed in 2.57s
+
+## mutants (pytest -p plugins, monkeypatching opn_gate.graph in memory; no file touched)
+PYTHONPATH=gate:<scratch>/mutants uv run --frozen pytest -p <mutant> gate/tests/test_finding_circular_path.py site/tests/test_finding_circular_path_note.py -q
+mut_ignore_siblings: circular_path_edge answers `child in holes[parent]` (siblings-proved ignored)
+mut_include_ancestor: the ancestor is marked circular too
+mut_stop_at_parent: the claimed hole's parent is dropped from the path
+== mut_ignore_siblings
+FAILED gate/tests/test_finding_circular_path.py::test_a_node_whose_sibling_is_unproved_stays_on[and-swap-reassoc--h1]
+FAILED gate/tests/test_finding_circular_path.py::test_a_node_whose_sibling_is_unproved_stays_on[and-swap-reassoc--h2--h2]
+FAILED gate/tests/test_finding_circular_path.py::test_a_node_whose_sibling_is_unproved_stays_on[and-swap-reassoc--h2--h1--h1]
+FAILED gate/tests/test_finding_circular_path.py::test_it_leaves_once_the_sibling_is_proved_with_no_new_record
+FAILED gate/tests/test_finding_circular_path.py::test_a_declared_dep_on_the_path_must_be_proved_too
+5 failed, 13 passed in 4.23s
+== mut_include_ancestor
+FAILED gate/tests/test_finding_circular_path.py::test_a_nearer_ancestor_takes_only_the_nodes_below_it
+FAILED gate/tests/test_finding_circular_path.py::test_the_ancestor_stays_claimable_and_carries_the_note
+FAILED gate/tests/test_finding_circular_path.py::test_the_ancestor_is_read_through_its_revision_chain
+FAILED site/tests/test_finding_circular_path_note.py::test_the_ancestors_page_names_the_claim_and_invites_other_routes
+4 failed, 14 passed in 4.35s
+== mut_stop_at_parent
+FAILED gate/tests/test_finding_circular_path.py::test_one_claim_on_the_deepest_hole_takes_the_whole_chain_off
+FAILED gate/tests/test_finding_circular_path.py::test_a_nearer_ancestor_takes_only_the_nodes_below_it
+FAILED gate/tests/test_finding_circular_path.py::test_it_leaves_once_the_sibling_is_proved_with_no_new_record
+FAILED gate/tests/test_finding_circular_path.py::test_the_ancestor_is_read_through_its_revision_chain
+FAILED site/tests/test_finding_circular_path_note.py::test_a_path_node_reads_circular_and_links_the_claim_under_the_hole[and-swap-reassoc--h2--h1]
+5 failed, 13 passed in 2.19s
+Every mutant is caught by at least one test.
+
+## the live erdos-69 record (a copy of ../open_proof_network_graph, read-only source)
+Script: load_target on the copy with circular_marks answering nothing (the rule before F08-T20)
+and with the rule; compares status, cause, frontier membership, circular, circular_below.
+graph copy at 557e90f1cc59f325edbd972552681c8dd2f757e1 (erdos-69)
+  erdos-69: circular_below: () -> ('erdos-69--h2-v2/defects/20260924T123353Z-t0924-69m-8709.yaml', 'erdos-69--h2-v2--h1-v2/defects/20260924T124042Z-agent-e69h-0d8d.yaml', 'erdos-69--h2-v2--h1-v2--h4/defects/20260924T123647Z-agent-e69h-0d8d.yaml')
+  erdos-69--h2-v2: circular_below: () -> ('erdos-69--h2-v2--h1-v2/defects/20260924T123349Z-t0924-69m-8709.yaml',)
+  erdos-69--h2-v2--h1-v2: circular_below: () -> ('erdos-69--h2-v2--h1-v2--h4/defects/20260924T123205Z-t0924-69m-8709.yaml',)
+3 field changes over 11 nodes
+  erdos-69: status=ready cause=None frontier=True
+  erdos-69--h1: status=superseded cause=None frontier=False
+  erdos-69--h1-v2: status=proved cause=None frontier=False
+  erdos-69--h2: status=superseded cause=None frontier=False
+  erdos-69--h2-v2: status=ready cause=circular frontier=False
+  erdos-69--h2-v2--h1: status=superseded cause=None frontier=False
+  erdos-69--h2-v2--h1-v2: status=ready cause=circular frontier=False
+  erdos-69--h2-v2--h1-v2--h1: status=proved cause=None frontier=False
+  erdos-69--h2-v2--h1-v2--h2: status=proved cause=None frontier=False
+  erdos-69--h2-v2--h1-v2--h3: status=proved cause=None frontier=False
+  erdos-69--h2-v2--h1-v2--h4: status=ready cause=circular frontier=False
+counterfactual: only h4's claim naming erdos-69 left
+  erdos-69: circular_below: () -> ('erdos-69--h2-v2--h1-v2--h4/defects/20260924T123647Z-agent-e69h-0d8d.yaml',)
+  erdos-69--h2-v2: cause: None -> 'circular'
+  erdos-69--h2-v2: in_frontier: True -> False
+  erdos-69--h2-v2: circular: None -> 'erdos-69--h2-v2--h1-v2--h4/defects/20260924T123647Z-agent-e69h-0d8d.yaml'
+  erdos-69--h2-v2--h1-v2: cause: None -> 'circular'
+  erdos-69--h2-v2--h1-v2: in_frontier: True -> False
+  erdos-69--h2-v2--h1-v2: circular: None -> 'erdos-69--h2-v2--h1-v2--h4/defects/20260924T123647Z-agent-e69h-0d8d.yaml'
+
+Reading: on the live record nothing moves but the ancestor notes — every node on the path already
+carries a claim of its own (filed one per node by the testers), so no status, cause or frontier
+membership changes and graph.json/frontier.json are unaffected (circular_below is not a product
+field). erdos-69 gains the note naming three claims; h2-v2 and h1-v2 (themselves circular) carry
+the claims that name them. The counterfactual, with only h4's claim naming the root left, is the
+finding itself: h2-v2 and h1-v2 leave the frontier as circular on that one claim.
+
+## visual
+task-20-ancestor-note.png: the fixture's ancestor (and-swap-reassoc) at 1440x900 from the rendered
+fixture site (Playwright, Chromium /opt/pw-browsers/chromium-1194): status open, the dotted note
+naming the claim under and-swap-reassoc--h2--h1--h2 with its link, no "Not claimable".
+scrollWidth 1440 at 1440 and 390 at 390 (no overflow).
+
+## make verify
+All checks passed!
+Success: no issues found in 217 source files
+Success: no issues found in 144 source files
+Success: no issues found in 43 source files
+=== 2830 passed, 76 skipped, 92 deselected, 2 warnings in 146.53s (0:02:26) ====
+exit 0

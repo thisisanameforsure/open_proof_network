@@ -123,6 +123,9 @@ class WitnessRequest:
     decl: str
     witness: Path | None = None
     witness_module: str | None = None
+    #: F07-T44 (D-29 v3.22): the statement's binders the merged assembly proved, from the hole's
+    #: ``META.yaml``; empty for every node without that record, whose expected type is today's.
+    proved: tuple[int, ...] = ()
 
     def args(self) -> list[str]:
         out = [
@@ -140,6 +143,8 @@ class WitnessRequest:
                 "--witness-module",
                 self.witness_module,
             ]
+        if self.proved:
+            out += ["--proved", ",".join(str(i) for i in self.proved)]
         return out
 
 
