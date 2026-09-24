@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import io
 import subprocess
+import threading
+import time
 import zipfile
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -127,6 +129,13 @@ class FakeGitHost:
     pull_states: dict[int, dict[str, Any]] = field(default_factory=dict)
     pull_lookups: list[int] = field(default_factory=list)
     pr_lookup_failure: str | None = None
+    #: F07-T39: a lookup's latency, the numbers whose lookup alone fails, and how many lookups
+    #: were in flight at once at most, so a test can see the snapshot's concurrency directly.
+    pull_latency_s: float = 0.0
+    pull_failures: set[int] = field(default_factory=set)
+    pulls_in_flight: int = 0
+    pulls_max_in_flight: int = 0
+    _pull_lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     @classmethod
     def with_fixtures(cls, **users: GitHubUser) -> FakeGitHost:
@@ -257,8 +266,20 @@ class FakeGitHost:
         merged, with no runs and no reviews; any other number is unknown to the host."""
         self.pull_lookups.append(number)
         self._app_call()
+        with self._pull_lock:
+            self.pulls_in_flight += 1
+            self.pulls_max_in_flight = max(self.pulls_max_in_flight, self.pulls_in_flight)
+        try:
+            if self.pull_latency_s:
+                time.sleep(self.pull_latency_s)
+        finally:
+            with self._pull_lock:
+                self.pulls_in_flight -= 1
         if self.pr_lookup_failure:
             raise GitHostError(self.pr_lookup_failure)
+        if number in self.pull_failures:
+            msg = f"GET /repos/{repo}/pulls/{number} returned 502"
+            raise GitHostError(msg)
         seeded = self.pull_states.get(number)
         if seeded is None and not 1 <= number <= len(self.pulls):
             return None

@@ -1,0 +1,28 @@
+F07-T39 — GET /submissions.json cold latency (testers 2026-09-24, 28.5 s live with 22 open;
+engineering/session-notes/2026-09-24-calibration-testers.md finding 3).
+
+The fake host gains pull_latency_s, pull_failures (per number) and an in-flight counter, committed
+with the red tests (the seam at today's behaviour). Three tests are green before the fix and are
+guards: the serial and concurrent answers agree, one failing lookup leaves its row listed, and the
+seam already opened one httpx.Client per get_pull_request (see the report: the plan's "four
+clients" did not match the code, which has used one `with self._api(repo)` block since F07-T16).
+
+## red
+$ uv run --frozen pytest -q api/tests/test_finding_submissions_cold_latency.py
+E       AssertionError: the lookups ran one at a time
+E       assert 1 > 1
+E        +  where 1 = FakeGitHost(users={'code_alice': GitHubUser(login='alice', id=1001, created_at='2015-03-01T00:00:00Z'), 'code_bob': Gi...23, 24, 25], pr_lookup_failure=None, pull_latency_s=0.2, pull_failures=set(), pulls_in_flight=0, pulls_max_in_flight=1).pulls_max_in_flight
+E        +    where FakeGitHost(users={'code_alice': GitHubUser(login='alice', id=1001, created_at='2015-03-01T00:00:00Z'), 'code_bob': Gi...23, 24, 25], pr_lookup_failure=None, pull_latency_s=0.2, pull_failures=set(), pulls_in_flight=0, pulls_max_in_flight=1) = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7ff63fa12f90>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])).githost
+E           AssertionError: 1
+E           assert 1 < 1
+E            +  where 1 = FakeGitHost(users={'code_alice': GitHubUser(login='alice', id=1001, created_at='2015-03-01T00:00:00Z'), 'code_bob': Gi...0, 11, 12], pr_lookup_failure=None, pull_latency_s=0.05, pull_failures=set(), pulls_in_flight=0, pulls_max_in_flight=1).pulls_max_in_flight
+E            +    where FakeGitHost(users={'code_alice': GitHubUser(login='alice', id=1001, created_at='2015-03-01T00:00:00Z'), 'code_bob': Gi...0, 11, 12], pr_lookup_failure=None, pull_latency_s=0.05, pull_failures=set(), pulls_in_flight=0, pulls_max_in_flight=1) = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7ff63fab9090>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])).githost
+E       AssertionError: ['submit/01M00000000000000000000012', 'submit/01M00000000000000000000012', 'submit/01M00000000000000000000012', 'submit/01M00000000000000000000012']
+E       assert 4 == 1
+E        +  where 4 = len([Push(repo='thisisanameforsure/open_proof_network_graph', branch='submit/01M00000000000000000000012', files={'targets/...bot]', email='327070898+open-proof-network[bot]@users.noreply.github.com', date='2026-09-09T12:00:00Z'), replace=True)])
+E        +    where [Push(repo='thisisanameforsure/open_proof_network_graph', branch='submit/01M00000000000000000000012', files={'targets/...bot]', email='327070898+open-proof-network[bot]@users.noreply.github.com', date='2026-09-09T12:00:00Z'), replace=True)] = replaced(Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7ff63fa7d910>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])))
+FAILED api/tests/test_finding_submissions_cold_latency.py::test_twenty_five_open_records_answer_within_four_lookups_of_time
+FAILED api/tests/test_finding_submissions_cold_latency.py::test_the_width_is_configuration_and_bounds_the_lookups_in_flight
+FAILED api/tests/test_finding_submissions_cold_latency.py::test_a_losing_racer_is_converted_once_under_concurrency
+3 failed, 3 passed, 2 warnings in 7.11s
+
