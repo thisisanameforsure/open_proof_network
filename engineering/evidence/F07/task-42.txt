@@ -43,3 +43,123 @@ FAILED api/tests/test_finding_runs_jobs_shape.py::test_the_mcp_schema_requires_j
 FAILED api/tests/test_finding_runs_jobs_shape.py::test_the_fake_host_answers_in_the_seams_shape
 7 failed, 2 warnings in 0.84s
 
+## green
+$ uv run --frozen pytest -v api/tests/test_finding_runs_jobs_shape.py api/tests/test_githost_seam.py::test_a_failed_gate_run_on_an_open_pull_request_carries_its_jobs api/tests/test_githost_seam.py::test_get_pull_request_reads_the_pull_its_reviews_and_the_runs_on_its_head api/tests/test_finding_waiting_on_lag.py api/tests/test_finding_submission_waiting_on.py
+api/tests/test_finding_runs_jobs_shape.py::test_a_merged_pull_request_carries_jobs_on_every_run PASSED [  3%]
+api/tests/test_finding_runs_jobs_shape.py::test_a_green_run_on_an_open_pull_request_carries_jobs_too PASSED [  6%]
+api/tests/test_finding_runs_jobs_shape.py::test_an_open_failed_gate_run_keeps_its_fetched_jobs PASSED [  9%]
+api/tests/test_finding_runs_jobs_shape.py::test_a_record_closed_before_the_change_reads_with_jobs[memory] PASSED [ 12%]
+api/tests/test_finding_runs_jobs_shape.py::test_a_record_closed_before_the_change_reads_with_jobs[dynamodb] PASSED [ 16%]
+api/tests/test_finding_runs_jobs_shape.py::test_the_mcp_schema_requires_jobs_on_every_run PASSED [ 19%]
+api/tests/test_finding_runs_jobs_shape.py::test_the_fake_host_answers_in_the_seams_shape PASSED [ 22%]
+api/tests/test_githost_seam.py::test_a_failed_gate_run_on_an_open_pull_request_carries_its_jobs PASSED [ 25%]
+api/tests/test_githost_seam.py::test_get_pull_request_reads_the_pull_its_reviews_and_the_runs_on_its_head PASSED [ 29%]
+api/tests/test_finding_waiting_on_lag.py::test_waiting_on_reads_the_jobs_and_names_a_conflict[pull0-merge] PASSED [ 32%]
+api/tests/test_finding_waiting_on_lag.py::test_waiting_on_reads_the_jobs_and_names_a_conflict[pull1-branch-update] PASSED [ 35%]
+api/tests/test_finding_waiting_on_lag.py::test_waiting_on_reads_the_jobs_and_names_a_conflict[pull2-gate-failed] PASSED [ 38%]
+api/tests/test_finding_waiting_on_lag.py::test_waiting_on_reads_the_jobs_and_names_a_conflict[pull3-step9-review] PASSED [ 41%]
+api/tests/test_finding_waiting_on_lag.py::test_waiting_on_reads_the_jobs_and_names_a_conflict[pull4-gate] PASSED [ 45%]
+api/tests/test_finding_waiting_on_lag.py::test_waiting_on_reads_the_jobs_and_names_a_conflict[pull5-gate] PASSED [ 48%]
+api/tests/test_finding_waiting_on_lag.py::test_waiting_on_reads_the_jobs_and_names_a_conflict[pull6-conflict] PASSED [ 51%]
+api/tests/test_finding_waiting_on_lag.py::test_waiting_on_reads_the_jobs_and_names_a_conflict[pull7-conflict] PASSED [ 54%]
+api/tests/test_finding_waiting_on_lag.py::test_the_schema_admits_conflict PASSED [ 58%]
+api/tests/test_finding_waiting_on_lag.py::test_an_unfinished_gate_run_on_an_open_pull_request_carries_its_jobs PASSED [ 61%]
+api/tests/test_finding_submission_waiting_on.py::test_waiting_on_names_the_one_thing_the_pull_request_waits_for[pull0-gate] PASSED [ 64%]
+api/tests/test_finding_submission_waiting_on.py::test_waiting_on_names_the_one_thing_the_pull_request_waits_for[pull1-gate] PASSED [ 67%]
+api/tests/test_finding_submission_waiting_on.py::test_waiting_on_names_the_one_thing_the_pull_request_waits_for[pull2-step9-review] PASSED [ 70%]
+api/tests/test_finding_submission_waiting_on.py::test_waiting_on_names_the_one_thing_the_pull_request_waits_for[pull3-gate-failed] PASSED [ 74%]
+api/tests/test_finding_submission_waiting_on.py::test_waiting_on_names_the_one_thing_the_pull_request_waits_for[pull4-gate-failed] PASSED [ 77%]
+api/tests/test_finding_submission_waiting_on.py::test_waiting_on_names_the_one_thing_the_pull_request_waits_for[pull5-branch-update] PASSED [ 80%]
+api/tests/test_finding_submission_waiting_on.py::test_waiting_on_names_the_one_thing_the_pull_request_waits_for[pull6-merge] PASSED [ 83%]
+api/tests/test_finding_submission_waiting_on.py::test_waiting_on_names_the_one_thing_the_pull_request_waits_for[pull7-merge] PASSED [ 87%]
+api/tests/test_finding_submission_waiting_on.py::test_waiting_on_names_the_one_thing_the_pull_request_waits_for[pull8-None] PASSED [ 90%]
+api/tests/test_finding_submission_waiting_on.py::test_waiting_on_names_the_one_thing_the_pull_request_waits_for[pull9-gate] PASSED [ 93%]
+api/tests/test_finding_submission_waiting_on.py::test_the_mcp_result_schema_carries_the_new_fields PASSED [ 96%]
+api/tests/test_finding_submission_waiting_on.py::test_the_fake_host_keeps_jobs_so_route_tests_can_say_what_waits PASSED [100%]
+======================== 31 passed, 2 warnings in 1.07s ========================
+
+## mutants
+Each plugin is loaded with -p and weakens the rule in memory (no file edited); its text is kept here.
+
+### mut_t42_seam
+```python
+"""F07-T42 mutant 1: the seam omits jobs where it read none (the old shape)."""
+
+import dataclasses
+
+from opn_api import githost
+
+_real = githost.HttpxGitHost.get_pull_request
+
+
+def _weak(self, repo, number):
+    pull = _real(self, repo, number)
+    if pull is None:
+        return None
+    runs = tuple({k: v for k, v in r.items() if not (k == "jobs" and v == [])} for r in pull.runs)
+    return dataclasses.replace(pull, runs=runs)
+
+
+githost.HttpxGitHost.get_pull_request = _weak
+```
+$ PYTHONPATH=<mutants dir> uv run --frozen pytest -q -p mut_t42_seam api/tests/test_finding_runs_jobs_shape.py
+_____________ test_an_open_failed_gate_run_keeps_its_fetched_jobs ______________
+    def test_an_open_failed_gate_run_keeps_its_fetched_jobs(script: Script, host: HttpxGitHost) -> None:
+FAILED api/tests/test_finding_runs_jobs_shape.py::test_a_merged_pull_request_carries_jobs_on_every_run
+FAILED api/tests/test_finding_runs_jobs_shape.py::test_a_green_run_on_an_open_pull_request_carries_jobs_too
+FAILED api/tests/test_finding_runs_jobs_shape.py::test_an_open_failed_gate_run_keeps_its_fetched_jobs
+3 failed, 4 passed, 2 warnings in 0.69s
+
+### mut_t42_legacy
+```python
+"""F07-T42 mutant 2: a closed record's stored final_state is served as stored."""
+
+from opn_api import pending
+
+pending.final_state = lambda found: found.final_state
+```
+$ PYTHONPATH=<mutants dir> uv run --frozen pytest -q -p mut_t42_legacy api/tests/test_finding_runs_jobs_shape.py
+E           AssertionError: {'submission': {'id': '01M00000000000000000000007', 'kind': 'postmortem', 'node_id': 'tutorial-and-swap', 'target_id':...'url': 'https://github.com/o/r/pull/7', 'state': 'closed', ...}, 'pull_request_error': None, 'gate_verdict': None, ...}
+E           AssertionError: {'submission': {'id': '01M00000000000000000000007', 'kind': 'postmortem', 'node_id': 'tutorial-and-swap', 'target_id':...'url': 'https://github.com/o/r/pull/7', 'state': 'closed', ...}, 'pull_request_error': None, 'gate_verdict': None, ...}
+FAILED api/tests/test_finding_runs_jobs_shape.py::test_a_record_closed_before_the_change_reads_with_jobs[memory]
+FAILED api/tests/test_finding_runs_jobs_shape.py::test_a_record_closed_before_the_change_reads_with_jobs[dynamodb]
+2 failed, 5 passed, 2 warnings in 0.74s
+
+### mut_t42_fake
+```python
+"""F07-T42 mutant 3: the MCP schema stops requiring jobs (the old contract)."""
+
+from opn_api.mcp import results
+
+_real = results.load
+
+
+def _weak(tool):
+    doc = _real(tool)
+    if tool == "get_submission":
+        items = doc["$defs"]["pull_request"]["properties"]["runs"]["items"]
+        items["required"] = [r for r in items["required"] if r != "jobs"]
+    return doc
+
+
+results.load = _weak
+if hasattr(results, "_validator") and hasattr(results._validator, "cache_clear"):
+    results._validator.cache_clear()
+```
+$ PYTHONPATH=<mutants dir> uv run --frozen pytest -q -p mut_t42_fake api/tests/test_finding_runs_jobs_shape.py
+            "pull_request_error": None,
+E        +  where [] = <function violations at 0x7f866a4a18a0>('get_submission', {'submission': None, 'pull_request': {'waiting_on': None, 'number': 7, 'url': 'https://github.com/o/r/pull/7', 'state': 'closed', ...}, 'pull_request_error': None, 'attestation_path': None, ...})
+FAILED api/tests/test_finding_runs_jobs_shape.py::test_the_mcp_schema_requires_jobs_on_every_run
+1 failed, 6 passed, 2 warnings in 0.78s
+
+## verify
+make lint: All checks passed. mypy gate/api/site: no issues. Fast tier: the full make verify run
+before this commit had one failure, test_pending_submissions::test_reads_inside_the_window..., which
+pinned the old shape through the fake; restated. Then api fast tier: 827 passed (the next task's red
+file deselected). Gate and site tiers passed in the same make verify run (2638 passed overall).
+
+Existing tests that pinned the omitted key, restated to the rule rather than deleted:
+- test_githost_seam.py::test_get_pull_request_reads_the_pull_its_reviews_and_the_runs_on_its_head
+- test_pending_submissions.py::test_reads_inside_the_window_are_one_lookup_and_a_failure_serves_the_last_state
+- test_mcp_pending_submissions.py::test_get_submission_tool_is_the_route_for_an_open_append
+The fake host (api_fakes.set_pull_request_state) now gives every run `jobs`, as the seam does.

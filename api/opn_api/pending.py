@@ -256,6 +256,24 @@ def unknown(raw: str) -> ApiError:
     )
 
 
+def final_state(found: Submission) -> dict[str, Any] | None:
+    """The state that closed a record, in today's shape. A record closed before F07-T42 kept runs
+    without ``jobs`` (the host added the key only where it read the jobs), so a merged submission
+    read back in a different shape from an open one; every run carries the key now, ``[]`` where
+    nothing was read, old records included."""
+    state = found.final_state
+    runs = (state or {}).get("runs")
+    if state is None or not isinstance(runs, list):
+        return state
+    return {
+        **state,
+        "runs": [
+            {**run, "jobs": list(run.get("jobs") or [])} if isinstance(run, dict) else run
+            for run in runs
+        ],
+    }
+
+
 def reconcile(
     ctx: Context, found: Submission
 ) -> tuple[Submission, dict[str, Any] | None, str | None]:
@@ -267,7 +285,7 @@ def reconcile(
     the host cannot describe is left open with the reason, never silently dropped (C7).
     """
     if found.closed is not None:
-        return found, found.final_state, None
+        return found, final_state(found), None
     state, error = live_state(ctx, found.pr_number)
     from opn_api import racers  # noqa: PLC0415 — racers reads the duplicate rule, which reads this
 

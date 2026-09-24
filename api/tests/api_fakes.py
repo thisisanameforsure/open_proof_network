@@ -287,8 +287,8 @@ class FakeGitHost:
         reviews: list[dict[str, Any]] | None = None,
     ) -> None:
         """What the host will say about pull request ``number`` from now on. Runs keep
-        ``{name, status, conclusion, url}`` and reviews ``{login, state}``, as the real host's
-        reader shapes them."""
+        ``{name, status, conclusion, url, jobs}`` (``jobs`` ``[]`` unless given) and reviews
+        ``{login, state}``, as the real host's reader shapes them."""
         self.pull_states[number] = {
             "state": state,
             "merged": merged,
@@ -298,7 +298,7 @@ class FakeGitHost:
             "runs": [
                 {
                     **{k: r.get(k) for k in ("name", "status", "conclusion", "url")},
-                    **({"jobs": r["jobs"]} if "jobs" in r else {}),
+                    "jobs": list(r.get("jobs") or []),  # the seam's shape (F07-T42)
                 }
                 for r in runs or []
             ],

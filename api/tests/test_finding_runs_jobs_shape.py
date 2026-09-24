@@ -44,10 +44,6 @@ from opn_api.store import MemoryStore, Store, Submission
 
 __all__ = ["host", "pem", "rsa_key", "script"]  # fixtures, imported for pytest to find
 
-pytestmark = pytest.mark.xfail(
-    strict=True, reason="F07-T42: runs[].jobs is omitted where the jobs were not read"
-)
-
 JOBS = f"/repos/{REPO}/actions/runs/9/jobs"
 GATE_JOB = "gate (steps 1, 2 and 4-8 in the sandbox)"
 STEP9_JOB = "step 9 (a non-author approving review)"

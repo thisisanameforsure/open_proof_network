@@ -112,9 +112,10 @@ class PullRequestState:
     GitHub says about mergeability, the Actions runs on its head commit and its reviews.
 
     ``runs`` are ``{name, status, conclusion, url}`` and ``reviews`` ``{login, state}``, in
-    GitHub's vocabulary — the service reports them and decides nothing from them. A gate run
-    that failed on an open pull request also carries ``jobs``, ``{name, status, conclusion}`` of
-    its latest attempt, which is what tells a failed sandbox from a review not yet given.
+    GitHub's vocabulary — the service reports them and decides nothing from them. Every run
+    carries ``jobs`` (F07-T42): ``{name, status, conclusion}`` of its latest attempt for a gate run
+    that failed or has not finished on an open pull request, which is what tells a failed sandbox
+    from a review not yet given, and ``[]`` for every other run, whose jobs are not read.
     """
 
     number: int
@@ -672,7 +673,8 @@ class HttpxGitHost:
                     "status": run.get("status"),
                     "conclusion": run.get("conclusion"),
                     "url": run.get("html_url"),
-                    **({"jobs": jobs[run.get("id")]} if run.get("id") in jobs else {}),
+                    # F07-T42: one shape, open or closed; [] where the jobs were not read
+                    "jobs": jobs.get(run.get("id"), []),
                 }
                 for run in runs
             ),

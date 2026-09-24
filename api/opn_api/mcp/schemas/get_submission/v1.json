@@ -254,7 +254,8 @@
               "name",
               "status",
               "conclusion",
-              "url"
+              "url",
+              "jobs"
             ],
             "properties": {
               "name": {
@@ -283,7 +284,7 @@
               },
               "jobs": {
                 "type": "array",
-                "description": "The latest attempt's jobs of a gate run that failed on an open pull request",
+                "description": "Always present (F07-T42): the latest attempt's jobs of a gate run that failed or has not finished on an open pull request; [] for every other run, whose jobs are not read",
                 "items": {
                   "type": "object",
                   "required": [
