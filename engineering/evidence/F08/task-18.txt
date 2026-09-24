@@ -1,0 +1,24 @@
+# F08-T18: a defect claim knows the node's state (plan A4, ruling D2)
+
+Finding 4 of engineering/session-notes/2026-09-24-calibration-testers.md: graph #187 and #194,
+same-class circularity claims on one node, both accepted; the route read the node's facts and
+discarded them.
+
+## red
+
+$ uv run --frozen pytest api/tests/test_finding_defect_claim_known_state.py -q -p no:warnings
+>       assert (r.status_code, body.get("error")) == (409, "node-circular"), body
+E       AssertionError: {'id': '01M230M2G0FR5CXQB84Q0KGZ2J', 'path': 'targets/propositional/nodes/and-reassoc/defects/20260909T120000Z-alice.yaml', 'pr_url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/1', 'pr_number': 1}
+E       assert (201, None) == (409, 'node-circular')
+E         
+E         At index 0 diff: 201 != 409
+E         Use -v to get more diff
+E       AssertionError: {'id': '01M230M2G0MCT4R0XPDRSYQ0Y4', 'path': 'targets/propositional/nodes/and-reassoc/defects/20260909T120000Z-bob.yaml', 'pr_url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/2', 'pr_number': 2}
+E       assert None == [{'pr_number': 1, 'pseudonym': 'alice'}]
+E        +  where None = <built-in method get of dict object at 0x7fa376ddb840>('also_open')
+E        +    where <built-in method get of dict object at 0x7fa376ddb840> = {'id': '01M230M2G0MCT4R0XPDRSYQ0Y4', 'path': 'targets/propositional/nodes/and-reassoc/defects/20260909T120000Z-bob.yaml', 'pr_url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/2', 'pr_number': 2}.get
+E        +      where {'id': '01M230M2G0MCT4R0XPDRSYQ0Y4', 'path': 'targets/propositional/nodes/and-reassoc/defects/20260909T120000Z-bob.yaml', 'pr_url': 'https://github.com/thisisanameforsure/open_proof_network_graph/pull/2', 'pr_number': 2} = json()
+E        +        where json = <Response [201 Created]>.json
+FAILED api/tests/test_finding_defect_claim_known_state.py::test_a_circularity_claim_on_a_circular_node_is_refused_with_the_merged_claims_path
+FAILED api/tests/test_finding_defect_claim_known_state.py::test_an_open_same_class_claim_is_named_in_the_receipt
+2 failed, 3 passed in 0.53s
