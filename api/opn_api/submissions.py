@@ -304,11 +304,12 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
     if rejection is not None or bundle is None:
         assert rejection is not None
         raise ApiError(400, rejection.code, rejection.message)
+    proved = claim.node_prefix + bundles.PROOF_FILE in existing
     check_placement(
         claim,
         bundle.files,
         artifact_type=artifact_type,
-        proved=claim.node_prefix + bundles.PROOF_FILE in existing,
+        proved=proved,
         tutorial=bool(facts["tutorial"]),
     )
 
@@ -322,6 +323,9 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
     # node, and a job's digest is over its bundle's paths, so a foreign job's bundle fails
     # `path-forbidden` above before its digest could match (F05-Q7).
     job = bound_job(ctx, identity, fields, bundle.digest)
+    neighbours = on_the_node(
+        ctx, node_id, artifact_type, proved=proved, tutorial=bool(facts["tutorial"])
+    )
 
     now = ctx.clock.now()
     submission_id = identitymod.new_ulid(now)
@@ -366,9 +370,38 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
             "node_id": node_id,
             "target_id": claim.target_id,
             "artifact_type": artifact_type,
+            **neighbours,
         },
         status_code=201,
     )
+
+
+def on_the_node(
+    ctx: Context, node_id: str, artifact_type: str, *, proved: bool, tutorial: bool
+) -> dict[str, Any]:
+    """F07-T40: what else is on the node, for the receipt; it refuses nothing (D-25 lets proofs
+    race). ``rivals`` are the submissions open on the node that can still merge, read before
+    this one opens, so it is not among them; on a node whose proof has merged, ``node_proved``,
+    and for a proof, which there lands as an alternate (F07-T12), ``becomes``. A key is absent
+    when nothing applies. The tutorial node is rehearsed, never raced (D-27): nothing to say."""
+    if tutorial:
+        return {}
+    out: dict[str, Any] = {}
+    try:
+        rivals = [
+            {"pr_number": found.pr_number, "pseudonym": found.pseudonym}
+            for found in duplicates.open_rivals(ctx, node_id, duplicates.PROOF_KINDS)
+        ]
+    except Exception as exc:  # any store or host failure: the receipt is advisory (C7)
+        log.warning("%s: rivals not listed: %s", node_id, type(exc).__name__)
+        rivals = []
+    if rivals:
+        out["rivals"] = rivals
+    if proved:
+        out["node_proved"] = True
+        if artifact_type == "proof":
+            out["becomes"] = "alternate"
+    return out
 
 
 def submission_body(job: precheck.Job, meta: dict[str, Any]) -> str:

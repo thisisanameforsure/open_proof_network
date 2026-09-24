@@ -23,3 +23,97 @@ FAILED api/tests/test_finding_submit_rivals.py::test_an_open_rival_proof_is_name
 FAILED api/tests/test_finding_submit_rivals.py::test_a_proved_node_says_the_proof_becomes_an_alternate
 FAILED api/tests/test_finding_submit_rivals.py::test_mcp_submit_proof_passes_the_keys_through
 3 failed, 3 passed in 2.97s
+
+## green
+
+$ uv run --frozen pytest api/tests/test_finding_submit_rivals.py api/tests/test_finding_duplicate_submissions.py api/tests/test_finding_racer_alternate.py api/tests/test_submissions_alternate.py -q -p no:warnings
+32 passed in 1.42s
+
+## mutants
+
+Plugin mut_f07_t40.py (text at the end), loaded with -p; OPN_MUTANT picks one.
+
+### mutant no-rivals (mut_f07_t40)
+$ OPN_MUTANT=no-rivals PYTHONPATH=<mut> uv run --frozen pytest -p mut_f07_t40 api/tests/test_finding_submit_rivals.py -q
+FAILED api/tests/test_finding_submit_rivals.py::test_an_open_rival_proof_is_named
+FAILED api/tests/test_finding_submit_rivals.py::test_mcp_submit_proof_passes_the_keys_through
+2 failed, 5 passed in 0.87s
+
+### mutant rivals-ignore-blocking (mut_f07_t40)
+$ OPN_MUTANT=rivals-ignore-blocking PYTHONPATH=<mut> uv run --frozen pytest -p mut_f07_t40 api/tests/test_finding_submit_rivals.py -q
+        """A rival whose gate failed stands in nobody's way (the rule ``duplicates`` uses)."""
+FAILED api/tests/test_finding_submit_rivals.py::test_a_rival_that_can_no_longer_merge_is_not_named
+1 failed, 6 passed in 0.85s
+
+### mutant empty-keys (mut_f07_t40)
+$ OPN_MUTANT=empty-keys PYTHONPATH=<mut> uv run --frozen pytest -p mut_f07_t40 api/tests/test_finding_submit_rivals.py -q
+        """A rival whose gate failed stands in nobody's way (the rule ``duplicates`` uses)."""
+FAILED api/tests/test_finding_submit_rivals.py::test_an_open_rival_proof_is_named
+FAILED api/tests/test_finding_submit_rivals.py::test_a_rival_that_can_no_longer_merge_is_not_named
+FAILED api/tests/test_finding_submit_rivals.py::test_a_proved_node_says_the_proof_becomes_an_alternate
+FAILED api/tests/test_finding_submit_rivals.py::test_a_node_with_nothing_open_says_nothing
+4 failed, 3 passed in 0.82s
+
+### mutant never-proved (mut_f07_t40)
+$ OPN_MUTANT=never-proved PYTHONPATH=<mut> uv run --frozen pytest -p mut_f07_t40 api/tests/test_finding_submit_rivals.py -q
+FAILED api/tests/test_finding_submit_rivals.py::test_a_proved_node_says_the_proof_becomes_an_alternate
+FAILED api/tests/test_finding_submit_rivals.py::test_a_partial_on_a_proved_node_is_told_the_node_is_proved_and_nothing_more
+2 failed, 5 passed in 0.93s
+
+### mutant becomes-for-every-type (mut_f07_t40)
+$ OPN_MUTANT=becomes-for-every-type PYTHONPATH=<mut> uv run --frozen pytest -p mut_f07_t40 api/tests/test_finding_submit_rivals.py -q
+FAILED api/tests/test_finding_submit_rivals.py::test_a_partial_on_a_proved_node_is_told_the_node_is_proved_and_nothing_more
+1 failed, 6 passed in 0.81s
+
+Every mutant fails at least one test (above).
+
+Plugin text (mut_f07_t40.py):
+
+```python
+"""F07-T40 mutants, chosen by OPN_MUTANT; each weakens one rule of on_the_node in memory."""
+
+import os
+
+
+def pytest_configure(config):
+    from opn_api import submissions
+
+    which = os.environ["OPN_MUTANT"]
+    original = submissions.on_the_node
+
+    if which == "no-rivals":
+        def on_the_node(ctx, node_id, artifact_type, *, proved, tutorial):
+            out = original(ctx, node_id, artifact_type, proved=proved, tutorial=tutorial)
+            out.pop("rivals", None)
+            return out
+    elif which == "rivals-ignore-blocking":
+        def on_the_node(ctx, node_id, artifact_type, *, proved, tutorial):
+            out = original(ctx, node_id, artifact_type, proved=proved, tutorial=tutorial)
+            every = [
+                {"pr_number": f.pr_number, "pseudonym": f.pseudonym}
+                for f in ctx.store.list_open_submissions()
+                if f.node_id == node_id and f.kind in {"proof", "partial"}
+            ]
+            if every:
+                out["rivals"] = every
+            return out
+    elif which == "empty-keys":
+        def on_the_node(ctx, node_id, artifact_type, *, proved, tutorial):
+            out = original(ctx, node_id, artifact_type, proved=proved, tutorial=tutorial)
+            return {"rivals": [], "node_proved": False, **out}
+    elif which == "never-proved":
+        def on_the_node(ctx, node_id, artifact_type, *, proved, tutorial):
+            return original(ctx, node_id, artifact_type, proved=False, tutorial=tutorial)
+    elif which == "becomes-for-every-type":
+        def on_the_node(ctx, node_id, artifact_type, *, proved, tutorial):
+            return original(ctx, node_id, "proof", proved=proved, tutorial=tutorial)
+    else:
+        raise SystemExit(which)
+    submissions.on_the_node = on_the_node
+```
+
+## make verify
+
+$ make verify
+ruff: all checks passed; mypy --strict: gate 213, api 133, site 41 files, no issues
+2650 passed, 75 skipped, 89 deselected in 141.50s

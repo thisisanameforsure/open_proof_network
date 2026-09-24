@@ -32,7 +32,6 @@ from mcp_client import McpClient
 from test_finding_duplicate_submissions import GATE_FAILED, OTHER_PROOF, PROOF
 from test_submissions_alternate import mark_proved, passing_job, submit
 
-RED = "F07-T40: the 201 body is the submission alone"
 ALTERNATE = "attempts/20260924T120000Z-bob-alternate.lean"
 
 
@@ -51,7 +50,6 @@ def submitted(h: Harness, key: PrecheckKey, token: str, node: str, bundle: dict[
     return got.json()
 
 
-@pytest.mark.xfail(strict=True, reason=RED)
 def test_an_open_rival_proof_is_named(harness: Harness, key: PrecheckKey) -> None:
     """#177 open, then #181: the second receipt names the first, and not itself."""
     alice = harness.token_for("code_alice", "alice")
@@ -74,7 +72,6 @@ def test_a_rival_that_can_no_longer_merge_is_not_named(harness: Harness, key: Pr
     assert "rivals" not in second, second
 
 
-@pytest.mark.xfail(strict=True, reason=RED)
 def test_a_proved_node_says_the_proof_becomes_an_alternate(
     harness: Harness, key: PrecheckKey
 ) -> None:
@@ -84,6 +81,20 @@ def test_a_proved_node_says_the_proof_becomes_an_alternate(
     got = submitted(harness, key, bob, proved, {f"{PROOF_PREFIX}{proved}/{ALTERNATE}": OTHER_PROOF})
     assert (got.get("node_proved"), got.get("becomes")) == (True, "alternate"), got
     assert "rivals" not in got
+
+
+def test_a_partial_on_a_proved_node_is_told_the_node_is_proved_and_nothing_more(
+    harness: Harness, key: PrecheckKey
+) -> None:
+    """``becomes`` is the alternate path a proof takes; a partial lands where it always does."""
+    bob = harness.token_for("code_bob", "bob")
+    proved, _node = mark_proved(harness)
+    bundle = {f"{PROOF_PREFIX}{proved}/attempts/20260924T120000Z-bob-partial.lean": OTHER_PROOF}
+    job = passing_job(harness, key, bob, proved, bundle)
+    body = {"node_id": proved, "artifact_type": "partial", "bundle": bundle, "precheck_job_id": job}
+    got = harness.client.post("/submissions", json=body, headers=harness.auth(bob))
+    assert got.status_code == 201, got.text
+    assert got.json().get("node_proved") is True and "becomes" not in got.json(), got.json()
 
 
 def test_a_node_with_nothing_open_says_nothing(harness: Harness, key: PrecheckKey) -> None:
@@ -104,7 +115,6 @@ def test_a_copy_is_still_refused(harness: Harness, key: PrecheckKey) -> None:
     assert (got.status_code, got.json()["error"]) == (409, "duplicate-submission"), got.text
 
 
-@pytest.mark.xfail(strict=True, reason=RED)
 def test_mcp_submit_proof_passes_the_keys_through(harness: Harness, key: PrecheckKey) -> None:
     alice = harness.token_for("code_alice", "alice")
     bob = harness.token_for("code_bob", "bob")
