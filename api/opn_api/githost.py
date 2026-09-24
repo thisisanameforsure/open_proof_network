@@ -17,6 +17,7 @@ from __future__ import annotations
 import base64
 import json
 import logging
+import threading
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -263,6 +264,9 @@ class HttpxGitHost:
         self._private_key = private_key
         # repo -> (installation access token, unix expiry). Memory only: never stored (C8).
         self._installation_tokens: dict[str, tuple[str, float]] = {}
+        # F07-T39: the snapshot's lookups run on a pool, so a cold process asks for the token
+        # from several threads at once; one mints it and the rest read the cache.
+        self._token_lock = threading.Lock()
 
     def exchange_code(self, code: str, *, redirect_uri: str) -> GitHubUser:
         with httpx.Client(timeout=TIMEOUT_S, headers={"Accept": "application/json"}) as http:
@@ -395,7 +399,12 @@ class HttpxGitHost:
         return (signing_input + b"." + _b64url(signature)).decode("ascii")
 
     def _installation_token(self, repo: str) -> str:
-        """The App's installation access token for ``repo``, cached until it nearly expires."""
+        """The App's installation access token for ``repo``, cached until it nearly expires.
+        Minted under a lock, so threads that arrive together mint one token (F07-T39)."""
+        with self._token_lock:
+            return self._installation_token_locked(repo)
+
+    def _installation_token_locked(self, repo: str) -> str:
         cached = self._installation_tokens.get(repo)
         if cached is not None and cached[1] - TOKEN_REFRESH_MARGIN_S > time.time():
             return cached[0]

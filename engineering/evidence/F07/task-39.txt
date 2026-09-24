@@ -26,3 +26,195 @@ FAILED api/tests/test_finding_submissions_cold_latency.py::test_the_width_is_con
 FAILED api/tests/test_finding_submissions_cold_latency.py::test_a_losing_racer_is_converted_once_under_concurrency
 3 failed, 3 passed, 2 warnings in 7.11s
 
+## red, found while fixing: the pool mints the installation token once per thread
+The snapshot's pool makes a cold process ask for the App's installation token from eight threads at
+once; HttpxGitHost._installation_token checked its cache without a lock, so each minted its own.
+## red (token)
+$ uv run --frozen pytest -q api/tests/test_finding_submissions_cold_latency.py -k cold_process
+E       AssertionError: assert 8 == 1
+E        +  where 8 = len([<Request('POST', 'https://api.github.com/app/installations/99/access_tokens')>, <Request('POST', 'https://api.github....installations/99/access_tokens')>, <Request('POST', 'https://api.github.com/app/installations/99/access_tokens')>, ...])
+E        +    where [<Request('POST', 'https://api.github.com/app/installations/99/access_tokens')>, <Request('POST', 'https://api.github....installations/99/access_tokens')>, <Request('POST', 'https://api.github.com/app/installations/99/access_tokens')>, ...] = to('POST', '/app/installations/99/access_tokens')
+E        +      where to = Script(calls=[<Request('GET', 'https://api.github.com/repos/owner/scratch/installation')>, <Request('GET', 'https://ap...n'): deque([<Response [200 OK]>]), ('POST', '/app/installations/99/access_tokens'): deque([<Response [201 Created]>])}).to
+FAILED api/tests/test_finding_submissions_cold_latency.py::test_concurrent_lookups_on_a_cold_process_mint_one_installation_token
+1 failed, 6 deselected, 2 warnings in 1.02s
+
+## green
+$ uv run --frozen pytest -v --durations=3 api/tests/test_finding_submissions_cold_latency.py api/tests/test_pending_submissions.py api/tests/test_finding_stale_open_submissions.py api/tests/test_finding_racer_alternate.py::test_the_snapshot_converts_too api/tests/test_mcp_pending_submissions.py api/tests/test_githost_seam.py
+api/tests/test_finding_submissions_cold_latency.py::test_twenty_five_open_records_answer_within_four_lookups_of_time PASSED [  0%]
+api/tests/test_finding_submissions_cold_latency.py::test_the_width_is_configuration_and_bounds_the_lookups_in_flight PASSED [  1%]
+api/tests/test_finding_submissions_cold_latency.py::test_the_concurrent_snapshot_equals_the_serial_one PASSED [  2%]
+api/tests/test_finding_submissions_cold_latency.py::test_one_failing_lookup_leaves_its_row_listed_and_the_rest_reconciled PASSED [  3%]
+api/tests/test_finding_submissions_cold_latency.py::test_a_losing_racer_is_converted_once_under_concurrency PASSED [  4%]
+api/tests/test_finding_submissions_cold_latency.py::test_get_pull_request_opens_one_client PASSED [  5%]
+api/tests/test_finding_submissions_cold_latency.py::test_concurrent_lookups_on_a_cold_process_mint_one_installation_token PASSED [  6%]
+api/tests/test_pending_submissions.py::test_the_append_routes_record_what_they_open PASSED [  6%]
+api/tests/test_pending_submissions.py::test_a_witness_proposal_is_recorded_as_a_witness PASSED [  7%]
+api/tests/test_pending_submissions.py::test_a_store_failure_while_recording_still_answers_201 PASSED [  8%]
+api/tests/test_pending_submissions.py::test_attesting_kinds_are_the_submission_artifact_types PASSED [  9%]
+api/tests/test_pending_submissions.py::test_every_spelling_of_the_id_is_the_same_answer[1] PASSED [ 10%]
+api/tests/test_pending_submissions.py::test_every_spelling_of_the_id_is_the_same_answer[000001] PASSED [ 11%]
+api/tests/test_pending_submissions.py::test_every_spelling_of_the_id_is_the_same_answer[0000000001] PASSED [ 12%]
+api/tests/test_pending_submissions.py::test_every_spelling_of_the_id_is_the_same_answer[{ulid}] PASSED [ 13%]
+api/tests/test_pending_submissions.py::test_every_spelling_of_the_id_is_the_same_answer[{ulid_lower}] PASSED [ 13%]
+api/tests/test_pending_submissions.py::test_numbers_that_name_nothing_are_unknown_without_a_host_lookup[0] PASSED [ 14%]
+api/tests/test_pending_submissions.py::test_numbers_that_name_nothing_are_unknown_without_a_host_lookup[000000] PASSED [ 15%]
+api/tests/test_pending_submissions.py::test_numbers_that_name_nothing_are_unknown_without_a_host_lookup[1000000000000] PASSED [ 16%]
+api/tests/test_pending_submissions.py::test_a_malformed_id_is_refused_by_name[not-an-id] PASSED [ 17%]
+api/tests/test_pending_submissions.py::test_a_malformed_id_is_refused_by_name[01M0000000000000000000000U] PASSED [ 18%]
+api/tests/test_pending_submissions.py::test_reads_inside_the_window_are_one_lookup_and_a_failure_serves_the_last_state PASSED [ 19%]
+api/tests/test_pending_submissions.py::test_a_host_failure_on_the_first_read_ever_is_a_null_state_with_the_error PASSED [ 20%]
+api/tests/test_pending_submissions.py::test_a_number_the_host_does_not_know_is_a_null_state_with_the_error PASSED [ 20%]
+api/tests/test_pending_submissions.py::test_a_pull_request_closed_unmerged_closes_the_record PASSED [ 21%]
+api/tests/test_pending_submissions.py::test_a_merged_proof_is_pending_until_its_attestation_lands PASSED [ 22%]
+api/tests/test_pending_submissions.py::test_a_merged_annex_leaves_the_snapshot PASSED [ 23%]
+api/tests/test_pending_submissions.py::test_submissions_round_trip_in_both_stores[memory] PASSED [ 24%]
+api/tests/test_pending_submissions.py::test_submissions_round_trip_in_both_stores[dynamodb] PASSED [ 25%]
+api/tests/test_pending_submissions.py::test_closing_keeps_the_final_state_and_leaves_the_open_index_in_both_stores[memory] PASSED [ 26%]
+api/tests/test_pending_submissions.py::test_closing_keeps_the_final_state_and_leaves_the_open_index_in_both_stores[dynamodb] PASSED [ 26%]
+api/tests/test_pending_submissions.py::test_the_dynamo_layout_is_three_prefixes_in_the_tokens_table_without_a_ttl PASSED [ 27%]
+api/tests/test_finding_stale_open_submissions.py::test_the_snapshot_drops_a_merged_pull_request_nobody_asked_about PASSED [ 28%]
+api/tests/test_finding_stale_open_submissions.py::test_the_snapshot_closes_the_record_not_just_the_view PASSED [ 29%]
+api/tests/test_finding_stale_open_submissions.py::test_the_snapshot_reuses_the_cached_pull_state PASSED [ 30%]
+api/tests/test_finding_stale_open_submissions.py::test_a_host_failure_leaves_the_row_listed PASSED [ 31%]
+api/tests/test_finding_stale_open_submissions.py::test_list_submissions_tool_sees_the_reconciled_list PASSED [ 32%]
+api/tests/test_finding_racer_alternate.py::test_the_snapshot_converts_too PASSED [ 33%]
+api/tests/test_mcp_pending_submissions.py::test_get_submission_tool_is_the_route_for_an_open_append PASSED [ 33%]
+api/tests/test_mcp_pending_submissions.py::test_get_node_carries_only_its_own_open_submissions_and_drops_the_merged PASSED [ 34%]
+api/tests/test_mcp_pending_submissions.py::test_list_submissions_handler_is_the_snapshot PASSED [ 35%]
+api/tests/test_githost_seam.py::test_exchange_transport_failure_names_the_exception_type_not_the_secret PASSED [ 36%]
+api/tests/test_githost_seam.py::test_exchange_error_body_with_200_is_a_refusal PASSED [ 37%]
+api/tests/test_githost_seam.py::test_exchange_non_200_with_empty_body_names_the_status PASSED [ 38%]
+api/tests/test_githost_seam.py::test_exchange_non_json_body_is_a_githost_error PASSED [ 39%]
+api/tests/test_githost_seam.py::test_exchange_200_with_a_non_json_body_names_the_call PASSED [ 40%]
+api/tests/test_githost_seam.py::test_exchange_error_status_with_a_json_error_names_the_error PASSED [ 40%]
+api/tests/test_githost_seam.py::test_exchange_sends_the_secret_to_github_only_as_form_data PASSED [ 41%]
+api/tests/test_githost_seam.py::test_user_lookup_transport_failure_drops_the_access_token PASSED [ 42%]
+api/tests/test_githost_seam.py::test_user_lookup_401_names_the_status_only PASSED [ 43%]
+api/tests/test_githost_seam.py::test_user_document_missing_a_field_is_refused[no-login] PASSED [ 44%]
+api/tests/test_githost_seam.py::test_user_document_missing_a_field_is_refused[no-id] PASSED [ 45%]
+api/tests/test_githost_seam.py::test_user_document_missing_a_field_is_refused[id-not-int] PASSED [ 46%]
+api/tests/test_githost_seam.py::test_user_document_missing_a_field_is_refused[id-null] PASSED [ 46%]
+api/tests/test_githost_seam.py::test_user_document_not_json_is_a_githost_error PASSED [ 47%]
+api/tests/test_githost_seam.py::test_user_document_that_is_a_list_is_a_githost_error PASSED [ 48%]
+api/tests/test_githost_seam.py::test_fetch_transport_failure_names_path_repo_and_exception_type PASSED [ 49%]
+api/tests/test_githost_seam.py::test_fetch_error_status_is_returned_not_raised[404] PASSED [ 50%]
+api/tests/test_githost_seam.py::test_fetch_error_status_is_returned_not_raised[500] PASSED [ 51%]
+api/tests/test_githost_seam.py::test_fetch_error_status_is_returned_not_raised[429] PASSED [ 52%]
+api/tests/test_githost_seam.py::test_fetch_sends_if_none_match_and_returns_304_with_the_same_etag PASSED [ 53%]
+api/tests/test_githost_seam.py::test_fetch_without_etag_sends_no_conditional_header PASSED [ 53%]
+api/tests/test_githost_seam.py::test_jwt_refused_when_the_app_is_not_configured PASSED [ 54%]
+api/tests/test_githost_seam.py::test_build_without_app_settings_yields_a_host_that_refuses_app_calls PASSED [ 55%]
+api/tests/test_githost_seam.py::test_unreadable_private_key_names_the_exception_type_not_the_key PASSED [ 56%]
+api/tests/test_githost_seam.py::test_non_rsa_private_key_is_refused PASSED [ 57%]
+api/tests/test_githost_seam.py::test_jwt_claims_expiry_window_and_signature PASSED [ 58%]
+api/tests/test_githost_seam.py::test_app_not_installed_404_names_the_call_and_status_not_the_jwt PASSED [ 59%]
+api/tests/test_githost_seam.py::test_installation_document_without_an_id_is_not_installed PASSED [ 60%]
+api/tests/test_githost_seam.py::test_installation_token_401_names_the_status_not_the_jwt PASSED [ 60%]
+api/tests/test_githost_seam.py::test_installation_token_issued_empty_is_refused PASSED [ 61%]
+api/tests/test_githost_seam.py::test_installation_document_not_json_is_refused PASSED [ 62%]
+api/tests/test_githost_seam.py::test_installation_document_not_an_object_is_refused PASSED [ 63%]
+api/tests/test_githost_seam.py::test_installation_token_is_cached_per_repo_and_renewed_before_expiry PASSED [ 64%]
+api/tests/test_githost_seam.py::test_installation_token_within_the_margin_is_reused PASSED [ 65%]
+api/tests/test_githost_seam.py::test_installation_token_failure_is_not_cached PASSED [ 66%]
+api/tests/test_githost_seam.py::test_4xx_with_non_json_body_names_the_status_alone PASSED [ 66%]
+api/tests/test_githost_seam.py::test_4xx_json_without_a_message_names_the_status_alone PASSED [ 67%]
+api/tests/test_githost_seam.py::test_a_5xx_is_not_retried PASSED         [ 68%]
+api/tests/test_githost_seam.py::test_app_calls_carry_the_api_version_and_accept_headers PASSED [ 69%]
+
+## mutants
+Each plugin is loaded with -p and weakens the rule in memory (no file edited); its text is kept here.
+
+### mut_t39_serial
+```python
+"""F07-T39 mutant: the pool is one worker wide (the old serial snapshot)."""
+
+from concurrent.futures import ThreadPoolExecutor
+
+from opn_api import pending
+
+
+class _One(ThreadPoolExecutor):
+    def __init__(self, max_workers=None, **kwargs):
+        super().__init__(1, **kwargs)
+
+
+pending.ThreadPoolExecutor = _One
+```
+$ PYTHONPATH=<mutants dir> uv run --frozen pytest -q -p mut_t39_serial api/tests/test_finding_submissions_cold_latency.py
+FAILED api/tests/test_finding_submissions_cold_latency.py::test_twenty_five_open_records_answer_within_four_lookups_of_time
+FAILED api/tests/test_finding_submissions_cold_latency.py::test_the_width_is_configuration_and_bounds_the_lookups_in_flight
+2 failed, 5 passed, 2 warnings in 7.42s
+
+### mut_t39_unbounded
+```python
+"""F07-T39 mutant: the width setting is ignored; one thread per record."""
+
+from concurrent.futures import ThreadPoolExecutor
+
+from opn_api import pending
+
+
+class _Wide(ThreadPoolExecutor):
+    def __init__(self, max_workers=None, **kwargs):
+        super().__init__(64, **kwargs)
+
+
+pending.ThreadPoolExecutor = _Wide
+```
+$ PYTHONPATH=<mutants dir> uv run --frozen pytest -q -p mut_t39_unbounded api/tests/test_finding_submissions_cold_latency.py
+FAILED api/tests/test_finding_submissions_cold_latency.py::test_the_width_is_configuration_and_bounds_the_lookups_in_flight
+1 failed, 6 passed, 2 warnings in 1.50s
+
+### mut_t39_no_pr_lock
+```python
+"""F07-T39 mutant: no per-pull-request lock."""
+
+import contextlib
+
+from opn_api import pending
+
+pending.pr_lock = lambda ctx, number: contextlib.nullcontext()
+```
+$ PYTHONPATH=<mutants dir> uv run --frozen pytest -q -p mut_t39_no_pr_lock api/tests/test_finding_submissions_cold_latency.py
+FAILED api/tests/test_finding_submissions_cold_latency.py::test_a_losing_racer_is_converted_once_under_concurrency
+1 failed, 6 passed, 2 warnings in 2.16s
+
+### mut_t39_no_token_lock
+```python
+"""F07-T39 mutant: the installation token is minted without a lock."""
+
+import contextlib
+
+from opn_api import githost
+
+_init = githost.HttpxGitHost.__init__
+
+
+def _weak(self, **kwargs):
+    _init(self, **kwargs)
+    self._token_lock = contextlib.nullcontext()
+
+
+githost.HttpxGitHost.__init__ = _weak
+```
+$ PYTHONPATH=<mutants dir> uv run --frozen pytest -q -p mut_t39_no_token_lock api/tests/test_finding_submissions_cold_latency.py
+FAILED api/tests/test_finding_submissions_cold_latency.py::test_concurrent_lookups_on_a_cold_process_mint_one_installation_token
+1 failed, 6 passed, 2 warnings in 2.76s
+
+## flake check
+The file run five times in a row: 7 passed each time, 2.26 to 2.40 s.
+
+## verify
+make verify: ruff clean, mypy gate/api/site no issues, 2662 passed, 75 skipped, 89 deselected (exit 0).
+
+Deviations from the plan, and why:
+- Only the host lookups go on the pool; the rest of each reconciliation (a racer's conversion,
+  closing the record) runs in order on the request thread, because the DynamoDB store is a boto3
+  resource (not shared across threads anywhere else) and the committed-file cache is a plain dict.
+  The per-pull-request lock (an RLock on Context) is held by live_state and by the whole of
+  reconcile, so concurrent readers never look a pull request up twice at once or convert it twice.
+- The plan's "one httpx.Client per get_pull_request instead of four" was already true of the code;
+  the seam test pins it. What the pool did expose was the installation-token cache: eight threads
+  on a cold process minted eight tokens; it is minted under a lock now (red above).
+- frontier.stale_all_but iterates a copy of ctx.files, since a reconcile under a lock in another
+  thread may add an entry while it runs.

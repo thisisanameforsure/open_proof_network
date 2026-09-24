@@ -89,7 +89,6 @@ def timed_snapshot(h: Harness) -> tuple[float, dict[str, Any]]:
     return elapsed, doc
 
 
-@pytest.mark.xfail(strict=True, reason="F07-T39: the snapshot reconciles one record after another")
 def test_twenty_five_open_records_answer_within_four_lookups_of_time(queue: Harness) -> None:
     """At 0.2 s a lookup, 25 records serially is 5 s; eight at a time is four rounds (0.8 s).
     The bound is 60 % of serial, so only a snapshot that is not concurrent can miss it."""
@@ -101,7 +100,6 @@ def test_twenty_five_open_records_answer_within_four_lookups_of_time(queue: Harn
     assert elapsed < 0.6 * OPEN * LATENCY, elapsed
 
 
-@pytest.mark.xfail(strict=True, reason="F07-T39: the snapshot reconciles one record after another")
 def test_the_width_is_configuration_and_bounds_the_lookups_in_flight() -> None:
     for h in harness_with({"OPN_API_RECONCILE_CONCURRENCY": "3"}):
         fill(h, 12)
@@ -132,7 +130,6 @@ def test_one_failing_lookup_leaves_its_row_listed_and_the_rest_reconciled(queue:
     assert queue.store.get_submission_by_pr(5).closed is not None  # type: ignore[union-attr]
 
 
-@pytest.mark.xfail(strict=True, reason="F07-T39: the snapshot reconciles one record after another")
 def test_a_losing_racer_is_converted_once_under_concurrency(
     queue: Harness, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -199,3 +196,29 @@ def test_get_pull_request_opens_one_client(
     host.get_pull_request(REPO, 33)
     assert len(script.calls) - before == 4
     assert made == [1]
+
+
+def test_concurrent_lookups_on_a_cold_process_mint_one_installation_token(
+    script: Script, host: HttpxGitHost
+) -> None:
+    """The pool makes the first snapshot of a fresh process ask for the App's installation token
+    from eight threads at once. Each would mint its own (a JWT signature and two API calls, and
+    an hour-long token thrown away); the cache is filled once, under a lock."""
+    install_app(script)
+    answer = script.handler
+
+    def slow(request: Any) -> Any:
+        time.sleep(0.05)
+        return answer(request)
+
+    script.handler = slow  # type: ignore[method-assign]
+    start = threading.Barrier(8)
+
+    def token(_: int) -> str:
+        start.wait()
+        return host._installation_token(REPO)
+
+    with ThreadPoolExecutor(8) as pool:
+        tokens = set(pool.map(token, range(8)))
+    assert len(tokens) == 1
+    assert len(script.to("POST", "/app/installations/99/access_tokens")) == 1

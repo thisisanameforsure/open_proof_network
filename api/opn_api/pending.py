@@ -20,7 +20,9 @@ from __future__ import annotations
 import json
 import logging
 import re
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from typing import TYPE_CHECKING, Any
 
@@ -161,8 +163,20 @@ def unknown_node(ctx: Context, node_id: str, where: str = "") -> ApiError:
 # --- the live state (C7) -------------------------------------------------------------------------
 
 
+def pr_lock(ctx: Context, number: int) -> threading.RLock:
+    """F07-T39: the lock for one pull request's reconciliation, made on first use."""
+    with ctx.pr_locks_guard:
+        return ctx.pr_locks.setdefault(number, threading.RLock())
+
+
 def live_state(ctx: Context, number: int) -> tuple[PullRequestState | None, str | None]:
-    """The pull request's state and, when it is not a fresh answer from the host, why."""
+    """The pull request's state and, when it is not a fresh answer from the host, why. Under
+    the pull request's lock, so two threads asking at once make one lookup (F07-T39)."""
+    with pr_lock(ctx, number):
+        return _live_state(ctx, number)
+
+
+def _live_state(ctx: Context, number: int) -> tuple[PullRequestState | None, str | None]:
     cached = ctx.pulls.get(number)
     now = time.monotonic()
     if cached is not None and now - cached.fetched_at < ctx.settings.frontier_max_stale_s:
@@ -275,7 +289,9 @@ def final_state(found: Submission) -> dict[str, Any] | None:
 
 
 def reconcile(
-    ctx: Context, found: Submission
+    ctx: Context,
+    found: Submission,
+    first: tuple[PullRequestState | None, str | None] | None = None,
 ) -> tuple[Submission, dict[str, Any] | None, str | None]:
     """The record with the host's last word on it, closing it when the pull request has finished.
 
@@ -283,10 +299,23 @@ def reconcile(
     to live inside ``answer`` alone, so only the submission somebody named was ever reconciled
     and the list kept merged pull requests for ever (#66-#69 sat open for two days). A record
     the host cannot describe is left open with the reason, never silently dropped (C7).
+
+    F07-T39: ``first`` is a live read the caller already made (the snapshot's concurrent
+    lookups), and the whole reconciliation holds the pull request's lock, so a losing racer is
+    converted once however many readers arrive together.
     """
+    with pr_lock(ctx, found.pr_number):
+        return _reconcile(ctx, found, first)
+
+
+def _reconcile(
+    ctx: Context,
+    found: Submission,
+    first: tuple[PullRequestState | None, str | None] | None,
+) -> tuple[Submission, dict[str, Any] | None, str | None]:
     if found.closed is not None:
         return found, final_state(found), None
-    state, error = live_state(ctx, found.pr_number)
+    state, error = first if first is not None else live_state(ctx, found.pr_number)
     from opn_api import racers  # noqa: PLC0415 — racers reads the duplicate rule, which reads this
 
     if state is not None and error is None and racers.convert(ctx, found, state):
@@ -544,10 +573,23 @@ def snapshot(ctx: Context) -> dict[str, Any]:
     Each is reconciled against the host first, so "open" means the host still calls it open and
     not merely that nobody has asked. One lookup per open record per freshness window, on the
     same cache ``answer`` uses; a record the host cannot describe stays listed (C7).
+
+    F07-T39: the lookups are what cost (22 open records took 28 s live, one after another), so
+    they run on a pool ``reconcile_concurrency`` wide. Only the host reads go on the pool: the
+    rest of each reconciliation (a racer's conversion, closing the record in the store) runs
+    here, in order, because neither the store's client nor the committed-file cache is shared
+    across threads anywhere else.
     """
+    records = ctx.store.list_open_submissions()
+    width = min(ctx.settings.reconcile_concurrency, len(records))
+    if width > 1:
+        with ThreadPoolExecutor(width, thread_name_prefix="reconcile") as pool:
+            firsts = list(pool.map(lambda s: live_state(ctx, s.pr_number), records))
+    else:
+        firsts = [live_state(ctx, s.pr_number) for s in records]
     open_now: list[dict[str, Any]] = []
-    for submission in ctx.store.list_open_submissions():
-        record, _, _ = reconcile(ctx, submission)
+    for submission, first in zip(records, firsts, strict=True):
+        record, _, _ = reconcile(ctx, submission, first)
         if record.closed is None:
             open_now.append(document(record))
     return {"snapshot_at": clockmod.render(ctx.clock.now()), "open": open_now}

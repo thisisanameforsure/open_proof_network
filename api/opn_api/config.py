@@ -64,6 +64,10 @@ Variables (prefix ``OPN_API_``):
 ``OPN_API_CHECK_CONCURRENCY``
     Checks in flight to the hosted service per process (F13-R8, Q8). Default ``8``, under
     AXLE's ten concurrent keyless requests.
+``OPN_API_RECONCILE_CONCURRENCY``
+    Pull-request lookups ``GET /submissions.json`` makes at once while it reconciles the open
+    records against the host (F07-T39, Q47). Default ``8``; each lookup is three or four GitHub API
+    calls, and the App's rate budget is per hour, not per second.
 ``OPN_API_GITHUB_APP_ID`` / ``OPN_API_GITHUB_CLIENT_ID``
     The GitHub App's ids (not secret, but issued with the App, so they travel with its secrets).
 ``OPN_API_GITHUB_CLIENT_SECRET`` / ``OPN_API_GITHUB_PRIVATE_KEY``
@@ -112,6 +116,7 @@ DEFAULT_CHECKS_PER_HOUR = 600  # F13-R8
 DEFAULT_ANONYMOUS_CHECKS_PER_DAY = 200  # F13-R8
 DEFAULT_CHECK_MAX_BYTES = 200_000  # F13-R7
 DEFAULT_CHECK_CONCURRENCY = 8  # F13-R8, Q8
+DEFAULT_RECONCILE_CONCURRENCY = 8  # F07-T39, Q47
 
 # Parameter Store name (under the prefix) -> the variable it populates (C8 item 3).
 PARAMETERS: dict[str, str] = {
@@ -166,6 +171,7 @@ class Settings:
     anonymous_checks_per_day: int = DEFAULT_ANONYMOUS_CHECKS_PER_DAY
     check_max_bytes: int = DEFAULT_CHECK_MAX_BYTES
     check_concurrency: int = DEFAULT_CHECK_CONCURRENCY
+    reconcile_concurrency: int = DEFAULT_RECONCILE_CONCURRENCY
     github_app_id: str | None = None
     github_client_id: str | None = None
     github_client_secret: str | None = field(default=None, repr=False)
@@ -287,6 +293,9 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
         ),
         check_max_bytes=_int(env, "OPN_API_CHECK_MAX_BYTES", DEFAULT_CHECK_MAX_BYTES),
         check_concurrency=_int(env, "OPN_API_CHECK_CONCURRENCY", DEFAULT_CHECK_CONCURRENCY),
+        reconcile_concurrency=_int(
+            env, "OPN_API_RECONCILE_CONCURRENCY", DEFAULT_RECONCILE_CONCURRENCY
+        ),
         github_app_id=env.get("OPN_API_GITHUB_APP_ID") or None,
         github_client_id=env.get("OPN_API_GITHUB_CLIENT_ID") or None,
         github_client_secret=env.get("OPN_API_GITHUB_CLIENT_SECRET") or None,
