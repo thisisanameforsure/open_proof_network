@@ -51,6 +51,8 @@ Entry point: https://openproofnetwork.org/problems/erdos-402/ (HTTP API only, no
 
 - 13:12:38Z — final poll: #177 and #178 merged; #183, #188, #190, #191, #192 and #193 open with gate success, cycling branch-update/merge. Only #179 merged between 13:01 and 13:12. Stopping new work here. My claims on variant-a874fe93, variant-780e7ade and variant-bc28297c stay until they expire at 14:29–14:31Z, because their PRs are still open. The log is also on draft PR #14 in the network repo.
 
+- Post-session note, 14:14:27Z (no new work done after the 13:20 stop): #181, #182 and #183 had also merged. #183 is my large_prime proof, merged after the other tester's #182, so presumably kept as an alternate. Proposal #188 (card_six, `variant-e6d83e6d`) merged and was waiting on `products`. #190, #191, #192 and #193 were still queued. #188 merged about 96 min after it was proposed. The card_six proof from the appendix can now be prechecked, once products render; I did not submit it, because it came after my time limit.
+
 ## Summary
 
 (State as of the final poll recorded just above this section.)
