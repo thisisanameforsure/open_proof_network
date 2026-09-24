@@ -207,3 +207,5 @@ body=head+"\n".join(build(order,{},{},2))+"\n"
 open(f'c{n}_fast4.lean','w').write(body)
 print(len(body.splitlines()),"lines")
 ```
+- 12:53:42Z Released my claims on variant-6bd06d63 and variant-3377fd96 (200). (The ids of my claims on 780e7ade and the first bc28297c claim were never printed by me, and there is no "my claims" listing — they will expire at 14:31/14:32Z.)
+- 12:53:5xZ `get_node variant-3377fd96` right after #177 merged: still `status: ready`, `proof.present: false`, rendered_from 4a7d60a4 — the products lag the merge (the guide says 3–6 min for the post-merge job). Expected, noted for timing.
