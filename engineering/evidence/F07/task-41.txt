@@ -1,0 +1,32 @@
+F07-T41 — a proposal's GET /submissions/<id> shows the proposed statement (testers 2026-09-24,
+engineering/evidence/testers-2026-09-24/erdos-402-http.md:39 and :84, erdos-402-mcp.md:49 and :311).
+
+## red
+$ uv run --frozen pytest -q api/tests/test_finding_proposal_statement.py
+E       AssertionError: {'submission': {'id': '01M00000000000000000000188', 'kind': 'variant', 'node_id': 'variant-e6d83e6d', 'target_id': 'pr...rsure/open_proof_network_graph/pull/188', 'state': 'open', ...}, 'pull_request_error': None, 'gate_verdict': None, ...}
+E       assert None == {'path': 'targets/propositional/nodes/variant-e6d83e6d/Statement.lean', 'head_sha': 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee... 'import Targets.Propositional.Context\n\ntheorem Opn.erdos_402_card_six : 6 = 6 := by\n  sorry\n', 'truncated': False}
+E        +  where None = <built-in method get of dict object at 0x7faa78163780>('proposed_statement')
+E        +    where <built-in method get of dict object at 0x7faa78163780> = {'submission': {'id': '01M00000000000000000000188', 'kind': 'variant', 'node_id': 'variant-e6d83e6d', 'target_id': 'pr...rsure/open_proof_network_graph/pull/188', 'state': 'open', ...}, 'pull_request_error': None, 'gate_verdict': None, ...}.get
+E       AssertionError: {'submission': {'id': '01M00000000000000000000188', 'kind': 'speculative', 'node_id': 'variant-e6d83e6d', 'target_id':...rsure/open_proof_network_graph/pull/188', 'state': 'open', ...}, 'pull_request_error': None, 'gate_verdict': None, ...}
+E       assert None == {'path': 'targets/propositional/nodes/variant-e6d83e6d/Statement.lean', 'head_sha': 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee... 'import Targets.Propositional.Context\n\ntheorem Opn.erdos_402_card_six : 6 = 6 := by\n  sorry\n', 'truncated': False}
+E        +  where None = <built-in method get of dict object at 0x7faa78168980>('proposed_statement')
+E        +    where <built-in method get of dict object at 0x7faa78168980> = {'submission': {'id': '01M00000000000000000000188', 'kind': 'speculative', 'node_id': 'variant-e6d83e6d', 'target_id':...rsure/open_proof_network_graph/pull/188', 'state': 'open', ...}, 'pull_request_error': None, 'gate_verdict': None, ...}.get
+E       AssertionError: {'submission': {'id': '01M00000000000000000000188', 'kind': 'variant', 'node_id': 'variant-e6d83e6d', 'target_id': 'pr...rsure/open_proof_network_graph/pull/188', 'state': 'open', ...}, 'pull_request_error': None, 'gate_verdict': None, ...}
+E       assert ('proposed_statement' in {'submission': {'id': '01M00000000000000000000188', 'kind': 'variant', 'node_id': 'variant-e6d83e6d', 'target_id': 'pr...rsure/open_proof_network_graph/pull/188', 'state': 'open', ...}, 'pull_request_error': None, 'gate_verdict': None, ...})
+E       AssertionError: {'submission': {'id': '01M00000000000000000000188', 'kind': 'variant', 'node_id': 'variant-e6d83e6d', 'target_id': 'pr...rsure/open_proof_network_graph/pull/188', 'state': 'open', ...}, 'pull_request_error': None, 'gate_verdict': None, ...}
+E       assert ('proposed_statement' in {'submission': {'id': '01M00000000000000000000188', 'kind': 'variant', 'node_id': 'variant-e6d83e6d', 'target_id': 'pr...rsure/open_proof_network_graph/pull/188', 'state': 'open', ...}, 'pull_request_error': None, 'gate_verdict': None, ...})
+E       AssertionError: {}
+E       assert None is True
+E        +  where None = <built-in method get of dict object at 0x7faa781dc340>('truncated')
+E        +    where <built-in method get of dict object at 0x7faa781dc340> = {}.get
+E       AssertionError: assert 'proposed_statement' in {'submission': {'id': '01M00000000000000000000188', 'kind': 'variant', 'node_id': 'variant-e6d83e6d', 'target_id': 'pr...rsure/open_proof_network_graph/pull/188', 'state': 'open', ...}, 'pull_request_error': None, 'gate_verdict': None, ...}
+E       AssertionError: assert 'proposed_statement' in {'submission': {'id': '01M00000000000000000000188', 'kind': 'variant', 'node_id': 'variant-e6d83e6d', 'target_id': 'pr...rsure/open_proof_network_graph/pull/188', 'state': 'open', ...}, 'pull_request_error': None, 'gate_verdict': None, ...}
+FAILED api/tests/test_finding_proposal_statement.py::test_a_variant_submission_carries_its_statement_at_the_head_sha[variant]
+FAILED api/tests/test_finding_proposal_statement.py::test_a_variant_submission_carries_its_statement_at_the_head_sha[speculative]
+FAILED api/tests/test_finding_proposal_statement.py::test_a_host_failure_gives_null_with_the_reason
+FAILED api/tests/test_finding_proposal_statement.py::test_a_branch_without_the_file_gives_null_with_the_reason
+FAILED api/tests/test_finding_proposal_statement.py::test_a_long_statement_is_capped_at_16_kb_and_says_so
+FAILED api/tests/test_finding_proposal_statement.py::test_the_list_entry_still_equals_the_document
+FAILED api/tests/test_finding_proposal_statement.py::test_mcp_get_submission_carries_the_statement_and_validates
+7 failed, 1 passed, 2 warnings in 0.76s
+
