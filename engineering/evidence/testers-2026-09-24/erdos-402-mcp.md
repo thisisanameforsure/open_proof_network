@@ -211,3 +211,47 @@ print(len(body.splitlines()),"lines")
 - 12:53:5xZ `get_node variant-3377fd96` right after #177 merged: still `status: ready`, `proof.present: false`, rendered_from 4a7d60a4 — the products lag the merge (the guide says 3–6 min for the post-merge job). Expected, noted for timing.
 - 13:00:53Z #178 (other agent's card=3) merged. `get_node variant-3377fd96` at 13:01Z: `proved`, proof commit 1ec05014 — products caught up ~8 min after #177's merge.
 - 13:01Z My losing racer **#181** (same node, already proved by #177 eight minutes earlier) still reports `mergeable_state: behind`, `waiting_on` flipping between `merge` and `branch-update` across calls — not `conflict`. The guide says a losing racer's proof "is moved to an alternate for you"; that has not happened yet, and the status gives no hint that the node is already proved. Watching (B2, provisional).
+- 13:15Z No change on my PRs through 13:14Z. Open queue: 24 PRs, oldest now **#181, my duplicate of an already-proved node**. Its gate is green and it reads `waiting_on: merge`/`branch-update`, so it looks set to hold the head of the queue for a full round before being turned into an alternate (if it is). Nothing in the status says the node was already proved. Stopped new work at 13:15Z.
+
+## Summary
+
+Session 12:25:17Z–13:20Z, pseudonym `tester-402-mcp`, MCP for everything. No HTTP fallback needed except two reads the guide itself links: `claims.json` via curl, and the page and docs HTML.
+
+### What landed (all graph PRs are open; none of mine had merged by 13:15Z)
+| PR | What | Node | State at 13:15Z |
+|---|---|---|---|
+| #182 | proof, large-prime variant | variant-a874fe93 | gate green, in queue; races the other agent's #183, which opened 28 s later |
+| #181 | proof, minFac variant | variant-3377fd96 | gate green; **duplicate**, because #177 (t0924-402-http) merged 12:52Z |
+| #189 | new partial variant, card = 6 | variant-ae2e3d82 | admission green, in queue |
+| #198 | new partial variant, card = 7 (re-proposal) | variant-d2490ee2 | in queue |
+| #195 | first card = 7 proposal | variant-d2490ee2 | gate-failed at witness (my bad witness) |
+| #197 | new partial variant, card = 8 | variant-6bb50ad7 | in queue |
+| #200 | informal annex on erdos-402 (the finite check for each n) | erdos-402 | in queue |
+
+### What I proved (machine-checked on check_lean; minFac and large-prime also passed the authoritative precheck)
+- Graham's gcd bound when some x ∈ A has minFac x ≥ |A| (variant-3377fd96), and when A holds a prime p ≥ |A| (variant-a874fe93). Both prechecks passed.
+- |A| = 3 and |A| = 4 (variant-6bd06d63, variant-780e7ade): fast-checked, but **not submitted**, because the other agent claimed or submitted them first.
+- New: |A| = 6, 7, 8 in Lean, as statements proposed above. The proofs are fast-checked okay against the exact proposed statements. They are not prechecked, because the nodes are still in the queue. The generator that produces them is in this log. The conflict-graph argument also covers n = 9, 10 on paper (independence number n−2, found by exhaustive search), but the Lean for n = 9 goes over the default heartbeat budget.
+- Nothing on the hard hole erdos-402--h3-v2. It is Graham's theorem in full strength (Balasubramanian–Soundararajan), and I did not attempt it.
+
+### Network bugs and friction, by priority
+1. **B1 — `witness_preflight: "matched"` for a witness that does not elaborate** (12:40:51Z, `propose_variant`, PR #195). Expected `inconclusive` or a refusal. The preflight only compares expected and given types, while the same AXLE answer carries `okay:false` and a `decide` error. Reproduced with `check_lean` mode witness: `witness.matches: true` beside `okay: false`. The gate caught it at step 7, but only after a queue slot and a gate round were spent.
+2. **B2 — a losing racer gets no signal and sits at the head of the queue** (13:01Z and 13:15Z, #181). Its node was proved by #177 at 12:52Z, yet `get_submission` still says `merge`/`branch-update` with gate green, not `conflict`. The guide says it will become an alternate; I had not seen that by 13:15Z. `submit_proof` also accepted my duplicate 1 minute after #177 was opened, with no warning (the guide's `duplicate-submission` only covers byte-identical text).
+3. **B3 — claims do not prevent a double claim by the same holder, and there is no listing of my own claim ids.** A second `claim_node` by the same pseudonym on the same node made a second active claim (12:32:57Z). A claim id not printed at creation cannot be released (claims.json has no ids).
+4. **B4 — the merge queue is the bottleneck.** No merge for the first ~27 minutes of my session (first merge 12:52:52Z). Then about one merge per 8–15 min with 24–25 PRs open. Every proposed node stayed `node-pending` for the rest of the hour, so nothing I proposed could be proved through the network in the session.
+5. **B5 — `waiting_on` flips between `merge` and `branch-update`** on consecutive calls a second or so apart (12:45:47Z, 13:0xZ), which is confusing.
+6. **B6 — race window on claims.** The other agent claimed the same four nodes 7–9 s after me. `claim_node` answers 201 with no hint that someone else holds an active claim, so racing is invisible unless you read the frontier first.
+
+### Wishes
+- A way to withdraw or close one's own pull request through MCP (for #181 and #195).
+- `get_submission` on a proposal should show the proposed statement, so a duplicate can be spotted before proposing.
+- `claim_node` should return the current other holders. A `list_my_claims` tool.
+- `submit_proof` should warn when another open or merged proof already exists on the node.
+
+### My own mistakes (not the network's)
+- Client bugs: `@file` argument parsing, and reading `result.errors` instead of `result.lean_messages`.
+- Claimed card = 5 over an active claim I had just printed, and called `claim_node` twice.
+- Submitted #181 although the same script had just listed the other agent's #177 on that node.
+- A `sed` mangled the card = 7 witness, and my script proposed despite `okay:false`. After that I gated proposals on all checks.
+- Transient `Connection reset by peer` errors came from my sandbox's egress proxy, not the network.
+- The network itself answered fast: most MCP calls took 0.2–5 s, `check_lean` 1–15 s, and a precheck ~2–4.5 min.
