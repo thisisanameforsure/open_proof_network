@@ -1124,3 +1124,20 @@ The law of the project:
   on a missing function, which proves nothing; with `result_document` extracted unchanged it failed
   on the missing key. **A pipe hides make's exit status**: `make lint | tail -1 && git commit` committed
   two lint failures; run make bare and read `$?`.
+- 2026-09-24 (night) — The testers' remaining findings and the owner's rulings, built unattended in one sitting as
+  network PR #20 (3422bb4): decisions v3.22 applied as drafted and approved, then F08-T20 (one circularity claim
+  reaches the whole established path), F07-T44 (a hole's witness skips what its decomposition proved, meta/v5) and,
+  on the owner's word that evening ("we shouldn't get a pull request at all in these cases — it should be an error
+  sent back to the user"), F13-T21 to T23: every route that opens a pull request audited, and a witness, an exhibit,
+  a statement that does not compile, a sorry or foreign axiom, a relation in the wrong direction and a same-second
+  record refused before anything opens. Four worktree agents, the lead merging and writing the ledgers. Three things
+  worth keeping. **Probe the premise in Lean before building the amendment**: C1's "250 lines of re-proved haves"
+  was a tester's prediction; a proved `have` is a `let` the closed type drops, and what actually reaches a hole is a
+  fact obtained by taking a proved one apart, so the rule narrowed less than the note said. **Two features built in
+  parallel meet at the merge, not in either worktree**: the new hole-witness pre-flight read no META, so it would
+  have refused the narrowed witnesses the gate had just learned to accept; found only by reading the two reports
+  side by side. **A cloud session's reach is narrower than the owner's**: the git proxy accepts pushes to the
+  session's branch only (a tag is a 403) and the App cannot dispatch a workflow, so the re-pin stops at the image;
+  elan's host and ghcr's blob host are refused too, but GitHub release downloads work, so the Lean tier ran here
+  from the release zip linked into elan (`elan toolchain link`). The closed graph PRs #189, #195, #198, #202 were
+  all opened hours before the refusals that now stop them were deployed.
