@@ -44,3 +44,73 @@ FAILED api/tests/test_finding_claims_mine.py::test_the_route_is_in_the_table_as_
 FAILED api/tests/test_finding_claims_mine.py::test_list_my_claims_over_mcp_equals_the_route
 FAILED api/tests/test_finding_claims_mine.py::test_list_my_claims_without_a_token_is_refused_before_the_route
 17 failed, 6 passed, 2 warnings in 1.15s
+
+## green
+
+What changed (api only; no schema change, since a receipt is not a product and claims.json stays
+claims/v1):
+- api/opn_api/claims.py: `held_on` (the caller's active claim on this node of this target) is
+  checked before the cap, and a repeat answers 200 with that claim unchanged; `others` (the node's
+  other active holders, pseudonym and expires, the registry's order) rides on every POST /claims
+  receipt; `get_my_claims` serves GET /claims/mine.
+- api/opn_api/routes.py: GET /claims/mine, authenticated, no D-35 row (a read, like
+  /checks/{check_id}), with its purpose line for GET /.
+- api/opn_api/mcp/reads.py, calls.py, server.py, bijection.py, schemas/list_my_claims/v1.json:
+  the list_my_claims tool. It is a read declared `bearer`; `Tool` now allows that for a read (it
+  still refuses `endpoint`), and the server refuses a bearer-less call to it in the read tools'
+  error shape ({error: unauthenticated, message, source: adapter, status: 401}) rather than a
+  write's envelope. claim_node's description says a repeat returns the same claim and to read
+  `others`.
+- docs/architecture_decisions.html: D-28's read table gains the list_my_claims row with a
+  notation note of 2026-09-24 (the bijection test quotes D-28 verbatim, and a new read tool has
+  no row otherwise). No decision changes.
+
+Existing tests that had pinned the old behaviour, restated to the rule they were about (none
+deleted): test_claims.py::test_ttl_caps (releases between claims), ::test_active_claim_cap and
+::test_cap_is_per_identity (the capped claim is on the fixture's other claimable node, cap 1),
+test_rejections_claims.py::test_expired_claims_do_not_count_toward_the_active_cap (idem),
+test_ratelimit.py::test_hourly_write_limit (a repeat is 200 and still charged as a write).
+test_mcp_surface.py READS gains list_my_claims; test_mcp_equivalence.py's AC3 test compares
+list_my_claims to GET /claims/mine.
+
+$ uv run --frozen pytest -q -p no:cacheprovider api/tests/test_finding_claim_twice.py api/tests/test_finding_claims_mine.py
+23 passed, 2 warnings in 0.87s
+
+$ uv run --frozen pytest -q -p no:cacheprovider api/tests/test_finding_claim_twice.py api/tests/test_finding_claims_mine.py api/tests/test_claims.py api/tests/test_rejections_claims.py api/tests/test_ratelimit.py api/tests/test_mcp_surface.py api/tests/test_mcp_equivalence.py api/tests/test_routes.py api/tests/test_finding_route_index.py
+75 passed, 2 warnings in 6.92s
+
+$ make verify   (ruff, ruff format, mypy gate/api/site, fast tier)
+=== 2655 passed, 75 skipped, 89 deselected, 2 warnings in 152.56s (0:02:32) ====
+(the 75 skips are the tests that read the sibling graph checkout, absent in this worktree)
+
+## mutants
+
+Each mutant is a pytest plugin loaded with -p that replaces one rule in memory; no file is
+edited. Plugins kept in the session scratchpad; their first line is quoted below.
+
+$ PYTHONPATH=<scratch>/mutants uv run --frozen pytest -q --tb=no -p mut_f05_mine_all api/tests/test_finding_claim_twice.py api/tests/test_finding_claims_mine.py api/tests/test_claims.py
+  Mutant: GET /claims/mine lists every claim the identity ever made (released, expired).
+  -> 2 failed, 32 passed in 1.26s
+  e.g. api/tests/test_finding_claims_mine.py::test_mine_leaves_out_released_and_expired_claims[memory] api/tests/test_finding_claims_mine.py::test_mine_leaves_out_released_and_expired_claims[dynamodb] 
+$ PYTHONPATH=<scratch>/mutants uv run --frozen pytest -q --tb=no -p mut_f05_mine_open api/tests/test_finding_claim_twice.py api/tests/test_finding_claims_mine.py api/tests/test_claims.py
+  Mutant: GET /claims/mine is not authenticated at the routes table.
+  -> 9 failed, 25 passed in 1.44s
+  e.g. api/tests/test_finding_claims_mine.py::test_mine_lists_the_callers_active_claims_with_ids[memory] api/tests/test_finding_claims_mine.py::test_mine_lists_the_callers_active_claims_with_ids[dynamodb] api/tests/test_finding_claims_mine.py::test_mine_leaves_out_released_and_expired_claims[memory] api/tests/test_finding_claims_mine.py::test_mine_leaves_out_released_and_expired_claims[dynamodb] 
+$ PYTHONPATH=<scratch>/mutants uv run --frozen pytest -q --tb=no -p mut_f05_others_caller api/tests/test_finding_claim_twice.py api/tests/test_finding_claims_mine.py api/tests/test_claims.py
+  Mutant: others includes the caller's own claim.
+  -> 6 failed, 28 passed in 0.96s
+  e.g. api/tests/test_finding_claim_twice.py::test_the_receipt_lists_other_active_holders_and_not_the_caller[memory] api/tests/test_finding_claim_twice.py::test_the_receipt_lists_other_active_holders_and_not_the_caller[dynamodb] api/tests/test_finding_claim_twice.py::test_the_receipt_omits_expired_and_released_holders[memory] api/tests/test_finding_claim_twice.py::test_the_receipt_omits_expired_and_released_holders[dynamodb] 
+$ PYTHONPATH=<scratch>/mutants uv run --frozen pytest -q --tb=no -p mut_f05_others_empty api/tests/test_finding_claim_twice.py api/tests/test_finding_claims_mine.py api/tests/test_claims.py
+  Mutant: others is always empty.
+  -> 6 failed, 28 passed in 0.94s
+  e.g. api/tests/test_finding_claim_twice.py::test_the_receipt_lists_other_active_holders_and_not_the_caller[memory] api/tests/test_finding_claim_twice.py::test_the_receipt_lists_other_active_holders_and_not_the_caller[dynamodb] api/tests/test_finding_claim_twice.py::test_the_receipt_omits_expired_and_released_holders[memory] api/tests/test_finding_claim_twice.py::test_the_receipt_omits_expired_and_released_holders[dynamodb] 
+$ PYTHONPATH=<scratch>/mutants uv run --frozen pytest -q --tb=no -p mut_f05_others_inactive api/tests/test_finding_claim_twice.py api/tests/test_finding_claims_mine.py api/tests/test_claims.py
+  Mutant: others counts expired and released claims too.
+  -> 2 failed, 32 passed in 0.99s
+  e.g. api/tests/test_finding_claim_twice.py::test_the_receipt_omits_expired_and_released_holders[memory] api/tests/test_finding_claim_twice.py::test_the_receipt_omits_expired_and_released_holders[dynamodb] 
+$ PYTHONPATH=<scratch>/mutants uv run --frozen pytest -q --tb=no -p mut_f05_repeat api/tests/test_finding_claim_twice.py api/tests/test_finding_claims_mine.py api/tests/test_claims.py
+  Mutant: a repeat claim is never recognised (held_on always None).
+  -> 5 failed, 29 passed in 1.13s
+  e.g. api/tests/test_finding_claim_twice.py::test_the_same_holder_claiming_twice_gets_the_same_claim[memory] api/tests/test_finding_claim_twice.py::test_the_same_holder_claiming_twice_gets_the_same_claim[dynamodb] api/tests/test_finding_claim_twice.py::test_claiming_again_at_the_cap_returns_the_claim_rather_than_429 api/tests/test_finding_claim_twice.py::test_the_receipt_lists_other_active_holders_and_not_the_caller[memory] 
+
+Every mutant is killed by at least one test; with no mutant loaded the same three files pass (34).

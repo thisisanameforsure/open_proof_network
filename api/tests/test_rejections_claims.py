@@ -116,15 +116,18 @@ def test_non_holder_cannot_release_a_claim_even_after_it_expired(harness: Harnes
 
 
 def test_expired_claims_do_not_count_toward_the_active_cap(harness: Harness) -> None:
-    """AC14's cap counts *active* claims: once they expire, room opens without a release."""
+    """AC14's cap counts *active* claims: once they expire, room opens without a release.
+
+    The capped claim is on a second node: since F05-T14 a repeat on the node already held returns
+    that claim instead of counting against the cap."""
     from api_fakes import make_harness  # noqa: PLC0415 — one use
 
     h = make_harness({"OPN_API_ACTIVE_CLAIMS": "1"})
     token = h.token_for("code_alice", "alice-p")
     assert post(h, token, ttl_hours=1).status_code == 201
-    assert post(h, token).status_code == 429
+    assert post(h, token, node_id="tutorial-and-swap").status_code == 429
     h.clock.advance(hours=1, seconds=1)
-    assert post(h, token).status_code == 201
+    assert post(h, token, node_id="tutorial-and-swap").status_code == 201
 
 
 def test_claim_receipt_never_carries_the_identity_id(harness: Harness) -> None:

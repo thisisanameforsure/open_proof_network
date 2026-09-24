@@ -54,7 +54,6 @@ def mine_ids(h: Harness, token: str) -> list[str]:
     return [c["id"] for c in r.json()["claims"]]
 
 
-@pytest.mark.xfail(strict=True, reason="F05-T14: no GET /claims/mine route")
 def test_mine_lists_the_callers_active_claims_with_ids(h: Harness) -> None:
     alice = h.token_for("code_alice", "alice-p")
     bob = h.token_for("code_bob", "bob-p")
@@ -73,7 +72,6 @@ def test_mine_lists_the_callers_active_claims_with_ids(h: Harness) -> None:
     assert listed.get("others") == [{"pseudonym": "bob-p", "expires": "2026-09-09T13:00:01Z"}]
 
 
-@pytest.mark.xfail(strict=True, reason="F05-T14: no GET /claims/mine route")
 def test_mine_leaves_out_released_and_expired_claims(h: Harness) -> None:
     alice = h.token_for("code_alice", "alice-p")
     released = claim(h, alice, OTHER)
@@ -84,7 +82,6 @@ def test_mine_leaves_out_released_and_expired_claims(h: Harness) -> None:
     assert mine_ids(h, alice) == []
 
 
-@pytest.mark.xfail(strict=True, reason="F05-T14: no GET /claims/mine route")
 def test_mine_is_empty_for_someone_with_no_claims(h: Harness) -> None:
     claim(h, h.token_for("code_alice", "alice-p"))
     bob = h.token_for("code_bob", "bob-p")
@@ -93,7 +90,6 @@ def test_mine_is_empty_for_someone_with_no_claims(h: Harness) -> None:
     assert r.json()["claims"] == []
 
 
-@pytest.mark.xfail(strict=True, reason="F05-T14: no GET /claims/mine route")
 def test_mine_without_a_bearer_is_401() -> None:
     h = make_harness()
     r = h.client.get("/claims/mine")
@@ -103,7 +99,6 @@ def test_mine_without_a_bearer_is_401() -> None:
     assert bad.status_code == 401
 
 
-@pytest.mark.xfail(strict=True, reason="F05-T14: no GET /claims/mine route")
 def test_the_route_is_in_the_table_as_an_authenticated_read() -> None:
     from opn_api import routes  # noqa: PLC0415
 
@@ -112,7 +107,6 @@ def test_the_route_is_in_the_table_as_an_authenticated_read() -> None:
     assert spec.authenticated and not spec.write and spec.d35 is None
 
 
-@pytest.mark.xfail(strict=True, reason="F05-T14: no list_my_claims tool")
 def test_list_my_claims_over_mcp_equals_the_route() -> None:
     h = make_harness()
     alice = h.token_for("code_alice", "alice-p")
@@ -123,7 +117,6 @@ def test_list_my_claims_over_mcp_equals_the_route() -> None:
     assert over_mcp.structuredContent == mine(h, alice).json()
 
 
-@pytest.mark.xfail(strict=True, reason="F05-T14: no list_my_claims tool")
 def test_list_my_claims_without_a_token_is_refused_before_the_route() -> None:
     h = make_harness()
     result = McpClient(h).call("list_my_claims", {})

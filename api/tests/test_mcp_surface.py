@@ -37,6 +37,8 @@ READS = {
     # no tool, so "no MCP-only capability" was true and its converse was not.
     "list_routes",
     "get_hosted_checkers",
+    # F05-T14 (ruling D3(b)), D-28's notation note of 2026-09-24: the caller's own claims.
+    "list_my_claims",
 }
 WRITES = {
     "claim_node",

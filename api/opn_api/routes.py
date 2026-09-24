@@ -67,6 +67,10 @@ ROUTES: tuple[RouteSpec, ...] = (
     RouteSpec(
         "DELETE", "/claims/{claim_id}", "claims:delete_claim", D35_DELETE_CLAIM, authenticated=True
     ),
+    # F05-T14 (ruling D3(b), 2026-09-24): a caller's own claims with their ids, which the public
+    # registry does not publish. A read with no D-35 row, like /checks/{check_id}; the bearer is
+    # required because the list is the identity's own.
+    RouteSpec("GET", "/claims/mine", "claims:get_my_claims", None, authenticated=True),
     # R2: the bearer is not required by the route table, because the tutorial node is open to an
     # unauthenticated caller (Q2); the handler authenticates for every other node.
     RouteSpec("POST", "/precheck", "precheck:post_precheck", D35_POST_PRECHECK, feature="F06"),
@@ -172,6 +176,7 @@ PURPOSES: dict[str, str] = {
     "POST /tokens": "Issue a token: from a passing tutorial precheck (no account) or GitHub.",
     "POST /claims": "Claim an open statement for a time, so others can see it is being worked.",
     "DELETE /claims/{claim_id}": "Release a claim you hold.",
+    "GET /claims/mine": "Your own active claims with their ids, and who else holds each node.",
     "POST /precheck": "Run the gate on a bundle in the hosted sandbox before submitting it.",
     "GET /precheck/{job_id}": "A precheck job's state, and its signed attestation when done.",
     "POST /submissions": "Open the pull request for a prechecked proof or partial proof.",

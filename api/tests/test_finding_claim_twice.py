@@ -53,9 +53,6 @@ def active(h: Harness) -> list[dict[str, Any]]:
     return doc
 
 
-@pytest.mark.xfail(
-    strict=True, reason="F05-T14: a second POST /claims by the same holder mints a new claim"
-)
 def test_the_same_holder_claiming_twice_gets_the_same_claim(h: Harness) -> None:
     alice = h.token_for("code_alice", "alice-p")
     first = post(h, alice, ttl_hours=5)
@@ -72,9 +69,6 @@ def test_the_same_holder_claiming_twice_gets_the_same_claim(h: Harness) -> None:
     assert h.client.get("/claims.json").json()["nodes"][NODE]["history_count"] == 1
 
 
-@pytest.mark.xfail(
-    strict=True, reason="F05-T14: a repeat claim is charged against the active-claim cap"
-)
 def test_claiming_again_at_the_cap_returns_the_claim_rather_than_429() -> None:
     """The cap counts claims, and a repeat makes none, so it is not charged against it."""
     h = make_harness({"OPN_API_ACTIVE_CLAIMS": "1"})
@@ -108,7 +102,6 @@ def test_an_expired_claim_does_not_count_as_held(h: Harness) -> None:
     assert second.json()["expires"] == "2026-09-09T15:00:01Z"
 
 
-@pytest.mark.xfail(strict=True, reason="F05-T14: the receipt carries no others")
 def test_the_receipt_lists_other_active_holders_and_not_the_caller(h: Harness) -> None:
     alice = h.token_for("code_alice", "alice-p")
     bob = h.token_for("code_bob", "bob-p")
@@ -124,7 +117,6 @@ def test_the_receipt_lists_other_active_holders_and_not_the_caller(h: Harness) -
     assert again.get("others") == [{"pseudonym": "bob-p", "expires": "2026-09-10T12:00:00Z"}]
 
 
-@pytest.mark.xfail(strict=True, reason="F05-T14: the receipt carries no others")
 def test_the_receipt_omits_expired_and_released_holders(h: Harness) -> None:
     alice = h.token_for("code_alice", "alice-p")
     bob = h.token_for("code_bob", "bob-p")
