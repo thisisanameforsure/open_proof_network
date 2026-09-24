@@ -368,21 +368,68 @@ def waiting_on_products(
 ) -> dict[str, Any] | None:
     """F05-T13: a merged proposal whose node the products do not carry yet is waiting on the
     post-merge job, and says so, instead of reading as finished while every call on the node
-    answers ``products-pending``. A graph that cannot be read changes nothing (C7)."""
-    from opn_api import precheck  # noqa: PLC0415 — precheck imports this module
+    answers ``products-pending``. F05-T15: so is a merged annex the products' commit lacks, and a
+    merged witness whose node still reads ``witness-missing``, the two other things precheck
+    answers ``products-pending`` for. A merged postmortem or approach record waits on nothing.
+    A graph that cannot be read changes nothing (C7)."""
     from opn_api.store import proposes  # noqa: PLC0415
 
-    if pull is None or not pull.get("merged") or not proposes(found):
+    if pull is None or not pull.get("merged"):
+        return pull
+    if proposes(found):
+        waits = _node_unrendered
+    elif found.kind == "annex" and found.node_id is not None:
+        waits = _annex_unrendered
+    elif found.kind == "witness" and found.node_id is not None:
+        waits = _witness_unrendered
+    else:
         return pull
     try:
-        known = any(
-            node.get("node_id") == found.node_id
-            for nodes in precheck.graph_doc(ctx).values()
-            for node in nodes
-        )
-    except ApiError:
+        waiting = waits(ctx, found, pull)
+    except (ApiError, GitHostError, ValueError, KeyError) as exc:
+        log.warning("pull request #%d: products not compared: %s", found.pr_number, exc)
         return pull
-    return pull if known else {**pull, "waiting_on": WAITING_ON_PRODUCTS}
+    return {**pull, "waiting_on": WAITING_ON_PRODUCTS} if waiting else pull
+
+
+def _node_unrendered(ctx: Context, found: Submission, pull: dict[str, Any]) -> bool:
+    from opn_api import precheck  # noqa: PLC0415 — precheck imports this module
+
+    return not any(
+        node.get("node_id") == found.node_id
+        for nodes in precheck.graph_doc(ctx).values()
+        for node in nodes
+    )
+
+
+def _annex_unrendered(ctx: Context, found: Submission, pull: dict[str, Any]) -> bool:
+    """The merge commit carries an annex on the node that the commit the target's products were
+    rendered from does not: the commit ``precheck.check_cited_annex`` pins a skeleton to. The
+    record does not keep the annex's hash, so the node's two ``annex/`` listings are compared;
+    both are at immutable commits."""
+    from opn_api import precheck  # noqa: PLC0415 — precheck imports this module
+
+    merge = pull.get("merge_commit_sha")
+    if not merge:
+        return False
+    rendered = precheck.rendered_from(ctx, found.target_id)
+    directory = f"targets/{found.target_id}/nodes/{found.node_id}/annex"
+    repo = ctx.settings.graph_repo
+    merged = ctx.githost.list_dir(repo, str(merge), directory) or []
+    shown = ctx.githost.list_dir(repo, rendered, directory) or []
+    return bool(set(merged) - set(shown))
+
+
+def _witness_unrendered(ctx: Context, found: Submission, pull: dict[str, Any]) -> bool:
+    """The node still reads ``witness-missing`` and ``main`` has the filled slot, the test
+    precheck refuses on (``precheck.witness_awaits_render``)."""
+    from opn_api import precheck  # noqa: PLC0415 — precheck imports this module
+
+    for node in precheck.graph_doc(ctx).get(found.target_id, []):
+        if node.get("node_id") == found.node_id:
+            facts = precheck.facts_of(found.target_id, node)
+            return precheck.witness_awaits_render(ctx, str(found.node_id), facts)
+    return False
 
 
 def answer(ctx: Context, raw: str) -> dict[str, Any]:

@@ -56,13 +56,11 @@ def merged_annex(h: Harness, number: int = 174) -> None:
     h.githost.absent_at[RENDERED] = {ANNEX}
 
 
-@pytest.mark.xfail(strict=True, reason="F05-T15: waiting_on_products covers proposals alone")
 def test_a_merged_annex_not_yet_rendered_waits_on_products(harness: Harness) -> None:
     merged_annex(harness)
     assert waiting_on(harness, 174) == "products"
 
 
-@pytest.mark.xfail(strict=True, reason="F05-T15: waiting_on_products covers proposals alone")
 def test_it_clears_once_rendered(harness: Harness) -> None:
     merged_annex(harness)
     assert waiting_on(harness, 174) == "products"
@@ -86,7 +84,6 @@ def seed_hole(h: Harness, *, cause: str | None) -> None:
     h.context.files.clear()
 
 
-@pytest.mark.xfail(strict=True, reason="F05-T15: waiting_on_products covers proposals alone")
 def test_a_merged_witness_waits_until_the_node_is_no_longer_witness_missing(
     harness: Harness,
 ) -> None:
