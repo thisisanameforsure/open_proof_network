@@ -31,6 +31,7 @@ import logging
 import re
 import threading
 import time
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -488,20 +489,54 @@ def superseded_warning(ctx: Context, node_id: str | None) -> list[dict[str, Any]
 # --- the witness preview (F13-T14) ---------------------------------------------------------------
 
 
-def witness_program(decl_name: str, has_witness: bool) -> str:
+def proved_binders_of(meta_text: str | bytes | None) -> tuple[int, ...]:
+    """F07-T44 (D-29 v3.22): a hole's record of the binders its assembly proved, read from its
+    ``META.yaml`` the way step 7 reads it (``proved_indices``): anything that is not a list of
+    indices, or no ``META.yaml`` at all, is no record, and the expected type is the full one."""
+    import yaml  # noqa: PLC0415 — only the witness paths read a META.yaml
+
+    from opn_gate.steps.artifact import proved_indices  # noqa: PLC0415
+
+    if not meta_text:
+        return ()
+    try:
+        doc = yaml.safe_load(meta_text)
+    except yaml.YAMLError:
+        return ()
+    return proved_indices(doc.get("proved_binders")) if isinstance(doc, dict) else ()
+
+
+def witness_program(decl_name: str, has_witness: bool, proved: Sequence[int] = ()) -> str:
     """The gate's ``WitnessType.lean`` and the few lines that ask it one question: the type step
     7 will hold a witness of ``decl_name`` to, the given witness's type, and whether they are the
     same. Printed under the options the hole writer prints under (F07-R19, T30), so the text can
-    be pasted back as a witness's type."""
+    be pasted back as a witness's type.
+
+    ``proved`` is a hole's record of the binders its assembly proved (F07-T44, D-29 v3.22): the
+    type asked for is then the narrowed one, and a witness of the full type matches too, exactly
+    as ``opn-witness-type --proved`` decides at step 7."""
     try:
         source = WITNESS_SOURCE.read_text(encoding="utf-8")
     except OSError as exc:
         msg = f"the witness metaprogram is not in this package: {WITNESS_SOURCE.name}"
         raise api_error(503, "witness-program-unreadable", msg) from exc
     body = IMPORT_LINE_RE.sub("", source).strip("\n")
+    marked = ", ".join(str(int(i)) for i in proved)
+    expected = (
+        f"  let expected ← OpnGate.expectedWitnessTypeNarrowed s.type #[{marked}]\n"
+        "  let full ← OpnGate.expectedWitnessType s.type\n"
+        if proved
+        else "  let expected ← OpnGate.expectedWitnessType s.type\n"
+    )
+    either = (
+        "  let same ← pure same <||> withReducible (isDefEq full w.type) <||> isDefEq full w.type\n"
+        if proved
+        else ""
+    )
     given = (
         "  let w ← getConstInfo `witness\n"
         "  let same ← withReducible (isDefEq expected w.type) <||> isDefEq expected w.type\n"
+        f"{either}"
         "  let given := Json.str (← pp w.type)\n"
         "  let verdict := Json.bool same\n"
         if has_witness
@@ -513,7 +548,7 @@ def witness_program(decl_name: str, has_witness: bool) -> str:
         "open Lean Meta in\n"
         "run_meta do\n"
         f"  let s ← getConstInfo `{decl_name}\n"
-        "  let expected ← OpnGate.expectedWitnessType s.type\n"
+        f"{expected}"
         "  let pp (e : Expr) : MetaM String :=\n"
         "    withOptions (fun o => ((o.setBool `pp.coercions.types true).setBool\n"
         "        `pp.numericTypes true).setBool `pp.funBinderTypes true) do\n"
@@ -526,10 +561,10 @@ def witness_program(decl_name: str, has_witness: bool) -> str:
     )
 
 
-def witness_text(formal: str, content: str, decl_name: str) -> str:
+def witness_text(formal: str, content: str, decl_name: str, proved: Sequence[int] = ()) -> str:
     """What the checker is sent in witness mode: the node's statement under its own header (the
     definitions already inlined), ``import Lean`` for the metaprogram, the witness without its
-    import lines, then the program."""
+    import lines, then the program; ``proved`` is the hole's record, if it has one (F07-T44)."""
     lines = formal.splitlines(keepends=True)
     imports = [i for i, line in enumerate(lines) if line.startswith("import ")]
     at = imports[-1] + 1 if imports else 0
@@ -540,7 +575,7 @@ def witness_text(formal: str, content: str, decl_name: str) -> str:
         + header
         + "".join(lines[at:])
         + (f"\n{witness}\n" if witness else "")
-        + witness_program(decl_name, bool(witness))
+        + witness_program(decl_name, bool(witness), proved)
     )
 
 
@@ -909,7 +944,8 @@ async def preflight_witness(
         environment = entry.environment
         context = files.get(prefix + "Context.lean")
         defs = inline_defs(ctx, target_id, parsed, witness, node_id, context=context)
-        text = witness_text(forwarded_text(parsed.text, defs), witness, parsed.decl_name)
+        proved = proved_binders_of(files.get(prefix + "META.yaml"))
+        text = witness_text(forwarded_text(parsed.text, defs), witness, parsed.decl_name, proved)
         budget = min(PREFLIGHT_TIMEOUT_S, ctx.settings.check_timeout_s)
         answer = await asyncio.to_thread(
             call_checker, ctx, req, text, environment, None, timeout_s=budget
@@ -1094,8 +1130,14 @@ def statement_mode_text(
     if req.mode == "hazards":
         return hazards_text(formal, statement.decl_name, target_checkers(ctx, req.target_id))
     # The caller's own text, not the forwarded one: the definitions and the Context are already
-    # in ``formal``, and inlined into an empty witness they read as one.
-    return witness_text(formal, req.content, statement.decl_name)
+    # in ``formal``, and inlined into an empty witness they read as one. A merged hole's record of
+    # what its assembly proved narrows the question as it narrows step 7's (F07-T44); a statement
+    # that is not a node yet has none.
+    proved: tuple[int, ...] = ()
+    if req.node_id is not None and req.statement is None:
+        meta = frontier.committed(ctx, f"targets/{req.target_id}/nodes/{req.node_id}/META.yaml")
+        proved = proved_binders_of(meta)
+    return witness_text(formal, req.content, statement.decl_name, proved)
 
 
 async def post_check(ctx: Context, request: Request) -> Response:

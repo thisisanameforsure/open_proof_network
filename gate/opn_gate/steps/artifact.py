@@ -52,6 +52,16 @@ MAX_HOLES = 20
 PROOF_FILE_KINDS: tuple[Kind, ...] = ("proof", "counterexample", "vacuity")
 
 
+def proved_indices(raw: object) -> tuple[int, ...]:
+    """F07-T44: a list of binder indices as the extractor or a ``META.yaml`` gives it; anything
+    that is not a list of non-negative integers reads as no record, whose type is today's."""
+    if not isinstance(raw, list) or not all(
+        isinstance(i, int) and not isinstance(i, bool) and i >= 0 for i in raw
+    ):
+        return ()
+    return tuple(sorted(set(raw)))
+
+
 @dataclass(frozen=True)
 class Hole:
     """One ``have``-bound hole in a partial proof — a candidate child node (D-29, F07-R6)."""
@@ -80,6 +90,10 @@ class Hole:
     #: ``closed_type`` is, and reported only when that text reads back to the same type. ``None``
     #: from an older pin, or when it does not survive printing: the slot then claims nothing.
     expected_witness: str | None = None
+    #: F07-T44 (D-29 v3.22): the indices, into ``closed_type``'s leading ``∀`` binders, of the
+    #: binders the assembly proved rather than left as holes: step 7 does not ask the child's
+    #: witness to exhibit them. Empty from an older pin, which marks none.
+    proved_binders: tuple[int, ...] = ()
 
     @classmethod
     def of(cls, doc: dict[str, Any]) -> Hole:
@@ -97,6 +111,7 @@ class Hole:
             defeq_ancestor=str(ancestor) if ancestor else None,
             closed_roundtrip=True if roundtrip is None else bool(roundtrip),
             expected_witness=str(expected) if isinstance(expected, str) and expected else None,
+            proved_binders=proved_indices(doc.get("proved_binders")),
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -109,6 +124,7 @@ class Hole:
             "defeq_ancestor": self.defeq_ancestor,
             "closed_roundtrip": self.closed_roundtrip,
             "expected_witness": self.expected_witness,
+            "proved_binders": list(self.proved_binders),
         }
 
 

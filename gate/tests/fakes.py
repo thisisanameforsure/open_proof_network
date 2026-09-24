@@ -174,6 +174,8 @@ class FakeToolchain:
     missing: bool = False
     raise_on: str | None = None  # name of the method that should raise an unexpected error
     calls: list[str] = field(default_factory=list)
+    #: every ``opn-witness-type`` request, in call order (F07-T44: what step 7 asked for).
+    witness_requests: list[WitnessRequest] = field(default_factory=list)
 
     def _maybe_raise(self, name: str) -> None:
         if self.raise_on == name:
@@ -260,6 +262,7 @@ class FakeToolchain:
         timeout_s: float | None = None,
     ) -> MetaprogramResult:
         self.calls.append(f"witness_type:{req.decl}:{req.witness is not None}")
+        self.witness_requests.append(req)
         self._maybe_raise("witness_type")
         return self.witness
 

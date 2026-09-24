@@ -354,3 +354,33 @@ def test_without_a_block_the_children_declare_no_model(
     for child in out["partial"]["children"]:
         meta = yaml.safe_load((root / NODES / child / "META.yaml").read_text())
         assert meta["provenance"]["author"] == "login" and meta["provenance"]["model"] is None
+
+
+# --- F07-T44 (D-29 v3.22): a hole's witness covers only what the assembly left unproved ----------
+
+
+def test_the_hole_meta_records_which_binders_were_proved(
+    tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The extractor marks the binders of a hole's closed type that the assembly proved; the job
+    writes them into the child's ``META.yaml`` (``meta/v5``) beside the slot for the narrowed
+    type, because the record is what step 7 reads when the child's witness arrives. A child with
+    nothing proved keeps the META version it had, so nothing already committed churns."""
+    root, _assembly, _ = merged_partial(tmp_path)
+    artifact = artifact_result(holes=HOLES)
+    artifact.doc["holes"][1]["proved_binders"] = [3]
+    artifact.doc["holes"][1]["expected_witness"] = "∃ p q r, (p ∧ q) ∧ r"
+    seam.fake = FakeToolchain(witness=WITNESS, artifact=artifact)
+    code, out, err = run(
+        capsys, *argv(root, tmp_path / "o", "--apply-partial", "--author", "login")
+    )
+    assert code == cli.EXIT_PASS, err
+    first, second = (
+        yaml.safe_load((root / NODES / child / "META.yaml").read_text())
+        for child in out["partial"]["children"]
+    )
+    assert "proved_binders" not in first and first["schema"] == "meta/v2"
+    assert second["proved_binders"] == [3] and second["schema"] == "meta/v5"
+    schemas.validate(second)
+    slot = (root / NODES / out["partial"]["children"][1] / "Witness.lean").read_text()
+    assert "theorem witness : ∃ p q r, (p ∧ q) ∧ r := by" in slot

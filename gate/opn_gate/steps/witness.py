@@ -3,6 +3,11 @@
 ``Witness.lean`` must exist, elaborate under the pinned toolchain, rest on no axiom outside the
 allowlist (in particular not ``sorryAx``), and declare exactly one ``witness`` whose type is
 definitionally the expected type the metaprogram derives from ``Statement.lean``.
+
+D-29 v3.22 (F07-T44): for a hole whose ``META.yaml`` records ``proved_binders`` — the binders
+of its statement the merged assembly proved — the expected type asks only for the rest, and a
+witness of the full type is accepted too. The record is the post-merge job's (``meta/v5``); a
+node without it is held to the full type, as every node was before the rule.
 """
 
 from __future__ import annotations
@@ -10,6 +15,7 @@ from __future__ import annotations
 import subprocess
 
 from opn_gate import layout
+from opn_gate.steps.artifact import proved_indices
 from opn_gate.steps.base import RunContext, StepResult
 from opn_gate.toolchain import MetaprogramResult, ResolvedToolchain, WitnessRequest
 
@@ -44,6 +50,9 @@ class WitnessStep:
             decl=node.statement.decl_name,
             witness=witness_path,
             witness_module=layout.node_module(node.node_id, "Witness"),
+            # D-29 v3.22 (F07-T44): a hole's record of what its assembly proved; none, and the
+            # expected type is the full one, as it was for every node before the rule.
+            proved=proved_indices(node.meta.get("proved_binders")),
         )
         try:
             result = ctx.toolchain.witness_type(tc, req, [ctx.build_dir], timeout_s=ctx.wallclock_s)
