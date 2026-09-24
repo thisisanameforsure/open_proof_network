@@ -113,3 +113,85 @@ def test_the_mcp_defect_tools_say_the_same() -> None:
         assert "`exhibit_preflight`" in by_name[name], name
     for word in EXHIBIT_WORDS:
         assert word in by_name["file_defect_claim"], word
+
+
+# --- F13-T23: the statement, the witness's axioms, the relation proof, the same-second name -------
+
+STATEMENT_REFUSALS = ("statement-fails", "witness-sorry", "witness-axiom")
+RELATION_REFUSALS = (
+    "relation-elaboration",
+    "relation-sorry",
+    "relation-axiom",
+    "relation-direction",
+)
+RELATION_WORDS = (
+    checks.PREFLIGHT_MATCHED,
+    checks.PREFLIGHT_INCONCLUSIVE,
+    checks.PREFLIGHT_UNAVAILABLE,
+    checks.PREFLIGHT_SKIPPED,
+)
+
+
+def test_the_statement_and_axiom_refusals_are_the_pre_flights_own() -> None:
+    assert '"statement-fails"' in inspect.getsource(checks.refuse_failing_statement)
+    witness = inspect.getsource(checks.preflight_witness)
+    assert "refuse_failing_statement(" in witness
+    assert '"witness-sorry"' in witness and '"witness-axiom"' in witness
+    assert "refuse_failing_statement(" in inspect.getsource(checks.preflight_hazards)
+
+
+def test_the_guide_names_the_statement_and_axiom_refusals() -> None:
+    for code in STATEMENT_REFUSALS:
+        assert f"`422 {code}`" in FLAT, code
+        assert f"`422 {code}`" in witness_step(), code
+
+
+def test_the_relation_refusals_are_the_pre_flights_own() -> None:
+    source = inspect.getsource(checks.preflight_relation)
+    for code in RELATION_REFUSALS:
+        assert f'"{code}"' in source, code
+    shape = inspect.getsource(proposals.check_relation_shape)
+    assert '"relation-decl"' in shape and '"relation-sorry"' in shape
+    variant = inspect.getsource(proposals.post_variant)
+    assert "check_relation_shape(" in variant and "variant=True" in variant
+
+
+def test_the_guide_names_the_relation_refusals_and_the_receipt() -> None:
+    start = FLAT.index("- **A variant** (`POST /proposals/variant`)")
+    bullet = FLAT[start : FLAT.index("- **A partial proof**", start)]
+    for code in RELATION_REFUSALS:
+        assert f"`422 {code}`" in bullet, code
+    assert "`400 relation-decl`" in bullet and "`400 relation-sorry`" in bullet
+    assert "`relation_preflight`" in bullet
+    for word in RELATION_WORDS:
+        assert f"`{word}`" in bullet, word
+
+
+def test_the_mcp_proposal_tools_say_the_same() -> None:
+    by_name = {t.name: re.sub(r"\s+", " ", t.description) for t in writes.TOOLS}
+    for name in ("propose_variant", "propose_speculative_node", "propose_witness"):
+        for code in STATEMENT_REFUSALS:
+            assert f"422 {code}" in by_name[name], (name, code)
+    for code in RELATION_REFUSALS:
+        assert f"422 {code}" in by_name["propose_variant"], code
+    assert "400 relation-decl" in by_name["propose_variant"]
+    assert "`relation_preflight`" in by_name["propose_variant"]
+    for word in RELATION_WORDS:
+        assert word in by_name["propose_variant"], word
+
+
+def test_the_same_second_name_is_refused_as_the_guide_says() -> None:
+    from opn_api import appends  # noqa: PLC0415
+
+    assert appends.NAME_ERROR == "record-name-taken"
+    assert "holding_name(" in inspect.getsource(appends.append_pr)
+    assert '"Retry-After": "1"' in inspect.getsource(appends.holding_name)
+    assert "`409 record-name-taken` with `Retry-After: 1`" in FLAT
+    by_name = {t.name: re.sub(r"\s+", " ", t.description) for t in writes.TOOLS}
+    for name in (
+        "submit_postmortem",
+        "submit_approach_record",
+        "file_defect_claim",
+        "file_revision_request",
+    ):
+        assert "409 record-name-taken" in by_name[name], name

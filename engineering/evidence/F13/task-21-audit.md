@@ -27,16 +27,16 @@ when the checker answers; **by construction** the service writes the thing so it
 | `declaration-clash` vs merged node | admission `declaration` | yes (409, F08-T16) |
 | `declaration-clash` vs open proposal (merge order) | admission `declaration` | yes (409, F08-T19) |
 | same statement already proposed / merged (same node id) | classify (path) | yes (409 copy rule, F07-T35; a merged twin is a declaration clash) |
-| `statement-elaboration` (statement does not compile) | admission `statement-axioms` | **no** — the witness program never runs, so the pre-flight answers `inconclusive` (pinned as design by `test_a_witness_the_checker_cannot_elaborate_is_inconclusive_not_refused`); see decision Q-a |
+| `statement-elaboration` (statement does not compile) | admission `statement-axioms` | **was no; now pf** (422 `statement-fails` with Lean's errors on the statement part's lines, F13-T23; the witness, hazard and relation pre-flights all read it). An error only past the statement's lines, or none named, stays `inconclusive` |
 | `statement-axiom` (statement rests on an axiom outside the allowlist) | admission `statement-axioms` | **no** — the witness program reports no axioms |
 | `witness-type-mismatch` | step 7 | pf (422, F13-T16) |
 | `witness-elaboration` (right type, does not compile) | step 7 | pf (422 `witness-fails`, F13-T17) |
 | `witness-sorry` from a literal `sorry` token | step 7 | **was no; now yes** (400 `witness-invalid`, F13-T21): a `sorry` compiles on AXLE with a warning, so the pre-flight said `matched` and step 7 refused it |
-| `witness-sorry` via a Context dep's restated `sorry`, `witness-axiom` | step 7 | **no** — see Q-b |
+| `witness-sorry` via a Context dep's restated `sorry`, `witness-axiom` | step 7 | **was no; now pf** (422 `witness-sorry` / `witness-axiom`, F13-T23: the program prints `collectAxioms` of `witness`, held to the target's `axiom_allowlist` in step 7's order) |
 | `hazard-unacknowledged` | admission `hazards` (step 6) | pf (422, F13-T20) |
 | context not byte-equal to deps | admission `context` | by construction (`scaffold.context_from` over the committed deps) |
 | `dep-unknown`, `dependency-cycle` | admission `graph` | yes (404 `dep-unknown`); a new node cannot close a cycle |
-| relation: `relation-elaboration`, `relation-direction`, `relation-sorry`, `relation-axiom`, `relation-decl` | admission `relation` | **no** — a label above `related` without a proof is refused (400), but the proof itself is never sent; see Q-c |
+| relation: `relation-elaboration`, `relation-direction`, `relation-sorry`, `relation-axiom`, `relation-decl` | admission `relation` | **was no; now pf / yes** (F13-T23): `relation-decl` and a literal `sorry` are 400 before any check; the rest are 422 from `checks.preflight_relation`, which sends the variant's statement, the root's committed statement and `Relation.lean` with the gate's own `expectedRelationType` (`ArtifactType.lean`); `relation_preflight` in the receipt |
 | `relation-root-*`, `relation-not-a-variant`, `relation-unlabelled` | admission `relation` | by construction (the scaffold writes the label and root) |
 | products lag (node unknown right after merge) | — | n/a (not a refusal of this PR) |
 
@@ -49,8 +49,8 @@ when the checker answers; **by construction** the service writes the thing so it
 | `witness-sorry` from a literal `sorry` token | step 7 | yes (400 `witness-invalid`) — **fixed**: now `layout.mentions_sorry`, the gate's own reading; the old `"sorry" in witness` also refused a real witness whose comment names the word |
 | `witness-type-mismatch` | step 7 | **was no; now pf** (422, F13-T21) |
 | `witness-elaboration` (right type, does not compile) | step 7 | **was no; now pf** (422 `witness-fails`, F13-T21) |
-| `witness-sorry` via a Context dep's `sorry`, `witness-axiom` | step 7 | **no** — Q-b |
-| declaration, statement axioms, context, graph of the hole | admission | n/a in practice: the hole's statement and Context are the gate's own and already merged; a defect there is pre-existing and no witness can fix it |
+| `witness-sorry` via a Context dep's `sorry`, `witness-axiom` | step 7 | **was no; now pf** (422, F13-T23) |
+| declaration, statement axioms, context, graph of the hole | admission | n/a in practice: the hole's statement and Context are the gate's own and already merged; a defect there is pre-existing and no witness can fix it. One that does not compile is now refused 422 `statement-fails` (F13-T23), since its admission would fail whatever the witness |
 | `hazard-unacknowledged` | admission `hazards` | n/a: a hole's statement is derived, and step 6 records its findings without refusing (F07-Q19) |
 
 ## `POST /defect-claims` and `POST /revision-requests` (append mode, then `opn-gate exhibits`)
@@ -77,7 +77,7 @@ when the checker answers; **by construction** the service writes the thing so it
 | path, role, schema, `record-invalid` | `check_append_file` | yes (service writes the path; same schema and caps, F07-R14) |
 | annex content-hash name, `annex-too-large` | `check_append_file` | by construction (hash of the file it pushes) / yes (400 at the same cap) |
 | identical record already open | merge order | yes (409 copy rule, F07-T35) |
-| two different records by one identity in the same second share a file name (`<ts>-<pseudonym>`), and the second can never merge | path collision | **no** — closable deterministically (an open submission of the same kind, node and pseudonym with the same `created` second), not done here: it needs a new refusal code, and the case has been seen only on the bench. Recommended as a follow-up |
+| two different records by one identity in the same second share a file name (`<ts>-<pseudonym>`), and the second can never merge | path collision | **was no; now yes** (409 `record-name-taken`, `Retry-After: 1`, naming the first's pull request, F13-T23): every append route (`appends.append_pr`, so defect claims and revision requests too) takes its path with an atomic counter before the pull request opens, released if it does not open. D-13's name is kept rather than suffixed |
 | skeleton citing an unmerged annex | partial mode | n/a on this route (the partial route's concern) |
 
 ## `POST /submissions` (proof, counterexample, vacuity, partial, reduction; alternates)
@@ -116,6 +116,13 @@ when the checker answers; **by construction** the service writes the thing so it
   checker says `okay: false` **and** names Lean errors. `exhibit_preflight` in the 201:
   `elaborates`, `inconclusive`, `unavailable`, `skipped`. Guide `defects/` row and both MCP tool
   descriptions say so.
+
+## F13-T23 (the same day)
+
+Q-a, Q-b, Q-c and the same-second name are closed as the rows above say; the circularity
+exhibit (`circular-*`) and an exhibit importing another node's module stay `skipped`, and a
+checker that cannot answer still never blocks (Q-d unchanged). Evidence:
+`engineering/evidence/F13/task-23.txt`.
 
 ## Decisions for the owner (Q entries for the lead to log)
 

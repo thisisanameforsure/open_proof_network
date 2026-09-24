@@ -404,6 +404,28 @@ VARIANT_FIELDS: tuple[str, ...] = (
 )
 
 
+def check_relation_shape(proof: str) -> None:
+    """F13-T23: what admission's relation check refuses without Lean (``admit.RelationCheck``):
+    one theorem, named ``relation`` (``relation-decl``), and no ``sorry`` in its code, which the
+    checker would compile with a warning and the gate refuses as ``relation-sorry`` (D-30)."""
+    declared = layout.parse_declaration(proof, scaffold.RELATION_FILE)
+    if not isinstance(declared, str):
+        raise ApiError(400, "relation-decl", declared.message)
+    if declared != scaffold.RELATION_DECL:
+        raise ApiError(
+            400,
+            "relation-decl",
+            f"{scaffold.RELATION_FILE} declares {declared}; D-30's relation proof is "
+            f"`theorem {scaffold.RELATION_DECL}`",
+        )
+    if layout.mentions_sorry(proof):
+        raise ApiError(
+            400,
+            "relation-sorry",
+            "a relation proof with a sorry claims the implication without proving it (D-30)",
+        )
+
+
 async def post_variant(ctx: Context, request: Request) -> Response:
     """R4: a labeled variant of the root; a label above ``related`` needs its implication proof,
     and the label lives in that proof's file (F08-Q6), so the two cannot be separated."""
@@ -426,6 +448,8 @@ async def post_variant(ctx: Context, request: Request) -> Response:
             + ("variant → root" if relation == "resolves" else "root → variant")
             + " (D-30)",
         )
+    if proof is not None:
+        check_relation_shape(proof)
     target_id, files, node_id = node_files(
         ctx,
         identity,
@@ -436,7 +460,9 @@ async def post_variant(ctx: Context, request: Request) -> Response:
         relation_proof=proof,
     )
     duplicates.check_proposal(ctx, node_id)  # F07-T35: a copy spends no hosted check
-    preflight = await checks.preflight_proposal(ctx, identity.id, target_id, node_id, files)
+    preflight = await checks.preflight_proposal(
+        ctx, identity.id, target_id, node_id, files, variant=True
+    )
     opened = open_proposal(
         ctx,
         identity,

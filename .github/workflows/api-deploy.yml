@@ -14,6 +14,7 @@ on:
       - "gate/schemas/**"
       - "gate/hosted-checkers.yaml"  # F13: POST /check reads it at runtime
       - "gate/lean/OpnGate/WitnessType.lean"  # F13-T14: mode witness sends the gate's own program
+      - "gate/lean/OpnGate/ArtifactType.lean"  # F13-T23: the relation pre-flight sends it too
       - "gate/lean/OpnGate/Hazards.lean"  # F13-T20: mode hazards sends step 6's own checkers
       - "gate/lean/OpnGate/Hazards/**"
       - "gate/lean/OpnGate/HazardsMain.lean"  # F13-T20: its registry of checkers
@@ -71,6 +72,8 @@ jobs:
           # schemas by the same rule; without it the mode answers 503 witness-program-unreadable.
           mkdir -p build/package/lean/OpnGate
           cp gate/lean/OpnGate/WitnessType.lean build/package/lean/OpnGate/WitnessType.lean
+          # F13-T23: a variant's relation pre-flight sends admission's expectedRelationType.
+          cp gate/lean/OpnGate/ArtifactType.lean build/package/lean/OpnGate/ArtifactType.lean
           # F13-T20: mode hazards and the proposals' hazard pre-flight send step 6's own checkers
           # and read HazardsMain.lean's registry, by the same rule; without them, 503.
           cp gate/lean/OpnGate/Hazards.lean build/package/lean/OpnGate/Hazards.lean
@@ -100,6 +103,8 @@ jobs:
                         "opn_api/checks.py", "opn_api/axle.py",  # F13: POST /check
                         "hosted-checkers.yaml",  # F13-T4: read beside schemas/ at runtime
                         "lean/OpnGate/WitnessType.lean",  # F13-T14: read by mode witness
+                        # F13-T23: read by a variant's relation pre-flight
+                        "lean/OpnGate/ArtifactType.lean",
                         # F13-T20: read by mode hazards and the proposals' hazard pre-flight
                         "lean/OpnGate/Hazards.lean", "lean/OpnGate/HazardsMain.lean",
                         "lean/OpnGate/Hazards/DivZero.lean", "lean/OpnGate/Hazards/IntTrunc.lean",

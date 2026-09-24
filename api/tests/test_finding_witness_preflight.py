@@ -246,8 +246,19 @@ def test_a_checker_that_cannot_answer_lets_the_proposal_proceed_as_before() -> N
     assert h.axle.calls == []
 
 
-def test_a_witness_the_checker_cannot_elaborate_is_inconclusive_not_refused() -> None:
+def test_a_checker_answer_that_names_no_statement_error_is_inconclusive_not_refused() -> None:
+    """Restated by F13-T23 (audit Q-a). This pinned "the program did not run, so no verdict" as
+    ``inconclusive`` whatever the reason; the owner's principle made a statement that does not
+    compile a refusal (``statement-fails``, ``test_finding_preflight_refusals.py``). What it was
+    about still holds: an answer that says ``okay: false`` and names no Lean error on the
+    statement's lines (none at all, or only past them) is no verdict, and never a refusal."""
     h = harness(answer(None, okay=False))
+    r = variant(h, WRONG)
+    assert r.status_code == 201, r.text
+    assert r.json()["witness_preflight"] == "inconclusive"
+    late = answer(None, okay=False)
+    late["lean_messages"]["errors"] = ["-:400:0-400:8: error: unknown constant 'witness'"]
+    h = harness(late)
     r = variant(h, WRONG)
     assert r.status_code == 201, r.text
     assert r.json()["witness_preflight"] == "inconclusive"

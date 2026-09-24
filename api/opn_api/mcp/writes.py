@@ -381,7 +381,10 @@ TOOLS: tuple[Tool, ...] = (
         "submit_postmortem",
         "Append a schema-checked postmortem (D-13) under the node; `yaml` is the record as an "
         "object or as its YAML text, as POST /postmortems takes it, validated against "
-        "postmortem/v1.",
+        "postmortem/v1. "
+        "A second record from you in the same second would share its file name "
+        "(<timestamp>-<pseudonym>), so it is refused 409 record-name-taken with "
+        "Retry-After: 1 and nothing opens.",
         params({"node_id": ID_PARAM, "yaml": RECORD_PARAM}, ("node_id", "yaml")),
         submit_postmortem,
         write=True,
@@ -405,7 +408,10 @@ TOOLS: tuple[Tool, ...] = (
     Tool(
         "submit_approach_record",
         "Record a target-scoped strategy verdict (D-14); `record` validates against "
-        "approach-record/v1.",
+        "approach-record/v1. "
+        "A second record from you in the same second would share its file name "
+        "(<timestamp>-<pseudonym>), so it is refused 409 record-name-taken with "
+        "Retry-After: 1 and nothing opens.",
         params({"target_id": ID_PARAM, "record": RECORD_PARAM}, ("target_id", "record")),
         submit_approach_record,
         write=True,
@@ -422,7 +428,10 @@ TOOLS: tuple[Tool, ...] = (
         "Context and definitions inlined where it imports them: one the checker says does not "
         "compile is refused 422 exhibit-elaboration with Lean's `errors`, and nothing opens; "
         "`exhibit_preflight` in the receipt says elaborates, inconclusive, unavailable or "
-        "skipped (a circularity claim's exhibit, which the gate checks as an implication).",
+        "skipped (a circularity claim's exhibit, which the gate checks as an implication). "
+        "A second record from you in the same second would share its file name "
+        "(<timestamp>-<pseudonym>), so it is refused 409 record-name-taken with "
+        "Retry-After: 1 and nothing opens.",
         params(
             {
                 "stmt_ref": {"type": "string"},
@@ -441,7 +450,10 @@ TOOLS: tuple[Tool, ...] = (
         "File a D-8 revision request against a node: a defect class and evidence "
         "(`{text, exhibit?}`) for a curator to act on. An exhibit is compiled on the hosted "
         "fast checker first, as a defect claim's is: 422 exhibit-elaboration refuses one that "
-        "does not compile, and `exhibit_preflight` says what the checker answered.",
+        "does not compile, and `exhibit_preflight` says what the checker answered. "
+        "A second record from you in the same second would share its file name "
+        "(<timestamp>-<pseudonym>), so it is refused 409 record-name-taken with "
+        "Retry-After: 1 and nothing opens.",
         params(
             {
                 "node_id": ID_PARAM,
@@ -465,6 +477,10 @@ TOOLS: tuple[Tool, ...] = (
         "refused 422 witness-type-mismatch with `expected` and `given`, one of the right type "
         "that does not compile 422 witness-fails with the checker's `errors`, and nothing "
         "opens; `witness_preflight` in the receipt says matched, inconclusive or unavailable. "
+        "A statement the checker says does not compile is refused 422 statement-fails with "
+        "Lean's `errors` on its own lines, and a witness resting on sorryAx (a Context "
+        "declaration it uses is restated with sorry) or on an axiom outside the target's "
+        "allowlist 422 witness-sorry or 422 witness-axiom, as step 7 would. "
         "The statement is run through the target's hazard checkers first as well: a finding "
         "not in `acknowledged_hazards` is refused 422 hazard-unacknowledged with step 6's "
         "`findings`, and nothing opens; `hazards_preflight` says clear, inconclusive or "
@@ -487,10 +503,22 @@ TOOLS: tuple[Tool, ...] = (
         "propose_variant",
         "Enter a labeled variant of the root (D-30): relation is resolves, partial or related "
         "(default); a label above related needs `relation_proof`, gate-checked. "
+        "The relation proof is checked on the hosted fast checker first with admission's own "
+        "relation program, beside the variant's and the root's statements: one that does not "
+        "compile is refused 422 relation-elaboration with its `errors`, one resting on sorry "
+        "422 relation-sorry, on an axiom outside the allowlist 422 relation-axiom, and one "
+        "proving the other implication 422 relation-direction with `expected` and `declared`; "
+        "a file declaring anything but `theorem relation` is 400 relation-decl before any "
+        "check, and nothing opens; `relation_preflight` says matched, inconclusive, "
+        "unavailable or skipped (a related variant claims nothing). "
         "The witness is checked on the hosted fast checker first: a witness of the wrong type is "
         "refused 422 witness-type-mismatch with `expected` and `given`, one of the right type "
         "that does not compile 422 witness-fails with the checker's `errors`, and nothing "
         "opens; `witness_preflight` in the receipt says matched, inconclusive or unavailable. "
+        "A statement the checker says does not compile is refused 422 statement-fails with "
+        "Lean's `errors` on its own lines, and a witness resting on sorryAx (a Context "
+        "declaration it uses is restated with sorry) or on an axiom outside the target's "
+        "allowlist 422 witness-sorry or 422 witness-axiom, as step 7 would. "
         "The statement is run through the target's hazard checkers first as well: a finding "
         "not in `acknowledged_hazards` is refused 422 hazard-unacknowledged with step 6's "
         "`findings`, and nothing opens; `hazards_preflight` says clear, inconclusive or "
@@ -520,7 +548,9 @@ TOOLS: tuple[Tool, ...] = (
         "a witness of the wrong type is refused 422 witness-type-mismatch with `expected` and "
         "`given`, one of the right type that does not compile 422 witness-fails with the "
         "checker's `errors`, and nothing opens; `witness_preflight` in the receipt says "
-        "matched, inconclusive or unavailable.",
+        "matched, inconclusive or unavailable. A witness resting on sorryAx or on an axiom "
+        "outside the target's allowlist is refused 422 witness-sorry or 422 witness-axiom, and "
+        "a hole statement the checker says does not compile 422 statement-fails.",
         params({"node_id": ID_PARAM, "witness": LEAN}, ("node_id", "witness")),
         propose_witness,
         write=True,
