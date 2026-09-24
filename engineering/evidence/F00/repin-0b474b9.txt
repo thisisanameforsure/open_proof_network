@@ -1,0 +1,32 @@
+Re-pin to network 0b474b9 — 2026-09-23/24, the nine testers' gate-side fixes. Recipe: engineering/evidence/F00/repin-53d7bf1.txt.
+Carries to the live gate: F07-T34 (no hole restates any ancestor), F08-T17 (the circularity claim, defect-claim/v3),
+F07-T37 (the witness slot carries its statement's header), F07-T38 (an alternate's review kind), PROTOCOL_VERSION 3.21.
+Service-side work (F07-T32 api, T35, T36, F13-T16, F09-T12) went live with the api deploys of 7ed57b2 and ac4f6e2.
+
+0. Every commit ran the pre-commit suite (2707 passed at the last). CI run 35922467047 on 0b474b9: fast tier and Lean
+   tier success (the docker tests for T34 and T17, not runnable on the laptop, among them).
+   An earlier re-pin to ac4f6e2 was prepared and not pushed, because the first live alternates showed T38 was needed.
+1. Tag gate-0b474b9; image-publish run 35922469231 success:
+     gate-0b474b9                        ghcr.io/thisisanameforsure/opn-gate@sha256:a59d822ed50c0f0098e04cc70f8e7c401e111ebb6dfeedd7ac966acb0400e63b
+     gate-0b474b9-mathlib-0df444a360ea   ghcr.io/thisisanameforsure/opn-gate@sha256:c8cb61dbe28a2132b28750f3df1dbc2f9ddf5e0aad31a954a2319a5654650fdf
+2. schemas.unpublished was ['defect-claim/v3']; schemas.publish wrote it and its HASHES line; [] after.
+3. pin_image.py in a detached worktree on origin/main 9aa1ac00: tutorial plain first, 25 Mathlib targets,
+   riemann-hypothesis last with --api-url. 27 of 27 name 0b474b9; the devcontainer diff is the image line only.
+   Guide copy included. Committed as graph c9fd343a BEFORE the pregate.
+4. Pregate on the committed re-pin, gate code identical to the pin:
+   $ gate/pregate.sh --graph <worktree> --target tutorial --node tutorial-and-swap
+   verdict pass; steps 1, 2, 4, 5, 6, 7, 8 all pass.
+5. No gate run in flight, no open pull request; pushed by fast-forward 9aa1ac00 -> c9fd343a (22:34:12Z).
+6. Re-render (--no-build, exit 0): graph 9c310d56, 100 files, info.json protocol 3.21. No node's status moved;
+   frontier 40 entries, 40 claimable, before and after. Site dispatched.
+7. The review step's alternate branch (F07-T38's graph half): graph 45abb6aa.
+8. Live:
+   - #162, #163, #164, #167, #172 replayed (runs 35929596344, 35930013295, 35930400586, 35930730652, 35931138309):
+     "step 9 = calibration", attestations/000162..000172 present, gate: #N pass (replayed) commits 7af8f8ce,
+     3cf0be2c, 9af0676e, 9ac359a4, 00dcf7b9.
+   - The erdos-1050 circularity claim, filed by the lead's own pseudonym lead-0923 (minted the guide's way):
+     POST /defect-claims -> graph PR #173; its gate passed the sandboxed exhibit check (root -> hole); the actor
+     merged it; gate: #173 pass 65b748fa. targets/erdos-1050/graph.json: erdos-1050--h1-v2--h1 ready, cause circular;
+     /frontier.json 40 -> 39 entries, the hole gone, in the graph and through the api. The site's node page reads
+     "circular: no easier than a statement it was meant to reduce" and "Not claimable", linking the claim
+     (engineering/evidence/F08/task-17-circular-live.png).
