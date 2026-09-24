@@ -417,7 +417,12 @@ TOOLS: tuple[Tool, ...] = (
         f"Written as `{requests.DEFECT_SCHEMA}`. Class `{requests.CIRCULAR_CLASS}` also names "
         "`ancestor`, a node above `stmt_ref`, and is written as "
         f"`{requests.CIRCULAR_SCHEMA}`; its exhibit is one theorem proving "
-        "`<ancestor's statement> → <stmt_ref's statement>`.",
+        "`<ancestor's statement> → <stmt_ref's statement>`. "
+        "The exhibit is compiled on the hosted fast checker first, with the node's statement, "
+        "Context and definitions inlined where it imports them: one the checker says does not "
+        "compile is refused 422 exhibit-elaboration with Lean's `errors`, and nothing opens; "
+        "`exhibit_preflight` in the receipt says elaborates, inconclusive, unavailable or "
+        "skipped (a circularity claim's exhibit, which the gate checks as an implication).",
         params(
             {
                 "stmt_ref": {"type": "string"},
@@ -434,7 +439,9 @@ TOOLS: tuple[Tool, ...] = (
     Tool(
         "file_revision_request",
         "File a D-8 revision request against a node: a defect class and evidence "
-        "(`{text, exhibit?}`) for a curator to act on.",
+        "(`{text, exhibit?}`) for a curator to act on. An exhibit is compiled on the hosted "
+        "fast checker first, as a defect claim's is: 422 exhibit-elaboration refuses one that "
+        "does not compile, and `exhibit_preflight` says what the checker answered.",
         params(
             {
                 "node_id": ID_PARAM,
@@ -508,7 +515,12 @@ TOOLS: tuple[Tool, ...] = (
         "propose_witness",
         "Fill the witness slot of a hole blocked `witness-missing` (a node a merged partial "
         "created, F08-R5): opens the pull request adding only its Witness.lean. `witness` is "
-        "the Lean file.",
+        "the Lean file. "
+        "The witness is checked against the hole's statement on the hosted fast checker first: "
+        "a witness of the wrong type is refused 422 witness-type-mismatch with `expected` and "
+        "`given`, one of the right type that does not compile 422 witness-fails with the "
+        "checker's `errors`, and nothing opens; `witness_preflight` in the receipt says "
+        "matched, inconclusive or unavailable.",
         params({"node_id": ID_PARAM, "witness": LEAN}, ("node_id", "witness")),
         propose_witness,
         write=True,

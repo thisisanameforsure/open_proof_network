@@ -1083,6 +1083,168 @@ async def preflight_proposal(
     return {"hazards_preflight": hazards, "witness_preflight": witness}
 
 
+# --- the pre-flight on an exhibit (F13-T22) ------------------------------------------------------
+
+#: What a defect claim's or revision request's receipt says of its exhibit (F13-T22): the checker
+#: compiled it; it answered without a verdict or with no Lean error to name; it could not be
+#: asked; or the exhibit was not sent, because what the gate checks of it is not a compile the
+#: service can reproduce (a circularity claim's relation, a module only the gate's staging holds).
+PREFLIGHT_ELABORATES = "elaborates"
+PREFLIGHT_SKIPPED = "skipped"
+#: The node modules an exhibit may import, as the gate stages them (``exhibits.stage_node``).
+EXHIBIT_NODE_MODULES = ("Statement", "Context")
+
+
+def exhibit_imports(exhibit: str, node_id: str | None) -> tuple[list[str], set[str]] | None:
+    """The exhibit's library imports and which of its own node's modules it imports, or ``None``
+    when it names a module the checker could only be given by the gate's staging — another
+    node's, or one that is neither a library, the target's ``Defs`` nor its own node's."""
+    library: list[str] = []
+    own: set[str] = set()
+    for module in layout.imports_of(exhibit):
+        origin, of_node = layout.module_origin(module)
+        stem = module.rsplit(".", 1)[-1]
+        if origin == "library":
+            library.append(module)
+        elif origin == "node":
+            if node_id is None or of_node != node_id or stem not in EXHIBIT_NODE_MODULES:
+                return None
+            own.add(stem)
+        elif origin != "defs":
+            return None
+    return library, own
+
+
+def exhibit_check_text(
+    ctx: Context,
+    target_id: str,
+    node_id: str | None,
+    exhibit: str,
+    found: tuple[list[str], set[str]],
+) -> str:
+    """The exhibit as the gate elaborates it, in one file: the node's committed ``Defs`` and
+    Context, then its committed statement when the exhibit imports it, inlined in place of the
+    imports the checker cannot resolve, under the union of their library imports. ``found`` is
+    ``exhibit_imports``' answer."""
+    library, own = found
+    statement: layout.Statement | None = None
+    headers = [exhibit]
+    if "Statement" in own:
+        assert node_id is not None
+        raw = frontier.committed(ctx, f"targets/{target_id}/nodes/{node_id}/Statement.lean")
+        parsed = layout.parse_statement(raw.decode("utf-8"))
+        if not isinstance(parsed, layout.Statement):
+            msg = f"{node_id}'s Statement.lean has no single sorry-bodied theorem"
+            raise api_error(409, "statement-unparsable", msg)
+        statement = parsed
+        headers.append(parsed.text)
+    defs = inline_defs(ctx, target_id, statement, exhibit, node_id if own else None)
+    for module, _ in defs:
+        origin, _node = layout.module_origin(module)
+        if origin == "defs":
+            path = f"targets/{target_id}/defs/{module.partition('.')[2]}.lean"
+        else:
+            assert node_id is not None
+            path = f"targets/{target_id}/nodes/{node_id}/Context.lean"
+        headers.append(frontier.committed(ctx, path).decode("utf-8"))
+    if statement is not None:
+        assert node_id is not None
+        body = IMPORT_LINE_RE.sub("", statement.text).strip("\n")
+        defs.append((layout.node_module(node_id, "Statement"), body))
+    imports = [
+        m
+        for text in headers
+        for m in layout.imports_of(text)
+        if layout.module_origin(m)[0] == "library"
+    ]
+    header = "".join(f"import {m}\n" for m in dict.fromkeys([*library, *imports]))
+    return forwarded_text(header + IMPORT_LINE_RE.sub("", exhibit), defs)
+
+
+def lean_errors(body: dict[str, Any]) -> list[str]:
+    """Lean's own error messages, and not the tool's: an exhibit is refused only on what the
+    elaborator said, since that is what the gate's elaboration would say too."""
+    block = body.get("lean_messages")
+    errors = block.get("errors") if isinstance(block, dict) else None
+    return [str(e) for e in errors] if isinstance(errors, list) else []
+
+
+async def preflight_exhibit(  # noqa: PLR0913 — the caller, the node, the text, and its class
+    ctx: Context,
+    identity_id: str,
+    target_id: str,
+    node_id: str | None,
+    exhibit: str,
+    *,
+    relational: bool = False,
+) -> str:
+    """F13-T22: the gate's exhibit check (``opn-gate exhibits``: the exhibit elaborates, against
+    the node it is about) on the hosted checker, before the append's pull request exists. One
+    refusal, 422 ``exhibit-elaboration`` with Lean's ``errors``, when the checker answers that the
+    text does not compile and names why; anything else is an outcome word and the append opens,
+    because the gate's sandbox is the authority (C9, D-4 v3.14). ``relational`` is a circularity
+    claim, whose exhibit the gate also holds to an implication by a program the checker is not
+    sent, so it is skipped rather than half-checked. Charged and logged as a check (R8, R9)."""
+    from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
+
+    found = None if relational else exhibit_imports(exhibit, node_id)
+    if found is None:
+        return PREFLIGHT_SKIPPED
+    try:
+        ratelimit.check_check(ctx, identity_id)
+    except ApiError:
+        return PREFLIGHT_UNAVAILABLE  # a spent check budget skips the courtesy, never the route
+    req = CheckRequest(target_id, node_id, exhibit, "check")
+    caller = Caller("identity", identity_id)
+    started = time.monotonic()
+    environment: str | None = None
+    try:
+        _, entry = hosted_for(ctx, target_id)
+        if entry is None or entry.environment is None:
+            raise api_error(422, "no-hosted-environment", f"{target_id} has no hosted checker")
+        environment = entry.environment
+        text = exhibit_check_text(ctx, target_id, node_id, exhibit, found)
+        budget = min(PREFLIGHT_TIMEOUT_S, ctx.settings.check_timeout_s)
+        answer = await asyncio.to_thread(
+            call_checker, ctx, req, text, environment, None, timeout_s=budget
+        )
+        if answer.body.get("error_type") == LEAN_TIMEOUT:
+            raise timed_out(ctx, answer.request_id)
+    except (ApiError, AxleError) as exc:
+        code = exc.code if isinstance(exc, ApiError) else "upstream-unavailable"
+        status = exc.status if isinstance(exc, AxleError) else None
+        write_log(
+            ctx,
+            req,
+            caller,
+            outcome=code,
+            started=started,
+            environment=environment,
+            upstream_status=status,
+        )
+        log.info("exhibit preflight %s for %s: %s", PREFLIGHT_UNAVAILABLE, target_id, code)
+        return PREFLIGHT_UNAVAILABLE
+    log_id = write_log(
+        ctx, req, caller, outcome=ANSWERED, started=started, environment=environment, answer=answer
+    )
+    okay = verdict(answer.body)
+    if okay is True:
+        return PREFLIGHT_ELABORATES
+    errors = lean_errors(answer.body)
+    if okay is None or not errors:
+        return PREFLIGHT_INCONCLUSIVE
+    raise api_error(
+        422,
+        "exhibit-elaboration",
+        "the exhibit does not elaborate: the checker reported Lean errors in it (F08-R6, R7), so "
+        "nothing was opened. An exhibit is Lean the gate elaborates against the node it is about, "
+        "not prose. Checked on the hosted fast checker "
+        f"({environment}) with the node's statement, Context and definitions inlined where the "
+        "exhibit imports them; not authoritative, but the gate elaborates the same text",
+        details={"errors": errors, "log_id": log_id},
+    )
+
+
 # --- the routes ----------------------------------------------------------------------------------
 
 

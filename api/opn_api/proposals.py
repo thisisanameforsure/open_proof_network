@@ -9,7 +9,8 @@ addition to an existing directory the ``proposal`` mode permits.
 The service scaffolds the directory with the gate's own builder (``opn_gate.scaffold``), so the
 bytes it pushes are exactly the bytes ``opn-gate admit`` will judge; it decides nothing about
 whether the statement is worth having, and it never elaborates anything (C9): before a speculative
-or variant pull request opens, the witness is pre-flighted on the hosted fast checker
+or variant pull request opens, and before a hole's witness does (F13-T21), the witness is
+pre-flighted on the hosted fast checker
 (``checks.preflight_witness``, F13-T16), whose refusals are a witness of the wrong type and one
 that does not compile (F13-T17), and the statement through step 6's own hazard checkers
 (``checks.preflight_hazards``, F13-T20), whose refusal is an unacknowledged finding; the silence of
@@ -65,6 +66,16 @@ def lean_text(fields: dict[str, Any], name: str, *, required: bool = True) -> st
             f"{name} is {len(raw.encode())} bytes; the cap is {MAX_LEAN_BYTES}",
         )
     return raw
+
+
+def check_witness_filled(witness: str) -> None:
+    """A witness with ``sorry`` in its code fails step 7 as ``witness-sorry``, and the checker
+    cannot say so (a ``sorry`` elaborates with a warning), so it is refused here. The gate's own
+    reading of the word (``layout.mentions_sorry``, F08-Q18): a token in code, not the word in a
+    comment, which the slot's own header carries. The only unfilled witness a node may hold is the
+    post-merge writer's slot, which nothing proposed through the service is (F08-R14)."""
+    if layout.mentions_sorry(witness):
+        raise ApiError(400, "witness-invalid", "a witness with a sorry leaves the slot empty")
 
 
 def dep_statements(
@@ -314,6 +325,7 @@ def node_files(
     statement = lean_text(fields, "statement")
     witness = lean_text(fields, "witness")
     assert statement is not None and witness is not None
+    check_witness_filled(witness)  # F13-T21: step 7's witness-sorry, before anything is spent
     deps, statements = dep_statements(ctx, target_id, fields.get("deps"))
     node_id = scaffold.speculative_id(statement, kwargs.pop("prefix"))
     check_declaration_free(ctx, target_id, statement, node_id)
@@ -465,8 +477,25 @@ def hole_awaiting_witness(ctx: Context, node_id: Any) -> str:
 WITNESS_FIELDS: tuple[str, ...] = ("node_id", "witness")
 
 
+def hole_statement(ctx: Context, target_id: str, node_id: str) -> dict[str, str]:
+    """The hole's committed ``Statement.lean`` under its graph path, for the pre-flight to read
+    (its Context is fetched there, as a check on the node fetches it); nothing when it cannot be
+    read, which leaves the pre-flight ``unavailable`` and the route as it was (C7)."""
+    path = f"targets/{target_id}/nodes/{node_id}/Statement.lean"
+    try:
+        return {path: frontier.committed(ctx, path).decode("utf-8")}
+    except ApiError:
+        return {}
+
+
 async def post_witness(ctx: Context, request: Request) -> Response:
-    """R5: fill a hole's witness slot — a pull request adding only ``Witness.lean``."""
+    """R5: fill a hole's witness slot — a pull request adding only ``Witness.lean``.
+
+    F13-T21: pre-flighted before anything opens, as a proposal's witness is (F13-T16, T17): the
+    hole's committed statement and Context and this witness go to the hosted checker, and a
+    witness of the wrong type (422 ``witness-type-mismatch``) or of the right type that does not
+    compile (422 ``witness-fails``) opens nothing. ``witness_preflight`` in the receipt says what
+    the checker answered; a checker that cannot answer never blocks the witness."""
     identity: Identity = request.state.identity
     fields, _ = await identitymod.body_fields(request, WITNESS_FIELDS)
     node_id = fields.get("node_id")
@@ -474,18 +503,18 @@ async def post_witness(ctx: Context, request: Request) -> Response:
     assert isinstance(node_id, str)
     witness = lean_text(fields, "witness")
     assert witness is not None
-    if "sorry" in witness:
-        raise ApiError(400, "witness-invalid", "a witness with a sorry leaves the slot empty")
+    check_witness_filled(witness)
     path = f"targets/{target_id}/nodes/{node_id}/Witness.lean"
-    return JSONResponse(
-        open_proposal(
-            ctx,
-            identity,
-            target_id=target_id,
-            node_id=node_id,
-            files={path: witness},
-            what="witness for a hole",
-            kind="witness",
-        ),
-        status_code=201,
+    duplicates.check_witness(ctx, node_id)  # F07-T35: a second witness spends no hosted check
+    checked = {**hole_statement(ctx, target_id, node_id), path: witness}
+    preflight = await checks.preflight_witness(ctx, identity.id, target_id, node_id, checked)
+    opened = open_proposal(
+        ctx,
+        identity,
+        target_id=target_id,
+        node_id=node_id,
+        files={path: witness},
+        what="witness for a hole",
+        kind="witness",
     )
+    return JSONResponse({**opened, "witness_preflight": preflight}, status_code=201)
