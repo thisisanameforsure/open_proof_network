@@ -1113,3 +1113,14 @@ The law of the project:
   type alone beside `okay: false`. **A list route that reconciles each item live grows with the
   queue**: `submissions.json` took 28 s with 22 open. And each tester session opened a draft PR for its
   log and paid the hour-long Lean tier for one markdown file; collect logs through the lead instead.
+- 2026-09-24 — The testers' findings became fifteen tasks in one sitting, four worktree agents on the
+  service (grouped by the files they touch, so three of four merges were clean and the fourth was two
+  field lists side by side) while the lead did the site, the precheck result and the guide. Three
+  things worth keeping. **A defect the tester reports can be the smaller half**: "circular is missing
+  from the key" was also a circular hole drawn with the open ring, because pills were coloured by
+  the bare status and circular is a cause. The key's guard iterated statuses only; guard the
+  *outputs* (every state the renderer can return from every status and cause), not the inputs.
+  **Extract the seam at today's behaviour before the red run**: the precheck-holes test first failed
+  on a missing function, which proves nothing; with `result_document` extracted unchanged it failed
+  on the missing key. **A pipe hides make's exit status**: `make lint | tail -1 && git commit` committed
+  two lint failures; run make bare and read `$?`.

@@ -1,0 +1,26 @@
+F10-T14 (Q20): the guide says what shipped for the 2026-09-24 testers' findings.
+
+## red (the new test against the guide as it stood at HEAD before this edit)
+$ uv run --frozen pytest gate/tests/test_finding_guide_tester_0924.py -q
+28 failed, 4 passed, 1 skipped in 3.29s
+(the 4 that passed are the constants' own values and the route table, which the code already had;
+every sentence test failed.)
+
+## green
+32 passed, 1 skipped in 0.11s
+(the skip is the tutorial path's check against the sibling graph checkout, absent here; it was
+checked by hand against graph origin/main: targets/tutorial/nodes/tutorial-and-swap/META.yaml.)
+
+## what changed in gate/agents/AGENTS.md
+/check: the 200 kB limit, the 200000-heartbeat cap and its remedy, mode hazards, the dropped
+naming warning. Proposals: 422 witness-fails, both okay and witness.matches, the hazard pre-flight
+and its outcome words, 409 declaration-clash. Claims: a repeat claim returns the same one, others,
+GET /claims/mine. Submissions: jobs always present, proposed_statement, products for annexes and
+witnesses, DELETE /submissions/<id>, rivals / node_proved / becomes. defects/: the second
+circularity claim refused, also_open; a circular node's status stays ready, read cause. The
+service's rendered_from. The tutorial node without a clone. The MCP appendix: list_my_claims and
+withdraw_submission.
+
+## the graph's copy
+test_graph_copy_is_identical compares this file with the graph's AGENTS.md; the copy is pushed to
+the graph at the next re-pin (the owner's act), as every guide change has been (F10-Q4).

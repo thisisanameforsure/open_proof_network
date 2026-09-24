@@ -1,5 +1,15 @@
 # Plan: fixing what the 2026-09-24 testers found (for review)
 
+> **Status, 2026-09-24 evening.** Built, each red first with its evidence:
+> - A1, A10, A11, A14 (F13-T17 to T20; A14's lean-tier equality test runs in CI).
+> - A2, A6, A7 (F07-T39, T41, T42) and A8 (F05-T15).
+> - A3 (F05-T14, with `GET /claims/mine`) and A12 (F07-T43).
+> - A4, A13 (F08-T18, T19), A5 (F07-T40) and A9 (F09-T13).
+> - B1 (F04-T26), B2 (F06-T9), B3 (seen live) and the guide (F10-T14).
+>
+> Waiting on Mike's approval of `2026-09-24-decisions-amendment-v3.22.md`: B5 and C1. Waiting on
+> the re-pin: B2, and the guide's graph copy.
+
 Source: `engineering/session-notes/2026-09-24-calibration-testers.md` and the six logs in
 `engineering/evidence/testers-2026-09-24/`. **Out of scope, by Mike's word:** merge-queue throughput
 and everything downstream of it (queue position, ETA, `waiting_on` flapping between `merge` and
