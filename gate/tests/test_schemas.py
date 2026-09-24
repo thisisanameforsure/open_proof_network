@@ -46,6 +46,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "meta/v2",
         "meta/v3",
         "meta/v4",
+        "meta/v5",
         "node-status/v1",
         "policy/v1",
         "postmortem/v1",
