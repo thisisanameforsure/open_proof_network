@@ -48,3 +48,162 @@ Entry point: https://openproofnetwork.org/problems/erdos-402/ only.
 - 12:47:35Z Merge queue: **no pull request on the graph has merged since I started** (oldest open is #177, gate green since ~12:36Z, `waiting_on: merge`, `mergeable_state: unknown`). 25 open service PRs (#177–#201) from ~6 agents. Every node I proposed is therefore `node-pending`, and I cannot precheck its proof. Not necessarily a bug (the guide warns of queueing), but it is the dominant cost of the session so far.
 - 12:48Z Wish: `get_submission` on a *proposal* does not show the proposed statement text, so I cannot tell whether the other agent's pending variants #188 (variant-e6d83e6d) and #190 (variant-a3b3cb8f) duplicate mine without going to GitHub.
 - 12:48Z Aside (mine): `set_option maxHeartbeats N in` at tactic level does not lift the per-declaration budget in Lean 4 — not an AXLE or network defect.
+- 12:49–12:52Z Tried to fit card=9 in the heartbeat budget: explicit disjunct selection in the key lemma (`Or.inr (… (Or.inl (by omega : k*b = j*M)))` instead of `omega` against a 22-way disjunction), membership by `rw [← k, Nat.mul_div_cancel_left]`, `linarith` for the pair equation. Each step moved the timeout later (line 306 → 378 → 406 → 504 of 529) but it still does not fit; stopped. The leaner generator also brings card=7 to 2.6 s, card=6 to 1.8 s, card=8 to 6.9 s (all re-checked okay against the exact proposed statements at 12:52–12:53Z).
+- 12:52:52Z First merge I have seen: **#177** (other agent's minFac proof) merged; `attestation_note: attestation-pending`. So my duplicate #181 is now the losing racer. Queue throughput ≈ one merge per 15+ min while 25 PRs are open; #189/#197/#198 will not merge inside my hour, so I cannot precheck/submit proofs of my own three nodes. The proofs are reproducible from the generator below (python3 gen.py N > body; paste after `:= by` of the node's Statement.lean).
+
+### Generator for the card = n proofs (verified n = 6, 7, 8 on check_lean)
+
+Head (`c6_head.lean`, n = 6 shown; the generator substitutes n):
+
+```lean
+  intro A hA0 hcard
+  have hne : A.Nonempty := Finset.card_pos.mp (by omega)
+  obtain ⟨M, hMA, hMmax⟩ : ∃ M ∈ A, ∀ b ∈ A, b ≤ M :=
+    ⟨A.max' hne, Finset.max'_mem A hne, fun b hb => Finset.le_max' A b hb⟩
+  have hMpos : 0 < M := Nat.pos_of_ne_zero (fun h => hA0 (h ▸ hMA))
+  have hcardQ : (A.card : ℚ) = 6 := by rw [hcard]; norm_num
+  have key : ∀ b ∈ A, b ≠ M →
+      6 * M.gcd b ≤ M ∨ 2 * b = 1 * M ∨ 3 * b = 1 * M ∨ 3 * b = 2 * M ∨ 4 * b = 1 * M ∨
+        4 * b = 3 * M ∨ 5 * b = 1 * M ∨ 5 * b = 2 * M ∨ 5 * b = 3 * M ∨ 5 * b = 4 * M := by
+    intro b hb hbM
+    have hbpos : 0 < b := Nat.pos_of_ne_zero (fun h => hA0 (h ▸ hb))
+    have hblt : b < M := lt_of_le_of_ne (hMmax b hb) hbM
+    have hgpos : 0 < M.gcd b := Nat.gcd_pos_of_pos_left b hMpos
+    obtain ⟨k, hk⟩ := Nat.gcd_dvd_left M b
+    obtain ⟨j, hj⟩ := Nat.gcd_dvd_right M b
+    rcases (show k = 0 ∨ k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4 ∨ k = 5 ∨ 6 ≤ k by omega)
+      with h | h | h | h | h | h | h <;>
+    rcases (show j = 0 ∨ j = 1 ∨ j = 2 ∨ j = 3 ∨ j = 4 ∨ 5 ≤ j by omega)
+      with h' | h' | h' | h' | h' | h' <;>
+    first
+      | (subst h; subst h'; omega)
+      | (have := Nat.mul_le_mul_left (M.gcd b) h; omega)
+      | (subst h; have := Nat.mul_le_mul_left (M.gcd b) h'; omega)
+  by_contra hcon
+  have hD : ∀ b ∈ A, 6 * M.gcd b ≤ M → False := by
+    intro b hb h
+    apply hcon
+    refine ⟨M, hMA, b, hb, ?_⟩
+    rw [hcardQ, le_div_iff₀ (by norm_num : (0:ℚ) < 6)]
+    have : M.gcd b * 6 ≤ M := by omega
+    exact_mod_cast this
+  have Gen : ∀ x ∈ A, ∀ y ∈ A, ∀ X Y : ℕ, Nat.Coprime X Y → 6 ≤ X → x * Y = y * X → False := by
+    intro x hx y hy X Y hXY hX hxy
+    have hdvd : X ∣ x * Y := ⟨y, by rw [hxy, mul_comm]⟩
+    obtain ⟨t, ht⟩ := hXY.dvd_of_dvd_mul_right hdvd
+    have hXpos : 0 < X := by omega
+    have hy' : y = Y * t := by
+      have h2 : X * y = X * (Y * t) := by
+        calc X * y = y * X := mul_comm _ _
+          _ = x * Y := hxy.symm
+          _ = X * t * Y := by rw [ht]
+          _ = X * (Y * t) := by ring
+      exact Nat.eq_of_mul_eq_mul_left hXpos h2
+    apply hcon
+    refine ⟨x, hx, y, hy, ?_⟩
+    have hg : x.gcd y = t := by
+      rw [ht, hy', mul_comm X t, mul_comm Y t, Nat.gcd_mul_left, hXY.gcd_eq_one, mul_one]
+    rw [hg, hcardQ, le_div_iff₀ (by norm_num : (0:ℚ) < 6)]
+    have : t * 6 ≤ x := by rw [ht, mul_comm X t]; exact Nat.mul_le_mul_left t hX
+    exact_mod_cast this
+  have hsub : ∀ T : Finset ℕ, T.card ≤ 4 → (∀ b ∈ A, b ≠ M → b ∈ T) → False := by
+    intro T hT hbT
+    have hs : A.erase M ⊆ T := fun b hb => by
+      rw [Finset.mem_erase] at hb; exact hbT b hb.2 hb.1
+    have := Finset.card_le_card hs
+    rw [Finset.card_erase_of_mem hMA, hcard] at this
+    omega
+```
+
+Generator (`gen.py`):
+
+```python
+import sys
+from math import gcd, lcm
+from fractions import Fraction
+n=int(sys.argv[1])
+L=1
+for k in range(2,n): L=lcm(L,k)
+fr=sorted({Fraction(j,k) for k in range(2,n) for j in range(1,k)}, key=lambda f:(f.denominator,f.numerator))
+V={int(f*L):(f.denominator,f.numerator) for f in fr}
+order=[int(f*L) for f in fr]
+conf=lambda x,y: max(x,y)//gcd(x,y)>=n
+cardnames={1:None,2:"Finset.card_le_two",3:"Finset.card_le_three",4:"Finset.card_le_four",5:"Finset.card_le_five",6:"Finset.card_le_six"}
+def eq(v,x): k,j=V[v]; return f"{k} * {x} = {j} * M"
+def T_expr(T): return "{"+", ".join(f"{V[v][1]} * M / {V[v][0]}" for v in T)+"}"
+def leaf(I,T,present,absent):
+    L_=[]
+    s=len(T)
+    if s in cardnames and cardnames[s]:
+        cl=cardnames[s]; card = cl if s==n-2 else f"le_trans {cl} (by norm_num)"
+    else:
+        c="Finset.card_le_six"
+        for _ in range(s-6): c=f"(Finset.card_insert_le _ _).trans (Nat.succ_le_succ ({c}))"
+        card = c if s==n-2 else f"le_trans ({c}) (by norm_num)"
+    L_.append(f"{I}apply hsub {T_expr(T)} ({card})")
+    L_.append(f"{I}intro b hb hbM")
+    L_.append(f"{I}rcases key b hb hbM with " + " | ".join(["k"]*(len(order)+1)))
+    L_.append(f"{I}· exact (hD b hb k).elim")
+    for v in order:
+        if v in T:
+            i=T.index(v); s_=len(T)
+            chain="Finset.mem_singleton_self _" if i==s_-1 else "Finset.mem_insert_self _ _"
+            for _ in range(i): chain=f"Finset.mem_insert_of_mem ({chain})"
+            k_,j_=V[v]
+            L_.append(f"{I}· rw [show b = {j_} * M / {k_} by rw [← k, Nat.mul_div_cancel_left b (by norm_num)]]; exact {chain}")
+        elif v in absent: L_.append(f"{I}· exact absurd k ({absent[v]} b hb)")
+        else:
+            p=[p for p in present if conf(v,p)][0]; x,hx=present[p]
+            g=gcd(v,p); vr,pr=v//g,p//g
+            if pr>=vr: L_.append(f"{I}· exact (Gen {x} {hx} b hb {pr} {vr} (by norm_num) (by norm_num) (by omega)).elim")
+            else: L_.append(f"{I}· exact (Gen b hb {x} {hx} {vr} {pr} (by norm_num) (by norm_num) (by omega)).elim")
+    return L_
+def build(C,present,absent,ind):
+    I=" "*ind
+    if len(C)<=n-2: return leaf(I,C,present,absent)
+    cand=[v for v in C if v not in present]
+    v=max(cand,key=lambda v: sum(conf(v,u) for u in C))
+    out=[f"{I}by_cases p{v} : ∃ x ∈ A, {eq(v,'x')}", f"{I}· obtain ⟨x{v}, hx{v}, e{v}⟩ := p{v}"]
+    out+=build([u for u in C if u==v or not conf(u,v)],{**present,v:(f"x{v}",f"hx{v}")},absent,ind+2)
+    out+=[f"{I}· push Not at p{v}"]
+    out+=build([u for u in C if u!=v],present,{**absent,v:f"p{v}"},ind+2)
+    return out
+disj=" ∨ ".join([f"{n} * M.gcd b ≤ M"]+[f"{k} * b = {j} * M" for (k,j) in [V[v] for v in order]])
+ks=" ∨ ".join([f"k = {i}" for i in range(n)])+f" ∨ {n} ≤ k"
+js=" ∨ ".join([f"j = {i}" for i in range(n-1)])+f" ∨ {n-1} ≤ j"
+head=open('c6_head.lean').read()
+head=head.replace("(A.card : ℚ) = 6","(A.card : ℚ) = "+str(n)).replace("(0:ℚ) < 6",f"(0:ℚ) < {n}").replace("M.gcd b * 6 ≤ M",f"M.gcd b * {n} ≤ M").replace("6 * M.gcd b ≤ M → False",f"{n} * M.gcd b ≤ M → False").replace("6 ≤ X →",f"{n} ≤ X →").replace("t * 6 ≤ x",f"t * {n} ≤ x").replace("T.card ≤ 4 →",f"T.card ≤ {n-2} →")
+start=head.index("  have key"); end=head.index("  by_contra hcon")
+key=f"""  have key : ∀ b ∈ A, b ≠ M →
+      {disj} := by
+    intro b hb hbM
+    have hbpos : 0 < b := Nat.pos_of_ne_zero (fun h => hA0 (h ▸ hb))
+    have hblt : b < M := lt_of_le_of_ne (hMmax b hb) hbM
+    have hgpos : 0 < M.gcd b := Nat.gcd_pos_of_pos_left b hMpos
+    obtain ⟨k, hk⟩ := Nat.gcd_dvd_left M b
+    obtain ⟨j, hj⟩ := Nat.gcd_dvd_right M b
+    rcases (show {ks} by omega)
+      with {' | '.join(['h']*(n+1))}
+{{KCASES}}"""
+kc=["    · subst h; exfalso; omega"]
+for kk in range(1,n):
+    jl=" ∨ ".join([f"j = {i}" for i in range(kk)])+f" ∨ {kk} ≤ j"
+    kc.append(f"    · subst h")
+    kc.append(f"      rcases (show {jl} by omega) with {' | '.join(['hj2']*(kk+1))}")
+    for i in range(kk):
+        if i==0: kc.append(f"      · subst hj2; exfalso; omega"); continue
+        from math import gcd as _g
+        g_=_g(kk,i); kr,jr=kk//g_,i//g_
+        vv=[v for v in order if V[v]==(kr,jr)][0]; d=order.index(vv)+1; N=len(order)+1
+        inner=f"(by subst hj2; omega : {kr} * b = {jr} * M)"
+        term = inner if d==N-1 else f"Or.inl {inner}"
+        for _ in range(d): term=f"Or.inr ({term})"
+        kc.append(f"      · exact {term}")
+    kc.append(f"      · have := Nat.mul_le_mul_left (M.gcd b) hj2; exfalso; omega")
+kc.append(f"    · have := Nat.mul_le_mul_left (M.gcd b) h; exact Or.inl (by omega)")
+key=key.replace("{KCASES}","\n".join(kc)+"\n")
+head=head[:start]+key+head[end:]
+body=head+"\n".join(build(order,{},{},2))+"\n"
+open(f'c{n}_fast4.lean','w').write(body)
+print(len(body.splitlines()),"lines")
+```
