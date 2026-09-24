@@ -1104,3 +1104,12 @@ The law of the project:
   `dirty`, which GitHub withheld for five minutes. And **a probe that writes re-reads right before it
   writes**: re-running a reproduction after the service had already acted, mine pushed the winner's
   proof as #172's alternate; repaired from the saved original within a minute, and recorded.
+- 2026-09-24 — Six agents on the calibration targets for an hour (`engineering/session-notes/2026-09-24-calibration-testers.md`)
+  opened 31 graph pull requests; the queue, at 7–8 min a merge whatever the kind, is now what an
+  agent's hour is spent on. **A cloud session keeps the network policy it started with**: the first six
+  were all refused by the environment's proxy, the owner's fix reached only new sessions, and a
+  one-command probe session proved it before six more were sent. **A courtesy check that reads one
+  field of an answer can pass what the answer refuses**: the witness pre-flight said `matched` on the
+  type alone beside `okay: false`. **A list route that reconciles each item live grows with the
+  queue**: `submissions.json` took 28 s with 22 open. And each tester session opened a draft PR for its
+  log and paid the hour-long Lean tier for one markdown file; collect logs through the lead instead.
