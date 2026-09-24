@@ -228,6 +228,18 @@ class GitHost(Protocol):
         """Open a pull request from ``head`` into ``base`` (F07-R2). The App never merges it."""
         ...
 
+    def close_pull_request(self, repo: str, number: int) -> str | None:
+        """Close pull request ``number`` unmerged (F07-T43, a holder's withdrawal; Pull requests:
+        write, held since F07). Answers the head branch when it lives in ``repo`` — the branch the
+        service pushed — and ``None`` when the head is elsewhere (a fork), so it is never deleted.
+        The App never merges (F07-R2); this is the only other state change it makes to a PR."""
+        ...
+
+    def delete_branch(self, repo: str, branch: str) -> bool:
+        """Delete ``branch`` (Contents: write, held since F07). ``True`` when it was deleted,
+        ``False`` when the host has no such branch — a withdrawal repeated is not an error."""
+        ...
+
     def dispatch_workflow(
         self, repo: str, workflow: str, *, ref: str, inputs: Mapping[str, str]
     ) -> None:
@@ -514,6 +526,43 @@ class HttpxGitHost:
                 )
             )
         return PullRequest(number=int(doc["number"]), url=str(doc.get("html_url") or ""))
+
+    def close_pull_request(self, repo: str, number: int) -> str | None:
+        with self._api(repo) as http:
+            doc = _json(
+                _send(
+                    http,
+                    "PATCH",
+                    f"{GITHUB_API}/repos/{repo}/pulls/{number}",
+                    json={"state": "closed"},
+                ),
+                f"pull request #{number}",
+            )
+        head = doc.get("head")
+        if not isinstance(head, dict):
+            return None
+        head_repo = head.get("repo")
+        full_name = head_repo.get("full_name") if isinstance(head_repo, dict) else None
+        ref = head.get("ref")
+        return str(ref) if ref and full_name == repo else None
+
+    def delete_branch(self, repo: str, branch: str) -> bool:
+        url = f"{GITHUB_API}/repos/{repo}/git/refs/heads/{branch}"
+        with self._api(repo) as http:
+            try:
+                resp = http.request("DELETE", url)
+            except httpx.HTTPError as exc:
+                msg = f"DELETE {_path(url)} failed: {type(exc).__name__}"
+                raise GitHostError(msg) from exc
+        if resp.status_code in (404, 422):  # "Reference does not exist": already gone
+            return False
+        if resp.status_code >= 400:
+            detail = _error_field(resp, "", field="message")
+            msg = (
+                f"DELETE {_path(url)} returned {resp.status_code}{': ' + detail if detail else ''}"
+            )
+            raise GitHostError(msg)
+        return True
 
     def dispatch_workflow(
         self, repo: str, workflow: str, *, ref: str, inputs: Mapping[str, str]

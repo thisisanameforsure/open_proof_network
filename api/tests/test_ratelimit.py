@@ -8,12 +8,15 @@ CLAIM = {"node_id": "and-reassoc"}
 
 
 def test_hourly_write_limit() -> None:
-    """AC7: the 121st write in an hour is 429 with Retry-After."""
+    """AC7: the 121st write in an hour is 429 with Retry-After.
+
+    Since F05-T14 a repeat claim on the node returns the claim already held (200) rather than a
+    new one; it is still a write request, and still charged."""
     h = make_harness({"OPN_API_ACTIVE_CLAIMS": "1000"})
     token = h.token_for("code_alice", "alice-p")
     for n in range(120):
         r = h.client.post("/claims", json=CLAIM, headers=h.auth(token))
-        assert r.status_code == 201, (n, r.text)
+        assert r.status_code == (201 if n == 0 else 200), (n, r.text)
     over = h.client.post("/claims", json=CLAIM, headers=h.auth(token))
     assert over.status_code == 429
     assert over.json()["error"] == "rate-limited"

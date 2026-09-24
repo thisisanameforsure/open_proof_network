@@ -86,6 +86,11 @@ def test_read_tools_equal_plain_path(
     assert over_mcp == harness.client.get("/submissions/000001").json()
     assert over_mcp["attestation"] == plain(harness, "attestations/000001.json")
     assert client.ok("list_submissions") == harness.client.get("/submissions.json").json()
+    # F05-T14: the one read that carries the caller's bearer to its route.
+    assert (
+        client.ok("list_my_claims", token=token)
+        == harness.client.get("/claims/mine", headers=harness.auth(token)).json()
+    )
     assert client.ok("get_schema", {"name": "postmortem/v1"}) == plain(
         harness, "schemas/postmortem/v1.json"
     )
@@ -241,6 +246,17 @@ def with_dep(h: Harness, token: str) -> dict[str, Any]:
     return {}
 
 
+def with_submission(h: Harness, token: str) -> dict[str, Any]:
+    """F07-T43: a pull request the caller opened through the service, to withdraw."""
+    r = h.client.post(
+        "/annexes",
+        json={"node_id": TUTORIAL_NODE, "text": "An argument to withdraw.\n"},
+        headers=h.auth(token),
+    )
+    assert r.status_code == 201, r.text
+    return {"submission_id": r.json()["id"]}
+
+
 def with_hole(h: Harness, token: str) -> dict[str, Any]:
     add_hole(h)  # a hole blocked witness-missing, as a merged partial leaves it (F07-R6)
     return {}
@@ -336,6 +352,7 @@ WRITES: dict[str, tuple[dict[str, Any], str, dict[str, Any], Setup]] = {
         {"node_id": HOLE, "witness": WITNESS},
         with_hole,
     ),
+    "withdraw_submission": ({}, "DELETE /submissions/{submission_id}", {}, with_submission),
 }
 
 

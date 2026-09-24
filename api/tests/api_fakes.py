@@ -127,6 +127,9 @@ class FakeGitHost:
     pull_states: dict[int, dict[str, Any]] = field(default_factory=dict)
     pull_lookups: list[int] = field(default_factory=list)
     pr_lookup_failure: str | None = None
+    #: F07-T43: every pull request closed and branch deleted through the App (a withdrawal).
+    closed_pulls: list[int] = field(default_factory=list)
+    deleted_branches: list[str] = field(default_factory=list)
 
     @classmethod
     def with_fixtures(cls, **users: GitHubUser) -> FakeGitHost:
@@ -224,6 +227,22 @@ class FakeGitHost:
         self.pulls.append(OpenedPr(repo, head, base, title, body))
         number = len(self.pulls)
         return PullRequest(number, f"https://github.com/{repo}/pull/{number}")
+
+    def close_pull_request(self, repo: str, number: int) -> str | None:
+        """Close ``number`` unmerged: from now on the host says closed. Answers the branch this
+        fake opened it from; a number it never opened has none."""
+        self._app_call()
+        self.closed_pulls.append(number)
+        seeded = dict(self.pull_states.get(number) or {})
+        self.pull_states[number] = {**seeded, "state": "closed", "merged": False}
+        return self.pulls[number - 1].head if 1 <= number <= len(self.pulls) else None
+
+    def delete_branch(self, repo: str, branch: str) -> bool:
+        self._app_call()
+        if branch in self.deleted_branches:
+            return False
+        self.deleted_branches.append(branch)
+        return True
 
     def dispatch_workflow(
         self, repo: str, workflow: str, *, ref: str, inputs: Mapping[str, str]

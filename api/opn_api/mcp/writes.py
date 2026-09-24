@@ -189,6 +189,11 @@ async def propose_witness(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     return await forward(call, "POST", "/proposals/witness", body)
 
 
+async def withdraw_submission(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """F07-T43 (ruling D5): ``DELETE /submissions/{id}``, the id as the input schema admits it."""
+    return await forward(call, "DELETE", f"/submissions/{args['submission_id']}")
+
+
 #: One declared tooling string as ``submissions.check_tooling`` reads it: a string of at most
 #: ``MAX_TOOLING_CHARS``, or ``null`` for undeclared (F09-T10: the guide's own example says
 #: ``"version": None``, and the adapter refused what the endpoint takes).
@@ -226,7 +231,11 @@ TOOLS: tuple[Tool, ...] = (
     Tool(
         "claim_node",
         "Register an advisory, non-exclusive claim on a frontier node; returns the receipt. "
-        "`ttl` is in hours, within the published flat caps; undeclared means the minimum.",
+        "`ttl` is in hours, within the published flat caps; undeclared means the minimum. "
+        "Claiming a node you already hold returns that same claim (status 200, same id, TTL "
+        "unchanged); after release or expiry a new claim gets a new id. The receipt's `others` "
+        "lists who else holds the node (pseudonym, expires): read it before starting, since "
+        "racing is allowed. list_my_claims finds your claim ids again.",
         params(
             {"node_id": ID_PARAM, "ttl": {"type": "integer", "minimum": 1}, "target_id": ID_PARAM},
             ("node_id",),
@@ -500,6 +509,20 @@ TOOLS: tuple[Tool, ...] = (
         "the Lean file.",
         params({"node_id": ID_PARAM, "witness": LEAN}, ("node_id", "witness")),
         propose_witness,
+        write=True,
+    ),
+    Tool(
+        "withdraw_submission",
+        "Withdraw a pull request you opened through the service (any submission, append or "
+        "proposal): it is closed unmerged and its branch deleted, and it leaves "
+        "list_submissions. `submission_id` is the id the opening call returned or the "
+        "pull-request number. Only the identity that opened it may; a merged one is refused "
+        "409 submission-merged; one already closed answers withdrawn again.",
+        params(
+            {"submission_id": {"type": "string", "pattern": "^[0-9A-Za-z]{1,26}$"}},
+            ("submission_id",),
+        ),
+        withdraw_submission,
         write=True,
     ),
 )

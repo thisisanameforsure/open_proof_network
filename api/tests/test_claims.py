@@ -14,12 +14,21 @@ def claim(h: Harness, token: str, **body: object) -> dict[str, object]:
     return doc
 
 
+def release(h: Harness, token: str, receipt: dict[str, object]) -> None:
+    r = h.client.delete(f"/claims/{receipt['id']}", headers=h.auth(token))
+    assert r.status_code == 200, r.text
+
+
 def test_ttl_caps(harness: Harness) -> None:
-    """AC9: no TTL -> the minimum; 200 h -> 400; 24 h -> 24 h."""
+    """AC9: no TTL -> the minimum; 200 h -> 400; 24 h -> 24 h.
+
+    Each claim is released before the next: since F05-T14 a repeat on a node already held
+    returns that claim, TTL unchanged (``test_finding_claim_twice.py``)."""
     token = harness.token_for("code_alice", "alice-p")
     default = claim(harness, token)
     assert default["created"] == "2026-09-09T12:00:00Z"
     assert default["expires"] == "2026-09-09T13:00:00Z"
+    release(harness, token, default)
 
     over = harness.client.post(
         "/claims", json={"node_id": NODE, "ttl_hours": 200}, headers=harness.auth(token)
@@ -29,6 +38,7 @@ def test_ttl_caps(harness: Harness) -> None:
 
     day = claim(harness, token, ttl_hours=24)
     assert day["expires"] == "2026-09-10T12:00:00Z"
+    release(harness, token, day)
 
     # Below the minimum is clamped up, not refused (D-25: undeclared gets the minimum).
     assert claim(harness, token, ttl_hours=1)["expires"] == "2026-09-09T13:00:00Z"
@@ -115,19 +125,26 @@ def test_lazy_expiry(harness: Harness) -> None:
     assert entry["claims"] == {"active": [], "history_count": 1}
 
 
+OTHER_NODE = "tutorial-and-swap"  # the fixture frontier's other claimable node
+
+
 def test_active_claim_cap() -> None:
-    """AC14: a 21st active claim is 429; releasing one makes room again."""
-    h = make_harness({"OPN_API_ACTIVE_CLAIMS": "3"})
+    """AC14: a 21st active claim is 429; releasing one makes room again.
+
+    Since F05-T14 one holder has one claim per node, so the cap is reached across nodes: a cap
+    of one, a claim on NODE, and a claim on the fixture's other claimable node is the one over."""
+    h = make_harness({"OPN_API_ACTIVE_CLAIMS": "1"})
     token = h.token_for("code_alice", "alice-p")
-    receipts = [claim(h, token, ttl_hours=24) for _ in range(3)]
-    over = h.client.post("/claims", json={"node_id": NODE}, headers=h.auth(token))
+    held = claim(h, token, ttl_hours=24)
+    over = h.client.post("/claims", json={"node_id": OTHER_NODE}, headers=h.auth(token))
     assert over.status_code == 429
     assert over.json()["error"] == "active-claims-cap"
     assert int(over.headers["retry-after"]) == 24 * 3600
 
-    h.client.delete(f"/claims/{receipts[0]['id']}", headers=h.auth(token))
+    h.client.delete(f"/claims/{held['id']}", headers=h.auth(token))
     assert (
-        h.client.post("/claims", json={"node_id": NODE}, headers=h.auth(token)).status_code == 201
+        h.client.post("/claims", json={"node_id": OTHER_NODE}, headers=h.auth(token)).status_code
+        == 201
     )
 
 
@@ -137,7 +154,8 @@ def test_cap_is_per_identity() -> None:
     bob = h.token_for("code_bob", "bob-p")
     claim(h, alice)
     assert (
-        h.client.post("/claims", json={"node_id": NODE}, headers=h.auth(alice)).status_code == 429
+        h.client.post("/claims", json={"node_id": OTHER_NODE}, headers=h.auth(alice)).status_code
+        == 429
     )
     assert h.client.post("/claims", json={"node_id": NODE}, headers=h.auth(bob)).status_code == 201
 

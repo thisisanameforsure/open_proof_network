@@ -68,12 +68,14 @@ def test_f07_routes_are_authenticated_writes() -> None:
         "POST /postmortems",
         "POST /annexes",
         "POST /approach-records",
+        "DELETE /submissions/{submission_id}",  # F07-T43 (ruling D5)
     }
     for spec in f07.values():
         assert spec.write and spec.authenticated, spec
     assert f07["POST /submissions"].d35 == routes.D35_POST_SUBMISSIONS
     appends = ("POST /postmortems", "POST /annexes", "POST /approach-records")
     assert {f07[p].d35 for p in appends} == {routes.D35_APPEND_PR}
+    assert f07["DELETE /submissions/{submission_id}"].d35 == routes.D35_DELETE_SUBMISSION
 
 
 def test_precheck_routes_match_d35() -> None:

@@ -87,6 +87,9 @@ TABLE: tuple[Row, ...] = (
         ("GET /hosted-checkers.json",),
         "GET /hosted-checkers.json",
     ),
+    # F05-T14 (ruling D3(b)): D-28's read table, notation note of 2026-09-24 — the one read that
+    # needs a bearer, because what it lists is the caller's own claims.
+    Row("list_my_claims", "read", ("GET /claims/mine",), "GET /claims/mine"),
     # --- writes (D-35's plain-path table) -----------------------------------------------------
     Row("claim_node", "write", ("POST /claims",), "POST /claims"),
     Row("release_claim", "write", ("DELETE /claims/{claim_id}",), "DELETE /claims/<id>"),
@@ -143,6 +146,13 @@ TABLE: tuple[Row, ...] = (
         "write",
         ("POST /proposals/witness",),
         "POST /proposals/witness",
+    ),
+    # F07-T43 (ruling D5): D-35's plain-path row of 2026-09-24.
+    Row(
+        "withdraw_submission",
+        "write",
+        ("DELETE /submissions/{submission_id}",),
+        "DELETE /submissions/<id>",
     ),
 )
 

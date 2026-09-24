@@ -52,7 +52,8 @@ TOOLS: tuple[Tool, ...] = (*reads.TOOLS, *writes.TOOLS)
 BY_NAME: dict[str, Tool] = {t.name: t for t in TOOLS}
 INSTRUCTIONS = (
     "The Open Proof Network's reference MCP server (D-28). Every tool is a lens over plain git "
-    "and HTTP and holds no state: reads need no token; writes need `Authorization: Bearer "
+    "and HTTP and holds no state: reads need no token, except list_my_claims, which reads your "
+    "own; writes need `Authorization: Bearer "
     "<token>` and pass their endpoint's status and body through. Three writes need none: "
     "precheck_submission on the tutorial node; get_token, which turns that passing precheck "
     "into a token; and check_lean, the non-authoritative fast check (F13). "
@@ -131,7 +132,19 @@ def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
             return error_result(name, error("arguments-invalid", message, "adapter").doc)
         token = auth.bearer() if tool.forwards_bearer else None
         if tool.needs_bearer and not token:  # R2: refused here, the endpoint never reached
-            return error_result(name, writes.unauthorized().doc)
+            # A write answers in its envelope; a read of the caller's own records (F05-T14) in
+            # the read tools' error shape, with the same code, message and status.
+            refusal = (
+                writes.unauthorized()
+                if tool.write
+                else error(
+                    str(auth.UNAUTHORIZED["error"]),
+                    str(auth.UNAUTHORIZED["message"]),
+                    "adapter",
+                    status=auth.UNAUTHORIZED_STATUS,
+                )
+            )
+            return error_result(name, refusal.doc)
         outer = OUTER.get()
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(
