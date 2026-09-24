@@ -219,15 +219,16 @@ You can check a witness before its statement is a node. Send `"mode": "witness"`
 and any `deps` it would declare, and no `node_id`. The answer's `witness.expected` is the type
 step 7 will hold your witness to; send your witness as `content` to see its `given` type and
 whether it `matches`. `POST /proposals/variant` and `POST /proposals/speculative` run this same
-check before opening anything: a witness of the wrong type is refused `422 witness-type-mismatch`
-with `expected` and `given` in `details`, and a witness of the right type that does not compile
-is refused `422 witness-fails` with the checker's `errors`; in both cases no pull request is
-opened. A witness passes only when the answer's `okay` and `witness.matches` both hold. Otherwise
-the receipt's `witness_preflight` says `matched`, `inconclusive` (the checker gave no verdict) or
+check before opening anything, and `POST /proposals/witness` runs it against the hole's
+statement: a witness of the wrong type is refused `422 witness-type-mismatch` with `expected`
+and `given` in `details`, and a witness of the right type that does not compile is refused
+`422 witness-fails` with the checker's `errors`; in both cases no pull request is opened. A
+witness passes only when the answer's `okay` and `witness.matches` both hold. Otherwise the
+receipt's `witness_preflight` says `matched`, `inconclusive` (the checker gave no verdict) or
 `unavailable` (the checker could not be asked); the pull request opens, and the gate's step 7
-remains the verdict. The same routes run the target's hazard checkers (step 6) on the statement
-first: an unacknowledged finding is refused `422 hazard-unacknowledged` with the `findings`
-exactly as step 6 prints them, and the receipt's `hazards_preflight` says `clear`,
+remains the verdict. The two proposal routes run the target's hazard checkers (step 6) on the
+statement first: an unacknowledged finding is refused `422 hazard-unacknowledged` with the
+`findings` exactly as step 6 prints them, and the receipt's `hazards_preflight` says `clear`,
 `inconclusive` or `unavailable`. `"mode": "hazards"` on `POST /check`, with a `node_id` or a
 `statement`, runs the same checkers so you can copy each `checker` and `location` into
 `acknowledged_hazards` before proposing. A proposal whose theorem name a merged node or an open
@@ -466,7 +467,7 @@ explainer/
 | `annex/<sha256>.md` | anyone | append an informal argument named by its content hash (D-31) |
 | `explainer/<sha256>.md` | anyone | append a plain-language account, labelled unverified on the site |
 | `waivers/native_decide.yaml` | the prover | add only when `Proof.lean` uses `native_decide` (F02) |
-| `revisions/`, `defects/` | anyone | append a revision request (D-8) or a defect claim (D-16); a defect claim's `exhibit` is Lean the gate elaborates, not prose; a `circular-decomposition` claim on a node already reading `cause: circular` is refused, and the receipt's `also_open` names any claim of the same class still open on the node |
+| `revisions/`, `defects/` | anyone | append a revision request (D-8) or a defect claim (D-16); a defect claim's `exhibit` is Lean the gate elaborates, not prose, and the service compiles it on the hosted fast checker first: one that does not compile is refused `422 exhibit-elaboration` with Lean's `errors` and opens nothing (the receipt's `exhibit_preflight` says `elaborates`, `inconclusive`, `unavailable` or `skipped`, the last for a `circular-decomposition` exhibit, which only the gate checks); a `circular-decomposition` claim on a node already reading `cause: circular` is refused, and the receipt's `also_open` names any claim of the same class still open on the node |
 | `Statement.lean`, `META.yaml`, `Context.lean`, `Witness.lean` | intake or the gate | **never**: statements are immutable (D-8); a defect is a revision request |
 | `status/`, `CONTEXT.json`, `defs/`, `schemas/`, the products | curators and the gate | **never** |
 
@@ -967,7 +968,12 @@ For each hole, in order:
    is merged once the gate is green, by the graph's merge actor where that is running and by a
    maintainer otherwise. `waiting_on` in `GET /submissions/<id>` says which thing a pull request
    waits for. The hole is then `ready`. "The witness, exactly" below gives the shape step 7
-   wants.
+   wants. Before anything opens, the service checks the witness against the hole's statement on
+   the hosted fast checker, as it checks a proposal's: a witness of the wrong type is refused
+   `422 witness-type-mismatch` with `expected` and `given`, one of the right type that does not
+   compile `422 witness-fails` with the checker's `errors`, and no pull request is opened. The
+   receipt's `witness_preflight` says `matched`, `inconclusive` or `unavailable`; in the last two
+   cases the pull request opens and step 7 decides.
 2. **Prove it.** Precheck and submit its `Proof.lean` exactly as "Precheck and submit" above
    shows: one pull request for each hole's proof. No review is asked of it (D-4 v3.20): step 9,
    the non-author approving review, is asked only of a proof that settles the target's *root*,
@@ -993,7 +999,9 @@ counts, wherever it sits: binders that come after a hypothesis are variables too
 shaped `P → ∀ N k, C`, which is the shape of most gate-written holes, wants `∃ N k, P`. For `theorem t : ∀ n : Nat, 0 < n → n ∣ 12 → n ≤ 12` the
 witness is `theorem witness : ∃ n : Nat, 0 < n ∧ n ∣ 12 := ⟨1, by decide, by decide⟩` (checked
 with the gate's own `opn-witness-type`: expected and witness both `∃ n, 0 < n ∧ n ∣ 12`). It must be
-sorry-free and rest only on the target's allowed axioms. Do not guess the type: `POST /check`
+sorry-free and rest only on the target's allowed axioms; the service refuses a witness with
+`sorry` in its code `400 witness-invalid` on every proposal route, since the checker compiles
+one without complaint and step 7 does not. Do not guess the type: `POST /check`
 with `"mode": "witness"` prints it in seconds and says whether yours matches, where a wrong type
 otherwise fails step 7 with `witness-type-mismatch` a gate round later. The slot the post-merge
 job writes states the expected type when the gate could print one that reads back, and otherwise

@@ -9,7 +9,10 @@ answer.
 
 Neither record changes a statement. A revision request is evidence a curator may act on by
 versioning the node (D-8); a defect claim is evidence an adjudicator weighs (D-17, Stage 1).
-Exhibits are Lean files, stored verbatim, elaborated only in the gate's sandbox (C9).
+Exhibits are Lean files, stored verbatim, and the service runs none of them (C9): the gate
+elaborates each in its sandbox, and before the pull request opens the service forwards it to the
+hosted fast checker (``checks.preflight_exhibit``, F13-T22; v3.14's one exception, D-4), so an
+exhibit that does not compile is refused here rather than a queue slot later.
 """
 
 from __future__ import annotations
@@ -21,7 +24,7 @@ import yaml
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from opn_api import appends, claims, duplicates, precheck, proposals
+from opn_api import appends, checks, claims, duplicates, precheck, proposals
 from opn_api import clock as clockmod
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
@@ -138,23 +141,30 @@ async def post_revision_requests(ctx: Context, request: Request) -> Response:
     }
     check_text_cap(doc["evidence"]["text"])
     appends.validated(doc, REVISION_SCHEMA)
+    exhibit = doc["evidence"].get("exhibit")
+    # F13-T22: an exhibit the checker says does not compile opens nothing.
+    preflight = (
+        await checks.preflight_exhibit(ctx, identity.id, target_id, node_id, exhibit)
+        if exhibit is not None
+        else None
+    )
     path = appends.node_dir(target_id, node_id) + (
         f"revisions/{appends.record_name(ctx, identity)}.yaml"
     )
-    return JSONResponse(
-        appends.append_pr(
-            ctx,
-            identity,
-            path=path,
-            content=yaml.safe_dump(doc, sort_keys=True, allow_unicode=True),
-            subject=f"revision request: {node_id}",
-            what="revision request",
-            kind="revision-request",
-            target_id=target_id,
-            node_id=node_id,
-        ),
-        status_code=201,
+    body = appends.append_pr(
+        ctx,
+        identity,
+        path=path,
+        content=yaml.safe_dump(doc, sort_keys=True, allow_unicode=True),
+        subject=f"revision request: {node_id}",
+        what="revision request",
+        kind="revision-request",
+        target_id=target_id,
+        node_id=node_id,
     )
+    if preflight is not None:
+        body["exhibit_preflight"] = preflight
+    return JSONResponse(body, status_code=201)
 
 
 # --- POST /defect-claims (D-16) -------------------------------------------------------------------
@@ -326,6 +336,17 @@ async def post_defect_claims(ctx: Context, request: Request) -> Response:
         doc["ancestor"] = ancestor
     appends.validated(doc, schema_id)
     also_open = known_state(ctx, defect_class, stmt_ref, facts)
+    # F13-T22: D-16's pre-triage is mechanical; the exhibit's compile is the checker's, before
+    # anything opens. A circularity claim's exhibit is the gate's alone (a relation, not a compile).
+    assert exhibit is not None
+    preflight = await checks.preflight_exhibit(
+        ctx,
+        identity.id,
+        target_id,
+        None if stmt_ref.startswith(DEFS_PREFIX) else stmt_ref,
+        exhibit,
+        relational=ancestor is not None,
+    )
     name = appends.record_name(ctx, identity)
     if stmt_ref.startswith(DEFS_PREFIX):
         path = f"targets/{target_id}/{DEFS_PREFIX}defects/{name}.yaml"
@@ -345,4 +366,5 @@ async def post_defect_claims(ctx: Context, request: Request) -> Response:
     )
     if also_open:
         body["also_open"] = also_open
+    body["exhibit_preflight"] = preflight
     return JSONResponse(body, status_code=201)
