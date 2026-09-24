@@ -489,3 +489,27 @@ def test_another_nodes_context_is_never_inlined() -> None:
     r = post(h, {"target_id": TARGET, "node_id": NODE, "content": content})
     assert r.status_code == 200, r.text
     assert r.json()["inlined_defs"] == []
+
+
+def test_the_413_names_the_limit_and_the_remedy() -> None:
+    """F13-T19 (testers 2026-09-24, erdos-402-http at 12:45:31Z): an |A| = 8 case tree of 657 kB
+    got ``content is 656745 bytes; the limit is 200000``, right and silent on what to do. The
+    agent had learned the rest the slow way: a tactic-level ``set_option maxHeartbeats`` does not
+    lift Lean's per-declaration budget, and a proof may declare nothing but its theorem. The
+    refusal says so, for the content and for a witness-mode statement alike, and carries the two
+    numbers as data."""
+    h = harness_with({"OPN_API_CHECK_MAX_BYTES": "200"})
+    seed(h)
+    bodies = (
+        {"target_id": TARGET, "content": "x" * 201},
+        {"target_id": TARGET, "mode": "witness", "statement": "x" * 201},
+    )
+    for body in bodies:
+        doc = refused(post(h, body), 413, "content-too-large")
+        message = doc["message"]
+        assert "201 bytes" in message and "200" in message, message
+        assert "cheaper" in message, message  # the remedy: make the proof cheaper
+        assert "helper" in message, message  # not by splitting it into declarations (F00-R19)
+        assert "per declaration" in message and "heartbeat" in message, message
+        assert doc["details"] == {"bytes": 201, "limit_bytes": 200}, doc
+    assert h.axle.calls == []
