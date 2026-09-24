@@ -212,6 +212,15 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "repairs it with a new version; nobody edits a statement.",
         "defective (D-12, D-8)",
     ),
+    # F04-T26 (Q28): the one key a cause, not a status, puts on a statement (F08-T17).
+    (
+        "circular",
+        "circular",
+        "A merged defect claim proves, in Lean, that a statement this one was meant to reduce "
+        "implies it, so it is no easier than that statement. Not accepting work; a proof of it "
+        "is still accepted, since it would prove the statement above.",
+        "ready · cause circular · circular-decomposition claim (D-16, D-12)",
+    ),
     (
         "explained",
         "Explained",
@@ -297,7 +306,7 @@ LEGEND_KEYS = (
 LEGEND_BASE = ("proved", "open", "blocked")
 #: The keys that wear a status dot wherever a legend shows them.
 DOTTED_KEYS = (*LEGEND_BASE, NEEDS_WITNESS)
-LEGEND_EXTRA = ("stale", "disputed", "superseded", "abandoned", "refuted", "defective")
+LEGEND_EXTRA = ("stale", "disputed", "superseded", "abandoned", "refuted", "defective", "circular")
 #: F04-T21 (Q23): the Docs state map's keys. Every status ``graph.json`` can publish, as the
 #: site's word (F03-Q8: ``speculative`` reads open, so nine words for ten statuses), and the five
 #: words a problem's status tag can wear; each key item is the hover card those pages use.
@@ -312,6 +321,7 @@ STATE_MAP_STATEMENT_KEYS = (
     "disputed",
     "superseded",
     "abandoned",
+    "circular",
 )
 STATE_MAP_PROBLEM_KEYS = ("open", "needs a steward", "proved", "dormant", "known result")
 #: A problem's status on the public pages (the handoff's three words), each with its definition.
@@ -1146,10 +1156,13 @@ class Renderer:
         per statement, then the record's detail sections as before."""
         tid = tv.target_id
         href = {nid: self.node_path(tid, nid) for nid in tv.nodes}
-        # T17: the pill wears the state the key and the rows name, not the bare graph status.
+        # T17: the pill wears the state the key and the rows name, not the bare graph status;
+        # T26: so a circular statement is drawn circular, never with the open ring of its status.
         drawn = [
             {**n, "status": NEEDS_WITNESS}
             if n.get("status") == "blocked" and n.get("cause") == WITNESS_CAUSE
+            else {**n, "status": CIRCULAR_CAUSE}
+            if n.get("status") != "proved" and n.get("cause") == CIRCULAR_CAUSE
             else n
             for n in tv.graph["nodes"]
         ]

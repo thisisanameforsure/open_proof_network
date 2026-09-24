@@ -103,6 +103,8 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 /* F04-T14: the other statuses wear the node pages' colours — amber waits on a repair, red is off the route */
 .dot-stale, .dot-disputed { border-color: var(--warn); }
 .dot-superseded, .dot-abandoned, .dot-refuted, .dot-defective { border-color: var(--bad); }
+/* F04-T26: circular is off the route by a merged claim, not by a failure: a dotted red ring */
+.dot-circular { border-color: var(--bad); border-style: dotted; }
 .stages { display: inline-flex; gap: var(--s3); flex-wrap: wrap; font-size: 12.5px; }
 .stage { display: inline-flex; align-items: center; white-space: nowrap; }
 .stage.on { color: var(--n100); }
@@ -233,6 +235,7 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .dag .status-needs-witness circle { stroke: var(--accent); stroke-dasharray: 2 2; }
 .dag .status-stale circle, .dag .status-disputed circle { stroke: var(--warn); }
 .dag .status-superseded circle, .dag .status-abandoned circle, .dag .status-refuted circle, .dag .status-defective circle { stroke: var(--bad); }
+.dag .status-circular circle { stroke: var(--bad); stroke-dasharray: 1.5 2; }
 .dag .status-superseded rect, .dag .status-abandoned rect { stroke-dasharray: 4 3; }
 .dag .status-superseded text, .dag .status-abandoned text { fill: var(--n500); }
 .dag a:hover rect, .dag a:focus-visible rect { stroke: var(--accent); }
@@ -301,6 +304,7 @@ pre.statement.st-superseded, pre.statement.st-abandoned { border-left-color: var
 .status-ready .mark, .status-speculative .mark { border-color: var(--accent); }
 .status-stale .mark, .status-disputed .mark { border-color: var(--warn); }
 .status-superseded .mark, .status-abandoned .mark, .status-refuted .mark { border-color: var(--bad); }
+.status-circular .mark { border-color: var(--bad); border-style: dotted; }
 .status-revoked { color: var(--bad); }
 .result-pass { color: var(--accent-300); }
 .result-fail { color: var(--bad); }

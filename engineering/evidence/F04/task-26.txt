@@ -1,0 +1,49 @@
+F04-T26 (Q28): a circular statement is drawn, keyed and defined as circular.
+Finding: 2026-09-24 erdos-1050 MCP tester, 12:26Z (engineering/evidence/testers-2026-09-24/erdos-1050-mcp.md:12).
+
+## red
+$ uv run --frozen pytest site/tests/test_finding_circular_key.py -q -rf
+E       AssertionError: [('ready', 'circular', 'circular'), ('blocked', 'circular', 'circular'), ('refuted', 'circular', 'circular'), ('defective', 'circular', 'circular'), ('speculative', 'circular', 'circular'), ('supe
+E       assert not [('ready', 'circular', 'circular'), ('blocked', 'circular', 'circular'), ('refuted', 'circular', 'circular'), ('defective', 'circular', 'circular'), ('speculative', 'circular', 'circular'), ('supersede
+E       assert 'circular' in ['proved', 'open', 'blocked']
+E        +  where ['proved', 'open', 'blocked'] = legend_words('<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...x/auto-render.min.js"></script><scri
+E        +    where '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...x/auto-render.min.js"></script><script src="/math.js"></script><script src="/pr
+E       AssertionError: assert 'ready' == 'circular'
+E         
+E         - circular
+E         + ready
+E           AssertionError: .dot-circular
+E           assert '.dot-circular' in '/* Open Proof Network site (F04). One stylesheet, no external resources (R10).\n   F04-T12: the Nocturne dark theme o...}\ntable.actions td:first-child { color: var(--n100); }\ntabl
+E       KeyError: 'circular'
+E       AssertionError: assert 'circular' in ('open', 'needs-witness', 'blocked', 'proved', 'refuted', 'defective', ...)
+E        +  where ('open', 'needs-witness', 'blocked', 'proved', 'refuted', 'defective', ...) = render.STATE_MAP_STATEMENT_KEYS
+FAILED site/tests/test_finding_circular_key.py::test_every_state_a_node_can_take_has_a_key_entry
+FAILED site/tests/test_finding_circular_key.py::test_a_circular_statement_is_named_in_the_key
+FAILED site/tests/test_finding_circular_key.py::test_a_circular_statement_is_not_drawn_as_open
+FAILED site/tests/test_finding_circular_key.py::test_the_stylesheet_gives_circular_its_own_mark
+FAILED site/tests/test_finding_circular_key.py::test_the_glossary_says_what_circular_means_and_where_it_comes_from
+FAILED site/tests/test_finding_circular_key.py::test_the_docs_state_map_lists_circular
+(6 failed. The pill test shows the worse half of the defect: a circular node was drawn with the
+open ring, because the DAG coloured by the bare status 'ready'.)
+
+## fix
+render.py: 'circular' glossary entry; LEGEND_EXTRA and STATE_MAP_STATEMENT_KEYS gain it; the DAG
+pill wears the state (circular) as T17 did for needs-witness. site.css: a dotted red ring for the
+dot, the pill and the status mark. Golden moved: site/tests/golden/docs/index.html only (the state
+map key and the glossary table gain circular), regenerated with test_render.write_goldens().
+
+## green
+$ uv run --frozen pytest site/tests -q
+299 passed in 23.48s
+
+## mutants
+Each red test is its own mutant of one fix line: reverting the DAG mapping alone fails
+test_a_circular_statement_is_not_drawn_as_open; dropping the LEGEND_EXTRA entry fails
+test_every_state_a_node_can_take_has_a_key_entry and test_a_circular_statement_is_named_in_the_key
+(both seen red above, one fix line each).
+
+## visual
+task-26-circular-key-1440.png, task-26-circular-key-390.png: the fixture problem page with
+and-reassoc as a merged circularity claim leaves it. The key reads proved, open, blocked, circular;
+the and-reassoc pill wears the dotted red ring, not the open ring. The 390 capture's right edge is
+headless Chrome's --window-size layout (log 2026-09-18), not an overflow.
