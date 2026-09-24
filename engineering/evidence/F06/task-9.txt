@@ -1,0 +1,29 @@
+F06-T9 (Q14): a partial's precheck answer names each hole with the statement it will become.
+Finding: 2026-09-24 erdos-1050 HTTP tester, bug 5 (engineering/evidence/testers-2026-09-24/erdos-1050-http.md).
+
+## seam first
+precheck.job.result_document extracted from job.run with today's behaviour, so the red run fails
+on the defect and not on a missing name (log 2026-09-21).
+
+## red
+$ uv run --frozen pytest gate/tests/test_finding_precheck_holes.py -q
+E       KeyError: 'holes'
+E       KeyError: 'holes'
+FAILED gate/tests/test_finding_precheck_holes.py::test_a_partial_precheck_names_each_hole_with_its_statement_and_witness_type
+FAILED gate/tests/test_finding_precheck_holes.py::test_a_hole_that_restates_a_node_says_which
+2 failed, 3 passed in 0.05s
+
+## green
+6 passed in 0.03s
+(six tests: a partial's holes with closed_type, expected_witness and the node a hole restates; a
+reduction's new node; none on a proof; none when the run stopped before step 4; the rest of the
+result unchanged.)
+
+## what is signed
+Nothing new. verify_result (api/opn_api/precheck.py) checks the attestation only; 'steps' already
+rides beside it unsigned, and 'holes' is the same report the post-merge job reads.
+
+## not run here
+The docker tier (test_precheck_job_docker.py) was not extended: this container has no Lean
+toolchain. The live check is at the re-pin: one precheck of a two-hole skeleton, whose 'holes' must
+equal the post-merge job's children.
