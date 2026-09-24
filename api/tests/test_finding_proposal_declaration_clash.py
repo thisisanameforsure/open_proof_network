@@ -32,7 +32,6 @@ from opn_gate import admit, layout
 GATE_WORDS = "a node may only restate a declaration by superseding the node that holds it (D-8)"
 #: The same theorem name as ``STATEMENT`` over a different proposition, so a different node id.
 SAME_NAME = "theorem OpnProp.and_weaken : ∀ p q : Prop, p ∧ q → q ∨ p := by\n  sorry\n"  # noqa: RUF001
-RED = "F08-T19: the service reads merged siblings only, in words of its own"
 
 
 def body(statement: str) -> dict[str, str]:
@@ -90,7 +89,6 @@ def proposed(h: Harness, token: str, statement: str, route: str = "/proposals/va
     return r.json()
 
 
-@pytest.mark.xfail(strict=True, reason=RED)
 def test_the_refusal_is_in_the_gates_words(harness: Harness) -> None:
     token = harness.token_for("code_alice", "alice")
     harness.githost.files[f"{NODES}and-reassoc/Statement.lean"] = DEP_STATEMENT.encode()
@@ -101,7 +99,6 @@ def test_the_refusal_is_in_the_gates_words(harness: Harness) -> None:
     assert GATE_WORDS in r.json()["message"], r.json()["message"]
 
 
-@pytest.mark.xfail(strict=True, reason=RED)
 def test_a_name_held_by_an_open_proposal_is_refused_with_its_pr(harness: Harness) -> None:
     """#188 open, then #189: a different statement under the same theorem name."""
     alice = harness.token_for("code_alice", "alice")
@@ -138,7 +135,6 @@ def test_the_same_statement_twice_is_still_a_copy_not_a_clash(harness: Harness) 
     assert (r.status_code, r.json()["error"]) == (409, "duplicate-submission"), r.text
 
 
-@pytest.mark.xfail(strict=True, reason=RED)
 def test_a_revision_that_supersedes_the_holder_is_allowed() -> None:
     """D-8: a node may restate the declaration of the node it supersedes and of no other. No
     proposal route writes a revision (``opn-gate revise`` does, by curator pull request), so the
@@ -154,7 +150,6 @@ def test_a_revision_that_supersedes_the_holder_is_allowed() -> None:
     assert holder("OpnProp.and_reassoc", [("broken", "not lean at all")]) is None
 
 
-@pytest.mark.xfail(strict=True, reason=RED)
 def test_the_service_and_the_gate_agree(harness: Harness, monkeypatch: pytest.MonkeyPatch) -> None:
     """The same function, imported, not re-implemented: plant an answer in the gate's check and
     the service gives it, for merged siblings and open proposals alike."""
@@ -165,6 +160,7 @@ def test_the_service_and_the_gate_agree(harness: Harness, monkeypatch: pytest.Mo
         return "planted-holder" if list(siblings) else None
 
     monkeypatch.setattr(admit, "declaration_holder", planted, raising=False)
+    harness.githost.files[f"{NODES}and-reassoc/Statement.lean"] = DEP_STATEMENT.encode()
     token = harness.token_for("code_alice", "alice")
     r = post(harness, "/proposals/variant", token, body(STATEMENT))
     assert r.status_code == 409, r.text

@@ -24,3 +24,113 @@ FAILED api/tests/test_finding_proposal_declaration_clash.py::test_a_name_held_by
 FAILED api/tests/test_finding_proposal_declaration_clash.py::test_a_revision_that_supersedes_the_holder_is_allowed
 FAILED api/tests/test_finding_proposal_declaration_clash.py::test_the_service_and_the_gate_agree
 4 failed, 5 passed in 0.65s
+
+Note: during the fix, test_the_service_and_the_gate_agree was given a merged sibling statement
+(and-reassoc) to plant an answer over: the fixture graph serves no Statement.lean for its nodes
+unless a test commits one, so the planted check had nothing to answer about. Before the fix the
+amended test still fails the same way (201: the service never consulted the gate's function).
+
+## green
+
+$ uv run --frozen pytest api/tests/test_finding_proposal_declaration_clash.py api/tests/test_proposals.py api/tests/test_finding_duplicate_submissions.py gate/tests/test_admit.py -m not lean and not docker and not network -q -p no:warnings
+65 passed in 1.73s
+
+## mutants
+
+Plugin mut_f08_t19.py (text at the end), loaded with -p; OPN_MUTANT picks one.
+
+### mutant open-proposals-ignored (mut_f08_t19)
+$ OPN_MUTANT=open-proposals-ignored PYTHONPATH=<mut> uv run --frozen pytest -p mut_f08_t19 api/tests/test_finding_proposal_declaration_clash.py -q
+FAILED api/tests/test_finding_proposal_declaration_clash.py::test_a_name_held_by_an_open_proposal_is_refused_with_its_pr
+1 failed, 8 passed in 0.59s
+
+### mutant open-ignores-blocking (mut_f08_t19)
+$ OPN_MUTANT=open-ignores-blocking PYTHONPATH=<mut> uv run --frozen pytest -p mut_f08_t19 api/tests/test_finding_proposal_declaration_clash.py -q
+        """The copy check's rule (``duplicates.blocks``): a failed gate stands in no one's way."""
+E       AssertionError: {"error":"declaration-clash","message":"node 'variant-4d055448' already declares OpnProp.and_weaken; a node may only restate a declaration by superseding the node that holds it (D-8); variant-4d055448 is proposed in pull request #1, still open, and whichever of the two merged second would fail the gate's declaration check. Give your theorem a name of its own","details":{"declaration":"OpnProp.and_weaken","node":"variant-4d055448","pr_number":1,"pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1"}}
+FAILED api/tests/test_finding_proposal_declaration_clash.py::test_an_open_proposal_that_can_no_longer_merge_holds_no_name
+1 failed, 8 passed in 0.61s
+
+### mutant open-includes-own-node (mut_f08_t19)
+$ OPN_MUTANT=open-includes-own-node PYTHONPATH=<mut> uv run --frozen pytest -p mut_f08_t19 api/tests/test_finding_proposal_declaration_clash.py -q
+>       assert (r.status_code, r.json()["error"]) == (409, "duplicate-submission"), r.text
+E       AssertionError: {"error":"declaration-clash","message":"node 'variant-4d055448' already declares OpnProp.and_weaken; a node may only restate a declaration by superseding the node that holds it (D-8); variant-4d055448 is proposed in pull request #1, still open, and whichever of the two merged second would fail the gate's declaration check. Give your theorem a name of its own","details":{"declaration":"OpnProp.and_weaken","node":"variant-4d055448","pr_number":1,"pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1"}}
+FAILED api/tests/test_finding_proposal_declaration_clash.py::test_the_same_statement_twice_is_still_a_copy_not_a_clash
+1 failed, 8 passed in 0.62s
+
+### mutant supersedes-ignored (mut_f08_t19)
+$ OPN_MUTANT=supersedes-ignored PYTHONPATH=<mut> uv run --frozen pytest -p mut_f08_t19 api/tests/test_finding_proposal_declaration_clash.py gate/tests/test_admit.py -m not lean and not docker and not network -q
+FAILED api/tests/test_finding_proposal_declaration_clash.py::test_a_revision_that_supersedes_the_holder_is_allowed
+FAILED gate/tests/test_admit.py::test_a_revision_may_restate_the_theorem_it_supersedes
+2 failed, 39 passed in 1.41s
+
+### mutant service-keeps-a-copy (mut_f08_t19)
+$ OPN_MUTANT=service-keeps-a-copy PYTHONPATH=<mut> uv run --frozen pytest -p mut_f08_t19 api/tests/test_finding_proposal_declaration_clash.py -q
+            assert doc["error"] == "declaration-clash"
+FAILED api/tests/test_finding_proposal_declaration_clash.py::test_the_refusal_is_in_the_gates_words
+FAILED api/tests/test_finding_proposal_declaration_clash.py::test_a_name_held_by_an_open_proposal_is_refused_with_its_pr
+FAILED api/tests/test_finding_proposal_declaration_clash.py::test_the_service_and_the_gate_agree
+3 failed, 6 passed in 0.62s
+
+Every mutant fails at least one test (above).
+
+Plugin text (mut_f08_t19.py):
+
+```python
+"""F08-T19 mutants, chosen by OPN_MUTANT; each weakens one rule in memory, no file edited."""
+
+import os
+import types
+
+
+def pytest_configure(config):
+    from opn_api import duplicates, proposals
+    from opn_gate import admit
+
+    which = os.environ["OPN_MUTANT"]
+    if which == "open-proposals-ignored":
+        proposals.proposed_statements = lambda ctx, target_id, found: iter(())
+    elif which == "open-ignores-blocking":
+        original = proposals.proposed_statements
+
+        def proposed_statements(ctx, target_id, found):
+            saved = duplicates.blocks
+            duplicates.blocks = lambda ctx, f: True
+            try:
+                yield from original(ctx, target_id, found)
+            finally:
+                duplicates.blocks = saved
+
+        proposals.proposed_statements = proposed_statements
+    elif which == "open-includes-own-node":
+        original_check = proposals.check_declaration_free
+        proposals.check_declaration_free = lambda ctx, t, s, n: original_check(ctx, t, s, "\0")
+    elif which == "supersedes-ignored":
+        original_holder = admit.declaration_holder
+
+        def declaration_holder(decl_name, siblings, *, own=None, supersedes=None):
+            return original_holder(decl_name, siblings, own=own)
+
+        admit.declaration_holder = declaration_holder
+    elif which == "service-keeps-a-copy":
+        # the service's own copy of the gate's function and words, as before F08-T19
+        proposals.admit = types.SimpleNamespace(
+            declaration_holder=admit.declaration_holder,
+            clash_message=lambda holder, decl: (
+                f"node {holder!r} already declares {decl}; a node may restate a declaration "
+                "only by superseding the node that holds it, D-8"
+            ),
+        )
+    else:
+        raise SystemExit(which)
+```
+
+## make verify
+
+$ make verify
+ruff: all checks passed; mypy --strict: gate 213, api 133, site 41 files, no issues
+2656 passed, 75 skipped, 89 deselected in 137.73s
+
+Lean tier: gate/opn_gate/admit.py changed (a pure-Python refactor of the declaration check into
+admit.declaration_holder and admit.clash_message, no Lean touched); elan is not installed in this
+container, so make verify-lean runs in CI (the lead runs it there).

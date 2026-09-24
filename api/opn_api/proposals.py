@@ -19,6 +19,7 @@ committed statements rather than accepted, because F01-R6 needs it byte-equal to
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any
 
 from starlette.requests import Request
@@ -28,12 +29,13 @@ from opn_api import appends, checks, duplicates, frontier, pending, precheck, ra
 from opn_api import clock as clockmod
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
+from opn_api.store import PROPOSAL_KINDS
+from opn_gate import admit, layout, scaffold
 from opn_gate import graph as graphmod
-from opn_gate import layout, scaffold
 
 if TYPE_CHECKING:
     from opn_api.app import Context
-    from opn_api.store import Identity
+    from opn_api.store import Identity, Submission
 
 log = logging.getLogger(__name__)
 
@@ -200,35 +202,95 @@ def acknowledged_hazards(fields: dict[str, Any]) -> list[dict[str, Any]] | None:
     return raw or None
 
 
-def check_declaration_free(ctx: Context, target_id: str, statement: str) -> None:
+def check_declaration_free(ctx: Context, target_id: str, statement: str, node_id: str) -> None:
     """F08-T16: refuse a theorem name a node of the target already declares, here rather than
     three minutes and one unwithdrawable pull request later at the gate (``declaration-clash``,
-    F08-Q18). A courtesy ahead of the gate, which still decides: a sibling whose statement cannot
-    be read or parsed is skipped, never a reason to refuse (C7). A proposal never supersedes, so
-    D-8's exception for a revision does not arise on this route."""
+    F08-Q18). F08-T19: and a name an open proposal of the target declares (graph #189 and #198
+    against the open #188 and #190), since whichever merged second would fail the gate's
+    declaration check. The question is the gate's own (``admit.declaration_holder``) and so are
+    the words (``admit.clash_message``).
+
+    A courtesy ahead of the gate, which still decides: a sibling whose statement cannot be read
+    or parsed is skipped, never a reason to refuse (C7). An open proposal that can no longer merge
+    (``duplicates.blocks``) holds nothing, and one for this very node id is the copy rule's to
+    refuse (``duplicates.check_proposal``). A proposal never supersedes, so D-8's exception for a
+    revision does not arise on this route."""
     parsed = layout.parse_statement(statement)
     if not isinstance(parsed, layout.Statement):
         return  # the scaffold refuses a statement that does not parse, in its own words
+    decl = parsed.decl_name
+    holder = admit.declaration_holder(decl, merged_statements(ctx, target_id))
+    if holder is not None:
+        raise ApiError(
+            409,
+            "declaration-clash",
+            f"{admit.clash_message(holder, decl)}; give your theorem a name of its own",
+            details={"declaration": decl, "node": holder},
+        )
+    proposals = {
+        str(found.node_id): found
+        for found in ctx.store.list_open_submissions()
+        if found.kind in PROPOSAL_KINDS
+        and found.target_id == target_id
+        and found.node_id not in (None, node_id)
+    }
+    holder = admit.declaration_holder(decl, proposed_statements(ctx, target_id, proposals))
+    if holder is not None:
+        found = proposals[holder]
+        raise ApiError(
+            409,
+            "declaration-clash",
+            f"{admit.clash_message(holder, decl)}; {holder} is proposed in pull request "
+            f"#{found.pr_number}, still open, and whichever of the two merged second would fail "
+            "the gate's declaration check. Give your theorem a name of its own",
+            details={
+                "declaration": decl,
+                "node": holder,
+                "pr_number": found.pr_number,
+                "pr_url": found.pr_url,
+            },
+        )
+
+
+def merged_statements(ctx: Context, target_id: str) -> Iterator[tuple[str, str]]:
+    """``(node id, Statement.lean)`` of the target's merged nodes, read lazily; one that cannot
+    be read is skipped (C7)."""
     try:
         nodes = precheck.graph_doc(ctx).get(target_id, [])
     except ApiError:
         return
     for node in nodes:
-        node_id = str(node.get("node_id"))
+        sibling = str(node.get("node_id"))
         try:
-            raw = frontier.committed(ctx, f"targets/{target_id}/nodes/{node_id}/Statement.lean")
+            raw = frontier.committed(ctx, f"targets/{target_id}/nodes/{sibling}/Statement.lean")
         except ApiError:
             continue
-        other = layout.parse_statement(raw.decode("utf-8", errors="replace"))
-        if isinstance(other, layout.Statement) and other.decl_name == parsed.decl_name:
-            raise ApiError(
-                409,
-                "declaration-clash",
-                f"node {node_id!r} already declares {parsed.decl_name}; give your theorem a name "
-                "of its own (a node may restate a declaration only by superseding the node that "
-                "holds it, D-8)",
-                details={"declaration": parsed.decl_name, "node": node_id},
+        yield sibling, raw.decode("utf-8", errors="replace")
+
+
+def proposed_statements(
+    ctx: Context, target_id: str, proposals: dict[str, Submission]
+) -> Iterator[tuple[str, str]]:
+    """``(node id, Statement.lean)`` of the open proposals that can still merge, each read at its
+    pull request's head; one the host cannot describe or serve is skipped (C7)."""
+    for sibling, found in sorted(proposals.items(), key=lambda item: item[1].pr_number):
+        try:
+            if not duplicates.blocks(ctx, found):
+                continue
+            state, _why = pending.live_state(ctx, found.pr_number)
+            if state is None:
+                continue
+            got = ctx.githost.fetch_raw(
+                ctx.settings.graph_repo,
+                state.head_sha,
+                f"targets/{target_id}/nodes/{sibling}/Statement.lean",
+                etag=None,
             )
+        except Exception as exc:  # any host or store failure: the gate still decides
+            log.warning("proposal #%d not read: %s", found.pr_number, type(exc).__name__)
+            continue
+        if got.status == 200 and got.body is not None:
+            yield sibling, got.body.decode("utf-8", errors="replace")
 
 
 def with_own_context(text: str, node_id: str) -> str:
@@ -251,8 +313,8 @@ def node_files(
     witness = lean_text(fields, "witness")
     assert statement is not None and witness is not None
     deps, statements = dep_statements(ctx, target_id, fields.get("deps"))
-    check_declaration_free(ctx, target_id, statement)
     node_id = scaffold.speculative_id(statement, kwargs.pop("prefix"))
+    check_declaration_free(ctx, target_id, statement, node_id)
     # F08-T13: the statement always — a node gains dependencies later, when a skeleton merges
     # and its holes are written into Context.lean, and a proof may not add an import.
     statement = with_own_context(statement, node_id)
