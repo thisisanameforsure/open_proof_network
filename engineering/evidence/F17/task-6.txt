@@ -16,3 +16,13 @@ PASSED gate/tests/test_prove_lean.py::test_accepted_answers_elaborate[whole-file
 
 The first run errored at setup on all eleven: the module fixture resolved the Mathlib toolchain
 eagerly, which needs the checkout even for core-only nodes. Resolution is lazy now.
+
+CI, 2026-09-25: `make verify-lean` on 6c70506 (the commit carrying the lazy toolchain fixture),
+run 36192405224, job 108260363976:
+
+  gate/tests/test_prove_lean.py ..............                             [ 82%]
+  ======== 119 passed, 3145 deselected, 2 warnings in 3684.55s (1:01:24) =========
+
+14 of 14: the 11 core-only cases above plus the 3 on-ramp cases (the two on-ramp exports and the
+fact-pos corpus proof), elaborated against the pinned Mathlib checkout. Nothing in the run skipped.
+The earlier commit 89f4be2, with the eager fixture, was also green (run 36191768779).

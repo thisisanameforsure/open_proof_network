@@ -18,7 +18,7 @@ test-first. Nothing touched the graph, nothing deployed, and no credential was u
   own record.
 - The `verify-harness` CI job and a weekly drift workflow.
 
-**F17, the prover client `opn-prove`** (T2–T7, T9, T6 in part, T8 in part): one standard-library
+**F17, the prover client `opn-prove`** (T2–T7, T9, T8 in part; T6's Lean tier green in CI run 36192405224): one standard-library
 file.
 
 - `export` is byte-equal to what `/check` forwards.
@@ -68,7 +68,6 @@ Also left for the owner or for CI:
 
 - F16-T9 and T10: a real model and a fresh agent in each harness. Both spend model credentials.
 - F17-T8's live model run: it needs a GPU-served prover.
-- F17-T6's on-ramp half: it needs the Mathlib checkout, so CI's Lean tier has it.
 - The graph's copy of `AGENTS.md` changes at the next copy, which is the owner's.
 
 ## How this container reached things

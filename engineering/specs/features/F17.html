@@ -374,7 +374,7 @@ at build time and never copied into the static tree, with <code>tools/SHA256SUMS
 shows the download, the check and the chain, with <code>$OPN_SITE</code> because the site names no host
 of its own; the guide's new section runs export, a stand-in prover, run and import, and its
 <code>cmp</code> shows the prover's proof is the hand-written one, executed by the walkthrough, which a
-mutated expected output turns red) &middot; T6 built 2026-09-25, lean tier pending CI
+mutated expected output turns red) &middot; T6 &check; 2026-09-25, lean tier green in CI run 36192405224 on 6c70506 (all 14 cases, the 3 on-ramp ones on the pinned Mathlib; the 11 core-only ones also run here)
 (<code>gate/tests/test_prove_lean.py</code>: every export from the propositional and on-ramp graphs
 elaborates on the real toolchain, the on-ramp on the pinned Mathlib, with one <code>sorry</code>
 warning per <code>sorry</code> body. That is the statement's, plus one per dependency its inlined
