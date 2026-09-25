@@ -63,3 +63,36 @@ jobs:
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
           df -h / | tail -1
       - run: make verify-lean
+
+  verify-harness:
+    # F16-T8, R8: each connector against its real harness binary (level 2). The binaries come
+    # from gate/clients/harness/package-lock.json with their integrity hashes; they run with a
+    # throwaway HOME against the api served on loopback over the fake host, and the job holds no
+    # secret, so a check that needs a credential (Copilot) is reported not attempted (F16-Q5).
+    name: make verify-harness (connectors against real harness binaries)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          version: "0.12.10"
+          enable-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.22.2"
+      - name: Install the pinned harness binaries
+        run: npm ci --prefix gate/clients/harness --no-audit --no-fund
+      - name: Level 2 (pytest -m harness)
+        env:
+          OPN_HARNESS_BIN: ${{ github.workspace }}/gate/clients/harness/node_modules/.bin
+        run: make verify-harness
+      - name: The runner's report, with every check not attempted and why
+        if: always()
+        run: |
+          uv run --frozen python gate/tools/harness_check.py \
+            --bin-dir gate/clients/harness/node_modules/.bin --out harness-report.json || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: harness-report
+          path: harness-report.json

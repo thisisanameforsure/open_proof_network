@@ -1,0 +1,33 @@
+$ uv run python gate/tools/harness_check.py --bin-dir <npm ci of gate/clients/harness> --out task-7-report.json   # 2026-09-25T20:57:19Z
+# run in the cloud container, binaries at the lockfile's exact versions (npm install into scratch;
+# the image itself could not be built here: the sandbox egress proxy refuses the build's apt fetches)
+pass           claude-code  none   2.1.282 (Claude Code)          the server saw initialize, tools/list
+pass           claude-code  bearer 2.1.282 (Claude Code)          the server saw initialize, tools/list
+pass           codex-cli    none   codex-cli 0.157.0              the server saw initialize, tools/list
+pass           codex-cli    bearer codex-cli 0.157.0              the server saw initialize, tools/list
+pass           gemini-cli   none   0.61.0                         the server saw initialize
+pass           gemini-cli   bearer 0.61.0                         the server saw initialize
+not-attempted  copilot      none   -                              needs COPILOT_GITHUB_TOKEN in the environment
+not-attempted  copilot      bearer -                              needs COPILOT_GITHUB_TOKEN in the environment
+not-attempted  cursor       none   -                              agent is not installed
+not-attempted  cursor       bearer -                              agent is not installed
+verdict: not pass (6 of 10 checks passed)
+(the pipe above reports grep's status; the runner itself returns 1 here, because four checks not
+ attempted count against the verdict, F16-R10)
+
+$ OPN_HARNESS_BIN=... uv run pytest -m harness gate/tests/test_clients_harness.py -rs
+......ssss...ss                                                          [100%]
+=========================== short test summary info ============================
+SKIPPED [2] gate/tests/test_clients_harness.py:39: not attempted: needs COPILOT_GITHUB_TOKEN in the environment
+SKIPPED [2] gate/tests/test_clients_harness.py:39: not attempted: agent is not installed
+SKIPPED [1] gate/tests/test_clients_harness.py:56: not attempted: needs COPILOT_GITHUB_TOKEN in the environment
+SKIPPED [1] gate/tests/test_clients_harness.py:56: not attempted: agent is not installed
+9 passed, 6 skipped in 140.11s (0:02:20)
+
+$ uv run pytest gate/tests/test_harness_check.py -q
+12 passed in 5.13s
+
+CI reproduction, hosted runner (ubuntu-24.04), network 66873a5, ci run 36189530717 job 108251010685,
+2026-09-25T21:05Z: make verify-harness -> 9 passed, 6 skipped as not attempted; harness_check.py ->
+the same 6 of 10 checks pass (claude-code, codex-cli, gemini-cli, both token forms); copilot and
+cursor not attempted, with the same reasons.

@@ -88,7 +88,7 @@ infrastructure. The contributor runs the prover. The network runs only its gate 
 <table>
   <tr><th>ID</th><th>Requirement (EARS)</th></tr>
   <tr><td>F17-R1</td><td><code>opn-prove</code> shall be one file,
-    <code>api/clients/prove/opn_prove.py</code>, importing only the Python standard library, and
+    <code>gate/clients/prove/opn_prove.py</code>, importing only the Python standard library, and
     shall run on the oldest Python the research finds hobbyist provers ship with (Q3).</td></tr>
   <tr><td>F17-R2</td><td>When given <code>export --graph &lt;clone&gt; --node &lt;id&gt;</code>, it
     shall write <code>problem.lean</code>: the node's statement with its <code>Defs</code> and own
@@ -310,14 +310,90 @@ fix follows. The live runs (AC10) exist to capture those answers.</p>
     and no v4.33.1, Kimina Lean Server's version defaults need an override, and LeanInteract
     stops at 4.32. AXLE's Mathlib revision can differ from the graph's pin. F13 already
     publishes whether the mapping is exact, and <code>check</code> prints that line.</td></tr>
+  <tr><td>F17-Q8</td><td>Built 2026-09-25: the client lives in
+    <code>gate/clients/prove/</code> beside F16's registry (F16-Q10), not <code>api/clients/</code>.
+    The tests stay in <code>api/tests</code>, because the parity reference is the api's own
+    <code>checks.inline_defs</code>. The client targets Python 3.10 with
+    <code>from __future__ import annotations</code>, so built-in generic annotations are safe there.
+    <code>test_no_syntax_newer_than_3_10</code> parses it at 3.10; running it under 3.10 is the
+    network-marked job of Q3.</td></tr>
+  <tr><td>F17-Q9</td><td>Built 2026-09-25: <code>import</code>'s refusals are stricter than
+    step 2's rule, on purpose. Step 2 would admit <code>prefix + body</code> for an answer that also
+    added <code>import Mathlib</code>, an <code>open</code>, a <code>set_option … in</code> or a
+    helper lemma, because those lines would simply be dropped. The proof would then fail to
+    elaborate at step 4, minutes later. So each is refused at import time by name
+    (<code>import-added</code>, <code>open-added</code>, <code>option-outside-body</code>,
+    <code>helper-declaration</code>), and the guide already says the gate refuses the last two in
+    place. Declarations the prover echoed back from the exported file (its inlined
+    <code>Defs</code> and Context) are the problem's own and pass. The gate's function remains the
+    oracle for every accepted answer, and every accepted complete proof in the corpus is also
+    byte-identical to the node's real <code>Proof.lean</code>.</td></tr>
+  <tr><td>F17-Q10</td><td>Built 2026-09-25: the postmortem's <code>failure_class</code> comes from
+    a table, not a guess:
+    <ul>
+      <li>a timeout is <code>budget-exhausted</code>;</li>
+      <li>no answer is <code>route-dead-ends</code> with outcome <code>abandoned-early</code>;</li>
+      <li>an answer refused as <code>helper-declaration</code> is <code>missing-library</code>,
+        with the helper's name in <code>artifacts.missing_lemmas</code>, because a prover that
+        wrote a lemma is saying the library lacked it;</li>
+      <li>any other unimportable answer is <code>route-dead-ends</code>.</li>
+    </ul>
+    AC7's "distinct" is read as "the class the table gives". Two cases share a class, and that is
+    correct. <code>route_class</code> stays the contributor's to state, because no run can know
+    it.</td></tr>
+  <tr><td>F17-Q11</td><td>Measured 2026-09-25 (T9, AC12): about a third of a Lean 4.9 prover's
+    correct proofs break at the pin, and most of the breaks are mechanical: renames, the
+    <code>∈</code> binder syntax, and lines left with no goal after a stronger tactic. So the
+    <code>whole-file</code> preset is worth shipping, with two conditions. It must be paired with
+    <code>check</code>, the fast check at 4.33.1, before any submission, so a contributor's GPU is
+    not spent on precheck rounds. And a repair round, the compiler's errors sent back to the model
+    as Goedel-Prover-V2's self-correction does (or AXLE's <code>repair_proofs</code>), is the
+    obvious next step, which the corpus should grow a case for first. For the owner: whether the
+    preset ships with that caveat stated on the Docs page, or waits for the repair round.</td></tr>
   <tr><td>F17-Q5</td><td>Delivery is a file on the site, not a PyPI package. A package would be a
     publishing credential, and so a new C8 door, for a file of a few hundred lines. Revisit if
     people ask for <code>pipx install</code>.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> planned &middot; <strong>Tasks:</strong> T1 ✓ 2026-09-24
-(<code>make verify</code>; <code>engineering/evidence/F17/task-1.txt</code>) &middot; T2&ndash;T9 todo</div>
+<div class="rule"><strong>status:</strong> building &middot; <strong>Tasks:</strong> T1 ✓ 2026-09-24
+(<code>make verify</code>; <code>engineering/evidence/F17/task-1.txt</code>) &middot; T2 ✓ 2026-09-25
+(<code>task-2.txt</code>: 18 answer shapes, 9 complete proofs, 1 partial, 8 refusals; synthetic until
+T8 captures real ones) &middot; T3 ✓ 2026-09-25 (<code>task-3.txt</code>: export byte-equal to the
+fast check's forwarded text on all 13 fixture nodes, a reverse-order mutant caught, standard
+library only, parses as 3.10, <code>--project</code> pins the graph's toolchain and Mathlib, Q8)
+&middot; T4 ✓ 2026-09-25 (<code>task-4.txt</code>: every accepted proof is admitted by
+<code>paths.check_proof_is_statement</code> and byte-identical to the node's real
+<code>Proof.lean</code>; 5 of 9 are answers the gate would refuse verbatim, Q9) &middot; T5 ✓ 2026-09-25
+(<code>task-5.txt</code>: export, run, import, check and submit against the real service open one
+pull request carrying the real proof and <code>opn-prove/command</code>; drafted postmortems validate
+as <code>postmortem/v1</code>, Q10; AC9's warning for a preset's declared Lean waits for the
+presets, T8) &middot; T7 ✓ 2026-09-25
+(<code>task-7.txt</code>: the site serves <code>tools/opn_prove.py</code>, read from the tooling repository
+at build time and never copied into the static tree, with <code>tools/SHA256SUMS</code>; the Docs card
+shows the download, the check and the chain, with <code>$OPN_SITE</code> because the site names no host
+of its own; the guide's new section runs export, a stand-in prover, run and import, and its
+<code>cmp</code> shows the prover's proof is the hand-written one, executed by the walkthrough, which a
+mutated expected output turns red) &middot; T6 &check; 2026-09-25, lean tier green in CI run 36192405224 on 6c70506 (all 14 cases, the 3 on-ramp ones on the pinned Mathlib; the 11 core-only ones also run here)
+(<code>gate/tests/test_prove_lean.py</code>: every export from the propositional and on-ramp graphs
+elaborates on the real toolchain, the on-ramp on the pinned Mathlib, with one <code>sorry</code>
+warning per <code>sorry</code> body. That is the statement's, plus one per dependency its inlined
+Context restates, a count the first draft of the test got wrong. Every accepted corpus proof,
+placed back into its exported file, elaborates with none of its own. Run here on 2026-09-25 with
+Lean 4.33.1 from the GitHub release linked into elan: the 11 core-only cases pass
+(<code>task-6.txt</code>); the 3 on-ramp cases need the Mathlib checkout, and CI's lean tier has
+it. AC5 rests on byte-identity with the fixture
+proofs the gate's own lean tier already runs through steps 1 to 8) &middot; T9 ✓ 2026-09-25
+(<code>drift.txt</code>, <code>drift.py</code>: 47 of 73 proofs DeepSeek-Prover-V2 published for miniF2F
+against Lean 4.9 elaborate unchanged in AXLE's <code>lean-4.33.1</code>, 64%. The 26 that break: 8
+unknown names (Mathlib renames), 6 syntax changes (for example <code>∑ i in</code> becoming
+<code>∑ i ∈</code>), 6 tactics that now close more, leaving the next line with no goals, 2 tactic
+failures, 2 other and 2 with no verdict. Q11) &middot; T8 part built 2026-09-25
+(<code>task-8.txt</code>: the <code>whole-file</code> preset sends the shared open-weight prompt, word for
+word with the export inside it, to any OpenAI-compatible endpoint; a stand-in endpoint's plan-and-fence
+reply imports as the node's real proof; a Lean 4.9 preset against a 4.33.1 pin warns naming both, R10
+and AC9; a dead endpoint is a failed run that drafts as a postmortem. Not done: the live run of a real
+model, which needs a GPU-served prover, and the <code>aristotle</code> preset, which waits on Q6)</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered, red first, as F16. The corpus task comes before the
@@ -335,16 +411,16 @@ them.</p>
     <td>T1</td><td><code>uv run pytest api/tests/test_prove_import.py -q</code> (all xfail)</td></tr>
   <tr><td>F17-T3</td><td>The client skeleton, <code>export</code>, and the parity and
     standard-library tests (AC1, AC2).</td>
-    <td><code>api/clients/prove/opn_prove.py</code>, <code>api/tests/test_prove_export.py</code>,
+    <td><code>gate/clients/prove/opn_prove.py</code>, <code>api/tests/test_prove_export.py</code>,
     <code>api/tests/test_prove_client.py</code></td><td>T1</td>
     <td><code>uv run pytest api/tests/test_prove_export.py api/tests/test_prove_client.py -q</code></td></tr>
   <tr><td>F17-T4</td><td><code>import</code>, including the partial path and helper lemmas, until
     the corpus is green (AC4).</td>
-    <td><code>api/clients/prove/opn_prove.py</code>, <code>api/tests/test_prove_import.py</code></td>
+    <td><code>gate/clients/prove/opn_prove.py</code>, <code>api/tests/test_prove_import.py</code></td>
     <td>T2, T3</td><td><code>uv run pytest api/tests/test_prove_import.py -q</code></td></tr>
   <tr><td>F17-T5</td><td><code>run</code>, the stub backend, <code>check</code>,
     <code>submit</code> and <code>postmortem</code> (AC6, AC7, AC9).</td>
-    <td><code>api/clients/prove/opn_prove.py</code>, <code>api/tests/test_prove_client.py</code></td>
+    <td><code>gate/clients/prove/opn_prove.py</code>, <code>api/tests/test_prove_client.py</code></td>
     <td>T4</td><td><code>uv run pytest api/tests/test_prove_client.py -q</code></td></tr>
   <tr><td>F17-T6</td><td>The lean-tier tests (AC3, AC5).</td>
     <td><code>api/tests/test_prove_export.py</code>, <code>api/tests/test_prove_import.py</code></td>

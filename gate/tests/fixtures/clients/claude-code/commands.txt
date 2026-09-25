@@ -1,0 +1,1 @@
+claude mcp add --transport http secure-api https://api.example.com/mcp --header "Authorization: Bearer your-token"

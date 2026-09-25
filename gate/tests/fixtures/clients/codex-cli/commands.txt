@@ -1,0 +1,2 @@
+codex mcp add docs --url https://example.com/mcp
+codex mcp add docs --url https://example.com/mcp --bearer-token-env-var EXAMPLE_TOKEN

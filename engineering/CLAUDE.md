@@ -1141,3 +1141,21 @@ The law of the project:
   elan's host and ghcr's blob host are refused too, but GitHub release downloads work, so the Lean tier ran here
   from the release zip linked into elan (`elan toolchain link`). The closed graph PRs #189, #195, #198, #202 were
   all opened hours before the refusals that now stop them were deployed.
+- 2026-09-25 — A harness's word is not a connection. Tested against the real binaries, `codex mcp list`
+  and `codex doctor` connect to nothing, `copilot mcp list` prints its config, and Claude Code exits 0
+  while it skips a malformed entry. So F16's level 2 decides on the server's own record of
+  `initialize` and `tools/list`, and a stand-in harness that prints "Connected" without connecting is
+  a fast-tier test that must fail. The same record answered a question no doc did: Claude Code,
+  Codex and Gemini all expand `$OPN_TOKEN` into the header. When a client's output is the only
+  evidence that something happened, move the assertion to the side that cannot lie about it.
+  Notes: `engineering/session-notes/2026-09-25-harness-connectors.md`.
+- 2026-09-25 — Check a lean-tier test's text assumptions in the fast tier before the first push. Two
+  were wrong in F17-T6's first draft, and CI would have found each after an hour. A node's export
+  carries one `sorry` per dependency its inlined Context restates, not one. And the statement is not
+  a substring of the export, whose `Defs` imports are removed. A third, an eager fixture resolving
+  the Mathlib toolchain for core-only nodes, showed up only when the Lean release zip, linked into
+  elan, ran the tier here.
+- 2026-09-25 — Research about your own system is a claim to check against the code. The report
+  writer said write tokens travel as a tool argument, and built a recommendation on it. The code
+  (`mcp/auth.py`) reads only the header. One grep before the commit caught it, and the corrected
+  version made F16-Q3 sharper, not softer.

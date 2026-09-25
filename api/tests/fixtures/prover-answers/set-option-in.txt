@@ -1,0 +1,6 @@
+/-! The tutorial node (D-27): permanently open, off-ledger. Lean core only. -/
+
+set_option maxHeartbeats 400000 in
+theorem OpnProp.and_swap : ∀ p q : Prop, p ∧ q → q ∧ p := by
+  intro p q h
+  exact ⟨h.2, h.1⟩

@@ -1,0 +1,351 @@
+uv run --frozen ruff check .
+All checks passed!
+uv run --frozen ruff format --check .
+517 files already formatted
+uv run --frozen mypy gate
+Success: no issues found in 230 source files
+uv run --frozen mypy api
+Success: no issues found in 152 source files
+uv run --frozen mypy site
+Success: no issues found in 44 source files
+uv run --frozen pytest -m "not lean and not docker and not network and not harness"
+============================= test session starts ==============================
+platform linux -- Python 3.13.12, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/user/open_proof_network
+configfile: pyproject.toml
+testpaths: gate/tests, api/tests, site/tests
+plugins: anyio-4.15.1
+collected 3244 items / 121 deselected / 3123 selected
+
+gate/tests/test_admit.py ................................                [  1%]
+gate/tests/test_alternate.py ............                                [  1%]
+gate/tests/test_artifacts.py .....................                       [  2%]
+gate/tests/test_attestation.py ................                          [  2%]
+gate/tests/test_bench.py .....                                           [  2%]
+gate/tests/test_bounce.py .........                                      [  3%]
+gate/tests/test_branches_round3.py ......................                [  3%]
+gate/tests/test_branches_round4.py ..................                    [  4%]
+gate/tests/test_cache.py ........                                        [  4%]
+gate/tests/test_calibration_pool.py ...                                  [  4%]
+gate/tests/test_catalog.py .....                                         [  4%]
+gate/tests/test_cli_curator.py ..................                        [  5%]
+gate/tests/test_cli_pregate.py ..................                        [  5%]
+gate/tests/test_cli_sandboxed.py ............................            [  6%]
+gate/tests/test_clients_registry.py ......................               [  7%]
+gate/tests/test_clients_render.py ...........................            [  8%]
+gate/tests/test_config.py ...............................                [  9%]
+gate/tests/test_context.py ......                                        [  9%]
+gate/tests/test_curator.py .....................                         [ 10%]
+gate/tests/test_declared_fields.py ...............                       [ 10%]
+gate/tests/test_defs.py .......                                          [ 11%]
+gate/tests/test_deps.py .............                                    [ 11%]
+gate/tests/test_diagnostic.py ..........                                 [ 11%]
+gate/tests/test_evidence.py ............                                 [ 12%]
+gate/tests/test_exhibits.py .........                                    [ 12%]
+gate/tests/test_explainer_signature.py ....                              [ 12%]
+gate/tests/test_fidelity.py ...........                                  [ 12%]
+gate/tests/test_finding_a_post_fidelity.py ............................. [ 13%]
+............                                                             [ 14%]
+gate/tests/test_finding_alternate_postmerge.py ..s                       [ 14%]
+gate/tests/test_finding_attestation_drops_submission.py .....            [ 14%]
+gate/tests/test_finding_b_revise_v2.py ......                            [ 14%]
+gate/tests/test_finding_bench_guide_partial.py ..                        [ 14%]
+gate/tests/test_finding_c_stale_signature.py .....................       [ 15%]
+gate/tests/test_finding_circular_decomposition.py ...............        [ 15%]
+gate/tests/test_finding_circular_path.py .............                   [ 16%]
+gate/tests/test_finding_de_qa_status.py .......                          [ 16%]
+gate/tests/test_finding_duplicate_hole.py .........                      [ 16%]
+gate/tests/test_finding_fg_friction.py ..............                    [ 17%]
+gate/tests/test_finding_frontier_superseded_defective.py .........       [ 17%]
+gate/tests/test_finding_graph_readme.py s                                [ 17%]
+gate/tests/test_finding_guide_defects.py .....                           [ 17%]
+gate/tests/test_finding_guide_mcp_renames.py .                           [ 17%]
+gate/tests/test_finding_guide_pending_work.py .......                    [ 17%]
+gate/tests/test_finding_guide_route_preflights.py .................      [ 18%]
+gate/tests/test_finding_guide_skeleton.py ..                             [ 18%]
+gate/tests/test_finding_guide_tester_0921.py ....................        [ 19%]
+gate/tests/test_finding_guide_tester_0924.py ........................... [ 20%]
+.....s                                                                   [ 20%]
+gate/tests/test_finding_hole_frontier.py .......                         [ 20%]
+gate/tests/test_finding_hole_restates_ancestor.py .........              [ 20%]
+gate/tests/test_finding_hole_revision_witness.py ........                [ 21%]
+gate/tests/test_finding_hole_roundtrip.py .....                          [ 21%]
+gate/tests/test_finding_hole_roundtrip_message.py ..                     [ 21%]
+gate/tests/test_finding_ledger_credits_merges.py .......                 [ 21%]
+gate/tests/test_finding_ledger_update_branch_credit.py .....             [ 21%]
+gate/tests/test_finding_merge_actor_queue.py ssssssssss                  [ 21%]
+gate/tests/test_finding_merge_actor_wakes.py sssssssssss                 [ 22%]
+gate/tests/test_finding_merge_actor_workflow.py ssssssssssssssssss       [ 22%]
+gate/tests/test_finding_parent_stays_open.py ...........                 [ 23%]
+gate/tests/test_finding_postmerge_push_race.py sss                       [ 23%]
+gate/tests/test_finding_postmerge_replay.py sssssssssssss                [ 23%]
+gate/tests/test_finding_precheck_holes.py .......                        [ 24%]
+gate/tests/test_finding_proof_own_context_import.py ................     [ 24%]
+gate/tests/test_finding_readiness_vars.py ............................   [ 25%]
+gate/tests/test_finding_revised_hole_parent.py ..................        [ 26%]
+gate/tests/test_finding_schemas_published.py ...                         [ 26%]
+gate/tests/test_finding_speculative_yields.py .....                      [ 26%]
+gate/tests/test_finding_step9_certified.py ............................. [ 27%]
+...                                                                      [ 27%]
+gate/tests/test_finding_step9_certified_workflow.py ssss                 [ 27%]
+gate/tests/test_finding_step9_root_only.py ...............               [ 27%]
+gate/tests/test_finding_step9_stale_run.py sssssssss                     [ 28%]
+gate/tests/test_finding_witness_proved_haves.py ...........              [ 28%]
+gate/tests/test_finding_witness_slot.py .....                            [ 28%]
+gate/tests/test_finding_witness_slot_header.py .                         [ 28%]
+gate/tests/test_formalizations.py ..............                         [ 29%]
+gate/tests/test_harness_blind.py ...                                     [ 29%]
+gate/tests/test_harness_check.py ............                            [ 29%]
+gate/tests/test_hazards.py ...............                               [ 30%]
+gate/tests/test_hosted_checkers.py ...................                   [ 30%]
+gate/tests/test_intake.py ..........................                     [ 31%]
+gate/tests/test_intake_mode.py ....                                      [ 31%]
+gate/tests/test_intake_root.py ...............                           [ 32%]
+gate/tests/test_layout.py ...............                                [ 32%]
+gate/tests/test_ledger.py .........................                      [ 33%]
+gate/tests/test_ledger_merges.py ..........                              [ 33%]
+gate/tests/test_lifecycle_f14.py .                                       [ 33%]
+gate/tests/test_lifecycle_f15.py .                                       [ 33%]
+gate/tests/test_models.py ...........                                    [ 34%]
+gate/tests/test_modes.py ............................................... [ 35%]
+..................................................                       [ 37%]
+gate/tests/test_partial.py ..............                                [ 37%]
+gate/tests/test_paths.py ..........................................      [ 39%]
+gate/tests/test_pins.py .......ss                                        [ 39%]
+gate/tests/test_pipeline.py ........................................     [ 40%]
+gate/tests/test_postmerge.py ................................s           [ 41%]
+gate/tests/test_postmerge_apply.py .............                         [ 42%]
+gate/tests/test_precheck_job_docker.py ...                               [ 42%]
+gate/tests/test_products.py ............................................ [ 43%]
+.....                                                                    [ 43%]
+gate/tests/test_proposal_form.py .s                                      [ 43%]
+gate/tests/test_qa.py .................................................. [ 45%]
+.......                                                                  [ 45%]
+gate/tests/test_qa_rerun.py ..........................                   [ 46%]
+gate/tests/test_records.py ..............                                [ 46%]
+gate/tests/test_rehearsal.py ....                                        [ 47%]
+gate/tests/test_replay_mode.py ................                          [ 47%]
+gate/tests/test_sandbox.py .........                                     [ 47%]
+gate/tests/test_sandbox_copyout.py ...........                           [ 48%]
+gate/tests/test_scaffold.py ........................                     [ 49%]
+gate/tests/test_schemas.py ............................................. [ 50%]
+..........................................................               [ 52%]
+gate/tests/test_signer.py .........                                      [ 52%]
+gate/tests/test_stage.py ....                                            [ 52%]
+gate/tests/test_steward.py .....                                         [ 52%]
+gate/tests/test_toolchain.py .....................................       [ 54%]
+gate/tests/test_toolchain_install.py ............                        [ 54%]
+gate/tests/test_walkthrough.py .s....                                    [ 54%]
+gate/tests/test_watcher.py ..........                                    [ 54%]
+gate/tests/test_wave.py ..............                                   [ 55%]
+gate/tests/test_witness.py ..........                                    [ 55%]
+gate/tests/test_writeup.py ..                                            [ 55%]
+api/tests/test_appends.py .......                                        [ 56%]
+api/tests/test_auth.py ....                                              [ 56%]
+api/tests/test_axle.py ..............                                    [ 56%]
+api/tests/test_body_cap.py .........                                     [ 56%]
+api/tests/test_branches_round4.py ...................                    [ 57%]
+api/tests/test_check_witness_mode.py ...........                         [ 57%]
+api/tests/test_checks.py .................                               [ 58%]
+api/tests/test_claims.py ...........                                     [ 58%]
+api/tests/test_claims_defect.py ....                                     [ 58%]
+api/tests/test_clients_profile.py ..................                     [ 59%]
+api/tests/test_config_boundary.py ...........                            [ 59%]
+api/tests/test_entrypoints.py ..........                                 [ 60%]
+api/tests/test_finding_argument_renames.py ..                            [ 60%]
+api/tests/test_finding_bench_node_claims.py .                            [ 60%]
+api/tests/test_finding_bench_partial_path.py .....                       [ 60%]
+api/tests/test_finding_check_naming_noise.py .....                       [ 60%]
+api/tests/test_finding_check_okay.py .....                               [ 60%]
+api/tests/test_finding_check_own_context_import.py ..                    [ 60%]
+api/tests/test_finding_check_superseded.py ..                            [ 60%]
+api/tests/test_finding_check_timeout.py ....                             [ 60%]
+api/tests/test_finding_circular_claim.py ......                          [ 61%]
+api/tests/test_finding_claim_twice.py .............                      [ 61%]
+api/tests/test_finding_claims_mine.py ..........                         [ 61%]
+api/tests/test_finding_context_restated_lint.py ..                       [ 61%]
+api/tests/test_finding_defect_claim_known_state.py ........              [ 62%]
+api/tests/test_finding_duplicate_submissions.py .................        [ 62%]
+api/tests/test_finding_exhibit_preflight.py .........                    [ 63%]
+api/tests/test_finding_frontier_lag.py ..                                [ 63%]
+api/tests/test_finding_graph_head_pin.py .....                           [ 63%]
+api/tests/test_finding_hazards_preflight.py ................             [ 63%]
+api/tests/test_finding_mcp_bootstrap.py .....                            [ 63%]
+api/tests/test_finding_mcp_dco_bootstrap.py ..                           [ 64%]
+api/tests/test_finding_mcp_plain_reads.py ...                            [ 64%]
+api/tests/test_finding_mcp_record_as_text.py ...                         [ 64%]
+api/tests/test_finding_mcp_schema_versions.py ...                        [ 64%]
+api/tests/test_finding_mcp_tooling_null.py .......................       [ 65%]
+api/tests/test_finding_node_closing_route.py ..                          [ 65%]
+api/tests/test_finding_node_pending.py .........                         [ 65%]
+api/tests/test_finding_partial_path.py .........                         [ 65%]
+api/tests/test_finding_pending_submissions.py ..........                 [ 65%]
+api/tests/test_finding_precheck_blocked.py ......                        [ 66%]
+api/tests/test_finding_precheck_not_yet.py .........                     [ 66%]
+api/tests/test_finding_precheck_stale_commit.py ..                       [ 66%]
+api/tests/test_finding_preflight_refusals.py ........................... [ 67%]
+..                                                                       [ 67%]
+api/tests/test_finding_proposal_declaration_clash.py .........           [ 67%]
+api/tests/test_finding_proposal_deps_import.py ...                       [ 67%]
+api/tests/test_finding_proposal_hazard_ack.py ..........                 [ 68%]
+api/tests/test_finding_proposal_statement.py ........                    [ 68%]
+api/tests/test_finding_racer_alternate.py .......                        [ 68%]
+api/tests/test_finding_refusal_reasons.py ......                         [ 68%]
+api/tests/test_finding_route_index.py .....                              [ 69%]
+api/tests/test_finding_runs_jobs_shape.py .......                        [ 69%]
+api/tests/test_finding_stale_open_submissions.py .....                   [ 69%]
+api/tests/test_finding_submission_blocked.py ...                         [ 69%]
+api/tests/test_finding_submission_gate_verdict.py .....                  [ 69%]
+api/tests/test_finding_submission_ids.py ....                            [ 69%]
+api/tests/test_finding_submission_waiting_on.py ............             [ 70%]
+api/tests/test_finding_submissions_cold_latency.py .......               [ 70%]
+api/tests/test_finding_submit_rivals.py .......                          [ 70%]
+api/tests/test_finding_superseded_refusals.py ........                   [ 70%]
+api/tests/test_finding_unknown_fields.py ....................            [ 71%]
+api/tests/test_finding_waiting_on_lag.py ..........                      [ 71%]
+api/tests/test_finding_waiting_on_products_appends.py ........           [ 72%]
+api/tests/test_finding_withdraw.py ...........................           [ 72%]
+api/tests/test_finding_witness_preflight.py ...............              [ 73%]
+api/tests/test_finding_witness_preflight_okay.py ........                [ 73%]
+api/tests/test_finding_witness_proved_haves.py ....                      [ 73%]
+api/tests/test_finding_witness_route_preflight.py ..........             [ 74%]
+api/tests/test_fixture_is_golden.py ...                                  [ 74%]
+api/tests/test_frontier.py ....                                          [ 74%]
+api/tests/test_frontier_generation.py ..........                         [ 74%]
+api/tests/test_githost_seam.py ......................................... [ 75%]
+.................................                                        [ 77%]
+api/tests/test_health.py ........                                        [ 77%]
+api/tests/test_info.py ...                                               [ 77%]
+api/tests/test_mcp_auth.py .....                                         [ 77%]
+api/tests/test_mcp_bootstrap.py .......                                  [ 77%]
+api/tests/test_mcp_demarcation.py ....                                   [ 77%]
+api/tests/test_mcp_equivalence.py ...                                    [ 78%]
+api/tests/test_mcp_errors.py ......                                      [ 78%]
+api/tests/test_mcp_frontier.py ...                                       [ 78%]
+api/tests/test_mcp_pending_submissions.py ...                            [ 78%]
+api/tests/test_mcp_renames.py ........                                   [ 78%]
+api/tests/test_mcp_surface.py ......                                     [ 78%]
+api/tests/test_pending_submissions.py .........................          [ 79%]
+api/tests/test_precheck.py ...........................                   [ 80%]
+api/tests/test_proposals.py .......                                      [ 80%]
+api/tests/test_prove_client.py .......                                   [ 80%]
+api/tests/test_prove_export.py ..................                        [ 81%]
+api/tests/test_prove_import.py .....................                     [ 82%]
+api/tests/test_ratelimit.py ....                                         [ 82%]
+api/tests/test_rejections_app.py .............                           [ 82%]
+api/tests/test_rejections_appends.py ...........                         [ 83%]
+api/tests/test_rejections_claims.py ..................                   [ 83%]
+api/tests/test_rejections_precheck.py .......................            [ 84%]
+api/tests/test_rejections_proposals.py ............                      [ 84%]
+api/tests/test_rejections_requests.py ........                           [ 85%]
+api/tests/test_rejections_submissions.py ..........                      [ 85%]
+api/tests/test_rejections_tokens.py .................                    [ 85%]
+api/tests/test_routes.py .....                                           [ 86%]
+api/tests/test_sshsig.py ......                                          [ 86%]
+api/tests/test_sshsig_rejections.py ...........                          [ 86%]
+api/tests/test_store_seam.py ........................................... [ 87%]
+...........................................                              [ 89%]
+api/tests/test_submissions.py ......                                     [ 89%]
+api/tests/test_submissions_alternate.py .                                [ 89%]
+api/tests/test_tokens.py ................                                [ 90%]
+site/tests/test_branches_round4.py ...                                   [ 90%]
+site/tests/test_config.py ......                                         [ 90%]
+site/tests/test_copy.py .....                                            [ 90%]
+site/tests/test_dag.py .............                                     [ 90%]
+site/tests/test_docs_connectors.py .....                                 [ 91%]
+site/tests/test_docs_states.py ......                                    [ 91%]
+site/tests/test_escaping.py ....                                         [ 91%]
+site/tests/test_fast_check.py ...                                        [ 91%]
+site/tests/test_finding_bench_claimable_words.py ..                      [ 91%]
+site/tests/test_finding_circular_key.py ......                           [ 91%]
+site/tests/test_finding_circular_label.py ...                            [ 91%]
+site/tests/test_finding_circular_path_note.py .....                      [ 92%]
+site/tests/test_finding_closing_route.py ...                             [ 92%]
+site/tests/test_finding_copy_wayfinding.py ...............               [ 92%]
+site/tests/test_finding_csp_fonts.py .....                               [ 92%]
+site/tests/test_finding_dag_labels.py .                                  [ 92%]
+site/tests/test_finding_docs_agents_md.py .......                        [ 93%]
+site/tests/test_finding_needs_witness.py .........                       [ 93%]
+site/tests/test_finding_not_claimable_reasons.py ............            [ 93%]
+site/tests/test_finding_resolved_target_open_variants.py .....           [ 93%]
+site/tests/test_finding_statement_markdown.py ...........                [ 94%]
+site/tests/test_finding_status_cause.py .....                            [ 94%]
+site/tests/test_finding_superseded_links.py ......                       [ 94%]
+site/tests/test_finding_tutorial_page.py ....                            [ 94%]
+site/tests/test_graph_legend.py ................                         [ 95%]
+site/tests/test_links.py ......................                          [ 95%]
+site/tests/test_rejection.py ......................................      [ 97%]
+site/tests/test_render.py ............................                   [ 98%]
+site/tests/test_render_alternates.py .                                   [ 98%]
+site/tests/test_render_artifacts.py ....................                 [ 98%]
+site/tests/test_render_evidence.py .......                               [ 98%]
+site/tests/test_render_stewards.py .......                               [ 99%]
+site/tests/test_untrusted.py .....................                       [ 99%]
+site/tests/test_vendor.py .....                                          [100%]
+
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:31
+  /home/user/open_proof_network/api/tests/api_fakes.py:31: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /home/user/open_proof_network/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] gate/tests/test_finding_merge_actor_wakes.py:68: no gate.yml on the graph refs
+SKIPPED [1] gate/tests/test_finding_graph_readme.py:33: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_guide_tester_0924.py:106: the graph repo is not checked out
+SKIPPED [1] gate/tests/test_finding_merge_actor_queue.py:134: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_queue.py:141: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_queue.py:148: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_queue.py:172: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_queue.py:183: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_queue.py:191: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_queue.py:203: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_queue.py:211: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_queue.py:237: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_queue.py:244: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_wakes.py:253: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_wakes.py:263: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_wakes.py:276: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_wakes.py:297: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_wakes.py:311: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_wakes.py:324: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_wakes.py:335: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_wakes.py:346: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_wakes.py:362: no gate.yml on the graph refs
+SKIPPED [1] gate/tests/test_finding_merge_actor_wakes.py:370: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_wakes.py:379: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_workflow.py:88: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_workflow.py:95: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_workflow.py:103: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_workflow.py:109: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_workflow.py:155: the graph repo is not checked out beside this repo
+SKIPPED [9] gate/tests/test_finding_merge_actor_workflow.py:166: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_workflow.py:194: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_workflow.py:204: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_workflow.py:216: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_merge_actor_workflow.py:227: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_postmerge_push_race.py:49: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_postmerge_push_race.py:54: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_postmerge_push_race.py:64: the graph repo is not checked out beside this repo
+SKIPPED [3] gate/tests/test_finding_postmerge_replay.py:58: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_postmerge_replay.py:68: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_postmerge_replay.py:88: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_postmerge_replay.py:97: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_finding_postmerge_replay.py:116: no gate.yml on the graph refs
+SKIPPED [1] gate/tests/test_finding_postmerge_replay.py:132: no gate.yml on the graph refs
+SKIPPED [1] gate/tests/test_finding_postmerge_replay.py:138: no gate.yml on the graph refs
+SKIPPED [1] gate/tests/test_finding_postmerge_replay.py:144: no gate.yml on the graph refs
+SKIPPED [1] gate/tests/test_finding_postmerge_replay.py:156: no gate.yml on the graph refs
+SKIPPED [1] gate/tests/test_finding_postmerge_replay.py:166: no gate.yml on the graph refs
+SKIPPED [1] gate/tests/test_finding_postmerge_replay.py:171: no gate.yml on the graph refs
+SKIPPED [4] gate/tests/test_finding_step9_certified_workflow.py:43: the graph repo is not checked out beside this repo
+SKIPPED [9] gate/tests/test_finding_step9_stale_run.py:59: the graph repo is not checked out beside this repo
+SKIPPED [2] gate/tests/test_pins.py:246: the graph repo is not checked out beside this repo
+SKIPPED [1] gate/tests/test_postmerge.py:655: /home/user/open_proof_network_graph/.github/workflows/gate.yml is not checked out beside this repo
+SKIPPED [1] gate/tests/test_proposal_form.py:68: /home/user/open_proof_network_graph/.github/ISSUE_TEMPLATE/problem-proposal.yml is not checked out beside this repo
+SKIPPED [1] gate/tests/test_walkthrough.py:235: /home/user/open_proof_network_graph/AGENTS.md is not checked out beside this repo
+=== 3047 passed, 76 skipped, 121 deselected, 2 warnings in 126.29s (0:02:06) ===

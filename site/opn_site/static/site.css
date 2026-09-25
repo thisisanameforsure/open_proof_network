@@ -459,3 +459,10 @@ table.actions { font-size: 13.5px; }
 table.actions td.who { white-space: nowrap; color: var(--n300); }
 table.actions td:first-child { color: var(--n100); }
 table.actions code { color: var(--n400); font-size: 12px; }
+
+/* F16-T6: the Docs page's connector cards, one per harness in gate/clients/registry.yaml. */
+.connector { border: 1px solid var(--divider); border-radius: var(--radius-sm); padding: var(--s3) var(--s6); margin: var(--s4) 0; }
+.connector h3 { margin-top: var(--s2); }
+.connector-status { color: var(--n700); font-size: 14px; }
+.snippet-title { font-weight: 600; margin: var(--s3) 0 var(--s1); }
+pre.snippet { background: var(--surface); padding: var(--s3) var(--s4); overflow-x: auto; white-space: pre; margin: 0 0 var(--s3); border-radius: var(--radius-sm); font-size: 13px; }

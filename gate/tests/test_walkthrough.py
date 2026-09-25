@@ -30,7 +30,7 @@ from harness import GRAPH, TARGET, TUTORIAL
 
 from opn_api import local
 from opn_api.githost import WorkflowRun
-from opn_gate import config, products, schemas
+from opn_gate import clients, config, products, schemas
 
 ROOT = Path(__file__).resolve().parents[2]
 DOC = ROOT / "gate" / "agents" / "AGENTS.md"
@@ -234,6 +234,23 @@ def test_graph_copy_is_identical() -> None:
     if not GRAPH_COPY.is_file():
         pytest.skip(f"{GRAPH_COPY} is not checked out beside this repo")
     assert GRAPH_COPY.read_bytes() == DOC.read_bytes(), "the graph's AGENTS.md drifted; recopy it"
+
+
+def test_connectors_section_is_rendered(tmp_path: Path) -> None:
+    """F16-AC5 / R3: the guide's connector table is exactly what the registry renders, and a
+    one-character edit to the registry makes it stale, named by the regenerating command."""
+    text = DOC.read_text(encoding="utf-8")
+    assert clients.replace_section(text, clients.guide_section(clients.load())) == text, (
+        "run: PYTHONPATH=gate uv run python -m opn_gate.clients --guide gate/agents/AGENTS.md"
+    )
+    edited = tmp_path / "registry.yaml"
+    edited.write_text(
+        clients.REGISTRY_PATH.read_text(encoding="utf-8").replace("name: Cursor", "name: Cursor!"),
+        encoding="utf-8",
+    )
+    stale = clients.guide_section(clients.load(edited))
+    assert clients.replace_section(text, stale) != text
+    assert "Cursor!" in stale
 
 
 def test_manual_blocks_are_the_known_two() -> None:

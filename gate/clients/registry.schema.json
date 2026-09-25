@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "harness-clients/v1",
+  "title": "harness-clients/v1",
+  "description": "gate/clients/registry.yaml (F16-R1): one entry per coding-agent harness, rendered into the Docs page and the guide. Network configuration, never graph content (D-35), never read by the gate (D-1). Kept beside the file it validates, not in gate/schemas, because it is no protocol record and the products' schema index must not carry it (F16-Q10).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "server", "token_env", "entries"],
+  "properties": {
+    "schema": { "const": "harness-clients/v1" },
+    "server": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "token_env": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "entries": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/entry" } }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "transport", "snippets", "instructions", "headless", "list_check", "profile", "verified"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "name": { "type": "string", "minLength": 1 },
+        "transport": { "enum": ["streamable-http", "stdio-bridge"] },
+        "bridge": { "type": "string", "minLength": 1 },
+        "snippets": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/snippet" } },
+        "instructions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["reads_agents_md", "how"],
+          "properties": {
+            "reads_agents_md": { "type": "boolean" },
+            "how": { "type": "string", "minLength": 1 }
+          }
+        },
+        "headless": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["template", "approve"],
+          "properties": {
+            "template": { "type": "string", "minLength": 1 },
+            "approve": { "type": "string", "minLength": 1 }
+          }
+        },
+        "list_check": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["template", "rpc"],
+          "properties": {
+            "template": { "type": "string", "minLength": 1 },
+            "expect": { "type": "string", "minLength": 1 },
+            "rpc": { "type": "array", "minItems": 1, "items": { "enum": ["initialize", "tools/list", "ping"] } },
+            "env": { "type": "object", "additionalProperties": { "type": "string" } },
+            "requires_env": { "type": "array", "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" } },
+            "timeout_s": { "type": "integer", "minimum": 1, "maximum": 600 }
+          }
+        },
+        "profile": { "$ref": "#/$defs/profile" },
+        "verified": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["version", "date", "evidence"],
+              "properties": {
+                "version": { "type": "string", "minLength": 1 },
+                "date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+                "evidence": { "type": "string", "pattern": "^engineering/evidence/F16/" }
+              }
+            }
+          ]
+        }
+      },
+      "if": { "properties": { "transport": { "const": "stdio-bridge" } } },
+      "then": { "required": ["bridge"] }
+    },
+    "snippet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "kind", "format", "auth", "template"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["command", "file"] },
+        "path": { "type": "string", "minLength": 1 },
+        "scope": { "enum": ["project", "user"] },
+        "format": { "enum": ["shell", "json", "toml"] },
+        "auth": { "enum": ["none", "bearer"] },
+        "required_keys": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "forbidden_keys": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "template": { "type": "string", "minLength": 1 }
+      },
+      "if": { "properties": { "kind": { "const": "file" } } },
+      "then": { "required": ["path", "scope", "required_keys"] },
+      "else": { "properties": { "format": { "const": "shell" } } }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sources"],
+      "properties": {
+        "max_tools": { "type": "integer", "minimum": 1 },
+        "name_format": { "type": "string", "pattern": "\\{tool\\}" },
+        "name_pattern": { "type": "string", "minLength": 1 },
+        "max_name_length": { "type": "integer", "minimum": 1 },
+        "server_forbidden_chars": { "type": "string", "minLength": 1 },
+        "forbidden_keywords": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "result_cap_tokens": { "type": "integer", "minimum": 1 },
+        "requires_readonly_hint": { "type": "boolean" },
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["url", "accessed", "claim"],
+            "properties": {
+              "url": { "type": "string", "pattern": "^https://" },
+              "accessed": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+              "claim": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    }
+  }
+}
