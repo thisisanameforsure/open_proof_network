@@ -26,3 +26,8 @@ SKIPPED [1] gate/tests/test_clients_harness.py:56: not attempted: agent is not i
 
 $ uv run pytest gate/tests/test_harness_check.py -q
 12 passed in 5.13s
+
+CI reproduction, hosted runner (ubuntu-24.04), network 66873a5, ci run 36189530717 job 108251010685,
+2026-09-25T21:05Z: make verify-harness -> 9 passed, 6 skipped as not attempted; harness_check.py ->
+the same 6 of 10 checks pass (claude-code, codex-cli, gemini-cli, both token forms); copilot and
+cursor not attempted, with the same reasons.

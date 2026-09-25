@@ -365,7 +365,14 @@ at build time and never copied into the static tree, with <code>tools/SHA256SUMS
 shows the download, the check and the chain, with <code>$OPN_SITE</code> because the site names no host
 of its own; the guide's new section runs export, a stand-in prover, run and import, and its
 <code>cmp</code> shows the prover's proof is the hand-written one, executed by the walkthrough, which a
-mutated expected output turns red) &middot; T6, T8, T9 todo</div>
+mutated expected output turns red) &middot; T6 built 2026-09-25, lean tier pending CI
+(<code>gate/tests/test_prove_lean.py</code>: every export from the propositional and on-ramp graphs
+elaborates on the real toolchain, the on-ramp on the pinned Mathlib, with one <code>sorry</code>
+warning per <code>sorry</code> body. That is the statement's, plus one per dependency its inlined
+Context restates, a count the first draft of the test got wrong. Every accepted corpus proof,
+placed back into its exported file, elaborates with none of its own. The container has no Lean,
+so the green CI run id goes here when it exists. AC5 rests on byte-identity with the fixture
+proofs the gate's own lean tier already runs through steps 1 to 8) &middot; T8, T9 todo</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered, red first, as F16. The corpus task comes before the
