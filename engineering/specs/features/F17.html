@@ -386,7 +386,12 @@ proofs the gate's own lean tier already runs through steps 1 to 8) &middot; T9 �
 against Lean 4.9 elaborate unchanged in AXLE's <code>lean-4.33.1</code>, 64%. The 26 that break: 8
 unknown names (Mathlib renames), 6 syntax changes (for example <code>∑ i in</code> becoming
 <code>∑ i ∈</code>), 6 tactics that now close more, leaving the next line with no goals, 2 tactic
-failures, 2 other and 2 with no verdict. Q11) &middot; T8 todo</div>
+failures, 2 other and 2 with no verdict. Q11) &middot; T8 part built 2026-09-25
+(<code>task-8.txt</code>: the <code>whole-file</code> preset sends the shared open-weight prompt, word for
+word with the export inside it, to any OpenAI-compatible endpoint; a stand-in endpoint's plan-and-fence
+reply imports as the node's real proof; a Lean 4.9 preset against a 4.33.1 pin warns naming both, R10
+and AC9; a dead endpoint is a failed run that drafts as a postmortem. Not done: the live run of a real
+model, which needs a GPU-served prover, and the <code>aristotle</code> preset, which waits on Q6)</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered, red first, as F16. The corpus task comes before the

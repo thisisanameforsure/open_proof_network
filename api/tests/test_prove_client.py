@@ -164,3 +164,107 @@ def test_version_warning_is_the_callers_to_read() -> None:
     header = prove.header_comment(found)
     assert "leanprover/lean4:v4.33.1" in header
     assert found.gate_spec()["mathlib_sha"] in header
+
+
+class _Endpoint:
+    """An OpenAI-compatible chat endpoint on loopback, standing in for vLLM serving an
+    open-weight prover: it keeps the request and answers with a plan and a fenced block."""
+
+    def __init__(self, reply: str, status: int = 200) -> None:
+        import http.server  # noqa: PLC0415
+        import threading  # noqa: PLC0415
+
+        outer = self
+        self.requests: list[dict[str, Any]] = []
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_POST(self) -> None:
+                length = int(self.headers.get("Content-Length", "0"))
+                outer.requests.append(
+                    {"path": self.path, "body": json.loads(self.rfile.read(length))}
+                )
+                payload = json.dumps({"choices": [{"message": {"content": reply}}]}).encode()
+                self.send_response(status)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
+
+            def log_message(self, *_a: Any) -> None:
+                return
+
+        self.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self.url = f"http://127.0.0.1:{self.server.server_address[1]}/v1"
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def close(self) -> None:
+        self.server.shutdown()
+
+
+def test_whole_file_preset(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """F17-T8, Q2: the shared open-weight prompt reaches the endpoint word for word with the
+    exported file inside it, and the model's answer imports as the node's real proof."""
+    graph = GRAPHS / "propositional"
+    found = prove.find_node(graph, TUTORIAL, TARGET)
+    problem, answer = tmp_path / "problem.lean", tmp_path / "answer.txt"
+    problem.write_text(prove.export(found), encoding="utf-8")
+    filled = prove.export(found).replace("  sorry\n", "  intro p q h\n  exact ⟨h.2, h.1⟩\n")
+    endpoint = _Endpoint("### Detailed Proof Plan\n\nSwap.\n\n```lean4\n" + filled + "```\n")
+    try:
+        code, run = cli(
+            capsys, "run", "--preset", "whole-file", "--endpoint", endpoint.url,
+            "--model", "Goedel-LM/Goedel-Prover-V2-8B", "--problem", str(problem),
+            "--answer", str(answer), "--record", str(tmp_path / "run.json"),
+        )  # fmt: skip
+    finally:
+        endpoint.close()
+    assert code == 0 and run["answered"] and run["backend"] == "whole-file", run
+    (request,) = endpoint.requests
+    assert request["path"] == "/v1/chat/completions"
+    sent = request["body"]["messages"][0]["content"]
+    assert sent == prove.WHOLE_FILE_PROMPT.format(problem=prove.export(found))
+    assert sent.startswith("Complete the following Lean 4 code:\n\n```lean4\n")
+    imported = prove.import_answer(found, answer.read_text(encoding="utf-8"))
+    assert imported.kind == "proof" and imported.text == PROOF
+
+
+def test_whole_file_warns_about_the_lean_version(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """AC9 / R10: a preset trained on Lean 4.9 against a graph pinned at 4.33.1 is told so,
+    naming both, and the run goes ahead."""
+    found = prove.find_node(GRAPHS / "onramp", "fact-pos", "euclid-primes")
+    warning = prove.version_warning(found, prove.WHOLE_FILE_LEAN)
+    assert warning is not None and "v4.9" in warning and "v4.33.1" in warning
+    problem, answer = tmp_path / "problem.lean", tmp_path / "answer.txt"
+    problem.write_text(prove.export(found), encoding="utf-8")
+    endpoint = _Endpoint("no proof today")
+    try:
+        code = prove.main([
+            "run", "--preset", "whole-file", "--endpoint", endpoint.url, "--model", "m",
+            "--graph", str(GRAPHS / "onramp"), "--node", "fact-pos", "--problem", str(problem),
+            "--answer", str(answer), "--record", str(tmp_path / "run.json"),
+        ])  # fmt: skip
+    finally:
+        endpoint.close()
+    err = capsys.readouterr().err
+    assert code == 0 and "warning: this prover targets Lean v4.9" in err and "v4.33.1" in err
+    assert prove.version_warning(found, "v4.33.1") is None
+
+
+def test_whole_file_unreachable_endpoint_is_a_failed_run(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A dead endpoint is a run with no answer, which drafts as a postmortem, never a crash."""
+    problem, answer = tmp_path / "problem.lean", tmp_path / "answer.txt"
+    problem.write_text("theorem t : True := by\n  sorry\n", encoding="utf-8")
+    code, run = cli(
+        capsys, "run", "--preset", "whole-file", "--endpoint", "http://127.0.0.1:9/v1",
+        "--model", "m", "--problem", str(problem), "--answer", str(answer),
+        "--record", str(tmp_path / "run.json"), "--timeout", "5",
+    )  # fmt: skip
+    assert code == 1 and run["answered"] is False and run["exit"] == 1, run
+    found = prove.find_node(GRAPHS / "propositional", TUTORIAL, TARGET)
+    record = prove.postmortem(found, run, "alice", "computational")
+    schemas.validate(record, "postmortem/v1")
+    assert record["outcome"] == "abandoned-early"

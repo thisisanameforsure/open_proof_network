@@ -422,6 +422,90 @@ def run_backend(problem: Path, answer: Path, argv: Sequence[str], timeout: float
     return record
 
 
+# --- presets: defaults for a named prover, never code the network depends on (D-1) ----------------
+
+#: F17-Q2: the one prompt DeepSeek-Prover-V2, Goedel-Prover-V2 and Pythagoras-Prover share, word
+#: for word from their READMEs (read 2026-09-24), sent as one chat user message.
+WHOLE_FILE_PROMPT = (
+    "Complete the following Lean 4 code:\n\n```lean4\n{problem}\n```\n\n"
+    "Before producing the Lean 4 code to formally prove the given theorem, provide a detailed "
+    "proof plan outlining the main proof steps and strategies.\n"
+    "The plan should highlight key ideas, intermediate lemmas, and proof structures that will "
+    "guide the construction of the final formal proof."
+)
+#: The Lean those models were trained and evaluated on (their READMEs; F17-T9 measured what that
+#: costs at the network's pin: 47 of 73 published proofs survive unchanged).
+WHOLE_FILE_LEAN = "v4.9"
+
+
+def version_warning(node: Node, declared: str) -> str | None:
+    """F17-R10: a preset's declared Lean against the graph's pin, as one warning or none."""
+    pinned = str(node.gate_spec().get("lean_toolchain") or "")
+    if declared and declared not in pinned:
+        return (
+            f"this prover targets Lean {declared}; the graph pins {pinned or 'another toolchain'}. "
+            "Renamed lemmas and changed syntax fail at the pin: run `check` before `submit`."
+        )
+    return None
+
+
+def run_whole_file(  # noqa: PLR0913 — one keyword per request parameter the endpoint takes
+    problem: Path,
+    answer: Path,
+    *,
+    endpoint: str,
+    model: str,
+    max_tokens: int,
+    timeout: float,
+    temperature: float = 1.0,
+) -> dict[str, Any]:
+    """Ask an OpenAI-compatible chat endpoint (vLLM, SGLang, a hosted API) with the shared prompt
+    and write the reply to ``answer``; ``import`` takes it from there."""
+    started = time.monotonic()
+    record: dict[str, Any] = {
+        "schema": "opn-prove-run/v1",
+        "backend": "whole-file",
+        "program": model,
+        "started": _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "timeout_s": timeout,
+    }
+    body = {
+        "model": model,
+        "messages": [
+            {
+                "role": "user",
+                "content": WHOLE_FILE_PROMPT.format(problem=problem.read_text(encoding="utf-8")),
+            }
+        ],
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+    }
+    if not endpoint.startswith(("https://", "http://")):
+        raise Refused("usage", f"the prover endpoint must be http(s): {endpoint}")
+    token = os.environ.get("OPN_PROVER_API_KEY")  # the prover's, never the network's token
+    request = urllib.request.Request(  # noqa: S310 — checked above
+        endpoint.rstrip("/") + "/chat/completions",
+        data=json.dumps(body).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json", "User-Agent": f"{HARNESS}/{VERSION}"},
+    )
+    if token:
+        request.add_header("Authorization", f"Bearer {token}")
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310
+            doc = json.loads(response.read() or b"{}")
+        text = doc["choices"][0]["message"]["content"]
+        answer.write_text(str(text), encoding="utf-8")
+        record.update(exit=0, timed_out=False, stderr_tail="")
+    except TimeoutError:
+        record.update(exit=None, timed_out=True, stderr_tail="")
+    except (urllib.error.URLError, ValueError, KeyError, IndexError) as exc:
+        record.update(exit=1, timed_out=False, stderr_tail=f"{type(exc).__name__}: {exc}"[-2000:])
+    record["elapsed_s"] = round(time.monotonic() - started, 3)
+    record["answered"] = answer.is_file() and bool(answer.read_text(encoding="utf-8").strip())
+    return record
+
+
 # --- the service ----------------------------------------------------------------------------------
 
 
@@ -597,6 +681,13 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: PLR0911, PLR0912, P
         "--timeout", type=float, default=float(os.environ.get("OPN_PROVE_TIMEOUT_S", "1800"))
     )
     p.add_argument("--record", type=Path, default=Path("run.json"))
+    p.add_argument("--preset", choices=("command", "whole-file"), default="command")
+    p.add_argument("--endpoint", help="whole-file: an OpenAI-compatible base URL (vLLM, ...)")
+    p.add_argument("--model", help="whole-file: the model name the endpoint serves")
+    p.add_argument("--max-tokens", type=int, default=32768)
+    p.add_argument("--graph", type=Path, help="for the Lean-version warning (F17-R10)")
+    p.add_argument("--node")
+    p.add_argument("--target")
     p.add_argument("argv", nargs=argparse.REMAINDER)
 
     for name, help_ in (
@@ -652,10 +743,27 @@ def main(argv: Sequence[str] | None = None) -> int:  # noqa: PLR0911, PLR0912, P
             _print({"ok": True, "kind": imported.kind, "file": str(out), "notes": imported.notes})
             return 0
         if args.command == "run":
-            argv_ = [a for a in args.argv if a != "--"]
-            if not argv_:
-                raise Refused("usage", "give the prover's command after --")
-            record = run_backend(args.problem, args.answer, argv_, args.timeout)
+            if args.preset == "whole-file":
+                if not args.endpoint or not args.model:
+                    raise Refused("usage", "the whole-file preset needs --endpoint and --model")
+                if args.graph and args.node:
+                    node = find_node(args.graph, args.node, args.target)
+                    warning = version_warning(node, WHOLE_FILE_LEAN)
+                    if warning:
+                        print(f"warning: {warning}", file=sys.stderr)
+                record = run_whole_file(
+                    args.problem,
+                    args.answer,
+                    endpoint=args.endpoint,
+                    model=args.model,
+                    max_tokens=args.max_tokens,
+                    timeout=args.timeout,
+                )
+            else:
+                argv_ = [a for a in args.argv if a != "--"]
+                if not argv_:
+                    raise Refused("usage", "give the prover's command after --")
+                record = run_backend(args.problem, args.answer, argv_, args.timeout)
             args.record.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
             _print(record)
             return 0 if record["answered"] else 1
