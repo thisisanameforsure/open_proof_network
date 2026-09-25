@@ -33,7 +33,7 @@ def everything(entry: clients.Entry) -> list[str]:
     """Every text a connector can put in front of a contributor or a harness."""
     texts = [r.text for r in clients.render(REGISTRY, entry, TEST_URL)]
     texts.append(clients.render_headless(REGISTRY, entry, TEST_URL, "read AGENTS.md"))
-    texts.extend(clients.render_list_check(REGISTRY, entry, TEST_URL))
+    texts.extend(t for t in clients.render_list_check(REGISTRY, entry, TEST_URL) if t)
     return texts
 
 

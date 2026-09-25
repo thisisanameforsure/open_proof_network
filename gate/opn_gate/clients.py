@@ -104,7 +104,11 @@ class Entry:
     headless: str
     approve: str
     list_check: str
-    list_expect: str
+    list_expect: str | None
+    list_rpc: tuple[str, ...]
+    list_env: dict[str, str]
+    list_requires_env: tuple[str, ...]
+    list_timeout_s: int
     profile: Profile
     verified: Verified | None
     bridge: str | None = None
@@ -156,6 +160,8 @@ def _templates(doc: Mapping[str, Any]) -> Iterator[tuple[str, str, frozenset[str
         yield f"{eid}.headless", headless.get("template", ""), HEADLESS_PLACEHOLDERS
         yield f"{eid}.list_check", listing.get("template", ""), PLACEHOLDERS
         yield f"{eid}.list_check.expect", listing.get("expect", ""), PLACEHOLDERS
+        for name, value in listing.get("env", {}).items():
+            yield f"{eid}.list_check.env.{name}", str(value), frozenset()
 
 
 def problems(doc: Any) -> list[str]:
@@ -214,7 +220,11 @@ def _entry(raw: Mapping[str, Any]) -> Entry:
         headless=raw["headless"]["template"],
         approve=raw["headless"]["approve"],
         list_check=raw["list_check"]["template"],
-        list_expect=raw["list_check"]["expect"],
+        list_expect=raw["list_check"].get("expect"),
+        list_rpc=tuple(raw["list_check"]["rpc"]),
+        list_env=dict(raw["list_check"].get("env", {})),
+        list_requires_env=tuple(raw["list_check"].get("requires_env", ())),
+        list_timeout_s=int(raw["list_check"].get("timeout_s", 60)),
         profile=Profile(sources=sources, **profile),
         verified=Verified(**raw["verified"]) if raw["verified"] else None,
     )
@@ -295,10 +305,11 @@ def render_headless(registry: Registry, entry: Entry, mcp_url: str, prompt: str)
     return fill(entry.headless, {**values(registry, mcp_url), "prompt": prompt})
 
 
-def render_list_check(registry: Registry, entry: Entry, mcp_url: str) -> tuple[str, str]:
-    """The level-2 command and the text its output must contain (R8)."""
+def render_list_check(registry: Registry, entry: Entry, mcp_url: str) -> tuple[str, str | None]:
+    """The level-2 command and the text its output must contain, if any (R8). What decides the
+    check is the server's record of the calls in ``entry.list_rpc``, never this text alone."""
     v = values(registry, mcp_url)
-    return fill(entry.list_check, v), fill(entry.list_expect, v)
+    return fill(entry.list_check, v), fill(entry.list_expect, v) if entry.list_expect else None
 
 
 def parsed(rendered: Rendered) -> Any:

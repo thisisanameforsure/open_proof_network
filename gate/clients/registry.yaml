@@ -23,7 +23,9 @@ entries:
         format: shell
         auth: none
         template: claude mcp add --transport http {{server}} {{mcp_url}}
-      - title: Or commit it with the project, read by Claude Code, the Copilot CLI and VS Code
+      - title: >-
+          Or commit it with the project, read by Claude Code, the Copilot CLI and VS Code (Claude
+          Code asks you to approve a project server once, in an interactive session)
         kind: file
         path: .mcp.json
         scope: project
@@ -31,7 +33,14 @@ entries:
         auth: none
         required_keys: [mcpServers.*.type, mcpServers.*.url]
         template: '{"mcpServers": {"{{server}}": {"type": "http", "url": "{{mcp_url}}"}}}'
-      - title: With your write token, expanded by Claude Code at start-up
+      - title: With your write token, read from OPN_TOKEN each time Claude Code starts
+        kind: command
+        format: shell
+        auth: bearer
+        template: >-
+          claude mcp add --transport http {{server}} {{mcp_url}}
+          --header 'Authorization: Bearer ${{{token_env}}}'
+      - title: Or commit the token form with the project (approve it once in an interactive session)
         kind: file
         path: .mcp.json
         scope: project
@@ -52,6 +61,7 @@ entries:
     list_check:
       template: claude mcp list
       expect: Connected
+      rpc: [initialize, tools/list]
     profile:
       name_format: mcp__{server}__{tool}
       name_pattern: ^[A-Za-z0-9_-]+$
@@ -65,7 +75,10 @@ entries:
         - url: https://code.claude.com/docs/en/headless
           accessed: 2026-09-24
           claim: a --mcp-config entry with url and no type is skipped and the run still exits 0
-    verified: null
+    verified:
+      version: Claude Code 2.1.282
+      date: 2026-09-25
+      evidence: engineering/evidence/F16/task-7.txt
 
   - id: codex-cli
     name: OpenAI Codex CLI
@@ -105,8 +118,13 @@ entries:
         codex exec never asks, so an MCP call that needs approval is denied. Read tools carry
         readOnlyHint and run; write tools need default_tools_approval_mode = "approve".
     list_check:
-      template: codex mcp list
-      expect: '{{server}}'
+      # `codex mcp list` and `codex doctor` never connect; `codex exec` connects every server
+      # before its first model call, so a placeholder key gets initialize and tools/list and the
+      # model call then fails, which the check ignores (probed 2026-09-25, F16-Q13).
+      template: codex exec --skip-git-repo-check "list your tools"
+      env: {OPENAI_API_KEY: not-a-key}
+      timeout_s: 40
+      rpc: [initialize, tools/list]
     profile:
       name_format: mcp__{server}__{tool}
       max_name_length: 128
@@ -123,7 +141,10 @@ entries:
         - url: https://github.com/openai/codex/blob/61e23bc/codex-rs/config/src/mcp_types.rs
           accessed: 2026-09-24
           claim: url, bearer_token_env_var and default_tools_approval_mode are server fields
-    verified: null
+    verified:
+      version: codex-cli 0.157.0
+      date: 2026-09-25
+      evidence: engineering/evidence/F16/task-7.txt
 
   - id: gemini-cli
     name: Google Gemini CLI
@@ -164,8 +185,11 @@ entries:
       template: gemini -p "{{prompt}}" --approval-mode yolo --skip-trust
       approve: headless mode treats ask-user as deny; yolo approves, --skip-trust admits the folder.
     list_check:
+      # Gemini disables every server in an untrusted folder, user servers included (2026-09-25).
       template: gemini mcp list
-      expect: '{{server}}'
+      env: {GEMINI_CLI_TRUST_WORKSPACE: "true"}
+      expect: Connected
+      rpc: [initialize]
     profile:
       name_format: mcp_{server}_{tool}
       max_name_length: 63
@@ -180,7 +204,10 @@ entries:
         - url: https://github.com/google-gemini/gemini-cli/blob/87de0b6/docs/cli/gemini-md.md
           accessed: 2026-09-24
           claim: context.fileName makes Gemini read AGENTS.md
-    verified: null
+    verified:
+      version: gemini-cli 0.61.0
+      date: 2026-09-25
+      evidence: engineering/evidence/F16/task-7.txt
 
   - id: copilot
     name: GitHub Copilot (CLI and VS Code)
@@ -220,8 +247,12 @@ entries:
         VS Code has no headless mode; the Copilot CLI reads the same files and stands in for it
         (F16-Q9).
     list_check:
-      template: copilot mcp list
-      expect: '{{server}}'
+      # `copilot mcp list` prints the config and connects nothing; `copilot -p` refuses before
+      # connecting unless GitHub credentials are present (2026-09-25).
+      template: copilot -p "list your tools" --allow-tool='{{server}}'
+      requires_env: [COPILOT_GITHUB_TOKEN]
+      timeout_s: 60
+      rpc: [initialize, tools/list]
     profile:
       max_tools: 128
       sources:
@@ -266,6 +297,7 @@ entries:
     list_check:
       template: agent mcp list
       expect: '{{server}}'
+      rpc: [initialize]
     profile:
       max_tools: 40
       sources:

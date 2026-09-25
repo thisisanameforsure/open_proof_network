@@ -1,0 +1,11 @@
+{
+  "name": "opn-harness-image",
+  "private": true,
+  "description": "F16-T7: the harness binaries the connectors' real-client tier runs (gate/tools/harness_check.py). Exact versions; package-lock.json carries each tarball's integrity hash. Move a pin only in a commit carrying a passing run (F16-R11).",
+  "dependencies": {
+    "@anthropic-ai/claude-code": "2.1.282",
+    "@github/copilot": "1.0.88",
+    "@google/gemini-cli": "0.61.0",
+    "@openai/codex": "0.157.0"
+  }
+}

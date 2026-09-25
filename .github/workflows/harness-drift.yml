@@ -1,0 +1,57 @@
+# F16-T8, R11: the connectors against each harness's latest release, weekly. Harness CLIs change
+# month to month and a snippet that worked can stop working without any change here; this job
+# runs the level-2 check twice, at the pins in gate/clients/harness/package-lock.json and at each
+# package's latest version, and goes red naming the harness and both versions when the latest
+# fails where the pin passes. It writes nothing: moving a pin is a commit that carries a passing
+# run (F16-R11). It holds no secret.
+name: harness-drift
+
+on:
+  schedule:
+    - cron: "41 5 * * 1"  # weekly, Monday; the minute is arbitrary
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: harness-drift
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          version: "0.12.10"
+          enable-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.22.2"
+      - name: The pinned binaries
+        run: npm ci --prefix gate/clients/harness --no-audit --no-fund
+      - name: The latest binaries
+        run: |
+          mkdir -p "$RUNNER_TEMP/latest"
+          npm install --prefix "$RUNNER_TEMP/latest" --no-audit --no-fund \
+            @anthropic-ai/claude-code@latest @github/copilot@latest \
+            @google/gemini-cli@latest @openai/codex@latest
+      - name: Level 2 at the pins
+        run: |
+          uv run --frozen python gate/tools/harness_check.py \
+            --bin-dir gate/clients/harness/node_modules/.bin --out pinned.json || true
+      - name: Level 2 at the latest releases
+        run: |
+          uv run --frozen python gate/tools/harness_check.py \
+            --bin-dir "$RUNNER_TEMP/latest/node_modules/.bin" --out latest.json || true
+      - name: A check the pin passes and the latest fails is a regression
+        run: uv run --frozen python gate/tools/harness_check.py --compare pinned.json latest.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: harness-drift
+          path: |
+            pinned.json
+            latest.json

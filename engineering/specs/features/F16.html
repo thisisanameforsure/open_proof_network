@@ -472,6 +472,30 @@ so each trap is caught by a test, and not by a contributor's first failed sessio
     filters would pass Claude Code's 25,000-token cap at about 142 entries. AC14 holds the bar at
     twice the live count. Before the frontier reaches the cap, the fix is a <code>limit</code> or
     paging argument, which is a D-28 surface change and so the owner's.</td></tr>
+  <tr><td>F16-Q13</td><td>Measured 2026-09-25 against the real binaries (level 2,
+    <code>engineering/evidence/F16/task-7.txt</code>). The server's record, not the harness's
+    output, decided every result:
+    <ul>
+      <li><strong>Connecting.</strong> <code>claude mcp list</code> connects (<code>initialize</code>,
+        <code>tools/list</code>). <code>gemini mcp list</code> connects (<code>initialize</code>,
+        <code>ping</code>) only in a trusted folder; untrusted, it disables every server.
+        <code>codex mcp list</code> and <code>codex doctor</code> connect to nothing; only
+        <code>codex exec</code> connects, before its first model call, so the check gives it a
+        placeholder key and ignores the failed model call. <code>copilot mcp list</code> prints
+        config only, and <code>copilot -p</code> refuses before connecting without GitHub
+        credentials.</li>
+      <li><strong>Q3's header question, answered for three harnesses.</strong> Claude Code (a header
+        registered as <code>'Bearer ${OPN_TOKEN}'</code>), Codex (<code>bearer_token_env_var</code>)
+        and Gemini (<code>${OPN_TOKEN}</code> in <code>headers</code>, which its docs do not
+        promise) each sent exactly the token in the environment. The restart cost and Cursor's
+        reported header drop are still unmeasured.</li>
+      <li><strong>A committed <code>.mcp.json</code> sits at "Pending approval" in Claude Code</strong>
+        until someone runs <code>claude</code> interactively. The snippet now says so, and the
+        tested token form is the <code>claude mcp add --header</code> command.</li>
+      <li><strong>Not attempted in the cloud container:</strong> Copilot (no GitHub token) and Cursor
+        (its <code>agent</code> binary is not published on npm). Each is reported
+        <code>not-attempted</code> with its reason, never as a pass.</li>
+    </ul></td></tr>
   <tr><td>F16-Q7</td><td>A new pytest marker <code>harness</code> and a Makefile target
     <code>verify-harness</code> amend conventions §2 (T2), because this tier needs neither Lean
     nor the step-3 image but does need third-party binaries. The marker is excluded from
@@ -491,7 +515,14 @@ it at ~142 entries, Q12) &middot; T5 ✓ 2026-09-25 (<code>task-5.txt</code>: th
 table, Q11; the gate gives identical verdicts and attestations under every declared harness, and
 a mutant biased against one is caught) &middot; T6 ✓ 2026-09-25 (<code>task-6.txt</code> and two
 screenshots: the Docs page's "Connect your harness" cards, no page overflow at 390) &middot;
-T7&ndash;T10 todo</div>
+T7 ✓ 2026-09-25
+(<code>task-7.txt</code>: level 2 against Claude Code 2.1.282, Codex 0.157.0 and Gemini 0.61.0, both token
+forms, 6 of 10 checks pass and 4 are not attempted with their reasons, Q13; the runner's 12
+fast-tier tests; the image is pinned but was not built here, because the sandbox's egress proxy
+refuses its apt fetches, so CI installs the same lockfile with <code>npm ci</code>) &middot; T8 built
+2026-09-25 (the <code>verify-harness</code> CI job and the weekly <code>harness-drift.yml</code>;
+the regression comparison is tested; the first green scheduled run id is pending) &middot;
+T9&ndash;T10 todo</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Red first: each task lands its tests failing, as
