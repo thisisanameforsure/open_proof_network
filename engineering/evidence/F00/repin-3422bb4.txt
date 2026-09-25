@@ -1,0 +1,30 @@
+Re-pin to network 3422bb4 — 2026-09-24/25, prepared overnight, BLOCKED on one owner act (the tag push).
+Carries to the live gate: F08-T20 (one circularity claim reaches the whole established path, D-12 v3.22),
+F07-T44 (a hole's witness covers only what its decomposition left unproved, D-29 v3.22, meta/v5), F06-T9 (a
+partial's precheck names each hole with its statement, witness type and proved_binders), PROTOCOL_VERSION 3.22,
+and the guide's graph copy (F10-T14, F13-T21..T23, F07-T44 sentences).
+Service-side work (F05-T14/T15, F07-T39..T43, F08-T18/T19, F09-T13, F13-T17..T23) went live with the api
+deploys of aa0d45c and 3422bb4 (api-deploy run 36070811993, success 23:05:26Z; the live index answers 3.22).
+
+0. CI: PR #20 head 2e809b7, run 36064412988, fast tier and Lean tier success (21:55Z to 23:03Z). main 3422bb4 is
+   the merge of that head onto aa0d45c with an identical tree (git diff 2e809b7 3422bb4: empty).
+
+1. BLOCKED. Tag gate-3422bb4 exists locally; pushing it from the cloud session was refused by the session's git
+   proxy (HTTP 403 on receive-pack: the session may push only its own branch), and dispatching image-publish.yml
+   through the GitHub App was refused 403 "Resource not accessible by integration". The old image cannot stand in:
+   F07-T44 changed gate/lean (Holes.lean, WitnessType.lean, WitnessTypeMain.lean), which the image carries built.
+   THE OWNER'S ONE COMMAND (from any clone of the network repo):
+     git fetch origin && git tag gate-3422bb4 3422bb401108f24a3006877a2af929894564a1c1 && git push origin gate-3422bb4
+   (or: Actions -> image-publish -> Run workflow on main; the image is then tagged sha-3422bb401108, same bytes).
+
+2. Prepared, not committed: a worktree of the graph at origin/main 557e90f1 ("gate: #204 pass") with
+   schemas.unpublished == ['meta/v5'] -> schemas.publish wrote schemas/meta/v5.json and its HASHES line ->
+   unpublished == []; and AGENTS.md copied from gate/agents/AGENTS.md at 3422bb4.
+
+3. To do once the image run has printed its two digests (plain, and -mathlib-0df444a360ea), per repin-0b474b9.txt:
+   pin_image.py in the worktree — tutorial the plain image first, the 25 other Mathlib targets, riemann-hypothesis
+   last with --api-url https://api.openproofnetwork.org; loop on targets/*/gate-spec.json; read the devcontainer
+   diff (image line only, OPN_API kept); commit BEFORE the pregate; pregate the tutorial node (this container can
+   run it: Lean 4.33.1 from the GitHub release zip, gate/lean built with lake; the rehearsal on 557e90f1 at network
+   aa0d45c passed); no gate run in flight; push by fast-forward; re-render products (--no-build) from a checkout
+   byte-identical to the pin; dispatch site-deploy.
