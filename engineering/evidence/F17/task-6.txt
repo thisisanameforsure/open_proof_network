@@ -1,0 +1,18 @@
+$ uv run pytest -m lean gate/tests/test_prove_lean.py -rA -k 'not onramp and not echoes-inlined-defs'   # 2026-09-25T21:35:03Z
+# Lean 4.33.1 (commit 819816b2) from the GitHub release, linked into elan v4.2.4 (elan toolchain link);
+# the on-ramp cases need the pinned Mathlib checkout and run in CI's lean tier
+PASSED gate/tests/test_prove_lean.py::test_elaborates[propositional/propositional/and-reassoc]
+PASSED gate/tests/test_prove_lean.py::test_elaborates[propositional/propositional/and-swap-reassoc]
+PASSED gate/tests/test_prove_lean.py::test_elaborates[propositional/propositional/tutorial-and-swap]
+PASSED gate/tests/test_prove_lean.py::test_accepted_answers_elaborate[bare-tactics]
+PASSED gate/tests/test_prove_lean.py::test_accepted_answers_elaborate[by-block]
+PASSED gate/tests/test_prove_lean.py::test_accepted_answers_elaborate[comment-banner]
+PASSED gate/tests/test_prove_lean.py::test_accepted_answers_elaborate[crlf]
+PASSED gate/tests/test_prove_lean.py::test_accepted_answers_elaborate[plan-then-fence]
+PASSED gate/tests/test_prove_lean.py::test_accepted_answers_elaborate[renamed-theorem]
+PASSED gate/tests/test_prove_lean.py::test_accepted_answers_elaborate[trailing-prose]
+PASSED gate/tests/test_prove_lean.py::test_accepted_answers_elaborate[whole-file]
+11 passed, 3 deselected in 4.61s
+
+The first run errored at setup on all eleven: the module fixture resolved the Mathlib toolchain
+eagerly, which needs the checkout even for core-only nodes. Resolution is lazy now.

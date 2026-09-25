@@ -379,8 +379,10 @@ mutated expected output turns red) &middot; T6 built 2026-09-25, lean tier pendi
 elaborates on the real toolchain, the on-ramp on the pinned Mathlib, with one <code>sorry</code>
 warning per <code>sorry</code> body. That is the statement's, plus one per dependency its inlined
 Context restates, a count the first draft of the test got wrong. Every accepted corpus proof,
-placed back into its exported file, elaborates with none of its own. The container has no Lean,
-so the green CI run id goes here when it exists. AC5 rests on byte-identity with the fixture
+placed back into its exported file, elaborates with none of its own. Run here on 2026-09-25 with
+Lean 4.33.1 from the GitHub release linked into elan: the 11 core-only cases pass
+(<code>task-6.txt</code>); the 3 on-ramp cases need the Mathlib checkout, and CI's lean tier has
+it. AC5 rests on byte-identity with the fixture
 proofs the gate's own lean tier already runs through steps 1 to 8) &middot; T9 ✓ 2026-09-25
 (<code>drift.txt</code>, <code>drift.py</code>: 47 of 73 proofs DeepSeek-Prover-V2 published for miniF2F
 against Lean 4.9 elaborate unchanged in AXLE's <code>lean-4.33.1</code>, 64%. The 26 that break: 8

@@ -53,14 +53,26 @@ def nodes() -> list[tuple[str, str, str]]:
     ]
 
 
+class Toolchains:
+    """The resolved toolchain for a graph's Mathlib pin, resolved on first use: a node that needs
+    no Mathlib must not need the Mathlib checkout to exist (an eager fixture made it)."""
+
+    def __init__(self, real: LocalToolchain) -> None:
+        self.real = real
+        self.cache: dict[str | None, ResolvedToolchain] = {}
+
+    def __getitem__(self, mathlib_sha: str | None) -> ResolvedToolchain:
+        if mathlib_sha not in self.cache:
+            assert mathlib_sha in (None, ONRAMP_MATHLIB), mathlib_sha
+            self.cache[mathlib_sha] = self.real.resolve(
+                PINNED_TOOLCHAIN, install=False, mathlib_sha=mathlib_sha
+            )
+        return self.cache[mathlib_sha]
+
+
 @pytest.fixture(scope="module")
-def toolchains(real_toolchain: LocalToolchain) -> dict[str | None, ResolvedToolchain]:
-    return {
-        None: real_toolchain.resolve(PINNED_TOOLCHAIN, install=False),
-        ONRAMP_MATHLIB: real_toolchain.resolve(
-            PINNED_TOOLCHAIN, install=False, mathlib_sha=ONRAMP_MATHLIB
-        ),
-    }
+def toolchains(real_toolchain: LocalToolchain) -> Toolchains:
+    return Toolchains(real_toolchain)
 
 
 def elaborate(
@@ -85,7 +97,7 @@ def sorry_bodies(text: str) -> int:
 def test_elaborates(
     where: str,
     real_toolchain: LocalToolchain,
-    toolchains: dict[str | None, ResolvedToolchain],
+    toolchains: Toolchains,
     tmp_path: Path,
 ) -> None:
     graph, target, node = where.split("/")
@@ -108,7 +120,7 @@ def test_elaborates(
 def test_accepted_answers_elaborate(
     case: str,
     real_toolchain: LocalToolchain,
-    toolchains: dict[str | None, ResolvedToolchain],
+    toolchains: Toolchains,
     tmp_path: Path,
 ) -> None:
     """The proof ``import`` produced, placed back into the exported problem file, elaborates with
