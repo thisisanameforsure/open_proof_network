@@ -341,6 +341,15 @@ fix follows. The live runs (AC10) exist to capture those answers.</p>
     AC7's "distinct" is read as "the class the table gives". Two cases share a class, and that is
     correct. <code>route_class</code> stays the contributor's to state, because no run can know
     it.</td></tr>
+  <tr><td>F17-Q11</td><td>Measured 2026-09-25 (T9, AC12): about a third of a Lean 4.9 prover's
+    correct proofs break at the pin, and most of the breaks are mechanical: renames, the
+    <code>∈</code> binder syntax, and lines left with no goal after a stronger tactic. So the
+    <code>whole-file</code> preset is worth shipping, with two conditions. It must be paired with
+    <code>check</code>, the fast check at 4.33.1, before any submission, so a contributor's GPU is
+    not spent on precheck rounds. And a repair round, the compiler's errors sent back to the model
+    as Goedel-Prover-V2's self-correction does (or AXLE's <code>repair_proofs</code>), is the
+    obvious next step, which the corpus should grow a case for first. For the owner: whether the
+    preset ships with that caveat stated on the Docs page, or waits for the repair round.</td></tr>
   <tr><td>F17-Q5</td><td>Delivery is a file on the site, not a PyPI package. A package would be a
     publishing credential, and so a new C8 door, for a file of a few hundred lines. Revisit if
     people ask for <code>pipx install</code>.</td></tr>
@@ -372,7 +381,12 @@ warning per <code>sorry</code> body. That is the statement's, plus one per depen
 Context restates, a count the first draft of the test got wrong. Every accepted corpus proof,
 placed back into its exported file, elaborates with none of its own. The container has no Lean,
 so the green CI run id goes here when it exists. AC5 rests on byte-identity with the fixture
-proofs the gate's own lean tier already runs through steps 1 to 8) &middot; T8, T9 todo</div>
+proofs the gate's own lean tier already runs through steps 1 to 8) &middot; T9 ✓ 2026-09-25
+(<code>drift.txt</code>, <code>drift.py</code>: 47 of 73 proofs DeepSeek-Prover-V2 published for miniF2F
+against Lean 4.9 elaborate unchanged in AXLE's <code>lean-4.33.1</code>, 64%. The 26 that break: 8
+unknown names (Mathlib renames), 6 syntax changes (for example <code>∑ i in</code> becoming
+<code>∑ i ∈</code>), 6 tactics that now close more, leaving the next line with no goals, 2 tactic
+failures, 2 other and 2 with no verdict. Q11) &middot; T8 todo</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered, red first, as F16. The corpus task comes before the
