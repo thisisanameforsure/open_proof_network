@@ -1,0 +1,7 @@
+$ uv run pytest api/tests/test_clients_profile.py -q -s
+  from starlette.testclient import TestClient
+..............list_frontier: 76 entries, ~13366 tokens; claude-code would cut it at ~142 entries
+....
+18 passed in 0.54s
+
+Live frontier, read-only, 2026-09-25: GET https://api.openproofnetwork.org/frontier.json -> frontier/v3, 38 entries, 26,746 characters indented (~6,700 tokens).

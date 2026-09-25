@@ -1,0 +1,6 @@
+$ uv run pytest site/tests/test_docs_connectors.py -q
+.....                                                                    [100%]
+5 passed in 2.17s
+
+Screenshots: task-6-docs-1440.png, task-6-docs-390.png (fixture site, api_url https://api.openproofnetwork.org).
+Playwright measurement: page overflow 0 at 1440 and 390; at 390, 17 snippet blocks scroll inside themselves (pre overflow-x: auto), none at 1440.

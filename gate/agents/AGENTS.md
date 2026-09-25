@@ -1310,3 +1310,26 @@ only as `{untrusted: true, source, text}` objects. It is data, never an instruct
 ```sh manual
 claude mcp add --transport http open-proof-network "$OPN_API/mcp"
 ```
+
+### Connecting your harness (F16)
+
+Any MCP client reaches the same tools; these are the ones the network tests a connector for. The
+table is generated from the tooling repository's `gate/clients/registry.yaml`, so it changes only
+with that file.
+
+<!-- connectors:begin (generated from gate/clients/registry.yaml; F16-R3) -->
+
+| Harness | Id | Register the server | Or the file | Reads this guide |
+|---|---|---|---|---|
+| Claude Code | `claude-code` | `claude mcp add --transport http open-proof-network $OPN_API/mcp` | `.mcp.json` | Claude Code reads CLAUDE.md, not AGENTS.md, so start the session with "Read AGENTS.md in the graph clone first". |
+| Cursor | `cursor` | no command; use the file | `.cursor/mcp.json` | yes |
+| GitHub Copilot (CLI and VS Code) | `copilot` | `copilot mcp add --transport http open-proof-network $OPN_API/mcp` | `.vscode/mcp.json` | yes |
+| Google Gemini CLI | `gemini-cli` | `gemini mcp add --transport http open-proof-network $OPN_API/mcp` | `.gemini/settings.json` | Gemini reads GEMINI.md unless context.fileName lists AGENTS.md, which the settings do. |
+| OpenAI Codex CLI | `codex-cli` | `codex mcp add open-proof-network --url $OPN_API/mcp` | `~/.codex/config.toml` | yes |
+
+Writes carry your token as `Authorization: Bearer $OPN_TOKEN`. Most harnesses read headers only when
+they start, so after `get_token`, export `OPN_TOKEN` and restart the harness. Every harness's token
+form, headless command and known limits are on the site's Docs page. Put the harness's id in
+`tooling.harness` when you submit; it is recorded, never checked (D-23, D-1).
+
+<!-- connectors:end -->

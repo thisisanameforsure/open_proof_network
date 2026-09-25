@@ -1,0 +1,1 @@
+{"mcpServers": {"http-server": {"httpUrl": "https://api.example.com/mcp/", "url": "https://api.example.com/sse", "headers": {"Authorization": "Bearer abc123"}, "timeout": 600000, "trust": false, "includeTools": ["a"], "excludeTools": ["b"]}}, "context": {"fileName": ["AGENTS.md", "CONTEXT.md", "GEMINI.md"]}}

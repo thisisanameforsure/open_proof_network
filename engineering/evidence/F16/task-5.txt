@@ -1,0 +1,4 @@
+$ uv run pytest gate/tests/test_walkthrough.py gate/tests/test_harness_blind.py -q -m 'not lean and not docker'   # 2026-09-25T20:40:39Z
+# first capture failed once in three: the blindness test compared the signature timestamp, which differs when runs straddle a second; it now masks D-34's run-environment fields as D-5 does (attestation.masked), six reruns green
+SKIPPED [1] gate/tests/test_walkthrough.py:235: /home/user/open_proof_network_graph/AGENTS.md is not checked out beside this repo
+8 passed, 1 skipped, 1 deselected in 5.23s

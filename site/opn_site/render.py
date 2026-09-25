@@ -16,8 +16,8 @@ from pathlib import Path
 from string import Template
 from typing import Any
 
+from opn_gate import clients, hosted, intake, layout, products, steward
 from opn_gate import graph as graphmod
-from opn_gate import hosted, intake, layout, products, steward
 from opn_gate import ledger as ledgermod
 from opn_site import dag, links, prose
 from opn_site.model import LeanFile, NodeView, Prose, Site, SiteError, TargetView
@@ -2054,6 +2054,7 @@ class Renderer:
         body = _template("docs.html").substitute(
             decisions=decisions,
             states=self.states(),
+            connectors=self.connectors(),
             agents=agents,
             funnel=funnel,
             license="".join(parts),
@@ -2064,6 +2065,47 @@ class Renderer:
         )
         renders = [n for n in ("AGENTS.md", "LICENSE", "DCO") if (self.site.root / n).is_file()]
         return self.page("Docs", body, renders=renders, path="/docs/"), extra
+
+    def connectors(self) -> str:
+        """F16-R3, AC6: one card per harness in the connector registry, alphabetical (D-1: no
+        order of preference), each snippet filled with this build's service URL. An entry shows a
+        version only for a level-2 run that passed (R10); until then it says so."""
+        registry = clients.load()
+        mcp_url = f"{self.api_url}/mcp" if self.api_url else "$OPN_API/mcp"
+        cards = []
+        for entry in sorted(registry.entries, key=lambda e: e.name.lower()):
+            if entry.verified is not None:
+                status = f"Tested with {esc(entry.verified.version)} on {esc(entry.verified.date)}."
+            else:
+                status = "Not yet verified against the harness itself."
+            snippets = []
+            for r in clients.render(registry, entry, mcp_url):
+                where = f" <code>{esc(r.path)}</code> ({esc(r.scope)})" if r.path else ""
+                snippets.append(
+                    f'<p class="snippet-title">{esc(r.title)}{where}</p>'
+                    f'<pre class="snippet"><code>{esc(r.text.rstrip())}</code></pre>'
+                )
+            headless = clients.render_headless(registry, entry, mcp_url, "…")
+            cards.append(
+                f'<section class="connector" id="connector-{esc(entry.id)}">'
+                f"<h3>{esc(entry.name)} <code>{esc(entry.id)}</code></h3>"
+                f'<p class="connector-status">{status}</p>'
+                f"<p>{esc(entry.instructions)}</p>"
+                + "".join(snippets)
+                + '<p class="snippet-title">Headless</p>'
+                f'<pre class="snippet"><code>{esc(headless)}</code></pre>'
+                f"<p>{esc(entry.approve)}</p></section>"
+            )
+        return (
+            "<p>Any MCP client reaches the same tools; these are the harnesses the network tests "
+            "a connector for, generated from the tooling repository's "
+            "<code>gate/clients/registry.yaml</code>. None is preferred and none is required: "
+            "the gate cannot tell them apart (D-1). Writes carry your token as "
+            f"<code>Authorization: Bearer ${esc(registry.token_env)}</code>; most harnesses read "
+            "headers only when they start, so export the variable after <code>get_token</code> "
+            "and restart. Declare the harness's id as <code>tooling.harness</code> when you "
+            "submit; it is recorded, never checked (D-23).</p>" + "".join(cards)
+        )
 
     def states(self) -> str:
         """F04-T21 (Q23): the Docs section that draws how a statement and a problem change state

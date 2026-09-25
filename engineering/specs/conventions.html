@@ -126,8 +126,10 @@ session can overturn one with evidence rather than re-derive it.</p>
     fails kernel replay, …) and a test that the JSON verdict names that step first with a
     structured diagnostic (D-34).</li>
   <li><strong>Markers:</strong> <code>lean</code> (needs the toolchain), <code>docker</code>
-    (needs the sandbox image), <code>network</code> (hits a real service). Unmarked tests are the
-    fast tier.</li>
+    (needs the sandbox image), <code>network</code> (hits a real service), <code>harness</code>
+    (runs a third-party harness binary from the harness image against the local api, F16-Q7;
+    <code>make verify-harness</code>, never part of <code>make verify</code>). Unmarked tests are
+    the fast tier.</li>
   <li><strong>Gate and site tests run against fixture graphs kept in this repo</strong> — small
     directories in the D-35 <code>graph/</code> layout — never against the live graph repo.</li>
   <li><strong>Every acceptance criterion in a spec names its test case.</strong> A criterion
@@ -218,6 +220,6 @@ session can overturn one with evidence rather than re-derive it.</p>
     rather than restating them.</li>
 </ul>
 
-<footer>Open Proof Network · conventions v2 · 2026-09-11 · stack locked; §1/§2 filled (v2: §2 coverage diagnostic and strict xfail)</footer>
+<footer>Open Proof Network · conventions v2 · 2026-09-11 · stack locked; §1/§2 filled (v2: §2 coverage diagnostic and strict xfail; 2026-09-25: the <code>harness</code> marker, F16-Q7)</footer>
 </body>
 </html>

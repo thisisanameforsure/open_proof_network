@@ -22,7 +22,7 @@ The only harness the network has ever been exercised through is Claude, and most
 hand-written JSON-RPC rather than a harness's own MCP configuration (session notes 2026-09-12 to
 2026-09-23). The guide's only setup line is <code>claude mcp add</code>. D-1's claim has never been
 tested.</p>
-<p>This feature adds a <strong>connector registry</strong> under the api (<code>api/clients/</code>):
+<p>This feature adds a <strong>connector registry</strong> under the api (<code>gate/clients/</code>):
 one entry per coding-agent harness, holding:</p>
 <ul>
   <li>its config template</li>
@@ -93,7 +93,7 @@ D-28's tool surface, which is the owner's (Q3).</p>
 <table>
   <tr><th>ID</th><th>Requirement (EARS)</th></tr>
   <tr><td>F16-R1</td><td>The api shall keep one connector registry,
-    <code>api/clients/registry.yaml</code>, validated by <code>api/clients/registry.schema.json</code>
+    <code>gate/clients/registry.yaml</code>, validated by <code>gate/clients/registry.schema.json</code>
     (beside the adapter, as F09-Q5 placed the MCP result schemas). Each entry carries:
     <ul>
       <li><code>id</code> and display name</li>
@@ -117,7 +117,7 @@ D-28's tool surface, which is the owner's (Q3).</p>
     the site's and the api's own configured service URL (the 2026-09-09 log entry: a domain is
     configuration).</td></tr>
   <tr><td>F16-R3</td><td>The registry shall render in one function,
-    <code>opn_api.clients.render(entry, mcp_url)</code>, into:
+    <code>opn_gate.clients.render(registry, entry, mcp_url)</code>, into:
     <ul>
       <li>the exact file contents or command a contributor pastes;</li>
       <li>a "Connect your harness" section on the site's Docs page;</li>
@@ -128,7 +128,7 @@ D-28's tool surface, which is the owner's (Q3).</p>
   <tr><td>F16-R4</td><td>Each rendered snippet shall parse in its own format (<code>json</code>,
     <code>toml</code> via <code>tomllib</code>, or a shell command via <code>shlex</code>) and
     shall have every key path of a dated copy of the harness's own documented example, kept
-    under <code>api/tests/fixtures/clients/&lt;id&gt;/</code>.</td></tr>
+    under <code>gate/tests/fixtures/clients/&lt;id&gt;/</code>.</td></tr>
   <tr><td>F16-R5</td><td>For every entry, every tool in <code>opn_api.mcp.server.TOOLS</code>
     shall satisfy the entry's profile: tool count, name pattern and length, description length,
     and the JSON Schema keywords the client refuses or drops. When a tool breaks a limit, the
@@ -203,7 +203,7 @@ D-28's tool surface, which is the owner's (Q3).</p>
       <li>its documented-example fixture and profile sources are present;</li>
       <li>its R8 check passes in the harness tier.</li>
     </ul>
-    <code>api/clients/README.md</code> states these as the contribution checklist.</td></tr>
+    <code>gate/clients/README.md</code> states these as the contribution checklist.</td></tr>
 </table>
 
 <h2>5. Acceptance criteria</h2>
@@ -212,17 +212,21 @@ D-28's tool surface, which is the owner's (Q3).</p>
   <tr><td>F16-AC1</td><td>Given the registry, when it is loaded, then it validates against its
     schema, and each schema rule has a failing fixture entry (a missing profile source, an unknown
     transport, a template with a literal host) that names the rule it breaks.</td>
-    <td><code>api/tests/test_clients_registry.py::test_registry_valid</code>,
+    <td><code>gate/tests/test_clients_registry.py::test_registry_valid</code>,
     <code>::test_registry_refusals</code></td></tr>
   <tr><td>F16-AC2</td><td>Given every entry, when rendered with a test URL, then no output contains
-    a hostname other than that URL's, and no output contains a string shaped like an
-    <code>opn_</code> token.</td>
-    <td><code>api/tests/test_clients_render.py::test_no_hostname</code>,
-    <code>::test_no_token_literal</code></td></tr>
+    a hostname other than that URL's, and no output contains a string shaped like a write token
+    (43 url-safe characters, the shape <code>opn_api.auth.new_token</code> mints, tested against a
+    freshly minted one) or a <code>Bearer</code> value that is not a variable.</td>
+    <td><code>gate/tests/test_clients_render.py::test_no_hostname</code>,
+    <code>::test_no_token_literal</code>;
+    <code>api/tests/test_clients_profile.py::test_token_rule_catches_a_real_token</code></td></tr>
   <tr><td>F16-AC3</td><td>Given every entry, when rendered, then it parses in its format and has
     every key path of the harness's documented example fixture.</td>
-    <td><code>api/tests/test_clients_render.py::test_parses[&lt;id&gt;]</code>,
-    <code>::test_matches_documented_shape[&lt;id&gt;]</code></td></tr>
+    <td><code>gate/tests/test_clients_render.py::test_parses[&lt;id&gt;]</code>,
+    <code>::test_matches_documented_shape[&lt;id&gt;]</code>,
+    <code>::test_shape_mutants_caught[&lt;trap&gt;]</code> (each research trap written into the
+    real registry fails the check naming its key or flag)</td></tr>
   <tr><td>F16-AC4</td><td>Given the current tool surface, when each tool is checked against each
     profile, then there are no violations. Given a synthetic tool that breaks each rule in turn,
     the check names that harness, tool and rule.</td>
@@ -242,7 +246,7 @@ D-28's tool surface, which is the owner's (Q3).</p>
   <tr><td>F16-AC7</td><td>Given the <code>tools/list</code> answer, when each entry's
     instructions and the guide section are scanned for tool names, then every name is in
     <code>TOOLS</code>. Every template placeholder is one of R13's four.</td>
-    <td><code>api/tests/test_clients_render.py::test_no_new_capability</code></td></tr>
+    <td><code>gate/tests/test_clients_render.py::test_no_new_capability</code></td></tr>
   <tr><td>F16-AC8</td><td>Given the source of <code>gate/opn_gate/</code>, when it is parsed, then
     no expression reads <code>tooling</code>'s <code>harness</code> or <code>model</code> except to
     copy it into a record. A mutant module that branches on it is caught.</td>
@@ -252,13 +256,13 @@ D-28's tool surface, which is the owner's (Q3).</p>
     priority entry, then the harness reports the server connected and the server's record shows
     that run's <code>initialize</code> and <code>tools/list</code>. Given a snippet with a wrong
     path, the same check fails with the harness's own error captured.</td>
-    <td><code>api/tests/test_clients_harness.py::test_list_check[&lt;id&gt;]</code>,
+    <td><code>gate/tests/test_clients_harness.py::test_list_check[&lt;id&gt;]</code>,
     <code>::test_broken_snippet_fails[&lt;id&gt;]</code> (marker <code>harness</code>)</td></tr>
   <tr><td>F16-AC10</td><td>Given a model key for an entry, when R9's prompt runs headless, then the
     server's record shows the three read calls with the tutorial arguments and one call carrying
     the bearer from <code>OPN_TOKEN</code>. Given no key, the runner reports
     <code>not-attempted</code> with the reason, and the verdict is not <code>pass</code>.</td>
-    <td><code>api/tests/test_clients_harness.py::test_headless_round_trip[&lt;id&gt;]</code>
+    <td><code>gate/tests/test_clients_harness.py::test_headless_round_trip[&lt;id&gt;]</code>
     (markers <code>harness</code>, <code>network</code>);
     <code>gate/tests/test_harness_check.py::test_not_attempted_is_not_pass</code></td></tr>
   <tr><td>F16-AC11</td><td>Given the drift workflow with a stubbed "latest" that fails and a pin
@@ -284,7 +288,7 @@ D-28's tool surface, which is the owner's (Q3).</p>
   <tr><td>F16-AC13</td><td>Given a new registry entry and no new test code, when the fast tier runs,
     then the entry is tested by AC1–AC4 and AC7, and a missing fixture or profile source fails,
     naming the checklist item.</td>
-    <td><code>api/tests/test_clients_registry.py::test_new_entry_is_tested</code></td></tr>
+    <td><code>gate/tests/test_clients_registry.py::test_new_entry_is_tested</code></td></tr>
 </table>
 
 <h3>5a. Test tiers</h3>
@@ -409,10 +413,11 @@ so each trap is caught by a test, and not by a contributor's first failed sessio
     connect natively over streamable HTTP, so no stdio bridge is specified. OpenCode, Zed, Cline,
     Windsurf, Kiro, Goose and Junie all support remote HTTP MCP and come in through R15. Aider has
     no MCP support. A sixth entry needs no spec change.</td></tr>
-  <tr><td>F16-Q2</td><td>The registry lives in <code>api/clients/</code>, not a new top-level
+  <tr><td>F16-Q2</td><td>The registry lives in <code>gate/clients/</code>, not a new top-level
     directory, so D-35's list of what this repository holds does not change. Connectors are the
     client side of D-28's server. The owner leaned towards this repository on 2026-09-24. A
-    top-level <code>connectors/</code> is a one-line D-35 amendment if wanted.</td></tr>
+    top-level <code>connectors/</code> is a one-line D-35 amendment if wanted. Built in
+    <code>gate/clients/</code> instead, for the site's sake (Q10).</td></tr>
   <tr><td>F16-Q3</td><td><strong>For the owner.</strong> Write tools read the bearer from the HTTP
     header only (<code>api/opn_api/mcp/auth.py</code>). The token is minted <em>inside</em> a
     session, by <code>get_token</code>, and most harnesses read MCP headers only at startup, so
@@ -444,6 +449,29 @@ so each trap is caught by a test, and not by a contributor's first failed sessio
   <tr><td>F16-Q9</td><td>VS Code agent mode has no headless mode, so its entry is proved through
     the Copilot CLI, which reads the same <code>.mcp.json</code>. The CLI is a stand-in: it proves
     the file and the server, not the editor. VS Code itself gets a hand-run level 4.</td></tr>
+  <tr><td>F16-Q10</td><td>Built 2026-09-25: the registry, its schema and its module live in
+    <code>gate/</code> (<code>gate/clients/</code>, <code>opn_gate.clients</code>), not
+    <code>api/clients/</code> as Q2 first said. The site renders the Docs page from it and runs
+    with <code>gate:site</code> on its path, never the api (<code>site-deploy.yml</code>), which is
+    the reason F13 put <code>hosted-checkers.yaml</code> and <code>opn_gate.hosted</code> in the
+    gate too. Like that file, it is network configuration no step imports (D-1; AC8 tests the
+    gate's blindness to the harness directly). The schema sits beside the file, not in
+    <code>gate/schemas</code>, so the products' schema index and every golden that carries it
+    are untouched. The profile test stays in <code>api/tests</code>, because it reads the api's
+    <code>TOOLS</code>.</td></tr>
+  <tr><td>F16-Q11</td><td>Built 2026-09-25: the guide's generated section is a table (harness, id,
+    one-line registration, file, how the harness finds the guide) with no code fence. A
+    <code>sh</code> fence would be executed by the walkthrough runner, and a <code>sh manual</code>
+    one would break the frozen pair of manual blocks. File snippets, token forms and headless
+    commands are on the Docs page, which knows the service URL. The guide names only
+    <code>$OPN_API</code>. Regenerate it with <code>PYTHONPATH=gate uv run python -m
+    opn_gate.clients --guide gate/agents/AGENTS.md</code>. The graph's copy of the guide changes
+    at the next copy, which is the owner's (F10).</td></tr>
+  <tr><td>F16-Q12</td><td>Measured 2026-09-25: the live frontier has 38 entries and serialises to
+    about 26.7 KB (~6,700 tokens). At the same size per entry, <code>list_frontier</code> without
+    filters would pass Claude Code's 25,000-token cap at about 142 entries. AC14 holds the bar at
+    twice the live count. Before the frontier reaches the cap, the fix is a <code>limit</code> or
+    paging argument, which is a D-28 surface change and so the owner's.</td></tr>
   <tr><td>F16-Q7</td><td>A new pytest marker <code>harness</code> and a Makefile target
     <code>verify-harness</code> amend conventions §2 (T2), because this tier needs neither Lean
     nor the step-3 image but does need third-party binaries. The marker is excluded from
@@ -451,8 +479,19 @@ so each trap is caught by a test, and not by a contributor's first failed sessio
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> planned &middot; <strong>Tasks:</strong> T1 ✓ 2026-09-24
-(<code>make verify</code>; <code>engineering/evidence/F16/task-1.txt</code>) &middot; T2&ndash;T10 todo</div>
+<div class="rule"><strong>status:</strong> building &middot; <strong>Tasks:</strong> T1 ✓ 2026-09-24
+(<code>make verify</code>; <code>engineering/evidence/F16/task-1.txt</code>) &middot; T2 ✓ 2026-09-25
+(<code>uv run pytest gate/tests/test_clients_registry.py -q</code>; <code>task-2.txt</code>: the
+registry, its schema and loader in <code>gate/</code>, Q10; the <code>harness</code> marker,
+<code>make verify-harness</code>, conventions §2) &middot; T3 ✓ 2026-09-25 (<code>task-3.txt</code>:
+five entries with dated documented examples, six research traps as mutants the shape check
+catches) &middot; T4 ✓ 2026-09-25 (<code>task-4.txt</code>: 30 tools fit every profile; reads carry
+<code>readOnlyHint</code>; a frontier twice the live one's size is ~13.4k tokens, Claude Code would cut
+it at ~142 entries, Q12) &middot; T5 ✓ 2026-09-25 (<code>task-5.txt</code>: the guide's generated
+table, Q11; the gate gives identical verdicts and attestations under every declared harness, and
+a mutant biased against one is caught) &middot; T6 ✓ 2026-09-25 (<code>task-6.txt</code> and two
+screenshots: the Docs page's "Connect your harness" cards, no page overflow at 390) &middot;
+T7&ndash;T10 todo</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Red first: each task lands its tests failing, as
@@ -466,21 +505,21 @@ first.</p>
     <code>docs/research_harnesses_2026-09.html</code></td><td>&mdash;</td><td><code>make verify</code></td></tr>
   <tr><td>F16-T2</td><td>The registry schema and loader; the <code>harness</code> marker and
     <code>verify-harness</code> target (Q7); AC1 and AC13, with a two-entry test registry.</td>
-    <td><code>api/clients/registry.schema.json</code>, <code>api/opn_api/clients.py</code>,
-    <code>api/tests/test_clients_registry.py</code>, <code>pyproject.toml</code>,
+    <td><code>gate/clients/registry.schema.json</code>, <code>gate/opn_gate/clients.py</code>,
+    <code>gate/tests/test_clients_registry.py</code>, <code>pyproject.toml</code>,
     <code>Makefile</code>, <code>engineering/specs/conventions.html</code></td><td>T1</td>
-    <td><code>uv run pytest api/tests/test_clients_registry.py -q</code></td></tr>
+    <td><code>uv run pytest gate/tests/test_clients_registry.py -q</code></td></tr>
   <tr><td>F16-T3</td><td>The five entries from the research, each with its documented-example
     fixture and sourced profile; <code>render</code>; AC2, AC3, AC7.</td>
-    <td><code>api/clients/registry.yaml</code>, <code>api/opn_api/clients.py</code>,
-    <code>api/tests/fixtures/clients/**</code>, <code>api/tests/test_clients_render.py</code></td>
-    <td>T2</td><td><code>uv run pytest api/tests/test_clients_render.py -q</code></td></tr>
+    <td><code>gate/clients/registry.yaml</code>, <code>gate/opn_gate/clients.py</code>,
+    <code>gate/tests/fixtures/clients/**</code>, <code>gate/tests/test_clients_render.py</code></td>
+    <td>T2</td><td><code>uv run pytest gate/tests/test_clients_render.py -q</code></td></tr>
   <tr><td>F16-T4</td><td>The profile check over <code>TOOLS</code> (AC4), the result-size check
     over a synthetic live-sized fixture (AC14), and the annotation rule (AC15). Any violation it finds
     in today's surface is recorded as a strict xfail naming the harness, and fixed in the tool's
     schema only where the fix changes no D-28 row (otherwise it goes to Q3's owner
     list).</td>
-    <td><code>api/opn_api/clients.py</code>, <code>api/tests/test_clients_profile.py</code></td>
+    <td><code>gate/opn_gate/clients.py</code>, <code>api/tests/test_clients_profile.py</code></td>
     <td>T3</td><td><code>uv run pytest api/tests/test_clients_profile.py -q</code></td></tr>
   <tr><td>F16-T5</td><td>The generated guide section and its markers (AC5), and the D-1 blindness
     test with its mutant (AC8).</td>
@@ -494,8 +533,8 @@ first.</p>
   <tr><td>F16-T7</td><td>The harness image, pinned by version and checksum; the runner with its
     three states (R10); level 2 for all five (AC9), and the not-attempted rule (AC10's second
     half).</td>
-    <td><code>api/clients/harness.Dockerfile</code>, <code>gate/tools/harness_check.py</code>,
-    <code>api/tests/test_clients_harness.py</code>, <code>gate/tests/test_harness_check.py</code></td>
+    <td><code>gate/clients/harness.Dockerfile</code>, <code>gate/tools/harness_check.py</code>,
+    <code>gate/tests/test_clients_harness.py</code>, <code>gate/tests/test_harness_check.py</code></td>
     <td>T3</td><td><code>make verify-harness</code></td></tr>
   <tr><td>F16-T8</td><td>The drift workflow (R11, AC11) and the CI job for level 2 on push.</td>
     <td><code>.github/workflows/harness-drift.yml</code>, <code>.github/workflows/ci.yml</code>,
@@ -507,7 +546,7 @@ first.</p>
     <td><code>uv run python gate/tools/harness_check.py --level 3 --all</code></td></tr>
   <tr><td>F16-T10</td><td>Level 4: one fresh agent per harness on the bench (AC12); findings
     triaged into the findings register; the checklist README (R15).</td>
-    <td><code>engineering/evidence/F16/fresh-*.md</code>, <code>api/clients/README.md</code>,
+    <td><code>engineering/evidence/F16/fresh-*.md</code>, <code>gate/clients/README.md</code>,
     <code>engineering/specs/findings.html</code></td><td>T9</td>
     <td><code>uv run python gate/tools/bench.py replay --bench &lt;dir&gt; --assert</code> per harness</td></tr>
 </table>

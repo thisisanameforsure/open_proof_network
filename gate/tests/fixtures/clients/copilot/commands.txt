@@ -1,0 +1,2 @@
+copilot mcp add --transport http notion https://mcp.notion.com/mcp
+copilot mcp add --transport http --header "Authorization: Bearer YOUR-TOKEN" stripe https://mcp.stripe.com

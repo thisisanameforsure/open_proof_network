@@ -1,0 +1,29 @@
+$ uv run pytest gate/tests/test_clients_render.py -q
+gate/tests/test_clients_render.py::test_no_hostname
+gate/tests/test_clients_render.py::test_no_hostname
+gate/tests/test_clients_render.py::test_no_hostname
+gate/tests/test_clients_render.py::test_no_hostname
+gate/tests/test_clients_render.py::test_no_hostname
+gate/tests/test_clients_render.py::test_no_token_literal
+gate/tests/test_clients_render.py::test_no_token_literal
+gate/tests/test_clients_render.py::test_no_token_literal
+gate/tests/test_clients_render.py::test_no_token_literal
+gate/tests/test_clients_render.py::test_no_token_literal
+gate/tests/test_clients_render.py::test_parses
+gate/tests/test_clients_render.py::test_parses
+gate/tests/test_clients_render.py::test_parses
+gate/tests/test_clients_render.py::test_parses
+gate/tests/test_clients_render.py::test_parses
+gate/tests/test_clients_render.py::test_matches_documented_shape
+gate/tests/test_clients_render.py::test_matches_documented_shape
+gate/tests/test_clients_render.py::test_matches_documented_shape
+gate/tests/test_clients_render.py::test_matches_documented_shape
+gate/tests/test_clients_render.py::test_matches_documented_shape
+gate/tests/test_clients_render.py::test_shape_mutants_caught
+gate/tests/test_clients_render.py::test_shape_mutants_caught
+gate/tests/test_clients_render.py::test_shape_mutants_caught
+gate/tests/test_clients_render.py::test_shape_mutants_caught
+gate/tests/test_clients_render.py::test_shape_mutants_caught
+gate/tests/test_clients_render.py::test_shape_mutants_caught
+gate/tests/test_clients_render.py::test_guide_section_names_no_host PASSED
+============================== 27 passed in 0.18s ==============================
