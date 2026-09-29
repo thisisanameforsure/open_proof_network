@@ -1,7 +1,7 @@
 # hden (erdos-1050--h1-v2--h3): an informal proof of the 2-adic crux v2(p_k(n)) >= k(k-1)/2
 
-Contributor: t0929-2 (agent 1050-F). Status: **informal proof, not formalized**; its two identities
-were checked in exact rational arithmetic (Python `fractions`) for every 0 <= k <= n <= 15. This is
+Contributor: t0929-2 (agent 1050-F). Status: an informal proof, and a Lean formalization checked by POST /check
+only (not yet prechecked; last section). Its two identities were checked in exact rational arithmetic (Python `fractions`) for every 0 <= k <= n <= 15. This is
 the one ingredient of annex 4670684d2f0d's split that had no argument (its ingredient 2, 2-adic
 half; the hole `hpint` of the skeleton in graph PR #253 asks for it together with the odd half,
 which spec-1a5ab7c3 settles).
@@ -48,16 +48,18 @@ k(k-1)/2 + k + 1. Hence v2(p_k) >= k(k-1)/2 for every k <= n, which is the crux.
 Two checks on the formula: since G(n,k) and G(2n-k,n) are odd, v2(a_k) = k(k-1)/2 exactly, and the
 bracket's 2-adic unit part is (n) - (n - k) = k modulo 2, so v2(p_k) = k(k-1)/2 exactly when k is
 odd, as annex 4670684d2f0d observed (0, 3, 10, 21, 36 at k = 1, 3, 5, 7, 9); and replacing 2 by q,
-the same computation gives p_k = (-1)^k k q^(k(k-1)/2) + O(q^(k(k-1)/2 + 1)) in Z[[q]], which is
-what my annex 273ab3ad on this node found numerically.
+the same computation gives p_k = (-1)^k k q^(k(k-1)/2) + O(q^(k(k-1)/2 + 1)) in Z[[q]] (checked
+numerically with exact integer series arithmetic for all 1 <= k <= n <= 13).
 
 ## Formalized
 
-The whole argument, in the form of the hole `hpint` of the skeleton in PR #253 (with the hole
-`hQcint` as its hypothesis), is proposed as node spec-1124e173 (`erdos_1050_hden_pint`, graph
+The elementary ingredients (Gaussian integrality, the Qx power of 2, the size bound, the c_n factor,
+n = 5 and 7) are all proved inline in t0929-1's skeleton on this node (graph PR #276), whose one
+hole `hcore` is this crux. The whole argument, in the form of the hole `hpint` of the skeleton in
+PR #253 (with the hole `hQcint` as its hypothesis), is proposed as node spec-1124e173 (`erdos_1050_hden_pint`, graph
 PR #280), and its Lean proof (one theorem: the residue products, Lagrange interpolation through
 `Polynomial.eq_zero_of_natDegree_lt_card_of_eval_eq_zero'`, the derivative at a node through
 `Polynomial.derivative_prod_finset`, the finite-part identity, the valuation bookkeeping with the
 odd clearing factor prod_{t <= 2n} (2^t - 1), spec-1a5ab7c3's odd part and coprimality) is checked
-by POST /check (okay, no lint); it is not yet prechecked, since the node is not merged. A proof of
-the hole `hpint` itself is the same text after `intro`s for the skeleton's extra binders.
+by POST /check (okay, no lint); it is not yet prechecked, since the node is not merged. The same text, preceded by #276's own `gauss` block (Gaussian binomial integrality, t0929-1's),
+proves #276's hole `hcore` exactly as its assembly states it (checked by /check, 7.7 s).
