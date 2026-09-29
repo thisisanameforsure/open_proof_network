@@ -24,11 +24,14 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from types import MappingProxyType
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from opn_api import requests, submissions
 from opn_api.mcp import auth
 from opn_api.mcp.calls import ID_PARAM, RECORD_PARAM, Answer, Call, Tool, ToolError, error, params
+
+if TYPE_CHECKING:
+    from opn_api.app import Context
 
 LEAN = {"type": "string", "description": "the text of a Lean file"}
 BUNDLE = {
@@ -39,8 +42,8 @@ BUNDLE = {
 POLL = "poll get_precheck with job_id until state is done or error; a precheck takes minutes"
 
 
-def unauthorized() -> ToolError:
-    return ToolError(Answer(auth.UNAUTHORIZED_STATUS, dict(auth.UNAUTHORIZED)).envelope())
+def unauthorized(ctx: Context) -> ToolError:
+    return ToolError(Answer(auth.UNAUTHORIZED_STATUS, auth.unauthorized(ctx)).envelope())
 
 
 async def forward(

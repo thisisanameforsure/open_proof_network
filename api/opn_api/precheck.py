@@ -192,6 +192,18 @@ def graph_doc(ctx: Context) -> dict[str, list[dict[str, Any]]]:
     return out
 
 
+def tutorial_nodes(ctx: Context) -> list[str]:
+    """The tutorial node of every graph as ``<target>/<node>`` (D-27), read from the committed
+    ``graph.json`` rows marked ``tutorial: true``. The frontier cannot say: it lists open nodes
+    only, and the tutorial node is normally proved."""
+    return sorted(
+        f"{target_id}/{node['node_id']}"
+        for target_id, nodes in graph_doc(ctx).items()
+        for node in nodes
+        if node.get("tutorial")
+    )
+
+
 def unproved_deps(facts: dict[str, Any], graph: dict[str, list[dict[str, Any]]]) -> list[str]:
     """The node's dependencies that are not ``proved`` in its target's graph — the ones that
     block it, as the gate derives ``blocked`` (a refuted dependency is one of them; a dependency

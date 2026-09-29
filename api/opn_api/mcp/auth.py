@@ -15,27 +15,60 @@ one request, forwarded in-process to the endpoint that needs it, and is never lo
 from __future__ import annotations
 
 import hmac
+import logging
 from typing import TYPE_CHECKING, Any
 
 from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.provider import AccessToken
 
-from opn_api import auth
+from opn_api import auth, precheck
+from opn_api.app import ApiError
 
 if TYPE_CHECKING:
     from opn_api.app import Context
 
-#: The refusal body of a tool that needs a bearer and has none: the HTTP route's own shape and
-#: ``error`` (``opn_api.auth.authenticate``), so a client sees one unauthorized answer on both
-#: paths, with a message naming the way to a token that stays inside the MCP (F09-T6, D-19).
-UNAUTHORIZED: dict[str, Any] = {
-    "error": "unauthenticated",
-    "message": (
-        "this tool needs `Authorization: Bearer <token>`. To mint one without leaving the MCP: "
-        "run precheck_submission on the tutorial node with no token, poll get_precheck until "
-        "it passes, then call get_token with proof {kind: tutorial, job_id, nonce}"
-    ),
-}
+log = logging.getLogger(__name__)
+
+#: How the tutorial node is named when the graph cannot be read to name it.
+TUTORIAL_UNNAMED = "the tutorial node (the node whose `tutorial` is true in get_target's graph)"
+
+
+def tutorial_phrase(ctx: Context) -> str:
+    """The tutorial node by name, ``<target>/<node>``, from the committed graphs at the time of
+    asking (tester finding 2026-09-27: "the tutorial node" was never named, and list_frontier
+    leaves it out because it is proved). Never a constant; an unreadable graph gives the generic
+    words rather than failing the answer that carries them (C7)."""
+    try:
+        names = precheck.tutorial_nodes(ctx)
+    except ApiError as exc:
+        log.warning("tutorial node not named: %s", exc.message)
+        return TUTORIAL_UNNAMED
+    if not names:
+        return TUTORIAL_UNNAMED
+    return "the tutorial node " + ", ".join(f"`{n}`" for n in names)
+
+
+def unauthorized_body(tutorial: str) -> dict[str, Any]:
+    """The refusal body of a tool that needs a bearer and has none: the HTTP route's own shape
+    and ``error`` (``opn_api.auth.authenticate``), so a client sees one unauthorized answer on
+    both paths, with a message naming the way to a token that stays inside the MCP (F09-T6,
+    D-19) and the node that way starts on."""
+    return {
+        "error": "unauthenticated",
+        "message": (
+            "this tool needs `Authorization: Bearer <token>`. To mint one without leaving the "
+            f"MCP: run precheck_submission on {tutorial} with no token, poll get_precheck until "
+            "it passes, then call get_token with proof {kind: tutorial, job_id, nonce}"
+        ),
+    }
+
+
+def unauthorized(ctx: Context) -> dict[str, Any]:
+    return unauthorized_body(tutorial_phrase(ctx))
+
+
+#: The refusal in the words used when the tutorial node cannot be named.
+UNAUTHORIZED: dict[str, Any] = unauthorized_body(TUTORIAL_UNNAMED)
 UNAUTHORIZED_STATUS = 401
 WRITE_SCOPE = "write"
 
