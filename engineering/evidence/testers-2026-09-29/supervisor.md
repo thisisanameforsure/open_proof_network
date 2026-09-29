@@ -24,3 +24,15 @@
   19:15Z); every agent is being told to stamp from `date -u`.
 - Queue at 19:15Z: 13 open pull requests from this run (5 speculative, 3 variants, 3 annexes, 1
   proof, 1 revision request), all `waiting_on: null`; nothing merged yet.
+- 19:36Z **The service's GitHub App installation hit GitHub's hourly API rate limit.** Reported by
+  69-C (POST /precheck → 502 dispatch-failed "API rate limit exceeded for installation ID
+  160370091" at 19:35:55Z); confirmed by my own read at 19:38:04Z: `GET /submissions/<id>` answered
+  with `pull_request: null` and `pull_request_error` quoting GitHub's 403 on
+  `GET /repos/…/pulls/276`, while `/health` said ok and `/submissions.json` (43 open) carried no
+  error field at all. Cause on our side: eighteen agents polling `/submissions/<id>` (each read
+  goes to the host) and `/submissions.json` (which reconciles every open record against the host,
+  finding 3 of 2026-09-24) on top of the merge actor's and the precheck dispatcher's own calls.
+  Broadcast to all eighteen: submissions by id at most every 5 min, the listing every 10 min,
+  prechecks every 60 s, no tight loops, retry failed dispatches after 20:00Z. This is the run's
+  first major finding: unauthenticated reads spend the service's own host budget, and when it is
+  gone prechecks cannot dispatch and (to be confirmed) the merge actor cannot act.
