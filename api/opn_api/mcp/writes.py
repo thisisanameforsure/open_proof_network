@@ -234,8 +234,10 @@ TOOLS: tuple[Tool, ...] = (
         "`ttl` is in hours, within the published flat caps; undeclared means the minimum. "
         "Claiming a node you already hold returns that same claim (status 200, same id, TTL "
         "unchanged); after release or expiry a new claim gets a new id. The receipt's `others` "
-        "lists who else holds the node (pseudonym, expires): read it before starting, since "
-        "racing is allowed. list_my_claims finds your claim ids again.",
+        "lists who else holds the node (pseudonym, expires), and its `open_submissions` the "
+        "pull requests already open on the node (pr_number, pr_url, kind, pseudonym, created), "
+        "claimed or not: read both before starting, since racing is allowed and a claim "
+        "reserves nothing. list_my_claims finds your claim ids again.",
         params(
             {"node_id": ID_PARAM, "ttl": {"type": "integer", "minimum": 1}, "target_id": ID_PARAM},
             ("node_id",),
