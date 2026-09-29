@@ -10,8 +10,8 @@ theorem erdos_1050__h1 : ∃ a b : ℕ → ℤ,
     Filter.Tendsto
       (fun n : ℕ => (b n : ℝ) * (∑' n : ℕ, (1 : ℝ) / ((2 : ℝ) ^ (n + 3) - 3)) - a n)
       Filter.atTop (nhds 0) := by
-  -- hrem, proved inline (the proof of erdos-1050--h1-v2--h4 by this pseudonym, 1050-A/h4-Proof.lean),
-  -- so that this closing proof needs only h3 to have merged as proved.
+  -- The statement of hole erdos-1050--h1-v2--h4 (hrem), proved here inline, so that this closing proof
+  -- names only the hole erdos-1050--h1-v2--h3 (hden).
   have hrem_all : ∀ (Qc : ℕ → ℕ → ℚ),
       (Qc = fun (n k : ℕ) =>
           ((-1 : ℚ) ^ k * (2 : ℚ) ^ (k * (k - (1 : ℕ)) / (2 : ℕ)) *

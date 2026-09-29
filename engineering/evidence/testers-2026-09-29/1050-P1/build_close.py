@@ -15,8 +15,8 @@ assert h4proof.startswith(h4stmt[: h4stmt.index(":= by") + len(":= by")]), "h4 p
 body = h4proof[h4proof.index(":= by", h4proof.index("theorem erdos_1050__h1_v2__h4")) + len(":= by"):]
 body = body.strip("\n")
 ind = lambda s, k: "\n".join((" " * k + l) if l.strip() else l for l in s.split("\n"))
-block = "  -- hrem, proved inline (the proof of erdos-1050--h1-v2--h4 by this pseudonym, 1050-A/h4-Proof.lean),\n" \
-        "  -- so that this closing proof needs only h3 to have merged as proved.\n" \
+block = "  -- The statement of hole erdos-1050--h1-v2--h4 (hrem), proved here inline, so that this closing proof\n" \
+        "  -- names only the hole erdos-1050--h1-v2--h3 (hden).\n" \
         "  have hrem_all : " + ind(h4type, 4).lstrip() + " := by\n" + ind(body, 2) + "\n"
 old = "    erdos_1050__h1_v2__h4 Qc hQc Qx hQx Aq hAq hden\n"
 assert close.count(old) == 1

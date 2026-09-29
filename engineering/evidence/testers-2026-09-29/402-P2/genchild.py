@@ -1,4 +1,5 @@
-# usage: genchild.py OUT --cut=C [--only=n1,n2,...] [--header=FILE]
+# usage: genchild.py OUT --cut=C [--enc=tbl] [--only=n1,n2,...] [--header=FILE]
+# --enc=tbl uses general2.txt (colour table indexed by (k, j); about 5x cheaper to check than findIdx).
 # Writes a partial proof of the hole #289 creates: sizes < C closed (certificates for the sizes that are
 # neither prime nor prime+1), one hole for C <= |B|. --only keeps only those certificate cases (others
 # sorry) so a piece fits /check's 20 s. --header: the child's Statement.lean up to and including ':= by'.
@@ -13,6 +14,9 @@ D='/home/user/open_proof_network/engineering/evidence/testers-2026-09-29/402-D/l
 src=open(D).read()
 g0=src.index("  have general :"); g1=src.index("  intro A hA hne hle")
 general=src[g0:g1]
+ENC='findidx'
+for a in sys.argv[2:]:
+    if a=='--enc=tbl': ENC='tbl'; general=open(os.path.join(HERE,'general2.txt')).read()
 out=sys.argv[1]
 only=None
 HDR=None
@@ -81,6 +85,11 @@ for n in range(1,CUT):
         if only is not None and n not in only:
             body+="  · sorry\n"; continue
         L,_,_=verify(n,res[n]); cls=res[n][:n-2]
-        body+="  · exact general %d %d %s (by norm_num) (by norm_num) (by decide +kernel) (by decide +kernel)\n      (by decide +kernel) B hB hn\n" % (n,L,json.dumps(cls).replace("],[","], ["))
+        if ENC=='tbl':
+            where={v:i for i,c in enumerate(cls) for v in c}
+            tbl=[[ (where[L//k*j] if (k>0 and j>0) else 0) for j in range(k)] for k in range(n)]
+            body+="  · exact general %d %d %s %s (by norm_num) (by norm_num) (by decide +kernel) (by decide +kernel)\n      (by decide +kernel) B hB hn\n" % (n,L,json.dumps(cls).replace("],[","], ["),json.dumps(tbl).replace("],[","], ["))
+        else:
+            body+="  · exact general %d %d %s (by norm_num) (by norm_num) (by decide +kernel) (by decide +kernel)\n      (by decide +kernel) B hB hn\n" % (n,L,json.dumps(cls).replace("],[","], ["))
 open(out,"w").write(body)
 print("certificate cases:",cases, "bytes", len(body))
