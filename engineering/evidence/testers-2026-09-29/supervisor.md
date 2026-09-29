@@ -109,3 +109,7 @@
   Wave-1 agents' withdrawals went through, so the classifier's verdict is not consistent; if it
   also refuses a wave-2 agent's precheck or submission the run's landings stop there, and that
   is for Mike, not for a workaround.
+- 21:45Z check-in #5. Merges every 4–12 min (#238 21:21, #239 21:29, #240 21:33, #243 21:40);
+  42 open, oldest #244 (402-B's card-10 proof). 147 bug headings. All six wave-2 agents are
+  writing; the proofs of #238 and #239 (69-A's and 69-E's nodes, now merged) are the first
+  wave-2 submissions to expect. Pushed.
