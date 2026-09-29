@@ -96,7 +96,7 @@ theorem erdos_1050_pade_numerator_closed_form : ∀ (Qc : ℕ → ℕ → ℚ),
       rcases j with _ | j
       · simp
       · simp only [Nat.add_sub_cancel] at h2 ⊢
-        nlinarith
+        linarith
     have hpow : (-(2 : ℚ) ^ j) ^ n = (-1) ^ j * 2 ^ (j * (j - 1) / 2) * 2 ^ (j * (j - 1) / 2) * 2 ^ j *
         (-(2 : ℚ) ^ j) ^ (n - j) := by
       rw [show n = j + (n - j) by omega, pow_add, Nat.add_sub_cancel_left, neg_pow, ← pow_mul, hjj,
@@ -110,17 +110,17 @@ theorem erdos_1050_pade_numerator_closed_form : ∀ (Qc : ℕ → ℕ → ℚ),
   have pf_test : ∀ (n : ℕ) (x y w : ℕ → ℚ), (∀ a ∈ Finset.range (n + 1), ∀ b ∈ Finset.range (n + 1), x a = x b → a = b) →
         (∀ j ∈ Finset.range (n + 1),
           w j * ∏ l ∈ (Finset.range (n + 1)).erase j, (x j - x l) = ∏ i ∈ Finset.range n, (x j - y i)) →
-        (∑ j ∈ Finset.range (n + 1), C (w j) * ∏ l ∈ (Finset.range (n + 1)).erase j, (X - C (x l))) =
-        ∏ i ∈ Finset.range n, (X - C (y i)) := by
+        (∑ j ∈ Finset.range (n + 1), Polynomial.C (w j) * ∏ l ∈ (Finset.range (n + 1)).erase j, (X - Polynomial.C (x l))) =
+        ∏ i ∈ Finset.range n, (X - Polynomial.C (y i)) := by
     intro n x y w hx hw
     set s := Finset.range (n + 1) with hs
-    have hL : (∑ j ∈ s, C (w j) * ∏ l ∈ s.erase j, (X - C (x l))).natDegree ≤ n := by
+    have hL : (∑ j ∈ s, Polynomial.C (w j) * ∏ l ∈ s.erase j, (X - Polynomial.C (x l))).natDegree ≤ n := by
       refine natDegree_sum_le_of_forall_le _ _ (fun j hj => ?_)
       refine (natDegree_C_mul_le _ _).trans ((natDegree_prod_le _ _).trans ?_)
       simp only [natDegree_X_sub_C, Finset.sum_const, smul_eq_mul, mul_one]
       rw [Finset.card_erase_of_mem hj, hs, Finset.card_range]
       omega
-    have hE : (∏ i ∈ Finset.range n, (X - C (y i))).natDegree ≤ n := by
+    have hE : (∏ i ∈ Finset.range n, (X - Polynomial.C (y i))).natDegree ≤ n := by
       refine (natDegree_prod_le _ _).trans ?_
       simp [natDegree_X_sub_C]
     apply Polynomial.eq_of_degree_sub_lt_of_eval_finset_eq (s.image x)
@@ -238,9 +238,9 @@ theorem erdos_1050_pade_numerator_closed_form : ∀ (Qc : ℕ → ℕ → ℚ),
     let g : ℕ → ℚ := fun l => if l = j then 1 else (2 : ℚ) ^ j - 2 ^ l
     have e1 : ∏ l ∈ (Finset.range (n + 1)).erase j, ((2 : ℚ) ^ j - 2 ^ l) =
         ∏ l ∈ (Finset.range (n + 1)).erase j, g l :=
-      Finset.prod_congr rfl (fun l hl => by simp [g, Finset.ne_of_mem_erase hl])
+      Finset.prod_congr rfl (fun l hl => by simp only [g, if_neg (Finset.ne_of_mem_erase hl)])
     have e2 : ∏ l ∈ (Finset.range (n + 1)).erase j, g l = ∏ l ∈ Finset.range (n + 1), g l :=
-      Finset.prod_erase _ (by simp [g])
+      Finset.prod_erase _ (if_pos rfl)
     have e3 : ∏ l ∈ Finset.range (n + 1), g l =
         (∏ l ∈ Finset.range j, ((2 : ℚ) ^ j - 2 ^ l)) *
           ∏ s ∈ Finset.range (n - j), ((2 : ℚ) ^ j - 2 ^ (j + 1 + s)) := by
@@ -248,12 +248,11 @@ theorem erdos_1050_pade_numerator_closed_form : ∀ (Qc : ℕ → ℕ → ℚ),
       have ga : ∏ l ∈ Finset.range j, g l = ∏ l ∈ Finset.range j, ((2 : ℚ) ^ j - 2 ^ l) :=
         Finset.prod_congr rfl (fun l hl => by
           have := Finset.mem_range.mp hl
-          simp [g, show l ≠ j by omega])
+          simp only [g, if_neg (show l ≠ j by omega)])
       have gb : ∏ s ∈ Finset.range (n - j), g (j + 1 + s) =
           ∏ s ∈ Finset.range (n - j), ((2 : ℚ) ^ j - 2 ^ (j + 1 + s)) :=
-        Finset.prod_congr rfl (fun s _ => by simp [g, show j + 1 + s ≠ j by omega])
-      rw [ga, gb]
-      simp [g]
+        Finset.prod_congr rfl (fun s _ => by simp only [g, if_neg (show j + 1 + s ≠ j by omega)])
+      rw [ga, gb, show g j = 1 from if_pos rfl, mul_one]
     rw [e1, e2, e3, ← lag_test n j hjn, hc j]
     ring
   have hpf := pf2_test n k hk1 (fun l : ℕ => (2 : ℚ) ^ l) (fun i : ℕ => (2 : ℚ) ^ (n + 1 + i))
@@ -274,8 +273,8 @@ theorem erdos_1050_pade_numerator_closed_form : ∀ (Qc : ℕ → ℕ → ℚ),
     let G : ℕ → ℚ := fun j => if j = k then 0 else Qc n j * (2 : ℚ) ^ j / ((2 : ℚ) ^ k - 2 ^ j)
     have e1 : ∑ j ∈ (Finset.range (n + 1)).erase k, Qc n j * (2 : ℚ) ^ j / ((2 : ℚ) ^ k - 2 ^ j) =
         ∑ j ∈ (Finset.range (n + 1)).erase k, G j :=
-      Finset.sum_congr rfl (fun j hj => by simp [G, Finset.ne_of_mem_erase hj])
-    rw [e1, Finset.sum_erase _ (by simp [G]),
+      Finset.sum_congr rfl (fun j hj => by simp only [G, if_neg (Finset.ne_of_mem_erase hj)])
+    rw [e1, Finset.sum_erase _ (show G k = 0 from if_pos rfl),
       show n + 1 = (k + 1) + (n - k) by omega, Finset.sum_range_add, Finset.sum_range_succ]
     have ga : ∑ j ∈ Finset.range k, G j = ∑ j ∈ Finset.range k, Qc n j / ((2 : ℚ) ^ (k - j) - 1) := by
       refine Finset.sum_congr rfl (fun j hj => ?_)
@@ -294,8 +293,7 @@ theorem erdos_1050_pade_numerator_closed_form : ∀ (Qc : ℕ → ℕ → ℚ),
       have : (2 : ℚ) ^ k - 2 ^ k * 2 ^ (b + 1) = -(2 ^ k * (2 ^ (b + 1) - 1)) := by ring
       rw [this]
       field_simp [h2 k, hs1 b]
-    rw [ga, gb]
-    simp [G]
+    rw [ga, gb, show G k = 0 from if_pos rfl, add_zero]
     ring
   -- T2: the nodes 2^(n+1+i)
   have T2 : Qc n k * (2 : ℚ) ^ k * ∑ i ∈ Finset.range n, 1 / ((2 : ℚ) ^ k - 2 ^ (n + 1 + i)) =
@@ -314,18 +312,17 @@ theorem erdos_1050_pade_numerator_closed_form : ∀ (Qc : ℕ → ℕ → ℚ),
     let H : ℕ → ℚ := fun l => if l = k then 0 else 1 / ((2 : ℚ) ^ k - 2 ^ l)
     have e1 : ∑ l ∈ (Finset.range (n + 1)).erase k, 1 / ((2 : ℚ) ^ k - 2 ^ l) =
         ∑ l ∈ (Finset.range (n + 1)).erase k, H l :=
-      Finset.sum_congr rfl (fun l hl => by simp [H, Finset.ne_of_mem_erase hl])
-    rw [e1, Finset.sum_erase _ (by simp [H]),
+      Finset.sum_congr rfl (fun l hl => by simp only [H, if_neg (Finset.ne_of_mem_erase hl)])
+    rw [e1, Finset.sum_erase _ (show H k = 0 from if_pos rfl),
       show n + 1 = (k + 1) + (n - k) by omega, Finset.sum_range_add, Finset.sum_range_succ]
     have ha : ∑ l ∈ Finset.range k, H l = ∑ l ∈ Finset.range k, 1 / ((2 : ℚ) ^ k - 2 ^ l) :=
       Finset.sum_congr rfl (fun l hl => by
         have := Finset.mem_range.mp hl
-        simp [H, show l ≠ k by omega])
+        simp only [H, if_neg (show l ≠ k by omega)])
     have hb : ∑ b ∈ Finset.range (n - k), H (k + 1 + b) =
         ∑ b ∈ Finset.range (n - k), 1 / ((2 : ℚ) ^ k - 2 ^ (k + 1 + b)) :=
-      Finset.sum_congr rfl (fun b _ => by simp [H, show k + 1 + b ≠ k by omega])
-    rw [ha, hb]
-    simp [H]
+      Finset.sum_congr rfl (fun b _ => by simp only [H, if_neg (show k + 1 + b ≠ k by omega)])
+    rw [ha, hb, show H k = 0 from if_pos rfl, add_zero]
   have T3b : (2 : ℚ) ^ k * ∑ l ∈ Finset.range k, 1 / ((2 : ℚ) ^ k - 2 ^ l) =
       ∑ b ∈ Finset.range k, (2 : ℚ) ^ (b + 1) / ((2 : ℚ) ^ (b + 1) - 1) := by
     rw [Finset.mul_sum]
