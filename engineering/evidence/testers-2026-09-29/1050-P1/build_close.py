@@ -20,7 +20,7 @@ block = "  -- The statement of hole erdos-1050--h1-v2--h4 (hrem), proved here in
         "  have hrem_all : " + ind(h4type, 4).lstrip() + " := by\n" + ind(body, 2) + "\n"
 old = "    erdos_1050__h1_v2__h4 Qc hQc Qx hQx Aq hAq hden\n"
 assert close.count(old) == 1
-close = close.replace(old, "    hrem_all Qc hQc Qx hQx Aq hAq hden\n")
+close = close.replace(old, "    hrem_all Qc hQc Qx hQx Aq hAq hden\n  clear hrem_all hAq hQx hQc\n")
 anchor = "  -- Informal account: annex f593a93a8960"
 assert close.count(anchor) == 1
 close = close.replace(anchor, block + anchor)

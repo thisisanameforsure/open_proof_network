@@ -746,6 +746,7 @@ theorem erdos_1050__h1 : ∃ a b : ℕ → ℤ,
       ((Qx n : ℝ) * (3 * ∑' n : ℕ, (1 : ℝ) / ((2 : ℝ) ^ (n + 3) - 3)) - (Aq n : ℝ)) ^ 2 *
         (2 : ℝ) ^ (4 * n * n) ≤ (2 : ℝ) ^ (2 * n + 4) :=
     hrem_all Qc hQc Qx hQx Aq hAq hden
+  clear hrem_all hAq hQx hQc
   choose d hd0 hdb hz using hden
   choose b hb using fun n => (hz n).1
   choose a ha using fun n => (hz n).2
