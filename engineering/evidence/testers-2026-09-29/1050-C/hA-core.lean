@@ -64,6 +64,11 @@ theorem hA_test (n k i : ℕ) (hk : k ≤ n) (hi : i < n)
       ∏ t ∈ Finset.range (n - 1 - i1 - h), ((2 : ℤ) ^ (m - (i1 + 1 + (h + t))) - 1), ?_⟩
     push_cast
     rw [hz0, hY]
+    generalize (∏ t ∈ Finset.range h, ((2 : ℚ) ^ (m - i1 - 1 - t) - 1)) = A1
+    generalize (∏ t ∈ Finset.range (n - 1 - i1 - h), ((2 : ℚ) ^ (m - (i1 + 1 + (h + t))) - 1)) = A2
+    generalize (∏ j ∈ Finset.range i1, ((2 : ℚ) ^ (m - j) - 1)) = A3
+    generalize (∏ s ∈ Finset.range h, ((2 : ℚ) ^ (s + 1) - 1)) = Q at hQh ⊢
+    generalize (∏ j ∈ Finset.Ioc h n, ((2 : ℚ) ^ j - 1)) = PM at hPM ⊢
     field_simp
   · -- the run below i1 holds h consecutive exponents
     obtain ⟨z0, hz0⟩ := gauss m h
@@ -77,4 +82,9 @@ theorem hA_test (n k i : ℕ) (hk : k ≤ n) (hi : i < n)
       ∏ t ∈ Finset.range (n - 1 - i1), ((2 : ℤ) ^ (m - (i1 + 1 + t)) - 1), ?_⟩
     push_cast
     rw [hz0, hX]
+    generalize (∏ j ∈ Finset.range h, ((2 : ℚ) ^ (m - j) - 1)) = A1
+    generalize (∏ t ∈ Finset.range (i1 - h), ((2 : ℚ) ^ (m - (h + t)) - 1)) = A2
+    generalize (∏ t ∈ Finset.range (n - 1 - i1), ((2 : ℚ) ^ (m - (i1 + 1 + t)) - 1)) = A3
+    generalize (∏ s ∈ Finset.range h, ((2 : ℚ) ^ (s + 1) - 1)) = Q at hQh ⊢
+    generalize (∏ j ∈ Finset.Ioc h n, ((2 : ℚ) ^ j - 1)) = PM at hPM ⊢
     field_simp

@@ -317,6 +317,7 @@ theorem erdos_1050__h1_v2__h3 : ∀ (Qc : ℕ → ℕ → ℚ),
         ∑ j ∈ Finset.Ioc k n, Qc n j * 2 ^ (j - k) / (1 - 2 ^ (j - k)) := by
     intro Qc hQc n k hk
     exact formula3 n k hk Qc (fun j hj => by subst hQc; exact id1_full n j hj)
+  clear id1_test lower_test upper_test rhs_test id1_full lagr_eval deriv_prod_eval deriv_prod_eval_node lagr_deriv formula3
   have gauss : ∀ n k : ℕ,
       ∃ z : ℤ, (z : ℚ) = ∏ i ∈ Finset.range k, ((2 : ℚ) ^ (n - i) - 1) / ((2 : ℚ) ^ (i + 1) - 1) := by
     intro n k
@@ -579,6 +580,7 @@ theorem erdos_1050__h1_v2__h3 : ∀ (Qc : ℕ → ℕ → ℚ),
       ring
     exact combine _ _ _ Ω _ B (∏ m ∈ Finset.Ioc (n / 2) n, ((2 : ℤ) ^ m - 1)) hΩodd h2adic hB'
       (by push_cast; rfl)
+  clear hform hodd combine
   have hcnall : ∀ n : ℕ, ∃ z : ℤ, (z : ℚ) = (∏ j ∈ Finset.Ico 2 n, ((2 : ℚ) ^ (j + 1) - 3)) *
       ∑ j ∈ Finset.range n, (3 : ℚ) / ((2 : ℚ) ^ (j + 1) - 3) := by
     intro n
