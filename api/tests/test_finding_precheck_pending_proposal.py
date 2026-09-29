@@ -365,6 +365,22 @@ def test_verify_mode_reads_a_green_proposal_at_its_head(harness: Harness, token:
     assert call.method == "verify_proof"
     assert "OpnProp.and_weaken" in (call.formal_statement or "")
 
+    # F13-T24's target derived from the node reads a proposed node's target from its record
+    content = files[f"{NODES}{node_id}/Statement.lean"].replace("sorry", "trivial")
+    r = harness.client.post(
+        "/check",
+        json={"node_id": node_id, "mode": "verify", "content": content},
+        headers=harness.auth(token),
+    )
+    assert r.status_code == 200, r.text
+    # hazards mode reads the proposal's META.yaml at the head, not a 503 from main
+    r = harness.client.post(
+        "/check",
+        json={"node_id": node_id, "mode": "hazards", "content": ""},
+        headers=harness.auth(token),
+    )
+    assert r.status_code == 200, r.text
+
 
 def test_a_green_proposal_on_an_unproved_dependency_is_refused_as_blocked(
     harness: Harness, token: str

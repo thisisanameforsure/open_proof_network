@@ -4,7 +4,8 @@
 claimable; a refusal names why not, from the graph and the targets index — F05-T9), clamps
 an undeclared TTL to the minimum, rejects one above the maximum, enforces the active-claim cap,
 and returns the receipt — or, when the caller already holds an active claim on the node, that
-claim again with ``200`` (F05-T14); every receipt names the node's other active holders.
+claim again with ``200`` (F05-T14); every receipt names the node's other active holders and the
+pull requests already open on it (``open_submissions``).
 ``DELETE /claims/<id>`` releases the holder's own claim, and ``GET /claims/mine`` lists the
 caller's active claims with their ids. Expiry is lazy: a claim past ``expires`` counts as
 released wherever it is read.
@@ -66,9 +67,36 @@ def others(ctx: Context, claim: Claim, claims: list[Claim]) -> list[dict[str, st
     return sorted(out, key=lambda a: (a["expires"], a["pseudonym"]))
 
 
+#: The fields of an open submission a claim receipt names (the service's own record, F07-T16).
+OPEN_SUBMISSION_FIELDS: tuple[str, ...] = ("pr_number", "pr_url", "kind", "pseudonym", "created")
+
+
+def open_submissions(ctx: Context, claim: Claim) -> list[dict[str, Any]]:
+    """The pull requests the service opened on ``claim``'s node that the host still calls open,
+    oldest first, the caller's own included. A claim is advisory (D-25, F05-Q1), so a claimer
+    learns what it is racing only here: another pseudonym's open witness or proof is racing it
+    whether or not that pseudonym ever claimed (tester finding, erdos-1050, 2026-09-27).
+
+    Each record is reconciled as ``GET /submissions.json`` does, so a merged or closed pull
+    request is not listed; one the host cannot describe stays listed (C7)."""
+    out: list[dict[str, Any]] = []
+    for found in ctx.store.list_open_submissions():
+        if found.node_id != claim.node_id or found.target_id != claim.target_id:
+            continue
+        record, _, _ = pending.reconcile(ctx, found)
+        if record.closed is None:
+            out.append({k: getattr(record, k) for k in OPEN_SUBMISSION_FIELDS})
+    return sorted(out, key=lambda s: (s["created"], s["pr_number"]))
+
+
 def held_receipt(ctx: Context, claim: Claim, pseudonym: str, claims: list[Claim]) -> dict[str, Any]:
-    """A receipt for a claim its holder is looking at: the claim and who else holds the node."""
-    return {**receipt(claim, pseudonym), "others": others(ctx, claim, claims)}
+    """A receipt for a claim its holder is looking at: the claim, who else holds the node, and
+    the pull requests already open on it."""
+    return {
+        **receipt(claim, pseudonym),
+        "others": others(ctx, claim, claims),
+        "open_submissions": open_submissions(ctx, claim),
+    }
 
 
 def ttl_hours(ctx: Context, raw: Any) -> int:
