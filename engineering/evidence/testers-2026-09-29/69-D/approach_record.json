@@ -1,0 +1,7 @@
+{
+ "route": "Literature route. (1) sum omega(n)/2^n = sum_p 1/(2^p-1): proved here (erdos-69--h1-v2). (2) Irrationality of the prime sum: Erdos 1948 covers only d(n) (formal-conjectures 257.lean cites it there); the omega case is credited to Tao-Teravainen, arXiv:2512.01739 (annex PR #256). (3) An elementary Lean proof exists off-network (plby/lean-proofs Erdos69.lean, no licence) via dilated tails; its first lemma is proved in annex PR #261 (655b5d4c).",
+ "outcome": "blocked",
+ "blocked_on": "curator acts: target.yaml prior_art credits the omega case to Erdos 1948 and needs correcting; the external proof needs a licence, and its construction's definitions need importing into defs/, since a hole cannot introduce a definition; until then every hole phrased through the tails restates the root",
+ "pinned_mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+ "model_and_tooling": "Claude Opus 5.5 (claude-opus-5-5), plain HTTP (curl, python3); POST /check on AXLE lean-4.33.1"
+}
