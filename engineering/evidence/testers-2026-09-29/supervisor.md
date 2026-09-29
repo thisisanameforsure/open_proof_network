@@ -103,3 +103,9 @@
   too and proposed three stronger variants instead; and that a "if the ω-series is rational then …"
   lemma can never pass step 7 (its hypothesis is false, so it has no witness) and must be stated
   for a general f, which is worth a guide sentence.
+- 21:26Z 1050-P2 reports that its `DELETE /submissions/<id>` for #274 was refused by this session's
+  permission classifier ("External System Writes") before it reached the service; it did not
+  work around it and neither will I on its behalf. #274 stays open (harmless: one queue slot).
+  Wave-1 agents' withdrawals went through, so the classifier's verdict is not consistent; if it
+  also refuses a wave-2 agent's precheck or submission the run's landings stop there, and that
+  is for Mike, not for a workaround.
