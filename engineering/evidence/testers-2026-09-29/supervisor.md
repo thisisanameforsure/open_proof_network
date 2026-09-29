@@ -136,3 +136,8 @@
   merged; #304, #307 queued). Wave 2's remaining four agents time out by 23:55Z; wave-3 launches
   are decided per line then (a line whose next merge is hours away gets no agent until it is
   near). Pushed.
+- 23:35Z the session's container restarted; the working tree, the unpushed commits, the scratchpad
+  (tokens, prompts, the graph clone) all survived, but the two wave-2 agents still running (69-P1,
+  402-P2) were killed mid-wave with their logs on disk as written up to then. Their wave-3
+  successors (69-W3-1, 402-W3-2) are launched now: #260 merged at 23:19Z and its proof is ready,
+  and t0929-3's #262 is second in the queue. The other four lines wait for their merges.
