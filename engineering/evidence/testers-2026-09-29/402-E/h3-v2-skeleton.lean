@@ -20,7 +20,7 @@ theorem erdos_402__h3 : (∀ (A : Finset ℕ) (m : ℕ),
           A.gcd id = 1 →
             (∀ a ∈ A, ∀ b ∈ A, ∃ u v, 0 < u ∧ u ≤ A.card ∧ 0 < v ∧ v ≤ A.card ∧ u.Coprime v ∧ a * v = b * u) →
               ∃ a ∈ A, ∃ b ∈ A, a.gcd b ≤ (a / A.card : ℚ) := by
-  -- annex: ANNEXHASH
+  -- annex: f5450271cb4865766831f2e6b153cb532934219590cff79ed42bb2ff813b15ac
   -- Hole (composite size): Graham's bound for a primitive set of composite size n whose
   -- quotients a / gcd(a, b) are at most n and every prime power dividing an element is below n.
   -- This is where Balasubramanian–Soundararajan (1996) is still needed.
