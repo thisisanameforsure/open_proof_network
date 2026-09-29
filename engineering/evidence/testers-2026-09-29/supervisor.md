@@ -59,3 +59,14 @@
   #230, which is the freeze shape the 2026-09-23 replay found (a dropped wake, then nothing until
   the cron). Cannot be confirmed from here without reading the graph's workflow runs; requesting
   read access to the graph repository for that one purpose.
+- 20:17Z **The queue stall is mine.** `GET /submissions/<id>` for #231 says `waiting_on: gate`
+  with its gate run `queued`, and the network repository's Actions list shows 27 CI runs from
+  this branch in progress or queued (one per push of these logs, each running the hour-long Lean
+  tier), which is the account's whole hosted-runner capacity. The graph's gate for #231 has been
+  waiting for a runner since the actor updated it. I could not cancel them (the App has no
+  `Actions: write`, 403 on every cancel). Two changes: the evidence is now committed at every
+  stop but pushed only at the half-hour check-ins, and the CI workflow gets a concurrency group so
+  a newer push on the same pull request cancels the older run (it cannot clear the 27 already
+  queued, which drain as they finish). This is the 2026-09-24 note's "the network repo's CI runs
+  the Lean tier on every pull request, including a tester log" made concrete: it can starve the
+  graph's own gate.

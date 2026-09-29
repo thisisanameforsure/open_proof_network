@@ -1,0 +1,5 @@
+(n,i) with 9^n W(n) B(n,i)/(2^i - 1) not an integer, n<=20: []
+B(n,i) denominators after removing 2s and 3s (should be 1): [1]
+max 3-exponent in denominator of B(n,i) vs n-1: [(2, 0), (3, 1), (4, 2), (5, 2), (6, 3), (7, 5), (8, 6), (9, 7), (10, 8), (11, 7), (12, 8), (13, 10), (14, 11), (15, 12), (16, 13), (17, 13), (18, 14), (19, 17), (20, 18)]
+largest power of 2 in any B(n,i) denominator, n<=20: 0
+(n,i) with 3^(n-1) B(n,i) not an integer: [] 0
