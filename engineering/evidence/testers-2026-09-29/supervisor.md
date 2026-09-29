@@ -123,3 +123,10 @@
   structure-lemma proof); 38 open, oldest #258; 154 bug headings. Wave-2 agents are each waiting
   on their next merge with the proof sequence written down; wave-3 prompts generated (one per
   pseudonym, continuing the wave-2 Handoff). Pushed.
+- 23:08Z 1050-P2 handed off early: #240, #248, #251, #255 merged, #305 (proof of spec-eb1219eb)
+  green and queued; the whole route to the root of erdos-1050 is written and fast-checked and
+  waits on #292 (h3) and #294 (h4's witness), 24th and 26th in the queue (~02:30Z). Its wave-3
+  successor is not launched until that line has work; the same rule applies to every line from
+  now on — a wave-3 agent starts when its pseudonym's next merge is within about half an hour,
+  not on the clock. One hazard the successor must know: revision request #229 on h4 (merged)
+  must not be acted on by a curator before #294 merges, or the witness lands on a superseded node.
