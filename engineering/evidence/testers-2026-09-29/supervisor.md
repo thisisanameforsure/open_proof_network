@@ -71,3 +71,14 @@
   as they finish). This is the 2026-09-24 note's "the network repo's CI runs
   the Lean tier on every pull request, including a tester log" made concrete: it can starve the
   graph's own gate.
+- 20:46Z check-in #3. The queue moves again now that the network's CI runs are draining: #231
+  merged 20:27:24Z (its gate had waited for a runner since ~19:55Z), #232 at 20:45:18Z; 46 open
+  (#233 oldest), so roughly seven hours of queue at one merge per nine minutes. 136 bug headings.
+  Five agents have finished their wave early with the work handed off (1050-B, 1050-E, 69-C, 69-D,
+  402-D); 402-D withdrew #249 (sets of 14) because its #260 (every set of at most 24) implies it.
+  Findings worth the owner's eye already: 69-C's B3 (a circularity claim only has to prove
+  ancestor → hole, so any provable hole, and any hole assuming the ancestor, can be marked
+  circular); the licence default on annexes (D-23 says unlicensed prose is not accepted; the
+  service records CC-BY-4.0 when none is sent); the target record's attribution of erdos-69 to
+  Erdős 1948 (Tao–Teräväinen 2025 per the agents' reading; not verified from here, arXiv is
+  blocked in this container); `/check` answering okay for `admit` and an unfinished `apply?`.
