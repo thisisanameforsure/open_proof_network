@@ -1,0 +1,180 @@
+{
+ "id": "01M3QKAEFGPFXJ5KTTWYNRDBKR",
+ "node_id": "variant-9724698e",
+ "target_id": "erdos-402",
+ "state": "done",
+ "created": "2026-09-29T22:07:18Z",
+ "graph_commit": "19a03f18fad185cdde2c5da5f7342d1c667792af",
+ "bundle_digest": "53283fea5daa82803e1e3ee5bd5cafb172d6dd855089eac3ffdff3f86ae984f8",
+ "authenticated": true,
+ "result": {
+  "attestation": {
+   "artifact_hash": "895d575caea1a57927c1af862fd64a251aa465fd831e75dc3a0662602c603a7f",
+   "diagnostic": null,
+   "first_failing_step": null,
+   "gate_spec_hash": "d9af7df0959909beee872126fbcd11755d0220791923c4544e24f1abf2be865f",
+   "graph_commit": "19a03f18fad185cdde2c5da5f7342d1c667792af",
+   "graph_id": "erdos-402",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "3422bb401108f24a3006877a2af929894564a1c1",
+   "node_id": "variant-9724698e",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v5",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-09-29T22:10:21Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQOI3+9XtwcKLgJQo8eNRnn0l9xt9o0sLetdN+bokewBxuW/4OK\nkeTcb54XzFN5HSFnC3nuk7ub6ovHrYUYG2Qg8=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "aed1aa911d63330e5abb0002e6979bd4d8f81634f9cdf9f55d206ed500d62709",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": null,
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": null,
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "pass",
+     "step": 5
+    },
+    {
+     "diagnostic": {
+      "code": "hazards-acknowledged",
+      "details": {
+       "acknowledged": [
+        {
+         "checker": "div-zero",
+         "justification": "A.card = 13 is a hypothesis, so the rational division is by 13, never by zero.",
+         "location": "\u2191a / \u2191A.card"
+        }
+       ]
+      },
+      "message": "1 hazard finding(s) acknowledged in META.yaml"
+     },
+     "name": "hazards",
+     "result": "pass",
+     "step": 6
+    },
+    {
+     "diagnostic": null,
+     "name": "witness",
+     "result": "pass",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "pass",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "pass"
+  },
+  "bundle_digest": "53283fea5daa82803e1e3ee5bd5cafb172d6dd855089eac3ffdff3f86ae984f8",
+  "first_failing_step": null,
+  "job_id": "01M3QKAEFGPFXJ5KTTWYNRDBKR",
+  "node_id": "variant-9724698e",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": null,
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": null,
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "pass",
+    "step": 5
+   },
+   {
+    "diagnostic": {
+     "code": "hazards-acknowledged",
+     "details": {
+      "acknowledged": [
+       {
+        "checker": "div-zero",
+        "justification": "A.card = 13 is a hypothesis, so the rational division is by 13, never by zero.",
+        "location": "\u2191a / \u2191A.card"
+       }
+      ]
+     },
+     "message": "1 hazard finding(s) acknowledged in META.yaml"
+    },
+    "name": "hazards",
+    "result": "pass",
+    "step": 6
+   },
+   {
+    "diagnostic": null,
+    "name": "witness",
+    "result": "pass",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "pass",
+    "step": 8
+   }
+  ],
+  "verdict": "pass"
+ },
+ "public": true
+}
