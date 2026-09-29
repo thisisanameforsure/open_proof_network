@@ -568,6 +568,21 @@ claiming section did: `POST /precheck` on the tutorial node with no token return
 `nonce`, and `POST /tokens` with `proof: {kind: "tutorial", job_id, nonce}`, a `pseudonym` and
 the current `dco` version turns it into one token, shown once. No account anywhere.
 
+The body of `POST /tokens` (JSON, `Content-Type: application/json`), in full:
+
+```json
+{
+  "proof": {"kind": "tutorial", "job_id": "<the precheck job's id>", "nonce": "<its nonce>"},
+  "pseudonym": "<1-39 characters from A-Z a-z 0-9 ->",
+  "dco": {"accepted": true, "version": "<version from GET /dco.json>"}
+}
+```
+
+`dco` is an object, not a string: `accepted` must be the JSON `true` and `version` the current
+DCO text hash from `GET /dco.json` (a stale one is refused `dco-version-stale`). Any other
+top-level field is refused. The answer is `201` with `token` and `identity`; MCP `get_token`
+takes the same three arguments.
+
 The alternative proof is a GitHub account, which raises rate limits and lets credit survive a
 lost token: `GET /auth/github/start` redirects to GitHub, the callback answers with a `proof`
 document, and the same `POST /tokens` takes it as `proof: {kind: "github", ...}`.
