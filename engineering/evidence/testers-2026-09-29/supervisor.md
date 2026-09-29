@@ -113,3 +113,9 @@
   42 open, oldest #244 (402-B's card-10 proof). 147 bug headings. All six wave-2 agents are
   writing; the proofs of #238 and #239 (69-A's and 69-E's nodes, now merged) are the first
   wave-2 submissions to expect. Pushed.
+- 22:18Z check-in #6. Merges: #244 (402-B's card-10 proof, the run's first proof of a pre-existing
+  open node to merge) 21:51, #246 (card 13 proposal) 22:00, #248 (annex) 22:09; 41 open, oldest
+  #251, newest #304; 151 bug headings. Wave 2's first landing: 69-P2 prechecked and submitted
+  69-E's proof of spec-2e765953 as #302 within twenty minutes of the node merging, so the
+  hand-off through the log files works. 1050-P1's line (#292 hden, #294 h4 witness) is about
+  eighteen merges back, roughly 00:30Z. Pushed.
