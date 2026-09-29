@@ -130,3 +130,9 @@
   now on — a wave-3 agent starts when its pseudonym's next merge is within about half an hour,
   not on the clock. One hazard the successor must know: revision request #229 on h4 (merged)
   must not be acted on by a curator before #294 merges, or the witness lands on a superseded node.
+- 23:22Z check-in #8. Merges #258 (card 15 proposal) 22:58, #259 (69-B's level-set variant)
+  23:08, #260 (402-D's every-set-≤24 variant) 23:19; 37 open, in order #261 … #308; 154 bug
+  headings. 402-P1 handed off early with its whole line merged or green (#244, #246, #252, #258
+  merged; #304, #307 queued). Wave 2's remaining four agents time out by 23:55Z; wave-3 launches
+  are decided per line then (a line whose next merge is hours away gets no agent until it is
+  near). Pushed.
