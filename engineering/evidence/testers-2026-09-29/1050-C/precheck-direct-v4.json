@@ -1,0 +1,478 @@
+{
+ "id": "01M3QC3NQ02AE042211CEEFJM8",
+ "node_id": "erdos-1050--h1-v2--h3",
+ "target_id": "erdos-1050",
+ "state": "done",
+ "created": "2026-09-29T20:01:16Z",
+ "graph_commit": "4d1ed78bb94a493a14c3a10068fc9bde284eb239",
+ "bundle_digest": "12c60a9dc40e029c8fa203c19b9387f0cebd8f21202f42d7f9f2c6d7020b580d",
+ "authenticated": true,
+ "result": {
+  "attestation": {
+   "artifact_hash": "e48920da21553a8114e9f0c31f39d9eaa22feecf6fbaab20712425870472d247",
+   "diagnostic": {
+    "code": "deps-unreadable",
+    "details": {
+     "messages": [
+      {
+       "column": 19,
+       "file": "",
+       "line": 209,
+       "severity": "warning",
+       "text": "`Polynomial.eval_finset_sum` has been deprecated: Use `Polynomial.eval_finsetSum` instead"
+      },
+      {
+       "column": 57,
+       "file": "",
+       "line": 235,
+       "severity": "warning",
+       "text": "`Polynomial.eval_finset_sum` has been deprecated: Use `Polynomial.eval_finsetSum` instead"
+      },
+      {
+       "column": 43,
+       "file": "",
+       "line": 769,
+       "severity": "warning",
+       "text": "exponent 300 exceeds the threshold 256, exponentiation operation was not evaluated, use `set_option exponentiation.threshold <num>` to set a new threshold"
+      },
+      {
+       "column": 6,
+       "file": "",
+       "line": 770,
+       "severity": "warning",
+       "text": "`push_neg` has been deprecated. Prefer using `push Not` instead.\nIf you'd rather continue using `push_neg` in your project, you can implement it as follows:\n```\nopen Lean.Parser.Tactic in\nmacro \"push_neg\" cfg:optConfig loc:(location)? : tactic =>\n  `(tactic| push $cfg:optConfig Not $[$loc]?)\n```\n"
+      },
+      {
+       "column": 7,
+       "file": "",
+       "line": 946,
+       "severity": "error",
+       "text": "(deterministic) timeout at `\u00abtactic execution\u00bb`, maximum number of heartbeats (200000) has been reached\n\nNote: Use `set_option maxHeartbeats <num>` to set the limit.\n\nHint: Additional diagnostic information may be available using the `set_option diagnostics true` command."
+      },
+      {
+       "column": 103,
+       "file": "",
+       "line": 24,
+       "severity": "error",
+       "text": "(deterministic) timeout at `whnf`, maximum number of heartbeats (200000) has been reached\n\nNote: Use `set_option maxHeartbeats <num>` to set the limit.\n\nHint: Additional diagnostic information may be available using the `set_option diagnostics true` command."
+      },
+      {
+       "column": 14,
+       "file": "",
+       "line": 201,
+       "severity": "warning",
+       "text": "This simp argument is unused:\n  natDegree_X_sub_C\n\nHint: Omit it from the simp argument list.\n  [apply] simp\n\nNote: This linter can be disabled with `set_option linter.unusedSimpArgs false`"
+      }
+     ]
+    },
+    "message": "file does not elaborate"
+   },
+   "first_failing_step": 8,
+   "gate_spec_hash": "d4c5ca9d6d8408f13aa338d70e345235c4023769e0d54879b948c4d06b6f338c",
+   "graph_commit": "4d1ed78bb94a493a14c3a10068fc9bde284eb239",
+   "graph_id": "erdos-1050",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "3422bb401108f24a3006877a2af929894564a1c1",
+   "node_id": "erdos-1050--h1-v2--h3",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v5",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-09-29T20:21:03Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQCOF4uBnF3WULXcETXLBUpRWKgLJHu4eZ8q0yWI+VqPmpACC0n\nvu9npnRxyCstAf6Z5xa4QNMA6obJqudMtX3A0=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "69944e54bedc3e3dcb2d1e674f9add0c8208fae05f646ac3041c97192568a9e1",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": null,
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": null,
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "pass",
+     "step": 5
+    },
+    {
+     "diagnostic": {
+      "code": "hazards-derived-statement",
+      "details": {
+       "acknowledged": [],
+       "checkers": [
+        "div-zero",
+        "int-trunc",
+        "junk-value",
+        "nat-sub",
+        "off-by-one-range",
+        "unused-binder"
+       ],
+       "findings": [
+        {
+         "checker": "div-zero",
+         "location": "(2 ^ (2 * n - k - i) - 1) / (2 ^ (i + 1) - 1)",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "div-zero",
+         "location": "(2 ^ (n - i) - 1) / (2 ^ (i + 1) - 1)",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "div-zero",
+         "location": "3 / (2 ^ (j + 1) - 3)",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "div-zero",
+         "location": "3 / 2 ^ n",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "div-zero",
+         "location": "Qc n j / (2 ^ (k - j) - 1)",
+         "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+        },
+        {
+         "checker": "nat-sub",
+         "location": "2 * n - k",
+         "message": "subtraction on \u2115 truncates at 0: a - b is 0 whenever b \u2265 a"
+        },
+        {
+         "checker": "nat-sub",
+         "location": "2 * n - k - i",
+         "message": "subtraction on \u2115 truncates at 0: a - b is 0 whenever b \u2265 a"
+        },
+        {
+         "checker": "nat-sub",
+         "location": "k - 1",
+         "message": "subtraction on \u2115 truncates at 0: a - b is 0 whenever b \u2265 a"
+        },
+        {
+         "checker": "nat-sub",
+         "location": "k - j",
+         "message": "subtraction on \u2115 truncates at 0: a - b is 0 whenever b \u2265 a"
+        },
+        {
+         "checker": "nat-sub",
+         "location": "n - i",
+         "message": "subtraction on \u2115 truncates at 0: a - b is 0 whenever b \u2265 a"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "Finset.range (k + 1)",
+         "message": "Finset.range with a literal-adjusted bound: check whether the endpoint is included"
+        },
+        {
+         "checker": "off-by-one-range",
+         "location": "Finset.range (n + 1)",
+         "message": "Finset.range with a literal-adjusted bound: check whether the endpoint is included"
+        }
+       ],
+       "origin": "compiler-derived"
+      },
+      "message": "12 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at (2 ^ (2 * n - k - i) - 1) / (2 ^ (i + 1) - 1): division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+     },
+     "name": "hazards",
+     "result": "pass",
+     "step": 6
+    },
+    {
+     "diagnostic": null,
+     "name": "witness",
+     "result": "pass",
+     "step": 7
+    },
+    {
+     "diagnostic": {
+      "code": "deps-unreadable",
+      "details": {
+       "messages": [
+        {
+         "column": 19,
+         "file": "",
+         "line": 209,
+         "severity": "warning",
+         "text": "`Polynomial.eval_finset_sum` has been deprecated: Use `Polynomial.eval_finsetSum` instead"
+        },
+        {
+         "column": 57,
+         "file": "",
+         "line": 235,
+         "severity": "warning",
+         "text": "`Polynomial.eval_finset_sum` has been deprecated: Use `Polynomial.eval_finsetSum` instead"
+        },
+        {
+         "column": 43,
+         "file": "",
+         "line": 769,
+         "severity": "warning",
+         "text": "exponent 300 exceeds the threshold 256, exponentiation operation was not evaluated, use `set_option exponentiation.threshold <num>` to set a new threshold"
+        },
+        {
+         "column": 6,
+         "file": "",
+         "line": 770,
+         "severity": "warning",
+         "text": "`push_neg` has been deprecated. Prefer using `push Not` instead.\nIf you'd rather continue using `push_neg` in your project, you can implement it as follows:\n```\nopen Lean.Parser.Tactic in\nmacro \"push_neg\" cfg:optConfig loc:(location)? : tactic =>\n  `(tactic| push $cfg:optConfig Not $[$loc]?)\n```\n"
+        },
+        {
+         "column": 7,
+         "file": "",
+         "line": 946,
+         "severity": "error",
+         "text": "(deterministic) timeout at `\u00abtactic execution\u00bb`, maximum number of heartbeats (200000) has been reached\n\nNote: Use `set_option maxHeartbeats <num>` to set the limit.\n\nHint: Additional diagnostic information may be available using the `set_option diagnostics true` command."
+        },
+        {
+         "column": 103,
+         "file": "",
+         "line": 24,
+         "severity": "error",
+         "text": "(deterministic) timeout at `whnf`, maximum number of heartbeats (200000) has been reached\n\nNote: Use `set_option maxHeartbeats <num>` to set the limit.\n\nHint: Additional diagnostic information may be available using the `set_option diagnostics true` command."
+        },
+        {
+         "column": 14,
+         "file": "",
+         "line": 201,
+         "severity": "warning",
+         "text": "This simp argument is unused:\n  natDegree_X_sub_C\n\nHint: Omit it from the simp argument list.\n  [apply] simp\n\nNote: This linter can be disabled with `set_option linter.unusedSimpArgs false`"
+        }
+       ]
+      },
+      "message": "file does not elaborate"
+     },
+     "name": "deps",
+     "result": "fail",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "fail"
+  },
+  "bundle_digest": "12c60a9dc40e029c8fa203c19b9387f0cebd8f21202f42d7f9f2c6d7020b580d",
+  "first_failing_step": 8,
+  "job_id": "01M3QC3NQ02AE042211CEEFJM8",
+  "node_id": "erdos-1050--h1-v2--h3",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": null,
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": null,
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "pass",
+    "step": 5
+   },
+   {
+    "diagnostic": {
+     "code": "hazards-derived-statement",
+     "details": {
+      "acknowledged": [],
+      "checkers": [
+       "div-zero",
+       "int-trunc",
+       "junk-value",
+       "nat-sub",
+       "off-by-one-range",
+       "unused-binder"
+      ],
+      "findings": [
+       {
+        "checker": "div-zero",
+        "location": "(2 ^ (2 * n - k - i) - 1) / (2 ^ (i + 1) - 1)",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "div-zero",
+        "location": "(2 ^ (n - i) - 1) / (2 ^ (i + 1) - 1)",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "div-zero",
+        "location": "3 / (2 ^ (j + 1) - 3)",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "div-zero",
+        "location": "3 / 2 ^ n",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "div-zero",
+        "location": "Qc n j / (2 ^ (k - j) - 1)",
+        "message": "division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+       },
+       {
+        "checker": "nat-sub",
+        "location": "2 * n - k",
+        "message": "subtraction on \u2115 truncates at 0: a - b is 0 whenever b \u2265 a"
+       },
+       {
+        "checker": "nat-sub",
+        "location": "2 * n - k - i",
+        "message": "subtraction on \u2115 truncates at 0: a - b is 0 whenever b \u2265 a"
+       },
+       {
+        "checker": "nat-sub",
+        "location": "k - 1",
+        "message": "subtraction on \u2115 truncates at 0: a - b is 0 whenever b \u2265 a"
+       },
+       {
+        "checker": "nat-sub",
+        "location": "k - j",
+        "message": "subtraction on \u2115 truncates at 0: a - b is 0 whenever b \u2265 a"
+       },
+       {
+        "checker": "nat-sub",
+        "location": "n - i",
+        "message": "subtraction on \u2115 truncates at 0: a - b is 0 whenever b \u2265 a"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "Finset.range (k + 1)",
+        "message": "Finset.range with a literal-adjusted bound: check whether the endpoint is included"
+       },
+       {
+        "checker": "off-by-one-range",
+        "location": "Finset.range (n + 1)",
+        "message": "Finset.range with a literal-adjusted bound: check whether the endpoint is included"
+       }
+      ],
+      "origin": "compiler-derived"
+     },
+     "message": "12 hazard finding(s) on a statement the gate derived from a merged assembly, recorded and not refused; first: div-zero at (2 ^ (2 * n - k - i) - 1) / (2 ^ (i + 1) - 1): division by a divisor that is not syntactically non-zero: Lean's / and % are total and give a junk value at 0"
+    },
+    "name": "hazards",
+    "result": "pass",
+    "step": 6
+   },
+   {
+    "diagnostic": null,
+    "name": "witness",
+    "result": "pass",
+    "step": 7
+   },
+   {
+    "diagnostic": {
+     "code": "deps-unreadable",
+     "details": {
+      "messages": [
+       {
+        "column": 19,
+        "file": "",
+        "line": 209,
+        "severity": "warning",
+        "text": "`Polynomial.eval_finset_sum` has been deprecated: Use `Polynomial.eval_finsetSum` instead"
+       },
+       {
+        "column": 57,
+        "file": "",
+        "line": 235,
+        "severity": "warning",
+        "text": "`Polynomial.eval_finset_sum` has been deprecated: Use `Polynomial.eval_finsetSum` instead"
+       },
+       {
+        "column": 43,
+        "file": "",
+        "line": 769,
+        "severity": "warning",
+        "text": "exponent 300 exceeds the threshold 256, exponentiation operation was not evaluated, use `set_option exponentiation.threshold <num>` to set a new threshold"
+       },
+       {
+        "column": 6,
+        "file": "",
+        "line": 770,
+        "severity": "warning",
+        "text": "`push_neg` has been deprecated. Prefer using `push Not` instead.\nIf you'd rather continue using `push_neg` in your project, you can implement it as follows:\n```\nopen Lean.Parser.Tactic in\nmacro \"push_neg\" cfg:optConfig loc:(location)? : tactic =>\n  `(tactic| push $cfg:optConfig Not $[$loc]?)\n```\n"
+       },
+       {
+        "column": 7,
+        "file": "",
+        "line": 946,
+        "severity": "error",
+        "text": "(deterministic) timeout at `\u00abtactic execution\u00bb`, maximum number of heartbeats (200000) has been reached\n\nNote: Use `set_option maxHeartbeats <num>` to set the limit.\n\nHint: Additional diagnostic information may be available using the `set_option diagnostics true` command."
+       },
+       {
+        "column": 103,
+        "file": "",
+        "line": 24,
+        "severity": "error",
+        "text": "(deterministic) timeout at `whnf`, maximum number of heartbeats (200000) has been reached\n\nNote: Use `set_option maxHeartbeats <num>` to set the limit.\n\nHint: Additional diagnostic information may be available using the `set_option diagnostics true` command."
+       },
+       {
+        "column": 14,
+        "file": "",
+        "line": 201,
+        "severity": "warning",
+        "text": "This simp argument is unused:\n  natDegree_X_sub_C\n\nHint: Omit it from the simp argument list.\n  [apply] simp\n\nNote: This linter can be disabled with `set_option linter.unusedSimpArgs false`"
+       }
+      ]
+     },
+     "message": "file does not elaborate"
+    },
+    "name": "deps",
+    "result": "fail",
+    "step": 8
+   }
+  ],
+  "verdict": "fail"
+ },
+ "public": true
+}
