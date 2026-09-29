@@ -1,0 +1,18 @@
+Exhaustive: all n-subsets of [1..N] satisfying h3-v2's hypotheses
+ n=2 N=60: subsets=1770 satisfy-hyp=1 conclusion-fails=0 (all hyp sets have max height exactly n: True)
+ n=3 N=60: subsets=34220 satisfy-hyp=2 conclusion-fails=0 (all hyp sets have max height exactly n: True)
+ n=4 N=48: subsets=194580 satisfy-hyp=3 conclusion-fails=0 (all hyp sets have max height exactly n: True)
+ n=5 N=40: subsets=658008 satisfy-hyp=1 conclusion-fails=0 (all hyp sets have max height exactly n: True)
+ n=6 N=36: subsets=1947792 satisfy-hyp=1 conclusion-fails=0 (all hyp sets have max height exactly n: True)
+ n=7 N=30: subsets=2035800 satisfy-hyp=1 conclusion-fails=0 (all hyp sets have max height exactly n: True)
+ n=8 N=26: subsets=1562275 satisfy-hyp=1 conclusion-fails=0 (all hyp sets have max height exactly n: True)
+Divisors-of-lcm search: gcd-1 n-sets of divisors of L=lcm(1..n) with the hypothesis
+ n=2 L=2 |divisors|=2 hyp-sets=1 failures=0 e.g. [(1, 2)]
+ n=3 L=6 |divisors|=4 hyp-sets=2 failures=0 e.g. [(1, 2, 3), (2, 3, 6)]
+ n=4 L=12 |divisors|=6 hyp-sets=3 failures=0 e.g. [(1, 2, 3, 4), (2, 3, 4, 6), (3, 4, 6, 12)]
+ n=5 L=60 |divisors|=12 hyp-sets=2 failures=0 e.g. [(1, 2, 3, 4, 5), (12, 15, 20, 30, 60)]
+ n=6 L=60 |divisors|=12 hyp-sets=2 failures=0 e.g. [(1, 2, 3, 4, 5, 6), (10, 12, 15, 20, 30, 60)]
+ n=7 L=420 |divisors|=24 hyp-sets=2 failures=0 e.g. [(1, 2, 3, 4, 5, 6, 7), (60, 70, 84, 105, 140, 210, 420)]
+ n=8 L=840 |divisors|=32 hyp-sets=2 failures=0 e.g. [(1, 2, 3, 4, 5, 6, 7, 8), (105, 120, 140, 168, 210, 280, 420, 840)]
+
+[exited with code 144]
