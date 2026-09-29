@@ -31,7 +31,8 @@ GRAPH_REPO = ROOT.parent / "open_proof_network_graph"
 PATH = ".github/workflows/merge.yml"
 #: ``origin/main`` first. A change to the actor lives on a graph branch until the owner pushes it;
 #: put that branch first while it does (T31 did), and take it out again once it is on main.
-REFS = ("origin/main", "f07-t25-merge-actor")
+#: F07-T45 (batched appends) is on ``f07-batch-appends`` until the owner pushes it.
+REFS = ("f07-batch-appends", "origin/main", "f07-t25-merge-actor")
 SECRET = "OPN_GRAPH_MERGE_TOKEN"  # noqa: S105 — the secret's name, not a secret
 GATE_JOB = "gate (steps 1, 2 and 4-8 in the sandbox)"
 STEP9_JOB = "step 9 (a non-author approving review)"
@@ -214,12 +215,18 @@ def test_a_ruleset_that_requires_no_gate_merges_nothing(pick: dict[str, Any]) ->
 
 
 def test_it_takes_the_oldest_green_one_and_updates_before_it_merges(pick: dict[str, Any]) -> None:
-    pulls = [pull(7, "submit/x"), pull(5, "propose/x"), pull(6, "append/x")]
+    """Restated by F07-T45: #6 was an append, and an append is no longer updated before it merges
+    (it is merged behind main, below). The rule this test is about stands for a building one."""
+    pulls = [pull(7, "submit/x"), pull(5, "propose/x"), pull(6, "submit/y")]
     red = [check(GATE_JOB, "failure"), check(STEP9_JOB, "skipped", id_=2)]
     checks = {f"{5:040d}": red, f"{6:040d}": GREEN, f"{7:040d}": GREEN}
     decide = pick["decide"]
     assert decide(pulls, RULES, checks.__getitem__, lambda _sha: 2) == (6, f"{6:040d}", "update")
     assert decide(pulls, RULES, checks.__getitem__, lambda _sha: 0) == (6, f"{6:040d}", "merge")
+    # F07-T45: the same queue with #6 an append merges it behind main, alone (#7 is building)
+    pulls[2] = pull(6, "append/x")
+    got = decide(pulls, RULES, checks.__getitem__, lambda _sha: 2)
+    assert got == ("6", f"{6:040d}", "merge-batch")
     assert decide(pulls, RULES, lambda _sha: red, lambda _sha: 0) == ("", "", "")
     assert decide([], RULES, checks.__getitem__, lambda _sha: 0) == ("", "", "")
 
