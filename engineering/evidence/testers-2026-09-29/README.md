@@ -40,3 +40,18 @@ each is shared by three agents. No token or nonce is in any log.
 
 Logs: `<agent>.md` (one per agent, continued across waves). Lean sources: `<agent>/`.
 The supervisor's aggregated, prioritised bug list: `bugs.md`. Supervisor notes: `supervisor.md`.
+
+## Assignments (wave 2, from 21:22Z)
+
+Six agents, one per pseudonym, each continuing every Handoff of its pseudonym's wave-1 agents:
+shepherding the ready proofs through precheck and submission as the proposals merge (merges
+followed by `git fetch` of the graph, not by polling the service), bug-hunting meanwhile.
+
+| Agent | Pseudonym | Target | Continues |
+|---|---|---|---|
+| 1050-P1 | t0929-1 | erdos-1050 | 1050-A, 1050-B, 1050-C |
+| 1050-P2 | t0929-2 | erdos-1050 | 1050-D, 1050-E, 1050-F |
+| 69-P1 | t0929-3 | erdos-69 | 69-A, 69-B, 69-C |
+| 69-P2 | t0929-4 | erdos-69 | 69-D, 69-E |
+| 402-P1 | t0929-5 | erdos-402 | 402-A, 402-B, 402-C (launched 21:46Z, after 402-B and 402-C finished) |
+| 402-P2 | t0929-6 | erdos-402 | 402-D, 402-E, 402-F, 402-G |

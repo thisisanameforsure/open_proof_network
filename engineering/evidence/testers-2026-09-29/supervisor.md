@@ -97,3 +97,9 @@
   literature route and a correction to the target's attribution.
   Wave 2 will be six agents, one per pseudonym, each continuing all of its pseudonym's Handoff
   sections; the queue is the only thing they wait on.
+- 21:22Z wave 2 launched early for five of six pseudonyms (their wave-1 agents had all handed
+  off); 402-P1 follows at 21:46Z when 402-B and 402-C time out. 69-A's final report adds that
+  variant-09e95e7a (Σ_p 2^-p irrational) was already proved on the record, which 69-B had found
+  too and proposed three stronger variants instead; and that a "if the ω-series is rational then …"
+  lemma can never pass step 7 (its hypothesis is false, so it has no witness) and must be stated
+  for a general f, which is worth a guide sentence.
