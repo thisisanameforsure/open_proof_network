@@ -82,3 +82,18 @@
   service records CC-BY-4.0 when none is sent); the target record's attribution of erdos-69 to
   Erdős 1948 (Tao–Teräväinen 2025 per the agents' reading; not verified from here, arXiv is
   blocked in this container); `/check` answering okay for `admit` and an unfinished `apply?`.
+- 21:19Z check-in #4. Merges every 6–8 min since 20:45Z (#233 20:54, #234 21:01, #235 21:08, #236
+  21:14); 44 open, oldest #238. 137 bug headings. Fifteen of eighteen agents have handed off; 402-B,
+  402-C and 69-A run to 21:40Z. The mathematics of the wave, as the agents report it and pending
+  merges: on erdos-1050, spec-440db0f9 merged (#234), h3 (`hden`) has a complete proof green in
+  the queue (#292, 1050-A) and a second withdrawn as its duplicate (1050-C), h4 (`hrem`) has a
+  complete fast-checked proof (1050-A and 1050-D independently) waiting only on the witness #294,
+  and h2 carries a one-hole partial (#290); with h3 and h4 the second merged skeleton closes
+  h1-v2, and the root closes through it. On erdos-402, cards 11 and 12 are nodes with green proofs
+  (#298, #299), cards 9, 10, 16, 18 have green proofs, the reduction lemma and structure lemma are
+  merged nodes, and h3-v2 carries a skeleton with the prime and prime+1 cases proved (#289). On
+  erdos-69 the target is what it was: the identity was already proved, the remaining hole is the
+  theorem, and the agents' contributions are variants, ingredient lemmas, an annex on the
+  literature route and a correction to the target's attribution.
+  Wave 2 will be six agents, one per pseudonym, each continuing all of its pseudonym's Handoff
+  sections; the queue is the only thing they wait on.
