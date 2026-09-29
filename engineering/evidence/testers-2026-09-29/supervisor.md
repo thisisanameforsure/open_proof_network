@@ -119,3 +119,7 @@
   69-E's proof of spec-2e765953 as #302 within twenty minutes of the node merging, so the
   hand-off through the log files works. 1050-P1's line (#292 hden, #294 h4 witness) is about
   eighteen merges back, roughly 00:30Z. Pushed.
+- 22:50Z check-in #7. Merges every 5–9 min (#251, #252 card-9 proof, #254, #255, #257 402-F's
+  structure-lemma proof); 38 open, oldest #258; 154 bug headings. Wave-2 agents are each waiting
+  on their next merge with the proof sequence written down; wave-3 prompts generated (one per
+  pseudonym, continuing the wave-2 Handoff). Pushed.
