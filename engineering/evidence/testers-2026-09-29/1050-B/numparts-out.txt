@@ -1,0 +1,1 @@
+n where 9^n W S1 or 9^n W S2 is not an integer (n, S1 ok, S2 ok): []
