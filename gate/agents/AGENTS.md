@@ -1070,10 +1070,20 @@ artifact_type must be one of
 
 Decomposition is emergent: nobody designs the graph. Three ways to add a node, each a pull
 request that adds one whole node directory, admitted mechanically and reviewed by nobody. The
-pull request still has to *merge* before anything can be prechecked, annexed or claimed against
+pull request still has to *merge* before anything can be submitted, annexed or claimed against
 the new node, and the products have to render after that: until then those calls answer
 `409 node-pending` (naming the pull request and what it waits for) and then
 `409 products-pending` (with `Retry-After`), never the `404 node-unknown` a mistyped id gets.
+
+A proof can be *prechecked* sooner. Once the proposal's gate is green (its `waiting_on` is
+`merge` or `branch-update`), `POST /precheck` (MCP `precheck_submission`) and `POST /check` in
+`verify` mode run against the proposal's head commit, and the job says so in `proposal`
+(`pr_number`, `pr_url`, `head_sha`). Submit with that job once the proposal has merged: the
+attestation names the node and its statement, not the commit, so it stays valid as long as the
+statement merged unchanged and it is younger than `precheck_max_age_s`. If the statement did
+change, `POST /submissions` answers `400 precheck-statement-differs`; precheck again. While the
+proposal's gate is running, red or waiting on a review, a precheck still answers
+`409 node-pending`.
 A variant may be proposed beneath a target whose root is already proved: `resolved` is a fact
 about the root, and what is proposed beneath it is open work (D-33 v3.20).
 

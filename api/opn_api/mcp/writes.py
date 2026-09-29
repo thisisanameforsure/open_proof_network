@@ -256,7 +256,10 @@ TOOLS: tuple[Tool, ...] = (
         "pregate.sh, and get back a job id to poll; a passing precheck yields the signed "
         "attestation submit_proof needs. On the tutorial node no token is needed: the job is "
         "answered with a single-use nonce, and its passing {id, nonce} is the proof get_token "
-        "takes. Every other node needs a token.",
+        "takes. Every other node needs a token. A node that exists only in an open proposal can "
+        "be prechecked once that proposal's gate is green (waiting_on merge or branch-update): "
+        "the job runs at the proposal's head commit and names it in `proposal`; submit with it "
+        "after the proposal merges.",
         params(
             {
                 "node_id": ID_PARAM,

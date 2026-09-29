@@ -75,6 +75,9 @@ class Job:
     run_url: str | None = None
     result: dict[str, Any] | None = None
     error: str | None = None
+    #: F06-T10: ``{pr_number, pr_url, head_sha}`` when the node exists only in an open proposal
+    #: whose gate is green and the job runs at that proposal's head; ``None`` for a node on main.
+    proposal: dict[str, Any] | None = None
 
     @property
     def anonymous(self) -> bool:
@@ -112,9 +115,21 @@ class Job:
             out["message"] = f"results are served for {RESULT_RETENTION_DAYS} days"
         if include_nonce and self.nonce:
             out["nonce"] = self.nonce
+        if self.proposal:
+            out["proposal"] = {**self.proposal, "message": proposal_message(self.proposal)}
         # The scratch repo is public, so a submitter learns that before they submit again (§7).
         out["public"] = True
         return out
+
+
+def proposal_message(proposal: dict[str, Any]) -> str:
+    """F06-T10: what a job run at a proposal's head tells the contributor."""
+    return (
+        f"this precheck ran against pull request #{proposal.get('pr_number')}, which proposes "
+        f"the node, at its head commit {str(proposal.get('head_sha'))[:12]}; the node is not "
+        "on main yet, so submit with this job once that pull request has merged (the attestation "
+        "stays valid while the statement is unchanged and it is within the graph's age limit)"
+    )
 
 
 def new_nonce() -> str:
@@ -170,6 +185,46 @@ def node_facts(ctx: Context, node_id: str) -> dict[str, Any]:
                 "proof_commit": None,
             }
     raise pending.unknown_node(ctx, node_id)
+
+
+def facts_or_proposal(
+    ctx: Context, node_id: str
+) -> tuple[dict[str, Any], pending.GreenProposal | None]:
+    """F06-T10: ``node_facts``, or — for a node that exists only in an open proposal whose gate
+    is green — the facts of the node as that proposal's head commit has it, with the proposal.
+    Every other answer ``node_facts`` gives stands, ``409 node-pending`` included."""
+    try:
+        return node_facts(ctx, node_id), None
+    except ApiError as exc:
+        if exc.code != "node-pending":
+            raise
+        found = pending.green_proposal(ctx, node_id)
+        if found is None:
+            raise
+    return proposal_facts(ctx, found), found
+
+
+def proposal_facts(ctx: Context, found: pending.GreenProposal) -> dict[str, Any]:
+    """A proposed node's facts, in ``facts_of``'s shape. It has no status yet; when a dependency
+    its ``META.yaml`` declares is not proved, it would merge ``blocked``, and says so, so the
+    precheck is refused as ``check_open`` refuses a blocked node on main (F06-T6)."""
+    try:
+        meta = yaml.safe_load(found.meta or "") or {}
+    except yaml.YAMLError:
+        meta = {}
+    deps = meta.get("deps") if isinstance(meta, dict) else None
+    facts: dict[str, Any] = {
+        "target_id": found.submission.target_id,
+        "statement_hash": found.statement_hash,
+        "tutorial": False,
+        "status": None,
+        "cause": None,
+        "deps": [str(d) for d in deps] if isinstance(deps, list) else [],
+        "proof_commit": None,
+    }
+    if facts["deps"] and unproved_deps(facts, graph_doc(ctx)):
+        facts["status"] = "blocked"
+    return facts
 
 
 TARGETS_INDEX = "targets/index.json"
@@ -429,7 +484,8 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
         if "artifact_type" in fields
         else None
     )
-    facts = node_facts(ctx, node_id)
+    # F06-T10: a node that exists only in a proposal whose gate is green runs at its head
+    facts, proposal = facts_or_proposal(ctx, node_id)
     # F06-T6: a blocked node can only fail at the dependency check, so it is refused before any
     # token is read, any limit charged or any job exists. A proved node stays precheckable (D-19).
     check_open(ctx, node_id, facts)
@@ -455,7 +511,12 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
         # A precheck that the submission would refuse by path is refused before it costs a job.
         submissions.check_artifact_path(claim, bundle.files, artifact_type)
 
-    graph_commit = rendered_from(ctx, claim.target_id if facts["status"] is not None else None)
+    if proposal is not None:
+        # F06-T10: the proposal's branch lives on the graph, so the workflow checks out its head
+        # and reads the network pin there, as it does at any rendered commit (Q10).
+        graph_commit = proposal.head_sha
+    else:
+        graph_commit = rendered_from(ctx, claim.target_id if facts["status"] is not None else None)
     check_cited_annex(ctx, claim, bundle, graph_commit)
     now = ctx.clock.now()
     job = Job(
@@ -470,6 +531,7 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
         created=clockmod.render(now),
         identity_id=identity.id if identity else None,
         nonce=nonce,
+        proposal=proposal.reference() if proposal is not None else None,
     )
     save(ctx, job)
     dispatch(ctx, job, bundle)
@@ -491,7 +553,7 @@ def artifact_name(job_id: str) -> str:
 def branch_files(job: Job, bundle: Bundle) -> dict[str, str]:
     """The branch's contents: the job record at the root and the bundle under ``bundle/``,
     whose paths stay relative to the graph root so ``precheck.job`` can apply them (R3, R4)."""
-    record = {
+    record: dict[str, Any] = {
         "id": job.id,
         "node_id": job.node_id,
         "target_id": job.target_id,
@@ -500,6 +562,8 @@ def branch_files(job: Job, bundle: Bundle) -> dict[str, str]:
         "bundle_digest": job.bundle_digest,
         "created": job.created,
     }
+    if job.proposal:
+        record["proposal"] = job.proposal  # F06-T10: read by nobody in the run; for a reader
     files = {JOB_FILE: json.dumps(record, indent=2, sort_keys=True) + "\n"}
     for path, content in bundle.files.items():
         files[f"{BUNDLE_DIR}/{path}"] = content
