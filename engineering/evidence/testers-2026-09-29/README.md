@@ -65,7 +65,7 @@ when its line has work within reach (a merge near the head of the queue), not on
 |---|---|---|---|
 | 69-W3-1 | t0929-3 | 69-P1 | 23:36Z (69-P1 was killed by a container restart) |
 | 402-W3-2 | t0929-6 | 402-P2 | 23:36Z (402-P2 likewise; #260's proof was due) |
-| 1050-W3-1 | t0929-1 | 1050-P1 | when #269 / #292 near the head |
+| 1050-W3-1 | t0929-1 | 1050-P1 | 23:57Z (#269 third in the queue) |
 | 1050-W3-2 | t0929-2 | 1050-P2 | when #292 and #294 have merged |
 | 69-W3-2 | t0929-4 | 69-P2 | when #266 / #302 near the head |
 | 402-W3-1 | t0929-5 | 402-P1 | when #304 / #307 near the head |
