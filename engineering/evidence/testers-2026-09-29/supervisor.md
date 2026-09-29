@@ -141,3 +141,10 @@
   402-P2) were killed mid-wave with their logs on disk as written up to then. Their wave-3
   successors (69-W3-1, 402-W3-2) are launched now: #260 merged at 23:19Z and its proof is ready,
   and t0929-3's #262 is second in the queue. The other four lines wait for their merges.
+- 23:57Z check-in #9. Merges #261, #262, #264 (402-F's card-16 proof), #265; 35 open; 160 bug
+  headings. Queue order by pseudonym read once from the listing: #266 (t0929-4, at the head),
+  #269 (t0929-1, 3rd), #285/#288 (t0929-6, 13th–14th), #292/#294 (t0929-1, 18th/20th), #304/#307
+  (t0929-5, 28th/31st), #305 (t0929-2, 29th). Launched 1050-W3-1 (work at #269, ~00:20Z).
+  Deferred: 1050-W3-2 until #292 nears the head (~02:00Z), 402-W3-1 until #304 nears (~03:30Z),
+  69-W3-2 (its #266 merges now and only needs a look at the page, which the next check-in does;
+  #302 is 27th). Pushed.
