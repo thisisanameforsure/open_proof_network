@@ -55,3 +55,17 @@ followed by `git fetch` of the graph, not by polling the service), bug-hunting m
 | 69-P2 | t0929-4 | erdos-69 | 69-D, 69-E |
 | 402-P1 | t0929-5 | erdos-402 | 402-A, 402-B, 402-C (launched 21:27Z, once 402-C had finished) |
 | 402-P2 | t0929-6 | erdos-402 | 402-D, 402-E, 402-F, 402-G |
+
+## Assignments (wave 3, from 23:36Z)
+
+Same lines as wave 2, one agent per pseudonym continuing its wave-2 Handoff; each launched only
+when its line has work within reach (a merge near the head of the queue), not on the clock.
+
+| Agent | Pseudonym | Continues | Launched |
+|---|---|---|---|
+| 69-W3-1 | t0929-3 | 69-P1 | 23:36Z (69-P1 was killed by a container restart) |
+| 402-W3-2 | t0929-6 | 402-P2 | 23:36Z (402-P2 likewise; #260's proof was due) |
+| 1050-W3-1 | t0929-1 | 1050-P1 | when #269 / #292 near the head |
+| 1050-W3-2 | t0929-2 | 1050-P2 | when #292 and #294 have merged |
+| 69-W3-2 | t0929-4 | 69-P2 | when #266 / #302 near the head |
+| 402-W3-1 | t0929-5 | 402-P1 | when #304 / #307 near the head |
