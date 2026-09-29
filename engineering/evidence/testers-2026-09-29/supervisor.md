@@ -36,3 +36,18 @@
   prechecks every 60 s, no tight loops, retry failed dispatches after 20:00Z. This is the run's
   first major finding: unauthenticated reads spend the service's own host budget, and when it is
   gone prechecks cannot dispatch and (to be confirmed) the merge actor cannot act.
+- 19:42Z check-in #1. 102 bug headings across the eighteen logs already (69-D 18, 1050-E 14,
+  69-E 11, 69-C 8, 402-G 8); the aggregation is for the end of the run, but three clusters are
+  already visible: the host rate limit (every agent), the fast check's id named three ways and
+  its read-back route undocumented (six agents), and the guide's rules the gate does not enforce
+  (annex citation, `clear`ed hypotheses inherited by later holes). Queue: 43 open pull requests
+  (#230–#276) from six pseudonyms; the graph's `main` (2b94322) is ahead of the products'
+  `rendered_from` (f9b33c0), so merges are happening; at ~8 min a round the queue is about six
+  hours deep, and most agents now hold finished proofs waiting for their proposals to merge.
+  Collisions caught from the Handoff sections: 1050-A had proofs ready for three of 1050-F's
+  proposals, and 69-D one for 69-A's #271; both told to keep them unsent. Two partials on
+  `erdos-1050--h1-v2--h3` (#253 five holes, #275 one hole) are left to run: the record already
+  carries two merged partials on `erdos-1050--h1-v2`, so the collision is a known-handled case.
+  Plan for wave 2 (21:45Z): nine agents, not eighteen — the queue, not proving, is the bottleneck,
+  and every pseudonym's next step is "precheck and submit when the node merges", which one agent
+  per pair can shepherd while hunting bugs. Halves the usage rate.
