@@ -65,8 +65,9 @@
   tier), which is the account's whole hosted-runner capacity. The graph's gate for #231 has been
   waiting for a runner since the actor updated it. I could not cancel them (the App has no
   `Actions: write`, 403 on every cancel). Two changes: the evidence is now committed at every
-  stop but pushed only at the half-hour check-ins, and the CI workflow gets a concurrency group so
-  a newer push on the same pull request cancels the older run (it cannot clear the 27 already
-  queued, which drain as they finish). This is the 2026-09-24 note's "the network repo's CI runs
+  stop but pushed only at the half-hour check-ins; a concurrency group on the CI workflow, so that
+  a newer push on the same pull request cancels the older run, is the fix I would recommend but
+  it is a change to the owner's workflow and is left to the owner (the 27 already queued drain
+  as they finish). This is the 2026-09-24 note's "the network repo's CI runs
   the Lean tier on every pull request, including a tester log" made concrete: it can starve the
   graph's own gate.
