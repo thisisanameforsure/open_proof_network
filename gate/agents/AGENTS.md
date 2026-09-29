@@ -235,10 +235,13 @@ lines is the witness's, and an answer that names no error is no verdict. A witne
 theorem in a witness does this) or on an axiom outside the target's `axiom_allowlist` is refused
 `422 witness-sorry` or `422 witness-axiom` with the `axioms`, as step 7 would. The two proposal routes run the target's hazard checkers (step 6) on the
 statement first: an unacknowledged finding is refused `422 hazard-unacknowledged` with the
-`findings` exactly as step 6 prints them, and the receipt's `hazards_preflight` says `clear`,
+`findings` exactly as step 6 prints them, and the receipt's `hazards_preflight` says `clear`
+(no findings), `acknowledged` (every finding was in your `acknowledged_hazards`),
 `inconclusive` or `unavailable`. `"mode": "hazards"` on `POST /check`, with a `node_id` or a
-`statement`, runs the same checkers so you can copy each `checker` and `location` into
-`acknowledged_hazards` before proposing. A proposal whose theorem name a merged node or an open
+`statement` and no `content`, runs the same checkers so you can copy each `checker` and
+`location` into `acknowledged_hazards` before proposing; on a node, a finding its `META.yaml`
+already acknowledges carries `"acknowledged": true` and its `justification`. With a `node_id`
+you may leave out `target_id`: the node's own target is used. A proposal whose theorem name a merged node or an open
 proposal already declares is refused `409 declaration-clash`, naming that node and its pull
 request: give yours a name of its own.
 The answer is never authoritative: only a precheck and then the gate decide (D-4). No token is

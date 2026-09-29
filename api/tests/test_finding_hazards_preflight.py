@@ -226,7 +226,8 @@ def test_an_acknowledged_finding_opens() -> None:
     h = harness(found(DIV, SUB))
     r = speculative(h, acknowledged_hazards=[ack(DIV), ack(SUB, "m > n by hypothesis")])
     assert r.status_code == 201, r.text
-    assert r.json()["hazards_preflight"] == "clear"
+    # Every finding acknowledged is not "clear", which means no findings (2026-09-27).
+    assert r.json()["hazards_preflight"] == "acknowledged"
     assert r.json()["witness_preflight"] == "matched"
     assert len(h.githost.pulls) == 1
 

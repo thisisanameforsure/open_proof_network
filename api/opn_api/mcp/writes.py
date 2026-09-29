@@ -293,17 +293,26 @@ TOOLS: tuple[Tool, ...] = (
         "is not a node yet, as propose_variant or propose_speculative_node would send it, and "
         "the `deps` it would declare) answers the same for that statement, before you propose "
         "it; those two tools run this check themselves and refuse a mismatch. "
-        "Mode hazards, with a node_id or a `statement` (and its `deps`) and no content, runs "
-        "step 6's own hazard checkers, those the target's gate-spec.json names, and answers "
-        "`hazards`: {checkers, findings: [{checker, location, message}], capped}; a finding "
-        "you mean is acknowledged in acknowledged_hazards with its checker, its location "
-        "exactly as printed and a justification. "
+        "Mode hazards, with a node_id or a `statement` (and its `deps`), runs step 6's own "
+        "hazard checkers over the statement, those the target's gate-spec.json names; send no "
+        "content (a content is refused 400 content-not-used). It answers `hazards`: {checkers, "
+        "findings: [{checker, location, message}], capped}; on a node, a finding its META.yaml "
+        "already acknowledges also carries `acknowledged: true` and the `justification`, by "
+        "step 6's own matching. A finding you mean is acknowledged in acknowledged_hazards with "
+        "its checker, its location exactly as printed and a justification. "
+        "`target_id` may be omitted when a node_id is given: it is derived from the node, and "
+        "one the node does not belong to is refused 400 node-target-mismatch; with neither, the "
+        "answer is 400 target-id-required. "
         "Never authoritative: a precheck is the verdict. "
         "No token needed; a token raises the limit. Every call is logged without its text; "
         "GET /hosted-checkers.json says which targets have a checker.",
         params(
             {
-                "target_id": ID_PARAM,
+                "target_id": {
+                    **ID_PARAM,
+                    "description": "optional with a node_id (derived from the node); required "
+                    "without one",
+                },
                 "node_id": ID_PARAM,
                 "content": LEAN,
                 "mode": {
@@ -321,7 +330,6 @@ TOOLS: tuple[Tool, ...] = (
                     "description": "with statement: the node ids its proposal would declare",
                 },
             },
-            ("target_id",),
         ),
         check_lean,
         write=True,
@@ -483,8 +491,9 @@ TOOLS: tuple[Tool, ...] = (
         "allowlist 422 witness-sorry or 422 witness-axiom, as step 7 would. "
         "The statement is run through the target's hazard checkers first as well: a finding "
         "not in `acknowledged_hazards` is refused 422 hazard-unacknowledged with step 6's "
-        "`findings`, and nothing opens; `hazards_preflight` says clear, inconclusive or "
-        "unavailable.",
+        "`findings`, and nothing opens; `hazards_preflight` says clear, acknowledged, "
+        "inconclusive or unavailable (clear: no findings; acknowledged: every finding was "
+        "in `acknowledged_hazards`).",
         params(
             {
                 "target_id": ID_PARAM,
@@ -521,8 +530,9 @@ TOOLS: tuple[Tool, ...] = (
         "allowlist 422 witness-sorry or 422 witness-axiom, as step 7 would. "
         "The statement is run through the target's hazard checkers first as well: a finding "
         "not in `acknowledged_hazards` is refused 422 hazard-unacknowledged with step 6's "
-        "`findings`, and nothing opens; `hazards_preflight` says clear, inconclusive or "
-        "unavailable.",
+        "`findings`, and nothing opens; `hazards_preflight` says clear, acknowledged, "
+        "inconclusive or unavailable (clear: no findings; acknowledged: every finding was "
+        "in `acknowledged_hazards`).",
         params(
             {
                 "target_id": ID_PARAM,
