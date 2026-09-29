@@ -51,3 +51,11 @@
   Plan for wave 2 (21:45Z): nine agents, not eighteen — the queue, not proving, is the bottleneck,
   and every pseudonym's next step is "precheck and submit when the node merges", which one agent
   per pair can shepherd while hunting bugs. Halves the usage rate.
+- 20:15Z check-in #2. 129 bug headings; 47 open pull requests (#231–#290); the host rate limit has
+  reset (a by-id submission read carries no error). **The merge queue has not moved since #230
+  merged at 19:45:28Z (bot commit 19:53:14Z)**, read from a shallow clone of the graph, while 47
+  green pull requests wait: a 22-minute gap where the run's first hour had a merge every 8 min.
+  The rate-limit window (19:36–20:00Z) covered the post-merge dispatch that wakes the actor after
+  #230, which is the freeze shape the 2026-09-23 replay found (a dropped wake, then nothing until
+  the cron). Cannot be confirmed from here without reading the graph's workflow runs; requesting
+  read access to the graph repository for that one purpose.
