@@ -27,7 +27,8 @@ last=None
 while now()<DEADLINE:
     st,sd=call('GET','/submissions/246',auth=False)
     pr=(sd or {}).get('pull_request') or {}
-    k2=(pr.get('state'),pr.get('merged'),pr.get('waiting_on'))
+    w=pr.get('waiting_on'); w='queue(merge|branch-update)' if w in ('merge','branch-update') else w
+    k2=(pr.get('state'),pr.get('merged'),w)
     if k2!=last: log(f"PR #246 state={k2[0]} merged={k2[1]} waiting_on={k2[2]} gate_verdict={(sd or {}).get('gate_verdict')}"); last=k2
     if pr.get('state')=='closed' and not pr.get('merged'): log("PR #246 closed unmerged; stopping"); sys.exit(0)
     if pr.get('merged') and pr.get('waiting_on') in (None,'products'): break
