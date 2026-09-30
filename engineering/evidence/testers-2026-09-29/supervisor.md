@@ -166,3 +166,8 @@
   submitted). 69-W3-2 and 402-W3-1 stay deferred: their remaining pull requests are proofs
   already submitted, which need nothing after they merge but a look at the attestations.
   Pushed.
+- 01:31Z check-in #12. Up 1:31. Merges #279 (402-F's card-18 proof), #281, #282 (1050-F's proof of
+  spec-1a5ab7c3); 28 open, #285 … #315; 173 bug headings. 69-W3-1 handed off with all four of
+  its proposals merged and a proof submitted on each (nine t0929-3 proofs in the queue). #292
+  (h3) is 6th, ~02:15Z, right at 1050-W3-1's cut-off, so the 02:02Z check-in decides whether
+  1050-W4-1 carries the closing proofs. Wave-4 prompts generated. Pushed.
