@@ -1,0 +1,142 @@
+# erdos-69 MCP tester log
+- 19:49:08 start. GET problem page 200 0.5s 36858B
+- 19:50 page read: root erdos-69 ready; h1-v2 proved (Lambert identity sum w(n)/2^n = sum_p 1/(2^p-1)); h2-v2, h2-v2--h1-v2, --h4 circular (claims merged 09-24); h2-v2--h1-v2--h1..h3 proved. Two approach records exist.
+- 19:49:44 MCP list_submissions {} -> __TIME 0.271659 HTTP 200
+- 19:49:44 MCP get_node {"node_id":"erdos-69"} -> __TIME 4.267270 HTTP 200
+- 19:49:48 MCP get_target {"target_id":"erdos-69"} -> __TIME 0.708737 HTTP 200
+- 19:50:47 MCP list_frontier {"filters":{"tutorial":true}} -> __TIME 0.312907 HTTP 200
+- 19:50:53 MCP list_targets {} -> __TIME 0.225992 HTTP 200
+- 19:50:59 MCP get_node {"node_id":"tutorial-and-swap"} -> __TIME 1.496069 HTTP 200
+- 19:51:06 MCP precheck_submission {"node_id": "tutorial-and-swap", "bundle": {"targets/tutorial/nodes/tutorial-and-swap/Proof.lean": "/-! The tutorial nod -> __TIME 3.268045 HTTP 200
+- 19:52:10 MCP get_precheck {"job_id":"01M3J6QM0G9VGG0YPA8SZX5W7T"} -> __TIME 0.498522 HTTP 200
+- 19:52:10 MCP list_frontier {"filters":{"target_id":"erdos-69"}} -> __TIME 0.534681 HTTP 200
+- 19:52:58 MCP get_precheck {"job_id":"01M3J6QM0G9VGG0YPA8SZX5W7T"} -> __TIME 0.665240 HTTP 200
+- 19:52:59 MCP get_dco {} -> __TIME 0.212554 HTTP 200
+- 19:55 curl erdosproblems.com/69 -> proxy CONNECT 403 (my environment); cannot verify literature
+- 19:54:10 MCP get_precheck {"job_id":"01M3J6QM0G9VGG0YPA8SZX5W7T"} -> __TIME 1.329148 HTTP 200
+- 19:54:18 MCP get_token {"proof": {"kind": "tutorial", "job_id": "01M3J6QM0G9VGG0YPA8SZX5W7T", "nonce":"REDACTED"}, "ps -> __TIME 0.258118 HTTP 200
+- 19:55:40 MCP check_lean {"target_id": "erdos-69", "mode": "check", "content": "import Mathlib\n\nopen Finset\n\ntheorem erdos_69_variant_prime_i -> __TIME 2.917296 HTTP 200
+- 19:55:52 MCP check_lean {"target_id": "erdos-69", "mode": "check", "content": "import Mathlib\n\nopen Finset\n\ntheorem erdos_69_variant_prime_i -> __TIME 1.822127 HTTP 200
+- 19:56:09 MCP propose_variant {"target_id": "erdos-69", "stmt": "import Mathlib\n\n/-! A related variant of Erd\u0151s problem 69 (D-30, relation `rel -> __TIME 7.064933 HTTP 200
+- 19:57 propose_variant related 'Opn.erdos_69_prime_indicator' -> 201 PR #210 node variant-09e95e7a (preflights clear/matched/skipped), 7.1s. Proof fast-checked okay=true (AXLE, 2 iterations, ~2s each)
+- 19:56:23 MCP get_schema {"name":"approach-record/v1"} -> __TIME 0.380994 HTTP 200
+- 19:56:37 MCP submit_approach_record {"target_id": "erdos-69", "record": {"schema": "approach-record/v1", "target": "erdos-69", "contributor": "mcp-e69-sep27 -> __TIME 3.394393 HTTP 200
+- 19:56:48 submit_approach_record -> 201 PR #213 (3.4s)
+- 19:56:48 MCP list_submissions {} -> __TIME 1.971736 HTTP 200
+- 19:56:50 MCP get_submission {"submission_id":"210"} -> __TIME 0.333394 HTTP 200
+- 19:57:08 MCP get_submission {"submission_id":"208"} -> __TIME 0.476198 HTTP 200
+- 19:57:19 MCP check_lean {"target_id": "erdos-69", "mode": "check", "content": "import Mathlib\n\n/-! A related variant of Erd\u0151s problem 69  -> __TIME 1.608903 HTTP 200
+- 19:57:31 MCP get_submission {"submission_id":"210"} -> __TIME 0.421621 HTTP 200
+- 19:58:21 MCP get_submission {"submission_id":"210"} -> __TIME 0.550556 HTTP 200
+- 19:59:12 MCP get_submission {"submission_id":"210"} -> __TIME 1.242981 HTTP 200
+- 20:00:03 MCP get_submission {"submission_id":"210"} -> __TIME 1.465496 HTTP 200
+- 20:00:55 MCP get_submission {"submission_id":"210"} -> __TIME 0.365494 HTTP 200
+- 20:01:45 MCP get_submission {"submission_id":"210"} -> __TIME 1.000625 HTTP 200
+- 20:02:36 MCP get_submission {"submission_id":"210"} -> __TIME 0.534908 HTTP 200
+- 20:03:27 MCP get_submission {"submission_id":"210"} -> __TIME 1.303597 HTTP 200
+- 20:04:18 MCP get_submission {"submission_id":"210"} -> __TIME 0.309230 HTTP 200
+- 20:05:09 MCP get_submission {"submission_id":"210"} -> __TIME 1.217560 HTTP 200
+- 20:06:10 PR #210 gate green at ~19:59; since then waiting_on alternates branch-update/merge (queue busy)
+- 20:06:10 MCP check_lean {"target_id": "erdos-69", "node_id": "erdos-69", "mode": "check", "content": "/-\nCopyright 2025 The Formal Conjectures  -> __TIME 5.419964 HTTP 200
+- 20:06:23 check_lean mode check node_id erdos-69 on annex 9dc42dc5 closing assembly -> okay=true (5.4s): annex's claim reproduced
+- 20:06:23 MCP get_submission {"submission_id":"210"} -> __TIME 1.125518 HTTP 200
+- 20:06:24 MCP get_submission {"submission_id":"213"} -> __TIME 1.340045 HTTP 200
+- 20:07:11 MCP get_submission {"submission_id":"210"} -> __TIME 0.346743 HTTP 200
+- 20:07:11 MCP get_submission {"submission_id":"213"} -> __TIME 0.255615 HTTP 200
+- 20:07:56 MCP get_submission {"submission_id":"210"} -> __TIME 1.232359 HTTP 200
+- 20:07:58 MCP get_submission {"submission_id":"213"} -> __TIME 1.107306 HTTP 200
+- 20:08:44 MCP get_submission {"submission_id":"210"} -> __TIME 0.294030 HTTP 200
+- 20:08:44 MCP get_submission {"submission_id":"213"} -> __TIME 0.250979 HTTP 200
+- 20:09:29 MCP get_submission {"submission_id":"210"} -> __TIME 0.302778 HTTP 200
+- 20:09:30 MCP get_submission {"submission_id":"213"} -> __TIME 0.238741 HTTP 200
+- 20:10:15 MCP get_submission {"submission_id":"210"} -> __TIME 1.027085 HTTP 200
+- 20:10:16 MCP get_submission {"submission_id":"213"} -> __TIME 1.006582 HTTP 200
+- 20:11:02 MCP get_submission {"submission_id":"210"} -> __TIME 1.224995 HTTP 200
+- 20:11:03 MCP get_submission {"submission_id":"213"} -> __TIME 1.357510 HTTP 200
+- 20:11:50 MCP get_submission {"submission_id":"210"} -> __TIME 0.433424 HTTP 200
+- 20:11:50 MCP get_submission {"submission_id":"213"} -> __TIME 0.249057 HTTP 200
+- 20:12:36 MCP get_submission {"submission_id":"210"} -> __TIME 1.171356 HTTP 200
+- 20:12:37 MCP get_submission {"submission_id":"213"} -> __TIME 1.194758 HTTP 200
+- 20:13:23 MCP get_submission {"submission_id":"210"} -> __TIME 0.359164 HTTP 200
+- 20:13:24 MCP get_submission {"submission_id":"213"} -> __TIME 0.244839 HTTP 200
+- 20:14:09 MCP get_submission {"submission_id":"210"} -> __TIME 1.081406 HTTP 200
+- 20:14:10 MCP get_submission {"submission_id":"213"} -> __TIME 0.880626 HTTP 200
+- 20:14:56 MCP get_submission {"submission_id":"210"} -> __TIME 1.298541 HTTP 200
+- 20:14:57 MCP get_submission {"submission_id":"213"} -> __TIME 0.293606 HTTP 200
+- 20:15:51 MCP list_submissions {} -> __TIME 1.431793 HTTP 200
+- 20:15 queue: 15 open PRs graph-wide; #210 gate green 19:59, still unmerged (behind<->merge). #208 (other agent's annex) merged meanwhile.
+## running BUGS/FEATURES notes
+- tutorial node not discoverable from MCP instructions; list_frontier {"tutorial":true} -> [] ; found via list_targets -> target 'tutorial' root tutorial-and-swap
+- variant node id auto-assigned (variant-09e95e7a), cannot choose descriptive id
+- open annex/postmortem PR content not readable via get_submission before merge (dedup harder)
+- root annex 84315a5 attributes irrationality of sum_p 1/(2^p-1) to Erdos 1948 (likely misattribution; unverified: erdosproblems.com blocked by my proxy)
+- 20:16:09 MCP get_submission {"submission_id":"210"} -> __TIME 1.175304 HTTP 200
+- 20:16:55 MCP get_submission {"submission_id":"210"} -> __TIME 1.280099 HTTP 200
+- 20:17:41 MCP get_submission {"submission_id":"210"} -> __TIME 0.325291 HTTP 200
+- 20:18:27 MCP get_submission {"submission_id":"210"} -> __TIME 0.502869 HTTP 200
+- 20:19:12 MCP get_submission {"submission_id":"210"} -> __TIME 1.242611 HTTP 200
+- 20:19:59 MCP get_submission {"submission_id":"210"} -> __TIME 1.239400 HTTP 200
+- 20:20:45 MCP get_submission {"submission_id":"210"} -> __TIME 0.286268 HTTP 200
+- 20:21:30 MCP get_submission {"submission_id":"210"} -> __TIME 0.299444 HTTP 200
+- 20:22:16 MCP get_submission {"submission_id":"210"} -> __TIME 0.989366 HTTP 200
+- 20:23:02 MCP get_submission {"submission_id":"210"} -> __TIME 0.300062 HTTP 200
+- 20:23:47 MCP get_submission {"submission_id":"210"} -> __TIME 1.038738 HTTP 200
+- 20:24:33 MCP get_submission {"submission_id":"210"} -> __TIME 1.269333 HTTP 200
+- 20:25:20 MCP get_submission {"submission_id":"210"} -> __TIME 1.517824 HTTP 200
+- 20:26:06 MCP get_submission {"submission_id":"210"} -> __TIME 1.601296 HTTP 200
+- 20:26:21 MCP precheck_submission {"node_id": "variant-09e95e7a", "bundle": {"targets/erdos-69/nodes/variant-09e95e7a/Proof.lean": "import Mathlib\n\n/-!  -> __TIME 0.238134 HTTP 200
+- 20:26:22 MCP list_submissions {} -> __TIME 1.410128 HTTP 200
+- 20:26:29 precheck_submission on variant-09e95e7a before merge -> 409 node-pending naming PR #210 waiting_on gate (clear message)
+- 20:26:29 MCP get_submission {"submission_id":"210"} -> __TIME 0.290977 HTTP 200
+- 20:27:15 MCP get_submission {"submission_id":"210"} -> __TIME 1.659208 HTTP 200
+- 20:28:01 MCP get_submission {"submission_id":"210"} -> __TIME 0.993704 HTTP 200
+- 20:28:02 PR #210 merged (waiting_on products)
+- 20:28:08 MCP get_node {"node_id":"variant-09e95e7a"} -> __TIME 0.397429 HTTP 200
+- 20:28:14 MCP precheck_submission {"node_id": "variant-09e95e7a", "bundle": {"targets/erdos-69/nodes/variant-09e95e7a/Proof.lean": "import Mathlib\n\n/-!  -> __TIME 0.190468 HTTP 200
+- 20:28:20 get_node/precheck on just-merged node -> 409 products-pending retry_after 240
+- 20:28:20 MCP get_node {"node_id":"variant-09e95e7a"} -> __TIME 0.195036 HTTP 200
+- 20:29:00 MCP get_node {"node_id":"variant-09e95e7a"} -> __TIME 0.464004 HTTP 200
+- 20:29:41 MCP get_node {"node_id":"variant-09e95e7a"} -> __TIME 1.524171 HTTP 200
+- 20:30:22 MCP get_node {"node_id":"variant-09e95e7a"} -> __TIME 1.938439 HTTP 200
+- 20:31:04 MCP get_node {"node_id":"variant-09e95e7a"} -> __TIME 3.497640 HTTP 200
+- 20:31:14 MCP check_lean {"target_id": "erdos-69", "node_id": "variant-09e95e7a", "mode": "verify", "content": "import Mathlib\nimport Nodes.\u00 -> __TIME 1.591651 HTTP 200
+- 20:31:22 node readable 20:31 (3 min after merge); merged Statement gained 'import Nodes.«variant-09e95e7a».Context'; check_lean verify -> okay=true
+- 20:31:22 MCP precheck_submission {"node_id": "variant-09e95e7a", "bundle": {"targets/erdos-69/nodes/variant-09e95e7a/Proof.lean": "import Mathlib\nimport -> __TIME 3.350576 HTTP 200
+- 20:31:31 MCP get_precheck {"job_id":"01M3J91BCGXDNPF10T0Q98GCYB"} -> __TIME 0.522947 HTTP 200
+- 20:32:01 MCP get_precheck {"job_id":"01M3J91BCGXDNPF10T0Q98GCYB"} -> __TIME 0.645046 HTTP 200
+- 20:32:32 MCP get_precheck {"job_id":"01M3J91BCGXDNPF10T0Q98GCYB"} -> __TIME 0.390311 HTTP 200
+- 20:33:02 MCP get_precheck {"job_id":"01M3J91BCGXDNPF10T0Q98GCYB"} -> __TIME 0.500539 HTTP 200
+- 20:33:33 MCP get_precheck {"job_id":"01M3J91BCGXDNPF10T0Q98GCYB"} -> __TIME 0.415653 HTTP 200
+- 20:34:04 MCP get_precheck {"job_id":"01M3J91BCGXDNPF10T0Q98GCYB"} -> __TIME 1.241776 HTTP 200
+- 20:34:35 MCP get_precheck {"job_id":"01M3J91BCGXDNPF10T0Q98GCYB"} -> __TIME 1.005856 HTTP 200
+- 20:34:36 precheck 01M3J91BCGXDNPF10T0Q98GCYB PASS steps 1,2,4-8 (3m14s)
+- 20:34:41 MCP submit_proof {"node_id": "variant-09e95e7a", "bundle": {"targets/erdos-69/nodes/variant-09e95e7a/Proof.lean": "import Mathlib\nimport -> __TIME 3.711460 HTTP 200
+- 20:34:52 submit_proof variant-09e95e7a -> 201 PR #224
+- 20:34:52 MCP get_submission {"submission_id":"213"} -> __TIME 1.225631 HTTP 200
+- 20:34:53 MCP get_submission {"submission_id":"224"} -> __TIME 1.591418 HTTP 200
+20:34:54 #213:open/False/branch-update/['success'] #224:open/False/gate/[None]
+- 20:35:34 MCP get_submission {"submission_id":"213"} -> __TIME 0.996733 HTTP 200
+- 20:35:36 MCP get_submission {"submission_id":"224"} -> __TIME 2.919490 HTTP 200
+20:35:38 #213:open/False/merge/['success'] #224:open/False/gate/[None]
+- 20:36:19 MCP get_submission {"submission_id":"213"} -> __TIME 0.389993 HTTP 200
+- 20:36:19 MCP get_submission {"submission_id":"224"} -> __TIME 0.246773 HTTP 200
+20:36:19 #213:open/False/merge/['success'] #224:open/False/gate/[None]
+- 20:36:59 MCP get_submission {"submission_id":"213"} -> __TIME 1.227000 HTTP 200
+- 20:37:01 MCP get_submission {"submission_id":"224"} -> __TIME 1.692151 HTTP 200
+20:37:02 #213:open/False/merge/['success'] #224:open/False/gate/[None]
+- 20:37:42 MCP get_submission {"submission_id":"213"} -> __TIME 1.434522 HTTP 200
+- 20:37:44 MCP get_submission {"submission_id":"224"} -> __TIME 2.836833 HTTP 200
+20:37:47 #213:open/False/branch-update/['success'] #224:open/False/branch-update/['success']
+- 20:38:27 MCP get_submission {"submission_id":"213"} -> __TIME 0.459931 HTTP 200
+- 20:38:27 MCP get_submission {"submission_id":"224"} -> __TIME 0.368013 HTTP 200
+20:38:28 #213:open/False/branch-update/['success'] #224:open/False/branch-update/['success']
+- 20:39:08 MCP get_submission {"submission_id":"213"} -> __TIME 1.094654 HTTP 200
+- 20:39:09 MCP get_submission {"submission_id":"224"} -> __TIME 5.013089 HTTP 200
+20:39:14 #213:open/False/merge/['success'] #224:open/False/merge/['success']
+- 20:39:54 MCP get_submission {"submission_id":"213"} -> __TIME 0.295267 HTTP 200
+- 20:39:54 MCP get_submission {"submission_id":"224"} -> __TIME 0.392409 HTTP 200
+20:39:55 #213:open/False/merge/['success'] #224:open/False/merge/['success']
+- 20:43:11 MCP get_submission {"submission_id":"213"} -> __TIME 1.124268 HTTP 200
+- 20:43:12 MCP get_submission {"submission_id":"224"} -> __TIME 1.473508 HTTP 200
+- 20:43:14 final: #213:open/False/merge #224:open/False/branch-update
+- 20:43:14 END

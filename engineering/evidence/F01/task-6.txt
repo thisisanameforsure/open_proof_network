@@ -1,0 +1,4 @@
+$ uv run --frozen pytest gate/tests/test_finding_witness_type_doc.py -q
+# 2026-09-29T08:37:46Z at f11aba1
+...                                                                      [100%]
+3 passed in 0.05s

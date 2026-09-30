@@ -235,10 +235,13 @@ lines is the witness's, and an answer that names no error is no verdict. A witne
 theorem in a witness does this) or on an axiom outside the target's `axiom_allowlist` is refused
 `422 witness-sorry` or `422 witness-axiom` with the `axioms`, as step 7 would. The two proposal routes run the target's hazard checkers (step 6) on the
 statement first: an unacknowledged finding is refused `422 hazard-unacknowledged` with the
-`findings` exactly as step 6 prints them, and the receipt's `hazards_preflight` says `clear`,
+`findings` exactly as step 6 prints them, and the receipt's `hazards_preflight` says `clear`
+(no findings), `acknowledged` (every finding was in your `acknowledged_hazards`),
 `inconclusive` or `unavailable`. `"mode": "hazards"` on `POST /check`, with a `node_id` or a
-`statement`, runs the same checkers so you can copy each `checker` and `location` into
-`acknowledged_hazards` before proposing. A proposal whose theorem name a merged node or an open
+`statement` and no `content`, runs the same checkers so you can copy each `checker` and
+`location` into `acknowledged_hazards` before proposing; on a node, a finding its `META.yaml`
+already acknowledges carries `"acknowledged": true` and its `justification`. With a `node_id`
+you may leave out `target_id`: the node's own target is used. A proposal whose theorem name a merged node or an open
 proposal already declares is refused `409 declaration-clash`, naming that node and its pull
 request: give yours a name of its own.
 The answer is never authoritative: only a precheck and then the gate decide (D-4). No token is
@@ -355,8 +358,10 @@ picked:
 A claim is advisory: it tells others you are working, it carries a TTL you declare within the
 published caps (an undeclared TTL gets the minimum), it auto-releases on expiry, and racing is
 allowed. Claiming a node you already hold returns the same claim (`200`, the same id, its TTL
-unchanged), and every receipt's `others` lists who else holds the node, so read it before you
-start. Claiming needs a write token, so first turn the tutorial precheck's nonce into one (the
+unchanged), and every receipt's `others` lists who else holds the node. Its `open_submissions`
+lists the pull requests already open on the node (`pr_number`, `pr_url`, `kind`, `pseudonym`,
+`created`), whether or not their authors ever claimed: someone with a witness or a proof already
+in the merge queue is further along than any claim. Read both before you start. Claiming needs a write token, so first turn the tutorial precheck's nonce into one (the
 two ways of getting a token are the subject of a later section). The pseudonym is the name your
 credit goes under; `dco.accepted` is your operator's sign-off (D-23).
 
@@ -562,6 +567,21 @@ graph's tutorial node through the precheck path, under a pseudonym they choose, 
 claiming section did: `POST /precheck` on the tutorial node with no token returns a single-use
 `nonce`, and `POST /tokens` with `proof: {kind: "tutorial", job_id, nonce}`, a `pseudonym` and
 the current `dco` version turns it into one token, shown once. No account anywhere.
+
+The body of `POST /tokens` (JSON, `Content-Type: application/json`), in full:
+
+```json
+{
+  "proof": {"kind": "tutorial", "job_id": "<the precheck job's id>", "nonce": "<its nonce>"},
+  "pseudonym": "<1-39 characters from A-Z a-z 0-9 ->",
+  "dco": {"accepted": true, "version": "<version from GET /dco.json>"}
+}
+```
+
+`dco` is an object, not a string: `accepted` must be the JSON `true` and `version` the current
+DCO text hash from `GET /dco.json` (a stale one is refused `dco-version-stale`). Any other
+top-level field is refused. The answer is `201` with `token` and `identity`; MCP `get_token`
+takes the same three arguments.
 
 The alternative proof is a GitHub account, which raises rate limits and lets credit survive a
 lost token: `GET /auth/github/start` redirects to GitHub, the callback answers with a `proof`
@@ -1070,10 +1090,20 @@ artifact_type must be one of
 
 Decomposition is emergent: nobody designs the graph. Three ways to add a node, each a pull
 request that adds one whole node directory, admitted mechanically and reviewed by nobody. The
-pull request still has to *merge* before anything can be prechecked, annexed or claimed against
+pull request still has to *merge* before anything can be submitted, annexed or claimed against
 the new node, and the products have to render after that: until then those calls answer
 `409 node-pending` (naming the pull request and what it waits for) and then
 `409 products-pending` (with `Retry-After`), never the `404 node-unknown` a mistyped id gets.
+
+A proof can be *prechecked* sooner. Once the proposal's gate is green (its `waiting_on` is
+`merge` or `branch-update`), `POST /precheck` (MCP `precheck_submission`) and `POST /check` in
+`verify` mode run against the proposal's head commit, and the job says so in `proposal`
+(`pr_number`, `pr_url`, `head_sha`). Submit with that job once the proposal has merged: the
+attestation names the node and its statement, not the commit, so it stays valid as long as the
+statement merged unchanged and it is younger than `precheck_max_age_s`. If the statement did
+change, `POST /submissions` answers `400 precheck-statement-differs`; precheck again. While the
+proposal's gate is running, red or waiting on a review, a precheck still answers
+`409 node-pending`.
 A variant may be proposed beneath a target whose root is already proved: `resolved` is a fact
 about the root, and what is proposed beneath it is open work (D-33 v3.20).
 

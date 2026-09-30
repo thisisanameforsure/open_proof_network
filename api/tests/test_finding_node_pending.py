@@ -53,21 +53,26 @@ def token(harness: Harness) -> str:
 
 
 def test_an_open_proposal_says_what_it_waits_for(harness: Harness, token: str) -> None:
+    """Restated for F06-T10: this test used a proposal whose gate was green (``waiting_on:
+    merge``), and a precheck against such a proposal now runs at its head
+    (``test_finding_precheck_pending_proposal.py``). A proposal whose gate is still running is
+    what keeps ``node-pending``, and the message says when the precheck opens."""
     harness.store.put_submission(proposal(7))
     harness.githost.set_pull_request_state(
         7,
         mergeable_state="clean",
-        runs=[{"name": "gate", "status": "completed", "conclusion": "success"}],
+        runs=[{"name": "gate", "status": "in_progress", "conclusion": None}],
     )
     r = precheck_new_node(harness, token)
     assert r.status_code == 409, r.text
     doc = r.json()
     assert doc["error"] == "node-pending"
-    assert "#7" in doc["message"] and "merge" in doc["message"]
+    assert "#7" in doc["message"] and "waiting on: gate" in doc["message"]
+    assert "once the proposal's gate is green" in doc["message"]
     assert doc["details"] == {
         "pr_number": 7,
         "pr_url": "https://github.com/pr/7",
-        "waiting_on": "merge",
+        "waiting_on": "gate",
     }
 
 

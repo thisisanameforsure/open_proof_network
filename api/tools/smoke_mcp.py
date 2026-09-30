@@ -168,10 +168,14 @@ def read_only(  # noqa: PLR0912, PLR0915 — a checklist: one branch per thing t
     anonymous = Client(base, None)
     unauthorized = anonymous.call("claim_node", {"node_id": tutorial})
     client.transcript.extend("(no token) " + line for line in anonymous.transcript)
-    if not unauthorized.pop("__is_error__") or unauthorized != {
-        "status": UNAUTHORIZED_STATUS,
-        "body": UNAUTHORIZED,
-    }:
+    # Since 2026-09-27 the message names the tutorial node, so the node found above must be in it.
+    body = unauthorized.get("body") or {}
+    if (
+        not unauthorized.pop("__is_error__")
+        or unauthorized.get("status") != UNAUTHORIZED_STATUS
+        or body.get("error") != UNAUTHORIZED["error"]
+        or f"/{tutorial}`" not in str(body.get("message"))
+    ):
         problems.append(
             f"claim_node without a token is not the unauthorized result: {unauthorized}"
         )

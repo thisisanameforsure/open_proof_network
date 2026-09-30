@@ -1,0 +1,20 @@
+.......................................................................  [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:31
+  /home/user/open_proof_network/.claude/worktrees/agent-ac775be9fe57283ef/api/tests/api_fakes.py:31: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /home/user/open_proof_network/.claude/worktrees/agent-ac775be9fe57283ef/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+71 passed, 2 warnings in 31.10s
+
+## after merging claude/erdos-problems-agent-test-n5rcog (F13-T24), in this worktree
+make lint   -> exit 0
+make types  -> exit 0 (gate 222, api 153, site 43 files: no issues)
+make test-fast -> exit 0: 2951 passed, 76 skipped, 106 deselected
+(before the merge: 2925 passed, 76 skipped)
+red first: engineering/evidence/F06/task-10-red.txt (11 failed on the behaviour, against the
+pre-change api/opn_api/{pending,precheck,checks,submissions}.py)

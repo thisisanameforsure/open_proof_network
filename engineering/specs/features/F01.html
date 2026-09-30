@@ -108,10 +108,12 @@ deps; fixtures and both test tiers; the step-3 image builds the package.</p>
   <tr><td>F01-Q2</td><td><strong>Origin classification</strong> is by module name prefix: <code>Mathlib.*</code>/<code>Init.*</code>/<code>Lean.*</code>/<code>Std.*</code> → library; <code>Defs.*</code> → <code>defs/</code>; <code>Nodes.&lt;id&gt;.*</code> → node; anything else declared in the submission → submission. Module naming is therefore part of the D-3 layout contract and is fixed in F00's layout validator (T1 here adds it).</td></tr>
   <tr><td>F01-Q3</td><td><strong>Unused declared deps warn, never fail.</strong> Over-declaring is honest about intent and harmless to structure; failing it would make provers trim deps mid-proof.</td></tr>
   <tr><td>F01-Q4</td><td><strong>Context is substituted at gate time (found at T1, 2026-09-08).</strong> The repo's <code>Context.lean</code> holds the deps' signatures with <code>sorry</code> bodies (D-3) so a prover can work before the deps merge; but a proof compiled against it would depend on <code>sorryAx</code> and fail step 5. So the gate builds the node with a <em>generated</em> <code>Nodes.«id».Context</code> that imports each declared dep's merged <code>Nodes.«dep».Proof</code>, and the repo's file is checked textually instead (R6: its signatures hash-equal the deps' statements — exactly the guarantee that makes the substitution sound). Consequences: every node file is a module under <code>Nodes.«&lt;id&gt;»</code> (hyphenated ids need the guillemets; Lean resolves them), a node's <code>Statement.lean</code> imports only its own <code>Nodes.«id».Context</code>, <code>Defs.*</code> or the library (the validator enforces this), and a node whose deps are unproved cannot pass steps 4&ndash;8 — which is F03's <code>blocked</code> status seen from the gate. The metaprograms find the sysroot through <code>LEAN_SYSROOT</code> and are always invoked under <code>elan run</code>. The fixture's witnesses were rewritten to R3's shape (<code>theorem witness : ∃ …</code>) and the interior and root proofs added so AC11/AC12 have real inputs.</td></tr>
+  <tr><td>F01-Q5</td><td><strong>The doc said a statement with no Prop binders gets <code>True</code> (T6, 2026-09-29; the 2026-09-27 Erdős testers).</strong> The data binders stay existential: <code>(n k : ℕ) : ∃ z, …</code> expects <code>∃ (n : ℕ) (k : ℕ), True</code>; only a statement with no binders expects plain <code>True</code>. Comment only; the code was right.</td></tr>
 </table>
 
 <h2>10. Status</h2>
-<div class="rule"><strong>status:</strong> done · <strong>Tasks:</strong> T1&ndash;T3 &#10003; 2026-09-08 · T4&ndash;T5 &#10003; 2026-09-09 (one <code>make verify-lean</code> run is the evidence for both: T4's real-toolchain tests need T5's image)</div>
+<div class="rule"><strong>status:</strong> done · <strong>Tasks:</strong> T1&ndash;T3 &#10003; 2026-09-08 · T4&ndash;T5 &#10003; 2026-09-09 (one <code>make verify-lean</code> run is the evidence for both: T4's real-toolchain tests need T5's image)
+  · T6 ✓ 2026-09-29 (<code>uv run --frozen pytest gate/tests/test_finding_witness_type_doc.py</code>: 3 passed, red first 2 failed; Q5; <code>engineering/evidence/F01/task-6.txt</code>)</div>
 
 <h2>Tasks</h2>
 <table>
@@ -131,6 +133,9 @@ deps; fixtures and both test tiers; the step-3 image builds the package.</p>
   <tr><td>F01-T5</td><td><strong>Image and reproduce.</strong> Lake package built in the step-3 image; <code>reproduce.sh</code> covers 7–8; D-5 identical-run test still green.</td>
     <td><code>gate/Dockerfile</code>, <code>gate/.dockerignore</code>, <code>gate/opn_gate/sandbox.py</code>, <code>gate/reproduce.sh</code>, <code>gate/opn_gate/cli.py</code> (help text only), <code>gate/tests/test_sandbox_docker.py</code>, <code>gate/tests/test_reproduce_docker.py</code></td>
     <td>T4</td><td><code>make verify-lean</code></td></tr>
+  <tr><td>F01-T6</td><td><strong>WitnessType.lean&rsquo;s doc says data binders stay existential (Q5).</strong></td>
+    <td><code>gate/lean/OpnGate/WitnessType.lean (comment only)</code>, <code>gate/tests/test_finding_witness_type_doc.py</code>, <code>engineering/evidence/F01/task-6.txt</code></td>
+    <td>T3</td><td><code>uv run --frozen pytest gate/tests/test_finding_witness_type_doc.py</code></td></tr>
 </table>
 
 <footer>Open Proof Network · F01 spec v1 · 2026-09-07</footer>

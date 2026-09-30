@@ -1141,3 +1141,14 @@ The law of the project:
   elan's host and ghcr's blob host are refused too, but GitHub release downloads work, so the Lean tier ran here
   from the release zip linked into elan (`elan toolchain link`). The closed graph PRs #189, #195, #198, #202 were
   all opened hours before the refusals that now stop them were deployed.
+- 2026-09-29 — Six testers on the three Erdős targets (`engineering/session-notes/2026-09-27-erdos-testers.md`),
+  run as background subagents of one session instead of six cloud sessions: no draft pull requests paying the
+  Lean tier, reports straight to the lead, and a curl probe of the three hosts before launch. Twenty graph PRs,
+  seven merged in the hour. Two things worth keeping. **Price a lever before promising it**: "let appends skip
+  the up-to-date rebuild" read as the throughput fix, but the rebuild costs an append seconds; the three minutes
+  a merge costs are the post-merge job F07-T33 makes everything wait for, so batching appends under one job is
+  the lever, and it lives in the graph repository. **Nothing on the record can say "this kind of work does not
+  help"**: two agents spent the hour on erdos-402 size cases the owner judged worthless, while `attack_routes`
+  is read by no code and D-25 forbids ranking; a direction mechanism is a D-25 amendment and the owner's.
+  Built from the findings, test first: F13-T24, F05-T16, F09-T14, F01-T6, F10-T15 and F06-T10 (precheck
+  against a proposal whose gate is green, the owner's ruling on F08-Q23).

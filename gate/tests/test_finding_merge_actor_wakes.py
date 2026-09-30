@@ -52,6 +52,9 @@ T0 = datetime(2026, 9, 23, 14, 44, tzinfo=UTC)
 #: (8 min 9 s on #147's post-merge run).
 SLOW_S, FAST_S, BOT_S, CHECK_LAG_S, RUN_LAG_S = 180, 20, 150, 30, 489
 WAKE_S, TICK_S = 5, 5
+#: F07-T45: a post-merge run that finds a later merge on main ends without committing; the run of
+#: the batch's last merge covers it. About a runner's start-up and one fetch.
+SKIP_S = 30
 
 
 def load_gate_doc() -> dict[Any, Any]:
@@ -102,6 +105,7 @@ class PushRun:
     id: int
     jobs_done: int  # the bot commit lands and the job ends
     reported_done: int  # the host says the run completed
+    commits: bool = True  # F07-T45: False for a batch's earlier merges, covered by the last
 
 
 @dataclass
@@ -186,24 +190,39 @@ class World:
             number, _sha, action = self.decide()
         self.log.append((self.now, action or "nothing", str(number)))
         if number:
-            self.act(int(number), action)
+            self.act(str(number), action)
         self.running = False
 
-    def act(self, number: int, action: str) -> None:
-        pr = self.open[number]
+    def act(self, number: str, action: str) -> None:
         if action == "update":
+            pr = self.open[int(number)]
             pr.based_on, pr.gate_done = self.main, self.now + pr.gate_s
             self.wakes.append(pr.gate_done + WAKE_S)
             return
-        assert action == "merge" and pr.based_on == self.main, "the host refuses a stale merge"
-        del self.open[number]
-        self.merged_at[number] = self.now
-        self.main += 1
-        land = self.now + BOT_S
-        self.push_runs.append(PushRun(len(self.push_runs) + 1, land, land + RUN_LAG_S))
-        self.wakes.append(land + RUN_LAG_S + WAKE_S)  # workflow_run: the push run completed
-        if self.dispatch_after_postmerge:
-            self.wakes.append(land + WAKE_S)  # the post-merge job's last step dispatches
+        # F07-T33: nothing is merged while a post-merge job has not committed
+        assert not any(r.commits and r.jobs_done > self.now for r in self.push_runs), "T33"
+        numbers = [int(n) for n in number.split()]
+        assert action == "merge" or (action == "merge-batch" and numbers), action
+        for i, n in enumerate(numbers):
+            pr = self.open[n]
+            # F07-T45: an append may merge behind main (the actor's token bypasses the strict
+            # rule); a building pull request is merged only up to date, as the ruleset asks
+            assert pr.based_on == self.main or pr.ref.startswith("append/"), (
+                "a stale building merge"
+            )
+            assert action == "merge" or pr.ref.startswith("append/"), (
+                "a building pull request batched"
+            )
+            del self.open[n]
+            self.merged_at[n] = self.now
+            self.main += 1
+            last = i == len(numbers) - 1
+            # a batch's earlier merges start post-merge runs that find the later merge and end
+            land = self.now + (BOT_S if last else SKIP_S)
+            self.push_runs.append(PushRun(len(self.push_runs) + 1, land, land + RUN_LAG_S, last))
+            self.wakes.append(land + RUN_LAG_S + WAKE_S)  # workflow_run: the push run completed
+            if self.dispatch_after_postmerge:
+                self.wakes.append(land + WAKE_S)  # the post-merge job's last step dispatches
 
     def wake(self) -> None:
         if self.running:
@@ -220,7 +239,7 @@ class World:
         while self.now < until:
             self.now += TICK_S
             for run in self.push_runs:
-                if run.jobs_done == self.now:
+                if run.jobs_done == self.now and run.commits:
                     self.main += 1  # the bot's products commit
             for when in sorted(t for t in self.arrivals if t <= self.now):
                 number, ref, gate_s = self.arrivals.pop(when)

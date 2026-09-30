@@ -1,0 +1,177 @@
+# F07-T45 green: append-only pull requests skip the up-to-date rebuild and merge in batches;
+# one post-merge run records every merge that has no gate commit yet.
+# graph branch f07-batch-appends: 2fe27a1a F07-T45: append-only pull requests skip the up-to-date rebuild and merge in batches; one post-merge run records every merge without a gate commit;3a3e0b89 F07-T45: the post-merge job's merge accounting as one program, at today's behaviour (the seam the batch tests run);
+# (not pushed; the tests read f07-batch-appends first, then origin/main)
+# 2026-09-29T15:54:49Z
+
+## The host's subjects, read from the live graph's first-parent line (git fetch --depth=200 origin main)
+c5049c97 40da7e64 | gate: #224 pass
+40da7e64 2e41b856 24b18ecf | Merge pull request #224 from thisisanameforsure/submit/01M3J97EPG604N3G2Q0ZP5J8V1
+2e41b856 5b0ecedf | gate: #223 pass
+5b0ecedf 954f10d9 0754a6f0 | Merge pull request #223 from thisisanameforsure/append/01M3J7HG4GV3YEXRMG7ZDSGH64
+954f10d9 4148e312 | gate: #222 pass
+4148e312 9c799cd6 f6fe0eef | Merge pull request #222 from thisisanameforsure/submit/01M3J7G838WD3E7A940ARH1CSK
+...
+merge commits with the host subject in the last 200: 182
+gate: #172 pass (replayed)
+gate: #167 pass (replayed)
+gate: #164 pass (replayed)
+
+## The new and restated tests (red run: task-45-red.txt)
+$ uv run --frozen pytest gate/tests/test_finding_merge_actor_batch.py gate/tests/test_finding_postmerge_batch.py gate/tests/test_finding_merge_actor_workflow.py gate/tests/test_finding_merge_actor_queue.py gate/tests/test_finding_merge_actor_wakes.py gate/tests/test_finding_postmerge_replay.py gate/tests/test_finding_postmerge_push_race.py gate/tests/test_postmerge.py -p no:cacheprovider -v
+gate/tests/test_finding_merge_actor_batch.py::test_the_appends_queued_behind_a_proof_merge_in_one_round PASSED
+gate/tests/test_finding_merge_actor_batch.py::test_a_batch_never_moves_main_under_a_post_merge_job PASSED
+gate/tests/test_finding_merge_actor_batch.py::test_a_steady_stream_of_appends_drains_faster_than_one_per_round PASSED
+gate/tests/test_finding_merge_actor_batch.py::test_a_batch_takes_every_green_append_up_to_the_first_green_building_one PASSED
+gate/tests/test_finding_merge_actor_batch.py::test_a_batch_never_includes_a_building_pull_request PASSED
+gate/tests/test_finding_merge_actor_batch.py::test_a_batch_stops_at_the_cap PASSED
+gate/tests/test_finding_merge_actor_batch.py::test_no_batch_while_a_post_merge_job_runs PASSED
+gate/tests/test_finding_merge_actor_batch.py::test_an_up_to_date_gating_pull_request_still_holds_the_line PASSED
+gate/tests/test_finding_merge_actor_batch.py::test_a_batch_ends_at_an_up_to_date_gating_pull_request PASSED
+gate/tests/test_finding_merge_actor_batch.py::test_red_behind_pending_and_conflicting_appends_are_passed_over PASSED
+gate/tests/test_finding_merge_actor_batch.py::test_a_batch_ends_where_the_host_is_still_computing_mergeability PASSED
+gate/tests/test_finding_merge_actor_batch.py::test_one_up_to_date_append_is_merged_as_before PASSED
+gate/tests/test_finding_merge_actor_batch.py::test_the_act_merges_a_batch_in_order_each_at_the_head_it_saw PASSED
+gate/tests/test_finding_merge_actor_batch.py::test_a_failed_merge_in_a_batch_stops_there_and_the_rest_wait PASSED
+gate/tests/test_finding_merge_actor_batch.py::test_a_refused_first_merge_falls_back_to_the_update_it_had_before PASSED
+gate/tests/test_finding_merge_actor_batch.py::test_single_actions_are_as_before PASSED
+gate/tests/test_finding_merge_actor_batch.py::test_the_pick_output_carries_a_batch_through_number_and_sha PASSED
+gate/tests/test_finding_postmerge_batch.py::test_the_run_at_the_head_records_every_merge_since_the_last_gate_commit PASSED
+gate/tests/test_finding_postmerge_batch.py::test_a_replay_between_is_walked_past_and_what_it_credits_left_out PASSED
+gate/tests/test_finding_postmerge_batch.py::test_the_matcher_reads_a_number_inside_a_multi_number_subject PASSED
+gate/tests/test_finding_postmerge_batch.py::test_the_replay_check_uses_the_matcher_on_mains_first_parent_line PASSED
+gate/tests/test_finding_postmerge_batch.py::test_a_later_merge_on_main_is_seen_and_a_bot_commit_is_not PASSED
+gate/tests/test_finding_postmerge_batch.py::test_a_batch_of_appends_is_one_run PASSED
+gate/tests/test_finding_postmerge_batch.py::test_a_merge_alone_is_recorded_as_before PASSED
+gate/tests/test_finding_postmerge_batch.py::test_a_building_merge_is_never_batched_and_the_others_are_replayed PASSED
+gate/tests/test_finding_postmerge_batch.py::test_merges_pinned_to_different_gates_are_not_batched PASSED
+gate/tests/test_finding_postmerge_batch.py::test_a_merge_the_batch_cannot_hold_is_replayed_not_dropped PASSED
+gate/tests/test_finding_postmerge_batch.py::test_a_run_whose_walk_disagrees_records_its_own_merge_alone PASSED
+gate/tests/test_finding_postmerge_batch.py::test_an_append_merged_behind_main_diffs_as_its_own_file_alone PASSED
+gate/tests/test_finding_postmerge_batch.py::test_the_runs_of_a_batch_leave_their_merges_to_the_last_and_it_records_them_all PASSED
+gate/tests/test_finding_postmerge_batch.py::test_a_merge_with_no_later_merge_is_recorded_as_before PASSED
+gate/tests/test_finding_postmerge_batch.py::test_a_run_checks_main_for_a_later_merge_before_it_plans PASSED
+gate/tests/test_finding_postmerge_batch.py::test_a_batch_is_classified_merge_by_merge_with_the_pinned_gate PASSED
+gate/tests/test_finding_postmerge_batch.py::test_the_ledger_credits_each_merge_in_order_and_the_products_render_once PASSED
+gate/tests/test_finding_postmerge_batch.py::test_one_commit_credits_the_batch_and_a_moved_main_is_left_to_the_later_run PASSED
+gate/tests/test_finding_postmerge_batch.py::test_every_secret_is_still_named_by_one_step_only PASSED
+gate/tests/test_finding_postmerge_batch.py::test_the_head_run_commits_one_gate_commit_for_the_batch PASSED
+gate/tests/test_finding_postmerge_batch.py::test_a_run_whose_main_moved_by_a_later_merge_leaves_its_merges_to_that_run PASSED
+gate/tests/test_finding_postmerge_batch.py::test_a_run_whose_main_moved_by_an_owner_push_dispatches_its_replays PASSED
+gate/tests/test_finding_postmerge_batch.py::test_a_run_whose_merges_are_already_credited_dispatches_only_what_is_owed PASSED
+gate/tests/test_finding_merge_actor_workflow.py::test_it_is_woken_in_the_base_context_and_never_by_a_pull_request PASSED
+gate/tests/test_finding_merge_actor_workflow.py::test_it_checks_nothing_out_and_runs_no_gate_code PASSED
+gate/tests/test_finding_merge_actor_workflow.py::test_the_jobs_own_token_can_only_read PASSED
+gate/tests/test_finding_merge_actor_workflow.py::test_exactly_one_step_names_the_secret_and_it_dry_runs_without_it PASSED
+gate/tests/test_finding_merge_actor_workflow.py::test_only_branches_the_service_opened_are_candidates PASSED
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs0-green] PASSED
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs1-green] PASSED
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs2-red] PASSED
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs3-red] PASSED
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs4-red] PASSED
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs5-pending] PASSED
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs6-pending] PASSED
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs7-pending] PASSED
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs8-green] PASSED
+gate/tests/test_finding_merge_actor_workflow.py::test_the_required_checks_come_from_the_ruleset_by_exact_name PASSED
+gate/tests/test_finding_merge_actor_workflow.py::test_a_ruleset_that_requires_no_gate_merges_nothing PASSED
+gate/tests/test_finding_merge_actor_workflow.py::test_it_takes_the_oldest_green_one_and_updates_before_it_merges PASSED
+gate/tests/test_finding_merge_actor_workflow.py::test_a_green_pull_request_that_conflicts_with_main_is_passed_over PASSED
+gate/tests/test_finding_merge_actor_queue.py::test_a_green_mathlib_pull_request_is_not_starved_by_appends PASSED
+gate/tests/test_finding_merge_actor_queue.py::test_the_queue_is_first_in_first_out_and_everything_merges PASSED
+gate/tests/test_finding_merge_actor_queue.py::test_no_gate_round_is_wasted_on_a_bot_commit_about_to_land PASSED
+gate/tests/test_finding_merge_actor_queue.py::test_an_up_to_date_gating_pull_request_holds_everything_behind_it PASSED
+gate/tests/test_finding_merge_actor_queue.py::test_a_run_that_never_reports_holds_nothing PASSED
+gate/tests/test_finding_merge_actor_queue.py::test_a_pending_pull_request_that_is_behind_holds_nothing PASSED
+gate/tests/test_finding_merge_actor_queue.py::test_the_oldest_green_one_goes_first_even_past_a_newer_gating_one PASSED
+gate/tests/test_finding_merge_actor_queue.py::test_nothing_is_updated_or_merged_while_a_post_merge_job_runs PASSED
+gate/tests/test_finding_merge_actor_queue.py::test_a_hold_names_no_pull_request_so_the_acting_step_is_skipped PASSED
+gate/tests/test_finding_merge_actor_queue.py::test_the_job_may_read_the_runs_it_asks_about_and_nothing_more PASSED
+gate/tests/test_finding_merge_actor_wakes.py::test_a_stale_read_after_the_wake_does_not_strand_the_pull_request PASSED
+gate/tests/test_finding_merge_actor_wakes.py::test_a_finished_post_merge_job_does_not_hold_the_next_update PASSED
+gate/tests/test_finding_merge_actor_wakes.py::test_the_afternoon_of_148_drains_with_no_cron PASSED
+gate/tests/test_finding_merge_actor_wakes.py::test_a_run_whose_jobs_have_all_finished_is_not_running PASSED
+gate/tests/test_finding_merge_actor_wakes.py::test_a_hold_is_decided_again_until_it_resolves PASSED
+gate/tests/test_finding_merge_actor_wakes.py::test_a_hold_that_never_resolves_ends_the_run_at_the_cap PASSED
+gate/tests/test_finding_merge_actor_wakes.py::test_nothing_to_do_is_not_waited_on PASSED
+gate/tests/test_finding_merge_actor_wakes.py::test_a_pull_request_whose_mergeability_is_unknown_is_not_updated PASSED
+gate/tests/test_finding_merge_actor_wakes.py::test_the_post_merge_job_wakes_the_actor_whatever_happened PASSED
+gate/tests/test_finding_merge_actor_wakes.py::test_a_failed_act_wakes_the_actor_again PASSED
+gate/tests/test_finding_merge_actor_wakes.py::test_the_job_is_capped_above_the_settle_loop PASSED
+gate/tests/test_finding_postmerge_replay.py::test_nothing_is_merged_while_a_post_merge_job_runs[append/annex] PASSED
+gate/tests/test_finding_postmerge_replay.py::test_nothing_is_merged_while_a_post_merge_job_runs[propose/variant] PASSED
+gate/tests/test_finding_postmerge_replay.py::test_nothing_is_merged_while_a_post_merge_job_runs[submit/proof] PASSED
+gate/tests/test_finding_postmerge_replay.py::test_an_append_is_not_updated_into_the_window_either PASSED
+gate/tests/test_finding_postmerge_replay.py::test_the_afternoon_loses_no_post_merge_commit PASSED
+gate/tests/test_finding_postmerge_replay.py::test_a_replayed_post_merge_job_is_one_the_actor_waits_for PASSED
+gate/tests/test_finding_postmerge_replay.py::test_the_gate_workflow_can_be_asked_to_replay_one_merged_pull_request PASSED
+gate/tests/test_finding_postmerge_replay.py::test_a_replay_takes_the_merge_commit_from_the_pull_request PASSED
+gate/tests/test_finding_postmerge_replay.py::test_a_replay_of_a_merge_that_has_its_commit_does_nothing PASSED
+gate/tests/test_finding_postmerge_replay.py::test_every_step_reads_the_merge_commit_not_the_event_commit PASSED
+gate/tests/test_finding_postmerge_replay.py::test_a_moved_main_dispatches_the_replay_instead_of_asking_for_hands PASSED
+gate/tests/test_finding_postmerge_replay.py::test_a_replay_says_so_in_its_commit PASSED
+gate/tests/test_finding_postmerge_replay.py::test_the_gate_that_attests_is_the_one_the_merge_pinned PASSED
+gate/tests/test_finding_postmerge_push_race.py::test_a_rejected_push_is_rebased_and_retried PASSED
+gate/tests/test_finding_postmerge_push_race.py::test_it_refuses_to_rebase_over_anything_the_products_derive_from PASSED
+gate/tests/test_finding_postmerge_push_race.py::test_the_deploy_key_never_outlives_the_step PASSED
+gate/tests/test_postmerge.py::test_attestation_id_is_zero_padded PASSED
+gate/tests/test_postmerge.py::test_bot_commit_message_round_trips PASSED
+gate/tests/test_postmerge.py::test_pr_number_from_message PASSED
+gate/tests/test_postmerge.py::test_approving_reviewer_excludes_author_and_takes_latest PASSED
+gate/tests/test_postmerge.py::test_finalize_signs_with_gate_key PASSED
+gate/tests/test_postmerge.py::test_verify_rejects_wrong_key PASSED
+gate/tests/test_postmerge.py::test_waiver_requires_named_approval PASSED
+gate/tests/test_postmerge.py::test_claims_snapshot_refreshes PASSED
+gate/tests/test_postmerge.py::test_claims_snapshot_fallback PASSED
+gate/tests/test_postmerge.py::test_claims_snapshot_refuses_plain_http PASSED
+gate/tests/test_postmerge.py::test_review_block_rules PASSED
+gate/tests/test_postmerge.py::test_partial_creates_children PASSED
+gate/tests/test_postmerge.py::test_children_are_blocked_until_their_witness_is_filled PASSED
+gate/tests/test_postmerge.py::test_skeleton_annex_citation PASSED
+gate/tests/test_postmerge.py::test_alternate_proof PASSED
+gate/tests/test_postmerge.py::test_a_partial_with_no_holes_creates_nothing PASSED
+gate/tests/test_postmerge.py::test_a_partial_applied_twice_writes_no_second_set_of_children PASSED
+gate/tests/test_postmerge.py::test_a_refusal_at_the_attempt_file_leaves_nothing_behind PASSED
+gate/tests/test_postmerge.py::test_a_malformed_annex_citation_is_rejected_not_ignored[aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa] PASSED
+gate/tests/test_postmerge.py::test_a_malformed_annex_citation_is_rejected_not_ignored[AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA] PASSED
+gate/tests/test_postmerge.py::test_a_malformed_annex_citation_is_rejected_not_ignored[aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0] PASSED
+gate/tests/test_postmerge.py::test_a_citation_needs_its_own_line PASSED
+gate/tests/test_postmerge.py::test_regenerating_context_for_a_ghost_dep_is_refused PASSED
+gate/tests/test_postmerge.py::test_add_deps_is_additive_and_idempotent PASSED
+gate/tests/test_postmerge.py::test_a_filled_witness_that_keeps_the_slot_comment_is_not_a_stub PASSED
+gate/tests/test_postmerge.py::test_stamp_to_date_needs_a_whole_day PASSED
+gate/tests/test_postmerge.py::test_verify_refuses_before_consulting_the_signer PASSED
+gate/tests/test_postmerge.py::test_record_step9_refuses_a_malformed_review_or_commit PASSED
+gate/tests/test_postmerge.py::test_a_bot_commit_needs_a_real_pull_request_number PASSED
+gate/tests/test_postmerge.py::test_approving_reviewer_ignores_reviews_without_a_user PASSED
+gate/tests/test_postmerge.py::test_claims_snapshot_that_is_not_json_is_kept_out PASSED
+gate/tests/test_postmerge.py::test_bot_commit_mentions_stewards PASSED
+gate/tests/test_postmerge.py::test_mention_line_is_inert_on_the_old_pin PASSED
+============================= 128 passed in 6.27s ==============================
+exit: 0
+
+## The graph workflow tests that read origin/main only, run against the branch (origin/main ref moved to the branch for the run, then restored to c5049c97)
+$ uv run --frozen pytest gate/tests/test_finding_step9_certified_workflow.py gate/tests/test_finding_step9_stale_run.py gate/tests/test_pins.py gate/tests/test_finding_graph_readme.py gate/tests/test_config.py gate/tests/test_modes.py -q
+=========================== short test summary info ============================
+SKIPPED [1] gate/tests/test_finding_step9_stale_run.py:261: gh is not installed
+151 passed, 1 skipped in 1.90s
+
+## The replays, before (task-45-red.txt, the actor as it stood) and after
+after a proof, six appends queued behind it: before 301..306 merged at 445, 665, 885, 1105, 1325, 1545 s and #307 at 1925 s
+after_a_proof merged_at: {300: 225, 301: 385, 302: 385, 303: 385, 304: 385, 305: 385, 306: 385, 307: 765}
+steady stream (20 PRs, 1 in 4 building): last merge at 2370 s; committing post-merge jobs: 9
+afternoon of #148 (25 PRs, 1 in 3 building): last merge at 4545 s; committing post-merge jobs: 17
+steady stream before: last merge at 5035 s, 20 committing post-merge jobs
+
+## Written after the implementation, not red-first: the commit step rehearsed against a local bare
+## repository (four tests in test_finding_postmerge_batch.py, 'the commit step'). Against the seam they
+## fail only because the old step reads ${{ steps.pr.outputs.number }}, which the rehearsal does not supply.
+
+## Suite
+$ make lint   -> exit 0 (All checks passed; 512 files already formatted)
+$ make types  -> exit 0 (gate 224, api 153, site 43 source files, no issues)
+$ make test-fast -> exit 2
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+==== 1 failed, 3066 passed, 106 deselected, 2 warnings in 147.53s (0:02:27) ====
+test_walkthrough.py::test_graph_copy_is_identical fails identically with this task's changes stashed: the graph's
+AGENTS.md (at c5049c97, untouched here) is behind the network's gate/agents/AGENTS.md; a guide copy is the owner's push.

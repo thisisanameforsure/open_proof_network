@@ -61,7 +61,9 @@ def test_token_required_for_writes_only(harness: Harness) -> None:
         if not tool.write or tool.name in ANONYMOUS_WRITES:
             continue
         doc = client.failed(tool.name, MINIMAL[tool.name])
-        assert doc == {"status": auth.UNAUTHORIZED_STATUS, "body": auth.UNAUTHORIZED}, tool.name
+        # The body names the tutorial node from the graph (2026-09-27), so it is the derived one.
+        body = auth.unauthorized(harness.context)
+        assert doc == {"status": auth.UNAUTHORIZED_STATUS, "body": body}, tool.name
     assert harness.store.list_claims() == []
     assert harness.githost.pushes == []
     assert harness.githost.dispatches == []

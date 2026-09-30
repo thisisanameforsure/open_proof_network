@@ -23,7 +23,7 @@ import re
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any
 
 from starlette.requests import Request
@@ -34,6 +34,7 @@ from opn_api import frontier
 from opn_api.app import ApiError, CachedFile, CachedPull
 from opn_api.githost import GATE_WORKFLOW, GitHostError, PullRequest, PullRequestState
 from opn_api.store import Submission
+from opn_gate import schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -56,6 +57,7 @@ NOTE_NO_ATTESTATION = "no-attestation-for-mode"  # the kind merges without a bui
 NOTE_NOT_MERGED = "not-merged"  # the host says the pull request has not merged
 NOTE_PENDING = "attestation-pending"  # merged; the post-merge job has not committed it yet
 NOTE_UNKNOWN = "pull-request-unavailable"  # the host could not say, and main has no attestation
+HTTP_OK = 200
 
 
 # --- the record ----------------------------------------------------------------------------------
@@ -154,12 +156,84 @@ def unknown_node(ctx: Context, node_id: str, where: str = "") -> ApiError:
         return unknown  # closed unmerged: the node never entered the graph
     waiting = state.waiting_on if state is not None else None
     what = f", which is waiting on: {waiting}" if waiting else ""
+    if waiting in GATE_GREEN:
+        # F06-T10: this route still needs the merged node, but a precheck does not
+        after = (
+            "a proof can be prechecked against the proposal already (POST /precheck runs at its "
+            "head commit); submit it, and append anything else, once the proposal has merged"
+        )
+    else:
+        after = (
+            "nothing can be appended or submitted against it until that merges, and a proof "
+            "can be prechecked against it once the proposal's gate is green"
+        )
     return ApiError(
         409,
         "node-pending",
-        f"{node_id} is proposed in pull request #{found.pr_number}{what}; nothing can be "
-        "prechecked or appended against it until that merges",
+        f"{node_id} is proposed in pull request #{found.pr_number}{what}; {after}",
         details={**details, "waiting_on": waiting},
+    )
+
+
+#: F06-T10: the ``waiting_on`` values that mean the proposal's gate concluded success, so its head
+#: is a tree the gate admitted and a proof can be prechecked against it before it merges.
+GATE_GREEN: tuple[str, ...] = ("merge", "branch-update")
+
+
+@dataclass(frozen=True)
+class GreenProposal:
+    """F06-T10: an open proposal whose gate is green, as a precheck or a check reads it — the
+    record, the head commit the gate passed, and the node's files there."""
+
+    submission: Submission
+    head_sha: str
+    statement: str  # Statement.lean at the head, as committed
+    context: str | None  # Context.lean at the head, when it has one
+    meta: str | None  # META.yaml at the head, for the deps it declares
+
+    @property
+    def statement_hash(self) -> str:
+        """The hash the gate and the products take of the tree's ``Statement.lean``
+        (``layout.Statement.statement_hash`` over the file as ``read_text`` reads it)."""
+        text = self.statement.replace("\r\n", "\n").replace("\r", "\n")
+        return schemas.content_hash(text.encode("utf-8"))
+
+    def reference(self) -> dict[str, Any]:
+        """What a job records about the proposal it ran against."""
+        return {
+            "pr_number": self.submission.pr_number,
+            "pr_url": self.submission.pr_url,
+            "head_sha": self.head_sha,
+        }
+
+
+def green_proposal(ctx: Context, node_id: str) -> GreenProposal | None:
+    """The open proposal of ``node_id`` when its gate is green, else ``None`` — and ``None`` too
+    whenever the host cannot say for certain (a failed read, a missing statement), so the caller
+    answers ``node-pending`` as before rather than run against a tree nobody checked (C7)."""
+    found = ctx.store.get_submission_by_node(node_id)
+    if found is None or found.closed is not None:
+        return None
+    state, error = live_state(ctx, found.pr_number)
+    if state is None or error is not None or state.waiting_on not in GATE_GREEN:
+        return None
+    node_dir = f"targets/{found.target_id}/nodes/{node_id}/"
+    texts: dict[str, str | None] = {}
+    for name in ("Statement.lean", "Context.lean", "META.yaml"):
+        try:
+            got = ctx.githost.fetch_raw(
+                ctx.settings.graph_repo, state.head_sha, node_dir + name, etag=None
+            )
+        except GitHostError as exc:
+            log.warning("pull request #%d: %s not read: %s", found.pr_number, name, exc)
+            return None
+        body = got.body if got.status == HTTP_OK else None
+        texts[name] = body.decode("utf-8", errors="replace") if body is not None else None
+    statement = texts["Statement.lean"]
+    if statement is None:
+        return None
+    return GreenProposal(
+        found, state.head_sha, statement, texts["Context.lean"], texts["META.yaml"]
     )
 
 
