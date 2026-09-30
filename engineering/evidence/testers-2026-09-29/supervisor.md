@@ -204,3 +204,7 @@
   and not runner starvation this time (two CI runs from this branch since 04:00Z, not 27).
   Nothing here can wake the actor; if it does not wake by itself, #319 and the root do not land
   before 07:00Z. First draft of `bugs.md` written (36 consolidated items from 176 headings).
+- 05:03Z sixth restart (uptime 0 min at 05:02Z). **The queue is frozen: no merge since #305 at
+  04:04:35Z, an hour, with fifteen green pull requests open.** No agent launched: nothing can land
+  until the actor wakes (its cron runs every three to six hours per the 2026-09-23 note). The
+  erdos-1050 root will not close inside this run unless it wakes before ~06:15Z.
