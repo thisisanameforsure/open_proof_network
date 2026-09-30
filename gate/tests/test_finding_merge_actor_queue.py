@@ -248,9 +248,13 @@ def test_nothing_is_updated_or_merged_while_a_post_merge_job_runs(pick: dict[str
 
 def test_a_hold_names_no_pull_request_so_the_acting_step_is_skipped(doc: dict[Any, Any]) -> None:
     """``hold`` rides in ``action`` with an empty ``number``; the one step that holds the token
-    runs only when ``number`` is set, and would merge on any action that is not ``update``."""
+    runs only when ``number`` is set (or, F07-T46, when there is a stuck pull request to nudge,
+    which a hold with none leaves empty too), and would merge on any action that is not
+    ``update``."""
     (act,) = [s for s in doc["jobs"]["merge"]["steps"] if s.get("name", "").startswith("Act")]
-    assert act["if"] == "steps.pick.outputs.number != ''"
+    conditions = [c.strip() for c in str(act["if"]).split("||")]
+    assert conditions[0] == "steps.pick.outputs.number != ''", act["if"]
+    assert conditions[1:] in ([], ["steps.pick.outputs.stuck != ''"]), act["if"]
 
 
 def test_the_job_may_read_the_runs_it_asks_about_and_nothing_more(doc: dict[Any, Any]) -> None:

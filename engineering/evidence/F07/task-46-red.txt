@@ -1,0 +1,101 @@
+# F07-T46 red: the new tests against the merge actor as it stands (graph origin/main 524ae900, F07-T45),
+# read from the graph branch f07-stuck-pr at 715a57a6, which carries only the two seams at today's
+# behaviour: decide() takes branch_head_of and stuck keywords that nothing reads, and the Act step is handed STUCK and does nothing with it.
+# network: 5d97ff5 + the uncommitted test; 2026-09-30T11:43:55Z
+$ uv run --frozen pytest gate/tests/test_finding_merge_actor_stuck.py -p no:cacheprovider -q --tb=line
+FF.FFFFFFFFFF                                                            [100%]
+=================================== FAILURES ===================================
+E   AssertionError: (306, '0000000000000000000000000000000000000306', 'update')
+    assert (306, '000000...06', 'update') == (307, '000000...07', 'update')
+      
+      At index 0 diff: 306 != 307
+      Use -v to get more diff
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_stuck.py:120: AssertionError: (306, '0000000000000000000000000000000000000306', 'update')
+E   AssertionError: ('', '', 'hold')
+    assert ('', '', 'hold') == ('307', '0000...'merge-batch')
+      
+      At index 0 diff: '' != '307'
+      Use -v to get more diff
+----------------------------- Captured stdout call -----------------------------
+#306 is up to date and its gate is running: holding for it
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_stuck.py:136: AssertionError: ('', '', 'hold')
+E   AssertionError: ('1 2 3', '0000000000000000000000000000000000000001 0000000000000000000000000000000000000002 0000000000000000000000000000000000000003', 'merge-batch')
+    assert ('1 2 3', '00...'merge-batch') == ('1 3', '0000...'merge-batch')
+      
+      At index 0 diff: '1 2 3' != '1 3'
+      Use -v to get more diff
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_stuck.py:169: AssertionError: ('1 2 3', '0000000000000000000000000000000000000001 0000000000000000000000000000000000000002 0000000000000000000000000000000000000003', 'merge-batch')
+E   AssertionError: left open: [306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321]; #306 chosen 1786 times, 1785 failed runs; last runs: [(10755, 'update', '306'), (10760, 'update', '306'), (10770, 'update', '306'), (10775, 'update', '306'), (10780, 'update', '306'), (10785, 'update', '306'), (10790, 'update', '306'), (10795, 'update', '306')]
+    assert {307, 308, 30...311, 312, ...} <= {305}
+      
+      Extra items in the left set:
+      320
+      321
+      307
+      308
+      309...
+      
+      ...Full output truncated (10 lines hidden), use '-vv' to show
+----------------------------- Captured stdout call -----------------------------
+#305 is up to date and its gate is running: holding for it
+#305 is up to date and its gate is running: holding for it
+#306 is up to date and its gate is running: the batch ends before it
+#308 is up to date and its gate is running: holding for it
+#308 is up to date and its gate is running: holding for it
+#308 is next; a post-merge job has not committed yet: holding
+#308 is next; a post-merge job has not committed yet: holding
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_stuck.py:291: AssertionError: left open: [306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321]; #306 chosen 1786 times, 1785 failed runs; last runs: [(10755, 'update', '306'), (10760, 'update', '306'), (10770, 'update', '306'), (10775, 'update', '306'), (10780, 'update', '306'), (10785, 'update', '306'), (10790, 'update', '306'), (10795, 'update', '306')]
+E   AssertionError: ([], [])
+    assert ([] == [(306, 'submit/stuck')]
+      
+      Right contains one more item: (306, 'submit/stuck')
+      Use -v to get more diff)
+----------------------------- Captured stdout call -----------------------------
+#305 is up to date and its gate is running: holding for it
+#305 is up to date and its gate is running: holding for it
+#306 is up to date and its gate is running: the batch ends before it
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_stuck.py:318: AssertionError: ([], [])
+E   AssertionError: HTTP 422: expected head sha didn't match current head ref
+      
+    assert 1 == 0
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_stuck.py:390: AssertionError: HTTP 422: expected head sha didn't match current head ref
+E   AssertionError: HTTP 422: expected head sha didn't match current head ref
+      
+    assert 1 == 0
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_stuck.py:399: AssertionError: HTTP 422: expected head sha didn't match current head ref
+E   AssertionError: ['api -X PUT repos/owner/graph/pulls/307/update-branch -f expected_head_sha=a307']
+    assert 0 == 2
+     +  where 0 = len([])
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_stuck.py:414: AssertionError: ['api -X PUT repos/owner/graph/pulls/307/update-branch -f expected_head_sha=a307']
+E   AssertionError: ['api -X PUT repos/owner/graph/pulls/307/update-branch -f expected_head_sha=a307']
+    assert False
+     +  where False = any(<generator object test_a_refused_nudge_never_fails_the_run.<locals>.<genexpr> at 0x7fd77b2746c0>)
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_stuck.py:427: AssertionError: ['api -X PUT repos/owner/graph/pulls/307/update-branch -f expected_head_sha=a307']
+E   AssertionError: merged # at ; the post-merge job commits the products and wakes this workflow
+      
+    assert ('::warning::' in 'merged # at ; the post-merge job commits the products and wakes this workflow\n')
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_stuck.py:441: AssertionError: merged # at ; the post-merge job commits the products and wakes this workflow
+E   AssertionError: steps.pick.outputs.number != ''
+    assert 'stuck' in "steps.pick.outputs.number != ''"
+     +  where "steps.pick.outputs.number != ''" = str("steps.pick.outputs.number != ''")
+     +    where "steps.pick.outputs.number != ''" = <built-in method get of dict object at 0x7fd77b5822c0>('if', '')
+     +      where <built-in method get of dict object at 0x7fd77b5822c0> = {'name': 'Act (the only step that sees the token)', 'if': "steps.pick.outputs.number != ''", 'env': {'GH_TOKEN': '${{ ...e >/dev/null\n  echo "merged #$NUMBER at $SHA; the post-merge job commits the products and wakes this workflow"\nfi\n'}.get
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_stuck.py:450: AssertionError: steps.pick.outputs.number != ''
+E   AssertionError: the branch's own head, from the host
+    assert 'git/ref/heads/' in 'set -euo pipefail\ncat > pick.py <<\'PY\'\n"""Pick at most one pull request and say what to do with it. Pure function...er).split())\n    print(f"merge actor: {action or \'nothing to do\'} {named}")\n    sys.exit(0)\nPY\npython3 pick.py\n'
+/home/user/open_proof_network/gate/tests/test_finding_merge_actor_stuck.py:461: AssertionError: the branch's own head, from the host
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_merge_actor_stuck.py::test_a_candidate_whose_branch_head_is_not_its_pull_request_head_is_passed_over
+FAILED gate/tests/test_finding_merge_actor_stuck.py::test_a_stuck_pull_request_never_holds_the_queue
+FAILED gate/tests/test_finding_merge_actor_stuck.py::test_the_default_asks_nothing_and_the_batch_skips_a_desynced_append
+FAILED gate/tests/test_finding_merge_actor_stuck.py::test_the_morning_of_306_drains_and_306_is_nudged
+FAILED gate/tests/test_finding_merge_actor_stuck.py::test_a_stuck_pull_request_alone_is_nudged_once_main_moves
+FAILED gate/tests/test_finding_merge_actor_stuck.py::test_a_refused_update_is_a_warning_and_not_a_failed_run
+FAILED gate/tests/test_finding_merge_actor_stuck.py::test_a_refused_single_merge_is_a_warning_and_not_a_failed_run
+FAILED gate/tests/test_finding_merge_actor_stuck.py::test_each_stuck_pull_request_is_nudged_with_a_merge_of_main_into_its_branch
+FAILED gate/tests/test_finding_merge_actor_stuck.py::test_a_refused_nudge_never_fails_the_run
+FAILED gate/tests/test_finding_merge_actor_stuck.py::test_a_nudge_that_finds_main_already_in_the_branch_says_it_is_still_stuck
+FAILED gate/tests/test_finding_merge_actor_stuck.py::test_stuck_alone_acts_and_dry_runs_without_the_token
+FAILED gate/tests/test_finding_merge_actor_stuck.py::test_the_pick_writes_the_stuck_list_to_the_output
+12 failed, 1 passed in 35.81s
+exit: 1
