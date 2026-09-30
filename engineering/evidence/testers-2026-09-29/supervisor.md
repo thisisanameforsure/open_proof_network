@@ -189,3 +189,6 @@
   erdos-1050--h1-v2 through h3 with hrem proved inline** (precheck pass), and #320, the proof of
   h4. #319 is 21st in the queue, ~05:50Z at eight minutes a merge; the root's closing proof goes
   in after it merges, which lands the root at about the run's end. Pushed.
+- 03:36Z check-in #16. Up 3:36. Merges #299 (card 12), #300 (69-B's any-base variant proof),
+  #301, #302 (69-E's summability node's proof); 18 open, #303 … #320, all proofs and witnesses;
+  176 bug headings. #319 (h1-v2's closing proof) is 17th, ~05:50Z. Pushed.
