@@ -178,3 +178,8 @@
   step 8) and #316 (card 25) submitted; 402-W4-2 launched for the new hole's witness. #292 (h3)
   is 3rd and merges after 1050-W3-1's cut-off, so 1050-W4-1 launched to carry the closing proofs
   of h1-v2 and the root. Pushed.
+- 02:33Z check-in #14. Up 2:33. **#292 merged 02:23:43Z, gate pass 02:28:05Z: `hden`
+  (erdos-1050--h1-v2--h3), the denominator crux of Borwein's route, is proved on the record**, by
+  1050-A's 845-line proof, with 1050-C's independent proof kept unsent. Also merged #290 (h2's
+  one-hole partial), #291, #293; 24 open, #294 … #318; 174 bug headings. 1050-W4-1 is on the
+  closing proof of h1-v2 now. Pushed.
