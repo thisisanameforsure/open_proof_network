@@ -66,3 +66,9 @@ k 6 p 29 max excess 6 bound needs <= 6 OK largest compatible set found 34
 k 6 p 31 max excess 6 bound needs <= 6 OK largest compatible set found 36
 k 6 p 37 max excess 6 bound needs <= 6 OK largest compatible set found 42
 k 6 p 41 max excess 6 bound needs <= 6 OK largest compatible set found 46
+k 6 p 43 max excess 6 bound needs <= 6 OK largest compatible set found 48
+k 6 p 47 max excess 6 bound needs <= 6 OK largest compatible set found 52
+
+real	5m45.881s
+user	5m41.806s
+sys	0m0.121s
