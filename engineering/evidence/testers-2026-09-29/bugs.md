@@ -5,6 +5,32 @@ deduplicated across agents, with the supervisor's own two findings added. C = co
 than one agent or by the supervisor's own read; P = one agent, plausible, not reproduced by
 another. The agent and heading in brackets is where the exact request and response are.
 
+## Status after the two merges of 2026-09-30 (read this first)
+
+Two pull requests merged this morning, both built from the 2026-09-27 run, before this run's
+report existed: graph PR #225 (F07-T45, merged 09:58Z: green `append/` pull requests — annexes,
+postmortems, approach records — merge in batches of up to 8 behind main, and one post-merge run
+records the batch as `gate: #A #B pass`) and network PR #23 (merged 10:03Z, api-deploy run 55
+queued at 10:04Z: F06-T10 precheck and verify against a green proposal, F13-T24 `/check` target
+from `node_id` and hazards acknowledgements, F05-T16 claim receipts list open pull requests,
+F09-T14 MCP names the tutorial node, F01-T6 and F10-T15 guide text). Against the 36 items
+below, that leaves:
+
+| Item | After the merges |
+|---|---|
+| 3 (serial queue) | **Part.** Appends batch; proposals and proofs (`submit/`, `propose/`) stay serial with the post-merge hold; the 04:04Z freeze is not addressed (root cause under item 3). |
+| 12 (`/check` okay on non-proofs) | **Open.** Only the "no `node_id`" case moved: the target is now derived from `node_id`; `admit`, `apply?`, refused headers, renamed binders are unchanged. |
+| 13 (nothing possible until a proposal merges) | **Mostly fixed.** `POST /precheck` and `/check` verify run at the proposal's head once its gate is green, and the job says so in `proposal`. Still waits for the merge: submit, annex, claim, and any hole of an open skeleton (item 24). The wrong-`target_id` `products-pending` case is untouched. |
+| 16 (blocked by a sibling's witness) | **Open**; but a claim receipt now lists the pull requests open on the node (`open_submissions`), which is the missing name for a caller who claims first. |
+| 28 (`/check` needs `target_id` beside `node_id`, regex error) | **Fixed** (`target-id-required` / `node-target-mismatch`; MCP `check_lean` no longer requires `target_id`). `cached_response`, the unnamed `GET /checks/{id}` route and anonymous read-back stay open. |
+| 30 (site shows no open pull requests or claims) | **Part.** The claim receipt names them; the site does not. |
+| 32 (guide gaps) | **Two closed**: the `POST /tokens` body and the `hazards_preflight` value `acknowledged`. The rest open. |
+| 1, 2, 4–11, 14, 15, 17–27, 29, 31, 33–36 | **Untouched.** |
+
+One caution on item 1: F05-T16's `open_submissions` reconciles every open record on the node
+against the host per claim receipt, the same per-item live read that `submissions.json` spends
+the budget on. It is cheap per node today; it is the shape to watch.
+
 ## Priority 1 — a blocker or a systemic fault (fix before the next agent run)
 
 1. **Unauthenticated reads spend the service's GitHub App budget, and when it is gone nothing
@@ -31,7 +57,8 @@ another. The agent and heading in brackets is where the exact request and respon
    every minute deep in the queue. Also seen: after #305 merged at 04:04Z nothing merged for
    35 minutes with fifteen green pull requests open and the head reading `waiting_on: merge`,
    `mergeable_state: unknown` (the 2026-09-23 freeze shape; not root-caused from here). [69-B B1,
-   402-D B2, 402-E B4, 1050-P1 W1 and every Handoff]
+   402-D B2, 402-E B4, 1050-P1 W1 and every Handoff] *After 2026-09-30: appends batch (graph
+   #225); proposals and proofs still serial; freeze open.*
    **Root-caused 2026-09-30 10:10Z from the actor's own log.** The freeze ran from 04:04Z to at
    least 10:10Z. Every actor run (1097 by wake, 1098 by schedule 08:36–08:52Z, 1099 after #225)
    printed `#306 is green; the host is still computing whether it conflicts: holding` every 20 s
@@ -86,11 +113,13 @@ another. The agent and heading in brackets is where the exact request and respon
     `apply?` (69-D B23, 69-P2 B1, C), a header the gate refuses at step 2 (`set_option … in`, an
     extra `open`; 69-A B5, 69-D B29), an alpha-renamed binder in the theorem signature (69-P1 B1),
     and an import of a node that does not exist when no `node_id` is given (1050-A B1).
+    *After 2026-09-30: open; only the target derivation changed (network #23).*
 13. **A proposal cannot be prechecked, verified with `node_id`, or claimed until it has merged
     and rendered** (`409 node-pending`, then `products-pending` with retry-after 240 even 23
     minutes after rendering when the `target_id` is wrong; 69-P2 B7). With the queue this is the
     whole session (402-D B2, 1050-F B1, 69-B W3). The service already serves the proposed
-    statement as `proposed_statement`.
+    statement as `proposed_statement`. *After 2026-09-30: precheck and verify against a green
+    proposal are live (F06-T10, network #23); claim, annex and submit still wait for the merge.*
 14. **A second proof of an already-proved node prechecks clean at `Proof.lean`, spends four
     minutes of sandbox, and can never be submitted** (`400 proof-replaces-merged`); the guide's
     path table, the MCP description and the site's Docs table give three different stories about
@@ -101,6 +130,7 @@ another. The agent and heading in brackets is where the exact request and respon
 16. **The witness rule blocks a node whose witness is an open sibling's full proof**, and the
     node page and frontier say "blocked by nothing else" (1050-D B2, C); `409 node-blocked` does
     not name the witness pull request already open for the node (1050-A W5, 1050-W4-1 W2).
+    *After 2026-09-30: open; a claim receipt now lists the node's open pull requests (F05-T16).*
 17. **No MCP tool can read a node's `defects/` or `revisions/`** although the guide says
     `get_node` returns the raw files; agents cloned the graph to read the exhibits (69-E B1, C).
     `get_node` also reads through the contents API and reports `graph-unreachable` when the
@@ -140,12 +170,14 @@ another. The agent and heading in brackets is where the exact request and respon
     regex mismatch (69-E B9, 402-G B3); the id it returns is `log_id`, the route is
     `GET /checks/{check_id}`, the guide never names the route, and anonymous checks cannot be
     read back (1050-A B3, 402-B B3, 402-D B1, 402-G B4, 69-A B3, 1050-E B3; six agents).
+    *After 2026-09-30: the `target_id` half is fixed (F13-T24, network #23); the rest open.*
 29. `targets/index.json` marks a resolved target unclaimable for `status-resolved`, which the
     guide says is not a reason, while tutorial (also resolved) is claimable (69-D B16, 1050-W4-1
     B3); this will bite erdos-1050 the day its root closes.
 30. The site never shows active claims, open pull requests or queue position on a node; the
     "pull requests in flight" link goes to the whole graph's `submissions.json`, a route that
     spends the host budget (69-D B32, 402-E W5, 1050-P2 W1, and every agent's wish list).
+    *After 2026-09-30: the claim receipt names open pull requests (F05-T16); the site does not.*
 
 ## Priority 4 — documentation and site text (each a sentence or a template line)
 
@@ -161,7 +193,8 @@ another. The agent and heading in brackets is where the exact request and respon
     `network` clone on the HTTP path, "three rules" that lists five, `proposed_statement` being
     an object, the `closing` block, "nine checks" where a calibration attestation records seven
     (1050-E B7/B9/B14, 69-D B1/B6/B15/B27, 402-B B2/B4, 402-C B2, 402-G B7, 69-C B6/B8, 1050-C
-    B2, 69-P2 B8/B9, 1050-W4-1 W1).
+    B2, 69-P2 B8/B9, 1050-W4-1 W1). *After 2026-09-30: the `POST /tokens` body and the
+    `acknowledged` pre-flight value are in the guide (network #23); the rest open.*
 33. The Docs page names `POST /proposals`, which is 404 (69-D B20); MCP `get_schema` names a
     plain path that is 404 (1050-W3-1 B1); four MCP descriptions repeat their "Plain path"
     sentence, nine name a git file or "a PR" where a route exists, `get_submission` names the
