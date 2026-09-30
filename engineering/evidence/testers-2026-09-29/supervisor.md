@@ -198,3 +198,9 @@
   #303, #304 (card 13), #305 (spec-eb1219eb's proof); 15 open, #306 … #320; 176 bug headings.
   #319 is 14th, ~06:00Z; wave-5 prompts generated; 1050-W5-1 launches at ~05:20Z for the root.
   The 04:00Z push went through before the restart.
+- 04:40Z fifth restart (uptime 0 min at 04:38Z; no agent running). **The queue has not moved
+  since #305 merged at 04:04:35Z**: fifteen green pull requests open, the head #306 reads
+  `waiting_on: merge`, `mergeable_state: unknown`, no host error — the 2026-09-23 freeze shape,
+  and not runner starvation this time (two CI runs from this branch since 04:00Z, not 27).
+  Nothing here can wake the actor; if it does not wake by itself, #319 and the root do not land
+  before 07:00Z. First draft of `bugs.md` written (36 consolidated items from 176 headings).
