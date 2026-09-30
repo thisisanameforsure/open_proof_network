@@ -153,3 +153,8 @@
   logs. Cause unknown from inside: memory is 16 GiB with 0.5 used after the restart, so not an
   OOM of the agents; the restarts are the platform's. Every agent writes its log as it goes and
   every restart so far has kept the disk, so the cost is the killed agent's context, not its work.
+- 00:28Z check-in #10. No restart since 23:59Z. Merges #266 (69-D's approach record), #268, #269
+  (spec-ffd3137a), #271 (69-A's dilated-tail node); 33 open, in order #272 … #312; 170 bug
+  headings. 1050-W3-1 submitted the proof of spec-ffd3137a as #311 within twelve minutes of its
+  node merging. #292 (h3) is 13th (~02:15Z), so 1050-W3-2 stays deferred; #302 and #304 are 22nd
+  and 24th, so 69-W3-2 and 402-W3-1 stay deferred. Pushed.
