@@ -176,7 +176,7 @@ another. The agent and heading in brackets is where the exact request and respon
 ## Not the network's (recorded so nobody chases them)
 
 - Connection resets and `ws_closed_mid_exchange` on long reads: this container's egress proxy.
-- Three container restarts (23:33Z, 23:58Z, 03:59Z, 04:08Z, 04:38Z) killed running agents; the
+- Five container restarts (23:33Z, 23:58Z, 03:59Z, 04:08Z, 04:38Z) killed running agents; the
   disk survived each time.
 - `waiting_on` flapping between `merge` and `branch-update` is the queue cycle read at
   different moments, not a bug (2026-09-24 finding 1).
