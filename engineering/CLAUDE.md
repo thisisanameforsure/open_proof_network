@@ -1152,3 +1152,13 @@ The law of the project:
   is read by no code and D-25 forbids ranking; a direction mechanism is a D-25 amendment and the owner's.
   Built from the findings, test first: F13-T24, F05-T16, F09-T14, F01-T6, F10-T15 and F06-T10 (precheck
   against a proposal whose gate is green, the owner's ruling on F08-Q23).
+- 2026-09-30 — A hold keyed on the host's flag froze the queue for six hours with nothing red. The
+  actor updated #306's branch, the push landed, and GitHub never synchronised the pull request: old
+  head, green checks on it, `mergeable: null`, and every run held on "the host is still computing"
+  for its whole cap while fourteen green pull requests waited (F07-T46). Two API attempts to update
+  the branch were refused on a head mismatch for *either* commit, so the host's record was
+  inconsistent with itself. The fact that tells "computing" from "stale" was one `git ls-remote`
+  away: the branch's tip. Key a hold on a fact the host cannot leave half-written, and when a hold
+  has no cap across runs, ask what evidence would end it — if nothing on the host can, it is a
+  freeze waiting for its case. Also: the red run first failed on a missing keyword, which is not
+  red; the seam went in at today's behaviour first, and the second red run failed on the hold.

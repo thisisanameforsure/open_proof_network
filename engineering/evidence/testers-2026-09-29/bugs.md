@@ -18,7 +18,7 @@ below, that leaves:
 
 | Item | After the merges |
 |---|---|
-| 3 (serial queue) | **Part.** Appends batch; proposals and proofs (`submit/`, `propose/`) stay serial with the post-merge hold; the 04:04Z freeze is not addressed (root cause under item 3). |
+| 3 (serial queue) | **Part.** Appends batch; proposals and proofs (`submit/`, `propose/`) stay serial with the post-merge hold. The 04:04Z freeze is root-caused under item 3 and fixed as F07-T46 on graph branch `f07-t46-hold-cap` (this PR), live when the owner merges it. |
 | 12 (`/check` okay on non-proofs) | **Open.** Only the "no `node_id`" case moved: the target is now derived from `node_id`; `admit`, `apply?`, refused headers, renamed binders are unchanged. |
 | 13 (nothing possible until a proposal merges) | **Mostly fixed.** `POST /precheck` and `/check` verify run at the proposal's head once its gate is green, and the job says so in `proposal`. Still waits for the merge: submit, annex, claim, and any hole of an open skeleton (item 24). The wrong-`target_id` `products-pending` case is untouched. |
 | 16 (blocked by a sibling's witness) | **Open**; but a claim receipt now lists the pull requests open on the node (`open_submissions`), which is the missing name for a caller who claims first. |
@@ -59,18 +59,22 @@ the budget on. It is cheap per node today; it is the shape to watch.
    `mergeable_state: unknown` (the 2026-09-23 freeze shape; not root-caused from here). [69-B B1,
    402-D B2, 402-E B4, 1050-P1 W1 and every Handoff] *After 2026-09-30: appends batch (graph
    #225); proposals and proofs still serial; freeze open.*
-   **Root-caused 2026-09-30 10:10Z from the actor's own log.** The freeze ran from 04:04Z to at
-   least 10:10Z. Every actor run (1097 by wake, 1098 by schedule 08:36–08:52Z, 1099 after #225)
+   **Root-caused 2026-09-30 from the actor's own logs and the graph's refs (fixed as F07-T46).**
+   The freeze ran from 04:04Z to at least 10:20Z. Run 1094 picked #306 (a `submit/` proof on
+   erdos-69, green, behind main) and updated its branch at 04:09:38Z; the push landed (the branch
+   moved from `641260d5` to `d74ba77c`, a merge of `gate: #305 pass` into the proof commit) and
+   GitHub never synchronised the pull request: at 10:12Z it still reported head `641260d5`,
+   `updated_at` 22:45:44Z, no gate run on `d74ba77c` and `mergeable: null`, and an update through
+   the API was refused "expected head sha didn't match current head ref" for either commit. Every
+   run since (1095 to 1101) read the old head's checks as green and its mergeability as unknown,
    printed `#306 is green; the host is still computing whether it conflicts: holding` every 20 s
-   for the 15-minute settle cap and ended with `merge actor: hold`. #306 (a `submit/` proof on
-   erdos-69, opened 22:45Z, never updated, base 84be4a3) has had `mergeable: null` /
-   `mergeable_state: unknown` for over eleven hours; GitHub never finished computing it. The
-   rule in `decide` (`conflict is None` → hold, F07-T32) has no cap across runs, so one pull
-   request the host never classifies holds fourteen green ones behind it forever. Graph PR #225
-   (merged 09:58Z) keeps that rule for a building pull request at the head, so batching does not
-   lift this freeze. Candidate fixes for the owner: after a bounded number of holds on the same
-   head, update its branch (which makes the host recompute) or pass it over as it does a
-   conflict; and count the holds per head across runs, not per run.
+   for the 15-minute settle cap, and ended `merge actor: hold`; T32's hold has no cap across runs,
+   so fourteen green pull requests waited behind it for six hours and nothing was red. Graph PR
+   #225 keeps that rule, so batching does not lift it. The fix (F07-T46, graph branch
+   `f07-t46-hold-cap`, network PR #24): the actor reads each candidate's branch tip and passes
+   over a pull request whose recorded head is not its tip, or whose branch is gone, with a notice.
+   #306 itself stays stuck until a person closes and resubmits it, or pushes to it in a way the
+   host registers.
 4. **The hole extractor ignores `clear`, so a later hole inherits an earlier one it does not
    use.** C (1050-C B1, 1050-D B1, 1050-E B4; live on erdos-1050--h1-v2--h4, whose witness had
    to carry all of h3's 845-line proof, and #294 did exactly that). The same proof then passes
