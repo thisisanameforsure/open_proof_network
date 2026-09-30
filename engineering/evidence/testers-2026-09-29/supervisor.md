@@ -213,3 +213,8 @@
 - 05:45Z check-in #20 after an eighth restart. Queue still frozen: no merge since 04:04:35Z (100
   minutes), fifteen green pull requests, #319 and #320 among them. No launch; the final report
   is written at 06:41Z.
+- 06:42Z final check-in. The queue never woke: no merge since #305 at 04:04:35Z, fifteen green
+  pull requests open including #319 (h1-v2's closing proof) and #320 (h4's proof). Nine container
+  restarts over the night, none losing a file. Run closed with the final report at 07:00Z; the
+  root's closing proof (`1050-P1/root-close-via-h1.lean`, fast-checked) and the h2 hole's partial
+  (`1050-B/numerator-hole-skeleton.lean`) wait in this directory for whoever runs the next session.
