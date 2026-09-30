@@ -32,13 +32,13 @@ import re
 import threading
 import time
 from collections.abc import Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from typing import TYPE_CHECKING, Any
 
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from opn_api import auth, frontier, identity, precheck, ratelimit
+from opn_api import auth, frontier, identity, pending, precheck, ratelimit
 from opn_api import clock as clockmod
 from opn_api.axle import AxleAnswer, AxleError
 from opn_api.store import CheckLog
@@ -106,6 +106,11 @@ def mapping(ctx: Context | None = None) -> hosted.HostedMapping:
 # --- the body and the caller ---------------------------------------------------------------------
 
 
+#: A request's ``target_id`` until ``resolve_target`` reads it off the node: the caller sent a
+#: ``node_id`` and no ``target_id``, and a node belongs to one target, which the products name.
+TARGET_FROM_NODE = ""
+
+
 @dataclass(frozen=True)
 class CheckRequest:
     target_id: str
@@ -129,11 +134,18 @@ class Caller:
 def parse_body(ctx: Context, fields: dict[str, Any]) -> CheckRequest:
     # A key outside FIELDS was already refused by identity.body_fields (F05-T8, Q10).
     target_id = fields.get("target_id")
-    if not isinstance(target_id, str) or not ID_RE.match(target_id):
+    if target_id is not None and (not isinstance(target_id, str) or not ID_RE.match(target_id)):
         raise api_error(400, "target-id-invalid", "target_id must match ^[a-z0-9][a-z0-9-]*$")
     node_id = fields.get("node_id")
     if node_id is not None and (not isinstance(node_id, str) or not ID_RE.match(node_id)):
         raise api_error(400, "node-id-invalid", "node_id must match ^[a-z0-9][a-z0-9-]*$")
+    if target_id is None and node_id is None:
+        # Missing, not malformed (lead's probe, 2026-09-27): say both ways to name the target.
+        msg = (
+            "name the target: send target_id, or a node_id and the node's own target is used; "
+            "a statement that is not a node yet needs target_id"
+        )
+        raise api_error(400, "target-id-required", msg)
     mode = fields.get("mode", "check")
     if mode not in MODES:
         raise api_error(400, "mode-invalid", f"mode must be one of {', '.join(MODES)}")
@@ -157,7 +169,9 @@ def parse_body(ctx: Context, fields: dict[str, Any]) -> CheckRequest:
     size = len(content.encode("utf-8"))
     if size > ctx.settings.check_max_bytes:
         raise too_large(ctx, "content", size)
-    return CheckRequest(target_id, node_id, content, mode, statement, fields.get("deps"))
+    return CheckRequest(
+        target_id or TARGET_FROM_NODE, node_id, content, mode, statement, fields.get("deps")
+    )
 
 
 def too_large(ctx: Context, what: str, size: int) -> Exception:
@@ -257,14 +271,42 @@ def hosted_for(ctx: Context, target_id: str) -> tuple[str | None, hosted.Hosted 
     return sha, hosted.lookup(mapping(), sha if isinstance(sha, str) else None)
 
 
-def statement_of(ctx: Context, target_id: str, node_id: str) -> layout.Statement | None:
-    facts = precheck.node_facts(ctx, node_id)
+def resolve_target(ctx: Context, req: CheckRequest) -> CheckRequest:
+    """The request with its target read off its node (``precheck.node_facts``, as the precheck
+    and ``get_node`` find a node): derived when the caller sent none, and a ``target_id`` the node
+    does not belong to refused as the mismatch it is, before anything is looked up under it. An
+    unknown or pending node is ``node_facts``' own answer, except that a node in an open proposal
+    whose gate is green is read from the proposal (F06-T10, ``precheck.facts_or_proposal``)."""
+    if req.node_id is None:
+        return req
+    actual = str(precheck.facts_or_proposal(ctx, req.node_id)[0]["target_id"])
+    if req.target_id == TARGET_FROM_NODE:
+        return replace(req, target_id=actual)
+    if req.target_id != actual:
+        msg = (
+            f"{req.node_id} belongs to {actual}, not {req.target_id}; "
+            "send the node's own target_id, or omit target_id and it is derived from the node"
+        )
+        raise api_error(400, "node-target-mismatch", msg, details={"target_id": actual})
+    return req
+
+
+def statement_of(
+    ctx: Context, target_id: str, node_id: str
+) -> tuple[layout.Statement | None, pending.GreenProposal | None]:
+    """The node's statement, from ``main``; or (F06-T10) for a node that exists only in an open
+    proposal whose gate is green, from that proposal's head commit, with the proposal."""
+    facts, proposal = precheck.facts_or_proposal(ctx, node_id)
     if facts["target_id"] != target_id:
         msg = f"{node_id} belongs to {facts['target_id']}, not {target_id}"
         raise api_error(400, "node-target-mismatch", msg)
-    raw = frontier.committed(ctx, f"targets/{target_id}/nodes/{node_id}/Statement.lean")
-    parsed = layout.parse_statement(raw.decode("utf-8"))
-    return parsed if isinstance(parsed, layout.Statement) else None
+    if proposal is not None:
+        text = proposal.statement
+    else:
+        raw = frontier.committed(ctx, f"targets/{target_id}/nodes/{node_id}/Statement.lean")
+        text = raw.decode("utf-8")
+    parsed = layout.parse_statement(text)
+    return (parsed if isinstance(parsed, layout.Statement) else None), proposal
 
 
 def defs_modules(text: str) -> list[str]:
@@ -761,6 +803,50 @@ def hazards_verdict(body: dict[str, Any]) -> dict[str, Any] | None:
     return None
 
 
+def acknowledged(found: dict[str, Any] | None, meta: dict[str, Any]) -> dict[str, Any] | None:
+    """``found`` with each finding that one of ``meta``'s ``acknowledged_hazards`` covers marked
+    ``acknowledged: true`` with that entry's justification. The cover is step 6's own rule
+    (``steps.hazards.evaluate``: checker and location exactly, a justification that says
+    something), asked of one finding at a time; a finding nothing covers is left as it was."""
+    from opn_gate.steps import hazards as gate_hazards  # noqa: PLC0415 — only this path needs it
+
+    acks = gate_hazards.acknowledgments_from(meta)
+    if found is None or not acks:
+        return found
+    marked: list[dict[str, Any]] = []
+    for raw in found["findings"]:
+        ev = gate_hazards.evaluate(gate_hazards.findings_from({"findings": [raw]}), acks)
+        if ev.unacknowledged or not ev.used:
+            marked.append(raw)
+        else:
+            marked.append({**raw, "acknowledged": True, "justification": ev.used[0].justification})
+    return {**found, "findings": marked}
+
+
+def node_hazards(
+    ctx: Context, req: CheckRequest, body: dict[str, Any], *, proposed: bool = False
+) -> dict[str, Any] | None:
+    """Hazards mode's answer: the findings as ``opn-hazards`` prints them and, on a node, what the
+    node's committed ``META.yaml`` already acknowledges (lead's probe, 2026-09-27: erdos-69's
+    div-zero read as work to do). A statement that is not a node yet has acknowledged nothing.
+    F06-T10: a node in a green proposal is read at the proposal's head, where its META.yaml is."""
+    import yaml  # noqa: PLC0415 — only this path reads a META.yaml
+
+    found = hazards_verdict(body)
+    if found is None or req.node_id is None or req.statement is not None:
+        return found
+    if proposed:
+        proposal = pending.green_proposal(ctx, req.node_id)
+        raw: str | bytes = (proposal.meta if proposal is not None else None) or ""
+    else:
+        raw = frontier.committed(ctx, f"targets/{req.target_id}/nodes/{req.node_id}/META.yaml")
+    try:
+        meta = yaml.safe_load(raw) or {}
+    except yaml.YAMLError:
+        return found  # C7: the findings still stand; only the marks are lost
+    return acknowledged(found, meta if isinstance(meta, dict) else {})
+
+
 def target_checkers(ctx: Context, target_id: str) -> list[str]:
     """The hazard checkers the target's ``gate-spec.json`` names, which step 6 runs; one this
     gate does not ship is the gate owner's configuration error, refused by the gate's own words
@@ -1148,9 +1234,11 @@ async def preflight_witness(
 
 
 #: What a proposal's 201 says of its hazard pre-flight (F13-T20): the target's checkers ran and
-#: every finding is acknowledged (or the target names none); the program did not run (the
-#: statement did not elaborate there); or the checker could not be asked.
+#: found nothing (or the target names none); they found something and the proposal acknowledged
+#: every finding; the program did not run (the statement did not elaborate there); or the
+#: checker could not be asked.
 PREFLIGHT_CLEAR = "clear"
+PREFLIGHT_ACKNOWLEDGED = "acknowledged"
 
 
 async def preflight_hazards(  # noqa: PLR0911 — one return per outcome word
@@ -1229,7 +1317,7 @@ async def preflight_hazards(  # noqa: PLR0911 — one return per outcome word
     acks = gate_hazards.acknowledgments_from(meta if isinstance(meta, dict) else {})
     ev = gate_hazards.evaluate(gate_hazards.findings_from(found), acks)
     if not ev.unacknowledged:
-        return PREFLIGHT_CLEAR
+        return PREFLIGHT_ACKNOWLEDGED if found["findings"] else PREFLIGHT_CLEAR
     first = ev.unacknowledged[0]
     raise api_error(
         422,
@@ -1715,7 +1803,12 @@ async def preflight_exhibit(  # noqa: PLR0913 — the caller, the node, the text
 
 
 def statement_mode_text(
-    ctx: Context, req: CheckRequest, statement: layout.Statement, formal: str
+    ctx: Context,
+    req: CheckRequest,
+    statement: layout.Statement,
+    formal: str,
+    *,
+    proposed: bool = False,
 ) -> str:
     """The text sent in a mode that reads the statement: the witness program (F13-T14) or the
     hazard checkers (F13-T20), after ``formal``, the statement with its definitions inlined."""
@@ -1724,12 +1817,32 @@ def statement_mode_text(
     # The caller's own text, not the forwarded one: the definitions and the Context are already
     # in ``formal``, and inlined into an empty witness they read as one. A merged hole's record of
     # what its assembly proved narrows the question as it narrows step 7's (F07-T44); a statement
-    # that is not a node yet has none.
+    # that is not a node yet has none, and neither does a proposed node (F06-T10: no hole is).
     proved: tuple[int, ...] = ()
-    if req.node_id is not None and req.statement is None:
+    if req.node_id is not None and req.statement is None and not proposed:
         meta = frontier.committed(ctx, f"targets/{req.target_id}/nodes/{req.node_id}/META.yaml")
         proved = proved_binders_of(meta)
     return witness_text(formal, req.content, statement.decl_name, proved)
+
+
+def request_statement(
+    ctx: Context, req: CheckRequest
+) -> tuple[layout.Statement | None, str | None, bool]:
+    """The statement a check reads, the node's own Context when it is not fetched from ``main``,
+    and whether the node exists only in a proposal (F06-T10)."""
+    if req.statement is not None:
+        # F13-T16: a statement that is not a node yet, with the Context its proposal would
+        # carry. parse_body has already held it to one sorry-bodied theorem.
+        parsed = layout.parse_statement(without_node_imports(req.statement))
+        statement = parsed if isinstance(parsed, layout.Statement) else None
+        return statement, proposed_context(ctx, req.target_id, req.deps), False
+    if not req.node_id:
+        return None, None, False
+    statement, proposal = statement_of(ctx, req.target_id, req.node_id)
+    if proposal is None:
+        return statement, None, False
+    # F06-T10: a green proposal's node, read at its head; its own Context is on that branch
+    return statement, proposal.context or "", True
 
 
 async def post_check(ctx: Context, request: Request) -> Response:
@@ -1741,6 +1854,7 @@ async def post_check(ctx: Context, request: Request) -> Response:
     started = time.monotonic()
     environment: str | None = None
     try:
+        req = resolve_target(ctx, req)
         sha, hosted = hosted_for(ctx, req.target_id)
         if hosted is None or hosted.environment is None:
             msg = (
@@ -1750,15 +1864,7 @@ async def post_check(ctx: Context, request: Request) -> Response:
             )
             raise api_error(422, "no-hosted-environment", msg, details={"mathlib_sha": sha})
         environment = hosted.environment
-        context: str | None = None
-        if req.statement is not None:
-            # F13-T16: a statement that is not a node yet, with the Context its proposal would
-            # carry. parse_body has already held it to one sorry-bodied theorem.
-            parsed = layout.parse_statement(without_node_imports(req.statement))
-            statement = parsed if isinstance(parsed, layout.Statement) else None
-            context = proposed_context(ctx, req.target_id, req.deps)
-        else:
-            statement = statement_of(ctx, req.target_id, req.node_id) if req.node_id else None
+        statement, context, proposed = request_statement(ctx, req)
         if req.mode in NODE_MODES and statement is None:
             msg = f"{req.node_id}'s Statement.lean has no single sorry-bodied theorem to verify"
             raise api_error(409, "statement-unparsable", msg)
@@ -1792,7 +1898,7 @@ async def post_check(ctx: Context, request: Request) -> Response:
             formal = forwarded_text(statement.text, defs) if statement is not None else None
             if req.mode in STATEMENT_MODES:
                 assert statement is not None and formal is not None  # NODE_MODES, above
-                text = statement_mode_text(ctx, req, statement, formal)
+                text = statement_mode_text(ctx, req, statement, formal, proposed=proposed)
             answer = await asyncio.to_thread(call_checker, ctx, req, text, environment, formal)
             if answer.body.get("error_type") == LEAN_TIMEOUT:
                 raise timed_out(ctx, answer.request_id)
@@ -1847,7 +1953,12 @@ async def post_check(ctx: Context, request: Request) -> Response:
             "log_id": log_id,
             **({"witness": witness_verdict(answer.body)} if req.mode == "witness" else {}),
             # F13-T20: step 6's findings as opn-hazards prints them, ready to acknowledge.
-            **({"hazards": hazards_verdict(answer.body)} if req.mode == "hazards" else {}),
+            # Each one the node's META.yaml acknowledges says so, by step 6's own matching.
+            **(
+                {"hazards": node_hazards(ctx, req, answer.body, proposed=proposed)}
+                if req.mode == "hazards"
+                else {}
+            ),
         }
     )
 

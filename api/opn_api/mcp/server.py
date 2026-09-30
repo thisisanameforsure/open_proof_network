@@ -24,14 +24,15 @@ import json
 import logging
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import httpx
 import jsonschema
 from mcp import types
 from mcp.server.auth.middleware.auth_context import AuthContextMiddleware
 from mcp.server.auth.middleware.bearer_auth import BearerAuthBackend
-from mcp.server.lowlevel import Server
+from mcp.server.lowlevel import NotificationOptions, Server
+from mcp.server.models import InitializationOptions
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.requests import HTTPConnection
@@ -50,15 +51,63 @@ SERVER_NAME = "open-proof-network"
 MCP_PATH = "/mcp"
 TOOLS: tuple[Tool, ...] = (*reads.TOOLS, *writes.TOOLS)
 BY_NAME: dict[str, Tool] = {t.name: t for t in TOOLS}
-INSTRUCTIONS = (
-    "The Open Proof Network's reference MCP server (D-28). Every tool is a lens over plain git "
-    "and HTTP and holds no state: reads need no token, except list_my_claims, which reads your "
-    "own; writes need `Authorization: Bearer "
-    "<token>` and pass their endpoint's status and body through. Three writes need none: "
-    "precheck_submission on the tutorial node; get_token, which turns that passing precheck "
-    "into a token; and check_lean, the non-authoritative fast check (F13). "
-    + demarcate.UNTRUSTED_NOTE
-)
+
+
+def instructions(tutorial: str) -> str:
+    """The handshake's instructions, naming the tutorial node as ``tutorial`` words it
+    (``auth.tutorial_phrase``: by name when the graph can be read)."""
+    return (
+        "The Open Proof Network's reference MCP server (D-28). Every tool is a lens over plain "
+        "git and HTTP and holds no state: reads need no token, except list_my_claims, which "
+        "reads your own; writes need `Authorization: Bearer <token>` and pass their endpoint's "
+        f"status and body through. Three writes need none: precheck_submission on {tutorial} "
+        "(start there; list_frontier leaves it out, because it is proved); get_token, which "
+        "turns that passing precheck into a token; and check_lean, the non-authoritative fast "
+        "check (F13). " + demarcate.UNTRUSTED_NOTE
+    )
+
+
+#: The instructions in the words used when the tutorial node cannot be named.
+INSTRUCTIONS = instructions(auth.TUTORIAL_UNNAMED)
+
+
+class LazyInstructions:
+    """Initialization options whose ``instructions`` are derived only when read. In stateless
+    mode the SDK builds the options for every request, but its session reads ``instructions``
+    only to answer ``initialize``; deriving them eagerly put every graph file in front of every
+    tool call (the read-order tests in ``test_frontier_generation`` pin that it does not)."""
+
+    def __init__(self, base: InitializationOptions, derive: Callable[[], str]) -> None:
+        self._base = base
+        self._derive = derive
+
+    @property
+    def instructions(self) -> str:
+        return self._derive()
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._base, name)
+
+
+class LiveServer(Server[Any, Any]):
+    """The SDK server with instructions derived when a client initialises, not at import: they
+    name the tutorial node from the committed graphs (tester finding 2026-09-27), so moving the
+    ``tutorial`` flag moves the name."""
+
+    def __init__(self, ctx: Context) -> None:
+        super().__init__(SERVER_NAME, version=PROTOCOL_VERSION, instructions=INSTRUCTIONS)
+        self._ctx = ctx
+
+    def create_initialization_options(
+        self,
+        notification_options: NotificationOptions | None = None,
+        experimental_capabilities: dict[str, dict[str, Any]] | None = None,
+    ) -> InitializationOptions:
+        base = super().create_initialization_options(
+            notification_options, experimental_capabilities
+        )
+        lazy = LazyInstructions(base, lambda: instructions(auth.tutorial_phrase(self._ctx)))
+        return cast("InitializationOptions", lazy)
 
 
 @dataclass(frozen=True)
@@ -104,9 +153,7 @@ def error_result(tool: str, doc: dict[str, Any]) -> types.CallToolResult:
 
 def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
     """The SDK server over ``ctx``; ``host`` yields the application the write tools call."""
-    server: Server[Any, Any] = Server(
-        SERVER_NAME, version=PROTOCOL_VERSION, instructions=INSTRUCTIONS
-    )
+    server: Server[Any, Any] = LiveServer(ctx)
 
     # The SDK's registration decorators are unannotated, hence the two ignores.
     @server.list_tools()  # type: ignore[untyped-decorator,no-untyped-call]
@@ -134,12 +181,13 @@ def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
         if tool.needs_bearer and not token:  # R2: refused here, the endpoint never reached
             # A write answers in its envelope; a read of the caller's own records (F05-T14) in
             # the read tools' error shape, with the same code, message and status.
+            body = auth.unauthorized(ctx)
             refusal = (
-                writes.unauthorized()
+                writes.unauthorized(ctx)
                 if tool.write
                 else error(
-                    str(auth.UNAUTHORIZED["error"]),
-                    str(auth.UNAUTHORIZED["message"]),
+                    str(body["error"]),
+                    str(body["message"]),
                     "adapter",
                     status=auth.UNAUTHORIZED_STATUS,
                 )

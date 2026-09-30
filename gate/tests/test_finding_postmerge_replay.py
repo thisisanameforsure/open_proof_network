@@ -136,9 +136,13 @@ def test_a_replay_takes_the_merge_commit_from_the_pull_request(gate_doc: dict[An
 
 
 def test_a_replay_of_a_merge_that_has_its_commit_does_nothing(gate_doc: dict[Any, Any]) -> None:
-    """Idempotent: the ledger appends, so a second run would credit the merge twice."""
+    """Idempotent: the ledger appends, so a second run would credit the merge twice. Restated by
+    F07-T45: the check was ``grep -q "^gate: #$number "``, which misses a number inside a batch's
+    ``gate: #2 #3 pass``; it is now the post-merge program's matcher, run over real subjects in
+    ``test_finding_postmerge_batch.py``."""
     run = find_step(gate_doc)
-    assert 'grep -q "^gate: #$number "' in run or "gate: #$number " in run, run
+    at = run.index('python3 "$helper" credited HEAD "$number"')
+    assert "already has its gate commit" in run[at:].split("fi\n", 1)[0], run[at:]
 
 
 def test_every_step_reads_the_merge_commit_not_the_event_commit(gate_doc: dict[Any, Any]) -> None:

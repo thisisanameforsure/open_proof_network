@@ -97,16 +97,26 @@ class World:
             number, _sha, action = self.decide(*args)
         if not number:
             return
-        pr = self.open[int(number)]
-        self.log.append((self.now, action, pr.number))
         if action == "update":
+            pr = self.open[int(number)]
+            self.log.append((self.now, action, pr.number))
             pr.based_on, pr.started, pr.gate_done = self.main, self.now, self.now + pr.gate_s
-        else:
-            assert action == "merge" and pr.based_on == self.main, "the host refuses a stale merge"
+            return
+        assert action in ("merge", "merge-batch"), action
+        assert not self.bot_commits, "F07-T33: nothing merges while a post-merge job runs"
+        for n in str(number).split():
+            pr = self.open[int(n)]
+            self.log.append((self.now, action, pr.number))
+            # F07-T45: an append may merge behind main (its token bypasses the strict rule); a
+            # building pull request is merged only up to date, and never in a batch
+            assert pr.based_on == self.main or pr.ref.startswith("append/"), (
+                "a stale building merge"
+            )
+            assert action == "merge" or pr.ref.startswith("append/"), "a building one batched"
             del self.open[pr.number]
             self.merged_at[pr.number] = self.now
             self.main += 1
-            self.bot_commits.append(self.now + BOT_S)
+        self.bot_commits.append(self.now + BOT_S)  # one post-merge job commits for the batch
 
     def run(self, until: int, arrivals: dict[int, tuple[int, str, int]]) -> None:
         for second in range(0, until, TICK_S):
@@ -226,12 +236,14 @@ def test_nothing_is_updated_or_merged_while_a_post_merge_job_runs(pick: dict[str
                 postmerge_running=lambda: True,
             )
             assert got == ("", "", "hold"), (ref, behind, got)
-    # and once the job has committed, the same pull request is acted on
-    pulls = [pull(6, "append/fast")]
-    got = pick["decide"](
-        pulls, RULES, lambda _s: green(), lambda _s: 1, now=NOW, postmerge_running=lambda: False
-    )
-    assert got == (6, pulls[0]["head"]["sha"], "update")
+    # and once the job has committed, the same pull request is acted on: a building one is
+    # updated, and (F07-T45) an append is merged behind main rather than updated
+    for ref, expected in (("propose/slow", (6, "update")), ("append/fast", ("6", "merge-batch"))):
+        pulls = [pull(6, ref)]
+        got = pick["decide"](
+            pulls, RULES, lambda _s: green(), lambda _s: 1, now=NOW, postmerge_running=lambda: False
+        )
+        assert got == (expected[0], pulls[0]["head"]["sha"], expected[1]), (ref, got)
 
 
 def test_a_hold_names_no_pull_request_so_the_acting_step_is_skipped(doc: dict[Any, Any]) -> None:

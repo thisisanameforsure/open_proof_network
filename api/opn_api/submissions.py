@@ -194,6 +194,23 @@ def bound_job(
     return job
 
 
+def check_proposal_statement(job: precheck.Job, facts: dict[str, Any]) -> None:
+    """F06-T10: a job run at a proposal's head binds only if the node merged with the statement
+    the job checked. The gate's bounce rule compares the attestation's statement hash with the
+    merged tree and ignores the commit it ran at, so a proposal branch that moved to another
+    statement after the precheck would be refused by the gate; it is refused here first, before
+    a pull request is opened. A job for a node on main was pinned to it, and passes."""
+    if job.proposal and job.statement_hash != facts.get("statement_hash"):
+        raise ApiError(
+            400,
+            "precheck-statement-differs",
+            f"precheck {job.id} ran against pull request #{job.proposal.get('pr_number')} at "
+            f"{str(job.proposal.get('head_sha'))[:12]}, and {job.node_id} merged with a "
+            "different Statement.lean; precheck the proof again against the merged node",
+            details={"prechecked": job.statement_hash, "merged": facts.get("statement_hash")},
+        )
+
+
 #: D-12: where each artifact type lands. A proof, counterexample or vacuity certificate is the
 #: node's ``Proof.lean`` (D-3), or for a proof also an alternate of a proved node (D-25 v3.13);
 #: a partial, and a reduction (a partial with one hole, the gate's ``Artifact.is_reduction``), is
@@ -323,6 +340,7 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
     # node, and a job's digest is over its bundle's paths, so a foreign job's bundle fails
     # `path-forbidden` above before its digest could match (F05-Q7).
     job = bound_job(ctx, identity, fields, bundle.digest)
+    check_proposal_statement(job, facts)
     neighbours = on_the_node(
         ctx, node_id, artifact_type, proved=proved, tutorial=bool(facts["tutorial"])
     )

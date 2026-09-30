@@ -147,7 +147,8 @@ def test_the_mcp_tool_offers_the_mode() -> None:
 
     tool = BY_NAME["check_lean"]
     assert tool.input_schema["properties"]["mode"]["enum"] == list(checks.MODES)
-    assert tool.input_schema["required"] == ["target_id"]  # content is optional in witness mode
+    # Content is optional in witness mode; target_id too, given a node_id (derived from it).
+    assert tool.input_schema["required"] == []
     assert "witness" in tool.description
 
 

@@ -4,8 +4,10 @@ import Lean
 Step 7's expected witness type (F01-R3, Q1).
 
 For `theorem s : ∀ (x₁ : α₁) … (hₖ : Pₖ), C`, the expected witness type is
-`∃ x₁ …, P₁ ∧ … ∧ Pₖ`, where the hypotheses are the binders whose type is a `Prop`; a statement
-with no Prop binders gets `True`. A hypothesis that later binders depend on cannot sit inside a
+`∃ x₁ …, P₁ ∧ … ∧ Pₖ`, where the hypotheses are the binders whose type is a `Prop`. With no
+Prop binders the conjunction is `True`, still under the data binders' existentials:
+`theorem s (n k : ℕ) : ∃ z, …` expects `∃ (n : ℕ) (k : ℕ), True`, and only a statement with no
+binders at all expects plain `True`. A hypothesis that later binders depend on cannot sit inside a
 plain conjunction, so it is quantified existentially instead.
 -/
 open Lean Meta

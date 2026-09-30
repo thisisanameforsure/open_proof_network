@@ -394,6 +394,7 @@ def result_zip(
     verdict: str = "pass",
     runner: str = "hosted",
     tamper: bool = False,
+    statement_hash: str | None = None,
 ) -> bytes:
     """The artifact zip the workflow uploads: one ``result.json`` whose attestation is signed by
     ``key`` as kind ``service``, through the very function the workflow calls (``precheck.sign``).
@@ -404,6 +405,8 @@ def result_zip(
     doc = samples.attestation(
         node_id=node_id, graph_commit=graph_commit, runner=runner, verdict=verdict
     )
+    if statement_hash is not None:  # F06-T10: the hash the run takes of the tree it checked out
+        doc["statement_hash"] = statement_hash
     if key is not None:
         doc = sign_service(doc, key.private)
     if tamper:

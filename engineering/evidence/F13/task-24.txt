@@ -1,0 +1,6 @@
+$ uv run --frozen pytest api/tests/test_finding_check_node_target.py api/tests/test_check_witness_mode.py api/tests/test_finding_hazards_preflight.py gate/tests/test_finding_guide_tester_0924.py -q
+# 2026-09-29T08:37:38Z at f11aba1
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] gate/tests/test_finding_guide_tester_0924.py:113: the graph repo is not checked out
+73 passed, 1 skipped, 2 warnings in 1.26s

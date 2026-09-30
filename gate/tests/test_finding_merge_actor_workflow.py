@@ -214,12 +214,18 @@ def test_a_ruleset_that_requires_no_gate_merges_nothing(pick: dict[str, Any]) ->
 
 
 def test_it_takes_the_oldest_green_one_and_updates_before_it_merges(pick: dict[str, Any]) -> None:
-    pulls = [pull(7, "submit/x"), pull(5, "propose/x"), pull(6, "append/x")]
+    """Restated by F07-T45: #6 was an append, and an append is no longer updated before it merges
+    (it is merged behind main, below). The rule this test is about stands for a building one."""
+    pulls = [pull(7, "submit/x"), pull(5, "propose/x"), pull(6, "submit/y")]
     red = [check(GATE_JOB, "failure"), check(STEP9_JOB, "skipped", id_=2)]
     checks = {f"{5:040d}": red, f"{6:040d}": GREEN, f"{7:040d}": GREEN}
     decide = pick["decide"]
     assert decide(pulls, RULES, checks.__getitem__, lambda _sha: 2) == (6, f"{6:040d}", "update")
     assert decide(pulls, RULES, checks.__getitem__, lambda _sha: 0) == (6, f"{6:040d}", "merge")
+    # F07-T45: the same queue with #6 an append merges it behind main, alone (#7 is building)
+    pulls[2] = pull(6, "append/x")
+    got = decide(pulls, RULES, checks.__getitem__, lambda _sha: 2)
+    assert got == ("6", f"{6:040d}", "merge-batch")
     assert decide(pulls, RULES, lambda _sha: red, lambda _sha: 0) == ("", "", "")
     assert decide([], RULES, checks.__getitem__, lambda _sha: 0) == ("", "", "")
 

@@ -93,8 +93,15 @@ def test_every_witness_pre_flight_word_is_the_services() -> None:
 
 
 def test_every_hazard_pre_flight_word_is_the_services() -> None:
-    words = (checks.PREFLIGHT_CLEAR, checks.PREFLIGHT_INCONCLUSIVE, checks.PREFLIGHT_UNAVAILABLE)
-    assert "`hazards_preflight` says " + ", ".join(f"`{w}`" for w in words[:2]) in FLAT
+    words = (
+        checks.PREFLIGHT_CLEAR,
+        checks.PREFLIGHT_ACKNOWLEDGED,
+        checks.PREFLIGHT_INCONCLUSIVE,
+        checks.PREFLIGHT_UNAVAILABLE,
+    )
+    assert "`hazards_preflight` says `clear` (no findings), `acknowledged` (" in FLAT
+    for word in words:
+        assert f"`{word}`" in FLAT, word
 
 
 def test_the_new_routes_the_guide_names_exist() -> None:
