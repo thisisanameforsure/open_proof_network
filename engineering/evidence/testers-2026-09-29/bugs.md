@@ -73,8 +73,9 @@ the budget on. It is cheap per node today; it is the shape to watch.
    #225 keeps that rule, so batching does not lift it. The fix (F07-T46, graph branch
    `f07-t46-hold-cap`, network PR #24): the actor reads each candidate's branch tip and passes
    over a pull request whose recorded head is not its tip, or whose branch is gone, with a notice.
-   #306 itself stays stuck until a person closes and resubmits it, or pushes to it in a way the
-   host registers.
+   #306 itself was released by the owner at 11:37Z with a push of main into its branch that the
+   host did register; it merged at 11:40Z, and #307 to #310 followed by 12:25Z with the actor
+   running normally.
 4. **The hole extractor ignores `clear`, so a later hole inherits an earlier one it does not
    use.** C (1050-C B1, 1050-D B1, 1050-E B4; live on erdos-1050--h1-v2--h4, whose witness had
    to carry all of h3's 845-line proof, and #294 did exactly that). The same proof then passes
