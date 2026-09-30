@@ -171,3 +171,10 @@
   its proposals merged and a proof submitted on each (nine t0929-3 proofs in the queue). #292
   (h3) is 6th, ~02:15Z, right at 1050-W3-1's cut-off, so the 02:02Z check-in decides whether
   1050-W4-1 carries the closing proofs. Wave-4 prompts generated. Pushed.
+- 02:01Z check-in #13. Up 2:01. Merges #285 (card-25 variant with a declared dependency), #288
+  (the reduction lemma's proof), #289 (402-E's skeleton on h3-v2: the hole erdos-402--h3-v2--h1
+  now exists); 26 open, #290 … #316; 173 bug headings. 402-W3-2 handed off with the dependency
+  test passed end to end (node-pending → products-pending → node-blocked → a passing job with
+  step 8) and #316 (card 25) submitted; 402-W4-2 launched for the new hole's witness. #292 (h3)
+  is 3rd and merges after 1050-W3-1's cut-off, so 1050-W4-1 launched to carry the closing proofs
+  of h1-v2 and the root. Pushed.
