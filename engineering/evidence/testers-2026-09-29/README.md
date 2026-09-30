@@ -79,3 +79,43 @@ Same rule as wave 3: one agent per line, launched only when the line has work in
 | 402-W4-2 | t0929-6 | 402-W3-2 | 01:58Z (the h3-v2 skeleton merged; its hole's witness is due) |
 | 1050-W4-1 | t0929-1 | 1050-W3-1 | 02:01Z (#292 third in the queue, past 1050-W3-1's cut-off) |
 | others | | | when their lines have work |
+
+## Final state (06:20Z, 30 September)
+
+Ninety-five pull requests were opened on the graph by this run (#226–#320): 59 merged, 15 open
+and green when the merge queue froze at 04:04Z, 21 withdrawn (duplicates, superseded versions,
+two accidental probes). Merges ran at one every 6–10 minutes from 19:12Z to 04:04Z except for a
+42-minute stall (19:45–20:27Z, the network repository's CI holding every hosted runner) and the
+freeze from 04:04Z that outlasted the run. Bug headings in the logs: 176, consolidated to 36 items
+in `bugs.md`.
+
+### erdos-1050 (Borwein's route to the irrationality of Σ 1/(2ⁿ − 3))
+
+| Node | Before the run | After the run |
+|---|---|---|
+| `spec-440db0f9` (Gaussian binomial at q = 2 is an integer) | speculative, open | **proved** (#234) |
+| `erdos-1050--h1-v2--h3` (`hden`, the denominator crux) | open | **proved** (#292, 1050-A; an independent proof by 1050-C kept unsent) |
+| `erdos-1050--h1-v2--h4` (`hrem`) | needs a witness | witnessed (#294); proof #320 green, queued |
+| `erdos-1050--h1-v2--h2` (integrality) | open | one-hole partial merged (#290); the hole `--h2--h1` witnessed (#318, queued); its partial ready in `1050-B/` |
+| `erdos-1050--h1-v2` (Borwein's theorem for q = 2, r = −3) | open, four holes | **closing proof #319 green and queued** (1050-P1's text: h3's theorem plus `hrem` proved inline) |
+| `erdos-1050` (the root) | open | closing proof `1050-P1/root-close-via-h1.lean` fast-checked; submittable the moment #319 merges |
+| new nodes | | `spec-1a5ab7c3` proved (#228/#282), `spec-ffd3137a` proposed and its proof #311 queued, `spec-eb1219eb` proved (#251/#305), `spec-180d8b72` merged as a statement (#274) |
+
+### erdos-402 (Graham's gcd problem)
+
+| Node | Before | After |
+|---|---|---|
+| card 9, 10 (`variant-892f5809`, `variant-a5969ff3`) | open | **proved** (#252, #244) |
+| card 16, 18 (`variant-64035064`, `variant-b89de5c4`) | open | **proved** (#264, #279; `decide +kernel` over 71- and 95-value certificates) |
+| card 11, 12, 13, 15, 25, and every set of at most 24 | did not exist | nodes merged; proofs #298 (11) and #304 (13) merged, #299 (12), #307 (15), #316 (25, through a declared dependency), #309 (≤ 24) green and queued |
+| `spec-48bd0126`, `spec-fa8046e4` (structure lemma, colouring reduction) | did not exist | **proved** (#257, #288) |
+| `erdos-402--h3-v2` (the hard hole) | open | skeleton merged (#289): prime and prime+1 cases proved inside, one hole; its witness #317 queued; annexes #265, #277 |
+
+### erdos-69 (Tao–Teräväinen; the root's remaining hole is the theorem)
+
+| What | After |
+|---|---|
+| the record's story | the identity `erdos-69--h1-v2` was already proved; `h2-v2` is the theorem in disguise; annex #297 lays out the literature route and names the external Lean proof; approach record #266 and annex #261 merged |
+| new proved nodes | `spec-2e765953` (summability of the prime sum, #239/#302), `spec-7f0efe19` (CRT window, #238/#301), `spec-13f68833` (#243/#303), `variant-f592e3ab` (any base b ≥ 2, #233/#300) |
+| green and queued | proofs of `spec-c390279b` (#306), `variant-14c6c771` (#308), `spec-e0b917d1` (#310), `spec-9f8cb4ea` (#313), `variant-3a1bcb9a` (#314), `spec-84446025` (#315) |
+| target record | attribution to Erdős 1948 and grade "medium" are wrong (69-C B2); a curator's correction |
