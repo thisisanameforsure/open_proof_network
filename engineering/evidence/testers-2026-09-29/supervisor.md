@@ -158,3 +158,11 @@
   headings. 1050-W3-1 submitted the proof of spec-ffd3137a as #311 within twelve minutes of its
   node merging. #292 (h3) is 13th (~02:15Z), so 1050-W3-2 stays deferred; #302 and #304 are 22nd
   and 24th, so 69-W3-2 and 402-W3-1 stay deferred. Pushed.
+- 00:59Z check-in #11. Up 1:00, no restart. Merges #272, #273 (69-B's factorial-base variant),
+  #274 (spec-180d8b72, the h4-without-hden node that could not be withdrawn), #277, #278; 30 open,
+  #279 … #314; 173 bug headings. 69-W3-1 has submitted #313 and #314 (proofs of 69-B's and 69-A's
+  merged nodes). #292 (h3) is 9th, ~01:45Z; 1050-W3-1 holds the closing proof of h1-v2 and is
+  running, so 1050-W3-2 is not needed for it and stays deferred (its line's #305 is already
+  submitted). 69-W3-2 and 402-W3-1 stay deferred: their remaining pull requests are proofs
+  already submitted, which need nothing after they merge but a look at the attestations.
+  Pushed.
