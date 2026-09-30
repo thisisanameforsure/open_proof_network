@@ -1,0 +1,153 @@
+# F07-T46 green: a pull request whose branch has left its own head no longer holds the queue — decide() passes it over
+# (branch_head_of), records it, the Act step nudges it with POST /merges (main into the branch) and a refused update or
+# single merge is a warning and exit 0, so rewake fires only on a genuine crash.
+# graph branch f07-stuck-pr (not pushed; the tests read it first, then origin/main):
+#   8bb7194b F07-T46: a pull request whose branch has left its own head no longer holds the queue — decide() asks the host for each candidate's branch head and passes over one that is not the pull request's head, the acting step nudges it with a merge of main into its branch (the push that re-syncs it), and a refused update or single merge is a warning and exit 0 so rewake fires only on a genuine crash
+#   715a57a6 F07-T46: the merge actor's seams at today's behaviour (decide takes branch_head_of and stuck; the Act step is handed STUCK), the shape the stuck tests run red against
+#   524ae900 Merge pull request #225 from thisisanameforsure/f07-batch-appends
+# network: 5d97ff5 + the uncommitted tests; 2026-09-30T11:49:51Z
+
+## The incident, as the lead verified it (2026-09-30)
+04:09:36Z PUT pulls/306/update-branch expected_head_sha=641260d5 -> the branch submit/01M3QNGQ... moved to d74ba77c, the pull
+request kept head 641260d5 (refs/pull/306/head too), no synchronize, no gate, no wake; the */15 cron did not fire. 09:58 woken
+by an unrelated merge: decide() chose update #306 at 641260d5, 422 expected head sha didn't match current head ref, Act exit 1,
+rewake, every ~50 s: 89 failed runs in 35 minutes, 15 pull requests behind #306. update-branch with no expected sha: the same
+422. Unstuck by a real push of main merged into the branch, after which the host re-synced the head and ran the gate.
+
+## The new and restated tests (red run: task-46-red.txt — the replay chose #306 1786 times, 1785 failed runs, 15 left open)
+$ uv run --frozen pytest gate/tests/test_finding_merge_actor_stuck.py gate/tests/test_finding_merge_actor_workflow.py gate/tests/test_finding_merge_actor_queue.py gate/tests/test_finding_merge_actor_wakes.py gate/tests/test_finding_merge_actor_batch.py -p no:cacheprovider -v
+============================= test session starts ==============================
+gate/tests/test_finding_merge_actor_stuck.py::test_a_candidate_whose_branch_head_is_not_its_pull_request_head_is_passed_over PASSED [  1%]
+gate/tests/test_finding_merge_actor_stuck.py::test_a_stuck_pull_request_never_holds_the_queue PASSED [  2%]
+gate/tests/test_finding_merge_actor_stuck.py::test_an_unknown_branch_head_changes_nothing PASSED [  4%]
+gate/tests/test_finding_merge_actor_stuck.py::test_the_default_asks_nothing_and_the_batch_skips_a_desynced_append PASSED [  5%]
+gate/tests/test_finding_merge_actor_stuck.py::test_the_morning_of_306_drains_and_306_is_nudged PASSED [  7%]
+gate/tests/test_finding_merge_actor_stuck.py::test_a_stuck_pull_request_alone_is_nudged_once_main_moves PASSED [  8%]
+gate/tests/test_finding_merge_actor_stuck.py::test_each_stuck_pull_request_is_nudged_with_a_merge_of_main_into_its_branch PASSED [ 13%]
+gate/tests/test_finding_merge_actor_stuck.py::test_a_refused_nudge_never_fails_the_run PASSED [ 14%]
+gate/tests/test_finding_merge_actor_stuck.py::test_a_nudge_that_finds_main_already_in_the_branch_says_it_is_still_stuck PASSED [ 15%]
+gate/tests/test_finding_merge_actor_stuck.py::test_stuck_alone_acts_and_dry_runs_without_the_token PASSED [ 17%]
+gate/tests/test_finding_merge_actor_stuck.py::test_the_pick_writes_the_stuck_list_to_the_output PASSED [ 18%]
+gate/tests/test_finding_merge_actor_workflow.py::test_it_is_woken_in_the_base_context_and_never_by_a_pull_request PASSED [ 20%]
+gate/tests/test_finding_merge_actor_workflow.py::test_it_checks_nothing_out_and_runs_no_gate_code PASSED [ 21%]
+gate/tests/test_finding_merge_actor_workflow.py::test_the_jobs_own_token_can_only_read PASSED [ 23%]
+gate/tests/test_finding_merge_actor_workflow.py::test_exactly_one_step_names_the_secret_and_it_dry_runs_without_it PASSED [ 24%]
+gate/tests/test_finding_merge_actor_workflow.py::test_only_branches_the_service_opened_are_candidates PASSED [ 26%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs0-green] PASSED [ 27%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs1-green] PASSED [ 28%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs2-red] PASSED [ 30%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs3-red] PASSED [ 31%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs4-red] PASSED [ 33%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs5-pending] PASSED [ 34%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs6-pending] PASSED [ 36%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs7-pending] PASSED [ 37%]
+gate/tests/test_finding_merge_actor_workflow.py::test_green_is_both_required_checks_finished_and_passed[runs8-green] PASSED [ 39%]
+gate/tests/test_finding_merge_actor_workflow.py::test_the_required_checks_come_from_the_ruleset_by_exact_name PASSED [ 40%]
+gate/tests/test_finding_merge_actor_workflow.py::test_a_ruleset_that_requires_no_gate_merges_nothing PASSED [ 42%]
+gate/tests/test_finding_merge_actor_workflow.py::test_it_takes_the_oldest_green_one_and_updates_before_it_merges PASSED [ 43%]
+gate/tests/test_finding_merge_actor_workflow.py::test_a_green_pull_request_that_conflicts_with_main_is_passed_over PASSED [ 44%]
+gate/tests/test_finding_merge_actor_queue.py::test_a_green_mathlib_pull_request_is_not_starved_by_appends PASSED [ 46%]
+gate/tests/test_finding_merge_actor_queue.py::test_the_queue_is_first_in_first_out_and_everything_merges PASSED [ 47%]
+gate/tests/test_finding_merge_actor_queue.py::test_no_gate_round_is_wasted_on_a_bot_commit_about_to_land PASSED [ 49%]
+gate/tests/test_finding_merge_actor_queue.py::test_an_up_to_date_gating_pull_request_holds_everything_behind_it PASSED [ 50%]
+gate/tests/test_finding_merge_actor_queue.py::test_a_run_that_never_reports_holds_nothing PASSED [ 52%]
+gate/tests/test_finding_merge_actor_queue.py::test_a_pending_pull_request_that_is_behind_holds_nothing PASSED [ 53%]
+gate/tests/test_finding_merge_actor_queue.py::test_the_oldest_green_one_goes_first_even_past_a_newer_gating_one PASSED [ 55%]
+gate/tests/test_finding_merge_actor_queue.py::test_nothing_is_updated_or_merged_while_a_post_merge_job_runs PASSED [ 56%]
+gate/tests/test_finding_merge_actor_queue.py::test_a_hold_names_no_pull_request_so_the_acting_step_is_skipped PASSED [ 57%]
+gate/tests/test_finding_merge_actor_queue.py::test_the_job_may_read_the_runs_it_asks_about_and_nothing_more PASSED [ 59%]
+gate/tests/test_finding_merge_actor_wakes.py::test_a_stale_read_after_the_wake_does_not_strand_the_pull_request PASSED [ 60%]
+gate/tests/test_finding_merge_actor_wakes.py::test_a_finished_post_merge_job_does_not_hold_the_next_update PASSED [ 62%]
+gate/tests/test_finding_merge_actor_wakes.py::test_the_afternoon_of_148_drains_with_no_cron PASSED [ 63%]
+gate/tests/test_finding_merge_actor_wakes.py::test_a_run_whose_jobs_have_all_finished_is_not_running PASSED [ 65%]
+gate/tests/test_finding_merge_actor_wakes.py::test_a_hold_is_decided_again_until_it_resolves PASSED [ 66%]
+gate/tests/test_finding_merge_actor_wakes.py::test_a_hold_that_never_resolves_ends_the_run_at_the_cap PASSED [ 68%]
+gate/tests/test_finding_merge_actor_wakes.py::test_nothing_to_do_is_not_waited_on PASSED [ 69%]
+gate/tests/test_finding_merge_actor_wakes.py::test_a_pull_request_whose_mergeability_is_unknown_is_not_updated PASSED [ 71%]
+gate/tests/test_finding_merge_actor_wakes.py::test_the_post_merge_job_wakes_the_actor_whatever_happened PASSED [ 72%]
+gate/tests/test_finding_merge_actor_wakes.py::test_a_failed_act_wakes_the_actor_again PASSED [ 73%]
+gate/tests/test_finding_merge_actor_wakes.py::test_the_job_is_capped_above_the_settle_loop PASSED [ 75%]
+gate/tests/test_finding_merge_actor_batch.py::test_the_appends_queued_behind_a_proof_merge_in_one_round PASSED [ 76%]
+gate/tests/test_finding_merge_actor_batch.py::test_a_batch_never_moves_main_under_a_post_merge_job PASSED [ 78%]
+gate/tests/test_finding_merge_actor_batch.py::test_a_steady_stream_of_appends_drains_faster_than_one_per_round PASSED [ 79%]
+gate/tests/test_finding_merge_actor_batch.py::test_a_batch_takes_every_green_append_up_to_the_first_green_building_one PASSED [ 81%]
+gate/tests/test_finding_merge_actor_batch.py::test_a_batch_never_includes_a_building_pull_request PASSED [ 82%]
+gate/tests/test_finding_merge_actor_batch.py::test_a_batch_stops_at_the_cap PASSED [ 84%]
+gate/tests/test_finding_merge_actor_batch.py::test_no_batch_while_a_post_merge_job_runs PASSED [ 85%]
+gate/tests/test_finding_merge_actor_batch.py::test_an_up_to_date_gating_pull_request_still_holds_the_line PASSED [ 86%]
+gate/tests/test_finding_merge_actor_batch.py::test_a_batch_ends_at_an_up_to_date_gating_pull_request PASSED [ 88%]
+gate/tests/test_finding_merge_actor_batch.py::test_red_behind_pending_and_conflicting_appends_are_passed_over PASSED [ 89%]
+gate/tests/test_finding_merge_actor_batch.py::test_a_batch_ends_where_the_host_is_still_computing_mergeability PASSED [ 91%]
+gate/tests/test_finding_merge_actor_batch.py::test_one_up_to_date_append_is_merged_as_before PASSED [ 92%]
+gate/tests/test_finding_merge_actor_batch.py::test_the_act_merges_a_batch_in_order_each_at_the_head_it_saw PASSED [ 94%]
+gate/tests/test_finding_merge_actor_batch.py::test_a_failed_merge_in_a_batch_stops_there_and_the_rest_wait PASSED [ 95%]
+gate/tests/test_finding_merge_actor_batch.py::test_a_refused_first_merge_falls_back_to_the_update_it_had_before PASSED [ 97%]
+gate/tests/test_finding_merge_actor_batch.py::test_single_actions_are_as_before PASSED [ 98%]
+gate/tests/test_finding_merge_actor_batch.py::test_the_pick_output_carries_a_batch_through_number_and_sha PASSED [100%]
+============================== 69 passed in 0.57s ==============================
+exit: 0
+
+## The workflow, as committed on the branch (the decision program's new seam and the acting step)
+70:# requests behind it. What unstuck it was a real push of main merged into the branch: the host
+74:# main into its branch (`POST /merges`, base=<branch>, head=main): that push is what re-syncs the
+77:# the pull request is still stuck, which the step says. And a refused update or single merge is a
+78:# warning and exit 0, not a failed job: every such refusal already has a wake after it (a head that
+80:# or cron), and decide() passes the stuck one over meanwhile, so the queue moves. `rewake` fires
+210:          def desynced(number, ref, sha, branch_head_of, stuck):
+215:              head = branch_head_of(ref)
+218:              print(f"#{number}'s branch {ref} is at {head} but the pull request's head is {sha}: stuck, passed over")
+219:              if stuck is not None and (number, ref) not in stuck:
+220:                  stuck.append((number, ref))
+226:              branch_head_of=lambda ref: None, stuck=None,
+241:                  if desynced(number, refs[number], sha, branch_head_of, stuck):
+271:              branch_head_of=lambda ref: None,
+272:              stuck=None,
+287:              F07-T46: `branch_head_of(ref)` is the branch's own head as the host reports it, or
+289:              passed over like a conflict, and appended to `stuck` as (number, ref) when the
+300:                  if desynced(number, refs[number], sha, branch_head_of, stuck):
+327:                          conflicted, now, branch_head_of, stuck,
+401:              latest_stuck = []
+405:                  latest_stuck.clear()
+416:                      branch_head_of=branch_head,
+417:                      stuck=latest_stuck,
+421:              stuck = " ".join(f"{n}:{ref}" for n, ref in latest_stuck)
+424:                  out.write(f"stuck={stuck}\n")
+427:              if stuck:
+428:                  print(f"stuck, to be nudged: {stuck}")
+434:        if: steps.pick.outputs.number != '' || steps.pick.outputs.stuck != ''
+441:          STUCK: ${{ steps.pick.outputs.stuck }}
+446:            exit 0
+448:          # F07-T46: nudge each stuck pull request first (its branch has left its head): the
+454:            if body=$(gh api -X POST "repos/$REPO/merges" -f base="$ref" -f head=main 2>&1); then
+456:                echo "::warning::#$n: $ref already contains main (204), so nothing was pushed and it is still stuck; a person has to push to it"
+461:              echo "::warning::the nudge of #$n ($ref) was refused: $body"
+466:            exit 0
+474:              echo "::warning::the host refused to update #$NUMBER at $SHA; decided again at the next wake"
+475:              exit 0
+495:                echo "::warning::the host refused to merge #$n behind main; updating its branch instead"
+498:                exit 0
+500:                echo "::warning::#$n was not merged; it and the rest of the batch wait for the next run"
+509:              echo "::warning::the host refused to merge #$NUMBER at $SHA; decided again at the next wake"
+
+## make lint / make types / make test-fast, bare, exit codes read
+$ make lint; echo $?
+All checks passed!
+uv run --frozen ruff format --check .
+513 files already formatted
+exit: 0
+$ make types; echo $?
+Success: no issues found in 225 source files
+Success: no issues found in 153 source files
+Success: no issues found in 43 source files
+exit: 0
+$ make test-fast; echo $?
+=========================== short test summary info ============================
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+==== 1 failed, 3079 passed, 106 deselected, 2 warnings in 140.11s (0:02:20) ====
+make: *** [Makefile:29: test-fast] Error 1
+exit: 2
+
+The one failure is gate/tests/test_walkthrough.py::test_graph_copy_is_identical: the graph's AGENTS.md copy (origin/main,
+from the re-pin 7b50a5d2) and this branch's gate/agents/AGENTS.md differ at byte 11556. It fails with this task's changes
+stashed (checked), touches no file of this task, and is the branch being behind the guide the last re-pin copied; not this
+task's to fix (the copy is a D-35 owner act). Every other fast test passes: 3079 passed, 106 deselected.
