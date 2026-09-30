@@ -32,6 +32,18 @@ another. The agent and heading in brackets is where the exact request and respon
    35 minutes with fifteen green pull requests open and the head reading `waiting_on: merge`,
    `mergeable_state: unknown` (the 2026-09-23 freeze shape; not root-caused from here). [69-B B1,
    402-D B2, 402-E B4, 1050-P1 W1 and every Handoff]
+   **Root-caused 2026-09-30 10:10Z from the actor's own log.** The freeze ran from 04:04Z to at
+   least 10:10Z. Every actor run (1097 by wake, 1098 by schedule 08:36–08:52Z, 1099 after #225)
+   printed `#306 is green; the host is still computing whether it conflicts: holding` every 20 s
+   for the 15-minute settle cap and ended with `merge actor: hold`. #306 (a `submit/` proof on
+   erdos-69, opened 22:45Z, never updated, base 84be4a3) has had `mergeable: null` /
+   `mergeable_state: unknown` for over eleven hours; GitHub never finished computing it. The
+   rule in `decide` (`conflict is None` → hold, F07-T32) has no cap across runs, so one pull
+   request the host never classifies holds fourteen green ones behind it forever. Graph PR #225
+   (merged 09:58Z) keeps that rule for a building pull request at the head, so batching does not
+   lift this freeze. Candidate fixes for the owner: after a bounded number of holds on the same
+   head, update its branch (which makes the host recompute) or pass it over as it does a
+   conflict; and count the holds per head across runs, not per run.
 4. **The hole extractor ignores `clear`, so a later hole inherits an earlier one it does not
    use.** C (1050-C B1, 1050-D B1, 1050-E B4; live on erdos-1050--h1-v2--h4, whose witness had
    to carry all of h3's 845-line proof, and #294 did exactly that). The same proof then passes
