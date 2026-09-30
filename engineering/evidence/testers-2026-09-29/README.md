@@ -77,5 +77,5 @@ Same rule as wave 3: one agent per line, launched only when the line has work in
 | Agent | Pseudonym | Continues | Launched |
 |---|---|---|---|
 | 402-W4-2 | t0929-6 | 402-W3-2 | 01:58Z (the h3-v2 skeleton merged; its hole's witness is due) |
-| 1050-W4-1 | t0929-1 | 1050-W3-1 | if #292 merges after 1050-W3-1's cut-off |
+| 1050-W4-1 | t0929-1 | 1050-W3-1 | 02:01Z (#292 third in the queue, past 1050-W3-1's cut-off) |
 | others | | | when their lines have work |
