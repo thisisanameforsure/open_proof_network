@@ -194,3 +194,7 @@
   176 bug headings. #319 (h1-v2's closing proof) is 17th, ~05:50Z. Pushed.
 - 04:00Z a third container restart (uptime 0 min at 03:59:59Z); no agent was running, the disk
   survived again. Pushed.
+- 04:08Z check-in #17, after a fourth restart (uptime 0 min at 04:08Z; no agent running). Merges
+  #303, #304 (card 13), #305 (spec-eb1219eb's proof); 15 open, #306 … #320; 176 bug headings.
+  #319 is 14th, ~06:00Z; wave-5 prompts generated; 1050-W5-1 launches at ~05:20Z for the root.
+  The 04:00Z push went through before the restart.
