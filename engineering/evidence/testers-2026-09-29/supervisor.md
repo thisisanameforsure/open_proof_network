@@ -183,3 +183,9 @@
   1050-A's 845-line proof, with 1050-C's independent proof kept unsent. Also merged #290 (h2's
   one-hole partial), #291, #293; 24 open, #294 … #318; 174 bug headings. 1050-W4-1 is on the
   closing proof of h1-v2 now. Pushed.
+- 03:05Z check-in #15. Up 3:05. Merges #294 (h4's witness: h4 is open at last), #296, #297 (69-C's
+  annex on the literature route), #298 (402-G's card-11 proof); 22 open, all proofs and witnesses
+  now (#299 … #320); 175 bug headings. 1050-W4-1 has submitted **#319, the closing proof of
+  erdos-1050--h1-v2 through h3 with hrem proved inline** (precheck pass), and #320, the proof of
+  h4. #319 is 21st in the queue, ~05:50Z at eight minutes a merge; the root's closing proof goes
+  in after it merges, which lands the root at about the run's end. Pushed.
