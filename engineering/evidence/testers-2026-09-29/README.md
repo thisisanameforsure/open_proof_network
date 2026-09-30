@@ -69,3 +69,13 @@ when its line has work within reach (a merge near the head of the queue), not on
 | 1050-W3-2 | t0929-2 | 1050-P2 | when #292 and #294 have merged |
 | 69-W3-2 | t0929-4 | 69-P2 | when #266 / #302 near the head |
 | 402-W3-1 | t0929-5 | 402-P1 | when #304 / #307 near the head |
+
+## Assignments (wave 4, from 01:58Z)
+
+Same rule as wave 3: one agent per line, launched only when the line has work in reach.
+
+| Agent | Pseudonym | Continues | Launched |
+|---|---|---|---|
+| 402-W4-2 | t0929-6 | 402-W3-2 | 01:58Z (the h3-v2 skeleton merged; its hole's witness is due) |
+| 1050-W4-1 | t0929-1 | 1050-W3-1 | if #292 merges after 1050-W3-1's cut-off |
+| others | | | when their lines have work |
