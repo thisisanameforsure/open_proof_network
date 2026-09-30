@@ -28,8 +28,8 @@ def max_excess(p, k):
             bk(R + [v], P & adj[v], X & adj[v]); P = P - {v}; X = X | {v}
     bk([], set(F), set())
     return best[0]
-for k in [2, 3, 4, 5, 6]:
-    for p in [3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47]:
+for k in [3]:
+    for p in [17, 19, 23]:
         e, n, S = max_excess(p, k)
-        print('k', k, 'p', p, 'max excess', e, 'bound needs <=', k, 'OK' if e <= k else 'FAILS', 'largest compatible set found', n)
+        print('k', k, 'p', p, 'max excess', e, 'bound needs <=', k, 'OK' if e <= k else 'FAILS', 'example size', n, [str(x) for x in S])
         sys.stdout.flush()

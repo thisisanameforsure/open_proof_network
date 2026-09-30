@@ -1,0 +1,210 @@
+{
+ "id": "01M3QVD3TGN6F9YJRCTXSXNDYE",
+ "node_id": "spec-9f8cb4ea",
+ "target_id": "erdos-69",
+ "state": "done",
+ "created": "2026-09-30T00:28:34Z",
+ "graph_commit": "c15265209f413b7c1eae3ddcd056c40299ff31ee",
+ "bundle_digest": "1db9cebfe4566df616c57ab29517b132eab9134beef60fe4c962e295714290f8",
+ "authenticated": true,
+ "result": {
+  "attestation": {
+   "artifact_hash": "23f61a74ecc47f1339e8c54e2bad90b79becaf120dec57bde0e8429b6dda102e",
+   "diagnostic": null,
+   "first_failing_step": null,
+   "gate_spec_hash": "51011fcedb4c150a7d7f470506aa2ef9e407cf8a24c579d3bdef6a3263b14a68",
+   "graph_commit": "c15265209f413b7c1eae3ddcd056c40299ff31ee",
+   "graph_id": "erdos-69",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "3422bb401108f24a3006877a2af929894564a1c1",
+   "node_id": "spec-9f8cb4ea",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v5",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-09-30T00:31:21Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQLu18tWy/Ei3pKx9Qpv1v+tZn7t/aQd0oxtgY8cI20NK/UVELQ\nErxbBpqJ7B8+5mGVX9tHQRxg+rF836K5nZ7AQ=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "2e350ae9102ad16fe67d7dd4b7b1afd2a17673d1cab2a17c8fd29c16b31a5afe",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": null,
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": null,
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "pass",
+     "step": 5
+    },
+    {
+     "diagnostic": {
+      "code": "hazards-acknowledged",
+      "details": {
+       "acknowledged": [
+        {
+         "checker": "div-zero",
+         "justification": "p ranges over the prime factors of a, so p ≥ 2 and the real divisor 2^p − 1 is at least 3, never 0.",
+         "location": "2 ^ (m % p) / (2 ^ p - 1)"
+        },
+        {
+         "checker": "div-zero",
+         "justification": "p ranges over the prime factors of a, so p ≥ 2, never 0.",
+         "location": "m % p"
+        },
+        {
+         "checker": "div-zero",
+         "justification": "The real divisor 2^(k+1) is positive for every k, never 0.",
+         "location": "↑(ω (a * (m + (k + 1)))) / 2 ^ (k + 1)"
+        },
+        {
+         "checker": "div-zero",
+         "justification": "The real divisor 2^(k+1) is positive for every k, never 0.",
+         "location": "↑(ω (m + (k + 1))) / 2 ^ (k + 1)"
+        }
+       ]
+      },
+      "message": "4 hazard finding(s) acknowledged in META.yaml"
+     },
+     "name": "hazards",
+     "result": "pass",
+     "step": 6
+    },
+    {
+     "diagnostic": null,
+     "name": "witness",
+     "result": "pass",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "pass",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "pass"
+  },
+  "bundle_digest": "1db9cebfe4566df616c57ab29517b132eab9134beef60fe4c962e295714290f8",
+  "first_failing_step": null,
+  "job_id": "01M3QVD3TGN6F9YJRCTXSXNDYE",
+  "node_id": "spec-9f8cb4ea",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": null,
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": null,
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "pass",
+    "step": 5
+   },
+   {
+    "diagnostic": {
+     "code": "hazards-acknowledged",
+     "details": {
+      "acknowledged": [
+       {
+        "checker": "div-zero",
+        "justification": "p ranges over the prime factors of a, so p ≥ 2 and the real divisor 2^p − 1 is at least 3, never 0.",
+        "location": "2 ^ (m % p) / (2 ^ p - 1)"
+       },
+       {
+        "checker": "div-zero",
+        "justification": "p ranges over the prime factors of a, so p ≥ 2, never 0.",
+        "location": "m % p"
+       },
+       {
+        "checker": "div-zero",
+        "justification": "The real divisor 2^(k+1) is positive for every k, never 0.",
+        "location": "↑(ω (a * (m + (k + 1)))) / 2 ^ (k + 1)"
+       },
+       {
+        "checker": "div-zero",
+        "justification": "The real divisor 2^(k+1) is positive for every k, never 0.",
+        "location": "↑(ω (m + (k + 1))) / 2 ^ (k + 1)"
+       }
+      ]
+     },
+     "message": "4 hazard finding(s) acknowledged in META.yaml"
+    },
+    "name": "hazards",
+    "result": "pass",
+    "step": 6
+   },
+   {
+    "diagnostic": null,
+    "name": "witness",
+    "result": "pass",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "pass",
+    "step": 8
+   }
+  ],
+  "verdict": "pass"
+ },
+ "public": true
+}
