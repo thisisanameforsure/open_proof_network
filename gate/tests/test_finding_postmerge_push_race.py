@@ -23,7 +23,7 @@ from opn_gate import config
 
 ROOT = Path(__file__).resolve().parents[2]
 GRAPH_REPO = ROOT.parent / "open_proof_network_graph"
-REFS = ("f07-batch-appends", "origin/main", "f07-t29-postmerge-push")  # F07-T45 first until pushed
+REFS = ("origin/main", "f07-t29-postmerge-push")
 STEP = "Commit the attestation and the products"
 
 
