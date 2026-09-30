@@ -148,3 +148,8 @@
   Deferred: 1050-W3-2 until #292 nears the head (~02:00Z), 402-W3-1 until #304 nears (~03:30Z),
   69-W3-2 (its #266 merges now and only needs a look at the page, which the next check-in does;
   #302 is 27th). Pushed.
+- 23:59Z a second container restart (uptime 0 min at 23:59Z; the first was ~23:33Z), killing the
+  three wave-3 agents; files intact again. Relaunched all three as continuations of their own
+  logs. Cause unknown from inside: memory is 16 GiB with 0.5 used after the restart, so not an
+  OOM of the agents; the restarts are the platform's. Every agent writes its log as it goes and
+  every restart so far has kept the disk, so the cost is the killed agent's context, not its work.
