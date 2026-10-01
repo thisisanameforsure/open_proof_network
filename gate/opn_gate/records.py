@@ -173,7 +173,7 @@ def circular_claim(node_dir: Path) -> str | None:
     relative to the node — the first by file name, so the oldest (D-13's stamp) — or ``None``.
 
     Derive, never rewrite (F08-T10): the claim file is the fact, merged only once the gate had
-    checked its ancestor and elaborated its exhibit as ``ancestor → node`` in the sandbox, so
+    checked its ancestor and elaborated its exhibit as ``node → ancestor`` in the sandbox, so
     nothing here re-checks the mathematics. A file that does not read as a valid
     ``circular-decomposition`` claim is logged and passed over: defect claims are appends anyone
     files, and one bad file must never decide whether the graph has products (2026-09-17).

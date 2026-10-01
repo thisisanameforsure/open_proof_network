@@ -592,10 +592,12 @@ def circular_marks(
 
     ``claims`` maps a hole to its claims, each ``(defects/<file>, ancestor)`` with the ancestor
     already read through its revision chain. A claim speaks while its hole is open
-    (``CIRCULAR_OPEN_STATUSES``). The ancestor implies the hole; the hole, with every sibling on
-    the way proved, implies each node back up the path — so every open node *strictly between*
-    the two, on a path of :func:`circular_path_edge` edges, is the ancestor restated, and is no
-    more work than the ancestor is. The ancestor itself stays open: it is the problem.
+    (``CIRCULAR_OPEN_STATUSES``). The hole implies the ancestor (the exhibit, F08-T21); with
+    every sibling on the way proved, each node up the path implies its parent and so the ancestor
+    too — so every open node *strictly between* the two, on a path of :func:`circular_path_edge`
+    edges, is the ancestor restated by the claim's own measure: a proof of it would be a proof of
+    the ancestor, and no progress is made by working from it. The ancestor itself stays open: it
+    is the problem.
 
     Returns ``(on_path, below)``: each such node mapped to the first claim (by hole, then file)
     that takes it, and each ancestor mapped to every claim that circles back to it. A claim is
