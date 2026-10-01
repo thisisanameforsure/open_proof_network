@@ -183,7 +183,11 @@ def spent(h: Harness, remaining: int = 0, *, ahead_s: int = RESET_IN_S) -> HostB
 def annex(h: Harness, token: str, n: int = 0) -> dict[str, Any]:
     r = h.client.post(
         "/annexes",
-        json={"node_id": TUTORIAL_NODE, "text": f"An informal argument, number {n}.\n"},
+        json={
+            "node_id": TUTORIAL_NODE,
+            "text": f"An informal argument, number {n}.\n",
+            "licence": "CC-BY-4.0",
+        },
         headers=h.auth(token),
     )
     assert r.status_code == 201, r.text
@@ -258,7 +262,7 @@ def test_opening_a_pull_request_refused_for_budget_is_a_503(harness: Harness) ->
     harness.githost.rate_limited = spent(harness)
     r = harness.client.post(
         "/annexes",
-        json={"node_id": TUTORIAL_NODE, "text": "An informal argument.\n"},
+        json={"node_id": TUTORIAL_NODE, "text": "An informal argument.\n", "licence": "CC-BY-4.0"},
         headers=harness.auth(token),
     )
     assert_budget_refusal(r)

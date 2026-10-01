@@ -38,7 +38,8 @@ _ANNEXES = iter(range(1_000_000))
 def annex(h: Harness, token: str, node: str = TUTORIAL_NODE) -> dict[str, Any]:
     # each a different argument: an identical annex open for the node is refused (F07-T35)
     text = f"An informal argument, number {next(_ANNEXES)}.\n"
-    r = h.client.post("/annexes", json={"node_id": node, "text": text}, headers=h.auth(token))
+    body = {"node_id": node, "text": text, "licence": "CC-BY-4.0"}  # F05-T17: always sent
+    r = h.client.post("/annexes", json=body, headers=h.auth(token))
     assert r.status_code == 201, r.text
     doc: dict[str, Any] = r.json()
     return doc

@@ -70,7 +70,11 @@ def submit_proof(h: Harness, key: PrecheckKey, token: str) -> dict[str, Any]:
 def submit_annex(h: Harness, token: str) -> dict[str, Any]:
     r = h.client.post(
         "/annexes",
-        json={"node_id": TUTORIAL_NODE, "text": "Both conjuncts are already in hand.\n"},
+        json={
+            "node_id": TUTORIAL_NODE,
+            "text": "Both conjuncts are already in hand.\n",
+            "licence": "CC-BY-4.0",
+        },
         headers=h.auth(token),
     )
     assert r.status_code == 201, r.text  # guard

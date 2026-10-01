@@ -60,7 +60,9 @@ def h(request: pytest.FixtureRequest) -> Iterator[Harness]:
 def annex(h: Harness, token: str) -> dict[str, Any]:
     text = f"An informal argument, number {next(_N)}.\n"
     r = h.client.post(
-        "/annexes", json={"node_id": TUTORIAL_NODE, "text": text}, headers=h.auth(token)
+        "/annexes",
+        json={"node_id": TUTORIAL_NODE, "text": text, "licence": "CC-BY-4.0"},
+        headers=h.auth(token),
     )
     assert r.status_code == 201, r.text
     doc: dict[str, Any] = r.json()

@@ -21,7 +21,9 @@ FAILED_GATE = {"name": "gate", "status": "completed", "conclusion": "failure", "
 
 def annex(h: Harness, token: str, node: str = TUTORIAL_NODE) -> dict[str, Any]:
     r = h.client.post(
-        "/annexes", json={"node_id": node, "text": "An informal argument.\n"}, headers=h.auth(token)
+        "/annexes",
+        json={"node_id": node, "text": "An informal argument.\n", "licence": "CC-BY-4.0"},
+        headers=h.auth(token),
     )
     assert r.status_code == 201, r.text
     doc: dict[str, Any] = r.json()

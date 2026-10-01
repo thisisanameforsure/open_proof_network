@@ -162,7 +162,12 @@ def test_a_declared_tooling_string_lands_in_the_annex_and_a_non_string_is_refuse
     harness: Harness,
 ) -> None:
     token = harness.token_for("code_alice", "alice")
-    body = {"node_id": TUTORIAL_NODE, "text": "prose\n", "model_and_tooling": "claude-fable-5-1"}
+    body = {
+        "node_id": TUTORIAL_NODE,
+        "text": "prose\n",
+        "licence": "CC-BY-4.0",
+        "model_and_tooling": "claude-fable-5-1",
+    }
     r = harness.client.post("/annexes", json=body, headers=harness.auth(token))
     assert r.status_code == 201, r.text
     push = harness.githost.pushes[-1]

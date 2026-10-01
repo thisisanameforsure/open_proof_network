@@ -1,0 +1,61 @@
+== F05-T17 annex licence required: RED run, the tests written before the fix — 2026-10-01T04:46:28Z
+$ uv run --frozen pytest api/tests/test_finding_annex_licence_required.py -q -p no:cacheprovider
+FF..F.                                                                   [100%]
+=================================== FAILURES ===================================
+_____________ test_a_missing_licence_is_refused_and_nothing_opens ______________
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7f9897412270>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+>       assert r.status_code == 400, r.text
+E       AssertionError: {"id":"01M230M2G0W0KYSK70PTQD8DPG","path":"targets/propositional/nodes/tutorial-and-swap/annex/54fb212658c95e912ea428196c9b79b1e34dc5129784cac973198a56b7d56c09.md","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"hash":"54fb212658c95e912ea428196c9b79b1e34dc5129784cac973198a56b7d56c09"}
+E       assert 201 == 400
+E        +  where 201 = <Response [201 Created]>.status_code
+api/tests/test_finding_annex_licence_required.py:37: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+_____________________ test_a_null_licence_is_a_missing_one _____________________
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7f9897446ad0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+>       assert r.status_code == 400, r.text
+E       AssertionError: {"id":"01M230M2G0PENJ6XXEBN7PM6R5","path":"targets/propositional/nodes/tutorial-and-swap/annex/54fb212658c95e912ea428196c9b79b1e34dc5129784cac973198a56b7d56c09.md","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"hash":"54fb212658c95e912ea428196c9b79b1e34dc5129784cac973198a56b7d56c09"}
+E       assert 201 == 400
+E        +  where 201 = <Response [201 Created]>.status_code
+api/tests/test_finding_annex_licence_required.py:50: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+____ test_the_mcp_tool_requires_the_licence_and_forwards_nothing_without_it ____
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7f9896b155b0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+>       assert "licence" in tool.input_schema["required"], tool.input_schema["required"]
+E       AssertionError: ['node_id', 'text']
+E       assert 'licence' in ['node_id', 'text']
+api/tests/test_finding_annex_licence_required.py:80: AssertionError
+api/tests/api_fakes.py:31
+=========================== short test summary info ============================
+FAILED api/tests/test_finding_annex_licence_required.py::test_a_missing_licence_is_refused_and_nothing_opens
+FAILED api/tests/test_finding_annex_licence_required.py::test_a_null_licence_is_a_missing_one
+FAILED api/tests/test_finding_annex_licence_required.py::test_the_mcp_tool_requires_the_licence_and_forwards_nothing_without_it
+3 failed, 3 passed, 2 warnings in 0.56s
+
+== F05-T17 annex licence required: GREEN run of the new tests after the fix — 2026-10-01T04:50:06Z
+$ uv run --frozen pytest api/tests/test_finding_annex_licence_required.py -q -p no:cacheprovider
+......                                                                   [100%]
+api/tests/api_fakes.py:31
+6 passed, 2 warnings in 0.49s
+
+== F05-T17 annex licence required: the whole api suite after the fix (fifteen test bodies that implicitly pinned the default now send the licence; none deleted); make lint and mypy api both clean; gate/agents/AGENTS.md's annex example already carried a licence, so the guide is unchanged and a test holds it to that — 2026-10-01T04:50:19Z
+$ uv run --frozen pytest api/tests -q -p no:cacheprovider
+........................................................................ [  6%]
+........................................................................ [ 13%]
+........................................................................ [ 20%]
+........................................................................ [ 26%]
+........................................................................ [ 33%]
+........................................................................ [ 40%]
+........................................................................ [ 47%]
+........................................................................ [ 53%]
+........................................................................ [ 60%]
+........................................................................ [ 67%]
+........................................................................ [ 74%]
+........................................................................ [ 80%]
+........................................................................ [ 87%]
+........................................................................ [ 94%]
+...........................................................              [100%]
+api/tests/api_fakes.py:31
+1067 passed, 2 warnings in 68.00s (0:01:07)
+
