@@ -1,0 +1,11 @@
+M=4 P=2401 lines=1296 log10(modulus)=1329615.4 depth cut U=60
+primes in (2401,3600] not dividing W: 89 (dividing W: 57); sum 1/p=0.0302
+q=      1 kappa_int=5.184e-04 -log|prod phi_p|=1.5523e-05 kappa_eff=5.148e-04 min_p p(1-|phi_p|)=4.319e-04 primes with kappa_p<kappa_int/2: 0  kappa_eff*100^M=5.15e+04 kappa_eff*64^M=8.64e+03
+q=      2 kappa_int=2.073e-03 -log|prod phi_p|=6.2091e-05 kappa_eff=2.059e-03 min_p p(1-|phi_p|)=1.728e-03 primes with kappa_p<kappa_int/2: 0  kappa_eff*100^M=2.06e+05 kappa_eff*64^M=3.46e+04
+q=      3 kappa_int=4.665e-03 -log|prod phi_p|=1.3971e-04 kappa_eff=4.634e-03 min_p p(1-|phi_p|)=3.888e-03 primes with kappa_p<kappa_int/2: 0  kappa_eff*100^M=4.63e+05 kappa_eff*64^M=7.77e+04
+q=      5 kappa_int=1.296e-02 -log|prod phi_p|=3.8807e-04 kappa_eff=1.287e-02 min_p p(1-|phi_p|)=1.080e-02 primes with kappa_p<kappa_int/2: 0  kappa_eff*100^M=1.29e+06 kappa_eff*64^M=2.16e+05
+q=      8 kappa_int=3.317e-02 -log|prod phi_p|=9.9346e-04 kappa_eff=3.295e-02 min_p p(1-|phi_p|)=2.764e-02 primes with kappa_p<kappa_int/2: 0  kappa_eff*100^M=3.29e+06 kappa_eff*64^M=5.53e+05
+q=     64 kappa_int=2.122e+00 -log|prod phi_p|=6.3569e-02 kappa_eff=2.108e+00 min_p p(1-|phi_p|)=1.769e+00 primes with kappa_p<kappa_int/2: 0  kappa_eff*100^M=2.11e+08 kappa_eff*64^M=3.54e+07
+q=   4096 kappa_int=3.687e+03 -log|prod phi_p|=1.2584e+02 kappa_eff=4.174e+03 min_p p(1-|phi_p|)=1.959e+03 primes with kappa_p<kappa_int/2: 0  kappa_eff*100^M=4.17e+11 kappa_eff*64^M=7e+10
+q=   8192 kappa_int=3.929e+03 -log|prod phi_p|=1.3522e+02 kappa_eff=4.485e+03 min_p p(1-|phi_p|)=1.929e+03 primes with kappa_p<kappa_int/2: 1  kappa_eff*100^M=4.48e+11 kappa_eff*64^M=7.52e+10
+q=  12288 kappa_int=4.969e+03 -log|prod phi_p|=1.6744e+02 kappa_eff=5.553e+03 min_p p(1-|phi_p|)=2.152e+03 primes with kappa_p<kappa_int/2: 43  kappa_eff*100^M=5.55e+11 kappa_eff*64^M=9.32e+10
