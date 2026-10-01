@@ -16,8 +16,9 @@ Parameter names follow D-28's rows. Where the endpoint's body spells a field dif
 it carries) the mapping is ``RENAMES`` and nowhere else — every handler builds its body through
 ``present``, which applies it (F09-T7); ``submit_proof`` also takes that id directly as
 ``precheck_job_id``, exactly one of the two; the optional fields the endpoints accept
-beyond D-28's lists (``tooling``, ``licence``, ``model_and_tooling``, ``deps``, ``model``,
-``defect_class``) are offered so the tool is not weaker than its plain path (Q7).
+beyond D-28's lists (``tooling``, ``model_and_tooling``, ``deps``, ``model``,
+``defect_class``) are offered so the tool is not weaker than its plain path (Q7); ``licence`` is
+required of an annex, as the endpoint requires it (F05-T17; D-23).
 """
 
 from __future__ import annotations
@@ -408,7 +409,8 @@ TOOLS: tuple[Tool, ...] = (
     Tool(
         "submit_informal_annex",
         "Attach a content-hashed informal argument to a node (D-31); untrusted data that earns "
-        "nothing. Returns the hash a skeleton must cite.",
+        "nothing. The prose is licensed by its author at submission (D-23): `licence` is "
+        "required. Returns the hash a skeleton must cite.",
         params(
             {
                 "node_id": ID_PARAM,
@@ -416,7 +418,7 @@ TOOLS: tuple[Tool, ...] = (
                 "licence": {"enum": ["CC-BY-4.0", "CDLA-Permissive-2.0", "Apache-2.0"]},
                 "model_and_tooling": {"type": "string"},
             },
-            ("node_id", "text"),
+            ("node_id", "text", "licence"),
         ),
         submit_informal_annex,
         write=True,

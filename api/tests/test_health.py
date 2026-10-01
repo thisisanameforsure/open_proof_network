@@ -13,7 +13,7 @@ from opn_api import config
 def test_health_ok(harness: Harness) -> None:
     r = harness.client.get("/health")
     assert r.status_code == 200
-    assert r.json() == {"ok": True, "store": "memory"}
+    assert r.json() == {"ok": True, "store": "memory", "host_budget": None}  # F07-T47
 
 
 def test_missing_dependency_503() -> None:

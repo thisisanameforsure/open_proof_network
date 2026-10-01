@@ -21,6 +21,11 @@ HTTP client per lookup, not one per call.
 Timing assertions are generous by design: the concurrent snapshot must take under 60 % of the
 serial time, and concurrency is asserted directly as the most lookups the fake host saw in flight
 at once.
+
+F07-T47 (2026-10-01) restated the first two tests: the open records are now reconciled against
+one listing call for the whole queue, so a record the host still lists costs no lookup at all
+and the pool is left with the records the listing lacks (finished or unknown), which is where
+the width still bounds the lookups in flight.
 """
 
 from __future__ import annotations
@@ -89,22 +94,26 @@ def timed_snapshot(h: Harness) -> tuple[float, dict[str, Any]]:
     return elapsed, doc
 
 
-def test_twenty_five_open_records_answer_within_four_lookups_of_time(queue: Harness) -> None:
-    """At 0.2 s a lookup, 25 records serially is 5 s; eight at a time is four rounds (0.8 s).
-    The bound is 60 % of serial, so only a snapshot that is not concurrent can miss it."""
+def test_twenty_five_open_records_are_one_listing_call_and_no_lookup(queue: Harness) -> None:
+    """The rule this test was about: the snapshot's time does not grow with the queue. At 0.2 s
+    a lookup, 25 records serially was 5 s and eight at a time four rounds; since F07-T47 the
+    whole queue is one listing call, so no lookup is made and the time is a listing's."""
     fill(queue)
     queue.githost.pull_latency_s = LATENCY
     elapsed, doc = timed_snapshot(queue)
     assert len(doc["open"]) == OPEN
-    assert queue.githost.pulls_max_in_flight > 1, "the lookups ran one at a time"
-    assert elapsed < 0.6 * OPEN * LATENCY, elapsed
+    assert queue.githost.listing_calls == 1
+    assert queue.githost.pull_lookups == [], "a listed record was read on its own"
+    assert elapsed < LATENCY, elapsed
 
 
 def test_the_width_is_configuration_and_bounds_the_lookups_in_flight() -> None:
+    """The records the listing lacks are the ones still read in full (F07-T47), on the pool."""
     for h in harness_with({"OPN_API_RECONCILE_CONCURRENCY": "3"}):
-        fill(h, 12)
+        fill(h, 12, merged=frozenset({2, 4, 6, 8, 10, 12}))
         h.githost.pull_latency_s = 0.05
         timed_snapshot(h)
+        assert sorted(h.githost.pull_lookups) == [2, 4, 6, 8, 10, 12]
         assert 1 < h.githost.pulls_max_in_flight <= 3, h.githost.pulls_max_in_flight
 
 
@@ -122,7 +131,9 @@ def test_the_concurrent_snapshot_equals_the_serial_one() -> None:
 
 
 def test_one_failing_lookup_leaves_its_row_listed_and_the_rest_reconciled(queue: Harness) -> None:
-    fill(queue, 10, merged=frozenset({5}))
+    """#3 has left the listing and its own read fails: the host could not say, so it stays
+    listed (C7); #5, read fine, is closed."""
+    fill(queue, 10, merged=frozenset({3, 5}))
     queue.githost.pull_failures = {3}
     _, doc = timed_snapshot(queue)
     assert [e["pr_number"] for e in doc["open"]] == [1, 2, 3, 4, 6, 7, 8, 9, 10]

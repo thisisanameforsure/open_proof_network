@@ -42,7 +42,6 @@ POSTMORTEM_SCHEMA = "postmortem/v1"
 ANNEX_SCHEMA = "annex/v1"
 APPROACH_SCHEMA = "approach-record/v1"
 ANNEX_MAX_BYTES = 64 * 1024  # F07 §6
-DEFAULT_LICENCE = "CC-BY-4.0"
 LICENCES: tuple[str, ...] = ("CC-BY-4.0", "CDLA-Permissive-2.0", "Apache-2.0")
 FILE_TIMESTAMP = "%Y%m%dT%H%M%SZ"  # sorts lexically, and is a legal file name everywhere
 
@@ -275,9 +274,18 @@ async def post_postmortems(ctx: Context, request: Request) -> Response:
 
 
 def check_licence(raw: Any) -> str:
-    """D-23's amendment: annex prose is licensed by its author at submission, or not accepted."""
+    """D-23's amendment: annex prose is licensed by its author at submission, or not accepted.
+    F05-T17: an absent licence is refused, not defaulted — until 2026-10-01 it was silently
+    recorded as ``CC-BY-4.0``, a choice the record then attributed to an author who never made
+    it."""
     if raw is None:
-        return DEFAULT_LICENCE
+        raise ApiError(
+            400,
+            "licence-required",
+            "licence is required: the annex is licensed by its author at submission (D-23); "
+            f"one of {', '.join(LICENCES)}",
+            details={"accepted": list(LICENCES)},
+        )
     if raw not in LICENCES:
         raise ApiError(400, "licence-invalid", f"licence must be one of {', '.join(LICENCES)}")
     return str(raw)

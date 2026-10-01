@@ -21,7 +21,9 @@ FAILED_GATE = {"name": "gate", "status": "completed", "conclusion": "failure", "
 
 def annex(h: Harness, token: str, node: str = TUTORIAL_NODE) -> dict[str, Any]:
     r = h.client.post(
-        "/annexes", json={"node_id": node, "text": "An informal argument.\n"}, headers=h.auth(token)
+        "/annexes",
+        json={"node_id": node, "text": "An informal argument.\n", "licence": "CC-BY-4.0"},
+        headers=h.auth(token),
     )
     assert r.status_code == 201, r.text
     doc: dict[str, Any] = r.json()
@@ -53,7 +55,7 @@ def test_get_node_carries_only_its_own_open_submissions_and_drops_the_merged(
 
     harness.githost.set_pull_request_state(1, state="closed", merged=True)
     # The read above cached the open state for the window; age it, as a watcher would wait.
-    window = harness.settings.frontier_max_stale_s
+    window = harness.settings.pull_max_stale_s  # F07-T47: the pull cache's own window
     for cached in harness.context.pulls.values():
         cached.fetched_at = time.monotonic() - (window + 1)
     assert harness.client.get("/submissions/1").json()["submission"]["closed"] is not None

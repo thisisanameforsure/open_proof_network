@@ -6,10 +6,17 @@ ULID or by the pull-request number, padded or not, with the pull request's live 
 the host through the App (read-only), and the attestation its merge wrote once there is one.
 ``GET /submissions.json`` lists every record no live read has found finished.
 
-The live state is cached in ``Context.pulls`` for ``frontier_max_stale_s``, the committed files'
-window. A host failure serves the last state it read with ``pull_request_error`` set — never a
-5xx, never a silent success (C7). A live read that finds the pull request merged or closed closes
-the record with that state, so a finished pull request never costs another host call.
+The live state is cached in ``Context.pulls`` for ``pull_max_stale_s``. A host failure serves the
+last state it read, marked ``stale`` with the ``read_at`` of when it was true, with
+``pull_request_error`` set — never a 5xx, never a silent success (C7). A live read that finds the
+pull request merged or closed closes the record with that state, so a finished pull request never
+costs another host call.
+
+F07-T47: no read here spends the host once the App's budget is at or below the reserve kept for
+writes (``host_budget_reserve``), and a refusal for budget names the reset and carries
+``Retry-After``. The listing reconciles the whole queue against one open-pull-request listing per
+``pull_listing_max_stale_s`` (``GitHost.list_open_pull_requests``) rather than one read per
+record, which is what let eighteen pollers spend the hour's budget.
 
 The record is operational, not evidentiary (C9): what merged is what the graph's attestations
 say, and a pull request opened by hand is answered from its attestation alone.
@@ -30,9 +37,17 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from opn_api import clock as clockmod
-from opn_api import frontier
-from opn_api.app import ApiError, CachedFile, CachedPull
-from opn_api.githost import GATE_WORKFLOW, GitHostError, PullRequest, PullRequestState
+from opn_api import frontier, hostbudget
+from opn_api.app import ApiError, CachedFile, CachedListing, CachedPull
+from opn_api.githost import (
+    GATE_WORKFLOW,
+    GitHostError,
+    HostBudget,
+    OpenPullRequest,
+    PullRequest,
+    PullRequestState,
+    RateLimitError,
+)
 from opn_api.store import Submission
 from opn_gate import schemas
 
@@ -256,20 +271,76 @@ def live_state(ctx: Context, number: int) -> tuple[PullRequestState | None, str 
 def _live_state(ctx: Context, number: int) -> tuple[PullRequestState | None, str | None]:
     cached = ctx.pulls.get(number)
     now = time.monotonic()
-    if cached is not None and now - cached.fetched_at < ctx.settings.frontier_max_stale_s:
+    if cached is not None and now - cached.fetched_at < ctx.settings.pull_max_stale_s:
         return cached.state, None if cached.state is not None else _unknown(ctx, number)
+    last = cached.state if cached is not None else None
+    hold = budget_hold(ctx)
+    if hold is not None:
+        return last, hold
     try:
         state = ctx.githost.get_pull_request(ctx.settings.graph_repo, number)
+    except RateLimitError as exc:
+        log.warning("pull request #%d: %s", number, exc)
+        return last, budget_message(ctx, exc.budget)
     except GitHostError as exc:
         log.warning("pull request #%d: %s", number, exc)
-        last = cached.state if cached is not None else None
         return last, f"the pull request's live state could not be read from the host: {exc}"
-    ctx.pulls[number] = CachedPull(number, state, now)
+    ctx.pulls[number] = CachedPull(number, state, now, clockmod.render(ctx.clock.now()))
     return state, None if state is not None else _unknown(ctx, number)
 
 
 def _unknown(ctx: Context, number: int) -> str:
     return f"the host has no pull request #{number} on {ctx.settings.graph_repo}"
+
+
+# --- the host budget (F07-T47) --------------------------------------------------------------------
+
+
+def budget_hold(ctx: Context) -> str | None:
+    """Why a read must not spend the host now, or ``None``: the budget the host last reported
+    is at or below the reserve kept for writes and has not refilled."""
+    budget = ctx.githost.budget()
+    if budget is None:
+        return None
+    now = ctx.clock.now().timestamp()
+    if hostbudget.held(budget, now, ctx.settings.host_budget_reserve):
+        return budget_message(ctx, budget)
+    return None
+
+
+def budget_message(ctx: Context, budget: HostBudget) -> str:
+    return hostbudget.read_message(
+        budget, ctx.clock.now().timestamp(), ctx.settings.host_budget_reserve
+    )
+
+
+def retry_after(ctx: Context) -> dict[str, str]:
+    """``Retry-After`` for a read served stale because of the budget: the seconds to its reset.
+    Empty when the budget is not what held the read."""
+    budget = ctx.githost.budget()
+    now = ctx.clock.now().timestamp()
+    if budget is None or not hostbudget.held(budget, now, ctx.settings.host_budget_reserve):
+        return {}
+    return {"Retry-After": str(hostbudget.retry_after_s(budget, now))}
+
+
+def pull_block(state: PullRequestState, *, read_at: str | None, stale: bool) -> dict[str, Any]:
+    """A pull request's state as a route serves it: the host's words plus when they were read
+    and whether they are the last the host would give (F07-T47) — a stale block is never
+    mistaken for a live one, and ``waiting_on`` is what was true at ``read_at``."""
+    return {**state.as_dict(), "read_at": read_at, "stale": stale}
+
+
+def cached_block(
+    ctx: Context, number: int, state: PullRequestState | None, error: str | None
+) -> dict[str, Any] | None:
+    """The block for ``state`` as ``live_state`` answered it: ``read_at`` from the cache entry
+    it came from, stale when the answer was not fresh from the host."""
+    if state is None:
+        return None
+    cached = ctx.pulls.get(number)
+    read_at = cached.read_at if cached is not None and cached.state is state else None
+    return pull_block(state, read_at=read_at, stale=error is not None)
 
 
 # --- the attestation ------------------------------------------------------------------------------
@@ -362,6 +433,9 @@ def final_state(found: Submission) -> dict[str, Any] | None:
             {**run, "jobs": list(run.get("jobs") or [])} if isinstance(run, dict) else run
             for run in runs
         ],
+        # F07-T47: a record closed before the block carried them was read when it was closed
+        "read_at": state.get("read_at", found.closed),
+        "stale": bool(state.get("stale", False)),
     }
 
 
@@ -398,14 +472,13 @@ def _reconcile(
     if state is not None and error is None and racers.convert(ctx, found, state):
         # F07-T36: a losing racer was moved to its alternate path; read the new state
         state, error = live_state(ctx, found.pr_number)
-    if state is not None and error is None and state.finished:
+    block = cached_block(ctx, found.pr_number, state, error)
+    if state is not None and error is None and state.finished and block is not None:
         closed = ctx.store.close_submission(
-            found.id,
-            closed=clockmod.render(ctx.clock.now()),
-            final_state=state.as_dict(),
+            found.id, closed=clockmod.render(ctx.clock.now()), final_state=block
         )
         found = closed or found
-    return found, state.as_dict() if state is not None else None, error
+    return found, block, error
 
 
 # --- why the gate said no (F07-T26) --------------------------------------------------------------
@@ -629,7 +702,7 @@ def hand_opened(ctx: Context, raw: str, number: int | None) -> dict[str, Any]:
     state, error = live_state(ctx, number)
     return {
         "submission": None,
-        "pull_request": state.as_dict() if state is not None else None,
+        "pull_request": cached_block(ctx, number, state, error),
         "pull_request_error": error,
         "attestation_path": path,
         "attestation": attestation_doc(raw_doc, path),
@@ -638,39 +711,104 @@ def hand_opened(ctx: Context, raw: str, number: int | None) -> dict[str, Any]:
 
 
 async def get_submission(ctx: Context, request: Request) -> Response:
-    return JSONResponse(answer(ctx, str(request.path_params["submission_id"])))
+    doc = answer(ctx, str(request.path_params["submission_id"]))
+    return JSONResponse(doc, headers=retry_after(ctx))
 
 
 # --- GET /submissions.json ------------------------------------------------------------------------
 
 
+Listing = dict[int, OpenPullRequest]
+
+
+def open_listing(ctx: Context) -> tuple[Listing | None, str | None, str | None]:
+    """The host's open pull requests by number, why that is not fresh (``None`` when it is), and
+    when it was read (F07-T47). One listing call per ``pull_listing_max_stale_s``, refreshed by
+    one thread at a time; a host that cannot be read, or a budget that must not be spent, leaves
+    the last listing standing with the reason (C7)."""
+    with ctx.listing_lock:
+        return _open_listing(ctx)
+
+
+def _open_listing(ctx: Context) -> tuple[Listing | None, str | None, str | None]:
+    cached = ctx.open_pulls
+    now = time.monotonic()
+    if cached is not None and now - cached.fetched_at < ctx.settings.pull_listing_max_stale_s:
+        return cached.by_number, None, cached.read_at
+    last = cached.by_number if cached is not None else None
+    last_read = cached.read_at if cached is not None else None
+    hold = budget_hold(ctx)
+    if hold is not None:
+        return last, hold, last_read
+    try:
+        listed = ctx.githost.list_open_pull_requests(ctx.settings.graph_repo)
+    except RateLimitError as exc:
+        log.warning("the open pull requests were not listed: %s", exc)
+        return last, budget_message(ctx, exc.budget), last_read
+    except GitHostError as exc:
+        log.warning("the open pull requests were not listed: %s", exc)
+        return last, f"the open pull requests could not be listed from the host: {exc}", last_read
+    read_at = clockmod.render(ctx.clock.now())
+    ctx.open_pulls = CachedListing({p.number: p for p in listed}, now, read_at)
+    return ctx.open_pulls.by_number, None, read_at
+
+
+def listed_state(entry: OpenPullRequest) -> PullRequestState:
+    """What the listing says of an open pull request, as a state ``reconcile`` can read: open,
+    not merged, its head. Never cached in ``Context.pulls`` and never served — the by-id route
+    reads the full state (runs, reviews, mergeability) itself."""
+    return PullRequestState(
+        number=entry.number,
+        url=entry.url,
+        state="open",
+        merged=False,
+        mergeable_state="unknown",
+        head_sha=entry.head_sha,
+        merge_commit_sha=None,
+    )
+
+
 def snapshot(ctx: Context) -> dict[str, Any]:
-    """The open records, each the ``submission`` document its own route carries.
+    """The open records, each the ``submission`` document its own route carries, and ``host``:
+    when the queue was last reconciled against the host and whether that is stale.
 
     Each is reconciled against the host first, so "open" means the host still calls it open and
-    not merely that nobody has asked. One lookup per open record per freshness window, on the
-    same cache ``answer`` uses; a record the host cannot describe stays listed (C7).
+    not merely that nobody has asked; a record the host cannot describe stays listed (C7).
 
-    F07-T39: the lookups are what cost (22 open records took 28 s live, one after another), so
-    they run on a pool ``reconcile_concurrency`` wide. Only the host reads go on the pool: the
-    rest of each reconciliation (a racer's conversion, closing the record in the store) runs
-    here, in order, because neither the store's client nor the committed-file cache is shared
-    across threads anywhere else.
+    F07-T47: the host's open pull requests are read as one listing per window (F07-T39 had put
+    one three-call read per record on a pool; eighteen pollers of this route then spent the
+    App's hourly budget). A record the listing carries is open and costs nothing; one it lacks
+    has finished, or is unknown, and is read once in full — on the pool, since those reads are
+    what remain — and closed with the state that read found. With no listing at all, every
+    record stays listed as it is, with the reason in ``host.error``.
     """
     records = ctx.store.list_open_submissions()
-    width = min(ctx.settings.reconcile_concurrency, len(records))
-    if width > 1:
-        with ThreadPoolExecutor(width, thread_name_prefix="reconcile") as pool:
-            firsts = list(pool.map(lambda s: live_state(ctx, s.pr_number), records))
-    else:
-        firsts = [live_state(ctx, s.pr_number) for s in records]
+    listed, error, read_at = open_listing(ctx)
     open_now: list[dict[str, Any]] = []
-    for submission, first in zip(records, firsts, strict=True):
-        record, _, _ = reconcile(ctx, submission, first)
+    firsts: dict[int, tuple[PullRequestState | None, str | None]] = {}
+    if listed is not None:
+        unlisted = [s for s in records if s.pr_number not in listed]
+        width = min(ctx.settings.reconcile_concurrency, len(unlisted))
+        if width > 1:
+            with ThreadPoolExecutor(width, thread_name_prefix="reconcile") as pool:
+                reads = list(pool.map(lambda s: live_state(ctx, s.pr_number), unlisted))
+        else:
+            reads = [live_state(ctx, s.pr_number) for s in unlisted]
+        firsts = dict(zip((s.pr_number for s in unlisted), reads, strict=True))
+    for submission in records:
+        record = submission
+        if listed is not None:
+            entry = listed.get(submission.pr_number)
+            first = firsts[submission.pr_number] if entry is None else (listed_state(entry), None)
+            record, _, _ = reconcile(ctx, submission, first)
         if record.closed is None:
             open_now.append(document(record))
-    return {"snapshot_at": clockmod.render(ctx.clock.now()), "open": open_now}
+    return {
+        "snapshot_at": clockmod.render(ctx.clock.now()),
+        "open": open_now,
+        "host": {"read_at": read_at, "stale": error is not None, "error": error},
+    }
 
 
 async def get_submissions(ctx: Context, request: Request) -> Response:
-    return JSONResponse(snapshot(ctx))
+    return JSONResponse(snapshot(ctx), headers=retry_after(ctx))

@@ -21,6 +21,7 @@ import threading
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any, Protocol
 
 import httpx
@@ -46,6 +47,65 @@ BLOB_MODE = "100644"
 
 class GitHostError(Exception):
     """The host refused or failed; the message is safe to log (no credential in it)."""
+
+
+@dataclass(frozen=True)
+class HostBudget:
+    """What the host last said about the App's hourly budget (F07-T47): the ``X-RateLimit-*``
+    headers GitHub puts on every API answer, and when they were read (unix seconds). ``None``
+    fields are headers the answer did not carry."""
+
+    remaining: int | None
+    limit: int | None
+    reset_at: float | None  # unix seconds; when the budget refills
+    read_at: float  # unix seconds; when this was seen
+
+    @property
+    def reset_iso(self) -> str | None:
+        if self.reset_at is None:
+            return None
+        return datetime.fromtimestamp(self.reset_at, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+RATE_LIMIT_STATUSES = (403, 429)
+
+
+def budget_from(headers: Mapping[str, str], *, read_at: float) -> HostBudget | None:
+    """The budget an answer's headers carry, or ``None`` when it carries no ``remaining``."""
+    remaining = _header_int(headers, "X-RateLimit-Remaining")
+    if remaining is None:
+        return None
+    return HostBudget(
+        remaining=remaining,
+        limit=_header_int(headers, "X-RateLimit-Limit"),
+        reset_at=_header_int(headers, "X-RateLimit-Reset"),
+        read_at=read_at,
+    )
+
+
+def _header_int(headers: Mapping[str, str], name: str) -> int | None:
+    raw = headers.get(name)
+    if raw is None:
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        return None
+
+
+class RateLimitError(GitHostError):
+    """The host refused the call because the App's budget is spent (F07-T47): a 403 or 429
+    carrying ``X-RateLimit-Remaining: 0``, which is how GitHub answers a primary rate limit.
+    Its own kind, so a route can answer "come back at the reset" instead of a bare 502."""
+
+    def __init__(self, budget: HostBudget, call: str = "") -> None:
+        self.budget = budget
+        where = f"{call}: " if call else ""
+        limit = f" of {budget.limit}" if budget.limit is not None else ""
+        refills = f"; it refills at {budget.reset_iso}" if budget.reset_iso else ""
+        super().__init__(
+            f"{where}GitHub's rate limit for the App is spent (0{limit} calls remaining){refills}"
+        )
 
 
 @dataclass(frozen=True)
@@ -80,6 +140,16 @@ class Author:
 class PullRequest:
     number: int
     url: str
+
+
+@dataclass(frozen=True)
+class OpenPullRequest:
+    """One entry of the repository's open pull-request listing (F07-T47): enough to say a pull
+    request is still open and where its head is, read for the whole queue in one call."""
+
+    number: int
+    url: str
+    head_sha: str
 
 
 @dataclass(frozen=True)
@@ -265,6 +335,17 @@ class GitHost(Protocol):
         App (F07-T16); ``None`` when the host has no such pull request. Read-only."""
         ...
 
+    def list_open_pull_requests(self, repo: str) -> list[OpenPullRequest]:
+        """Every open pull request of ``repo``, as the App, in one listing call per page of 100
+        (F07-T47): the queue's open set, so the snapshot costs one call rather than one per
+        record. Read-only."""
+        ...
+
+    def budget(self) -> HostBudget | None:
+        """The App's budget as the host last reported it on any API answer (F07-T47), or
+        ``None`` when no answer has been seen since the process started."""
+        ...
+
 
 class HttpxGitHost:
     def __init__(
@@ -279,6 +360,23 @@ class HttpxGitHost:
         # F07-T39: the snapshot's lookups run on a pool, so a cold process asks for the token
         # from several threads at once; one mints it and the rest read the cache.
         self._token_lock = threading.Lock()
+        # F07-T47: the budget the host last reported, from the headers of any API answer.
+        self._budget: HostBudget | None = None
+
+    def budget(self) -> HostBudget | None:
+        return self._budget
+
+    def _observe(self, resp: httpx.Response) -> None:
+        """F07-T47: a response hook on every App-authenticated client. The answer's
+        ``X-RateLimit-*`` headers are the budget's latest reading, and a 403 or 429 with none
+        remaining is the host refusing for budget, raised as its own kind before any caller
+        reads the status, so no route mistakes it for a permission or a transient."""
+        budget = budget_from(resp.headers, read_at=time.time())
+        if budget is None:
+            return
+        self._budget = budget
+        if resp.status_code in RATE_LIMIT_STATUSES and budget.remaining == 0:
+            raise RateLimitError(budget, f"{resp.request.method} {_path(str(resp.request.url))}")
 
     def exchange_code(self, code: str, *, redirect_uri: str) -> GitHubUser:
         with httpx.Client(timeout=TIMEOUT_S, headers={"Accept": "application/json"}) as http:
@@ -426,7 +524,9 @@ class HttpxGitHost:
             "Accept": API_ACCEPT,
             "X-GitHub-Api-Version": API_VERSION,
         }
-        with httpx.Client(timeout=TIMEOUT_S, headers=headers) as http:
+        with httpx.Client(
+            timeout=TIMEOUT_S, headers=headers, event_hooks={"response": [self._observe]}
+        ) as http:
             installation = _json(_send(http, "GET", f"{GITHUB_API}/repos/{repo}/installation"))
             installation_id = installation.get("id")
             if not installation_id:
@@ -455,6 +555,7 @@ class HttpxGitHost:
                 "Accept": API_ACCEPT,
                 "X-GitHub-Api-Version": API_VERSION,
             },
+            event_hooks={"response": [self._observe]},  # F07-T47: the budget, every answer
         )
 
     def push_branch(  # noqa: PLR0913 — one argument per part of the commit being made
@@ -747,6 +848,40 @@ class HttpxGitHost:
                 if isinstance(r, dict)
             ),
         )
+
+    def list_open_pull_requests(self, repo: str) -> list[OpenPullRequest]:
+        """``GET /repos/{repo}/pulls?state=open`` as the App (F07-T47), a page of 100 at a time
+        until a short page: one call for the whole queue at Stage 0's volume."""
+        out: list[OpenPullRequest] = []
+        with self._api(repo) as http:
+            for page in range(1, LISTING_MAX_PAGES + 1):
+                entries = _json_list(
+                    _send(
+                        http,
+                        "GET",
+                        f"{GITHUB_API}/repos/{repo}/pulls",
+                        params={"state": "open", "per_page": LISTING_PAGE, "page": page},
+                    ),
+                    f"the open pull requests of {repo}",
+                )
+                for pr in entries:
+                    if not isinstance(pr, dict) or pr.get("number") is None:
+                        continue
+                    head = pr.get("head")
+                    out.append(
+                        OpenPullRequest(
+                            number=int(pr["number"]),
+                            url=str(pr.get("html_url") or ""),
+                            head_sha=str(head.get("sha") or "") if isinstance(head, dict) else "",
+                        )
+                    )
+                if len(entries) < LISTING_PAGE:
+                    break
+        return out
+
+
+LISTING_PAGE = 100
+LISTING_MAX_PAGES = 10  # a thousand open pull requests is far beyond Stage 0's queue
 
 
 def _b64url(raw: bytes) -> bytes:

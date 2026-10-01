@@ -250,7 +250,11 @@ def with_submission(h: Harness, token: str) -> dict[str, Any]:
     """F07-T43: a pull request the caller opened through the service, to withdraw."""
     r = h.client.post(
         "/annexes",
-        json={"node_id": TUTORIAL_NODE, "text": "An argument to withdraw.\n"},
+        json={
+            "node_id": TUTORIAL_NODE,
+            "text": "An argument to withdraw.\n",
+            "licence": "CC-BY-4.0",
+        },
         headers=h.auth(token),
     )
     assert r.status_code == 201, r.text

@@ -2,14 +2,15 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://openproof.network/schemas/mcp/list_submissions/v1.json",
   "title": "mcp/list_submissions/v1",
-  "description": "The result of the list_submissions tool (F09-R9, F09-T7; D-28 notation note of 2026-09-14): GET /submissions.json, or an error result naming the source that did not answer (R10).",
+  "description": "The result of the list_submissions tool (F09-R9, F09-T7; D-28 notation note of 2026-09-14): GET /submissions.json, or an error result naming the source that did not answer (R10). Reshaped in place by F07-T47 (host: when the queue was reconciled, and whether that is stale).",
   "oneOf": [
     {
       "type": "object",
       "description": "The open pull requests the service opened, each the submission document GET /submissions/<id> carries",
       "required": [
         "snapshot_at",
-        "open"
+        "open",
+        "host"
       ],
       "additionalProperties": false,
       "properties": {
@@ -20,6 +21,33 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/submission"
+          }
+        },
+        "host": {
+          "type": "object",
+          "description": "The host listing the queue was reconciled against (F07-T47): when it was read, whether it is the last one the host gave, and why when it is",
+          "required": [
+            "read_at",
+            "stale",
+            "error"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "read_at": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "stale": {
+              "type": "boolean"
+            },
+            "error": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
           }
         }
       }

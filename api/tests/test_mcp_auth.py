@@ -25,7 +25,7 @@ MINIMAL: dict[str, dict[str, Any]] = {
     "withdraw_submission": {"submission_id": "1"},
     "submit_proof": {"node_id": NODE, "artifact_type": "proof", "bundle": {}, "attestation": {}},
     "submit_postmortem": {"node_id": NODE, "yaml": {}},
-    "submit_informal_annex": {"node_id": NODE, "text": "t"},
+    "submit_informal_annex": {"node_id": NODE, "text": "t", "licence": "CC-BY-4.0"},
     "submit_approach_record": {"target_id": "propositional", "record": {}},
     "file_defect_claim": {"stmt_ref": NODE, "class": "vacuity", "line": 1, "exhibit": "x"},
     "file_revision_request": {

@@ -38,8 +38,11 @@ from opn_api.githost import (
     Fetched,
     GitHostError,
     GitHubUser,
+    HostBudget,
+    OpenPullRequest,
     PullRequest,
     PullRequestState,
+    RateLimitError,
     WorkflowRun,
 )
 from opn_api.store import MemoryStore
@@ -139,6 +142,14 @@ class FakeGitHost:
     pulls_in_flight: int = 0
     pulls_max_in_flight: int = 0
     _pull_lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+    #: F07-T47: the budget the host last reported (what ``budget()`` answers); and, when set,
+    #: the budget every App call is refused with (``RateLimitError``, remaining 0) — GitHub's
+    #: 403/429 with ``X-RateLimit-Remaining: 0``, as the seam's own error kind.
+    budget_seen: HostBudget | None = None
+    rate_limited: HostBudget | None = None
+    #: F07-T47: every open-listing call, and a failure that makes only the listing raise.
+    listing_calls: int = 0
+    listing_failure: str | None = None
 
     @classmethod
     def with_fixtures(cls, **users: GitHubUser) -> FakeGitHost:
@@ -211,6 +222,32 @@ class FakeGitHost:
     def _app_call(self) -> None:
         if self.app_failure:
             raise GitHostError(self.app_failure)
+        if self.rate_limited is not None:
+            self.budget_seen = self.rate_limited
+            raise RateLimitError(self.rate_limited)
+
+    def budget(self) -> HostBudget | None:
+        return self.budget_seen
+
+    def list_open_pull_requests(self, repo: str) -> list[OpenPullRequest]:
+        """Every number the fake opened or a test seeded whose state is open (F07-T47)."""
+        self.listing_calls += 1
+        self._app_call()
+        if self.listing_failure:
+            raise GitHostError(self.listing_failure)
+        numbers = set(self.pull_states) | set(range(1, len(self.pulls) + 1))
+        out: list[OpenPullRequest] = []
+        for number in sorted(numbers):
+            s = self.pull_states.get(number) or {}
+            if s.get("state", "open") == "open" and not s.get("merged", False):
+                out.append(
+                    OpenPullRequest(
+                        number,
+                        f"https://github.com/{repo}/pull/{number}",
+                        s.get("head_sha") or f"{number:040d}",
+                    )
+                )
+        return out
 
     def push_branch(
         self,

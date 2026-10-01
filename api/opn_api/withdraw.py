@@ -26,8 +26,8 @@ from starlette.responses import JSONResponse, Response
 
 from opn_api import clock as clockmod
 from opn_api import pending, proposals, submissions
-from opn_api.app import ApiError, CachedPull
-from opn_api.githost import GitHostError, PullRequestState
+from opn_api.app import ApiError, CachedPull, host_budget_refusal
+from opn_api.githost import GitHostError, PullRequestState, RateLimitError
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -44,7 +44,9 @@ SERVICE_BRANCH_PREFIXES: tuple[str, ...] = (
 )
 
 
-def failed(number: int, exc: GitHostError) -> ApiError:
+def failed(ctx: Context, number: int, exc: GitHostError) -> ApiError:
+    if isinstance(exc, RateLimitError):  # F07-T47: come back at the reset, not a bare 502
+        return host_budget_refusal(ctx, exc)
     return ApiError(
         502,
         "withdraw-failed",
@@ -105,7 +107,7 @@ async def delete_submission(ctx: Context, request: Request) -> Response:
     try:
         state = ctx.githost.get_pull_request(repo, found.pr_number)
     except GitHostError as exc:
-        raise failed(found.pr_number, exc) from exc
+        raise failed(ctx, found.pr_number, exc) from exc
     if state is None:
         raise pending.unknown(raw)
     if state.merged:
@@ -117,7 +119,7 @@ async def delete_submission(ctx: Context, request: Request) -> Response:
     try:
         branch = ctx.githost.close_pull_request(repo, found.pr_number)
     except GitHostError as exc:
-        raise failed(found.pr_number, exc) from exc
+        raise failed(ctx, found.pr_number, exc) from exc
     closed_state = replace(state, state="closed")
     found = close_record(ctx, found, closed_state)
     deleted = False
