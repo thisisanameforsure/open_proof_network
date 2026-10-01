@@ -6,6 +6,8 @@ import OpnGate.Hazards.JunkValue
 import OpnGate.Hazards.IntTrunc
 import OpnGate.Hazards.UnusedBinder
 import OpnGate.Hazards.OffByOneRange
+import OpnGate.Hazards.NatDiv
+import OpnGate.Hazards.AutoImplicit
 
 /-!
 `opn-hazards --statement <Statement.lean> --module <Name> --decl <Name> --checkers a,b,c`
@@ -21,7 +23,7 @@ open Lean Meta Elab OpnGate OpnGate.Hazards
 
 /-- Every checker this gate version ships, in id order. -/
 def registry : Array Checker :=
-  #[divZero, intTrunc, junkValue, natSub, offByOneRange, unusedBinder]
+  #[autoImplicit, divZero, intTrunc, junkValue, natDiv, natSub, offByOneRange, unusedBinder]
 
 unsafe def main (args : List String) : IO UInt32 := runMain do
   if args == ["--list"] then
@@ -42,12 +44,21 @@ unsafe def main (args : List String) : IO UInt32 := runMain do
     | none =>
       return ← fail s!"unknown checker id {id}"
         [("known", toJson (registry.map (·.id)))]
-  let (env, log) ← elabFile stmtPath modStr.toName
+  -- Import once, then elaborate the file's commands on that environment (F02-T9): a file-level
+  -- check elaborates them a second time under other options without a second import.
+  let (base, baseLog) ← headerEnv stmtPath modStr.toName
+  if let some code ← failIfErrors "imports" baseLog then return code
+  let (env, log) ← elabFile stmtPath modStr.toName (some base)
   if let some code ← failIfErrors "statement" log then return code
   let declName := declStr.toName
   let some info := env.find? declName | fail s!"declaration {declStr} not found in {stmtPath}"
+  let stmt : Statement := { path := stmtPath, module := modStr.toName, decl := declName, base, env }
+  let mut extra : Array Finding := #[]
+  for c in selected do
+    if let some check := c.source then
+      extra := extra ++ (← check stmt)
   let ctx : Core.Context := { fileName := stmtPath, fileMap := default }
-  let ((findings, capped), _, _) ← (run selected info.type).toIO ctx { env }
+  let ((findings, capped), _, _) ← (run selected info.type extra).toIO ctx { env }
   printJson <| Json.mkObj [
     ("ok", Json.bool true), ("decl", Json.str declStr),
     ("checkers", toJson (selected.map (·.id))),

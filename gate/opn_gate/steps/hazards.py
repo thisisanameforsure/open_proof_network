@@ -27,9 +27,11 @@ from opn_gate.toolchain import HazardsRequest, ResolvedToolchain
 #: Every checker id this gate version ships (F02-R2), in id order. The lean tier checks this
 #: against ``opn-hazards --list`` so the two registries cannot drift.
 KNOWN_CHECKERS: tuple[str, ...] = (
+    "auto-implicit",
     "div-zero",
     "int-trunc",
     "junk-value",
+    "nat-div",
     "nat-sub",
     "off-by-one-range",
     "unused-binder",
