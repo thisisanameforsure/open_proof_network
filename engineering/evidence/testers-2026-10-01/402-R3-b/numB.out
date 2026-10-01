@@ -1,0 +1,37 @@
+== T0: min G over n-subsets of [1..R] (theorem says n)
+2 12 2 extremal gcd-1 sets: [(1, 2)]
+3 14 3 extremal gcd-1 sets: [(1, 2, 3), (2, 3, 6)]
+4 16 4 extremal gcd-1 sets: [(1, 2, 3, 4), (2, 3, 4, 6), (3, 4, 6, 12)]
+5 18 5 extremal gcd-1 sets: [(1, 2, 3, 4, 5)]
+6 20 6 extremal gcd-1 sets: [(1, 2, 3, 4, 5, 6)]
+== T1 (reading i/iii, 'supermultiplicative subsets'): G(A) >= m_p(A)*m_q(A)?  m_k = min G over k-subsets
+p=2 q=2 R=12: 132/495 sets violate; e.g. ((1, 3, 4, 5), 5, 3, 3)
+p=2 q=3 R=13: 401/1716 sets violate; e.g. ((1, 3, 4, 5, 6, 7), 7, 2, 4)
+p=3 q=3 R=12: 21/220 sets violate; e.g. ((1, 2, 4, 5, 7, 8, 9, 10, 11), 11, 4, 4)
+== T1b: weaker: does every n=pq-set with G(A)<=M contain a p-subset with G<=M/q or a q-subset with G<=M/p ?
+p=2 q=2: 32/495 violate; e.g. ((1, 3, 4, 5), 5, 3, 3)
+p=2 q=3: 26/1716 violate; e.g. ((1, 4, 7, 9, 10, 11), 11, 4, 7)
+p=3 q=3: 7/220 violate; e.g. ((1, 2, 4, 5, 7, 8, 9, 10, 11), 11, 4, 4)
+== T2 (reading ii, products): G(A.B) <= G(A)G(B) always; equality & |A.B|=|A||B| when supports coprime
+violations of G(A.B)<=G(A)G(B): 0 of 20000
+  products of extremal sets:  [(2, 2, 3, 4), (2, 3, 5, 6), (3, 3, 6, 9), (2, 5, 8, 10), (3, 5, 11, 15)] (m,k,|A.B|,G(A.B))
+  does {1..n} factor as A.B with |A|=m,|B|=k, all products distinct?
+    2 2 None
+    2 3 None
+    3 3 None
+    2 5 None
+    3 4 None
+== T3 (reading i, residue projection): classes of p-free part mod p inside {1..pq}; G(C)/|C| vs 1
+3 2 [(1, 3, 4), (2, 3, 6)]
+3 5 [(1, 8, 13), (2, 7, 15)]
+5 3 [(1, 4, 11), (2, 4, 12), (3, 4, 15), (4, 3, 14)]
+5 7 [(1, 10, 31), (2, 9, 35), (3, 8, 33), (4, 8, 34)]
+7 5 [(1, 6, 29), (2, 6, 30), (3, 6, 31), (4, 6, 32), (5, 6, 35), (6, 5, 34)]
+== T4 'transitivity': a/(a,b)>=m, b/(b,c)>=k => some quotient in {a,b,c} >= mk ?
+counterexample: (2, 3, 1, 2, 3, 3)
+== T5 why the prime proof breaks: residues of n-free... for n composite, quotients <n not coprime to n
+4 units mod n: 2 quotients of {1..n} not coprime to n: [2]
+6 units mod n: 2 quotients of {1..n} not coprime to n: [2, 3, 4]
+8 units mod n: 4 quotients of {1..n} not coprime to n: [2, 4, 6]
+9 units mod n: 6 quotients of {1..n} not coprime to n: [3, 6]
+10 units mod n: 4 quotients of {1..n} not coprime to n: [2, 4, 5, 6, 8]
