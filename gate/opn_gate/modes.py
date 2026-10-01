@@ -13,7 +13,9 @@ So the diff is classified into exactly one mode before anything else runs:
 
 ===============  ==========================================================================
 ``proof``        the node's ``Proof.lean``, plus appends — the D-4 pipeline (D-12 #1, #2, #3)
-``partial``      a ``.lean`` assembly under ``attempts/``, plus appends (D-12 #4, #5)
+``partial``      a ``.lean`` assembly under ``attempts/``, plus appends (D-12 #4, #5) and the
+                 witnesses it carries for its holes, ``attempts/<assembly>.<n>.witness``
+                 (F07-R23, D-29 v3.24)
 ``append``       only new postmortems, precheck records, annexes, approach records, revision
                  requests or defect claims (the last two may carry a Lean exhibit, which is
                  elaborated in the sandbox — ``opn_gate.exhibits``)
@@ -868,7 +870,9 @@ def _mode_for(roles: set[Role]) -> Mode | None:  # noqa: PLR0911 — one return 
     if "alternate" in roles:  # D-25 v3.13: a later proof of a proved node, plus appends
         return "alternate" if roles <= ({"alternate"} | appendish) else None
     if "partial" in roles:
-        return "partial" if roles <= ({"partial"} | appendish) else None
+        # F07-R23: the assembly, the witnesses it carries for its holes, and appends. A carried
+        # witness with no assembly beside it falls through to the end and fits no mode.
+        return "partial" if roles <= ({"partial", "hole-witness"} | appendish) else None
     if roles & {"explainer", "explainer-signature"}:
         # F15-R8: signature files alone, or with new explainers, are the explainer mode.
         return "explainer" if roles <= {"explainer", "explainer-signature"} else None
