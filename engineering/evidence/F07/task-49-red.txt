@@ -1,0 +1,10 @@
+# F07-T49 red: the ledger's statement line with the statement_tooling seam at today's behaviour (undeclared)
+# 2026-10-01T04:25:44Z
+E         - claude-opus-5-5 2026-09 claude-code
+E         + undeclared
+
+gate/tests/test_finding_ledger_statement_tooling.py:49: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_ledger_statement_tooling.py::test_the_statement_tooling_is_the_declared_model
+FAILED gate/tests/test_finding_ledger_statement_tooling.py::test_the_merged_statement_line_carries_the_model_from_meta
+2 failed, 1 passed in 0.16s

@@ -2403,6 +2403,7 @@ def run_ledger(args: argparse.Namespace, settings: config.Settings) -> int:
         origin=str(meta.get("origin")),
         merge_commit=commit,
         date=graphmod.commit_timestamp(graph, commit),
+        tooling=ledger.statement_tooling(meta),
         tutorial=bool(meta.get("tutorial", False)),
         supersedes=str(meta["supersedes"]) if meta.get("supersedes") else None,
     )
