@@ -52,7 +52,11 @@ unsafe def main (args : List String) : IO UInt32 := runMain do
   if let some code ← failIfErrors "statement" log then return code
   let declName := declStr.toName
   let some info := env.find? declName | fail s!"declaration {declStr} not found in {stmtPath}"
-  let stmt : Statement := { path := stmtPath, module := modStr.toName, decl := declName, base, env }
+  let stmt : Statement := {
+    path := stmtPath, module := modStr.toName, decl := declName, env,
+    reelaborate := fun opts => do
+      let (_, log) ← elabFile stmtPath modStr.toName (some base) opts
+      pure log }
   let mut extra : Array Finding := #[]
   for c in selected do
     if let some check := c.source then

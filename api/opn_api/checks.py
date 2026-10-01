@@ -880,13 +880,36 @@ def hazard_sources() -> tuple[list[tuple[str, str]], str]:
     return ordered, registry.group("list")
 
 
-def hazards_program(decl_name: str, checkers: list[str]) -> str:
+def lean_string(text: str) -> str:
+    """``text`` as one Lean string literal."""
+    escaped = (
+        text.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\r", "\\r")
+        .replace("\n", "\\n")
+        .replace("\t", "\\t")
+    )
+    return f'"{escaped}"'
+
+
+#: The namespace the probe's copy of the statement is elaborated under, so nothing it declares
+#: collides with the declarations the file already elaborated (F02-T9).
+PROBE_NAMESPACE = "OpnAutoImplicitProbe"
+
+
+def hazards_program(decl_name: str, checkers: list[str], probe: str) -> str:
     """The gate's checkers and the few lines that ask them one question: the findings of exactly
     ``checkers``, in that order, over ``decl_name``'s type, printed as ``opn-hazards`` prints
     them. Each file sits in a ``section`` so its ``open`` lines end with it, and the question
     runs under the context ``opn-hazards`` gives it (no open namespaces, no options), because a
-    finding's location is pretty-printed and is what an acknowledgment must match (F02-Q4)."""
+    finding's location is pretty-printed and is what an acknowledgment must match (F02-Q4).
+
+    ``probe`` is the statement's own text without its header: the ``Statement`` the file-level
+    checkers read (F02-T9, ``auto-implicit``) re-elaborates it on the current environment, under
+    ``PROBE_NAMESPACE``, with whatever options the checker asks for, and reads the log — what
+    ``opn-hazards`` does with the file on the once-imported environment."""
     sources, registry = hazard_sources()
+    probe_text = f"namespace {PROBE_NAMESPACE}\n{probe.strip(chr(10))}\nend {PROBE_NAMESPACE}\n"
     block = "".join(
         f"\nsection\n-- inlined by the network from {module} (F13-T20)\n{src}\nend\n"
         for module, src in sources
@@ -898,16 +921,33 @@ def hazards_program(decl_name: str, checkers: list[str]) -> str:
         "namespace OpnGate.Hazards\n"
         "-- HazardsMain.lean's registry, inlined by the network\n"
         f"def networkRegistry : Array Checker :=\n  {registry}\n"
+        "-- the statement's own text, re-elaborated by the file-level checkers (F02-T9)\n"
+        f"def networkProbe : String := {lean_string(probe_text)}\n"
         "end OpnGate.Hazards\n\n"
         "run_meta do\n"
         f"  let s ← Lean.getConstInfo `{decl_name}\n"
         f"  let ids : List String := {ids}\n"
         "  let selected := ids.toArray.filterMap fun id =>\n"
         "    OpnGate.Hazards.networkRegistry.find? (·.id == id)\n"
+        "  let env ← Lean.getEnv\n"
+        "  let stmt : OpnGate.Hazards.Statement := {\n"
+        "    path := ⟨(← readThe Lean.Core.Context).fileName⟩, module := env.mainModule,\n"
+        f"    decl := `{decl_name}, env,\n"
+        "    reelaborate := fun opts => do\n"
+        "      let inputCtx := Lean.Parser.mkInputContext OpnGate.Hazards.networkProbe\n"
+        f'        "<{PROBE_NAMESPACE}>"\n'
+        "      let (_, pstate, msgs) ← Lean.Parser.parseHeader inputCtx\n"
+        "      let st ← Lean.Elab.IO.processCommands inputCtx pstate\n"
+        "        (Lean.Elab.Command.mkState env msgs opts)\n"
+        "      pure st.commandState.messages }\n"
+        "  let mut extra : Array OpnGate.Hazards.Finding := #[]\n"
+        "  for c in selected do\n"
+        "    if let some check := c.source then\n"
+        "      extra := extra ++ (← check stmt)\n"
         "  let (findings, capped) ← withTheReader Lean.Core.Context\n"
         "      (fun c => { c with openDecls := [], currNamespace := Lean.Name.anonymous,\n"
         "                         options := Lean.Options.empty })\n"
-        "      (OpnGate.Hazards.run selected s.type)\n"
+        "      (OpnGate.Hazards.run selected s.type extra)\n"
         "  let answer := Lean.Json.mkObj [\n"
         '    ("checkers", Lean.toJson (selected.map (·.id))),\n'
         '    ("findings", Lean.toJson findings), ("capped", Lean.Json.bool capped)]\n'
@@ -916,14 +956,23 @@ def hazards_program(decl_name: str, checkers: list[str]) -> str:
     )
 
 
-def hazards_text(formal: str, decl_name: str, checkers: list[str]) -> str:
+def hazards_text(
+    formal: str, decl_name: str, checkers: list[str], *, statement: str | None = None
+) -> str:
     """What the checker is sent in hazards mode: the statement under its own header (the
-    definitions already inlined), ``import Lean`` for the checkers, then the program."""
+    definitions already inlined), ``import Lean`` for the checkers, then the program.
+
+    ``statement`` is the statement's own text when ``formal`` has definitions inlined into it:
+    the file-level checkers re-elaborate that, never the definitions' copies, which the gate's
+    own second elaboration never sees either (they are imports there). Without it the probe is
+    ``formal`` less its header, right when nothing was inlined."""
     lines = formal.splitlines(keepends=True)
     imports = [i for i, line in enumerate(lines) if line.startswith("import ")]
     at = imports[-1] + 1 if imports else 0
     header = "" if "Lean" in layout.imports_of(formal) else "import Lean\n"
-    return "".join(lines[:at]) + header + "".join(lines[at:]) + hazards_program(decl_name, checkers)
+    probe = IMPORT_LINE_RE.sub("", formal if statement is None else statement)
+    program = hazards_program(decl_name, checkers, probe)
+    return "".join(lines[:at]) + header + "".join(lines[at:]) + program
 
 
 def hazards_verdict(body: dict[str, Any]) -> dict[str, Any] | None:
@@ -1439,7 +1488,7 @@ async def preflight_hazards(  # noqa: PLR0911 — one return per outcome word
         context = files.get(prefix + "Context.lean")
         defs = inline_defs(ctx, target_id, parsed, "", node_id, context=context)
         formal = forwarded_text(parsed.text, defs)
-        text = hazards_text(formal, parsed.decl_name, checkers)
+        text = hazards_text(formal, parsed.decl_name, checkers, statement=parsed.text)
         budget = min(PREFLIGHT_TIMEOUT_S, ctx.settings.check_timeout_s)
         answer = await asyncio.to_thread(
             call_checker, ctx, req, text, environment, None, timeout_s=budget
@@ -1970,7 +2019,12 @@ def statement_mode_text(
     """The text sent in a mode that reads the statement: the witness program (F13-T14) or the
     hazard checkers (F13-T20), after ``formal``, the statement with its definitions inlined."""
     if req.mode == "hazards":
-        return hazards_text(formal, statement.decl_name, target_checkers(ctx, req.target_id))
+        return hazards_text(
+            formal,
+            statement.decl_name,
+            target_checkers(ctx, req.target_id),
+            statement=statement.text,
+        )
     # The caller's own text, not the forwarded one: the definitions and the Context are already
     # in ``formal``, and inlined into an empty witness they read as one. A merged hole's record of
     # what its assembly proved narrows the question as it narrows step 7's (F07-T44); a statement

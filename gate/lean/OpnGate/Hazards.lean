@@ -41,8 +41,13 @@ structure Statement where
   path : System.FilePath
   module : Name
   decl : Name
-  base : Environment
   env : Environment
+  /-- The statement's commands elaborated once more under `opts`, answered as their log: what a
+  file-level checker reads (`auto-implicit`). `opn-hazards` answers with the file on the
+  once-imported environment (`Frontend.elabFile`); the network's hosted program, which inlines
+  these files with their imports stripped, answers with the statement's own text on the current
+  environment. The checker files import nothing but `Lean` and these modules, so both can. -/
+  reelaborate : Options → IO MessageLog
 
 /-- A check over the statement as a file rather than over its type's subterms (F02-T9). -/
 abbrev SourceCheck := Statement → IO (Array Finding)

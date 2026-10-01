@@ -1,4 +1,4 @@
-import OpnGate.Frontend
+import Lean
 import OpnGate.Hazards
 
 /-! `auto-implicit` (F02-T9): an identifier the statement never declares. With `autoImplicit` on —
@@ -10,9 +10,11 @@ quantifies over something invisible, and a misspelt constant reads as a variable
 
 Nothing in the elaborated type tells an auto-bound binder from a written one (probed at Lean
 4.33.1, `engineering/evidence/F02/task-9.txt`), so this checker is not a predicate over subterms:
-it elaborates the statement's commands a second time, on the environment its imports already gave
-(Frontend's one-import rule), with `autoImplicit := false`, and every message tagged as an unknown
-identifier is one finding at that identifier — the shape `unused-binder` uses for a name. -/
+it elaborates the statement's commands a second time with `autoImplicit := false` — through
+`Statement.reelaborate`, which `opn-hazards` answers on the once-imported environment (Frontend's
+one-import rule) and the network's inlined program answers with the statement's text — and every
+message tagged as an unknown identifier is one finding at that identifier, the shape
+`unused-binder` uses for a name. -/
 open Lean Meta Elab
 
 namespace OpnGate.Hazards
@@ -47,7 +49,7 @@ def autoImplicit : Checker where
   visit _ := pure none
   source := some fun stmt => do
     let opts := ({} : Options).setBool `autoImplicit false
-    let (_, log) ← elabFile stmt.path stmt.module (some stmt.base) opts
+    let log ← stmt.reelaborate opts
     let mut out : Array Finding := #[]
     for m in log.toList do
       let some name ← unknownIdentifier? m | continue

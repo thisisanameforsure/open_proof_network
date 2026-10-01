@@ -1176,5 +1176,11 @@ The law of the project:
   **A sentence an agent needs is a product field, not a page**: the site's circular note existed
   since T20 and no agent could see it; `context/v2` carries it, which the re-pin must seed. And
   **the lean tier runs here** from the GitHub release zip linked into elan, so "docker tier not run"
-  is now the only line in a report that means CI must finish the evidence.
+  is now the only line in a report that means CI must finish the evidence. **And a file the network
+  inlines has an import budget nobody wrote down**: `auto-implicit` imported `OpnGate.Frontend`, the
+  composer strips imports and walks only `OpnGate.Hazards*`, so the hosted hazards program failed to
+  elaborate for every checker and the lean tier was the first thing to say so, 52 minutes in. The
+  second elaboration became a seam on the `Statement` that both the binary and the composed program
+  fill; the fast-tier guard asserts the import set. When a module is inlined somewhere, its imports are
+  a contract, and a test that reads them is cheaper than the tier that finds the breach.
 

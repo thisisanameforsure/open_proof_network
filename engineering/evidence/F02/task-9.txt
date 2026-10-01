@@ -189,3 +189,61 @@ new ones (NatDiv.lean, AutoImplicit.lean) were missing. Added to .github/workflo
 the file list and the copy step (cp -R gate/lean/OpnGate/Hazards) already covered them.
 Local: the 16 tests of that file pass; make verify 3130 passed, 1 failed (test_graph_copy_is_identical,
 the graph AGENTS.md copy lags until the re-pin; CI skips it).
+
+--- 2026-10-01 follow-up 2 (CI run 36819988510, lean tier): the hosted hazards program ---
+CI: 3 failed in gate/tests/test_hazards_through_axle_text_lean.py on f85cc12, every composed program:
+  Hazards.lean:467:19: error(lean.unknownIdentifier): Unknown identifier `elabFile`
+  Hazards.lean:469:13: error(lean.invalidField): Invalid field notation: Type of log is not known
+Cause: AutoImplicit.lean imported OpnGate.Frontend; the composer strips imports and walks only the
+OpnGate.Hazards* modules, so elabFile reached the hosted text unbound and nat-sub alone failed too.
+
+Red first, fast tier (api/tests/test_finding_hazards_inlined_imports.py), the first run:
+E       AssertionError: inlined by the network with its imports stripped: {'AutoImplicit.lean': ['OpnGate.Frontend']}
+E       assert not {'AutoImplicit.lean': ['OpnGate.Frontend']}
+E       TypeError: hazards_text() got an unexpected keyword argument 'statement'
+E       TypeError: hazards_text() got an unexpected keyword argument 'statement'
+FAILED api/tests/test_finding_hazards_inlined_imports.py::test_every_inlined_checker_imports_only_lean_and_the_hazards_modules
+FAILED api/tests/test_finding_hazards_inlined_imports.py::test_the_composed_program_supplies_the_reelaboration_seam
+FAILED api/tests/test_finding_hazards_inlined_imports.py::test_the_probe_is_the_statement_not_the_inlined_definitions
+
+with the statement keyword accepted and unread (the honest red):
+E       AssertionError: inlined by the network with its imports stripped: {'AutoImplicit.lean': ['OpnGate.Frontend']}
+E       assert not {'AutoImplicit.lean': ['OpnGate.Frontend']}
+E       assert 'reelaborate := fun opts =>' in 'import Lean\n\ntheorem Opn.t (s : String) : s = "a\\\\b" ∨ True := by sorry\n\n-- the network\'s hazard pre-screen (F...Json.bool capped)]\n  Lean.logInfo (Lean.MessageData.ofFormat (Std.Format.text ("OPN-HAZARDS " ++ answer.compress)))\n'
+E       IndexError: list index out of range
+FAILED api/tests/test_finding_hazards_inlined_imports.py::test_every_inlined_checker_imports_only_lean_and_the_hazards_modules
+FAILED api/tests/test_finding_hazards_inlined_imports.py::test_the_composed_program_supplies_the_reelaboration_seam
+FAILED api/tests/test_finding_hazards_inlined_imports.py::test_the_probe_is_the_statement_not_the_inlined_definitions
+
+Probe at Lean 4.33.1 (scratch probe.lean): a run_meta block can re-elaborate embedded text through
+Lean.Elab.IO.processCommands on the current environment with autoImplicit := false and read the log;
+the message kind is lean.unknownIdentifier._namedError and the text starts "Unknown identifier `n`".
+
+Fix: Statement.reelaborate : Options -> IO MessageLog (base dropped); HazardsMain fills it with
+elabFile on the once-imported environment; the composed program fills it with the statement's own
+text (hazards_text(..., statement=)) under namespace OpnAutoImplicitProbe; the file-level findings
+join run selected s.type extra as in the binary.
+
+Composed programs elaborated directly with lean 4.33.1 (scratch c_*.lean):
+  c_auto:
+    OPN-HAZARDS {"capped":false,"checkers":["auto-implicit"],"findings":[{"checker":"auto-implicit","location":"n","message":"`n` is not declared: autoImplicit bound it as `{n : Nat}`, an implicit binder the author never wrote; declare it, or correct the name if a constant was meant"}]}
+    exit 0 c_auto
+  c_natsub:
+    OPN-HAZARDS {"capped":false,"checkers":["nat-sub"],"findings":[]}
+    exit 0 c_natsub
+  c_all:
+    OPN-HAZARDS {"capped":false,"checkers":["auto-implicit","div-zero","int-trunc","junk-value","nat-div","nat-sub","off-by-one-range","unused-binder"],"findings":[{"checker":"div-zero","location":"a % b","message":"modulo by a divisor that is not syntactically non-zero: Lean's / and % are total and
+    exit 0 c_all
+  c_node:
+    OPN-HAZARDS {"capped":false,"checkers":["auto-implicit","div-zero","int-trunc","junk-value","nat-div","nat-sub","off-by-one-range","unused-binder"],"findings":[]}
+    exit 0 c_node
+
+The auto-implicit finding through the hosted path equals the gate's message byte for byte
+(`{n : Nat}` shown back).
+
+Green, fast tier (guard + pre-flight files): (red above) then
+19 passed, 2 warnings in 0.70s
+Green, lean tier (pytest -m lean gate/tests/test_hazards_lean.py gate/tests/test_hazards_through_axle_text_lean.py):
+13 passed in 84.08s (0:01:24)
+lake build: exit 0. make lint: exit 0. make types: exit 0.
+make test-fast: 1 failed (test_graph_copy_is_identical, the graph AGENTS.md copy lags until the re-pin; CI skips it), 3133 passed.
