@@ -10,6 +10,14 @@ on:
 permissions:
   contents: read
 
+# Testers 2026-09-29, item 2: a push to a pull request branch replaces the run of the commit it
+# superseded, which checked nothing anyone will merge; 27 such runs from one pull request held the
+# account's whole hosted-runner pool and the graph's gate queued for 16 to 24 minutes behind them.
+# A run on main is never cancelled: every commit there is one a graph may pin.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   verify:
     name: make verify (fast tier)
