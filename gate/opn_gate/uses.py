@@ -1,5 +1,5 @@
 """Declared uses: what a proof may draw on beyond its statement's own header (F08-R16 to R18;
-D-3, D-4 v3.24).
+D-3, D-4, proposed v3.25).
 
 A node's statement is immutable, and until this module a proof's header had to be the
 statement's exactly (F00-R19, with F00-T10's one line). So nothing beneath a root stated over
@@ -32,20 +32,19 @@ nothing here is live on a graph before its re-pin (D-35).
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from opn_gate import layout
+from opn_gate import graph as graphmod
+from opn_gate import layout, records, schemas
 from opn_gate.diagnostic import Diagnostic
 
 #: ``ctx.data`` key: the uses step 2 read off the artifact, as ``Uses.as_dict`` gives them.
 USES_KEY = "uses"
 
-_DEFS_USE = rf"{layout.DEFS_PREFIX}\.[A-Za-z_][A-Za-z0-9_']*"
-#: One use line, without its newline: the module it names.
-USE_LINE_RE = re.compile(rf"import[ \t]+(?P<module>{_DEFS_USE})[ \t]*")
+#: One use line, without its newline: the module it names (``layout.split_uses`` reads them).
+USE_LINE_RE = layout.USE_LINE_RE
 
 
 @dataclass(frozen=True)
@@ -62,54 +61,25 @@ class Uses:
         """The ``Defs.<Name>`` modules declared."""
         return tuple(m for m in self.modules if layout.module_origin(m)[0] == "defs")
 
+    @property
+    def nodes(self) -> tuple[str, ...]:
+        """The nodes whose merged proof is declared as a use (F08-R18)."""
+        return tuple(n for n in (node_of(m) for m in self.modules) if n is not None)
+
     def as_dict(self) -> dict[str, Any]:
-        return {"modules": list(self.modules), "defs": list(self.defs)}
+        return {"modules": list(self.modules), "defs": list(self.defs), "nodes": list(self.nodes)}
 
 
-def _imports_end(text: str) -> int:
-    """The offset just past ``text``'s last ``import`` line; 0 when it has none."""
-    end = 0
-    offset = 0
-    for line in text.splitlines(keepends=True):
-        offset += len(line)
-        if line.startswith("import "):
-            end = offset
-    return end
+def node_of(module: str) -> str | None:
+    """The node ``Nodes.«<id>».Proof`` names; ``None`` for any other module."""
+    return layout.used_node(module)
 
 
 def split(prefix: str, text: str, node_id: str | None) -> tuple[str, Uses]:
-    """``text`` with its use lines removed, and the uses they declare.
-
-    ``prefix`` is the statement's text up to its ``:=`` (``layout.Statement.prefix``). The use
-    lines are the run of lines directly after the statement's last import, or after the node's
-    own ``Context`` line where the artifact adds it (F00-T10), each matching ``USE_LINE_RE``.
-    They are taken out only when what remains begins with the header the gate already takes;
-    any other text comes back unchanged with no uses, so step 2's own diagnostic stands.
-    """
-    bases = [prefix]
-    if node_id is not None:
-        allowed = layout.with_own_context(prefix, node_id)
-        if allowed != prefix:
-            bases.append(allowed)
-    for base in bases:
-        at = _imports_end(base)
-        if not text.startswith(base[:at]):
-            continue
-        modules: list[str] = []
-        pos = at
-        while True:
-            end = text.find("\n", pos)
-            if end == -1:
-                break
-            line = USE_LINE_RE.fullmatch(text[pos:end])
-            if line is None:
-                break
-            modules.append(line.group("module"))
-            pos = end + 1
-        rest = base[:at] + text[pos:]
-        if modules and rest.startswith(base):
-            return rest, Uses(tuple(modules))
-    return text, Uses()
+    """``text`` with its use lines removed, and the uses they declare (``layout.split_uses``,
+    the one reading of a use line: the same for a submission and for a merged proof)."""
+    rest, modules = layout.split_uses(prefix, text, node_id)
+    return rest, Uses(modules)
 
 
 def declared(statement: layout.Statement, text: str, node_id: str | None) -> Uses:
@@ -122,13 +92,126 @@ def defs_file(target_dir: Path, module: str) -> Path:
     return target_dir / "defs" / f"{module.partition('.')[2]}.lean"
 
 
+def merged_uses(node_dir: Path) -> tuple[str, ...]:
+    """The nodes a node's merged ``Proof.lean`` uses; none for a node without one. This is the
+    graph's record of a use: nothing else is written for it (R19)."""
+    return layout.merged_uses(node_dir)
+
+
+def edges(nodes_dir: Path) -> dict[str, tuple[str, ...]]:
+    """What every node of the target rests on: its recorded dependencies, both as ``META.yaml``
+    wrote them and as they are now (``graph.effective_deps``: each read through its revision
+    chain; its own holes are among them), and the nodes its merged proof uses. Both readings,
+    because this relation exists to refuse: a node that was replaced is still a node a parent
+    was written over, and a proof of it that cited the parent would be the same circle. A
+    ``META.yaml`` that does not read contributes its uses alone."""
+    out: dict[str, tuple[str, ...]] = {}
+    for node_dir in sorted(p for p in nodes_dir.iterdir() if p.is_dir()):
+        try:
+            meta = schemas.load_yaml(node_dir / "META.yaml")
+        except (OSError, schemas.SchemaError):
+            meta = {}
+        raw = meta.get("deps") if isinstance(meta, dict) else None
+        recorded = tuple(str(d) for d in raw) if isinstance(raw, (list, tuple)) else ()
+        deps = graphmod.effective_deps(nodes_dir, raw)
+        out[node_dir.name] = tuple(dict.fromkeys((*recorded, *deps, *merged_uses(node_dir))))
+    return out
+
+
+def above(nodes_dir: Path, node_id: str) -> set[str]:
+    """Every node that rests on ``node_id``, however indirectly, over ``edges``; never the node
+    itself. A proof of ``node_id`` may use none of them (R18): the node it used would rest on
+    the node it proves, which is the cycle D-12 refuses of a hole, by another road."""
+    rests_on = edges(nodes_dir)
+    found: set[str] = set()
+    frontier = [node_id]
+    while frontier:
+        below = frontier.pop()
+        for candidate, on in rests_on.items():
+            if below in on and candidate not in found and candidate != node_id:
+                found.add(candidate)
+                frontier.append(candidate)
+    return found
+
+
+def _superseded_by(nodes_dir: Path, node_id: str) -> str | None:
+    """The node that replaced ``node_id``, when a status record says it is superseded: the end of
+    its revision chain, or the node itself when the record names no sound successor."""
+    try:
+        record = records.load_node_status(nodes_dir / node_id)
+    except (OSError, schemas.SchemaError):
+        return None
+    if record is None or record.status != "superseded":
+        return None
+    return graphmod.current_id(nodes_dir, node_id)
+
+
+def _node_problem(node: layout.Node, used: str) -> Diagnostic | None:  # noqa: PLR0911 — one per rule
+    """Why ``node``'s artifact may not use the merged proof of ``used``, or ``None`` (R18)."""
+    from opn_gate.steps import artifact  # noqa: PLC0415 — the steps import this module
+
+    nodes_dir = node.path.parent
+    module = layout.node_module(used, layout.USED_STEM)
+    details = {"module": module, "node": used}
+    if used == node.node_id:
+        return Diagnostic("use-self", f"{module} is this node's own proof", details)
+    used_dir = nodes_dir / used
+    if not used_dir.is_dir():
+        return Diagnostic("use-unknown-node", f"{used} is not a node of {node.target_id}", details)
+    successor = _superseded_by(nodes_dir, used)
+    if successor is not None:
+        return Diagnostic(
+            "use-superseded",
+            f"{used} has been superseded"
+            + (f" by {successor}: use that node's proof" if successor != used else "")
+            + " (D-8); a proof may not rest on a statement the graph has replaced",
+            {**details, "successor": successor if successor != used else None},
+        )
+    proof = used_dir / "Proof.lean"
+    statement = layout.parse_statement((used_dir / "Statement.lean").read_text(encoding="utf-8"))
+    kind = (
+        artifact.declared_kind(statement.decl_name, proof.read_text(encoding="utf-8"))[0]
+        if proof.is_file() and isinstance(statement, layout.Statement)
+        else None
+    )
+    if kind != "proof":
+        return Diagnostic(
+            "use-unproved",
+            f"{used} has no merged proof to use"
+            + (f" (its merged artifact is a {kind})" if kind else "")
+            + ": a proof may use a node of its target only once that node's Proof.lean has "
+            "merged (D-3)",
+            {**details, "artifact": kind},
+        )
+    if used in graphmod.effective_deps(nodes_dir, node.meta.get("deps")):
+        return Diagnostic(
+            "use-redundant",
+            f"{used} is already a dependency of {node.node_id}: its theorem reaches the proof "
+            f"through {layout.node_module(node.node_id, 'Context')}, and a node is named one way",
+            details,
+        )
+    if used in above(nodes_dir, node.node_id):
+        return Diagnostic(
+            "use-ancestor",
+            f"{used} rests on {node.node_id} (through recorded dependencies and merged uses), "
+            f"so a proof of {node.node_id} that uses it would make the statement graph wait on "
+            "itself; a node is proved from what lies beside or below it, never from a node it "
+            "was written to help prove (D-12: no cycles)",
+            details,
+        )
+    return None
+
+
 def check(node: layout.Node, uses: Uses) -> Diagnostic | None:
-    """Step 2's rules for a declared use, read from the tree (R16): the first one broken.
+    """Step 2's rules for a declared use, read from the tree (R16, R18): the first one broken.
 
     * ``use-duplicate``: a line repeats another, or a module the statement already imports;
     * ``use-unknown-defs``: ``Defs.<Name>`` is not a definition of this target on the tree. A
       submission cannot add one (``defs/`` is no submission path, D-3), so what is on the tree is
-      what a curator's pull request admitted (F11-R15).
+      what a curator's pull request admitted (F11-R15);
+    * a node use: ``_node_problem``. A submission cannot add another node's ``Proof.lean``
+      either (a diff outside the claimed node is refused first), so a used node's proof is one
+      a merge put there.
     """
     target_dir = node.path.parent.parent
     seen = set(layout.imports_of(node.statement.text))
@@ -150,4 +233,8 @@ def check(node: layout.Node, uses: Uses) -> Diagnostic | None:
                 "a definition is added by a curator's pull request (F11-R15)",
                 {"module": module},
             )
+    for used in uses.nodes:
+        problem = _node_problem(node, used)
+        if problem is not None:
+            return problem
     return None

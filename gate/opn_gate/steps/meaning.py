@@ -1,5 +1,5 @@
 """Step 4's meaning guard: an artifact that declares uses proved the statement as the statement's
-own files read it (F08-R17; D-4 v3.24).
+own files read it (F08-R17; D-4, proposed v3.25).
 
 A use line widens the environment the artifact is elaborated in, and the artifact's file repeats
 the statement's text. The same text can elaborate to a different term there: an imported module

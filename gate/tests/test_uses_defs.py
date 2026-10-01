@@ -1,5 +1,5 @@
 """F08-T23: a proof may use a definition of its target that its statement does not import (R16,
-R17; decisions v3.24; the owner's ruling of 2026-10-01, testers' item B1).
+R17; proposed decisions v3.25; the owner's ruling of 2026-10-01, testers' item B1).
 
 A statement is immutable and a proof's header was the statement's (F00-R19), so beneath a root
 stated over Mathlib alone nothing could name a definition admitted later (F11-T13): erdos-69's
@@ -178,7 +178,11 @@ def test_a_proof_with_an_admitted_definition_passes_and_is_held_to_the_statement
     with_use(ctx)
     verdict = pipeline.run_steps(ctx)
     assert verdict.ok, verdict.diagnostic
-    assert verdict.data[uses.USES_KEY] == {"modules": ["Defs.Extra"], "defs": ["Defs.Extra"]}
+    assert verdict.data[uses.USES_KEY] == {
+        "modules": ["Defs.Extra"],
+        "defs": ["Defs.Extra"],
+        "nodes": [],
+    }
     statement = layout.node_module(NODE, "Statement")
     proof_module = layout.node_module(NODE, "Proof")
     # the statement is compiled from the node's own files, in a build of its own, and compared
@@ -218,6 +222,7 @@ def test_step_8_records_which_declared_definitions_the_proof_term_uses(tmp_path:
     assert verdict.data["deps"]["uses"] == {
         "defs": ["Defs.Extra", "Defs.Other"],
         "idle": ["Defs.Other"],
+        "nodes": [],
     }
     assert (
         "declared use Defs.Other contributes no constant to the proof"

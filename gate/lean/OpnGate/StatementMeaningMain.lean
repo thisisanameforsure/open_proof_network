@@ -5,7 +5,7 @@ import OpnGate.Frontend
                        --artifact-module <Name> --artifact-decl <Name>`
 
 Prints `{"ok": true, "decl", "expected", "declared", "identical", "matches", "locals",
-"local_mismatch"}` (F08-R16; D-3, D-4 v3.24).
+"local_mismatch"}` (F08-R16; D-3, D-4, proposed v3.25).
 
 **What it answers.** An artifact that declares uses (extra `import Defs.*` or
 `import Nodes.«id».Proof` lines) is elaborated in a larger environment than its statement was.

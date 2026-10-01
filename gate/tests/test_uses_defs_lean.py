@@ -1,5 +1,5 @@
 """F08-T23, lean tier: a declared definition is usable, and cannot change what the statement says
-(R16, R17; decisions v3.24).
+(R16, R17; proposed decisions v3.25).
 
 The fast tier pins the header rule and the wiring (``test_uses_defs.py``). This is the part only
 the real toolchain can show, and it is the reason the guard exists: *Lean accepts every trap

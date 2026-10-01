@@ -135,7 +135,9 @@ def dependents_of(nodes_dir: Path, node_id: str) -> list[str]:
         if not meta_path.is_file():
             continue
         meta = schemas.load_yaml(meta_path)
-        if node_id in graphmod.effective_deps(nodes_dir, meta.get("deps")):
+        # F08-R19: a node whose merged proof uses ``node_id`` rests on it as a dependent does.
+        used = layout.merged_uses(node_dir)
+        if node_id in graphmod.effective_deps(nodes_dir, meta.get("deps")) or node_id in used:
             out.append(node_dir.name)
     return out
 
