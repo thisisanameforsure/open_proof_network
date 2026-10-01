@@ -897,6 +897,46 @@ def lean_string(text: str) -> str:
 PROBE_NAMESPACE = "OpnAutoImplicitProbe"
 
 
+#: F13-T26: the probe's commands elaborated on the current environment under the options a
+#: file-level checker asks for, answered as their log. This is Lean's own frontend loop
+#: (``Lean.Elab.Frontend.processCommand``) written out over ``Lean.Parser.parseCommand`` and
+#: ``Lean.Elab.Command.elabCommandTopLevel``, because the hosted checker's environment is
+#: ``import Mathlib`` and that does not reach ``Lean.Elab.Frontend`` or ``Lean.Language.Lean``
+#: (``gate/hosted-checker-modules/``): ``Lean.Elab.IO.processCommands`` is an unknown identifier
+#: there. A command's messages arrive in its state and, for a declaration elaborated
+#: asynchronously (a theorem's header and body), in the snapshot tasks it logged; both are read,
+#: as ``IO.processCommands`` reads the whole snapshot tree, or ``auto-implicit`` finds nothing.
+REELABORATE = """\
+/-- The probe's commands elaborated on `env` under `opts`, answered as their log (F13-T26). -/
+partial def networkReelaborate (env : Lean.Environment) (opts : Lean.Options) :
+    IO Lean.MessageLog := do
+  let inputCtx := Lean.Parser.mkInputContext networkProbe "<OpnAutoImplicitProbe>"
+  let (_, first, msgs) ← Lean.Parser.parseHeader inputCtx
+  let rec loop (pstate : Lean.Parser.ModuleParserState) (st : Lean.Elab.Command.State)
+      (log : Lean.MessageLog) : IO Lean.MessageLog := do
+    let scope := st.scopes.head!
+    let pmctx : Lean.Parser.ParserModuleContext := {
+      env := st.env, options := scope.opts, currNamespace := scope.currNamespace,
+      openDecls := scope.openDecls }
+    let (cmd, next, parsed) := Lean.Parser.parseCommand inputCtx pmctx pstate {}
+    let cmdCtx : Lean.Elab.Command.Context := {
+      cmdPos := pstate.pos, fileName := inputCtx.fileName, fileMap := inputCtx.fileMap,
+      snap? := none, cancelTk? := none }
+    let ran ← EIO.toIO' <|
+      ((Lean.Elab.Command.elabCommandTopLevel cmd #[]).run cmdCtx).run
+        { st with messages := parsed, snapshotTasks := #[] }
+    match ran with
+    | .error e =>
+      throw <| IO.userError s!"the probe failed outside its log: {← e.toMessageData.toString}"
+    | .ok (_, st') =>
+      let mut log := log ++ st'.messages
+      for task in st'.snapshotTasks do
+        log := task.get.foldM (m := Id) (fun acc snap => acc ++ snap.diagnostics.msgLog) log
+      if Lean.Parser.isTerminalCommand cmd then pure log else loop next st' log
+  loop first (Lean.Elab.Command.mkState env {} opts) msgs
+"""
+
+
 def hazards_program(decl_name: str, checkers: list[str], probe: str) -> str:
     """The gate's checkers and the few lines that ask them one question: the findings of exactly
     ``checkers``, in that order, over ``decl_name``'s type, printed as ``opn-hazards`` prints
@@ -923,6 +963,7 @@ def hazards_program(decl_name: str, checkers: list[str], probe: str) -> str:
         f"def networkRegistry : Array Checker :=\n  {registry}\n"
         "-- the statement's own text, re-elaborated by the file-level checkers (F02-T9)\n"
         f"def networkProbe : String := {lean_string(probe_text)}\n"
+        f"{REELABORATE}"
         "end OpnGate.Hazards\n\n"
         "run_meta do\n"
         f"  let s ← Lean.getConstInfo `{decl_name}\n"
@@ -933,13 +974,7 @@ def hazards_program(decl_name: str, checkers: list[str], probe: str) -> str:
         "  let stmt : OpnGate.Hazards.Statement := {\n"
         "    path := ⟨(← readThe Lean.Core.Context).fileName⟩, module := env.mainModule,\n"
         f"    decl := `{decl_name}, env,\n"
-        "    reelaborate := fun opts => do\n"
-        "      let inputCtx := Lean.Parser.mkInputContext OpnGate.Hazards.networkProbe\n"
-        f'        "<{PROBE_NAMESPACE}>"\n'
-        "      let (_, pstate, msgs) ← Lean.Parser.parseHeader inputCtx\n"
-        "      let st ← Lean.Elab.IO.processCommands inputCtx pstate\n"
-        "        (Lean.Elab.Command.mkState env msgs opts)\n"
-        "      pure st.commandState.messages }\n"
+        "    reelaborate := fun opts => OpnGate.Hazards.networkReelaborate env opts }\n"
         "  let mut extra : Array OpnGate.Hazards.Finding := #[]\n"
         "  for c in selected do\n"
         "    if let some check := c.source then\n"
@@ -961,6 +996,12 @@ def hazards_text(
 ) -> str:
     """What the checker is sent in hazards mode: the statement under its own header (the
     definitions already inlined), ``import Lean`` for the checkers, then the program.
+
+    F13-T26: the hosted checker does not honour that ``import Lean``. It replaces the header with
+    its own, ``import Mathlib``, so what the program may name is what ``import Mathlib`` reaches
+    at the pin (``gate/hosted-checker-modules/<environment>.txt``, measured), which is less than
+    ``Lean``. The line stays for a reader who elaborates the text locally, and the lean tier
+    elaborates it under the measured list instead.
 
     ``statement`` is the statement's own text when ``formal`` has definitions inlined into it:
     the file-level checkers re-elaborate that, never the definitions' copies, which the gate's
@@ -1051,6 +1092,46 @@ def node_hazards(
     except yaml.YAMLError:
         return found  # C7: the findings still stand; only the marks are lost
     return acknowledged(found, meta if isinstance(meta, dict) else {})
+
+
+#: F13-T26: what hazards mode says of its own run, beside ``hazards``.
+HAZARDS_RAN = "ran"
+HAZARDS_STATEMENT_FAILED = "statement-failed"
+HAZARDS_UNAVAILABLE = "unavailable"
+#: The call log's outcome when the network's own program failed on a statement that compiled.
+HAZARDS_RUNNER_FAILED = "hazards-runner-failed"
+#: How many of the program's own errors ``hazards_error`` quotes.
+HAZARDS_ERRORS_SHOWN = 5
+
+
+def hazards_status(body: dict[str, Any], lines: int) -> tuple[str, str | None]:
+    """How the hazard program's run went, and the program's own errors when it is at fault.
+    ``lines`` is how many leading lines of the text sent are the statement's
+    (``statement_lines``).
+
+    The program printed its line: ``ran``. It did not and Lean reported an error on a line of the
+    statement (the theorem, or the definitions and Context inlined into it): the caller's
+    statement does not compile, ``statement-failed``. Anything else is the network's own program
+    failing on a statement that compiled, or a body with no verdict at all: ``unavailable``, with
+    the errors positioned after the statement as the reason (F13-T26; on 2026-10-01 that was
+    every call, and it read ``okay: false`` like a caller's mistake)."""
+    if hazards_verdict(body) is not None:
+        return HAZARDS_RAN, None
+    if errors_on_lines(body, 1, lines):
+        return HAZARDS_STATEMENT_FAILED, None
+    after = [e for e in lean_errors(body) if (error_line(e) or 0) > lines]
+    reason = "\n".join(e.strip() for e in after[:HAZARDS_ERRORS_SHOWN])
+    return HAZARDS_UNAVAILABLE, reason or "the hazard program printed no answer"
+
+
+def runner_gave_no_answer(
+    body: dict[str, Any], lines: int, node_id: str, log_id: str | None
+) -> str:
+    """The pre-flight's word when the program printed nothing, logged with the program's own
+    errors so an operator sees a broken runner the day it breaks."""
+    _, reason = hazards_status(body, lines)
+    log.warning("hazards preflight inconclusive for %s (log %s): %s", node_id, log_id, reason)
+    return PREFLIGHT_INCONCLUSIVE
 
 
 def target_checkers(ctx: Context, target_id: str) -> list[str]:
@@ -1515,7 +1596,9 @@ async def preflight_hazards(  # noqa: PLR0911 — one return per outcome word
     refuse_failing_statement(answer.body, statement_lines(formal), environment, log_id)
     found = hazards_verdict(answer.body)
     if found is None:
-        return PREFLIGHT_INCONCLUSIVE
+        # F13-T26: the statement compiled (the refusal above did not fire) and the program gave
+        # no answer. That is the network's fault, and an operator must be able to see it.
+        return runner_gave_no_answer(answer.body, statement_lines(formal), node_id, log_id)
     try:
         meta = yaml.safe_load(files.get(prefix + "META.yaml", "")) or {}
     except yaml.YAMLError:
@@ -2056,6 +2139,10 @@ def request_statement(
     return statement, proposal.context or "", True
 
 
+def text_or_none(value: Any) -> str | None:
+    return value if isinstance(value, str) else None
+
+
 async def post_check(ctx: Context, request: Request) -> Response:
     from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
 
@@ -2141,17 +2228,21 @@ async def post_check(ctx: Context, request: Request) -> Response:
         reported = sorry_reported(answer.body)
         if reported is not None:
             warnings.append(reported)
+    status, program_error = (
+        hazards_status(answer.body, statement_lines(formal or ""))
+        if req.mode == "hazards"
+        else (None, None)
+    )
     log_id = write_log(
         ctx,
         req,
         caller,
-        outcome=ANSWERED,
+        outcome=HAZARDS_RUNNER_FAILED if status == HAZARDS_UNAVAILABLE else ANSWERED,
         started=started,
         environment=environment,
         lint_codes=[w["code"] for w in warnings],
         answer=answer,
     )
-    user_error = answer.body.get("user_error")
     shown, dropped = without_generated_name_warning(answer.body, statement, req.node_id)
     return JSONResponse(
         {
@@ -2166,8 +2257,10 @@ async def post_check(ctx: Context, request: Request) -> Response:
             # T10: the two facts a caller reads first, lifted beside the verbatim body, so a
             # body with no ``okay`` (a statement that does not compile) is still an answer.
             # F13-T25: in verify mode, false too when the lint names a gate refusal.
-            "okay": gate_verdict(req.mode, verdict(answer.body), warnings),
-            "user_error": user_error if isinstance(user_error, str) else None,
+            "okay": None
+            if status == HAZARDS_UNAVAILABLE
+            else gate_verdict(req.mode, verdict(answer.body), warnings),
+            "user_error": text_or_none(answer.body.get("user_error")),
             "result": shown,
             # F13-T18: what was left out of ``result`` and why; the log keeps the checker's own.
             "dropped_warnings": dropped,
@@ -2176,7 +2269,13 @@ async def post_check(ctx: Context, request: Request) -> Response:
             # F13-T20: step 6's findings as opn-hazards prints them, ready to acknowledge.
             # Each one the node's META.yaml acknowledges says so, by step 6's own matching.
             **(
-                {"hazards": node_hazards(ctx, req, answer.body, proposed=proposed)}
+                {
+                    "hazards": node_hazards(ctx, req, answer.body, proposed=proposed),
+                    # F13-T26: whether the program ran, and whose fault it is when it did not.
+                    "hazards_status": status,
+                    "service_fault": status == HAZARDS_UNAVAILABLE,
+                    "hazards_error": program_error,
+                }
                 if req.mode == "hazards"
                 else {}
             ),

@@ -163,6 +163,7 @@ async def propose_speculative_node(call: Call, args: dict[str, Any]) -> dict[str
         "deps",
         "model",
         "acknowledged_hazards",
+        "require_hazards_preflight",
     )
     return await forward(call, "POST", "/proposals/speculative", body)
 
@@ -179,6 +180,7 @@ async def propose_variant(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         "deps",
         "model",
         "acknowledged_hazards",
+        "require_hazards_preflight",
     )
     return await forward(call, "POST", "/proposals/variant", body)
 
@@ -229,6 +231,12 @@ HAZARDS = {
             "justification": {"type": "string", "maxLength": 500},
         },
     },
+}
+
+REQUIRE_HAZARDS = {
+    "type": "boolean",
+    "description": "true: open nothing unless the hazard pre-flight answered (clear or "
+    "acknowledged); default false",
 }
 
 TOOLS: tuple[Tool, ...] = (
@@ -309,6 +317,10 @@ TOOLS: tuple[Tool, ...] = (
         "already acknowledges also carries `acknowledged: true` and the `justification`, by "
         "step 6's own matching. A finding you mean is acknowledged in acknowledged_hazards with "
         "its checker, its location exactly as printed and a justification. "
+        "`hazards_status` says how the run went: ran; statement-failed (the statement does not "
+        "compile: `okay` false, Lean's errors in `result`); or unavailable (the network's own "
+        "checker program failed on a statement that compiled: `okay` null, `service_fault` "
+        "true, `hazards_error` its errors; not your statement's fault, report it). "
         "`target_id` may be omitted when a node_id is given: it is derived from the node, and "
         "one the node does not belong to is refused 400 node-target-mismatch; with neither, the "
         "answer is 400 target-id-required. "
@@ -504,7 +516,9 @@ TOOLS: tuple[Tool, ...] = (
         "not in `acknowledged_hazards` is refused 422 hazard-unacknowledged with step 6's "
         "`findings`, and nothing opens; `hazards_preflight` says clear, acknowledged, "
         "inconclusive or unavailable (clear: no findings; acknowledged: every finding was "
-        "in `acknowledged_hazards`).",
+        "in `acknowledged_hazards`). With `require_hazards_preflight: true`, an inconclusive "
+        "or unavailable hazard pre-flight is refused 503 hazards-preflight-inconclusive and "
+        "nothing opens; without it the pull request opens and step 6 decides.",
         params(
             {
                 "target_id": ID_PARAM,
@@ -513,6 +527,7 @@ TOOLS: tuple[Tool, ...] = (
                 "deps": DEPS,
                 "model": MODEL,
                 "acknowledged_hazards": HAZARDS,
+                "require_hazards_preflight": REQUIRE_HAZARDS,
             },
             ("target_id", "stmt", "witness"),
         ),
@@ -543,7 +558,9 @@ TOOLS: tuple[Tool, ...] = (
         "not in `acknowledged_hazards` is refused 422 hazard-unacknowledged with step 6's "
         "`findings`, and nothing opens; `hazards_preflight` says clear, acknowledged, "
         "inconclusive or unavailable (clear: no findings; acknowledged: every finding was "
-        "in `acknowledged_hazards`).",
+        "in `acknowledged_hazards`). With `require_hazards_preflight: true`, an inconclusive "
+        "or unavailable hazard pre-flight is refused 503 hazards-preflight-inconclusive and "
+        "nothing opens; without it the pull request opens and step 6 decides.",
         params(
             {
                 "target_id": ID_PARAM,
@@ -554,6 +571,7 @@ TOOLS: tuple[Tool, ...] = (
                 "deps": DEPS,
                 "model": MODEL,
                 "acknowledged_hazards": HAZARDS,
+                "require_hazards_preflight": REQUIRE_HAZARDS,
             },
             ("target_id", "stmt", "witness"),
         ),

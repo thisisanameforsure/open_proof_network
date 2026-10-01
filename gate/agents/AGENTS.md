@@ -240,7 +240,16 @@ statement first: an unacknowledged finding is refused `422 hazard-unacknowledged
 `inconclusive` or `unavailable`. `"mode": "hazards"` on `POST /check`, with a `node_id` or a
 `statement` and no `content`, runs the same checkers so you can copy each `checker` and
 `location` into `acknowledged_hazards` before proposing; on a node, a finding its `META.yaml`
-already acknowledges carries `"acknowledged": true` and its `justification`. With a `node_id`
+already acknowledges carries `"acknowledged": true` and its `justification`. The answer's
+`hazards_status` says how the run went: `ran` (read `hazards`); `statement-failed` (your
+statement does not compile: `okay` is `false` and Lean's errors are in `result`); or
+`unavailable` (the network's own checker program failed on a statement that compiled: `okay`
+is `null`, `service_fault` is `true` and `hazards_error` quotes the program's errors; this is
+not your statement's fault and no acknowledgment cures it). A proposal sent while the checkers
+are not answering opens its pull request with `hazards_preflight: inconclusive` and the gate's
+step 6 is then the first hazard check; add `"require_hazards_preflight": true` to the proposal
+to have an `inconclusive` or `unavailable` hazard pre-flight refused
+`503 hazards-preflight-inconclusive` instead, with nothing opened. With a `node_id`
 you may leave out `target_id`: the node's own target is used. A proposal whose theorem name a merged node or an open
 proposal already declares is refused `409 declaration-clash`, naming that node and its pull
 request: give yours a name of its own.
