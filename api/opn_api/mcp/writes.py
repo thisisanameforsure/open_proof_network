@@ -100,7 +100,15 @@ async def check_lean(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     """F13-R12: ``POST /check``, with whatever bearer there is; the endpoint charges an identity
     or an address and answers in the same response, so there is nothing to poll."""
     body = present(
-        "check_lean", args, "target_id", "node_id", "content", "mode", "statement", "deps"
+        "check_lean",
+        args,
+        "target_id",
+        "node_id",
+        "content",
+        "mode",
+        "statement",
+        "deps",
+        "heartbeats",
     )
     return await forward(call, "POST", "/check", body)
 
@@ -324,6 +332,15 @@ TOOLS: tuple[Tool, ...] = (
         "`target_id` may be omitted when a node_id is given: it is derived from the node, and "
         "one the node does not belong to is refused 400 node-target-mismatch; with neither, the "
         "answer is 400 target-id-required. "
+        "With `heartbeats: true` (modes check and verify) the answer also carries `heartbeats`: "
+        "for each top-level theorem and lemma of your content, the `heartbeats` it used against "
+        "the `cap` (200000 unless the text sets another) and `over_cap`, measured by placing "
+        "`#count_heartbeats in` before each one in a copy of your text and sending that copy as "
+        "a second check beside yours. The hosted checker reports no such figure itself. The "
+        "command runs its declaration without the cap, so a count above the cap is reported "
+        "where your own text stops with a heartbeat timeout; one that needs more than the 20 s "
+        "budget is not measured (`error`: check-timeout). A measurement of the fast checker, "
+        "never the gate's verdict; `okay` and `result` are still those of your text as sent. "
         "Never authoritative: a precheck is the verdict. "
         "No token needed; a token raises the limit. Every call is logged without its text; "
         "GET /hosted-checkers.json says which targets have a checker.",
@@ -349,6 +366,11 @@ TOOLS: tuple[Tool, ...] = (
                 "deps": {
                     **DEPS,
                     "description": "with statement: the node ids its proposal would declare",
+                },
+                "heartbeats": {
+                    "type": "boolean",
+                    "description": "modes check and verify: also measure each theorem's "
+                    "heartbeats on a copy of the text (a second hosted check, charged as one)",
                 },
             },
         ),

@@ -1,0 +1,61 @@
+F13-T27, 2026-10-01 (branch svc-queue-heartbeats-hazards): what is possible, then green
+
+== 1. Does the hosted checker report heartbeats or any per-declaration resource figure? No. ==
+   Every key of its answer, both endpoints, read through the live POST /check (result is AXLE's body verbatim):
+   check        : content, failed_declarations, info, info.cached_response, info.environment, info.environment_pool_size, info.environment_total_time_us, info.environment_wait_time_us, info.execution_time_ms, info.queue_time_ms, info.request_id, info.total_request_time_ms, lean_messages, lean_messages.errors, lean_messages.infos, lean_messages.warnings, okay, timings, timings.parse_ms, timings.total_ms, tool_messages, tool_messages.errors, tool_messages.infos, tool_messages.warnings
+   verify_proof : content, failed_declarations, info, info.cached_response, info.environment, info.environment_pool_size, info.environment_total_time_us, info.environment_wait_time_us, info.execution_time_ms, info.queue_time_ms, info.request_id, info.total_request_time_ms, lean_messages, lean_messages.errors, lean_messages.infos, lean_messages.warnings, negation, okay, timings, timings.candidate_ms, timings.declarations_ms, timings.formal_statement_ms, timings.total_ms, tool_messages, tool_messages.errors, tool_messages.infos, tool_messages.warnings
+   timings are milliseconds for the whole text (parse_ms, total_ms; candidate_ms, declarations_ms, formal_statement_ms in verify), and info is the request's
+   queue and execution times. Nothing counts heartbeats and nothing is per declaration. AXLE's own documentation could not be read from this session
+   (its host is refused by the session's proxy, 403), so this is what the bodies show, not what its documentation says: a request option that asks
+   for more is not ruled out. The service sends {content, environment, timeout_seconds} and nothing else.
+
+== 2. What #count_heartbeats in does on the hosted checker (anonymous POST /check, mode check, target erdos-69) ==
+   a) log 01M3WPRQM0BVWQ1HF186KE3EHT: five declarations, each with the command; one with the doc comment first; one with the old spelling
+      info : -:3:0-6:6: info: Used 31 heartbeats, which is less than the current maximum of 200000.
+      info : -:9:0-11:7: info: Used 59 heartbeats, which is less than the current maximum of 200000.
+      info : -:13:0-16:10: info: Used 63 heartbeats, which is less than the current maximum of 200000.
+      info : -:18:0-20:7: info: Used 9 heartbeats, which is less than the current maximum of 200000.
+      info : -:22:0-24:6: info: Used 44 heartbeats, which is less than the current maximum of 200000.
+      error: -:8:60-9:17: error: unexpected token '#count_heartbeats'; expected 'lemma'
+      error: -:23:38-24:6: error: unsolved goals
+      error: -:26:0-26:16: error: unexpected identifier; expected command
+      -> the count is an info message at the command's own line; after the doc comment the command is a parse error; count_heartbeats in is a parse error
+   b) the cap is lifted for the run, shown with the cap lowered so that it costs seconds: set_option maxHeartbeats 5000 in, then the command
+      log 01M3WPXYKRK2K01S21A179S8YT okay True
+      info : -:4:0-9:9: info: Used 11225 heartbeats, which is greater than the current maximum of 5000.
+      -> 'greater than the current maximum' is printed and the declaration still elaborates
+      The same text without the command, under the same lowered cap, also answered okay: true with no heartbeat error (log 01M3WPXWN8WS9BKX1QJ2Z0N2BF):
+      the count is of everything the declaration did, and Lean did not stop this one at its cap. Why is not established here (the work was `ring`).
+      So over_cap is a warning that the declaration is past the cap by the command's count, not a statement that the plain text fails; okay says that.
+   c) a declaration near 200000 heartbeats is near the fast check's 20 s as well: two attempts to cross the real cap (38 ring steps, about 213000
+      heartbeats by 5600 each) answered 504 check-timeout with and without the command. An agent's 117487-heartbeat proof took 11.2 s (1050-R1-b).
+      So the measurement reaches a little past the cap and no further; a declaration far over it is reported as check-timeout, not as a number.
+
+== 3. the feature against the hosted checker: the copy the service would send, sent as content, and the service's own parser on AXLE's body ==
+== the test file's CONTENT, no node
+   names in the copy: ['Opn.hb_one', 'Opn.hb_two', 'Opn.hb_three']
+   log_id 01M3WQ5AY8WJ8ETRC3BDW00WD6 environment lean-4.33.1 lean errors 0 inlined []
+   checker: -:4:0-8:6: info: Used 31 heartbeats, which is less than the current maximum of 200000.
+   checker: -:13:0-16:10: info: Used 63 heartbeats, which is less than the current maximum of 200000.
+   checker: -:20:0-23:9: info: Used 9 heartbeats, which is less than the current maximum of 200000.
+   parsed : {'declaration': 'Opn.hb_one', 'heartbeats': 31, 'cap': 200000, 'over_cap': False}
+   parsed : {'declaration': 'Opn.hb_two', 'heartbeats': 63, 'cap': 200000, 'over_cap': False}
+   parsed : {'declaration': 'Opn.hb_three', 'heartbeats': 9, 'cap': 200000, 'over_cap': False}
+== erdos-69 node spec-2e765953 (its own statement, sorry-bodied; Context inlined above by the service)
+   names in the copy: ['Opn.erdos_69_summable_prime_reciprocal']
+   log_id 01M3WQ5AY8J7G71D0661KZ1VH0 environment lean-4.33.1 lean errors 0 inlined ['Nodes.«spec-2e765953».Context']
+   checker: -:7:0-12:7: info: Used 68 heartbeats, which is less than the current maximum of 200000.
+   parsed : {'declaration': 'Opn.erdos_69_summable_prime_reciprocal', 'heartbeats': 68, 'cap': 200000, 'over_cap': False}
+
+== 4. tests ==
+$ uv run --frozen pytest api/tests/test_finding_check_heartbeats.py -q
+23 passed, 2 warnings in 0.84s
+$ uv run --frozen pytest api/tests -q
+1145 passed, 2 warnings in 87.21s (0:01:27)
+$ uv run --frozen ruff check . ; ruff format --check . ; mypy api
+All checks passed!
+494 files already formatted
+Success: no issues found in 162 source files
+
+Not verified: the deployed route with heartbeats: true (it deploys on merge to main). The first call to make after the deploy:
+  curl -s -X POST $OPN_API/check -H "Content-Type: application/json" -d '{"node_id":"tutorial-and-swap","mode":"check","heartbeats":true,"content":"<the tutorial proof>"}' | jq .heartbeats

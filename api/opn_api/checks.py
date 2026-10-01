@@ -50,7 +50,7 @@ if TYPE_CHECKING:
 log = logging.getLogger("opn_api.checks")
 
 SERVICE = hosted.SERVICE
-FIELDS = frozenset({"target_id", "node_id", "content", "mode", "statement", "deps"})
+FIELDS = frozenset({"target_id", "node_id", "content", "mode", "statement", "deps", "heartbeats"})
 MODES = ("check", "verify", "witness", "hazards")
 #: F13-T14: the modes that read the node's own statement, so cannot do without a node.
 NODE_MODES = ("verify", "witness", "hazards")
@@ -121,6 +121,8 @@ class CheckRequest:
     #: would carry it — and the deps that proposal would declare (unchecked until the graph is).
     statement: str | None = None
     deps: Any = None
+    #: F13-T27: also measure each theorem's heartbeats, on a copy of the text.
+    heartbeats: bool = False
 
 
 @dataclass(frozen=True)
@@ -170,8 +172,28 @@ def parse_body(ctx: Context, fields: dict[str, Any]) -> CheckRequest:
     if size > ctx.settings.check_max_bytes:
         raise too_large(ctx, "content", size)
     return CheckRequest(
-        target_id or TARGET_FROM_NODE, node_id, content, mode, statement, fields.get("deps")
+        target_id or TARGET_FROM_NODE,
+        node_id,
+        content,
+        mode,
+        statement,
+        fields.get("deps"),
+        heartbeats_field(fields, mode),
     )
+
+
+def heartbeats_field(fields: dict[str, Any], mode: str) -> bool:
+    """F13-T27: ``heartbeats`` is true or false, and is for a proof text: the statement modes
+    send a program of the network's own after the statement, and there is no proof to count."""
+    raw = fields.get("heartbeats")
+    if raw is None:
+        return False
+    if not isinstance(raw, bool):
+        raise api_error(400, "heartbeats-invalid", "heartbeats must be true or false")
+    if raw and mode in STATEMENT_MODES:
+        msg = f"heartbeats measures a proof's theorems (modes check and verify), not mode {mode}"
+        raise api_error(400, "heartbeats-not-used", msg)
+    return raw
 
 
 def too_large(ctx: Context, what: str, size: int) -> Exception:
@@ -1145,6 +1167,234 @@ def target_checkers(ctx: Context, target_id: str) -> list[str]:
     if problem is not None:
         raise api_error(409, problem.code, problem.message, details=problem.details)
     return [str(c) for c in spec.get("hazard_checkers") or []]
+
+
+# --- heartbeats per declaration (F13-T27) --------------------------------------------------------
+
+#: Mathlib's command, as the hosted checker accepts it (probed 2026-10-01): before the doc
+#: comment, with the ``#``; ``count_heartbeats in`` is a parse error.
+COUNT_HEARTBEATS = "#count_heartbeats in"
+#: The command's own message, at the command's line: ``-:4:0-7:6: info: Used 31 heartbeats, which
+#: is less than the current maximum of 200000.`` (``greater`` when it is).
+HEARTBEATS_RE = re.compile(
+    r"^[^:\n]*:(?P<line>[0-9]+):[0-9]+[^\n]*?: info: Used (?P<used>[0-9]+) heartbeats, which is "
+    r"(?:less|greater) than the current maximum of (?P<cap>[0-9]+)"
+)
+#: The declarations the gate takes a proof to be made of, and so the ones counted.
+COUNTED_KINDS = ("theorem", "lemma")
+HEARTBEATS_NO_THEOREM = "no-theorem"
+HEARTBEATS_RATE_LIMITED = "rate-limited"
+HEARTBEATS_FAILED = "measurement-failed"
+HEARTBEATS_NOTE = (
+    "A measurement, not a verdict. The command elaborates its declaration without the cap, so "
+    "a count above the cap is printed here where your text as sent would usually stop with a "
+    "heartbeat timeout; over_cap is that count against the cap, and whether your text as sent "
+    "passes is okay's to say. A declaration that needs longer than the fast check's budget is "
+    "not measured at all. okay, result and lint are those of your text as sent, which this copy "
+    "never replaces. The gate elaborates your text as sent, under Lean's own cap"
+)
+
+
+def lean_mask(text: str) -> tuple[str, list[tuple[int, int]]]:
+    """``text`` with every comment and string body blanked to spaces, character for character
+    (so an offset in the mask is the same offset in the text), and the spans of its doc comments
+    (``/-- ... -/``). The rules are ``layout.strip_comments``': ``--`` to the end of the line,
+    nested ``/- -/`` blocks, the inside of ``"..."``."""
+    out: list[str] = []
+    docs: list[tuple[int, int]] = []
+    i, n = 0, len(text)
+
+    def blank(upto: int) -> None:
+        out.extend(ch if ch == "\n" else " " for ch in text[len(out) : upto])
+
+    while i < n:
+        pair = text[i : i + 2]
+        if pair == "/-":
+            start, depth, i = i, 1, i + 2
+            while i < n and depth:
+                inner = text[i : i + 2]
+                depth += 1 if inner == "/-" else -1 if inner == "-/" else 0
+                i += 2 if inner in ("/-", "-/") else 1
+            if text.startswith("/--", start):
+                docs.append((start, i))
+            blank(i)
+        elif pair == "--":
+            end = text.find("\n", i)
+            i = n if end == -1 else end
+            blank(i)
+        elif text[i] == '"':
+            end = i + 1
+            while end < n and text[end] != '"':
+                end += 2 if text[end] == "\\" else 1
+            out.append('"')
+            blank(min(end, n))
+            if end < n:
+                out.append('"')
+            i = min(end + 1, n)
+        else:
+            out.append(text[i])
+            i += 1
+    return "".join(out), docs
+
+
+def count_heartbeats_text(content: str) -> tuple[str, list[str]]:
+    """A copy of ``content`` with ``#count_heartbeats in`` on a line of its own before each
+    top-level theorem and lemma, and those declarations' names in order. The line goes before
+    the declaration's doc comment and attributes, where the command must stand, and after
+    anything written before those (an ``open ... in``). A declaration that already has the
+    command directly above it is counted as it stands. Comments and strings are not read as
+    code, so a ``theorem`` in one is not a declaration."""
+    mask, docs = lean_mask(content)
+    names: list[str] = []
+    inserts: list[int] = []
+    for match in DECLARATION_RE.finditer(mask):
+        if match.group("kind") not in COUNTED_KINDS:
+            continue
+        at = match.start()
+        for start, end in docs:
+            if end <= at and not mask[end:at].strip():
+                at = content.rfind("\n", 0, start) + 1  # the line the doc comment begins
+        names.append(match.group("name"))
+        if not mask[:at].rstrip().endswith(COUNT_HEARTBEATS):
+            inserts.append(at)
+    for at in reversed(inserts):
+        content = content[:at] + COUNT_HEARTBEATS + "\n" + content[at:]
+    return content, names
+
+
+def heartbeats_message(message: str) -> tuple[int, int, int] | None:
+    """``(line, heartbeats, cap)`` when ``message`` is the command's count, else ``None``."""
+    found = HEARTBEATS_RE.match(message)
+    if found is None:
+        return None
+    return int(found.group("line")), int(found.group("used")), int(found.group("cap"))
+
+
+def heartbeats_of(body: dict[str, Any]) -> list[dict[str, Any]]:
+    """The counts in a measuring call's answer, in the text's order: each of the checker's count
+    messages, named by the first theorem or lemma at or after the message's own line in the text
+    the checker echoes (``content``). Read from the echo and not from where the lines were
+    inserted, because the checker substitutes its header and the definitions and Context are
+    inlined above the caller's text. Untrusted output: only numbers are taken from it, and a
+    name is taken from the text the service itself sent, as echoed."""
+    messages = body.get("lean_messages")
+    infos = messages.get("infos") if isinstance(messages, dict) else None
+    echoed = body.get("content")
+    mask = lean_mask(echoed)[0] if isinstance(echoed, str) else ""
+    starts = [0]
+    starts.extend(i + 1 for i, ch in enumerate(mask) if ch == "\n")
+    out: list[tuple[int, dict[str, Any]]] = []
+    for info in infos if isinstance(infos, list) else ():
+        parsed = heartbeats_message(str(info))
+        if parsed is None:
+            continue
+        line, used, cap = parsed
+        name: str | None = None
+        if 1 <= line <= len(starts):
+            for match in DECLARATION_RE.finditer(mask, starts[line - 1]):
+                if match.group("kind") in COUNTED_KINDS:
+                    name = match.group("name")
+                    break
+        out.append(
+            (
+                line,
+                {
+                    "declaration": name,
+                    "heartbeats": used,
+                    "cap": cap,
+                    "over_cap": cap > 0 and used > cap,
+                },
+            )
+        )
+    return [entry for _, entry in sorted(out, key=lambda pair: pair[0])]
+
+
+def heartbeats_block(
+    environment: str | None,
+    names: list[str],
+    declarations: list[dict[str, Any]],
+    *,
+    error: str | None,
+    log_id: str | None,
+) -> dict[str, Any]:
+    """What ``heartbeats: true`` adds to the answer: the counts, how they were made, and what
+    they are not."""
+    counted = {d["declaration"] for d in declarations}
+    return {
+        "authoritative": False,
+        "measured_by": f"`{COUNT_HEARTBEATS}` (Mathlib) placed before each top-level theorem "
+        f"and lemma of your content, in a copy of the text, on the hosted fast checker "
+        f"({environment}); not the gate",
+        "note": HEARTBEATS_NOTE,
+        "declarations": declarations,
+        # a theorem the copy named and the checker gave no figure for (it did not get that far)
+        "not_measured": [n for n in names if n not in counted] if error is None else list(names),
+        "error": error,
+        "log_id": log_id,
+    }
+
+
+def charge_again(ctx: Context, request: Request, caller: Caller) -> None:
+    """The measuring call is a second hosted check and is charged as one (R8), to the caller
+    the first was charged to."""
+    if caller.kind == "identity":
+        ratelimit.check_check(ctx, caller.id)
+    else:
+        ratelimit.check_anonymous_check(ctx, ratelimit.client_address(request))
+
+
+async def measure_heartbeats(  # noqa: PLR0913 — the call, its caller and what is inlined
+    ctx: Context,
+    request: Request,
+    req: CheckRequest,
+    caller: Caller,
+    *,
+    defs: list[tuple[str, str]],
+    environment: str,
+) -> dict[str, Any]:
+    """F13-T27: the counts for ``req.content``'s theorems, from one more hosted call on a copy of
+    the text. It never fails the check it rides beside (C7): a spent budget, a busy or absent
+    checker and a timeout each become the block's ``error``, with no declarations. Charged and
+    logged as a check of its own (R8, R9), under mode ``heartbeats``."""
+    from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
+
+    measured, names = count_heartbeats_text(req.content)
+    if not names:
+        return heartbeats_block(environment, names, [], error=HEARTBEATS_NO_THEOREM, log_id=None)
+    try:
+        charge_again(ctx, request, caller)
+    except ApiError:
+        return heartbeats_block(environment, names, [], error=HEARTBEATS_RATE_LIMITED, log_id=None)
+    copy = replace(req, content=measured, mode="heartbeats")
+    started = time.monotonic()
+    try:
+        answer = await asyncio.to_thread(
+            call_checker, ctx, copy, forwarded_text(measured, defs), environment, None
+        )
+        if answer.body.get("error_type") == LEAN_TIMEOUT:
+            raise timed_out(ctx, answer.request_id)
+    except (ApiError, AxleError) as exc:
+        if isinstance(exc, ApiError):
+            code, status = exc.code, None
+        else:
+            code = "check-timeout" if exc.timed_out else "upstream-unavailable"
+            status = exc.status
+        log_id = write_log(
+            ctx,
+            copy,
+            caller,
+            outcome=code,
+            started=started,
+            environment=environment,
+            upstream_status=status,
+        )
+        return heartbeats_block(environment, names, [], error=code, log_id=log_id)
+    log_id = write_log(
+        ctx, copy, caller, outcome=ANSWERED, started=started, environment=environment, answer=answer
+    )
+    return heartbeats_block(
+        environment, names, heartbeats_of(answer.body), error=None, log_id=log_id
+    )
 
 
 # --- the checker ---------------------------------------------------------------------------------
@@ -2139,6 +2389,36 @@ def request_statement(
     return statement, proposal.context or "", True
 
 
+async def checked(  # noqa: PLR0913 — the check, and the measurement that may ride beside it
+    ctx: Context,
+    request: Request,
+    req: CheckRequest,
+    caller: Caller,
+    *,
+    text: str,
+    environment: str,
+    formal: str | None,
+    defs: list[tuple[str, str]],
+) -> tuple[AxleAnswer, dict[str, Any] | None]:
+    """The checker's answer for ``text`` and, with ``heartbeats``, the counts measured side by
+    side on a copy, so both fit the one budget the function has (F13-T27)."""
+    check = asyncio.to_thread(call_checker, ctx, req, text, environment, formal)
+    if not req.heartbeats:
+        return await check, None
+    answer, counted = await asyncio.gather(
+        check,
+        measure_heartbeats(ctx, request, req, caller, defs=defs, environment=environment),
+        return_exceptions=True,
+    )
+    if isinstance(answer, BaseException):
+        raise answer
+    if isinstance(counted, BaseException):
+        # C7: the measurement is a courtesy beside the check and never costs it
+        log.error("heartbeats were not measured: %s", type(counted).__name__)
+        counted = heartbeats_block(environment, [], [], error=HEARTBEATS_FAILED, log_id=None)
+    return answer, counted
+
+
 def text_or_none(value: Any) -> str | None:
     return value if isinstance(value, str) else None
 
@@ -2202,7 +2482,16 @@ async def post_check(ctx: Context, request: Request) -> Response:
             if req.mode in STATEMENT_MODES:
                 assert statement is not None and formal is not None  # NODE_MODES, above
                 text = statement_mode_text(ctx, req, statement, formal, proposed=proposed)
-            answer = await asyncio.to_thread(call_checker, ctx, req, text, environment, formal)
+            answer, counted = await checked(
+                ctx,
+                request,
+                req,
+                caller,
+                text=text,
+                environment=environment,
+                formal=formal,
+                defs=defs,
+            )
             if answer.body.get("error_type") == LEAN_TIMEOUT:
                 raise timed_out(ctx, answer.request_id)
         except AxleError as exc:
@@ -2265,6 +2554,8 @@ async def post_check(ctx: Context, request: Request) -> Response:
             # F13-T18: what was left out of ``result`` and why; the log keeps the checker's own.
             "dropped_warnings": dropped,
             "log_id": log_id,
+            # F13-T27: each theorem's heartbeats, measured on a copy; only when asked for
+            **({"heartbeats": counted} if counted is not None else {}),
             **({"witness": witness_verdict(answer.body)} if req.mode == "witness" else {}),
             # F13-T20: step 6's findings as opn-hazards prints them, ready to acknowledge.
             # Each one the node's META.yaml acknowledges says so, by step 6's own matching.

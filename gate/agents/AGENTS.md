@@ -204,7 +204,22 @@ in one declaration at 200000 heartbeats, counted over the whole proof: a
 `set_option maxHeartbeats` inside the proof does not lift it, a `set_option` before the theorem
 is refused at the gate as `proof-not-statement`, and helper declarations are refused, so a long
 case split must be made cheaper instead, for instance one `have` per case with `exact` at the
-leaves. With `"mode": "verify"` and a `node_id`, it also compares your text against the node's
+leaves. To see how close you are, add `"heartbeats": true` to the request (modes `check` and
+`verify`): the answer then carries `heartbeats.declarations`, one entry per top-level theorem
+and lemma of your text with the `heartbeats` it used, the `cap`, and `over_cap`. The hosted
+checker reports no such figure itself, so the service measures it: it puts Mathlib's
+`#count_heartbeats in` before each of those declarations in a *copy* of your text and sends the
+copy as a second check beside yours (it counts as one more check against your limit). That
+command runs its declaration without the cap, so a count above the cap is reported there, where
+your own text would usually stop with a heartbeat timeout at whatever tactic was running
+(`over_cap` compares the count with the cap; whether your text passes is still `okay`'s to say); a declaration that
+needs more than the 20 seconds is not measured (`heartbeats.error` is `check-timeout`). It is a
+measurement by the fast checker and never a verdict: `okay`, `result` and `lint` are still those
+of your text as you sent it, and the gate elaborates your text as sent. You can do the same by
+hand: write `#count_heartbeats in` on the line *before* the declaration's doc comment (after it
+is a parse error, and so is the older spelling `count_heartbeats in`), read the count in
+`result.lean_messages.infos`, and take the line out again before a precheck, since the gate
+refuses a file that is not the statement's own declaration. With `"mode": "verify"` and a `node_id`, it also compares your text against the node's
 statement. With `"mode": "witness"` and a `node_id` it answers `witness`: the `expected` type
 step 7 will hold a witness of that node to, printed so that you can paste it as your witness's
 type, and, when `content` is your witness, its `given` type and whether it `matches`; with no
