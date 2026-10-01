@@ -1,0 +1,146 @@
+== F13-T25 verify mode means the gate would accept: RED run, the tests written before the fix — 2026-10-01T04:56:00Z
+$ uv run --frozen pytest api/tests/test_finding_check_verify_gate.py -q -p no:cacheprovider
+.F.FF..FFF.F.F.FF                                                        [100%]
+=================================== FAILURES ===================================
+_______________ test_admit_is_refused_as_the_gate_refuses_sorry ________________
+>       assert "admit-present" in codes(doc), doc["lint"]
+E       AssertionError: []
+E       assert 'admit-present' in []
+E        +  where [] = codes({'authoritative': False, 'service': 'axle', 'environment': 'lean-4.33.1', 'exact': True, ...})
+api/tests/test_finding_check_verify_gate.py:58: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+_____________ test_sorry_in_verify_mode_is_a_refusal_not_a_warning _____________
+>       assert doc["okay"] is False
+E       assert True is False
+api/tests/test_finding_check_verify_gate.py:74: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+_________ test_the_checkers_sorry_warning_is_a_refusal_in_verify_mode __________
+>       assert "sorry-reported" in codes(doc)
+E       AssertionError: assert 'sorry-reported' in []
+E        +  where [] = codes({'authoritative': False, 'service': 'axle', 'environment': 'lean-4.33.1', 'exact': True, ...})
+api/tests/test_finding_check_verify_gate.py:90: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+_______ test_a_set_option_before_the_theorem_diverges_from_the_statement _______
+>       [found] = [w for w in doc["lint"] if w["code"] == "header-diverges"]
+E       ValueError: not enough values to unpack (expected 1, got 0)
+api/tests/test_finding_check_verify_gate.py:118: ValueError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+_____________ test_an_extra_open_line_diverges_from_the_statement ______________
+>       assert "header-diverges" in codes(doc), doc["lint"]
+E       AssertionError: []
+E       assert 'header-diverges' in []
+E        +  where [] = codes({'authoritative': False, 'service': 'axle', 'environment': 'lean-4.33.1', 'exact': True, ...})
+api/tests/test_finding_check_verify_gate.py:126: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+_____________________ test_a_changed_import_is_named_once ______________________
+>       assert doc["okay"] is False
+E       assert True is False
+api/tests/test_finding_check_verify_gate.py:135: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+______________ test_a_renamed_binder_diverges_from_the_signature _______________
+>       [found] = [w for w in doc["lint"] if w["code"] == "signature-diverges"]
+E       ValueError: not enough values to unpack (expected 1, got 0)
+api/tests/test_finding_check_verify_gate.py:153: ValueError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+________ test_an_import_of_an_unknown_node_is_refused_without_a_node_id ________
+>       [found] = [w for w in doc["lint"] if w["code"] == "import-unknown-node"]
+E       ValueError: not enough values to unpack (expected 1, got 0)
+api/tests/test_finding_check_verify_gate.py:176: ValueError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+__________________ test_the_mcp_tool_answers_the_same_verdict __________________
+>       assert doc["body"]["okay"] is False
+E       assert True is False
+api/tests/test_finding_check_verify_gate.py:206: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+__________________ test_the_refusing_codes_are_one_named_set ___________________
+>       } <= checks.GATE_REFUSALS
+E       AttributeError: module 'opn_api.checks' has no attribute 'GATE_REFUSALS'
+api/tests/test_finding_check_verify_gate.py:221: AttributeError
+api/tests/api_fakes.py:31
+=========================== short test summary info ============================
+FAILED api/tests/test_finding_check_verify_gate.py::test_admit_is_refused_as_the_gate_refuses_sorry
+FAILED api/tests/test_finding_check_verify_gate.py::test_sorry_in_verify_mode_is_a_refusal_not_a_warning
+FAILED api/tests/test_finding_check_verify_gate.py::test_the_checkers_sorry_warning_is_a_refusal_in_verify_mode
+FAILED api/tests/test_finding_check_verify_gate.py::test_a_set_option_before_the_theorem_diverges_from_the_statement
+FAILED api/tests/test_finding_check_verify_gate.py::test_an_extra_open_line_diverges_from_the_statement
+FAILED api/tests/test_finding_check_verify_gate.py::test_a_changed_import_is_named_once
+FAILED api/tests/test_finding_check_verify_gate.py::test_a_renamed_binder_diverges_from_the_signature
+FAILED api/tests/test_finding_check_verify_gate.py::test_an_import_of_an_unknown_node_is_refused_without_a_node_id
+FAILED api/tests/test_finding_check_verify_gate.py::test_the_mcp_tool_answers_the_same_verdict
+FAILED api/tests/test_finding_check_verify_gate.py::test_the_refusing_codes_are_one_named_set
+10 failed, 7 passed, 2 warnings in 0.66s
+
+== F13-T25 probe at Lean 4.33.1 (core only, ~/.elan): what step 5 would see of admit and the search tactics — 2026-10-01T04:57:42Z
+$ lean search_tactics.lean
+-- F13-T25 probe at Lean 4.33.1 (core only): what the gate's step 5 would see of each tactic.
+theorem p_admit : True := by admit
+theorem p_exact : ∀ p q : Prop, p ∧ q → q ∧ p := by
+  intro p q h
+  exact?
+theorem p_apply_closes : ∀ p q : Prop, p ∧ q → q ∧ p := by
+  intro p q h
+  apply?
+theorem p_apply_partial : ∀ p q : Prop, p → q → p ∧ q := by
+  intro p q hp hq
+  apply? using hp
+theorem p_simp : ∀ p : Prop, p ∧ True ↔ p := by
+  intro p
+  simp?
+#print axioms p_admit
+#print axioms p_exact
+#print axioms p_apply_closes
+#print axioms p_apply_partial
+#print axioms p_simp
+--- output
+search_tactics.lean:2:8: warning: declaration uses `sorry`
+Try this:
+  [apply] exact And.comm.mp h
+Try this:
+  [apply] exact p_exact p q h
+Try this:
+  [apply] exact ⟨hp, hq⟩
+Try this:
+  [apply] simp only [and_true]
+'p_admit' depends on axioms: [sorryAx]
+'p_exact' does not depend on any axioms
+'p_apply_closes' does not depend on any axioms
+'p_apply_partial' does not depend on any axioms
+'p_simp' depends on axioms: [propext]
+exit: 0
+
+== F13-T25 verify mode means the gate would accept: GREEN run of the new tests after the fix — 2026-10-01T05:00:51Z
+$ uv run --frozen pytest api/tests/test_finding_check_verify_gate.py -q -p no:cacheprovider
+.................                                                        [100%]
+api/tests/api_fakes.py:31
+17 passed, 2 warnings in 0.55s
+
+== F13-T25 verify mode means the gate would accept: the whole api suite after the fix (one older test restated: a comment before the theorem is the divergence the gate refuses, so its quiet case moved inside the proof body); make lint and mypy api both clean — 2026-10-01T05:00:59Z
+$ uv run --frozen pytest api/tests -q -p no:cacheprovider
+........................................................................ [  6%]
+........................................................................ [ 13%]
+........................................................................ [ 19%]
+........................................................................ [ 26%]
+........................................................................ [ 33%]
+........................................................................ [ 39%]
+........................................................................ [ 46%]
+........................................................................ [ 53%]
+........................................................................ [ 59%]
+........................................................................ [ 66%]
+........................................................................ [ 73%]
+........................................................................ [ 79%]
+........................................................................ [ 86%]
+........................................................................ [ 92%]
+........................................................................ [ 99%]
+....                                                                     [100%]
+api/tests/api_fakes.py:31
+1084 passed, 2 warnings in 52.10s
+
