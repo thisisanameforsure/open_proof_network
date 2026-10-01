@@ -1,0 +1,1 @@
+⟨10, le_refl _, by norm_num⟩ -- ∃ n, 10 ≤ n ∧ n ≤ 228
