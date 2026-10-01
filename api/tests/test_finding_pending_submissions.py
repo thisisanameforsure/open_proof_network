@@ -371,9 +371,10 @@ def test_the_pull_request_state_is_cached_and_survives_a_host_failure(
 def test_submissions_json_lists_open_work_and_drops_the_merged(
     harness: Harness, key: PrecheckKey
 ) -> None:
-    """``{snapshot_at, open: [...], host}``: every open record, each the ``submission`` document
-    ``GET /submissions/{id}`` carries; a submission a live read found merged is gone. ``host``
-    says when the queue was reconciled against the host (F07-T47)."""
+    """``{snapshot_at, open: [...], host, queue}``: every open record, each the ``submission``
+    document ``GET /submissions/{id}`` carries plus its place in the merge queue (F05-T18); a
+    submission a live read found merged is gone. ``host`` says when the queue was reconciled
+    against the host (F07-T47)."""
     set_state = state_setter(harness)
     token = harness.token_for("code_alice", "alice")
     proof = submit_proof(harness, key, token)
@@ -384,7 +385,7 @@ def test_submissions_json_lists_open_work_and_drops_the_merged(
     r = harness.client.get("/submissions.json")
     assert r.status_code == 200, f"GET /submissions.json: {r.status_code} {r.text}"
     snapshot = json_of(r)
-    assert set(snapshot) == {"snapshot_at", "open", "host"}, sorted(snapshot)
+    assert set(snapshot) == {"snapshot_at", "open", "host", "queue"}, sorted(snapshot)
     assert snapshot["snapshot_at"] == clockmod.render(harness.clock.now())
     assert sorted(e["pr_number"] for e in snapshot["open"]) == [1, 2]
     assert {e["id"] for e in snapshot["open"]} == {proof["submission_id"], annex["id"]}
@@ -395,7 +396,9 @@ def test_submissions_json_lists_open_work_and_drops_the_merged(
 
     after = json_of(harness.client.get("/submissions.json"))
     assert [e["pr_number"] for e in after["open"]] == [2]
-    assert after["open"][0] == get_submission(harness, "2")["submission"]
+    # F05-T18: an entry is the per-id document and, beside it, its ``queue``
+    entry = {k: v for k, v in after["open"][0].items() if k != "queue"}
+    assert entry == get_submission(harness, "2")["submission"]
 
 
 # --- F09-T7: the MCP side -------------------------------------------------------------------------

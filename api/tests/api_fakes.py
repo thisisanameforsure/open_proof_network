@@ -240,11 +240,17 @@ class FakeGitHost:
         for number in sorted(numbers):
             s = self.pull_states.get(number) or {}
             if s.get("state", "open") == "open" and not s.get("merged", False):
+                opened = self.pulls[number - 1].head if 1 <= number <= len(self.pulls) else ""
                 out.append(
                     OpenPullRequest(
                         number,
                         f"https://github.com/{repo}/pull/{number}",
                         s.get("head_sha") or f"{number:040d}",
+                        # F05-T18: the branch the fake opened it from, or the one a test seeded
+                        head_ref=s.get("head_ref") or opened,
+                        base_ref=s.get("base_ref") or "main",
+                        draft=bool(s.get("draft")),
+                        same_repo=s.get("same_repo", True),
                     )
                 )
         return out
@@ -350,6 +356,8 @@ class FakeGitHost:
             merge_commit_sha=s.get("merge_commit_sha"),
             runs=tuple(s.get("runs") or ()),
             reviews=tuple(s.get("reviews") or ()),
+            merged_at=s.get("merged_at"),
+            closed_at=s.get("closed_at"),
         )
 
     # --- what a test sets up ---------------------------------------------------------------------
@@ -365,6 +373,10 @@ class FakeGitHost:
         merge_commit_sha: str | None = None,
         runs: list[dict[str, Any]] | None = None,
         reviews: list[dict[str, Any]] | None = None,
+        merged_at: str | None = None,
+        closed_at: str | None = None,
+        head_ref: str | None = None,
+        draft: bool = False,
     ) -> None:
         """What the host will say about pull request ``number`` from now on. Runs keep
         ``{name, status, conclusion, url, jobs}`` (``jobs`` ``[]`` unless given) and reviews
@@ -383,6 +395,11 @@ class FakeGitHost:
                 for r in runs or []
             ],
             "reviews": [{k: r.get(k) for k in ("login", "state")} for r in reviews or []],
+            # F05-T18: the host's own times, and what the open listing says of the branch
+            "merged_at": merged_at,
+            "closed_at": closed_at or merged_at,
+            "head_ref": head_ref,
+            "draft": draft,
         }
 
     def start_run(self, branch: str, run_id: int = 4242) -> WorkflowRun:

@@ -99,6 +99,8 @@ class CachedPull:
     state: PullRequestState | None = None
     fetched_at: float = 0.0
     read_at: str | None = None
+    #: F05-T18: where ``main`` was when this was read, so a head that moved since can be seen.
+    main_head: str | None = None
 
 
 @dataclass

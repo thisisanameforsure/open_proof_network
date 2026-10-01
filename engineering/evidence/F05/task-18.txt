@@ -1,0 +1,41 @@
+F05-T18 green, 2026-10-01 (branch svc-queue-heartbeats-hazards)
+
+== 1. the task's tests ==
+$ uv run --frozen pytest api/tests/test_finding_queue_position.py gate/tests/test_finding_queue_order_is_the_actors.py -q
+23 passed, 2 warnings in 1.71s
+   (the second file reads merge.yml from the graph checkout beside this repository and is skipped where there is none, as every merge-actor test is)
+
+== 2. the api suite, with six older tests restated to the new shapes (the list entry is the per-id document plus its queue; a merged, unattested proof waits on products) ==
+$ uv run --frozen pytest api/tests -q
+1122 passed, 2 warnings in 262.26s (0:04:22)
+
+== 3. the host's own JSON and the workflow's own function (public, read-only GitHub API; graph origin/main 1d98dcfb) ==
+$ curl -s "https://api.github.com/repos/thisisanameforsure/open_proof_network_graph/pulls?state=all&per_page=40"   # and state=open
+the graph's open pull requests right now: [322, 321]
+the last 40 pull requests of the graph (#321..#360), read as if open:
+  branches: ['append', 'f07-stuck-pr', 'f07-t46-hold-cap', 'propose', 'submit']
+  service order == the workflow's candidates(): True (38 of 40 are the actor's)
+  not the actor's: [321, 322] ['f07-t46-hold-cap', 'f07-stuck-pr']
+   and one pull request's own times, which a record is now closed with:
+$ curl -s https://api.github.com/repos/thisisanameforsure/open_proof_network_graph/pulls/360 | jq "{merged, merged_at, closed_at}"
+   {"merged": true, "merged_at": "2026-10-01T18:19:10Z", "closed_at": "2026-10-01T18:19:10Z"}   (the live route said closed: 2026-10-01T19:50:21Z, the first read)
+
+== 4. mutation: with the main-moved rule cut out of pending.superseded, its test fails (1 failed, 18 passed); restored ==
+
+== 5. the whole fast tier, bare, and lint and types ==
+$ make lint; echo $?  ->  0
+$ make types; echo $? ->  0
+$ uv run --frozen pytest -m "not lean and not docker and not network" -q; echo $?  ->  1
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_the_morning_of_306_moves_past_the_stale_head
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_stale_head_is_passed_over_even_if_the_host_calls_it_clean
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_branch_that_no_longer_exists_is_passed_over
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_head_the_host_still_computes_is_held_for_as_before
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_stale_append_never_ends_a_batch
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_the_workflow_reads_each_branch_tip_and_survives_a_missing_one
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+7 failed, 3166 passed, 121 deselected, 2 warnings in 264.19s (0:04:24)
+   The 7 failures are on untouched main (c786835) too and read the sibling graph checkout: six want the graph branch f07-t46-hold-cap,
+   which this machine's clone does not have, and test_graph_copy_is_identical compares the graph's AGENTS.md copy, one re-pin behind (bug list A7).
+
+Not verified: the deployed routes (this deploys on merge to main). What a deploy check should read: GET /submissions.json carries queue.order,
+and GET /submissions/<open n> carries state: open and a queue block; with nothing open, queue.order is [].

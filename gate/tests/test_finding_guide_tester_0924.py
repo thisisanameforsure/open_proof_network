@@ -41,7 +41,10 @@ PRESENT = {
     "claiming twice returns the same claim": "returns the same claim",
     "the receipt's other holders": "`others`",
     "the caller's own claims": "`GET /claims/mine`",
-    "products for annexes and witnesses": "`products` for a merged proposal, annex or witness",
+    # F05-T18: and for a merged proof or partial whose attestation is not committed yet
+    "products for annexes and witnesses": (
+        "`products` for a merged proof, partial, proposal, annex or witness"
+    ),
     "jobs is always present": "each run's `jobs` is `[]`",
     "a proposal's statement": "`proposed_statement`",
     "withdrawing a pull request": "`DELETE /submissions/<id>`",

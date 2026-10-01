@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://openproof.network/schemas/mcp/get_submission/v1.json",
   "title": "mcp/get_submission/v1",
-  "description": "The result of the get_submission tool (F09-R9; D-28): GET /submissions/{submission_id} \u2014 the service's record, the pull request's live state and, once merged, attestations/<n>.json \u2014 or an error result naming the source that did not answer (R10). Reshaped in place by F09-T7 and F07-T47 (pull_request.read_at and stale) (the adapter's result schemas are not protocol records, F09-Q5).",
+  "description": "The result of the get_submission tool (F09-R9; D-28): GET /submissions/{submission_id} \u2014 the service's record, the pull request's live state and, once merged, attestations/<n>.json \u2014 or an error result naming the source that did not answer (R10). Reshaped in place by F09-T7 and F07-T47 (pull_request.read_at and stale) (the adapter's result schemas are not protocol records, F09-Q5).; F05-T18 added state, queue and submission.artifact_type).",
   "oneOf": [
     {
       "type": "object",
@@ -12,7 +12,9 @@
         "pull_request_error",
         "attestation_path",
         "attestation",
-        "attestation_note"
+        "attestation_note",
+        "state",
+        "queue"
       ],
       "additionalProperties": false,
       "properties": {
@@ -155,6 +157,118 @@
             "null"
           ],
           "description": "Why proposed_statement is null; null when it was read (F07-T41)"
+        },
+        "state": {
+          "description": "One word for where the pull request is (F05-T18): open, merged or closed; null when the host could not say",
+          "enum": [
+            "open",
+            "merged",
+            "closed",
+            null
+          ]
+        },
+        "queue": {
+          "description": "Where an open pull request stands in the merge actor's order and what is ahead of it (F05-T18), from the one open-pull-request listing the service reads per window; null once it has merged or closed, and for a pull request the service did not open",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "position",
+                "of",
+                "ahead",
+                "order",
+                "read_at",
+                "stale"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "position": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "of": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "ahead": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "pr_number",
+                      "id",
+                      "kind",
+                      "node_id",
+                      "target_id",
+                      "waiting_on",
+                      "waiting_on_read_at"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "pr_number": {
+                        "type": "integer"
+                      },
+                      "id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "kind": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "node_id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "target_id": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "waiting_on": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "waiting_on_read_at": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "order": {
+                  "type": "string"
+                },
+                "read_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "stale": {
+                  "type": "boolean"
+                }
+              }
+            }
+          ]
         }
       }
     },
@@ -201,7 +315,8 @@
         "pseudonym",
         "precheck_job_id",
         "created",
-        "closed"
+        "closed",
+        "artifact_type"
       ],
       "additionalProperties": false,
       "properties": {
@@ -243,6 +358,13 @@
             "string",
             "null"
           ]
+        },
+        "artifact_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The record's kind under the name the write routes use, when it is an artifact type of POST /submissions (proof, counterexample, vacuity, reduction, partial); null otherwise (F05-T18)"
         }
       }
     },

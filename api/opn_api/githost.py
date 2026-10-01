@@ -150,6 +150,13 @@ class OpenPullRequest:
     number: int
     url: str
     head_sha: str
+    #: F05-T18: what the merge actor's ``candidates`` reads of each entry, from the same listing:
+    #: the head branch, the base branch, whether it is a draft, and whether the head is in this
+    #: repository (a fork's is not the service's).
+    head_ref: str = ""
+    base_ref: str = "main"
+    draft: bool = False
+    same_repo: bool = True
 
 
 @dataclass(frozen=True)
@@ -198,6 +205,10 @@ class PullRequestState:
     merge_commit_sha: str | None
     runs: tuple[dict[str, Any], ...] = ()
     reviews: tuple[dict[str, Any], ...] = ()
+    #: F05-T18: when the host says it merged, and when it closed (merged or not), in the host's
+    #: own timestamps: what a record is closed with, instead of the time somebody first asked.
+    merged_at: str | None = None
+    closed_at: str | None = None
 
     @property
     def finished(self) -> bool:
@@ -826,6 +837,8 @@ class HttpxGitHost:
             mergeable_state=str(pr.get("mergeable_state") or "unknown"),
             head_sha=head_sha,
             merge_commit_sha=str(pr["merge_commit_sha"]) if pr.get("merge_commit_sha") else None,
+            merged_at=str(pr["merged_at"]) if pr.get("merged_at") else None,
+            closed_at=str(pr["closed_at"]) if pr.get("closed_at") else None,
             runs=tuple(
                 {
                     "name": run.get("name"),
@@ -867,17 +880,30 @@ class HttpxGitHost:
                 for pr in entries:
                     if not isinstance(pr, dict) or pr.get("number") is None:
                         continue
-                    head = pr.get("head")
-                    out.append(
-                        OpenPullRequest(
-                            number=int(pr["number"]),
-                            url=str(pr.get("html_url") or ""),
-                            head_sha=str(head.get("sha") or "") if isinstance(head, dict) else "",
-                        )
-                    )
+                    out.append(open_pull_request_of(pr))
                 if len(entries) < LISTING_PAGE:
                     break
         return out
+
+
+def open_pull_request_of(pr: dict[str, Any]) -> OpenPullRequest:
+    """One entry of the host's open listing, with what the merge actor's ``candidates`` reads of
+    it (F05-T18). A head whose repository the host no longer names (a deleted fork) is not this
+    repository's."""
+    head = pr.get("head") if isinstance(pr.get("head"), dict) else {}
+    base = pr.get("base") if isinstance(pr.get("base"), dict) else {}
+    assert isinstance(head, dict) and isinstance(base, dict)
+    head_repo = (head.get("repo") or {}).get("full_name")
+    base_repo = (base.get("repo") or {}).get("full_name")
+    return OpenPullRequest(
+        number=int(pr["number"]),
+        url=str(pr.get("html_url") or ""),
+        head_sha=str(head.get("sha") or ""),
+        head_ref=str(head.get("ref") or ""),
+        base_ref=str(base.get("ref") or ""),
+        draft=bool(pr.get("draft")),
+        same_repo=head_repo is not None and head_repo == base_repo,
+    )
 
 
 LISTING_PAGE = 100

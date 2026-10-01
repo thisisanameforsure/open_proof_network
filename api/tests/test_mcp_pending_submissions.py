@@ -51,7 +51,10 @@ def test_get_node_carries_only_its_own_open_submissions_and_drops_the_merged(
     client = McpClient(harness)
     [entry] = client.ok("get_node", {"node_id": NODE})["submissions"]["open"]
     assert (entry["pr_number"], entry["id"], entry["node_id"]) == (1, opened["id"], NODE)
-    assert entry == harness.client.get("/submissions/1").json()["submission"]
+    # F05-T18: the per-id document, and beside it the entry's place in the merge queue
+    by_id = harness.client.get("/submissions/1").json()
+    assert {k: v for k, v in entry.items() if k != "queue"} == by_id["submission"]
+    assert entry["queue"]["position"] == by_id["queue"]["position"] == 1
 
     harness.githost.set_pull_request_state(1, state="closed", merged=True)
     # The read above cached the open state for the window; age it, as a watcher would wait.
