@@ -111,9 +111,18 @@ def test_each_gate_gap_is_warned() -> None:
     assert lint[1]["declarations"] == ["lemma helper"]
     assert h.axle.calls[-1].content == content
 
-    quiet = "-- sorry is only named here\n/-- lemma in a doc comment -/\n" + PROOF
+    # A word in a comment is not a token. The comments sit inside the proof body: the gate's
+    # own rule compares the header byte for byte, so a comment *before* the theorem is a
+    # divergence it refuses, and since F13-T25 the lint says so (header-diverges).
+    quiet = (
+        "theorem OpnProp.and_reassoc : True := by\n"
+        "  -- sorry is only named here\n  /- lemma in a block comment -/\n  trivial\n"
+    )
     r = post(h, {"target_id": TARGET, "node_id": NODE, "content": quiet})
     assert r.json()["lint"] == [], r.text
+    leading = "-- sorry is only named here\n" + PROOF
+    r = post(h, {"target_id": TARGET, "node_id": NODE, "content": leading})
+    assert [w["code"] for w in r.json()["lint"]] == ["header-diverges"], r.text
 
     r = post(h, {"target_id": TARGET, "content": content})  # no node: nothing to compare against
     assert [w["code"] for w in r.json()["lint"]] == ["sorry-present"]

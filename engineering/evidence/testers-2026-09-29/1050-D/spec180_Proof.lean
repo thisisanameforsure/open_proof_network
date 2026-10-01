@@ -1,0 +1,630 @@
+import Mathlib
+import Nodes.«spec-180d8b72».Context
+
+/-- erdos-1050, Borwein's route: the remainder bound `hrem` of the skeleton on erdos-1050--h1-v2 (hole erdos-1050--h1-v2--h4), without the denominator bound `hden` that the hole carries as an unused hypothesis (revision request, graph PR #229). With T = sum 1/(2^(n+3) - 3) and x_n = 3/2^n, the Pade remainder R_n = Q_n(x_n) * 3T - A_n is positive and R_n^2 * 2^(4n^2) <= 2^(2n+4). Numerically checked for n <= 30 (tightest at n = 1). -/
+theorem erdos_1050_pade_remainder_bound : ∀ (Qc : ℕ → ℕ → ℚ),
+  (Qc = fun (n k : ℕ) =>
+      ((-1 : ℚ) ^ k * (2 : ℚ) ^ (k * (k - (1 : ℕ)) / (2 : ℕ)) *
+          ∏ i ∈ Finset.range k, ((2 : ℚ) ^ (n - i) - (1 : ℚ)) / ((2 : ℚ) ^ (i + (1 : ℕ)) - (1 : ℚ))) *
+        ∏ i ∈ Finset.range n, ((2 : ℚ) ^ ((2 : ℕ) * n - k - i) - (1 : ℚ)) / ((2 : ℚ) ^ (i + (1 : ℕ)) - (1 : ℚ))) →
+    ∀ (Qx : ℕ → ℚ),
+      (Qx = fun (n : ℕ) => ∑ k ∈ Finset.range (n + (1 : ℕ)), Qc n k * ((3 : ℚ) / (2 : ℚ) ^ n) ^ k) →
+        ∀ (Aq : ℕ → ℚ),
+          (Aq = fun (n : ℕ) =>
+              ∑ k ∈ Finset.range (n + (1 : ℕ)),
+                  (∑ j ∈ Finset.range (k + (1 : ℕ)), Qc n j / ((2 : ℚ) ^ (k - j) - (1 : ℚ))) *
+                    ((3 : ℚ) / (2 : ℚ) ^ n) ^ k +
+                Qx n * ∑ j ∈ Finset.range n, (3 : ℚ) / ((2 : ℚ) ^ (j + (1 : ℕ)) - (3 : ℚ))) →
+              ∀ (n : ℕ),
+                (0 : ℝ) <
+                    (↑(Qx n) : ℝ) * ((3 : ℝ) * ∑' (n : ℕ), (1 : ℝ) / ((2 : ℝ) ^ (n + (3 : ℕ)) - (3 : ℝ))) -
+                      (↑(Aq n) : ℝ) ∧
+                  ((↑(Qx n) : ℝ) * ((3 : ℝ) * ∑' (n : ℕ), (1 : ℝ) / ((2 : ℝ) ^ (n + (3 : ℕ)) - (3 : ℝ))) -
+                          (↑(Aq n) : ℝ)) ^
+                        (2 : ℕ) *
+                      (2 : ℝ) ^ ((4 : ℕ) * n * n) ≤
+                    (2 : ℝ) ^ ((2 : ℕ) * n + (4 : ℕ)) := by
+  intro Qc hQc Qx hQx Aq hAq
+  obtain ⟨T, hT⟩ : ∃ T : ℝ, T = ∑' (n : ℕ), (1 : ℝ) / ((2 : ℝ) ^ (n + (3 : ℕ)) - (3 : ℝ)) := ⟨_, rfl⟩
+  rw [← hT]
+  -- the terms of T are bounded by (1/5) (1/2)^m
+  have hterm : ∀ m : ℕ, 0 ≤ (1 : ℝ) / ((2 : ℝ) ^ (m + 3) - 3) ∧
+      (1 : ℝ) / ((2 : ℝ) ^ (m + 3) - 3) ≤ (1 / 5 : ℝ) * (1 / 2 : ℝ) ^ m := by
+    intro m
+    have h2 : (1 : ℝ) ≤ (2 : ℝ) ^ m := one_le_pow₀ (by norm_num)
+    have hpos : (0 : ℝ) < (2 : ℝ) ^ (m + 3) - 3 := by rw [pow_add]; nlinarith
+    refine ⟨div_nonneg zero_le_one hpos.le, ?_⟩
+    rw [div_le_iff₀ hpos]
+    have hh : (1 / 2 : ℝ) ^ m * (2 : ℝ) ^ m = 1 := by rw [← mul_pow]; norm_num
+    have hle : (1 / 2 : ℝ) ^ m ≤ 1 := pow_le_one₀ (by norm_num) (by norm_num)
+    rw [pow_add]
+    nlinarith
+  have hgeo : Summable (fun m : ℕ => (1 / 5 : ℝ) * (1 / 2 : ℝ) ^ m) :=
+    (summable_geometric_of_lt_one (by norm_num) (by norm_num)).mul_left _
+  have hsumm : Summable (fun m : ℕ => (1 : ℝ) / ((2 : ℝ) ^ (m + (3 : ℕ)) - (3 : ℝ))) :=
+    Summable.of_nonneg_of_le (fun m => (hterm m).1) (fun m => (hterm m).2) hgeo
+  have hTpos : 0 < T := by
+    rw [hT]
+    exact hsumm.tsum_pos (fun m => (hterm m).1) 0 (by norm_num)
+  have hTle : T ≤ 2 / 5 := by
+    rw [hT]
+    calc ∑' (n : ℕ), (1 : ℝ) / ((2 : ℝ) ^ (n + (3 : ℕ)) - (3 : ℝ))
+        ≤ ∑' m : ℕ, (1 / 5 : ℝ) * (1 / 2 : ℝ) ^ m :=
+          Summable.tsum_le_tsum (fun m => (hterm m).2) hsumm hgeo
+      _ = 2 / 5 := by rw [tsum_mul_left, tsum_geometric_of_lt_one (by norm_num) (by norm_num)]; norm_num
+  -- the Padé remainder coefficients, in closed form (spec-f2b55478), shifted to start at x^(2n+1)
+  obtain ⟨E, hE⟩ : ∃ E : ℕ → ℕ → ℝ, E = fun n t =>
+      (2 : ℝ) ^ (n * n) * (∏ i ∈ Finset.range n, ((2 : ℝ) ^ (n + t - i) - 1)) /
+        ∏ j ∈ Finset.range (n + 1), ((2 : ℝ) ^ (2 * n + 1 + t - j) - 1) := ⟨_, rfl⟩
+  have hEpos : ∀ n t : ℕ, 0 < E n t := by
+    intro n t
+    rw [hE]
+    apply div_pos
+    · apply mul_pos (by positivity)
+      apply Finset.prod_pos
+      intro i hi
+      simp only [Finset.mem_range] at hi
+      have : (1 : ℝ) < 2 ^ (n + t - i) := one_lt_pow₀ (by norm_num) (by omega)
+      linarith
+    · apply Finset.prod_pos
+      intro j hj
+      simp only [Finset.mem_range] at hj
+      have : (1 : ℝ) < 2 ^ (2 * n + 1 + t - j) := one_lt_pow₀ (by norm_num) (by omega)
+      linarith
+  have hEle : ∀ n t : ℕ, E n t ≤ (1 / 2 : ℝ) ^ (2 * n + t) := by
+    intro n t
+    rw [hE]
+    dsimp only
+    rw [Finset.prod_range_succ']
+    have hA : (0 : ℝ) < ∏ i ∈ Finset.range n, ((2 : ℝ) ^ (2 * n + 1 + t - (i + 1)) - 1) := by
+      apply Finset.prod_pos
+      intro i hi
+      simp only [Finset.mem_range] at hi
+      have : (1 : ℝ) < 2 ^ (2 * n + 1 + t - (i + 1)) := one_lt_pow₀ (by norm_num) (by omega)
+      linarith
+    have hnum : (2 : ℝ) ^ (n * n) * ∏ i ∈ Finset.range n, ((2 : ℝ) ^ (n + t - i) - 1) ≤
+        ∏ i ∈ Finset.range n, ((2 : ℝ) ^ (2 * n + 1 + t - (i + 1)) - 1) := by
+      have hc : (2 : ℝ) ^ (n * n) * ∏ i ∈ Finset.range n, ((2 : ℝ) ^ (n + t - i) - 1) =
+          ∏ i ∈ Finset.range n, ((2 : ℝ) ^ n * ((2 : ℝ) ^ (n + t - i) - 1)) := by
+        rw [Finset.prod_mul_distrib, Finset.prod_const, Finset.card_range, ← pow_mul]
+      rw [hc]
+      apply Finset.prod_le_prod
+      · intro i hi
+        simp only [Finset.mem_range] at hi
+        have : (1 : ℝ) ≤ 2 ^ (n + t - i) := one_le_pow₀ (by norm_num)
+        have : (0 : ℝ) < 2 ^ n := by positivity
+        nlinarith
+      · intro i hi
+        simp only [Finset.mem_range] at hi
+        have he : 2 * n + 1 + t - (i + 1) = n + (n + t - i) := by omega
+        rw [he, pow_add]
+        have : (1 : ℝ) ≤ 2 ^ n := one_le_pow₀ (by norm_num)
+        nlinarith
+    have hf0 : (2 : ℝ) ^ (2 * n + t) ≤ (2 : ℝ) ^ (2 * n + 1 + t - 0) - 1 := by
+      have he : 2 * n + 1 + t - 0 = (2 * n + t) + 1 := by omega
+      rw [he, pow_succ]
+      have : (1 : ℝ) ≤ 2 ^ (2 * n + t) := one_le_pow₀ (by norm_num)
+      linarith
+    have hp : (0 : ℝ) < 2 ^ (2 * n + t) := by positivity
+    rw [div_le_iff₀ (mul_pos hA (by linarith)), one_div_pow]
+    have hkey : (1 : ℝ) ≤ 1 / 2 ^ (2 * n + t) * ((2 : ℝ) ^ (2 * n + 1 + t - 0) - 1) := by
+      rw [div_mul_eq_mul_div, one_mul, le_div_iff₀ hp]; linarith
+    nlinarith
+  -- the tail of 3T as a power series in x_n = 3/2^n
+  have htail : ∀ n : ℕ, 1 ≤ n → HasSum (fun k : ℕ => ((3 : ℝ) / 2 ^ n) ^ k / ((2 : ℝ) ^ k - 1))
+      (3 * T - ∑ j ∈ Finset.range n, (3 : ℝ) / ((2 : ℝ) ^ (j + 1) - 3)) := by
+    intro n hn
+    rw [hT]
+    clear hterm hgeo hsumm hTpos hTle hEpos hEle hE hT hAq hQx hQc
+    have h2n : (2 : ℝ) ≤ 2 ^ n := by
+      calc (2 : ℝ) = 2 ^ 1 := by norm_num
+        _ ≤ 2 ^ n := pow_le_pow_right₀ (by norm_num) hn
+    set x : ℝ := (3 : ℝ) / 2 ^ n with hxdef
+    have hx0 : 0 < x := by positivity
+    have hx2 : x < 2 := by
+      rw [hxdef, div_lt_iff₀ (by positivity)]; nlinarith
+    -- the double family
+    set f : ℕ → ℕ → ℝ := fun j k => x ^ (k + 1) * ((1 : ℝ) / 2 ^ (j + 1)) ^ (k + 1) with hfdef
+    have hf0 : ∀ j k, 0 ≤ f j k := fun j k => by positivity
+    -- rows (fixed j): a geometric series
+    have hrow : ∀ j : ℕ, HasSum (f j) (3 / ((2 : ℝ) ^ (j + n + 1) - 3)) := by
+      intro j
+      have hr0 : 0 ≤ x * (1 / 2 ^ (j + 1)) := by positivity
+      have hr1 : x * (1 / 2 ^ (j + 1)) < 1 := by
+        have : (2 : ℝ) ≤ 2 ^ (j + 1) := by
+          calc (2 : ℝ) = 2 ^ 1 := by norm_num
+            _ ≤ 2 ^ (j + 1) := pow_le_pow_right₀ (by norm_num) (by omega)
+        rw [mul_one_div, div_lt_one (by positivity)]; linarith
+      have h := (hasSum_geometric_of_lt_one hr0 hr1).mul_left (x * (1 / 2 ^ (j + 1)))
+      have hpos : (0 : ℝ) < 2 ^ (j + n + 1) - 3 := by
+        have : (4 : ℝ) ≤ 2 ^ (j + n + 1) := by
+          calc (4 : ℝ) = 2 ^ 2 := by norm_num
+            _ ≤ 2 ^ (j + n + 1) := pow_le_pow_right₀ (by norm_num) (by omega)
+        linarith
+      have e : (2 : ℝ) ^ (j + n + 1) = 2 ^ n * 2 ^ (j + 1) := by rw [← pow_add]; congr 1; omega
+      have hfun : f j = fun i => x * (1 / 2 ^ (j + 1)) * (x * (1 / 2 ^ (j + 1))) ^ i := by
+        funext k; simp only [hfdef]; rw [← mul_pow, pow_succ]; ring
+      have hval : 3 / ((2 : ℝ) ^ (j + n + 1) - 3) = x * (1 / 2 ^ (j + 1)) * (1 - x * (1 / 2 ^ (j + 1)))⁻¹ := by
+        rw [e] at hpos ⊢
+        have h1 : (1 : ℝ) - x * (1 / 2 ^ (j + 1)) ≠ 0 := by linarith
+        rw [hxdef] at h1 ⊢
+        field_simp
+      rw [hfun, hval]; exact h
+    -- columns (fixed k): a geometric series in j
+    have hcol : ∀ k : ℕ, HasSum (fun j => f j k) (x ^ (k + 1) / ((2 : ℝ) ^ (k + 1) - 1)) := by
+      intro k
+      have hq0 : (0 : ℝ) ≤ 1 / 2 ^ (k + 1) := by positivity
+      have hq1 : (1 : ℝ) / 2 ^ (k + 1) < 1 := by
+        rw [div_lt_one (by positivity)]; exact one_lt_pow₀ (by norm_num) (by omega)
+      have h := ((hasSum_geometric_of_lt_one hq0 hq1).mul_left (1 / 2 ^ (k + 1))).mul_left (x ^ (k + 1))
+      have hpos : (0 : ℝ) < 2 ^ (k + 1) - 1 := by
+        have : (1 : ℝ) < 2 ^ (k + 1) := one_lt_pow₀ (by norm_num) (by omega)
+        linarith
+      have hfun : (fun j => f j k) = fun i => x ^ (k + 1) * (1 / 2 ^ (k + 1) * (1 / 2 ^ (k + 1)) ^ i) := by
+        funext j; simp only [hfdef]
+        rw [← one_div_pow, ← one_div_pow, ← pow_mul, ← pow_mul, ← pow_add]
+        congr 2; ring
+      have hval : x ^ (k + 1) / ((2 : ℝ) ^ (k + 1) - 1) =
+          x ^ (k + 1) * (1 / 2 ^ (k + 1) * (1 - 1 / 2 ^ (k + 1))⁻¹) := by
+        have h1 : (1 : ℝ) - 1 / 2 ^ (k + 1) ≠ 0 := by linarith
+        field_simp
+      rw [hfun, hval]; exact h
+    -- the double sum, both ways
+    have hsum2' : Summable (fun p : ℕ × ℕ => f p.1 p.2) := by
+      rw [summable_prod_of_nonneg (fun p => hf0 p.1 p.2)]
+      refine ⟨fun j => (hrow j).summable, ?_⟩
+      have hts : (fun j => ∑' k, f j k) = fun j => 3 / ((2 : ℝ) ^ (j + n + 1) - 3) :=
+        funext fun j => (hrow j).tsum_eq
+      show Summable (fun j => ∑' k, f j k)
+      rw [hts]
+      refine Summable.of_nonneg_of_le (fun j => ?_) (fun j => ?_) (summable_geometric_two.mul_left 3)
+      · have : (4 : ℝ) ≤ 2 ^ (j + n + 1) := by
+          calc (4 : ℝ) = 2 ^ 2 := by norm_num
+            _ ≤ 2 ^ (j + n + 1) := pow_le_pow_right₀ (by norm_num) (by omega)
+        exact div_nonneg (by norm_num) (by linarith)
+      · have hj : (1 : ℝ) ≤ 2 ^ j := one_le_pow₀ (by norm_num)
+        have e : (2 : ℝ) ^ (j + n + 1) = 2 ^ j * 2 ^ (n + 1) := by rw [← pow_add]; ring_nf
+        have h4 : (4 : ℝ) ≤ 2 ^ (n + 1) := by
+          calc (4 : ℝ) = 2 ^ 2 := by norm_num
+            _ ≤ 2 ^ (n + 1) := pow_le_pow_right₀ (by norm_num) (by omega)
+        have hp : (0 : ℝ) < 2 ^ (j + n + 1) - 3 := by rw [e]; nlinarith
+        rw [div_le_iff₀ hp, one_div_pow, e]
+        have hh : (1 / 2 : ℝ) ^ j * 2 ^ j = 1 := by rw [← mul_pow]; norm_num
+        rw [one_div_pow] at hh
+        field_simp
+        nlinarith
+    have hsum2 : Summable (Function.uncurry f) := hsum2'
+    have hS := hsum2.hasSum
+    have hA := hS.prod_fiberwise (fun j => hrow j)
+    have hB := ((Equiv.prodComm ℕ ℕ).hasSum_iff.mpr hS).prod_fiberwise (fun k => hcol k)
+    -- the row sums are the tail of 3T
+    have hg : Summable (fun j : ℕ => (3 : ℝ) / ((2 : ℝ) ^ (j + 1) - 3)) :=
+      (summable_nat_add_iff n).mp hA.summable
+    have hsplit_n := hg.sum_add_tsum_nat_add n
+    have hsplit_2 := hg.sum_add_tsum_nat_add 2
+    have h01 : ∑ i ∈ Finset.range 2, (3 : ℝ) / ((2 : ℝ) ^ (i + 1) - 3) = 0 := by
+      norm_num [Finset.sum_range_succ]
+    have h3T : ∑' i : ℕ, (3 : ℝ) / ((2 : ℝ) ^ (i + 2 + 1) - 3) =
+        3 * ∑' m : ℕ, (1 : ℝ) / ((2 : ℝ) ^ (m + 3) - 3) := by
+      rw [← tsum_mul_left]
+      congr 1; funext i
+      rw [show i + 2 + 1 = i + 3 by ring]; ring
+    have hval : ∑' p, Function.uncurry f p = 3 * ∑' m : ℕ, (1 : ℝ) / ((2 : ℝ) ^ (m + 3) - 3) -
+        ∑ j ∈ Finset.range n, (3 : ℝ) / ((2 : ℝ) ^ (j + 1) - 3) := by
+      rw [← hA.tsum_eq]
+      rw [h01, zero_add, h3T] at hsplit_2
+      linarith
+    have h0 : ∑ i ∈ Finset.range 1, x ^ i / ((2 : ℝ) ^ i - 1) = 0 := by simp
+    rw [← hval]
+    refine (hasSum_nat_add_iff' 1).mp ?_
+    rw [h0, sub_zero]
+    exact hB
+  -- a polynomial times that series
+  have hcauchy : ∀ (n : ℕ) (c : ℕ → ℝ) (x V : ℝ),
+      HasSum (fun k : ℕ => x ^ k / ((2 : ℝ) ^ k - 1)) V →
+      HasSum (fun m : ℕ => (∑ j ∈ Finset.range (n + 1), c j / ((2 : ℝ) ^ (m - j) - 1)) * x ^ m)
+        ((∑ j ∈ Finset.range (n + 1), c j * x ^ j) * V) := by
+    intro n c x V hV
+    clear htail hterm hgeo hsumm hTpos hTle hEpos hEle hE hT hAq hQx hQc
+    have hj : ∀ j ∈ Finset.range (n + 1),
+        HasSum (fun m : ℕ => c j / ((2 : ℝ) ^ (m - j) - 1) * x ^ m) (c j * x ^ j * V) := by
+      intro j _
+      refine (hasSum_nat_add_iff' j).mp ?_
+      have h0 : ∑ i ∈ Finset.range j, c j / ((2 : ℝ) ^ (i - j) - 1) * x ^ i = 0 := by
+        apply Finset.sum_eq_zero
+        intro i hi
+        rw [Finset.mem_range] at hi
+        rw [show i - j = 0 by omega]
+        simp
+      rw [h0, sub_zero]
+      have hfun : (fun m : ℕ => c j / ((2 : ℝ) ^ (m + j - j) - 1) * x ^ (m + j)) =
+          fun m : ℕ => c j * x ^ j * (x ^ m / ((2 : ℝ) ^ m - 1)) := by
+        funext m
+        rw [show m + j - j = m by omega, pow_add]
+        ring
+      rw [hfun]
+      exact hV.mul_left (c j * x ^ j)
+    have h := hasSum_sum hj
+    rw [← Finset.sum_mul] at h
+    convert h using 1
+    funext m
+    rw [Finset.sum_mul]
+  -- the coefficient identity (spec-f2b55478, restated for Qc)
+  have hid : ∀ n m : ℕ, n < m →
+      ∑ j ∈ Finset.range (n + 1), Qc n j / ((2 : ℚ) ^ (m - j) - 1) =
+        (2 : ℚ) ^ (n * n) * (∏ i ∈ Finset.range n, ((2 : ℚ) ^ (i + 1) - 1)) *
+          (∏ i ∈ Finset.range n, ((2 : ℚ) ^ (m - n - 1 - i) - 1) / ((2 : ℚ) ^ (i + 1) - 1)) /
+          ∏ j ∈ Finset.range (n + 1), ((2 : ℚ) ^ (m - j) - 1) := by
+    intro n m hnm
+    rw [hQc]
+    clear htail hcauchy hterm hgeo hsumm hTpos hTle hEpos hEle hE hT hAq hQx hQc
+    dsimp only
+    -- Step 4 of the annex (residue identity): c_j 2^j prod_(k != j) (2^j - 2^k) = N(2^j).
+    have hres : ∀ j ∈ Finset.range (n + 1),
+        ((-1 : ℚ) ^ j * (2 : ℚ) ^ (j * (j - 1) / 2) * (∏ i ∈ Finset.range j, ((2 : ℚ) ^ (n - i) - 1) / ((2 : ℚ) ^ (i + 1) - 1)) * (∏ i ∈ Finset.range n, ((2 : ℚ) ^ (2 * n - j - i) - 1) / ((2 : ℚ) ^ (i + 1) - 1))) * (2 : ℚ) ^ j * ∏ k ∈ (Finset.range (n + 1)).erase j, ((2 : ℚ) ^ j - (2 : ℚ) ^ k) =
+          ∏ i ∈ Finset.range n, ((2 : ℚ) ^ j - (2 : ℚ) ^ (n + 1 + i)) := by
+      intro j hj
+      rw [Finset.mem_range] at hj
+      obtain ⟨r, rfl⟩ : ∃ r, n = j + r := ⟨n - j, by omega⟩
+      have E1test : ∀ j r : ℕ, ∏ k ∈ (Finset.range (j + r + 1)).erase j, ((2:ℚ)^j - 2^k) =
+          (∏ k ∈ Finset.range j, ((2:ℚ)^j - 2^k)) * ∏ x ∈ Finset.range r, ((2:ℚ)^j - 2^(j+1+x))  := by
+          intro j r
+          induction r with
+          | zero =>
+            simp [Finset.range_add_one]
+          | succ r ih =>
+            rw [show j + (r + 1) + 1 = (j + r + 1) + 1 by ring, Finset.range_add_one,
+              Finset.erase_insert_of_ne (by omega), Finset.prod_insert (by simp), ih,
+              Finset.prod_range_succ]
+            rw [show j + 1 + r = j + r + 1 by ring]
+            ring
+      have E2test : ∀ j : ℕ, ∏ k ∈ Finset.range j, ((2:ℚ)^j - 2^k) =
+          2 ^ (j * (j - 1) / 2) * ∏ i ∈ Finset.range j, ((2:ℚ)^(i+1) - 1)  := by
+          intro j
+          rw [← Finset.prod_range_reflect (fun i => (2:ℚ)^(i+1) - 1)]
+          rw [show (2:ℚ) ^ (j * (j - 1) / 2) = ∏ k ∈ Finset.range j, (2:ℚ)^k by
+            rw [Finset.prod_pow_eq_pow_sum, Finset.sum_range_id], ← Finset.prod_mul_distrib]
+          apply Finset.prod_congr rfl
+          intro k hk
+          rw [Finset.mem_range] at hk
+          rw [show j - 1 - k + 1 = j - k by omega, mul_sub, ← pow_add, show k + (j - k) = j by omega]
+          ring
+      have E3test : ∀ j r : ℕ, ∏ x ∈ Finset.range r, ((2:ℚ)^j - 2^(j+1+x)) =
+          (-1) ^ r * 2 ^ (j * r) * ∏ i ∈ Finset.range r, ((2:ℚ)^(i+1) - 1)  := by
+          intro j r
+          rw [show (-1:ℚ) ^ r * 2 ^ (j * r) = ∏ _x ∈ Finset.range r, (-(2:ℚ) ^ j) by
+            rw [Finset.prod_const, Finset.card_range, pow_mul, ← mul_pow, neg_one_mul], ← Finset.prod_mul_distrib]
+          apply Finset.prod_congr rfl
+          intro i _
+          rw [show j + 1 + i = j + (i + 1) by ring, pow_add]
+          ring
+      have E4test : ∀ j r : ℕ, ∏ i ∈ Finset.range (j + r), ((2:ℚ)^j - 2^(j + r + 1 + i)) =
+          (-1) ^ (j + r) * 2 ^ (j * (j + r)) * ∏ i ∈ Finset.range (j + r), ((2:ℚ)^(r + 1 + i) - 1)  := by
+          intro j r
+          rw [show (-1:ℚ) ^ (j + r) * 2 ^ (j * (j + r)) = ∏ _x ∈ Finset.range (j + r), (-(2:ℚ) ^ j) by
+            rw [Finset.prod_const, Finset.card_range, pow_mul, ← mul_pow, neg_one_mul], ← Finset.prod_mul_distrib]
+          apply Finset.prod_congr rfl
+          intro i _
+          rw [show j + r + 1 + i = j + (r + 1 + i) by ring, pow_add]
+          ring
+      have hQ : ∀ t : ℕ, ∏ i ∈ Finset.range t, ((2 : ℚ) ^ (i + 1) - 1) ≠ 0 := by
+        intro t
+        rw [Finset.prod_ne_zero_iff]
+        intro i _
+        have : (1 : ℚ) < 2 ^ (i + 1) := one_lt_pow₀ (by norm_num) (by omega)
+        linarith
+      have hA : ∀ t : ℕ, ∏ i ∈ Finset.range t, ((2 : ℚ) ^ (r + 1 + i) - 1) ≠ 0 := by
+        intro t
+        rw [Finset.prod_ne_zero_iff]
+        intro i _
+        have : (1 : ℚ) < 2 ^ (r + 1 + i) := one_lt_pow₀ (by norm_num) (by omega)
+        linarith
+      have F1 : ∏ i ∈ Finset.range j, ((2 : ℚ) ^ (j + r - i) - 1) = ∏ i ∈ Finset.range j, ((2 : ℚ) ^ (r + 1 + i) - 1) := by
+        rw [← Finset.prod_range_reflect (fun i => (2 : ℚ) ^ (r + 1 + i) - 1)]
+        apply Finset.prod_congr rfl
+        intro i hi
+        rw [Finset.mem_range] at hi
+        rw [show r + 1 + (j - 1 - i) = j + r - i by omega]
+      have F2 : ∏ i ∈ Finset.range (j + r), ((2 : ℚ) ^ (2 * (j + r) - j - i) - 1) = ∏ i ∈ Finset.range (j + r), ((2 : ℚ) ^ (r + 1 + i) - 1) := by
+        rw [← Finset.prod_range_reflect (fun i => (2 : ℚ) ^ (r + 1 + i) - 1)]
+        apply Finset.prod_congr rfl
+        intro i hi
+        rw [Finset.mem_range] at hi
+        rw [show r + 1 + (j + r - 1 - i) = 2 * (j + r) - j - i by omega]
+      have F3 : ∏ i ∈ Finset.range (j + r), ((2 : ℚ) ^ (i + 1) - 1) = (∏ i ∈ Finset.range r, ((2 : ℚ) ^ (i + 1) - 1)) * ∏ i ∈ Finset.range j, ((2 : ℚ) ^ (r + 1 + i) - 1) := by
+        rw [add_comm j r, Finset.prod_range_add]
+        congr 1
+        apply Finset.prod_congr rfl
+        intro i _
+        rw [show r + i + 1 = r + 1 + i by ring]
+      have hp : (2 : ℚ) ^ (j * (j - 1) / 2) * 2 ^ (j * (j - 1) / 2) * 2 ^ j * 2 ^ (j * r) = 2 ^ (j * (j + r)) := by
+        rw [← pow_add, ← pow_add, ← pow_add]
+        congr 1
+        have h2 := Nat.two_mul_div_two_of_even (Nat.even_mul_pred_self j)
+        rcases j with _ | s
+        · simp
+        · simp only [Nat.add_sub_cancel] at h2 ⊢
+          zify at h2 ⊢
+          linear_combination h2
+      rw [Finset.prod_div_distrib, Finset.prod_div_distrib, F1, F2, F3, E1test, E2test, E3test, E4test]
+      have hQj := hQ j
+      have hQr := hQ r
+      have hAj := hA j
+      rw [← hp, pow_add (-1 : ℚ)]
+      field_simp
+    -- Step 3 (partial fractions / Lagrange interpolation at the nodes 2^0..2^n), from step 4.
+    have hpf : ∑ j ∈ Finset.range (n + 1), ((-1 : ℚ) ^ j * (2 : ℚ) ^ (j * (j - 1) / 2) * (∏ i ∈ Finset.range j, ((2 : ℚ) ^ (n - i) - 1) / ((2 : ℚ) ^ (i + 1) - 1)) * (∏ i ∈ Finset.range n, ((2 : ℚ) ^ (2 * n - j - i) - 1) / ((2 : ℚ) ^ (i + 1) - 1))) * (2 : ℚ) ^ j / ((2 : ℚ) ^ m - (2 : ℚ) ^ j) =
+        (∏ i ∈ Finset.range n, ((2 : ℚ) ^ m - (2 : ℚ) ^ (n + 1 + i))) / (∏ k ∈ Finset.range (n + 1), ((2 : ℚ) ^ m - (2 : ℚ) ^ k)) := by
+      classical
+      have hinj : Set.InjOn (fun k : ℕ => (2 : ℚ) ^ k) (Finset.range (n + 1) : Set ℕ) := by
+        intro a _ b _ h
+        exact (pow_right_inj₀ (by norm_num) (by norm_num)).mp h
+      have hdeg : (∏ i ∈ Finset.range n, (Polynomial.X - Polynomial.C ((2 : ℚ) ^ (n + 1 + i)))).degree <
+          ((Finset.range (n + 1)).card : WithBot ℕ) := by
+        rw [Polynomial.degree_prod]
+        simp only [Polynomial.degree_X_sub_C, Finset.sum_const, Finset.card_range, nsmul_eq_mul, mul_one]
+        exact_mod_cast Nat.lt_succ_self n
+      have key := Lagrange.eq_interpolate_of_eval_eq
+        (fun j => (∏ i ∈ Finset.range n, (Polynomial.X - Polynomial.C ((2 : ℚ) ^ (n + 1 + i)))).eval ((2 : ℚ) ^ j))
+        hinj hdeg (fun i _ => rfl)
+      have hev := congrArg (Polynomial.eval ((2 : ℚ) ^ m)) key
+      rw [Lagrange.interpolate_apply, Polynomial.eval_finsetSum] at hev
+      simp only [Polynomial.eval_mul, Polynomial.eval_C, Lagrange.basis, Polynomial.eval_prod,
+        Lagrange.basisDivisor, Polynomial.eval_sub, Polynomial.eval_X] at hev
+      rw [hev, Finset.sum_div]
+      apply Finset.sum_congr rfl
+      intro j hj
+      have hj' : j < m := by
+        rw [Finset.mem_range] at hj
+        omega
+      have hxj : (2 : ℚ) ^ m - 2 ^ j ≠ 0 := by
+        have : (2 : ℚ) ^ j < 2 ^ m := pow_lt_pow_right₀ (by norm_num) hj'
+        linarith
+      have hE1 : ∏ k ∈ (Finset.range (n + 1)).erase j, ((2 : ℚ) ^ m - 2 ^ k) ≠ 0 := by
+        rw [Finset.prod_ne_zero_iff]
+        intro k hk
+        have hk' : k < m := by
+          rw [Finset.mem_erase, Finset.mem_range] at hk
+          omega
+        have : (2 : ℚ) ^ k < 2 ^ m := pow_lt_pow_right₀ (by norm_num) hk'
+        linarith
+      have hE2 : ∏ k ∈ (Finset.range (n + 1)).erase j, ((2 : ℚ) ^ j - 2 ^ k) ≠ 0 := by
+        rw [Finset.prod_ne_zero_iff]
+        intro k hk
+        rw [Finset.mem_erase] at hk
+        intro h0
+        exact hk.1 (hinj (Finset.mem_coe.mpr hj) (Finset.mem_coe.mpr hk.2) (sub_eq_zero.mp h0)).symm
+      rw [← Finset.mul_prod_erase _ _ hj, Finset.prod_mul_distrib, Finset.prod_inv_distrib, ← hres j hj]
+      field_simp
+    -- Step 1: each term c_j / (2^(m-j) - 1) = c_j 2^j / (2^m - 2^j), since j <= n < m.
+    have hl : ∑ j ∈ Finset.range (n + 1), (-1 : ℚ) ^ j * (2 : ℚ) ^ (j * (j - 1) / 2) * (∏ i ∈ Finset.range j, ((2 : ℚ) ^ (n - i) - 1) / ((2 : ℚ) ^ (i + 1) - 1)) * (∏ i ∈ Finset.range n, ((2 : ℚ) ^ (2 * n - j - i) - 1) / ((2 : ℚ) ^ (i + 1) - 1)) / ((2 : ℚ) ^ (m - j) - 1) = ∑ j ∈ Finset.range (n + 1), ((-1 : ℚ) ^ j * (2 : ℚ) ^ (j * (j - 1) / 2) * (∏ i ∈ Finset.range j, ((2 : ℚ) ^ (n - i) - 1) / ((2 : ℚ) ^ (i + 1) - 1)) * (∏ i ∈ Finset.range n, ((2 : ℚ) ^ (2 * n - j - i) - 1) / ((2 : ℚ) ^ (i + 1) - 1))) * (2 : ℚ) ^ j / ((2 : ℚ) ^ m - (2 : ℚ) ^ j) := by
+      apply Finset.sum_congr rfl
+      intro j hj
+      have hj' : j < m := by
+        rw [Finset.mem_range] at hj
+        omega
+      have h2 : (2 : ℚ) ^ m = 2 ^ (m - j) * 2 ^ j := by
+        rw [← pow_add, Nat.sub_add_cancel hj'.le]
+      have hp : (2 : ℚ) ^ j ≠ 0 := by positivity
+      rw [h2, show (2 : ℚ) ^ (m - j) * 2 ^ j - 2 ^ j = (2 ^ (m - j) - 1) * 2 ^ j by ring,
+        mul_div_mul_right _ _ hp]
+    -- Step 2: the right-hand side is N(2^m) / D(2^m).
+    have hr : (2 : ℚ) ^ (n * n) * (∏ i ∈ Finset.range n, ((2 : ℚ) ^ (i + 1) - 1)) * (∏ i ∈ Finset.range n, ((2 : ℚ) ^ (m - n - 1 - i) - 1) / ((2 : ℚ) ^ (i + 1) - 1)) / ∏ j ∈ Finset.range (n + 1), ((2 : ℚ) ^ (m - j) - 1) = (∏ i ∈ Finset.range n, ((2 : ℚ) ^ m - (2 : ℚ) ^ (n + 1 + i))) / (∏ k ∈ Finset.range (n + 1), ((2 : ℚ) ^ m - (2 : ℚ) ^ k)) := by
+      have hB : ∏ i ∈ Finset.range n, ((2 : ℚ) ^ (i + 1) - 1) ≠ 0 := by
+        rw [Finset.prod_ne_zero_iff]
+        intro i _
+        have : (1 : ℚ) < 2 ^ (i + 1) := one_lt_pow₀ (by norm_num) (by omega)
+        linarith
+      have key : (2 : ℚ) ^ (n * n) * (∏ i ∈ Finset.range n, ((2 : ℚ) ^ (i + 1) - 1)) * (∏ i ∈ Finset.range n, ((2 : ℚ) ^ (m - n - 1 - i) - 1) / ((2 : ℚ) ^ (i + 1) - 1)) / ∏ j ∈ Finset.range (n + 1), ((2 : ℚ) ^ (m - j) - 1) = (2 : ℚ) ^ (n * n) * (∏ i ∈ Finset.range n, ((2 : ℚ) ^ (m - n - 1 - i) - 1)) / (∏ j ∈ Finset.range (n + 1), ((2 : ℚ) ^ (m - j) - 1)) := by
+        rw [Finset.prod_div_distrib]
+        field_simp
+      rcases Nat.lt_or_ge (2 * n) m with h | h
+      · have hA : (∏ i ∈ Finset.range n, ((2 : ℚ) ^ (m - n - 1 - i) - 1)) = (∏ i ∈ Finset.range n, ((2 : ℚ) ^ m - (2 : ℚ) ^ (n + 1 + i))) / 2 ^ (∑ i ∈ Finset.range n, (n + 1 + i)) := by
+          rw [← Finset.prod_pow_eq_pow_sum, ← Finset.prod_div_distrib]
+          apply Finset.prod_congr rfl
+          intro i hi
+          rw [Finset.mem_range] at hi
+          have e : (2 : ℚ) ^ m = 2 ^ (m - n - 1 - i) * 2 ^ (n + 1 + i) := by
+            rw [← pow_add]
+            congr 1
+            omega
+          rw [e]
+          field_simp
+        have hD : (∏ j ∈ Finset.range (n + 1), ((2 : ℚ) ^ (m - j) - 1)) = (∏ k ∈ Finset.range (n + 1), ((2 : ℚ) ^ m - (2 : ℚ) ^ k)) / 2 ^ (∑ j ∈ Finset.range (n + 1), j) := by
+          rw [← Finset.prod_pow_eq_pow_sum, ← Finset.prod_div_distrib]
+          apply Finset.prod_congr rfl
+          intro j hj
+          rw [Finset.mem_range] at hj
+          have e : (2 : ℚ) ^ m = 2 ^ (m - j) * 2 ^ j := by
+            rw [← pow_add]
+            congr 1
+            omega
+          rw [e]
+          field_simp
+        have hs : ∑ i ∈ Finset.range n, (n + 1 + i) = n * n + ∑ j ∈ Finset.range (n + 1), j := by
+          rw [Finset.sum_range_succ, Finset.sum_add_distrib]
+          simp
+          ring
+        have hDX : (∏ k ∈ Finset.range (n + 1), ((2 : ℚ) ^ m - (2 : ℚ) ^ k)) ≠ 0 := by
+          rw [Finset.prod_ne_zero_iff]
+          intro k hk
+          rw [Finset.mem_range] at hk
+          have : (2 : ℚ) ^ k < 2 ^ m := pow_lt_pow_right₀ (by norm_num) (by omega)
+          linarith
+        rw [key, hA, hD, hs, pow_add]
+        field_simp
+      · have hz1 : (∏ i ∈ Finset.range n, ((2 : ℚ) ^ (m - n - 1 - i) - 1)) = 0 :=
+          Finset.prod_eq_zero (i := m - n - 1) (by rw [Finset.mem_range]; omega)
+            (by rw [show m - n - 1 - (m - n - 1) = 0 by omega]; norm_num)
+        have hz2 : (∏ i ∈ Finset.range n, ((2 : ℚ) ^ m - (2 : ℚ) ^ (n + 1 + i))) = 0 :=
+          Finset.prod_eq_zero (i := m - n - 1) (by rw [Finset.mem_range]; omega)
+            (by rw [show n + 1 + (m - n - 1) = m by omega]; ring)
+        rw [key, hz1, hz2]
+        simp
+    rw [hl, hr]
+    exact hpf
+  have hser : ∀ n : ℕ, 2 ≤ n →
+      HasSum (fun t : ℕ => E n t * ((3 : ℝ) / (2 : ℝ) ^ n) ^ (2 * n + 1 + t))
+        ((Qx n : ℝ) * (3 * T) - (Aq n : ℝ)) := by
+    intro n hn
+    clear hterm hgeo hsumm hTpos hTle hEpos hEle
+    have hV := htail n (by omega)
+    have hC := hcauchy n (fun j => (Qc n j : ℝ)) ((3 : ℝ) / 2 ^ n) _ hV
+    have hQxR : (Qx n : ℝ) = ∑ j ∈ Finset.range (n + 1), (Qc n j : ℝ) * ((3 : ℝ) / 2 ^ n) ^ j := by
+      rw [hQx]; push_cast; rfl
+    have hAqR : (Aq n : ℝ) = ∑ k ∈ Finset.range (n + 1),
+          (∑ j ∈ Finset.range (k + 1), (Qc n j : ℝ) / ((2 : ℝ) ^ (k - j) - 1)) * ((3 : ℝ) / 2 ^ n) ^ k +
+        (Qx n : ℝ) * ∑ j ∈ Finset.range n, (3 : ℝ) / ((2 : ℝ) ^ (j + 1) - 3) := by
+      rw [hAq]; push_cast; rfl
+    have hcoef_low : ∀ m, m < n + 1 →
+        ∑ j ∈ Finset.range (n + 1), (Qc n j : ℝ) / ((2 : ℝ) ^ (m - j) - 1) =
+          ∑ j ∈ Finset.range (m + 1), (Qc n j : ℝ) / ((2 : ℝ) ^ (m - j) - 1) := by
+      intro m hm
+      rw [← Finset.sum_range_add_sum_Ico _ (show m + 1 ≤ n + 1 by omega)]
+      have hz : ∑ j ∈ Finset.Ico (m + 1) (n + 1), (Qc n j : ℝ) / ((2 : ℝ) ^ (m - j) - 1) = 0 := by
+        apply Finset.sum_eq_zero
+        intro j hj
+        rw [Finset.mem_Ico] at hj
+        rw [show m - j = 0 by omega]
+        simp
+      rw [hz, add_zero]
+    have hP : ∑ m ∈ Finset.range (n + 1),
+          (∑ j ∈ Finset.range (n + 1), (Qc n j : ℝ) / ((2 : ℝ) ^ (m - j) - 1)) * ((3 : ℝ) / 2 ^ n) ^ m =
+        ∑ k ∈ Finset.range (n + 1),
+          (∑ j ∈ Finset.range (k + 1), (Qc n j : ℝ) / ((2 : ℝ) ^ (k - j) - 1)) * ((3 : ℝ) / 2 ^ n) ^ k := by
+      apply Finset.sum_congr rfl
+      intro m hm
+      rw [Finset.mem_range] at hm
+      rw [hcoef_low m hm]
+    have h1 := (hasSum_nat_add_iff' (n + 1)).mpr hC
+    rw [hP] at h1
+    have hval : (∑ j ∈ Finset.range (n + 1), (Qc n j : ℝ) * ((3 : ℝ) / 2 ^ n) ^ j) *
+          (3 * T - ∑ j ∈ Finset.range n, (3 : ℝ) / ((2 : ℝ) ^ (j + 1) - 3)) -
+        ∑ k ∈ Finset.range (n + 1),
+          (∑ j ∈ Finset.range (k + 1), (Qc n j : ℝ) / ((2 : ℝ) ^ (k - j) - 1)) * ((3 : ℝ) / 2 ^ n) ^ k =
+        (Qx n : ℝ) * (3 * T) - (Aq n : ℝ) := by
+      rw [hAqR, ← hQxR]; ring
+    rw [hval] at h1
+    -- the cast of the identity
+    have hidR : ∀ m : ℕ, n < m →
+        ∑ j ∈ Finset.range (n + 1), (Qc n j : ℝ) / ((2 : ℝ) ^ (m - j) - 1) =
+          (2 : ℝ) ^ (n * n) * (∏ i ∈ Finset.range n, ((2 : ℝ) ^ (i + 1) - 1)) *
+            (∏ i ∈ Finset.range n, ((2 : ℝ) ^ (m - n - 1 - i) - 1) / ((2 : ℝ) ^ (i + 1) - 1)) /
+            ∏ j ∈ Finset.range (n + 1), ((2 : ℝ) ^ (m - j) - 1) := by
+      intro m hm
+      have h := congrArg (fun q : ℚ => (q : ℝ)) (hid n m hm)
+      push_cast at h
+      exact h
+    have h2 := (hasSum_nat_add_iff' n).mpr h1
+    have hz : ∑ m ∈ Finset.range n,
+        (∑ j ∈ Finset.range (n + 1), (Qc n j : ℝ) / ((2 : ℝ) ^ (m + (n + 1) - j) - 1)) *
+          ((3 : ℝ) / 2 ^ n) ^ (m + (n + 1)) = 0 := by
+      apply Finset.sum_eq_zero
+      intro m hm
+      rw [Finset.mem_range] at hm
+      rw [hidR (m + (n + 1)) (by omega)]
+      have h0 : ∏ i ∈ Finset.range n, ((2 : ℝ) ^ (m + (n + 1) - n - 1 - i) - 1) / ((2 : ℝ) ^ (i + 1) - 1) = 0 := by
+        apply Finset.prod_eq_zero (Finset.mem_range.mpr hm)
+        rw [show m + (n + 1) - n - 1 - m = 0 by omega]
+        simp
+      rw [h0]
+      simp
+    rw [hz, sub_zero] at h2
+    have hterm : ∀ t : ℕ,
+        (∑ j ∈ Finset.range (n + 1), (Qc n j : ℝ) / ((2 : ℝ) ^ (t + n + (n + 1) - j) - 1)) *
+          ((3 : ℝ) / 2 ^ n) ^ (t + n + (n + 1)) = E n t * ((3 : ℝ) / (2 : ℝ) ^ n) ^ (2 * n + 1 + t) := by
+      intro t
+      rw [hidR (t + n + (n + 1)) (by omega), hE]
+      rw [show t + n + (n + 1) = 2 * n + 1 + t by ring]
+      congr 1
+      have hA : ∀ i ∈ Finset.range n, (2 : ℝ) ^ (i + 1) - 1 ≠ 0 := by
+        intro i _
+        have : (1 : ℝ) < 2 ^ (i + 1) := one_lt_pow₀ (by norm_num) (by omega)
+        linarith
+      have hprod : (∏ i ∈ Finset.range n, ((2 : ℝ) ^ (i + 1) - 1)) *
+          (∏ i ∈ Finset.range n, ((2 : ℝ) ^ (2 * n + 1 + t - n - 1 - i) - 1) / ((2 : ℝ) ^ (i + 1) - 1)) =
+          ∏ i ∈ Finset.range n, ((2 : ℝ) ^ (n + t - i) - 1) := by
+        rw [← Finset.prod_mul_distrib]
+        apply Finset.prod_congr rfl
+        intro i hi
+        rw [show 2 * n + 1 + t - n - 1 - i = n + t - i by omega]
+        field_simp [hA i hi]
+      rw [mul_assoc ((2 : ℝ) ^ (n * n)), hprod]
+    exact (funext hterm) ▸ h2
+  intro n
+  clear htail hcauchy hid
+  rcases (show n = 0 ∨ n = 1 ∨ 2 ≤ n by omega) with rfl | rfl | hn
+  · clear hser hEle hEpos hE hterm hgeo hsumm
+    have hq : Qx 0 = 1 := by rw [hQx, hQc]; simp
+    have ha : Aq 0 = 0 := by rw [hAq, hQx, hQc]; simp
+    rw [hq, ha]
+    push_cast
+    constructor <;> nlinarith
+  · clear hser hEle hEpos hE hterm hgeo hsumm
+    have hq : Qx 1 = 3 / 2 := by
+      rw [hQx, hQc]; simp [Finset.sum_range_succ, Finset.prod_range_succ]; norm_num
+    have ha : Aq 1 = 0 := by
+      rw [hAq, hQx, hQc]; simp [Finset.sum_range_succ, Finset.prod_range_succ]; norm_num
+    rw [hq, ha]
+    push_cast
+    constructor <;> nlinarith
+  · have hs := hser n hn
+    clear hser hterm hgeo hsumm hQc hQx hAq hE
+    have hy4 : (4 : ℝ) ≤ (2 : ℝ) ^ n := by
+      calc (4 : ℝ) = 2 ^ 2 := by norm_num
+        _ ≤ 2 ^ n := pow_le_pow_right₀ (by norm_num) hn
+    have hw : 3 * ((3 : ℝ) ^ n) ^ 2 ≤ 2 * ((2 : ℝ) ^ n) ^ 4 := by
+      obtain ⟨k, hk⟩ : ∃ k, n = k + 2 := ⟨n - 2, by omega⟩
+      have h916 : (9 : ℝ) ^ k ≤ 16 ^ k := pow_le_pow_left₀ (by norm_num) (by norm_num) k
+      have e1 : ((3 : ℝ) ^ n) ^ 2 = 81 * 9 ^ k := by
+        have h9 : (9 : ℝ) ^ k = ((3 : ℝ) ^ k) ^ 2 := by rw [← pow_mul, mul_comm, pow_mul]; norm_num
+        rw [hk, h9]; ring
+      have e2 : ((2 : ℝ) ^ n) ^ 4 = 256 * 16 ^ k := by
+        have h16 : (16 : ℝ) ^ k = ((2 : ℝ) ^ k) ^ 4 := by rw [← pow_mul, mul_comm, pow_mul]; norm_num
+        rw [hk, h16]; ring
+      have h16 : (0 : ℝ) ≤ 16 ^ k := by positivity
+      rw [e1, e2]; linarith
+    have hbound : ∀ t : ℕ, E n t * ((3 : ℝ) / (2 : ℝ) ^ n) ^ (2 * n + 1 + t) ≤
+        (2 : ℝ) ^ (n + 1) / ((2 : ℝ) ^ n) ^ (2 * n) * (1 / 2 : ℝ) ^ t := by
+      intro t
+      have hu : (3 : ℝ) ^ t ≤ ((2 : ℝ) ^ n) ^ t := pow_le_pow_left₀ (by norm_num) (by linarith) t
+      have hyp : (0 : ℝ) < (2 : ℝ) ^ n := by positivity
+      calc E n t * ((3 : ℝ) / (2 : ℝ) ^ n) ^ (2 * n + 1 + t)
+          ≤ (1 / 2 : ℝ) ^ (2 * n + t) * ((3 : ℝ) / (2 : ℝ) ^ n) ^ (2 * n + 1 + t) :=
+            mul_le_mul_of_nonneg_right (hEle n t) (by positivity)
+        _ = 3 * ((3 : ℝ) ^ n) ^ 2 * 3 ^ t /
+              (((2 : ℝ) ^ n) ^ 2 * 2 ^ t * (((2 : ℝ) ^ n) ^ (2 * n) * (2 : ℝ) ^ n * ((2 : ℝ) ^ n) ^ t)) := by
+            rw [one_div_pow, div_pow]
+            field_simp
+            try ring
+        _ ≤ 2 * ((2 : ℝ) ^ n) ^ 4 * ((2 : ℝ) ^ n) ^ t /
+              (((2 : ℝ) ^ n) ^ 2 * 2 ^ t * (((2 : ℝ) ^ n) ^ (2 * n) * (2 : ℝ) ^ n * ((2 : ℝ) ^ n) ^ t)) := by
+            gcongr
+        _ = (2 : ℝ) ^ (n + 1) / ((2 : ℝ) ^ n) ^ (2 * n) * (1 / 2 : ℝ) ^ t := by
+            rw [one_div_pow]
+            field_simp
+            try ring
+    have hgeomS : HasSum (fun t : ℕ => (2 : ℝ) ^ (n + 1) / ((2 : ℝ) ^ n) ^ (2 * n) * (1 / 2 : ℝ) ^ t)
+        ((2 : ℝ) ^ (n + 1) / ((2 : ℝ) ^ n) ^ (2 * n) * (1 - 1 / 2)⁻¹) :=
+      (hasSum_geometric_of_lt_one (by norm_num) (by norm_num)).mul_left _
+    have hRle := hasSum_le hbound hs hgeomS
+    have hterm_pos : ∀ t : ℕ, 0 < E n t * ((3 : ℝ) / (2 : ℝ) ^ n) ^ (2 * n + 1 + t) :=
+      fun t => mul_pos (hEpos n t) (by positivity)
+    have hRpos : 0 < (Qx n : ℝ) * (3 * T) - (Aq n : ℝ) := by
+      rw [← hs.tsum_eq]
+      exact hs.summable.tsum_pos (fun t => (hterm_pos t).le) 0 (hterm_pos 0)
+    refine ⟨hRpos, ?_⟩
+    have hB : (2 : ℝ) ^ (n + 1) / ((2 : ℝ) ^ n) ^ (2 * n) * (1 - 1 / 2)⁻¹ =
+        (2 : ℝ) ^ (n + 2) / ((2 : ℝ) ^ n) ^ (2 * n) := by
+      field_simp; ring
+    rw [hB] at hRle
+    have hpow : (2 : ℝ) ^ (4 * n * n) = (((2 : ℝ) ^ n) ^ (2 * n)) ^ 2 := by
+      rw [← pow_mul, ← pow_mul]; ring_nf
+    have hQ : (0 : ℝ) < ((2 : ℝ) ^ n) ^ (2 * n) := by positivity
+    rw [hpow]
+    calc ((Qx n : ℝ) * (3 * T) - (Aq n : ℝ)) ^ 2 * (((2 : ℝ) ^ n) ^ (2 * n)) ^ 2
+        = (((Qx n : ℝ) * (3 * T) - (Aq n : ℝ)) * ((2 : ℝ) ^ n) ^ (2 * n)) ^ 2 := by ring
+      _ ≤ ((2 : ℝ) ^ (n + 2)) ^ 2 := by
+          gcongr
+          rw [le_div_iff₀ hQ] at hRle; exact hRle
+      _ = (2 : ℝ) ^ (2 * n + 4) := by ring

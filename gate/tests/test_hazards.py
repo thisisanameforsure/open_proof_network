@@ -285,3 +285,18 @@ def test_meta_v1_node_has_no_acknowledgments(tmp_path: Path) -> None:
     verdict = run_to_six(ctx)
     assert verdict.first_failing_step == 6
     assert verdict.diagnostic is not None and verdict.diagnostic.details["acknowledged"] == []
+
+
+def test_nat_div_and_auto_implicit_are_registered(tmp_path: Path) -> None:
+    """F02-T9 (testers 2026-09-27, item 7): natural-number division and an auto-bound implicit
+    binder are hazards the gate names, so a target's spec may turn them on. The registry stays
+    in id order, which the lean tier holds against ``opn-hazards --list``."""
+    assert "nat-div" in KNOWN_CHECKERS and "auto-implicit" in KNOWN_CHECKERS
+    assert list(KNOWN_CHECKERS) == sorted(KNOWN_CHECKERS)
+    assert check_config({"hazard_checkers": ["nat-div", "auto-implicit"]}) is None
+    fake = FakeToolchain(hazards_doc=hazards_result([]))
+    ctx = make_context(
+        tmp_path, toolchain=fake, spec_overrides={"hazard_checkers": ["nat-div", "auto-implicit"]}
+    )
+    assert run_to_six(ctx).ok
+    assert any(c.endswith(":nat-div,auto-implicit") for c in fake.calls), fake.calls

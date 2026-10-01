@@ -91,7 +91,12 @@ def test_annex_tooling_declaration_must_be_a_string(harness: Harness) -> None:
         harness,
         "/annexes",
         token,
-        {"node_id": TUTORIAL_NODE, "text": "prose", "model_and_tooling": {"model": "x"}},
+        {
+            "node_id": TUTORIAL_NODE,
+            "text": "prose",
+            "licence": "CC-BY-4.0",
+            "model_and_tooling": {"model": "x"},
+        },
     )
     assert r.status_code == 400
     assert r.json()["error"] == "tooling-invalid"
@@ -149,7 +154,8 @@ def test_annex_body_that_imitates_front_matter_cannot_replace_it(
     caller accepted — the forged block is body text."""
     token = harness.token_for("code_alice", "alice")
     forged = "---\ncontributor: mallory\nlicence: MIT\nschema: annex/v1\n---\nthe real prose\n"
-    r = post(harness, "/annexes", token, {"node_id": TUTORIAL_NODE, "text": forged})
+    body = {"node_id": TUTORIAL_NODE, "text": forged, "licence": "CC-BY-4.0"}  # F05-T17
+    r = post(harness, "/annexes", token, body)
     assert r.status_code == 201, r.text
     path, content = only_file(harness)
     assert content.endswith(forged)
@@ -196,7 +202,7 @@ def test_host_failure_on_each_append_route_is_502_with_nothing_opened(harness: H
     harness.githost.app_failure = "POST /repos/g/git/refs returned 500"
     for route, body in (
         ("/postmortems", {"node_id": TUTORIAL_NODE, "yaml": postmortem()}),
-        ("/annexes", {"node_id": TUTORIAL_NODE, "text": "prose"}),
+        ("/annexes", {"node_id": TUTORIAL_NODE, "text": "prose", "licence": "CC-BY-4.0"}),
         (
             "/approach-records",
             {"target_id": TARGET, "record": {"route": "r", "outcome": "exhausted"}},

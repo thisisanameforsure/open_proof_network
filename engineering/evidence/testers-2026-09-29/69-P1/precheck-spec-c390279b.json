@@ -1,0 +1,200 @@
+{
+ "id": "01M3QN9QW00QQAANB361Z38DAX",
+ "node_id": "spec-c390279b",
+ "target_id": "erdos-69",
+ "state": "done",
+ "created": "2026-09-29T22:41:52Z",
+ "graph_commit": "a2ab139323f10c5ad005374e7b6540d7f4a78fa3",
+ "bundle_digest": "81e095e9d679bdbb08ee533353f4d5899c0d9e782b2a43e1eb6e7634020f1be6",
+ "authenticated": true,
+ "result": {
+  "attestation": {
+   "artifact_hash": "7d621b770af166ba06fb85dd8514e032db9326b88f6e6e33cc158a080219958f",
+   "diagnostic": null,
+   "first_failing_step": null,
+   "gate_spec_hash": "51011fcedb4c150a7d7f470506aa2ef9e407cf8a24c579d3bdef6a3263b14a68",
+   "graph_commit": "a2ab139323f10c5ad005374e7b6540d7f4a78fa3",
+   "graph_id": "erdos-69",
+   "lean_toolchain": "leanprover/lean4:v4.33.1",
+   "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+   "merge_commit": null,
+   "model_and_tooling": "undeclared",
+   "network_commit": "3422bb401108f24a3006877a2af929894564a1c1",
+   "node_id": "spec-c390279b",
+   "precheck_attestation": {
+    "hash": null,
+    "signature_kind": null
+   },
+   "review": null,
+   "runner": "hosted",
+   "schema": "attestation/v5",
+   "signature": {
+    "key_id": "SHA256:bJR39nO37EkRaxo4CPqdhcHk+WL+sEnAJ9ujpkF7LXo",
+    "kind": "service",
+    "timestamp": "2026-09-29T22:44:38Z",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg4NVeR5WlT1J5vaHpDOmXNTurS+\nKqTYJTovSCpPj5G/IAAAAPb3BuLWF0dGVzdGF0aW9uAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQFDkri5xE2YbfmZfB45ZVTN0ETs8EAtKZux5/ybrzNqQQTZzws\nzKUlQ7vjH9sVBTduIkR0oTgxu3+CyDWiMzdAc=\n-----END SSH SIGNATURE-----\n"
+   },
+   "statement_hash": "f3793ee2dfc2d76a97a9881a7222fa708c299eec6a6203f84c2b652fccdb192f",
+   "steps": [
+    {
+     "diagnostic": {
+      "code": "mathlib-pinned",
+      "details": {
+       "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+       "packages": 8
+      },
+      "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+     },
+     "name": "toolchain",
+     "result": "pass",
+     "step": 1
+    },
+    {
+     "diagnostic": null,
+     "name": "paths",
+     "result": "pass",
+     "step": 2
+    },
+    {
+     "diagnostic": null,
+     "name": "kernel-replay",
+     "result": "pass",
+     "step": 4
+    },
+    {
+     "diagnostic": null,
+     "name": "axioms",
+     "result": "pass",
+     "step": 5
+    },
+    {
+     "diagnostic": {
+      "code": "hazards-acknowledged",
+      "details": {
+       "acknowledged": [
+        {
+         "checker": "div-zero",
+         "justification": "The real divisor 2^(j+1) is positive for every j, never 0.",
+         "location": "↑(f (n + 1 + j)) / 2 ^ (j + 1)"
+        },
+        {
+         "checker": "div-zero",
+         "justification": "The real divisor 2^(j+1) is positive for every j, never 0.",
+         "location": "↑(f (n' + 1 + j)) / 2 ^ (j + 1)"
+        },
+        {
+         "checker": "div-zero",
+         "justification": "The real divisor 2^n is positive for every n, never 0.",
+         "location": "↑(f n) / 2 ^ n"
+        }
+       ]
+      },
+      "message": "3 hazard finding(s) acknowledged in META.yaml"
+     },
+     "name": "hazards",
+     "result": "pass",
+     "step": 6
+    },
+    {
+     "diagnostic": null,
+     "name": "witness",
+     "result": "pass",
+     "step": 7
+    },
+    {
+     "diagnostic": null,
+     "name": "deps",
+     "result": "pass",
+     "step": 8
+    }
+   ],
+   "submitter": null,
+   "toolchain_hash": "f54d0bc916bf76a7fae460ce9d078ccd1f74aeb4fd12c4b6546bca28b6aa1c63",
+   "tooling": {
+    "harness": null,
+    "model": null
+   },
+   "trust_base": "kernel",
+   "verdict": "pass"
+  },
+  "bundle_digest": "81e095e9d679bdbb08ee533353f4d5899c0d9e782b2a43e1eb6e7634020f1be6",
+  "first_failing_step": null,
+  "job_id": "01M3QN9QW00QQAANB361Z38DAX",
+  "node_id": "spec-c390279b",
+  "steps": [
+   {
+    "diagnostic": {
+     "code": "mathlib-pinned",
+     "details": {
+      "mathlib_sha": "0df444a360eaa60ab8c11dca51a86af692955474",
+      "packages": 8
+     },
+     "message": "Mathlib 0df444a360ea resolved from the pinned checkout"
+    },
+    "name": "toolchain",
+    "result": "pass",
+    "step": 1
+   },
+   {
+    "diagnostic": null,
+    "name": "paths",
+    "result": "pass",
+    "step": 2
+   },
+   {
+    "diagnostic": null,
+    "name": "kernel-replay",
+    "result": "pass",
+    "step": 4
+   },
+   {
+    "diagnostic": null,
+    "name": "axioms",
+    "result": "pass",
+    "step": 5
+   },
+   {
+    "diagnostic": {
+     "code": "hazards-acknowledged",
+     "details": {
+      "acknowledged": [
+       {
+        "checker": "div-zero",
+        "justification": "The real divisor 2^(j+1) is positive for every j, never 0.",
+        "location": "↑(f (n + 1 + j)) / 2 ^ (j + 1)"
+       },
+       {
+        "checker": "div-zero",
+        "justification": "The real divisor 2^(j+1) is positive for every j, never 0.",
+        "location": "↑(f (n' + 1 + j)) / 2 ^ (j + 1)"
+       },
+       {
+        "checker": "div-zero",
+        "justification": "The real divisor 2^n is positive for every n, never 0.",
+        "location": "↑(f n) / 2 ^ n"
+       }
+      ]
+     },
+     "message": "3 hazard finding(s) acknowledged in META.yaml"
+    },
+    "name": "hazards",
+    "result": "pass",
+    "step": 6
+   },
+   {
+    "diagnostic": null,
+    "name": "witness",
+    "result": "pass",
+    "step": 7
+   },
+   {
+    "diagnostic": null,
+    "name": "deps",
+    "result": "pass",
+    "step": 8
+   }
+  ],
+  "verdict": "pass"
+ },
+ "public": true
+}

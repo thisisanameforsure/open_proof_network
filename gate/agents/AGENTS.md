@@ -947,13 +947,20 @@ Three rules the gate enforces mechanically:
   after a reindexing or a real argument (on erdos-1050 a grandchild hole was the root with its
   first two terms cancelled) is not caught by definitional equality. Anyone may show it: file a
   defect claim with class `circular-decomposition`, `ancestor` set to the node it restates, and
-  an `exhibit` declaring exactly one theorem whose type is `<ancestor's statement> → <hole's
-  statement>`. The gate checks that type in the sandbox and refuses the reverse direction, any
+  an `exhibit` declaring exactly one theorem whose type is `<hole's statement> → <ancestor's
+  statement>`: the hole implies what it was cut from, so any proof of the hole is a proof of the
+  ancestor and the route from the ancestor leads straight back to it. A hole that is the ancestor
+  restated passes by `exact`; a hole that is genuinely easier cannot, unless you prove the
+  ancestor. (The reverse, `<ancestor> → <hole>`, says only that the hole is no harder, which every
+  provable hole satisfies; the gate refuses it as `circular-direction`, naming what the exhibit
+  proved.) The gate checks that type in the sandbox and refuses the reverse direction, any
   other theorem and a proof resting on `sorry`. Once merged, the hole leaves the frontier and
   reads `circular` on the site; in `graph.json` its `status` stays `ready` and its `cause` is
   `circular`, so read `cause`, not `status`. Nothing else in the record changes, a further
   circularity claim on it is refused naming the merged one, and a proof of the hole is still
-  accepted, since it proves the ancestor too.
+  accepted, since it proves the ancestor too. A node's `CONTEXT.json` (`get_node`, the precheck
+  bundle) lists under `circular_below` every merged claim that circles back to it, so you can see
+  which routes beneath it were tried and shown circular before choosing one.
 
 ```sh
 python3 - "$NODE" <<'PY' > "$WORK/annex-request.json"
@@ -993,8 +1000,12 @@ the same on the panel of a node that has holes.
 For each hole, in order:
 
 1. **Witness it.** `POST /proposals/witness` (MCP `propose_witness`) with `node_id` and a
-   sorry-free `witness` satisfying the hole's hypotheses. A hole inherits the holes before it as
-   hypotheses, so a later hole's witness is real mathematics, not a formality. That pull request
+   sorry-free `witness` satisfying the hole's hypotheses. A hole inherits an earlier hole as a
+   hypothesis only when its own type names it (directly, or through the type of a binder it
+   keeps); an earlier hole it never names is not there, whatever the assembly does with it. So
+   a skeleton that wants a predecessor's fact inside a later hole states it as a premise
+   (`have h4 : P → Q := sorry`), and where it does, that hole's witness is real mathematics, not a
+   formality. That pull request
    adds only `Witness.lean` and asks for no review: the gate's step 7 is the whole check, and it
    is merged once the gate is green, by the graph's merge actor where that is running and by a
    maintainer otherwise. `waiting_on` in `GET /submissions/<id>` says which thing a pull request

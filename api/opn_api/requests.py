@@ -289,7 +289,7 @@ def check_ancestor(
             400,
             "circular-ancestor",
             f"a {CIRCULAR_CLASS} claim names `ancestor`: a node that depends on {stmt_ref}; the "
-            f"exhibit proves `<ancestor's statement> → <{stmt_ref}'s statement>`",
+            f"exhibit proves `<{stmt_ref}'s statement> → <ancestor's statement>` (F08-T21)",
         )
     above = ancestors_in(precheck.graph_doc(ctx).get(target_id, []), stmt_ref)
     if raw not in above:

@@ -264,6 +264,16 @@ def statement_entry(  # noqa: PLR0913 — one argument per fact the entry record
     )
 
 
+def statement_tooling(meta: dict[str, Any]) -> str:
+    """The tooling a merged proposal's statement line records (D-23, R13; F07-T49): the model
+    its proposer declared, which the scaffold wrote into ``META.yaml`` as ``provenance.model``.
+    A proposal has no attestation, so ``merge_tooling`` cannot read it; the record is the META.
+    ``undeclared`` when the proposer declared nothing."""
+    provenance = meta.get("provenance") or {}
+    model = provenance.get("model") if isinstance(provenance, dict) else None
+    return str(model) if isinstance(model, str) and model.strip() else UNDECLARED
+
+
 def merge_tooling(graph_root: Path, merge_commit: str) -> str:
     """The ``model_and_tooling`` the post-merge job attested for ``merge_commit`` (R13, T14), or
     ``undeclared``. Read from the committed attestations rather than passed as a flag, because the

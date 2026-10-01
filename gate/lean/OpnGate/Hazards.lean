@@ -33,11 +33,33 @@ structure Hit where
   message : String
   location : Option String := none
 
-/-- A checker: an id (the `gate-spec.json` name) and a predicate over one subterm. -/
+/-- The statement as a file (F02-T9), for a checker whose question is not about one subterm:
+where it is, what module and declaration it is, the environment its imports gave before any of
+its commands (so it can be elaborated again without a second import) and the environment with
+it elaborated, where `decl` lives. -/
+structure Statement where
+  path : System.FilePath
+  module : Name
+  decl : Name
+  env : Environment
+  /-- The statement's commands elaborated once more under `opts`, answered as their log: what a
+  file-level checker reads (`auto-implicit`). `opn-hazards` answers with the file on the
+  once-imported environment (`Frontend.elabFile`); the network's hosted program, which inlines
+  these files with their imports stripped, answers with the statement's own text on the current
+  environment. The checker files import nothing but `Lean` and these modules, so both can. -/
+  reelaborate : Options → IO MessageLog
+
+/-- A check over the statement as a file rather than over its type's subterms (F02-T9). -/
+abbrev SourceCheck := Statement → IO (Array Finding)
+
+/-- A checker: an id (the `gate-spec.json` name) and a predicate over one subterm — plus, for a
+hazard no subterm shows (`auto-implicit`), a check over the file, whose findings join the
+subterm findings before deduplication, sorting and the cap (R10). -/
 structure Checker where
   id : String
   describe : String
   visit : Expr → MetaM (Option Hit)
+  source : Option SourceCheck := none
 
 /-- Findings per statement are capped (F02 §6). -/
 def cap : Nat := 200
@@ -114,9 +136,11 @@ partial def traverse (checkers : Array Checker) (e : Expr) : MetaM (Array Findin
   | .proj _ _ b => return out ++ (← traverse checkers b)
   | _ => return out
 
-/-- Deduplicated, sorted, capped findings over a statement type (R10). -/
-def run (checkers : Array Checker) (stmtType : Expr) : MetaM (Array Finding × Bool) := do
-  let raw ← traverse checkers stmtType
+/-- Deduplicated, sorted, capped findings over a statement type (R10), together with `extra`,
+what the selected checkers' file-level checks found (F02-T9). -/
+def run (checkers : Array Checker) (stmtType : Expr) (extra : Array Finding := #[])
+    : MetaM (Array Finding × Bool) := do
+  let raw := (← traverse checkers stmtType) ++ extra
   let mut uniq : Array Finding := #[]
   for f in raw do
     unless uniq.contains f do uniq := uniq.push f

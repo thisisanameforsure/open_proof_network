@@ -1,0 +1,238 @@
+== F07-T47 host budget: RED run, the tests written before the fix (seams added at today's behaviour first) — 2026-10-01T04:34:21Z
+$ uv run --frozen pytest api/tests/test_finding_host_budget.py -q -p no:cacheprovider
+FFF.F.FFFFFFFFFFFFF                                                      [100%]
+=================================== FAILURES ===================================
+___________ test_the_seam_records_the_budget_the_host_last_reported ____________
+script = Script(calls=[<Request('GET', 'https://api.github.com/repos/owner/scratch/installation')>, <Request('POST', 'https://a...3/reviews'): deque([<Response [200 OK]>]), ('GET', '/repos/owner/scratch/actions/runs'): deque([<Response [200 OK]>])})
+host = <opn_api.githost.HttpxGitHost object at 0x7f720f8a7230>
+clock = Clock(now=1800000000.0)
+>       assert host.budget() == HostBudget(
+E       assert None == HostBudget(remaining=4320, limit=5000, reset_at=None, read_at=1800000000.0)
+E        +  where None = budget()
+E        +    where budget = <opn_api.githost.HttpxGitHost object at 0x7f720f8a7230>.budget
+E        +  and   HostBudget(remaining=4320, limit=5000, reset_at=None, read_at=1800000000.0) = HostBudget(remaining=4320, limit=5000, reset_at=None, read_at=1800000000.0)
+E        +    where 1800000000.0 = float(1800000000)
+api/tests/test_finding_host_budget.py:107: AssertionError
+________ test_a_refusal_with_remaining_zero_is_a_rate_limit_error[403] _________
+script = Script(calls=[<Request('GET', 'https://api.github.com/repos/owner/scratch/installation')>, <Request('POST', 'https://a...s'): deque([<Response [201 Created]>]), ('GET', '/repos/owner/scratch/pulls/33'): deque([<Response [403 Forbidden]>])})
+host = <opn_api.githost.HttpxGitHost object at 0x7f720f759a90>
+clock = Clock(now=1800000000.0)
+secrets = ['cs_CLIENT_SECRET_NEVER_LOGGED', 'gho_ACCESS_TOKEN_NEVER_LOGGED', 'ghs_INSTALLATION_TOKEN_NEVER_LOGGED', 'MIIEowIBAAK...knQVc/FdwuU6/uLwHEg40pB86fj/On9aDI4wQ8+mg9UDbBPj1', 'm1usBYJms+YFVqXwjxcfD6k+HzPE4JIggMLAU3AkgnuJtO2ZUcdAnQYsKSBVBVqG']
+logs = <_pytest.logging.LogCaptureFixture object at 0x7f720f8a7e00>
+status = 403
+>           host.get_pull_request(REPO, 33)
+api/tests/test_finding_host_budget.py:123: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+self = <opn_api.githost.HttpxGitHost object at 0x7f720f759a90>
+repo = 'owner/scratch', number = 33
+>               raise GitHostError(msg)
+E               opn_api.githost.GitHostError: GET /repos/owner/scratch/pulls/33 returned 403: API rate limit exceeded
+api/opn_api/githost.py:761: GitHostError
+------------------------------ Captured log call -------------------------------
+INFO     httpx:_client.py:1025 HTTP Request: GET https://api.github.com/repos/owner/scratch/installation "HTTP/1.1 200 OK"
+INFO     httpx:_client.py:1025 HTTP Request: POST https://api.github.com/app/installations/99/access_tokens "HTTP/1.1 201 Created"
+INFO     httpx:_client.py:1025 HTTP Request: GET https://api.github.com/repos/owner/scratch/pulls/33 "HTTP/1.1 403 Forbidden"
+________ test_a_refusal_with_remaining_zero_is_a_rate_limit_error[429] _________
+script = Script(calls=[<Request('GET', 'https://api.github.com/repos/owner/scratch/installation')>, <Request('POST', 'https://a...ue([<Response [201 Created]>]), ('GET', '/repos/owner/scratch/pulls/33'): deque([<Response [429 Too Many Requests]>])})
+host = <opn_api.githost.HttpxGitHost object at 0x7f720f759810>
+clock = Clock(now=1800000000.0)
+secrets = ['cs_CLIENT_SECRET_NEVER_LOGGED', 'gho_ACCESS_TOKEN_NEVER_LOGGED', 'ghs_INSTALLATION_TOKEN_NEVER_LOGGED', 'MIIEowIBAAK...knQVc/FdwuU6/uLwHEg40pB86fj/On9aDI4wQ8+mg9UDbBPj1', 'm1usBYJms+YFVqXwjxcfD6k+HzPE4JIggMLAU3AkgnuJtO2ZUcdAnQYsKSBVBVqG']
+logs = <_pytest.logging.LogCaptureFixture object at 0x7f720f75aad0>
+status = 429
+>           host.get_pull_request(REPO, 33)
+api/tests/test_finding_host_budget.py:123: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+self = <opn_api.githost.HttpxGitHost object at 0x7f720f759810>
+repo = 'owner/scratch', number = 33
+>               raise GitHostError(msg)
+E               opn_api.githost.GitHostError: GET /repos/owner/scratch/pulls/33 returned 429: API rate limit exceeded
+api/opn_api/githost.py:761: GitHostError
+------------------------------ Captured log call -------------------------------
+INFO     httpx:_client.py:1025 HTTP Request: GET https://api.github.com/repos/owner/scratch/installation "HTTP/1.1 200 OK"
+INFO     httpx:_client.py:1025 HTTP Request: POST https://api.github.com/app/installations/99/access_tokens "HTTP/1.1 201 Created"
+INFO     httpx:_client.py:1025 HTTP Request: GET https://api.github.com/repos/owner/scratch/pulls/33 "HTTP/1.1 429 Too Many Requests"
+_______________ test_a_write_refused_for_budget_is_the_same_kind _______________
+script = Script(calls=[<Request('GET', 'https://api.github.com/repos/owner/scratch/installation')>, <Request('POST', 'https://a...ens'): deque([<Response [201 Created]>]), ('POST', '/repos/owner/scratch/pulls'): deque([<Response [403 Forbidden]>])})
+host = <opn_api.githost.HttpxGitHost object at 0x7f720f58c510>
+clock = Clock(now=1800000000.0)
+>           host.open_pull_request(REPO, head="b", base="main", title="t", body="")
+api/tests/test_finding_host_budget.py:151: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+api/opn_api/githost.py:617: in open_pull_request
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+http = <test_githost_seam.script.<locals>.Scripted object at 0x7f720f75a350>
+method = 'POST', url = 'https://api.github.com/repos/owner/scratch/pulls'
+kwargs = {'json': {'head': 'b', 'base': 'main', 'title': 't', 'body': ''}}
+>           raise GitHostError(msg)
+E           opn_api.githost.GitHostError: POST /repos/owner/scratch/pulls returned 403: rate
+api/opn_api/githost.py:887: GitHostError
+____ test_a_precheck_dispatch_refused_for_budget_is_a_503_naming_the_reset _____
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7f720f7a1d30>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+>       assert_budget_refusal(r)
+api/tests/test_finding_host_budget.py:253: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+r = <Response [502 Bad Gateway]>
+>       assert r.status_code == 503, (r.status_code, r.text)
+E       AssertionError: (502, '{"error":"dispatch-failed","message":"the precheck job could not be started: GitHub\'s rate limit for the App is spent (0 of 5000 calls remaining); it refills at 2026-09-09T12:30:00Z"}')
+E       assert 502 == 503
+E        +  where 502 = <Response [502 Bad Gateway]>.status_code
+api/tests/test_finding_host_budget.py:231: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+WARNING  opn_api.precheck:precheck.py:608 precheck 01M230M2G0RK4RNJZ9RZ2QH3EA could not be dispatched: GitHub's rate limit for the App is spent (0 of 5000 calls remaining); it refills at 2026-09-09T12:30:00Z
+___________ test_opening_a_pull_request_refused_for_budget_is_a_503 ____________
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7f720f61e0d0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+>       assert_budget_refusal(r)
+api/tests/test_finding_host_budget.py:264: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+r = <Response [502 Bad Gateway]>
+>       assert r.status_code == 503, (r.status_code, r.text)
+E       AssertionError: (502, '{"error":"pull-request-failed","message":"the pull request could not be opened: GitHub\'s rate limit for the App is spent (0 of 5000 calls remaining); it refills at 2026-09-09T12:30:00Z"}')
+E       assert 502 == 503
+E        +  where 502 = <Response [502 Bad Gateway]>.status_code
+api/tests/test_finding_host_budget.py:231: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+WARNING  opn_api.submissions:submissions.py:114 append/01M230M2G0771HSBXDFWM5N75M could not be opened on thisisanameforsure/open_proof_network_graph: GitHub's rate limit for the App is spent (0 of 5000 calls remaining); it refills at 2026-09-09T12:30:00Z
+_________________ test_withdrawing_refused_for_budget_is_a_503 _________________
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7f720f6dcb90>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+>       assert_budget_refusal(r)
+api/tests/test_finding_host_budget.py:272: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+r = <Response [502 Bad Gateway]>
+>       assert r.status_code == 503, (r.status_code, r.text)
+E       AssertionError: (502, '{"error":"withdraw-failed","message":"pull request #1 could not be withdrawn; it is still open: GitHub\'s rate limit for the App is spent (0 of 5000 calls remaining); it refills at 2026-09-09T12:30:00Z"}')
+E       assert 502 == 503
+E        +  where 502 = <Response [502 Bad Gateway]>.status_code
+api/tests/test_finding_host_budget.py:231: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+______ test_the_by_id_read_serves_its_cached_block_as_stale_with_read_at _______
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7f720f58f5c0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+>       assert fresh["pull_request"]["read_at"] == read_at
+E       KeyError: 'read_at'
+api/tests/test_finding_host_budget.py:285: KeyError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+______________ test_any_host_failure_marks_the_cached_block_stale ______________
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7f720f62d6e0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+>       assert r.json()["pull_request"]["stale"] is True
+E       KeyError: 'stale'
+api/tests/test_finding_host_budget.py:311: KeyError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+WARNING  opn_api.pending:pending.py:264 pull request #1: GET /repos/o/g/pulls/1 returned 502
+___ test_a_first_read_with_the_budget_spent_is_a_null_block_with_retry_after ___
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7f720f604290>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+>       assert str(r.json()["pull_request_error"]).startswith("host-budget-exhausted")
+E       assert False
+E        +  where False = <built-in method startswith of str object at 0x7f720f79af50>('host-budget-exhausted')
+E        +    where <built-in method startswith of str object at 0x7f720f79af50> = "the pull request's live state could not be read from the host: GitHub's rate limit for the App is spent (0 of 5000 calls remaining); it refills at 2026-09-09T12:30:00Z".startswith
+E        +      where "the pull request's live state could not be read from the host: GitHub's rate limit for the App is spent (0 of 5000 calls remaining); it refills at 2026-09-09T12:30:00Z" = str("the pull request's live state could not be read from the host: GitHub's rate limit for the App is spent (0 of 5000 calls remaining); it refills at 2026-09-09T12:30:00Z")
+api/tests/test_finding_host_budget.py:323: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.pending:pending.py:264 pull request #7: GitHub's rate limit for the App is spent (0 of 5000 calls remaining); it refills at 2026-09-09T12:30:00Z
+_______________ test_a_closed_record_block_says_when_it_was_read _______________
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7f720f8faad0>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+>       assert doc["pull_request"]["read_at"] == clockmod.render(harness.clock.now())
+E       KeyError: 'read_at'
+api/tests/test_finding_host_budget.py:333: KeyError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+___________ test_the_listing_costs_one_host_call_for_the_whole_queue ___________
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7f720f7e9150>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+>       assert harness.githost.listing_calls == 1
+E       AssertionError: assert 0 == 1
+E        +  where 0 = FakeGitHost(users={'code_alice': GitHubUser(login='alice', id=1001, created_at='2015-03-01T00:00:00Z'), 'code_bob': Gi..., pulls_in_flight=0, pulls_max_in_flight=1, budget_seen=None, rate_limited=None, listing_calls=0, listing_failure=None).listing_calls
+E        +    where FakeGitHost(users={'code_alice': GitHubUser(login='alice', id=1001, created_at='2015-03-01T00:00:00Z'), 'code_bob': Gi..., pulls_in_flight=0, pulls_max_in_flight=1, budget_seen=None, rate_limited=None, listing_calls=0, listing_failure=None) = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7f720f7e9150>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])).githost
+api/tests/test_finding_host_budget.py:346: AssertionError
+___________ test_a_record_the_listing_lacks_is_read_once_and_closed ____________
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7f720f7edb50>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+>       assert harness.githost.listing_calls == 1
+E       AssertionError: assert 0 == 1
+E        +  where 0 = FakeGitHost(users={'code_alice': GitHubUser(login='alice', id=1001, created_at='2015-03-01T00:00:00Z'), 'code_bob': Gi..., pulls_in_flight=0, pulls_max_in_flight=1, budget_seen=None, rate_limited=None, listing_calls=0, listing_failure=None).listing_calls
+E        +    where FakeGitHost(users={'code_alice': GitHubUser(login='alice', id=1001, created_at='2015-03-01T00:00:00Z'), 'code_bob': Gi..., pulls_in_flight=0, pulls_max_in_flight=1, budget_seen=None, rate_limited=None, listing_calls=0, listing_failure=None) = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7f720f7edb50>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0'])).githost
+api/tests/test_finding_host_budget.py:366: AssertionError
+__________ test_the_listing_is_served_stale_when_the_budget_is_spent ___________
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7f720f70a550>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+>       age_listing(harness)
+api/tests/test_finding_host_budget.py:380: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+h = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7f720f70a550>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+>       assert listing is not None, "Context.open_pulls holds no cached listing"
+E       AssertionError: Context.open_pulls holds no cached listing
+E       assert None is not None
+api/tests/test_finding_host_budget.py:208: AssertionError
+___________ test_reads_do_not_spend_the_host_at_or_below_the_reserve ___________
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7f720f78a300>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+>       assert (len(harness.githost.pull_lookups), harness.githost.listing_calls) == (1, 1)
+E       assert (1, 0) == (1, 1)
+E         
+E         At index 1 diff: 0 != 1
+E         Use -v to get more diff
+api/tests/test_finding_host_budget.py:401: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+________ test_health_reports_the_budget_and_goes_red_while_it_is_spent _________
+harness = Harness(settings=Settings(store='memory', table_identities=None, table_tokens=None, table_claims=None, parameter_prefi...tarlette.applications.Starlette object at 0x7f720f614f50>, axle=FakeAxle(calls=[], replies=[], hosted=['lean-4.33.0']))
+>       assert r.json() == {"ok": True, "store": "memory", "host_budget": None}
+E       AssertionError: assert {'ok': True, ...re': 'memory'} == {'ok': True, ...budget': None}
+E         
+E         Omitting 2 identical items, use -vv to show
+E         Right contains 1 more item:
+E         {'host_budget': None}
+E         Use -v to get more diff
+api/tests/test_finding_host_budget.py:429: AssertionError
+________________ test_the_windows_and_the_reserve_are_settings _________________
+>           assert get(h, "1").json()["pull_request"]["stale"] is False
+E           KeyError: 'stale'
+api/tests/test_finding_host_budget.py:482: KeyError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+api/tests/api_fakes.py:31
+=========================== short test summary info ============================
+FAILED api/tests/test_finding_host_budget.py::test_the_seam_records_the_budget_the_host_last_reported
+FAILED api/tests/test_finding_host_budget.py::test_a_refusal_with_remaining_zero_is_a_rate_limit_error[403]
+FAILED api/tests/test_finding_host_budget.py::test_a_refusal_with_remaining_zero_is_a_rate_limit_error[429]
+FAILED api/tests/test_finding_host_budget.py::test_a_write_refused_for_budget_is_the_same_kind
+FAILED api/tests/test_finding_host_budget.py::test_a_precheck_dispatch_refused_for_budget_is_a_503_naming_the_reset
+FAILED api/tests/test_finding_host_budget.py::test_opening_a_pull_request_refused_for_budget_is_a_503
+FAILED api/tests/test_finding_host_budget.py::test_withdrawing_refused_for_budget_is_a_503
+FAILED api/tests/test_finding_host_budget.py::test_the_by_id_read_serves_its_cached_block_as_stale_with_read_at
+FAILED api/tests/test_finding_host_budget.py::test_any_host_failure_marks_the_cached_block_stale
+FAILED api/tests/test_finding_host_budget.py::test_a_first_read_with_the_budget_spent_is_a_null_block_with_retry_after
+FAILED api/tests/test_finding_host_budget.py::test_a_closed_record_block_says_when_it_was_read
+FAILED api/tests/test_finding_host_budget.py::test_the_listing_costs_one_host_call_for_the_whole_queue
+FAILED api/tests/test_finding_host_budget.py::test_a_record_the_listing_lacks_is_read_once_and_closed
+FAILED api/tests/test_finding_host_budget.py::test_the_listing_is_served_stale_when_the_budget_is_spent
+FAILED api/tests/test_finding_host_budget.py::test_reads_do_not_spend_the_host_at_or_below_the_reserve
+FAILED api/tests/test_finding_host_budget.py::test_health_reports_the_budget_and_goes_red_while_it_is_spent
+FAILED api/tests/test_finding_host_budget.py::test_the_windows_and_the_reserve_are_settings
+17 failed, 2 passed, 2 warnings in 1.30s
+
+== F07-T47 host budget: GREEN run of the new tests after the fix — 2026-10-01T04:43:01Z
+$ uv run --frozen pytest api/tests/test_finding_host_budget.py -q -p no:cacheprovider
+...................                                                      [100%]
+api/tests/api_fakes.py:31
+19 passed, 2 warnings in 1.00s
+
+== F07-T47 host budget: the whole api suite after the fix (ten older tests restated to the rules they pinned, none deleted); make lint and mypy api both clean — 2026-10-01T04:43:10Z
+$ uv run --frozen pytest api/tests -q -p no:cacheprovider
+........................................................................ [  6%]
+........................................................................ [ 13%]
+........................................................................ [ 20%]
+........................................................................ [ 27%]
+........................................................................ [ 33%]
+........................................................................ [ 40%]
+........................................................................ [ 47%]
+........................................................................ [ 54%]
+........................................................................ [ 61%]
+........................................................................ [ 67%]
+........................................................................ [ 74%]
+........................................................................ [ 81%]
+........................................................................ [ 88%]
+........................................................................ [ 95%]
+.....................................................                    [100%]
+api/tests/api_fakes.py:31
+1061 passed, 2 warnings in 51.97s
+

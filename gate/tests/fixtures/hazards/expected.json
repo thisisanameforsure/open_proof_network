@@ -1,7 +1,11 @@
 {
+  "AutoImplicit": {
+    "decl": "OpnHazard.auto_implicit",
+    "finding": {"checker": "auto-implicit", "location": "n"}
+  },
   "DivZero": {
     "decl": "OpnHazard.div_zero",
-    "finding": {"checker": "div-zero", "location": "a / b"}
+    "finding": {"checker": "div-zero", "location": "a % b"}
   },
   "IntTrunc": {
     "decl": "OpnHazard.int_trunc",
@@ -10,6 +14,10 @@
   "JunkValue": {
     "decl": "OpnHazard.junk_value",
     "finding": {"checker": "junk-value", "location": "l.head!"}
+  },
+  "NatDiv": {
+    "decl": "OpnHazard.nat_div",
+    "finding": {"checker": "nat-div", "location": "n / 2"}
   },
   "NatSub": {
     "decl": "OpnHazard.nat_sub",

@@ -1152,3 +1152,35 @@ The law of the project:
   is read by no code and D-25 forbids ranking; a direction mechanism is a D-25 amendment and the owner's.
   Built from the findings, test first: F13-T24, F05-T16, F09-T14, F01-T6, F10-T15 and F06-T10 (precheck
   against a proposal whose gate is green, the owner's ruling on F08-Q23).
+- 2026-09-30 — A hold keyed on the host's flag froze the queue for six hours with nothing red. The
+  actor updated #306's branch, the push landed, and GitHub never synchronised the pull request: old
+  head, green checks on it, `mergeable: null`, and every run held on "the host is still computing"
+  for its whole cap while fourteen green pull requests waited (F07-T46). Two API attempts to update
+  the branch were refused on a head mismatch for *either* commit, so the host's record was
+  inconsistent with itself. The fact that tells "computing" from "stale" was one `git ls-remote`
+  away: the branch's tip. Key a hold on a fact the host cannot leave half-written, and when a hold
+  has no cap across runs, ask what evidence would end it — if nothing on the host can, it is a
+  freeze waiting for its case. Also: the red run first failed on a missing keyword, which is not
+  red; the seam went in at today's behaviour first, and the second red run failed on the hold.
+- 2026-10-01 — The 2026-09-29 run's report became nine fixes in one sitting on the owner's word
+  ("take a test driven development: get failing tests, then iterate until they are green"), three
+  worktree agents on the service, the gate's Lean and the circularity rule while the lead did the
+  ledger, the site, CI and the spec entries. Worth keeping. **A red test must fail on the defect**:
+  twice the first red was a missing name (`statement_tooling`, `steward_rule_enforced`); the seam
+  went in at today's behaviour and the second red was honest, and one "red" was a missing
+  `ssh-keygen` (install `openssh-client` before believing a fixture error). **A rule's direction is
+  a claim to check against its own gloss**: D-16 said "no easier than" of an implication that
+  proved "no harder than", and every provable hole met it; the owner's words, start at the premise
+  and end at it, were the test. **The agents' worktrees live under the checkout** (`.claude/
+  worktrees/`), so `ruff check .` and a stop hook both saw them: exclude them and ignore them.
+  **A sentence an agent needs is a product field, not a page**: the site's circular note existed
+  since T20 and no agent could see it; `context/v2` carries it, which the re-pin must seed. And
+  **the lean tier runs here** from the GitHub release zip linked into elan, so "docker tier not run"
+  is now the only line in a report that means CI must finish the evidence. **And a file the network
+  inlines has an import budget nobody wrote down**: `auto-implicit` imported `OpnGate.Frontend`, the
+  composer strips imports and walks only `OpnGate.Hazards*`, so the hosted hazards program failed to
+  elaborate for every checker and the lean tier was the first thing to say so, 52 minutes in. The
+  second elaboration became a seam on the `Statement` that both the binary and the composed program
+  fill; the fast-tier guard asserts the import set. When a module is inlined somewhere, its imports are
+  a contract, and a test that reads them is cheaper than the tier that finds the breach.
+

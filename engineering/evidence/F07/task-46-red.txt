@@ -1,0 +1,64 @@
+# F07-T46 red: the shipped actor (graph origin/main 524ae900, F07-T45) with the tip_of seam accepted and unread
+# graph branch f07-t46-hold-cap at ee8b6216; the tests read that branch first, then origin/main
+# 2026-09-30T10:22:23Z
+
+E         
+E         At index 0 diff: 306 != 307
+E         Use -v to get more diff
+
+gate/tests/test_finding_merge_actor_stale_head.py:106: AssertionError
+______________ test_a_branch_that_no_longer_exists_is_passed_over ______________
+
+pick = {'__name__': 'pick', '__builtins__': {'__name__': 'builtins', '__doc__': "Built-in functions, types, exceptions, and o...tests run this file as it stands (F07-T25).", 'json': <module 'json' from '/usr/lib/python3.13/json/__init__.py'>, ...}
+
+    def test_a_branch_that_no_longer_exists_is_passed_over(pick: dict[str, Any]) -> None:
+        pulls = [pull(306, "submit/a"), pull(307, "submit/b")]
+        got = decide(pick, pulls, conflicts={306: None}, tip_of=tips(pulls, submit_a=""))
+>       assert got == (307, sha(pulls[1]), "update"), got
+E       AssertionError: ('', '', 'hold')
+E       assert ('', '', 'hold') == (307, '000000...07', 'update')
+E         
+E         At index 0 diff: '' != 307
+E         Use -v to get more diff
+
+gate/tests/test_finding_merge_actor_stale_head.py:112: AssertionError
+----------------------------- Captured stdout call -----------------------------
+#306 is green; the host is still computing whether it conflicts: holding
+____________________ test_a_stale_append_never_ends_a_batch ____________________
+
+pick = {'__name__': 'pick', '__builtins__': {'__name__': 'builtins', '__doc__': "Built-in functions, types, exceptions, and o...tests run this file as it stands (F07-T25).", 'json': <module 'json' from '/usr/lib/python3.13/json/__init__.py'>, ...}
+
+    def test_a_stale_append_never_ends_a_batch(pick: dict[str, Any]) -> None:
+        """In a batch a stale append is passed over like a conflicting one, and the appends after it
+        still go (F07-T45)."""
+        pulls = [pull(1, "append/a"), pull(2, "append/b"), pull(3, "append/c")]
+        got = decide(pick, pulls, conflicts={2: None}, tip_of=tips(pulls, append_b=MOVED))
+>       assert got == ("1 3", f"{sha(pulls[0])} {sha(pulls[2])}", "merge-batch"), got
+E       AssertionError: ('1', '0000000000000000000000000000000000000001', 'merge-batch')
+E       assert ('1', '000000...'merge-batch') == ('1 3', '0000...'merge-batch')
+E         
+E         At index 0 diff: '1' != '1 3'
+E         Use -v to get more diff
+
+gate/tests/test_finding_merge_actor_stale_head.py:127: AssertionError
+----------------------------- Captured stdout call -----------------------------
+#2: the host is still computing whether it conflicts: the batch ends before it
+_____ test_the_workflow_reads_every_branch_tip_and_survives_a_missing_one ______
+
+doc = {'name': 'merge', True: {'workflow_run': {'workflows': ['gate'], 'types': ['completed']}, 'schedule': [{'cron': '*/15 ...*'}], 'workflow_dispatch': {}}, 'permissions': {}, 'concurrency': {'group': 'merge', 'cancel-in-progress': False}, ...}
+
+    def test_the_workflow_reads_every_branch_tip_and_survives_a_missing_one(doc: dict[Any, Any]) -> None:
+        (step,) = [s for s in doc["jobs"]["merge"]["steps"] if s.get("id") == "pick"]
+        script = str(step["run"])
+>       assert "git/ref/heads/" in script, "the tip of a branch is read from the host's refs"
+E       AssertionError: the tip of a branch is read from the host's refs
+E       assert 'git/ref/heads/' in 'set -euo pipefail\ncat > pick.py <<\'PY\'\n"""Pick at most one pull request and say what to do with it. Pure function...er).split())\n    print(f"merge actor: {action or \'nothing to do\'} {named}")\n    sys.exit(0)\nPY\npython3 pick.py\n'
+
+gate/tests/test_finding_merge_actor_stale_head.py:141: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_the_morning_of_306_moves_past_the_stale_head
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_stale_head_is_passed_over_even_when_the_host_calls_it_clean
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_branch_that_no_longer_exists_is_passed_over
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_stale_append_never_ends_a_batch
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_the_workflow_reads_every_branch_tip_and_survives_a_missing_one
+5 failed, 2 passed in 0.16s

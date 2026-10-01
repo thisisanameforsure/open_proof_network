@@ -139,7 +139,7 @@ def test_results_match_schemas(harness: Harness, tmp_path: Path) -> None:
             "attestation": {"id": job["id"]},
         },
         "submit_postmortem": {"node_id": NODE, "yaml": {}},
-        "submit_informal_annex": {"node_id": NODE, "text": "prose"},
+        "submit_informal_annex": {"node_id": NODE, "text": "prose", "licence": "CC-BY-4.0"},
         "submit_approach_record": {"target_id": TARGET, "record": {}},
         "file_defect_claim": {
             "stmt_ref": TUTORIAL_NODE,

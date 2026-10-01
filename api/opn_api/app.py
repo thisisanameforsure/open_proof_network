@@ -36,14 +36,14 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
-from opn_api import auth, config, ratelimit
+from opn_api import auth, config, hostbudget, ratelimit
 from opn_api import axle as axlemod
 from opn_api import clock as clockmod
 from opn_api import githost as githostmod
 from opn_api import store as storemod
 from opn_api.axle import Axle
 from opn_api.clock import Clock
-from opn_api.githost import GitHost, PullRequestState
+from opn_api.githost import GitHost, OpenPullRequest, PullRequestState, RateLimitError
 from opn_api.routes import ROUTES, RouteSpec
 from opn_api.store import Store
 
@@ -92,11 +92,23 @@ class CachedFile:
 @dataclass
 class CachedPull:
     """A pull request's live state read through the App (F07-T16), reused for
-    ``frontier_max_stale_s``; ``state`` is ``None`` when the host had no such pull request."""
+    ``pull_max_stale_s``; ``state`` is ``None`` when the host had no such pull request.
+    ``read_at`` is the wall-clock time of the read, which the served block carries (F07-T47)."""
 
     number: int
     state: PullRequestState | None = None
     fetched_at: float = 0.0
+    read_at: str | None = None
+
+
+@dataclass
+class CachedListing:
+    """The repository's open pull requests as the host last listed them (F07-T47), reused for
+    ``pull_listing_max_stale_s``: one call reconciles the whole queue."""
+
+    by_number: dict[int, OpenPullRequest]
+    fetched_at: float
+    read_at: str
 
 
 @dataclass
@@ -125,6 +137,10 @@ class Context:
     # request; ``pr_locks_guard`` makes the table itself safe to grow from several threads.
     pr_locks: dict[int, threading.RLock] = field(default_factory=dict)
     pr_locks_guard: threading.Lock = field(default_factory=threading.Lock)
+    # F07-T47: the open pull-request listing the snapshot reconciles against, refreshed by one
+    # thread at a time.
+    open_pulls: CachedListing | None = None
+    listing_lock: threading.Lock = field(default_factory=threading.Lock)
 
 
 Handler = Callable[[Context, Request], Awaitable[Response]]
@@ -154,11 +170,40 @@ def bind(ctx: Context, spec: RouteSpec) -> Callable[[Request], Awaitable[Respons
     return endpoint
 
 
+def host_budget_refusal(ctx: Context, exc: RateLimitError) -> ApiError:
+    """F07-T47: the host refused for budget, so the route that needed it to act answers
+    ``503 host-budget-exhausted`` with ``Retry-After`` at the reset — never a 502 quoting the
+    host's text with no time to come back."""
+    now = ctx.clock.now().timestamp()
+    return ApiError(
+        503,
+        "host-budget-exhausted",
+        hostbudget.refusal_message(exc.budget, now),
+        headers={"Retry-After": str(hostbudget.retry_after_s(exc.budget, now))},
+    )
+
+
 async def health(ctx: Context, request: Request) -> Response:
-    """R13: 200 with the store kind, or 503 naming every missing table or parameter."""
+    """R13: 200 with the store kind, or 503 naming every missing table or parameter. F07-T47:
+    the App's host budget as last seen (``null`` until an API answer has been read), and
+    ``ok: false`` with 503 and ``Retry-After`` while it is known spent, so a service that can
+    open nothing reads as down."""
     if ctx.missing:
         return JSONResponse({"ok": False, "missing": list(ctx.missing)}, 503)
-    return JSONResponse({"ok": True, "store": ctx.settings.store})
+    budget = ctx.githost.budget()
+    now = ctx.clock.now().timestamp()
+    body: dict[str, Any] = {
+        "ok": True,
+        "store": ctx.settings.store,
+        "host_budget": hostbudget.describe(budget),
+    }
+    if budget is not None and hostbudget.exhausted(budget, now):
+        return JSONResponse(
+            {**body, "ok": False},
+            503,
+            headers={"Retry-After": str(hostbudget.retry_after_s(budget, now))},
+        )
+    return JSONResponse(body)
 
 
 class AccessLog:

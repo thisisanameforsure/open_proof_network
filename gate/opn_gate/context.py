@@ -14,6 +14,7 @@ derives the identical document for a graph that has none committed yet (F10-Q7).
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -21,13 +22,19 @@ from typing import Any, Protocol
 
 import yaml
 
-from opn_gate import demarcate, layout, schemas
+from opn_gate import demarcate, layout, paths, schemas
 from opn_gate import graph as graphmod
 from opn_gate import records as recordsmod
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.graph import GraphError
 
-SCHEMA = "context/v1"
+log = logging.getLogger(__name__)
+
+#: The version the bundle is written at. F08-T22 (D-12 v3.23): ``context/v2`` adds
+#: ``circular_below``; v1 is unchanged (D-34) and a graph rendered before the re-pin still
+#: carries it, which is why a reader accepts every version in ``ACCEPTED``.
+SCHEMA = "context/v2"
+ACCEPTED: tuple[str, ...] = ("context/v1", "context/v2")
 FILE = layout.CONTEXT_FILE
 CLAIMS_FILE = "claims.json"
 CLAIMS_SCHEMA = "claims/v1"
@@ -84,6 +91,9 @@ class NodeState:
     #: F08-T10: the node's deps as ``graph.json`` publishes them — read through any revision
     #: (D-8 v3.18). ``None`` when the states did not come from a graph document that has them.
     deps: tuple[str, ...] | None = None
+    #: F08-T22: the node's origin as ``graph.json`` publishes it, which is how a dep is known to
+    #: be one of its parent's holes (``graph.is_hole_of``) for ``circular_below``.
+    origin: str | None = None
 
 
 def graph_states(doc: Mapping[str, Any]) -> dict[str, NodeState]:
@@ -95,6 +105,7 @@ def graph_states(doc: Mapping[str, Any]) -> dict[str, NodeState]:
             proof_commit=_optional(n.get("proof_commit")),
             trust_base=_optional(n.get("trust_base")),
             deps=(tuple(str(d) for d in n["deps"]) if isinstance(n.get("deps"), list) else None),
+            origin=_optional(n.get("origin")),
         )
         for n in doc.get("nodes", [])
         if isinstance(n, dict)
@@ -341,6 +352,109 @@ def _explainer_present(reader: Reader, node_dir: str) -> bool:
     return any(n.endswith(PROSE_SUFFIX) for n in reader.listdir(f"{node_dir}/explainer"))
 
 
+def _circular_below(
+    reader: Reader, target_id: str, node_id: str, states: Mapping[str, NodeState]
+) -> list[dict[str, str]]:
+    """F08-T22 (D-12 v3.23): the merged circularity claims that circle back to this node — each
+    hole beneath it shown to imply this statement, with the claim that shows it — so an agent
+    reading the bundle sees which routes were tried and made no progress.
+
+    The gate's own ``graph.circular_marks`` over what ``graph.json`` already says (deps, origins,
+    statuses) and the claim files under the nodes it marks ``circular``, each claim's ancestor
+    read through its revision chain by ``graph.follow_revisions``: the same claims the site's
+    ancestor note lists (F08-T20), by the same rule, so the two cannot disagree. Only a node
+    ``graph.json`` marks circular can carry a claim that speaks (a claim speaks while its hole is
+    open, which is what the mark says), so a host reader lists ``defects/`` under those nodes
+    alone and never the whole target. Nothing is read from a toolchain, so the service derives
+    the same bytes over the host (F10-Q7).
+    """
+    statuses = {n: s.status for n, s in states.items()}
+    deps = {n: tuple(s.deps or ()) for n, s in states.items()}
+    holes = {
+        n: tuple(d for d in ds if d in states and graphmod.is_hole_of(n, d, states[d].origin or ""))
+        for n, ds in deps.items()
+    }
+    claims: dict[str, list[tuple[str, str]]] = {}
+    for hole, state in states.items():
+        if state.cause != graphmod.CAUSE_CIRCULAR:
+            continue
+        found = _circular_claims(reader, target_id, hole)
+        if found:
+            claims[hole] = [(ref, _current_id(reader, target_id, states, a)) for ref, a in found]
+    _on_path, below = graphmod.circular_marks(holes, deps, claims, statuses)
+    return [
+        {"node_id": named.partition("/")[0], "claim": f"{node_path(target_id, named)}"}
+        for named in below.get(node_id, ())
+    ]
+
+
+def _circular_claims(reader: Reader, target_id: str, hole: str) -> list[tuple[str, str]]:
+    """``records.circular_claims`` through a reader: every valid ``circular-decomposition`` claim
+    under the node, oldest first, as ``(defects/<file>, ancestor as named)``; a file that does
+    not read as one is logged and passed over, as the products pass it over (2026-09-17)."""
+    directory = f"{node_path(target_id, hole)}/{recordsmod.DEFECTS_DIR}"
+    accepted = paths.SCHEMAS_FOR_ROLE["defect-claim"]
+    found: list[tuple[str, str]] = []
+    for name in sorted(reader.listdir(directory)):
+        if not name.endswith(YAML_SUFFIXES):
+            continue
+        path = f"{directory}/{name}"
+        raw = reader.read(path)
+        if raw is None:
+            continue
+        try:
+            doc = _yaml(raw, path, None)
+        except (schemas.SchemaError, ContextError) as exc:
+            log.warning("%s: a defect claim that does not read is passed over: %s", path, exc)
+            continue
+        if doc.get("class") != recordsmod.CIRCULAR_CLASS:
+            continue
+        schema_id = str(doc.get("schema"))
+        if schema_id not in accepted or schemas.violations(doc, schema_id):
+            log.warning("%s: a circularity claim that does not validate is passed over", path)
+            continue
+        found.append((f"{recordsmod.DEFECTS_DIR}/{name}", str(doc.get("ancestor") or "")))
+    return found
+
+
+def _current_id(
+    reader: Reader, target_id: str, states: Mapping[str, NodeState], node_id: str
+) -> str:
+    """``graph.current_id`` through a reader (F08-T10's chain, F08-T22): the node ``node_id`` has
+    become, following each ``superseded`` record's reference while the step is sound."""
+
+    def successor_of(current: str) -> str | None:
+        status_dir = f"{node_path(target_id, current)}/status"
+        docs = []
+        for name in sorted(reader.listdir(status_dir)):
+            if not name.endswith(YAML_SUFFIXES):
+                continue
+            path = f"{status_dir}/{name}"
+            docs.append((Path(path), _yaml(_must(reader, path), path, None)))
+        record = recordsmod.latest_status(docs, recordsmod.NODE_STATUS_SCHEMAS)
+        if record is None or record.status != "superseded":
+            return None
+        return str(record.doc.get("reference") or "") or None
+
+    def supersedes_of(current: str) -> str | None:
+        raw = reader.read(f"{node_path(target_id, current)}/META.yaml")
+        if raw is None:
+            return None
+        try:
+            meta = _yaml(raw, "META.yaml", None)
+        except (schemas.SchemaError, ContextError):
+            return None
+        named = meta.get("supersedes")
+        return str(named) if named else None
+
+    return graphmod.follow_revisions(
+        node_id,
+        successor_of=successor_of,
+        is_node=lambda n: n in states,
+        supersedes_of=supersedes_of,
+    )
+
+
 # --- the document --------------------------------------------------------------------------------
 
 
@@ -390,6 +504,7 @@ def build(
         "annexes": _annexes(reader, node_dir),
         "explainer_present": _explainer_present(reader, node_dir),
         "untrusted_note": demarcate.UNTRUSTED_NOTE,
+        "circular_below": _circular_below(reader, target_id, node_id, states),
     }
     fit(doc)
     return schemas.validate(doc, SCHEMA)

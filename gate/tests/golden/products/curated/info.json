@@ -1,5 +1,5 @@
 {
-  "protocol_version": "3.22",
+  "protocol_version": "3.23",
   "rate_limit_policy": null,
   "rendered_from": "5555555555555555555555555555555555555555",
   "schema": "info/v1",
@@ -24,7 +24,8 @@
       1
     ],
     "context": [
-      1
+      1,
+      2
     ],
     "defect-claim": [
       1,

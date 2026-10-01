@@ -102,9 +102,12 @@ def test_each_key_item_is_the_site_hover_card_for_that_word(docs: str) -> None:
     tag_item = r'<span class="term tag" tabindex="0">([a-z ]+)<span class="term-card"'
     words = re.findall(tag_item, problem_key)
     assert words == list(render.STATE_MAP_PROBLEM_KEYS)
-    assert set(words) == set(render.PROBLEM_STATUS_DEFS)
+    # F04-T27: the fixture's index carries no enforced steward rule, so the key says the rule
+    # as announced; the definitions are the renderer's for that switch, not the in-force constants
+    defs = render.wording(enforced=False)["status_defs"]
+    assert set(words) == set(defs) == set(render.PROBLEM_STATUS_DEFS)
     for word in words:
-        assert render.esc(render.PROBLEM_STATUS_DEFS[word]) in problem_key
+        assert render.esc(defs[word]) in problem_key
 
 
 def test_the_actions_table_names_every_mode_the_classifier_knows(docs: str) -> None:

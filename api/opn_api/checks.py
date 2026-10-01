@@ -42,7 +42,7 @@ from opn_api import auth, frontier, identity, pending, precheck, ratelimit
 from opn_api import clock as clockmod
 from opn_api.axle import AxleAnswer, AxleError
 from opn_api.store import CheckLog
-from opn_gate import hosted, layout, scaffold, schemas
+from opn_gate import hosted, layout, paths, scaffold, schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -410,10 +410,43 @@ def forwarded_text(content: str, defs: list[tuple[str, str]]) -> str:
 # --- the lint ------------------------------------------------------------------------------------
 
 
+#: F13-T25: the lint codes that name a refusal the gate makes of a proof — step 2's
+#: proof-is-statement rule (its imports, a helper declaration, the header, the signature, an
+#: empty body), step 5's axiom check (``sorry``, ``admit``, and the checker's own report of
+#: either) and a module the gate could not build — so a verify verdict is false with any of
+#: them, whatever the checker said. The other lints (a restated Context, a superseded node) say
+#: something true without the gate refusing on it.
+GATE_REFUSALS: frozenset[str] = frozenset(
+    {
+        "imports-differ",
+        "helper-declarations",
+        "header-diverges",
+        "signature-diverges",
+        "proof-empty",
+        "sorry-present",
+        "admit-present",
+        "sorry-reported",
+        "import-unknown-node",
+    }
+)
+#: ``admit`` as a token in code, the way ``layout.mentions_sorry`` reads ``sorry``: Lean's
+#: ``admit`` is the ``sorry`` tactic by another name (it elaborates to ``sorryAx``).
+ADMIT_TOKEN_RE = re.compile(r"(?<![\w'.!?])admit(?![\w'.!?])")
+#: Lean's warning on a declaration whose term rests on ``sorryAx`` — what ``admit``, ``sorry``
+#: and a search tactic that found nothing (``apply?`` admits the goal) leave behind.
+SORRY_REPORTED_RE = re.compile(r"declaration uses `?sorry`?")
+
+
 def lint(
-    content: str, statement: layout.Statement | None, node_id: str | None = None
+    content: str,
+    statement: layout.Statement | None,
+    node_id: str | None = None,
+    *,
+    unknown_nodes: Sequence[str] = (),
 ) -> list[dict[str, Any]]:
-    """R4: where the gate would refuse what the checker accepts. Warnings only."""
+    """R4: where the gate would refuse what the checker accepts. Findings; in verify mode the
+    ones in ``GATE_REFUSALS`` decide ``okay`` (F13-T25). ``unknown_nodes`` are the content's
+    node imports the graph cannot satisfy (``unknown_node_imports``)."""
     warnings: list[dict[str, Any]] = []
     if statement is not None:
         expected, got = layout.imports_of(statement.text), layout.imports_of(content)
@@ -449,6 +482,18 @@ def lint(
                     "declarations": extra,
                 }
             )
+        # F13-T25: the gate's own step-2 rule, not a re-reading of it: a header the checker
+        # would substitute away (set_option … in, an extra open) or a binder renamed in the
+        # signature both diverge from the statement and are refused as proof-not-statement.
+        divergence = proof_divergence(
+            paths.check_proof_is_statement(statement, content, node_id=node_id),
+            statement,
+            content,
+            named={w["code"] for w in warnings},
+            written=written,
+        )
+        if divergence is not None:
+            warnings.append(divergence)
     if layout.mentions_sorry(content):
         warnings.append(
             {
@@ -457,7 +502,119 @@ def lint(
                 "and a skeleton is submitted as a partial",
             }
         )
+    if ADMIT_TOKEN_RE.search(layout.strip_comments(content)):
+        warnings.append(
+            {
+                "code": "admit-present",
+                "message": "the text uses admit, which is sorry by another name (Lean elaborates "
+                "it to sorryAx); a proof with it fails the axiom step (D-4 step 5)",
+            }
+        )
+    if unknown_nodes:
+        warnings.append(
+            {
+                "code": "import-unknown-node",
+                "message": "the text imports a node the graph does not have; the checker "
+                "substitutes its own header and would not notice, and the gate cannot build "
+                "the module (F00's import rule: a node imports only its own Context)",
+                "modules": list(unknown_nodes),
+            }
+        )
     return warnings
+
+
+def proof_divergence(
+    diagnostic: Any,
+    statement: layout.Statement,
+    content: str,
+    *,
+    named: set[str],
+    written: str | None,
+) -> dict[str, Any] | None:
+    """The gate's ``proof-not-statement`` diagnostic as a lint finding (F13-T25): ``proof-empty``
+    as it is; a divergence inside the theorem's own signature as ``signature-diverges``; any
+    other as ``header-diverges`` — unless an earlier finding (``imports-differ``,
+    ``helper-declarations``) already names the very line, in which case nothing is repeated."""
+    if diagnostic is None:
+        return None
+    details = dict(diagnostic.details)
+    if diagnostic.code == "proof-empty":
+        return {"code": "proof-empty", "message": f"{diagnostic.message} (F00-R19)"}
+    line = int(details.get("line") or 0)
+    expected, got = str(details.get("expected") or ""), str(details.get("got") or "")
+    if "imports-differ" in named and (expected.startswith("import ") or got.startswith("import ")):
+        return None
+    got_decl = DECLARATION_RE.match(got)
+    if "helper-declarations" in named and got_decl and got_decl.group("name") != written:
+        return None
+    decl = _declaration_line(statement.prefix)
+    inside = decl is not None and line >= decl and _declaration_line(content) == decl
+    return {
+        "code": "signature-diverges" if inside and "got" in details else "header-diverges",
+        "message": f"{diagnostic.message}: the gate takes a proof as the statement with its "
+        "sorry replaced (F00-R19) and refuses this at step 2",
+        "line": line,
+        "expected": expected,
+        "got": got,
+    }
+
+
+def _declaration_line(text: str) -> int | None:
+    """The line the first top-level declaration starts on, comments blanked. Counted in the
+    blanked text: blanking shortens it, and its newlines are the source's (``strip_comments``)."""
+    stripped = layout.strip_comments(text)
+    m = DECLARATION_RE.search(stripped)
+    return stripped.count("\n", 0, m.start()) + 1 if m else None
+
+
+def unknown_node_imports(ctx: Context, content: str, node_id: str | None) -> list[str]:
+    """F13-T25: the content's ``import Nodes.…`` modules naming a node the graph does not have
+    (the node named itself excepted: it may be a green proposal, F06-T10). Read from the
+    products only when the content names another node at all."""
+    foreign: list[tuple[str, str]] = []
+    for module in layout.imports_of(content):
+        kind, imported = layout.module_origin(module)
+        if kind == "node" and imported is not None and imported != node_id:
+            foreign.append((module, imported))
+    if not foreign:
+        return []
+    known = {
+        str(node.get("node_id")) for nodes in precheck.graph_doc(ctx).values() for node in nodes
+    }
+    return [module for module, imported in foreign if imported not in known]
+
+
+def lean_warnings(body: dict[str, Any]) -> list[str]:
+    """Lean's warnings as the checker gave them (untrusted text, read for one pattern)."""
+    block = body.get("lean_messages")
+    found = block.get("warnings") if isinstance(block, dict) else None
+    return [str(w) for w in found] if isinstance(found, list) else []
+
+
+def sorry_reported(body: dict[str, Any]) -> dict[str, Any] | None:
+    """F13-T25: the checker's own word that the declaration rests on ``sorryAx`` — what text
+    cannot see of a search tactic that found nothing — as a finding, or ``None``."""
+    if not any(SORRY_REPORTED_RE.search(w) for w in lean_warnings(body)):
+        return None
+    return {
+        "code": "sorry-reported",
+        "message": "the checker reports that the declaration uses sorry (an admit, a sorry, or "
+        "a search tactic such as apply? that found nothing and admitted the goal); the gate's "
+        "axiom step refuses sorryAx (D-4 step 5)",
+    }
+
+
+def gate_verdict(mode: str, checker: bool | None, warnings: list[dict[str, Any]]) -> bool | None:
+    """F13-T25: ``okay`` as the caller reads it — would the gate accept this? In verify mode a
+    finding the gate refuses on makes it false whatever the checker said; an import of a node
+    the graph lacks makes it false in every mode, because the checker never saw the import. The
+    checker's own ``okay`` stays verbatim in ``result`` and in the call log."""
+    found = {str(w.get("code")) for w in warnings}
+    if "import-unknown-node" in found:
+        return False
+    if mode == "verify" and found & GATE_REFUSALS:
+        return False
+    return checker
 
 
 def _written_name(statement_text: str) -> str | None:
@@ -723,13 +880,36 @@ def hazard_sources() -> tuple[list[tuple[str, str]], str]:
     return ordered, registry.group("list")
 
 
-def hazards_program(decl_name: str, checkers: list[str]) -> str:
+def lean_string(text: str) -> str:
+    """``text`` as one Lean string literal."""
+    escaped = (
+        text.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\r", "\\r")
+        .replace("\n", "\\n")
+        .replace("\t", "\\t")
+    )
+    return f'"{escaped}"'
+
+
+#: The namespace the probe's copy of the statement is elaborated under, so nothing it declares
+#: collides with the declarations the file already elaborated (F02-T9).
+PROBE_NAMESPACE = "OpnAutoImplicitProbe"
+
+
+def hazards_program(decl_name: str, checkers: list[str], probe: str) -> str:
     """The gate's checkers and the few lines that ask them one question: the findings of exactly
     ``checkers``, in that order, over ``decl_name``'s type, printed as ``opn-hazards`` prints
     them. Each file sits in a ``section`` so its ``open`` lines end with it, and the question
     runs under the context ``opn-hazards`` gives it (no open namespaces, no options), because a
-    finding's location is pretty-printed and is what an acknowledgment must match (F02-Q4)."""
+    finding's location is pretty-printed and is what an acknowledgment must match (F02-Q4).
+
+    ``probe`` is the statement's own text without its header: the ``Statement`` the file-level
+    checkers read (F02-T9, ``auto-implicit``) re-elaborates it on the current environment, under
+    ``PROBE_NAMESPACE``, with whatever options the checker asks for, and reads the log — what
+    ``opn-hazards`` does with the file on the once-imported environment."""
     sources, registry = hazard_sources()
+    probe_text = f"namespace {PROBE_NAMESPACE}\n{probe.strip(chr(10))}\nend {PROBE_NAMESPACE}\n"
     block = "".join(
         f"\nsection\n-- inlined by the network from {module} (F13-T20)\n{src}\nend\n"
         for module, src in sources
@@ -741,16 +921,33 @@ def hazards_program(decl_name: str, checkers: list[str]) -> str:
         "namespace OpnGate.Hazards\n"
         "-- HazardsMain.lean's registry, inlined by the network\n"
         f"def networkRegistry : Array Checker :=\n  {registry}\n"
+        "-- the statement's own text, re-elaborated by the file-level checkers (F02-T9)\n"
+        f"def networkProbe : String := {lean_string(probe_text)}\n"
         "end OpnGate.Hazards\n\n"
         "run_meta do\n"
         f"  let s ← Lean.getConstInfo `{decl_name}\n"
         f"  let ids : List String := {ids}\n"
         "  let selected := ids.toArray.filterMap fun id =>\n"
         "    OpnGate.Hazards.networkRegistry.find? (·.id == id)\n"
+        "  let env ← Lean.getEnv\n"
+        "  let stmt : OpnGate.Hazards.Statement := {\n"
+        "    path := ⟨(← readThe Lean.Core.Context).fileName⟩, module := env.mainModule,\n"
+        f"    decl := `{decl_name}, env,\n"
+        "    reelaborate := fun opts => do\n"
+        "      let inputCtx := Lean.Parser.mkInputContext OpnGate.Hazards.networkProbe\n"
+        f'        "<{PROBE_NAMESPACE}>"\n'
+        "      let (_, pstate, msgs) ← Lean.Parser.parseHeader inputCtx\n"
+        "      let st ← Lean.Elab.IO.processCommands inputCtx pstate\n"
+        "        (Lean.Elab.Command.mkState env msgs opts)\n"
+        "      pure st.commandState.messages }\n"
+        "  let mut extra : Array OpnGate.Hazards.Finding := #[]\n"
+        "  for c in selected do\n"
+        "    if let some check := c.source then\n"
+        "      extra := extra ++ (← check stmt)\n"
         "  let (findings, capped) ← withTheReader Lean.Core.Context\n"
         "      (fun c => { c with openDecls := [], currNamespace := Lean.Name.anonymous,\n"
         "                         options := Lean.Options.empty })\n"
-        "      (OpnGate.Hazards.run selected s.type)\n"
+        "      (OpnGate.Hazards.run selected s.type extra)\n"
         "  let answer := Lean.Json.mkObj [\n"
         '    ("checkers", Lean.toJson (selected.map (·.id))),\n'
         '    ("findings", Lean.toJson findings), ("capped", Lean.Json.bool capped)]\n'
@@ -759,14 +956,23 @@ def hazards_program(decl_name: str, checkers: list[str]) -> str:
     )
 
 
-def hazards_text(formal: str, decl_name: str, checkers: list[str]) -> str:
+def hazards_text(
+    formal: str, decl_name: str, checkers: list[str], *, statement: str | None = None
+) -> str:
     """What the checker is sent in hazards mode: the statement under its own header (the
-    definitions already inlined), ``import Lean`` for the checkers, then the program."""
+    definitions already inlined), ``import Lean`` for the checkers, then the program.
+
+    ``statement`` is the statement's own text when ``formal`` has definitions inlined into it:
+    the file-level checkers re-elaborate that, never the definitions' copies, which the gate's
+    own second elaboration never sees either (they are imports there). Without it the probe is
+    ``formal`` less its header, right when nothing was inlined."""
     lines = formal.splitlines(keepends=True)
     imports = [i for i, line in enumerate(lines) if line.startswith("import ")]
     at = imports[-1] + 1 if imports else 0
     header = "" if "Lean" in layout.imports_of(formal) else "import Lean\n"
-    return "".join(lines[:at]) + header + "".join(lines[at:]) + hazards_program(decl_name, checkers)
+    probe = IMPORT_LINE_RE.sub("", formal if statement is None else statement)
+    program = hazards_program(decl_name, checkers, probe)
+    return "".join(lines[:at]) + header + "".join(lines[at:]) + program
 
 
 def hazards_verdict(body: dict[str, Any]) -> dict[str, Any] | None:
@@ -1282,7 +1488,7 @@ async def preflight_hazards(  # noqa: PLR0911 — one return per outcome word
         context = files.get(prefix + "Context.lean")
         defs = inline_defs(ctx, target_id, parsed, "", node_id, context=context)
         formal = forwarded_text(parsed.text, defs)
-        text = hazards_text(formal, parsed.decl_name, checkers)
+        text = hazards_text(formal, parsed.decl_name, checkers, statement=parsed.text)
         budget = min(PREFLIGHT_TIMEOUT_S, ctx.settings.check_timeout_s)
         answer = await asyncio.to_thread(
             call_checker, ctx, req, text, environment, None, timeout_s=budget
@@ -1813,7 +2019,12 @@ def statement_mode_text(
     """The text sent in a mode that reads the statement: the witness program (F13-T14) or the
     hazard checkers (F13-T20), after ``formal``, the statement with its definitions inlined."""
     if req.mode == "hazards":
-        return hazards_text(formal, statement.decl_name, target_checkers(ctx, req.target_id))
+        return hazards_text(
+            formal,
+            statement.decl_name,
+            target_checkers(ctx, req.target_id),
+            statement=statement.text,
+        )
     # The caller's own text, not the forwarded one: the definitions and the Context are already
     # in ``formal``, and inlined into an empty witness they read as one. A merged hole's record of
     # what its assembly proved narrows the question as it narrows step 7's (F07-T44); a statement
@@ -1872,7 +2083,12 @@ async def post_check(ctx: Context, request: Request) -> Response:
         text = forwarded_text(req.content, defs)
         # F13-T14: a witness is not a proof. It declares ``witness`` and its header is its own,
         # so the gate-gap lints (R4), which are about proofs, say nothing true of it.
-        warnings = [] if req.mode in STATEMENT_MODES else lint(req.content, statement, req.node_id)
+        unknown = unknown_node_imports(ctx, req.content, req.node_id)
+        warnings = (
+            []
+            if req.mode in STATEMENT_MODES
+            else lint(req.content, statement, req.node_id, unknown_nodes=unknown)
+        )
         warnings += superseded_warning(ctx, req.node_id)
         if req.mode == "verify" and req.node_id is not None:
             own = layout.node_module(req.node_id, "Context")
@@ -1921,6 +2137,10 @@ async def post_check(ctx: Context, request: Request) -> Response:
         )
         refusal.details = {**(refusal.details or {}), "log_id": log_id}
         raise
+    if req.mode == "verify":  # F13-T25: the checker's own word on sorryAx
+        reported = sorry_reported(answer.body)
+        if reported is not None:
+            warnings.append(reported)
     log_id = write_log(
         ctx,
         req,
@@ -1945,7 +2165,8 @@ async def post_check(ctx: Context, request: Request) -> Response:
             "inlined_defs": [module for module, _ in defs],
             # T10: the two facts a caller reads first, lifted beside the verbatim body, so a
             # body with no ``okay`` (a statement that does not compile) is still an answer.
-            "okay": verdict(answer.body),
+            # F13-T25: in verify mode, false too when the lint names a gate refusal.
+            "okay": gate_verdict(req.mode, verdict(answer.body), warnings),
             "user_error": user_error if isinstance(user_error, str) else None,
             "result": shown,
             # F13-T18: what was left out of ``result`` and why; the log keeps the checker's own.

@@ -2,16 +2,20 @@
 
 Found live 2026-09-24 on ``erdos-69``: the deepest hole ``erdos-69--h2-v2--h1-v2--h4`` was shown
 equivalent to the root, and the frontier went on offering the two holes between them — each one
-the root restated once its proved siblings are granted, since the root implies the deep hole, and
-the deep hole with the proved holes beside it implies each node back up the chain. Testers had to
-file a claim per node (three on the live record) to take the chain off, one pull request each.
+the root restated once its proved siblings are granted: with every sibling proved, each node up
+the chain implies its parent and so the root, exactly as the claimed hole does (F08-T21: a
+circularity claim's exhibit proves the hole implies the ancestor), so a proof of it would be a
+proof of the root and no progress is made by working from it. Testers had to file a claim per
+node (three on the live record) to take the chain off, one pull request each.
 
-The rule (decisions v3.22, D-12 "No cycles"): a merged ``circular-decomposition`` claim on a hole
-H with ancestor A takes off the frontier every open node strictly between A and H on a path of
-hole edges, provided every *other* entry of every node's ``deps`` on that path is proved. A node
-whose siblings are not all proved stays on until they are. A itself stays open and claimable, and
-its page names the claim. Derive, never rewrite: every consequence comes from the claim file and
-the proved holes, so reverting the claim restores every product byte for byte.
+The rule (decisions v3.22, D-12 "No cycles"; the justification restated by v3.23): a merged
+``circular-decomposition`` claim on a hole H with ancestor A takes off the frontier every open
+node strictly between A and H on a path of hole edges, provided every *other* entry of every
+node's ``deps`` on that path is proved — then each such node implies A through the proved
+siblings, as H does by the claim. A node whose siblings are not all proved stays on until they
+are. A itself stays open and claimable, and its page names the claim. Derive, never rewrite:
+every consequence comes from the claim file and the proved holes, so reverting the claim
+restores every product byte for byte.
 
 The fixture mirrors erdos-69's live shape: the root decomposed into two holes, the second
 decomposed again, and again, the circular claim sitting on the deepest hole and every sibling on

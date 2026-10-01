@@ -1,0 +1,43 @@
+F08-T21 — a circularity claim's exhibit proves the hole implies the ancestor (red runs, shipped gate)
+date: 2026-10-01   base: d153299 (worktree branch worktree-agent-a622cda711838581c)
+
+Finding (tester 69-C B3; bugs.md item 5; 2026-09-29): F08-T17 checked an exhibit of type
+ancestor -> hole, which says the hole is no *harder* than the ancestor. Any provable hole and any
+hole whose hypothesis contradicts the ancestor met it (two sorry-free probes passed /check, nothing
+filed). The rule (the owner, 2026-09-30): circular is literal — you start at the premise and end at
+it — so the exhibit proves hole -> ancestor: any proof of the hole is a proof of the ancestor.
+
+## red (fast tier, shipped gate): the fake relation program is asked with the ancestor as the variant
+$ uv run --frozen pytest gate/tests/test_finding_circular_decomposition.py gate/tests/test_finding_circular_path.py -q -p no:cacheprovider -rf
+E       AssertionError: assert 'relation_type:resolves:OpnProp.and_reassoc' in ['resolve:leanprover/lean4:v4.33.1:install=False', 'elaborate:Nodes.«and-reassoc».Context', 'elaborate:Nodes.«and-swap-reassoc».Context', 'elaborate:Nodes.«and-reassoc».Exhibit0', 'relation_type:resolves:OpnProp.and_swap_reassoc']
+E        +  where ['resolve:leanprover/lean4:v4.33.1:install=False', 'elaborate:Nodes.«and-reassoc».Context', 'elaborate:Nodes.«and-swap-reassoc».Context', 'elaborate:Nodes.«and-reassoc».Exhibit0', 'relation_type:resolves:OpnProp.and_swap_reassoc'] = FakeToolchain(resolved=ResolvedToolchain(name='leanprover/lean4:v4.33.1', version='4.33.1', githash='819816b2e0a3bf405...xt', 'elaborate:Nodes.«and-reassoc».Exhibit0', 'relation_type:resolves:OpnProp.and_swap_reassoc'], witness_requests=[]).calls
+FAILED gate/tests/test_finding_circular_decomposition.py::test_the_exhibit_is_checked_as_hole_implies_ancestor
+1 failed, 27 passed in 2.78s
+
+## red (lean tier, shipped gate, local Lean 4.33.1): the shipped gate accepts `ancestor -> hole`
+on a strictly weaker hole (`weak : S` under `strong : S ∧ T`, S and T opaque) and on a hole whose
+hypothesis contradicts the ancestor (`vacuous : ¬S → T`), and refuses `hole -> ancestor` on the
+fixture's live shape (the ancestor's Context restates the hole). The two guards pass both ways: a
+hole that is the ancestor restated, exhibit by `exact`; and `weak -> strong` with the ancestor's
+half left as `sorry`, refused `circular-sorry`.
+(A first run of the new file failed on the fixture itself — the hand-made nodes lacked the
+required attempts/, annex/ and explainer/ directories — which is not red; mended, then this run.)
+$ uv run --frozen pytest gate/tests/test_finding_circular_direction_lean.py gate/tests/test_finding_circular_decomposition_lean.py -m lean -q -p no:cacheprovider -rf
+E       AssertionError: []
+E       assert [] == ['circular-direction']
+E         
+E         Right contains one more item: 'circular-direction'
+E         Use -v to get more diff
+E       AssertionError: []
+E       assert [] == ['circular-direction']
+E         
+E         Right contains one more item: 'circular-direction'
+E         Use -v to get more diff
+E       AssertionError: assert ['circular-direction'] == []
+E         
+E         Left contains one more item: 'circular-direction'
+E         Use -v to get more diff
+FAILED gate/tests/test_finding_circular_direction_lean.py::test_an_exhibit_of_ancestor_implies_hole_is_refused[easier]
+FAILED gate/tests/test_finding_circular_direction_lean.py::test_an_exhibit_of_ancestor_implies_hole_is_refused[absurd]
+FAILED gate/tests/test_finding_circular_decomposition_lean.py::test_hole_implies_ancestor_passes_and_nothing_else_does
+3 failed, 2 passed in 12.22s

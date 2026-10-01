@@ -98,8 +98,11 @@ def test_the_nodes_with_their_context_inlined_agree(
             ",".join(checkers),
         )
         assert code == 0 and gate["ok"], (node_id, gate)
+        statement = (NODES / node_id / "Statement.lean").read_text("utf-8")
         service = through_the_service(
-            pinned, tmp_path, checks.hazards_text(node_text(node_id), decl, checkers)
+            pinned,
+            tmp_path,
+            checks.hazards_text(node_text(node_id), decl, checkers, statement=statement),
         )
         assert service["findings"] == gate["findings"], node_id
 

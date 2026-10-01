@@ -230,6 +230,14 @@ class Site:
     def nodes(self) -> list[NodeView]:
         return [n for t in self.targets.values() for n in t.nodes.values()]
 
+    @property
+    def steward_rule_enforced(self) -> bool:
+        """F15-R3, F04-T27: whether the graph's ``policy.json`` enforces the steward rule, as the
+        index publishes it; ``False`` when the index predates the policy block (not enforced)."""
+        policy = self.index.get("policy") or {}
+        rule = policy.get("steward_rule") or {} if isinstance(policy, dict) else {}
+        return bool(rule.get("enforced", False)) if isinstance(rule, dict) else False
+
 
 def _load_product(root: Path, rel: str, accepted: tuple[str, ...]) -> dict[str, Any]:
     """Load a product and validate it against the version it declares, if that is one we render."""

@@ -29,13 +29,16 @@
         },
         "context": {
           "type": "object",
-          "description": "nodes/<id>/CONTEXT.json, a context/v1 document (F10-R3)",
+          "description": "nodes/<id>/CONTEXT.json, a context/v2 document (F10-R3; F08-T22 added circular_below, the merged circularity claims that circle back to this node) — or the context/v1 document a graph rendered before that re-pin still carries",
           "required": [
             "schema"
           ],
           "properties": {
             "schema": {
-              "const": "context/v1"
+              "enum": [
+                "context/v1",
+                "context/v2"
+              ]
             }
           }
         },

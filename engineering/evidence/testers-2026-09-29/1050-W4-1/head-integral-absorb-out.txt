@@ -1,0 +1,9 @@
+counterexample n 7 d 5 Phi 31 {31: 1} needed False divides prod(3-8*2^k) False
+counterexample n 12 d 5 Phi 31 {31: 1} needed False divides prod(3-8*2^k) False
+counterexample n 17 d 5 Phi 31 {31: 1} needed False divides prod(3-8*2^k) False
+counterexample n 19 d 3 Phi 7 {7: 1} needed False divides prod(3-8*2^k) False
+counterexample n 20 d 3 Phi 7 {7: 1} needed False divides prod(3-8*2^k) False
+counterexample n 21 d 3 Phi 7 {7: 1} needed False divides prod(3-8*2^k) False
+counterexample n 22 d 5 Phi 31 {31: 1} needed False divides prod(3-8*2^k) False
+counterexample n 27 d 5 Phi 31 {31: 1} needed False divides prod(3-8*2^k) False
+hypothesis holds for n=2..30: False

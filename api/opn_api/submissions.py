@@ -27,8 +27,8 @@ from starlette.responses import JSONResponse, Response
 from opn_api import bundles, duplicates, pending, precheck
 from opn_api import clock as clockmod
 from opn_api import identity as identitymod
-from opn_api.app import ApiError
-from opn_api.githost import Author, GitHostError, PullRequest
+from opn_api.app import ApiError, host_budget_refusal
+from opn_api.githost import Author, GitHostError, PullRequest, RateLimitError
 from opn_gate import bounce, submission
 from opn_gate import paths as gate_paths
 from opn_gate.paths import ALTERNATE_SUFFIX, Claim
@@ -112,6 +112,8 @@ def open_pr(  # noqa: PLR0913 — every argument is part of the pull request bei
         )
     except GitHostError as exc:
         log.warning("%s could not be opened on %s: %s", branch, settings.graph_repo, exc)
+        if isinstance(exc, RateLimitError):  # F07-T47: come back at the reset, not a bare 502
+            raise host_budget_refusal(ctx, exc) from exc
         raise ApiError(
             502, "pull-request-failed", f"the pull request could not be opened: {exc}"
         ) from exc

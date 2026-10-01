@@ -77,9 +77,10 @@ def unionHeaderEnv (paths : Array System.FilePath) (moduleName : Name)
 With `base? = none` the file's own header is processed (imports resolved via `LEAN_PATH`).
 With `base? = some env` the file's commands are elaborated on top of `env` instead, and its
 header may import only modules `env` already imported — so two files can share one environment
-(the statement and its witness). -/
+(the statement and its witness). `opts` are the options the commands elaborate under; the
+default is Lean's (F02-T9's `auto-implicit` passes `autoImplicit := false`). -/
 def elabFile (path : System.FilePath) (moduleName : Name) (base? : Option Environment := none)
-    : IO (Environment × MessageLog) := do
+    (opts : Options := {}) : IO (Environment × MessageLog) := do
   let input ← IO.FS.readFile path
   let inputCtx := Parser.mkInputContext input path.toString
   let (stx, parserState, messages) ← Parser.parseHeader inputCtx
@@ -92,7 +93,7 @@ def elabFile (path : System.FilePath) (moduleName : Name) (base? : Option Enviro
         unless imported.contains imp.module do
           throw <| IO.userError s!"{path}: import {imp.module} is not among the statement's imports"
       pure (env.setMainModule moduleName, messages)
-  let s ← IO.processCommands inputCtx parserState (Command.mkState env messages {})
+  let s ← IO.processCommands inputCtx parserState (Command.mkState env messages opts)
   return (s.commandState.env, s.commandState.messages)
 
 def printJson (j : Json) : IO Unit := do
