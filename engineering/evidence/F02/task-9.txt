@@ -181,3 +181,11 @@ All checks passed! / 513 files already formatted
 
 $ uv run --frozen mypy gate
 Success: no issues found in 225 source files
+
+--- 2026-10-01 follow-up (CI run 36819512433, fast tier) ---
+api/tests/test_finding_hazards_preflight.py::test_the_deployed_package_carries_the_files_the_program_reads
+failed on cfaa6b2: the api-deploy package check names each hazard checker file by hand and the two
+new ones (NatDiv.lean, AutoImplicit.lean) were missing. Added to .github/workflows/api-deploy.yml;
+the file list and the copy step (cp -R gate/lean/OpnGate/Hazards) already covered them.
+Local: the 16 tests of that file pass; make verify 3130 passed, 1 failed (test_graph_copy_is_identical,
+the graph AGENTS.md copy lags until the re-pin; CI skips it).

@@ -111,6 +111,8 @@ jobs:
                         "lean/OpnGate/Hazards/JunkValue.lean", "lean/OpnGate/Hazards/NatSub.lean",
                         "lean/OpnGate/Hazards/OffByOneRange.lean",
                         "lean/OpnGate/Hazards/UnusedBinder.lean",
+                        # F02-T9: the nat-div and auto-implicit checkers
+                        "lean/OpnGate/Hazards/NatDiv.lean", "lean/OpnGate/Hazards/AutoImplicit.lean",
                         "opn_gate/schemas.py", "mangum/__init__.py", "starlette/applications.py",
                         "opn_api/mcp/server.py", "mcp/server/lowlevel/server.py"):
               assert (pkg / entry).is_file(), f"missing from the package: {entry}"
