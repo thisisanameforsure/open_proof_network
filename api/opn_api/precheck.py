@@ -31,8 +31,8 @@ from starlette.responses import JSONResponse, Response
 from opn_api import auth, bundles, frontier, pending, ratelimit, sshsig
 from opn_api import clock as clockmod
 from opn_api import identity as identitymod
-from opn_api.app import ApiError
-from opn_api.githost import GitHostError, WorkflowRun
+from opn_api.app import ApiError, host_budget_refusal
+from opn_api.githost import GitHostError, RateLimitError, WorkflowRun
 from opn_gate import attestation, layout, postmerge, schemas, signer
 from opn_gate import graph as graphmod
 from opn_gate.paths import Claim
@@ -607,6 +607,8 @@ def dispatch(ctx: Context, job: Job, bundle: Bundle) -> None:
         # more call that could itself fail is a worse answer than the retention rule (C7).
         log.warning("precheck %s could not be dispatched: %s", job.id, exc)
         save(ctx, replace(job, state="error", error=f"dispatch failed: {exc}"))
+        if isinstance(exc, RateLimitError):  # F07-T47: come back at the reset, not a bare 502
+            raise host_budget_refusal(ctx, exc) from exc
         raise ApiError(
             502, "dispatch-failed", f"the precheck job could not be started: {exc}"
         ) from exc

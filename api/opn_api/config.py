@@ -64,6 +64,18 @@ Variables (prefix ``OPN_API_``):
 ``OPN_API_CHECK_CONCURRENCY``
     Checks in flight to the hosted service per process (F13-R8, Q8). Default ``8``, under
     AXLE's ten concurrent keyless requests.
+``OPN_API_PULL_MAX_STALE_S``
+    How long a pull request's live state (``GET /submissions/<id>``) is reused before the host
+    is asked again (F07-T47). Default ``180``: a read is three or four API calls, the queue moves
+    at about three minutes a merge, and at 60 s twenty open pull requests polled by a few agents
+    spent the App's whole hourly budget.
+``OPN_API_PULL_LISTING_MAX_STALE_S``
+    How long the open pull-request listing ``GET /submissions.json`` reconciles the queue against
+    is reused (F07-T47). Default ``60``: it is one call for the whole queue.
+``OPN_API_HOST_BUDGET_RESERVE``
+    The App's remaining hourly calls at or below which the service stops spending the host on
+    unauthenticated reads and serves their cached state as stale (F07-T47), so pollers cannot
+    starve the writes that open and close pull requests. Default ``200``; ``0`` keeps no reserve.
 ``OPN_API_RECONCILE_CONCURRENCY``
     Pull-request lookups ``GET /submissions.json`` makes at once while it reconciles the open
     records against the host (F07-T39, Q47). Default ``8``; each lookup is three or four GitHub API
@@ -117,6 +129,9 @@ DEFAULT_ANONYMOUS_CHECKS_PER_DAY = 200  # F13-R8
 DEFAULT_CHECK_MAX_BYTES = 200_000  # F13-R7
 DEFAULT_CHECK_CONCURRENCY = 8  # F13-R8, Q8
 DEFAULT_RECONCILE_CONCURRENCY = 8  # F07-T39, Q47
+DEFAULT_PULL_MAX_STALE_S = 180  # F07-T47
+DEFAULT_PULL_LISTING_MAX_STALE_S = 60  # F07-T47
+DEFAULT_HOST_BUDGET_RESERVE = 200  # F07-T47
 
 # Parameter Store name (under the prefix) -> the variable it populates (C8 item 3).
 PARAMETERS: dict[str, str] = {
@@ -172,6 +187,9 @@ class Settings:
     check_max_bytes: int = DEFAULT_CHECK_MAX_BYTES
     check_concurrency: int = DEFAULT_CHECK_CONCURRENCY
     reconcile_concurrency: int = DEFAULT_RECONCILE_CONCURRENCY
+    pull_max_stale_s: int = DEFAULT_PULL_MAX_STALE_S
+    pull_listing_max_stale_s: int = DEFAULT_PULL_LISTING_MAX_STALE_S
+    host_budget_reserve: int = DEFAULT_HOST_BUDGET_RESERVE
     github_app_id: str | None = None
     github_client_id: str | None = None
     github_client_secret: str | None = field(default=None, repr=False)
@@ -225,6 +243,20 @@ def _int(env: Mapping[str, str], name: str, default: int) -> int:
         raise ConfigError(msg) from exc
     if value <= 0:
         msg = f"{name} must be positive, got {value}"
+        raise ConfigError(msg)
+    return value
+
+
+def _count(env: Mapping[str, str], name: str, default: int) -> int:
+    """``_int`` for a value that may be zero (a reserve of none)."""
+    raw = env.get(name, str(default))
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        msg = f"{name} must be an integer, got {raw!r}"
+        raise ConfigError(msg) from exc
+    if value < 0:
+        msg = f"{name} must not be negative, got {value}"
         raise ConfigError(msg)
     return value
 
@@ -296,6 +328,11 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
         reconcile_concurrency=_int(
             env, "OPN_API_RECONCILE_CONCURRENCY", DEFAULT_RECONCILE_CONCURRENCY
         ),
+        pull_max_stale_s=_int(env, "OPN_API_PULL_MAX_STALE_S", DEFAULT_PULL_MAX_STALE_S),
+        pull_listing_max_stale_s=_int(
+            env, "OPN_API_PULL_LISTING_MAX_STALE_S", DEFAULT_PULL_LISTING_MAX_STALE_S
+        ),
+        host_budget_reserve=_count(env, "OPN_API_HOST_BUDGET_RESERVE", DEFAULT_HOST_BUDGET_RESERVE),
         github_app_id=env.get("OPN_API_GITHUB_APP_ID") or None,
         github_client_id=env.get("OPN_API_GITHUB_CLIENT_ID") or None,
         github_client_secret=env.get("OPN_API_GITHUB_CLIENT_SECRET") or None,

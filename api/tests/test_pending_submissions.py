@@ -52,11 +52,15 @@ def get(h: Harness, submission_id: str) -> dict[str, Any]:
 
 
 def age(h: Harness) -> None:
-    """Every cached pull request fetched a window and a second ago, relative to now (the
-    monotonic clock counts from boot, so an epoch of 0.0 can still be fresh)."""
-    window = h.settings.frontier_max_stale_s
-    for entry in h.context.pulls.values():
+    """Every cached pull request, and the open listing (F07-T47), fetched a window and a second
+    ago, relative to now (the monotonic clock counts from boot, so an epoch of 0.0 can still be
+    fresh)."""
+    window = h.settings.pull_max_stale_s
+    for entry in getattr(h.context, "pulls", {}).values():
         entry.fetched_at = time.monotonic() - (window + 1)
+    listing = getattr(h.context, "open_pulls", None)  # F07-T47: the queue's listing, too
+    if listing is not None:
+        listing.fetched_at = time.monotonic() - (h.settings.pull_listing_max_stale_s + 1)
 
 
 def proof_record(h: Harness, number: int = 7) -> Submission:
@@ -307,7 +311,7 @@ def test_a_merged_annex_leaves_the_snapshot(harness: Harness) -> None:
     harness.clock.advance(seconds=1)
     annex(harness, token)
     first = harness.client.get("/submissions.json").json()
-    assert set(first) == {"snapshot_at", "open"}
+    assert set(first) == {"snapshot_at", "open", "host"}  # host: F07-T47
     assert first["snapshot_at"] == clockmod.render(harness.clock.now())
     assert [e["pr_number"] for e in first["open"]] == [1, 2]
 
