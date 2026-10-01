@@ -265,7 +265,10 @@ TOOLS: tuple[Tool, ...] = (
         "takes. Every other node needs a token. A node that exists only in an open proposal can "
         "be prechecked once that proposal's gate is green (waiting_on merge or branch-update): "
         "the job runs at the proposal's head commit and names it in `proposal`; submit with it "
-        "after the proposal merges.",
+        "after the proposal merges. A partial's bundle may carry the witness of any of its "
+        "holes as attempts/<assembly name without .lean>.<n>.witness, the text of that hole's "
+        "Witness.lean with a line `-- hole: <name>` naming the hole; each is checked as step 7 "
+        "checks a node's witness, and the result names it on its hole (`holes[].witness`).",
         params(
             {
                 "node_id": ID_PARAM,
@@ -369,7 +372,11 @@ TOOLS: tuple[Tool, ...] = (
         "sign-off, the service as committer. Name the passing precheck of this bundle with "
         "exactly one of `attestation` (the get_precheck result) or `precheck_job_id` (its id). "
         "On a node whose Proof.lean has already merged, a later proof is an alternate: put it "
-        "at attempts/<timestamp>-<pseudonym>-alternate.lean with artifact_type proof (D-25).",
+        "at attempts/<timestamp>-<pseudonym>-alternate.lean with artifact_type proof (D-25). "
+        "A partial's bundle may carry its holes' witnesses, each as attempts/<assembly name "
+        "without .lean>.<n>.witness with a line `-- hole: <name>`: a hole whose witness the "
+        "precheck checked is created with it and needs no propose_witness; one the precheck "
+        "did not check is refused 400 hole-witness-unchecked and nothing opens.",
         params(
             {
                 "node_id": ID_PARAM,

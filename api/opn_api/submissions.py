@@ -29,7 +29,7 @@ from opn_api import clock as clockmod
 from opn_api import identity as identitymod
 from opn_api.app import ApiError, host_budget_refusal
 from opn_api.githost import Author, GitHostError, PullRequest, RateLimitError
-from opn_gate import bounce, submission
+from opn_gate import bounce, carried, submission
 from opn_gate import paths as gate_paths
 from opn_gate.paths import ALTERNATE_SUFFIX, Claim
 from opn_gate.postmerge import PARTIAL_SUFFIX
@@ -292,6 +292,66 @@ def check_placement(
         )
 
 
+def check_carried(claim: Claim, files: Mapping[str, str]) -> list[carried.Carried]:
+    """F07-R23 (D-29 v3.24): the witnesses a partial's bundle carries for its holes, as the
+    gate's own grammar reads them (``opn_gate.carried``, which step 2 applies): refused here
+    with the gate's code — a file that names no hole, a hole named twice, a ``sorry``, a name
+    not attached to the assembly, a witness with no partial beside it — before a precheck job
+    is spent or anything is pushed. A bundle with several assemblies is left to the gate, which
+    refuses it by its own name (``partial-multiple``)."""
+    roles = roles_of(files)
+    found = roles.get("hole-witness") or []
+    if not found:
+        return []
+    assemblies = roles.get("partial") or []
+    prefix = claim.node_prefix
+    if not assemblies:
+        problem = carried.without_partial([p[len(prefix) :] for p in found])
+        raise ApiError(400, problem.code, problem.message, details=dict(problem.details))
+    if len(assemblies) > 1:
+        return []
+    witnesses, refusal = carried.read(
+        assemblies[0][len(prefix) :], {p[len(prefix) :]: files[p] for p in found}
+    )
+    if refusal is not None:
+        raise ApiError(400, refusal.code, refusal.message, details=dict(refusal.details))
+    return witnesses
+
+
+def check_witnesses_checked(job: precheck.Job, witnesses: list[carried.Carried]) -> None:
+    """F07-R23: a bundle that carries witnesses binds only to a precheck that checked them.
+
+    The job ran the gate the target pins. One pinned before R23 ignores a ``.witness`` file at
+    step 2, so its precheck passes without looking at it, and its classifier then refuses the
+    pull request by path: the submission would open and go red. The result of a gate that does
+    check them names each on its hole (``holes[].witness``, path and hash); anything else is
+    refused here, by name, with the way that works on every pin."""
+    if not witnesses:
+        return
+    holes = (job.result or {}).get("holes")
+    checked = {
+        str(found.get("path")): str(found.get("sha256"))
+        for found in (
+            hole.get("witness")
+            for hole in (holes if isinstance(holes, list) else [])
+            if isinstance(hole, dict)
+        )
+        if isinstance(found, dict) and found.get("checked") is True
+    }
+    unchecked = [w.path for w in witnesses if checked.get(w.path) != w.sha256]
+    if unchecked:
+        raise ApiError(
+            400,
+            "hole-witness-unchecked",
+            f"precheck {job.id} did not check the carried witness "
+            + ", ".join(unchecked)
+            + ": the gate this target pins does not read a partial's carried witnesses yet "
+            "(F07-R23 reaches a target at its re-pin). Submit the partial without them and "
+            "send each hole's witness through POST /proposals/witness once the hole exists",
+            details={"unchecked": unchecked},
+        )
+
+
 #: F05-T8: the fields ``POST /submissions`` reads; any other top-level key is refused.
 SUBMISSION_FIELDS: tuple[str, ...] = (
     "node_id",
@@ -331,6 +391,7 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
         proved=proved,
         tutorial=bool(facts["tutorial"]),
     )
+    witnesses = check_carried(claim, bundle.files)  # F07-R23: step 2's refusals, first
 
     # F07-T35 (D-25 v3.21): a copy of a proof merged on the node or open for it is refused
     # before the precheck job is spent on it; a different proof races as before.
@@ -343,6 +404,7 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
     # `path-forbidden` above before its digest could match (F05-Q7).
     job = bound_job(ctx, identity, fields, bundle.digest)
     check_proposal_statement(job, facts)
+    check_witnesses_checked(job, witnesses)  # F07-R23: nothing opens the pinned gate did not check
     neighbours = on_the_node(
         ctx, node_id, artifact_type, proved=proved, tutorial=bool(facts["tutorial"])
     )

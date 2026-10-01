@@ -522,6 +522,8 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
     if artifact_type is not None:
         # A precheck that the submission would refuse by path is refused before it costs a job.
         submissions.check_artifact_path(claim, bundle.files, artifact_type)
+    # F07-R23: and so is a carried witness step 2 would refuse, whatever type was declared.
+    submissions.check_carried(claim, bundle.files)
 
     if proposal is not None:
         # F06-T10: the proposal's branch lives on the graph, so the workflow checks out its head

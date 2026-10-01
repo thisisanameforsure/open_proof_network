@@ -20,6 +20,7 @@ on:
       - "gate/lean/OpnGate/HazardsMain.lean"  # F13-T20: its registry of checkers
       - "gate/opn_gate/steps/hazards.py"  # F13-T20: the matching of findings to acknowledgments
       - "gate/opn_gate/hosted.py"
+      - "gate/opn_gate/carried.py"  # F07-T51: the grammar of a partial's carried witnesses
       - "pyproject.toml"
       - "uv.lock"
       - ".github/workflows/api-deploy.yml"
@@ -113,6 +114,8 @@ jobs:
                         "lean/OpnGate/Hazards/UnusedBinder.lean",
                         # F02-T9: the nat-div and auto-implicit checkers
                         "lean/OpnGate/Hazards/NatDiv.lean", "lean/OpnGate/Hazards/AutoImplicit.lean",
+                        # F07-T51: the grammar the precheck and submission routes refuse by
+                        "opn_gate/carried.py",
                         "opn_gate/schemas.py", "mangum/__init__.py", "starlette/applications.py",
                         "opn_api/mcp/server.py", "mcp/server/lowlevel/server.py"):
               assert (pkg / entry).is_file(), f"missing from the package: {entry}"
