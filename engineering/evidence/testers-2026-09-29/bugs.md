@@ -109,6 +109,10 @@ the budget on. It is cheap per node today; it is the shape to watch.
     external Lean proof exists (plby/lean-proofs, no licence file). P→C (69-C B2, 69-D B10; not
     verifiable from this container, arXiv is blocked). erdos-1050's status record still says a
     proof waits for a reviewer (1050-E B11).
+    *2026-10-01: the correction is drafted as `erdos-69-record.patch` beside this file (applies to
+    the graph's main, validates as `target/v2`); a target record is path-forbidden to every
+    submission, so it is the owner's direct push, after checking the Tao–Teräväinen citation,
+    which no container here could read.*
 11. **The guide says the gate enforces the `-- annex:` citation on a skeleton; it does not.** C
     (1050-B B1, 69-C B10, 402-E B6, three prechecks and one merged skeleton #289 without one).
     Conversely a citation of an unmerged annex is `409 annex-pending`, so skeleton work waits on
