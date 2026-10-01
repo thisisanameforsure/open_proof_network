@@ -352,6 +352,107 @@ RELATION_ROLES: dict[str, str] = {
     "partial": "a partial route to the problem",
     "related": "a related variant",
 }
+#: F04-T27 (testers 2026-09-29, item 9): the pages said a problem without a steward "refuses
+#: work" while the index carried ``policy.steward_rule.enforced: false`` and every such problem
+#: was claimable. The sentences that state the rule are chosen by that switch: in force, or
+#: announced and not yet enforced. Each in-force sentence keeps its one home in the constants
+#: above; these are the announced forms, substituted by :func:`wording`.
+ANNOUNCED = "not yet enforced"
+STEWARD_ANNOUNCED = (
+    "The named mathematician who has committed to understand and write up whatever the "
+    "network produces on a problem. The rule that a problem without one would refuse work is "
+    f"announced and {ANNOUNCED}: such a problem still accepts work and says so."
+)
+NEEDS_STEWARD_ANNOUNCED = (
+    "Listed and reviewable, and no mathematician has committed to it yet. It still accepts "
+    f"work: the steward rule is announced and {ANNOUNCED}."
+)
+NEEDS_STEWARD_PROTO_ANNOUNCED = "no steward · still claimable"
+NEEDS_STEWARD_STATUS_ANNOUNCED = (
+    "Listed and reviewable, and nobody has committed to it yet; it still accepts work until the "
+    f"steward rule is enforced ({ANNOUNCED})."
+)
+RULE_STEWARD_ANNOUNCED = (
+    "A named mathematician commits to understand and write up whatever is produced. The rule "
+    f"that a problem without one would refuse work is announced and {ANNOUNCED}: today such a "
+    "problem is published, says it needs a steward, and still accepts work."
+)
+ABOUT_STEWARD_IN_FORCE = (
+    "It accepts work only while a named mathematician, its steward, has signed a commitment to "
+    "understand and write up whatever the network produces on it, and who may prove on it as "
+    "well."
+)
+ABOUT_STEWARD_ANNOUNCED = (
+    "It is to have a named mathematician, its steward, who signs a commitment to understand and "
+    "write up whatever the network produces on it, and who may prove on it as well; the rule "
+    f"that a problem without one would refuse work is announced and {ANNOUNCED}, so such a "
+    "problem "
+    "still accepts work and says so."
+)
+DOCS_STEWARD_IN_FORCE = (
+    "An open problem is claimable on this network only while it has a steward: a mathematician "
+    "who has committed, before anyone starts proving, to receive whatever comes of it (D-32 "
+    "v3.17)."
+)
+DOCS_STEWARD_ANNOUNCED = (
+    "An open problem is meant to have a steward: a mathematician who has committed, before "
+    "anyone starts proving, to receive whatever comes of it (D-32 v3.17). The rule that a "
+    f"problem is claimable only while it has one is announced and {ANNOUNCED}: until the "
+    "graph's policy.json enforces it, a problem without a steward still accepts work and its "
+    "page says so."
+)
+STATES_STEWARD_IN_FORCE = "an open problem accepts work only while it has a steward"
+STATES_STEWARD_ANNOUNCED = (
+    f"an open problem is to accept work only with a steward, a rule announced and {ANNOUNCED}"
+)
+DOCS_STEP_DOWN_IN_FORCE = (
+    "a problem left with no steward is published and reviewable but refuses claims until "
+    "someone else commits."
+)
+DOCS_STEP_DOWN_ANNOUNCED = (
+    "a problem left with no steward says so on its page, and will refuse claims until someone "
+    f"else commits once the rule is enforced ({ANNOUNCED} today)."
+)
+
+
+def wording(enforced: bool) -> dict[str, Any]:
+    """Every sentence that states the steward rule, in the form the switch calls for: the
+    glossary (by key and in order), the problem-status definitions, the About rules and the
+    template sentences (F04-T27)."""
+    glossary = list(GLOSSARY)
+    rules = list(ABOUT_RULES)
+    about, docs, step_down = ABOUT_STEWARD_IN_FORCE, DOCS_STEWARD_IN_FORCE, DOCS_STEP_DOWN_IN_FORCE
+    states = STATES_STEWARD_IN_FORCE
+    status = dict(PROBLEM_STATUS_DEFS)
+    if not enforced:
+        for i, (key, label, _meaning, proto) in enumerate(glossary):
+            if key == "steward":
+                glossary[i] = (key, label, STEWARD_ANNOUNCED, proto)
+            elif key == "needs-steward":
+                glossary[i] = (key, label, NEEDS_STEWARD_ANNOUNCED, NEEDS_STEWARD_PROTO_ANNOUNCED)
+        rules = [
+            (title, RULE_STEWARD_ANNOUNCED if title == "Worked on only with a steward" else words)
+            for title, words in rules
+        ]
+        status["needs a steward"] = NEEDS_STEWARD_STATUS_ANNOUNCED
+        about, docs, step_down = (
+            ABOUT_STEWARD_ANNOUNCED,
+            DOCS_STEWARD_ANNOUNCED,
+            DOCS_STEP_DOWN_ANNOUNCED,
+        )
+        states = STATES_STEWARD_ANNOUNCED
+    return {
+        "glossary": tuple(glossary),
+        "by_key": {key: (label, meaning, proto) for key, label, meaning, proto in glossary},
+        "status_defs": status,
+        "rules": tuple(rules),
+        "about_steward": about,
+        "docs_steward": docs,
+        "docs_step_down": step_down,
+        "states_steward": states,
+    }
+
+
 #: F15-R13 copy for the About page's four rules (the design file's ``steps3``).
 ABOUT_RULES: tuple[tuple[str, str], ...] = (
     (
@@ -366,8 +467,8 @@ ABOUT_RULES: tuple[tuple[str, str], ...] = (
     ),
     (
         "Statement checked by a non-author",
-        "Whether the Lean means what the conjecture means is signed by someone who did not "
-        "write it.",
+        "A statement is graded unsigned until someone who did not write the Lean signs that it "
+        "means what the conjecture means; the signatures are counted and named.",
     ),
     (
         "Proved, then explained",
@@ -578,6 +679,8 @@ class Renderer:
         self.base = _template("base.html")
         #: T19: the urls record prose may link, which are the ones the link checker admits.
         self.cited = cited_urls(site)
+        #: F04-T27: the steward rule's sentences, as the record enforces it or announces it.
+        self.words = wording(site.steward_rule_enforced)
 
     # -- links -------------------------------------------------------------------------------
 
@@ -686,7 +789,7 @@ class Renderer:
 
     def term(self, key: str, *, label: str | None = None, dot: bool = False) -> str:
         """A glossary word with its card; the legend's status chips carry a dot."""
-        word, meaning, proto = GLOSSARY_BY_KEY[key]
+        word, meaning, proto = self.words["by_key"][key]
         mark = self.dot(key) if dot else ""
         body = f'{esc(meaning)}<span class="proto">protocol: {esc(proto)}</span>'
         return self.hover(mark + esc(label or word), body)
@@ -749,7 +852,7 @@ class Renderer:
     def status_tag(self, tv: TargetView) -> str:
         """The status tag with its definition, and for a problem that refuses work, why."""
         status = self.problem_status(tv)
-        body = esc(PROBLEM_STATUS_DEFS.get(status, status))
+        body = esc(self.words["status_defs"].get(status, status))
         e = tv.index_entry
         if not e.get("claimable") and status != "proved":
             reasons = [esc(intake.explain(str(r))) for r in e.get("not_claimable") or []]
@@ -762,7 +865,7 @@ class Renderer:
         key = FIDELITY_KEYS.get(grade)
         if key is None:  # a grade this generator has no word for: shown as itself
             return f'<span class="tag tag-outline">{esc(grade)}</span>'
-        word, meaning, proto = GLOSSARY_BY_KEY[key]
+        word, meaning, proto = self.words["by_key"][key]
         body = f'{esc(meaning)}<span class="proto">protocol: {esc(proto)}</span>'
         return self.hover(esc(word), body, classes="tag tag-outline")
 
@@ -863,11 +966,11 @@ class Renderer:
         """The row's status dot with the state's definition, and a blocked node's cause."""
         state = self.node_state(nv)
         if state in ("proved", *WORKABLE_STATES) or state in LEGEND_EXTRA:
-            _word, meaning, proto = GLOSSARY_BY_KEY[state]
+            _word, meaning, proto = self.words["by_key"][state]
             body = f'{esc(meaning)}<span class="proto">protocol: {esc(proto)}</span>'
         else:
             words = status_words(nv.status, nv.cause)
-            meaning = GLOSSARY_BY_KEY["blocked"][1] if nv.status == "blocked" else ""
+            meaning = self.words["by_key"]["blocked"][1] if nv.status == "blocked" else ""
             body = f"{esc(words)}. {esc(meaning)}".strip()
         return self.hover(self.dot(self.dot_state(state)), body, classes="dot-term")
 
@@ -947,7 +1050,7 @@ class Renderer:
             cards = '<p class="cue">No problems are listed yet.</p>'
         legend = "".join(self.term(k, dot=k in DOTTED_KEYS) for k in LEGEND_KEYS)
         legend_list = "".join(
-            f"<dt>{esc(GLOSSARY_BY_KEY[k][0])}</dt><dd>{esc(GLOSSARY_BY_KEY[k][1])}</dd>"
+            f"<dt>{esc(self.words['by_key'][k][0])}</dt><dd>{esc(self.words['by_key'][k][1])}</dd>"
             for k in LEGEND_KEYS
         )
         open_statements = sum(self.open_count(tv) for tv in targets)
@@ -1015,10 +1118,11 @@ class Renderer:
         rules = "".join(
             f'<div class="rule-item"><span class="kicker">0{i}</span><h4>{esc(title)}</h4>'
             f"<p>{esc(words)}</p></div>"
-            for i, (title, words) in enumerate(ABOUT_RULES, start=1)
+            for i, (title, words) in enumerate(self.words["rules"], start=1)
         )
         body = _template("about.html").substitute(
             rules=rules,
+            steward_sentence=esc(self.words["about_steward"]),
             commitment=esc(steward.COMMITMENT),
             proposal_url=esc(self.proposal_url),
         )
@@ -2049,10 +2153,12 @@ class Renderer:
         )
         glossary_rows = "".join(
             f"<tr><td>{esc(label)}</td><td>{esc(meaning)}</td><td><code>{esc(proto)}</code></td></tr>"
-            for _key, label, meaning, proto in GLOSSARY
+            for _key, label, meaning, proto in self.words["glossary"]
         )
         body = _template("docs.html").substitute(
             decisions=decisions,
+            steward_lead=esc(self.words["docs_steward"]),
+            step_down_consequence=esc(self.words["docs_step_down"]),
             states=self.states(),
             agents=agents,
             funnel=funnel,
@@ -2072,11 +2178,13 @@ class Renderer:
         Problems page use, and a definition keeps its one home (Q14)."""
         statement_key = "".join(self.term(k, dot=True) for k in STATE_MAP_STATEMENT_KEYS)
         problem_key = "".join(
-            self.hover(esc(word), esc(PROBLEM_STATUS_DEFS[word]), classes="tag")
+            self.hover(esc(word), esc(self.words["status_defs"][word]), classes="tag")
             for word in STATE_MAP_PROBLEM_KEYS
         )
         return _template("states.html").substitute(
-            statement_key=statement_key, problem_key=problem_key
+            statement_key=statement_key,
+            problem_key=problem_key,
+            steward_consequence=esc(self.words["states_steward"]),
         )
 
     def alternates_block(self, nv: NodeView) -> str:

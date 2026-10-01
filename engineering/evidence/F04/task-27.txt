@@ -1,0 +1,12 @@
+# F04-T27 green: the steward rule's sentences follow policy.steward_rule.enforced
+# 2026-10-01T04:29:23Z
+## the new tests
+4 passed in 2.00s
+## the site suite (goldens regenerated with test_render.write_goldens; the diff is the wording alone)
+2 failed, 306 passed in 23.27s
+## goldens changed
+ site/tests/golden/about/index.html    | 11 +++++------
+ site/tests/golden/docs/index.html     | 12 +++++-------
+ site/tests/golden/index.html          |  2 +-
+ site/tests/golden/problems/index.html |  4 ++--
+ 4 files changed, 13 insertions(+), 16 deletions(-)

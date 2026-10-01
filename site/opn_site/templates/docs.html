@@ -3,16 +3,14 @@
 <h2>The protocol</h2>
 <p>$decisions</p>
 <h2 id="stewards">Stewards</h2>
-<p>An open problem is claimable on this network only while it has a steward: a mathematician
-who has committed, before anyone starts proving, to receive whatever comes of it (D-32 v3.17).
+<p>$steward_lead
 The commitment is one signed record, made with your own SSH key and merged by pull request, and
 it says this and nothing more:</p>
 <blockquote class="commitment"><p>$commitment</p></blockquote>
 <p><strong>What you commit to.</strong> Best efforts to understand and write up anything that
 closes on the problem, and a signature on the closing proof's explainer affirming that you can
 explain it without the tool that produced it. There is no deadline. You may step down at any time
-by a second signed record; a problem left with no steward is published and reviewable but refuses
-claims until someone else commits. You may prove on the problem, guide provers and earn proof
+by a second signed record; $step_down_consequence You may prove on the problem, guide provers and earn proof
 credit like anyone, and you may sign that its formal statement means what the conjecture means
 unless you wrote the Lean yourself (D-9, D-21 v3.17).</p>
 <p><strong>What you receive.</strong> Your name and a link on the problem's page from the day you
