@@ -38,17 +38,24 @@ unsafe def main (args : List String) : IO UInt32 := runMain do
   let (base, baseLog) ← unionHeaderEnv headerPaths variantMod.toName
   if let some code ← failIfErrors "imports" baseLog then return code
 
-  let (variantEnv, variantLog) ← elabFile variantPath variantMod.toName (some base)
-  if let some code ← failIfErrors "variant statement" variantLog then return code
-  let some variantInfo := variantEnv.find? variantDecl.toName
-    | fail s!"declaration {variantDecl} not found in {variantPath}"
-
   -- F08-T15: when the root is one of the variant's declared deps, the variant's own Context,
   -- which its statement imports, already restates the root's theorem, and elaborating the root's
   -- file on top of it is "already declared". The declaration in the imported environment is the
   -- one to relate to: admission's `context` check, which runs before this one, has verified that
   -- the Context carries each declared dep's signature (F01-R6). A probe that imports the thing
   -- it is compared against must not declare it again.
+  -- F08-T21: the same for the variant. A circularity claim's exhibit proves `hole → ancestor`,
+  -- so the hole is the variant and the ancestor the root, and the ancestor's Context — in the
+  -- union header through the root's file — restates the hole's theorem. Either file's
+  -- declaration may already be in the environment; whichever is, is read from there.
+  let mut variantInfo? := base.find? variantDecl.toName
+  if variantInfo?.isNone then
+    let (variantEnv, variantLog) ← elabFile variantPath variantMod.toName (some base)
+    if let some code ← failIfErrors "variant statement" variantLog then return code
+    variantInfo? := variantEnv.find? variantDecl.toName
+  let some variantInfo := variantInfo?
+    | fail s!"declaration {variantDecl} not found in {variantPath}"
+
   let mut rootInfo? := base.find? rootDecl.toName
   if rootInfo?.isNone then
     let (rootEnv, rootLog) ← elabFile rootPath rootMod.toName (some base)

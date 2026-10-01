@@ -47,7 +47,7 @@ CAUSE_WORDS = {
         "(propose it through /proposals/witness)"
     ),
     "dep-refuted": "blocked: a dependency was refuted",
-    "circular": "circular: no easier than a statement it was meant to reduce",
+    "circular": "circular: it implies a statement it was meant to reduce, so no progress",
 }
 #: F08-T17 (D-16): the one cause that speaks of a node whatever its status — a merged
 #: circularity claim takes a ready node off the frontier as surely as a blocked one.
@@ -216,9 +216,10 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
     (
         "circular",
         "circular",
-        "A merged defect claim proves, in Lean, that a statement this one was meant to reduce "
-        "implies it, so it is no easier than that statement. Not accepting work; a proof of it "
-        "is still accepted, since it would prove the statement above.",
+        "A merged defect claim proves, in Lean, that this statement implies a statement it was "
+        "meant to reduce, so any proof of it is a proof of that one and the route leads straight "
+        "back where it started. Not accepting work; a proof of it is still accepted, since it "
+        "would prove the statement above.",
         "ready · cause circular · circular-decomposition claim (D-16, D-12)",
     ),
     (
@@ -1428,9 +1429,10 @@ class Renderer:
         return (
             '<p class="circular-note">'
             f"{'A merged circularity claim shows' if one else 'Merged circularity claims show'} "
-            "that a statement meant to reduce this one is no easier than it, so that "
-            f"decomposition made no progress (D-12, D-16): {claims}. This statement stays open: "
-            "a direct proof, or a different decomposition, is welcome.</p>"
+            "that a statement meant to reduce this one implies it, so a proof of it would be a "
+            f"proof of this one and that decomposition made no progress (D-12, D-16): {claims}. "
+            "This statement stays open: a direct proof, or a different decomposition, is "
+            "welcome.</p>"
         )
 
     def closing_note(self, tv: TargetView, nv: NodeView) -> str:
@@ -1984,10 +1986,10 @@ class Renderer:
         if nv.cause == CIRCULAR_CAUSE:
             claim = self.file_link(nv.circular_claim) if nv.circular_claim else "its defects/"
             return (
-                '<p class="why-not">Not claimable: a merged circularity claim proves that a '
-                "statement this one was meant to reduce implies it, so it is no easier than that "
-                f"statement (D-16). The claim and its Lean exhibit: {claim}. A proof of it is "
-                "still a proof.</p>\n"
+                '<p class="why-not">Not claimable: a merged circularity claim proves that this '
+                "statement implies a statement it was meant to reduce, so any proof of it is a "
+                f"proof of that one and the route leads straight back (D-16). The claim and its "
+                f"Lean exhibit: {claim}. A proof of it is still a proof.</p>\n"
             )
         tv = self.site.targets.get(nv.target_id)
         if tv is None or nv.status not in CLAIMABLE_STATUSES:

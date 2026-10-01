@@ -33,8 +33,9 @@ log = logging.getLogger(__name__)
 
 EXHIBIT_MODULE = "Exhibit"
 STATEMENT_MODULE = "Statement"
-#: F08-T17: D-30's ``resolves`` is ``variant → root``; with the ancestor as the variant and the
-#: claimed node as the root it is the implication a circularity claim asserts.
+#: F08-T17, turned round by F08-T21: D-30's ``resolves`` is ``variant → root``; with the claimed
+#: node (the hole) as the variant and the ancestor as the root it is the implication a circularity
+#: claim asserts — the hole implies what it was cut from, so the route leads straight back.
 CIRCULAR_LABEL = "resolves"
 
 
@@ -75,7 +76,7 @@ def elaborate_one(  # noqa: PLR0911 — one return per way an exhibit is not adm
             return Diagnostic(
                 "circular-exhibit",
                 f"{declared.message}: a {CIRCULAR_CLASS} exhibit is the one theorem "
-                "`<ancestor's statement> → <this node's statement>` (F08-T17)",
+                "`<this node's statement> → <ancestor's statement>` (F08-T21)",
                 {"path": located.path, **(declared.details or {})},
             )
         decl = declared
@@ -133,16 +134,20 @@ def check_circular(  # noqa: PLR0913 — the run, the seam, the record and the s
     module: str,
     decl: str,
 ) -> Diagnostic | None:
-    """F08-T17 (D-16): a circularity claim's exhibit proves ``ancestor → node``, exactly.
+    """F08-T21 (D-16, D-12 v3.23): a circularity claim's exhibit proves ``node → ancestor``.
 
-    No program decides "no easier up to proof", so the claim carries the proof and the gate checks
-    only that it is one: ``opn-relation-type`` with the label ``resolves`` (variant → root), the
-    ancestor as the variant and this node as the root, compares the exhibit's one theorem to that
-    implication by definitional equality and reads its axioms. The reverse implication, a theorem
-    about anything else, and a proof resting on ``sorryAx`` (the ancestor's Context restates this
-    node's theorem with a ``sorry`` body, which is the obvious shortcut) are each refused by name.
-    Both statements are read from their staged copies: the sandbox holds the work directory and
-    nothing else of the graph (F00-R12, the lesson of F08-Q13).
+    No program decides "circular up to proof", so the claim carries the proof and the gate checks
+    only that it is one: ``opn-relation-type`` with the label ``resolves`` (variant → root), this
+    node as the variant and the ancestor as the root, compares the exhibit's one theorem to that
+    implication by definitional equality and reads its axioms. Any proof of the node is then a
+    proof of the ancestor: from the ancestor the decomposition led to this node, and this node
+    leads straight back — the literal cycle. F08-T17 had asked for ``ancestor → node``, which says
+    only that the node is no *harder* than the ancestor, a bar every provable hole and every hole
+    whose hypothesis contradicts the ancestor clears (tester 69-C B3, 2026-09-29). That reverse
+    implication, a theorem about anything else, and a proof resting on ``sorryAx`` (the ancestor's
+    own half left as ``sorry`` is the obvious shortcut) are each refused by name. Both statements
+    are read from their staged copies: the sandbox holds the work directory and nothing else of
+    the graph (F00-R12, the lesson of F08-Q13).
     """
     assert located.node_id is not None  # the classifier refuses a circularity claim under defs/
     ancestor = str(doc.get("ancestor"))  # staged by ``elaborate_one`` with the node itself
@@ -159,12 +164,12 @@ def check_circular(  # noqa: PLR0913 — the run, the seam, the record and the s
         decls[node_id] = loaded.statement.decl_name
     src = ctx.workdir / "src"
     req = RelationRequest(
-        variant=src / "Nodes" / ancestor / "Statement.lean",
-        variant_module=layout.node_module(ancestor, STATEMENT_MODULE),
-        variant_decl=decls[ancestor],
-        root=src / "Nodes" / located.node_id / "Statement.lean",
-        root_module=layout.node_module(located.node_id, STATEMENT_MODULE),
-        root_decl=decls[located.node_id],
+        variant=src / "Nodes" / located.node_id / "Statement.lean",
+        variant_module=layout.node_module(located.node_id, STATEMENT_MODULE),
+        variant_decl=decls[located.node_id],
+        root=src / "Nodes" / ancestor / "Statement.lean",
+        root_module=layout.node_module(ancestor, STATEMENT_MODULE),
+        root_decl=decls[ancestor],
         label=CIRCULAR_LABEL,
         relation=exhibit,
         relation_module=module,
@@ -184,7 +189,7 @@ def check_circular(  # noqa: PLR0913 — the run, the seam, the record and the s
 def circular_verdict(
     ctx: RunContext, located: Located, ancestor: str, result: MetaprogramResult
 ) -> Diagnostic | None:
-    """What ``opn-relation-type``'s answer means for a circularity claim (F08-T17)."""
+    """What ``opn-relation-type``'s answer means for a circularity claim (F08-T17, F08-T21)."""
     ok, out = result.ok, result.doc
     details: dict[str, Any] = {"path": located.path, "ancestor": ancestor}
     if not ok:
@@ -203,8 +208,8 @@ def circular_verdict(
     if SORRY_AXIOM in axioms:
         return Diagnostic(
             "circular-sorry",
-            f"{located.path}: the exhibit depends on sorryAx, so the implication is claimed, not "
-            "proved (F08-T17)",
+            f"{located.path}: the exhibit depends on sorryAx, so `{located.node_id} → {ancestor}` "
+            "is claimed, not proved (F08-T21)",
             details,
         )
     outside = [a for a in axioms if a not in set(ctx.spec["axiom_allowlist"])]
@@ -219,11 +224,11 @@ def circular_verdict(
         return Diagnostic(
             "circular-direction",
             f"{located.path}: a {CIRCULAR_CLASS} exhibit proves {out.get('expected')} "
-            f"({ancestor} → {located.node_id}), but this one proves {out.get('declared')} "
-            "(F08-T17)",
+            f"({located.node_id} → {ancestor}: the node implies the ancestor it was cut from), "
+            f"but this one proves {out.get('declared')} (F08-T21)",
             details,
         )
-    log.info("exhibit %s proves %s -> %s", located.path, ancestor, located.node_id)
+    log.info("exhibit %s proves %s -> %s", located.path, located.node_id, ancestor)
     return None
 
 
