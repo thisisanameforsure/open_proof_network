@@ -214,18 +214,56 @@ private def structCases? (e : Expr) : MetaM (Option (Nat × Nat × Nat)) := do
   unless e.getAppNumArgs > major + 1 do return none
   return some (major, major + 1, cv.numFields)
 
+/-- A local in scope at a hole: the free variable, whether the assembly proved it (F07-T44: a
+field of a structure it destructured) and whether it is an earlier hole (F07-T48). The
+statement's own binders, `intro`s, case branches and proved `have`s are neither. -/
+private structure Local where
+  fvar : Expr
+  proved : Bool := false
+  hole : Bool := false
+
+private def fvarsOf (e : Expr) (into : FVarIdSet := {}) : FVarIdSet :=
+  (Lean.collectFVars { fvarSet := into } e).fvarSet
+
+/-- F07-T48: the locals a hole is closed over. Every local that is not an earlier hole is kept as
+it always was (the statement's own binders in their order, `intro`s, case fields, proved `have`s
+— the last dropped by `mkForallFVars` when the type does not use them); an earlier hole is kept
+only when something kept mentions it: the hole's type, the type of a kept local or the value of a
+kept `let`, transitively. Walked last to first, since a local's type can mention only the locals
+before it, so by the time an earlier hole is reached everything that could need it has said so.
+
+Why the type and nothing else decides (read from Lean 4.33.1, `engineering/evidence/F07/task-48.txt`):
+`clear h` inside a hole's `by` block leaves no trace in the term, the hole's value being
+`sorryAx T` either way, and the assembly may go on using `h` after the hole — the live skeleton
+did. A hole that wants a predecessor's fact states it as a premise (`have h4 : P → Q := sorry`),
+and then its type says so. -/
+private def closedOver (locals : Array Local) (t : Expr) : MetaM (Array Local) := do
+  let mut needed := fvarsOf (← instantiateMVars t)
+  let mut keptRev : Array Local := #[]
+  for l in locals.reverse do
+    let id := l.fvar.fvarId!
+    if l.hole && !needed.contains id then continue
+    keptRev := keptRev.push l
+    let decl ← id.getDecl
+    -- A `let` the closed type does not use is dropped by `mkForallFVars`; what its value
+    -- mentions is then not needed either.
+    if decl.isLet (allowNondep := true) && !needed.contains id then continue
+    needed := fvarsOf decl.type needed
+    if let some v := decl.value? (allowNondep := true) then needed := fvarsOf v needed
+  return keptRev.reverse
+
 /-- The indices, into `closed`'s leading `∀` binders, of the in-scope binders marked proved. A
 `let` in scope (a proved `have`) is not a `∀` binder of the closed type: `mkForallFVars` drops it
 when the hole's type does not use it, which is why a proved `have` was never a hypothesis. When one
 is used and so sits in the spine as a `let`, the positions no longer name `∀` binders and nothing
-is marked: the hole keeps the full expected type rather than a guessed one. -/
-private def provedIndices (binders : Array Expr) (marks : Array Bool) (closed : Expr)
-    : MetaM (Array Nat) := do
+is marked: the hole keeps the full expected type rather than a guessed one. `locals` are the ones
+the hole is closed over (`closedOver`), so the positions count what the closed type carries. -/
+private def provedIndices (locals : Array Local) (closed : Expr) : MetaM (Array Nat) := do
   let mut idx : Array Nat := #[]
   let mut pos := 0
-  for (x, m) in binders.zip marks do
-    if (← x.fvarId!.getDecl).isLet (allowNondep := true) then continue
-    if m then idx := idx.push pos
+  for l in locals do
+    if (← l.fvar.fvarId!.getDecl).isLet (allowNondep := true) then continue
+    if l.proved then idx := idx.push pos
     pos := pos + 1
   if idx.isEmpty then return #[]
   let mut e := closed
@@ -237,20 +275,21 @@ private def provedIndices (binders : Array Expr) (marks : Array Bool) (closed : 
 
 mutual
 
-/-- `binders` are the locals in scope, and `marks` says of each whether the assembly proved it
-(F07-T44): a field of a structure it destructured. The statement's own binders, holes, `intro`s
-and case branches are not. -/
-private partial def scan (k : Known)
-    (binders : Array Expr) (marks : Array Bool) (e : Expr) (acc : Acc) : TermElabM Acc := do
+/-- `locals` are the locals in scope, each saying whether the assembly proved it (F07-T44: a
+field of a structure it destructured) and whether it is an earlier hole (F07-T48). The
+statement's own binders, `intro`s and case branches are neither. -/
+private partial def scan (k : Known) (locals : Array Local) (e : Expr) (acc : Acc)
+    : TermElabM Acc := do
   let e := e.consumeMData
   if isSorry e then
     return { acc with unnamed := acc.unnamed + 1 }
   match e with
   | .letE n t v b _ =>
     if isSorry v then
-      let closed ← instantiateMVars (← mkForallFVars binders t)
+      let kept ← closedOver locals t
+      let closed ← instantiateMVars (← mkForallFVars (kept.map (·.fvar)) t)
       let printed ← ppRoundTrippable closed
-      let proved ← provedIndices binders marks closed
+      let proved ← provedIndices kept closed
       let expected ← expectedWitnessTypeNarrowed closed proved
       let expectedPrinted ← ppRoundTrippable expected
       let expectedOk ← reElaboratesTo expectedPrinted expected
@@ -265,12 +304,12 @@ private partial def scan (k : Known)
         expected_witness := if expectedOk then some expectedPrinted else none,
         proved_binders := proved }
       let acc := { acc with holes := acc.holes.push hole }
-      withLocalDeclD n t fun x => scan k (binders.push x) (marks.push false) (b.instantiate1 x) acc
+      withLocalDeclD n t fun x =>
+        scan k (locals.push { fvar := x, hole := true }) (b.instantiate1 x) acc
     else
-      let acc ← scan k binders marks t acc
-      let acc ← scan k binders marks v acc
-      withLetDecl n t v fun x =>
-        scan k (binders.push x) (marks.push false) (b.instantiate1 x) acc
+      let acc ← scan k locals t acc
+      let acc ← scan k locals v acc
+      withLetDecl n t v fun x => scan k (locals.push { fvar := x }) (b.instantiate1 x) acc
   | .app .. =>
     match ← structCases? e with
     | some (major, minor, fields) =>
@@ -278,34 +317,34 @@ private partial def scan (k : Known)
       let proved := !(← restsOnSorry args[major]!)
       let mut acc := acc
       for i in [0:args.size] do
-        acc ← if i == minor then scanFields k binders marks args[i]! fields proved acc
-          else scan k binders marks args[i]! acc
+        acc ← if i == minor then scanFields k locals args[i]! fields proved acc
+          else scan k locals args[i]! acc
       return acc
     | none =>
       let .app f a := e | return acc
-      let acc ← scan k binders marks f acc
-      scan k binders marks a acc
+      let acc ← scan k locals f acc
+      scan k locals a acc
   | .lam n t b bi =>
-    let acc ← scan k binders marks t acc
-    withLocalDecl n bi t fun x => scan k (binders.push x) (marks.push false) (b.instantiate1 x) acc
+    let acc ← scan k locals t acc
+    withLocalDecl n bi t fun x => scan k (locals.push { fvar := x }) (b.instantiate1 x) acc
   | .forallE n t b bi =>
-    let acc ← scan k binders marks t acc
-    withLocalDecl n bi t fun x => scan k (binders.push x) (marks.push false) (b.instantiate1 x) acc
-  | .proj _ _ s => scan k binders marks s acc
+    let acc ← scan k locals t acc
+    withLocalDecl n bi t fun x => scan k (locals.push { fvar := x }) (b.instantiate1 x) acc
+  | .proj _ _ s => scan k locals s acc
   | _ => return acc
 
 /-- The minor premise of a structure's `casesOn`: its first `left` binders are the fields, marked
 `proved`; whatever follows (an equation a `rcases` threads through the motive, the body) is scanned
 as anywhere else. A minor premise that is not a `fun` of that many binders is scanned unmarked. -/
-private partial def scanFields (k : Known) (binders : Array Expr) (marks : Array Bool)
+private partial def scanFields (k : Known) (locals : Array Local)
     (m : Expr) (left : Nat) (proved : Bool) (acc : Acc) : TermElabM Acc := do
-  if left == 0 then return ← scan k binders marks m acc
+  if left == 0 then return ← scan k locals m acc
   match m.consumeMData with
   | .lam n t b bi =>
-    let acc ← scan k binders marks t acc
+    let acc ← scan k locals t acc
     withLocalDecl n bi t fun x =>
-      scanFields k (binders.push x) (marks.push proved) (b.instantiate1 x) (left - 1) proved acc
-  | other => scan k binders marks other acc
+      scanFields k (locals.push { fvar := x, proved }) (b.instantiate1 x) (left - 1) proved acc
+  | other => scan k locals other acc
 
 end
 
@@ -316,7 +355,7 @@ def holeReport (stmt value : Expr) (siblings : Array (String × Expr) := #[])
     (ancestors : Array (String × Expr) := #[]) : TermElabM HoleReport := do
   lambdaTelescope value fun xs body => do
     let goal ← inferType body
-    let acc ← scan { goal, stmt, siblings, ancestors } xs (xs.map fun _ => false) body {}
+    let acc ← scan { goal, stmt, siblings, ancestors } (xs.map fun x => { fvar := x }) body {}
     return { holes := acc.holes, unnamed := acc.unnamed, body_is_hole := isSorry body }
 
 end OpnGate
