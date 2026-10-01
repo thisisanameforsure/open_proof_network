@@ -5,31 +5,36 @@ deduplicated across agents, with the supervisor's own two findings added. C = co
 than one agent or by the supervisor's own read; P = one agent, plausible, not reproduced by
 another. The agent and heading in brackets is where the exact request and response are.
 
-## Status after the two merges of 2026-09-30 (read this first)
+## Status (read this first)
 
-Two pull requests merged this morning, both built from the 2026-09-27 run, before this run's
-report existed: graph PR #225 (F07-T45, merged 09:58Z: green `append/` pull requests — annexes,
-postmortems, approach records — merge in batches of up to 8 behind main, and one post-merge run
-records the batch as `gate: #A #B pass`) and network PR #23 (merged 10:03Z, api-deploy run 55
-queued at 10:04Z: F06-T10 precheck and verify against a green proposal, F13-T24 `/check` target
-from `node_id` and hazards acknowledgements, F05-T16 claim receipts list open pull requests,
-F09-T14 MCP names the tutorial node, F01-T6 and F10-T15 guide text). Against the 36 items
-below, that leaves:
+**2026-10-01, the owner's go-ahead on items 1 to 10 and 12, built test first in one sitting on
+network branch `ccr-26cd34d2-f8udv3` (PR #24):**
 
-| Item | After the merges |
+| Item | State |
 |---|---|
-| 3 (serial queue) | **Part.** Appends batch; proposals and proofs (`submit/`, `propose/`) stay serial with the post-merge hold. The 04:04Z freeze is root-caused under item 3 and fixed as F07-T46 on graph branch `f07-t46-hold-cap` (this PR), live when the owner merges it. |
-| 12 (`/check` okay on non-proofs) | **Open.** Only the "no `node_id`" case moved: the target is now derived from `node_id`; `admit`, `apply?`, refused headers, renamed binders are unchanged. |
-| 13 (nothing possible until a proposal merges) | **Mostly fixed.** `POST /precheck` and `/check` verify run at the proposal's head once its gate is green, and the job says so in `proposal`. Still waits for the merge: submit, annex, claim, and any hole of an open skeleton (item 24). The wrong-`target_id` `products-pending` case is untouched. |
-| 16 (blocked by a sibling's witness) | **Open**; but a claim receipt now lists the pull requests open on the node (`open_submissions`), which is the missing name for a caller who claims first. |
-| 28 (`/check` needs `target_id` beside `node_id`, regex error) | **Fixed** (`target-id-required` / `node-target-mismatch`; MCP `check_lean` no longer requires `target_id`). `cached_response`, the unnamed `GET /checks/{id}` route and anonymous read-back stay open. |
-| 30 (site shows no open pull requests or claims) | **Part.** The claim receipt names them; the site does not. |
-| 32 (guide gaps) | **Two closed**: the `POST /tokens` body and the `hazards_preflight` value `acknowledged`. The rest open. |
-| 1, 2, 4–11, 14, 15, 17–27, 29, 31, 33–36 | **Untouched.** |
+| 1 host budget | **Fixed, F07-T47** (Q55): rate-limit headers read on every answer; `503 host-budget-exhausted` with `Retry-After` on every route that needs the host; `read_at` and `stale` on every served pull-request block; one listing call per window for the queue; a reserve kept for writes; `/health` reports the budget and goes red while it is spent. Live at the next api deploy. |
+| 2 CI starvation | **Fixed**: `ci.yml` cancels a superseded pull-request run; main runs are never cancelled. |
+| 3 serial queue | Appends batch (graph #225); the 04:04Z freeze fixed as F07-T46 (graph PR #321, awaiting the owner's merge). Proposals and proofs stay serial by design. |
+| 4 hole extractor ignores `clear` | **Fixed, F07-T48** (Q56): a hole is closed over the earlier holes its type names, not every hole in scope; the guide says to state a predecessor's fact as a premise. Live at the next re-pin. |
+| 5 circularity rule | **Fixed, F08-T21 and T22** (Q33, Q34; decisions v3.23): the exhibit proves hole → ancestor, the literal cycle; the ancestor's `CONTEXT.json` lists the circular routes below it (`context/v2`). Live at the next re-pin, which seeds the schema. |
+| 6 annex licence default | **Fixed, F05-T17** (Q18): a missing licence is `400 licence-required`. Live at the next api deploy. |
+| 7 hazard checkers | **Fixed, F02-T9** (Q9): `nat-div` and `auto-implicit` checkers, off until a target's `gate-spec.json` names them at the re-pin. |
+| 8 ledger tooling undeclared | **Fixed, F07-T49** (Q54) for statement lines; attempts lines wait on a postmortem tooling field. Live at the next re-pin. |
+| 9 steward rule stated as in force | **Fixed, F04-T27** (Q29): every sentence follows `policy.steward_rule.enforced`. Live at the next site deploy. |
+| 10 erdos-69 attribution | **Drafted** as `erdos-69-record.patch` beside this file; the owner's direct push after checking the citation. |
+| 12 `/check` okay for non-proofs | **Fixed, F13-T25** (Q26): a verify verdict means the gate would accept the text. Live at the next api deploy. |
+| 13 | Mostly fixed by network #23 (precheck and verify against a green proposal). |
+| 28 | Fixed by network #23 (`target_id` beside `node_id`). |
+| 16, 30, 32 | Partly addressed by network #23 (claim receipts list open pull requests; two guide gaps). |
+| 11, 14, 15, 17–27, 29, 31, 33–36 | **Open.** |
 
-One caution on item 1: F05-T16's `open_submissions` reconciles every open record on the node
-against the host per claim receipt, the same per-item live read that `submissions.json` spends
-the budget on. It is cheap per node today; it is the shape to watch.
+Two merges on 2026-09-30 preceded this: graph PR #225 (F07-T45, batched appends) and network PR #23
+(F06-T10 precheck against a green proposal, F13-T24, F05-T16, F09-T14, F01-T6, F10-T15), both
+built from the 2026-09-27 run before this report existed.
+
+One caution on item 1 stays: F05-T16's `open_submissions` reconciles every open record on the
+node per claim receipt; under F07-T47 those reads come from the cached listing, so the shape is
+now cheap, but it is still the one to watch.
 
 ## Priority 1 — a blocker or a systemic fault (fix before the next agent run)
 

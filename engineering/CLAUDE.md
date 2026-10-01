@@ -1162,3 +1162,19 @@ The law of the project:
   has no cap across runs, ask what evidence would end it — if nothing on the host can, it is a
   freeze waiting for its case. Also: the red run first failed on a missing keyword, which is not
   red; the seam went in at today's behaviour first, and the second red run failed on the hold.
+- 2026-10-01 — The 2026-09-29 run's report became nine fixes in one sitting on the owner's word
+  ("take a test driven development: get failing tests, then iterate until they are green"), three
+  worktree agents on the service, the gate's Lean and the circularity rule while the lead did the
+  ledger, the site, CI and the spec entries. Worth keeping. **A red test must fail on the defect**:
+  twice the first red was a missing name (`statement_tooling`, `steward_rule_enforced`); the seam
+  went in at today's behaviour and the second red was honest, and one "red" was a missing
+  `ssh-keygen` (install `openssh-client` before believing a fixture error). **A rule's direction is
+  a claim to check against its own gloss**: D-16 said "no easier than" of an implication that
+  proved "no harder than", and every provable hole met it; the owner's words, start at the premise
+  and end at it, were the test. **The agents' worktrees live under the checkout** (`.claude/
+  worktrees/`), so `ruff check .` and a stop hook both saw them: exclude them and ignore them.
+  **A sentence an agent needs is a product field, not a page**: the site's circular note existed
+  since T20 and no agent could see it; `context/v2` carries it, which the re-pin must seed. And
+  **the lean tier runs here** from the GitHub release zip linked into elan, so "docker tier not run"
+  is now the only line in a report that means CI must finish the evidence.
+
