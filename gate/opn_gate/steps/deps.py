@@ -16,7 +16,7 @@ import subprocess
 from pathlib import Path
 
 from opn_gate import graph as graphmod
-from opn_gate import layout, schemas
+from opn_gate import layout, schemas, uses
 from opn_gate.steps.base import RunContext, StepResult
 from opn_gate.steps.replay import PROOF_MODULE
 from opn_gate.steps.witness import metaprogram_failure
@@ -78,6 +78,15 @@ def classify(
     return used_nodes, offences
 
 
+def used_defs_modules(constants: list[dict[str, object]]) -> set[str]:
+    """The ``Defs.*`` modules that contribute a constant to the proof term."""
+    return {
+        str(c.get("module"))
+        for c in constants
+        if c.get("module") is not None and layout.module_origin(str(c.get("module")))[0] == "defs"
+    }
+
+
 class DepsStep:
     number = 8
     name = "deps"
@@ -132,6 +141,17 @@ class DepsStep:
                 f"declared dep {d!r} contributes no constant to the proof" for d in unused
             ],
         }
+        # F08-R18: what the declared uses came to, beside what the node already depended on. A
+        # definition module that contributes no constant may still be needed (a notation, an
+        # instance the proof elaborates through), so it is recorded and never refused.
+        declared_uses = ctx.data.get(uses.USES_KEY)
+        if isinstance(declared_uses, dict):
+            used_defs = used_defs_modules(result.doc.get("constants") or [])
+            idle = [m for m in declared_uses.get("defs") or [] if m not in used_defs]
+            ctx.data["deps"]["uses"] = {"defs": list(declared_uses.get("defs") or []), "idle": idle}
+            ctx.data["deps"]["warnings"].extend(
+                f"declared use {m} contributes no constant to the proof" for m in idle
+            )
         if offences:
             first = offences[0]
             return StepResult.failed(
