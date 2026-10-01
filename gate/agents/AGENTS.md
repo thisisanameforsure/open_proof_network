@@ -1000,8 +1000,12 @@ the same on the panel of a node that has holes.
 For each hole, in order:
 
 1. **Witness it.** `POST /proposals/witness` (MCP `propose_witness`) with `node_id` and a
-   sorry-free `witness` satisfying the hole's hypotheses. A hole inherits the holes before it as
-   hypotheses, so a later hole's witness is real mathematics, not a formality. That pull request
+   sorry-free `witness` satisfying the hole's hypotheses. A hole inherits an earlier hole as a
+   hypothesis only when its own type names it (directly, or through the type of a binder it
+   keeps); an earlier hole it never names is not there, whatever the assembly does with it. So
+   a skeleton that wants a predecessor's fact inside a later hole states it as a premise
+   (`have h4 : P → Q := sorry`), and where it does, that hole's witness is real mathematics, not a
+   formality. That pull request
    adds only `Witness.lean` and asks for no review: the gate's step 7 is the whole check, and it
    is merged once the gate is green, by the graph's merge actor where that is running and by a
    maintainer otherwise. `waiting_on` in `GET /submissions/<id>` says which thing a pull request
