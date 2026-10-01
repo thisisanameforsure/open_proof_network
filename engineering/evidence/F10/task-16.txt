@@ -1,0 +1,62 @@
+F10-T16 green, 2026-10-01 (branch svc-queue-heartbeats-hazards)
+
+== 1. the guide's sentences, each held to the code that makes it true ==
+$ uv run --frozen pytest gate/tests/test_finding_guide_tester_1001.py -q
+15 passed in 0.17s
+
+== 2. the guide's blocks still run, and the older sentence tests still hold (the annex request now sends model_and_tooling to the fake service) ==
+$ uv run --frozen pytest gate/tests -q -m "not lean and not docker and not network" -k "guide or walkthrough or alternate"
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+1 failed, 126 passed, 1752 deselected, 2 warnings in 14.30s
+   (test_graph_copy_is_identical compares the graph checkout's copy, which is one re-pin behind on untouched main as well: bug list A7)
+
+== 3. the worked examples, checked with the toolchain before they went in (Log, 2026-09-19) ==
+gate/lean at this branch (opn-artifact-type built by lake, Lean 4.33.1), 2026-10-01
+== GScoped.lean
+   | theorem OpnProp.some_goal : ∀ n : Nat, 2 ≤ n → n ≤ n * n ∧ 0 < n := by
+   |   -- (the citation line first, as above)
+   |   intro n hn
+   |   have hall : n ≤ n * n ∧ 0 < n := by
+   |     refine ⟨?_, ?_⟩
+   |     · have h₁ : n ≤ n * n := by sorry     -- lemma 1, in a scope of its own
+   |       exact h₁
+   |     · have h₂ : 0 < n := by sorry     -- lemma 2, which cannot see h₁
+   |       exact h₂
+   |   exact And.intro hall.1 hall.2       -- the assembly: proved, not sorry
+   ok True matches True kind partial 
+   hole h₁ closed_type: ∀ (n : Nat), (2 : Nat) ≤ n → n ≤ n * n proved_binders: []
+   hole h₂ closed_type: ∀ (n : Nat), (2 : Nat) ≤ n → (0 : Nat) < n proved_binders: []
+== GContra.lean
+   | theorem OpnProp.some_goal : ∀ n : Nat, 2 ≤ n → n ≤ n * n ∧ 0 < n := by
+   |   intro n hn
+   |   have h : ¬ (n ≤ n * n) → False := by sorry     -- "suppose not": the hole of a proof by contradiction
+   |   exact ⟨Classical.byContradiction h, Nat.lt_of_lt_of_le (by decide) hn⟩
+   ok True matches True kind partial 
+   hole h closed_type: ∀ (n : Nat), (2 : Nat) ≤ n → ¬n ≤ n * n → False proved_binders: []
+== GDisj.lean
+   | theorem OpnProp.some_goal : ∀ n : Nat, 2 ≤ n → n ≤ n * n ∧ 0 < n := by
+   |   intro n hn
+   |   have h : n ≤ n * n ∨ n = 0 := by sorry         -- the same content, stated positively
+   |   have hpos : 0 < n := Nat.lt_of_lt_of_le (by decide) hn
+   |   exact ⟨h.elim id (fun h0 => absurd h0 (Nat.ne_of_gt hpos)), hpos⟩
+   ok True matches True kind partial 
+   hole h closed_type: ∀ (n : Nat), (2 : Nat) ≤ n → n ≤ n * n ∨ n = (0 : Nat) proved_binders: []
+== W.lean
+   | -- step 7's question for the contradiction-shaped hole `∀ n, 2 ≤ n → ¬ (n ≤ n * n) → False`:
+   | -- exhibit n with 2 ≤ n and ¬ (n ≤ n * n). There is none, so its witness slot can never be filled.
+   | theorem no_witness : ¬ ∃ n : Nat, 2 ≤ n ∧ ¬ (n ≤ n * n) := by
+   |   intro ⟨n, _, h⟩
+   |   exact h (Nat.le_mul_self n)
+   | -- the disjunct-shaped hole `∀ n, 2 ≤ n → n ≤ n * n ∨ n = 0` asks only for n with 2 ≤ n.
+   | theorem witness : ∃ n : Nat, 2 ≤ n := ⟨2, Nat.le_refl 2⟩
+   | #print axioms no_witness
+   | #print axioms witness
+   'no_witness' depends on axioms: [propext]
+   'witness' does not depend on any axioms
+== decide +kernel and native_decide
+   | theorem t_kernel : (List.range 200).foldl (· + ·) 0 = 19900 := by decide +kernel
+   | theorem t_native : (List.range 200).foldl (· + ·) 0 = 19900 := by native_decide
+   | #print axioms t_kernel
+   | #print axioms t_native
+   't_kernel' does not depend on any axioms
+   't_native' depends on axioms: [t_native._native.native_decide.ax_1_1]

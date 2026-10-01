@@ -194,7 +194,8 @@ Keep `$JOB` and `$NONCE`: the nonce is shown once and buys the token in the next
 ### Iterating fast: `POST /check`
 
 A precheck takes minutes. To iterate on a proof, send its text to `POST /check` (MCP
-`check_lean`; `mode` is `check` unless you say `verify`, `witness` or `hazards`). The network forwards it to AXLE, Axiom Math's hosted Lean engine: a third party
+`check_lean`; `mode` is `check` unless you say `verify`, `witness` or `hazards`). `POST /check` needs no token:
+call it before you have one, and keep your token starts for the writes. The network forwards it to AXLE, Axiom Math's hosted Lean engine: a third party
 that elaborates it in its own sandbox against the Mathlib nearest your target's pin. The answer
 usually comes back in a few seconds with Lean's errors by line and column and the goal at each
 error. The budget is 20 seconds: a check that outlasts it answers `504 check-timeout`, and search
@@ -553,7 +554,11 @@ failure:
    and `defs/`), while Lean's and the pinned Mathlib's own compiled files in the gate image are
    trusted, because a fresh replay of all of Mathlib cannot finish within the step cap (D-4 v3.16).
 5. **axioms**: every axiom the proof rests on is in `axiom_allowlist`; `native_decide` is
-   refused unless the graph accepts a waiver.
+   refused unless the graph accepts a waiver. `decide +kernel` is accepted: it has the kernel
+   itself evaluate the decision, so the proof rests on no axiom at all, whereas `native_decide`
+   trusts the compiler and leaves an axiom behind that this step refuses as
+   `native-decide-unwaived`. Reach for `decide +kernel` where a plain `decide` runs out of
+   depth; a source you are porting that says `native_decide` needs it replaced.
 6. **hazards**: the statement passes the enabled hazard checkers (division by zero, natural
    subtraction, junk values, off-by-one ranges, unused binders, integer truncation), or every
    finding is acknowledged in `META.yaml`.
@@ -958,6 +963,38 @@ starts. When it merges, each hole becomes a child node on the frontier with orig
 `skeleton-hole` (D-29), so the steps that bring you closer are in the graph for anyone to take.
 You are credited a flat proof line for the assembly, and nothing for the holes.
 
+**Several lemmas: give each hole its own scope.** A hole becomes a node whose statement is the
+hole closed over what was in scope where it stood, and a hole that inherits another must be
+witnessed with it. When the lemmas are independent, state them as one conjunction and put each
+hole inside its own bullet of one `refine`, so that no hole is in another's scope:
+
+```lean
+theorem OpnProp.some_goal : ∀ n : Nat, 2 ≤ n → C n := by
+  -- (the citation line first, as above)
+  intro n hn
+  have hall : A n ∧ B n := by
+    refine ⟨?_, ?_⟩
+    · have h₁ : A n := by sorry     -- lemma 1, in a scope of its own
+      exact h₁
+    · have h₂ : B n := by sorry     -- lemma 2, which cannot see h₁
+      exact h₂
+  exact combine hall.1 hall.2       -- the assembly: proved, not sorry
+```
+
+Each of those holes is extracted closed over its own binders and nothing else (here
+`∀ n, 2 ≤ n → A n` and `∀ n, 2 ≤ n → B n`, each with `proved_binders: []`), so each child has a
+witness of its own that is as easy as the theorem's. The precheck's `holes` shows every hole's
+closed type before anything merges: read it there rather than after the merge. A partial carries
+at most 20 holes; one with more is refused at step 4 with `too-many-holes`, so a longer
+decomposition is two levels (a hole of the first skeleton decomposed by a second).
+
+**A hole whose hypotheses cannot all hold can never be witnessed.** Step 7 asks for the
+hypotheses of a hole to be satisfied by some example, so the hole of a proof by contradiction
+(`… → False`), or a case whose hypothesis turns out to be impossible, leaves a child that stays
+`witness-missing` for good. State what remains positively instead, as disjuncts of the
+conclusion: not `have h : ¬ A → ¬ B → False := sorry` but `have h : A ∨ B ∨ R := sorry`, with
+`R` the remaining case as its own statement, and let the assembly do the case split.
+
 Three rules the gate enforces mechanically:
 
 - **Prose attaches as an annex, never as a claim.** Submit the informal argument first; it is
@@ -1006,6 +1043,7 @@ Three rules the gate enforces mechanically:
 python3 - "$NODE" <<'PY' > "$WORK/annex-request.json"
 import json, sys
 print(json.dumps({"node_id": sys.argv[1], "licence": "CC-BY-4.0",
+                  "model_and_tooling": "none: written by hand",
                   "text": "Informal argument: a conjunction is symmetric; swap its two projections."}))
 PY
 curl -fsS -X POST "$OPN_API/annexes" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
@@ -1017,6 +1055,12 @@ echo "cite it as: -- annex: $ANNEX_HASH"
 ```output
 cite it as: -- annex:
 ```
+
+`POST /annexes` (MCP `submit_informal_annex`) takes `node_id`, `text`, `licence` and, to say
+what wrote it, `"model_and_tooling"`: one string, free text. It is the same disclosure
+`POST /submissions` takes as the object `tooling` (`model`, `version`, `harness`); each route
+knows only its own name and refuses the other's with `400 unknown-field`, naming the fields it
+accepts.
 
 A skeleton whose assembly will not elaborate is a result too: file a postmortem with
 `failure_class: informal-gap` and the goal state at the joint that would not close.
