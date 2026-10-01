@@ -749,21 +749,44 @@ def current_id(nodes_dir: Path, node_id: str) -> str:
     survivor says nothing and is followed as before. An unsound step is not followed and is
     logged by name; the walk stops at the last node soundly reached, because one bad record
     must never decide whether a target has products (2026-09-17)."""
-    chain = [node_id]
-    while True:
-        here = nodes_dir / chain[-1]
+
+    def successor_of(current: str) -> str | None:
+        here = nodes_dir / current
         record = records.load_node_status(here) if here.is_dir() else None
         if record is None or record.status != "superseded":
-            return chain[-1]
-        successor = str(record.doc.get("reference") or "")
+            return None
+        return str(record.doc.get("reference") or "") or None
+
+    return follow_revisions(
+        node_id,
+        successor_of=successor_of,
+        is_node=lambda n: (nodes_dir / n).is_dir(),
+        supersedes_of=lambda n: _supersedes_of(nodes_dir / n),
+    )
+
+
+def follow_revisions(
+    node_id: str,
+    *,
+    successor_of: Callable[[str], str | None],
+    is_node: Callable[[str], bool],
+    supersedes_of: Callable[[str], str | None],
+) -> str:
+    """:func:`current_id`'s walk over three facts about a node — the successor its latest
+    ``superseded`` record names, whether a name is a node of the target, and what a node's own
+    record says it supersedes — so a reader that is not a directory (the bundle's host reader,
+    F08-T22) follows the same chain by the same soundness rules."""
+    chain = [node_id]
+    while True:
+        successor = successor_of(chain[-1])
         if not successor:
             return chain[-1]
-        if not (nodes_dir / successor).is_dir():
+        if not is_node(successor):
             problem = "which is not a node of this target"
         elif successor in chain:
             problem = "which loops"
         else:
-            named = _supersedes_of(nodes_dir / successor)
+            named = supersedes_of(successor)
             problem = (
                 f"whose own record says it supersedes {named}"
                 if named is not None and named != chain[-1]

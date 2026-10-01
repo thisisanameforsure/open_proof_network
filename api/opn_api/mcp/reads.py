@@ -299,8 +299,19 @@ def node_context(ctx: Context, target_id: str, node_id: str) -> tuple[dict[str, 
     path = context.context_path(target_id, node_id)
     raw = committed(ctx, path, optional=True)
     if raw is not None:
+        # F08-T22: a committed bundle is validated against the version it names, within the
+        # versions the bundle's module accepts — a graph rendered before the re-pin that first
+        # writes ``context/v2`` still carries v1, and the service deploys before that re-pin.
+        doc = parse(raw, path)
+        declared = str(doc.get("schema"))
+        if declared not in context.ACCEPTED:
+            raise error(
+                "context-invalid",
+                f"{path} declares {declared!r}; expected one of {', '.join(context.ACCEPTED)}",
+                "graph",
+            )
         try:
-            return schemas.validate(parse(raw, path), context.SCHEMA), "file"
+            return schemas.validate(doc, declared), "file"
         except schemas.SchemaError as exc:
             raise error("context-invalid", f"{path} does not validate: {exc}", "graph") from exc
     states = context.graph_states({"nodes": precheck.graph_doc(ctx).get(target_id, [])})

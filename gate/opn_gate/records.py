@@ -121,11 +121,22 @@ def _latest_record(
     """
     if not status_dir.is_dir():
         return None
-    records: list[StatusRecord] = []
-    for path in sorted(
+    paths = sorted(
         p for p in status_dir.iterdir() if p.suffix in ATTEMPT_SUFFIXES and p.name not in exclude
-    ):
-        doc = schemas.load_yaml(path)  # a bad status record is a graph defect: raise
+    )
+    # a bad status record is a graph defect: ``load_yaml`` raises
+    return latest_status(((p, schemas.load_yaml(p)) for p in paths), accepted)
+
+
+def latest_status(
+    docs: Iterable[tuple[Path, dict[str, Any]]], accepted: tuple[str, ...]
+) -> StatusRecord | None:
+    """The latest of the loaded records — by date, then file name — each validated against the
+    set of versions it may declare. The rule :func:`_latest_record` applies to a directory, on
+    its own so a reader that is not a directory (the bundle's host reader, F08-T22) applies the
+    same one; a record declaring a version outside ``accepted`` raises, as a malformed one does."""
+    records: list[StatusRecord] = []
+    for path, doc in docs:
         if str(doc.get("schema")) not in accepted:
             msg = f"{path} declares {doc.get('schema')!r}; expected one of {', '.join(accepted)}"
             raise schemas.SchemaError(msg)
