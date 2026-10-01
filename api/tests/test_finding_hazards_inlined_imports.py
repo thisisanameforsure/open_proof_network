@@ -27,7 +27,7 @@ def test_every_inlined_checker_imports_only_lean_and_the_hazards_modules() -> No
         bad = [
             m
             for m in layout.imports_of(path.read_text("utf-8"))
-            if m != "Lean" and m != ALLOWED_PREFIX and not m.startswith(ALLOWED_PREFIX + ".")
+            if m not in ("Lean", ALLOWED_PREFIX) and not m.startswith(ALLOWED_PREFIX + ".")
         ]
         if bad:
             offending[path.name] = bad
@@ -39,7 +39,7 @@ def test_the_composed_program_supplies_the_reelaboration_seam() -> None:
     text (imports removed, under a probe namespace so nothing it declares collides with the
     declarations already elaborated) re-elaborated on the current environment under the options
     the checker asks for."""
-    statement = 'import Lean\n\ntheorem Opn.t (s : String) : s = "a\\\\b" ∨ True := by sorry\n'
+    statement = 'import Lean\n\ntheorem Opn.t (s : String) : Or (s = "a\\\\b") True := by sorry\n'
     text = checks.hazards_text(statement, "Opn.t", ["auto-implicit"], statement=statement)
     assert "reelaborate := fun opts =>" in text
     assert "Lean.Elab.IO.processCommands" in text
