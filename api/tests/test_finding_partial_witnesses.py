@@ -261,3 +261,73 @@ def test_the_two_tools_say_how_a_bundle_carries_witnesses() -> None:
         assert ".witness" in text and "-- hole:" in text, name
         assert set(by_name[name].input_schema["properties"]) >= {"node_id", "bundle"}
         assert "witnesses" not in by_name[name].input_schema["properties"]
+
+
+# --- F07-T53: what the gate gives no role is refused before a job; an old pin's precheck says so --
+
+NEAR_MISSES = (
+    f"{NODE}attempts/{STEM}.1.witness.bak",  # an editor's copy
+    f"{NODE}attempts/.witness",  # the suffix alone
+    f"{NODE}attempts/{STEM}.1.Witness",  # the wrong case
+    f"{NODE}attempts/notes.txt",  # nothing the gate knows
+)
+
+
+@pytest.mark.parametrize("extra", NEAR_MISSES)
+def test_a_bundle_path_the_gate_gives_no_role_costs_no_job_and_opens_nothing(
+    harness: Harness, extra: str
+) -> None:
+    """The classifier refuses a pull request that adds a file no role covers (``path-forbidden``:
+    "not a path any submission may touch"), and step 2 does not look at it, so its precheck
+    passes: the service used to spend a job on such a bundle and then open a pull request that
+    could only go red. A carried witness with its name slightly wrong is exactly that file."""
+    token = harness.token_for("code_alice", "alice")
+    bundle = {PARTIAL_PATH: TUTORIAL_PROOF, extra: witness("left")}
+    pushed = len(harness.githost.pushes)
+    r = precheck(harness, token, bundle)
+    assert r.status_code == 400, f"a job was spent on it: {r.status_code} {r.text}"
+    body = r.json()
+    assert body["error"] == "path-forbidden", body
+    assert extra in body["message"] and "not a path any submission may touch" in body["message"]
+    r = submit(harness, token, bundle, "01JXYZABCDEFGHJKMNPQRSTVWX")
+    assert r.status_code == 400 and r.json()["error"] == "path-forbidden", r.text
+    assert len(harness.githost.pushes) == pushed and harness.githost.pulls == []
+
+
+def test_a_precheck_whose_gate_did_not_check_the_carried_witnesses_says_so(
+    harness: Harness, key: PrecheckKey
+) -> None:
+    """Between the api deploy and a target's re-pin, the pinned gate passes a carrying bundle
+    without reading its witness files. The submission is refused (above); the precheck that
+    passed now says which files went unchecked, so the contributor is not told ``pass`` about a
+    witness nothing looked at and learns it before submitting."""
+    token = harness.token_for("code_alice", "alice")
+    job = passing_job(
+        harness, key, token, CARRYING, [hole("left", W1, CARRYING[W1]), hole("right")]
+    )
+    served = harness.client.get(f"/precheck/{job}").json()
+    assert served["result"]["verdict"] == "pass"
+    note = served.get("carried_witnesses")
+    assert note is not None, "a pass with an unchecked carried witness and no word about it"
+    assert note["unchecked"] == [W2[len(NODE) :]] and note["checked"] == [W1[len(NODE) :]]
+    assert "hole-witness-unchecked" in note["message"] and "re-pin" in note["message"]
+
+
+def test_pin_a_precheck_that_checked_every_carried_witness_adds_nothing(
+    harness: Harness, key: PrecheckKey
+) -> None:
+    """**PIN.** A job whose gate checked every carried file, and a job that carried none, are
+    served as they were: the note is for the unchecked case alone."""
+    token = harness.token_for("code_alice", "alice")
+    holes = [hole("left", W1, CARRYING[W1]), hole("right", W2, CARRYING[W2])]
+    job = passing_job(harness, key, token, CARRYING, holes)
+    assert "carried_witnesses" not in harness.client.get(f"/precheck/{job}").json()
+    plain = passing_job(harness, key, token, {PARTIAL_PATH: TUTORIAL_PROOF}, None)
+    assert "carried_witnesses" not in harness.client.get(f"/precheck/{plain}").json()
+
+
+def test_the_precheck_tool_says_what_the_note_means() -> None:
+    from opn_api.mcp import reads  # noqa: PLC0415
+
+    text = next(tool.description for tool in reads.TOOLS if tool.name == "get_precheck")
+    assert "carried_witnesses" in text and "unchecked" in text

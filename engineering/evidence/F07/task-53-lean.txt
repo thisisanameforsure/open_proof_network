@@ -1,0 +1,17 @@
+F07-T53 (and T52's worked file), lean tier on the local toolchain (leanprover/lean4:v4.33.1 through elan), 2026-10-01T23:24:55Z
+$ uv run --frozen pytest gate/tests/test_finding_partial_carries_witnesses_lean.py -m lean -q -rA
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_the_precheck_states_each_holes_witness_type
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_a_skeleton_carrying_every_witness_leaves_every_hole_ready
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_a_carried_witness_of_the_wrong_type_refuses_the_partial
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_a_carried_witness_resting_on_an_axiom_refuses_the_partial
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_a_carried_witness_that_does_not_elaborate_refuses_the_partial
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_a_narrowed_witness_is_carried_as_it_would_be_proposed
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_a_carried_witness_on_a_target_with_defs_finds_them
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_the_guides_worked_file_is_a_carried_witness
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_a_carried_witness_cannot_import_the_parents_modules[Context]
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_a_carried_witness_cannot_import_the_parents_modules[Statement]
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_a_carried_witness_cannot_import_the_parents_modules[Witness]
+PASSED gate/tests/test_finding_partial_carries_witnesses_lean.py::test_a_carried_witness_cannot_import_the_parents_modules[Proof]
+12 passed in 887.95s (0:14:47)
+
+Docker tier (test_finding_partial_carries_witnesses_docker.py, 2 tests): not run, no daemon in this container; CI's.

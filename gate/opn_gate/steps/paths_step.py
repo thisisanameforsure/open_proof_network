@@ -143,7 +143,7 @@ def carried_witnesses(
             if p.is_file() and carried.is_carried(p.name)
         }
         names = sorted(carried.attached_to(assembly_rel, on_disk))
-    files = {rel: (node_dir / rel).read_text(encoding="utf-8") for rel in names}
+    files = {rel: carried.read_file(node_dir / rel) for rel in names}
     return carried.read(assembly_rel, files)
 
 

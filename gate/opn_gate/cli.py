@@ -1322,7 +1322,7 @@ def checked_witnesses(verdict: pipeline.Verdict, node_dir: Path) -> dict[str, st
         if not path.is_file():
             msg = f"the carried witness {path} is not in the checkout"
             raise CliError(msg)
-        text = path.read_text(encoding="utf-8")
+        text = carried.read_file(path)
         if schemas.content_hash(text.encode("utf-8")) != entry["sha256"]:
             msg = f"{path} is not the carried witness step 7 checked ({entry['sha256'][:12]}…)"
             raise CliError(msg)

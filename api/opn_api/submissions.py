@@ -328,17 +328,9 @@ def check_witnesses_checked(job: precheck.Job, witnesses: list[carried.Carried])
     refused here, by name, with the way that works on every pin."""
     if not witnesses:
         return
-    holes = (job.result or {}).get("holes")
-    checked = {
-        str(found.get("path")): str(found.get("sha256"))
-        for found in (
-            hole.get("witness")
-            for hole in (holes if isinstance(holes, list) else [])
-            if isinstance(hole, dict)
-        )
-        if isinstance(found, dict) and found.get("checked") is True
-    }
-    unchecked = [w.path for w in witnesses if checked.get(w.path) != w.sha256]
+    unchecked = precheck.unchecked_witnesses(
+        job.result, [{"path": w.path, "sha256": w.sha256} for w in witnesses]
+    )
     if unchecked:
         raise ApiError(
             400,

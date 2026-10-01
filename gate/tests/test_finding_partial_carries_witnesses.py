@@ -21,7 +21,7 @@ Over the fake seam; the real elaboration is ``test_finding_partial_carries_witne
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -33,7 +33,7 @@ from test_cli_sandboxed import NODES, Seam, git_repo, run
 from test_partial import ROOT, assembly_for, partial_context
 from test_postmerge import ASSEMBLY, HOLES, PARENT, PSEUDONYM, STAMP, hole, snapshot
 
-from opn_gate import carried, cli, graph, modes, paths, pipeline, postmerge
+from opn_gate import carried, cli, graph, modes, paths, pipeline, postmerge, schemas
 from opn_gate.paths import Change
 from opn_gate.steps.artifact import ARTIFACT_KEY, PARTIAL_KEY
 from opn_gate.toolchain import MetaprogramResult, ResolvedToolchain, WitnessRequest
@@ -581,3 +581,39 @@ def test_the_assembly_text_is_the_one_test_partial_builds(tmp_path: Path) -> Non
     """The two fixtures above stand on ``test_partial``'s assembly; keep them the same text."""
     ctx, _ = partial_context(tmp_path)
     assert assembly_for(ctx).endswith(BODY)
+
+
+# --- F07-T53: what is hashed and written is the file's bytes --------------------------------------
+
+
+def test_a_carried_witness_is_hashed_and_written_as_its_bytes(tmp_path: Path) -> None:
+    """The service binds a submission to its precheck by the hash of the bundle's text
+    (``hole-witness-unchecked``), and D-29 v3.24 says a hole is created with the witness that was
+    checked. Python's text mode folds ``\\r\\n`` into ``\\n`` on reading, so a witness with
+    Windows line ends was hashed by the gate as a text nobody sent: the service then refused the
+    submission in words about an old pin, and the child would have been written with other
+    bytes than the file on record. The gate reads a carried witness as its bytes."""
+    text = witness_text("right").replace("\n", "\r\n")
+    name = f"{STEM}.1.witness"
+    ctx, _fake = carrying(tmp_path, {})
+    (node_dir(ctx) / "attempts" / name).write_bytes(text.encode("utf-8"))
+    ctx.changes.append(Change("A", f"targets/{TARGET}/nodes/{ROOT}/attempts/{name}"))
+    verdict = pipeline.run_steps(ctx)
+    assert verdict.first_failing_step is None, verdict.as_dict()
+    (checked,) = ctx.data[carried.DATA_KEY]
+    assert checked["sha256"] == schemas.content_hash(text.encode("utf-8"))
+    staged = ctx.workdir / "holes" / "src" / "Nodes" / f"{ROOT}--h1" / "Witness.lean"
+    assert staged.read_bytes() == text.encode("utf-8")
+    held = replace(verdict, data=ctx.data)
+    assert cli.checked_witnesses(held, node_dir(ctx)) == {"right": text}
+    nodes = node_dir(ctx).parent
+    postmerge.apply_partial(
+        node_dir(ctx),
+        [art_hole(h) for h in ctx.data[ARTIFACT_KEY]["holes"]],
+        partial_text=(node_dir(ctx) / "attempts" / STAMP_FILE).read_text(encoding="utf-8"),
+        pseudonym=PSEUDONYM,
+        stamp=STAMP,
+        assembly_path=f"attempts/{STAMP_FILE}",
+        witnesses={"right": text},
+    )
+    assert (nodes / f"{ROOT}--h1" / "Witness.lean").read_bytes() == text.encode("utf-8")

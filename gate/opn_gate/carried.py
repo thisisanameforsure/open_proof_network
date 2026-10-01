@@ -26,6 +26,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from opn_gate import layout, schemas
@@ -58,6 +59,13 @@ class Carried:
 
     def as_dict(self) -> dict[str, Any]:
         return {"hole": self.hole, "path": self.path, "sha256": self.sha256}
+
+
+def read_file(path: Path) -> str:
+    """A carried witness as its bytes say, decoded and nothing more. Text mode folds ``\\r\\n``
+    into ``\\n``, and the hash of the folded text is not the hash of the file the service bound
+    the submission to, nor the text the hole's node is to be born with (F07-T53)."""
+    return path.read_bytes().decode("utf-8")
 
 
 def is_carried(name: str) -> bool:

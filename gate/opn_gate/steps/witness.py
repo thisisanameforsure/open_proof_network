@@ -186,7 +186,7 @@ def check_carried(ctx: RunContext, tc: ResolvedToolchain) -> StepResult | None: 
     for entry in files:
         hole, staged_id, existing = by_name[entry["hole"]]
         where = {"hole": hole.name, "path": entry["path"]}
-        text = Path(str(entry["file"])).read_text(encoding="utf-8")
+        text = carried.read_file(Path(str(entry["file"])))
         try:
             proposal = postmerge.child_proposal(
                 node.path, staged_id, hole, author="gate", origin=origin, witness=text
