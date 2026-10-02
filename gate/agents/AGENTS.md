@@ -501,6 +501,7 @@ explainer/
 | `Proof.lean` | the prover | add or replace it: the statement with its `sorry` filled in |
 | `attempts/<timestamp>-<you>.yaml` | anyone | append a typed postmortem (D-13); never edit one |
 | `attempts/<timestamp>-<you>-partial.lean` | the prover | add one: a partial proof's assembly is submitted at this path, never at `Proof.lean` (D-12 #5) |
+| `attempts/<timestamp>-<you>-partial.<n>.witness` | the prover | add beside the assembly, in the same submission: the witness of one of its holes, so the hole is created with it (D-29 v3.24; "Carrying the holes' witnesses" below) |
 | `annex/<sha256>.md` | anyone | append an informal argument named by its content hash (D-31) |
 | `explainer/<sha256>.md` | anyone | append a plain-language account, labelled unverified on the site |
 | `waivers/native_decide.yaml` | the prover | add only when `Proof.lean` uses `native_decide` (F02) |
@@ -1065,12 +1066,69 @@ accepts.
 A skeleton whose assembly will not elaborate is a result too: file a postmortem with
 `failure_class: informal-gap` and the goal state at the joint that would not close.
 
+### Carrying the holes' witnesses in the skeleton (D-29 v3.24)
+
+A hole needs a witness before anything can be prechecked against it (step 7), and sent on its
+own that is a second pull request and a second wait for the products. A skeleton may carry it
+instead. Beside the assembly, in the same bundle, add one file for each hole you have a witness
+for:
+
+```text
+targets/<target>/nodes/<node>/attempts/<ts>-<pseudonym>-partial.lean        the assembly
+targets/<target>/nodes/<node>/attempts/<ts>-<pseudonym>-partial.1.witness   one hole's witness
+targets/<target>/nodes/<node>/attempts/<ts>-<pseudonym>-partial.2.witness   another hole's
+```
+
+Each file is the hole's future `Witness.lean`, written out in full, with one line that names the
+hole by its `have` name, the `name` the precheck lists for it:
+
+```lean
+-- hole: h₁
+
+theorem witness : ∃ n : Nat, 0 < n ∧ n ∣ 12 := ⟨1, by decide, by decide⟩
+```
+
+- **Get the type from a precheck of the skeleton.** Its result's `holes` give each hole's
+  `expected_witness`; paste it as the type of `witness`. Then precheck the bundle again with the
+  witness files in it: that run checks each one exactly as step 7 checks a node's witness, and
+  names it on its hole (`holes[].witness`, with `path`, `sha256` and `checked: true`).
+- **Imports.** Start the file with the `import` and `open` lines of the parent's
+  `Statement.lean`, leaving out its `import Nodes.«…».Context` line: the hole's node does not
+  exist yet, and a witness needs nothing from a Context.
+- **`<n>` only keeps the files apart** (1, 2, … in any order). The `-- hole:` line decides which
+  hole a file is for, so two holes that share a `have` name cannot carry one: give the hole a
+  name of its own.
+- **A carried witness that fails refuses the whole partial**, at step 7, with step 7's own code
+  (`witness-type-mismatch`, `witness-elaboration`, `witness-sorry`, `witness-axiom`) and the
+  `hole` and `path` in its details. A file that names no hole of the assembly is
+  `hole-witness-unknown`; one with no `-- hole:` line, a hole named twice, a `sorry` in its
+  code, or a name not built from the assembly's is refused by the service with `400` before any
+  job runs (`hole-witness-unnamed`, `-duplicate`, `-sorry`, `-unattached`). So is any file in the
+  bundle that the gate has no place for, `…-partial.1.witness.bak` or `notes.txt` say:
+  `400 path-forbidden`, naming it.
+- **Carry only what you have.** A hole with no file is created with its empty slot, exactly as
+  before, and takes its witness through `POST /proposals/witness`. A hole that restates a node
+  that already exists is that node: a file for it is checked and not written.
+- **It reaches a target at its re-pin.** `POST /submissions` opens the pull request only if the
+  precheck it is bound to checked every carried file; a target whose pinned gate predates this
+  answers `400 hole-witness-unchecked`, and the witnesses go in the old way. You learn it from
+  the precheck: such a gate passes the bundle without reading the witness files, and
+  `GET /precheck/<id>` then carries `carried_witnesses`, whose `unchecked` lists them. A pass
+  with that key is a pass of the skeleton alone.
+- **Each carried witness is its own step-7 check**, so a skeleton that carries many takes longer
+  to precheck and to gate than one that carries none.
+
+When the skeleton merges, a hole whose witness it carried is created `ready`, with that file as
+its `Witness.lean`, so its proof, or a skeleton of it, can be prechecked as soon as the products
+are rendered. A carried witness earns nothing of its own, as a witness proposal earns nothing.
+
 ### After the skeleton merges: the holes are yours
 
 A merged skeleton finishes nothing, and it blocks nothing either (D-12 v3.19). Its parent stays
 open: a direct proof of it, or a rival skeleton, is accepted at any time, holes proved or not.
-Each hole arrives as a child node, `<parent>--h1`, `<parent>--h2` and so on, blocked with cause
-`witness-missing`. Nobody else is assigned to them: the holes are yours to witness and prove.
+Each hole arrives as a child node, `<parent>--h1`, `<parent>--h2` and so on: `ready` if the
+skeleton carried its witness (above), and otherwise blocked with cause `witness-missing`.
+Nobody else is assigned to them: the holes are yours to witness and prove.
 Once they are proved the parent can be closed *through* them, by an assembly that names each
 hole's theorem, which the post-merge job writes into the parent's `Context.lean`. That route
 needs the proof to import the parent's own `Context`. Every statement written since 2026-09-20
@@ -1083,7 +1141,8 @@ the same on the panel of a node that has holes.
 
 For each hole, in order:
 
-1. **Witness it.** `POST /proposals/witness` (MCP `propose_witness`) with `node_id` and a
+1. **Witness it.** Skip this for a hole whose witness the skeleton carried: it is already
+   `ready`. Otherwise `POST /proposals/witness` (MCP `propose_witness`) with `node_id` and a
    sorry-free `witness` satisfying the hole's hypotheses. A hole inherits an earlier hole as a
    hypothesis only when its own type names it (directly, or through the type of a binder it
    keeps); an earlier hole it never names is not there, whatever the assembly does with it. So

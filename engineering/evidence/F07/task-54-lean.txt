@@ -1,0 +1,14 @@
+F07-T54 lean tier, local toolchain: Lean (version 4.33.1, x86_64-unknown-linux-gnu, commit 819816b2e0a3bf405af45ae5c7af2491d8f5bee6, Release)
+$ uv run --frozen pytest -m lean gate/tests/test_finding_partial_carries_witnesses_lean.py gate/tests/test_uses_defs_lean.py gate/tests/test_uses_nodes_lean.py gate/tests/test_uses_carried_lean.py gate/tests/test_finding_carried_witness_uses_lean.py -q
+......................x..........                                        [100%]
+=========================== short test summary info ============================
+XFAIL gate/tests/test_uses_defs_lean.py::test_a_dependencys_proof_module_cannot_change_the_statement_of_any_artifact - F08-Q36, a defect older than uses and not fixed by T23: an artifact with no use lines is not compared with its statement, so a dependency's merged proof that carries an instance after its body (step 2 accepts the file) changes what a dependent's statement elaborates to, and a false statement passes every step. Proposed as F08-T28: run the meaning guard whenever the staged Context imports a proof.
+32 passed, 1 xfailed in 2265.02s (0:37:45)
+
+$ uv run --frozen pytest -m lean gate/tests/test_hazards_lean.py gate/tests/test_hazards_through_axle_text_lean.py -q
+.............                                                            [100%]
+13 passed in 81.20s (0:01:21)
+
+The new test alone, after the fix:
+.                                                                        [100%]
+1 passed in 165.20s (0:02:45)

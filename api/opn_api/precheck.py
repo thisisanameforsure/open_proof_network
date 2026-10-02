@@ -78,6 +78,10 @@ class Job:
     #: F06-T10: ``{pr_number, pr_url, head_sha}`` when the node exists only in an open proposal
     #: whose gate is green and the job runs at that proposal's head; ``None`` for a node on main.
     proposal: dict[str, Any] | None = None
+    #: F07-T53: ``[{path, sha256}]`` for each witness the bundle carried for a partial's holes
+    #: (path under the node), so the served result can say which of them the pinned gate did
+    #: not check; ``None`` for a bundle that carried none, and for a job stored before this.
+    carried: list[dict[str, str]] | None = None
 
     @property
     def anonymous(self) -> bool:
@@ -108,6 +112,9 @@ class Job:
         }
         if state == "done":
             out["result"] = self.result
+            note = carried_note(self.result, self.carried)
+            if note is not None:
+                out["carried_witnesses"] = note
         if state == "error":
             out["error"] = self.error
             out["run_url"] = self.run_url
@@ -120,6 +127,48 @@ class Job:
         # The scratch repo is public, so a submitter learns that before they submit again (§7).
         out["public"] = True
         return out
+
+
+def unchecked_witnesses(result: Any, carried: list[dict[str, str]] | None) -> list[str]:
+    """F07-R23: of the witnesses a bundle carried (``[{path, sha256}]``), the paths the job's
+    result does not name as checked, byte for byte, on a hole (``holes[].witness``). A gate
+    pinned before R23 names none: it does not read the files."""
+    holes = result.get("holes") if isinstance(result, dict) else None
+    checked = {
+        str(found.get("path")): str(found.get("sha256"))
+        for found in (
+            hole.get("witness")
+            for hole in (holes if isinstance(holes, list) else [])
+            if isinstance(hole, dict)
+        )
+        if isinstance(found, dict) and found.get("checked") is True
+    }
+    return [w["path"] for w in carried or [] if checked.get(w["path"]) != w["sha256"]]
+
+
+def carried_note(result: Any, carried: list[dict[str, str]] | None) -> dict[str, Any] | None:
+    """F07-T53: what a passing precheck says of carried witnesses its gate did not check, or
+    ``None`` when there is nothing to say (none carried, all checked, or the verdict is not a
+    pass, whose diagnostic is the news). A target reaches R23 at its re-pin; until then its
+    gate passes the bundle without reading those files, and a ``pass`` with no word about them
+    would read as a pass of them."""
+    if not carried or not isinstance(result, dict) or result.get("verdict") != "pass":
+        return None
+    unchecked = unchecked_witnesses(result, carried)
+    if not unchecked:
+        return None
+    return {
+        "unchecked": unchecked,
+        "checked": [w["path"] for w in carried if w["path"] not in unchecked],
+        "message": (
+            "this precheck passed without checking the carried witness "
+            + ", ".join(unchecked)
+            + ": the gate this target pins does not read a partial's carried witnesses yet "
+            "(F07-R23 reaches a target at its re-pin). POST /submissions refuses this bundle "
+            "(400 hole-witness-unchecked); submit the partial without the witness files and "
+            "send each hole's witness through POST /proposals/witness once the hole exists"
+        ),
+    }
 
 
 def proposal_message(proposal: dict[str, Any]) -> str:
@@ -522,6 +571,8 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
     if artifact_type is not None:
         # A precheck that the submission would refuse by path is refused before it costs a job.
         submissions.check_artifact_path(claim, bundle.files, artifact_type)
+    # F07-R23: and so is a carried witness step 2 would refuse, whatever type was declared.
+    carried = submissions.check_carried(claim, bundle.files)
 
     if proposal is not None:
         # F06-T10: the proposal's branch lives on the graph, so the workflow checks out its head
@@ -544,6 +595,7 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
         identity_id=identity.id if identity else None,
         nonce=nonce,
         proposal=proposal.reference() if proposal is not None else None,
+        carried=[{"path": w.path, "sha256": w.sha256} for w in carried] or None,
     )
     save(ctx, job)
     dispatch(ctx, job, bundle)

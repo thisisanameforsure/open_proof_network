@@ -1,0 +1,97 @@
+F07-T51 red run, 2026-10-01T21:27:33Z: the gate half (T50) in place, the service unchanged. Every failure is a status code or a description, none a missing name.
+$ uv run --frozen pytest api/tests/test_finding_partial_witnesses.py -q -rf --tb=line
+..FFFFFFFF.FFFFF                                                         [100%]
+=================================== FAILURES ===================================
+E   AssertionError: opened on an unchecked witness: 201 {"submission_id":"01M230M2G0D2ECP5XRWAGZED62","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"node_id":"tutorial-and-swap","target_id":"propositional","artifact_type":"partial"}
+    assert 201 == 400
+     +  where 201 = <Response [201 Created]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/home/claude/opn-wt-wit/api/tests/test_finding_partial_witnesses.py:189: AssertionError: opened on an unchecked witness: 201 {"submission_id":"01M230M2G0D2ECP5XRWAGZED62","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"node_id":"tutorial-and-swap","target_id":"propositional","artif
+E   AssertionError: opened on an unchecked witness: 201 {"submission_id":"01M230M2G02VYNS3JS04FRSMMK","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"node_id":"tutorial-and-swap","target_id":"propositional","artifact_type":"partial"}
+    assert 201 == 400
+     +  where 201 = <Response [201 Created]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/home/claude/opn-wt-wit/api/tests/test_finding_partial_witnesses.py:189: AssertionError: opened on an unchecked witness: 201 {"submission_id":"01M230M2G02VYNS3JS04FRSMMK","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"node_id":"tutorial-and-swap","target_id":"propositional","artif
+E   AssertionError: opened on an unchecked witness: 201 {"submission_id":"01M230M2G0BD5XC46NAMZZQ12M","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"node_id":"tutorial-and-swap","target_id":"propositional","artifact_type":"partial"}
+    assert 201 == 400
+     +  where 201 = <Response [201 Created]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/home/claude/opn-wt-wit/api/tests/test_finding_partial_witnesses.py:189: AssertionError: opened on an unchecked witness: 201 {"submission_id":"01M230M2G0BD5XC46NAMZZQ12M","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"node_id":"tutorial-and-swap","target_id":"propositional","artif
+E   AssertionError: opened on an unchecked witness: 201 {"submission_id":"01M230M2G03477BMW63MKXVEZC","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"node_id":"tutorial-and-swap","target_id":"propositional","artifact_type":"partial"}
+    assert 201 == 400
+     +  where 201 = <Response [201 Created]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/home/claude/opn-wt-wit/api/tests/test_finding_partial_witnesses.py:189: AssertionError: opened on an unchecked witness: 201 {"submission_id":"01M230M2G03477BMW63MKXVEZC","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"node_id":"tutorial-and-swap","target_id":"propositional","artif
+E   AssertionError: a job was spent on it: 202 {"id":"01M230M2G02Z0M5PMVM3CP5Y6G","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"8d163935ddfa615883e4b79c1978d5a13343cdd767dbcb30ca017847e3f53206"
+    assert 202 == 400
+     +  where 202 = <Response [202 Accepted]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/home/claude/opn-wt-wit/api/tests/test_finding_partial_witnesses.py:228: AssertionError: a job was spent on it: 202 {"id":"01M230M2G02Z0M5PMVM3CP5Y6G","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_diges
+E   AssertionError: a job was spent on it: 202 {"id":"01M230M2G0T6Y3446WZ8EPD1C3","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"d7ddf55d6aa1cf5b39c14251a7993e67f004eb2055c3843fe91ea84dfc90d0c9"
+    assert 202 == 400
+     +  where 202 = <Response [202 Accepted]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/home/claude/opn-wt-wit/api/tests/test_finding_partial_witnesses.py:228: AssertionError: a job was spent on it: 202 {"id":"01M230M2G0T6Y3446WZ8EPD1C3","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_diges
+E   AssertionError: a job was spent on it: 202 {"id":"01M230M2G0RTC3G5WRJD4YHY5P","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"c52487d506e9ef2796dc83fbf2be517769fe9b2e9181c1c6d0eebec433dc77d5"
+    assert 202 == 400
+     +  where 202 = <Response [202 Accepted]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/home/claude/opn-wt-wit/api/tests/test_finding_partial_witnesses.py:228: AssertionError: a job was spent on it: 202 {"id":"01M230M2G0RTC3G5WRJD4YHY5P","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_diges
+E   AssertionError: a job was spent on it: 202 {"id":"01M230M2G091RXZRC3BEDQ3DKJ","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"cdabfa078374e46b4d9a0e11d16fc817207666972b2342a8a8cfcd130d60e7f2"
+    assert 202 == 400
+     +  where 202 = <Response [202 Accepted]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/home/claude/opn-wt-wit/api/tests/test_finding_partial_witnesses.py:228: AssertionError: a job was spent on it: 202 {"id":"01M230M2G091RXZRC3BEDQ3DKJ","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_diges
+E   AssertionError: a job was spent on it: 202 {"id":"01M230M2G0YGCNF9BPB227SBTR","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"340c87a6bc470d9d590bbb3c9809498deaa439532c563b1c2b5cdf8d7e71da4c"
+    assert 202 == 400
+     +  where 202 = <Response [202 Accepted]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/home/claude/opn-wt-wit/api/tests/test_finding_partial_witnesses.py:228: AssertionError: a job was spent on it: 202 {"id":"01M230M2G0YGCNF9BPB227SBTR","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_diges
+E   AssertionError: a job was spent on it: 202 {"id":"01M230M2G0SZSPM7K07NRVK765","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"340c87a6bc470d9d590bbb3c9809498deaa439532c563b1c2b5cdf8d7e71da4c"
+    assert 202 == 400
+     +  where 202 = <Response [202 Accepted]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/home/claude/opn-wt-wit/api/tests/test_finding_partial_witnesses.py:228: AssertionError: a job was spent on it: 202 {"id":"01M230M2G0SZSPM7K07NRVK765","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_diges
+E   AssertionError: a job was spent on it: 202 {"id":"01M230M2G0J92PNNPHY5FABMN8","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_digest":"086b5aaab38a7c8e32dd40460b417492856da2519f8ad28c4600c2e00d9c807b"
+    assert 202 == 400
+     +  where 202 = <Response [202 Accepted]>.status_code
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/home/claude/opn-wt-wit/api/tests/test_finding_partial_witnesses.py:228: AssertionError: a job was spent on it: 202 {"id":"01M230M2G0J92PNNPHY5FABMN8","node_id":"tutorial-and-swap","target_id":"propositional","state":"queued","created":"2026-09-09T12:00:00Z","graph_commit":"5555555555555555555555555555555555555555","bundle_diges
+E   AssertionError: {"error":"precheck-unknown","message":"no precheck job 01JXYZABCDEFGHJKMNPQRSTVWX"}
+    assert (400 == 400 and 'precheck-unknown' == 'hole-witness-unnamed'
+     +  where 400 = <Response [400 Bad Request]>.status_code
+      
+      - hole-witness-unnamed
+      + precheck-unknown)
+------------------------------ Captured log call -------------------------------
+WARNING  opn_api.frontier:frontier.py:74 the graph's head could not be read, serving the branch: no head configured
+/home/claude/opn-wt-wit/api/tests/test_finding_partial_witnesses.py:239: AssertionError: {"error":"precheck-unknown","message":"no precheck job 01JXYZABCDEFGHJKMNPQRSTVWX"}
+E   AssertionError: precheck_submission
+    assert ('.witness' in "Run the gate's steps 1-2 and 4-8 on a bundle server-side, structurally identical to pregate.sh, and get back a job id...ate): the job runs at the proposal's head commit and names it in `proposal`; submit with it after the proposal merges.")
+/home/claude/opn-wt-wit/api/tests/test_finding_partial_witnesses.py:255: AssertionError: precheck_submission
+=========================== short test summary info ============================
+FAILED api/tests/test_finding_partial_witnesses.py::test_a_carried_witness_the_precheck_did_not_check_opens_nothing[None]
+FAILED api/tests/test_finding_partial_witnesses.py::test_a_carried_witness_the_precheck_did_not_check_opens_nothing[holes1]
+FAILED api/tests/test_finding_partial_witnesses.py::test_a_carried_witness_the_precheck_did_not_check_opens_nothing[holes2]
+FAILED api/tests/test_finding_partial_witnesses.py::test_a_carried_witness_the_precheck_did_not_check_opens_nothing[holes3]
+FAILED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle0-partial-hole-witness-unnamed]
+FAILED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle1-partial-hole-witness-duplicate]
+FAILED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle2-partial-hole-witness-sorry]
+FAILED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle3-partial-hole-witness-unattached]
+FAILED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle5-proof-hole-witness-without-partial]
+FAILED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle6-None-hole-witness-without-partial]
+FAILED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_costs_no_precheck_job[bundle7-None-hole-witness-without-partial]
+FAILED api/tests/test_finding_partial_witnesses.py::test_a_malformed_carried_witness_is_refused_at_submission_too
+FAILED api/tests/test_finding_partial_witnesses.py::test_the_two_tools_say_how_a_bundle_carries_witnesses
+13 failed, 3 passed, 2 warnings in 0.90s

@@ -14,7 +14,7 @@ import json
 import logging
 import re
 import urllib.request
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -478,15 +478,20 @@ class PartialMerge:
     #: F07-T7: per hole, in extraction order, ``{name, child, reused_node}`` — exactly one of the
     #: last two is set: the node created for it, or the existing node it restates.
     holes: tuple[dict[str, str | None], ...] = ()
+    #: F07-R23: the children created with a witness the partial carried, so born ``ready``.
+    witnessed: tuple[str, ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
-        return {
+        doc: dict[str, Any] = {
             "children": list(self.children),
             "attempt": self.attempt_path,
             "origin": self.origin,
             "annex": self.annex,
             "holes": [dict(h) for h in self.holes],
         }
+        if self.witnessed:  # absent when nothing was carried: the document is what it was
+            doc["witnessed"] = list(self.witnessed)
+        return doc
 
 
 def attempt_name(stamp: str, pseudonym: str, suffix: str) -> str:
@@ -525,6 +530,7 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
     author: str | None = None,
     assembly_path: str | None = None,
     model: str | None = None,
+    witnesses: Mapping[str, str] | None = None,
 ) -> PartialMerge:
     """R6: turn a merged partial into child nodes, with the assembly on record under ``attempts/``.
 
@@ -540,6 +546,12 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
     v3.19), since the parent must not come to wait on a sibling because of a route. ``model``
     is the submission block's declared model, recorded in each child's provenance as the D-23
     disclosure it came from (R13).
+
+    ``witnesses`` maps a hole's name to the witness the partial carried for it (R23, D-29
+    v3.24), as the caller's own run of step 7 checked it: the child created for that hole is
+    born with that text as its ``Witness.lean`` instead of the slot, and so is not blocked. A
+    hole with none is created as before; a hole that is an existing node is never touched,
+    whatever is carried for it (its witness is a proposal's, F08-R5).
 
     ``assembly_path`` is the merged assembly's own path under the node when the submission was
     the ``attempts/*.lean`` file partial mode takes (F11-T4): that file *is* the attempt record,
@@ -580,20 +592,12 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
     annex = annex_citation(partial_text)
     nodes_dir = node_dir.parent
     parent = node_dir.name
-    reused = [
-        reused_node(nodes_dir, parent, hole) or existing_hole_for(nodes_dir, parent, hole)
-        for hole in holes
-    ]
-    parent_statement = node_dir / "Statement.lean"
-    parent_text = parent_statement.read_text(encoding="utf-8") if parent_statement.is_file() else ""
-    imports = [*parent_imports(parent_text), *assembly_defs(parent_text, partial_text, parent)]
-    opens = parent_opens(parent_text)
     created: list[str] = []
     edges: list[str] = []
     placed: list[dict[str, str | None]] = []
-    # R22 (D-12 v3.19): a later decomposition numbers its holes after the earlier ones'.
-    first = next_child_index(nodes_dir, parent)
-    for index, (hole, existing) in enumerate(zip(holes, reused, strict=True), start=first):
+    carried_witnesses = dict(witnesses or {})
+    witnessed: list[str] = []
+    for hole, child, existing in plan_children(node_dir, holes):
         if existing is not None:
             # R22: a hole that restates one of the node's own holes is that hole again, and the
             # edge is already on the record. One that restates any other sibling adds no edge:
@@ -603,22 +607,26 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
                 edges.append(existing)
             placed.append({"name": hole.name, "child": None, "reused_node": existing})
             continue
-        child = child_id(parent, index)
-        statement = child_statement(child, hole, imports=imports, opens=opens)
-        proposal = scaffold.Proposal(
-            node_id=child,
-            target_id=nodes_dir.parent.name,
-            statement=statement,
-            witness=witness_slot(getattr(hole, "expected_witness", None), statement),
+        assert child is not None
+        proposal = child_proposal(
+            node_dir,
+            child,
+            hole,
             # F07-T28: who decomposed the node, not who opened the pull request. The caller's
             # pseudonym is already the block's, or the login when there is no block.
             author=pseudonym or author or "",
-            origin=origin,  # type: ignore[arg-type]
+            origin=origin,
             date=stamp_to_date(stamp),
             model=model,
-            extra_meta=proved_record(hole),
+            # R23 (D-29 v3.24): the witness the partial carried for this hole and step 7
+            # checked, written as it was checked; none, and the child is born with its slot.
+            witness=carried_witnesses.get(hole.name),
+            # F08-R16: the ``Defs.*`` modules the assembly declared as uses come with the hole.
+            partial_text=partial_text,
         )
         scaffold.write(nodes_dir, proposal)
+        if hole.name in carried_witnesses:
+            witnessed.append(child)
         created.append(child)
         edges.append(child)
         placed.append({"name": hole.name, "child": child, "reused_node": None})
@@ -628,7 +636,69 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
     attempt = (
         str(assembly_path) if on_record else record_attempt(node_dir, attempt_file, partial_text)
     )
-    return PartialMerge(tuple(created), attempt, origin, annex, tuple(placed))
+    return PartialMerge(tuple(created), attempt, origin, annex, tuple(placed), tuple(witnessed))
+
+
+def plan_children(node_dir: Path, holes: Sequence[Any]) -> list[tuple[Any, str | None, str | None]]:
+    """Where each hole of a partial on ``node_dir`` goes, in extraction order: ``(hole, child,
+    existing)`` with exactly one of the last two set — the id of the node to be created for it,
+    or the existing node it restates (F07-T7, R22). One function, read by the post-merge writer
+    and by step 7's check of a carried witness (R23), so the statement a witness is checked
+    against before the merge is the one written after it.
+
+    R22 (D-12 v3.19): a later decomposition numbers its holes after the earlier ones', and a
+    hole keeps the index of its position whether or not an earlier one was reused. Raises
+    ``GraphWriteError`` for a reported sibling that is not a node of the target."""
+    nodes_dir = node_dir.parent
+    parent = node_dir.name
+    first = next_child_index(nodes_dir, parent)
+    plan: list[tuple[Any, str | None, str | None]] = []
+    for index, hole in enumerate(holes, start=first):
+        existing = reused_node(nodes_dir, parent, hole) or existing_hole_for(
+            nodes_dir, parent, hole
+        )
+        plan.append((hole, None, existing) if existing else (hole, child_id(parent, index), None))
+    return plan
+
+
+def child_proposal(  # noqa: PLR0913 — the node's facts, each named
+    node_dir: Path,
+    child: str,
+    hole: Any,
+    *,
+    author: str,
+    origin: str,
+    date: str | None = None,
+    model: str | None = None,
+    witness: str | None = None,
+    partial_text: str = "",
+) -> Any:
+    """The node a hole becomes, as the scaffold's proposal: its statement under the parent's
+    imports and ``open`` lines and the ``Defs.*`` modules the assembly (``partial_text``)
+    declared as uses (F08-R16), and ``witness`` — the text a partial carried for it and step 7
+    checked (R23) — or, with none, the slot (R6, R21)."""
+    from opn_gate import scaffold  # noqa: PLC0415 — scaffold imports layout, which imports schemas
+
+    parent_statement = node_dir / "Statement.lean"
+    parent_text = parent_statement.read_text(encoding="utf-8") if parent_statement.is_file() else ""
+    imports = [
+        *parent_imports(parent_text),
+        *assembly_defs(parent_text, partial_text, node_dir.name),
+    ]
+    statement = child_statement(child, hole, imports=imports, opens=parent_opens(parent_text))
+    return scaffold.Proposal(
+        node_id=child,
+        target_id=node_dir.parent.parent.name,
+        statement=statement,
+        witness=witness
+        if witness is not None
+        else witness_slot(getattr(hole, "expected_witness", None), statement),
+        author=author,
+        origin=origin,  # type: ignore[arg-type]
+        date=date,
+        model=model,
+        extra_meta=proved_record(hole),
+    )
 
 
 def proved_record(hole: Any) -> dict[str, Any]:

@@ -26,6 +26,7 @@ from opn_gate import (
     attestation,
     bounce,
     cache,
+    carried,
     config,
     curator,
     defs,
@@ -1338,9 +1339,29 @@ def apply_merged_partial(
             author=args.author,
             assembly_path=str(partial["path"]),
             model=submissionmod.tooling(block)["model"],  # R13: the block's declared model
+            witnesses=checked_witnesses(verdict, node_dir),
         )
     except postmerge.GraphWriteError as exc:
         raise CliError(str(exc)) from exc
+
+
+def checked_witnesses(verdict: pipeline.Verdict, node_dir: Path) -> dict[str, str]:
+    """F07-R23 (D-29 v3.24): hole name -> the witness the merged partial carried for it, for
+    exactly the witnesses this run's step 7 checked and nothing else. Read from the checkout
+    (the run used an export of the same commit) and held to the hash step 7 recorded, so what
+    is written into a child is what was checked, byte for byte."""
+    out: dict[str, str] = {}
+    for entry in verdict.data.get(carried.DATA_KEY) or []:
+        path = node_dir / str(entry["path"])
+        if not path.is_file():
+            msg = f"the carried witness {path} is not in the checkout"
+            raise CliError(msg)
+        text = carried.read_file(path)
+        if schemas.content_hash(text.encode("utf-8")) != entry["sha256"]:
+            msg = f"{path} is not the carried witness step 7 checked ({entry['sha256'][:12]}…)"
+            raise CliError(msg)
+        out[str(entry["hole"])] = text
+    return out
 
 
 def run_admit(args: argparse.Namespace, settings: config.Settings) -> int:

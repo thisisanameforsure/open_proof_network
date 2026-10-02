@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Literal
 
-from opn_gate import layout, schemas
+from opn_gate import carried, layout, schemas
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.layout import Statement
 
@@ -186,6 +186,7 @@ Role = Literal[
     "waiver",  # waivers/native_decide.yaml (F02-R8)
     "partial",  # a .lean assembly under attempts/ (D-12 #5): the node stays open
     "alternate",  # attempts/<ts>-<pseudonym>-alternate.lean: a later proof of a proved node (D-25)
+    "hole-witness",  # attempts/<assembly>.<n>.witness: a witness a partial carries (F07-R23)
     "postmortem",  # attempts/<ts>-<contributor>.yaml (D-13)
     "precheck-record",  # attempts/precheck/<name>.json (D-34)
     "annex",  # annex/<hash>.md (D-31)
@@ -433,6 +434,10 @@ def _node_role(rest: str) -> Role | None:  # noqa: PLR0911, PLR0912 — one bran
         return "precheck-record" if _is_flat(name, (".json",)) else None
     if rest.startswith("attempts/"):
         name = rest[len("attempts/") :]
+        # F07-R23 (D-29 v3.24): a witness a partial carries for one of its holes. Not `.lean`,
+        # so nothing that reads attempts/*.lean for assemblies takes it for one.
+        if _is_flat(name, (carried.SUFFIX,)) and carried.is_carried(name):
+            return "hole-witness"
         if _is_flat(name, (".lean",)):
             return "alternate" if name.endswith(ALTERNATE_SUFFIX) else "partial"
         return "postmortem" if _is_flat(name, YAML_SUFFIXES) else None

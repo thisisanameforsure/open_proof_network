@@ -120,3 +120,31 @@ def test_a_hole_says_which_binders_its_assembly_proved() -> None:
     before submitting what a witness of each hole will have to exhibit."""
     out = result_of(partial({**HOLE, "proved_binders": [1]}, HOLE), verdict())
     assert [h["proved_binders"] for h in out["holes"]] == [[1], []]
+
+
+def test_a_hole_whose_witness_the_bundle_carried_says_so() -> None:
+    """F07-T50 (R23, AC46; D-29 v3.24): step 7 checked the witness the bundle carried for
+    ``hden``; the result names its path and hash on that hole, which is what the service reads
+    before it opens a pull request for a bundle with carried witnesses. A hole that carried
+    none has no such key, so a result for a partial of the old shape is what it was."""
+    ctx = partial(HOLE, {**HOLE, "name": "hden"})
+    plain = result_of(ctx, verdict())
+    ctx.data["hole_witnesses"] = [
+        {
+            "hole": "hden",
+            "path": "attempts/20261001T000000Z-a-partial.1.witness",
+            "sha256": "b" * 64,
+            "expected": "∃ (n : Nat), 1 ≤ n",
+            "witness": "∃ (n : Nat), 1 ≤ n",
+            "axioms": [],
+        }
+    ]
+    out = result_of(ctx, verdict())
+    assert "witness" not in out["holes"][0]
+    assert out["holes"][1]["witness"] == {
+        "path": "attempts/20261001T000000Z-a-partial.1.witness",
+        "sha256": "b" * 64,
+        "checked": True,
+    }
+    assert [{k: v for k, v in h.items() if k != "witness"} for h in out["holes"]] == plain["holes"]
+    assert all("witness" not in h for h in plain["holes"])

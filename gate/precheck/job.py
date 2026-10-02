@@ -24,7 +24,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from opn_gate import attestation, config, layout, pipeline, sandbox, schemas, signer
+from opn_gate import attestation, carried, config, layout, pipeline, sandbox, schemas, signer
 from opn_gate.cli import ensure_image
 from opn_gate.paths import Change, Claim
 from opn_gate.steps.base import RunContext
@@ -126,7 +126,9 @@ def result_document(
     """The result the service serves: the verdict, its steps and the signed attestation, and for
     a partial the holes it would leave (F06-T9): each hole's statement as the post-merge job will
     write it and the witness type step 7 will ask of it, so a contributor reads what a skeleton
-    creates before submitting it. Like ``steps`` they sit outside the attestation."""
+    creates before submitting it; and, on a hole whose witness the bundle carried and step 7
+    checked, ``witness`` (F07-R23), which is what the service reads before it opens a pull
+    request for such a bundle. Like ``steps`` they sit outside the attestation."""
     result: dict[str, Any] = {
         "job_id": str(job["id"]),
         "node_id": str(job["node_id"]),
@@ -138,6 +140,12 @@ def result_document(
     }
     artifact = ctx.data.get("artifact") or {}
     if artifact.get("kind") in ("partial", "reduction") and artifact.get("holes"):
+        # F07-R23 (D-29 v3.24): the witness the bundle carried for a hole, once step 7 has
+        # checked it, by the hole's name; the key is absent from a hole that carried none.
+        witnessed = {
+            str(w.get("hole")): {"path": w.get("path"), "sha256": w.get("sha256"), "checked": True}
+            for w in ctx.data.get(carried.DATA_KEY) or []
+        }
         result["holes"] = [
             {
                 "name": hole.get("name"),
@@ -147,6 +155,7 @@ def result_document(
                 # F07-T44: the binders the assembly proved, which the witness need not exhibit.
                 "proved_binders": list(hole.get("proved_binders") or []),
             }
+            | ({"witness": witnessed[hole["name"]]} if hole.get("name") in witnessed else {})
             for hole in artifact["holes"]
         ]
     return result
