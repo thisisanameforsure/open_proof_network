@@ -70,7 +70,45 @@ def load_pick(doc: dict[Any, Any]) -> dict[str, Any]:
     body = script.split("cat > pick.py <<'PY'\n", 1)[1].split("\nPY\n", 1)[0]
     namespace: dict[str, Any] = {"__name__": "pick"}
     exec(compile(textwrap.dedent(body), "pick.py", "exec"), namespace)  # noqa: S102
+    if "lane_of_paths" in namespace:  # F07-T56: ``decide`` answers one step per lane
+        namespace["decide_lanes"] = namespace["decide"]
+        namespace["decide"] = one_line(namespace["decide"])
     return namespace
+
+
+def one_line(decide: Any) -> Any:
+    """F07-T56: ``decide`` answers a list of (number, sha, action), one step per lane. The tests
+    written before lanes pass no ``lane_of``, so every pull request is in the one line the queue
+    was, and read the answer the way the acting step took it then: nothing, a hold, one action, or
+    T45's batch of appends, the numbers and heads joined and the action ``merge-batch``."""
+
+    def shaped(
+        pulls: list[dict[str, Any]],
+        rules: Any,
+        checks_of: Any,
+        behind_of: Any,
+        conflicted: Any = lambda _number: False,
+        **kw: Any,
+    ) -> tuple[Any, Any, str]:
+        assert "postmerge_running" not in kw, "F07-T56: nothing waits for a post-merge job"
+        decided = decide(pulls, rules, checks_of, behind_of, conflicted, **kw)
+        decided = [d for d in decided if d[2] != "wait"]  # a wait holds nothing: as it was
+        if not decided:
+            return "", "", ""
+        if decided[0][2] == "hold":
+            return "", "", "hold"
+        refs = {pr["number"]: pr["head"]["ref"] for pr in pulls}
+        number, sha, action = decided[0]
+        lone_append_behind = refs[number].startswith("append/") and behind_of(sha) > 0
+        if len(decided) == 1 and not lone_append_behind:
+            return number, sha, action
+        return (
+            " ".join(str(n) for n, _s, _a in decided),
+            " ".join(s for _n, s, _a in decided),
+            "merge-batch",
+        )
+
+    return shaped
 
 
 @pytest.fixture(scope="module")
@@ -119,7 +157,7 @@ def test_exactly_one_step_names_the_secret_and_it_dry_runs_without_it(doc: dict[
     act = naming[0]["run"]
     assert 'if [ -z "${GH_TOKEN:-}" ]' in act and "dry run" in act and "exit 0" in act
     # the merge names the commit it saw, so a push in between refuses rather than lands unchecked
-    assert '-f sha="$SHA"' in act and 'expected_head_sha="$SHA"' in act
+    assert '-f sha="$s"' in act and 'expected_head_sha="$s"' in act
     assert doc["concurrency"] == {"group": "merge", "cancel-in-progress": False}
 
 

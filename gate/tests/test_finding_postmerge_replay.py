@@ -55,24 +55,17 @@ def green() -> list[dict[str, Any]]:
 # --- the actor ------------------------------------------------------------------------------------
 
 
+# Restated by F07-T56 (Q61), on the owner's request: T33's hold is reversed and its aim kept. The
+# actor no longer waits for a post-merge job, a replay included; a job that finds main moved under
+# it catches up on main as it is instead of losing its record (F07-T55, tested end to end in
+# ``test_finding_postmerge_catch_up.py``).
+
+
 @pytest.mark.parametrize("ref", ["append/annex", "propose/variant", "submit/proof"])
-def test_nothing_is_merged_while_a_post_merge_job_runs(pick: dict[str, Any], ref: str) -> None:
-    """An up-to-date green pull request of any kind waits for the running job to commit."""
+def test_nothing_waits_for_a_post_merge_job(pick: dict[str, Any], ref: str) -> None:
     pulls = [pull(142, ref)]
-    got = pick["decide"](
-        pulls, RULES, lambda _s: green(), lambda _s: 0, postmerge_running=lambda: True
-    )
-    assert got == ("", "", "hold"), (ref, got)
-
-
-def test_an_append_is_not_updated_into_the_window_either(pick: dict[str, Any]) -> None:
-    """Updating it would only make it green and up to date inside the window, to be held there;
-    the round is spent after the job commits instead."""
-    pulls = [pull(142, "append/annex")]
-    got = pick["decide"](
-        pulls, RULES, lambda _s: green(), lambda _s: 1, postmerge_running=lambda: True
-    )
-    assert got == ("", "", "hold")
+    got = pick["decide"](pulls, RULES, lambda _s: green(), lambda _s: 0)
+    assert got == (142, pulls[0]["head"]["sha"], "merge"), (ref, got)
 
 
 def moved_under_a_job(w: World) -> list[int]:
@@ -85,19 +78,26 @@ def moved_under_a_job(w: World) -> list[int]:
     return sorted(set(lost))
 
 
-def test_the_afternoon_loses_no_post_merge_commit(
+def test_the_afternoon_drains_with_merges_under_running_jobs_and_each_job_catches_up(
     pick: dict[str, Any], gate_doc: dict[Any, Any]
 ) -> None:
+    """The window T33 closed is open again on purpose: merges land under running jobs, and each
+    such job's push is the case the catch-up exists for."""
     w = world(pick, gate_doc, the_afternoon_of_148())
     w.advance(4 * 3600)
     assert w.open == {}, sorted(w.open)
-    assert moved_under_a_job(w) == [], "these merges' post-merge jobs had main moved under them"
+    assert moved_under_a_job(w), "no merge landed under a running job: the hold is still there"
+    commit = next(
+        s for s in gate_doc["jobs"]["postmerge"]["steps"]
+        if str(s.get("name", "")).startswith("Commit the attestation")
+    )  # fmt: skip
+    assert 'python3 "$helper" publish' in str(commit["run"])
 
 
-def test_a_replayed_post_merge_job_is_one_the_actor_waits_for(text: str) -> None:
-    """A replay is the gate workflow on main by dispatch, not by push; the actor must see it."""
-    assert 'for event in ("push", "workflow_dispatch")' in text
-    assert "&event={event}&" in text
+def test_the_actor_reads_no_post_merge_run_a_replay_included(text: str) -> None:
+    """A replay was waited for like a push (T33); the actor reads no run of either now."""
+    assert 'workflow_dispatch")' not in text and "&event={event}&" not in text
+    assert "actions/runs" not in text
 
 
 @pytest.fixture(scope="module")

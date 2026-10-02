@@ -1,0 +1,182 @@
+# F07-T56 red: the per-target queue tests against the actor with the seams added at today's behaviour
+# (graph f07-t55-queue 9e07860bd F07-T56: the seams a per-target queue needs, at today's behaviour (every commit counts, one line, the post-merge hold))
+# 2026-10-02T19:32:35Z
+$ uv run --frozen pytest gate/tests/test_finding_merge_actor_lanes.py gate/tests/test_finding_merge_actor_batch.py -p no:cacheprovider -q -rA
+E       AssertionError: assert True is False
+E        +  where True = <function gates_on at 0x1097e2a20>('targets/t2/nodes/n/Proof.lean', 't1')
+E       AssertionError: assert True is False
+E        +  where True = <function gates_on at 0x1097e2a20>('targets/t2/gate-spec.json', 't1')
+E       AssertionError: assert True is False
+E        +  where True = <function gates_on at 0x1097e2a20>('targets/t1/graph.json', 't1')
+E       AssertionError: assert True is False
+E        +  where True = <function gates_on at 0x1097e2a20>('targets/t1/.tags-cache.json', 't1')
+E       AssertionError: assert True is False
+E        +  where True = <function gates_on at 0x1097e2a20>('targets/t1/nodes/n/CONTEXT.json', 't1')
+E       AssertionError: assert True is False
+E        +  where True = <function gates_on at 0x1097e2a20>('targets/index.json', 't1')
+E       AssertionError: assert True is False
+E        +  where True = <function gates_on at 0x1097e2a20>('frontier.json', 't1')
+E       AssertionError: assert True is False
+E        +  where True = <function gates_on at 0x1097e2a20>('info.json', 't1')
+E       AssertionError: assert True is False
+E        +  where True = <function gates_on at 0x1097e2a20>('claims.json', 't1')
+E       AssertionError: assert True is False
+E        +  where True = <function gates_on at 0x1097e2a20>('THIRD_PARTY_NOTICES.md', 't1')
+E       AssertionError: assert True is False
+E        +  where True = <function gates_on at 0x1097e2a20>('attestations/000123.json', 't1')
+E       AssertionError: assert True is False
+E        +  where True = <function gates_on at 0x1097e2a20>('ledger/agent.json', 't1')
+E       AssertionError: assert True is False
+E        +  where True = <function gates_on at 0x1097e2a20>('AGENTS.md', 't1')
+E       AssertionError: assert True is False
+E        +  where True = <function gates_on at 0x1097e2a20>('README.md', 't1')
+E       AssertionError: assert True is False
+E        +  where True = <function gates_on at 0x1097e2a20>('targets/t2/graph.json', None)
+E       AssertionError: assert None == 't1'
+E        +  where None = <function lane_of_paths at 0x1097e22a0>(['targets/t1/nodes/n/Proof.lean'])
+E       AssertionError: assert 3 == 0
+E        +  where 3 = <function stale_count at 0x1097e23e0>([['frontier.json', 'targets/t1/graph.json', 'targets/t2/graph.json', 'ledger/a.json'], ['targets/t2/nodes/m/Proof.lean'], ['frontier.json', 'targets/t1/graph.json', 'targets/t2/graph.json', 'ledger/a.json']], 't1')
+E       AssertionError: assert [(1, '0000000...01', 'merge')] == [(1, '0000000...02', 'merge')]
+E         
+E         Right contains one more item: (2, '0000000000000000000000000000000000000002', 'merge')
+E         Use -v to get more diff
+E       AssertionError: assert [(1, '0000000...01', 'merge')] == [(1, '0000000...03', 'merge')]
+E         
+E         Right contains one more item: (3, '0000000000000000000000000000000000000003', 'merge')
+E         Use -v to get more diff
+E       AssertionError: assert [(1, '0000000...1', 'update')] == [(1, '0000000...02', 'merge')]
+E         
+E         Right contains one more item: (2, '0000000000000000000000000000000000000002', 'merge')
+E         Use -v to get more diff
+E       AssertionError: assert [(1, '0000000...001', 'hold')] == [(1, '0000000...03', 'merge')]
+E         
+E         Right contains one more item: (3, '0000000000000000000000000000000000000003', 'merge')
+E         Use -v to get more diff
+E       AssertionError: assert [(1, '0000000...001', 'hold')] == [(1, '0000000...02', 'merge')]
+E         
+E         Right contains one more item: (2, '0000000000000000000000000000000000000002', 'merge')
+E         Use -v to get more diff
+E       AssertionError: assert [(1, '0000000...01', 'merge')] == [(1, '0000000...04', 'merge')]
+E         
+E         Right contains one more item: (4, '0000000000000000000000000000000000000004', 'merge')
+E         Use -v to get more diff
+E       AssertionError: assert [(1, '0000000...01', 'merge')] == [(1, '0000000...03', 'merge')]
+E         
+E         Right contains one more item: (3, '0000000000000000000000000000000000000003', 'merge')
+E         Use -v to get more diff
+E       AssertionError: every merge waited for the one before it: {39: 230, 40: 230, 41: 230, 42: 230, 43: 230}
+E       assert []
+E       AssertionError: assert ['api -X PUT ...method=merge'] == ['api -X PUT ...method=merge']
+E         
+E         At index 0 diff: 'api -X PUT repos/owner/graph/pulls/5 6 7/merge -f sha=a5 a6 a7 -f merge_method=merge' != 'api -X PUT repos/owner/graph/pulls/5/merge -f sha=a5 -f merge_method=merge'
+E         Right contains 2 more items, first extra item: 'api -X PUT repos/owner/graph/pulls/6/update-branch -f expected_head_sha=a6'
+E         Use -v to get more diff
+E       AssertionError: assert ['api -X PUT ...method=merge'] == ['api -X PUT ...method=merge']
+E         
+E         At index 0 diff: 'api -X PUT repos/owner/graph/pulls/5 6 7/merge -f sha=a5 a6 a7 -f merge_method=merge' != 'api -X PUT repos/owner/graph/pulls/5/merge -f sha=a5 -f merge_method=merge'
+E         Right contains 3 more items, first extra item: 'api -X PUT repos/owner/graph/pulls/6/merge -f sha=a6 -f merge_method=merge'
+E         Use -v to get more diff
+E       assert (0 != 0)
+E       AssertionError: assert ('failure()' in 'failure()' and 'needs.merge.outputs.merged' in 'failure()')
+E       assert ('postmerge_running' not in 'set -euo pi...n3 pick.py\n'
+E         
+E         'postmerge_running' is contained here:
+E           None,
+E               postmerge_running=lambda: False,
+E           ):
+E               """F07-T56: a list of (number, sha, action), action one of "merge", "update" or
+E               "hold", for at most one step in each lane: a lane is the target a pull request...
+E         
+E         ...Full output truncated (206 lines hidden), use '-vv' to show)
+E       AssertionError: assert ['api -X PUT ...method=merge'] == ['api -X PUT ...method=merge']
+E         
+E         At index 0 diff: 'api -X PUT repos/owner/graph/pulls/5 6 7/merge -f sha=a5 a6 a7 -f merge_method=merge' != 'api -X PUT repos/owner/graph/pulls/5/merge -f sha=a5 -f merge_method=merge'
+E         Right contains 2 more items, first extra item: 'api -X PUT repos/owner/graph/pulls/6/merge -f sha=a6 -f merge_method=merge'
+E         Use -v to get more diff
+_________ test_a_failed_merge_in_a_batch_is_updated_and_the_rest_go_on _________
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-188/test_a_failed_merge_in_a_batch0')
+    def test_a_failed_merge_in_a_batch_is_updated_and_the_rest_go_on(
+E       AssertionError: assert ['api -X PUT ...method=merge'] == ['api -X PUT ...method=merge']
+E         
+E         At index 0 diff: 'api -X PUT repos/owner/graph/pulls/5 6 7/merge -f sha=a5 a6 a7 -f merge_method=merge' != 'api -X PUT repos/owner/graph/pulls/5/merge -f sha=a5 -f merge_method=merge'
+E         Right contains 3 more items, first extra item: 'api -X PUT repos/owner/graph/pulls/6/merge -f sha=a6 -f merge_method=merge'
+E         Use -v to get more diff
+E       AssertionError: assert ['api -X PUT ...method=merge'] == ['api -X PUT ...method=merge']
+E         
+E         At index 0 diff: 'api -X PUT repos/owner/graph/pulls/5 6/merge -f sha=a5 a6 -f merge_method=merge' != 'api -X PUT repos/owner/graph/pulls/5/merge -f sha=a5 -f merge_method=merge'
+E         Right contains 2 more items, first extra item: 'api -X PUT repos/owner/graph/pulls/5/update-branch -f expected_head_sha=a5'
+E         Use -v to get more diff
+E           AssertionError: sha
+E           assert 'out.write(f"sha=' in 'set -euo pipefail\ncat > pick.py <<\'PY\'\n"""Pick what to do in each lane — one target\'s pull requests — and say it...ction}\\n")\n    print(f"merge actor: {action or \'nothing to do\'} {number}")\n    sys.exit(0)\nPY\npython3 pick.py\n'
+#1 is green but conflicts with main: passed over
+_______ test_red_behind_pending_and_conflicting_appends_are_passed_over ________
+#4 is green but conflicts with main: passed over
+PASSED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[targets/t1/nodes/n/Proof.lean-t1-True]
+PASSED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[targets/t1/nodes/n/META.yaml-t1-True]
+PASSED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[targets/t1/nodes/n/Context.lean-t1-True]
+PASSED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[targets/t1/nodes/n/attempts/x.yaml-t1-True]
+PASSED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[targets/t1/gate-spec.json-t1-True]
+PASSED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[curators.json-t1-True]
+PASSED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[policy.json-t1-True]
+PASSED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[keys/gate.pub-t1-True]
+PASSED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[schemas/meta/v5.json-t1-True]
+PASSED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[.github/workflows/gate.yml-t1-True]
+PASSED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[targets/t2/nodes/n/Proof.lean-None-True]
+PASSED gate/tests/test_finding_merge_actor_lanes.py::test_main_is_read_back_along_its_first_parent_line_to_the_merge_base
+PASSED gate/tests/test_finding_merge_actor_lanes.py::test_a_commits_files_are_read_page_by_page_and_a_rename_counts_twice
+PASSED gate/tests/test_finding_merge_actor_lanes.py::test_a_conflict_passes_over_and_the_next_in_its_lane_is_taken
+PASSED gate/tests/test_finding_merge_actor_lanes.py::test_appends_batch_within_their_lane_and_the_cap_spans_the_run
+PASSED gate/tests/test_finding_merge_actor_lanes.py::test_without_lanes_the_queue_is_the_single_line_it_was
+PASSED gate/tests/test_finding_merge_actor_lanes.py::test_a_run_settles_only_while_every_lane_holds
+PASSED gate/tests/test_finding_merge_actor_lanes.py::test_two_mathlib_proofs_on_two_targets_merge_in_one_round
+PASSED gate/tests/test_finding_merge_actor_lanes.py::test_two_proofs_on_one_target_are_still_one_at_a_time
+PASSED gate/tests/test_finding_merge_actor_lanes.py::test_the_afternoon_of_148_drains_faster_over_targets_than_in_one_line
+PASSED gate/tests/test_finding_merge_actor_lanes.py::test_every_building_merge_was_up_to_date_on_its_own_target
+PASSED gate/tests/test_finding_merge_actor_batch.py::test_the_appends_queued_behind_a_proof_merge_in_one_round
+PASSED gate/tests/test_finding_merge_actor_batch.py::test_only_the_last_merge_of_a_batch_has_a_job_that_commits
+PASSED gate/tests/test_finding_merge_actor_batch.py::test_a_steady_stream_of_appends_drains_faster_than_one_per_round
+PASSED gate/tests/test_finding_merge_actor_batch.py::test_a_batch_takes_every_green_append_up_to_the_first_green_building_one
+PASSED gate/tests/test_finding_merge_actor_batch.py::test_a_batch_never_includes_a_building_pull_request
+PASSED gate/tests/test_finding_merge_actor_batch.py::test_a_batch_stops_at_the_cap
+PASSED gate/tests/test_finding_merge_actor_batch.py::test_a_batch_does_not_wait_for_a_post_merge_job
+PASSED gate/tests/test_finding_merge_actor_batch.py::test_an_up_to_date_gating_pull_request_still_holds_the_line
+PASSED gate/tests/test_finding_merge_actor_batch.py::test_a_batch_ends_at_an_up_to_date_gating_pull_request
+PASSED gate/tests/test_finding_merge_actor_batch.py::test_red_behind_pending_and_conflicting_appends_are_passed_over
+PASSED gate/tests/test_finding_merge_actor_batch.py::test_a_batch_ends_where_the_host_is_still_computing_mergeability
+PASSED gate/tests/test_finding_merge_actor_batch.py::test_one_up_to_date_append_is_merged_as_before
+PASSED gate/tests/test_finding_merge_actor_batch.py::test_single_actions_are_as_before
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[targets/t2/nodes/n/Proof.lean-t1-False]
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[targets/t2/gate-spec.json-t1-False]
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[targets/t1/graph.json-t1-False]
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[targets/t1/.tags-cache.json-t1-False]
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[targets/t1/nodes/n/CONTEXT.json-t1-False]
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[targets/index.json-t1-False]
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[frontier.json-t1-False]
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[info.json-t1-False]
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[claims.json-t1-False]
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[THIRD_PARTY_NOTICES.md-t1-False]
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[attestations/000123.json-t1-False]
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[ledger/agent.json-t1-False]
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[AGENTS.md-t1-False]
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[README.md-t1-False]
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_a_change_counts_against_a_lane_only_if_it_can_change_its_verdict[targets/t2/graph.json-None-False]
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_a_pull_requests_lane_is_the_one_target_it_touches
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_stale_counts_only_the_commits_that_reach_the_lane
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_two_targets_merge_in_one_run_behind_main
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_within_a_target_it_is_one_at_a_time
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_a_pull_request_stale_on_its_own_target_is_updated_and_others_go_on
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_a_gating_pull_request_holds_its_own_lane_only
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_an_unknown_mergeability_holds_its_own_lane_only
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_first_in_first_out_holds_within_a_lane_not_across
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_a_pull_request_in_no_lane_waits_until_it_is_first_and_then_holds_every_lane
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_no_merge_waits_for_a_post_merge_job
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_one_run_merges_and_updates_across_lanes
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_a_refused_merge_is_updated_and_the_other_lanes_go_on
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_misaligned_outputs_act_on_nothing
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_a_run_that_merged_wakes_the_actor_again
+FAILED gate/tests/test_finding_merge_actor_lanes.py::test_the_actor_reads_no_post_merge_run_and_no_contributor_file
+FAILED gate/tests/test_finding_merge_actor_batch.py::test_the_act_merges_a_batch_in_order_each_at_the_head_it_saw
+FAILED gate/tests/test_finding_merge_actor_batch.py::test_a_failed_merge_in_a_batch_is_updated_and_the_rest_go_on
+FAILED gate/tests/test_finding_merge_actor_batch.py::test_a_refused_first_merge_falls_back_to_the_update_it_had_before
+FAILED gate/tests/test_finding_merge_actor_batch.py::test_the_pick_output_carries_a_batch_through_number_and_sha
+34 failed, 34 passed in 18.94s

@@ -96,8 +96,6 @@ def decide(
     checks: dict[int, list[dict[str, Any]]],
     behind: dict[int, int] | int = 1,
     conflicts: dict[int, bool | None] | None = None,
-    *,
-    running: bool = False,
 ) -> tuple[Any, Any, str]:
     by_sha = {p["head"]["sha"]: p["number"] for p in pulls}
     got: tuple[Any, Any, str] = pick["decide"](
@@ -107,7 +105,6 @@ def decide(
         lambda sha: behind if isinstance(behind, int) else behind[by_sha[sha]],
         lambda number: (conflicts or {}).get(number, False),
         now=NOW,
-        postmerge_running=lambda: running,
     )
     return got
 
@@ -148,11 +145,12 @@ def test_the_appends_queued_behind_a_proof_merge_in_one_round(
     assert w.merged_at[307] > rounds[0]
 
 
-def test_a_batch_never_moves_main_under_a_post_merge_job(
+def test_only_the_last_merge_of_a_batch_has_a_job_that_commits(
     pick: dict[str, Any], gate_doc: dict[Any, Any]
 ) -> None:
-    """T33 still holds across the whole replay: every act found no committing job in flight
-    (``World.act`` asserts it), and only the last merge of a batch has a job that commits."""
+    """Restated by F07-T56: this test also said T33 held across the replay, and T33's hold is
+    gone (F07-T55 keeps a job's record when main moves under it). What stands is T45's own rule:
+    one post-merge run records a batch, so one job per act commits."""
     w = world(pick, gate_doc, after_a_proof())
     w.advance(3 * 3600)
     committing = [r for r in w.push_runs if r.commits]
@@ -209,11 +207,13 @@ def test_a_batch_stops_at_the_cap(pick: dict[str, Any]) -> None:
     assert 2 <= cap(pick) <= 20, "a cap that keeps a post-merge job's work bounded"
 
 
-def test_no_batch_while_a_post_merge_job_runs(pick: dict[str, Any]) -> None:
+def test_a_batch_does_not_wait_for_a_post_merge_job(pick: dict[str, Any]) -> None:
+    """Restated by F07-T56 (it pinned T33's hold): the actor no longer reads post-merge runs,
+    and a batch goes whether or not one is committing; that run catches up (F07-T55)."""
     pulls = [pull(1, "append/a"), pull(2, "append/b")]
     for behind in (0, 1):
-        got = decide(pick, pulls, {1: green(), 2: green()}, behind, running=True)
-        assert got == ("", "", "hold"), (behind, got)
+        got = decide(pick, pulls, {1: green(), 2: green()}, behind)
+        assert got == batch(pulls, 1, 2), (behind, got)
 
 
 def test_an_up_to_date_gating_pull_request_still_holds_the_line(pick: dict[str, Any]) -> None:
@@ -289,6 +289,7 @@ def run_act(
         "NUMBER": number,
         "SHA": sha,
         "ACTION": action,
+        "GITHUB_OUTPUT": str(tmp_path / "output"),
     }
     proc = subprocess.run(
         ["bash", "-c", act_step(doc)], capture_output=True, text=True, check=False, env=env
@@ -299,7 +300,7 @@ def run_act(
 def test_the_act_merges_a_batch_in_order_each_at_the_head_it_saw(
     doc: dict[Any, Any], tmp_path: Path
 ) -> None:
-    code, calls = run_act(doc, tmp_path, "5 6 7", "a5 a6 a7", "merge-batch")
+    code, calls = run_act(doc, tmp_path, "5 6 7", "a5 a6 a7", "merge merge merge")
     assert code == 0, calls
     assert calls == [
         f"api -X PUT repos/owner/graph/pulls/{n}/merge -f sha=a{n} -f merge_method=merge"
@@ -307,15 +308,20 @@ def test_the_act_merges_a_batch_in_order_each_at_the_head_it_saw(
     ]
 
 
-def test_a_failed_merge_in_a_batch_stops_there_and_the_rest_wait(
+def test_a_failed_merge_in_a_batch_is_updated_and_the_rest_go_on(
     doc: dict[Any, Any], tmp_path: Path
 ) -> None:
-    """C7: a conflict that appeared since the decision refuses one merge; nothing after it is
-    tried. The merges that landed each start a post-merge job, whose last step wakes the actor."""
-    code, calls = run_act(doc, tmp_path, "5 6 7", "a5 a6 a7", "merge-batch", fail="pulls/6/merge")
+    """Restated by F07-T56. C7: a conflict that appeared since the decision refuses one merge.
+    T45 stopped the batch there; with lanes one run acts on several targets, each independent,
+    so the refused one is updated (it re-gates and merges up to date) and the rest go on."""
+    code, calls = run_act(
+        doc, tmp_path, "5 6 7", "a5 a6 a7", "merge merge merge", fail="pulls/6/merge"
+    )
     assert calls == [
         "api -X PUT repos/owner/graph/pulls/5/merge -f sha=a5 -f merge_method=merge",
         "api -X PUT repos/owner/graph/pulls/6/merge -f sha=a6 -f merge_method=merge",
+        "api -X PUT repos/owner/graph/pulls/6/update-branch -f expected_head_sha=a6",
+        "api -X PUT repos/owner/graph/pulls/7/merge -f sha=a7 -f merge_method=merge",
     ]
     assert code == 0
 
@@ -326,15 +332,16 @@ def test_a_refused_first_merge_falls_back_to_the_update_it_had_before(
     """If the host ever refuses an append behind main (the token's bypass withdrawn), the actor
     must not fail the same way on every run: it updates the branch as it did before F07-T45, the
     gate re-runs and wakes it, and the append merges up to date next time."""
-    code, calls = run_act(doc, tmp_path, "5 6", "a5 a6", "merge-batch", fail="pulls/5/merge")
+    code, calls = run_act(doc, tmp_path, "5 6", "a5 a6", "merge merge", fail="pulls/5/merge")
     assert calls == [
         "api -X PUT repos/owner/graph/pulls/5/merge -f sha=a5 -f merge_method=merge",
         "api -X PUT repos/owner/graph/pulls/5/update-branch -f expected_head_sha=a5",
+        "api -X PUT repos/owner/graph/pulls/6/merge -f sha=a6 -f merge_method=merge",
     ]
     assert code == 0
     # and if the update fails too, the run fails, and the rewake job starts another
-    code, calls = run_act(doc, tmp_path, "5 6", "a5 a6", "merge-batch", fail="pulls/5/")
-    assert code != 0 and len(calls) == 2
+    code, calls = run_act(doc, tmp_path, "5 6", "a5 a6", "merge merge", fail="pulls/5/")
+    assert code != 0 and len(calls) == 3
 
 
 def test_single_actions_are_as_before(doc: dict[Any, Any], tmp_path: Path) -> None:
@@ -351,8 +358,10 @@ def test_single_actions_are_as_before(doc: dict[Any, Any], tmp_path: Path) -> No
 
 
 def test_the_pick_output_carries_a_batch_through_number_and_sha(doc: dict[Any, Any]) -> None:
-    """``number`` and ``sha`` hold the batch's numbers and heads, space-separated and aligned;
-    the acting step is still skipped when ``number`` is empty (a hold, or nothing to do)."""
+    """``number``, ``sha`` and (since F07-T56) ``action`` hold one entry per pull request,
+    space-separated and aligned; the acting step is still skipped when ``number`` is empty (a
+    hold, or nothing to do)."""
     (step,) = [s for s in doc["jobs"]["merge"]["steps"] if s.get("id") == "pick"]
-    assert 'out.write(f"number={number}\\nsha={sha}\\naction={action}\\n")' in step["run"]
-    assert "merge-batch" in act_step(doc)
+    for name in ("number", "sha", "action"):
+        assert f'out.write(f"{name}=' in step["run"], name
+    assert 'read -r -a actions <<< "$ACTION"' in act_step(doc)

@@ -88,12 +88,9 @@ class World:
             pulls.append(entry)
         args = (pulls, RULES, self.checks_of, lambda sha: self.main - int(sha[-4:]))
         try:
-            number, _sha, action = self.decide(
-                *args,
-                now=T0 + timedelta(seconds=self.now),
-                postmerge_running=lambda: bool(self.bot_commits),
-            )
-        except TypeError:  # the actor as it stood before T31 took no clock and no post-merge view
+            # F07-T56: no post-merge view any more; F07-T55 keeps the record when main moves
+            number, _sha, action = self.decide(*args, now=T0 + timedelta(seconds=self.now))
+        except TypeError:  # the actor as it stood before T31 took no clock
             number, _sha, action = self.decide(*args)
         if not number:
             return
@@ -103,7 +100,7 @@ class World:
             pr.based_on, pr.started, pr.gate_done = self.main, self.now, self.now + pr.gate_s
             return
         assert action in ("merge", "merge-batch"), action
-        assert not self.bot_commits, "F07-T33: nothing merges while a post-merge job runs"
+        # F07-T56: a merge may land while a post-merge job is still committing (F07-T55 catches up)
         for n in str(number).split():
             pr = self.open[int(n)]
             self.log.append((self.now, action, pr.number))
@@ -155,13 +152,17 @@ def test_the_queue_is_first_in_first_out_and_everything_merges(pick: dict[str, A
     assert order == sorted(world.merged_at), order
 
 
-def test_no_gate_round_is_wasted_on_a_bot_commit_about_to_land(pick: dict[str, Any]) -> None:
-    """Two Mathlib pull requests, the second behind once the first merges. Updated at once it
-    would be behind again when the first one's products commit landed, and owe a third round."""
+def test_a_bot_commit_about_to_land_costs_at_most_one_round(pick: dict[str, Any]) -> None:
+    """Restated by F07-T56 (Q61). Two Mathlib pull requests in one line, the second behind once
+    the first merges. T33 held its update until the first one's bot commit had landed, so it was
+    updated once; nothing waits for that commit now, so in one line it may be updated a second
+    time, when the commit lands mid-round. That is the price of not waiting five to eight minutes
+    per merge, paid only within a target: a bot commit on another target is not in its lane
+    (``test_finding_merge_actor_lanes.py``)."""
     world = World(pick["decide"])
     world.run(3600, {0: (201, "propose/a", SLOW_S), 15: (202, "submit/b", SLOW_S)})
     updates_of_202 = [entry for entry in world.log if entry[1:] == ("update", 202)]
-    assert len(updates_of_202) == 1, world.log
+    assert 1 <= len(updates_of_202) <= 2, world.log
     assert world.open == {}
 
 
@@ -218,31 +219,21 @@ def test_the_oldest_green_one_goes_first_even_past_a_newer_gating_one(pick: dict
     assert got == (6, pulls[0]["head"]["sha"], "update")
 
 
-def test_nothing_is_updated_or_merged_while_a_post_merge_job_runs(pick: dict[str, Any]) -> None:
-    """Restated by F07-T33 (Q41). T31 held only a building pull request's update here and let an
-    append through, and never held a merge ("the branch is up to date, so main has not moved");
-    an append updated in the window re-gated in fifteen seconds and was merged while the job was
-    still rendering, so the job's push was refused and its record lost (#125, #132, #133, #145).
-    The rule this test was about stands: no round is wasted on a commit about to land. It now
-    covers every kind, and the merge as well as the update."""
+def test_a_post_merge_job_holds_nothing(pick: dict[str, Any]) -> None:
+    """Restated by F07-T56 (Q61), reversing F07-T33's rule (Q41) on the owner's request. T33 held
+    every update and merge while a post-merge job had not committed, because a merge in between
+    cost the job its push and its record (#125, #132, #133, #145). The job now catches up on main
+    as it is (F07-T55, ``test_finding_postmerge_catch_up.py``), so the record is kept without the
+    hold, and the actor no longer reads post-merge runs at all: a green pull request is acted on
+    whatever is committing. What T33's second half said stands: a building one is updated, and
+    (F07-T45) an append is merged behind main rather than updated."""
     for ref in ("propose/slow", "submit/slow", "append/fast"):
-        for behind in (1, 0):  # the update, and the merge
-            got = pick["decide"](
-                [pull(6, ref)],
-                RULES,
-                lambda _s: green(),
-                lambda _s, b=behind: b,
-                now=NOW,
-                postmerge_running=lambda: True,
-            )
-            assert got == ("", "", "hold"), (ref, behind, got)
-    # and once the job has committed, the same pull request is acted on: a building one is
-    # updated, and (F07-T45) an append is merged behind main rather than updated
+        pulls = [pull(6, ref)]
+        got = pick["decide"](pulls, RULES, lambda _s: green(), lambda _s: 0, now=NOW)
+        assert got == (6, pulls[0]["head"]["sha"], "merge"), (ref, got)
     for ref, expected in (("propose/slow", (6, "update")), ("append/fast", ("6", "merge-batch"))):
         pulls = [pull(6, ref)]
-        got = pick["decide"](
-            pulls, RULES, lambda _s: green(), lambda _s: 1, now=NOW, postmerge_running=lambda: False
-        )
+        got = pick["decide"](pulls, RULES, lambda _s: green(), lambda _s: 1, now=NOW)
         assert got == (expected[0], pulls[0]["head"]["sha"], expected[1]), (ref, got)
 
 
@@ -253,6 +244,8 @@ def test_a_hold_names_no_pull_request_so_the_acting_step_is_skipped(doc: dict[An
     assert act["if"] == "steps.pick.outputs.number != ''"
 
 
-def test_the_job_may_read_the_runs_it_asks_about_and_nothing_more(doc: dict[Any, Any]) -> None:
+def test_the_job_reads_and_asks_about_no_runs(doc: dict[Any, Any]) -> None:
+    """Restated by F07-T56: T31 granted ``actions: read`` to see post-merge runs; nothing is held
+    for one now, so the grant is gone with the reading."""
     grants = doc["jobs"]["merge"]["permissions"]
-    assert grants["actions"] == "read" and set(grants.values()) == {"read"}
+    assert "actions" not in grants and set(grants.values()) == {"read"}

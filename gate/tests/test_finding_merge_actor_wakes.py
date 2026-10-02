@@ -98,6 +98,7 @@ class Pr:
     gate_s: int
     based_on: int
     gate_done: int
+    target: str | None = None  # F07-T56: its lane; None is the single line of before
 
 
 @dataclass
@@ -106,37 +107,60 @@ class PushRun:
     jobs_done: int  # the bot commit lands and the job ends
     reported_done: int  # the host says the run completed
     commits: bool = True  # F07-T45: False for a batch's earlier merges, covered by the last
+    touches: str = "*"  # F07-T56: what its bot commit touches, as ``World.touched`` reads it
+
+
+#: What a commit on main touched, as a lane reads it (F07-T56): a target's id, ``ANY`` for a
+#: commit every lane must count (a shared input, or a pull request in no single target), and
+#: ``PRODUCTS`` for a bot commit that wrote only what the post-merge job renders.
+ANY, PRODUCTS = "*", ""
 
 
 @dataclass
 class World:
-    """The host as the actor sees it: late, and only when it is woken."""
+    """The host as the actor sees it: late, and only when it is woken. F07-T56: with targets, and
+    no hold for a post-merge job (F07-T55 keeps the record when main moves under one)."""
 
     pick: dict[str, Any]
     dispatch_after_postmerge: bool
     now: int = 0
-    main: int = 0
+    touched: list[str] = field(default_factory=list)  # main's commits, oldest first
     open: dict[int, Pr] = field(default_factory=dict)
-    arrivals: dict[int, tuple[int, str, int]] = field(default_factory=dict)
+    arrivals: dict[int, tuple[Any, ...]] = field(default_factory=dict)
     push_runs: list[PushRun] = field(default_factory=list)
     wakes: list[int] = field(default_factory=list)
     running: bool = False
     pending: bool = False
     merged_at: dict[int, int] = field(default_factory=dict)
+    updates: list[int] = field(default_factory=list)
+    behind_merges: list[int] = field(default_factory=list)  # building, merged behind main
     log: list[tuple[int, str, str]] = field(default_factory=list)
+
+    @property
+    def main(self) -> int:
+        return len(self.touched)
 
     # --- what the host reports -------------------------------------------------------------------
 
     def sha(self, pr: Pr) -> str:
         return f"{pr.number:036d}{pr.based_on:04d}"
 
+    def by_sha(self, sha: str) -> Pr:
+        return next(p for p in self.open.values() if self.sha(p) == sha)
+
     def checks_of(self, sha: str) -> list[dict[str, Any]]:
-        pr = next(p for p in self.open.values() if self.sha(p) == sha)
+        pr = self.by_sha(sha)
         seen_done = self.now >= pr.gate_done + CHECK_LAG_S
         started = T0 + timedelta(seconds=pr.gate_done - pr.gate_s)
         stamp = started.isoformat().replace("+00:00", "Z")
         gate = {**check(GATE_JOB, "success" if seen_done else None), "started_at": stamp}
         return [gate, check(STEP9_JOB, "skipped" if seen_done else None, id_=2)]
+
+    def behind_of(self, sha: str) -> int:
+        """The commits since its base that reach its lane: what the actor's staleness counts."""
+        pr = self.by_sha(sha)
+        since = self.touched[pr.based_on :]
+        return sum(1 for t in since if t == ANY or (t != PRODUCTS and pr.target in (None, t)))
 
     def pulls(self) -> list[dict[str, Any]]:
         out = []
@@ -146,83 +170,75 @@ class World:
             out.append(entry)
         return out
 
-    def runs(self) -> list[dict[str, Any]]:
-        return [
-            {"id": run.id, "name": "gate", "event": "push", "head_branch": "main",
-             "status": "completed" if self.now >= run.reported_done else "in_progress"}
-            for run in self.push_runs
-        ]  # fmt: skip
-
-    def jobs_of(self, run_id: int) -> list[dict[str, Any]]:
-        run = next(r for r in self.push_runs if r.id == run_id)
-        done = self.now >= run.jobs_done
-        return [{"name": "postmerge", "status": "completed" if done else "in_progress"}]
-
-    def postmerge_running(self) -> bool:
-        live = [r for r in self.runs() if r["status"] != "completed"]
-        if "postmerge_running_from" in self.pick:
-            return bool(self.pick["postmerge_running_from"](live, self.jobs_of))
-        return bool(live)  # the actor as it stood: the run's own status
-
     # --- the actor ----------------------------------------------------------------------------
 
-    def decide(self) -> tuple[Any, Any, str]:
-        result: tuple[Any, Any, str] = self.pick["decide"](
+    def decide(self) -> list[tuple[int, str, str]]:
+        decided: list[tuple[int, str, str]] = self.pick["decide_lanes"](
             self.pulls(),
             RULES,
             self.checks_of,
-            lambda sha: self.main - int(sha[-4:]),
+            self.behind_of,
             now=T0 + timedelta(seconds=self.now),
-            postmerge_running=self.postmerge_running,
+            lane_of=lambda number: self.open[number].target,
         )
-        return result
+        return decided
 
     def sleep(self, seconds: float) -> None:
         self.advance(self.now + int(seconds))
 
     def run_actor(self) -> None:
         self.running = True
-        if "settle" in self.pick:
-            number, _sha, action = self.pick["settle"](
-                self.decide, self.sleep, clock=lambda: self.now
-            )
+        decided = self.pick["settle"](self.decide, self.sleep, clock=lambda: self.now)
+        acted = [d for d in decided if d[2] not in ("hold", "wait")]
+        actions = [a for _n, _s, a in acted]
+        if not acted:
+            label = "hold" if decided else "nothing"
+        elif len(acted) == 1:
+            label = actions[0]
         else:
-            number, _sha, action = self.decide()
-        self.log.append((self.now, action or "nothing", str(number)))
-        if number:
-            self.act(str(number), action)
+            label = "merge-batch" if set(actions) == {"merge"} else "mixed"
+        self.log.append((self.now, label, " ".join(str(n) for n, _s, _a in acted)))
+        if acted:
+            self.act(acted)
         self.running = False
 
-    def act(self, number: str, action: str) -> None:
-        if action == "update":
-            pr = self.open[int(number)]
+    def act(self, acted: list[tuple[int, str, str]]) -> None:
+        merged = [(n, s) for n, s, a in acted if a == "merge"]
+        for number, _sha, action in acted:
+            if action != "update":
+                continue
+            pr = self.open[number]
             pr.based_on, pr.gate_done = self.main, self.now + pr.gate_s
+            self.updates.append(number)
             self.wakes.append(pr.gate_done + WAKE_S)
-            return
-        # F07-T33: nothing is merged while a post-merge job has not committed
-        assert not any(r.commits and r.jobs_done > self.now for r in self.push_runs), "T33"
-        numbers = [int(n) for n in number.split()]
-        assert action == "merge" or (action == "merge-batch" and numbers), action
-        for i, n in enumerate(numbers):
-            pr = self.open[n]
-            # F07-T45: an append may merge behind main (the actor's token bypasses the strict
-            # rule); a building pull request is merged only up to date, as the ruleset asks
-            assert pr.based_on == self.main or pr.ref.startswith("append/"), (
-                "a stale building merge"
+        last_append = max(
+            (i for i, (n, _s) in enumerate(merged) if self.open[n].ref.startswith("append/")),
+            default=-1,
+        )
+        for i, (number, sha) in enumerate(merged):
+            pr = self.open[number]
+            building = not pr.ref.startswith("append/")
+            # F07-T56: a building pull request merges only up to date on its own lane; an append
+            # may merge behind it (F07-T45). The token's bypass lets the host take either.
+            assert not building or self.behind_of(sha) == 0, f"#{number} merged stale on its lane"
+            if building and pr.based_on < self.main:
+                self.behind_merges.append(number)
+            del self.open[number]
+            self.merged_at[number] = self.now
+            self.touched.append(pr.target or ANY)
+            # a building merge's run records it (F07-T55); a batch's appends are recorded by the
+            # run of the last of them (F07-T45), whose bot commit writes only products
+            commits = building or i == last_append
+            land = self.now + (BOT_S if commits else SKIP_S)
+            touches = (pr.target or ANY) if building else PRODUCTS
+            self.push_runs.append(
+                PushRun(len(self.push_runs) + 1, land, land + RUN_LAG_S, commits, touches)
             )
-            assert action == "merge" or pr.ref.startswith("append/"), (
-                "a building pull request batched"
-            )
-            del self.open[n]
-            self.merged_at[n] = self.now
-            self.main += 1
-            last = i == len(numbers) - 1
-            # a batch's earlier merges start post-merge runs that find the later merge and end
-            land = self.now + (BOT_S if last else SKIP_S)
-            self.push_runs.append(PushRun(len(self.push_runs) + 1, land, land + RUN_LAG_S, last))
             self.wakes.append(land + RUN_LAG_S + WAKE_S)  # workflow_run: the push run completed
             if self.dispatch_after_postmerge:
                 self.wakes.append(land + WAKE_S)  # the post-merge job's last step dispatches
+        if merged:
+            self.wakes.append(self.now + 30 + WAKE_S)  # F07-T56: the rewake job, after a merge
 
     def wake(self) -> None:
         if self.running:
@@ -240,10 +256,11 @@ class World:
             self.now += TICK_S
             for run in self.push_runs:
                 if run.jobs_done == self.now and run.commits:
-                    self.main += 1  # the bot's products commit
+                    self.touched.append(run.touches)  # the bot's gate commit
             for when in sorted(t for t in self.arrivals if t <= self.now):
-                number, ref, gate_s = self.arrivals.pop(when)
-                self.open[number] = Pr(number, ref, gate_s, self.main, self.now + gate_s)
+                number, ref, gate_s, *target = self.arrivals.pop(when)
+                lane = target[0] if target else None
+                self.open[number] = Pr(number, ref, gate_s, self.main, self.now + gate_s, lane)
                 self.wakes.append(self.now + gate_s + WAKE_S)
             due = [t for t in self.wakes if t <= self.now]
             for t in due:
@@ -313,22 +330,19 @@ def green() -> list[dict[str, Any]]:
     return [check(GATE_JOB, "success"), check(STEP9_JOB, "skipped", id_=2)]
 
 
-def test_a_run_whose_jobs_have_all_finished_is_not_running(pick: dict[str, Any]) -> None:
-    runs = [{"id": 7, "name": "gate", "status": "in_progress"}]
-    finished = [
-        {"name": "postmerge", "status": "completed"},
-        {"name": "gate", "status": "completed"},
-    ]
-    working = [{"name": "postmerge", "status": "in_progress"}]
-    assert pick["postmerge_running_from"](runs, lambda _id: finished) is False
-    assert pick["postmerge_running_from"](runs, lambda _id: working) is True
-    # queued, no job started yet: the commit is still to come
-    assert pick["postmerge_running_from"](runs, lambda _id: []) is True
-    assert pick["postmerge_running_from"]([], lambda _id: working) is False
+def test_no_run_is_held_for_a_post_merge_job_any_more(pick: dict[str, Any]) -> None:
+    """Restated by F07-T56. Finding 3 was about reading a post-merge run's status late; since
+    F07-T55 keeps a job's record when main moves under it, the actor does not read those runs at
+    all, so a late status can hold nothing."""
+    assert "postmerge_running_from" not in pick
+    pulls = [pull(147, "submit/next")]
+    got = pick["decide"](pulls, RULES, lambda _s: green(), lambda _s: 0, now=NOW)
+    assert got == (147, pulls[0]["head"]["sha"], "merge")
 
 
 def test_a_hold_is_decided_again_until_it_resolves(pick: dict[str, Any]) -> None:
-    answers = iter([("", "", "hold"), ("", "", "hold"), (6, "abc", "merge")])
+    hold = [(6, "abc", "hold")]
+    answers = iter([hold, hold, [(6, "abc", "merge")]])
     slept: list[float] = []
     clock = [0.0]
 
@@ -337,7 +351,7 @@ def test_a_hold_is_decided_again_until_it_resolves(pick: dict[str, Any]) -> None
         clock[0] += seconds
 
     got = pick["settle"](lambda: next(answers), sleep, clock=lambda: clock[0])
-    assert got == (6, "abc", "merge") and len(slept) == 2
+    assert got == [(6, "abc", "merge")] and len(slept) == 2
 
 
 def test_a_hold_that_never_resolves_ends_the_run_at_the_cap(pick: dict[str, Any]) -> None:
@@ -346,20 +360,20 @@ def test_a_hold_that_never_resolves_ends_the_run_at_the_cap(pick: dict[str, Any]
     def sleep(seconds: float) -> None:
         clock[0] += seconds
 
-    got = pick["settle"](lambda: ("", "", "hold"), sleep, clock=lambda: clock[0])
-    assert got == ("", "", "hold")
+    got = pick["settle"](lambda: [(6, "abc", "hold")], sleep, clock=lambda: clock[0])
+    assert got == [(6, "abc", "hold")]
     assert pick["SETTLE_CAP_S"] <= clock[0] <= pick["SETTLE_CAP_S"] + pick["SETTLE_EVERY_S"]
 
 
 def test_nothing_to_do_is_not_waited_on(pick: dict[str, Any]) -> None:
     calls: list[int] = []
 
-    def step() -> tuple[str, str, str]:
+    def step() -> list[tuple[int, str, str]]:
         calls.append(1)
-        return "", "", ""
+        return []
 
     got = pick["settle"](step, lambda _s: None, clock=lambda: 0)
-    assert got == ("", "", "") and calls == [1]
+    assert got == [] and calls == [1]
 
 
 def test_a_pull_request_whose_mergeability_is_unknown_is_not_updated(pick: dict[str, Any]) -> None:
@@ -388,7 +402,7 @@ def test_the_post_merge_job_wakes_the_actor_whatever_happened(gate_doc: dict[Any
 
 def test_a_failed_act_wakes_the_actor_again(doc: dict[Any, Any]) -> None:
     rewake = doc["jobs"]["rewake"]
-    assert rewake["needs"] == "merge" and rewake["if"] == "failure()"
+    assert rewake["needs"] == "merge" and rewake["if"].startswith("failure()")
     assert rewake["permissions"] == {"actions": "write"}
     assert "gh workflow run merge.yml" in str(rewake["steps"])
     # the acting job itself still only reads
