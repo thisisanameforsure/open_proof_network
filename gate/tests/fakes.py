@@ -16,6 +16,7 @@ from opn_gate.toolchain import (
     AxiomResult,
     ElabResult,
     HazardsRequest,
+    MeaningRequest,
     MetaprogramResult,
     RelationRequest,
     ReplayResult,
@@ -145,6 +146,31 @@ def relation_result(
     )
 
 
+def meaning_result(
+    *,
+    expected: str = "∀ (p q : Prop), p ∧ q → q ∧ p",
+    declared: str | None = None,
+    matches: bool | None = None,
+    local_mismatch: tuple[str, ...] = (),
+) -> MetaprogramResult:
+    """A structured ``opn-statement-meaning`` result (F08-R17)."""
+    shown = expected if declared is None else declared
+    same = (shown == expected) if matches is None else matches
+    return MetaprogramResult(
+        ok=True,
+        doc={
+            "ok": True,
+            "decl": "OpnProp.and_swap",
+            "expected": expected,
+            "declared": shown,
+            "identical": same,
+            "matches": same and not local_mismatch,
+            "locals": list(local_mismatch),
+            "local_mismatch": list(local_mismatch),
+        },
+    )
+
+
 def metaprogram_garbage(
     exit_code: int = 1, output: str = "Segmentation fault\n"
 ) -> MetaprogramResult:
@@ -171,6 +197,7 @@ class FakeToolchain:
     hazards_doc: MetaprogramResult = field(default_factory=lambda: hazards_result([]))
     artifact: MetaprogramResult = field(default_factory=artifact_result)
     relation: MetaprogramResult = field(default_factory=relation_result)
+    meaning: MetaprogramResult = field(default_factory=meaning_result)
     missing: bool = False
     raise_on: str | None = None  # name of the method that should raise an unexpected error
     calls: list[str] = field(default_factory=list)
@@ -313,6 +340,18 @@ class FakeToolchain:
         self.calls.append(f"relation_type:{req.label}:{req.variant_decl}")
         self._maybe_raise("relation_type")
         return self.relation
+
+    def statement_meaning(
+        self,
+        tc: ResolvedToolchain,
+        req: MeaningRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        self.calls.append(f"statement_meaning:{req.artifact_module}:{req.artifact_decl}")
+        self._maybe_raise("statement_meaning")
+        return self.meaning
 
 
 # --- the Model seam (F12-R6, R7) -----------------------------------------------------------------

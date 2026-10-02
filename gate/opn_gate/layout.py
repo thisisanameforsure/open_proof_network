@@ -207,6 +207,101 @@ def imports_of(text: str) -> list[str]:
     return [m.group("module") for m in _IMPORT_RE.finditer(text)]
 
 
+#: The one module of another node an artifact may import: that node's merged proof (F08-R18).
+USED_STEM = "Proof"
+
+_DEFS_USE = rf"{DEFS_PREFIX}\.[A-Za-z_][A-Za-z0-9_']*"
+_NODE_USE = rf"{NODES_PREFIX}\.«[a-z0-9][a-z0-9-]*»\.{USED_STEM}"
+#: One use line, without its newline: the module it names (F08-R16, R18).
+USE_LINE_RE = re.compile(rf"import[ \t]+(?P<module>{_DEFS_USE}|{_NODE_USE})[ \t]*")
+
+
+def used_node(module: str) -> str | None:
+    """The node ``Nodes.«<id>».Proof`` names; ``None`` for any other module."""
+    kind, node_id = module_origin(module)
+    if kind != "node" or node_id is None or module != node_module(node_id, USED_STEM):
+        return None
+    return node_id
+
+
+def _imports_end(text: str) -> int:
+    """The offset just past ``text``'s last ``import`` line; 0 when it has none."""
+    end = 0
+    offset = 0
+    for line in text.splitlines(keepends=True):
+        offset += len(line)
+        if line.startswith("import "):
+            end = offset
+    return end
+
+
+def split_uses(prefix: str, text: str, node_id: str | None) -> tuple[str, tuple[str, ...]]:
+    """``text`` with its use lines removed, and the modules they name, in the order written.
+
+    ``prefix`` is the statement's text up to its ``:=`` (``Statement.prefix``). The use lines
+    are the run of lines directly after the statement's last import, or after the node's own
+    ``Context`` line where the artifact adds it (F00-T10), each matching ``USE_LINE_RE``. They
+    are taken out only when what remains begins with the header the gate already takes; any
+    other text comes back unchanged with no uses, so step 2's own diagnostic stands.
+
+    This is the one reading of a use: step 2 takes a submission's uses from it, and the graph,
+    the build and the layout take a merged proof's from it. A line of the same shape anywhere
+    else in a file (in a comment, below the theorem) is no import to Lean and no use to anyone.
+    """
+    bases = [prefix]
+    if node_id is not None:
+        allowed = with_own_context(prefix, node_id)
+        if allowed != prefix:
+            bases.append(allowed)
+    for base in bases:
+        at = _imports_end(base)
+        if not text.startswith(base[:at]):
+            continue
+        modules: list[str] = []
+        pos = at
+        while True:
+            end = text.find("\n", pos)
+            if end == -1:
+                break
+            line = USE_LINE_RE.fullmatch(text[pos:end])
+            if line is None:
+                break
+            modules.append(line.group("module"))
+            pos = end + 1
+        rest = base[:at] + text[pos:]
+        if modules and rest.startswith(base):
+            return rest, tuple(modules)
+    return text, ()
+
+
+def node_uses(statement: Statement | Diagnostic, text: str, own: str) -> tuple[str, ...]:
+    """The other nodes whose merged proof an artifact of ``statement`` uses: its use lines
+    that name ``Nodes.«<id>».Proof`` (``split_uses``), in order, each once; never ``own``.
+    None for a text that is not the statement with use lines (a counterexample, a vacuity
+    certificate), and none when the statement itself does not parse."""
+    if not isinstance(statement, Statement):
+        return ()
+    found: list[str] = []
+    for module in split_uses(statement.prefix, text, own)[1]:
+        node_id = used_node(module)
+        if node_id is not None and node_id != own and node_id not in found:
+            found.append(node_id)
+    return tuple(found)
+
+
+def merged_uses(node_dir: Path) -> tuple[str, ...]:
+    """The nodes a node's merged ``Proof.lean`` uses, read from the tree; none for a node
+    without one. This is the graph's only record of a use (F08-R19)."""
+    proof, statement = node_dir / "Proof.lean", node_dir / "Statement.lean"
+    if not proof.is_file() or not statement.is_file():
+        return ()
+    return node_uses(
+        parse_statement(statement.read_text(encoding="utf-8")),
+        proof.read_text(encoding="utf-8"),
+        node_dir.name,
+    )
+
+
 def imports_own_context(node_id: str, text: str) -> bool:
     """Whether ``text`` imports the node's own ``Context``: the one module through which a node
     reaches its dependencies and, once a skeleton of it merges, its holes (F08-T13, F07-T23)."""
@@ -229,24 +324,41 @@ def with_own_context(text: str, node_id: str) -> str:
 
 
 def check_imports(node_dir: Path, node_id: str) -> list[Diagnostic]:
-    """Every import in a node file must be library, ``Defs.*``, or the node's own Context."""
+    """Every import in a node file must be library, ``Defs.*``, or the node's own Context —
+    and, in ``Proof.lean`` alone, another node's ``Proof`` module where a use line stands
+    (F08-R18; ``split_uses``). A line of that shape anywhere else is refused as it always was.
+    Whether the node may be used is step 2's question of a submission (``opn_gate.uses``);
+    this is the layout's, of any tree."""
     found: list[Diagnostic] = []
     own_context = node_module(node_id, "Context")
     for name in ("Statement.lean", "Proof.lean", "Witness.lean", "Context.lean"):
         path = node_dir / name
         if not path.is_file():
             continue
-        for module in imports_of(path.read_text(encoding="utf-8")):
+        text = path.read_text(encoding="utf-8")
+        used = (
+            {node_module(n, USED_STEM) for n in merged_uses(node_dir)}
+            if name == "Proof.lean"
+            else set()
+        )
+        for module in imports_of(text):
             kind, _ = module_origin(module)
-            allowed = kind in ("library", "defs") or (
-                name != "Context.lean" and module == own_context
+            allowed = (
+                kind in ("library", "defs")
+                or (name != "Context.lean" and module == own_context)
+                or module in used
             )
             if not allowed:
                 found.append(
                     Diagnostic(
                         "import-forbidden",
                         f"{name} imports {module}; allowed: library modules, Defs.*"
-                        + ("" if name == "Context.lean" else f", {own_context}"),
+                        + ("" if name == "Context.lean" else f", {own_context}")
+                        + (
+                            ", another node's Proof module as a use line of a proof (F08-R18)"
+                            if name == "Proof.lean"
+                            else ""
+                        ),
                         {"file": name, "module": module},
                     )
                 )

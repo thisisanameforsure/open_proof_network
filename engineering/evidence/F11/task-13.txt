@@ -1,0 +1,74 @@
+F11-T13: a listed curator adds a definition to an existing target (F11-R15, Q35). 2026-10-01T15:42:48Z.
+Branch f11-defs-after-intake, worktree /home/claude/opn-wt-defs, base main c786835.
+Red run: engineering/evidence/F11/task-13-red.txt (15 failed, 143 passed; every failure an assertion on behaviour).
+
+== 1. The task's named command ==
+$ uv run --frozen pytest gate/tests/test_defs_after_intake.py gate/tests/test_modes.py gate/tests/test_intake_mode.py gate/tests/test_cli_sandboxed.py -q -m "not lean and not docker and not network"
+........................................................................ [ 45%]
+........................................................................ [ 91%]
+..............                                                           [100%]
+158 passed in 6.22s
+
+== 2. make lint (exit 0) ==
+uv run --frozen ruff check .
+All checks passed!
+uv run --frozen ruff format --check .
+492 files already formatted
+
+== 3. make types (exit 0) ==
+uv run --frozen mypy gate
+Success: no issues found in 232 source files
+uv run --frozen mypy api
+Success: no issues found in 159 source files
+uv run --frozen mypy site
+Success: no issues found in 44 source files
+
+== 4. The fast tier: pytest -m 'not lean and not docker and not network' (make test-fast's command) ==
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_the_morning_of_306_moves_past_the_stale_head
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_stale_head_is_passed_over_even_if_the_host_calls_it_clean
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_branch_that_no_longer_exists_is_passed_over
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_head_the_host_still_computes_is_held_for_as_before
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_stale_append_never_ends_a_batch
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_the_workflow_reads_each_branch_tip_and_survives_a_missing_one
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+7 failed, 3156 passed, 123 deselected, 2 warnings in 179.74s (0:02:59)
+
+The 7 failures are not this task's. They are the tests that read the sibling graph checkout
+(/home/claude/open_proof_network_graph at 031184c): its merge.yml predates F07-T46's tip_of and its
+AGENTS.md copy lags this repo's. They fail identically on main with this task's changes stashed:
+$ git stash -u && uv run --frozen pytest gate/tests/test_finding_merge_actor_stale_head.py gate/tests/test_walkthrough.py -m <fast> ; git stash pop
+7 failed, 5 passed, 1 deselected
+and they skip where no graph is checked out beside the repo, which is what CI sees (a copy of this tree
+under the scratchpad, same venv): 4 passed, 8 skipped, 1 deselected.
+So 'make verify' exits 2 on this machine at test-fast, for that reason alone; lint and types pass.
+
+== 5. Not run here ==
+Lean tier (no elan/lean in this container): gate/tests/test_defs_after_intake_lean.py (AC35) is written and
+collected, not executed. Docker tier: no daemon. Both are CI's on the draft pull request.
+$ uv run --frozen pytest gate/tests/test_defs_after_intake_lean.py --collect-only -q
+gate/tests/test_defs_after_intake_lean.py::test_a_new_definition_builds_and_a_later_file_imports_it
+gate/tests/test_defs_after_intake_lean.py::test_a_new_definition_that_does_not_elaborate_is_refused
+
+2 tests collected in 0.03s
+
+== 6. Consumers checked ==
+- Classifier fallthroughs: the new branch takes roles == {definition} only; def + anything goes where it went
+  (intake rules, intake-incomplete / mode-mixed); _mode_for untouched; guards in test_defs_after_intake.py.
+- modes.check: check_definitions runs for curator mode and returns [] when the diff has no definition.
+- Graph workflow (gate.yml, read from the graph clone's origin/main, not modified): the gate job reads
+  needs_exhibits with a default and runs `opn-gate exhibits --sandbox`; no workflow change is needed. The step
+  passes no OPN_PR_AUTHOR, so the command reads the diff's shape (modes.definitions_added). On any pin before
+  this commit the diff is refused intake-incomplete by classify, so nothing new is reachable there.
+- Post-merge: a merged curator pull request builds no proof and earns no ledger line (MERGE_LINES['curator']);
+  products re-render as for any curator merge. Not exercised end to end here.
+- Olean cache (cache.build) and the products' library scanner call defs.compile_all on the whole defs/ and
+  need no change; definitions are not themselves cached (F10-Q12).
+- Fidelity: fidelity.definitions enumerates defs/*.lean, so the new file is a subject at mechanical-only until
+  signed and the target's grade is the minimum (guard test). A certificate PR for it classifies as fidelity.
+- api/: checks.py and get_defs read targets/<id>/defs/ from the committed graph; nothing to change. No api
+  module classifies diffs or reads needs_exhibits.
+- Schemas, enums, goldens: no schema or version string changed; the classify summary gained `definitions`
+  (a list, [] elsewhere), asserted in test_modes.py::test_classify_command. No golden moved.
+- Guide: gate/agents/AGENTS.md's table still says contributors never touch defs/ (true); its executable
+  blocks are unchanged and pass. site/docs/curator-intake.md gained the curator's rule.

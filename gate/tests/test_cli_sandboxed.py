@@ -986,6 +986,74 @@ def test_exhibits_without_the_sandbox_uses_the_local_toolchain_or_refuses(
     assert code == cli.EXIT_ERROR and out == {} and "cannot load" in err and "gate-spec.json" in err
 
 
+# --- exhibits: a definition added after intake elaborates here too (F11-R15, T13) ---------------
+
+HELPER = f"targets/{TARGET}/defs/Helper.lean"
+
+
+def commit_definition(root: Path, git: Git) -> str:
+    """A curator's pull request as the workflow sees it: one new ``defs/`` file, nothing else."""
+    (root / HELPER).write_text("def Opn.helper : Nat := 0\n", encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-q", "-m", "a definition after intake")
+    return HELPER
+
+
+def test_exhibits_elaborates_a_definition_added_after_intake_in_the_sandbox(
+    tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """F11-AC33: the sandbox step the workflow already has builds the target's definitions on
+    the merged tree (C9: a definition elaborates arbitrary code), staged into the work directory
+    and never read from the checkout; a definition that does not elaborate fails the pull request
+    with the existing ``defs-elaboration`` diagnostic, naming the file. The step is told no
+    author, so the command takes the diff's shape alone."""
+    root, git, _base = git_repo(tmp_path)
+    base = git("rev-parse", "HEAD")
+    rel = commit_definition(root, git)
+    out_dir = tmp_path / "o1"
+    argv = ("exhibits", "--graph", str(root), "--base", base, "--sandbox", "--out")
+    code, out, err = run(capsys, *argv, str(out_dir))
+    assert code == cli.EXIT_PASS and err == ""
+    assert out == {
+        "ok": True,
+        "exhibits": [],
+        "definitions": [rel],
+        "sandboxed": True,
+        "problems": [],
+    }
+    assert json.loads((out_dir / "exhibits.json").read_text()) == out
+    assert seam.made[-1]["read_only"] == [] and seam.made[-1]["read_write"] == [
+        (out_dir / "work").resolve()
+    ]
+    assert seam.fake.calls[0] == f"resolve:{PIN}:install=False"
+    assert "elaborate:Defs.Helper" in seam.fake.calls
+
+    seam.fake = ScriptedToolchain(failing_modules={"Defs.Helper"})
+    code, out, err = run(capsys, *argv, str(tmp_path / "o2"))
+    assert code == cli.EXIT_FAIL and out["ok"] is False
+    assert [p["code"] for p in out["problems"]] == ["defs-elaboration"]
+    assert out["problems"][0]["details"]["file"] == "Helper.lean" and "defs-elaboration" in err
+
+    seam.fake = ScriptedToolchain(timeout_modules={"Defs.Helper"})
+    code, out, err = run(capsys, *argv, str(tmp_path / "o3"))
+    assert code == cli.EXIT_FAIL and [p["code"] for p in out["problems"]] == ["timeout"]
+
+
+def test_exhibits_still_refuses_a_definition_mixed_with_anything_else(
+    tmp_path: Path, seam: Seam, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Guard: the command's new case is a diff of added definitions and nothing else."""
+    root, git, _base = git_repo(tmp_path)
+    base = git("rev-parse", "HEAD")
+    commit_definition(root, git)
+    commit_revision_request(root, git)
+    code, out, err = run(
+        capsys, "exhibits", "--graph", str(root), "--base", base, "--out", str(tmp_path / "o")
+    )
+    assert code == cli.EXIT_ERROR and out == {} and "exhibits belong to append mode" in err
+    assert seam.made == []
+
+
 # --- admit: the mechanical admission check through the command (F08-R1, R2) --------------------
 
 

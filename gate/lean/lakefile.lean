@@ -40,3 +40,8 @@ lean_exe «opn-artifact-type» where
 lean_exe «opn-relation-type» where
   root := `OpnGate.RelationTypeMain
   supportInterpreter := true
+
+@[default_target]
+lean_exe «opn-statement-meaning» where
+  root := `OpnGate.StatementMeaningMain
+  supportInterpreter := true
