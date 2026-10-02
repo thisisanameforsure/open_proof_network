@@ -18,6 +18,15 @@ so the comparison cannot itself be bent by what the extra imports do to elaborat
 
 The statement's build lives in its own directory (``MEANING_DIR``), so the kernel replay sees
 exactly the modules it did before.
+
+**Which artifacts are guarded (F08-R22).** Not only one that declares uses. A merged proof's use
+lines are imports of its ``Proof`` module, and the build stages a node's dependencies as their
+``Proof`` modules, so a use declared by any proof staged beneath the artifact is in the
+artifact's environment too, though neither its header nor its statement's ever named the module
+(``carried``). Shown on the real toolchain: a dependency proved honestly under ``import
+Defs.Trap`` let a false dependent with the statement's exact header pass every step. So the
+question is asked whenever a use line stands anywhere in the staged closure, and never
+otherwise: a tree with no use lines builds no statement module and asks nothing.
 """
 
 from __future__ import annotations
@@ -37,14 +46,40 @@ MEANING_DIR = "meaning"
 MEANING_KEY = "statement_meaning"
 
 
+def carried(own: str, staged: staging.Staged) -> dict[str, list[str]]:
+    """The use lines of every *other* proof staged for this build: node id -> the modules its
+    merged ``Proof.lean`` declares (R22). Each is an import of a module the artifact's Context,
+    or one of its own uses, brings in, so each is in the artifact's environment. Read from the
+    staged copies, which are the files the build compiles."""
+    found: dict[str, list[str]] = {}
+    for node_id in staged.order:
+        if node_id == own:
+            continue
+        statement = staged.node_dir(node_id) / "Statement.lean"
+        proof = staged.node_dir(node_id) / "Proof.lean"
+        if not statement.is_file() or not proof.is_file():
+            continue
+        parsed = layout.parse_statement(statement.read_text(encoding="utf-8"))
+        if not isinstance(parsed, layout.Statement):
+            continue
+        modules = uses.declared(parsed, proof.read_text(encoding="utf-8"), node_id).modules
+        if modules:
+            found[node_id] = list(modules)
+    return dict(sorted(found.items()))
+
+
 def guard(  # noqa: PLR0911 — one return per way the comparison can end
     ctx: RunContext, tc: ResolvedToolchain, staged: staging.Staged
 ) -> StepResult | None:
-    """The refusal, or ``None`` when the artifact declares no uses or proved the statement as
-    stated. Called once the node's own modules are built and before they are replayed."""
+    """The refusal, or ``None`` when no use line stands in the artifact or beneath it, or the
+    artifact proved the statement as stated. Called once the node's own modules are built and
+    before they are replayed."""
     declared = ctx.data.get(uses.USES_KEY)
     node = ctx.node
-    if not declared or node is None:
+    if node is None:
+        return None
+    below = carried(node.node_id, staged)
+    if not declared and not below:
         return None
     work = ctx.workdir / MEANING_DIR
     src, build = work / "src", work / "build"
@@ -97,6 +132,8 @@ def guard(  # noqa: PLR0911 — one return per way the comparison can end
         "identical": bool(doc.get("identical")),
         "matches": bool(doc.get("matches")),
     }
+    if below:
+        ctx.data[MEANING_KEY]["carried"] = below
     if doc.get("matches"):
         return None
     mismatch = [str(n) for n in doc.get("local_mismatch") or []]
@@ -110,9 +147,17 @@ def guard(  # noqa: PLR0911 — one return per way the comparison can end
             else ""
         )
         + ". A use may add names to prove with; it may not add an instance, a notation or a "
-        "name that changes what the statement's text elaborates to (F08-R17)",
+        "name that changes what the statement's text elaborates to (F08-R17)"
+        + (
+            ". Uses declared by proofs this one is built on are in its environment too: "
+            + "; ".join(f"{dep} declares {', '.join(mods)}" for dep, mods in below.items())
+            + " (F08-R22)"
+            if below
+            else ""
+        ),
         expected=str(doc.get("expected", "")),
         declared=str(doc.get("declared", "")),
         local_mismatch=mismatch,
         uses=list(declared.get("modules") or []) if isinstance(declared, dict) else [],
+        carried=below,
     )

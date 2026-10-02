@@ -114,12 +114,14 @@ def submit(ctx: RunContext, use: str, body: str) -> None:
     """The node's ``Proof.lean``: its statement, one use line after the own-Context import, and
     ``body`` in place of the ``sorry``."""
     node_id = ctx.claim.node_id
-    st = layout.parse_statement(STATEMENTS[node_id])
+    node = layout.graph_nodes_dir(ctx.graph_root, TARGET) / node_id
+    # read from the tree, not from ``STATEMENTS``: a node a test adds (``with_carrier``) is on
+    # the tree and must not be written into a module global that the next test's fixture reads
+    st = layout.parse_statement((node / "Statement.lean").read_text(encoding="utf-8"))
     assert isinstance(st, layout.Statement)
     own = f"import {layout.node_module(node_id, 'Context')}\n"
     assert st.prefix.count(own) == 1
     text = st.prefix.replace(own, f"{own}import {use}\n") + body
-    node = layout.graph_nodes_dir(ctx.graph_root, TARGET) / node_id
     (node / "Proof.lean").write_text(text, encoding="utf-8")
 
 
@@ -336,7 +338,6 @@ def with_carrier(ctx: RunContext) -> None:
             date="2026-10-01T00:00:00Z",
         ),
     )
-    STATEMENTS["size-is-zero-dep"] = DEPENDENT
 
 
 def test_a_dependencys_proof_module_cannot_change_the_statement_of_an_artifact_with_uses(
