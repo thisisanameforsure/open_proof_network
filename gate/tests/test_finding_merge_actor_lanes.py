@@ -494,3 +494,12 @@ def test_the_actor_reads_no_post_merge_run_and_no_contributor_file(
     assert "pulls/{number}/files" in script and "compare/{sha}...{main}" in script
     assert "contents/" not in script and "raw.githubusercontent" not in script
     assert "lane_of=lane_of" in script and "tip_of=tip" in script
+
+
+def test_a_decision_reads_each_pull_requests_staleness_once(doc: dict[Any, Any]) -> None:
+    """``decide`` asks ``behind_of`` up to three times for one pull request, every SETTLE_EVERY_S
+    for up to SETTLE_CAP_S, and each ask is a compare call against an hourly token budget."""
+    (step,) = [s for s in doc["jobs"]["merge"]["steps"] if s.get("id") == "pick"]
+    script = str(step["run"])
+    assert "stale = {}" in script and "if sha not in stale:" in script
+    assert script.count("compare/{sha}...{main}") == 1

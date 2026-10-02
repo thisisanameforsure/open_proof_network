@@ -708,8 +708,8 @@ you. Within your target pull requests merge one at a time, oldest first. Your br
 target or a file every target shares (`curators.json`, `policy.json`, `keys/`, `schemas/`, the
 workflows); what the post-merge job renders (`graph.json`, `CONTEXT.json`, `frontier.json`, the
 ledger, attestations) and merges on other targets never cost you a round, and otherwise your pull
-request is merged as it stands, behind `main`. While a pull request's updated gate runs, nothing
-on its target is merged past it, so it cannot be overtaken. Nothing waits for a post-merge job:
+request is merged as it stands, behind `main`. While a pull request's updated gate runs, it holds the queue
+on its target: nothing there is merged past it, so it cannot be overtaken. Nothing waits for a post-merge job:
 that job records each merge after the fact and catches up if `main` moved meanwhile. Expect a
 round of your own gate, plus the rounds of whatever is ahead of you on the same target and one
 more if the merge just before yours on that target changed its files (a proof's status, a hole

@@ -200,3 +200,14 @@ gate/tests/test_finding_alternate_postmerge.py::test_an_alternate_says_why_nobod
 gate/tests/test_finding_alternate_postmerge.py::test_an_alternate_says_why_nobody_was_asked[True-expected1] PASSED [ 99%]
 gate/tests/test_finding_alternate_postmerge.py::test_the_workflow_gives_an_alternate_a_kind_whatever_the_pin_says PASSED [100%]
 ============================= 171 passed in 55.54s =============================
+
+## Second reading, after the three commits (graph 13e806476)
+## Two defects found by reading the shipped code again, each seen red with the graph branch moved back one commit
+## (2 failed, 66 passed) and green with it (68 passed):
+##   merge.yml: behind_of made one compare call per ask, up to three per pull request per decision, every 20 s
+##     against an hourly token budget; now one per pull request per decision.
+##   gate.yml: a run that published nothing (main already credits it, or it replayed) left HEAD at a commit it never
+##     pushed, which the site step then asked to deploy (the same was true of T45's hand-off path); HEAD is now main.
+## make verify on the final tree: 3462 passed, 2 failed (the two stale-sibling tests of task-55.txt), 1 skipped;
+## a third, test_finding_guide_tester_0921 "the merge queue", pinned the guide's phrase "holds the queue", which the
+## rewrite had dropped; the guide says it again, per target. make lint and make types clean.

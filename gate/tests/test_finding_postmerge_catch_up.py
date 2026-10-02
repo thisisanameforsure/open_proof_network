@@ -430,6 +430,7 @@ def test_a_record_that_conflicts_with_main_is_replayed(
     assert code == 0, said
     assert origin.main() == before, "nothing was pushed"
     assert job.dispatched() == ["2"], said
+    assert git(job.work, "rev-parse", "HEAD") == before, "HEAD is main as the host has it"
 
 
 def test_a_re_pin_of_the_rendering_gate_is_replayed(
@@ -462,6 +463,8 @@ def test_a_merge_main_already_credits_is_not_credited_twice(
     code, said = job.publish()
     assert code == 0, said
     assert origin.main() == before and job.dispatched() == [], said
+    # the site step reads HEAD: it is main as the host has it, not the commit this run never pushed
+    assert git(job.work, "rev-parse", "HEAD") == before
 
 
 def test_a_batch_drops_what_another_run_credited_and_credits_the_rest(
