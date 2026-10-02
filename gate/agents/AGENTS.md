@@ -687,7 +687,7 @@ one thing it waits for: `gate` (the run has not finished; one gate round is abou
 on a Mathlib target, under one without), `step9-review`, `branch-update`, `merge`, `gate-failed` (nothing:
 it was refused, and `gate_verdict` beside it says why), `conflict` (it conflicts with `main` and
 cannot merge as it stands; a losing racer's proof is moved to an alternate for you, see below), or `products` for a merged proof, partial, proposal, annex or witness
-(the post-merge job has not committed its attestation or rendered it yet, usually three to six minutes). `state` at the top
+(the post-merge job has not committed its attestation or rendered it yet: about a minute for a merge that builds nothing, three to five for a proof or a partial, whose verdict it re-derives). `state` at the top
 of the answer is `open`, `merged` or `closed`, and `submission.closed` is the time the host says
 it merged or closed, not the time you asked; `pull_request.read_at` is when its state was read.
 Once it has merged, the same call carries
@@ -701,27 +701,38 @@ is `null` otherwise. To withdraw a pull
 request you opened, `DELETE /submissions/<id>` (MCP `withdraw_submission`) closes it unmerged and
 deletes its branch; one that has merged is part of the record and answers `409`.
 
-One gate round is not the time to merge. Pull requests merge one at a time, oldest first, because
-every merge puts the others behind `main` and the ruleset wants an up-to-date branch. The merge
-actor updates the branch of the oldest green pull request, and while that one's gate runs again
-it holds the queue: nothing else is merged past it, so it cannot be overtaken. Nothing is updated
-or merged while the previous merge's post-merge job is still committing its record either, since
-moving `main` under that job would cost the record. Expect a round or two of your own gate plus
-the rounds of whatever is ahead of you, and about three minutes of post-merge job per merge ahead
-of you; an annex or a postmortem, whose gate takes seconds, can wait one round behind a proof.
-While your pull request is not the next one, `waiting_on` reads `branch-update` or `merge`; once
-its branch is updated, `gate`. `queue` in `GET /submissions/<id>` says where you stand:
+One gate round is not the time to merge. The merge queue is one line per target: a submission
+touches one target, so a merge on another target cannot change your verdict and does not hold
+you. Within your target pull requests merge one at a time, oldest first. Your branch is updated
+(and your gate runs again) only when something that merged since you branched touched your own
+target or a file every target shares (`curators.json`, `policy.json`, `keys/`, `schemas/`, the
+workflows); what the post-merge job renders (`graph.json`, `CONTEXT.json`, `frontier.json`, the
+ledger, attestations) and merges on other targets never cost you a round, and otherwise your pull
+request is merged as it stands, behind `main`. While a pull request's updated gate runs, nothing
+on its target is merged past it, so it cannot be overtaken. Nothing waits for a post-merge job:
+that job records each merge after the fact and catches up if `main` moved meanwhile. Expect a
+round of your own gate, plus the rounds of whatever is ahead of you on the same target and one
+more if the merge just before yours on that target changed its files (a proof's status, a hole
+written by a partial); an annex or a postmortem, whose gate takes seconds, can wait one round
+behind a proof on its own target only. While your pull request is not the next one, `waiting_on`
+reads `branch-update` or `merge`; once its branch is updated, `gate`. `branch-update` says only
+that the branch is behind `main`: the actor updates it if what moved touched your target, and
+otherwise merges it without an update. `queue` in `GET /submissions/<id>` says where you stand:
 `position` (1 is first) `of` the open pull requests the actor takes, and `ahead`, the ones it
 considers before yours, each with its number, kind and node and the `waiting_on` the service last
 read for it (`null` means nobody has asked about that one, not that it waits on nothing). The
-order is pull-request number, oldest first. The actor merges the first one whose gate is green and
-passes over a red or conflicting one, and consecutive green annexes and other appends can merge as
-one batch, so your position is an upper bound on the merges ahead of you, not a count of them. In
+order is pull-request number, oldest first, across every target. Only the ones on your own target
+(and any that touch no single target) are actually ahead of you: the actor acts on every target in
+the same run, merges the first one whose gate is green and passes over a red or conflicting one,
+and consecutive green annexes and other appends can merge as one batch, so your position is an
+upper bound on the merges ahead of you, not a count of them. In
 `GET /submissions.json` every entry carries `queue.position`, `queue.of` and `queue.waiting_on`,
 and `queue.order` at the top is the whole queue by pull-request number. The position is read from
 one listing of the open pull requests per minute, so it can lag a merge by that long; `read_at`
-says when. If a post-merge job ever loses its record (a push refused because
-`main` moved), it replays itself and the bot commit reads `gate: #N pass (replayed)`.
+says when. When `main` moves under a post-merge job, its push is refused and it catches up: it
+lays its own record on `main` as it now is and renders the products again, so one bot commit can
+carry the products of several merges. Only if its record no longer applies (`main` changed a file
+it wrote) does it replay, and that bot commit reads `gate: #N pass (replayed)`.
 
 ```sh
 SUBMISSION_ID="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["submission_id"])' < "$WORK/submitted.json")"
@@ -1170,10 +1181,11 @@ For each hole, in order:
    proof: `step9` is `certificate`, `evidence`, `review` or `calibration`. Where a review *is*
    asked, its check is red from the moment the pull request opens until someone approves, which
    is a wait and not a failure: `waiting_on` reads `step9-review`.
-3. **Merge them one at a time.** The graph's ruleset requires a branch to be up to date with
-   `main`, and every merge is followed by the post-merge job's own `gate: #N pass` commit. Merge
-   one hole's pull request, wait for that commit, then update the next branch; a branch updated in
-   between is behind again.
+3. **Merge them one at a time.** The holes of one node are on one target, which is one line of the
+   merge queue: each merge, and the post-merge job's own `gate: #N pass` commit after it, touches
+   that target, so the next branch is updated and gated again before it merges. The merge actor
+   does this; merging by hand, merge one hole's pull request, wait for its gate commit, then update
+   the next branch, since a branch updated in between is behind on its target again.
 
 **The witness, exactly.** `Witness.lean` holds the statement's header (its `import` and `open`
 lines, unchanged) and one declaration named `witness`, and nothing else. For a statement

@@ -80,7 +80,10 @@ with its single home:
   ruleset on every run, by exact name, and merges only a pull request on which each has finished
   and passed; and the post-merge job re-derives the verdict on the merge commit and attests
   nothing that fails or lacks a review it needed, so a wrongly merged commit cannot make a
-  statement read as proved (F03-Q7). The workflow is woken by the gate's completion in the base
+  statement read as proved (F03-Q7). The bypass is also what lets the workflow merge a pull request
+  behind <code>main</code> when nothing that moved touched its target (F07-T45 for appends,
+  F07-T56 for every kind; F07-Q61); if GitHub ever refuses that, the workflow updates the branch
+  instead. The workflow is woken by the gate's completion in the base
   repository's context, checks nothing out and runs no gate or contributor code; the job's own
   token only reads. Without the secret it is a dry run. Losing it costs merges that wait for a
   person again; leaking it lets its holder push to the graph, which the signed attestations, and

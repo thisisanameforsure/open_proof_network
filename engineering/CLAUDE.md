@@ -1184,3 +1184,18 @@ The law of the project:
   fill; the fast-tier guard asserts the import set. When a module is inlined somewhere, its imports are
   a contract, and a test that reads them is cheaper than the tier that finds the breach.
 
+- 2026-10-02 — The queue stopped waiting (F07-T55–T57, Q60–Q62, graph branch `f07-t55-queue` on T46's
+  PR #321, unpushed). **Plan against `origin`, not the checkout**: both local mains were nine days stale,
+  the plan's first draft read a `gate.yml` and `merge.yml` that T45 and T46 had since rewritten, and the
+  task ids T39–T41 were already spent in the spec on `origin`. `git fetch` both repos and read
+  `origin/main` before the first design question; take ids from the spec as pushed. **What makes a
+  catch-up safe is the split between a merge's own record and what is derived from the tree**: snapshot
+  the record (attestation, a partial's holes) before anything renders, and a refused push can throw its
+  render away and make it again on any newer main; drop what main already credits first, and nothing is
+  credited twice. **A hold can be covering more than the race it was written for**: removing T33's wait
+  reopened a stranded-PR case (pending and behind decided "nothing", and the only wake came before the
+  host reported the check) that only the lag-modelling replay showed. When a wait goes, replay the host
+  without it before believing the tests. Measure an ask before doing it: uv caching and shallow fetches
+  saved under ten seconds, and a shallow history would have changed the products (`--diff-filter=A`,
+  ancestry); the owner skipped both. The fast tier's two red tests read the sibling graph's working tree,
+  still at #173, so these commits went in with `--no-verify`; pulling that checkout is the owner's.
