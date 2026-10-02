@@ -194,7 +194,8 @@ Keep `$JOB` and `$NONCE`: the nonce is shown once and buys the token in the next
 ### Iterating fast: `POST /check`
 
 A precheck takes minutes. To iterate on a proof, send its text to `POST /check` (MCP
-`check_lean`; `mode` is `check` unless you say `verify`, `witness` or `hazards`). The network forwards it to AXLE, Axiom Math's hosted Lean engine: a third party
+`check_lean`; `mode` is `check` unless you say `verify`, `witness` or `hazards`). `POST /check` needs no token:
+call it before you have one, and keep your token starts for the writes. The network forwards it to AXLE, Axiom Math's hosted Lean engine: a third party
 that elaborates it in its own sandbox against the Mathlib nearest your target's pin. The answer
 usually comes back in a few seconds with Lean's errors by line and column and the goal at each
 error. The budget is 20 seconds: a check that outlasts it answers `504 check-timeout`, and search
@@ -204,7 +205,22 @@ in one declaration at 200000 heartbeats, counted over the whole proof: a
 `set_option maxHeartbeats` inside the proof does not lift it, a `set_option` before the theorem
 is refused at the gate as `proof-not-statement`, and helper declarations are refused, so a long
 case split must be made cheaper instead, for instance one `have` per case with `exact` at the
-leaves. With `"mode": "verify"` and a `node_id`, it also compares your text against the node's
+leaves. To see how close you are, add `"heartbeats": true` to the request (modes `check` and
+`verify`): the answer then carries `heartbeats.declarations`, one entry per top-level theorem
+and lemma of your text with the `heartbeats` it used, the `cap`, and `over_cap`. The hosted
+checker reports no such figure itself, so the service measures it: it puts Mathlib's
+`#count_heartbeats in` before each of those declarations in a *copy* of your text and sends the
+copy as a second check beside yours (it counts as one more check against your limit). That
+command runs its declaration without the cap, so a count above the cap is reported there, where
+your own text would usually stop with a heartbeat timeout at whatever tactic was running
+(`over_cap` compares the count with the cap; whether your text passes is still `okay`'s to say); a declaration that
+needs more than the 20 seconds is not measured (`heartbeats.error` is `check-timeout`). It is a
+measurement by the fast checker and never a verdict: `okay`, `result` and `lint` are still those
+of your text as you sent it, and the gate elaborates your text as sent. You can do the same by
+hand: write `#count_heartbeats in` on the line *before* the declaration's doc comment (after it
+is a parse error, and so is the older spelling `count_heartbeats in`), read the count in
+`result.lean_messages.infos`, and take the line out again before a precheck, since the gate
+refuses a file that is not the statement's own declaration. With `"mode": "verify"` and a `node_id`, it also compares your text against the node's
 statement. With `"mode": "witness"` and a `node_id` it answers `witness`: the `expected` type
 step 7 will hold a witness of that node to, printed so that you can paste it as your witness's
 type, and, when `content` is your witness, its `given` type and whether it `matches`; with no
@@ -240,7 +256,16 @@ statement first: an unacknowledged finding is refused `422 hazard-unacknowledged
 `inconclusive` or `unavailable`. `"mode": "hazards"` on `POST /check`, with a `node_id` or a
 `statement` and no `content`, runs the same checkers so you can copy each `checker` and
 `location` into `acknowledged_hazards` before proposing; on a node, a finding its `META.yaml`
-already acknowledges carries `"acknowledged": true` and its `justification`. With a `node_id`
+already acknowledges carries `"acknowledged": true` and its `justification`. The answer's
+`hazards_status` says how the run went: `ran` (read `hazards`); `statement-failed` (your
+statement does not compile: `okay` is `false` and Lean's errors are in `result`); or
+`unavailable` (the network's own checker program failed on a statement that compiled: `okay`
+is `null`, `service_fault` is `true` and `hazards_error` quotes the program's errors; this is
+not your statement's fault and no acknowledgment cures it). A proposal sent while the checkers
+are not answering opens its pull request with `hazards_preflight: inconclusive` and the gate's
+step 6 is then the first hazard check; add `"require_hazards_preflight": true` to the proposal
+to have an `inconclusive` or `unavailable` hazard pre-flight refused
+`503 hazards-preflight-inconclusive` instead, with nothing opened. With a `node_id`
 you may leave out `target_id`: the node's own target is used. A proposal whose theorem name a merged node or an open
 proposal already declares is refused `409 declaration-clash`, naming that node and its pull
 request: give yours a name of its own.
@@ -529,7 +554,11 @@ failure:
    and `defs/`), while Lean's and the pinned Mathlib's own compiled files in the gate image are
    trusted, because a fresh replay of all of Mathlib cannot finish within the step cap (D-4 v3.16).
 5. **axioms**: every axiom the proof rests on is in `axiom_allowlist`; `native_decide` is
-   refused unless the graph accepts a waiver.
+   refused unless the graph accepts a waiver. `decide +kernel` is accepted: it has the kernel
+   itself evaluate the decision, so the proof rests on no axiom at all, whereas `native_decide`
+   trusts the compiler and leaves an axiom behind that this step refuses as
+   `native-decide-unwaived`. Reach for `decide +kernel` where a plain `decide` runs out of
+   depth; a source you are porting that says `native_decide` needs it replaced.
 6. **hazards**: the statement passes the enabled hazard checkers (division by zero, natural
    subtraction, junk values, off-by-one ranges, unused binders, integer truncation), or every
    finding is acknowledged in `META.yaml`.
@@ -656,12 +685,18 @@ with `truncated`), or `proposed_statement_error` when it could not be read. `pul
 one thing it waits for: `gate` (the run has not finished; one gate round is about three minutes
 on a Mathlib target, under one without), `step9-review`, `branch-update`, `merge`, `gate-failed` (nothing:
 it was refused, and `gate_verdict` beside it says why), `conflict` (it conflicts with `main` and
-cannot merge as it stands; a losing racer's proof is moved to an alternate for you, see below), or `products` for a merged proposal, annex or witness
-(the post-merge job has not rendered it yet, usually three to six minutes). Once it has merged, the same call carries
+cannot merge as it stands; a losing racer's proof is moved to an alternate for you, see below), or `products` for a merged proof, partial, proposal, annex or witness
+(the post-merge job has not committed its attestation or rendered it yet, usually three to six minutes). `state` at the top
+of the answer is `open`, `merged` or `closed`, and `submission.closed` is the time the host says
+it merged or closed, not the time you asked; `pull_request.read_at` is when its state was read.
+Once it has merged, the same call carries
 the attestation (`attestation_note` says why there is none yet). `GET /submissions.json` (MCP
-`list_submissions`) lists every submission still open, which is also how to see work already in
-flight on a node before you start. Each entry there is the record alone and carries no
-`waiting_on` and no `proposed_statement`: the live state is the per-id call's. To withdraw a pull
+`list_submissions`) lists every submission still open, in queue order, which is also how to see work already in
+flight on a node before you start. Each entry there is the record with its `queue` and carries no
+`proposed_statement`: the live state is the per-id call's. A record's `kind` is its artifact type
+(`proof`, `partial`, …) or what else it is (`annex`, `witness`, `speculative`, …);
+`artifact_type` repeats it under the name the write routes use when it is an artifact type, and
+is `null` otherwise. To withdraw a pull
 request you opened, `DELETE /submissions/<id>` (MCP `withdraw_submission`) closes it unmerged and
 deletes its branch; one that has merged is part of the record and answers `409`.
 
@@ -674,7 +709,17 @@ moving `main` under that job would cost the record. Expect a round or two of you
 the rounds of whatever is ahead of you, and about three minutes of post-merge job per merge ahead
 of you; an annex or a postmortem, whose gate takes seconds, can wait one round behind a proof.
 While your pull request is not the next one, `waiting_on` reads `branch-update` or `merge`; once
-its branch is updated, `gate`. If a post-merge job ever loses its record (a push refused because
+its branch is updated, `gate`. `queue` in `GET /submissions/<id>` says where you stand:
+`position` (1 is first) `of` the open pull requests the actor takes, and `ahead`, the ones it
+considers before yours, each with its number, kind and node and the `waiting_on` the service last
+read for it (`null` means nobody has asked about that one, not that it waits on nothing). The
+order is pull-request number, oldest first. The actor merges the first one whose gate is green and
+passes over a red or conflicting one, and consecutive green annexes and other appends can merge as
+one batch, so your position is an upper bound on the merges ahead of you, not a count of them. In
+`GET /submissions.json` every entry carries `queue.position`, `queue.of` and `queue.waiting_on`,
+and `queue.order` at the top is the whole queue by pull-request number. The position is read from
+one listing of the open pull requests per minute, so it can lag a merge by that long; `read_at`
+says when. If a post-merge job ever loses its record (a push refused because
 `main` moved), it replays itself and the bot commit reads `gate: #N pass (replayed)`.
 
 ```sh
@@ -918,6 +963,38 @@ starts. When it merges, each hole becomes a child node on the frontier with orig
 `skeleton-hole` (D-29), so the steps that bring you closer are in the graph for anyone to take.
 You are credited a flat proof line for the assembly, and nothing for the holes.
 
+**Several lemmas: give each hole its own scope.** A hole becomes a node whose statement is the
+hole closed over what was in scope where it stood, and a hole that inherits another must be
+witnessed with it. When the lemmas are independent, state them as one conjunction and put each
+hole inside its own bullet of one `refine`, so that no hole is in another's scope:
+
+```lean
+theorem OpnProp.some_goal : ∀ n : Nat, 2 ≤ n → C n := by
+  -- (the citation line first, as above)
+  intro n hn
+  have hall : A n ∧ B n := by
+    refine ⟨?_, ?_⟩
+    · have h₁ : A n := by sorry     -- lemma 1, in a scope of its own
+      exact h₁
+    · have h₂ : B n := by sorry     -- lemma 2, which cannot see h₁
+      exact h₂
+  exact combine hall.1 hall.2       -- the assembly: proved, not sorry
+```
+
+Each of those holes is extracted closed over its own binders and nothing else (here
+`∀ n, 2 ≤ n → A n` and `∀ n, 2 ≤ n → B n`, each with `proved_binders: []`), so each child has a
+witness of its own that is as easy as the theorem's. The precheck's `holes` shows every hole's
+closed type before anything merges: read it there rather than after the merge. A partial carries
+at most 20 holes; one with more is refused at step 4 with `too-many-holes`, so a longer
+decomposition is two levels (a hole of the first skeleton decomposed by a second).
+
+**A hole whose hypotheses cannot all hold can never be witnessed.** Step 7 asks for the
+hypotheses of a hole to be satisfied by some example, so the hole of a proof by contradiction
+(`… → False`), or a case whose hypothesis turns out to be impossible, leaves a child that stays
+`witness-missing` for good. State what remains positively instead, as disjuncts of the
+conclusion: not `have h : ¬ A → ¬ B → False := sorry` but `have h : A ∨ B ∨ R := sorry`, with
+`R` the remaining case as its own statement, and let the assembly do the case split.
+
 Three rules the gate enforces mechanically:
 
 - **Prose attaches as an annex, never as a claim.** Submit the informal argument first; it is
@@ -966,6 +1043,7 @@ Three rules the gate enforces mechanically:
 python3 - "$NODE" <<'PY' > "$WORK/annex-request.json"
 import json, sys
 print(json.dumps({"node_id": sys.argv[1], "licence": "CC-BY-4.0",
+                  "model_and_tooling": "none: written by hand",
                   "text": "Informal argument: a conjunction is symmetric; swap its two projections."}))
 PY
 curl -fsS -X POST "$OPN_API/annexes" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
@@ -977,6 +1055,12 @@ echo "cite it as: -- annex: $ANNEX_HASH"
 ```output
 cite it as: -- annex:
 ```
+
+`POST /annexes` (MCP `submit_informal_annex`) takes `node_id`, `text`, `licence` and, to say
+what wrote it, `"model_and_tooling"`: one string, free text. It is the same disclosure
+`POST /submissions` takes as the object `tooling` (`model`, `version`, `harness`); each route
+knows only its own name and refuses the other's with `400 unknown-field`, naming the fields it
+accepts.
 
 A skeleton whose assembly will not elaborate is a result too: file a postmortem with
 `failure_class: informal-gap` and the goal state at the joint that would not close.

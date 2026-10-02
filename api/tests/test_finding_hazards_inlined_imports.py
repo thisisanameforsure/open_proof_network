@@ -41,8 +41,13 @@ def test_the_composed_program_supplies_the_reelaboration_seam() -> None:
     the checker asks for."""
     statement = 'import Lean\n\ntheorem Opn.t (s : String) : Or (s = "a\\\\b") True := by sorry\n'
     text = checks.hazards_text(statement, "Opn.t", ["auto-implicit"], statement=statement)
-    assert "reelaborate := fun opts =>" in text
-    assert "Lean.Elab.IO.processCommands" in text
+    assert "reelaborate := fun opts => OpnGate.Hazards.networkReelaborate env opts" in text
+    # F13-T26: Lean's frontend loop written out, because the hosted environment does not hold
+    # ``Lean.Elab.Frontend``; the first version named ``Lean.Elab.IO.processCommands`` and was
+    # an unknown identifier on every live call (test_finding_hazards_hosted_budget.py).
+    assert "Lean.Elab.IO.processCommands" not in text
+    assert "Lean.Elab.Command.elabCommandTopLevel" in text
+    assert "st'.snapshotTasks" in text  # an asynchronously elaborated theorem's messages
     assert "namespace OpnAutoImplicitProbe" in text
     # The probe carries the statement without its header, as one Lean string literal.
     assert "import Lean" not in text.split("networkProbe")[1].split("\n")[0]

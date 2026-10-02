@@ -193,8 +193,10 @@ PURPOSES: dict[str, str] = {
     "POST /precheck": "Run the gate on a bundle in the hosted sandbox before submitting it.",
     "GET /precheck/{job_id}": "A precheck job's state, and its signed attestation when done.",
     "POST /submissions": "Open the pull request for a prechecked proof or partial proof.",
-    "GET /submissions.json": "Every pull request the service opened that is still open.",
-    "GET /submissions/{submission_id}": "One submission: its pull request and where it stands.",
+    "GET /submissions.json": "Every pull request the service opened that is still open, in "
+    "merge-queue order, each with its position.",
+    "GET /submissions/{submission_id}": "One submission: its pull request, where it stands, "
+    "and its place in the merge queue with what is ahead.",
     "DELETE /submissions/{submission_id}": "Withdraw a pull request you opened, closed unmerged.",
     "POST /postmortems": "Record a failed attempt on a statement, by pull request.",
     "POST /annexes": "Attach informal mathematics to a statement, by pull request.",

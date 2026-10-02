@@ -291,6 +291,8 @@ def test_a_merged_proof_is_pending_until_its_attestation_lands(harness: Harness)
     )
     waiting = get(harness, "7")
     assert (waiting["attestation"], waiting["attestation_note"]) == (None, "attestation-pending")
+    # F05-T18: and it is waiting on the post-merge job, in the word the guide uses
+    assert waiting["pull_request"]["waiting_on"] == "products"
     assert waiting["submission"]["closed"] is not None
     assert harness.store.list_open_submissions() == []
 
@@ -300,7 +302,7 @@ def test_a_merged_proof_is_pending_until_its_attestation_lands(harness: Harness)
     assert landed["attestation_path"] == path == "attestations/000007.json"
     assert landed["attestation"] == plain(harness, path)
     assert landed["attestation_note"] is None
-    assert landed["pull_request"] == waiting["pull_request"]
+    assert landed["pull_request"] == {**waiting["pull_request"], "waiting_on": None}
     assert harness.githost.pull_lookups == lookups
 
 
@@ -312,7 +314,7 @@ def test_a_merged_annex_leaves_the_snapshot(harness: Harness) -> None:
     harness.clock.advance(seconds=1)
     annex(harness, token)
     first = harness.client.get("/submissions.json").json()
-    assert set(first) == {"snapshot_at", "open", "host"}  # host: F07-T47
+    assert set(first) == {"snapshot_at", "open", "host", "queue"}  # host: F07-T47
     assert first["snapshot_at"] == clockmod.render(harness.clock.now())
     assert [e["pr_number"] for e in first["open"]] == [1, 2]
 
@@ -326,7 +328,9 @@ def test_a_merged_annex_leaves_the_snapshot(harness: Harness) -> None:
     assert get(harness, "1")["submission"]["closed"] is not None
     snapshot = harness.client.get("/submissions.json").json()
     assert [e["pr_number"] for e in snapshot["open"]] == [2]
-    assert snapshot["open"][0] == get(harness, "2")["submission"]
+    # F05-T18: an entry is the per-id document and, beside it, its ``queue``
+    entry = {k: v for k, v in snapshot["open"][0].items() if k != "queue"}
+    assert entry == get(harness, "2")["submission"]
 
 
 # --- the store seam: both halves agree ------------------------------------------------------------

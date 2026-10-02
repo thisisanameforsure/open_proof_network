@@ -46,7 +46,10 @@ PRESENT = {
     "Lean in an annex goes in a fence": "inside a fenced code block",
     "the MCP's two result shapes": "`{status, body}`",
     "the node-superseded warning": "`node-superseded`",
-    "where waiting_on lives": "carries no `waiting_on`",
+    # F05-T18: a list entry now carries its queue, with the waiting_on the service last read;
+    # the live one is still the per-id call's, inside ``pull_request``
+    "where waiting_on lives": "(inside the `pull_request` object, not at the top of the answer)",
+    "a list entry's waiting_on is the last read": "`queue.waiting_on`",
 }
 
 

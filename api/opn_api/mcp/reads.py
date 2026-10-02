@@ -539,14 +539,26 @@ TOOLS: tuple[Tool, ...] = (
         "record, the pull request's live state and, once merged, the attestation it earned or "
         "why there is none. `pull_request.waiting_on` names the one thing it waits for (gate, "
         "step9-review, branch-update, merge, products, or gate-failed), and when that is "
-        "gate-failed, `gate_verdict` carries the gate's own diagnostic: why it was refused.",
+        "gate-failed, `gate_verdict` carries the gate's own diagnostic: why it was refused. "
+        "`state` at the top is open, merged or closed. While it is open, `queue` says where it "
+        "stands in the merge actor's order: `position` (from 1) `of` how many, and `ahead`, the "
+        "pull requests the actor considers first, each with its number, the service's record "
+        "of it and the `waiting_on` the service last read for it (null: not read). The order "
+        "is pull-request number, oldest first; the actor merges the first green one and passes "
+        "over a red or conflicting one, so a position is an upper bound on the merges ahead. "
+        "`submission.closed` is the host's own merge or close time, and "
+        "`submission.artifact_type` repeats `kind` for a proof, counterexample, vacuity, "
+        "reduction or partial (null for any other record).",
         params({"submission_id": {"type": "string"}}, ("submission_id",)),
         get_submission,
     ),
     Tool(
         "list_submissions",
         "Every pull request the service opened on the graph that no live read has yet found "
-        "merged or closed: id, kind, node, target, pull-request number and URL, pseudonym. "
+        "merged or closed: id, kind, node, target, pull-request number and URL, pseudonym, in "
+        "the merge actor's order. Each entry's `queue` gives its `position` `of` how many and "
+        "the `waiting_on` the service last read for it (null: not read, ask get_submission); "
+        "the top-level `queue.order` is the queue's pull-request numbers. "
         "get_submission gives one with its checks and reviews; get_node lists a node's own.",
         params({}),
         list_submissions,

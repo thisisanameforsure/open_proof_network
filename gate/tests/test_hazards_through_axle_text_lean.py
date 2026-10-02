@@ -13,6 +13,7 @@ service inlines it.
 
 from __future__ import annotations
 
+import re
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -35,17 +36,49 @@ from opn_gate.toolchain import ResolvedToolchain
 
 pytestmark = pytest.mark.lean
 
+ROOT = Path(__file__).resolve().parents[2]
+
+
+#: F13-T26: the toolchain modules the hosted checker's environment holds, one measured list per
+#: environment (``gate/hosted-checker-modules/``). AXLE replaces a text's header with its own,
+#: ``import Mathlib``, which reaches these and no other module of ``Lean``.
+HOSTED_MODULES = ROOT / "gate" / "hosted-checker-modules" / "lean-4.33.1.txt"
+
+
+def hosted_header() -> str:
+    """The hosted environment's share of the toolchain, as an import block: what stands in for
+    ``import Mathlib`` on a machine with no Mathlib."""
+    modules = [
+        line.strip()
+        for line in HOSTED_MODULES.read_text("utf-8").splitlines()
+        if line.strip() and not line.startswith("#")
+    ]
+    assert "Lean.Elab.Command" in modules and "Lean.Elab.Frontend" not in modules
+    return "".join(f"import {m}\n" for m in modules)
+
+
+def as_the_hosted_checker_reads_it(text: str) -> str:
+    """``text`` with its ``import Lean`` replaced by the hosted environment's modules. The
+    composer writes ``import Lean`` and the hosted checker never honours it (2026-10-01: the
+    program named ``Lean.Elab.IO.processCommands``, green here under ``import Lean`` and an
+    unknown identifier on every live call)."""
+    assert text.count("import Lean\n") == 1, "the composed text carries one `import Lean` line"
+    return text.replace("import Lean\n", hosted_header(), 1)
+
 
 def through_the_service(pinned: ResolvedToolchain, tmp_path: Path, text: str) -> dict[str, Any]:
-    """Elaborate the composed text as the hosted checker would, and read its line back the way
-    the service reads the checker's info messages."""
+    """Elaborate the composed text as the hosted checker would — under the modules its
+    environment holds, not under ``import Lean`` (F13-T26) — and read its line back the way the
+    service reads the checker's info messages."""
     source = tmp_path / "Hazards.lean"
-    source.write_text(text, encoding="utf-8")
+    source.write_text(as_the_hosted_checker_reads_it(text), encoding="utf-8")
     lean = pinned.libdir.parent.parent / "bin" / "lean"
     proc = subprocess.run(
         [str(lean), str(source)], capture_output=True, text=True, check=False, timeout=600
     )
-    assert ": error:" not in proc.stdout, proc.stdout
+    # Lean prints an error as ``error:`` or ``error(<kind>):``; the old ``": error:"`` saw
+    # only the first, and an unknown identifier is the second (F13-T26).
+    assert not re.search(r": error(\([^)]*\))?:", proc.stdout), proc.stdout
     verdict = checks.hazards_verdict({"lean_messages": {"infos": proc.stdout.splitlines()}})
     assert verdict is not None, proc.stdout
     return verdict
