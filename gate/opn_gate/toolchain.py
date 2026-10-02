@@ -246,6 +246,29 @@ class RelationRequest:
 
 
 @dataclass(frozen=True)
+class MeaningRequest:
+    """Inputs of ``opn-statement-meaning`` (F08-R17): the statement as compiled under its own
+    header, and the artifact's compiled module, whose declaration must have the same type."""
+
+    statement_olean: Path
+    decl: str
+    artifact_module: str
+    artifact_decl: str
+
+    def args(self) -> list[str]:
+        return [
+            "--statement-olean",
+            str(self.statement_olean.resolve()),
+            "--decl",
+            self.decl,
+            "--artifact-module",
+            self.artifact_module,
+            "--artifact-decl",
+            self.artifact_decl,
+        ]
+
+
+@dataclass(frozen=True)
 class HazardsRequest:
     """Inputs of ``opn-hazards`` (F02-R1, R3): the statement and exactly the checkers to run."""
 
@@ -306,6 +329,7 @@ METAPROGRAMS: tuple[str, ...] = (
     "opn-hazards",
     "opn-artifact-type",
     "opn-relation-type",
+    "opn-statement-meaning",
 )
 
 
@@ -424,6 +448,17 @@ class Toolchain(Protocol):
         timeout_s: float | None = None,
     ) -> MetaprogramResult:
         """F08: ``opn-relation-type`` — the implication a labeled variant claims (D-30)."""
+
+    def statement_meaning(
+        self,
+        tc: ResolvedToolchain,
+        req: MeaningRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        """F08-R17: ``opn-statement-meaning`` — whether an artifact that declares uses proved
+        the statement as its own environment reads it."""
 
 
 # --- helpers shared by the real implementation and its tests --------------------------------
@@ -848,6 +883,18 @@ class LocalToolchain:
         timeout_s: float | None = None,
     ) -> MetaprogramResult:
         return self._metaprogram_run(tc, "opn-relation-type", req.args(), search_path, timeout_s)
+
+    def statement_meaning(
+        self,
+        tc: ResolvedToolchain,
+        req: MeaningRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        return self._metaprogram_run(
+            tc, "opn-statement-meaning", req.args(), search_path, timeout_s
+        )
 
 
 def _env_with(extra: dict[str, str] | None) -> dict[str, str] | None:

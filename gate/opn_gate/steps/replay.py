@@ -29,7 +29,7 @@ from collections.abc import Mapping
 from pathlib import Path
 
 from opn_gate import cache, defs, layout, sandbox
-from opn_gate.steps import artifact
+from opn_gate.steps import artifact, meaning
 from opn_gate.steps import stage as staging
 from opn_gate.steps.artifact import ALTERNATE_KEY, PARTIAL_KEY
 from opn_gate.steps.base import RunContext, StepResult
@@ -148,6 +148,11 @@ class KernelReplayStep:
                     failure = self._compile(ctx, tc, staged, node_id, stem)
                     if failure is not None:
                         return failure
+            # F08-R17: an artifact that declares uses is held to the statement's own meaning
+            # before anything is replayed; the guard leaves the build as it found it.
+            changed = meaning.guard(ctx, tc, staged)
+            if changed is not None:
+                return changed
             proof_module = layout.node_module(node.node_id, PROOF_MODULE)
             ctx.data[REPLAY_MODE_KEY] = replay_plan(ctx.spec, proof_module, staged.build)[0]
             mode, modules, result = replay(

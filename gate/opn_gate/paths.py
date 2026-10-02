@@ -121,8 +121,18 @@ def check_proof_is_statement(
     merged skeleton had put there, and a statement is immutable (D-3). Such a proof may carry
     that one line, exactly where ``layout.with_own_context`` puts it; any other header is refused
     as before. Sound because step 4 stages only proved dependencies: a name that is not proved
-    is not there to be used."""
+    is not there to be used.
+
+    F08-R16: and with its *use lines* (``opn_gate.uses``), which declare what the proof draws on
+    beyond the statement's header. They are removed before the comparison, so everything else
+    in the file is held to the statement exactly as before; what they may name is
+    ``uses.check``'s question, and step 2 asks it of the same text."""
+    from opn_gate import uses  # noqa: PLC0415 — uses reads layout, as this module does
+
     prefix = statement.prefix
+    # F08-R16: use lines are the artifact's declaration, not part of the statement's text; with
+    # them taken out, the rule below is the one it always was.
+    proof_text, _declared = uses.split(prefix, proof_text, node_id)
     if node_id is not None and not proof_text.startswith(prefix):
         allowed = layout.with_own_context(prefix, node_id)
         if allowed != prefix and proof_text.startswith(allowed):

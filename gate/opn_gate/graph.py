@@ -94,6 +94,11 @@ class NodeFacts:
     #: one once it is proved; it never waits on one, so they are set aside when the node's
     #: status is derived (``blocked_because``).
     holes: tuple[str, ...] = ()
+    #: F08-R19: the nodes this node's merged ``Proof.lean`` uses beyond its deps — its use lines,
+    #: which step 8 held to the kernel term when the proof merged. Read from the tree; no record
+    #: is written for a use. No status is derived from them (a used node was proved before its
+    #: user could merge); they are what a revision marks stale and what a closure follows.
+    uses: tuple[str, ...] = ()
     #: F08-T17 (D-16): the merged ``circular-decomposition`` claim under this node, as
     #: ``defects/<file>``; the node is no easier than a node above it, so it is not work (R13).
     circular: str | None = None
@@ -281,6 +286,7 @@ def load_nodes(
             artifact=artifact_of(node_dir, loaded.statement.decl_name),
             witness_stub=witness_is_stub(node_dir),
             supersedes=_optional_str(loaded.meta.get("supersedes")),
+            uses=layout.merged_uses(node_dir),
             circular=claims[0][0] if claims else None,
             circular_claims=claims,
         )

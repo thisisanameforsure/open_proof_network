@@ -443,6 +443,20 @@ def parent_imports(statement_text: str) -> list[str]:
     return scaffold.imports_of([statement_text])
 
 
+def assembly_defs(statement_text: str, partial_text: str, node_id: str) -> list[str]:
+    """F08-R16: the ``Defs.*`` modules the assembly declared as uses and its node's statement
+    does not import. A hole's obligation was elaborated under them, so the child's statement
+    imports them too, or a hole stated over a definition admitted after the root (erdos-69's
+    construction) would be written into a file that does not elaborate. A text that is not a
+    statement, or an assembly with no use lines, adds none."""
+    from opn_gate import layout, uses  # noqa: PLC0415 — as above: layout imports schemas
+
+    parsed = layout.parse_statement(statement_text)
+    if not isinstance(parsed, layout.Statement):
+        return []
+    return list(uses.declared(parsed, partial_text, node_id).defs)
+
+
 _OPEN_LINE_RE = re.compile(r"^open\b[^\n]*$", re.M)
 
 
@@ -572,7 +586,7 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
     ]
     parent_statement = node_dir / "Statement.lean"
     parent_text = parent_statement.read_text(encoding="utf-8") if parent_statement.is_file() else ""
-    imports = parent_imports(parent_text)
+    imports = [*parent_imports(parent_text), *assembly_defs(parent_text, partial_text, parent)]
     opens = parent_opens(parent_text)
     created: list[str] = []
     edges: list[str] = []

@@ -186,19 +186,39 @@ def test_parse_statement_rejects_sorry_before_theorem_and_two_bodies() -> None:
 
 def test_proof_and_witness_may_not_import_another_node(tmp_path: Path) -> None:
     """F01-Q2: the import rule holds for every node file, not only Statement.lean, so a proof
-    cannot smuggle in a sibling's constants by importing it directly."""
+    cannot smuggle in a sibling's constants by importing it directly.
+
+    Restated 2026-10-01 (F08-T24, Q37; the owner: "okay on letting proofs import proved lemma
+    nodes"): the layout now takes one node import, another node's ``Proof`` module in
+    ``Proof.lean``, because that line is the declaration of a use. What this test was about
+    still holds, by other hands: every other node module is refused here as before, and a
+    use is not smuggling since step 2 says whether the node may be used and step 8 holds the
+    line to the kernel term (``test_uses_nodes.py``)."""
     n = tmp_path / "tutorial-and-swap"
     shutil.copytree(NODES / "tutorial-and-swap", n)
     proof = n / "Proof.lean"
-    proof.write_text("import Nodes.«and-reassoc».Proof\n" + proof.read_text())
+    original_proof = proof.read_text()
+    proof.write_text(
+        "import Nodes.«and-reassoc».Statement\nimport Nodes.«and-reassoc».Context\n"
+        + original_proof
+    )
     witness = n / "Witness.lean"
     witness.write_text(
-        "import Defs.Helper\nimport Nodes.«and-reassoc».Statement\n" + witness.read_text()
+        "import Defs.Helper\nimport Nodes.«and-reassoc».Statement\n"
+        "import Nodes.«and-reassoc».Proof\n" + witness.read_text()
     )
     found = layout.validate_node(n)
     assert [(d.details["file"], d.details["module"]) for d in found] == [
-        ("Proof.lean", "Nodes.«and-reassoc».Proof"),
+        ("Proof.lean", "Nodes.«and-reassoc».Statement"),
+        ("Proof.lean", "Nodes.«and-reassoc».Context"),
         ("Witness.lean", "Nodes.«and-reassoc».Statement"),
+        ("Witness.lean", "Nodes.«and-reassoc».Proof"),
+    ]
+    # The one node import the layout takes: another node's merged proof, in Proof.lean alone.
+    proof.write_text("import Nodes.«and-reassoc».Proof\n" + original_proof)
+    assert [(d.details["file"], d.details["module"]) for d in layout.validate_node(n)] == [
+        ("Witness.lean", "Nodes.«and-reassoc».Statement"),
+        ("Witness.lean", "Nodes.«and-reassoc».Proof"),
     ]
     # Its own Context is allowed everywhere except in Context.lean itself.
     original = NODES / "tutorial-and-swap"

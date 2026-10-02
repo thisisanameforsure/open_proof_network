@@ -1,0 +1,97 @@
+F08-T23 — a proof may use a definition its statement does not import, and cannot change what the
+statement says (R16, R17, R20; Q35, Q36); green
+date: 2026-10-01 (run 2026-10-02 UTC)   toolchain: leanprover/lean4:v4.33.1 (GitHub release zip
+linked into elan, as the 2026-09-24 log entry describes); docker tier not run (no daemon here)
+
+## the task's own tests
+$ uv run --frozen pytest gate/tests/test_uses_defs.py -v -p no:cacheprovider
+gate/tests/test_uses_defs.py::test_a_proof_may_add_a_use_line_after_the_statements_last_import PASSED
+gate/tests/test_uses_defs.py::test_use_lines_follow_the_own_context_line_where_the_proof_adds_one PASSED
+gate/tests/test_uses_defs.py::test_use_lines_lead_the_file_of_a_statement_with_no_imports PASSED
+gate/tests/test_uses_defs.py::test_a_proof_without_use_lines_declares_none PASSED
+gate/tests/test_uses_defs.py::test_any_other_header_is_refused_as_before[edit0] PASSED
+gate/tests/test_uses_defs.py::test_any_other_header_is_refused_as_before[edit1] PASSED
+gate/tests/test_uses_defs.py::test_any_other_header_is_refused_as_before[edit2] PASSED
+gate/tests/test_uses_defs.py::test_any_other_header_is_refused_as_before[edit3] PASSED
+gate/tests/test_uses_defs.py::test_any_other_header_is_refused_as_before[edit4] PASSED
+gate/tests/test_uses_defs.py::test_any_other_header_is_refused_as_before[edit5] PASSED
+gate/tests/test_uses_defs.py::test_any_other_header_is_refused_as_before[edit6] PASSED
+gate/tests/test_uses_defs.py::test_any_other_header_is_refused_as_before[edit7] PASSED
+gate/tests/test_uses_defs.py::test_any_other_header_is_refused_as_before[edit8] PASSED
+gate/tests/test_uses_defs.py::test_any_other_header_is_refused_as_before[edit9] PASSED
+gate/tests/test_uses_defs.py::test_a_use_line_does_not_excuse_a_changed_signature PASSED
+gate/tests/test_uses_defs.py::test_a_use_line_does_not_excuse_an_empty_body PASSED
+gate/tests/test_uses_defs.py::test_without_the_node_named_a_use_line_is_still_read PASSED
+gate/tests/test_uses_defs.py::test_a_proof_with_an_admitted_definition_passes_and_is_held_to_the_statements_meaning PASSED
+gate/tests/test_uses_defs.py::test_step_8_records_which_declared_definitions_the_proof_term_uses PASSED
+gate/tests/test_uses_defs.py::test_a_proof_without_uses_is_checked_exactly_as_before PASSED
+gate/tests/test_uses_defs.py::test_a_definition_that_is_not_on_the_tree_is_refused_at_step_2 PASSED
+gate/tests/test_uses_defs.py::test_a_submission_cannot_bring_its_own_definition PASSED
+gate/tests/test_uses_defs.py::test_a_use_line_repeating_another_is_refused PASSED
+gate/tests/test_uses_defs.py::test_a_use_line_repeating_a_statement_import_is_refused PASSED
+gate/tests/test_uses_defs.py::test_a_changed_meaning_fails_step_4_before_any_replay PASSED
+gate/tests/test_uses_defs.py::test_a_local_declaration_that_differs_fails_step_4 PASSED
+gate/tests/test_uses_defs.py::test_a_guard_that_cannot_answer_fails_step_4 PASSED
+gate/tests/test_uses_defs.py::test_an_alternate_may_declare_uses PASSED
+gate/tests/test_uses_defs.py::test_a_partial_may_declare_uses PASSED
+gate/tests/test_uses_defs.py::test_a_partials_holes_import_the_definitions_it_declared PASSED
+gate/tests/test_uses_defs.py::test_a_partial_without_uses_writes_its_holes_as_before PASSED
+============================== 31 passed in 0.35s ==============================
+
+$ uv run --frozen pytest -m lean gate/tests/test_uses_defs_lean.py -v -p no:cacheprovider -rxX
+gate/tests/test_uses_defs_lean.py::test_a_proof_uses_a_definition_its_statement_does_not_import PASSED
+gate/tests/test_uses_defs_lean.py::test_an_import_that_changes_the_statements_meaning_is_refused[instance] PASSED
+gate/tests/test_uses_defs_lean.py::test_an_import_that_changes_the_statements_meaning_is_refused[local-definition] PASSED
+gate/tests/test_uses_defs_lean.py::test_an_import_that_changes_the_statements_meaning_is_refused[notation] PASSED
+gate/tests/test_uses_defs_lean.py::test_without_the_guard_the_same_proof_passes_every_step[instance] PASSED
+gate/tests/test_uses_defs_lean.py::test_without_the_guard_the_same_proof_passes_every_step[local-definition] PASSED
+gate/tests/test_uses_defs_lean.py::test_without_the_guard_the_same_proof_passes_every_step[notation] PASSED
+gate/tests/test_uses_defs_lean.py::test_a_hole_over_a_declared_definition_becomes_a_statement_that_elaborates PASSED
+gate/tests/test_uses_defs_lean.py::test_a_partial_is_held_to_the_statements_meaning_too PASSED
+gate/tests/test_uses_defs_lean.py::test_a_dependencys_proof_module_cannot_change_the_statement_of_an_artifact_with_uses PASSED
+gate/tests/test_uses_defs_lean.py::test_a_dependencys_proof_module_cannot_change_the_statement_of_any_artifact XFAIL
+XFAIL gate/tests/test_uses_defs_lean.py::test_a_dependencys_proof_module_cannot_change_the_statement_of_any_artifact - F08-Q36, a defect older than uses and not fixed by T23: an artifact with no use lines is not compared with its statement, so a dependency's merged proof that carries an instance after its body (step 2 accepts th
+================== 10 passed, 1 xfailed in 554.02s (0:09:14) ===================
+
+What the lean tier shows, in words. (1) A proof of a node whose statement does not import
+Defs.Twice declares it, uses its constant, and passes steps 1, 2, 4, 5, 6, 7, 8. (2) Three false
+statements, each with a "proof" Lean accepts once a module is imported that adds a higher-priority
+instance, a macro on `+`, or a different body for a local definition of the statement's own
+file: with the guard, step 4 refuses each as statement-meaning-changed before any replay; with the
+guard switched off (monkeypatched), the same three submissions pass every step, which is why the
+guard is not optional. (3) A partial under such a module is refused the same way. (4) A partial
+that declares Defs.Twice and states a hole over it passes, and the child the post-merge writer
+makes imports Defs.Base and Defs.Twice and elaborates under its own header. (5) The statement is
+compared as the node's own files read it: an instance that arrives through a dependency's merged
+proof module is caught for an artifact with uses. (6) XFAIL, strict: the same route with no use
+lines is open today and was before this task (F08-Q36; a direct run printed
+[(1, 'pass'), (2, 'pass'), (4, 'pass'), (5, 'pass'), (6, 'pass'), (7, 'pass'), (8, 'pass')] for a
+false statement). Proposed as T28; not fixed here.
+
+## mutants (in memory, pytest -p; no file touched)
+== any-import-is-a-use: 6 failed, 25 passed in 0.74s
+== check-accepts-everything: 3 failed, 28 passed in 0.65s
+== guard-off: 6 failed, 25 passed in 1.91s
+== holes-get-no-defs: 1 failed, 30 passed in 0.55s
+== uses-not-recorded: 10 failed, 21 passed in 2.22s
+Each of the five wrong implementations fails at least one test.
+
+## regression
+$ make lint       -> exit 0
+$ make types      -> exit 0 (3 of 3 packages: no issues)
+$ uv run --frozen pytest -m "not lean and not docker and not network" -q -p no:cacheprovider
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_the_morning_of_306_moves_past_the_stale_head
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_stale_head_is_passed_over_even_if_the_host_calls_it_clean
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_branch_that_no_longer_exists_is_passed_over
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_head_the_host_still_computes_is_held_for_as_before
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_a_stale_append_never_ends_a_batch
+FAILED gate/tests/test_finding_merge_actor_stale_head.py::test_the_workflow_reads_each_branch_tip_and_survives_a_missing_one
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+7 failed, 3187 passed, 134 deselected, 2 warnings in 152.88s (0:02:32)
+The seven failures are the branch's own baseline, unchanged by this task (the same seven on
+d631052 in its own worktree: 7 failed, 3156 passed). All seven read the sibling graph checkout
+(../open_proof_network_graph, here at 1d98dcfb): six run its merge.yml's embedded decide(), which
+predates the tip_of argument (TypeError: decide() got an unexpected keyword argument 'tip_of'),
+and test_walkthrough.py::test_graph_copy_is_identical compares the guide with the graph's copy,
+which is one re-pin behind (testers' item A7).
