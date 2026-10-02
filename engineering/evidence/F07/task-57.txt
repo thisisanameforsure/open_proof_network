@@ -1,0 +1,76 @@
+# F07-T57 green: the post-merge job ends at its push; the olean cache is a job of its own, for a merge that built
+# graph branch f07-t55-queue: e02784981 F07-T57: the olean cache is a job of its own, after the record is pushed, for a merge that built
+# 2026-10-02T19:44:50Z
+
+## What it saves, from the live step timings in task-55.txt (the cache upload ran before the commit, on every merge)
+## merges that built nothing (annex, postmortem, proposal, witness): 10 runs
+##    job total as it stood: 312-476 s; time to the push without the cache: 43-62 s
+## merges that built (proof, partial): 5 runs
+##    job total as it stood: 459-516 s; time to the push without the cache: 228-277 s
+## (an estimate: the job's own steps minus the upload; the upload itself now runs after, in the cache job)
+
+## Item 3's other two asks, measured before acting on them (the owner's call 2026-10-02: skip both, record why):
+##   uv caching: setup-uv 2-4 s and uv sync 2-3 s per run, under 10 s in all.
+##   shallow fetch: checkout 2-3 s (the graph's .git is 9.3 MB), and unsafe: graph.py dates a node by
+##   'git log --diff-filter=A' and clears a stale mark by commit ancestry, cache.py picks a cache by ancestry.
+##   The cache job's own checkout is one commit, because 'cache publish' reads the merge commit's tree only.
+##   The verdict was already re-derived only for a merge that builds; test_..._for_a_merge_that_builds pins it.
+
+$ uv run --frozen pytest gate/tests/test_finding_postmerge_cache_job.py gate/tests/test_finding_postmerge_replay.py gate/tests/test_finding_postmerge_batch.py gate/tests/test_finding_postmerge_catch_up.py -p no:cacheprovider -v
+gate/tests/test_finding_postmerge_cache_job.py::test_the_record_no_longer_waits_for_the_cache PASSED [  1%]
+gate/tests/test_finding_postmerge_cache_job.py::test_after_the_push_the_job_only_dispatches PASSED [  3%]
+gate/tests/test_finding_postmerge_cache_job.py::test_the_cache_is_a_job_of_its_own_after_the_record PASSED [  5%]
+gate/tests/test_finding_postmerge_cache_job.py::test_only_a_merge_that_built_and_passed_publishes_a_cache PASSED [  7%]
+gate/tests/test_finding_postmerge_cache_job.py::test_the_cache_job_builds_exactly_the_merge_commit_with_the_rendering_gate PASSED [  8%]
+gate/tests/test_finding_postmerge_cache_job.py::test_the_verdict_is_re_derived_only_for_a_merge_that_builds PASSED [ 10%]
+gate/tests/test_finding_postmerge_replay.py::test_nothing_waits_for_a_post_merge_job[append/annex] PASSED [ 12%]
+gate/tests/test_finding_postmerge_replay.py::test_nothing_waits_for_a_post_merge_job[propose/variant] PASSED [ 14%]
+gate/tests/test_finding_postmerge_replay.py::test_nothing_waits_for_a_post_merge_job[submit/proof] PASSED [ 16%]
+gate/tests/test_finding_postmerge_replay.py::test_the_afternoon_drains_with_merges_under_running_jobs_and_each_job_catches_up PASSED [ 17%]
+gate/tests/test_finding_postmerge_replay.py::test_the_actor_reads_no_post_merge_run_a_replay_included PASSED [ 19%]
+gate/tests/test_finding_postmerge_replay.py::test_the_gate_workflow_can_be_asked_to_replay_one_merged_pull_request PASSED [ 21%]
+gate/tests/test_finding_postmerge_replay.py::test_a_replay_takes_the_merge_commit_from_the_pull_request PASSED [ 23%]
+gate/tests/test_finding_postmerge_replay.py::test_a_replay_of_a_merge_that_has_its_commit_does_nothing PASSED [ 25%]
+gate/tests/test_finding_postmerge_replay.py::test_every_step_reads_the_merge_commit_not_the_event_commit PASSED [ 26%]
+gate/tests/test_finding_postmerge_replay.py::test_a_moved_main_dispatches_the_replay_instead_of_asking_for_hands PASSED [ 28%]
+gate/tests/test_finding_postmerge_replay.py::test_a_replay_says_so_in_its_commit PASSED [ 30%]
+gate/tests/test_finding_postmerge_replay.py::test_the_gate_that_attests_is_the_one_the_merge_pinned PASSED [ 32%]
+gate/tests/test_finding_postmerge_batch.py::test_the_run_at_the_head_records_every_merge_since_the_last_gate_commit PASSED [ 33%]
+gate/tests/test_finding_postmerge_batch.py::test_a_replay_between_is_walked_past_and_what_it_credits_left_out PASSED [ 35%]
+gate/tests/test_finding_postmerge_batch.py::test_the_matcher_reads_a_number_inside_a_multi_number_subject PASSED [ 37%]
+gate/tests/test_finding_postmerge_batch.py::test_the_replay_check_uses_the_matcher_on_mains_first_parent_line PASSED [ 39%]
+gate/tests/test_finding_postmerge_batch.py::test_a_later_merge_on_main_is_seen_and_a_bot_commit_is_not PASSED [ 41%]
+gate/tests/test_finding_postmerge_batch.py::test_a_batch_of_appends_is_one_run PASSED [ 42%]
+gate/tests/test_finding_postmerge_batch.py::test_a_merge_alone_is_recorded_as_before PASSED [ 44%]
+gate/tests/test_finding_postmerge_batch.py::test_a_building_merge_is_never_batched_and_the_others_are_replayed PASSED [ 46%]
+gate/tests/test_finding_postmerge_batch.py::test_merges_pinned_to_different_gates_are_not_batched PASSED [ 48%]
+gate/tests/test_finding_postmerge_batch.py::test_a_merge_the_batch_cannot_hold_is_replayed_not_dropped PASSED [ 50%]
+gate/tests/test_finding_postmerge_batch.py::test_a_run_whose_walk_disagrees_records_its_own_merge_alone PASSED [ 51%]
+gate/tests/test_finding_postmerge_batch.py::test_an_append_merged_behind_main_diffs_as_its_own_file_alone PASSED [ 53%]
+gate/tests/test_finding_postmerge_batch.py::test_the_runs_of_a_batch_leave_their_merges_to_the_last_and_it_records_them_all PASSED [ 55%]
+gate/tests/test_finding_postmerge_batch.py::test_a_merge_with_no_later_merge_is_recorded_as_before PASSED [ 57%]
+gate/tests/test_finding_postmerge_batch.py::test_a_run_checks_main_for_a_later_merge_before_it_plans PASSED [ 58%]
+gate/tests/test_finding_postmerge_batch.py::test_a_batch_is_classified_merge_by_merge_with_the_pinned_gate PASSED [ 60%]
+gate/tests/test_finding_postmerge_batch.py::test_the_ledger_credits_each_merge_in_order_and_the_products_render_once PASSED [ 62%]
+gate/tests/test_finding_postmerge_batch.py::test_one_commit_credits_the_batch_and_a_moved_main_is_caught_up PASSED [ 64%]
+gate/tests/test_finding_postmerge_batch.py::test_every_secret_is_still_named_by_one_step_only PASSED [ 66%]
+gate/tests/test_finding_postmerge_batch.py::test_the_head_run_commits_one_gate_commit_for_the_batch PASSED [ 67%]
+gate/tests/test_finding_postmerge_batch.py::test_a_run_whose_main_moved_by_a_later_merge_catches_up_and_records_its_own PASSED [ 69%]
+gate/tests/test_finding_postmerge_batch.py::test_a_run_whose_main_moved_by_an_owner_push_catches_up PASSED [ 71%]
+gate/tests/test_finding_postmerge_batch.py::test_a_run_whose_merges_are_already_credited_dispatches_only_what_is_owed PASSED [ 73%]
+gate/tests/test_finding_postmerge_catch_up.py::test_a_push_refused_by_a_merge_on_another_target_is_caught_up PASSED [ 75%]
+gate/tests/test_finding_postmerge_catch_up.py::test_a_push_refused_by_a_merge_on_the_same_target_is_caught_up PASSED [ 76%]
+gate/tests/test_finding_postmerge_catch_up.py::test_a_partials_hole_children_ride_the_catch_up PASSED [ 78%]
+gate/tests/test_finding_postmerge_catch_up.py::test_a_record_that_conflicts_with_main_is_replayed PASSED [ 80%]
+gate/tests/test_finding_postmerge_catch_up.py::test_a_re_pin_of_the_rendering_gate_is_replayed PASSED [ 82%]
+gate/tests/test_finding_postmerge_catch_up.py::test_a_merge_main_already_credits_is_not_credited_twice PASSED [ 83%]
+gate/tests/test_finding_postmerge_catch_up.py::test_a_batch_drops_what_another_run_credited_and_credits_the_rest PASSED [ 85%]
+gate/tests/test_finding_postmerge_catch_up.py::test_the_tag_cache_of_both_renders_is_kept_and_nothing_is_scanned_twice PASSED [ 87%]
+gate/tests/test_finding_postmerge_catch_up.py::test_a_push_refused_every_time_gives_up_loudly_and_replays PASSED [ 89%]
+gate/tests/test_finding_postmerge_catch_up.py::test_two_runs_racing_on_two_targets_both_land_once PASSED [ 91%]
+gate/tests/test_finding_postmerge_catch_up.py::test_the_first_push_lands_as_before_when_main_has_not_moved PASSED [ 92%]
+gate/tests/test_finding_postmerge_catch_up.py::test_the_record_is_taken_after_signing_and_before_any_product PASSED [ 94%]
+gate/tests/test_finding_postmerge_catch_up.py::test_the_catch_up_renders_with_the_gate_main_pins PASSED [ 96%]
+gate/tests/test_finding_postmerge_catch_up.py::test_a_building_merge_records_itself_even_with_a_later_merge_on_main PASSED [ 98%]
+gate/tests/test_finding_postmerge_catch_up.py::test_a_plan_leaves_a_building_merge_to_its_own_run_while_that_run_is_going PASSED [100%]
+======================== 56 passed in 67.29s (0:01:07) =========================
