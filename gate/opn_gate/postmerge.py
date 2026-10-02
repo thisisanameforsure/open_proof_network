@@ -443,6 +443,20 @@ def parent_imports(statement_text: str) -> list[str]:
     return scaffold.imports_of([statement_text])
 
 
+def assembly_defs(statement_text: str, partial_text: str, node_id: str) -> list[str]:
+    """F08-R16: the ``Defs.*`` modules the assembly declared as uses and its node's statement
+    does not import. A hole's obligation was elaborated under them, so the child's statement
+    imports them too, or a hole stated over a definition admitted after the root (erdos-69's
+    construction) would be written into a file that does not elaborate. A text that is not a
+    statement, or an assembly with no use lines, adds none."""
+    from opn_gate import layout, uses  # noqa: PLC0415 — as above: layout imports schemas
+
+    parsed = layout.parse_statement(statement_text)
+    if not isinstance(parsed, layout.Statement):
+        return []
+    return list(uses.declared(parsed, partial_text, node_id).defs)
+
+
 _OPEN_LINE_RE = re.compile(r"^open\b[^\n]*$", re.M)
 
 
@@ -607,6 +621,8 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
             # R23 (D-29 v3.24): the witness the partial carried for this hole and step 7
             # checked, written as it was checked; none, and the child is born with its slot.
             witness=carried_witnesses.get(hole.name),
+            # F08-R16: the ``Defs.*`` modules the assembly declared as uses come with the hole.
+            partial_text=partial_text,
         )
         scaffold.write(nodes_dir, proposal)
         if hole.name in carried_witnesses:
@@ -655,17 +671,21 @@ def child_proposal(  # noqa: PLR0913 — the node's facts, each named
     date: str | None = None,
     model: str | None = None,
     witness: str | None = None,
+    partial_text: str = "",
 ) -> Any:
     """The node a hole becomes, as the scaffold's proposal: its statement under the parent's
-    imports and ``open`` lines, and ``witness`` — the text a partial carried for it and step 7
+    imports and ``open`` lines and the ``Defs.*`` modules the assembly (``partial_text``)
+    declared as uses (F08-R16), and ``witness`` — the text a partial carried for it and step 7
     checked (R23) — or, with none, the slot (R6, R21)."""
     from opn_gate import scaffold  # noqa: PLC0415 — scaffold imports layout, which imports schemas
 
     parent_statement = node_dir / "Statement.lean"
     parent_text = parent_statement.read_text(encoding="utf-8") if parent_statement.is_file() else ""
-    statement = child_statement(
-        child, hole, imports=parent_imports(parent_text), opens=parent_opens(parent_text)
-    )
+    imports = [
+        *parent_imports(parent_text),
+        *assembly_defs(parent_text, partial_text, node_dir.name),
+    ]
+    statement = child_statement(child, hole, imports=imports, opens=parent_opens(parent_text))
     return scaffold.Proposal(
         node_id=child,
         target_id=node_dir.parent.parent.name,

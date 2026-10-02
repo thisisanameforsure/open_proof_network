@@ -154,18 +154,32 @@ def test_a_write_refused_for_budget_is_the_same_kind(
 def test_the_open_listing_is_one_call_as_the_app(script: Script, host: HttpxGitHost) -> None:
     """``GET /repos/{repo}/pulls?state=open&per_page=100``: the queue's open set in one call,
     shaped to number, url and head (a guard on the new seam method; green from the start)."""
+
+    def entry(number: int, ref: str, *, draft: bool = False, fork: bool = False) -> dict[str, Any]:
+        """One entry in the host's own shape (read from the graph's listing, 2026-10-01)."""
+        return {
+            "number": number,
+            "html_url": f"https://github.com/o/r/pull/{number}",
+            "draft": draft,
+            "head": {
+                "sha": str(number) * 40,
+                "ref": ref,
+                "repo": {"full_name": "someone/fork" if fork else REPO},
+            },
+            "base": {"ref": "main", "repo": {"full_name": REPO}},
+        }
+
     install_app(script).on(
         "GET",
         PULLS,
-        json=[
-            {"number": 7, "html_url": "https://github.com/o/r/pull/7", "head": {"sha": "7" * 40}},
-            {"number": 9, "html_url": "https://github.com/o/r/pull/9", "head": {"sha": "9" * 40}},
-            "junk",
-        ],
+        json=[entry(7, "submit/01A"), entry(9, "append/01B", draft=True, fork=True), "junk"],
     )
+    # F05-T18: with what the merge actor's ``candidates`` reads of each, from the same call.
     assert host.list_open_pull_requests(REPO) == [
-        OpenPullRequest(7, "https://github.com/o/r/pull/7", "7" * 40),
-        OpenPullRequest(9, "https://github.com/o/r/pull/9", "9" * 40),
+        OpenPullRequest(7, "https://github.com/o/r/pull/7", "7" * 40, "submit/01A", "main"),
+        OpenPullRequest(
+            9, "https://github.com/o/r/pull/9", "9" * 40, "append/01B", "main", True, False
+        ),
     ]
     (call,) = script.to("GET", PULLS)
     assert dict(call.url.params) == {"state": "open", "per_page": "100", "page": "1"}

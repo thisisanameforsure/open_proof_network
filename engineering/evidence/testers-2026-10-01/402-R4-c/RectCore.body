@@ -1,0 +1,108 @@
+
+/-- 402-R4-c. Rectangle lemma, coprime core: α, β coprime and both within k of n (k² ≤ n), d1, d2
+coprime; if all four cross quotients of {α d1, β d1, α d2, β d2} are below n then d1 = d2 = 1. -/
+theorem r4c_rect_core (n k α β d1 d2 : ℕ) (hk : k * k ≤ n) (hα : n < α + k) (hβ : n < β + k)
+    (α0 : 0 < α) (β0 : 0 < β) (hαβ : Nat.Coprime α β) (hd : Nat.Coprime d1 d2)
+    (h1 : 0 < d1) (h2 : 0 < d2)
+    (H1 : α * d1 < n * Nat.gcd (α * d1) (β * d2)) (H2 : β * d2 < n * Nat.gcd (α * d1) (β * d2))
+    (H3 : β * d1 < n * Nat.gcd (β * d1) (α * d2)) (H4 : α * d2 < n * Nat.gcd (β * d1) (α * d2)) :
+    d1 = 1 ∧ d2 = 1 := by
+  have e1p : 0 < Nat.gcd α d1 := Nat.gcd_pos_of_pos_left _ α0
+  have e2p : 0 < Nat.gcd α d2 := Nat.gcd_pos_of_pos_left _ α0
+  have f1p : 0 < Nat.gcd β d1 := Nat.gcd_pos_of_pos_left _ β0
+  have f2p : 0 < Nat.gcd β d2 := Nat.gcd_pos_of_pos_left _ β0
+  have hG : Nat.gcd (α * d1) (β * d2) ≤ Nat.gcd α d2 * Nat.gcd β d1 := by
+    apply Nat.le_of_dvd (Nat.mul_pos e2p f1p)
+    have h := Nat.gcd_mul_right_dvd_mul_gcd (α * d1) β d2
+    rw [Nat.Coprime.gcd_mul_left_cancel d1 hαβ, Nat.Coprime.gcd_mul_right_cancel α hd] at h
+    rw [Nat.gcd_comm d1 β, Nat.mul_comm (β.gcd d1)] at h; exact h
+  have hG' : Nat.gcd (β * d1) (α * d2) ≤ Nat.gcd α d1 * Nat.gcd β d2 := by
+    apply Nat.le_of_dvd (Nat.mul_pos e1p f2p)
+    have h := Nat.gcd_mul_right_dvd_mul_gcd (β * d1) α d2
+    rw [Nat.Coprime.gcd_mul_left_cancel d1 hαβ.symm, Nat.Coprime.gcd_mul_right_cancel β hd] at h
+    rw [Nat.gcd_comm d1 α] at h; exact h
+  have ce : Nat.Coprime (Nat.gcd α d1) (Nat.gcd α d2) :=
+    Nat.Coprime.coprime_dvd_left (Nat.gcd_dvd_right _ _)
+      (Nat.Coprime.coprime_dvd_right (Nat.gcd_dvd_right _ _) hd)
+  have cf : Nat.Coprime (Nat.gcd β d1) (Nat.gcd β d2) :=
+    Nat.Coprime.coprime_dvd_left (Nat.gcd_dvd_right _ _)
+      (Nat.Coprime.coprime_dvd_right (Nat.gcd_dvd_right _ _) hd)
+  have c1 : Nat.Coprime (Nat.gcd α d1) (Nat.gcd β d1) :=
+    Nat.Coprime.coprime_dvd_left (Nat.gcd_dvd_left _ _)
+      (Nat.Coprime.coprime_dvd_right (Nat.gcd_dvd_left _ _) hαβ)
+  have c2 : Nat.Coprime (Nat.gcd α d2) (Nat.gcd β d2) :=
+    Nat.Coprime.coprime_dvd_left (Nat.gcd_dvd_left _ _)
+      (Nat.Coprime.coprime_dvd_right (Nat.gcd_dvd_left _ _) hαβ)
+  have m1 : Nat.gcd α d1 * Nat.gcd β d1 ≤ d1 := Nat.le_of_dvd h1
+    (Nat.Coprime.mul_dvd_of_dvd_of_dvd c1 (Nat.gcd_dvd_right _ _) (Nat.gcd_dvd_right _ _))
+  have m2 : Nat.gcd α d2 * Nat.gcd β d2 ≤ d2 := Nat.le_of_dvd h2
+    (Nat.Coprime.mul_dvd_of_dvd_of_dvd c2 (Nat.gcd_dvd_right _ _) (Nat.gcd_dvd_right _ _))
+  have mα : Nat.gcd α d1 * Nat.gcd α d2 ≤ α := Nat.le_of_dvd α0
+    (Nat.Coprime.mul_dvd_of_dvd_of_dvd ce (Nat.gcd_dvd_left _ _) (Nat.gcd_dvd_left _ _))
+  have mβ : Nat.gcd β d1 * Nat.gcd β d2 ≤ β := Nat.le_of_dvd β0
+    (Nat.Coprime.mul_dvd_of_dvd_of_dvd cf (Nat.gcd_dvd_left _ _) (Nat.gcd_dvd_left _ _))
+  generalize Nat.gcd α d1 = e1 at *
+  generalize Nat.gcd α d2 = e2 at *
+  generalize Nat.gcd β d1 = f1 at *
+  generalize Nat.gcd β d2 = f2 at *
+  generalize Nat.gcd (α * d1) (β * d2) = G at *
+  generalize Nat.gcd (β * d1) (α * d2) = G' at *
+  have i1 : α * e1 < n * e2 := by
+    have a : α * (e1 * f1) ≤ α * d1 := Nat.mul_le_mul_left _ m1
+    have b : n * G ≤ n * (e2 * f1) := Nat.mul_le_mul_left _ hG
+    have c : (α * e1) * f1 < (n * e2) * f1 := by
+      calc (α * e1) * f1 = α * (e1 * f1) := by ring
+        _ ≤ α * d1 := a
+        _ < n * G := H1
+        _ ≤ n * (e2 * f1) := b
+        _ = (n * e2) * f1 := by ring
+    exact Nat.lt_of_mul_lt_mul_right c
+  have i4 : α * e2 < n * e1 := by
+    have a : α * (e2 * f2) ≤ α * d2 := Nat.mul_le_mul_left _ m2
+    have b : n * G' ≤ n * (e1 * f2) := Nat.mul_le_mul_left _ hG'
+    have c : (α * e2) * f2 < (n * e1) * f2 := by
+      calc (α * e2) * f2 = α * (e2 * f2) := by ring
+        _ ≤ α * d2 := a
+        _ < n * G' := H4
+        _ ≤ n * (e1 * f2) := b
+        _ = (n * e1) * f2 := by ring
+    exact Nat.lt_of_mul_lt_mul_right c
+  have i2 : β * f2 < n * f1 := by
+    have a : β * (e2 * f2) ≤ β * d2 := Nat.mul_le_mul_left _ m2
+    have b : n * G ≤ n * (e2 * f1) := Nat.mul_le_mul_left _ hG
+    have c : (β * f2) * e2 < (n * f1) * e2 := by
+      calc (β * f2) * e2 = β * (e2 * f2) := by ring
+        _ ≤ β * d2 := a
+        _ < n * G := H2
+        _ ≤ n * (e2 * f1) := b
+        _ = (n * f1) * e2 := by ring
+    exact Nat.lt_of_mul_lt_mul_right c
+  have i3 : β * f1 < n * f2 := by
+    have a : β * (e1 * f1) ≤ β * d1 := Nat.mul_le_mul_left _ m1
+    have b : n * G' ≤ n * (e1 * f2) := Nat.mul_le_mul_left _ hG'
+    have c : (β * f1) * e1 < (n * f2) * e1 := by
+      calc (β * f1) * e1 = β * (e1 * f1) := by ring
+        _ ≤ β * d1 := a
+        _ < n * G' := H3
+        _ ≤ n * (e1 * f2) := b
+        _ = (n * f2) * e1 := by ring
+    exact Nat.lt_of_mul_lt_mul_right c
+  have ee : e1 = e2 := r4c_arith n k α e1 e2 hk hα mα i1 i4
+  have ff : f1 = f2 := r4c_arith n k β f1 f2 hk hβ mβ i3 i2
+  subst ee; subst ff
+  have e1 : e1 = 1 := Nat.coprime_self e1 |>.mp ce
+  have f1 : f1 = 1 := Nat.coprime_self f1 |>.mp cf
+  subst e1; subst f1
+  have kα : k ≤ α := by
+    by_contra hc
+    have : (α + 1) * k ≤ k * k := Nat.mul_le_mul_right _ (by omega)
+    nlinarith
+  have g1 : n * G ≤ n := by simpa using Nat.mul_le_mul_left n hG
+  have g2 : n * G' ≤ n := by simpa using Nat.mul_le_mul_left n hG'
+  constructor
+  · by_contra hc
+    have : α * 2 ≤ α * d1 := Nat.mul_le_mul_left _ (by omega)
+    omega
+  · by_contra hc
+    have : α * 2 ≤ α * d2 := Nat.mul_le_mul_left _ (by omega)
+    omega

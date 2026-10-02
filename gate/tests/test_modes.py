@@ -171,12 +171,18 @@ def test_classification_rejects_mixtures_and_forbidden_paths() -> None:
         assert rejected.mode is None, path
         assert [d.code for d in rejected.problems] == ["path-forbidden"], path
 
-    # F11-R2 (T4): a target's own files are an intake's, and an intake is whole — a lone
-    # definition or gate-spec is an incomplete intake, named as such, never a submission.
-    for path in (f"{T}/defs/Helper.lean", f"{T}/gate-spec.json"):
-        rejected = modes.classify(added(path))
-        assert rejected.mode is None, path
-        assert [d.code for d in rejected.problems] == ["intake-incomplete"], path
+    # F11-R2 (T4): a target's gate-spec arrives in its intake, and an intake is whole — a lone
+    # one is an incomplete intake, named as such, never a submission.
+    rejected = modes.classify(added(f"{T}/gate-spec.json"))
+    assert rejected.mode is None
+    assert [d.code for d in rejected.problems] == ["intake-incomplete"]
+    # F11-R15 (T13): a definition is never a contributor's submission either (D-3). What this
+    # asserted until 2026-10-01 was that it could only ride in an intake; the rule it was really
+    # about is *who*: a lone definition is a listed curator's pull request, and from anyone else
+    # (here, an author the host did not name) it is refused for that.
+    rejected = modes.classify(added(f"{T}/defs/Helper.lean"))
+    assert rejected.mode is None
+    assert [d.code for d in rejected.problems] == ["curator-unlisted"]
 
     # A node's definition is added once and never edited (D-3, D-8): a modification is forbidden
     # at the path, before any mode is considered.
@@ -460,6 +466,7 @@ def test_classify_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) ->
         "exhibits": [],
         "needs_exhibits": False,
         "qa_records": [],
+        "definitions": [],
         "needs_qa_rerun": False,
     }
 
@@ -473,15 +480,16 @@ def test_classify_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) ->
     assert out["ok"] is False
     assert [p["code"] for p in out["problems"]] == ["append-invalid"]
 
-    # A definition slipped onto an existing target is not a submission (F11-R2): a target's own
-    # files travel in an intake, whole, and a lone one is refused as that.
+    # A definition slipped onto an existing target is not a submission (D-3; F11-R15, T13): no
+    # prover creates one. Since 2026-10-01 a listed curator may add one after intake, so the
+    # refusal is the author's, by name, and this graph lists no curator at all.
     (root / T / "defs" / "Sneak.lean").write_text("-- not a submission path\n")
     git("add", "-A")
     git("commit", "-q", "-m", "sneak")
     assert cli.main(["classify", "--graph", str(root), "--base", "HEAD~1"]) == 1
     out = json.loads(capsys.readouterr().out)
     assert out["mode"] is None
-    assert [p["code"] for p in out["problems"]] == ["intake-incomplete"]
+    assert [p["code"] for p in out["problems"]] == ["curator-unlisted"]
 
 
 def test_classify_command_curator_and_completion(

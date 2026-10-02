@@ -1001,7 +1001,16 @@ def run_classify(args: argparse.Namespace, settings: config.Settings) -> int:
     # F08-R6, R7: an append that carries a Lean exhibit still needs the sandbox, for that alone.
     carrying = modes.exhibits(graph, classification) if classification.ok else []
     summary["exhibits"] = [loc.path for loc in carrying]
-    summary["needs_exhibits"] = bool(carrying)
+    # F11-R15: a definition added after intake is Lean nobody has elaborated, and no other step
+    # of a curator pull request starts a sandbox. It asks for the one the workflow already has
+    # (``exhibits``), so the route is closed on any pin that classifies it at all (Q35).
+    definitions = (
+        sorted(loc.path for loc in classification.located if loc.role == "definition")
+        if classification.mode == "curator"
+        else []
+    )
+    summary["definitions"] = definitions
+    summary["needs_exhibits"] = bool(carrying) or bool(definitions)
     # F12-T8: a QA record's claimed passes are re-run in the sandbox (``qa-rerun``). The workflow
     # reads the flag with a default, so a pin that predates it skips the step.
     records = qa_rerun.records_in(classification.located) if classification.ok else []
@@ -1027,14 +1036,19 @@ def run_exhibits(args: argparse.Namespace, settings: config.Settings) -> int:
         msg = f"unknown base {args.base!r}"
         raise CliError(msg)
     diff = _git(graph, "diff", "--name-status", "--no-renames", base, head)
-    classification = modes.classify(paths.changes_from_name_status(diff.stdout))
-    if classification.mode != "append" or classification.target_id is None:
+    changes = paths.changes_from_name_status(diff.stdout)
+    classification = modes.classify(changes)
+    # F11-R15: new definitions alone are the one other diff this sandbox step serves. The step
+    # is told no author, so the shape is read without one; ``classify`` has already asked who.
+    definitions = modes.definitions_added(changes)
+    if definitions is None and (classification.mode != "append" or not classification.target_id):
         msg = f"exhibits belong to append mode; this diff is {classification.mode!r}"
         raise CliError(msg)
-    records = modes.exhibits(graph, classification)
+    target_id = str(definitions[0].target_id if definitions else classification.target_id)
+    records = [] if definitions else modes.exhibits(graph, classification)
     out_dir = _out_dir(args.out, "opn-exhibits-")
     workdir = out_dir / "work"
-    spec_path = layout.gate_spec_path(graph, classification.target_id)
+    spec_path = layout.gate_spec_path(graph, target_id)
     try:
         spec = schemas.load_json(spec_path, "gate-spec/v1")
     except schemas.SchemaError as exc:
@@ -1051,7 +1065,7 @@ def run_exhibits(args: argparse.Namespace, settings: config.Settings) -> int:
             raise CliError(str(exc)) from exc
     ctx = RunContext(
         graph_root=graph,
-        claim=Claim(classification.target_id, classification.node_id or ""),
+        claim=Claim(target_id, classification.node_id or ""),
         spec=spec,
         gate_spec_hash=schemas.content_hash(spec_path.read_bytes()),
         changes=None,
@@ -1060,18 +1074,38 @@ def run_exhibits(args: argparse.Namespace, settings: config.Settings) -> int:
         settings=settings,
         install_toolchain=bool(args.install) and not args.sandbox,
     )
-    problems = exhibits.run(ctx, records)
-    summary = {
+    problems = (
+        _elaborate_definitions(ctx, spec_path.parent) if definitions else exhibits.run(ctx, records)
+    )
+    summary: dict[str, Any] = {
         "ok": not problems,
         "exhibits": [loc.path for loc in records],
         "sandboxed": bool(args.sandbox),
         "problems": [d.as_dict(settings.diagnostic_max_bytes) for d in problems],
     }
+    if definitions:
+        summary["definitions"] = sorted(loc.path for loc in definitions)
     (out_dir / "exhibits.json").write_bytes(schemas.canonical_json(summary))
     sys.stdout.write(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
     for d in problems:
         sys.stderr.write(f"opn-gate: {d.code}: {d.message}\n")
     return EXIT_PASS if not problems else EXIT_FAIL
+
+
+def _elaborate_definitions(ctx: RunContext, target_dir: Path) -> list[Diagnostic]:
+    """F11-R15: every definition of the target, on the merged tree, in import order — the same
+    build every later Context will start with (``defs.compile_all``), so a definition that merges
+    is one the target still builds with. The first failure is the answer, in the existing
+    ``defs-*`` diagnostics."""
+    resolved = ToolchainStep().run(ctx)
+    if not resolved.ok:
+        assert resolved.diagnostic is not None
+        return [resolved.diagnostic]
+    tc: toolchain.ResolvedToolchain = ctx.data["toolchain"]
+    problem = defs.compile_all(
+        ctx.toolchain, tc, target_dir, ctx.workdir, timeout_s=ctx.wallclock_s
+    )
+    return [] if problem is None else [problem]
 
 
 def run_qa_rerun(args: argparse.Namespace, settings: config.Settings) -> int:

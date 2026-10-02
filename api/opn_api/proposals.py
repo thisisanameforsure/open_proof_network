@@ -216,6 +216,50 @@ def acknowledged_hazards(fields: dict[str, Any]) -> list[dict[str, Any]] | None:
     return raw or None
 
 
+#: F13-T26: a proposer may ask that no pull request open unless the hazard pre-flight answered.
+REQUIRE_HAZARDS_FIELD = "require_hazards_preflight"
+
+
+def requires_hazards_preflight(fields: dict[str, Any]) -> bool:
+    """Whether the caller asked for the hazard pre-flight to be a condition (``true``). Absent or
+    ``false`` is the route as F13-Q23 settled it: a pre-flight that gives no verdict opens the
+    pull request and step 6 decides."""
+    raw = fields.get(REQUIRE_HAZARDS_FIELD)
+    if raw is None:
+        return False
+    if not isinstance(raw, bool):
+        raise ApiError(
+            400,
+            "require-hazards-preflight-invalid",
+            f"{REQUIRE_HAZARDS_FIELD} must be true or false",
+        )
+    return raw
+
+
+def refuse_unanswered_hazards(required: bool, preflight: dict[str, str]) -> None:
+    """F13-T26: with ``require_hazards_preflight: true``, a hazard pre-flight that gave no
+    verdict (``inconclusive``: the checkers did not answer on a statement that compiled;
+    ``unavailable``: the checker could not be asked) opens nothing. The caller chose to wait for
+    the fast check rather than learn step 6's findings from a red pull request."""
+    word = preflight.get("hazards_preflight")
+    if not required or word in (checks.PREFLIGHT_CLEAR, checks.PREFLIGHT_ACKNOWLEDGED):
+        return
+    raise ApiError(
+        503,
+        "hazards-preflight-inconclusive",
+        f"the hazard pre-flight gave no verdict ({word}) and this proposal asked for one "
+        f"({REQUIRE_HAZARDS_FIELD}: true). Nothing was opened. POST /check with mode hazards "
+        "and this statement says whether the checkers are answering (hazards_status); retry "
+        f"when they are, or send the proposal without {REQUIRE_HAZARDS_FIELD} and step 6 "
+        "decides on the pull request",
+        details={
+            "hazards_preflight": word,
+            "witness_preflight": preflight.get("witness_preflight"),
+        },
+        headers={"Retry-After": "60"},
+    )
+
+
 def check_declaration_free(ctx: Context, target_id: str, statement: str, node_id: str) -> None:
     """F08-T16: refuse a theorem name a node of the target already declares, here rather than
     three minutes and one unwithdrawable pull request later at the gate (``declaration-clash``,
@@ -364,6 +408,7 @@ SPECULATIVE_FIELDS: tuple[str, ...] = (
     "deps",
     "model",
     "acknowledged_hazards",
+    "require_hazards_preflight",
 )
 
 
@@ -375,8 +420,10 @@ async def post_speculative(ctx: Context, request: Request) -> Response:
     target_id, files, node_id = node_files(
         ctx, identity, fields, prefix=SPECULATIVE_PREFIX, origin="authored", speculative=True
     )
+    required = requires_hazards_preflight(fields)
     duplicates.check_proposal(ctx, node_id)  # F07-T35: a copy spends no hosted check
     preflight = await checks.preflight_proposal(ctx, identity.id, target_id, node_id, files)
+    refuse_unanswered_hazards(required, preflight)
     opened = open_proposal(
         ctx,
         identity,
@@ -402,6 +449,7 @@ VARIANT_FIELDS: tuple[str, ...] = (
     "relation",
     "relation_proof",
     "acknowledged_hazards",
+    "require_hazards_preflight",
 )
 
 
@@ -460,10 +508,12 @@ async def post_variant(ctx: Context, request: Request) -> Response:
         relation=str(relation),
         relation_proof=proof,
     )
+    required = requires_hazards_preflight(fields)
     duplicates.check_proposal(ctx, node_id)  # F07-T35: a copy spends no hosted check
     preflight = await checks.preflight_proposal(
         ctx, identity.id, target_id, node_id, files, variant=True
     )
+    refuse_unanswered_hazards(required, preflight)
     opened = open_proposal(
         ctx,
         identity,

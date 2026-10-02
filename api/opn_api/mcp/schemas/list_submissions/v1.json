@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://openproof.network/schemas/mcp/list_submissions/v1.json",
   "title": "mcp/list_submissions/v1",
-  "description": "The result of the list_submissions tool (F09-R9, F09-T7; D-28 notation note of 2026-09-14): GET /submissions.json, or an error result naming the source that did not answer (R10). Reshaped in place by F07-T47 (host: when the queue was reconciled, and whether that is stale).",
+  "description": "The result of the list_submissions tool (F09-R9, F09-T7; D-28 notation note of 2026-09-14): GET /submissions.json, or an error result naming the source that did not answer (R10). Reshaped in place by F07-T47 (host: when the queue was reconciled, and whether that is stale). F05-T18 added queue, and each entry's queue and artifact_type; the entries are in queue order.",
   "oneOf": [
     {
       "type": "object",
@@ -10,7 +10,8 @@
       "required": [
         "snapshot_at",
         "open",
-        "host"
+        "host",
+        "queue"
       ],
       "additionalProperties": false,
       "properties": {
@@ -47,6 +48,33 @@
                 "string",
                 "null"
               ]
+            }
+          }
+        },
+        "queue": {
+          "type": "object",
+          "description": "The merge actor's order over the open pull requests (F05-T18): their numbers, how the order is to be read, and what an entry's queue.waiting_on means",
+          "required": [
+            "order",
+            "description",
+            "note"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "order": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "integer"
+              }
+            },
+            "description": {
+              "type": "string"
+            },
+            "note": {
+              "type": "string"
             }
           }
         }
@@ -95,7 +123,9 @@
         "pseudonym",
         "precheck_job_id",
         "created",
-        "closed"
+        "closed",
+        "artifact_type",
+        "queue"
       ],
       "additionalProperties": false,
       "properties": {
@@ -137,6 +167,50 @@
             "string",
             "null"
           ]
+        },
+        "artifact_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The record's kind under the name the write routes use, when it is an artifact type of POST /submissions (proof, counterexample, vacuity, reduction, partial); null otherwise (F05-T18)"
+        },
+        "queue": {
+          "type": "object",
+          "description": "Where the pull request stands in the merge actor's order (F05-T18): position from 1 among the open pull requests the actor takes (null for one it does not take, or when the host was never listed), of how many, and what the service last read it to be waiting on (null: not read; ask get_submission)",
+          "required": [
+            "position",
+            "of",
+            "waiting_on",
+            "waiting_on_read_at"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "position": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "of": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "waiting_on": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "waiting_on_read_at": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
         }
       }
     }

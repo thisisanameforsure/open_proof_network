@@ -1,0 +1,5 @@
+(width.py, seed 1; the 1e7 and 1e8 rows did not finish inside the 2-minute command limit)
+n in [1000,2000): first bad α at distance s1; s1/sqrt(n): min 1.02 median 1.83 max 2.95
+n in [10000,20000): first bad α at distance s1; s1/sqrt(n): min 1.01 median 1.88 max 2.98
+n in [100000,200000): first bad α at distance s1; s1/sqrt(n): min 1.00 median 1.79 max 2.98
+n in [1000000,2000000): first bad α at distance s1; s1/sqrt(n): min 1.01 median 1.83 max 2.98

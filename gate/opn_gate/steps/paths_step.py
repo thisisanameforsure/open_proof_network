@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from opn_gate import carried, layout, paths
+from opn_gate import carried, layout, paths, uses
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.steps import artifact
 from opn_gate.steps.artifact import ALTERNATE_KEY, PARTIAL_KEY
@@ -60,6 +60,9 @@ class PathsStep:
             refusal = partial_refusal(loaded.statement, node_dir, text)
             if refusal is not None:
                 return StepResult(ok=False, diagnostic=refusal)
+            refused = declared_uses(ctx, loaded, text)
+            if refused is not None:
+                return refused
             ctx.data[PARTIAL_KEY] = {
                 "path": assembly.relative_to(node_dir).as_posix(),
                 "file": str(assembly),
@@ -91,7 +94,7 @@ class PathsStep:
             loaded.statement, proof_text, node_id=ctx.claim.node_id
         )
         if shape_problem is None:
-            return StepResult.passed()
+            return declared_uses(ctx, loaded, proof_text) or StepResult.passed()
         kind, _unknown = artifact.declared_kind(loaded.statement.decl_name, proof_text)
         if kind is None or kind == "proof":
             return StepResult(ok=False, diagnostic=shape_problem)  # F00-R19's own words
@@ -145,6 +148,21 @@ def carried_witnesses(
         names = sorted(carried.attached_to(assembly_rel, on_disk))
     files = {rel: carried.read_file(node_dir / rel) for rel in names}
     return carried.read(assembly_rel, files)
+
+
+def declared_uses(ctx: RunContext, node: layout.Node, text: str) -> StepResult | None:
+    """F08-R16: the uses an artifact declares in its header, held to the tree's rules
+    (``uses.check``) and recorded for steps 4 and 8; ``None`` when there are none or they are
+    all usable. An artifact without use lines leaves no record, and every later step is then
+    exactly what it was."""
+    found = uses.declared(node.statement, text, node.node_id)
+    if not found:
+        return None
+    problem = uses.check(node, found)
+    if problem is not None:
+        return StepResult(ok=False, diagnostic=problem)
+    ctx.data[uses.USES_KEY] = found.as_dict()
+    return None
 
 
 def partial_assembly(ctx: RunContext, node_dir: Path) -> Path | StepResult | None:
@@ -243,6 +261,9 @@ def take_alternate(
                 kind=kind,
             )
         return StepResult(ok=False, diagnostic=shape_problem)
+    refused = declared_uses(ctx, loaded, text)
+    if refused is not None:
+        return refused
     ctx.data[ALTERNATE_KEY] = {"path": rel, "file": str(alternate)}
     return StepResult.passed_with(
         "alternate-submission",

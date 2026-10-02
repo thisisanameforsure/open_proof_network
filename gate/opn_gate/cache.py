@@ -94,21 +94,28 @@ class Built:
 
 
 def proved_order(tg: graphmod.TargetGraph) -> list[str]:
-    """Every proved node whose deps are all proved, deps before dependents."""
+    """Every proved node that can be built from proved nodes alone, each after what it rests on:
+    its deps and (F08-R19) the nodes its merged proof uses. A node is left out when anything it
+    rests on is — a module whose import was not built would fail the whole cache."""
     proved = {n for n, s in tg.statuses.items() if s == "proved"}
     order: list[str] = []
     seen: set[str] = set()
+    left_out: set[str] = set()
 
-    def visit(node_id: str) -> None:
-        if node_id in seen or node_id not in proved:
-            return
+    def visit(node_id: str) -> bool:
+        if node_id in seen:
+            return True
+        if node_id not in proved or node_id in left_out or node_id not in tg.nodes:
+            return False
+        left_out.add(node_id)  # until built: a loop of uses in a damaged tree builds nothing
         node = tg.nodes[node_id]
-        if any(d not in proved for d in node.deps):
-            return
-        for dep in node.deps:
-            visit(dep)
+        below = (*node.deps, *node.uses)
+        if any(d not in proved for d in below) or not all(visit(d) for d in below):
+            return False
+        left_out.discard(node_id)
         seen.add(node_id)
         order.append(node_id)
+        return True
 
     for node_id in tg.order:
         visit(node_id)

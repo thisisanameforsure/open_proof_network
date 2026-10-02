@@ -73,6 +73,7 @@ import yaml
 
 from opn_gate import (
     config,
+    defs,
     evidence,
     fidelity,
     intake,
@@ -455,6 +456,11 @@ def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per reject
         roles = {loc.role for loc in located}
         added = {c.path for c in changes if c.status == "A"}
         adds_record = any(loc.role == "target-record" and loc.path in added for loc in located)
+        if roles == {"definition"}:
+            # F11-R15: definitions alone are a curator's addition to a target that exists.
+            return _classify_definitions(
+                located, target_id, author=author, curators=curators or Curators()
+            )
         if adds_record or roles & {"gate-spec", "definition"}:
             return _classify_intake(
                 located,
@@ -743,6 +749,53 @@ def _classify_intake(  # noqa: PLR0913 — one return per refusal; the diff and 
     )
 
 
+def definitions_added(changes: Iterable[Change]) -> list[Located] | None:
+    """The diff's files when it is new ``defs/`` files of one target and nothing else (F11-R15),
+    else ``None``. The shape alone, without the author: the sandbox step that elaborates them is
+    told no author, and who may open such a pull request is ``classify``'s question."""
+    located: list[Located] = []
+    for change in changes:
+        if _locate_change(change, located):
+            return None
+    if not located or {loc.role for loc in located} != {"definition"}:
+        return None
+    return located if len({loc.target_id for loc in located}) == 1 else None
+
+
+def _classify_definitions(
+    located: list[Located], target_id: str, *, author: str | None, curators: Curators
+) -> Classification:
+    """F11-R15 (D-3; Q35): new ``defs/`` files alone are a listed curator's pull request.
+
+    Every change is an addition: a definition is immutable, so ``_locate_change`` has already
+    refused a rewrite or a deletion by path, and nothing else may ride along (the caller routes
+    here only when definitions are the whole diff). That the target exists, that each name can
+    be a module and that none collides with one already there are ``check_definitions``'s, which
+    reads the tree; that they elaborate is the sandbox's (``cli.run_exhibits``).
+    """
+    if author is None or author not in curators.logins:
+        who = "unknown" if author is None else repr(author)
+        return Classification(
+            None,
+            target_id,
+            None,
+            tuple(located),
+            (
+                Diagnostic(
+                    "curator-unlisted",
+                    f"a shared definition is added by a curator, never by a prover (D-3, "
+                    f"F11-R15), and the pull request's author ({who}) is not listed in "
+                    f"{CURATORS_FILE}",
+                    {"author": author, "listed": sorted(curators.logins)},
+                ),
+            ),
+        )
+    reviewers = tuple(sorted(curators.logins - {author}))
+    return Classification(
+        "curator", target_id, None, tuple(located), reviewers=reviewers, author=author
+    )
+
+
 def _classify_posting(
     located: list[Located], target_id: str, *, author: str | None, curators: Curators
 ) -> Classification:
@@ -929,6 +982,8 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
             problems.extend(check_status_record(graph_root, located, classification))
         elif located.role == "target-record" and classification.mode == "curator":
             problems.extend(check_posting(graph_root, located, base))
+    if classification.mode == "curator":
+        problems.extend(check_definitions(graph_root, classification))
     if classification.mode == "proposal":
         problems.extend(check_proposal(graph_root, classification, base))
     if classification.mode == "fidelity":
@@ -936,6 +991,53 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
     if classification.mode == "alternate":
         problems.extend(check_alternate(graph_root, classification))
     problems.extend(check_replaced_proof(graph_root, classification))
+    return problems
+
+
+def check_definitions(graph_root: Path, classification: Classification) -> list[Diagnostic]:
+    """F11-R15: what a definition added after intake is held to before any sandbox.
+
+    The target must be on the record: the diff adds no gate-spec (it would be an intake), so one
+    in the tree was there on the base, and without one this is an intake that forgot everything
+    but its definitions (R2). Then the merged ``defs/`` must still be buildable as modules — each
+    name a Lean identifier, each import a library module or another definition, no cycle — which
+    is ``defs.order``'s answer with its own diagnostics; and no new name may differ from another
+    only in case, since those are one file on a case-folding checkout and two modules in the
+    sandbox. The same path cannot be added twice: git calls that a modification, refused by path.
+    """
+    added = [loc for loc in classification.located if loc.role == "definition"]
+    if not added or classification.target_id is None:
+        return []
+    target_id = classification.target_id
+    spec = layout.gate_spec_path(graph_root, target_id)
+    if not spec.is_file():
+        return [
+            Diagnostic(
+                "intake-incomplete",
+                f"targets/{target_id} is not a target on this graph: a definition is added to "
+                "a target that exists (F11-R15), and a new target arrives whole, in an intake "
+                f"that adds targets/{target_id}/gate-spec.json (F11-R2)",
+                {"missing": "gate-spec.json"},
+            )
+        ]
+    target_dir = spec.parent
+    ordered = defs.order(target_dir)
+    if isinstance(ordered, Diagnostic):
+        return [ordered]
+    problems: list[Diagnostic] = []
+    present = sorted(p.name for p in defs.target_defs_dir(target_dir).glob("*.lean"))
+    for loc in added:
+        name = PurePosixPath(loc.path).name
+        twins = [other for other in present if other != name and other.lower() == name.lower()]
+        if twins:
+            problems.append(
+                Diagnostic(
+                    "defs-clash",
+                    f"defs/{name} differs from defs/{twins[0]} only in case: one file on a "
+                    "case-folding checkout and two modules in the sandbox; choose another name",
+                    {"file": name, "existing": twins[0]},
+                )
+            )
     return problems
 
 

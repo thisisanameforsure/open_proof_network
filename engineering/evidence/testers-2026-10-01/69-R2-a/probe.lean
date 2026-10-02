@@ -1,0 +1,15 @@
+import Mathlib
+#check @padicValNat_def
+#check @padicValNat_def'
+#check @sub_one_mul_padicValNat_factorial
+#check @Nat.multiplicity_eq_factorization
+#check @Nat.factorization_eq_multiplicity
+#check @Finsupp.sum_of_support_subset
+#check @Finset.sum_Icc_succ_top
+#check @Real.log_le_sub_one_of_pos
+#check @Nat.factorial_succ
+#check @Finset.sum_le_sum_of_subset_of_nonneg
+#print Nat.primesLE
+#check @Nat.primeFactors_mono
+#check @Nat.mem_primeFactors
+#check @Nat.Prime.emultiplicity_factorial

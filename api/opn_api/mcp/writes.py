@@ -100,7 +100,15 @@ async def check_lean(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     """F13-R12: ``POST /check``, with whatever bearer there is; the endpoint charges an identity
     or an address and answers in the same response, so there is nothing to poll."""
     body = present(
-        "check_lean", args, "target_id", "node_id", "content", "mode", "statement", "deps"
+        "check_lean",
+        args,
+        "target_id",
+        "node_id",
+        "content",
+        "mode",
+        "statement",
+        "deps",
+        "heartbeats",
     )
     return await forward(call, "POST", "/check", body)
 
@@ -163,6 +171,7 @@ async def propose_speculative_node(call: Call, args: dict[str, Any]) -> dict[str
         "deps",
         "model",
         "acknowledged_hazards",
+        "require_hazards_preflight",
     )
     return await forward(call, "POST", "/proposals/speculative", body)
 
@@ -179,6 +188,7 @@ async def propose_variant(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         "deps",
         "model",
         "acknowledged_hazards",
+        "require_hazards_preflight",
     )
     return await forward(call, "POST", "/proposals/variant", body)
 
@@ -229,6 +239,12 @@ HAZARDS = {
             "justification": {"type": "string", "maxLength": 500},
         },
     },
+}
+
+REQUIRE_HAZARDS = {
+    "type": "boolean",
+    "description": "true: open nothing unless the hazard pre-flight answered (clear or "
+    "acknowledged); default false",
 }
 
 TOOLS: tuple[Tool, ...] = (
@@ -312,9 +328,22 @@ TOOLS: tuple[Tool, ...] = (
         "already acknowledges also carries `acknowledged: true` and the `justification`, by "
         "step 6's own matching. A finding you mean is acknowledged in acknowledged_hazards with "
         "its checker, its location exactly as printed and a justification. "
+        "`hazards_status` says how the run went: ran; statement-failed (the statement does not "
+        "compile: `okay` false, Lean's errors in `result`); or unavailable (the network's own "
+        "checker program failed on a statement that compiled: `okay` null, `service_fault` "
+        "true, `hazards_error` its errors; not your statement's fault, report it). "
         "`target_id` may be omitted when a node_id is given: it is derived from the node, and "
         "one the node does not belong to is refused 400 node-target-mismatch; with neither, the "
         "answer is 400 target-id-required. "
+        "With `heartbeats: true` (modes check and verify) the answer also carries `heartbeats`: "
+        "for each top-level theorem and lemma of your content, the `heartbeats` it used against "
+        "the `cap` (200000 unless the text sets another) and `over_cap`, measured by placing "
+        "`#count_heartbeats in` before each one in a copy of your text and sending that copy as "
+        "a second check beside yours. The hosted checker reports no such figure itself. The "
+        "command runs its declaration without the cap, so a count above the cap is reported "
+        "where your own text stops with a heartbeat timeout; one that needs more than the 20 s "
+        "budget is not measured (`error`: check-timeout). A measurement of the fast checker, "
+        "never the gate's verdict; `okay` and `result` are still those of your text as sent. "
         "Never authoritative: a precheck is the verdict. "
         "No token needed; a token raises the limit. Every call is logged without its text; "
         "GET /hosted-checkers.json says which targets have a checker.",
@@ -340,6 +369,11 @@ TOOLS: tuple[Tool, ...] = (
                 "deps": {
                     **DEPS,
                     "description": "with statement: the node ids its proposal would declare",
+                },
+                "heartbeats": {
+                    "type": "boolean",
+                    "description": "modes check and verify: also measure each theorem's "
+                    "heartbeats on a copy of the text (a second hosted check, charged as one)",
                 },
             },
         ),
@@ -511,7 +545,9 @@ TOOLS: tuple[Tool, ...] = (
         "not in `acknowledged_hazards` is refused 422 hazard-unacknowledged with step 6's "
         "`findings`, and nothing opens; `hazards_preflight` says clear, acknowledged, "
         "inconclusive or unavailable (clear: no findings; acknowledged: every finding was "
-        "in `acknowledged_hazards`).",
+        "in `acknowledged_hazards`). With `require_hazards_preflight: true`, an inconclusive "
+        "or unavailable hazard pre-flight is refused 503 hazards-preflight-inconclusive and "
+        "nothing opens; without it the pull request opens and step 6 decides.",
         params(
             {
                 "target_id": ID_PARAM,
@@ -520,6 +556,7 @@ TOOLS: tuple[Tool, ...] = (
                 "deps": DEPS,
                 "model": MODEL,
                 "acknowledged_hazards": HAZARDS,
+                "require_hazards_preflight": REQUIRE_HAZARDS,
             },
             ("target_id", "stmt", "witness"),
         ),
@@ -550,7 +587,9 @@ TOOLS: tuple[Tool, ...] = (
         "not in `acknowledged_hazards` is refused 422 hazard-unacknowledged with step 6's "
         "`findings`, and nothing opens; `hazards_preflight` says clear, acknowledged, "
         "inconclusive or unavailable (clear: no findings; acknowledged: every finding was "
-        "in `acknowledged_hazards`).",
+        "in `acknowledged_hazards`). With `require_hazards_preflight: true`, an inconclusive "
+        "or unavailable hazard pre-flight is refused 503 hazards-preflight-inconclusive and "
+        "nothing opens; without it the pull request opens and step 6 decides.",
         params(
             {
                 "target_id": ID_PARAM,
@@ -561,6 +600,7 @@ TOOLS: tuple[Tool, ...] = (
                 "deps": DEPS,
                 "model": MODEL,
                 "acknowledged_hazards": HAZARDS,
+                "require_hazards_preflight": REQUIRE_HAZARDS,
             },
             ("target_id", "stmt", "witness"),
         ),

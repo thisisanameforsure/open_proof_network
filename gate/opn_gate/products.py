@@ -249,7 +249,8 @@ def closing_node(tg: TargetGraph) -> str | None:
 
 
 def dependency_closure(tg: TargetGraph, node_id: str) -> list[str]:
-    """``node_id`` and every node it depends on, transitively, in id order."""
+    """``node_id`` and every node it rests on, transitively, in id order: its dependencies and
+    (F08-R19) the nodes its merged proof uses."""
     seen: set[str] = set()
     stack = [node_id]
     while stack:
@@ -257,7 +258,7 @@ def dependency_closure(tg: TargetGraph, node_id: str) -> list[str]:
         if current in seen or current not in tg.nodes:
             continue
         seen.add(current)
-        stack.extend(tg.nodes[current].deps)
+        stack.extend((*tg.nodes[current].deps, *tg.nodes[current].uses))
     return sorted(seen)
 
 

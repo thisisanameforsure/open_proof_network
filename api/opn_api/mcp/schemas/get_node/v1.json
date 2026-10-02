@@ -252,7 +252,9 @@
         "pseudonym",
         "precheck_job_id",
         "created",
-        "closed"
+        "closed",
+        "artifact_type",
+        "queue"
       ],
       "additionalProperties": false,
       "properties": {
@@ -294,6 +296,50 @@
             "string",
             "null"
           ]
+        },
+        "artifact_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The record's kind under the name the write routes use, when it is an artifact type of POST /submissions (proof, counterexample, vacuity, reduction, partial); null otherwise (F05-T18)"
+        },
+        "queue": {
+          "type": "object",
+          "description": "Where the pull request stands in the merge actor's order (F05-T18): position from 1 among the open pull requests the actor takes (null for one it does not take, or when the host was never listed), of how many, and what the service last read it to be waiting on (null: not read; ask get_submission)",
+          "required": [
+            "position",
+            "of",
+            "waiting_on",
+            "waiting_on_read_at"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "position": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "of": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "waiting_on": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "waiting_on_read_at": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
         }
       }
     }

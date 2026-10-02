@@ -67,6 +67,23 @@ def stage(node: layout.Node, workdir: Path, *, proof_override: Path | None = Non
         # parent is built against its revised hole's proof, never against a dead statement.
         return list(graphmod.effective_deps(nodes_dir, meta.get("deps")))
 
+    def uses_of(node_id: str) -> tuple[str, ...]:
+        """F08-R18: the nodes whose proofs this node's own proof imports. For the node under
+        check that is the artifact being checked; for any other, its merged ``Proof.lean``."""
+        chosen = nodes_dir / node_id / "Proof.lean"
+        if node_id == node.node_id and proof_override is not None:
+            chosen = proof_override
+        if not chosen.is_file():
+            return ()
+        statement = nodes_dir / node_id / "Statement.lean"
+        if not statement.is_file():
+            return ()
+        return layout.node_uses(
+            layout.parse_statement(statement.read_text(encoding="utf-8")),
+            chosen.read_text(encoding="utf-8"),
+            node_id,
+        )
+
     def visit(node_id: str, chain: tuple[str, ...]) -> None:
         if node_id in seen:
             return
@@ -88,7 +105,9 @@ def stage(node: layout.Node, workdir: Path, *, proof_override: Path | None = Non
                 and not (nodes_dir / dep / "Proof.lean").is_file()
             )
         ]
-        for dep in deps:
+        # The proof's uses are built before it, as its deps are; they reach it through its own
+        # import lines, never through the generated Context.
+        for dep in (*deps, *(u for u in uses_of(node_id) if u not in deps)):
             visit(dep, (*chain, node_id))
         if node_id != node.node_id and not (src / "Proof.lean").is_file():
             problems.append(

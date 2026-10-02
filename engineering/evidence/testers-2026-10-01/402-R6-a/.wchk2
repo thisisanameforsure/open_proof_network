@@ -1,0 +1,5 @@
+{'authoritative': False, 'service': 'axle', 'environment': 'lean-4.33.1', 'exact': True, 'note': None, 'mode': 'witness', 'lint': [], 'inlined_defs': ['Nodes.«erdos-402--h3-v2--h1--h1--h1--h2--h2».Context'], 'okay': True, 'user_error': None, 'dropped_warnings': [{'linter': 'linter.style.nameCheck', 'declaration': 'erdos_402__h3_v2__h1__h1__h1__h2__h2'}], 'log_id': '01M3W7HNP0ETC23145MTWY2Z86', 'witness': {'expected': '∃ (n : ℕ), (229 : ℕ) ≤ n ∧ n ≤ (200014 : ℕ)', 'given': '∃ (n : ℕ), (229 : ℕ) ≤ n ∧ n ≤ (200014 : ℕ)', 'matches': True}}
+WARN -:11:8-11:44: warning: declaration uses `sorry`
+
+INFO -:147:0-147:8: info: OPN-WITNESS {"axioms":["propext","Classical.choice","Quot.sound"],"expected":"∃ (n : ℕ), (229 : ℕ) ≤ n ∧ n ≤ (200014 : ℕ)","given":"∃ (n : ℕ), (229 : ℕ) ≤ n ∧ n ≤ (200014 : ℕ)","matches":true}
+
