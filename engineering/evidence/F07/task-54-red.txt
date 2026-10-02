@@ -1,0 +1,39 @@
+F07-T54 red run (before the fix): step 7 stages a hole's statement without the assembly's declared Defs.
+
+$ uv run --frozen pytest gate/tests/test_finding_carried_witness_uses.py -q   (fast tier)
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-181/test_step_7_judges_a_carried_w0')
+
+    def test_step_7_judges_a_carried_witness_against_the_statement_the_writer_writes(
+        tmp_path: Path,
+    ) -> None:
+        """The statement step 7 staged for the hole imports the definition the assembly declared,
+        and is byte for byte the ``Statement.lean`` the post-merge writer then writes; the child is
+        born with the witness that was checked."""
+        ctx, fake, text, rel = carrying(tmp_path)
+        verdict = pipeline.run_steps(ctx)
+        assert verdict.first_failing_step is None, verdict.as_dict()
+        assert verdict.data[uses.USES_KEY]["defs"] == ["Defs.Extra"]
+        assert [w["hole"] for w in verdict.data[carried.DATA_KEY]] == ["h"]
+        staged_statement, staged_witness = fake.seen[DECL]
+>       assert layout.imports_of(staged_statement) == [
+            "Defs.Extra",
+            layout.node_module(CHILD, "Context"),
+        ]
+E       AssertionError: assert ['Nodes.«and-...-h1».Context'] == ['Defs.Extra'...-h1».Context']
+E         
+E         At index 0 diff: 'Nodes.«and-reassoc--h1».Context' != 'Defs.Extra'
+E         Right contains one more item: 'Nodes.«and-reassoc--h1».Context'
+E         Use -v to get more diff
+
+gate/tests/test_finding_carried_witness_uses.py:65: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:191 step 8: declared use Defs.Extra contributes no constant to the proof
+=========================== short test summary info ============================
+FAILED gate/tests/test_finding_carried_witness_uses.py::test_step_7_judges_a_carried_witness_against_the_statement_the_writer_writes
+1 failed, 2 passed in 0.15s
+
+$ uv run --frozen pytest gate/tests/test_finding_carried_witness_uses_lean.py -m lean -q   (lean tier, Lean 4.33.1; the step-7 diagnostic)
+"first_failing_step": 7, "diagnostic": {"code": "witness-elaboration", "message": "hole key (attempts/20261001T000000Z-prover-partial.1.witness): statement does not elaborate", "details": {"messages": [{"file": "", "line": 7, "column": 38, "severity": "error", "text": "Unknown identifier `Opn.twice`"}], "expected": null, "hole": "key", "path": "attempts/20261001T000000Z-prover-partial.1.witness"}}, "steps": [{"step": 1, "name": "toolchain", "result": "pass", "diagnostic": null}, {"step": 2, "name": "paths", "result": "pass", "diagnostic": {"code": "partial-submission", "message": "a partial proof: attempts/20261001T000000Z-prover-partial.lean (D-12 #5)",  …
+FAILED gate/tests/test_finding_carried_witness_uses_lean.py::test_a_carried_witness_for_a_hole_over_a_declared_definition
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+======================== 1 failed in 161.09s (0:02:41) =========================

@@ -181,7 +181,11 @@ def check_carried(ctx: RunContext, tc: ResolvedToolchain) -> StepResult | None: 
     }
     src = ctx.workdir / HOLES_DIR / "src"
     build = ctx.workdir / HOLES_DIR / "build"
-    origin = postmerge.child_origin(Path(str(partial["file"])).read_text(encoding="utf-8"))
+    # The assembly's own text: its origin, and (F08-R16) the ``Defs.*`` modules it declared as
+    # uses, which the writer gives every hole's statement. Without them here the witness was
+    # judged against a statement that is not the one written (F07-T54).
+    assembly_text = Path(str(partial["file"])).read_text(encoding="utf-8")
+    origin = postmerge.child_origin(assembly_text)
     checked: list[dict[str, Any]] = []
     for entry in files:
         hole, staged_id, existing = by_name[entry["hole"]]
@@ -189,7 +193,13 @@ def check_carried(ctx: RunContext, tc: ResolvedToolchain) -> StepResult | None: 
         text = carried.read_file(Path(str(entry["file"])))
         try:
             proposal = postmerge.child_proposal(
-                node.path, staged_id, hole, author="gate", origin=origin, witness=text
+                node.path,
+                staged_id,
+                hole,
+                author="gate",
+                origin=origin,
+                witness=text,
+                partial_text=assembly_text,
             )
             staged = scaffold.files(node.path.parent, proposal)
         except ValueError as exc:  # scaffold.ScaffoldError: a node that could not be written
