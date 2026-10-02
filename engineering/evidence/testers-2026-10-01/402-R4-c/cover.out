@@ -1,0 +1,5 @@
+blocks for 681..200000: 1773  first [(681, 693, 1361), (694, 703, 1381), (704, 712, 1399)]  last (199792, 200014, 399583)
+  blocks with lo in [681,1000): 27
+  blocks with lo in [1000,7000): 235
+  blocks with lo in [7000,50000): 591
+  blocks with lo in [50000,200000): 920

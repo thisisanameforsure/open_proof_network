@@ -1,0 +1,6 @@
+n=5 M=3000 candidates=1 strict set of size n found=False largest seen=1 timed_out=False
+n=8 M=3000 candidates=12 strict set of size n found=False largest seen=3 timed_out=False
+n=14 M=3000 candidates=52 strict set of size n found=False largest seen=9 timed_out=False
+n=18 M=3000 candidates=123 strict set of size n found=False largest seen=13 timed_out=False
+n=9 M=3000 candidates=12 strict set of size n found=False largest seen=4 timed_out=False
+n=10 M=3000 candidates=52 strict set of size n found=False largest seen=8 timed_out=False

@@ -106,9 +106,15 @@ def test_the_refusals_are_named(taken: tuple[Path, list[Change]]) -> None:
     # No proof, no append rides along.
     proof = Change("A", f"targets/{TARGET_ID}/nodes/and-reassoc/Proof.lean")
     assert codes([*changes, proof]) == ["mode-mixed"]
-    # And a target's own file on its own is an incomplete intake, never a submission (R2)...
-    assert codes([Change("A", f"targets/{TARGET}/defs/Other.lean")]) == ["intake-incomplete"]
-    # ...except a certificate. Until F11-T8 a lone certificate was refused here as
+    # And a target's gate-spec on its own is an incomplete intake, never a submission (R2)...
+    assert codes([Change("A", f"targets/{TARGET}/gate-spec.json")]) == ["intake-incomplete"]
+    # ...except a definition, which a listed curator may add to a target that exists (F11-R15,
+    # T13, the owner's ruling of 2026-10-01; gate/tests/test_defs_after_intake.py)...
+    later = modes.classify(
+        [Change("A", f"targets/{TARGET}/defs/Other.lean")], author=CURATOR, curators=curators
+    )
+    assert later.mode == "curator" and later.problems == ()
+    # ...and a certificate. Until F11-T8 a lone certificate was refused here as
     # `intake-incomplete`, which left no way to sign a listed target by pull request (finding A).
     # F11-R3 keeps certificates append-only *beside an existing target*, and the owner decided on
     # 2026-09-13 that one is the signer's own pull request: the classifier names the `fidelity`

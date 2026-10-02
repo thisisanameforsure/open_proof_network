@@ -1,0 +1,12 @@
+line 0 dil 1261 mean omega 5.914075
+line 1 dil 421 mean omega 5.0446
+line 2 dil 211 mean omega 5.058175
+line 3 dil 1471 mean omega 4.98944375
+line 4 dil 1051 mean omega 4.9949
+line 5 dil 631 mean omega 5.0103375
+T 4000 signedTail mean 0.19056088544227442 std 0.3439603101045548
+T= 500  |charMean| q=1..16: [np.float64(0.098), np.float64(0.055), np.float64(0.031), np.float64(0.023), np.float64(0.035), np.float64(0.047), np.float64(0.041), np.float64(0.059), np.float64(0.063), np.float64(0.032), np.float64(0.021), np.float64(0.02), np.float64(0.041), np.float64(0.081), np.float64(0.026), np.float64(0.058)]
+T= 1000  |charMean| q=1..16: [np.float64(0.101), np.float64(0.04), np.float64(0.021), np.float64(0.014), np.float64(0.026), np.float64(0.011), np.float64(0.021), np.float64(0.028), np.float64(0.052), np.float64(0.011), np.float64(0.003), np.float64(0.041), np.float64(0.037), np.float64(0.059), np.float64(0.04), np.float64(0.021)]
+T= 2000  |charMean| q=1..16: [np.float64(0.074), np.float64(0.016), np.float64(0.027), np.float64(0.016), np.float64(0.006), np.float64(0.003), np.float64(0.024), np.float64(0.008), np.float64(0.019), np.float64(0.017), np.float64(0.02), np.float64(0.017), np.float64(0.027), np.float64(0.037), np.float64(0.027), np.float64(0.004)]
+T= 4000  |charMean| q=1..16: [np.float64(0.079), np.float64(0.01), np.float64(0.017), np.float64(0.016), np.float64(0.012), np.float64(0.002), np.float64(0.013), np.float64(0.005), np.float64(0.017), np.float64(0.017), np.float64(0.021), np.float64(0.016), np.float64(0.024), np.float64(0.026), np.float64(0.026), np.float64(0.014)]
+noise floor 1/sqrt(T) = 0.015811388300841896
