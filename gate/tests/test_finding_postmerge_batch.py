@@ -455,14 +455,16 @@ def test_the_ledger_credits_each_merge_in_order_and_the_products_render_once(
     assert products.count("cli products") == 1 and "for " not in products
 
 
-def test_one_commit_credits_the_batch_and_a_moved_main_is_left_to_the_later_run(
+def test_one_commit_credits_the_batch_and_a_moved_main_is_caught_up(
     gate_doc: dict[Any, Any],
 ) -> None:
+    """Restated by F07-T55: a moved main was left to the later run (T45) or replayed (T33); the
+    run now catches up itself (``publish``, tested in ``test_finding_postmerge_catch_up.py``),
+    and what main already credits is still never credited twice."""
     run = step_run(gate_doc, name="Commit the attestation")
     assert 'git commit -m "gate: ${credits} ' in run
-    assert 'credited FETCH_HEAD "$n"' in run
-    assert 'later-merge "$rendered_from" FETCH_HEAD' in run
-    assert '"$GITHUB_EVENT_NAME" = "push"' in run  # a replay is never left to a later run
+    assert 'python3 "$helper" publish' in run
+    assert 'replay_owed FETCH_HEAD "$REPLAY"' in run
     assert "replay_pr=" in run
 
 
@@ -481,7 +483,17 @@ def test_every_secret_is_still_named_by_one_step_only(gate_doc: dict[Any, Any]) 
 # --- the commit step, rehearsed against a local bare repository -------------------------------
 
 
-FAKE_UV = "#!/usr/bin/env bash\nexit 2\n"  # the stewards call: a pin without it says nothing
+#: The stewards call (a pin without it says nothing); since F07-T55 a catch-up also runs the
+#: ledger and the products, which here only stamp the tree they were rendered from.
+FAKE_UV = """#!/usr/bin/env bash
+case " $* " in
+  *" ledger "*) exit 0 ;;
+  *" products "*)
+    commit="$(git rev-parse "$(printf '%s\\n' "$@" | sed -n '/^--commit$/{n;p;}')")"
+    printf '{"rendered_from": "%s"}\\n' "$commit" > frontier.json; exit 0 ;;
+esac
+exit 2
+"""
 
 
 def rehearse_commit(
@@ -519,10 +531,16 @@ def rehearse_commit(
         PATH=f"{bin_dir}{os.pathsep}{env['PATH']}", GH_LOG=str(gh_log), GH_PRS="{}",
         GH_TOKEN=FAKE, GITHUB_EVENT_NAME=event, GITHUB_REPOSITORY=REPO,
         RUNNER_TEMP=str(runner_temp), OPN_GRAPH_DEPLOY_KEY="not a key", NUMBERS=numbers,
-        REPLAY=replay, TARGETS="t1",
+        REPLAY=replay, TARGETS="t1", VERDICT="pass", RENDER_PIN=PIN_A, PUBLISH_WAIT_S="0",
+        MERGES=" ".join(merge_of_number(graph, int(n)) for n in numbers.split()),
     )  # fmt: skip
-    run = step_run(gate_doc, name="Commit the attestation")
-    run = run.replace("${{ steps.products.outputs.verdict }}", "pass")
+    (step,) = [
+        s for s in steps(gate_doc) if str(s.get("name", "")).startswith("Commit the attestation")
+    ]
+    env.update(
+        {k: str(v) for k, v in (step.get("env") or {}).items() if "${{" not in str(v)}
+    )  # the step's own literal environment, as Actions sets it
+    run = str(step["run"]).replace("${{ steps.products.outputs.verdict }}", "pass")
     run = run.replace("git@github.com:${GITHUB_REPOSITORY}.git", str(bare))
     assert "${{" not in run, "an expression this rehearsal does not supply"
     proc = subprocess.run(
@@ -530,6 +548,14 @@ def rehearse_commit(
     )  # fmt: skip
     calls = gh_log.read_text().splitlines() if gh_log.exists() else []
     return proc.returncode, proc.stdout + proc.stderr, calls, bare
+
+
+def merge_of_number(graph: Graph, number: int) -> str:
+    """The merge commit of pull request ``number`` on the graph's first-parent line."""
+    for sha, _parents, subject in log(graph):
+        if subject.startswith(f"Merge pull request #{number} "):
+            return sha
+    raise AssertionError(f"no merge of #{number}")
 
 
 def main_subject(bare: Path) -> str:
@@ -551,34 +577,39 @@ def test_the_head_run_commits_one_gate_commit_for_the_batch(
     assert main_subject(bare) == "gate: #2 #3 pass" and calls == []
 
 
-def test_a_run_whose_main_moved_by_a_later_merge_leaves_its_merges_to_that_run(
+def test_a_run_whose_main_moved_by_a_later_merge_catches_up_and_records_its_own(
     gate_doc: dict[Any, Any], tmp_path: Path
 ) -> None:
-    """A batch member's run that checked out before the later merges landed: its push is
-    refused, and it neither rebases nor dispatches a replay, because the later push's run
-    records it. A replay is never left to a later run: it dispatches itself again."""
+    """Restated by F07-T55. T45 left this run's merges to the later merge's run, which recorded
+    them only if its own plan had not already run; now the run catches up and records #2 itself,
+    and whichever run pushes second drops what the first credited. A replay does the same."""
     graph = Graph(tmp_path / "g")
     two = graph.append(2)
     graph.append(3)
     code, said, calls, bare = rehearse_commit(gate_doc, graph, tmp_path / "push", two, "2")
     assert code == 0 and calls == [], (said, calls)
-    assert "records #2" in said and main_subject(bare).startswith("Merge pull request #3")
-    code, said, calls, _ = rehearse_commit(
+    assert "caught up on" in said and main_subject(bare) == "gate: #2 pass", said
+    code, said, calls, bare = rehearse_commit(
         gate_doc, graph, tmp_path / "replay", two, "2", event="workflow_dispatch"
     )
-    assert code == 0 and any("replay_pr=2" in call for call in calls), (said, calls)
+    assert code == 0 and calls == [], (said, calls)
+    assert main_subject(bare) == "gate: #2 pass (replayed)", said
 
 
-def test_a_run_whose_main_moved_by_an_owner_push_dispatches_its_replays(
+def test_a_run_whose_main_moved_by_an_owner_push_catches_up(
     gate_doc: dict[Any, Any], tmp_path: Path
 ) -> None:
+    """Restated by F07-T55: an owner's push that touches a target used to replay the run's own
+    merges; the record is laid on main as it is instead, and only the merges this run was
+    handed to replay are replayed."""
     graph = Graph(tmp_path / "g")
     two = graph.append(2)
     graph.write("targets/t1/nodes/n/META.yaml", "status: owner\n")
     graph.commit("an owner's push that touches a target")
-    code, said, calls, _ = rehearse_commit(gate_doc, graph, tmp_path, two, "2", replay="5")
+    code, said, calls, bare = rehearse_commit(gate_doc, graph, tmp_path, two, "2", replay="5")
     assert code == 0, said
-    assert [c.split("replay_pr=")[1] for c in calls if "replay_pr=" in c] == ["2", "5"], calls
+    assert main_subject(bare) == "gate: #2 pass", said
+    assert [c.split("replay_pr=")[1] for c in calls if "replay_pr=" in c] == ["5"], calls
 
 
 def test_a_run_whose_merges_are_already_credited_dispatches_only_what_is_owed(

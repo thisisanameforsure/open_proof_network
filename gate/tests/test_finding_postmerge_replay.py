@@ -160,16 +160,27 @@ def test_every_step_reads_the_merge_commit_not_the_event_commit(gate_doc: dict[A
 def test_a_moved_main_dispatches_the_replay_instead_of_asking_for_hands(
     gate_doc: dict[Any, Any],
 ) -> None:
-    (commit,) = [s for s in job(gate_doc)["steps"] if "git push" in str(s.get("run", ""))]
+    commit = commit_step(gate_doc)
     run = str(commit["run"])
     assert "re-render by hand" not in run
     assert "gh workflow run gate.yml" in run and "replay_pr" in run
     assert "github.token" in str(commit.get("env", {}))
 
 
+def commit_step(gate_doc: dict[Any, Any]) -> dict[str, Any]:
+    """The step that pushes the gate commit. Since F07-T55 the push itself is in the helper's
+    ``publish``, which catches up on a moved main; a merge it cannot lay on main is replayed."""
+    (commit,) = [
+        s for s in job(gate_doc)["steps"]
+        if str(s.get("name", "")).startswith("Commit the attestation")
+    ]  # fmt: skip
+    assert "publish" in str(commit["run"]) or "git push" in str(commit["run"])
+    found: dict[str, Any] = commit
+    return found
+
+
 def test_a_replay_says_so_in_its_commit(gate_doc: dict[Any, Any]) -> None:
-    (commit,) = [s for s in job(gate_doc)["steps"] if "git push" in str(s.get("run", ""))]
-    assert "(replayed)" in str(commit["run"])
+    assert "(replayed)" in str(commit_step(gate_doc)["run"])
 
 
 def test_the_gate_that_attests_is_the_one_the_merge_pinned(gate_doc: dict[Any, Any]) -> None:

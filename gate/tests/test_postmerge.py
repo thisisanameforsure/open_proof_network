@@ -661,9 +661,16 @@ def test_mention_line_is_inert_on_the_old_pin(tmp_path: Path) -> None:
     assert "|| true" in run and "2>/dev/null" in run
     verdict = "${{ steps.products.outputs.verdict }}"
     # F07-T33 put `(replayed)` between the verdict and the mention on a replay, and F07-T45 made
-    # the credits a list (`#A #B`, one number unless a batch of appends); the mention is still
-    # the message's last part and empty on the old pin, which is what this test is about
-    assert f'git commit -m "gate: ${{credits}} {verdict}${{replayed}}${{mention}}"' in run
+    # the credits a list (`#A #B`, one number unless a batch of appends); F07-T55 hands the verdict
+    # in through the step's env, so a catch-up can write the same message again. The mention is
+    # still the message's last part and empty on the old pin, which is what this test is about
+    inline = f'git commit -m "gate: ${{credits}} {verdict}${{replayed}}${{mention}}"' in run
+    through_env = (
+        'git commit -m "gate: ${credits} ${VERDICT}${replayed}${mention}"' in run
+        and (commit.get("env") or {}).get("VERDICT") == verdict
+        and 'SUFFIX="${VERDICT}${replayed}${mention}"' in run
+    )
+    assert inline or through_env
     # The guard's shape, run for real with a command the old pin would refuse (exit 2, no JSON):
     # the suffix is empty and the message is the old one.
     shape = (
