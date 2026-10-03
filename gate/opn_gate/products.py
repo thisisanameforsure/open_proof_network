@@ -503,6 +503,8 @@ def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
                 "proofs": [p.as_dict() for p in n.proofs],
                 # F18-R4: each merged partial, the annex it cites and the holes it made.
                 "decompositions": decompositions_of(tg, node_id),
+                # F18-R8 (D-14 v3.26): the node this one was proposed for, a pointer only.
+                "proposed_for": n.proposed_for,
             }
         )
     return {

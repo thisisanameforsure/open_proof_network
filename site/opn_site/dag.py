@@ -60,9 +60,28 @@ class ProofMarks:
     edges: frozenset[tuple[str, str]]
 
 
+def pointers(nodes: list[dict[str, Any]]) -> dict[str, list[str]]:
+    """F18-R9: the cruxes proposed for each node that no merged proof of it uses yet — the dashed
+    lines the drawing makes, keyed by the node they point at. A crux the node already rests on
+    (a dep, or a use, F08-R19) needs no pointer: the solid line says more."""
+    rows = {str(n["node_id"]): n for n in nodes}
+    out: dict[str, list[str]] = {}
+    for n in nodes:
+        target = n.get("proposed_for")
+        if not target or str(target) not in rows:
+            continue
+        crux, row = str(n["node_id"]), rows[str(target)]
+        if crux in below(row):
+            continue
+        out.setdefault(str(target), []).append(crux)
+    return out
+
+
 def layers(nodes: list[dict[str, Any]]) -> dict[str, int]:
-    """Longest path from a source: a node is one above its deepest dep (or used node)."""
-    deps = {str(n["node_id"]): below(n) for n in nodes}
+    """Longest path from a source: a node is one above its deepest dep (or used node, or a crux
+    proposed for it, F18-R9, so the crux sits beneath the node it serves)."""
+    pointed = pointers(nodes)
+    deps = {str(n["node_id"]): [*below(n), *pointed.get(str(n["node_id"]), [])] for n in nodes}
     memo: dict[str, int] = {}
 
     def depth(node_id: str, seen: tuple[str, ...]) -> int:
@@ -165,6 +184,7 @@ def svg(
     at = {p.node_id: p for p in placed}
     deps = {str(n["node_id"]): [str(d) for d in n["deps"]] for n in nodes}
     used = {str(n["node_id"]): [str(u) for u in n.get("uses") or []] for n in nodes}
+    pointed = pointers(nodes)
     parts = [
         f'<svg class="dag" viewBox="0 0 {width} {height}" width="{width}" height="{height}" '
         'role="img" aria-label="dependency graph">',
@@ -172,6 +192,7 @@ def svg(
     for node_id in sorted(deps):
         lines = [(d, "edge") for d in deps[node_id]]
         lines.extend((u, "edge use") for u in used[node_id] if u not in deps[node_id])
+        lines.extend((c, "edge proposed") for c in pointed.get(node_id, []))
         for dep, kind in lines:
             if dep not in at:
                 continue

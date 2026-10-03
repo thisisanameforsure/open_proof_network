@@ -247,6 +247,14 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "use line, import Nodes.«id».Proof (D-12 v3.25)",
     ),
     (
+        "proposed-for",
+        "proposed for",
+        "A dotted line from a crux statement to the statement its proposer wrote it for. A "
+        "pointer only: it changes no status, and once a proof uses the crux the solid line of "
+        "the use is drawn instead.",
+        "proposed-for record (D-14 v3.26)",
+    ),
+    (
         "unmeasured",
         "not measured",
         "The gate has not yet recorded which statements this proof's term uses (it was merged "
@@ -865,11 +873,13 @@ class Renderer:
 
     @staticmethod
     def proof_legend(tv: TargetView) -> tuple[str, ...]:
-        """F18-T2: the proof drawing's keys, each only when the drawing can show it."""
+        """F18-T2, T6: the proof drawing's keys and the pointer's, each only when the drawing can
+        show it."""
+        pointed = ("proposed-for",) if dag.pointers(tv.graph["nodes"]) else ()
         proofs = target_proofs(tv)
         if not proofs:
-            return ()
-        keys = ["on-proof", "not-needed"]
+            return pointed
+        keys = ["on-proof", "not-needed", *pointed]
         if any(n.get("uses") for n in tv.graph["nodes"]):
             keys.append("use")
         if any(p.get("unmeasured") for p in proofs):

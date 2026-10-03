@@ -8,6 +8,7 @@
       "origin": "authored",
       "proof_commit": null,
       "proofs": [],
+      "proposed_for": null,
       "relation": null,
       "relevance": null,
       "statement_hash": "22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7",
@@ -27,6 +28,7 @@
       "origin": "authored",
       "proof_commit": null,
       "proofs": [],
+      "proposed_for": null,
       "relation": null,
       "relevance": null,
       "statement_hash": "1fd9af9053c56877f4e7ec2ad69aa16602d39e826259da3878a8cc30a3b6791c",
@@ -53,6 +55,7 @@
           "used": null
         }
       ],
+      "proposed_for": null,
       "relation": null,
       "relevance": null,
       "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
