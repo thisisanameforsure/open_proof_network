@@ -365,6 +365,23 @@ def check_annex_citation(node_dir: Path, partial_text: str) -> Diagnostic | None
     )
 
 
+def check_annex_steps(node_dir: Path, partial_text: str, holes: Sequence[str]) -> Diagnostic | None:
+    """F18-R6 (D-31 v3.26): a skeleton citing a stepped annex names every hole after a step.
+
+    The hole names are the extractor's, so this is step 4's last word (``steps.artifact.judge``)
+    and, here, the post-merge writer's backstop, as ``check_annex_citation`` is for a citation.
+    A citation that is absent, malformed or uncited is ``check_annex_citation``'s to refuse."""
+    from opn_gate import annex  # noqa: PLC0415 — kept beside the citation it reads
+
+    try:
+        digest = annex_citation(partial_text)
+    except MalformedCitationError:
+        return None
+    if digest is None:
+        return None
+    return annex.check_steps(annex.steps_at(node_dir, digest), holes, annex=digest)
+
+
 def child_origin(partial_text: str) -> str:
     """R6, D-3 v3.12: a hole from a cited skeleton is its own origin, not compiler-derived.
 
@@ -572,7 +589,9 @@ def apply_partial(  # noqa: PLR0913 — the merge's facts, each named
     """
     from opn_gate import scaffold  # noqa: PLC0415 — scaffold imports layout, which imports schemas
 
-    problem = check_annex_citation(node_dir, partial_text)
+    problem = check_annex_citation(node_dir, partial_text) or check_annex_steps(
+        node_dir, partial_text, [str(getattr(h, "name", "")) for h in holes]
+    )
     if problem is not None:
         raise GraphWriteError(problem.message)
     if not holes:

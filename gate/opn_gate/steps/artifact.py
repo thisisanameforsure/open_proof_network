@@ -569,6 +569,18 @@ ALTERNATE_KEY = "alternate"
 ARTIFACT_KEY = "artifact"
 
 
+def _annex_steps_problem(ctx: RunContext, node_dir: Path, artifact: Artifact) -> Diagnostic | None:
+    """F18-R6: ``postmerge.check_annex_steps`` over the assembly step 2 took and the holes the
+    extractor just named; ``None`` when step 2 recorded no assembly."""
+    from opn_gate import postmerge  # noqa: PLC0415 — postmerge imports the steps
+
+    chosen = ctx.data.get(PARTIAL_KEY)
+    if not isinstance(chosen, dict) or not chosen.get("file"):
+        return None
+    text = Path(str(chosen["file"])).read_text(encoding="utf-8")
+    return postmerge.check_annex_steps(node_dir, text, [h.name for h in artifact.holes])
+
+
 def judge(ctx: RunContext, tc: ResolvedToolchain) -> StepResult:
     """D-12's shape rule, at the end of step 4 where the build it needs exists (F07-R4, R5;
     dispatched in F11-T4). Not a step of its own: the verdict's steps are D-4's numbering,
@@ -612,6 +624,13 @@ def judge(ctx: RunContext, tc: ResolvedToolchain) -> StepResult:
     if failure is not None:
         return failure
     assert artifact is not None
+    if kind == "partial":
+        # F18-R6 (D-31 v3.26): a skeleton that cites a stepped annex names each hole after one of
+        # its steps. The names are the extractor's, known only now, so the refusal is step 4's
+        # last word and comes before the merge; the post-merge writer repeats it as a backstop.
+        stepped = _annex_steps_problem(ctx, node.path, artifact)
+        if stepped is not None:
+            return StepResult(ok=False, diagnostic=stepped)
     return StepResult.passed_with(
         "artifact-" + ("reduction" if artifact.is_reduction else artifact.kind),
         f"{artifact.kind}: {artifact.decl} declares {artifact.declared}"

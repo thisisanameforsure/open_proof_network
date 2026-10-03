@@ -461,6 +461,7 @@ def result_zip(
     runner: str = "hosted",
     tamper: bool = False,
     statement_hash: str | None = None,
+    holes: list[dict[str, Any]] | None = None,
 ) -> bytes:
     """The artifact zip the workflow uploads: one ``result.json`` whose attestation is signed by
     ``key`` as kind ``service``, through the very function the workflow calls (``precheck.sign``).
@@ -486,6 +487,8 @@ def result_zip(
         "steps": doc["steps"],
         "attestation": doc,
     }
+    if holes is not None:  # F06-T9: a partial's result names the holes its extractor found
+        result["holes"] = holes
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
         archive.writestr("result.json", schemas.canonical_json(result))

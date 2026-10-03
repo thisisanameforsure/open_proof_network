@@ -29,7 +29,9 @@ from starlette.responses import JSONResponse, Response
 from opn_api import clock as clockmod
 from opn_api import duplicates, frontier, pending, precheck, submissions
 from opn_api import identity as identitymod
+from opn_api import uses as usesmod
 from opn_api.app import ApiError
+from opn_gate import annex as annexmod
 from opn_gate import schemas
 
 if TYPE_CHECKING:
@@ -299,7 +301,37 @@ def annex_file(doc: dict[str, Any], text: str) -> str:
 
 
 #: F05-T8: the fields ``POST /annexes`` reads; any other top-level key is refused.
-ANNEX_FIELDS: tuple[str, ...] = ("node_id", "text", "licence", "model_and_tooling")
+ANNEX_FIELDS: tuple[str, ...] = ("node_id", "text", "licence", "model_and_tooling", "steps")
+#: F18-R6 (D-31 v3.26): an annex that names its steps is written as this version.
+STEPPED_ANNEX_SCHEMA = annexmod.STEPPED_SCHEMA
+
+
+def check_steps(ctx: Context, target_id: str, front: dict[str, Any], raw: Any) -> None:
+    """F18-R6: ``steps`` held to ``annex/v2`` and to unique ids (``record-invalid``), and taken
+    only for a target whose pinned gate reads ``annex/v2`` (``annex-steps-unsupported``): an
+    older gate refuses such an append, so the pull request would open and go red. The summaries
+    are the author's text, written as sent and acted on by nothing (C9)."""
+    front["schema"] = STEPPED_ANNEX_SCHEMA
+    front["steps"] = raw
+    validated(front, STEPPED_ANNEX_SCHEMA)
+    repeated = annexmod.duplicate_step_ids(front)
+    if repeated:
+        raise ApiError(
+            400,
+            "record-invalid",
+            "steps: the step id " + ", ".join(repeated) + " is named more than once; a stepped "
+            "annex's ids are unique, since a skeleton's hole is matched to a step by its name",
+            details={"duplicates": repeated},
+        )
+    if not usesmod.pinned_from(
+        ctx, target_id, ctx.settings.annex_steps_from, what="stepped annexes"
+    ):
+        raise ApiError(
+            400,
+            "annex-steps-unsupported",
+            f"the gate {target_id} pins does not read a stepped annex (annex/v2, D-31 v3.26) "
+            "yet; it reaches a target at its re-pin. Submit the annex without steps",
+        )
 
 
 async def post_annexes(ctx: Context, request: Request) -> Response:
@@ -324,7 +356,12 @@ async def post_annexes(ctx: Context, request: Request) -> Response:
         "date": clockmod.render(ctx.clock.now()),
         "model_and_tooling": _declared(fields.get("model_and_tooling")),
     }
-    validated(front, ANNEX_SCHEMA)
+    written = text
+    if "steps" in fields:
+        check_steps(ctx, target_id, front, fields["steps"])
+        written = text + "\n" + yaml.safe_dump(front["steps"], sort_keys=True, allow_unicode=True)
+    else:
+        validated(front, ANNEX_SCHEMA)
     content = annex_file(front, text)
     digest = schemas.content_hash(content.encode())
     path = node_dir(target_id, node_id) + f"annex/{digest}.md"
@@ -336,7 +373,7 @@ async def post_annexes(ctx: Context, request: Request) -> Response:
         subject=f"annex: {node_id}",
         what="annex",
         kind="annex",
-        written=text,
+        written=written,
         target_id=target_id,
         node_id=node_id,
     )

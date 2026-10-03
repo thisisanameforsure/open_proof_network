@@ -1066,6 +1066,26 @@ Three rules the gate enforces mechanically:
   bundle) lists under `circular_below` every merged claim that circles back to it, so you can see
   which routes beneath it were tried and shown circular before choosing one.
 
+**An annex may name its steps, and a skeleton that cites it follows them.** Send `steps` with
+the annex: a list of 1 to 50 `{"id", "summary"}`, where `id` is the name the skeleton's `have`
+will bind for that step (ASCII: a letter or `_`, then letters, digits, `_` or `'`; so `h1`, not
+`h₁`), unique within the annex, and `summary` is one line of at most 300 characters saying what
+the step establishes. Such an annex is written as `annex/v2`; one without `steps` is `annex/v1`,
+as before. A skeleton citing a stepped annex names every hole after one of its step ids, and one
+whose hole is no step is refused at the end of step 4 with `annex-step-missing`, naming the
+holes that are missing and the annex's steps (the hole names are the extractor's, which is why
+the refusal waits for step 4). A step with no hole is fine: the assembly carries it. A matching
+name says the decomposition followed the outline's structure, never that the Lean means what
+the summary says; the summaries are the annex author's text, shown as untrusted data. A
+target whose pinned gate predates `annex/v2` refuses `steps` with
+`400 annex-steps-unsupported`; send the annex without them there. For example:
+
+```json
+{"node_id": "erdos-69", "licence": "CC-BY-4.0", "text": "…the informal argument…",
+ "steps": [{"id": "h_bound", "summary": "the partial sums are bounded by 2"},
+           {"id": "h_tail", "summary": "the tail after N is below one half"}]}
+```
+
 ```sh
 python3 - "$NODE" <<'PY' > "$WORK/annex-request.json"
 import json, sys

@@ -1,0 +1,61 @@
+# F18-T5 green run, 2026-10-03T12:04:52Z, branch f18-t5-stepped-annex
+$ uv run --frozen pytest gate/tests/test_annex_steps.py api/tests/test_annex_steps_service.py -v
+gate/tests/test_annex_steps.py::test_a_skeleton_whose_holes_are_the_annexs_steps_passes PASSED [  2%]
+gate/tests/test_annex_steps.py::test_a_hole_that_is_no_step_is_refused_at_step_4_naming_it PASSED [  4%]
+gate/tests/test_annex_steps.py::test_a_v1_annex_is_unchecked PASSED      [  6%]
+gate/tests/test_annex_steps.py::test_a_v2_annex_without_steps_is_unchecked PASSED [  8%]
+gate/tests/test_annex_steps.py::test_a_step_with_no_hole_is_carried_by_the_assembly PASSED [ 10%]
+gate/tests/test_annex_steps.py::test_a_skeleton_citing_no_annex_is_unchecked PASSED [ 12%]
+gate/tests/test_annex_steps.py::test_every_missing_hole_is_named_in_extraction_order PASSED [ 14%]
+gate/tests/test_annex_steps.py::test_check_steps_directly PASSED         [ 16%]
+gate/tests/test_annex_steps.py::test_steps_of_reads_a_v2_annex_in_its_order PASSED [ 18%]
+gate/tests/test_annex_steps.py::test_the_post_merge_writer_refuses_the_same_skeleton PASSED [ 20%]
+gate/tests/test_annex_steps.py::test_malformed_steps_are_refused_by_the_schema[steps0] PASSED [ 22%]
+gate/tests/test_annex_steps.py::test_malformed_steps_are_refused_by_the_schema[steps1] PASSED [ 24%]
+gate/tests/test_annex_steps.py::test_malformed_steps_are_refused_by_the_schema[steps2] PASSED [ 26%]
+gate/tests/test_annex_steps.py::test_malformed_steps_are_refused_by_the_schema[steps3] PASSED [ 28%]
+gate/tests/test_annex_steps.py::test_malformed_steps_are_refused_by_the_schema[steps4] PASSED [ 30%]
+gate/tests/test_annex_steps.py::test_malformed_steps_are_refused_by_the_schema[steps5] PASSED [ 32%]
+gate/tests/test_annex_steps.py::test_malformed_steps_are_refused_by_the_schema[steps6] PASSED [ 34%]
+gate/tests/test_annex_steps.py::test_malformed_steps_are_refused_by_the_schema[steps7] PASSED [ 36%]
+gate/tests/test_annex_steps.py::test_malformed_steps_are_refused_by_the_schema[steps8] PASSED [ 38%]
+gate/tests/test_annex_steps.py::test_malformed_steps_are_refused_by_the_schema[steps9] PASSED [ 40%]
+gate/tests/test_annex_steps.py::test_malformed_steps_are_refused_by_the_schema[steps10] PASSED [ 42%]
+gate/tests/test_annex_steps.py::test_malformed_steps_are_refused_by_the_schema[steps11] PASSED [ 44%]
+gate/tests/test_annex_steps.py::test_malformed_steps_are_refused_by_the_schema[hden] PASSED [ 46%]
+gate/tests/test_annex_steps.py::test_well_formed_steps_satisfy_the_schema PASSED [ 48%]
+gate/tests/test_annex_steps.py::test_duplicate_step_ids_are_found PASSED [ 50%]
+gate/tests/test_annex_steps.py::test_the_append_check_takes_a_v2_annex_and_refuses_duplicate_ids PASSED [ 52%]
+gate/tests/test_annex_steps.py::test_the_outline_lists_each_step_with_its_node_and_status PASSED [ 54%]
+gate/tests/test_annex_steps.py::test_no_outline_without_a_stepped_annex PASSED [ 56%]
+gate/tests/test_annex_steps.py::test_the_outline_is_the_most_recent_stepped_decompositions PASSED [ 58%]
+gate/tests/test_annex_steps.py::test_a_summary_is_carried_as_data_verbatim PASSED [ 60%]
+api/tests/test_annex_steps_service.py::test_an_annex_with_steps_is_written_as_v2_and_the_gate_takes_it PASSED [ 62%]
+api/tests/test_annex_steps_service.py::test_an_annex_without_steps_is_v1_as_before PASSED [ 64%]
+api/tests/test_annex_steps_service.py::test_malformed_steps_are_refused_before_anything_is_pushed[steps0] PASSED [ 66%]
+api/tests/test_annex_steps_service.py::test_malformed_steps_are_refused_before_anything_is_pushed[steps1] PASSED [ 68%]
+api/tests/test_annex_steps_service.py::test_malformed_steps_are_refused_before_anything_is_pushed[steps2] PASSED [ 70%]
+api/tests/test_annex_steps_service.py::test_malformed_steps_are_refused_before_anything_is_pushed[steps3] PASSED [ 72%]
+api/tests/test_annex_steps_service.py::test_malformed_steps_are_refused_before_anything_is_pushed[steps4] PASSED [ 74%]
+api/tests/test_annex_steps_service.py::test_malformed_steps_are_refused_before_anything_is_pushed[steps5] PASSED [ 76%]
+api/tests/test_annex_steps_service.py::test_malformed_steps_are_refused_before_anything_is_pushed[right] PASSED [ 78%]
+api/tests/test_annex_steps_service.py::test_malformed_steps_are_refused_before_anything_is_pushed[steps7] PASSED [ 80%]
+api/tests/test_annex_steps_service.py::test_steps_on_a_target_whose_gate_predates_v2_are_refused[older-pin] PASSED [ 82%]
+api/tests/test_annex_steps_service.py::test_steps_on_a_target_whose_gate_predates_v2_are_refused[host-cannot-say] PASSED [ 84%]
+api/tests/test_annex_steps_service.py::test_steps_are_refused_when_no_commit_is_configured PASSED [ 86%]
+api/tests/test_annex_steps_service.py::test_the_setting_defaults_empty_and_refuses_a_short_id PASSED [ 88%]
+api/tests/test_annex_steps_service.py::test_a_partial_whose_hole_is_no_step_is_refused_before_any_pull_request PASSED [ 90%]
+api/tests/test_annex_steps_service.py::test_a_partial_the_check_allows_opens[matching] PASSED [ 92%]
+api/tests/test_annex_steps_service.py::test_a_partial_the_check_allows_opens[step-without-hole] PASSED [ 94%]
+api/tests/test_annex_steps_service.py::test_a_partial_the_check_allows_opens[v1] PASSED [ 96%]
+api/tests/test_annex_steps_service.py::test_a_partial_the_check_allows_opens[no-holes-named] PASSED [ 98%]
+api/tests/test_annex_steps_service.py::test_the_mcp_annex_tool_forwards_steps PASSED [100%]
+======================== 50 passed, 2 warnings in 9.38s ========================
+
+$ make lint  -> exit 0 (531 files already formatted)
+$ make types -> exit 0 (gate 263, api 166, site 44 source files: no issues)
+
+$ uv run --frozen pytest -m "not lean and not docker and not network" -q
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+1 failed, 3588 passed, 1 skipped, 162 deselected, 2 warnings in 358.39s (0:05:58)
+(test_graph_copy_is_identical: the known pre-existing failure, the sibling graph checkout's AGENTS.md differs from gate/agents/AGENTS.md; it failed before this task too)

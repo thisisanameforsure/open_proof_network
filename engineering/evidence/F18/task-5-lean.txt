@@ -1,0 +1,5 @@
+# F18-T5 lean tier, 2026-10-03T12:07:03Z, local Lean 4.33.1 via elan
+$ uv run --frozen pytest gate/tests/test_annex_steps_lean.py -m lean -q
+..                                                                       [100%]
+2 passed in 139.13s (0:02:19)
+Note: written after the check existed, so not seen red on the defect. The first run failed on its own fixture (a hole 'p' under 'h : p ∧ q' is the goal restated: offload-restated-goal); the holes were changed to the duplicate-hole test's shapes and both cases pass.
