@@ -330,6 +330,21 @@ as a lemma above it; write helpers as `have` steps inside the proof, or submit a
 runs the hazard checkers only in `hazards` mode, so a clean fast check is a reason to precheck,
 not a verdict.
 
+**Use lines (D-3, D-4 v3.25).** A proof, an alternate or a partial's assembly may draw on what its
+statement does not import by adding *use lines* directly after the statement's last import (after
+the node's own `Context` line, where the proof adds it): `import Defs.<Name>` for a definition of
+the same target already on the graph, or `import Nodes.«<id>».Proof` for another node's merged
+proof. Nothing else in the file changes, and the statement, its hash and `META.yaml` are never
+touched. A use the gate would refuse is refused by the gate's own code, by the fast check's
+`lint` and before any precheck job or pull request opens: `use-duplicate` (a line repeated, or a
+module the statement already imports), `use-unknown-defs`, `use-self`, `use-unknown-node`,
+`use-superseded` (use the successor it names), `use-unproved` (no merged proof to use),
+`use-redundant` (already a dependency, reached through your `Context`) and `use-ancestor` (the
+node rests on yours). The fast check inlines a used node's statement with a `sorry` body, as a
+`Context` carries a dependency's, so check such a proof with `mode: check`. Use lines are live on
+a target once its pinned gate reads them; on a target pinned earlier the lint still answers
+`imports-differ`, and the gate refuses the header as `proof-not-statement`.
+
 ## Claiming a node (D-25)
 
 The frontier is `frontier.json` at the root of this repository, regenerated on every merge, and

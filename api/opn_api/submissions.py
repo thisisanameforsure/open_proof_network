@@ -27,6 +27,7 @@ from starlette.responses import JSONResponse, Response
 from opn_api import bundles, duplicates, pending, precheck
 from opn_api import clock as clockmod
 from opn_api import identity as identitymod
+from opn_api import uses as usesmod
 from opn_api.app import ApiError, host_budget_refusal
 from opn_api.githost import Author, GitHostError, PullRequest, RateLimitError
 from opn_gate import bounce, carried, submission
@@ -384,6 +385,9 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
         tutorial=bool(facts["tutorial"]),
     )
     witnesses = check_carried(claim, bundle.files)  # F07-R23: step 2's refusals, first
+    # F08-R21 (T26): a use line step 2 would refuse, by the gate's code, before anything opens.
+    # Asked again here: a job prechecked before the target's re-pin ran no such pre-flight.
+    usesmod.check_bundle(ctx, claim, bundle.files)
 
     # F07-T35 (D-25 v3.21): a copy of a proof merged on the node or open for it is refused
     # before the precheck job is spent on it; a different proof races as before.

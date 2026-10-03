@@ -80,6 +80,14 @@ Variables (prefix ``OPN_API_``):
     Pull-request lookups ``GET /submissions.json`` makes at once while it reconciles the open
     records against the host (F07-T39, Q47). Default ``8``; each lookup is three or four GitHub API
     calls, and the App's rate budget is per hour, not per second.
+``OPN_API_NETWORK_REPO``
+    Where this repository lives on the host, so a target's pinned ``network_commit`` can be
+    compared with ``OPN_API_USES_FROM`` (F08-T26). Default the Stage 0 network repository.
+``OPN_API_USES_FROM``
+    The network commit from which the gate understands use lines (F08-R21, Q39 option (a)): a
+    target whose ``gate-spec.json`` pins this commit or a descendant of it takes a proof with
+    use lines, and the service then reads them as the gate does. Default empty: no target
+    understands uses, and a use line is ``imports-differ`` everywhere, as before T26.
 ``OPN_API_GITHUB_APP_ID`` / ``OPN_API_GITHUB_CLIENT_ID``
     The GitHub App's ids (not secret, but issued with the App, so they travel with its secrets).
 ``OPN_API_GITHUB_CLIENT_SECRET`` / ``OPN_API_GITHUB_PRIVATE_KEY``
@@ -101,6 +109,8 @@ DEFAULT_PARAMETER_PREFIX = "/opn/api/"
 DEFAULT_PUBLIC_URL = "http://127.0.0.1:8000"
 DEFAULT_GRAPH_REPO = "thisisanameforsure/open_proof_network_graph"
 DEFAULT_GRAPH_BRANCH = "main"
+DEFAULT_NETWORK_REPO = "thisisanameforsure/open_proof_network"  # F08-T26
+DEFAULT_USES_FROM = ""  # F08-T26: no target understands uses until a commit is named
 DEFAULT_FRONTIER_MAX_STALE_S = 60
 DEFAULT_WRITES_PER_HOUR = 120
 DEFAULT_ACTIVE_CLAIMS = 20
@@ -161,6 +171,8 @@ class Settings:
     public_url: str = DEFAULT_PUBLIC_URL
     graph_repo: str = DEFAULT_GRAPH_REPO
     graph_branch: str = DEFAULT_GRAPH_BRANCH
+    network_repo: str = DEFAULT_NETWORK_REPO
+    uses_from: str = DEFAULT_USES_FROM
     frontier_max_stale_s: int = DEFAULT_FRONTIER_MAX_STALE_S
     writes_per_hour: int = DEFAULT_WRITES_PER_HOUR
     active_claims: int = DEFAULT_ACTIVE_CLAIMS
@@ -261,6 +273,16 @@ def _count(env: Mapping[str, str], name: str, default: int) -> int:
     return value
 
 
+def _commit(env: Mapping[str, str], name: str) -> str:
+    """A full commit id, or empty when unset (F08-T26). A short or malformed id is refused at
+    load time: compared by ancestry, it would silently match nothing (C7)."""
+    raw = env.get(name, "").strip().lower()
+    if raw and (len(raw) != 40 or any(c not in "0123456789abcdef" for c in raw)):
+        msg = f"{name} must be a full 40-character commit id, got {raw!r}"
+        raise ConfigError(msg)
+    return raw
+
+
 def load(environ: Mapping[str, str] | None = None) -> Settings:
     """Build ``Settings`` from ``environ`` (default: the real process environment).
 
@@ -292,6 +314,8 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
         public_url=env.get("OPN_API_PUBLIC_URL", DEFAULT_PUBLIC_URL).rstrip("/"),
         graph_repo=env.get("OPN_API_GRAPH_REPO", DEFAULT_GRAPH_REPO),
         graph_branch=env.get("OPN_API_GRAPH_BRANCH", DEFAULT_GRAPH_BRANCH),
+        network_repo=env.get("OPN_API_NETWORK_REPO", DEFAULT_NETWORK_REPO),
+        uses_from=_commit(env, "OPN_API_USES_FROM"),
         frontier_max_stale_s=_int(
             env, "OPN_API_FRONTIER_MAX_STALE_S", DEFAULT_FRONTIER_MAX_STALE_S
         ),

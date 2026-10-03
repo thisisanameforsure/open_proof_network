@@ -40,6 +40,7 @@ from starlette.responses import JSONResponse, Response
 
 from opn_api import auth, frontier, identity, pending, precheck, ratelimit
 from opn_api import clock as clockmod
+from opn_api import uses as usesmod
 from opn_api.axle import AxleAnswer, AxleError
 from opn_api.store import CheckLog
 from opn_gate import hosted, layout, paths, scaffold, schemas
@@ -353,6 +354,8 @@ def inline_defs(  # noqa: PLR0913 — the node's Context may be given rather tha
     node_id: str | None = None,
     *,
     context: str | None = None,
+    used: Sequence[tuple[str, str, str]] = (),
+    skip: frozenset[str] = frozenset(),
 ) -> list[tuple[str, str]]:
     """R5: the statement's ``Defs`` modules, then the content's own (F13-T11: a proposer's
     statement is not a node yet, so its header is the only thing that names them), and everything
@@ -361,7 +364,12 @@ def inline_defs(  # noqa: PLR0913 — the node's Context may be given rather tha
     as an unknown identifier.
 
     ``context`` is the node's own ``Context.lean`` when it is not on the graph yet (F13-T16: a
-    proposal's, generated from the deps it declares); it is inlined in place of a fetched one."""
+    proposal's, generated from the deps it declares); it is inlined in place of a fetched one.
+
+    F08-T26: ``used`` are the nodes a use line names, as ``uses.used_sources`` reads them, each
+    inlined last as its statement verbatim with its ``sorry`` body — a signature, as a Context
+    carries a dependency's (D-3) — after its own definitions and its own Context; ``skip`` are
+    the modules a use line names that the lint refuses, which are not fetched or inlined."""
     from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
 
     named = defs_modules(statement.text) if statement is not None else []
@@ -389,7 +397,8 @@ def inline_defs(  # noqa: PLR0913 — the node's Context may be given rather tha
         ordered.append((module, IMPORT_LINE_RE.sub("", source).strip("\n")))
 
     for module in (*named, *defs_modules(content)):
-        visit(module, ())
+        if module not in skip:
+            visit(module, ())
     # F13-T12: the node's own Context, last, after the Defs it imports. It is where a declared
     # dependency's theorem lives (and, after a skeleton merges, a node's holes), so without it a
     # proof that uses one reads "Unknown identifier" on a checker that would otherwise pass it.
@@ -405,6 +414,22 @@ def inline_defs(  # noqa: PLR0913 — the node's Context may be given rather tha
         for dep in defs_modules(source):
             visit(dep, (own,))
         ordered.append((own, IMPORT_LINE_RE.sub("", source).strip("\n")))
+    inlined = {module for module, _ in ordered}
+    for module, text, used_id in used:
+        for dep in defs_modules(text):
+            visit(dep, (module,))
+        theirs = layout.node_module(used_id, "Context")
+        if theirs not in inlined and layout.imports_own_context(used_id, text):
+            theirs_raw = pending.optional_committed(
+                ctx, f"targets/{target_id}/nodes/{used_id}/Context.lean"
+            )
+            if theirs_raw is not None:
+                found = theirs_raw.decode("utf-8")
+                for dep in defs_modules(found):
+                    visit(dep, (theirs,))
+                ordered.append((theirs, IMPORT_LINE_RE.sub("", found).strip("\n")))
+                inlined.add(theirs)
+        ordered.append((module, IMPORT_LINE_RE.sub("", text).strip("\n")))
     return ordered
 
 
@@ -449,6 +474,8 @@ GATE_REFUSALS: frozenset[str] = frozenset(
         "admit-present",
         "sorry-reported",
         "import-unknown-node",
+        # F08-T26: a use line step 2 refuses, by the gate's own code (``opn_gate.uses``)
+        *usesmod.CODES,
     }
 )
 #: ``admit`` as a token in code, the way ``layout.mentions_sorry`` reads ``sorry``: Lean's
@@ -465,13 +492,22 @@ def lint(
     node_id: str | None = None,
     *,
     unknown_nodes: Sequence[str] = (),
+    reading: UseReading | None = None,
 ) -> list[dict[str, Any]]:
     """R4: where the gate would refuse what the checker accepts. Findings; in verify mode the
     ones in ``GATE_REFUSALS`` decide ``okay`` (F13-T25). ``unknown_nodes`` are the content's
-    node imports the graph cannot satisfy (``unknown_node_imports``)."""
+    node imports the graph cannot satisfy (``unknown_node_imports``).
+
+    F08-T26: ``reading`` is what ``read_uses`` made of the content's use lines. Where the
+    target's pinned gate reads them, the header is compared as step 2 compares it, with the use
+    lines taken out by the gate's own reading, and the first use step 2 would refuse is reported
+    by its code. Without it, a use line is ``imports-differ``, as before."""
     warnings: list[dict[str, Any]] = []
+    if reading is not None and reading.problem is not None:
+        warnings.append(usesmod.finding(reading.problem))
     if statement is not None:
-        expected, got = layout.imports_of(statement.text), layout.imports_of(content)
+        compared = reading.rest if reading is not None and reading.understood else content
+        expected, got = layout.imports_of(statement.text), layout.imports_of(compared)
         # F00-T10: the one header the gate takes besides the statement's own — its imports with
         # the node's own Context placed where ``layout.with_own_context`` puts it.
         allowed = (
@@ -2419,6 +2455,64 @@ async def checked(  # noqa: PLR0913 — the check, and the measurement that may 
     return answer, counted
 
 
+@dataclass(frozen=True)
+class UseReading:
+    """F08-T26: what a check makes of the content's use lines. ``rest`` is the content as step 2
+    compares it (the content itself where the target's gate does not read uses)."""
+
+    understood: bool
+    rest: str
+    problem: Any = None  # the first use step 2 would refuse (a ``Diagnostic``), or None
+    used: tuple[tuple[str, str, str], ...] = ()
+    skip: frozenset[str] = frozenset()
+
+    @property
+    def used_modules(self) -> tuple[str, ...]:
+        """The ``Nodes.«<id>».Proof`` modules inlined as signatures."""
+        return tuple(module for module, _, _ in self.used)
+
+
+def read_uses(ctx: Context, req: CheckRequest, statement: layout.Statement | None) -> UseReading:
+    """The content's uses as the target's pinned gate reads them (``uses``), in the proof modes
+    only: a witness or a statement declares none. No fetch at all for a text with no line of a
+    use's shape, or a target whose gate predates uses."""
+    plain = UseReading(False, req.content)
+    if (
+        statement is None
+        or req.mode in STATEMENT_MODES
+        or not usesmod.has_use_line(req.content)
+        or not usesmod.understood(ctx, req.target_id)
+    ):
+        return plain
+    found = usesmod.declared(statement, req.content, req.node_id)
+    rest = usesmod.without_uses(statement, req.content, req.node_id)
+    if not found:
+        return replace(plain, understood=True, rest=rest)
+    bad = usesmod.problem(ctx, req.target_id, req.node_id, statement, found)
+    skip = frozenset({str(bad.details["module"])}) if bad is not None else frozenset()
+    used = usesmod.used_sources(ctx, req.target_id, found, skip)
+    return UseReading(True, rest, bad, tuple(used), skip)
+
+
+def composed(
+    ctx: Context, req: CheckRequest, statement: layout.Statement | None, context: str | None
+) -> tuple[UseReading, list[tuple[str, str]]]:
+    """F08-T26: the content's uses as step 2 reads them, and what is inlined for the checker:
+    the definitions, the node's own Context and each used node's signature (``inline_defs``)."""
+    reading = read_uses(ctx, req, statement)
+    defs = inline_defs(
+        ctx,
+        req.target_id,
+        statement,
+        req.content,
+        req.node_id,
+        context=context,
+        used=reading.used,
+        skip=reading.skip,
+    )
+    return reading, defs
+
+
 def text_or_none(value: Any) -> str | None:
     return value if isinstance(value, str) else None
 
@@ -2446,15 +2540,15 @@ async def post_check(ctx: Context, request: Request) -> Response:
         if req.mode in NODE_MODES and statement is None:
             msg = f"{req.node_id}'s Statement.lean has no single sorry-bodied theorem to verify"
             raise api_error(409, "statement-unparsable", msg)
-        defs = inline_defs(ctx, req.target_id, statement, req.content, req.node_id, context=context)
+        reading, defs = composed(ctx, req, statement, context)
         text = forwarded_text(req.content, defs)
         # F13-T14: a witness is not a proof. It declares ``witness`` and its header is its own,
         # so the gate-gap lints (R4), which are about proofs, say nothing true of it.
-        unknown = unknown_node_imports(ctx, req.content, req.node_id)
+        unknown = unknown_node_imports(ctx, reading.rest, req.node_id)
         warnings = (
             []
             if req.mode in STATEMENT_MODES
-            else lint(req.content, statement, req.node_id, unknown_nodes=unknown)
+            else lint(req.content, statement, req.node_id, unknown_nodes=unknown, reading=reading)
         )
         warnings += superseded_warning(ctx, req.node_id)
         if req.mode == "verify" and req.node_id is not None:
@@ -2463,18 +2557,21 @@ async def post_check(ctx: Context, request: Request) -> Response:
             # imports its own Context since F08-T13, so an empty one ("dependencies: none")
             # set the warning off on every node, where it said nothing true.
             if any(
-                module == own and DECLARATION_RE.search(layout.strip_comments(source))
+                module in {own, *reading.used_modules}
+                and DECLARATION_RE.search(layout.strip_comments(source))
                 for module, source in defs
             ):
                 # F13-T12: a Context restates each dependency with a sorry body (the gate builds
                 # against the real proofs instead), and a verifier refuses any proof that leans on
-                # one, so its "no" here says nothing about the contributor's proof.
+                # one, so its "no" here says nothing about the contributor's proof. F08-T26: a
+                # used node's statement is inlined the same way, so the same is true of it.
                 warnings.append(
                     {
                         "code": "context-restated",
-                        "message": "this node's Context restates its dependencies with sorry "
-                        "bodies, so verify reports a proof that uses one as incomplete whatever "
-                        "its merit; use mode check for it, and the precheck for the verdict",
+                        "message": "this node's Context (or a used node's statement, F08-T26) "
+                        "restates what the proof uses with sorry bodies, so verify reports a "
+                        "proof that uses one as incomplete whatever its merit; use mode check "
+                        "for it, and the precheck for the verdict",
                     }
                 )
         try:

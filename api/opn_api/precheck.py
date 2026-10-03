@@ -535,6 +535,7 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
     """R1, R2, R3, R10. Authentication is decided by the node: the tutorial one is open (Q2)."""
     # Imported here: ``submissions`` imports this module, and owns the type-to-path rule.
     from opn_api import submissions  # noqa: PLC0415
+    from opn_api import uses as usesmod  # noqa: PLC0415 — uses reads this module's products
 
     fields, _ = await identitymod.body_fields(request, PRECHECK_FIELDS)
     node_id = fields.get("node_id")
@@ -573,6 +574,9 @@ async def post_precheck(ctx: Context, request: Request) -> Response:
         submissions.check_artifact_path(claim, bundle.files, artifact_type)
     # F07-R23: and so is a carried witness step 2 would refuse, whatever type was declared.
     carried = submissions.check_carried(claim, bundle.files)
+    # F08-R21 (T26): and a use line step 2 would refuse, by the gate's code, on a target whose
+    # pinned gate reads use lines; before the job exists, so nothing is dispatched.
+    usesmod.check_bundle(ctx, claim, bundle.files)
 
     if proposal is not None:
         # F06-T10: the proposal's branch lives on the graph, so the workflow checks out its head

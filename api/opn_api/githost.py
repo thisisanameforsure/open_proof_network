@@ -282,6 +282,12 @@ class GitHost(Protocol):
         never guessed)."""
         ...
 
+    def is_ancestor(self, repo: str, ancestor: str, commit: str) -> bool:
+        """Whether ``commit`` is ``ancestor`` or descends from it in ``repo`` (F08-T26: does a
+        target's pinned gate understand use lines). ``False`` when the host knows neither
+        commit; a ``GitHostError`` when it cannot be asked. Read-only."""
+        ...
+
     def push_branch(  # noqa: PLR0913 — one argument per part of the commit being made
         self,
         repo: str,
@@ -486,6 +492,33 @@ class HttpxGitHost:
         return sorted(
             str(e["name"]) for e in entries if isinstance(e, dict) and e.get("type") == "file"
         )
+
+    def is_ancestor(self, repo: str, ancestor: str, commit: str) -> bool:
+        """The compare API (``GET /repos/{repo}/compare/{ancestor}...{commit}``): ``identical``
+        or ``ahead`` means ``commit`` contains ``ancestor``. As the App where it is installed on
+        ``repo``; the network repository is public, so otherwise unauthenticated. One call per
+        pair for the life of the process: the caller caches it, since ancestry never changes."""
+        url = f"{GITHUB_API}/repos/{repo}/compare/{ancestor}...{commit}"
+        params = {"per_page": 1}  # the status is all that is read; the commit list is not
+        try:
+            http = self._api(repo)
+        except GitHostError:
+            http = httpx.Client(
+                timeout=TIMEOUT_S,
+                headers={"Accept": API_ACCEPT, "X-GitHub-Api-Version": API_VERSION},
+            )
+        with http:
+            try:
+                resp = http.get(url, params=params)
+            except httpx.HTTPError as exc:
+                msg = f"GET {_path(url)} failed: {type(exc).__name__}"
+                raise GitHostError(msg) from exc
+        if resp.status_code == 404:
+            return False
+        if resp.status_code != 200:
+            msg = f"GET {_path(url)} returned {resp.status_code}"
+            raise GitHostError(msg)
+        return _json(resp, "the commit comparison").get("status") in ("identical", "ahead")
 
     # --- as the GitHub App (F06-R3, R5) ---------------------------------------------------------
 
