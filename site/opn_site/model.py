@@ -53,6 +53,20 @@ class Prose:
     author: str | None = None
     model: str | None = None
     date: str | None = None
+    licence: str | None = None  # F18-R10: annex/v1 records one
+
+
+#: F18-T3 (R10): the front-matter keys each field is read from. Explainers write ``author`` and
+#: ``model``; ``annex/v1`` writes ``contributor`` and ``model_and_tooling`` (and a licence), and
+#: until 2026-10-03 every annex on the site read "author not recorded".
+PROSE_KEYS: dict[str, tuple[str, ...]] = {
+    "author": ("author", "contributor"),
+    "model": ("model", "model_and_tooling"),
+    "date": ("date",),
+    "licence": ("licence",),
+}
+#: YAML's spellings of nothing: ``model_and_tooling: null`` is no model, not one called "null".
+_YAML_NULLS = frozenset({"", "null", "~", "Null", "NULL"})
 
 
 @dataclass(frozen=True)
@@ -285,22 +299,28 @@ def _load_drift(target_dir: Path) -> tuple[watch.DriftRecord, ...]:
 
 
 def parse_prose(path: Path, root: Path) -> Prose:
-    """A text file with optional YAML-style front matter naming author, model and date."""
+    """A text file with optional YAML-style front matter naming author, model, date and licence
+    (``PROSE_KEYS``: an explainer's names and an annex's)."""
     text = path.read_text(encoding="utf-8")
-    meta: dict[str, str] = {}
+    raw: dict[str, str] = {}
     m = _FRONT_MATTER_RE.match(text)
     if m:
         for line in m.group("head").splitlines():
             key, sep, value = line.partition(":")
-            if sep and key.strip() in ("author", "model", "date"):
-                meta[key.strip()] = value.strip().strip("\"'")
+            if sep:
+                raw[key.strip()] = value.strip().strip("\"'")
         text = m.group("body")
+    meta = {
+        field: next((raw[k] for k in keys if raw.get(k, "") not in _YAML_NULLS), None)
+        for field, keys in PROSE_KEYS.items()
+    }
     return Prose(
         path=path.relative_to(root).as_posix(),
         text=text,
-        author=meta.get("author"),
-        model=meta.get("model"),
-        date=meta.get("date"),
+        author=meta["author"],
+        model=meta["model"],
+        date=meta["date"],
+        licence=meta["licence"],
     )
 
 

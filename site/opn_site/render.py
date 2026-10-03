@@ -2339,6 +2339,8 @@ class Renderer:
             by.append(f"drafted with {esc(prose_.model)}")
         if prose_.date:
             by.append(esc(prose_.date))
+        if prose_.licence:
+            by.append(f"licence {esc(prose_.licence)}")
         who = ", ".join(by) or "author not recorded"
         return (
             f'<div class="prose-block {esc(label)}"><p class="label">'

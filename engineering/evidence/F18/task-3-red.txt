@@ -1,0 +1,55 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+FF.                                                                      [100%]
+=================================== FAILURES ===================================
+__________________ test_the_contributor_and_licence_are_shown __________________
+
+page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+    def test_the_contributor_and_licence_are_shown(page: str) -> None:
+        labels = annex_labels(page)
+        assert len(labels) == 2, labels
+        assert all("author not recorded" not in label for label in labels), labels
+>       assert all("by h0924-1050-http" in label for label in labels), labels
+E       AssertionError: ['Untrusted: annex (D-31), 2026-09-24T12:35:46Z. Rendered from <a class="file" href="https://github.com/example/graph/...b/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>
+E         </footer>
+E         
+E         </body>
+E         </html>
+E         ']
+E       assert False
+E        +  where False = all(<generator object test_the_contributor_and_licence_are_shown.<locals>.<genexpr> at 0x10a35cad0>)
+
+site/tests/test_finding_annex_author.py:58: AssertionError
+------------------------------ Captured log setup ------------------------------
+WARNING  opn_gate.records:records.py:80 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-263/annex-author0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-263/annex-author0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:598 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:80 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-263/annex-author0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-263/annex-author0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+_____________ test_a_recorded_model_is_shown_and_a_null_one_is_not _____________
+
+page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+    def test_a_recorded_model_is_shown_and_a_null_one_is_not(page: str) -> None:
+        first, second = annex_labels(page)
+        assert "drafted with" not in first  # model_and_tooling: null is not a model called "null"
+>       assert "drafted with Claude Opus 5.5 via Claude Code" in second
+E       assert 'drafted with Claude Opus 5.5 via Claude Code' in 'Untrusted: annex (D-31), 2026-09-24T12:35:46Z. Rendered from <a class="file" href="https://github.com/example/graph/b...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+site/tests/test_finding_annex_author.py:65: AssertionError
+=========================== short test summary info ============================
+FAILED site/tests/test_finding_annex_author.py::test_the_contributor_and_licence_are_shown
+FAILED site/tests/test_finding_annex_author.py::test_a_recorded_model_is_shown_and_a_null_one_is_not
+2 failed, 1 passed in 0.54s
