@@ -275,7 +275,7 @@ MODIFIABLE_ROLES: tuple[Role, ...] = (
 SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "postmortem": ("postmortem/v1",),
     "precheck-record": ("precheck-record/v1",),
-    "annex": ("annex/v1",),
+    "annex": ("annex/v1", "annex/v2"),  # v2: a stepped outline (F18-R6, D-31 v3.26)
     "approach-record": ("approach-record/v1",),
     "node-status": ("node-status/v1",),
     "target-status": ("target-status/v1", "target-status/v2"),

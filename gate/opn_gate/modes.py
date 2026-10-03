@@ -71,6 +71,7 @@ from typing import Any, Literal
 
 import yaml
 
+from opn_gate import annex as annexmod
 from opn_gate import (
     config,
     defs,
@@ -1694,7 +1695,29 @@ def check_append_file(
             )
         )
     problems.extend(_check_schema(located, data))
+    if located.role == "annex" and not problems:
+        problems.extend(_check_step_ids(located, data))
     return problems
+
+
+def _check_step_ids(located: Located, data: bytes) -> list[Diagnostic]:
+    """F18-R6: a stepped annex names each step once, since a hole is matched to a step by its
+    name; JSON Schema cannot say that of a list of objects, so it is asked here."""
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    repeated = annexmod.duplicate_step_ids(doc)
+    if not repeated:
+        return []
+    return [
+        Diagnostic(
+            "append-invalid",
+            f"{located.path} names the step "
+            + ", ".join(repeated)
+            + " more than once; a stepped annex's step ids are unique (D-31 v3.26)",
+            {"path": located.path, "schema": doc.get("schema"), "duplicates": repeated},
+        )
+    ]
 
 
 def referenced_file(located: Located, stmt_ref: str) -> str | None:

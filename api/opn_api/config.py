@@ -88,6 +88,12 @@ Variables (prefix ``OPN_API_``):
     target whose ``gate-spec.json`` pins this commit or a descendant of it takes a proof with
     use lines, and the service then reads them as the gate does. Default empty: no target
     understands uses, and a use line is ``imports-differ`` everywhere, as before T26.
+``OPN_API_ANNEX_STEPS_FROM``
+    The network commit from which the gate takes a stepped annex (F18-R6, D-31 v3.26:
+    ``annex/v2``'s ``steps``), compared as ``OPN_API_USES_FROM`` is. ``POST /annexes`` writes
+    ``steps`` only for a target whose pin is this commit or a descendant of it, since an older
+    gate refuses an ``annex/v2`` append. Default empty: no target takes steps, and an annex
+    without them is written as ``annex/v1``, as before F18-T5.
 ``OPN_API_GITHUB_APP_ID`` / ``OPN_API_GITHUB_CLIENT_ID``
     The GitHub App's ids (not secret, but issued with the App, so they travel with its secrets).
 ``OPN_API_GITHUB_CLIENT_SECRET`` / ``OPN_API_GITHUB_PRIVATE_KEY``
@@ -111,6 +117,7 @@ DEFAULT_GRAPH_REPO = "thisisanameforsure/open_proof_network_graph"
 DEFAULT_GRAPH_BRANCH = "main"
 DEFAULT_NETWORK_REPO = "thisisanameforsure/open_proof_network"  # F08-T26
 DEFAULT_USES_FROM = ""  # F08-T26: no target understands uses until a commit is named
+DEFAULT_ANNEX_STEPS_FROM = ""  # F18-T5: no target takes a stepped annex until a commit is named
 DEFAULT_FRONTIER_MAX_STALE_S = 60
 DEFAULT_WRITES_PER_HOUR = 120
 DEFAULT_ACTIVE_CLAIMS = 20
@@ -173,6 +180,7 @@ class Settings:
     graph_branch: str = DEFAULT_GRAPH_BRANCH
     network_repo: str = DEFAULT_NETWORK_REPO
     uses_from: str = DEFAULT_USES_FROM
+    annex_steps_from: str = DEFAULT_ANNEX_STEPS_FROM
     frontier_max_stale_s: int = DEFAULT_FRONTIER_MAX_STALE_S
     writes_per_hour: int = DEFAULT_WRITES_PER_HOUR
     active_claims: int = DEFAULT_ACTIVE_CLAIMS
@@ -316,6 +324,7 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
         graph_branch=env.get("OPN_API_GRAPH_BRANCH", DEFAULT_GRAPH_BRANCH),
         network_repo=env.get("OPN_API_NETWORK_REPO", DEFAULT_NETWORK_REPO),
         uses_from=_commit(env, "OPN_API_USES_FROM"),
+        annex_steps_from=_commit(env, "OPN_API_ANNEX_STEPS_FROM"),
         frontier_max_stale_s=_int(
             env, "OPN_API_FRONTIER_MAX_STALE_S", DEFAULT_FRONTIER_MAX_STALE_S
         ),

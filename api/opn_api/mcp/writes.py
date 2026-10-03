@@ -142,7 +142,9 @@ async def submit_postmortem(call: Call, args: dict[str, Any]) -> dict[str, Any]:
 
 
 async def submit_informal_annex(call: Call, args: dict[str, Any]) -> dict[str, Any]:
-    body = present("submit_informal_annex", args, "node_id", "text", "licence", "model_and_tooling")
+    body = present(
+        "submit_informal_annex", args, "node_id", "text", "licence", "model_and_tooling", "steps"
+    )
     return await forward(call, "POST", "/annexes", body)
 
 
@@ -421,7 +423,10 @@ TOOLS: tuple[Tool, ...] = (
         "A partial's bundle may carry its holes' witnesses, each as attempts/<assembly name "
         "without .lean>.<n>.witness with a line `-- hole: <name>`: a hole whose witness the "
         "precheck checked is created with it and needs no propose_witness; one the precheck "
-        "did not check is refused 400 hole-witness-unchecked and nothing opens." + USES_NOTE,
+        "did not check is refused 400 hole-witness-unchecked and nothing opens. "
+        "A partial citing a stepped annex names each hole after one of its steps; a hole the "
+        "precheck named that is no step is refused 400 annex-step-missing and nothing opens."
+        + USES_NOTE,
         params(
             {
                 "node_id": ID_PARAM,
@@ -462,13 +467,26 @@ TOOLS: tuple[Tool, ...] = (
         "submit_informal_annex",
         "Attach a content-hashed informal argument to a node (D-31); untrusted data that earns "
         "nothing. The prose is licensed by its author at submission (D-23): `licence` is "
-        "required. Returns the hash a skeleton must cite.",
+        "required. Returns the hash a skeleton must cite. Optional `steps` names the outline's "
+        "steps (annex/v2, D-31 v3.26), each `{id, summary}`: a skeleton citing it must name "
+        "every hole after a step id, or the gate refuses it annex-step-missing.",
         params(
             {
                 "node_id": ID_PARAM,
                 "text": {"type": "string"},
                 "licence": {"enum": ["CC-BY-4.0", "CDLA-Permissive-2.0", "Apache-2.0"]},
                 "model_and_tooling": {"type": "string"},
+                "steps": {
+                    "type": "array",
+                    "description": "1 to 50 steps, each {id, summary}: id is the `have` name a "
+                    "skeleton's hole binds for the step (ASCII, ^[A-Za-z_][A-Za-z0-9_']*$, "
+                    "unique), summary one line of at most 300 characters",
+                    "items": {
+                        "type": "object",
+                        "properties": {"id": {"type": "string"}, "summary": {"type": "string"}},
+                        "required": ["id", "summary"],
+                    },
+                },
             },
             ("node_id", "text", "licence"),
         ),

@@ -30,7 +30,8 @@ from opn_api import identity as identitymod
 from opn_api import uses as usesmod
 from opn_api.app import ApiError, host_budget_refusal
 from opn_api.githost import Author, GitHostError, PullRequest, RateLimitError
-from opn_gate import bounce, carried, submission
+from opn_gate import annex as annexmod
+from opn_gate import bounce, carried, postmerge, submission
 from opn_gate import paths as gate_paths
 from opn_gate.paths import ALTERNATE_SUFFIX, Claim
 from opn_gate.postmerge import PARTIAL_SUFFIX
@@ -345,6 +346,48 @@ def check_witnesses_checked(job: precheck.Job, witnesses: list[carried.Carried])
         )
 
 
+def check_annex_steps(
+    ctx: Context, claim: Claim, files: Mapping[str, str], job: precheck.Job
+) -> None:
+    """F18-R6 (D-31 v3.26): a partial citing a stepped annex names every hole after a step, by
+    the gate's own check (``opn_gate.annex.check_steps``), before anything is pushed. The hole
+    names are the extractor's, which only a run knows, so they are read from the precheck's
+    result (``holes[].name``, F06-T9) and never guessed from the text: a result that names no
+    holes refuses nothing here, and the gate decides. A job run on a gate that checks steps has
+    already failed on such a bundle (``precheck-not-passing``); this is for a job run on a gate
+    that does not, and gives the refusal its own name. The annex is read from the bundle or from
+    ``main`` (its name is its hash, so any commit holding it holds the same text); an unreadable
+    host refuses nothing (C7)."""
+    holes = (job.result or {}).get("holes")
+    if not isinstance(holes, list):
+        return
+    names = [
+        str(h["name"]) for h in holes if isinstance(h, dict) and isinstance(h.get("name"), str)
+    ]
+    assemblies = roles_of(files).get("partial") or []
+    if len(assemblies) != 1:
+        return
+    try:
+        digest = postmerge.annex_citation(files[assemblies[0]])
+    except postmerge.MalformedCitationError:
+        return
+    if digest is None:
+        return
+    path = f"{claim.node_prefix}{annexmod.ANNEX_DIR}/{digest}.md"
+    text = files.get(path)
+    if text is None:
+        try:
+            raw = pending.optional_committed(ctx, path)
+        except (GitHostError, ApiError):
+            return
+        if raw is None:
+            return
+        text = raw.decode("utf-8", "replace")
+    problem = annexmod.check_steps(annexmod.steps_of(text), names, annex=digest)
+    if problem is not None:
+        raise ApiError(400, problem.code, problem.message, details=dict(problem.details))
+
+
 #: F05-T8: the fields ``POST /submissions`` reads; any other top-level key is refused.
 SUBMISSION_FIELDS: tuple[str, ...] = (
     "node_id",
@@ -401,6 +444,7 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
     job = bound_job(ctx, identity, fields, bundle.digest)
     check_proposal_statement(job, facts)
     check_witnesses_checked(job, witnesses)  # F07-R23: nothing opens the pinned gate did not check
+    check_annex_steps(ctx, claim, bundle.files, job)  # F18-R6: the holes the run named
     neighbours = on_the_node(
         ctx, node_id, artifact_type, proved=proved, tutorial=bool(facts["tutorial"])
     )

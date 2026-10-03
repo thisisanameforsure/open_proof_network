@@ -74,7 +74,15 @@ def understood(ctx: Context, target_id: str) -> bool:
     """Whether ``target_id``'s pinned gate reads use lines (Q39 (a)): its ``network_commit`` is
     ``uses_from`` or descends from it. No host call when ``uses_from`` is unset or equal to the
     pin; one per new pin otherwise, kept on the app's own context."""
-    uses_from = ctx.settings.uses_from
+    return pinned_from(ctx, target_id, ctx.settings.uses_from, what="uses")
+
+
+def pinned_from(ctx: Context, target_id: str, since: str, *, what: str) -> bool:
+    """Whether ``target_id``'s pinned ``network_commit`` is ``since`` or descends from it: the
+    question a per-target capability is decided by (Q39 (a); F18-T5 asks it of a stepped annex).
+    ``False`` when ``since`` is unset, the pin is unreadable or the host cannot say (C7: the
+    answer that opens nothing the pinned gate might refuse)."""
+    uses_from = since
     if not uses_from:
         return False
     spec = json.loads(frontier.committed(ctx, f"targets/{target_id}/gate-spec.json"))
@@ -89,7 +97,7 @@ def understood(ctx: Context, target_id: str) -> bool:
             ctx.ancestry[key] = ctx.githost.is_ancestor(ctx.settings.network_repo, uses_from, pin)
         except GitHostError as exc:
             # C7: not cached, so the next call asks again; meanwhile the answer that opens nothing
-            log.warning("%s: whether %s understands uses is unknown: %s", target_id, pin, exc)
+            log.warning("%s: whether %s understands %s is unknown: %s", target_id, pin, what, exc)
             return False
     return ctx.ancestry[key]
 

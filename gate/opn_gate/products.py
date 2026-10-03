@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from opn_gate import annex as annexmod
 from opn_gate import (
     context,
     defs,
@@ -410,6 +411,37 @@ def decompositions_of(tg: TargetGraph, node_id: str) -> list[dict[str, Any]]:
             holes.append({"name": hole, "node": found})
         out.append({"partial": partial.path, "annex": annex, "holes": holes})
     return out
+
+
+def outline_of(tg: TargetGraph, node_id: str) -> list[dict[str, Any]] | None:
+    """F18-R7 (D-31 v3.26): the outline the node's most recent stepped decomposition followed.
+
+    One list, for the node's most recent decomposition (the last in ``decompositions_of``'s
+    record order) whose cited annex names its steps: each step in the annex's order, with the
+    hole child the skeleton named after it and that node's derived status, or ``None`` for both
+    when the assembly carries the step itself (no hole). ``None`` when no decomposition of the
+    node cites a stepped annex. A summary is the annex author's text, carried as data and acted
+    on by nothing (C9); the page escapes it."""
+    node = tg.nodes[node_id]
+    for d in reversed(decompositions_of(tg, node_id)):
+        digest = d["annex"]
+        steps = annexmod.steps_at(node.path, digest) if digest else None
+        if steps is None:
+            continue
+        by_name = {h["name"]: h["node"] for h in d["holes"]}
+        out: list[dict[str, Any]] = []
+        for step in steps:
+            child = by_name.get(step.id)
+            out.append(
+                {
+                    "step": step.id,
+                    "summary": step.summary,
+                    "node": child,
+                    "status": tg.statuses.get(child) if child is not None else None,
+                }
+            )
+        return out
+    return None
 
 
 def target_proofs(tg: TargetGraph) -> list[dict[str, Any]]:
