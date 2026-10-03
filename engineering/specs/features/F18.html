@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F18 — Proof structure on the record</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F18</nav>
+<h1>F18 — Proof structure on the record</h1>
+<p class="subtitle">Say, on the graph and on the page, which nodes each proof of a target actually
+rests on, which proofs a target has, what a crux statement was proposed for, and which outline a
+decomposition followed.</p>
+
+<h2>1. Summary</h2>
+<p>The owner, reading erdos-1050's problem page on 2026-10-03, could not tell which branches make
+the proof, which nodes it does not need, how the six <code>spec-*</code> nodes relate to the
+problem, or where the natural-language outlines are. The record answers three of the four and
+publishes none of them. The proof that stands is root &rarr; <code>erdos-1050--h1-v2</code> &rarr;
+<code>--h3</code>; <code>h1-v2</code> declares four holes and its proof term names one, but the page
+draws <em>declared</em> dependencies because step 8's footprint is computed and discarded (F08-Q38).
+A target can be proved several ways &mdash; the root's proof, its alternates (D-25 v3.13), and each
+proved <code>resolves</code> variant (D-30) &mdash; and no product lists them. The specs are crux
+statements (D-14 mechanism 2) whose purpose lives only in their doc comments. Outlines are annexes
+(D-31); the skeleton names the one it followed, and the link is never kept.</p>
+<p>F18 builds on F08-T26 and F08-T27 (the service takes a use line; the products say what a proof
+used) and adds: the target's proofs, each with its closure by use; a site that draws one proof at a
+time; the skeleton&ndash;annex link on the graph; stepped annexes whose steps a skeleton's holes must
+name (decisions v3.26, D-31); and a <code>proposed-for</code> record that points a crux at the node it
+serves (v3.26, D-14). It changes no verdict: every new field is derived from the tree or from a
+signed attestation.</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a mathematician reading a resolved target, I want to see the one tree that proves it, and
+    the nodes it did not need, so that I can read the argument rather than the history.</li>
+  <li>As a reader of a target with several proofs, I want to switch between them, so that I can see
+    Euclid's route and each variant's route on their own.</li>
+  <li>As a prover who proposes a crux, I want to say which node it is for, and to have a proof that
+    uses it shown as using it, so that the lemma is found and credited.</li>
+  <li>As a contributor reading an outline, I want to see which skeleton followed it and how far each
+    step has got, so that I know what is left.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> <code>graph/v4</code> fields <code>target_proofs</code>,
+<code>decompositions</code>, <code>outline</code>, <code>proposed_for</code> (beside F08-T27's
+<code>uses</code> and <code>proofs</code>); the proof selector and closure drawing; annex links and
+the outline checklist on the problem page; <code>annex/v2</code> and its step-2 check;
+<code>proposed-for/v1</code>, its path rule and its service field; the footprint backfill workflow;
+the re-pin, re-render and record backfill on the live graph; the guide and Docs page.</p>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>Changing target status: a target is still <code>resolved</code> exactly when its root is
+    proved (F03). A proved <code>resolves</code> variant is listed as a proof; it does not resolve.</li>
+  <li>Retrofitting step ids into existing annexes: annexes are content-hashed and immutable (D-31);
+    a <code>v1</code> annex is linked, never checklisted.</li>
+  <li>Rewiring merged proofs to use existing cruxes: a merged <code>Proof.lean</code> is never
+    modified (D-3 v3.13); reuse appears through alternates and later proofs.</li>
+  <li>Any ranking of proofs: the order is the record's order (D-25 forbids ranking).</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F18-R1</td><td>The system shall publish, for each target, <code>target_proofs</code>: one entry
+    per merged complete proof of the root (its <code>Proof.lean</code>, then its alternates by merge)
+    and of each proved <code>resolves</code> variant (likewise), each entry naming its node, kind,
+    artifact hash, merge commit, submitter and <code>closure</code>.</td></tr>
+  <tr><td>F18-R2</td><td>The <code>closure</code> of a proof shall be the node ids reached from it by
+    following, at each node, the <code>used</code> set (F08-T27) of that node's first merged proof;
+    where a node's <code>used</code> is unmeasured the entry shall say so
+    (<code>unmeasured</code>) and the closure shall follow its declared dependencies, never silently.</td></tr>
+  <tr><td>F18-R3</td><td>When a target has at least one proof, the problem page shall offer one
+    selector entry per <code>target_proofs</code> entry, default the first, mark every node and edge of
+    the selected closure, mark every other node "not needed by this proof", and name in the key every
+    state the drawing can show.</td></tr>
+  <tr><td>F18-R4</td><td>The system shall publish, for each node with a merged partial,
+    <code>decompositions</code>: the partial's path, the annex it cites (or null) and each hole's name
+    and child node, read from the tree and the partial's attestation.</td></tr>
+  <tr><td>F18-R5</td><td>The problem page shall show each node's annexes, attached to the node, each
+    marked as followed by the skeletons that cite it or as not followed, always as untrusted data
+    (D-28, D-31).</td></tr>
+  <tr><td>F18-R6</td><td><em>Waits on decisions v3.26 (Q1).</em> When a partial cites an
+    <code>annex/v2</code> annex, step 2 shall refuse it (<code>annex-step-missing</code>) unless every
+    hole name is a step id of that annex; an <code>annex/v1</code> citation shall be unchecked.</td></tr>
+  <tr><td>F18-R7</td><td><em>Waits on v3.26 (Q1).</em> For a decomposition citing a stepped annex the
+    products shall publish <code>outline</code> (each step, its node or null, the node's status) and the
+    page shall show it as a checklist with the limit stated.</td></tr>
+  <tr><td>F18-R8</td><td><em>Waits on v3.26 (Q2).</em> The system shall accept, from a node's proposer
+    or a curator, an append-only <code>proposed-for/v1</code> record naming one other live node of the
+    same target, refuse it from anyone else, and publish the latest as <code>proposed_for</code>.</td></tr>
+  <tr><td>F18-R9</td><td><em>Waits on v3.26 (Q2).</em> The page shall draw a crux's
+    <code>proposed_for</code> as a dashed link, and, once a merged proof uses the crux, the use edge
+    instead.</td></tr>
+  <tr><td>F18-R10</td><td>Annex prose on the site shall carry its recorded contributor, drafting
+    model and licence (<code>annex/v1</code> field names).</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F18-AC1</td><td>Given erdos-1050's shape (a parent declaring four holes, its proof using one,
+    one hole circular and open), when the products render, then the root's closure is exactly root,
+    parent, used hole.</td><td><code>gate/tests/test_target_proofs.py::test_closure_follows_use_not_declaration</code></td></tr>
+  <tr><td>F18-AC2</td><td>Given euclid-primes' shape (a skeleton root and three proved resolves
+    variants), when the products render, then there are four entries, root first, variants by
+    merge.</td><td><code>gate/tests/test_target_proofs.py::test_every_way_the_target_is_proved_is_listed_in_record_order</code></td></tr>
+  <tr><td>F18-AC3</td><td>Given a proved node whose attestation and cache both lack a footprint, when the
+    products render, then its entry says unmeasured and its closure follows the declared deps.</td>
+    <td><code>gate/tests/test_target_proofs.py::test_an_unmeasured_proof_says_so</code></td></tr>
+  <tr><td>F18-AC4</td><td>Given the erdos-1050 shape, when the page renders, then one selector entry,
+    three nodes on the proof, three not needed; a euclid shape gives four entries; an open target
+    none.</td><td><code>site/tests/test_proof_selector.py</code></td></tr>
+  <tr><td>F18-AC5</td><td>Given every status, cause and proof state the renderer can emit, then each has
+    a key entry.</td><td><code>site/tests/test_finding_circular_key.py::test_every_output_class_has_a_key_entry</code></td></tr>
+  <tr><td>F18-AC6</td><td>Given a node with two annexes, one cited by a merged skeleton, when the products
+    and page render, then the decomposition names the cited annex and its holes, and the page marks one
+    followed and one not.</td><td><code>gate/tests/test_decompositions.py</code>, <code>site/tests/test_outline_links.py</code></td></tr>
+  <tr><td>F18-AC7</td><td>Given the hole writer's header for a fresh and for a D-8-revised hole, when it
+    is read back, then the name is recovered.</td><td><code>gate/tests/test_decompositions.py::test_hole_header_round_trips</code></td></tr>
+  <tr><td>F18-AC8</td><td>Given a v2 annex and a skeleton whose holes match, missing one, or citing a v1
+    annex, then pass, <code>annex-step-missing</code>, pass.</td><td><code>gate/tests/test_annex_steps.py</code></td></tr>
+  <tr><td>F18-AC9</td><td>Given a proposed-for record by the proposer, a curator, and a third party, and
+    one naming a superseded or foreign node, then two pass and the rest are refused by code.</td>
+    <td><code>gate/tests/test_proposed_for.py</code>, <code>api/tests/test_proposals_for.py</code></td></tr>
+  <tr><td>F18-AC10</td><td>Given a live annex's front matter, when the site renders it, then the
+    contributor and model are shown.</td><td><code>site/tests/test_finding_annex_author.py</code></td></tr>
+  <tr><td>F18-AC11</td><td>Given the live graph after the re-pin and re-render, then erdos-1050's first
+    proof's closure is <code>{erdos-1050, erdos-1050--h1-v2, erdos-1050--h1-v2--h3}</code> and the
+    screenshots show it.</td><td><code>engineering/evidence/F18/task-8-live.txt</code> (network tier)</td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li>No new work in the post-merge job beyond reading the attestation it already has; footprints of
+    merges before <code>attestation/v6</code> are computed once, by the backfill, never by the
+    products.</li>
+  <li>The page stays within 390 px without horizontal page scroll; new SVG labels fit their boxes
+    (measured, not eyeballed).</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li>Annex prose and proposed-for notes are contributor text: served only under the untrusted-data
+    demarcation (C9, D-28).</li>
+  <li>The backfill workflow runs merged Lean only inside the pinned gate image's sandbox (C9, D-4
+    step 3) and is granted no secret; the curator commits its output by hand.</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>F08</strong> (required): T26 (uses through the service), T27 (<code>attestation/v6</code>
+    footprint, <code>graph/v4</code> <code>uses</code> and <code>proofs</code>).</li>
+  <li><strong>F03, F04, F07</strong>: the products, the page, the partial and annex machinery.</li>
+  <li><strong>Packages:</strong> none. Screenshots use Playwright through <code>uv run --with</code>,
+    an evidence tool, not a dependency of any shipped package.</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F18-Q1</td><td><strong>Proposed decisions v3.26, D-31 (unapproved wording, not applied):</strong>
+    &ldquo;v3.26 &mdash; stepped outlines. An annex may name its steps, each with an identifier and a
+    one-line summary. A skeleton that cites a stepped annex names each hole after one of its steps,
+    and the gate refuses one that does not; a step with no hole is carried by the assembly. A matching
+    name shows the decomposition followed the outline's structure; it says nothing about whether the
+    Lean means what the prose says, which only the kernel and a reader can answer.&rdquo; The owner chose
+    this stage on 2026-10-03; the wording is his to approve.</td></tr>
+  <tr><td>F18-Q2</td><td><strong>Proposed v3.26, D-14 and D-3 (unapproved):</strong> &ldquo;v3.26 &mdash;
+    proposed for. A crux statement may say which node of its target it was proposed for, in an
+    append-only <code>proposed-for/</code> record on the crux, written by its proposer or a curator;
+    the latest record is the one shown. It is a pointer, not a dependency: it changes no status and no
+    frontier entry, and once a merged proof uses the crux (D-12 v3.25) the use is shown instead.&rdquo;
+    D-3's layout gains the <code>proposed-for/</code> line. The owner chose the field on 2026-10-03.</td></tr>
+  <tr><td>F18-Q3</td><td><strong>Proposed v3.26, D-25 (note):</strong> &ldquo;v3.26: the products list
+    every way a target is proved &mdash; the root's proof, its alternates, and each proved
+    <code>resolves</code> variant's proofs &mdash; each with the nodes its proof term rests on, in the
+    record's order; the list ranks nothing.&rdquo;</td></tr>
+  <tr><td>F18-Q4</td><td><strong><code>graph/v4</code> is edited on this branch until it is seeded.</strong>
+    D-34 forbids editing a released version; <code>v4</code> is first written by F08-T27 and gains F18's
+    fields in later commits before any graph carries it. Its <code>HASHES</code> line is regenerated with
+    each edit; once the re-pin seeds it, it is frozen like every other.</td></tr>
+  <tr><td>F18-Q5</td><td><strong>The closure follows each node's <em>first</em> proof.</strong> A node with
+    alternates would otherwise multiply the target's proofs combinatorially; a node's alternates are
+    listed on its panel, and an alternate of the root or of a resolves variant is its own entry.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> spec · <strong>Tasks:</strong> T1&ndash;T9 todo</div>
+
+<h2>Tasks</h2>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F18-T1</td><td><strong>The target's proofs, each with its closure by use (R1, R2).</strong></td>
+    <td><code>gate/opn_gate/products.py</code>, <code>gate/schemas/graph/v4.json</code>, <code>gate/tests/test_target_proofs.py</code></td>
+    <td>F08-T27</td><td><code>uv run pytest gate/tests/test_target_proofs.py</code></td></tr>
+  <tr><td>F18-T2</td><td><strong>The page draws one proof at a time (R3).</strong> Selector, closure classes,
+    edge styles, key, panel line; the key guard over output classes.</td>
+    <td><code>site/opn_site/{render,model,dag}.py</code>, <code>templates/target.html</code>, <code>static/problem.js</code>, <code>static/site.css</code></td>
+    <td>T1</td><td><code>uv run pytest site/tests/test_proof_selector.py site/tests/test_finding_circular_key.py</code></td></tr>
+  <tr><td>F18-T3</td><td><strong>Annex attribution on the site (R10).</strong></td>
+    <td><code>site/opn_site/model.py</code>, <code>site/tests/test_finding_annex_author.py</code></td>
+    <td>&mdash;</td><td><code>uv run pytest site/tests/test_finding_annex_author.py</code></td></tr>
+  <tr><td>F18-T4</td><td><strong>Decompositions and annex links (R4, R5).</strong></td>
+    <td><code>gate/opn_gate/products.py</code>, <code>postmerge.py</code>, <code>site/opn_site/render.py</code>, tests</td>
+    <td>T1</td><td><code>uv run pytest gate/tests/test_decompositions.py site/tests/test_outline_links.py</code></td></tr>
+  <tr><td>F18-T5</td><td><strong>Stepped annexes (R6, R7).</strong> <code>annex/v2</code>, step 2, the
+    service's annex route and pre-flight, the outline product and checklist.</td>
+    <td><code>gate/schemas/annex/v2.json</code>, <code>gate/opn_gate/steps/paths_step.py</code>, <code>api/opn_api/</code>, site</td>
+    <td>T4, Q1</td><td><code>uv run pytest gate/tests/test_annex_steps.py</code></td></tr>
+  <tr><td>F18-T6</td><td><strong>Proposed for (R8, R9).</strong></td>
+    <td><code>gate/schemas/proposed-for/v1.json</code>, <code>gate/opn_gate/{modes,paths}.py</code>, <code>api/opn_api/proposals.py</code>, MCP, site</td>
+    <td>T1, Q2</td><td><code>uv run pytest gate/tests/test_proposed_for.py api/tests/test_proposals_for.py</code></td></tr>
+  <tr><td>F18-T7</td><td><strong>The footprint backfill workflow.</strong> <code>workflow_dispatch</code>, graph at a
+    named sha, <code>opn-gate footprints</code> per target in the pinned image, caches uploaded.</td>
+    <td><code>.github/workflows/footprint-backfill.yml</code></td>
+    <td>F08-T27</td><td>a dispatched run on the live graph, run id in the evidence</td></tr>
+  <tr><td>F18-T8</td><td><strong>Live: re-pin, backfill, re-render, records.</strong> All 27 targets; the
+    caches and the products as one curator commit; <code>proposed-for</code> records for existing cruxes;
+    the declared-against-used report; site deploy; screenshots.</td>
+    <td><code>../open_proof_network_graph/targets/*/gate-spec.json</code>, products, records</td>
+    <td>T1&ndash;T7</td><td><code>engineering/evidence/F18/task-8-live.txt</code></td></tr>
+  <tr><td>F18-T9</td><td><strong>The guide and the Docs page.</strong> Uses, proposed-for, stepped annexes,
+    how to read a target's proofs; every new block run by the walkthrough.</td>
+    <td><code>gate/agents/AGENTS.md</code>, <code>site/docs/</code></td>
+    <td>T2&ndash;T6</td><td><code>uv run pytest gate/tests/test_walkthrough.py site/tests</code></td></tr>
+</table>
+
+<footer>Open Proof Network · F18 spec v0 · 2026-10-03 · from the owner's reading of erdos-1050's
+problem page and his rulings of the same day</footer>
+</body>
+</html>
