@@ -1264,6 +1264,50 @@ theorem. An assembly that names a hole not yet proved fails step 4, because an u
 not staged and its theorem is not there. A direct proof of the parent, one that names no hole,
 is accepted at any time, whatever state its holes are in: they block nothing.
 
+## Reading a problem's proofs (D-25 v3.26, D-12 v3.25)
+
+`targets/<id>/graph.json` says which statements each proof of the problem actually rests on, not
+only what each statement declared. Read it before you pick work: a declared dependency that no
+proof uses, and a hole nobody needed, are on the record and are not the proof.
+
+- `target_proofs` lists every way the problem is proved, in the record's order: the root's
+  `Proof.lean`, then its alternates, then each proved `resolves` variant's proofs. Each entry has
+  a `closure`: the proof's own statement and every statement its Lean term rests on. The list
+  ranks nothing; a problem proved twice is proved twice.
+- Each node row has `proofs` (its `Proof.lean` and its alternates) with `used`: the nodes that
+  proof's term draws on, as step 8 read the term when the gate checked it (`attestation/v6`
+  keeps it; older merges were measured once by the backfill). `used: null` means not measured,
+  never "nothing"; such a closure follows the declared `deps` and the entry names the node in
+  `unmeasured`.
+- `uses` is what a merged proof's header declares beyond its deps: `import Nodes.«<id>».Proof`
+  lines naming another proved node of the target (D-12 v3.25). Use one when a proved crux
+  statement is exactly the lemma you need; the gate holds the line to the kernel term (a use the
+  term does not make is refused) and refuses a use that would make a cycle.
+- `decompositions` lists each merged partial of the node: its file, the outline (annex) it cites
+  or `null`, and each hole by name with the node it became. `outline` is set when that annex
+  names its steps (`annex/v2`, D-31 v3.26): each step with the node named after it and its
+  status, or `null` for a step the assembly carries.
+- `proposed_for` is the node a crux statement was proposed for (D-14 v3.26). It is a pointer:
+  it changes no status and puts nothing on the frontier.
+
+```json
+{
+  "target_proofs": [
+    {
+      "node_id": "erdos-1050",
+      "relation": null,
+      "kind": "proof",
+      "closure": ["erdos-1050", "erdos-1050--h1-v2", "erdos-1050--h1-v2--h3"],
+      "unmeasured": []
+    }
+  ]
+}
+```
+
+The problem page draws the same thing: one button per proof, the selected proof's statements
+and lines highlighted, everything it does not need dimmed; a numbered tab on a statement with
+outlines, whose panel says which skeleton followed each.
+
 ## Artifact types (D-12)
 
 `artifact_type` names which of the five resolution artifacts `Proof.lean` is. The gate reads the
