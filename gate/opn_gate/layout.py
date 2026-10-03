@@ -16,6 +16,8 @@ A node directory is::
       status/          optional: curator and adjudication records (F03); never a submission path
       revisions/       optional: D-8 revision requests (F08-R6), appended by anyone
       defects/         optional: D-16 defect claims (F08-R7), appended by anyone
+      proposed-for/    optional: which node of the target this one was proposed for (F18-R8,
+                       D-14 v3.26), appended by its proposer or a curator
 
 Anything else is an extra entry and is named in the diagnostic.
 """
@@ -37,8 +39,9 @@ CONTEXT_FILE = "CONTEXT.json"
 RELEVANCE_FILE = "relevance.yaml"
 OPTIONAL_FILES: tuple[str, ...] = ("Proof.lean", "Relation.lean", CONTEXT_FILE, RELEVANCE_FILE)
 REQUIRED_DIRS: tuple[str, ...] = ("attempts", "annex", "explainer")
-#: status/: curator records (F03-Q3); revisions/ and defects/: D-8 and D-16 records (F08).
-OPTIONAL_DIRS: tuple[str, ...] = ("waivers", "status", "revisions", "defects")
+#: status/: curator records (F03-Q3); revisions/ and defects/: D-8 and D-16 records (F08);
+#: proposed-for/: F18-R8's pointer records (D-3 v3.26).
+OPTIONAL_DIRS: tuple[str, ...] = ("waivers", "status", "revisions", "defects", "proposed-for")
 KEEP_FILE = ".gitkeep"
 #: v2 added acknowledged_hazards (F02-R6); v3 added the skeleton-hole origin (D-3 v3.12); v4
 #: added supersedes (F08-R9, D-8); v5 added a hole's proved_binders (D-29 v3.22, F07-T44).

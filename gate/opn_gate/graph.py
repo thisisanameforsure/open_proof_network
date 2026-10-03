@@ -18,7 +18,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from opn_gate import config, layout, paths, records, schemas
+from opn_gate import config, layout, paths, proposed_for, records, schemas
 from opn_gate.bounce import TIMESTAMP_FORMAT
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.records import StatusRecord
@@ -145,6 +145,11 @@ class NodeFacts:
     #: order their files sort, each with what its term used. Empty for a node with no merged
     #: proof, and for one whose merged artifact is not a proof (a counterexample, a certificate).
     proofs: tuple[ProofRecord, ...] = ()
+    #: F18-R8 (D-14 v3.26): the node this one was proposed for, from its latest
+    #: ``proposed-for/`` record, read through its revision chain as a dep is (D-8 v3.18): a
+    #: pointer at a node later superseded points at its successor, and no record is rewritten.
+    #: A pointer, not a dependency: no status, frontier entry or dep is derived from it.
+    proposed_for: str | None = None
 
     @property
     def rests_on(self) -> tuple[str, ...]:
@@ -423,6 +428,7 @@ def load_nodes(
             witness_stub=witness_is_stub(node_dir),
             supersedes=_optional_str(loaded.meta.get("supersedes")),
             uses=layout.merged_uses(node_dir),
+            proposed_for=proposed_for_of(nodes_dir, node_dir),
             circular=claims[0][0] if claims else None,
             circular_claims=claims,
             proofs=(
@@ -447,6 +453,17 @@ def load_nodes(
         if holes:
             facts[node_id] = replace(node, holes=holes)
     return facts
+
+
+def proposed_for_of(nodes_dir: Path, node_dir: Path) -> str | None:
+    """F18-R8: the node ``node_dir``'s latest ``proposed-for/`` record names, as it is *now* —
+    the end of that node's revision chain (``current_id``), so a pointer written before its node
+    was revised shows the revision, the way a dependency does (D-8 v3.18). ``None`` without a
+    valid record."""
+    doc = proposed_for.latest(node_dir)
+    if doc is None:
+        return None
+    return current_id(nodes_dir, str(doc["for"]))
 
 
 def is_hole_of(parent: str, node_id: str, origin: str) -> bool:

@@ -216,6 +216,7 @@ Role = Literal[
     "steward",  # targets/<id>/stewards/<n>.yaml: a signed commitment or step-down (F15-R1)
     "policy",  # policy.json at the graph root: the steward rule's switch (F15-R3, Q2)
     "writeup",  # targets/<id>/writeup/<n>.yaml: a signed paper or note record (F15-R6)
+    "proposed-for",  # nodes/<id>/proposed-for/<ts>-<pseudonym>.yaml: a pointer (F18-R8, D-14)
 ]
 
 #: Roles that claim nothing and merge on schema and path checks alone (F07-R9).
@@ -291,6 +292,7 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "policy": ("policy/v1",),
     "explainer-signature": ("explainer-signature/v1",),
     "writeup": ("writeup/v1",),
+    "proposed-for": ("proposed-for/v1",),
 }
 
 #: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers).
@@ -317,6 +319,9 @@ RECORD_DIRS: dict[str, Role] = {
     "status/": "node-status",
     "revisions/": "revision-request",
     "defects/": "defect-claim",
+    # F18-R8 (D-14 v3.26): which node of the target this one was proposed for. Its own role and
+    # its own mode, never an append: only the proposer or a curator writes one (F18-T6).
+    "proposed-for/": "proposed-for",
 }
 
 _NODE_PATH_RE = re.compile(r"^targets/(?P<target>[^/]+)/nodes/(?P<node>[^/]+)/(?P<rest>.+)$")

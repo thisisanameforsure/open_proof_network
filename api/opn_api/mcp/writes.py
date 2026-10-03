@@ -172,6 +172,7 @@ async def propose_speculative_node(call: Call, args: dict[str, Any]) -> dict[str
         "model",
         "acknowledged_hazards",
         "require_hazards_preflight",
+        "for",
     )
     return await forward(call, "POST", "/proposals/speculative", body)
 
@@ -232,6 +233,8 @@ USES_NOTE = (
 )
 DEPS = {"type": "array", "items": ID_PARAM, "description": "node ids the statement depends on"}
 MODEL = {"type": "string", "description": "the model or tooling that produced the statement"}
+#: F18-R8 (D-14 v3.26): the node of the target a crux is proposed for.
+FOR = {**ID_PARAM, "description": "the node of the same target this crux is proposed for"}
 #: F08-T14: META.yaml's own shape (F02-R4), so a statement that carries an intended step-6 finding
 #: can be proposed at all.
 HAZARDS = {
@@ -558,7 +561,11 @@ TOOLS: tuple[Tool, ...] = (
         "inconclusive or unavailable (clear: no findings; acknowledged: every finding was "
         "in `acknowledged_hazards`). With `require_hazards_preflight: true`, an inconclusive "
         "or unavailable hazard pre-flight is refused 503 hazards-preflight-inconclusive and "
-        "nothing opens; without it the pull request opens and step 6 decides.",
+        "nothing opens; without it the pull request opens and step 6 decides. "
+        "`for` names the node of the same target the crux is proposed for, written as the new "
+        "node's proposed-for record (D-14 v3.26): a pointer, not a dependency; an unknown, "
+        "superseded or self-naming `for` is refused 400 proposed-for-unknown-node, "
+        "proposed-for-superseded (naming the successor) or proposed-for-self, and nothing opens.",
         params(
             {
                 "target_id": ID_PARAM,
@@ -568,6 +575,7 @@ TOOLS: tuple[Tool, ...] = (
                 "model": MODEL,
                 "acknowledged_hazards": HAZARDS,
                 "require_hazards_preflight": REQUIRE_HAZARDS,
+                "for": FOR,
             },
             ("target_id", "stmt", "witness"),
         ),

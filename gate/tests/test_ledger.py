@@ -348,6 +348,7 @@ def test_merge_line_table() -> None:
         "intake": None,
         "fidelity": None,
         "steward": None,  # F15: a commitment is a stake, not an artifact (D-32 v3.17)
+        "proposed-for": None,  # F18-T6: a pointer, not an artifact (D-14 v3.26)
     }
     assert set(expected) == set(typing.get_args(modes.Mode))
     assert getattr(ledger, "MERGE_LINES", None) == expected

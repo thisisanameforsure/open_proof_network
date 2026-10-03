@@ -1290,7 +1290,14 @@ about the root, and what is proposed beneath it is open work (D-33 v3.20).
 
 - **A speculative crux** (`POST /proposals/speculative`): a statement you conjecture is the
   hard part of a route. It is a typechecked, refutable object; proving or refuting it is a
-  research result either way.
+  research result either way. Send `for` with the id of the node of the same target you
+  proposed it for, and the pull request also carries the crux's first `proposed-for/` record
+  (D-14 v3.26): a pointer the problem page draws, never a dependency, so it changes no status
+  and no frontier entry. A `for` that is not a node of the target, is the crux itself or has
+  been superseded is refused `400 proposed-for-unknown-node`, `proposed-for-self` or
+  `proposed-for-superseded` (naming the node that replaced it) before anything opens. Later
+  records, one per pull request touching nothing else, may come only from the crux's proposer
+  or a listed curator; the latest one is shown.
 - **A variant** (`POST /proposals/variant`): a weaker or related form of the root, labelled
   `resolves`, `partial` or `related`. A label above `related` needs the implication proof,
   `relation_proof`: a Lean file declaring exactly `theorem relation`, whose type is
