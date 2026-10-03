@@ -376,6 +376,42 @@ def target_facts(
     )
 
 
+def decompositions_of(tg: TargetGraph, node_id: str) -> list[dict[str, Any]]:
+    """F18-R4: each merged partial of the node, the annex it cites and the holes it made.
+
+    Three records, kept apart until now: the attestation names the file and the holes (step 2,
+    step 4), the file names its annex (D-31 v3.12, ``postmerge.annex_citation``), and each hole
+    child's header names its hole (``postmerge.hole_name``). A hole is matched to the first of
+    the node's hole children (its holes, read through revisions, in the order the post-merge job
+    recorded them) that carries its name and no earlier hole took; one the tree does not hold is
+    named with no node (C7)."""
+    node = tg.nodes[node_id]
+    names: dict[str, str | None] = {}
+    for child in node.holes:
+        text = (tg.nodes[child].path / "Statement.lean").read_text(encoding="utf-8")
+        names[child] = postmerge.hole_name(text)
+    taken: set[str] = set()
+    out: list[dict[str, Any]] = []
+    for partial in node.partials:
+        file = node.path / partial.path
+        try:
+            annex = (
+                postmerge.annex_citation(file.read_text(encoding="utf-8"))
+                if file.is_file()
+                else None
+            )
+        except postmerge.MalformedCitationError:
+            annex = None  # step 2 refuses one, so a merged partial cannot carry it
+        holes: list[dict[str, str | None]] = []
+        for hole in partial.holes:
+            found = next((c for c in node.holes if names.get(c) == hole and c not in taken), None)
+            if found is not None:
+                taken.add(found)
+            holes.append({"name": hole, "node": found})
+        out.append({"partial": partial.path, "annex": annex, "holes": holes})
+    return out
+
+
 def target_proofs(tg: TargetGraph) -> list[dict[str, Any]]:
     """F18-R1, R2: every way the target is proved, each with its closure by use.
 
@@ -465,6 +501,8 @@ def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
                 # each merged proof with the nodes its term used.
                 "uses": list(n.uses),
                 "proofs": [p.as_dict() for p in n.proofs],
+                # F18-R4: each merged partial, the annex it cites and the holes it made.
+                "decompositions": decompositions_of(tg, node_id),
             }
         )
     return {

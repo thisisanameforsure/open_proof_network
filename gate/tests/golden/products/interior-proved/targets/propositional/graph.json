@@ -2,6 +2,7 @@
   "nodes": [
     {
       "cause": null,
+      "decompositions": [],
       "deps": [],
       "node_id": "and-reassoc",
       "origin": "authored",
@@ -27,6 +28,7 @@
     },
     {
       "cause": null,
+      "decompositions": [],
       "deps": [
         "tutorial-and-swap",
         "and-reassoc"
@@ -45,6 +47,7 @@
     },
     {
       "cause": null,
+      "decompositions": [],
       "deps": [],
       "node_id": "tutorial-and-swap",
       "origin": "authored",

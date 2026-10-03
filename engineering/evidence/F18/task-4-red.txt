@@ -1,0 +1,95 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+FFF.FF                                                                   [100%]
+=================================== FAILURES ===================================
+_____________ test_a_merged_skeleton_names_its_annex_and_its_holes _____________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-252/test_a_merged_skeleton_names_i0')
+
+    def test_a_merged_skeleton_names_its_annex_and_its_holes(tmp_path: Path) -> None:
+        """AC6."""
+        root = copy_graph(tmp_path, publish=True)
+        add_hole(root, HOLE_IDS[0], "hden")
+        add_hole(root, HOLE_IDS[1], "hrem")
+        merged_partial(root, 7, ["hden", "hrem"])
+>       assert decompositions(root) == [
+            {
+                "partial": PARTIAL,
+                "annex": ANNEX,
+                "holes": [{"name": "hden", "node": HOLE_IDS[0]}, {"name": "hrem", "node": HOLE_IDS[1]}],
+            }
+        ]
+E       AssertionError: assert [] == [{'partial': ...assoc--h2'}]}]
+E         
+E         Right contains one more item: {'partial': 'attempts/20260920T000000Z-alice-partial.lean', 'annex': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...aaaaaa', 'holes': [{'name': 'hden', 'node': 'and-swap-reassoc--h1'}, {'name': 'hrem', 'node': 'and-swap-reassoc--h2'}]}
+E         Use -v to get more diff
+
+gate/tests/test_decompositions.py:110: AssertionError
+__________________ test_a_partial_that_cites_no_annex_says_so __________________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-252/test_a_partial_that_cites_no_a0')
+
+    def test_a_partial_that_cites_no_annex_says_so(tmp_path: Path) -> None:
+        root = copy_graph(tmp_path, publish=True)
+        add_hole(root, HOLE_IDS[0], "hT")
+        merged_partial(root, 7, ["hT"], annex=None)
+>       [d] = decompositions(root)
+        ^^^
+E       ValueError: not enough values to unpack (expected 1, got 0)
+
+gate/tests/test_decompositions.py:123: ValueError
+___ test_two_partials_are_listed_in_the_record_order_each_with_its_own_holes ___
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-252/test_two_partials_are_listed_i0')
+
+    def test_two_partials_are_listed_in_the_record_order_each_with_its_own_holes(
+        tmp_path: Path,
+    ) -> None:
+        root = copy_graph(tmp_path, publish=True)
+        add_hole(root, HOLE_IDS[0], "hT")
+        add_hole(root, HOLE_IDS[1], "integrality")
+        later = "attempts/20260924T000000Z-bob-partial.lean"
+        merged_partial(root, 9, ["integrality"], path=later, annex="b" * 64)
+        merged_partial(root, 7, ["hT"])
+>       assert [(d["partial"], d["annex"], d["holes"]) for d in decompositions(root)] == [
+            (PARTIAL, ANNEX, [{"name": "hT", "node": HOLE_IDS[0]}]),
+            (later, "b" * 64, [{"name": "integrality", "node": HOLE_IDS[1]}]),
+        ]
+E       AssertionError: assert [] == [('attempts/2...assoc--h2'}])]
+E         
+E         Right contains 2 more items, first extra item: ('attempts/20260920T000000Z-alice-partial.lean', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', [{'name': 'hT', 'node': 'and-swap-reassoc--h1'}])
+E         Use -v to get more diff
+
+gate/tests/test_decompositions.py:136: AssertionError
+________ test_a_hole_whose_child_cannot_be_found_is_named_with_no_node _________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-252/test_a_hole_whose_child_cannot0')
+
+    def test_a_hole_whose_child_cannot_be_found_is_named_with_no_node(tmp_path: Path) -> None:
+        """C7: a hole the record names and the tree does not hold is shown as such, not dropped."""
+        root = copy_graph(tmp_path, publish=True)
+        merged_partial(root, 7, ["ghost"])
+>       [d] = decompositions(root)
+        ^^^
+E       ValueError: not enough values to unpack (expected 1, got 0)
+
+gate/tests/test_decompositions.py:157: ValueError
+_________________________ test_hole_header_round_trips _________________________
+
+    def test_hole_header_round_trips() -> None:
+        """AC7: the reader recovers the name the writer wrote, and a D-8 revision's hand-written
+        header (erdos-1050--h1-v2, 2026-09-17) reads the same."""
+        hole = SimpleNamespace(name="numerator_integral", closed_type="True")
+        written = postmerge.child_statement("t--h1", hole, imports=["Mathlib"], opens=["open Nat"])
+>       assert postmerge.hole_name(written) == "numerator_integral"
+E       AssertionError: assert None == 'numerator_integral'
+E        +  where None = <function hole_name at 0x109837740>('import Mathlib\nimport Nodes.«t--h1».Context\n\nopen Nat\n\n/-! Hole `numerator_integral` of a merged partial proof, ...-29).\nStatement generated by the gate from the assembly; immutable (D-3). -/\n\ntheorem t__h1 : True := by\n  sorry\n')
+E        +    where <function hole_name at 0x109837740> = postmerge.hole_name
+
+gate/tests/test_decompositions.py:166: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_decompositions.py::test_a_merged_skeleton_names_its_annex_and_its_holes
+FAILED gate/tests/test_decompositions.py::test_a_partial_that_cites_no_annex_says_so
+FAILED gate/tests/test_decompositions.py::test_two_partials_are_listed_in_the_record_order_each_with_its_own_holes
+FAILED gate/tests/test_decompositions.py::test_a_hole_whose_child_cannot_be_found_is_named_with_no_node
+FAILED gate/tests/test_decompositions.py::test_hole_header_round_trips - Asse...
+5 failed, 1 passed in 0.75s

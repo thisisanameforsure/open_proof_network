@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://openproof.network/schemas/graph/v4.json",
   "title": "graph/v4",
-  "description": "targets/<id>/graph.json (D-25, D-35): every node of one target with its derived status, regenerated on every merge and never hand-edited. v3 (2026-09-12, F12-R13; D-30 v3.12): each row carries `relevance` — for a variant labelled `related`, whether one signature on the sentence that says why it bears on the target is on record (nodes/<id>/relevance.yaml, relevance/v1), with the signer and date; a related variant is published as pertinent to the target only with it. Null for every other node. v2 could not be edited (D-34). status gains refuted and defective — what a merged counterexample and a merged vacuity certificate make of a node (D-12 #2, #3) — and each node gains cause, the machine-readable reason a derived status is what it is: dep-refuted for a node under a refuted one, witness-missing for a compiler-derived child whose witness slot is still a stub (D-29, F07-R6). v1 stays readable; a graph rendered by an older gate has neither value. v4 (2026-10-03, F08-T27; D-12 v3.25): each row carries `uses` — the nodes its merged proof's header declares beyond its deps (F08-R19) — and `proofs`: each merged proof of the node, its Proof.lean first and then its alternates (D-25 v3.13), with the attestation it was merged under and `used`, the nodes its proof term rests on as step 8 read them (attestation/v6's footprint, or for an older merge the target's .footprint-cache.json); `used` is null where nothing measured it, which is never the same as empty. `deps` stays what the node declared, read through revisions. The top level carries `target_proofs` (F18-R1, R2): each way the target is proved, with its closure by use.",
+  "description": "targets/<id>/graph.json (D-25, D-35): every node of one target with its derived status, regenerated on every merge and never hand-edited. v3 (2026-09-12, F12-R13; D-30 v3.12): each row carries `relevance` — for a variant labelled `related`, whether one signature on the sentence that says why it bears on the target is on record (nodes/<id>/relevance.yaml, relevance/v1), with the signer and date; a related variant is published as pertinent to the target only with it. Null for every other node. v2 could not be edited (D-34). status gains refuted and defective — what a merged counterexample and a merged vacuity certificate make of a node (D-12 #2, #3) — and each node gains cause, the machine-readable reason a derived status is what it is: dep-refuted for a node under a refuted one, witness-missing for a compiler-derived child whose witness slot is still a stub (D-29, F07-R6). v1 stays readable; a graph rendered by an older gate has neither value. v4 (2026-10-03, F08-T27; D-12 v3.25): each row carries `uses` — the nodes its merged proof's header declares beyond its deps (F08-R19) — and `proofs`: each merged proof of the node, its Proof.lean first and then its alternates (D-25 v3.13), with the attestation it was merged under and `used`, the nodes its proof term rests on as step 8 read them (attestation/v6's footprint, or for an older merge the target's .footprint-cache.json); `used` is null where nothing measured it, which is never the same as empty. `deps` stays what the node declared, read through revisions. The top level carries `target_proofs` (F18-R1, R2): each way the target is proved, with its closure by use. Each row also carries `decompositions` (F18-R4): the node's merged partials with the annex each cites and the holes each made.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -55,7 +55,8 @@
           "cause",
           "relevance",
           "uses",
-          "proofs"
+          "proofs",
+          "decompositions"
         ],
         "properties": {
           "node_id": {
@@ -272,6 +273,66 @@
                       "uniqueItems": true
                     }
                   ]
+                }
+              }
+            }
+          },
+          "decompositions": {
+            "description": "F18-R4: each merged partial of the node in the record's order: its file, the annex it cites (D-31) or null, and each hole by name with the node it became (null when the tree holds none).",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "partial",
+                "annex",
+                "holes"
+              ],
+              "properties": {
+                "partial": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 300
+                },
+                "annex": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    }
+                  ]
+                },
+                "holes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "name",
+                      "node"
+                    ],
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "node": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "string",
+                            "pattern": "^[a-z0-9][a-z0-9-]*$"
+                          }
+                        ]
+                      }
+                    }
+                  }
                 }
               }
             }

@@ -1,0 +1,16 @@
+F18-T1/T4 products run read-only over the live graph at 7f207c7fd69becd91f826921504900a0aec82fc8 (detached worktree of origin/main)
+===== erdos-1050
+  proof erdos-1050 proof None t1001-1050a closure ['erdos-1050', 'erdos-1050--h1-v2', 'erdos-1050--h1-v2--h1', 'erdos-1050--h1-v2--h2', 'erdos-1050--h1-v2--h2--h1', 'erdos-1050--h1-v2--h3', 'erdos-1050--h1-v2--h4'] unmeasured ['erdos-1050', 'erdos-1050--h1-v2', 'erdos-1050--h1-v2--h2', 'erdos-1050--h1-v2--h2--h1', 'erdos-1050--h1-v2--h3', 'erdos-1050--h1-v2--h4']
+  decomposition erdos-1050 attempts/20260917T141921Z-calib-1050-fable-partial.lean annex ebfc846b7b9ca01cf3880bbde14e6a4909e741934a08f0b4d43f8aa3b2405cb2 [('borwein', 'erdos-1050--h1-v2')]
+  decomposition erdos-1050--h1-v2 attempts/20260921T064200Z-tester-1050-2045-partial.lean annex 64a620c1871c74b895ed548471f33a563f6b78f76de69ee1c3852308605c5122 [('hT', 'erdos-1050--h1-v2--h1')]
+  decomposition erdos-1050--h1-v2 attempts/20260924T123700Z-t0924-1050-mcp-partial.lean annex e6849740c2b9808384d1f619c8c2e893c507c1bc30907ddd8aec11b83bdd3949 [('integrality', 'erdos-1050--h1-v2--h2')]
+  decomposition erdos-1050--h1-v2 attempts/20260924T123718Z-h0924-1050-http-partial.lean annex None [('hden', 'erdos-1050--h1-v2--h3'), ('hrem', 'erdos-1050--h1-v2--h4')]
+  decomposition erdos-1050--h1-v2--h2 attempts/20260929T194647Z-t0929-1-partial.lean annex None [('numerator_integral', 'erdos-1050--h1-v2--h2--h1')]
+===== euclid-primes
+  proof infinitude-of-primes proof None euclid-root-27e3a5 closure ['infinitude-of-primes', 'infinitude-of-primes--h1', 'infinitude-of-primes--h2', 'infinitude-of-primes--h3', 'infinitude-of-primes--h4'] unmeasured ['infinitude-of-primes', 'infinitude-of-primes--h1', 'infinitude-of-primes--h2', 'infinitude-of-primes--h3', 'infinitude-of-primes--h4']
+  proof variant-f15ce396 proof resolves agent-a-a256a2 closure ['variant-f15ce396'] unmeasured ['variant-f15ce396']
+  proof variant-4cb87a03 proof resolves agent-c-b1c5e5 closure ['variant-4cb87a03'] unmeasured ['variant-4cb87a03']
+  proof variant-dea95969 proof resolves agent-b-eece08 closure ['variant-dea95969'] unmeasured ['variant-dea95969']
+  decomposition infinitude-of-primes attempts/20260912T110722Z-thisisanameforsure-partial.lean annex e23b7898f6b6145660fbfb022f8fafca801a5faf373b9e08004ea28dc633a973 [('dvd_fact', 'infinitude-of-primes--h1'), ('prime_divisor', 'infinitude-of-primes--h2'), ('dvd_consecutive', 'infinitude-of-primes--h3'), ('fact_pos', 'infinitude-of-primes--h4')]
+  decomposition variant-2a7919a9 attempts/20260919T185907Z-euclid-list-61d1ea-partial.lean annex 953980ae801a27640ee2c25f5aa7e507ef685e6fe040383ea0f025741be4e765 [('bound', 'variant-2a7919a9--h1'), ('euclid', 'variant-2a7919a9--h2')]
+(every closure is unmeasured: these merges predate attestation/v6; the backfill, F18-T8, measures them)

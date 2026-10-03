@@ -436,6 +436,18 @@ def child_statement(
     )
 
 
+#: F18-T4: the header ``child_statement`` writes, read back by ``hole_name``; the round trip is
+#: tested (``test_decompositions.py``), so the two cannot drift apart unnoticed.
+_HOLE_HEADER_RE = re.compile(r"^/-! Hole `(?P<name>[^`\n]+)` of a merged partial proof", re.M)
+
+
+def hole_name(statement_text: str) -> str | None:
+    """F18-T4: the hole a child's statement says it is, from the header ``child_statement``
+    writes (and a D-8 revision keeps), or ``None``."""
+    m = _HOLE_HEADER_RE.search(statement_text)
+    return m.group("name") if m else None
+
+
 def parent_imports(statement_text: str) -> list[str]:
     """The imports a child inherits from its parent's statement: library and ``Defs.*``."""
     from opn_gate import scaffold  # noqa: PLC0415 — scaffold imports layout, which imports schemas

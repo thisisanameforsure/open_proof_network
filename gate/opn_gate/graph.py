@@ -101,6 +101,16 @@ class ProofRecord:
 
 
 @dataclass(frozen=True)
+class PartialRecord:
+    """F18-T4: a merged partial of the node, as its attestation names it: the file step 2 took
+    (``partial-submission``) and the holes step 4 found (``artifact-partial``)."""
+
+    path: str  # relative to the node directory
+    holes: tuple[str, ...]
+    attestation: str
+
+
+@dataclass(frozen=True)
 class NodeFacts:
     node_id: str
     target_id: str
@@ -145,6 +155,8 @@ class NodeFacts:
     #: order their files sort, each with what its term used. Empty for a node with no merged
     #: proof, and for one whose merged artifact is not a proof (a counterexample, a certificate).
     proofs: tuple[ProofRecord, ...] = ()
+    #: F18-T4: the node's merged partials, in the order their attestations sort.
+    partials: tuple[PartialRecord, ...] = ()
 
     @property
     def rests_on(self) -> tuple[str, ...]:
@@ -311,6 +323,36 @@ def proofs_of(  # noqa: PLR0913 — one argument per fact the record is matched 
     return tuple(out)
 
 
+def partials_of(
+    node_id: str, statement_hash: str, attestations: list[tuple[str, dict[str, Any]]]
+) -> tuple[PartialRecord, ...]:
+    """F18-T4: each merged partial of the node — a passing, merged attestation for its current
+    statement whose step 2 took a partial — with the holes its step 4 reported."""
+    out: list[PartialRecord] = []
+    for name, doc in attestations:
+        if not (
+            doc.get("node_id") == node_id
+            and doc.get("statement_hash") == statement_hash
+            and doc.get("verdict") == "pass"
+            and doc.get("merge_commit")
+        ):
+            continue
+        path: str | None = None
+        holes: tuple[str, ...] = ()
+        for step in doc.get("steps") or []:
+            d = step.get("diagnostic") if isinstance(step, dict) else None
+            if not isinstance(d, dict) or not isinstance(d.get("details"), dict):
+                continue
+            details = d["details"]
+            if d.get("code") == "partial-submission" and isinstance(details.get("path"), str):
+                path = details["path"]
+            if details.get("kind") == "partial" and isinstance(details.get("holes"), list):
+                holes = tuple(str(h) for h in details["holes"])
+        if path is not None:
+            out.append(PartialRecord(path=path, holes=holes, attestation=name))
+    return tuple(out)
+
+
 def recorded_hashes(node_dir: Path) -> tuple[str | None, frozenset[str]]:
     """The content hash of the node's ``Proof.lean`` (``None`` without one) and of each alternate
     under ``attempts/`` (D-25 v3.13): what ``proof_for`` tells the node's proof from them by."""
@@ -425,6 +467,7 @@ def load_nodes(
             uses=layout.merged_uses(node_dir),
             circular=claims[0][0] if claims else None,
             circular_claims=claims,
+            partials=partials_of(loaded.node_id, statement_hash, attestations),
             proofs=(
                 proofs_of(
                     node_dir,
