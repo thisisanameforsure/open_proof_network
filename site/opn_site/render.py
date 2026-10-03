@@ -980,9 +980,10 @@ class Renderer:
             )[:140]
             by = f" by {esc(a.author)}" if a.author else ""
             following = [d for d in decomps if d.get("annex") == digest]
+            node_dir = Path(nv.statement_path).parent.as_posix()
             if following:
                 runs = "; ".join(
-                    f"{self.file_link(f'{Path(nv.statement_path).parent.as_posix()}/{d["partial"]}', label=Path(d['partial']).name)}"
+                    self.file_link(f"{node_dir}/{d['partial']}", label=Path(d["partial"]).name)
                     + (
                         ": " + ", ".join(self.hole_link(tv, h) for h in d["holes"])
                         if d["holes"]
