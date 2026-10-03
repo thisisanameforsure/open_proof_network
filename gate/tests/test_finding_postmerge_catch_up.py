@@ -656,3 +656,30 @@ def test_a_plan_leaves_a_building_merge_to_its_own_run_while_that_run_is_going(
     run = step_run(gate_doc, id_="pr")
     assert 'plan "$merge" "$number"' in run
     assert "actions/runs?head_sha=" in helper_source(gate_doc)
+
+
+def test_a_merge_that_touched_no_target_is_not_replayed(
+    gate_doc: dict[Any, Any], tmp_path: Path
+) -> None:
+    """Found live on 2026-10-03: #361's run replayed #321, a workflow change that touched no
+    target, and the replay said "touched no target; nothing to record". Such a merge never gets a
+    gate commit, so every later plan found it unrecorded and spent a run on it."""
+    helper: dict[str, Any] = {"__name__": "postmerge_batch"}
+    exec(compile(helper_source(gate_doc), "postmerge_batch.py", "exec"), helper)  # noqa: S102
+    graph = Graph(tmp_path / "g")
+    graph.merge(2, "f07-workflow", {".github/workflows/merge.yml": "on: {}\n"})
+    four = graph.append(4)
+    log = []
+    for line in graph.git("log", "--first-parent", "--format=%H%x09%P%x09%s", "HEAD").splitlines():
+        sha, parents, subject = line.split("\t", 2)
+        log.append((sha, len(parents.split()), subject))
+
+    def targets_of(sha: str) -> list[str]:
+        names = graph.git("diff", "--name-only", f"{sha}^", sha).splitlines()
+        return sorted({n.split("/")[1] for n in names if n.startswith("targets/")})
+
+    got = helper["plan"](
+        four, 4, log=log, targets_of=targets_of, pin_of=lambda _s, _t: PIN_A,
+        in_flight=lambda _s: False,
+    )  # fmt: skip
+    assert got == {"batch": "false", "replay": ""}, got
