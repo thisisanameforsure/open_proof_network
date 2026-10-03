@@ -150,6 +150,10 @@ class FakeGitHost:
     #: F07-T47: every open-listing call, and a failure that makes only the listing raise.
     listing_calls: int = 0
     listing_failure: str | None = None
+    #: F08-T26: which network commits descend from which, as ``(ancestor, commit) -> bool``; a
+    #: pair the map does not hold is a host failure, and every question asked is recorded.
+    ancestry: dict[tuple[str, str], bool] = field(default_factory=dict)
+    ancestry_calls: list[tuple[str, str, str]] = field(default_factory=list)
 
     @classmethod
     def with_fixtures(cls, **users: GitHubUser) -> FakeGitHost:
@@ -218,6 +222,14 @@ class FakeGitHost:
         if not names:
             return None
         return [n for n in names if prefix + n in tree]
+
+    def is_ancestor(self, repo: str, ancestor: str, commit: str) -> bool:
+        """F08-T26: whether ``commit`` is ``ancestor`` or descends from it, from ``ancestry``."""
+        self.ancestry_calls.append((repo, ancestor, commit))
+        if (ancestor, commit) not in self.ancestry:
+            msg = f"GET /repos/{repo}/compare/{ancestor[:12]}...{commit[:12]} failed: ConnectError"
+            raise GitHostError(msg)
+        return self.ancestry[(ancestor, commit)]
 
     def _app_call(self) -> None:
         if self.app_failure:

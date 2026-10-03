@@ -38,6 +38,10 @@ Parameters:
     Type: String
     Default: thisisanameforsure/open_proof_network_graph
     Description: the graph whose committed frontier.json the claim routes read (D-35)
+  UsesFrom:
+    Type: String
+    Default: ""
+    Description: the network commit from which the gate reads use lines (F08-T26, Q39); a target pinned at or after it takes them, and empty means none does
   ApiDomain:
     Type: String
     Default: ""
@@ -190,6 +194,9 @@ Resources:
           OPN_API_TABLE_CLAIMS: !Ref ClaimsTable
           OPN_API_PARAMETER_PREFIX: !Ref ParameterPrefix
           OPN_API_GRAPH_REPO: !Ref GraphRepository
+          # F08-T26: a target's network pin is compared by ancestry in this repository
+          OPN_API_NETWORK_REPO: !Ref GitHubRepository
+          OPN_API_USES_FROM: !Ref UsesFrom
           # R3: the OAuth redirect_uri must match the address the browser actually used.
           OPN_API_PUBLIC_URL: !If
             - HasDomain

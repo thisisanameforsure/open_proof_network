@@ -221,6 +221,15 @@ TOOLING = {
         "harness": DECLARED,
     },
 }
+#: F08-T26 (R21): one sentence on use lines, shared by the tools that take a proof's text.
+USES_NOTE = (
+    " Use lines: a proof, an alternate or an assembly may add `import Defs.<Name>` (a definition "
+    "of the same target on the graph) or `import Nodes.«<id>».Proof` (another node's merged "
+    "proof) directly after the statement's imports; on a target whose pinned gate reads them, a "
+    "use it would refuse is refused by the gate's code (use-duplicate, use-unknown-defs, "
+    "use-self, use-unknown-node, use-superseded, use-unproved, use-redundant, use-ancestor) "
+    "before anything opens, and on an older pin the line is imports-differ."
+)
 DEPS = {"type": "array", "items": ID_PARAM, "description": "node ids the statement depends on"}
 MODEL = {"type": "string", "description": "the model or tooling that produced the statement"}
 #: F08-T14: META.yaml's own shape (F02-R4), so a statement that carries an intended step-6 finding
@@ -284,7 +293,8 @@ TOOLS: tuple[Tool, ...] = (
         "after the proposal merges. A partial's bundle may carry the witness of any of its "
         "holes as attempts/<assembly name without .lean>.<n>.witness, the text of that hole's "
         "Witness.lean with a line `-- hole: <name>` naming the hole; each is checked as step 7 "
-        "checks a node's witness, and the result names it on its hole (`holes[].witness`).",
+        "checks a node's witness, and the result names it on its hole (`holes[].witness`)."
+        + USES_NOTE,
         params(
             {
                 "node_id": ID_PARAM,
@@ -346,7 +356,8 @@ TOOLS: tuple[Tool, ...] = (
         "never the gate's verdict; `okay` and `result` are still those of your text as sent. "
         "Never authoritative: a precheck is the verdict. "
         "No token needed; a token raises the limit. Every call is logged without its text; "
-        "GET /hosted-checkers.json says which targets have a checker.",
+        "GET /hosted-checkers.json says which targets have a checker. A used node's statement "
+        "is inlined with a sorry body, as a Context carries a dependency's." + USES_NOTE,
         params(
             {
                 "target_id": {
@@ -410,7 +421,7 @@ TOOLS: tuple[Tool, ...] = (
         "A partial's bundle may carry its holes' witnesses, each as attempts/<assembly name "
         "without .lean>.<n>.witness with a line `-- hole: <name>`: a hole whose witness the "
         "precheck checked is created with it and needs no propose_witness; one the precheck "
-        "did not check is refused 400 hole-witness-unchecked and nothing opens.",
+        "did not check is refused 400 hole-witness-unchecked and nothing opens." + USES_NOTE,
         params(
             {
                 "node_id": ID_PARAM,

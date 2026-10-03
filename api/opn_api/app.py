@@ -143,6 +143,9 @@ class Context:
     # thread at a time.
     open_pulls: CachedListing | None = None
     listing_lock: threading.Lock = field(default_factory=threading.Lock)
+    # F08-T26: whether a network commit descends from ``uses_from``, by ``(uses_from, pin)``. A
+    # commit's ancestry never changes, so an answer the host gave is kept for the process's life.
+    ancestry: dict[tuple[str, str], bool] = field(default_factory=dict)
 
 
 Handler = Callable[[Context, Request], Awaitable[Response]]
