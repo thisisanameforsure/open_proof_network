@@ -34,7 +34,7 @@ from opn_api import clock as clockmod
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
 from opn_api.store import PROPOSAL_KINDS
-from opn_gate import admit, layout, scaffold
+from opn_gate import admit, layout, proposed_for, scaffold
 from opn_gate import graph as graphmod
 
 if TYPE_CHECKING:
@@ -359,6 +359,57 @@ def with_own_context(text: str, node_id: str) -> str:
     return layout.with_own_context(text, node_id)
 
 
+#: F18-R8 (D-14 v3.26): the node of the target a crux is proposed for, written as the new node's
+#: first ``proposed-for/`` record by the proposer, with the proposal's date.
+FOR_FIELD = "for"
+
+
+def proposed_for_node(ctx: Context, target_id: str, node_id: str, raw: Any) -> str | None:
+    """F18-T6: the ``for`` a proposal names, or ``None`` when it names none — refused 400 with
+    the gate's own code (``modes.check_proposed_for``) before anything is pushed, read from the
+    committed products: a node id, not the crux itself (whose id is new, so only the same
+    statement proposed for itself), a node of the target, and not superseded (D-8), in which
+    case the refusal names the node that replaced it. The gate checks the record again at the
+    merge; this saves the pull request it would refuse."""
+    if raw is None:
+        return None
+    if not isinstance(raw, str) or not proposed_for.NODE_ID_RE.match(raw):
+        raise ApiError(
+            400,
+            "proposed-for-malformed",
+            f"{FOR_FIELD} names a node of the target by its id (^[a-z0-9][a-z0-9-]*$)",
+            details={FOR_FIELD: raw},
+        )
+    details = {FOR_FIELD: raw, "target_id": target_id}
+    if raw == node_id:
+        raise ApiError(
+            400,
+            "proposed-for-self",
+            f"{raw} is this statement's own id; a statement is proposed for another node of its "
+            "target (F18-R8)",
+            details=details,
+        )
+    rows = {str(n.get("node_id")): n for n in precheck.graph_doc(ctx).get(target_id, [])}
+    if raw not in rows:
+        raise ApiError(
+            400,
+            "proposed-for-unknown-node",
+            f"{raw} is not a node of target {target_id} (F18-R8)",
+            details=details,
+        )
+    if rows[raw].get("status") == "superseded":
+        successor = precheck.replacement_of(ctx, target_id, raw)
+        instead = f" by {successor}: name that node instead" if successor else ""
+        raise ApiError(
+            400,
+            "proposed-for-superseded",
+            f"{raw} has been superseded{instead} (D-8); a statement is proposed for a live node "
+            "(F18-R8)",
+            details={**details, "successor": successor},
+        )
+    return raw
+
+
 def node_files(
     ctx: Context, identity: Identity, fields: dict[str, Any], **kwargs: Any
 ) -> tuple[str, dict[str, str], str]:
@@ -373,6 +424,7 @@ def node_files(
     check_witness_filled(witness)  # F13-T21: step 7's witness-sorry, before anything is spent
     deps, statements = dep_statements(ctx, target_id, fields.get("deps"))
     node_id = scaffold.speculative_id(statement, kwargs.pop("prefix"))
+    pointer = proposed_for_node(ctx, target_id, node_id, fields.get(FOR_FIELD))
     check_declaration_free(ctx, target_id, statement, node_id)
     # F08-T13: the statement always — a node gains dependencies later, when a skeleton merges
     # and its holes are written into Context.lean, and a proof may not add an import.
@@ -392,6 +444,7 @@ def node_files(
         date=clockmod.render(ctx.clock.now()),
         model=model_of(fields),
         extra_meta={ACK_FIELD: acknowledged} if acknowledged else {},
+        proposed_for=pointer,
         **kwargs,
     )
     return target_id, scaffolded(proposal, statements), node_id
@@ -409,6 +462,7 @@ SPECULATIVE_FIELDS: tuple[str, ...] = (
     "model",
     "acknowledged_hazards",
     "require_hazards_preflight",
+    FOR_FIELD,  # F18-R8: the node this crux is proposed for
 )
 
 

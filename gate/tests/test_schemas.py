@@ -54,6 +54,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "policy/v1",
         "postmortem/v1",
         "precheck-record/v1",
+        "proposed-for/v1",
         "qa/v1",
         "qa/v2",
         "relevance/v1",

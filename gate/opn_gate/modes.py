@@ -47,6 +47,10 @@ So the diff is classified into exactly one mode before anything else runs:
                  the record, not the pull request's author (F15-Q8), and the merge is the
                  curator's check of the identity link (F15-Q7). Inside an intake or a
                  curator pull request the records are checked the same way
+``proposed-for`` exactly one new ``proposed-for/`` record on one node and nothing else (F18-R8,
+                 D-14 v3.26): which node of its target the statement was proposed for, by the
+                 node's proposer or a listed curator (``check_proposed_for``). Nothing is built
+                 and nothing is derived from it. A proposal may carry its node's first record
 ===============  ==========================================================================
 
 A diff that fits none of them is rejected at step 2, naming the paths — never guessed at.
@@ -101,6 +105,7 @@ Mode = Literal[
     "intake",
     "fidelity",
     "steward",
+    "proposed-for",
 ]
 
 #: The modes that run the Lean pipeline; the others never build a proof (R9, R10; F08-R2).
@@ -519,6 +524,15 @@ def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per reject
     mode = _mode_for(roles)
     if mode is None:
         return Classification(None, target_id, node_id, tuple(located), (_mixed(roles),))
+    pointers = [loc.path for loc in located if loc.role == "proposed-for"]
+    if len(pointers) > 1:
+        multiple = Diagnostic(
+            "proposed-for-multiple",
+            f"a pull request adds one proposed-for record (F18-R8; the latest is the one shown); "
+            f"this one adds {len(pointers)}: " + ", ".join(pointers),
+            {"paths": pointers},
+        )
+        return Classification(None, target_id, node_id, tuple(located), (multiple,))
     alternates = [loc.path for loc in located if loc.role == "alternate"]
     if len(alternates) > 1:
         multiple = Diagnostic(
@@ -531,7 +545,12 @@ def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per reject
     admit = node_id if mode == "proposal" else None
     modified = {c.path for c in changes if c.status == "M"}
     replaced = tuple(loc.path for loc in located if loc.role == "proof" and loc.path in modified)
-    return Classification(mode, target_id, node_id, tuple(located), admit=admit, replaced=replaced)
+    # F18-R8: who may write a proposed-for record is ``check_proposed_for``'s question, and the
+    # curator half of it is the host's fact, so it rides on the classification.
+    who = author if pointers else None
+    return Classification(
+        mode, target_id, node_id, tuple(located), admit=admit, replaced=replaced, author=who
+    )
 
 
 def _classify_curator(  # noqa: PLR0913 — the diff, its located paths and the host's one fact
@@ -913,11 +932,15 @@ def _locate_change(change: Change, located: list[Located]) -> list[Diagnostic]:
 def _mode_for(roles: set[Role]) -> Mode | None:  # noqa: PLR0911 — one return per mode
     appendish = set(paths.APPEND_ROLES)
     if "node" in roles:  # F08-R2: a whole new directory, and nothing outside it
-        return "proposal" if roles <= (set(paths.NODE_ROLES) | {"node-status"}) else None
+        # F18-R8: a proposal may carry its node's first proposed-for record.
+        allowed = set(paths.NODE_ROLES) | {"node-status", "proposed-for"}
+        return "proposal" if roles <= allowed else None
     if roles == {"witness"}:  # F08-R5: filling a hole's slot
         return "proposal"
     if roles & (set(paths.NODE_ROLES) | {"node-status"}):
         return None  # a node file or a status record outside a new directory, with other things
+    if "proposed-for" in roles:  # F18-R8: a pointer is a pull request of its own
+        return "proposed-for" if roles == {"proposed-for"} else None
     if "proof" in roles or "waiver" in roles:
         return "proof" if roles <= ({"proof", "waiver"} | appendish) else None
     if "alternate" in roles:  # D-25 v3.13: a later proof of a proved node, plus appends
@@ -972,6 +995,8 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
             problems.extend(check_steward_record(graph_root, located, classification))
         elif located.role == "writeup":
             problems.extend(check_writeup_record(graph_root, located, classification))
+        elif located.role == "proposed-for":
+            problems.extend(check_proposed_for(graph_root, located, classification))
         elif located.role == "policy":
             # F15-R3: the switch validates; who may flip it is the curator mode's author rule.
             data = _read(graph_root, located)
@@ -1574,6 +1599,110 @@ def check_activation(
             {"path": located.path, "refusal": refusal},
         )
     ]
+
+
+def check_proposed_for(  # noqa: PLR0911 — one return per rule
+    graph_root: Path, located: Located, classification: Classification
+) -> list[Diagnostic]:
+    """F18-R8 (D-14 v3.26): a proposed-for record validates, is written by the node's proposer —
+    the record's ``author`` is its ``META.yaml`` ``provenance.author`` — or arrives in a pull
+    request a listed curator opened, and names one other node of the same target that has not
+    been superseded (D-8). Each failure is refused by its own code; a superseded node is refused
+    naming its successor, which is the node the record should name.
+
+    The record is a hint: it claims nothing about the mathematics, and nothing derives a status,
+    a frontier entry or a dependency from it, so nothing else is asked of it."""
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    found = _check_schema(located, data, code="proposed-for-malformed")
+    if found:
+        return [
+            Diagnostic("proposed-for-malformed", d.message, {**d.details, "path": located.path})
+            for d in found
+        ][:1]
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):  # defence in depth: _check_schema just parsed it
+        return [Diagnostic("proposed-for-malformed", doc.message, {"path": located.path})]
+    node_id = str(located.node_id)
+    named = str(doc["for"])
+    nodes_dir = graph_root / "targets" / located.target_id / "nodes"
+    details: dict[str, Any] = {"path": located.path, "node": node_id, "for": named}
+    author = str(doc["author"])
+    proposer = _proposer_of(nodes_dir / node_id)
+    if author != proposer and not _is_curator(graph_root, classification.author):
+        return [
+            Diagnostic(
+                "proposed-for-author",
+                f"{located.path}: a proposed-for record is written by the node's proposer "
+                f"({proposer!r}) or a listed curator (F18-R8, D-14 v3.26); this one is "
+                f"{author!r}, in a pull request opened by "
+                f"{classification.author or 'an unknown login'}",
+                {**details, "author": author, "proposer": proposer},
+            )
+        ]
+    if named == node_id:
+        return [
+            Diagnostic(
+                "proposed-for-self",
+                f"{located.path}: a statement is proposed for another node of its target, never "
+                "for itself (F18-R8)",
+                details,
+            )
+        ]
+    if not (nodes_dir / named).is_dir():
+        return [
+            Diagnostic(
+                "proposed-for-unknown-node",
+                f"{located.path}: {named} is not a node of {located.target_id} (F18-R8)",
+                details,
+            )
+        ]
+    successor = _successor_of(nodes_dir, named)
+    if successor is not None:
+        instead = f" by {successor}: name that node instead" if successor != named else ""
+        return [
+            Diagnostic(
+                "proposed-for-superseded",
+                f"{located.path}: {named} has been superseded{instead} (D-8); a statement is "
+                "proposed for a live node (F18-R8)",
+                {**details, "successor": successor if successor != named else None},
+            )
+        ]
+    return []
+
+
+def _proposer_of(node_dir: Path) -> str | None:
+    """The node's ``provenance.author`` at head, or ``None`` when its META does not read."""
+    try:
+        meta = schemas.load_yaml(node_dir / "META.yaml")
+    except (OSError, schemas.SchemaError):
+        return None
+    provenance = meta.get("provenance")
+    author = provenance.get("author") if isinstance(provenance, dict) else None
+    return str(author) if author else None
+
+
+def _is_curator(graph_root: Path, login: str | None) -> bool:
+    """Whether the login that opened the pull request is listed in ``curators.json``."""
+    if not login:
+        return False
+    try:
+        return login in load_curators(graph_root).logins
+    except CuratorsError:
+        return False
+
+
+def _successor_of(nodes_dir: Path, node_id: str) -> str | None:
+    """The end of ``node_id``'s revision chain when a status record says it is superseded (the
+    node itself when the record names no sound successor), else ``None`` — ``uses``'s reading."""
+    try:
+        record = records.load_node_status(nodes_dir / node_id)
+    except (OSError, schemas.SchemaError):
+        return None
+    if record is None or record.status != "superseded":
+        return None
+    return graphmod.current_id(nodes_dir, node_id)
 
 
 def check_proposal(

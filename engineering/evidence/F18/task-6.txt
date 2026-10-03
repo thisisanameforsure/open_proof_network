@@ -1,0 +1,21 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+....................................................                     [100%]
+=============================== warnings summary ===============================
+api/tests/api_fakes.py:31
+  /Users/mikehiggins/Desktop/repos/opn-f18-t6/api/tests/api_fakes.py:31: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+.venv/lib/python3.13/site-packages/starlette/testclient.py:53
+  /Users/mikehiggins/Desktop/repos/opn-f18-t6/.venv/lib/python3.13/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+52 passed, 2 warnings in 17.65s
+
+# make lint: exit 0; make types: exit 0 (gate and api, mypy --strict)
+# fast tier: uv run --frozen pytest -m 'not lean and not docker and not network' -q
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+FAILED site/tests/test_docs_states.py::test_the_actions_table_names_every_mode_the_classifier_knows
+2 failed, 3583 passed, 1 skipped, 160 deselected, 2 warnings in 317.52s (0:05:17)
+# test_graph_copy_is_identical: known, the graph's AGENTS.md copy rides the next re-pin
+# test_the_actions_table_names_every_mode_the_classifier_knows: the site's Docs actions table needs a <code>proposed-for</code> row (site work, the lead's)
