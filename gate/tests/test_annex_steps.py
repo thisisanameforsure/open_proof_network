@@ -333,3 +333,25 @@ def test_a_summary_is_carried_as_data_verbatim(tmp_path: Path) -> None:
     tg = graph.load_target(root, TARGET)
     [step] = products.outline_of(tg, ROOT_NODE) or []
     assert step["summary"] == hostile
+
+
+def test_graph_json_publishes_the_outline_with_the_annex_and_skeleton_it_belongs_to(
+    tmp_path: Path,
+) -> None:
+    """F18-R7 wired: the row carries the steps and which annex and partial they belong to, so
+    the page can say which outline the decomposition followed; a node without one carries null."""
+    root = copy_graph(tmp_path, publish=True)
+    add_hole(root, HOLE_IDS[0], "hden")
+    digest = outline_annex(root, "hden", "combine")
+    merged_partial(root, 7, ["hden"], annex=None)
+    partial = nodes_dir(root) / ROOT_NODE / "attempts" / "20260920T000000Z-alice-partial.lean"
+    partial.write_text(f"theorem x : True := by\n  -- annex: {digest}\n  sorry\n")
+    tg = graph.load_target(root, TARGET)
+    doc = schemas.validate(products.graph_doc(tg, None), products.GRAPH_SCHEMA)
+    rows = {n["node_id"]: n for n in doc["nodes"]}
+    assert rows[ROOT_NODE]["outline"] == {
+        "annex": digest,
+        "partial": "attempts/20260920T000000Z-alice-partial.lean",
+        "steps": products.outline_of(tg, ROOT_NODE),
+    }
+    assert rows[HOLE_IDS[0]]["outline"] is None

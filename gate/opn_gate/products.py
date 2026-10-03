@@ -413,6 +413,19 @@ def decompositions_of(tg: TargetGraph, node_id: str) -> list[dict[str, Any]]:
     return out
 
 
+def outline_doc(tg: TargetGraph, node_id: str) -> dict[str, Any] | None:
+    """F18-R7 as ``graph.json`` carries it: ``outline_of``'s steps with the annex they come from
+    and the partial that followed it, so the page can say which outline is being tracked."""
+    steps = outline_of(tg, node_id)
+    if steps is None:
+        return None
+    node = tg.nodes[node_id]
+    for d in reversed(decompositions_of(tg, node_id)):
+        if d["annex"] and annexmod.steps_at(node.path, d["annex"]) is not None:
+            return {"annex": d["annex"], "partial": d["partial"], "steps": steps}
+    return None
+
+
 def outline_of(tg: TargetGraph, node_id: str) -> list[dict[str, Any]] | None:
     """F18-R7 (D-31 v3.26): the outline the node's most recent stepped decomposition followed.
 
@@ -537,6 +550,8 @@ def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
                 "decompositions": decompositions_of(tg, node_id),
                 # F18-R8 (D-14 v3.26): the node this one was proposed for, a pointer only.
                 "proposed_for": n.proposed_for,
+                # F18-R7 (D-31 v3.26): the steps of the stepped outline the node followed.
+                "outline": outline_doc(tg, node_id),
             }
         )
     return {

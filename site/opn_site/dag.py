@@ -172,11 +172,23 @@ def proof_attrs(marks: Sequence[ProofMarks], on: Sequence[bool]) -> tuple[str, s
     return first, f' data-proofs="{indices}"'
 
 
+def outline_mark(count: int, width: int) -> str:
+    """F18-T4 (R5): a small numbered tab on a pill's top right corner when the node carries
+    informal outlines (annexes, D-31); its panel says which skeleton followed each."""
+    if count <= 0:
+        return ""
+    return (
+        f'<g class="outline-mark" transform="translate({width - 8},-7)">'
+        f'<rect width="15" height="14" rx="3"/><text x="7.5" y="10.5">{count}</text></g>'
+    )
+
+
 def svg(
     nodes: list[dict[str, Any]],
     *,
     href: dict[str, str],
     proofs: Sequence[ProofMarks] = (),
+    outlines: dict[str, int] | None = None,
 ) -> str:
     """The SVG markup; ``href`` maps node ids to page paths (every id must be present). With
     ``proofs`` (F18-T2) every node and edge says which proofs of the target it is on."""
@@ -215,7 +227,8 @@ def svg(
             f'<circle cx="16" cy="{NODE_H // 2}" r="4"/>'
             f'<text x="28" y="{NODE_H // 2 + 5}">{escape(label)}</text>'
             f'<circle class="halo" cx="{p.w - 14}" cy="{NODE_H // 2}" r="3"/>'
-            f"<title>{escape(p.node_id)}: {escape(p.status)}</title></g></a>"
+            + outline_mark((outlines or {}).get(p.node_id, 0), p.w)
+            + f"<title>{escape(p.node_id)}: {escape(p.status)}</title></g></a>"
         )
     parts.append("</svg>")
     return "\n".join(parts)

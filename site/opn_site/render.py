@@ -247,6 +247,14 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "use line, import Nodes.«id».Proof (D-12 v3.25)",
     ),
     (
+        "outline",
+        "has an outline",
+        "A numbered tab: how many informal outlines (annexes) the statement carries. Its panel "
+        "lists each one, which merged skeleton followed it and the statements that skeleton "
+        "made, or that none has. An outline is the contributor's own text, unverified.",
+        "annex (D-31)",
+    ),
+    (
         "proposed-for",
         "proposed for",
         "A dotted line from a crux statement to the statement its proposer wrote it for. A "
@@ -876,6 +884,8 @@ class Renderer:
         """F18-T2, T6: the proof drawing's keys and the pointer's, each only when the drawing can
         show it."""
         pointed = ("proposed-for",) if dag.pointers(tv.graph["nodes"]) else ()
+        if any(nv.annexes for nv in tv.nodes.values()):
+            pointed = ("outline", *pointed)
         proofs = target_proofs(tv)
         if not proofs:
             return pointed
@@ -952,6 +962,84 @@ class Renderer:
                 edges.update((str(d), node_id) for d in rests if str(d) in closure)
             out.append(dag.ProofMarks(nodes=closure, edges=frozenset(edges)))
         return out
+
+    def outlines_block(self, tv: TargetView, nv: NodeView) -> str:
+        """F18-T4, T5 (R5, R7): the node's outlines (annexes, D-31) — each followed by the merged
+        skeletons that cite it, with the holes they made, or not followed — and, for a stepped
+        outline, the checklist of its steps against the nodes named after them. The title line
+        and the summaries are contributor text: escaped and labelled (C9, D-28)."""
+        if not nv.annexes:
+            return ""
+        decomps = list(nv.graph_entry.get("decompositions") or [])
+        items = []
+        for a in nv.annexes:
+            digest = Path(a.path).stem
+            title = next(
+                (line.strip().lstrip("#").strip() for line in a.text.splitlines() if line.strip()),
+                "untitled",
+            )[:140]
+            by = f" by {esc(a.author)}" if a.author else ""
+            following = [d for d in decomps if d.get("annex") == digest]
+            if following:
+                runs = "; ".join(
+                    f"{self.file_link(f'{Path(nv.statement_path).parent.as_posix()}/{d["partial"]}', label=Path(d['partial']).name)}"
+                    + (
+                        ": " + ", ".join(self.hole_link(tv, h) for h in d["holes"])
+                        if d["holes"]
+                        else ""
+                    )
+                    for d in following
+                )
+                state = f"followed by {runs}"
+            else:
+                state = "not followed by any merged decomposition"
+            items.append(
+                f'<li class="outline" data-annex="{esc(digest)}"><span class="untrusted-title">'
+                f"{esc(title)}</span>{by} — {state}</li>"
+            )
+        out = (
+            '<div class="panel-outlines"><span class="kicker">Outlines</span>'
+            '<p class="cue">Untrusted contributor text (D-31): an outline is an informal '
+            "argument, not a proof. The full text is on the statement&rsquo;s record page.</p>"
+            f'<ul class="outlines">{"".join(items)}</ul>'
+        )
+        outline = nv.graph_entry.get("outline")
+        if isinstance(outline, dict) and outline.get("steps"):
+            steps = []
+            for s in outline["steps"]:
+                node = s.get("node")
+                where = (
+                    self.hole_link(tv, {"name": "", "node": node}, named=False)
+                    if node
+                    else "carried by the assembly"
+                )
+                steps.append(
+                    f"<li><code>{esc(s['step'])}</code> "
+                    f'<span class="untrusted-title">{esc(s["summary"])}</span> — {where}</li>'
+                )
+            out += (
+                '<p class="cue">The stepped outline this statement&rsquo;s skeleton followed, '
+                "step by step:</p>"
+                f'<ol class="outline-steps">{"".join(steps)}</ol>'
+                '<p class="cue">A matching name shows the structure was followed, not that the '
+                "Lean says what the prose says (D-31 v3.26).</p>"
+            )
+        return out + "</div>"
+
+    def hole_link(self, tv: TargetView, hole: dict[str, Any], *, named: bool = True) -> str:
+        """A hole as the outline names it: its name, the node it became (an in-page link that
+        selects the node's panel) and that node's state with its dot; a hole the tree does not
+        hold says so."""
+        name = f"<code>{esc(hole['name'])}</code> → " if named and hole.get("name") else ""
+        node_id = hole.get("node")
+        nv = tv.nodes.get(str(node_id)) if node_id else None
+        if nv is None:
+            return f"{name}no statement on the record"
+        state = self.node_state(nv)
+        return (
+            f'{name}<a href="#node={esc(nv.node_id)}">{esc(nv.node_id)}</a> '
+            f"({self.dot(self.dot_state(state))}{esc(self.state_label(state))})"
+        )
 
     def proof_row(self, tv: TargetView, nv: NodeView) -> str:
         """F18-T2: the panel's line saying which proofs a statement is on, when there are any."""
@@ -1406,7 +1494,8 @@ class Renderer:
             else n
             for n in tv.graph["nodes"]
         ]
-        svg = dag.svg(drawn, href=href, proofs=self.proof_marks(tv))
+        outlines = {nid: len(nv.annexes) for nid, nv in tv.nodes.items() if nv.annexes}
+        svg = dag.svg(drawn, href=href, proofs=self.proof_marks(tv), outlines=outlines)
         panels = "".join(self.statement_panel(tv, nv) for nv in self.ordered_nodes(tv))
         n = len(tv.nodes)
         if tv.approaches:
@@ -1640,6 +1729,7 @@ class Renderer:
             note=note,
             revision=self.revision_note(tid, nv, in_page=True),
             closing=self.closing_note(tv, nv),
+            outlines=self.outlines_block(tv, nv),
             statement=esc(declaration_only(nv.statement)),
             hash=esc(str(e.get("statement_hash", ""))[:12]),
             origin=esc(origin),

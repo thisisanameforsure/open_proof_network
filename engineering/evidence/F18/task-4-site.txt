@@ -1,0 +1,3 @@
+36 passed in 2.91s
+
+Screenshots: task-4-live-graph-{desktop,phone}.png and task-4-live-panel-{desktop,phone}.png, the live graph at origin/main 7f207c7 with products re-rendered by this branch in a scratch worktree; erdos-1050--h1-v2 selected. scrollWidth 1440 at 1440 and 390 at 390. Five outlines on h1-v2: two followed (hT -> h1, circular; integrality -> h2, proved), three not followed, as the record says (the third skeleton, hden/hrem, cited none).

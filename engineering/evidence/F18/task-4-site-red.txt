@@ -1,0 +1,79 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+_______________ test_a_node_with_outlines_is_marked_on_the_graph _______________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-302/test_a_node_with_outlines_is_m0')
+
+    def test_a_node_with_outlines_is_marked_on_the_graph(tmp_path: Path) -> None:
+        page = page_of(two_outlines(tmp_path))
+        pill = re.search(rf'<g class="node[^"]*" data-node="{ROOT_NODE}".*?</g></a>', page, re.S)
+        assert pill is not None
+>       assert re.search(r'<g class="outline-mark"[^>]*>.*?<text[^>]*>2</text>', pill.group(0), re.S)
+E       assert None
+E        +  where None = <function search at 0x107ae8040>('<g class="outline-mark"[^>]*>.*?<text[^>]*>2</text>', '<g class="node status-proved on-proof" data-node="and-swap-reassoc" data-proofs="0" transform="translate(211,16)"><re...3">and-swap-reassoc</text><circle class="halo" cx="157" cy="18" r="3"/><title>and-swap-reassoc: proved</title></g></a>', re.DOTALL)
+E        +    where <function search at 0x107ae8040> = re.search
+E        +    and   '<g class="node status-proved on-proof" data-node="and-swap-reassoc" data-proofs="0" transform="translate(211,16)"><re...3">and-swap-reassoc</text><circle class="halo" cx="157" cy="18" r="3"/><title>and-swap-reassoc: proved</title></g></a>' = <built-in method group of re.Match object at 0x109d575c0>(0)
+E        +      where <built-in method group of re.Match object at 0x109d575c0> = <re.Match object; span=(7273, 7591), match='<g class="node status-proved on-proof" data-node=>.group
+E        +    and   re.DOTALL = re.S
+
+site/tests/test_outline_links.py:58: AssertionError
+__________ test_the_panel_says_which_outline_was_followed_and_by_what __________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-302/test_the_panel_says_which_outl0')
+
+    def test_the_panel_says_which_outline_was_followed_and_by_what(tmp_path: Path) -> None:
+        body = panel(page_of(two_outlines(tmp_path)), ROOT_NODE)
+        followed = re.search(rf'<li class="outline" data-annex="{CITED}">(.*?)</li>', body, re.S)
+>       assert followed is not None
+E       assert None is not None
+
+site/tests/test_outline_links.py:66: AssertionError
+______________ test_outline_text_is_contributor_text_and_escaped _______________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-302/test_outline_text_is_contribut0')
+
+    def test_outline_text_is_contributor_text_and_escaped(tmp_path: Path) -> None:
+        body = panel(page_of(two_outlines(tmp_path)), ROOT_NODE)
+        assert "<script>alert(1)</script>" not in body
+>       assert "Another route &lt;script&gt;" in body
+E       assert 'Another route &lt;script&gt;' in '<div class="card panel" data-node="and-swap-reassoc">\n<span class="kicker">Selected statement</span>\n<span class="p...ails>\n<a class="btn btn-primary btn-block" href="/nodes/propositional/and-swap-reassoc/">View the proof →</a>\n</div>'
+
+site/tests/test_outline_links.py:77: AssertionError
+____________________ test_a_stepped_outline_is_a_checklist _____________________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-302/test_a_stepped_outline_is_a_ch0')
+
+    def test_a_stepped_outline_is_a_checklist(tmp_path: Path) -> None:
+        root = copy_graph(tmp_path, publish=True)
+        add_hole(root, HOLE_IDS[0], "hden")
+        digest = outline_annex(root, "hden", "combine")
+        merged_partial(root, 7, ["hden"], annex=None)
+        partial = nodes_dir(root) / ROOT_NODE / "attempts" / "20260920T000000Z-alice-partial.lean"
+        partial.write_text(f"theorem x : True := by\n  -- annex: {digest}\n  sorry\n")
+        body = panel(page_of(root), ROOT_NODE)
+        steps = re.search(r'<ol class="outline-steps">(.*?)</ol>', body, re.S)
+>       assert steps is not None
+E       assert None is not None
+
+site/tests/test_outline_links.py:90: AssertionError
+_____________________ test_the_key_names_the_outline_mark ______________________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-302/test_the_key_names_the_outline0')
+
+    def test_the_key_names_the_outline_mark(tmp_path: Path) -> None:
+        page = page_of(two_outlines(tmp_path))
+        key = re.search(r'<div class="dag-legend">(.*?)</div>', page, re.S)
+>       assert key is not None and "has an outline" in key.group(1)
+E       assert (<re.Match object; span=(3359, 5584), match='<div class="dag-legend"><span class="term" tabind> is not None and 'has an outline' in '<span class="term" tabindex="0"><span class="dot dot-proved"></span>proved<span class="term-card" role="tooltip">A pr... add statements the proof did not need.<span class="proto">protocol: proofs[].used null (F08-T27)</span></span></span>')
+E        +  where '<span class="term" tabindex="0"><span class="dot dot-proved"></span>proved<span class="term-card" role="tooltip">A pr... add statements the proof did not need.<span class="proto">protocol: proofs[].used null (F08-T27)</span></span></span>' = <built-in method group of re.Match object at 0x109dc3c70>(1)
+E        +    where <built-in method group of re.Match object at 0x109dc3c70> = <re.Match object; span=(3359, 5584), match='<div class="dag-legend"><span class="term" tabind>.group
+
+site/tests/test_outline_links.py:101: AssertionError
+=========================== short test summary info ============================
+FAILED site/tests/test_outline_links.py::test_a_node_with_outlines_is_marked_on_the_graph
+FAILED site/tests/test_outline_links.py::test_the_panel_says_which_outline_was_followed_and_by_what
+FAILED site/tests/test_outline_links.py::test_outline_text_is_contributor_text_and_escaped
+FAILED site/tests/test_outline_links.py::test_a_stepped_outline_is_a_checklist
+FAILED site/tests/test_outline_links.py::test_the_key_names_the_outline_mark
+5 failed in 14.87s

@@ -122,18 +122,23 @@ def test_every_output_class_has_a_key_entry() -> None:
     from opn_site import dag  # noqa: PLC0415
 
     css = (Path(render.__file__).parent / "static" / "site.css").read_text(encoding="utf-8")
-    source = inspect.getsource(dag.proof_attrs) + inspect.getsource(dag.svg)
+    source = (
+        inspect.getsource(dag.proof_attrs)
+        + inspect.getsource(dag.svg)
+        + inspect.getsource(dag.outline_mark)
+    )
     drawn = {
         "on-proof": "on-proof",
         "off-proof": "not-needed",
         "edge use": "use",
         "edge proposed": "proposed-for",
+        "outline-mark": "outline",
     }
     for cls, key in drawn.items():
         assert cls in source, f"dag no longer draws {cls}; update this guard"
         assert key in render.GLOSSARY_BY_KEY, key
         assert f".dot-{key}" in css, key
     keys_source = inspect.getsource(render.Renderer.proof_legend)
-    for key in ("on-proof", "not-needed", "use", "unmeasured", "proposed-for"):
+    for key in ("on-proof", "not-needed", "use", "unmeasured", "proposed-for", "outline"):
         assert f'"{key}"' in keys_source, key
         assert key in render.GLOSSARY_BY_KEY and f".dot-{key}" in css, key

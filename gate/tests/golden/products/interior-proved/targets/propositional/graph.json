@@ -6,6 +6,7 @@
       "deps": [],
       "node_id": "and-reassoc",
       "origin": "authored",
+      "outline": null,
       "proof_commit": "4444444444444444444444444444444444444444",
       "proofs": [
         {
@@ -36,6 +37,7 @@
       ],
       "node_id": "and-swap-reassoc",
       "origin": "authored",
+      "outline": null,
       "proof_commit": null,
       "proofs": [],
       "proposed_for": null,
@@ -53,6 +55,7 @@
       "deps": [],
       "node_id": "tutorial-and-swap",
       "origin": "authored",
+      "outline": null,
       "proof_commit": "4444444444444444444444444444444444444444",
       "proofs": [
         {

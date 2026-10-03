@@ -262,6 +262,13 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .dag .edge.on-proof { stroke: var(--accent); stroke-width: 2; }
 .dag .edge.off-proof { stroke-dasharray: 3 4; }
 .dag .edge.use { stroke-dasharray: 7 4; }
+.dag .outline-mark rect { fill: var(--bg); stroke: var(--accent-300); stroke-width: 1; }
+.dag .outline-mark text { fill: var(--accent-300); font-family: var(--sans, inherit); font-size: 10px; text-anchor: middle; }
+.panel-outlines { width: 100%; font-size: 13px; }
+.panel-outlines ul, .panel-outlines ol { margin: var(--s2) 0; padding-left: 1.2em; line-height: 1.6; }
+.panel-outlines li { margin-bottom: var(--s2); overflow-wrap: anywhere; }
+.panel-outlines .untrusted-title { color: var(--n300); font-style: italic; }
+.dot-outline { border-radius: 3px; border-color: var(--accent-300); }
 .dag .edge.proposed { stroke: var(--accent-300); stroke-dasharray: 1.5 4; stroke-linecap: round; }
 .dag-caption { position: absolute; left: var(--s6); bottom: var(--s4); font-size: 11.5px; color: var(--n400); }
 .panels { display: flex; flex-direction: column; }
