@@ -204,7 +204,7 @@ def test_the_attestation_records_why_nobody_was_asked(kind: str) -> None:
     review = postmerge.review_block(kind)  # type: ignore[arg-type]
     assert review == {"kind": kind, "reviewer": None, "reference": None}
     doc = postmerge.record_step9(samples.attestation(), merge_commit="3" * 40, review=review)
-    assert doc["schema"] == "attestation/v5" and doc["review"]["kind"] == kind
+    assert doc["schema"] == "attestation/v6" and doc["review"]["kind"] == kind
     for extra in ({"reviewer": "someone"}, {"reference": "fidelity/root-1.yaml"}):
         with pytest.raises(ValueError, match="not asked"):
             postmerge.review_block(kind, **extra)  # type: ignore[arg-type]
@@ -216,6 +216,7 @@ def test_v4_records_are_still_read() -> None:
         "attestation/v4" in bounce.ACCEPTED_SCHEMAS and "attestation/v5" in bounce.ACCEPTED_SCHEMAS
     )
     old = {**samples.attestation(), "schema": "attestation/v4"}
+    del old["footprint"]  # v6 (F08-T27)
     assert schemas.violations(old, "attestation/v4") == []
     assert schemas.violations(
         {**old, "review": postmerge.review_block("intermediate")}, "attestation/v4"

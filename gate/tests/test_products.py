@@ -312,7 +312,7 @@ def test_products_of_the_fixture(tmp_path: Path) -> None:
     assert idx["node_counts"]["ready"] == 2 and idx["node_counts"]["blocked"] == 1
     info = loads(prod, "info.json")
     assert info["protocol_version"] == "3.25"
-    assert info["schemas"]["attestation"] == [1, 2, 3, 4, 5] and info["schemas"]["meta"] == [
+    assert info["schemas"]["attestation"] == [1, 2, 3, 4, 5, 6] and info["schemas"]["meta"] == [
         1,
         2,
         3,

@@ -1,0 +1,119 @@
+warning: `VIRTUAL_ENV=/Users/mikehiggins/Desktop/repos/open_proof_network/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+FFFFFF                                                                   [100%]
+=================================== FAILURES ===================================
+_______ test_a_proof_that_uses_one_of_two_declared_deps_records_the_one ________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-209/test_a_proof_that_uses_one_of_0')
+
+    def test_a_proof_that_uses_one_of_two_declared_deps_records_the_one(tmp_path: Path) -> None:
+        """The erdos-1050 shape in miniature: two declared, one used — the record names the one."""
+        fake = FakeToolchain(
+            constants=used_constants_result([*LIBRARY_CONSTANTS, ("OpnProp.and_swap", A_MOD)])
+        )
+        ctx = make_context(tmp_path, node_id=ROOT, toolchain=fake)
+        verdict = run_to_eight(ctx)
+        assert verdict.ok, verdict
+        doc = attest(ctx, verdict)
+        assert schemas.violations(doc) == []
+>       assert doc.get("footprint") == {"nodes": [A]}
+E       AssertionError: assert None == {'nodes': ['tutorial-and-swap']}
+E        +  where None = <built-in method get of dict object at 0x10992aac0>('footprint')
+E        +    where <built-in method get of dict object at 0x10992aac0> = {'schema': 'attestation/v5', 'graph_id': 'propositional', 'node_id': 'and-swap-reassoc', 'statement_hash': '1fd9af9053c56877f4e7ec2ad69aa16602d39e826259da3878a8cc30a3b6791c', ...}.get
+
+gate/tests/test_footprint.py:48: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:191 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:191 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+_______________ test_a_proof_that_uses_both_records_both_sorted ________________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-209/test_a_proof_that_uses_both_re0')
+
+    def test_a_proof_that_uses_both_records_both_sorted(tmp_path: Path) -> None:
+        fake = FakeToolchain(
+            constants=used_constants_result(
+                [*LIBRARY_CONSTANTS, ("OpnProp.and_reassoc", B_MOD), ("OpnProp.and_swap", A_MOD)]
+            )
+        )
+        ctx = make_context(tmp_path, node_id=ROOT, toolchain=fake)
+        verdict = run_to_eight(ctx)
+        assert verdict.ok, verdict
+>       assert attest(ctx, verdict).get("footprint") == {"nodes": sorted([A, B])}
+E       AssertionError: assert None == {'nodes': ['and-reassoc', 'tutorial-and-swap']}
+E        +  where None = <built-in method get of dict object at 0x109938280>('footprint')
+E        +    where <built-in method get of dict object at 0x109938280> = {'schema': 'attestation/v5', 'graph_id': 'propositional', 'node_id': 'and-swap-reassoc', 'statement_hash': '1fd9af9053c56877f4e7ec2ad69aa16602d39e826259da3878a8cc30a3b6791c', ...}.get
+E        +      where {'schema': 'attestation/v5', 'graph_id': 'propositional', 'node_id': 'and-swap-reassoc', 'statement_hash': '1fd9af9053c56877f4e7ec2ad69aa16602d39e826259da3878a8cc30a3b6791c', ...} = attest(RunContext(graph_root=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest...d': ['tutorial-and-swap', 'and-reassoc'], 'used': ['and-reassoc', 'tutorial-and-swap'], 'unused': [], 'warnings': []}}), Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...d': ['tutorial-and-swap', 'and-reassoc'], 'used': ['and-reassoc', 'tutorial-and-swap'], 'unused': [], 'warnings': []}}))
+
+gate/tests/test_footprint.py:60: AssertionError
+_________ test_a_proof_with_no_dependencies_records_an_empty_footprint _________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-209/test_a_proof_with_no_dependenc0')
+
+    def test_a_proof_with_no_dependencies_records_an_empty_footprint(tmp_path: Path) -> None:
+        """Measured and empty is a fact; it is not the same as not measured."""
+        ctx = make_context(tmp_path)  # the tutorial node: no deps, library constants only
+        verdict = pipeline.run_steps(ctx)
+        assert verdict.ok, verdict
+>       assert attest(ctx, verdict).get("footprint") == {"nodes": []}
+E       AssertionError: assert None == {'nodes': []}
+E        +  where None = <built-in method get of dict object at 0x109900b00>('footprint')
+E        +    where <built-in method get of dict object at 0x109900b00> = {'schema': 'attestation/v5', 'graph_id': 'propositional', 'node_id': 'tutorial-and-swap', 'statement_hash': '749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e', ...}.get
+E        +      where {'schema': 'attestation/v5', 'graph_id': 'propositional', 'node_id': 'tutorial-and-swap', 'statement_hash': '749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e', ...} = attest(RunContext(graph_root=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest... p ∧ q', 'witness': '∃ p q, p ∧ q', 'axioms': []}, 'deps': {'declared': [], 'used': [], 'unused': [], 'warnings': []}}), Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2... p ∧ q', 'witness': '∃ p q, p ∧ q', 'axioms': []}, 'deps': {'declared': [], 'used': [], 'unused': [], 'warnings': []}}))
+
+gate/tests/test_footprint.py:68: AssertionError
+________ test_a_run_that_never_reached_step_eight_records_no_footprint _________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-209/test_a_run_that_never_reached_0')
+
+    def test_a_run_that_never_reached_step_eight_records_no_footprint(tmp_path: Path) -> None:
+        """Not measured is ``None``, never an empty set (C7: a missing measurement is not zero)."""
+        fake = FakeToolchain(axiom_result=AxiomResult(ok=True, axioms=frozenset({"sorryAx"})))
+        ctx = make_context(tmp_path, node_id=ROOT, toolchain=fake)
+        verdict = run_to_eight(ctx)
+        assert verdict.first_failing_step == 5, verdict
+        doc = attest(ctx, verdict)
+>       assert "footprint" in doc and doc["footprint"] is None
+E       AssertionError: assert ('footprint' in {'schema': 'attestation/v5', 'graph_id': 'propositional', 'node_id': 'and-swap-reassoc', 'statement_hash': '1fd9af9053c56877f4e7ec2ad69aa16602d39e826259da3878a8cc30a3b6791c', ...})
+
+gate/tests/test_footprint.py:78: AssertionError
+____________ test_a_refused_footprint_is_not_recorded_as_the_proofs ____________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-209/test_a_refused_footprint_is_no0')
+
+    def test_a_refused_footprint_is_not_recorded_as_the_proofs(tmp_path: Path) -> None:
+        """An undeclared dependency fails step 8: the attestation is a failure's, and a closure
+        must never follow a set the gate refused."""
+        fake = FakeToolchain(
+            constants=used_constants_result(
+                [*LIBRARY_CONSTANTS, ("OpnProp.and_swap", A_MOD), ("OpnProp.and_reassoc", B_MOD)]
+            )
+        )
+        ctx = make_context(tmp_path, node_id=ROOT, toolchain=fake)
+        meta = node_dir(ctx) / "META.yaml"
+        meta.write_text(re.sub(r"^deps: .*$", f"deps: [{A}]", meta.read_text(), flags=re.M))
+        verdict = run_to_eight(ctx)
+        assert verdict.first_failing_step == 8
+>       assert attest(ctx, verdict)["footprint"] is None
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'footprint'
+
+gate/tests/test_footprint.py:94: KeyError
+_ test_the_record_is_the_next_attestation_version_and_the_gate_still_reads_the_old _
+
+    def test_the_record_is_the_next_attestation_version_and_the_gate_still_reads_the_old() -> None:
+>       assert attestation.SCHEMA == "attestation/v6"
+E       AssertionError: assert 'attestation/v5' == 'attestation/v6'
+E         
+E         - attestation/v6
+E         ?              ^
+E         + attestation/v5
+E         ?              ^
+
+gate/tests/test_footprint.py:98: AssertionError
+=========================== short test summary info ============================
+FAILED gate/tests/test_footprint.py::test_a_proof_that_uses_one_of_two_declared_deps_records_the_one
+FAILED gate/tests/test_footprint.py::test_a_proof_that_uses_both_records_both_sorted
+FAILED gate/tests/test_footprint.py::test_a_proof_with_no_dependencies_records_an_empty_footprint
+FAILED gate/tests/test_footprint.py::test_a_run_that_never_reached_step_eight_records_no_footprint
+FAILED gate/tests/test_footprint.py::test_a_refused_footprint_is_not_recorded_as_the_proofs
+FAILED gate/tests/test_footprint.py::test_the_record_is_the_next_attestation_version_and_the_gate_still_reads_the_old
+6 failed in 2.39s

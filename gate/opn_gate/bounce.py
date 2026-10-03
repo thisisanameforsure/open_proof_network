@@ -26,6 +26,7 @@ ACCEPTED_SCHEMAS: tuple[str, ...] = (
     "attestation/v3",
     "attestation/v4",
     "attestation/v5",
+    "attestation/v6",
 )
 
 MARKER = "opn-precheck-attestation"

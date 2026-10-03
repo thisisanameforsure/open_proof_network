@@ -19,12 +19,13 @@ from opn_gate.pipeline import Verdict
 from opn_gate.steps.base import RunContext
 from opn_gate.toolchain import ResolvedToolchain
 
-SCHEMA = "attestation/v5"  # v5 (F07-T24, D-4 v3.20): review kinds intermediate and calibration
+SCHEMA = "attestation/v6"  # v6 (F08-T27, D-12 v3.25): the footprint step 8 read
 #: One list, defined in ``bounce`` because this module imports that one (F07-T5).
 ACCEPTED_SCHEMAS: tuple[str, ...] = bounce.ACCEPTED_SCHEMAS
 MASKED_FIELDS: tuple[str, ...] = ("runner", "merge_commit", "signature")
 TRUST_KERNEL = "kernel"
 TRUST_COMPILER = "compiler"
+DEPS_STEP = 8  # D-4 step 8, whose reading of the term is the footprint
 Clock = Callable[[], datetime]
 
 
@@ -91,6 +92,10 @@ def build(  # noqa: PLR0913 — one argument per fact the record carries
         "model_and_tooling": submissionmod.model_and_tooling(submission),
         # F02-R9: a function of the checked tree (the waiver step 5 accepted), never of the run.
         "trust_base": TRUST_COMPILER if verdict.data.get("waiver") else TRUST_KERNEL,
+        # F08-T27 (Q38): what the proof term rests on, as step 8 read it — the one record from
+        # which a closure by use follows. Only a passing step 8 measures it; anything else is
+        # "not measured" (None), never an empty set.
+        "footprint": footprint_of(verdict),
         "signature": {
             "kind": "none",
             "key_id": None,
@@ -99,6 +104,16 @@ def build(  # noqa: PLR0913 — one argument per fact the record carries
         },
     }
     return schemas.validate(doc, SCHEMA)
+
+
+def footprint_of(verdict: Verdict) -> dict[str, list[str]] | None:
+    """F08-T27: the nodes the proof term draws on, when step 8 passed; ``None`` otherwise."""
+    if not any(s.step == DEPS_STEP and s.result == "pass" for s in verdict.steps):
+        return None
+    deps = verdict.data.get("deps")
+    if not isinstance(deps, dict):
+        return None
+    return {"nodes": sorted(str(n) for n in deps.get("used") or [])}
 
 
 def submitter_of(submission: dict[str, Any] | None) -> str | None:

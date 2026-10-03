@@ -23,6 +23,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "attestation/v3",
         "attestation/v4",
         "attestation/v5",
+        "attestation/v6",
         "claims/v1",
         "context/v1",
         "context/v2",
@@ -281,7 +282,7 @@ def test_attestation_v3_trust_base() -> None:
     schemas.validate(doc)
     assert schemas.violations(samples.attestation(trust_base="hardware"))
     older = samples.attestation(schema="attestation/v2")
-    for gone in ("trust_base", "submitter", "model_and_tooling"):
+    for gone in ("trust_base", "submitter", "model_and_tooling", "footprint"):
         older.pop(gone, None)
     schemas.validate(older)  # a v2 record still validates as v2
     assert schemas.violations(samples.attestation(schema="attestation/v2"))  # v2 has no v3/v4 keys
