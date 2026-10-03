@@ -1,0 +1,150 @@
+# F18-T7 (F08-T27): measure what each merged proof's term uses, for merges attested before
+# attestation/v6, and hand the curator the caches.
+#
+# A v6 attestation keeps step 8's footprint; every merge before it does not, and an attestation
+# is never edited (D-34). `opn-gate footprints` measures them once more by the same steps (1, 2,
+# 4 and 8) and writes each target's .footprint-cache.json, keyed by artifact hash, which the
+# products read where an attestation has no footprint. It is run once, after the re-pin that
+# carries F08-T27, and again only if a cache is lost (everything here is rebuildable, D-35).
+#
+# Why here and not on a laptop: a Mathlib target's step-3 image is 3.5 GiB compressed and the
+# founder's machine has room for one build at most (engineering/CLAUDE.md, 2026-09-12).
+#
+# Why in the `network` repository: it has no authority over any graph (D-35). It clones the graph
+# read-only, measures in the sandbox, and uploads the files as an artifact. Committing them with
+# the re-rendered products is the curator's act, by hand, after reading them.
+#
+# Contributor Lean runs only in the step-3 image each target pins by digest (C9, D-4 step 3) —
+# pulled, never built, so a wrong pin fails loudly instead of measuring something else.
+#
+# No secret and no write permission (C8): `contents: read`, nothing else; the graph is public.
+name: footprint backfill
+
+on:
+  workflow_dispatch:
+    inputs:
+      graph_ref:
+        description: "the graph commit to measure (default: main's tip)"
+        required: false
+        type: string
+      target:
+        description: "measure only this target id (default: every target)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  GRAPH_REPO: https://github.com/thisisanameforsure/open_proof_network_graph
+
+jobs:
+  measure:
+    name: footprints of the merges before attestation/v6
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: network
+
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          version: "0.12.10"
+          enable-cache: true
+
+      - name: Clone the graph (read-only; D-35)
+        env:
+          REF: ${{ inputs.graph_ref }}
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none "$GRAPH_REPO" graph
+          if [ -n "$REF" ]; then git -C graph checkout --quiet --detach "$REF"; fi
+          echo "measuring graph $(git -C graph rev-parse HEAD)"
+
+      - name: Make room for the Mathlib image
+        run: |
+          set -euo pipefail
+          df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h / | tail -1
+
+      - name: Measure every target
+        env:
+          ONLY: ${{ inputs.target }}
+          PYTHONPATH: network/gate
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          mapfile -t targets < <(
+            python3 - "$ONLY" <<'PY'
+          import json, sys
+          only = (sys.argv[1] or "").strip()
+          doc = json.load(open("graph/targets/index.json"))
+          for row in doc.get("targets") or []:
+              tid = row.get("target_id")
+              if tid and (not only or tid == only):
+                  print(tid)
+          PY
+          )
+          if [ "${#targets[@]}" -eq 0 ]; then
+            echo "::error::no targets to measure (is the target a live id?)"
+            exit 1
+          fi
+          commit="$(git -C graph rev-parse HEAD)"
+          {
+            echo "## Footprint backfill"
+            echo
+            echo "Graph at \`${commit:0:12}\`, network at \`$(git -C network rev-parse --short HEAD)\`."
+            echo
+            echo "| target | measured | failed |"
+            echo "| --- | --- | --- |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          failures=0
+          mkdir -p caches
+          for tid in "${targets[@]}"; do
+            image="$(python3 -c 'import json,sys; print(json.load(open(f"graph/targets/{sys.argv[1]}/gate-spec.json")).get("devcontainer_ref") or "")' "$tid")"
+            if [ -z "$image" ]; then
+              echo "| \`$tid\` | &mdash; | its gate-spec.json pins no image |" >> "$GITHUB_STEP_SUMMARY"
+              failures=$((failures + 1))
+              continue
+            fi
+            docker pull --quiet "$image"
+            echo "::group::footprints $tid"
+            set +e
+            uv run --frozen --project network python -m opn_gate.cli footprints \
+              --graph graph --commit "$commit" --target "$tid" \
+              --image "$image" --no-build --out "out/$tid" > "summary-$tid.json" 2> "summary-$tid.err"
+            code=$?
+            set -e
+            cat "summary-$tid.json" "summary-$tid.err" || true
+            echo "::endgroup::"
+            if [ -f "out/$tid/.footprint-cache.json" ]; then
+              mkdir -p "caches/targets/$tid"
+              cp "out/$tid/.footprint-cache.json" "caches/targets/$tid/.footprint-cache.json"
+            fi
+            row="$(python3 -c 'import json,sys
+          try: d = json.load(open(sys.argv[1]))
+          except Exception: print("| `%s` | error | see the log |" % sys.argv[2]); raise SystemExit
+          print("| `%s` | %d | %d |" % (sys.argv[2], d["measured"], len(d["failed"])))' "summary-$tid.json" "$tid")"
+            echo "$row" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$code" -ne 0 ]; then failures=$((failures + 1)); fi
+            # One target's image at a time: the runner's disk holds one Mathlib image.
+            docker image rm --force "$image" > /dev/null 2>&1 || true
+          done
+          if [ "$failures" -gt 0 ]; then
+            echo "::error::$failures target(s) had a proof that could not be measured; the caches hold every one that was"
+            exit 1
+          fi
+
+      - name: Keep the caches and the summaries
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: footprint-caches
+          path: |
+            caches/
+            summary-*.json
+            summary-*.err
+          include-hidden-files: true
+          if-no-files-found: warn
