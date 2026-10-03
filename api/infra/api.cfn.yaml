@@ -42,6 +42,10 @@ Parameters:
     Type: String
     Default: ""
     Description: the network commit from which the gate reads use lines (F08-T26, Q39); a target pinned at or after it takes them, and empty means none does
+  AnnexStepsFrom:
+    Type: String
+    Default: ""
+    Description: the network commit from which the gate reads stepped annexes (F18-T5, annex/v2); a target pinned at or after it takes them, and empty means none does
   ApiDomain:
     Type: String
     Default: ""
@@ -197,6 +201,8 @@ Resources:
           # F08-T26: a target's network pin is compared by ancestry in this repository
           OPN_API_NETWORK_REPO: !Ref GitHubRepository
           OPN_API_USES_FROM: !Ref UsesFrom
+          # F18-T5: a stepped annex (annex/v2) is taken where the target's pin descends from this
+          OPN_API_ANNEX_STEPS_FROM: !Ref AnnexStepsFrom
           # R3: the OAuth redirect_uri must match the address the browser actually used.
           OPN_API_PUBLIC_URL: !If
             - HasDomain
