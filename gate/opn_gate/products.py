@@ -376,6 +376,69 @@ def target_facts(
     )
 
 
+def target_proofs(tg: TargetGraph) -> list[dict[str, Any]]:
+    """F18-R1, R2: every way the target is proved, each with its closure by use.
+
+    The root's merged proofs come first (``Proof.lean``, then its alternates), then each proved
+    ``resolves`` variant's, the variants in the order their proofs were attested — the record's
+    order, which ranks nothing (D-25). A ``partial`` or ``related`` variant proves no target.
+    """
+    sources: list[tuple[str, str | None]] = []
+    if tg.statuses[tg.root] == "proved":
+        sources.append((tg.root, None))
+    variants = [
+        n
+        for n in tg.order
+        if tg.nodes[n].relation == "resolves" and tg.statuses[n] == "proved" and tg.nodes[n].proofs
+    ]
+    variants.sort(key=lambda n: (tg.nodes[n].proofs[0].attestation, n))
+    sources.extend((v, "resolves") for v in variants)
+    out: list[dict[str, Any]] = []
+    for node_id, relation in sources:
+        for proof in tg.nodes[node_id].proofs:
+            closure, unmeasured = proof_closure(tg, node_id, proof)
+            out.append(
+                {
+                    "node_id": node_id,
+                    "relation": relation,
+                    "kind": proof.kind,
+                    "path": proof.path,
+                    "artifact_hash": proof.artifact_hash,
+                    "merge_commit": proof.merge_commit,
+                    "submitter": proof.submitter,
+                    "closure": closure,
+                    "unmeasured": unmeasured,
+                }
+            )
+    return out
+
+
+def proof_closure(
+    tg: TargetGraph, node_id: str, proof: graphmod.ProofRecord
+) -> tuple[list[str], list[str]]:
+    """F18-R2: ``proof``'s node and every node its term rests on — this proof's ``used`` first,
+    then each node's first proof's (``NodeFacts.rests_on``) — and the nodes of it whose reading
+    nothing measured, where the closure followed declared dependencies instead."""
+    node = tg.nodes[node_id]
+    seen = {node_id}
+    unmeasured: set[str] = set()
+    if proof.used is None:
+        unmeasured.add(node_id)
+        stack = [*node.deps, *node.uses]
+    else:
+        stack = list(proof.used)
+    while stack:
+        current = stack.pop()
+        if current in seen or current not in tg.nodes:
+            continue
+        seen.add(current)
+        facts = tg.nodes[current]
+        if facts.proofs and facts.proofs[0].used is None:
+            unmeasured.add(current)
+        stack.extend(facts.rests_on)
+    return sorted(seen), sorted(unmeasured)
+
+
 def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
     nodes = []
     causes = graphmod.derive_causes(tg.nodes, tg.statuses)
@@ -410,6 +473,7 @@ def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
         "root": tg.root,
         "rendered_from": rendered_from,
         "nodes": nodes,
+        "target_proofs": target_proofs(tg),
     }
 
 

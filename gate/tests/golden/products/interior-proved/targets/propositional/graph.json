@@ -72,5 +72,6 @@
   "rendered_from": "5555555555555555555555555555555555555555",
   "root": "and-swap-reassoc",
   "schema": "graph/v4",
-  "target_id": "propositional"
+  "target_id": "propositional",
+  "target_proofs": []
 }
