@@ -33,6 +33,7 @@ from opn_gate import (
     exhibits,
     explainers,
     fidelity,
+    footprints,
     intake,
     layout,
     ledger,
@@ -158,6 +159,15 @@ def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statemen
     rep.add_argument("--target", help="target id (inferred when the graph has exactly one)")
     rep.add_argument("--compare", type=Path, help="committed attestation to compare against")
     _add_sandbox_args(rep)
+
+    fpr = sub.add_parser(
+        "footprints",
+        help="measure the merged proofs attested before attestation/v6 (F08-T27), in the sandbox",
+    )
+    fpr.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    fpr.add_argument("--commit", default="HEAD", help="the graph commit to measure (default HEAD)")
+    fpr.add_argument("--target", required=True)
+    _add_sandbox_args(fpr)
 
     gate = sub.add_parser("gate", help="the authoritative run on a pull request (gate.yml)")
     gate.add_argument("--graph", required=True, type=Path, help="checkout at the PR merge commit")
@@ -679,6 +689,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     commands = {
         "pregate": run_pregate,
         "reproduce": run_reproduce,
+        "footprints": run_footprints,
         "gate": run_gate,
         "classify": run_classify,
         "exhibits": run_exhibits,
@@ -919,6 +930,50 @@ def run_reproduce(args: argparse.Namespace, settings: config.Settings) -> int:
         sys.stdout.write(json.dumps(result) + "\n")
         return EXIT_PASS if not differing else EXIT_FAIL
     return code
+
+
+def run_footprints(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F08-T27: measure each merged proof of ``--target`` whose record says nothing of what its
+    term used, by steps 1, 2, 4 and 8 in the step-3 sandbox, and write the target's
+    ``.footprint-cache.json`` into ``--out`` with what was there before. Nothing is written to
+    the graph: a curator commits the file with the products it completes. Exit 1 when any proof
+    could not be measured; the summary names each."""
+    graph, commit = _checkout_and_commit(args.graph, args.commit)
+    out_dir = _out_dir(args.out, "opn-footprints-")
+    tree = export_tree(graph, commit, out_dir / "tree")
+
+    def make(node_id: str, run_out: Path) -> RunContext:
+        ctx = _sandboxed_context(
+            graph,
+            commit,
+            run_out,
+            target=args.target,
+            node=node_id,
+            settings=settings,
+            image=args.image,
+            no_build=args.no_build,
+        )
+        ctx.changes = None  # the node's merged proof as the tree holds it, not the commit's diff
+        return ctx
+
+    try:
+        outcomes = footprints.measure(tree, args.target, make, out_dir / "runs")
+        existing = graphmod.load_footprint_cache(tree / "targets" / args.target)
+    except graphmod.GraphError as exc:
+        raise CliError(str(exc)) from exc
+    cache_path = out_dir / graphmod.FOOTPRINT_CACHE
+    cache_path.write_bytes(footprints.merged_cache(existing, outcomes))
+    failed = [o.as_dict() for o in outcomes if o.nodes is None]
+    summary = {
+        "target": args.target,
+        "commit": commit,
+        "measured": sum(1 for o in outcomes if o.nodes is not None),
+        "failed": failed,
+        "cache": str(cache_path),
+        "outcomes": [o.as_dict() for o in outcomes],
+    }
+    sys.stdout.write(json.dumps(summary, ensure_ascii=False) + "\n")
+    return EXIT_FAIL if failed else EXIT_PASS
 
 
 def run_gate(args: argparse.Namespace, settings: config.Settings) -> int:
