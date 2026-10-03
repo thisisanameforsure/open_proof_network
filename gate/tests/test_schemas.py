@@ -42,6 +42,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "graph/v1",
         "graph/v2",
         "graph/v3",
+        "graph/v4",
         "info/v1",
         "ledger/v1",
         "meta/v1",

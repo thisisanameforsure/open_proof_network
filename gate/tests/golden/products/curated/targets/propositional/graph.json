@@ -6,12 +6,14 @@
       "node_id": "and-reassoc",
       "origin": "authored",
       "proof_commit": null,
+      "proofs": [],
       "relation": null,
       "relevance": null,
       "statement_hash": "22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7",
       "status": "speculative",
       "trust_base": null,
-      "tutorial": false
+      "tutorial": false,
+      "uses": []
     },
     {
       "cause": null,
@@ -22,12 +24,14 @@
       "node_id": "and-swap-reassoc",
       "origin": "authored",
       "proof_commit": null,
+      "proofs": [],
       "relation": null,
       "relevance": null,
       "statement_hash": "1fd9af9053c56877f4e7ec2ad69aa16602d39e826259da3878a8cc30a3b6791c",
       "status": "blocked",
       "trust_base": null,
-      "tutorial": false
+      "tutorial": false,
+      "uses": []
     },
     {
       "cause": null,
@@ -35,16 +39,28 @@
       "node_id": "tutorial-and-swap",
       "origin": "authored",
       "proof_commit": "4444444444444444444444444444444444444444",
+      "proofs": [
+        {
+          "artifact_hash": "721b98ef97040596c6625c36749b28dfddbe4156fb84c31dcb5e4145b4f4222d",
+          "attestation": "000001.json",
+          "kind": "proof",
+          "merge_commit": "4444444444444444444444444444444444444444",
+          "path": "Proof.lean",
+          "submitter": null,
+          "used": null
+        }
+      ],
       "relation": null,
       "relevance": null,
       "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
       "status": "proved",
       "trust_base": "kernel",
-      "tutorial": true
+      "tutorial": true,
+      "uses": []
     }
   ],
   "rendered_from": "5555555555555555555555555555555555555555",
   "root": "and-swap-reassoc",
-  "schema": "graph/v3",
+  "schema": "graph/v4",
   "target_id": "propositional"
 }

@@ -33,7 +33,7 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "targets-index/v6",  # F15: policy, stewards, digestion, calibration
         "targets-index/v7",  # F07-T24: step9 may be `calibration`
     ),
-    "graph.json": ("graph/v1", "graph/v2", "graph/v3"),
+    "graph.json": ("graph/v1", "graph/v2", "graph/v3", "graph/v4"),
 }
 log = logging.getLogger(__name__)
 KEEP_FILE = ".gitkeep"

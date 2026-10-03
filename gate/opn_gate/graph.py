@@ -8,6 +8,7 @@ ambiguous root is a graph defect: ``GraphError`` names it and the caller writes 
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 import subprocess
@@ -59,6 +60,11 @@ class GraphError(ValueError):
     """The dependency relation or the target's records are defective (R3)."""
 
 
+#: F08-T27: per target, the footprint of each merge attested before ``attestation/v6``, keyed by
+#: artifact hash and written once by ``opn-gate footprints`` (the same reading step 8 makes).
+FOOTPRINT_CACHE = ".footprint-cache.json"
+
+
 @dataclass(frozen=True)
 class Proof:
     """What an attestation proves: the merge commit and the trust base (F02-R9)."""
@@ -66,6 +72,32 @@ class Proof:
     merge_commit: str
     trust_base: str
     attestation: str  # file name, for the record
+
+
+@dataclass(frozen=True)
+class ProofRecord:
+    """F08-T27: one merged proof of a node — its ``Proof.lean`` or an alternate (D-25 v3.13) —
+    and the nodes its proof term rests on. ``used`` is ``None`` where no record says (an
+    attestation before ``attestation/v6`` with no cache entry): not measured, never empty."""
+
+    kind: str  # "proof" | "alternate"
+    path: str  # relative to the node directory
+    artifact_hash: str
+    attestation: str
+    merge_commit: str
+    submitter: str | None
+    used: tuple[str, ...] | None
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "kind": self.kind,
+            "path": self.path,
+            "artifact_hash": self.artifact_hash,
+            "attestation": self.attestation,
+            "merge_commit": self.merge_commit,
+            "submitter": self.submitter,
+            "used": None if self.used is None else list(self.used),
+        }
 
 
 @dataclass(frozen=True)
@@ -109,6 +141,18 @@ class NodeFacts:
     #: F08-T20: every merged circularity claim under this node as ``(defects/<file>, ancestor)``,
     #: the ancestor read through its revision chain (``resolved_circular_claims``).
     circular_claims: tuple[tuple[str, str], ...] = ()
+    #: F08-T27: the node's merged proofs, ``Proof.lean`` first and then its alternates in the
+    #: order their files sort, each with what its term used. Empty for a node with no merged
+    #: proof, and for one whose merged artifact is not a proof (a counterexample, a certificate).
+    proofs: tuple[ProofRecord, ...] = ()
+
+    @property
+    def rests_on(self) -> tuple[str, ...]:
+        """F08-T27: what a closure follows from this node — its first proof's term where the
+        record measured it, else everything it could rest on (its deps and its uses)."""
+        if self.proofs and self.proofs[0].used is not None:
+            return self.proofs[0].used
+        return (*self.deps, *self.uses)
 
 
 @dataclass(frozen=True)
@@ -178,6 +222,95 @@ def proof_for(
     return None
 
 
+def load_footprint_cache(target_dir: Path) -> dict[str, tuple[str, ...]]:
+    """``.footprint-cache.json``: artifact hash -> the nodes that proof's term used, for merges
+    attested before ``attestation/v6``. Absent is empty; a malformed one is a graph defect."""
+    path = target_dir / FOOTPRINT_CACHE
+    if not path.is_file():
+        return {}
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        msg = f"{path} is not JSON: {exc}"
+        raise GraphError(msg) from exc
+    if not isinstance(raw, dict) or not all(
+        isinstance(v, list) and all(isinstance(x, str) for x in v) for v in raw.values()
+    ):
+        msg = f"{path} must map artifact hashes to lists of node ids"
+        raise GraphError(msg)
+    return {str(k): tuple(sorted(v)) for k, v in raw.items()}
+
+
+def footprint_from(
+    doc: dict[str, Any], cache: dict[str, tuple[str, ...]]
+) -> tuple[str, ...] | None:
+    """F08-T27: the nodes an attested proof's term used — the attestation's own footprint
+    (``attestation/v6``) where it has one, else the cache's entry for its artifact, else
+    ``None``. A v6 record whose footprint is ``null`` was not measured either."""
+    if "footprint" in doc:
+        found = doc.get("footprint")
+        if isinstance(found, dict) and isinstance(found.get("nodes"), list):
+            return tuple(sorted(str(n) for n in found["nodes"]))
+        return None
+    artifact = doc.get("artifact_hash")
+    return cache.get(str(artifact)) if artifact else None
+
+
+def proofs_of(  # noqa: PLR0913 — one argument per fact the record is matched on
+    node_dir: Path,
+    node_id: str,
+    statement_hash: str,
+    proof: Proof | None,
+    *,
+    attestations: list[tuple[str, dict[str, Any]]],
+    cache: dict[str, tuple[str, ...]],
+) -> tuple[ProofRecord, ...]:
+    """F08-T27: the node's merged proofs with their footprints. ``Proof.lean``'s record is the
+    attestation ``proof_for`` chose; an alternate's is the merged passing attestation for this
+    statement whose ``artifact_hash`` is the alternate file's (F07-R15)."""
+    by_name = dict(attestations)
+    out: list[ProofRecord] = []
+    proof_file = node_dir / "Proof.lean"
+    if proof is not None and proof_file.is_file() and proof.attestation in by_name:
+        doc = by_name[proof.attestation]
+        out.append(
+            ProofRecord(
+                kind="proof",
+                path="Proof.lean",
+                artifact_hash=schemas.content_hash(proof_file.read_bytes()),
+                attestation=proof.attestation,
+                merge_commit=proof.merge_commit,
+                submitter=_optional_str(doc.get("submitter")),
+                used=footprint_from(doc, cache),
+            )
+        )
+    attempts = node_dir / "attempts"
+    alternates = sorted(attempts.glob(f"*{paths.ALTERNATE_SUFFIX}")) if attempts.is_dir() else []
+    for alt in (p for p in alternates if p.is_file()):
+        digest = schemas.content_hash(alt.read_bytes())
+        for name, doc in attestations:
+            if (
+                doc.get("node_id") == node_id
+                and doc.get("statement_hash") == statement_hash
+                and doc.get("verdict") == "pass"
+                and doc.get("merge_commit")
+                and doc.get("artifact_hash") == digest
+            ):
+                out.append(
+                    ProofRecord(
+                        kind="alternate",
+                        path=f"attempts/{alt.name}",
+                        artifact_hash=digest,
+                        attestation=name,
+                        merge_commit=str(doc["merge_commit"]),
+                        submitter=_optional_str(doc.get("submitter")),
+                        used=footprint_from(doc, cache),
+                    )
+                )
+                break
+    return tuple(out)
+
+
 def recorded_hashes(node_dir: Path) -> tuple[str | None, frozenset[str]]:
     """The content hash of the node's ``Proof.lean`` (``None`` without one) and of each alternate
     under ``attempts/`` (D-25 v3.13): what ``proof_for`` tells the node's proof from them by."""
@@ -245,6 +378,7 @@ def load_nodes(
     graph_root: Path, target_id: str, attestations: list[tuple[str, dict[str, Any]]]
 ) -> dict[str, NodeFacts]:
     nodes_dir = layout.graph_nodes_dir(graph_root, target_id)
+    footprints = load_footprint_cache(nodes_dir.parent)
     facts: dict[str, NodeFacts] = {}
     for node_dir in sorted(p for p in nodes_dir.iterdir() if p.is_dir()):
         loaded = layout.load_node(node_dir, target_id)
@@ -258,6 +392,14 @@ def load_nodes(
         hashes = recorded_hashes(node_dir)
         override = records.load_node_status(node_dir)
         claims = resolved_circular_claims(nodes_dir, node_dir)
+        proof = proof_for(
+            loaded.node_id,
+            statement_hash,
+            attestations,
+            proof_hash=hashes[0],
+            alternate_hashes=hashes[1],
+        )
+        artifact = artifact_of(node_dir, loaded.statement.decl_name)
         facts[loaded.node_id] = NodeFacts(
             node_id=loaded.node_id,
             target_id=target_id,
@@ -275,20 +417,26 @@ def load_nodes(
             origin=origin,
             tutorial=bool(loaded.meta.get("tutorial", False)),
             relation=relation_of(node_dir, origin),
-            proof=proof_for(
-                loaded.node_id,
-                statement_hash,
-                attestations,
-                proof_hash=hashes[0],
-                alternate_hashes=hashes[1],
-            ),
+            proof=proof,
             override=override,
-            artifact=artifact_of(node_dir, loaded.statement.decl_name),
+            artifact=artifact,
             witness_stub=witness_is_stub(node_dir),
             supersedes=_optional_str(loaded.meta.get("supersedes")),
             uses=layout.merged_uses(node_dir),
             circular=claims[0][0] if claims else None,
             circular_claims=claims,
+            proofs=(
+                proofs_of(
+                    node_dir,
+                    loaded.node_id,
+                    statement_hash,
+                    proof,
+                    attestations=attestations,
+                    cache=footprints,
+                )
+                if artifact == "proof"
+                else ()
+            ),
         )
     # D-12 v3.19: which of a node's deps are its own holes is a fact about two nodes, so it is
     # read once every node is loaded; a dep that is not a node is left for ``check_dag``.

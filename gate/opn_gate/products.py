@@ -52,7 +52,7 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 log = logging.getLogger(__name__)
 
 PROTOCOL_VERSION = "3.25"  # docs/architecture_decisions.html (v3.25, F08-T23 to T25 and F18)
-GRAPH_SCHEMA = "graph/v3"  # F12-R13: a related variant's relevance signature (v2: F07-R8)
+GRAPH_SCHEMA = "graph/v4"  # F08-T27, F18: each proof and what it used (v3: F12-R13)
 FRONTIER_SCHEMA = "frontier/v3"  # T7: attempts counts partials (v2, F11-R4: D-33 dormancy)
 #: F11-R12 renames D-9's second rung and F11-R3/R4 add the derived fields. v2 was already spent
 #: on F07-R8's node counts and D-34 forbids editing it, so the rename lands at v3 (F11-Q9).
@@ -249,8 +249,9 @@ def closing_node(tg: TargetGraph) -> str | None:
 
 
 def dependency_closure(tg: TargetGraph, node_id: str) -> list[str]:
-    """``node_id`` and every node it rests on, transitively, in id order: its dependencies and
-    (F08-R19) the nodes its merged proof uses."""
+    """``node_id`` and every node it rests on, transitively, in id order. A node with a measured
+    first proof rests on what that proof's term used (F08-T27); any other node on its
+    dependencies and (F08-R19) the nodes its merged proof uses, the most it could rest on."""
     seen: set[str] = set()
     stack = [node_id]
     while stack:
@@ -258,7 +259,8 @@ def dependency_closure(tg: TargetGraph, node_id: str) -> list[str]:
         if current in seen or current not in tg.nodes:
             continue
         seen.add(current)
-        stack.extend((*tg.nodes[current].deps, *tg.nodes[current].uses))
+        # F08-T27 (Q38): what the node's proof term used, where the record measured it.
+        stack.extend(tg.nodes[current].rests_on)
     return sorted(seen)
 
 
@@ -396,6 +398,10 @@ def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
                 "proof_commit": n.proof.merge_commit if resolved and n.proof else None,
                 # F12-R13: a related variant is pertinent only with its one signature.
                 "relevance": qa.relevance_of(n.path, n.relation),
+                # F08-T27: what a merged proof's header declares beyond the deps (R19), and
+                # each merged proof with the nodes its term used.
+                "uses": list(n.uses),
+                "proofs": [p.as_dict() for p in n.proofs],
             }
         )
     return {
