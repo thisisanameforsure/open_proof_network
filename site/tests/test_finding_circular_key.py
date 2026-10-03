@@ -111,3 +111,24 @@ def test_the_glossary_says_what_circular_means_and_where_it_comes_from() -> None
 
 def test_the_docs_state_map_lists_circular() -> None:
     assert "circular" in render.STATE_MAP_STATEMENT_KEYS
+
+
+def test_every_output_class_has_a_key_entry() -> None:
+    """F18-AC5: the guard over *outputs*, not inputs (2026-09-24). Every mark the proof drawing
+    can put on a pill or a line (``dag.svg``'s classes, the picker's) has a glossary card, a
+    swatch in the stylesheet, and a place in ``proof_legend``'s key."""
+    import inspect  # noqa: PLC0415
+
+    from opn_site import dag  # noqa: PLC0415
+
+    css = (Path(render.__file__).parent / "static" / "site.css").read_text(encoding="utf-8")
+    source = inspect.getsource(dag.proof_attrs) + inspect.getsource(dag.svg)
+    drawn = {"on-proof": "on-proof", "off-proof": "not-needed", "edge use": "use"}
+    for cls, key in drawn.items():
+        assert cls in source, f"dag no longer draws {cls}; update this guard"
+        assert key in render.GLOSSARY_BY_KEY, key
+        assert f".dot-{key}" in css, key
+    keys_source = inspect.getsource(render.Renderer.proof_legend)
+    for key in ("on-proof", "not-needed", "use", "unmeasured"):
+        assert f'"{key}"' in keys_source, key
+        assert key in render.GLOSSARY_BY_KEY and f".dot-{key}" in css, key

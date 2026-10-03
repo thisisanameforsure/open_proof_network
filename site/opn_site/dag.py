@@ -9,6 +9,7 @@ structure is testable and the colours come from the stylesheet, never from the d
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from html import escape
 from typing import Any
@@ -43,9 +44,25 @@ class Placed:
     w: int
 
 
+def below(node: dict[str, Any]) -> list[str]:
+    """What a node is drawn above: its deps and (F18-T2) the nodes its merged proof uses."""
+    out = [str(d) for d in node["deps"]]
+    out.extend(str(u) for u in node.get("uses") or [] if str(u) not in out)
+    return out
+
+
+@dataclass(frozen=True)
+class ProofMarks:
+    """F18-T2: one proof of the target as the drawing marks it: the nodes of its closure and the
+    edges its term follows (``(from, to)``, the dep or used node first)."""
+
+    nodes: frozenset[str]
+    edges: frozenset[tuple[str, str]]
+
+
 def layers(nodes: list[dict[str, Any]]) -> dict[str, int]:
-    """Longest path from a source: a node is one above its deepest dep."""
-    deps = {str(n["node_id"]): [str(d) for d in n["deps"]] for n in nodes}
+    """Longest path from a source: a node is one above its deepest dep (or used node)."""
+    deps = {str(n["node_id"]): below(n) for n in nodes}
     memo: dict[str, int] = {}
 
     def depth(node_id: str, seen: tuple[str, ...]) -> int:
@@ -125,32 +142,54 @@ def short_label(node_id: str) -> str:
     return node_id[:head] + "…" + node_id[-LABEL_TAIL:]
 
 
-def svg(nodes: list[dict[str, Any]], *, href: dict[str, str]) -> str:
-    """The SVG markup; ``href`` maps node ids to page paths (every id must be present)."""
+def proof_attrs(marks: Sequence[ProofMarks], on: Sequence[bool]) -> tuple[str, str]:
+    """F18-T2: the classes and ``data-proofs`` for one mark: ``on-proof`` or ``off-proof`` for the
+    first proof, which the page shows without its script, and the indices of every proof it is
+    on, which the script switches between. Nothing when the target has no proof."""
+    if not marks:
+        return "", ""
+    first = " on-proof" if on[0] else " off-proof"
+    indices = " ".join(str(k) for k, hit in enumerate(on) if hit)
+    return first, f' data-proofs="{indices}"'
+
+
+def svg(
+    nodes: list[dict[str, Any]],
+    *,
+    href: dict[str, str],
+    proofs: Sequence[ProofMarks] = (),
+) -> str:
+    """The SVG markup; ``href`` maps node ids to page paths (every id must be present). With
+    ``proofs`` (F18-T2) every node and edge says which proofs of the target it is on."""
     placed, width, height = place(nodes)
     at = {p.node_id: p for p in placed}
     deps = {str(n["node_id"]): [str(d) for d in n["deps"]] for n in nodes}
+    used = {str(n["node_id"]): [str(u) for u in n.get("uses") or []] for n in nodes}
     parts = [
         f'<svg class="dag" viewBox="0 0 {width} {height}" width="{width}" height="{height}" '
         'role="img" aria-label="dependency graph">',
     ]
     for node_id in sorted(deps):
-        for dep in deps[node_id]:
+        lines = [(d, "edge") for d in deps[node_id]]
+        lines.extend((u, "edge use") for u in used[node_id] if u not in deps[node_id])
+        for dep, kind in lines:
             if dep not in at:
                 continue
             a, b = at[dep], at[node_id]
+            cls, data = proof_attrs(proofs, [(dep, node_id) in m.edges for m in proofs])
             parts.append(
-                f'<line class="edge" data-from="{escape(dep)}" data-to="{escape(node_id)}" '
-                f'x1="{a.x + a.w // 2}" y1="{a.y}" '
+                f'<line class="{kind}{cls}" data-from="{escape(dep)}" data-to="{escape(node_id)}"'
+                f'{data} x1="{a.x + a.w // 2}" y1="{a.y}" '
                 f'x2="{b.x + b.w // 2}" y2="{b.y + NODE_H}"/>'
             )
     # F04-T12: each node is a pill — a status dot and the monospace label — with a halo dot the
     # page's script shows on the selected one; the colours come from the stylesheet.
     for p in placed:
         label = short_label(p.node_id)
+        cls, data = proof_attrs(proofs, [p.node_id in m.nodes for m in proofs])
         parts.append(
-            f'<a href="{escape(href[p.node_id])}"><g class="node status-{escape(p.status)}" '
-            f'data-node="{escape(p.node_id)}" transform="translate({p.x},{p.y})">'
+            f'<a href="{escape(href[p.node_id])}"><g class="node status-{escape(p.status)}{cls}" '
+            f'data-node="{escape(p.node_id)}"{data} transform="translate({p.x},{p.y})">'
             f'<rect width="{p.w}" height="{NODE_H}" rx="8"/>'
             f'<circle cx="16" cy="{NODE_H // 2}" r="4"/>'
             f'<text x="28" y="{NODE_H // 2 + 5}">{escape(label)}</text>'

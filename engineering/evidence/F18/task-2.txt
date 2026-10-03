@@ -1,0 +1,17 @@
+13 passed in 19.74s
+
+Mutant: delete the .dot-use swatch -> test_every_output_class_has_a_key_entry fails (1 failed).
+
+Screenshots (engineering/evidence/F18/shoot.py; measurements in the .json beside each set: no page
+wider than its viewport at 1440 or 390, no pill label outside its box, the picker within its width):
+  task-2-live-unmeasured-*.png   the live graph at origin/main 7f207c7, products re-rendered by this
+                                 branch's gate in a scratch worktree. Every live merge predates
+                                 attestation/v6, so every closure is unmeasured and the page says
+                                 so: erdos-1050's proof is drawn over its 7 declared nodes, with the
+                                 note naming them. euclid-primes: four proofs, root first.
+  task-2-simulated-measured-*.png  SIMULATED, a layout check only: the same scratch tree with a
+                                 .footprint-cache.json written by hand from what each erdos-1050
+                                 proof file names (root -> h1-v2, h1-v2 -> h3, h2 -> h2--h1), not
+                                 by step 8. Shows the shape the backfill will produce: root,
+                                 h1-v2 and h3 on the proof, the other eleven dimmed, two lines on.
+                                 The live evidence is F18-T8's, after the real backfill.

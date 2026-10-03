@@ -222,6 +222,38 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "would prove the statement above.",
         "ready · cause circular · circular-decomposition claim (D-16, D-12)",
     ),
+    # F18-T2: the marks a proof's drawing makes; the key shows them when the problem is proved.
+    (
+        "on-proof",
+        "on this proof",
+        "The statement is part of the proof the problem page has selected: the proof's own "
+        "statement and every statement its Lean term rests on, as the gate read the term when it "
+        "checked it.",
+        "target_proofs[].closure (D-25 v3.26, from step 8's footprint)",
+    ),
+    (
+        "not-needed",
+        "not needed by this proof",
+        "On the record and not part of the selected proof: a dependency its author declared and "
+        "the proof did not use, a decomposition another route took, or work that came later. "
+        "Nothing is wrong with it; it is just not what this proof rests on.",
+        "not in target_proofs[].closure",
+    ),
+    (
+        "use",
+        "used lemma",
+        "A dashed line: the proof declares this statement's merged proof as a lemma it uses, "
+        "beyond the dependencies its statement declared.",
+        "use line, import Nodes.«id».Proof (D-12 v3.25)",
+    ),
+    (
+        "unmeasured",
+        "not measured",
+        "The gate has not yet recorded which statements this proof's term uses (it was merged "
+        "before the record kept that), so the drawing follows what was declared instead, which "
+        "can only add statements the proof did not need.",
+        "proofs[].used null (F08-T27)",
+    ),
     (
         "explained",
         "Explained",
@@ -829,7 +861,100 @@ class Renderer:
         status a statement in this graph has, each a glossary hover card with its dot."""
         present = {self.node_state(nv) for nv in tv.nodes.values()}
         keys = (*LEGEND_BASE, *(k for k in (NEEDS_WITNESS, *LEGEND_EXTRA) if k in present))
-        return "".join(self.term(k, dot=True) for k in keys)
+        return "".join(self.term(k, dot=True) for k in (*keys, *self.proof_legend(tv)))
+
+    @staticmethod
+    def proof_legend(tv: TargetView) -> tuple[str, ...]:
+        """F18-T2: the proof drawing's keys, each only when the drawing can show it."""
+        proofs = target_proofs(tv)
+        if not proofs:
+            return ()
+        keys = ["on-proof", "not-needed"]
+        if any(n.get("uses") for n in tv.graph["nodes"]):
+            keys.append("use")
+        if any(p.get("unmeasured") for p in proofs):
+            keys.append("unmeasured")
+        return tuple(keys)
+
+    def proof_picker(self, tv: TargetView) -> str:
+        """F18-T2 (R3): one entry per way the problem is proved, the first selected, and under it
+        what the selected proof is drawn from. Nothing for a problem nobody has proved."""
+        proofs = target_proofs(tv)
+        if not proofs:
+            return ""
+        buttons, notes = [], []
+        for k, p in enumerate(proofs):
+            label = self.proof_label(k, p)
+            pressed = "true" if k == 0 else "false"
+            buttons.append(
+                f'<button type="button" class="chip" data-proof="{k}" aria-pressed="{pressed}">'
+                f"{esc(label)}</button>"
+            )
+            n = len(p["closure"])
+            words = (
+                f"Showing proof {k + 1} of {len(proofs)}: {n} statement{'' if n == 1 else 's'} "
+                "highlighted, the rest of the record dimmed."
+            )
+            if p.get("unmeasured"):
+                words += (
+                    " Which statements its Lean term uses is not yet measured for "
+                    + ", ".join(str(u) for u in p["unmeasured"])
+                    + ", so those are drawn through what they declared."
+                )
+            hidden = "" if k == 0 else " hidden"
+            notes.append(f'<p class="proof-note" data-proof="{k}"{hidden}>{esc(words)}</p>')
+        lead = f"Proved {len(proofs)} way{'' if len(proofs) == 1 else 's'}:"
+        return (
+            f'<div class="proof-picker" role="group" aria-label="Proofs of this problem">'
+            f'<span class="proof-picker-lead">{esc(lead)}</span>{"".join(buttons)}</div>'
+            + "".join(notes)
+        )
+
+    @staticmethod
+    def proof_label(k: int, p: dict[str, Any]) -> str:
+        """``Proof 1 · root · by alice`` / ``Proof 2 · variant-x (resolves) · alternate · …``."""
+        where = "root" if p.get("relation") is None else f"{p['node_id']} ({p['relation']})"
+        kind = " · alternate" if p.get("kind") == "alternate" else ""
+        who = f"by {p['submitter']}" if p.get("submitter") else "submitter not recorded"
+        return f"Proof {k + 1} · {where}{kind} · {who}"
+
+    @staticmethod
+    def proof_marks(tv: TargetView) -> list[dag.ProofMarks]:
+        """F18-T2: each proof's nodes and the edges its term follows. An edge from ``d`` to ``n``
+        is on a proof when both are in its closure and ``d`` is among what ``n``'s proof used —
+        this proof's own ``used`` at its own node, else ``n``'s first proof's — or, where that
+        was not measured, among what ``n`` declared and uses."""
+        rows = {str(n["node_id"]): n for n in tv.graph["nodes"]}
+        out = []
+        for p in target_proofs(tv):
+            closure = frozenset(str(c) for c in p["closure"])
+            edges: set[tuple[str, str]] = set()
+            for node_id in closure:
+                row = rows.get(node_id)
+                if row is None:
+                    continue
+                own = [
+                    r for r in row.get("proofs") or [] if r["artifact_hash"] == p["artifact_hash"]
+                ]
+                first = (own or row.get("proofs") or [None])[0]
+                used = first.get("used") if first else None
+                rests = used if used is not None else [*row["deps"], *(row.get("uses") or [])]
+                edges.update((str(d), node_id) for d in rests if str(d) in closure)
+            out.append(dag.ProofMarks(nodes=closure, edges=frozenset(edges)))
+        return out
+
+    def proof_row(self, tv: TargetView, nv: NodeView) -> str:
+        """F18-T2: the panel's line saying which proofs a statement is on, when there are any."""
+        proofs = target_proofs(tv)
+        if not proofs:
+            return ""
+        on = [str(k + 1) for k, p in enumerate(proofs) if nv.node_id in p["closure"]]
+        if not on:
+            words = "Not needed by any proof of this problem"
+        else:
+            noun = "proof" if len(on) == 1 else "proofs"
+            words = f"On {noun} {', '.join(on)}" + (f" of {len(proofs)}" if len(proofs) > 1 else "")
+        return f"<dt>proof</dt><dd>{esc(words)}</dd>"
 
     def open_count(self, tv: TargetView) -> int:
         """The statements the site invites work on: the frontier's workable set (T17)."""
@@ -1271,7 +1396,7 @@ class Renderer:
             else n
             for n in tv.graph["nodes"]
         ]
-        svg = dag.svg(drawn, href=href)
+        svg = dag.svg(drawn, href=href, proofs=self.proof_marks(tv))
         panels = "".join(self.statement_panel(tv, nv) for nv in self.ordered_nodes(tv))
         n = len(tv.nodes)
         if tv.approaches:
@@ -1308,6 +1433,7 @@ class Renderer:
             steward_card=self.steward_card(tv),
             count_words=esc(f"{n} statement{'' if n == 1 else 's'}"),
             legend=self.graph_legend(tv),
+            proof_picker=self.proof_picker(tv),
             dag=svg,
             panels=panels,
             digestion=self.digestion_section(tv),
@@ -1500,6 +1626,7 @@ class Renderer:
             state_word=esc(self.state_label(state)),
             dot=self.dot(self.dot_state(state)),
             attempts=esc(self.attempts_words(nv)),
+            proof_row=self.proof_row(tv, nv),
             note=note,
             revision=self.revision_note(tid, nv, in_page=True),
             closing=self.closing_note(tv, nv),
@@ -2348,6 +2475,11 @@ class Renderer:
             f"Rendered from {self.file_link(prose_.path)}.</p>"
             f'<div class="prose">{body}</div></div>'
         )
+
+
+def target_proofs(tv: TargetView) -> list[dict[str, Any]]:
+    """F18-T1's list, or nothing for a graph rendered before ``graph/v4``."""
+    return list(tv.graph.get("target_proofs") or [])
 
 
 def cited_urls(site: Site) -> frozenset[str]:

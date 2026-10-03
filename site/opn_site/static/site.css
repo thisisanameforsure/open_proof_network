@@ -105,6 +105,12 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .dot-superseded, .dot-abandoned, .dot-refuted, .dot-defective { border-color: var(--bad); }
 /* F04-T26: circular is off the route by a merged claim, not by a failure: a dotted red ring */
 .dot-circular { border-color: var(--bad); border-style: dotted; }
+/* F18-T2: the proof drawing's key swatches: a filled square for on the proof, a faint ring for
+   not needed, a dashed bar for a used lemma's line, a dotted ring for a reading not measured. */
+.dot-on-proof { background: var(--accent); border-color: var(--accent); border-radius: 2px; }
+.dot-not-needed { border-color: var(--n600); opacity: .4; }
+.dot-use { width: 16px; height: 0; border: 0; border-top: 2px dashed var(--n500); border-radius: 0; vertical-align: 3px; }
+.dot-unmeasured { border-color: var(--n500); border-style: dotted; }
 .stages { display: inline-flex; gap: var(--s3); flex-wrap: wrap; font-size: 12.5px; }
 .stage { display: inline-flex; align-items: center; white-space: nowrap; }
 .stage.on { color: var(--n100); }
@@ -242,6 +248,19 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .dag .selected rect { stroke: var(--accent); }
 .dag .node .halo { display: none; fill: var(--accent); stroke: none; }
 .dag .selected .halo { display: block; }
+/* F18-T2: one proof of the problem at a time. The first is drawn without the script; the
+   picker's buttons redraw from each mark's data-proofs. */
+.proof-picker { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; margin-bottom: var(--s2); font-size: 12.5px; color: var(--n400); }
+.proof-picker-lead { margin-right: var(--s2); }
+.proof-picker button { font: inherit; color: var(--n300); background: var(--bg); border: 1px solid var(--divider); border-radius: 999px; padding: 4px 12px; cursor: pointer; max-width: 100%; overflow-wrap: anywhere; text-align: left; }
+.proof-picker button:hover, .proof-picker button:focus-visible { border-color: var(--accent); }
+.proof-picker button[aria-pressed="true"] { border-color: var(--accent); color: var(--text); background: rgba(145, 132, 217, .14); }
+.proof-note { font-size: 12.5px; color: var(--n400); margin: 0 0 var(--s4); line-height: 1.5; }
+.dag .off-proof { opacity: .32; }
+.dag .node.on-proof rect { stroke: var(--accent); stroke-width: 1.5; }
+.dag .edge.on-proof { stroke: var(--accent); stroke-width: 2; }
+.dag .edge.off-proof { stroke-dasharray: 3 4; }
+.dag .edge.use { stroke-dasharray: 7 4; }
 .dag-caption { position: absolute; left: var(--s6); bottom: var(--s4); font-size: 11.5px; color: var(--n400); }
 .panels { display: flex; flex-direction: column; }
 .panel { gap: var(--s4); align-items: flex-start; }
