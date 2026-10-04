@@ -43,7 +43,7 @@ from opn_api import clock as clockmod
 from opn_api import uses as usesmod
 from opn_api.axle import AxleAnswer, AxleError
 from opn_api.store import CheckLog
-from opn_gate import hosted, layout, paths, scaffold, schemas
+from opn_gate import exhibits, hosted, layout, paths, scaffold, schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -2365,8 +2365,10 @@ async def preflight_relation(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915 — on
 #: service can reproduce (a circularity claim's relation, a module only the gate's staging holds).
 PREFLIGHT_ELABORATES = "elaborates"
 PREFLIGHT_SKIPPED = "skipped"
-#: The node modules an exhibit may import, as the gate stages them (``exhibits.stage_node``).
-EXHIBIT_NODE_MODULES = ("Statement", "Context")
+#: The node modules an exhibit may import: the gate's own tuple, the modules its staging compiles
+#: (``exhibits.stage_node``). F13-T31: this said Statement too, which the gate never compiles for
+#: an exhibit, so the pre-flight vouched for a text the gate refuses.
+EXHIBIT_NODE_MODULES = exhibits.EXHIBIT_NODE_MODULES
 
 
 def exhibit_imports(exhibit: str, node_id: str | None) -> tuple[list[str], set[str]] | None:
@@ -2396,23 +2398,14 @@ def exhibit_check_text(
     exhibit: str,
     found: tuple[list[str], set[str]],
 ) -> str:
-    """The exhibit as the gate elaborates it, in one file: the node's committed ``Defs`` and
-    Context, then its committed statement when the exhibit imports it, inlined in place of the
-    imports the checker cannot resolve, under the union of their library imports. ``found`` is
-    ``exhibit_imports``' answer."""
+    """The exhibit as the gate elaborates it, in one file: the target's committed ``Defs`` and,
+    when the exhibit imports it, the node's committed Context, inlined in place of the imports
+    the checker cannot resolve, under the union of their library imports. ``found`` is
+    ``exhibit_imports``' answer; its node modules are the gate's ``EXHIBIT_NODE_MODULES``, so
+    nothing is inlined that the gate's staging would not have compiled (F13-T31)."""
     library, own = found
-    statement: layout.Statement | None = None
     headers = [exhibit]
-    if "Statement" in own:
-        assert node_id is not None
-        raw = frontier.committed(ctx, f"targets/{target_id}/nodes/{node_id}/Statement.lean")
-        parsed = layout.parse_statement(raw.decode("utf-8"))
-        if not isinstance(parsed, layout.Statement):
-            msg = f"{node_id}'s Statement.lean has no single sorry-bodied theorem"
-            raise api_error(409, "statement-unparsable", msg)
-        statement = parsed
-        headers.append(parsed.text)
-    defs = inline_defs(ctx, target_id, statement, exhibit, node_id if own else None)
+    defs = inline_defs(ctx, target_id, None, exhibit, node_id if own else None)
     for module, _ in defs:
         origin, _node = layout.module_origin(module)
         if origin == "defs":
@@ -2421,10 +2414,6 @@ def exhibit_check_text(
             assert node_id is not None
             path = f"targets/{target_id}/nodes/{node_id}/Context.lean"
         headers.append(frontier.committed(ctx, path).decode("utf-8"))
-    if statement is not None:
-        assert node_id is not None
-        body = IMPORT_LINE_RE.sub("", statement.text).strip("\n")
-        defs.append((layout.node_module(node_id, "Statement"), body))
     imports = [
         m
         for text in headers
@@ -2528,7 +2517,7 @@ async def preflight_exhibit(  # noqa: PLR0913 — the caller, the node, the text
         "the exhibit does not elaborate: the checker reported Lean errors in it (F08-R6, R7), so "
         "nothing was opened. An exhibit is Lean the gate elaborates against the node it is about, "
         "not prose. Checked on the hosted fast checker "
-        f"({environment}) with the node's statement, Context and definitions inlined where the "
+        f"({environment}) with the node's Context and the target's definitions inlined where the "
         "exhibit imports them; not authoritative, but the gate elaborates the same text",
         details={"errors": errors, "log_id": log_id},
     )

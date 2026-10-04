@@ -8,7 +8,9 @@ that does not elaborate became a pull request refused ``exhibit-elaboration`` a 
 — as two prose exhibits were on 2026-09-17 (log). The hosted fast checker can answer that
 question with what the service already has: the exhibit, and the node's committed statement,
 Context and definitions inlined where the exhibit imports them, exactly as the gate stages them
-(``exhibits.stage_node``).
+(``exhibits.stage_node``). F13-T31: the gate's staging compiles the Context and not the
+Statement, so the exhibits here import the Context; one importing the Statement is not sent
+(``test_finding_exhibit_preflight_staging.py``).
 
 So the route now sends that text to the checker first and refuses ``422 exhibit-elaboration``
 with Lean's errors when the checker says it does not compile. It never refuses on anything
@@ -31,10 +33,17 @@ from test_finding_witness_preflight import DEP, DEP_STATEMENT, harness, token
 from opn_api.axle import AxleError
 
 NODE_MODULE = f"Nodes.«{DEP}»"
-#: An exhibit about the node, importing its statement as the gate stages it (F08-R7).
+CONTEXT_PATH = f"targets/propositional/nodes/{DEP}/Context.lean"
+#: The node's committed Context: one dependency's signature, as D-3 has it.
+DEP_CONTEXT = (
+    "/-! Declared dependencies (D-4 step 8): `and-swap`. -/\n\n"
+    "theorem OpnProp.and_swap_dep : True := by\n  sorry\n"
+)
+#: An exhibit about the node, importing its Context, the module the gate stages for it (F08-R7;
+#: F13-T31 restated it from the Statement, which the gate's staging never compiles).
 EXHIBIT = (
-    f"import {NODE_MODULE}.Statement\n\n"
-    "theorem exhibit_vacuous : OpnProp.and_reassoc = OpnProp.and_reassoc := rfl\n"
+    f"import {NODE_MODULE}.Context\n\n"
+    "theorem exhibit_vacuous : OpnProp.and_swap_dep = OpnProp.and_swap_dep := rfl\n"
 )
 #: The Lean error an exhibit that does not elaborate gets (AXLE's lean_messages shape).
 UNKNOWN = "-:3:26-3:46: error: unknown identifier 'OpnProp.and_reasoc'"
@@ -49,11 +58,13 @@ def fails(*errors: str) -> dict[str, Any]:
 
 
 def claim(h: Harness, exhibit: str = EXHIBIT, **extra: Any) -> Any:
+    h.githost.files.setdefault(CONTEXT_PATH, DEP_CONTEXT.encode())
     body = {"stmt_ref": DEP, "class": "junk-value", "line": 1, "exhibit": exhibit, **extra}
     return h.client.post("/defect-claims", json=body, headers=h.auth(token(h)))
 
 
 def revision(h: Harness, exhibit: str | None) -> Any:
+    h.githost.files.setdefault(CONTEXT_PATH, DEP_CONTEXT.encode())
     evidence: dict[str, Any] = {"text": "the statement is vacuous"}
     if exhibit is not None:
         evidence["exhibit"] = exhibit
@@ -81,18 +92,18 @@ def test_an_exhibit_that_elaborates_opens_and_the_receipt_says_so() -> None:
     assert len(h.githost.pulls) == 1
     (sent,) = h.axle.calls
     assert sent.method == "check"
-    # The node's statement stands in for the import the checker cannot resolve, before the
-    # exhibit, as the gate's staging supplies it.
+    # The node's Context stands in for the import the checker cannot resolve, before the
+    # exhibit, as the gate's staging supplies it; the statement is not inlined (F13-T31).
     assert "import Nodes." not in sent.content
-    assert sent.content.index("theorem OpnProp.and_reassoc") < sent.content.index(
+    assert sent.content.index("theorem OpnProp.and_swap_dep") < sent.content.index(
         "theorem exhibit_vacuous"
     )
+    assert "theorem OpnProp.and_reassoc" not in sent.content
 
 
 def test_an_exhibit_importing_only_the_nodes_context_gets_the_context() -> None:
     h = harness(AXLE_OKAY)
-    context = f"targets/propositional/nodes/{DEP}/Context.lean"
-    h.githost.files[context] = b"theorem Opn.context_marker : True := trivial\n"
+    h.githost.files[CONTEXT_PATH] = b"theorem Opn.context_marker : True := trivial\n"
     h.context.files.clear()
     r = claim(h, f"import {NODE_MODULE}.Context\n\ntheorem e : True := Opn.context_marker\n")
     assert r.status_code == 201, r.text
@@ -150,8 +161,10 @@ def test_a_revision_request_without_an_exhibit_spends_no_check() -> None:
     assert h.axle.calls == []
 
 
-def test_the_statement_is_the_committed_one() -> None:
-    """The checker is sent the node's statement as merged, not anything the caller wrote."""
+def test_the_context_is_the_committed_one() -> None:
+    """The checker is sent the node's Context as merged, not anything the caller wrote; F13-T31
+    restated this from the statement, which an exhibit may no longer import."""
     h = harness(AXLE_OKAY)
     assert claim(h).status_code == 201
-    assert DEP_STATEMENT.strip() in h.axle.calls[0].content
+    assert DEP_CONTEXT.split("\n\n", 1)[1].strip() in h.axle.calls[0].content
+    assert DEP_STATEMENT.strip() not in h.axle.calls[0].content
