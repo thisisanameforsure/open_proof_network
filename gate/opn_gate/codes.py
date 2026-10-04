@@ -2132,6 +2132,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The pull request could not be closed; it is still open.",
         "Retry shortly.",
     ),
+    "withdrawal-unknown-record": (
+        "gate",
+        None,
+        "A curator's withdrawal names a record that is not a valid status record or defect claim "
+        "of the withdrawal's own node (F08-T31, D-18 v3.27).",
+        "Name the record as status/<file> or defects/<file> of the node the withdrawal is filed "
+        "under, as it stands on main, and open the pull request again.",
+    ),
     "witness-axiom": (
         "both",
         7,

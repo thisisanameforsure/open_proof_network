@@ -1004,6 +1004,8 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
             problems.extend(
                 [data] if isinstance(data, Diagnostic) else _check_schema(located, data)
             )
+        elif located.role == "withdrawal":
+            problems.extend(check_withdrawal(graph_root, located))
         elif located.role in paths.CURATOR_ROLES:
             problems.extend(check_status_record(graph_root, located, classification))
         elif located.role == "target-record" and classification.mode == "curator":
@@ -2220,6 +2222,52 @@ def check_alternate(graph_root: Path, classification: Classification) -> list[Di
                 )
                 break
     return problems
+
+
+def check_withdrawal(graph_root: Path, located: Located) -> list[Diagnostic]:
+    """F08-T31 (D-14, D-18 v3.27): a withdrawal validates, and names a record that is on the
+    record — a valid status record or defect claim in this node's own ``status/`` or
+    ``defects/``. Who may file one is the curator mode's rule (F08-R8): a listed login, reviewed
+    by another one. The schema's pattern keeps the name inside the node, so a record of another
+    node or another target cannot be named at all; one that is not there is refused by name."""
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    if problems:
+        return problems
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]  # defence in depth: _check_schema just parsed this same document
+    named = str(doc["withdraws"])
+    node_dir = PurePosixPath(located.path).parent.parent
+    if _is_record_on_file(graph_root, f"{node_dir}/{named}"):
+        return []
+    return [
+        Diagnostic(
+            "withdrawal-unknown-record",
+            f"{located.path} withdraws {named}, which is not a status record or a defect claim "
+            f"of this node on the record ({node_dir}/{named}); a withdrawal names one of its own "
+            "node's records (F08-T31, D-18 v3.27)",
+            {"path": located.path, "withdraws": named},
+        )
+    ]
+
+
+def _is_record_on_file(graph_root: Path, rel: str) -> bool:
+    """Whether ``rel`` is a node's status record or defect claim, present and valid against a
+    version its role accepts (F08-T31: what a withdrawal may name)."""
+    role = paths.locate(rel)
+    path = graph_root / rel
+    if role is None or role.role not in ("node-status", "defect-claim") or not path.is_file():
+        return False
+    try:
+        record = schemas.load_yaml(path)
+    except schemas.SchemaError:
+        return False
+    schema_id = str(record.get("schema"))
+    accepted = paths.SCHEMAS_FOR_ROLE[role.role]
+    return schema_id in accepted and not schemas.violations(record, schema_id)
 
 
 def _read(graph_root: Path, located: Located) -> bytes | Diagnostic:
