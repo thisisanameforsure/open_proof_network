@@ -20,7 +20,7 @@ from typing import Any
 import pytest
 import yaml
 from fakes import FakeToolchain, witness_result
-from harness import copy_graph, make_context, node_dir
+from harness import TARGET, copy_graph, make_context, node_dir
 from test_admit import context_for, failure
 from test_wave import wave  # noqa: F401 — the wave driver's fixture, reused
 
@@ -234,7 +234,6 @@ def test_a_scaffolded_proposal_and_a_revision_pass(tmp_path: Path) -> None:
         DATE,
         INTERIOR,
         NEW_STATEMENT,
-        TARGET,
         v2_request_doc,
         write_doc,
     )
