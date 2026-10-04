@@ -317,12 +317,33 @@ def unproved_deps(facts: dict[str, Any], graph: dict[str, list[dict[str, Any]]])
     return [dep for dep in facts.get("deps") or [] if statuses.get(dep) != "proved"]
 
 
+def open_witness(ctx: Context, node_id: str) -> dict[str, Any] | None:
+    """F06-T13 (testers 2026-10-01, A14): the open witness pull request the service opened for
+    ``node_id``, as ``details.pending`` names it, or ``None``. Found as ``annex-pending`` finds an
+    open annex (F06-T8): the service's own open records, no host call."""
+    for found in ctx.store.list_open_submissions():
+        if found.kind == "witness" and found.node_id == node_id:
+            return {
+                "kind": found.kind,
+                "id": found.id,
+                "pr_number": found.pr_number,
+                "pr_url": found.pr_url,
+            }
+    return None
+
+
 def blocked_error(
-    node_id: str, facts: dict[str, Any], graph: dict[str, list[dict[str, Any]]]
+    node_id: str,
+    facts: dict[str, Any],
+    graph: dict[str, list[dict[str, Any]]],
+    *,
+    pending_witness: dict[str, Any] | None = None,
 ) -> ApiError:
     """The one ``409 node-blocked`` every route gives a blocked node (F05-T9, F06-T6): the cause
     and the unproved dependencies, in the message and as ``details``, and the way out where the
-    service offers one — a hole blocked ``witness-missing`` takes ``POST /proposals/witness``."""
+    service offers one — a hole blocked ``witness-missing`` takes ``POST /proposals/witness``,
+    unless a witness for it is already open (``pending_witness``, F06-T13), which is named
+    instead, in the message and as ``details.pending``."""
     cause = facts.get("cause")
     unproved = unproved_deps(facts, graph)
     if unproved:
@@ -334,6 +355,12 @@ def blocked_error(
             )
         elif cause:
             why += f" (cause {cause})"
+    elif cause == graphmod.CAUSE_WITNESS_MISSING and pending_witness is not None:
+        why = (
+            f"cause {cause}: its witness slot is empty, and a witness for it is open as pull "
+            f"request #{pending_witness['pr_number']}; precheck again once it has merged and "
+            "the products are rendered"
+        )
     elif cause == graphmod.CAUSE_WITNESS_MISSING:
         why = (
             f"cause {cause}: its witness slot is empty, and a witness goes in through "
@@ -347,7 +374,15 @@ def blocked_error(
         409,
         "node-blocked",
         f"{node_id} is blocked: {why}",
-        details={"status": "blocked", "cause": cause, "unproved_deps": unproved},
+        details={
+            "status": "blocked",
+            "cause": cause,
+            "unproved_deps": unproved,
+            # F06-T13: only when there is one, so every other refusal keeps its shape
+            **(
+                {"pending": pending_witness} if pending_witness is not None and not unproved else {}
+            ),
+        },
     )
 
 
@@ -434,7 +469,12 @@ def check_open(ctx: Context, node_id: str, facts: dict[str, Any]) -> None:
     if facts.get("status") == "blocked":
         if witness_awaits_render(ctx, node_id, facts):
             raise awaits_render(node_id, f"{node_id}'s witness has merged")
-        raise blocked_error(node_id, facts, graph_doc(ctx))
+        waiting = (
+            open_witness(ctx, node_id)
+            if facts.get("cause") == graphmod.CAUSE_WITNESS_MISSING
+            else None
+        )
+        raise blocked_error(node_id, facts, graph_doc(ctx), pending_witness=waiting)
     if facts.get("status") == "superseded":
         raise superseded_error(ctx, node_id, facts)
 
