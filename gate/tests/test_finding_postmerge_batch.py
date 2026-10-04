@@ -208,6 +208,45 @@ def test_a_replay_between_is_walked_past_and_what_it_credits_left_out(
     assert uncredited(helper, graph) == [2, 4]
 
 
+def test_a_catch_up_commit_credits_only_its_own_merges(
+    helper: dict[str, Any], tmp_path: Path
+) -> None:
+    """F07-T58 (audit 2026-10-04): a gate commit credits the merges it names and nothing else.
+
+    #2 builds; while its run renders, #3 (an append) merges. #2's push is refused, it catches up
+    on main as it now is and pushes ``gate: #2 pass`` *on top of* #3 (F07-T55), crediting #2
+    alone. #3's own run had found #4 already on main and left #3 to #4's run (T45). As the walk
+    stood, #4's run stopped at ``gate: #2`` and took it to have credited everything before it, so
+    #3 was never recorded. A merge counts as recorded only if some gate commit names it."""
+    graph = Graph(tmp_path / "g")
+    graph.merge(2, "submit/p", {"targets/t1/nodes/n/Proof.lean": "theorem x : True := trivial\n"})
+    graph.append(3)
+    graph.bot(2)  # #2's catch-up commit, on top of #3
+    graph.append(4)
+    assert uncredited(helper, graph) == [3, 4]
+
+
+def test_the_run_at_the_head_records_the_append_a_catch_up_walked_over(
+    gate_doc: dict[Any, Any], tmp_path: Path
+) -> None:
+    """F07-T58: the same history through the job's own step. #3's run leaves #3 to the later
+    merge's run, as T45 says; that run must then record it."""
+    graph = Graph(tmp_path / "g")
+    two = graph.merge(
+        2, "submit/p", {"targets/t1/nodes/n/Proof.lean": "theorem x : True := trivial\n"}
+    )
+    three = graph.append(3)
+    graph.bot(2)
+    four = graph.append(4)
+    prs = {two: 2, three: 3, four: 4}
+    code, out, said, _calls = run_find_step(gate_doc, graph, tmp_path, three, prs)
+    assert code == 0 and out.get("run") == "false", (out, said)
+    code, out, said, _calls = run_find_step(gate_doc, graph, tmp_path, four, prs)
+    assert code == 0, said
+    assert out.get("batch") == "true" and out.get("numbers") == "3 4", (out, said)
+    assert out["merges"] == f"{three} {four}"
+
+
 def test_the_matcher_reads_a_number_inside_a_multi_number_subject(helper: dict[str, Any]) -> None:
     credited = helper["credited"]
     assert helper["credits"]("gate: #2 #3 pass") == [2, 3]
@@ -280,7 +319,12 @@ def test_a_building_merge_is_never_batched_and_the_others_are_replayed(
     helper_file: Path, tmp_path: Path
 ) -> None:
     """The actor never batches a building pull request, so this is a lost run: the head records
-    its own merge alone, exactly as before, and every other one gets a replay of its own."""
+    its own merge alone, exactly as before, and every other one gets a replay of its own.
+
+    Restated by F07-T58: ``gate: #4`` credits #4 alone, so #2 is still owed when #6's run plans
+    (its replay has not committed) and is named again; the replay is idempotent (it checks main
+    for a gate commit naming #2 first) and ``owed`` keeps it from being credited twice. As it
+    stood the walk stopped at ``gate: #4`` and answered ``5``, which is how a merge was lost."""
     graph = Graph(tmp_path / "g")
     graph.merge(2, "submit/p", {"targets/t1/nodes/n/Proof.lean": "theorem x : True := trivial\n"})
     four = graph.append(4)
@@ -288,7 +332,12 @@ def test_a_building_merge_is_never_batched_and_the_others_are_replayed(
     graph.bot(4)  # the head's own commit; the replay of #2 records it on its own
     graph.append(5)
     six = graph.merge(6, "propose/v", {"targets/t1/nodes/v/Statement.lean": "x\n"})
-    assert plan_of(helper_file, graph, six, 6) == {"batch": "false", "replay": "5"}
+    assert plan_of(helper_file, graph, six, 6) == {"batch": "false", "replay": "2 5"}
+    graph.bot(6)
+    graph.bot(2, replayed=True)  # the replay of #2 lands; #5's is still owed
+    seven = graph.append(7)
+    got = plan_of(helper_file, graph, seven, 7)
+    assert (got["batch"], got["numbers"], got["replay"]) == ("true", "5 7", ""), got
 
 
 def test_merges_pinned_to_different_gates_are_not_batched(

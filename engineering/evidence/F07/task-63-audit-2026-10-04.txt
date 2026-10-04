@@ -1,0 +1,144 @@
+F07-T63 — the submitter the attestation records is the one the gate saw (audit 2026-10-04)
+=========================================================================================
+
+Graph branch: audit-b-workflows, commit ff3363c0d (gate.yml: two gate-job steps, the post-merge body step).
+Not pushed.
+
+Finding. The post-merge job fetched the pull request's body after the merge (gh api pulls/N --jq
+.body) and passed it to the pinned gate's postmerge command as the submission block (F07-T14:
+submitter, declared model and tooling, consumed precheck). An edit after green was recorded although
+the gate never saw it.
+
+Fix.
+- gate job, when run=true: "Keep the pull request's body as this run saw it" writes
+  github.event.pull_request.body (via env PR_BODY, never interpolated) to a file, and an
+  upload-artifact step (SHA-pinned, v4.6.2) keeps it as submission-<number>-<head.sha>,
+  overwrite: true for a re-run of the same job.
+- postmerge body step: reads the merged PR's head.sha, lists artifacts by that name, takes the newest
+  unexpired one's workflow run and `gh run download <run> --name <name>`; with none, records the
+  live body and prints ::warning::. The job's existing actions: write covers the artifact reads.
+- No gate CLI flag is added: inert on the current pin (3422bb4).
+
+Red tests (run against the job as it stood):
+  test_finding_postmerge_submission.py::test_the_recorded_body_is_the_one_the_gate_saw
+      pr-body.md held "submitter: someone-else" (the live edit), not "submitter: honest-prover"
+  ::test_the_newest_gate_run_on_that_head_is_the_one_read            same
+  ::test_with_no_body_kept_the_live_one_is_recorded_with_a_warning    no ::warning:: (silent)
+  ::test_the_gate_job_keeps_the_body_from_its_event_named_for_its_head  no such steps
+
+Not verifiable locally: the real host's artifact listing and `gh run download` (a fake host here).
+The first merge after this lands on the graph shows "as the gate saw it at <sha>" in the post-merge
+log; merges gated before it print the warning, as designed, until their artifacts are gone.
+
+Proposed Q entry (F07-Q67): "The submission block is the body the gate saw: the gate job keeps its
+event's body as the artifact submission-<pr>-<head sha>, and the post-merge job reads the newest
+unexpired one for the merged head. The live body is a fallback with a warning (pre-change merges,
+expired artifacts), so the default artifact retention bounds how late a replay keeps the gate's view."
+
+Proposed ledger line: T63 ✓ 2026-10-04 (audit; red 4 failed on the defect; green 4 passed, 77 with
+the post-merge suites; graph branch audit-b-workflows ff3363c0d;
+engineering/evidence/F07/task-63-audit-2026-10-04.txt; live when the graph pull request merges, no
+re-pin).
+
+--- red -------------------------------------------------------------------------------------------
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+________________ test_the_recorded_body_is_the_one_the_gate_saw ________________
+
+gate_doc = {'name': 'gate', 'run-name': "${{ github.event_name == 'workflow_dispatch' && format('gate: replay of #{0}', inputs.re...he merged pull request whose post-merge job to replay', 'required': True, 'type': 'string'}}}}, 'permissions': {}, ...}
+tmp_path = PosixPath('/Users/mikehiggins/Desktop/repos/opn-audit-b-workflows/.pytest-tmp/test_the_recorded_body_is_the_0')
+
+    def test_the_recorded_body_is_the_one_the_gate_saw(
+        gate_doc: dict[Any, Any], tmp_path: Path
+    ) -> None:
+        host = {
+            "live": EDITED,
+            "artifacts": [artifact(41, "2026-10-04T10:00:00Z")],
+            "bodies": {f"41/submission-{NUMBER}-{HEAD}": GATED},
+        }
+        code, body, said = body_step(gate_doc, tmp_path, host)
+        assert code == 0, said
+>       assert body == GATED, (body, said)
+E       AssertionError: ('<!-- opn-submission -->
+E         submitter: someone-else
+E         
+E         ', '')
+E       assert '<!-- opn-sub...eone-else\n\n' == '<!-- opn-sub...nest-prover\n'
+E         
+E           <!-- opn-submission -->
+E         - submitter: honest-prover
+E         + submitter: someone-else
+E         +
+
+gate/tests/test_finding_postmerge_submission.py:128: AssertionError
+____________ test_the_newest_gate_run_on_that_head_is_the_one_read _____________
+
+gate_doc = {'name': 'gate', 'run-name': "${{ github.event_name == 'workflow_dispatch' && format('gate: replay of #{0}', inputs.re...he merged pull request whose post-merge job to replay', 'required': True, 'type': 'string'}}}}, 'permissions': {}, ...}
+tmp_path = PosixPath('/Users/mikehiggins/Desktop/repos/opn-audit-b-workflows/.pytest-tmp/test_the_newest_gate_run_on_th0')
+
+    def test_the_newest_gate_run_on_that_head_is_the_one_read(
+        gate_doc: dict[Any, Any], tmp_path: Path
+    ) -> None:
+        """A head gated twice (a re-opened pull request) kept two bodies; the merge followed the
+        newest run's green check. An expired artifact is never chosen."""
+        name = f"submission-{NUMBER}-{HEAD}"
+        host = {
+            "live": EDITED,
+            "artifacts": [
+                artifact(41, "2026-10-04T10:00:00Z"),
+                artifact(43, "2026-10-04T11:00:00Z"),
+                artifact(45, "2026-10-04T12:00:00Z", expired=True),
+            ],
+            "bodies": {f"41/{name}": "old\n", f"43/{name}": GATED, f"45/{name}": "expired\n"},
+        }
+        code, body, said = body_step(gate_doc, tmp_path, host)
+>       assert code == 0 and body == GATED, (body, said)
+E       AssertionError: ('<!-- opn-submission -->
+E         submitter: someone-else
+E         
+E         ', '')
+E       assert (0 == 0 and '<!-- opn-sub...eone-else\n\n' == '<!-- opn-sub...nest-prover\n'
+E         
+E           <!-- opn-submission -->
+E         - submitter: honest-prover
+E         + submitter: someone-else
+E         + )
+
+gate/tests/test_finding_postmerge_submission.py:147: AssertionError
+________ test_with_no_body_kept_the_live_one_is_recorded_with_a_warning ________
+
+gate_doc = {'name': 'gate', 'run-name': "${{ github.event_name == 'workflow_dispatch' && format('gate: replay of #{0}', inputs.re...he merged pull request whose post-merge job to replay', 'required': True, 'type': 'string'}}}}, 'permissions': {}, ...}
+tmp_path = PosixPath('/Users/mikehiggins/Desktop/repos/opn-audit-b-workflows/.pytest-tmp/test_with_no_body_kept_the_liv0')
+
+    def test_with_no_body_kept_the_live_one_is_recorded_with_a_warning(
+        gate_doc: dict[Any, Any], tmp_path: Path
+    ) -> None:
+        """A merge gated before this change, or one whose artifact expired: the record goes on with
+        what the host says now, and says so."""
+        code, body, said = body_step(gate_doc, tmp_path, {"live": EDITED, "artifacts": [], "bodies": {}})
+        assert code == 0, said
+        assert body.rstrip("\n") == EDITED.rstrip("\n")
+>       assert "::warning::" in said, said
+E       AssertionError: 
+E       assert '::warning::' in ''
+
+gate/tests/test_finding_postmerge_submission.py:158: AssertionError
+______ test_the_gate_job_keeps_the_body_from_its_event_named_for_its_head ______
+
+gate_doc = {'name': 'gate', 'run-name': "${{ github.event_name == 'workflow_dispatch' && format('gate: replay of #{0}', inputs.re...he merged pull request whose post-merge job to replay', 'required': True, 'type': 'string'}}}}, 'permissions': {}, ...}
+
+    def test_the_gate_job_keeps_the_body_from_its_event_named_for_its_head(
+        gate_doc: dict[Any, Any],
+    ) -> None:
+        steps = gate_doc["jobs"]["gate"]["steps"]
+>       (keep,) = [s for s in steps if "PR_BODY" in (s.get("env") or {}) and "submission" in str(s)]
+        ^^^^^^^
+E       ValueError: not enough values to unpack (expected 1, got 0)
+
+gate/tests/test_finding_postmerge_submission.py:165: ValueError
+4 failed in 1.14s
+
+--- green -----------------------------------------------------------------------------------------
+........................................................................ [ 93%]
+.....                                                                    [100%]
+77 passed in 74.85s (0:01:14)

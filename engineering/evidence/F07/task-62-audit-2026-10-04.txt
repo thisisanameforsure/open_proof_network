@@ -1,0 +1,202 @@
+F07-T62 — merge actor robustness, and every graph action pinned to a commit (audit 2026-10-04)
+==============================================================================================
+
+Graph branch: audit-b-workflows, commit f568f6a06 (merge.yml pick.py; gate.yml uses: pins). Not pushed.
+
+Findings and fixes (pick.py in merge.yml):
+1. Open pull requests were read as one page (per_page=100) and the host lists newest first, so with
+   101 open the oldest — first in the queue — was never seen. open_pulls() reads every page,
+   sort=created&direction=asc, up to MAX_PULL_PAGES=10 (then a warning; the newest wait).
+2. An up-to-date pull request whose gate check never started (no gate check run) held its lane for
+   ever: HOLD_S was measured from gate_started(), which was None. gate_started(runs, updated) falls
+   back to the pull request's updated_at, in decide() and in more_appends()/holds_the_line(), so the
+   hold ends HOLD_S after the host last changed it. A gate that has not started yet still holds.
+3. An empty-diff service pull request got lane None (`lane_of_paths(files) if files else None`, and
+   lane_of_paths([]) was None), and a pull request in no lane closes every lane when it is first.
+   lane_of_paths([]) is now EMPTY_LANE ("", a lane of its own) and the caller distinguishes [] from
+   None (unreadable). policy.json and multi-target pull requests still close every lane.
+Plus: every `uses:` in gate.yml (and render.yml, from T60) is a full commit SHA with `# vX`:
+  actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7     (= v7.0.1)
+  astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+  actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4  (= v4.6.2; has `overwrite`)
+  aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
+  Read 2026-10-04 with `gh api repos/<o>/<r>/tags` (read-only; the singular git/ref/tags/ endpoint
+  answered 404 here, git/refs/tags/v7 agreed with the tag list for checkout).
+
+Red tests (written first; 4 failed with 2 guards passing):
+  test_finding_merge_actor_robust.py::test_the_oldest_of_a_hundred_and_one_is_seen
+      ('', '') == ('1', 'merge') — "merge actor: nothing to do"   (now parametrised over #1 and #101)
+  ::test_an_empty_diff_holds_its_own_lane_and_no_other
+      ('', '') == ('2 3', 'merge merge') — "#1 is up to date and its gate is running: holding its lane"
+  ::test_a_gate_that_never_started_stops_holding_after_hold_s
+      [(1, ..., 'hold')] == [(2, ..., 'merge')]
+  ::test_a_batch_is_not_ended_by_a_gate_that_never_started
+      [1] == [1, 3]
+  test_finding_graph_workflow_pins.py::test_every_action_is_pinned_to_a_commit_with_its_tag_beside_it
+      12 unpinned in gate.yml (actions/checkout@v7, astral-sh/setup-uv@v10.0.1, ...)
+Guards green throughout: a gate not yet started still holds; policy.json still closes every lane.
+Restated (kept): test_finding_merge_actor_lanes.py::test_a_pull_requests_lane_is_the_one_target_it_touches
+  asserted lane_of([]) is None — the defect — now asserts EMPTY_LANE.
+
+Proposed Q entry (F07-Q66): "The actor reads every page of open pull requests, oldest first. A gate
+that never starts holds its lane for HOLD_S after the pull request's updated_at, not for ever. An
+empty diff is a lane of its own: it changes nothing another lane is gated against. Every action the
+graph's workflows use is pinned to a commit, with the tag as a comment (F04-T29's intent), and a
+network test reads every workflow on the graph ref to hold it."
+
+Proposed ledger line: T62 ✓ 2026-10-04 (audit; red 5 failed on the defect with 2 guards, one test
+restated; green 124 across the actor suites and the pin test; graph branch audit-b-workflows
+f568f6a06; engineering/evidence/F07/task-62-audit-2026-10-04.txt; live when the graph pull request
+merges).
+
+--- red (actor) -----------------------------------------------------------------------------------
+FF.F.F                                                                   [100%]
+=================================== FAILURES ===================================
+_________________ test_the_oldest_of_a_hundred_and_one_is_seen _________________
+
+doc = {'name': 'merge', True: {'workflow_run': {'workflows': ['gate'], 'types': ['completed']}, 'schedule': [{'cron': '*/15 ...*'}], 'workflow_dispatch': {}}, 'permissions': {}, 'concurrency': {'group': 'merge', 'cancel-in-progress': False}, ...}
+tmp_path = PosixPath('/Users/mikehiggins/Desktop/repos/opn-audit-b-workflows/.pytest-tmp/test_the_oldest_of_a_hundred_a0')
+
+    def test_the_oldest_of_a_hundred_and_one_is_seen(doc: dict[Any, Any], tmp_path: Path) -> None:
+        """The host lists open pull requests newest first, a hundred to a page: the oldest is on the
+        second page, and it is the one the queue takes first."""
+        pulls = [pull(n, f"submit/p{n}") for n in range(1, 102)]
+        checks = {n: (green() if n == 1 else red()) for n in range(1, 102)}
+        files = {n: [f"targets/t{n}/nodes/n/Proof.lean"] for n in range(1, 102)}
+        code, out, said = run_pick(doc, tmp_path, pulls, checks, files)
+        assert code == 0, said
+>       assert (out.get("number"), out.get("action")) == ("1", "merge"), (out, said)
+E       AssertionError: ({'number': '', 'sha': '', 'action': ''}, 'merge actor: nothing to do
+E         ')
+E       assert ('', '') == ('1', 'merge')
+E         
+E         At index 0 diff: '' != '1'
+E         Use -v to get more diff
+
+gate/tests/test_finding_merge_actor_robust.py:157: AssertionError
+______________ test_an_empty_diff_holds_its_own_lane_and_no_other ______________
+
+doc = {'name': 'merge', True: {'workflow_run': {'workflows': ['gate'], 'types': ['completed']}, 'schedule': [{'cron': '*/15 ...*'}], 'workflow_dispatch': {}}, 'permissions': {}, 'concurrency': {'group': 'merge', 'cancel-in-progress': False}, ...}
+tmp_path = PosixPath('/Users/mikehiggins/Desktop/repos/opn-audit-b-workflows/.pytest-tmp/test_an_empty_diff_holds_its_o0')
+
+    def test_an_empty_diff_holds_its_own_lane_and_no_other(doc: dict[Any, Any], tmp_path: Path) -> None:
+        """An empty service pull request first in the queue, its gate running: the green pull requests
+        on t1 and t2 behind it merge in the same run."""
+        pulls = [pull(1, "append/empty"), pull(2, "submit/a"), pull(3, "submit/b")]
+        checks = {1: gating(), 2: green(), 3: green()}
+        files = {1: [], 2: ["targets/t1/nodes/n/Proof.lean"], 3: ["targets/t2/nodes/n/Proof.lean"]}
+        code, out, said = run_pick(doc, tmp_path, pulls, checks, files)
+        assert code == 0, said
+>       assert (out.get("number"), out.get("action")) == ("2 3", "merge merge"), (out, said)
+E       AssertionError: ({'number': '', 'sha': '', 'action': ''}, '#1 is up to date and its gate is running: holding its lane for it
+E         merge actor: nothing to do
+E         ')
+E       assert ('', '') == ('2 3', 'merge merge')
+E         
+E         At index 0 diff: '' != '2 3'
+E         Use -v to get more diff
+
+gate/tests/test_finding_merge_actor_robust.py:168: AssertionError
+__________ test_a_gate_that_never_started_stops_holding_after_hold_s ___________
+
+pick = {'__name__': 'pick', '__builtins__': {'__name__': 'builtins', '__doc__': "Built-in functions, types, exceptions, and o...pt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/json/__init__.py'>, ...}
+
+    def test_a_gate_that_never_started_stops_holding_after_hold_s(pick: dict[str, Any]) -> None:
+        hold_min = int(pick["HOLD_S"]) / 60
+        never = with_updated(pull(1, "submit/a"), hold_min + 5)
+        pulls = [never, pull(2, "submit/b")]
+        checks: dict[int, list[dict[str, Any]]] = {1: [], 2: green()}
+        by_sha = {p["head"]["sha"]: p["number"] for p in pulls}
+        decided = pick["decide_lanes"](
+            pulls, RULES, lambda s: checks[by_sha[s]], lambda s: 0, lambda n: False,
+            now=NOW, lane_of=lambda n: "t1",
+        )  # fmt: skip
+>       assert decided == [(2, pulls[1]["head"]["sha"], "merge")], decided
+E       AssertionError: [(1, '0000000000000000000000000000000000000001', 'hold')]
+E       assert [(1, '0000000...001', 'hold')] == [(2, '0000000...02', 'merge')]
+E         
+E         At index 0 diff: (1, '0000000000000000000000000000000000000001', 'hold') != (2, '0000000000000000000000000000000000000002', 'merge')
+E         Use -v to get more diff
+
+gate/tests/test_finding_merge_actor_robust.py:198: AssertionError
+----------------------------- Captured stdout call -----------------------------
+#1 is up to date and its gate is running: holding its lane for it
+____________ test_a_batch_is_not_ended_by_a_gate_that_never_started ____________
+
+pick = {'__name__': 'pick', '__builtins__': {'__name__': 'builtins', '__doc__': "Built-in functions, types, exceptions, and o...pt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/json/__init__.py'>, ...}
+
+    def test_a_batch_is_not_ended_by_a_gate_that_never_started(pick: dict[str, Any]) -> None:
+        """The same bound inside a batch of appends (T45): an append whose gate never started and
+        that the host last changed over HOLD_S ago does not end the batch."""
+        hold_min = int(pick["HOLD_S"]) / 60
+        pulls = [
+            pull(1, "append/a"),
+            with_updated(pull(2, "append/b"), hold_min + 5),
+            pull(3, "append/c"),
+        ]
+        checks: dict[int, list[dict[str, Any]]] = {1: green(), 2: [], 3: green()}
+        by_sha = {p["head"]["sha"]: p["number"] for p in pulls}
+        decided = pick["decide_lanes"](
+            pulls, RULES, lambda s: checks[by_sha[s]], lambda s: 0, lambda n: False,
+            now=NOW, lane_of=lambda n: "t1",
+        )  # fmt: skip
+>       assert [n for n, _s, a in decided if a == "merge"] == [1, 3], decided
+E       AssertionError: [(1, '0000000000000000000000000000000000000001', 'merge')]
+E       assert [1] == [1, 3]
+E         
+E         Right contains one more item: 3
+E         Use -v to get more diff
+
+gate/tests/test_finding_merge_actor_robust.py:230: AssertionError
+----------------------------- Captured stdout call -----------------------------
+#2 is up to date and its gate is running: the batch ends before it
+==================================== PASSES ====================================
+_______________ test_a_gate_that_has_not_started_yet_still_holds _______________
+----------------------------- Captured stdout call -----------------------------
+#1 is up to date and its gate is running: holding its lane for it
+=========================== short test summary info ============================
+PASSED gate/tests/test_finding_merge_actor_robust.py::test_a_pull_request_in_no_lane_still_closes_every_lane
+PASSED gate/tests/test_finding_merge_actor_robust.py::test_a_gate_that_has_not_started_yet_still_holds
+FAILED gate/tests/test_finding_merge_actor_robust.py::test_the_oldest_of_a_hundred_and_one_is_seen
+FAILED gate/tests/test_finding_merge_actor_robust.py::test_an_empty_diff_holds_its_own_lane_and_no_other
+FAILED gate/tests/test_finding_merge_actor_robust.py::test_a_gate_that_never_started_stops_holding_after_hold_s
+FAILED gate/tests/test_finding_merge_actor_robust.py::test_a_batch_is_not_ended_by_a_gate_that_never_started
+4 failed, 2 passed in 14.04s
+
+--- red (pins) -------------------------------------------------------------------------------------
+F                                                                        [100%]
+=================================== FAILURES ===================================
+________ test_every_action_is_pinned_to_a_commit_with_its_tag_beside_it ________
+
+    def test_every_action_is_pinned_to_a_commit_with_its_tag_beside_it() -> None:
+        texts = workflows()
+        assert texts, "no workflow files read"
+        unpinned, uncommented, seen = [], [], 0
+        for name, text in texts.items():
+            doc = yaml.safe_load(text)
+            commented = {m.group(1) for m in map(COMMENT.search, text.splitlines()) if m}
+            for uses in uses_of(doc):
+                seen += 1
+                if uses.startswith("./"):
+                    continue  # a local action is this repository's own, at this commit
+                if not PINNED.match(uses):
+                    unpinned.append(f"{name}: {uses}")
+                elif uses not in commented:
+                    uncommented.append(f"{name}: {uses}")
+        assert seen, "no `uses:` found: the accessor, not the workflows, is wrong"
+>       assert unpinned == [], unpinned
+E       AssertionError: ['gate.yml: actions/checkout@v7', 'gate.yml: actions/checkout@v7', 'gate.yml: astral-sh/setup-uv@v10.0.1', 'gate.yml: actions/upload-artifact@v4', 'gate.yml: actions/checkout@v7', 'gate.yml: actions/checkout@v7', ...]
+E       assert ['gate.yml: a...kout@v7', ...] == []
+E         
+E         Left contains 12 more items, first extra item: 'gate.yml: actions/checkout@v7'
+E         Use -v to get more diff
+
+gate/tests/test_finding_graph_workflow_pins.py:73: AssertionError
+1 failed in 0.20s
+
+--- green -----------------------------------------------------------------------------------------
+........................................................................ [ 58%]
+...................................................                      [100%]
+123 passed in 19.50s
+.                                                                        [100%]
+1 passed in 0.20s

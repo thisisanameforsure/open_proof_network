@@ -32,7 +32,9 @@ GRAPH_REPO = GRAPH_CHECKOUT
 PATH = ".github/workflows/merge.yml"
 #: ``origin/main`` first. A change to the actor lives on a graph branch until the owner pushes it;
 #: put that branch first while it does (T31 did), and take it out again once it is on main.
-REFS = ("origin/main", "f07-t25-merge-actor")  # F07-T46 and T55-T57 merged 2026-10-03
+#: ``audit-b-workflows`` is the audit of 2026-10-04 (F07-T58, T60-T63), first while it is a graph
+#: branch; F07-T46 and T55-T57 merged 2026-10-03.
+REFS = ("audit-b-workflows", "origin/main", "f07-t25-merge-actor")
 SECRET = "OPN_GRAPH_MERGE_TOKEN"  # noqa: S105 — the secret's name, not a secret
 GATE_JOB = "gate (steps 1, 2 and 4-8 in the sandbox)"
 STEP9_JOB = "step 9 (a non-author approving review)"

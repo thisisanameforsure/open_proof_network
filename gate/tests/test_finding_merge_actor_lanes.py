@@ -149,7 +149,9 @@ def test_a_pull_requests_lane_is_the_one_target_it_touches(pick: dict[str, Any])
     assert lane_of(["targets/t1/a", "targets/t2/b"]) is None  # refused by the gate anyway
     assert lane_of(["policy.json"]) is None  # a curator's switch: every lane
     assert lane_of(["targets/t1/a", "curators.json"]) is None
-    assert lane_of([]) is None
+    # restated by F07-T62: an empty diff was None, a pull request in no lane, which closes every
+    # lane when it is first; it changes nothing another lane is gated against, so it has its own
+    assert lane_of([]) == pick["EMPTY_LANE"] and lane_of([]) is not None
 
 
 def test_stale_counts_only_the_commits_that_reach_the_lane(pick: dict[str, Any]) -> None:

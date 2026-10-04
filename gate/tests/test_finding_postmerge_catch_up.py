@@ -683,3 +683,41 @@ def test_a_merge_that_touched_no_target_is_not_replayed(
         in_flight=lambda _s: False,
     )  # fmt: skip
     assert got == {"batch": "false", "replay": ""}, got
+
+
+def test_a_building_merge_whose_run_ended_uncredited_is_replayed_past_a_later_gate_commit(
+    gate_doc: dict[Any, Any], tmp_path: Path
+) -> None:
+    """F07-T58 (audit 2026-10-04): #2 builds and its run is going when #3 (an append) merges, so
+    #3's run leaves #2 to its own run and records #3 alone (T55). #2's run then ends without a
+    gate commit (lost, as #125 and #145 were). As the walk stood, #4's run stopped at
+    ``gate: #3`` and never saw #2 again; a merge counts as recorded only if a gate commit names
+    it, so #2 is replayed."""
+    helper: dict[str, Any] = {"__name__": "postmerge_batch"}
+    exec(compile(helper_source(gate_doc), "postmerge_batch.py", "exec"), helper)  # noqa: S102
+    graph = Graph(tmp_path / "g")
+    two = graph.merge(
+        2, "submit/p", {"targets/t1/nodes/n/Proof.lean": "theorem x : True := trivial\n"}
+    )
+    three = graph.append(3)
+
+    def log_of() -> list[tuple[str, int, str]]:
+        rows = []
+        for line in graph.git(
+            "log", "--first-parent", "--format=%H%x09%P%x09%s", "HEAD"
+        ).splitlines():
+            sha, parents, subject = line.split("\t", 2)
+            rows.append((sha, len(parents.split()), subject))
+        return rows
+
+    def plan(merge: str, own: int, going: set[str]) -> dict[str, str]:
+        got: dict[str, str] = helper["plan"](
+            merge, own, log=log_of(), targets_of=lambda _s: ["t1"], pin_of=lambda _s, _t: PIN_A,
+            in_flight=lambda s: s in going,
+        )  # fmt: skip
+        return got
+
+    assert plan(three, 3, {two}) == {"batch": "false", "replay": ""}  # #2's run is going
+    graph.bot(3)  # #3 recorded alone
+    four = graph.append(4)
+    assert plan(four, 4, set()) == {"batch": "false", "replay": "2"}
