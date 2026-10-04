@@ -162,6 +162,66 @@ def test_revise_flow(tmp_path: Path) -> None:
         curator.revise(root, TARGET, ROOT, NEW_STATEMENT, request, author=AUTHOR, date=DATE)
 
 
+def test_staleness_stays_one_level_deep(tmp_path: Path) -> None:
+    """F03-T15 (audit 2026-10-04): a revision two levels below a proved node marks only the
+    direct dependent stale, deliberately, and the grand-dependent stays proved.
+
+    The chain is ``and-reassoc`` <- ``tutorial-and-swap`` <- the root, every node proved, and
+    the root's proof uses nothing (so neither its deps nor its merged uses name
+    ``and-reassoc``). Revising ``and-reassoc`` writes one ``stale`` record, on
+    ``tutorial-and-swap``, and none on the root.
+
+    Why one level is right: a proof rests on its dependencies' *statements*, never on their
+    proofs (D-3: a node's ``Context.lean`` carries its deps' signatures, ``sorry``-closed). The
+    root's proof was checked against ``tutorial-and-swap``'s statement, and a revision of
+    ``and-reassoc`` does not change that statement: ``tutorial-and-swap`` is not edited (D-8,
+    no contributor edits a statement), only marked stale, i.e. its *proof* must be re-derived
+    against the revision (D-18 v3.18). If the re-derivation fails, the statement still stands
+    as before and the root's proof is still a valid proof from it. What a stale dependency
+    does change is the trust in the chain below the root, which the products already publish
+    per node; propagating ``stale`` upward would mark proofs whose own check is unaffected.
+    """
+    root = copy_graph(tmp_path, publish=True)
+    add_dependent(root, TUTORIAL, INTERIOR)
+    root_meta = nodes_dir(root) / ROOT / "META.yaml"
+    meta = yaml.safe_load(root_meta.read_text())
+    meta["deps"] = [TUTORIAL]
+    root_meta.write_text(yaml.safe_dump(meta, sort_keys=False))
+    (nodes_dir(root) / ROOT / "Proof.lean").write_text(
+        f"import Nodes.«{ROOT}».Context\n\n"
+        "theorem OpnProp.and_swap_reassoc : ∀ p q r : Prop, (p ∧ q) ∧ r → r ∧ (q ∧ p) := by\n"
+        "  intro p q r h\n"
+        "  exact ⟨h.2, h.1.2, h.1.1⟩\n",
+        encoding="utf-8",
+    )
+    for n, node in enumerate((INTERIOR, TUTORIAL, ROOT), start=1):
+        attest_proved(root, node, n)
+    before = graphmod.load_target(root, TARGET)
+    assert {n: before.statuses[n] for n in (INTERIOR, TUTORIAL, ROOT)} == dict.fromkeys(
+        (INTERIOR, TUTORIAL, ROOT), "proved"
+    )
+    assert curator.dependents_of(nodes_dir(root), INTERIOR) == [TUTORIAL]
+
+    revision = curator.revise(
+        root,
+        TARGET,
+        INTERIOR,
+        NEW_STATEMENT,
+        write_request(root, INTERIOR),
+        author=AUTHOR,
+        date=DATE,
+    )
+    assert revision.dependents == (TUTORIAL,)
+    assert latest_status(root, TUTORIAL).status == "stale"
+    assert records.load_node_status(nodes_dir(root) / ROOT) is None  # no record two levels up
+    assert not any(f"/nodes/{ROOT}/" in w for w in revision.written)
+
+    after = graphmod.load_target(root, TARGET)
+    assert after.statuses[INTERIOR] == "superseded"
+    assert after.statuses[TUTORIAL] == "stale"
+    assert after.statuses[ROOT] == "proved"  # it rests on tutorial-and-swap's statement
+
+
 def test_revising_the_root_makes_the_revision_the_root(tmp_path: Path) -> None:
     """D-8 on the root itself: the old root is superseded and the new one is the sink left."""
     root = copy_graph(tmp_path)

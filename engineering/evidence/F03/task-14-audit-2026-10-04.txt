@@ -1,0 +1,94 @@
+F03-T14 — a closed root is not claimable work (audit 2026-10-04)
+==================================================================
+
+Finding. targets/index.json published `claimable: true, not_claimable: []` for
+(a) a pre-F11 target whose root is proved (status `resolved`): products.target_facts returned the
+    declaration's flag / the root's tutorial bit and never consulted the status — the live
+    `tutorial` target;
+(b) a target whose root is refuted, defective or abandoned: only `proved` makes a target
+    `resolved`, so the status stays open (`listed`/`active`/`dormant`, all CLAIMING_STATUSES) and
+    intake.claimability, which read only the status, said yes.
+
+Fix (gate/opn_gate/intake.py, gate/opn_gate/products.py):
+- intake.CLOSED_ROOT_STATUSES = (refuted, defective, abandoned); intake.root_reasons(root_status)
+  gives `root-<status>`; intake.claimability takes `root_status` and adds that reason.
+- products.target_facts: a pre-F11 target that would be claimable gets reasons `status-resolved`
+  (when resolved) plus root_reasons(root status); claimable is false whenever there is a reason.
+  A pre-F11 target declared NOT claimable keeps its empty reasons (Q4), so open_beneath does not
+  reopen the nodes beneath it.
+- products.open_beneath also accepts `root-<status>` reasons: a closed root is a fact about the
+  root (Q15), so the frontier beneath it does not move. Net effect on frontier.json: none.
+- intake.explain words `root-<status>`; the fixed reasons moved to intake.FIXED_REASONS (ruff
+  PLR0911), same words.
+- Target status word unchanged (D-33: whether a refuted root makes a target `resolved` is the
+  owner's call). No schema change: targets-index/v7's not_claimable pattern admits `root-refuted`;
+  its description names only F14/F15 reasons — a description refresh waits for the next version.
+
+Goldens: none changed (test_golden passes for all three states; the fixture's resolved/closed-root
+cases do not occur in the golden states). api/tests fixtures copied from goldens: unchanged.
+Site: no change needed (site/opn_site/render.py already calls products.open_beneath and
+intake.explain).
+
+Red test: gate/tests/test_finding_closed_root.py (10 cases), run before the fix:
+E       assert True is False
+gate/tests/test_finding_closed_root.py:118: AssertionError
+E       AssertionError: assert (True, []) == (False, ['status-resolved'])
+E         
+E         At index 0 diff: True != False
+E         Use -v to get more diff
+gate/tests/test_finding_closed_root.py:133: AssertionError
+E       assert True is False
+gate/tests/test_finding_closed_root.py:152: AssertionError
+E       assert True is False
+gate/tests/test_finding_closed_root.py:152: AssertionError
+E       assert True is False
+gate/tests/test_finding_closed_root.py:152: AssertionError
+E       assert True is False
+gate/tests/test_finding_closed_root.py:173: AssertionError
+E       assert True is False
+gate/tests/test_finding_closed_root.py:173: AssertionError
+E       assert True is False
+gate/tests/test_finding_closed_root.py:173: AssertionError
+E       assert True is False
+gate/tests/test_finding_closed_root.py:184: AssertionError
+E           AssertionError: root-refuted
+E           assert ('root-refuted' != 'root-refuted')
+gate/tests/test_finding_closed_root.py:194: AssertionError
+10 failed in 0.93s
+
+Green, after the fix (closed-root, products, intake, the site's not-claimable and resolved-target tests, the api's claims/refusal/fixture-is-golden tests):
+122 passed, 2 warnings in 13.00s
+Wider fast-tier sweep (every gate/api/site test file mentioning claimable, open_beneath, products.generate or targets/index): gate 616 passed, 1 failed (test_walkthrough::test_graph_copy_is_identical — the sibling graph checkout's AGENTS.md drifted; fails identically with the fix stashed, unrelated); api 86 passed; site 247 passed.
+
+Live meaning. products.target_facts in process (graph.load_target per target, no Mathlib image)
+against a detached worktree of the graph at origin/main = 7f207c7fd69becd91f826921504900a0aec82fc8,
+once with the fix and once with it stashed (same base 6bb8754). The only difference:
+  189,190c189,192
+  <   "claimable": true,
+  <   "reasons": [],
+  ---
+  >   "claimable": false,
+  >   "reasons": [
+  >    "status-resolved"
+  >   ],
+  i.e. tutorial: claimable true -> false, not_claimable [] -> ["status-resolved"]; status resolved unchanged.
+  No live root is refuted, defective or abandoned (root statuses: ['proved', 'ready'] ).
+  Frontier entries beneath tutorial: claimable = facts.claimable or open_beneath(reasons) = True before and after.
+
+Proposed Q entry (F03-Q17):
+  F03-Q17 — A closed root is not claimable work (T14, audit 2026-10-04). targets/index.json said
+  `claimable: true` of the tutorial target, whose root is proved, because a pre-F11 target took
+  its declaration's flag (or the root's tutorial bit) without looking at its status; and it would
+  have said the same of any target whose root is refuted, defective or abandoned, because only
+  `proved` makes a target `resolved` and the rule read the status alone. Decided: a closed root
+  makes the target claimable: false with a reason — `status-resolved` for a resolved pre-F11
+  target, `root-<status>` for a root refuted, defective or abandoned on any target. The status
+  word does not move: whether a refuted or defective root resolves the target is D-33's and the
+  owner's. Like `status-resolved` (Q15), `root-<status>` is a fact about the root, so
+  open_beneath sets it aside and no frontier entry changes. A pre-F11 target declared not
+  claimable keeps an empty reason list (Q4). Live at origin/main 7f207c7: the tutorial target alone
+  changes. Reversal: drop the reasons in target_facts and intake.claimability.
+
+Proposed ledger line: T14 ✓ 2026-10-04 (Q17; a closed root is not claimable: tutorial
+claimable true → false, status-resolved; root-refuted/-defective/-abandoned reasons; frontier
+unchanged; test_finding_closed_root.py, 10 cases red then green) engineering/evidence/F03/task-14-audit-2026-10-04.txt
