@@ -52,7 +52,7 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 
 log = logging.getLogger(__name__)
 
-PROTOCOL_VERSION = "3.27"  # docs/architecture_decisions.html (v3.27: the 2026-10-04 audit)
+PROTOCOL_VERSION = "3.28"  # docs/architecture_decisions.html (v3.28: the 2026-10-04 audit)
 GRAPH_SCHEMA = "graph/v4"  # F08-T27, F18: each proof and what it used (v3: F12-R13)
 FRONTIER_SCHEMA = "frontier/v4"  # T16: status, cause, needs (v3, T7: partials; v2: D-33 dormancy)
 #: F11-R12 renames D-9's second rung and F11-R3/R4 add the derived fields. v2 was already spent
@@ -239,8 +239,9 @@ WRITTEN_UP = "written-up"
 def closing_node(tg: TargetGraph) -> str | None:
     """F15-Q11: the node whose proof closed the target — the root, or the ``resolves`` variant
     where the target resolved by variant (D-30); ``None`` while nothing has. A ``partial``
-    variant closes nothing and starts no digestion state."""
-    if tg.statuses[tg.root] == "proved":
+    variant closes nothing and starts no digestion state. F03-T17: a root settled by any
+    root-level D-12 artifact (proof, counterexample, vacuity certificate) is the closing node."""
+    if tg.statuses[tg.root] in graphmod.RESOLVED_STATUSES:
         return tg.root
     for node_id in tg.order:
         n = tg.nodes[node_id]
@@ -285,8 +286,14 @@ def digestion(tg: TargetGraph, *, status: str, signer: Signer) -> dict[str, Any]
         return out
     closing = closing_node(tg)
     closure = dependency_closure(tg, closing) if closing is not None else []
-    closure_proved = [n for n in closure if tg.statuses[n] == "proved"]
-    closure_explained = [n for n in closure_proved if n in explained]
+    # F03-T17: the closing artifact may be a counterexample or a vacuity certificate, whose node
+    # is settled but not ``proved``; it is in the closure all the same, and needs its explainer.
+    closure_proved = [n for n in closure if tg.statuses[n] in graphmod.RESOLVED_STATUSES]
+    closure_explained = [
+        n
+        for n in closure_proved
+        if n in explained or (n not in proved and explainers.valid(tg.nodes[n].path, signer))
+    ]
     out["closure"] = len(closure_proved)
     out["closure_explained"] = len(closure_explained)
     if writeup.has_paper(tg.path, signer):
@@ -323,7 +330,11 @@ def target_facts(
     fallback = str(decl.get("fidelity", DEFAULT_FIDELITY))
     grade = derived_grade if derived_grade is not None else fallback
     legacy_claimable = bool(decl.get("claimable", tg.nodes[tg.root].tutorial))
-    if tg.statuses[tg.root] == "proved":
+    # F03-T17 (D-33 as written, decisions v3.28): "resolved (root closed by a root-level D-12
+    # artifact ...)" — a merged counterexample or vacuity certificate closes the root as a proof
+    # does, so a refuted or defective root resolves its target. ``abandoned`` is a curator's
+    # record (D-14), not a D-12 artifact, and keeps the declared status (``root-abandoned``).
+    if tg.statuses[tg.root] in graphmod.RESOLVED_STATUSES:
         status = "resolved"
     elif "status" in decl:
         status = str(decl["status"])

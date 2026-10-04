@@ -11,8 +11,11 @@ whose root takes no more work:
     rule, which reads only the status, said yes.
 
 The rule: such a target is ``claimable: false`` with a reason — ``status-resolved`` for (a),
-``root-<status>`` for (b). The target's status word does not move: whether a refuted root makes a
-target ``resolved`` is the owner's call under D-33. The frontier does not move either: like
+``root-<status>`` for (b). F03-T17 (decisions v3.28, D-33 as written: "resolved (root closed by a
+root-level D-12 artifact ...)") then moved the status word for two of (b)'s three: a root refuted by
+a merged counterexample or defective by a merged vacuity certificate resolves its target, so the
+reason is ``status-resolved`` there too; only an abandoned root (a curator's record, not a D-12
+artifact) keeps ``root-abandoned`` and its target's status. The frontier does not move either: like
 ``status-resolved`` (F03-Q15, D-33 v3.20), a closed root is a fact about the root, so the nodes
 beneath it keep the claimability they had (``products.open_beneath``).
 """
@@ -137,7 +140,9 @@ def test_a_legacy_declared_target_with_a_proved_root_is_not_claimable(tmp_path: 
 def test_a_legacy_target_with_a_closed_root_is_not_claimable(tmp_path: Path, closing: str) -> None:
     """(b) on a pre-F11 target declared claimable: the root refuted (a merged counterexample),
     defective (a merged vacuity certificate) or abandoned (a curator's record). The status word
-    stays what the declaration says; the reason names the root's status."""
+    stays what the declaration says; the reason names the root's status. F03-T17 (D-33, v3.28):
+    a refuted or defective root is a root-level D-12 artifact and resolves the target, so those two
+    read ``resolved`` with ``status-resolved``; an abandoned root keeps the declared status."""
     root = copy_graph(tmp_path, publish=True)
     declare_active(root)
     attest(root, "tutorial-and-swap", 1)
@@ -148,15 +153,20 @@ def test_a_legacy_target_with_a_closed_root_is_not_claimable(tmp_path: Path, clo
         settle(root, ROOT_NODE, "_refuted" if closing == "refuted" else "_vacuous", 3)
     assert graph.load_target(root, TARGET).statuses[ROOT_NODE] == closing
     row = index_row(generate(root))
-    assert row["status"] == "active"  # D-33: the status word is the owner's call, unchanged
     assert row["claimable"] is False
-    assert row["not_claimable"] == [f"root-{closing}"]
+    if closing == "abandoned":
+        assert row["status"] == "active"  # a curator's record is not a D-12 artifact
+        assert row["not_claimable"] == ["root-abandoned"]
+    else:
+        assert row["status"] == "resolved"  # F03-T17: D-33 as written
+        assert row["not_claimable"] == ["status-resolved"]
 
 
 @pytest.mark.parametrize("closing", ["refuted", "defective", "abandoned"])
 def test_a_curated_target_with_a_closed_root_is_not_claimable(tmp_path: Path, closing: str) -> None:
     """(b) on a curated target that meets every F11-R4 condition: the claimability rule read only
-    the status, which a closed root other than ``proved`` leaves ``active``."""
+    the status, which a closed root other than ``proved`` left ``active``. F03-T17: a refuted or
+    defective root now resolves the target (D-33 v3.28); an abandoned one leaves it ``active``."""
     root = copy_graph(tmp_path, publish=True)
     harness.take_in(root, CURATED)
     intake.activate(root, CURATED, author="curator", date="2026-09-12T00:00:00Z")
@@ -169,9 +179,13 @@ def test_a_curated_target_with_a_closed_root_is_not_claimable(tmp_path: Path, cl
         settle(root, root_id, suffix, 9, CURATED)
     assert graph.load_target(root, CURATED).statuses[root_id] == closing
     row = index_row(generate(root), CURATED)
-    assert row["status"] == "active"
     assert row["claimable"] is False
-    assert row["not_claimable"] == [f"root-{closing}"]
+    if closing == "abandoned":
+        assert row["status"] == "active"
+        assert row["not_claimable"] == ["root-abandoned"]
+    else:
+        assert row["status"] == "resolved"
+        assert row["not_claimable"] == ["status-resolved"]
 
 
 def test_the_frontier_beneath_a_closed_root_does_not_move(tmp_path: Path) -> None:
@@ -192,3 +206,38 @@ def test_the_reasons_read_in_words() -> None:
     for closing in ("refuted", "defective", "abandoned"):
         words = intake.explain(f"root-{closing}")
         assert words != f"root-{closing}" and closing in words, words
+
+
+@pytest.mark.parametrize(
+    ("closing", "suffix"), [("refuted", "_refuted"), ("defective", "_vacuous")]
+)
+def test_a_listed_target_whose_root_is_settled_by_a_d12_artifact_is_resolved(
+    tmp_path: Path, closing: str, suffix: str
+) -> None:
+    """F03-T17 (D-33 as written, decisions v3.28): ``resolved`` is "root closed by a root-level
+    D-12 artifact", and a counterexample or a vacuity certificate is one as much as a proof. A
+    curated target, listed and never activated, read ``listed`` with a merged counterexample on
+    its root; it reads ``resolved``, carries the digestion state every resolved target carries
+    (D-33 v3.17), and refuses claims at the root with ``status-resolved`` alone."""
+    root = copy_graph(tmp_path, publish=True)
+    harness.take_in(root, CURATED)
+    assert index_row(generate(root), CURATED)["status"] == "listed"
+    root_id = graph.load_target(root, CURATED).root
+    settle(root, root_id, suffix, 9, CURATED)
+    assert graph.load_target(root, CURATED).statuses[root_id] == closing
+    row = index_row(generate(root), CURATED)
+    assert row["status"] == "resolved"
+    assert (row["claimable"], row["not_claimable"]) == (False, ["status-resolved"])
+    assert row["digestion"]["state"] == "undigested"
+
+
+def test_an_abandoned_root_does_not_resolve_its_target(tmp_path: Path) -> None:
+    """F03-T17's edge: ``abandoned`` is a curator's record (D-14), not a D-12 artifact, so the
+    target stays ``listed`` and the root's own reason says why nothing is claimable there."""
+    root = copy_graph(tmp_path, publish=True)
+    harness.take_in(root, CURATED)
+    abandon(root, graph.load_target(root, CURATED).root, CURATED)
+    row = index_row(generate(root), CURATED)
+    assert row["status"] == "listed"
+    assert row["not_claimable"] == ["root-abandoned"]
+    assert row["digestion"]["state"] is None

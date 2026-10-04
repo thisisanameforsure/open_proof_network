@@ -62,12 +62,12 @@ DORMANT = "dormant"
 #: human check sits on the proof (D-4 step 9), not on the claim. A dormancy declaration refuses no
 #: claim either — it is a signal to the curator, not a lock on the target.
 CLAIMING_STATUSES: tuple[str, ...] = (LISTED, ACTIVE, DORMANT)
-#: F03-T14: the root statuses, short of ``proved``, that leave nothing at the root to work on. A
-#: merged counterexample or vacuity certificate settles the root (D-12), and a curator's
-#: ``abandoned`` closes it (D-14). Only ``proved`` makes the target ``resolved`` (D-33); whether
-#: these should too is the owner's call, so the status word is left alone and claimability alone
-#: answers, with the reason ``root-<status>``.
-CLOSED_ROOT_STATUSES: tuple[str, ...] = ("refuted", "defective", "abandoned")
+#: F03-T14: the root statuses that leave nothing at the root to work on without resolving the
+#: target. F03-T17 (D-33 as written, decisions v3.28): a merged counterexample or vacuity
+#: certificate settles the root by a root-level D-12 artifact and so *resolves* the target, which
+#: answers with ``status-resolved``; only a curator's ``abandoned`` (D-14) closes the root while
+#: the status word stays, and claimability answers with the reason ``root-abandoned``.
+CLOSED_ROOT_STATUSES: tuple[str, ...] = ("abandoned",)
 ROOT_REASON_PREFIX = "root-"
 
 

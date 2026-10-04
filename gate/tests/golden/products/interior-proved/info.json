@@ -1,7 +1,7 @@
 {
   "errors_url": null,
   "guide_url": null,
-  "protocol_version": "3.27",
+  "protocol_version": "3.28",
   "rate_limit_policy": null,
   "rendered_from": "5555555555555555555555555555555555555555",
   "schema": "info/v2",
