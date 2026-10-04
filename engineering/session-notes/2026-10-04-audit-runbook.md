@@ -76,26 +76,27 @@ graph's copy, and the re-pin's guide copy fixes it.
    - Also first exercised here: the docker stdin plumbing for the nonce, and the new `opn-axioms`
      binary in the image.
    - Read every red before believing it (Log 2026-09-10: one dead daemon looks like eight failures).
-3. **Apply the stacks.** Use change sets with `UsePreviousValue`, read before execute:
+3. **Set the token cutover.** Before the api deploy, set `OPN_API_TOKEN_CUTOVER` to the deploy day (F05-T27): existing tokens get a full 90 days from it. Check the live identities against the reserved names with the scan in `engineering/evidence/F05/task-26-audit-2026-10-04.txt`.
+4. **Apply the stacks.** Use change sets with `UsePreviousValue`, read before execute:
    - the api stack (F05-T22; `api/infra/README.md`, with `AlarmEmail` set; then mint one token and
      check `IdentitiesMinted` counts it, since the JSON-logging call is inferred, not observed);
    - the site stack (F04-T28; then `check_deploy`).
-4. **Graph workflows.** Open graph branch `audit-b-workflows` as a pull request.
+5. **Graph workflows.** Open graph branch `audit-b-workflows` as a pull request.
    - After F07-T61, only a curator listed on the base may open a non-target pull request, so it must
      be opened by `thisisanameforsure`.
    - Once it merges, take `audit-b-workflows` out of `REFS` in
      `gate/tests/test_finding_merge_actor_workflow.py`.
-5. **Re-pin** to the pushed network head, following `engineering/evidence/F00/repin-3a780d6.txt` or
+6. **Re-pin** to the pushed network head, following `engineering/evidence/F00/repin-3a780d6.txt` or
    the latest equivalent:
    1. Tag, publish the images, run `pin_image.py` over every target in a detached worktree, and read
       the devcontainer diff.
-   2. Seed the new schemas: `frontier/v4`, `info/v2`, `withdrawal/v1`, `credit-correction/v1`.
+   2. Seed the new schemas: `frontier/v4`, `info/v2`, `withdrawal/v1`, `credit-correction/v1`, `graph/v5`, `context/v3`. Every `graph.json` and `CONTEXT.json` changes on the first render.
    3. Copy `gate/agents/AGENTS.md` to the graph.
    4. Commit, then `pregate.sh` with the whole output redirected to a file.
    5. Push with no gate run in flight.
    6. Dispatch `render.yml` (F07-T60, live after step 4) and check that `rendered_from` equals the
       head.
-6. **Live checks.**
+7. **Live checks.**
    - `/frontier.json` is v4.
    - `/errors.json` and `/llms.txt` answer.
    - From outside, a spoofed `X-Forwarded-For` still reaches 429.
@@ -109,12 +110,18 @@ graph's copy, and the re-pin's guide copy fixes it.
 - For merges #2, #8, #72 and #73: acknowledge each for good (write its reason in
   `uncredited.ACKNOWLEDGED`) or replay it.
 
+## Built on 2026-10-04 from the owner's five decisions (decisions v3.28)
+
+- Defect claims shown in `graph/v5` and `CONTEXT.json`, and on the site; a curator accepts a dispute with `curator status <node> disputed --reference defects/<file>` (F08-T35, T36, T38).
+- A refuted or ill-posed root resolves its target, and the site says "disproved" or "shown ill-posed" (F03-T17, F04-T31, F04-T32).
+- Proposed statements hold declarations only (F08-T37), and the exhibit pre-flight matches the gate (F13-T31).
+- Reserved pseudonyms (F05-T26) and 90-day renewable tokens (F05-T27).
+- The four old merges acknowledged with reasons (F07-T73).
+- The api redeploys on any gate module it imports (F05-T28).
+
 ## Still open for the owner
 
-- v3.27 §4: whether an accepted defect claim derives `disputed`.
-- §5: whether a refuted root resolves its target.
-- Whether an abandoned or defective root should close the nodes beneath it (F03-Q17).
-- Token expiry, reserved pseudonyms and a GitHub account-age floor (not built).
-- Whether a proposed Statement.lean or Context.lean may carry only imports, `open`, `namespace`, doc comments and the theorem (F02-Q12). Today an `initialize` there runs in the judges that import it.
-- Step 9's reviewer rule, left as is by ruling. It guards against accident, not against a second
-  account.
+- A tutorial identity whose token lapses cannot be re-proved (F05-Q27): it keeps its credit but cannot write again. Options are in the session's report.
+- Whether the Problems page gets a "Disproved" filter (F04-T31 left it out).
+- `formalizations/<name>/Statement.lean` (F14-R7) is not covered by the declarations-only rule.
+- Step 9's reviewer rule, left as is by ruling. It guards against accident, not against a second account.
