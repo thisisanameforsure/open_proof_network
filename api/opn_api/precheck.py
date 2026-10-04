@@ -34,7 +34,7 @@ from opn_api import clock as clockmod
 from opn_api import identity as identitymod
 from opn_api.app import ApiError, host_budget_refusal
 from opn_api.githost import GitHostError, RateLimitError, WorkflowRun
-from opn_gate import attestation, layout, postmerge, schemas, signer
+from opn_gate import attestation, context, layout, postmerge, schemas, signer
 from opn_gate import graph as graphmod
 from opn_gate.paths import Claim
 
@@ -386,16 +386,39 @@ def blocked_error(
     )
 
 
+class _GraphAtMain:
+    """``context.Reader`` over the graph at ``main``, for the one listing ``replacement_of``
+    needs; a host error propagates, and ``replacement_of`` turns it into ``None``."""
+
+    def __init__(self, ctx: Context) -> None:
+        self.ctx = ctx
+
+    def read(self, path: str) -> bytes | None:
+        return frontier.committed(self.ctx, path)
+
+    def listdir(self, path: str) -> list[str]:
+        settings = self.ctx.settings
+        return list(
+            self.ctx.githost.list_dir(settings.graph_repo, settings.graph_branch, path) or []
+        )
+
+
 def replacement_of(ctx: Context, target_id: str, node_id: str) -> str | None:
     """F05-T11: the node a superseded one was replaced by, or ``None`` when the graph does not
     say. ``opn-gate revise`` writes it as ``reference`` on the old node's ``superseded`` status
     record (D-8), and no product carries it, so the service reads the newest such record at
     ``main``. Best effort by design: this only ever decorates a refusal that stands without it,
-    so a host that cannot list or serve the record yields ``None``, never an error."""
+    so a host that cannot list or serve the record yields ``None``, never an error.
+
+    F08-T33 (D-18 v3.27): a status record a curator has withdrawn is absent, as the gate reads it
+    (``records.load_node_status``), by the bundle's own rule (``context.withdrawn_names``)."""
     path = f"targets/{target_id}/nodes/{node_id}/status"
     try:
+        gone = context.withdrawn_names(_GraphAtMain(ctx), target_id, node_id, "status")
         names = ctx.githost.list_dir(ctx.settings.graph_repo, ctx.settings.graph_branch, path)
         for name in sorted((n for n in names or [] if n.endswith(".yaml")), reverse=True):
+            if name in gone:
+                continue
             doc = yaml.safe_load(frontier.committed(ctx, f"{path}/{name}"))
             if isinstance(doc, dict) and doc.get("status") == "superseded":
                 reference = doc.get("reference")

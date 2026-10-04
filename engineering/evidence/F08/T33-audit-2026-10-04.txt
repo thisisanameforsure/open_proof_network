@@ -44,3 +44,59 @@ Green
   with test_context, test_withdrawal, test_finding_circular_path, test_finding_revised_hole_parent,
   test_products, api/tests/test_mcp_*: 159 passed; api mcp/context reads: 49 passed
   ruff check / format, mypy --strict gate/opn_gate/context.py: clean
+
+
+Part 2: the precheck refusal's replacement (api/opn_api/precheck.py, replacement_of)
+
+What changed
+- context._withdrawn_names is now public, context.withdrawn_names (one rule for both readers).
+- precheck.replacement_of lists the node's withdrawals through a small Reader over the graph at
+  main (_GraphAtMain: frontier.committed + githost.list_dir) and skips a withdrawn status record
+  before taking the newest superseded one. Still best effort: a host error on the withdrawal
+  listing yields None, as any other host error there does. The record-picking rule (newest by
+  file name, superseded only) is otherwise unchanged; it is not the gate's latest_status
+  (date, then name, any status) and was not asked to become it.
+
+Tests (api/tests/test_finding_superseded_refusals.py)
+- test_guard_the_newest_superseded_record_names_the_replacement (guard; green before and after)
+- test_a_withdrawn_superseded_record_is_read_as_absent (red -> green)
+- test_with_its_only_record_withdrawn_the_refusal_names_nothing (red -> green)
+- test_a_malformed_withdrawal_withdraws_nothing (pins the passed-over rule; green before and after)
+
+Red (before the fix)
+E       AssertionError: assert {'status': 's...assoc--h2-v3'} == {'status': 's...assoc--h2-v2'}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'replacement': 'and-swap-reassoc--h2-v3'} != {'replacement': 'and-swap-reassoc--h2-v2'}
+E         Use -v to get more diff
+E       AssertionError: assert {'status': 's...assoc--h2-v2'} == {'status': 's...cement': None}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'replacement': 'and-swap-reassoc--h2-v2'} != {'replacement': None}
+E         Use -v to get more diff
+FAILED api/tests/test_finding_superseded_refusals.py::test_a_withdrawn_superseded_record_is_read_as_absent
+FAILED api/tests/test_finding_superseded_refusals.py::test_with_its_only_record_withdrawn_the_refusal_names_nothing
+2 failed, 10 passed, 2 warnings in 0.36s
+
+Green
+12 passed, 2 warnings in 0.35s
+  api/tests whole fast tier: 1375 passed
+  with check_superseded, precheck, precheck findings, rejections, mcp, the context tests: 148 passed
+  ruff check / format, mypy --strict on precheck.py and context.py: clean
+
+Proposed ledger line (F08 Tasks)
+  T33 ✓ CONTEXT.json and the superseded refusal read withdrawals (D-18 v3.27): context.withdrawn_names,
+  the bundle's reader-side withdrawals; circular_below and the revision chain skip a withdrawn claim
+  or status record, as graph.load_target does; replacement_of names the record that stands.
+
+Proposed Q entry
+  F08-Q45 (T33; D-18 v3.27, F10-Q7). Every reader of a node's records reads withdrawals, including
+  the two that do not read a directory: the context bundle's Reader (which the service's
+  toolchain-free builder shares, so the two bundles agree byte for byte) and the precheck's
+  replacement_of. Both use context.withdrawn_names, which applies records.withdrawn's rule over a
+  reader: a withdrawal that does not validate is passed over, no date is compared. The oracle for
+  the bundle's circular_below is the gate's own facts (graph.load_target), which the site's
+  ancestor note and the frontier render. A reader added later that reads status/ or defects/ under
+  a node goes through records (a directory) or context.withdrawn_names (a reader), never neither.

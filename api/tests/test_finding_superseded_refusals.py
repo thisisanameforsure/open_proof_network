@@ -179,3 +179,60 @@ def test_a_hole_on_the_frontier_is_claimed(harness: Harness) -> None:
     status, body = claim(harness, HOLE)
     assert status == 201, body
     assert [c.node_id for c in harness.store.list_claims()] == [HOLE]
+
+
+# --- F08-T33 (D-18 v3.27): a withdrawn superseded record names nothing ---------------------------
+
+WRONG = OLD + "-v3"
+LATER = f"targets/{TARGET}/nodes/{OLD}/status/20260920T090000Z-curator.yaml"
+WITHDRAWAL = f"targets/{TARGET}/nodes/{OLD}/withdrawals/20261004T120000Z-founder.yaml"
+
+
+def withdraw(harness: Harness, withdraws: str, **overrides: Any) -> None:
+    doc = {
+        "schema": "withdrawal/v1",
+        "withdraws": withdraws,
+        "reason": "the record named the wrong successor",
+        "author": "founder",
+        "date": "2026-10-04",
+        **overrides,
+    }
+    harness.githost.files[WITHDRAWAL] = yaml.safe_dump(doc).encode()
+
+
+def add_wrong_record(harness: Harness) -> None:
+    """A later ``superseded`` record naming the wrong successor — the one a curator withdraws."""
+    doc = samples.node_status(status="superseded", cause="superseded (wrong)", reference=WRONG)
+    harness.githost.files[LATER] = yaml.safe_dump(doc).encode()
+
+
+def test_guard_the_newest_superseded_record_names_the_replacement(harness: Harness) -> None:
+    add_revision(harness)
+    add_wrong_record(harness)
+    _, body = claim(harness, OLD)
+    assert body["details"] == {"status": "superseded", "replacement": WRONG}
+
+
+def test_a_withdrawn_superseded_record_is_read_as_absent(harness: Harness) -> None:
+    """F08-T31: the gate reads a withdrawn status record as absent and the latest of the rest
+    decides; the refusal's ``replacement`` does the same, so it names the record that stands."""
+    add_revision(harness)
+    add_wrong_record(harness)
+    withdraw(harness, f"status/{LATER.rsplit('/', 1)[1]}")
+    _, body = claim(harness, OLD)
+    assert body["details"] == {"status": "superseded", "replacement": NEW}
+
+
+def test_with_its_only_record_withdrawn_the_refusal_names_nothing(harness: Harness) -> None:
+    add_revision(harness)
+    withdraw(harness, f"status/{RECORD.rsplit('/', 1)[1]}")
+    _, body = claim(harness, OLD)
+    assert body["details"] == {"status": "superseded", "replacement": None}
+
+
+def test_a_malformed_withdrawal_withdraws_nothing(harness: Harness) -> None:
+    add_revision(harness)
+    add_wrong_record(harness)
+    withdraw(harness, f"status/{LATER.rsplit('/', 1)[1]}", reason="")
+    _, body = claim(harness, OLD)
+    assert body["details"] == {"status": "superseded", "replacement": WRONG}
