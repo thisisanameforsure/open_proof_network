@@ -17,6 +17,7 @@ identity, exactly as one GitHub login is worth one.
 from __future__ import annotations
 
 import dataclasses
+import functools
 import hashlib
 import html
 import json
@@ -25,6 +26,7 @@ import re
 import secrets
 from collections.abc import Callable, Collection, Mapping
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs
 
@@ -35,6 +37,7 @@ from opn_api import auth, ratelimit
 from opn_api import clock as clockmod
 from opn_api import githost as githostmod
 from opn_api.app import ApiError
+from opn_api.config import Settings
 from opn_api.githost import GitHostError
 from opn_api.store import KEY_PROOF, KEY_STATE, ConflictError, Identity, TokenRecord
 
@@ -188,6 +191,64 @@ def check_dco(doc: Any) -> None:
         )
 
 
+# --- reserved pseudonyms (F05-T26; D-19 v3.28, Q26) ----------------------------------------------
+
+#: The published list of reserved names, one per line: the owner adds a name here (Q26).
+RESERVED_FILE = Path(__file__).with_name("reserved_pseudonyms.txt")
+
+
+def fold(name: str) -> str:
+    """How two names are compared: without regard to case, and with ``-`` and ``_`` removed, so
+    ``Opn_Gate`` and ``opngate`` are both the gate's own name."""
+    return name.lower().replace("-", "").replace("_", "")
+
+
+@functools.cache
+def published_reserved() -> frozenset[str]:
+    """The names on ``RESERVED_FILE``, folded; ``#`` starts a comment. Read once per process.
+    A missing file is an error, never an empty list: the reservation must not lapse silently
+    because the package shipped without its data (C7)."""
+    names = set()
+    for line in RESERVED_FILE.read_text(encoding="utf-8").splitlines():
+        entry = line.split("#", 1)[0].strip()
+        if entry:
+            names.add(fold(entry))
+    return frozenset(names)
+
+
+def _owner(repo: str) -> str:
+    return repo.split("/", 1)[0]
+
+
+def reserved_names(settings: Settings) -> frozenset[str]:
+    """Every reserved name, folded: the operator's logins as configuration knows them (the
+    owners of the graph, network and precheck repositories), the App's committer name less its
+    ``[bot]`` suffix, and the published list. Nothing about the deployment is written in code."""
+    configured = {
+        _owner(settings.graph_repo),
+        _owner(settings.network_repo),
+        _owner(settings.precheck_repo),
+        settings.committer_name.removesuffix("[bot]"),
+    }
+    return frozenset(fold(n) for n in configured if n) | published_reserved()
+
+
+def is_reserved(settings: Settings, name: str) -> bool:
+    return fold(name) in reserved_names(settings)
+
+
+def check_not_reserved(settings: Settings, pseudonym: str) -> None:
+    """F05-T26: a new identity may not take a reserved name (D-19 v3.28). Checked only when an
+    identity is created: one that already holds a name reserved later keeps it."""
+    if is_reserved(settings, pseudonym):
+        raise ApiError(
+            409,
+            "pseudonym-reserved",
+            f"pseudonym {pseudonym!r} is reserved (the operator's, the gate's own, or a name on "
+            "the published list, compared without case or separators); choose another",
+        )
+
+
 def check_pseudonym(value: Any) -> str:
     if not isinstance(value, str) or not PSEUDONYM_RE.match(value):
         raise ApiError(
@@ -335,6 +396,7 @@ async def post_tokens(ctx: Context, request: Request) -> Response:
             400, "proof-unsupported", f"proof.kind must be one of {', '.join(PROOF_KINDS)}"
         )
     assert isinstance(proof, dict)
+    check_not_reserved(ctx.settings, pseudonym)
     now = ctx.clock.now()
     if kind == PROOF_TUTORIAL:
         reference, undo = tutorial_reference(ctx, request, proof)

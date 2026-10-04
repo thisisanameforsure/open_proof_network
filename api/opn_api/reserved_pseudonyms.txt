@@ -1,0 +1,28 @@
+# Reserved pseudonyms (D-19 v3.28; F05-T26, Q26): the published list of names no new identity
+# may take. One name per line; `#` starts a comment. A name is compared without regard to case
+# and with every `-` and `_` removed, so `opn-gate` also reserves `Opn_Gate` and `opngate`.
+#
+# The owner adds names here: the service's and the gate's own names, the roles the protocol
+# names, and any person who asks that their name not be taken by someone else. Only add a
+# person's name at that person's request; never guess at one. The operator's logins and the
+# App's committer name are reserved from configuration as well (identity.reserved_names), so
+# they need no line. An identity that already holds a name added here keeps it.
+
+# the gate and the service
+opn-gate
+opn
+open-proof-network
+
+# roles
+admin
+administrator
+root
+operator
+curator
+steward
+system
+
+# the operator
+thisisanameforsure
+
+# people (at their own request)

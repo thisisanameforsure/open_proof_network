@@ -1587,6 +1587,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The pseudonym is not 1 to 39 characters of letters, digits and hyphens.",
         "Choose a pseudonym that fits that pattern.",
     ),
+    "pseudonym-reserved": (
+        "api",
+        None,
+        "The pseudonym is reserved: the operator's or the gate's own name, or a name on the "
+        "published list (D-19), compared without regard to case or to hyphens and underscores.",
+        "Choose another; the proof you sent survives the refusal, so send it again with the new "
+        "name.",
+    ),
     "pseudonym-taken": (
         "api",
         None,

@@ -1,0 +1,71 @@
+F05-T26 (audit 2026-10-04; decisions v3.28, D-19): reserved pseudonyms
+======================================================================
+
+Finding: check_pseudonym held a name to ^[A-Za-z0-9-]{1,39}$ and nothing else, so anyone could
+mint an identity called opn-gate (the name the post-merge job commits as), open-proof-network (the
+App) or the operator's login, and the ledger would show work under it. D-19 v3.28 (approved
+2026-10-04): "A pseudonym may not be one the service reserves -- its operator's and the gate's
+own names, and the names on a published list of people -- compared without regard to case."
+
+Fix (api/opn_api/identity.py):
+  reserved_names(settings) = fold() of
+    - the owners of OPN_API_GRAPH_REPO, OPN_API_NETWORK_REPO, OPN_API_PRECHECK_REPO (the operator's
+      login as configuration knows it; no hostname or login written in code),
+    - OPN_API_COMMITTER_NAME less its "[bot]" suffix (the App: open-proof-network),
+    - every line of api/opn_api/reserved_pseudonyms.txt (the published list; # comments).
+  fold(name) = lower-case, every "-" and "_" removed (the pseudonym grammar has no "_", but a list
+  entry might, and "opn_gate" must reserve "opngate" and "opn-gate").
+  POST /tokens refuses a reserved name 409 pseudonym-reserved BEFORE the proof is consumed, so the
+  proof survives (as for pseudonym-taken, AC3). Catalog row added (gate/opn_gate/codes.py).
+  Only whole names are compared: gate-keeper and admin-of-nothing are not reserved.
+  Seed list: opn-gate, opn, open-proof-network, admin, administrator, root, operator, curator,
+  steward, system, thisisanameforsure. No person's name was invented; the file's header says the
+  owner adds a person's name only at that person's request.
+  A missing data file raises (FileNotFoundError -> 500 on POST /tokens), never an empty list:
+  the reservation must not lapse because a package shipped without its data. The Lambda build
+  copies api/opn_api whole (api-deploy.yml: cp -R api/opn_api), so the .txt ships; the deploy's
+  package check does not yet assert it (follow-up for the lead, api-deploy.yml is not mine).
+
+Existing identities: not touched -- the check runs only when an identity is created; an
+identity already holding a now-reserved name keeps it and its token (test 
+test_an_identity_already_holding_a_reserved_name_is_untouched). Whether any exist live cannot be
+read from here (no access to the live table). The owner checks with, e.g.:
+  aws dynamodb scan --table-name <OPN_API_TABLE_IDENTITIES> \
+    --filter-expression "attribute_exists(pseudonym)" --projection-expression pseudonym \
+    --output text | awk '{print $2}' > /tmp/pseudonyms.txt
+  PYTHONPATH=gate:api uv run python -c "import sys; from opn_api import config, identity; \
+    s=config.load(); [print(n) for n in open('/tmp/pseudonyms.txt').read().split() \
+    if identity.is_reserved(s, n)]"
+(OPN_API_GRAPH_REPO etc. must be set as deployed for the configured names to count.)
+
+Proposed Q entry (F05-Q26):
+  Q26 (F05-T26, 2026-10-04). D-19 v3.28 reserves pseudonyms. The reserved set is folded (lower
+  case, "-" and "_" removed) and has three sources: the owners of the configured graph, network
+  and precheck repositories (the operator, from configuration, never a constant), the App's
+  committer name less "[bot]", and the published list api/opn_api/reserved_pseudonyms.txt, which
+  ships with the service and which the owner extends by a line (a person's name only at that
+  person's request). POST /tokens answers 409 pseudonym-reserved before the proof is spent, so
+  the same proof mints under another name. Whole names only. An identity created before its name
+  was reserved keeps it: reservation governs creation, and D-18's revoke-never-remove applies to
+  identities as to entries. The list is read once per process; a missing file is a 500, not an
+  open door.
+
+Proposed ledger line: T26 ✓ reserved pseudonyms (D-19 v3.28): config owners + App name +
+  published list, folded; 409 pseudonym-reserved before the proof is spent (Q26).
+
+Seam first (today's behaviour): identity.RESERVED_FILE, published_reserved(), reserved_names(),
+is_reserved() returning empty/False.
+
+Red (api/tests/test_finding_reserved_pseudonyms.py, seam in place):
+   1 E       AssertionError: assert 'someoneelse' in frozenset()
+   2 E       AssertionError: assert False
+   1 E       AssertionError: assert {'admin', 'cu...gate', 'root'} <= frozenset()
+  20 x E  assert 201 == 409 (a reserved name minted a token: test_a_reserved_pseudonym_is_refused[*] and
+         test_the_proof_survives_a_reserved_name, on both stores)
+24 failed, 2 passed, 2 warnings in 0.50s
+
+Green:
+  test_finding_reserved_pseudonyms (26, both stores), test_tokens, test_rejections_tokens,
+  test_finding_error_catalog, gate test_error_codes, test_finding_token_revoke,
+  test_mcp_bootstrap: 86 passed, 2 warnings in 2.22s
+  ruff check / ruff format / mypy (strict) clean on the touched files.
