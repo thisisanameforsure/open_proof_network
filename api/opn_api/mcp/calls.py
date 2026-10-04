@@ -3,7 +3,8 @@ in-process HTTP client over the host application, and the two ways a call ends.
 
 ``Call.endpoint`` is how every route-backed tool reaches its plain path: a real HTTP request
 through the same ASGI application, middleware and handlers a curl would hit, carrying the
-caller's bearer and source address — so the tool result is the endpoint's response and nothing
+caller's bearer, from the caller's own source address (the in-process transport's client is the
+outer request's peer, F05-T19) — so the tool result is the endpoint's response and nothing
 else (R7), and the equivalence suite compares like with like (AC3, AC4).
 
 A tool ends by returning its structured result, or by raising ``ToolError`` with the
@@ -66,7 +67,6 @@ class Call:
     ctx: Context
     http: httpx.AsyncClient  # in-process, against the host application
     token: str | None = None  # the caller's verified bearer, forwarded and never logged (C8)
-    forwarded_for: str | None = None  # the caller's source address, for the identity layer's limits
     calls: list[tuple[str, str]] = field(default_factory=list)  # (method, path) made, for tests
 
     async def endpoint(
@@ -75,8 +75,6 @@ class Call:
         headers: dict[str, str] = {"Accept": "application/json"}
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
-        if self.forwarded_for:
-            headers["X-Forwarded-For"] = self.forwarded_for
         self.calls.append((method, path))
         resp = await self.http.request(
             method, path, json=dict(json) if json else None, headers=headers

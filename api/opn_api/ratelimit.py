@@ -84,10 +84,12 @@ def check_anonymous_check(ctx: Context, address: str) -> None:
 
 
 def client_address(request: Request) -> str:
-    """The source address: the first ``X-Forwarded-For`` hop (API Gateway sets it) or the peer."""
-    forwarded = request.headers.get("x-forwarded-for", "")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+    """The source address: the ASGI peer, never a header (F05-T19).
+
+    On Lambda, Mangum fills the peer from the HTTP API event's ``requestContext.http.sourceIp``,
+    which API Gateway sets and the caller cannot. ``X-Forwarded-For`` is not read at all: API
+    Gateway appends the real address to whatever the caller sent, so the header's first hop is
+    the caller's to write, and keying a limit on it made every per-source limit unlimited."""
     return request.client.host if request.client else "unknown"
 
 

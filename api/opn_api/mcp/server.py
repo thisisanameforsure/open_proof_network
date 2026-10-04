@@ -114,8 +114,7 @@ class LiveServer(Server[Any, Any]):
 class Outer:
     """What the tool needs from the HTTP request that carried the MCP call."""
 
-    forwarded_for: str | None
-    client_host: str
+    client_host: str  # the outer request's peer: the source the identity layer limits (F05-T19)
 
 
 OUTER: contextvars.ContextVar[Outer | None] = contextvars.ContextVar("opn_mcp_outer", default=None)
@@ -202,12 +201,7 @@ def build_server(ctx: Context, host: Callable[[], ASGIApp]) -> Server[Any, Any]:
             ),
             base_url=ctx.settings.public_url,
         ) as http:
-            call = Call(
-                ctx,
-                http,
-                token=token,
-                forwarded_for=outer.forwarded_for if outer else None,
-            )
+            call = Call(ctx, http, token=token)
             try:
                 return await tool.handler(call, arguments)
             except ToolError as failure:
@@ -253,10 +247,7 @@ class Mount:
 
     async def _dispatch(self, scope: Scope, receive: Receive, send: Send) -> None:
         conn = HTTPConnection(scope)
-        outer = Outer(
-            forwarded_for=conn.headers.get("x-forwarded-for") or None,
-            client_host=conn.client.host if conn.client else "unknown",
-        )
+        outer = Outer(client_host=conn.client.host if conn.client else "unknown")
         token = OUTER.set(outer)
         try:
             manager = self._manager

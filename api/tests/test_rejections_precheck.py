@@ -26,6 +26,7 @@ from api_fakes import (
     make_precheck_key,
     result_zip,
 )
+from starlette.testclient import TestClient
 
 from opn_api import precheck
 from opn_api.githost import GitHostError
@@ -129,23 +130,21 @@ def test_authenticated_tutorial_precheck_is_charged_to_the_identity_not_the_addr
         {"OPN_API_ANONYMOUS_PRECHECKS_PER_DAY": "1", "OPN_API_PRECHECKS_PER_HOUR": "2"}
     )
     token = h.token_for("code_alice", "alice-p")
-    headers = {**h.auth(token), "X-Forwarded-For": "203.0.113.9"}
+    # One source address throughout: the peer, never a header (F05-T19).
+    source = TestClient(h.app, client=("203.0.113.9", 40000), raise_server_exceptions=False)
+    headers = h.auth(token)
     for _ in range(2):
-        r = h.client.post(
+        r = source.post(
             "/precheck", json={"node_id": TUTORIAL_NODE, "bundle": bundle_for()}, headers=headers
         )
         assert r.status_code == 202, r.text
         assert "nonce" not in r.json()
-    over = h.client.post(
+    over = source.post(
         "/precheck", json={"node_id": TUTORIAL_NODE, "bundle": bundle_for()}, headers=headers
     )
     assert over.status_code == 429
     # The address's own anonymous allowance is untouched by the three above.
-    anonymous = h.client.post(
-        "/precheck",
-        json={"node_id": TUTORIAL_NODE, "bundle": bundle_for()},
-        headers={"X-Forwarded-For": "203.0.113.9"},
-    )
+    anonymous = source.post("/precheck", json={"node_id": TUTORIAL_NODE, "bundle": bundle_for()})
     assert anonymous.status_code == 202
 
 
