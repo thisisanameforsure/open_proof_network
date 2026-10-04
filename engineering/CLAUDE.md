@@ -1235,3 +1235,21 @@ The law of the project:
   new curve function and reported 21 crossings where there were 16. **A screenshot can undo the
   state it was meant to show**: `locator.screenshot` scrolled the page, the pill left the pointer,
   and hover measured zero lit lines; scroll first, then hover, then measure and capture.
+
+- 2026-10-05 — Readable proofs (F19, F20; decisions v3.30): research → specs → nine worktree agents in
+  four waves, everything on local `main`, nothing pushed. Four things worth keeping. **Publish the
+  shared contracts before the agents start**: the five schemas went in one commit with one golden
+  regeneration, so four agents built against one shape in parallel and three of four merges were
+  clean. The contract still carried a self-contradiction (an id pattern refusing `s3.1`, its own
+  description's example); an agent comparing ids as strings found it. Test a schema's own examples
+  against its own patterns before anyone builds on it. **An agent's report can name the wrong
+  branch**: three reports named another agent's branch for their commits; `git branch --contains
+  <sha>` before every merge settled each in a second. **Never merge into the tree a test run is
+  reading**: a run that overlapped a merge reported `KeyError: 'gloss'` in two lifecycle tests that
+  were green alone (2026-09-09's hazard, by the lead this time); and a test with a wall-clock budget
+  (the lifecycle's 10 s) fails under a laptop full of agents. Re-run alone, then in a quiet full run,
+  before believing either. **The service is the App to the gate**: every rule keyed on "who opened
+  the pull request" refused a steward working through the MCP, and a hand-opened withdrawal naming
+  someone else's authorship passed on main. F18-Q7's precedent fixed both: a service pull request
+  acts for the record's author, which the service writes from the token; a hand-opened one is judged
+  by its opener.
