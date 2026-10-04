@@ -351,6 +351,35 @@ class HazardsRequest:
 
 
 @dataclass(frozen=True)
+class OutlineRequest:
+    """Inputs of ``opn-outline`` (F19-R1 to R4): the artifact, elaborated as ``module``, and the
+    declaration whose proof is outlined. ``automation`` is the configured list a closing block's
+    tactics must all be on to read as automation (F19-Q5, C6); ``doc_modules`` the module
+    prefixes whose constants carry a docstring and tags (the gate's library prefixes). The
+    artifact is elaborated: the program runs only in the step-3 sandbox (D-4)."""
+
+    file: Path
+    module: str
+    decl: str
+    automation: tuple[str, ...]
+    doc_modules: tuple[str, ...]
+
+    def args(self) -> list[str]:
+        return [
+            "--file",
+            str(self.file.resolve()),
+            "--module",
+            self.module,
+            "--decl",
+            self.decl,
+            "--automation",
+            ",".join(self.automation),
+            "--doc-modules",
+            ",".join(self.doc_modules),
+        ]
+
+
+@dataclass(frozen=True)
 class MetaprogramResult:
     """What a gate metaprogram (F01-R1) returned: parsed JSON on success, raw output otherwise."""
 
@@ -394,6 +423,7 @@ METAPROGRAMS: tuple[str, ...] = (
     "opn-relation-type",
     "opn-statement-meaning",
     "opn-axioms",
+    "opn-outline",
 )
 
 
@@ -543,6 +573,16 @@ class Toolchain(Protocol):
     ) -> MetaprogramResult:
         """F08-R17: ``opn-statement-meaning`` — whether an artifact that declares uses proved
         the statement as its own environment reads it."""
+
+    def outline(
+        self,
+        tc: ResolvedToolchain,
+        req: OutlineRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        """F19: ``opn-outline`` — the step tree of a proof artifact, with its constants."""
 
 
 # --- helpers shared by the real implementation and its tests --------------------------------
@@ -991,6 +1031,16 @@ class LocalToolchain:
         return self._metaprogram_run(
             tc, "opn-statement-meaning", req.args(), search_path, timeout_s
         )
+
+    def outline(
+        self,
+        tc: ResolvedToolchain,
+        req: OutlineRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        return self._metaprogram_run(tc, "opn-outline", req.args(), search_path, timeout_s)
 
 
 def _env_with(extra: dict[str, str] | None) -> dict[str, str] | None:

@@ -48,6 +48,13 @@ lean_exe «opn-statement-meaning» where
   root := `OpnGate.StatementMeaningMain
   supportInterpreter := true
 
+-- F19-T1: the outline of a proof artifact (its steps, claims, goals and constants). It elaborates
+-- the artifact to keep its info trees, so it runs only in the step-3 sandbox (D-4).
+@[default_target]
+lean_exe «opn-outline» where
+  root := `OpnGate.OutlineMain
+  supportInterpreter := true
+
 -- F02-T11: reads compiled modules only, with initializers off; nothing of the module it imports
 -- is executed, so it is built without the interpreter's support.
 @[default_target]
