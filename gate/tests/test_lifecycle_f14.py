@@ -253,7 +253,8 @@ def test_the_whole_life(graph: Graph, tmp_path: Path, capsys: pytest.CaptureFixt
     high = pages[f"problems/{HIGH}/index.html"]  # F04-T12: the problem page
     low = pages[f"problems/{LOW}/index.html"]
     assert "score <strong>5</strong> (B+)" in high
-    assert "without a human reviewer" in high
+    # F04-T32: resolved, so the page says the root is settled rather than how a proof would merge
+    assert "statement is settled" in high and "without a human reviewer" not in high
     assert "alt" in high
     assert "score <strong>3</strong> (C)" in low
     assert "without a human reviewer" not in low

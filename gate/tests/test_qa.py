@@ -453,7 +453,12 @@ def test_signature_shapes(text: str, binders: str, prop: str, false_form: str) -
 
 
 def test_an_unreadable_signature_is_inconclusive_not_a_pass(target: Path) -> None:
-    """Q11, C7: a shape the rewriter cannot read leaves every screen inconclusive, named."""
+    """Q11, C7: a shape the rewriter cannot read leaves every screen inconclusive, named.
+
+    Restated by F08-T37 (D-3 v3.28): the statement rule now reads the file first and refuses a
+    theorem whose body never reaches ``sorry``, so the compile row fails rather than passing on a
+    fake toolchain; the screens stay inconclusive and nothing reads as a pass, which was the
+    rule."""
     node = target / "nodes" / ROOT_NODE
     text = "theorem OpnProp.and_reassoc (p : Prop := by\n  sorry\n"  # a binder that never closes
     (node / "Statement.lean").write_text(text, encoding="utf-8")
@@ -461,9 +466,9 @@ def test_an_unreadable_signature_is_inconclusive_not_a_pass(target: Path) -> Non
     meta["statement-hash"] = schemas.content_hash(text.encode())
     (node / "META.yaml").write_text(yaml.safe_dump(meta, sort_keys=False), encoding="utf-8")
     run = run_screen(target, FakeToolchain())
-    assert verdicts(run)["compile"] == "pass"
+    assert verdicts(run)["compile"] == "fail"
     assert all(verdicts(run)[c] == "inconclusive" for c in qa.SCREENS)
-    assert run.problems[0].code == "statement-shape" and not run.clean
+    assert run.problems[0].code == "statement-command-forbidden" and not run.clean
 
 
 def test_scratch_source_names_the_subject_as_hypothesis_or_goal_never_sorry() -> None:
