@@ -1,0 +1,56 @@
+F06-T11 — a precheck job opens one pull request (audit 2026-10-04)
+===================================================================
+
+Finding: submissions.bound_job checked that a job was done, passing, the caller's and over the
+same bundle, and never consumed it. One passing precheck could be submitted repeatedly for its
+whole 30-day retention, each time a new pull request and a full gate run that no new precheck
+paid for, so F06-R8's per-identity precheck limit bounded nothing. On the tutorial node, which
+D-27 keeps open to rehearsal and the duplicate rule (F07-T35) therefore skips, nothing else
+stopped it; on other nodes the duplicate rule refuses an identical open copy but not the same
+job after its first pull request closed.
+
+Fix: submissions.using(ctx, job), a context manager taken around open_pr after every other check
+(inside duplicates.holding). It adds one to a counter at `precheckused#<job>` in the tokens table
+(store.KEY_PRECHECK_USED; a key prefix, as store.py's notes require, no new table) with the job's
+retention as its TTL — one atomic ADD on DynamoDB, so two concurrent submissions cannot both take
+it. Over one: 409 `precheck-used` naming the job. A pull request that fails to open (push or PR
+call refused) drops the marker, so the job can be sent again at once (C7). A store failure while
+releasing leaves the job used, which refuses rather than opens.
+
+Proposed ledger line (F06 §10 Tasks):
+  · T11 ✓ 2026-10-04 (audit; red first 4 failed on the defect (201 where 409), green 6 on both
+  stores; 428 passed across the submission/precheck/append/proposal files and 222 across MCP and
+  the store seam; engineering/evidence/F06/T11-audit-2026-10-04.txt; live at the next api deploy)
+
+Proposed Q entry (F06-Q16, renumber at merge):
+  F06-Q16 — A precheck job is used once (T11, audit 2026-10-04). R1 binds a submission to a
+  passing precheck by the same identity over the same bundle; nothing said the binding is
+  single, and the service never marked a job used, so one precheck opened any number of pull
+  requests for 30 days. A job is now spent by the pull request it opens: a second submission on it
+  is 409 precheck-used, and one whose pull request failed to open leaves the job usable. The
+  marker is an operational item in the tokens table (C9), rebuildable as "nothing used" at worst,
+  which re-opens only the old behaviour. A contributor who wants a second pull request (a racing
+  alternate, a resubmission after a close) prechecks again, which is what R8's limit meters.
+
+Red (before the fix):
+E       assert 201 == 409
+E       assert 201 == 409
+______ test_a_pull_request_that_failed_to_open_gives_the_job_back[memory] ______
+E       assert 201 == 409
+_____ test_a_pull_request_that_failed_to_open_gives_the_job_back[dynamodb] _____
+E       assert 201 == 409
+FAILED api/tests/test_finding_precheck_single_use.py::test_a_precheck_job_opens_one_pull_request[memory]
+FAILED api/tests/test_finding_precheck_single_use.py::test_a_precheck_job_opens_one_pull_request[dynamodb]
+FAILED api/tests/test_finding_precheck_single_use.py::test_a_pull_request_that_failed_to_open_gives_the_job_back[memory]
+FAILED api/tests/test_finding_precheck_single_use.py::test_a_pull_request_that_failed_to_open_gives_the_job_back[dynamodb]
+4 failed, 2 passed, 2 warnings in 0.89s
+
+Green (after the fix):
+6 passed, 2 warnings in 1.08s
+
+Related: submissions, precheck, duplicates, appends, proposals, withdraw, claims, partials, annexes, alternates, racers, rivals:
+428 passed, 2 warnings in 11.23s
+MCP, bench, queue, store seam: 222 passed.
+
+Unrelated and pre-existing: gate/tests/test_walkthrough.py::test_graph_copy_is_identical compares gate/agents/AGENTS.md with the sibling graph checkout's copy (the stale-checkout red the 2026-10-02 log names); not touched here.
+ruff format/check and mypy --strict clean on submissions.py, store.py and the new test.

@@ -39,6 +39,9 @@ KEY_SUBMISSION_NODE = "submissionnode#"
 PROPOSAL_KINDS = ("speculative", "variant")
 # F13-T4: one record per fast check, no TTL (Q3), in the tokens table like the submissions.
 KEY_CHECK = "check#"
+# F06-T11: a precheck job that has opened its pull request — a counter (``bump_counter``) whose
+# TTL is the job's retention, so taking it is one atomic add on either store.
+KEY_PRECHECK_USED = "precheckused#"
 
 
 class ConflictError(Exception):

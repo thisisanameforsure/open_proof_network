@@ -17,8 +17,10 @@ merge one (C8).
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from starlette.requests import Request
@@ -30,6 +32,7 @@ from opn_api import identity as identitymod
 from opn_api import uses as usesmod
 from opn_api.app import ApiError, host_budget_refusal
 from opn_api.githost import Author, GitHostError, PullRequest, RateLimitError
+from opn_api.store import KEY_PRECHECK_USED
 from opn_gate import annex as annexmod
 from opn_gate import bounce, carried, postmerge, submission
 from opn_gate import paths as gate_paths
@@ -196,6 +199,33 @@ def bound_job(
             "the bundle differs from the one that was prechecked; precheck this bundle first",
         )
     return job
+
+
+@contextmanager
+def using(ctx: Context, job: precheck.Job) -> Iterator[None]:
+    """F06-T11 (audit 2026-10-04): a precheck job opens one pull request. Taken atomically around
+    the opening, after every other check, so only an opened pull request spends it: the second
+    taker is 409 ``precheck-used``, and a pull request that failed to open gives the job back so
+    the same request can be sent again at once (C7). The marker lives as long as the job's
+    result, after which ``bound_job`` refuses the job as expired anyway."""
+    key = KEY_PRECHECK_USED + job.id
+    expires = clockmod.parse(job.created) + timedelta(days=precheck.RESULT_RETENTION_DAYS)
+    if ctx.store.bump_counter(key, expires) > 1:
+        raise ApiError(
+            409,
+            "precheck-used",
+            f"precheck {job.id} has already opened a pull request; a precheck job is used once. "
+            "Read GET /submissions.json for it, or precheck again for a new submission",
+            details={"precheck_job_id": job.id},
+        )
+    try:
+        yield
+    except BaseException:
+        try:
+            ctx.store.drop_counter(key)
+        except Exception as exc:  # any store failure: the job stays used, which refuses, not opens
+            log.warning("precheck %s not released: %s", job.id, type(exc).__name__)
+        raise
 
 
 def check_proposal_statement(job: precheck.Job, facts: dict[str, Any]) -> None:
@@ -460,7 +490,8 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
         "precheck_job_id": job.id,
     }
     subject = f"{artifact_type}: {node_id}"
-    with duplicates.holding(ctx, [duplicates.slot("proof", node_id, fp) for fp in prints], "proof"):
+    slots = [duplicates.slot("proof", node_id, fp) for fp in prints]
+    with duplicates.holding(ctx, slots, "proof"), using(ctx, job):
         pr = open_pr(
             ctx,
             identity,
