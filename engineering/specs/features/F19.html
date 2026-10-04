@@ -344,6 +344,7 @@ requirements the owner adopted.</p>
     steps become <code>hole</code> steps linked to their children. And the backfill is a requirement
     with a count, not an option: a proof the extractor cannot outline is a defect to fix and re-run,
     not a permanent gap, because F20 drafts each explainer from its outline.</td></tr>
+  <tr><td>F19-Q10</td><td><strong>Judgment calls in T6&ndash;T8 (2026-10-04; the building agent's, reviewed by the lead).</strong> (a) An outline that does not validate, sits under the wrong hash or names another target is skipped with a warning and the page shows the plain source, not a site-wide build error. (b) An outline is shown only beside the exact bytes it names (content hash). (c) Two labels beyond R11's four: <em>Statement not audited</em> (interior statements; roots with no complete QA pass and no signer) and <em>Not checked</em> (an open witness slot; bytes no attestation names); <em>Statement audited</em> only for a complete pass or a signer. (d) Prose follows Pandoc's dollar rule; the informal statement keeps its older rule. (e) Inline code in the math path renders as <code>&lt;code&gt;</code>. (f) Reading views are addressed by artifact hash, not list position, so an address survives a new proof. (g) On the reading view the explainer follows the outline and proof link (D-36: the proof sits above an explainer, never below), not before as R8 lists. (h) A partial's outline is labelled untrusted contributor text, since no attestation covers a partial. (i) Node pages open top-level non-routine steps by default; the reading view folds everything.</td></tr>
   <tr><td>F19-Q8</td><td><strong>Hole nodes.</strong> A hole shows its Lean statement and, through
     F18's decompositions, the parent and the step it came from. Its words come from its statement's
     gloss (F20), an unverified record, and never from a new field that would look fidelity-checked
@@ -355,7 +356,7 @@ requirements the owner adopted.</p>
 
 <h2>10. Status</h2>
 <div class="rule"><strong>status:</strong> planned (2026-10-04; Q1's wording awaits the owner) ·
-  <strong>Tasks:</strong> T1&ndash;T10 todo</div>
+  <strong>Tasks:</strong> T1 in progress · T2 contract ✓ 2026-10-04 (outline/v1, 3fbefa6; id pattern corrected 350db1a), wrapper in progress · T3&ndash;T5 todo · T6 ✓ 2026-10-04 (R12; AC9; red 5, e.g. <code>assert [] == ['$\frac{a}{b}$']</code>; Pandoc's dollar rule after an existing test caught <code>$5 and ${more}</code>; task-6.txt) · T7 ✓ 2026-10-04 (R9, R11, R13; AC10; red 10; three golden pages changed by the labels only; task-7.txt) · T8 ✓ 2026-10-04 (R8, R10; AC7, AC8; red 2; AC11 measured on the fixture, 8 of 8 checks, 12 screenshots looked at and five layout defects fixed; the live capture is T10's; task-8.txt) · T9, T10 todo · site tier 369 passed, fast tier on merged main 4193 passed (the stale-checkout graph-copy test aside)</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its
