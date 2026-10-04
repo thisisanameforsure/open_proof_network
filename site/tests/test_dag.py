@@ -43,7 +43,8 @@ def test_dag_svg_structure() -> None:
         ("proved", "tutorial-and-swap"),
         ("ready", "and-swap-reassoc"),
     ]
-    edges = re.findall(r'<line class="edge" data-from="([^"]+)" data-to="([^"]+)"', out)
+    # F04-T33: a line is a curve, so a <path>.
+    edges = re.findall(r'<path class="edge" data-from="([^"]+)" data-to="([^"]+)"', out)
     assert sorted(edges) == [
         ("and-reassoc", "and-swap-reassoc"),
         ("tutorial-and-swap", "and-swap-reassoc"),
