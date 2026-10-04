@@ -1,0 +1,13 @@
+Live inert probes for F06-T12 (scoped installation tokens) and F07-T64 (P6b, the comment permission), run 2026-10-04T17:23:58Z from the network checkout at ff84c2c with the App's credentials from .env (not printed). Every P line answers its expected non-403; N1 answers 403, so a read token cannot write.
+
+P1 contents:read graph: 200 ''   expect 200
+P2 contents:write graph: 422 'Object does not exist'   expect 422 (Object does not exist)
+P3 contents:write scratch: 422 'Object does not exist'   expect 422
+P4 pull_requests:read graph: 200 ''   expect 200
+P5 pull_state graph: 200 ''   expect 200
+P6 pull_requests:write graph (open): 422 'Validation Failed'   expect 422
+P6b pull_requests:write graph (issue comment): 404 'Not Found'   expect 404 (no such issue)
+P7 actions:read graph: 404 'Not Found'   expect 404/200
+P8 actions:read scratch: 200 ''   expect 200
+P9 actions:write scratch: 422 'No ref found for: opn-probe-no-such-ref'   expect 422 (No ref found)
+N1 a read token cannot write: 403 'Resource not accessible by integration'   expect 403 (the scoping works)
