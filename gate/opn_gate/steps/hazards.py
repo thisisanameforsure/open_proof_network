@@ -144,7 +144,7 @@ class StatementStep:
     number = 2
     name = "statement"
 
-    def run(self, ctx: RunContext) -> StepResult:
+    def run(self, ctx: RunContext) -> StepResult:  # noqa: PLR0911 — one return per rule
         tc: ResolvedToolchain | None = ctx.data.get("toolchain")
         if tc is None:
             return StepResult.failed("step-order", "the statement step needs step 1 to have passed")
@@ -156,6 +156,11 @@ class StatementStep:
                 first.code, first.message, **first.details, problems=[d.message for d in loaded]
             )
         ctx.node = loaded
+        # F08-T37 (D-3 v3.28): read before anything is built, so no command beyond D-3's list
+        # ever runs in a build of this node, and the verdict names the command, not its effect.
+        commands = layout.check_commands(node_dir)
+        if commands is not None:
+            return StepResult(ok=False, diagnostic=commands)
         root = ctx.workdir / "src"
         dest = root / "Nodes" / loaded.node_id
         dest.mkdir(parents=True, exist_ok=True)

@@ -37,6 +37,12 @@ class PathsStep:
                 first.code, first.message, **first.details, problems=[d.message for d in loaded]
             )
         ctx.node = loaded
+        # F08-T37 (D-3 v3.28): the modules every later step imports hold no command that runs
+        # or rebinds anything; admission refused one at the door, and this is the same rule
+        # over whatever the tree holds.
+        commands = layout.check_commands(node_dir)
+        if commands is not None:
+            return StepResult(ok=False, diagnostic=commands)
         hash_problem = paths.check_statement_hash(loaded.statement, loaded.meta)
         if hash_problem:  # defence in depth: load_node already refused a hash mismatch above
             return StepResult(ok=False, diagnostic=hash_problem)

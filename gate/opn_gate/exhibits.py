@@ -39,6 +39,11 @@ log = logging.getLogger(__name__)
 
 EXHIBIT_MODULE = "Exhibit"
 STATEMENT_MODULE = "Statement"
+#: The modules of a node an exhibit about it may import: what the staging compiles for it
+#: (``stage_node``; for a circularity claim, ``compiled_exhibit``, for both nodes), beside the
+#: target's definitions. A node's Statement is copied but never compiled for an exhibit, so an
+#: import of it does not elaborate here; the service's pre-flight reads this tuple (F13-T31).
+EXHIBIT_NODE_MODULES: tuple[str, ...] = ("Context",)
 #: F08-T17, turned round by F08-T21: D-30's ``resolves`` is ``variant → root``; with the claimed
 #: node (the hole) as the variant and the ancestor as the root it is the implication a circularity
 #: claim asserts — the hole implies what it was cut from, so the route leads straight back.
@@ -254,7 +259,7 @@ def compiled_exhibit(  # noqa: PLR0913 — the run, the seam, the record, and wh
         for imported in judging.header_imports(source):
             if imported not in imports:
                 imports.append(imported)
-    contexts = {layout.node_module(n, "Context") for n in pair}
+    contexts = {layout.node_module(n, stem) for n in pair for stem in EXHIBIT_NODE_MODULES}
     for imported in judging.header_imports(text):
         if imported in imports:
             continue
@@ -363,8 +368,9 @@ def stage_node(
     ctx: RunContext, tc: ResolvedToolchain, target_id: str, node_id: str
 ) -> Diagnostic | None:
     """Copy the node's ``Statement.lean`` and ``Context.lean`` under the work directory and
-    compile the Context, so an exhibit may import either — the sandbox holds nothing else
-    (F00-R12; the lesson of F08-Q13)."""
+    compile the modules ``EXHIBIT_NODE_MODULES`` names (the Context), so an exhibit may import
+    it — the sandbox holds nothing else (F00-R12; the lesson of F08-Q13). The Statement is
+    copied, not compiled: an exhibit that imports it does not elaborate (F13-T31)."""
     node_dir = layout.graph_nodes_dir(ctx.graph_root, target_id) / node_id
     src = ctx.workdir / "src"
     dest = src / "Nodes" / node_id
@@ -387,17 +393,23 @@ def stage_node(
     )
     if problem is not None:
         return problem
-    module = layout.node_module(node_id, "Context")
-    try:
-        elab = ctx.toolchain.elaborate(
-            tc, dest / "Context.lean", module, ctx.build_dir, root=src, timeout_s=ctx.wallclock_s
-        )
-    except subprocess.TimeoutExpired:
-        return Diagnostic("exhibit-timeout", f"compiling {module} exceeded the wall-clock cap")
-    if not elab.ok:
-        return Diagnostic(
-            "exhibit-node",
-            f"{module} does not elaborate, so no exhibit about {node_id} can",
-            {"node": node_id, "messages": [m.as_dict() for m in elab.errors or elab.messages]},
-        )
+    for stem in EXHIBIT_NODE_MODULES:
+        module = layout.node_module(node_id, stem)
+        try:
+            elab = ctx.toolchain.elaborate(
+                tc,
+                dest / f"{stem}.lean",
+                module,
+                ctx.build_dir,
+                root=src,
+                timeout_s=ctx.wallclock_s,
+            )
+        except subprocess.TimeoutExpired:
+            return Diagnostic("exhibit-timeout", f"compiling {module} exceeded the wall-clock cap")
+        if not elab.ok:
+            return Diagnostic(
+                "exhibit-node",
+                f"{module} does not elaborate, so no exhibit about {node_id} can",
+                {"node": node_id, "messages": [m.as_dict() for m in elab.errors or elab.messages]},
+            )
     return None
