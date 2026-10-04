@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import re
 import subprocess
 import sys
 import tempfile
@@ -21,6 +22,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+import yaml
 
 from opn_gate import (
     admit,
@@ -35,6 +38,7 @@ from opn_gate import (
     explainers,
     fidelity,
     footprints,
+    glosses,
     intake,
     layout,
     ledger,
@@ -93,6 +97,7 @@ CURATOR_COMMANDS: frozenset[str] = frozenset(
         "evidence",
         "steward",
         "explainer",
+        "gloss",
         "writeup",
     }
 )
@@ -107,6 +112,7 @@ _REFUSALS: tuple[type[Exception], ...] = (
     qa.QaError,
     steward.StewardError,
     explainers.ExplainerError,
+    glosses.GlossError,
     writeup.WriteupError,
 )
 #: The gate's own error family, plus the OS's for a flag file that cannot be read: an input or
@@ -243,6 +249,7 @@ def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statemen
         _add_intake_parsers,
         _add_qa_parsers,
         _add_cache_parsers,
+        _add_gloss_parsers,
     ):
         add_parsers(sub)
 
@@ -505,6 +512,48 @@ def _add_intake_parsers(  # noqa: PLR0915 — one statement per flag
     ev_add.add_argument("--branch", help="also commit what was written on this branch")
 
 
+def _add_gloss_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    """The steward's commands on glosses and explainers (F20-R12)."""
+    gl = sub.add_parser("gloss", help="revise, file and sign glosses and explainers (F20-R12)")
+    gl_acts = gl.add_subparsers(dest="action", required=True)
+    grev = gl_acts.add_parser(
+        "revise", help="write the current version of a gloss or explainer to an editable file"
+    )
+    grev.add_argument("target_id")
+    grev.add_argument(
+        "subject",
+        help="statement:<node>, witness:<node>, relation:<node>, definition:<module under defs/>, "
+        "or explainer:<node>[:<proof hash>] (default: the node's Proof.lean)",
+    )
+    grev.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    grev.add_argument("--by", required=True, help="the author of the new version")
+    grev.add_argument("--out", type=Path, help="where to write it (default: ./<subject>.md)")
+    grev.add_argument("--chain", help="a version hash naming the chain to revise, when several")
+    grev.add_argument("--licence", default="CC-BY-4.0", help="the licence of a new chain")
+    grev.add_argument("--date", help="UTC timestamp of the act (default: now)")
+    gfile = gl_acts.add_parser(
+        "file", help="check an edited gloss or explainer, name it by its hash and place it"
+    )
+    gfile.add_argument("path", type=Path)
+    gfile.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    gfile.add_argument(
+        "--author",
+        help="the login that will open the pull request (default: OPN_PR_AUTHOR); a steward or "
+        "curator may supersede a signed version (F20-R6)",
+    )
+    gfile.add_argument("--branch", help="also commit what was written on this branch")
+    gsign = gl_acts.add_parser(
+        "sign", help="I have read this against the Lean it names, and it says what the Lean says"
+    )
+    gsign.add_argument("target_id")
+    gsign.add_argument("gloss", help="the gloss's hash, its file name under gloss/")
+    gsign.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    gsign.add_argument("--by", required=True, dest="by", help="the signer's GitHub login")
+    gsign.add_argument("--key", required=True, type=Path, help="the signer's own SSH private key")
+    gsign.add_argument("--date", help="UTC timestamp of the act (default: now)")
+    gsign.add_argument("--branch", help="also commit what was written on this branch")
+
+
 def _add_steward_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     """The steward's two acts and the curator's check (F15-R2; D-32 v3.17)."""
     top = sub.add_parser("steward", help="a steward's signed commitment or step-down (F15-R1)")
@@ -722,6 +771,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "evidence": run_evidence,
         "steward": run_steward,
         "explainer": run_explainer,
+        "gloss": run_gloss,
         "writeup": run_writeup,
         "postmerge": run_postmerge,
         "admit": run_admit,
@@ -2386,6 +2436,256 @@ def run_explainer(args: argparse.Namespace, settings: config.Settings) -> int:
         "written": [path.resolve().relative_to(graph.resolve()).as_posix()],
     }
     message = f"explainer: {args.by} signed {args.explainer[:12]} on {args.node_id}"
+    return _emit_curator(doc, graph, args.branch, message)
+
+
+def run_gloss(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F20-R12: the steward's commands on glosses and explainers — ``revise`` writes the current
+    version to an editable file, ``file`` checks an edited one as the gate would and places it
+    under its hash, ``sign`` writes a gloss signature with the signer's own key. A refusal is
+    ``{"ok": false, ...}`` and exit 1 with nothing left behind (C7)."""
+    graph = _intake_graph(args)
+    if args.action == "revise":
+        return _gloss_revise(args, graph)
+    if args.action == "file":
+        return _gloss_file(args, graph, settings)
+    return _gloss_sign(args, graph)
+
+
+#: What ``gloss revise`` writes a new chain's body as: a prompt to the author, not prose.
+_NEW_GLOSS_BODY = "Say in words what the Lean says, every hypothesis included.\n"
+_NEW_EXPLAINER_BODY = "## The idea\n\nSay what the proof does and why it works.\n"
+
+
+def _gloss_subject(
+    graph: Path, target_id: str, subject: str
+) -> tuple[dict[str, Any], Path, str, list[glosses.Version]]:
+    """``gloss revise``'s subject: the front matter fields that name it, the directory its
+    versions sit in, that directory's name (``gloss`` or ``explainer``) and its versions."""
+    target_dir = layout.graph_nodes_dir(graph, target_id).parent
+    kind, _, rest = subject.partition(":")
+    if not target_dir.is_dir():
+        msg = f"{target_id} is not a target of {graph}"
+        raise glosses.GlossError(msg)
+    if kind in glosses.KIND_FILES:
+        node_dir = target_dir / "nodes" / rest
+        file = node_dir / glosses.KIND_FILES[kind]
+        if not rest or not file.is_file():
+            msg = f"{target_id} has no {glosses.KIND_FILES[kind]} of a node {rest!r}"
+            raise glosses.GlossError(msg)
+        lean = schemas.content_hash(file.read_bytes())
+        fields: dict[str, Any] = {
+            "subject": {"kind": kind, "node": rest, "module": None, "lean_hash": lean}
+        }
+        found = [v for v in glosses.load_versions(node_dir) if v.subject == (kind, rest, None)]
+        return fields, node_dir, glosses.GLOSS_DIR, found
+    if kind == glosses.DEFINITION:
+        file = target_dir / glosses.DEFS_DIR / rest
+        if not rest or not file.is_file():
+            msg = f"{target_id} has no definition module {rest!r} under defs/"
+            raise glosses.GlossError(msg)
+        lean = schemas.content_hash(file.read_bytes())
+        fields = {"subject": {"kind": kind, "node": None, "module": rest, "lean_hash": lean}}
+        found = [v for v in glosses.load_versions(target_dir) if v.subject == (kind, None, rest)]
+        return fields, target_dir, glosses.GLOSS_DIR, found
+    if kind == "explainer":
+        node, _, proof = rest.partition(":")
+        node_dir = target_dir / "nodes" / node
+        artifacts = explainers.merged_artifacts(node_dir) if node and node_dir.is_dir() else {}
+        proof = proof or (explainers.first_proof(node_dir) or "") if node else proof
+        if proof not in artifacts:
+            msg = (
+                f"{target_id}/{node or '?'} has no merged proof artifact {proof or '(none)'}; its "
+                f"artifacts are {', '.join(f'{p} {h}' for h, p in artifacts.items()) or 'none'}"
+            )
+            raise glosses.GlossError(msg)
+        fields = {"node": node, "proof": proof}
+        found = [v for v in explainers.versions(node_dir) if v.subject[2] == proof]
+        return fields, node_dir, explainers.EXPLAINER_DIR, found
+    msg = (
+        f"{subject!r} is not a subject: statement:<node>, witness:<node>, relation:<node>, "
+        "definition:<module> or explainer:<node>[:<proof hash>]"
+    )
+    raise glosses.GlossError(msg)
+
+
+def _gloss_revise(args: argparse.Namespace, graph: Path) -> int:
+    """R12: the head's text under new front matter — supersedes the head, the subject's current
+    ``lean_hash`` (or the proof), the reviser as author — or a fresh chain where there is none."""
+    fields, parent, directory, found = _gloss_subject(graph, args.target_id, args.subject)
+    chains = glosses.chains(found, glosses.withdrawn_versions(parent, directory))
+    if args.chain:
+        chain = glosses.chain_of(chains, args.chain)
+        if chain is None:
+            msg = f"no chain on {args.subject} holds a version {args.chain}"
+            raise glosses.GlossError(msg)
+        head = chain.current
+        if head is None:
+            msg = f"every version of the chain holding {args.chain[:12]}… is withdrawn"
+            raise glosses.GlossError(msg)
+    else:
+        live = [c.current for c in chains if c.current is not None]
+        if len(live) > 1:
+            msg = (
+                f"{args.subject} has {len(live)} chains, with heads "
+                f"{', '.join(v.hash for v in live)}; name one with --chain"
+            )
+            raise glosses.GlossError(msg)
+        head = live[0] if live else None
+    licence = args.licence
+    body = _NEW_GLOSS_BODY if directory == glosses.GLOSS_DIR else _NEW_EXPLAINER_BODY
+    if head is not None:
+        old, body = glosses.split_front_matter(head.path.read_text(encoding="utf-8"))
+        licence = str((old or {}).get("licence") or licence)
+        if directory != glosses.GLOSS_DIR and not body.lstrip().startswith("## "):
+            body = "## The idea\n\n" + body.lstrip()  # an explainer filed before F20
+    schema = glosses.SCHEMA if directory == glosses.GLOSS_DIR else "explainer/v1"
+    doc: dict[str, Any] = {
+        "schema": schema,
+        "target": args.target_id,
+        **fields,
+        "supersedes": head.hash if head is not None else None,
+        "author": args.by,
+        "drafter": None,
+        "date": _intake_date(args)[:10],
+        "licence": licence,
+    }
+    text = "---\n" + yaml.safe_dump(doc, sort_keys=False, allow_unicode=True) + "---\n" + body
+    out: Path = args.out or Path.cwd() / f"{args.target_id}-{args.subject.replace(':', '-')}.md"
+    out.write_text(text, encoding="utf-8")
+    summary = {
+        "ok": True,
+        "target": args.target_id,
+        "subject": args.subject,
+        "supersedes": doc["supersedes"],
+        "out": str(out),
+        "next": f"edit it, then: opn-gate gloss file {out} --graph {graph}",
+    }
+    sys.stdout.write(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
+    return EXIT_PASS
+
+
+_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+
+
+def _gloss_destination(graph: Path, doc: dict[str, Any]) -> Path:
+    """Where an edited gloss or explainer is filed, from its front matter alone."""
+    target = doc.get("target")
+    if not isinstance(target, str) or not _ID_RE.match(target):
+        msg = "the front matter names no target"
+        raise glosses.GlossError(msg)
+    target_dir = graph / "targets" / target
+    if doc.get("schema") == glosses.SCHEMA:
+        subject = doc.get("subject") if isinstance(doc.get("subject"), dict) else {}
+        assert isinstance(subject, dict)
+        if subject.get("kind") == glosses.DEFINITION:
+            return target_dir / glosses.GLOSS_DIR
+        node = subject.get("node")
+        directory = glosses.GLOSS_DIR
+    elif doc.get("schema") == "explainer/v1":
+        node = doc.get("node")
+        directory = "explainer"
+    else:
+        msg = f"the front matter declares {doc.get('schema')!r}, not gloss/v1 or explainer/v1"
+        raise glosses.GlossError(msg)
+    if not isinstance(node, str) or not _ID_RE.match(node):
+        msg = "the front matter names no node"
+        raise glosses.GlossError(msg)
+    return target_dir / "nodes" / node / directory
+
+
+def _gloss_file(args: argparse.Namespace, graph: Path, settings: config.Settings) -> int:
+    """R12: name the edited file by its hash, place it, and hold it to what the gate would
+    (R1 to R6) with the same classifier and checks; on any problem remove it again."""
+    text = _read_flag_file(args.path, "path")
+    try:
+        doc, _ = glosses.split_front_matter(text)
+    except ValueError as exc:
+        raise glosses.GlossError(str(exc)) from exc
+    if doc is None:
+        msg = f"{args.path} has no front matter; start from opn-gate gloss revise"
+        raise glosses.GlossError(msg)
+    directory = _gloss_destination(graph, doc)
+    data = text.encode("utf-8")
+    dest = directory / f"{schemas.content_hash(data)}.md"
+    if dest.exists():
+        msg = f"{dest.relative_to(graph).as_posix()} is already filed"
+        raise glosses.GlossError(msg)
+    try:
+        curators = modes.load_curators(graph)
+    except modes.CuratorsError as exc:
+        raise CliError(str(exc)) from exc
+    created = not directory.exists()
+    directory.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(data)
+    rel = dest.relative_to(graph).as_posix()
+    classification = modes.classify(
+        [Change("A", rel)],
+        author=args.author or settings.pr_author,
+        curators=curators,
+        graph_root=graph,
+    )
+    problems = list(classification.problems)
+    if classification.ok:
+        problems.extend(modes.check(graph, classification))
+    if problems:
+        dest.unlink()
+        if created:
+            directory.rmdir()
+        refused = {
+            "ok": False,
+            "path": rel,
+            "problems": [d.as_dict(settings.diagnostic_max_bytes) for d in problems],
+        }
+        sys.stdout.write(json.dumps(refused, indent=2, ensure_ascii=False) + "\n")
+        for d in problems:
+            sys.stderr.write(f"opn-gate: {d.code}: {d.message}\n")
+        return EXIT_FAIL
+    filed = {
+        "ok": True,
+        "written": [rel],
+        "hash": dest.stem,
+        "warnings": [d.as_dict() for d in modes.warnings(graph, classification)],
+    }
+    return _emit_curator(filed, graph, args.branch, f"gloss: file {rel}")
+
+
+def _gloss_sign(args: argparse.Namespace, graph: Path) -> int:
+    """R8, R12: a gloss signature, signed with the signer's own key, beside the gloss it signs —
+    found under the target or any of its nodes."""
+    target_dir = layout.graph_nodes_dir(graph, args.target_id).parent
+    if not target_dir.is_dir():
+        msg = f"{args.target_id} is not a target of {graph}"
+        raise CliError(msg)
+    nodes = target_dir / "nodes"
+    candidates = [target_dir, *sorted(p for p in nodes.iterdir() if p.is_dir())]
+    parent = next(
+        (p for p in candidates if (p / glosses.GLOSS_DIR / f"{args.gloss}.md").is_file()),
+        None,
+    )
+    if parent is None:
+        msg = f"no gloss {args.gloss[:12]}… is on {args.target_id}; nothing to sign"
+        raise glosses.GlossError(msg)
+    node_id = None if parent == target_dir else parent.name
+    path = glosses.sign(
+        parent,
+        args.gloss,
+        target_id=args.target_id,
+        node_id=node_id,
+        signer_login=args.by,
+        date=_intake_date(args),
+        key_path=args.key.resolve(),
+        signer=signed.default_signer(),
+    )
+    doc = {
+        "ok": True,
+        "target": args.target_id,
+        "node": node_id,
+        "gloss": args.gloss,
+        "signer": args.by,
+        "written": [path.resolve().relative_to(graph.resolve()).as_posix()],
+    }
+    message = f"gloss: {args.by} signed {args.gloss[:12]} on {node_id or args.target_id}"
     return _emit_curator(doc, graph, args.branch, message)
 
 

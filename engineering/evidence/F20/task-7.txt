@@ -1,0 +1,28 @@
+F20-T7 verification: uv run pytest gate/tests/test_gloss_cli.py
+Red run (the gloss parser present, its handler raising CliError "not built yet"): eight tests failed
+on the exit code owed, e.g. test_revise_then_file_supersedes_the_head: assert (2 == 0), and
+test_revise_refuses_a_subject_that_is_not_there[*]: assert (2 == 1); test_errors_never_escape_main
+passed (exit 2 was already the boundary's answer).
+One test was wrong, not the code: its stand-in stale hash ("0" * 64) became a YAML integer under a
+raw text substitution; the gate's gloss-invalid was right. It uses "a" * 64 now.
+Green run:
+
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aba4293b49640e7d1
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 9 items
+
+gate/tests/test_gloss_cli.py::test_revise_then_file_supersedes_the_head PASSED [ 11%]
+gate/tests/test_gloss_cli.py::test_file_refuses_what_the_gate_refuses_and_leaves_nothing PASSED [ 22%]
+gate/tests/test_gloss_cli.py::test_revise_an_explainer_and_start_a_chain PASSED [ 33%]
+gate/tests/test_gloss_cli.py::test_sign_writes_a_valid_gloss_signature PASSED [ 44%]
+gate/tests/test_gloss_cli.py::test_revise_refuses_a_subject_that_is_not_there[statement:no-such-node] PASSED [ 55%]
+gate/tests/test_gloss_cli.py::test_revise_refuses_a_subject_that_is_not_there[nonsense] PASSED [ 66%]
+gate/tests/test_gloss_cli.py::test_revise_refuses_a_subject_that_is_not_there[relation:and-reassoc] PASSED [ 77%]
+gate/tests/test_gloss_cli.py::test_revise_refuses_a_subject_that_is_not_there[explainer:and-reassoc:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff] PASSED [ 88%]
+gate/tests/test_gloss_cli.py::test_errors_never_escape_main PASSED       [100%]
+
+============================== 9 passed in 0.41s ===============================
