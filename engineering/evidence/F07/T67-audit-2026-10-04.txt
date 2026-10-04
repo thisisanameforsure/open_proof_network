@@ -1,0 +1,76 @@
+F07-T67 — open pull requests capped per pseudonym and for the graph (audit 2026-10-04)
+======================================================================================
+
+Finding: nothing bounded how many pull requests one identity held open (the write limit is per
+hour, so a caller could add to the queue every hour without end), and nothing bounded the whole
+queue. The merge actor considers open pull requests in number order (F05-Q19), so one caller's
+backlog delays everyone behind it, and every open pull request is a gate run on the graph's
+runners.
+
+Fix: submissions.check_open_caps, called first thing in submissions.open_pr — the one place
+appends, proposals (speculative, variant, witness) and submissions open a pull request.
+- Per pseudonym (pseudonyms are unique, D-19): count Store.list_open_submissions() by
+  pseudonym; only at the cap, reconcile the caller's own records through the existing path
+  (pending.open_listing + pending.listed_state + pending.reconcile, exactly as
+  GET /submissions.json does; pending.py not edited) and recount. Still at the cap: 429
+  `open-pull-requests-cap`, details {cap, open: [{submission_id, pr_number, pr_url, kind,
+  target_id, node_id}]}, Retry-After 300 (the guide says every 429 carries one).
+- Global: when the store's open count reaches the cap, recount against the host's open listing
+  (one listing call per pull_listing_max_stale_s, cached); still full: 503 `queue-full`,
+  details {cap, open}, Retry-After 300 (about one merge, F07-T33).
+- Settings OPN_API_OPEN_PRS_PER_IDENTITY (default 10) and OPN_API_OPEN_PRS_GLOBAL (default 150).
+  THE OWNER HAS NOT SIGNED OFF THESE DEFAULTS.
+- Published in rate_limit_policy as open_pull_requests_per_identity and
+  open_pull_requests_global. info/v1's rate_limit_policy is {"oneOf": [null, {"type":"object"}]},
+  an open object (checked in gate/schemas/info/v1.json), so no schema change.
+
+Behaviour to know:
+- Soft caps: two requests at the cap's edge can both pass (no atomic reservation).
+- A merge is seen within the listing's window (60 s default): a caller at the cap whose pull
+  request merged seconds ago may be refused until the listing refreshes.
+- Pull requests opened by hand (not through the service) are not counted: the store only knows
+  what the service opened.
+- Cost: one list_open_submissions per opened pull request (on DynamoDB one get per open record,
+  as GET /submissions.json already pays), and host reads only at a cap.
+
+Restated: test_health.py::test_rate_limit_policy_shape (two new keys);
+test_finding_queue_position.py::test_the_queue_costs_no_read_per_record (one author's 25 open
+pull requests now run with the per-identity cap at 25).
+
+Proposed ledger line (F07 §10 Tasks):
+  · T67 ✓ 2026-10-04 (audit; red first 5 failed on the defect, green 5; api fast tier 1266
+  passed with two tests restated; defaults 10/150 await the owner;
+  engineering/evidence/F07/T67-audit-2026-10-04.txt; live at the next api deploy)
+
+Proposed Q entry (F07-Q63, renumber at merge):
+  F07-Q63 — The queue is capped per pseudonym and in all (T67, audit 2026-10-04). Every route
+  that opens a pull request goes through submissions.open_pr, so the caps are there: a pseudonym
+  holding OPN_API_OPEN_PRS_PER_IDENTITY open pull requests (after its own records are reconciled
+  against the host) is refused 429 open-pull-requests-cap with the list of them, and with
+  OPN_API_OPEN_PRS_GLOBAL open on the graph (recounted against the host's listing) every caller
+  is refused 503 queue-full with Retry-After. Both are published in rate_limit_policy. The
+  defaults (10 and 150) are the audit's proposal and await the owner's sign-off; they are
+  settings, so changing them is a stack parameter, not a commit. Not counted: pull requests
+  opened by hand on the graph. Reversal: remove the one call in open_pr.
+
+Red (before the fix):
+E       assert 201 == 429
+E       AssertionError: assert None is not None
+E       assert 201 == 429
+E       assert 201 == 503
+E       KeyError: 'open_pull_requests_per_identity'
+api/tests/test_finding_open_pr_cap.py:109: KeyError
+FAILED api/tests/test_finding_open_pr_cap.py::test_an_identity_at_its_cap_is_refused_with_its_open_pull_requests
+FAILED api/tests/test_finding_open_pr_cap.py::test_a_merged_pull_request_frees_the_slot_without_anyone_asking_about_it
+FAILED api/tests/test_finding_open_pr_cap.py::test_the_cap_holds_at_the_one_place_every_route_opens
+FAILED api/tests/test_finding_open_pr_cap.py::test_a_full_queue_is_a_503_with_retry_after
+FAILED api/tests/test_finding_open_pr_cap.py::test_both_caps_are_published - ...
+5 failed, 2 warnings in 0.67s
+
+Green (after the fix):
+5 passed, 2 warnings in 0.52s
+
+api fast tier (api/tests, not lean/docker/network):
+1266 passed, 2 warnings in 47.45s
+
+ruff format/check and mypy --strict clean on the changed files.

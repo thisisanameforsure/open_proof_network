@@ -41,7 +41,7 @@ from opn_gate.postmerge import PARTIAL_SUFFIX
 
 if TYPE_CHECKING:
     from opn_api.app import Context
-    from opn_api.store import Identity
+    from opn_api.store import Identity, Submission
 
 log = logging.getLogger(__name__)
 
@@ -95,6 +95,7 @@ def open_pr(  # noqa: PLR0913 — every argument is part of the pull request bei
     branch may survive a failed pull-request call, but the caller is told the submission did not
     open, so nothing is recorded as submitted that is not (C7).
     """
+    check_open_caps(ctx, identity)  # F07-T67: before anything is pushed
     settings = ctx.settings
     now = clockmod.render(ctx.clock.now())
     message = f"{subject}\n\n{sign_off(identity)}\n"
@@ -122,6 +123,81 @@ def open_pr(  # noqa: PLR0913 — every argument is part of the pull request bei
         raise ApiError(
             502, "pull-request-failed", f"the pull request could not be opened: {exc}"
         ) from exc
+
+
+# --- the open pull-request caps (F07-T67) -------------------------------------------------------
+
+#: How long a caller at a cap is asked to wait: about one merge's worth (the post-merge job,
+#: F07-T33), after which the queue has moved.
+QUEUE_FULL_RETRY_S = 300
+
+
+def still_open(ctx: Context, records: list[Submission]) -> list[Submission]:
+    """``records`` reconciled against the host as ``GET /submissions.json`` does it
+    (``pending.reconcile`` over one open listing): an entry the listing carries is open and costs
+    nothing, one it lacks is read once in full and closed if it has finished. With no listing,
+    each is read in full. A record the host cannot describe stays open (C7)."""
+    listed, _, _ = pending.open_listing(ctx)
+    out: list[Submission] = []
+    for found in records:
+        entry = listed.get(found.pr_number) if listed is not None else None
+        first = (pending.listed_state(entry), None) if entry is not None else None
+        record, _, _ = pending.reconcile(ctx, found, first)
+        if record.closed is None:
+            out.append(record)
+    return out
+
+
+def check_open_caps(ctx: Context, identity: Identity) -> None:
+    """F07-T67 (audit 2026-10-04): every route opens its pull request here, so the queue's caps
+    are here. Per pseudonym (pseudonyms are unique, D-19): at ``open_prs_per_identity`` the
+    caller's own records are reconciled against the host first, so a pull request that merged
+    while nobody asked does not count, and if they are still at the cap the answer is 429
+    ``open-pull-requests-cap`` naming each one. For the graph: at ``open_prs_global`` records the
+    host's open listing is the recount, and a full queue is 503 ``queue-full`` with
+    ``Retry-After``. Soft caps: two requests arriving together may both pass at the cap's edge."""
+    records = ctx.store.list_open_submissions()
+    cap = ctx.settings.open_prs_per_identity
+    mine = [found for found in records if found.pseudonym == identity.pseudonym]
+    if len(mine) >= cap:
+        mine = still_open(ctx, mine)
+        if len(mine) >= cap:
+            raise ApiError(
+                429,
+                "open-pull-requests-cap",
+                f"{identity.pseudonym} has {len(mine)} pull requests open on the graph and the cap "
+                f"is {cap}: wait for one to merge or close, or withdraw one "
+                "(DELETE /submissions/<id>), then send this again",
+                headers={"Retry-After": str(QUEUE_FULL_RETRY_S)},  # a 429 carries one (guide)
+                details={
+                    "cap": cap,
+                    "open": [
+                        {
+                            "submission_id": found.id,
+                            "pr_number": found.pr_number,
+                            "pr_url": found.pr_url,
+                            "kind": found.kind,
+                            "target_id": found.target_id,
+                            "node_id": found.node_id,
+                        }
+                        for found in mine
+                    ],
+                },
+            )
+    limit = ctx.settings.open_prs_global
+    if len(records) < limit:
+        return
+    listed, _, _ = pending.open_listing(ctx)
+    count = len(records) if listed is None else sum(1 for s in records if s.pr_number in listed)
+    if count >= limit:
+        raise ApiError(
+            503,
+            "queue-full",
+            f"the graph's queue holds {count} pull requests opened through the service, its cap "
+            f"is {limit}, and nothing was opened: send this again after Retry-After",
+            details={"cap": limit, "open": count},
+            headers={"Retry-After": str(QUEUE_FULL_RETRY_S)},
+        )
 
 
 # --- POST /submissions ---------------------------------------------------------------------------
