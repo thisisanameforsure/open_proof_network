@@ -178,6 +178,9 @@ private structure Known where
   stmt : Expr
   siblings : Array (String × Expr)
   ancestors : Array (String × Expr)
+  /-- F02-T13: constants a child node's statement can never name (the assembly's own auxiliary
+  constants, when the assembly is read from its compiled module); empty otherwise. -/
+  foreign : NameSet := {}
 
 /-- Does `e` rest on `sorry`, directly or through a constant this file defined (an auxiliary lemma
 or matcher the elaborator made from the assembly)? Let-bound locals are unfolded first, so a
@@ -292,7 +295,12 @@ private partial def scan (k : Known) (locals : Array Local) (e : Expr) (acc : Ac
       let proved ← provedIndices kept closed
       let expected ← expectedWitnessTypeNarrowed closed proved
       let expectedPrinted ← ppRoundTrippable expected
-      let expectedOk ← reElaboratesTo expectedPrinted expected
+      -- F02-T13: a closed type that names one of the assembly's own constants (a `match`'s
+      -- matcher, a `where` helper) reads back here, where the constant is, and nowhere a child
+      -- node's statement is elaborated. Not a round trip.
+      let names (e : Expr) : Bool := !(e.getUsedConstants.any k.foreign.contains)
+      let writable := names closed
+      let expectedOk := names expected && (← reElaboratesTo expectedPrinted expected)
       let hole : Hole := {
         name := n.toString,
         type := ← ppRoundTrippable t,
@@ -300,7 +308,7 @@ private partial def scan (k : Known) (locals : Array Local) (e : Expr) (acc : Ac
         defeq_goal := ← restatesGoal k.goal k.stmt t closed,
         defeq_sibling := ← restatesSibling k.siblings closed,
         defeq_ancestor := ← restatesAncestor k.ancestors t closed,
-        closed_roundtrip := ← reElaboratesTo printed closed,
+        closed_roundtrip := writable && (← reElaboratesTo printed closed),
         expected_witness := if expectedOk then some expectedPrinted else none,
         proved_binders := proved }
       let acc := { acc with holes := acc.holes.push hole }
@@ -350,12 +358,14 @@ end
 
 /-- Every hole in `value`, a proof of `stmt`; each named against `siblings`, the target's other
 statements as `(node id, type)` (F07-T7), and against `ancestors`, the statements of the nodes that
-depend on this one, nearest first (F07-T34); either is empty when the caller staged none. -/
+depend on this one, nearest first (F07-T34); either is empty when the caller staged none.
+`foreign` (F02-T13) names constants no child statement can mention: a hole whose closed type uses
+one is not a round trip. -/
 def holeReport (stmt value : Expr) (siblings : Array (String × Expr) := #[])
-    (ancestors : Array (String × Expr) := #[]) : TermElabM HoleReport := do
+    (ancestors : Array (String × Expr) := #[]) (foreign : NameSet := {}) : TermElabM HoleReport := do
   lambdaTelescope value fun xs body => do
     let goal ← inferType body
-    let acc ← scan { goal, stmt, siblings, ancestors } (xs.map fun x => { fvar := x }) body {}
+    let acc ← scan { goal, stmt, siblings, ancestors, foreign } (xs.map fun x => { fvar := x }) body {}
     return { holes := acc.holes, unnamed := acc.unnamed, body_is_hole := isSorry body }
 
 end OpnGate

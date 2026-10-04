@@ -1,0 +1,220 @@
+F02-T13 — a partial proof's (and a reduction's) hole extraction reads compiled modules
+(audit 2026-10-04, finding A remainder; decisions v3.27 §1; D-4 step 4; D-12 offload rule; F07-R5,
+R19, R20; proposed in F02-T12's evidence, "NOT converted, and why")
+Branch audit-n-holes.
+
+What was wrong
+  After F02-T12, opn-artifact-type for a partial or a reduction still elaborated the contributor's
+  assembly in the process that printed the hole report (`--artifact <work>/src/Nodes/<id>/Proof.lean`,
+  with the work directory's build on its LEAN_PATH and its generated Context's imports, i.e. the deps'
+  contributor-compiled Proof modules, imported with their extensions). Every command of the assembly
+  took effect in that process, behind T11's nonce only. One forgery needs no nonce at all: an
+  `@[app_unexpander]` (or a delaborator) is a function the contributor wrote, registered by an
+  attribute, and the judge's pretty-printer runs it on every hole's type, so the assembly chose how its
+  holes were printed (shown below at 4.33.1). Anything else elaborated there (#eval, run_cmd, a macro,
+  an elaborator, an initializer of a module it imported) ran beside the report: the hole names, closed
+  types, defeq_goal / defeq_sibling / defeq_ancestor and the round trip were all computed in a process
+  the contributor shared. The sibling and ancestor probes were staged in the work directory.
+
+The design (as proposed in T12's evidence, with one deviation, below)
+  Lean (gate/lean/OpnGate/ArtifactTypeMain.lean, Compiled.lean, Holes.lean):
+    graphClosure (Compiled.lean, new) - from the assembly's olean, walk its imports: every `Nodes.*`
+        module is read by path from --modules (readOlean: constants and import names, nothing run);
+        every other import is collected as external. Module after the modules it imports; start last.
+    compiledHoleJudgment (ArtifactTypeMain.lean, new; `--statement-olean ... --kind partial|reduction
+        --artifact-olean <judge>/modules/Nodes/<id>/Proof.olean --modules <judge>/modules`):
+        importModules (Init + every external import of the closure: toolchain, Mathlib, the target's
+        Defs.*) WITH extensions, from a LEAN_PATH whose only graph entry is the statement's own build
+        in the judging directory (built from the record by judging.node_statement); then replayInto
+        each graph module of the closure in dependency order (the deps' and uses' Proof modules, the
+        generated Contexts, which hold no constants), refusing if any of them already declares the
+        node's theorem; the sibling/ancestor probes (statement text of record) elaborated on that
+        environment, exactly where the elaborating form elaborated them (on the assembly's imports);
+        then replayInto the assembly, setMainModule to its module name, and the elaborating form's
+        TermElabM block unchanged: expectedArtifactType, isDefEq at both transparencies,
+        holeReport (value? allowOpaque := true; ppRoundTrippable with pp.coercions.types,
+        pp.numericTypes, pp.funBinderTypes; reElaboratesTo), axioms by walk (axiomsOf). The
+        statement's type is read from its trusted olean. Initializers are on (as for T12's witness
+        form): only modules of record are imported.
+    holeReport gains `foreign : NameSet := {}` (additive; the elaborating form passes nothing and is
+        unchanged): see "What the replay does not carry".
+  Python:
+    toolchain.ArtifactRequest gains artifact_olean and modules (additive; the compiled form's args
+        now also carry --siblings/--ancestors when given, which the hole-free kinds never are).
+    steps/artifact.py: every artifact that reaches judge() goes through _run_compiled; for
+        HOLE_KINDS it stages the probes in judging.area(work, "holes") and calls the program with
+        read-only mounts [judge.modules, the statement build, the probes area], nothing writable,
+        and LEAN_PATH = [the statement build] (never judge.modules).
+    The elaborating form stays in the binary as the reference test_artifacts_lean.py's golden was
+    made with (as T12 kept --file); no gate step calls it, and the module docstring says so.
+
+  Deviation from the proposed design: the node's repo Context of signatures is NOT imported. The
+  dep theorems come from the deps' Proof modules, replayed through the kernel, exactly as the
+  generated Context gave them to the elaborating form. Importing the repo Context as well would make
+  every dep theorem a duplicate that replayInto skips only when its type is structurally identical
+  to the signature's; any elaboration difference between the Context's text and the dep's statement
+  would then fail every partial on that node (fail closed, but a regression the old form did not
+  have). Nothing the repo Context holds is needed: it has no extensions beyond signatures. The one
+  behavioural consequence: holeReport's restsOnSorry now walks into dep proof values (they have no
+  module index once replayed); a merged proof carries no sorryAx (step 5), so the answer is the same,
+  at the cost of the walk.
+
+What the replay does not carry (found by running it, not assumed)
+  A replayed constant carries no extension entries: no instance, notation, simp, reducibility,
+  unexpander/delaborator, matcher info. That is the point (an entry is the contributor's data, and some
+  are the contributor's code). One case changed a printed type: a `match` in a hole's type is the
+  assembly's own matcher (`OpnProp.and_swap_reassoc.match_1_1`), which without matcher info prints as
+  that constant, and the constant exists in the judge, so the printed text READ BACK (closed_roundtrip
+  true) - a child statement naming a constant that exists in no child's environment. Before T13 it
+  printed as `match ... | n.succ => True` and did not read back. Fix: holeReport's `foreign` set (the
+  assembly module's constants that are not the statement olean's) - a hole whose closed type uses one
+  is closed_roundtrip false (and its expected_witness is withheld when that type uses one). The verdict
+  is the old one (hole-not-roundtrip); only the printed text in details.unwritable differs. A hole whose
+  printed type needs an instance or notation that a dep proof or the assembly declared does not read
+  back and is refused the same way: fail closed, never a child written wrong. (`@[irreducible]` lost on
+  an assembly-local def makes it unfoldable at default transparency: the offload rule can only find
+  more restatements, never fewer.)
+
+Red (fast tier; ArtifactRequest's two fields were added first at today's behaviour, unused, so the red
+is the defect, not a missing name)
+  uv run --frozen pytest -q -m "not lean and not docker and not network" gate/tests/test_finding_compiled_holes.py
+    test_the_hole_extraction_is_handed_no_source_and_nothing_writable
+      E   AssertionError: .../opn-artifact-type --statement <tmp>/work/src/Nodes/and-swap-reassoc/Statement.lean
+          ... --artifact <tmp>/work/src/Nodes/and-swap-reassoc/Proof.lean ... --kind partial
+          --siblings <tmp>/work/siblings/siblings.json --nonce stdin
+      E   assert not ['<tmp>/work/src/Nodes/and-swap-reassoc/Proof.lean']
+    test_the_assembly_is_read_from_the_module_step_4_replayed
+      E   ValueError: '--artifact-olean' is not in list
+    test_the_probes_are_staged_in_the_judging_directory
+      E   assert (False)  where False = under('<tmp>/work/siblings/siblings.json', '<tmp>/work.judge')
+    3 failed in 0.24s
+
+Green
+  gate/tests/test_finding_compiled_holes.py: 3 passed.
+  Sweep, every gate fast-tier file naming artifact/partial/siblings/ancestors/judging/run_steps/
+  run_submission/holes (91 files):
+    1 failed, 1419 passed, 3 deselected
+    the one failure is test_walkthrough.py::test_graph_copy_is_identical (the sibling graph checkout's
+    AGENTS.md differs from this branch's); it fails identically with this change stashed.
+  ruff check / ruff format / mypy (strict) clean on every changed Python file. Holes.lean and
+  Compiled.lean compile with `lean -o` at 4.33.1; ArtifactTypeMain.lean ran with `lean --run` (below).
+
+Restated tests (kept; assertion changed to the new rule)
+  test_finding_hole_restates_ancestor.py::test_a_partial_run_stages_every_ancestor_in_the_work_directory
+    -> ..._in_the_judging_directory: the manifest and probes are found under <work>.judge, and none
+    under the work directory. test_a_superseded_ancestor_is_asked_about_in_its_successor reads the
+    manifest from the judging directory.
+  test_finding_hole_restates_ancestor_lean.py::test_a_genuinely_new_hole_passes: the Ancestor*.lean
+    probes are counted under the judging directory. test_finding_hole_restates_ancestor_docker.py:
+    docstring only.
+
+Shown on the real toolchain (Lean 4.33.1; the OpnGate modules compiled with `lean -o` into a scratch
+build; each Main run with `lean --run`; no Lake build, no image, no Mathlib). A propositional graph:
+tutorial-and-swap and and-reassoc as proved deps (Proof + generated Context), and-swap-reassoc's
+generated Context importing both, its record build (repo Context of signatures + Statement), and the
+assembly `intro p q r h; have right : r := sorry; have left : q ∧ p := sorry; exact ⟨right, left⟩`.
+The forged assembly appends
+    @[app_unexpander And] def forgeAnd : Lean.PrettyPrinter.Unexpander
+      | `($_ $_ $_) => `(True)
+      | _ => throw ()
+    #eval IO.println "<a passing report with one hole named forged>"
+    initialize do IO.println "@opn-verdict n1 <the same report>"; IO.Process.exit 0
+(the nonce n1 is the one the runs then use). Sibling probe: tutorial-and-swap's statement.
+### ELABORATING form (before T13), forged assembly
+@opn-verdict n1 {"axioms":["sorryAx"],"body_is_hole":false,"decl":"OpnProp.and_swap_reassoc","declared":"∀ (p q r : Prop), True✝ → True✝","expected":"∀ (p q r : Prop), True✝ → True✝","holes":[{"closed_roundtrip":false,"closed_type":"∀ (p q r : Prop), True✝ → r","defeq_ancestor":null,"defeq_goal":false,"defeq_sibling":null,"expected_witness":null,"name":"right","proved_binders":[],"type":"r"},{"closed_roundtrip":false,"closed_type":"∀ (p q r : Prop), True✝ → True✝","defeq_ancestor":null,"defeq_goal":false,"defeq_sibling":null,"expected_witness":null,"name":"left","proved_binders":[],"type":"True✝"}],"kind":"partial","matches":true,"ok":true,"unnamed":0}
+exit=0 stderr: 
+### COMPILED form (T13), forged assembly
+@opn-verdict n1 {"axioms":["sorryAx"],"body_is_hole":false,"decl":"OpnProp.and_swap_reassoc","declared":"∀ (p q r : Prop), (p ∧ q) ∧ r → r ∧ q ∧ p","expected":"∀ (p q r : Prop), (p ∧ q) ∧ r → r ∧ q ∧ p","holes":[{"closed_roundtrip":true,"closed_type":"∀ (p q r : Prop), (p ∧ q) ∧ r → r","defeq_ancestor":null,"defeq_goal":false,"defeq_sibling":null,"expected_witness":"∃ (p : Prop), ∃ (q : Prop), ∃ (r : Prop), (p ∧ q) ∧ r","name":"right","proved_binders":[],"type":"r"},{"closed_roundtrip":true,"closed_type":"∀ (p q r : Prop), (p ∧ q) ∧ r → q ∧ p","defeq_ancestor":null,"defeq_goal":false,"defeq_sibling":null,"expected_witness":"∃ (p : Prop), ∃ (q : Prop), ∃ (r : Prop), (p ∧ q) ∧ r","name":"left","proved_binders":[],"type":"q ∧ p"}],"kind":"partial","matches":true,"ok":true,"unnamed":0}
+exit=0 stderr: 
+### ELABORATING form (before T13), honest assembly
+@opn-verdict n1 {"axioms":["sorryAx"],"body_is_hole":false,"decl":"OpnProp.and_swap_reassoc","declared":"∀ (p q r : Prop), (p ∧ q) ∧ r → r ∧ q ∧ p","expected":"∀ (p q r : Prop), (p ∧ q) ∧ r → r ∧ q ∧ p","holes":[{"closed_roundtrip":true,"closed_type":"∀ (p q r : Prop), (p ∧ q) ∧ r → r","defeq_ancestor":null,"defeq_goal":false,"defeq_sibling":null,"expected_witness":"∃ (p : Prop), ∃ (q : Prop), ∃ (r : Prop), (p ∧ q) ∧ r","name":"right","proved_binders":[],"type":"r"},{"closed_roundtrip":true,"closed_type":"∀ (p q r : Prop), (p ∧ q) ∧ r → q ∧ p","defeq_ancestor":null,"defeq_goal":false,"defeq_sibling":null,"expected_witness":"∃ (p : Prop), ∃ (q : Prop), ∃ (r : Prop), (p ∧ q) ∧ r","name":"left","proved_binders":[],"type":"q ∧ p"}],"kind":"partial","matches":true,"ok":true,"unnamed":0}
+exit=0 stderr: 
+### COMPILED form (T13), honest assembly
+@opn-verdict n1 {"axioms":["sorryAx"],"body_is_hole":false,"decl":"OpnProp.and_swap_reassoc","declared":"∀ (p q r : Prop), (p ∧ q) ∧ r → r ∧ q ∧ p","expected":"∀ (p q r : Prop), (p ∧ q) ∧ r → r ∧ q ∧ p","holes":[{"closed_roundtrip":true,"closed_type":"∀ (p q r : Prop), (p ∧ q) ∧ r → r","defeq_ancestor":null,"defeq_goal":false,"defeq_sibling":null,"expected_witness":"∃ (p : Prop), ∃ (q : Prop), ∃ (r : Prop), (p ∧ q) ∧ r","name":"right","proved_binders":[],"type":"r"},{"closed_roundtrip":true,"closed_type":"∀ (p q r : Prop), (p ∧ q) ∧ r → q ∧ p","defeq_ancestor":null,"defeq_goal":false,"defeq_sibling":null,"expected_witness":"∃ (p : Prop), ∃ (q : Prop), ∃ (r : Prop), (p ∧ q) ∧ r","name":"left","proved_binders":[],"type":"q ∧ p"}],"kind":"partial","matches":true,"ok":true,"unnamed":0}
+exit=0 stderr: 
+RUN-DONE
+
+  Read side by side (scripted comparison). Before T13 the unexpander rewrote every printed
+  type (declared and expected too); this particular forgery was still refused, because the round
+  trip (F07-R19) re-elaborates the printed text, which is the guard on what a child may state. It is
+  no guard on the other fields: the names, defeq_goal/sibling/ancestor and the round trip itself were
+  computed in a process running the contributor's code. After T13 the report is the honest one:
+  forged assembly, elaborating form (before): [('right', '∀ (p q r : Prop), True✝ → r', False), ('left', '∀ (p q r : Prop), True✝ → True✝', False)]
+  forged assembly, compiled form (T13):       [('right', '∀ (p q r : Prop), (p ∧ q) ∧ r → r', True), ('left', '∀ (p q r : Prop), (p ∧ q) ∧ r → q ∧ p', True)]
+  honest assembly: elaborating report == compiled report, byte for byte: True
+  forged assembly's compiled report == honest assembly's elaborating report: True
+
+  The before and after (byte-identical hole reports):
+  1. The five partial fixtures of golden/artifact-types.json (made by the elaborating form), each
+     compiled as Nodes.«tutorial-and-swap».Proof and judged by the compiled form against the statement
+     built apart; the report, parsed and checked as test_artifacts_lean.py does, against the golden:
+  Partial            (partial): compiled form == golden/artifact-types.json[Partial]: True
+  Reduction          (reduction): compiled form == golden/artifact-types.json[Reduction]: True
+  Offload            (partial): compiled form == golden/artifact-types.json[Offload]: True
+  RestateConclusion  (partial): compiled form == golden/artifact-types.json[RestateConclusion]: True
+  BareHole           (partial): compiled form == golden/artifact-types.json[BareHole]: True
+  all five identical: True
+  2. A "rich" assembly on and-swap-reassoc, both forms: a coercion hole (pp.coercions.types,
+     pp.numericTypes), an `obtain ⟨hpq, hr⟩ := h` (F07-T44 proved binders, isCasesOnRecursor), a use of
+     the dep theorem OpnProp.and_reassoc (replayed from the dep's Proof module), a hole using an earlier
+     hole (F07-T48), and a hole whose type is a `match`:
+  rich hole cast_step     fields that differ: none; closed_roundtrip before/after: True/True
+  rich hole swap          fields that differ: none; closed_roundtrip before/after: True/True
+  rich hole uses_earlier  fields that differ: none; closed_roundtrip before/after: True/True
+  rich hole m             fields that differ: ['closed_type', 'type']; closed_roundtrip before/after: False/False
+  rich: every top-level field but holes identical: True
+     (`m`: printed `match (2 : Nat) with | (0 : Nat) => False | n.succ => True` before, the matcher
+     constant after; refused hole-not-roundtrip both times - see "What the replay does not carry".)
+
+Lean tier (NOT run here: no Lake build of the package on this disk; CI must run it)
+  gate/tests/test_finding_compiled_holes_lean.py
+    test_a_partial_cannot_answer_its_own_hole_extraction - the forging assembly (unexpander, #eval,
+      initialize) through steps 1-4: holes right/left with their true closed types, all round trips.
+    test_a_hole_naming_the_assemblys_own_constant_is_no_round_trip - the `match` hole is still
+      hole-not-roundtrip (the fail-open case the replay would otherwise have opened).
+    test_the_compiled_form_reports_what_the_elaborating_form_did - the five partial fixtures through
+      the compiled form, equal to golden/artifact-types.json.
+  Every existing partial/skeleton lean and docker test (test_partial lean equivalents, onramp,
+  hole_roundtrip, hole_inherits, hole_restates_ancestor, partial_carries_witnesses, duplicate_hole,
+  revised_hole_parent, annex_steps, ...) now runs through the compiled form unchanged; their hole
+  assertions are the "after".
+
+Expected cost (not measured on Mathlib)
+  No new compile: the assembly is the module step 4 built. The judge imports Mathlib once with
+  extensions, as the elaborating form did. Added: the kernel re-checks every constant of the
+  closure's graph modules (the deps', uses' and the assembly's), which leanchecker already did once in
+  step 4, so roughly one more step-4 replay inside the artifact check, in one process (memory: one
+  Mathlib import plus the closure, as before). restsOnSorry may walk dep proof values.
+
+Residuals
+  - The olean format trust every judge has (T10, T11, T12's): a contributor-produced .olean is read by
+    Lean's loader, which trusts the compacted region.
+  - The dep modules in judge.modules were compiled in the contributor-reachable work build (T10's
+    note); their constants are kernel-checked here and in step 4, and none may supply the node's
+    theorem, but their content is whatever the kernel accepts.
+  - Exhibits (exhibits.py, opn-relation-type --relation) are F02-T14, another agent's.
+
+Proposed Q entry (F02-Q13)
+  A partial's holes are read from compiled modules (T13; 2026-10-04; audit finding A, the remainder
+  T12 left). Until now opn-artifact-type elaborated a partial's assembly in the process that printed
+  its hole report, so the assembly's own code (an unexpander, a delaborator, an #eval, an initializer
+  of a module it imported) ran there and could shape the holes: their names, their printed types,
+  and the offload rule's answers. The program now imports with extensions only modules of record
+  (Init, Mathlib, the target's definitions from the gate's own build), reads the assembly's olean and
+  the graph modules it reaches as data from the judging directory, adds their constants through the
+  kernel in dependency order, and runs the unchanged extraction on the replayed proof; the sibling and
+  ancestor probes, statement text of record, are elaborated there as before. The node's repo Context
+  is not imported: the dep theorems come from the deps' replayed proofs, as the generated Context gave
+  them, so a signature that differs from its proof only in elaboration cannot fail a partial. A
+  replayed constant carries no extension entries, so a hole whose type names one of the assembly's own
+  constants (a match's matcher, a where-helper) is reported as no round trip and refused
+  (hole-not-roundtrip), as a match hole already was; the five partial fixtures' reports are unchanged
+  byte for byte. Cost: about one more kernel replay of the node's closure inside step 4.
+
+Proposed ledger line
+  F02: T13 ✓ 2026-10-04 (uv run pytest gate/tests/test_finding_compiled_holes.py: 3 passed; 91-file
+  sweep 1419 passed, the one failure pre-existing; the compiled form shown at 4.33.1 with `lean --run`:
+  a forging assembly's holes are the true ones, the five golden partial fixtures identical; the lean
+  tier test_finding_compiled_holes_lean.py pending CI) — a partial's and a reduction's holes are
+  extracted from the replayed assembly in an environment imported from modules of record; exhibits
+  remain (T14)

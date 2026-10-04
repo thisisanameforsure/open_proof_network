@@ -137,6 +137,37 @@ def replayInto (env : Environment) (consts : Array ConstantInfo) : IO Environmen
     | _, _ => throw <| IO.userError s!"no such recursor {n}"
   return s.env
 
+/-- The contributor modules a compiled module reaches, read as data (F02-T13). -/
+structure Closure where
+  /-- Each graph module with its constants, every module after the graph modules it imports;
+  the start module last. -/
+  modules : Array (Name × Array ConstantInfo) := #[]
+  /-- Every module outside the graph that any of them imports, in the order first met: these are
+  imported, with their extensions, from the search path (the toolchain, Mathlib and the gate's
+  own build of the record), and never from where the graph modules were read. -/
+  external : Array Name := #[]
+  seen : NameSet := {}
+
+/-- Walk `start`'s imports (its olean at `path`), reading each import `isGraph` accepts from
+`dir` by path (`modToFilePath`) and collecting every other one as external. Nothing is imported
+or executed: each olean is read with `readOlean`. A module met twice is read once; an import
+cycle, which no compile can produce, then leaves a module before one it needs, and the kernel
+replay that follows fails on the missing constant. -/
+partial def graphClosure (dir : System.FilePath) (isGraph : Name → Bool) (start : Name)
+    (path : System.FilePath) : IO Closure := do
+  let rec visit (m : Name) (p : System.FilePath) : StateRefT Closure IO Unit := do
+    if (← get).seen.contains m then return
+    modify fun s => { s with seen := s.seen.insert m }
+    let (consts, imports) ← readOlean p
+    for i in imports do
+      if isGraph i then
+        visit i (modToFilePath dir i "olean")
+      else unless (← get).external.contains i do
+        modify fun s => { s with external := s.external.push i }
+    modify fun s => { s with modules := s.modules.push (m, consts) }
+  let ((), closure) ← (visit start path).run {}
+  return closure
+
 /-- Every axiom `root` reaches through the types and values of the constants it names, in name
 order, or the first constant that is not in `env` (F02-T11: walked here, never read from data an
 imported module carries). -/

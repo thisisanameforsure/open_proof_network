@@ -182,10 +182,20 @@ class ArtifactRequest:
     #: (one with no holes) is judged from compiled modules alone: its own module, imported with
     #: nothing of it executed, and the statement's type read from this file.
     statement_olean: Path | None = None
+    #: F02-T13: a partial's (or a reduction's) assembly, as the olean step 4 replayed, in the
+    #: judging directory's ``modules/``; read as data and added through the kernel.
+    artifact_olean: Path | None = None
+    #: F02-T13: the directory the assembly's graph imports (``Nodes.*``: the deps' and uses'
+    #: ``Proof`` modules and the generated ``Context``s) are read from by path, as data. Never
+    #: on the program's ``LEAN_PATH``.
+    modules: Path | None = None
 
     def args(self) -> list[str]:
+        extra = ["--siblings", str(self.siblings.resolve())] if self.siblings is not None else []
+        if self.ancestors is not None:
+            extra += ["--ancestors", str(self.ancestors.resolve())]
         if self.statement_olean is not None:
-            return [
+            compiled = [
                 "--statement-olean",
                 str(self.statement_olean.resolve()),
                 "--decl",
@@ -197,9 +207,11 @@ class ArtifactRequest:
                 "--kind",
                 self.kind,
             ]
-        extra = ["--siblings", str(self.siblings.resolve())] if self.siblings is not None else []
-        if self.ancestors is not None:
-            extra += ["--ancestors", str(self.ancestors.resolve())]
+            if self.artifact_olean is not None:
+                compiled += ["--artifact-olean", str(self.artifact_olean.resolve())]
+            if self.modules is not None:
+                compiled += ["--modules", str(self.modules.resolve())]
+            return compiled + extra
         return [
             "--statement",
             str(self.statement.resolve()),

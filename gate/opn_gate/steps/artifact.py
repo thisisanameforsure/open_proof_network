@@ -38,7 +38,13 @@ from opn_gate import graph as graphmod
 from opn_gate import judging, layout, records, schemas
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.steps.base import RunContext, StepResult
-from opn_gate.toolchain import ArtifactRequest, MetaprogramResult, ResolvedToolchain, Toolchain
+from opn_gate.toolchain import (
+    ArtifactRequest,
+    MetaprogramResult,
+    ResolvedToolchain,
+    Toolchain,
+    module_output_path,
+)
 
 Kind = Literal["proof", "counterexample", "vacuity", "partial", "reduction"]
 
@@ -592,9 +598,15 @@ def _annex_steps_problem(ctx: RunContext, node_dir: Path, artifact: Artifact) ->
     return postmerge.check_annex_steps(node_dir, text, [h.name for h in artifact.holes])
 
 
-#: F02-T12, F08-T29b: the artifacts with no holes, judged from compiled modules only. A partial's
-#: (or a reduction's) holes are still read by the elaborating form (see ``opn-artifact-type``).
+#: F02-T12, F08-T29b: the artifacts with no holes, judged from compiled modules only.
 COMPILED_KINDS: tuple[Kind, ...] = ("counterexample", "vacuity")
+#: F02-T13: the artifacts with holes, whose assembly is read from compiled modules too: its olean
+#: (the one step 4 replayed) is added through the kernel into an environment imported only from
+#: modules of record, and the holes are extracted from that.
+HOLE_KINDS: tuple[Kind, ...] = ("partial", "reduction")
+#: F02-T13: the judging area a partial's probes are staged in, beside the judging directory's
+#: other inputs and never in the work directory.
+HOLES_AREA = "holes"
 
 
 def _run_compiled(
@@ -602,7 +614,14 @@ def _run_compiled(
 ) -> tuple[Artifact | None, StepResult | None]:
     """F02-T12, F08-T29b: the statement built from the node's own files in the judging directory,
     the artifact read from the module step 4 replayed there; both mounted read-only, nothing
-    writable, and no source an argument."""
+    writable, and no source an argument.
+
+    F02-T13: a partial's (or a reduction's) assembly too. Its olean and the graph modules it
+    imports (the deps' and uses' ``Proof`` modules, the generated ``Context``s) are read by path
+    from ``modules/``, which is not on the program's ``LEAN_PATH``: only the statement's own
+    build is, so every module the program imports with its extensions is one the gate built from
+    the record (the target's definitions, the node's ``Context`` and ``Statement``) or the
+    toolchain's and Mathlib's. The sibling and ancestor probes are staged in a judging area."""
     node = ctx.node
     judge = ctx.data.get(judging.KEY)
     if node is None or not isinstance(judge, judging.Judge):
@@ -615,8 +634,19 @@ def _run_compiled(
         return None, StepResult(ok=False, diagnostic=problem)
     build = judge.statement / "build"
     compiled = replace(req, statement_olean=judging.statement_olean(build, node.node_id))
-    seam = judging.confined(ctx.toolchain, read_only=[judge.modules, build])
-    return run(ctx, tc, compiled, kind, seam=seam, search_path=[judge.modules])
+    if kind not in HOLE_KINDS:
+        seam = judging.confined(ctx.toolchain, read_only=[judge.modules, build])
+        return run(ctx, tc, compiled, kind, seam=seam, search_path=[judge.modules])
+    probes = judging.area(ctx.workdir, HOLES_AREA)
+    compiled = replace(
+        compiled,
+        artifact_olean=judge.modules / module_output_path(req.artifact_module, ".olean"),
+        modules=judge.modules,
+        siblings=stage_siblings(probes, node),
+        ancestors=stage_ancestors(probes, node),
+    )
+    seam = judging.confined(ctx.toolchain, read_only=[judge.modules, build, probes])
+    return run(ctx, tc, compiled, kind, seam=seam, search_path=[build])
 
 
 def judge(ctx: RunContext, tc: ResolvedToolchain) -> StepResult:
@@ -653,15 +683,11 @@ def judge(ctx: RunContext, tc: ResolvedToolchain) -> StepResult:
         node_dir=staged_dir,
         artifact=proof,
         artifact_module=layout.node_module(node.node_id, "Proof"),
-        # F07-T7: only a partial's holes become nodes, so only a partial asks about siblings.
-        siblings=stage_siblings(ctx.workdir, node) if kind == "partial" else None,
-        # F07-T34: and only a partial's holes can close a cycle, so only a partial asks this.
-        ancestors=stage_ancestors(ctx.workdir, node) if kind == "partial" else None,
     )
-    if kind in COMPILED_KINDS:
-        artifact, failure = _run_compiled(ctx, tc, req, kind)
-    else:
-        artifact, failure = run(ctx, tc, req, kind)
+    # F02-T12, T13: every artifact that reaches here is judged from compiled modules. F07-T7,
+    # F07-T34: only a partial's holes become nodes or can close a cycle, so only a partial asks
+    # about siblings and ancestors; ``_run_compiled`` stages both in the judging directory.
+    artifact, failure = _run_compiled(ctx, tc, req, kind)
     if failure is not None:
         return failure
     assert artifact is not None

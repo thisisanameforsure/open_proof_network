@@ -33,6 +33,12 @@ may have, read through the statement's own). Only its olean is taken from there,
 ``contributed/``, which is never on a ``LEAN_PATH``: the judging program reads it at its path as
 data and adds its constants through the kernel, executing nothing of it.
 
+**A partial's holes (F02-T13).** The assembly is the node's ``Proof`` module step 4 compiled and
+replayed, so nothing is compiled again: ``opn-artifact-type`` reads its olean, and the graph
+modules it imports, from ``modules/`` by path (never on its ``LEAN_PATH``, whose only entry is the
+statement's own build), and adds their constants through the kernel into an environment imported
+from modules of record. The sibling and ancestor probes are staged in an area of their own here.
+
 Without the sandbox (``pregate.sh`` on a contributor's own machine) ``confined`` hands back the
 same seam: the contributor's code runs on their own machine there, and nothing it does there
 decides a merge (D-4: only the gate's run in the sandbox does).
