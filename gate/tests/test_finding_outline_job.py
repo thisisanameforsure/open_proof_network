@@ -98,12 +98,20 @@ def test_no_secret_until_the_push_and_no_credential_in_the_checkouts(
     gate_doc: dict[Any, Any],
 ) -> None:
     """C8, C9: the job is granted read only; contributor Lean runs in the extraction step, which
-    sees no secret, and neither checkout keeps a token; the deploy key is the push step's alone."""
+    sees no secret, and neither checkout keeps a token; the deploy key is the push step's alone.
+    After the push only the drafter's dispatch (F20-T10) follows, holding the site dispatch token
+    and nothing else; no step after the push runs contributor Lean."""
     j = job(gate_doc)
     assert j["permissions"] == {"contents": "read"}
     steps = j["steps"]
     commit_index = next(i for i, s in enumerate(steps) if str(s.get("name", "")).startswith(COMMIT))
-    assert commit_index == len(steps) - 1, "the push is the last step"
+    after = steps[commit_index + 1 :]
+    assert [s.get("name") for s in after] == ["Ask the network's drafter for this merge's words"]
+    assert [v for v in after[0]["env"].values() if "secrets." in v] == [
+        "${{ secrets.OPN_SITE_DEPLOY_TOKEN }}"
+    ]
+    assert "secrets.OPN_GRAPH_DEPLOY_KEY" not in str(after[0])
+    assert "opn-gate" not in after[0]["run"] and "uv run" not in after[0]["run"]
     for s in steps[:commit_index]:
         assert "secrets." not in str(s), s.get("name", s.get("uses"))
         assert "github.token" not in str(s)
