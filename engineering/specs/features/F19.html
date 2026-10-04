@@ -253,7 +253,7 @@ requirements the owner adopted.</p>
 <h2>9. Open questions / judgment calls</h2>
 <table>
   <tr><th>ID</th><th>Call made — for review</th></tr>
-  <tr><td>F19-Q1</td><td><strong>Proposed decisions v3.30, for the owner's approval of the
+  <tr><td>F19-Q1</td><td><em>Applied as drafted 2026-10-04 (decisions v3.30, F20-T1), on the owner's "go build it" after reading this entry; one commit to revert if he meant otherwise.</em> <strong>Proposed decisions v3.30, for the owner's approval of the
     wording.</strong> (Drafted as v3.28; v3.28 and v3.29 were applied by other sessions the same day, so the number is v3.30 as of this writing and is re-derived when T1 applies it.) The owner chose the five calls on 2026-10-04 (outline on the graph; machine prose
     only in the explainer slot; holes glossed inside their explainer; anchored explainer versions;
     Massot&ndash;Miller contact after the reading view ships). Later that day he widened the second
@@ -314,7 +314,7 @@ requirements the owner adopted.</p>
     its own after the post-merge push, modelled on F07-T57's cache job, pushing with the same
     rebase-and-retry. Either way nothing waits for it. The 20% line is a judgement; the evidence
     decides.</td></tr>
-  <tr><td>F19-Q3</td><td><strong>SubVerso or the gate's own frontend.</strong> SubVerso (Apache-2.0,
+  <tr><td>F19-Q3</td><td><em>Decided 2026-10-04, before T1, without a trial: the gate's own frontend. <code>gate/lean</code>'s lakefile charters it as Lean core only, with no dependency at all; SubVerso would be its first, fetched and built in the sandbox image at every pin (C5), to save one program over info trees the six existing programs already know how to walk.</em> <strong>SubVerso or the gate's own frontend.</strong> SubVerso (Apache-2.0,
     maintained, checked on every Lean release) exports proof states as JSON, but whether it runs on a
     file without its anchor comments was not confirmed. T1 tries it on the pinned 4.33.1. The
     fallback is a program over <code>Frontend.lean</code>'s info trees, the shape the six existing
