@@ -54,7 +54,7 @@ def pill_classes(page: str) -> dict[str, set[str]]:
 
 def edge_classes(page: str) -> dict[tuple[str, str], set[str]]:
     out = {}
-    for m in re.finditer(r'<line class="([^"]+)" data-from="([^"]+)" data-to="([^"]+)"', page):
+    for m in re.finditer(r'<path class="([^"]+)" data-from="([^"]+)" data-to="([^"]+)"', page):
         out[(m.group(2), m.group(3))] = set(m.group(1).split())
     return out
 

@@ -49,7 +49,7 @@ def test_the_pointer_is_published_and_drawn_dashed(tmp_path: Path) -> None:
     assert rows[CRUX]["proposed_for"] == FOR
     assert all(r["proposed_for"] is None for nid, r in rows.items() if nid != CRUX)
     assert re.search(
-        rf'<line class="edge proposed[^"]*" data-from="{CRUX}" data-to="{FOR}"', page
+        rf'<path class="edge proposed[^"]*" data-from="{CRUX}" data-to="{FOR}"', page
     ), "no dashed proposed-for line"
     key = re.search(r'<div class="dag-legend">(.*?)</div>', page, re.S)
     assert key is not None and "proposed for" in key.group(1)

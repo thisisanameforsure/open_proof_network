@@ -1,0 +1,467 @@
+FFFFFFFF............FFFFFFF.F..FF.FFFFFFFF                               [100%]
+=================================== FAILURES ===================================
+____________ test_no_two_lines_cross_on_the_live_shapes[erdos-1050] ____________
+
+target = 'erdos-1050'
+
+    @pytest.mark.parametrize("target", LIVE)
+    def test_no_two_lines_cross_on_the_live_shapes(target: str) -> None:
+>       assert crossings(drawn(target)) == []
+E       AssertionError: assert [('erdos-1050...v2--h3'), ...] == []
+E         
+E         Left contains 14 more items, first extra item: ('erdos-1050--h1-v2--h1', 'erdos-1050--h1-v2', 'erdos-1050--h1-v2--h2--h1', 'erdos-1050--h1-v2--h2')
+E         Use -v to get more diff
+
+site/tests/test_finding_dag_layout.py:100: AssertionError
+____________ test_no_two_lines_cross_on_the_live_shapes[erdos-402] _____________
+
+target = 'erdos-402'
+
+    @pytest.mark.parametrize("target", LIVE)
+    def test_no_two_lines_cross_on_the_live_shapes(target: str) -> None:
+>       assert crossings(drawn(target)) == []
+E       AssertionError: assert [('spec-fa804...h1--h2'), ...] == []
+E         
+E         Left contains 9 more items, first extra item: ('spec-fa8046e4', 'erdos-402', 'erdos-402--h3-v2--h1--h1--h1--h1', 'erdos-402--h3-v2--h1--h1--h1')
+E         Use -v to get more diff
+
+site/tests/test_finding_dag_layout.py:100: AssertionError
+_____________ test_no_two_lines_cross_on_the_live_shapes[erdos-69] _____________
+
+target = 'erdos-69'
+
+    @pytest.mark.parametrize("target", LIVE)
+    def test_no_two_lines_cross_on_the_live_shapes(target: str) -> None:
+>       assert crossings(drawn(target)) == []
+E       AssertionError: assert [('spec-7d098...-h1-v2'), ...] == []
+E         
+E         Left contains 16 more items, first extra item: ('spec-7d098d5c', 'erdos-69', 'erdos-69--h2-v2--h1-v2--h1', 'erdos-69--h2-v2--h1-v2')
+E         Use -v to get more diff
+
+site/tests/test_finding_dag_layout.py:100: AssertionError
+__________ test_no_two_lines_cross_on_the_live_shapes[euclid-primes] ___________
+
+target = 'euclid-primes'
+
+    @pytest.mark.parametrize("target", LIVE)
+    def test_no_two_lines_cross_on_the_live_shapes(target: str) -> None:
+>       assert crossings(drawn(target)) == []
+E       AssertionError: assert [('infinitude...nt-2a7919a9')] == []
+E         
+E         Left contains 2 more items, first extra item: ('infinitude-of-primes--h2', 'infinitude-of-primes', 'variant-2a7919a9--h2', 'variant-2a7919a9')
+E         Use -v to get more diff
+
+site/tests/test_finding_dag_layout.py:100: AssertionError
+______ test_no_line_runs_behind_a_statement_it_does_not_join[erdos-1050] _______
+
+target = 'erdos-1050'
+
+    @pytest.mark.parametrize("target", LIVE)
+    def test_no_line_runs_behind_a_statement_it_does_not_join(target: str) -> None:
+>       assert behind_pills(drawn(target)) == []
+E       AssertionError: assert [('erdos-1050...v2--h1'), ...] == []
+E         
+E         Left contains 10 more items, first extra item: ('erdos-1050--h1-v2--h1', 'erdos-1050--h1-v2', 'erdos-1050--h1-v2--h3')
+E         Use -v to get more diff
+
+site/tests/test_finding_dag_layout.py:105: AssertionError
+_______ test_no_line_runs_behind_a_statement_it_does_not_join[erdos-402] _______
+
+target = 'erdos-402'
+
+    @pytest.mark.parametrize("target", LIVE)
+    def test_no_line_runs_behind_a_statement_it_does_not_join(target: str) -> None:
+>       assert behind_pills(drawn(target)) == []
+E       AssertionError: assert [('erdos-402-...h1--h1'), ...] == []
+E         
+E         Left contains 21 more items, first extra item: ('erdos-402--h1', 'erdos-402', 'erdos-402--h3-v2--h1--h1--h1--h2')
+E         Use -v to get more diff
+
+site/tests/test_finding_dag_layout.py:105: AssertionError
+_______ test_no_line_runs_behind_a_statement_it_does_not_join[erdos-69] ________
+
+target = 'erdos-69'
+
+    @pytest.mark.parametrize("target", LIVE)
+    def test_no_line_runs_behind_a_statement_it_does_not_join(target: str) -> None:
+>       assert behind_pills(drawn(target)) == []
+E       AssertionError: assert [('erdos-69--...v2--h1'), ...] == []
+E         
+E         Left contains 22 more items, first extra item: ('erdos-69--h1-v2', 'erdos-69', 'erdos-69--h2-v2')
+E         Use -v to get more diff
+
+site/tests/test_finding_dag_layout.py:105: AssertionError
+_____ test_no_line_runs_behind_a_statement_it_does_not_join[euclid-primes] _____
+
+target = 'euclid-primes'
+
+    @pytest.mark.parametrize("target", LIVE)
+    def test_no_line_runs_behind_a_statement_it_does_not_join(target: str) -> None:
+>       assert behind_pills(drawn(target)) == []
+E       AssertionError: assert [('infinitude...-primes--h3')] == []
+E         
+E         Left contains 5 more items, first extra item: ('infinitude-of-primes--h3', 'infinitude-of-primes', 'infinitude-of-primes--h1')
+E         Use -v to get more diff
+
+site/tests/test_finding_dag_layout.py:105: AssertionError
+___ test_lines_run_more_nearly_upright_than_under_lexical_order[erdos-1050] ____
+
+target = 'erdos-1050'
+
+    @pytest.mark.parametrize("target", LIVE)
+    def test_lines_run_more_nearly_upright_than_under_lexical_order(target: str) -> None:
+        """Each statement is placed near what it joins: the lines' total sideways travel at most
+        60% of what the lexical, centred layout made them travel."""
+>       assert travel(drawn(target)) <= 0.6 * T24_TRAVEL[target]
+E       AssertionError: assert 2040.0 <= (0.6 * 2040.0)
+E        +  where 2040.0 = travel(Layout(placed=[Placed(node_id='erdos-1050--h1', status='superseded', layer=0, x=28, y=292, w=155), Placed(node_id='erd...rdos-1050--h1-v2--h4', kind='edge proposed', points=((98.0, 342.0), (589.0, 236.0)))], width=710, height=444, loose=()))
+E        +    where Layout(placed=[Placed(node_id='erdos-1050--h1', status='superseded', layer=0, x=28, y=292, w=155), Placed(node_id='erd...rdos-1050--h1-v2--h4', kind='edge proposed', points=((98.0, 342.0), (589.0, 236.0)))], width=710, height=444, loose=()) = drawn('erdos-1050')
+
+site/tests/test_finding_dag_layout.py:153: AssertionError
+____ test_lines_run_more_nearly_upright_than_under_lexical_order[erdos-402] ____
+
+target = 'erdos-402'
+
+    @pytest.mark.parametrize("target", LIVE)
+    def test_lines_run_more_nearly_upright_than_under_lexical_order(target: str) -> None:
+        """Each statement is placed near what it joins: the lines' total sideways travel at most
+        60% of what the lexical, centred layout made them travel."""
+>       assert travel(drawn(target)) <= 0.6 * T24_TRAVEL[target]
+E       AssertionError: assert 1854.0 <= (0.6 * 1854.0)
+E        +  where 1854.0 = travel(Layout(placed=[Placed(node_id='erdos-402--h1', status='proved', layer=0, x=28, y=568, w=147), Placed(node_id='erdos-40...6e4', dst='variant-29101bbc', kind='edge', points=((260.0, 718.0), (529.0, 512.0)))], width=740, height=1070, loose=()))
+E        +    where Layout(placed=[Placed(node_id='erdos-402--h1', status='proved', layer=0, x=28, y=568, w=147), Placed(node_id='erdos-40...6e4', dst='variant-29101bbc', kind='edge', points=((260.0, 718.0), (529.0, 512.0)))], width=740, height=1070, loose=()) = drawn('erdos-402')
+
+site/tests/test_finding_dag_layout.py:153: AssertionError
+____ test_lines_run_more_nearly_upright_than_under_lexical_order[erdos-69] _____
+
+target = 'erdos-69'
+
+    @pytest.mark.parametrize("target", LIVE)
+    def test_lines_run_more_nearly_upright_than_under_lexical_order(target: str) -> None:
+        """Each statement is placed near what it joins: the lines' total sideways travel at most
+        60% of what the lexical, centred layout made them travel."""
+>       assert travel(drawn(target)) <= 0.6 * T24_TRAVEL[target]
+E       AssertionError: assert 2123.0 <= (0.6 * 2123.0)
+E        +  where 2123.0 = travel(Layout(placed=[Placed(node_id='erdos-69--h1', status='superseded', layer=0, x=101, y=292, w=140), Placed(node_id='erdo... dst='erdos-69--h2-v2--h1-v2', kind='edge', points=((413.0, 392.0), (456.0, 236.0)))], width=725, height=594, loose=()))
+E        +    where Layout(placed=[Placed(node_id='erdos-69--h1', status='superseded', layer=0, x=101, y=292, w=140), Placed(node_id='erdo... dst='erdos-69--h2-v2--h1-v2', kind='edge', points=((413.0, 392.0), (456.0, 236.0)))], width=725, height=594, loose=()) = drawn('erdos-69')
+
+site/tests/test_finding_dag_layout.py:153: AssertionError
+__ test_lines_run_more_nearly_upright_than_under_lexical_order[euclid-primes] __
+
+target = 'euclid-primes'
+
+    @pytest.mark.parametrize("target", LIVE)
+    def test_lines_run_more_nearly_upright_than_under_lexical_order(target: str) -> None:
+        """Each statement is placed near what it joins: the lines' total sideways travel at most
+        60% of what the lexical, centred layout made them travel."""
+>       assert travel(drawn(target)) <= 0.6 * T24_TRAVEL[target]
+E       AssertionError: assert 1161.0 <= (0.6 * 1161.0)
+E        +  where 1161.0 = travel(Layout(placed=[Placed(node_id='infinitude-of-primes--h1', status='proved', layer=0, x=129, y=200, w=233), Placed(node_...rimes', dst='variant-aceabdc4', kind='edge', points=((276.0, 108.0), (471.0, 52.0)))], width=748, height=402, loose=()))
+E        +    where Layout(placed=[Placed(node_id='infinitude-of-primes--h1', status='proved', layer=0, x=129, y=200, w=233), Placed(node_...rimes', dst='variant-aceabdc4', kind='edge', points=((276.0, 108.0), (471.0, 52.0)))], width=748, height=402, loose=()) = drawn('euclid-primes')
+
+site/tests/test_finding_dag_layout.py:153: AssertionError
+__________ test_the_layout_does_not_depend_on_input_order[erdos-1050] __________
+
+target = 'erdos-1050'
+
+    @pytest.mark.parametrize("target", LIVE)
+    def test_the_layout_does_not_depend_on_input_order(target: str) -> None:
+        shape = SHAPES[target]
+        href = {n["node_id"]: "/x/" for n in shape["nodes"]}
+        a = dag.svg(shape["nodes"], href=href, root=shape["root"], prefix=target)
+        b = dag.svg(list(reversed(shape["nodes"])), href=href, root=shape["root"], prefix=target)
+>       assert a == b
+E       assert '<svg class="...></a>\n</svg>' == '<svg class="...></a>\n</svg>'
+E         
+E         Skipping 970 identical leading characters in diff, use -v to show
+E         Skipping 4483 identical trailing characters in diff, use -v to show
+E         - rom="spec-ffd3137a" data-to="erdos-1050--h1-v2--h3" x1="440" y1="392" x2="355" y2="236"/>
+E         ?           ^^^ ----                                      ^^^       ^
+E         + rom="spec-1a5ab7c3" data-to="erdos-1050--h1-v2--h3" x1="269" y1="342" x2="355" y2="236"/>
+E         ?           ^^^^^^^                                       ^^^       ^...
+E         
+E         ...Full output truncated (7 lines hidden), use '-vv' to show
+
+site/tests/test_finding_dag_layout.py:162: AssertionError
+__________ test_the_layout_does_not_depend_on_input_order[erdos-402] ___________
+
+target = 'erdos-402'
+
+    @pytest.mark.parametrize("target", LIVE)
+    def test_the_layout_does_not_depend_on_input_order(target: str) -> None:
+        shape = SHAPES[target]
+        href = {n["node_id"]: "/x/" for n in shape["nodes"]}
+        a = dag.svg(shape["nodes"], href=href, root=shape["root"], prefix=target)
+        b = dag.svg(list(reversed(shape["nodes"])), href=href, root=shape["root"], prefix=target)
+>       assert a == b
+E       assert '<svg class="...></a>\n</svg>' == '<svg class="...></a>\n</svg>'
+E         
+E         Skipping 454 identical leading characters in diff, use -v to show
+E         Skipping 12627 identical trailing characters in diff, use -v to show
+E         - rom="spec-fa8046e4" data-to="erdos-402" x1="260" y1="718" x2="370" y2="52"/>
+E         ?           ^^  ^ --                          ^^^
+E         + rom="spec-48bd0126" data-to="erdos-402" x1="89" y1="718" x2="370" y2="52"/>
+E         ?           ^ ++ ^^                           ^^...
+E         
+E         ...Full output truncated (4 lines hidden), use '-vv' to show
+
+site/tests/test_finding_dag_layout.py:162: AssertionError
+___________ test_the_layout_does_not_depend_on_input_order[erdos-69] ___________
+
+target = 'erdos-69'
+
+    @pytest.mark.parametrize("target", LIVE)
+    def test_the_layout_does_not_depend_on_input_order(target: str) -> None:
+        shape = SHAPES[target]
+        href = {n["node_id"]: "/x/" for n in shape["nodes"]}
+        a = dag.svg(shape["nodes"], href=href, root=shape["root"], prefix=target)
+        b = dag.svg(list(reversed(shape["nodes"])), href=href, root=shape["root"], prefix=target)
+>       assert a == b
+E       assert '<svg class="...></a>\n</svg>' == '<svg class="...></a>\n</svg>'
+E         
+E         Skipping 346 identical leading characters in diff, use -v to show
+E         Skipping 8027 identical trailing characters in diff, use -v to show
+E         - rom="spec-e0b917d1" data-to="erdos-69" x1="435" y1="492" x2="362" y2="52"/>
+E         ?           -----  ^                         ^^^       ^
+E         + rom="spec-7d098d5c" data-to="erdos-69" x1="276" y1="442" x2="362" y2="52"/>
+E         ?             ^^^^^^                         ^^^       ^...
+E         
+E         ...Full output truncated (11 lines hidden), use '-vv' to show
+
+site/tests/test_finding_dag_layout.py:162: AssertionError
+_______ test_statements_joined_to_nothing_are_drawn_apart_below_the_tree _______
+
+    def test_statements_joined_to_nothing_are_drawn_apart_below_the_tree() -> None:
+        lay = drawn("erdos-402")
+        joined = {x for e in lay.edges for x in (e.src, e.dst)}
+        alone = sorted(p.node_id for p in lay.placed if p.node_id not in joined)
+>       assert alone and list(lay.loose) == alone
+E       AssertionError: assert (['erdos-402--h2', 'erdos-402--h3', 'variant-11152e83', 'variant-3377fd96', 'variant-4ad214d0', 'variant-64035064', ...] and [] == ['erdos-402--...4035064', ...]
+E         
+E         Right contains 21 more items, first extra item: 'erdos-402--h2'
+E         Use -v to get more diff)
+
+site/tests/test_finding_dag_layout.py:172: AssertionError
+_______________ test_the_apart_group_is_labelled_in_the_drawing ________________
+
+    def test_the_apart_group_is_labelled_in_the_drawing() -> None:
+        shape = SHAPES["erdos-402"]
+        out = dag.svg(
+            shape["nodes"],
+            href={n["node_id"]: "/x/" for n in shape["nodes"]},
+            root=shape["root"],
+            prefix="erdos-402",
+        )
+>       assert re.search(r'<text class="dag-group"[^>]*>[^<]*no line[^<]*</text>', out)
+E       assert None
+E        +  where None = <function search at 0x109ba4040>('<text class="dag-group"[^>]*>[^<]*no line[^<]*</text>', '<svg class="dag" viewBox="0 0 740 1070" width="740" height="1070" role="img" aria-label="dependency graph">\n<line cl...8" y="23">erdos-402</text><circle class="halo" cx="102" cy="18" r="3"/><title>erdos-402: ready</title></g></a>\n</svg>')
+E        +    where <function search at 0x109ba4040> = re.search
+
+site/tests/test_finding_dag_layout.py:202: AssertionError
+___________________ test_a_label_drops_the_problems_own_name ___________________
+
+    def test_a_label_drops_the_problems_own_name() -> None:
+        nodes = [
+            {"node_id": "erdos-69", "status": "ready", "deps": ["erdos-69--h2-v2"]},
+            {"node_id": "erdos-69--h2-v2", "status": "ready", "deps": []},
+            {"node_id": "spec-2e765953", "status": "proved", "deps": ["erdos-69"]},
+        ]
+        out = dag.svg(
+            nodes, href={n["node_id"]: "/x/" for n in nodes}, root="erdos-69", prefix="erdos-69"
+        )
+        labels = set(re.findall(r'<text x="28"[^>]*>([^<]+)</text>', out))
+>       assert labels == {"erdos-69", "h2-v2", "spec-2e765953"}
+E       AssertionError: assert {'erdos-69', ...pec-2e765953'} == {'erdos-69', ...pec-2e765953'}
+E         
+E         Extra items in the left set:
+E         'erdos-69--h2-v2'
+E         Extra items in the right set:
+E         'h2-v2'
+E         Use -v to get more diff
+
+site/tests/test_finding_dag_layout.py:218: AssertionError
+___________________ test_the_problem_page_draws_short_labels ___________________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-101/test_the_problem_page_draws_sh0')
+
+    def test_the_problem_page_draws_short_labels(tmp_path: Path) -> None:
+        html = page(tmp_path)
+>       assert "drop the problem" in html  # the caption says so
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       assert 'drop the problem' in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...x/auto-render.min.js"></script><script src="/math.js"></script><script src="/problem.js"></script>\n</body>\n</html>\n'
+
+site/tests/test_finding_dag_layout.py:231: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-101/test_the_problem_page_draws_sh0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-101/test_the_problem_page_draws_sh0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:719 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-101/test_the_problem_page_draws_sh0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-101/test_the_problem_page_draws_sh0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+_________________ test_lines_to_a_superseded_statement_say_so __________________
+
+    def test_lines_to_a_superseded_statement_say_so() -> None:
+        nodes = [
+            {"node_id": "r", "status": "ready", "deps": ["h1", "h1-v2"]},
+            {"node_id": "h1", "status": "superseded", "deps": []},
+            {"node_id": "h1-v2", "status": "ready", "deps": []},
+        ]
+        out = dag.svg(nodes, href={n["node_id"]: "/x/" for n in nodes}, root="r")
+        edges = dict(
+            ((f, t), c)
+            for c, f, t in re.findall(r'<path class="([^"]+)" data-from="([^"]+)" data-to="([^"]+)"', out)
+        )
+>       assert "touches-superseded" in edges[("h1", "r")]
+                                       ^^^^^^^^^^^^^^^^^^
+E       KeyError: ('h1', 'r')
+
+site/tests/test_finding_dag_layout.py:248: KeyError
+______ test_the_page_offers_to_hide_superseded_statements_when_it_has_any ______
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-101/test_the_page_offers_to_hide_s0')
+
+    def test_the_page_offers_to_hide_superseded_statements_when_it_has_any(tmp_path: Path) -> None:
+        html = page(tmp_path, {"and-reassoc": "superseded"})
+>       assert re.search(r'<button type="button" class="chip dag-toggle" data-hide="superseded"', html)
+E       assert None
+E        +  where None = <function search at 0x109ba4040>('<button type="button" class="chip dag-toggle" data-hide="superseded"', '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...x/auto-render.min.js"></script><script src="/math.js"></script><script src="/problem.js"></script>\n</body>\n</html>\n')
+E        +    where <function search at 0x109ba4040> = re.search
+
+site/tests/test_finding_dag_layout.py:271: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-101/test_the_page_offers_to_hide_s0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-101/test_the_page_offers_to_hide_s0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:719 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-101/test_the_page_offers_to_hide_s0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-101/test_the_page_offers_to_hide_s0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+________ test_superseded_statements_are_faded_and_the_toggle_hides_them ________
+
+    def test_superseded_statements_are_faded_and_the_toggle_hides_them() -> None:
+        css = (STATIC / "site.css").read_text(encoding="utf-8")
+>       assert re.search(r"\.dag \.node\.status-superseded \{[^}]*opacity", css)
+E       AssertionError: assert None
+E        +  where None = <function search at 0x109ba4040>('\\.dag \\.node\\.status-superseded \\{[^}]*opacity', '/* Open Proof Network site (F04). One stylesheet, no external resources (R10).\n   F04-T12: the Nocturne dark theme o...}\ntable.actions td:first-child { color: var(--n100); }\ntable.actions code { color: var(--n400); font-size: 12px; }\n')
+E        +    where <function search at 0x109ba4040> = re.search
+
+site/tests/test_finding_dag_layout.py:277: AssertionError
+__________________ test_hovering_a_statement_lights_its_lines __________________
+
+    def test_hovering_a_statement_lights_its_lines() -> None:
+        js = (STATIC / "problem.js").read_text(encoding="utf-8")
+>       assert "mouseenter" in js and "focusin" in js and "hovering" in js
+E       assert ('mouseenter' in "// The problem page's statement graph (F04-T12): clicking a pill selects its statement panel and\n// records the choi... = fromHash();\n    if (h.proof !== null) { showProof(h.proof); }\n    if (h.node) { select(h.node); }\n  });\n})();\n")
+
+site/tests/test_finding_dag_layout.py:289: AssertionError
+______________________ test_the_key_names_the_solid_line _______________________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-101/test_the_key_names_the_solid_l0')
+
+    def test_the_key_names_the_solid_line(tmp_path: Path) -> None:
+>       word = render.GLOSSARY_BY_KEY["depends-on"][0]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'depends-on'
+
+site/tests/test_finding_dag_layout.py:305: KeyError
+_______ test_the_key_names_a_used_lemma_even_before_a_proof_is_selected ________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-101/test_the_key_names_a_used_lemm0')
+
+    def test_the_key_names_a_used_lemma_even_before_a_proof_is_selected(tmp_path: Path) -> None:
+        root = fixture.build(tmp_path)
+        site = model.load_site(root, fixture.COMMIT)
+        tv = site.targets["propositional"]
+        nodes = [
+            {**n, "uses": ["tutorial-and-swap"]} if n["node_id"] == "and-swap-reassoc" else n
+            for n in tv.graph["nodes"]
+        ]
+        tv = dataclasses.replace(tv, graph={**tv.graph, "nodes": nodes, "target_proofs": []})
+>       assert "use" in render.Renderer.proof_legend(tv)
+E       AssertionError: assert 'use' in ('outline',)
+E        +  where ('outline',) = <function Renderer.proof_legend at 0x10bcfac00>(TargetView(target_id='propositional', graph={'nodes': [{'cause': None, 'decompositions': [], 'defect_claims': [], 'dep...im=None, circular_below=())}, approaches=(), note=None, record=None, drift=(), evidence=None, writeups=(), outlines={}))
+E        +    where <function Renderer.proof_legend at 0x10bcfac00> = <class 'opn_site.render.Renderer'>.proof_legend
+E        +      where <class 'opn_site.render.Renderer'> = render.Renderer
+
+site/tests/test_finding_dag_layout.py:318: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-101/test_the_key_names_a_used_lemm0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-101/test_the_key_names_a_used_lemm0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:719 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-101/test_the_key_names_a_used_lemm0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-101/test_the_key_names_a_used_lemm0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+___________ test_a_line_off_the_selected_proof_is_dimmed_not_dashed ____________
+
+    def test_a_line_off_the_selected_proof_is_dimmed_not_dashed() -> None:
+        """Dashes mean a used lemma; a line the selected proof does not need is only dimmed."""
+        css = (STATIC / "site.css").read_text(encoding="utf-8")
+        rule = re.search(r"^\.dag \.edge\.off-proof \{[^}]*\}", css, re.M)
+>       assert rule is None or "dasharray" not in rule.group(0)
+E       AssertionError: assert (<re.Match object; span=(19131, 19178), match='.dag .edge.off-proof { stroke-dasharray: 3 4; }'> is None or 'dasharray' not in '.dag .edge....rray: 3 4; }'
+E         
+E         'dasharray' is contained here:
+E           .dag .edge.off-proof { stroke-dasharray: 3 4; }
+E         ?                               +++++++++)
+
+site/tests/test_finding_dag_layout.py:325: AssertionError
+=========================== short test summary info ============================
+FAILED site/tests/test_finding_dag_layout.py::test_no_two_lines_cross_on_the_live_shapes[erdos-1050]
+FAILED site/tests/test_finding_dag_layout.py::test_no_two_lines_cross_on_the_live_shapes[erdos-402]
+FAILED site/tests/test_finding_dag_layout.py::test_no_two_lines_cross_on_the_live_shapes[erdos-69]
+FAILED site/tests/test_finding_dag_layout.py::test_no_two_lines_cross_on_the_live_shapes[euclid-primes]
+FAILED site/tests/test_finding_dag_layout.py::test_no_line_runs_behind_a_statement_it_does_not_join[erdos-1050]
+FAILED site/tests/test_finding_dag_layout.py::test_no_line_runs_behind_a_statement_it_does_not_join[erdos-402]
+FAILED site/tests/test_finding_dag_layout.py::test_no_line_runs_behind_a_statement_it_does_not_join[erdos-69]
+FAILED site/tests/test_finding_dag_layout.py::test_no_line_runs_behind_a_statement_it_does_not_join[euclid-primes]
+FAILED site/tests/test_finding_dag_layout.py::test_lines_run_more_nearly_upright_than_under_lexical_order[erdos-1050]
+FAILED site/tests/test_finding_dag_layout.py::test_lines_run_more_nearly_upright_than_under_lexical_order[erdos-402]
+FAILED site/tests/test_finding_dag_layout.py::test_lines_run_more_nearly_upright_than_under_lexical_order[erdos-69]
+FAILED site/tests/test_finding_dag_layout.py::test_lines_run_more_nearly_upright_than_under_lexical_order[euclid-primes]
+FAILED site/tests/test_finding_dag_layout.py::test_the_layout_does_not_depend_on_input_order[erdos-1050]
+FAILED site/tests/test_finding_dag_layout.py::test_the_layout_does_not_depend_on_input_order[erdos-402]
+FAILED site/tests/test_finding_dag_layout.py::test_the_layout_does_not_depend_on_input_order[erdos-69]
+FAILED site/tests/test_finding_dag_layout.py::test_statements_joined_to_nothing_are_drawn_apart_below_the_tree
+FAILED site/tests/test_finding_dag_layout.py::test_the_apart_group_is_labelled_in_the_drawing
+FAILED site/tests/test_finding_dag_layout.py::test_a_label_drops_the_problems_own_name
+FAILED site/tests/test_finding_dag_layout.py::test_the_problem_page_draws_short_labels
+FAILED site/tests/test_finding_dag_layout.py::test_lines_to_a_superseded_statement_say_so
+FAILED site/tests/test_finding_dag_layout.py::test_the_page_offers_to_hide_superseded_statements_when_it_has_any
+FAILED site/tests/test_finding_dag_layout.py::test_superseded_statements_are_faded_and_the_toggle_hides_them
+FAILED site/tests/test_finding_dag_layout.py::test_hovering_a_statement_lights_its_lines
+FAILED site/tests/test_finding_dag_layout.py::test_the_key_names_the_solid_line
+FAILED site/tests/test_finding_dag_layout.py::test_the_key_names_a_used_lemma_even_before_a_proof_is_selected
+FAILED site/tests/test_finding_dag_layout.py::test_a_line_off_the_selected_proof_is_dimmed_not_dashed
+26 failed, 16 passed in 8.28s

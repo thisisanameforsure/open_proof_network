@@ -79,6 +79,47 @@
     });
   });
 
+  // F04-T33: hovering or focusing a statement lights its lines and the statements they join,
+  // and dims the rest of the drawing.
+  var edges = Array.prototype.slice.call(svg.querySelectorAll("path.edge"));
+  function light(id) {
+    var near = {};
+    near[id] = true;
+    edges.forEach(function (e) {
+      var from = e.getAttribute("data-from"), to = e.getAttribute("data-to");
+      var on = from === id || to === id;
+      e.classList.toggle("lit", on);
+      if (on) { near[from] = true; near[to] = true; }
+    });
+    pills.forEach(function (g) { g.classList.toggle("lit", !!near[g.getAttribute("data-node")]); });
+    svg.classList.add("hovering");
+  }
+  function unlight() {
+    svg.classList.remove("hovering");
+    edges.forEach(function (e) { e.classList.remove("lit"); });
+    pills.forEach(function (g) { g.classList.remove("lit"); });
+  }
+  pills.forEach(function (g) {
+    var link = g.parentNode;
+    link.addEventListener("mouseenter", function () { light(g.getAttribute("data-node")); });
+    link.addEventListener("mouseleave", unlight);
+    link.addEventListener("focusin", function () { light(g.getAttribute("data-node")); });
+    link.addEventListener("focusout", unlight);
+  });
+  // F04-T33: superseded statements are faded; the toggle (rendered hidden, shown here because
+  // it needs this script) hides them and their lines.
+  var toggle = document.querySelector("button.dag-toggle[data-hide]");
+  if (toggle) {
+    var shown = toggle.textContent;
+    var hiddenWords = toggle.getAttribute("data-shown-label");
+    toggle.hidden = false;
+    toggle.addEventListener("click", function () {
+      var on = svg.classList.toggle("hide-superseded");
+      toggle.setAttribute("aria-pressed", on ? "true" : "false");
+      toggle.textContent = on ? hiddenWords : shown;
+    });
+  }
+
   var initial = fromHash();
   if (initial.proof !== null) { showProof(initial.proof); }
   if (!select(initial.node || panels[0].getAttribute("data-node"))) {

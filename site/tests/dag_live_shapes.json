@@ -1,0 +1,764 @@
+{
+ "graph_commit": "6d1b2bf84",
+ "note": "F04-T33: the four live targets whose drawings crossed, trimmed to the fields the drawing reads. Regenerate with git show <commit>:targets/<t>/graph.json.",
+ "targets": {
+  "erdos-69": {
+   "root": "erdos-69",
+   "nodes": [
+    {
+     "node_id": "erdos-69",
+     "status": "ready",
+     "deps": [
+      "erdos-69--h1-v2",
+      "erdos-69--h2-v2"
+     ],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-69--h1",
+     "status": "superseded",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-69--h1-v2",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-69--h2",
+     "status": "superseded",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-69--h2-v2",
+     "status": "ready",
+     "deps": [
+      "erdos-69--h2-v2--h1-v2"
+     ],
+     "uses": [],
+     "proposed_for": null,
+     "cause": "circular"
+    },
+    {
+     "node_id": "erdos-69--h2-v2--h1",
+     "status": "superseded",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-69--h2-v2--h1-v2",
+     "status": "ready",
+     "deps": [
+      "erdos-69--h2-v2--h1-v2--h1",
+      "erdos-69--h2-v2--h1-v2--h2",
+      "erdos-69--h2-v2--h1-v2--h3",
+      "erdos-69--h2-v2--h1-v2--h4"
+     ],
+     "uses": [],
+     "proposed_for": null,
+     "cause": "circular"
+    },
+    {
+     "node_id": "erdos-69--h2-v2--h1-v2--h1",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-69--h2-v2--h1-v2--h2",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-69--h2-v2--h1-v2--h3",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-69--h2-v2--h1-v2--h4",
+     "status": "ready",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": "circular"
+    },
+    {
+     "node_id": "spec-13f68833",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": "erdos-69--h2-v2",
+     "cause": null
+    },
+    {
+     "node_id": "spec-2e765953",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": "erdos-69--h1-v2",
+     "cause": null
+    },
+    {
+     "node_id": "spec-7d098d5c",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": "erdos-69",
+     "cause": null
+    },
+    {
+     "node_id": "spec-7f0efe19",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": "erdos-69",
+     "cause": null
+    },
+    {
+     "node_id": "spec-84446025",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": "erdos-69",
+     "cause": null
+    },
+    {
+     "node_id": "spec-9f8cb4ea",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": "erdos-69",
+     "cause": null
+    },
+    {
+     "node_id": "spec-c390279b",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": "erdos-69",
+     "cause": null
+    },
+    {
+     "node_id": "spec-e0b917d1",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": "erdos-69",
+     "cause": null
+    },
+    {
+     "node_id": "variant-09e95e7a",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-14c6c771",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-3a1bcb9a",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-f592e3ab",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    }
+   ]
+  },
+  "erdos-402": {
+   "root": "erdos-402",
+   "nodes": [
+    {
+     "node_id": "erdos-402",
+     "status": "ready",
+     "deps": [
+      "erdos-402--h1",
+      "erdos-402--h2-v2",
+      "erdos-402--h3-v2"
+     ],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-402--h1",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-402--h2",
+     "status": "superseded",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-402--h2-v2",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-402--h3",
+     "status": "superseded",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-402--h3-v2",
+     "status": "ready",
+     "deps": [
+      "erdos-402--h3-v2--h1"
+     ],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-402--h3-v2--h1",
+     "status": "ready",
+     "deps": [
+      "erdos-402--h3-v2--h1--h1"
+     ],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-402--h3-v2--h1--h1",
+     "status": "ready",
+     "deps": [
+      "erdos-402--h3-v2--h1--h1--h1"
+     ],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-402--h3-v2--h1--h1--h1",
+     "status": "ready",
+     "deps": [
+      "erdos-402--h3-v2--h1--h1--h1--h1",
+      "erdos-402--h3-v2--h1--h1--h1--h2"
+     ],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-402--h3-v2--h1--h1--h1--h1",
+     "status": "ready",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-402--h3-v2--h1--h1--h1--h2",
+     "status": "ready",
+     "deps": [
+      "erdos-402--h3-v2--h1--h1--h1--h2--h1",
+      "erdos-402--h3-v2--h1--h1--h1--h2--h2",
+      "erdos-402--h3-v2--h1--h1--h1--h2--h3"
+     ],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-402--h3-v2--h1--h1--h1--h2--h1",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-402--h3-v2--h1--h1--h1--h2--h2",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-402--h3-v2--h1--h1--h1--h2--h3",
+     "status": "ready",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "spec-48bd0126",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": "erdos-402",
+     "cause": null
+    },
+    {
+     "node_id": "spec-fa8046e4",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": "erdos-402",
+     "cause": null
+    },
+    {
+     "node_id": "variant-11152e83",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-29101bbc",
+     "status": "proved",
+     "deps": [
+      "spec-fa8046e4"
+     ],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-3377fd96",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-4ad214d0",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-64035064",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-6bb50ad7",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-6bd06d63",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-77918742",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-780e7ade",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-7a4bb0cd",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-892f5809",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-950630b9",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-9724698e",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-a3b3cb8f",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-a5969ff3",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-a874fe93",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-b89de5c4",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-bc28297c",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-d865c9c6",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-e6d83e6d",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    }
+   ]
+  },
+  "erdos-1050": {
+   "root": "erdos-1050",
+   "nodes": [
+    {
+     "node_id": "erdos-1050",
+     "status": "proved",
+     "deps": [
+      "erdos-1050--h1-v2"
+     ],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-1050--h1",
+     "status": "superseded",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-1050--h1-v2",
+     "status": "proved",
+     "deps": [
+      "erdos-1050--h1-v2--h1",
+      "erdos-1050--h1-v2--h2",
+      "erdos-1050--h1-v2--h3",
+      "erdos-1050--h1-v2--h4"
+     ],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-1050--h1-v2--h1",
+     "status": "ready",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": "circular"
+    },
+    {
+     "node_id": "erdos-1050--h1-v2--h2",
+     "status": "proved",
+     "deps": [
+      "erdos-1050--h1-v2--h2--h1"
+     ],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-1050--h1-v2--h2--h1",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-1050--h1-v2--h3",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "erdos-1050--h1-v2--h4",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "spec-180d8b72",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": "erdos-1050--h1-v2--h4",
+     "cause": null
+    },
+    {
+     "node_id": "spec-1a5ab7c3",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": "erdos-1050--h1-v2--h3",
+     "cause": null
+    },
+    {
+     "node_id": "spec-440db0f9",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": "erdos-1050--h1-v2--h3",
+     "cause": null
+    },
+    {
+     "node_id": "spec-eb1219eb",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": "erdos-1050--h1-v2--h3",
+     "cause": null
+    },
+    {
+     "node_id": "spec-f2b55478",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": "erdos-1050--h1-v2",
+     "cause": null
+    },
+    {
+     "node_id": "spec-ffd3137a",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": "erdos-1050--h1-v2--h3",
+     "cause": null
+    }
+   ]
+  },
+  "euclid-primes": {
+   "root": "infinitude-of-primes",
+   "nodes": [
+    {
+     "node_id": "infinitude-of-primes",
+     "status": "proved",
+     "deps": [
+      "infinitude-of-primes--h1",
+      "infinitude-of-primes--h2",
+      "infinitude-of-primes--h3",
+      "infinitude-of-primes--h4"
+     ],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "infinitude-of-primes--h1",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "infinitude-of-primes--h2",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "infinitude-of-primes--h3",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "infinitude-of-primes--h4",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-2a7919a9",
+     "status": "proved",
+     "deps": [
+      "variant-2a7919a9--h1",
+      "variant-2a7919a9--h2"
+     ],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-2a7919a9--h1",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-2a7919a9--h2",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-4cb87a03",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-6e71b160",
+     "status": "abandoned",
+     "deps": [
+      "infinitude-of-primes"
+     ],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-aceabdc4",
+     "status": "proved",
+     "deps": [
+      "infinitude-of-primes"
+     ],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-dea95969",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    },
+    {
+     "node_id": "variant-f15ce396",
+     "status": "proved",
+     "deps": [],
+     "uses": [],
+     "proposed_for": null,
+     "cause": null
+    }
+   ]
+  }
+ }
+}

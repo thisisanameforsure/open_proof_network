@@ -18,6 +18,7 @@ from opn_gate.toolchain import (
     HazardsRequest,
     MeaningRequest,
     MetaprogramResult,
+    OutlineRequest,
     RelationRequest,
     ReplayResult,
     ResolvedToolchain,
@@ -171,6 +172,19 @@ def meaning_result(
     )
 
 
+def outline_result(
+    steps: list[dict[str, object]],
+    constants: dict[str, dict[str, object]] | None = None,
+    *,
+    decl: str = "OpnProp.and_swap",
+) -> MetaprogramResult:
+    """A structured ``opn-outline`` result (F19-R1), in the shape the real seam parses."""
+    return MetaprogramResult(
+        ok=True,
+        doc={"ok": True, "decl": decl, "steps": steps, "constants": constants or {}},
+    )
+
+
 def metaprogram_garbage(
     exit_code: int = 1, output: str = "Segmentation fault\n"
 ) -> MetaprogramResult:
@@ -198,6 +212,9 @@ class FakeToolchain:
     artifact: MetaprogramResult = field(default_factory=artifact_result)
     relation: MetaprogramResult = field(default_factory=relation_result)
     meaning: MetaprogramResult = field(default_factory=meaning_result)
+    #: F19: what ``opn-outline`` answers; every request is kept in ``outline_requests``.
+    outline_doc: MetaprogramResult = field(default_factory=lambda: outline_result([]))
+    outline_requests: list[OutlineRequest] = field(default_factory=list)
     missing: bool = False
     raise_on: str | None = None  # name of the method that should raise an unexpected error
     calls: list[str] = field(default_factory=list)
@@ -352,6 +369,19 @@ class FakeToolchain:
         self.calls.append(f"statement_meaning:{req.artifact_module}:{req.artifact_decl}")
         self._maybe_raise("statement_meaning")
         return self.meaning
+
+    def outline(
+        self,
+        tc: ResolvedToolchain,
+        req: OutlineRequest,
+        search_path: Sequence[Path],
+        *,
+        timeout_s: float | None = None,
+    ) -> MetaprogramResult:
+        self.calls.append(f"outline:{req.module}:{req.decl}")
+        self.outline_requests.append(req)
+        self._maybe_raise("outline")
+        return self.outline_doc
 
 
 # --- the Model seam (F12-R6, R7) -----------------------------------------------------------------

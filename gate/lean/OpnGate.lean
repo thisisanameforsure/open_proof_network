@@ -4,6 +4,7 @@ import OpnGate.WitnessType
 import OpnGate.ArtifactType
 import OpnGate.Holes
 import OpnGate.UsedConstants
+import OpnGate.Outline
 import OpnGate.Hazards
 import OpnGate.Hazards.NatSub
 import OpnGate.Hazards.DivZero

@@ -52,6 +52,20 @@ Variables (prefix ``OPN_``):
 ``OPN_QA_SUBJECT_BUDGET_S``
     The budget of one ``qa screen`` run over one subject, in seconds; attempts that would start
     past it are recorded ``inconclusive`` rather than skipped (F12-R3, §6). Default ``300``.
+``OPN_OUTLINE_TIMEOUT_S``
+    The wall-clock cap of one ``opn-outline`` run, in seconds (F19 §6). An exceeded cap is a
+    named reason in the job's report and no outline, never a failed gate (F19-R5). Default
+    ``300``; provisional until T1's Mathlib measurement (F19-Q2).
+``OPN_OUTLINE_TEXT_CAP``
+    The longest claim, goal target or hypothesis type an outline stores, in characters; a longer
+    one keeps its prefix and is marked ``truncated`` (F19 §6). Default ``2000``.
+``OPN_OUTLINE_DOC_CAP``
+    The longest docstring sentence an outline stores for a library constant, in characters
+    (F19 §6). Default ``300``.
+``OPN_OUTLINE_AUTOMATION``
+    Comma-separated tactic names: a step is closed by ``automation`` when every tactic of its
+    closing block is on this list (F19-Q5). Default ``omega,simp,norm_num,ring,linarith,
+    nlinarith,positivity,decide,field_simp,aesop``.
 ``OPN_MODEL``
     The model the QA brief and back-translation ask (F12-R6, R7, Q5): a Messages API model id
     whose leading letters name its family for R7's independence rule. Default ``claude-opus-5``.
@@ -82,6 +96,7 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
@@ -102,6 +117,22 @@ DEFAULT_QA_SUBJECT_BUDGET_S = 300.0  # F12 §6: per subject per run
 DEFAULT_MODEL = "claude-opus-5"  # F12-Q5: recorded on every brief row, swapped by config
 #: F14-R5, Q4: the catalog score at which a root's recorded evidence stands in for step 9 ("B+").
 DEFAULT_STEP9_MIN_SCORE = 5
+DEFAULT_OUTLINE_TIMEOUT_S = 300.0  # F19 §6, provisional until the Mathlib measurement (F19-Q2)
+DEFAULT_OUTLINE_TEXT_CAP = 2000  # F19 §6: claim and goal text
+DEFAULT_OUTLINE_DOC_CAP = 300  # F19 §6: a docstring's first sentence
+#: F19-Q5: "routine" is a list, in config.
+DEFAULT_OUTLINE_AUTOMATION: tuple[str, ...] = (
+    "omega",
+    "simp",
+    "norm_num",
+    "ring",
+    "linarith",
+    "nlinarith",
+    "positivity",
+    "decide",
+    "field_simp",
+    "aesop",
+)
 DEFAULT_DRAFTER_MAX_SUBJECTS = 20  # F20 §6
 DEFAULT_DRAFTER_TOKEN_BUDGET = 500_000  # F20 §6
 DEFAULT_DRAFTER_NAME = "opn-drafter"  # F20-Q6
@@ -132,6 +163,10 @@ class Settings:
     qa_attempt_budget_s: float = DEFAULT_QA_ATTEMPT_BUDGET_S
     qa_subject_budget_s: float = DEFAULT_QA_SUBJECT_BUDGET_S
     model: str = DEFAULT_MODEL
+    outline_timeout_s: float = DEFAULT_OUTLINE_TIMEOUT_S
+    outline_text_cap: int = DEFAULT_OUTLINE_TEXT_CAP
+    outline_doc_cap: int = DEFAULT_OUTLINE_DOC_CAP
+    outline_automation: tuple[str, ...] = DEFAULT_OUTLINE_AUTOMATION
     drafter_max_subjects: int = DEFAULT_DRAFTER_MAX_SUBJECTS
     drafter_token_budget: int = DEFAULT_DRAFTER_TOKEN_BUDGET
     drafter_name: str = DEFAULT_DRAFTER_NAME
@@ -153,6 +188,10 @@ class Settings:
             f"listed_targets_max={self.listed_targets_max}, "
             f"qa_attempt_budget_s={self.qa_attempt_budget_s}, "
             f"qa_subject_budget_s={self.qa_subject_budget_s}, model={self.model!r}, "
+            f"outline_timeout_s={self.outline_timeout_s}, "
+            f"outline_text_cap={self.outline_text_cap}, "
+            f"outline_doc_cap={self.outline_doc_cap}, "
+            f"outline_automation={self.outline_automation!r}, "
             f"model_api_key={'<set>' if self.model_api_key else None}, "
             f"drafter_max_subjects={self.drafter_max_subjects}, "
             f"drafter_token_budget={self.drafter_token_budget}, "
@@ -164,6 +203,34 @@ class Settings:
             f"gate_signing_key={'<set>' if self.gate_signing_key else None}, "
             f"precheck_signing_key={'<set>' if self.precheck_signing_key else None})"
         )
+
+
+def _outline_settings(env: Mapping[str, str]) -> tuple[int, int, tuple[str, ...]]:
+    """F19 §6 and Q5: the outline's text cap, docstring cap and automation list."""
+    caps: dict[str, int] = {}
+    for name, cap_default in (
+        ("OPN_OUTLINE_TEXT_CAP", DEFAULT_OUTLINE_TEXT_CAP),
+        ("OPN_OUTLINE_DOC_CAP", DEFAULT_OUTLINE_DOC_CAP),
+    ):
+        raw_cap = env.get(name, str(cap_default))
+        try:
+            caps[name] = int(raw_cap)
+        except ValueError as exc:
+            msg = f"{name} must be an integer number of characters, got {raw_cap!r}"
+            raise ConfigError(msg) from exc
+        if caps[name] <= 0:
+            msg = f"{name} must be positive, got {caps[name]}"
+            raise ConfigError(msg)
+    raw_auto = env.get("OPN_OUTLINE_AUTOMATION")
+    automation = (
+        DEFAULT_OUTLINE_AUTOMATION
+        if raw_auto is None
+        else tuple(dict.fromkeys(t.strip() for t in raw_auto.split(",") if t.strip()))
+    )
+    if any(not t.replace("_", "").replace("?", "").isalnum() for t in automation):
+        msg = f"OPN_OUTLINE_AUTOMATION must be comma-separated tactic names, got {raw_auto!r}"
+        raise ConfigError(msg)
+    return caps["OPN_OUTLINE_TEXT_CAP"], caps["OPN_OUTLINE_DOC_CAP"], automation
 
 
 def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0912, PLR0915 — one per setting
@@ -215,6 +282,7 @@ def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0912, P
     for name, default in (
         ("OPN_QA_ATTEMPT_BUDGET_S", DEFAULT_QA_ATTEMPT_BUDGET_S),
         ("OPN_QA_SUBJECT_BUDGET_S", DEFAULT_QA_SUBJECT_BUDGET_S),
+        ("OPN_OUTLINE_TIMEOUT_S", DEFAULT_OUTLINE_TIMEOUT_S),
     ):
         raw_budget = env.get(name, str(default))
         try:
@@ -226,6 +294,7 @@ def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0912, P
             msg = f"{name} must be a positive number of seconds, got {raw_budget!r}"
             raise ConfigError(msg)
 
+    outline_text_cap, outline_doc_cap, outline_automation = _outline_settings(env)
     drafter_caps: dict[str, int] = {}
     for name, cap_default in (
         ("OPN_DRAFTER_MAX_SUBJECTS", DEFAULT_DRAFTER_MAX_SUBJECTS),
@@ -259,6 +328,10 @@ def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0912, P
         qa_attempt_budget_s=budgets["OPN_QA_ATTEMPT_BUDGET_S"],
         qa_subject_budget_s=budgets["OPN_QA_SUBJECT_BUDGET_S"],
         model=env.get("OPN_MODEL") or DEFAULT_MODEL,
+        outline_timeout_s=budgets["OPN_OUTLINE_TIMEOUT_S"],
+        outline_text_cap=outline_text_cap,
+        outline_doc_cap=outline_doc_cap,
+        outline_automation=outline_automation,
         drafter_max_subjects=drafter_caps["OPN_DRAFTER_MAX_SUBJECTS"],
         drafter_token_budget=drafter_caps["OPN_DRAFTER_TOKEN_BUDGET"],
         drafter_name=env.get("OPN_DRAFTER_NAME", "").strip() or DEFAULT_DRAFTER_NAME,

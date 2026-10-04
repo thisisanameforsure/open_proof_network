@@ -235,7 +235,7 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .dag { display: block; max-width: 100%; height: auto; margin: 0 auto; }
 .dag rect { fill: var(--bg); stroke: var(--divider); stroke-width: 1; }
 .dag text { fill: var(--text); font-family: var(--mono); font-size: 13px; }
-.dag .edge { stroke: var(--n700); stroke-width: 1.5; }
+.dag .edge { stroke: var(--n700); stroke-width: 1.5; fill: none; transition: opacity .12s; }
 .dag circle { fill: none; stroke: var(--n600); stroke-width: 1.5; }
 .dag .status-proved circle { fill: var(--accent); stroke: var(--accent); }
 .dag .status-ready circle, .dag .status-speculative circle { stroke: var(--accent); }
@@ -260,7 +260,6 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .dag .off-proof { opacity: .32; }
 .dag .node.on-proof rect { stroke: var(--accent); stroke-width: 1.5; }
 .dag .edge.on-proof { stroke: var(--accent); stroke-width: 2; }
-.dag .edge.off-proof { stroke-dasharray: 3 4; }
 .dag .edge.use { stroke-dasharray: 7 4; }
 .dag .outline-mark rect { fill: var(--bg); stroke: var(--accent-300); stroke-width: 1; }
 .dag .outline-mark text { fill: var(--accent-300); font-family: var(--sans, inherit); font-size: 10px; text-anchor: middle; }
@@ -270,6 +269,20 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .panel-outlines .untrusted-title { color: var(--n300); font-style: italic; }
 .dot-outline { border-radius: 3px; border-color: var(--accent-300); }
 .dag .edge.proposed { stroke: var(--accent-300); stroke-dasharray: 1.5 4; stroke-linecap: round; }
+/* F04-T33 (Q34): superseded statements faded, and hidden on request; hovering a statement
+   lights its lines and dims the rest; the group no line joins has a label and a rule. */
+.dag .node { transition: opacity .12s; }
+.dag .node.status-superseded { opacity: .5; }
+.dag.hide-superseded .status-superseded, .dag.hide-superseded .touches-superseded { display: none; }
+.dag.hovering .edge:not(.lit) { opacity: .12; }
+.dag.hovering .node:not(.lit) { opacity: .35; }
+.dag .edge.lit { stroke: var(--accent-300); stroke-width: 2; }
+.dag .dag-group { fill: var(--n400); font-family: var(--sans, inherit); font-size: 12px; text-anchor: middle; }
+.dag .dag-divider { stroke: var(--divider); stroke-dasharray: 2 4; }
+.dot-depends-on { width: 16px; height: 0; border: 0; border-top: 2px solid var(--n500); border-radius: 0; vertical-align: 3px; }
+.dag-toggle { font: inherit; font-size: 12px; color: var(--n300); background: var(--bg); border: 1px solid var(--divider); border-radius: 999px; padding: 2px 10px; cursor: pointer; }
+.dag-toggle:hover, .dag-toggle:focus-visible { border-color: var(--accent); }
+.dag-toggle[aria-pressed="true"] { border-color: var(--accent); color: var(--text); }
 .dag-caption { position: absolute; left: var(--s6); bottom: var(--s4); font-size: 11.5px; color: var(--n400); }
 .panels { display: flex; flex-direction: column; }
 .panel { gap: var(--s4); align-items: flex-start; }
@@ -541,3 +554,59 @@ table.actions { font-size: 13.5px; }
 table.actions td.who { white-space: nowrap; color: var(--n300); }
 table.actions td:first-child { color: var(--n100); }
 table.actions code { color: var(--n400); font-size: 12px; }
+
+/* — F20-T8: glosses beside the Lean, explainer versions, history and diffs (R13, R14) — */
+.gloss-slot { margin: var(--s2) 0 var(--s5); font-size: 14px; min-width: 0; }
+.gloss-slot > .cue { font-size: 13px; margin: var(--s2) 0; }
+.gloss, .informal-block { margin: var(--s2) 0; padding: var(--s1) var(--s5) var(--s2); border: 1px solid var(--divider); border-left: 3px solid var(--speculative); border-radius: var(--radius-sm); min-width: 0; }
+.informal-block { border-left-color: var(--accent); }
+.informal-block .informal { font-size: 15px; color: var(--n200); max-width: 72ch; margin: var(--s1) 0; }
+.gloss-prose { max-width: 72ch; color: var(--n200); line-height: 1.6; }
+.gloss-prose p { margin: var(--s1) 0 var(--s2); }
+.gloss-foot { font-size: 12.5px; color: var(--n500); margin: var(--s1) 0; overflow-wrap: anywhere; }
+details.history { margin: var(--s2) 0; font-size: 13px; color: var(--n300); min-width: 0; }
+details.history > summary, details.version-text > summary, details.diff > summary { cursor: pointer; color: var(--accent-300); padding: var(--s1) 0; }
+details.history > summary { min-height: 32px; display: list-item; }
+.chain-head { margin: var(--s3) 0 var(--s1); color: var(--n400); font-size: 12.5px; letter-spacing: 0.04em; text-transform: uppercase; }
+ol.versions { margin: var(--s1) 0 var(--s3); padding-left: 1.4em; }
+li.version { margin: var(--s2) 0; }
+.version-facts { margin: 0; overflow-wrap: anywhere; }
+.version-facts .withdrawn { color: var(--bad); font-weight: 500; }
+.version-facts .earlier { color: var(--warn); font-weight: 500; }
+details.version-text .prose { border-left: 1px solid var(--divider); padding-left: var(--s4); color: var(--n300); }
+details.version-text h4 { font-size: 14px; margin: var(--s3) 0 var(--s1); }
+details.diff { margin: var(--s2) 0; }
+pre.diff .diff-add { color: var(--accent-300); background: rgba(145, 132, 217, 0.14); }
+pre.diff .diff-del { color: var(--bad); background: rgba(224, 122, 122, 0.12); }
+pre.diff .diff-hunk { color: var(--n500); }
+.history-foot { margin: var(--s2) 0 0; font-size: 12.5px; color: var(--n500); }
+.deps { font-size: 14px; color: var(--n300); }
+.deps ul { margin: var(--s1) 0 var(--s3); padding-left: 1.2em; }
+.deps li { margin: var(--s1) 0; overflow-wrap: anywhere; }
+.deps .gloss-line { color: var(--n300); }
+.explainer-of { margin: var(--s5) 0 var(--s1); color: var(--n400); font-size: 13.5px; overflow-wrap: anywhere; }
+/* An anchored section: the outline steps it names beside its words; on a phone the steps first,
+   the words directly under them. */
+.ex-section { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr); gap: var(--s3) var(--s8); padding: var(--s3) 0; border-top: 1px solid var(--divider); }
+.ex-section:first-of-type { border-top: 0; }
+.ex-section[data-steps=""] { grid-template-columns: minmax(0, 1fr); }
+.ex-steps { font-size: 13px; color: var(--n400); min-width: 0; }
+.ex-steps ul { list-style: none; margin: var(--s1) 0 0; padding: 0; }
+.ex-steps li { margin: var(--s1) 0; overflow-wrap: anywhere; }
+.ex-prose { min-width: 0; max-width: 72ch; }
+.ex-prose h3 { font-size: 16px; margin: 0 0 var(--s2); }
+.ex-prose p { overflow-wrap: anywhere; }
+/* A statement row's words: its gloss's first sentence on a line of its own, under the id. */
+.stmt .gloss-line { grid-column: 2 / -1; margin-top: calc(var(--s3) * -1); color: var(--n400); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .ex-section { grid-template-columns: minmax(0, 1fr); }
+  .gloss, .informal-block { padding-left: var(--s4); padding-right: var(--s4); }
+}
+@media (max-width: 900px) {
+  .stmt { flex-wrap: wrap; }
+  .stmt .gloss-line { flex: 1 1 100%; order: 9; margin: calc(var(--s2) * -1) 0 var(--s1) calc(9px + var(--s3)); font-size: 12.5px; }
+}
+/* A version's file is named by its 64-character hash: let the path break, and let a prose diff
+   wrap rather than scroll (measured at 390px: the unbroken path pushed the page to 738px). */
+.explainer-version .label, .vouched { overflow-wrap: anywhere; }
+details.diff pre.diff { white-space: pre-wrap; overflow-wrap: anywhere; }
