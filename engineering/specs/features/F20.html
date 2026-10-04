@@ -49,6 +49,9 @@ target's root, from its curated <code>informal:</code> field.</p>
   <li>The <strong>drafter</strong>: a network workflow that drafts each new file's gloss when a merge
     creates it, and each proof's explainer from its outline, and opens them as ordinary pull requests
     attributed to the drafter and its model.</li>
+  <li><strong>The backfill</strong>: every Lean file already on the graph translated, checked by a
+    coverage report that names every file and its words or the reason they are missing (Q8,
+    R20&ndash;R21).</li>
 </ul>
 <p>Why a model writes drafts, and why only drafts: the research
 (<a href="../../../docs/reports/Lean%20proofs%20for%20mathematicians.md">docs/reports/Lean proofs for
@@ -108,12 +111,10 @@ and (vii) (F19-Q1) applied first, plus two credentials only the owner can create
     no grade (D-9).</li>
   <li><strong>A web editor or any input on the site</strong> (D-36). Editing goes through git or the
     service (D-28).</li>
-  <li><strong>Drafting the whole live graph in this feature.</strong> T10 measures cost on a sample, and
-    the backfill is the owner's call (Q8).</li>
   <li><strong>Checking prose for mathematical truth.</strong> Nothing reads a gloss or explainer for
     truth (D-3). Anchors say what a passage describes, never that it describes it correctly.</li>
-  <li><strong>Glosses of partial assemblies and annexes.</strong> A partial's content reaches the reader
-    as its holes, each a node with its own statement gloss; annexes are already prose.</li>
+  <li><strong>Glosses of annexes and postmortems</strong>, which are prose already. (A merged partial
+    assembly is Lean and is covered: it gets an explainer drafted from its outline, F19-R1.)</li>
 </ul>
 
 <h2>4. Requirements</h2>
@@ -132,7 +133,7 @@ the steward's tools; R13&ndash;R14 the site; R15&ndash;R18 the drafter; R19 cred
     by the path check alone, with no gate run.</td></tr>
   <tr><td>F20-R2</td><td>The system shall accept an <code>explainer/v1</code> file: Markdown with
     front matter naming the target, the node, the <code>proof</code> (the hash of the merged artifact
-    described, its <code>Proof.lean</code> or an alternate), <code>supersedes</code> (an explainer hash
+    described: its <code>Proof.lean</code>, an alternate, or a merged partial assembly), <code>supersedes</code> (an explainer hash
     or null), <code>author</code> (a login or pseudonym, null for a draft), <code>drafter</code> (null,
     or the drafter's name with the model, the model version and the gate commit of its input), the date
     and the licence. Its body shall be sections under level-2 headings; a section may name outline steps
@@ -204,12 +205,13 @@ the steward's tools; R13&ndash;R14 the site; R15&ndash;R18 the drafter; R19 cred
     For every gloss and explainer, the site shall link every earlier version with a diff to its
     predecessor, list withdrawn versions as withdrawn and never hide them, and give the guide's revision
     section as the way to improve the words.</td></tr>
-  <tr><td>F20-R15</td><td>The drafter shall draft a gloss of each statement, witness and relation of
-    every non-root node and of each definition module, when the merge that creates the file lands. It
+  <tr><td>F20-R15</td><td>The drafter shall draft a gloss of the statement of every non-root node,
+    of the witness and the relation (if any) of every node, roots included, and of each definition
+    module, when the merge that creates the file lands. It
     shall work from the file's text at its <code>lean_hash</code> and the current glosses of the files
     it imports, never inventing a name the file does not use. It shall say in words what the Lean says, including every
     hypothesis, and add nothing about why it is true. It shall draft an explainer of each merged proof
-    from its <code>outline/v1</code> (F19), never from the artifact's source text: conditioned on the
+    artifact (proof, alternate or partial assembly) from its <code>outline/v1</code> (F19), never from the artifact's source text: conditioned on the
     steps' claims and goals, summarised along the step tree, opening with the idea and the method (G),
     saying &ldquo;routine&rdquo; of every automation-closed step rather than inventing reasoning (D),
     and using a standard name only where the outline records it (E).</td></tr>
@@ -228,6 +230,20 @@ the steward's tools; R13&ndash;R14 the site; R15&ndash;R18 the drafter; R19 cred
   <tr><td>F20-R19</td><td>A draft shall earn no ledger line. A human version of a gloss or explainer
     shall earn on the write-up line (D-19), credited to its author alone; superseding a version earns
     its author none of that version's credit.</td></tr>
+  <tr><td>F20-R20</td><td>The system shall provide <code>opn-gate gloss coverage</code>, which lists,
+    for a graph at a named commit, every Lean file and merged proof artifact with its current gloss or
+    explainer, or the reason it has none. Coverage is complete when every non-root statement, every
+    witness, every relation and every definition module has a current gloss that describes its current
+    text, and every merged proof artifact has an explainer chain with a current version. A root's
+    statement is covered by its curated informal statement, and a <code>Context.lean</code> by the
+    glosses of the statements it restates; the report says so per file rather than leaving it
+    out.</td></tr>
+  <tr><td>F20-R21</td><td>The system shall translate every Lean file on the live graph at the time of
+    the backfill: the drafter run in batches under its caps until <code>coverage</code> reports
+    complete. A subject left undrafted for a cause (an outline missing, a draft failing its checks
+    twice, a provider error) shall be fixed and re-run, and the backfill is done only when no subject
+    is left, or when each one left is recorded as an open defect with its cause and the owner has read
+    the list (Q8).</td></tr>
 </table>
 
 <h2>5. Acceptance criteria</h2>
@@ -312,12 +328,23 @@ the steward's tools; R13&ndash;R14 the site; R15&ndash;R18 the drafter; R19 cred
     gloss and a drafted explainer through the service and signs both, then the pages show the signed
     revisions as current and the drafts in their history.</td>
     <td><code>engineering/evidence/F20/task-13-live.txt</code> (network tier)</td></tr>
+  <tr><td>F20-AC17</td><td>Given a fixture graph with a root, a hole, a variant, a definition module,
+    a proof, an alternate and a partial assembly, some with words and some without, and one gloss of a
+    since-changed witness, then <code>coverage</code> lists every file. The root is covered by its
+    informal statement, Context files by their dependencies, the stale gloss reports its file as
+    uncovered, and the report is complete exactly when every listed subject is covered.</td>
+    <td><code>gate/tests/test_gloss_coverage.py</code></td></tr>
+  <tr><td>F20-AC18</td><td>Given the live graph after the backfill, then <code>coverage</code> at
+    the backfill's final commit reports complete, or lists only open defects the owner has read; the
+    report is the evidence.</td>
+    <td><code>engineering/evidence/F20/task-15-coverage.txt</code> (network tier)</td></tr>
 </table>
 
 <h2>6. Budgets / limits</h2>
 <ul>
-  <li><strong>Drafting cost is unmeasured.</strong> T11 measures seven drafts, and nothing drafts in bulk
-    until the owner has read that cost (Q8). The per-run caps (<code>OPN_DRAFTER_MAX_SUBJECTS</code>,
+  <li><strong>Drafting cost is unmeasured.</strong> T11 measures seven drafts; from them the backfill's
+    batch size and total spend ceiling are set and the projected total is reported to the owner before
+    the first batch. The backfill itself is not optional (Q8). The per-run caps (<code>OPN_DRAFTER_MAX_SUBJECTS</code>,
     <code>OPN_DRAFTER_TOKEN_BUDGET</code>) default to 20 subjects and 500k tokens. A gloss is far
     smaller than an explainer: a statement is a few lines.</li>
   <li><strong>Glosses and explainers stay appends.</strong> They run no Lean, merge in the append lane,
@@ -392,11 +419,16 @@ the steward's tools; R13&ndash;R14 the site; R15&ndash;R18 the drafter; R19 cred
   <tr><td>F20-Q7</td><td><strong>Credentials are the owner's.</strong> The model key on the network
     repository and the drafter's token. Until they exist, the workflow dry-runs and keeps its report
     (the F12-Q16 shape), so a missing credential never reads as a passing run.</td></tr>
-  <tr><td>F20-Q8</td><td><strong>Bulk drafting is the owner's call on T11's numbers.</strong> About 250
-    subjects are live: roughly 114 statements less the roots, their witnesses, 23 relations, 3
-    definition modules and about 74 proofs. After T11 reports per-subject cost and the owner reads seven
-    drafts, he chooses among drafting everything, glosses everywhere with explainers on demand, or the
-    closures of resolved targets first. The workflow supports each through its named list.</td></tr>
+  <tr><td>F20-Q8</td><td><strong>The owner's ruling, 2026-10-04 (third): all the Lean currently in the
+    system is translated, &ldquo;whatever it takes&rdquo;.</strong> This replaces the earlier draft of this
+    entry, which left bulk drafting to his call on T11's numbers. The backfill is now a requirement
+    (R20, R21) and a task (T15). T11's numbers set its batch size and spend ceiling, not whether it runs.
+    The live inventory at 2026-10-04: 114 statements (26 roots, each with a curated informal
+    statement), 114 witnesses, 23 relations, 3 definition modules, 67 proofs, 7 alternates and 20
+    partial assemblies, so about 88 + 114 + 23 + 3 = 228 glosses and 94 explainers. Two things the
+    ruling cannot buy: drafts are still unverified until a steward signs them, and the backfill still
+    needs the two credentials (Q7). Anything merged after the backfill is covered by the dispatch
+    (R17), and <code>coverage</code> shows any gap.</td></tr>
   <tr><td>F20-Q9</td><td><strong>Dispatch, not a schedule.</strong> The post-merge job already holds
     the site dispatch token, which can start any network workflow (C8). The drafter is dispatched the
     same way, because a cron on GitHub Actions is a hope (2026-09-13).</td></tr>
@@ -423,7 +455,7 @@ the steward's tools; R13&ndash;R14 the site; R15&ndash;R18 the drafter; R19 cred
 
 <h2>10. Status</h2>
 <div class="rule"><strong>status:</strong> planned (2026-10-04; widened the same day to every Lean
-  file; waits on F19 and on v3.30's wording) · <strong>Tasks:</strong> T1&ndash;T13 todo</div>
+  file, and to a full backfill of the live graph; waits on F19 and on v3.30's wording) · <strong>Tasks:</strong> T1&ndash;T15 todo</div>
 
 <h2>Tasks</h2>
 <p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its
@@ -484,11 +516,22 @@ behaviour.</p>
     gloss or explainer, through the MCP and by hand; every new block run by the walkthrough.</td>
     <td><code>gate/agents/AGENTS.md</code>, <code>site/docs/</code></td>
     <td>T6, T7, T8</td><td><code>uv run pytest gate/tests/test_walkthrough.py site/tests</code></td></tr>
-  <tr><td>F20-T13</td><td><strong>Live.</strong> Re-pin, re-render, drafts on the set Q8 chose, one
+  <tr><td>F20-T13</td><td><strong>Live.</strong> Re-pin, re-render, the dispatch live on new merges, one
     steward revision and signature of a gloss and of an explainer end to end, screenshots.</td>
     <td><code>../open_proof_network_graph/targets/*/gate-spec.json</code>, products, glosses,
     explainers</td>
     <td>T1&ndash;T12</td><td><code>engineering/evidence/F20/task-13-live.txt</code></td></tr>
+  <tr><td>F20-T14</td><td>The coverage report (R20).</td>
+    <td><code>gate/opn_gate/{glosses,cli}.py</code>, <code>gate/tests/test_gloss_coverage.py</code></td>
+    <td>T4</td><td><code>uv run pytest gate/tests/test_gloss_coverage.py</code></td></tr>
+  <tr><td>F20-T15</td><td><strong>The backfill (R21, Q8).</strong> After F19-T10's outline backfill:
+    coverage at the start; the projected spend reported to the owner; the drafter run in batches over
+    every uncovered subject; each failure's cause fixed and re-run; coverage at the end. Every draft
+    lands through the append lane like any other.</td>
+    <td><code>engineering/evidence/F20/task-15-coverage.txt</code>, glosses and explainers on the
+    graph</td>
+    <td>T11, T13, T14, F19-T10</td><td><code>opn-gate gloss coverage</code> at the final commit,
+    complete or with only open defects the owner has read (AC18)</td></tr>
 </table>
 
 <footer>Open Proof Network · F20 spec v1 · 2026-10-04 · from the owner's rulings of 2026-10-04: a

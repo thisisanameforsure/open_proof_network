@@ -75,8 +75,8 @@ the live graph.</p>
   <li>Translating Lean into English mechanically (the Massot&ndash;Miller line). Its display model is
     emulated (an expandable tree of claims and goals); its code is unpublished and is not a dependency
     (Q7).</li>
-  <li>Outlines of partial assemblies and annexes: a partial's holes are already drawn by F18; an
-    outline of an assembly with <code>sorry</code> steps is a later question.</li>
+  <li>Outlines of annexes, which are prose already. (Partial assemblies are in scope since the
+    owner's ruling that all the Lean in the system is translated, Q9.)</li>
   <li>The MCP tool surface: agents read outlines through F20's route and tools, where they need
     them to anchor explainers.</li>
   <li>A leanblueprint or Verso Blueprint export: cheap later, not needed by either requirement.</li>
@@ -87,16 +87,18 @@ the live graph.</p>
 requirements the owner adopted.</p>
 <table>
   <tr><th>ID</th><th>Requirement (EARS)</th></tr>
-  <tr><td>F19-R1</td><td>The system shall publish, for each merged complete proof of a node (its
-    <code>Proof.lean</code> and each alternate), an <code>outline/v1</code> document at
+  <tr><td>F19-R1</td><td>The system shall publish, for each merged proof artifact of a node (its
+    <code>Proof.lean</code>, each alternate, and each merged partial assembly), an
+    <code>outline/v1</code> document at
     <code>targets/&lt;id&gt;/outlines/&lt;artifact-hash&gt;.json</code> naming the node, the artifact's
     path and hash and the gate commit that extracted it, and its steps: each with an id, a kind
     (<code>have</code>, <code>obtain</code>, <code>suffices</code>, <code>show</code>,
     <code>calc</code> step, case branch, or <code>term</code> for a term-mode proof), the name it
     binds if any, the claim it establishes, the goal it leaves, its line span in the artifact, the
     constants it uses (graph nodes and definition modules apart from Mathlib), how it is closed
-    (<code>automation</code> with the tactic names, <code>steps</code>, or <code>term</code>) and
-    its child steps.</td></tr>
+    (<code>automation</code> with the tactic names, <code>steps</code>, <code>term</code>, or
+    <code>hole</code> for a partial's <code>sorry</code> step, naming the child node F18's
+    decompositions give it) and its child steps.</td></tr>
   <tr><td>F19-R2</td><td>A step's id shall be a function of the artifact's bytes alone: the name it
     binds where that name is unique among its siblings, else <code>s&lt;n&gt;</code> by source order,
     dotted for children; the same artifact shall always yield the same ids.</td></tr>
@@ -118,7 +120,9 @@ requirements the owner adopted.</p>
     person acting.</td></tr>
   <tr><td>F19-R7</td><td>The system shall provide a dispatched workflow that extracts the outlines of
     merges made before <code>outline/v1</code>, in the pinned image, for a curator to commit, as
-    F18-T7 did for footprints.</td></tr>
+    F18-T7 did for footprints; run on the live graph, it shall cover every merged proof artifact
+    (67 proofs, 7 alternates and 20 partial assemblies at 2026-10-04), and any it cannot outline shall
+    be named with its reason and retried after the cause is fixed (Q9).</td></tr>
   <tr><td>F19-R8</td><td>For each <code>target_proofs</code> entry (F18-R1) the site shall render a
     reading view that leads with the root's informal statement, its Lean statement and its fidelity
     and QA state (requirement A), then lists the nodes of the proof's closure with dependencies before
@@ -174,6 +178,10 @@ requirements the owner adopted.</p>
   <tr><td>F19-AC6</td><td>Given a term-mode proof, then its outline is one <code>term</code>
     step and the page says the proof is a single term.</td>
     <td><code>gate/tests/test_outline_lean.py::test_term_proof_is_one_step</code></td></tr>
+  <tr><td>F19-AC13</td><td>Given a merged two-hole partial assembly, then its outline marks each
+    <code>sorry</code> step <code>hole</code> with the child node's id, and the page links each to
+    its node.</td>
+    <td><code>gate/tests/test_outline_lean.py::test_partial_assembly_marks_holes</code></td></tr>
   <tr><td>F19-AC7</td><td>Given the erdos-1050 shape (root, <code>h1-v2</code>, <code>h3</code>),
     when the reading view renders, then the statement and QA state come first, then <code>h3</code>,
     <code>h1-v2</code>, root in that order, and the correspondence table has three rows with
@@ -195,7 +203,8 @@ requirements the owner adopted.</p>
     <code>scrollWidth</code> equals the viewport and every outline label fits its box (measured).</td>
     <td><code>engineering/evidence/F19/shoot.py</code> (screenshots and measurements)</td></tr>
   <tr><td>F19-AC12</td><td>Given the live graph after the re-pin, backfill and re-render, then every
-    merged complete proof has an outline or a named reason, and the euclid-primes and erdos-1050
+    merged proof artifact (proofs, alternates and partial assemblies) has an outline, and any named
+    reason left has been fixed and re-run or recorded as an open defect, and the euclid-primes and erdos-1050
     reading views are captured at 1440 and 390 px.</td>
     <td><code>engineering/evidence/F19/task-10-live.txt</code> (network tier)</td></tr>
 </table>
@@ -329,6 +338,12 @@ requirements the owner adopted.</p>
   <tr><td>F19-Q7</td><td><strong>Massot and Miller.</strong> Their <code>Explanation</code> and
     <code>GoalInfo</code> tree is the display model R9 follows. Approaching them is the owner's act,
     after the reading view ships so there is something to show (his decision (e)); no task here.</td></tr>
+  <tr><td>F19-Q9</td><td><strong>The owner's ruling, 2026-10-04: all the Lean currently in the
+    system is translated, whatever it takes.</strong> For F19 this means two things. Every merged proof
+    artifact is outlined, including the 20 partial assemblies first left out, whose <code>sorry</code>
+    steps become <code>hole</code> steps linked to their children. And the backfill is a requirement
+    with a count, not an option: a proof the extractor cannot outline is a defect to fix and re-run,
+    not a permanent gap, because F20 drafts each explainer from its outline.</td></tr>
   <tr><td>F19-Q8</td><td><strong>Hole nodes.</strong> A hole shows its Lean statement and, through
     F18's decompositions, the parent and the step it came from. Its words come from its statement's
     gloss (F20), an unverified record, and never from a new field that would look fidelity-checked
