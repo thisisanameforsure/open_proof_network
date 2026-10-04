@@ -1,0 +1,10 @@
+warning: `VIRTUAL_ENV=.venv` does not match the project environment path `/Users/mikehiggins/Desktop/repos/opn-f18/.venv` and will be ignored; use `--active` to target the active environment instead
+commit 4b2daae80473: F18-T8: footprint caches for every merge before attestation/v6, and the products re-rendered by the pinned gate
+frontier.json: 35 entries, rendered from 124b1d394054041c40a53ef7e9363266177c433b
+PROBLEM: commit message is not `gate: #<pr> <verdict>`: 'F18-T8: footprint caches for every merge before attestation/v6, and the products re-rendered by the pinned gate'
+PROBLEM: no attestation in the commit
+PROBLEM: targets/erdos-1050/graph.json differs from a fresh generation
+PROBLEM: targets/erdos-1050/nodes/erdos-1050/CONTEXT.json differs from a fresh generation
+PROBLEM: targets/index.json differs from a fresh generation
+PROBLEM: targets/erdos-1050/nodes/erdos-1050/META.yaml status is not stale
+{"commit": "4b2daae80473c7c8b2eca2b6df543561b3f249f7", "ok": false, "problems": ["commit message is not `gate: #<pr> <verdict>`: 'F18-T8: footprint caches for every merge before attestation/v6, and the products re-rendered by the pinned gate'", "no attestation in the commit", "targets/erdos-1050/graph.json differs from a fresh generation", "targets/erdos-1050/nodes/erdos-1050/CONTEXT.json differs from a fresh generation", "targets/index.json differs from a fresh generation", "targets/erdos-1050/nodes/erdos-1050/META.yaml status is not stale"]}
