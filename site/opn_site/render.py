@@ -239,6 +239,14 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "would prove the statement above.",
         "ready · cause circular · circular-decomposition claim (D-16, D-12)",
     ),
+    # F04-T33 (Q34): the solid line, which every drawing with a dependency shows.
+    (
+        "depends-on",
+        "depends on",
+        "A solid line runs up from a statement to one that declared it as a dependency: the "
+        "upper statement's proof may build on the lower one.",
+        "deps (META.yaml)",
+    ),
     # F18-T2: the marks a proof's drawing makes; the key shows them when the problem is proved.
     (
         "on-proof",
@@ -943,21 +951,39 @@ class Renderer:
         status a statement in this graph has, each a glossary hover card with its dot."""
         present = {self.node_state(nv) for nv in tv.nodes.values()}
         keys = (*LEGEND_BASE, *(k for k in (NEEDS_WITNESS, *LEGEND_EXTRA) if k in present))
-        return "".join(self.term(k, dot=True) for k in (*keys, *self.proof_legend(tv)))
+        return "".join(
+            self.term(k, dot=True) for k in (*keys, *self.proof_legend(tv))
+        ) + self.superseded_toggle(tv)
+
+    @staticmethod
+    def superseded_toggle(tv: TargetView) -> str:
+        """F04-T33: a button that hides the superseded statements and their lines. It needs the
+        page's script, so it is rendered hidden and the script shows it."""
+        n = sum(1 for nv in tv.nodes.values() if nv.status == "superseded")
+        if not n:
+            return ""
+        return (
+            '<button type="button" class="chip dag-toggle" data-hide="superseded" '
+            f'aria-pressed="false" data-shown-label="Show superseded ({n})" hidden>'
+            f"Hide superseded ({n})</button>"
+        )
 
     @staticmethod
     def proof_legend(tv: TargetView) -> tuple[str, ...]:
         """F18-T2, T6: the proof drawing's keys and the pointer's, each only when the drawing can
         show it."""
+        drawn = {kind for _src, _dst, kind in dag.lines(tv.graph["nodes"])}
+        # T33: the line kinds first, each when the drawing has one, proof or no proof.
+        line_keys = ("depends-on",) if "edge" in drawn else ()
+        if "edge use" in drawn:
+            line_keys = (*line_keys, "use")
         pointed = ("proposed-for",) if dag.pointers(tv.graph["nodes"]) else ()
         if any(nv.annexes for nv in tv.nodes.values()):
             pointed = ("outline", *pointed)
         proofs = target_proofs(tv)
         if not proofs:
-            return pointed
-        keys = ["on-proof", "not-needed", *pointed]
-        if any(n.get("uses") for n in tv.graph["nodes"]):
-            keys.append("use")
+            return (*line_keys, *pointed)
+        keys = [*line_keys, "on-proof", "not-needed", *pointed]
         if any(p.get("unmeasured") for p in proofs):
             keys.append("unmeasured")
         return tuple(keys)
@@ -1582,7 +1608,14 @@ class Renderer:
             for n in tv.graph["nodes"]
         ]
         outlines = {nid: len(nv.annexes) for nid, nv in tv.nodes.items() if nv.annexes}
-        svg = dag.svg(drawn, href=href, proofs=self.proof_marks(tv), outlines=outlines)
+        svg = dag.svg(
+            drawn,
+            href=href,
+            proofs=self.proof_marks(tv),
+            outlines=outlines,
+            root=tv.root,
+            prefix=tid,
+        )
         panels = "".join(self.statement_panel(tv, nv) for nv in self.ordered_nodes(tv))
         n = len(tv.nodes)
         if tv.approaches:

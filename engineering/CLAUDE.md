@@ -1222,3 +1222,16 @@ The law of the project:
   never a running run's. **Re-derive ids and the live pin at the start of execution, not at
   planning**: between the plan and the first commit another session had applied decisions v3.25
   and v3.26 and re-pinned the graph, so the amendment became v3.27 and the graph branch was rebased.
+
+- 2026-10-04 — The statement graph lost every crossing (F04-T33, Q34): lexical order and straight
+  lines had made 16 crossings and 22 lines behind pills on erdos-69, and the four live shapes that
+  crossed all draw with none once rows are ordered by median sweeps and long lines bend through
+  every row they pass. Three things worth keeping. **A metric I invented for a test measured the
+  wrong thing**: "sideways travel at most 60% of the old layout" rose under a layout the pictures
+  showed was better, because a root fanning out to seven statements costs the same distance in any
+  order; replace a proxy with the property the picture shows (here: one layer below what rests on
+  it, chains upright), and prove the replacement red against the old code. **Measure each version
+  with its own instruments**: the before/after table first sampled the old straight lines with the
+  new curve function and reported 21 crossings where there were 16. **A screenshot can undo the
+  state it was meant to show**: `locator.screenshot` scrolled the page, the pill left the pointer,
+  and hover measured zero lit lines; scroll first, then hover, then measure and capture.

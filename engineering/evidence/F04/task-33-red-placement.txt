@@ -1,0 +1,5 @@
+FAILED site/tests/test_finding_dag_layout.py::test_a_statement_sits_just_below_the_lowest_statement_that_rests_on_it[erdos-1050]
+FAILED site/tests/test_finding_dag_layout.py::test_a_statement_sits_just_below_the_lowest_statement_that_rests_on_it[erdos-402]
+FAILED site/tests/test_finding_dag_layout.py::test_a_statement_sits_just_below_the_lowest_statement_that_rests_on_it[erdos-69]
+FAILED site/tests/test_finding_dag_layout.py::test_a_chain_of_single_steps_stands_upright
+4 failed, 1 passed, 38 deselected in 0.29s

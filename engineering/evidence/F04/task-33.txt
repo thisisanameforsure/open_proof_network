@@ -1,0 +1,122 @@
+F04-T33 (Q34): the statement graph without crossings, plus the drawing ideas approved 2026-10-04.
+Branch f04-t33-dag-layout, worktree ../opn-f04-dag. Live graph at 6d1b2bf84 (origin/main), trimmed to site/tests/dag_live_shapes.json.
+
+== Red first ==
+With the seam in place (layout() and curve_points() at the T24 behaviour, no new names missing):
+26 failed, 16 passed in 8.28s
+Full output: task-33-red.txt. The two placement tests that replaced a sideways-travel proxy were run
+against the T24 layout separately (task-33-red-placement.txt): 4 failed, 1 passed (euclid-primes
+already satisfied 'one layer below the lowest statement resting on it').
+
+The proxy that was dropped: 'total sideways travel at most 60% of T24'. Measured, it rose under the
+new layout, because a root fanning out to seven statements costs the same sideways distance in any
+order. The screenshots showed the layout was right and the metric wrong, so it was replaced by the
+two properties the pictures show: a statement one layer below the lowest statement resting on it,
+and a chain of single steps standing upright.
+
+== Measured on the live shapes: T24 -> T33 ==
+(each layout's lines sampled with its own curve function: T24 straight, T33 curved)
+target                 crossings   line-behind-pill             size (w x h)
+erdos-1050            14 -> 0            10 -> 0          710x444 -> 752x490
+erdos-402              9 -> 0            21 -> 0         740x1070 -> 752x1162
+erdos-69              16 -> 0            22 -> 0          725x594 -> 752x622
+euclid-primes          2 -> 0             5 -> 0          748x402 -> 715x398
+
+== Green ==
+$ uv run --frozen pytest site/tests/test_finding_dag_layout.py -q
+45 passed in 3.95s
+$ uv run --frozen pytest site/tests -q
+414 passed in 72.22s (0:01:12)
+$ uv run --frozen ruff check site && uv run --frozen ruff format --check site && uv run --frozen mypy site
+All checks passed!
+58 files already formatted
+Success: no issues found in 58 source files
+
+== Pages: the live graph rendered locally (219 pages), driven in Chromium through Playwright ==
+Before = main at 8dc04a2's site code (git archive), after = this branch; both over the same graph checkout.
+Screenshots: task-33-{before,after}-<target>-{1440,390}.png, the graph card only.
+Interaction checks on /problems/erdos-69/ at 1440 (page scrollWidth vs innerWidth per capture first):
+{
+ "before erdos-69 1440": [
+  1440,
+  1440
+ ],
+ "after erdos-69 1440": [
+  1440,
+  1440
+ ],
+ "before erdos-402 1440": [
+  1440,
+  1440
+ ],
+ "after erdos-402 1440": [
+  1440,
+  1440
+ ],
+ "after erdos-1050 1440": [
+  1440,
+  1440
+ ],
+ "after euclid-primes 1440": [
+  1440,
+  1440
+ ],
+ "after tutorial 1440": [
+  1440,
+  1440
+ ],
+ "after erdos-1003 1440": [
+  1440,
+  1440
+ ],
+ "before erdos-69 390": [
+  390,
+  390
+ ],
+ "after erdos-69 390": [
+  390,
+  390
+ ],
+ "before erdos-402 390": [
+  390,
+  390
+ ],
+ "after erdos-402 390": [
+  390,
+  390
+ ],
+ "after erdos-1050 390": [
+  390,
+  390
+ ],
+ "after euclid-primes 390": [
+  390,
+  390
+ ],
+ "after tutorial 390": [
+  390,
+  390
+ ],
+ "after erdos-1003 390": [
+  779,
+  390
+ ],
+ "hover lit edges": 5,
+ "hover lit nodes": 6,
+ "hover cleared": true,
+ "toggle visible": true,
+ "toggle text": "Hide superseded (3)",
+ "superseded hidden": true,
+ "toggle text after": "Show superseded (3)"
+}
+
+Hovering erdos-69--h2-v2--h1-v2 lit 5 lines (one up to h2-v2, four down to its holes) and 6 statements;
+moving the pointer away cleared it. The toggle showed (the script unhides it), read 'Hide superseded (3)',
+hid all three superseded statements and their lines, and then read 'Show superseded (3)'.
+erdos-1003 at 390 overflows (779 > 390) on BOTH before and after: the statement-QA table and a long
+source link, not the graph. Not this task's; recorded so it is not lost.
+
+Seen by eye in the captures: no crossing on any of the four; every crux sits under the statement it
+was proposed for; the h3-v2 chain on erdos-402 is one upright column; the 21 unjoined variants on
+erdos-402 sit in a labelled grid below the tree; on the proved euclid-primes page the selected proof
+is highlighted and the rest dimmed, with no dashes on the dimmed lines.
