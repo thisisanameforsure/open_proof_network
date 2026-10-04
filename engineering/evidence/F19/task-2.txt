@@ -1,0 +1,201 @@
+F19-T2 — red run of gate/tests/test_outline.py against the wrapper with its behaviour absent at
+the seam: ids are the raw names (no ASCII mapping, no s<n> fallback), no text cap, no named
+failure reasons (the toolchain's exceptions escape extract), no schema validation. Every failure
+is an assertion or the schema refusing the document the stub built; none is a missing name.
+Command: UV_PROJECT_ENVIRONMENT=<main venv> uv run --frozen pytest gate/tests/test_outline.py -rfE --tb=line
+
+FFFFFFFFFFF.FFFF...F.........                                            [100%]
+=================================== FAILURES ===================================
+E   AssertionError: assert ['h1', 'key',...', '', 'this'] == ['h1', 'key',... 's3', 'this']
+      
+      At index 2 diff: 'key.' != 'key.s1'
+      Use -v to get more diff
+/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e/gate/tests/test_outline.py:142: AssertionError: assert ['h1', 'key',...', '', 'this'] == ['h1', 'key',... 's3', 'this']
+E   opn_gate.schemas.SchemaError: document does not satisfy 'outline/v1': $['steps'][1]['children'][0]['id']: 'key.' does not match "^[A-Za-z_][A-Za-z0-9_']*(\\.[A-Za-z_][A-Za-z0-9_']*)*$"; $['steps'][1]['children'][1]['id']: 'key.' does not match "^[A-Za-z_][A-Za-z0-9_']*(\\.[A-Za-z_][A-Za-z0-9_']*)*$"; $['steps'][2]['id']: '' does not match "^[A-Za-z_][A-Za-z0-9_']*(\\.[A-Za-z_][A-Za-z0-9_']*)*$"
+/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e/gate/opn_gate/schemas.py:96: opn_gate.schemas.SchemaError: document does not satisfy 'outline/v1': $['steps'][1]['children'][0]['id']: 'key.' does not match "^[A-Za-z_][A-Za-z0-9_']*(\\.[A-Za-z_][A-Za-z0-9_']*)*$"; $['steps'][1]['children'][1]['id']: 'key.' does not match "^[A-Za-z_][A-Za-z0-9_']*(\\.[A-Za-z_][A-Za-z0-9_']*)*$"; $['steps'][2]['id']: '' does not match "^[A-Za-z_][A-Za-z0-9_']*(\\.[A-Za-z_][A-Za-z0-9_']*)*$"
+E   AssertionError: assert {'text': 'x =...cated': False} == {'text': 'x =...ncated': True}
+      
+      Omitting 1 identical items, use -vv to show
+      Differing items:
+      {'text': 'x = y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y + y'} != {'text': 'x = y + y + y + y + y + y + y + y + y + '}
+      {'truncated': False} != {'truncated': True}
+      Use -v to get more diff
+/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e/gate/tests/test_outline.py:187: AssertionError: assert {'text': 'x =...cated': False} == {'text': 'x =...ncated': True}
+E   AssertionError: assert ['h₁', 'h₂'] == ['h1', 'h2']
+      
+      At index 0 diff: 'h₁' != 'h1'
+      Use -v to get more diff
+/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e/gate/tests/test_outline.py:213: AssertionError: assert ['h₁', 'h₂'] == ['h1', 'h2']
+E   AssertionError: assert ['hα', ''] == ['h_x3b1', 's2']
+      
+      At index 0 diff: 'hα' != 'h_x3b1'
+      Use -v to get more diff
+/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e/gate/tests/test_outline.py:213: AssertionError: assert ['hα', ''] == ['h_x3b1', 's2']
+E   AssertionError: assert ['h₁', 'h1'] == ['s1', 's2']
+      
+      At index 0 diff: 'h₁' != 's1'
+      Use -v to get more diff
+/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e/gate/tests/test_outline.py:213: AssertionError: assert ['h₁', 'h1'] == ['s1', 's2']
+E   AssertionError: assert ['h', 'h', 'k'] == ['s1', 's2', 'k']
+      
+      At index 0 diff: 'h' != 's1'
+      Use -v to get more diff
+/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e/gate/tests/test_outline.py:213: AssertionError: assert ['h', 'h', 'k'] == ['s1', 's2', 'k']
+E   AssertionError: assert ['s2', 'h', 'h'] == ['s1', 's2', 's3']
+      
+      At index 0 diff: 's2' != 's1'
+      Use -v to get more diff
+/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e/gate/tests/test_outline.py:213: AssertionError: assert ['s2', 'h', 'h'] == ['s1', 's2', 's3']
+E   AssertionError: assert ['x', 's1', ''] == ['x', 's1', 's3']
+      
+      At index 2 diff: '' != 's3'
+      Use -v to get more diff
+/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e/gate/tests/test_outline.py:213: AssertionError: assert ['x', 's1', ''] == ['x', 's1', 's3']
+E   assert ['1st', "'q"] == ['_1st', "_'q"]
+      
+      At index 0 diff: '1st' != '_1st'
+      Use -v to get more diff
+/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e/gate/tests/test_outline.py:213: assert ['1st', "'q"] == ['_1st', "_'q"]
+E   AssertionError: assert ['h₁', 'key', 'key.hα'] == ['h1', 'key', 'key.h_x3b1']
+      
+      At index 0 diff: 'h₁' != 'h1'
+      Use -v to get more diff
+/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e/gate/tests/test_outline.py:223: AssertionError: assert ['h₁', 'key', 'key.hα'] == ['h1', 'key', 'key.h_x3b1']
+E   opn_gate.schemas.SchemaError: document does not satisfy 'outline/v1': $['steps'][1]['children'][0]['id']: 'key.' does not match "^[A-Za-z_][A-Za-z0-9_']*(\\.[A-Za-z_][A-Za-z0-9_']*)*$"; $['steps'][1]['children'][1]['id']: 'key.' does not match "^[A-Za-z_][A-Za-z0-9_']*(\\.[A-Za-z_][A-Za-z0-9_']*)*$"; $['steps'][2]['id']: '' does not match "^[A-Za-z_][A-Za-z0-9_']*(\\.[A-Za-z_][A-Za-z0-9_']*)*$"
+/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e/gate/opn_gate/schemas.py:96: opn_gate.schemas.SchemaError: document does not satisfy 'outline/v1': $['steps'][1]['children'][0]['id']: 'key.' does not match "^[A-Za-z_][A-Za-z0-9_']*(\\.[A-Za-z_][A-Za-z0-9_']*)*$"; $['steps'][1]['children'][1]['id']: 'key.' does not match "^[A-Za-z_][A-Za-z0-9_']*(\\.[A-Za-z_][A-Za-z0-9_']*)*$"; $['steps'][2]['id']: '' does not match "^[A-Za-z_][A-Za-z0-9_']*(\\.[A-Za-z_][A-Za-z0-9_']*)*$"
+E   subprocess.TimeoutExpired: Command '['opn-outline']' timed out after 300 seconds
+/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e/gate/tests/test_outline.py:261: subprocess.TimeoutExpired: Command '['opn-outline']' timed out after 300 seconds
+E   opn_gate.sandbox.MemoryExceeded: Command '['opn-outline']' was killed at the 4096 MiB memory cap
+/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e/gate/tests/test_outline.py:261: opn_gate.sandbox.MemoryExceeded: Command '['opn-outline']' was killed at the 4096 MiB memory cap
+E   RuntimeError: docker cp failed
+/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e/gate/tests/test_outline.py:261: RuntimeError: docker cp failed
+E   AssertionError: assert (None == 'schema-invalid')
+     +  where None = Outcome(job=Job(target='tgt', node='root', artifact=Artifact(path='Proof.lean', hash='11111111111111111111111111111111...st-95/test_a_document_the_schema_ref0/outlines/1111111111111111111111111111111111111111111111111111111111111111.json')).reason
+     +  and   'schema-invalid' = outline.SCHEMA_INVALID
+/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e/gate/tests/test_outline.py:345: AssertionError: assert (None == 'schema-invalid')
+=========================== short test summary info ============================
+FAILED gate/tests/test_outline.py::test_ids_depend_on_the_artifact_alone - As...
+FAILED gate/tests/test_outline.py::test_document_validates_and_splits_constants_by_origin
+FAILED gate/tests/test_outline.py::test_text_over_its_cap_keeps_a_prefix_and_is_marked
+FAILED gate/tests/test_outline.py::test_names_become_ascii_ids_and_collisions_fall_back[names0-expected0]
+FAILED gate/tests/test_outline.py::test_names_become_ascii_ids_and_collisions_fall_back[names1-expected1]
+FAILED gate/tests/test_outline.py::test_names_become_ascii_ids_and_collisions_fall_back[names2-expected2]
+FAILED gate/tests/test_outline.py::test_names_become_ascii_ids_and_collisions_fall_back[names3-expected3]
+FAILED gate/tests/test_outline.py::test_names_become_ascii_ids_and_collisions_fall_back[names4-expected4]
+FAILED gate/tests/test_outline.py::test_names_become_ascii_ids_and_collisions_fall_back[names5-expected5]
+FAILED gate/tests/test_outline.py::test_names_become_ascii_ids_and_collisions_fall_back[names6-expected6]
+FAILED gate/tests/test_outline.py::test_a_non_ascii_name_survives_validation_as_its_ascii_id
+FAILED gate/tests/test_outline.py::test_one_failure_writes_nothing_and_stops_nothing
+FAILED gate/tests/test_outline.py::test_every_failure_is_a_named_reason_and_writes_nothing[raised_or_result0-timeout]
+FAILED gate/tests/test_outline.py::test_every_failure_is_a_named_reason_and_writes_nothing[raised_or_result1-memory-exceeded]
+FAILED gate/tests/test_outline.py::test_every_failure_is_a_named_reason_and_writes_nothing[raised_or_result2-toolchain-error]
+FAILED gate/tests/test_outline.py::test_a_document_the_schema_refuses_is_named_and_not_written
+16 failed, 13 passed in 3.85s
+
+== GREEN: the wrapper as committed, with test_config and test_toolchain for the seam and config
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 97 items
+
+gate/tests/test_outline.py::test_ids_depend_on_the_artifact_alone PASSED [  1%]
+gate/tests/test_outline.py::test_document_validates_and_splits_constants_by_origin PASSED [  2%]
+gate/tests/test_outline.py::test_text_over_its_cap_keeps_a_prefix_and_is_marked PASSED [  3%]
+gate/tests/test_outline.py::test_names_become_ascii_ids_and_collisions_fall_back[names0-expected0] PASSED [  4%]
+gate/tests/test_outline.py::test_names_become_ascii_ids_and_collisions_fall_back[names1-expected1] PASSED [  5%]
+gate/tests/test_outline.py::test_names_become_ascii_ids_and_collisions_fall_back[names2-expected2] PASSED [  6%]
+gate/tests/test_outline.py::test_names_become_ascii_ids_and_collisions_fall_back[names3-expected3] PASSED [  7%]
+gate/tests/test_outline.py::test_names_become_ascii_ids_and_collisions_fall_back[names4-expected4] PASSED [  8%]
+gate/tests/test_outline.py::test_names_become_ascii_ids_and_collisions_fall_back[names5-expected5] PASSED [  9%]
+gate/tests/test_outline.py::test_names_become_ascii_ids_and_collisions_fall_back[names6-expected6] PASSED [ 10%]
+gate/tests/test_outline.py::test_a_non_ascii_name_survives_validation_as_its_ascii_id PASSED [ 11%]
+gate/tests/test_outline.py::test_hole_steps_take_their_child_from_the_callers_mapping PASSED [ 12%]
+gate/tests/test_outline.py::test_one_failure_writes_nothing_and_stops_nothing PASSED [ 13%]
+gate/tests/test_outline.py::test_every_failure_is_a_named_reason_and_writes_nothing[raised_or_result0-timeout] PASSED [ 14%]
+gate/tests/test_outline.py::test_every_failure_is_a_named_reason_and_writes_nothing[raised_or_result1-memory-exceeded] PASSED [ 15%]
+gate/tests/test_outline.py::test_every_failure_is_a_named_reason_and_writes_nothing[raised_or_result2-toolchain-error] PASSED [ 16%]
+gate/tests/test_outline.py::test_every_failure_is_a_named_reason_and_writes_nothing[raised_or_result3-contract-broken] PASSED [ 17%]
+gate/tests/test_outline.py::test_every_failure_is_a_named_reason_and_writes_nothing[raised_or_result4-contract-broken] PASSED [ 18%]
+gate/tests/test_outline.py::test_every_failure_is_a_named_reason_and_writes_nothing[raised_or_result5-contract-broken] PASSED [ 19%]
+gate/tests/test_outline.py::test_a_document_the_schema_refuses_is_named_and_not_written PASSED [ 20%]
+gate/tests/test_outline.py::test_the_request_carries_config_and_the_library_prefixes PASSED [ 21%]
+gate/tests/test_outline.py::test_outline_defaults_and_refusals_in_config PASSED [ 22%]
+gate/tests/test_outline.py::test_first_sentence[None-300-None] PASSED    [ 23%]
+gate/tests/test_outline.py::test_first_sentence[-300-None] PASSED        [ 24%]
+gate/tests/test_outline.py::test_first_sentence[One. Two.-300-One.] PASSED [ 25%]
+gate/tests/test_outline.py::test_first_sentence[`a.b` is a thing. More.-300-`a.b` is a thing.] PASSED [ 26%]
+gate/tests/test_outline.py::test_first_sentence[No full stop\nacross lines\n\nNext paragraph.-300-No full stop across lines] PASSED [ 27%]
+gate/tests/test_outline.py::test_first_sentence[Version 1.2 is out. Yes.-300-Version 1.2 is out.] PASSED [ 28%]
+gate/tests/test_outline.py::test_first_sentence[abcdef-3-abc] PASSED     [ 29%]
+gate/tests/test_config.py::test_defaults_documented_and_applied PASSED   [ 30%]
+gate/tests/test_config.py::test_env_overrides PASSED                     [ 31%]
+gate/tests/test_config.py::test_empty_secret_is_absent PASSED            [ 32%]
+gate/tests/test_config.py::test_bad_values_fail_at_load[env0] PASSED     [ 34%]
+gate/tests/test_config.py::test_bad_values_fail_at_load[env1] PASSED     [ 35%]
+gate/tests/test_config.py::test_bad_values_fail_at_load[env2] PASSED     [ 36%]
+gate/tests/test_config.py::test_bad_values_fail_at_load[env3] PASSED     [ 37%]
+gate/tests/test_config.py::test_bad_values_fail_at_load[env4] PASSED     [ 38%]
+gate/tests/test_config.py::test_bad_values_fail_at_load[env5] PASSED     [ 39%]
+gate/tests/test_config.py::test_bad_values_fail_at_load[env6] PASSED     [ 40%]
+gate/tests/test_config.py::test_bad_values_fail_at_load[env7] PASSED     [ 41%]
+gate/tests/test_config.py::test_bad_log_level_fails_at_load PASSED       [ 42%]
+gate/tests/test_config.py::test_paths_expand_the_home_directory_and_pr_author_defaults PASSED [ 43%]
+gate/tests/test_config.py::test_child_environment_adds_without_mutating PASSED [ 44%]
+gate/tests/test_config.py::test_repr_never_shows_secrets PASSED          [ 45%]
+gate/tests/test_config.py::test_only_config_module_reads_the_environment PASSED [ 46%]
+gate/tests/test_config.py::test_graph_repo_url_defaults_and_reads PASSED [ 47%]
+gate/tests/test_config.py::test_listed_targets_max_defaults_and_reads PASSED [ 48%]
+gate/tests/test_config.py::test_a_bad_listed_targets_max_fails_at_load[five] PASSED [ 49%]
+gate/tests/test_config.py::test_a_bad_listed_targets_max_fails_at_load[-1] PASSED [ 50%]
+gate/tests/test_config.py::test_a_bad_listed_targets_max_fails_at_load[] PASSED [ 51%]
+gate/tests/test_config.py::test_a_bad_listed_targets_max_fails_at_load[3.5] PASSED [ 52%]
+gate/tests/test_config.py::test_the_count_is_not_in_the_repr_by_accident PASSED [ 53%]
+gate/tests/test_config.py::test_mathlib_home_is_config_with_a_documented_default PASSED [ 54%]
+gate/tests/test_config.py::test_model_is_config_and_its_key_is_a_secret PASSED [ 55%]
+gate/tests/test_config.py::test_a_bad_qa_budget_fails_at_load[sixty] PASSED [ 56%]
+gate/tests/test_config.py::test_a_bad_qa_budget_fails_at_load[0] PASSED  [ 57%]
+gate/tests/test_config.py::test_a_bad_qa_budget_fails_at_load[-5] PASSED [ 58%]
+gate/tests/test_config.py::test_a_bad_qa_budget_fails_at_load[] PASSED   [ 59%]
+gate/tests/test_config.py::test_a_bad_qa_budget_fails_at_load[inf] PASSED [ 60%]
+gate/tests/test_config.py::test_qa_budgets_default_and_read PASSED       [ 61%]
+gate/tests/test_toolchain.py::test_missing_toolchain_diagnostic PASSED   [ 62%]
+gate/tests/test_toolchain.py::test_require_entrypoint_fails_without_elan PASSED [ 63%]
+gate/tests/test_toolchain.py::test_find_elan_under_elan_home PASSED      [ 64%]
+gate/tests/test_toolchain.py::test_toolchain_hash_is_platform_independent PASSED [ 65%]
+gate/tests/test_toolchain.py::test_parse_axioms['T.x' depends on axioms: [propext, Classical.choice]\n-expected0] PASSED [ 67%]
+gate/tests/test_toolchain.py::test_parse_axioms['T.x' does not depend on any axioms\n-expected1] PASSED [ 68%]
+gate/tests/test_toolchain.py::test_parse_axioms[warning: foo\n'T.x' depends on axioms: [sorryAx]\n-expected2] PASSED [ 69%]
+gate/tests/test_toolchain.py::test_parse_axioms['Other' depends on axioms: [sorryAx]\n-None] PASSED [ 70%]
+gate/tests/test_toolchain.py::test_native_decide_axiom_detected PASSED   [ 71%]
+gate/tests/test_toolchain.py::test_parse_json_messages_skips_noise PASSED [ 72%]
+gate/tests/test_toolchain.py::test_fake_toolchain_records_calls PASSED   [ 73%]
+gate/tests/test_toolchain.py::test_parse_metaprogram_output_contract PASSED [ 74%]
+gate/tests/test_toolchain.py::test_metaprogram_path_requires_built_package PASSED [ 75%]
+gate/tests/test_toolchain.py::test_require_entrypoint_usage PASSED       [ 76%]
+gate/tests/test_toolchain.py::test_metaprogram_output_without_a_verdict_is_a_failure[{"expected": "True"}\n] PASSED [ 77%]
+gate/tests/test_toolchain.py::test_metaprogram_output_without_a_verdict_is_a_failure[[1, 2]\n] PASSED [ 78%]
+gate/tests/test_toolchain.py::test_metaprogram_output_without_a_verdict_is_a_failure[] PASSED [ 79%]
+gate/tests/test_toolchain.py::test_metaprogram_output_without_a_verdict_is_a_failure[null\n] PASSED [ 80%]
+gate/tests/test_toolchain.py::test_metaprogram_output_without_a_verdict_is_a_failure["ok"\n] PASSED [ 81%]
+gate/tests/test_toolchain.py::test_metaprogram_output_without_a_verdict_is_a_failure[{"ok": true}\nnot json\n] PASSED [ 82%]
+gate/tests/test_toolchain.py::test_metaprogram_messages_are_read_defensively PASSED [ 83%]
+gate/tests/test_toolchain.py::test_parse_json_messages_skips_broken_json PASSED [ 84%]
+gate/tests/test_toolchain.py::test_parse_axioms_empty_list_and_module_paths PASSED [ 85%]
+gate/tests/test_toolchain.py::test_resolve_reports_the_pin PASSED        [ 86%]
+gate/tests/test_toolchain.py::test_resolve_refuses_an_uninstalled_toolchain_by_default PASSED [ 87%]
+gate/tests/test_toolchain.py::test_resolve_install_failure_is_missing_toolchain PASSED [ 88%]
+gate/tests/test_toolchain.py::test_resolve_refuses_a_toolchain_that_does_not_answer[override0-lean under .* failed: lean: not found] PASSED [ 89%]
+gate/tests/test_toolchain.py::test_resolve_refuses_a_toolchain_that_does_not_answer[override1-failed: boom] PASSED [ 90%]
+gate/tests/test_toolchain.py::test_resolve_refuses_a_toolchain_that_does_not_answer[override2-could not parse lean --version] PASSED [ 91%]
+gate/tests/test_toolchain.py::test_elaborate_needs_a_zero_exit_and_an_olean PASSED [ 92%]
+gate/tests/test_toolchain.py::test_kernel_replay_failure_carries_both_streams PASSED [ 93%]
+gate/tests/test_toolchain.py::test_axioms_fail_closed_when_the_answer_says_nothing_about_the_declaration PASSED [ 94%]
+gate/tests/test_toolchain.py::test_metaprograms_need_a_built_package PASSED [ 95%]
+gate/tests/test_toolchain.py::test_metaprogram_run_sets_the_lean_environment PASSED [ 96%]
+gate/tests/test_toolchain.py::test_mathlib_library_path_is_mathlib_then_its_packages PASSED [ 97%]
+gate/tests/test_toolchain.py::test_mathlib_pin_refusals_name_the_install_script PASSED [ 98%]
+gate/tests/test_toolchain.py::test_resolve_with_a_mathlib_pin_puts_its_oleans_on_every_search_path PASSED [100%]
+
+============================== 97 passed in 0.49s ==============================
