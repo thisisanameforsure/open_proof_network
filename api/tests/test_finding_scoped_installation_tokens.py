@@ -109,6 +109,12 @@ CASES: list[Case] = [
         {"pull_requests": "write"},
     ),
     (
+        "comment_on_pull_request",
+        lambda s: s.on("POST", f"{API}/issues/7/comments", json={"id": 1}),
+        lambda h: h.comment_on_pull_request(REPO, 7, "withdrawn"),
+        {"pull_requests": "write"},
+    ),
+    (
         "list_open_pull_requests",
         lambda s: s.on("GET", f"{API}/pulls", json=[]),
         lambda h: h.list_open_pull_requests(REPO),

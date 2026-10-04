@@ -950,8 +950,9 @@ class HttpxGitHost:
         return out
 
     def comment_on_pull_request(self, repo: str, number: int, body: str) -> None:
-        """``POST /repos/{repo}/issues/{number}/comments`` as the App (F07-T64)."""
-        with self._api(repo) as http:
+        """``POST /repos/{repo}/issues/{number}/comments`` as the App (F07-T64). Pull requests:
+        write covers the issue-comments endpoint on a pull request (F06-T12's scoping)."""
+        with self._api(repo, PULLS_WRITE) as http:
             _send(
                 http,
                 "POST",
