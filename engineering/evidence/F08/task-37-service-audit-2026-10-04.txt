@@ -1,0 +1,48 @@
+F08-T37, service half (D-3 v3.28) — POST /proposals/speculative and POST /proposals/variant refuse
+a scaffolded Statement.lean or Context.lean holding a command beyond D-3's list, with step 2's
+code, words and details, before any hosted check is spent or any pull request opens.
+
+== What changed
+api/opn_api/proposals.py: node_files calls refuse_commands on the files scaffold.files built;
+  refuse_commands asks layout.command_problem (the gate's own function, no copy) of
+  Statement.lean and Context.lean and raises 400 statement-command-forbidden with the
+  diagnostic's message and details {file, line, command, offences}. STATEMENT_COMMAND_CODE is
+  written out so the error-code catalog's walker can read it from this module; a test holds it
+  equal to layout.STATEMENT_COMMAND_CODE.
+gate/opn_gate/codes.py: statement-command-forbidden is now source "both".
+api/tests/test_finding_proposal_statement_commands.py.
+The Context is generated from the deps' committed statements, so a dep that holds a command is
+refused here too, naming Context.lean (tested). POST /proposals/witness adds no statement and is
+unchanged.
+
+== Red (before the fix: each opened pull request #1)
+E       AssertionError: {"proposal_id":"01M230M2G0YX1WGBYPDYX05T97","node_id":"spec-ebf5646a","target_id":"propositional","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"hazards_preflight":"unavailable","witness_preflight":"unavailable"}
+E       assert 201 == 400
+E       AssertionError: {"proposal_id":"01M230M2G0FN4TWVJYGH3HSND2","node_id":"variant-25516389","target_id":"propositional","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"hazards_preflight":"unavailable","witness_preflight":"unavailable","relation_preflight":"skipped"}
+E       assert 201 == 400
+E       AssertionError: {"proposal_id":"01M230M2G0SDENAT3ZWQ5AABCB","node_id":"spec-296f6bcf","target_id":"propositional","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"hazards_preflight":"unavailable","witness_preflight":"unavailable"}
+E       assert 201 == 400
+E       AssertionError: {"proposal_id":"01M230M2G0GG3FTB1XSGVE33VK","node_id":"spec-4d055448","target_id":"propositional","pr_url":"https://github.com/thisisanameforsure/open_proof_network_graph/pull/1","pr_number":1,"hazards_preflight":"unavailable","witness_preflight":"unavailable"}
+E       assert 201 == 400
+4 failed, 2 warnings in 0.31s
+
+== Green
+api/tests/test_finding_proposal_statement_commands.py::test_a_statement_with_a_command_is_refused_before_anything_opens[/proposals/speculative-instance : Inhabited Prop := \u27e8True\u27e9\n\n-instance] PASSED
+api/tests/test_finding_proposal_statement_commands.py::test_a_statement_with_a_command_is_refused_before_anything_opens[/proposals/variant-set_option autoImplicit true\n\n-set_option] PASSED
+api/tests/test_finding_proposal_statement_commands.py::test_a_statement_with_a_command_is_refused_before_anything_opens[/proposals/speculative-initialize IO.println "loaded"\n\n-initialize] PASSED
+api/tests/test_finding_proposal_statement_commands.py::test_a_context_generated_from_a_dep_with_a_command_is_refused PASSED
+api/tests/test_finding_proposal_statement_commands.py::test_the_service_names_the_gates_code PASSED
+======================== 19 passed, 2 warnings in 1.59s ========================
+
+== Proposed Q entry
+Folded into F08-Q48 (its last-but-two sentence: "the service refuses a proposal by the same
+function before any pull request opens").
+
+== Proposed ledger line
+T37 (service) ✓ the proposal routes refuse statement-command-forbidden before any pull request
+opens, by layout.command_problem (evidence/F08/task-37-service-audit-2026-10-04.txt).
+
+== Guide sentence (the proposal routes' row)
+POST /proposals/speculative and /proposals/variant answer 400 statement-command-forbidden, naming
+the file, line and command, when the statement (or a dependency's statement copied into the
+Context) holds anything but imports, open/namespace/end lines, doc comments and its theorem.

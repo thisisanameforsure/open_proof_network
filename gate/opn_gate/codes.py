@@ -1797,7 +1797,7 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Check the statement elaborates; if it does, report the verdict.",
     ),
     "statement-command-forbidden": (
-        "gate",
+        "both",
         2,
         "A Statement.lean or Context.lean holds a command other than its imports, open, "
         "namespace and end lines, doc comments and sorry-bodied theorems: an attribute, "

@@ -47,6 +47,9 @@ PROPOSE_BRANCH_PREFIX = "propose/"
 SPECULATIVE_PREFIX = "spec"  # F08-R3: <target>/spec-<hash8>
 VARIANT_PREFIX = "variant"
 MAX_LEAN_BYTES = 64 * 1024  # a statement, a witness or a relation proof; F07 §6's annex cap
+#: Step 2's code for it (``layout.STATEMENT_COMMAND_CODE``), written out so the error-code
+#: catalog can read it from this module; a test holds the two equal.
+STATEMENT_COMMAND_CODE = "statement-command-forbidden"
 MAX_DEPS = 20  # F07 §6's holes-per-partial cap, reused: a proposal is not a decomposition dump
 
 
@@ -447,7 +450,22 @@ def node_files(
         proposed_for=pointer,
         **kwargs,
     )
-    return target_id, scaffolded(proposal, statements), node_id
+    files = scaffolded(proposal, statements)
+    refuse_commands(files, f"targets/{target_id}/nodes/{node_id}/")
+    return target_id, files, node_id
+
+
+def refuse_commands(files: dict[str, str], prefix: str) -> None:
+    """F08-T37 (D-3 v3.28): the scaffolded ``Statement.lean`` and ``Context.lean`` hold nothing
+    but imports, ``open``, ``namespace`` and ``end`` lines, doc comments and sorry-bodied
+    theorems, by step 2's own function and in its words, before a hosted check is spent or a
+    pull request opens. The Context is the deps' statements verbatim, so a dep that holds such a
+    command is refused here too, naming Context.lean."""
+    for name in layout.COMMAND_CHECKED_FILES:
+        text = files.get(prefix + name)
+        problem = None if text is None else layout.command_problem(name, text)
+        if problem is not None:
+            raise ApiError(400, STATEMENT_COMMAND_CODE, problem.message, details=problem.details)
 
 
 # --- POST /proposals/speculative (D-14 mechanism 2) -----------------------------------------------
