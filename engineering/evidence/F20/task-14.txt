@@ -1,0 +1,23 @@
+F20-T14 verification: uv run pytest gate/tests/test_gloss_coverage.py
+Red run (the coverage action present, glosses.coverage a seam answering an empty, complete report):
+  test_coverage_lists_every_file_and_why: assert (0 == 1) -- an empty report called itself complete
+  test_withdrawn_words_cover_nothing, test_a_root_without_curated_words_needs_a_gloss: KeyError on the
+  file the report owed and did not list.
+Two test corrections on the way, neither in the code: the fixture graph's second target (propositional)
+was removed so "complete" is reachable, and the completion step had left the variant's witness unglossed.
+Green run:
+
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aba4293b49640e7d1
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 4 items
+
+gate/tests/test_gloss_coverage.py::test_coverage_lists_every_file_and_why PASSED [ 25%]
+gate/tests/test_gloss_coverage.py::test_withdrawn_words_cover_nothing PASSED [ 50%]
+gate/tests/test_gloss_coverage.py::test_a_root_without_curated_words_needs_a_gloss PASSED [ 75%]
+gate/tests/test_gloss_coverage.py::test_a_missing_graph_is_a_usage_error PASSED [100%]
+
+============================== 4 passed in 0.84s ===============================

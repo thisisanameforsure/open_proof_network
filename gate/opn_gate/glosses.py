@@ -15,6 +15,11 @@ the file as the tree holds it at merge (R3): a ``lean_hash`` that is not the sub
 hash is refused ``gloss-subject-mismatch``, naming the current one. When the file later changes
 (a hole's witness filled, say), the gloss stays in the tree and is read as describing an earlier
 version (``describes_current``). Nothing here reads the prose for truth (D-3).
+
+The module also holds what glosses and explainers share (R6 to R9): versions and their linear
+chains, whose current version is the latest not withdrawn; gloss signatures
+(``gloss-signature/v1``), which change no status, grade or digestion state; and the coverage
+report (R20) over every Lean file and merged proof artifact of a graph.
 """
 
 from __future__ import annotations
@@ -567,3 +572,187 @@ def sign(  # noqa: PLR0913 — one argument per fact the record carries
     path.write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True), encoding="utf-8")
     log.info("gloss: %s signed %s under %s", signer_login, gloss[:12], parent_dir.name)
     return path
+
+
+# --- coverage (F20-R20) -------------------------------------------------------------------------
+
+
+#: Why a subject is not covered (R20), as the report names it.
+NO_GLOSS = "no-gloss"
+EARLIER_TEXT = "describes-earlier-text"
+ALL_WITHDRAWN = "all-withdrawn"
+NO_EXPLAINER = "no-explainer"
+ROOT_WITHOUT_INFORMAL = "root-without-informal"
+RESTATES_UNCOVERED = "restates-uncovered"
+CONTEXT_FILE = "Context.lean"
+
+
+def coverage(graph_root: Path) -> dict[str, Any]:
+    """R20: every Lean file and merged proof artifact of every target, with the gloss or
+    explainer that covers it or the reason none does, and whether the whole is complete.
+
+    A statement, witness, relation or definition module is covered by a chain whose current
+    version describes the file as it stands; a gloss of since-changed text covers nothing. A
+    merged proof artifact is covered by an explainer chain with a current version. A root's
+    statement is covered by its curated informal statement (or, where the source may not be
+    reproduced, its paraphrase; F11-R10), and a ``Context.lean`` by the statements it restates —
+    the node's dependencies, read through any revision — each said per file, never left out.
+    A target that does not load is listed under ``problems`` and makes the report incomplete."""
+    from opn_gate import graph as graphmod  # noqa: PLC0415 — graph reads records, as this does
+
+    rows: list[dict[str, Any]] = []
+    problems: list[dict[str, str]] = []
+    targets = graph_root / "targets"
+    for target_dir in sorted(p for p in targets.iterdir() if (p / "nodes").is_dir()):
+        try:
+            tg = graphmod.load_target(graph_root, target_dir.name)
+        except (ValueError, OSError) as exc:  # GraphError, SchemaError: a graph defect, named
+            problems.append({"target": target_dir.name, "error": str(exc)})
+            continue
+        rows.extend(_target_rows(graph_root, tg))
+    covered = sum(1 for r in rows if r["covered"])
+    return {
+        "complete": not problems and covered == len(rows),
+        "counts": {"subjects": len(rows), "covered": covered},
+        "problems": problems,
+        "subjects": rows,
+    }
+
+
+def _row(graph_root: Path, target_id: str, file: Path, kind: str, **where: Any) -> dict[str, Any]:
+    return {
+        "target": target_id,
+        "file": file.relative_to(graph_root).as_posix(),
+        "kind": kind,
+        "node": where.get("node"),
+        "module": where.get("module"),
+        "covered": False,
+        "by": None,
+        "reason": None,
+    }
+
+
+def _target_rows(graph_root: Path, tg: Any) -> list[dict[str, Any]]:
+    """One target's rows: node by node, each node's Lean files, its Context and its merged
+    proof artifacts; then the definition modules."""
+    words = _curated_words(tg.path)
+    per_node = {n: _lean_rows(graph_root, tg, n, words) for n in tg.order}
+    statements = {n: r for n, rs in per_node.items() for r in rs if r["kind"] == "statement"}
+    result: list[dict[str, Any]] = []
+    for node_id in tg.order:
+        node_dir: Path = tg.nodes[node_id].path
+        result.extend(per_node[node_id])
+        context = node_dir / CONTEXT_FILE
+        if context.is_file():
+            r = _row(graph_root, tg.target_id, context, "context", node=node_id)
+            restates = list(tg.nodes[node_id].deps)
+            r["by"] = {"restates": restates}
+            if all(statements.get(d, {}).get("covered") for d in restates):
+                r["covered"] = True
+            else:
+                r["reason"] = RESTATES_UNCOVERED
+            result.append(r)
+        result.extend(_artifact_rows(graph_root, tg.target_id, node_dir))
+    result.extend(_definition_rows(graph_root, tg.target_id, tg.path))
+    return result
+
+
+def _lean_rows(graph_root: Path, tg: Any, node_id: str, words: str | None) -> list[dict[str, Any]]:
+    """A node's statement, witness and relation, each covered by a gloss of its text as it
+    stands — the root's statement by the target's curated words instead."""
+    node_dir: Path = tg.nodes[node_id].path
+    versions = load_versions(node_dir)
+    withdrawn = withdrawn_versions(node_dir, GLOSS_DIR)
+    out: list[dict[str, Any]] = []
+    for kind, name in KIND_FILES.items():
+        file = node_dir / name
+        if not file.is_file():
+            continue
+        r = _row(graph_root, tg.target_id, file, kind, node=node_id)
+        same = [v for v in versions if v.subject == (kind, node_id, None)]
+        _cover_by_gloss(r, file, same, withdrawn)
+        if kind == "statement" and node_id == tg.root and not r["covered"]:
+            if words is not None:
+                r.update(covered=True, by={words: "target.yaml"}, reason=None)
+            elif r["reason"] == NO_GLOSS:
+                r["reason"] = ROOT_WITHOUT_INFORMAL
+        out.append(r)
+    return out
+
+
+def _artifact_rows(graph_root: Path, target_id: str, node_dir: Path) -> list[dict[str, Any]]:
+    """A node's merged proof artifacts, each covered by an explainer chain with a current
+    version on it."""
+    from opn_gate import explainers  # noqa: PLC0415 — explainers imports this module
+
+    withdrawn = withdrawn_versions(node_dir, explainers.EXPLAINER_DIR)
+    everything = explainers.versions(node_dir)
+    out: list[dict[str, Any]] = []
+    for digest, rel in explainers.merged_artifacts(node_dir).items():
+        kind = (
+            "proof"
+            if rel == "Proof.lean"
+            else "alternate"
+            if rel.endswith(paths.ALTERNATE_SUFFIX)
+            else "partial"
+        )
+        r = _row(graph_root, target_id, node_dir / rel, kind, node=node_dir.name)
+        found = chains([v for v in everything if v.subject[2] == digest], withdrawn)
+        current = [c.current for c in found if c.current is not None]
+        if current:
+            r.update(covered=True, by={"explainer": current[0].hash})
+        else:
+            r["reason"] = ALL_WITHDRAWN if found else NO_EXPLAINER
+        out.append(r)
+    return out
+
+
+def _definition_rows(graph_root: Path, target_id: str, target_dir: Path) -> list[dict[str, Any]]:
+    defs_dir = target_dir / DEFS_DIR
+    if not defs_dir.is_dir():
+        return []
+    versions = load_versions(target_dir)
+    withdrawn = withdrawn_versions(target_dir, GLOSS_DIR)
+    out: list[dict[str, Any]] = []
+    for file in sorted(p for p in defs_dir.rglob("*.lean") if p.is_file()):
+        module = file.relative_to(defs_dir).as_posix()
+        r = _row(graph_root, target_id, file, DEFINITION, module=module)
+        same = [v for v in versions if v.subject == (DEFINITION, None, module)]
+        _cover_by_gloss(r, file, same, withdrawn)
+        out.append(r)
+    return out
+
+
+def _cover_by_gloss(
+    row: dict[str, Any], file: Path, versions: list[Version], withdrawn: frozenset[str]
+) -> None:
+    """Covered when a chain's current version describes the file as it stands."""
+    found = chains(versions, withdrawn)
+    current = [c.current for c in found if c.current is not None]
+    text = schemas.content_hash(file.read_bytes())
+    describing = [v for v in current if v.lean_hash == text]
+    if describing:
+        row.update(covered=True, by={"gloss": describing[0].hash})
+    elif current:
+        row["reason"] = EARLIER_TEXT
+    elif found:
+        row["reason"] = ALL_WITHDRAWN
+    else:
+        row["reason"] = NO_GLOSS
+
+
+def _curated_words(target_dir: Path) -> str | None:
+    """``informal`` or ``paraphrase``: which curated words of record ``target.yaml`` holds for
+    the root (D-6, D-9; F11-R10), or ``None`` without a record or words."""
+    path = target_dir / "target.yaml"
+    try:
+        doc = yaml.safe_load(path.read_text(encoding="utf-8")) if path.is_file() else None
+    except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
+        log.warning("%s does not read; the root has no curated words here: %s", path, exc)
+        return None
+    if not isinstance(doc, dict):
+        return None
+    for field in ("informal", "paraphrase"):
+        if isinstance(doc.get(field), str) and doc[field].strip():
+            return field
+    return None

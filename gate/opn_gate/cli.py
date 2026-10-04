@@ -552,6 +552,10 @@ def _add_gloss_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser])
     gsign.add_argument("--key", required=True, type=Path, help="the signer's own SSH private key")
     gsign.add_argument("--date", help="UTC timestamp of the act (default: now)")
     gsign.add_argument("--branch", help="also commit what was written on this branch")
+    gcov = gl_acts.add_parser(
+        "coverage", help="every Lean file and proof artifact, with its words or why none (R20)"
+    )
+    gcov.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
 
 
 def _add_steward_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -2449,7 +2453,21 @@ def run_gloss(args: argparse.Namespace, settings: config.Settings) -> int:
         return _gloss_revise(args, graph)
     if args.action == "file":
         return _gloss_file(args, graph, settings)
+    if args.action == "coverage":
+        return _gloss_coverage(graph)
     return _gloss_sign(args, graph)
+
+
+def _gloss_coverage(graph: Path) -> int:
+    """R20: the coverage report as JSON; exit 0 exactly when it is complete, 1 otherwise. The
+    commit it was taken at is the checkout's HEAD, or null outside a git checkout."""
+    doc = glosses.coverage(graph)
+    top = _git(graph, "rev-parse", "--show-toplevel")
+    head = _git(graph, "rev-parse", "--verify", "HEAD")
+    own = top.returncode == 0 and Path(top.stdout.strip()).resolve() == graph.resolve()
+    doc = {"commit": head.stdout.strip() if own and head.returncode == 0 else None, **doc}
+    sys.stdout.write(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
+    return EXIT_PASS if doc["complete"] else EXIT_FAIL
 
 
 #: What ``gloss revise`` writes a new chain's body as: a prompt to the author, not prose.
