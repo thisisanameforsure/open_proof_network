@@ -107,9 +107,9 @@
       ],
       "properties": {
         "id": {
-          "description": "F19-R2: a function of the artifact's bytes alone — the bound name where unique among siblings, else s<n> by source order; dotted for children (s3.1). ASCII, as F18-Q6's step ids.",
+          "description": "F19-R2: a function of the artifact's bytes alone — the bound name where unique among siblings, else s<n> by source order; dotted for children (s3.1, hq.s1); a part after a dot may start with a digit. ASCII, as F18-Q6's step ids.",
           "type": "string",
-          "pattern": "^[A-Za-z_][A-Za-z0-9_']*(\\.[A-Za-z_][A-Za-z0-9_']*)*$",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_']*(\\.[A-Za-z0-9_']+)*$",
           "maxLength": 200
         },
         "kind": {
