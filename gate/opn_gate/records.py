@@ -7,7 +7,9 @@ Three kinds of file, all schema-checked at the boundary (conventions §4):
 - ``nodes/<id>/status/*.yaml`` — curator or adjudication overrides (``node-status/v1``).
 - ``targets/<id>/status/*.yaml`` — the target's declaration (``target-status/v1`` or ``v2``).
 
-For the status records the latest wins: ordered by ``date``, then file name.
+For the status records the latest wins: ordered by ``date``, then file name. F08-T31 (D-18
+v3.27): a node's status record or defect claim named by a curator's ``withdrawals/`` record is
+read as absent by every loader here; the file stays in the tree.
 """
 
 from __future__ import annotations
@@ -150,8 +152,44 @@ def latest_status(
 
 
 def load_node_status(node_dir: Path) -> StatusRecord | None:
-    """The node's effective override (F03-R1's last five statuses), or ``None``."""
-    return _latest_record(node_dir / "status", NODE_STATUS_SCHEMAS)
+    """The node's effective override (F03-R1's last five statuses), or ``None``. A withdrawn
+    record is absent (F08-T31), so the latest of the others is the override."""
+    return _latest_record(
+        node_dir / "status", NODE_STATUS_SCHEMAS, withdrawn_names(node_dir, "status")
+    )
+
+
+#: F08-T31 (D-14, D-18 v3.27): a curator's withdrawals of this node's records.
+WITHDRAWAL_SCHEMA = "withdrawal/v1"
+WITHDRAWALS_DIR = "withdrawals"
+
+
+def withdrawn(node_dir: Path) -> frozenset[str]:
+    """The node's records a merged withdrawal names, as ``status/<file>`` or ``defects/<file>``.
+
+    Derive, never rewrite (F08-T10): the withdrawal is the fact, and the record it names stays in
+    the tree. No date is compared — a withdrawal applies because it is on the record, never
+    because it is newer than what it names. A file that does not validate as ``withdrawal/v1``
+    is logged and passed over, so the record it meant to withdraw stands: the gate refused it at
+    merge, and one bad file must never decide what the graph says (2026-09-17)."""
+    directory = node_dir / WITHDRAWALS_DIR
+    if not directory.is_dir():
+        return frozenset()
+    named: set[str] = set()
+    for path in sorted(p for p in directory.iterdir() if p.suffix in ATTEMPT_SUFFIXES):
+        try:
+            doc = schemas.load_yaml(path, WITHDRAWAL_SCHEMA)
+        except schemas.SchemaError as exc:
+            log.warning("%s: a withdrawal that does not validate is passed over: %s", path, exc)
+            continue
+        named.add(str(doc["withdraws"]))
+    return frozenset(named)
+
+
+def withdrawn_names(node_dir: Path, directory: str) -> frozenset[str]:
+    """The file names under ``<node>/<directory>/`` a withdrawal names (F08-T31)."""
+    prefix = f"{directory}/"
+    return frozenset(w[len(prefix) :] for w in withdrawn(node_dir) if w.startswith(prefix))
 
 
 def load_target_status(
@@ -199,14 +237,18 @@ def circular_claims(node_dir: Path) -> list[tuple[str, str]]:
 
     F08-T20 (D-12 v3.22): each claim is a path of its own, from its ancestor down to this node,
     so all of them are read, not only the first; a file that does not validate is passed over
-    as :func:`circular_claim` passes it over.
+    as :func:`circular_claim` passes it over. A claim a curator has withdrawn is absent (F08-T31,
+    D-18 v3.27).
     """
     directory = node_dir / DEFECTS_DIR
     if not directory.is_dir():
         return []
     accepted = paths.SCHEMAS_FOR_ROLE["defect-claim"]
+    gone = withdrawn_names(node_dir, DEFECTS_DIR)  # F08-T31: a withdrawn claim is absent
     found: list[tuple[str, str]] = []
     for path in sorted(p for p in directory.iterdir() if p.suffix in ATTEMPT_SUFFIXES):
+        if path.name in gone:
+            continue
         try:
             doc = schemas.load_yaml(path)
         except schemas.SchemaError as exc:

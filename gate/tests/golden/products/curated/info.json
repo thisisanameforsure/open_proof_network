@@ -1,7 +1,7 @@
 {
   "errors_url": null,
   "guide_url": null,
-  "protocol_version": "3.26",
+  "protocol_version": "3.27",
   "rate_limit_policy": null,
   "rendered_from": "5555555555555555555555555555555555555555",
   "schema": "info/v2",
@@ -30,6 +30,9 @@
     "context": [
       1,
       2
+    ],
+    "credit-correction": [
+      1
     ],
     "defect-claim": [
       1,
@@ -131,6 +134,9 @@
       7
     ],
     "waiver": [
+      1
+    ],
+    "withdrawal": [
       1
     ],
     "writeup": [

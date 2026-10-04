@@ -28,6 +28,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "claims/v1",
         "context/v1",
         "context/v2",
+        "credit-correction/v1",  # F07-T66 (D-19 v3.27)
         "defect-claim/v1",
         "defect-claim/v2",
         "defect-claim/v3",
@@ -78,6 +79,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "targets-index/v6",
         "targets-index/v7",
         "waiver/v1",
+        "withdrawal/v1",  # F08-T31 (D-18 v3.27)
         "writeup/v1",
     )
 

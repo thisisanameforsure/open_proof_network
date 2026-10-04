@@ -52,7 +52,7 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 
 log = logging.getLogger(__name__)
 
-PROTOCOL_VERSION = "3.26"  # docs/architecture_decisions.html (v3.26, F18)
+PROTOCOL_VERSION = "3.27"  # docs/architecture_decisions.html (v3.27: the 2026-10-04 audit)
 GRAPH_SCHEMA = "graph/v4"  # F08-T27, F18: each proof and what it used (v3: F12-R13)
 FRONTIER_SCHEMA = "frontier/v4"  # T16: status, cause, needs (v3, T7: partials; v2: D-33 dormancy)
 #: F11-R12 renames D-9's second rung and F11-R3/R4 add the derived fields. v2 was already spent

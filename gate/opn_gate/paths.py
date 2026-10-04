@@ -217,6 +217,8 @@ Role = Literal[
     "policy",  # policy.json at the graph root: the steward rule's switch (F15-R3, Q2)
     "writeup",  # targets/<id>/writeup/<n>.yaml: a signed paper or note record (F15-R6)
     "proposed-for",  # nodes/<id>/proposed-for/<ts>-<pseudonym>.yaml: a pointer (F18-R8, D-14)
+    "withdrawal",  # nodes/<id>/withdrawals/<ts>-<curator>.yaml: a record withdrawn (F08-T31)
+    "credit-correction",  # targets/<id>/credit-corrections/<ts>-<curator>.yaml (F07-T66)
 ]
 
 #: Roles that claim nothing and merge on schema and path checks alone (F07-R9).
@@ -249,6 +251,8 @@ CURATOR_ROLES: tuple[Role, ...] = (
     "formalization",  # F14-R7: a curator adds a second formalization, never a node
     "formalization-statement",
     "policy",  # F15-R3: the steward rule is switched by a curator, in the open
+    "withdrawal",  # F08-T31 (D-18 v3.27): a status record or defect claim withdrawn, by a curator
+    "credit-correction",  # F07-T66 (D-19 v3.27): a ledger line corrected, by a curator
 )
 
 #: What a curated intake adds beside the root node (F11-R2; D-6): the target's own files. A pull
@@ -293,6 +297,8 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "explainer-signature": ("explainer-signature/v1",),
     "writeup": ("writeup/v1",),
     "proposed-for": ("proposed-for/v1",),
+    "withdrawal": ("withdrawal/v1",),
+    "credit-correction": ("credit-correction/v1",),
 }
 
 #: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers).
@@ -322,6 +328,11 @@ RECORD_DIRS: dict[str, Role] = {
     # F18-R8 (D-14 v3.26): which node of the target this one was proposed for. Its own role and
     # its own mode, never an append: only the proposer or a curator writes one (F18-T6).
     "proposed-for/": "proposed-for",
+    # F08-T31 (D-14, D-18 v3.27): a curator's withdrawal of one of this node's status records or
+    # defect claims. Under the node whose record it names, so every reader that takes a node
+    # directory finds it beside what it withdraws, and a record of another node or target cannot
+    # be named at all.
+    "withdrawals/": "withdrawal",
 }
 
 _NODE_PATH_RE = re.compile(r"^targets/(?P<target>[^/]+)/nodes/(?P<node>[^/]+)/(?P<rest>.+)$")
@@ -384,6 +395,11 @@ def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912 — one branc
             return Located("gate-spec", path, target_match.group("target"), None)
         if rest == "attempts.yaml":
             return Located("attempts-ledger", path, target_match.group("target"), None)
+        # F07-T66 (D-19 v3.27): a curator's correction of a ledger line of this target. Under the
+        # target the line names, since a submission reaches only targets/** and policy.json and
+        # the bot-owned ledger/ stays no submission's path (D-35).
+        if head == "credit-corrections" and _is_flat(name, YAML_SUFFIXES):
+            return Located("credit-correction", path, target_match.group("target"), None)
         if head == "drift" and _is_flat(name, YAML_SUFFIXES):
             return Located("drift-record", path, target_match.group("target"), None)
         if head == "defs" and _is_flat(name, (".lean",)):
