@@ -150,6 +150,18 @@ DEFAULT_PULL_MAX_STALE_S = 180  # F07-T47
 DEFAULT_PULL_LISTING_MAX_STALE_S = 60  # F07-T47
 DEFAULT_HOST_BUDGET_RESERVE = 200  # F07-T47
 
+# --- audit 2026-10-04: reads that spend the host or the store (F07-T68, F05-T20) ---------------
+#: OPN_API_PRECHECK_POLL_MIN_S: the least time between two host reads made by polls of one
+#: running precheck job (``GET /precheck/<id>``); a poll inside it answers the record as it is.
+DEFAULT_PRECHECK_POLL_MIN_S = 10  # F07-T68
+#: OPN_API_VERDICT_RETRY_S: how long a failed read of a refused pull request's gate verdict is
+#: remembered before the host is asked again (F07-T68).
+DEFAULT_VERDICT_RETRY_S = 60  # F07-T68
+#: OPN_API_CLAIMS_MAX_STALE_S: how long the claims registry (``/frontier.json``,
+#: ``/claims.json``) is reused before the claims table is scanned again; a claim or a release
+#: through this process invalidates it at once (F05-T20).
+DEFAULT_CLAIMS_MAX_STALE_S = 30  # F05-T20
+
 # Parameter Store name (under the prefix) -> the variable it populates (C8 item 3).
 PARAMETERS: dict[str, str] = {
     "github-app-id": "OPN_API_GITHUB_APP_ID",
@@ -215,6 +227,10 @@ class Settings:
     github_client_secret: str | None = field(default=None, repr=False)
     github_private_key: str | None = field(default=None, repr=False)
     token_secret: str | None = field(default=None, repr=False)
+    # --- audit 2026-10-04 (F07-T68, F05-T20) ---
+    precheck_poll_min_s: int = DEFAULT_PRECHECK_POLL_MIN_S
+    verdict_retry_s: int = DEFAULT_VERDICT_RETRY_S
+    claims_max_stale_s: int = DEFAULT_CLAIMS_MAX_STALE_S
 
     def __repr__(self) -> str:  # secrets never appear in a repr or a log (C8)
         parts = []
@@ -371,6 +387,10 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
         github_client_secret=env.get("OPN_API_GITHUB_CLIENT_SECRET") or None,
         github_private_key=env.get("OPN_API_GITHUB_PRIVATE_KEY") or None,
         token_secret=env.get("OPN_API_TOKEN_SECRET") or None,
+        # --- audit 2026-10-04 (F07-T68, F05-T20) ---
+        precheck_poll_min_s=_count(env, "OPN_API_PRECHECK_POLL_MIN_S", DEFAULT_PRECHECK_POLL_MIN_S),
+        verdict_retry_s=_count(env, "OPN_API_VERDICT_RETRY_S", DEFAULT_VERDICT_RETRY_S),
+        claims_max_stale_s=_count(env, "OPN_API_CLAIMS_MAX_STALE_S", DEFAULT_CLAIMS_MAX_STALE_S),
     )
 
 

@@ -310,6 +310,13 @@ def test_dispatch_failure_is_error(harness: Harness) -> None:
     assert "reference already exists" in (job.error or "")
 
 
+def next_poll(h: Harness) -> None:
+    """F07-T68: a poll of a running job reaches the host at most once per
+    ``precheck_poll_min_s``; a test that polls again at once forgets the last poll, which is the
+    interval having passed."""
+    h.context.precheck_polls.clear()
+
+
 def test_poll_to_done(signed: Harness, key: PrecheckKey) -> None:
     """AC6: queued -> running while the run is in flight, then done with a verified result."""
     created = start(signed)
@@ -319,12 +326,14 @@ def test_poll_to_done(signed: Harness, key: PrecheckKey) -> None:
     assert signed.client.get(f"/precheck/{job_id}").json()["state"] == "queued"
 
     signed.githost.start_run(branch)
+    next_poll(signed)
     running = signed.client.get(f"/precheck/{job_id}").json()
     assert running["state"] == "running"
 
     signed.githost.finish_run(
         branch, artifact=(f"result-{job_id}", artifact_for(signed, job_id, key))
     )
+    next_poll(signed)
     done = signed.client.get(f"/precheck/{job_id}").json()
     assert done["state"] == "done", done
     assert done["result"]["verdict"] == "pass"
@@ -398,6 +407,7 @@ def test_lookup_failure_leaves_the_job_alone(signed: Harness) -> None:
 
     signed.githost.lookup_failure = None
     signed.githost.start_run(f"job/{job_id}")
+    next_poll(signed)
     assert signed.client.get(f"/precheck/{job_id}").json()["state"] == "running"
 
 
@@ -439,6 +449,7 @@ def test_an_unreadable_key_does_not_burn_the_job(harness: Harness, key: Precheck
 
     # The key comes back, and the same poll now completes the job.
     harness.commit_precheck_key(key.public)
+    next_poll(harness)
     assert harness.client.get(f"/precheck/{job_id}").json()["state"] == "done"
 
 

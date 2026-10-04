@@ -64,7 +64,13 @@ def test_a_merged_annex_not_yet_rendered_waits_on_products(harness: Harness) -> 
 def test_it_clears_once_rendered(harness: Harness) -> None:
     merged_annex(harness)
     assert waiting_on(harness, 174) == "products"
-    del harness.githost.absent_at[RENDERED]  # the post-merge job rendered past the merge
+    # the post-merge job rendered past the merge: the products name a new commit, which carries
+    # the annex (F07-T68: a commit's tree never changes, so the comparison is kept per pair)
+    path = f"targets/{TARGET}/graph.json"
+    doc = json.loads(harness.githost.files[path])
+    doc["rendered_from"] = "6" * 40
+    harness.githost.files[path] = json.dumps(doc).encode()
+    harness.context.files.clear()
     assert waiting_on(harness, 174) is None
 
 

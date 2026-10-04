@@ -45,7 +45,7 @@ from opn_api.axle import Axle
 from opn_api.clock import Clock
 from opn_api.githost import GitHost, OpenPullRequest, PullRequestState, RateLimitError
 from opn_api.routes import ROUTES, RouteSpec
-from opn_api.store import Store
+from opn_api.store import Claim, Store
 
 log = logging.getLogger("opn_api")
 access_log = logging.getLogger("opn_api.access")
@@ -114,6 +114,28 @@ class CachedListing:
 
 
 @dataclass
+class CachedDir:
+    """A directory listing read through the Contents API (F07-T68), for the head ``ref`` it was
+    read at: reused while ``main`` stays there, and served as the last listing when the App's
+    budget is held."""
+
+    ref: str
+    names: list[str] | None
+    fetched_at: float
+
+
+@dataclass
+class CachedClaims:
+    """The claims table as one scan read it (F05-T20), reused for ``claims_max_stale_s``. Only
+    the rows are kept: which claims are active is decided on every read, against the clock, so a
+    claim still expires at its ``expires`` (R8)."""
+
+    claims: list[Claim]
+    pseudonyms: dict[str, str]
+    fetched_at: float
+
+
+@dataclass
 class Context:
     settings: config.Settings
     store: Store
@@ -146,6 +168,20 @@ class Context:
     # F08-T26: whether a network commit descends from ``uses_from``, by ``(uses_from, pin)``. A
     # commit's ancestry never changes, so an answer the host gave is kept for the process's life.
     ancestry: dict[tuple[str, str], bool] = field(default_factory=dict)
+    # F07-T68: when each running precheck job last asked the host about its run (monotonic), so
+    # polls of one job reach the host at most once per ``precheck_poll_min_s``.
+    precheck_polls: dict[str, float] = field(default_factory=dict)
+    # F07-T68: when a gate verdict's read last failed, by head commit (monotonic); it is not
+    # asked again for ``verdict_retry_s``.
+    verdict_failures: dict[str, float] = field(default_factory=dict)
+    # F07-T68: whether a merged annex is missing from the products, by (merge commit, rendered
+    # commit, annex directory): both commits are immutable, so the answer is kept.
+    annex_unrendered: dict[tuple[str, str, str], bool] = field(default_factory=dict)
+    # F07-T68: the MCP adapter's directory listings, by path, at the head they were read for.
+    listings: dict[str, CachedDir] = field(default_factory=dict)
+    # F05-T20: the claims table as the registry last scanned it, with the holders' pseudonyms;
+    # ``None`` until scanned, and again after a claim or a release through this process.
+    claims_scan: CachedClaims | None = None
 
 
 Handler = Callable[[Context, Request], Awaitable[Response]]

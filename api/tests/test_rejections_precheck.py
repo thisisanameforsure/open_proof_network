@@ -313,6 +313,7 @@ def test_download_failure_leaves_the_job_unfinished_not_errored(key: PrecheckKey
     assert job is not None and job.state == "queued" and job.error is None
 
     host.download_failure = None
+    h.context.precheck_polls.clear()  # F07-T68: the poll interval has passed
     assert h.client.get(f"/precheck/{job_id}").json()["state"] == "done"
 
 

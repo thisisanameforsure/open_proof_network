@@ -227,7 +227,7 @@ def test_concurrent_lookups_on_a_cold_process_mint_one_installation_token(
 
     def token(_: int) -> str:
         start.wait()
-        return host._installation_token(REPO)
+        return host._installation_token(REPO, githost.PULL_STATE)  # F06-T12: one scope
 
     with ThreadPoolExecutor(8) as pool:
         tokens = set(pool.map(token, range(8)))

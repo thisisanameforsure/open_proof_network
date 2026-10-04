@@ -20,7 +20,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from opn_api import clock as clockmod
-from opn_api.app import ApiError, CachedFile
+from opn_api.app import ApiError, CachedClaims, CachedFile
 from opn_api.githost import GitHostError
 from opn_api.store import Claim
 from opn_gate import schemas
@@ -95,6 +95,8 @@ def stale_all_but(ctx: Context, keep: str, now: float) -> None:
     for path, entry in list(ctx.files.items()):  # a copy: other threads may add (F07-T39)
         if path != keep:
             entry.fetched_at = min(entry.fetched_at, aged)
+    for listed in list(ctx.listings.values()):  # F07-T68: the MCP listings share the generation
+        listed.fetched_at = min(listed.fetched_at, aged)
 
 
 def committed(ctx: Context, path: str) -> bytes:
@@ -131,12 +133,28 @@ def is_active(claim: Claim, now: str) -> bool:
     return claim.released is None and claim.expires > now
 
 
+def claims_scan(ctx: Context) -> CachedClaims:
+    """F05-T20: the claims table as last scanned, reused for ``claims_max_stale_s``. A scan is a
+    paged ``Scan`` of every claim ever made (R9 counts released and expired ones), and it was
+    made on every anonymous ``/frontier.json`` and ``/claims.json``. ``claims.invalidate`` drops
+    it after a write through this process; another process sees the write within the window."""
+    kept = ctx.claims_scan
+    now = time.monotonic()
+    if kept is not None and now - kept.fetched_at < ctx.settings.claims_max_stale_s:
+        return kept
+    pseudonyms = dict(kept.pseudonyms) if kept is not None else {}
+    ctx.claims_scan = CachedClaims(ctx.store.list_claims(), pseudonyms, now)
+    return ctx.claims_scan
+
+
 def registry(ctx: Context) -> dict[str, dict[str, Any]]:
-    """Per node: ``active`` [{pseudonym, expires}] and ``history_count`` (R9)."""
+    """Per node: ``active`` [{pseudonym, expires}] and ``history_count`` (R9). Which claims are
+    active is decided here, against the clock, on every read, over the kept scan (F05-T20)."""
     now = clockmod.render(ctx.clock.now())
-    names: dict[str, str] = {}
+    scan = claims_scan(ctx)
+    names = scan.pseudonyms  # an identity's pseudonym never changes, so it is kept with the scan
     out: dict[str, dict[str, Any]] = {}
-    for claim in ctx.store.list_claims():
+    for claim in scan.claims:
         entry = out.setdefault(claim.node_id, {"active": [], "history_count": 0})
         entry["history_count"] += 1
         if not is_active(claim, now):

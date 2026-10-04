@@ -349,6 +349,24 @@ def budget_hold(ctx: Context) -> str | None:
     return None
 
 
+#: F07-T68: the most entries a per-commit answer table keeps before it starts again; the tables
+#: are caches, so forgetting costs one host read, and an unbounded one is a leak a poller grows.
+MAX_REMEMBERED = 4096
+
+
+def forget_old(table: dict[str, float], window_s: int) -> None:
+    """Drop the entries of a ``key -> monotonic`` table older than ``window_s`` once it is large,
+    so a table of recent host reads cannot grow without bound (F07-T68)."""
+    if len(table) < MAX_REMEMBERED:
+        return
+    cutoff = time.monotonic() - window_s
+    for key, at in list(table.items()):
+        if at < cutoff:
+            del table[key]
+    if len(table) >= MAX_REMEMBERED:
+        table.clear()
+
+
 def budget_message(ctx: Context, budget: HostBudget) -> str:
     return hostbudget.read_message(
         budget, ctx.clock.now().timestamp(), ctx.settings.host_budget_reserve
@@ -701,13 +719,25 @@ def gate_verdict(ctx: Context, number: int, pull: dict[str, Any] | None) -> dict
     gate = next((r for r in pull.get("runs") or [] if r.get("name") == GATE_WORKFLOW), None)
     found = RUN_ID_RE.search(str((gate or {}).get("url") or ""))
     if found is not None:
+        # F07-T68: an anonymous read, so held at the reserve like the live state beside it, and
+        # a failed read is not repeated for ``verdict_retry_s``: every poll of a refused pull
+        # request asked again, each ask one or two API calls.
+        failed_at = ctx.verdict_failures.get(sha)
+        if failed_at is not None and time.monotonic() - failed_at < ctx.settings.verdict_retry_s:
+            return None
+        if budget_hold(ctx) is not None:
+            return None  # not cached: the budget refills
         try:
             zipped = ctx.githost.latest_artifact(
                 ctx.settings.graph_repo, int(found.group(1)), f"{GATE_ARTIFACT_PREFIX}{number}-"
             )
         except GitHostError as exc:
             log.warning("pull request #%d: the gate's artifact could not be read: %s", number, exc)
-            return None  # not cached: the next read may reach the host
+            if sha:
+                forget_old(ctx.verdict_failures, ctx.settings.verdict_retry_s)
+                ctx.verdict_failures[sha] = time.monotonic()
+            return None  # cached as a failure only: a read after the window may reach the host
+        ctx.verdict_failures.pop(sha, None)
         doc = _verdict_document(zipped) if zipped is not None else None
         if doc is not None:
             out = {
@@ -771,10 +801,23 @@ def _annex_unrendered(ctx: Context, found: Submission, pull: dict[str, Any]) -> 
         return False
     rendered = precheck.rendered_from(ctx, found.target_id)
     directory = f"targets/{found.target_id}/nodes/{found.node_id}/annex"
+    # F07-T68: both listings are at immutable commits, so the answer is kept for that pair; and
+    # an anonymous read, so held at the reserve (the caller then changes nothing, C7).
+    key = (str(merge), rendered, directory)
+    known = ctx.annex_unrendered.get(key)
+    if known is not None:
+        return known
+    hold = budget_hold(ctx)
+    if hold is not None:
+        raise GitHostError(hold)
     repo = ctx.settings.graph_repo
     merged = ctx.githost.list_dir(repo, str(merge), directory) or []
     shown = ctx.githost.list_dir(repo, rendered, directory) or []
-    return bool(set(merged) - set(shown))
+    answer = bool(set(merged) - set(shown))
+    if len(ctx.annex_unrendered) >= MAX_REMEMBERED:
+        ctx.annex_unrendered.clear()
+    ctx.annex_unrendered[key] = answer
+    return answer
 
 
 def _witness_unrendered(ctx: Context, found: Submission, pull: dict[str, Any]) -> bool:

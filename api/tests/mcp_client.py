@@ -171,6 +171,7 @@ def seed_node(
         del harness.githost.files[stale]
     harness.githost.files.update(files)
     harness.context.files.clear()
+    harness.context.listings.clear()  # F07-T68: listings are cached per head, as files are
     return files
 
 
