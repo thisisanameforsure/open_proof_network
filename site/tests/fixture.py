@@ -504,3 +504,30 @@ def build_with_stewards(tmp_path: Path) -> Path:
     )
     products.generate(root, rendered_from=COMMIT, commit_time=NOW).write(root)
     return root
+
+
+# --- F04-T31: a problem resolved by each root-level D-12 artifact ------------------------------
+
+#: target id -> the artifact merged on its root (``settle``'s suffix, D-12): a proof, a
+#: counterexample, a vacuity certificate.
+RESOLUTIONS = {
+    "proved-target": "",
+    "disproved-target": "_refuted",
+    "ill-posed-target": "_vacuous",
+}
+
+
+def build_with_resolutions(tmp_path: Path) -> Path:
+    """The curated fixture plus three open-track targets, each resolved (F03-T17, D-33) by a
+    different root-level D-12 artifact, products rendered."""
+    import harness  # noqa: PLC0415
+    from test_finding_closed_root import settle  # noqa: PLC0415
+
+    from opn_gate import graph  # noqa: PLC0415
+
+    root = curated(tmp_path)
+    for n, (tid, suffix) in enumerate(RESOLUTIONS.items(), start=9):
+        harness.take_in(root, tid, track="open")
+        settle(root, graph.load_target(root, tid).root, suffix, n, tid)
+    products.generate(root, rendered_from=COMMIT, commit_time=NOW).write(root)
+    return root

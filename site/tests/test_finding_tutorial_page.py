@@ -11,7 +11,7 @@ from opn_site import render
 
 
 def target(*, tutorial: bool, status: str = "resolved") -> Any:
-    root = SimpleNamespace(tutorial=tutorial)
+    root = SimpleNamespace(tutorial=tutorial, status="proved")  # F04-T31: the root's status
     entry = {"root": "r", "status": status, "claimable": True, "not_claimable": []}
     return SimpleNamespace(
         index_entry=entry, nodes={"r": root}, stewards=[], calibration=False, record=None
@@ -21,6 +21,7 @@ def target(*, tutorial: bool, status: str = "resolved") -> Any:
 def renderer() -> Any:
     return SimpleNamespace(
         is_tutorial=render.Renderer.is_tutorial,
+        resolution=render.Renderer.resolution,  # F04-T31
         open_count=lambda _tv: 1,
         open_beneath=render.Renderer.open_beneath,
         why_not_claimable=lambda _tv, detail=True: "",

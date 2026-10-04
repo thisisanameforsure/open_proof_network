@@ -290,6 +290,23 @@ GLOSSARY: tuple[tuple[str, str, str, str], ...] = (
         "network produces on a problem. A problem without one does not accept work.",
         "steward (D-32)",
     ),
+    # F04-T31: the words a resolved problem wears when its root was not proved (D-33, F03-T17).
+    (
+        "disproved",
+        "disproved",
+        "A counterexample to the problem's own statement passed the checks and was merged, so "
+        "the conjecture is false as stated. The problem is resolved; its statements take no more "
+        "work at the root.",
+        "resolved · root refuted (D-33, D-12)",
+    ),
+    (
+        "ill-posed",
+        "shown ill-posed",
+        "A proof that the problem's own statement is vacuous passed the checks and was merged: "
+        "as formalized it holds for an empty reason and says nothing. The problem is resolved; a "
+        "curator may list a repaired version.",
+        "resolved · root defective (D-33, D-12, D-8)",
+    ),
     (
         "needs-steward",
         "Needs a steward",
@@ -362,7 +379,7 @@ LEGEND_BASE = ("proved", "open", "blocked")
 DOTTED_KEYS = (*LEGEND_BASE, NEEDS_WITNESS)
 LEGEND_EXTRA = ("stale", "disputed", "superseded", "abandoned", "refuted", "defective", "circular")
 #: F04-T21 (Q23): the Docs state map's keys. Every status ``graph.json`` can publish, as the
-#: site's word (F03-Q8: ``speculative`` reads open, so nine words for ten statuses), and the five
+#: site's word (F03-Q8: ``speculative`` reads open, so nine words for ten statuses), and the seven
 #: words a problem's status tag can wear; each key item is the hover card those pages use.
 STATE_MAP_STATEMENT_KEYS = (
     "open",
@@ -377,11 +394,43 @@ STATE_MAP_STATEMENT_KEYS = (
     "abandoned",
     "circular",
 )
-STATE_MAP_PROBLEM_KEYS = ("open", "needs a steward", "proved", "dormant", "known result")
+#: F04-T31 (F03-T17, D-33 as written): a resolved problem's word follows its root's status in
+#: ``graph.json`` — a counterexample or a vacuity certificate resolves a problem as a proof does,
+#: and the site may not call either one "proved". Any other root status (a problem resolved by a
+#: ``resolves`` variant) reads "proved".
+RESOLUTION_WORDS: dict[str, str] = {"refuted": "disproved", "defective": "shown ill-posed"}
+#: What a resolved problem's page says is on the record, by its word.
+RESOLUTION_RECORD: dict[str, str] = {
+    "proved": "a proof is on the record",
+    "disproved": "a counterexample is on the record",
+    "shown ill-posed": "a vacuity certificate is on the record",
+}
+#: The closing artifact each word names, for the digestion counts.
+RESOLUTION_ARTIFACT: dict[str, str] = {
+    "proved": "proof",
+    "disproved": "counterexample",
+    "shown ill-posed": "vacuity certificate",
+}
+STATE_MAP_PROBLEM_KEYS = (
+    "open",
+    "needs a steward",
+    "proved",
+    "disproved",
+    "shown ill-posed",
+    "dormant",
+    "known result",
+)
 #: A problem's status on the public pages (the handoff's three words), each with its definition.
 PROBLEM_STATUS_DEFS: dict[str, str] = {
     "open": "Listed, and its statements accept work.",
     "proved": "Its root statement has a merged proof. Not yet explained or written up.",
+    "disproved": (
+        "A merged counterexample refutes its root statement: the conjecture is false as stated."
+    ),
+    "shown ill-posed": (
+        "A merged vacuity certificate shows its root statement holds for an empty reason, so as "
+        "formalized it says nothing."
+    ),
     "needs a steward": (
         "Listed and reviewable, but nobody has committed to it yet, so it does not accept work."
     ),
@@ -1065,11 +1114,20 @@ class Renderer:
         return sum(1 for n in tv.nodes.values() if self.node_state(n) in WORKABLE_STATES)
 
     @staticmethod
+    def resolution(tv: TargetView) -> str:
+        """F04-T31: how a resolved problem was resolved, by its root's status in ``graph.json``
+        (proved, disproved, shown ill-posed). Only meaningful when the index says resolved."""
+        root = tv.nodes.get(str(tv.index_entry.get("root") or ""))
+        status = root.status if root is not None else "proved"
+        return RESOLUTION_WORDS.get(status, "proved")
+
+    @staticmethod
     def problem_status(tv: TargetView) -> str:
-        """open · proved · needs a steward, or the D-33 word for a dormant or known result."""
+        """open · needs a steward, how a resolved problem was resolved (F04-T31), or the D-33
+        word for a dormant or known result."""
         status = str(tv.index_entry["status"])
         if status == "resolved":
-            return "proved"
+            return Renderer.resolution(tv)
         if status == "dormant":
             return "dormant"
         if status == "known-result":
@@ -1084,7 +1142,7 @@ class Renderer:
         status = self.problem_status(tv)
         body = esc(self.words["status_defs"].get(status, status))
         e = tv.index_entry
-        if not e.get("claimable") and status != "proved":
+        if not e.get("claimable") and str(e["status"]) != "resolved":
             reasons = [esc(intake.explain(str(r))) for r in e.get("not_claimable") or []]
             why = "; ".join(reasons) or esc(NO_RECORD_WORDS)
             body += f'<span class="why">Not claimable: {why}.</span>'
@@ -1100,12 +1158,14 @@ class Renderer:
         return self.hover(esc(word), body, classes="tag tag-outline")
 
     def stage_marks(self, tv: TargetView) -> str:
-        """Proved · Explained · Written up: which of the three a problem has reached."""
+        """Proved · Explained · Written up: which of the three a problem has reached. A problem
+        resolved against its statement says so in the first mark (F04-T31)."""
         digestion = tv.digestion or {}
         state = str(digestion.get("state") or "")
-        proved = str(tv.index_entry["status"]) == "resolved"
+        resolved = str(tv.index_entry["status"]) == "resolved"
+        first = self.resolution(tv).capitalize() if resolved else "Proved"
         reached = (
-            ("Proved", proved),
+            (first, resolved),
             ("Explained", state in ("explained", "written-up")),
             ("Written up", state == "written-up"),
         )
@@ -1284,7 +1344,8 @@ class Renderer:
             for k in LEGEND_KEYS
         )
         open_statements = sum(self.open_count(tv) for tv in targets)
-        proved = sum(1 for tv in targets if str(tv.index_entry["status"]) == "resolved")
+        # F04-T31: the "Proved" segment filters ``data-status="proved"``; count the same set.
+        proved = sum(1 for tv in targets if self.problem_status(tv) == "proved")
         body = _template("problems.html").substitute(
             cards=cards,
             legend=legend,
@@ -1307,7 +1368,8 @@ class Renderer:
         tid = tv.target_id
         status = self.problem_status(tv)
         rows = "".join(self.statement_row(tv, nv) for nv in self.ordered_nodes(tv))
-        action = "View the graph →" if status == "proved" else "View problem →"
+        resolved = str(tv.index_entry["status"]) == "resolved"
+        action = "View the graph →" if resolved else "View problem →"
         return _template("problem-card.html").substitute(
             target_id=esc(tid),
             href=esc(self.target_path(tid)),
@@ -1440,16 +1502,19 @@ class Renderer:
         if str(tv.index_entry["status"]) == "resolved":
             # D-33 v3.20 (F04-T22): resolved is a fact about the root. What was proposed beneath
             # it is open work, and the page says how much rather than closing the door on it.
+            # F04-T31: and how it was resolved, since a counterexample resolves it too.
+            word = self.resolution(tv)
+            head = f"{word.capitalize()}: {RESOLUTION_RECORD[word]}"
             beneath = self.open_count(tv) if self.open_beneath(tv) else 0
             if beneath:
                 guide = f'<a href="{GUIDE_HREF}">How to contribute →</a>'
                 noun = "statement" if beneath == 1 else "statements"
                 return (
-                    '<p class="claimable">Proved: the problem\'s own statement is closed. '
-                    f"{beneath} {noun} proposed beneath it {'is' if beneath == 1 else 'are'} "
-                    f"open for work. {guide}</p>"
+                    f'<p class="claimable">{esc(head)}, so the problem\'s own statement is '
+                    f"closed. {beneath} {noun} proposed beneath it "
+                    f"{'is' if beneath == 1 else 'are'} open for work. {guide}</p>"
                 )
-            return '<p class="claimable">Proved: its statement no longer accepts work.</p>'
+            return f'<p class="claimable">{esc(head)}, so its statement no longer accepts work.</p>'
         return self.why_not_claimable(tv)
 
     @staticmethod
@@ -1526,7 +1591,10 @@ class Renderer:
         )
         e = tv.index_entry
         title = str(tv.record.get("title") or "") if tv.record else ""
+        resolved = str(tv.index_entry["status"]) == "resolved"
         body = _template("target.html").substitute(
+            # F04-T31: the section names the first stage as the problem reached it.
+            digestion_heading=esc(self.resolution(tv).capitalize() if resolved else "Proved"),
             target_id=esc(tid),
             status_tag=self.status_tag(tv),
             fidelity_tag=self.fidelity_tag(tv),
@@ -1600,8 +1668,8 @@ class Renderer:
         elif str(tv.index_entry["status"]) == "resolved":
             names, words = (
                 "None yet",
-                "This problem is proved but not explained. It waits for a mathematician to "
-                "commit to writing it up and to sign the explainer.",
+                f"This problem is {self.resolution(tv)} but not explained. It waits for a "
+                "mathematician to commit to writing it up and to sign the explainer.",
             )
             button = '<a class="btn btn-secondary" href="/docs/#stewards">Become its steward</a>'
         elif tv.record is None or tv.record.get("track") != "open":
@@ -1842,12 +1910,16 @@ class Renderer:
         if not digestion or not digestion.get("state"):
             return "<p>Not resolved, so no digestion state yet (D-33 v3.17).</p>"
         state = str(digestion["state"])
+        # F04-T31: a counterexample or vacuity certificate closes the root too (F03-T17), and its
+        # closure counts settled nodes, not only proved ones.
+        word = self.resolution(tv)
+        settled = "proved" if word == "proved" else "settled"
         parts = [
             f'<p class="lead">Resolved — <strong>{esc(state)}</strong>. Reported back as: '
             f"<em>{esc(DIGESTION_WORDS[state])}</em> (D-10 v3.17).</p>",
             f"<p>{esc(str(digestion['closure_explained']))} of "
-            f"{esc(str(digestion['closure']))} proved nodes in the closing proof's dependency "
-            "closure carry a signed explainer.</p>",
+            f"{esc(str(digestion['closure']))} {settled} nodes in the closing "
+            f"{RESOLUTION_ARTIFACT[word]}'s dependency closure carry a signed explainer.</p>",
         ]
         if tv.writeups:
             items = "".join(

@@ -1087,6 +1087,8 @@ def check_status_record(  # noqa: PLR0911 — one return per rule
     if located.role == "target-status":
         return check_activation(graph_root, located, data, classification)
     if classification.mode != "proposal":
+        if located.role == "node-status":
+            return check_dispute_reference(graph_root, located, data)
         return problems
     doc = _document(located, data)
     if isinstance(doc, Diagnostic):
@@ -1098,6 +1100,40 @@ def check_status_record(  # noqa: PLR0911 — one return per rule
                 f"{located.path}: a proposal may mark its node {PROPOSAL_STATUS!r} and nothing "
                 f"else (D-14, F08-Q2); {doc.get('status')!r} is a curator's record (F08-R8)",
                 {"path": located.path, "status": doc.get("status")},
+            )
+        ]
+    return []
+
+
+def check_dispute_reference(graph_root: Path, located: Located, data: bytes) -> list[Diagnostic]:
+    """F08-T38 (D-18 v3.28): a ``disputed`` record names the defect claim it accepts — a valid,
+    standing claim on its own node — by the curator command's own rule (``curator.accepted_claim``,
+    F08-T35), so a hand-written record is held to what the command writes. Without a claim it
+    could never lift when one is withdrawn (``graph.disputed_is_void``, F08-T32). Every other
+    status (``abandoned``, D-14) takes no claim and is not asked."""
+    from opn_gate import curator  # noqa: PLC0415 — curator pulls in the toolchain steps
+
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]  # defence in depth: _check_schema just parsed this same document
+    if doc.get("status") != curator.DISPUTED or located.node_id is None:
+        return []
+    reference = doc.get("reference")
+    node_dir = PurePosixPath(located.path).parent.parent
+    try:
+        curator.accepted_claim(
+            graph_root / node_dir,
+            located.target_id,
+            located.node_id,
+            None if reference is None else str(reference),
+        )
+    except curator.CuratorError as exc:
+        return [
+            Diagnostic(
+                "dispute-claim-unnamed",
+                f"{located.path}: a disputed record names the defect claim on this node it "
+                f"accepts for adjudication (D-18 v3.28); {exc}",
+                {"path": located.path, "reference": reference},
             )
         ]
     return []
