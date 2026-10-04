@@ -174,8 +174,9 @@ class Store(Protocol):
         """Read and delete in one step (single use); ``None`` when absent or expired."""
         ...
 
-    def bump_counter(self, key: str, expires: datetime) -> int:
-        """Increment and return the counter at ``key``; it disappears after ``expires``."""
+    def bump_counter(self, key: str, expires: datetime, *, by: int = 1) -> int:
+        """Add ``by`` (one by default; negative to give back a reservation, F13-T28) to the
+        counter at ``key`` atomically and return it; it disappears after ``expires``."""
         ...
 
     def drop_counter(self, key: str) -> None:
@@ -281,10 +282,10 @@ class MemoryStore:
             return None
         return item[0]
 
-    def bump_counter(self, key: str, expires: datetime) -> int:
+    def bump_counter(self, key: str, expires: datetime, *, by: int = 1) -> int:
         count, _ = self.counters.get(key, (0, expires))
-        self.counters[key] = (count + 1, expires)
-        return count + 1
+        self.counters[key] = (count + by, expires)
+        return count + by
 
     def drop_counter(self, key: str) -> None:
         self.counters.pop(key, None)
@@ -530,12 +531,12 @@ class DynamoStore:
         # `plain`, as in get_job: what went in comes back out, ints not Decimals.
         return plain(dict(data)) if isinstance(data, dict) else None
 
-    def bump_counter(self, key: str, expires: datetime) -> int:
+    def bump_counter(self, key: str, expires: datetime, *, by: int = 1) -> int:
         updated = self._tokens.update_item(
             Key={"key": key},
-            UpdateExpression="ADD #c :one SET expires_at = if_not_exists(expires_at, :exp)",
+            UpdateExpression="ADD #c :n SET expires_at = if_not_exists(expires_at, :exp)",
             ExpressionAttributeNames={"#c": "count"},
-            ExpressionAttributeValues={":one": 1, ":exp": _epoch(expires)},
+            ExpressionAttributeValues={":n": by, ":exp": _epoch(expires)},
             ReturnValues="UPDATED_NEW",
         )
         return int(updated["Attributes"]["count"])

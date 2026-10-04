@@ -31,9 +31,9 @@ import logging
 import re
 import threading
 import time
-from collections.abc import Sequence
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import asdict, dataclass, replace
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
@@ -1695,14 +1695,76 @@ def refuse_axioms(  # noqa: PLR0913 — the axioms, the rule, and what to call a
 #: What a proposal's 201 says of its pre-flight: the checker found the witness's type is the one
 #: step 7 wants and the text compiles (F13-T17); it answered without a verdict (the statement or
 #: the witness did not elaborate there); or it could not be asked (no environment, down, out of
-#: time, busy, budget spent).
+#: time, busy). A spent check budget is no longer a word here: since F13-T28 it is the caller's
+#: 429, before anything opens.
 PREFLIGHT_MATCHED = "matched"
 PREFLIGHT_INCONCLUSIVE = "inconclusive"
 PREFLIGHT_UNAVAILABLE = "unavailable"
 
 
-async def preflight_witness(
-    ctx: Context, identity_id: str, target_id: str, node_id: str, files: dict[str, str]
+class Charge(Protocol):
+    """Where a pre-flight pays for its one call to the checker (``ratelimit.Reservation``)."""
+
+    def take(self) -> None: ...
+
+
+class _WouldCharge(Exception):  # noqa: N818 — a signal, not an error
+    """A probing run reached the point where it would pay: it needs one check."""
+
+
+class _Probe:
+    def take(self) -> None:
+        raise _WouldCharge
+
+
+Run = Callable[[Charge], Awaitable[str]]
+
+
+async def reserved(ctx: Context, identity_id: str, runs: Sequence[Run]) -> list[str]:
+    """F13-T28 (the owner's ruling amending F13-Q22): the pre-flights a route runs, paid for
+    together and up front, failing closed.
+
+    Each run first goes as far as the point where it would be charged, with a probe that stops
+    it there, so a run that answers without the checker (nothing to check, no checkers on the
+    target, a label that claims nothing) needs nothing and its word is final; the reads before
+    that point are the committed graph's, cached, and side-effect free. The rest are reserved in
+    one step (``ratelimit.reserve_checks``): a budget that cannot cover them all is the caller's
+    429 with ``Retry-After`` before any checker call, branch or pull request, and nothing is
+    spent. They then run side by side, each taking its check where it used to be charged, and
+    whatever was reserved and not taken is given back. Refusals are raised in the order of
+    ``runs`` (the statement before what is of it), as before."""
+    words: list[str | BaseException | None] = []
+    for run in runs:
+        try:
+            words.append(await run(_Probe()))
+        except _WouldCharge:
+            words.append(None)
+    needed = [i for i, word in enumerate(words) if word is None]
+    reservation = ratelimit.reserve_checks(ctx, identity_id, len(needed))
+    try:
+        outcomes = await asyncio.gather(
+            *(runs[i](reservation) for i in needed), return_exceptions=True
+        )
+    finally:
+        reservation.release()
+    for i, outcome in zip(needed, outcomes, strict=True):
+        words[i] = outcome
+    out: list[str] = []
+    for word in words:
+        if isinstance(word, BaseException):
+            raise word
+        out.append(str(word))
+    return out
+
+
+async def preflight_witness(  # noqa: PLR0913 — the caller, the node, its files, its payment
+    ctx: Context,
+    identity_id: str,
+    target_id: str,
+    node_id: str,
+    files: dict[str, str],
+    *,
+    reservation: Charge | None = None,
 ) -> str:
     """Witness mode over exactly the files a proposal is about to push, before its pull request
     exists: the statement as written (own-Context import included), its generated Context
@@ -1713,15 +1775,23 @@ async def preflight_witness(
     the identity's check budget and logged as a check, like every call to the checker (R8, R9)."""
     from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
 
+    if reservation is None:  # F13-T28: on its own, it reserves its own check
+        (word,) = await reserved(
+            ctx,
+            identity_id,
+            [
+                lambda r: preflight_witness(
+                    ctx, identity_id, target_id, node_id, files, reservation=r
+                )
+            ],
+        )
+        return word
     prefix = f"targets/{target_id}/nodes/{node_id}/"
     parsed = layout.parse_statement(files.get(prefix + "Statement.lean", ""))
     witness = files.get(prefix + "Witness.lean", "")
     if not isinstance(parsed, layout.Statement) or not witness.strip():
         return PREFLIGHT_UNAVAILABLE  # the scaffold refuses both before this is reached
-    try:
-        ratelimit.check_check(ctx, identity_id)
-    except ApiError:
-        return PREFLIGHT_UNAVAILABLE  # a spent check budget skips the courtesy, never the route
+    reservation.take()  # F13-T28: reserved up front, so a spent budget never reaches here
     req = CheckRequest(target_id, node_id, witness, "witness")
     caller = Caller("identity", identity_id)
     started = time.monotonic()
@@ -1814,8 +1884,14 @@ PREFLIGHT_CLEAR = "clear"
 PREFLIGHT_ACKNOWLEDGED = "acknowledged"
 
 
-async def preflight_hazards(  # noqa: PLR0911 — one return per outcome word
-    ctx: Context, identity_id: str, target_id: str, node_id: str, files: dict[str, str]
+async def preflight_hazards(  # noqa: PLR0911, PLR0913 — one return per outcome word
+    ctx: Context,
+    identity_id: str,
+    target_id: str,
+    node_id: str,
+    files: dict[str, str],
+    *,
+    reservation: Charge | None = None,
 ) -> str:
     """F13-T20 (D8): step 6 over exactly the statement a proposal is about to push, before its
     pull request exists, on the hosted checker: the target's checkers, the gate's own matching
@@ -1829,6 +1905,17 @@ async def preflight_hazards(  # noqa: PLR0911 — one return per outcome word
     from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
     from opn_gate.steps import hazards as gate_hazards  # noqa: PLC0415
 
+    if reservation is None:  # F13-T28: on its own, it reserves its own check
+        (word,) = await reserved(
+            ctx,
+            identity_id,
+            [
+                lambda r: preflight_hazards(
+                    ctx, identity_id, target_id, node_id, files, reservation=r
+                )
+            ],
+        )
+        return word
     prefix = f"targets/{target_id}/nodes/{node_id}/"
     parsed = layout.parse_statement(files.get(prefix + "Statement.lean", ""))
     if not isinstance(parsed, layout.Statement):
@@ -1839,10 +1926,7 @@ async def preflight_hazards(  # noqa: PLR0911 — one return per outcome word
         return PREFLIGHT_UNAVAILABLE  # the gate owner's configuration, or the graph unread
     if not checkers:
         return PREFLIGHT_CLEAR  # step 6 runs nothing on this target; nothing to spend
-    try:
-        ratelimit.check_check(ctx, identity_id)
-    except ApiError:
-        return PREFLIGHT_UNAVAILABLE  # a spent check budget skips the courtesy, never the route
+    reservation.take()  # F13-T28: reserved up front, so a spent budget never reaches here
     req = CheckRequest(target_id, node_id, parsed.text, "hazards")
     caller = Caller("identity", identity_id)
     started = time.monotonic()
@@ -1924,17 +2008,16 @@ async def preflight_proposal(  # noqa: PLR0913 — the caller, the node, its fil
     before it opens the pull request (F13-T16). A hazard refusal is raised before a witness
     refusal, and both before a relation refusal: the statement is what the others are of.
     F13-T23: a variant's relation proof is the third (``relation_preflight``)."""
-    runs = [
-        preflight_hazards(ctx, identity_id, target_id, node_id, files),
-        preflight_witness(ctx, identity_id, target_id, node_id, files),
+    runs: list[Run] = [
+        lambda r: preflight_hazards(ctx, identity_id, target_id, node_id, files, reservation=r),
+        lambda r: preflight_witness(ctx, identity_id, target_id, node_id, files, reservation=r),
     ]
     if variant:
-        runs.append(preflight_relation(ctx, identity_id, target_id, node_id, files))
-    outcomes = await asyncio.gather(*runs, return_exceptions=True)
-    for outcome in outcomes:
-        if isinstance(outcome, BaseException):
-            raise outcome
-    words = [str(o) for o in outcomes]
+        runs.append(
+            lambda r: preflight_relation(ctx, identity_id, target_id, node_id, files, reservation=r)
+        )
+    # F13-T28: every check the three need is reserved before any of them asks the checker.
+    words = await reserved(ctx, identity_id, runs)
     out = {"hazards_preflight": words[0], "witness_preflight": words[1]}
     if variant:
         out["relation_preflight"] = words[2]
@@ -2069,8 +2152,14 @@ def root_block(
     return forwarded_text(parsed.text, defs)
 
 
-async def preflight_relation(  # noqa: PLR0911, PLR0912, PLR0915 — one return per outcome word
-    ctx: Context, identity_id: str, target_id: str, node_id: str, files: dict[str, str]
+async def preflight_relation(  # noqa: PLR0911, PLR0912, PLR0913, PLR0915 — one return per word
+    ctx: Context,
+    identity_id: str,
+    target_id: str,
+    node_id: str,
+    files: dict[str, str],
+    *,
+    reservation: Charge | None = None,
 ) -> str:
     """F13-T23 (audit Q-c): admission's relation check (``admit.RelationCheck``, D-30) on the
     hosted checker, before a variant's pull request exists. The variant's statement as it will be
@@ -2086,6 +2175,17 @@ async def preflight_relation(  # noqa: PLR0911, PLR0912, PLR0915 — one return 
     from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
     from opn_gate import graph as graphmod  # noqa: PLC0415
 
+    if reservation is None:  # F13-T28: on its own, it reserves its own check
+        (word,) = await reserved(
+            ctx,
+            identity_id,
+            [
+                lambda r: preflight_relation(
+                    ctx, identity_id, target_id, node_id, files, reservation=r
+                )
+            ],
+        )
+        return word
     prefix = f"targets/{target_id}/nodes/{node_id}/"
     relation = files.get(prefix + scaffold.RELATION_FILE)
     label = graphmod.relation_label(relation, "variant") if relation else None
@@ -2109,10 +2209,7 @@ async def preflight_relation(  # noqa: PLR0911, PLR0912, PLR0915 — one return 
         return PREFLIGHT_UNAVAILABLE  # the graph unread: nothing spent, the gate decides
     if not isinstance(root_parsed, layout.Statement):
         return PREFLIGHT_UNAVAILABLE  # the root's own defect, not this proposal's
-    try:
-        ratelimit.check_check(ctx, identity_id)
-    except ApiError:
-        return PREFLIGHT_UNAVAILABLE  # a spent check budget skips the courtesy, never the route
+    reservation.take()  # F13-T28: reserved up front, so a spent budget never reaches here
     req = CheckRequest(target_id, node_id, relation, "check")
     caller = Caller("identity", identity_id)
     started = time.monotonic()
@@ -2306,6 +2403,7 @@ async def preflight_exhibit(  # noqa: PLR0913 — the caller, the node, the text
     exhibit: str,
     *,
     relational: bool = False,
+    reservation: Charge | None = None,
 ) -> str:
     """F13-T22: the gate's exhibit check (``opn-gate exhibits``: the exhibit elaborates, against
     the node it is about) on the hosted checker, before the append's pull request exists. One
@@ -2316,13 +2414,27 @@ async def preflight_exhibit(  # noqa: PLR0913 — the caller, the node, the text
     sent, so it is skipped rather than half-checked. Charged and logged as a check (R8, R9)."""
     from opn_api.app import ApiError  # noqa: PLC0415 — app imports the routes that import this
 
+    if reservation is None:  # F13-T28: on its own, it reserves its own check
+        (word,) = await reserved(
+            ctx,
+            identity_id,
+            [
+                lambda r: preflight_exhibit(
+                    ctx,
+                    identity_id,
+                    target_id,
+                    node_id,
+                    exhibit,
+                    relational=relational,
+                    reservation=r,
+                )
+            ],
+        )
+        return word
     found = None if relational else exhibit_imports(exhibit, node_id)
     if found is None:
         return PREFLIGHT_SKIPPED
-    try:
-        ratelimit.check_check(ctx, identity_id)
-    except ApiError:
-        return PREFLIGHT_UNAVAILABLE  # a spent check budget skips the courtesy, never the route
+    reservation.take()  # F13-T28: reserved up front, so a spent budget never reaches here
     req = CheckRequest(target_id, node_id, exhibit, "check")
     caller = Caller("identity", identity_id)
     started = time.monotonic()

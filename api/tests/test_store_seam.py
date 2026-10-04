@@ -120,12 +120,12 @@ class FakeTable:
         if expression in ("ADD #ids :one", "DELETE #ids :one"):
             return self._set_update(expression.split()[0], kwargs)
         # The counter expression (bump_counter); anything else is a test error.
-        assert expression == ("ADD #c :one SET expires_at = if_not_exists(expires_at, :exp)")
+        assert expression == ("ADD #c :n SET expires_at = if_not_exists(expires_at, :exp)")
         counter = kwargs["ExpressionAttributeNames"]["#c"]
         values = through_dynamo(kwargs["ExpressionAttributeValues"])
         key = str(kwargs["Key"][self.key])
         item = self.items.setdefault(key, {self.key: key})
-        item[counter] = Decimal(item.get(counter, 0)) + values[":one"]
+        item[counter] = Decimal(item.get(counter, 0)) + values[":n"]
         item.setdefault("expires_at", values[":exp"])
         assert kwargs["ReturnValues"] == "UPDATED_NEW"
         return {"Attributes": {counter: item[counter]}}
@@ -699,7 +699,14 @@ def test_bump_counter_sets_the_ttl_once_and_adds_atomically() -> None:
     assert item["expires_at"] == Decimal(int(LATER.timestamp()))
     calls = resource.client.tables[TABLES["tokens"]].calls
     assert all(op == "update_item" for op, _ in calls)
-    assert calls[0][1]["ExpressionAttributeValues"] == {":one": 1, ":exp": int(LATER.timestamp())}
+    assert calls[0][1]["ExpressionAttributeValues"] == {":n": 1, ":exp": int(LATER.timestamp())}
+
+
+def test_bump_counter_adds_by_any_amount_in_both_stores(both: Store) -> None:
+    """F13-T28: a reservation takes several at once and gives back what it did not use."""
+    assert both.bump_counter("rate#check#s#0", LATER, by=3) == 3
+    assert both.bump_counter("rate#check#s#0", LATER, by=-2) == 1
+    assert both.bump_counter("rate#check#s#0", LATER) == 2
 
 
 def test_bump_counter_failure_propagates() -> None:

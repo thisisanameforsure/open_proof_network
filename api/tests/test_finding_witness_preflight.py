@@ -265,8 +265,10 @@ def test_a_checker_answer_that_names_no_statement_error_is_inconclusive_not_refu
 
 
 def test_the_pre_flight_is_charged_and_logged_as_a_check() -> None:
-    """The check budget bounds it (a spent budget skips it, never refuses the proposal), and the
-    call log keeps it without its text, as every call to the checker (R9)."""
+    """The check budget bounds it, and the call log keeps it without its text, as every call to
+    the checker (R9). Restated by F13-T28 (the owner's ruling amending F13-Q22): a spent budget
+    used to skip the pre-flight and open the proposal anyway (``unavailable``); it now refuses
+    the proposal with the budget's 429 before anything is asked or opened."""
     h = harness(MATCH)
     r = variant(h, RIGHT)
     assert r.status_code == 201, r.text
@@ -280,8 +282,10 @@ def test_the_pre_flight_is_charged_and_logged_as_a_check() -> None:
     )
     assert first.status_code == 200, first.text  # the hour's one check, spent
     r = variant(spent, RIGHT)
-    assert r.status_code == 201, r.text
-    assert r.json()["witness_preflight"] == "unavailable"
+    assert r.status_code == 429, r.text
+    assert r.json()["error"] == "rate-limited"
+    assert int(r.headers["retry-after"]) > 0
+    assert spent.githost.pulls == []
     assert len(spent.axle.calls) == 1  # the check's, and none for the pre-flight
 
 
