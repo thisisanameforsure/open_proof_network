@@ -4,6 +4,7 @@
       "annex_present": false,
       "attempts": 0,
       "bounty": false,
+      "cause": null,
       "claimable": false,
       "claims": {
         "active": [],
@@ -11,12 +12,14 @@
       },
       "dormant": false,
       "failure_class_histogram": {},
+      "needs": "proof",
       "node_id": "and-reassoc",
       "origin": "authored",
       "ready_since": "2026-09-09T12:00:00Z",
       "refuted_route_classes": [],
       "relation": null,
       "statement_hash": "22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7",
+      "status": "ready",
       "tags": {
         "deps": [],
         "library": []
@@ -28,6 +31,7 @@
       "annex_present": false,
       "attempts": 0,
       "bounty": false,
+      "cause": null,
       "claimable": false,
       "claims": {
         "active": [],
@@ -35,12 +39,14 @@
       },
       "dormant": false,
       "failure_class_histogram": {},
+      "needs": "proof",
       "node_id": "frozen-lemma",
       "origin": "authored",
       "ready_since": "2026-09-09T12:00:00Z",
       "refuted_route_classes": [],
       "relation": null,
       "statement_hash": "22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7",
+      "status": "ready",
       "tags": {
         "deps": [],
         "library": []
@@ -52,6 +58,7 @@
       "annex_present": false,
       "attempts": 0,
       "bounty": false,
+      "cause": null,
       "claimable": false,
       "claims": {
         "active": [],
@@ -59,12 +66,14 @@
       },
       "dormant": false,
       "failure_class_histogram": {},
+      "needs": "proof",
       "node_id": "tutorial-and-swap",
       "origin": "authored",
       "ready_since": "2026-09-09T12:00:00Z",
       "refuted_route_classes": [],
       "relation": null,
       "statement_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+      "status": "ready",
       "tags": {
         "deps": [],
         "library": []
@@ -74,5 +83,5 @@
     }
   ],
   "rendered_from": "5555555555555555555555555555555555555555",
-  "schema": "frontier/v3"
+  "schema": "frontier/v4"
 }

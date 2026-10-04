@@ -54,7 +54,7 @@ log = logging.getLogger(__name__)
 
 PROTOCOL_VERSION = "3.26"  # docs/architecture_decisions.html (v3.26, F18)
 GRAPH_SCHEMA = "graph/v4"  # F08-T27, F18: each proof and what it used (v3: F12-R13)
-FRONTIER_SCHEMA = "frontier/v3"  # T7: attempts counts partials (v2, F11-R4: D-33 dormancy)
+FRONTIER_SCHEMA = "frontier/v4"  # T16: status, cause, needs (v3, T7: partials; v2: D-33 dormancy)
 #: F11-R12 renames D-9's second rung and F11-R3/R4 add the derived fields. v2 was already spent
 #: on F07-R8's node counts and D-34 forbids editing it, so the rename lands at v3 (F11-Q9).
 #: F12-R14 adds the QA pass state per subject, the counted attempts and the drift flag: v4.
@@ -63,7 +63,7 @@ FRONTIER_SCHEMA = "frontier/v3"  # T7: attempts counts partials (v2, F11-R4: D-3
 #: F15-R9: the policy state at the top; per target the active stewards, the digestion state with
 #: its counts, the calibration flag, and `no-steward` among the reasons: v6.
 INDEX_SCHEMA = "targets-index/v7"  # v7 (F07-T24): step9 gains `calibration`
-INFO_SCHEMA = "info/v1"
+INFO_SCHEMA = "info/v2"  # F05-T25: guide_url, errors_url (null here; the service fills them)
 CLAIMS_SCHEMA = "claims/v1"
 CLAIMS_FILE = "claims.json"
 TAGS_CACHE = ".tags-cache.json"
@@ -582,13 +582,15 @@ def status_or_ready(statuses: Mapping[str, str], node_id: str) -> str:
 
 
 def workable(status: str, node: NodeFacts, status_of: Callable[[str], str]) -> bool:
-    """R13: what a claim could be worked on. A ready or speculative node, or a hole waiting only
-    for its witness while ``blocked`` is still its status. A record status is the curator's word
-    over the mechanical reason, the reading ``graph.derive_causes`` takes for ``cause`` and the
-    api's witness route keys off; and a superseded node is refused on the fact itself (D-8),
-    whatever its slot says. Found live 2026-09-17: ``erdos-69--h2``, replaced by a D-8 revision,
-    was still ``claimable: true`` because the hole clause asked only about the slot. One predicate
-    for membership and for ``claimable``, so the two cannot drift (the 2026-09-14 lesson)."""
+    """R13: what a contributor could work on. A ready or speculative node, or a hole waiting only
+    for its witness while ``blocked`` is still its status. (F03-T16: ``claimable`` is narrower —
+    a claim reserves a proof, so it keys off :func:`needs_of`; the superseded and circular
+    exclusions below hold there too, since ``needs_of`` answers ``None`` for both.) A record
+    status is the curator's word over the mechanical reason, the reading ``graph.derive_causes``
+    takes for ``cause`` and the api's witness route keys off; and a superseded node is refused on
+    the fact itself (D-8), whatever its slot says. Found live 2026-09-17: ``erdos-69--h2``,
+    replaced by a D-8 revision, was still ``claimable: true`` because the hole clause asked only
+    about the slot."""
     if graphmod.is_superseded(node):
         return False
     if graphmod.is_circular(node, status):
@@ -596,6 +598,34 @@ def workable(status: str, node: NodeFacts, status_of: Callable[[str], str]) -> b
     if status in graphmod.FRONTIER_STATUSES:
         return True
     return status == "blocked" and graphmod.awaiting_witness(node, status_of)
+
+
+#: F03-T16 (frontier/v4): what an entry's node needs. A claim reserves a proof, so ``claimable``
+#: is true only where ``needs`` is ``NEEDS_PROOF``.
+NEEDS_PROOF = "proof"
+NEEDS_WITNESS = "witness"
+NEEDS_DEPENDENCIES = "dependencies"
+
+
+def needs_of(status: str, node: NodeFacts, status_of: Callable[[str], str]) -> str | None:
+    """F03-T16: the next action on a frontier node, from the facts :func:`in_frontier` reads.
+
+    ``proof`` for a ready or speculative node; ``witness`` for a hole blocked only by its unfilled
+    slot (``POST /proposals/witness`` takes it, D-29); ``dependencies`` for a node blocked on
+    dependencies nobody has proved yet (an open variant, which R5 lists whatever it waits on);
+    ``None`` when no contributor's submission moves it — a refuted dependency (a curator has to
+    act, D-12), a curator's ``stale`` or ``disputed`` record, a superseded or circular node.
+    """
+    if graphmod.is_superseded(node) or graphmod.is_circular(node, status):
+        return None
+    if status in graphmod.FRONTIER_STATUSES:
+        return NEEDS_PROOF
+    if status != "blocked":
+        return None
+    if graphmod.awaiting_witness(node, status_of):
+        return NEEDS_WITNESS
+    blocked, cause = graphmod.blocked_because(node, status_of)
+    return NEEDS_DEPENDENCIES if blocked and cause is None else None
 
 
 #: D-14: the curator's status for a dead branch; on the graph with its cause, off the frontier.
@@ -657,6 +687,8 @@ def frontier_entry(
     claims: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     status = tg.statuses[node.node_id]
+    status_of = functools.partial(status_or_ready, tg.statuses)
+    needs = needs_of(status, node, status_of)
     attempts = records.load_attempts(node.path)
     for name in attempts.invalid_files:
         log.warning(
@@ -678,17 +710,21 @@ def frontier_entry(
         "annex_present": annex_present(node.path),
         "bounty": False,
         # Q4 (T6): the target's claimability and the node's status. An open variant is listed
-        # while it waits on its holes (R5), but a claim on it could not be worked. A hole waiting
-        # only for its witness is the exception that premise does not cover: the witness *is* the
-        # work, and ``POST /proposals/witness`` accepts it today, so a claim on it is workable
-        # (owner's call, 2026-09-16).
-        "claimable": claimable
-        and workable(status, node, functools.partial(status_or_ready, tg.statuses)),
+        # while it waits on its holes (R5), but a claim on it could not be worked. F03-T16
+        # (frontier/v4): a claim reserves a proof, so a hole waiting only for its witness is
+        # listed (D-29, Q11) with ``needs: witness`` and is not claimable — live, three such holes
+        # read ``claimable: true`` and every claim on one was answered ``409 node-blocked``.
+        "claimable": claimable and needs == NEEDS_PROOF,
         "tutorial": node.tutorial,
         # D-33: a dormancy declaration refuses no claim, so this is a fact and not a gate. It
         # rides on the entry rather than only on the index so an agent choosing work sees it
         # without a second fetch (F11-R4).
         "dormant": dormant,
+        # F03-T16: what the entry's node is and what would move it, graph.json's two facts and
+        # the next action derived from them, so an agent choosing work needs no second fetch.
+        "status": status,
+        "cause": graphmod.cause_of(node, status, status_of),
+        "needs": needs,
     }
 
 
@@ -800,6 +836,11 @@ def info_doc(
         },
         "rate_limit_policy": None,
         "rendered_from": rendered_from,
+        # F05-T25 (info/v2): where the guide and the errors catalog are deployed is the
+        # service's configuration, not a fact of the graph, and the products regenerate byte
+        # for byte from the tree (R11); the service fills both on every read.
+        "guide_url": None,
+        "errors_url": None,
     }
 
 

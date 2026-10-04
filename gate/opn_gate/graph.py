@@ -752,14 +752,20 @@ def derive_causes(nodes: dict[str, NodeFacts], statuses: dict[str, str]) -> dict
     ``dep-refuted`` is the one the curator has to see: a node under a refuted one can never be
     proved as it stands, and nothing else in the products would say so.
     """
-    causes: dict[str, str | None] = {}
-    for node_id in sorted(nodes):
-        if is_circular(nodes[node_id], statuses[node_id]):
-            causes[node_id] = CAUSE_CIRCULAR  # F08-T17: the one reason it is not work
-            continue
-        _, cause = blocked_because(nodes[node_id], lambda n: statuses.get(n, "ready"))
-        causes[node_id] = cause if statuses[node_id] == "blocked" else None
-    return causes
+    return {
+        node_id: cause_of(nodes[node_id], statuses[node_id], lambda n: statuses.get(n, "ready"))
+        for node_id in sorted(nodes)
+    }
+
+
+def cause_of(node: NodeFacts, status: str, status_of: Callable[[str], str]) -> str | None:
+    """One node's cause, as :func:`derive_causes` publishes it in ``graph.json`` and the frontier
+    entry repeats it (F03-T16): ``circular`` under a merged circularity claim, else the
+    mechanical reason a ``blocked`` node is blocked, else ``None``."""
+    if is_circular(node, status):
+        return CAUSE_CIRCULAR  # F08-T17: the one reason it is not work
+    _, cause = blocked_because(node, status_of)
+    return cause if status == "blocked" else None
 
 
 def is_circular(node: NodeFacts, status: str) -> bool:

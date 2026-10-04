@@ -196,7 +196,8 @@ def test_revise_refuses_an_empty_witness_and_writes_nothing(tmp_path: Path) -> N
 
 def test_revising_a_hole_keeps_it_awaiting_its_witness(tmp_path: Path) -> None:
     """After the revision the products say what they say of any hole: blocked for its witness,
-    on the frontier and claimable (F03-T9); the old hole is superseded."""
+    on the frontier (F03-T9) needing a witness (F03-T16: so not claimable); the old hole is
+    superseded."""
     root = copy_graph(tmp_path, publish=True)
     scaffold_hole(root)
     declare_root(root)
@@ -208,7 +209,7 @@ def test_revising_a_hole_keeps_it_awaiting_its_witness(tmp_path: Path) -> None:
     causes = graphmod.derive_causes(tg.nodes, tg.statuses)
     assert causes[revision.new_id] == graphmod.CAUSE_WITNESS_MISSING
     entries = {e["node_id"]: e for e in json.loads(built.files[Path("frontier.json")])["entries"]}
-    assert revision.new_id in entries and entries[revision.new_id]["claimable"] is True
+    assert revision.new_id in entries and entries[revision.new_id]["needs"] == "witness"
 
 
 def test_cli_revise_with_a_witness_file(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

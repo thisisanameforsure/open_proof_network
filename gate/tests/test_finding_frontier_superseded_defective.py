@@ -100,11 +100,13 @@ def test_a_superseded_hole_is_not_claimable(tmp_path: Path) -> None:
     entry = products.frontier_entry(
         tg, superseded, claimable=True, dormant=False, ready_since=None, tags=[]
     )
-    assert entry["claimable"] is False
+    assert entry["claimable"] is False and entry["needs"] is None
     live = products.frontier_entry(
         tg, hole_of(tg), claimable=True, dormant=False, ready_since=None, tags=[]
     )
-    assert live["claimable"] is True
+    # F03-T16 (frontier/v4): the live hole needs a witness; a claim reserves a proof, so neither
+    # is claimable, and only the live one names work.
+    assert (live["claimable"], live["needs"]) == (False, "witness")
 
 
 @pytest.mark.parametrize("status", ["stale", "disputed", "abandoned"])
@@ -160,7 +162,7 @@ def test_the_generated_frontier_drops_the_superseded_hole_and_keeps_its_successo
     doc = json.loads(built.files[Path("frontier.json")].decode("utf-8"))
     entries = {e["node_id"]: e for e in doc["entries"]}
     assert HOLE not in entries, sorted(entries)
-    assert SUCCESSOR in entries and entries[SUCCESSOR]["claimable"] is True
+    assert SUCCESSOR in entries and entries[SUCCESSOR]["needs"] == "witness"  # F03-T16
     assert entries[SUCCESSOR]["origin"] == "skeleton-hole"
     schemas.validate(doc, products.FRONTIER_SCHEMA)
     # graph.json still carries the old node: it is a fact about the tree, not work to offer.

@@ -22,6 +22,10 @@ Variables (prefix ``OPN_API_``):
 ``OPN_API_GRAPH_REPO`` / ``OPN_API_GRAPH_BRANCH``
     Where the committed ``frontier.json`` is read from (R7, R9). Defaults: the Stage 0 graph
     under the founder's account, ``main``.
+``OPN_API_GUIDE_URL``
+    The contributor guide's URL, as ``GET /`` and ``info.json`` (``info/v2``'s ``guide_url``,
+    F05-T25) name it. Default: ``AGENTS.md`` in the graph repository at the graph branch, on the
+    graph's host (D-35: contributors clone the graph only).
 ``OPN_API_FRONTIER_MAX_STALE_S``
     How long a fetched ``frontier.json`` is reused before its ETag is rechecked (R9).
     Default ``60``.
@@ -118,6 +122,17 @@ DEFAULT_PARAMETER_PREFIX = "/opn/api/"
 DEFAULT_PUBLIC_URL = "http://127.0.0.1:8000"
 DEFAULT_GRAPH_REPO = "thisisanameforsure/open_proof_network_graph"
 DEFAULT_GRAPH_BRANCH = "main"
+#: The web host of the graph repository (the host the ``GitHost`` seam talks to, not this
+#: deployment's own hostname, which only configuration names).
+GRAPH_HOST_WEB = "https://github.com"
+GUIDE_FILE = "AGENTS.md"
+
+
+def default_guide_url(graph_repo: str, graph_branch: str) -> str:
+    """The guide in the graph repository, the one place every contributor reads (D-35)."""
+    return f"{GRAPH_HOST_WEB}/{graph_repo}/blob/{graph_branch}/{GUIDE_FILE}"
+
+
 DEFAULT_NETWORK_REPO = "thisisanameforsure/open_proof_network"  # F08-T26
 DEFAULT_USES_FROM = ""  # F08-T26: no target understands uses until a commit is named
 DEFAULT_ANNEX_STEPS_FROM = ""  # F18-T5: no target takes a stepped annex until a commit is named
@@ -238,6 +253,8 @@ class Settings:
     precheck_poll_min_s: int = DEFAULT_PRECHECK_POLL_MIN_S
     verdict_retry_s: int = DEFAULT_VERDICT_RETRY_S
     claims_max_stale_s: int = DEFAULT_CLAIMS_MAX_STALE_S
+    # --- audit 2026-10-04 (F05-T25) ---
+    guide_url: str = default_guide_url(DEFAULT_GRAPH_REPO, DEFAULT_GRAPH_BRANCH)
 
     def __repr__(self) -> str:  # secrets never appear in a repr or a log (C8)
         parts = []
@@ -404,6 +421,14 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
         precheck_poll_min_s=_count(env, "OPN_API_PRECHECK_POLL_MIN_S", DEFAULT_PRECHECK_POLL_MIN_S),
         verdict_retry_s=_count(env, "OPN_API_VERDICT_RETRY_S", DEFAULT_VERDICT_RETRY_S),
         claims_max_stale_s=_count(env, "OPN_API_CLAIMS_MAX_STALE_S", DEFAULT_CLAIMS_MAX_STALE_S),
+        # --- audit 2026-10-04 (F05-T25) ---
+        guide_url=(
+            env.get("OPN_API_GUIDE_URL", "").strip()
+            or default_guide_url(
+                env.get("OPN_API_GRAPH_REPO", DEFAULT_GRAPH_REPO),
+                env.get("OPN_API_GRAPH_BRANCH", DEFAULT_GRAPH_BRANCH),
+            )
+        ),
     )
 
 

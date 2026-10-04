@@ -111,7 +111,10 @@ def test_guard_the_chain_is_work_before_any_claim(tmp_path: Path) -> None:
     assert all(tg.statuses[s] == "proved" for s in SIBLINGS)
     prod = generate(root)
     assert {ROOT, *PATH, DEEP} <= set(frontier_ids(prod))
-    assert all(frontier_row(prod, n)["claimable"] is True for n in (ROOT, *PATH, DEEP))
+    # F03-T16 (frontier/v4): the root is claimable; the holes on the path are listed as work
+    # that needs a witness, which a claim does not reserve.
+    assert frontier_row(prod, ROOT)["claimable"] is True
+    assert all(frontier_row(prod, n)["needs"] in ("proof", "witness") for n in (ROOT, *PATH, DEEP))
 
 
 # --- one claim, the whole path -----------------------------------------------------------------
