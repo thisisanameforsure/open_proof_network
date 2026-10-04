@@ -72,6 +72,45 @@ def _with_math(text: str) -> str:
     return "".join(out)
 
 
+def inline_math(text: str) -> str:
+    """One line of prose as ``render(..., math=True)`` renders a paragraph's inside: escaped, its
+    `code` spans as ``<code>``, its math in ``.math`` spans (F20-T8: a gloss's first sentence)."""
+    return _with_math(" ".join(text.split()))
+
+
+def first_sentence(text: str) -> str:
+    """F20-T8 (R13): the first sentence of a gloss's prose, for the Problems page's row.
+
+    The first paragraph that is not a heading, up to the first ``.``, ``!`` or ``?`` followed by
+    a space or the paragraph's end, never one inside ``$…$`` or a `code` span (a decimal point or
+    ``h.2`` ends nothing). A paragraph with no such stop is returned whole."""
+    paragraph: list[str] = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            if paragraph:
+                break
+            continue
+        if stripped.startswith("#") and not paragraph:
+            continue
+        paragraph.append(stripped)
+    joined = " ".join(paragraph)
+    math_open = code_open = False
+    for i, ch in enumerate(joined):
+        if ch == "`" and not math_open:
+            code_open = not code_open
+        elif ch == "$" and not code_open:
+            math_open = not math_open
+        elif (
+            ch in ".!?"
+            and not math_open
+            and not code_open
+            and (i + 1 == len(joined) or joined[i + 1] == " ")
+        ):
+            return joined[: i + 1]
+    return joined
+
+
 def inline(text: str) -> str:
     """Escaped text with two inline forms: `code` and **strong**. Nothing else is markup."""
     escaped = escape(text, quote=True)

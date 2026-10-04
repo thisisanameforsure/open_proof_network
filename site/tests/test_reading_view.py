@@ -65,7 +65,8 @@ def test_dependency_order_statement_first_and_table(
         rf'<li class="rv-node"[^>]*data-node="{MIDDLE}".*?</li>\s*(?=<li|</ol>)', page, re.S
     )
     assert middle is not None and "No explainer yet" in middle.group(0)
-    assert len(re.findall(r'data-gloss-slot="', page)) == 3
+    # F20-T8 (R13): and the problem's own statement at the top carries one too.
+    assert len(re.findall(r'data-gloss-slot="', page)) == 4
     # The outline is folded: no step is open.
     assert 'class="proof-outline"' in page and "<details open" not in page
     # The problem page's proof selector leads here.
