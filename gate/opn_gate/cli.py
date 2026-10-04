@@ -13,7 +13,6 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import os
 import subprocess
 import sys
 import tempfile
@@ -1407,7 +1406,7 @@ def run_postmerge(args: argparse.Namespace, settings: config.Settings) -> int:
     pr_body = _read_flag_file(args.pr_body_file, "--pr-body-file") if args.pr_body_file else ""
     # F07-T65: the job that checked the network out at the pin says which commit that was; a
     # job that does not say is not checked (the graph's workflow sets it from a later re-pin).
-    expected = os.environ.get("OPN_NETWORK_COMMIT", "").strip()
+    expected = config.load().network_commit
     if expected:
         mismatch = network_mismatch(expected, running_network_commit(), check_dirty=False)
         if mismatch is not None:

@@ -107,6 +107,9 @@ class Settings:
     qa_subject_budget_s: float = DEFAULT_QA_SUBJECT_BUDGET_S
     model: str = DEFAULT_MODEL
     pr_author: str | None = None
+    #: F07-T65: the network commit the job checked out at the pin (``OPN_NETWORK_COMMIT``),
+    #: when the job says.
+    network_commit: str | None = None
     model_api_key: str | None = field(default=None, repr=False)
     gate_signing_key: str | None = field(default=None, repr=False)
     precheck_signing_key: str | None = field(default=None, repr=False)
@@ -122,6 +125,7 @@ class Settings:
             f"model_api_key={'<set>' if self.model_api_key else None}, "
             f"lean_pkg_bin={str(self.lean_pkg_bin)!r}, "
             f"mathlib_home={str(self.mathlib_home)!r}, pr_author={self.pr_author!r}, "
+            f"network_commit={self.network_commit!r}, "
             f"gate_signing_key={'<set>' if self.gate_signing_key else None}, "
             f"precheck_signing_key={'<set>' if self.precheck_signing_key else None})"
         )
@@ -209,6 +213,7 @@ def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0915 â€
         lean_pkg_bin=Path(env.get("OPN_LEAN_PKG_BIN", str(DEFAULT_LEAN_PKG_BIN))).expanduser(),
         mathlib_home=Path(env.get("OPN_MATHLIB_HOME", str(DEFAULT_MATHLIB_HOME))).expanduser(),
         pr_author=env.get("OPN_PR_AUTHOR") or None,
+        network_commit=env.get("OPN_NETWORK_COMMIT", "").strip() or None,
         gate_signing_key=env.get("OPN_GATE_SIGNING_KEY") or None,
         precheck_signing_key=env.get("OPN_PRECHECK_SIGNING_KEY") or None,
     )
