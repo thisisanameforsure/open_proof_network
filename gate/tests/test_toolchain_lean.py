@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from opn_gate import judging
 from opn_gate.toolchain import LocalToolchain, ResolvedToolchain, WitnessRequest
 
 pytestmark = pytest.mark.lean
@@ -60,8 +61,19 @@ def test_witness_type_through_the_seam(
     stmt.write_text("theorem T.s : ∀ n : Nat, n > 0 → n ≥ 1 := by\n  sorry\n", encoding="utf-8")
     wit = tmp_path / "Witness.lean"
     wit.write_text("theorem witness : ∃ n : Nat, n > 0 := ⟨1, Nat.one_pos⟩\n", encoding="utf-8")
-    req = WitnessRequest(stmt, "T.Statement", "T.s", wit, "T.Witness")
-    result = real_toolchain.witness_type(pinned, req, [tmp_path], timeout_s=120)
+    # F02-T12: the statement compiled, the witness compiled apart under it, the olean read
+    out = tmp_path / "out"
+    assert real_toolchain.elaborate(pinned, stmt, "T.Statement", out, timeout_s=120).ok
+    compiled = tmp_path / "W" / "Witness.lean"
+    compiled.parent.mkdir()
+    compiled.write_text(
+        judging.with_header(wit.read_text(encoding="utf-8"), ["T.Statement"]), encoding="utf-8"
+    )
+    assert real_toolchain.elaborate(pinned, compiled, "T.Witness", out, timeout_s=120).ok
+    req = WitnessRequest(
+        stmt, "T.Statement", "T.s", wit, "T.Witness", witness_olean=out / "T" / "Witness.olean"
+    )
+    result = real_toolchain.witness_type(pinned, req, [out], timeout_s=120)
     assert result.ok, result
     assert result.doc["expected"] == "∃ n, n > 0"
     assert result.doc["defeq"] is True and result.doc["witness_axioms"] == []

@@ -1,5 +1,6 @@
 import OpnGate.Frontend
 import OpnGate.ArtifactType
+import OpnGate.Compiled
 
 /-!
 `opn-relation-type --variant <Statement.lean> --variant-module <Name> --variant-decl <Name>
@@ -17,11 +18,90 @@ asserts it.
 The three files are elaborated from one imported environment, for the reason
 `OpnGate.Frontend.headerEnv` documents: imports happen once per process, and the root and the
 variant declare different names but cannot be assumed to.
+
+**From compiled modules** (F02-T12): with `--relation-olean`,
+`opn-relation-type --imports <A,B,…> --variant-olean <Statement.olean> --variant-decl <Name>
+                  --root-olean <Statement.olean> --root-decl <Name> --label <label>
+                  [--relation-olean <Relation.olean> --relation-decl <Name>]`
+elaborates nothing and runs nothing of the relation proof. The environment is imported from
+`--imports`, the union of the three files' imports, which the gate restricts to the statements'
+own and library modules, all built from the graph's record in the judging directory (so their
+extensions load, as elaborating the files here used to give them); each statement's type is read
+from the olean the gate compiled from it; and the relation proof, which the gate compiled in a
+call of its own under the same union of imports, is added constant by constant through the kernel
+(`replayInto`). The type comparison and the axioms are then this program's, unchanged.
+The elaborating form above stays for the defect claims' exhibits (F08-T17), which do not reach
+admission's verdict.
 -/
 open Lean Meta Elab OpnGate
 
+/-- The type of `decl` as a statement olean declares it, or as `base` already holds it (F08-T15,
+F08-T21: a Context in the union restates it, and that declaration is the one to relate to). -/
+def statementType (base : Environment) (olean decl : String) : IO (Option Expr) := do
+  if let some info := base.find? decl.toName then return some info.type
+  let (consts, _) ← readOlean olean
+  return (consts.find? (·.name == decl.toName)).map (·.type)
+
+/-- F02-T12: the relation judged from compiled modules only. -/
+def compiledRelation (kv : List (String × String)) (label : RelationLabel) : IO UInt32 := do
+  let some importsStr := getArg kv "imports" | fail "missing --imports"
+  let some variantOlean := getArg kv "variant-olean" | fail "missing --variant-olean"
+  let some variantDecl := getArg kv "variant-decl" | fail "missing --variant-decl"
+  let some rootOlean := getArg kv "root-olean" | fail "missing --root-olean"
+  let some rootDecl := getArg kv "root-decl" | fail "missing --root-decl"
+  -- `Init` first, as a header gives it implicitly.
+  let imports := (#["Init"] ++ ((importsStr.splitOn ",").filter (· ≠ "")).toArray).map
+    fun m => ({ module := m.toName } : Import)
+  let base ← importModules imports {} (loadExts := true)
+  let some variantType ← statementType base variantOlean variantDecl
+    | fail s!"declaration {variantDecl} not found in {variantOlean}"
+  let some rootType ← statementType base rootOlean rootDecl
+    | fail s!"declaration {rootDecl} not found in {rootOlean}"
+  if label == RelationLabel.related then
+    printJson <| Json.mkObj [
+      ("ok", Json.bool true), ("label", Json.str label.toString),
+      ("expected", Json.null), ("declared", Json.null),
+      ("matches", Json.bool true), ("axioms", Json.arr #[])]
+    return 0
+  let some relOlean := getArg kv "relation-olean"
+    | fail s!"a {label.toString} variant needs --relation-olean (D-30: the label is a claim)"
+  let some relDecl := getArg kv "relation-decl" | fail "missing --relation-decl"
+  let (consts, _) ← readOlean relOlean
+  unless consts.any (·.name == relDecl.toName) do
+    return ← fail s!"the relation proof does not declare {relDecl}"
+  let replayed ← (try pure (Except.ok (← replayInto base consts))
+    catch e => pure (Except.error (toString e)) : IO (Except String Environment))
+  let relEnv ← match replayed with
+    | .ok env => pure env
+    | .error e => return ← fail s!"relation does not elaborate: {e}"
+  let some relInfo := relEnv.find? relDecl.toName
+    | fail s!"the relation proof does not declare {relDecl}"
+  let ctx : Core.Context := { fileName := relOlean, fileMap := default }
+  let state : Core.State := { env := relEnv }
+  let ((expectedStr, declaredStr, typeMatches), _, _) ← (do
+      let some expected ← expectedRelationType label variantType rootType
+        | throwError "a labeled variant has an expected relation type"
+      let ok ← withReducible (isDefEq expected relInfo.type) <||> isDefEq expected relInfo.type
+      return (toString (← ppExpr expected), toString (← ppExpr relInfo.type), ok)
+      : MetaM (String × String × Bool)).toIO ctx state
+  let (axioms, _) ← (collectAxioms relDecl.toName : CoreM (Array Name)).toIO ctx state
+  printJson <| Json.mkObj [
+    ("ok", Json.bool true),
+    ("label", Json.str label.toString),
+    ("decl", Json.str relDecl),
+    ("expected", Json.str expectedStr),
+    ("declared", Json.str declaredStr),
+    ("matches", Json.bool typeMatches),
+    ("axioms", toJson (axioms.map toString))]
+  return 0
+
 unsafe def main (args : List String) : IO UInt32 := runMain args do
   let (kv, _) := parseArgs args
+  if (getArg kv "relation-olean").isSome || (getArg kv "variant-olean").isSome then
+    let some labelStr := getArg kv "label" | return ← fail "missing --label"
+    let some label := RelationLabel.ofString? labelStr
+      | return ← fail s!"unknown relation label {labelStr}"
+    return ← compiledRelation kv label
   let some variantPath := getArg kv "variant" | fail "missing --variant"
   let some variantMod := getArg kv "variant-module" | fail "missing --variant-module"
   let some variantDecl := getArg kv "variant-decl" | fail "missing --variant-decl"

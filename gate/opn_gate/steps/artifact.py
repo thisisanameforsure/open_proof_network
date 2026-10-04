@@ -29,15 +29,16 @@ from __future__ import annotations
 import json
 import re
 import subprocess
-from dataclasses import dataclass
+from collections.abc import Sequence
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Literal
 
 from opn_gate import graph as graphmod
-from opn_gate import layout, records, schemas
+from opn_gate import judging, layout, records, schemas
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.steps.base import RunContext, StepResult
-from opn_gate.toolchain import ArtifactRequest, MetaprogramResult, ResolvedToolchain
+from opn_gate.toolchain import ArtifactRequest, MetaprogramResult, ResolvedToolchain, Toolchain
 
 Kind = Literal["proof", "counterexample", "vacuity", "partial", "reduction"]
 
@@ -515,12 +516,22 @@ def request(  # noqa: PLR0913 — the request's inputs, each named
     )
 
 
-def run(
-    ctx: RunContext, tc: ResolvedToolchain, req: ArtifactRequest, kind: Kind
+def run(  # noqa: PLR0913 — the request, and where it is read from
+    ctx: RunContext,
+    tc: ResolvedToolchain,
+    req: ArtifactRequest,
+    kind: Kind,
+    *,
+    seam: Toolchain | None = None,
+    search_path: Sequence[Path] | None = None,
 ) -> tuple[Artifact | None, StepResult | None]:
-    """Call the metaprogram and turn its answer into an ``Artifact`` or a step failure."""
+    """Call the metaprogram and turn its answer into an ``Artifact`` or a step failure. ``seam``
+    and ``search_path`` are the judging directory's when the request is the compiled form
+    (F02-T12); by default the elaborating form's, over the build."""
+    reader = seam if seam is not None else ctx.toolchain
+    where = list(search_path) if search_path is not None else [ctx.build_dir]
     try:
-        result = ctx.toolchain.artifact_type(tc, req, [ctx.build_dir], timeout_s=ctx.wallclock_s)
+        result = reader.artifact_type(tc, req, where, timeout_s=ctx.wallclock_s)
     except subprocess.TimeoutExpired:
         return None, StepResult.failed(
             "timeout", f"the artifact-type check exceeded the {ctx.wallclock_s:g}s cap"
@@ -581,6 +592,33 @@ def _annex_steps_problem(ctx: RunContext, node_dir: Path, artifact: Artifact) ->
     return postmerge.check_annex_steps(node_dir, text, [h.name for h in artifact.holes])
 
 
+#: F02-T12, F08-T29b: the artifacts with no holes, judged from compiled modules only. A partial's
+#: (or a reduction's) holes are still read by the elaborating form (see ``opn-artifact-type``).
+COMPILED_KINDS: tuple[Kind, ...] = ("counterexample", "vacuity")
+
+
+def _run_compiled(
+    ctx: RunContext, tc: ResolvedToolchain, req: ArtifactRequest, kind: Kind
+) -> tuple[Artifact | None, StepResult | None]:
+    """F02-T12, F08-T29b: the statement built from the node's own files in the judging directory,
+    the artifact read from the module step 4 replayed there; both mounted read-only, nothing
+    writable, and no source an argument."""
+    node = ctx.node
+    judge = ctx.data.get(judging.KEY)
+    if node is None or not isinstance(judge, judging.Judge):
+        return None, StepResult.failed("step-order", "the artifact check needs step 4's build")
+    target_dir = layout.gate_spec_path(ctx.graph_root, ctx.claim.target_id).parent
+    problem = judging.node_statement(
+        ctx.toolchain, tc, target_dir, node, judge, timeout_s=ctx.wallclock_s
+    )
+    if problem is not None:
+        return None, StepResult(ok=False, diagnostic=problem)
+    build = judge.statement / "build"
+    compiled = replace(req, statement_olean=judging.statement_olean(build, node.node_id))
+    seam = judging.confined(ctx.toolchain, read_only=[judge.modules, build])
+    return run(ctx, tc, compiled, kind, seam=seam, search_path=[judge.modules])
+
+
 def judge(ctx: RunContext, tc: ResolvedToolchain) -> StepResult:
     """D-12's shape rule, at the end of step 4 where the build it needs exists (F07-R4, R5;
     dispatched in F11-T4). Not a step of its own: the verdict's steps are D-4's numbering,
@@ -620,7 +658,10 @@ def judge(ctx: RunContext, tc: ResolvedToolchain) -> StepResult:
         # F07-T34: and only a partial's holes can close a cycle, so only a partial asks this.
         ancestors=stage_ancestors(ctx.workdir, node) if kind == "partial" else None,
     )
-    artifact, failure = run(ctx, tc, req, kind)
+    if kind in COMPILED_KINDS:
+        artifact, failure = _run_compiled(ctx, tc, req, kind)
+    else:
+        artifact, failure = run(ctx, tc, req, kind)
     if failure is not None:
         return failure
     assert artifact is not None

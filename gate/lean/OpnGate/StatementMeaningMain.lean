@@ -1,4 +1,5 @@
 import OpnGate.Frontend
+import OpnGate.Compiled
 
 /-!
 `opn-statement-meaning --statement-olean <Statement.olean> --decl <Name>
@@ -36,36 +37,6 @@ and value, or it is named in `local_mismatch` and `matches` is false.
 -/
 open Lean OpnGate
 
-namespace OpnGate
-
-/-- The statement module's own constants that `start` reaches, through their types and values. -/
-partial def localClosure (locals : Std.HashMap Name ConstantInfo) (start : Expr) : Array Name :=
-  Id.run do
-    let mut seen : NameSet := {}
-    let mut out : Array Name := #[]
-    let mut todo : List Name := start.getUsedConstants.toList
-    while true do
-      match todo with
-      | [] => break
-      | n :: rest =>
-        todo := rest
-        if seen.contains n then continue
-        seen := seen.insert n
-        let some info := locals[n]? | continue
-        out := out.push n
-        for c in info.getUsedConstantsAsSet.toList do
-          todo := c :: todo
-    return out.qsort (·.toString < ·.toString)
-
-/-- Whether two declarations of one name are the same declaration: kind, universe parameters,
-type and value, as terms. -/
-def sameDeclaration (a b : ConstantInfo) : Bool :=
-  a.levelParams == b.levelParams && a.type == b.type
-    && a.value? (allowOpaque := true) == b.value? (allowOpaque := true)
-    && a.isTheorem == b.isTheorem && a.isDefinition == b.isDefinition
-    && a.isAxiom == b.isAxiom && a.isInductive == b.isInductive && a.isCtor == b.isCtor
-
-end OpnGate
 
 unsafe def main (args : List String) : IO UInt32 := runMain args (initializers := false) do
   let (kv, _) := parseArgs args

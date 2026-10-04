@@ -43,8 +43,6 @@ target, three more imports of Mathlib's environment.
 
 from __future__ import annotations
 
-import shutil
-
 from opn_gate import judging, layout, uses
 from opn_gate.steps import artifact
 from opn_gate.steps import stage as staging
@@ -107,34 +105,22 @@ def guard(  # noqa: PLR0911 — one return per way the comparison can end
     if not claims and not declared and not below:
         return None
     work = judge.statement
-    src, build = work / "src", work / "build"
-    dest = src / layout.NODES_PREFIX / node.node_id
-    dest.mkdir(parents=True, exist_ok=True)
-    for stem in (CONTEXT_MODULE, STATEMENT_MODULE):
-        shutil.copy(node.path / f"{stem}.lean", dest / f"{stem}.lean")
+    build = work / "build"
     target_dir = layout.gate_spec_path(ctx.graph_root, ctx.claim.target_id).parent
-    problem = judging.build_definitions(
-        ctx.toolchain, tc, target_dir, judge, timeout_s=ctx.wallclock_s
+    # F02-T10: the statement's own files are compiled by calls that can write only here (F02-T12:
+    # once per run, shared with the artifact check and step 7 of the same node)
+    problem = judging.node_statement(
+        ctx.toolchain, tc, target_dir, node, judge, timeout_s=ctx.wallclock_s
     )
-    if problem is not None:
+    if problem is not None and problem.code != "elaboration-failed":
         return StepResult(ok=False, diagnostic=problem)
-    # F02-T10: the statement's own files are compiled by calls that can write only here
-    builder = judging.confined(ctx.toolchain, read_write=[work])
-    for stem in (CONTEXT_MODULE, STATEMENT_MODULE):
-        module = layout.node_module(node.node_id, stem)
-        elab = builder.elaborate(
-            tc, dest / f"{stem}.lean", module, build, root=src, timeout_s=ctx.wallclock_s
+    if problem is not None:
+        return StepResult.failed(
+            "elaboration-failed",
+            f"{problem.details.get('module')} does not elaborate from the node's own files, so "
+            "the statement's meaning cannot be compared with what the artifact proved (F08-R17)",
+            **problem.details,
         )
-        if not elab.ok:
-            return StepResult.failed(
-                "elaboration-failed",
-                f"{module} does not elaborate from the node's own files, so the statement's "
-                "meaning cannot be compared with what the artifact proved (F08-R17)",
-                module=module,
-                node=node.node_id,
-                messages=[m.as_dict() for m in elab.errors or elab.messages],
-                stderr=elab.stderr,
-            )
     req = MeaningRequest(
         statement_olean=build
         / module_output_path(layout.node_module(node.node_id, STATEMENT_MODULE), ".olean"),

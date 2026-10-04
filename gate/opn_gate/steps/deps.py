@@ -6,6 +6,10 @@ declared deps (R5). The repo's ``Context.lean`` must carry, for each declared de
 hash-equal to that dep's ``Statement.lean`` signature (R6) — the guarantee that makes the
 gate-time Context substitution (Q4) sound. A declared dep the proof never touches is a warning,
 never a failure (R7, Q3).
+
+F02-T12: the footprint is read from the compiled ``Proof`` module step 4 replayed, in the judging
+directory, read-only, by ``opn-used-constants`` with initializers off: nothing of the proof runs
+in the process that reports what it depends on.
 """
 
 from __future__ import annotations
@@ -16,7 +20,7 @@ import subprocess
 from pathlib import Path
 
 from opn_gate import graph as graphmod
-from opn_gate import layout, schemas, uses
+from opn_gate import judging, layout, schemas, uses
 from opn_gate.steps.base import RunContext, StepResult
 from opn_gate.steps.replay import PROOF_MODULE
 from opn_gate.steps.witness import metaprogram_failure
@@ -103,19 +107,19 @@ class DepsStep:
         if context_problem is not None:
             return context_problem
 
-        staged = ctx.data.get("staged")
-        proof = (
-            staged.node_dir(node.node_id) / "Proof.lean" if staged is not None else node.proof_path
-        )
+        judge = ctx.data.get(judging.KEY)
+        if not isinstance(judge, judging.Judge):
+            return StepResult.failed("step-order", "step 8 needs step 4 to have passed")
+        # F02-T12: the module step 4 compiled and replayed, read from the judging directory and
+        # never elaborated here; the proof's source is not an argument.
         req = UsedConstantsRequest(
-            file=proof,
+            file=None,
             module=layout.node_module(node.node_id, PROOF_MODULE),
             decl=node.statement.decl_name,
         )
+        reader = judging.confined(ctx.toolchain, read_only=[judge.modules])
         try:
-            result = ctx.toolchain.used_constants(
-                tc, req, [ctx.build_dir], timeout_s=ctx.wallclock_s
-            )
+            result = reader.used_constants(tc, req, [judge.modules], timeout_s=ctx.wallclock_s)
         except subprocess.TimeoutExpired:
             return StepResult.failed(
                 "timeout", f"step 8 exceeded the {ctx.wallclock_s:g}s wall-clock cap"

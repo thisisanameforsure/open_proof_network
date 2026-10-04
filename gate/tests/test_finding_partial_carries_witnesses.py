@@ -33,7 +33,7 @@ from test_cli_sandboxed import NODES, Seam, git_repo, run
 from test_partial import ROOT, assembly_for, partial_context
 from test_postmerge import ASSEMBLY, HOLES, PARENT, PSEUDONYM, STAMP, hole, snapshot
 
-from opn_gate import carried, cli, graph, modes, paths, pipeline, postmerge, schemas
+from opn_gate import carried, cli, graph, judging, modes, paths, pipeline, postmerge, schemas
 from opn_gate.paths import Change
 from opn_gate.steps.artifact import ARTIFACT_KEY, PARTIAL_KEY
 from opn_gate.toolchain import MetaprogramResult, ResolvedToolchain, WitnessRequest
@@ -229,9 +229,12 @@ def test_every_carried_witness_is_held_to_step_7_and_recorded(tmp_path: Path) ->
         proposal = postmerge.child_proposal(node_dir(ctx), child, h, author="x", origin="x")
         assert fake.seen[req.decl] == (proposal.statement, text)
         assert CLOSED[h.name] in proposal.statement
-        # The child's own Context is compiled beside it, and the node's build is on the path …
-        # … in that order: Lean looks for `Nodes.*` in the first root that has a `Nodes`.
-        assert fake.search_paths[req.decl] == [ctx.workdir / "holes" / "build", ctx.build_dir]
+        # The child's own Context is compiled beside it. F02-T12: the program reads the child's
+        # statement as the gate built it from those files in the judging directory, and nothing
+        # under the work directory is on its path.
+        assert fake.search_paths[req.decl] == [
+            judging.root_for(ctx.workdir) / f"witness-{child}" / "meaning" / "build"
+        ]
         assert f"elaborate:Nodes.«{child}».Context" in fake.calls
         assert name.endswith(".witness")
     step7 = next(s for s in verdict.steps if s.step == 7)

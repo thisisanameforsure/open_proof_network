@@ -1,6 +1,7 @@
 import OpnGate.Frontend
 import OpnGate.ArtifactType
 import OpnGate.Holes
+import OpnGate.Compiled
 
 /-!
 `opn-artifact-type --statement <Statement.lean> --module <Name> --decl <Name>
@@ -57,8 +58,64 @@ def siblingTypes (manifest : System.FilePath) (base : Environment)
     | _, _, _ => pure ()
   return out
 
-unsafe def main (args : List String) : IO UInt32 := runMain args do
+/-- F02-T12, F08-T29b: an artifact with no holes, judged from compiled modules only. -/
+def compiledJudgment (kv : List (String × String)) (oleanPath : String) : IO UInt32 := do
+  let some stmtDecl := getArg kv "decl" | fail "missing --decl"
+  let some artMod := getArg kv "artifact-module" | fail "missing --artifact-module"
+  let some artDecl := getArg kv "artifact-decl" | fail "missing --artifact-decl"
+  let some kindStr := getArg kv "kind" | fail "missing --kind"
+  let some kind := ArtifactKind.ofString? kindStr
+    | fail s!"unknown artifact kind {kindStr}"
+  unless kind == .proof || kind == .counterexample || kind == .vacuity do
+    return ← fail s!"a {kind.toString}'s holes are read by elaborating it, not from its module"
+  let (stmtConsts, _) ← readOlean oleanPath
+  let mut locals : Std.HashMap Name ConstantInfo := {}
+  for info in stmtConsts do
+    locals := locals.insert info.name info
+  let some stmtInfo := locals[stmtDecl.toName]?
+    | fail s!"declaration {stmtDecl} not found in {oleanPath}"
+  let env ← importModules #[{ module := artMod.toName }] {} (loadExts := false)
+  let some idx := env.getModuleIdxFor? artDecl.toName
+    | fail s!"module {artMod} does not declare {artDecl}"
+  unless env.header.moduleNames[idx.toNat]! == artMod.toName do
+    return ← fail s!"{artDecl} is declared by {env.header.moduleNames[idx.toNat]!}, not {artMod}"
+  let some artInfo := env.find? artDecl.toName
+    | fail s!"module {artMod} does not declare {artDecl}"
+  let ctx : Core.Context := { fileName := "<opn-artifact-type>", fileMap := default }
+  let state : Core.State := { env }
+  let (expected, _, _) ← (expectedArtifactType kind stmtInfo.type : MetaM Expr).toIO ctx state
+  let (_, mismatch) := localMismatch locals env stmtInfo.type
+  let defeq := stmtInfo.levelParams == artInfo.levelParams
+    && (expected == artInfo.type || Kernel.isDefEqGuarded env {} expected artInfo.type)
+  let show_ (e : Expr) : IO String := do
+    try
+      let (fmt, _) ← (Meta.ppExpr e).run'.toIO ctx state
+      return toString fmt
+    catch _ => return toString e
+  match axiomsOf env artDecl.toName with
+  | .error e => fail e
+  | .ok axioms =>
+    printJson <| Json.mkObj [
+      ("ok", Json.bool true),
+      ("kind", Json.str kind.toString),
+      ("decl", Json.str artDecl),
+      ("expected", Json.str (← show_ expected)),
+      ("declared", Json.str (← show_ artInfo.type)),
+      ("matches", Json.bool (defeq && mismatch.isEmpty)),
+      ("local_mismatch", toJson mismatch),
+      ("axioms", toJson axioms),
+      ("holes", Json.arr #[]),
+      ("unnamed", Json.num 0),
+      ("body_is_hole", Json.bool false)]
+    return 0
+
+unsafe def main (args : List String) : IO UInt32 :=
+  let olean? := getArg (parseArgs args).1 "statement-olean"
+  -- F02-T12: the compiled form runs nothing of the artifact, so no initializer is enabled.
+  runMain args (initializers := olean?.isNone) do
   let (kv, _) := parseArgs args
+  if let some oleanPath := olean? then
+    return ← compiledJudgment kv oleanPath
   let some stmtPath := getArg kv "statement" | fail "missing --statement"
   let some stmtMod := getArg kv "module" | fail "missing --module"
   let some stmtDecl := getArg kv "decl" | fail "missing --decl"

@@ -36,4 +36,29 @@ partial def usedConstants (env : Environment) (root : Name) : Array UsedConstant
           todo := c :: todo
   return out.qsort (·.name < ·.name)
 
+/-- F02-T12: the same footprint for a declaration read from a compiled module `owner` rather than
+elaborated in this process. The module's own declarations are the "same file" ones: recursed
+through, and reported with module `null` as the submission's own, exactly as before. -/
+partial def usedConstantsOwnedBy (env : Environment) (root owner : Name) : Array UsedConstant :=
+  Id.run do
+    let mut seen : NameSet := {}
+    let mut todo : List Name := [root]
+    let mut out : Array UsedConstant := #[]
+    while true do
+      match todo with
+      | [] => break
+      | n :: rest =>
+        todo := rest
+        if seen.contains n then continue
+        seen := seen.insert n
+        let some info := env.find? n | continue
+        let module? := (env.getModuleIdxFor? n).map fun idx => env.header.moduleNames[idx.toNat]!
+        let own := module? == some owner
+        if n != root then
+          out := out.push { name := n.toString, module := if own then none else module?.map toString }
+        if own then
+          for c in info.getUsedConstantsAsSet.toList do
+            todo := c :: todo
+    return out.qsort (·.name < ·.name)
+
 end OpnGate

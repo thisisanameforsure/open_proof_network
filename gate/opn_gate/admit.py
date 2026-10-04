@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any
 
 from opn_gate import graph as graphmod
-from opn_gate import layout, records, schemas
+from opn_gate import judging, layout, records, schemas
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.scaffold import LABELS_NEEDING_PROOF, RELATION_DECL, RELATION_FILE
 from opn_gate.steps.base import RunContext, Step, StepResult
@@ -335,9 +335,6 @@ class RelationCheck:
             return StepResult.failed(
                 "relation-root-invalid", f"the root {root_id}: {root[0].message}"
             )
-        staged = stage_context(ctx, tc, root_id, root_dir)
-        if staged is not None:
-            return staged
         declared = layout.parse_declaration(
             relation_path.read_text(encoding="utf-8"), RELATION_FILE
         )
@@ -350,29 +347,121 @@ class RelationCheck:
                 f"`theorem {RELATION_DECL}`",
                 declared=declared,
             )
-        # Both statements are read from their staged copies under the work directory: inside the
-        # step-3 sandbox only the node under admission and the work directory exist (F00-R12),
-        # so the root's own directory is not there to read — found on the first sandboxed run.
-        src = ctx.workdir / "src"
-        req = RelationRequest(
-            variant=src / "Nodes" / node.node_id / "Statement.lean",
-            variant_module=layout.node_module(node.node_id, STATEMENT_MODULE),
-            variant_decl=node.statement.decl_name,
-            root=src / "Nodes" / root_id / "Statement.lean",
-            root_module=layout.node_module(root_id, STATEMENT_MODULE),
-            root_decl=root.statement.decl_name,
-            label=label,
-            relation=relation_path,
-            relation_module=layout.node_module(node.node_id, "Relation"),
-            relation_decl=RELATION_DECL,
-        )
         try:
-            result = ctx.toolchain.relation_type(
-                tc, req, [ctx.build_dir], timeout_s=ctx.wallclock_s
+            prepared = compiled_relation(ctx, tc, node, root_id, root_dir, relation_path)
+            if isinstance(prepared, StepResult):
+                return prepared
+            req = RelationRequest(
+                variant=node.path / "Statement.lean",
+                variant_module=layout.node_module(node.node_id, STATEMENT_MODULE),
+                variant_decl=node.statement.decl_name,
+                root=root_dir / "Statement.lean",
+                root_module=layout.node_module(root_id, STATEMENT_MODULE),
+                root_decl=root.statement.decl_name,
+                label=label,
+                relation=relation_path,
+                relation_module=layout.node_module(node.node_id, "Relation"),
+                relation_decl=RELATION_DECL,
+                imports=prepared.imports,
+                variant_olean=judging.statement_olean(prepared.build, node.node_id),
+                root_olean=judging.statement_olean(prepared.build, root_id),
+                relation_olean=prepared.relation,
             )
+            # F02-T12: the judging call reads compiled modules only, read-only, nothing writable
+            reader = judging.confined(
+                ctx.toolchain, read_only=[prepared.build, prepared.relation.parent]
+            )
+            result = reader.relation_type(tc, req, [prepared.build], timeout_s=ctx.wallclock_s)
         except subprocess.TimeoutExpired:
             return StepResult.failed("timeout", "the relation check exceeded the wall-clock cap")
         return relation_verdict(ctx, label, result)
+
+
+@dataclass(frozen=True)
+class CompiledRelation:
+    """F02-T12: what the relation check hands ``opn-relation-type``: the statements' build in
+    the judging directory, the relation proof's olean taken from its own compile, and the
+    imports the environment is made from."""
+
+    build: Path
+    relation: Path
+    imports: tuple[str, ...]
+
+
+def compiled_relation(  # noqa: PLR0913, PLR0917 — one argument per fact the build needs
+    ctx: RunContext,
+    tc: ResolvedToolchain,
+    node: layout.Node,
+    root_id: str,
+    root_dir: Path,
+    relation_path: Path,
+) -> CompiledRelation | StepResult:
+    """F02-T12: the variant's and the root's statements built from their own files in the judging
+    directory (the root's Context failing is named, F08-Q13), then the relation proof compiled in
+    a call of its own under the union of the three files' imports, as the elaborating program
+    imported them. A graph module the relation proof imports must be one the statements import:
+    nothing else is built where it is compiled."""
+    target_dir = layout.gate_spec_path(ctx.graph_root, ctx.claim.target_id).parent
+    where = judging.area(ctx.workdir, "relation")
+    trusted = where / judging.STATEMENT_DIR
+    problem = judging.build_statements(
+        ctx.toolchain,
+        tc,
+        target_dir,
+        [
+            (node.node_id, node.path / "Context.lean", node.path / "Statement.lean"),
+            (root_id, root_dir / "Context.lean", root_dir / "Statement.lean"),
+        ],
+        trusted,
+        timeout_s=ctx.wallclock_s,
+    )
+    if problem is not None:
+        module = problem.details.get("module")
+        if module == layout.node_module(root_id, "Context"):
+            return StepResult.failed(
+                "relation-root-context",
+                f"{module} does not elaborate, so the root's statement cannot be read",
+                module=module,
+                messages=list(problem.details.get("messages") or []),
+            )
+        return StepResult.failed(
+            "relation-elaboration",
+            f"the statements the relation proof relates do not elaborate: {problem.message}",
+            messages=list(problem.details.get("messages") or []),
+        )
+    text = relation_path.read_text(encoding="utf-8")
+    imports: list[str] = []
+    for source in (node.path / "Statement.lean", root_dir / "Statement.lean"):
+        for module in judging.header_imports(source.read_text(encoding="utf-8")):
+            if module not in imports:
+                imports.append(module)
+    for module in judging.header_imports(text):
+        if module in imports:
+            continue
+        if layout.module_origin(module)[0] in ("node", "defs"):
+            return StepResult.failed(
+                "relation-elaboration",
+                f"{RELATION_FILE}: import {module} is not among the statements' imports",
+                messages=[],
+            )
+        imports.append(module)
+    build = trusted / "build"
+    elab, olean = judging.compile_contributed(
+        ctx.toolchain,
+        tc,
+        text=judging.with_header(text, imports),
+        module=layout.node_module(node.node_id, "Relation"),
+        trusted_build=build,
+        where=where,
+        timeout_s=ctx.wallclock_s,
+    )
+    if olean is None:
+        return StepResult.failed(
+            "relation-elaboration",
+            "relation does not elaborate",
+            messages=[m.as_dict() for m in elab.errors or elab.messages],
+        )
+    return CompiledRelation(build=build, relation=olean, imports=tuple(imports))
 
 
 def stage_context(
