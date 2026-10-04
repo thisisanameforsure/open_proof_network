@@ -1,0 +1,2 @@
+F09-T17: see engineering/evidence/F07/task-70-audit-2026-10-04.txt (one commit, one test file:
+api/tests/test_finding_submissions_mine.py covers both the route and the two MCP tools).

@@ -512,6 +512,22 @@ async def list_my_claims(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     return service_answer(await call.endpoint("GET", "/claims/mine"), "/claims/mine")
 
 
+async def get_my_submissions(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """``GET /submissions/mine``, body for body (F07-T70, F09-T17): the caller's own open
+    submissions with their place in the queue, and the most recently finished. A read that needs
+    a bearer, as ``list_my_claims``: what it reads is the caller's own."""
+    return service_answer(await call.endpoint("GET", "/submissions/mine"), "/submissions/mine")
+
+
+async def get_check(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """``GET /checks/{id}``, body for body (F09-T17): the caller's own record of one fast check
+    (F13-R10). The route answers ``404 check-unknown`` for anyone else's, which passes through."""
+    check_id = args.get("check_id")
+    if not isinstance(check_id, str) or not re.match(r"^[0-9A-Z]{26}$", check_id):
+        raise error("arguments-invalid", "check_id is the log_id check_lean returned", "adapter")
+    return service_answer(await call.endpoint("GET", f"/checks/{check_id}"), "/checks/<id>")
+
+
 TOOLS: tuple[Tool, ...] = (
     Tool(
         "server_info",
@@ -569,11 +585,13 @@ TOOLS: tuple[Tool, ...] = (
         "step9-review, branch-update, merge, products, or gate-failed), and when that is "
         "gate-failed, `gate_verdict` carries the gate's own diagnostic: why it was refused. "
         "`state` at the top is open, merged or closed. While it is open, `queue` says where it "
-        "stands in the merge actor's order: `position` (from 1) `of` how many, and `ahead`, the "
-        "pull requests the actor considers first, each with its number, the service's record "
-        "of it and the `waiting_on` the service last read for it (null: not read). The order "
-        "is pull-request number, oldest first; the actor merges the first green one and passes "
-        "over a red or conflicting one, so a position is an upper bound on the merges ahead. "
+        "stands in its own lane of the merge actor's order: the actor runs one lane per target "
+        "in parallel, so `position` (from 1) `of` how many, and `ahead`, count only the pull "
+        "requests on the same target and any the service cannot place in one target, each with "
+        "its number, the service's record of it and the `waiting_on` the service last read for "
+        "it (null: not read). Within a lane the order is pull-request number, oldest first; the "
+        "actor merges the first green one and passes over a red or conflicting one, so a "
+        "position is an upper bound on the merges ahead. "
         "`submission.closed` is the host's own merge or close time, and "
         "`submission.artifact_type` repeats `kind` for a proof, counterexample, vacuity, "
         "reduction or partial (null for any other record).",
@@ -584,9 +602,10 @@ TOOLS: tuple[Tool, ...] = (
         "list_submissions",
         "Every pull request the service opened on the graph that no live read has yet found "
         "merged or closed: id, kind, node, target, pull-request number and URL, pseudonym, in "
-        "the merge actor's order. Each entry's `queue` gives its `position` `of` how many and "
+        "the merge actor's order. Each entry's `queue` gives its `position` `of` how many in its "
+        "own target's lane (the actor runs one lane per target in parallel) and "
         "the `waiting_on` the service last read for it (null: not read, ask get_submission); "
-        "the top-level `queue.order` is the queue's pull-request numbers. "
+        "the top-level `queue.order` is the queue's pull-request numbers across every lane. "
         "get_submission gives one with its checks and reviews; get_node lists a node's own.",
         params({}),
         list_submissions,
@@ -641,6 +660,27 @@ TOOLS: tuple[Tool, ...] = (
         "Plain path: GET /claims/mine.",
         params({}),
         list_my_claims,
+        access="bearer",
+    ),
+    Tool(
+        "get_my_submissions",
+        "Your own submissions, by your token: `open`, each as list_submissions gives it (the "
+        "record and its `queue` place in its own target's lane), and `recent`, the most "
+        "recently merged or closed, newest first, each with `state` (merged or closed). Finds a "
+        "pull request again after its receipt was lost; get_submission gives one in full. "
+        "Plain path: GET /submissions/mine.",
+        params({}),
+        get_my_submissions,
+        access="bearer",
+    ),
+    Tool(
+        "get_check",
+        "Your own record of one check_lean call, by the `log_id` it returned: target, node, "
+        "mode, environment, the content's hash and size (never the text), the outcome, `okay`, "
+        "the error count and the lint codes. Only the identity that made the call can read it; "
+        "anyone else's answers not-found. Plain path: GET /checks/{check_id}.",
+        params({"check_id": {"type": "string"}}, ("check_id",)),
+        get_check,
         access="bearer",
     ),
 )

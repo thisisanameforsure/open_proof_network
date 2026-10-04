@@ -478,6 +478,10 @@ GATE_REFUSALS: frozenset[str] = frozenset(
         *usesmod.CODES,
     }
 )
+#: F13-T30 (testers 2026-10-01, A15): the findings that are the caller's own text resting on
+#: ``sorryAx`` — read from the text, never from the checker's warning, which in check mode is as
+#: often a Context's restated dependency. They make ``okay`` false in check mode too.
+TEXT_SORRY: frozenset[str] = frozenset({"sorry-present", "admit-present"})
 #: ``admit`` as a token in code, the way ``layout.mentions_sorry`` reads ``sorry``: Lean's
 #: ``admit`` is the ``sorry`` tactic by another name (it elaborates to ``sorryAx``).
 ADMIT_TOKEN_RE = re.compile(r"(?<![\w'.!?])admit(?![\w'.!?])")
@@ -672,7 +676,51 @@ def gate_verdict(mode: str, checker: bool | None, warnings: list[dict[str, Any]]
         return False
     if mode == "verify" and found & GATE_REFUSALS:
         return False
+    if mode == "check" and found & TEXT_SORRY:  # F13-T30, A15
+        return False
     return checker
+
+
+def context_failure_only(body: dict[str, Any], own: str | None) -> bool:
+    """F13-T30 (testers 2026-10-01, A6): whether a verify ``okay: false`` is the restated
+    Context's and not the proof's — Lean reported no error, and every declaration the checker
+    names as failed is one other than the proof's own theorem (``own``, the statement's written
+    name; matched with or without a namespace). Asked only where ``context-restated`` fired: a
+    Context restates each dependency with a ``sorry`` body, which a verifier refuses whether or
+    not the proof uses it, while the gate builds against the real proofs."""
+    if body.get("okay") is not False or own is None:
+        return False
+    failed = body.get("failed_declarations")
+    block = body.get("lean_messages")
+    errors = block.get("errors") if isinstance(block, dict) else None
+    if not isinstance(failed, list) or not failed or errors:
+        return False
+
+    def is_own(name: str) -> bool:
+        return name == own or name.endswith("." + own) or own.endswith("." + name)
+
+    return not any(is_own(str(name)) for name in failed)
+
+
+def verify_findings(
+    mode: str,
+    body: dict[str, Any],
+    statement: layout.Statement | None,
+    warnings: list[dict[str, Any]],
+) -> bool:
+    """Verify mode's findings from the checker's answer, added to ``warnings``: its own word on
+    ``sorryAx`` (``sorry-reported``, F13-T25) — unless the failure is the restated Context's
+    alone (F13-T30, A6), which is returned as true, so the caller reads the verdict as true."""
+    if mode != "verify":
+        return False
+    restated_only = any(w["code"] == "context-restated" for w in warnings) and (
+        context_failure_only(body, _written_name(statement.text) if statement else None)
+    )
+    if not restated_only:
+        reported = sorry_reported(body)
+        if reported is not None:
+            warnings.append(reported)
+    return restated_only
 
 
 def _written_name(statement_text: str) -> str | None:
@@ -2722,10 +2770,7 @@ async def post_check(ctx: Context, request: Request) -> Response:
         )
         refusal.details = {**(refusal.details or {}), "log_id": log_id}
         raise
-    if req.mode == "verify":  # F13-T25: the checker's own word on sorryAx
-        reported = sorry_reported(answer.body)
-        if reported is not None:
-            warnings.append(reported)
+    restated_only = verify_findings(req.mode, answer.body, statement, warnings)
     status, program_error = (
         hazards_status(answer.body, statement_lines(formal or ""))
         if req.mode == "hazards"
@@ -2757,7 +2802,7 @@ async def post_check(ctx: Context, request: Request) -> Response:
             # F13-T25: in verify mode, false too when the lint names a gate refusal.
             "okay": None
             if status == HAZARDS_UNAVAILABLE
-            else gate_verdict(req.mode, verdict(answer.body), warnings),
+            else gate_verdict(req.mode, True if restated_only else verdict(answer.body), warnings),
             "user_error": text_or_none(answer.body.get("user_error")),
             "result": shown,
             # F13-T18: what was left out of ``result`` and why; the log keeps the checker's own.

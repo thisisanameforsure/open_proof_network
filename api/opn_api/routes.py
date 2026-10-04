@@ -92,6 +92,17 @@ ROUTES: tuple[RouteSpec, ...] = (
     # F07-T16: reads, like /frontier.json — what the service opened and how it is doing. The plain
     # path is the pull request on the host and, once merged, attestations/<n>.json.
     RouteSpec("GET", "/submissions.json", "pending:get_submissions", None, feature="F07"),
+    # F07-T70 (the owner, 2026-10-04): the caller's own submissions, open and recently finished,
+    # as /claims/mine is for claims. A read with no D-35 row; matched before the route below,
+    # which would refuse "mine" as an id.
+    RouteSpec(
+        "GET",
+        "/submissions/mine",
+        "pending:get_my_submissions",
+        None,
+        authenticated=True,
+        feature="F07",
+    ),
     RouteSpec("GET", "/submissions/{submission_id}", "pending:get_submission", None, feature="F07"),
     # F07-T43 (ruling D5): the identity that opened a pull request closes it, unmerged.
     RouteSpec(
@@ -195,6 +206,8 @@ PURPOSES: dict[str, str] = {
     "POST /submissions": "Open the pull request for a prechecked proof or partial proof.",
     "GET /submissions.json": "Every pull request the service opened that is still open, in "
     "merge-queue order, each with its position.",
+    "GET /submissions/mine": "Your own submissions: the open ones with their place in the "
+    "queue, and the most recently merged or closed.",
     "GET /submissions/{submission_id}": "One submission: its pull request, where it stands, "
     "and its place in the merge queue with what is ahead.",
     "DELETE /submissions/{submission_id}": "Withdraw a pull request you opened, closed unmerged.",

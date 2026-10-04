@@ -39,6 +39,10 @@ READS = {
     "get_hosted_checkers",
     # F05-T14 (ruling D3(b)), D-28's notation note of 2026-09-24: the caller's own claims.
     "list_my_claims",
+    # F07-T70, F09-T17, D-28's notation note of 2026-10-04: the caller's own submissions and
+    # fast-check records.
+    "get_my_submissions",
+    "get_check",
 }
 WRITES = {
     "claim_node",

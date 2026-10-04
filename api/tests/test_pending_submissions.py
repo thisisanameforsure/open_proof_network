@@ -384,7 +384,8 @@ def test_closing_keeps_the_final_state_and_leaves_the_open_index_in_both_stores(
     assert [s.pr_number for s in store.list_open_submissions()] == [3]
 
 
-def test_the_dynamo_layout_is_three_prefixes_in_the_tokens_table_without_a_ttl() -> None:
+def test_the_dynamo_layout_is_four_prefixes_in_the_tokens_table_without_a_ttl() -> None:
+    """F07-T16's three prefixes, and F07-T70's per-pseudonym index beside the open one."""
     table_store = dynamo()
     table_store.put_submission(record(4))
     table = table_store._tokens
@@ -392,6 +393,8 @@ def test_the_dynamo_layout_is_three_prefixes_in_the_tokens_table_without_a_ttl()
         "submission#01M00000000000000000000004",
         "submissionpr#4",
         "submissions#open",
+        "submissionsby#alice",
     }
+    assert table.items["submissionsby#alice"]["ids"] == {"01M00000000000000000000004"}
     assert all("expires_at" not in item for item in table.items.values())
     assert table.items["submissions#open"]["ids"] == {"01M00000000000000000000004"}
