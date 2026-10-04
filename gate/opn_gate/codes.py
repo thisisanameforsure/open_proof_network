@@ -876,6 +876,31 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "An identity already exists for this GitHub login.",
         "Use the token you were issued before; one GitHub login holds one identity.",
     ),
+    "gloss-invalid": (
+        "gate",
+        None,
+        "A gloss's front matter is missing or does not satisfy gloss/v1: it must name its target "
+        "and its subject, set exactly one of author and drafter, and sit under the node (or, for "
+        "a definition module, the target) it describes (F20-R1).",
+        "Fix the front matter as the message says, rename the file to the SHA-256 of its new "
+        "content, and open the pull request again; opn-gate gloss revise writes a valid one.",
+    ),
+    "gloss-subject-mismatch": (
+        "gate",
+        None,
+        "A gloss's lean_hash is not the hash of the Lean file it describes as the tree holds it "
+        "now (F20-R3).",
+        "Read the file as it stands, revise the gloss against it and set lean_hash to the current "
+        "hash the message names.",
+    ),
+    "gloss-subject-unknown": (
+        "gate",
+        None,
+        "A gloss describes a Lean file that is not in the tree: a relation on a node with no "
+        "Relation.lean, or a definition module not under defs/ (F20-R1).",
+        "Name a file that exists: a statement, witness or relation of the node the gloss is filed "
+        "under, or a module under the target's defs/.",
+    ),
     "graph-unreachable": (
         "api",
         None,

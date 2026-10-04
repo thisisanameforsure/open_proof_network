@@ -24,7 +24,9 @@ So the diff is classified into exactly one mode before anything else runs:
                  new explainers: a real-identity contributor's comprehension claim on one
                  explainer, refused by name when the explainer is absent, the sentence
                  differs, the signature fails or the signer is neither an active steward of
-                 the target nor a listed curator (F15-Q4)
+                 the target nor a listed curator (F15-Q4). Since F20-R1, also glosses under
+                 ``gloss/`` of a node of any status or of a target's definition modules
+                 (D-3 v3.30), checked by ``opn_gate.glosses`` and never built
 ``proposal``     exactly one new node directory and nothing else — or only ``Witness.lean``
                  on a hole whose slot is unfilled (F08-R2, R5); admission decides, nobody
                  reviews (D-29)
@@ -81,6 +83,7 @@ from opn_gate import (
     defs,
     evidence,
     fidelity,
+    glosses,
     intake,
     layout,
     ledger,
@@ -931,6 +934,11 @@ def _locate_change(change: Change, located: list[Located]) -> list[Diagnostic]:
     return []
 
 
+#: The roles the explainer mode carries: prose about Lean that asserts nothing a kernel checks,
+#: and the signatures on it (F15-R8; F20-R1).
+EXPLAINER_FAMILY: frozenset[Role] = frozenset({"explainer", "explainer-signature", "gloss"})
+
+
 def _mode_for(roles: set[Role]) -> Mode | None:  # noqa: PLR0911 — one return per mode
     appendish = set(paths.APPEND_ROLES)
     if "node" in roles:  # F08-R2: a whole new directory, and nothing outside it
@@ -951,9 +959,10 @@ def _mode_for(roles: set[Role]) -> Mode | None:  # noqa: PLR0911 — one return 
         # F07-R23: the assembly, the witnesses it carries for its holes, and appends. A carried
         # witness with no assembly beside it falls through to the end and fits no mode.
         return "partial" if roles <= ({"partial", "hole-witness"} | appendish) else None
-    if roles & {"explainer", "explainer-signature"}:
-        # F15-R8: signature files alone, or with new explainers, are the explainer mode.
-        return "explainer" if roles <= {"explainer", "explainer-signature"} else None
+    if roles & EXPLAINER_FAMILY:
+        # F15-R8: signature files alone, or with new explainers, are the explainer mode; F20-R1
+        # (D-3 v3.30): so are glosses, prose about a Lean file that asserts as little.
+        return "explainer" if roles <= EXPLAINER_FAMILY else None
     # F15: a steward record, a write-up or a policy file is nobody's append; only D-13's,
     # D-31's and D-14's records reach the append mode.
     return "append" if roles <= appendish else None
@@ -989,6 +998,8 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
             problems.extend(check_explainer_file(graph_root, located, classification))
         elif located.role == "explainer-signature":
             problems.extend(check_explainer_signature(graph_root, located, classification))
+        elif located.role == "gloss":
+            problems.extend(glosses.check_gloss(graph_root, located))
         elif located.role == "statement-evidence":
             problems.extend(check_evidence(graph_root, located))
         elif located.role in ("formalization", "formalization-statement"):
