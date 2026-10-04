@@ -10,7 +10,7 @@ on:
     branches: [main]
     paths:
       - "api/**"
-      - "gate/opn_gate/schemas.py"
+      - "gate/opn_gate/**"  # every gate module the service imports (test_finding_deploy_paths_cover_imports)
       - "gate/schemas/**"
       - "gate/hosted-checkers.yaml"  # F13: POST /check reads it at runtime
       - "gate/lean/OpnGate/WitnessType.lean"  # F13-T14: mode witness sends the gate's own program
@@ -18,9 +18,6 @@ on:
       - "gate/lean/OpnGate/Hazards.lean"  # F13-T20: mode hazards sends step 6's own checkers
       - "gate/lean/OpnGate/Hazards/**"
       - "gate/lean/OpnGate/HazardsMain.lean"  # F13-T20: its registry of checkers
-      - "gate/opn_gate/steps/hazards.py"  # F13-T20: the matching of findings to acknowledgments
-      - "gate/opn_gate/hosted.py"
-      - "gate/opn_gate/carried.py"  # F07-T51: the grammar of a partial's carried witnesses
       - "pyproject.toml"
       - "uv.lock"
       - ".github/workflows/api-deploy.yml"
