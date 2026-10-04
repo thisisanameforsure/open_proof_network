@@ -364,6 +364,21 @@ class GitHost(Protocol):
         ...
 
 
+#: F06-T12: what each call's installation token may do. A token request names the one repository
+#: and exactly these permissions, so a read's token cannot write and no token reaches a repository
+#: its call is not for (an empty request is the App's whole grant on every installed repository).
+#: Metadata: read is implied by GitHub on every token. Each set is a sorted tuple of pairs, so it
+#: can key the token cache.
+Permissions = tuple[tuple[str, str], ...]
+CONTENTS_READ: Permissions = (("contents", "read"),)  # refs, the Contents API, compare
+CONTENTS_WRITE: Permissions = (("contents", "write"),)  # the Git Data API: trees, commits, refs
+PULLS_READ: Permissions = (("pull_requests", "read"),)  # the open listing
+PULLS_WRITE: Permissions = (("pull_requests", "write"),)  # open and close a pull request
+PULL_STATE: Permissions = (("actions", "read"), ("pull_requests", "read"))  # pull, reviews, runs
+ACTIONS_READ: Permissions = (("actions", "read"),)  # runs, jobs, artifacts
+ACTIONS_WRITE: Permissions = (("actions", "write"),)  # workflow_dispatch
+
+
 class HttpxGitHost:
     def __init__(
         self, *, client_id: str, client_secret: str, app_id: str = "", private_key: str = ""
@@ -372,8 +387,9 @@ class HttpxGitHost:
         self._client_secret = client_secret
         self._app_id = app_id
         self._private_key = private_key
-        # repo -> (installation access token, unix expiry). Memory only: never stored (C8).
-        self._installation_tokens: dict[str, tuple[str, float]] = {}
+        # (repo, permissions) -> (installation access token, unix expiry). Memory only: never
+        # stored (C8). F06-T12: one token per permission set, never shared between sets.
+        self._installation_tokens: dict[tuple[str, Permissions], tuple[str, float]] = {}
         # F07-T39: the snapshot's lookups run on a pool, so a cold process asks for the token
         # from several threads at once; one mints it and the rest read the cache.
         self._token_lock = threading.Lock()
@@ -445,7 +461,7 @@ class HttpxGitHost:
     def head_sha(self, repo: str, branch: str) -> str:
         """The commit ``branch`` points to, from the API as the App (F05-T13). Not the raw host:
         that is a CDN which caches a branch path for minutes, and the point is to see past it."""
-        with self._api(repo) as http:
+        with self._api(repo, CONTENTS_READ) as http:
             ref = _json(_send(http, "GET", f"{GITHUB_API}/repos/{repo}/git/ref/heads/{branch}"))
         sha = str((ref.get("object") or {}).get("sha") or "")
         if not sha:
@@ -471,7 +487,7 @@ class HttpxGitHost:
     def list_dir(self, repo: str, ref: str, path: str) -> list[str] | None:
         """The Contents API as the App (F09-R6): the raw host serves files, not listings, and
         the App's installation token has the rate budget an anonymous call lacks."""
-        with self._api(repo) as http:
+        with self._api(repo, CONTENTS_READ) as http:
             try:
                 resp = http.get(f"{GITHUB_API}/repos/{repo}/contents/{path}", params={"ref": ref})
             except httpx.HTTPError as exc:
@@ -501,7 +517,7 @@ class HttpxGitHost:
         url = f"{GITHUB_API}/repos/{repo}/compare/{ancestor}...{commit}"
         params = {"per_page": 1}  # the status is all that is read; the commit list is not
         try:
-            http = self._api(repo)
+            http = self._api(repo, CONTENTS_READ)
         except GitHostError:
             http = httpx.Client(
                 timeout=TIMEOUT_S,
@@ -552,14 +568,15 @@ class HttpxGitHost:
         signature = key.sign(signing_input, padding.PKCS1v15(), hashes.SHA256())
         return (signing_input + b"." + _b64url(signature)).decode("ascii")
 
-    def _installation_token(self, repo: str) -> str:
-        """The App's installation access token for ``repo``, cached until it nearly expires.
-        Minted under a lock, so threads that arrive together mint one token (F07-T39)."""
+    def _installation_token(self, repo: str, permissions: Permissions) -> str:
+        """The App's installation access token for ``repo`` with ``permissions`` and nothing
+        more (F06-T12), cached per (repo, permissions) until it nearly expires. Minted under a
+        lock, so threads that arrive together mint one token (F07-T39)."""
         with self._token_lock:
-            return self._installation_token_locked(repo)
+            return self._installation_token_locked(repo, permissions)
 
-    def _installation_token_locked(self, repo: str) -> str:
-        cached = self._installation_tokens.get(repo)
+    def _installation_token_locked(self, repo: str, permissions: Permissions) -> str:
+        cached = self._installation_tokens.get((repo, permissions))
         if cached is not None and cached[1] - TOKEN_REFRESH_MARGIN_S > time.time():
             return cached[0]
         jwt = self._app_jwt()
@@ -578,7 +595,13 @@ class HttpxGitHost:
                 raise GitHostError(msg)
             issued = _json(
                 _send(
-                    http, "POST", f"{GITHUB_API}/app/installations/{installation_id}/access_tokens"
+                    http,
+                    "POST",
+                    f"{GITHUB_API}/app/installations/{installation_id}/access_tokens",
+                    json={
+                        "repositories": [repo.split("/", 1)[-1]],
+                        "permissions": dict(permissions),
+                    },
                 )
             )
         token = str(issued.get("token") or "")
@@ -586,16 +609,17 @@ class HttpxGitHost:
             msg = f"GitHub issued no installation token for {repo}"
             raise GitHostError(msg)
         # An installation token lives an hour; trust the margin rather than parsing expires_at.
-        self._installation_tokens[repo] = (token, time.time() + 3600)
+        self._installation_tokens[(repo, permissions)] = (token, time.time() + 3600)
         return token
 
-    def _api(self, repo: str) -> httpx.Client:
-        """A client carrying the installation token for ``repo``. The token is in memory and in
-        this header only — never in a store, a response or a log (C8)."""
+    def _api(self, repo: str, permissions: Permissions) -> httpx.Client:
+        """A client carrying an installation token for ``repo`` scoped to ``permissions``
+        (F06-T12). The token is in memory and in this header only — never in a store, a response
+        or a log (C8)."""
         return httpx.Client(
             timeout=TIMEOUT_S,
             headers={
-                "Authorization": f"Bearer {self._installation_token(repo)}",
+                "Authorization": f"Bearer {self._installation_token(repo, permissions)}",
                 "Accept": API_ACCEPT,
                 "X-GitHub-Api-Version": API_VERSION,
             },
@@ -614,7 +638,7 @@ class HttpxGitHost:
         committer: Author | None = None,
         replace: bool = False,
     ) -> str:
-        with self._api(repo) as http:
+        with self._api(repo, CONTENTS_WRITE) as http:
             ref = _json(_send(http, "GET", f"{GITHUB_API}/repos/{repo}/git/ref/heads/{base}"))
             base_sha = str(ref.get("object", {}).get("sha") or "")
             if not base_sha:
@@ -671,7 +695,7 @@ class HttpxGitHost:
     def open_pull_request(
         self, repo: str, *, head: str, base: str, title: str, body: str
     ) -> PullRequest:
-        with self._api(repo) as http:
+        with self._api(repo, PULLS_WRITE) as http:
             doc = _json(
                 _send(
                     http,
@@ -683,7 +707,7 @@ class HttpxGitHost:
         return PullRequest(number=int(doc["number"]), url=str(doc.get("html_url") or ""))
 
     def close_pull_request(self, repo: str, number: int) -> str | None:
-        with self._api(repo) as http:
+        with self._api(repo, PULLS_WRITE) as http:
             doc = _json(
                 _send(
                     http,
@@ -703,7 +727,7 @@ class HttpxGitHost:
 
     def delete_branch(self, repo: str, branch: str) -> bool:
         url = f"{GITHUB_API}/repos/{repo}/git/refs/heads/{branch}"
-        with self._api(repo) as http:
+        with self._api(repo, CONTENTS_WRITE) as http:
             try:
                 resp = http.request("DELETE", url)
             except httpx.HTTPError as exc:
@@ -722,7 +746,7 @@ class HttpxGitHost:
     def dispatch_workflow(
         self, repo: str, workflow: str, *, ref: str, inputs: Mapping[str, str]
     ) -> None:
-        with self._api(repo) as http:
+        with self._api(repo, ACTIONS_WRITE) as http:
             _send(
                 http,
                 "POST",
@@ -731,7 +755,7 @@ class HttpxGitHost:
             )
 
     def find_run(self, repo: str, workflow: str, *, branch: str) -> WorkflowRun | None:
-        with self._api(repo) as http:
+        with self._api(repo, ACTIONS_READ) as http:
             page = _json(
                 _send(
                     http,
@@ -754,7 +778,7 @@ class HttpxGitHost:
     def latest_artifact(self, repo: str, run_id: int, prefix: str) -> bytes | None:
         """The newest artifact of the run whose name starts with ``prefix`` (F07-T26): the gate
         names its verdict ``gate-<pr>-<attempt>``, and only the run knows its attempt."""
-        with self._api(repo) as http:
+        with self._api(repo, ACTIONS_READ) as http:
             listing = _json(
                 _send(http, "GET", f"{GITHUB_API}/repos/{repo}/actions/runs/{run_id}/artifacts")
             )
@@ -776,7 +800,7 @@ class HttpxGitHost:
         return zipped.content
 
     def download_artifact(self, repo: str, run_id: int, name: str) -> bytes | None:
-        with self._api(repo) as http:
+        with self._api(repo, ACTIONS_READ) as http:
             listing = _json(
                 _send(http, "GET", f"{GITHUB_API}/repos/{repo}/actions/runs/{run_id}/artifacts")
             )
@@ -803,7 +827,7 @@ class HttpxGitHost:
         F06) — not the check-runs API, whose Checks permission C8 does not list. One page of
         each (100 items) is Stage 0's volume."""
         base = f"{GITHUB_API}/repos/{repo}"
-        with self._api(repo) as http:
+        with self._api(repo, PULL_STATE) as http:
             try:
                 resp = http.get(f"{base}/pulls/{number}")
             except httpx.HTTPError as exc:
@@ -899,7 +923,7 @@ class HttpxGitHost:
         """``GET /repos/{repo}/pulls?state=open`` as the App (F07-T47), a page of 100 at a time
         until a short page: one call for the whole queue at Stage 0's volume."""
         out: list[OpenPullRequest] = []
-        with self._api(repo) as http:
+        with self._api(repo, PULLS_READ) as http:
             for page in range(1, LISTING_MAX_PAGES + 1):
                 entries = _json_list(
                     _send(
