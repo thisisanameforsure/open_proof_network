@@ -1,0 +1,18 @@
+<p class="crumbs"><a href="/problems/">Problems</a> / <a href="$target_href">$target_id</a> / proof $number</p>
+<h1>Proof $number of $count</h1>
+<p class="lead">$lead</p>
+<section class="rv-statement">
+<h2>The statement</h2>
+<div class="statement-block" data-block="statement">$statement_label
+<p class="informal"><span class="kicker">Informal statement</span> $informal</p>
+<pre class="lean statement st-$root_status">$root_lean</pre>
+<p>Fidelity: $fidelity. Rendered from $root_link.$variant</p>
+</div>
+</section>
+<h2>The proof, dependencies first</h2>
+<p class="cue">$order_words Each statement comes before the statements whose proofs use it. A step&rsquo;s outline is folded; open it for its goal, what it uses and its Lean lines.</p>
+<ol class="rv-nodes">
+$nodes
+</ol>
+<h2>Correspondence</h2>
+$table

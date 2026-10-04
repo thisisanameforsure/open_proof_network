@@ -1,0 +1,58 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_______________ test_dependency_order_statement_first_and_table ________________
+
+built = (Site(root=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-80/reading...666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...})
+
+    def test_dependency_order_statement_first_and_table(
+        built: tuple[model.Site, dict[str, str]],
+    ) -> None:
+        site, pages = built
+>       page = reading_page(site, pages)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_reading_view.py:46: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+site = Site(root=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-80/reading0...o', 'doc': None, 'tags': []}]}, 'closed_by': {'kind': 'term', 'tactics': []}, 'child_node': None, 'children': []}]}})})
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def reading_page(site: model.Site, pages: dict[str, str]) -> str:
+        [proof] = site.targets[TARGET].graph["target_proofs"]
+        path = rf.reading_path(TARGET, proof["artifact_hash"])
+>       assert path in pages, f"no reading view at {path}"
+E       AssertionError: no reading view at problems/propositional/proofs/11451d603f82/index.html
+E       assert 'problems/propositional/proofs/11451d603f82/index.html' in {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+site/tests/test_reading_view.py:38: AssertionError
+______________________ test_every_block_has_a_text_label _______________________
+
+built = (Site(root=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-80/reading...666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...})
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-80/test_every_block_has_a_text_la0')
+
+    def test_every_block_has_a_text_label(
+        built: tuple[model.Site, dict[str, str]], tmp_path: Path
+    ) -> None:
+        """AC8 (R11): every block kind either page can emit opens with its provenance in words."""
+        site, pages = built
+>       reading = labels(reading_page(site, pages))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_reading_view.py:114: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+site = Site(root=PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-80/reading0...o', 'doc': None, 'tags': []}]}, 'closed_by': {'kind': 'term', 'tactics': []}, 'child_node': None, 'children': []}]}})})
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def reading_page(site: model.Site, pages: dict[str, str]) -> str:
+        [proof] = site.targets[TARGET].graph["target_proofs"]
+        path = rf.reading_path(TARGET, proof["artifact_hash"])
+>       assert path in pages, f"no reading view at {path}"
+E       AssertionError: no reading view at problems/propositional/proofs/11451d603f82/index.html
+E       assert 'problems/propositional/proofs/11451d603f82/index.html' in {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+site/tests/test_reading_view.py:38: AssertionError
+=========================== short test summary info ============================
+FAILED site/tests/test_reading_view.py::test_dependency_order_statement_first_and_table
+FAILED site/tests/test_reading_view.py::test_every_block_has_a_text_label - A...
+2 failed in 1.06s

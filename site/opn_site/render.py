@@ -117,6 +117,18 @@ MATH_SCRIPTS = (
     '<script src="/vendor/katex/auto-render.min.js"></script>'
     '<script src="/math.js"></script>'
 )
+#: F19-R11: the words every block on a node page and a reading view opens with, so what a block
+#: is — kernel-checked, an audited statement, unverified prose, untrusted text — is said in text and
+#: never by colour alone. ``unaudited`` and ``unchecked`` are the honest words for a statement no
+#: QA pass covers and for Lean no attestation covers.
+PROVENANCE: dict[str, str] = {
+    "kernel": "Checked by the kernel",
+    "audited": "Statement audited",
+    "unaudited": "Statement not audited",
+    "unverified": "Informal account, unverified",
+    "untrusted": "Untrusted contributor text",
+    "unchecked": "Not checked",
+}
 #: The static tree's text files ship as pages do; its binary files (the fonts) are copied by
 #: ``write``.
 STATIC_TEXT_SUFFIXES = frozenset({".css", ".js", ".svg", ".txt", ""})
@@ -976,7 +988,11 @@ class Renderer:
                     + ", so those are drawn through what they declared."
                 )
             hidden = "" if k == 0 else " hidden"
-            notes.append(f'<p class="proof-note" data-proof="{k}"{hidden}>{esc(words)}</p>')
+            read = (
+                f' <a href="{esc(self.reading_path(tv.target_id, p))}">Read proof {k + 1} '
+                "top-down, every step beside its Lean →</a>"
+            )
+            notes.append(f'<p class="proof-note" data-proof="{k}"{hidden}>{esc(words)}{read}</p>')
         lead = f"Proved {len(proofs)} way{'' if len(proofs) == 1 else 's'}:"
         return (
             f'<div class="proof-picker" role="group" aria-label="Proofs of this problem">'
@@ -2182,6 +2198,7 @@ class Renderer:
         e = nv.graph_entry
         tid, nid = nv.target_id, nv.node_id
         renders = [nv.statement_path, f"targets/{tid}/nodes/{nid}/META.yaml"]
+        tv = self.site.targets.get(tid)  # None only for a node rendered outside a loaded site
         if nv.status == "proved" and e["proof_commit"] and nv.proof_path:
             proof = (
                 "<p>Proof merged in commit "
@@ -2200,20 +2217,18 @@ class Renderer:
                     "withheld here; the file itself is linked above.</p>"
                 )
             elif nv.proof is not None:
-                proof += self.lean_artifact(
-                    nv.proof,
-                    what="Proof.lean",
-                    provenance=(
-                        "its sha256 is the <code>artifact_hash</code> of the attestation below, "
-                        "so these are the bytes the gate checked."
-                        if nv.proof.verified
-                        else "no attestation names a hash for these bytes."
-                    ),
-                )
+                proof += self.proof_text(tv, nv, nv.proof)
             renders.append(nv.proof_path)
         else:
             proof = "<p>No proof merged yet.</p>"
         attestation = self.attestation_block(nv)
+        if nv.attestation is not None and nv.attestation_path is not None:
+            attestation = (
+                '<div class="attestation-block" data-block="attestation">'
+                + self.kernel_label(nv, what="the gate&rsquo;s record of the run")
+                + attestation
+                + "</div>"
+            )
         alternates = self.alternates_block(nv)
         renders.extend(alt.path for alt in nv.alternates)
         if nv.attestation_path:
@@ -2232,11 +2247,25 @@ class Renderer:
             renders.append(nv.explainer.path)
             renders.extend(v.path for v in nv.signatures)
         annexes = (
-            "".join(self.untrusted_block("untrusted", a, what="annex (D-31)") for a in nv.annexes)
+            "".join(
+                self.untrusted_block(
+                    "untrusted",
+                    a,
+                    what="annex (D-31)",
+                    math=True,
+                    provenance=self.provenance(
+                        "untrusted", "an annex (D-31): an informal argument, not a proof."
+                    ),
+                    block="annex",
+                )
+                for a in nv.annexes
+            )
             or "<p>No annex.</p>"
         )
+        ack_label = self.provenance("untrusted", "the prover&rsquo;s justification for a finding.")
         acks = "".join(
-            f'<div class="prose-block untrusted"><p class="label">Untrusted: acknowledgment '
+            f'<div class="prose-block untrusted" data-block="acknowledgment">{ack_label}'
+            f'<p class="label">Untrusted: acknowledgment '
             f"of a <code>{esc(a.get('checker', ''))}</code> finding at "
             f"<code>{esc(a.get('location', ''))}</code></p>"
             f'<div class="prose">{prose.render(a.get("justification", ""))}</div></div>'
@@ -2275,6 +2304,7 @@ class Renderer:
                 else ""
             ),
             statement=esc(nv.statement.rstrip("\n")),
+            statement_label=self.statement_label(tv, nv),
             statement_link=self.file_link(nv.statement_path),
             deps=", ".join(self.node_link(tid, d) for d in nv.deps) or "none",
             origin=esc(e["origin"]) + (f" ({esc(e['relation'])})" if e["relation"] else ""),
@@ -2291,11 +2321,49 @@ class Renderer:
             annexes=annexes,
             acknowledgments=acks,
         )
+        # F19-T6: KaTeX is loaded only by a page that carries math, so a record page whose prose
+        # has none stays script-free (F04-T13's rule for the statement record page).
+        has_math = 'class="math"' in body
         return self.page(
             nid,
             body,
             renders=renders,
             path=PROBLEMS_PATH,
+            head=MATH_HEAD if has_math else "",
+            script=MATH_SCRIPTS if has_math else "",
+        )
+
+    def proof_text(self, tv: TargetView | None, nv: NodeView, lean: LeanFile) -> str:
+        """The proof's outline (F19-T7, R9) above its source: the outline of these very bytes,
+        when the products carry one; without one, the source alone, as before outlines."""
+        commit = str(nv.graph_entry.get("proof_commit") or "") or None
+        doc = self.outline_of(tv, nv.node_id, lean) if tv is not None and lean.verified else None
+        outline = (
+            self.outline_section(
+                tv,
+                doc,
+                lean,
+                label=self.kernel_label(nv, what="an outline of the attested proof below"),
+                commit=commit,
+            )
+            if tv is not None and doc is not None
+            else ""
+        )
+        return outline + self.lean_artifact(
+            lean,
+            what="Proof.lean",
+            provenance=(
+                "its sha256 is the <code>artifact_hash</code> of the attestation below, "
+                "so these are the bytes the gate checked."
+                if lean.verified
+                else "no attestation names a hash for these bytes."
+            ),
+            label=(
+                self.kernel_label(nv, what="these bytes are the ones its attestation names")
+                if lean.verified
+                else self.provenance("unchecked", "no attestation names these bytes.")
+            ),
+            block="proof",
         )
 
     def explainer_block(self, nv: NodeView) -> str:
@@ -2304,7 +2372,12 @@ class Renderer:
         proved statement is invited, and told how one arrives."""
         if nv.explainer is not None:
             return self.vouched_lines(nv) + self.untrusted_block(
-                "unverified", nv.explainer, what="explainer"
+                "unverified",
+                nv.explainer,
+                what="explainer",
+                math=True,
+                provenance=self.explainer_label(nv, nv.explainer),
+                block="explainer",
             )
         if nv.status == "proved":
             return (
@@ -2584,19 +2657,497 @@ class Renderer:
 
     # -- the mathematics itself (F04-T15; R14) -------------------------------------------------
 
-    def lean_artifact(self, lean: LeanFile, *, what: str, provenance: str) -> str:
+    def lean_artifact(
+        self, lean: LeanFile, *, what: str, provenance: str, label: str = "", block: str = ""
+    ) -> str:
         """A Lean artifact's own text on the page, with what is known about those bytes.
 
         ``provenance`` is HTML the caller has already escaped. The sentence differs per artifact
         because only a proof's bytes are attested (``artifact_hash``): a witness and a partial
-        have no hash anywhere in the protocol, so their callers are unable to claim one.
+        have no hash anywhere in the protocol, so their callers are unable to claim one. ``label``
+        is the block's F19-R11 provenance line and ``block`` its kind, both from the caller.
         """
         text = esc(lean.text.rstrip("\n"))
+        kind = f' data-block="{esc(block)}"' if block else ""
         return (
-            '<figure class="artifact"><figcaption class="artifact-cap">'
+            f'<figure class="artifact"{kind}>{label}<figcaption class="artifact-cap">'
             f"{esc(what)} — {provenance} Rendered from {self.file_link(lean.path)}, "
             f"sha256 <code>{esc(lean.content_hash[:12])}</code>.</figcaption>"
             f'<pre class="lean">{text}</pre></figure>'
+        )
+
+    # -- provenance labels (F19-R11) and proof outlines (F19-R9) -------------------------------
+
+    @staticmethod
+    def provenance(kind: str, detail: str = "") -> str:
+        """A block's provenance line: the kind's words in text, then ``detail`` (HTML the caller
+        escaped). Never colour alone (R11, requirement B)."""
+        rest = f" — {detail}" if detail else ""
+        return (
+            f'<p class="block-label" data-provenance="{esc(kind)}">'
+            f"<strong>{esc(PROVENANCE[kind])}</strong>{rest}</p>"
+        )
+
+    def kernel_label(self, nv: NodeView, *, what: str) -> str:
+        """The kernel's label for a node's proof: its attestation and the merge it covers."""
+        att = self.file_link(nv.attestation_path) if nv.attestation_path else "its attestation"
+        commit = str(nv.graph_entry.get("proof_commit") or "")
+        merged = f", merge commit <code>{esc(commit[:12])}</code>" if commit else ""
+        return self.provenance("kernel", f"{what}: {att}{merged}.")
+
+    def statement_label(self, tv: TargetView | None, nv: NodeView) -> str:
+        """R11: a root statement says its statement-QA state and signers; any other statement
+        says that only a problem's root is audited for fidelity (D-9), so its words are its Lean.
+        "Audited" is said only once a pass is complete or someone has signed."""
+        if tv is None or nv.node_id != tv.root:
+            return self.provenance(
+                "unaudited",
+                "only a problem&rsquo;s root statement is audited for fidelity (D-9); the kernel "
+                "checks a proof against this Lean as written.",
+            )
+        subjects = list(tv.index_entry.get("subjects") or [])
+        grade = str(tv.index_entry.get("fidelity") or "not graded")
+        if not subjects:
+            return self.provenance(
+                "unaudited", f"fidelity {esc(grade)}; no statement-QA record for this problem."
+            )
+        s = next((x for x in subjects if x.get("subject") == "root"), subjects[0])
+        qa = s.get("qa") or {}
+        signers = [str(n) for n in s.get("signers") or []]
+        state = "complete" if qa.get("complete") else "incomplete"
+        if qa.get("stale"):
+            state += ", stale"
+        words = f"fidelity {esc(str(s.get('grade') or grade))}; QA pass {esc(state)}; " + (
+            f"signed by {esc(', '.join(signers))}." if signers else "no signer yet."
+        )
+        audited = bool(qa.get("complete")) or bool(signers)
+        return self.provenance("audited" if audited else "unaudited", words)
+
+    def explainer_label(self, nv: NodeView, explainer: Prose) -> str:
+        """R11 (D-3): an explainer's author, drafting model and signer, as text."""
+        parts = [f"by {esc(explainer.author)}" if explainer.author else "author not recorded"]
+        if explainer.model:
+            parts.append(f"drafted with {esc(explainer.model)}")
+        stem = Path(explainer.path).stem  # an explainer's file name is its hash (F15-R8)
+        signed = [v for v in nv.signatures if v.explainer == stem]
+        parts.append(
+            "signed by " + ", ".join(f"{esc(v.signer)} ({esc(v.date)})" for v in signed)
+            if signed
+            else "no one has signed it"
+        )
+        return self.provenance("unverified", "; ".join(parts) + ".")
+
+    def outline_of(
+        self, tv: TargetView, node_id: str, lean: LeanFile | None
+    ) -> dict[str, Any] | None:
+        """F19-T7: the outline of exactly these bytes of this node, when the products carry one.
+
+        Keyed by the bytes' own hash, so an outline of any other version of the file — an older
+        proof, a different alternate — can never stand beside these lines."""
+        if lean is None:
+            return None
+        doc = tv.outlines.get(lean.content_hash)
+        return doc if doc is not None and doc.get("node") == node_id else None
+
+    def outline_section(  # noqa: PLR0913 — one argument per fact the section states
+        self,
+        tv: TargetView,
+        doc: dict[str, Any],
+        lean: LeanFile,
+        *,
+        label: str,
+        commit: str | None,
+        folded: bool = False,
+    ) -> str:
+        """R9: the outline as a tree of native ``<details>``, above the source it outlines.
+
+        ``label`` is the block's provenance line (R11). Unfolded, a top-level step is open unless
+        automation closed it; ``folded`` (the reading view, R8) leaves every step closed, so the
+        page shows the top-level steps alone."""
+        steps = list(doc["steps"])
+        key = str(doc["artifact"]["hash"])[:12]
+        lines = lean.text.splitlines()
+        items = "".join(
+            self.outline_step(tv, s, lines, lean.path, commit, key=key, depth=0, folded=folded)
+            for s in steps
+        )
+        single = (
+            '<p class="cue">The proof is a single term: its outline is that one step.</p>'
+            if len(steps) == 1 and steps[0]["kind"] == "term"
+            else ""
+        )
+        gate = esc(str(doc["gate"])[:12])
+        return (
+            f'<section class="proof-outline" data-block="outline" data-artifact="{esc(key)}">'
+            f'{label}<p class="cue">Outline of <code>{esc(lean.path.rsplit("/", 1)[-1])}</code>, '
+            f"extracted by the gate at <code>{gate}</code> from the proof&rsquo;s elaboration: "
+            "each step is a claim the proof establishes and the goal it leaves. Open a step for "
+            "what it uses and its Lean lines.</p>"
+            f'{single}<ol class="po-steps">{items}</ol></section>'
+        )
+
+    @staticmethod
+    def step_unreliable(step: dict[str, Any]) -> bool:
+        """R3: a step any of whose printed texts did not read back is shown as its lines only."""
+        texts = [step.get("claim")]
+        goal = step.get("goal")
+        if goal:
+            texts.append(goal["target"])
+            texts.extend(h["type"] for h in goal["hypotheses"])
+        return any(t is not None and t["printed"] == "unreliable" for t in texts)
+
+    @staticmethod
+    def printed(t: dict[str, Any]) -> str:
+        cut = ' <span class="po-cut">(truncated)</span>' if t.get("truncated") else ""
+        return esc(t["text"]) + cut
+
+    def outline_step(  # noqa: PLR0913 — the step and where it sits
+        self,
+        tv: TargetView,
+        step: dict[str, Any],
+        lines: list[str],
+        path: str,
+        commit: str | None,
+        *,
+        key: str,
+        depth: int,
+        folded: bool,
+    ) -> str:
+        """One step: its id, kind and claim in the summary; its goal, what it uses, its hole's
+        node and its Lean lines in the body; its children nested beneath."""
+        sid, kind = str(step["id"]), str(step["kind"])
+        closed = step["closed_by"]
+        routine = closed["kind"] == "automation"
+        unreliable = self.step_unreliable(step)
+        children = "".join(
+            self.outline_step(tv, c, lines, path, commit, key=key, depth=depth + 1, folded=folded)
+            for c in step["children"]
+        )
+        nested = f'<ol class="po-steps">{children}</ol>' if children else ""
+        head = f'<code class="po-id">{esc(sid)}</code> <span class="po-kind">{esc(kind)}</span>'
+        source = self.step_source(step["span"], lines, path, commit)
+        if unreliable:
+            summary = (
+                f'{head} <span class="po-note">printed form did not read back: shown as its '
+                "Lean lines only</span>"
+            )
+            body = source + nested
+        else:
+            claim = step.get("claim")
+            if claim is not None:
+                summary = f'{head} <code class="po-claim">{self.printed(claim)}</code>'
+            elif step.get("name"):
+                summary = f'{head} <code class="po-claim">{esc(step["name"])}</code>'
+            else:
+                summary = head
+            if routine:
+                tactics = ", ".join(str(t) for t in closed["tactics"])
+                summary += (
+                    f' <span class="po-routine">routine: {esc(tactics or "automation")}</span>'
+                )
+            if closed["kind"] == "hole":
+                summary += ' <span class="po-note">hole</span>'
+            body = (
+                self.step_goal(step)
+                + self.step_uses(tv, step)
+                + self.step_hole(tv, step)
+                + f'<details class="po-lean"><summary>Lean, {self.span_words(step["span"])}'
+                f"</summary>{source}</details>" + nested
+            )
+        opened = not folded and depth == 0 and not routine
+        classes = f"po-step po-{kind}" + (" po-is-routine" if routine else "")
+        classes += " po-is-unreliable" if unreliable else ""
+        return (
+            f'<li class="{esc(classes)}" id="po-{esc(key)}-{esc(sid)}" data-step="{esc(sid)}">'
+            f"<details{' open' if opened else ''}><summary>{summary}</summary>"
+            f'<div class="po-body">{body}</div></details></li>'
+        )
+
+    @staticmethod
+    def span_words(span: dict[str, Any]) -> str:
+        start, end = int(span["start_line"]), int(span["end_line"])
+        return f"line {start}" if start == end else f"lines {start}&ndash;{end}"
+
+    def step_source(
+        self, span: dict[str, Any], lines: list[str], path: str, commit: str | None
+    ) -> str:
+        """A step's own lines from the file on the page, and the same lines at the merge commit.
+        A span the file does not hold is said, not guessed at (C7)."""
+        start, end = int(span["start_line"]), int(span["end_line"])
+        at = commit or self.site.commit
+        url = f"{self.repo_url}/blob/{at}/{path}#L{start}-L{end}"
+        link = (
+            f'<p class="po-at"><a class="file" href="{esc(url)}">{esc(path)}, '
+            f"{self.span_words(span)} at <code>{esc(at[:12])}</code> ↗</a></p>"
+        )
+        if not 1 <= start <= end <= len(lines):
+            return (
+                f'<p class="flag">The outline places this step at {self.span_words(span)}, '
+                f"which the file does not hold.</p>{link}"
+            )
+        text = "\n".join(lines[start - 1 : end])
+        return f'<pre class="lean">{esc(text)}</pre>{link}'
+
+    def step_goal(self, step: dict[str, Any]) -> str:
+        goal = step.get("goal")
+        if goal is None:
+            return '<p class="po-goal">Closes the goal.</p>'
+        hyps = ", ".join(
+            f"<code>{esc(h['name'])} : {self.printed(h['type'])}</code>" for h in goal["hypotheses"]
+        )
+        added = f", with {hyps}" if hyps else ""
+        return (
+            f'<p class="po-goal">Leaves <code class="po-claim">{self.printed(goal["target"])}'
+            f"</code>{added}.</p>"
+        )
+
+    def step_uses(self, tv: TargetView, step: dict[str, Any]) -> str:
+        """What a step uses: statements of this problem (linked), definitions, and Mathlib or
+        core constants — each with its docstring sentence as a card a keyboard reaches and its
+        Stacks or Kerodon tag as text, never a link off the site (F19-Q6)."""
+        uses = step["uses"]
+        parts: list[str] = []
+        if uses["nodes"]:
+            parts.append(
+                "statements "
+                + ", ".join(
+                    self.node_link(tv.target_id, str(n)) if str(n) in tv.nodes else esc(n)
+                    for n in uses["nodes"]
+                )
+            )
+        if uses["defs"]:
+            parts.append("definitions " + ", ".join(f"<code>{esc(d)}</code>" for d in uses["defs"]))
+        consts = []
+        for c in uses["mathlib"]:
+            name = f"<code>{esc(c['name'])}</code>"
+            shown = self.hover(name, esc(c["doc"]), classes="const") if c.get("doc") else name
+            tags = "".join(
+                f' <span class="po-tag">{esc(str(t["database"]).capitalize())} {esc(t["tag"])}'
+                "</span>"
+                for t in c["tags"]
+            )
+            consts.append(shown + tags)
+        if consts:
+            parts.append("library " + ", ".join(consts))
+        return f'<p class="po-uses">Uses {"; ".join(parts)}.</p>' if parts else ""
+
+    def step_hole(self, tv: TargetView, step: dict[str, Any]) -> str:
+        """A partial's ``sorry`` step: the node it became (F18's decompositions), linked."""
+        if step["closed_by"]["kind"] != "hole":
+            return ""
+        child = step.get("child_node")
+        nv = tv.nodes.get(str(child)) if child else None
+        if nv is None:
+            return '<p class="po-hole">Left open as a hole; no statement on the record for it.</p>'
+        state = self.node_state(nv)
+        return (
+            '<p class="po-hole">Left open as a hole; its statement is '
+            f"{self.node_link(tv.target_id, nv.node_id)} "
+            f"({self.dot(self.dot_state(state))}{esc(self.state_label(state))}).</p>"
+        )
+
+    # -- the reading view (F19-T8; R8, R10, R11) ------------------------------------------------
+
+    @staticmethod
+    def reading_path(target_id: str, entry: dict[str, Any]) -> str:
+        """A proof's reading view, named by its artifact hash so its address survives the record
+        gaining another proof (the list's index would shift)."""
+        return f"{PROBLEMS_PATH}{target_id}/proofs/{str(entry['artifact_hash'])[:12]}/"
+
+    @staticmethod
+    def proof_record(tv: TargetView, node_id: str, digest: str | None) -> dict[str, Any] | None:
+        """A node's merged proof as ``graph.json`` lists it: the one with ``digest`` when given
+        and listed, else its first (``Proof.lean``), as F18's drawing reads a closure."""
+        row = next((n for n in tv.graph["nodes"] if n["node_id"] == node_id), None)
+        records = list((row or {}).get("proofs") or [])
+        own = [r for r in records if digest is not None and r["artifact_hash"] == digest]
+        found = (own or records or [None])[0]
+        return dict(found) if isinstance(found, dict) else None
+
+    def reading_order(self, tv: TargetView, entry: dict[str, Any]) -> list[str]:
+        """R8: the closure with dependencies before dependents, ties in record order.
+
+        An edge runs from ``d`` to ``n`` when both are in the closure and ``d`` is among what
+        ``n``'s proof used (this proof's own record at its node, else ``n``'s first), or, where
+        nothing measured that, among what ``n`` declared and uses — the edges F18 draws. A cycle
+        the record should never hold is laid out in record order rather than refused (C7)."""
+        closure = {str(c) for c in entry["closure"]}
+        record = [str(n["node_id"]) for n in tv.graph["nodes"] if str(n["node_id"]) in closure]
+        rows = {str(n["node_id"]): n for n in tv.graph["nodes"]}
+        before: dict[str, set[str]] = {n: set() for n in record}
+        for n in record:
+            digest = entry["artifact_hash"] if n == entry["node_id"] else None
+            proof = self.proof_record(tv, n, digest)
+            used = proof.get("used") if proof else None
+            rests = used if used is not None else [*rows[n]["deps"], *(rows[n].get("uses") or [])]
+            before[n] = {str(d) for d in rests if str(d) in closure and str(d) != n}
+        order: list[str] = []
+        while len(order) < len(record):
+            ready = [n for n in record if n not in order and before[n] <= set(order)]
+            order.append(ready[0] if ready else next(n for n in record if n not in order))
+        return order
+
+    def artifact_of(
+        self, tv: TargetView, nv: NodeView, entry: dict[str, Any]
+    ) -> tuple[dict[str, Any] | None, LeanFile | None]:
+        """The proof this reading view shows at ``nv``: the entry's own artifact at its node, the
+        node's first proof elsewhere — its record and its file, when the bytes are the ones the
+        record names."""
+        digest = str(entry["artifact_hash"]) if nv.node_id == entry["node_id"] else None
+        record = self.proof_record(tv, nv.node_id, digest)
+        if record is None:
+            return None, None
+        files = [nv.proof, *(a.file for a in nv.alternates)]
+        lean = next(
+            (f for f in files if f is not None and f.content_hash == record["artifact_hash"]), None
+        )
+        return record, lean
+
+    def lines_link(self, nv: NodeView, record: dict[str, Any], lean: LeanFile | None) -> str:
+        """The proof's file at the commit that merged it, with its lines when the file is here."""
+        node_dir = Path(nv.statement_path).parent.as_posix()
+        rel, commit = f"{node_dir}/{record['path']}", str(record["merge_commit"])
+        span = f"#L1-L{len(lean.text.splitlines())}" if lean is not None else ""
+        words = f"lines 1&ndash;{len(lean.text.splitlines())}" if lean is not None else "the file"
+        url = f"{self.repo_url}/blob/{commit}/{rel}{span}"
+        return (
+            f'<a class="file" href="{esc(url)}">{esc(rel)}</a>, {words} at '
+            f"<code>{esc(commit[:12])}</code>"
+        )
+
+    def explainer_state(self, nv: NodeView) -> str:
+        """The correspondence table's explainer column: none, unsigned, or signed and by whom."""
+        if nv.explainer is None:
+            return "none yet"
+        stem = Path(nv.explainer.path).stem
+        signers = [v.signer for v in nv.signatures if v.explainer == stem]
+        by = f" by {esc(nv.explainer.author)}" if nv.explainer.author else ""
+        if signers:
+            return f"unverified{by}; signed by {esc(', '.join(signers))}"
+        return f"unverified{by}; not signed"
+
+    def reading_node(self, tv: TargetView, nv: NodeView, entry: dict[str, Any]) -> str:
+        """One node of the proof: its Lean statement and gloss slot, its explainer slot, its
+        outline folded to top-level steps, and its proof's lines at the merged commit."""
+        record, lean = self.artifact_of(tv, nv, entry)
+        doc = self.outline_of(tv, nv.node_id, lean)
+        if record is not None and lean is not None and doc is not None:
+            outline = self.outline_section(
+                tv,
+                doc,
+                lean,
+                label=self.provenance(
+                    "kernel",
+                    f"an outline of the proof attested in "
+                    f"{self.file_link('attestations/' + str(record['attestation']))}, merge "
+                    f"commit <code>{esc(str(record['merge_commit'])[:12])}</code>.",
+                ),
+                commit=str(record["merge_commit"]),
+                folded=True,
+            )
+        else:
+            outline = '<p class="cue">No outline of this proof yet; its Lean is linked below.</p>'
+        lines = (
+            f'<p class="rv-lines">Proof: {self.lines_link(nv, record, lean)}.</p>' if record else ""
+        )
+        slot = f"{tv.target_id}/{nv.node_id}/Statement.lean"
+        state = self.node_state(nv)
+        return (
+            f'<li class="rv-node" id="rv-{esc(nv.node_id)}" data-node="{esc(nv.node_id)}">'
+            f"<h3>{self.node_link(tv.target_id, nv.node_id)} "
+            f'<span class="rv-state">{self.dot(self.dot_state(state))}'
+            f"{esc(self.state_label(state))}</span></h3>"
+            f'<div class="statement-block" data-block="statement">{self.statement_label(tv, nv)}'
+            f'<pre class="lean statement st-{esc(nv.status)}">'
+            f"{esc(declaration_only(nv.statement))}</pre>"
+            f'<p class="gloss-slot cue" data-gloss-slot="{esc(slot)}">No gloss yet: no one has '
+            "written in words what this statement says (D-3 v3.30); the Lean above is the "
+            "statement.</p></div>"
+            # D-36: the proof and its attestation sit above the explainer, never below.
+            f'{outline}{lines}<div class="rv-explainer">{self.explainer_block(nv)}</div></li>'
+        )
+
+    def correspondence(self, tv: TargetView, order: list[str], entry: dict[str, Any]) -> str:
+        """R10: one row per node of the closure — declaration, artifact and lines, attestation,
+        explainer state — under a label saying which columns are the kernel's record."""
+        rows = []
+        for node_id in order:
+            nv = tv.nodes[node_id]
+            record, lean = self.artifact_of(tv, nv, entry)
+            m = re.search(r"^\s*(?:theorem|lemma)\s+(\S+)", nv.statement, re.M)
+            decl = f"<code>{esc(m.group(1))}</code>" if m else "not found"
+            if record is not None:
+                artifact = self.lines_link(nv, record, lean)
+                att = self.file_link(f"attestations/{record['attestation']}")
+            else:
+                artifact, att = "no merged proof", "none"
+            rows.append(
+                f'<tr data-node="{esc(node_id)}">'
+                f'<td data-label="Statement">{self.node_link(tv.target_id, node_id)}</td>'
+                f'<td data-label="Declaration">{decl}</td>'
+                f'<td data-label="Proof file and lines">{artifact}</td>'
+                f'<td data-label="Attestation">{att}</td>'
+                f'<td data-label="Explainer">{self.explainer_state(nv)}</td></tr>'
+            )
+        label = self.provenance(
+            "kernel",
+            "each row&rsquo;s declaration, file, lines and attestation are the attested record; "
+            "the explainer column says only whether unverified prose exists and who signed it.",
+        )
+        return (
+            f'<div class="correspondence-block" data-block="correspondence">{label}'
+            '<div class="table-wrap"><table class="correspondence"><thead><tr><th>Statement</th>'
+            "<th>Declaration</th><th>Proof file and lines</th><th>Attestation</th>"
+            f"<th>Explainer</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div></div>"
+        )
+
+    def reading_view(self, tv: TargetView, k: int, entry: dict[str, Any]) -> str:
+        """R8: one way the problem is proved, read top-down — the problem's statement and its
+        QA state first, then each node of the proof's closure, dependencies first, then the
+        correspondence table (R10). Every block carries its provenance in words (R11)."""
+        proofs = target_proofs(tv)
+        root = tv.nodes[tv.root]
+        order = self.reading_order(tv, entry)
+        head = str(entry["node_id"])
+        variant = (
+            f" This proof proves {self.node_link(tv.target_id, head)}, a variant that resolves "
+            "the problem (D-30)."
+            if head != tv.root
+            else ""
+        )
+        n = len(order)
+        body = _template("proof.html").substitute(
+            target_id=esc(tv.target_id),
+            target_href=esc(self.target_path(tv.target_id)),
+            number=k + 1,
+            count=len(proofs),
+            lead=esc(self.proof_label(k, entry))
+            + f", merged in <code>{esc(str(entry['merge_commit'])[:12])}</code>.",
+            statement_label=self.statement_label(tv, root),
+            informal=self.informal_line(tv),
+            root_status=esc(root.status),
+            root_lean=esc(declaration_only(root.statement)),
+            fidelity=self.fidelity_tag(tv),
+            root_link=self.file_link(root.statement_path),
+            variant=variant,
+            order_words=esc(f"{n} statement{'' if n == 1 else 's'} on this proof."),
+            nodes="\n".join(self.reading_node(tv, tv.nodes[nid], entry) for nid in order),
+            table=self.correspondence(tv, order, entry),
+        )
+        renders = [f"targets/{tv.target_id}/graph.json"]
+        for nid in order:
+            nv = tv.nodes[nid]
+            renders.append(nv.statement_path)
+            _, lean = self.artifact_of(tv, nv, entry)
+            if lean is not None and self.outline_of(tv, nid, lean) is not None:
+                renders.append(f"targets/{tv.target_id}/outlines/{lean.content_hash}.json")
+        return self.page(
+            f"{tv.target_id} · proof {k + 1}",
+            body,
+            renders=renders,
+            path=PROBLEMS_PATH,
+            head=MATH_HEAD,
+            script=MATH_SCRIPTS,
         )
 
     def witness_block(self, nv: NodeView) -> str:
@@ -2623,7 +3174,13 @@ class Renderer:
                     "<code>/proposals/witness</code>."
                 )
             )
-            return self.lean_artifact(nv.witness, what="Witness.lean", provenance=words)
+            return self.lean_artifact(
+                nv.witness,
+                what="Witness.lean",
+                provenance=words,
+                label=self.provenance("unchecked", "the witness slot is open."),
+                block="witness",
+            )
         result = next(
             (
                 str(s.get("result"))
@@ -2640,7 +3197,19 @@ class Renderer:
                 f'<span class="result-{esc(result)}">{esc(result)}</span>.'
             )
         )
-        return self.lean_artifact(nv.witness, what="Witness.lean", provenance=words)
+        label = (
+            self.kernel_label(nv, what="step 7 passed in the run its attestation records")
+            if result == "pass"
+            else self.provenance(
+                "unchecked",
+                "no run on this page records step 7 passing for it."
+                if result is None
+                else f"step 7 recorded <code>{esc(result)}</code>.",
+            )
+        )
+        return self.lean_artifact(
+            nv.witness, what="Witness.lean", provenance=words, label=label, block="witness"
+        )
 
     def partials_block(self, nv: NodeView) -> str:
         """Each partial assembly filed under ``attempts/`` (D-3, D-12 #5), as text.
@@ -2650,6 +3219,7 @@ class Renderer:
         carries and ``records.count_attempts`` already counts as an attempt in its own right.
         """
         blocks = []
+        tv = self.site.targets.get(nv.target_id)
         for p in nv.partials:
             facts = [f"by {esc(p.contributor)}" if p.contributor else "author not recorded"]
             if p.outcome:
@@ -2666,21 +3236,50 @@ class Renderer:
                 else "no postmortem record names this file"
             )
             text = esc(p.file.text.rstrip("\n"))
+            words = "a partial assembly: it records an attempt, and no attestation covers it."
+            doc = self.outline_of(tv, nv.node_id, p.file) if tv is not None else None
+            outline = (
+                self.outline_section(
+                    tv,
+                    doc,
+                    p.file,
+                    label=self.provenance(
+                        "untrusted",
+                        "an outline the gate extracted from this partial assembly; its holes are "
+                        "<code>sorry</code> steps, and no attestation covers it.",
+                    ),
+                    commit=None,
+                )
+                if tv is not None and doc is not None
+                else ""
+            )
             blocks.append(
-                '<div class="prose-block untrusted"><p class="label">'
+                '<div class="prose-block untrusted" data-block="partial">'
+                f'{self.provenance("untrusted", words)}<p class="label">'
                 f"Untrusted: partial assembly (D-12 #5), {', '.join(facts)}; {named}. "
                 "No attestation covers a partial — it records an attempt, not a proof. "
                 f"Rendered from {self.file_link(p.file.path)}.</p>"
-                f'<pre class="lean">{text}</pre></div>'
+                f'{outline}<pre class="lean">{text}</pre></div>'
             )
         return "".join(blocks) or '<p class="cue">No partial assembly filed.</p>'
 
-    def untrusted_block(
-        self, label: str, prose_: Prose, *, what: str, document: bool = False
+    def untrusted_block(  # noqa: PLR0913 — the F19 label and block kind ride beside the rest
+        self,
+        label: str,
+        prose_: Prose,
+        *,
+        what: str,
+        document: bool = False,
+        math: bool = False,
+        provenance: str = "",
+        block: str = "",
     ) -> str:
         """R4: contributor text in a labelled block, with author and model when recorded. A
-        document (the graph's AGENTS.md) goes through the document renderer; all else is prose."""
-        body = prose.render_document(prose_.text) if document else prose.render(prose_.text)
+        document (the graph's AGENTS.md) goes through the document renderer; all else is prose.
+        ``provenance`` (F19-R11) opens the block and ``block`` names its kind, from the caller."""
+        body = (
+            prose.render_document(prose_.text) if document else prose.render(prose_.text, math=math)
+        )
         by = []
         if prose_.author:
             by.append(f"by {esc(prose_.author)}")
@@ -2691,8 +3290,9 @@ class Renderer:
         if prose_.licence:
             by.append(f"licence {esc(prose_.licence)}")
         who = ", ".join(by) or "author not recorded"
+        kind = f' data-block="{esc(block)}"' if block else ""
         return (
-            f'<div class="prose-block {esc(label)}"><p class="label">'
+            f'<div class="prose-block {esc(label)}"{kind}>{provenance}<p class="label">'
             f"{esc(label.capitalize())}: {esc(what)}, {who}. "
             f"Rendered from {self.file_link(prose_.path)}.</p>"
             f'<div class="prose">{body}</div></div>'
@@ -2808,6 +3408,10 @@ def render_site(
         files[f"targets/{tid}/index.html"] = r.redirect(r.target_path(tid))
         for nid, nv in tv.nodes.items():
             files[f"nodes/{tid}/{nid}/index.html"] = r.node(nv)
+        for k, entry in enumerate(target_proofs(tv)):  # F19-T8: one reading view per proof
+            files[r.reading_path(tid, entry).lstrip("/") + "index.html"] = r.reading_view(
+                tv, k, entry
+            )
     problems = links.check(
         files,
         repo_url=r.repo_url,
