@@ -149,8 +149,22 @@ def unclaimable(ctx: Context, node_id: str, target_id: str) -> ApiError:
     if row is not None:
         facts = precheck.facts_of(target_id, row)
         if facts["status"] == "blocked":
-            return precheck.blocked_error(node_id, facts, graph)
+            return blocked(ctx, node_id, facts, graph)
     return not_claimable(ctx, node_id, target_id)
+
+
+def blocked(
+    ctx: Context, node_id: str, facts: dict[str, Any], graph: dict[str, list[dict[str, Any]]]
+) -> ApiError:
+    """The shared ``409 node-blocked``, naming an open witness pull request for a hole waiting on
+    its witness, as a precheck does (F06-T13): a claimant whose witness is open is not told to send
+    one."""
+    waiting = (
+        precheck.open_witness(ctx, node_id)
+        if facts.get("cause") == graphmod.CAUSE_WITNESS_MISSING
+        else None
+    )
+    return precheck.blocked_error(node_id, facts, graph, pending_witness=waiting)
 
 
 def circular(
@@ -214,7 +228,7 @@ def off_frontier(ctx: Context, node_id: str, target_id: str | None) -> ApiError:
     if facts["status"] == "blocked":
         if precheck.witness_awaits_render(ctx, node_id, facts):  # F06-T8: one state, one answer
             return precheck.awaits_render(node_id, f"{node_id}'s witness has merged")
-        return precheck.blocked_error(node_id, facts, graph)
+        return blocked(ctx, node_id, facts, graph)
     details = precheck.standing(ctx, node_id, facts)
     successor = f" {details['replacement']} replaced it." if details["replacement"] else ""
     return ApiError(

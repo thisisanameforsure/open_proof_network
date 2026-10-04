@@ -1,0 +1,124 @@
+F07-T71 (audit 2026-10-04): the guide says what the service and the queue now do, and every route,
+tool and error code it names is held to the code.
+
+What changed in gate/agents/AGENTS.md
+- Before you start: GET /llms.txt.
+- Fast check: every pre-flight is paid from the hourly check budget; a spent budget is
+  429 rate-limited and nothing opens, while an unavailable checker still lets the PR open (F13-T28).
+  check mode: okay is false when the text itself carries sorry/admit (sorry-present, admit-present);
+  a Context's restated sorry is not the text's, and verify answers okay: true when the only failures
+  are the Context's restated declarations (F13-T30). The answer's log_id, GET /checks/<id> and
+  get_check, 404 check-unknown for anyone else (F07-T70/F09-T17).
+- Claiming: frontier/v4's status, cause and needs (proof | witness | dependencies | null); only
+  needs: proof can be claimable; a hole with needs: witness is not claimed, its witness is sent;
+  node-blocked names an open witness pull request as details.pending (F03-T16, F06-T13). The old
+  "The frontier publishes no status" paragraph and "a claim on it answers 201" are gone. The
+  walkthrough's frontier block prints needs.
+- Submit: a precheck job backs one pull request, 409 precheck-used (F06-T11). GET /submissions/mine
+  and get_my_submissions (F07-T70). Withdrawal leaves a comment first (F07-T64).
+- Queue: position and `of` count the caller's own lane; the lane is the target's open pull requests
+  plus any the service cannot place; queue.order is the whole queue (F07-T56, T69). "The order is
+  pull-request number, oldest first, across every target" is gone.
+- Racers: the service comments on the pull request before moving a losing proof (F07-T64).
+- Holes, step 3: one lane per target; merging by hand no longer waits for the post-merge job's
+  gate commit (F07-T56/T57).
+- Rate limits: info/v2's guide_url and errors_url (F05-T25); open pull request caps, 10 per
+  pseudonym and 150 for the graph, 429 open-pull-requests-cap and 503 queue-full, published as
+  open_pull_requests_per_identity / open_pull_requests_global (F07-T67; defaults not yet signed off
+  by the owner, so the guide's numbers are the code's defaults and the test ties them to
+  config.DEFAULT_OPEN_PRS_*).
+- New "## Error codes" section (from F05/task-23's proposed text) with an executed block reading
+  GET /errors.json?prefix=precheck-; appendix rows for get_my_submissions, get_check(check_id) and
+  list_error_codes(prefix?).
+Also: the stale "(info/v1)" comment in api/opn_api/routes.py now says (info/v1, info/v2).
+
+Test: gate/tests/test_finding_guide_names_exist.py. Backticked spans outside fenced blocks:
+`METHOD /path` and bare `/path` held to routes.ROUTES; tools after "MCP" and in the appendix held to
+the MCP server, and every server tool has an appendix row; `NNN code` held to opn_gate.codes.CATALOG;
+any other kebab-case span must be a catalog code or a string literal in opn_gate/opn_api/schemas.
+Then one test per audit behaviour, each tied to the constant or schema that implements it.
+
+Stale names in today's guide: none. Every route, tool and code the guide named before this task
+exists in the code; the red is the appendix missing three tools and the absent descriptions of the
+audit's behaviour, plus two stale sentences (the whole-graph queue order, "The frontier publishes
+no status"). The name checks were shown to bite by mutation (below).
+
+Not done: the graph's copy of AGENTS.md is updated at the re-pin, so
+test_walkthrough.py::test_graph_copy_is_identical stays red (it was red before this change too,
+checked with the change stashed).
+
+Proposed ledger line (F07 §10 Tasks): T71 ✓ (audit 2026-10-04) the guide says what the service and
+the queue now do; every route, tool and error code it names held to the code; verification
+`uv run --frozen pytest gate/tests/test_finding_guide_names_exist.py gate/tests/test_walkthrough.py`
+(graph copy at the re-pin).
+
+Proposed Q entry (F07-Q-next): "The guide's names are held to the code (T71, audit 2026-10-04).
+A backticked route, tool or error code in AGENTS.md must be served, declared or catalogued, and
+every MCP tool has an appendix row; any other kebab-case name must be a literal of the gate, the
+service or a schema. The check reads spans, so a name written without backticks is not checked."
+
+--- red (before the guide edits) ---
+FAILED gate/tests/test_finding_guide_names_exist.py::test_the_appendix_has_a_row_for_every_tool
+FAILED gate/tests/test_finding_guide_names_exist.py::test_the_queue_is_one_lane_per_target
+FAILED gate/tests/test_finding_guide_names_exist.py::test_the_open_pull_request_caps_are_the_services
+FAILED gate/tests/test_finding_guide_names_exist.py::test_a_precheck_backs_one_pull_request
+FAILED gate/tests/test_finding_guide_names_exist.py::test_a_spent_check_budget_refuses_the_pre_flight
+FAILED gate/tests/test_finding_guide_names_exist.py::test_the_error_catalog_and_the_wayfinding_routes
+FAILED gate/tests/test_finding_guide_names_exist.py::test_the_frontier_says_status_cause_and_needs
+FAILED gate/tests/test_finding_guide_names_exist.py::test_an_agents_own_submissions_and_checks
+FAILED gate/tests/test_finding_guide_names_exist.py::test_check_mode_reads_the_texts_own_sorry
+FAILED gate/tests/test_finding_guide_names_exist.py::test_withdrawal_and_racer_moves_comment_first
+10 failed, 4 passed in 2.05s
+
+--- green ---
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+1 failed, 318 passed, 13 deselected, 2 warnings in 32.25s
+line   40 passed   test -d "$GRAPH/targets"
+line   59 passed   META="$(grep -l '^tutorial: true' "$GRAPH"/targets/*/nodes/*/META.yaml
+line   81 passed   cat "$NODE_DIR/Statement.lean"
+line   93 passed   python3 - "$NODE_DIR" <<'PY'
+line  140 passed   BUNDLE_PATH="targets/$TARGET/nodes/$NODE/Proof.lean"
+line  161 passed   STATE=queued
+line  176 passed   python3 - "$WORK/precheck-result.json" <<'PY'
+line  287 passed   python3 - "$NODE_DIR/Proof.lean" "$TARGET" "$NODE" <<'PY' > "$WORK/che
+line  371 passed   curl -fsS "$OPN_API/frontier.json" > "$WORK/frontier.json"
+line  395 passed   CLAIM_NODE="$(python3 - "$WORK/frontier.json" <<'PY'
+line  423 passed   DCO_VERSION="$(curl -fsS "$OPN_API/dco.json" | python3 -c 'import json
+line  444 passed   curl -fsS -X POST "$OPN_API/claims" -H "Authorization: Bearer $TOKEN" 
+line  491 passed   python3 - "$GRAPH/targets/index.json" <<'PY'
+line  524 passed   ls -p "$NODE_DIR" | LC_ALL=C sort
+line  554 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line  616 passed   python3 - "$GRAPH/targets/$TARGET/gate-spec.json" <<'PY'
+line  659 passed   curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' "$OPN_API/aut
+line  676 passed   curl -fsS -X POST "$OPN_API/precheck" -H "Authorization: Bearer $TOKEN
+line  703 passed   python3 - "$WORK/precheck-request.json" "$OWNED_JOB" <<'PY' > "$WORK/s
+line  784 passed   SUBMISSION_ID="$(python3 -c 'import json,sys; print(json.load(sys.stdi
+line  817 passed   BRANCH="proof/$NODE-$PSEUDONYM"
+line  834 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line  847 passed   ATTESTATION="$WORK/attestation.json"
+line  908 passed   cat > "$WORK/postmortem.yaml" <<'YAML'
+line  961 passed   python3 - "$WORK/postmortem.yaml" "$NODE" <<'PY' > "$WORK/postmortem-r
+line 1123 passed   python3 - "$NODE" <<'PY' > "$WORK/annex-request.json"
+line 1359 passed   curl -sS -X POST "$OPN_API/submissions" -H "Authorization: Bearer $TOK
+line 1443 passed   python3 - "$TARGET" "$NODE" <<'PY' > "$WORK/proposal.json"
+line 1471 passed   python3 - "$GRAPH/targets/index.json" <<'PY'
+line 1493 passed   ssh-keygen -q -t ed25519 -N "" -f "$WORK/steward-key" -C "steward"
+line 1517 passed   python3 - "$NODE_DIR" <<'PY' > "$WORK/explainer-hash"
+line 1539 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line 1573 passed   curl -fsS "$OPN_API/info.json" | python3 -c '
+line 1590 passed   curl -fsS -X DELETE "$OPN_API/claims/$CLAIM_ID" -H "Authorization: Bea
+line 1610 passed   curl -fsS "$OPN_API/errors.json?prefix=precheck-" | python3 -c '
+35 passed, 0 drifted, 0 failed, 3 skipped
+PASSED gate/tests/test_walkthrough.py::test_required_sections
+PASSED gate/tests/test_walkthrough.py::test_manual_blocks_are_the_known_two
+PASSED gate/tests/test_walkthrough.py::test_fast_check_section
+PASSED gate/tests/test_walkthrough.py::test_agents_md_executes
+FAILED gate/tests/test_walkthrough.py::test_graph_copy_is_identical - Asserti...
+1 failed, 4 passed, 1 deselected, 2 warnings in 5.96s
+
+--- mutation (four stale names put into the guide, then restored) ---
+E       AssertionError: routes the guide names that the service does not serve: ['GET /nodes/<id>']
+E       AssertionError: tools the guide names that the MCP server lacks: ['get_checks']
+E       AssertionError: error codes the guide names that GET /errors.json lacks: ['precheck-reused']
+E       AssertionError: names the guide uses that no code or schema carries: ['case-splitting']
+6 failed, 8 passed in 0.53s

@@ -181,7 +181,7 @@ ROUTES: tuple[RouteSpec, ...] = (
         "GET", "/checks/{check_id}", "checks:get_check", None, authenticated=True, feature="F13"
     ),
     # F13-R11, Q12: which hosted environment serves each pin and each target. Network
-    # configuration, open like /dco.json; info.json stays the graph's product (info/v1).
+    # configuration, open like /dco.json; info.json stays the graph's product (info/v1, info/v2).
     RouteSpec("GET", "/hosted-checkers.json", "checks:get_hosted_checkers", None, feature="F13"),
     # --- F05-T23, F05-T24 (audit 2026-10-04, owner-approved): documentation an agent reads ---
     # Open reads with no D-35 row, like /hosted-checkers.json: the error-code catalog (F13-T29),
