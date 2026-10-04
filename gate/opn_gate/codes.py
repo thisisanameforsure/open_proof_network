@@ -708,6 +708,15 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The precheck job could not be started on the hosted runner.",
         "Retry shortly; if it persists, the service's runner is down.",
     ),
+    "dispute-claim-unnamed": (
+        "gate",
+        None,
+        "A curator's disputed status record does not name a valid, standing defect claim on its "
+        "own node, so it accepts no dispute and could never lift when a claim is withdrawn "
+        "(D-18 v3.28, F08-T38).",
+        "Write the record with `opn-gate curator status <node> disputed --cause <why> --reference "
+        "defects/<file>`, naming a claim on that node that is on main and not withdrawn.",
+    ),
     "duplicate-submission": (
         "api",
         None,
