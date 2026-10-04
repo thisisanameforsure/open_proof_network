@@ -42,7 +42,7 @@ from test_finding_circular_path import (
 from opn_gate import context, products, schemas
 from opn_gate import graph as graphmod
 
-SCHEMA = "context/v2"
+SCHEMA = context.SCHEMA  # v2 added circular_below; v3 (F08-T36) adds defect_claims
 
 
 def bundle(prod: products.Products, node_id: str) -> dict[str, Any]:

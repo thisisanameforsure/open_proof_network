@@ -1136,7 +1136,7 @@ def test_related_variant_needs_signature(tmp_path: Path) -> None:
         )
     prod = generate(root)
     doc = json.loads(prod.files[Path(f"targets/{TARGET}/graph.json")])
-    assert doc["schema"] == "graph/v4"
+    assert doc["schema"] == products.GRAPH_SCHEMA
     row = next(n for n in doc["nodes"] if n["node_id"] == "variant-related")
     assert row["relevance"] == {"pertinent": True, "signer": "mike", "date": "2026-09-12"}
     # The layout tolerates the file, and the gate knows whose it is.

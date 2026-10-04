@@ -33,8 +33,9 @@ log = logging.getLogger(__name__)
 #: The version the bundle is written at. F08-T22 (D-12 v3.23): ``context/v2`` adds
 #: ``circular_below``; v1 is unchanged (D-34) and a graph rendered before the re-pin still
 #: carries it, which is why a reader accepts every version in ``ACCEPTED``.
-SCHEMA = "context/v2"
-ACCEPTED: tuple[str, ...] = ("context/v1", "context/v2")
+#: F08-T36 (D-16 v3.28): ``context/v3`` adds ``defect_claims``, the list ``graph.json`` carries.
+SCHEMA = "context/v3"
+ACCEPTED: tuple[str, ...] = ("context/v1", "context/v2", "context/v3")
 FILE = layout.CONTEXT_FILE
 CLAIMS_FILE = "claims.json"
 CLAIMS_SCHEMA = "claims/v1"
@@ -415,6 +416,81 @@ def withdrawn_names(reader: Reader, target_id: str, node_id: str, directory: str
     return frozenset(named)
 
 
+def defect_claims(
+    reader: Reader, target_id: str, node_id: str, *, status: str
+) -> list[dict[str, Any]]:
+    """F08-T36 (D-16 v3.28): every defect claim filed against the node, oldest first, as
+    ``{file, class, state, accepted}`` — ``graph.json``'s row and ``CONTEXT.json`` carry this one
+    list, built through a reader so the service derives the same bytes over the host (F10-Q7).
+
+    ``state`` is ``withdrawn`` when a merged withdrawal names the claim (F08-T31), else
+    ``standing``: every claim is shown, withdrawn ones too. ``accepted`` is true for the claim
+    the node's standing ``disputed`` record names (D-18 v3.28, F08-T35); ``status`` is the node's
+    derived status, so a record that F08-T32 has voided accepts nothing. A file that does not
+    validate is logged and passed over, as ``records.defect_claims`` passes it over: the gate
+    refused it at merge, and one bad file must never decide whether the graph has products."""
+    directory = f"{node_path(target_id, node_id)}/{recordsmod.DEFECTS_DIR}"
+    names = [n for n in sorted(reader.listdir(directory)) if n.endswith(YAML_SUFFIXES)]
+    if not names:
+        return []
+    accepted_schemas = paths.SCHEMAS_FOR_ROLE["defect-claim"]
+    gone = withdrawn_names(reader, target_id, node_id, recordsmod.DEFECTS_DIR)
+    accepted = _accepted_claim(reader, target_id, node_id) if status == "disputed" else None
+    out: list[dict[str, Any]] = []
+    for name in names:
+        path = f"{directory}/{name}"
+        raw = reader.read(path)
+        if raw is None:
+            continue
+        try:
+            doc = _yaml(raw, path, None)
+        except (schemas.SchemaError, ContextError) as exc:
+            log.warning("%s: a defect claim that does not read is passed over: %s", path, exc)
+            continue
+        schema_id = str(doc.get("schema"))
+        if schema_id not in accepted_schemas or schemas.violations(doc, schema_id):
+            log.warning("%s: a defect claim that does not validate is passed over", path)
+            continue
+        rel = f"{recordsmod.DEFECTS_DIR}/{name}"
+        out.append(
+            {
+                "file": rel,
+                "class": str(doc["class"]),
+                "state": "withdrawn" if name in gone else "standing",
+                "accepted": rel == accepted and name not in gone,
+            }
+        )
+    return out
+
+
+def _accepted_claim(reader: Reader, target_id: str, node_id: str) -> str | None:
+    """The claim the node's standing ``disputed`` record names, as ``defects/<file>``; ``None``
+    when the latest standing record is not ``disputed`` or names no claim on this node."""
+    record = _latest_status(reader, target_id, node_id)
+    if record is None or record.status != "disputed":
+        return None
+    m = graphmod.CLAIM_REF_RE.match(str(record.doc.get("reference") or ""))
+    if m is None:
+        return None
+    named = (m.group("target"), m.group("node"))
+    if named not in ((None, None), (target_id, node_id)):
+        return None
+    return f"{recordsmod.DEFECTS_DIR}/{m.group('name')}"
+
+
+def _latest_status(reader: Reader, target_id: str, node_id: str) -> recordsmod.StatusRecord | None:
+    """``records.load_node_status`` through a reader: the latest status record not withdrawn."""
+    status_dir = f"{node_path(target_id, node_id)}/status"
+    gone = withdrawn_names(reader, target_id, node_id, "status")  # F08-T33
+    docs = []
+    for name in sorted(reader.listdir(status_dir)):
+        if not name.endswith(YAML_SUFFIXES) or name in gone:
+            continue
+        path = f"{status_dir}/{name}"
+        docs.append((Path(path), _yaml(_must(reader, path), path, None)))
+    return recordsmod.latest_status(docs, recordsmod.NODE_STATUS_SCHEMAS)
+
+
 def _circular_claims(reader: Reader, target_id: str, hole: str) -> list[tuple[str, str]]:
     """``records.circular_claims`` through a reader: every valid ``circular-decomposition`` claim
     under the node, oldest first, as ``(defects/<file>, ancestor as named)``; a file that does
@@ -454,15 +530,7 @@ def _current_id(
     status record is absent, as ``records.load_node_status`` reads it (F08-T31, F08-T33)."""
 
     def successor_of(current: str) -> str | None:
-        status_dir = f"{node_path(target_id, current)}/status"
-        gone = withdrawn_names(reader, target_id, current, "status")  # F08-T33
-        docs = []
-        for name in sorted(reader.listdir(status_dir)):
-            if not name.endswith(YAML_SUFFIXES) or name in gone:
-                continue
-            path = f"{status_dir}/{name}"
-            docs.append((Path(path), _yaml(_must(reader, path), path, None)))
-        record = recordsmod.latest_status(docs, recordsmod.NODE_STATUS_SCHEMAS)
+        record = _latest_status(reader, target_id, current)
         if record is None or record.status != "superseded":
             return None
         return str(record.doc.get("reference") or "") or None
@@ -536,6 +604,7 @@ def build(
         "explainer_present": _explainer_present(reader, node_dir),
         "untrusted_note": demarcate.UNTRUSTED_NOTE,
         "circular_below": _circular_below(reader, target_id, node_id, states),
+        "defect_claims": defect_claims(reader, target_id, node_id, status=state.status),
     }
     fit(doc)
     return schemas.validate(doc, SCHEMA)

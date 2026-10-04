@@ -33,7 +33,7 @@ PRODUCT_SCHEMAS: dict[str, tuple[str, ...]] = {
         "targets-index/v6",  # F15: policy, stewards, digestion, calibration
         "targets-index/v7",  # F07-T24: step9 may be `calibration`
     ),
-    "graph.json": ("graph/v1", "graph/v2", "graph/v3", "graph/v4"),
+    "graph.json": ("graph/v1", "graph/v2", "graph/v3", "graph/v4", "graph/v5"),  # v5: F08-T36
 }
 log = logging.getLogger(__name__)
 KEEP_FILE = ".gitkeep"
@@ -192,6 +192,15 @@ class NodeView:
         """Why a blocked node is blocked (``graph/v2`` on; absent before, read as ``None``)."""
         cause = self.graph_entry.get("cause")
         return None if cause is None else str(cause)
+
+    @property
+    def open_claims(self) -> list[dict[str, Any]]:
+        """F08-T36 (D-16 v3.28): the defect claims against the node that stand, oldest first, as
+        ``graph/v5`` lists them; none on an older graph, which did not list them."""
+        raw = self.graph_entry.get("defect_claims")
+        if not isinstance(raw, list):
+            return []
+        return [dict(c) for c in raw if isinstance(c, dict) and c.get("state") == "standing"]
 
 
 @dataclass(frozen=True)

@@ -14,6 +14,7 @@
     "active": [],
     "history_count": 0
   },
+  "defect_claims": [],
   "deps": [],
   "explainer_present": false,
   "gate_spec": {
@@ -44,7 +45,7 @@
     "trust_base": "compiler"
   },
   "rendered_from": "5555555555555555555555555555555555555555",
-  "schema": "context/v2",
+  "schema": "context/v3",
   "statement": {
     "decl": "OpnProp.and_reassoc",
     "hash": "22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7",

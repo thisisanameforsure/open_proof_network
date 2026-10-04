@@ -131,7 +131,8 @@ jobs:
           # must sit at build/package/schemas and match their pins (D-34).
           shipped = sorted(f"{p.parent.name}/{p.stem}" for p in (pkg / "schemas").glob("*/v*.json"))
           for required in ("frontier/v1", "frontier/v2", "frontier/v3", "frontier/v4",
-                           "info/v1", "info/v2", "claims/v1"):
+                           "info/v1", "info/v2", "claims/v1",
+                           "context/v1", "context/v2", "context/v3"):
               assert required in shipped, f"{required} is not in the package: {shipped}"
           problems = schemas.verify_pins(pkg / "schemas", Path("gate/schemas/HASHES"))
           assert not problems, problems

@@ -53,7 +53,7 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 log = logging.getLogger(__name__)
 
 PROTOCOL_VERSION = "3.28"  # docs/architecture_decisions.html (v3.28: the 2026-10-04 audit)
-GRAPH_SCHEMA = "graph/v4"  # F08-T27, F18: each proof and what it used (v3: F12-R13)
+GRAPH_SCHEMA = "graph/v5"  # F08-T36: every defect claim (v4: F08-T27, F18; v3: F12-R13)
 FRONTIER_SCHEMA = "frontier/v4"  # T16: status, cause, needs (v3, T7: partials; v2: D-33 dormancy)
 #: F11-R12 renames D-9's second rung and F11-R3/R4 add the derived fields. v2 was already spent
 #: on F07-R8's node counts and D-34 forbids editing it, so the rename lands at v3 (F11-Q9).
@@ -545,6 +545,8 @@ def proof_closure(
 def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
     nodes = []
     causes = graphmod.derive_causes(tg.nodes, tg.statuses)
+    # F08-T36: the reader CONTEXT.json's builders share, so the two lists cannot disagree.
+    reader = context.DiskReader(tg.path.parents[1])
     for node_id in tg.order:
         n = tg.nodes[node_id]
         # A refuted or defective node has a merged artifact too, and the commit that carries it
@@ -574,6 +576,11 @@ def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
                 "proposed_for": n.proposed_for,
                 # F18-R7 (D-31 v3.26): the steps of the stepped outline the node followed.
                 "outline": outline_doc(tg, node_id),
+                # F08-T36 (D-16 v3.28): every defect claim, standing or withdrawn, and the one
+                # a curator's disputed record accepts (D-18 v3.28).
+                "defect_claims": context.defect_claims(
+                    reader, tg.target_id, node_id, status=tg.statuses[node_id]
+                ),
             }
         )
     return {

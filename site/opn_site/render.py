@@ -1649,6 +1649,38 @@ class Renderer:
         note = f'<p class="revision-note">{" ".join(parts)}</p>' if parts else ""
         return note + self.circular_below_note(nv)
 
+    def defect_claims_note(self, nv: NodeView) -> str:
+        """F08-T36 (D-16 v3.28): every open defect claim against the statement — its class, its
+        file at the rendered commit and the words "claim open"; "disputed" beside the one a
+        curator's record accepts for adjudication (D-18 v3.28). A filed claim blocks nothing, so
+        the page says so; a withdrawn claim is not open and is not shown. Nothing at all for a
+        statement with no open claim, so such a page is unchanged."""
+        claims = nv.open_claims
+        if not claims:
+            return ""
+        node_dir = f"targets/{nv.target_id}/nodes/{nv.node_id}"
+        items = []
+        for c in claims:
+            accepted = (
+                " · <strong>disputed</strong>: a curator has accepted it for adjudication, so "
+                "this statement is off the frontier and takes no new claim (D-18)"
+                if c.get("accepted")
+                else ""
+            )
+            link = self.file_link(f"{node_dir}/{c.get('file', '')}")
+            items.append(
+                f"<li><code>{esc(str(c.get('class', '')))}</code> · claim open · "
+                f"{link}{accepted}</li>"
+            )
+        one = len(claims) == 1
+        return (
+            '<div class="defect-claims"><p>'
+            f"{'A defect claim is' if one else f'{len(claims)} defect claims are'} open against "
+            "this statement (D-16). A claim says the statement may not mean what it should; it "
+            "blocks nothing until a curator accepts it.</p>"
+            f"<ul>{''.join(items)}</ul></div>"
+        )
+
     def circular_below_note(self, nv: NodeView) -> str:
         """F08-T20 (D-12 v3.22): a statement a circularity claim circles back to stays open and
         claimable — it is the problem, and the claim says only that one route to it made no
@@ -2139,6 +2171,10 @@ class Renderer:
         # F08-T17: the claim this node rests on; F08-T20: those its note names, circling back.
         below = nv.circular_below if self.circular_below_note(nv) else ()
         renders.extend(c for c in (nv.circular_claim, *below) if c is not None)
+        # F08-T36: the open claims the page links.
+        renders.extend(
+            f"targets/{tid}/nodes/{nid}/{c['file']}" for c in nv.open_claims if c.get("file")
+        )
         partials = self.partials_block(nv)
         for p in nv.partials:
             renders.append(p.file.path)
@@ -2153,6 +2189,7 @@ class Renderer:
             revision=self.revision_note(tid, nv, in_page=False),
             wayfinding=self.wayfinding(),
             claimable=self.node_not_claimable(nv),
+            defects=self.defect_claims_note(nv),
             tutorial=(
                 '<p class="cue">The tutorial node: permanently open and off the ledger (D-27).</p>'
                 if nv.tutorial
