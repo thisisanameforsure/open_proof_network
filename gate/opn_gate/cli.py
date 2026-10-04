@@ -13,10 +13,12 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import subprocess
 import sys
 import tempfile
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -158,6 +160,12 @@ def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statemen
     rep.add_argument("--node", required=True, help="the node the commit proved")
     rep.add_argument("--target", help="target id (inferred when the graph has exactly one)")
     rep.add_argument("--compare", type=Path, help="committed attestation to compare against")
+    rep.add_argument(
+        "--allow-network-mismatch",
+        action="store_true",
+        help="run from a network checkout other than the spec's pin; the result is never "
+        "identical (F07-T65)",
+    )
     _add_sandbox_args(rep)
 
     fpr = sub.add_parser(
@@ -900,8 +908,71 @@ def emit(
 # --- reproduce ----------------------------------------------------------------------------------
 
 
+@dataclass(frozen=True)
+class RunningNetwork:
+    """The network checkout this process runs from (F07-T65): its ``HEAD``, ``None`` when it is
+    not a git checkout, and the paths under ``gate/`` that differ from that commit."""
+
+    commit: str | None
+    dirty: tuple[str, ...] = ()
+
+
+def running_network_commit() -> RunningNetwork:
+    """``git rev-parse HEAD`` and ``git status --porcelain -- gate`` on the repository this
+    module was loaded from: the gate that is actually running, whatever a spec says it should be."""
+    root = GATE_DIR.parent
+    head = _git(root, "rev-parse", "--verify", "--quiet", "HEAD^{commit}")
+    if head.returncode != 0 or not head.stdout.strip():
+        return RunningNetwork(None)
+    status = _git(root, "status", "--porcelain", "--", "gate")
+    dirty = tuple(line[3:] for line in status.stdout.splitlines() if line.strip())
+    return RunningNetwork(head.stdout.strip(), dirty)
+
+
+def pinned_network_commit(graph: Path, commit: str, target: str | None) -> str | None:
+    """The ``network_commit`` of the target's ``gate-spec.json`` at ``commit``, read from git
+    before any tree is exported; ``None`` when it cannot be read (the run then fails where it
+    always has, loading the spec)."""
+    if target is None:
+        listing = _git(graph, "ls-tree", "--name-only", "-d", f"{commit}:targets")
+        targets = listing.stdout.split() if listing.returncode == 0 else []
+        if len(targets) != 1:
+            return None
+        target = targets[0]
+    shown = _git(graph, "show", f"{commit}:targets/{target}/gate-spec.json")
+    if shown.returncode != 0:
+        return None
+    try:
+        pin = json.loads(shown.stdout).get("network_commit")
+    except (ValueError, AttributeError):
+        return None
+    return pin if isinstance(pin, str) else None
+
+
+def network_mismatch(
+    pinned: str | None, running: RunningNetwork, *, check_dirty: bool = True
+) -> Diagnostic | None:
+    """Whether the running gate is not the one the spec pins. Today: never asked."""
+    return None
+
+
+def refuse_network_mismatch(mismatch: Diagnostic) -> int:
+    """Refuse before any tree is exported or image built: a gate other than the pinned one
+    cannot speak for the pin (D-5, F07-T65). Exit 2, an environment error, with the diagnostic."""
+    sys.stdout.write(json.dumps({"verdict": "refused", "diagnostic": mismatch.as_dict()}) + "\n")
+    sys.stderr.write(f"opn-gate: {mismatch.message}\n")
+    return EXIT_ERROR
+
+
 def run_reproduce(args: argparse.Namespace, settings: config.Settings) -> int:
     graph, commit = _checkout_and_commit(args.graph, args.commit)
+    mismatch = network_mismatch(
+        pinned_network_commit(graph, commit, args.target), running_network_commit()
+    )
+    if mismatch is not None:
+        if not args.allow_network_mismatch:
+            return refuse_network_mismatch(mismatch)
+        sys.stderr.write(f"opn-gate: --allow-network-mismatch: {mismatch.message}\n")
     committed: dict[str, Any] | None = None
     if args.compare is not None:  # read before the run, so a wrong path costs no sandbox
         try:
@@ -926,9 +997,14 @@ def run_reproduce(args: argparse.Namespace, settings: config.Settings) -> int:
     if committed is not None:
         reproduction = with_declared(attestation.with_step9(doc, committed), committed)
         differing = attestation.compare(committed, reproduction)
-        result = {"identical": not differing, "differing_fields": differing}
+        result: dict[str, Any] = {
+            "identical": not differing and mismatch is None,
+            "differing_fields": differing,
+        }
+        if mismatch is not None:  # F07-T65: another gate's run is never the pinned gate's
+            result["network_mismatch"] = mismatch.as_dict()
         sys.stdout.write(json.dumps(result) + "\n")
-        return EXIT_PASS if not differing else EXIT_FAIL
+        return EXIT_PASS if result["identical"] else EXIT_FAIL
     return code
 
 
@@ -1311,6 +1387,13 @@ def run_postmerge(args: argparse.Namespace, settings: config.Settings) -> int:
         raise CliError(str(exc)) from exc
     bodies = [_read_flag_file(p, "--approval-body-file") for p in args.approval_body_file]
     pr_body = _read_flag_file(args.pr_body_file, "--pr-body-file") if args.pr_body_file else ""
+    # F07-T65: the job that checked the network out at the pin says which commit that was; a
+    # job that does not say is not checked (the graph's workflow sets it from a later re-pin).
+    expected = os.environ.get("OPN_NETWORK_COMMIT", "").strip()
+    if expected:
+        mismatch = network_mismatch(expected, running_network_commit(), check_dirty=False)
+        if mismatch is not None:
+            return refuse_network_mismatch(mismatch)
     out_dir = _out_dir(args.out, "opn-postmerge-")
     ctx = _sandboxed_context(
         graph,
