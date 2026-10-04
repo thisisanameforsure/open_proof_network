@@ -1196,6 +1196,10 @@ def run_classify(args: argparse.Namespace, settings: config.Settings) -> int:
         paths.changes_from_name_status(diff.stdout),
         author=args.author or settings.pr_author,
         curators=curators,
+        # F20-R7: what a withdrawal withdraws is read from the checkout; F20-T6: a pull request
+        # the service opened acts for the author its records name.
+        graph_root=graph,
+        service_login=settings.service_login,
     )
     # D-4 v3.11 (F07-T17): step 9 for a proof or a partial is the root's certificate or registry
     # provenance where it has one, read from this checkout; the workflow reads the two published
@@ -2642,6 +2646,7 @@ def _gloss_file(args: argparse.Namespace, graph: Path, settings: config.Settings
         author=args.author or settings.pr_author,
         curators=curators,
         graph_root=graph,
+        service_login=settings.service_login,
     )
     problems = list(classification.problems)
     if classification.ok:

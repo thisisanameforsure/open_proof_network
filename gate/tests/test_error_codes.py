@@ -69,6 +69,7 @@ RELAYS: dict[tuple[str, str], str] = {
     ("gate/opn_gate/steps/replay.py", "first.code"): "the replay's first Diagnostic",
     ("gate/opn_gate/steps/witness.py", "found.code"): "a carried witness's Diagnostic",
     ("api/opn_api/checks.py", "problem.code"): "a gate Diagnostic, refused before a PR opens",
+    ("api/opn_api/glosses.py", "first.code"): "a gate Diagnostic, refused before a PR opens",
     ("api/opn_api/mcp/reads.py", "exc.code"): "an ApiError a read tool reused",
     ("api/opn_api/mcp/reads.py", "body.get('error')"): "the service route's own error body",
     ("api/opn_api/mcp/server.py", "body['error']"): "auth.unauthorized's body",

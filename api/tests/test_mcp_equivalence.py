@@ -271,6 +271,26 @@ PIN = "0df444a360eaa60ab8c11dca51a86af692955474"
 CHECKED = "theorem OpnProp.and_reassoc : True := by\n  trivial\n"
 
 
+#: F20-T6: a gloss of the tutorial statement by the caller, on the host, for withdraw_gloss.
+GLOSSED = "theorem x : True := trivial\n"
+GLOSS = (
+    "---\nschema: gloss/v1\ntarget: propositional\nsubject:\n  kind: statement\n"
+    f"  node: {TUTORIAL_NODE}\n  module: null\n"
+    f"  lean_hash: {hashlib.sha256(GLOSSED.encode()).hexdigest()}\n"
+    "supersedes: null\nauthor: alice\ndrafter: null\ndate: '2026-10-04'\nlicence: CC-BY-4.0\n"
+    "---\nTruth holds.\n"
+)
+GLOSS_PATH = f"{TUTORIAL_DIR}gloss/{hashlib.sha256(GLOSS.encode()).hexdigest()}.md"
+
+
+def with_gloss(h: Harness, token: str) -> dict[str, Any]:
+    h.githost.files[TUTORIAL_DIR + "Statement.lean"] = GLOSSED.encode()
+    h.githost.files[GLOSS_PATH] = GLOSS.encode()
+    h.context.files.clear()
+    h.context.listings.clear()
+    return {}
+
+
 def with_pin(h: Harness, token: str) -> dict[str, Any]:
     """A target pinned to a Mathlib the mapping serves, so POST /check answers (FakeAxle)."""
     h.githost.files[f"targets/{TARGET}/gate-spec.json"] = schemas.canonical_json(
@@ -325,6 +345,27 @@ WRITES: dict[str, tuple[dict[str, Any], str, dict[str, Any], Setup]] = {
         "POST /approach-records",
         {"target_id": TARGET, "record": {"route": "normalise", "outcome": "exhausted"}},
         no_setup,
+    ),
+    # F20-T6: the two gloss tools, each POST /glosses* body for body.
+    "submit_gloss": (
+        {
+            "subject": {"kind": "statement", "node_id": TUTORIAL_NODE},
+            "text": "Truth holds.",
+            "licence": "CC-BY-4.0",
+        },
+        "POST /glosses",
+        {
+            "subject": {"kind": "statement", "node_id": TUTORIAL_NODE},
+            "text": "Truth holds.",
+            "licence": "CC-BY-4.0",
+        },
+        with_statement,
+    ),
+    "withdraw_gloss": (
+        {"record": GLOSS_PATH, "reason": "It misreads the goal."},
+        "POST /glosses/withdrawals",
+        {"record": GLOSS_PATH, "reason": "It misreads the goal."},
+        with_gloss,
     ),
     "file_defect_claim": (
         {"stmt_ref": TUTORIAL_NODE, "class": "junk-value", "line": 1, "exhibit": EXHIBIT},

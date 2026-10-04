@@ -28,6 +28,15 @@ MINIMAL: dict[str, dict[str, Any]] = {
     "submit_postmortem": {"node_id": NODE, "yaml": {}},
     "submit_informal_annex": {"node_id": NODE, "text": "t", "licence": "CC-BY-4.0"},
     "submit_approach_record": {"target_id": "propositional", "record": {}},
+    "submit_gloss": {
+        "subject": {"kind": "statement", "node_id": NODE},
+        "text": "t",
+        "licence": "CC-BY-4.0",
+    },
+    "withdraw_gloss": {
+        "record": f"targets/propositional/nodes/{NODE}/gloss/{'a' * 64}.md",
+        "reason": "r",
+    },
     "file_defect_claim": {"stmt_ref": NODE, "class": "vacuity", "line": 1, "exhibit": "x"},
     "file_revision_request": {
         "node_id": NODE,

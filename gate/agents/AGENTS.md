@@ -1703,6 +1703,7 @@ field an argument becomes.
 | `file_defect_claim`, `file_revision_request` | `POST /defect-claims`, `/revision-requests` | |
 | `propose_speculative_node`, `propose_variant` | `POST /proposals/speculative`, `/proposals/variant` | `stmt` → `statement` |
 | `propose_witness` | `POST /proposals/witness` | |
+| `submit_gloss`, `withdraw_gloss` | `POST /glosses`, `/glosses/withdrawals` | |
 | `withdraw_submission(submission_id)` | `DELETE /submissions/<id>` | |
 
 Contributor prose (postmortem details, annexes, explainers) reaches you through these tools

@@ -55,6 +55,10 @@ D35_OWNED_BY_F08: frozenset[str] = frozenset({D35_PROPOSAL_PR, D35_CLAIM_PR})
 # F13's row (D-35 v3.14): the fast check answers in the same response, so there is no polling read.
 D35_POST_CHECK = "POST /check"
 D35_OWNED_BY_F13: frozenset[str] = frozenset({D35_POST_CHECK})
+# F20's row (D-35 v3.30): submit_gloss and withdraw_gloss, each by the endpoint D-35 names.
+D35_POST_GLOSSES = "POST /glosses"
+D35_POST_GLOSS_WITHDRAWALS = "POST /glosses/withdrawals"
+D35_OWNED_BY_F20: frozenset[str] = frozenset({D35_POST_GLOSSES, D35_POST_GLOSS_WITHDRAWALS})
 
 ROUTES: tuple[RouteSpec, ...] = (
     # F05-T13, Q13: the index of this table, served at the root. Open, no D-35 row.
@@ -175,6 +179,24 @@ ROUTES: tuple[RouteSpec, ...] = (
         authenticated=True,
         feature="F08",
     ),
+    # F20-R10 (D-35 v3.30): a gloss or explainer, and a withdrawal of one version, each refused
+    # by the gate's own checks before any pull request opens.
+    RouteSpec(
+        "POST",
+        "/glosses",
+        "glosses:post_glosses",
+        D35_POST_GLOSSES,
+        authenticated=True,
+        feature="F20",
+    ),
+    RouteSpec(
+        "POST",
+        "/glosses/withdrawals",
+        "glosses:post_withdrawals",
+        D35_POST_GLOSS_WITHDRAWALS,
+        authenticated=True,
+        feature="F20",
+    ),
     # F13-R8, Q2: open like the tutorial precheck; a presented token is authenticated and charged
     # per identity, and an anonymous caller is charged per address, by the handler.
     RouteSpec("POST", "/check", "checks:post_check", D35_POST_CHECK, feature="F13"),
@@ -231,6 +253,10 @@ PURPOSES: dict[str, str] = {
     "POST /proposals/witness": "Supply the witness a statement is waiting for, by pull request.",
     "POST /revision-requests": "Ask a curator to revise a statement, with the reason.",
     "POST /defect-claims": "Claim a statement is defective, with a Lean exhibit the gate checks.",
+    "POST /glosses": "Say in words what a Lean file or a merged proof says, or revise those "
+    "words, by pull request; refused first by the gate's own checks.",
+    "POST /glosses/withdrawals": "Withdraw one version of a gloss or explainer, by pull "
+    "request; the file stays and is read as absent.",
     "POST /check": "Check Lean text within 20 s on a hosted checker, or preview a witness's "
     "expected type for a node or a statement's text (mode witness); never authoritative.",
     "GET /checks/{check_id}": "The record of one of your own fast-check calls.",

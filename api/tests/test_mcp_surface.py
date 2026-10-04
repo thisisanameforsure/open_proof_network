@@ -63,6 +63,8 @@ WRITES = {
     "propose_speculative_node",
     "propose_variant",
     "withdraw_submission",  # F07-T43 (ruling D5), D-28's notation note of 2026-09-24
+    "submit_gloss",  # F20-T6: D-28 v3.30
+    "withdraw_gloss",  # F20-T6: idem
 }
 
 

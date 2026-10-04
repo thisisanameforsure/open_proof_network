@@ -25,11 +25,12 @@ from urllib.parse import urlencode
 import yaml
 
 from opn_api import frontier, pending, precheck, requests
+from opn_api import glosses as glossroutes
 from opn_api.app import ApiError, CachedDir, CachedFile
 from opn_api.githost import GitHostError
 from opn_api.mcp import demarcate, results
 from opn_api.mcp.calls import ID_PARAM, Call, Source, Tool, error, params
-from opn_gate import context, layout, schemas
+from opn_gate import context, explainers, glosses, layout, products, schemas
 
 if TYPE_CHECKING:
     from opn_api.app import Context
@@ -373,6 +374,65 @@ def closing_route(node_id: str, statement: str | None) -> dict[str, Any]:
     }
 
 
+def node_chains(ctx: Context, target_id: str, node_id: str) -> tuple[list[dict[str, Any]], str]:
+    """F20-R11: the node's ``glosses/v1`` subjects — each Lean file with the gloss chains filed
+    on it, each merged proof artifact with its explainer chains — from the committed
+    ``targets/<id>/glosses.json``, or derived from the node's files at ``main`` by the gate's
+    own function while the graph carries none (F10-Q7; ``derived``). Every version gains its
+    prose, as demarcated untrusted data (D-28)."""
+    path = f"targets/{target_id}/{products.GLOSSES_FILE}"
+    raw = committed(ctx, path, optional=True)
+    if raw is not None:
+        doc = parse(raw, path)
+        try:
+            schemas.validate(doc, products.GLOSSES_SCHEMA)
+        except schemas.SchemaError as exc:
+            raise error("glosses-invalid", f"{path} does not validate: {exc}", "graph") from exc
+        subjects = [s for s in doc["subjects"] if s.get("node") == node_id]
+        source = "file"
+    else:
+        try:
+            subjects = glossroutes.node_glosses(
+                ctx, target_id, node_id, lambda directory: listing(ctx, directory)
+            )
+        except ApiError as exc:
+            raise from_api_error(exc) from exc
+        source = "derived"
+    for subject in subjects:
+        for chain in subject["chains"]:
+            for version in chain["versions"]:
+                where = f"targets/{target_id}/{version['path']}"
+                found = committed(ctx, where, optional=True)
+                body = None
+                if found is not None:
+                    _front, body = glosses.split_front_matter(text(found, where))
+                version["text"] = demarcate.wrap(body, where) if body is not None else None
+    return subjects, source
+
+
+def node_outlines(
+    ctx: Context, target_id: str, subjects: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """F20-R11: F19's committed outline of each of the node's merged proof artifacts, or
+    ``None`` beside an artifact not yet outlined — the step ids an explainer's sections name."""
+    out = []
+    for subject in subjects:
+        if subject["record"] != "explainer" or subject["kind"] == "absent":
+            continue
+        digest = subject["lean_hash"]
+        path = f"targets/{target_id}/{explainers.OUTLINES_DIR}/{digest}.json"
+        raw = committed(ctx, path, optional=True)
+        out.append(
+            {
+                "proof": digest,
+                "file": subject["file"],
+                "path": path,
+                "outline": parse(raw, path) if raw is not None else None,
+            }
+        )
+    return out
+
+
 async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     node_id = check_id(args.get("node_id"), "node_id")
     try:
@@ -394,6 +454,7 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         # Owner, 2026-09-14: get_node returns the latest node, so the bundle's committed claims
         # snapshot is replaced by the live overlay and the two blocks can never disagree.
         bundle = {**bundle, "claims": dict(claims)}
+    subjects, chains_source = node_chains(call.ctx, target_id, node_id)
     return {
         "node_id": node_id,
         "target_id": target_id,
@@ -404,6 +465,12 @@ async def get_node(call: Call, args: dict[str, Any]) -> dict[str, Any]:
         "claims": dict(entry["claims"]) if entry is not None else None,
         "annexes": _prose(call.ctx, f"{node_dir}/annex"),
         "explainers": _prose(call.ctx, f"{node_dir}/explainer"),
+        # F20-R11: the outlines an explainer's sections name steps of, and every chain of words
+        # on the node's Lean files and merged proofs, from the product or derived (F10-Q7).
+        "outlines": node_outlines(call.ctx, target_id, subjects),
+        "gloss_chains": [s for s in subjects if s["record"] == "gloss"],
+        "explainer_chains": [s for s in subjects if s["record"] == "explainer"],
+        "chains_source": chains_source,
         # F09-T7: the pull requests already open on this node, as GET /submissions.json lists them.
         "submissions": {
             "open": [s for s in pending.get("open", []) if s.get("node_id") == node_id]

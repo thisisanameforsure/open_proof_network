@@ -229,6 +229,10 @@ class Classification:
     #: Read from the graph (``with_statement_review``), since the diff alone cannot say.
     review_basis: StatementBasis | None = None
     review_reference: str | None = None
+    #: F20-T6: whether the pull request was opened by the network's service (its App's login,
+    #: ``config.service_login``), which acts for the identity it wrote into the record's own
+    #: ``author``. The host's fact, like ``author``; not published.
+    by_service: bool = False
 
     @property
     def ok(self) -> bool:
@@ -424,6 +428,7 @@ def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per reject
     author: str | None = None,
     curators: Curators | None = None,
     graph_root: Path | None = None,
+    service_login: str | None = config.DEFAULT_SERVICE_LOGIN,
 ) -> Classification:
     """R3, F08-R2, R8: the diff's one mode, or the reasons it is not a submission at all.
 
@@ -434,6 +439,10 @@ def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per reject
     withdraws. A withdrawal of a gloss or explainer version (F20-R7) is its author's, a steward's
     or a curator's and rides the explainer mode; every other withdrawal stays a curator record
     (F08-T31). Without a checkout every withdrawal is read as a curator's, the stricter reading.
+
+    ``service_login`` is the login the network's service opens pull requests as (F20-T6): such a
+    pull request acts for the identity the service wrote into the record's ``author``, which is
+    how the explainer mode's role rules then read it (``acting_names``).
     """
     changes = list(changes)
     if not changes:
@@ -572,7 +581,14 @@ def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per reject
     # is the steward-or-curator half of superseding a signed version and of a withdrawal.
     who = author if pointers or mode == "explainer" else None
     return Classification(
-        mode, target_id, node_id, tuple(located), admit=admit, replaced=replaced, author=who
+        mode,
+        target_id,
+        node_id,
+        tuple(located),
+        admit=admit,
+        replaced=replaced,
+        author=who,
+        by_service=mode == "explainer" and author is not None and author == service_login,
     )
 
 
@@ -1017,7 +1033,11 @@ def _verb(status: str) -> str:
 
 
 def check(  # noqa: PLR0912 — one branch per role with a check of its own
-    graph_root: Path, classification: Classification, *, base: BaseReader | None = None
+    graph_root: Path,
+    classification: Classification,
+    *,
+    base: BaseReader | None = None,
+    signer: Signer | None = None,
 ) -> list[Diagnostic]:
     """R9, R10, F08-R2, R5, R8: everything a pull request is checked for before any sandbox.
 
@@ -1026,6 +1046,10 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
     appear, so a proof that carries an append is held to the same rules. A proposal's shape and a
     witness completion's precondition are mode rules, checked here so a malformed proposal never
     costs a sandbox.
+
+    ``signer`` verifies the signed records the explainer mode reads (stewards, signatures); by
+    default the platform's ssh-keygen. The service passes its own verifier, since its runtime
+    has no OpenSSH (F06-Q6, F20-T6).
     """
     problems: list[Diagnostic] = []
     for located in classification.located:
@@ -1033,14 +1057,22 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
             problems.extend(check_append_file(graph_root, located, mode=classification.mode))
         elif located.role == "explainer":
             found = check_explainer_file(graph_root, located, classification)
-            problems.extend(found or check_version_head(graph_root, located, classification))
+            problems.extend(
+                found or check_version_head(graph_root, located, classification, signer=signer)
+            )
         elif located.role == "explainer-signature":
-            problems.extend(check_explainer_signature(graph_root, located, classification))
+            problems.extend(
+                check_explainer_signature(graph_root, located, classification, signer=signer)
+            )
         elif located.role == "gloss":
             found = glosses.check_gloss(graph_root, located)
-            problems.extend(found or check_version_head(graph_root, located, classification))
+            problems.extend(
+                found or check_version_head(graph_root, located, classification, signer=signer)
+            )
         elif located.role == "gloss-signature":
-            problems.extend(check_gloss_signature(graph_root, located, classification))
+            problems.extend(
+                check_gloss_signature(graph_root, located, classification, signer=signer)
+            )
         elif located.role == "statement-evidence":
             problems.extend(check_evidence(graph_root, located))
         elif located.role in ("formalization", "formalization-statement"):
@@ -1058,7 +1090,7 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
                 [data] if isinstance(data, Diagnostic) else _check_schema(located, data)
             )
         elif located.role == "withdrawal":
-            problems.extend(check_withdrawal(graph_root, located, classification))
+            problems.extend(check_withdrawal(graph_root, located, classification, signer=signer))
         elif located.role == "credit-correction":
             problems.extend(check_credit_correction(graph_root, located))
         elif located.role in paths.CURATOR_ROLES:
@@ -2206,6 +2238,37 @@ def real_identities(graph_root: Path, target_id: str, *, signer: Signer) -> froz
     return frozenset(steward.active_logins(target_dir, signer)) | listed
 
 
+def acting_names(
+    graph_root: Path, classification: Classification | None, record_author: str | None
+) -> frozenset[str]:
+    """F20-T6: the names of whoever a gloss, explainer or withdrawal pull request acts for.
+
+    A pull request the service opened (``Classification.by_service``) acts for the identity the
+    service authenticated, which it writes into the record's own ``author`` and nowhere else; any
+    other pull request acts for the login that opened it, whatever its record says. A listed
+    curator is known by both halves of their ``curators.json`` pair, each read in the direction
+    its namespace allows: the service's pseudonym to the login it is paired with (a pseudonym is
+    the service's to issue, once), and a host login to its pseudonym (a login is the host's) —
+    never a host login to a login, since anyone may register a login spelled like a pseudonym.
+    The service refuses to write a pseudonym spelled like another person's real-identity login
+    (``api/opn_api/glosses.py``), which is what makes the first direction safe for stewards too.
+    Empty when nobody is known."""
+    if classification is None:
+        return frozenset()
+    who = record_author if classification.by_service else classification.author
+    if not who:
+        return frozenset()
+    try:
+        curators = load_curators(graph_root)
+    except CuratorsError:
+        return frozenset({who})
+    if classification.by_service:
+        paired = {login for pseudonym, login in curators.identities if pseudonym == who}
+    else:
+        paired = {pseudonym for pseudonym, login in curators.identities if login == who}
+    return frozenset({who, *paired})
+
+
 def check_explainer_signature(
     graph_root: Path,
     located: Located,
@@ -2297,8 +2360,9 @@ def check_version_head(
     signer: Signer | None = None,
 ) -> list[Diagnostic]:
     """F20-R6: a gloss or explainer that supersedes names the current head of a chain of its own
-    subject, and supersedes a validly signed version only in a pull request an active steward of
-    the target or a listed curator opened (the host's fact, ``Classification.author``)."""
+    subject, and supersedes a validly signed version only in a pull request that acts for an
+    active steward of the target or a listed curator: its opener's, or for a pull request the
+    service opened, the version's own ``author`` (``acting_names``, F20-T6)."""
     parent = _record_parent(graph_root, located)
     siblings = _versions_of(parent, located.role)
     stem = PurePosixPath(located.path).stem
@@ -2307,16 +2371,17 @@ def check_version_head(
         return []  # nothing superseded; a file that did not load was refused by its own check
     verifier = signer or signed.default_signer()
     directory = glosses.GLOSS_DIR if located.role == "gloss" else "explainer"
+    names = acting_names(graph_root, classification, version.author)
+    acting = version.author if classification.by_service else classification.author
     return glosses.head_problems(
         located.path,
         version,
         siblings,
         glosses.withdrawn_versions(parent, directory),
         signed_versions=_signed_versions(parent, located.role, verifier),
-        author=classification.author,
-        may_supersede_signed=lambda who: (
-            who is not None
-            and who in real_identities(graph_root, located.target_id, signer=verifier)
+        author=acting,
+        may_supersede_signed=lambda _who: bool(
+            names & real_identities(graph_root, located.target_id, signer=verifier)
         ),
     )
 
@@ -2516,21 +2581,23 @@ def _check_version_withdrawal(
         ]
     if classification is None or classification.mode == "curator":
         return []  # the curator mode asked who opened it (F08-R8)
-    if version.author is not None and doc["author"] == version.author:
+    # F20-T6: who acts is the opener, or for a pull request the service opened the record's own
+    # ``author``, which the service fills from the identity it authenticated (``acting_names``).
+    names = acting_names(graph_root, classification, str(doc["author"]))
+    if version.author is not None and version.author in names:
+        return []
+    verifier = signer or signed.default_signer()
+    if names & real_identities(graph_root, located.target_id, signer=verifier):
         return []
     opened = classification.author
-    verifier = signer or signed.default_signer()
-    if opened is not None and opened in real_identities(
-        graph_root, located.target_id, signer=verifier
-    ):
-        return []
     return [
         Diagnostic(
             "withdrawal-unauthorized",
             f"{located.path} withdraws {named}, by {doc['author']!r} in a pull request opened by "
             f"{opened or 'an unknown login'}; a version is withdrawn by its author "
             f"({version.author or 'a draft has none'}), an active steward of {located.target_id} "
-            "or a listed curator (F20-R7, D-3 v3.30)",
+            "or a listed curator, and a pull request acts for whoever opened it, or for the "
+            "record's author when the network's service opened it (F20-R7, D-3 v3.30)",
             {
                 "path": located.path,
                 "withdraws": named,

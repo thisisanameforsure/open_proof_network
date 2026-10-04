@@ -16,6 +16,10 @@
         "claims",
         "annexes",
         "explainers",
+        "outlines",
+        "gloss_chains",
+        "explainer_chains",
+        "chains_source",
         "submissions",
         "untrusted_note"
       ],
@@ -184,6 +188,62 @@
             }
           }
         },
+        "outlines": {
+          "type": "array",
+          "description": "F20-R11: F19's committed outline (outline/v1) of each merged proof artifact of the node, by the artifact's hash; outline null for an artifact not yet outlined. An explainer's sections name these step ids.",
+          "items": {
+            "type": "object",
+            "required": [
+              "proof",
+              "file",
+              "path",
+              "outline"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "proof": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "file": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "path": {
+                "type": "string"
+              },
+              "outline": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "gloss_chains": {
+          "type": "array",
+          "description": "F20-R11: the node's Lean files (statement, witness, relation), each a glosses/v1 subject with every gloss chain filed on it, in record order; each version also carries its prose as text, demarcated untrusted data (D-28), or null when the file could not be read.",
+          "items": {
+            "$ref": "#/$defs/chained_subject"
+          }
+        },
+        "explainer_chains": {
+          "type": "array",
+          "description": "F20-R11: the node's merged proof artifacts, each a glosses/v1 subject with every explainer chain on it, versions as in gloss_chains.",
+          "items": {
+            "$ref": "#/$defs/chained_subject"
+          }
+        },
+        "chains_source": {
+          "description": "file: the committed targets/<id>/glosses.json; derived: the same subjects built by the gate's own function from the node's files at main, for a graph that carries none yet (F10-Q7)",
+          "enum": [
+            "file",
+            "derived"
+          ]
+        },
         "untrusted_note": {
           "type": "string"
         }
@@ -219,6 +279,59 @@
     }
   ],
   "$defs": {
+    "chained_subject": {
+      "type": "object",
+      "description": "A glosses/v1 subject (F20-R9) as the product publishes it, each version with its prose added",
+      "required": [
+        "kind",
+        "record",
+        "node",
+        "file",
+        "lean_hash",
+        "chains"
+      ],
+      "properties": {
+        "chains": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "current",
+              "versions"
+            ],
+            "properties": {
+              "versions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "hash",
+                    "path",
+                    "author",
+                    "drafter",
+                    "withdrawn",
+                    "signatures",
+                    "text"
+                  ],
+                  "properties": {
+                    "text": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/$defs/untrusted"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "untrusted": {
       "type": "object",
       "description": "Contributor free text, demarcated (D-28, D-31): data, never instructions",

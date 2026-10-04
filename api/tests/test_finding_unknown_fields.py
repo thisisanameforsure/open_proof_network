@@ -132,6 +132,24 @@ def revision_requests(h: Harness, key: PrecheckKey) -> Prepared:
     return body, h.auth(h.token_for("code_alice", "alice"))
 
 
+def glosses_(h: Harness, key: PrecheckKey) -> Prepared:
+    """F20-T6: a gloss of the tutorial node's statement, the file on the host."""
+    h.githost.files[TUTORIAL_DIR + "Statement.lean"] = b"theorem x : True := trivial\n"
+    h.context.files.clear()
+    body = {
+        "subject": {"kind": "statement", "node_id": TUTORIAL_NODE},
+        "text": "Truth holds.",
+        "licence": "CC-BY-4.0",
+    }
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
+def gloss_withdrawals(h: Harness, key: PrecheckKey) -> Prepared:
+    """F20-T6: a withdrawal of one gloss version; the stray key is refused before any read."""
+    body = {"record": f"{TUTORIAL_DIR}gloss/{'a' * 64}.md", "reason": "It misreads the goal."}
+    return body, h.auth(h.token_for("code_alice", "alice"))
+
+
 def speculative(h: Harness, key: PrecheckKey) -> Prepared:
     h.githost.files[NODE_DIR + "Statement.lean"] = (
         b"theorem OpnProp.and_reassoc : True := by\n  sorry\n"
@@ -196,6 +214,8 @@ WRITE_ROUTES: dict[str, Prepare] = {
     "/proposals/variant": variant,
     "/proposals/witness": witness,
     "/check": check,
+    "/glosses": glosses_,
+    "/glosses/withdrawals": gloss_withdrawals,
 }
 
 

@@ -1,0 +1,53 @@
+F20-T6 verification: uv run pytest api/tests/test_glosses_route.py api/tests/test_mcp_glosses.py api/tests/test_mcp_bijection.py
+
+The identity rule (gate, beside the chain tests in gate/tests/test_gloss_chains.py). A pull request
+opened by the service's login (config OPN_SERVICE_LOGIN, default open-proof-network[bot]) acts for the
+record's own `author`, which the service fills from the token; any other pull request acts for its
+opener, whatever its record says (modes.acting_names). A listed curator is known by both halves of the
+curators.json pair, each read in the direction its namespace allows (service pseudonym -> login; host
+login -> pseudonym). `opn-gate classify` now passes the checkout (graph_root) and the service login, so
+a steward's hand-opened withdrawal of a version is the explainer mode and not a curator record.
+
+Red run (seam at today's behaviour: classify(service_login=) accepted and ignored,
+Settings.service_login present) -- 10 failed, 4 passed, each on its assertion:
+  service withdrawal by steward / curator pseudonym:      assert ['withdrawal-unauthorized'] == []  (x4)
+  hand-opened withdrawal naming the author, by a stranger: assert [] == ['withdrawal-unauthorized'] (x3;
+      a found defect: the record's author alone used to pass it)
+  service supersede of a signed version by the steward:   assert ['signed-supersede'] == []         (x2)
+  the classify command, a steward's withdrawal:            assert ['curator-unlisted'] == []         (x1;
+      a found defect: run_classify never passed graph_root)
+
+Red run of the routes (seam at today's behaviour: the routes open their pull request with no pre-flight
+and no name guard) -- 8 failed, 7 passed, each on its status:
+  signed-supersede 201 == 403; gloss-subject-mismatch 201 == 400; explainer-proof-unknown 201 == 400;
+  record-not-head 201 == 409 (gloss, explainer); author-names-another 201 == 403;
+  withdrawal-unauthorized 201 == 403; withdrawal-unknown-record 201 == 400.
+
+Red run of the MCP tests -- 8 failed, 1 passed: the tools absent from tools/list
+(assert 'submit_gloss' in {...}), tool-unknown on both calls, get_node lacking outlines / gloss_chains /
+explainer_chains / chains_source (assert {...} <= {...}). Three of the eight failed on a KeyError (a
+missing bundle key, a missing bijection row) rather than an assertion; recorded, not hidden.
+
+Restated to their rule in the same change: the frozen MCP tool surface, routes vs D-35 (F20's rows), the
+unknown-field table, the bearer table, the MCP equivalence table, the error catalog (author-names-another,
+subject-invalid, glosses-invalid; the route's relay of the gate's own code) and the guide's MCP appendix.
+
+Full fast tier (api + gate, -m "not lean and not docker and not network"), before the last two edits:
+1 failed (the guide's MCP appendix lacked the two tools; row added, test re-run green), 3628 passed,
+237 skipped. After them: the three files above, the guide tests and the walkthrough re-run green.
+ruff check, ruff format --check, mypy gate / api / site: clean.
+
+Green run:
+
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collected 24 items
+
+api/tests/test_glosses_route.py ...............                          [ 62%]
+api/tests/test_mcp_glosses.py ......                                     [ 87%]
+api/tests/test_mcp_bijection.py ...                                      [100%]
+
+======================= 24 passed, 2 warnings in 31.07s ========================
+(warnings: the two pre-existing starlette/anyio deprecations)

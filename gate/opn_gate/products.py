@@ -551,14 +551,34 @@ GLOSSES_SCHEMA = "glosses/v1"
 GLOSSES_FILE = "glosses.json"
 
 
-def lean_subjects(tg: TargetGraph) -> list[dict[str, Any]]:
+@dataclass(frozen=True)
+class GlossScope:
+    """What ``glosses_doc`` reads of a target: its directory and its nodes' directories. A
+    checkout supplies the whole target (``of``); the service supplies the one node it read from
+    the host into a scratch tree (F20-T6, F10-Q7's toolchain-free twin), and gets the same
+    subjects and chains for that node as the committed product carries."""
+
+    target_id: str
+    path: Path
+    nodes: Mapping[str, Path]
+
+    @classmethod
+    def of(cls, tg: TargetGraph) -> GlossScope:
+        return cls(tg.target_id, tg.path, {n: tg.nodes[n].path for n in tg.order})
+
+    @property
+    def order(self) -> list[str]:
+        return sorted(self.nodes)
+
+
+def lean_subjects(tg: GlossScope) -> list[dict[str, Any]]:
     """F20-R9: every Lean file of the target that takes a gloss and every merged proof artifact
     that takes an explainer, in the target's structural order — each node's statement, witness
     and relation, then its artifacts (``Proof.lean``, then ``attempts/`` by name), node by node;
     then the definition modules by path. Ranked by nothing (D-25)."""
     out: list[dict[str, Any]] = []
     for node_id in tg.order:
-        node_dir = tg.nodes[node_id].path
+        node_dir = tg.nodes[node_id]
         for kind, name in glosses.KIND_FILES.items():
             if (node_dir / name).is_file():
                 out.append(
@@ -590,7 +610,7 @@ def lean_subjects(tg: TargetGraph) -> list[dict[str, Any]]:
 
 
 def _subject(
-    tg: TargetGraph, kind: str, record: str, *, node: str | None, module: str | None, file: str
+    tg: GlossScope, kind: str, record: str, *, node: str | None, module: str | None, file: str
 ) -> dict[str, Any]:
     path = tg.path / file
     return {
@@ -604,12 +624,15 @@ def _subject(
     }
 
 
-def glosses_doc(tg: TargetGraph, rendered_from: str | None, *, signer: Signer) -> dict[str, Any]:
+def glosses_doc(
+    target: TargetGraph | GlossScope, rendered_from: str | None, *, signer: Signer
+) -> dict[str, Any]:
     """F20-R9: ``targets/<id>/glosses.json`` — every subject with the chains filed on it, each
     version with its author or drafter, date, valid signatures, withdrawn flag and, for a gloss,
     whether it describes the file as it stands; and each chain's current version, its latest not
     withdrawn. A version naming a file not in the tree is listed under that subject all the same,
     so nothing filed is hidden."""
+    tg = target if isinstance(target, GlossScope) else GlossScope.of(target)
     subjects = lean_subjects(tg)
     by_key: dict[tuple[Any, ...], dict[str, Any]] = {}
     for s in subjects:
@@ -617,7 +640,7 @@ def glosses_doc(tg: TargetGraph, rendered_from: str | None, *, signer: Signer) -
             by_key[("gloss", s["node"], s["module"], s["kind"])] = s
         else:
             by_key[("explainer", s["node"], s["lean_hash"])] = s
-    parents: list[tuple[Path, str | None]] = [(tg.nodes[n].path, n) for n in tg.order]
+    parents: list[tuple[Path, str | None]] = [(tg.nodes[n], n) for n in tg.order]
     parents.append((tg.path, None))
     for parent, node_id in parents:
         _gloss_chains(tg, parent, node_id, by_key=by_key, subjects=subjects, signer=signer)
@@ -632,7 +655,7 @@ def glosses_doc(tg: TargetGraph, rendered_from: str | None, *, signer: Signer) -
 
 
 def _gloss_chains(
-    tg: TargetGraph,
+    tg: GlossScope,
     parent: Path,
     node_id: str | None,
     *,
@@ -668,7 +691,7 @@ def _gloss_chains(
 
 
 def _explainer_chains(
-    tg: TargetGraph,
+    tg: GlossScope,
     parent: Path,
     node_id: str,
     *,
@@ -703,7 +726,7 @@ def _explainer_chains(
 
 
 def _chains_doc(
-    tg: TargetGraph,
+    tg: GlossScope,
     found: list[glosses.Version],
     withdrawn: frozenset[str],
     sigs: Mapping[str, list[dict[str, Any]]],

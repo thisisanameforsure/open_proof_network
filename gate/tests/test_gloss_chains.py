@@ -25,7 +25,7 @@ from harness import TARGET, copy_graph
 from test_modes import CURATOR, write_curators
 from test_products import ROOT_NODE, attest, generate, loads
 
-from opn_gate import explainers, glosses, modes, schemas, steward
+from opn_gate import cli, config, explainers, glosses, modes, schemas, steward
 from opn_gate.paths import Change
 from opn_gate.signer import SshKeygenSigner
 
@@ -447,3 +447,114 @@ def test_the_product_lists_every_lean_file(root: Path) -> None:
     for node in ("tutorial-and-swap", "and-reassoc", ROOT_NODE):
         assert {("statement", node), ("witness", node), ("proof", node)} <= seen
     assert all(s["chains"] == [] for s in doc["subjects"])
+
+
+# --- F20-T6: who is acting when the service opened the pull request ----------------------------
+#
+# Every pull request the service opens is authored by its GitHub App, so the host's author names
+# nobody. The service writes the identity it authenticated into the record's own ``author`` (as
+# F18-Q7(a): the service writes only the authenticated pseudonym), so a pull request opened by the
+# service's login is judged by that field; a hand-opened one stays judged by its opener, whatever
+# its record claims.
+
+SERVICE = config.DEFAULT_SERVICE_LOGIN
+
+
+def codes_by(root: Path, change: Change, opened_by: str, **kwargs: Any) -> list[str]:
+    classification = modes.classify([change], author=opened_by, graph_root=root, **kwargs)
+    if not classification.ok:
+        return [d.code for d in classification.problems]
+    return [d.code for d in modes.check(root, classification)]
+
+
+@pytest.mark.parametrize("record", ["gloss", "explainer"])
+@pytest.mark.parametrize(
+    ("record_author", "expected"),
+    [
+        ("carol", []),  # the version's author, through the service
+        (STEWARD, []),  # an active steward, through the service
+        (f"{CURATOR}-pseudonym", []),  # a listed curator, by the pseudonym the service writes
+        (STRANGER, ["withdrawal-unauthorized"]),
+    ],
+)
+def test_a_service_withdrawal_acts_for_its_records_author(
+    root: Path, record: str, record_author: str, expected: list[str]
+) -> None:
+    make = gloss if record == "gloss" else explainer
+    a, _ = make(root, "First.")
+    change = withdraw(root, f"{record}/{a}.md", record_author, n=1)
+    assert codes_by(root, change, SERVICE) == expected
+
+
+@pytest.mark.parametrize("record", ["gloss", "explainer"])
+def test_a_hand_opened_withdrawal_is_judged_by_its_opener(root: Path, record: str) -> None:
+    """A record that names the version's author proves nothing in a pull request someone else
+    opened by hand: the stranger is judged, and a steward opening it by hand passes."""
+    make = gloss if record == "gloss" else explainer
+    a, _ = make(root, "First.")
+    change = withdraw(root, f"{record}/{a}.md", "carol", n=1)
+    assert codes_by(root, change, STRANGER) == ["withdrawal-unauthorized"]
+    assert codes_by(root, change, STEWARD) == []
+    assert codes_by(root, change, "carol") == []
+
+
+@pytest.mark.parametrize("record", ["gloss", "explainer"])
+def test_a_service_supersede_of_a_signed_version_acts_for_its_author(
+    root: Path, keys: dict[str, Path], record: str
+) -> None:
+    """R6 through the service: a steward's or a curator's version superseding a signed one
+    passes, a stranger's is ``signed-supersede``; a hand-opened one naming the steward as its
+    author is judged by its opener."""
+    make = gloss if record == "gloss" else explainer
+    sign = sign_gloss if record == "gloss" else sign_explainer
+    b, _ = make(root, "Signed reading.")
+    sign(root, b, CURATOR, keys[CURATOR])
+    _, by_steward = make(root, "The steward's correction.", supersedes=b, author=STEWARD)
+    assert codes_by(root, by_steward, SERVICE) == []
+    assert codes_by(root, by_steward, STRANGER) == ["signed-supersede"]
+    (root / by_steward.path).unlink()
+    _, by_curator = make(root, "The curator's.", supersedes=b, author=f"{CURATOR}-pseudonym")
+    assert codes_by(root, by_curator, SERVICE) == []
+    (root / by_curator.path).unlink()
+    _, by_stranger = make(root, "A stranger's correction.", supersedes=b, author=STRANGER)
+    assert codes_by(root, by_stranger, SERVICE) == ["signed-supersede"]
+
+
+def test_the_service_login_is_configuration(root: Path) -> None:
+    """``OPN_SERVICE_LOGIN`` names the App; any other login is a person opening by hand."""
+    a, _ = gloss(root, "First.")
+    change = withdraw(root, f"gloss/{a}.md", "carol", n=1)
+    assert codes_by(root, change, "opn-app[bot]", service_login="opn-app[bot]") == []
+    assert codes_by(root, change, "opn-app[bot]") == ["withdrawal-unauthorized"]
+    assert config.load({}).service_login == SERVICE == "open-proof-network[bot]"
+    assert config.load({"OPN_SERVICE_LOGIN": "opn-app[bot]"}).service_login == "opn-app[bot]"
+
+
+def test_the_classify_command_reads_what_a_withdrawal_withdraws(
+    root: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The workflow's entry point gives ``classify`` the checkout, so a steward's withdrawal of a
+    gloss version is the explainer mode and not a curator record (F20-R7)."""
+    env = {
+        "GIT_AUTHOR_NAME": "t",
+        "GIT_AUTHOR_EMAIL": "t@x",
+        "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@x",
+        "PATH": "/usr/bin:/bin",
+        "HOME": str(root.parent),
+    }
+
+    def git(*args: str) -> None:
+        subprocess.run(["git", "-C", str(root), *args], check=True, env=env, capture_output=True)
+
+    a, _ = gloss(root, "First.")
+    git("init", "-q")
+    git("add", "-A")
+    git("commit", "-q", "-m", "seed")
+    withdraw(root, f"gloss/{a}.md", STEWARD, n=1)
+    git("add", "-A")
+    git("commit", "-q", "-m", "withdraw")
+    code = cli.main(["classify", "--graph", str(root), "--base", "HEAD~1", "--author", STEWARD])
+    out = json.loads(capsys.readouterr().out)
+    assert [p["code"] for p in out["problems"]] == []
+    assert out["mode"] == "explainer" and code == 0

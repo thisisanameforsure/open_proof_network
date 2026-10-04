@@ -251,6 +251,16 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "hypotheses cannot all hold).",
         "Nothing to do.",
     ),
+    "author-names-another": (
+        "api",
+        None,
+        "Your pseudonym is spelled like the GitHub login of an active steward of the target or a "
+        "listed curator, and your identity did not prove that login. The gate reads the author of "
+        "a gloss, explainer or withdrawal the service files as the person acting, so the record "
+        "would read as theirs (F20-T6).",
+        "File it under an identity whose pseudonym names nobody else; a steward or curator files "
+        "under the identity that proved their own login.",
+    ),
     "attestation-unparseable": (
         "api",
         None,
@@ -938,6 +948,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Relation.lean, or a definition module not under defs/ (F20-R1).",
         "Name a file that exists: a statement, witness or relation of the node the gloss is filed "
         "under, or a module under the target's defs/.",
+    ),
+    "glosses-invalid": (
+        "api",
+        None,
+        "The graph's committed targets/<id>/glosses.json does not validate against glosses/v1, "
+        "so get_node cannot serve its gloss and explainer chains (F20-R11).",
+        "Report it to the curator: the products need re-rendering by the pinned gate. The raw "
+        "files under the node's gloss/ and explainer/ are still readable through the plain path.",
     ),
     "graph-unreachable": (
         "api",
@@ -2043,6 +2061,16 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         None,
         "stmt_ref names a file the graph does not have.",
         "Name an existing node or defs/ file.",
+    ),
+    "subject-invalid": (
+        "api",
+        None,
+        "POST /glosses's subject is not one the route takes: an object of kind, node_id, "
+        "target_id, module, proof and lean_hash, its kind a statement, witness, relation, "
+        "definition or proof, an explainer's naming the artifact's hash (F20-R10).",
+        "Send {kind, node_id} for a node's Lean file, {kind: definition, target_id, module} for a "
+        "definition module, or {kind: proof, node_id, proof} for an explainer; the author is your "
+        "token's identity and is never sent.",
     ),
     "submission-id-invalid": (
         "api",

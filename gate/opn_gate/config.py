@@ -31,6 +31,14 @@ Variables (prefix ``OPN_``):
     an environment variable rather than only a flag so the graph's workflow can set it before its
     pinned gate understands the flag (F08-Q8). Default ``None``: no author is known, and a
     curator-shaped pull request is refused.
+``OPN_SERVICE_LOGIN``
+    The host login the network's service opens pull requests as: its GitHub App's bot login,
+    ``<app-slug>[bot]`` (F20-T6). A pull request opened by this login acts for the identity the
+    service authenticated, which the service writes into the record's own ``author`` field and
+    nowhere else; so for a gloss or explainer version and a withdrawal of one, the gate judges
+    who is acting from that field, and from the pull request's author for every other login
+    (F20-R6, R7). Default ``open-proof-network[bot]``, the Stage 0 App (the service's
+    ``OPN_API_COMMITTER_NAME`` default).
 ``OPN_GRAPH_REPO_URL``
     The graph repository's web URL (D-35), the one place a problem proposal may be filed: an
     issue there is the only ``ref`` a ``proposal``-sourced target record may carry (F15-R13).
@@ -98,6 +106,8 @@ DEFAULT_DRAFTER_MAX_SUBJECTS = 20  # F20 §6
 DEFAULT_DRAFTER_TOKEN_BUDGET = 500_000  # F20 §6
 DEFAULT_DRAFTER_NAME = "opn-drafter"  # F20-Q6
 DEFAULT_DRAFTER_LICENCE = "CC-BY-4.0"  # the licence the graph's prose records carry (D-23)
+#: F20-T6: the login the service's GitHub App opens pull requests as (``<app-slug>[bot]``).
+DEFAULT_SERVICE_LOGIN = "open-proof-network[bot]"
 
 SECRET_NAMES: tuple[str, ...] = ("gate_signing_key", "precheck_signing_key", "model_api_key")
 
@@ -127,6 +137,7 @@ class Settings:
     drafter_name: str = DEFAULT_DRAFTER_NAME
     drafter_licence: str = DEFAULT_DRAFTER_LICENCE
     pr_author: str | None = None
+    service_login: str = DEFAULT_SERVICE_LOGIN
     #: F07-T65: the network commit the job checked out at the pin (``OPN_NETWORK_COMMIT``),
     #: when the job says.
     network_commit: str | None = None
@@ -148,6 +159,7 @@ class Settings:
             f"drafter_name={self.drafter_name!r}, drafter_licence={self.drafter_licence!r}, "
             f"lean_pkg_bin={str(self.lean_pkg_bin)!r}, "
             f"mathlib_home={str(self.mathlib_home)!r}, pr_author={self.pr_author!r}, "
+            f"service_login={self.service_login!r}, "
             f"network_commit={self.network_commit!r}, "
             f"gate_signing_key={'<set>' if self.gate_signing_key else None}, "
             f"precheck_signing_key={'<set>' if self.precheck_signing_key else None})"
@@ -255,6 +267,7 @@ def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0912, P
         lean_pkg_bin=Path(env.get("OPN_LEAN_PKG_BIN", str(DEFAULT_LEAN_PKG_BIN))).expanduser(),
         mathlib_home=Path(env.get("OPN_MATHLIB_HOME", str(DEFAULT_MATHLIB_HOME))).expanduser(),
         pr_author=env.get("OPN_PR_AUTHOR") or None,
+        service_login=env.get("OPN_SERVICE_LOGIN", "").strip() or DEFAULT_SERVICE_LOGIN,
         network_commit=env.get("OPN_NETWORK_COMMIT", "").strip() or None,
         gate_signing_key=env.get("OPN_GATE_SIGNING_KEY") or None,
         precheck_signing_key=env.get("OPN_PRECHECK_SIGNING_KEY") or None,

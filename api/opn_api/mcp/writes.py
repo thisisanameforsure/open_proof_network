@@ -211,6 +211,18 @@ async def propose_witness(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     return await forward(call, "POST", "/proposals/witness", body)
 
 
+async def submit_gloss(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """F20-R11: ``POST /glosses``, body for body."""
+    body = present("submit_gloss", args, "subject", "text", "supersedes", "licence")
+    return await forward(call, "POST", "/glosses", body)
+
+
+async def withdraw_gloss(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """F20-R11: ``POST /glosses/withdrawals``, body for body."""
+    body = present("withdraw_gloss", args, "record", "reason")
+    return await forward(call, "POST", "/glosses/withdrawals", body)
+
+
 async def withdraw_submission(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     """F07-T43 (ruling D5): ``DELETE /submissions/{id}``, the id as the input schema admits it."""
     return await forward(call, "DELETE", f"/submissions/{args['submission_id']}")
@@ -510,6 +522,68 @@ TOOLS: tuple[Tool, ...] = (
             ("node_id", "text", "licence"),
         ),
         submit_informal_annex,
+        write=True,
+    ),
+    Tool(
+        "submit_gloss",
+        "Say in words what one Lean file says (a gloss: subject.kind statement, witness or "
+        "relation with node_id, or definition with target_id and module), or explain one merged "
+        "proof artifact of a node (an explainer: kind proof, node_id, and proof, the artifact's "
+        "SHA-256 as get_node's outlines list it). New, or superseding the current version of its "
+        "chain: `supersedes` is that version's hash, as get_node's gloss_chains and "
+        "explainer_chains give it. Unverified prose that asserts nothing (D-3 v3.30): the "
+        "author is your identity, the file is named by its hash, and `licence` is required "
+        "(D-23). A gloss names the text it describes (subject.lean_hash, the file as it stands "
+        "when omitted). An explainer's text is sections under level-2 headings; a heading may "
+        "end `{steps: s3 s4.1}` naming the outline's steps it describes. The gate's own checks "
+        "run first and refuse with their code before anything opens: gloss-subject-mismatch "
+        "(naming the current hash), explainer-proof-unknown, explainer-step-unknown, "
+        "record-not-head (409, naming the head), signed-supersede (403: only an active steward "
+        "or a listed curator supersedes a signed version; start a chain of your own instead).",
+        params(
+            {
+                "subject": {
+                    "type": "object",
+                    "description": "what the words describe: {kind, node_id} for a statement, "
+                    "witness or relation (optional lean_hash); {kind: definition, target_id, "
+                    "module}; {kind: proof, node_id, proof} for an explainer",
+                    "properties": {
+                        "kind": {
+                            "enum": ["statement", "witness", "relation", "definition", "proof"]
+                        },
+                        "node_id": ID_PARAM,
+                        "target_id": ID_PARAM,
+                        "module": {"type": "string"},
+                        "proof": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                        "lean_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                    },
+                    "required": ["kind"],
+                },
+                "text": {"type": "string", "description": "the prose, as Markdown"},
+                "supersedes": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                "licence": {"enum": ["CC-BY-4.0", "CDLA-Permissive-2.0", "Apache-2.0"]},
+            },
+            ("subject", "text", "licence"),
+        ),
+        submit_gloss,
+        write=True,
+    ),
+    Tool(
+        "withdraw_gloss",
+        "Withdraw one version of a gloss or explainer (D-3 v3.30): `record` is its graph path "
+        "(targets/<id>/nodes/<node>/gloss/<hash>.md or .../explainer/<hash>.md, or "
+        "targets/<id>/gloss/<hash>.md for a definition module's gloss); `reason` is published. "
+        "The file stays and every reader reads it as absent, so the version before it is the "
+        "chain's current one again. Its author, an active steward of the target or a listed "
+        "curator may; anyone else is refused 403 withdrawal-unauthorized before anything opens.",
+        params(
+            {
+                "record": {"type": "string"},
+                "reason": {"type": "string", "maxLength": 1000},
+            },
+            ("record", "reason"),
+        ),
+        withdraw_gloss,
         write=True,
     ),
     Tool(

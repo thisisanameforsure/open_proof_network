@@ -37,6 +37,7 @@ def test_routes_match_d35() -> None:
     rows = d35_rows()
     owned = routes.D35_OWNED_BY_F05 | routes.D35_OWNED_BY_F06 | {routes.D35_POST_SUBMISSIONS}
     owned |= routes.D35_OWNED_BY_F13  # F13-T3: D-35 v3.14's check_lean row
+    owned |= routes.D35_OWNED_BY_F20  # F20-T6: D-35 v3.30's submit_gloss, withdraw_gloss row
     assert rows >= owned, rows
     # The append row names no endpoint: D-35's plain path for the three append tools is the
     # pull request itself, quoted here verbatim so a reworded decision fails this test.
@@ -44,14 +45,17 @@ def test_routes_match_d35() -> None:
     write_rows = {r.d35 for r in routes.ROUTES if r.write}
     assert None not in write_rows  # every write route names its D-35 row
     assert write_rows == routes.D35_OWNED_BY_F05 | {routes.D35_POST_PRECHECK} | (
-        routes.D35_OWNED_BY_F07 | routes.D35_OWNED_BY_F08 | routes.D35_OWNED_BY_F13
+        routes.D35_OWNED_BY_F07
+        | routes.D35_OWNED_BY_F08
+        | routes.D35_OWNED_BY_F13
+        | routes.D35_OWNED_BY_F20
     )
     assert routes.D35_PROPOSAL_PR in d35_text()  # F08's rows, verbatim like the append row
     assert routes.D35_CLAIM_PR in d35_text()
     pr_rows = {routes.D35_APPEND_PR, routes.D35_PROPOSAL_PR, routes.D35_CLAIM_PR}
     for r in routes.ROUTES:
         assert r.d35 is None or r.d35 in rows or r.d35 in pr_rows, r
-        assert r.feature in ("F05", "F06", "F07", "F08", "F13"), r
+        assert r.feature in ("F05", "F06", "F07", "F08", "F13", "F20"), r
 
 
 def test_f07_routes_are_authenticated_writes() -> None:

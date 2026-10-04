@@ -126,6 +126,21 @@ TABLE: tuple[Row, ...] = (
         ("POST /approach-records",),
         "a PR appending the schema-checked file under the node or target",
     ),
+    # F20-T6: D-28 v3.30's write row and D-35 v3.30's plain path, one endpoint each.
+    Row(
+        "submit_gloss",
+        "write",
+        ("POST /glosses",),
+        "a PR appending the schema-checked gloss, explainer or withdrawal record, refused before "
+        "it opens when the record fails the checks a merge would apply",
+    ),
+    Row(
+        "withdraw_gloss",
+        "write",
+        ("POST /glosses/withdrawals",),
+        "a PR appending the schema-checked gloss, explainer or withdrawal record, refused before "
+        "it opens when the record fails the checks a merge would apply",
+    ),
     Row(
         "file_defect_claim",
         "write",

@@ -407,7 +407,7 @@ def head_problems(  # noqa: PLR0913 — the version, its siblings and the host's
                 "signed-supersede",
                 f"{path} supersedes {named}, which a steward or curator has signed; only an "
                 f"active steward of the target or a listed curator supersedes a signed version, "
-                f"and this pull request was opened by {author or 'an unknown login'}. Start a "
+                f"and this pull request acts for {author or 'an unknown login'}. Start a "
                 "chain of your own instead (F20-R6)",
                 {"path": path, "supersedes": named, "author": author},
             )

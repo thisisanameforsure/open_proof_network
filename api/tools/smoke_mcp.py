@@ -140,9 +140,9 @@ def read_only(  # noqa: PLR0912, PLR0915 — a checklist: one branch per thing t
     if bundle.pop("__is_error__"):
         problems.append(f"get_node({tutorial}) is an error: {bundle}")
     else:
-        bare = demarcate.bare_strings(
-            {k: v for k, v in bundle.items() if k in ("context", "annexes", "explainers")}
-        )
+        # F20-T6: every gloss and explainer version's prose is served wrapped too.
+        prose_keys = ("context", "annexes", "explainers", "gloss_chains", "explainer_chains")
+        bare = demarcate.bare_strings({k: v for k, v in bundle.items() if k in prose_keys})
         # F09-AC6 over the F10-R3 bundle shape: contributor *prose* must be wrapped; the node's
         # Lean source (the statement's and witness's ``text``) is code the gate checked, served
         # bare on purpose (F10-Q6), and is the one ``.text`` the rule does not apply to.
