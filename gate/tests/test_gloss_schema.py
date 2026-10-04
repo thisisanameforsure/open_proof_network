@@ -17,7 +17,7 @@ import pytest
 import yaml
 from harness import copy_graph, take_in
 
-from opn_gate import modes, schemas
+from opn_gate import config, modes, schemas
 from opn_gate.paths import Change
 
 TARGET = "euclid-primes"
@@ -170,9 +170,12 @@ def test_exactly_one_of_author_and_drafter(
 
 
 def test_a_draft_passes(graph: Path) -> None:
+    """A draft passes in the pull request the service opens for the drafter; opened by hand it
+    is ``drafter-not-service`` (F20-T10, ``test_gloss_draft_provenance``)."""
     drafter = {"name": "opn-drafter", "model": "m", "model_version": "1", "input_commit": "a" * 40}
     change = node_gloss(graph, "witness", HOLE, "Witness.lean", author=None, drafter=drafter)
-    assert verdict(graph, change)[1] == []
+    service = modes.classify([change], author=config.DEFAULT_SERVICE_LOGIN, graph_root=graph)
+    assert [d.code for d in modes.check(graph, service)] == []
 
 
 def test_a_gloss_without_front_matter_or_with_a_bad_schema_is_refused(graph: Path) -> None:

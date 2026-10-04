@@ -34,6 +34,7 @@ from opn_gate import (
     config,
     curator,
     defs,
+    draft_run,
     exhibits,
     explainers,
     fidelity,
@@ -556,6 +557,31 @@ def _add_gloss_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser])
         "coverage", help="every Lean file and proof artifact, with its words or why none (R20)"
     )
     gcov.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    gdraft = gl_acts.add_parser(
+        "draft",
+        help="draft glosses and explainers for what coverage finds uncovered, check each as the "
+        "gate would, and post it to the service as the drafter (F20-R15 to R18, T10)",
+    )
+    gdraft.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    gdraft.add_argument("--target", help="draft only this target's subjects")
+    gdraft.add_argument(
+        "--subjects",
+        default="new",
+        help="new (files and proofs with no chain at all, default), uncovered (everything "
+        "coverage calls uncovered), or a file listing graph paths, one per line",
+    )
+    gdraft.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="list what would be drafted and why; call no model and post nothing",
+    )
+    gdraft.add_argument("--submit-url", help="the service's origin; POST /glosses is under it")
+    gdraft.add_argument(
+        "--report",
+        type=Path,
+        default=Path("gloss-draft-report.json"),
+        help="where the run report is written, after planning and after every subject",
+    )
 
 
 def _add_steward_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -2459,7 +2485,41 @@ def run_gloss(args: argparse.Namespace, settings: config.Settings) -> int:
         return _gloss_file(args, graph, settings)
     if args.action == "coverage":
         return _gloss_coverage(graph)
+    if args.action == "draft":
+        return _gloss_draft(args, graph, settings)
     return _gloss_sign(args, graph)
+
+
+def _gloss_draft(args: argparse.Namespace, graph: Path, settings: config.Settings) -> int:
+    """F20-T10: the drafter's run (``opn_gate.draft_run``). The report is written as the run goes
+    and printed at its end; exit 1 when the model provider or the service cut it short or a
+    draft was refused by the service, 0 otherwise (a capped run is a batch), 2 for a usage error
+    such as a missing credential."""
+    mode = args.subjects
+    keys: list[str] | None = None
+    if mode not in draft_run.SUBJECT_MODES:
+        keys = draft_run.read_keys(Path(mode))
+    top = _git(graph, "rev-parse", "--show-toplevel")
+    head = _git(graph, "rev-parse", "--verify", "HEAD")
+    own = top.returncode == 0 and Path(top.stdout.strip()).resolve() == graph.resolve()
+    sha = head.stdout.strip() if own and head.returncode == 0 else ""
+    commit = sha if re.fullmatch(r"[0-9a-f]{40}", sha) else None
+    try:
+        report = draft_run.run(
+            graph,
+            settings,
+            commit=commit,
+            target=args.target,
+            mode=mode,
+            keys=keys,
+            report_path=args.report,
+            dry_run=args.dry_run,
+            submit_url=args.submit_url,
+        )
+    except draft_run.DraftRunError as exc:
+        raise CliError(str(exc)) from exc
+    sys.stdout.write(json.dumps(report.as_dict(), indent=2, ensure_ascii=False) + "\n")
+    return EXIT_FAIL if report.cut_short or report.post_failed else EXIT_PASS
 
 
 def _gloss_coverage(graph: Path) -> int:

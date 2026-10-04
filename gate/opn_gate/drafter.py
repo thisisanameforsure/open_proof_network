@@ -609,6 +609,10 @@ def structural_problems(draft: Draft) -> list[str]:
 
 
 Check = Callable[[Draft], Sequence[object]]
+StopKind = Literal["cap", "budget", "provider", "caller"]
+#: Called after each attempted subject with the report so far (F20-T10: the workflow posts each
+#: draft and writes its report as it goes); a string returned stops the run with that reason.
+AfterEach = Callable[["Report"], str | None]
 
 
 def _describe(problem: object) -> str:
@@ -634,6 +638,10 @@ class Report:
     skipped: list[Entry] = field(default_factory=list)  # never drafted by rule (Q11)
     left: list[Entry] = field(default_factory=list)  # not attempted, or cut short (R17)
     stopped: str | None = None
+    #: What stopped the run, when something did: the subject ``cap``, the token ``budget``, the
+    #: model ``provider`` (429, a spend limit, a refusal, an outage), or the ``caller``'s
+    #: ``after_each`` (F20-T10: the service refused to take the drafts).
+    stop_kind: StopKind | None = None
     input_tokens: int = 0
     output_tokens: int = 0
 
@@ -651,6 +659,7 @@ class Report:
             "prompt_version": self.prompt_version,
             "complete": self.complete,
             "stopped": self.stopped,
+            "stop_kind": self.stop_kind,
             "input_tokens": self.input_tokens,
             "output_tokens": self.output_tokens,
             "drafted": [
@@ -673,9 +682,10 @@ class Report:
 
 
 class _Stop(Exception):  # noqa: N818 — a control-flow signal, not an error a caller sees
-    def __init__(self, reason: str) -> None:
+    def __init__(self, reason: str, kind: StopKind) -> None:
         super().__init__(reason)
         self.reason = reason
+        self.kind = kind
 
 
 def draft_many(  # noqa: PLR0913 — one keyword per cap and record field
@@ -688,9 +698,11 @@ def draft_many(  # noqa: PLR0913 — one keyword per cap and record field
     drafter_name: str = DEFAULT_DRAFTER_NAME,
     licence: str = DEFAULT_LICENCE,
     date: str | None = None,
+    after_each: AfterEach | None = None,
 ) -> Report:
     """Draft each subject in order until the cap, the budget or a provider error stops the run;
-    the report names every subject offered, once, with what became of it (R16, R17)."""
+    the report names every subject offered, once, with what became of it (R16, R17).
+    ``after_each`` sees the report after every attempted subject and may stop the run."""
     day = date or datetime.now(UTC).date().isoformat()
     report = Report()
     pending = list(subjects)
@@ -704,6 +716,7 @@ def draft_many(  # noqa: PLR0913 — one keyword per cap and record field
             continue
         if attempted >= max_subjects:
             report.stopped = f"the subject cap of {max_subjects} was reached"
+            report.stop_kind = "cap"
             pending.insert(0, subject)
             break
         attempted += 1
@@ -720,12 +733,18 @@ def draft_many(  # noqa: PLR0913 — one keyword per cap and record field
             )
         except _Stop as stop:
             report.stopped = stop.reason
+            report.stop_kind = stop.kind
             report.left.append(Entry(subject.key, stop.reason))
             break
         if draft is not None:
             report.drafted.append(draft)
         else:
             report.not_drafted.append(Entry(subject.key, failure))
+        halt = after_each(report) if after_each is not None else None
+        if halt is not None:
+            report.stopped = halt
+            report.stop_kind = "caller"
+            break
     for subject in pending:
         if isinstance(subject, GlossSubject) and subject.kind == "statement" and subject.is_root:
             report.skipped.append(
@@ -766,7 +785,7 @@ def _draft_one(  # noqa: PLR0913 — the run's state, passed explicitly
             spent = f"the token budget of {token_budget} was spent ({report.tokens} used)"
             if problems:
                 spent += f"; its first draft had failed its checks: {'; '.join(problems)}"
-            raise _Stop(spent)
+            raise _Stop(spent, "budget")
         prompt = prompt_for(subject, problems)
         try:
             completion = model.complete(
@@ -774,7 +793,7 @@ def _draft_one(  # noqa: PLR0913 — the run's state, passed explicitly
             )
         except ModelError as exc:
             msg = f"the model provider stopped the run: {exc}"
-            raise _Stop(msg) from exc
+            raise _Stop(msg, "provider") from exc
         report.input_tokens += completion.input_tokens
         report.output_tokens += completion.output_tokens
         used_in += completion.input_tokens
