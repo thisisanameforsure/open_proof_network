@@ -91,6 +91,26 @@ with its single home:
   would restore GitHub as the enforcer and is the better home when a second identity exists. The
   job's own <code>GITHUB_TOKEN</code> cannot stand in, since what it merges starts no
   workflow.</li>
+  <li><strong>Drafter's model key</strong> (<code>OPN_MODEL_API_KEY</code>): the model provider's
+    API key, an Actions secret on the <em>network</em> repository and nowhere else, read by the one
+    drafting step of <code>gloss-draft.yml</code> through <code>opn_gate.config</code> (F20-T10, F20-Q7;
+    added 2026-10-05). The workflow is dispatch-only, holds <code>contents: read</code>, checks the
+    graph out read-only and runs no Lean. F12's model commands read the same name from the founder's
+    <code>.env</code>, a separate copy with its own home. It reaches no repository, record or service; it
+    can spend the provider account's money, so the account carries a spend limit, which is the ceiling a
+    leak costs. Without it the workflow dry-runs, keeps its report and fails naming the missing key;
+    losing it costs drafts until it is replaced.</li>
+  <li><strong>Drafter token</strong> (<code>OPN_DRAFTER_TOKEN</code>): the write token of the drafter
+    identity (<code>opn-drafter</code>, F20-Q6), an ordinary D-19 contributor token issued by the service,
+    an Actions secret on the <em>network</em> repository, read by that same step and sent only in the
+    <code>Authorization</code> header of <code>POST /glosses</code> (added 2026-10-05). It is not scoped to
+    glosses: its holder can do whatever a contributor token can, under the drafter's name and within the
+    per-identity limits. What only it can do is file drafts, which the service writes with no author and
+    the drafter's block, and which the gate accepts only from the service (<code>drafter-not-service</code>).
+    Losing it costs drafts until a new token is issued (the identity's recovery code, D-19 v3.29);
+    leaking it lets its holder open pull requests as the drafter, including words labelled
+    machine-drafted, which assert nothing (D-3), merge only through the gate and stay withdrawable;
+    rotate it to stop that. It lapses only after long disuse (D-19 v3.29).</li>
   <li><strong>GitHub App private key and client secret</strong> (the App also serves as the OAuth
     app for GitHub-proof identities, F05) and the <strong>api token-signing secret</strong>: AWS
     Systems Manager Parameter Store (SecureString), read by the api function at startup.</li>
@@ -100,8 +120,8 @@ with its single home:
     founder's machine only — never in GitHub, never in any deployed environment.</li>
 </ol>
 Three doors, then: the local <code>.env</code>, Parameter Store, and Actions secrets for the two
-signing keys, the graph's deploy key, the site dispatch token and the merge token, each read only by the job named
-above. Code reads every secret through the one config module named in conventions §1; no
+signing keys, the graph's deploy key, the site dispatch token, the merge token and the drafter's two
+(on the network repository), each read only by the job named above. Code reads every secret through the one config module named in conventions §1; no
 other module touches the environment. Secrets never appear in client bundles, logs, git history,
 generated site pages, or attestations. The authoritative gate's build step is secretless by
 construction (D-4 step 3): the job that runs it is granted no secret and no write permission; only

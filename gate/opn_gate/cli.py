@@ -34,6 +34,7 @@ from opn_gate import (
     config,
     curator,
     defs,
+    draft_run,
     exhibits,
     explainers,
     fidelity,
@@ -45,6 +46,8 @@ from opn_gate import (
     models,
     modes,
     objectstore,
+    outline,
+    outline_graph,
     paths,
     pipeline,
     postmerge,
@@ -181,6 +184,23 @@ def build_parser() -> argparse.ArgumentParser:  # noqa: PLR0915 — one statemen
     fpr.add_argument("--commit", default="HEAD", help="the graph commit to measure (default HEAD)")
     fpr.add_argument("--target", required=True)
     _add_sandbox_args(fpr)
+
+    otl = sub.add_parser(
+        "outline",
+        help="extract the outline of every merged proof artifact that has none (F19-R5, R6), "
+        "in the sandbox",
+    )
+    otl.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    otl.add_argument("--commit", default="HEAD", help="the graph commit to read (default HEAD)")
+    which = otl.add_mutually_exclusive_group(required=True)
+    which.add_argument("--target", help="outline this target's artifacts")
+    which.add_argument("--all", action="store_true", help="outline every target's artifacts")
+    otl.add_argument(
+        "--dest",
+        type=Path,
+        help="where targets/<id>/outlines/ are written (default: the graph checkout itself)",
+    )
+    _add_sandbox_args(otl)
 
     gate = sub.add_parser("gate", help="the authoritative run on a pull request (gate.yml)")
     gate.add_argument("--graph", required=True, type=Path, help="checkout at the PR merge commit")
@@ -556,6 +576,31 @@ def _add_gloss_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser])
         "coverage", help="every Lean file and proof artifact, with its words or why none (R20)"
     )
     gcov.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    gdraft = gl_acts.add_parser(
+        "draft",
+        help="draft glosses and explainers for what coverage finds uncovered, check each as the "
+        "gate would, and post it to the service as the drafter (F20-R15 to R18, T10)",
+    )
+    gdraft.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
+    gdraft.add_argument("--target", help="draft only this target's subjects")
+    gdraft.add_argument(
+        "--subjects",
+        default="new",
+        help="new (files and proofs with no chain at all, default), uncovered (everything "
+        "coverage calls uncovered), or a file listing graph paths, one per line",
+    )
+    gdraft.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="list what would be drafted and why; call no model and post nothing",
+    )
+    gdraft.add_argument("--submit-url", help="the service's origin; POST /glosses is under it")
+    gdraft.add_argument(
+        "--report",
+        type=Path,
+        default=Path("gloss-draft-report.json"),
+        help="where the run report is written, after planning and after every subject",
+    )
 
 
 def _add_steward_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -759,6 +804,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "pregate": run_pregate,
         "reproduce": run_reproduce,
         "footprints": run_footprints,
+        "outline": run_outline,
         "gate": run_gate,
         "classify": run_classify,
         "exhibits": run_exhibits,
@@ -1130,6 +1176,56 @@ def run_footprints(args: argparse.Namespace, settings: config.Settings) -> int:
     }
     sys.stdout.write(json.dumps(summary, ensure_ascii=False) + "\n")
     return EXIT_FAIL if failed else EXIT_PASS
+
+
+def run_outline(args: argparse.Namespace, settings: config.Settings) -> int:
+    """F19-T4, T5: outline every merged proof artifact of ``--target`` (or ``--all``) at
+    ``--commit`` that has no ``targets/<id>/outlines/<hash>.json`` in that tree or under
+    ``--dest`` (default: the checkout itself), building and extracting each in the step-3
+    sandbox (R6). One JSON report on stdout names every artifact written, already present, or
+    failed with its reason (R5); a failure writes nothing for that artifact and stops no other.
+    Exit 1 when the report names a failure, 0 otherwise. The image is resolved only for a target
+    with something to extract."""
+    graph, commit = _checkout_and_commit(args.graph, args.commit)
+    running = running_network_commit().commit
+    if running is None:
+        msg = "the running gate is not a git checkout, so no outline could name its gate commit"
+        raise CliError(msg)
+    out_dir = _out_dir(args.out, "opn-outline-")
+    tree = export_tree(graph, commit, out_dir / "tree")
+    if args.target is not None:
+        if not layout.gate_spec_path(tree, args.target).is_file():
+            msg = f"target {args.target!r} has no gate-spec.json at {commit[:12]}"
+            raise CliError(msg)
+        targets = [args.target]
+    else:
+        targets = outline_graph.target_ids(tree)
+    dest = (args.dest or graph).resolve()
+    images: dict[str, str] = {}
+
+    def toolchain_for(spec: Any, workdir: Path) -> toolchain.Toolchain:
+        key = json.dumps(
+            [spec.get("devcontainer_ref"), spec["lean_toolchain"], spec.get("mathlib_sha")]
+        )
+        if key not in images:
+            images[key] = args.image or ensure_image(dict(spec), build=not args.no_build)
+        workdir.mkdir(parents=True, exist_ok=True)
+        return sandbox.SandboxToolchain(
+            images[key], sandbox.Caps.from_spec(dict(spec)), read_write=[workdir]
+        )
+
+    report = outline_graph.run(
+        tree,
+        targets,
+        dest=dest,
+        work=out_dir / "work",
+        toolchain_for=toolchain_for,
+        gate=running,
+        caps=outline.Caps.from_settings(settings),
+    )
+    doc = {"commit": commit, "gate": running, "dest": str(dest), **report.as_dict()}
+    sys.stdout.write(json.dumps(doc, ensure_ascii=False) + "\n")
+    return EXIT_FAIL if report.failed else EXIT_PASS
 
 
 def run_gate(args: argparse.Namespace, settings: config.Settings) -> int:
@@ -2459,7 +2555,41 @@ def run_gloss(args: argparse.Namespace, settings: config.Settings) -> int:
         return _gloss_file(args, graph, settings)
     if args.action == "coverage":
         return _gloss_coverage(graph)
+    if args.action == "draft":
+        return _gloss_draft(args, graph, settings)
     return _gloss_sign(args, graph)
+
+
+def _gloss_draft(args: argparse.Namespace, graph: Path, settings: config.Settings) -> int:
+    """F20-T10: the drafter's run (``opn_gate.draft_run``). The report is written as the run goes
+    and printed at its end; exit 1 when the model provider or the service cut it short or a
+    draft was refused by the service, 0 otherwise (a capped run is a batch), 2 for a usage error
+    such as a missing credential."""
+    mode = args.subjects
+    keys: list[str] | None = None
+    if mode not in draft_run.SUBJECT_MODES:
+        keys = draft_run.read_keys(Path(mode))
+    top = _git(graph, "rev-parse", "--show-toplevel")
+    head = _git(graph, "rev-parse", "--verify", "HEAD")
+    own = top.returncode == 0 and Path(top.stdout.strip()).resolve() == graph.resolve()
+    sha = head.stdout.strip() if own and head.returncode == 0 else ""
+    commit = sha if re.fullmatch(r"[0-9a-f]{40}", sha) else None
+    try:
+        report = draft_run.run(
+            graph,
+            settings,
+            commit=commit,
+            target=args.target,
+            mode=mode,
+            keys=keys,
+            report_path=args.report,
+            dry_run=args.dry_run,
+            submit_url=args.submit_url,
+        )
+    except draft_run.DraftRunError as exc:
+        raise CliError(str(exc)) from exc
+    sys.stdout.write(json.dumps(report.as_dict(), indent=2, ensure_ascii=False) + "\n")
+    return EXIT_FAIL if report.cut_short or report.post_failed else EXIT_PASS
 
 
 def _gloss_coverage(graph: Path) -> int:

@@ -1,0 +1,112 @@
+F19-T4 — `opn-gate outline` and the graph's `outline` job (R5, R6; Q2, Q9)
+
+Network: gate/opn_gate/outline_graph.py (new), gate/opn_gate/cli.py (the `outline` command),
+gate/tests/test_outline_cli.py (fast, and ::test_outline_cli_real in the lean tier),
+gate/tests/test_finding_outline_job.py (the graph job, read from the graph's refs).
+Graph: branch f19-t4-outline-job (worktree ../opn-graph-f19), one commit `F19-T4: ...`;
+.github/workflows/gate.yml gains the `outline` job. Nothing pushed.
+
+== Red: test_outline_cli.py against the seam at today's behaviour ==
+(`opn-gate outline` parses its flags and outlines nothing, applied in memory by a pytest plugin,
+so no file was touched.) Every failure is an assertion, none a missing name.
+Command: PYTHONPATH=<plugin dir>:gate uv run --frozen pytest gate/tests/test_outline_cli.py \
+  -m "not lean and not docker" -p stub_outline -rfE --tb=line -q
+
+E   AssertionError: assert [] == [('and-reasso...145b4f4222d')]
+E   AssertionError: assert [] == [('and-reasso...145b4f4222d')]
+E   assert 0 == 1
+E   assert 0 == 1
+E   AssertionError: assert [] == ['propositional']
+E   assert 0 == 1
+E   assert 0 == 2
+FAILED gate/tests/test_outline_cli.py::test_every_merged_artifact_is_outlined_once
+FAILED gate/tests/test_outline_cli.py::test_an_outline_already_there_is_not_extracted_again
+FAILED gate/tests/test_outline_cli.py::test_one_failure_writes_nothing_and_stops_nothing
+FAILED gate/tests/test_outline_cli.py::test_a_build_failure_names_every_artifact_that_imports_it
+FAILED gate/tests/test_outline_cli.py::test_all_targets_and_a_separate_destination
+FAILED gate/tests/test_outline_cli.py::test_a_target_that_cannot_be_read_is_named_and_the_rest_are_outlined
+FAILED gate/tests/test_outline_cli.py::test_usage_errors_are_exit_two_before_any_work
+7 failed, 1 deselected in 7.37s
+
+Two things the first green attempts found, both in the tests: the fixture's hole children had
+empty attempts/ and annex/ directories, which git does not store, so the exported tree failed
+layout (the helper now keeps a .gitkeep, as the graph does); and a build failure in and-reassoc's
+Context correctly fails every root artifact that rests on it, so that case became its own test.
+
+== Green: fast tier ==
+Command: OPN_GRAPH_CHECKOUT=<graph checkout> uv run --frozen pytest gate/tests/test_outline_cli.py \
+  gate/tests/test_finding_outline_job.py gate/tests/test_outline_backfill_workflow.py \
+  gate/tests/test_finding_workflow_action_pins.py -m "not lean and not docker" -q
+30 passed, 1 deselected in 16.29s
+
+== Green: lean tier (the real opn-outline over a Lean-core graph: a proof, an alternate, a two-hole partial) ==
+Command: uv run --frozen pytest gate/tests/test_outline_cli.py -m lean -q
+1 passed, 7 deselected in 29.40s
+The first run was red on the test's own last assertion: it expected the closing `exact`'s use of
+and_swap to sit in a step, and the extractor gives a use outside every step to no step (F19-Q11
+(7)); restated to the `have h2` step's use of and-reassoc. Every other assertion held on that
+first run: five outlines written, the partial's hden and hrem mapped to and-swap-reassoc--h1 and
+--h2 by F18's decompositions.
+
+== The job's push helper: mutants, applied in memory, each turns a test red ==
+== no-catch-up (a refused push gives up at once)
+4 failed, 9 passed
+FAILED test_a_re_pin_since_extraction_pushes_nothing
+FAILED test_an_artifact_whose_bytes_changed_loses_its_outline
+FAILED test_an_outline_another_run_pushed_first_is_left_to_theirs
+FAILED test_main_moved_by_another_commit_is_caught_up_on
+== no-pin-check (a re-pin is not checked)
+1 failed, 12 passed
+FAILED test_a_re_pin_since_extraction_pushes_nothing
+== keep-all (every outline is laid again whatever main holds)
+2 failed, 11 passed
+FAILED test_an_artifact_whose_bytes_changed_loses_its_outline
+FAILED test_an_outline_another_run_pushed_first_is_left_to_theirs
+== collect-anything (any untracked file is committed)
+1 failed, 12 passed
+FAILED test_the_extraction_may_add_outlines_and_nothing_else
+
+== What the graph's `outline` job does, step by step ==
+needs: postmerge; if: needs.postmerge.outputs.cache == 'true' (a merge that built and passed — a
+proof, an alternate or a partial: the cache job's own condition); permissions: contents: read.
+
+1. Check out the graph at `main` as it is when the job starts (fetch-depth 0, no persisted
+   credential). Not the commit the post-merge job pushed: an artifact is outlined only once its
+   attestation is on main (graph.proofs_of / partials_of), which holds of main after that push and
+   of anything newer, and the command extracts every artifact of the target with no outline, so a
+   newer main is a superset and also catches up an outline a lost run left behind. It needs no
+   new post-merge output.
+2. `pin`: for each target the post-merge job names (id validated, gate-spec.json present on this
+   main) read network_commit; a target pinning another gate than the first is left to its next
+   merge. Outputs base, pin, targets; run=false if there are none.
+3. Check out the network at that pin into network-render (no persisted credential); setup-uv.
+4. Extract (no secret in the step's environment): `uv sync`, then the pinned gate's own
+   `opn_gate.cli --help`. If its command list has no `outline` ([{,]outline[,}]) the step prints a
+   ::notice:: and sets run=false: inert on a pin that predates the command. If the gate does not
+   start, a ::warning:: and run=false. Otherwise, per target,
+   `opn_gate.cli outline --graph . --commit HEAD --target T --no-build --out $RUNNER_TEMP/...`:
+   the pinned image (devcontainer_ref) is pulled, never built, and every build and extraction runs
+   in the step-3 sandbox mounting one work directory under $RUNNER_TEMP. Exit 1 (a named failure)
+   is a ::warning::, never a red run (R5).
+5. Commit and push — the only step given OPN_GRAPH_DEPLOY_KEY, the key file removed by a trap on
+   every path out. `collect` takes only untracked targets/<T>/outlines/<sha256>.json for the
+   outlined targets and refuses (exit 1, nothing pushed) if the extraction changed a tracked file
+   or wrote anything else. Nothing new: exit 0 before the key is written. Otherwise one commit
+   `outline: N for <targets>` as opn-gate, and `publish`: push to main; on a refusal fetch main;
+   stop with `pin-moved` if any target's network_commit changed (the outlines name a gate main no
+   longer pins; the next run extracts with the new one); keep each outline that still describes
+   main — not already there (another run's stands), naming its own target and hash, and the
+   artifact it names present at that path with exactly the bytes it outlines; stop with
+   `nothing-left` if none remain; else commit them again on main as it is and push. Six attempts,
+   then a ::warning:: (`gave-up`), never red: the next run extracts what is still missing.
+
+Why it is safe against the post-merge races (F07-T29, T55): the outline commit touches only
+targets/*/outlines/, which no post-merge render, ledger line or record writes, so neither side's
+catch-up ever conflicts with the other; its subject starts `outline:`, never `gate:`, and it is no
+merge, so it credits nothing and the batch planner walks past it. It is authored as opn-gate, so
+the push run's postmerge finds no pull request (run=false) and that run's site-deploy dispatch is
+skipped; and the outline job runs only after a postmerge whose `cache` output is true, so its own
+push never starts another outline job.
+
+Not run here: the docker tier (no container run of `opn-gate outline` against a real step-3
+image), and no live run of the graph job, which waits for the push and the re-pin.

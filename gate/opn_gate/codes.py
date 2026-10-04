@@ -727,6 +727,30 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Write the record with `opn-gate curator status <node> disputed --cause <why> --reference "
         "defects/<file>`, naming a claim on that node that is on main and not withdrawn.",
     ),
+    "drafter-invalid": (
+        "api",
+        None,
+        "A request from the network's drafter has no valid drafter block: a draft must say the "
+        "model and version that wrote it and the 40-character graph commit its input was read "
+        "at, and may name only the drafter itself (F20-T10, R18).",
+        "Send drafter: {model, model_version, input_commit}; `opn-gate gloss draft` does.",
+    ),
+    "drafter-not-service": (
+        "gate",
+        None,
+        "A gloss or explainer with a drafter block and no author was opened by hand. A draft is "
+        "the network's drafter's, filed through the service, so that no one else can label words "
+        "as machine-drafted (F20-T10, Q6).",
+        "File your own version with yourself as author (drafter: null), by hand or through "
+        "POST /glosses.",
+    ),
+    "drafter-unauthorized": (
+        "api",
+        None,
+        "The request carries a drafter block, and your identity is not the network's drafter: "
+        "only that identity files drafts (F20-Q6, T10).",
+        "Leave out drafter; your version is filed with you as its author.",
+    ),
     "duplicate-submission": (
         "api",
         None,

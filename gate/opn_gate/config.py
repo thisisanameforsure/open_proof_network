@@ -85,6 +85,12 @@ Variables (prefix ``OPN_``):
     **Secret.** The model provider's API key (F12 §7; C8: the curator's ``.env``, never in
     the graph, a log or a record). Default ``None`` — meaning "no model: the brief and
     back-translation refuse before they start".
+``OPN_DRAFTER_TOKEN``
+    **Secret.** The drafter identity's service write token (F20-Q6, Q7, T10; C8): what
+    ``opn-gate gloss draft`` posts each draft to ``POST /glosses`` with. An Actions secret on the
+    network repository, read by the one step of ``gloss-draft.yml`` that drafts. Default
+    ``None`` — meaning "no token: a live run refuses before it starts; ``--dry-run`` posts
+    nothing and needs none".
 ``OPN_GATE_SIGNING_KEY``
     **Secret.** The gate's ed25519 private key (C8 item 1), present only in the post-merge job's
     environment. Default ``None`` — meaning "no key: emit an unsigned attestation".
@@ -140,7 +146,12 @@ DEFAULT_DRAFTER_LICENCE = "CC-BY-4.0"  # the licence the graph's prose records c
 #: F20-T6: the login the service's GitHub App opens pull requests as (``<app-slug>[bot]``).
 DEFAULT_SERVICE_LOGIN = "open-proof-network[bot]"
 
-SECRET_NAMES: tuple[str, ...] = ("gate_signing_key", "precheck_signing_key", "model_api_key")
+SECRET_NAMES: tuple[str, ...] = (
+    "gate_signing_key",
+    "precheck_signing_key",
+    "model_api_key",
+    "drafter_token",
+)
 
 
 class ConfigError(ValueError):
@@ -177,6 +188,7 @@ class Settings:
     #: when the job says.
     network_commit: str | None = None
     model_api_key: str | None = field(default=None, repr=False)
+    drafter_token: str | None = field(default=None, repr=False)
     gate_signing_key: str | None = field(default=None, repr=False)
     precheck_signing_key: str | None = field(default=None, repr=False)
 
@@ -193,6 +205,7 @@ class Settings:
             f"outline_doc_cap={self.outline_doc_cap}, "
             f"outline_automation={self.outline_automation!r}, "
             f"model_api_key={'<set>' if self.model_api_key else None}, "
+            f"drafter_token={'<set>' if self.drafter_token else None}, "
             f"drafter_max_subjects={self.drafter_max_subjects}, "
             f"drafter_token_budget={self.drafter_token_budget}, "
             f"drafter_name={self.drafter_name!r}, drafter_licence={self.drafter_licence!r}, "
@@ -337,6 +350,7 @@ def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0912, P
         drafter_name=env.get("OPN_DRAFTER_NAME", "").strip() or DEFAULT_DRAFTER_NAME,
         drafter_licence=env.get("OPN_DRAFTER_LICENCE", "").strip() or DEFAULT_DRAFTER_LICENCE,
         model_api_key=env.get("OPN_MODEL_API_KEY") or None,
+        drafter_token=env.get("OPN_DRAFTER_TOKEN") or None,
         lean_pkg_bin=Path(env.get("OPN_LEAN_PKG_BIN", str(DEFAULT_LEAN_PKG_BIN))).expanduser(),
         mathlib_home=Path(env.get("OPN_MATHLIB_HOME", str(DEFAULT_MATHLIB_HOME))).expanduser(),
         pr_author=env.get("OPN_PR_AUTHOR") or None,

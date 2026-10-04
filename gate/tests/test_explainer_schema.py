@@ -22,7 +22,7 @@ import pytest
 import yaml
 from harness import copy_graph, take_in
 
-from opn_gate import modes, schemas
+from opn_gate import config, modes, schemas
 from opn_gate.paths import Change
 
 TARGET = "euclid-primes"
@@ -242,7 +242,9 @@ def test_front_matter_is_held_to_the_schema(graph: tuple[Path, dict[str, str]]) 
     assert check(root, wrong_schema) == ["explainer-invalid"]
     drafter = {"name": "opn-drafter", "model": "m", "model_version": "1", "input_commit": "a" * 40}
     draft = file_explainer(root, explainer_text(h["proof"], ANCHORED, author=None, drafter=drafter))
-    assert check(root, draft) == []
+    # A draft is the service's to open (F20-T10, ``test_gloss_draft_provenance``).
+    service = modes.classify([draft], author=config.DEFAULT_SERVICE_LOGIN, graph_root=root)
+    assert [d.code for d in modes.check(root, service)] == []
 
 
 def test_unanchored_name_warns_and_passes(graph: tuple[Path, dict[str, str]]) -> None:

@@ -1,0 +1,41 @@
+F19-T5 — the outline backfill workflow (R7, Q9)
+
+.github/workflows/outline-backfill.yml, tested statically by gate/tests/test_outline_backfill_workflow.py
+and by the network's action-pin scan (gate/tests/test_finding_workflow_action_pins.py).
+
+== Red: the workflow at today's behaviour (dispatch inputs and one job by its name, no steps of substance) ==
+Command: uv run --frozen pytest gate/tests/test_outline_backfill_workflow.py -q
+E       ValueError: not enough values to unpack (expected 1, got 0)   (no pin step)
+E       AssertionError: the pinned gate's own command list is what is asked
+E       assert '[{,]outline[,}]' in 'echo "nothing is extracted yet"'
+E       assert ('--image' in 'echo "nothing is extracted yet"')
+E       AssertionError: written beside the clone, so the artifact holds only new
+E       assert '--dest outlines' in 'echo "nothing is extracted yet"'
+FAILED test_the_outlines_are_extracted_by_the_gate_the_graph_pins
+FAILED test_a_pin_that_predates_the_command_is_refused_by_name
+FAILED test_lean_runs_only_in_a_pulled_image
+FAILED test_nothing_is_pushed_the_outlines_are_an_artifact
+4 failed, 3 passed
+
+== Green ==
+Command: uv run --frozen pytest gate/tests/test_outline_backfill_workflow.py \
+  gate/tests/test_finding_workflow_action_pins.py gate/tests/test_footprint_workflow.py -q
+14 passed
+
+== What it does ==
+workflow_dispatch (graph_sha required, target optional); permissions: contents: read; no secret.
+1. Clone the graph (blob-less) and check out graph_sha (a 7-40 hex sha, refused otherwise).
+2. List the targets (targets/*/gate-spec.json, or the one named) and their network_commit; refuse
+   if they pin more than one commit (name one target), or if the pin is not a sha.
+3. Check out the network at that pin into network-pin (no persisted credential), setup-uv, make
+   room for a Mathlib image.
+4. `uv sync` the pinned network; refuse by name (::error::, exit 1) if its own help has no
+   `outline` command: re-pin first. Per target: pull its devcontainer_ref, run
+   `opn_gate.cli outline --graph graph --commit <sha> --target T --dest outlines --image <ref>
+   --no-build`, write report-T.json, add a row (written / already there / failed) to the step
+   summary, remove the image. Exit 1 at the end if any target named a failure.
+5. Always upload `outlines/` (targets/<T>/outlines/<hash>.json, only what was new) and the reports
+   as the artifact `outlines`, for the curator to read and commit by hand. Nothing is pushed.
+
+Pending (the task's own verification): a dispatched run on the live graph, after the re-pin that
+carries F19-T4, with its run id recorded here. Not done: no workflow is dispatched from this session.
