@@ -94,7 +94,7 @@ def node_page(tmp_path_factory: pytest.TempPathFactory) -> str:
 
 
 def block(page: str, label: str) -> str:
-    m = re.search(rf'<div class="prose-block {label}">.*?</div></div>', page, re.S)
+    m = re.search(rf'<div class="prose-block {label}"[^>]*>.*?</div></div>', page, re.S)
     assert m is not None, label
     return m.group(0)
 

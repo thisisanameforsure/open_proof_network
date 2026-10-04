@@ -125,6 +125,8 @@ class AlternateView:
     path: str
     merge_commit: str | None  # None only when no attestation names the file's hash
     submitter: str | None
+    #: F19-T8: the file's text and hash, for its outline's Lean lines on the reading view.
+    file: LeanFile | None = None
 
 
 @dataclass(frozen=True)
@@ -218,6 +220,8 @@ class TargetView:
     evidence: dict[str, Any] | None = None
     #: F15-R10: the valid write-up records — a paper or a note, with where it lives (R6).
     writeups: tuple[dict[str, Any], ...] = ()
+    #: F19-R1, T7: the target's ``outline/v1`` products, keyed by the artifact hash they outline.
+    outlines: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     @property
     def root(self) -> str:
@@ -399,12 +403,14 @@ def _alternates_for(
             by_hash.setdefault(digest, doc)
     views: list[AlternateView] = []
     for f in files:
-        found = by_hash.get(schemas.content_hash(f.read_bytes()))
+        digest = schemas.content_hash(f.read_bytes())
+        found = by_hash.get(digest)
         views.append(
             AlternateView(
                 path=f.relative_to(root).as_posix(),
                 merge_commit=str(found["merge_commit"]) if found else None,
                 submitter=str(found["submitter"]) if found and found.get("submitter") else None,
+                file=_lean_file(root, f, attested_hash=digest if found else None),
             )
         )
     return tuple(views)
@@ -611,6 +617,47 @@ def _load_evidence(target_dir: Path) -> dict[str, Any] | None:
     return record.doc if record is not None else None
 
 
+#: F19-R1: where a target's outlines live, and the one schema version this generator renders.
+OUTLINES_DIR = "outlines"
+OUTLINE_SCHEMA = "outline/v1"
+
+
+def _load_outlines(target_dir: Path) -> dict[str, dict[str, Any]]:
+    """F19-T7: the target's ``outline/v1`` products, keyed by the artifact hash each outlines.
+
+    An outline is a display aid over a proof the page already shows, so one that does not read —
+    malformed, another version, filed under a name that is not its artifact's hash, or naming
+    another target — is skipped with a warning naming the file, and the page shows the proof as
+    it did before outlines existed (C7; the 2026-09-17 rule that one product's defect does not
+    decide whether the graph has a site). Which bytes an outline may stand beside is the
+    renderer's check: it shows one only over the very artifact it names.
+    """
+    directory = target_dir / OUTLINES_DIR
+    if not directory.is_dir():
+        return {}
+    out: dict[str, dict[str, Any]] = {}
+    for path in sorted(p for p in directory.iterdir() if p.suffix == ".json"):
+        try:
+            doc = schemas.load_json(path)
+        except schemas.SchemaError as exc:
+            log.warning("outline %s skipped: it does not validate: %s", path.name, exc)
+            continue
+        problem = (
+            f"it is {doc.get('schema')}, and this generator renders {OUTLINE_SCHEMA}"
+            if doc.get("schema") != OUTLINE_SCHEMA
+            else "its file name is not its artifact's hash"
+            if doc["artifact"]["hash"] != path.stem
+            else f"it names target {doc['target']}"
+            if doc["target"] != target_dir.name
+            else None
+        )
+        if problem is not None:
+            log.warning("outline %s skipped: %s", path.name, problem)
+            continue
+        out[path.stem] = dict(doc)
+    return out
+
+
 def _with_circular_paths(
     root: Path, target_id: str, graph: dict[str, Any], nodes: dict[str, NodeView]
 ) -> dict[str, NodeView]:
@@ -685,5 +732,6 @@ def load_site(root: Path, commit: str) -> Site:
             drift=_load_drift(target_dir),
             evidence=_load_evidence(target_dir),
             writeups=_writeups_for(target_dir),
+            outlines=_load_outlines(target_dir),
         )
     return site

@@ -1,0 +1,260 @@
+FFFFFFF..FFF                                                             [100%]
+=================================== FAILURES ===================================
+____________ test_the_outline_is_a_tree_of_details_above_the_source ____________
+
+page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+    def test_the_outline_is_a_tree_of_details_above_the_source(page: str) -> None:
+>       outline = element(page, 'class="proof-outline"', "section")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_outline_render.py:74: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+marker = 'class="proof-outline"', tag = 'section'
+
+    def element(page: str, marker: str, tag: str = "li") -> str:
+        """The whole ``<tag …marker…>…</tag>`` element, nested ones included."""
+>       assert marker in page, f"{marker} is not on the page"
+E       AssertionError: class="proof-outline" is not on the page
+E       assert 'class="proof-outline"' in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+site/tests/test_outline_render.py:47: AssertionError
+____________ test_each_step_shows_its_claim_and_the_goal_it_leaves _____________
+
+page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+    def test_each_step_shows_its_claim_and_the_goal_it_leaves(page: str) -> None:
+>       hq = element(page, 'data-step="hq"')
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_outline_render.py:84: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+marker = 'data-step="hq"', tag = 'li'
+
+    def element(page: str, marker: str, tag: str = "li") -> str:
+        """The whole ``<tag …marker…>…</tag>`` element, nested ones included."""
+>       assert marker in page, f"{marker} is not on the page"
+E       AssertionError: data-step="hq" is not on the page
+E       assert 'data-step="hq"' in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+site/tests/test_outline_render.py:47: AssertionError
+_______ test_the_automation_step_is_folded_and_labelled_with_its_tactics _______
+
+page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+    def test_the_automation_step_is_folded_and_labelled_with_its_tactics(page: str) -> None:
+>       hp = element(page, 'data-step="hp"')
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_outline_render.py:91: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+marker = 'data-step="hp"', tag = 'li'
+
+    def element(page: str, marker: str, tag: str = "li") -> str:
+        """The whole ``<tag …marker…>…</tag>`` element, nested ones included."""
+>       assert marker in page, f"{marker} is not on the page"
+E       AssertionError: data-step="hp" is not on the page
+E       assert 'data-step="hp"' in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+site/tests/test_outline_render.py:47: AssertionError
+_ test_a_mathlib_constant_carries_its_docstring_as_a_tooltip_and_its_tag_as_text _
+
+page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+    def test_a_mathlib_constant_carries_its_docstring_as_a_tooltip_and_its_tag_as_text(
+        page: str,
+    ) -> None:
+>       hp = element(page, 'data-step="hp"')
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_outline_render.py:100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+marker = 'data-step="hp"', tag = 'li'
+
+    def element(page: str, marker: str, tag: str = "li") -> str:
+        """The whole ``<tag …marker…>…</tag>`` element, nested ones included."""
+>       assert marker in page, f"{marker} is not on the page"
+E       AssertionError: data-step="hp" is not on the page
+E       assert 'data-step="hp"' in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+site/tests/test_outline_render.py:47: AssertionError
+_________________ test_expanding_a_step_reaches_its_lean_lines _________________
+
+page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+    def test_expanding_a_step_reaches_its_lean_lines(page: str) -> None:
+>       hq = element(page, 'data-step="hq"')
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_outline_render.py:112: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+marker = 'data-step="hq"', tag = 'li'
+
+    def element(page: str, marker: str, tag: str = "li") -> str:
+        """The whole ``<tag …marker…>…</tag>`` element, nested ones included."""
+>       assert marker in page, f"{marker} is not on the page"
+E       AssertionError: data-step="hq" is not on the page
+E       assert 'data-step="hq"' in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+site/tests/test_outline_render.py:47: AssertionError
+_____________________ test_unreliable_step_shows_lean_only _____________________
+
+page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+    def test_unreliable_step_shows_lean_only(page: str) -> None:
+        """AC3's page half (F19-R3): a step whose printed claim did not read back is its lines."""
+>       s3 = element(page, 'data-step="s3"')
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_outline_render.py:120: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+marker = 'data-step="s3"', tag = 'li'
+
+    def element(page: str, marker: str, tag: str = "li") -> str:
+        """The whole ``<tag …marker…>…</tag>`` element, nested ones included."""
+>       assert marker in page, f"{marker} is not on the page"
+E       AssertionError: data-step="s3" is not on the page
+E       assert 'data-step="s3"' in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+site/tests/test_outline_render.py:47: AssertionError
+____________________ test_the_outline_says_what_checked_it _____________________
+
+page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+    def test_the_outline_says_what_checked_it(page: str) -> None:
+>       outline = element(page, 'class="proof-outline"', "section")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_outline_render.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+marker = 'class="proof-outline"', tag = 'section'
+
+    def element(page: str, marker: str, tag: str = "li") -> str:
+        """The whole ``<tag …marker…>…</tag>`` element, nested ones included."""
+>       assert marker in page, f"{marker} is not on the page"
+E       AssertionError: class="proof-outline" is not on the page
+E       assert 'class="proof-outline"' in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+site/tests/test_outline_render.py:47: AssertionError
+_________ test_an_outline_that_does_not_validate_is_skipped_and_named __________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-64/test_an_outline_that_does_not_0')
+caplog = <_pytest.logging.LogCaptureFixture object at 0x107244ec0>
+
+    def test_an_outline_that_does_not_validate_is_skipped_and_named(
+        tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """C7, the 2026-09-17 rule: one bad product does not take the site down."""
+        root, digest = tutorial_tree(tmp_path)
+        path = so.write(root, so.document(TUTORIAL, "Proof.lean", digest, so.tutorial_steps()))
+        path.write_text('{"schema": "outline/v1"}\n', encoding="utf-8")
+        with caplog.at_level(logging.WARNING):
+            page = render_pages(root)[PAGE]
+        assert "proof-outline" not in page
+>       assert path.name in caplog.text
+E       AssertionError: assert '383eefa75bb36b0d5e1239040c19b44bb7023a77e784130a964905dc4090d9b5.json' in ''
+E        +  where '383eefa75bb36b0d5e1239040c19b44bb7023a77e784130a964905dc4090d9b5.json' = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-64/test_an_outline_that_does_not_0/graph/targets/propositional/outlines/383eefa75bb36b0d5e1239040c19b44bb7023a77e784130a964905dc4090d9b5.json').name
+E        +  and   '' = <_pytest.logging.LogCaptureFixture object at 0x107244ec0>.text
+
+site/tests/test_outline_render.py:159: AssertionError
+__________________ test_a_term_proof_says_it_is_a_single_term __________________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-64/test_a_term_proof_says_it_is_a0')
+
+    def test_a_term_proof_says_it_is_a_single_term(tmp_path: Path) -> None:
+        root, digest = tutorial_tree(tmp_path)
+        term = so.step(
+            "s1", "term", (3, 10), claim=so.text("∀ p q : Prop, p ∧ q → q ∧ p"), closed_by=("term", [])
+        )
+        so.write(root, so.document(TUTORIAL, "Proof.lean", digest, [term]))
+>       assert "The proof is a single term" in render_pages(root)[PAGE]
+E       assert 'The proof is a single term' in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+site/tests/test_outline_render.py:168: AssertionError
+______________ test_a_hole_step_of_a_partial_links_its_child_node ______________
+
+tmp_path = PosixPath('/private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-64/test_a_hole_step_of_a_partial_0')
+
+    def test_a_hole_step_of_a_partial_links_its_child_node(tmp_path: Path) -> None:
+        """AC13's page half: a partial assembly's sorry step names the node it became."""
+        root = fixture.curated(tmp_path)
+        partial = fixture.nodes_dir(root) / "and-swap-reassoc" / "attempts" / "2026-09-01-a-partial.lean"
+        hole = so.step(
+            "s1",
+            "hole",
+            (3, 3),
+            claim=so.text("q ∧ p"),
+            closed_by=("hole", []),
+            child_node="and-reassoc",
+        )
+        so.write(
+            root,
+            so.document(
+                "and-swap-reassoc",
+                "attempts/2026-09-01-a-partial.lean",
+                schemas.content_hash(partial.read_bytes()),
+                [hole],
+                kind="partial",
+            ),
+        )
+        page = render_pages(root)[f"nodes/{TARGET}/and-swap-reassoc/index.html"]
+>       step = element(page, 'data-step="s1"')
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+site/tests/test_outline_render.py:194: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+marker = 'data-step="s1"', tag = 'li'
+
+    def element(page: str, marker: str, tag: str = "li") -> str:
+        """The whole ``<tag …marker…>…</tag>`` element, nested ones included."""
+>       assert marker in page, f"{marker} is not on the page"
+E       AssertionError: data-step="s1" is not on the page
+E       assert 'data-step="s1"' in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+site/tests/test_outline_render.py:47: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-64/test_a_hole_step_of_a_partial_0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-64/test_a_hole_step_of_a_partial_0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:719 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-64/test_a_hole_step_of_a_partial_0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-64/test_a_hole_step_of_a_partial_0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+=========================== short test summary info ============================
+FAILED site/tests/test_outline_render.py::test_the_outline_is_a_tree_of_details_above_the_source
+FAILED site/tests/test_outline_render.py::test_each_step_shows_its_claim_and_the_goal_it_leaves
+FAILED site/tests/test_outline_render.py::test_the_automation_step_is_folded_and_labelled_with_its_tactics
+FAILED site/tests/test_outline_render.py::test_a_mathlib_constant_carries_its_docstring_as_a_tooltip_and_its_tag_as_text
+FAILED site/tests/test_outline_render.py::test_expanding_a_step_reaches_its_lean_lines
+FAILED site/tests/test_outline_render.py::test_unreliable_step_shows_lean_only
+FAILED site/tests/test_outline_render.py::test_the_outline_says_what_checked_it
+FAILED site/tests/test_outline_render.py::test_an_outline_that_does_not_validate_is_skipped_and_named
+FAILED site/tests/test_outline_render.py::test_a_term_proof_says_it_is_a_single_term
+FAILED site/tests/test_outline_render.py::test_a_hole_step_of_a_partial_links_its_child_node
+10 failed, 2 passed in 1.16s

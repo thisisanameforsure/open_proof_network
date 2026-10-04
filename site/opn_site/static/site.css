@@ -358,6 +358,38 @@ button { font: inherit; padding: var(--s2) var(--s4); border: 1px solid var(--n7
 .prose-block.untrusted { border-left-color: var(--warn); }
 .prose-block .label { color: var(--n500); font-size: 13px; margin: var(--s1) 0 var(--s3); }
 pre.prose { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--sans); font-size: 14px; margin: 0 0 var(--s3); }
+
+/* F19-R11: every block says in words what it is; the bold phrase is the label, never a colour. */
+.block-label { font-size: 13px; color: var(--n400); margin: var(--s2) 0; overflow-wrap: anywhere; }
+.block-label strong { color: var(--n100); font-weight: 600; }
+.statement-block, .attestation-block { margin: var(--s4) 0; }
+
+/* F19-R9: a proof's outline, a tree of native <details> (keyboard and screen reader for free). */
+.proof-outline { margin: var(--s4) 0 var(--s6); padding: var(--s3) var(--s6); border: 1px solid var(--divider); border-left: 3px solid var(--proved); border-radius: var(--radius-sm); }
+.prose-block .proof-outline { border-left-color: var(--warn); padding: var(--s2) var(--s4); }
+.proof-outline > .cue { font-size: 13px; }
+.po-steps { list-style: none; margin: var(--s2) 0; padding: 0; }
+.po-steps .po-steps { margin-left: var(--s2); padding-left: var(--s4); border-left: 1px solid var(--divider); }
+.po-step { margin: var(--s1) 0; min-width: 0; }
+.po-step > details > summary { cursor: pointer; padding: var(--s1) 0; line-height: 1.7; overflow-wrap: anywhere; }
+.po-step > details > summary:focus-visible, .po-lean > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.po-id { color: var(--n500); font-size: 12.5px; }
+.po-kind { font-size: 12px; color: var(--n500); }
+.po-claim { color: var(--n100); white-space: pre-wrap; overflow-wrap: anywhere; }
+.po-routine, .po-note, .po-tag { display: inline-block; font-size: 12px; line-height: 1.5; padding: 0 var(--s2); border: 1px solid var(--divider); border-radius: var(--radius-sm); color: var(--n400); }
+.po-note { border-color: var(--warn); }
+.po-body { padding: 0 0 var(--s2) var(--s5); font-size: 14px; }
+.po-body p { margin: var(--s1) 0; }
+.po-goal, .po-uses, .po-hole { color: var(--n300); overflow-wrap: anywhere; }
+.po-lean > summary { cursor: pointer; font-size: 13px; color: var(--accent-300); padding: var(--s1) 0; }
+.po-body pre.lean { margin: var(--s2) 0; padding: var(--s3) var(--s4); font-size: 12.5px; }
+.po-at { font-size: 12.5px; overflow-wrap: anywhere; }
+.po-cut { color: var(--warn); font-family: var(--sans); font-size: 12px; }
+/* The docstring card hangs from the "Uses" line, not the word, so on a phone it stays inside the
+   viewport (measured: anchored to the word it ran 14px past 390px). */
+.po-uses { position: relative; }
+.term.const { position: static; border-bottom-color: var(--n600); }
+.term.const .term-card { width: min(300px, 100%); }
 .prose p { overflow-wrap: anywhere; }
 .prose pre { background: var(--bg); padding: var(--s3) var(--s4); overflow-x: auto; border-radius: var(--radius-sm); }
 .prose .fence-label { color: var(--n500); font-size: 12.5px; margin: -0.4rem 0 0.1rem; }
