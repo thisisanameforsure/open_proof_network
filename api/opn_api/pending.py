@@ -460,15 +460,23 @@ QUEUE_BASE = "main"
 #: How the position is to be read, said in the answer because the position alone overstates it.
 QUEUE_ORDER = (
     "pull-request number, oldest first, over the open pull requests the merge actor takes "
-    "(non-draft, on a branch the service opened, against main). The actor merges the first one "
-    "whose gate is green and passes over a red, conflicting or behind-and-still-running one, so "
-    "a position is an upper bound on the merges ahead, not a count of them; consecutive green "
-    "appends may merge as one batch"
+    "(non-draft, on a branch the service opened, against main), counted in the pull request's "
+    "own lane: the merge actor runs one lane per target in parallel (F07-T56), so only the "
+    "pull requests on the same target, and any whose target the service does not know (the "
+    "actor holds every lane for one it cannot place), are ahead of it. Within a lane the actor "
+    "merges the first one whose gate is green and passes over a red, conflicting or "
+    "behind-and-still-running one, so a position is an upper bound on the merges ahead, not a "
+    "count of them; consecutive green appends may merge as one batch"
 )
 QUEUE_NOTE = (
     "each entry's queue.waiting_on is what the service last read for that pull request, with "
-    "when; null means not read (GET /submissions/<id> reads it), never that it waits on nothing"
+    "when; null means not read (GET /submissions/<id> reads it), never that it waits on nothing. "
+    "queue.order is the actor's order across every lane; each entry's position counts its own "
+    "lane: its target's (the record's target_id), or every lane for one the service cannot place"
 )
+#: The lane of a pull request the service cannot place in one target: every lane, as the merge
+#: actor's ``EVERY_LANE`` (the graph's ``merge.yml``, F07-T56).
+EVERY_LANE = "*"
 #: The most pull requests an answer names as ahead; ``position`` says how many there are.
 MAX_AHEAD = 50
 
@@ -497,15 +505,30 @@ def last_read(ctx: Context, number: int) -> tuple[str | None, str | None]:
     return cached.state.waiting_on, cached.read_at
 
 
-def entry_queue(ctx: Context, number: int, order: list[int] | None) -> dict[str, Any]:
-    """One open submission's place: ``position`` from 1, ``of`` how many are queued, and what it
-    was last read to be waiting on. ``position`` is null for a pull request the actor does not
-    take, and both are null when the host has never been listed."""
+def lane_queue(order: list[int], lanes: dict[int, str], number: int) -> list[int]:
+    """F07-T69: the part of the actor's ``order`` that shares ``number``'s lane —
+    the pull requests on its target and every one the service cannot place, which the actor
+    lets hold every lane. A pull request that cannot itself be placed waits for the whole
+    queue, as the actor's does (``merge.yml``: "waits until it is first")."""
+    lane = lanes.get(number, EVERY_LANE)
+    if lane == EVERY_LANE:
+        return list(order)
+    return [n for n in order if lanes.get(n, EVERY_LANE) in (lane, EVERY_LANE)]
+
+
+def entry_queue(
+    ctx: Context, number: int, order: list[int] | None, lanes: dict[int, str]
+) -> dict[str, Any]:
+    """One open submission's place: ``position`` from 1 in its own lane, ``of`` how many share
+    that lane (F07-T69), and what it was last read to be waiting on.
+    ``position`` is null for a pull request the actor does not take, and both are null when the
+    host has never been listed."""
     waiting, read_at = last_read(ctx, number)
-    position = order.index(number) + 1 if order is not None and number in order else None
+    queued = lane_queue(order or [], lanes, number)
+    position = queued.index(number) + 1 if order is not None and number in queued else None
     return {
         "position": position,
-        "of": len(order) if order is not None else None,
+        "of": len(queued) if order is not None else None,
         "waiting_on": waiting,
         "waiting_on_read_at": read_at,
     }
@@ -531,11 +554,13 @@ def queue_block(
             "read_at": None,
             "stale": True,
         }
-    order = queue_order(listed)
+    records = {s.pr_number: s for s in ctx.store.list_open_submissions()}
+    lanes = {n: s.target_id for n, s in records.items()}
     number = found.pr_number
+    lanes[number] = found.target_id  # its own record, whatever the open index says
+    order = lane_queue(queue_order(listed), lanes, number)
     position = order.index(number) + 1 if number in order else None
     before = order[: position - 1] if position is not None else []
-    records = {s.pr_number: s for s in ctx.store.list_open_submissions()} if before else {}
     ahead = []
     for other in before[:MAX_AHEAD]:
         record = records.get(other)
@@ -1040,7 +1065,10 @@ def snapshot(ctx: Context) -> dict[str, Any]:
     order = queue_order(listed) if listed is not None else None
     rank = {number: index for index, number in enumerate(order or [])}
     still_open.sort(key=lambda s: (rank.get(s.pr_number, len(rank)), s.pr_number))
-    open_now = [{**document(s), "queue": entry_queue(ctx, s.pr_number, order)} for s in still_open]
+    lanes = {s.pr_number: s.target_id for s in still_open}
+    open_now = [
+        {**document(s), "queue": entry_queue(ctx, s.pr_number, order, lanes)} for s in still_open
+    ]
     return {
         "snapshot_at": clockmod.render(ctx.clock.now()),
         "queue": {"order": order, "description": QUEUE_ORDER, "note": QUEUE_NOTE},

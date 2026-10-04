@@ -168,7 +168,7 @@
           ]
         },
         "queue": {
-          "description": "Where an open pull request stands in the merge actor's order and what is ahead of it (F05-T18), from the one open-pull-request listing the service reads per window; null once it has merged or closed, and for a pull request the service did not open",
+          "description": "Where an open pull request stands in its own lane of the merge actor's order and what is ahead of it there (F05-T18; F07-T69: one lane per target, and any pull request the service cannot place in one target counted in every lane), from the one open-pull-request listing the service reads per window; null once it has merged or closed, and for a pull request the service did not open",
           "oneOf": [
             {
               "type": "null"

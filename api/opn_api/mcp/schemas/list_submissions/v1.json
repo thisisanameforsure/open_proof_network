@@ -177,7 +177,7 @@
         },
         "queue": {
           "type": "object",
-          "description": "Where the pull request stands in the merge actor's order (F05-T18): position from 1 among the open pull requests the actor takes (null for one it does not take, or when the host was never listed), of how many, and what the service last read it to be waiting on (null: not read; ask get_submission)",
+          "description": "Where the pull request stands in the merge actor's order (F05-T18): position from 1 among the open pull requests the actor takes in this one's lane: its own target's, and any the service cannot place in one target (F07-T69) (null for one it does not take, or when the host was never listed), of how many, and what the service last read it to be waiting on (null: not read; ask get_submission)",
           "required": [
             "position",
             "of",
