@@ -14,7 +14,18 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from opn_gate import evidence, explainers, intake, layout, paths, records, schemas, signed, watch
+from opn_gate import (
+    evidence,
+    explainers,
+    glosses,
+    intake,
+    layout,
+    paths,
+    records,
+    schemas,
+    signed,
+    watch,
+)
 from opn_gate import graph as graphmod
 from opn_gate import writeup as writeupmod
 
@@ -140,6 +151,63 @@ class SignatureView:
 
 
 @dataclass(frozen=True)
+class VersionView:
+    """F20-R9, R13, R14: one version of a gloss or explainer chain, as ``glosses.json`` lists it,
+    with its prose read from the tree and its signatures re-verified at render (F15's seam): only
+    a valid signature is a claim, so the site never takes the product's word for one."""
+
+    hash: str
+    path: str  # relative to the graph root
+    schema: str | None  # gloss/v1, explainer/v1, or None for an explainer filed before F20
+    supersedes: str | None
+    author: str | None
+    drafter: dict[str, Any] | None
+    date: str | None
+    withdrawn: bool
+    #: A gloss's: whether it describes its file as the checkout holds it (F20-R3); None for an
+    #: explainer.
+    describes_current: bool | None
+    signers: tuple[tuple[str, str, str], ...]  # (signer, date, file), valid signatures only
+    body: str  # the prose after the front matter
+    #: An ``explainer/v1``'s sections, each with the outline steps it names (F20-Q2).
+    sections: tuple[explainers.Section, ...] = ()
+
+    @property
+    def model(self) -> str | None:
+        """The model a draft names (D-23), or ``None`` for a person's version."""
+        return str(self.drafter["model"]) if self.drafter and self.drafter.get("model") else None
+
+
+@dataclass(frozen=True)
+class ChainView:
+    versions: tuple[VersionView, ...]
+    current: str | None  # the latest version not withdrawn (D-3 v3.30), or None
+
+    @property
+    def current_version(self) -> VersionView | None:
+        return next((v for v in self.versions if v.hash == self.current), None)
+
+
+@dataclass(frozen=True)
+class SubjectView:
+    """One Lean file or merged proof artifact with the chains filed on it (``glosses/v1``)."""
+
+    kind: str  # statement, witness, relation, definition; proof, alternate, partial, absent
+    record: str  # gloss or explainer
+    node: str | None
+    module: str | None
+    file: str | None  # relative to the target directory
+    lean_hash: str | None
+    chains: tuple[ChainView, ...]
+
+    def describing(self) -> list[VersionView]:
+        """R13: each chain's current version that describes the file as it stands, in record
+        order (F20-Q4) — what the site prints beside the Lean."""
+        found = [c.current_version for c in self.chains]
+        return [v for v in found if v is not None and v.describes_current is not False]
+
+
+@dataclass(frozen=True)
 class NodeView:
     target_id: str
     node_id: str
@@ -180,6 +248,8 @@ class NodeView:
     #: F08-T20 (D-12 v3.22): the merged circularity claims whose ancestor is this node
     #: (graph-root relative). The node stays open; its page names them.
     circular_below: tuple[str, ...] = ()
+    #: F20-T8 (R13): a variant's ``Relation.lean``, shown with its gloss.
+    relation: LeanFile | None = None
 
     @property
     def status(self) -> str:
@@ -222,10 +292,32 @@ class TargetView:
     writeups: tuple[dict[str, Any], ...] = ()
     #: F19-R1, T7: the target's ``outline/v1`` products, keyed by the artifact hash they outline.
     outlines: dict[str, dict[str, Any]] = field(default_factory=dict)
+    #: F20-T8 (R13, R14): every subject ``glosses.json`` lists, in its order; empty when the
+    #: products predate F20 (every slot then shows the cue).
+    subjects: tuple[SubjectView, ...] = ()
+    #: F20-T8 (R13): each definition module under ``defs/``, shown with its gloss.
+    definitions: tuple[LeanFile, ...] = ()
 
     @property
     def root(self) -> str:
         return str(self.graph["root"])
+
+    def gloss_subject(
+        self, kind: str, *, node: str | None = None, module: str | None = None
+    ) -> SubjectView | None:
+        """The gloss subject of one file: a node's statement, witness or relation, or a module."""
+        return next(
+            (
+                s
+                for s in self.subjects
+                if s.record == "gloss" and s.kind == kind and s.node == node and s.module == module
+            ),
+            None,
+        )
+
+    def explainer_subjects(self, node: str) -> list[SubjectView]:
+        """The node's merged proof artifacts that carry an explainer chain, in product order."""
+        return [s for s in self.subjects if s.record == "explainer" and s.node == node and s.chains]
 
     @property
     def stewards(self) -> list[dict[str, Any]]:
@@ -543,6 +635,7 @@ def load_node(root: Path, target_id: str, entry: dict[str, Any]) -> NodeView:
         proof=proof_file,
         witness=_lean_file(root, node_dir / paths.WITNESS_FILE),
         witness_open=graphmod.witness_is_stub(node_dir),
+        relation=_lean_file(root, node_dir / paths.RELATION_FILE),
         partials=_partials_for(root, node_dir),
         superseded_by=str(successor) if successor else None,
         superseded_cause=str(why) if why else None,
@@ -658,6 +751,135 @@ def _load_outlines(target_dir: Path) -> dict[str, dict[str, Any]]:
     return out
 
 
+#: F20-R9: the gloss and explainer chains per subject, and the one version this generator renders.
+GLOSSES_FILE = "glosses.json"
+GLOSSES_SCHEMA = "glosses/v1"
+
+
+def _load_glosses(target_dir: Path) -> tuple[SubjectView, ...]:
+    """F20-T8: the target's ``glosses.json``, each version's prose read from the tree and each
+    signature verified at render through the gate's own seam (as F15's explainer signatures are).
+
+    The product is new with F20, so a graph rendered by an older gate has none: that is said in
+    a warning and every slot shows its cue. One that does not read is skipped the same way — a
+    display aid's defect never decides whether the graph has a site (C7; the 2026-09-17 rule).
+    Whether a gloss describes its file is re-derived from the checkout, so the page states what
+    the tree holds even when the products lag it."""
+    path = target_dir / GLOSSES_FILE
+    if not path.is_file():
+        log.warning("%s has no %s; every gloss slot shows its cue", target_dir.name, GLOSSES_FILE)
+        return ()
+    try:
+        doc = schemas.load_json(path)
+    except schemas.SchemaError as exc:
+        log.warning("%s skipped: it does not validate: %s", path, exc)
+        return ()
+    if doc.get("schema") != GLOSSES_SCHEMA or doc.get("target") != target_dir.name:
+        log.warning("%s skipped: it is %s for %s", path, doc.get("schema"), doc.get("target"))
+        return ()
+    signer = signed.default_signer()
+    gloss_sigs: dict[str, list[tuple[str, str, str]]] = {}
+    explainer_sigs: dict[str, list[tuple[str, str, str]]] = {}
+    root = target_dir.parents[1]
+    parents = {target_dir, *(p for p in (target_dir / "nodes").glob("*") if p.is_dir())}
+    try:
+        for parent in sorted(parents):
+            for digest, found in glosses.valid_signatures(parent, signer).items():
+                gloss_sigs.setdefault(digest, []).extend(
+                    (s.signer, s.date, s.path.relative_to(root).as_posix()) for s in found
+                )
+            if parent != target_dir:
+                for sig in explainers.valid(parent, signer):
+                    explainer_sigs.setdefault(sig.explainer, []).append(
+                        (sig.signer, sig.date, sig.path.relative_to(root).as_posix())
+                    )
+    except schemas.SchemaError as exc:
+        msg = f"targets/{target_dir.name}: a gloss or explainer signature does not validate: {exc}"
+        raise SiteError(msg) from exc
+    out: list[SubjectView] = []
+    for s in doc["subjects"]:
+        file = target_dir / s["file"] if s.get("file") else None
+        now = (
+            schemas.content_hash(file.read_bytes()) if file is not None and file.is_file() else None
+        )
+        sigs = gloss_sigs if s["record"] == "gloss" else explainer_sigs
+        chains = tuple(
+            ChainView(
+                versions=tuple(
+                    _version(target_dir, v, now=now, record=s["record"], sigs=sigs)
+                    for v in c["versions"]
+                ),
+                current=c["current"],
+            )
+            for c in s["chains"]
+        )
+        out.append(
+            SubjectView(
+                kind=str(s["kind"]),
+                record=str(s["record"]),
+                node=s["node"],
+                module=s["module"],
+                file=s["file"],
+                lean_hash=s["lean_hash"],
+                chains=chains,
+            )
+        )
+    return tuple(out)
+
+
+def _version(
+    target_dir: Path,
+    v: dict[str, Any],
+    *,
+    now: str | None,
+    record: str,
+    sigs: dict[str, list[tuple[str, str, str]]],
+) -> VersionView:
+    """One version as the product lists it, its words read from the tree. ``now`` is the hash of
+    the subject's file as the checkout holds it, from which a gloss's ``describes_current`` is
+    re-derived."""
+    root = target_dir.parents[1]
+    path = target_dir / str(v["path"])
+    try:
+        text = path.read_text(encoding="utf-8")
+        _doc, body = glosses.split_front_matter(text)
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        log.warning("%s does not read; shown without its words: %s", path, exc)
+        body = ""
+    sections: tuple[explainers.Section, ...] = ()
+    if record == "explainer" and v["schema"] == explainers.RECORD_SCHEMA:
+        try:
+            sections = tuple(explainers.sections(body))
+        except ValueError:
+            sections = ()
+    describes = v["describes_current"]
+    if record == "gloss" and now is not None and v.get("lean_hash"):
+        describes = v["lean_hash"] == now
+    return VersionView(
+        hash=str(v["hash"]),
+        path=path.relative_to(root).as_posix(),
+        schema=v["schema"],
+        supersedes=v["supersedes"],
+        author=v["author"],
+        drafter=dict(v["drafter"]) if v["drafter"] else None,
+        date=v["date"],
+        withdrawn=bool(v["withdrawn"]),
+        describes_current=describes,
+        signers=tuple(sigs.get(str(v["hash"]), ())),
+        body=body,
+        sections=sections,
+    )
+
+
+def _load_definitions(root: Path, target_dir: Path) -> tuple[LeanFile, ...]:
+    """F20-T8 (R13): each definition module under ``defs/``, by path, as the products list them."""
+    defs = target_dir / glosses.DEFS_DIR
+    if not defs.is_dir():
+        return ()
+    found = (_lean_file(root, p) for p in sorted(defs.rglob("*.lean")) if p.is_file())
+    return tuple(f for f in found if f is not None)
+
+
 def _with_circular_paths(
     root: Path, target_id: str, graph: dict[str, Any], nodes: dict[str, NodeView]
 ) -> dict[str, NodeView]:
@@ -733,5 +955,7 @@ def load_site(root: Path, commit: str) -> Site:
             evidence=_load_evidence(target_dir),
             writeups=_writeups_for(target_dir),
             outlines=_load_outlines(target_dir),
+            subjects=_load_glosses(target_dir),
+            definitions=_load_definitions(root, target_dir),
         )
     return site

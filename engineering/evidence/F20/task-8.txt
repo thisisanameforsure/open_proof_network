@@ -1,0 +1,15 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-a9dca018d205978d1
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 3 items
+
+site/tests/test_glosses.py::test_every_lean_block_has_its_gloss_or_the_cue PASSED [ 33%]
+site/tests/test_glosses.py::test_earlier_text_gloss_only_in_history PASSED [ 66%]
+site/tests/test_explainer_versions.py::test_the_current_version_its_sections_history_and_no_form PASSED [100%]
+
+============================== 3 passed in 12.43s ==============================
+372 passed in 145.50s (0:02:25)
+
+(the line above: the full fast site tier, pytest site/tests -m "not lean and not docker and not network"; ruff check, ruff format --check and mypy site clean; shoot.py exit 0, see task-8-measurements.json)

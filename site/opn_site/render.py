@@ -10,17 +10,29 @@ all of them rendered (R13).
 
 from __future__ import annotations
 
+import difflib
 import re
+from dataclasses import replace
 from html import escape
 from pathlib import Path
 from string import Template
 from typing import Any
 
+from opn_gate import explainers, hosted, intake, layout, products, steward
 from opn_gate import graph as graphmod
-from opn_gate import hosted, intake, layout, products, steward
 from opn_gate import ledger as ledgermod
 from opn_site import dag, links, prose
-from opn_site.model import LeanFile, NodeView, Prose, Site, SiteError, TargetView
+from opn_site.model import (
+    ChainView,
+    LeanFile,
+    NodeView,
+    Prose,
+    Site,
+    SiteError,
+    SubjectView,
+    TargetView,
+    VersionView,
+)
 
 TEMPLATES = Path(__file__).resolve().parent / "templates"
 STATIC = Path(__file__).resolve().parent / "static"
@@ -128,6 +140,29 @@ PROVENANCE: dict[str, str] = {
     "unverified": "Informal account, unverified",
     "untrusted": "Untrusted contributor text",
     "unchecked": "Not checked",
+    # F20-T8 (R13): a gloss's fixed label, a root's words of record, and a definition module.
+    "gloss": "In words, unverified",
+    "informal": "Curated informal statement",
+    "definition": "Shared definition",
+}
+#: F20-T8 (R14, D-36): the fixed label every explainer version renders under.
+EXPLAINER_LABEL = "unverified prose about a kernel-checked proof"
+#: F20-R14: where a reader learns to improve the words. The guide's revision section is F20-T12's
+#: to write (gate/agents/AGENTS.md, rendered on the Docs page); until it lands this is the guide.
+GLOSS_GUIDE_HREF = GUIDE_HREF
+#: A gloss subject's kind in the page's words.
+GLOSS_KIND_WORDS = {
+    "statement": "statement",
+    "witness": "witness",
+    "relation": "relation",
+    "definition": "definition module",
+}
+#: The words for each merged artifact an explainer chain sits on (``glosses/v1`` kinds).
+ARTIFACT_WORDS = {
+    "proof": "the proof",
+    "alternate": "the alternate proof",
+    "partial": "the partial assembly",
+    "absent": "a proof no longer in the tree",
 }
 #: The static tree's text files ship as pages do; its binary files (the fonts) are copied by
 #: ``write``.
@@ -1418,6 +1453,8 @@ class Renderer:
             state_word=esc(self.state_label(state)),
             attempts=esc(self.attempts_words(nv)),
             action=self.node_action(tv, nv),
+            # F20-T8 (R13): a statement's words, first sentence; a root's are the card's own.
+            gloss="" if nv.node_id == tv.root else self.gloss_line(tv, nv.node_id),
         )
 
     # -- the About page (F04-T12): the long argument, moved off the home page -----------------
@@ -1631,20 +1668,54 @@ class Renderer:
             qa_block=self.qa_block(tv),
             informal_full=self.informal_line(tv),
             approaches=approaches,
+            definitions=self.definitions_section(tv),
             note=note,
             qa=self.qa_section(tv),
             review=esc(self.review_sentence(tv)),
             graph_link=self.file_link(f"targets/{tid}/graph.json"),
             fast_check=esc(self.fast_check(e.get("mathlib_sha"))),
         )
+        # F20-T8: the panels' glosses and the definition modules' are rendered here too.
+        glossed = [p for nid in tv.nodes for p in self.gloss_renders(tv, nid, kinds=("statement",))]
+        renders = [
+            f"targets/{tid}/graph.json",
+            *(f.path for f in tv.definitions),
+            *self.gloss_renders(tv, None),
+            *glossed,
+        ]
         return self.page(
             tid,
             body,
-            renders=[f"targets/{tid}/graph.json"],
+            renders=list(dict.fromkeys(renders)),
             path=PROBLEMS_PATH,
             head=MATH_HEAD,
             script=MATH_SCRIPTS + '<script src="/problem.js"></script>',
         )
+
+    def definitions_section(self, tv: TargetView) -> str:
+        """F20-T8 (R13): each definition module of the problem, its Lean and its gloss beside it.
+        Nothing for a problem with none, so such a page is unchanged."""
+        if not tv.definitions:
+            return ""
+        prefix = f"targets/{tv.target_id}/defs/"
+        blocks = []
+        for f in tv.definitions:
+            module = f.path.removeprefix(prefix)
+            blocks.append(
+                self.lean_artifact(
+                    f,
+                    what=module,
+                    provenance="a definition module the problem&rsquo;s statements import, "
+                    "content-hashed and changed only by a curator&rsquo;s revision (D-3, D-8).",
+                    label=self.provenance(
+                        "definition", "shared by every statement of this problem (D-3 defs/)."
+                    ),
+                    block="definition",
+                    pre_class="definition",
+                )
+                + self.gloss_slot(tv, "definition", f"defs/{module}", module=module)
+            )
+        return "<h2>Definitions</h2>\n" + "".join(blocks)
 
     @staticmethod
     def is_tutorial(tv: TargetView) -> bool:
@@ -1853,6 +1924,9 @@ class Renderer:
             closing=self.closing_note(tv, nv),
             outlines=self.outlines_block(tv, nv),
             statement=esc(declaration_only(nv.statement)),
+            glosses=self.gloss_slot(
+                tv, "statement", f"nodes/{nid}/Statement.lean", node=nid, ids=f"p-{nid}-"
+            ),
             hash=esc(str(e.get("statement_hash", ""))[:12]),
             origin=esc(origin),
             mathlib=esc(str(tv.index_entry.get("mathlib_sha") or "")[:12] or "Lean core only"),
@@ -2242,10 +2316,11 @@ class Renderer:
         attempts = nv.attempts
         hist = ", ".join(f"{k} {v}" for k, v in sorted(attempts.failure_class_histogram.items()))
         refuted = ", ".join(attempts.refuted_route_classes)
-        explainer = self.explainer_block(nv)
+        explainer = self.explainer_block(nv, anchors=self.outline_anchors(tv, nv))
         if nv.explainer is not None:
             renders.append(nv.explainer.path)
             renders.extend(v.path for v in nv.signatures)
+        renders.extend(self.gloss_renders(tv, nid))
         annexes = (
             "".join(
                 self.untrusted_block(
@@ -2272,8 +2347,7 @@ class Renderer:
             for a in nv.acknowledgments
         )
         witness = self.witness_block(nv)
-        if nv.witness is not None:
-            renders.append(nv.witness.path)
+        renders.extend(f.path for f in (nv.witness, nv.relation) if f is not None)
         if nv.superseded_record is not None:
             renders.append(nv.superseded_record)
         # F08-T17: the claim this node rests on; F08-T20: those its note names, circling back.
@@ -2305,11 +2379,15 @@ class Renderer:
             ),
             statement=esc(nv.statement.rstrip("\n")),
             statement_label=self.statement_label(tv, nv),
+            statement_glosses=self.gloss_slot(
+                tv, "statement", f"nodes/{nid}/Statement.lean", node=nid
+            ),
             statement_link=self.file_link(nv.statement_path),
-            deps=", ".join(self.node_link(tid, d) for d in nv.deps) or "none",
+            deps=self.deps_list(tv, nv),
             origin=esc(e["origin"]) + (f" ({esc(e['relation'])})" if e["relation"] else ""),
             proof=proof,
             witness=witness,
+            relation=self.relation_block(tv, nv),
             partials=partials,
             attestation=attestation,
             alternates=alternates,
@@ -2327,7 +2405,7 @@ class Renderer:
         return self.page(
             nid,
             body,
-            renders=renders,
+            renders=list(dict.fromkeys(renders)),  # F20-T8: an explainer is listed once
             path=PROBLEMS_PATH,
             head=MATH_HEAD if has_math else "",
             script=MATH_SCRIPTS if has_math else "",
@@ -2366,18 +2444,34 @@ class Renderer:
             block="proof",
         )
 
-    def explainer_block(self, nv: NodeView) -> str:
+    def explainer_block(self, nv: NodeView, *, anchors: frozenset[str] = frozenset()) -> str:
         """The explainer, or the cue in its place. T20: the cue invited "an account of this
         proof" on statements with no proof; an explainer needs a merged proof (D-3), so only a
-        proved statement is invited, and told how one arrives."""
-        if nv.explainer is not None:
-            return self.vouched_lines(nv) + self.untrusted_block(
-                "unverified",
-                nv.explainer,
-                what="explainer",
-                math=True,
-                provenance=self.explainer_label(nv, nv.explainer),
-                block="explainer",
+        proved statement is invited, and told how one arrives.
+
+        F20-T8 (R14): every chain ``glosses.json`` lists shows its current version and history; an
+        explainer no chain lists (one filed before F20 under a name that is not its hash) renders
+        exactly as before. ``anchors`` are the artifact hashes whose outline the page draws."""
+        tv = self.site.targets.get(nv.target_id)
+        chained, listed = self.explainer_chains(tv, nv, anchors=anchors)
+        legacy = nv.explainer is not None and Path(nv.explainer.path).stem not in listed
+        if chained and not legacy:
+            return chained
+        if nv.explainer is not None and legacy:
+            unlisted = replace(
+                nv, signatures=tuple(s for s in nv.signatures if s.explainer not in listed)
+            )
+            return (
+                chained
+                + self.vouched_lines(unlisted)
+                + self.untrusted_block(
+                    "unverified",
+                    nv.explainer,
+                    what="explainer",
+                    math=True,
+                    provenance=self.explainer_label(nv, nv.explainer),
+                    block="explainer",
+                )
             )
         if nv.status == "proved":
             return (
@@ -2657,23 +2751,73 @@ class Renderer:
 
     # -- the mathematics itself (F04-T15; R14) -------------------------------------------------
 
-    def lean_artifact(
-        self, lean: LeanFile, *, what: str, provenance: str, label: str = "", block: str = ""
+    def lean_artifact(  # noqa: PLR0913 — one argument per fact the figure states
+        self,
+        lean: LeanFile,
+        *,
+        what: str,
+        provenance: str,
+        label: str = "",
+        block: str = "",
+        pre_class: str = "",
     ) -> str:
         """A Lean artifact's own text on the page, with what is known about those bytes.
 
         ``provenance`` is HTML the caller has already escaped. The sentence differs per artifact
         because only a proof's bytes are attested (``artifact_hash``): a witness and a partial
         have no hash anywhere in the protocol, so their callers are unable to claim one. ``label``
-        is the block's F19-R11 provenance line and ``block`` its kind, both from the caller.
+        is the block's F19-R11 provenance line and ``block`` its kind, both from the caller;
+        ``pre_class`` names a file that takes a gloss (F20-T8), whose slot follows the figure.
         """
         text = esc(lean.text.rstrip("\n"))
         kind = f' data-block="{esc(block)}"' if block else ""
+        pre = f"lean {esc(pre_class)}" if pre_class else "lean"
         return (
             f'<figure class="artifact"{kind}>{label}<figcaption class="artifact-cap">'
             f"{esc(what)} — {provenance} Rendered from {self.file_link(lean.path)}, "
             f"sha256 <code>{esc(lean.content_hash[:12])}</code>.</figcaption>"
-            f'<pre class="lean">{text}</pre></figure>'
+            f'<pre class="{pre}">{text}</pre></figure>'
+        )
+
+    @staticmethod
+    def gloss_renders(
+        tv: TargetView | None, node: str | None, *, kinds: tuple[str, ...] | None = None
+    ) -> list[str]:
+        """R2: the gloss and explainer files a page shows for one node (or, ``None``, the
+        target's definition modules), their signatures, and the product listing them; ``kinds``
+        narrows to the subjects the page prints."""
+        if tv is None or not tv.subjects:
+            return []
+        found = [f"targets/{tv.target_id}/glosses.json"]
+        for s in tv.subjects:
+            if s.node != node or (kinds is not None and s.kind not in kinds):
+                continue
+            for c in s.chains:
+                for v in c.versions:
+                    found.append(v.path)
+                    found.extend(path for _s, _d, path in v.signers)
+        return found
+
+    def relation_block(self, tv: TargetView | None, nv: NodeView) -> str:
+        """F20-T8 (R13): a variant's ``Relation.lean`` — the implication to or from the root the
+        gate checked when the variant was admitted (D-30) — with its gloss."""
+        if nv.relation is None:
+            return ""
+        return (
+            "\n<h2>Relation</h2>\n"
+            + self.lean_artifact(
+                nv.relation,
+                what="Relation.lean",
+                provenance="the implication between this variant and the problem&rsquo;s "
+                "statement, checked by the gate when the variant was admitted and immutable "
+                "after (D-30).",
+                label=self.provenance(
+                    "kernel", "checked at admission (D-30); no proof of the node is implied."
+                ),
+                block="relation",
+                pre_class="relation",
+            )
+            + self.gloss_slot(tv, "relation", f"nodes/{nv.node_id}/Relation.lean", node=nv.node_id)
         )
 
     # -- provenance labels (F19-R11) and proof outlines (F19-R9) -------------------------------
@@ -3016,7 +3160,17 @@ class Renderer:
         )
 
     def explainer_state(self, nv: NodeView) -> str:
-        """The correspondence table's explainer column: none, unsigned, or signed and by whom."""
+        """The correspondence table's explainer column: none, unsigned, or signed and by whom.
+        F20-T8: the current version of the node's first explainer chain, where one exists."""
+        tv = self.site.targets.get(nv.target_id)
+        subjects = tv.explainer_subjects(nv.node_id) if tv is not None else []
+        current = next(
+            (c.current_version for s in subjects for c in s.chains if c.current_version), None
+        )
+        if current is not None:
+            names = ", ".join(esc(s) for s, _d, _p in current.signers)
+            state = f"signed by {names}" if names else "not signed"
+            return f"unverified, {self.who_wrote(current)}; {state}"
         if nv.explainer is None:
             return "none yet"
         stem = Path(nv.explainer.path).stem
@@ -3050,7 +3204,15 @@ class Renderer:
         lines = (
             f'<p class="rv-lines">Proof: {self.lines_link(nv, record, lean)}.</p>' if record else ""
         )
-        slot = f"{tv.target_id}/{nv.node_id}/Statement.lean"
+        # F20-T8 (R13): the slot F19 left is the statement's gloss now, or the cue.
+        slot = self.gloss_slot(
+            tv,
+            "statement",
+            f"nodes/{nv.node_id}/Statement.lean",
+            node=nv.node_id,
+            ids=f"rv-{nv.node_id}-",
+        )
+        anchors = frozenset({lean.content_hash}) if lean is not None and doc is not None else None
         state = self.node_state(nv)
         return (
             f'<li class="rv-node" id="rv-{esc(nv.node_id)}" data-node="{esc(nv.node_id)}">'
@@ -3059,12 +3221,10 @@ class Renderer:
             f"{esc(self.state_label(state))}</span></h3>"
             f'<div class="statement-block" data-block="statement">{self.statement_label(tv, nv)}'
             f'<pre class="lean statement st-{esc(nv.status)}">'
-            f"{esc(declaration_only(nv.statement))}</pre>"
-            f'<p class="gloss-slot cue" data-gloss-slot="{esc(slot)}">No gloss yet: no one has '
-            "written in words what this statement says (D-3 v3.30); the Lean above is the "
-            "statement.</p></div>"
+            f"{esc(declaration_only(nv.statement))}</pre>{slot}</div>"
             # D-36: the proof and its attestation sit above the explainer, never below.
-            f'{outline}{lines}<div class="rv-explainer">{self.explainer_block(nv)}</div></li>'
+            f'{outline}{lines}<div class="rv-explainer">'
+            f"{self.explainer_block(nv, anchors=anchors or frozenset())}</div></li>"
         )
 
     def correspondence(self, tv: TargetView, order: list[str], entry: dict[str, Any]) -> str:
@@ -3124,7 +3284,10 @@ class Renderer:
             lead=esc(self.proof_label(k, entry))
             + f", merged in <code>{esc(str(entry['merge_commit'])[:12])}</code>.",
             statement_label=self.statement_label(tv, root),
-            informal=self.informal_line(tv),
+            # F20-T8 (R13, Q11): the curated words first, any gloss of the root after them.
+            root_slot=self.gloss_slot(
+                tv, "statement", f"nodes/{tv.root}/Statement.lean", node=tv.root, ids="top-"
+            ),
             root_status=esc(root.status),
             root_lean=esc(declaration_only(root.statement)),
             fidelity=self.fidelity_tag(tv),
@@ -3141,6 +3304,8 @@ class Renderer:
             _, lean = self.artifact_of(tv, nv, entry)
             if lean is not None and self.outline_of(tv, nid, lean) is not None:
                 renders.append(f"targets/{tv.target_id}/outlines/{lean.content_hash}.json")
+            renders.extend(self.gloss_renders(tv, nid, kinds=("statement", *ARTIFACT_WORDS)))
+        renders = list(dict.fromkeys(renders))
         return self.page(
             f"{tv.target_id} · proof {k + 1}",
             body,
@@ -3180,7 +3345,8 @@ class Renderer:
                 provenance=words,
                 label=self.provenance("unchecked", "the witness slot is open."),
                 block="witness",
-            )
+                pre_class="witness",
+            ) + self.witness_slot(nv)
         result = next(
             (
                 str(s.get("result"))
@@ -3208,8 +3374,17 @@ class Renderer:
             )
         )
         return self.lean_artifact(
-            nv.witness, what="Witness.lean", provenance=words, label=label, block="witness"
-        )
+            nv.witness,
+            what="Witness.lean",
+            provenance=words,
+            label=label,
+            block="witness",
+            pre_class="witness",
+        ) + self.witness_slot(nv)
+
+    def witness_slot(self, nv: NodeView) -> str:
+        tv = self.site.targets.get(nv.target_id)
+        return self.gloss_slot(tv, "witness", f"nodes/{nv.node_id}/Witness.lean", node=nv.node_id)
 
     def partials_block(self, nv: NodeView) -> str:
         """Each partial assembly filed under ``attempts/`` (D-3, D-12 #5), as text.
@@ -3262,6 +3437,399 @@ class Renderer:
                 f'{outline}<pre class="lean">{text}</pre></div>'
             )
         return "".join(blocks) or '<p class="cue">No partial assembly filed.</p>'
+
+    # -- glosses and explainer versions (F20-T8; R13, R14) ---------------------------------------
+
+    @staticmethod
+    def who_wrote(v: VersionView) -> str:
+        """A version's provenance in words: the model that drafted it, or the person who wrote it
+        (D-23); a pre-F20 explainer that names no one says so."""
+        if v.drafter is not None:
+            name = esc(str(v.drafter.get("name") or "the drafter"))
+            return f"machine-drafted by {esc(v.model or 'an unnamed model')} ({name})"
+        if v.author:
+            return f"written by {esc(v.author)}"
+        return "author not recorded"
+
+    def version_link(self, v: VersionView) -> str:
+        """A version's file at the rendered commit, labelled by its directory and the first
+        twelve characters of its hash: the full 64-character path is in the link, not the text."""
+        directory = Path(v.path).parent.name
+        return self.file_link(v.path, label=f"{directory}/{v.hash[:12]}….md")
+
+    def gloss_slot(  # noqa: PLR0913 — the file and where the slot sits
+        self,
+        tv: TargetView | None,
+        kind: str,
+        file: str,
+        *,
+        node: str | None = None,
+        module: str | None = None,
+        ids: str = "",
+    ) -> str:
+        """R13: the words beside one Lean file — each chain's current version that describes the
+        file as it stands, in record order (F20-Q4), or the cue; for a root's statement the curated
+        informal statement first (Q11). Then the history of every version on the file, including
+        any gloss of since-changed text, which is shown nowhere else (R3). ``file`` is relative to
+        the target directory; ``ids`` prefixes the history's element ids on a page that shows the
+        same file twice."""
+        tid = tv.target_id if tv is not None else ""
+        subject = tv.gloss_subject(kind, node=node, module=module) if tv is not None else None
+        is_root = tv is not None and kind == "statement" and node == tv.root
+        parts: list[str] = []
+        informal = self.informal_block(tv) if is_root and tv is not None else ""
+        parts.append(informal)
+        current = subject.describing() if subject is not None else []
+        parts.extend(self.gloss_block(v, kind, root=is_root) for v in current)
+        if is_root and not informal:
+            parts.append(
+                '<p class="cue">No informal statement is recorded for this problem yet '
+                "(D-6 intake, F11).</p>"
+            )
+        if not current and not informal:
+            what = GLOSS_KIND_WORDS.get(kind, kind)
+            earlier = (
+                " A gloss of an earlier version of this file is in its history below."
+                if subject is not None and subject.chains
+                else ""
+            )
+            parts.append(
+                f'<p class="cue">No gloss yet: no one has written in words what this {esc(what)} '
+                f"says (D-3 v3.30); the Lean above is the {esc(what)}.{earlier} "
+                f'<a href="{GLOSS_GUIDE_HREF}">How to write one →</a></p>'
+            )
+        shown = len(current)
+        if subject is not None and sum(len(c.versions) for c in subject.chains) > shown:
+            parts.append(self.history(subject, ids=ids))
+        return (
+            f'<div class="gloss-slot" data-gloss-slot="{esc(f"{tid}/{file}")}">'
+            f"{''.join(parts)}</div>"
+        )
+
+    def informal_block(self, tv: TargetView) -> str:
+        """Q11: a root's words of record — its curated informal statement (or the paraphrase that
+        stands in for an unlicensed source) and its fidelity grade. Empty when the target has no
+        curated words, so the slot shows the cue."""
+        record = tv.record or {}
+        if not (record.get("informal") or record.get("paraphrase")):
+            return ""
+        grade = str(tv.index_entry.get("fidelity") or "not graded")
+        label = self.provenance(
+            "informal",
+            f"the problem&rsquo;s words of record, against which its fidelity was graded "
+            f"(D-6, D-9): fidelity {esc(grade)}.",
+        )
+        return (
+            f'<div class="informal-block" data-block="informal">{label}'
+            f'<p class="informal">{self.informal_line(tv)}</p></div>'
+        )
+
+    def gloss_block(self, v: VersionView, kind: str, *, root: bool = False) -> str:
+        """One current gloss under its fixed label, with its provenance line (R13): who wrote it
+        and, when validly signed, who read it against the Lean. A root's gloss says it is not the
+        root's words of record (Q11)."""
+        what = GLOSS_KIND_WORDS.get(kind, kind)
+        signed = (
+            "read against the Lean by "
+            + ", ".join(f"{esc(s)} ({esc(d)})" for s, d, _ in v.signers)
+            + " (F20-R8; it changes no status or grade)"
+            if v.signers
+            else "no one has read it against the Lean and signed it"
+        )
+        detail = f"what this {esc(what)} says; {self.who_wrote(v)}"
+        if v.date:
+            detail += f", {esc(v.date)}"
+        detail += f"; {signed}."
+        if root:
+            detail += (
+                " A gloss of a root is not its words of record: the curated statement above is "
+                "(D-9)."
+            )
+        return (
+            f'<div class="gloss" data-block="gloss" data-gloss="{esc(v.hash)}">'
+            f"{self.provenance('gloss', detail)}"
+            f'<div class="prose gloss-prose">{prose.render(v.body, math=True)}</div>'
+            f'<p class="gloss-foot">Rendered from {self.version_link(v)} · '
+            f'<a href="{GLOSS_GUIDE_HREF}">Improve these words →</a></p></div>'
+        )
+
+    def gloss_line(self, tv: TargetView, node: str) -> str:
+        """R13: the first sentence of a statement's current gloss, for a row or a list; "" when
+        it has none. The first chain in record order speaks for the row (Q4 ranks nothing; the
+        node page shows every chain)."""
+        subject = tv.gloss_subject("statement", node=node)
+        current = subject.describing() if subject is not None else []
+        if not current:
+            return ""
+        sentence = prose.first_sentence(current[0].body)
+        return f'<span class="gloss-line">{prose.inline_math(sentence)}</span>' if sentence else ""
+
+    def deps_list(self, tv: TargetView | None, nv: NodeView) -> str:
+        """R13: a node's dependencies, each with its statement's words — the first sentence of
+        its gloss, the curated statement for the root, or the cue."""
+        if not nv.deps:
+            return '<p class="deps">Depends on: none.</p>'
+        items = []
+        for dep in nv.deps:
+            link = self.node_link(nv.target_id, dep)
+            words = self.gloss_line(tv, dep) if tv is not None else ""
+            if not words and tv is not None and dep == tv.root and tv.record:
+                text = tv.record.get("informal") or tv.record.get("paraphrase")
+                words = f'<span class="gloss-line">{math(str(text))}</span>' if text else ""
+            if not words:
+                words = '<span class="cue">no gloss of it yet</span>'
+            items.append(f"<li>{link}: {words}</li>")
+        return (
+            '<div class="deps"><p>Depends on, each in words where someone has written them:</p>'
+            f"<ul>{''.join(items)}</ul></div>"
+        )
+
+    def history(self, subject: SubjectView, *, ids: str = "") -> str:
+        """R14: every version of every chain on a subject, in record order (Q4) and chain order:
+        its date, who wrote it, whether it is signed, withdrawn (listed, never hidden) or of an
+        earlier text, its words, and a diff to its predecessor."""
+        total = sum(len(c.versions) for c in subject.chains)
+        withdrawn = sum(1 for c in subject.chains for v in c.versions if v.withdrawn)
+        noun = "version" if total == 1 else "versions"
+        summary = f"History: {total} {noun} on record" + (
+            f", {withdrawn} withdrawn" if withdrawn else ""
+        )
+        many = len(subject.chains) > 1
+        blocks: list[str] = []
+        for i, chain in enumerate(subject.chains, start=1):
+            items: list[str] = []
+            diffs: list[str] = []
+            by_hash = {v.hash: v for v in chain.versions}
+            for k, v in enumerate(chain.versions):
+                before = by_hash.get(v.supersedes or "") or (chain.versions[k - 1] if k else None)
+                items.append(self.history_item(subject, chain, v, before, ids=ids))
+                if before is not None:
+                    diffs.append(self.diff_block(before, v, ids=ids))
+            head = f'<p class="chain-head">Chain {i} of {len(subject.chains)}</p>' if many else ""
+            blocks.append(f'{head}<ol class="versions">{"".join(items)}</ol>{"".join(diffs)}')
+        return (
+            f'<details class="history" data-history="{esc(subject.record)}">'
+            f"<summary>{esc(summary)}</summary>{''.join(blocks)}"
+            f'<p class="history-foot"><a href="{GLOSS_GUIDE_HREF}">Improve these words →</a> '
+            "Nothing is edited: a correction is a new version, and every version stays on the "
+            "record (D-3 v3.30).</p></details>"
+        )
+
+    def history_item(
+        self,
+        subject: SubjectView,
+        chain: ChainView,
+        v: VersionView,
+        before: VersionView | None,
+        *,
+        ids: str,
+    ) -> str:
+        states: list[str] = []
+        if v.hash == chain.current:
+            states.append("current")
+        if v.withdrawn:
+            states.append('<strong class="withdrawn">withdrawn</strong>')
+        if subject.record == "gloss" and v.describes_current is False:
+            states.append(
+                '<strong class="earlier">describes an earlier version of this file</strong>'
+            )
+        signed = (
+            "signed by " + ", ".join(f"{esc(s)} ({esc(d)})" for s, d, _ in v.signers)
+            if v.signers
+            else "not signed"
+        )
+        facts = [esc(v.date or "undated"), self.who_wrote(v), signed, *states]
+        diff = (
+            f' · <a href="#{esc(ids)}diff-{esc(v.hash[:12])}">diff to its predecessor</a>'
+            if before is not None
+            else " · the first version of its chain"
+        )
+        return (
+            f'<li class="version" data-version="{esc(v.hash)}">'
+            f'<p class="version-facts">{" · ".join(facts)} · {self.version_link(v)}{diff}</p>'
+            f'<details class="version-text"><summary>Read this version</summary>'
+            f'<div class="prose">{self.version_words(v)}</div></details></li>'
+        )
+
+    @staticmethod
+    def version_words(v: VersionView) -> str:
+        """A version's words as prose: an explainer's sections under their headings, anchors
+        named in text; a gloss or a pre-F20 explainer as paragraphs."""
+        if not v.sections:
+            return prose.render(v.body, math=True)
+        out = []
+        for sec in v.sections:
+            steps = f' <span class="po-id">({esc(" ".join(sec.steps))})</span>' if sec.steps else ""
+            out.append(f"<h4>{prose.inline_math(sec.heading)}{steps}</h4>")
+            out.append(prose.render(sec.text, math=True))
+        return "".join(out)
+
+    @staticmethod
+    def diff_block(before: VersionView, v: VersionView, *, ids: str) -> str:
+        """R14: a line diff of a version's words against its predecessor's, rendered here with the
+        standard library (difflib) into escaped HTML; front matter left out, since only the words
+        changed by hand."""
+        lines = difflib.unified_diff(
+            before.body.splitlines(), v.body.splitlines(), lineterm="", n=2
+        )
+        out = []
+        for line in lines:
+            if line.startswith(("---", "+++")):
+                continue
+            cls = (
+                "diff-add"
+                if line.startswith("+")
+                else "diff-del"
+                if line.startswith("-")
+                else "diff-hunk"
+                if line.startswith("@@")
+                else ""
+            )
+            text = esc(line)
+            out.append(f'<span class="{cls}">{text}</span>' if cls else text)
+        body = "\n".join(out) or "(the words are the same)"
+        return (
+            f'<details class="diff" id="{esc(ids)}diff-{esc(v.hash[:12])}">'
+            f"<summary>Diff of <code>{esc(v.hash[:12])}</code> against "
+            f"<code>{esc(before.hash[:12])}</code></summary>"
+            f'<pre class="diff">{body}</pre></details>'
+        )
+
+    def outline_anchors(self, tv: TargetView | None, nv: NodeView) -> frozenset[str]:
+        """The artifact hashes whose outline the node page draws, so an explainer section links
+        only steps that are on the page: the proof's when its bytes are attested, and each
+        partial's."""
+        if tv is None:
+            return frozenset()
+        found = set()
+        if nv.proof is not None and nv.proof.verified and self.outline_of(tv, nv.node_id, nv.proof):
+            found.add(nv.proof.content_hash)
+        found.update(
+            p.file.content_hash for p in nv.partials if self.outline_of(tv, nv.node_id, p.file)
+        )
+        return frozenset(found)
+
+    def explainer_chains(
+        self, tv: TargetView | None, nv: NodeView, *, anchors: frozenset[str]
+    ) -> tuple[str, frozenset[str]]:
+        """R14: each explainer chain's current version on each of the node's merged artifacts,
+        then the chain's history; and the hashes of every version shown, so the caller can tell
+        an explainer no chain lists (one filed before F20 under another name) and keep showing it
+        as before."""
+        subjects = tv.explainer_subjects(nv.node_id) if tv is not None else []
+        listed = frozenset(v.hash for s in subjects for c in s.chains for v in c.versions)
+        parts: list[str] = []
+        for s in subjects:
+            if len(subjects) > 1 or s.kind != "proof":
+                where = self.file_link(f"targets/{nv.target_id}/{s.file}") if s.file else ""
+                parts.append(
+                    f'<p class="explainer-of">On {esc(ARTIFACT_WORDS.get(s.kind, s.kind))}'
+                    f"{' ' + where if where else ''}:</p>"
+                )
+            for chain in s.chains:
+                current = chain.current_version
+                if current is None:
+                    parts.append(
+                        '<p class="cue">Every version of this explainer is withdrawn; they are '
+                        "listed in its history below (D-3 v3.30).</p>"
+                    )
+                else:
+                    parts.append(self.explainer_version(tv, s, current, anchors=anchors))
+            parts.append(self.history(s))
+        return "".join(parts), listed
+
+    def explainer_version(
+        self,
+        tv: TargetView | None,
+        subject: SubjectView,
+        v: VersionView,
+        *,
+        anchors: frozenset[str],
+    ) -> str:
+        """R14: one current explainer version under D-36's fixed label, with its provenance line
+        and the F15 signatures on it above the label; each anchored section beside the outline
+        steps it names, linked to them where the page draws that outline."""
+        vouched = "".join(
+            f'<p class="vouched">Explained and vouched for by <strong>{esc(s)}</strong>, '
+            f"{esc(d)} (<em>I can explain this proof without the tool that produced it</em>; "
+            f"D-3 v3.17). Rendered from {self.file_link(path)}.</p>"
+            for s, d, path in v.signers
+        )
+        signed = (
+            "signed by " + ", ".join(f"{esc(s)} ({esc(d)})" for s, d, _ in v.signers)
+            if v.signers
+            else "no one has signed it"
+        )
+        detail = f"{EXPLAINER_LABEL}; {self.who_wrote(v)}; {signed}."
+        by = []
+        if v.author:
+            by.append(f"by {esc(v.author)}")
+        if v.model:
+            by.append(f"drafted with {esc(v.model)}")
+        if v.date:
+            by.append(esc(v.date))
+        who = ", ".join(by) or "author not recorded"
+        if v.sections:
+            outline = (
+                tv.outlines.get(subject.lean_hash) if tv is not None and subject.lean_hash else None
+            )
+            steps = explainers.outline_steps(outline) if outline is not None else {}
+            linked = subject.lean_hash in anchors
+            key = (subject.lean_hash or "")[:12]
+            body = "".join(
+                self.explainer_section(sec, steps, key=key, linked=linked) for sec in v.sections
+            )
+        else:
+            body = f'<div class="prose">{prose.render(v.body, math=True)}</div>'
+        return (
+            f'{vouched}<div class="prose-block unverified explainer-version" '
+            f'data-block="explainer" data-explainer="{esc(v.hash)}">'
+            f"{self.provenance('unverified', detail)}"
+            f'<p class="label">Unverified: explainer, {who}. '
+            f"Rendered from {self.version_link(v)}.</p>{body}"
+            f'<p class="gloss-foot"><a href="{GLOSS_GUIDE_HREF}">Improve these words →</a></p>'
+            "</div>"
+        )
+
+    def explainer_section(
+        self,
+        sec: explainers.Section,
+        steps: dict[str, dict[str, Any]],
+        *,
+        key: str,
+        linked: bool,
+    ) -> str:
+        """One section of an ``explainer/v1``: the steps it names beside its words (stacked on a
+        phone, steps first), each step's id, kind and claim from the outline."""
+        named = []
+        for sid in sec.steps:
+            step = steps.get(sid)
+            ident = f"<code>{esc(sid)}</code>"
+            if linked and step is not None:
+                ident = f'<a href="#po-{esc(key)}-{esc(sid)}">{ident}</a>'
+            if step is None:
+                named.append(f'<li>{ident} <span class="po-note">not in the outline</span></li>')
+                continue
+            claim = step.get("claim")
+            shown = (
+                f' <code class="po-claim">{self.printed(claim)}</code>'
+                if claim is not None and claim.get("printed") != "unreliable"
+                else ""
+            )
+            named.append(
+                f'<li>{ident} <span class="po-kind">{esc(str(step["kind"]))}</span>{shown}</li>'
+            )
+        aside = (
+            '<aside class="ex-steps" aria-label="Outline steps this section describes">'
+            f'<span class="kicker">Steps</span><ul>{"".join(named)}</ul></aside>'
+            if named
+            else ""
+        )
+        return (
+            f'<section class="ex-section" data-steps="{esc(" ".join(sec.steps))}">{aside}'
+            f'<div class="ex-prose"><h3>{prose.inline_math(sec.heading)}</h3>'
+            f"{prose.render(sec.text, math=True)}</div></section>"
+        )
 
     def untrusted_block(  # noqa: PLR0913 — the F19 label and block kind ride beside the rest
         self,

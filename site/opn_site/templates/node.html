@@ -4,14 +4,15 @@
 <p class="wayfinding">$wayfinding</p>
 $claimable$tutorial$defects
 <div class="statement-block" data-block="statement">$statement_label
-<pre class="lean statement st-$status_class">$statement</pre>
-<p>Rendered from $statement_link. Depends on: $deps. Origin: $origin.</p>
+<pre class="lean statement st-$status_class">$statement</pre>$statement_glosses
+<p>Rendered from $statement_link. Origin: $origin.</p>
+$deps
 </div>
 <h2>Proof</h2>
 $proof
 $trust
 <h2>Witness</h2>
-$witness
+$witness$relation
 <h2>Attestation</h2>
 $attestation$alternates
 <h2>Attempts</h2>
