@@ -37,6 +37,12 @@ log = logging.getLogger(__name__)
 NODE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
+def invalidate(ctx: Context) -> None:
+    """F05-T20: drop the registry's kept scan after a claim write, so this process's next read
+    of ``/frontier.json`` or ``/claims.json`` sees it."""
+    ctx.claims_scan = None
+
+
 def receipt(claim: Claim, pseudonym: str) -> dict[str, Any]:
     return {
         "id": claim.id,
@@ -298,6 +304,7 @@ async def post_claims(ctx: Context, request: Request) -> Response:
         expires=clockmod.render(now + timedelta(hours=hours)),
     )
     ctx.store.put_claim(claim)
+    invalidate(ctx)
     return JSONResponse(
         held_receipt(ctx, claim, identity.pseudonym, ctx.store.list_claims()), status_code=201
     )
@@ -330,4 +337,5 @@ async def delete_claim(ctx: Context, request: Request) -> Response:
     if claim.released is None:
         claim = release(claim, now)
         ctx.store.put_claim(claim)
+        invalidate(ctx)
     return JSONResponse(receipt(claim, identity.pseudonym))

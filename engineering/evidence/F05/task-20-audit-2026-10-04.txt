@@ -1,0 +1,60 @@
+F05-T20 — the claims registry stops scanning the whole claims table on every anonymous read
+(audit 2026-10-04). Worktree opn-audit-cb-reads; fast tier only.
+
+== The finding ==
+frontier.registry called store.list_claims (DynamoStore: a paged Scan of every claim ever made;
+R9's history_count keeps released and expired rows) on every GET /frontier.json and
+GET /claims.json, plus one get_identity per active holder. An anonymous poller's cost grew with
+the table.
+
+== Seams added first, at today's behaviour ==
+Setting claims_max_stale_s (unused), Context.claims_scan (always None).
+
+== Red: api/tests/test_finding_claims_scan_cached.py (run before the fix) ==
+FAILED test_ten_reads_scan_the_claims_table_once:      E  assert 10 == 1   (ten reads, ten scans)
+FAILED test_the_scan_is_read_again_after_the_window:   E  assert None is not None   (nothing kept)
+PASSED test_a_claim_and_a_release_are_seen_by_the_next_read   } pin what the cache must not break:
+PASSED test_a_kept_claim_still_lapses_at_its_expiry           } a write is seen; expiry is exact
+(The red run also carried a ttl-epoch test, removed with the ttl work on the owner's ruling below.)
+
+== The fix ==
+  - frontier.claims_scan: the rows and the holders' pseudonyms kept on Context.claims_scan
+    (app.CachedClaims) for claims_max_stale_s (default 30, OPN_API_CLAIMS_MAX_STALE_S). registry
+    still decides which claims are active against the clock on every read, so caching never
+    extends a claim past expires (R8).
+  - claims.invalidate(ctx) after the two claim writes (POST /claims create, DELETE /claims/<id>
+    release). Another Lambda instance sees a write within the window.
+  - No ttl attribute: the owner ruled 2026-10-04 that the claims table keeps its full history
+    (no TTL), so history_count stays all-time.
+
+== Green ==
+api/tests/test_finding_claims_scan_cached.py::test_ten_reads_scan_the_claims_table_once PASSED [  6%]
+api/tests/test_finding_claims_scan_cached.py::test_a_claim_and_a_release_are_seen_by_the_next_read PASSED [ 13%]
+api/tests/test_finding_claims_scan_cached.py::test_the_scan_is_read_again_after_the_window PASSED [ 20%]
+api/tests/test_finding_claims_scan_cached.py::test_a_kept_claim_still_lapses_at_its_expiry PASSED [ 26%]
+api/tests/test_claims.py::test_ttl_caps PASSED                           [ 33%]
+api/tests/test_claims.py::test_only_claimable_nodes PASSED               [ 40%]
+api/tests/test_claims.py::test_racing_allowed PASSED                     [ 46%]
+api/tests/test_claims.py::test_release_holder_only PASSED                [ 53%]
+api/tests/test_claims.py::test_lazy_expiry PASSED                        [ 60%]
+api/tests/test_claims.py::test_active_claim_cap PASSED                   [ 66%]
+api/tests/test_claims.py::test_cap_is_per_identity PASSED                [ 73%]
+api/tests/test_claims.py::test_receipt_names_the_target PASSED           [ 80%]
+api/tests/test_claims.py::test_a_stewardless_open_target_refuses_claims_under_the_rule PASSED [ 86%]
+api/tests/test_claims.py::test_listed_is_claimable PASSED                [ 93%]
+api/tests/test_claims.py::test_a_frozen_target_is_not_claimable PASSED   [100%]
+============================== 15 passed in 0.42s ==============================
+Whole api fast tier after the change: all passed (see the T12 commit's evidence for the final
+run on this branch). ruff check / format / mypy strict clean.
+
+== Proposed spec text (F05) ==
+Ledger line: T20 ✓ — the claims registry's scan is kept for claims_max_stale_s and dropped by this
+process's claim writes (audit 2026-10-04; evidence task-20-audit-2026-10-04.txt).
+
+Proposed Q (next free F05 Q): "R9's registry is served from a scan of the claims table kept for
+claims_max_stale_s (default 30 s), not a scan per read; which claims are active is decided per
+read against the clock, so R8's lazy expiry is exact. A claim or release through a process drops
+its kept scan; another process may serve the registry up to the window late, which the
+registry's snapshot_at already admits. The table keeps every row (owner, 2026-10-04: no TTL), so
+history_count stays all-time; the scan's cost still grows with the table, and only the read rate
+is bounded."

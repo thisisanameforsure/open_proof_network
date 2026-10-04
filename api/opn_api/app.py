@@ -45,7 +45,7 @@ from opn_api.axle import Axle
 from opn_api.clock import Clock
 from opn_api.githost import GitHost, OpenPullRequest, PullRequestState, RateLimitError
 from opn_api.routes import ROUTES, RouteSpec
-from opn_api.store import Store
+from opn_api.store import Claim, Store
 
 log = logging.getLogger("opn_api")
 access_log = logging.getLogger("opn_api.access")
@@ -125,6 +125,17 @@ class CachedDir:
 
 
 @dataclass
+class CachedClaims:
+    """The claims table as one scan read it (F05-T20), reused for ``claims_max_stale_s``. Only
+    the rows are kept: which claims are active is decided on every read, against the clock, so a
+    claim still expires at its ``expires`` (R8)."""
+
+    claims: list[Claim]
+    pseudonyms: dict[str, str]
+    fetched_at: float
+
+
+@dataclass
 class Context:
     settings: config.Settings
     store: Store
@@ -168,6 +179,9 @@ class Context:
     annex_unrendered: dict[tuple[str, str, str], bool] = field(default_factory=dict)
     # F07-T68: the MCP adapter's directory listings, by path, at the head they were read for.
     listings: dict[str, CachedDir] = field(default_factory=dict)
+    # F05-T20: the claims table as the registry last scanned it, with the holders' pseudonyms;
+    # ``None`` until scanned, and again after a claim or a release through this process.
+    claims_scan: CachedClaims | None = None
 
 
 Handler = Callable[[Context, Request], Awaitable[Response]]
