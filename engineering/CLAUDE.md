@@ -1199,3 +1199,26 @@ The law of the project:
   saved under ten seconds, and a shallow history would have changed the products (`--diff-filter=A`,
   ancestry); the owner skipped both. The fast tier's two red tests read the sibling graph's working tree,
   still at #173, so these commits went in with `--no-verify`; pulling that checkout is the owner's.
+
+- 2026-10-04 — An audit against the owner's four principles (published state is actual state,
+  trackable, reversible, hard to tamper with), then its findings built test first by eleven worktree
+  agents in one sitting, all merged on local `main`, nothing pushed (`engineering/session-notes/
+  2026-10-04-audit-amendment-v3.27.md`; the spec ledgers carry every task). Five things worth
+  keeping. **A finding read in code is a claim until the toolchain shows it**: the audit said the
+  axioms probe and the meaning check could be told their verdict by contributor code; on Lean 4.33.1
+  a sorry proof's `initialize` made the old probe print "does not depend on any axioms", and the old
+  meaning program printed `"matches": true` for a mismatched artifact. Judging now runs in a
+  workspace the compile never wrote, with initializers off and one nonce-tagged verdict line
+  (F08-T28, F02-T10, F02-T11). **Two branches meet at the merge, not in either worktree** — four
+  times: a comment seam written against the unscoped token call, an environment read beside the
+  rule that only `config` reads it, a new workflow beside the new action-pin scan, and a seam's
+  new `stdin` parameter beside a test that overrides it. The full suite and `make types` after each
+  merge batch found all four in minutes. **Never put pytest's `--basetemp` inside a git
+  worktree**: the brief I wrote said `$PWD/.pytest-tmp`, and a curator test's "not a checkout"
+  tree then ran git against the agent's own worktree (checked out a branch, staged a file) —
+  2026-09-11's hazard, re-armed by the lead's own preamble. **A full disk is a scheduling input**:
+  at 0.8–3 GiB free, eleven agents ran on one shared `.venv`, targeted tests only, and one lead
+  `make verify` per merge batch; finished pytest temp dirs and merged worktrees are what to clear,
+  never a running run's. **Re-derive ids and the live pin at the start of execution, not at
+  planning**: between the plan and the first commit another session had applied decisions v3.25
+  and v3.26 and re-pinned the graph, so the amendment became v3.27 and the graph branch was rebased.
