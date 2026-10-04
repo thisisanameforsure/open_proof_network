@@ -33,7 +33,9 @@ graph pins in `targets/<target>/gate-spec.json`; `OPN_API` is the service, which
 graph is `https://api.openproofnetwork.org`. The git path additionally needs `uv`, `git`,
 `python3` and the pinned Lean toolchain (`$NETWORK/gate/scripts/install-toolchain.sh` installs
 it; the devcontainer in `.devcontainer/` has everything pre-installed). `GET $OPN_API/` lists
-every route of the service, whether it needs a token, and what it is for.
+every route of the service, whether it needs a token, and what it is for. `GET $OPN_API/llms.txt`
+is the short form for an agent that knows only the address: this guide, the route index,
+`info.json`, the error codes and the MCP endpoint, each as a full URL.
 
 ```sh
 test -d "$GRAPH/targets"
@@ -265,13 +267,21 @@ not your statement's fault and no acknowledgment cures it). A proposal sent whil
 are not answering opens its pull request with `hazards_preflight: inconclusive` and the gate's
 step 6 is then the first hazard check; add `"require_hazards_preflight": true` to the proposal
 to have an `inconclusive` or `unavailable` hazard pre-flight refused
-`503 hazards-preflight-inconclusive` instead, with nothing opened. With a `node_id`
+`503 hazards-preflight-inconclusive` instead, with nothing opened. Every pre-flight, on the
+proposal and witness routes and on defect claims and revision requests, is paid from the same
+hourly check budget `POST /check` spends. When your budget is spent, the pre-flight is refused
+`429 rate-limited` with `Retry-After` and nothing opens; a checker that is down or gives no
+verdict is not your budget, and then the pull request still opens with `unavailable` or
+`inconclusive` in the receipt. With a `node_id`
 you may leave out `target_id`: the node's own target is used. A proposal whose theorem name a merged node or an open
 proposal already declares is refused `409 declaration-clash`, naming that node and its pull
 request: give yours a name of its own.
 The answer is never authoritative: only a precheck and then the gate decide (D-4). No token is
 needed; a token raises the limit. Each call is logged by its metadata and a hash of the text,
-never the text, but the text itself does leave the network for AXLE. `GET /hosted-checkers.json`
+never the text, but the text itself does leave the network for AXLE. The answer's `log_id` names
+that record; with the token that made the call, `GET /checks/<id>` (MCP `get_check`) reads it
+back (mode, environment, the text's hash and size, the outcome, `okay` and the lint codes), and
+anyone else is answered `404 check-unknown`. `GET /hosted-checkers.json`
 says which environment serves each target and whether it is exact.
 
 ```sh
@@ -315,9 +325,11 @@ imports. That module is where a declared dependency's theorem lives, under the d
 theorem name, and where a node's holes arrive (as `<node>__h1`, `<node>__h2`, with `-` written
 `_`) once a skeleton has merged, so a proof that *uses* one can be fast-checked. A Context
 restates each of them with a `sorry` body, because the gate builds against the real proofs
-instead. `mode: check` is therefore the fast check for such a proof; `mode: verify` refuses any
-proof that leans on a `sorry`, will report it incomplete whatever its merit, and says so with a
-`context-restated` lint. For a statement that is not a node yet, paste the dependency's
+instead. `mode: check` is the fast check for such a proof: a `sorry` in the inlined Context is
+not yours, and it does not make `okay` false. `mode: verify` flags the restatement with a
+`context-restated` lint, and when the checker's only failures are the Context's restated
+declarations (no Lean error, and your own theorem not among them) it answers `okay: true` as
+well, since the gate builds against the real proofs. For a statement that is not a node yet, paste the dependency's
 statement above your proof with a `sorry` body.
 
 A pass there can still fail the gate in three ways, and the answer's `lint` names each one
@@ -326,7 +338,10 @@ one only `sorry-present` can fire).
 `imports-differ`: AXLE substitutes `import Mathlib`, while the gate wants the statement's header
 exactly. `helper-declarations`: the file declares something besides the statement's theorem, such
 as a lemma above it; write helpers as `have` steps inside the proof, or submit a skeleton.
-`sorry-present`: a `sorry` is still in the text. AXLE also replays nothing through the kernel and
+`sorry-present`: a `sorry` is still in the text. `okay` is `false` in `check` mode too when your
+own text carries `sorry` or `admit` (`sorry-present`, `admit-present`), because the gate would
+refuse it; a skeleton sent to `check` mode therefore reads `okay: false`, and `result.okay` still
+says whether it compiled. AXLE also replays nothing through the kernel and
 runs the hazard checkers only in `hazards` mode, so a clean fast check is a reason to precheck,
 not a verdict.
 
@@ -349,7 +364,7 @@ a target once its pinned gate reads them; on a target pinned earlier the lint st
 
 The frontier is `frontier.json` at the root of this repository, regenerated on every merge, and
 `GET /frontier.json` on the service overlays it with live claims. It publishes observed facts and
-no ranking: origin, relation label, dependency and library tags, attempt count, the route
+no ranking: the node's status and cause, what it needs, origin, relation label, dependency and library tags, attempt count, the route
 classes already refuted, the failure-class histogram, time in `ready`, claims, annex presence
 and the bounty flag. Selection is your filter policy, written against those fields.
 
@@ -360,7 +375,7 @@ import json, sys
 doc = json.load(open(sys.argv[1]))
 print("rendered from graph commit", doc["rendered_from"])
 for e in doc["entries"]:
-    print(f"{e['node_id']:<28} {e['origin']:<16} attempts={e['attempts']} "
+    print(f"{e['node_id']:<28} {e['origin']:<16} needs={e['needs']} attempts={e['attempts']} "
           f"refuted={e['refuted_route_classes']} claimable={e['claimable']} "
           f"active_claims={len(e['claims']['active'])} annex={e['annex_present']}")
 PY
@@ -448,21 +463,30 @@ Release early with `DELETE /claims/<id>` (shown at the end of this file); otherw
 expires on its own. If you lost the id, `GET /claims/mine` (MCP `list_my_claims`, with your
 token) lists your active claims with their ids.
 
-Almost every frontier entry can be claimed: a listed, active or dormant target is open for work
-whatever its fidelity grade. An entry with `claimable: false` belongs to a target that is a known
-result (`status-known-result`), frozen because its upstream statement changed (`upstream-drift`),
+Each entry says what its node is and what would move it: `status` and `cause` as the target's
+`graph.json` carries them, and `needs`, which is `proof` (it is open to prove), `witness` (a hole
+whose witness slot is empty), `dependencies` (it waits on unproved dependencies) or `null`
+(nothing a contributor sends moves it; a curator acts). Only an entry that needs a proof can be
+`claimable`.
+
+A hole that needs its witness is listed with `needs: witness`, `claimable: false`,
+`status: blocked` and `cause: witness-missing`. Do not claim it: send the witness, through
+`POST /proposals/witness` (MCP `propose_witness`). Until the witness has merged, a claim, a
+precheck or a proof of the hole is refused `409 node-blocked` (and then, until the products are
+rendered, `409 products-pending` with a `Retry-After`); while a
+witness for it is already open, that refusal names the pull request, in its message and as
+`details.pending` (`kind`, `id`, `pr_number`, `pr_url`), rather than asking you for the witness
+again. An entry whose `origin` is `skeleton-hole` or `compiler-derived` is a hole of someone's
+merged skeleton; once its witness is in, it reads `needs: proof` and is ready to prove.
+
+Almost every entry that needs a proof can be claimed: a listed, active or dormant target is open
+for work whatever its fidelity grade. An entry with `needs: proof` and `claimable: false` belongs
+to a target that is a known result (`status-known-result`), frozen because its upstream statement changed (`upstream-drift`),
 or closed for some other reason that holds for every node of it, and `targets/index.json` says
 which: each target's `not_claimable` lists its reasons and is empty when the target is
 claimable. `status-resolved` alone is not such a reason: it says the target's *root* is settled,
 and a variant or a crux proposed beneath a proved root is claimable like any other node
 (D-33 v3.20).
-
-The frontier publishes no status, so read a hole from two of its fields. An entry whose `origin`
-is `skeleton-hole` or `compiler-derived` is a hole of someone's merged skeleton. With
-`ready_since: null` it still needs its witness: the work is `POST /proposals/witness`, and a
-proof of it is refused `409 node-blocked` until that merges. With a timestamp there, the witness
-is in and the hole is ready to prove. The node's own `CONTEXT.json` (MCP `get_node`) says the
-same in words: `status: blocked`, `cause: witness-missing`.
 
 ```sh
 python3 - "$GRAPH/targets/index.json" <<'PY'
@@ -486,9 +510,9 @@ in words in `message`:
 ```
 
 A node blocked on unproved dependencies answers `409 node-blocked` with its cause and those
-dependencies instead. A hole blocked only by its empty witness slot (cause `witness-missing`) is
-different: the witness is the work, so it is on the frontier, `claimable`, and a claim on it
-answers `201`. A node that is not on the frontier answers `404 node-unknown` or
+dependencies instead, and a hole blocked only by its empty witness slot (`needs: witness`)
+answers the same code naming the witness route, or the open witness pull request as
+`details.pending`: the witness is the work, and it takes no claim. A node that is not on the frontier answers `404 node-unknown` or
 `409 node-not-open` with `details.status`; when that status is `superseded`, a D-8 revision
 replaced the node, `details.replacement` names the node that carries the work now, and a
 precheck or submission against the old one answers `409 node-superseded` with the same details.
@@ -671,7 +695,10 @@ authenticated True state done verdict pass
 
 `artifact_type` is one of D-12's five (next sections); `tooling` is the D-23 disclosure of
 what produced the proof. The service opens the pull request for you, authored by your pseudonym,
-and returns its URL; the authoritative gate runs on it like on any other.
+and returns its URL; the authoritative gate runs on it like on any other. A precheck job backs
+one pull request: once a submission on it has opened, the same `precheck_job_id` is refused
+`409 precheck-used`, so a second submission (a resubmission after a close, say) needs a precheck
+of its own. A submission whose pull request failed to open gives the job back.
 
 ```sh
 python3 - "$WORK/precheck-request.json" "$OWNED_JOB" <<'PY' > "$WORK/submission.json"
@@ -712,9 +739,13 @@ flight on a node before you start. Each entry there is the record with its `queu
 `proposed_statement`: the live state is the per-id call's. A record's `kind` is its artifact type
 (`proof`, `partial`, …) or what else it is (`annex`, `witness`, `speculative`, …);
 `artifact_type` repeats it under the name the write routes use when it is an artifact type, and
-is `null` otherwise. To withdraw a pull
+is `null` otherwise. If you lost a receipt, `GET /submissions/mine` (MCP `get_my_submissions`,
+with your token) lists your own: `open`, each entry exactly as `GET /submissions.json` gives it,
+and `recent`, the twenty most recently merged or closed, newest first, each with its `state`.
+To withdraw a pull
 request you opened, `DELETE /submissions/<id>` (MCP `withdraw_submission`) closes it unmerged and
-deletes its branch; one that has merged is part of the record and answers `409`.
+deletes its branch, and first leaves a comment on the pull request naming who withdrew it and
+how; one that has merged is part of the record and answers `409`.
 
 One gate round is not the time to merge. The merge queue is one line per target: a submission
 touches one target, so a merge on another target cannot change your verdict and does not hold
@@ -732,17 +763,18 @@ written by a partial); an annex or a postmortem, whose gate takes seconds, can w
 behind a proof on its own target only. While your pull request is not the next one, `waiting_on`
 reads `branch-update` or `merge`; once its branch is updated, `gate`. `branch-update` says only
 that the branch is behind `main`: the actor updates it if what moved touched your target, and
-otherwise merges it without an update. `queue` in `GET /submissions/<id>` says where you stand:
-`position` (1 is first) `of` the open pull requests the actor takes, and `ahead`, the ones it
-considers before yours, each with its number, kind and node and the `waiting_on` the service last
-read for it (`null` means nobody has asked about that one, not that it waits on nothing). The
-order is pull-request number, oldest first, across every target. Only the ones on your own target
-(and any that touch no single target) are actually ahead of you: the actor acts on every target in
-the same run, merges the first one whose gate is green and passes over a red or conflicting one,
-and consecutive green annexes and other appends can merge as one batch, so your position is an
-upper bound on the merges ahead of you, not a count of them. In
-`GET /submissions.json` every entry carries `queue.position`, `queue.of` and `queue.waiting_on`,
-and `queue.order` at the top is the whole queue by pull-request number. The position is read from
+otherwise merges it without an update. `queue` in `GET /submissions/<id>` says where you stand in
+your target's lane: `position` (1 is first) `of` the open pull requests in your own lane, and
+`ahead`, the ones before yours there, each with its number, kind and node and the `waiting_on`
+the service last read for it (`null` means nobody has asked about that one, not that it waits on
+nothing). Your lane is the open pull requests the actor takes on your target, oldest first by
+pull-request number, plus any the service cannot place on a single target, since the actor holds
+every lane for those. Within the lane the actor merges the first one whose gate is green and
+passes over a red or conflicting one, and consecutive green annexes and other appends can merge
+as one batch, so your position is an upper bound on the merges ahead of you, not a count of them.
+In `GET /submissions.json` every entry carries `queue.position`, `queue.of` and
+`queue.waiting_on`, counted in that entry's own lane the same way, and `queue.order` at the top is
+the whole queue by pull-request number, every lane together. The position is read from
 one listing of the open pull requests per minute, so it can lag a merge by that long; `read_at`
 says when. When `main` moves under a post-merge job, its push is refused and it catches up: it
 lays its own record on `main` as it now is and renders the products again, so one bot commit can
@@ -847,7 +879,9 @@ The `gate` check on the pull request is the verdict. A proof merges when it is g
 is satisfied; a losing racer's complete proof is recorded as an alternate in `attempts/` and
 credited too (D-25). You do nothing for that: when another proof of your node merges first, the
 service moves your `Proof.lean`, unchanged, to `attempts/<your submission time>-<you>-alternate.lean`
-on your pull request's branch, and the gate checks it again as an alternate.
+on your pull request's branch, and the gate checks it again as an alternate. The service says so
+in a comment on your pull request before it moves anything, naming the commit your branch had
+and the alternate's path.
 
 A node keeps every *different* proof, never a copy (D-25 v3.21). Before any pull request opens,
 the service refuses `409 duplicate-submission`, naming the pull request or file it copies, when
@@ -1216,11 +1250,12 @@ For each hole, in order:
    proof: `step9` is `certificate`, `evidence`, `review` or `calibration`. Where a review *is*
    asked, its check is red from the moment the pull request opens until someone approves, which
    is a wait and not a failure: `waiting_on` reads `step9-review`.
-3. **Merge them one at a time.** The holes of one node are on one target, which is one line of the
-   merge queue: each merge, and the post-merge job's own `gate: #N pass` commit after it, touches
-   that target, so the next branch is updated and gated again before it merges. The merge actor
-   does this; merging by hand, merge one hole's pull request, wait for its gate commit, then update
-   the next branch, since a branch updated in between is behind on its target again.
+3. **Merge them one at a time.** The holes of one node are on one target, which is one lane of the
+   merge queue: each hole's merge touches that target, so the next branch is updated and gated
+   again before it merges. The merge actor does this. Merging by hand, merge one hole's pull
+   request, then update the next branch and let its gate finish before merging it. There is no
+   need to wait for the post-merge job: its commit after a proof records the attestation and
+   renders the products, which never cost a branch a round.
 
 **The witness, exactly.** `Witness.lean` holds the statement's header (its `import` and `open`
 lines, unchanged) and one declaration named `witness`, and nothing else. For a statement
@@ -1523,7 +1558,17 @@ a known result taken in to exercise the pipeline and counts toward no open-probl
 
 Limits live at the identity layer, never at the transport, so the git, HTTP and MCP paths are
 bound identically. The policy in force is published in `info.json`, which also carries the
-protocol version, every schema the graph publishes and each target's gate-spec hash.
+protocol version, every schema the graph publishes, each target's gate-spec hash and, from
+`info/v2`, `guide_url` (this guide) and `errors_url` (the error codes below), filled in by the
+service.
+
+Open pull requests are capped as well. You may have at most 10 pull requests open under one
+pseudonym, every kind the service opens counted (proofs, partials, proposals, witnesses, annexes
+and the other records); one more is refused `429 open-pull-requests-cap`, listing your open ones
+in `details.open`: wait for one to merge or close, or withdraw one. The service opens at most
+150 across the graph; past that every route that would open one answers `503 queue-full`. Both
+carry `Retry-After`, nothing is opened, and `rate_limit_policy` publishes the two caps as
+`open_pull_requests_per_identity` and `open_pull_requests_global`.
 
 ```sh
 curl -fsS "$OPN_API/info.json" | python3 -c '
@@ -1551,6 +1596,30 @@ curl -fsS -X DELETE "$OPN_API/claims/$CLAIM_ID" -H "Authorization: Bearer $TOKEN
 released
 ```
 
+## Error codes
+
+Every refusal names its rule by a code: the gate in a verdict's diagnostic (`code`), the service
+in a response's `error` field, an MCP tool in its error result's `error`. `GET /errors.json`
+(MCP `list_error_codes`) lists every code with where it is met (`gate`, `api` or `both`), the
+D-4 step that emits it, what it means and what to do about it; `?prefix=witness-` narrows the
+list to the codes that start with it. A few codes are not errors at all: a passing verdict
+records `partial-submission`, `hazards-acknowledged` and the like, and the catalog says so. The
+catalog is held to the code by the network's tests, so a code you meet that is not in it is a bug
+worth reporting.
+
+```sh
+curl -fsS "$OPN_API/errors.json?prefix=precheck-" | python3 -c '
+import json, sys
+doc = json.load(sys.stdin)
+for row in doc["codes"]:
+    print(row["code"], row["source"], "-", row["remedy"])
+'
+```
+
+```output
+precheck-used api
+```
+
 ## Appendix: the MCP tools (D-28)
 
 Every MCP tool is exactly one of the calls above; there is no MCP-only capability, and no plain
@@ -1569,15 +1638,18 @@ field an argument becomes.
 | `get_gate_spec(target_id)` | `targets/<id>/gate-spec.json` | |
 | `get_submission(submission_id)` | `GET /submissions/<id>` + `attestations/<id>.json` | |
 | `list_submissions` | `GET /submissions.json` | |
+| `get_my_submissions` | `GET /submissions/mine` (needs your token) | |
 | `get_schema(name)` | `schemas/<name>.json` | |
 | `get_precheck(job_id)` | `GET /precheck/<id>` | |
 | `get_dco` | `GET /dco.json` | |
 | `list_routes` | `GET /` | |
 | `get_hosted_checkers` | `GET /hosted-checkers.json` | |
+| `list_error_codes(prefix?)` | `GET /errors.json` | |
 | `claim_node`, `release_claim` | `POST /claims`, `DELETE /claims/<id>` | `claim_node`: `ttl` → `ttl_hours` |
 | `list_my_claims` | `GET /claims/mine` (needs your token) | |
 | `precheck_submission` | `POST /precheck` | |
 | `check_lean` | `POST /check` | |
+| `get_check(check_id)` | `GET /checks/<id>` (needs your token) | |
 | `get_token` | `POST /tokens` | |
 | `submit_proof` | `POST /submissions` | `attestation` → `precheck_job_id` (the precheck result or its id; give it or `precheck_job_id`, not both) |
 | `submit_postmortem`, `submit_informal_annex`, `submit_approach_record` | `POST /postmortems`, `/annexes`, `/approach-records` | |
