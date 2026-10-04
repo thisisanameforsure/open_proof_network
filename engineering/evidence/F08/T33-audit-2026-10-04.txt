@@ -1,0 +1,46 @@
+F08-T33 — CONTEXT.json and the precheck's refusal read withdrawals (D-18 v3.27; F08-T31 follow-up)
+==================================================================================================
+
+Part 1: the context bundle (gate/opn_gate/context.py)
+
+What changed
+- context._withdrawn_names(reader, target, node, directory): records.withdrawn_names through the
+  bundle's Reader — lists <node>/withdrawals/, validates each file as withdrawal/v1, passes over one
+  that does not (logged), returns the names under status/ or defects/ it names. No date compared.
+- _circular_claims skips a withdrawn defects/ file; _current_id.successor_of skips a withdrawn
+  status/ file before latest_status picks the override. Both builders (the post-merge job's
+  DiskReader and the service's HostReader, F10-Q7) go through these, so the fix reaches both.
+
+Note on "parity". Both CONTEXT.json builders already share context.build, so their bytes agreed
+with each other before the fix (the HostLike equality test passes before and after). The
+disagreement was between the bundle and the gate's own graph facts (graph.load_target, which the
+site's ancestor note and the frontier render): records.circular_claims / load_node_status read
+withdrawals, the bundle's reader did not. The red tests take graph.load_target as the oracle for
+every node's circular_below.
+
+Tests (gate/tests/test_finding_circular_below_context.py)
+- test_guard_two_claims_both_speak_while_neither_is_withdrawn (guard; green before and after)
+- test_a_withdrawn_circularity_claim_leaves_the_bundle (red -> green)
+- test_a_withdrawn_superseded_record_is_not_followed (red -> green)
+- test_the_host_reader_reads_the_withdrawals_too (host-reader byte equality with withdrawals on
+  the tree; pins F10-Q7 for the new reads; green before and after, since both builders share code)
+
+Red (before the fix)
+E           AssertionError: and-swap-reassoc
+E           assert [{'claim': 't...-h2--h1--h2'}] == [{'node_id': ...0Z-bob.yaml'}]
+E             
+E             At index 0 diff: {'claim': 'targets/propositional/nodes/and-swap-reassoc--h2--h1--h2/defects/20260924T123647Z-alice.yaml', 'node_id': 'and-swap-reassoc--h2--h1--h2'} != {'node_id': 'and-swap-reassoc--h2--h1--h2', 'claim': 'targets/propositional/nodes/and-swap-reassoc--h2--h1--h2/defects/20260925T090000Z-bob.yaml'}
+E             Left contains one more item: {'claim': 'targets/propositional/nodes/and-swap-reassoc--h2--h1--h2/defects/20260925T090000Z-bob.yaml', 'node_id': 'and-swap-reassoc--h2--h1--h2'}
+E             Use -v to get more diff
+E           AssertionError: and-swap-reassoc--h2
+E           assert [{'claim': 't...-h2--h1--h2'}] == []
+E             
+E             Left contains one more item: {'claim': 'targets/propositional/nodes/and-swap-reassoc--h2--h1--h2/defects/20260924T123647Z-alice.yaml', 'node_id': 'and-swap-reassoc--h2--h1--h2'}
+E             Use -v to get more diff
+2 failed, 5 passed in 1.81s
+
+Green
+8 passed in 1.38s
+  with test_context, test_withdrawal, test_finding_circular_path, test_finding_revised_hole_parent,
+  test_products, api/tests/test_mcp_*: 159 passed; api mcp/context reads: 49 passed
+  ruff check / format, mypy --strict gate/opn_gate/context.py: clean

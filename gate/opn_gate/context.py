@@ -388,15 +388,46 @@ def _circular_below(
     ]
 
 
+def _withdrawn_names(
+    reader: Reader, target_id: str, node_id: str, directory: str
+) -> frozenset[str]:
+    """``records.withdrawn_names`` through a reader (F08-T33): the file names under
+    ``<node>/<directory>/`` a merged ``withdrawal/v1`` record names. The same rule — a withdrawal
+    that does not validate is logged and passed over, so the record it names stands; no date is
+    compared — so the bundle the service derives over the host reads a withdrawn record as absent
+    exactly where the gate's products do (F10-Q7)."""
+    withdrawals = f"{node_path(target_id, node_id)}/{recordsmod.WITHDRAWALS_DIR}"
+    prefix = f"{directory}/"
+    named: set[str] = set()
+    for name in sorted(reader.listdir(withdrawals)):
+        if not name.endswith(YAML_SUFFIXES):
+            continue
+        path = f"{withdrawals}/{name}"
+        raw = reader.read(path)
+        if raw is None:
+            continue
+        try:
+            doc = _yaml(raw, path, recordsmod.WITHDRAWAL_SCHEMA)
+        except (schemas.SchemaError, ContextError) as exc:
+            log.warning("%s: a withdrawal that does not validate is passed over: %s", path, exc)
+            continue
+        withdraws = str(doc["withdraws"])
+        if withdraws.startswith(prefix):
+            named.add(withdraws[len(prefix) :])
+    return frozenset(named)
+
+
 def _circular_claims(reader: Reader, target_id: str, hole: str) -> list[tuple[str, str]]:
     """``records.circular_claims`` through a reader: every valid ``circular-decomposition`` claim
     under the node, oldest first, as ``(defects/<file>, ancestor as named)``; a file that does
-    not read as one is logged and passed over, as the products pass it over (2026-09-17)."""
+    not read as one is logged and passed over, as the products pass it over (2026-09-17). A
+    claim a curator has withdrawn is absent, as it is to ``records`` (F08-T31, F08-T33)."""
     directory = f"{node_path(target_id, hole)}/{recordsmod.DEFECTS_DIR}"
     accepted = paths.SCHEMAS_FOR_ROLE["defect-claim"]
+    gone = _withdrawn_names(reader, target_id, hole, recordsmod.DEFECTS_DIR)
     found: list[tuple[str, str]] = []
     for name in sorted(reader.listdir(directory)):
-        if not name.endswith(YAML_SUFFIXES):
+        if not name.endswith(YAML_SUFFIXES) or name in gone:
             continue
         path = f"{directory}/{name}"
         raw = reader.read(path)
@@ -421,13 +452,15 @@ def _current_id(
     reader: Reader, target_id: str, states: Mapping[str, NodeState], node_id: str
 ) -> str:
     """``graph.current_id`` through a reader (F08-T10's chain, F08-T22): the node ``node_id`` has
-    become, following each ``superseded`` record's reference while the step is sound."""
+    become, following each ``superseded`` record's reference while the step is sound. A withdrawn
+    status record is absent, as ``records.load_node_status`` reads it (F08-T31, F08-T33)."""
 
     def successor_of(current: str) -> str | None:
         status_dir = f"{node_path(target_id, current)}/status"
+        gone = _withdrawn_names(reader, target_id, current, "status")  # F08-T33
         docs = []
         for name in sorted(reader.listdir(status_dir)):
-            if not name.endswith(YAML_SUFFIXES):
+            if not name.endswith(YAML_SUFFIXES) or name in gone:
                 continue
             path = f"{status_dir}/{name}"
             docs.append((Path(path), _yaml(_must(reader, path), path, None)))
