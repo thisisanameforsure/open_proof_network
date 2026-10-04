@@ -144,6 +144,7 @@ def test_manifest_verification(
         f"elaborate:Nodes.«{ROOT_NODE}».Proof",
         f"elaborate:Nodes.«{ROOT_NODE}».Context",
         f"elaborate:Nodes.«{ROOT_NODE}».Statement",
+        f"elaborate:Nodes.«{ROOT_NODE}».Witness",  # F02-T12: step 7 compiles the witness apart
     ]
     assert json.loads((tmp_path / "hit" / "cache.json").read_text())["status"] == "hit"
     for rel in doc["modules"][DEP_MODULES[0]]["files"]:
@@ -162,7 +163,8 @@ def test_manifest_verification(
     assert summary["olean_cache"]["hits"] == []
     assert not (tmp_path / "corrupt" / "olean-cache").exists()
     elaborated = [c for c in fake.calls if c.startswith("elaborate:")]
-    assert len(elaborated) == 8  # every dependency rebuilt, the root, its statement (F08-T28)
+    # every dependency rebuilt, the root, its statement (F08-T28), its witness (F02-T12)
+    assert len(elaborated) == 9
 
     # A manifest whose member hashes do not match the archive is discarded the same way.
     store.objects[key] = archive
@@ -251,8 +253,8 @@ def test_miss_falls_back(
     root = cached_repo(tmp_path)
     summary = run_pregate(capsys, root, tmp_path / "miss")
     assert summary["olean_cache"]["status"] == "miss" and summary["olean_cache"]["hits"] == []
-    # six for the build, two for the statement's own build (F08-T28)
-    assert len([c for c in fake.calls if c.startswith("elaborate:")]) == 8
+    # six for the build, two for the statement's own build (F08-T28), one for the witness (F02-T12)
+    assert len([c for c in fake.calls if c.startswith("elaborate:")]) == 9
     assert any("olean cache miss" in r.getMessage() for r in caplog.records)
 
     store.unreachable = True
