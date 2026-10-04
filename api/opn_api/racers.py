@@ -11,7 +11,9 @@ It happens on a live read of an open proof whose node's proof has merged and who
 carries ``Proof.lean`` (such a pull request can never merge, whatever the host says of it),
 once per submission (a store counter marks it), and never for a copy of the winner, which the
 gate refuses as ``alternate-duplicate`` and the duplicate rule refuses before that (F07-T35).
-A host or store failure leaves the pull request as it was (C7).
+A host or store failure leaves the pull request as it was (C7). Before the branch moves, the
+service comments on the pull request with its original head commit and the alternate path
+(F07-T64); a comment that fails is logged and does not stop the move.
 """
 
 from __future__ import annotations
@@ -57,6 +59,22 @@ def alternate_path(found: Submission) -> str:
     )
 
 
+def comment(ctx: Context, found: Submission, state: PullRequestState) -> None:
+    """F07-T64: before the forced replace throws the contributor's commit off the branch, say on
+    the pull request which commit it was and where its proof is going. A failed comment is logged
+    and never blocks the conversion (C7)."""
+    body = (
+        f"This node's proof merged from another pull request first, so this proof is being kept "
+        f"as an alternate (D-25, F07-T36): the service is replacing this branch with one commit "
+        f"from `{ctx.settings.graph_branch}` that adds it, unchanged, at "
+        f"`{alternate_path(found)}`. The branch's head before the move was `{state.head_sha}`."
+    )
+    try:
+        ctx.githost.comment_on_pull_request(ctx.settings.graph_repo, found.pr_number, body)
+    except GitHostError as exc:
+        log.warning("racer #%d: no comment posted: %s", found.pr_number, exc)
+
+
 def convert(ctx: Context, found: Submission, state: PullRequestState) -> bool:  # noqa: PLR0911 — one return per reason not to
     """Move a losing racer's proof to its alternate path; answer whether it was moved."""
     if not is_losing_racer(ctx, found, state):
@@ -88,6 +106,7 @@ def convert(ctx: Context, found: Submission, state: PullRequestState) -> bool:  
         "The node's proof merged first; this proof is kept as an alternate (D-25), unchanged.\n\n"
         f"Signed-off-by: {found.pseudonym} <{found.pseudonym}@{submissions.AUTHOR_DOMAIN}>\n"
     )
+    comment(ctx, found, state)
     try:
         ctx.githost.push_branch(
             repo,

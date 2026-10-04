@@ -1,0 +1,76 @@
+F07-T64 — withdrawal and racer conversion leave a reason on GitHub (audit 2026-10-04)
+
+Finding. DELETE /submissions/<id> (withdraw.py) closed the pull request as the App and deleted its
+branch with no word on the host, so the host's record showed the App closing a contributor's pull
+request for no stated reason. The racer conversion (racers.py) force-replaced submit/<id> with a
+fresh commit from main, throwing the contributor's commit off the branch with nothing on the pull
+request saying which commit it was or where the proof went.
+
+Fix. GitHost.comment_on_pull_request (POST /repos/{repo}/issues/{n}/comments, as the App), called
+before the act: on a withdrawal, the holder's pseudonym and the route; on a conversion, the head sha
+before the move, the base branch and the alternate path. A failed comment (GitHostError, including
+RateLimitError) is logged as a warning and the action goes ahead (C7). The repeat paths post nothing:
+a withdrawal of an already-closed record returns before the comment, and a conversion comments only
+after the once-per-submission counter is taken. (If the push then fails the counter is dropped and a
+later read retries, which posts the comment again; the move has not happened in between, so the
+second comment is not false.)
+
+Proposed ledger line: T64 ✓ withdraw and racer conversion comment on the pull request before acting
+(GitHost.comment_on_pull_request); live comment permission to be confirmed by the probe below.
+
+Proposed Q entry (F07-Q-next): The App states its reason on the host before it changes a pull request
+it opened: a withdrawal names the withdrawing pseudonym and the route; a racer conversion names the
+original head sha and the alternate path. The comment is a courtesy and never a precondition: a host
+that refuses it is logged and the withdrawal or conversion proceeds (C7). It uses the issue-comments
+endpoint, which GitHub serves for pull requests; the App's installation holds Pull requests: write
+(F06 evidence task-5: actions, contents, metadata, pull_requests), which that endpoint accepts in
+place of Issues: write — to be confirmed live by the inert probe, not assumed.
+
+== red (seam aeab08c: the method exists, nothing calls it) ==
+uv run --frozen pytest -q -rf -m 'not lean and not docker and not network' \
+  api/tests/test_finding_withdraw.py api/tests/test_finding_racer_alternate.py
+FAILED api/tests/test_finding_withdraw.py::test_a_withdrawal_comments_who_withdrew_before_the_close[memory]
+FAILED api/tests/test_finding_withdraw.py::test_a_withdrawal_comments_who_withdrew_before_the_close[dynamodb]
+FAILED api/tests/test_finding_withdraw.py::test_a_repeated_withdrawal_comments_once[memory]
+FAILED api/tests/test_finding_withdraw.py::test_a_repeated_withdrawal_comments_once[dynamodb]
+FAILED api/tests/test_finding_racer_alternate.py::test_the_conversion_comments_the_original_head_before_the_push
+FAILED api/tests/test_finding_racer_alternate.py::test_a_conversion_done_once_comments_once
+6 failed, 38 passed, 2 warnings in 1.34s
+(each failed on "assert 0 == 1": no comment on the fake host's log.)
+The two failure-tolerance tests (test_a_failed_comment_never_blocks_*) pass on the seam as well;
+they pin what the fix must not change.
+
+== green ==
+uv run --frozen pytest -q -m 'not lean and not docker and not network' api/tests/test_entrypoints.py \
+  api/tests/test_finding_host_budget.py api/tests/test_finding_node_pending.py \
+  api/tests/test_finding_submissions_cold_latency.py api/tests/test_finding_withdraw.py \
+  api/tests/test_finding_racer_alternate.py api/tests/test_mcp_equivalence.py \
+  api/tests/test_mcp_surface.py api/tests/test_pending_submissions.py api/tests/test_githost_seam.py
+197 passed, 3 warnings in 12.74s
+
+== the inert probe the lead runs before deploying (not run here: it needs .env and the live host) ==
+Comment on a pull request number the graph does not have. Nothing is created whatever the answer:
+404 "Not Found" means the token is authorised for the endpoint and the number is absent; 403
+"Resource not accessible by integration" means the App lacks the permission (grant Pull requests:
+write or Issues: write on the App and approve it on the installation before deploying, or the
+comments will be logged warnings and nothing more).
+
+  set -a; . ./.env; set +a
+  uv run python - <<'PY'
+  import sys; sys.path.insert(0, "api")
+  import httpx
+  from opn_api import config, githost
+  s = config.load()
+  R = s.graph_repo
+  h = githost.HttpxGitHost(client_id="", client_secret="",
+                           app_id=s.github_app_id or "", private_key=s.github_private_key or "")
+  t = h._installation_token(R)
+  r = httpx.post(f"https://api.github.com/repos/{R}/issues/999999/comments",
+                 headers={"Authorization": f"Bearer {t}", "Accept": "application/vnd.github+json"},
+                 json={"body": "probe"})
+  print(r.status_code, r.json().get("message") if r.content else "")
+  PY
+
+Note for the token-scoping change in _installation_token_locked (another agent's task): if the
+installation token is narrowed to named permissions, pull_requests: write must stay in the set, or
+this comment (and the close) will be refused.
