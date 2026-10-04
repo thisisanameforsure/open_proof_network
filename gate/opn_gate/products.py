@@ -641,6 +641,8 @@ def needs_of(status: str, node: NodeFacts, status_of: Callable[[str], str]) -> s
 
 #: D-14: the curator's status for a dead branch; on the graph with its cause, off the frontier.
 ABANDONED = "abandoned"
+#: D-18 v3.28: a dispute a curator has accepted; on the graph with its claim, off the frontier.
+DISPUTED = "disputed"
 
 
 def in_frontier(status: str, node: NodeFacts, status_of: Callable[[str], str]) -> bool:
@@ -665,8 +667,13 @@ def in_frontier(status: str, node: NodeFacts, status_of: Callable[[str], str]) -
         return False  # F08-T17: graph.json says why, as the cause ``circular``
     if workable(status, node, status_of):
         return True
-    # F03-T13: a curator's ``abandoned`` closes a variant as it closes any node (AC4, Q16).
-    return node.origin == "variant" and status not in (*graphmod.RESOLVED_STATUSES, ABANDONED)
+    # F03-T13: a curator's ``abandoned`` closes a variant as it closes any node (AC4, Q16); and
+    # F08-T35 (D-18 v3.28): a disputed node leaves the frontier, a variant too.
+    return node.origin == "variant" and status not in (
+        *graphmod.RESOLVED_STATUSES,
+        ABANDONED,
+        DISPUTED,
+    )
 
 
 #: D-33 v3.20: the one reason that closes a target's *root* and nothing beneath it.

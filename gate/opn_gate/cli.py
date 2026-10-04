@@ -335,11 +335,20 @@ def _add_curator_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser
     con.add_argument("--image", help="sandbox image tag (default: built from gate/Dockerfile)")
     con.add_argument("--no-build", action="store_true", help="fail if the image is not present")
 
-    st = sub.add_parser("status", help="an abandonment or dormancy record (F08-R11; D-14, D-33)")
+    st = sub.add_parser(
+        "status", help="an abandonment, dispute or dormancy record (F08-R11; D-14, D-18, D-33)"
+    )
     common(st)
-    st.add_argument("ref", help="a node id (abandoned) or the target id (dormant, active)")
+    st.add_argument(
+        "ref", help="a node id (abandoned, disputed) or the target id (dormant, active)"
+    )
     st.add_argument("status", choices=[*curator.NODE_STATUSES, *curator.TARGET_STATUSES])
     st.add_argument("--cause", required=True, help="the published reasoning (D-33 b)")
+    st.add_argument(
+        "--reference",
+        help="disputed only: the defect claim the curator accepts, as defects/<file> on the node "
+        "(D-18 v3.28)",
+    )
     st.add_argument(
         "--k", type=positive_int, default=curator.DEFAULT_K, help="D-33's K in force (at least 1)"
     )
@@ -1924,6 +1933,7 @@ def run_status(args: argparse.Namespace, settings: config.Settings) -> int:
         last_merge=last_progress_merge(graph, target_id),
         k=args.k,
         n_days=args.n,
+        reference=args.reference,
     )
     written = [record.resolve().relative_to(graph).as_posix()]
     doc = {"ok": True, "ref": args.ref, "status": args.status, "written": written}

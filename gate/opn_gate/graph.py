@@ -689,7 +689,7 @@ def disputed_is_void(node: NodeFacts) -> bool:
 
 #: How a ``disputed`` record's ``reference`` names a claim: ``defects/<file>`` of its own node, or
 #: the claim's path from the graph root.
-_CLAIM_REF_RE = re.compile(
+CLAIM_REF_RE = re.compile(
     r"^(?:targets/(?P<target>[^/]+)/nodes/(?P<node>[^/]+)/)?defects/(?P<name>[^/]+\.ya?ml)$"
 )
 
@@ -700,7 +700,7 @@ def dispute_withdrawn(nodes_dir: Path, node_id: str, override: StatusRecord | No
     dispute id, another target's path — is never withdrawn, so the record stands."""
     if override is None or override.status != "disputed":
         return False
-    m = _CLAIM_REF_RE.match(str(override.doc.get("reference") or ""))
+    m = CLAIM_REF_RE.match(str(override.doc.get("reference") or ""))
     if m is None:
         return False
     if m.group("target") is not None and m.group("target") != nodes_dir.parent.name:
