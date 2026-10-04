@@ -907,6 +907,13 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "An identity already exists for this GitHub login.",
         "Use the token you were issued before; one GitHub login holds one identity.",
     ),
+    "gloss-absent": (
+        "gate",
+        None,
+        "A gloss signature signs a gloss that is not beside it under gloss/ (F20-R8).",
+        "Sign a gloss that is on the record; opn-gate gloss sign refuses before writing one "
+        "that is not.",
+    ),
     "gloss-invalid": (
         "gate",
         None,
@@ -1712,6 +1719,15 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "A record does not validate against its schema, or is not parseable YAML or JSON.",
         "Fix the field the message names; get_schema gives the record's shape.",
     ),
+    "record-not-head": (
+        "gate",
+        None,
+        "A gloss or explainer supersedes a version that is not the current head of a chain of "
+        "its own subject: one already superseded, withdrawn, of another file or proof, or not "
+        "on the record (F20-R6, D-3 v3.30).",
+        "Supersede the head the message names (opn-gate gloss revise writes it), or set "
+        "supersedes to null to start a chain of your own.",
+    ),
     "record-name-taken": (
         "api",
         None,
@@ -1844,6 +1860,15 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         None,
         "An explainer signature names a different node from the one it sits under.",
         "File the signature under the node it signs.",
+    ),
+    "signed-supersede": (
+        "gate",
+        None,
+        "A gloss or explainer supersedes a version a steward or curator has signed, in a pull "
+        "request opened by neither an active steward of the target nor a listed curator "
+        "(F20-R6).",
+        "Start a chain of your own (supersedes: null), or ask a steward of the target or a "
+        "curator to file the revision.",
     ),
     "signer-unlisted": (
         "gate",
@@ -2244,10 +2269,20 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
     "withdrawal-unknown-record": (
         "gate",
         None,
-        "A curator's withdrawal names a record that is not a valid status record or defect claim "
-        "of the withdrawal's own node (F08-T31, D-18 v3.27).",
-        "Name the record as status/<file> or defects/<file> of the node the withdrawal is filed "
-        "under, as it stands on main, and open the pull request again.",
+        "A withdrawal names a record that is not a valid status record or defect claim of the "
+        "withdrawal's own node, nor a gloss or explainer version beside it (F08-T31, D-18 v3.27; "
+        "F20-R7).",
+        "Name the record as status/<file>, defects/<file>, gloss/<hash>.md or "
+        "explainer/<hash>.md of the node (or, for a definition gloss, the target) the withdrawal "
+        "is filed under, as it stands on main, and open the pull request again.",
+    ),
+    "withdrawal-unauthorized": (
+        "gate",
+        None,
+        "A gloss or explainer version is withdrawn by someone who is neither its author, an "
+        "active steward of the target nor a listed curator (F20-R7, D-3 v3.30).",
+        "Ask the version's author, a steward of the target or a curator to withdraw it, or file a "
+        "chain of your own.",
     ),
     "witness-axiom": (
         "both",

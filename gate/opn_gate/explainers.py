@@ -395,6 +395,88 @@ def is_record(data: bytes) -> bool:
     return doc is not None
 
 
+# --- versions, chains and digestion (F20-R6, R7, R9; D-33 v3.30) ---------------------------------
+
+
+def first_proof(node_dir: Path) -> str | None:
+    """The hash of the node's ``Proof.lean``, its first proof (D-33 v3.30), or ``None``."""
+    proof = node_dir / "Proof.lean"
+    return schemas.content_hash(proof.read_bytes()) if proof.is_file() else None
+
+
+def versions(node_dir: Path) -> list[glosses.Version]:
+    """Every explainer on the node as a version of a chain, by file name. An ``explainer/v1``
+    record is a version of the proof it names; one filed before F20 names no proof and is read as
+    a one-version chain on the node's ``Proof.lean`` — what D-3 v3.17 said an explainer was about
+    — so a signed one keeps counting and a record may supersede it. A record that does not
+    validate is logged and passed over: the gate refused it at merge (C7)."""
+    directory = node_dir / EXPLAINER_DIR
+    if not directory.is_dir():
+        return []
+    first = first_proof(node_dir)
+    out: list[glosses.Version] = []
+    for path in sorted(p for p in directory.iterdir() if p.is_file() and p.suffix == ".md"):
+        if not _HASH_RE.match(path.stem):
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+            doc, _ = parse_record(text)
+            loose = glosses.split_front_matter(text)[0] if doc is None else None
+        except (OSError, UnicodeDecodeError, ValueError) as exc:
+            log.warning("%s is not an explainer and is passed over: %s", path, exc)
+            continue
+        if doc is None:
+            fm = loose or {}
+            author = fm.get("author") if isinstance(fm.get("author"), str) else None
+            date = str(fm["date"]) if fm.get("date") is not None else None
+            subject: glosses.Subject = ("proof", node_dir.name, first)
+            out.append(glosses.Version(path.stem, path, subject, None, author, None, date, None))
+            continue
+        if doc.get("schema") != RECORD_SCHEMA or schemas.violations(doc, RECORD_SCHEMA):
+            log.warning("%s does not validate as %s and is passed over", path, RECORD_SCHEMA)
+            continue
+        out.append(
+            glosses.Version(
+                hash=path.stem,
+                path=path,
+                subject=("proof", node_dir.name, str(doc["proof"])),
+                supersedes=doc["supersedes"],
+                author=doc["author"],
+                drafter=doc["drafter"],
+                date=str(doc["date"]),
+                schema=RECORD_SCHEMA,
+            )
+        )
+    return out
+
+
+def signed_hashes(node_dir: Path, signer: Signer) -> frozenset[str]:
+    """The explainers on the node carrying at least one valid signature (F15-R8)."""
+    return frozenset(sig.explainer for sig in valid(node_dir, signer))
+
+
+def chains_on(node_dir: Path, proof: str | None) -> list[glosses.Chain]:
+    """The explainer chains on one of the node's proofs (R9)."""
+    withdrawn = glosses.withdrawn_versions(node_dir, EXPLAINER_DIR)
+    on = [v for v in versions(node_dir) if v.subject[2] == proof]
+    return glosses.chains(on, withdrawn)
+
+
+def explained(node_dir: Path, signer: Signer) -> bool:
+    """D-33 v3.30 (F20-R9, Q5): the node counts as explained while the *current* version of an
+    explainer chain on its first proof carries a valid explainer signature. A version written
+    after a signature must be signed again; a signature elsewhere in the chain vouches for text
+    its signer never saw, and a gloss signature counts for nothing here (F20-Q12)."""
+    first = first_proof(node_dir)
+    if first is None:
+        return False
+    signed_ = signed_hashes(node_dir, signer)
+    return any(
+        chain.current is not None and chain.current.hash in signed_
+        for chain in chains_on(node_dir, first)
+    )
+
+
 def name_warnings(graph_root: Path, located: Located) -> list[Diagnostic]:
     """R5 (F20-T5): ``explainer-name-unanchored`` for each qualified Lean name in backticks in an
     anchored section that occurs in none of the constants its steps (and their sub-steps) use, by

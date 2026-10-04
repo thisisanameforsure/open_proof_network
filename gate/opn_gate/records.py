@@ -161,6 +161,8 @@ def load_node_status(node_dir: Path) -> StatusRecord | None:
 
 #: F08-T31 (D-14, D-18 v3.27): a curator's withdrawals of this node's records.
 WITHDRAWAL_SCHEMA = "withdrawal/v1"
+#: F20-R7: v2 adds gloss and explainer versions; a withdrawal of either version is read alike.
+WITHDRAWAL_SCHEMAS: tuple[str, ...] = (WITHDRAWAL_SCHEMA, "withdrawal/v2")
 WITHDRAWALS_DIR = "withdrawals"
 
 
@@ -178,7 +180,10 @@ def withdrawn(node_dir: Path) -> frozenset[str]:
     named: set[str] = set()
     for path in sorted(p for p in directory.iterdir() if p.suffix in ATTEMPT_SUFFIXES):
         try:
-            doc = schemas.load_yaml(path, WITHDRAWAL_SCHEMA)
+            doc = schemas.load_yaml(path)  # against the version it declares (D-34)
+            if doc.get("schema") not in WITHDRAWAL_SCHEMAS:
+                msg = f"declares {doc.get('schema')!r}, not one of {', '.join(WITHDRAWAL_SCHEMAS)}"
+                raise schemas.SchemaError(msg)
         except schemas.SchemaError as exc:
             log.warning("%s: a withdrawal that does not validate is passed over: %s", path, exc)
             continue

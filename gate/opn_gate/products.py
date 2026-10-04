@@ -32,8 +32,10 @@ from opn_gate import (
     evidence,
     explainers,
     formalizations,
+    glosses,
     intake,
     layout,
+    paths,
     postmerge,
     qa,
     records,
@@ -270,13 +272,16 @@ def digestion(tg: TargetGraph, *, status: str, signer: Signer) -> dict[str, Any]
     """F15-R7 (D-33 v3.17): the digestion state of a resolved target and the counts behind it.
 
     ``written-up`` when a valid ``paper`` write-up record exists; else ``explained`` when every
-    proved node in the closing artifact's dependency closure carries at least one valid signed
-    explainer; else ``undigested``. A target in any other status carries ``null``, with the
-    proved-node counts still filled in, because the home page's coverage count ("explained: n of
-    m proved nodes") sums over every target, resolved or not (F15-R10, Q10).
+    proved node in the closing artifact's dependency closure has an explainer chain on its first
+    proof whose current version carries a valid signature (D-33 v3.30); else ``undigested``. A
+    target in any other status carries ``null``, with the proved-node counts still filled in,
+    because the home page's coverage count ("explained: n of m proved nodes") sums over every
+    target, resolved or not (F15-R10, Q10).
     """
     proved = [n for n in tg.order if tg.statuses[n] == "proved"]
-    explained = {n for n in proved if explainers.valid(tg.nodes[n].path, signer)}
+    # D-33 v3.30 (F20-R9): a node counts while the current version of an explainer chain on its
+    # first proof is signed, so a revision after a signature must be signed again.
+    explained = {n for n in proved if explainers.explained(tg.nodes[n].path, signer)}
     out: dict[str, Any] = {
         **NO_DIGESTION,
         "proved": len(proved),
@@ -292,7 +297,7 @@ def digestion(tg: TargetGraph, *, status: str, signer: Signer) -> dict[str, Any]
     closure_explained = [
         n
         for n in closure_proved
-        if n in explained or (n not in proved and explainers.valid(tg.nodes[n].path, signer))
+        if n in explained or (n not in proved and explainers.explained(tg.nodes[n].path, signer))
     ]
     out["closure"] = len(closure_proved)
     out["closure_explained"] = len(closure_explained)
@@ -540,6 +545,199 @@ def proof_closure(
             unmeasured.add(current)
         stack.extend(facts.rests_on)
     return sorted(seen), sorted(unmeasured)
+
+
+GLOSSES_SCHEMA = "glosses/v1"
+GLOSSES_FILE = "glosses.json"
+
+
+def lean_subjects(tg: TargetGraph) -> list[dict[str, Any]]:
+    """F20-R9: every Lean file of the target that takes a gloss and every merged proof artifact
+    that takes an explainer, in the target's structural order — each node's statement, witness
+    and relation, then its artifacts (``Proof.lean``, then ``attempts/`` by name), node by node;
+    then the definition modules by path. Ranked by nothing (D-25)."""
+    out: list[dict[str, Any]] = []
+    for node_id in tg.order:
+        node_dir = tg.nodes[node_id].path
+        for kind, name in glosses.KIND_FILES.items():
+            if (node_dir / name).is_file():
+                out.append(
+                    _subject(
+                        tg, kind, "gloss", node=node_id, module=None, file=f"nodes/{node_id}/{name}"
+                    )
+                )
+        for digest, rel in explainers.merged_artifacts(node_dir).items():
+            kind = (
+                "proof"
+                if rel == "Proof.lean"
+                else "alternate"
+                if rel.endswith(paths.ALTERNATE_SUFFIX)
+                else "partial"
+            )
+            subject = _subject(
+                tg, kind, "explainer", node=node_id, module=None, file=f"nodes/{node_id}/{rel}"
+            )
+            subject["lean_hash"] = digest
+            out.append(subject)
+    defs_dir = tg.path / glosses.DEFS_DIR
+    if defs_dir.is_dir():
+        for path in sorted(p for p in defs_dir.rglob("*.lean") if p.is_file()):
+            module = path.relative_to(defs_dir).as_posix()
+            out.append(
+                _subject(tg, "definition", "gloss", node=None, module=module, file=f"defs/{module}")
+            )
+    return out
+
+
+def _subject(
+    tg: TargetGraph, kind: str, record: str, *, node: str | None, module: str | None, file: str
+) -> dict[str, Any]:
+    path = tg.path / file
+    return {
+        "kind": kind,
+        "record": record,
+        "node": node,
+        "module": module,
+        "file": file,
+        "lean_hash": schemas.content_hash(path.read_bytes()) if path.is_file() else None,
+        "chains": [],
+    }
+
+
+def glosses_doc(tg: TargetGraph, rendered_from: str | None, *, signer: Signer) -> dict[str, Any]:
+    """F20-R9: ``targets/<id>/glosses.json`` — every subject with the chains filed on it, each
+    version with its author or drafter, date, valid signatures, withdrawn flag and, for a gloss,
+    whether it describes the file as it stands; and each chain's current version, its latest not
+    withdrawn. A version naming a file not in the tree is listed under that subject all the same,
+    so nothing filed is hidden."""
+    subjects = lean_subjects(tg)
+    by_key: dict[tuple[Any, ...], dict[str, Any]] = {}
+    for s in subjects:
+        if s["record"] == "gloss":
+            by_key[("gloss", s["node"], s["module"], s["kind"])] = s
+        else:
+            by_key[("explainer", s["node"], s["lean_hash"])] = s
+    parents: list[tuple[Path, str | None]] = [(tg.nodes[n].path, n) for n in tg.order]
+    parents.append((tg.path, None))
+    for parent, node_id in parents:
+        _gloss_chains(tg, parent, node_id, by_key=by_key, subjects=subjects, signer=signer)
+        if node_id is not None:
+            _explainer_chains(tg, parent, node_id, by_key=by_key, subjects=subjects, signer=signer)
+    return {
+        "schema": GLOSSES_SCHEMA,
+        "target": tg.target_id,
+        "rendered_from": rendered_from,
+        "subjects": subjects,
+    }
+
+
+def _gloss_chains(
+    tg: TargetGraph,
+    parent: Path,
+    node_id: str | None,
+    *,
+    by_key: dict[tuple[Any, ...], dict[str, Any]],
+    subjects: list[dict[str, Any]],
+    signer: Signer,
+) -> None:
+    """The gloss chains under one node (or, ``node_id`` None, the target), onto their subjects."""
+    withdrawn = glosses.withdrawn_versions(parent, glosses.GLOSS_DIR)
+    sigs = {
+        h: [s.as_dict() for s in found]
+        for h, found in glosses.valid_signatures(parent, signer).items()
+    }
+    groups: dict[tuple[Any, ...], list[glosses.Version]] = {}
+    for v in glosses.load_versions(parent):
+        kind, node, module = v.subject
+        if node != node_id or (node_id is None) != (kind == glosses.DEFINITION):
+            log.warning("%s glosses a file it does not sit beside; passed over", v.path)
+            continue
+        groups.setdefault(("gloss", node, module, kind), []).append(v)
+    for key, found in groups.items():
+        subject = by_key.get(key)
+        if subject is None:
+            _, node, module, kind = key
+            file = (
+                f"{glosses.DEFS_DIR}/{module}"
+                if kind == glosses.DEFINITION
+                else f"nodes/{node}/{glosses.KIND_FILES[kind]}"
+            )
+            subject = by_key[key] = _subject(tg, kind, "gloss", node=node, module=module, file=file)
+            subjects.append(subject)
+        subject["chains"] = _chains_doc(tg, found, withdrawn, sigs, subject["lean_hash"])
+
+
+def _explainer_chains(
+    tg: TargetGraph,
+    parent: Path,
+    node_id: str,
+    *,
+    by_key: dict[tuple[Any, ...], dict[str, Any]],
+    subjects: list[dict[str, Any]],
+    signer: Signer,
+) -> None:
+    """The explainer chains of one node, each onto the merged artifact it names — or onto an
+    ``absent`` subject when that artifact is not in the tree, so nothing filed is hidden."""
+    withdrawn = glosses.withdrawn_versions(parent, explainers.EXPLAINER_DIR)
+    sigs: dict[str, list[dict[str, Any]]] = {}
+    for sig in explainers.valid(parent, signer):
+        sigs.setdefault(sig.explainer, []).append({"signer": sig.signer, "date": sig.date})
+    by_proof: dict[str | None, list[glosses.Version]] = {}
+    for v in explainers.versions(parent):
+        by_proof.setdefault(v.subject[2], []).append(v)
+    for proof, found in by_proof.items():
+        key = ("explainer", node_id, proof)
+        subject = by_key.get(key)
+        if subject is None:
+            subject = by_key[key] = {
+                "kind": "absent",
+                "record": "explainer",
+                "node": node_id,
+                "module": None,
+                "file": None,
+                "lean_hash": proof,
+                "chains": [],
+            }
+            subjects.append(subject)
+        subject["chains"] = _chains_doc(tg, found, withdrawn, sigs, None)
+
+
+def _chains_doc(
+    tg: TargetGraph,
+    found: list[glosses.Version],
+    withdrawn: frozenset[str],
+    sigs: Mapping[str, list[dict[str, Any]]],
+    current_text: str | None,
+) -> list[dict[str, Any]]:
+    """One subject's chains as ``glosses/v1`` publishes them. ``current_text`` is the subject
+    file's hash for a gloss (``describes_current``), ``None`` for an explainer."""
+    out: list[dict[str, Any]] = []
+    for chain in glosses.chains(found, withdrawn):
+        current = chain.current
+        out.append(
+            {
+                "current": current.hash if current is not None else None,
+                "versions": [
+                    {
+                        "hash": v.hash,
+                        "path": v.path.relative_to(tg.path).as_posix(),
+                        "schema": v.schema,
+                        "supersedes": v.supersedes,
+                        "author": v.author,
+                        "drafter": v.drafter,
+                        "date": v.date,
+                        "lean_hash": v.lean_hash,
+                        "describes_current": (
+                            None if v.schema != glosses.SCHEMA else v.lean_hash == current_text
+                        ),
+                        "withdrawn": v.hash in withdrawn,
+                        "signatures": list(sigs.get(v.hash, [])),
+                    }
+                    for v in chain.versions
+                ],
+            }
+        )
+    return out
 
 
 def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
@@ -948,6 +1146,10 @@ def generate(
         products.targets.append(tg)
         gdoc = schemas.validate(graph_doc(tg, rendered_from), GRAPH_SCHEMA)
         products.files[Path("targets") / target_id / "graph.json"] = schemas.canonical_json(gdoc)
+        # F20-R9: the gloss and explainer chains per subject, beside the graph they describe.
+        products.files[Path("targets") / target_id / GLOSSES_FILE] = schemas.canonical_json(
+            schemas.validate(glosses_doc(tg, rendered_from, signer=verifier), GLOSSES_SCHEMA)
+        )
         # F10-R3: one context bundle per node, a rendering of the same facts, bot-owned (Q2).
         states = context.graph_states(gdoc)
         for node_id in tg.order:
