@@ -1,0 +1,101 @@
+F02-T10 — the trusted judging workspace (audit 2026-10-04, finding A; D-4 steps 3-5)
+Branch audit-a-soundness.
+
+The guarantee
+  The gate's verdict that an artifact proves a node's statement is derived only from (1) the
+  kernel replay of the compiled modules and (2) a comparison of the compiled declaration's type
+  with the statement's type as built from the admitted files, done in a process and a workspace
+  that contributor code never ran in or wrote to.
+
+What was wrong (verified in code before the fix)
+  cli.py builds every sandbox seam with read_write=[workdir]; sandbox.SandboxToolchain copies
+  every read_write root into each container and back out after it. The call that compiles a
+  contributor's Proof.lean (and each merged proof beneath it) can therefore write any file under
+  the work directory, and the judging calls then read it:
+  - the meaning guard built the statement under work/meaning, and defs.compile_all skips a
+    definition whose olean is already there (skip_built), so a planted Defs olean would have been
+    taken as the statement's own definition;
+  - opn-statement-meaning, the axioms probe and leanchecker all ran with work/build first on
+    LEAN_PATH, where an olean named Init.* or Mathlib.* shadows the real one, and on a Mathlib pin
+    the prefix replay never re-checks anything outside Nodes.* and Defs.*.
+
+The fix
+  gate/opn_gate/judging.py (new): a judging directory <work>.judge beside the work directory, made
+  fresh after the artifact's build; meaning/ holds the statement's own build (target defs, the
+  node's repo Context.lean and Statement.lean, copied from the graph by the gate); modules/ holds
+  the only input taken from the work directory, each staged node's Context and Proof olean copied
+  by name (regular files only, no symlinks), beside the definitions' oleans from meaning/, never
+  the work directory's. judging.confined(seam, read_only, read_write) asks the sandbox seam for a
+  copy with exactly those mounts (SandboxToolchain.scoped, new) and returns any other seam as is.
+  steps/replay.py: builds the trusted definitions, collects the modules, then the meaning guard,
+  then the replay over modules/ with read_only=[modules] and nothing writable.
+  steps/meaning.py: the statement's build in judge.statement, by calls whose only writable mount
+  is that directory; the comparison with read_only=[modules, statement build].
+  steps/axioms.py: the axioms query over modules/, read-only, and step-order if step 4 left no
+  judging directory.
+  Each judging call is a fresh container (unchanged): no judging process ever ran contributor
+  code; the copy is what keeps the files apart.
+
+Red (fast tier, before the fix):
+  uv run --frozen pytest -q -m "not lean and not docker and not network" gate/tests/test_finding_trusted_workspace.py
+E               AssertionError: ('/opt/elan/bin/elan run leanprover/lean4:v4.33.1 lean --json -o /private/tmp/claude-501/-Users-mikehiggins-Desktop-re...top-repos-open-proof-network/c9a63167-349f-42ec-afaf-3dfe8e4b9a84/scratchpad/pt/test_no_judging_call_can_wr
+E           AssertionError: assert not [PosixPath('/private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/c9a63167-349f-42ec-afaf-3dfe8e4b9a84/scratchpad/pt/test_the_judging_directory_hol0/work/build/Init/Prelude.olean')]
+2 failed in 0.17s
+  test_no_judging_call_can_write_to_or_read_from_the_contributors_work_directory: the statement's
+  own build (`lean -o .../Statement.olean`) was handed read_write=[work].
+  test_the_judging_directory_holds_only_the_graphs_compiled_modules_and_is_fresh: the replay saw
+  work/build/Init/Prelude.olean, which the contributor's compile had planted.
+
+Green:
+  uv run --frozen pytest -q -m "not lean and not docker and not network" \
+    gate/tests/test_finding_postmerge_batch.py gate/tests/test_uses_defs.py \
+    gate/tests/test_finding_trusted_workspace.py gate/tests/test_sandbox.py gate/tests/test_cli_sandboxed.py
+  95 passed in 57.08s
+  Wider sweep (the 94 pipeline/seam files plus the new ones, test_stage, test_replay_mode):
+  1223 passed; the 6 failures were this session's own doing (a concurrent run deleted the shared
+  --basetemp under five postmerge_batch tests; test_uses_defs ran before its restatement) and pass
+  on a rerun above.
+
+Restated: test_uses_defs.py::test_a_proof_with_an_admitted_definition_passes_and_is_held_to_the_statements_meaning
+  now looks for the statement's build under judging.root_for(workdir)/meaning.
+
+Lean + docker tier (NOT run locally: no disk for the image or the toolchain build; CI):
+  gate/tests/test_finding_trusted_workspace_lean.py (marked lean and docker)
+  - test_a_compiled_module_with_another_type_is_refused_at_step_4: after the contributor's
+    compile, the test overwrites work/build/Nodes/and-swap-reassoc/Proof.olean with a module
+    declaring OpnProp.and_swap_reassoc : True (compiled in the sandbox). Expected: step 4,
+    statement-meaning-changed (via T28's comparison; it reads the copied module).
+  - test_a_definition_planted_in_the_work_directory_does_not_reach_the_statements_build: the
+    T23 instance trap (size-is-zero under import Defs.Trap) with a Defs.Base olean carrying the
+    trap's instance planted at work/meaning/build/Defs/ and work/build/Defs/. Expected: refused
+    as statement-meaning-changed exactly as when nothing is planted. Before T10 the first
+    location would have been taken as built (skip_built); whether the planted instance's auto
+    name matches Defs.Trap's (so that the pre-T10 run would have passed) is not checked here:
+    the assertion is only the post-T10 refusal.
+
+What is not covered, and why (proposed follow-ups)
+  - Steps 6, 7 and 8 and step 4's artifact.judge (opn-hazards, opn-witness-type,
+    opn-used-constants, opn-artifact-type) still run with the work directory, and they elaborate
+    contributor source; they do not decide that an artifact proves its statement, but step 8's
+    footprint and a partial's holes do decide other things. T11 puts a nonce on their verdicts;
+    moving them onto compiled modules is proposed there.
+  - Without the sandbox (pregate.sh on the contributor's machine) confined() is the identity: the
+    contributor's code runs on their machine, and nothing decided there merges anything.
+  - Lean's oleans are imported by name with no hash check, so the contributor's Proof olean is
+    replayed against the trusted definitions' oleans; an honest build gets byte-identical oleans
+    (same sources, same toolchain), a forged one fails the replay.
+
+Proposed Q entry (F02-Q?)
+  The judging workspace (T10; 2026-10-04; audit finding A). Every judging call ran in a fresh
+  container but was handed the work directory the contributor's compile could write to, so a
+  file that compile left (a planted definition olean, a shadow of Init or Mathlib on LEAN_PATH)
+  could decide the verdict. The statement's build and the definitions now live in a fresh
+  directory beside the work directory; the contributor's compiled graph modules are copied there
+  by name; and the meaning comparison, the kernel replay and the axioms query mount only that,
+  read-only (judging.confined, SandboxToolchain.scoped). Reversal: confined returns the seam
+  unchanged and the steps pass staged.build, as before.
+
+Proposed ledger line
+  T10 ✓ 2026-10-04 (uv run pytest gate/tests/test_finding_trusted_workspace.py and four
+  neighbours: 95 passed; test_finding_trusted_workspace_lean.py lean+docker tier pending CI) —
+  the judging calls read a fresh directory the contributor's compile never had

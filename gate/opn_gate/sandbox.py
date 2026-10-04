@@ -13,6 +13,7 @@ file-sharing and of uid mismatches on hosted runners.
 
 from __future__ import annotations
 
+import copy
 import io
 import re
 import subprocess
@@ -200,6 +201,17 @@ class SandboxToolchain(LocalToolchain):
         self.read_only = [p.resolve() for p in read_only]
         self.read_write = [p.resolve() for p in read_write]
         self.docker = docker
+
+    def scoped(
+        self, *, read_only: Sequence[Path] = (), read_write: Sequence[Path] = ()
+    ) -> SandboxToolchain:
+        """The same image, caps and docker, with exactly these directories mounted (F02-T10):
+        a judging call is handed the judging directory and never the work directory that the
+        contributor's compile could write to. A shallow copy, so a subclass stays itself."""
+        other = copy.copy(self)
+        other.read_only = [p.resolve() for p in read_only]
+        other.read_write = [p.resolve() for p in read_write]
+        return other
 
     # -- container assembly -------------------------------------------------------------------
 

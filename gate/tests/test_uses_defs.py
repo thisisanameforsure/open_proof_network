@@ -28,7 +28,7 @@ import pytest
 from fakes import FakeToolchain, meaning_result, metaprogram_garbage
 from harness import GRAPH, TARGET, make_context, node_dir
 
-from opn_gate import layout, paths, pipeline, postmerge, schemas, uses
+from opn_gate import judging, layout, paths, pipeline, postmerge, schemas, uses
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Change
 from opn_gate.steps import RunContext, meaning
@@ -193,7 +193,8 @@ def test_a_proof_with_an_admitted_definition_passes_and_is_held_to_the_statement
         i for i, c in enumerate(fake.calls) if c.startswith("kernel_replay")
     )
     assert not list((ctx.workdir / "build").rglob("Statement.olean"))
-    own = ctx.workdir / meaning.MEANING_DIR
+    # F02-T10: under the judging directory, beside the work directory and never inside it
+    own = judging.root_for(ctx.workdir) / meaning.MEANING_DIR
     assert (own / "build" / "Nodes" / NODE / "Statement.olean").is_file()
     # the node's Context there is the signatures D-3 gives it, never the staged proofs
     assert (own / "src" / "Nodes" / NODE / "Context.lean").read_text(encoding="utf-8") == (

@@ -18,8 +18,10 @@ environment, by the kernel's definitional equality. Nothing is elaborated a seco
 program: both types are read from compiled modules, so the comparison cannot itself be bent by
 what the extra imports do to elaboration.
 
-The statement's build lives in its own directory (``MEANING_DIR``), so the kernel replay sees
-exactly the modules it did before.
+The statement's build lives in its own directory (``MEANING_DIR`` under the judging directory,
+F02-T10), so the kernel replay sees exactly the modules it did before, and no call that compiled
+contributor code could write to it: before T10 it sat under the work directory, where a
+definition's olean planted by the contributor's elaboration would have been taken as built.
 
 **Which artifacts are guarded (F08-T28, Q36).** Every artifact that declares the statement's own
 theorem: a proof, an alternate (D-25) and a partial's assembly (D-12 #5). T23 asked only when the
@@ -43,7 +45,7 @@ from __future__ import annotations
 
 import shutil
 
-from opn_gate import defs, layout, uses
+from opn_gate import judging, layout, uses
 from opn_gate.steps import artifact
 from opn_gate.steps import stage as staging
 from opn_gate.steps.base import RunContext, StepResult
@@ -51,8 +53,8 @@ from opn_gate.toolchain import MeaningRequest, ResolvedToolchain, module_output_
 
 STATEMENT_MODULE = "Statement"
 CONTEXT_MODULE = "Context"
-#: Under the work directory: the statement's own build, apart from the artifact's.
-MEANING_DIR = "meaning"
+#: Under the judging directory (F02-T10): the statement's own build, apart from the artifact's.
+MEANING_DIR = judging.STATEMENT_DIR
 #: ``ctx.data`` key: what the guard found, for the verdict's reader.
 MEANING_KEY = "statement_meaning"
 
@@ -91,7 +93,7 @@ def claims_statement(node_id: str, decl: str, staged: staging.Staged) -> bool:
 
 
 def guard(  # noqa: PLR0911 — one return per way the comparison can end
-    ctx: RunContext, tc: ResolvedToolchain, staged: staging.Staged
+    ctx: RunContext, tc: ResolvedToolchain, staged: staging.Staged, judge: judging.Judge
 ) -> StepResult | None:
     """The refusal, or ``None`` when the artifact proved the statement as stated, or when it is
     a counterexample or a vacuity certificate with no use in its closure (T28). Called once the
@@ -104,19 +106,23 @@ def guard(  # noqa: PLR0911 — one return per way the comparison can end
     claims = claims_statement(node.node_id, node.statement.decl_name, staged)
     if not claims and not declared and not below:
         return None
-    work = ctx.workdir / MEANING_DIR
+    work = judge.statement
     src, build = work / "src", work / "build"
     dest = src / layout.NODES_PREFIX / node.node_id
     dest.mkdir(parents=True, exist_ok=True)
     for stem in (CONTEXT_MODULE, STATEMENT_MODULE):
         shutil.copy(node.path / f"{stem}.lean", dest / f"{stem}.lean")
     target_dir = layout.gate_spec_path(ctx.graph_root, ctx.claim.target_id).parent
-    problem = defs.compile_all(ctx.toolchain, tc, target_dir, work, timeout_s=ctx.wallclock_s)
+    problem = judging.build_definitions(
+        ctx.toolchain, tc, target_dir, judge, timeout_s=ctx.wallclock_s
+    )
     if problem is not None:
         return StepResult(ok=False, diagnostic=problem)
+    # F02-T10: the statement's own files are compiled by calls that can write only here
+    builder = judging.confined(ctx.toolchain, read_write=[work])
     for stem in (CONTEXT_MODULE, STATEMENT_MODULE):
         module = layout.node_module(node.node_id, stem)
-        elab = ctx.toolchain.elaborate(
+        elab = builder.elaborate(
             tc, dest / f"{stem}.lean", module, build, root=src, timeout_s=ctx.wallclock_s
         )
         if not elab.ok:
@@ -136,7 +142,9 @@ def guard(  # noqa: PLR0911 — one return per way the comparison can end
         artifact_module=layout.node_module(node.node_id, "Proof"),
         artifact_decl=node.statement.decl_name,
     )
-    result = ctx.toolchain.statement_meaning(tc, req, [staged.build], timeout_s=ctx.wallclock_s)
+    # F02-T10: the comparison reads the judged modules and the statement's build, read-only
+    reader = judging.confined(ctx.toolchain, read_only=[judge.modules, build])
+    result = reader.statement_meaning(tc, req, [judge.modules], timeout_s=ctx.wallclock_s)
     if not result.ok and not result.doc:
         return StepResult.failed(
             "metaprogram-failed",

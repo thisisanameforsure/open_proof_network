@@ -14,7 +14,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from opn_gate import layout, schemas
+from opn_gate import judging, layout, schemas
 from opn_gate.steps.artifact import PARTIAL_KEY
 from opn_gate.steps.base import RunContext, StepResult
 from opn_gate.steps.replay import PROOF_MODULE
@@ -44,15 +44,19 @@ class AxiomsStep:
     def run(self, ctx: RunContext) -> StepResult:  # noqa: PLR0911 — one return per rule
         node = ctx.node
         tc: ResolvedToolchain | None = ctx.data.get("toolchain")
-        if node is None or tc is None:
+        judge = ctx.data.get(judging.KEY)
+        if node is None or tc is None or not isinstance(judge, judging.Judge):
             return StepResult.failed("step-order", "step 5 needs steps 1, 2 and 4 to have passed")
+        # F02-T10: the axioms are read from the judged modules step 4 replayed, read-only, by a
+        # call that can write nothing the contributor's compile could have reached.
+        seam = judging.confined(ctx.toolchain, read_only=[judge.modules, judge.axioms])
         try:
-            result = ctx.toolchain.axioms(
+            result = seam.axioms(
                 tc,
                 layout.node_module(node.node_id, PROOF_MODULE),
                 node.statement.decl_name,
-                [ctx.build_dir],
-                ctx.workdir / "axioms",
+                [judge.modules],
+                judge.axioms,
                 timeout_s=ctx.wallclock_s,
             )
         except subprocess.TimeoutExpired:
