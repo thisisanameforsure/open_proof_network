@@ -333,10 +333,20 @@ def target_facts(
         status = "active" if legacy_claimable else "listed"
     stewards = tuple(steward.active(tg.path, verifier))
     digested = digestion(tg, status=status, signer=verifier)
+    root_status = tg.statuses[tg.root]
     if doc is None:
+        # F03-T14: a closed root closes a pre-F11 target too, whatever its declaration says. Only
+        # a declaration that says yes gets reasons: one that says no keeps its silence (Q4), so
+        # ``open_beneath`` does not reopen the nodes beneath a target declared closed.
+        legacy_reasons: tuple[str, ...] = ()
+        if legacy_claimable:
+            legacy_reasons = (
+                (ROOT_SETTLED_REASON,) if status == "resolved" else ()
+            ) + intake.root_reasons(root_status)
         return TargetFacts(
             status=status,
-            claimable=legacy_claimable,
+            claimable=legacy_claimable and not legacy_reasons,
+            reasons=legacy_reasons,
             fidelity=grade,
             stewards=stewards,
             digestion=digested,
@@ -351,6 +361,7 @@ def target_facts(
         drifted=drift.frozen,
         steward_rule=rule.enforced,  # F15-R4: only while the switch is on
         stewards=tuple(s.login for s in stewards),
+        root_status=root_status,
     )
     # F12-R14: the pass state per subject, the counted attempts and the flag, all derived.
     routed = qa.routed_by_claims(tg.path, tg.root)
@@ -624,11 +635,15 @@ ROOT_SETTLED_REASON = "status-resolved"
 def open_beneath(reasons: tuple[str, ...]) -> bool:
     """F03-T12 (D-33 v3.20): whether the nodes beneath a target's root take claims, given why the
     target itself does not. ``resolved`` is a fact about the root: a variant or a crux proposed
-    beneath a settled root is open work, and the root itself is off the frontier anyway. Every
+    beneath a settled root is open work, and the root itself is off the frontier anyway. So is a
+    ``root-<status>`` reason (F03-T14: the root refuted, defective or abandoned). Every
     other reason (a frozen upstream, no steward, a listing not yet activated, a known result) is
     about the whole target and still closes every node of it. No reasons at all says nothing: a
     target that predates F11 publishes none, and its own flag decides."""
-    return bool(reasons) and all(reason == ROOT_SETTLED_REASON for reason in reasons)
+    return bool(reasons) and all(
+        reason == ROOT_SETTLED_REASON or reason.startswith(intake.ROOT_REASON_PREFIX)
+        for reason in reasons
+    )
 
 
 def frontier_entry(

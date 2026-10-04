@@ -62,6 +62,21 @@ DORMANT = "dormant"
 #: human check sits on the proof (D-4 step 9), not on the claim. A dormancy declaration refuses no
 #: claim either — it is a signal to the curator, not a lock on the target.
 CLAIMING_STATUSES: tuple[str, ...] = (LISTED, ACTIVE, DORMANT)
+#: F03-T14: the root statuses, short of ``proved``, that leave nothing at the root to work on. A
+#: merged counterexample or vacuity certificate settles the root (D-12), and a curator's
+#: ``abandoned`` closes it (D-14). Only ``proved`` makes the target ``resolved`` (D-33); whether
+#: these should too is the owner's call, so the status word is left alone and claimability alone
+#: answers, with the reason ``root-<status>``.
+CLOSED_ROOT_STATUSES: tuple[str, ...] = ("refuted", "defective", "abandoned")
+ROOT_REASON_PREFIX = "root-"
+
+
+def root_reasons(root_status: str | None) -> tuple[str, ...]:
+    """F03-T14: why a target's root takes no claim, apart from the target's own status."""
+    if root_status in CLOSED_ROOT_STATUSES:
+        return (f"{ROOT_REASON_PREFIX}{root_status}",)
+    return ()
+
 
 #: D-6's Stage 0 exclusions. Not a judgment about the mathematics: these are the domains where a
 #: statement's fidelity cannot be screened by anyone the network can currently reach.
@@ -292,10 +307,12 @@ def claimability(  # noqa: PLR0913 — one argument per input the rule reads
     drifted: bool = False,
     steward_rule: bool = False,
     stewards: tuple[str, ...] | list[str] = (),
+    root_status: str | None = None,
 ) -> tuple[bool, tuple[str, ...]]:
     """F14-R1, F15-R4: ``(claimable, reasons)``. The reasons are empty exactly when it is claimable.
 
-    Three things close claiming: a status that is not open (``resolved``, ``known-result``),
+    Four things close claiming: a status that is not open (``resolved``, ``known-result``), a
+    root that is refuted, defective or abandoned (``root_status``, F03-T14), and
     F12-R11's drift freeze, where an upstream edit stands on the root as it is and proving compute
     waits for a person (D-10 v3.12), and — while the graph's ``policy.json`` enforces the steward
     rule (F15-R3) — an ``open``-track target with no active steward (D-6 v3.17, D-32 v3.17). The
@@ -318,6 +335,7 @@ def claimability(  # noqa: PLR0913 — one argument per input the rule reads
     reasons: list[str] = []
     if status not in CLAIMING_STATUSES:
         reasons.append(f"status-{status}")
+    reasons.extend(root_reasons(root_status))
     if drifted:
         reasons.append("upstream-drift")
     if steward_rule and str(doc.get("track")) == OPEN_TRACK and not stewards:
@@ -325,22 +343,30 @@ def claimability(  # noqa: PLR0913 — one argument per input the rule reads
     return not reasons, tuple(reasons)
 
 
+#: The reasons ``explain`` words whole; the prefixed ones (``status-``, ``root-``,
+#: ``grade-below-``) carry their value and are worded in ``explain`` itself.
+FIXED_REASONS: dict[str, str] = {
+    NO_STEWARD: "no steward has committed to digest and write it up (D-32 v3.17)",
+    "no-posting": "it has not been posted upstream (D-10)",
+    "upstream-drift": (
+        "the statement it was imported from changed upstream; compute is frozen until a "
+        "curator acts (D-10 v3.12)"
+    ),
+}
+
+
 def explain(reason: str) -> str:
     """One reason, in the words the Targets page uses (R10)."""
     if reason.startswith("status-"):
         return f"the target's D-33 status is {reason.removeprefix('status-')}"
-    if reason == NO_STEWARD:
-        return "no steward has committed to digest and write it up (D-32 v3.17)"
+    if reason.startswith(ROOT_REASON_PREFIX):
+        return (
+            f"its root statement is {reason.removeprefix(ROOT_REASON_PREFIX)}, so nothing at the "
+            "root is left to prove (D-12, D-14)"
+        )
     if reason.startswith("grade-below-"):
         return f"its fidelity grade is below {reason.removeprefix('grade-below-')} (D-9)"
-    if reason == "no-posting":
-        return "it has not been posted upstream (D-10)"
-    if reason == "upstream-drift":
-        return (
-            "the statement it was imported from changed upstream; compute is frozen until a "
-            "curator acts (D-10 v3.12)"
-        )
-    return reason
+    return FIXED_REASONS.get(reason, reason)
 
 
 # --- intake new (R2) -----------------------------------------------------------------------
