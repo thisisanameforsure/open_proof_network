@@ -90,6 +90,10 @@ TABLE: tuple[Row, ...] = (
     # F05-T14 (ruling D3(b)): D-28's read table, notation note of 2026-09-24 — the one read that
     # needs a bearer, because what it lists is the caller's own claims.
     Row("list_my_claims", "read", ("GET /claims/mine",), "GET /claims/mine"),
+    # F07-T70, F09-T17 (the owner, 2026-10-04): D-28's read table, notation note of 2026-10-04 —
+    # the caller's own submissions (a new route) and own check records (an existing one, F13-R10).
+    Row("get_my_submissions", "read", ("GET /submissions/mine",), "GET /submissions/mine"),
+    Row("get_check", "read", ("GET /checks/{check_id}",), "GET /checks/<id>"),
     # --- writes (D-35's plain-path table) -----------------------------------------------------
     Row("claim_node", "write", ("POST /claims",), "POST /claims"),
     Row("release_claim", "write", ("DELETE /claims/{claim_id}",), "DELETE /claims/<id>"),

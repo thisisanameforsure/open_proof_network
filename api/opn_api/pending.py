@@ -479,6 +479,8 @@ QUEUE_NOTE = (
 EVERY_LANE = "*"
 #: The most pull requests an answer names as ahead; ``position`` says how many there are.
 MAX_AHEAD = 50
+#: F07-T70: the most finished submissions ``GET /submissions/mine`` names, newest first.
+MAX_RECENT_MINE = 20
 
 
 def queue_order(listed: Listing) -> list[int]:
@@ -1079,3 +1081,37 @@ def snapshot(ctx: Context) -> dict[str, Any]:
 
 async def get_submissions(ctx: Context, request: Request) -> Response:
     return JSONResponse(snapshot(ctx), headers=retry_after(ctx))
+
+
+# --- GET /submissions/mine (F07-T70) --------------------------------------------------------------
+
+
+def mine(ctx: Context, pseudonym: str) -> dict[str, Any]:
+    """The caller's own submissions: ``open``, each the listing's own entry (the record and its
+    place in its lane of the queue, reconciled against the same host listing as
+    ``GET /submissions.json``), and ``recent``, the ``MAX_RECENT_MINE`` most recently finished,
+    newest first, each with how it ended (``state``: merged or closed). What ``GET /claims/mine``
+    is for claims (F05-T14): a lost receipt never loses a pull request. A record finished before
+    the per-pseudonym index existed is not in ``recent`` until it is next written."""
+    wanted = pseudonym.lower()
+    listed = snapshot(ctx)
+    open_now = [e for e in listed["open"] if str(e["pseudonym"]).lower() == wanted]
+    finished = [s for s in ctx.store.list_submissions_by(pseudonym) if s.closed is not None]
+    # newest first: by when it finished, then by number (ULIDs made in one millisecond do not
+    # sort by time; the host numbers pull requests in the order they were opened)
+    finished.sort(key=lambda s: (str(s.closed), s.pr_number), reverse=True)
+    recent = [
+        {**document(s), "state": top_state(s, final_state(s))} for s in finished[:MAX_RECENT_MINE]
+    ]
+    return {
+        "pseudonym": pseudonym,
+        "snapshot_at": listed["snapshot_at"],
+        "open": open_now,
+        "recent": recent,
+        "host": listed["host"],
+    }
+
+
+async def get_my_submissions(ctx: Context, request: Request) -> Response:
+    identity: Identity = request.state.identity
+    return JSONResponse(mine(ctx, identity.pseudonym), headers=retry_after(ctx))

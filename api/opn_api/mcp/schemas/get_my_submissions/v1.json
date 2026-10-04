@@ -1,0 +1,272 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/mcp/get_my_submissions/v1.json",
+  "title": "mcp/get_my_submissions/v1",
+  "description": "The result of the get_my_submissions tool (F07-T70, F09-T17; D-28 notation note of 2026-10-04): GET /submissions/mine, or an error result naming the source that did not answer or the adapter's refusal without a token.",
+  "oneOf": [
+    {
+      "type": "object",
+      "description": "The caller's open submissions, each as GET /submissions.json lists it, and the most recently finished, newest first",
+      "required": [
+        "pseudonym",
+        "snapshot_at",
+        "open",
+        "recent",
+        "host"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "pseudonym": {
+          "type": "string"
+        },
+        "snapshot_at": {
+          "type": "string"
+        },
+        "open": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/submission"
+          }
+        },
+        "recent": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/finished"
+          }
+        },
+        "host": {
+          "type": "object",
+          "description": "The host listing the queue was reconciled against (F07-T47): when it was read, whether it is the last one the host gave, and why when it is",
+          "required": [
+            "read_at",
+            "stale",
+            "error"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "read_at": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "stale": {
+              "type": "boolean"
+            },
+            "error": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "The plain path did not answer, or the arguments were refused (F09-R10)",
+      "required": [
+        "error",
+        "message",
+        "source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "graph",
+            "service",
+            "adapter"
+          ]
+        },
+        "status": {
+          "type": "integer"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "submission": {
+      "type": "object",
+      "description": "A pull request the service opened (F07-T16): operational, not evidentiary (C9)",
+      "required": [
+        "id",
+        "kind",
+        "node_id",
+        "target_id",
+        "pr_number",
+        "pr_url",
+        "pseudonym",
+        "precheck_job_id",
+        "created",
+        "closed",
+        "artifact_type",
+        "queue"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "node_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_id": {
+          "type": "string"
+        },
+        "pr_number": {
+          "type": "integer"
+        },
+        "pr_url": {
+          "type": "string"
+        },
+        "pseudonym": {
+          "type": "string"
+        },
+        "precheck_job_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created": {
+          "type": "string"
+        },
+        "closed": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "artifact_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The record's kind under the name the write routes use, when it is an artifact type of POST /submissions (proof, counterexample, vacuity, reduction, partial); null otherwise (F05-T18)"
+        },
+        "queue": {
+          "type": "object",
+          "description": "Where the pull request stands in the merge actor's order (F05-T18): position from 1 among the open pull requests the actor takes in this one's lane: its own target's, and any the service cannot place in one target (F07-T69) (null for one it does not take, or when the host was never listed), of how many, and what the service last read it to be waiting on (null: not read; ask get_submission)",
+          "required": [
+            "position",
+            "of",
+            "waiting_on",
+            "waiting_on_read_at"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "position": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "of": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "waiting_on": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "waiting_on_read_at": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "finished": {
+      "type": "object",
+      "description": "A finished pull request the service opened for the caller (F07-T70): the record, and how it ended",
+      "required": [
+        "id",
+        "kind",
+        "node_id",
+        "target_id",
+        "pr_number",
+        "pr_url",
+        "pseudonym",
+        "precheck_job_id",
+        "created",
+        "closed",
+        "artifact_type",
+        "state"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "node_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_id": {
+          "type": "string"
+        },
+        "pr_number": {
+          "type": "integer"
+        },
+        "pr_url": {
+          "type": "string"
+        },
+        "pseudonym": {
+          "type": "string"
+        },
+        "precheck_job_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created": {
+          "type": "string"
+        },
+        "closed": {
+          "type": "string"
+        },
+        "artifact_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The record's kind under the name the write routes use, when it is an artifact type of POST /submissions (proof, counterexample, vacuity, reduction, partial); null otherwise (F05-T18)"
+        },
+        "state": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "merged or closed, from the state the live read that finished the record found; null when that state did not say"
+        }
+      }
+    }
+  }
+}

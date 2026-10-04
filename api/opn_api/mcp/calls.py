@@ -104,7 +104,8 @@ class Tool:
     handler, whether it changes state (``write``: not read-only, not idempotent) and who may
     call it (``access``). A write defaults to ``bearer`` and a read to ``anyone``, so an
     anonymous write is always declared, never a default (C7). A read may be declared ``bearer``
-    only when what it reads is the caller's own (``list_my_claims``, F05-T14, ruling D3(b)):
+    only when what it reads is the caller's own (``list_my_claims``, F05-T14, ruling D3(b);
+    ``get_my_submissions`` and ``get_check``, F09-T17):
     every read of the graph stays open (D-28)."""
 
     name: str

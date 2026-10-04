@@ -34,6 +34,11 @@ KEY_SUBMISSION = "submission#"
 KEY_SUBMISSION_PR = "submissionpr#"
 KEY_SUBMISSIONS_OPEN = "submissions#open"
 KEY_SUBMISSION_NODE = "submissionnode#"
+#: F07-T70: every record one pseudonym opened, open or closed — a string set of ids per
+#: pseudonym (lower-cased, as the pseudonym is reserved), so ``GET /submissions/mine`` can name
+#: the caller's finished pull requests without a scan. Records put before the index existed
+#: join it when they are next written (a close re-puts the record).
+KEY_SUBMISSIONS_BY = "submissionsby#"
 #: The kinds that *create* a node (F08-T11): a record of one is findable by the node it proposes,
 #: so a route can tell a node waiting on its pull request from one nobody proposed.
 PROPOSAL_KINDS = ("speculative", "variant")
@@ -210,6 +215,11 @@ class Store(Protocol):
         """Every record no live read has found finished, by id (ULIDs sort by time)."""
         ...
 
+    def list_submissions_by(self, pseudonym: str) -> list[Submission]:
+        """F07-T70: every record ``pseudonym`` opened, open or closed, by id; the pseudonym is
+        matched case-insensitively, as it is reserved."""
+        ...
+
     def close_submission(
         self, submission_id: str, *, closed: str, final_state: dict[str, Any]
     ) -> Submission | None:
@@ -238,6 +248,7 @@ class MemoryStore:
     submissions: dict[str, Submission] = field(default_factory=dict)
     submissions_by_pr: dict[int, str] = field(default_factory=dict)
     submissions_by_node: dict[str, str] = field(default_factory=dict)
+    submissions_by_pseudonym: dict[str, set[str]] = field(default_factory=dict)
     open_submissions: set[str] = field(default_factory=set)
     checks: dict[str, CheckLog] = field(default_factory=dict)
 
@@ -323,6 +334,9 @@ class MemoryStore:
             str(submission.node_id), ""
         ):  # ULIDs sort by time: closing an older record never hides a newer proposal
             self.submissions_by_node[str(submission.node_id)] = submission.id
+        self.submissions_by_pseudonym.setdefault(submission.pseudonym.lower(), set()).add(
+            submission.id
+        )
         if submission.closed is None:
             self.open_submissions.add(submission.id)
         else:
@@ -341,6 +355,10 @@ class MemoryStore:
 
     def list_open_submissions(self) -> list[Submission]:
         return [self.submissions[i] for i in sorted(self.open_submissions) if i in self.submissions]
+
+    def list_submissions_by(self, pseudonym: str) -> list[Submission]:
+        ids = self.submissions_by_pseudonym.get(pseudonym.lower(), set())
+        return [self.submissions[i] for i in sorted(ids) if i in self.submissions]
 
     def close_submission(
         self, submission_id: str, *, closed: str, final_state: dict[str, Any]
@@ -623,6 +641,12 @@ class DynamoStore:
                     }
                 )
         self._open_index("DELETE" if submission.closed is not None else "ADD", submission.id)
+        self._tokens.update_item(  # F07-T70: atomic, as the open index
+            Key={"key": KEY_SUBMISSIONS_BY + submission.pseudonym.lower()},
+            UpdateExpression="ADD #ids :one",
+            ExpressionAttributeNames={"#ids": "ids"},
+            ExpressionAttributeValues={":one": {submission.id}},
+        )
 
     def _open_index(self, action: str, submission_id: str) -> None:
         """``ADD`` or ``DELETE`` one id in the open index's string set — atomic on DynamoDB's side,
@@ -655,6 +679,16 @@ class DynamoStore:
         for submission_id in sorted(str(i) for i in item.get("ids") or ()):
             found = self.get_submission(submission_id)
             if found is not None and found.closed is None:
+                out.append(found)
+        return out
+
+    def list_submissions_by(self, pseudonym: str) -> list[Submission]:
+        key = KEY_SUBMISSIONS_BY + pseudonym.lower()
+        item = self._tokens.get_item(Key={"key": key}).get("Item") or {}
+        out: list[Submission] = []
+        for submission_id in sorted(str(i) for i in item.get("ids") or ()):
+            found = self.get_submission(submission_id)
+            if found is not None:
                 out.append(found)
         return out
 

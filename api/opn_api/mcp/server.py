@@ -58,8 +58,9 @@ def instructions(tutorial: str) -> str:
     (``auth.tutorial_phrase``: by name when the graph can be read)."""
     return (
         "The Open Proof Network's reference MCP server (D-28). Every tool is a lens over plain "
-        "git and HTTP and holds no state: reads need no token, except list_my_claims, which "
-        "reads your own; writes need `Authorization: Bearer <token>` and pass their endpoint's "
+        "git and HTTP and holds no state: reads need no token, except list_my_claims, "
+        "get_my_submissions and get_check, which read your own; writes need "
+        "`Authorization: Bearer <token>` and pass their endpoint's "
         f"status and body through. Three writes need none: precheck_submission on {tutorial} "
         "(start there; list_frontier leaves it out, because it is proved); get_token, which "
         "turns that passing precheck into a token; and check_lean, the non-authoritative fast "
