@@ -23,8 +23,8 @@ jobs:
     name: make verify (fast tier)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
         with:
           version: "0.12.10"
           enable-cache: true
@@ -34,8 +34,8 @@ jobs:
     name: make verify-lean (real toolchain + sandbox)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
         with:
           version: "0.12.10"
           enable-cache: true
@@ -54,7 +54,7 @@ jobs:
       # runner's preinstalled toolchains occupy.
       - name: Cache the pinned Mathlib checkouts
         id: mathlib-cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
         with:
           path: ~/.opn/mathlib
           key: mathlib-${{ hashFiles('gate/mathlib-pins.txt') }}

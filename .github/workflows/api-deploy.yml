@@ -42,9 +42,9 @@ jobs:
   deploy:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
 
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
         with:
           version: ${{ env.UV_VERSION }}
 
@@ -138,7 +138,7 @@ jobs:
           PY
 
       - name: Assume the deploy role (OIDC, no stored key)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a  # v4
         with:
           role-to-assume: ${{ vars.OPN_API_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.OPN_AWS_REGION }}
