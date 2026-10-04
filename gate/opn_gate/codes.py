@@ -808,6 +808,29 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "An explainer signature names an explainer that is not on the node.",
         "Sign an explainer that has merged on the node, by its hash.",
     ),
+    "explainer-invalid": (
+        "gate",
+        None,
+        "An explainer's front matter declares a schema and does not satisfy explainer/v1, or its "
+        "body is not sections under level-2 headings (F20-R2).",
+        "Fix what the message names: exactly one of author and drafter, the target and node it "
+        "sits under, and a body of ## sections; rename the file to the SHA-256 of its content.",
+    ),
+    "explainer-proof-unknown": (
+        "gate",
+        None,
+        "An explainer names a proof that is not a merged proof artifact of its node: its "
+        "Proof.lean, an alternate or a merged partial assembly (F20-R4).",
+        "Set proof to the SHA-256 of one of the artifacts the message lists.",
+    ),
+    "explainer-step-unknown": (
+        "gate",
+        None,
+        "An explainer's section names an outline step the proof's outline does not have, or "
+        "names steps of a proof that has no outline (F20-R4, F20-Q2).",
+        "Name only step ids from targets/<id>/outlines/<proof-hash>.json, or drop the "
+        "{steps: ...} anchor from the heading.",
+    ),
     "explainer-unproved": (
         "gate",
         None,

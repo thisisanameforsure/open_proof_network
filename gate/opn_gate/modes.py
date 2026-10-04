@@ -1036,6 +1036,13 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
     return problems
 
 
+def warnings(graph_root: Path, classification: Classification) -> list[Diagnostic]:
+    """What the gate tells a pull request without refusing it (F20-R5). Never a problem: the
+    classification's ``ok`` does not read these."""
+    del graph_root, classification
+    return []
+
+
 def check_definitions(graph_root: Path, classification: Classification) -> list[Diagnostic]:
     """F11-R15: what a definition added after intake is held to before any sandbox.
 
@@ -2111,7 +2118,22 @@ def check_explainer_file(
     graph_root: Path, located: Located, classification: Classification
 ) -> list[Diagnostic]:
     """R10: an explainer is prose about a merged proof; on an unproved node it is a misfiled
-    annex (D-3), and it is named for its content like one, because a correction is a new entry."""
+    annex (D-3), and it is named for its content like one, because a correction is a new entry.
+
+    F20-R2, R4: an explainer whose front matter declares ``explainer/v1`` names the merged
+    artifact it describes — which may be a partial assembly on a node with no ``Proof.lean`` —
+    and the outline steps its sections describe; ``explainers.check_record`` holds it to both.
+    One filed before F20 keeps the rule above."""
+    from opn_gate import explainers  # noqa: PLC0415 — explainers reads glosses, as this does
+
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    if located.node_id is not None and explainers.is_record(data):
+        naming = paths.check_content_hash_name(located, data)
+        if naming is not None:
+            return [naming]
+        return explainers.check_record(graph_root, located, data) or []
     if located.node_id is not None and not _has_proof(graph_root, located):
         return [
             Diagnostic(
@@ -2121,9 +2143,6 @@ def check_explainer_file(
                 {"path": located.path, "node": located.node_id},
             )
         ]
-    data = _read(graph_root, located)
-    if isinstance(data, Diagnostic):
-        return [data]
     naming = paths.check_content_hash_name(located, data)
     return [naming] if naming is not None else []
 
