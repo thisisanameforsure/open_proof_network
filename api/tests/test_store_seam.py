@@ -130,6 +130,16 @@ class FakeTable:
             item["revoked"] = values[":yes"]
             item["renewed"] = values[":at"]
             return {}
+        if expression == "SET last_used = :at":  # F05-T29: touch_token, at most once a day
+            assert kwargs["ConditionExpression"] == (
+                "attribute_exists(#k) AND (attribute_not_exists(last_used) OR last_used <= :before)"
+            )
+            item = self.items.get(str(kwargs["Key"][self.key]))
+            values = kwargs["ExpressionAttributeValues"]
+            if item is None or str(item.get("last_used", "")) > values[":before"]:
+                raise client_error("ConditionalCheckFailedException", "UpdateItem")
+            item["last_used"] = values[":at"]
+            return {}
         if expression == "SET revoked = :yes":  # F05-T21: revoke_tokens marks an existing row
             item = self.items[str(kwargs["Key"][self.key])]
             item["revoked"] = kwargs["ExpressionAttributeValues"][":yes"]

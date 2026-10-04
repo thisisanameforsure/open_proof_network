@@ -31,11 +31,11 @@ Variables (prefix ``OPN_API_``):
     Default ``60``.
 ``OPN_API_WRITES_PER_HOUR`` / ``OPN_API_ACTIVE_CLAIMS`` / ``OPN_API_TOKENS_PER_LOGIN``
     Per-identity limits (R6). Defaults ``120`` / ``20`` / ``1`` (Q2).
-``OPN_API_TOKEN_DAYS`` / ``OPN_API_TOKEN_CUTOVER``
-    How long a write token is valid from its issue or its last renewal (D-19 v3.28, F05-T27),
-    default ``90``; and the date (``YYYY-MM-DD``) a token issued before tokens carried an expiry
-    is read as issued on, default ``2026-10-04`` — set it to the deploy day if that is later, so
-    every such token gets a full window from the deploy (Q27).
+``OPN_API_TOKEN_IDLE_DAYS`` / ``OPN_API_TOKEN_CUTOVER``
+    How many days a write token may go unused before it lapses (D-19 v3.29, F05-T29), default
+    ``180``: a token in use never lapses. And the date (``YYYY-MM-DD``) a token with no recorded
+    use counts its disuse from, default ``2026-10-04`` — set it to the deploy day if that is
+    later, so no token held at the deploy lapses because of it (Q29).
 ``OPN_API_TOKEN_STARTS_PER_DAY``
     Per-source limit on ``GET /auth/github/start`` (R6). Default ``10``.
 ``OPN_API_PRECHECKS_PER_HOUR`` / ``OPN_API_ANONYMOUS_PRECHECKS_PER_DAY``
@@ -188,12 +188,13 @@ DEFAULT_VERDICT_RETRY_S = 60  # F07-T68
 #: through this process invalidates it at once (F05-T20).
 DEFAULT_CLAIMS_MAX_STALE_S = 30  # F05-T20
 
-# --- audit 2026-10-04: write tokens lapse unless renewed (F05-T27; D-19 v3.28, Q27) ------------
-#: OPN_API_TOKEN_DAYS: how long a write token is valid from its issue or its last renewal.
-DEFAULT_TOKEN_DAYS = 90
-#: OPN_API_TOKEN_CUTOVER: the date (YYYY-MM-DD, UTC midnight) a token issued before tokens carried
-#: an expiry is read as issued on, so it gets a full window from the deploy that introduced
-#: expiry rather than lapsing at once. Set it to the deploy day if that is later than this.
+# --- write tokens lapse after long disuse (F05-T29; D-19 v3.29, Q29) -------------------------
+#: OPN_API_TOKEN_IDLE_DAYS: how many days a write token may go unused before it lapses. Every
+#: authenticated use refreshes it (one store write a day at most), so a token in use never lapses.
+DEFAULT_TOKEN_IDLE_DAYS = 180
+#: OPN_API_TOKEN_CUTOVER: the date (YYYY-MM-DD, UTC midnight) a token with no recorded use counts
+#: its disuse from (or its own issue, if later), so a token held when use began to be recorded
+#: gets a full window from the deploy rather than lapsing at once. Set it to the deploy day.
 DEFAULT_TOKEN_CUTOVER = "2026-10-04"  # noqa: S105 — a date, not a secret
 
 # Parameter Store name (under the prefix) -> the variable it populates (C8 item 3).
@@ -270,7 +271,7 @@ class Settings:
     # --- audit 2026-10-04 (F05-T25) ---
     guide_url: str = default_guide_url(DEFAULT_GRAPH_REPO, DEFAULT_GRAPH_BRANCH)
     # --- audit 2026-10-04 (F05-T27) ---
-    token_days: int = DEFAULT_TOKEN_DAYS
+    token_idle_days: int = DEFAULT_TOKEN_IDLE_DAYS
     token_cutover: str = DEFAULT_TOKEN_CUTOVER
 
     def __repr__(self) -> str:  # secrets never appear in a repr or a log (C8)
@@ -452,8 +453,8 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
         precheck_poll_min_s=_count(env, "OPN_API_PRECHECK_POLL_MIN_S", DEFAULT_PRECHECK_POLL_MIN_S),
         verdict_retry_s=_count(env, "OPN_API_VERDICT_RETRY_S", DEFAULT_VERDICT_RETRY_S),
         claims_max_stale_s=_count(env, "OPN_API_CLAIMS_MAX_STALE_S", DEFAULT_CLAIMS_MAX_STALE_S),
-        # --- audit 2026-10-04 (F05-T27) ---
-        token_days=_int(env, "OPN_API_TOKEN_DAYS", DEFAULT_TOKEN_DAYS),
+        # --- D-19 v3.29 (F05-T29) ---
+        token_idle_days=_int(env, "OPN_API_TOKEN_IDLE_DAYS", DEFAULT_TOKEN_IDLE_DAYS),
         token_cutover=_date(env, "OPN_API_TOKEN_CUTOVER", DEFAULT_TOKEN_CUTOVER),
         # --- audit 2026-10-04 (F05-T25) ---
         guide_url=(

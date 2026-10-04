@@ -5,8 +5,10 @@ A token is 32 random bytes, base64url without padding (§6), shown once. The sto
 so a copied table yields nothing without the parameter. Resolution hashes the presented token
 and looks the hash up: the work is the same for a known and an unknown token (R5).
 
-D-19 v3.28 (F05-T27): a token is valid ``OPN_API_TOKEN_DAYS`` from its issue or its last
-renewal. A lapsed one is ``401 token-expired``; renewal (``POST /tokens/renew``) rotates it.
+D-19 v3.29 (F05-T29): a token lapses only after ``OPN_API_TOKEN_IDLE_DAYS`` without use, so a
+token in use never lapses and nothing has to be renewed (an agent keeps no memory between
+sessions). Each authenticated use refreshes ``last_used``, written at most once a day. A lapsed
+token is ``401 token-expired``; rotation (``POST /tokens/renew``, F05-T27) stays, never required.
 """
 
 from __future__ import annotations
@@ -46,19 +48,24 @@ def bearer(request: Request) -> str | None:
     return header[len(SCHEME) :].strip() or None
 
 
-def expiry(settings: Settings, record: TokenRecord) -> datetime:
-    """When ``record`` lapses (D-19 v3.28, F05-T27): its own ``expires``, or — for a token issued
-    before tokens carried one — ``OPN_API_TOKEN_CUTOVER`` plus the window, so a token that was
-    live at the deploy gets a full window from it rather than lapsing at once (Q27)."""
-    if record.expires:
-        return clock.parse(record.expires)
+#: How stale ``last_used`` may be before a use writes it again (F05-T29): one write a day.
+TOUCH_EVERY = timedelta(days=1)
+
+
+def idle_since(settings: Settings, record: TokenRecord) -> datetime:
+    """When ``record``'s disuse began (D-19 v3.29, F05-T29): its last recorded use (issue counts as
+    one). A token issued before uses were recorded has none, and counts from the later of its
+    issue and ``OPN_API_TOKEN_CUTOVER``, so a token held at the deploy gets a full window from it
+    rather than lapsing at once (Q29)."""
+    if record.last_used:
+        return clock.parse(record.last_used)
     cutover = datetime.fromisoformat(settings.token_cutover).replace(tzinfo=UTC)
-    return cutover + timedelta(days=settings.token_days)
+    return max(clock.parse(record.created), cutover)
 
 
-def new_expiry(settings: Settings, now: datetime) -> str:
-    """The ``expires`` of a token issued or renewed at ``now``."""
-    return clock.render(now + timedelta(days=settings.token_days))
+def expiry(settings: Settings, record: TokenRecord) -> datetime:
+    """When ``record`` lapses if it is not used before then."""
+    return idle_since(settings, record) + timedelta(days=settings.token_idle_days)
 
 
 def lapsed(ctx: Context, record: TokenRecord) -> bool:
@@ -66,22 +73,33 @@ def lapsed(ctx: Context, record: TokenRecord) -> bool:
 
 
 def lapsed_message(ctx: Context, record: TokenRecord) -> str:
-    when = clock.render(expiry(ctx.settings, record))
+    since = clock.render(idle_since(ctx.settings, record))
+    days = ctx.settings.token_idle_days
     return (
-        f"this token lapsed at {when}: a token is valid {ctx.settings.token_days} days from its "
-        "issue or its last renewal, and is renewed before then with POST /tokens/renew (the "
-        "renew_token tool). The identity is kept: a GitHub identity gets a new token for the "
-        "same pseudonym by proving the same login again (GET /auth/github/start, then POST "
-        "/tokens with the same pseudonym)"
+        f"this token lapsed after {days} days without use (unused since {since}); a token in use "
+        "never lapses. The identity is kept: its human operator recovers it with the recovery "
+        "code issued beside the token, POST /tokens/recover {pseudonym, recovery_code} (the "
+        "recover_token tool), which issues a new token. A GitHub identity may instead prove the "
+        "same login again (GET /auth/github/start, then POST /tokens with the same pseudonym)"
     )
 
 
-def resolve(ctx: Context, token: str) -> tuple[TokenRecord, Identity]:
-    """The record and identity behind ``token``, or the 401 that refuses it (R5; D-19 v3.28).
+def touch(ctx: Context, record: TokenRecord) -> None:
+    """Record this use, at most once a day per token (F05-T29): a conditional write, so a busy
+    agent costs one store write a day, never one a request, even when requests race."""
+    now = ctx.clock.now()
+    if record.last_used and now - clock.parse(record.last_used) < TOUCH_EVERY:
+        return
+    ctx.store.touch_token(record.token_hash, clock.render(now), clock.render(now - TOUCH_EVERY))
 
-    Unknown, revoked and renewed tokens are ``invalid-token``; a known token past its window is
-    ``token-expired``. A renewed token's message says so, so a holder who did not renew learns
-    that someone holding their token did."""
+
+def resolve(ctx: Context, token: str) -> tuple[TokenRecord, Identity]:
+    """The record and identity behind ``token``, or the 401 that refuses it (R5; D-19 v3.29).
+
+    Unknown, revoked and renewed tokens are ``invalid-token``; a known token unused for the idle
+    window is ``token-expired``. A token that resolves has this use recorded (``touch``). A
+    renewed token's message says so, so a holder who did not renew learns that someone holding
+    their token did."""
     from opn_api.app import ApiError  # noqa: PLC0415 — app imports this module
 
     challenge = {"WWW-Authenticate": "Bearer"}
@@ -109,6 +127,7 @@ def resolve(ctx: Context, token: str) -> tuple[TokenRecord, Identity]:
             lapsed_message(ctx, record),
             headers={"WWW-Authenticate": 'Bearer error="invalid_token"'},
         )
+    touch(ctx, record)
     return record, identity
 
 

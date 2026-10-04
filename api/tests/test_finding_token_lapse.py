@@ -1,4 +1,14 @@
-"""F05-T27 (audit 2026-10-04; decisions v3.28, D-19): write tokens lapse after ninety days.
+"""F05-T27 (audit 2026-10-04; decisions v3.28, D-19): write tokens lapse — restated by F05-T29.
+
+F05-T29 (decisions v3.29) replaced v3.28's ninety days from issue or renewal with a lapse after
+``OPN_API_TOKEN_IDLE_DAYS`` (180) *without use*, because an agent keeps no memory between
+sessions and cannot be relied on to renew. Every test below is kept and restated to that rule
+(the idle window, no ``expires`` in the answer, rotation optional); what v3.28 built that v3.29
+keeps — rotation, one rotation per token, the MCP's ``token-expired``, re-proof of a lapsed
+GitHub identity, revocation never undone — is still asserted here. The idle rule itself is
+``test_finding_token_idle.py``.
+
+The v3.28 text these tests were first written to:
 
 D-19 v3.28: "A write token is valid for ninety days from its issue or its last renewal, and its
 holder renews it through the service before it lapses; a lapsed token is refused as expired, and
@@ -81,17 +91,20 @@ def regain(h: Harness, pseudonym: str, code: str = "code_alice") -> Any:
 
 
 def test_a_token_lapses_ninety_days_after_issue(harness: Harness) -> None:
+    """Restated (F05-T29): ninety days after issue a token still works; it lapses only after the
+    idle window (180 days) passes with no use."""
     token = harness.token_for("code_alice", "alice")
-    harness.clock.advance(days=89, hours=23)
-    assert write(harness, token).status_code == 201
-    harness.clock.advance(hours=1)
+    harness.clock.advance(days=90)
+    assert write(harness, token).status_code == 201  # v3.28 lapsed it here; v3.29 does not
+    harness.clock.advance(days=180)
     refused = write(harness, token)
     assert refused.status_code == 401, refused.text
     assert refused.json()["error"] == "token-expired"
     assert refused.headers["www-authenticate"].startswith("Bearer")
     message = refused.json()["message"]
-    assert "2026-12-08" in message  # when it lapsed: issue 2026-09-09 + 90 days
-    assert "/auth/github/start" in message  # how to get a new one
+    assert "2026-12-08" in message  # unused since: issue 2026-09-09 + 90 days, the last use
+    assert "/tokens/recover" in message  # how to get a new one: the recovery code
+    assert "/auth/github/start" in message  # or the same login again
 
 
 def test_the_issue_answer_says_when_the_token_lapses(harness: Harness) -> None:
@@ -111,12 +124,15 @@ def test_the_issue_answer_says_when_the_token_lapses(harness: Harness) -> None:
         },
     )
     assert issued.status_code == 201
-    assert issued.json()["expires"] == "2026-12-08T12:00:00Z"
+    # Restated (F05-T29): no fixed end any more; the answer says how long it may go unused.
+    assert "expires" not in issued.json()
+    assert issued.json()["idle_days"] == 180
 
 
 def test_a_token_from_before_the_field_lapses_ninety_days_after_the_cutover() -> None:
-    """A token issued before tokens carried an expiry is read as issued at the cutover: a full
-    window from the deploy, never an instant lapse for every live agent."""
+    """A token issued before tokens recorded their use counts its disuse from the cutover: a full
+    window from the deploy, never an instant lapse for every live agent. Restated (F05-T29): the
+    window is the idle window, 180 days."""
     h = make_harness(env={"OPN_API_TOKEN_CUTOVER": "2026-10-10"})
     held = Identity("01LEGACY", "old-hand", "github", "old-hand", "2026-09-01T00:00:00Z")
     h.store.put_identity(held)
@@ -128,23 +144,24 @@ def test_a_token_from_before_the_field_lapses_ninety_days_after_the_cutover() ->
             created="2026-09-01T00:00:00Z",
         )
     )
-    h.clock.current = datetime(2027, 1, 7, 23, 0, tzinfo=UTC)  # cutover + 89 days 23 h
+    h.clock.current = datetime(2027, 4, 7, 23, 0, tzinfo=UTC)  # cutover + 179 days 23 h, unused
     assert write(h, token).status_code == 201
-    h.clock.current = datetime(2027, 1, 8, 0, 0, 1, tzinfo=UTC)
+    h.clock.current = datetime(2027, 10, 4, 23, 0, 1, tzinfo=UTC)  # 180 days after that use
     assert write(h, token).json()["error"] == "token-expired"
 
 
 def test_the_window_and_the_cutover_are_configuration() -> None:
-    settings = config.load({"OPN_API_TOKEN_DAYS": "30", "OPN_API_TOKEN_CUTOVER": "2026-11-01"})
-    assert settings.token_days == 30
+    """Restated (F05-T29): the window is ``OPN_API_TOKEN_IDLE_DAYS``."""
+    settings = config.load({"OPN_API_TOKEN_IDLE_DAYS": "30", "OPN_API_TOKEN_CUTOVER": "2026-11-01"})
+    assert settings.token_idle_days == 30
     assert settings.token_cutover == "2026-11-01"  # noqa: S105 — a date
-    for bad in ({"OPN_API_TOKEN_DAYS": "0"}, {"OPN_API_TOKEN_CUTOVER": "soon"}):
+    for bad in ({"OPN_API_TOKEN_IDLE_DAYS": "0"}, {"OPN_API_TOKEN_CUTOVER": "soon"}):
         with pytest.raises(config.ConfigError):
             config.load(bad)
 
 
 def test_a_shorter_window_lapses_sooner() -> None:
-    h = make_harness(env={"OPN_API_TOKEN_DAYS": "7"})
+    h = make_harness(env={"OPN_API_TOKEN_IDLE_DAYS": "7"})
     token = h.token_for("code_alice", "alice")
     h.clock.advance(days=7)
     assert write(h, token).json()["error"] == "token-expired"
@@ -155,9 +172,9 @@ def test_a_shorter_window_lapses_sooner() -> None:
 
 def test_the_mcp_answers_token_expired_not_unauthenticated(harness: Harness) -> None:
     """A lapsed bearer is let through to the endpoint, which refuses it as expired: the client
-    is told to renew or re-prove, not that it never had a token."""
+    is told to recover or re-prove, not that it never had a token."""
     token = harness.token_for("code_alice", "alice")
-    harness.clock.advance(days=91)
+    harness.clock.advance(days=181)
     doc = McpClient(harness).failed("claim_node", {"node_id": NODE}, token=token)
     assert doc["status"] == 401
     assert doc["body"]["error"] == "token-expired"
@@ -169,6 +186,7 @@ def test_the_mcp_answers_token_expired_not_unauthenticated(harness: Harness) -> 
 
 
 def test_renewal_rotates_the_token_and_resets_the_window(harness: Harness) -> None:
+    """Restated (F05-T29): rotation is optional; the new token's window is the idle window."""
     token = harness.token_for("code_alice", "alice")
     harness.clock.advance(days=80)
     renewed = renew(harness, token)
@@ -177,16 +195,17 @@ def test_renewal_rotates_the_token_and_resets_the_window(harness: Harness) -> No
     fresh = doc["token"]
     assert fresh != token
     assert doc["identity"]["pseudonym"] == "alice"
-    assert doc["expires"] == "2027-02-26T12:00:00Z"  # renewal day 2026-11-28 + 90
+    assert "expires" not in doc
+    assert doc["idle_days"] == 180
     # The presented token is retired at once; the message says why, so a holder who did not
     # renew learns that someone holding their token did.
     old = write(harness, token)
     assert old.status_code == 401
     assert old.json()["error"] == "invalid-token"
     assert "renew" in old.json()["message"]
-    harness.clock.advance(days=20)  # 100 days after issue: past the first window
+    harness.clock.advance(days=179)  # unused since the rotation
     assert write(harness, fresh).status_code == 201
-    harness.clock.advance(days=70)  # 90 days after renewal
+    harness.clock.advance(days=180)  # unused for the window
     assert write(harness, fresh).json()["error"] == "token-expired"
 
 
@@ -200,7 +219,7 @@ def test_a_token_renews_once(harness: Harness) -> None:
 
 def test_a_lapsed_token_cannot_renew(harness: Harness) -> None:
     token = harness.token_for("code_alice", "alice")
-    harness.clock.advance(days=90)
+    harness.clock.advance(days=180)  # restated (F05-T29): the idle window
     refused = renew(harness, token)
     assert refused.status_code == 401
     assert refused.json()["error"] == "token-expired"
@@ -239,7 +258,7 @@ def test_a_lapsed_github_identity_gets_a_new_token_by_the_same_login(harness: Ha
     token = harness.token_for("code_alice", "alice")
     first = harness.store.get_identity_by_pseudonym("alice")
     assert first is not None
-    harness.clock.advance(days=91)
+    harness.clock.advance(days=181)  # F05-T29: the idle window
     again = regain(harness, "alice")
     assert again.status_code == 201, again.text
     assert again.json()["identity"]["id"] == first.id  # the same identity, kept
@@ -249,7 +268,7 @@ def test_a_lapsed_github_identity_gets_a_new_token_by_the_same_login(harness: Ha
 
 def test_the_same_login_must_name_its_own_pseudonym(harness: Harness) -> None:
     harness.token_for("code_alice", "alice")
-    harness.clock.advance(days=91)
+    harness.clock.advance(days=181)  # F05-T29: the idle window
     other = regain(harness, "someone-new")
     assert other.status_code == 409
     assert other.json()["error"] == "github-login-taken"
@@ -257,7 +276,8 @@ def test_the_same_login_must_name_its_own_pseudonym(harness: Harness) -> None:
 
 
 def test_a_live_token_is_not_replaced_by_signing_in_again(harness: Harness) -> None:
-    """Before a lapse the way to a new token is renewal; the login refuses as it always did."""
+    """Before a lapse the login refuses as it always did (a lost live token is recovered with the
+    recovery code, F05-T30)."""
     harness.token_for("code_alice", "alice")
     refused = regain(harness, "alice")
     assert refused.status_code == 409
@@ -268,7 +288,7 @@ def test_a_revoked_identity_does_not_come_back_by_signing_in(harness: Harness) -
     """Revocation stops the credential (F05-T21); a lapse after it must not undo it."""
     harness.token_for("code_alice", "alice")
     tokens_tool().revoke(harness.store, "alice")
-    harness.clock.advance(days=91)
+    harness.clock.advance(days=181)  # F05-T29: the idle window
     refused = regain(harness, "alice")
     assert refused.status_code == 409
     assert refused.json()["error"] == "github-login-taken"
@@ -283,9 +303,9 @@ def test_a_lapsed_identity_with_a_reserved_name_keeps_it(harness: Harness) -> No
             token_hash=auth.token_hash(harness.settings.token_secret or "", auth.new_token()),
             identity_id=held.id,
             created="2026-09-01T00:00:00Z",
-            expires="2026-09-02T00:00:00Z",
         )
     )
+    harness.clock.advance(days=210)  # restated (F05-T29): unused past the cutover + 180 days
     again = regain(harness, "admin")
     assert again.status_code == 201, again.text
     assert again.json()["identity"]["id"] == "01ADMIN"

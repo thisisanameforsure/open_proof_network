@@ -330,9 +330,9 @@ async def github_callback(ctx: Context, request: Request) -> Response:
 
 def reprovable(ctx: Context, held: Identity) -> bool:
     """Whether the proof that made ``held`` may give it a new token: none of its tokens is live
-    (that one is renewed instead, and a lost one waits out its window), and none was revoked by
-    the operator (F05-T21) — a lapse after a revocation must not undo it. A token retired by a
-    renewal is neither."""
+    (a lost live token is replaced by the recovery code, F05-T30, or waits out its idle window),
+    and none was revoked by the operator (F05-T21) — a lapse after a revocation must not undo it.
+    A token retired by a rotation is neither."""
     for record in ctx.store.list_tokens(held.id):
         if record.revoked and not record.renewed:
             return False
@@ -347,24 +347,28 @@ def check_reprovable(ctx: Context, held: Identity, reference: str) -> None:
             409,
             "github-login-taken",
             f"an identity already exists for GitHub login {reference} ({held.pseudonym}); a new "
-            "token for it is issued only once its tokens have lapsed, and never after the "
-            "operator revoked them. Renew a live token with POST /tokens/renew",
+            "token for it is issued by this proof only once its tokens have lapsed from disuse, "
+            "and never after the operator revoked them. A lost live token is replaced with the "
+            "identity's recovery code: POST /tokens/recover {pseudonym, recovery_code}",
         )
 
 
 def issue(ctx: Context, identity_id: str, now: datetime) -> tuple[str, TokenRecord]:
-    """A new token for ``identity_id``, valid ``OPN_API_TOKEN_DAYS`` from ``now`` (F05-T27)."""
+    """A new token for ``identity_id``, issued at ``now``. It has no fixed end: it lapses only
+    after ``OPN_API_TOKEN_IDLE_DAYS`` without use (D-19 v3.29, F05-T29)."""
     token = auth.new_token()
     record = TokenRecord(
         token_hash=auth.token_hash(ctx.settings.token_secret or "", token),
         identity_id=identity_id,
         created=clockmod.render(now),
-        expires=auth.new_expiry(ctx.settings, now),
+        last_used=clockmod.render(now),  # issue counts as a use: only a legacy token has none
     )
     return token, record
 
 
-def token_doc(token: str, held: Identity, record: TokenRecord) -> dict[str, Any]:
+def token_doc(ctx: Context, token: str, held: Identity) -> dict[str, Any]:
+    """The answer that shows a token once. ``idle_days``: how long it may go unused before it
+    lapses (D-19 v3.29); a token in use never lapses."""
     return {
         "token": token,
         "identity": {
@@ -373,7 +377,7 @@ def token_doc(token: str, held: Identity, record: TokenRecord) -> dict[str, Any]
             "proof_kind": held.proof_kind,
             "created": held.created,
         },
-        "expires": record.expires,
+        "idle_days": ctx.settings.token_idle_days,
     }
 
 
@@ -500,25 +504,22 @@ async def post_tokens(ctx: Context, request: Request) -> Response:
             raise ApiError(409, taken, f"an identity already exists for {reference}") from exc
     token, record = issue(ctx, identity.id, now)
     ctx.store.put_token(record)
-    doc = token_doc(token, identity, record)
+    doc = token_doc(ctx, token, identity)
     if was_form and not wants_json(request):
         return HTMLResponse(token_page(doc), status_code=201)
     return JSONResponse(doc, status_code=201)
 
 
-# --- POST /tokens/renew (F05-T27; D-19 v3.28, Q27) ---------------------------------------------
+# --- POST /tokens/renew: optional rotation (F05-T27, T29; D-19 v3.29, Q27, Q29) ----------------
 
 
 async def post_renew(ctx: Context, request: Request) -> Response:
-    """The holder renews a live token before it lapses: a *new* token for the same identity, valid
-    a full window from now, and the presented one retired at once.
-
-    Rotation, not extension, so that a copied token is bounded by the window it was copied in:
-    extending would let whoever holds a copy keep it alive for ever beside its owner. If a thief
-    renews first, the owner's next call is refused with a message saying a renewal happened,
-    which is how they learn of the leak. One token renews once, even when two renewals race
-    (``Store.renew_token``). A lapsed token cannot renew (``token-expired``); its identity
-    re-proves instead. The body carries nothing."""
+    """Rotation, optional and never required (D-19 v3.29): a *new* token for the same identity and
+    the presented one retired at once. A holder who suspects a copy rotates, and the copy dies;
+    if a thief rotates first, the owner's next call is refused with a message saying a renewal
+    happened, which is how they learn of the leak. One token rotates once, even when two
+    rotations race (``Store.renew_token``). A lapsed token cannot rotate (``token-expired``); its
+    identity recovers instead. The body carries nothing."""
     await body_fields(request, ())
     record, held = auth.authenticated(ctx, request)  # the route table already charged the write
     now = ctx.clock.now()
@@ -530,7 +531,7 @@ async def post_renew(ctx: Context, request: Request) -> Response:
             "this token was renewed or revoked while the renewal ran",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return JSONResponse(token_doc(token, held, fresh), status_code=201)
+    return JSONResponse(token_doc(ctx, token, held), status_code=201)
 
 
 # --- the two pages (escaped; no script, no off-origin reference) ---------------------------------
@@ -573,7 +574,6 @@ def token_page(doc: dict[str, Any]) -> str:
         "<code>Authorization: Bearer …</code>.</p>"
         f"<pre>{html.escape(str(doc['token']))}</pre>"
         f"<p>Identity <code>{html.escape(str(identity['id']))}</code>, "
-        f"created {html.escape(str(identity['created']))}. The token is valid until "
-        f"{html.escape(str(doc['expires']))}; renew it before then with "
-        "<code>POST /tokens/renew</code>.</p>"
+        f"created {html.escape(str(identity['created']))}. A token in use never lapses; one "
+        f"left unused for {html.escape(str(doc['idle_days']))} days does.</p>"
     )

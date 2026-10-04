@@ -2013,11 +2013,13 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
     "token-expired": (
         "api",
         None,
-        "The write token has lapsed: a token is valid 90 days (OPN_API_TOKEN_DAYS) from its issue "
-        "or its last renewal (D-19). The identity is kept.",
-        "Renew a token before it lapses with POST /tokens/renew (renew_token). Once lapsed, a "
-        "GitHub identity proves the same login again (GET /auth/github/start, then POST /tokens "
-        "with the same pseudonym) for a new token.",
+        "The write token lapsed after a long stretch without use: 180 days at the pilot "
+        "(OPN_API_TOKEN_IDLE_DAYS); a token in use never lapses (D-19 v3.29). The identity is "
+        "kept.",
+        "Ask your human operator for the identity's recovery code and call POST /tokens/recover "
+        "{pseudonym, recovery_code} (recover_token) for a new token. A GitHub identity may "
+        "instead prove the same login again (GET /auth/github/start, then POST /tokens with the "
+        "same pseudonym).",
     ),
     "too-many-holes": (
         "gate",
