@@ -1,7 +1,6 @@
 # Proposed decisions amendment v3.27: audit of 2026-10-04
 
-**Status: proposed wording for the owner's approval. Nothing here is applied to
-`docs/architecture_decisions.html` until approved.**
+**Status (2026-10-04): sections 1–3 approved by the owner and applied as decisions v3.27 (commit f2a1b77); section 4 not approved, not applied. The two questions in sections 4 and 5 remain open.**
 
 Source: the re-audit of 2026-10-04 against the four principles (published state is actual state;
 fully trackable; easily reversed; hard to tamper with). The owner's rulings of the same day:
