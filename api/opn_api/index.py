@@ -3,7 +3,8 @@
 A caller who arrives at the hostname with nothing else gets every route, whether it needs a
 bearer and what it is for, plus the two places the rest is written down: the contributor guide
 in the graph repository and the MCP endpoint. Network configuration, open like ``/dco.json``;
-``info.json`` stays the graph's product (``info/v1`` is closed, D-34).
+``info.json`` stays the graph's product (each ``info/vN`` is closed, D-34); since ``info/v2``
+it names the same guide (``Settings.guide_url``, F05-T25).
 """
 
 from __future__ import annotations
@@ -26,8 +27,7 @@ async def get_index(ctx: Context, request: Request) -> Response:
         {
             "service": "Open Proof Network service",
             "authoritative_for": "nothing: the graph repository is the record (D-35)",
-            "guide": f"https://github.com/{settings.graph_repo}/blob/{settings.graph_branch}"
-            "/AGENTS.md",
+            "guide": settings.guide_url,
             "mcp": mcpmod.MCP_PATH,
             "routes": [
                 {

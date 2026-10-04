@@ -71,8 +71,12 @@ def read_only(
     print(f"GET /info.json -> {status}, protocol {info.get('protocol_version')}, policy {policy}")
     if status != 200:
         problems.append(f"info.json is {status}")
-    elif schemas.violations(info, "info/v1"):
-        problems.append(f"info.json does not validate: {schemas.violations(info, 'info/v1')}")
+    elif info.get("schema") not in ("info/v1", "info/v2"):
+        problems.append(f"info.json declares {info.get('schema')!r}, not info/v1 or info/v2")
+    elif schemas.violations(info):  # against the version the graph published (D-34)
+        problems.append(f"info.json does not validate: {schemas.violations(info)[:2]}")
+    elif info.get("schema") != "info/v1" and not (info.get("guide_url") and info.get("errors_url")):
+        problems.append("info.json names no guide_url or errors_url (info/v2, F05-T25)")
     elif not isinstance(policy, dict) or "writes_per_hour" not in policy:
         problems.append(f"info.json carries no rate-limit policy: {policy!r}")
 

@@ -1,0 +1,92 @@
+F05-T25 (audit 2026-10-04): info/v2 names the contributor guide and the error-code catalog
+=========================================================================================
+
+Finding: info.json (D-28 server_info) told an arriving agent the protocol version, the schemas
+and the rate limits, and not where the guide is or where an error code is explained. Owner
+approved the bump (sign-off S4).
+
+Where the URLs come from (read first): info.json is the graph's product, rendered by the gate
+(products.info_doc) in the post-merge job, and the service serves it with rate_limit_policy filled
+from its configuration (api/opn_api/info.py). The gate has no configuration for where the service
+or the guide is deployed, and the products must regenerate byte for byte from the tree (F03-R11,
+check_products.py), so the committed file carries null for both and the SERVICE fills them on
+every read, exactly as it fills rate_limit_policy:
+  errors_url = OPN_API_PUBLIC_URL + "/errors.json"   (existing config input; the route is F05-T23's)
+  guide_url  = OPN_API_GUIDE_URL                     (NEW config input, api/opn_api/config.py)
+               default: <graph host>/<OPN_API_GRAPH_REPO>/blob/<OPN_API_GRAPH_BRANCH>/AGENTS.md,
+               the same URL GET / already named (index.py now reads Settings.guide_url, so the two
+               cannot disagree). No deployment hostname is written into code.
+  A v1 document is served as v1 (no fields added; D-34, consumers parse by version).
+
+Seam first (today's behaviour): Settings.guide_url with the default GET / had computed inline, and
+index.py reading it; test_finding_route_index stayed green.
+
+Red (api/tests/test_finding_info_urls.py, before the fix; the seam in place):
+E       AssertionError: info.json does not name the contributor guide
+E       assert None == 'https://docs.example.test/guide'
+E        +  where None = <built-in method get of dict object at 0x10d779280>('guide_url')
+E        +    where <built-in method get of dict object at 0x10d779280> = {'protocol_version': '3.26', 'rate_limit_policy': {'writes_per_hour': 120, 'active_claims': 20, 'tokens_per_github_log..._per_address_per_day': 10, ...}, 'rendered_from': '5555555555555555555555555555555555555555', 'schema': 'info/v1', ...}.get
+api/tests/test_finding_info_urls.py:52: AssertionError
+E       KeyError: 'guide_url'
+api/tests/test_finding_info_urls.py:69: KeyError
+2 failed, 6 passed, 2 warnings in 0.80s
+
+Green:
+  api test_finding_info_urls, test_info, test_finding_route_index + gate test_products, test_schemas: 163 passed, 2 warnings in 8.30s
+  Wider: every api test naming frontier/claimable/info/index/config/mcp plus site/tests:
+  1474 passed; gate tests naming derive_causes/INFO_SCHEMA/info_doc/golden/unpublished: 312
+  passed; api-deploy-adjacent tests 71 passed; api-deploy.yml parses as YAML.
+  api/tools/smoke.py read_only driven in process against the app (smoke.call patched onto the
+  TestClient; scratch script, not committed): no info/frontier problem for info/v1+frontier/v1,
+  info/v2+frontier/v3 and info/v2+frontier/v4.
+  ruff check + ruff format + mypy (strict) clean on the 8 changed Python files.
+
+Change
+  gate/schemas/info/v2.json (new; HASHES gains one appended line, D-34): v1 plus required
+    guide_url and errors_url, each null or an http(s) URL.
+  gate/opn_gate/products.py: INFO_SCHEMA = info/v2; info_doc writes both as null.
+
+Consumers changed (grep for "info/v1", 2026-10-04):
+  gate/opn_gate/products.py          INFO_SCHEMA
+  gate/tests/test_schemas.py         registry list
+  api/opn_api/info.py                INFO_SCHEMAS (v1, v2), validates the declared version, fills the
+                                     two URLs on a v2 document
+  api/opn_api/config.py              OPN_API_GUIDE_URL -> Settings.guide_url (documented in the docstring)
+  api/opn_api/index.py               GET / names Settings.guide_url (same string as before by default)
+  api/tools/smoke.py                 validates info.json against its own version (v1 or v2 only) and,
+                                     for v2, requires both URLs
+  site/opn_site/model.py             PRODUCT_SCHEMAS["info.json"] gains info/v2
+  .github/workflows/api-deploy.yml   package check requires info/v2
+  unchanged: api/opn_api/mcp/schemas/server_info/v1.json (pattern ^info/v[1-9][0-9]*$);
+    api/opn_api/routes.py:173 comment still says "(info/v1)" — left alone, routes.py is another
+    agent's file and the line is a comment, not a version check; api/tests/fixtures/info.json stays
+    the v1 document (it now holds v1 acceptance; the v2 shape is tested from the gate's own render).
+
+Goldens regenerated in this commit (diff: schema string, info [1] -> [1, 2], the two null fields;
+nothing else), recipe:
+  PYTHONPATH=gate uv run --frozen python -c "import sys; sys.path.insert(0, 'gate/tests'); import test_products as t; t.write_goldens()"
+  The api's golden-copy fixtures (test_fixture_is_golden.write_fixtures) were re-run and did not
+  change: none of them is info.json.
+
+Deploy / re-pin notes (owner's):
+  - OPN_API_GUIDE_URL is optional; unset, the guide is the graph's AGENTS.md. If the guide should
+    be the site's /docs/#agents instead, set it on the stack (api/infra/api.cfn.yaml has no
+    parameter for it yet).
+  - errors_url points at GET /errors.json, which F05-T23 adds; deploy them together.
+  - The graph must publish schemas/info/v2.json (and frontier/v4.json) at the re-pin, or
+    products.generate refuses schema-unpublished (F03-T8). Live info.json stays v1 until a
+    re-render after the re-pin.
+
+Proposed Q entry (F05-Q21):
+  info/v2's guide_url and errors_url are filled by the service, null in the committed file (T25,
+  audit 2026-10-04). Where the guide and the errors catalog are deployed is configuration, not a
+  fact of the graph, and the products must regenerate byte for byte from the tree with the pinned
+  gate (F03-R11), so the gate writes null and GET /info.json fills both on every read, the
+  rate_limit_policy precedent (R6). errors_url is OPN_API_PUBLIC_URL + /errors.json; guide_url is
+  the new OPN_API_GUIDE_URL, defaulting to the graph's AGENTS.md, which GET / now reads from the
+  same setting. A v1 document is served unchanged. Reversal: drop the two fields from info_doc and
+  info.py; info/v2 stays published (D-34).
+
+Proposed ledger line: T25 ✓ 2026-10-04 (info/v2: guide_url, errors_url filled by the service from
+  OPN_API_GUIDE_URL and OPN_API_PUBLIC_URL; v1 and v2 served; live after the re-pin and a re-render)
+  engineering/evidence/F05/task-25-audit-2026-10-04.txt

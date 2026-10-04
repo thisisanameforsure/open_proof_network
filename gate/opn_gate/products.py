@@ -63,7 +63,7 @@ FRONTIER_SCHEMA = "frontier/v4"  # T16: status, cause, needs (v3, T7: partials; 
 #: F15-R9: the policy state at the top; per target the active stewards, the digestion state with
 #: its counts, the calibration flag, and `no-steward` among the reasons: v6.
 INDEX_SCHEMA = "targets-index/v7"  # v7 (F07-T24): step9 gains `calibration`
-INFO_SCHEMA = "info/v1"
+INFO_SCHEMA = "info/v2"  # F05-T25: guide_url, errors_url (null here; the service fills them)
 CLAIMS_SCHEMA = "claims/v1"
 CLAIMS_FILE = "claims.json"
 TAGS_CACHE = ".tags-cache.json"
@@ -836,6 +836,11 @@ def info_doc(
         },
         "rate_limit_policy": None,
         "rendered_from": rendered_from,
+        # F05-T25 (info/v2): where the guide and the errors catalog are deployed is the
+        # service's configuration, not a fact of the graph, and the products regenerate byte
+        # for byte from the tree (R11); the service fills both on every read.
+        "guide_url": None,
+        "errors_url": None,
     }
 
 

@@ -1,8 +1,10 @@
 {
+  "errors_url": null,
+  "guide_url": null,
   "protocol_version": "3.26",
   "rate_limit_policy": null,
   "rendered_from": "5555555555555555555555555555555555555555",
-  "schema": "info/v1",
+  "schema": "info/v2",
   "schemas": {
     "annex": [
       1,
@@ -63,7 +65,8 @@
       4
     ],
     "info": [
-      1
+      1,
+      2
     ],
     "ledger": [
       1
