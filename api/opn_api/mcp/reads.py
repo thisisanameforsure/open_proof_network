@@ -23,8 +23,8 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
-from opn_api import frontier, precheck, requests
-from opn_api.app import ApiError, CachedFile
+from opn_api import frontier, pending, precheck, requests
+from opn_api.app import ApiError, CachedDir, CachedFile
 from opn_api.githost import GitHostError
 from opn_api.mcp import demarcate, results
 from opn_api.mcp.calls import ID_PARAM, Call, Source, Tool, error, params
@@ -89,13 +89,41 @@ def committed(ctx: Context, path: str, *, optional: bool = False) -> bytes | Non
 
 
 def listing(ctx: Context, path: str) -> list[str]:
-    """The files under a directory at ``main``; an absent directory is an empty listing."""
+    """The files under a directory at ``main``; an absent directory is an empty listing.
+
+    F07-T68: a listing is a Contents-API call as the App, so it is read once per head of
+    ``main`` (``frontier.pin_head``; once per ``frontier_max_stale_s`` when the head is not
+    known) and kept. While the App's budget is held at the reserve it is not read at all: the
+    last listing of the path is served, and with none the call is a ``host-budget-exhausted``
+    error naming the reset, as the other held reads say it."""
+    frontier.pin_head(ctx)
+    ref = ctx.head or ctx.settings.graph_branch
+    cached = ctx.listings.get(path)
+    now = time.monotonic()
+    if (
+        cached is not None
+        and cached.ref == ref
+        and (ctx.head is not None or now - cached.fetched_at < ctx.settings.frontier_max_stale_s)
+    ):
+        return _names(cached.names)
+    hold = pending.budget_hold(ctx)
+    if hold is not None:
+        if cached is not None:
+            return _names(cached.names)
+        raise error("host-budget-exhausted", hold, "graph")
     try:
         names = ctx.githost.list_dir(ctx.settings.graph_repo, ctx.settings.graph_branch, path)
     except GitHostError as exc:
         raise error(
             "graph-unreachable", f"cannot list {path} in the graph: {exc}", "graph"
         ) from exc
+    if len(ctx.listings) >= pending.MAX_REMEMBERED:
+        ctx.listings.clear()
+    ctx.listings[path] = CachedDir(ref, names, now)
+    return _names(names)
+
+
+def _names(names: list[str] | None) -> list[str]:
     return [n for n in (names or []) if n != ".gitkeep"]
 
 

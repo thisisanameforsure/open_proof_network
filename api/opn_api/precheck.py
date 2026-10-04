@@ -19,6 +19,7 @@ import io
 import json
 import logging
 import secrets
+import time
 import zipfile
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
@@ -678,18 +679,27 @@ async def get_precheck(ctx: Context, request: Request) -> Response:
     job = load(ctx, str(request.path_params["job_id"]))
     if job is None:
         raise ApiError(404, "job-unknown", "no such precheck job")
-    job = advance(ctx, job)
-    return JSONResponse(job.as_dict(ctx.clock.now()))
+    job = advance(ctx, job, read=True)
+    return JSONResponse(job.as_dict(ctx.clock.now()), headers=pending.retry_after(ctx))
 
 
-def advance(ctx: Context, job: Job) -> Job:
+def advance(ctx: Context, job: Job, *, read: bool = False) -> Job:
     """R5, Q3: poll on read. Look up the run, and when it has finished, take its artifact,
     verify the signature and store the result. A terminal job never changes again.
 
     A host failure while polling leaves the job as it is and is logged: a transient GitHub
     outage must not turn a running job into a permanent error (C7).
+
+    F07-T68: ``read`` is the anonymous ``GET /precheck/<id>``. It asks the host about one job at
+    most once per ``precheck_poll_min_s`` and not at all while the App's budget is held at the
+    reserve, answering the record as it stands (the route adds ``Retry-After`` when the budget is
+    why). The write routes that stand on a job (``POST /submissions``, ``POST /tokens``) advance
+    it unthrottled, since their answer depends on the job's latest state.
     """
     if job.state in TERMINAL or job.expired_at(ctx.clock.now()):
+        ctx.precheck_polls.pop(job.id, None)
+        return job
+    if read and not _may_poll(ctx, job.id):
         return job
     try:
         run = ctx.githost.find_run(
@@ -703,6 +713,21 @@ def advance(ctx: Context, job: Job) -> Job:
     if not run.completed:
         return _store(ctx, job, replace(job, state="running", run_id=str(run.id), run_url=run.url))
     return _collect(ctx, job, run)
+
+
+def _may_poll(ctx: Context, job_id: str) -> bool:
+    """F07-T68: whether an anonymous poll of ``job_id`` may ask the host now — not inside
+    ``precheck_poll_min_s`` of the last one, and not while the budget is held — recording the
+    poll when it may."""
+    now = time.monotonic()
+    last = ctx.precheck_polls.get(job_id)
+    if last is not None and now - last < ctx.settings.precheck_poll_min_s:
+        return False
+    if pending.budget_hold(ctx) is not None:
+        return False
+    pending.forget_old(ctx.precheck_polls, ctx.settings.precheck_poll_min_s)
+    ctx.precheck_polls[job_id] = now
+    return True
 
 
 def _collect(ctx: Context, job: Job, run: WorkflowRun) -> Job:
