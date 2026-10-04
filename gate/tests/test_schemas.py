@@ -46,6 +46,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "gate-spec/v1",
         "gloss-signature/v1",
         "gloss/v1",
+        "glosses/v1",  # F20-T4 (R9)
         "graph/v1",
         "graph/v2",
         "graph/v3",

@@ -391,10 +391,10 @@ def _circular_below(
 
 def withdrawn_names(reader: Reader, target_id: str, node_id: str, directory: str) -> frozenset[str]:
     """``records.withdrawn_names`` through a reader (F08-T33): the file names under
-    ``<node>/<directory>/`` a merged ``withdrawal/v1`` record names. The same rule — a withdrawal
-    that does not validate is logged and passed over, so the record it names stands; no date is
-    compared — so the bundle the service derives over the host reads a withdrawn record as absent
-    exactly where the gate's products do (F10-Q7)."""
+    ``<node>/<directory>/`` a merged ``withdrawal/v1`` or ``v2`` record names. The same rule — a
+    withdrawal that does not validate is logged and passed over, so the record it names stands;
+    no date is compared — so the bundle the service derives over the host reads a withdrawn
+    record as absent exactly where the gate's products do (F10-Q7)."""
     withdrawals = f"{node_path(target_id, node_id)}/{recordsmod.WITHDRAWALS_DIR}"
     prefix = f"{directory}/"
     named: set[str] = set()
@@ -406,7 +406,10 @@ def withdrawn_names(reader: Reader, target_id: str, node_id: str, directory: str
         if raw is None:
             continue
         try:
-            doc = _yaml(raw, path, recordsmod.WITHDRAWAL_SCHEMA)
+            doc = _yaml(raw, path, None)  # against the version it declares (D-34; F20-R7)
+            if doc.get("schema") not in recordsmod.WITHDRAWAL_SCHEMAS:
+                msg = f"{path} declares {doc.get('schema')!r}, not a withdrawal"
+                raise schemas.SchemaError(msg)
         except (schemas.SchemaError, ContextError) as exc:
             log.warning("%s: a withdrawal that does not validate is passed over: %s", path, exc)
             continue

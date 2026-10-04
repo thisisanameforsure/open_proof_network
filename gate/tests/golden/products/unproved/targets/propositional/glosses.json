@@ -1,0 +1,88 @@
+{
+  "rendered_from": "5555555555555555555555555555555555555555",
+  "schema": "glosses/v1",
+  "subjects": [
+    {
+      "chains": [],
+      "file": "nodes/and-reassoc/Statement.lean",
+      "kind": "statement",
+      "lean_hash": "22d574bed0997f637bac7a12d70f61acadd44c2f2f65812f8e7d94915a4bf6e7",
+      "module": null,
+      "node": "and-reassoc",
+      "record": "gloss"
+    },
+    {
+      "chains": [],
+      "file": "nodes/and-reassoc/Witness.lean",
+      "kind": "witness",
+      "lean_hash": "a9781478814cd8a09f511dd4ca46094bc640e6cc10559d41e6deeb750d8a5d75",
+      "module": null,
+      "node": "and-reassoc",
+      "record": "gloss"
+    },
+    {
+      "chains": [],
+      "file": "nodes/and-reassoc/Proof.lean",
+      "kind": "proof",
+      "lean_hash": "b378cb7cadba8366b22489d6e3b9b02875b08a5f4accb077e9466c5f74d90b66",
+      "module": null,
+      "node": "and-reassoc",
+      "record": "explainer"
+    },
+    {
+      "chains": [],
+      "file": "nodes/and-swap-reassoc/Statement.lean",
+      "kind": "statement",
+      "lean_hash": "1fd9af9053c56877f4e7ec2ad69aa16602d39e826259da3878a8cc30a3b6791c",
+      "module": null,
+      "node": "and-swap-reassoc",
+      "record": "gloss"
+    },
+    {
+      "chains": [],
+      "file": "nodes/and-swap-reassoc/Witness.lean",
+      "kind": "witness",
+      "lean_hash": "a9781478814cd8a09f511dd4ca46094bc640e6cc10559d41e6deeb750d8a5d75",
+      "module": null,
+      "node": "and-swap-reassoc",
+      "record": "gloss"
+    },
+    {
+      "chains": [],
+      "file": "nodes/and-swap-reassoc/Proof.lean",
+      "kind": "proof",
+      "lean_hash": "11451d603f82654e6ef1d9fa59d28567b78675324fd121104d2e95676d41be29",
+      "module": null,
+      "node": "and-swap-reassoc",
+      "record": "explainer"
+    },
+    {
+      "chains": [],
+      "file": "nodes/tutorial-and-swap/Statement.lean",
+      "kind": "statement",
+      "lean_hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
+      "module": null,
+      "node": "tutorial-and-swap",
+      "record": "gloss"
+    },
+    {
+      "chains": [],
+      "file": "nodes/tutorial-and-swap/Witness.lean",
+      "kind": "witness",
+      "lean_hash": "6a1f2eaf02f1835908667f8bba983bfd2530a620345218a11bdee93cf9cc0bfb",
+      "module": null,
+      "node": "tutorial-and-swap",
+      "record": "gloss"
+    },
+    {
+      "chains": [],
+      "file": "nodes/tutorial-and-swap/Proof.lean",
+      "kind": "proof",
+      "lean_hash": "721b98ef97040596c6625c36749b28dfddbe4156fb84c31dcb5e4145b4f4222d",
+      "module": null,
+      "node": "tutorial-and-swap",
+      "record": "explainer"
+    }
+  ],
+  "target": "propositional"
+}

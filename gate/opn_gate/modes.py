@@ -24,7 +24,9 @@ So the diff is classified into exactly one mode before anything else runs:
                  new explainers: a real-identity contributor's comprehension claim on one
                  explainer, refused by name when the explainer is absent, the sentence
                  differs, the signature fails or the signer is neither an active steward of
-                 the target nor a listed curator (F15-Q4)
+                 the target nor a listed curator (F15-Q4). Since F20-R1, also glosses under
+                 ``gloss/`` of a node of any status or of a target's definition modules
+                 (D-3 v3.30), checked by ``opn_gate.glosses`` and never built
 ``proposal``     exactly one new node directory and nothing else — or only ``Witness.lean``
                  on a hole whose slot is unfilled (F08-R2, R5); admission decides, nobody
                  reviews (D-29)
@@ -81,6 +83,7 @@ from opn_gate import (
     defs,
     evidence,
     fidelity,
+    glosses,
     intake,
     layout,
     ledger,
@@ -420,11 +423,17 @@ def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per reject
     *,
     author: str | None = None,
     curators: Curators | None = None,
+    graph_root: Path | None = None,
 ) -> Classification:
     """R3, F08-R2, R8: the diff's one mode, or the reasons it is not a submission at all.
 
     ``author`` is the login that opened the pull request, as the host reports it; ``curators`` is
     the graph's role file. Both are consulted only when the diff is curator-shaped.
+
+    ``graph_root``, the checkout, is read for one fact the path cannot give: what a withdrawal
+    withdraws. A withdrawal of a gloss or explainer version (F20-R7) is its author's, a steward's
+    or a curator's and rides the explainer mode; every other withdrawal stays a curator record
+    (F08-T31). Without a checkout every withdrawal is read as a curator's, the stricter reading.
     """
     changes = list(changes)
     if not changes:
@@ -453,8 +462,19 @@ def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per reject
     # A new node directory is one whose definition files are added; a status record outside
     # every new directory, or a versioned directory, is a curator's act (F08-R8).
     new_dirs = sorted({loc.node_id for loc in located if loc.role == "node" and loc.node_id})
+    versions_withdrawn = {
+        loc.path
+        for loc in located
+        if loc.role == "withdrawal"
+        and graph_root is not None
+        and withdraws_version(graph_root, loc.path)
+    }
     curator_records = [
-        loc for loc in located if loc.role in paths.CURATOR_ROLES and loc.node_id not in new_dirs
+        loc
+        for loc in located
+        if loc.role in paths.CURATOR_ROLES
+        and loc.node_id not in new_dirs
+        and loc.path not in versions_withdrawn
     ]
     if any(loc.role in paths.INTAKE_ROLES for loc in located):
         # A target's own files arrive whole in its intake (F11-R2); after it, exactly two of them
@@ -548,8 +568,9 @@ def classify(  # noqa: PLR0911, PLR0912 — one return and one branch per reject
     modified = {c.path for c in changes if c.status == "M"}
     replaced = tuple(loc.path for loc in located if loc.role == "proof" and loc.path in modified)
     # F18-R8: who may write a proposed-for record is ``check_proposed_for``'s question, and the
-    # curator half of it is the host's fact, so it rides on the classification.
-    who = author if pointers else None
+    # curator half of it is the host's fact, so it rides on the classification. F20-R6, R7: so
+    # is the steward-or-curator half of superseding a signed version and of a withdrawal.
+    who = author if pointers or mode == "explainer" else None
     return Classification(
         mode, target_id, node_id, tuple(located), admit=admit, replaced=replaced, author=who
     )
@@ -931,6 +952,30 @@ def _locate_change(change: Change, located: list[Located]) -> list[Diagnostic]:
     return []
 
 
+#: The roles the explainer mode carries: prose about Lean that asserts nothing a kernel checks,
+#: and the signatures on it (F15-R8; F20-R1).
+#: A withdrawal reaches this table only when it withdraws a gloss or explainer version (F20-R7):
+#: ``classify`` sends every other withdrawal to the curator mode first.
+EXPLAINER_FAMILY: frozenset[Role] = frozenset(
+    {"explainer", "explainer-signature", "gloss", "gloss-signature", "withdrawal"}
+)
+
+
+def withdraws_version(graph_root: Path, path: str) -> bool:
+    """Whether the withdrawal at ``path`` names a gloss or explainer version (F20-R7). One that
+    cannot be read names nothing, so it stays a curator record and is refused there (C7)."""
+    try:
+        doc = yaml.safe_load((graph_root / path).read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, yaml.YAMLError):
+        return False
+    named = doc.get("withdraws") if isinstance(doc, dict) else None
+    return isinstance(named, str) and named.startswith(VERSION_DIRS)
+
+
+#: The directories whose files are versions of a chain (D-3 v3.30), as a withdrawal names them.
+VERSION_DIRS: tuple[str, ...] = ("gloss/", "explainer/")
+
+
 def _mode_for(roles: set[Role]) -> Mode | None:  # noqa: PLR0911 — one return per mode
     appendish = set(paths.APPEND_ROLES)
     if "node" in roles:  # F08-R2: a whole new directory, and nothing outside it
@@ -951,9 +996,10 @@ def _mode_for(roles: set[Role]) -> Mode | None:  # noqa: PLR0911 — one return 
         # F07-R23: the assembly, the witnesses it carries for its holes, and appends. A carried
         # witness with no assembly beside it falls through to the end and fits no mode.
         return "partial" if roles <= ({"partial", "hole-witness"} | appendish) else None
-    if roles & {"explainer", "explainer-signature"}:
-        # F15-R8: signature files alone, or with new explainers, are the explainer mode.
-        return "explainer" if roles <= {"explainer", "explainer-signature"} else None
+    if roles & EXPLAINER_FAMILY:
+        # F15-R8: signature files alone, or with new explainers, are the explainer mode; F20-R1
+        # (D-3 v3.30): so are glosses, prose about a Lean file that asserts as little.
+        return "explainer" if roles <= EXPLAINER_FAMILY else None
     # F15: a steward record, a write-up or a policy file is nobody's append; only D-13's,
     # D-31's and D-14's records reach the append mode.
     return "append" if roles <= appendish else None
@@ -986,9 +1032,15 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
         if located.role in paths.APPEND_ROLES:
             problems.extend(check_append_file(graph_root, located, mode=classification.mode))
         elif located.role == "explainer":
-            problems.extend(check_explainer_file(graph_root, located, classification))
+            found = check_explainer_file(graph_root, located, classification)
+            problems.extend(found or check_version_head(graph_root, located, classification))
         elif located.role == "explainer-signature":
             problems.extend(check_explainer_signature(graph_root, located, classification))
+        elif located.role == "gloss":
+            found = glosses.check_gloss(graph_root, located)
+            problems.extend(found or check_version_head(graph_root, located, classification))
+        elif located.role == "gloss-signature":
+            problems.extend(check_gloss_signature(graph_root, located, classification))
         elif located.role == "statement-evidence":
             problems.extend(check_evidence(graph_root, located))
         elif located.role in ("formalization", "formalization-statement"):
@@ -1006,7 +1058,7 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
                 [data] if isinstance(data, Diagnostic) else _check_schema(located, data)
             )
         elif located.role == "withdrawal":
-            problems.extend(check_withdrawal(graph_root, located))
+            problems.extend(check_withdrawal(graph_root, located, classification))
         elif located.role == "credit-correction":
             problems.extend(check_credit_correction(graph_root, located))
         elif located.role in paths.CURATOR_ROLES:
@@ -1023,6 +1075,19 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
         problems.extend(check_alternate(graph_root, classification))
     problems.extend(check_replaced_proof(graph_root, classification))
     return problems
+
+
+def warnings(graph_root: Path, classification: Classification) -> list[Diagnostic]:
+    """What the gate tells a pull request without refusing it (F20-R5). Never a problem: the
+    classification's ``ok`` does not read these. Today: ``explainer-name-unanchored`` on each
+    explainer record whose anchored sections cite a name their steps do not use."""
+    from opn_gate import explainers  # noqa: PLC0415 — explainers reads glosses, as this does
+
+    found: list[Diagnostic] = []
+    for located in classification.located:
+        if located.role == "explainer" and located.node_id is not None:
+            found.extend(explainers.name_warnings(graph_root, located))
+    return found
 
 
 def check_definitions(graph_root: Path, classification: Classification) -> list[Diagnostic]:
@@ -2100,7 +2165,22 @@ def check_explainer_file(
     graph_root: Path, located: Located, classification: Classification
 ) -> list[Diagnostic]:
     """R10: an explainer is prose about a merged proof; on an unproved node it is a misfiled
-    annex (D-3), and it is named for its content like one, because a correction is a new entry."""
+    annex (D-3), and it is named for its content like one, because a correction is a new entry.
+
+    F20-R2, R4: an explainer whose front matter declares ``explainer/v1`` names the merged
+    artifact it describes — which may be a partial assembly on a node with no ``Proof.lean`` —
+    and the outline steps its sections describe; ``explainers.check_record`` holds it to both.
+    One filed before F20 keeps the rule above."""
+    from opn_gate import explainers  # noqa: PLC0415 — explainers reads glosses, as this does
+
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    if located.node_id is not None and explainers.is_record(data):
+        naming = paths.check_content_hash_name(located, data)
+        if naming is not None:
+            return [naming]
+        return explainers.check_record(graph_root, located, data) or []
     if located.node_id is not None and not _has_proof(graph_root, located):
         return [
             Diagnostic(
@@ -2110,9 +2190,6 @@ def check_explainer_file(
                 {"path": located.path, "node": located.node_id},
             )
         ]
-    data = _read(graph_root, located)
-    if isinstance(data, Diagnostic):
-        return [data]
     naming = paths.check_content_hash_name(located, data)
     return [naming] if naming is not None else []
 
@@ -2181,6 +2258,111 @@ def check_explainer_signature(
                 f"{located.target_id} nor a listed curator; at Stage 0 a signature is a "
                 "real-identity contributor's (F15-R8, Q4; D-22)",
                 {"path": located.path, "signer": sig.signer},
+            )
+        )
+    return found
+
+
+def _record_parent(graph_root: Path, located: Located) -> Path:
+    """The directory holding a record's ``gloss/``, ``explainer/`` or ``withdrawals/``: its node,
+    or its target for a definition module's gloss."""
+    rel = PurePosixPath(located.path)
+    depth = 3 if rel.parent.name == glosses.SIGNED_DIR else 2
+    return graph_root / rel.parents[depth - 1]
+
+
+def _versions_of(parent: Path, role: str) -> list[glosses.Version]:
+    from opn_gate import explainers  # noqa: PLC0415 — explainers reads glosses, as this does
+
+    return glosses.load_versions(parent) if role == "gloss" else explainers.versions(parent)
+
+
+def _signed_versions(parent: Path, role: str, signer: Signer) -> frozenset[str]:
+    from opn_gate import explainers  # noqa: PLC0415
+
+    if role == "gloss":
+        return frozenset(glosses.valid_signatures(parent, signer))
+    try:
+        return explainers.signed_hashes(parent, signer)
+    except schemas.SchemaError as exc:  # a malformed signature file: a graph defect, logged
+        log.warning("the explainer signatures under %s do not read: %s", parent, exc)
+        return frozenset()
+
+
+def check_version_head(
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    *,
+    signer: Signer | None = None,
+) -> list[Diagnostic]:
+    """F20-R6: a gloss or explainer that supersedes names the current head of a chain of its own
+    subject, and supersedes a validly signed version only in a pull request an active steward of
+    the target or a listed curator opened (the host's fact, ``Classification.author``)."""
+    parent = _record_parent(graph_root, located)
+    siblings = _versions_of(parent, located.role)
+    stem = PurePosixPath(located.path).stem
+    version = next((v for v in siblings if v.hash == stem), None)
+    if version is None or version.supersedes is None:
+        return []  # nothing superseded; a file that did not load was refused by its own check
+    verifier = signer or signed.default_signer()
+    directory = glosses.GLOSS_DIR if located.role == "gloss" else "explainer"
+    return glosses.head_problems(
+        located.path,
+        version,
+        siblings,
+        glosses.withdrawn_versions(parent, directory),
+        signed_versions=_signed_versions(parent, located.role, verifier),
+        author=classification.author,
+        may_supersede_signed=lambda who: (
+            who is not None
+            and who in real_identities(graph_root, located.target_id, signer=verifier)
+        ),
+    )
+
+
+def check_gloss_signature(
+    graph_root: Path,
+    located: Located,
+    classification: Classification,
+    *,
+    signer: Signer | None = None,
+) -> list[Diagnostic]:
+    """F20-R8: a gloss signature validates, sits beside the gloss it signs under the node (or
+    target) it names, is valid (``glosses.signature_problems``) and is a real-identity
+    contributor's: an active steward of the target or a listed curator. It changes no status,
+    grade or digestion state (F20-Q12), so nothing else is asked of it."""
+    del classification
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    if problems:
+        return problems
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]
+    if doc.get("target") != located.target_id or doc.get("node") != located.node_id:
+        return [
+            Diagnostic(
+                "signature-node",
+                f"{located.path} signs a gloss on {doc.get('target')}/{doc.get('node')}, and it "
+                f"sits under {located.target_id}/{located.node_id} (F20-R8)",
+                {"path": located.path, "target": doc.get("target"), "node": doc.get("node")},
+            )
+        ]
+    verifier = signer or signed.default_signer()
+    found = glosses.signature_problems(
+        located.path, doc, _record_parent(graph_root, located), verifier
+    )
+    who = str(doc["signer"])
+    if who not in real_identities(graph_root, located.target_id, signer=verifier):
+        found.append(
+            Diagnostic(
+                "signer-unlisted",
+                f"{located.path}: {who!r} is neither an active steward of {located.target_id} nor "
+                "a listed curator; a gloss is signed by one of them (F20-R8; D-22)",
+                {"path": located.path, "signer": who},
             )
         )
     return found
@@ -2263,12 +2445,23 @@ def check_alternate(graph_root: Path, classification: Classification) -> list[Di
     return problems
 
 
-def check_withdrawal(graph_root: Path, located: Located) -> list[Diagnostic]:
+def check_withdrawal(
+    graph_root: Path,
+    located: Located,
+    classification: Classification | None = None,
+    *,
+    signer: Signer | None = None,
+) -> list[Diagnostic]:
     """F08-T31 (D-14, D-18 v3.27): a withdrawal validates, and names a record that is on the
     record — a valid status record or defect claim in this node's own ``status/`` or
     ``defects/``. Who may file one is the curator mode's rule (F08-R8): a listed login, reviewed
     by another one. The schema's pattern keeps the name inside the node, so a record of another
-    node or another target cannot be named at all; one that is not there is refused by name."""
+    node or another target cannot be named at all; one that is not there is refused by name.
+
+    F20-R7 (D-3 v3.30): or a gloss or explainer version beside it — under a node, or under the
+    target for a definition module's gloss — withdrawn by that version's author (the record's
+    ``author`` is the version's), or in a pull request an active steward of the target or a
+    listed curator opened; a curator's pull request is the curator mode, already asked."""
     data = _read(graph_root, located)
     if isinstance(data, Diagnostic):
         return [data]
@@ -2280,6 +2473,8 @@ def check_withdrawal(graph_root: Path, located: Located) -> list[Diagnostic]:
         return [doc]  # defence in depth: _check_schema just parsed this same document
     named = str(doc["withdraws"])
     node_dir = PurePosixPath(located.path).parent.parent
+    if named.startswith(VERSION_DIRS):
+        return _check_version_withdrawal(graph_root, located, doc, classification, signer)
     if _is_record_on_file(graph_root, f"{node_dir}/{named}"):
         return []
     return [
@@ -2289,6 +2484,59 @@ def check_withdrawal(graph_root: Path, located: Located) -> list[Diagnostic]:
             f"of this node on the record ({node_dir}/{named}); a withdrawal names one of its own "
             "node's records (F08-T31, D-18 v3.27)",
             {"path": located.path, "withdraws": named},
+        )
+    ]
+
+
+def _check_version_withdrawal(
+    graph_root: Path,
+    located: Located,
+    doc: dict[str, Any],
+    classification: Classification | None,
+    signer: Signer | None,
+) -> list[Diagnostic]:
+    """F20-R7: the version is on the record beside the withdrawal, and the withdrawal is its
+    author's, or a steward's or curator's pull request."""
+    named = str(doc["withdraws"])
+    directory, _, name = named.partition("/")
+    parent = _record_parent(graph_root, located)
+    role = "gloss" if directory == glosses.GLOSS_DIR else "explainer"
+    stem = PurePosixPath(name).stem
+    version = next((v for v in _versions_of(parent, role) if v.hash == stem), None)
+    if version is None or (role == "explainer" and located.node_id is None):
+        return [
+            Diagnostic(
+                "withdrawal-unknown-record",
+                f"{located.path} withdraws {named}, which is not a {role} version on the record "
+                f"beside it ({parent.relative_to(graph_root).as_posix()}/{named}); a withdrawal "
+                "names a version under its own node, or a definition gloss under its target "
+                "(F20-R7)",
+                {"path": located.path, "withdraws": named},
+            )
+        ]
+    if classification is None or classification.mode == "curator":
+        return []  # the curator mode asked who opened it (F08-R8)
+    if version.author is not None and doc["author"] == version.author:
+        return []
+    opened = classification.author
+    verifier = signer or signed.default_signer()
+    if opened is not None and opened in real_identities(
+        graph_root, located.target_id, signer=verifier
+    ):
+        return []
+    return [
+        Diagnostic(
+            "withdrawal-unauthorized",
+            f"{located.path} withdraws {named}, by {doc['author']!r} in a pull request opened by "
+            f"{opened or 'an unknown login'}; a version is withdrawn by its author "
+            f"({version.author or 'a draft has none'}), an active steward of {located.target_id} "
+            "or a listed curator (F20-R7, D-3 v3.30)",
+            {
+                "path": located.path,
+                "withdraws": named,
+                "author": doc["author"],
+                "opened_by": opened,
+            },
         )
     ]
 

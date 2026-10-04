@@ -808,6 +808,37 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "An explainer signature names an explainer that is not on the node.",
         "Sign an explainer that has merged on the node, by its hash.",
     ),
+    "explainer-invalid": (
+        "gate",
+        None,
+        "An explainer's front matter declares a schema and does not satisfy explainer/v1, or its "
+        "body is not sections under level-2 headings (F20-R2).",
+        "Fix what the message names: exactly one of author and drafter, the target and node it "
+        "sits under, and a body of ## sections; rename the file to the SHA-256 of its content.",
+    ),
+    "explainer-name-unanchored": (
+        "gate",
+        None,
+        "A warning, never a refusal: an explainer section cites a qualified Lean name in "
+        "backticks that none of the constants its named outline steps use contains (F20-R5).",
+        "Check the section describes the steps it names; cite the name the outline records, or "
+        "move the sentence to the section whose steps use it. The pull request may merge as is.",
+    ),
+    "explainer-proof-unknown": (
+        "gate",
+        None,
+        "An explainer names a proof that is not a merged proof artifact of its node: its "
+        "Proof.lean, an alternate or a merged partial assembly (F20-R4).",
+        "Set proof to the SHA-256 of one of the artifacts the message lists.",
+    ),
+    "explainer-step-unknown": (
+        "gate",
+        None,
+        "An explainer's section names an outline step the proof's outline does not have, or "
+        "names steps of a proof that has no outline (F20-R4, F20-Q2).",
+        "Name only step ids from targets/<id>/outlines/<proof-hash>.json, or drop the "
+        "{steps: ...} anchor from the heading.",
+    ),
     "explainer-unproved": (
         "gate",
         None,
@@ -875,6 +906,38 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         None,
         "An identity already exists for this GitHub login.",
         "Use the token you were issued before; one GitHub login holds one identity.",
+    ),
+    "gloss-absent": (
+        "gate",
+        None,
+        "A gloss signature signs a gloss that is not beside it under gloss/ (F20-R8).",
+        "Sign a gloss that is on the record; opn-gate gloss sign refuses before writing one "
+        "that is not.",
+    ),
+    "gloss-invalid": (
+        "gate",
+        None,
+        "A gloss's front matter is missing or does not satisfy gloss/v1: it must name its target "
+        "and its subject, set exactly one of author and drafter, and sit under the node (or, for "
+        "a definition module, the target) it describes (F20-R1).",
+        "Fix the front matter as the message says, rename the file to the SHA-256 of its new "
+        "content, and open the pull request again; opn-gate gloss revise writes a valid one.",
+    ),
+    "gloss-subject-mismatch": (
+        "gate",
+        None,
+        "A gloss's lean_hash is not the hash of the Lean file it describes as the tree holds it "
+        "now (F20-R3).",
+        "Read the file as it stands, revise the gloss against it and set lean_hash to the current "
+        "hash the message names.",
+    ),
+    "gloss-subject-unknown": (
+        "gate",
+        None,
+        "A gloss describes a Lean file that is not in the tree: a relation on a node with no "
+        "Relation.lean, or a definition module not under defs/ (F20-R1).",
+        "Name a file that exists: a statement, witness or relation of the node the gloss is filed "
+        "under, or a module under the target's defs/.",
     ),
     "graph-unreachable": (
         "api",
@@ -1656,6 +1719,15 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "A record does not validate against its schema, or is not parseable YAML or JSON.",
         "Fix the field the message names; get_schema gives the record's shape.",
     ),
+    "record-not-head": (
+        "gate",
+        None,
+        "A gloss or explainer supersedes a version that is not the current head of a chain of "
+        "its own subject: one already superseded, withdrawn, of another file or proof, or not "
+        "on the record (F20-R6, D-3 v3.30).",
+        "Supersede the head the message names (opn-gate gloss revise writes it), or set "
+        "supersedes to null to start a chain of your own.",
+    ),
     "record-name-taken": (
         "api",
         None,
@@ -1788,6 +1860,15 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         None,
         "An explainer signature names a different node from the one it sits under.",
         "File the signature under the node it signs.",
+    ),
+    "signed-supersede": (
+        "gate",
+        None,
+        "A gloss or explainer supersedes a version a steward or curator has signed, in a pull "
+        "request opened by neither an active steward of the target nor a listed curator "
+        "(F20-R6).",
+        "Start a chain of your own (supersedes: null), or ask a steward of the target or a "
+        "curator to file the revision.",
     ),
     "signer-unlisted": (
         "gate",
@@ -2188,10 +2269,20 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
     "withdrawal-unknown-record": (
         "gate",
         None,
-        "A curator's withdrawal names a record that is not a valid status record or defect claim "
-        "of the withdrawal's own node (F08-T31, D-18 v3.27).",
-        "Name the record as status/<file> or defects/<file> of the node the withdrawal is filed "
-        "under, as it stands on main, and open the pull request again.",
+        "A withdrawal names a record that is not a valid status record or defect claim of the "
+        "withdrawal's own node, nor a gloss or explainer version beside it (F08-T31, D-18 v3.27; "
+        "F20-R7).",
+        "Name the record as status/<file>, defects/<file>, gloss/<hash>.md or "
+        "explainer/<hash>.md of the node (or, for a definition gloss, the target) the withdrawal "
+        "is filed under, as it stands on main, and open the pull request again.",
+    ),
+    "withdrawal-unauthorized": (
+        "gate",
+        None,
+        "A gloss or explainer version is withdrawn by someone who is neither its author, an "
+        "active steward of the target nor a listed curator (F20-R7, D-3 v3.30).",
+        "Ask the version's author, a steward of the target or a curator to withdraw it, or file a "
+        "chain of your own.",
     ),
     "witness-axiom": (
         "both",

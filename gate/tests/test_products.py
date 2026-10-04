@@ -289,6 +289,7 @@ def test_products_of_the_fixture(tmp_path: Path) -> None:
         "frontier.json",
         "info.json",
         "targets/index.json",
+        "targets/propositional/glosses.json",  # F20-R9
         "targets/propositional/graph.json",
         "targets/propositional/nodes/and-reassoc/CONTEXT.json",  # F10-R3
         "targets/propositional/nodes/and-swap-reassoc/CONTEXT.json",
@@ -445,6 +446,7 @@ def test_deterministic_and_valid(tmp_path: Path) -> None:
         "frontier.json",
         "info.json",
         "targets/index.json",
+        "targets/propositional/glosses.json",  # F20-R9
         "targets/propositional/graph.json",
         "targets/propositional/nodes/and-reassoc/CONTEXT.json",  # F10-R3
         "targets/propositional/nodes/and-reassoc/META.yaml",  # ready -> speculative (R2)
