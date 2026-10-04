@@ -1,0 +1,174 @@
+# F19-T5 (R7, Q9): extract the outlines of the merges made before outline/v1, and hand the curator
+# the files.
+#
+# From the re-pin that carries F19-T4, the graph's `outline` job outlines each building merge after
+# its record is pushed. Every proof artifact merged before that — 67 proofs, 7 alternates and 20
+# partial assemblies at 2026-10-04 — has none, and F20 drafts each explainer from an outline (Q9),
+# so this workflow extracts them once, after that re-pin, and again for any artifact a run names
+# as failed once its cause is fixed. `opn-gate outline` extracts only what has no outline yet, so a
+# re-run costs only what is still missing.
+#
+# Why in the `network` repository: it has no authority over any graph (D-35). It clones the graph
+# read-only at the named commit, extracts in the sandbox, and uploads the files as an artifact.
+# Committing them is the curator's act, by hand, after reading the report (F18-T7's shape).
+#
+# Which gate extracts: the network commit the graph pins (each target's gate-spec.json), checked
+# out on its own — never this workflow's own commit — so every outline's `gate` field names the
+# gate the graph trusts. Targets that pin different commits are refused; name one target to take
+# them one at a time. A pin that predates `opn-gate outline` is refused by name: re-pin first.
+#
+# Contributor Lean runs only in the step-3 image each target pins by digest (C9, D-4 step 3) —
+# pulled, never built, so a wrong pin fails loudly instead of extracting with something else.
+#
+# No secret and no write permission (C8): `contents: read`, nothing else; the graph is public.
+name: outline backfill
+
+on:
+  workflow_dispatch:
+    inputs:
+      graph_sha:
+        description: "the graph commit to outline (a full or short sha on its main)"
+        required: true
+        type: string
+      target:
+        description: "outline only this target id (default: every target)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  GRAPH_REPO: https://github.com/thisisanameforsure/open_proof_network_graph
+
+jobs:
+  extract:
+    name: outlines of the merges before outline/v1 (F19-R7), in the pinned sandbox
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Clone the graph at the named commit (read-only; D-35)
+        env:
+          REF: ${{ inputs.graph_sha }}
+        run: |
+          set -euo pipefail
+          if ! printf '%s' "$REF" | grep -Eq '^[0-9a-f]{7,40}$'; then
+            echo "::error::graph_sha must be a commit sha, not '$REF'"; exit 1
+          fi
+          git clone --quiet --filter=blob:none "$GRAPH_REPO" graph
+          git -C graph checkout --quiet --detach "$REF"
+          echo "outlining graph $(git -C graph rev-parse HEAD)"
+
+      # D-35: the targets to outline, and the one network commit they pin.
+      - name: Find the targets and the network commit they pin
+        id: pin
+        env:
+          ONLY: ${{ inputs.target }}
+        run: |
+          set -euo pipefail
+          python3 - "$ONLY" <<'PY' >> "$GITHUB_OUTPUT"
+          import json, pathlib, re, sys
+          only = (sys.argv[1] or "").strip()
+          specs = sorted(pathlib.Path("graph/targets").glob("*/gate-spec.json"))
+          targets = [p.parent.name for p in specs if not only or p.parent.name == only]
+          if not targets:
+              sys.exit(f"::error::no target to outline (is '{only}' a target id at this commit?)")
+          pins = {t: json.loads((pathlib.Path("graph/targets") / t / "gate-spec.json").read_text())["network_commit"] for t in targets}
+          if len(set(pins.values())) != 1:
+              sys.exit(f"::error::the targets pin more than one network commit {sorted(set(pins.values()))}; name one target")
+          pin = next(iter(pins.values()))
+          if not re.fullmatch(r"[0-9a-f]{40}", pin):
+              sys.exit(f"::error::the pinned network commit is not a sha: {pin!r}")
+          print(f"pin={pin}")
+          print(f"targets={' '.join(targets)}")
+          PY
+          cat "$GITHUB_OUTPUT"
+
+      - name: Check out the network commit the graph pins (D-35)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          repository: thisisanameforsure/open_proof_network
+          ref: ${{ steps.pin.outputs.pin }}
+          path: network-pin
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+        with:
+          version: "0.12.10"
+          enable-cache: true
+
+      - name: Make room for the Mathlib image
+        run: |
+          set -euo pipefail
+          df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h / | tail -1
+
+      - name: Extract every missing outline in the pinned sandbox
+        env:
+          TARGETS: ${{ steps.pin.outputs.targets }}
+          PIN: ${{ steps.pin.outputs.pin }}
+          PYTHONPATH: network-pin/gate
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          uv sync --frozen --project network-pin --quiet
+          # The pinned gate's own command list, from its own help: a pin that predates the
+          # command has no `outline` in it and is refused here, by name, before any image.
+          help="$(uv run --frozen --project network-pin python -m opn_gate.cli --help)"
+          if ! printf '%s' "$help" | grep -Eq '[{,]outline[,}]'; then
+            echo "::error::the graph pins network ${PIN:0:12}, which predates opn-gate outline (F19-T4); re-pin first"
+            exit 1
+          fi
+          commit="$(git -C graph rev-parse HEAD)"
+          {
+            echo "## Outline backfill"
+            echo
+            echo "Graph at \`${commit:0:12}\`, extracted by the pinned network \`${PIN:0:12}\`."
+            echo
+            echo "| target | written | already there | failed |"
+            echo "| --- | --- | --- | --- |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          failures=0
+          mkdir -p outlines
+          for tid in $TARGETS; do
+            image="$(python3 -c 'import json,sys; print(json.load(open(f"graph/targets/{sys.argv[1]}/gate-spec.json")).get("devcontainer_ref") or "")' "$tid")"
+            if [ -z "$image" ]; then
+              echo "| \`$tid\` | &mdash; | &mdash; | its gate-spec.json pins no image (devcontainer_ref) |" >> "$GITHUB_STEP_SUMMARY"
+              failures=$((failures + 1))
+              continue
+            fi
+            docker pull --quiet "$image"
+            echo "::group::outline $tid"
+            set +e
+            uv run --frozen --project network-pin python -m opn_gate.cli outline \
+              --graph graph --commit "$commit" --target "$tid" --dest outlines \
+              --image "$image" --no-build --out "out/$tid" > "report-$tid.json" 2> "report-$tid.err"
+            code=$?
+            set -e
+            cat "report-$tid.json" "report-$tid.err" || true
+            echo "::endgroup::"
+            row="$(python3 -c 'import json,sys
+          try: d = json.load(open(sys.argv[1]))
+          except Exception: print("| `%s` | error | | see the log |" % sys.argv[2]); raise SystemExit
+          print("| `%s` | %d | %d | %d |" % (sys.argv[2], len(d["written"]), len(d["present"]), len(d["failed"])))' "report-$tid.json" "$tid")"
+            echo "$row" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$code" -ne 0 ]; then failures=$((failures + 1)); fi
+            # One target's image at a time: the runner's disk holds one Mathlib image.
+            docker image rm --force "$image" > /dev/null 2>&1 || true
+          done
+          if [ "$failures" -gt 0 ]; then
+            echo "::error::$failures target(s) left an artifact without an outline; each report names it with its reason, and the artifact holds every outline that was written"
+            exit 1
+          fi
+
+      - name: Keep the outlines and the reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: outlines
+          path: |
+            outlines/
+            report-*.json
+            report-*.err
+          if-no-files-found: warn
