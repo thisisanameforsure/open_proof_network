@@ -107,12 +107,12 @@ def test_an_acknowledged_merge_reports_but_passes(
     assert "acknowledged: #3 " in capsys.readouterr().out
 
 
-def test_the_live_audit_findings_stay_pending_the_owner() -> None:
-    """The four merges the audit found are acknowledged only so the sweep can go green on the
-    rest; each reason says the decision is the owner's until he makes it."""
+def test_the_live_audit_findings_are_acknowledged_for_good() -> None:
+    """The four merges the audit found are acknowledged for good, the owner's decision of
+    2026-10-04 (F07-T73): restated from the test that held them pending until he decided. The set
+    is unchanged; the replay route stays for any merge found later."""
     tool = load_tool()
     assert set(tool.ACKNOWLEDGED) == {2, 8, 72, 73}
-    assert all("owner" in reason for reason in tool.ACKNOWLEDGED.values())
 
 
 def test_credits_grammar_matches_the_graph_post_merge_helper() -> None:
@@ -146,3 +146,12 @@ def test_the_sweep_workflow_is_scheduled_and_read_only() -> None:
     assert graph["with"]["persist-credentials"] is False
     assert graph["with"]["fetch-depth"] == 0
     assert any("gate/tools/uncredited.py" in s.get("run", "") for s in steps)
+
+
+def test_every_acknowledged_merge_carries_the_owners_reason() -> None:
+    """F07-T73: the owner chose, on 2026-10-04, to acknowledge the four merges the audit found
+    rather than replay them. An acknowledgement is a permanent entry in the sweep, so each must say
+    why that merge has no gate commit, never that a decision is still pending."""
+    for number, reason in load_tool().ACKNOWLEDGED.items():
+        assert "pending" not in reason.lower(), number
+        assert f"#{number}" in reason, number

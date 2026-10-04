@@ -37,10 +37,20 @@ CREDIT_RE = re.compile(r"^gate:((?: #[0-9]+)+)(?: |$)")
 TARGET_RE = re.compile(r"^targets/([^/]+)/")
 
 #: Merges known to be owed, each with the reason it does not fail the sweep. These four were found
-#: by the 2026-10-04 audit; whether each is acknowledged for good or replayed is the owner's call,
-#: so the reason says so until he decides (F07-T59).
-PENDING = "pending the owner's decision: acknowledge or replay"
-ACKNOWLEDGED: dict[int, str] = {2: PENDING, 8: PENDING, 72: PENDING, 73: PENDING}
+#: by the 2026-10-04 audit, and the owner chose that day to acknowledge them for good rather than
+#: replay them under pins weeks old (F07-T59, F07-T73): what is missing is a record line, never the
+#: content, which later bot commits re-rendered.
+ACKNOWLEDGED: dict[int, str] = {
+    2: "#2 (2026-09-08), the graph's first proof, merged before the post-merge job wrote gate "
+    "commits; its attestation landed by hand as 'attestation: PR #2 (tutorial-and-swap)'",
+    8: "#8 (2026-09-11), the first merged variant: it gave the tutorial a second sink, root "
+    "inference refused and the job wrote nothing (F08-Q19) until the root was declared (F08-T6)",
+    72: "#72 (2026-09-17), the erdos-1050 intake, merged during the F15 re-pin: a gate-written "
+    "hole that never elaborated failed the tag scan and the run lost its bot commit "
+    "(log 2026-09-17)",
+    73: "#73 (2026-09-17), the erdos-69 intake, lost its bot commit in the same run as #72; its "
+    "pin was corrected by hand in bdcd64e10",
+}
 
 
 @dataclass(frozen=True)
