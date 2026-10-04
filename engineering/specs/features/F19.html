@@ -122,8 +122,8 @@ requirements the owner adopted.</p>
   <tr><td>F19-R8</td><td>For each <code>target_proofs</code> entry (F18-R1) the site shall render a
     reading view that leads with the root's informal statement, its Lean statement and its fidelity
     and QA state (requirement A), then lists the nodes of the proof's closure with dependencies before
-    dependents, ties in record order. Each node shall show its informal account slot (its explainer, or
-    the recruiting cue D-36 asks for), its Lean statement, its outline folded to top-level steps, and a
+    dependents, ties in record order. Each node shall show its Lean statement with its gloss beside it (F20,
+    or the cue), its informal account slot (its explainer, or the recruiting cue D-36 asks for), its outline folded to top-level steps, and a
     link to its proof's lines at the merged commit.</td></tr>
   <tr><td>F19-R9</td><td>The site shall render an outline as a tree of native
     <code>&lt;details&gt;</code> elements: each step shows its claim and the goal it leaves, each
@@ -244,20 +244,23 @@ requirements the owner adopted.</p>
 <h2>9. Open questions / judgment calls</h2>
 <table>
   <tr><th>ID</th><th>Call made — for review</th></tr>
-  <tr><td>F19-Q1</td><td><strong>Proposed decisions v3.28, for the owner's approval of the
-    wording.</strong> The owner chose the five calls on 2026-10-04 (outline on the graph; machine prose
+  <tr><td>F19-Q1</td><td><strong>Proposed decisions v3.30, for the owner's approval of the
+    wording.</strong> (Drafted as v3.28; v3.28 and v3.29 were applied by other sessions the same day, so the number is v3.30 as of this writing and is re-derived when T1 applies it.) The owner chose the five calls on 2026-10-04 (outline on the graph; machine prose
     only in the explainer slot; holes glossed inside their explainer; anchored explainer versions;
-    Massot&ndash;Miller contact after the reading view ships). The wording below is drafted for him to
+    Massot&ndash;Miller contact after the reading view ships). Later that day he widened the second
+    and third: every Lean file has a mathematical version, so machine prose may appear in any gloss or
+    explainer record, never in a product, and a hole's words are its statement's gloss (F20-Q10). The
+    wording below is drafted for him to
     approve or change; nothing is applied to the doc until he does. Parts (i) and (vi) bind F19; (ii)
-    to (v) bind F20.
+    to (v) and (vii) bind F20.
     <ol type="i">
-      <li><em>D-35 and D-36, outlines.</em> &ldquo;v3.28 &mdash; outlines. The products include, for
+      <li><em>D-35 and D-36, outlines.</em> &ldquo;v3.30 &mdash; outlines. The products include, for
         each merged proof, its outline: the proof's named steps, each with the claim it establishes
         and the goal it leaves, printed so that it reads back as the same Lean, the constants it
         uses, and whether automation closed it. The pinned gate computes it from the tree, so it is
         rebuildable like every product. It asserts nothing the kernel did not check; a step whose
         printing does not read back is shown as Lean only.&rdquo;</li>
-      <li><em>D-3, explainer versions.</em> &ldquo;v3.28 &mdash; versions. An explainer names the
+      <li><em>D-3, explainer versions.</em> &ldquo;v3.30 &mdash; versions. An explainer names the
         proof it describes and may name the outline steps each of its sections describes. It may
         supersede one earlier explainer of the same proof, the latest of its chain and never one
         already superseded. That is how an explainer is corrected; a version that has been signed may
@@ -265,24 +268,35 @@ requirements the owner adopted.</p>
         target or a curator may withdraw a version by a withdrawal record (v3.27); a chain's current
         version is its latest that is not withdrawn. Nothing is edited and every version stays in the
         tree.&rdquo;</li>
-      <li><em>D-3 and D-23, drafted explainers.</em> &ldquo;v3.28 &mdash; drafts. The network may
-        draft the first explainer of a merged proof from its outline, through the same path as
-        anyone's, attributed to the network's drafter and the model and version that wrote it, with
-        no human author. A draft earns nothing, is labelled machine-drafted and unverified, and counts
-        for nothing until a person signs a version of it. It is a starting point for a steward, not an
-        account. A hole's first section says in words what the hole states.&rdquo;</li>
-      <li><em>D-33, digestion.</em> &ldquo;v3.28: a node counts as explained while the current
+      <li><em>D-3 and D-23, drafts.</em> &ldquo;v3.30 &mdash; drafts. The network may draft the
+        first gloss of every Lean file a merge creates, other than a root's statement, and the first
+        explainer of a merged proof from its outline. It does so through the same path as anyone's,
+        attributed to the network's drafter and the model and version that wrote it, with no human
+        author. A draft earns nothing, is labelled machine-drafted and unverified, and is a starting
+        point for a steward, not an account.&rdquo;</li>
+      <li><em>D-33, digestion.</em> &ldquo;v3.30: a node counts as explained while the current
         version of an explainer on its proof is signed; a version written after a signature must be
         signed again.&rdquo;</li>
-      <li><em>D-28, a route and two tools.</em> &ldquo;<code>POST /explainers</code>, with the tools
-        <code>submit_explainer</code> and <code>withdraw_explainer</code>, opening an explainer or
-        withdrawal pull request like any append; <code>get_node</code> returns the proof's outline
-        and each explainer chain.&rdquo;</li>
+      <li><em>D-28, a route and two tools.</em> &ldquo;<code>POST /glosses</code>, with the tools
+        <code>submit_gloss</code> and <code>withdraw_gloss</code>, opening a gloss, explainer or
+        withdrawal pull request like any append; <code>get_node</code> returns the proof's outline,
+        each gloss chain and each explainer chain.&rdquo;</li>
       <li><em>D-36, the Node row and a new page.</em> &ldquo;the proof's outline before its source;
         the explainer's current version with its history, its sections beside the outline steps they
         name&rdquo;; and a <em>Proof</em> page per way the target is proved: the statement and its
         fidelity first, then each node of the proof's closure, dependencies first, with a table from
         each node to its declaration, lines and attestation.</li>
+      <li><em>D-3, glosses</em> (added the same day, on the owner's ruling that every Lean file has a
+        mathematical version). &ldquo;v3.30 &mdash; glosses. Any contributor may append a gloss to a
+        statement, witness, relation or definition module, on a node of any status. A gloss is prose
+        saying what that file says, naming the hash of the exact text it describes. It is
+        content-hashed, attributed, unverified and immutable, and versioned and withdrawn as an
+        explainer is. A steward or curator may sign one, affirming they have read it against the Lean
+        and it agrees. That signature changes no grade, status or digestion state. A gloss of text
+        that has since changed is shown as describing an earlier version. A root's words of record
+        remain its curated informal statement (D-6, D-9).&rdquo; D-3's layout gains
+        <code>gloss/</code>, and the D-36 Node row gains &ldquo;each file's current gloss beside
+        it&rdquo;.</li>
     </ol></td></tr>
   <tr><td>F19-Q2</td><td><strong>Where the extraction runs is decided by measurement (T1).</strong> If
     the outline of the longest live proof (erdos-1050's 845-line holes) costs less than 20% of
@@ -316,9 +330,12 @@ requirements the owner adopted.</p>
     <code>GoalInfo</code> tree is the display model R9 follows. Approaching them is the owner's act,
     after the reading view ships so there is something to show (his decision (e)); no task here.</td></tr>
   <tr><td>F19-Q8</td><td><strong>Hole nodes.</strong> A hole shows its Lean statement and, through
-    F18's decompositions, the parent and the step it came from. Its words come from the first section
-    of its explainer (decision (c), F20), never from a new field that would look fidelity-checked
-    when D-9 exempts interior nodes.</td></tr>
+    F18's decompositions, the parent and the step it came from. Its words come from its statement's
+    gloss (F20), an unverified record, and never from a new field that would look fidelity-checked
+    when D-9 exempts interior nodes. (First drafted as &ldquo;the first section of its
+    explainer&rdquo;, which could not work: a hole has no explainer until it is proved, and D-3 refuses
+    one before. The owner's ruling that every Lean file has a mathematical version, F20-Q10, replaced
+    it.)</td></tr>
 </table>
 
 <h2>10. Status</h2>
