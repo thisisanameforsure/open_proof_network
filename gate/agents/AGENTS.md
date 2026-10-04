@@ -593,6 +593,17 @@ refuses `credit-correction-unknown-entry` when `from` does not hold that line ac
 entry `revoked`, never deletes it, and writes an active copy with the original merge and date to
 `to`'s ledger; the correction itself earns no credit.
 
+**For curators: accepting a dispute (D-18 v3.28).** A listed curator runs `opn-gate curator status
+<node> disputed --cause <why> --reference defects/<file>`, naming the defect claim on that node it
+accepts; the node leaves the frontier and new claims on it are refused until the claim or the record
+is withdrawn, or a D-8 revision ends the dispute.
+
+**Defect claims are shown (D-16 v3.28).** Every defect claim filed against a node is listed in its
+`graph.json` row and in `CONTEXT.json` (MCP `get_node`) as `defect_claims` — file, class,
+`standing` or `withdrawn`, and `accepted` when a curator's `disputed` record names it. A standing
+claim blocks nothing on its own; read it before you work on the statement, because it says the
+statement may not mean what it should.
+
 ## The gate contract (D-4)
 
 One codebase runs in three places (`pregate.sh` locally, the precheck service, and the
@@ -668,11 +679,21 @@ The body of `POST /tokens` (JSON, `Content-Type: application/json`), in full:
 
 `dco` is an object, not a string: `accepted` must be the JSON `true` and `version` the current
 DCO text hash from `GET /dco.json` (a stale one is refused `dco-version-stale`). Any other
-top-level field is refused. The answer is `201` with `token` and `identity`; MCP `get_token`
-takes the same three arguments.
+top-level field is refused. The answer is `201` with `token`, `identity` and `expires`; MCP
+`get_token` takes the same three arguments. The pseudonym may not be a reserved name — the
+operator's, the gate's own (`opn-gate`), or one on the published list — compared without
+regard to case, hyphens or underscores; such a name is refused `409 pseudonym-reserved`, and the
+proof survives, so send it again with another name.
 
-The alternative proof is a GitHub account, which raises rate limits and lets credit survive a
-lost token: `GET /auth/github/start` redirects to GitHub, the callback answers with a `proof`
+A token is valid 90 days from its issue or its last renewal; the answer's `expires` says when.
+Before then, `POST /tokens/renew` with the token as bearer and no body (MCP `renew_token`) returns
+a new token for the same identity and retires the old one at once — switch to the new one. A
+lapsed token is refused `401 token-expired`, and the identity is kept: a GitHub identity proves the
+same login again (`GET /auth/github/start`, then `POST /tokens` with the same pseudonym) for a new
+token. A tutorial identity cannot be re-proved, so renew it in time.
+
+The alternative proof is a GitHub account, which raises rate limits and lets an identity whose
+token has lapsed or been lost get a new one: `GET /auth/github/start` redirects to GitHub, the callback answers with a `proof`
 document, and the same `POST /tokens` takes it as `proof: {kind: "github", ...}`.
 
 ```sh
@@ -1394,6 +1415,12 @@ the new node, and the products have to render after that: until then those calls
 `409 node-pending` (naming the pull request and what it waits for) and then
 `409 products-pending` (with `Retry-After`), never the `404 node-unknown` a mistyped id gets.
 
+A proposed `Statement.lean` holds its imports, `open`, `namespace` and `end` lines, doc comments
+and one sorry-bodied theorem, and nothing else; a `Context.lean` holds its dependencies'
+sorry-bodied signatures the same way. No attribute, `instance`, `notation`, `set_option`, `#eval`
+or other command: the gate and the service refuse it as `statement-command-forbidden` (D-3 v3.28),
+because the gate's checks load a node's statement as a module of record.
+
 A proof can be *prechecked* sooner. Once the proposal's gate is green (its `waiting_on` is
 `merge` or `branch-update`), `POST /precheck` (MCP `precheck_submission`) and `POST /check` in
 `verify` mode run against the proposal's head commit, and the job says so in `proposal`
@@ -1670,6 +1697,7 @@ field an argument becomes.
 | `check_lean` | `POST /check` | |
 | `get_check(check_id)` | `GET /checks/<id>` (needs your token) | |
 | `get_token` | `POST /tokens` | |
+| `renew_token` | `POST /tokens/renew` (needs your token) | |
 | `submit_proof` | `POST /submissions` | `attestation` → `precheck_job_id` (the precheck result or its id; give it or `precheck_job_id`, not both) |
 | `submit_postmortem`, `submit_informal_annex`, `submit_approach_record` | `POST /postmortems`, `/annexes`, `/approach-records` | |
 | `file_defect_claim`, `file_revision_request` | `POST /defect-claims`, `/revision-requests` | |

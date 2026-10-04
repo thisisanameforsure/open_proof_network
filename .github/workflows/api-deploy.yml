@@ -113,6 +113,8 @@ jobs:
                         "lean/OpnGate/Hazards/NatDiv.lean", "lean/OpnGate/Hazards/AutoImplicit.lean",
                         # F07-T51: the grammar the precheck and submission routes refuse by
                         "opn_gate/carried.py",
+                        # F05-T26: POST /tokens reads the reserved names at runtime
+                        "opn_api/reserved_pseudonyms.txt",
                         "opn_gate/schemas.py", "mangum/__init__.py", "starlette/applications.py",
                         "opn_api/mcp/server.py", "mcp/server/lowlevel/server.py"):
               assert (pkg / entry).is_file(), f"missing from the package: {entry}"
