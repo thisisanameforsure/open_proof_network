@@ -119,6 +119,10 @@ class FakeTable:
         expression = kwargs["UpdateExpression"]
         if expression in ("ADD #ids :one", "DELETE #ids :one"):
             return self._set_update(expression.split()[0], kwargs)
+        if expression == "SET revoked = :yes":  # F05-T21: revoke_tokens marks an existing row
+            item = self.items[str(kwargs["Key"][self.key])]
+            item["revoked"] = kwargs["ExpressionAttributeValues"][":yes"]
+            return {}
         # The counter expression (bump_counter); anything else is a test error.
         assert expression == ("ADD #c :n SET expires_at = if_not_exists(expires_at, :exp)")
         counter = kwargs["ExpressionAttributeNames"]["#c"]
@@ -148,11 +152,25 @@ class FakeTable:
         return {}
 
     def scan(self, **kwargs: Any) -> dict[str, Any]:
+        """Paged as DynamoDB pages: a filter applies to each page after it is read, so a page may
+        come back with fewer items, or none, and still carry ``LastEvaluatedKey``."""
         self._fail("scan", kwargs)
         keys = list(self.items)
-        start = keys.index(kwargs["ExclusiveStartKey"][self.key]) + 1 if kwargs else 0
+        after = kwargs.get("ExclusiveStartKey")
+        start = keys.index(after[self.key]) + 1 if after else 0
         page = keys[start : start + self.page_size]
-        out: dict[str, Any] = {"Items": [copy.deepcopy(self.items[k]) for k in page]}
+        items = [copy.deepcopy(self.items[k]) for k in page]
+        if "FilterExpression" in kwargs:  # the one filter the seam writes (revoke_tokens)
+            assert kwargs["FilterExpression"] == "begins_with(#k, :prefix) AND identity_id = :id"
+            name = kwargs["ExpressionAttributeNames"]["#k"]
+            values = kwargs["ExpressionAttributeValues"]
+            items = [
+                i
+                for i in items
+                if str(i.get(name, "")).startswith(values[":prefix"])
+                and i.get("identity_id") == values[":id"]
+            ]
+        out: dict[str, Any] = {"Items": items}
         if start + self.page_size < len(keys):
             out["LastEvaluatedKey"] = {self.key: page[-1]}
         return out
@@ -808,3 +826,25 @@ def test_check_log_item_carries_no_content() -> None:
     item = resource.meta.client.tables[TABLES["tokens"]].items[KEY_CHECK + "01CHECK3"]
     assert set(item) == {"key", "check"}
     assert "content" not in item["check"] and item["check"]["content_bytes"] == 1234
+
+
+def test_revoke_tokens_reaches_every_page_in_both_stores(both: Store) -> None:
+    """F05-T21: an identity's tokens are found by a scan of the ``token#`` rows on DynamoDB,
+    across pages (the fake's are two items) and past every other key prefix in the table."""
+    both.put_identity(identity())
+    both.put_identity(identity("Bob", "bob", "02B"))
+    for n in range(3):
+        both.put_token(TokenRecord(f"a{n}", "01H", "2026-09-10T12:00:00Z"))
+        both.bump_counter(f"rate#write#01H#{n}", LATER)  # another prefix, same identity text
+    both.put_token(TokenRecord("b0", "02B", "2026-09-10T12:00:00Z"))
+    assert both.revoke_tokens("01H") == 3
+    assert [both.get_token(f"a{n}").revoked for n in range(3)] == [True] * 3  # type: ignore[union-attr]
+    assert both.get_token("b0").revoked is False  # type: ignore[union-attr]
+    assert both.revoke_tokens("01H") == 0
+
+
+def test_an_identity_is_found_by_its_pseudonym_in_both_stores(both: Store) -> None:
+    both.put_identity(identity())
+    found = both.get_identity_by_pseudonym("ALICE")
+    assert found is not None and found.id == "01H"
+    assert both.get_identity_by_pseudonym("nobody") is None

@@ -159,6 +159,14 @@ class Store(Protocol):
 
     def get_token(self, token_hash: str) -> TokenRecord | None: ...
 
+    def get_identity_by_pseudonym(self, pseudonym: str) -> Identity | None:
+        """The identity holding ``pseudonym``, matched case-insensitively as it is reserved."""
+        ...
+
+    def revoke_tokens(self, identity_id: str) -> int:
+        """F05-T21: mark every token of ``identity_id`` revoked; how many were not already."""
+        ...
+
     def put_job(self, job_id: str, record: dict[str, Any], expires: datetime) -> None:
         """A precheck job (F06-R3). Readable until ``expires``, unlike an ephemeral item."""
         ...
@@ -259,6 +267,21 @@ class MemoryStore:
 
     def get_token(self, token_hash: str) -> TokenRecord | None:
         return self.tokens.get(token_hash)
+
+    def get_identity_by_pseudonym(self, pseudonym: str) -> Identity | None:
+        wanted = pseudonym.lower()
+        for found in self.identities.values():
+            if found.pseudonym.lower() == wanted:
+                return found
+        return None
+
+    def revoke_tokens(self, identity_id: str) -> int:
+        count = 0
+        for digest, record in list(self.tokens.items()):
+            if record.identity_id == identity_id and not record.revoked:
+                self.tokens[digest] = replace(record, revoked=True)
+                count += 1
+        return count
 
     def put_job(self, job_id: str, record: dict[str, Any], expires: datetime) -> None:
         self.jobs[job_id] = dict(record)
@@ -480,6 +503,37 @@ class DynamoStore:
             created=str(item["created"]),
             revoked=bool(item.get("revoked", False)),
         )
+
+    def get_identity_by_pseudonym(self, pseudonym: str) -> Identity | None:
+        """Through the uniqueness marker ``put_identity`` writes with every identity (R4)."""
+        item = self._identities.get_item(Key={"id": KEY_PSEUDONYM + pseudonym.lower()}).get("Item")
+        found = item.get("identity_id") if item else None
+        return self.get_identity(str(found)) if found else None
+
+    def revoke_tokens(self, identity_id: str) -> int:
+        """No index by identity (three tables, R12): one scan of the ``token#`` rows for it, each
+        page filtered on DynamoDB's side, then each match written back marked. A founder's
+        command, run rarely; the scan reads the whole tokens table, every key prefix in it."""
+        count = 0
+        kwargs: dict[str, Any] = {
+            "FilterExpression": "begins_with(#k, :prefix) AND identity_id = :id",
+            "ExpressionAttributeNames": {"#k": "key"},
+            "ExpressionAttributeValues": {":prefix": KEY_TOKEN, ":id": identity_id},
+        }
+        while True:
+            page = self._tokens.scan(**kwargs)
+            for item in page.get("Items", []):
+                if not bool(item.get("revoked", False)):
+                    self._tokens.update_item(
+                        Key={"key": item["key"]},
+                        UpdateExpression="SET revoked = :yes",
+                        ExpressionAttributeValues={":yes": True},
+                    )
+                    count += 1
+            last = page.get("LastEvaluatedKey")
+            if not last:
+                return count
+            kwargs["ExclusiveStartKey"] = last
 
     def put_job(self, job_id: str, record: dict[str, Any], expires: datetime) -> None:
         self._tokens.put_item(
