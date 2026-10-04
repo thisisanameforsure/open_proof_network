@@ -1,0 +1,80 @@
+FFF.FF..                                                                 [100%]
+=================================== FAILURES ===================================
+__________________ test_only_the_math_outside_code_is_marked ___________________
+
+    def test_only_the_math_outside_code_is_marked() -> None:
+        html = prose.render(PROSE, math=True)
+>       assert math_spans(html) == ["$\\frac{a}{b}$"]
+E       AssertionError: assert [] == ['$\\frac{a}{b}$']
+E         
+E         Right contains one more item: '$\\frac{a}{b}$'
+E         Use -v to get more diff
+
+site/tests/test_prose_math.py:39: AssertionError
+______________________ test_display_math_is_marked_whole _______________________
+
+    def test_display_math_is_marked_whole() -> None:
+        html = prose.render("So $$\\sum_{i<n} i = \\binom{n}{2}$$ holds.", math=True)
+>       assert math_spans(html) == ["$$\\sum_{i&lt;n} i = \\binom{n}{2}$$"]
+E       AssertionError: assert [] == ['$$\\sum_{i&...inom{n}{2}$$']
+E         
+E         Right contains one more item: '$$\\sum_{i&lt;n} i = \\binom{n}{2}$$'
+E         Use -v to get more diff
+
+site/tests/test_prose_math.py:49: AssertionError
+____________ test_markup_inside_math_is_escaped_before_it_is_marked ____________
+
+    def test_markup_inside_math_is_escaped_before_it_is_marked() -> None:
+        html = prose.render('$<img src=x onerror="alert(1)">$', math=True)
+>       assert math_spans(html) == ["$&lt;img src=x onerror=&quot;alert(1)&quot;&gt;$"]
+E       AssertionError: assert [] == ['$&lt;img sr...)&quot;&gt;$']
+E         
+E         Right contains one more item: '$&lt;img src=x onerror=&quot;alert(1)&quot;&gt;$'
+E         Use -v to get more diff
+
+site/tests/test_prose_math.py:54: AssertionError
+____________ test_the_renderer_asks_katex_for_mathml_with_trust_off ____________
+
+    def test_the_renderer_asks_katex_for_mathml_with_trust_off() -> None:
+        script = (render.STATIC / "math.js").read_text(encoding="utf-8")
+>       assert 'output: "htmlAndMathml"' in script
+E       assert 'output: "htmlAndMathml"' in '// Math in record prose (F04-T13): a curated record\'s informal statement may carry TeX between\n// dollar signs, cop...y: false }\n      ],\n      throwOnError: false,\n      trust: false,\n      strict: "ignore"\n    });\n  });\n})();\n'
+
+site/tests/test_prose_math.py:66: AssertionError
+___________ test_explainer_and_annex_prose_carry_math_and_load_katex ___________
+
+node_page = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+
+    def test_explainer_and_annex_prose_carry_math_and_load_katex(node_page: str) -> None:
+>       assert math_spans(block(node_page, "unverified")) == ["$\\frac{a}{b}$"]
+E       AssertionError: assert [] == ['$\\frac{a}{b}$']
+E         
+E         Right contains one more item: '$\\frac{a}{b}$'
+E         Use -v to get more diff
+
+site/tests/test_prose_math.py:96: AssertionError
+------------------------------ Captured log setup ------------------------------
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-45/prose-math0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-45/prose-math0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+WARNING  opn_gate.products:products.py:719 propositional/and-swap-reassoc: attempt 2026-09-02-b.yaml does not validate (counted as invalid)
+WARNING  opn_gate.records:records.py:82 attempt record /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-45/prose-math0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml is invalid and counted as such: cannot read YAML /private/var/folders/ff/g8p6923n1_ncxpfx752fzs100000gn/T/pytest-of-mikehiggins/pytest-45/prose-math0/graph/targets/propositional/nodes/and-swap-reassoc/attempts/2026-09-02-b.yaml: while parsing a flow sequence
+  in "<unicode string>", line 1, column 8:
+    route: [oops
+           ^
+expected ',' or ']', but got '<stream end>'
+  in "<unicode string>", line 2, column 1:
+    
+    ^
+=========================== short test summary info ============================
+FAILED site/tests/test_prose_math.py::test_only_the_math_outside_code_is_marked
+FAILED site/tests/test_prose_math.py::test_display_math_is_marked_whole - Ass...
+FAILED site/tests/test_prose_math.py::test_markup_inside_math_is_escaped_before_it_is_marked
+FAILED site/tests/test_prose_math.py::test_the_renderer_asks_katex_for_mathml_with_trust_off
+FAILED site/tests/test_prose_math.py::test_explainer_and_annex_prose_carry_math_and_load_katex
+5 failed, 3 passed in 1.52s

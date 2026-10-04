@@ -19,15 +19,21 @@ _CODE_SPAN_RE = re.compile(r"`([^`\n]+)`")
 _STRONG_RE = re.compile(r"\*\*([^*\n]+)\*\*")
 
 
-def render(text: str) -> str:
-    """Paragraphs separated by blank lines; ``` fences become <pre><code>; all text escaped."""
+def render(text: str, *, math: bool = False) -> str:
+    """Paragraphs separated by blank lines; ``` fences become <pre><code>; all text escaped.
+
+    With ``math`` (F19-T6, R12: explainer and annex prose), a paragraph's `code` spans become
+    ``<code>`` and its ``$…$`` and ``$$…$$`` outside them are wrapped in ``.math``, escaped, for
+    the same-origin renderer (math.js) to read back. A fence is never scanned."""
     out: list[str] = []
     paragraph: list[str] = []
     code: list[str] | None = None
 
     def flush() -> None:
         if paragraph:
-            out.append("<p>" + escape(" ".join(paragraph), quote=True) + "</p>")
+            joined = " ".join(paragraph)
+            body = _with_math(joined) if math else escape(joined, quote=True)
+            out.append("<p>" + body + "</p>")
             paragraph.clear()
 
     for raw in text.splitlines():
@@ -52,6 +58,20 @@ def render(text: str) -> str:
     return "\n".join(out)
 
 
+def _with_math(text: str) -> str:
+    """One paragraph of prose: code spans set aside first, then the math outside them marked;
+    every piece escaped before it is wrapped, so nothing a contributor writes becomes markup."""
+    out: list[str] = []
+    for i, piece in enumerate(_CODE_SPAN_RE.split(text)):
+        if i % 2:  # the inside of a code span: text, never math
+            out.append(f"<code>{escape(piece, quote=True)}</code>")
+            continue
+        for j, part in enumerate(_PROSE_MATH_RE.split(piece)):
+            escaped = escape(part, quote=True)
+            out.append(f'<span class="math">{escaped}</span>' if j % 2 else escaped)
+    return "".join(out)
+
+
 def inline(text: str) -> str:
     """Escaped text with two inline forms: `code` and **strong**. Nothing else is markup."""
     escaped = escape(text, quote=True)
@@ -63,6 +83,10 @@ def inline(text: str) -> str:
 #: a registry's docstrings. Code is set aside first and math second, so neither is ever read as
 #: emphasis; what is left is escaped and then given three forms. A link needs an http(s) url.
 _MATH_RE = re.compile(r"(\$\$.+?\$\$|\$[^$\n]+?\$)", re.DOTALL)
+#: F19-T6: prose's dollar rule is Pandoc's — an opening ``$`` has a non-space after it, a closing
+#: one a non-space before it and no digit after it — so "costs $5 and $6" stays text (the escaping
+#: test's ``Costs $5 and ${more}.``). ``$$…$$`` is display math wherever it closes.
+_PROSE_MATH_RE = re.compile(r"(\$\$.+?\$\$|\$(?=[^\s$])[^$\n]*?(?<=[^\s$])\$(?!\d))", re.DOTALL)
 _EM_RE = re.compile(r"(?<![\w*])\*([^*\s](?:[^*\n]*[^*\s])?)\*(?![\w*])")
 _LINK_RE = re.compile(r"\[([^\]\n]+)\]\((https?://[^\s)]+)\)")
 

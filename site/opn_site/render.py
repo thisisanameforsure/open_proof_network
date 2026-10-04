@@ -2232,7 +2232,10 @@ class Renderer:
             renders.append(nv.explainer.path)
             renders.extend(v.path for v in nv.signatures)
         annexes = (
-            "".join(self.untrusted_block("untrusted", a, what="annex (D-31)") for a in nv.annexes)
+            "".join(
+                self.untrusted_block("untrusted", a, what="annex (D-31)", math=True)
+                for a in nv.annexes
+            )
             or "<p>No annex.</p>"
         )
         acks = "".join(
@@ -2291,11 +2294,16 @@ class Renderer:
             annexes=annexes,
             acknowledgments=acks,
         )
+        # F19-T6: KaTeX is loaded only by a page that carries math, so a record page whose prose
+        # has none stays script-free (F04-T13's rule for the statement record page).
+        has_math = 'class="math"' in body
         return self.page(
             nid,
             body,
             renders=renders,
             path=PROBLEMS_PATH,
+            head=MATH_HEAD if has_math else "",
+            script=MATH_SCRIPTS if has_math else "",
         )
 
     def explainer_block(self, nv: NodeView) -> str:
@@ -2304,7 +2312,7 @@ class Renderer:
         proved statement is invited, and told how one arrives."""
         if nv.explainer is not None:
             return self.vouched_lines(nv) + self.untrusted_block(
-                "unverified", nv.explainer, what="explainer"
+                "unverified", nv.explainer, what="explainer", math=True
             )
         if nv.status == "proved":
             return (
@@ -2676,11 +2684,13 @@ class Renderer:
         return "".join(blocks) or '<p class="cue">No partial assembly filed.</p>'
 
     def untrusted_block(
-        self, label: str, prose_: Prose, *, what: str, document: bool = False
+        self, label: str, prose_: Prose, *, what: str, document: bool = False, math: bool = False
     ) -> str:
         """R4: contributor text in a labelled block, with author and model when recorded. A
         document (the graph's AGENTS.md) goes through the document renderer; all else is prose."""
-        body = prose.render_document(prose_.text) if document else prose.render(prose_.text)
+        body = (
+            prose.render_document(prose_.text) if document else prose.render(prose_.text, math=math)
+        )
         by = []
         if prose_.author:
             by.append(f"by {esc(prose_.author)}")
