@@ -61,6 +61,18 @@ Variables (prefix ``OPN_``):
 ``OPN_MODEL``
     The model the QA brief and back-translation ask (F12-R6, R7, Q5): a Messages API model id
     whose leading letters name its family for R7's independence rule. Default ``claude-opus-5``.
+``OPN_DRAFTER_MAX_SUBJECTS``
+    How many subjects one drafter run may draft before it stops and reports the rest as left
+    (F20-R17, §6). Default ``20``.
+``OPN_DRAFTER_TOKEN_BUDGET``
+    How many model tokens (input plus output, as the provider reports them) one drafter run may
+    spend before it stops and reports the rest as left (F20-R17, §6). Default ``500000``.
+``OPN_DRAFTER_NAME``
+    The drafter's name, recorded in every draft's ``drafter`` block (F20-R2, Q6). Default
+    ``opn-drafter``.
+``OPN_DRAFTER_LICENCE``
+    The licence every draft is filed under (D-23): the licence the graph's prose records already
+    carry. Default ``CC-BY-4.0``.
 ``OPN_MODEL_API_KEY``
     **Secret.** The model provider's API key (F12 §7; C8: the curator's ``.env``, never in
     the graph, a log or a record). Default ``None`` — meaning "no model: the brief and
@@ -113,6 +125,10 @@ DEFAULT_OUTLINE_AUTOMATION: tuple[str, ...] = (
     "field_simp",
     "aesop",
 )
+DEFAULT_DRAFTER_MAX_SUBJECTS = 20  # F20 §6
+DEFAULT_DRAFTER_TOKEN_BUDGET = 500_000  # F20 §6
+DEFAULT_DRAFTER_NAME = "opn-drafter"  # F20-Q6
+DEFAULT_DRAFTER_LICENCE = "CC-BY-4.0"  # the licence the graph's prose records carry (D-23)
 
 SECRET_NAMES: tuple[str, ...] = ("gate_signing_key", "precheck_signing_key", "model_api_key")
 
@@ -141,6 +157,10 @@ class Settings:
     outline_text_cap: int = DEFAULT_OUTLINE_TEXT_CAP
     outline_doc_cap: int = DEFAULT_OUTLINE_DOC_CAP
     outline_automation: tuple[str, ...] = DEFAULT_OUTLINE_AUTOMATION
+    drafter_max_subjects: int = DEFAULT_DRAFTER_MAX_SUBJECTS
+    drafter_token_budget: int = DEFAULT_DRAFTER_TOKEN_BUDGET
+    drafter_name: str = DEFAULT_DRAFTER_NAME
+    drafter_licence: str = DEFAULT_DRAFTER_LICENCE
     pr_author: str | None = None
     #: F07-T65: the network commit the job checked out at the pin (``OPN_NETWORK_COMMIT``),
     #: when the job says.
@@ -162,6 +182,9 @@ class Settings:
             f"outline_doc_cap={self.outline_doc_cap}, "
             f"outline_automation={self.outline_automation!r}, "
             f"model_api_key={'<set>' if self.model_api_key else None}, "
+            f"drafter_max_subjects={self.drafter_max_subjects}, "
+            f"drafter_token_budget={self.drafter_token_budget}, "
+            f"drafter_name={self.drafter_name!r}, drafter_licence={self.drafter_licence!r}, "
             f"lean_pkg_bin={str(self.lean_pkg_bin)!r}, "
             f"mathlib_home={str(self.mathlib_home)!r}, pr_author={self.pr_author!r}, "
             f"network_commit={self.network_commit!r}, "
@@ -198,7 +221,7 @@ def _outline_settings(env: Mapping[str, str]) -> tuple[int, int, tuple[str, ...]
     return caps["OPN_OUTLINE_TEXT_CAP"], caps["OPN_OUTLINE_DOC_CAP"], automation
 
 
-def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0915 — one per setting
+def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0912, PLR0915 — one per setting
     """Build ``Settings`` from ``environ`` (default: the real process environment).
 
     Tests pass an explicit mapping; production code calls ``load()`` with no argument. This is the
@@ -260,6 +283,20 @@ def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0915 �
             raise ConfigError(msg)
 
     outline_text_cap, outline_doc_cap, outline_automation = _outline_settings(env)
+    drafter_caps: dict[str, int] = {}
+    for name, cap_default in (
+        ("OPN_DRAFTER_MAX_SUBJECTS", DEFAULT_DRAFTER_MAX_SUBJECTS),
+        ("OPN_DRAFTER_TOKEN_BUDGET", DEFAULT_DRAFTER_TOKEN_BUDGET),
+    ):
+        raw_cap = env.get(name, str(cap_default))
+        try:
+            drafter_caps[name] = int(raw_cap)
+        except ValueError as exc:
+            msg = f"{name} must be an integer, got {raw_cap!r}"
+            raise ConfigError(msg) from exc
+        if drafter_caps[name] <= 0:
+            msg = f"{name} must be positive, got {drafter_caps[name]}"
+            raise ConfigError(msg)
 
     raw_level = env.get("OPN_LOG_LEVEL", DEFAULT_LOG_LEVEL)
     log_level = raw_level.upper()
@@ -283,6 +320,10 @@ def load(environ: dict[str, str] | None = None) -> Settings:  # noqa: PLR0915 �
         outline_text_cap=outline_text_cap,
         outline_doc_cap=outline_doc_cap,
         outline_automation=outline_automation,
+        drafter_max_subjects=drafter_caps["OPN_DRAFTER_MAX_SUBJECTS"],
+        drafter_token_budget=drafter_caps["OPN_DRAFTER_TOKEN_BUDGET"],
+        drafter_name=env.get("OPN_DRAFTER_NAME", "").strip() or DEFAULT_DRAFTER_NAME,
+        drafter_licence=env.get("OPN_DRAFTER_LICENCE", "").strip() or DEFAULT_DRAFTER_LICENCE,
         model_api_key=env.get("OPN_MODEL_API_KEY") or None,
         lean_pkg_bin=Path(env.get("OPN_LEAN_PKG_BIN", str(DEFAULT_LEAN_PKG_BIN))).expanduser(),
         mathlib_home=Path(env.get("OPN_MATHLIB_HOME", str(DEFAULT_MATHLIB_HOME))).expanduser(),

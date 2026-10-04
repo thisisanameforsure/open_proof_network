@@ -41,7 +41,8 @@ RELEVANCE_FILE = "relevance.yaml"
 OPTIONAL_FILES: tuple[str, ...] = ("Proof.lean", "Relation.lean", CONTEXT_FILE, RELEVANCE_FILE)
 REQUIRED_DIRS: tuple[str, ...] = ("attempts", "annex", "explainer")
 #: status/: curator records (F03-Q3); revisions/ and defects/: D-8 and D-16 records (F08);
-#: proposed-for/: F18-R8's pointer records (D-3 v3.26); withdrawals/: F08-T31's (D-18 v3.27).
+#: proposed-for/: F18-R8's pointer records (D-3 v3.26); withdrawals/: F08-T31's (D-18 v3.27);
+#: gloss/: prose about the node's Lean files, on a node of any status (F20-R1, D-3 v3.30).
 OPTIONAL_DIRS: tuple[str, ...] = (
     "waivers",
     "status",
@@ -49,6 +50,7 @@ OPTIONAL_DIRS: tuple[str, ...] = (
     "defects",
     "proposed-for",
     "withdrawals",
+    "gloss",
 )
 KEEP_FILE = ".gitkeep"
 #: v2 added acknowledged_hazards (F02-R6); v3 added the skeleton-hole origin (D-3 v3.12); v4

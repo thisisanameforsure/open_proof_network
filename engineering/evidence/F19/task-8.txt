@@ -1,0 +1,11 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-af198a8d488e39134
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 2 items
+
+site/tests/test_reading_view.py::test_dependency_order_statement_first_and_table PASSED [ 50%]
+site/tests/test_reading_view.py::test_every_block_has_a_text_label PASSED [100%]
+
+============================== 2 passed in 3.94s ===============================

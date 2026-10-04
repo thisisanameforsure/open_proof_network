@@ -21,18 +21,20 @@
 <p class="lead"><span class="status status-proved"><span class="mark"></span>proved</span></p>
 <p class="wayfinding"><a href="/docs/#agents">How to contribute →</a></p>
 
+<div class="statement-block" data-block="statement"><p class="block-label" data-provenance="unaudited"><strong>Statement not audited</strong> — only a problem&rsquo;s root statement is audited for fidelity (D-9); the kernel checks a proof against this Lean as written.</p>
 <pre class="lean statement st-proved">theorem OpnProp.and_reassoc : ∀ p q r : Prop, (p ∧ q) ∧ r → p ∧ (q ∧ r) := by
   sorry</pre>
 <p>Rendered from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/Statement.lean">targets/propositional/nodes/and-reassoc/Statement.lean</a>. Depends on: none. Origin: authored.</p>
+</div>
 <h2>Proof</h2>
-<p>Proof merged in commit <code>444444444444</code>: <a class="file" href="https://github.com/example/graph/blob/4444444444444444444444444444444444444444/targets/propositional/nodes/and-reassoc/Proof.lean">targets/propositional/nodes/and-reassoc/Proof.lean</a></p><figure class="artifact"><figcaption class="artifact-cap">Proof.lean — its sha256 is the <code>artifact_hash</code> of the attestation below, so these are the bytes the gate checked. Rendered from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/Proof.lean">targets/propositional/nodes/and-reassoc/Proof.lean</a>, sha256 <code>b378cb7cadba</code>.</figcaption><pre class="lean">theorem OpnProp.and_reassoc : ∀ p q r : Prop, (p ∧ q) ∧ r → p ∧ (q ∧ r) := by
+<p>Proof merged in commit <code>444444444444</code>: <a class="file" href="https://github.com/example/graph/blob/4444444444444444444444444444444444444444/targets/propositional/nodes/and-reassoc/Proof.lean">targets/propositional/nodes/and-reassoc/Proof.lean</a></p><figure class="artifact" data-block="proof"><p class="block-label" data-provenance="kernel"><strong>Checked by the kernel</strong> — these bytes are the ones its attestation names: <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/attestations/000002.json">attestations/000002.json</a>, merge commit <code>444444444444</code>.</p><figcaption class="artifact-cap">Proof.lean — its sha256 is the <code>artifact_hash</code> of the attestation below, so these are the bytes the gate checked. Rendered from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/Proof.lean">targets/propositional/nodes/and-reassoc/Proof.lean</a>, sha256 <code>b378cb7cadba</code>.</figcaption><pre class="lean">theorem OpnProp.and_reassoc : ∀ p q r : Prop, (p ∧ q) ∧ r → p ∧ (q ∧ r) := by
   intro p q r h
   exact ⟨h.1.1, h.1.2, h.2⟩</pre></figure>
 <p class="flag">This proof used <code>native_decide</code> under a recorded waiver: its trust base is the compiler, not the kernel (D-4).</p>
 <h2>Witness</h2>
-<figure class="artifact"><figcaption class="artifact-cap">Witness.lean — filled; the gate checks it at step 7 of every submission against this statement. Rendered from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/Witness.lean">targets/propositional/nodes/and-reassoc/Witness.lean</a>, sha256 <code>a9781478814c</code>.</figcaption><pre class="lean">theorem witness : ∃ p q r : Prop, (p ∧ q) ∧ r := ⟨True, True, True, ⟨trivial, trivial⟩, trivial⟩</pre></figure>
+<figure class="artifact" data-block="witness"><p class="block-label" data-provenance="unchecked"><strong>Not checked</strong> — no run on this page records step 7 passing for it.</p><figcaption class="artifact-cap">Witness.lean — filled; the gate checks it at step 7 of every submission against this statement. Rendered from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/targets/propositional/nodes/and-reassoc/Witness.lean">targets/propositional/nodes/and-reassoc/Witness.lean</a>, sha256 <code>a9781478814c</code>.</figcaption><pre class="lean">theorem witness : ∃ p q r : Prop, (p ∧ q) ∧ r := ⟨True, True, True, ⟨trivial, trivial⟩, trivial⟩</pre></figure>
 <h2>Attestation</h2>
-<p>Verdict <strong>pass</strong>, from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/attestations/000002.json">attestations/000002.json</a>.</p>
+<div class="attestation-block" data-block="attestation"><p class="block-label" data-provenance="kernel"><strong>Checked by the kernel</strong> — the gate&rsquo;s record of the run: <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/attestations/000002.json">attestations/000002.json</a>, merge commit <code>444444444444</code>.</p><p>Verdict <strong>pass</strong>, from <a class="file" href="https://github.com/example/graph/blob/6666666666666666666666666666666666666666/attestations/000002.json">attestations/000002.json</a>.</p>
 <dl class="facts">
 <dt>Toolchain</dt><dd>leanprover/lean4:v4.33.1 (hash <code>bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb</code>)</dd>
 <dt>Mathlib</dt><dd>none (Lean core only)</dd>
@@ -42,7 +44,7 @@
 <thead><tr><th>Step</th><th>Check</th><th>Result</th></tr></thead>
 <tbody><tr><td>1</td><td>toolchain</td><td class="result-pass">pass</td></tr><tr><td>2</td><td>paths</td><td class="result-pass">pass</td></tr><tr><td>4</td><td>kernel-replay</td><td class="result-pass">pass</td></tr><tr><td>5</td><td>axioms</td><td class="result-pass">pass</td></tr></tbody>
 </table>
-
+</div>
 <h2>Attempts</h2>
 <p>0 recorded. Routes refuted: none. Failure classes: none.</p>
 <p class="cue">No partial assembly filed.</p>

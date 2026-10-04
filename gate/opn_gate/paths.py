@@ -192,6 +192,8 @@ Role = Literal[
     "annex",  # annex/<hash>.md (D-31)
     "explainer",  # explainer/<hash>.md (D-3, D-36)
     "explainer-signature",  # explainer/signed/<hash>-<n>.yaml: a comprehension claim (F15-R8)
+    "gloss",  # nodes/<id>/gloss/<hash>.md or targets/<id>/gloss/<hash>.md (F20-R1, D-3 v3.30)
+    "gloss-signature",  # gloss/signed/<hash>-<n>.yaml beside its gloss (F20-R8)
     "approach-record",  # targets/<id>/approaches/<name>.yaml (D-14 mechanism 3)
     "node",  # META.yaml, Statement.lean, Context.lean: the node's definition, added once (D-3)
     "witness",  # Witness.lean: added with the node, or filled in on a hole's slot (F08-R5)
@@ -295,14 +297,15 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "steward": ("steward/v1",),
     "policy": ("policy/v1",),
     "explainer-signature": ("explainer-signature/v1",),
+    "gloss-signature": ("gloss-signature/v1",),
     "writeup": ("writeup/v1",),
     "proposed-for": ("proposed-for/v1",),
-    "withdrawal": ("withdrawal/v1",),
+    "withdrawal": ("withdrawal/v1", "withdrawal/v2"),  # v2: gloss and explainer versions (F20)
     "credit-correction": ("credit-correction/v1",),
 }
 
-#: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers).
-CONTENT_HASHED_ROLES: tuple[Role, ...] = ("annex", "explainer")
+#: Roles whose file name is the SHA-256 of the file (D-31 annexes; D-3 explainers and glosses).
+CONTENT_HASHED_ROLES: tuple[Role, ...] = ("annex", "explainer", "gloss")
 
 ANNEX_MAX_BYTES = 64 * 1024  # F07 §6
 YAML_SUFFIXES: tuple[str, ...] = (".yaml", ".yml")
@@ -311,7 +314,7 @@ NODE_DEFINITION_FILES: tuple[str, ...] = ("META.yaml", "Statement.lean", "Contex
 WITNESS_FILE = "Witness.lean"
 RELATION_FILE = "Relation.lean"
 RELEVANCE_FILE = "relevance.yaml"
-KEEP_DIRS: tuple[str, ...] = ("attempts", "annex", "explainer")
+KEEP_DIRS: tuple[str, ...] = ("attempts", "annex", "explainer", "gloss")  # gloss/: v3.30
 #: What a QA run leaves under ``targets/<id>/qa/`` (F12-R1, R6, R7), each directory flat.
 QA_SUBDIRS: dict[str, tuple[str, ...]] = {
     "exhibits": (".lean",),
@@ -412,6 +415,14 @@ def locate(path: str) -> Located | None:  # noqa: PLR0911, PLR0912 — one branc
         # F15-R1: a steward's signed commitment or step-down, append-only.
         if head == "stewards" and _is_flat(name, YAML_SUFFIXES):
             return Located("steward", path, target_match.group("target"), None)
+        # F20-R1 (D-3 v3.30): a definition module's gloss, beside the defs/ it describes; its
+        # signatures (R8) under gloss/signed/; and a withdrawal of one of its versions (R7).
+        if head == "gloss" and _is_flat(name, (".md",)):
+            return Located("gloss", path, target_match.group("target"), None)
+        if head == "gloss" and name.startswith("signed/") and _is_flat(name[7:], YAML_SUFFIXES):
+            return Located("gloss-signature", path, target_match.group("target"), None)
+        if head == "withdrawals" and _is_flat(name, YAML_SUFFIXES):
+            return Located("withdrawal", path, target_match.group("target"), None)
         # F15-R6: a signed write-up record, append-only; the note's text stays note.md.
         if head == "writeup" and _is_flat(name, YAML_SUFFIXES):
             return Located("writeup", path, target_match.group("target"), None)
@@ -469,6 +480,11 @@ def _node_role(rest: str) -> Role | None:  # noqa: PLR0911, PLR0912 — one bran
         return "explainer-signature" if _is_flat(name, YAML_SUFFIXES) else None
     if rest.startswith("explainer/"):
         return "explainer" if _is_flat(rest[len("explainer/") :], (".md",)) else None
+    if rest.startswith("gloss/signed/"):  # F20-R8: a steward's or curator's signature on one
+        name = rest[len("gloss/signed/") :]
+        return "gloss-signature" if _is_flat(name, YAML_SUFFIXES) else None
+    if rest.startswith("gloss/"):  # F20-R1: prose about one of the node's Lean files
+        return "gloss" if _is_flat(rest[len("gloss/") :], (".md",)) else None
     return None
 
 

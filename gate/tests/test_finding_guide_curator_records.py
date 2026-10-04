@@ -45,7 +45,9 @@ def test_the_guide_tells_a_curator_how_to_withdraw_a_record() -> None:
     located = paths.locate(concrete(WITHDRAWAL))
     assert located is not None and located.role == "withdrawal"
     assert "`withdrawal/v1`" in text
-    assert paths.SCHEMAS_FOR_ROLE["withdrawal"] == ("withdrawal/v1",)
+    # The version the paragraph teaches is one the gate accepts; F20-R7 added v2 for gloss and
+    # explainer versions, which the guide's revision section covers (F20-T12).
+    assert "withdrawal/v1" in paths.SCHEMAS_FOR_ROLE["withdrawal"]
     for field in schemas.load_schema("withdrawal/v1")["required"]:
         if field != "schema":
             assert f"`{field}`" in text, field
