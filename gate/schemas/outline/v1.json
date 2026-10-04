@@ -1,0 +1,341 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/outline/v1.json",
+  "title": "outline/v1",
+  "description": "targets/<id>/outlines/<artifact-hash>.json (F19-R1; D-35 v3.30): the outline of one merged proof artifact — its named steps, each with the claim it establishes, the goal it leaves, the constants it uses and how it is closed — extracted by the pinned gate in its sandbox from the artifact's elaboration. A product: rebuildable from the tree and the pin, asserting nothing the kernel did not check, and carrying no text a model wrote. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "target",
+    "node",
+    "artifact",
+    "gate",
+    "steps"
+  ],
+  "properties": {
+    "schema": {
+      "const": "outline/v1"
+    },
+    "target": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "node": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "hash",
+        "kind"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "kind": {
+          "enum": [
+            "proof",
+            "alternate",
+            "partial"
+          ]
+        }
+      }
+    },
+    "gate": {
+      "description": "The network commit whose gate extracted the outline.",
+      "$ref": "#/$defs/sha"
+    },
+    "steps": {
+      "description": "The top-level steps in source order; a term-mode proof is one term step (F19-AC6).",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/step"
+      }
+    }
+  },
+  "$defs": {
+    "text": {
+      "description": "A claim or goal printed with the hole writer's options (pp.coercions.types, pp.numericTypes, pp.funBinderTypes) and read back (parse, elaborate, definitional equality; F19-R3). unreliable: it did not read back, and the page shows the step's Lean lines only.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text",
+        "printed",
+        "truncated"
+      ],
+      "properties": {
+        "text": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "printed": {
+          "enum": [
+            "reliable",
+            "unreliable"
+          ]
+        },
+        "truncated": {
+          "type": "boolean",
+          "description": "The text was cut at its cap (OPN_OUTLINE_TEXT_CAP); the field holds the prefix."
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "name",
+        "claim",
+        "goal",
+        "span",
+        "uses",
+        "closed_by",
+        "child_node",
+        "children"
+      ],
+      "properties": {
+        "id": {
+          "description": "F19-R2: a function of the artifact's bytes alone — the bound name where unique among siblings, else s<n> by source order; dotted for children (s3.1). ASCII, as F18-Q6's step ids.",
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_']*(\\.[A-Za-z_][A-Za-z0-9_']*)*$",
+          "maxLength": 200
+        },
+        "kind": {
+          "enum": [
+            "have",
+            "obtain",
+            "suffices",
+            "show",
+            "calc",
+            "case",
+            "term",
+            "hole"
+          ]
+        },
+        "name": {
+          "description": "The name the step binds, if any.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "maxLength": 200
+            }
+          ]
+        },
+        "claim": {
+          "description": "What the step establishes (its type); null for a step that binds nothing, such as a case branch.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/text"
+            }
+          ]
+        },
+        "goal": {
+          "description": "The main goal the step leaves: its target and the hypotheses the step introduced, never the whole context (F19-Q4). null when the step closes the goal.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "target",
+                "hypotheses"
+              ],
+              "properties": {
+                "target": {
+                  "$ref": "#/$defs/text"
+                },
+                "hypotheses": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "name",
+                      "type"
+                    ],
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "type": {
+                        "$ref": "#/$defs/text"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "span": {
+          "description": "1-based inclusive line span in the artifact.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "start_line",
+            "end_line"
+          ],
+          "properties": {
+            "start_line": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "end_line": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "uses": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "nodes",
+            "defs",
+            "mathlib"
+          ],
+          "properties": {
+            "nodes": {
+              "description": "Graph nodes whose declarations the step uses (their ids).",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]*$"
+              }
+            },
+            "defs": {
+              "description": "Constants from the target's definition modules.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 300
+              }
+            },
+            "mathlib": {
+              "description": "Constants from the pinned Mathlib or Lean core, each with the first sentence of its docstring and its Stacks or Kerodon tags (F19-R4); no name from any other source.",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "doc",
+                  "tags"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 300
+                  },
+                  "doc": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "maxLength": 2000
+                      }
+                    ]
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "database",
+                        "tag"
+                      ],
+                      "properties": {
+                        "database": {
+                          "enum": [
+                            "stacks",
+                            "kerodon"
+                          ]
+                        },
+                        "tag": {
+                          "type": "string",
+                          "pattern": "^[0-9A-Z]{4}$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "closed_by": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "tactics"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "automation",
+                "steps",
+                "term",
+                "hole"
+              ]
+            },
+            "tactics": {
+              "description": "For automation: the tactics of the closing block, all on the configured list (F19-Q5).",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 100
+              }
+            }
+          }
+        },
+        "child_node": {
+          "description": "For a hole step of a partial assembly: the node F18's decompositions give it, or null if the record has none.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]*$"
+            }
+          ]
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/step"
+          }
+        }
+      }
+    },
+    "sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    }
+  }
+}

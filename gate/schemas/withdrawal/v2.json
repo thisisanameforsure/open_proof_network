@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/withdrawal/v2.json",
+  "title": "withdrawal/v2",
+  "description": "nodes/<id>/withdrawals/<timestamp>-<author>.yaml or, for a definition module's gloss, targets/<id>/withdrawals/<timestamp>-<author>.yaml (F08-T31, F20-R7; D-14, D-18 v3.27, D-3 v3.30): withdraws one status record, defect claim, gloss version or explainer version, with a reason. A status record or defect claim is withdrawn by a listed curator; a gloss or explainer version by its author, an active steward of the target or a listed curator. Append-only. The withdrawn file stays in the tree and every reader reads it as absent. Versioned, never edited (D-34).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "withdraws",
+    "reason",
+    "author",
+    "date"
+  ],
+  "properties": {
+    "schema": {
+      "const": "withdrawal/v2"
+    },
+    "withdraws": {
+      "description": "The record withdrawn, relative to the directory holding withdrawals/: status/<file>, defects/<file>, gloss/<hash>.md or explainer/<hash>.md.",
+      "type": "string",
+      "pattern": "^((status|defects)/[A-Za-z0-9][A-Za-z0-9._-]*\\.ya?ml|(gloss|explainer)/[0-9a-f]{64}\\.md)$"
+    },
+    "reason": {
+      "description": "Why, in the author's words: the published reasoning a withdrawal owes the record (D-22).",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "author": {
+      "description": "The withdrawing pseudonym: a listed curator, or for a gloss or explainer its author or an active steward of the target.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    }
+  }
+}

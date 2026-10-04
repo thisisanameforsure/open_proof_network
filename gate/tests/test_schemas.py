@@ -28,13 +28,14 @@ def test_known_schemas_are_the_published_set() -> None:
         "claims/v1",
         "context/v1",
         "context/v2",
-        "context/v3",  # F08-T36 (D-16 v3.28)
-        "credit-correction/v1",  # F07-T66 (D-19 v3.27)
+        "context/v3",
+        "credit-correction/v1",
         "defect-claim/v1",
         "defect-claim/v2",
         "defect-claim/v3",
         "drift/v1",
         "explainer-signature/v1",
+        "explainer/v1",
         "fidelity/v1",
         "fidelity/v2",
         "formalization/v1",
@@ -43,11 +44,13 @@ def test_known_schemas_are_the_published_set() -> None:
         "frontier/v3",
         "frontier/v4",
         "gate-spec/v1",
+        "gloss-signature/v1",
+        "gloss/v1",
         "graph/v1",
         "graph/v2",
         "graph/v3",
         "graph/v4",
-        "graph/v5",  # F08-T36 (D-16 v3.28)
+        "graph/v5",
         "info/v1",
         "info/v2",
         "ledger/v1",
@@ -57,6 +60,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "meta/v4",
         "meta/v5",
         "node-status/v1",
+        "outline/v1",
         "policy/v1",
         "postmortem/v1",
         "precheck-record/v1",
@@ -81,7 +85,8 @@ def test_known_schemas_are_the_published_set() -> None:
         "targets-index/v6",
         "targets-index/v7",
         "waiver/v1",
-        "withdrawal/v1",  # F08-T31 (D-18 v3.27)
+        "withdrawal/v1",
+        "withdrawal/v2",
         "writeup/v1",
     )
 
