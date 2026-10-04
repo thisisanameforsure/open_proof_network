@@ -12,7 +12,9 @@ The graph's live pin is network `3a780d6` (graph `b3211a464`, the F18 session's 
   - The meaning comparison runs for every artifact (F08-T28).
   - Judging reads a workspace the compile never wrote (F02-T10).
   - Verdicts carry a nonce and the judges run with initializers off (F02-T11).
-  - F02-T12 is in progress: four more metaprograms move to compiled modules.
+  - Steps 7 and 8, admission's relation, and counterexample/vacuity types are judged from compiled modules (F02-T12, F08-T34).
+  - Still elaborating: a partial's hole extraction (F02-T13) and the defect-claim exhibits (F02-T14), both recorded as not built.
+  - F02-T12 changed the Python–Lean argument interface, so the image and the gate code must move together at the re-pin.
 - **Traceability, graph side.** On graph branch `audit-b-workflows`, 5 commits rebased on
   `b3211a464`:
   - every merge counts as recorded only if a gate commit names it (F07-T58);
@@ -112,5 +114,6 @@ graph's copy, and the re-pin's guide copy fixes it.
 - §5: whether a refuted root resolves its target.
 - Whether an abandoned or defective root should close the nodes beneath it (F03-Q17).
 - Token expiry, reserved pseudonyms and a GitHub account-age floor (not built).
+- Whether a proposed Statement.lean or Context.lean may carry only imports, `open`, `namespace`, doc comments and the theorem (F02-Q12). Today an `initialize` there runs in the judges that import it.
 - Step 9's reviewer rule, left as is by ruling. It guards against accident, not against a second
   account.
