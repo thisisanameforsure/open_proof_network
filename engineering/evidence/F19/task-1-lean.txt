@@ -65,3 +65,24 @@ gate/tests/test_outline_lean.py::test_the_seam_names_a_file_that_does_not_elabor
 gate/tests/test_outline_lean.py::test_request_shape_is_the_programs PASSED [100%]
 
 ======================== 7 passed in 472.42s (0:07:52) =========================
+
+== GREEN after merging main (corrected outline/v1 id pattern), with Tagged.lean importing Lean.Environment
+== instead of Lean: the first post-merge run failed test_mathlib_docs_and_tags with reason "timeout"
+== (over OPN_OUTLINE_TIMEOUT_S=300) because `import Lean` alone took >300 s on the loaded laptop. The
+== wrapper named it correctly; the fixture now imports only what the stand-in reader needs.
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 7 items
+
+gate/tests/test_outline_lean.py::test_have_tree_with_kinds_spans_and_closing PASSED [ 14%]
+gate/tests/test_outline_lean.py::test_claims_read_back_or_are_marked PASSED [ 28%]
+gate/tests/test_outline_lean.py::test_mathlib_docs_and_tags PASSED       [ 42%]
+gate/tests/test_outline_lean.py::test_term_proof_is_one_step PASSED      [ 57%]
+gate/tests/test_outline_lean.py::test_partial_assembly_marks_holes PASSED [ 71%]
+gate/tests/test_outline_lean.py::test_the_seam_names_a_file_that_does_not_elaborate PASSED [ 85%]
+gate/tests/test_outline_lean.py::test_request_shape_is_the_programs PASSED [100%]
+
+============================== 7 passed in 38.12s ==============================

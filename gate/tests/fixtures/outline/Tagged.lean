@@ -1,4 +1,4 @@
-import Lean
+import Lean.Environment
 
 /-! F19-AC4's tag half, without Mathlib: a stand-in for the reader Mathlib's
 `Mathlib.Tactic.CrossRefAttribute` provides at the pin (`Lean.Environment.getSortedCrossRefs :
