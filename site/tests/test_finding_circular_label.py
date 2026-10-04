@@ -57,7 +57,10 @@ def test_the_circular_hole_is_not_work_and_the_site_agrees_with_the_frontier(
 ) -> None:
     site, _pages = built
     frontier = json.loads((site.root / "frontier.json").read_text(encoding="utf-8"))
-    claimable = {e["node_id"] for e in frontier["entries"] if e["claimable"]}
+    # F03-T16 (frontier/v4): the frontier's work is a claimable entry or one that needs a witness.
+    claimable = {
+        e["node_id"] for e in frontier["entries"] if e["claimable"] or e["needs"] == "witness"
+    }
     assert HOLE not in claimable
     r = render.Renderer(site, repo_url=REPO)
     tv = site.targets[TARGET]

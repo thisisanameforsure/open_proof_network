@@ -39,6 +39,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "frontier/v1",
         "frontier/v2",
         "frontier/v3",
+        "frontier/v4",
         "gate-spec/v1",
         "graph/v1",
         "graph/v2",
