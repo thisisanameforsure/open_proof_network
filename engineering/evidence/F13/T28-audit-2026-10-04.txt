@@ -1,0 +1,110 @@
+F13-T28 — pre-flights fail closed when the caller's check budget is spent (audit 2026-10-04;
+the owner's ruling 2026-10-04 amending F13-Q22)
+==========================================================================================
+
+Finding: every pre-flight (checks.preflight_witness, _hazards, _relation, _exhibit) caught the
+budget's 429 from ratelimit.check_check and answered "unavailable", so the pull request opened
+anyway. A caller whose hourly checks were spent could open as many proposals, witnesses, defect
+claims and revision requests as the write limit allowed, none of them checked first. And a
+proposal needing two or three checks could spend some and skip the rest.
+
+Fix:
+- Store.bump_counter takes `by` (MemoryStore adds it; DynamoStore `ADD #c :n`, still one atomic
+  update with the TTL set once). Seam test on both stores: test_store_seam.py
+  ::test_bump_counter_adds_by_any_amount_in_both_stores.
+- ratelimit.reserve_checks(ctx, identity_id, n) -> Reservation: n checks from the same hourly
+  counter check_check uses, all or none (over the limit it is taken back at once and the 429
+  "rate-limited" with Retry-After is raised). Reservation.take() per checker call;
+  release() gives back what was not taken.
+- checks.reserved(ctx, identity_id, runs): each pre-flight is first run with a probe that stops
+  it at the point where it used to be charged (the reads before that point are cached committed
+  graph files, side-effect free), so the count reserved is exactly the count that will ask the
+  checker; then one reservation; then the runs side by side; then release. Each public
+  preflight_* reserves its own check when called alone; preflight_proposal reserves for all of
+  its two or three at once. No caller changed (proposals.py, requests.py untouched): the 429
+  escapes from the pre-flight, which every route calls before it opens a branch.
+- A checker that fails (outage, error, timeout, no hosted environment) is unchanged: the PR
+  opens and the receipt says "unavailable".
+- /check's heartbeats measurement skip on a spent budget is untouched (it opens no PR).
+
+Known edge, for the owner: the charge point was, and still is, before the hosted-environment
+lookup, so a target whose pin has no hosted checker is charged (and now refused at a spent
+budget) although the checker would not be asked. Every live target has an environment (F13-Q9
+forwards Mathlib-free pins to the core environment), so this is theoretical today.
+
+Restated: test_finding_witness_preflight.py::test_the_pre_flight_is_charged_and_logged_as_a_check
+(pinned "spent budget -> 201 unavailable"; now 429, no PR, no checker call).
+
+Proposed ledger line (F13 §10 Tasks):
+  · T28 ✓ 2026-10-04 (audit; the owner's ruling amending Q22; red first 6 failed on the defect
+  (201 where 429), green 11; one older test restated; 589 passed across the pre-flight, check,
+  proposal, exhibit, MCP and store-seam files; engineering/evidence/F13/T28-audit-2026-10-04.txt;
+  live at the next api deploy)
+
+Proposed Q entry (F13-Q29, renumber at merge):
+  F13-Q29 — A spent check budget refuses; an absent checker does not (T28, the owner 2026-10-04,
+  amending Q22). Q22 left "when the checker is unavailable or out of budget the pull request still
+  opens" as the owner's call; the audit of 2026-10-04 showed the budget half let a caller with no
+  checks left open unchecked pull requests up to the write limit. The owner reversed that half: the
+  checks a route's pre-flights need are reserved together before any is asked, and a budget that
+  cannot cover them is 429 rate-limited with Retry-After, with no branch, no pull request and no
+  checker call, and nothing spent. The other half stands: a checker that is down, errs, times out
+  or has no environment for the pin lets the pull request open with "unavailable", because that is
+  the network's failure and the gate decides (D-4 v3.14). Reversal: checks.reserved and
+  ratelimit.reserve_checks; restoring the old try/except at the four charge points restores Q22.
+
+Red (before the fix; checks.py and ratelimit.py stashed, the new test file run):
+FF.                                                                      [100%]
+=================================== FAILURES ===================================
+______ test_a_plain_proof_with_no_uses_is_held_to_its_statements_meaning _______
+
+tmp_path = PosixPath('/Users/mikehiggins/Desktop/repos/opn-audit-a-soundness/.pytest-tmp/test_a_plain_proof_with_no_use0')
+
+    def test_a_plain_proof_with_no_uses_is_held_to_its_statements_meaning(tmp_path: Path) -> None:
+        fake = FakeToolchain()
+        ctx = make_context(tmp_path, node_id=NODE, toolchain=fake)
+        verdict = pipeline.run_steps(ctx)
+        assert verdict.ok, verdict.diagnostic
+        assert uses.USES_KEY not in verdict.data
+        # the statement is built from the node's own files, and the question is asked before replay
+>       assert f"elaborate:{layout.node_module(NODE, 'Statement')}" in fake.calls
+E       AssertionError: assert 'elaborate:Nodes.«and-swap-reassoc».Statement' in ['resolve:leanprover/lean4:v4.33.1:install=False', 'elaborate:Nodes.«tutorial-and-swap».Context', 'elaborate:Nodes.«tu...Nodes.«and-reassoc».Context', 'elaborate:Nodes.«and-reassoc».Proof', 'elaborate:Nodes.«and-swap-reassoc».Context', ...]
+E        +  where ['resolve:leanprover/lean4:v4.33.1:install=False', 'elaborate:Nodes.«tutorial-and-swap».Context', 'elaborate:Nodes.«tu...Nodes.«and-reassoc».Context', 'elaborate:Nodes.«and-reassoc».Proof', 'elaborate:Nodes.«and-swap-reassoc».Context', ...] = FakeToolchain(resolved=ResolvedToolchain(name='leanprover/lean4:v4.33.1', version='4.33.1', githash='819816b2e0a3bf405...no_use0/work/src/Nodes/and-swap-reassoc/Witness.lean'), witness_module='Nodes.«and-swap-reassoc».Witness', proved=())]).calls
+
+gate/tests/test_finding_meaning_every_proof.py:43: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:191 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:191 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+___________ test_a_changed_meaning_with_no_use_anywhere_fails_step_4 ___________
+
+tmp_path = PosixPath('/Users/mikehiggins/Desktop/repos/opn-audit-a-soundness/.pytest-tmp/test_a_changed_meaning_with_no0')
+
+    def test_a_changed_meaning_with_no_use_anywhere_fails_step_4(tmp_path: Path) -> None:
+        """The road Q36 left open: nothing declares a use, and the statement's text still reads as
+        another proposition in the artifact's environment (here, one a dependency's proof carried)."""
+        fake = FakeToolchain(
+            meaning=meaning_result(
+                expected="∀ (p q r : Prop), p ∧ q ∧ r → r ∧ q ∧ p",
+                declared="∀ (p q r : Prop), p ∨ q ∧ r → r ∧ q ∧ p",
+            )
+        )
+        ctx = make_context(tmp_path, node_id=NODE, toolchain=fake)
+        verdict = pipeline.run_steps(ctx)
+>       assert verdict.first_failing_step == 4, verdict.as_dict()
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7, 'name': 'witness', 'result': 'pass', 'diagnostic': None}, ...]}
+E       assert None == 4
+E        +  where None = Verdict(verdict='pass', steps=(StepRecord(step=1, name='toolchain', result='pass', diagnostic=None), StepRecord(step=2...-and-swap' contributes no constant to the proof", "declared dep 'and-reassoc' contributes no constant to the proof"]}}).first_failing_step
+
+gate/tests/test_finding_meaning_every_proof.py:62: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  opn_gate.steps.deps:deps.py:191 step 8: declared dep 'tutorial-and-swap' contributes no constant to the proof
+WARNING  opn_gate.steps.deps:deps.py:191 step 8: declared dep 'and-reassoc' contributes no constant to the proof
+2 failed, 1 passed in 0.11s
+
+Green (after the fix):
+11 passed, 2 warnings in 0.38s
+
+Related (every test file matching preflight|exhibit|witness|hazard|proposal|check|claims_defect|circular|revision|store_seam|ratelimit|duplicate|mcp_):
+589 passed, 2 warnings in 32.43s
+
+ruff format/check and mypy --strict clean on the six changed files.

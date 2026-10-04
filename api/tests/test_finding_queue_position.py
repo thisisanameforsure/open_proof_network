@@ -28,7 +28,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from api_fakes import TUTORIAL_NODE, Harness
+from api_fakes import TUTORIAL_NODE, Harness, make_harness
 from mcp_client import McpClient
 from test_pending_submissions import MERGE_SHA, annex, get, proof_record, seed_attestation
 
@@ -155,9 +155,12 @@ def test_an_entry_is_the_per_id_document_plus_its_queue(harness: Harness) -> Non
     assert first["queue"]["position"] == by_id["queue"]["position"]
 
 
-def test_the_queue_costs_no_read_per_record(harness: Harness) -> None:
+def test_the_queue_costs_no_read_per_record() -> None:
     """The 2026-09-24 rule: nothing here grows with the queue. Twenty-five open, listed five
-    times and asked about by id: one listing call, and one pull-request read (the one asked)."""
+    times and asked about by id: one listing call, and one pull-request read (the one asked).
+    F07-T67 caps one pseudonym's open pull requests (default 10), so this queue of one author's
+    twenty-five runs with the cap at 25, below which the cap reads nothing from the host."""
+    harness = make_harness({"OPN_API_OPEN_PRS_PER_IDENTITY": "25"})
     token = harness.token_for("code_alice", "alice")
     for _ in range(25):
         annex(harness, token)

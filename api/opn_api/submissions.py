@@ -17,8 +17,10 @@ merge one (C8).
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from starlette.requests import Request
@@ -30,6 +32,7 @@ from opn_api import identity as identitymod
 from opn_api import uses as usesmod
 from opn_api.app import ApiError, host_budget_refusal
 from opn_api.githost import Author, GitHostError, PullRequest, RateLimitError
+from opn_api.store import KEY_PRECHECK_USED
 from opn_gate import annex as annexmod
 from opn_gate import bounce, carried, postmerge, submission
 from opn_gate import paths as gate_paths
@@ -38,7 +41,7 @@ from opn_gate.postmerge import PARTIAL_SUFFIX
 
 if TYPE_CHECKING:
     from opn_api.app import Context
-    from opn_api.store import Identity
+    from opn_api.store import Identity, Submission
 
 log = logging.getLogger(__name__)
 
@@ -92,6 +95,7 @@ def open_pr(  # noqa: PLR0913 — every argument is part of the pull request bei
     branch may survive a failed pull-request call, but the caller is told the submission did not
     open, so nothing is recorded as submitted that is not (C7).
     """
+    check_open_caps(ctx, identity)  # F07-T67: before anything is pushed
     settings = ctx.settings
     now = clockmod.render(ctx.clock.now())
     message = f"{subject}\n\n{sign_off(identity)}\n"
@@ -119,6 +123,81 @@ def open_pr(  # noqa: PLR0913 — every argument is part of the pull request bei
         raise ApiError(
             502, "pull-request-failed", f"the pull request could not be opened: {exc}"
         ) from exc
+
+
+# --- the open pull-request caps (F07-T67) -------------------------------------------------------
+
+#: How long a caller at a cap is asked to wait: about one merge's worth (the post-merge job,
+#: F07-T33), after which the queue has moved.
+QUEUE_FULL_RETRY_S = 300
+
+
+def still_open(ctx: Context, records: list[Submission]) -> list[Submission]:
+    """``records`` reconciled against the host as ``GET /submissions.json`` does it
+    (``pending.reconcile`` over one open listing): an entry the listing carries is open and costs
+    nothing, one it lacks is read once in full and closed if it has finished. With no listing,
+    each is read in full. A record the host cannot describe stays open (C7)."""
+    listed, _, _ = pending.open_listing(ctx)
+    out: list[Submission] = []
+    for found in records:
+        entry = listed.get(found.pr_number) if listed is not None else None
+        first = (pending.listed_state(entry), None) if entry is not None else None
+        record, _, _ = pending.reconcile(ctx, found, first)
+        if record.closed is None:
+            out.append(record)
+    return out
+
+
+def check_open_caps(ctx: Context, identity: Identity) -> None:
+    """F07-T67 (audit 2026-10-04): every route opens its pull request here, so the queue's caps
+    are here. Per pseudonym (pseudonyms are unique, D-19): at ``open_prs_per_identity`` the
+    caller's own records are reconciled against the host first, so a pull request that merged
+    while nobody asked does not count, and if they are still at the cap the answer is 429
+    ``open-pull-requests-cap`` naming each one. For the graph: at ``open_prs_global`` records the
+    host's open listing is the recount, and a full queue is 503 ``queue-full`` with
+    ``Retry-After``. Soft caps: two requests arriving together may both pass at the cap's edge."""
+    records = ctx.store.list_open_submissions()
+    cap = ctx.settings.open_prs_per_identity
+    mine = [found for found in records if found.pseudonym == identity.pseudonym]
+    if len(mine) >= cap:
+        mine = still_open(ctx, mine)
+        if len(mine) >= cap:
+            raise ApiError(
+                429,
+                "open-pull-requests-cap",
+                f"{identity.pseudonym} has {len(mine)} pull requests open on the graph and the cap "
+                f"is {cap}: wait for one to merge or close, or withdraw one "
+                "(DELETE /submissions/<id>), then send this again",
+                headers={"Retry-After": str(QUEUE_FULL_RETRY_S)},  # a 429 carries one (guide)
+                details={
+                    "cap": cap,
+                    "open": [
+                        {
+                            "submission_id": found.id,
+                            "pr_number": found.pr_number,
+                            "pr_url": found.pr_url,
+                            "kind": found.kind,
+                            "target_id": found.target_id,
+                            "node_id": found.node_id,
+                        }
+                        for found in mine
+                    ],
+                },
+            )
+    limit = ctx.settings.open_prs_global
+    if len(records) < limit:
+        return
+    listed, _, _ = pending.open_listing(ctx)
+    count = len(records) if listed is None else sum(1 for s in records if s.pr_number in listed)
+    if count >= limit:
+        raise ApiError(
+            503,
+            "queue-full",
+            f"the graph's queue holds {count} pull requests opened through the service, its cap "
+            f"is {limit}, and nothing was opened: send this again after Retry-After",
+            details={"cap": limit, "open": count},
+            headers={"Retry-After": str(QUEUE_FULL_RETRY_S)},
+        )
 
 
 # --- POST /submissions ---------------------------------------------------------------------------
@@ -196,6 +275,33 @@ def bound_job(
             "the bundle differs from the one that was prechecked; precheck this bundle first",
         )
     return job
+
+
+@contextmanager
+def using(ctx: Context, job: precheck.Job) -> Iterator[None]:
+    """F06-T11 (audit 2026-10-04): a precheck job opens one pull request. Taken atomically around
+    the opening, after every other check, so only an opened pull request spends it: the second
+    taker is 409 ``precheck-used``, and a pull request that failed to open gives the job back so
+    the same request can be sent again at once (C7). The marker lives as long as the job's
+    result, after which ``bound_job`` refuses the job as expired anyway."""
+    key = KEY_PRECHECK_USED + job.id
+    expires = clockmod.parse(job.created) + timedelta(days=precheck.RESULT_RETENTION_DAYS)
+    if ctx.store.bump_counter(key, expires) > 1:
+        raise ApiError(
+            409,
+            "precheck-used",
+            f"precheck {job.id} has already opened a pull request; a precheck job is used once. "
+            "Read GET /submissions.json for it, or precheck again for a new submission",
+            details={"precheck_job_id": job.id},
+        )
+    try:
+        yield
+    except BaseException:
+        try:
+            ctx.store.drop_counter(key)
+        except Exception as exc:  # any store failure: the job stays used, which refuses, not opens
+            log.warning("precheck %s not released: %s", job.id, type(exc).__name__)
+        raise
 
 
 def check_proposal_statement(job: precheck.Job, facts: dict[str, Any]) -> None:
@@ -460,7 +566,8 @@ async def post_submissions(ctx: Context, request: Request) -> Response:
         "precheck_job_id": job.id,
     }
     subject = f"{artifact_type}: {node_id}"
-    with duplicates.holding(ctx, [duplicates.slot("proof", node_id, fp) for fp in prints], "proof"):
+    slots = [duplicates.slot("proof", node_id, fp) for fp in prints]
+    with duplicates.holding(ctx, slots, "proof"), using(ctx, job):
         pr = open_pr(
             ctx,
             identity,

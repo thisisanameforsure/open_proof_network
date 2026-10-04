@@ -10,6 +10,7 @@ from typing import Any
 
 import pytest
 from api_fakes import Harness, PrecheckKey, make_harness, make_precheck_key, result_zip
+from starlette.testclient import TestClient
 
 from opn_api import bundles, precheck
 from opn_api.store import plain
@@ -195,25 +196,19 @@ def test_result_retention(harness: Harness) -> None:
 
 
 def test_anonymous_rate_limit() -> None:
-    """AC5: the 21st anonymous tutorial precheck from one address in a day is 429."""
+    """AC5: the 21st anonymous tutorial precheck from one address in a day is 429. The address
+    is the peer, never ``X-Forwarded-For`` (F05-T19): a new hop in the header is the same source."""
     h = make_harness({"OPN_API_ANONYMOUS_PRECHECKS_PER_DAY": "3"})
-    headers = {"X-Forwarded-For": "203.0.113.9"}
+    source = TestClient(h.app, client=("203.0.113.9", 40000), raise_server_exceptions=False)
+    body = {"node_id": TUTORIAL, "bundle": bundle_for(TUTORIAL)}
     for n in range(3):
-        r = h.client.post(
-            "/precheck", json={"node_id": TUTORIAL, "bundle": bundle_for(TUTORIAL)}, headers=headers
-        )
+        r = source.post("/precheck", json=body, headers={"X-Forwarded-For": f"10.0.0.{n}"})
         assert r.status_code == 202, (n, r.text)
-    over = h.client.post(
-        "/precheck", json={"node_id": TUTORIAL, "bundle": bundle_for(TUTORIAL)}, headers=headers
-    )
+    over = source.post("/precheck", json=body, headers={"X-Forwarded-For": "10.0.0.99"})
     assert over.status_code == 429
     assert int(over.headers["retry-after"]) > 0
-    elsewhere = h.client.post(
-        "/precheck",
-        json={"node_id": TUTORIAL, "bundle": bundle_for(TUTORIAL)},
-        headers={"X-Forwarded-For": "198.51.100.4"},
-    )
-    assert elsewhere.status_code == 202
+    elsewhere = TestClient(h.app, client=("198.51.100.4", 40000), raise_server_exceptions=False)
+    assert elsewhere.post("/precheck", json=body).status_code == 202
 
 
 def test_authenticated_precheck_limit() -> None:

@@ -39,6 +39,9 @@ KEY_SUBMISSION_NODE = "submissionnode#"
 PROPOSAL_KINDS = ("speculative", "variant")
 # F13-T4: one record per fast check, no TTL (Q3), in the tokens table like the submissions.
 KEY_CHECK = "check#"
+# F06-T11: a precheck job that has opened its pull request — a counter (``bump_counter``) whose
+# TTL is the job's retention, so taking it is one atomic add on either store.
+KEY_PRECHECK_USED = "precheckused#"
 
 
 class ConflictError(Exception):
@@ -156,6 +159,14 @@ class Store(Protocol):
 
     def get_token(self, token_hash: str) -> TokenRecord | None: ...
 
+    def get_identity_by_pseudonym(self, pseudonym: str) -> Identity | None:
+        """The identity holding ``pseudonym``, matched case-insensitively as it is reserved."""
+        ...
+
+    def revoke_tokens(self, identity_id: str) -> int:
+        """F05-T21: mark every token of ``identity_id`` revoked; how many were not already."""
+        ...
+
     def put_job(self, job_id: str, record: dict[str, Any], expires: datetime) -> None:
         """A precheck job (F06-R3). Readable until ``expires``, unlike an ephemeral item."""
         ...
@@ -174,8 +185,9 @@ class Store(Protocol):
         """Read and delete in one step (single use); ``None`` when absent or expired."""
         ...
 
-    def bump_counter(self, key: str, expires: datetime) -> int:
-        """Increment and return the counter at ``key``; it disappears after ``expires``."""
+    def bump_counter(self, key: str, expires: datetime, *, by: int = 1) -> int:
+        """Add ``by`` (one by default; negative to give back a reservation, F13-T28) to the
+        counter at ``key`` atomically and return it; it disappears after ``expires``."""
         ...
 
     def drop_counter(self, key: str) -> None:
@@ -256,6 +268,21 @@ class MemoryStore:
     def get_token(self, token_hash: str) -> TokenRecord | None:
         return self.tokens.get(token_hash)
 
+    def get_identity_by_pseudonym(self, pseudonym: str) -> Identity | None:
+        wanted = pseudonym.lower()
+        for found in self.identities.values():
+            if found.pseudonym.lower() == wanted:
+                return found
+        return None
+
+    def revoke_tokens(self, identity_id: str) -> int:
+        count = 0
+        for digest, record in list(self.tokens.items()):
+            if record.identity_id == identity_id and not record.revoked:
+                self.tokens[digest] = replace(record, revoked=True)
+                count += 1
+        return count
+
     def put_job(self, job_id: str, record: dict[str, Any], expires: datetime) -> None:
         self.jobs[job_id] = dict(record)
 
@@ -281,10 +308,10 @@ class MemoryStore:
             return None
         return item[0]
 
-    def bump_counter(self, key: str, expires: datetime) -> int:
+    def bump_counter(self, key: str, expires: datetime, *, by: int = 1) -> int:
         count, _ = self.counters.get(key, (0, expires))
-        self.counters[key] = (count + 1, expires)
-        return count + 1
+        self.counters[key] = (count + by, expires)
+        return count + by
 
     def drop_counter(self, key: str) -> None:
         self.counters.pop(key, None)
@@ -477,6 +504,37 @@ class DynamoStore:
             revoked=bool(item.get("revoked", False)),
         )
 
+    def get_identity_by_pseudonym(self, pseudonym: str) -> Identity | None:
+        """Through the uniqueness marker ``put_identity`` writes with every identity (R4)."""
+        item = self._identities.get_item(Key={"id": KEY_PSEUDONYM + pseudonym.lower()}).get("Item")
+        found = item.get("identity_id") if item else None
+        return self.get_identity(str(found)) if found else None
+
+    def revoke_tokens(self, identity_id: str) -> int:
+        """No index by identity (three tables, R12): one scan of the ``token#`` rows for it, each
+        page filtered on DynamoDB's side, then each match written back marked. A founder's
+        command, run rarely; the scan reads the whole tokens table, every key prefix in it."""
+        count = 0
+        kwargs: dict[str, Any] = {
+            "FilterExpression": "begins_with(#k, :prefix) AND identity_id = :id",
+            "ExpressionAttributeNames": {"#k": "key"},
+            "ExpressionAttributeValues": {":prefix": KEY_TOKEN, ":id": identity_id},
+        }
+        while True:
+            page = self._tokens.scan(**kwargs)
+            for item in page.get("Items", []):
+                if not bool(item.get("revoked", False)):
+                    self._tokens.update_item(
+                        Key={"key": item["key"]},
+                        UpdateExpression="SET revoked = :yes",
+                        ExpressionAttributeValues={":yes": True},
+                    )
+                    count += 1
+            last = page.get("LastEvaluatedKey")
+            if not last:
+                return count
+            kwargs["ExclusiveStartKey"] = last
+
     def put_job(self, job_id: str, record: dict[str, Any], expires: datetime) -> None:
         self._tokens.put_item(
             Item={
@@ -530,12 +588,12 @@ class DynamoStore:
         # `plain`, as in get_job: what went in comes back out, ints not Decimals.
         return plain(dict(data)) if isinstance(data, dict) else None
 
-    def bump_counter(self, key: str, expires: datetime) -> int:
+    def bump_counter(self, key: str, expires: datetime, *, by: int = 1) -> int:
         updated = self._tokens.update_item(
             Key={"key": key},
-            UpdateExpression="ADD #c :one SET expires_at = if_not_exists(expires_at, :exp)",
+            UpdateExpression="ADD #c :n SET expires_at = if_not_exists(expires_at, :exp)",
             ExpressionAttributeNames={"#c": "count"},
-            ExpressionAttributeValues={":one": 1, ":exp": _epoch(expires)},
+            ExpressionAttributeValues={":n": by, ":exp": _epoch(expires)},
             ReturnValues="UPDATED_NEW",
         )
         return int(updated["Attributes"]["count"])
