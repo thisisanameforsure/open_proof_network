@@ -1,0 +1,203 @@
+# F20-T10: the drafter (R15-R18, R21; Q6-Q9). First words for every Lean file of the graph, as
+# drafts a steward later corrects and signs: `opn-gate gloss draft` reads the coverage report at
+# a graph commit, drafts a gloss of each uncovered statement, witness, relation and definition
+# module and an explainer of each uncovered merged proof from its outline, checks each draft with
+# the gate's own rules, and posts it to the service's POST /glosses as the drafter identity. The
+# service opens each as an append pull request the merge actor merges (D-3 v3.30, F20-R10).
+#
+# Why in the `network` repository: it has no authority over any graph (D-35). It checks the graph
+# out read-only and pushes nothing to it; every draft reaches the graph as a pull request opened
+# by the service, like anyone's contribution.
+#
+# Started by dispatch only (F20-Q9): the graph's post-merge job dispatches it when a merge creates
+# a Lean file or a proof with no chain (subjects `new`), and a person dispatches it by hand for
+# the backfill (`uncovered`, R21) or a named target. A cron on Actions is a hope, not a schedule
+# (engineering log, 2026-09-13).
+#
+# Two credentials the owner creates (F20-Q7, C8): the model key OPN_MODEL_API_KEY and the drafter
+# identity's service token OPN_DRAFTER_TOKEN, both Actions secrets here, read by the one step that
+# drafts and by no other. With either missing — or the service URL, the OPN_API_URL variable —
+# the run is a dry run: it lists what would be drafted and why, calls no model, posts nothing,
+# keeps its report, and then FAILS the job, naming what was missing, so a missing credential
+# never reads as a passing run (the F12-Q16 shape). A dry run asked for (`dry_run: true`) passes.
+#
+# No contributor Lean runs here: drafting reads committed files (the Lean text at its hash, the
+# outline product) and elaborates nothing (F20 §6). No docker, no lake, no toolchain.
+#
+# The report is written as the run goes, so a run killed by a spend limit or a cancel still leaves
+# what it drafted, posted and left (engineering log, 2026-09-17); it is uploaded whatever happens.
+name: gloss draft
+
+on:
+  workflow_dispatch:
+    inputs:
+      graph_ref:
+        description: "the graph commit to draft from (default: main's tip)"
+        required: false
+        type: string
+      target:
+        description: "draft only this target id (default: every target)"
+        required: false
+        type: string
+      subjects:
+        description: "new: files and proofs with no words at all; uncovered: everything coverage calls uncovered (the backfill)"
+        required: false
+        type: choice
+        options:
+          - new
+          - uncovered
+        default: new
+      max_subjects:
+        description: "the subject cap for this run (default: OPN_DRAFTER_MAX_SUBJECTS, 20)"
+        required: false
+        type: string
+      dry_run:
+        description: "list what would be drafted; call no model and post nothing"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# One drafter at a time: two runs over the same commit would draft the same subjects twice.
+concurrency:
+  group: gloss-draft
+  cancel-in-progress: false
+
+env:
+  GRAPH_REPO: thisisanameforsure/open_proof_network_graph
+
+jobs:
+  draft:
+    name: draft glosses and explainers
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          path: network
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+        with:
+          version: "0.12.10"
+          enable-cache: true
+
+      - name: Check out the graph (read-only; D-35)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          repository: ${{ env.GRAPH_REPO }}
+          ref: ${{ inputs.graph_ref || 'main' }}
+          path: graph
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install the network's locked dependencies
+        working-directory: network
+        run: uv sync --frozen --quiet
+
+      # The one step that reads the two secrets. It decides the mode from what is present and
+      # passes them to the command through the environment, which `opn_gate.config` reads.
+      - name: Draft, check and post (dry run without the credentials)
+        id: draft
+        working-directory: network
+        env:
+          OPN_MODEL_API_KEY: ${{ secrets.OPN_MODEL_API_KEY }}
+          OPN_DRAFTER_TOKEN: ${{ secrets.OPN_DRAFTER_TOKEN }}
+          SUBMIT_URL: ${{ vars.OPN_API_URL }}
+          TARGET: ${{ inputs.target }}
+          SUBJECTS: ${{ inputs.subjects || 'new' }}
+          MAX_SUBJECTS: ${{ inputs.max_subjects }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          PYTHONPATH: gate
+        run: |
+          set -euo pipefail
+          missing=()
+          [ -n "${OPN_MODEL_API_KEY:-}" ] || missing+=("OPN_MODEL_API_KEY")
+          [ -n "${OPN_DRAFTER_TOKEN:-}" ] || missing+=("OPN_DRAFTER_TOKEN")
+          [ -n "${SUBMIT_URL:-}" ] || missing+=("OPN_API_URL")
+          args=(gloss draft --graph ../graph --subjects "$SUBJECTS" --report ../gloss-draft-report.json)
+          if [ -n "${TARGET:-}" ]; then args+=(--target "$TARGET"); fi
+          if [ -n "${MAX_SUBJECTS:-}" ]; then export OPN_DRAFTER_MAX_SUBJECTS="$MAX_SUBJECTS"; fi
+          if [ "$DRY_RUN" = "true" ]; then
+            mode="dry-run (asked for)"
+            args+=(--dry-run)
+          elif [ "${#missing[@]}" -gt 0 ]; then
+            mode="dry-run (missing: ${missing[*]})"
+            args+=(--dry-run)
+          else
+            mode="live"
+            args+=(--submit-url "$SUBMIT_URL")
+          fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "missing=${missing[*]:-}" >> "$GITHUB_OUTPUT"
+          echo "drafter: $mode"
+          set +e
+          uv run --frozen python -m opn_gate.cli "${args[@]}" > ../gloss-draft-stdout.json
+          code=$?
+          set -e
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          exit "$code"
+
+      - name: Summarise the run
+        if: always()
+        env:
+          MODE: ${{ steps.draft.outputs.mode }}
+          MISSING: ${{ steps.draft.outputs.missing }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Gloss drafter"
+            echo
+            echo "Mode: **${MODE:-did not start}**. Graph at \`$(git -C graph rev-parse --short HEAD)\`."
+            echo
+            if [ -f gloss-draft-report.json ]; then
+              python3 - <<'PY'
+          import json
+          doc = json.load(open("gloss-draft-report.json"))
+          drafting = doc.get("drafting") or {}
+          rows = [
+              ("planned", len(doc.get("planned") or [])),
+              ("drafted", len(drafting.get("drafted") or [])),
+              ("posted", len(doc.get("posted") or [])),
+              ("refused by the service", len(doc.get("post_failed") or [])),
+              ("not drafted (failed its checks twice)", len(drafting.get("not_drafted") or [])),
+              ("no outline", len(doc.get("no_outline") or [])),
+              ("skipped by rule", len(drafting.get("skipped") or [])),
+              ("left", len(drafting.get("left") or [])),
+          ]
+          print("| | count |\n| --- | --- |")
+          for name, n in rows:
+              print(f"| {name} | {n} |")
+          print()
+          print(f"Finished: {doc.get('finished')}. Cut short: {doc.get('cut_short') or 'no'}. "
+                f"Stopped: {drafting.get('stopped') or 'no'}. "
+                f"Tokens: {drafting.get('input_tokens', 0)} in, {drafting.get('output_tokens', 0)} out.")
+          PY
+            else
+              echo "No report was written."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: gloss-draft-report
+          path: |
+            gloss-draft-report.json
+            gloss-draft-stdout.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      # F20-Q7: a dry run forced by a missing credential is not a passing run. It ran, its report
+      # is kept, and the job goes red naming what to provide.
+      - name: Fail when a credential was missing
+        if: ${{ steps.draft.outputs.missing != '' && inputs.dry_run != true }}
+        env:
+          MISSING: ${{ steps.draft.outputs.missing }}
+        run: |
+          echo "::error::dry run only: ${MISSING} not set, so nothing was drafted or posted (F20-Q7)"
+          echo "**Nothing was drafted: ${MISSING} not set (F20-Q7).**" >> "$GITHUB_STEP_SUMMARY"
+          exit 1

@@ -106,6 +106,12 @@ Variables (prefix ``OPN_API_``):
     ``steps`` only for a target whose pin is this commit or a descendant of it, since an older
     gate refuses an ``annex/v2`` append. Default empty: no target takes steps, and an annex
     without them is written as ``annex/v1``, as before F18-T5.
+``OPN_API_DRAFTER_PSEUDONYM``
+    The pseudonym of the network's drafter identity (F20-Q6, T10): the one identity whose
+    ``POST /glosses`` files a *draft* — no ``author``, and a ``drafter`` block naming it, its
+    model and the graph commit its input was read at. Default empty: no identity is the drafter,
+    and a ``drafter`` block is refused for everyone. Set it only after the owner has created that
+    identity himself, so nobody else can hold the name first (pseudonyms are unique).
 ``OPN_API_GITHUB_APP_ID`` / ``OPN_API_GITHUB_CLIENT_ID``
     The GitHub App's ids (not secret, but issued with the App, so they travel with its secrets).
 ``OPN_API_GITHUB_CLIENT_SECRET`` / ``OPN_API_GITHUB_PRIVATE_KEY``
@@ -272,6 +278,8 @@ class Settings:
     # --- audit 2026-10-04 (F05-T27) ---
     token_days: int = DEFAULT_TOKEN_DAYS
     token_cutover: str = DEFAULT_TOKEN_CUTOVER
+    # --- F20-T10: the drafter's identity (Q6) ---
+    drafter_pseudonym: str = ""
 
     def __repr__(self) -> str:  # secrets never appear in a repr or a log (C8)
         parts = []
@@ -455,6 +463,7 @@ def load(environ: Mapping[str, str] | None = None) -> Settings:
         # --- audit 2026-10-04 (F05-T27) ---
         token_days=_int(env, "OPN_API_TOKEN_DAYS", DEFAULT_TOKEN_DAYS),
         token_cutover=_date(env, "OPN_API_TOKEN_CUTOVER", DEFAULT_TOKEN_CUTOVER),
+        drafter_pseudonym=env.get("OPN_API_DRAFTER_PSEUDONYM", "").strip(),
         # --- audit 2026-10-04 (F05-T25) ---
         guide_url=(
             env.get("OPN_API_GUIDE_URL", "").strip()

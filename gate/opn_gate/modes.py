@@ -1032,6 +1032,42 @@ def _verb(status: str) -> str:
 # --- the checks the non-building modes run instead of a build ----------------------------------
 
 
+def check_as_service(
+    root: Path,
+    path: str,
+    content: bytes,
+    *,
+    service_login: str = config.DEFAULT_SERVICE_LOGIN,
+    signer: Signer | None = None,
+) -> list[Diagnostic]:
+    """The gate's classifier and checks over ``root`` with one new file at ``path``, as the merge
+    would run them on a pull request the service opened adding it: every problem, or none. The
+    file is written into ``root`` and left there; ``root`` is the caller's scratch tree.
+
+    One function for both callers that must judge a gloss, explainer or withdrawal before any
+    pull request exists (F20-T6, T10): the service's pre-flight, over the files it fetched from
+    the host, and the drafter's own check of each draft (R16), over a copy of its checkout — so
+    neither restates a rule."""
+    dest = root / path
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(content)
+    try:
+        curators = load_curators(root)
+    except CuratorsError:
+        curators = Curators()
+    classification = classify(
+        [Change("A", path)],
+        author=service_login,
+        curators=curators,
+        graph_root=root,
+        service_login=service_login,
+    )
+    problems = list(classification.problems)
+    if classification.ok:
+        problems.extend(check(root, classification, signer=signer))
+    return problems
+
+
 def check(  # noqa: PLR0912 — one branch per role with a check of its own
     graph_root: Path,
     classification: Classification,
@@ -1058,7 +1094,9 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
         elif located.role == "explainer":
             found = check_explainer_file(graph_root, located, classification)
             problems.extend(
-                found or check_version_head(graph_root, located, classification, signer=signer)
+                found
+                or check_draft_provenance(graph_root, located, classification)
+                or check_version_head(graph_root, located, classification, signer=signer)
             )
         elif located.role == "explainer-signature":
             problems.extend(
@@ -1067,7 +1105,9 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
         elif located.role == "gloss":
             found = glosses.check_gloss(graph_root, located)
             problems.extend(
-                found or check_version_head(graph_root, located, classification, signer=signer)
+                found
+                or check_draft_provenance(graph_root, located, classification)
+                or check_version_head(graph_root, located, classification, signer=signer)
             )
         elif located.role == "gloss-signature":
             problems.extend(
@@ -2350,6 +2390,32 @@ def _signed_versions(parent: Path, role: str, signer: Signer) -> frozenset[str]:
     except schemas.SchemaError as exc:  # a malformed signature file: a graph defect, logged
         log.warning("the explainer signatures under %s do not read: %s", parent, exc)
         return frozenset()
+
+
+def check_draft_provenance(
+    graph_root: Path, located: Located, classification: Classification
+) -> list[Diagnostic]:
+    """F20-T10: a draft — a version with a ``drafter`` block and no ``author`` — arrives only in a
+    pull request the service opened, which writes that block for the configured drafter identity
+    alone (``api/opn_api/glosses.py``). Opened by anyone else, it would let any words be shown as
+    "machine-drafted by" any model, so it is refused by name (``drafter-not-service``)."""
+    if classification.by_service:
+        return []
+    parent = _record_parent(graph_root, located)
+    stem = PurePosixPath(located.path).stem
+    version = next((v for v in _versions_of(parent, located.role) if v.hash == stem), None)
+    if version is None or version.drafter is None:
+        return []
+    return [
+        Diagnostic(
+            "drafter-not-service",
+            f"{located.path} is a draft (a drafter block and no author), and this pull request "
+            f"was opened by {classification.author or 'an unknown login'}, not the service: a "
+            "draft is filed by the network's drafter through POST /glosses (F20-T10, Q6). File "
+            "your own version with yourself as its author instead",
+            {"path": located.path, "author": classification.author},
+        )
+    ]
 
 
 def check_version_head(
