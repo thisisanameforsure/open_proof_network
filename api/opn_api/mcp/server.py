@@ -53,9 +53,11 @@ TOOLS: tuple[Tool, ...] = (*reads.TOOLS, *writes.TOOLS)
 BY_NAME: dict[str, Tool] = {t.name: t for t in TOOLS}
 
 
-def instructions(tutorial: str) -> str:
+def instructions(tutorial: str, *, guide: str | None = None, errors: str | None = None) -> str:
     """The handshake's instructions, naming the tutorial node as ``tutorial`` words it
-    (``auth.tutorial_phrase``: by name when the graph can be read)."""
+    (``auth.tutorial_phrase``: by name when the graph can be read), and the contributor guide
+    and the error-code catalog by their full URLs when the service's configuration gives them
+    (F09-T16: ``urls``); without one, the plain path stands in."""
     return (
         "The Open Proof Network's reference MCP server (D-28). Every tool is a lens over plain "
         "git and HTTP and holds no state: reads need no token, except list_my_claims, which "
@@ -63,8 +65,27 @@ def instructions(tutorial: str) -> str:
         f"status and body through. Three writes need none: precheck_submission on {tutorial} "
         "(start there; list_frontier leaves it out, because it is proved); get_token, which "
         "turns that passing precheck into a token; and check_lean, the non-authoritative fast "
-        "check (F13). " + demarcate.UNTRUSTED_NOTE
+        "check (F13). "
+        # F09-T16 (audit 2026-10-04): where the rest is written down, and the usual order.
+        f"The contributor guide is {guide or 'AGENTS.md in the graph repository'}. A first "
+        "contribution usually goes: list_frontier for an open node, get_node for its statement "
+        "and context, claim_node, check_lean while you iterate, precheck_submission and "
+        "get_precheck until it is done, submit_proof with the passing precheck, and "
+        "get_submission to follow its pull request. Every refusal names its rule by a code "
+        "(`error`, or a verdict's diagnostic `code`): list_error_codes, or "
+        f"{errors or 'GET /errors.json'}, says what each means and what to do. "
+        + demarcate.UNTRUSTED_NOTE
     )
+
+
+def urls(ctx: Context) -> dict[str, str]:
+    """The guide's and the error catalog's full URLs, from the service's configuration."""
+    from opn_api import wayfinding  # noqa: PLC0415 — wayfinding imports this module
+
+    return {
+        "guide": wayfinding.guide_url(ctx.settings),
+        "errors": ctx.settings.public_url.rstrip("/") + "/errors.json",
+    }
 
 
 #: The instructions in the words used when the tutorial node cannot be named.
@@ -106,7 +127,9 @@ class LiveServer(Server[Any, Any]):
         base = super().create_initialization_options(
             notification_options, experimental_capabilities
         )
-        lazy = LazyInstructions(base, lambda: instructions(auth.tutorial_phrase(self._ctx)))
+        lazy = LazyInstructions(
+            base, lambda: instructions(auth.tutorial_phrase(self._ctx), **urls(self._ctx))
+        )
         return cast("InitializationOptions", lazy)
 
 
