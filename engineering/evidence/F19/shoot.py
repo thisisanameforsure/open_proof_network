@@ -50,6 +50,9 @@ MEASURE = """(labels) => {
                             left: Math.round(r.left), right: Math.round(r.right)});
     }
   }
+  // A wrapper that scrolls hides columns the page-width check cannot see (2026-09-12 lesson).
+  out.scrolled_tables = [...document.querySelectorAll('.correspondence-block .table-wrap')]
+    .filter(w => w.scrollWidth > w.clientWidth + 1).length;
   out.steps = document.querySelectorAll('.po-step').length;
   out.open_steps = document.querySelectorAll('.po-step > details[open]').length;
   out.math_spans = document.querySelectorAll('.math').length;
@@ -94,8 +97,13 @@ def shoot(page: Page, url: str, shot: Path, *, expand: bool) -> dict[str, Any]:
     if expand:
         page.evaluate("() => document.querySelectorAll('details').forEach(d => d.open = true)")
     m: dict[str, Any] = page.evaluate(MEASURE, LABELS)
-    m["tooltip"] = page.evaluate(TOOLTIP) if not expand else None
     page.screenshot(path=str(shot), full_page=True)
+    # The keyboard probe opens a step and focuses a constant, so it runs after the page's own
+    # shot (it would otherwise leak into it) and keeps a shot of its own: the card in view.
+    m["tooltip"] = page.evaluate(TOOLTIP) if not expand else None
+    if m["tooltip"]:
+        page.locator(".term.const:focus").scroll_into_view_if_needed()
+        page.screenshot(path=str(shot.with_name(shot.stem + "-focus.png")))
     return m
 
 
@@ -122,6 +130,7 @@ def main() -> int:
                         m = shoot(page, origin + path, shot, expand=expand)
                         tip = m.get("tooltip")
                         ok = m["scrollWidth"] <= width and not m["overflowing"]
+                        ok = ok and not m["scrolled_tables"]
                         if tip is not None:
                             ok = ok and tip["visible"] and tip["right"] <= tip["viewport"]
                         if m["math_spans"]:

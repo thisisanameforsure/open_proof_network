@@ -385,6 +385,26 @@ pre.prose { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--s
 .po-body pre.lean { margin: var(--s2) 0; padding: var(--s3) var(--s4); font-size: 12.5px; }
 .po-at { font-size: 12.5px; overflow-wrap: anywhere; }
 .po-cut { color: var(--warn); font-family: var(--sans); font-size: 12px; }
+/* F19-R8, R10: the reading view — one proof, top-down. */
+.rv-statement .informal { font-size: 16px; color: var(--n200); max-width: 70ch; }
+.rv-statement .informal .kicker { margin-bottom: var(--s1); }
+.rv-nodes { list-style: none; padding: 0; margin: var(--s4) 0; counter-reset: rv; }
+.rv-node { padding: var(--s4) 0 var(--s6); border-top: 1px solid var(--divider); min-width: 0; }
+.rv-node > h3 { font-family: var(--mono); font-size: 17px; overflow-wrap: anywhere; display: flex; flex-wrap: wrap; gap: var(--s3); align-items: baseline; }
+.rv-state { font-family: var(--sans); font-size: 13px; color: var(--n400); }
+.gloss-slot { font-size: 13px; }
+.rv-lines { font-size: 13px; overflow-wrap: anywhere; }
+table.correspondence td { font-size: 13px; overflow-wrap: anywhere; }
+table.correspondence td:first-child { font-family: var(--mono); }
+/* On a phone five columns crush the file path to a few characters a line and push the explainer
+   column out of view (measured at 390px), so each row becomes a card with its column names. */
+@media (max-width: 700px) {
+  table.correspondence thead { display: none; }
+  table.correspondence tr { display: block; padding: var(--s3) 0; border-bottom: 1px solid var(--divider); }
+  table.correspondence td { display: block; border: 0; padding: var(--s1) 0; }
+  table.correspondence td::before { content: attr(data-label); display: block; font-family: var(--sans); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--n500); }
+}
+
 /* The docstring card hangs from the "Uses" line, not the word, so on a phone it stays inside the
    viewport (measured: anchored to the word it ran 14px past 390px). */
 .po-uses { position: relative; }

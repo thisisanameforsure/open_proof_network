@@ -988,7 +988,11 @@ class Renderer:
                     + ", so those are drawn through what they declared."
                 )
             hidden = "" if k == 0 else " hidden"
-            notes.append(f'<p class="proof-note" data-proof="{k}"{hidden}>{esc(words)}</p>')
+            read = (
+                f' <a href="{esc(self.reading_path(tv.target_id, p))}">Read proof {k + 1} '
+                "top-down, every step beside its Lean →</a>"
+            )
+            notes.append(f'<p class="proof-note" data-proof="{k}"{hidden}>{esc(words)}{read}</p>')
         lead = f"Proved {len(proofs)} way{'' if len(proofs) == 1 else 's'}:"
         return (
             f'<div class="proof-picker" role="group" aria-label="Proofs of this problem">'
@@ -2942,6 +2946,210 @@ class Renderer:
             f"({self.dot(self.dot_state(state))}{esc(self.state_label(state))}).</p>"
         )
 
+    # -- the reading view (F19-T8; R8, R10, R11) ------------------------------------------------
+
+    @staticmethod
+    def reading_path(target_id: str, entry: dict[str, Any]) -> str:
+        """A proof's reading view, named by its artifact hash so its address survives the record
+        gaining another proof (the list's index would shift)."""
+        return f"{PROBLEMS_PATH}{target_id}/proofs/{str(entry['artifact_hash'])[:12]}/"
+
+    @staticmethod
+    def proof_record(tv: TargetView, node_id: str, digest: str | None) -> dict[str, Any] | None:
+        """A node's merged proof as ``graph.json`` lists it: the one with ``digest`` when given
+        and listed, else its first (``Proof.lean``), as F18's drawing reads a closure."""
+        row = next((n for n in tv.graph["nodes"] if n["node_id"] == node_id), None)
+        records = list((row or {}).get("proofs") or [])
+        own = [r for r in records if digest is not None and r["artifact_hash"] == digest]
+        found = (own or records or [None])[0]
+        return dict(found) if isinstance(found, dict) else None
+
+    def reading_order(self, tv: TargetView, entry: dict[str, Any]) -> list[str]:
+        """R8: the closure with dependencies before dependents, ties in record order.
+
+        An edge runs from ``d`` to ``n`` when both are in the closure and ``d`` is among what
+        ``n``'s proof used (this proof's own record at its node, else ``n``'s first), or, where
+        nothing measured that, among what ``n`` declared and uses — the edges F18 draws. A cycle
+        the record should never hold is laid out in record order rather than refused (C7)."""
+        closure = {str(c) for c in entry["closure"]}
+        record = [str(n["node_id"]) for n in tv.graph["nodes"] if str(n["node_id"]) in closure]
+        rows = {str(n["node_id"]): n for n in tv.graph["nodes"]}
+        before: dict[str, set[str]] = {n: set() for n in record}
+        for n in record:
+            digest = entry["artifact_hash"] if n == entry["node_id"] else None
+            proof = self.proof_record(tv, n, digest)
+            used = proof.get("used") if proof else None
+            rests = used if used is not None else [*rows[n]["deps"], *(rows[n].get("uses") or [])]
+            before[n] = {str(d) for d in rests if str(d) in closure and str(d) != n}
+        order: list[str] = []
+        while len(order) < len(record):
+            ready = [n for n in record if n not in order and before[n] <= set(order)]
+            order.append(ready[0] if ready else next(n for n in record if n not in order))
+        return order
+
+    def artifact_of(
+        self, tv: TargetView, nv: NodeView, entry: dict[str, Any]
+    ) -> tuple[dict[str, Any] | None, LeanFile | None]:
+        """The proof this reading view shows at ``nv``: the entry's own artifact at its node, the
+        node's first proof elsewhere — its record and its file, when the bytes are the ones the
+        record names."""
+        digest = str(entry["artifact_hash"]) if nv.node_id == entry["node_id"] else None
+        record = self.proof_record(tv, nv.node_id, digest)
+        if record is None:
+            return None, None
+        files = [nv.proof, *(a.file for a in nv.alternates)]
+        lean = next(
+            (f for f in files if f is not None and f.content_hash == record["artifact_hash"]), None
+        )
+        return record, lean
+
+    def lines_link(self, nv: NodeView, record: dict[str, Any], lean: LeanFile | None) -> str:
+        """The proof's file at the commit that merged it, with its lines when the file is here."""
+        node_dir = Path(nv.statement_path).parent.as_posix()
+        rel, commit = f"{node_dir}/{record['path']}", str(record["merge_commit"])
+        span = f"#L1-L{len(lean.text.splitlines())}" if lean is not None else ""
+        words = f"lines 1&ndash;{len(lean.text.splitlines())}" if lean is not None else "the file"
+        url = f"{self.repo_url}/blob/{commit}/{rel}{span}"
+        return (
+            f'<a class="file" href="{esc(url)}">{esc(rel)}</a>, {words} at '
+            f"<code>{esc(commit[:12])}</code>"
+        )
+
+    def explainer_state(self, nv: NodeView) -> str:
+        """The correspondence table's explainer column: none, unsigned, or signed and by whom."""
+        if nv.explainer is None:
+            return "none yet"
+        stem = Path(nv.explainer.path).stem
+        signers = [v.signer for v in nv.signatures if v.explainer == stem]
+        by = f" by {esc(nv.explainer.author)}" if nv.explainer.author else ""
+        if signers:
+            return f"unverified{by}; signed by {esc(', '.join(signers))}"
+        return f"unverified{by}; not signed"
+
+    def reading_node(self, tv: TargetView, nv: NodeView, entry: dict[str, Any]) -> str:
+        """One node of the proof: its Lean statement and gloss slot, its explainer slot, its
+        outline folded to top-level steps, and its proof's lines at the merged commit."""
+        record, lean = self.artifact_of(tv, nv, entry)
+        doc = self.outline_of(tv, nv.node_id, lean)
+        if record is not None and lean is not None and doc is not None:
+            outline = self.outline_section(
+                tv,
+                doc,
+                lean,
+                label=self.provenance(
+                    "kernel",
+                    f"an outline of the proof attested in "
+                    f"{self.file_link('attestations/' + str(record['attestation']))}, merge "
+                    f"commit <code>{esc(str(record['merge_commit'])[:12])}</code>.",
+                ),
+                commit=str(record["merge_commit"]),
+                folded=True,
+            )
+        else:
+            outline = '<p class="cue">No outline of this proof yet; its Lean is linked below.</p>'
+        lines = (
+            f'<p class="rv-lines">Proof: {self.lines_link(nv, record, lean)}.</p>' if record else ""
+        )
+        slot = f"{tv.target_id}/{nv.node_id}/Statement.lean"
+        state = self.node_state(nv)
+        return (
+            f'<li class="rv-node" id="rv-{esc(nv.node_id)}" data-node="{esc(nv.node_id)}">'
+            f"<h3>{self.node_link(tv.target_id, nv.node_id)} "
+            f'<span class="rv-state">{self.dot(self.dot_state(state))}'
+            f"{esc(self.state_label(state))}</span></h3>"
+            f'<div class="statement-block" data-block="statement">{self.statement_label(tv, nv)}'
+            f'<pre class="lean statement st-{esc(nv.status)}">'
+            f"{esc(declaration_only(nv.statement))}</pre>"
+            f'<p class="gloss-slot cue" data-gloss-slot="{esc(slot)}">No gloss yet: no one has '
+            "written in words what this statement says (D-3 v3.30); the Lean above is the "
+            "statement.</p></div>"
+            # D-36: the proof and its attestation sit above the explainer, never below.
+            f'{outline}{lines}<div class="rv-explainer">{self.explainer_block(nv)}</div></li>'
+        )
+
+    def correspondence(self, tv: TargetView, order: list[str], entry: dict[str, Any]) -> str:
+        """R10: one row per node of the closure — declaration, artifact and lines, attestation,
+        explainer state — under a label saying which columns are the kernel's record."""
+        rows = []
+        for node_id in order:
+            nv = tv.nodes[node_id]
+            record, lean = self.artifact_of(tv, nv, entry)
+            m = re.search(r"^\s*(?:theorem|lemma)\s+(\S+)", nv.statement, re.M)
+            decl = f"<code>{esc(m.group(1))}</code>" if m else "not found"
+            if record is not None:
+                artifact = self.lines_link(nv, record, lean)
+                att = self.file_link(f"attestations/{record['attestation']}")
+            else:
+                artifact, att = "no merged proof", "none"
+            rows.append(
+                f'<tr data-node="{esc(node_id)}">'
+                f'<td data-label="Statement">{self.node_link(tv.target_id, node_id)}</td>'
+                f'<td data-label="Declaration">{decl}</td>'
+                f'<td data-label="Proof file and lines">{artifact}</td>'
+                f'<td data-label="Attestation">{att}</td>'
+                f'<td data-label="Explainer">{self.explainer_state(nv)}</td></tr>'
+            )
+        label = self.provenance(
+            "kernel",
+            "each row&rsquo;s declaration, file, lines and attestation are the attested record; "
+            "the explainer column says only whether unverified prose exists and who signed it.",
+        )
+        return (
+            f'<div class="correspondence-block" data-block="correspondence">{label}'
+            '<div class="table-wrap"><table class="correspondence"><thead><tr><th>Statement</th>'
+            "<th>Declaration</th><th>Proof file and lines</th><th>Attestation</th>"
+            f"<th>Explainer</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div></div>"
+        )
+
+    def reading_view(self, tv: TargetView, k: int, entry: dict[str, Any]) -> str:
+        """R8: one way the problem is proved, read top-down — the problem's statement and its
+        QA state first, then each node of the proof's closure, dependencies first, then the
+        correspondence table (R10). Every block carries its provenance in words (R11)."""
+        proofs = target_proofs(tv)
+        root = tv.nodes[tv.root]
+        order = self.reading_order(tv, entry)
+        head = str(entry["node_id"])
+        variant = (
+            f" This proof proves {self.node_link(tv.target_id, head)}, a variant that resolves "
+            "the problem (D-30)."
+            if head != tv.root
+            else ""
+        )
+        n = len(order)
+        body = _template("proof.html").substitute(
+            target_id=esc(tv.target_id),
+            target_href=esc(self.target_path(tv.target_id)),
+            number=k + 1,
+            count=len(proofs),
+            lead=esc(self.proof_label(k, entry))
+            + f", merged in <code>{esc(str(entry['merge_commit'])[:12])}</code>.",
+            statement_label=self.statement_label(tv, root),
+            informal=self.informal_line(tv),
+            root_status=esc(root.status),
+            root_lean=esc(declaration_only(root.statement)),
+            fidelity=self.fidelity_tag(tv),
+            root_link=self.file_link(root.statement_path),
+            variant=variant,
+            order_words=esc(f"{n} statement{'' if n == 1 else 's'} on this proof."),
+            nodes="\n".join(self.reading_node(tv, tv.nodes[nid], entry) for nid in order),
+            table=self.correspondence(tv, order, entry),
+        )
+        renders = [f"targets/{tv.target_id}/graph.json"]
+        for nid in order:
+            nv = tv.nodes[nid]
+            renders.append(nv.statement_path)
+            _, lean = self.artifact_of(tv, nv, entry)
+            if lean is not None and self.outline_of(tv, nid, lean) is not None:
+                renders.append(f"targets/{tv.target_id}/outlines/{lean.content_hash}.json")
+        return self.page(
+            f"{tv.target_id} · proof {k + 1}",
+            body,
+            renders=renders,
+            path=PROBLEMS_PATH,
+            head=MATH_HEAD,
+            script=MATH_SCRIPTS,
+        )
+
     def witness_block(self, nv: NodeView) -> str:
         """The non-vacuity witness (D-4 step 7), shown rather than linked.
 
@@ -3200,6 +3408,10 @@ def render_site(
         files[f"targets/{tid}/index.html"] = r.redirect(r.target_path(tid))
         for nid, nv in tv.nodes.items():
             files[f"nodes/{tid}/{nid}/index.html"] = r.node(nv)
+        for k, entry in enumerate(target_proofs(tv)):  # F19-T8: one reading view per proof
+            files[r.reading_path(tid, entry).lstrip("/") + "index.html"] = r.reading_view(
+                tv, k, entry
+            )
     problems = links.check(
         files,
         repo_url=r.repo_url,

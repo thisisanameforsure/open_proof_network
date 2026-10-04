@@ -8,6 +8,7 @@ screenshots (engineering/evidence/F19/shoot.py).
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import fixture
 import samples
@@ -34,7 +35,13 @@ def outlined_tutorial(tmp_path: Path) -> tuple[Path, str]:
     root = copy_graph(tmp_path, publish=True)
     proof = fixture.nodes_dir(root) / TUTORIAL / "Proof.lean"
     proof.write_text(so.TUTORIAL_PROOF, encoding="utf-8")
-    fixture.attest(root, TUTORIAL, 1, steps=[*samples.attestation()["steps"], fixture.WITNESS_STEP])
+    fixture.attest(
+        root,
+        TUTORIAL,
+        1,
+        steps=[*samples.attestation()["steps"], fixture.WITNESS_STEP],
+        footprint={"nodes": []},
+    )
     digest = schemas.content_hash(proof.read_bytes())
     so.write(root, so.document(TUTORIAL, "Proof.lean", digest, so.tutorial_steps()))
     return root, digest
@@ -44,11 +51,69 @@ def write_products(root: Path) -> None:
     products.generate(root, rendered_from=COMMIT, commit_time=fixture.NOW).write(root)
 
 
-def shoot_tree(tmp_path: Path) -> tuple[Path, list[str]]:
-    """The tree the evidence script renders, and the site paths it captures."""
+ROOT, MIDDLE = "and-swap-reassoc", "and-reassoc"
+
+
+def reading_path(target_id: str, artifact_hash: str) -> str:
+    """Where a proof's reading view is rendered (F19-T8), named by the proof's artifact hash so
+    the page keeps its address when the record gains another proof. With no hash, the prefix
+    every reading view's href starts with."""
+    if not artifact_hash:
+        return f"/problems/{target_id}/proofs/"
+    return f"problems/{target_id}/proofs/{artifact_hash[:12]}/index.html"
+
+
+def root_steps() -> list[dict[str, Any]]:
+    """The root's proof (the fixture graph's own ``Proof.lean``): one ``have`` and its close."""
+    return [
+        so.step(
+            "h2",
+            "have",
+            (5, 5),
+            name="h2",
+            claim=so.text("p ∧ q ∧ r"),
+            goal={
+                "target": so.text("r ∧ q ∧ p"),
+                "hypotheses": [{"name": "h2", "type": so.text("p ∧ q ∧ r")}],
+            },
+            closed_by=("term", []),
+            nodes=[MIDDLE],
+        ),
+    ]
+
+
+def chain_tree(tmp_path: Path) -> Path:
+    """The erdos-1050 shape (F19-AC7): the root's proof uses ``and-reassoc``, whose proof uses the
+    tutorial — a chain by use, the reverse of the lexical record order. The footprints are
+    recorded data: the fixture's ``and_reassoc`` does not really call ``and_swap``, and no Lean
+    runs here; what is under test is the order the page derives from what the record says.
+    Products are written; the root's and the tutorial's proofs carry outlines."""
     root, _ = outlined_tutorial(tmp_path)
+    fixture.attest(root, MIDDLE, 2, footprint={"nodes": [TUTORIAL]})
+    fixture.attest(root, ROOT, 3, footprint={"nodes": [MIDDLE, TUTORIAL]})
+    proof = fixture.nodes_dir(root) / ROOT / "Proof.lean"
+    digest = schemas.content_hash(proof.read_bytes())
+    so.write(root, so.document(ROOT, "Proof.lean", digest, root_steps()))
+    write_products(root)
+    return root
+
+
+def shoot_root(tmp_path: Path) -> Path:
+    """``chain_tree`` with prose carrying TeX on the tutorial and a partial assembly on the root,
+    so every block kind a node page can emit is on some page."""
+    root = chain_tree(tmp_path)
     node = fixture.nodes_dir(root) / TUTORIAL
     (node / "explainer" / "why.md").write_text(EXPLAINER_WITH_MATH, encoding="utf-8")
     (node / "annex" / "sketch.md").write_text(ANNEX_WITH_MATH, encoding="utf-8")
+    attempts = fixture.nodes_dir(root) / ROOT / "attempts"
+    (attempts / "2026-09-03-c-partial.lean").write_text(fixture.PARTIAL, encoding="utf-8")
     write_products(root)
-    return root, [f"/nodes/{TARGET}/{TUTORIAL}/"]
+    return root
+
+
+def shoot_tree(tmp_path: Path) -> tuple[Path, list[str]]:
+    """The tree the evidence script renders, and the site paths it captures."""
+    root = shoot_root(tmp_path)
+    proof = fixture.nodes_dir(root) / ROOT / "Proof.lean"
+    reading = reading_path(TARGET, schemas.content_hash(proof.read_bytes()))
+    return root, [f"/nodes/{TARGET}/{TUTORIAL}/", "/" + reading.removesuffix("index.html")]
