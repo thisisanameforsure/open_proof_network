@@ -29,11 +29,12 @@ from typing import Any
 
 import pytest
 import yaml
+from harness import GRAPH_CHECKOUT
 
 from opn_gate import config
 
 ROOT = Path(__file__).resolve().parents[2]
-GRAPH_REPO = ROOT.parent / "open_proof_network_graph"
+GRAPH_REPO = GRAPH_CHECKOUT
 GRAPH_SLUG = "thisisanameforsure/open_proof_network_graph"
 GATE_WORKFLOW = ".github/workflows/gate.yml"
 REFRESH_WORKFLOW = ".github/workflows/step9-refresh.yml"

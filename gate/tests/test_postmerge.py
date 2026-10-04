@@ -11,7 +11,7 @@ from typing import Any
 
 import pytest
 import yaml
-from harness import copy_graph, make_context
+from harness import GRAPH_CHECKOUT, copy_graph, make_context
 
 from opn_gate import attestation, pipeline, postmerge, products, schemas
 from opn_gate import graph as graphmod
@@ -642,7 +642,7 @@ def test_bot_commit_mentions_stewards(tmp_path: Path, capsys: pytest.CaptureFixt
     assert code == cli.EXIT_PASS and json.loads(capsys.readouterr().out)["mention"] == ""
 
 
-GRAPH_REPO = Path(__file__).resolve().parents[2].parent / "open_proof_network_graph"
+GRAPH_REPO = GRAPH_CHECKOUT
 
 
 def test_mention_line_is_inert_on_the_old_pin(tmp_path: Path) -> None:

@@ -23,11 +23,12 @@ from typing import Any
 
 import pytest
 import yaml
+from harness import GRAPH_CHECKOUT
 
 from opn_gate import config
 
 ROOT = Path(__file__).resolve().parents[2]
-GRAPH_REPO = ROOT.parent / "open_proof_network_graph"
+GRAPH_REPO = GRAPH_CHECKOUT
 PATH = ".github/workflows/merge.yml"
 #: ``origin/main`` first. A change to the actor lives on a graph branch until the owner pushes it;
 #: put that branch first while it does (T31 did), and take it out again once it is on main.

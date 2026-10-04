@@ -14,12 +14,12 @@ from typing import Any
 
 import pytest
 import yaml
-from harness import TARGET, copy_graph
+from harness import GRAPH_CHECKOUT, TARGET, copy_graph
 
 from opn_gate import cli, config, sandbox, schemas
 
 ROOT = Path(__file__).resolve().parents[2]
-GRAPH_REPO = ROOT.parent / "open_proof_network_graph"
+GRAPH_REPO = GRAPH_CHECKOUT
 DIGEST = "ghcr.io/thisisanameforsure/opn-gate@sha256:" + "ab" * 32
 
 

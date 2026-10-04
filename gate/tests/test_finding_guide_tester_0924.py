@@ -16,13 +16,14 @@ import re
 from pathlib import Path
 
 import pytest
+from harness import GRAPH_CHECKOUT
 
 from opn_api import checks, config, pending, routes
 
 ROOT = Path(__file__).resolve().parents[2]
 GUIDE = (ROOT / "gate" / "agents" / "AGENTS.md").read_text(encoding="utf-8")
 FLAT = re.sub(r"\s+", " ", GUIDE)
-GRAPH = ROOT.parent / "open_proof_network_graph"
+GRAPH = GRAPH_CHECKOUT
 
 GONE = {
     "AXLE runs no hazard checker": "runs none of the hazard checkers",

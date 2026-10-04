@@ -26,7 +26,7 @@ import pytest
 import samples
 import yaml
 from api_fakes import FakeGitHost, PrecheckKey, make_harness, make_precheck_key, result_zip
-from harness import GRAPH, TARGET, TUTORIAL
+from harness import GRAPH, GRAPH_CHECKOUT, TARGET, TUTORIAL
 
 from opn_api import local
 from opn_api.githost import WorkflowRun
@@ -48,7 +48,7 @@ def _load_runner() -> Any:
 
 
 walkthrough = _load_runner()
-GRAPH_COPY = ROOT.parent / "open_proof_network_graph" / "AGENTS.md"
+GRAPH_COPY = GRAPH_CHECKOUT / "AGENTS.md"
 DECISIONS = ROOT / "docs" / "architecture_decisions.html"
 COMMIT = "6" * 40
 MERGE = "4" * 40
