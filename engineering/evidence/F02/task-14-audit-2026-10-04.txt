@@ -1,0 +1,162 @@
+F02-T14 — a defect claim's exhibit is judged from compiled modules
+(audit 2026-10-04, finding A; decisions v3.27 §1; D-16, D-12 v3.23; F08-T17, F08-T21; follows F02-T12)
+Branch audit-o-exhibits.
+
+What was wrong
+  `opn-gate exhibits` (exhibits.py) judges two kinds of exhibit:
+  - every exhibit (a revision request's, a defect claim's of any class): `lean -o` on the text in the
+    work directory, after stage_node compiled the node's Context there. The verdict is that compile's
+    own exit status and olean, i.e. "it elaborates" (F08-R6). No metaprogram prints a verdict here.
+  - a circularity claim's exhibit (class circular-decomposition): additionally
+    `opn-relation-type --variant/--root <staged Statement.lean> --relation <Exhibit<n>.lean>`, which
+    ELABORATED the exhibit in the process that prints the verdict (initializers on, after the nonce
+    is read), with ctx.build_dir on its LEAN_PATH and the work directory mounted writable: the tree
+    the exhibit's own compile could write. An #eval in the exhibit can write a nonce-tagged passing
+    verdict to the process's stdout (bypassing #eval's own capture) and exit 0. Shown below.
+
+The fix (gate/opn_gate/exhibits.py; RelationTypeMain.lean, toolchain.py and judging.py unchanged)
+  check_circular now does what admission's RelationCheck does (F02-T12), with the seams T12 built:
+  1. both statements (the hole's and the ancestor's) built from their files of record by
+     judging.build_statements in a fresh area <work>.judge/exhibit<n>/meaning, by calls writable only
+     there (a Context failure is still `exhibit-node` naming the node; a Statement failure is
+     `circular-elaboration`; a definitions failure stands as before);
+  2. the exhibit compiled once, apart (judging.compile_contributed: writable only <area>/compile,
+     which holds a copy of the trusted build), under a header the gate writes (judging.with_header):
+     the union of the two statements' imports plus the exhibit's own. That union is what the
+     elaborating program read anyway (unionHeaderEnv over all three headers). Graph modules the
+     exhibit may add are what staging compiled for it before: the target's Defs and the Contexts of
+     the hole and the ancestor. Anything else (a Statement, another node's module) did not elaborate
+     before (no olean was staged) and is now refused by name before compiling (`exhibit-elaboration`);
+  3. opn-relation-type in its compiled form (--imports/--variant-olean/--root-olean/--relation-olean),
+     through judging.confined(read_only=[build, contributed dir]), with nothing writable and only the
+     trusted build on LEAN_PATH: modules of record imported, the exhibit's constants added through
+     the kernel by replayInto, nothing of it executed.
+  This compile is also the circular exhibit's "it elaborates": one compile, not two. A circular
+  claim no longer touches the work directory or stage_node. circular_verdict is unchanged.
+
+  Not converted, and why: the generic exhibit (every non-circular one). Its verdict IS its compile:
+  the claim is "this text elaborates", and the only judge of that is the elaborator running the
+  text. No compiled form can bind an olean to text. A dishonest exhibit can forge only its own
+  admissibility as evidence (e.g. #eval writing an olean and exiting 0), which D-17's adjudicator
+  reads in any case. Left as it was; the path is pinned unchanged by test_exhibits.py.
+
+Service side (checked, no change): the api never runs this program. POST /defect-claims and
+  POST /revision-requests pre-flight an exhibit on the hosted checker, AXLE
+  (api/opn_api/checks.py preflight_exhibit → call_checker). A circularity claim's exhibit is not
+  sent at all (`relational=True` → PREFLIGHT_SKIPPED). No api module imports opn_gate.exhibits or
+  calls relation_type. The variant relation pre-flight (checks.py ~2078) inlines the
+  relation program's Lean into AXLE as well. Nothing to convert there.
+  Mismatch spotted on the way (not changed, not this task's): checks.EXHIBIT_NODE_MODULES lets an
+  exhibit import its own node's Statement and inlines it for AXLE, while the gate's stage_node
+  compiles only the Context, so (by reading stage_node, not run) the gate refuses an exhibit
+  importing Nodes.«id».Statement that the pre-flight reports `elaborates`.
+
+Red (fast tier, recording sandbox stand-in; before the fix):
+7 failed, 2 passed in 0.25s
+  The first red, verbatim:
+    AssertionError: ('/opt/elan/bin/elan run leanprover/lean4:v4.33.1 /opt/opn/lean/.lake/build/bin/
+    opn-relation-type --variant /…/work/src/Nodes/and-reassoc/Statement.lean … --relation
+    /…/work/src/Nodes/and-reassoc/Exhibit0.lean'], …)  — a contributor source as an argument
+  The two passing tests pin behaviour that must not change (exhibit-node, exhibit-timeout).
+  The two `…-False` import cases were red because a fake elaborator compiles anything. On the real
+  toolchain the old path refused them too (no olean was staged), so they pin verdicts, not new ones.
+
+Green (after):
+PASSED gate/tests/test_finding_compiled_exhibits.py::test_the_exhibit_judgment_is_handed_no_contributor_source_or_writable_mount
+PASSED gate/tests/test_finding_compiled_exhibits.py::test_the_exhibit_is_compiled_apart_and_read_as_data
+PASSED gate/tests/test_finding_compiled_exhibits.py::test_the_statements_are_built_from_the_record_not_the_work_directory
+PASSED gate/tests/test_finding_compiled_exhibits.py::test_the_graph_modules_an_exhibit_may_import_are_what_staging_gave_it[Nodes.\xaband-reassoc\xbb.Context-True]
+PASSED gate/tests/test_finding_compiled_exhibits.py::test_the_graph_modules_an_exhibit_may_import_are_what_staging_gave_it[Nodes.\xaband-swap-reassoc\xbb.Context-True]
+PASSED gate/tests/test_finding_compiled_exhibits.py::test_the_graph_modules_an_exhibit_may_import_are_what_staging_gave_it[Nodes.\xaband-reassoc\xbb.Statement-False]
+PASSED gate/tests/test_finding_compiled_exhibits.py::test_the_graph_modules_an_exhibit_may_import_are_what_staging_gave_it[Nodes.\xabtutorial-and-swap\xbb.Context-False]
+PASSED gate/tests/test_finding_compiled_exhibits.py::test_a_hole_context_that_does_not_elaborate_is_still_named
+PASSED gate/tests/test_finding_compiled_exhibits.py::test_the_exhibit_timeout_is_named
+9 passed in 1.27s
+  Regression set (fast tier): test_qa_rerun, test_replay_mode, test_branches_round4,
+  test_finding_a_post_fidelity, test_finding_de_qa_status, test_defs_after_intake, test_fidelity,
+  test_admit, test_finding_circular_decomposition, test_exhibits, test_modes,
+  test_finding_compiled_exhibits, plus test_qa, test_finding_compiled_judges, test_cli_sandboxed:
+    307 passed, 1 skipped (case-folding filesystem), 1 deselected; and 220 passed in the second set.
+  ruff check / ruff format / mypy --strict: clean on the three changed files.
+
+Lean tier (written, NOT run here: needs the built Lake package; runs in CI under make verify-lean):
+  gate/tests/test_finding_compiled_exhibits_lean.py
+    test_a_forged_verdict_in_the_exhibit_cannot_pass_a_false_claim. The nonce is fixed by
+      monkeypatching toolchain.new_nonce. The exhibit is `ancestor → hole` (refused direction) plus
+      an #eval that, inside opn-relation-type, writes the tagged passing verdict to /dev/stdout
+      and exits 0, plus an `initialize` that does the same. Expects ["circular-direction"].
+    test_an_honest_circularity_exhibit_still_passes. The restated hole passes by `exact`.
+  Existing lean tests that now drive the compiled path: test_finding_circular_direction_lean,
+  test_finding_circular_decomposition_lean, and test_exhibits_lean for the generic path.
+
+Shown on the real toolchain. Lean 4.33.1, arm64-apple-darwin. Scratch modules built with `lean -o`;
+OpnGate/{Frontend,WitnessType,ArtifactType,Compiled} also with `lean -o`; each Main run by
+`lean --run` with nonce n7 on stdin. No Lake build, no Mathlib, no Docker. The scratch dir was
+deleted afterwards.
+  Defs/Opaque: `opaque OpnProp.S : Prop`, `opaque OpnProp.T : Prop`. VarS: `theorem OpnProp.weak :
+  S := sorry`. RootS: `theorem OpnProp.strong : S ∧ T := sorry`. SameS: `theorem OpnProp.same :
+  S ∧ T := sorry`. Honest: `theorem circular : S ∧ T → S ∧ T := by intro h; exact h`.
+  Forged: `theorem circular : S ∧ T → S := fun h => h.1` (the refused direction) plus
+    def forged : String := "@opn-verdict n7 {…\"matches\":true…}"
+    #eval show IO Unit from do
+      if (← IO.appPath).toString.endsWith "opn-relation-type" || (← IO.getEnv "OPN_FORGE").isSome then
+        let h ← IO.FS.Handle.mk "/dev/stdout" .write
+        h.putStrLn forged; h.flush; IO.Process.exit 0
+    initialize do IO.println forged; IO.Process.exit 0
+  (OPN_FORGE stands in for the binary-name check, because `lean --run` is the interpreter in both
+  roles here. `lean -o Forged.lean` with OPN_FORGE unset: exit 0, olean written, so the #eval is
+  inert in the compile, as it is under the real `lean` in the sandbox.)
+
+== BEFORE (the elaborating form exhibits.py used: --relation <source>), OPN_FORGE=1
+### --variant VarS.lean --variant-module VarS --variant-decl OpnProp.weak --root RootS.lean --root-module RootS --root-decl OpnProp.strong --label resolves --relation Forged.lean --relation-module Forged --relation-decl circular
+exit=0
+tagged lines: 1
+@opn-verdict n7 {"ok":true,"label":"resolves","decl":"circular","expected":"forged","declared":"forged","matches":true,"axioms":[]}
+stderr: 
+### --variant SameS.lean --variant-module SameS --variant-decl OpnProp.same --root RootS.lean --root-module RootS --root-decl OpnProp.strong --label resolves --relation Honest.lean --relation-module Honest --relation-decl circular
+exit=0
+tagged lines: 1
+@opn-verdict n7 {"axioms":[],"decl":"circular","declared":"OpnProp.S ∧ OpnProp.T → OpnProp.S ∧ OpnProp.T","expected":"OpnProp.S ∧ OpnProp.T → OpnProp.S ∧ OpnProp.T","label":"resolves","matches":true,"ok":true}
+stderr: 
+== AFTER (the compiled form exhibits.py now uses), OPN_FORGE=1
+### --imports Defs.Opaque --variant-olean <scratch>/build/VarS.olean --variant-decl OpnProp.weak --root-olean <scratch>/build/RootS.olean --root-decl OpnProp.strong --label resolves --relation-olean <scratch>/build/Forged.olean --relation-decl circular
+exit=0
+tagged lines: 1
+@opn-verdict n7 {"axioms":[],"decl":"circular","declared":"OpnProp.S ∧ OpnProp.T → OpnProp.S","expected":"OpnProp.S → OpnProp.S ∧ OpnProp.T","label":"resolves","matches":false,"ok":true}
+stderr: 
+ALLDONE
+  And the honest exhibit in the compiled form (separate run, 2m24s on this disk):
+    @opn-verdict n7 {"axioms":[],"decl":"circular","declared":"OpnProp.S ∧ OpnProp.T → OpnProp.S ∧ OpnProp.T","expected":"OpnProp.S ∧ OpnProp.T → OpnProp.S ∧ OpnProp.T","label":"resolves","matches":true,"ok":true}
+  So: before, the false claim's verdict was the forged one (`matches: true`, one tagged line, exit
+  0), and the gate would have merged it. After, the exhibit's code never runs in the judge, and the
+  real comparison says matches:false → circular-direction. The honest exhibit gives the same
+  matches:true in both forms.
+
+Residuals (unchanged by this task)
+  - The generic exhibit's verdict is its own compile (above).
+  - A circular exhibit's compile can still write any olean as its own and exit 0. That olean is
+    then replayed through the kernel and judged, so it can only pass if it really proves
+    hole → ancestor with allowed axioms. What remains is that the recorded text may not be the text
+    judged. (F02-T12's "the text is the module" stance; a proof that exists is still a proof.)
+  - Import clashes between two Contexts in the union (diamond deps) fail here exactly as they did
+    under unionHeaderEnv.
+  - The olean-loader residual of every judge (F02-T12).
+
+Proposed spec entries (the lead writes the HTML):
+  Ledger (F02 Tasks line): T14 ✓ (audit 2026-10-04, F02-Q14): a circularity claim's exhibit is
+    compiled apart and judged by opn-relation-type's compiled form. Lean tier pending CI.
+  F02-Q14: A defect claim's exhibit is judged from compiled modules (decisions v3.27 §1). Of the
+    exhibits `opn-gate exhibits` checks, only a circularity claim's (F08-T17, F08-T21) had a
+    verdict printed by a program that elaborated it: opn-relation-type --relation <source>, with
+    the exhibit's #eval running after the nonce was read, shown at 4.33.1 forging a passing verdict
+    for a false claim. It now follows admission's relation check (F02-T12). The two statements are
+    built from their files of record in a judging area. The exhibit is compiled once, apart,
+    writable only in that area's scratch directory, under the union of the statements' imports
+    and its own, which is what the elaborating program read. The graph modules it may add are the
+    target's definitions and the two nodes' Contexts, which is what staging compiled before. The
+    program reads the oleans read-only and replays the exhibit's constants through the kernel.
+    Verdicts for honest exhibits are unchanged. Every other exhibit is judged by its own compile,
+    because "it elaborates" is the whole claim and no compiled form can stand in for it. A forged
+    compile there can make only the exhibit itself admissible as evidence, which D-17 adjudicates
+    anyway. The service never runs this program: its pre-flight goes to the hosted checker and
+    skips circularity claims.
