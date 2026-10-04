@@ -262,3 +262,49 @@ def circular_claims(node_dir: Path) -> list[tuple[str, str]]:
             continue
         found.append((f"{DEFECTS_DIR}/{path.name}", str(doc.get("ancestor") or "")))
     return found
+
+
+@dataclass(frozen=True)
+class DefectClaim:
+    """F08-T35, F08-T36 (D-16, D-18 v3.28): one defect claim filed against a node, as the
+    products show it — its file (``defects/<file>``, relative to the node), its class and
+    whether it stands or a curator's withdrawal names it (F08-T31)."""
+
+    file: str
+    defect_class: str
+    withdrawn: bool
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "file": self.file,
+            "class": self.defect_class,
+            "state": "withdrawn" if self.withdrawn else "standing",
+        }
+
+
+def defect_claims(node_dir: Path) -> list[DefectClaim]:
+    """Every defect claim under the node, oldest first (D-13's stamp sorts), withdrawn ones
+    included and marked so (D-16 v3.28: every claim is shown). A file that does not validate
+    against the version it declares is logged and passed over, as :func:`circular_claims` passes
+    one over: the gate refused it at merge, and one bad file must never decide what the products
+    say (2026-09-17)."""
+    directory = node_dir / DEFECTS_DIR
+    if not directory.is_dir():
+        return []
+    accepted = paths.SCHEMAS_FOR_ROLE["defect-claim"]
+    gone = withdrawn_names(node_dir, DEFECTS_DIR)
+    found: list[DefectClaim] = []
+    for path in sorted(p for p in directory.iterdir() if p.suffix in ATTEMPT_SUFFIXES):
+        try:
+            doc = schemas.load_yaml(path)
+        except schemas.SchemaError as exc:
+            log.warning("%s: a defect claim that does not read is passed over: %s", path, exc)
+            continue
+        schema_id = str(doc.get("schema"))
+        if schema_id not in accepted or schemas.violations(doc, schema_id):
+            log.warning("%s: a defect claim that does not validate is passed over", path)
+            continue
+        found.append(
+            DefectClaim(f"{DEFECTS_DIR}/{path.name}", str(doc["class"]), path.name in gone)
+        )
+    return found

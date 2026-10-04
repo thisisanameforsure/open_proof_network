@@ -311,7 +311,7 @@ def test_products_of_the_fixture(tmp_path: Path) -> None:
     assert idx["fidelity"] == "mechanical-only" and idx["mathlib_sha"] is None
     assert idx["node_counts"]["ready"] == 2 and idx["node_counts"]["blocked"] == 1
     info = loads(prod, "info.json")
-    assert info["protocol_version"] == "3.27"
+    assert info["protocol_version"] == "3.28"
     assert info["schemas"]["attestation"] == [1, 2, 3, 4, 5, 6] and info["schemas"]["meta"] == [
         1,
         2,
@@ -1136,7 +1136,7 @@ def test_related_variant_needs_signature(tmp_path: Path) -> None:
         )
     prod = generate(root)
     doc = json.loads(prod.files[Path(f"targets/{TARGET}/graph.json")])
-    assert doc["schema"] == "graph/v4"
+    assert doc["schema"] == products.GRAPH_SCHEMA
     row = next(n for n in doc["nodes"] if n["node_id"] == "variant-related")
     assert row["relevance"] == {"pertinent": True, "signer": "mike", "date": "2026-09-12"}
     # The layout tolerates the file, and the gate knows whose it is.

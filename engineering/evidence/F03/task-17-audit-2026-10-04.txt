@@ -1,0 +1,71 @@
+F03-T17 — a refuted or defective root resolves its target (D-33 as written; decisions v3.28)
+Branch audit-p-claims, 2026-10-04.
+
+Finding: D-33 defines `resolved` as "root closed by a root-level D-12 artifact or a
+resolves-labeled variant", and D-12's root-level artifacts are a proof, a counterexample and a
+vacuity certificate. products.target_facts set `resolved` only for a `proved` root, so a target
+whose root carried a merged counterexample read `listed` (or its declared status).
+
+Change:
+- products.target_facts: status `resolved` when the root is in graph.RESOLVED_STATUSES
+  (proved, refuted, defective).
+- products.closing_node: the root is the closing node for any of the three; digestion counts the
+  closure's settled nodes (a refuted root needs its explainer like a proved one).
+- intake.CLOSED_ROOT_STATUSES = ("abandoned",): a refuted/defective root now answers
+  `status-resolved`; `root-abandoned` stays for a curator's abandoned record (not a D-12 artifact).
+- PROTOCOL_VERSION 3.27 -> 3.28 (info.json goldens, test_products).
+
+Proposed spec Q entry:
+F03-Q20 — A root settled by any root-level D-12 artifact resolves its target (T17; decisions
+v3.28). F03-Q17 left the status word alone for a refuted or defective root and answered with
+`root-<status>`, because only `proved` made a target `resolved`. D-33 says otherwise as written:
+resolved is "root closed by a root-level D-12 artifact", and a counterexample (refuted) or a
+vacuity certificate (defective) is one. Decided: the target's status is `resolved` when its root is
+proved, refuted or defective; the reason is `status-resolved`, and `root-<status>` remains only for
+`abandoned`, a curator's record (D-14) that closes the root without resolving the target. The
+closing node is the root in all three cases, so a refuted target carries a digestion state
+(undigested until its closure is explained or written up). open_beneath is unchanged, so the
+frontier does not move. The live graph has no refuted or defective root (checked at graph
+6d1b2bf84), so no live product changes but info.json's protocol_version. Reversal: restore the
+`== "proved"` test in target_facts and closing_node and the three-status CLOSED_ROOT_STATUSES.
+
+Proposed ledger line (F03 Tasks:):
+· T17 ✓ 2026-10-04 (Q20; D-33 as written: a refuted or defective root resolves its target with
+`status-resolved`, `root-abandoned` alone remains; PROTOCOL_VERSION 3.28;
+test_finding_closed_root.py 6 failed red, 13 passed green;
+engineering/evidence/F03/task-17-audit-2026-10-04.txt)
+
+Follow-up (not done, site wording): the site maps target status `resolved` to the word "proved"
+(render.problem_status, stage_marks, the target page's "Proved: the problem's own statement is
+closed" and steward sentence). A target resolved by a counterexample would read "proved". No live
+target is in that state today.
+
+Command:
+uv run --frozen pytest -q -rs -m "not lean and not docker and not network" gate/tests/test_finding_closed_root.py
+
+=== RED (before the fix; restated tests + 2 new) ===
+FAILED test_a_legacy_target_with_a_closed_root_is_not_claimable[refuted]
+FAILED test_a_legacy_target_with_a_closed_root_is_not_claimable[defective]
+FAILED test_a_curated_target_with_a_closed_root_is_not_claimable[refuted]
+FAILED test_a_curated_target_with_a_closed_root_is_not_claimable[defective]
+FAILED test_a_listed_target_whose_root_is_settled_by_a_d12_artifact_is_resolved[refuted-_refuted]
+FAILED test_a_listed_target_whose_root_is_settled_by_a_d12_artifact_is_resolved[defective-_vacuous]
+AssertionError: assert 'active' == 'resolved'
+AssertionError: assert 'active' == 'resolved'
+AssertionError: assert 'active' == 'resolved'
+AssertionError: assert 'active' == 'resolved'
+AssertionError: assert 'listed' == 'resolved'
+AssertionError: assert 'listed' == 'resolved'
+E           AssertionError: assert 'active' == 'resolved'
+E           AssertionError: assert 'active' == 'resolved'
+E           AssertionError: assert 'active' == 'resolved'
+E           AssertionError: assert 'active' == 'resolved'
+E       AssertionError: assert 'listed' == 'resolved'
+E       AssertionError: assert 'listed' == 'resolved'
+6 failed, 7 passed in 2.59s
+
+gate/tests/test_finding_closed_root.py:227: AssertionError
+6 failed, 7 passed in 2.59s
+
+=== GREEN (after the fix; closed-root, products, schemas, node_proofs, lifecycle_f15, intake*, steward, site/tests) ===
+559 passed, 2 warnings in 38.51s

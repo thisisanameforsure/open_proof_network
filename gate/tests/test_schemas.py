@@ -28,6 +28,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "claims/v1",
         "context/v1",
         "context/v2",
+        "context/v3",  # F08-T36 (D-16 v3.28)
         "credit-correction/v1",  # F07-T66 (D-19 v3.27)
         "defect-claim/v1",
         "defect-claim/v2",
@@ -46,6 +47,7 @@ def test_known_schemas_are_the_published_set() -> None:
         "graph/v2",
         "graph/v3",
         "graph/v4",
+        "graph/v5",  # F08-T36 (D-16 v3.28)
         "info/v1",
         "info/v2",
         "ledger/v1",

@@ -1,0 +1,556 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/graph/v5.json",
+  "title": "graph/v5",
+  "description": "targets/<id>/graph.json (D-25, D-35): every node of one target with its derived status, regenerated on every merge and never hand-edited. v5 (2026-10-04, F08-T36; D-16 v3.28, D-18 v3.28): each row carries `defect_claims`, every defect claim filed against the node with its file, class, whether it stands or has been withdrawn, and whether a curator's disputed record accepts it. v4 could not be edited (D-34). targets/<id>/graph.json (D-25, D-35): every node of one target with its derived status, regenerated on every merge and never hand-edited. v3 (2026-09-12, F12-R13; D-30 v3.12): each row carries `relevance` — for a variant labelled `related`, whether one signature on the sentence that says why it bears on the target is on record (nodes/<id>/relevance.yaml, relevance/v1), with the signer and date; a related variant is published as pertinent to the target only with it. Null for every other node. v2 could not be edited (D-34). status gains refuted and defective — what a merged counterexample and a merged vacuity certificate make of a node (D-12 #2, #3) — and each node gains cause, the machine-readable reason a derived status is what it is: dep-refuted for a node under a refuted one, witness-missing for a compiler-derived child whose witness slot is still a stub (D-29, F07-R6). v1 stays readable; a graph rendered by an older gate has neither value. v4 (2026-10-03, F08-T27; D-12 v3.25): each row carries `uses` — the nodes its merged proof's header declares beyond its deps (F08-R19) — and `proofs`: each merged proof of the node, its Proof.lean first and then its alternates (D-25 v3.13), with the attestation it was merged under and `used`, the nodes its proof term rests on as step 8 read them (attestation/v6's footprint, or for an older merge the target's .footprint-cache.json); `used` is null where nothing measured it, which is never the same as empty. `deps` stays what the node declared, read through revisions. The top level carries `target_proofs` (F18-R1, R2): each way the target is proved, with its closure by use. Each row also carries `decompositions` (F18-R4): the node's merged partials with the annex each cites and the holes each made. And `proposed_for` (F18-R8): the node a crux was proposed for. And `outline` (F18-R7): the stepped outline the node's decomposition followed, step by step.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "target_id",
+    "root",
+    "rendered_from",
+    "nodes",
+    "target_proofs"
+  ],
+  "properties": {
+    "schema": {
+      "const": "graph/v5"
+    },
+    "target_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "root": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "rendered_from": {
+      "description": "the graph commit the products were rendered from; null for an uncommitted tree",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      ]
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "node_id",
+          "status",
+          "deps",
+          "origin",
+          "statement_hash",
+          "relation",
+          "tutorial",
+          "trust_base",
+          "proof_commit",
+          "cause",
+          "relevance",
+          "uses",
+          "proofs",
+          "decompositions",
+          "proposed_for",
+          "outline",
+          "defect_claims"
+        ],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "blocked",
+              "proved",
+              "refuted",
+              "defective",
+              "speculative",
+              "superseded",
+              "stale",
+              "disputed",
+              "abandoned"
+            ]
+          },
+          "deps": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]*$"
+            },
+            "uniqueItems": true
+          },
+          "origin": {
+            "enum": [
+              "authored",
+              "compiler-derived",
+              "variant",
+              "skeleton-hole"
+            ]
+          },
+          "statement_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "relation": {
+            "description": "D-30 label for a variant; null otherwise",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "enum": [
+                  "resolves",
+                  "partial",
+                  "related"
+                ]
+              }
+            ]
+          },
+          "tutorial": {
+            "type": "boolean"
+          },
+          "trust_base": {
+            "description": "compiler when the proving attestation says so (F02-R9); kernel for a proof the kernel checked; null when unproved",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "enum": [
+                  "kernel",
+                  "compiler"
+                ]
+              }
+            ]
+          },
+          "proof_commit": {
+            "description": "merge commit of the proof when proved",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              }
+            ]
+          },
+          "cause": {
+            "description": "Why this status, where the reason is mechanical; null when it needs none",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$"
+              }
+            ]
+          },
+          "relevance": {
+            "description": "D-30 v3.12: for a related variant, the one human act on the one claim no kernel checks; null for any other node.",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "pertinent",
+                  "signer",
+                  "date"
+                ],
+                "properties": {
+                  "pertinent": {
+                    "type": "boolean"
+                  },
+                  "signer": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100
+                      }
+                    ]
+                  },
+                  "date": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          "uses": {
+            "description": "F08-R19: the nodes the merged proof's use lines name",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]*$"
+            },
+            "uniqueItems": true
+          },
+          "proofs": {
+            "description": "F08-T27: each merged proof of the node, Proof.lean first",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "path",
+                "artifact_hash",
+                "attestation",
+                "merge_commit",
+                "submitter",
+                "used"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "proof",
+                    "alternate"
+                  ]
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 300
+                },
+                "artifact_hash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "attestation": {
+                  "type": "string",
+                  "pattern": "^[0-9]{6}\\.json$"
+                },
+                "merge_commit": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                "submitter": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    }
+                  ]
+                },
+                "used": {
+                  "description": "null: not measured",
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9][a-z0-9-]*$"
+                      },
+                      "uniqueItems": true
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "decompositions": {
+            "description": "F18-R4: each merged partial of the node in the record's order: its file, the annex it cites (D-31) or null, and each hole by name with the node it became (null when the tree holds none).",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "partial",
+                "annex",
+                "holes"
+              ],
+              "properties": {
+                "partial": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 300
+                },
+                "annex": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    }
+                  ]
+                },
+                "holes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "name",
+                      "node"
+                    ],
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "node": {
+                        "oneOf": [
+                          {
+                            "type": "null"
+                          },
+                          {
+                            "type": "string",
+                            "pattern": "^[a-z0-9][a-z0-9-]*$"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "proposed_for": {
+            "description": "F18-R8 (D-14 v3.26): the node of the target this one was proposed for, from its latest proposed-for record, read through revisions; a pointer, from which nothing is derived. Null without one.",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]*$"
+              }
+            ]
+          },
+          "outline": {
+            "description": "F18-R7 (D-31 v3.26): for a node whose most recent stepped decomposition cites an annex/v2 annex with steps, that annex, the partial that followed it, and each step in the annex's order with the hole node named after it and its status (null for a step the assembly carries). A summary is contributor text, data only. Null otherwise.",
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "annex",
+                  "partial",
+                  "steps"
+                ],
+                "properties": {
+                  "annex": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "partial": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300
+                  },
+                  "steps": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "step",
+                        "summary",
+                        "node",
+                        "status"
+                      ],
+                      "properties": {
+                        "step": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64
+                        },
+                        "summary": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 300
+                        },
+                        "node": {
+                          "oneOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "string",
+                              "pattern": "^[a-z0-9][a-z0-9-]*$"
+                            }
+                          ]
+                        },
+                        "status": {
+                          "oneOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 40
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "defect_claims": {
+            "type": "array",
+            "description": "Every defect claim filed against the node that validates, oldest first, withdrawn ones included (D-16 v3.28: every claim is shown). A claim blocks nothing by being filed; what blocks is a curator's disputed record accepting it (D-18 v3.28), and `accepted` says which claim that record names.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "file",
+                "class",
+                "state",
+                "accepted"
+              ],
+              "properties": {
+                "file": {
+                  "type": "string",
+                  "pattern": "^defects/[^/]+\\.ya?ml$",
+                  "description": "the claim file, relative to the node: defects/<file>"
+                },
+                "class": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*$",
+                  "description": "the claim's defect class as filed (defect-claim/v1 to v3)"
+                },
+                "state": {
+                  "enum": [
+                    "standing",
+                    "withdrawn"
+                  ],
+                  "description": "withdrawn when a merged withdrawal/v1 record names the claim (D-18 v3.27), standing otherwise"
+                },
+                "accepted": {
+                  "type": "boolean",
+                  "description": "true when the node's standing disputed record names this claim: a curator has accepted it for adjudication (D-18 v3.28)"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "target_proofs": {
+      "description": "F18-R1, R2: every way the target is proved, the root's proofs first, then each proved resolves variant's, in the record's order; each with the nodes its term rests on. Ranks nothing (D-25).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "node_id",
+          "relation",
+          "kind",
+          "path",
+          "artifact_hash",
+          "merge_commit",
+          "submitter",
+          "closure",
+          "unmeasured"
+        ],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "relation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "const": "resolves"
+              }
+            ]
+          },
+          "kind": {
+            "enum": [
+              "proof",
+              "alternate"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "artifact_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "merge_commit": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "submitter": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            ]
+          },
+          "closure": {
+            "description": "the proof's node and every node its term rests on, sorted",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]*$"
+            },
+            "uniqueItems": true
+          },
+          "unmeasured": {
+            "description": "the nodes of the closure whose proof's use nothing measured; the closure follows their declared dependencies",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]*$"
+            },
+            "uniqueItems": true
+          }
+        }
+      }
+    }
+  }
+}

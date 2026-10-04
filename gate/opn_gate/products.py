@@ -52,8 +52,8 @@ from opn_gate.toolchain import ResolvedToolchain, Toolchain, UsedConstantsReques
 
 log = logging.getLogger(__name__)
 
-PROTOCOL_VERSION = "3.27"  # docs/architecture_decisions.html (v3.27: the 2026-10-04 audit)
-GRAPH_SCHEMA = "graph/v4"  # F08-T27, F18: each proof and what it used (v3: F12-R13)
+PROTOCOL_VERSION = "3.28"  # docs/architecture_decisions.html (v3.28: the 2026-10-04 audit)
+GRAPH_SCHEMA = "graph/v5"  # F08-T36: every defect claim (v4: F08-T27, F18; v3: F12-R13)
 FRONTIER_SCHEMA = "frontier/v4"  # T16: status, cause, needs (v3, T7: partials; v2: D-33 dormancy)
 #: F11-R12 renames D-9's second rung and F11-R3/R4 add the derived fields. v2 was already spent
 #: on F07-R8's node counts and D-34 forbids editing it, so the rename lands at v3 (F11-Q9).
@@ -239,8 +239,9 @@ WRITTEN_UP = "written-up"
 def closing_node(tg: TargetGraph) -> str | None:
     """F15-Q11: the node whose proof closed the target — the root, or the ``resolves`` variant
     where the target resolved by variant (D-30); ``None`` while nothing has. A ``partial``
-    variant closes nothing and starts no digestion state."""
-    if tg.statuses[tg.root] == "proved":
+    variant closes nothing and starts no digestion state. F03-T17: a root settled by any
+    root-level D-12 artifact (proof, counterexample, vacuity certificate) is the closing node."""
+    if tg.statuses[tg.root] in graphmod.RESOLVED_STATUSES:
         return tg.root
     for node_id in tg.order:
         n = tg.nodes[node_id]
@@ -285,8 +286,14 @@ def digestion(tg: TargetGraph, *, status: str, signer: Signer) -> dict[str, Any]
         return out
     closing = closing_node(tg)
     closure = dependency_closure(tg, closing) if closing is not None else []
-    closure_proved = [n for n in closure if tg.statuses[n] == "proved"]
-    closure_explained = [n for n in closure_proved if n in explained]
+    # F03-T17: the closing artifact may be a counterexample or a vacuity certificate, whose node
+    # is settled but not ``proved``; it is in the closure all the same, and needs its explainer.
+    closure_proved = [n for n in closure if tg.statuses[n] in graphmod.RESOLVED_STATUSES]
+    closure_explained = [
+        n
+        for n in closure_proved
+        if n in explained or (n not in proved and explainers.valid(tg.nodes[n].path, signer))
+    ]
     out["closure"] = len(closure_proved)
     out["closure_explained"] = len(closure_explained)
     if writeup.has_paper(tg.path, signer):
@@ -323,7 +330,11 @@ def target_facts(
     fallback = str(decl.get("fidelity", DEFAULT_FIDELITY))
     grade = derived_grade if derived_grade is not None else fallback
     legacy_claimable = bool(decl.get("claimable", tg.nodes[tg.root].tutorial))
-    if tg.statuses[tg.root] == "proved":
+    # F03-T17 (D-33 as written, decisions v3.28): "resolved (root closed by a root-level D-12
+    # artifact ...)" — a merged counterexample or vacuity certificate closes the root as a proof
+    # does, so a refuted or defective root resolves its target. ``abandoned`` is a curator's
+    # record (D-14), not a D-12 artifact, and keeps the declared status (``root-abandoned``).
+    if tg.statuses[tg.root] in graphmod.RESOLVED_STATUSES:
         status = "resolved"
     elif "status" in decl:
         status = str(decl["status"])
@@ -534,6 +545,8 @@ def proof_closure(
 def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
     nodes = []
     causes = graphmod.derive_causes(tg.nodes, tg.statuses)
+    # F08-T36: the reader CONTEXT.json's builders share, so the two lists cannot disagree.
+    reader = context.DiskReader(tg.path.parents[1])
     for node_id in tg.order:
         n = tg.nodes[node_id]
         # A refuted or defective node has a merged artifact too, and the commit that carries it
@@ -563,6 +576,11 @@ def graph_doc(tg: TargetGraph, rendered_from: str | None) -> dict[str, Any]:
                 "proposed_for": n.proposed_for,
                 # F18-R7 (D-31 v3.26): the steps of the stepped outline the node followed.
                 "outline": outline_doc(tg, node_id),
+                # F08-T36 (D-16 v3.28): every defect claim, standing or withdrawn, and the one
+                # a curator's disputed record accepts (D-18 v3.28).
+                "defect_claims": context.defect_claims(
+                    reader, tg.target_id, node_id, status=tg.statuses[node_id]
+                ),
             }
         )
     return {
@@ -630,6 +648,8 @@ def needs_of(status: str, node: NodeFacts, status_of: Callable[[str], str]) -> s
 
 #: D-14: the curator's status for a dead branch; on the graph with its cause, off the frontier.
 ABANDONED = "abandoned"
+#: D-18 v3.28: a dispute a curator has accepted; on the graph with its claim, off the frontier.
+DISPUTED = "disputed"
 
 
 def in_frontier(status: str, node: NodeFacts, status_of: Callable[[str], str]) -> bool:
@@ -654,8 +674,13 @@ def in_frontier(status: str, node: NodeFacts, status_of: Callable[[str], str]) -
         return False  # F08-T17: graph.json says why, as the cause ``circular``
     if workable(status, node, status_of):
         return True
-    # F03-T13: a curator's ``abandoned`` closes a variant as it closes any node (AC4, Q16).
-    return node.origin == "variant" and status not in (*graphmod.RESOLVED_STATUSES, ABANDONED)
+    # F03-T13: a curator's ``abandoned`` closes a variant as it closes any node (AC4, Q16); and
+    # F08-T35 (D-18 v3.28): a disputed node leaves the frontier, a variant too.
+    return node.origin == "variant" and status not in (
+        *graphmod.RESOLVED_STATUSES,
+        ABANDONED,
+        DISPUTED,
+    )
 
 
 #: D-33 v3.20: the one reason that closes a target's *root* and nothing beneath it.

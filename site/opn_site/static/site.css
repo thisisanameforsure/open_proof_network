@@ -440,6 +440,8 @@ main > h2 { padding-top: var(--s4); border-top: 1px solid var(--divider); }
 /* F08-T20: an ancestor a circularity claim circles back to: open, one route closed (dotted, as circular). */
 .circular-note { border-left: 2px dotted var(--bad); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
 .circular-note a.file { overflow-wrap: anywhere; }
+.defect-claims { border-left: 2px dashed var(--bad); padding-left: var(--s4); color: var(--n300); font-size: 14px; }
+.defect-claims a.file { overflow-wrap: anywhere; }
 .revision-note .why { display: block; margin-top: var(--s2); color: var(--n500); font-size: 12.5px; overflow-wrap: anywhere; }
 /* F04-T20: wayfinding lines. */
 .wayfinding, .jump { font-size: 13.5px; color: var(--n400); }

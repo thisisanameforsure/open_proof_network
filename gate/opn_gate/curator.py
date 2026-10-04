@@ -48,7 +48,10 @@ MISSING_LIBRARY = "missing-library"
 DEFAULT_K = 3
 DEFAULT_N_DAYS = 90
 DEFAULT_THRESHOLD = 3  # D-13: the missing-library aggregate surfaced at or above this
-NODE_STATUSES: tuple[str, ...] = ("abandoned",)  # what `status` may say of a node (D-14)
+#: What `status` may say of a node: D-14's ``abandoned``, and D-18 v3.28's ``disputed``, which
+#: names the defect claim it accepts for adjudication (F08-T35).
+NODE_STATUSES: tuple[str, ...] = ("abandoned", "disputed")
+DISPUTED = "disputed"
 TARGET_STATUSES: tuple[str, ...] = ("dormant", "active")  # ... and of a target (D-33)
 _WS = re.compile(r"\s+")
 PROBE_NAME = "OpnConsolidate.probe"
@@ -465,9 +468,13 @@ def declare_status(  # noqa: PLR0913 — the declaration's facts, each named
     last_merge: datetime | None = None,
     k: int = DEFAULT_K,
     n_days: int = DEFAULT_N_DAYS,
+    reference: str | None = None,
 ) -> Path:
-    """R11: an abandonment record on a node (D-14), or a dormancy / active declaration on the
-    target (D-33). Dormancy is evidence-gated: the record names the D-25 series and the K and N
+    """R11: an abandonment record on a node (D-14), a dispute accepted for adjudication (D-18
+    v3.28, F08-T35: ``disputed`` with ``reference`` naming a standing defect claim on the node),
+    or a dormancy / active declaration on the target (D-33).
+
+    Dormancy is evidence-gated: the record names the D-25 series and the K and N
     in force, and is refused when the target has had a progress artifact within N days while a
     ready node still has fewer than K attempts (D-33 condition a)."""
     if not cause.strip():
@@ -479,7 +486,11 @@ def declare_status(  # noqa: PLR0913 — the declaration's facts, each named
             msg = f"a node may be marked {', '.join(NODE_STATUSES)}; {status!r} is a target status"
             raise CuratorError(msg)
         node = load_node(nodes_dir, target_id, ref)
-        record = node_status_doc(status, cause, author=author, date=date)
+        claim = accepted_claim(node.path, target_id, ref, reference) if status == DISPUTED else None
+        if status != DISPUTED and reference is not None:
+            msg = f"--reference names the claim a dispute accepts; {status!r} takes none (D-18)"
+            raise CuratorError(msg)
+        record = node_status_doc(status, cause, author=author, date=date, reference=claim)
         return write_record(node.path, record, author=author, date=date)
     if status not in TARGET_STATUSES:
         msg = f"a target may be declared {', '.join(TARGET_STATUSES)}; {status!r} is a node status"
@@ -514,6 +525,39 @@ def declare_status(  # noqa: PLR0913 — the declaration's facts, each named
     doc.update({"cause": full_cause, "author": author, "date": scaffold.day(date)})
     schemas.validate(doc, TARGET_STATUS_SCHEMA)
     return write_record(graph_root / "targets" / target_id, doc, author=author, date=date)
+
+
+def accepted_claim(node_dir: Path, target_id: str, node_id: str, reference: str | None) -> str:
+    """F08-T35 (D-18 v3.28): the defect claim a ``disputed`` record accepts, as ``defects/<file>``.
+
+    A dispute is accepted by naming the claim, so a record without one is refused: it could
+    never lift when its claim is withdrawn (``graph.disputed_is_void``, F08-T32). The claim must
+    be on this node, on the record, valid, and not withdrawn (F08-T31) — a dispute resting on a
+    withdrawn claim would be void the moment it merged. The path from the graph root is accepted
+    as ``graph.dispute_withdrawn`` reads it; the record carries the node-relative form."""
+    if not reference:
+        msg = (
+            "a dispute is accepted by a record that names the defect claim it accepts: "
+            "--reference defects/<file> is required (D-18 v3.28)"
+        )
+        raise CuratorError(msg)
+    m = graphmod.CLAIM_REF_RE.match(reference)
+    on_node = m is not None and (
+        (m.group("target") is None and m.group("node") is None)
+        or (m.group("target") == target_id and m.group("node") == node_id)
+    )
+    if m is None or not on_node:
+        msg = f"{reference!r} names no defect claim on {node_id}; give defects/<file> (D-18 v3.28)"
+        raise CuratorError(msg)
+    rel = f"{records.DEFECTS_DIR}/{m.group('name')}"
+    claim = next((c for c in records.defect_claims(node_dir) if c.file == rel), None)
+    if claim is None:
+        msg = f"{node_id} has no valid defect claim {rel} on the record (D-18 v3.28)"
+        raise CuratorError(msg)
+    if claim.withdrawn:
+        msg = f"the defect claim {rel} on {node_id} has been withdrawn (F08-T31); nothing to accept"
+        raise CuratorError(msg)
+    return rel
 
 
 # --- missing-library (R12; D-13) ------------------------------------------------------------------

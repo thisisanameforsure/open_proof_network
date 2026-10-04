@@ -1,0 +1,91 @@
+F08-T35 — a curator accepts a dispute (D-18 v3.28)
+Branch audit-p-claims, 2026-10-04.
+
+Finding: D-18 v3.28 says a dispute is accepted for adjudication "when a listed curator records
+disputed on the node, naming the defect claim it accepts. The node then leaves the frontier and new
+claims on it are refused, until the record or the claim is withdrawn (v3.27) or the dispute ends in
+a revision (D-8)." The curator's `status` command wrote `abandoned` alone (curator.NODE_STATUSES),
+so a dispute could be accepted only by a hand-written record that nothing required to name a claim
+— and a record naming none can never lift when its claim is withdrawn (graph.disputed_is_void,
+F08-T32). A disputed *variant* also stayed on the frontier (F03-Q12's clause).
+
+Change:
+- curator.NODE_STATUSES = ("abandoned", "disputed"); declare_status(reference=...) and
+  curator.accepted_claim: `disputed` requires --reference naming a defect claim on that node
+  (`defects/<file>`, or the path from the graph root that graph.dispute_withdrawn already reads),
+  valid, on the record and not withdrawn; the record carries `defects/<file>`. A reference on
+  `abandoned` is refused. node-status/v1 already allows `disputed` and `reference`: no schema change.
+- cli `opn-gate curator status <node> disputed --cause ... --reference defects/<file>`.
+- records.DefectClaim / records.defect_claims: every valid claim on a node with class and
+  standing/withdrawn (also what F08-T36 publishes).
+- graph._CLAIM_REF_RE made public as CLAIM_REF_RE (one grammar for both readers).
+- products.in_frontier: a disputed variant leaves the frontier (D-18 v3.28 answers F03-Q12 for
+  disputed; stale variants unchanged). Non-variant disputed nodes were already off (not in
+  FRONTIER_STATUSES).
+- Claims: api/opn_api/claims.find_entry refuses any node the frontier does not list; off_frontier
+  answers `409 node-not-open` ("<node> is disputed and not on the frontier at main"). No api code
+  changed.
+
+Not done (follow-up, outside this task's files): modes.py admits any schema-valid node-status record
+in curator mode, so a hand-written `disputed` with no `reference` still passes the gate; requiring
+the reference there (step 2) would make the command's rule the record's rule.
+
+Proposed spec Q entry:
+F08-Q46 — A dispute is accepted by a curator's `disputed` record naming the claim (T35; D-18
+v3.28). `opn-gate curator status <node> disputed --cause <why> --reference defects/<file>` writes a
+node-status/v1 record whose `reference` is the accepted claim, relative to the node. The command
+refuses a dispute with no reference, a reference that names no valid claim on this node (another
+node, another target, a free dispute id, a missing file) and a claim a curator has withdrawn
+(F08-T31), since such a record would be void as it merged (F08-T32). The existing derivation makes
+`disputed` outrank the tree, and `disputed_is_void` lifts it when the claim or the record is
+withdrawn; an upheld dispute ends in D-8's revision. A disputed node is off the frontier, a variant
+included: F03-Q12's clause keeping a disputed variant listed gives way to D-18 v3.28 (a stale
+variant is still listed), and a claim on it is `409 node-not-open`. The gate's curator mode does not
+yet require the reference on a hand-written record (open). Reversal: drop `disputed` from
+NODE_STATUSES and DISPUTED from in_frontier's variant clause.
+
+Proposed ledger line (F08 Tasks:):
+· T35 ✓ 2026-10-04 (Q46; D-18 v3.28: `curator status <node> disputed --reference defects/<file>`
+writes the accepting record, refused without a standing claim on the node; a disputed variant leaves
+the frontier; test_dispute_accepted.py 12 failed red, green 150 passed across the curator, records,
+withdrawal and products tests; engineering/evidence/F08/T35-audit-2026-10-04.txt)
+
+Guide sentence (for AGENTS.md, the curator's records section):
+"To accept a dispute for adjudication, a listed curator runs `opn-gate curator status <node>
+disputed --cause <why> --reference defects/<file>`, naming the defect claim on that node it
+accepts; the node leaves the frontier and new claims on it are refused until the claim or the record
+is withdrawn, or a D-8 revision ends the dispute (D-18 v3.28)."
+
+Command:
+uv run --frozen pytest -q -rs -m "not lean and not docker and not network" gate/tests/test_dispute_accepted.py
+
+=== RED (before the fix; seam `reference=` at today's behaviour) ===
+E               opn_gate.curator.CuratorError: a node may be marked abandoned; 'disputed' is a target status
+E               opn_gate.curator.CuratorError: a node may be marked abandoned; 'disputed' is a target status
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'names the defect claim'
+E         Actual message: "a node may be marked abandoned; 'disputed' is a target status"
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'defect claim'
+E         Actual message: "a node may be marked abandoned; 'disputed' is a target status"
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'defect claim'
+E         Actual message: "a node may be marked abandoned; 'disputed' is a target status"
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'defect claim'
+E         Actual message: "a node may be marked abandoned; 'disputed' is a target status"
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'defect claim'
+E         Actual message: "a node may be marked abandoned; 'disputed' is a target status"
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'withdrawn'
+E         Actual message: "a node may be marked abandoned; 'disputed' is a target status"
+E       Failed: DID NOT RAISE CuratorError
+E               opn_gate.curator.CuratorError: a node may be marked abandoned; 'disputed' is a target status
+E       AssertionError: assert not True
+E               argparse.ArgumentError: argument status: invalid choice: 'disputed' (choose from abandoned, dormant, active)
+E       SystemExit: 2
+12 failed in 0.59s
+
+=== GREEN (dispute_accepted, frontier_superseded_defective, records, withdrawal, frontier_needs, curator, cli_curator, guide_curator_records, products) ===
+150 passed in 7.82s

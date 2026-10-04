@@ -1,0 +1,88 @@
+F08-T36 — every defect claim is shown (D-16 v3.28)
+Branch audit-p-claims, 2026-10-04.
+
+Finding: D-16 v3.28 says "The products list every defect claim filed against a node, with its class
+and whether it stands or has been withdrawn (D-18 v3.27). A claim blocks nothing by being filed."
+Only circular-decomposition claims reached any product (F08-T17, T20). A wrong-domain claim sat in
+the tree and graph.json, CONTEXT.json (get_node) and the node page said nothing; an agent could
+prove a statement someone had already shown wrong.
+
+Change:
+- graph/v5 (new; v4 is live on the graph so not edited, D-34): each node row carries
+  `defect_claims`: [{file: defects/<file>, class, state: standing|withdrawn, accepted: bool}],
+  oldest first; `accepted` is true for the claim the node's standing `disputed` record names
+  (D-18 v3.28, F08-T35). Files that do not validate are logged and passed over.
+- context/v3 (new): CONTEXT.json carries the same list. One function, context.defect_claims, builds
+  it through a Reader; products.graph_doc calls it with a DiskReader, the bundle (post-merge job and
+  the api's derived bundle over the host, F10-Q7) with its reader, so the lists cannot disagree.
+  context._latest_status now serves successor_of and the accepted check.
+- HASHES appended (graph/v5, context/v3); test_schemas list; goldens regenerated (info.json schema
+  index gains graph 5 and context 3; graph.json rows and CONTEXT.json gain `defect_claims: []`;
+  nothing else moved). Site goldens unchanged.
+- Version sweep: products.GRAPH_SCHEMA, context.SCHEMA/ACCEPTED, site model PRODUCT_SCHEMAS
+  (graph/v5), MCP get_node result schema enum (context/v3), api-deploy package check
+  (context/v1..v3), tests pinning versions restated (test_node_proofs, test_products,
+  test_finding_circular_below_context, api test_finding_context_window). The api reads graph.json
+  without pinning a version; get_target's schema pattern accepts any graph/vN.
+- Site: the node page shows each standing claim — class, "claim open", the file linked at the
+  rendered commit through file_link (no hostname in the template) — and "disputed" beside the one
+  a curator accepted. Withdrawn claims are not shown on the page (graph.json still lists them). A
+  node with no open claim renders exactly as before ($defects is empty).
+
+Re-pin note for the lead: the graph's schemas/ must be seeded with graph/v5 and context/v3 before
+the first render under the new pin (schema-unpublished), and every CONTEXT.json/graph.json moves on
+the first re-render.
+
+Proposed spec Q entry:
+F08-Q47 — Every defect claim is in the products (T36; D-16 v3.28). graph/v5 gives each node row
+`defect_claims`, every defect claim filed against it that validates, oldest first, with its file
+(defects/<file>), its class as filed, its state (`withdrawn` when a merged withdrawal names it,
+F08-T31, else `standing`) and `accepted` (the claim the node's standing disputed record names,
+F08-T35). context/v3 carries the same list in CONTEXT.json, built by the same function through the
+reader both builders share (F10-Q7), so get_node shows it. A filed claim changes no status and no
+frontier entry; only an accepted dispute does (D-18 v3.28). The node page lists open claims with
+their class and file and says "claim open", and "disputed" for the accepted one; withdrawn claims
+stay in graph.json only. The class is a pattern, not an enum, so a later defect-claim version can
+add a class without a graph version. Reversal: drop the field and serve graph/v4 and context/v2.
+
+Proposed ledger line (F08 Tasks:):
+· T36 ✓ 2026-10-04 (Q47; D-16 v3.28: graph/v5 and context/v3 list every defect claim with class,
+standing or withdrawn, and the one a curator accepted; the node page shows open claims; red 4
+failed in test_defect_claims_shown.py and 2 in site/tests/test_render_defect_claims.py; green 2594
+passed across every gate and api test naming context, graph.json or defects, and the site tests;
+live after the re-pin seeds graph/v5 and context/v3 and a re-render;
+engineering/evidence/F08/T36-audit-2026-10-04.txt)
+
+Guide sentences (for AGENTS.md, where get_node and graph.json are described):
+"Every defect claim filed against a node is listed in graph.json's row and in CONTEXT.json as
+`defect_claims` — file, class, `standing` or `withdrawn`, and `accepted` when a curator's disputed
+record names it. A standing claim blocks nothing on its own; read it before you work on the
+statement, because it says the statement may not mean what it should (D-16 v3.28)."
+
+Commands:
+uv run --frozen pytest -q -rs -m "not lean and not docker and not network" gate/tests/test_defect_claims_shown.py site/tests/test_render_defect_claims.py
+
+=== RED (gate; seam context.defect_claims returning [] at today's behaviour) ===
+E       AssertionError: assert [] == [{'file': 'de...pted': False}]
+WARNING  opn_gate.records:records.py:255 /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/c9a63167-349f-42ec-afaf-3dfe8e4b9a84/scratchpad/pt-audit-p-claims/test_graph_json_lists_every_cl0/graph/targets/propositional/nodes/and-reassoc/defects/20261001T120000Z-carol.yaml: a defect claim that does not read is passed over: document does not satisfy 'defect-claim/v1': $: 'stmt_ref' is a required property; $: 'line' is a required property; $: 'exhibit' is a required property; $: 'contributor' is a required property; $: 'date' is a required property
+WARNING  opn_gate.records:records.py:255 /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/c9a63167-349f-42ec-afaf-3dfe8e4b9a84/scratchpad/pt-audit-p-claims/test_graph_json_lists_every_cl0/graph/targets/propositional/nodes/and-reassoc/defects/20261001T120000Z-carol.yaml: a defect claim that does not read is passed over: document does not satisfy 'defect-claim/v1': $: 'stmt_ref' is a required property; $: 'line' is a required property; $: 'exhibit' is a required property; $: 'contributor' is a required property; $: 'date' is a required property
+E       AssertionError: assert [] == [{'file': 'de...pted': False}]
+WARNING  opn_gate.records:records.py:255 /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/c9a63167-349f-42ec-afaf-3dfe8e4b9a84/scratchpad/pt-audit-p-claims/test_the_context_bundle_carrie0/graph/targets/propositional/nodes/and-reassoc/defects/20261001T120000Z-carol.yaml: a defect claim that does not read is passed over: document does not satisfy 'defect-claim/v1': $: 'stmt_ref' is a required property; $: 'line' is a required property; $: 'exhibit' is a required property; $: 'contributor' is a required property; $: 'date' is a required property
+WARNING  opn_gate.records:records.py:255 /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/c9a63167-349f-42ec-afaf-3dfe8e4b9a84/scratchpad/pt-audit-p-claims/test_the_context_bundle_carrie0/graph/targets/propositional/nodes/and-reassoc/defects/20261001T120000Z-carol.yaml: a defect claim that does not read is passed over: document does not satisfy 'defect-claim/v1': $: 'stmt_ref' is a required property; $: 'line' is a required property; $: 'exhibit' is a required property; $: 'contributor' is a required property; $: 'date' is a required property
+E       KeyError: 'defect_claims'
+WARNING  opn_gate.records:records.py:301 /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/c9a63167-349f-42ec-afaf-3dfe8e4b9a84/scratchpad/pt-audit-p-claims/test_a_claim_a_curator_accepts0/graph/targets/propositional/nodes/and-reassoc/defects/20261001T120000Z-carol.yaml: a defect claim that does not read is passed over: document does not satisfy 'defect-claim/v1': $: 'stmt_ref' is a required property; $: 'line' is a required property; $: 'exhibit' is a required property; $: 'contributor' is a required property; $: 'date' is a required property
+WARNING  opn_gate.records:records.py:255 /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/c9a63167-349f-42ec-afaf-3dfe8e4b9a84/scratchpad/pt-audit-p-claims/test_a_claim_a_curator_accepts0/graph/targets/propositional/nodes/and-reassoc/defects/20261001T120000Z-carol.yaml: a defect claim that does not read is passed over: document does not satisfy 'defect-claim/v1': $: 'stmt_ref' is a required property; $: 'line' is a required property; $: 'exhibit' is a required property; $: 'contributor' is a required property; $: 'date' is a required property
+WARNING  opn_gate.records:records.py:255 /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/c9a63167-349f-42ec-afaf-3dfe8e4b9a84/scratchpad/pt-audit-p-claims/test_a_claim_a_curator_accepts0/graph/targets/propositional/nodes/and-reassoc/defects/20261001T120000Z-carol.yaml: a defect claim that does not read is passed over: document does not satisfy 'defect-claim/v1': $: 'stmt_ref' is a required property; $: 'line' is a required property; $: 'exhibit' is a required property; $: 'contributor' is a required property; $: 'date' is a required property
+E       AssertionError: assert [] == [{'file': 'de...: 'standing'}]
+WARNING  opn_gate.records:records.py:301 /private/tmp/claude-501/-Users-mikehiggins-Desktop-repos-open-proof-network/c9a63167-349f-42ec-afaf-3dfe8e4b9a84/scratchpad/pt-audit-p-claims/test_the_disk_reader_and_the_r0/graph/targets/propositional/nodes/and-reassoc/defects/20261001T120000Z-carol.yaml: a defect claim that does not read is passed over: document does not satisfy 'defect-claim/v1': $: 'stmt_ref' is a required property; $: 'line' is a required property; $: 'exhibit' is a required property; $: 'contributor' is a required property; $: 'date' is a required property
+4 failed, 1 passed in 0.33s
+
+=== RED (site) ===
+E       assert 'claim open' in '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,...ob/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'
+E       AssertionError: no defect-claims section on the page
+E       assert 1 == 2
+E        +  where 1 = len(['<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width...b/6666666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n'])
+2 failed in 0.48s
+
+=== GREEN (every gate/api test file naming context, graph.json, GRAPH_SCHEMA or defect, fast tier; plus site/tests) ===
+2594 passed, 2 deselected, 2 warnings in 178.75s (0:02:58)

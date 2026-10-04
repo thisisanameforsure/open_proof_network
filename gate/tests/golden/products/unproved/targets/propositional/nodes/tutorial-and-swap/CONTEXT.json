@@ -14,6 +14,7 @@
     "active": [],
     "history_count": 0
   },
+  "defect_claims": [],
   "deps": [],
   "explainer_present": false,
   "gate_spec": {
@@ -44,7 +45,7 @@
     "trust_base": null
   },
   "rendered_from": "5555555555555555555555555555555555555555",
-  "schema": "context/v2",
+  "schema": "context/v3",
   "statement": {
     "decl": "OpnProp.and_swap",
     "hash": "749fdf4930d9a6c812065b01c54741fc473083a1dd036656dce09ee34426f14e",
