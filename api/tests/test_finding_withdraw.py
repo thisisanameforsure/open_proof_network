@@ -309,3 +309,41 @@ def test_the_seam_refusal_names_the_call(
     assert close is not None, "HttpxGitHost has no close_pull_request"
     with pytest.raises(GitHostError, match="pulls/7 returned 403"):
         close(REPO, 7)
+
+
+# --- F07-T64: a withdrawal leaves its reason on the pull request, before the close ----------------
+
+
+def test_a_withdrawal_comments_who_withdrew_before_the_close(h: Harness) -> None:
+    """Closed as the App, a pull request said nothing of why on the host; the comment names the
+    holder's pseudonym and the route, and is posted before the close."""
+    alice = h.token_for("code_alice", "alice")
+    opened = annex(h, alice)
+    record = h.store.get_submission(opened["id"])
+    assert record is not None
+    r = withdraw(h, alice, opened["id"])
+    assert r.status_code == 200, r.text
+    comments = [c for c in h.githost.comments if c.number == opened["pr_number"]]
+    assert len(comments) == 1, h.githost.comments
+    (comment,) = comments
+    assert comment.closed_before == []  # before the close
+    assert record.pseudonym in comment.body
+    assert "withdrawn" in comment.body.lower() and "service" in comment.body
+
+
+def test_a_failed_comment_never_blocks_the_withdrawal(h: Harness) -> None:
+    alice = h.token_for("code_alice", "alice")
+    opened = annex(h, alice)
+    h.githost.comment_failure = "POST /repos/o/g/issues/1/comments returned 403"
+    r = withdraw(h, alice, opened["id"])
+    assert r.status_code == 200, r.text
+    assert closed_on_host(h) == [opened["pr_number"]]
+    assert h.githost.comments == []
+
+
+def test_a_repeated_withdrawal_comments_once(h: Harness) -> None:
+    alice = h.token_for("code_alice", "alice")
+    opened = annex(h, alice)
+    for _ in range(2):
+        assert withdraw(h, alice, opened["id"]).status_code == 200
+    assert len(h.githost.comments) == 1

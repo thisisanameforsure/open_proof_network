@@ -363,6 +363,13 @@ class GitHost(Protocol):
         ``None`` when no answer has been seen since the process started."""
         ...
 
+    def comment_on_pull_request(self, repo: str, number: int, body: str) -> None:
+        """Post ``body`` as a comment on pull request ``number``, as the App (F07-T64): the
+        reason the service gives on the host before it closes or rewrites a pull request it
+        opened. Pull requests: write covers it (the issue-comments endpoint, which serves pull
+        requests too)."""
+        ...
+
 
 class HttpxGitHost:
     def __init__(
@@ -917,6 +924,16 @@ class HttpxGitHost:
                 if len(entries) < LISTING_PAGE:
                     break
         return out
+
+    def comment_on_pull_request(self, repo: str, number: int, body: str) -> None:
+        """``POST /repos/{repo}/issues/{number}/comments`` as the App (F07-T64)."""
+        with self._api(repo) as http:
+            _send(
+                http,
+                "POST",
+                f"{GITHUB_API}/repos/{repo}/issues/{number}/comments",
+                json={"body": body},
+            )
 
 
 def open_pull_request_of(pr: dict[str, Any]) -> OpenPullRequest:

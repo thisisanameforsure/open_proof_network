@@ -1,0 +1,59 @@
+F07-T59 — a standalone sweep for merges with no gate credit (audit 2026-10-04)
+
+Proposed ledger line: T59 ✓ gate/tools/uncredited.py + .github/workflows/credit-sweep.yml (daily, read-only); live sweep: 4 owed, all four acknowledged pending the owner.
+
+Proposed Q entry (F07-Q-next): The post-merge job is the only writer of a merge's gate credit, and a run that
+fails before its push leaves the merge uncredited with nothing red on the graph. A daily sweep in the network
+repo (not the graph, D-35; watch-upstream precedent F12-Q1) walks main's first-parent line and fails when a
+merge that touched a target has no gate: commit naming it (replays included). The subject grammars are copies
+of the graph helper's MERGE_RE and CREDIT_RE, held equal by a test against the graph's origin/main gate.yml.
+Merges that touch no target are maintenance and owe nothing (the workflow writes no record for them).
+The four merges the audit found (#2, #8, #72, #73) are in ACKNOWLEDGED with the reason "pending the owner's
+decision: acknowledge or replay" so the sweep is green on everything else; the owner's call is, per merge,
+to acknowledge it for good (rewrite the reason) or replay it (the entry then reports as stale and is removed).
+
+== red (sweep() at today's behaviour, seam commit 205f495) ==
+uv run --frozen pytest -q -m 'not lean and not docker and not network' gate/tests/test_credit_sweep.py
+gate/tests/test_credit_sweep.py:94: AssertionError
+----------------------------- Captured stdout call -----------------------------
+graph /Users/mikehiggins/Desktop/repos/opn-audit-e-tools/.pytest-tmp/test_an_owed_merge_not_acknowl0/graph at main = 97f4be9e392856be26a036d8af3f3bfb2c9e71b6: 4 merges on the first-parent line
+note: acknowledged but now credited or absent: [2, 8, 72, 73]
+owed 0, acknowledged 0, failing 0
+________________ test_an_acknowledged_merge_reports_but_passes _________________
+
+history = PosixPath('/Users/mikehiggins/Desktop/repos/opn-audit-e-tools/.pytest-tmp/test_an_acknowledged_merge_rep0/graph')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1075456e0>
+capsys = <_pytest.capture.CaptureFixture object at 0x10751df90>
+
+    def test_an_acknowledged_merge_reports_but_passes(
+        history: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        tool = load_tool()
+        monkeypatch.setattr(tool, "ACKNOWLEDGED", {3: "known"})
+        assert tool.main(["--graph", str(history)]) == 0
+>       assert "acknowledged: #3 " in capsys.readouterr().out
+E       AssertionError: assert 'acknowledged: #3 ' in 'graph /Users/mikehiggins/Desktop/repos/opn-audit-e-tools/.pytest-tmp/test_an_acknowledged_merge_rep0/graph at main = ...rges on the first-parent line\nnote: acknowledged but now credited or absent: [3]\nowed 0, acknowledged 0, failing 0\n'
+E        +  where 'graph /Users/mikehiggins/Desktop/repos/opn-audit-e-tools/.pytest-tmp/test_an_acknowledged_merge_rep0/graph at main = ...rges on the first-parent line\nnote: acknowledged but now credited or absent: [3]\nowed 0, acknowledged 0, failing 0\n' = CaptureResult(out='graph /Users/mikehiggins/Desktop/repos/opn-audit-e-tools/.pytest-tmp/test_an_acknowledged_merge_rep...he first-parent line\nnote: acknowledged but now credited or absent: [3]\nowed 0, acknowledged 0, failing 0\n', err='').out
+E        +    where CaptureResult(out='graph /Users/mikehiggins/Desktop/repos/opn-audit-e-tools/.pytest-tmp/test_an_acknowledged_merge_rep...he first-parent line\nnote: acknowledged but now credited or absent: [3]\nowed 0, acknowledged 0, failing 0\n', err='') = readouterr()
+E        +      where readouterr = <_pytest.capture.CaptureFixture object at 0x10751df90>.readouterr
+
+gate/tests/test_credit_sweep.py:106: AssertionError
+3 failed, 2 passed in 2.41s
+
+== green ==
+......                                                                   [100%]
+6 passed in 2.41s
+
+== live: the tool over the sibling graph checkout at origin/main ==
+uv run --frozen python gate/tools/uncredited.py --graph ../open_proof_network_graph --ref origin/main
+graph /Users/mikehiggins/Desktop/repos/open_proof_network_graph at origin/main = 7f207c7fd69becd91f826921504900a0aec82fc8: 310 merges on the first-parent line
+maintenance, owes nothing: #225 524ae9009cba f07-batch-appends
+maintenance, owes nothing: #321 719a59ca7f82 f07-t46-hold-cap
+maintenance, owes nothing: #361 6291385e87a8 f07-t55-queue
+maintenance, owes nothing: #362 7f207c7fd69b f07-t55-no-target-replay
+acknowledged: #2 6452ef80d4f1 prove-tutorial ['tutorial'] (pending the owner's decision: acknowledge or replay)
+acknowledged: #8 770303ff7f66 propose/01M28CNM7GGQ1H9T8TZ16T0YY6 ['tutorial'] (pending the owner's decision: acknowledge or replay)
+acknowledged: #72 c1480c92b074 intake/erdos-1050 ['erdos-1050'] (pending the owner's decision: acknowledge or replay)
+acknowledged: #73 980344cddbd4 intake/erdos-69 ['erdos-69'] (pending the owner's decision: acknowledge or replay)
+owed 4, acknowledged 4, failing 0
+exit 0

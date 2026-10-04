@@ -12,6 +12,10 @@ The record is closed in the store with the state the host was left in, so ``GET 
 drops it at once and the duplicate rule (F07-T35) stops counting it. The graph's merge actor merges
 only open pull requests, so a withdrawn one leaves its queue by the host's own state. A host that
 fails leaves the record open and says so (``502 withdraw-failed``, C7).
+
+Before the close, the service comments on the pull request who withdrew it and through which
+route (F07-T64), so the host's own record says why the App closed it; a comment that fails is
+logged and does not stop the withdrawal.
 """
 
 from __future__ import annotations
@@ -75,6 +79,21 @@ def answer(found: Submission, pull: dict[str, object] | None, deleted: bool) -> 
     )
 
 
+def comment(ctx: Context, found: Submission) -> None:
+    """F07-T64: say on the host, before the close, who withdrew and how; the App closes the pull
+    request, so without it the host shows a close with no reason. A failed comment is logged and
+    never blocks the withdrawal (C7)."""
+    body = (
+        f"Withdrawn by `{found.pseudonym}`, the identity that opened it, through the service "
+        f"(`DELETE /submissions/{found.id}`, F07-T43). The service closes this pull request "
+        "unmerged and deletes the branch it pushed."
+    )
+    try:
+        ctx.githost.comment_on_pull_request(ctx.settings.graph_repo, found.pr_number, body)
+    except GitHostError as exc:
+        log.warning("withdrawn #%d: no comment posted: %s", found.pr_number, exc)
+
+
 def close_record(ctx: Context, found: Submission, state: PullRequestState) -> Submission:
     ctx.pulls[state.number] = CachedPull(state.number, state, time.monotonic())
     closed = ctx.store.close_submission(
@@ -116,6 +135,7 @@ async def delete_submission(ctx: Context, request: Request) -> Response:
     if state.finished:  # closed on the host already, by a person or the racer rule
         return answer(close_record(ctx, found, state), state.as_dict(), deleted=False)
 
+    comment(ctx, found)
     try:
         branch = ctx.githost.close_pull_request(repo, found.pr_number)
     except GitHostError as exc:

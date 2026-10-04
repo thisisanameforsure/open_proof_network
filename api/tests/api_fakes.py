@@ -98,6 +98,15 @@ class Dispatch:
 
 
 @dataclass
+class Comment:
+    repo: str
+    number: int
+    body: str
+    closed_before: list[int]
+    pushes_before: int
+
+
+@dataclass
 class FakeGitHost:
     users: dict[str, GitHubUser] = field(default_factory=dict)
     files: dict[str, bytes] = field(default_factory=dict)
@@ -154,6 +163,10 @@ class FakeGitHost:
     #: pair the map does not hold is a host failure, and every question asked is recorded.
     ancestry: dict[tuple[str, str], bool] = field(default_factory=dict)
     ancestry_calls: list[tuple[str, str, str]] = field(default_factory=list)
+    #: F07-T64: every comment posted through the App, with how many closes and pushes the fake
+    #: had seen when it arrived, so a test can tell a comment made before an act from one after.
+    comments: list[Comment] = field(default_factory=list)
+    comment_failure: str | None = None  # when set, only a comment raises (C7: never blocks)
 
     @classmethod
     def with_fixtures(cls, **users: GitHubUser) -> FakeGitHost:
@@ -303,6 +316,12 @@ class FakeGitHost:
         seeded = dict(self.pull_states.get(number) or {})
         self.pull_states[number] = {**seeded, "state": "closed", "merged": False}
         return self.pulls[number - 1].head if 1 <= number <= len(self.pulls) else None
+
+    def comment_on_pull_request(self, repo: str, number: int, body: str) -> None:
+        self._app_call()
+        if self.comment_failure:
+            raise GitHostError(self.comment_failure)
+        self.comments.append(Comment(repo, number, body, list(self.closed_pulls), len(self.pushes)))
 
     def delete_branch(self, repo: str, branch: str) -> bool:
         self._app_call()

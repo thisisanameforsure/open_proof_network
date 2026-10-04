@@ -1,0 +1,56 @@
+# The daily credit sweep (F07-T59). Every merge of a pull request that touched a target owes the
+# graph one `gate:` commit naming it (its attestation, ledger line and products, F07-R12, T55);
+# a post-merge run that failed before its push leaves the merge uncredited, and nothing on the
+# graph goes red to say so. The 2026-10-04 audit found four such merges by hand. This runs the
+# look on a schedule, in this repo rather than the graph, because a scheduled tooling run has no
+# place in a history that is mathematics only (D-35; the watch-upstream precedent, F12-Q1).
+#
+# Read-only: the graph is checked out without credentials and the tool runs git log and git diff.
+# It exits 1 when a merge is owed and not in the tool's ACKNOWLEDGED map, so the run goes red
+# rather than reading as an all-clear (C7). It writes nothing; a replay is a person's act.
+name: credit-sweep
+
+on:
+  schedule:
+    - cron: "41 5 * * *"  # daily; the minute is arbitrary and avoids the top of the hour
+  workflow_dispatch:
+    inputs:
+      graph_ref:
+        description: "graph ref to sweep (default: main)"
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: credit-sweep
+  cancel-in-progress: false
+
+env:
+  UV_VERSION: "0.12.10"
+  GRAPH_REPO: thisisanameforsure/open_proof_network_graph
+
+jobs:
+  sweep:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          version: ${{ env.UV_VERSION }}
+
+      - name: Check out the graph (read-only, full history)
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ env.GRAPH_REPO }}
+          ref: ${{ inputs.graph_ref || 'main' }}
+          path: graph
+          fetch-depth: 0  # the sweep walks every merge on the first-parent line
+          persist-credentials: false
+
+      - name: Sweep for merges with no gate credit
+        run: |
+          set -euo pipefail
+          uv sync --frozen --quiet
+          uv run --frozen python gate/tools/uncredited.py --graph graph --ref HEAD
