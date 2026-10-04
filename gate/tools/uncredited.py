@@ -79,10 +79,20 @@ def sweep(
     log_entries: Iterable[tuple[str, int, str]], targets_of: Callable[[str], Sequence[str]]
 ) -> tuple[list[Merge], list[Merge]]:
     """(owed, no_target): the uncredited merges that touched a target, and those that touched
-    none, oldest first. ``log_entries`` is (sha, parents, subject) along first-parent history in
-    any order; ``targets_of(sha)`` names the targets a merge commit changed against its first
-    parent."""
-    return [], []
+    none, oldest first. ``log_entries`` is (sha, parents, subject) along first-parent history,
+    newest first as git log gives it; ``targets_of(sha)`` names the targets a merge commit
+    changed against its first parent."""
+    entries = list(log_entries)
+    credited = {n for _sha, _parents, subject in entries for n in credits(subject)}
+    owed: list[Merge] = []
+    no_target: list[Merge] = []
+    for sha, parents, subject in reversed(entries):
+        found = merge_of(subject, parents)
+        if found is None or found[0] in credited:
+            continue
+        merge = Merge(found[0], sha, found[1], tuple(targets_of(sha)))
+        (owed if merge.targets else no_target).append(merge)
+    return owed, no_target
 
 
 def git(graph: Path, *args: str) -> str:
