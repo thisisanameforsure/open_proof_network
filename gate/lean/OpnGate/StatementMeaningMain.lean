@@ -21,6 +21,12 @@ environment*, and nothing is elaborated here at all:
 * `matches` is the kernel's word that the two are definitionally equal in that environment
   (`identical` when they are the same term outright).
 
+**What runs here** (F02-T11): nothing of the artifact's. Its module is imported with
+initializers off and without its extension data (`runMain … (initializers := false)`,
+`loadExts := false`), so an `initialize` block in it cannot print a verdict of its own, and the
+verdict is printed tagged with the caller's nonce. Printing a type may then show fewer notations
+than an elaborating program would; it is for the reader of a refusal only.
+
 Every constant the statement's type mentions comes from a module both headers import, so it is
 the same declaration on both sides, with one exception this program checks: a constant the
 statement's own file declares (a local `def` above the theorem). The artifact's file declares it
@@ -61,7 +67,7 @@ def sameDeclaration (a b : ConstantInfo) : Bool :=
 
 end OpnGate
 
-unsafe def main (args : List String) : IO UInt32 := runMain do
+unsafe def main (args : List String) : IO UInt32 := runMain args (initializers := false) do
   let (kv, _) := parseArgs args
   let some oleanPath := getArg kv "statement-olean" | fail "missing --statement-olean"
   let some stmtDecl := getArg kv "decl" | fail "missing --decl"
@@ -75,7 +81,10 @@ unsafe def main (args : List String) : IO UInt32 := runMain do
   let some stmtInfo := locals[stmtDecl.toName]?
     | fail s!"declaration {stmtDecl} not found in {oleanPath}"
 
-  let env ← importModules #[{ module := artMod.toName }] {} (loadExts := true)
+  -- F02-T11: the artifact's environment is read, never run: initializers are off and no
+  -- extension data is loaded, so an `initialize` block in the artifact (or in anything it
+  -- imports) does not execute here. The constants are all the kernel comparison needs.
+  let env ← importModules #[{ module := artMod.toName }] {} (loadExts := false)
   let some artInfo := env.find? artDecl.toName
     | fail s!"module {artMod} does not declare {artDecl}"
 

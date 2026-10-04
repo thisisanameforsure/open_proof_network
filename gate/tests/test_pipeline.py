@@ -305,7 +305,13 @@ def test_root_node_stages_dependency_closure(tmp_path: Path) -> None:
     assert "import Nodes.«and-reassoc».Proof" in ctx_text
     elaborated = [c for c in fake.calls if c.startswith("elaborate:")]
     assert elaborated[0] == "elaborate:Nodes.«tutorial-and-swap».Context"
-    assert elaborated[-1] == "elaborate:Nodes.«and-swap-reassoc».Proof"
+    # the artifact's build ends with its own Proof; the statement's own build (F08-T28: the
+    # meaning guard runs for every proof) follows it, with the repo's Context and the Statement
+    assert elaborated[-3:] == [
+        "elaborate:Nodes.«and-swap-reassoc».Proof",
+        "elaborate:Nodes.«and-swap-reassoc».Context",
+        "elaborate:Nodes.«and-swap-reassoc».Statement",
+    ]
     assert (staged.build / "Nodes" / "and-reassoc" / "Proof.olean").exists()
     assert any(c.startswith("kernel_replay:Nodes.«and-swap-reassoc».Proof") for c in fake.calls)
 

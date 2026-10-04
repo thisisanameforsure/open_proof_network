@@ -127,7 +127,17 @@ def test_the_pipeline_builds_the_definitions_before_any_node(tmp_path: Path) -> 
     assert verdict.first_failing_step is None, verdict.as_dict()
     elaborated = [c for c in ctx.toolchain.calls if c.startswith("elaborate:")]  # type: ignore[attr-defined]
     assert elaborated[0] == "elaborate:Defs.Divides"
-    assert all(not c.startswith("elaborate:Defs.") for c in elaborated[1:])
+    # F08-T28: the build compiles the definitions once, before any node; the meaning guard, which
+    # now runs for every proof, compiles them once more in the statement's own build, after the
+    # artifact's modules and before its own Context and Statement.
+    first_node = next(i for i, c in enumerate(elaborated) if c.startswith("elaborate:Nodes."))
+    assert elaborated[:first_node] == ["elaborate:Defs.Divides"]
+    assert elaborated.count("elaborate:Defs.Divides") == 2
+    statement = elaborated.index("elaborate:Nodes.«and-swap-reassoc».Statement")
+    assert elaborated[statement - 2 : statement] == [
+        "elaborate:Defs.Divides",
+        "elaborate:Nodes.«and-swap-reassoc».Context",
+    ]
 
 
 def test_admission_builds_the_definitions_before_the_context(tmp_path: Path) -> None:

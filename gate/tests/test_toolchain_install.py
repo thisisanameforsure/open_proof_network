@@ -247,6 +247,9 @@ def test_the_real_seam_routes_every_metaprogram_through_one_runner(tmp_path: Pat
         "M.S",
         "--decl",
         "T.x",
+        # F02-T11: the verdict is the line tagged with the nonce the runner writes on stdin
+        "--nonce",
+        "stdin",
     ]
     assert env is not None and set(env) == {"LEAN_PATH", "LEAN_SYSROOT"} and timeout == 4
 

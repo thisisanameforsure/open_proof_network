@@ -25,7 +25,7 @@ open Lean Meta Elab OpnGate OpnGate.Hazards
 def registry : Array Checker :=
   #[autoImplicit, divZero, intTrunc, junkValue, natDiv, natSub, offByOneRange, unusedBinder]
 
-unsafe def main (args : List String) : IO UInt32 := runMain do
+unsafe def main (args : List String) : IO UInt32 := runMain args do
   if args == ["--list"] then
     printJson <| Json.mkObj [
       ("ok", Json.bool true),

@@ -28,7 +28,7 @@ import pytest
 from fakes import FakeToolchain, meaning_result, metaprogram_garbage
 from harness import GRAPH, TARGET, make_context, node_dir
 
-from opn_gate import layout, paths, pipeline, postmerge, schemas, uses
+from opn_gate import judging, layout, paths, pipeline, postmerge, schemas, uses
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Change
 from opn_gate.steps import RunContext, meaning
@@ -193,7 +193,8 @@ def test_a_proof_with_an_admitted_definition_passes_and_is_held_to_the_statement
         i for i, c in enumerate(fake.calls) if c.startswith("kernel_replay")
     )
     assert not list((ctx.workdir / "build").rglob("Statement.olean"))
-    own = ctx.workdir / meaning.MEANING_DIR
+    # F02-T10: under the judging directory, beside the work directory and never inside it
+    own = judging.root_for(ctx.workdir) / meaning.MEANING_DIR
     assert (own / "build" / "Nodes" / NODE / "Statement.olean").is_file()
     # the node's Context there is the signatures D-3 gives it, never the staged proofs
     assert (own / "src" / "Nodes" / NODE / "Context.lean").read_text(encoding="utf-8") == (
@@ -230,16 +231,20 @@ def test_step_8_records_which_declared_definitions_the_proof_term_uses(tmp_path:
     )
 
 
-def test_a_proof_without_uses_is_checked_exactly_as_before(tmp_path: Path) -> None:
-    """Inert without a declaration: no statement module, no meaning question, no record."""
+def test_a_proof_without_uses_records_no_uses_and_is_still_held_to_its_meaning(
+    tmp_path: Path,
+) -> None:
+    """Restated by F08-T28 (Q36): without a declaration there is no uses record, but the
+    statement's meaning is compared for every proof, not only for one that declares a use."""
     fake = FakeToolchain()
     ctx = make_context(tmp_path, node_id=NODE, toolchain=fake)
     verdict = pipeline.run_steps(ctx)
     assert verdict.ok, verdict.diagnostic
-    assert uses.USES_KEY not in verdict.data and meaning.MEANING_KEY not in verdict.data
+    assert uses.USES_KEY not in verdict.data
+    assert verdict.data[meaning.MEANING_KEY] == {"identical": True, "matches": True}
     assert "uses" not in verdict.data["deps"]
-    assert not any(c.startswith("statement_meaning") for c in fake.calls)
-    assert f"elaborate:{layout.node_module(NODE, 'Statement')}" not in fake.calls
+    assert any(c.startswith("statement_meaning") for c in fake.calls)
+    assert f"elaborate:{layout.node_module(NODE, 'Statement')}" in fake.calls
 
 
 def test_a_definition_that_is_not_on_the_tree_is_refused_at_step_2(tmp_path: Path) -> None:

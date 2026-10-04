@@ -17,6 +17,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import secrets
 import shutil
 import subprocess
 import sys
@@ -322,6 +323,9 @@ class MetaprogramResult:
 
 METAPROGRAM_OUTPUT_CAP = 8192
 
+#: F02-T11: the tag a metaprogram's verdict line carries, ``@opn-verdict <nonce> <json>``.
+VERDICT_TAG = "@opn-verdict"
+
 #: The executables the Lake package builds (F01-R1, F02-R1, F07-R4).
 METAPROGRAMS: tuple[str, ...] = (
     "opn-witness-type",
@@ -330,22 +334,43 @@ METAPROGRAMS: tuple[str, ...] = (
     "opn-artifact-type",
     "opn-relation-type",
     "opn-statement-meaning",
+    "opn-axioms",
 )
 
 
-def parse_metaprogram_output(exit_code: int, stdout: str, stderr: str) -> MetaprogramResult:
-    """R1/R9: the last stdout line must be one JSON object; anything else is a failure."""
-    lines = [ln for ln in stdout.splitlines() if ln.strip()]
+def parse_metaprogram_output(
+    exit_code: int, stdout: str, stderr: str, nonce: str | None = None
+) -> MetaprogramResult:
+    """R1/R9: the verdict must be one JSON object; anything else is a failure.
+
+    Without ``nonce`` (a program run by hand, or one that predates F02-T11) the verdict is the
+    last stdout line. With it, the verdict is the one line ``@opn-verdict <nonce> <json>``, and
+    there must be exactly one: an untagged line, wherever it stands, is not the verdict, and two
+    tagged ones are a failure. The nonce is written on the program's stdin and read before it
+    loads anything (``OpnGate.runMain``), so code the program goes on to load cannot learn it
+    there; see the evidence for F02-T11 for what that does and does not rule out."""
     doc: Any = None
-    if lines:
+    if nonce is None:
+        lines = [ln for ln in stdout.splitlines() if ln.strip()]
+        candidate = lines[-1] if lines else None
+    else:
+        tag = f"{VERDICT_TAG} {nonce} "
+        tagged = [ln[len(tag) :] for ln in stdout.splitlines() if ln.startswith(tag)]
+        candidate = tagged[0] if len(tagged) == 1 else None
+    if candidate is not None:
         try:
-            doc = json.loads(lines[-1])
+            doc = json.loads(candidate)
         except json.JSONDecodeError:
             doc = None
     if not isinstance(doc, dict) or "ok" not in doc:
         capped = (stdout + stderr)[:METAPROGRAM_OUTPUT_CAP]
         return MetaprogramResult(ok=False, exit_code=exit_code, output=capped)
     return MetaprogramResult(ok=bool(doc["ok"]) and exit_code == 0, doc=doc, exit_code=exit_code)
+
+
+def new_nonce() -> str:
+    """A per-call nonce (F02-T11): 128 random bits, hex."""
+    return secrets.token_hex(16)
 
 
 class Toolchain(Protocol):
@@ -469,15 +494,19 @@ def is_native_decide_axiom(name: str) -> bool:
 
 
 def parse_axioms(output: str, decl: str) -> frozenset[str] | None:
-    """Read ``#print axioms`` output for ``decl``; ``None`` if it is not there."""
+    """Read ``#print axioms`` output for ``decl``; ``None`` if it is not there, or if more than
+    one line answers for it (F02-T11: a line printed by code the probe loaded must not be taken
+    for the answer, so two answers are no answer). The gate's own step 5 no longer reads this
+    output: it asks ``opn-axioms``, which loads no contributor code."""
+    found: list[frozenset[str]] = []
     for m in _AXIOMS_RE.finditer(output):
         if m.group("decl") == decl:
             raw = m.group("axioms").strip()
-            return frozenset(a.strip() for a in raw.split(",") if a.strip())
+            found.append(frozenset(a.strip() for a in raw.split(",") if a.strip()))
     for m in _NO_AXIOMS_RE.finditer(output):
         if m.group("decl") == decl:
-            return frozenset()
-    return None
+            found.append(frozenset())
+    return found[0] if len(found) == 1 else None
 
 
 def parse_json_messages(stdout: str) -> tuple[Message, ...]:
@@ -655,8 +684,11 @@ class LocalToolchain:
         cwd: Path | None = None,
         extra_env: dict[str, str] | None = None,
         timeout_s: float | None = None,
+        stdin: str | None = None,
     ) -> subprocess.CompletedProcess[str]:
-        """The one place a process is started. The sandbox seam overrides this alone."""
+        """The one place a process is started. The sandbox seam overrides this alone. ``stdin``
+        is written to the process's standard input (F02-T11: a metaprogram's nonce); without it
+        the process gets an empty one, never the gate's own."""
         return subprocess.run(
             list(cmd),
             cwd=cwd,
@@ -665,6 +697,7 @@ class LocalToolchain:
             text=True,
             timeout=timeout_s,
             check=False,
+            input=stdin if stdin is not None else "",
         )
 
     def _elan(self, args: Sequence[str]) -> subprocess.CompletedProcess[str]:
@@ -784,22 +817,23 @@ class LocalToolchain:
         *,
         timeout_s: float | None = None,
     ) -> AxiomResult:
-        scratch = scratch.resolve()
-        scratch.mkdir(parents=True, exist_ok=True)
-        probe = scratch / "OpnAxioms.lean"
-        probe.write_text(f"import {module}\n#print axioms {decl}\n", encoding="utf-8")
-        proc = self._run(
-            tc.name,
-            ["lean", probe.name],
-            cwd=scratch,
-            lean_path=tc.search_path(*search_path),
-            timeout_s=timeout_s,
+        """F02-T11: ``opn-axioms``, which reads ``module`` from its olean with initializers off
+        and walks the declaration's constants itself. Until T11 this was ``lean`` on a probe file
+        importing the module: the frontend runs the imported modules' ``initialize`` blocks, so
+        code in the artifact could print an axioms line of its own, and ``#print axioms`` reads
+        an imported declaration's axioms from data its olean carries rather than from its body.
+        ``scratch`` is no longer written to; it stays in the signature for the callers."""
+        del scratch
+        result = self._metaprogram_run(
+            tc, "opn-axioms", ["--module", module, "--decl", decl], search_path, timeout_s
         )
-        output = proc.stdout + proc.stderr
-        axioms = parse_axioms(proc.stdout, decl)
-        if proc.returncode != 0 or axioms is None:
+        output = result.output or json.dumps(result.doc)
+        raw = result.doc.get("axioms")
+        if not result.ok or result.doc.get("decl") != decl or not isinstance(raw, list):
             return AxiomResult(ok=False, output=output)
-        return AxiomResult(ok=True, axioms=axioms, output=output)
+        if not all(isinstance(a, str) for a in raw):
+            return AxiomResult(ok=False, output=output)
+        return AxiomResult(ok=True, axioms=frozenset(raw), output=output)
 
     def ensure_metaprograms(self, tc: ResolvedToolchain) -> None:
         """Build the Lake package once if its executables are missing (pregate on a fresh clone)."""
@@ -824,15 +858,18 @@ class LocalToolchain:
         self.ensure_metaprograms(tc)
         binary = self.metaprogram(name)
         sysroot = tc.libdir.parent.parent
+        # F02-T11: a fresh nonce per call, on stdin; the verdict is the one line tagged with it
+        nonce = new_nonce()
         proc = self._exec(
-            [str(self.elan), "run", tc.name, str(binary), *args],
+            [str(self.elan), "run", tc.name, str(binary), *args, "--nonce", "stdin"],
             extra_env={
                 "LEAN_PATH": _join_search_path(tc.search_path(*search_path)),
                 "LEAN_SYSROOT": str(sysroot),
             },
             timeout_s=timeout_s,
+            stdin=nonce + "\n",
         )
-        return parse_metaprogram_output(proc.returncode, proc.stdout, proc.stderr)
+        return parse_metaprogram_output(proc.returncode, proc.stdout, proc.stderr, nonce=nonce)
 
     def witness_type(
         self,

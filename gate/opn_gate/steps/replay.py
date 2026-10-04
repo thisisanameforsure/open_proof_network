@@ -28,7 +28,7 @@ import time
 from collections.abc import Mapping
 from pathlib import Path
 
-from opn_gate import cache, defs, layout, sandbox
+from opn_gate import cache, defs, judging, layout, sandbox
 from opn_gate.steps import artifact, meaning
 from opn_gate.steps import stage as staging
 from opn_gate.steps.artifact import ALTERNATE_KEY, PARTIAL_KEY
@@ -148,15 +148,27 @@ class KernelReplayStep:
                     failure = self._compile(ctx, tc, staged, node_id, stem)
                     if failure is not None:
                         return failure
-            # F08-R17: an artifact that declares uses is held to the statement's own meaning
-            # before anything is replayed; the guard leaves the build as it found it.
-            changed = meaning.guard(ctx, tc, staged)
+            # F02-T10: everything that decides the verdict from here is read from a fresh
+            # judging directory the compile calls above never had: the definitions built there
+            # from the graph, and the compiled graph modules copied there by name.
+            judge = judging.fresh(ctx.workdir)
+            ctx.data[judging.KEY] = judge
+            problem = judging.build_definitions(
+                ctx.toolchain, tc, target_dir, judge, timeout_s=ctx.wallclock_s
+            )
+            if problem is not None:
+                return StepResult(ok=False, diagnostic=problem)
+            judging.collect_modules(judge, staged.build, staged.order)
+            # F08-R17, T28: an artifact that claims the statement is held to the statement's own
+            # meaning before anything is replayed; the guard leaves the build as it found it.
+            changed = meaning.guard(ctx, tc, staged, judge)
             if changed is not None:
                 return changed
             proof_module = layout.node_module(node.node_id, PROOF_MODULE)
-            ctx.data[REPLAY_MODE_KEY] = replay_plan(ctx.spec, proof_module, staged.build)[0]
+            ctx.data[REPLAY_MODE_KEY] = replay_plan(ctx.spec, proof_module, judge.modules)[0]
+            reader = judging.confined(ctx.toolchain, read_only=[judge.modules])
             mode, modules, result = replay(
-                ctx.toolchain, tc, ctx.spec, proof_module, staged.build, timeout_s=ctx.wallclock_s
+                reader, tc, ctx.spec, proof_module, judge.modules, timeout_s=ctx.wallclock_s
             )
         except sandbox.MemoryExceeded as exc:
             return StepResult.failed(
