@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F19 — Proof outlines and the reading view</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F19</nav>
+<h1>F19 — Proof outlines and the reading view</h1>
+<p class="subtitle">Give every merged proof an outline the pinned gate extracts from the Lean
+(its named steps, each with the claim it establishes, the goal it leaves and whether automation
+closed it) and give each way a target is proved a page a mathematician can read top-down, every
+line one click from the Lean that proves it.</p>
+
+<h2>1. Summary</h2>
+<p>The owner asked, on 2026-10-03, that a reader who does not know Lean be able to read the
+network's proofs, with two hard requirements: the mathematics must link back to the Lean, and a
+mathematician of the subfield must be able to follow it. The research
+(<a href="../../../docs/reports/Lean%20proofs%20for%20mathematicians.md">docs/reports/Lean proofs for
+mathematicians.md</a>, notes beside it) found that no system turns arbitrary agent-written Lean into
+followable mathematics. Linking back is a solved engineering problem. Followability comes from a
+person writing the account. The owner adopted its three-stage plan and its ten proposed requirements
+(A to J) on 2026-10-04. This feature is stages one and two, the part that needs no model.</p>
+<p>Today a node page prints the attested <code>Proof.lean</code> verbatim in a
+<code>&lt;pre&gt;</code> (D-36), and F18 already says which nodes each proof rests on
+(<code>target_proofs</code>, closures by use). F19 adds two things. The first is the
+<strong>outline</strong>: a product per merged proof, computed by the pinned gate in its sandbox
+from the proof term's elaboration and committed to the graph like every product (D-35). It holds
+the <code>have</code>-tree with each step's claim printed so that it reads back as the same Lean,
+the goal after the step, the constants it uses with Mathlib's own docstring, and whether automation
+closed it. The second is the <strong>reading view</strong>: for each entry of
+<code>target_proofs</code>, one page in dependency order. It leads with the statement and its
+fidelity state, gives each node its informal account slot, its Lean statement and its outline, and
+carries a correspondence table from every node to its declaration, lines and attestation. Explainer
+and annex prose gains math rendering. F19 writes no prose: the drafted explainer, its versions and
+the steward's editing are F20.</p>
+<p>F19 changes no verdict and no status. The outline asserts nothing the kernel did not check, and
+it is derived from the tree and the pinned gate, so it is rebuildable (D-35). Placing it on the graph
+is the owner's decision (a) of 2026-10-04 and needs the decisions note drafted in Q1.</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a mathematician reading a resolved target, I want the proof laid out as lemmas then
+    theorem, each lemma as a short list of named claims, so that I can read the argument as I would
+    a paper and open the Lean only where I want to check a step.</li>
+  <li>As the same reader, I want the steps closed by automation marked as routine and folded away,
+    so that the page shows me where the difficulty is rather than hiding it under bookkeeping.</li>
+  <li>As a steward about to write or correct an explainer (F20), I want stable step ids with their
+    claims and goals, so that each paragraph I write can say which steps it describes.</li>
+  <li>As a sceptical reader, I want every block on the page to say in words what it is (checked by
+    the kernel, a statement a person audited, or unverified prose), so that I never mistake commentary
+    for proof.</li>
+  <li>As a reader on a phone or with a screen reader, I want the outline to expand with native
+    controls and the mathematics to be readable as MathML.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong> the Lean outline program and its Python wrapper; the <code>outline/v1</code>
+schema and product at <code>targets/&lt;id&gt;/outlines/&lt;artifact-hash&gt;.json</code>; the
+round-trip check of every printed claim and goal; Mathlib docstrings and Stacks/Kerodon tags of used
+constants; the extraction's placement (Q2) and its backfill workflow; the reading view, the
+correspondence table and provenance labels; the outline rendering on node pages; math rendering
+of explainer and annex prose; the guide and the Docs page; the re-pin, backfill and re-render on
+the live graph.</p>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>Any machine-written prose, and any change to explainers: drafts, versions, anchors, the
+    steward's edit path and the drafter are F20. The reading view shows F15's explainers as they are
+    today, in the slot F20 fills.</li>
+  <li>A readability, faithfulness or difficulty score of any kind (requirement H; D-25 forbids
+    ranking; the project's own research refuted readability metrics, <code>research_math_and_ai_2026-09</code>
+    §8).</li>
+  <li>Translating Lean into English mechanically (the Massot&ndash;Miller line). Its display model is
+    emulated (an expandable tree of claims and goals); its code is unpublished and is not a dependency
+    (Q7).</li>
+  <li>Outlines of partial assemblies and annexes: a partial's holes are already drawn by F18; an
+    outline of an assembly with <code>sorry</code> steps is a later question.</li>
+  <li>The MCP tool surface: agents read outlines through F20's route and tools, where they need
+    them to anchor explainers.</li>
+  <li>A leanblueprint or Verso Blueprint export: cheap later, not needed by either requirement.</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<p class="status-note">EARS notation, stable IDs. Letters A&ndash;J name the report's proposed
+requirements the owner adopted.</p>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F19-R1</td><td>The system shall publish, for each merged complete proof of a node (its
+    <code>Proof.lean</code> and each alternate), an <code>outline/v1</code> document at
+    <code>targets/&lt;id&gt;/outlines/&lt;artifact-hash&gt;.json</code> naming the node, the artifact's
+    path and hash and the gate commit that extracted it, and its steps: each with an id, a kind
+    (<code>have</code>, <code>obtain</code>, <code>suffices</code>, <code>show</code>,
+    <code>calc</code> step, case branch, or <code>term</code> for a term-mode proof), the name it
+    binds if any, the claim it establishes, the goal it leaves, its line span in the artifact, the
+    constants it uses (graph nodes and definition modules apart from Mathlib), how it is closed
+    (<code>automation</code> with the tactic names, <code>steps</code>, or <code>term</code>) and
+    its child steps.</td></tr>
+  <tr><td>F19-R2</td><td>A step's id shall be a function of the artifact's bytes alone: the name it
+    binds where that name is unique among its siblings, else <code>s&lt;n&gt;</code> by source order,
+    dotted for children; the same artifact shall always yield the same ids.</td></tr>
+  <tr><td>F19-R3</td><td>The system shall print every claim and goal with the options the hole writer
+    uses (<code>pp.coercions.types</code>, <code>pp.numericTypes</code>,
+    <code>pp.funBinderTypes</code>) and read each one back (parse, elaborate, definitional
+    equality). If one does not read back, then its step shall carry <code>printed:
+    unreliable</code> and the page shall show that step as its Lean lines only (requirement I).</td></tr>
+  <tr><td>F19-R4</td><td>For each Mathlib constant a step uses, the outline shall record the first
+    sentence of its docstring and any <code>@[stacks]</code> or <code>@[kerodon]</code> tag, read
+    from the pinned Mathlib; it shall record no name from any other source (requirement E).</td></tr>
+  <tr><td>F19-R5</td><td>If extraction fails, exceeds its budget (&sect;6) or meets text longer than
+    its cap, then the system shall write no outline (or mark the truncated field
+    <code>truncated</code>), name the proof and the reason in the job's report, and render every other
+    product (C7; the 2026-09-17 lesson that one node's defect never decides whether the graph has
+    products).</td></tr>
+  <tr><td>F19-R6</td><td>The extraction shall run only in the pinned gate image's sandbox, with no
+    secret, at the place T1's measurement decides (Q2); a merge shall gain its outline without a
+    person acting.</td></tr>
+  <tr><td>F19-R7</td><td>The system shall provide a dispatched workflow that extracts the outlines of
+    merges made before <code>outline/v1</code>, in the pinned image, for a curator to commit, as
+    F18-T7 did for footprints.</td></tr>
+  <tr><td>F19-R8</td><td>For each <code>target_proofs</code> entry (F18-R1) the site shall render a
+    reading view that leads with the root's informal statement, its Lean statement and its fidelity
+    and QA state (requirement A), then lists the nodes of the proof's closure with dependencies before
+    dependents, ties in record order. Each node shall show its informal account slot (its explainer, or
+    the recruiting cue D-36 asks for), its Lean statement, its outline folded to top-level steps, and a
+    link to its proof's lines at the merged commit.</td></tr>
+  <tr><td>F19-R9</td><td>The site shall render an outline as a tree of native
+    <code>&lt;details&gt;</code> elements: each step shows its claim and the goal it leaves, each
+    used Mathlib constant carries its docstring sentence as a tooltip and its tag as text, and
+    expanding a step reaches its Lean lines. A step closed by automation shall be labelled
+    &ldquo;routine: &lt;tactic names&gt;&rdquo; and folded by default (requirements D, F).</td></tr>
+  <tr><td>F19-R10</td><td>The reading view shall carry a correspondence table: one row per node of
+    the closure, naming the node, its declaration, its artifact path and lines, its attestation, and
+    the state of its explainer.</td></tr>
+  <tr><td>F19-R11</td><td>Every block on a node page and the reading view shall carry a provenance
+    label in text: <em>checked by the kernel</em> (with the attestation's commit), <em>statement
+    audited</em> (with the QA state and its signers), <em>informal account, unverified</em> (with
+    author, drafting model and signer, D-3), or <em>untrusted contributor text</em> (annexes,
+    D-31). No label shall be conveyed by colour alone (requirement B).</td></tr>
+  <tr><td>F19-R12</td><td>The site shall render TeX in explainer and annex prose with the vendored
+    KaTeX, through an escaped path in <code>prose.render</code> that recognises <code>$&hellip;$</code>
+    and <code>$$&hellip;$$</code> outside code spans and fences only, with trust off; Lean source and
+    file names shall never be scanned (F04-R10, F04-Q14).</td></tr>
+  <tr><td>F19-R13</td><td>Every page F19 adds or changes shall render within 390 px without horizontal
+    page scroll, keep keyboard access to every expandable element, and emit MathML alongside the
+    rendered mathematics (requirement J).</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F19-AC1</td><td>Given a fixture proof with two named <code>have</code>s, one closed by
+    <code>omega</code> and one by three tactics with a nested <code>obtain</code>, when the outline is
+    extracted with the real toolchain, then it has those steps with those kinds, names, spans and
+    closings, and the <code>omega</code> step is <code>automation</code>.</td>
+    <td><code>gate/tests/test_outline_lean.py::test_have_tree_with_kinds_spans_and_closing</code></td></tr>
+  <tr><td>F19-AC2</td><td>Given the same artifact extracted twice, and once more with a comment
+    added above it, then the ids are identical in the first pair, and the ids of the
+    third run are identical too (the spans move).</td>
+    <td><code>gate/tests/test_outline.py::test_ids_depend_on_the_artifact_alone</code></td></tr>
+  <tr><td>F19-AC3</td><td>Given a step whose claim is over the reals with natural-number casts (the
+    2026-09-17 shape), when printed and read back, then it reads back; given a printer stubbed to drop
+    ascriptions, then that step is <code>unreliable</code> and the page shows only its lines.</td>
+    <td><code>gate/tests/test_outline_lean.py::test_claims_read_back_or_are_marked</code>,
+    <code>site/tests/test_outline_render.py::test_unreliable_step_shows_lean_only</code></td></tr>
+  <tr><td>F19-AC4</td><td>Given a step that uses <code>Nat.Prime.two_le</code> and a constant with a
+    Stacks tag, then the outline carries each docstring's first sentence and the tag, and no other
+    name.</td><td><code>gate/tests/test_outline_lean.py::test_mathlib_docs_and_tags</code></td></tr>
+  <tr><td>F19-AC5</td><td>Given a target with one proof whose extraction fails and one whose
+    extraction succeeds, when the products render, then one outline is written, the report names the
+    other with its reason, and every other product is unchanged.</td>
+    <td><code>gate/tests/test_outline.py::test_one_failure_writes_nothing_and_stops_nothing</code></td></tr>
+  <tr><td>F19-AC6</td><td>Given a term-mode proof, then its outline is one <code>term</code>
+    step and the page says the proof is a single term.</td>
+    <td><code>gate/tests/test_outline_lean.py::test_term_proof_is_one_step</code></td></tr>
+  <tr><td>F19-AC7</td><td>Given the erdos-1050 shape (root, <code>h1-v2</code>, <code>h3</code>),
+    when the reading view renders, then the statement and QA state come first, then <code>h3</code>,
+    <code>h1-v2</code>, root in that order, and the correspondence table has three rows with
+    attestation links; given a node with no explainer, the cue is shown.</td>
+    <td><code>site/tests/test_reading_view.py::test_dependency_order_statement_first_and_table</code></td></tr>
+  <tr><td>F19-AC8</td><td>Given every block kind the node page and reading view can emit, then each
+    carries its provenance label as text.</td>
+    <td><code>site/tests/test_reading_view.py::test_every_block_has_a_text_label</code></td></tr>
+  <tr><td>F19-AC9</td><td>Given explainer prose with <code>$\frac{a}{b}$</code>, a fenced block
+    containing <code>$x$</code>, inline code containing <code>$</code>, and
+    <code>&lt;script&gt;</code>, then only the first is rendered as math, the rest is escaped text,
+    and the output contains MathML.</td>
+    <td><code>site/tests/test_prose_math.py</code></td></tr>
+  <tr><td>F19-AC10</td><td>Given an outline with automation, nested and unreliable steps, then the
+    rendering uses <code>&lt;details&gt;</code>, folds the automation step, labels it with its tactics,
+    and carries the docstring tooltip.</td>
+    <td><code>site/tests/test_outline_render.py</code></td></tr>
+  <tr><td>F19-AC11</td><td>Given the reading view of the longest live proof at 390 px, then
+    <code>scrollWidth</code> equals the viewport and every outline label fits its box (measured).</td>
+    <td><code>engineering/evidence/F19/shoot.py</code> (screenshots and measurements)</td></tr>
+  <tr><td>F19-AC12</td><td>Given the live graph after the re-pin, backfill and re-render, then every
+    merged complete proof has an outline or a named reason, and the euclid-primes and erdos-1050
+    reading views are captured at 1440 and 390 px.</td>
+    <td><code>engineering/evidence/F19/task-10-live.txt</code> (network tier)</td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li>The extraction runs inside the sandbox's caps (2 CPU, 4 GiB, no network) and adds no more than
+    T1 measures and Q2 records; its own wall-clock cap is config (<code>OPN_OUTLINE_TIMEOUT_S</code>,
+    C6), and an exceeded cap is R5's report, never a failed gate.</li>
+  <li>Per-step text caps are config: claim and goal (default 2,000 characters each), docstring
+    sentence (300). Goals store the target and the hypotheses the step introduces, never the whole
+    context (Q4).</li>
+  <li>No outline changes a verdict, a status, the frontier or the queue; a merge never waits for an
+    outline (the F07-T55&ndash;T57 rule that nothing waits for a post-merge job).</li>
+  <li>The site stays within 390 px without horizontal page scroll; SVG and outline labels are
+    measured, not eyeballed (2026-09-19 lesson).</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li>Elaboration executes code: the outline program runs merged contributor Lean only inside the
+    pinned image's sandbox, granted no secret (C9, D-4 step 3). The backfill workflow is the same
+    and the curator commits its output by hand, as F18-T7.</li>
+  <li>The outline carries printed types and Mathlib's docstrings, never contributor comments or
+    docstrings; contributor text on the page stays under the untrusted-data demarcation (C9, D-28,
+    D-31).</li>
+  <li>KaTeX runs with <code>trust: false</code> on marked elements only; prose is escaped before
+    any math pass (F04-R10's CSP is unchanged).</li>
+  <li>Stacks and Kerodon tags are shown as text: an off-site link would need F04-R13's allowlist
+    widened, which is not done here (Q6).</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>F18</strong> (required): <code>target_proofs</code>, closures by use, decompositions
+    (the reading view's order and its hole links).</li>
+  <li><strong>F02, F07, F08</strong> (required): the step-4 build and sandbox, the post-merge job,
+    the hole writer's print options and round-trip check (F07-T18, F07-T19).</li>
+  <li><strong>F03, F04, F15</strong>: the products, the site and its vendored KaTeX, the explainer
+    slot and its signatures.</li>
+  <li><strong>Packages:</strong> none planned. SubVerso is evaluated in T1 against the gate's own
+    <code>Frontend.lean</code>; adopting it is a C5 decision recorded in Q3 and pinned in the lake
+    manifest. Screenshots use Playwright through <code>uv run --with</code>, an evidence tool.</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F19-Q1</td><td><strong>Proposed decisions v3.28, for the owner's approval of the
+    wording.</strong> The owner chose the five calls on 2026-10-04 (outline on the graph; machine prose
+    only in the explainer slot; holes glossed inside their explainer; anchored explainer versions;
+    Massot&ndash;Miller contact after the reading view ships). The wording below is drafted for him to
+    approve or change; nothing is applied to the doc until he does. Parts (i) and (vi) bind F19; (ii)
+    to (v) bind F20.
+    <ol type="i">
+      <li><em>D-35 and D-36, outlines.</em> &ldquo;v3.28 &mdash; outlines. The products include, for
+        each merged proof, its outline: the proof's named steps, each with the claim it establishes
+        and the goal it leaves, printed so that it reads back as the same Lean, the constants it
+        uses, and whether automation closed it. The pinned gate computes it from the tree, so it is
+        rebuildable like every product. It asserts nothing the kernel did not check; a step whose
+        printing does not read back is shown as Lean only.&rdquo;</li>
+      <li><em>D-3, explainer versions.</em> &ldquo;v3.28 &mdash; versions. An explainer names the
+        proof it describes and may name the outline steps each of its sections describes. It may
+        supersede one earlier explainer of the same proof, the latest of its chain and never one
+        already superseded. That is how an explainer is corrected; a version that has been signed may
+        be superseded only by a steward of the target or a curator. Its author, a steward of the
+        target or a curator may withdraw a version by a withdrawal record (v3.27); a chain's current
+        version is its latest that is not withdrawn. Nothing is edited and every version stays in the
+        tree.&rdquo;</li>
+      <li><em>D-3 and D-23, drafted explainers.</em> &ldquo;v3.28 &mdash; drafts. The network may
+        draft the first explainer of a merged proof from its outline, through the same path as
+        anyone's, attributed to the network's drafter and the model and version that wrote it, with
+        no human author. A draft earns nothing, is labelled machine-drafted and unverified, and counts
+        for nothing until a person signs a version of it. It is a starting point for a steward, not an
+        account. A hole's first section says in words what the hole states.&rdquo;</li>
+      <li><em>D-33, digestion.</em> &ldquo;v3.28: a node counts as explained while the current
+        version of an explainer on its proof is signed; a version written after a signature must be
+        signed again.&rdquo;</li>
+      <li><em>D-28, a route and two tools.</em> &ldquo;<code>POST /explainers</code>, with the tools
+        <code>submit_explainer</code> and <code>withdraw_explainer</code>, opening an explainer or
+        withdrawal pull request like any append; <code>get_node</code> returns the proof's outline
+        and each explainer chain.&rdquo;</li>
+      <li><em>D-36, the Node row and a new page.</em> &ldquo;the proof's outline before its source;
+        the explainer's current version with its history, its sections beside the outline steps they
+        name&rdquo;; and a <em>Proof</em> page per way the target is proved: the statement and its
+        fidelity first, then each node of the proof's closure, dependencies first, with a table from
+        each node to its declaration, lines and attestation.</li>
+    </ol></td></tr>
+  <tr><td>F19-Q2</td><td><strong>Where the extraction runs is decided by measurement (T1).</strong> If
+    the outline of the longest live proof (erdos-1050's 845-line holes) costs less than 20% of
+    step 4's time and fits in memory, it rides in step 4's sandboxed run beside the footprint, and the
+    post-merge job writes it as it writes the attestation (F08-T27's shape). Otherwise it is a job of
+    its own after the post-merge push, modelled on F07-T57's cache job, pushing with the same
+    rebase-and-retry. Either way nothing waits for it. The 20% line is a judgement; the evidence
+    decides.</td></tr>
+  <tr><td>F19-Q3</td><td><strong>SubVerso or the gate's own frontend.</strong> SubVerso (Apache-2.0,
+    maintained, checked on every Lean release) exports proof states as JSON, but whether it runs on a
+    file without its anchor comments was not confirmed. T1 tries it on the pinned 4.33.1. The
+    fallback is a program over <code>Frontend.lean</code>'s info trees, the shape the six existing
+    programs share, with no new dependency (C5).</td></tr>
+  <tr><td>F19-Q4</td><td><strong>Step granularity and goal content.</strong> A step is every
+    <code>have</code>, <code>obtain</code>, <code>suffices</code>, <code>show</code>, <code>calc</code>
+    step and case branch at any depth; other tactics fold into the step that contains them. A goal
+    stores its target and the hypotheses the step adds, not the whole context, because the live
+    proofs carry 3,849 <code>have</code>s and a full context per step would be unreadable as well as
+    large.</td></tr>
+  <tr><td>F19-Q5</td><td><strong>&ldquo;Routine&rdquo; is a list, in config.</strong> A step is
+    closed by automation when its closing block uses only tactics on the list (<code>omega</code>,
+    <code>simp</code>, <code>norm_num</code>, <code>ring</code>, <code>linarith</code>,
+    <code>nlinarith</code>, <code>positivity</code>, <code>decide</code>, <code>field_simp</code>,
+    <code>aesop</code>). The label names the tactics
+    and claims nothing about difficulty; whether a step carries the idea is the explainer's to say
+    (F20).</td></tr>
+  <tr><td>F19-Q6</td><td><strong>Stacks and Kerodon tags are text, not links.</strong> Linking
+    needs F04-R13's allowlist widened beyond validated target sources (F11-Q11); that is a small
+    change for the owner to ask for, not one to slip in.</td></tr>
+  <tr><td>F19-Q7</td><td><strong>Massot and Miller.</strong> Their <code>Explanation</code> and
+    <code>GoalInfo</code> tree is the display model R9 follows. Approaching them is the owner's act,
+    after the reading view ships so there is something to show (his decision (e)); no task here.</td></tr>
+  <tr><td>F19-Q8</td><td><strong>Hole nodes.</strong> A hole shows its Lean statement and, through
+    F18's decompositions, the parent and the step it came from. Its words come from the first section
+    of its explainer (decision (c), F20), never from a new field that would look fidelity-checked
+    when D-9 exempts interior nodes.</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> planned (2026-10-04; Q1's wording awaits the owner) ·
+  <strong>Tasks:</strong> T1&ndash;T10 todo</div>
+
+<h2>Tasks</h2>
+<p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its
+one verification command (conventions §3, §6). Red before green: each task's first run fails on the
+defect it names, with the seam in at today's behaviour.</p>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F19-T1</td><td><strong>Measure first.</strong> The outline program in Lean (SubVerso tried,
+    own frontend as fallback, Q3), run on the fixture and on erdos-1050's longest hole in the pinned
+    image's sandbox; time, peak memory and output size recorded against step 4's. Decides Q2 and
+    Q3.</td>
+    <td><code>gate/lean/OpnGate/Outline.lean</code>, <code>OutlineMain.lean</code>,
+    <code>gate/lean/lakefile.lean</code>, <code>gate/tests/test_outline_lean.py</code>,
+    <code>engineering/evidence/F19/task-1-measure.txt</code></td>
+    <td>&mdash;</td><td><code>uv run pytest -m "lean or docker" gate/tests/test_outline_lean.py</code></td></tr>
+  <tr><td>F19-T2</td><td>The <code>outline/v1</code> schema, the wrapper and stable ids (R1, R2, R5).</td>
+    <td><code>gate/schemas/outline/v1.json</code>, <code>gate/schemas/HASHES</code>,
+    <code>gate/opn_gate/outline.py</code>, <code>gate/tests/test_outline.py</code></td>
+    <td>T1</td><td><code>uv run pytest gate/tests/test_outline.py</code></td></tr>
+  <tr><td>F19-T3</td><td>Read-back and Mathlib docs (R3, R4).</td>
+    <td><code>gate/lean/OpnGate/Outline.lean</code>, <code>gate/tests/test_outline_lean.py</code></td>
+    <td>T2</td><td><code>uv run pytest -m lean gate/tests/test_outline_lean.py</code></td></tr>
+  <tr><td>F19-T4</td><td>Placement (R6, Q2): in step 4's run and the post-merge job, or as its own
+    job after the push; the graph workflow if Q2 says so.</td>
+    <td><code>gate/opn_gate/{pipeline,postmerge,products}.py</code>,
+    <code>../open_proof_network_graph/.github/workflows/gate.yml</code> (if a job of its own)</td>
+    <td>T2, T3</td><td><code>uv run pytest gate/tests/test_outline.py gate/tests/test_postmerge.py</code></td></tr>
+  <tr><td>F19-T5</td><td>The outline backfill workflow (R7).</td>
+    <td><code>.github/workflows/outline-backfill.yml</code></td>
+    <td>T4</td><td>a dispatched run on the live graph, run id in the evidence</td></tr>
+  <tr><td>F19-T6</td><td>Math in explainer and annex prose (R12). Independent of T1&ndash;T5; may go
+    first.</td>
+    <td><code>site/opn_site/prose.py</code>, <code>site/opn_site/static/math.js</code>,
+    <code>site/tests/test_prose_math.py</code></td>
+    <td>&mdash;</td><td><code>uv run pytest site/tests/test_prose_math.py</code></td></tr>
+  <tr><td>F19-T7</td><td>The outline on node pages (R9, R11, R13).</td>
+    <td><code>site/opn_site/{model,render}.py</code>, <code>templates/node.html</code>,
+    <code>static/site.css</code>, <code>site/tests/test_outline_render.py</code></td>
+    <td>T2</td><td><code>uv run pytest site/tests/test_outline_render.py</code></td></tr>
+  <tr><td>F19-T8</td><td>The reading view and the correspondence table (R8, R10, R11).</td>
+    <td><code>site/opn_site/{model,render}.py</code>, <code>templates/proof.html</code>,
+    <code>site/tests/test_reading_view.py</code></td>
+    <td>T7, Q1</td><td><code>uv run pytest site/tests/test_reading_view.py</code></td></tr>
+  <tr><td>F19-T9</td><td>The guide and the Docs page: how to read a proof page; the outline's fields
+    for agents; every new block run by the walkthrough.</td>
+    <td><code>gate/agents/AGENTS.md</code>, <code>site/docs/</code></td>
+    <td>T7, T8</td><td><code>uv run pytest gate/tests/test_walkthrough.py site/tests</code></td></tr>
+  <tr><td>F19-T10</td><td><strong>Live.</strong> Re-pin, backfill, re-render (a re-pin never
+    re-renders the products by itself, 2026-09-19), site deploy, screenshots and measurements.</td>
+    <td><code>../open_proof_network_graph/targets/*/gate-spec.json</code>, outlines, products</td>
+    <td>T1&ndash;T9, Q1</td><td><code>engineering/evidence/F19/task-10-live.txt</code></td></tr>
+</table>
+
+<footer>Open Proof Network · F19 spec v0 · 2026-10-04 · from the owner's request of 2026-10-03 and
+his rulings of 2026-10-04 on the research report <em>Lean proofs for mathematicians</em></footer>
+</body>
+</html>

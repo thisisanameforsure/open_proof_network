@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F20 — Drafted explainers and steward revisions</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<nav class="crumbs"><a href="../index.html">specs</a> / F20</nav>
+<h1>F20 — Drafted explainers and steward revisions</h1>
+<p class="subtitle">Every merged proof gets a machine-drafted explainer by default, anchored to its
+outline and labelled unverified. A steward then improves it version by version (create, revise,
+withdraw, sign), and nothing is ever edited in place.</p>
+
+<h2>1. Summary</h2>
+<p>The owner's model, 2026-10-04: &ldquo;by default we will get some translation, but as the steward
+goes through it, they will improve it.&rdquo; The protocol already has the slot. An explainer (D-3)
+is prose about a merged proof: content-hashed, attributed to a human author and any drafting model
+(D-23), immutable, labelled unverified (D-36), and since v3.17 signable by a steward or curator as a
+comprehension claim that alone counts toward digestion (D-33). Three things are missing:</p>
+<ul>
+  <li><strong>Versions.</strong> &ldquo;A correction is a new entry&rdquo;, but nothing says which entry it
+    corrects, and the site shows whichever <code>explainer/*.md</code> sorts first by hash
+    (<code>site/opn_site/model.py</code>, <code>explainer_files[0]</code>).</li>
+  <li><strong>Anchors.</strong> Nothing ties a paragraph to the Lean it describes.</li>
+  <li><strong>A first draft.</strong> The live graph holds no explainer on any of its 114 nodes.</li>
+</ul>
+<p>F20 adds them:</p>
+<ul>
+  <li><code>explainer/v1</code>: front matter naming the proof described and the version superseded,
+    with sections that name F19's outline steps.</li>
+  <li>Linear version chains, and withdrawal of a version by the v3.27 withdrawal record.</li>
+  <li>Digestion counted on a chain's current version.</li>
+  <li>A service route and MCP tools, so a steward's agent can revise.</li>
+  <li>A local command for stewards who prefer a hand-opened pull request.</li>
+  <li>A node page that shows the current version beside the steps it describes, with its history.</li>
+  <li>The <strong>drafter</strong>: a network workflow that writes a draft from the outline (never from
+    the source text) and opens it as an ordinary explainer pull request attributed to the drafter and
+    its model.</li>
+</ul>
+<p>The research behind it is <a href="../../../docs/reports/Lean%20proofs%20for%20mathematicians.md">docs/reports/Lean
+proofs for mathematicians.md</a>. The only measured pipeline that generates prose from proofs reached
+about 89% of steps correct on undergraduate calculus, with one grader. Nothing has been measured on
+research-level proofs. So a draft is a starting point, never an account. The project's own rule
+stands: &ldquo;A model may draft; only a human signature counts.&rdquo;</p>
+<p>F20 changes no verdict. It needs decisions v3.28 parts (ii) to (v) (F19-Q1) applied first, plus
+two credentials only the owner can create (Q7).</p>
+
+<h2>2. User stories</h2>
+<ul>
+  <li>As a steward, I want a drafted account already waiting on each proof of my problem, anchored to
+    the steps it describes, so that my work is correcting and deepening rather than starting from a
+    blank page.</li>
+  <li>As a steward, I want to revise an explainer, see my revision become the one shown, withdraw a
+    version that is wrong, and sign the version I can stand behind, all without anyone's text ever
+    being overwritten.</li>
+  <li>As a steward working through an agent, I want to do all of that through the MCP, with the
+    outline's step ids in hand.</li>
+  <li>As a reader, I want to see whether the account in front of me was drafted by a model, written by a
+    person, or signed by someone who can explain the proof, and to see what changed between
+    versions.</li>
+  <li>As the owner, I want the drafter's spend capped and reported, and no draft opened that fails the
+    checks a human's would fail.</li>
+</ul>
+
+<h2>3. Scope</h2>
+<p><strong>In:</strong></p>
+<ul>
+  <li>The <code>explainer/v1</code> schema, its mode checks and the cited-name warning.</li>
+  <li>Version chains, withdrawal of explainers, and the derivation of each chain's current version.</li>
+  <li>Digestion on current versions.</li>
+  <li><code>POST /explainers</code>, its pre-flight and the MCP tools; <code>get_node</code>'s outline
+    and chains.</li>
+  <li>The steward's local command.</li>
+  <li>The node page's explainer slot, history and diff.</li>
+  <li>The drafter library and its workflow, with a cost measurement.</li>
+  <li>The guide and the Docs page.</li>
+  <li>The live re-pin and a first steward revision walked end to end.</li>
+</ul>
+<p><strong>Non-goals:</strong></p>
+<ul>
+  <li>Machine prose anywhere but the explainer slot (the owner's decision (b), D-36): no
+    auto-translation panel, no generated captions on the outline.</li>
+  <li>A web editor or any input on the site (D-36 forbids it). The page links to the guide's
+    revision section; editing goes through git or the service (D-28).</li>
+  <li>Drafting the whole live graph in this feature. T10 drafts three proofs and measures them, and the
+    backfill of the remaining proofs is the owner's call on that cost (Q8).</li>
+  <li>Checking an explainer's mathematics. Nothing reads an explainer for truth (D-3); the anchor
+    checks say which steps a section describes, never that it describes them correctly.</li>
+  <li>D-32 write-ups, which remain the steward's paper or note.</li>
+</ul>
+
+<h2>4. Requirements</h2>
+<table>
+  <tr><th>ID</th><th>Requirement (EARS)</th></tr>
+  <tr><td>F20-R1</td><td>The system shall accept an <code>explainer/v1</code> file: Markdown with
+    front matter validated against its schema, naming the target, the node, the <code>proof</code>
+    (the hash of the merged artifact described, its <code>Proof.lean</code> or an alternate),
+    <code>supersedes</code> (an explainer hash or null), <code>author</code> (a login or pseudonym,
+    null for a draft), <code>drafter</code> (null, or the drafter's name with the model, the model
+    version and the outline's gate commit), the date and the licence. Its body shall be sections under
+    level-2 headings; a section may name outline steps as <code>{steps: s3 s4.1}</code> at the end of
+    its heading (Q2); the first section may name none. An explainer without this front matter (every explainer
+    filed before F20) shall stay valid and be shown unanchored.</td></tr>
+  <tr><td>F20-R2</td><td>If an explainer names a <code>proof</code> that is not a merged proof
+    artifact of its node, or a step id absent from that proof's outline, or names any step when the
+    proof has no outline, then the gate shall refuse it by name
+    (<code>explainer-proof-unknown</code>, <code>explainer-step-unknown</code>); the check reads files
+    and runs no Lean, so an explainer still needs no gate run (D-3).</td></tr>
+  <tr><td>F20-R3</td><td>When a section cites a Lean name in backticks that occurs in none of the
+    constants its named steps use, the gate shall emit the warning
+    <code>explainer-name-unanchored</code> and not refuse (requirement C; untested as a detector,
+    so it informs and does not block).</td></tr>
+  <tr><td>F20-R4</td><td>If an explainer supersedes a hash that is not an explainer of the same node
+    and proof, or one already superseded or withdrawn, then the gate shall refuse it
+    (<code>explainer-not-head</code>, naming the current head). If it supersedes a version carrying a
+    valid signature and its pull request is not by an active steward of the target or a listed
+    curator, then the gate shall refuse it (<code>explainer-signed-supersede</code>); anyone may
+    start a new chain instead.</td></tr>
+  <tr><td>F20-R5</td><td>The system shall accept a withdrawal record (the next version of
+    <code>withdrawal</code>, v3.27's record) naming one explainer version, from that version's author,
+    an active steward of the target or a listed curator, with a reason; every reader shall read a
+    withdrawn version as absent from its chain while the file stays in the tree.</td></tr>
+  <tr><td>F20-R6</td><td>The products shall publish, per node and proof, each explainer chain:
+    its versions in order, each with its hash, author or drafter, date, signatures and withdrawn
+    flag, and its current version (the latest not withdrawn, or none). Chains shall be listed in
+    record order, ranked by nothing (D-25).</td></tr>
+  <tr><td>F20-R7</td><td>A node shall count toward a target's <code>explained</code> digestion state
+    only while the current version of an explainer chain on its first proof carries a valid
+    signature (v3.28 (iv)); signatures on superseded or withdrawn versions shall count for
+    nothing.</td></tr>
+  <tr><td>F20-R8</td><td>The service shall provide <code>POST /explainers</code> (an explainer, new or
+    superseding) and <code>POST /explainers/withdrawals</code>, token-authenticated, each running
+    R1&ndash;R5's checks as a pre-flight and refusing before any pull request opens (the owner's
+    ruling of 2026-09-24), else opening an <code>append/</code> pull request the merge actor
+    merges; the MCP shall offer <code>submit_explainer</code> and <code>withdraw_explainer</code>,
+    and <code>get_node</code> shall return the proof's outline and each chain, all under the
+    untrusted-data demarcation and the bijection test (D-28).</td></tr>
+  <tr><td>F20-R9</td><td>The system shall provide a steward's command,
+    <code>opn-gate explainer revise &lt;target&gt; &lt;node&gt;</code>, that writes the current
+    version to an editable file with <code>supersedes</code> filled in, and
+    <code>opn-gate explainer file &lt;path&gt;</code>, that checks R1&ndash;R4, names the file by its
+    hash and places it, so that a hand-opened pull request is right the first time.</td></tr>
+  <tr><td>F20-R10</td><td>The node page shall show each chain's current version under D-36's fixed
+    label, with a provenance line (<em>machine-drafted by &lt;model&gt;</em>, <em>written by
+    &lt;author&gt;</em>, <em>signed by &lt;signer&gt;</em>). Each anchored section shall appear beside
+    the outline steps it names. The page shall link to every earlier version with a diff to its
+    predecessor, list withdrawn versions as withdrawn and never hide them, and give the guide's
+    revision section as the way to improve the account.</td></tr>
+  <tr><td>F20-R11</td><td>The drafter shall write a draft from a proof's <code>outline/v1</code>
+    (F19), never from the artifact's source text. It shall condition each section on the steps'
+    claims and goals, summarise along the step tree, open with the idea and the method
+    (requirement G), say &ldquo;routine&rdquo; of every automation-closed step rather than invent
+    reasoning (D), use a result's standard name only where the outline records it (E), and for a hole
+    node open with what the hole states (F19-Q8). It shall call the model through
+    <code>opn_gate.models</code>, with the outline under the untrusted-data demarcation.</td></tr>
+  <tr><td>F20-R12</td><td>Before opening a draft, the drafter shall run R1&ndash;R4 on it and require
+    every non-first section to name at least one step. If a draft fails, then it shall regenerate once,
+    and if that fails too, record the proof as not drafted with the reason and open nothing.</td></tr>
+  <tr><td>F20-R13</td><td>When a merge adds a proof with an outline and no explainer chain, the
+    drafter workflow shall be dispatched; it shall also run by hand on a named list. It shall stop at
+    a per-run cap of proofs and a per-run token budget (config, C6), and on a provider error (429, spend
+    limit, refusal) it shall stop and report what it left undrafted. A partial run is never a silent
+    one.</td></tr>
+  <tr><td>F20-R14</td><td>A draft shall earn no ledger line. A human version earns on the write-up line
+    as any explainer does (D-19), credited to its author alone; superseding earns the superseding
+    author nothing of the superseded version's credit.</td></tr>
+</table>
+
+<h2>5. Acceptance criteria</h2>
+<table>
+  <tr><th>ID</th><th>Given / When / Then</th><th>Test case</th></tr>
+  <tr><td>F20-AC1</td><td>Given v2 explainers naming a merged proof with known steps, an unknown
+    step, an unknown proof, and steps on a proof with no outline, and an explainer filed before F20, then pass,
+    <code>explainer-step-unknown</code>, <code>explainer-proof-unknown</code>,
+    <code>explainer-step-unknown</code>, pass.</td>
+    <td><code>gate/tests/test_explainer_schema.py::test_anchors_are_checked_against_the_outline</code></td></tr>
+  <tr><td>F20-AC2</td><td>Given a section citing <code>Nat.Prime.two_le</code> where its steps use it,
+    and one where they do not, then no warning and one <code>explainer-name-unanchored</code> warning,
+    and both pass.</td>
+    <td><code>gate/tests/test_explainer_schema.py::test_unanchored_name_warns_and_passes</code></td></tr>
+  <tr><td>F20-AC3</td><td>Given a chain A&larr;B, a C superseding A, a D superseding B, then C is
+    refused <code>explainer-not-head</code> naming B and D passes; given B signed and E superseding
+    it from a third party, a steward and a curator, then refused, pass, pass.</td>
+    <td><code>gate/tests/test_explainer_chains.py::test_linear_chains_and_signed_supersede</code></td></tr>
+  <tr><td>F20-AC4</td><td>Given a chain A&larr;B&larr;C with C withdrawn by its author, by a steward,
+    by a curator and by a third party, then the first three pass and the current version is B; the
+    fourth is refused.</td>
+    <td><code>gate/tests/test_explainer_chains.py::test_withdrawal_and_current_version</code></td></tr>
+  <tr><td>F20-AC5</td><td>Given a resolved target whose closure nodes all have signed current
+    versions, then <code>explained</code>; when one is superseded by an unsigned version, then
+    <code>undigested</code>; when that version is signed, <code>explained</code> again.</td>
+    <td><code>gate/tests/test_explainer_chains.py::test_digestion_counts_current_versions</code></td></tr>
+  <tr><td>F20-AC6</td><td>Given a request that would fail R2 or R4, when posted to
+    <code>/explainers</code>, then it is refused with the gate's code and no branch or pull request
+    exists; given a valid one, an <code>append/</code> pull request with the hashed file opens.</td>
+    <td><code>api/tests/test_explainers_route.py</code></td></tr>
+  <tr><td>F20-AC7</td><td>Given the MCP, when <code>tools/list</code> runs, then
+    <code>submit_explainer</code> and <code>withdraw_explainer</code> are listed and the bijection
+    test pairs each with its route; <code>get_node</code> returns the outline and chains under the
+    demarcation.</td>
+    <td><code>api/tests/test_mcp_bijection.py</code>, <code>api/tests/test_mcp_explainers.py</code></td></tr>
+  <tr><td>F20-AC8</td><td>Given a node with a chain, when <code>revise</code> then
+    <code>file</code> run on an edited copy, then the new file is named by its hash, supersedes the
+    head, and the gate's classifier passes it.</td>
+    <td><code>gate/tests/test_explainer_cli.py</code></td></tr>
+  <tr><td>F20-AC9</td><td>Given a node with a drafted version, a human revision, a signature and a
+    withdrawn version, then the page shows the human revision as current with its provenance line,
+    each anchored section beside its steps, a diff link, the withdrawn version labelled, and no
+    form.</td><td><code>site/tests/test_explainer_versions.py</code></td></tr>
+  <tr><td>F20-AC10</td><td>Given a fake model returning a valid draft, one with an unknown step id
+    then a valid one, and two invalid ones, then one draft opens, one opens after a retry, and one is
+    recorded as not drafted with nothing opened; the prompt contains the outline under the
+    demarcation and never the artifact's source.</td>
+    <td><code>gate/tests/test_drafter.py</code></td></tr>
+  <tr><td>F20-AC11</td><td>Given a run capped at two proofs over three candidates, and a fake model
+    that answers 429 on the second, then the report names what was drafted, what was left and
+    why.</td><td><code>gate/tests/test_drafter.py::test_caps_and_provider_errors_are_reported</code></td></tr>
+  <tr><td>F20-AC12</td><td>Given drafts of three live proofs (the euclid-primes root, the erdos-69
+    variant, one erdos-1050 hole), then the evidence records tokens, cost and time for each, and the
+    owner's reading of each against the outline.</td>
+    <td><code>engineering/evidence/F20/task-10-drafts.txt</code> (network tier)</td></tr>
+  <tr><td>F20-AC13</td><td>Given the live graph after the re-pin, when a steward revises a draft and
+    signs it through the service, then the node page shows the signed revision as current and the
+    draft in its history.</td><td><code>engineering/evidence/F20/task-12-live.txt</code> (network tier)</td></tr>
+</table>
+
+<h2>6. Budgets / limits</h2>
+<ul>
+  <li>Drafting cost per proof is unmeasured. T10 measures three, and nothing drafts in bulk until the
+    owner has read that cost (Q8). The per-run caps (<code>OPN_DRAFTER_MAX_PROOFS</code>,
+    <code>OPN_DRAFTER_TOKEN_BUDGET</code>) default to 5 proofs and 500k tokens.</li>
+  <li>An explainer stays an append. It runs no Lean, merges in the append lane, and never waits for a
+    post-merge job (F07-T55&ndash;T57).</li>
+  <li>The anchor checks read the committed outline. If the outline is missing (F19-R5), an explainer
+    can still be filed, unanchored.</li>
+</ul>
+
+<h2>7. Security &amp; privacy notes</h2>
+<ul>
+  <li><strong>Two new credentials (Q7).</strong> Each has one home, to be entered in C8 before T9 ships:
+    <ul>
+      <li>The model key for the drafter workflow (<code>OPN_MODEL_API_KEY</code>, as F12's commands
+        read it), an Actions secret on the network repository read by one step.</li>
+      <li>The drafter's service token, a write token like any contributor's (D-19). Losing either costs
+        drafts; leaking the token lets its holder open explainer pull requests, which assert nothing
+        (D-3).</li>
+    </ul></li>
+  <li><strong>The drafter is not trusted.</strong> Its input contains Lean names chosen by
+    contributors, so the outline goes to the model under the untrusted-data demarcation. Its output is
+    checked by the same rules as a human's, rendered escaped, and labelled machine-drafted.</li>
+  <li><strong>Signatures stay F15's.</strong> They are signed by the signer's own key, over one
+    version's hash. A revision cannot inherit a signature.</li>
+  <li><strong>Withdrawal and supersede are gated by role</strong> (steward, curator, author), using
+    F15's <code>real_identities</code> and v3.27's curator check. No new identity mechanism.</li>
+</ul>
+
+<h2>8. Dependencies</h2>
+<ul>
+  <li><strong>F19</strong> (required): <code>outline/v1</code>, step ids, the node page's outline and
+    the reading view's slot.</li>
+  <li><strong>F15</strong> (required): explainers, signatures, stewards, digestion.</li>
+  <li><strong>F08-T31</strong> (required): <code>withdrawal/v1</code>, whose next version this
+    extends.</li>
+  <li><strong>F05, F09, F07</strong>: the service's append routes and pre-flights, the MCP and its
+    bijection, the merge actor's append lane.</li>
+  <li><strong>F12</strong>: <code>opn_gate.models</code>, the one module that talks to a model
+    provider.</li>
+  <li><strong>Packages:</strong> none.</li>
+</ul>
+
+<h2>9. Open questions / judgment calls</h2>
+<table>
+  <tr><th>ID</th><th>Call made — for review</th></tr>
+  <tr><td>F20-Q1</td><td><strong>Decisions v3.28 (ii) to (v)</strong>, drafted in F19-Q1, for the
+    owner's approval. F20 builds nothing that depends on them until they are applied (T1).</td></tr>
+  <tr><td>F20-Q2</td><td><strong>Anchor syntax.</strong> Section anchors are written at the end of
+    the heading: <code>## The bound on q {steps: s3 s4.1}</code>. This keeps the anchor beside the
+    text it governs, survives copy and paste in an editor, and reads acceptably as plain Markdown. A
+    front-matter list keyed by section index was rejected because it breaks silently when a steward
+    reorders sections.</td></tr>
+  <tr><td>F20-Q3</td><td><strong>Chains are linear.</strong> Superseding a version that is not the
+    head is refused, so the current version needs no clock. The 2026-09-19 lesson was to ask who
+    wrote the clock, and here nobody has to. Two stewards revising at once is a race the second
+    loses with a message naming the new head, as racing proofs do (D-25 v3.21).</td></tr>
+  <tr><td>F20-Q4</td><td><strong>Several chains on one proof are all shown, in record order.</strong>
+    A second author who does not want to supersede can start a chain. Choosing one to feature would
+    be ranking (D-25).</td></tr>
+  <tr><td>F20-Q5</td><td><strong>Digestion follows the current version.</strong> An edit after
+    signing drops the node to unsigned until it is signed again. That is published state matching
+    actual state (the owner's first principle). The alternative, counting any signature in the chain,
+    lets a signature vouch for text its signer never saw.</td></tr>
+  <tr><td>F20-Q6</td><td><strong>The drafter is a named identity, <code>opn-drafter</code>,
+    holding a contributor token</strong> rather than a privileged one. Its pull requests are
+    appends like anyone's, and the merge actor needs no change. It appears in the ledger with no
+    entries (R14).</td></tr>
+  <tr><td>F20-Q7</td><td><strong>Credentials are the owner's.</strong> The model key on the network
+    repository and the drafter's token. Until they exist, the workflow dry-runs and keeps its report
+    (the F12-Q16 shape), so a missing credential never reads as a passing run.</td></tr>
+  <tr><td>F20-Q8</td><td><strong>Bulk drafting is the owner's call on T10's numbers.</strong> About 74
+    proofs are live. After T10 reports per-proof cost and his reading of three drafts, he chooses
+    between drafting everything, drafting on demand only, or drafting only the closures of resolved
+    targets. The workflow supports all three through its named list.</td></tr>
+  <tr><td>F20-Q9</td><td><strong>Dispatch, not a schedule.</strong> The post-merge job already holds
+    the site dispatch token, which can start any network workflow (C8). The drafter is dispatched the
+    same way, because a cron on GitHub Actions is a hope (2026-09-13).</td></tr>
+</table>
+
+<h2>10. Status</h2>
+<div class="rule"><strong>status:</strong> planned (2026-10-04; waits on F19 and on v3.28's
+  wording) · <strong>Tasks:</strong> T1&ndash;T12 todo</div>
+
+<h2>Tasks</h2>
+<p class="status-note">Dependency-ordered. Each task names the files it touches, its deps, and its
+one verification command (conventions §3, §6). Red before green, with the seam in at today's
+behaviour.</p>
+<table>
+  <tr><th>ID</th><th>Task</th><th>Files</th><th>Deps</th><th>Verification</th></tr>
+  <tr><td>F20-T1</td><td>Apply decisions v3.28 as approved (both features' parts), with the
+    version line, the D-3 layout and the D-28 and D-36 tables.</td>
+    <td><code>docs/architecture_decisions.html</code></td>
+    <td>F19-Q1 approved</td><td><code>make verify</code></td></tr>
+  <tr><td>F20-T2</td><td><code>explainer/v1</code> and its mode checks (R1, R2, R4's head
+    rule).</td>
+    <td><code>gate/schemas/explainer/v1.json</code>, <code>gate/schemas/HASHES</code>,
+    <code>gate/opn_gate/{explainers,modes,paths}.py</code>,
+    <code>gate/tests/test_explainer_schema.py</code></td>
+    <td>T1, F19-T2</td><td><code>uv run pytest gate/tests/test_explainer_schema.py</code></td></tr>
+  <tr><td>F20-T3</td><td>Chains, signed supersede, withdrawal, current version, digestion (R4&ndash;R7);
+    the products' chain field.</td>
+    <td><code>gate/schemas/withdrawal/v2.json</code>,
+    <code>gate/opn_gate/{explainers,modes,products}.py</code>, <code>gate/schemas/graph/</code>
+    (next version), <code>gate/tests/test_explainer_chains.py</code></td>
+    <td>T2</td><td><code>uv run pytest gate/tests/test_explainer_chains.py</code></td></tr>
+  <tr><td>F20-T4</td><td>The cited-name warning (R3).</td>
+    <td><code>gate/opn_gate/explainers.py</code>, <code>gate/tests/test_explainer_schema.py</code></td>
+    <td>T2</td><td><code>uv run pytest gate/tests/test_explainer_schema.py</code></td></tr>
+  <tr><td>F20-T5</td><td>The routes, pre-flight and MCP tools (R8).</td>
+    <td><code>api/opn_api/{routes,appends}.py</code>, <code>api/opn_api/mcp/</code>,
+    <code>api/tests/test_explainers_route.py</code>, <code>api/tests/test_mcp_explainers.py</code></td>
+    <td>T3</td><td><code>uv run pytest api/tests/test_explainers_route.py api/tests/test_mcp_explainers.py api/tests/test_mcp_bijection.py</code></td></tr>
+  <tr><td>F20-T6</td><td>The steward's command (R9).</td>
+    <td><code>gate/opn_gate/cli.py</code>, <code>gate/tests/test_explainer_cli.py</code></td>
+    <td>T3</td><td><code>uv run pytest gate/tests/test_explainer_cli.py</code></td></tr>
+  <tr><td>F20-T7</td><td>The node page: current versions, provenance, anchored sections, history,
+    diffs (R10).</td>
+    <td><code>site/opn_site/{model,render}.py</code>, <code>templates/node.html</code>,
+    <code>site/tests/test_explainer_versions.py</code></td>
+    <td>T3, F19-T7</td><td><code>uv run pytest site/tests/test_explainer_versions.py</code></td></tr>
+  <tr><td>F20-T8</td><td>The drafter library: prompt from the outline, post-checks, retry, caps,
+    report (R11&ndash;R13), with a fake model.</td>
+    <td><code>gate/opn_gate/drafter.py</code>, <code>gate/tests/test_drafter.py</code></td>
+    <td>T2, T4</td><td><code>uv run pytest gate/tests/test_drafter.py</code></td></tr>
+  <tr><td>F20-T9</td><td>The drafter workflow, its dispatch from the post-merge job, dry-run without
+    credentials, the C8 entries (R13, Q6, Q7, Q9).</td>
+    <td><code>.github/workflows/explainer-draft.yml</code>,
+    <code>../open_proof_network_graph/.github/workflows/gate.yml</code>,
+    <code>engineering/specs/constitution.html</code></td>
+    <td>T5, T8</td><td>a dispatched dry run, run id in the evidence</td></tr>
+  <tr><td>F20-T10</td><td><strong>Measure the drafts.</strong> Three live proofs drafted with the
+    real model: tokens, cost, time, and the owner's reading (AC12). Decides Q8.</td>
+    <td><code>engineering/evidence/F20/task-10-drafts.txt</code></td>
+    <td>T8, Q7</td><td>the evidence file, with the owner's verdict on each draft</td></tr>
+  <tr><td>F20-T11</td><td>The guide and the Docs page: how a steward revises, withdraws and signs,
+    through the MCP and by hand; every new block run by the walkthrough.</td>
+    <td><code>gate/agents/AGENTS.md</code>, <code>site/docs/</code></td>
+    <td>T5, T6, T7</td><td><code>uv run pytest gate/tests/test_walkthrough.py site/tests</code></td></tr>
+  <tr><td>F20-T12</td><td><strong>Live.</strong> Re-pin, re-render, drafts on the set Q8 chose, one
+    steward revision and signature end to end, screenshots.</td>
+    <td><code>../open_proof_network_graph/targets/*/gate-spec.json</code>, products, explainers</td>
+    <td>T1&ndash;T11</td><td><code>engineering/evidence/F20/task-12-live.txt</code></td></tr>
+</table>
+
+<footer>Open Proof Network · F20 spec v0 · 2026-10-04 · from the owner's rulings of 2026-10-04: a
+translation by default, improved by stewards version by version</footer>
+</body>
+</html>
