@@ -1,0 +1,48 @@
+F13-T30 (audit 2026-10-04; testers 2026-10-01, bugs.md A15 and A6): two POST /check verdicts that
+disagreed with the gate.
+
+(a) A15. mode check on a text with `sorry` answered okay: true (the checker compiles a sorry with
+a warning). Now okay is false in check mode when the caller's own text carries sorry-present or
+admit-present (checks.TEXT_SORRY). Keyed on the text's lint, never on the checker's "declaration
+uses sorry" warning, which in check mode is as often the node's Context restating a dependency
+with a sorry body — the guide sends exactly such proofs to mode check, and that answer stays true
+(test_a_contexts_sorry_is_not_the_texts_in_check_mode; the existing
+test_finding_check_verify_gate.py::test_the_checkers_sorry_warning_is_a_warning_in_check_mode
+pins the same and still passes unchanged).
+(b) A6. verify on a node whose Context restates a dependency answered okay: false (context-restated
+plus sorry-reported, failed_declarations naming the Context's theorem) for a direct proof the
+gate passed (#335). checks.context_failure_only: where context-restated fired, the checker said
+okay: false, Lean reported no error, and no failed declaration is the proof's own theorem (the
+statement's written name, with or without namespace), the failure is the Context's: sorry-reported
+is not added and okay is true; result.okay stays verbatim. A failure naming the proof's own
+theorem, a Lean error, or a sorry in the proof itself stays false.
+
+No existing test was changed or deleted; no Q entry reserves either rule to the owner (F13-Q18 and
+Q26 read; Q26 made GATE_REFUSALS decide verify only, and this adds the text's own sorry to check
+mode, a narrower rule).
+
+Risk, for the lead: a skeleton (partial assembly) sent to mode check now reads okay: false, since
+its text carries sorry; the sorry-present lint already says "a skeleton is submitted as a
+partial", and result.okay keeps the checker's compile verdict. The guide sends skeletons to the
+precheck for their holes. If the owner wants mode check to keep answering "does it compile" for
+skeletons, the reversal is one line in gate_verdict.
+
+Proposed ledger line: T30 ✓ (audit 2026-10-04) check-mode sorry and verify's restated Context;
+verification `uv run --frozen pytest api/tests/test_finding_check_verdicts_gate.py api/tests/test_finding_check_verify_gate.py`.
+
+Proposed Q entry (F13-Q-next): "Two verdicts brought to the gate's (T30, audit 2026-10-04; testers
+2026-10-01 A15, A6). In mode check a text that itself carries sorry or admit is okay: false, as the
+gate's step 5 would answer; the checker's sorry warning is not read in check mode, because a
+Context restates dependencies with sorry bodies. In verify mode, where context-restated fires and
+the checker's failures are only declarations other than the proof's own theorem with no Lean
+error, the failure is the Context's and okay is true. Reversal: TEXT_SORRY in gate_verdict and
+checks.context_failure_only."
+
+--- red ---
+/Users/mikehiggins/Desktop/repos/opn-audit-g2-agentapi/api/tests/test_finding_check_verdicts_gate.py:65: assert True is False
+/Users/mikehiggins/Desktop/repos/opn-audit-g2-agentapi/api/tests/test_finding_check_verdicts_gate.py:72: assert True is False
+/Users/mikehiggins/Desktop/repos/opn-audit-g2-agentapi/api/tests/test_finding_check_verdicts_gate.py:112: AssertionError: assert 'sorry-reported' not in ['context-restated', 'sorry-reported']
+3 failed, 5 passed, 2 warnings in 0.80s
+
+--- green (check tests, hazards, witness, preflights, MCP surface) ---
+228 passed, 2 warnings in 30.05s
