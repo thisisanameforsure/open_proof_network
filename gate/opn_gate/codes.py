@@ -816,6 +816,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Fix what the message names: exactly one of author and drafter, the target and node it "
         "sits under, and a body of ## sections; rename the file to the SHA-256 of its content.",
     ),
+    "explainer-name-unanchored": (
+        "gate",
+        None,
+        "A warning, never a refusal: an explainer section cites a qualified Lean name in "
+        "backticks that none of the constants its named outline steps use contains (F20-R5).",
+        "Check the section describes the steps it names; cite the name the outline records, or "
+        "move the sentence to the section whose steps use it. The pull request may merge as is.",
+    ),
     "explainer-proof-unknown": (
         "gate",
         None,

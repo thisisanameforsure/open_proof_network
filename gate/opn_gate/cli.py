@@ -1155,6 +1155,12 @@ def run_classify(args: argparse.Namespace, settings: config.Settings) -> int:
     summary = classification.as_dict()
     summary["problems"] = [d.as_dict(settings.diagnostic_max_bytes) for d in problems]
     summary["ok"] = classification.ok and not problems
+    # F20-R5: what the gate says without refusing; the workflow reads only ``ok``.
+    summary["warnings"] = (
+        [d.as_dict(settings.diagnostic_max_bytes) for d in modes.warnings(graph, classification)]
+        if classification.ok
+        else []
+    )
     # F08-R6, R7: an append that carries a Lean exhibit still needs the sandbox, for that alone.
     carrying = modes.exhibits(graph, classification) if classification.ok else []
     summary["exhibits"] = [loc.path for loc in carrying]

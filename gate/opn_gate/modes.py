@@ -1038,9 +1038,15 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
 
 def warnings(graph_root: Path, classification: Classification) -> list[Diagnostic]:
     """What the gate tells a pull request without refusing it (F20-R5). Never a problem: the
-    classification's ``ok`` does not read these."""
-    del graph_root, classification
-    return []
+    classification's ``ok`` does not read these. Today: ``explainer-name-unanchored`` on each
+    explainer record whose anchored sections cite a name their steps do not use."""
+    from opn_gate import explainers  # noqa: PLC0415 — explainers reads glosses, as this does
+
+    found: list[Diagnostic] = []
+    for located in classification.located:
+        if located.role == "explainer" and located.node_id is not None:
+            found.extend(explainers.name_warnings(graph_root, located))
+    return found
 
 
 def check_definitions(graph_root: Path, classification: Classification) -> list[Diagnostic]:

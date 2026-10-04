@@ -463,6 +463,7 @@ def test_classify_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) ->
         "review_reference": None,
         "problems": [],
         "ok": True,
+        "warnings": [],  # F20-R5: what the gate says without refusing
         "exhibits": [],
         "needs_exhibits": False,
         "qa_records": [],

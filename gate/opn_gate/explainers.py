@@ -201,6 +201,8 @@ OUTLINE_SCHEMA = "outline/v1"
 #: F20-Q2: a section names steps at the end of its level-2 heading, ``{steps: s3 s4.1}``.
 _ANCHOR_RE = re.compile(r"\s*\{steps:(?P<ids>[^{}]*)\}\s*$")
 _HEADING_RE = re.compile(r"^## (?P<heading>.*)$")
+#: A qualified Lean name in backticks: the cited names R5's warning reads (F20-T5).
+_CITED_RE = re.compile(r"`(?P<name>[A-Za-z_][\w']*(?:\.[A-Za-z_][\w']*)+)`")
 
 
 @dataclass(frozen=True)
@@ -391,3 +393,61 @@ def is_record(data: bytes) -> bool:
     except (UnicodeDecodeError, ValueError):
         return True
     return doc is not None
+
+
+def name_warnings(graph_root: Path, located: Located) -> list[Diagnostic]:
+    """R5 (F20-T5): ``explainer-name-unanchored`` for each qualified Lean name in backticks in an
+    anchored section that occurs in none of the constants its steps (and their sub-steps) use, by
+    the outline. A warning, never a refusal: untested as a detector, so it informs. Names occur
+    in a constant as a run of its dotted components (``Prime.two_le`` in ``Nat.Prime.two_le``)."""
+    try:
+        data = (graph_root / located.path).read_bytes()
+    except OSError:
+        return []
+    parsed = record(located, data)
+    if isinstance(parsed, Diagnostic) or parsed[0] is None:
+        return []
+    doc, found = parsed
+    assert doc is not None
+    outline = outline_of(graph_root / "targets" / located.target_id, str(doc["proof"]))
+    if outline is None:
+        return []
+    steps = outline_steps(outline)
+    out: list[Diagnostic] = []
+    for section in found:
+        if not section.steps or any(s not in steps for s in section.steps):
+            continue
+        constants = _constants(steps[s] for s in section.steps)
+        seen: set[str] = set()
+        for m in _CITED_RE.finditer(section.text):
+            name = m.group("name")
+            if name in seen or any(_occurs(name, c) for c in constants):
+                continue
+            seen.add(name)
+            out.append(
+                Diagnostic(
+                    "explainer-name-unanchored",
+                    f"{located.path}: the section {section.heading!r} cites `{name}`, which none "
+                    f"of the constants its steps ({', '.join(section.steps)}) use contains; check "
+                    "that the prose describes the Lean it names (F20-R5)",
+                    {"path": located.path, "name": name, "steps": list(section.steps)},
+                )
+            )
+    return out
+
+
+def _constants(steps: Any) -> set[str]:
+    out: set[str] = set()
+    stack = list(steps)
+    while stack:
+        step = stack.pop()
+        uses = step.get("uses") or {}
+        out.update(str(d) for d in uses.get("defs") or [])
+        out.update(str(m["name"]) for m in uses.get("mathlib") or [])
+        stack.extend(step.get("children") or [])
+    return out
+
+
+def _occurs(name: str, constant: str) -> bool:
+    parts, whole = name.split("."), constant.split(".")
+    return any(whole[i : i + len(parts)] == parts for i in range(len(whole) - len(parts) + 1))

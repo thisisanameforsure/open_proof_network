@@ -1,0 +1,24 @@
+F20-T5 verification: uv run pytest gate/tests/test_explainer_schema.py
+Red run (strict xfail marks removed, modes.warnings the T3 seam returning []):
+  test_unanchored_name_warns_and_passes: [warning] = warnings(root, unused) -> ValueError: not enough values to unpack (expected 1, got 0)
+  test_the_name_warning_reads_names_not_code: assert [] == ['Nat.Prime.one_lt']
+Green run:
+
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aba4293b49640e7d1
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 8 items
+
+gate/tests/test_explainer_schema.py::test_anchors_are_checked_against_the_outline PASSED [ 12%]
+gate/tests/test_explainer_schema.py::test_an_alternate_without_anchors_and_a_partial_assembly_take_explainers PASSED [ 25%]
+gate/tests/test_explainer_schema.py::test_the_body_is_sections[Text before any section.\n\n## Intro\nx\n] PASSED [ 37%]
+gate/tests/test_explainer_schema.py::test_the_body_is_sections[] PASSED  [ 50%]
+gate/tests/test_explainer_schema.py::test_the_body_is_sections[# A level-one heading\nx\n] PASSED [ 62%]
+gate/tests/test_explainer_schema.py::test_front_matter_is_held_to_the_schema PASSED [ 75%]
+gate/tests/test_explainer_schema.py::test_unanchored_name_warns_and_passes PASSED [ 87%]
+gate/tests/test_explainer_schema.py::test_the_name_warning_reads_names_not_code PASSED [100%]
+
+============================== 8 passed in 0.56s ===============================

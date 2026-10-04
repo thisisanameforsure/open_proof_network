@@ -245,7 +245,6 @@ def test_front_matter_is_held_to_the_schema(graph: tuple[Path, dict[str, str]]) 
     assert check(root, draft) == []
 
 
-@pytest.mark.xfail(strict=True, reason="F20-T5: the cited-name warning is not built yet")
 def test_unanchored_name_warns_and_passes(graph: tuple[Path, dict[str, str]]) -> None:
     """AC4: a section citing ``Nat.Prime.two_le`` where its steps use it, and one where they do
     not: no warning and one ``explainer-name-unanchored`` warning, and both pass."""
@@ -263,7 +262,6 @@ def test_unanchored_name_warns_and_passes(graph: tuple[Path, dict[str, str]]) ->
     assert warning.details["steps"] == ["s1"]
 
 
-@pytest.mark.xfail(strict=True, reason="F20-T5: the cited-name warning is not built yet")
 def test_the_name_warning_reads_names_not_code(graph: tuple[Path, dict[str, str]]) -> None:
     """A step's descendants count as its own; a name occurring inside a used constant counts; an
     expression in backticks is not a name, nor is an unqualified one (a bound variable reads the
