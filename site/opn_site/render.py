@@ -1949,6 +1949,13 @@ class Renderer:
         why (F14-R5, R9). Empty for an index version older than v5, which does not say."""
         e = tv.index_entry
         basis = e.get("step9")
+        if e.get("status") == "resolved":
+            # F04-T32: the root is settled, so no proof of it is asked step 9 any more.
+            return (
+                "This problem's statement is settled: a further proof of it merges as an "
+                "alternate, which no person reviews (D-3 v3.13), and nothing beneath it waits for "
+                "anyone either (v3.20)."
+            )
         if basis == "certificate":
             return (
                 "A proof of this statement merges on the gate: the root carries a non-author's "

@@ -132,3 +132,17 @@ def test_every_resolution_word_is_defined_and_keyed() -> None:
     labels = {label for _k, label, _m, _p in render.GLOSSARY}
     for word in render.RESOLUTION_WORDS.values():
         assert word in labels, word
+
+
+def test_a_resolved_problem_does_not_say_a_proof_waits_for_review(
+    built: tuple[Path, dict[str, str]],
+) -> None:
+    """F04-T32: once a problem is resolved, its root is settled and a further proof of it merges
+    as an alternate, which step 9 does not ask (D-3 v3.13); nothing beneath it waits either
+    (v3.20). The page said "A proof of this statement waits for a non-author's approving review"
+    on every resolved problem whose root had no certificate or evidence."""
+    _root, files = built
+    for tid in SETTLED:
+        page = target_page(files, tid)
+        assert "waits for a non-author" not in page, tid
+        assert "merges as an alternate" in page, tid
