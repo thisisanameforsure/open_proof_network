@@ -8,6 +8,7 @@ dependency's proof declares ``import Defs.X`` (or uses a node whose proof does),
 on that dependency is elaborated with ``Defs.X`` in its environment, whether or not it declares
 anything itself, and its statement's own header never named the module. That artifact was not
 guarded: its statement's text could elaborate to another proposition and nothing compared the two.
+(Since F08-T28 every proof is guarded; what this file still pins is the ``carried`` record.)
 
 It is uses that open this road, not an older defect: before T23 a ``Proof`` module's imports were
 its statement's, which the dependent's own ``Context.lean`` of signatures already carries.
@@ -132,16 +133,20 @@ def test_a_declared_use_and_a_carried_one_are_both_recorded(tmp_path: Path) -> N
     assert verdict.data[meaning.MEANING_KEY].get("carried") == {INTERIOR: ["Defs.Extra"]}
 
 
-def test_a_closure_with_no_use_line_anywhere_is_checked_exactly_as_before(tmp_path: Path) -> None:
-    """Inert on every graph of today: two proved dependencies, no use line in any proof, and so
-    no statement build, no question and no record."""
+def test_a_closure_with_no_use_line_anywhere_is_still_asked_and_carries_nothing(
+    tmp_path: Path,
+) -> None:
+    """Restated by F08-T28 (Q36): this test said a tree with no use line was checked exactly as
+    before, with no statement build and no question. That was the road T28 closes, since a
+    dependency's merged proof may carry an instance after its body with no use line anywhere. The
+    question is now asked of every proof; what stays true is that nothing is *carried*."""
     fake = FakeToolchain()
     ctx = make_context(tmp_path, node_id=NODE, toolchain=fake)
     verdict = pipeline.run_steps(ctx)
     assert verdict.ok, verdict.diagnostic
-    assert meaning.MEANING_KEY not in verdict.data
-    assert not any(c.startswith("statement_meaning") for c in fake.calls)
-    assert f"elaborate:{layout.node_module(NODE, 'Statement')}" not in fake.calls
+    assert verdict.data[meaning.MEANING_KEY] == {"identical": True, "matches": True}
+    assert QUESTION in fake.calls
+    assert f"elaborate:{layout.node_module(NODE, 'Statement')}" in fake.calls
 
 
 def test_a_use_in_a_node_outside_the_closure_carries_nothing(tmp_path: Path) -> None:
@@ -157,5 +162,5 @@ def test_a_use_in_a_node_outside_the_closure_carries_nothing(tmp_path: Path) -> 
     lemma.write_text(text.replace(own, f"{own}{USE}\n"), encoding="utf-8")
     verdict = pipeline.run_steps(ctx)
     assert verdict.ok, verdict.diagnostic
-    assert meaning.MEANING_KEY not in verdict.data
-    assert not any(c.startswith("statement_meaning") for c in fake.calls)
+    # T28: the proof is still held to its statement's meaning, but nothing is carried into it
+    assert "carried" not in verdict.data[meaning.MEANING_KEY]

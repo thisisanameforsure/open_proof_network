@@ -1,0 +1,94 @@
+F08-T28 — the meaning guard for every artifact that claims the statement (Q36, Q40)
+Audit 2026-10-04, finding A (judging integrity). Branch audit-a-soundness.
+
+What changed
+  gate/opn_gate/steps/meaning.py: guard() now asks opn-statement-meaning whenever the artifact
+  staged as the node's Proof module declares the statement's own theorem (a proof, an alternate,
+  a partial's assembly: claims_statement, read with artifact.declared_kind from the staged file),
+  and, as before, whenever a use stands in the artifact or beneath it. A counterexample or a
+  vacuity certificate with nothing in its closure is not asked (unchanged).
+  No new contributor-facing rule: step 2 still accepts a Proof.lean with a command after its body
+  (owner's ruling). The verdict no longer depends on that text rule for its meaning.
+
+Red (seen first, before the fix):
+  uv run --frozen pytest -q -m "not lean and not docker and not network" gate/tests/test_finding_meaning_every_proof.py
+E       AssertionError: assert 'elaborate:Nodes.«and-swap-reassoc».Statement' in ['resolve:leanprover/lean4:v4.33.1:install=False', 'elaborate:Nodes.«tutorial-and-swap».Context', 'elaborate:Nodes.«tu.
+E       AssertionError: {'verdict': 'pass', 'first_failing_step': None, 'diagnostic': None, 'steps': [{'step': 1, 'name': 'toolchain', 'result...ds', 'result': 'pass', 'diagnostic': None}, {'step': 7,
+E       assert None == 4
+2 failed, 1 passed in 0.11s
+  test_a_plain_proof_with_no_uses_is_held_to_its_statements_meaning: the Statement was never
+  built and opn-statement-meaning never asked for a plain proof.
+  test_a_changed_meaning_with_no_use_anywhere_fails_step_4: a meaning mismatch with no use
+  anywhere passed every step (verdict pass).
+
+Green:
+  uv run --frozen pytest -q -m "not lean and not docker and not network" gate/tests/test_cache.py
+    gate/tests/test_finding_meaning_every_proof.py gate/tests/test_uses_carried.py
+    gate/tests/test_uses_defs.py gate/tests/test_defs.py gate/tests/test_pipeline.py
+    gate/tests/test_uses_nodes.py
+  138 passed in 5.13s
+  Wider sweep, every gate fast-tier file that drives the pipeline or asserts on seam calls
+  (94 files): 1225 passed, 2 failed before the test_cache restatement below, 0 after.
+
+Tests restated (they pinned T25's scope, which T28 widens; kept, assertion and docstring changed):
+  test_uses_carried.py::test_a_closure_with_no_use_line_anywhere_is_checked_exactly_as_before
+    -> ..._is_still_asked_and_carries_nothing
+  test_uses_carried.py::test_a_use_in_a_node_outside_the_closure_carries_nothing (no "carried")
+  test_uses_defs.py::test_a_proof_without_uses_is_checked_exactly_as_before
+    -> test_a_proof_without_uses_records_no_uses_and_is_still_held_to_its_meaning
+  test_defs.py::test_the_pipeline_builds_the_definitions_before_any_node (defs twice: build, then
+    the statement's own build), test_pipeline.py::test_root_node_stages_dependency_closure and
+    test_cache.py (two more elaborations: the repo Context and the Statement, never cached).
+
+Lean tier (NOT run locally: no disk for the toolchain build; must run in CI):
+  gate/tests/test_uses_defs_lean.py::test_a_dependencys_proof_module_cannot_change_the_statement_of_any_artifact
+    strict xfail removed; now also asserts step 4, statement-meaning-changed, uses == [], carried == {}.
+  gate/tests/test_uses_defs_lean.py::test_a_dependencys_macro_cannot_change_the_statement_of_a_proof_with_no_uses
+    new: notation-carrier's merged proof carries `macro_rules | `($a + $b) => `(Nat.mul $a $b)`
+    after its body; plus-zero-dep (n + 0 = 0, false) depends on it, declares no use, and its
+    "proof" closes n * 0 = 0. Expected: step 4, statement-meaning-changed.
+  test_uses_defs_lean.py::test_a_proof_uses_a_definition_its_statement_does_not_import asserts
+    no Statement.olean under work/build; unchanged and still true (the statement's build is under
+    work/meaning).
+
+Where the time goes (not measured locally; for the owner's cost call, Q36/T28)
+  Per gate run, for every proof, alternate and partial, step 4 now adds:
+    1. defs.compile_all into work/meaning: one `lean` per target definition (Mathlib targets'
+       defs import Mathlib: each is a Mathlib import, roughly the cost of elaborating a
+       Mathlib-importing file header, seconds to tens of seconds and ~1-3 GiB resident).
+    2. `lean` on the node's repo Context.lean (imports the target defs / Mathlib): one import.
+    3. `lean` on Statement.lean: one import.
+    4. opn-statement-meaning: imports the artifact's module, which on a Mathlib target is a
+       Mathlib-sized environment (one import, read from oleans, no elaboration).
+  So: two extra Mathlib imports for the statement side, one for the comparison, plus one per
+  target definition. Each is a separate process (and container), so peak memory is one import's,
+  not their sum (the F02-T7 lesson). Each call is under the step's wall-clock cap.
+  Mitigation if it bites: the statement-side build is a function of the admitted files only
+  (target defs + node Context + Statement), so it is cacheable under the olean cache's key.
+
+Proposed Q entry (F08-Q41)
+  F08-Q41 The meaning guard reads every artifact that claims the statement (T28; 2026-10-04;
+  audit finding A). Q36 held the road through a dependency's merged proof with no use line
+  anywhere as a strict xfail, and Q40 left it for the owner's call on cost. Decided by the
+  owner's ruling on the audit: no new rule about what a Proof.lean may contain; the verdict must
+  not depend on it. So R17's comparison runs for every artifact that declares the statement's own
+  theorem: a proof, an alternate and a partial's assembly, read from the staged file
+  (meaning.claims_statement). For a plain proof this is the first type comparison at all:
+  artifact.judge passes a proof on its text, so until T28 the verdict that a proof proves its
+  statement rested on the text being repeated, never on what it elaborated to. Cost: one more
+  build of the target's definitions, the node's Context and its Statement, and one import of the
+  artifact's environment, per gate run. Not covered: a counterexample's ¬S and a vacuity
+  certificate's ¬W are still compared by opn-artifact-type in the artifact's own (larger)
+  environment, which elaborates contributor source; proposed T29b below. Reversal: claims_statement
+  returns False and the guard is T25's.
+
+Proposed follow-up (F08-T29b, not built): extend opn-statement-meaning with a --negate mode so a
+  counterexample's declared type is compared, as read from its compiled module, with Not of the
+  statement module's type; and a vacuity certificate's with Not of the witness type as built
+  from the node's own files.
+
+Proposed ledger line
+  T28 ✓ 2026-10-04 (uv run pytest gate/tests/test_finding_meaning_every_proof.py and six
+  neighbours: 138 passed; the Q36 strict xfail removed and a macro case added in
+  test_uses_defs_lean.py, lean tier pending CI) — every proof, alternate and partial is
+  compared with its statement (Q41)

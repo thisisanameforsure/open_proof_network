@@ -357,17 +357,12 @@ def test_a_dependencys_proof_module_cannot_change_the_statement_of_an_artifact_w
     assert verdict.diagnostic.code == "statement-meaning-changed", verdict.diagnostic
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="F08-Q36, a defect older than uses and not fixed by T23: an artifact with no use "
-    "lines is not compared with its statement, so a dependency's merged proof that carries an "
-    "instance after its body (step 2 accepts the file) changes what a dependent's statement "
-    "elaborates to, and a false statement passes every step. Proposed as F08-T28: run the "
-    "meaning guard whenever the staged Context imports a proof.",
-)
 def test_a_dependencys_proof_module_cannot_change_the_statement_of_any_artifact(
     tmp_path: Path, real_toolchain: LocalToolchain, pinned: ResolvedToolchain, lean_pkg: Path
 ) -> None:
+    """F08-T28 (Q36): held as a strict xfail until the guard ran for every proof. An artifact
+    with no use line anywhere, built on a dependency whose merged proof carries an instance after
+    its body (step 2 accepts the file): a false statement passed every step. Refused at step 4."""
     del pinned, lean_pkg
     ctx = context(tmp_path, "size-is-zero-dep", real_toolchain)
     with_carrier(ctx)
@@ -377,3 +372,79 @@ def test_a_dependencys_proof_module_cannot_change_the_statement_of_any_artifact(
     (node / "Proof.lean").write_text(st.prefix + " by\n  intro n\n  rfl\n", encoding="utf-8")
     verdict = pipeline.run_submission(ctx)
     assert verdict.verdict == "fail", verdict.as_dict()
+    assert verdict.first_failing_step == 4
+    assert verdict.diagnostic is not None
+    assert verdict.diagnostic.code == "statement-meaning-changed", verdict.diagnostic
+    assert verdict.diagnostic.details["uses"] == []
+    assert verdict.diagnostic.details["carried"] == {}
+
+
+#: A merged proof of a true statement that carries a macro after its body: from here on ``+`` in
+#: every module built on it means ``Nat.mul``. Step 2 accepts the file (prefix and suffix match).
+NOTATION_CARRIER = statement(
+    "notation-carrier", "theorem OpnProp.notation_carrier : True := by\n  sorry\n"
+)
+NOTATION_CARRIER_PROOF_TAIL = " by\n  trivial\n\n" + NOTATION
+#: False as its own files read it (``n + 0 = 0`` fails at 1), and true once ``+`` is ``Nat.mul``.
+NOTATION_DEPENDENT = statement(
+    "plus-zero-dep",
+    "theorem OpnProp.plus_zero_dep : ∀ n : Nat, n + 0 = 0 := by\n  sorry\n",
+    imports=(),
+)
+
+
+def with_notation_carrier(ctx: RunContext) -> None:
+    nodes = layout.graph_nodes_dir(ctx.graph_root, TARGET)
+    scaffold.write(
+        nodes,
+        scaffold.Proposal(
+            node_id="notation-carrier",
+            target_id=TARGET,
+            statement=NOTATION_CARRIER,
+            witness="theorem witness : True := trivial\n",
+            author="curator",
+            date="2026-10-01T00:00:00Z",
+        ),
+    )
+    st = layout.parse_statement(NOTATION_CARRIER)
+    assert isinstance(st, layout.Statement)
+    (nodes / "notation-carrier" / "Proof.lean").write_text(
+        st.prefix + NOTATION_CARRIER_PROOF_TAIL, encoding="utf-8"
+    )
+    scaffold.write(
+        nodes,
+        scaffold.Proposal(
+            node_id="plus-zero-dep",
+            target_id=TARGET,
+            statement=NOTATION_DEPENDENT,
+            witness=WITNESS,
+            author="curator",
+            deps=("notation-carrier",),
+            date="2026-10-01T00:00:00Z",
+        ),
+    )
+
+
+def test_a_dependencys_macro_cannot_change_the_statement_of_a_proof_with_no_uses(
+    tmp_path: Path, real_toolchain: LocalToolchain, pinned: ResolvedToolchain, lean_pkg: Path
+) -> None:
+    """F08-T28: the same road with a macro instead of an instance. The dependent declares no use
+    and no proof beneath it does; its "proof" closes ``n * 0 = 0``, which is what its statement's
+    text reads as once the dependency's module is imported. Refused at step 4."""
+    del pinned, lean_pkg
+    ctx = context(tmp_path, "plus-zero-dep", real_toolchain)
+    with_notation_carrier(ctx)
+    node = layout.graph_nodes_dir(ctx.graph_root, TARGET) / "plus-zero-dep"
+    st = layout.parse_statement(NOTATION_DEPENDENT)
+    assert isinstance(st, layout.Statement)
+    (node / "Proof.lean").write_text(
+        st.prefix + " by\n  intro n\n  exact Nat.mul_zero n\n", encoding="utf-8"
+    )
+    verdict = pipeline.run_submission(ctx)
+    assert verdict.verdict == "fail", verdict.as_dict()
+    assert verdict.first_failing_step == 4
+    assert verdict.diagnostic is not None
+    assert verdict.diagnostic.code == "statement-meaning-changed", verdict.diagnostic
+    assert verdict.diagnostic.details["uses"] == []
+    assert verdict.diagnostic.details["carried"] == {}
+    assert verdict.diagnostic.details["expected"] != verdict.diagnostic.details["declared"]
