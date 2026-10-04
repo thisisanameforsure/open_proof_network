@@ -952,8 +952,26 @@ def pinned_network_commit(graph: Path, commit: str, target: str | None) -> str |
 def network_mismatch(
     pinned: str | None, running: RunningNetwork, *, check_dirty: bool = True
 ) -> Diagnostic | None:
-    """Whether the running gate is not the one the spec pins. Today: never asked."""
-    return None
+    """``network-mismatch`` when the running gate is not the one ``pinned`` names: another
+    commit, no git checkout at all, or (with ``check_dirty``) edits under ``gate/``. A pin that
+    could not be read is not judged here; loading the spec refuses it as it always has."""
+    if pinned is None:
+        return None
+    dirty = list(running.dirty) if check_dirty else []
+    if running.commit == pinned and not dirty:
+        return None
+    if running.commit is None:
+        why = "the gate is not running from a git checkout of the network repository"
+    elif running.commit != pinned:
+        why = f"the gate is running from network commit {running.commit}"
+    else:
+        why = f"the gate's own files differ from {pinned}: {', '.join(dirty)}"
+    return Diagnostic(
+        "network-mismatch",
+        f"the spec pins network commit {pinned}, but {why}; check the network repository out "
+        "at the pin (D-5: a record speaks for the pinned gate only)",
+        {"pinned": pinned, "running": running.commit, "dirty": dirty},
+    )
 
 
 def refuse_network_mismatch(mismatch: Diagnostic) -> int:

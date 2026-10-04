@@ -31,6 +31,7 @@ def run_reproduce(graph: Path, commit: str, out: Path, *extra: str) -> tuple[int
             "--out",
             str(out),
             "--no-build",
+            "--allow-network-mismatch",  # F07-T65: the fixtures pin forty zeros
             *extra,
         ],
         capture_output=True,
@@ -91,6 +92,7 @@ def test_compare_against_committed_attestation(
             "--out",
             str(tmp_path / "second"),
             "--no-build",
+            "--allow-network-mismatch",  # F07-T65: the fixtures pin forty zeros
             "--compare",
             str(committed),
         ],
@@ -99,8 +101,12 @@ def test_compare_against_committed_attestation(
         check=False,
         timeout=900,
     )
-    assert proc.returncode == 0, proc.stdout + proc.stderr
-    assert '"identical": true' in proc.stdout.splitlines()[-1]
+    # F07-T65: run from this checkout, not the fixture's pin, so the result is never identical;
+    # D-5's comparison itself is that no field differs. The fast tier asserts exit 0 at the pin.
+    result = json.loads(proc.stdout.splitlines()[-1])
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert result["differing_fields"] == [] and result["identical"] is False, result
+    assert result["network_mismatch"]["code"] == "network-mismatch"
 
     doc["artifact_hash"] = "0" * 64
     committed.write_bytes(schemas.canonical_json(doc))
@@ -116,6 +122,7 @@ def test_compare_against_committed_attestation(
             "--out",
             str(tmp_path / "third"),
             "--no-build",
+            "--allow-network-mismatch",  # F07-T65: the fixtures pin forty zeros
             "--compare",
             str(committed),
         ],
@@ -125,4 +132,4 @@ def test_compare_against_committed_attestation(
         timeout=900,
     )
     assert proc.returncode == 1
-    assert "artifact_hash" in proc.stdout.splitlines()[-1]
+    assert "artifact_hash" in json.loads(proc.stdout.splitlines()[-1])["differing_fields"]

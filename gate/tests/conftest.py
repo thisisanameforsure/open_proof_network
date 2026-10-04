@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from opn_gate import config, toolchain
+from opn_gate import cli, config, toolchain
 from opn_gate.toolchain import LocalToolchain, ResolvedToolchain
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -20,6 +20,21 @@ ONRAMP_MATHLIB = next(
     for line in (ROOT / "gate" / "mathlib-pins.txt").read_text().splitlines()
     if line.split("#", 1)[0].strip()
 )
+
+
+#: F07-T65: what every fixture graph's ``gate-spec.json`` pins as ``network_commit``.
+FIXTURE_NETWORK_PIN = "0" * 40
+
+
+@pytest.fixture(autouse=True)
+def running_at_the_fixture_pin(monkeypatch: pytest.MonkeyPatch) -> None:
+    """``reproduce`` refuses a gate that is not the spec's pin (F07-T65), and the fixture graphs
+    pin forty zeros, which no checkout is. Every in-process run is told it runs, clean, at that
+    pin; ``test_finding_reproduce_pin.py`` sets the seam itself. A subprocess (``reproduce.sh``
+    in the docker tier) does not see this and passes ``--allow-network-mismatch``."""
+    monkeypatch.setattr(
+        cli, "running_network_commit", lambda: cli.RunningNetwork(FIXTURE_NETWORK_PIN)
+    )
 
 
 @pytest.fixture(scope="session")
