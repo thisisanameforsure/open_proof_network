@@ -25,6 +25,7 @@ Anything else is an extra entry and is named in the diagnostic.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -373,6 +374,279 @@ def check_imports(node_dir: Path, node_id: str) -> list[Diagnostic]:
                     )
                 )
     return found
+
+
+# --- D-3 v3.28 (F08-T37): what a statement may hold ---------------------------------------------
+
+#: The two files of a node the judges import as modules of record (D-4 v3.27), whose every
+#: command step 2 reads.
+COMMAND_CHECKED_FILES: tuple[str, ...] = ("Statement.lean", "Context.lean")
+STATEMENT_COMMAND_CODE = "statement-command-forbidden"
+#: Commands a line may open with, and which end at the end of that line.
+_HEADER_COMMANDS = frozenset({"import", "open", "namespace", "end"})
+#: The declarations: the statement's theorem, or a Context's dependency signatures.
+_DECL_COMMANDS = frozenset({"theorem", "lemma"})
+#: Term keywords whose binding takes a ``:=`` of its own inside a declaration's type.
+_BINDING_WORDS = frozenset({"let", "have", "letI", "haveI"})
+#: The words an ``open`` line may hold besides the names it opens.
+_OPEN_WORDS = frozenset({"scoped", "hiding", "renaming", "in"})
+#: Words that open a command in Lean, its core library or Mathlib and never stand in a term. At a
+#: file's top level anything outside the four header commands and the declarations is refused
+#: whatever it is; this list is what is also refused *inside* a declaration's type, where a
+#: command could only appear after a parse error (which admission refuses anyway), and inside an
+#: ``open`` line, where Lean would end the ``open`` and start the command.
+_COMMAND_WORDS = frozenset(
+    {
+        "abbrev", "add_aesop_rules", "add_decl_doc", "alias", "assert_not_exists",
+        "assert_not_imported", "attribute", "axiom", "builtin_initialize", "class",
+        "coinductive", "compile_inductive", "declare_aesop_rule_sets", "declare_syntax_cat",
+        "def", "deriving", "dsimproc", "elab", "elab_rules", "example", "export", "import",
+        "include", "inductive", "infix", "infixl", "infixr", "initialize",
+        "initialize_simps_projections", "instance", "irreducible_def", "lemma", "library_note",
+        "local", "macro", "macro_rules", "mutual", "namespace", "noncomputable", "notation",
+        "notation3", "omit", "opaque", "partial", "postfix", "prefix", "private", "proof_wanted",
+        "protected", "recall", "register_option", "register_simp_attr", "run_cmd", "run_elab",
+        "run_meta", "seal", "section", "set_option", "simproc", "structure", "suppress_compilation",
+        "syntax", "theorem", "universe", "unsafe", "unseal", "variable",
+    }
+)  # fmt: skip
+_IDENT_CHARS = r"\w'!?.«»"
+_TOKEN_RE = re.compile(
+    rf"(?P<hash>#[^\W\d][\w]*)|(?P<attr>@\[)|(?P<assign>:=)"
+    rf"|(?P<ident>(?:[^\W\d]|«)[{_IDENT_CHARS}]*)"
+    r"|(?P<open>[(\[{⟨⦃⟦])|(?P<close>[)\]}⟩⦄⟧])|(?P<other>\S)"
+)
+_SPACE_RE = re.compile(r"\s*")
+_SORRY_AFTER_RE = re.compile(rf"\s*(?:by\s+)?sorry(?![{_IDENT_CHARS}])")
+_HEADER_LINE_RE: dict[str, re.Pattern[str]] = {
+    "import": re.compile(rf"[ \t]+[{_IDENT_CHARS}]+\s*"),
+    "namespace": re.compile(rf"[ \t]+[{_IDENT_CHARS}]+\s*"),
+    "end": re.compile(rf"(?:[ \t]+[{_IDENT_CHARS}]+)?\s*"),
+}
+_OPEN_PART_RE = re.compile(r"[()]|→|->|[^\s()]+")
+_NAME_RE = re.compile(rf"(?:[^\W\d]|«)[{_IDENT_CHARS}]*")
+_CHAR_LITERAL_RE = re.compile(r"'(?:\\(?:u\{[0-9a-fA-F]+\}|x[0-9a-fA-F]{2}|.)|[^\\'\n])'")
+_RAW_STRING_RE = re.compile(r'r(?P<hashes>#*)"')
+
+
+@dataclass(frozen=True)
+class CommandOffence:
+    """One command a statement may not hold: where it starts, and what it is."""
+
+    line: int
+    command: str
+    reason: str
+
+
+def _blank(text: str) -> str:
+    return "".join(c if c == "\n" else " " for c in text)
+
+
+def code_mask(text: str) -> str:  # noqa: PLR0912 — one branch per lexical form
+    """``text`` as Lean's command parser sees its code: comments (nested, and the ``/--`` and
+    ``/-!`` doc forms), string, raw-string and character literal bodies blanked, and the inside of
+    every ``«»`` name made one identifier, at the same length and with every newline kept, so an
+    offset and a line number mean what they meant in the source. Unlike ``strip_comments`` it
+    reads a ``'"'`` as a character and not as the start of a string, so no text can hide a
+    command from the scan behind a quote Lean does not see."""
+    out: list[str] = []
+    i, n = 0, len(text)
+    while i < n:
+        c = text[i]
+        prev = text[i - 1] if i else " "
+        follows_name = prev.isalnum() or prev in "_'!?.»"
+        if text.startswith("/-", i):
+            j, depth = i + 2, 1
+            while j < n and depth:
+                if text.startswith("/-", j):
+                    depth, j = depth + 1, j + 2
+                elif text.startswith("-/", j):
+                    depth, j = depth - 1, j + 2
+                else:
+                    j += 1
+            out.append(_blank(text[i:j]))
+            i = j
+        elif text.startswith("--", i):
+            j = text.find("\n", i)
+            j = n if j == -1 else j
+            out.append(_blank(text[i:j]))
+            i = j
+        elif c == "r" and not follows_name and (raw := _RAW_STRING_RE.match(text, i)):
+            close = '"' + raw.group("hashes")
+            j = text.find(close, raw.end())
+            j = n if j == -1 else j + len(close)
+            out.append('"' + _blank(text[i + 1 : j]))
+            i = j
+        elif c == '"':
+            j = i + 1
+            while j < n and text[j] != '"':
+                j += 2 if text[j] == "\\" else 1
+            j = min(j + 1, n)
+            out.append('"' + _blank(text[i + 1 : j]))
+            i = j
+        elif c == "'" and not follows_name and (char := _CHAR_LITERAL_RE.match(text, i)):
+            out.append("'" + _blank(char.group()[1:-1]) + "'")
+            i = char.end()
+        elif c == "«":
+            j = text.find("»", i)
+            j = n if j == -1 else j + 1
+            out.append("«" + "".join(ch if ch in "\n»" else "_" for ch in text[i + 1 : j]))
+            i = j
+        else:
+            out.append(c)
+            i += 1
+    masked = "".join(out)
+    assert len(masked) == len(text), "the mask keeps every offset"
+    return masked
+
+
+def forbidden_commands(text: str) -> list[CommandOffence]:
+    """Every command ``text`` holds beyond D-3's list (v3.28): imports, ``open``, ``namespace``
+    and ``end`` lines, doc comments, and theorems whose body is ``sorry``. ``[]`` when the file
+    holds nothing else.
+
+    The file is read as a sequence of commands. A header command runs to the end of its line and
+    holds names only. A declaration runs from ``theorem`` (or ``lemma``) to its body: the first
+    ``:=`` outside brackets that is not a ``let`` or ``have`` binding's, which must be followed
+    by ``sorry`` (or ``by sorry``). Any other token where a command starts is refused, and so is
+    an attribute, or a command word, inside a declaration's type. Because a declaration can only
+    end at its ``:= sorry``, a command could follow one only after a parse error, which makes the
+    file one admission refuses for not elaborating; the scan is the guarantee for every file
+    that does."""
+    mask = code_mask(text)
+    starts = [0, *(i + 1 for i, c in enumerate(mask) if c == "\n")]
+
+    def line_of(offset: int) -> int:
+        lo, hi = 0, len(starts)
+        while hi - lo > 1:
+            mid = (lo + hi) // 2
+            if starts[mid] <= offset:
+                lo = mid
+            else:
+                hi = mid
+        return lo + 1
+
+    def end_of_line(offset: int) -> int:
+        eol = mask.find("\n", offset)
+        return len(mask) if eol == -1 else eol
+
+    found: list[CommandOffence] = []
+    pos, n = 0, len(mask)
+    while True:
+        pos = _SPACE_RE.match(mask, pos).end()  # type: ignore[union-attr]  # \s* always matches
+        if pos >= n:
+            return found
+        tok = _TOKEN_RE.match(mask, pos)
+        assert tok is not None, "every non-space character is a token"
+        kind, word = tok.lastgroup, tok.group()
+        if kind == "ident" and word in _HEADER_COMMANDS:
+            eol = end_of_line(tok.end())
+            bad = _header_problem(word, mask[tok.end() : eol])
+            if bad is not None:
+                found.append(
+                    CommandOffence(line_of(pos), bad, f"may not stand in an `{word}` line")
+                )
+            pos = eol
+        elif kind == "ident" and word in _DECL_COMMANDS:
+            pos, offence = _declaration(mask, tok.end(), line_of)
+            if offence is not None:
+                found.append(offence)
+                pos = end_of_line(pos)
+        else:
+            shown = word if kind in ("ident", "hash") else mask[pos : end_of_line(pos)].split()[0]
+            found.append(
+                CommandOffence(line_of(pos), shown[:40], "is not a command a statement may hold")
+            )
+            pos = end_of_line(pos)
+
+
+def _header_problem(word: str, rest: str) -> str | None:
+    """The first thing in an ``import``/``namespace``/``end``/``open`` line's rest that is not
+    a name it may hold, or ``None``."""
+    if word in _HEADER_LINE_RE:
+        if _HEADER_LINE_RE[word].fullmatch(rest):
+            return None
+        parts = rest.split()
+        return parts[1] if len(parts) > 1 else (parts[0] if parts else word)
+    parts = _OPEN_PART_RE.findall(rest)
+    if not parts:
+        return word
+    for part in parts:
+        if part in _OPEN_WORDS or part in ("(", ")", "→", "->"):
+            continue
+        if not _NAME_RE.fullmatch(part) or part in _COMMAND_WORDS:
+            return part
+    return None
+
+
+def _declaration(
+    mask: str, start: int, line_of: Callable[[int], int]
+) -> tuple[int, CommandOffence | None]:
+    """Scan a declaration from just after its keyword to just past its ``sorry`` body."""
+    depth = pending = 0
+    pos, n = start, len(mask)
+    while True:
+        pos = _SPACE_RE.match(mask, pos).end()  # type: ignore[union-attr]  # \s* always matches
+        if pos >= n:
+            return n, CommandOffence(line_of(start), "theorem", "has no `sorry` body")
+        tok = _TOKEN_RE.match(mask, pos)
+        assert tok is not None, "every non-space character is a token"
+        kind, word = tok.lastgroup, tok.group()
+        if kind == "open":
+            depth += 1
+        elif kind == "close":
+            depth = max(0, depth - 1)
+        elif kind == "attr":
+            return pos, CommandOffence(
+                line_of(pos), "@[", "is an attribute, which a statement may not set"
+            )
+        elif kind == "ident" and word in _COMMAND_WORDS:
+            return pos, CommandOffence(line_of(pos), word, "may not stand in a declaration's type")
+        elif kind == "ident" and word in _BINDING_WORDS and depth == 0:
+            pending += 1
+        elif kind == "assign" and depth == 0:
+            if pending:
+                pending -= 1
+            else:
+                body = _SORRY_AFTER_RE.match(mask, tok.end())
+                if body is not None:
+                    return body.end(), None
+                return pos, CommandOffence(line_of(pos), "theorem", "has a body other than `sorry`")
+        pos = tok.end()
+
+
+def command_problem(name: str, text: str) -> Diagnostic | None:
+    """Step 2's refusal of a ``Statement.lean`` or ``Context.lean`` that holds a command beyond
+    D-3's list (v3.28), naming the first one, its line and every other; ``None`` when it holds
+    none. The service refuses a proposal by this same function before any pull request opens."""
+    found = forbidden_commands(text)
+    if not found:
+        return None
+    first = found[0]
+    return Diagnostic(
+        STATEMENT_COMMAND_CODE,
+        f"{name} line {first.line}: `{first.command}` {first.reason}. A statement or context "
+        "holds its imports, `open`, `namespace` and `end` lines, doc comments and sorry-bodied "
+        "theorems, and nothing else, because the checks import it as a module of record "
+        "(D-3 v3.28)",
+        {
+            "file": name,
+            "line": first.line,
+            "command": first.command,
+            "offences": [f"{name}:{o.line}: {o.command}" for o in found],
+        },
+    )
+
+
+def check_commands(node_dir: Path) -> Diagnostic | None:
+    """``command_problem`` over a node directory's ``Statement.lean`` and ``Context.lean``."""
+    for name in COMMAND_CHECKED_FILES:
+        path = node_dir / name
+        if path.is_file():
+            problem = command_problem(name, path.read_text(encoding="utf-8"))
+            if problem is not None:
+                return problem
+    return None
 
 
 def validate_node(node_dir: Path) -> list[Diagnostic]:

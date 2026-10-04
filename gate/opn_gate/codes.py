@@ -1796,6 +1796,18 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "The gate could not read the statement's axioms.",
         "Check the statement elaborates; if it does, report the verdict.",
     ),
+    "statement-command-forbidden": (
+        "gate",
+        2,
+        "A Statement.lean or Context.lean holds a command other than its imports, open, "
+        "namespace and end lines, doc comments and sorry-bodied theorems: an attribute, "
+        "instance, notation, set_option, #eval, initialize and the like. The checks import "
+        "these files as modules of record, so nothing in them may run or change meaning "
+        "(D-3 v3.28). The message names the file, the line and the command.",
+        "Delete the command the message names. State any definition the statement needs in the "
+        "target's defs/ through its curators, and write the theorem without attributes or "
+        "modifiers.",
+    ),
     "statement-elaboration": (
         "gate",
         5,
