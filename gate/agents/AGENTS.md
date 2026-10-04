@@ -574,6 +574,25 @@ is not Proof.lean
 is outside the claimed node
 ```
 
+**For curators: withdrawing a record (D-18 v3.27).** A listed curator withdraws one of a node's
+status records or defect claims by adding
+`targets/<id>/nodes/<node>/withdrawals/<stamp>-<curator>.yaml` (`withdrawal/v1`): `withdraws`
+names `status/<file>` or `defects/<file>` of that same node, with a `reason`, `author` and
+`date`. It is a curator record, reviewed by the other listed curators, and a file that names
+nothing on the node is refused `withdrawal-unknown-record`. The withdrawn file stays in the tree
+and every product reads it as absent: the latest remaining status record decides, a withdrawn
+circularity claim no longer takes its hole off the frontier, and a `disputed` record resting on
+a withdrawn claim lifts. Reverting the withdrawal restores everything.
+
+**For curators: correcting a ledger line (D-19 v3.27).** A listed curator moves credit by adding
+`targets/<id>/credit-corrections/<stamp>-<curator>.yaml` (`credit-correction/v1`) naming the
+line as the ledger has it (`merge_commit`, `line`, `node`, `artifact`, and `route_class` on an
+attempts line) with `from`, `to` (an identity, or null for nobody) and a `reason`. The gate
+refuses `credit-correction-unknown-entry` when `from` does not hold that line active and
+`credit-correction-same-identity` when `to` is `from`. On merge the post-merge job marks the old
+entry `revoked`, never deletes it, and writes an active copy with the original merge and date to
+`to`'s ledger; the correction itself earns no credit.
+
 ## The gate contract (D-4)
 
 One codebase runs in three places (`pregate.sh` locally, the precheck service, and the
