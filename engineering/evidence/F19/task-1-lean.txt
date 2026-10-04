@@ -1,0 +1,67 @@
+F19-T1/T3 — opn-outline with the real toolchain (Lean 4.33.1, this laptop), Lean-core fixtures
+under gate/tests/fixtures/outline/.
+Command: UV_PROJECT_ENVIRONMENT=<main venv> uv run --frozen pytest gate/tests/test_outline_lean.py -m 'lean or not lean'
+
+== RED A: the program built with its step walk cut off at the seam (assignUses over no steps).
+AC1, AC6 and AC13 fail on their assertion (an empty step list), not on a missing name.
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+E   AssertionError: assert [] == [('h1', 'have...'steps', ()))]
+      
+      Right contains 4 more items, first extra item: ('h1', 'have', 'h1', (6, 6), ('automation', ('omega',)))
+      Use -v to get more diff
+/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e/gate/tests/test_outline_lean.py:82: AssertionError: assert [] == [('h1', 'have...'steps', ()))]
+E   AssertionError: assert [] == [('s1', 'term...('term', ()))]
+      
+      Right contains one more item: ('s1', 'term', None, (4, 4), ('term', ()))
+      Use -v to get more diff
+/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e/gate/tests/test_outline_lean.py:151: AssertionError: assert [] == [('s1', 'term...('term', ()))]
+E   AssertionError: assert [] == [('h1', 'hole...('hole', ()))]
+      
+      Right contains 2 more items, first extra item: ('h1', 'hole', 'h1', (4, 4), ('hole', ()))
+      Use -v to get more diff
+/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e/gate/tests/test_outline_lean.py:167: AssertionError: assert [] == [('h1', 'hole...('hole', ()))]
+=========================== short test summary info ============================
+FAILED gate/tests/test_outline_lean.py::test_have_tree_with_kinds_spans_and_closing
+FAILED gate/tests/test_outline_lean.py::test_term_proof_is_one_step - Asserti...
+FAILED gate/tests/test_outline_lean.py::test_partial_assembly_marks_holes - A...
+3 failed, 4 deselected in 34.01s
+
+== RED B: the program built with no read-back (every text 'reliable'), no docstring and no tags.
+AC3 fails on the plain printer's '↑n - 5 < ↑n' being called reliable; AC4 on Or.inl's missing doc.
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+E   AssertionError: {'printed': 'reliable', 'text': '↑n - 5 < ↑n'}
+    assert 'reliable' == 'unreliable'
+      
+      - unreliable
+      ? --
+      + reliable
+/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e/gate/tests/test_outline_lean.py:112: AssertionError: {'printed': 'reliable', 'text': '↑n - 5 < ↑n'}
+E   assert [{'name': 'Or..., 'tags': []}] == [{'name': 'Or..., 'tags': []}]
+      
+      At index 0 diff: {'name': 'Or.inl', 'doc': None, 'tags': []} != {'name': 'Or.inl', 'doc': '`Or.inl` is "left injection" into an `Or`.', 'tags': []}
+      Use -v to get more diff
+/Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e/gate/tests/test_outline_lean.py:129: assert [{'name': 'Or..., 'tags': []}] == [{'name': 'Or..., 'tags': []}]
+=========================== short test summary info ============================
+FAILED gate/tests/test_outline_lean.py::test_claims_read_back_or_are_marked
+FAILED gate/tests/test_outline_lean.py::test_mathlib_docs_and_tags - assert [...
+2 failed, 5 deselected in 175.63s (0:02:55)
+
+== GREEN: the program as committed
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.1.1, pluggy-1.6.0 -- /Users/mikehiggins/Desktop/repos/open_proof_network/.venv/bin/python
+rootdir: /Users/mikehiggins/Desktop/repos/open_proof_network/.claude/worktrees/agent-aa82bc4f020c7619e
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 7 items
+
+gate/tests/test_outline_lean.py::test_have_tree_with_kinds_spans_and_closing PASSED [ 14%]
+gate/tests/test_outline_lean.py::test_claims_read_back_or_are_marked PASSED [ 28%]
+gate/tests/test_outline_lean.py::test_mathlib_docs_and_tags PASSED       [ 42%]
+gate/tests/test_outline_lean.py::test_term_proof_is_one_step PASSED      [ 57%]
+gate/tests/test_outline_lean.py::test_partial_assembly_marks_holes PASSED [ 71%]
+gate/tests/test_outline_lean.py::test_the_seam_names_a_file_that_does_not_elaborate PASSED [ 85%]
+gate/tests/test_outline_lean.py::test_request_shape_is_the_programs PASSED [100%]
+
+======================== 7 passed in 472.42s (0:07:52) =========================
