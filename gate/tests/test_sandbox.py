@@ -189,6 +189,7 @@ def test_sandbox_never_installs_a_toolchain(tmp_path: Path) -> None:
             cwd: Path | None = None,
             extra_env: dict[str, str] | None = None,
             timeout_s: float | None = None,
+            stdin: str | None = None,
         ) -> subprocess.CompletedProcess[str]:
             self.calls.append(list(cmd))
             return subprocess.CompletedProcess(list(cmd), 0, "leanprover/lean4:v4.0.0\n", "")
