@@ -170,7 +170,32 @@ Resources:
         Comment: F04 §7 — the site references nothing off-origin (R10); fonts are its own (T16)
         SecurityHeadersConfig:
           ContentSecurityPolicy:
-            ContentSecurityPolicy: "default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'; font-src 'self'"
+            ContentSecurityPolicy: "default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'"
+            Override: true
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            FrameOption: DENY
+            Override: true
+          ReferrerPolicy:
+            ReferrerPolicy: no-referrer
+            Override: true
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 31536000
+            IncludeSubdomains: true
+            Override: true
+
+  # F04-T28: the olean cache (F10-R7) serves binary build products only, so nothing it serves may
+  # be sniffed, framed, or run as a document: a CSP that forbids every fetch and sandboxes the rest.
+  CacheResponseHeaders:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub "${AWS::StackName}-cache-headers"
+        Comment: F04-T28 — the /cache/* objects are files, never pages
+        SecurityHeadersConfig:
+          ContentSecurityPolicy:
+            ContentSecurityPolicy: "default-src 'none'; sandbox"
             Override: true
           ContentTypeOptions:
             Override: true
@@ -248,6 +273,7 @@ Resources:
             CachedMethods: [GET, HEAD]
             Compress: false
             CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # AWS managed CachingOptimized
+            ResponseHeadersPolicyId: !Ref CacheResponseHeaders
         DefaultCacheBehavior:
           TargetOriginId: site
           ViewerProtocolPolicy: redirect-to-https
