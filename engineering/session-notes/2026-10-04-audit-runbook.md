@@ -13,7 +13,8 @@ The graph's live pin is network `3a780d6` (graph `b3211a464`, the F18 session's 
   - Judging reads a workspace the compile never wrote (F02-T10).
   - Verdicts carry a nonce and the judges run with initializers off (F02-T11).
   - Steps 7 and 8, admission's relation, and counterexample/vacuity types are judged from compiled modules (F02-T12, F08-T34).
-  - Still elaborating: a partial's hole extraction (F02-T13) and the defect-claim exhibits (F02-T14), both recorded as not built.
+  - A partial's hole extraction (F02-T13) and a circularity exhibit (F02-T14) are judged from compiled modules too. Every forged-verdict route the audit found was shown on Lean 4.33.1 and is now refused, pending the lean tier in CI.
+  - Fails closed since F02-T13: a hole that needs an instance or notation declared in a dependency's proof or in the assembly is refused as `hole-not-roundtrip`.
   - F02-T12 changed the Python–Lean argument interface, so the image and the gate code must move together at the re-pin.
 - **Traceability, graph side.** On graph branch `audit-b-workflows`, 5 commits rebased on
   `b3211a464`:
