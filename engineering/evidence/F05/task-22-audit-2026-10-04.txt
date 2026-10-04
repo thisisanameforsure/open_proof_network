@@ -1,0 +1,45 @@
+F05-T22 — the api stack gets limits, alarms and protection (audit 2026-10-04, finding D)
+
+Proposed ledger line (F05 §10 Tasks):
+  T22 ✓ (audit 2026-10-04: stage throttling, reserved concurrency, Retain + PITR on every table,
+  alarm topic, 7 alarms, 2 log metric filters, account budget, `live` alias at $LATEST; not
+  deployed — the owner applies it by change set, api/infra/README.md)
+
+Proposed F05-Q20 (number to be assigned at merge):
+  The api stack's guards are template parameters (ThrottleBurstLimit 50, ThrottleRateLimit 25,
+  ReservedConcurrency 20, MonthlyBudgetUsd 50, alarm thresholds), applied by a change set with
+  UsePreviousValue, read before execute. Two judgment calls: (a) the function's LoggingConfig moves
+  to JSON at INFO, because Lambda's plain-text default keeps WARN and above only and the runtime's
+  root handler makes basicConfig a no-op, so the INFO lines the metric filters match (the access
+  line, "<kind> <id> opened <html_url> for <identity>") would otherwise never reach CloudWatch;
+  that the INFO lines are absent today is inferred from AWS's documentation, not read from the live
+  log group. (b) The `live` alias is created at $LATEST and the integration is NOT moved onto it:
+  a published version freezes the environment, so UsesFrom/AnnexStepsFrom change sets would stop
+  reaching the service until a code deploy. The three-step order is in the README. No service
+  line names a minted identity; the filter keys on the access line for POST /tokens with 201.
+  Side note: the execution role lists `dynamodb:TransactWriteItems`, which is not an IAM action
+  (cfn-lint W3037); transactions are authorised by the item actions, so it is inert. Left alone.
+
+cfn-lint (uvx cfn-lint api/infra/api.cfn.yaml): only pre-existing warnings (W3037 above, W1030 on
+CertificateArn); nothing on the new resources.
+
+---- red (before the template change) ----
+E       KeyError: 'DefaultRouteSettings'
+E       KeyError: 'ReservedConcurrentExecutions'
+E       KeyError: 'LoggingConfig'
+E           AssertionError: IdentitiesTable
+E           assert None == 'Retain'
+E       AssertionError: guard: the template declares no AWS::SNS::Topic
+E       assert {}
+E       AssertionError: guard: the template declares no AWS::CloudWatch::Alarm
+E       assert {}
+E       AssertionError: guard: the template declares no AWS::Logs::MetricFilter
+E       assert {}
+E       AssertionError: guard: the template declares no AWS::Budgets::Budget
+E       assert {}
+E       AssertionError: guard: the template declares no AWS::Lambda::Alias
+E       assert {}
+9 failed, 2 warnings in 0.21s
+
+---- green ----
+13 passed, 2 warnings in 3.08s

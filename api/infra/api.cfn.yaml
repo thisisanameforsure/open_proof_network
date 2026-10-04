@@ -62,6 +62,48 @@ Parameters:
     Type: Number
     Default: 30
     Description: how long the function's CloudWatch logs are kept (they carry no token, C8)
+  # F05-T22 (audit 2026-10-04): limits, alarms and a budget. Every number is a parameter, so the
+  # owner tunes it with a change set rather than an edit.
+  ThrottleBurstLimit:
+    Type: Number
+    Default: 50
+    MinValue: 1
+    Description: the HTTP API stage's burst limit for every route (requests at once)
+  ThrottleRateLimit:
+    Type: Number
+    Default: 25
+    MinValue: 1
+    Description: the HTTP API stage's steady rate limit for every route (requests per second)
+  ReservedConcurrency:
+    Type: Number
+    Default: 20
+    MinValue: 1
+    Description: the function's reserved concurrency, its ceiling; the account must keep 100 unreserved
+  AlarmEmail:
+    Type: String
+    Default: ""
+    Description: an address the alarm topic mails (it must confirm the subscription); empty subscribes none
+  MonthlyBudgetUsd:
+    Type: Number
+    Default: 50
+    MinValue: 1
+    Description: the account's monthly cost budget in USD; forecast and actual overruns go to the topic
+  Api4xxPerFiveMinutes:
+    Type: Number
+    Default: 500
+    Description: 4xx answers in five minutes that raise the alarm (refusals are 4xx by design)
+  InvocationsPerHour:
+    Type: Number
+    Default: 20000
+    Description: function invocations in an hour that raise the alarm (a flood or a loop)
+  PullRequestsPerHour:
+    Type: Number
+    Default: 60
+    Description: pull requests the service opens in an hour that raise the alarm
+  IdentitiesPerHour:
+    Type: Number
+    Default: 30
+    Description: identities minted in an hour that raise the alarm
 
 Conditions:
   MakeProvider: !Equals [!Ref CreateOidcProvider, "true"]
@@ -69,10 +111,13 @@ Conditions:
   MakeDns: !And
     - !Not [!Equals [!Ref ApiDomain, ""]]
     - !Not [!Equals [!Ref HostedZoneId, ""]]
+  HasAlarmEmail: !Not [!Equals [!Ref AlarmEmail, ""]]
 
 Resources:
   IdentitiesTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
@@ -88,6 +133,8 @@ Resources:
 
   TokensTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
@@ -107,6 +154,8 @@ Resources:
 
   ClaimsTable:
     Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
@@ -117,6 +166,8 @@ Resources:
           KeyType: HASH
       SSESpecification:
         SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
 
   FunctionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -182,6 +233,15 @@ Resources:
       Handler: opn_api.lambda_handler.handler
       Role: !GetAtt ExecutionRole.Arn
       MemorySize: 512
+      # F05-T22: a ceiling on concurrent executions, so a flood is throttled, not billed.
+      ReservedConcurrentExecutions: !Ref ReservedConcurrency
+      # F05-T22: the service logs at INFO (the access line, "opened <pull request>"). Under the
+      # plain-text default Lambda keeps only WARN and above, and basicConfig is a no-op beside the
+      # runtime's own handler, so the metric filters would match nothing. JSON at INFO keeps them.
+      LoggingConfig:
+        LogFormat: JSON
+        ApplicationLogLevel: INFO
+        SystemLogLevel: INFO
       # F13-T13: under the HTTP API's 30 s integration ceiling, and above the fast check's whole
       # budget (slot wait + connect + 20 s + grace), so the service answers and is never killed.
       Timeout: 29
@@ -237,6 +297,22 @@ Resources:
       ApiId: !Ref HttpApi
       StageName: $default
       AutoDeploy: true
+      # F05-T22: every route is throttled at the edge, before the function is invoked.
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: !Ref ThrottleBurstLimit
+        ThrottlingRateLimit: !Ref ThrottleRateLimit
+
+  # F05-T22: the alias a versioned deploy will move. It points at $LATEST and the integration
+  # still targets the unqualified function: a published version freezes the environment, so a
+  # change set that sets UsesFrom or AnnexStepsFrom would not reach an alias on a version until
+  # the next code deploy. Moving the integration onto it is its own task (README, "The live alias").
+  LiveAlias:
+    Type: AWS::Lambda::Alias
+    Properties:
+      Name: live
+      FunctionName: !Ref Function
+      FunctionVersion: $LATEST
+      Description: the version the service answers from once deploys publish one (F05-T22)
 
   InvokePermission:
     Type: AWS::Lambda::Permission
@@ -277,6 +353,219 @@ Resources:
             DNSName: !GetAtt ApiDomainName.RegionalDomainName
             HostedZoneId: !GetAtt ApiDomainName.RegionalHostedZoneId
             EvaluateTargetHealth: false
+
+  # F05-T22: one topic for every alarm and the budget; mail is optional and must be confirmed.
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${AWS::StackName}-alarms"
+      DisplayName: OPN api alarms
+
+  AlarmTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics: [!Ref AlarmTopic]
+      # A topic policy replaces SNS's default one, so both publishers are named here.
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: CloudWatchAlarms
+            Effect: Allow
+            Principal:
+              Service: cloudwatch.amazonaws.com
+            Action: sns:Publish
+            Resource: !Ref AlarmTopic
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+          - Sid: Budgets
+            Effect: Allow
+            Principal:
+              Service: budgets.amazonaws.com
+            Action: sns:Publish
+            Resource: !Ref AlarmTopic
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+
+  AlarmEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasAlarmEmail
+    Properties:
+      TopicArn: !Ref AlarmTopic
+      Protocol: email
+      Endpoint: !Ref AlarmEmail
+
+  Api4xxAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: the HTTP API answered an unusual number of 4xx (refusals, 429s, probing)
+      Namespace: AWS/ApiGateway
+      MetricName: 4xx
+      Dimensions:
+        - Name: ApiId
+          Value: !Ref HttpApi
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: !Ref Api4xxPerFiveMinutes
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  Api5xxAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: the HTTP API answered 5xx (the function failed, timed out or was throttled)
+      Namespace: AWS/ApiGateway
+      MetricName: 5xx
+      Dimensions:
+        - Name: ApiId
+          Value: !Ref HttpApi
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  FunctionThrottlesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: the function hit its reserved concurrency
+      Namespace: AWS/Lambda
+      MetricName: Throttles
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref Function
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  FunctionErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: the function raised or timed out (an answered 4xx/5xx is not an error here)
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref Function
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  FunctionInvocationsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: the function ran an unusual number of times in an hour (a flood or a loop)
+      Namespace: AWS/Lambda
+      MetricName: Invocations
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref Function
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: !Ref InvocationsPerHour
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  # The service writes "<kind> <id> opened <html_url> for <identity>" when it opens a pull request
+  # (submissions, proposals, appends), and the html_url carries /pull/.
+  PullRequestsOpenedFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref FunctionLogGroup
+      FilterPattern: '"opened" "/pull/"'
+      MetricTransformations:
+        - MetricNamespace: OPN/api
+          MetricName: PullRequestsOpened
+          MetricValue: "1"
+          DefaultValue: 0
+
+  # No line names a minted identity; the access line does: "POST identity:post_tokens
+  # identity=- status=201 ms=…", and POST /tokens answers 201 only when it created one.
+  IdentitiesMintedFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref FunctionLogGroup
+      FilterPattern: '"identity:post_tokens" "status=201"'
+      MetricTransformations:
+        - MetricNamespace: OPN/api
+          MetricName: IdentitiesMinted
+          MetricValue: "1"
+          DefaultValue: 0
+
+  PullRequestsOpenedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn: PullRequestsOpenedFilter
+    Properties:
+      AlarmDescription: the service opened an unusual number of pull requests on the graph in an hour
+      Namespace: OPN/api
+      MetricName: PullRequestsOpened
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: !Ref PullRequestsPerHour
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  IdentitiesMintedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn: IdentitiesMintedFilter
+    Properties:
+      AlarmDescription: the service minted an unusual number of identities in an hour
+      Namespace: OPN/api
+      MetricName: IdentitiesMinted
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: !Ref IdentitiesPerHour
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  # The whole account's monthly cost, not this stack's alone (nothing is tagged per stack).
+  MonthlyBudget:
+    Type: AWS::Budgets::Budget
+    DependsOn: AlarmTopicPolicy
+    Properties:
+      Budget:
+        BudgetName: !Sub "${AWS::StackName}-monthly"
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit:
+          Amount: !Ref MonthlyBudgetUsd
+          Unit: USD
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 80
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: SNS
+              Address: !Ref AlarmTopic
+        - Notification:
+            NotificationType: FORECASTED
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: SNS
+              Address: !Ref AlarmTopic
 
   GitHubOidcProvider:
     Type: AWS::IAM::OIDCProvider
@@ -350,3 +639,6 @@ Outputs:
     Value: !Ref TokensTable
   ClaimsTableName:
     Value: !Ref ClaimsTable
+  AlarmTopicArn:
+    Description: the topic every alarm and the budget publish to (F05-T22)
+    Value: !Ref AlarmTopic

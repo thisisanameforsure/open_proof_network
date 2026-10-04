@@ -37,10 +37,17 @@ def check_deploy() -> ModuleType:
     return module
 
 
+#: F04-T28: the /cache/* behaviour's own policy; binary objects only, so everything is forbidden.
+CACHE_POLICY = "default-src 'none'; sandbox"
+
+
 def served_policy() -> str:
+    """The pages' policy: the template's one CSP besides the cache behaviour's (F04-T28)."""
     found = re.findall(r'ContentSecurityPolicy: "([^"]+)"', TEMPLATE.read_text(encoding="utf-8"))
-    assert len(found) == 1, found
-    return str(found[0])
+    assert sorted(found).count(CACHE_POLICY) == 1, found
+    pages = [p for p in found if p != CACHE_POLICY]
+    assert len(pages) == 1, found
+    return str(pages[0])
 
 
 def directives(policy: str) -> dict[str, list[str]]:

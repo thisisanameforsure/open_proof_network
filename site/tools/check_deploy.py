@@ -19,7 +19,10 @@ import sys
 import urllib.request
 from pathlib import Path
 
-CSP = "default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'; font-src 'self'"
+CSP = (
+    "default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'; font-src 'self'; "
+    "base-uri 'none'; form-action 'none'"
+)
 FONT = "/vendor/katex/fonts/KaTeX_Main-Regular.woff2"
 ROOT = Path(__file__).resolve().parents[2]
 
