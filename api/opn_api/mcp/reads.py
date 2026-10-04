@@ -20,6 +20,7 @@ import json
 import re
 import time
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlencode
 
 import yaml
 
@@ -528,6 +529,21 @@ async def get_check(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     return service_answer(await call.endpoint("GET", f"/checks/{check_id}"), "/checks/<id>")
 
 
+# --- F09-T15 (audit 2026-10-04, owner-approved): the error-code catalog -------------------------
+
+#: A code prefix as the catalog spells codes: lower case, digits, ``-`` and ``_`` (F13-T29).
+PREFIX_PARAM: dict[str, Any] = {"type": "string", "pattern": "^[a-z0-9_-]{0,64}$"}
+
+
+async def list_error_codes(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """``GET /errors.json``, body for body (F13-T29): every error code with what it means and
+    what to do; ``prefix`` is passed through as the route's own query parameter."""
+    path = "/errors.json"
+    prefix = args.get("prefix")
+    query = f"?{urlencode({'prefix': prefix})}" if prefix else ""
+    return service_answer(await call.endpoint("GET", path + query), path)
+
+
 TOOLS: tuple[Tool, ...] = (
     Tool(
         "server_info",
@@ -682,5 +698,15 @@ TOOLS: tuple[Tool, ...] = (
         params({"check_id": {"type": "string"}}, ("check_id",)),
         get_check,
         access="bearer",
+    ),
+    # F09-T15: D-28's read table, notation note of 2026-10-04.
+    Tool(
+        "list_error_codes",
+        "Every error code the gate and the service emit: where it is met (gate, api or both), "
+        "the D-4 step that emits it, what it means and what to do about it. `prefix` keeps the "
+        "codes that start with it (`witness-`, `relation-`). Look a refusal's `error` or a "
+        "verdict's diagnostic `code` up here. Plain path: GET /errors.json.",
+        params({"prefix": PREFIX_PARAM}),
+        list_error_codes,
     ),
 )

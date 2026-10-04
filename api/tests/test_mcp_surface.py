@@ -43,6 +43,8 @@ READS = {
     # fast-check records.
     "get_my_submissions",
     "get_check",
+    # F09-T15 (audit 2026-10-04, owner-approved), D-28's notation note of 2026-10-04.
+    "list_error_codes",
 }
 WRITES = {
     "claim_node",

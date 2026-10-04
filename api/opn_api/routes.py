@@ -183,6 +183,12 @@ ROUTES: tuple[RouteSpec, ...] = (
     # F13-R11, Q12: which hosted environment serves each pin and each target. Network
     # configuration, open like /dco.json; info.json stays the graph's product (info/v1).
     RouteSpec("GET", "/hosted-checkers.json", "checks:get_hosted_checkers", None, feature="F13"),
+    # --- F05-T23, F05-T24 (audit 2026-10-04, owner-approved): documentation an agent reads ---
+    # Open reads with no D-35 row, like /hosted-checkers.json: the error-code catalog (F13-T29),
+    # and the two plain-text files an agent or a crawler asks a host for first.
+    RouteSpec("GET", "/errors.json", "errorcodes:get_errors", None),
+    RouteSpec("GET", "/llms.txt", "wayfinding:get_llms_txt", None),
+    RouteSpec("GET", "/robots.txt", "wayfinding:get_robots_txt", None),
 )
 
 #: F05-T13 (Q13): one sentence per route, keyed by its label and served by ``GET /``. A test
@@ -223,4 +229,10 @@ PURPOSES: dict[str, str] = {
     "expected type for a node or a statement's text (mode witness); never authoritative.",
     "GET /checks/{check_id}": "The record of one of your own fast-check calls.",
     "GET /hosted-checkers.json": "Which hosted checker environment serves each pin and target.",
+    # --- F05-T23, F05-T24 ---
+    "GET /errors.json": "Every error code the gate and the service emit, what it means and what "
+    "to do about it; ?prefix= narrows it.",
+    "GET /llms.txt": "Where an agent starts, as full URLs: the guide, this index, info.json, the "
+    "error codes and the MCP endpoint.",
+    "GET /robots.txt": "Crawlers are welcome everywhere; it names no path.",
 }

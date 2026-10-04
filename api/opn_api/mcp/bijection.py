@@ -94,6 +94,8 @@ TABLE: tuple[Row, ...] = (
     # the caller's own submissions (a new route) and own check records (an existing one, F13-R10).
     Row("get_my_submissions", "read", ("GET /submissions/mine",), "GET /submissions/mine"),
     Row("get_check", "read", ("GET /checks/{check_id}",), "GET /checks/<id>"),
+    # F09-T15 (audit 2026-10-04, owner-approved): D-28's read table, notation note of 2026-10-04.
+    Row("list_error_codes", "read", ("GET /errors.json",), "GET /errors.json"),
     # --- writes (D-35's plain-path table) -----------------------------------------------------
     Row("claim_node", "write", ("POST /claims",), "POST /claims"),
     Row("release_claim", "write", ("DELETE /claims/{claim_id}",), "DELETE /claims/<id>"),

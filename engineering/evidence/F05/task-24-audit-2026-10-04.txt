@@ -1,0 +1,125 @@
+F05-T24 + F04-T30 — /llms.txt and /robots.txt on the service and on the site (audit 2026-10-04)
+Owner-approved surfaces.
+
+Verification command:
+  uv run --frozen pytest -q -m "not lean and not docker and not network" \
+    api/tests/test_finding_llms_txt.py site/tests/test_finding_site_llms_txt.py \
+    api/tests/test_finding_route_index.py
+
+What changed:
+  api/opn_api/wayfinding.py   llms_txt(settings), get_llms_txt, get_robots_txt (text/plain,
+                              Cache-Control public, max-age=3600). Every URL from config:
+                              OPN_API_PUBLIC_URL for the service's own, OPN_API_GRAPH_REPO and
+                              _BRANCH for the guide (the same URL GET / names as "guide"; a test
+                              holds them equal). github.com is the graph host, as in index.py.
+  api/opn_api/routes.py       two RouteSpecs and two PURPOSES lines, in the same contiguous block
+                              as GET /errors.json
+  site/opn_site/render.py     llms_txt(renderer) and ROBOTS_TXT, written at the site root by
+                              render_site; INFO_PATH, ERRORS_PATH, MCP_PATH beside DCO_PATH, held
+                              to the service's routes table and MCP mount by a test. The site's
+                              guide links are its own Docs page (/docs/#agents, relative: the
+                              site knows no hostname of its own) and the graph's AGENTS.md at the
+                              rendered commit (repo_url from OPN_SITE_GRAPH_REPO_URL). The service
+                              URLs come from OPN_SITE_API_URL, which has no default: unset, the
+                              file names no service URL and says the address is not configured.
+  robots.txt (both)           "User-agent: *" / "Allow: /", no path named, so nothing secret is
+                              pointed at.
+  Site deploy: aws s3 sync uploads the two .txt files with the rest (text/plain by extension);
+  no workflow change.
+
+Judgment call: the site's own pages stay relative in llms.txt. The task said full URLs built from
+config, and the site has no config for its own origin (C6: nothing in the generator knows its
+hostname). Adding OPN_SITE_URL would be a new configuration surface nobody asked for; the
+links that leave the site are all full URLs from config.
+
+RED (before):
+E       ValueError: not enough values to unpack (expected 1, got 0)
+E       ValueError: not enough values to unpack (expected 1, got 0)
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       assert '](http://127.0.0.1:8000/errors.json)' in '{"error":"not-found","message":"no such route"}'
+E       AssertionError: {"error":"not-found","message":"no such route"}
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+E       KeyError: 'llms.txt'
+E       KeyError: 'llms.txt'
+E       KeyError: 'robots.txt'
+E       AttributeError: module 'opn_site.render' has no attribute 'INFO_PATH'. Did you mean: 'DCO_PATH'?
+E       AssertionError: assert {'llms.txt', 'robots.txt'} <= {'about/index...im.html', ...}
+E         
+E         Extra items in the left set:
+E         'llms.txt'
+E         'robots.txt'
+FAILED api/tests/test_finding_llms_txt.py::test_both_files_are_open_reads_with_no_d35_row[/llms.txt]
+FAILED api/tests/test_finding_llms_txt.py::test_both_files_are_open_reads_with_no_d35_row[/robots.txt]
+FAILED api/tests/test_finding_llms_txt.py::test_llms_txt_names_where_an_agent_starts_as_full_urls
+FAILED api/tests/test_finding_llms_txt.py::test_llms_txt_follows_the_configured_origin
+FAILED api/tests/test_finding_llms_txt.py::test_robots_txt_allows_everything_and_names_no_path
+FAILED site/tests/test_finding_llms_txt.py::test_llms_txt_names_the_guide_and_the_service_as_full_urls
+FAILED site/tests/test_finding_llms_txt.py::test_llms_txt_without_a_service_names_no_service_url
+FAILED site/tests/test_finding_llms_txt.py::test_robots_txt_allows_everything_and_names_no_path
+FAILED site/tests/test_finding_llms_txt.py::test_the_service_paths_are_the_services_own
+FAILED site/tests/test_finding_llms_txt.py::test_both_files_are_written_to_the_site_root
+10 failed, 1 passed, 2 warnings in 2.36s
+(the AttributeError on render.INFO_PATH is a missing constant; every other test failed on the
+behaviour: 404 not-found from the service, KeyError 'llms.txt' from render_site)
+
+GREEN:
+22 passed, 2 warnings in 4.07s
+site/tests: 335 passed (the whole site tier, since render_site's file set changed).
+ruff check, ruff format, mypy (strict) clean on the files touched.
+
+Sample output (OPN_API_PUBLIC_URL / OPN_SITE_API_URL = https://api.example.test, a fixture repo):
+# Open Proof Network
+
+> A crowdsourced Lean 4 proof network for open mathematical problems. The graph repository is the record; this service is a lens over it and decides nothing.
+
+Read the guide first. Reads need no token; the tutorial node's precheck earns one without an account.
+
+## Start here
+
+- [Contributor guide](https://github.com/thisisanameforsure/open_proof_network_graph/blob/main/AGENTS.md): how to claim, prove, precheck and submit
+- [Route index](https://api.example.test/): every route, whether it needs a token, and what it is for
+- [info.json](https://api.example.test/info.json): protocol version, schema index and rate limits
+- [Error codes](https://api.example.test/errors.json): every error code, its meaning and what to do
+- [MCP endpoint](https://api.example.test/mcp): streamable HTTP; the same calls as tools, reads open, writes with a token
+
+--- api robots.txt ---
+User-agent: *
+Allow: /
+
+--- site llms.txt (api_url set) ---
+# Open Proof Network
+
+> A crowdsourced Lean 4 proof network for open mathematical problems. The graph repository is the record; this site and the service are lenses over it.
+
+Read the guide first. Reads need no token; the tutorial node's precheck earns one without an account.
+
+## Start here
+
+- [Contributor guide](/docs/#agents): how to claim, prove, precheck and submit
+- [AGENTS.md](https://git.example/graph/blob/6666666666666666666666666666666666666666/AGENTS.md): the same guide, in the graph repository at the commit this site shows
+- [Service index](https://api.example.test/): every route, whether it needs a token, and why
+- [info.json](https://api.example.test/info.json): protocol version, schema index, rate limits
+- [Error codes](https://api.example.test/errors.json): every error code and what to do about it
+- [MCP endpoint](https://api.example.test/mcp): streamable HTTP; the same calls as tools
+
+--- site llms.txt (no api_url) ---
+# Open Proof Network
+
+> A crowdsourced Lean 4 proof network for open mathematical problems. The graph repository is the record; this site and the service are lenses over it.
+
+Read the guide first. Reads need no token; the tutorial node's precheck earns one without an account.
+
+## Start here
+
+- [Contributor guide](/docs/#agents): how to claim, prove, precheck and submit
+- [AGENTS.md](https://git.example/graph/blob/6666666666666666666666666666666666666666/AGENTS.md): the same guide, in the graph repository at the commit this site shows
+
+The service's address is not configured in this build.
+
+
+Proposed ledger lines
+  F05 §10 Tasks: T24 ✓ (audit 2026-10-04): GET /llms.txt and GET /robots.txt, URLs from config.
+  F04 §10 Tasks: T30 ✓ (audit 2026-10-04): llms.txt and robots.txt at the site root.
