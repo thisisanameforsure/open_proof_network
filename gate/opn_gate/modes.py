@@ -83,6 +83,7 @@ from opn_gate import (
     fidelity,
     intake,
     layout,
+    ledger,
     paths,
     qa,
     records,
@@ -1006,6 +1007,8 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
             )
         elif located.role == "withdrawal":
             problems.extend(check_withdrawal(graph_root, located))
+        elif located.role == "credit-correction":
+            problems.extend(check_credit_correction(graph_root, located))
         elif located.role in paths.CURATOR_ROLES:
             problems.extend(check_status_record(graph_root, located, classification))
         elif located.role == "target-record" and classification.mode == "curator":
@@ -2250,6 +2253,52 @@ def check_withdrawal(graph_root: Path, located: Located) -> list[Diagnostic]:
             f"of this node on the record ({node_dir}/{named}); a withdrawal names one of its own "
             "node's records (F08-T31, D-18 v3.27)",
             {"path": located.path, "withdraws": named},
+        )
+    ]
+
+
+def check_credit_correction(graph_root: Path, located: Located) -> list[Diagnostic]:
+    """F07-T66 (D-18, D-19 v3.27): a credit correction validates, names a line its ``from``
+    holds active on this target's ledger as it stands, and moves it to someone else. Who may file
+    one is the curator mode's rule (F08-R8). The post-merge ledger step applies it
+    (``ledger.apply_correction``)."""
+    data = _read(graph_root, located)
+    if isinstance(data, Diagnostic):
+        return [data]
+    problems = _check_schema(located, data, code="record-invalid")
+    if problems:
+        return problems
+    doc = _document(located, data)
+    if isinstance(doc, Diagnostic):
+        return [doc]  # defence in depth: _check_schema just parsed this same document
+    if doc.get("to") == doc["from"]:
+        return [
+            Diagnostic(
+                "credit-correction-same-identity",
+                f"{located.path} moves a line from {doc['from']!r} to {doc['from']!r}; a "
+                "correction names the identity that should hold it, or null for none (F07-T66)",
+                {"path": located.path, "identity": doc["from"]},
+            )
+        ]
+    try:
+        held = ledger.corrected_entry(graph_root, doc, target=located.target_id)
+    except schemas.SchemaError:
+        held = False  # a ledger that does not read holds nothing a correction can name
+    if held:
+        return []
+    return [
+        Diagnostic(
+            "credit-correction-unknown-entry",
+            f"{located.path} names a {doc['line']} line on {doc['node']} ({doc['artifact']}, "
+            f"merge {doc['merge_commit'][:12]}) that ledger/{doc['from']}.json does not hold "
+            f"active on {located.target_id} (F07-T66, D-19 v3.27)",
+            {
+                "path": located.path,
+                "from": doc["from"],
+                "line": doc["line"],
+                "node": doc["node"],
+                "merge_commit": doc["merge_commit"],
+            },
         )
     ]
 

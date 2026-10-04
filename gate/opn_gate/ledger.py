@@ -302,6 +302,67 @@ def record(graph_root: Path, identity: str, entry: Entry | None) -> Path | None:
     return write(graph_root, append(load(graph_root, identity), entry))
 
 
+CORRECTION_SCHEMA = "credit-correction/v1"
+#: The fields of a ledger/v1 entry that identify its line (F07-T66); ``route_class`` too, where the
+#: entry has one, since two attempts lines on one node and merge differ only in it (D-13).
+LINE_KEY: tuple[str, ...] = ("line", "node", "artifact", "merge_commit")
+
+
+def names_entry(correction: dict[str, Any], entry: dict[str, Any], *, target: str) -> bool:
+    """Whether ``entry`` is the ledger line ``correction`` names on ``target``."""
+    return (
+        entry.get("target") == target
+        and all(entry.get(k) == correction.get(k) for k in LINE_KEY)
+        and entry.get("route_class") == correction.get("route_class")
+    )
+
+
+def corrected_entry(graph_root: Path, correction: dict[str, Any], *, target: str) -> bool:
+    """Whether ``correction``'s ``from`` holds the line it names, active (what a curator's pull
+    request is checked for before it merges, F07-T66)."""
+    return any(
+        names_entry(correction, e, target=target) and e.get("status") == "active"
+        for e in entries_of(load(graph_root, str(correction["from"])))
+    )
+
+
+def apply_correction(graph_root: Path, correction: dict[str, Any], *, target: str) -> list[Path]:
+    """F07-T66 (D-18, D-19 v3.27): apply a merged credit correction; the ledgers written.
+
+    The line ``correction`` names is marked ``revoked`` in ``from``'s ledger, and an ``active``
+    copy of it — the original merge, date and tooling, so the record still says when and how the
+    work merged — is appended to ``to``'s (none when ``to`` is null). An entry is never deleted.
+    Idempotent: a line already revoked is left as it is, and ``to`` gains the line only if it
+    does not already hold it active, so a replay of the post-merge job (F07-T33) writes nothing.
+    A correction naming no line ``from`` holds writes nothing: the gate refused it before the
+    merge (``credit-correction-unknown-entry``), and the ledger is no place to guess."""
+    schemas.validate(correction, CORRECTION_SCHEMA)
+    giver = load(graph_root, str(correction["from"]))
+    found = [e for e in entries_of(giver) if names_entry(correction, e, target=target)]
+    if not found:
+        return []
+    written: list[Path] = []
+    if any(e.get("status") == "active" for e in found):
+        out = dict(giver)
+        out["entries"] = [
+            {**e, "status": "revoked"} if names_entry(correction, e, target=target) else e
+            for e in entries_of(giver)
+        ]
+        written.append(write(graph_root, out))
+    receiver = correction.get("to")
+    if isinstance(receiver, str):
+        taker = load(graph_root, receiver)
+        held = any(
+            names_entry(correction, e, target=target) and e.get("status") == "active"
+            for e in entries_of(taker)
+        )
+        if not held:
+            out = dict(taker)
+            out["entries"] = [*entries_of(taker), {**found[0], "status": "active"}]
+            written.append(write(graph_root, out))
+    return written
+
+
 def contributions(graph_root: Path) -> dict[str, list[dict[str, Any]]]:
     """Every identity's entries, for the site's contributors page (D-36, F04).
 

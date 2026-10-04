@@ -529,6 +529,21 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Not an error: Proof.lean declares a counterexample, and step 4 checks its type.",
         "Nothing to do.",
     ),
+    "credit-correction-same-identity": (
+        "gate",
+        None,
+        "A curator's credit correction moves a ledger line to the identity that already holds "
+        "it (F07-T66, D-19 v3.27).",
+        "Name the identity that should hold the line as `to`, or null for none.",
+    ),
+    "credit-correction-unknown-entry": (
+        "gate",
+        None,
+        "A curator's credit correction names a ledger line that its `from` identity does not hold "
+        "active on this target (F07-T66, D-19 v3.27).",
+        "Copy merge_commit, line, node, artifact (and route_class on an attempts line) from the "
+        "entry in ledger/<from>.json as it stands on main, and open the pull request again.",
+    ),
     "curator-unlisted": (
         "gate",
         None,

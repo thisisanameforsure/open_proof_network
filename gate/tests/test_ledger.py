@@ -386,3 +386,107 @@ def test_a_signer_earns_the_proof_line(tmp_path: Path) -> None:
         tooling=ledger.UNDECLARED, doc=empty() | {"identity": "curator"},
     )  # fmt: skip
     assert earned == [] and "D-21" in skipped[0]
+
+
+# --- F07-T66 (D-18, D-19 v3.27): a curator's credit correction ----------------------------------
+#
+# The live ledger credits the owner with two attempts another contributor made (graph PRs #68,
+# #69) and has no file for the contributor PR #71 names; ``ledger/`` is no path a mode accepts and
+# nothing wrote the ``revoked`` status ledger/v1 defines. A correction names the line, the identity
+# credited and the one that should be (or none); applying it revokes the old entry and writes the
+# corrected one. Nothing is deleted, and applying twice changes nothing.
+
+
+def correction(**kw: object) -> dict[str, object]:
+    doc: dict[str, object] = {
+        "schema": "credit-correction/v1",
+        "merge_commit": MERGE,
+        "line": "proof",
+        "node": NODE,
+        "artifact": "Proof.lean",
+        "from": "alice",
+        "to": "bob",
+        "reason": "the merge credited the merger; bob's commit is the submission (PR #71)",
+        "author": "founder",
+        "date": "2026-10-04",
+    }
+    doc.update(kw)
+    return doc
+
+
+def credited_to_alice(tmp_path: Path) -> dict[str, object]:
+    entry = proof()
+    assert entry is not None
+    ledger.record(tmp_path, "alice", entry)
+    return entry.as_dict()
+
+
+def test_a_correction_revokes_the_wrong_entry_and_credits_the_right_identity(
+    tmp_path: Path,
+) -> None:
+    original = credited_to_alice(tmp_path)
+    written = ledger.apply_correction(tmp_path, correction(), target=TARGET)
+    alice = ledger.entries_of(ledger.load(tmp_path, "alice"))
+    bob = ledger.entries_of(ledger.load(tmp_path, "bob"))
+    assert alice == [{**original, "status": "revoked"}], "kept, marked, never deleted"
+    assert bob == [{**original, "status": "active"}]
+    assert sorted(p.name for p in written) == ["alice.json", "bob.json"]
+
+
+def test_applying_a_correction_twice_changes_nothing(tmp_path: Path) -> None:
+    credited_to_alice(tmp_path)
+    ledger.apply_correction(tmp_path, correction(), target=TARGET)
+    before = {p.name: p.read_bytes() for p in (tmp_path / ledger.LEDGER_DIR).iterdir()}
+    assert ledger.apply_correction(tmp_path, correction(), target=TARGET) == []
+    after = {p.name: p.read_bytes() for p in (tmp_path / ledger.LEDGER_DIR).iterdir()}
+    assert after == before
+
+
+def test_a_correction_to_nobody_only_revokes(tmp_path: Path) -> None:
+    original = credited_to_alice(tmp_path)
+    written = ledger.apply_correction(tmp_path, correction(to=None), target=TARGET)
+    assert ledger.entries_of(ledger.load(tmp_path, "alice")) == [{**original, "status": "revoked"}]
+    assert [p.name for p in written] == ["alice.json"]
+    assert sorted(p.name for p in (tmp_path / ledger.LEDGER_DIR).iterdir()) == ["alice.json"]
+
+
+def test_a_correction_touches_only_the_line_it_names(tmp_path: Path) -> None:
+    credited_to_alice(tmp_path)
+    other = proof(node="and-swap-reassoc")
+    assert other is not None
+    ledger.record(tmp_path, "alice", other)
+    ledger.apply_correction(tmp_path, correction(), target=TARGET)
+    statuses = [(e["node"], e["status"]) for e in ledger.entries_of(ledger.load(tmp_path, "alice"))]
+    assert statuses == [(NODE, "revoked"), ("and-swap-reassoc", "active")]
+
+
+def test_a_correction_naming_no_entry_writes_nothing(tmp_path: Path) -> None:
+    credited_to_alice(tmp_path)
+    before = (tmp_path / ledger.LEDGER_DIR / "alice.json").read_bytes()
+    assert ledger.apply_correction(tmp_path, correction(node="ghost"), target=TARGET) == []
+    assert (tmp_path / ledger.LEDGER_DIR / "alice.json").read_bytes() == before
+    assert not (tmp_path / ledger.LEDGER_DIR / "bob.json").exists()
+
+
+def test_an_attempts_correction_matches_the_route_class(tmp_path: Path) -> None:
+    doc = empty()
+    for route in ("induction", "contradiction"):
+        entry = postmortem(doc, route_class=route)
+        assert entry is not None
+        doc = ledger.append(doc, entry)
+    ledger.write(tmp_path, doc)
+    ledger.apply_correction(
+        tmp_path,
+        correction(
+            line="attempts", artifact="attempts/2026-09-10-alice.yaml", route_class="contradiction"
+        ),
+        target=TARGET,
+    )
+    alice = ledger.entries_of(ledger.load(tmp_path, "alice"))
+    assert [(e["route_class"], e["status"]) for e in alice] == [
+        ("induction", "active"),
+        ("contradiction", "revoked"),
+    ]
+    assert [e["route_class"] for e in ledger.entries_of(ledger.load(tmp_path, "bob"))] == [
+        "contradiction"
+    ]

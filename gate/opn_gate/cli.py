@@ -2581,7 +2581,9 @@ def run_missing_library(args: argparse.Namespace, settings: config.Settings) -> 
     return EXIT_PASS
 
 
-def run_ledger(args: argparse.Namespace, settings: config.Settings) -> int:
+def run_ledger(  # noqa: PLR0911 — one return per kind of merge
+    args: argparse.Namespace, settings: config.Settings
+) -> int:
     """F07-R12, F08-R13: what a merge earns, written to the identity's ledger.
 
     The proof line for a merged proof or partial assembly, the attempts line for the first
@@ -2591,7 +2593,11 @@ def run_ledger(args: argparse.Namespace, settings: config.Settings) -> int:
     every refusal says which decision refused it.
     """
     graph, commit = _checkout_and_commit(args.graph, args.commit)
-    classification = modes.classify(commit_changes(graph, commit), author=settings.pr_author)
+    changes = commit_changes(graph, commit)
+    corrections = _credit_corrections(changes)
+    if corrections:
+        return _apply_credit_corrections(graph, commit, corrections)
+    classification = modes.classify(changes, author=settings.pr_author)
     mode = classification.mode
     nothing: dict[str, Any] = {"earned": False, "commit": commit}
     if mode in ("proof", "partial", "append"):
@@ -2637,6 +2643,34 @@ def run_ledger(args: argparse.Namespace, settings: config.Settings) -> int:
     }
     sys.stdout.write(json.dumps(doc, indent=2) + "\n")
     return EXIT_PASS
+
+
+def _credit_corrections(changes: list[Change]) -> list[paths.Located]:
+    """F07-T66: the credit corrections a merge added. Read from the paths, not from the mode: the
+    curator rule consults ``curators.json`` and the pull request's author, which this step is not
+    handed, and the merge has already passed that rule at its gate run."""
+    found = (paths.locate(c.path) for c in changes if c.status == "A")
+    return [loc for loc in found if loc is not None and loc.role == "credit-correction"]
+
+
+def _apply_credit_corrections(graph: Path, commit: str, corrections: list[paths.Located]) -> int:
+    """F07-T66 (D-18, D-19 v3.27): apply each merged correction to the ledger. A curator's
+    correction earns no line itself (D-19: a correction is not an artifact); applying one twice
+    writes nothing, so a replay of this merge (F07-T33) is harmless."""
+    written: set[str] = set()
+    for loc in corrections:
+        doc = schemas.load_yaml(graph / loc.path, ledger.CORRECTION_SCHEMA)
+        for path in ledger.apply_correction(graph, doc, target=loc.target_id):
+            written.add(path.resolve().relative_to(graph.resolve()).as_posix())
+    return _say(
+        {
+            "earned": False,
+            "commit": commit,
+            "reason": "a credit correction earns no line; it moves one (D-19 v3.27)",
+            "corrected": [loc.path for loc in corrections],
+            "written": sorted(written),
+        }
+    )
 
 
 def run_stewards(args: argparse.Namespace, settings: config.Settings) -> int:
