@@ -119,6 +119,17 @@ class FakeTable:
         expression = kwargs["UpdateExpression"]
         if expression in ("ADD #ids :one", "DELETE #ids :one"):
             return self._set_update(expression.split()[0], kwargs)
+        if expression == "SET revoked = :yes, renewed = :at":  # F05-T27: renew_token, guarded
+            assert kwargs["ConditionExpression"] == (
+                "attribute_exists(#k) AND (attribute_not_exists(revoked) OR revoked = :no)"
+            )
+            item = self.items.get(str(kwargs["Key"][self.key]))
+            values = kwargs["ExpressionAttributeValues"]
+            if item is None or item.get("revoked", False) != values[":no"]:
+                raise client_error("ConditionalCheckFailedException", "UpdateItem")
+            item["revoked"] = values[":yes"]
+            item["renewed"] = values[":at"]
+            return {}
         if expression == "SET revoked = :yes":  # F05-T21: revoke_tokens marks an existing row
             item = self.items[str(kwargs["Key"][self.key])]
             item["revoked"] = kwargs["ExpressionAttributeValues"][":yes"]

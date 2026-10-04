@@ -201,6 +201,11 @@ async def get_token(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     return await forward(call, "POST", "/tokens", body)
 
 
+async def renew_token(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """F05-T27 (D-19 v3.28): ``POST /tokens/renew`` with the caller's bearer and no body."""
+    return await forward(call, "POST", "/tokens/renew")
+
+
 async def propose_witness(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     body = present("propose_witness", args, "node_id", "witness")
     return await forward(call, "POST", "/proposals/witness", body)
@@ -415,6 +420,17 @@ TOOLS: tuple[Tool, ...] = (
         get_token,
         write=True,
         access="anyone",
+    ),
+    Tool(
+        "renew_token",
+        "Renew your write token before it lapses (D-19): a token is valid 90 days from its issue "
+        "or its last renewal. Returns a new token for the same identity, valid 90 days from now, "
+        "with `expires`; the token you called with stops working at once, so switch to the new "
+        "one. A lapsed token cannot renew (401 token-expired): a GitHub identity then proves the "
+        "same login again for a new token under the same pseudonym.",
+        params({}),
+        renew_token,
+        write=True,
     ),
     Tool(
         "submit_proof",

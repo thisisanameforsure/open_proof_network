@@ -23,6 +23,7 @@ MINIMAL: dict[str, dict[str, Any]] = {
     },
     "propose_witness": {"node_id": NODE, "witness": "w"},
     "withdraw_submission": {"submission_id": "1"},
+    "renew_token": {},  # F05-T27: a bearer write with no arguments
     "submit_proof": {"node_id": NODE, "artifact_type": "proof", "bundle": {}, "attestation": {}},
     "submit_postmortem": {"node_id": NODE, "yaml": {}},
     "submit_informal_annex": {"node_id": NODE, "text": "t", "licence": "CC-BY-4.0"},

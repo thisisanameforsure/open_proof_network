@@ -1,0 +1,107 @@
+F05-T27 (audit 2026-10-04; decisions v3.28, D-19): write tokens lapse after ninety days unless renewed
+====================================================================================================
+
+Finding: a write token never expired. A leaked token was good until the founder noticed and ran
+api/tools/tokens.py revoke. D-19 v3.28 (approved 2026-10-04): "A write token is valid for ninety
+days from its issue or its last renewal, and its holder renews it through the service before it
+lapses; a lapsed token is refused as expired, and the identity behind it is kept, so a new token
+for the same identity can be had by the same proof as the first. No minimum age is asked of a
+GitHub account." (No account-age check was added.)
+
+What changed
+  store.TokenRecord gains expires (issue + OPN_API_TOKEN_DAYS) and renewed (when a renewal retired
+    it). DynamoStore writes no None attribute and reads both with defaults; three new Store
+    methods, both stores: renew_token(old_hash, new, at) -> bool (new token stored, old one retired
+    under the condition "still unrevoked"; on ConditionalCheckFailed the new item is deleted and
+    False returned, so one token renews once even when two renewals race), get_identity_by_proof,
+    list_tokens (a scan filtered by identity, as revoke_tokens; run only when a lapsed identity
+    re-proves).
+  config: OPN_API_TOKEN_DAYS (default 90, positive) and OPN_API_TOKEN_CUTOVER (YYYY-MM-DD, default
+    2026-10-04), both refused at load time if malformed (C7).
+  auth.resolve (shared by every route and the MCP verifier): unknown/revoked -> 401 invalid-token
+    as before; renewed -> 401 invalid-token whose message says a renewal replaced it ("if you did
+    not renew it, someone holding this token did"); past its window -> 401 token-expired, message
+    giving the lapse time, POST /tokens/renew for a live token, and the GitHub re-proof.
+  Legacy tokens (no expires): read as issued at OPN_API_TOKEN_CUTOVER, so every token live at the
+    deploy gets a full 90 days from the cutover, never an instant lapse.
+  POST /tokens and POST /tokens/renew answer with "expires".
+  POST /tokens/renew (bearer; empty body, any key refused unknown-field; route table charges the
+    write limit): ROTATES. Choice and reason: extending the same token would let anyone holding a
+    copy keep it alive for ever beside its owner; rotation bounds a copied token to the window it
+    was copied in, and if a thief renews first the owner's next call is refused with the "replaced
+    by a renewal" message, which is how a leak surfaces. A lapsed token cannot renew.
+    Routes table: d35 = "POST /tokens" (token issuance under the D-19 rules), so D-35 is unchanged
+    and test_routes_match_d35 holds as written.
+  MCP: renew_token (bearer write, no arguments) forwards POST /tokens/renew; bijection row; result
+    schema api/opn_api/mcp/schemas/renew_token/v1.json (the envelope schema every write uses); D-28
+    write row plus "Notation note, 2026-10-04 (D-19)" in docs/architecture_decisions.html. The MCP
+    verifier lets a LAPSED bearer through with no scope, so the tool reaches its endpoint and the
+    client sees 401 token-expired rather than "unauthenticated"; unknown/revoked/renewed tokens stay
+    anonymous as before. Nothing is granted: every endpoint resolves the bearer again.
+  Re-proof (D-19 "a new token for the same identity ... by the same proof"): a GitHub login whose
+    identity has no live token and no operator-revoked token passes the callback (JSON names the
+    held pseudonym; the HTML form pre-fills it) and POST /tokens issues a new token for the SAME
+    identity (same id), under its own pseudonym only (another name is 409 github-login-taken
+    naming the held one). Reservation (F05-T26) does not apply to re-proof. A live token still
+    makes the callback 409 (renew it instead); an operator revocation is never undone by a lapse.
+  Catalog: token-expired row; invalid-token row now also names "replaced by a renewal".
+  api/tools/tokens.py unchanged and still works (test_the_revoke_tool_still_stops_a_renewed_token).
+
+Restated tests (each kept, assertion widened to the new tool/route, docstring says why):
+  test_mcp_surface WRITES + results-schema loop (renew_token gets its own token, since it retires
+  the one it is called with); test_mcp_auth MINIMAL; test_mcp_equivalence WRITES (renew_token row);
+  test_finding_argument_renames (three path-only writes, not two); test_finding_unknown_fields
+  (/tokens/renew refuses any key); test_store_seam FakeTable learns the guarded SET.
+
+Seam first (today's behaviour): TokenRecord.expires/renewed and Settings.token_days/token_cutover
+added unread and unvalidated.
+
+Red (api/tests/test_finding_token_lapse.py, seam in place): 25 failed, 6 passed
+  test_a_token_lapses_ninety_days_after_issue[memory,dynamodb]   assert 201 == 401 (90 days on, a claim still went through)
+  test_the_issue_answer_says_when_the_token_lapses[*]           KeyError: 'expires'
+  test_a_token_from_before_the_field_lapses_..._cutover          KeyError: 'error' (201 at cutover + 90 days)
+  test_a_shorter_window_lapses_sooner                            KeyError: 'error'
+  test_the_window_and_the_cutover_are_configuration              Failed: DID NOT RAISE ConfigError
+  test_the_mcp_answers_token_expired_not_unauthenticated[*]      {'status': 201, ...} (the lapsed bearer claimed)
+  test_renewal_rotates_..., test_a_token_renews_once, test_a_lapsed_token_cannot_renew,
+  test_renewal_needs_a_token_and_takes_no_body,
+  test_the_revoke_tool_still_stops_a_renewed_token[*]            404 no such route (POST /tokens/renew)
+  test_the_renew_token_tool_is_the_route[*]                      tool-unknown: no such tool renew_token
+  test_a_lapsed_github_identity_gets_a_new_token_by_the_same_login[*],
+  test_a_lapsed_identity_with_a_reserved_name_keeps_it[*]        409 github-login-taken (no re-proof)
+  (passing before and after, pinning what must not change: same_login_must_name_its_own_pseudonym,
+  a_live_token_is_not_replaced_by_signing_in_again, a_revoked_identity_does_not_come_back.)
+
+Green:
+  test_finding_token_lapse: 31 passed (both stores).
+  Wide fast-tier run: all of api/tests, site/tests, gate test_walkthrough, test_error_codes,
+  test_finding_guide_names_exist, test_finding_graph_readme, test_finding_guide_route_preflights,
+  test_finding_schemas_published: 1813 passed, 2 failed:
+    gate/tests/test_finding_guide_names_exist.py::test_the_appendix_has_a_row_for_every_tool --
+      "MCP tools with no appendix row: ['renew_token']": the guide (gate/agents/AGENTS.md) needs
+      its appendix row, which is the lead's edit (row text in the report).
+    gate/tests/test_walkthrough.py::test_graph_copy_is_identical -- pre-existing: compares
+      gate/agents/AGENTS.md (untouched here) with the sibling graph checkout's copy.
+  ruff check / ruff format / mypy --strict clean on every touched file.
+
+Proposed Q entry (F05-Q27):
+  Q27 (F05-T27, 2026-10-04). D-19 v3.28: write tokens lapse. A token record carries expires,
+  issue + OPN_API_TOKEN_DAYS (90); a lapsed token is 401 token-expired on every route, and the MCP
+  verifier lets a lapsed bearer reach the endpoint so the client hears the same refusal. Tokens
+  issued before the field existed are read as issued at OPN_API_TOKEN_CUTOVER (default 2026-10-04;
+  the owner sets it to the deploy day if later), so none lapses at the deploy. Renewal,
+  POST /tokens/renew and renew_token, rotates rather than extends: a new token valid a full window
+  from now, the presented one retired at once with a message naming the renewal, so a copied
+  token is bounded by the window it was copied in and a thief's renewal locks the owner out
+  visibly; one token renews once (conditional write); a lapsed token cannot renew. "A new token
+  for the same identity by the same proof": a GitHub login re-proves its identity once no token
+  of it is live and none was revoked by the operator, under its own pseudonym; a tutorial
+  identity cannot, because its proof is a precheck job that was spent, and a fresh tutorial pass
+  naming an existing pseudonym would let anyone take a lapsed identity -- so a tutorial identity
+  that lets its token lapse keeps its ledger but needs a new identity to write (owner's call
+  whether to add a durable proof for it). The route maps to D-35's token-issuance row; D-28 gains
+  renew_token under a notation note. No GitHub account age is asked.
+
+Proposed ledger line: T27 ✓ tokens lapse after OPN_API_TOKEN_DAYS (90) unless renewed (D-19
+  v3.28): 401 token-expired, legacy tokens from the cutover, POST /tokens/renew + renew_token
+  rotate, a lapsed GitHub identity re-proves (Q27).

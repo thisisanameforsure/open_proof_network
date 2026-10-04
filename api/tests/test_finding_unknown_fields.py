@@ -169,14 +169,21 @@ def tokens(h: Harness, key: PrecheckKey) -> Prepared:
     return body, {}
 
 
+def renew(h: Harness, key: PrecheckKey) -> Prepared:
+    """F05-T27: ``POST /tokens/renew`` reads no field at all, so any key is a stray one."""
+    return {}, h.auth(h.token_for("code_alice", "alice"))
+
+
 def check(h: Harness, key: PrecheckKey) -> Prepared:
     """F13-T3: anonymous; body_fields refuses before any graph read, so no pin need be seeded."""
     return {"target_id": TARGET, "content": "theorem x : True := trivial\n"}, {}
 
 
-#: Every POST route of ``routes.ROUTES`` that reads a JSON body (``DELETE /claims/<id>`` has none).
+#: Every POST route of ``routes.ROUTES`` that reads a JSON body (``DELETE /claims/<id>`` has none);
+#: ``/tokens/renew`` reads an empty one, refusing any key (F05-T27).
 WRITE_ROUTES: dict[str, Prepare] = {
     "/tokens": tokens,
+    "/tokens/renew": renew,
     "/claims": claims,
     "/precheck": precheck,
     "/submissions": submissions,

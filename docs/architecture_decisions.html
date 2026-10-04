@@ -575,6 +575,11 @@ footer .in{max-width:1180px;margin:0 auto}
 <td>unauthenticated, because it is how an identity starts; plain path <code>POST /tokens</code> (D-35)</td>
 </tr>
 <tr>
+<td><code>renew_token()</code> <em>(notation note, 2026-10-04, D-19)</em></td>
+<td>renews the caller's write token before it lapses: a new token for the same identity, valid a full window from now, and the token presented retired at once</td>
+<td>token-authenticated, by the token being renewed; a lapsed token cannot renew, and its identity is re-proved instead (D-19); plain path <code>POST /tokens/renew</code></td>
+</tr>
+<tr>
 <td><code>submit_proof(node_id, artifact_type, bundle, attestation)</code></td>
 <td>opens the submission PR</td>
 <td><code>artifact_type ∈ {proof, counterexample, vacuity, reduction, partial}</code> per D-12; <code>reduction</code> targets and <code>partial</code> holes enter the frontier as compiler-derived children on gate pass (D-29), or as <code>skeleton-hole</code> children where the file cites an annex (<em>v3.12</em>, D-31), never touching <code>Proof.lean</code></td>
@@ -630,6 +635,7 @@ footer .in{max-width:1180px;margin:0 auto}
 <p class="note"><em>Notation note, 2026-09-24:</em> rows marked with this date follow the owner's rulings on the findings of that day's six agent runs. <code>list_my_claims</code> reads an endpoint the ruling added, <code>GET /claims/mine</code>; it is the one read that needs a token, because what it reads is the caller's own claims, and every read of the graph stays unauthenticated. <code>withdraw_submission</code> is the write the same rulings added, whose plain path D-35 now lists: <code>DELETE /submissions/&lt;id&gt;</code>, holder only, never a merged pull request. No decision changes.</p>
 <p class="note"><em>Notation note, 2026-10-04:</em> rows marked with this date follow the owner's approval of two reads after the 2026-10-04 audit. <code>get_my_submissions</code> reads an endpoint added beside <code>GET /claims/mine</code>, <code>GET /submissions/mine</code>; <code>get_check</code> is the tool for an endpoint the service already had (F13), whose record only its caller may read. Both need the caller's token because what they read is the caller's own; every read of the graph stays unauthenticated. No decision changes.</p>
 <p class="note"><em>Notation note, 2026-10-04:</em> the row marked with this date follows the owner's approval, on that day's audit, of an error-code catalog. A refusal names its rule by a code (D-34) and nothing published said what to do about one; <code>list_error_codes</code> reads the catalog the service serves at <code>GET /errors.json</code>, so the read has its plain path and nothing is kept from a client that has only one of the two. It records nothing and changes nothing. No decision changes.</p>
+<p class="note"><em>Notation note, 2026-10-04 (D-19):</em> the row marked with this date and D-19 follows v3.28's lapsing tokens: a token is valid for ninety days from its issue or its last renewal, and its holder renews it through the service. <code>renew_token</code> is that renewal; its plain path, <code>POST /tokens/renew</code>, is token issuance under the D-19 identity rules and so falls under D-35's &ldquo;token issuance&rdquo; row. A renewal issues a new token and retires the one presented, so a copied token stays bounded by the window it was copied in. No decision changes.</p>
 <p><strong>Bountied-node routing is server-side, never client-chosen.</strong> <code>submit_proof</code> against a bountied node (D-26) routes automatically into that node's private hash-chained queue; the same behavior holds on the raw git path, which accepts an equivalent signed push to the private queue. If clients could choose the channel, the bounty quarantine would be advisory.</p>
 </details>
 <h3 id="d-35">D-35 — Two repositories, one trust base<a aria-label="Link to this section" class="hl" href="#d-35">§</a></h3>
