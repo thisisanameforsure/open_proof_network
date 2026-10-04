@@ -442,3 +442,30 @@ def test_a_withdrawal_names_one_version(h: Harness, tree: Path) -> None:
     r = post(h, token, gone, "/glosses/withdrawals")
     assert r.status_code == 400 and r.json()["error"] == "withdrawal-unknown-record", r.text
     nothing_opened(h)
+
+
+def test_a_gloss_without_a_licence_is_told_about_its_own_words(h: Harness) -> None:
+    """The licence refusal is shared with annexes (``appends.check_licence``); on this route it
+    must speak of the words being filed, not of an annex (found by the F20-T12 guide)."""
+    r = post(h, h.token_for("code_bob", "bob"), statement_gloss() | {"licence": None})
+    assert r.status_code == 400 and r.json()["error"] == "licence-required", r.text
+    message = r.json()["message"]
+    assert "annex" not in message, message
+    assert "gloss or explainer" in message, message
+
+
+@pytest.mark.parametrize("record", ["gloss", "explainer"])
+def test_superseding_an_unmerged_version_says_it_is_not_merged(
+    h: Harness, tree: Path, record: str
+) -> None:
+    """A hash no merged version carries (a version still in an open pull request, say) is
+    refused ``record-not-head``; the message must say it is not a merged version, not that it
+    belongs to another subject (found by the F20-T12 guide)."""
+    put_version(tree, record, "First.")
+    serve(h, tree)
+    body = statement_gloss() if record == "gloss" else explainer_body(proof_hash(tree))
+    r = post(h, h.token_for("code_bob", "bob"), body | {"supersedes": "e" * 64})
+    assert r.status_code == 409 and r.json()["error"] == "record-not-head", r.text
+    message = r.json()["message"]
+    assert "not a version of the same subject" not in message, message
+    assert "no merged version" in message, message

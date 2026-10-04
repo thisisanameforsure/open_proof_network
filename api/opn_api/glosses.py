@@ -445,7 +445,9 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
     subject = subject_of(fields.get("subject"))
     target_id, node_id = where(ctx, subject)
     text = text_of(fields.get("text"))
-    licence = appends.check_licence(fields.get("licence"))
+    licence = appends.check_licence(
+        fields.get("licence"), licensed="a gloss or explainer is licensed"
+    )
     supersedes = fields.get("supersedes")
     drafter = drafter_of(ctx.settings.drafter_pseudonym, identity, fields.get("drafter"))
     record = "explainer" if subject["kind"] == PROOF_KIND else "gloss"

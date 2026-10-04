@@ -381,7 +381,8 @@ def head_problems(  # noqa: PLR0913 — the version, its siblings and the host's
             else []
         )
         why = (
-            "it is not a version of the same subject"
+            "no merged version of the same subject has that hash (a version still in an open pull "
+            "request cannot be superseded until it merges)"
             if chain is None
             else "it has been withdrawn"
             if named in withdrawn

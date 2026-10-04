@@ -275,16 +275,16 @@ async def post_postmortems(ctx: Context, request: Request) -> Response:
 # --- POST /annexes (D-31) -------------------------------------------------------------------------
 
 
-def check_licence(raw: Any) -> str:
+def check_licence(raw: Any, *, licensed: str = "the annex is licensed") -> str:
     """D-23's amendment: annex prose is licensed by its author at submission, or not accepted.
     F05-T17: an absent licence is refused, not defaulted — until 2026-10-01 it was silently
     recorded as ``CC-BY-4.0``, a choice the record then attributed to an author who never made
-    it."""
+    it. ``licensed`` names what is being licensed, since ``POST /glosses`` shares the check."""
     if raw is None:
         raise ApiError(
             400,
             "licence-required",
-            "licence is required: the annex is licensed by its author at submission (D-23); "
+            f"licence is required: {licensed} by its author at submission (D-23); "
             f"one of {', '.join(LICENCES)}",
             details={"accepted": list(LICENCES)},
         )
