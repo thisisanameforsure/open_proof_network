@@ -87,7 +87,7 @@ def test_the_problem_drawing_shows_every_status_a_target_can_declare(docs: str) 
 def test_each_key_item_is_the_site_hover_card_for_that_word(docs: str) -> None:
     """The keys reuse ``term`` and the Problems page's status tag, so a definition has one home
     (Q14): the statement key names every status the graph key can show, with its dot; the
-    problem key names the five words a problem's tag can wear, with the tag's own text."""
+    problem key names the seven words a problem's tag can wear, with the tag's own text."""
     html = section(docs)
     keys = re.findall(r'<div class="smap-key">(.*?)</div>', html, re.S)
     assert len(keys) == 2
@@ -99,7 +99,7 @@ def test_each_key_item_is_the_site_hover_card_for_that_word(docs: str) -> None:
     for key in render.STATE_MAP_STATEMENT_KEYS:
         _word, meaning, proto = render.GLOSSARY_BY_KEY[key]
         assert render.esc(meaning) in statement_key and render.esc(proto) in statement_key
-    tag_item = r'<span class="term tag" tabindex="0">([a-z ]+)<span class="term-card"'
+    tag_item = r'<span class="term tag" tabindex="0">([a-z -]+)<span class="term-card"'  # T31
     words = re.findall(tag_item, problem_key)
     assert words == list(render.STATE_MAP_PROBLEM_KEYS)
     # F04-T27: the fixture's index carries no enforced steward rule, so the key says the rule
