@@ -8,16 +8,23 @@ D-29 v3.22 (F07-T44): for a hole whose ``META.yaml`` records ``proved_binders`` 
 of its statement the merged assembly proved — the expected type asks only for the rest, and a
 witness of the full type is accepted too. The record is the post-merge job's (``meta/v5``); a
 node without it is held to the full type, as every node was before the rule.
+
+F02-T12: nothing of the witness runs in the process that judges it. The statement is built in
+the judging directory from the node's own files (``judging.build_statements``); the witness is
+compiled in a call of its own, as a module importing that statement in place of its own header
+(``judging.with_header``; its own imports must be the statement's, as the elaborating program
+required), and ``opn-witness-type`` reads the olean taken from that call as data, mounting the
+judging directory read-only and nothing writable.
 """
 
 from __future__ import annotations
 
 import subprocess
-from collections.abc import Sequence
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from opn_gate import carried, layout
+from opn_gate import carried, judging, layout
 from opn_gate.steps.artifact import proved_indices
 from opn_gate.steps.base import RunContext, StepResult
 from opn_gate.toolchain import MetaprogramResult, ResolvedToolchain, WitnessRequest
@@ -42,8 +49,9 @@ class WitnessStep:
         tc: ResolvedToolchain | None = ctx.data.get("toolchain")
         if node is None or tc is None:
             return StepResult.failed("step-order", "step 7 needs steps 1 and 2 to have passed")
-        staged = ctx.data.get("staged")
-        node_dir = staged.node_dir(node.node_id) if staged is not None else node.path
+        # F02-T12: the node's own files, never the staged copies under the work directory, which
+        # the step-4 compile of the contributor's proof could have rewritten.
+        node_dir = node.path
         witness_path = node_dir / "Witness.lean"
         if not witness_path.is_file():
             return StepResult.failed("witness-missing", "the node has no Witness.lean")
@@ -57,7 +65,9 @@ class WitnessStep:
             # expected type is the full one, as it was for every node before the rule.
             proved=proved_indices(node.meta.get("proved_binders")),
         )
-        result, record = judge(ctx, tc, req, [ctx.build_dir])
+        result, record = judge(
+            ctx, tc, req, node_id=node.node_id, context=node.path / "Context.lean"
+        )
         if record is not None:
             ctx.data["witness"] = record
         if not result.ok:
@@ -68,18 +78,27 @@ class WitnessStep:
 
 
 def judge(  # noqa: PLR0911 — one return per R2/R3 rule
-    ctx: RunContext, tc: ResolvedToolchain, req: WitnessRequest, search_path: Sequence[Path]
+    ctx: RunContext,
+    tc: ResolvedToolchain,
+    req: WitnessRequest,
+    *,
+    node_id: str,
+    context: Path,
 ) -> tuple[StepResult, dict[str, Any] | None]:
     """D-4 step 7's judgment of one witness against one statement (F01-R2, R3): the verdict, and
     the record of what was compared once the metaprogram answered. One function, so a node's own
     witness and a witness a partial carries for a hole (F07-R23) are held to the same rule with
-    the same codes."""
+    the same codes. ``req`` names the statement and witness sources and ``context`` the node's
+    ``Context.lean`` (the graph's, or the one the gate wrote for a hole); F02-T12: each is
+    compiled apart and the program is handed compiled modules only."""
     try:
-        result = ctx.toolchain.witness_type(tc, req, search_path, timeout_s=ctx.wallclock_s)
+        result = _judgment(ctx, tc, req, node_id=node_id, context=context)
     except subprocess.TimeoutExpired:
         return StepResult.failed(
             "timeout", f"step 7 exceeded the {ctx.wallclock_s:g}s wall-clock cap"
         ), None
+    if isinstance(result, StepResult):
+        return result, None
     if not result.ok and not result.doc:
         return metaprogram_failure(WitnessStep.number, result), None
     if not result.ok:
@@ -115,6 +134,74 @@ def judge(  # noqa: PLR0911 — one return per R2/R3 rule
             witness=witness_type,
         ), record
     return StepResult.passed(), record
+
+
+def _judgment(
+    ctx: RunContext, tc: ResolvedToolchain, req: WitnessRequest, *, node_id: str, context: Path
+) -> MetaprogramResult | StepResult:
+    """F02-T12: build the statement, compile the witness apart, and ask the program about the
+    two compiled modules; a ``StepResult`` when a build fails before there is anything to ask."""
+    if req.witness is None or req.witness_module is None:
+        return StepResult.failed("witness-missing", "the node has no Witness.lean")
+    target_dir = layout.gate_spec_path(ctx.graph_root, ctx.claim.target_id).parent
+    where = judging.area(ctx.workdir, f"witness-{node_id}")
+    # The node's own statement is built once per run (step 4 built it when it judged the proof);
+    # a hole's, from the files the gate wrote for it, here.
+    judge = ctx.data.get(judging.KEY)
+    node = ctx.node
+    if isinstance(judge, judging.Judge) and node is not None and node.node_id == node_id:
+        trusted = judge.statement
+        problem = judging.node_statement(
+            ctx.toolchain, tc, target_dir, node, judge, timeout_s=ctx.wallclock_s
+        )
+    else:
+        trusted = where / judging.STATEMENT_DIR
+        problem = judging.build_statements(
+            ctx.toolchain,
+            tc,
+            target_dir,
+            [(node_id, context, req.statement)],
+            trusted,
+            timeout_s=ctx.wallclock_s,
+        )
+    if problem is not None:
+        return StepResult.failed(
+            "witness-elaboration",
+            f"the statement the witness is checked against does not elaborate: {problem.message}",
+            messages=list(problem.details.get("messages") or []),
+            expected=None,
+        )
+    text = req.witness.read_text(encoding="utf-8")
+    statement_imports = judging.header_imports(req.statement.read_text(encoding="utf-8"))
+    for module in judging.header_imports(text):
+        if module not in statement_imports:
+            return StepResult.failed(
+                "witness-elaboration",
+                f"{req.witness}: import {module} is not among the statement's imports",
+                messages=[],
+                expected=None,
+            )
+    build = trusted / "build"
+    elab, olean = judging.compile_contributed(
+        ctx.toolchain,
+        tc,
+        text=judging.with_header(text, [req.statement_module]),
+        module=req.witness_module,
+        trusted_build=build,
+        where=where,
+        timeout_s=ctx.wallclock_s,
+    )
+    if olean is None:
+        return StepResult.failed(
+            "witness-elaboration",
+            "witness does not elaborate",
+            messages=[m.as_dict() for m in elab.errors or elab.messages],
+            expected=None,
+        )
+    reader = judging.confined(ctx.toolchain, read_only=[build, where / judging.CONTRIBUTED_DIR])
+    return reader.witness_type(
+        tc, replace(req, witness_olean=olean), [build], timeout_s=ctx.wallclock_s
+    )
 
 
 # --- the witnesses a partial carries for its holes (F07-R23; D-29 v3.24) -------------------------
@@ -243,7 +330,7 @@ def check_carried(ctx: RunContext, tc: ResolvedToolchain) -> StepResult | None: 
         # top-level name, so with the node's build first `Nodes.«child».Context` was looked for
         # there alone and the statement lost its imports (found on the first real-toolchain
         # run). A child's statement imports no node but itself; `Defs.*` is in the node's build.
-        result, record = judge(ctx, tc, req, [build, ctx.build_dir])
+        result, record = judge(ctx, tc, req, node_id=staged_id, context=dest / "Context.lean")
         if not result.ok:
             assert result.diagnostic is not None
             found = result.diagnostic

@@ -1,4 +1,5 @@
 import OpnGate.Frontend
+import OpnGate.Compiled
 
 /-!
 `opn-axioms --module <Name> --decl <Name>`
@@ -20,30 +21,6 @@ the kernel replay re-checked, not a summary stored beside them. `decl` must be d
 -/
 open Lean OpnGate
 
-namespace OpnGate
-
-/-- Every axiom `root` reaches through the types and values of the constants it names, in name
-order, or the first constant that is not in `env`. -/
-partial def axiomsOf (env : Environment) (root : Name) : Except String (Array String) :=
-  Id.run do
-    let mut seen : NameSet := {}
-    let mut todo : List Name := [root]
-    let mut found : Array String := #[]
-    while true do
-      match todo with
-      | [] => break
-      | n :: rest =>
-        todo := rest
-        if seen.contains n then continue
-        seen := seen.insert n
-        let some info := env.find? n
-          | return .error s!"constant {n} is not in the environment"
-        if info.isAxiom then found := found.push n.toString
-        for c in info.getUsedConstantsAsSet.toList do
-          todo := c :: todo
-    return .ok (found.qsort (· < ·))
-
-end OpnGate
 
 unsafe def main (args : List String) : IO UInt32 := runMain args (initializers := false) do
   let (kv, _) := parseArgs args

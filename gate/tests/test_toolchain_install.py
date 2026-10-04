@@ -24,18 +24,45 @@ from opn_gate.toolchain import LocalToolchain, ToolchainError, ToolchainMissingE
 
 def test_request_records_carry_their_optional_arguments(tmp_path: Path) -> None:
     """F01-R3, R4, F07-R4, F08-R4: a witness, an artifact and a relation proof are passed only
-    when given, each with its module, and paths are absolute."""
+    when given, each with its module, and paths are absolute. F02-T12: the witness reaches its
+    program only as a compiled module's olean, step 8's footprint only as a module name, a
+    counterexample with a statement olean only as compiled modules, and a relation proof with
+    the statements' oleans only as its olean: no contributor source is an argument then."""
     st = tmp_path / "S.lean"
-    with_witness = toolchain.WitnessRequest(st, "M.S", "T.x", tmp_path / "W.lean", "M.W")
-    assert with_witness.args()[-4:] == [
-        "--witness",
-        str(tmp_path / "W.lean"),
-        "--witness-module",
-        "M.W",
-    ]
-    assert "--witness" not in toolchain.WitnessRequest(st, "M.S", "T.x").args()
+    with_witness = toolchain.WitnessRequest(
+        st, "M.S", "T.x", tmp_path / "W.lean", "M.W", witness_olean=tmp_path / "W.olean"
+    )
+    assert with_witness.args() == [
+        "--module", "M.S", "--decl", "T.x", "--witness-olean", str(tmp_path / "W.olean"),
+    ]  # fmt: skip
+    assert toolchain.WitnessRequest(st, "M.S", "T.x", tmp_path / "W.lean", "M.W").args() == [
+        "--module", "M.S", "--decl", "T.x",
+    ]  # fmt: skip
     assert toolchain.UsedConstantsRequest(st, "M.S", "T.x").args() == [
         "--file", str(st), "--module", "M.S", "--decl", "T.x",
+    ]  # fmt: skip
+    assert toolchain.UsedConstantsRequest(None, "M.P", "T.x").args() == [
+        "--module", "M.P", "--decl", "T.x",
+    ]  # fmt: skip
+    compiled = toolchain.ArtifactRequest(
+        st, "M.S", "T.x", tmp_path / "P.lean", "M.P", "T.x_refuted", "counterexample",
+        statement_olean=tmp_path / "S.olean",
+    )  # fmt: skip
+    assert compiled.args() == [
+        "--statement-olean", str(tmp_path / "S.olean"), "--decl", "T.x",
+        "--artifact-module", "M.P", "--artifact-decl", "T.x_refuted", "--kind", "counterexample",
+    ]  # fmt: skip
+    rel = toolchain.RelationRequest(
+        st, "M.V", "V.t", tmp_path / "R.lean", "M.R", "R.t", "resolves",
+        relation=tmp_path / "Relation.lean", relation_module="M.Relation",
+        imports=("Init", "M.C"), variant_olean=tmp_path / "V.olean",
+        root_olean=tmp_path / "Ro.olean", relation_olean=tmp_path / "Rel.olean",
+    )  # fmt: skip
+    assert rel.args() == [
+        "--imports", "Init,M.C", "--variant-olean", str(tmp_path / "V.olean"),
+        "--variant-decl", "V.t", "--root-olean", str(tmp_path / "Ro.olean"),
+        "--root-decl", "R.t", "--label", "resolves",
+        "--relation-olean", str(tmp_path / "Rel.olean"), "--relation-decl", "relation",
     ]  # fmt: skip
     art = toolchain.ArtifactRequest(
         st, "M.S", "T.x", tmp_path / "P.lean", "M.P", "T.x_refuted", "counterexample"

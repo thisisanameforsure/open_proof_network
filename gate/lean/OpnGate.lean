@@ -1,4 +1,5 @@
 import OpnGate.Frontend
+import OpnGate.Compiled
 import OpnGate.WitnessType
 import OpnGate.ArtifactType
 import OpnGate.Holes

@@ -11,7 +11,7 @@ from typing import Any
 import pytest
 from harness import GRAPH, TARGET
 
-from opn_gate import layout
+from opn_gate import judging, layout
 from opn_gate.toolchain import LocalToolchain, ResolvedToolchain
 
 pytestmark = pytest.mark.lean
@@ -90,15 +90,25 @@ def staged(
     return s
 
 
+def compiled_witness(staged: Staged, node_id: str, stem: str, text: str) -> Path:
+    """F02-T12: a witness as step 7 compiles it, under its statement's module in place of its
+    own header; answers the olean's path."""
+    statement = layout.node_module(node_id, "Statement")
+    source = staged.src / "Nodes" / node_id / f"{stem}.lean"
+    source.write_text(judging.with_header(text, [statement]), encoding="utf-8")
+    staged.compile(node_id, stem)
+    return staged.build / "Nodes" / node_id / f"{stem}.olean"
+
+
 def test_witness_type_golden(staged: Staged) -> None:
-    """AC11."""
+    """AC11. F02-T12: the statement is read from its compiled module."""
     golden = json.loads((GOLDEN / "witness-types.json").read_text())
     got: dict[str, Any] = {}
     for node_id, entry in golden.items():
+        if not (staged.build / "Nodes" / node_id / "Statement.olean").is_file():
+            staged.compile(node_id, "Statement")
         code, doc = staged.exe(
             "opn-witness-type",
-            "--statement",
-            f"Nodes/{node_id}/Statement.lean",
             "--module",
             layout.node_module(node_id, "Statement"),
             "--decl",
@@ -110,47 +120,45 @@ def test_witness_type_golden(staged: Staged) -> None:
 
 
 def test_witness_defeq_and_axioms(staged: Staged) -> None:
+    """F02-T12: the witness is compiled apart and read from its olean."""
+    node_id = "tutorial-and-swap"
+    if not (staged.build / "Nodes" / node_id / "Statement.olean").is_file():
+        staged.compile(node_id, "Statement")
+    text = (NODES / node_id / "Witness.lean").read_text(encoding="utf-8")
+    olean = compiled_witness(staged, node_id, "Witness", text)
     code, doc = staged.exe(
         "opn-witness-type",
-        "--statement",
-        "Nodes/tutorial-and-swap/Statement.lean",
         "--module",
-        layout.node_module("tutorial-and-swap", "Statement"),
+        layout.node_module(node_id, "Statement"),
         "--decl",
         "OpnProp.and_swap",
-        "--witness",
-        "Nodes/tutorial-and-swap/Witness.lean",
-        "--witness-module",
-        layout.node_module("tutorial-and-swap", "Witness"),
+        "--witness-olean",
+        str(olean),
     )
     assert code == 0 and doc["defeq"] is True and doc["witness_axioms"] == [], doc
 
-    wrong = staged.src / "WrongWitness.lean"
-    wrong.write_text("theorem witness : ∃ p : Prop, p := ⟨True, trivial⟩\n", encoding="utf-8")
+    wrong = "theorem witness : ∃ p : Prop, p := ⟨True, trivial⟩\n"
+    olean = compiled_witness(staged, node_id, "WrongWitness", wrong)
     code, doc = staged.exe(
         "opn-witness-type",
-        "--statement",
-        "Nodes/tutorial-and-swap/Statement.lean",
         "--module",
-        layout.node_module("tutorial-and-swap", "Statement"),
+        layout.node_module(node_id, "Statement"),
         "--decl",
         "OpnProp.and_swap",
-        "--witness",
-        "WrongWitness.lean",
-        "--witness-module",
-        "Nodes.«tutorial-and-swap».Witness",
+        "--witness-olean",
+        str(olean),
     )
     assert code == 0 and doc["defeq"] is False
     assert doc["expected"] == "∃ p q, p ∧ q" and doc["witness"] == "∃ p, p"
 
 
 def test_used_constants_golden(staged: Staged) -> None:
-    """AC12."""
+    """AC12. F02-T12: read from the compiled ``Proof`` module, as step 8 reads it."""
     golden = json.loads((GOLDEN / "used-constants-root.json").read_text())
+    if not (staged.build / "Nodes" / "and-swap-reassoc" / "Proof.olean").is_file():
+        staged.compile("and-swap-reassoc", "Proof")
     code, doc = staged.exe(
         "opn-used-constants",
-        "--file",
-        "Nodes/and-swap-reassoc/Proof.lean",
         "--module",
         layout.node_module("and-swap-reassoc", "Proof"),
         "--decl",

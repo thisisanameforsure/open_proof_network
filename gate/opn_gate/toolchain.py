@@ -117,7 +117,12 @@ class AxiomResult:
 
 @dataclass(frozen=True)
 class WitnessRequest:
-    """Inputs of ``opn-witness-type`` (F01-R3)."""
+    """Inputs of ``opn-witness-type`` (F01-R3).
+
+    F02-T12: the program reads compiled modules only. ``statement`` and ``witness`` name the
+    sources step 7 compiles; what reaches the program is the statement's module, imported from
+    the judging directory's build of the node's own files, and ``witness_olean``, the witness as
+    the gate compiled it apart, read as data. A contributor's source is never an argument."""
 
     statement: Path
     statement_module: str
@@ -127,23 +132,13 @@ class WitnessRequest:
     #: F07-T44 (D-29 v3.22): the statement's binders the merged assembly proved, from the hole's
     #: ``META.yaml``; empty for every node without that record, whose expected type is today's.
     proved: tuple[int, ...] = ()
+    #: F02-T12: the witness module's olean, in the judging directory's ``contributed/``.
+    witness_olean: Path | None = None
 
     def args(self) -> list[str]:
-        out = [
-            "--statement",
-            str(self.statement.resolve()),
-            "--module",
-            self.statement_module,
-            "--decl",
-            self.decl,
-        ]
-        if self.witness is not None and self.witness_module is not None:
-            out += [
-                "--witness",
-                str(self.witness.resolve()),
-                "--witness-module",
-                self.witness_module,
-            ]
+        out = ["--module", self.statement_module, "--decl", self.decl]
+        if self.witness_olean is not None:
+            out += ["--witness-olean", str(self.witness_olean.resolve())]
         if self.proved:
             out += ["--proved", ",".join(str(i) for i in self.proved)]
         return out
@@ -151,14 +146,19 @@ class WitnessRequest:
 
 @dataclass(frozen=True)
 class UsedConstantsRequest:
-    """Inputs of ``opn-used-constants`` (F01-R4)."""
+    """Inputs of ``opn-used-constants`` (F01-R4).
 
-    file: Path
+    F02-T12: with ``file`` ``None`` the declaration is read from the compiled module ``module``
+    (step 8: the artifact's ``Proof`` module, which step 4 replayed), and nothing of it runs.
+    A ``file`` is elaborated, and is only ever a statement of record (products, statement QA)."""
+
+    file: Path | None
     module: str
     decl: str
 
     def args(self) -> list[str]:
-        return ["--file", str(self.file.resolve()), "--module", self.module, "--decl", self.decl]
+        out = ["--file", str(self.file.resolve())] if self.file is not None else []
+        return [*out, "--module", self.module, "--decl", self.decl]
 
 
 @dataclass(frozen=True)
@@ -178,8 +178,25 @@ class ArtifactRequest:
     #: F07-T34: the manifest of the node's ancestors, staged the same way; ``None`` asks no
     #: ancestor question and every hole reports ``defeq_ancestor: null``.
     ancestors: Path | None = None
+    #: F02-T12, F08-T29b: the statement's olean from the judging directory. Given, the artifact
+    #: (one with no holes) is judged from compiled modules alone: its own module, imported with
+    #: nothing of it executed, and the statement's type read from this file.
+    statement_olean: Path | None = None
 
     def args(self) -> list[str]:
+        if self.statement_olean is not None:
+            return [
+                "--statement-olean",
+                str(self.statement_olean.resolve()),
+                "--decl",
+                self.decl,
+                "--artifact-module",
+                self.artifact_module,
+                "--artifact-decl",
+                self.artifact_decl,
+                "--kind",
+                self.kind,
+            ]
         extra = ["--siblings", str(self.siblings.resolve())] if self.siblings is not None else []
         if self.ancestors is not None:
             extra += ["--ancestors", str(self.ancestors.resolve())]
@@ -216,8 +233,38 @@ class RelationRequest:
     relation: Path | None = None
     relation_module: str | None = None
     relation_decl: str = "relation"
+    #: F02-T12: the compiled form. The statements' oleans from the judging directory, the
+    #: relation proof's olean from its ``contributed/``, and the imports the environment is built
+    #: from. Given, no source is an argument and nothing of the relation proof runs.
+    imports: tuple[str, ...] = ()
+    variant_olean: Path | None = None
+    root_olean: Path | None = None
+    relation_olean: Path | None = None
 
     def args(self) -> list[str]:
+        if self.variant_olean is not None and self.root_olean is not None:
+            compiled = [
+                "--imports",
+                ",".join(self.imports),
+                "--variant-olean",
+                str(self.variant_olean.resolve()),
+                "--variant-decl",
+                self.variant_decl,
+                "--root-olean",
+                str(self.root_olean.resolve()),
+                "--root-decl",
+                self.root_decl,
+                "--label",
+                self.label,
+            ]
+            if self.relation_olean is not None:
+                compiled += [
+                    "--relation-olean",
+                    str(self.relation_olean.resolve()),
+                    "--relation-decl",
+                    self.relation_decl,
+                ]
+            return compiled
         out = [
             "--variant",
             str(self.variant.resolve()),
