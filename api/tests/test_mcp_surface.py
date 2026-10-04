@@ -39,6 +39,8 @@ READS = {
     "get_hosted_checkers",
     # F05-T14 (ruling D3(b)), D-28's notation note of 2026-09-24: the caller's own claims.
     "list_my_claims",
+    # F09-T15 (audit 2026-10-04, owner-approved), D-28's notation note of 2026-10-04.
+    "list_error_codes",
 }
 WRITES = {
     "claim_node",
