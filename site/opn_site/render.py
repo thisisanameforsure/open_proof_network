@@ -90,6 +90,11 @@ CLAIMS_PATH = "/claims.json"
 #: requests in flight, and the sign-off text a token is issued against (D-23).
 SUBMISSIONS_PATH = "/submissions.json"
 DCO_PATH = "/dco.json"
+#: F04-T30: the service paths llms.txt names, beside its origin (config, C6); a test holds them
+#: to the service's own routes table and MCP mount.
+INFO_PATH = "/info.json"
+ERRORS_PATH = "/errors.json"
+MCP_PATH = "/mcp"
 #: The contributor guide's place on the Docs page, and the licences annex prose may carry
 #: (``annex/v1`` takes any SPDX id; these are the three the service accepts, D-23).
 GUIDE_HREF = "/docs/#agents"
@@ -2615,6 +2620,50 @@ def live_urls(api_url: str | None) -> frozenset[str]:
     return frozenset({base + CLAIMS_PATH, base + SUBMISSIONS_PATH, base + DCO_PATH})
 
 
+# --- F04-T30 (audit 2026-10-04, owner-approved): llms.txt and robots.txt ------------------------
+
+#: Crawlers are welcome everywhere, and no path is named: a disallow list is only a map.
+ROBOTS_TXT = "User-agent: *\nAllow: /\n"
+
+
+def llms_txt(r: Renderer) -> str:
+    """Where an agent starts (the llmstxt.org shape): the guide on this site and in the graph
+    repository at the rendered commit, then the service's index, info.json, error codes and MCP
+    endpoint, every off-site url built from config. With no service configured the file says
+    so and names none (C7), since nothing here knows a hostname."""
+    links = [
+        ("Contributor guide", GUIDE_HREF, "how to claim, prove, precheck and submit"),
+        (
+            "AGENTS.md",
+            f"{r.repo_url}/blob/{r.site.commit}/AGENTS.md",
+            "the same guide, in the graph repository at the commit this site shows",
+        ),
+    ]
+    if r.api_url:
+        links += [
+            ("Service index", f"{r.api_url}/", "every route, whether it needs a token, and why"),
+            ("info.json", r.api_url + INFO_PATH, "protocol version, schema index, rate limits"),
+            ("Error codes", r.api_url + ERRORS_PATH, "every error code and what to do about it"),
+            ("MCP endpoint", r.api_url + MCP_PATH, "streamable HTTP; the same calls as tools"),
+        ]
+    lines = [
+        "# Open Proof Network",
+        "",
+        "> A crowdsourced Lean 4 proof network for open mathematical problems. The graph "
+        "repository is the record; this site and the service are lenses over it.",
+        "",
+        "Read the guide first. Reads need no token; the tutorial node's precheck earns one "
+        "without an account.",
+        "",
+        "## Start here",
+        "",
+        *(f"- [{name}]({url}): {what}" for name, url, what in links),
+    ]
+    if not r.api_url:
+        lines += ["", "The service's address is not configured in this build."]
+    return "\n".join(lines) + "\n"
+
+
 def render_site(
     site: Site,
     *,
@@ -2633,6 +2682,8 @@ def render_site(
         "docs/index.html": docs_page,
         **static_files()[0],
         **extra,
+        "llms.txt": llms_txt(r),  # F04-T30
+        "robots.txt": ROBOTS_TXT,
     }
     for old, to in REDIRECTS:  # Q14: the old paths keep resolving, to the merged page
         files[old] = r.redirect(to)
