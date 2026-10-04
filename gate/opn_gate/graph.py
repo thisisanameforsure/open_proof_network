@@ -131,6 +131,9 @@ class NodeFacts:
     declared_deps: tuple[str, ...] = ()
     #: A ``stale`` override the gate's own evidence has lifted (see ``stale_lifted``).
     stale_lifted: bool = False
+    #: F08-T32 (D-18 v3.27): a ``disputed`` override whose claim a curator has withdrawn (see
+    #: ``dispute_withdrawn``). The record itself withdrawn is absent already (F08-T31).
+    dispute_withdrawn: bool = False
     #: D-12 v3.19 (F07-R22): the entries of ``deps`` that are this node's own hole children —
     #: written there by the post-merge job when a decomposition merged. The node may draw on
     #: one once it is proved; it never waits on one, so they are set aside when the node's
@@ -461,6 +464,7 @@ def load_nodes(
                     graph_root, override.path, loaded.node_id, statement_hash, attestations
                 )
             ),
+            dispute_withdrawn=dispute_withdrawn(nodes_dir, loaded.node_id, override),
             origin=origin,
             tutorial=bool(loaded.meta.get("tutorial", False)),
             relation=relation_of(node_dir, origin),
@@ -601,7 +605,8 @@ def derive_statuses(nodes: dict[str, NodeFacts]) -> dict[str, str]:
     because only a proof discharges the obligation a dependent inherited. Two records yield to
     the tree's own evidence rather than override it: ``stale`` on a node the gate has re-run
     (``stale_is_void``) and ``speculative`` on a node an artifact has settled
-    (``speculative_is_void``, R14).
+    (``speculative_is_void``, R14). A third yields to the record: ``disputed`` once the claim it
+    rests on is withdrawn (``disputed_is_void``, F08-T32).
     """
     check_dag(nodes)
     statuses: dict[str, str] = {}
@@ -610,7 +615,9 @@ def derive_statuses(nodes: dict[str, NodeFacts]) -> dict[str, str]:
         if node_id in statuses:
             return statuses[node_id]
         node = nodes[node_id]
-        if node.override is not None and not stale_is_void(node) and not speculative_is_void(node):
+        if node.override is not None and not any(
+            void(node) for void in (stale_is_void, speculative_is_void, disputed_is_void)
+        ):
             result = node.override.status
         elif node.proof is not None and node.artifact in STATUS_FOR_ARTIFACT:
             # F03-Q7 (2026-09-12): settled only by an artifact that is *in the tree* — a
@@ -664,6 +671,42 @@ def stale_is_void(node: NodeFacts) -> bool:
     if node.override is None or node.override.status != "stale":
         return False
     return not settled(node) or node.stale_lifted
+
+
+def disputed_is_void(node: NodeFacts) -> bool:
+    """F08-T32 (D-18 v3.27): when a ``disputed`` record does not decide the status.
+
+    ``disputed`` says a claim against the node was accepted for adjudication, and names the claim
+    in its ``reference``. Once a listed curator has withdrawn that claim (F08-T31) the record
+    rests on nothing, and the status is derived again from the tree — the shape of
+    :func:`stale_is_void`. A withdrawn ``disputed`` record is absent already, so this covers the
+    claim. An upheld dispute ends in D-8's revision, as before; no record is written to lift
+    one, and no date is compared."""
+    if node.override is None or node.override.status != "disputed":
+        return False
+    return node.dispute_withdrawn
+
+
+#: How a ``disputed`` record's ``reference`` names a claim: ``defects/<file>`` of its own node, or
+#: the claim's path from the graph root.
+_CLAIM_REF_RE = re.compile(
+    r"^(?:targets/(?P<target>[^/]+)/nodes/(?P<node>[^/]+)/)?defects/(?P<name>[^/]+\.ya?ml)$"
+)
+
+
+def dispute_withdrawn(nodes_dir: Path, node_id: str, override: StatusRecord | None) -> bool:
+    """Whether ``override`` is a ``disputed`` record whose ``reference`` names a defect claim a
+    merged withdrawal names (F08-T32). A reference that names no claim on this target — a free
+    dispute id, another target's path — is never withdrawn, so the record stands."""
+    if override is None or override.status != "disputed":
+        return False
+    m = _CLAIM_REF_RE.match(str(override.doc.get("reference") or ""))
+    if m is None:
+        return False
+    if m.group("target") is not None and m.group("target") != nodes_dir.parent.name:
+        return False
+    holder = m.group("node") or node_id
+    return f"{records.DEFECTS_DIR}/{m.group('name')}" in records.withdrawn(nodes_dir / holder)
 
 
 def _git(graph_root: Path, *args: str) -> subprocess.CompletedProcess[str]:

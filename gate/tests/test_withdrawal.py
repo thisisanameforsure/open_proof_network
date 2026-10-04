@@ -247,3 +247,64 @@ def test_withdrawing_rewrites_nothing_and_a_revert_restores_the_products(tmp_pat
     (root / WITHDRAWAL).unlink()
     (root / WITHDRAWAL).parent.rmdir()
     assert products.generate(root, rendered_from=RENDERED, commit_time=NOW).files == before
+
+
+# --- F08-T32 (D-18 v3.27): an exit from `disputed` -----------------------------------------------
+#
+# ``disputed`` is an adjudicator's record that rests on a claim (its ``reference``). Before v3.27 it
+# had no exit but a later record, the trap ``stale`` had before v3.18. It lifts when its record, or
+# the claim it rests on, is withdrawn, and the node's status is derived again from the tree — the
+# shape of ``stale_is_void`` and ``speculative_is_void``. An upheld dispute ends in D-8's revision.
+
+
+def test_a_disputed_record_stands_while_its_claim_does(tmp_path: Path) -> None:
+    root = copy_graph(tmp_path)
+    file_claim(root)
+    file_status(root, "disputed", reference=f"defects/{CLAIM_NAME}")
+    assert graph.load_target(root, TARGET).statuses[HOLE] == "disputed"
+
+
+def test_a_disputed_record_lifts_when_the_claim_it_rests_on_is_withdrawn(tmp_path: Path) -> None:
+    root = copy_graph(tmp_path)
+    file_claim(root)
+    file_status(root, "disputed", reference=f"defects/{CLAIM_NAME}")
+    file_withdrawal(root)
+    tg = graph.load_target(root, TARGET)
+    assert tg.statuses[HOLE] == "ready"  # derived again from the tree
+    assert (root / STATUS).is_file(), "the record stays; it is void, not removed"
+
+
+def test_a_claim_named_by_its_full_graph_path_lifts_too(tmp_path: Path) -> None:
+    root = copy_graph(tmp_path)
+    file_claim(root)
+    file_status(root, "disputed", reference=CLAIM)
+    file_withdrawal(root)
+    assert graph.load_target(root, TARGET).statuses[HOLE] == "ready"
+
+
+def test_a_disputed_record_lifts_when_it_is_withdrawn_itself(tmp_path: Path) -> None:
+    root = copy_graph(tmp_path)
+    file_claim(root)
+    file_status(root, "disputed", reference=f"defects/{CLAIM_NAME}")
+    file_withdrawal(root, f"status/{STATUS_NAME}")
+    assert graph.load_target(root, TARGET).statuses[HOLE] == "ready"
+
+
+def test_withdrawing_another_claim_leaves_the_dispute_standing(tmp_path: Path) -> None:
+    root = copy_graph(tmp_path)
+    file_claim(root)
+    other = CLAIM.replace("alice", "bob")
+    (root / other).write_bytes((root / CLAIM).read_bytes())
+    file_status(root, "disputed", reference=f"defects/{CLAIM_NAME}")
+    file_withdrawal(root, f"defects/{other.rsplit('/', 1)[1]}")
+    assert graph.load_target(root, TARGET).statuses[HOLE] == "disputed"
+
+
+def test_a_withdrawn_claim_voids_only_a_disputed_record(tmp_path: Path) -> None:
+    """An ``abandoned`` record is a curator's judgment on the route, not on a claim; naming the
+    claim in its reference does not tie its fate to the claim's."""
+    root = copy_graph(tmp_path)
+    file_claim(root)
+    file_status(root, "abandoned", reference=f"defects/{CLAIM_NAME}")
+    file_withdrawal(root)
+    assert graph.load_target(root, TARGET).statuses[HOLE] == "abandoned"
