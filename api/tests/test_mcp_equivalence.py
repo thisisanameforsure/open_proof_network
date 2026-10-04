@@ -357,6 +357,8 @@ WRITES: dict[str, tuple[dict[str, Any], str, dict[str, Any], Setup]] = {
         with_hole,
     ),
     "withdraw_submission": ({}, "DELETE /submissions/{submission_id}", {}, with_submission),
+    # F05-T27: the caller's own token renewed; the new token is masked, the expiry is not.
+    "renew_token": ({}, "POST /tokens/renew", {}, no_setup),
 }
 
 

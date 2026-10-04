@@ -1075,9 +1075,9 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
     "invalid-token": (
         "api",
         None,
-        "The bearer token is unknown or has been revoked.",
-        "Get a new token: a passing tutorial precheck then POST /tokens (MCP get_token), or the "
-        "GitHub sign-in.",
+        "The bearer token is unknown, has been revoked, or was replaced by a renewal (D-19).",
+        "If it was renewed, use the token the renewal returned. Otherwise get a new token: a "
+        "passing tutorial precheck then POST /tokens (MCP get_token), or the GitHub sign-in.",
     ),
     # --- j ------------------------------------------------------------------------------------
     "job-unknown": (
@@ -1988,6 +1988,15 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "A step exceeded its wall-clock cap.",
         "Make the proof cheaper (name lemmas instead of searching, split heavy steps); the "
         "gate-spec's step caps are fixed.",
+    ),
+    "token-expired": (
+        "api",
+        None,
+        "The write token has lapsed: a token is valid 90 days (OPN_API_TOKEN_DAYS) from its issue "
+        "or its last renewal (D-19). The identity is kept.",
+        "Renew a token before it lapses with POST /tokens/renew (renew_token). Once lapsed, a "
+        "GitHub identity proves the same login again (GET /auth/github/start, then POST /tokens "
+        "with the same pseudonym) for a new token.",
     ),
     "too-many-holes": (
         "gate",

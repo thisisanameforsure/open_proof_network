@@ -67,6 +67,9 @@ ROUTES: tuple[RouteSpec, ...] = (
     RouteSpec("GET", "/auth/github/start", "identity:github_start", D35_POST_TOKENS),
     RouteSpec("GET", "/auth/github/callback", "identity:github_callback", D35_POST_TOKENS),
     RouteSpec("POST", "/tokens", "identity:post_tokens", D35_POST_TOKENS),
+    # F05-T27 (D-19 v3.28): the holder renews a live token before it lapses. Token issuance under
+    # the D-19 identity rules, so D-35's token row; rotates the token (Q27).
+    RouteSpec("POST", "/tokens/renew", "identity:post_renew", D35_POST_TOKENS, authenticated=True),
     RouteSpec("POST", "/claims", "claims:post_claims", D35_POST_CLAIMS, authenticated=True),
     RouteSpec(
         "DELETE", "/claims/{claim_id}", "claims:delete_claim", D35_DELETE_CLAIM, authenticated=True
@@ -204,6 +207,9 @@ PURPOSES: dict[str, str] = {
     "GET /auth/github/start": "Begin the GitHub proof of identity for a token (browser).",
     "GET /auth/github/callback": "Finish the GitHub proof of identity and issue the token.",
     "POST /tokens": "Issue a token: from a passing tutorial precheck (no account) or GitHub.",
+    "POST /tokens/renew": (
+        "Renew a live token before it lapses (90 days): a new token, the old one retired."
+    ),
     "POST /claims": "Claim an open statement for a time, so others can see it is being worked.",
     "DELETE /claims/{claim_id}": "Release a claim you hold.",
     "GET /claims/mine": "Your own active claims with their ids, and who else holds each node.",

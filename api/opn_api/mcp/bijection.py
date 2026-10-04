@@ -104,6 +104,9 @@ TABLE: tuple[Row, ...] = (
     Row("check_lean", "write", ("POST /check",), "POST /check"),
     # F09-T6: D-28's write table, notation note of 2026-09-14 — both existing endpoints.
     Row("get_token", "write", ("POST /tokens",), "POST /tokens"),
+    # F05-T27 (D-19 v3.28): D-28's write table, notation note of 2026-10-04 (D-19); token
+    # issuance under D-19's rules, so the route names D-35's token row.
+    Row("renew_token", "write", ("POST /tokens/renew",), "POST /tokens/renew"),
     Row("submit_proof", "write", ("POST /submissions",), "POST /submissions opens that PR"),
     Row(
         "submit_postmortem",

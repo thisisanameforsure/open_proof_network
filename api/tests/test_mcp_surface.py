@@ -53,6 +53,7 @@ WRITES = {
     "check_lean",  # F13-T6: D-28 v3.14
     "get_token",  # F09-T6: D-28's notation note of 2026-09-14
     "propose_witness",  # F09-T6: idem
+    "renew_token",  # F05-T27 (D-19 v3.28), D-28's notation note of 2026-10-04 (D-19)
     "submit_proof",
     "submit_postmortem",
     "submit_informal_annex",
@@ -162,8 +163,11 @@ def test_results_match_schemas(harness: Harness, tmp_path: Path) -> None:
         "propose_variant": {"target_id": TARGET, "stmt": "s", "witness": "w"},
         "withdraw_submission": {"submission_id": "000001"},
     }
+    # renew_token retires the token it is called with (F05-T27), so it is given one of its own.
+    own = {"renew_token": harness.token_for("code_bob", "bob")}
     for tool in TOOLS:
-        for arguments, tok in ((args.get(tool.name, {}), token), ({"bogus": 1}, None)):
+        mine = own.get(tool.name, token)
+        for arguments, tok in ((args.get(tool.name, {}), mine), ({"bogus": 1}, None)):
             result = client.call(tool.name, arguments, token=tok)
             assert result.structuredContent is not None, (tool.name, result.content)
             assert results.violations(tool.name, result.structuredContent) == [], (

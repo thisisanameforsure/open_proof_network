@@ -72,6 +72,8 @@ class TokenRecord:
     identity_id: str
     created: str
     revoked: bool = False
+    expires: str | None = None
+    renewed: str | None = None
 
 
 @dataclass(frozen=True)
@@ -170,6 +172,20 @@ class Store(Protocol):
 
     def revoke_tokens(self, identity_id: str) -> int:
         """F05-T21: mark every token of ``identity_id`` revoked; how many were not already."""
+        ...
+
+    def renew_token(self, old_hash: str, new: TokenRecord, at: str) -> bool:
+        """F05-T27: store ``new`` and retire ``old_hash`` (revoked, ``renewed`` = ``at``), but
+        only if the old token is still unrevoked; ``False``, with nothing stored, if it is not,
+        so one token renews once even when two renewals race."""
+        ...
+
+    def get_identity_by_proof(self, proof_kind: str, reference: str) -> Identity | None:
+        """F05-T27: the identity a proof reference made, through its uniqueness marker."""
+        ...
+
+    def list_tokens(self, identity_id: str) -> list[TokenRecord]:
+        """F05-T27: every token record of ``identity_id``, live, lapsed, renewed or revoked."""
         ...
 
     def put_job(self, job_id: str, record: dict[str, Any], expires: datetime) -> None:
@@ -285,6 +301,23 @@ class MemoryStore:
             if found.pseudonym.lower() == wanted:
                 return found
         return None
+
+    def renew_token(self, old_hash: str, new: TokenRecord, at: str) -> bool:
+        old = self.tokens.get(old_hash)
+        if old is None or old.revoked:
+            return False
+        self.tokens[new.token_hash] = new
+        self.tokens[old_hash] = replace(old, revoked=True, renewed=at)
+        return True
+
+    def get_identity_by_proof(self, proof_kind: str, reference: str) -> Identity | None:
+        for found in self.identities.values():
+            if found.proof_kind == proof_kind and found.proof_reference == reference:
+                return found
+        return None
+
+    def list_tokens(self, identity_id: str) -> list[TokenRecord]:
+        return [r for r in self.tokens.values() if r.identity_id == identity_id]
 
     def revoke_tokens(self, identity_id: str) -> int:
         count = 0
@@ -508,8 +541,8 @@ class DynamoStore:
         return 1 if self._identities.get_item(Key={"id": key}).get("Item") else 0
 
     def put_token(self, record: TokenRecord) -> None:
-        item = {"key": KEY_TOKEN + record.token_hash, **asdict(record)}
-        self._tokens.put_item(Item=item)
+        fields_ = {k: v for k, v in asdict(record).items() if v is not None}
+        self._tokens.put_item(Item={"key": KEY_TOKEN + record.token_hash, **fields_})
 
     def get_token(self, token_hash: str) -> TokenRecord | None:
         item = self._tokens.get_item(Key={"key": KEY_TOKEN + token_hash}).get("Item")
@@ -520,7 +553,59 @@ class DynamoStore:
             identity_id=str(item["identity_id"]),
             created=str(item["created"]),
             revoked=bool(item.get("revoked", False)),
+            expires=_optional(item.get("expires")),
+            renewed=_optional(item.get("renewed")),
         )
+
+    def renew_token(self, old_hash: str, new: TokenRecord, at: str) -> bool:
+        """The new token is stored first and the old one retired under a condition; if the
+        condition fails (the old token was renewed or revoked meanwhile) the new one is deleted
+        again. A crash between the two leaves both valid until the old one lapses, never the
+        holder with neither."""
+        self.put_token(new)
+        try:
+            self._tokens.update_item(
+                Key={"key": KEY_TOKEN + old_hash},
+                UpdateExpression="SET revoked = :yes, renewed = :at",
+                ConditionExpression=(
+                    "attribute_exists(#k) AND (attribute_not_exists(revoked) OR revoked = :no)"
+                ),
+                ExpressionAttributeNames={"#k": "key"},
+                ExpressionAttributeValues={":yes": True, ":no": False, ":at": at},
+            )
+        except Exception as exc:
+            code = getattr(exc, "response", {}).get("Error", {}).get("Code")
+            if code != "ConditionalCheckFailedException":
+                raise
+            self._tokens.delete_item(Key={"key": KEY_TOKEN + new.token_hash})
+            return False
+        return True
+
+    def get_identity_by_proof(self, proof_kind: str, reference: str) -> Identity | None:
+        key = KEY_PROOF_REF + proof_kind + "#" + reference
+        item = self._identities.get_item(Key={"id": key}).get("Item")
+        found = item.get("identity_id") if item else None
+        return self.get_identity(str(found)) if found else None
+
+    def list_tokens(self, identity_id: str) -> list[TokenRecord]:
+        """A scan, as ``revoke_tokens`` (no index by identity, R12): run only when a lapsed
+        identity re-proves, which is rare."""
+        out: list[TokenRecord] = []
+        kwargs: dict[str, Any] = {
+            "FilterExpression": "begins_with(#k, :prefix) AND identity_id = :id",
+            "ExpressionAttributeNames": {"#k": "key"},
+            "ExpressionAttributeValues": {":prefix": KEY_TOKEN, ":id": identity_id},
+        }
+        while True:
+            page = self._tokens.scan(**kwargs)
+            for item in page.get("Items", []):
+                record = self.get_token(str(item["token_hash"]))
+                if record is not None:
+                    out.append(record)
+            last = page.get("LastEvaluatedKey")
+            if not last:
+                return out
+            kwargs["ExclusiveStartKey"] = last
 
     def get_identity_by_pseudonym(self, pseudonym: str) -> Identity | None:
         """Through the uniqueness marker ``put_identity`` writes with every identity (R4)."""
@@ -713,6 +798,10 @@ class DynamoStore:
         item = self._tokens.get_item(Key={"key": KEY_CHECK + check_id}).get("Item")
         record = item.get("check") if item else None
         return _check(plain(dict(record))) if isinstance(record, dict) else None
+
+
+def _optional(value: Any) -> str | None:
+    return None if value is None else str(value)
 
 
 def _identity(item: dict[str, Any]) -> Identity:
