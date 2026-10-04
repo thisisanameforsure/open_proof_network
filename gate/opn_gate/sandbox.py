@@ -216,11 +216,18 @@ class SandboxToolchain(LocalToolchain):
     # -- container assembly -------------------------------------------------------------------
 
     def create_args(
-        self, name: str, *, cwd: Path | None, extra_env: dict[str, str] | None, wall: float
+        self,
+        name: str,
+        *,
+        cwd: Path | None,
+        extra_env: dict[str, str] | None,
+        wall: float,
+        interactive: bool = False,
     ) -> list[str]:
         args = [
             self.docker,
             "create",
+            *(["--interactive"] if interactive else []),
             "--name",
             name,
             "--network",
@@ -292,19 +299,33 @@ class SandboxToolchain(LocalToolchain):
         cwd: Path | None = None,
         extra_env: dict[str, str] | None = None,
         timeout_s: float | None = None,
+        stdin: str | None = None,
     ) -> subprocess.CompletedProcess[str]:
         wall = timeout_s if timeout_s is not None else float(self.caps.wallclock_s)
         name = f"opn-gate-{uuid.uuid4().hex[:12]}"
-        self._docker(*self.create_args(name, cwd=cwd, extra_env=extra_env, wall=wall)[1:], *cmd)
+        # F02-T11: a metaprogram's nonce reaches the process on its stdin, and only then is the
+        # container created with one open (``--interactive``) and started attached to it.
+        interactive = stdin is not None
+        create = self.create_args(
+            name, cwd=cwd, extra_env=extra_env, wall=wall, interactive=interactive
+        )
+        self._docker(*create[1:], *cmd)
         try:
             self._copy_in(name)
             try:
                 run = subprocess.run(
-                    [self.docker, "start", "--attach", name],
+                    [
+                        self.docker,
+                        "start",
+                        "--attach",
+                        *(["--interactive"] if interactive else []),
+                        name,
+                    ],
                     capture_output=True,
                     text=True,
                     timeout=wall + GRACE_S,
                     check=False,
+                    input=stdin if interactive else None,
                 )
             except subprocess.TimeoutExpired:
                 subprocess.run([self.docker, "kill", name], capture_output=True, check=False)

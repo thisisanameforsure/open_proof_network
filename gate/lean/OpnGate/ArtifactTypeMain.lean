@@ -57,7 +57,7 @@ def siblingTypes (manifest : System.FilePath) (base : Environment)
     | _, _, _ => pure ()
   return out
 
-unsafe def main (args : List String) : IO UInt32 := runMain do
+unsafe def main (args : List String) : IO UInt32 := runMain args do
   let (kv, _) := parseArgs args
   let some stmtPath := getArg kv "statement" | fail "missing --statement"
   let some stmtMod := getArg kv "module" | fail "missing --module"

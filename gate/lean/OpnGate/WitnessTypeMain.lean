@@ -20,7 +20,7 @@ def parseProved : Option String → Array Nat
 /-- (v3.22) Prints `{"ok": true, "expected": …, …}` as before; with `--proved`, `expected` is the
 narrowed type (`expectedWitnessTypeNarrowed`) and `defeq` is true of a witness of either it or
 the full type. -/
-unsafe def main (args : List String) : IO UInt32 := runMain do
+unsafe def main (args : List String) : IO UInt32 := runMain args do
   let (kv, _) := parseArgs args
   let some stmtPath := getArg kv "statement" | fail "missing --statement"
   let some modStr := getArg kv "module" | fail "missing --module"

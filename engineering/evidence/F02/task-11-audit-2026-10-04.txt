@@ -1,0 +1,152 @@
+F02-T11 — the verdict channel (audit 2026-10-04, finding A; D-4 steps 4, 5, 7, 8)
+Branch audit-a-soundness.
+
+What was wrong (verified in code and, where marked, on the real toolchain)
+  - toolchain.parse_metaprogram_output took the LAST stdout line as the verdict;
+    parse_axioms took the FIRST line naming the declaration.
+  - Frontend.runMain called enableInitializersExecution for every metaprogram, and
+    opn-statement-meaning imported the artifact's module with loadExts := true: an `initialize`
+    block in the artifact (step 2 accepts a command after a proof's body) ran inside the
+    judging process.
+  - Step 5's probe was `lean` on `import <artifact>; #print axioms <decl>`. The lean frontend
+    enables initializers (Lean 4.33 Lean/ImportingFlag.lean: "The Lean frontend executes this
+    method at startup time"), and #print axioms / collectAxioms (Lean/Util/CollectAxioms.lean)
+    reads an imported declaration's axioms from exportedAxiomsExt, data its olean carries,
+    rather than walking its body.
+  - opn-witness-type, opn-artifact-type, opn-relation-type and opn-used-constants elaborate
+    contributor files (Frontend.elabFile), so contributor `#eval` code runs in them.
+
+Shown on the real toolchain (Lean 4.33.1 from ~/.elan, `lean --run` = the interpreter running
+each program's `main`; no Lake build, no image; scratch modules only):
+  1. Old step-5 probe. Tgt.lean: `theorem tgt : ∀ n : Nat, n = n := by intro n; sorry` and
+     `initialize do IO.println "'tgt' does not depend on any axioms"; IO.println <json>;
+     IO.Process.exit 0`. `lean Probe.lean` (import Tgt / #print axioms tgt) printed:
+       'tgt' does not depend on any axioms
+       {"ok":true,"decl":"tgt","module":"Tgt","axioms":[]}
+       exit=0
+     i.e. the real sorryAx was never reported and parse_axioms read "no axioms".
+  2. New opn-axioms on the same module, nonce "abc123" on stdin:
+       @opn-verdict abc123 {"axioms":["sorryAx"],"decl":"tgt","module":"Tgt","ok":true}
+     and, asked for a declaration the module does not declare:
+       @opn-verdict n2 {"error":"Nat.add is declared by Init.Prelude, not Tgt","ok":false}  exit=1
+  3. Old opn-statement-meaning (the T10 commit's Frontend and StatementMeaningMain) on a
+     statement `∀ n : Nat, 0 + n = n` and an artifact Art declaring `tgt : ∀ n, n = n` whose
+     `initialize` prints a "matches" verdict and exits 0:
+       {"ok":true,"decl":"tgt","expected":"x","declared":"x","identical":true,"matches":true,...}
+       exit=0
+     New opn-statement-meaning, same inputs, nonce "q9":
+       @opn-verdict q9 {"decl":"tgt","declared":"∀ (n : Nat), @Eq Nat n n","expected":"∀ (n : Nat),\n  @Eq Nat\n    (@HAdd.hAdd Nat Nat Nat ... 0 ...) n) n","identical":false,"local_mismatch":[],"locals":[],"matches":false,"ok":true}
+  4. opn-used-constants (still elaborating) on a file whose `#eval` writes a verdict-shaped line
+     to /dev/stdout and exits 0: the forged line is printed with and without the nonce, but with
+     the nonce it is untagged, so the parser no longer accepts it (fast tier below).
+  All Lean files touched elaborate cleanly at 4.33.1 (Frontend, AxiomsMain,
+  StatementMeaningMain, UsedConstantsMain checked with `lean`; the other four Mains change only
+  `runMain do` -> `runMain args do`, the same pattern). The compiled executables, the image and
+  the lean tier are NOT built or run here: CI must run them.
+
+The fix
+  (a) Judging programs that read compiled modules execute nothing of them.
+      Frontend.runMain gains `args` and `(initializers := true)`; opn-statement-meaning runs with
+      initializers off and imports the artifact with loadExts := false (constants only: the
+      kernel comparison needs nothing more; pretty-printing for a refusal may show fewer
+      notations). Step 5 asks the new opn-axioms (gate/lean/OpnGate/AxiomsMain.lean, lakefile
+      exe, Dockerfile check): initializers off, loadExts := false, axioms collected by walking
+      the declaration's constants (types, values, constructors) through the constant table the
+      replay re-checked, and the declaration must be declared by the named module.
+      LocalToolchain.axioms calls it through the metaprogram runner; `scratch` is unused.
+      With loadExts := false, Lean 4.33's finalizeImport does not call runInitAttrs at all, so
+      no `initialize` runs even in a process whose flag is on (`lean --run` above).
+  (b) Every metaprogram call carries a per-call nonce (secrets.token_hex(16)) written on stdin
+      (`--nonce stdin`; SandboxToolchain creates the container --interactive and starts it
+      attached to stdin only then). runMain reads it before importing or elaborating anything,
+      runs the body with stdin/stdout/stderr isolated (IO.FS.withIsolatedStreams), prints a
+      sentinel after the body returns, and emits only the line before the sentinel, as
+      `@opn-verdict <nonce> <json>`; anything else captured goes to stderr. The parser accepts
+      exactly one line with this call's tag. parse_axioms now answers None when more than one
+      line names the declaration (it is no longer on the gate's path).
+
+Why the nonce matters only once (a) holds, and what it buys before then
+  A nonce proves a line came from code that knew it. Where no contributor code runs in the
+  process (opn-statement-meaning, opn-axioms after (a)), nothing could forge a line anyway; the
+  nonce is a second lock that keeps holding if (a) regresses. Where contributor code does run
+  (the four elaborating programs), the nonce is read from stdin before that code starts and stdin
+  is then an empty buffer, so the code cannot read it from stdin, argv or the environment; a
+  forged line it prints to the real stdout is untagged, and one it prints to the captured stdout
+  is not the line before the sentinel unless it runs after the body's own verdict. What remains:
+  code that reads the process's own memory (/proc/self/mem) to find the nonce, or a thread it
+  starts that prints into the capture between the verdict and the sentinel. That is why the
+  conversion below is the real fix for those four.
+
+Red (fast tier, before the fix; the seam `nonce=` and VERDICT_TAG were added at today's
+behaviour first so the red is the defect, not a missing name):
+  uv run --frozen pytest -q -m "not lean and not docker and not network" gate/tests/test_finding_verdict_channel.py
+______ test_a_well_formed_verdict_without_the_nonce_is_never_the_verdict _______
+E       AssertionError: assert (True and {'ok': True, ...ed': 'A', ...} == {'ok': True, ...ed': 'A', ...}
+___________ test_with_a_nonce_an_untagged_verdict_alone_is_a_failure ___________
+E       AssertionError: assert (not True)
+_____________ test_an_earlier_forged_axioms_line_is_not_the_answer _____________
+E       assert frozenset({'propext'}) is None
+3 failed, 1 passed in 0.04s
+
+Green:
+  uv run --frozen pytest -q -m "not lean and not docker and not network" \
+    gate/tests/test_finding_verdict_channel.py gate/tests/test_toolchain.py \
+    gate/tests/test_toolchain_install.py gate/tests/test_sandbox.py gate/tests/test_finding_trusted_workspace.py
+  64 passed in 3.07s
+  Wider sweep: every gate fast-tier file naming the toolchain or the sandbox (75 files):
+  1318 passed, 1 failed: test_walkthrough.py::test_graph_copy_is_identical, which compares
+  gate/agents/AGENTS.md with the sibling graph checkout and fails identically with these changes
+  stashed (the checkout's copy has drifted; not this work).
+  api hazard-composer tests (they read HazardsMain.lean): 82 passed with test_toolchain*.
+
+Restated tests (kept, assertion changed):
+  test_toolchain.py::test_axioms_fail_closed_when_the_probe_says_nothing_about_the_declaration
+    -> ..._when_the_answer_says_nothing_about_the_declaration (opn-axioms, nonce on stdin)
+  test_toolchain.py (the Mathlib search-path test): opn-axioms carries LEAN_SYSROOT too.
+  test_toolchain_install.py::test_the_real_seam_routes_every_metaprogram_through_one_runner:
+    argv ends with `--nonce stdin`.
+  The scripted toolchains in test_toolchain.py and test_finding_trusted_workspace.py answer as
+  the binaries now do: the verdict tagged with the nonce they were handed.
+
+Lean tier (NOT run locally; CI): gate/tests/test_finding_verdict_channel_lean.py
+  - test_an_initializer_cannot_answer_the_meaning_comparison: the T23 instance trap plus an
+    `initialize` printing a "matches" verdict and exiting 0. Expected step 4,
+    statement-meaning-changed (before T11: the forged verdict passed step 4 and the run died at 5).
+  - test_an_initializer_cannot_answer_the_axioms_query: a `sorry` proof of a true statement plus
+    an `initialize` printing both shapes of a clean axioms answer. Expected step 5,
+    axiom-not-allowed naming sorryAx (before T11: step 5 read "no axioms").
+
+Not done here: the conversion of the elaborating programs (proposed F02-T12)
+  opn-witness-type (step 7), opn-artifact-type incl. hole extraction (step 4's artifact rule),
+  opn-relation-type (admission) and opn-used-constants (step 8) elaborate contributor files and
+  must keep initializers on (importModules (loadExts := true) throws without them, and Mathlib's
+  attributes are registered by initializers). Proposed: build the contributor file as a module
+  in the contributor's compile call (it already is for Proof; Witness and the relation file
+  would be), and have each program import the compiled module with loadExts := false from the
+  judging directory, reading declarations, types and values from the constant table: the
+  witness type check and the artifact's declared type become kernel isDefEq on two compiled
+  types (as opn-statement-meaning does), the footprint and axioms a constant walk (as opn-axioms
+  does). Two parts need elaboration and stay as they are behind the nonce: hole extraction
+  (`have h : T := sorry` is a letE in the compiled term, so it can be read from the value, but
+  the closed-type printing and round trip, F07-R19, re-elaborate printed text) and the hazard
+  checkers (they elaborate the statement, an admitted file, not contributor code). Size: about
+  one module per program plus the step changes to compile Witness.lean and the relation file in
+  the compile call; a feature, not a patch.
+
+Proposed Q entry (F02-Q?)
+  The verdict channel (T11; 2026-10-04; audit finding A). A metaprogram's verdict was its last
+  stdout line, and step 5's was the first `#print axioms` line naming the declaration; code that
+  ran in those processes could print one and exit 0. Code did run there: opn-statement-meaning
+  imported the artifact with initializers on, and step 5's `lean` probe ran the artifact's
+  `initialize` blocks and read axioms from its olean's extension data (shown at 4.33.1). Now the
+  programs that read compiled modules run nothing of them (initializers off, loadExts := false;
+  step 5 asks opn-axioms, which walks the constants itself), and every verdict is the one line
+  tagged with a per-call nonce the program reads from stdin before it loads anything. For the
+  four programs that elaborate contributor files the nonce raises the bar but is not a guarantee;
+  T12 proposes reading compiled modules there too.
+
+Proposed ledger line
+  T11 ✓ 2026-10-04 (uv run pytest gate/tests/test_finding_verdict_channel.py and four
+  neighbours: 64 passed; the forged-verdict cases shown at 4.33.1 with `lean --run`; the lean
+  tier's test_finding_verdict_channel_lean.py and the image's opn-axioms pending CI) — verdicts
+  are nonce-tagged and the module-reading judges execute nothing of the artifact

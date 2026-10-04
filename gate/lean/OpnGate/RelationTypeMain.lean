@@ -20,7 +20,7 @@ variant declare different names but cannot be assumed to.
 -/
 open Lean Meta Elab OpnGate
 
-unsafe def main (args : List String) : IO UInt32 := runMain do
+unsafe def main (args : List String) : IO UInt32 := runMain args do
   let (kv, _) := parseArgs args
   let some variantPath := getArg kv "variant" | fail "missing --variant"
   let some variantMod := getArg kv "variant-module" | fail "missing --variant-module"

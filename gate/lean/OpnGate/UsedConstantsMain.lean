@@ -8,7 +8,7 @@ Prints `{"ok": true, "decl": ..., "constants": [{"name", "module"}], "axioms": [
 -/
 open Lean Elab OpnGate
 
-unsafe def main (args : List String) : IO UInt32 := runMain do
+unsafe def main (args : List String) : IO UInt32 := runMain args do
   let (kv, _) := parseArgs args
   let some path := getArg kv "file" | fail "missing --file"
   let some modStr := getArg kv "module" | fail "missing --module"

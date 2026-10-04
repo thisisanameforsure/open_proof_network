@@ -36,6 +36,7 @@ from harness import make_context
 from opn_gate import layout, pipeline
 from opn_gate.sandbox import Caps, SandboxToolchain
 from opn_gate.steps import RunContext, default_steps
+from opn_gate.toolchain import VERDICT_TAG
 
 CAPS = Caps(cpu=1.0, memory_mib=1024, wallclock_s=60)
 PIN = "leanprover/lean4:v4.33.1"
@@ -107,6 +108,9 @@ class Recording(SandboxToolchain):
             out = json.dumps({"ok": True, "identical": True, "matches": True}) + "\n"
         elif "opn-axioms" in joined:
             out = json.dumps({"ok": True, "decl": "OpnProp.and_swap_reassoc", "axioms": []})
+        stdin = _kwargs.get("stdin")
+        if isinstance(stdin, str) and out.startswith("{"):  # F02-T11: the tagged verdict
+            out = f"{VERDICT_TAG} {stdin.strip()} {out.strip()}\n"
         return subprocess.CompletedProcess(cmd, 0, out, "")
 
 
