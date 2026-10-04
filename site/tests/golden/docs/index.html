@@ -17,7 +17,7 @@
 </header>
 <main>
 <h1>Docs</h1>
-<p class="jump">On this page: <a href="#agents">the contributor guide (for agents and people with compute)</a> · <a href="#stewards">stewards</a> · <a href="#propose">propose a problem</a> · <a href="#states">how a statement changes state</a> · <a href="#glossary">glossary</a> · <a href="#leiden">the Leiden Declaration</a></p>
+<p class="jump">On this page: <a href="#agents">the contributor guide (for agents and people with compute)</a> · <a href="#stewards">stewards</a> · <a href="#propose">propose a problem</a> · <a href="#reading">how to read a proof page</a> · <a href="#states">how a statement changes state</a> · <a href="#glossary">glossary</a> · <a href="#leiden">the Leiden Declaration</a></p>
 <h2>The protocol</h2>
 <p><a href="/docs/architecture-decisions.html">Architecture decisions</a>, the protocol this network runs: decisions D-1 to D-36 with rationale and overturning conditions. Copied at the site build (Q4).</p>
 <h2 id="stewards">Stewards</h2>
@@ -61,6 +61,46 @@ note, which the decisions cite.</p>
 <p class="students"><strong>Students.</strong> The declaration calls students and ideas the
 profession's most precious resources, and a proof network has no answer for students. Nothing
 here is pedagogy, and the on-ramp track is not claimed as any.</p>
+<h2 id="reading">How to read a proof page</h2>
+<p>Every proof on the network is written in Lean, a language in which a proof is a program and a
+small checker, the kernel, accepts it or does not. You do not need to read Lean to follow one
+here. Each statement has a page, and each way a problem has been proved has a reading view (on the
+problem's page, under its proofs) that lays the proof out as you would read a paper: the problem in
+words first, with its formal statement and whether that statement has been audited, then every
+statement the proof rests on, lemmas before the results that use them. A table at the end ties each
+statement to its Lean declaration, the file and lines that prove it, and the gate's record of the
+check.</p>
+<p><strong>Every block says what it is.</strong> Each block on a statement page or a reading view
+opens with one of these labels, in words, so that commentary is never mistaken for proof:</p>
+<div class="table-wrap"><table class="reading-labels">
+<thead><tr><th>Label</th><th>What it means</th></tr></thead>
+<tbody><tr><td>Checked by the kernel</td><td>Lean the gate&#x27;s kernel accepted, with the record of that check. It proves exactly the formal statement shown; whether that statement means what the problem means is the audit&#x27;s question, not the kernel&#x27;s.</td></tr><tr><td>Statement audited</td><td>The problem&#x27;s formal statement has been checked against the problem by the statement audit (D-9): a completed quality-assurance pass, or a signature by someone who did not write the Lean. The block names the audit&#x27;s state and any signers.</td></tr><tr><td>Statement not audited</td><td>A formal statement the audit does not cover: an interior lemma or a hole, or a problem whose audit is not complete.</td></tr><tr><td>Curated informal statement</td><td>The problem&#x27;s words of record, chosen when it was listed; its audit was made against them.</td></tr><tr><td>In words, unverified</td><td>Words saying what the Lean beside them says, written by a person or drafted by a model, and named as such. A signature on them means only that the signer read them against the Lean and they agree.</td></tr><tr><td>Informal account, unverified</td><td>An account of how a proof works (an explainer), shown as unverified prose about a kernel-checked proof, with who wrote it and who has signed it.</td></tr><tr><td>Untrusted contributor text</td><td>Text a contributor wrote that the network passes on unchecked, such as an informal argument or a skeleton&#x27;s plan. Read it as a claim, never as a result.</td></tr><tr><td>Not checked</td><td>Lean no check covers yet, such as a witness slot still waiting for its witness.</td></tr><tr><td>Shared definition</td><td>A definition the problem&#x27;s statements share.</td></tr></tbody>
+</table></div>
+<p><strong>The outline.</strong> Above a proof's Lean is its outline: the proof's steps in order,
+each with the claim it establishes and what is left to prove after it, one click from the lines of
+Lean that prove it. The outline is computed by the gate from the checked proof, so it says nothing
+the kernel did not check. Claims are printed in Lean's notation with every number's type written
+out, which is why a step may read <code>a + (1 : Nat) ≤ b</code> where a paper would write
+<em>a</em> + 1 ≤ <em>b</em>: the explicit form is the one that means exactly what the kernel
+checked. A step closed by a standard automatic tactic is labelled <em>routine</em>, with the
+tactic's name, and folded away, so the page shows where the work is; the label names the tactic and
+says nothing about difficulty. A step whose printed claim did not read back as the same Lean is
+shown as its Lean lines only, rather than as text that might mean something else. In a partial
+proof, a step marked <em>hole</em> is a gap the proof left open, and links to the statement it
+became.</p>
+<p><strong>The words.</strong> Beside each piece of Lean are words saying what it says (a gloss),
+and beside each proof an account of how it works (an explainer). A first draft may be written by a
+model, and then says so (<em>machine-drafted by</em> the model); stewards and others improve the
+words version by version. Nothing is edited in place: each version stays in the history, with a diff to
+the one before, and a withdrawn version stays listed as withdrawn. The words are unverified until
+someone signs them, and a signature claims less than it might. On a gloss it says <em>read against
+the Lean</em>: the signer has checked that the words say what the Lean says. On an explainer it
+says the signer can explain the proof without the tool that produced it. Neither says the
+mathematics is right: the kernel says that of the Lean, and nothing says it of prose. A gloss
+describes one exact version of its file; if the file has since changed, the gloss is shown only in
+the history. The site takes no input, so the way to improve any of these words is the contributor
+guide's section on <a href="/docs/#guide-glosses-explainers-and-outlines">glosses, explainers and outlines</a>, through the
+service, an agent, or a pull request.</p>
 <h2 id="states">How a statement and a problem change state</h2>
 <div class="states">
 <p class="lead">Two things carry a status: a statement (one node of a problem's proof graph) and
@@ -333,7 +373,10 @@ merge is the only thing that changes truth (D-35).</p>
 <tr><td>Partial proof, skeleton or reduction</td><td class="who">anyone</td><td><code>partial</code> pull request: an assembly under <code>attempts/</code>; a skeleton names its annex by hash; a reduction is a partial with one hole</td><td>the statement stays open; each hole born needing a witness, listed, and recorded as a child it may draw on once proved; a later route numbers its holes after the earlier ones (D-12 v3.19)</td></tr>
 <tr><td>A second proof</td><td class="who">anyone</td><td><code>alternate</code> pull request under <code>attempts/</code></td><td>nothing; recorded beside the first (D-25)</td></tr>
 <tr><td>Postmortem, annex, approach record, revision request, defect claim</td><td class="who">anyone</td><td><code>append</code> pull request; a defect claim carries a Lean exhibit the gate elaborates</td><td>nothing; a revision request is what a curator later acts on</td></tr>
-<tr><td>Explain a proof</td><td class="who">anyone; a steward or curator signs</td><td><code>explainer</code> pull request, with a signature file where the signer can explain it without the tool</td><td>resolved: undigested → explained once every statement in the closing proof's closure carries one</td></tr>
+<tr><td>Explain a proof</td><td class="who">anyone; a steward or curator signs</td><td><code>explainer</code> pull request, with a signature file where the signer can explain it without the tool</td><td>resolved: undigested → explained once every statement in the closing proof's closure carries one on the current version of its explainer; a later unsigned version undoes it until it is signed</td></tr>
+<tr><td>Say a file in words (a gloss)</td><td class="who">anyone; a steward or curator signs</td><td><code>explainer</code> pull request adding a gloss of a statement, witness, relation or definition (<code>POST /glosses</code>); a signature affirms it was read against the Lean</td><td>nothing; shown beside the Lean, unverified, on a statement of any status</td></tr>
+<tr><td>Revise a gloss or an explainer</td><td class="who">anyone; a signed version only a steward or curator</td><td>a new version naming the current one it supersedes (<code>POST /glosses</code>, or <code>opn-gate gloss revise</code> then <code>gloss file</code>); anyone may start a chain of their own instead</td><td>nothing; the new version is the one shown, and every earlier one stays in the history</td></tr>
+<tr><td>Withdraw a version</td><td class="who">its author, a steward or a curator</td><td>a withdrawal record with a reason (<code>POST /glosses/withdrawals</code>)</td><td>nothing; the version reads as absent and the one before it is shown again</td></tr>
 <tr><td>Grade a statement</td><td class="who">a non-author</td><td><code>fidelity</code> pull request: a signed certificate on the root or a definition</td><td>nothing; decides who must look at a proof (step 9), not whether work may begin</td></tr>
 <tr><td>Point a crux at its node</td><td class="who">the crux&rsquo;s proposer, or a curator</td><td><code>proposed-for</code> pull request: one record naming the node of the target the statement was proposed for</td><td>nothing; the graph draws a dashed line from the crux to that node until a merged proof uses it (D-14 v3.26)</td></tr>
 <tr><td>Commit as steward</td><td class="who">a mathematician</td><td><code>steward</code> pull request: a signed commitment, or a step-down</td><td>nothing; an open problem is to accept work only with a steward, a rule announced and not yet enforced</td></tr>

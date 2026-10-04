@@ -1,0 +1,102 @@
+F19-T9, F20-T12: the guide's section "Glosses, explainers and outlines" (gate/agents/AGENTS.md)
+and the Docs page's "How to read a proof page" (site/opn_site/templates/docs.html), 2026-10-05,
+written on main at 5bf37ef.
+
+Verification
+  UV_PROJECT_ENVIRONMENT=<repo>/.venv uv run --frozen pytest gate/tests/test_walkthrough.py site/tests \
+      -m "not lean and not docker and not network"
+  426 passed, 1 skipped, 1 deselected
+  The skip is test_graph_copy_is_identical: the sibling graph checkout is not beside this worktree.
+  The deselected test is the walkthrough's lean tier (pregate.sh on the tutorial node); the new
+  section's blocks need no toolchain and run in both tiers.
+  ruff check site, ruff format --check site, mypy site: clean.
+
+The walkthrough's per-block record, fast tier (the new section is lines 1655 to 2009; no block
+was added to the manual set, which stays the frozen two):
+
+line   40 passed   test -d "$GRAPH/targets"
+line   59 passed   META="$(grep -l '^tutorial: true' "$GRAPH"/targets/*/nodes/*/META.yaml
+line   81 passed   cat "$NODE_DIR/Statement.lean"
+line   93 passed   python3 - "$NODE_DIR" <<'PY'
+line  116 skipped  OUT="$WORK/pregate"  [lean]
+line  140 passed   BUNDLE_PATH="targets/$TARGET/nodes/$NODE/Proof.lean"
+line  161 passed   STATE=queued
+line  176 passed   python3 - "$WORK/precheck-result.json" <<'PY'
+line  287 passed   python3 - "$NODE_DIR/Proof.lean" "$TARGET" "$NODE" <<'PY' > "$WORK/che
+line  371 passed   curl -fsS "$OPN_API/frontier.json" > "$WORK/frontier.json"
+line  395 passed   CLAIM_NODE="$(python3 - "$WORK/frontier.json" <<'PY'
+line  423 passed   DCO_VERSION="$(curl -fsS "$OPN_API/dco.json" | python3 -c 'import json
+line  444 passed   curl -fsS -X POST "$OPN_API/claims" -H "Authorization: Bearer $TOKEN"
+line  491 passed   python3 - "$GRAPH/targets/index.json" <<'PY'
+line  524 passed   ls -p "$NODE_DIR" | LC_ALL=C sort
+line  557 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line  649 passed   python3 - "$GRAPH/targets/$TARGET/gate-spec.json" <<'PY'
+line  702 passed   curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' "$OPN_API/aut
+line  719 passed   curl -fsS -X POST "$OPN_API/precheck" -H "Authorization: Bearer $TOKEN
+line  746 passed   python3 - "$WORK/precheck-request.json" "$OWNED_JOB" <<'PY' > "$WORK/s
+line  827 passed   SUBMISSION_ID="$(python3 -c 'import json,sys; print(json.load(sys.stdi
+line  860 passed   BRANCH="proof/$NODE-$PSEUDONYM"
+line  877 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line  890 passed   ATTESTATION="$WORK/attestation.json"
+line  915 skipped  git -C "$GRAPH" push -u origin "$BRANCH"  [manual]
+line  951 passed   cat > "$WORK/postmortem.yaml" <<'YAML'
+line 1004 passed   python3 - "$WORK/postmortem.yaml" "$NODE" <<'PY' > "$WORK/postmortem-r
+line 1166 passed   python3 - "$NODE" <<'PY' > "$WORK/annex-request.json"
+line 1402 passed   curl -sS -X POST "$OPN_API/submissions" -H "Authorization: Bearer $TOK
+line 1492 passed   python3 - "$TARGET" "$NODE" <<'PY' > "$WORK/proposal.json"
+line 1520 passed   python3 - "$GRAPH/targets/index.json" <<'PY'
+line 1542 passed   ssh-keygen -q -t ed25519 -N "" -f "$WORK/steward-key" -C "steward"
+line 1567 passed   python3 - "$NODE_DIR" <<'PY' > "$WORK/explainer-hash"
+line 1589 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line 1655 passed   cat > "$WORK/outline.json" <<'JSON'
+line 1724 passed   git -C "$GRAPH" show "main:targets/$TARGET/glosses.json" > "$WORK/glos
+line 1814 passed   python3 - "$NODE" <<'PY' > "$WORK/gloss.json"
+line 1836 passed   python3 - "$NODE" "$GLOSS_HASH" <<'PY' > "$WORK/gloss-revision.json"
+line 1871 passed   python3 - "$NODE" "$PROOF_HASH" <<'PY' > "$WORK/explainer-anchored.jso
+line 1904 passed   python3 - "$TARGET" "$NODE" "$GLOSS_HASH" <<'PY' > "$WORK/withdrawal.j
+line 1942 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line 1969 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line 1984 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line 2009 passed   PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python
+line 2061 passed   curl -fsS "$OPN_API/info.json" | python3 -c '
+line 2078 passed   curl -fsS -X DELETE "$OPN_API/claims/$CLAIM_ID" -H "Authorization: Bea
+line 2098 passed   curl -fsS "$OPN_API/errors.json?prefix=precheck-" | python3 -c '
+line 2154 skipped  claude mcp add --transport http open-proof-network "$OPN_API/mcp"  [manual]
+45 passed, 0 drifted, 0 failed, 3 skipped
+
+What the new blocks were seen to print (read in full, not only the fragments the output blocks
+pin): POST /glosses 201 with "record":"gloss" and the lean_hash of the statement as it stands;
+superseding that unmerged version 409 record-not-head with "head": null; a zero lean_hash 400
+gloss-subject-mismatch with "current" the file's hash; an anchored explainer on a proof with no
+outline 400 explainer-step-unknown, the same text unanchored 201 "record":"explainer";
+withdrawing the unmerged gloss 400 withdrawal-unknown-record; gloss revise / file / sign by the
+steward ok; the outsider's revision of the signed version refused signed-supersede, exit 1, and
+accepted with supersedes: null as a second chain; gloss coverage exit 1, 4 of 12 covered, the
+tutorial statement covered by the steward's gloss.
+
+The outline example in the guide is the real output of opn-outline (Lean 4.33.1, lake build
+opn-outline in this worktree) on gate/tests/fixtures/outline/Steps.lean, called as
+test_outline_lean.py calls it (target fixture, node root, hash 0*64, gate f*40), validated against
+outline/v1, and reformatted only in whitespace; the block validates it again on every run.
+
+Screenshots and measurements (engineering/evidence/F20/shoot_docs.py, the fixture graph with the
+tested guide copied in, as the live graph carries it):
+
+{
+  "fragment": "guide-glosses-explainers-and-outlines",
+  "shots": [
+    "task-12-docs-reading-desktop.png",
+    "task-12-docs-guide-glosses-desktop.png",
+    "task-12-docs-reading-phone.png",
+    "task-12-docs-guide-glosses-phone.png"
+  ],
+  "desktop": {"viewport": 1440, "scrollWidth": 1440, "labels_table_scrolls": [false],
+              "target_exists": true, "ok": true},
+  "phone": {"viewport": 390, "scrollWidth": 390, "labels_table_scrolls": [false],
+            "target_exists": true, "ok": true},
+  "ok": true
+}
+
+Looked at: the reading section at 1440 px (labels table, nine rows, no clipping) and 390 px (two
+columns wrap, no horizontal scroll), and the guide section at 1440 px (heading, lists, the outline
+block in its labelled fence).

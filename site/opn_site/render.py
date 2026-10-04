@@ -145,11 +145,63 @@ PROVENANCE: dict[str, str] = {
     "informal": "Curated informal statement",
     "definition": "Shared definition",
 }
+#: F19-T9, F20-T12: the Docs page's table of those labels, for a reader who has never seen Lean —
+#: (provenance key, what it means). Every key of ``PROVENANCE`` has a row; a test holds them equal.
+READING_LABELS: tuple[tuple[str, str], ...] = (
+    (
+        "kernel",
+        "Lean the gate's kernel accepted, with the record of that check. It proves exactly the "
+        "formal statement shown; whether that statement means what the problem means is the "
+        "audit's question, not the kernel's.",
+    ),
+    (
+        "audited",
+        "The problem's formal statement has been checked against the problem by the statement "
+        "audit (D-9): a completed quality-assurance pass, or a signature by someone who did not "
+        "write the Lean. The block names the audit's state and any signers.",
+    ),
+    (
+        "unaudited",
+        "A formal statement the audit does not cover: an interior lemma or a hole, or a problem "
+        "whose audit is not complete.",
+    ),
+    (
+        "informal",
+        "The problem's words of record, chosen when it was listed; its audit was made against "
+        "them.",
+    ),
+    (
+        "gloss",
+        "Words saying what the Lean beside them says, written by a person or drafted by a model, "
+        "and named as such. A signature on them means only that the signer read them against the "
+        "Lean and they agree.",
+    ),
+    (
+        "unverified",
+        "An account of how a proof works (an explainer), shown as unverified prose about a "
+        "kernel-checked proof, with who wrote it and who has signed it.",
+    ),
+    (
+        "untrusted",
+        "Text a contributor wrote that the network passes on unchecked, such as an informal "
+        "argument or a skeleton's plan. Read it as a claim, never as a result.",
+    ),
+    (
+        "unchecked",
+        "Lean no check covers yet, such as a witness slot still waiting for its witness.",
+    ),
+    ("definition", "A definition the problem's statements share."),
+)
 #: F20-T8 (R14, D-36): the fixed label every explainer version renders under.
 EXPLAINER_LABEL = "unverified prose about a kernel-checked proof"
-#: F20-R14: where a reader learns to improve the words. The guide's revision section is F20-T12's
-#: to write (gate/agents/AGENTS.md, rendered on the Docs page); until it lands this is the guide.
-GLOSS_GUIDE_HREF = GUIDE_HREF
+#: F20-T12: the guide's sections on the Docs page carry ids under this prefix (the
+#: ``prose.heading_slug`` of each level-2 heading), apart from the page's own ids.
+GUIDE_ANCHOR_PREFIX = "guide-"
+#: F20-R14, Q16(a): where a reader learns to improve the words — the guide's section on glosses,
+#: explainers and outlines (gate/agents/AGENTS.md, rendered on the Docs page). A test holds the
+#: fragment to a heading the guide has.
+GLOSS_GUIDE_SECTION = "Glosses, explainers and outlines"
+GLOSS_GUIDE_HREF = f"/docs/#{GUIDE_ANCHOR_PREFIX}{prose.heading_slug(GLOSS_GUIDE_SECTION)}"
 #: A gloss subject's kind in the page's words.
 GLOSS_KIND_WORDS = {
     "statement": "statement",
@@ -2644,6 +2696,7 @@ class Renderer:
                 Prose(path="AGENTS.md", text=agents_md.read_text(encoding="utf-8")),
                 what="AGENTS.md",
                 document=True,  # F04-T10: headings, tables and labelled fences
+                anchors=GUIDE_ANCHOR_PREFIX,  # F20-T12: each section linkable (Q16(a))
             )
             if agents_md.is_file()
             else "<p>The graph has no AGENTS.md yet; the tested one arrives with F10 (D-27).</p>"
@@ -2718,6 +2771,11 @@ class Renderer:
             proposal_url=esc(self.proposal_url),
             leiden_rows=leiden_rows,
             glossary_rows=glossary_rows,
+            reading_labels="".join(
+                f"<tr><td>{esc(PROVENANCE[key])}</td><td>{esc(meaning)}</td></tr>"
+                for key, meaning in READING_LABELS
+            ),
+            gloss_guide_href=esc(GLOSS_GUIDE_HREF),
         )
         renders = [n for n in ("AGENTS.md", "LICENSE", "DCO") if (self.site.root / n).is_file()]
         return self.page("Docs", body, renders=renders, path="/docs/"), extra
@@ -3874,12 +3932,16 @@ class Renderer:
         math: bool = False,
         provenance: str = "",
         block: str = "",
+        anchors: str | None = None,
     ) -> str:
         """R4: contributor text in a labelled block, with author and model when recorded. A
-        document (the graph's AGENTS.md) goes through the document renderer; all else is prose.
+        document (the graph's AGENTS.md) goes through the document renderer, its level-2
+        headings given ids under the ``anchors`` prefix when one is passed; all else is prose.
         ``provenance`` (F19-R11) opens the block and ``block`` names its kind, from the caller."""
         body = (
-            prose.render_document(prose_.text) if document else prose.render(prose_.text, math=math)
+            prose.render_document(prose_.text, anchors=anchors)
+            if document
+            else prose.render(prose_.text, math=math)
         )
         by = []
         if prose_.author:

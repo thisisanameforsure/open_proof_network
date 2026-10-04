@@ -236,13 +236,32 @@ def _table(header: str, rows: list[str]) -> str:
     )
 
 
-def render_document(text: str) -> str:  # noqa: PLR0912, PLR0915 — one branch per line shape
+_SLUG_DROP_RE = re.compile(r"[^a-z0-9]+")
+
+
+def heading_slug(text: str) -> str:
+    """A level-2 heading's anchor: its words before any parenthesised citation, lower-cased,
+    every run of other characters one hyphen. ``Glosses, explainers and outlines (D-3 v3.30)``
+    is ``glosses-explainers-and-outlines``, so a new citation never moves the anchor (F20-T12).
+    The alphabet is ``[a-z0-9-]``, so the id needs no escaping."""
+    words = text.split(" (", 1)[0]
+    return _SLUG_DROP_RE.sub("-", words.lower()).strip("-")
+
+
+def render_document(  # noqa: PLR0912, PLR0915 — one branch per line shape
+    text: str, *, anchors: str | None = None
+) -> str:
     """The site's own documents (F10-R9) and the graph's AGENTS.md (F04-R9, T10): ``render``'s
     rules plus headings (``#`` to ``###``), bullet and numbered lists with indented continuation
     lines, the two inline forms of ``inline``, fence info strings (``_code_block``) and pipe
     tables (a ``|`` row followed by a ``|---|`` rule). Every character is still escaped; the
-    renderer trusts nothing (F04-R3)."""
+    renderer trusts nothing (F04-R3).
+
+    With ``anchors`` (a prefix), each level-2 heading carries ``id="<prefix><heading_slug>"``,
+    the first of any two that would share one, so a page can link a section of the guide
+    (F20-Q16(a)); the prefix keeps the guide's ids apart from the page's own."""
     out: list[str] = []
+    seen_ids: set[str] = set()
     paragraph: list[str] = []
     items: list[str] = []
     list_tag: str | None = None
@@ -305,7 +324,13 @@ def render_document(text: str) -> str:  # noqa: PLR0912, PLR0915 — one branch 
             flush_paragraph()
             flush_list()
             level = len(heading.group("level"))
-            out.append(f"<h{level}>{inline(heading.group('text'))}</h{level}>")
+            attr = ""
+            if anchors is not None and level == 2:  # a section of the document
+                slug = heading_slug(heading.group("text"))
+                if slug and anchors + slug not in seen_ids:
+                    seen_ids.add(anchors + slug)
+                    attr = f' id="{escape(anchors + slug, quote=True)}"'
+            out.append(f"<h{level}{attr}>{inline(heading.group('text'))}</h{level}>")
             continue
         bullet = _BULLET_RE.match(line)
         numbered = _NUMBERED_RE.match(line)
