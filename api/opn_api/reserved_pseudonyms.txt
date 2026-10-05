@@ -12,6 +12,7 @@
 opn-gate
 opn
 open-proof-network
+opn-drafter
 
 # roles
 admin

@@ -46,6 +46,10 @@ Parameters:
     Type: String
     Default: ""
     Description: the network commit from which the gate reads stepped annexes (F18-T5, annex/v2); a target pinned at or after it takes them, and empty means none does
+  DrafterPseudonym:
+    Type: String
+    Default: ""
+    Description: the pseudonym of the network's drafter identity (F20-T10, Q17); its gloss and explainer pull requests are written with no author and a drafter block, and empty means no identity is the drafter
   ApiDomain:
     Type: String
     Default: ""
@@ -263,6 +267,8 @@ Resources:
           OPN_API_USES_FROM: !Ref UsesFrom
           # F18-T5: a stepped annex (annex/v2) is taken where the target's pin descends from this
           OPN_API_ANNEX_STEPS_FROM: !Ref AnnexStepsFrom
+          # F20-T10: the drafter identity (Q17); empty until the owner's identity exists
+          OPN_API_DRAFTER_PSEUDONYM: !Ref DrafterPseudonym
           # R3: the OAuth redirect_uri must match the address the browser actually used.
           OPN_API_PUBLIC_URL: !If
             - HasDomain
