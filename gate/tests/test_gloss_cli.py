@@ -105,6 +105,9 @@ def test_revise_then_file_supersedes_the_head(
     doc, body = glosses.split_front_matter(draft.read_text(encoding="utf-8"))
     assert doc is not None
     assert doc["supersedes"] == head and doc["author"] == "carol" and doc["drafter"] is None
+    # F21-R6: revise writes the record version the service writes, v2, with drafted_with open
+    # for the person to fill in if a model helped (null: their own words)
+    assert doc["schema"] == "gloss/v2" and "drafted_with" in doc and doc["drafted_with"] is None
     lean = schemas.content_hash((node_dir(root) / "Statement.lean").read_bytes())
     assert doc["subject"]["lean_hash"] == lean and doc["date"] == "2026-10-05"
     assert "reassociates" in body  # the head's words, to correct rather than retype
@@ -184,7 +187,9 @@ def test_revise_an_explainer_and_start_a_chain(
     )  # fmt: skip
     assert code == 0 and out["supersedes"] is None
     doc, body = glosses.split_front_matter(draft.read_text(encoding="utf-8"))
-    assert doc is not None and doc["schema"] == "explainer/v1" and doc["supersedes"] is None
+    assert (
+        doc is not None and doc["schema"] == "explainer/v2"
+    )  # F21-R6: revise writes what the service writes and doc["supersedes"] is None
     assert doc["proof"] == schemas.content_hash((node_dir(root) / "Proof.lean").read_bytes())
     assert body.lstrip().startswith("## ")
     code, out = run(capsys, "gloss", "file", str(draft), "--graph", str(root))

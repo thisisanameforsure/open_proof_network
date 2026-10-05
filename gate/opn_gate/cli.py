@@ -2665,7 +2665,9 @@ def _gloss_revise(args: argparse.Namespace, graph: Path) -> int:
         licence = str((old or {}).get("licence") or licence)
         if directory != glosses.GLOSS_DIR and not body.lstrip().startswith("## "):
             body = "## The idea\n\n" + body.lstrip()  # an explainer filed before F20
-    schema = glosses.SCHEMA if directory == glosses.GLOSS_DIR else "explainer/v1"
+    # F21-R6: the version the service writes; drafted_with is the person's to fill in when a
+    # model helped (D-23), null for their own words
+    schema = "gloss/v2" if directory == glosses.GLOSS_DIR else "explainer/v2"
     doc: dict[str, Any] = {
         "schema": schema,
         "target": args.target_id,
@@ -2675,6 +2677,7 @@ def _gloss_revise(args: argparse.Namespace, graph: Path) -> int:
         "drafter": None,
         "date": _intake_date(args)[:10],
         "licence": licence,
+        "drafted_with": None,
     }
     text = "---\n" + yaml.safe_dump(doc, sort_keys=False, allow_unicode=True) + "---\n" + body
     out: Path = args.out or Path.cwd() / f"{args.target_id}-{args.subject.replace(':', '-')}.md"

@@ -242,7 +242,9 @@ def test_linear_chains_and_signed_supersede(root: Path, keys: dict[str, Path], r
     assert found[0].details["head"] == b and b in found[0].message
     (root / c_change.path).unlink()  # refused, so never merged: the tree is as it was
     _, d_change = make(root, "Third reading.", supersedes=b)
-    assert codes(root, d_change) == []
+    # carol's edit of carol's own written words shows at once (F21-Q10), so it is opened by carol:
+    # opened by anyone else it would be refused author-not-opener (F21-Q14)
+    assert codes(root, d_change, author="carol") == []
     (root / d_change.path).unlink()  # D was a probe; B stays the head
 
     sign(root, b, STEWARD, keys[STEWARD])
@@ -308,7 +310,8 @@ def test_withdrawal_and_current_version(
     ]
     # The head is B again: a fourth version supersedes it, and C cannot be superseded.
     _, d_change = make(root, "Fourth.", supersedes=b)
-    assert [d.message for d in problems(root, d_change)] == []
+    # carol's own edit, so opened by carol (F21-Q10, Q14)
+    assert [d.message for d in problems(root, d_change, author="carol")] == []
     _, after_c = make(root, "After the withdrawn one.", supersedes=c)
     assert codes(root, after_c) == ["record-not-head"]
 

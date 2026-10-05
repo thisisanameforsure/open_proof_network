@@ -1099,6 +1099,7 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
                 or check_draft_provenance(graph_root, located, classification)
                 or check_version_head(graph_root, located)
                 or check_model_lock(graph_root, located, signer=signer)
+                or check_own_edit_opener(graph_root, located, classification, signer=signer)
             )
         elif located.role == "explainer-signature":
             problems.extend(
@@ -1111,6 +1112,7 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
                 or check_draft_provenance(graph_root, located, classification)
                 or check_version_head(graph_root, located)
                 or check_model_lock(graph_root, located, signer=signer)
+                or check_own_edit_opener(graph_root, located, classification, signer=signer)
             )
         elif located.role == "gloss-signature":
             problems.extend(
@@ -2426,35 +2428,31 @@ def check_version_head(graph_root: Path, located: Located) -> list[Diagnostic]:
     )
 
 
-def check_model_lock(
-    graph_root: Path, located: Located, *, signer: Signer | None = None
-) -> list[Diagnostic]:
-    """F21-R12 (D-3 v3.31, Q7): a version a model drafted (one naming ``drafted_with``) may not
-    change or omit a section its chain shows as written or verified: ``locked-by-a-person``, one
-    per such section, naming its key and the Lean it describes — for an explainer's ``steps:``
-    section the lines its steps span in the proof's outline (the least start to the greatest
-    end), for its overview or a gloss the whole file. What the chain shows is derived over the
-    versions ahead of this one, with the valid signatures on them (``opn_gate.sections``). A
-    person's version is never refused here: their change to locked words is pending until a
-    steward or curator signs it. (A legacy ``drafter`` block is refused before this, R2.)"""
+def _chain_before(
+    graph_root: Path, located: Located, *, signer: Signer | None, models_only: bool
+) -> tuple[glosses.Version, sections.Derived, str] | None:
+    """The version ``located`` adds, what its chain shows over the versions ahead of it (with the
+    valid signatures on them), and the version's text; ``None`` when there is nothing to judge (no
+    such version, no version ahead, an unreadable file, or, with ``models_only``, a person's
+    version)."""
     from opn_gate import explainers  # noqa: PLC0415 — explainers reads glosses, as this does
 
     parent = _record_parent(graph_root, located)
     siblings = _versions_of(parent, located.role)
     stem = PurePosixPath(located.path).stem
     version = next((v for v in siblings if v.hash == stem), None)
-    if version is None or not version.by_model:
-        return []
+    if version is None or (models_only and not version.by_model):
+        return None
     gloss = located.role == "gloss"
     directory = glosses.GLOSS_DIR if gloss else explainers.EXPLAINER_DIR
     withdrawn = glosses.withdrawn_versions(parent, directory)
     same = [v for v in siblings if v.subject == version.subject]
     chain = glosses.chain_of(glosses.chains(same, withdrawn), version.hash)
     if chain is None:
-        return []  # defence in depth: every version is in some chain
+        return None  # defence in depth: every version is in some chain
     ahead = chain.versions[: [v.hash for v in chain.versions].index(version.hash)]
     if not ahead:
-        return []
+        return None
     verifier = signer or signed.default_signer()
     if gloss:
         approvals: dict[str, list[frozenset[str] | None]] = {
@@ -2467,7 +2465,72 @@ def check_model_lock(
     try:
         text = (graph_root / located.path).read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
-        return []  # the file's own check names what is wrong with it
+        return None  # the file's own check names what is wrong with it
+    return version, before, text
+
+
+def check_own_edit_opener(
+    graph_root: Path,
+    located: Located,
+    classification: Classification | None,
+    *,
+    signer: Signer | None = None,
+) -> list[Diagnostic]:
+    """F21-Q14: an author's edit of their own written words shows at once (the owner's ruling,
+    Q10), so a version that uses that privilege must be filed by its author. On a pull request the
+    service did not open, a version naming an ``author`` that changes a section the chain shows
+    as written by that same author is refused ``author-not-opener`` unless the author is among the
+    opener's names (``acting_names``). The service writes the author from the token, so its pull
+    requests are not in question; a version that merely proposes a change to another's words is
+    pending and gains nothing from its name, so it is not checked; with no opener known (a local
+    classify without ``--author``) nothing is judged."""
+    if classification is None or classification.by_service or not classification.author:
+        return []
+    found = _chain_before(graph_root, located, signer=signer, models_only=False)
+    if found is None:
+        return []
+    version, before, text = found
+    if version.by_model or version.author is None:
+        return []
+    gloss = located.role == "gloss"
+    edits = sections.own_edits(before, sections.parts_of_text(text, gloss=gloss), version.author)
+    if not edits or version.author in acting_names(graph_root, classification, version.author):
+        return []
+    keys = ", ".join(p.key for p in edits)
+    return [
+        Diagnostic(
+            "author-not-opener",
+            f"{located.path} names author {version.author} and changes words that author wrote "
+            f"({keys}), which would show at once as their own edit (F21-Q10); but the pull "
+            f"request was opened by {classification.author}. File it through the service, which "
+            "writes the author from the token, or open it as the author; a change to another "
+            "person's words is filed under your own name and waits for a steward or curator",
+            {
+                "path": located.path,
+                "author": version.author,
+                "opened_by": classification.author,
+                "sections": [p.key for p in edits],
+            },
+        )
+    ]
+
+
+def check_model_lock(
+    graph_root: Path, located: Located, *, signer: Signer | None = None
+) -> list[Diagnostic]:
+    """F21-R12 (D-3 v3.31, Q7): a version a model drafted (one naming ``drafted_with``) may not
+    change or omit a section its chain shows as written or verified: ``locked-by-a-person``, one
+    per such section, naming its key and the Lean it describes — for an explainer's ``steps:``
+    section the lines its steps span in the proof's outline (the least start to the greatest
+    end), for its overview or a gloss the whole file. What the chain shows is derived over the
+    versions ahead of this one, with the valid signatures on them (``opn_gate.sections``). A
+    person's version is never refused here: their change to locked words is pending until a
+    steward or curator signs it. (A legacy ``drafter`` block is refused before this, R2.)"""
+    found = _chain_before(graph_root, located, signer=signer, models_only=True)
+    if found is None:
+        return []
+    version, before, text = found
+    gloss = located.role == "gloss"
     target_dir = graph_root / "targets" / located.target_id
     out: list[Diagnostic] = []
     for placed in sections.breaches(before, sections.parts_of_text(text, gloss=gloss)):

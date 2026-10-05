@@ -325,13 +325,13 @@
                       ]
                     },
                     "drafted_with": {
-                      "description": "glosses/v2 (F21-R6, D-23): the model and tooling that drafted this version, in its author's words; null for a person's own writing. Contributor text, untrusted.",
+                      "description": "glosses/v2 (F21-R6, D-23): the model and tooling that drafted this version, in its author's words, served demarcated (F21-R7, C9); null for a person's own writing.",
                       "oneOf": [
                         {
                           "type": "null"
                         },
                         {
-                          "type": "string"
+                          "$ref": "#/$defs/untrusted"
                         }
                       ]
                     },

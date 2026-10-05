@@ -251,6 +251,16 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "hypotheses cannot all hold).",
         "Nothing to do.",
     ),
+    "author-not-opener": (
+        "gate",
+        None,
+        "A hand-opened gloss or explainer version names an author and changes words that author "
+        "wrote, which would show at once as their own edit, but someone else opened the pull "
+        "request (F21-Q14).",
+        "File it through POST /glosses (the service writes the author from your token), or open "
+        "the pull request as the author; to change another person's words, file under your own "
+        "name and a steward or curator will review it.",
+    ),
     "author-names-another": (
         "api",
         None,

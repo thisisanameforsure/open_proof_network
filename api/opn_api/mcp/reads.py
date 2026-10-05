@@ -418,6 +418,11 @@ def node_chains(ctx: Context, target_id: str, node_id: str) -> tuple[list[dict[s
                 if found is not None:
                     _front, body = glosses.split_front_matter(text(found, where))
                 version["text"] = demarcate.wrap(body, where) if body is not None else None
+                if isinstance(version.get("drafted_with"), str):
+                    # F21-R7, C9: the contributor's own words on the model they used
+                    version["drafted_with"] = demarcate.wrap(
+                        version["drafted_with"], f"{where}#drafted_with"
+                    )
     return subjects, source
 
 

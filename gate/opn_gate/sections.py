@@ -156,6 +156,9 @@ class Derived:
     pending: list[Placed] = field(default_factory=list)
     #: The words each shown section holds, normalised, by key (what the model lock compares).
     shown_text: dict[str, str] = field(default_factory=dict)
+    #: Who wrote each shown section's words, by key (``None`` for a draft): what an own edit of
+    #: written words is checked against (F21-Q10, Q14).
+    shown_author: dict[str, str | None] = field(default_factory=dict)
 
     def all_verified(self) -> bool:
         """R15: the chain shows something and every section it shows is verified."""
@@ -234,6 +237,7 @@ def derive(
     out.shown = [Placed(k, shown[k].version, shown[k].state) for k in order]
     out.pending = [Placed(k, version, PENDING) for k in pending for version, _ in pending[k]]
     out.shown_text = {k: shown[k].text for k in order}
+    out.shown_author = {k: shown[k].author for k in order}
     return out
 
 
@@ -247,6 +251,23 @@ def breaches(before: Derived, parts: Sequence[Part]) -> list[Placed]:
         p
         for p in before.shown
         if p.state in LOCKED and texts.get(p.key) != before.shown_text.get(p.key)
+    ]
+
+
+def own_edits(before: Derived, parts: Sequence[Part], author: str | None) -> list[Placed]:
+    """F21-Q10, Q14: the sections the chain shows as *written* by ``author`` that a new version by
+    ``author`` changes — the edits the owner's ruling shows at once, without review. The caller
+    must make sure the version's author is who filed it, or the privilege is anyone's."""
+    if author is None:
+        return []
+    texts = {p.key: p.text for p in keyed(parts)}
+    return [
+        p
+        for p in before.shown
+        if p.state == WRITTEN
+        and before.shown_author.get(p.key) == author
+        and p.key in texts
+        and texts[p.key] != before.shown_text.get(p.key)
     ]
 
 

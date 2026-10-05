@@ -238,3 +238,16 @@ def test_a_node_with_no_words_has_empty_chains(h: Harness) -> None:
     gloss_chains, explainer_chains = chain_parts(bundle)
     assert all(s["chains"] == [] for s in gloss_chains + explainer_chains)
     assert [o["outline"] for o in bundle["outlines"]] == [None]  # Proof.lean, not yet outlined
+
+
+def test_drafted_with_is_served_as_untrusted_data(h: Harness, tree: Path) -> None:
+    """F21-R7, C9: ``drafted_with`` is contributor text, so get_node serves it demarcated like
+    the prose, never as a bare string (the planted injection must not appear bare)."""
+    put_version(
+        tree, "gloss", "A reading.", schema="gloss/v2", drafted_with=f"a model; {INJECTION}"
+    )
+    serve(h, tree)
+    bundle = McpClient(h).ok("get_node", {"node_id": NODE})
+    assert bare_hits(bundle, INJECTION) == []
+    assert any(w for w in wrapped_hits(bundle, INJECTION))
+    assert results.violations("get_node", bundle) == []

@@ -607,3 +607,28 @@ def write_signed(path: Path, doc: dict[str, Any], key: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     body = signed.sign(doc, key, SIGNER)
     path.write_text(yaml.safe_dump(body, sort_keys=False), encoding="utf-8")
+
+
+def test_an_own_edit_must_be_opened_by_its_author(ac10: tuple[Path, str]) -> None:
+    """F21-Q14 (the owner's ruling on own edits, Q10, made safe): an author's edit of their own
+    written words shows at once, so the gate must know the author is who opened the pull request.
+    A hand-opened version naming ``dave`` that changes the section dave wrote is refused
+    ``author-not-opener`` when someone else opened it, and passes when dave did. Only the own-edit
+    privilege is checked: a version under someone else's name that merely proposes a change is
+    pending, not refused (the service writes the author from the token, so its pull requests are
+    never in question)."""
+    root, v2 = ac10
+    _, change = version(root, three("draft a", "dave's better b", "draft c"), author="dave",
+                        drafted_with=None, supersedes=v2)  # fmt: skip
+    assert codes(root, change, author="mallory") == ["author-not-opener"]
+    assert codes(root, change, author="dave") == []
+
+
+def test_a_proposal_under_another_name_is_pending_not_refused(ac10: tuple[Path, str]) -> None:
+    """The rule is about the own-edit privilege only: a hand-opened version by ``erin`` changing
+    dave's section is pending (never shown), so its author's name gains nothing and is not
+    checked against the opener here."""
+    root, v2 = ac10
+    _, change = version(root, three("draft a", "erin's b", "draft c"), author="erin",
+                        drafted_with=None, supersedes=v2)  # fmt: skip
+    assert codes(root, change, author="mallory") == []
