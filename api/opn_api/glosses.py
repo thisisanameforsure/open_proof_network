@@ -42,7 +42,7 @@ import yaml
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from opn_api import appends, pending, sshsig
+from opn_api import appends, duplicates, pending, sshsig
 from opn_api import identity as identitymod
 from opn_api.app import ApiError
 from opn_api.githost import GitHostError
@@ -382,6 +382,19 @@ def record_file(front: dict[str, Any], text: str) -> str:
     return f"---\n{head}---\n{body}"
 
 
+def words_key(target_id: str, node_id: str | None, subject: dict[str, Any]) -> str:
+    """F21-Q5: the subject's key, ``words:<target>:<file-or-proof-hash>`` — an explainer's proof
+    hash, or a gloss's Lean file relative to its target (``nodes/<id>/Statement.lean``,
+    ``defs/<module>``)."""
+    if subject["kind"] == PROOF_KIND:
+        return duplicates.words_key(target_id, str(subject["proof"]))
+    module = subject.get("module") if node_id is None else None
+    file = glosses.subject_file(
+        Path(), {"kind": subject["kind"], "node": node_id, "module": module}
+    )
+    return duplicates.words_key(target_id, file.as_posix() if file is not None else "")
+
+
 async def post_glosses(ctx: Context, request: Request) -> Response:
     """R10: a gloss of a statement, witness, relation or definition module, or an explainer of a
     merged proof artifact; new, or superseding the head of its chain."""
@@ -417,6 +430,11 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
         directory = explainers.EXPLAINER_DIR if record == "explainer" else glosses.GLOSS_DIR
         path = f"{parent}{directory}/{digest}.md"
         preflight(root, path, content.encode(), verifier)
+    # F21-R5: after the gate's own refusals, as the copy rule is (appends.append_pr): a new chain
+    # waits for the writer already at work on its subject; a superseding version does not.
+    words = words_key(target_id, node_id, subject)
+    if supersedes is None:
+        duplicates.check_words(ctx, words)
     owner = node_id or subject.get("module") or target_id
     written = yaml.safe_dump(
         {"subject": front.get("subject") or front.get("proof"), "supersedes": supersedes},
@@ -433,6 +451,8 @@ async def post_glosses(ctx: Context, request: Request) -> Response:
         target_id=target_id,
         node_id=node_id,
         written=written + text,
+        subject_prints=(words,),
+        subject_slots=(words,) if supersedes is None else (),
     )
     body |= {"hash": digest, "record": record}
     if record == "gloss":
