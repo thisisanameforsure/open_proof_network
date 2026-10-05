@@ -727,14 +727,14 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "Write the record with `opn-gate curator status <node> disputed --cause <why> --reference "
         "defects/<file>`, naming a claim on that node that is on main and not withdrawn.",
     ),
-    "drafter-not-service": (
+    "draft-not-accepted": (
         "gate",
         None,
-        "A gloss or explainer with a drafter block and no author was opened by hand. A draft is "
-        "the network's drafter's, filed through the service, so that no one else can label words "
-        "as machine-drafted (F20-T10, Q6).",
-        "File your own version with yourself as author (drafter: null), by hand or through "
-        "POST /glosses.",
+        "An added gloss or explainer carries a drafter block. The network drafts nothing and "
+        "accepts no new drafts, whoever opens the pull request; the merged drafts stay readable "
+        "and can be superseded (F21-R2, D-3 v3.31).",
+        "File the version with yourself as its author (drafter: null), by hand or through "
+        "POST /glosses; name a model that helped in drafted_with.",
     ),
     "duplicate-submission": (
         "api",

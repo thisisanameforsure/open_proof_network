@@ -92,7 +92,9 @@ def test_revise_then_file_supersedes_the_head(
 ) -> None:
     """AC10: revise writes the head's text with supersedes and the current lean_hash filled in;
     an edited copy, filed, is named by its hash under gloss/, supersedes the head, and the gate's
-    classifier passes it."""
+    classifier passes it. The head is a merged draft (``seed_gloss``): restated by F21-R2, a
+    draft on the record stays supersedable by a person, while a new one is refused
+    (``test_file_refuses_a_new_draft``)."""
     head = seed_gloss(root)
     draft = tmp_path / "edit.md"
     code, out = run(
@@ -119,6 +121,27 @@ def test_revise_then_file_supersedes_the_head(
     before = sorted((node_dir(root) / "gloss").iterdir())
     code, out = run(capsys, "gloss", "file", str(draft), "--graph", str(root))
     assert code == 1 and out["ok"] is False
+    assert sorted((node_dir(root) / "gloss").iterdir()) == before
+
+
+def test_file_refuses_a_new_draft(
+    root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """F21-R2 (restating F20-T10's draft case): a revised copy that keeps a drafter block in
+    place of its author is a new draft, refused ``draft-not-accepted`` with nothing written."""
+    seed_gloss(root)
+    edit = tmp_path / "edit.md"
+    run(capsys, "gloss", "revise", TARGET, f"statement:{NODE}", "--graph", str(root),
+        "--by", "carol", "--out", str(edit))  # fmt: skip
+    doc, body = glosses.split_front_matter(edit.read_text(encoding="utf-8"))
+    assert doc is not None
+    doc |= {"author": None, "drafter": {"name": "opn-drafter", "model": "m",
+            "model_version": "1", "input_commit": "b" * 40}}  # fmt: skip
+    edit.write_text("---\n" + yaml.safe_dump(doc, sort_keys=False) + "---\n" + body, "utf-8")
+    before = sorted((node_dir(root) / "gloss").iterdir())
+    code, out = run(capsys, "gloss", "file", str(edit), "--graph", str(root))
+    assert code == 1 and out["ok"] is False
+    assert [p["code"] for p in out["problems"]] == ["draft-not-accepted"]
     assert sorted((node_dir(root) / "gloss").iterdir()) == before
 
 

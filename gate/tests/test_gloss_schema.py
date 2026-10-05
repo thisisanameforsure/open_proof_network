@@ -17,7 +17,7 @@ import pytest
 import yaml
 from harness import copy_graph, take_in
 
-from opn_gate import config, modes, schemas
+from opn_gate import config, glosses, modes, schemas
 from opn_gate.paths import Change
 
 TARGET = "euclid-primes"
@@ -169,13 +169,27 @@ def test_exactly_one_of_author_and_drafter(
     assert verdict(graph, change)[1] == ["gloss-invalid"]
 
 
-def test_a_draft_passes(graph: Path) -> None:
-    """A draft passes in the pull request the service opens for the drafter; opened by hand it
-    is ``drafter-not-service`` (F20-T10, ``test_gloss_draft_provenance``)."""
+def test_a_merged_draft_validates(graph: Path) -> None:
+    """Restated by F21-R2 (was ``test_a_draft_passes``, F20-T10): a draft on the record still
+    validates and is read as a version; only an added one is refused (``test_no_new_drafts``)."""
+    drafter = {"name": "opn-drafter", "model": "m", "model_version": "1", "input_commit": "a" * 40}
+    change = node_gloss(graph, "witness", HOLE, "Witness.lean", author=None, drafter=drafter)
+    [draft] = [v for v in glosses.load_versions(nodes(graph) / HOLE) if v.hash == stem(change)]
+    assert draft.drafter == drafter and draft.author is None
+
+
+def test_an_added_draft_is_refused(graph: Path) -> None:
+    """Restated by F21-R2 (was ``test_a_draft_passes``, F20-T10): the network accepts no new
+    drafts, so the same draft added in a pull request is refused ``draft-not-accepted``, even
+    one the service opened."""
     drafter = {"name": "opn-drafter", "model": "m", "model_version": "1", "input_commit": "a" * 40}
     change = node_gloss(graph, "witness", HOLE, "Witness.lean", author=None, drafter=drafter)
     service = modes.classify([change], author=config.DEFAULT_SERVICE_LOGIN, graph_root=graph)
-    assert [d.code for d in modes.check(graph, service)] == []
+    assert [d.code for d in modes.check(graph, service)] == ["draft-not-accepted"]
+
+
+def stem(change: Change) -> str:
+    return change.path.rsplit("/", 1)[-1].removesuffix(".md")
 
 
 def test_a_gloss_without_front_matter_or_with_a_bad_schema_is_refused(graph: Path) -> None:

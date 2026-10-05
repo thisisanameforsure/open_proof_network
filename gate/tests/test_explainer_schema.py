@@ -22,7 +22,7 @@ import pytest
 import yaml
 from harness import copy_graph, take_in
 
-from opn_gate import config, modes, schemas
+from opn_gate import config, explainers, modes, schemas
 from opn_gate.paths import Change
 
 TARGET = "euclid-primes"
@@ -230,7 +230,9 @@ def test_the_body_is_sections(graph: tuple[Path, dict[str, str]], body: str) -> 
 
 def test_front_matter_is_held_to_the_schema(graph: tuple[Path, dict[str, str]]) -> None:
     """Exactly one of author and drafter; the node and target are where the file sits; an
-    unknown schema id is refused rather than read as a pre-F20 explainer."""
+    unknown schema id is refused rather than read as a pre-F20 explainer. Restated by F21-R2:
+    an added draft is refused ``draft-not-accepted`` even when the service opens it, and a merged
+    one still reads as a version."""
     root, h = graph
     neither = file_explainer(root, explainer_text(h["proof"], "## I\nx\n", author=None))
     assert check(root, neither) == ["explainer-invalid"]
@@ -242,9 +244,15 @@ def test_front_matter_is_held_to_the_schema(graph: tuple[Path, dict[str, str]]) 
     assert check(root, wrong_schema) == ["explainer-invalid"]
     drafter = {"name": "opn-drafter", "model": "m", "model_version": "1", "input_commit": "a" * 40}
     draft = file_explainer(root, explainer_text(h["proof"], ANCHORED, author=None, drafter=drafter))
-    # A draft is the service's to open (F20-T10, ``test_gloss_draft_provenance``).
+    # No new drafts (F21-R2, ``test_no_new_drafts``): the service's own pull request is refused.
     service = modes.classify([draft], author=config.DEFAULT_SERVICE_LOGIN, graph_root=root)
-    assert [d.code for d in modes.check(root, service)] == []
+    assert [d.code for d in modes.check(root, service)] == ["draft-not-accepted"]
+    # Merged, the same draft validates and is read as a version.
+    stem = draft.path.rsplit("/", 1)[-1].removesuffix(".md")
+    [merged] = [
+        v for v in explainers.versions(root / draft.path.rsplit("/", 2)[0]) if v.hash == stem
+    ]
+    assert merged.drafter == drafter and merged.author is None
 
 
 def test_unanchored_name_warns_and_passes(graph: tuple[Path, dict[str, str]]) -> None:
