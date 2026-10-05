@@ -1475,6 +1475,8 @@ class Renderer:
         open_statements = sum(self.open_count(tv) for tv in targets)
         # F04-T31: the "Proved" segment filters ``data-status="proved"``; count the same set.
         proved = sum(1 for tv in targets if self.problem_status(tv) == "proved")
+        # F21-T7 (R9): the "Needs words" segment filters ``data-words > 0``; count the same set.
+        needs_words = sum(1 for tv in targets if tv.words_needed)
         body = _template("problems.html").substitute(
             cards=cards,
             legend=legend,
@@ -1482,6 +1484,7 @@ class Renderer:
             total=len(targets),
             open_statements=open_statements,
             proved=proved,
+            needs_words=needs_words,
             claims_note=self.claims_note(),
         )
         return self.page(
@@ -1510,9 +1513,22 @@ class Renderer:
             source=self.source_line(tv),
             stages=self.stage_marks(tv),
             steward=self.steward_words(tv),
+            words="" if tv.words_needed is None else str(len(tv.words_needed)),
+            words_line=self.words_line(tv),
             action=esc(action),
             rows=rows,
         )
+
+    @staticmethod
+    def words_line(tv: TargetView) -> str:
+        """F21-R9: how many of the problem's Lean files and merged proofs have no words yet
+        (``glosses.needed``, the rows ``list_words_needed`` serves); nothing when the count is
+        zero, or unknown because the products predate F20."""
+        n = len(tv.words_needed or ())
+        if not n:
+            return ""
+        noun = "file needs" if n == 1 else "files need"
+        return f'<span class="words wanted">{n} {noun} words</span>'
 
     @staticmethod
     def ordered_nodes(tv: TargetView) -> list[NodeView]:

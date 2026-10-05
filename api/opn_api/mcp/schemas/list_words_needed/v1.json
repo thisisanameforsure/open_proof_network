@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openproof.network/schemas/mcp/list_words_needed/v1.json",
+  "title": "mcp/list_words_needed/v1",
+  "description": "The result of the list_words_needed tool (F21-T7, R8; D-28 notation note 2026-10-05): every Lean file and merged proof that still lacks words, computed from each target's committed glosses.json (glosses/v1 or v2) and target.yaml at main's head by the gate's own glosses.needed, so it equals the uncovered rows of opn-gate gloss coverage on the same tree with Context files aside (F21-Q6). Targets in targets/index.json's order and subjects in the product's order: nothing is ranked (D-25) and nothing is recorded. Every value is an identifier, a path the gate's layout admits or a reason code; no contributor prose is served, so nothing is demarcated. A target whose glosses.json or target.yaml could not be read is named under unread rather than answered as having nothing to write. Or an error result naming the source that did not answer, or the filter refused (R10).",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["read_at", "target_id", "kind", "count", "subjects", "unread"],
+      "properties": {
+        "read_at": {
+          "description": "The commit of main the graph was read at, or the branch name when the service could not learn its head (F05-T13).",
+          "type": "string"
+        },
+        "target_id": {
+          "description": "The target filter as given; null for every target.",
+          "type": ["string", "null"]
+        },
+        "kind": {
+          "description": "The kind filter as given; null for every kind.",
+          "type": ["string", "null"]
+        },
+        "count": {"type": "integer", "minimum": 0},
+        "subjects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["target", "file", "kind", "node", "module", "reason", "outline"],
+            "properties": {
+              "target": {"type": "string"},
+              "file": {
+                "description": "The Lean file, from the graph's root.",
+                "type": "string"
+              },
+              "kind": {
+                "enum": ["statement", "witness", "relation", "definition", "proof", "alternate", "partial"]
+              },
+              "node": {"type": ["string", "null"]},
+              "module": {
+                "description": "The definition module's path under defs/, for a definition; null otherwise.",
+                "type": ["string", "null"]
+              },
+              "reason": {
+                "description": "Why no words cover it, as opn-gate gloss coverage names it.",
+                "enum": ["no-gloss", "describes-earlier-text", "all-withdrawn", "no-explainer", "root-without-informal"]
+              },
+              "outline": {
+                "description": "For a proof, alternate or partial: the path of its outline (F19), targets/<id>/outlines/<artifact-hash>.json; null otherwise.",
+                "type": ["string", "null"]
+              }
+            }
+          }
+        },
+        "unread": {
+          "description": "Targets whose words could not be computed, each with the file and why: an older graph without glosses.json, a file that does not validate, or a read that did not answer.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["target", "path", "error", "message"],
+            "properties": {
+              "target": {"type": "string"},
+              "path": {"type": "string"},
+              "error": {"type": "string"},
+              "message": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "description": "The plain path did not answer, or the arguments were refused (F09-R10)",
+      "required": ["error", "message", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "error": {"type": "string"},
+        "message": {"type": "string"},
+        "source": {"enum": ["graph", "service", "adapter"]},
+        "status": {"type": "integer"}
+      }
+    }
+  ]
+}
