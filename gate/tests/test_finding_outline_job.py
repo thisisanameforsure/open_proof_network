@@ -35,7 +35,7 @@ from harness import GRAPH_CHECKOUT
 from opn_gate import config
 
 GATE_DIR = Path(__file__).resolve().parents[1]
-REFS = ("f19-t4-outline-job", "origin/main")
+REFS = ("repin-readable", "f19-t4-outline-job", "origin/main")
 JOB = "outline"
 JOB_NAME = "proof outlines for a merge that built (F19-R6), after its record is pushed"
 EXTRACT = "Extract the missing outlines"

@@ -117,6 +117,10 @@ def sha(pulls: list[dict[str, Any]], number: int) -> str:
         ("targets/t2/gate-spec.json", "t1", False),
         ("targets/t1/graph.json", "t1", False),  # rendered by the post-merge job
         ("targets/t1/.tags-cache.json", "t1", False),
+        ("targets/t1/.footprint-cache.json", "t1", False),  # F18's backfill and products
+        ("targets/t1/glosses.json", "t1", False),  # F20's product
+        ("targets/t1/outlines/" + "a" * 64 + ".json", "t1", False),  # F19-T4's outline job
+        ("targets/t1/outlines", "t1", True),  # a file named outlines is not the directory
         ("targets/t1/nodes/n/CONTEXT.json", "t1", False),
         ("targets/index.json", "t1", False),
         ("frontier.json", "t1", False),
