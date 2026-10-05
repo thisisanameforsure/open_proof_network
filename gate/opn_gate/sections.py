@@ -17,13 +17,18 @@ each version's sections take a state, and the chain shows one text per key:
 - changed by a model's version (one naming ``drafted_with``, or one of F20's drafts) over
   drafted or absent words: ``drafted``, shown;
 - changed by a person's version over drafted or absent words: ``written``, shown;
-- changed by a person over written or verified words: ``pending``, not shown, listed under the
-  chain's ``pending`` until a signature approves it (Wikipedia-style, Q7);
+- changed by a person over words they wrote themselves and nobody has verified: ``written``,
+  shown at once (the owner's ruling of 2026-10-06). "Themselves" is the record's ``author``, the
+  same string on both versions, as the ledger compares it (``ledger.writeup_entry``); a draft has
+  no author and is nobody's own. Another person's pending edit of that section stays listed;
+- changed by a person over another's written words, or over verified words (their own
+  included): ``pending``, not shown, listed under the chain's ``pending`` until a signature
+  approves it (Wikipedia-style, Q7);
 - changed by a model over written or verified words: refused at the gate (R12, F21-T11); a
   version that reached the record anyway is read conservatively as ``pending``, never shown;
 - approved by a valid signature on the version — one naming the key, or one naming none (v1):
   ``verified``, shown, and every pending entry for that key is cleared (the approved words
-  replace the text those edits were made against).
+  replace the text those edits were made against). Nothing else clears a pending entry.
 
 A signature counts at its version's place in the chain: the derivation has no clock (no date in
 a record is evidence of order, log 2026-09-19), so signing an older version re-verifies its words
@@ -123,6 +128,8 @@ class Entry:
     parts: tuple[Part, ...]
     by_model: bool
     withdrawn: bool = False
+    #: The version's ``author``: a person's login or pseudonym, ``None`` for a draft.
+    author: str | None = None
 
 
 @dataclass(frozen=True)
@@ -157,6 +164,7 @@ class _Shown:
     version: str
     text: str
     state: str
+    author: str | None = None
 
 
 def _approved(entry: Entry, approvals: Sequence[frozenset[str] | None]) -> frozenset[str]:
@@ -167,13 +175,20 @@ def _approved(entry: Entry, approvals: Sequence[frozenset[str] | None]) -> froze
     return frozenset(out)
 
 
-def _state(part: Part, *, by_model: bool, shown: _Shown | None) -> str:
+def _state(part: Part, entry: Entry, shown: _Shown | None) -> str:
     if shown is not None and shown.text == part.text:
         return UNCHANGED
     if shown is None or shown.state == DRAFTED:
-        return DRAFTED if by_model else WRITTEN
-    return PENDING  # over written or verified words: a person's awaits approval; a model's is
-    # refused at the gate (R12) and, read anyway, is never shown
+        return DRAFTED if entry.by_model else WRITTEN
+    if (
+        shown.state == WRITTEN
+        and not entry.by_model
+        and entry.author is not None
+        and entry.author == shown.author
+    ):
+        return WRITTEN  # the owner's ruling of 2026-10-06: one's own written words, at once
+    return PENDING  # over another's written words or any verified ones: a person's awaits
+    # approval; a model's is refused at the gate (R12) and, read anyway, is never shown
 
 
 def derive(
@@ -190,17 +205,14 @@ def derive(
         approved = _approved(e, approvals.get(e.version, ()))
         states: list[tuple[str, str]] = []
         for p in parts:
-            state = (
-                VERIFIED
-                if p.key in approved
-                else _state(p, by_model=e.by_model, shown=shown.get(p.key))
-            )
+            state = VERIFIED if p.key in approved else _state(p, e, shown.get(p.key))
             states.append((p.key, state))
             if e.withdrawn:
                 continue  # read at its place, without effect: a withdrawn version is absent (R7)
             if state in (DRAFTED, WRITTEN, VERIFIED):
-                shown[p.key] = _Shown(e.version, p.text, state)  # keeps its first place
-                pending.pop(p.key, None)
+                shown[p.key] = _Shown(e.version, p.text, state, e.author)  # keeps its first place
+                if state == VERIFIED:
+                    pending.pop(p.key, None)  # only an approval answers the edits waiting on it
             elif state == PENDING:
                 waiting = pending.setdefault(p.key, [])
                 if all(text != p.text for _, text in waiting):
@@ -256,5 +268,5 @@ def of_chain(
             text = ""
         gloss = v.schema is not None and v.schema.startswith("gloss/")
         parts = tuple(parts_of_text(text, gloss=gloss))
-        entries.append(Entry(v.hash, parts, v.by_model, v.hash in withdrawn))
+        entries.append(Entry(v.hash, parts, v.by_model, v.hash in withdrawn, v.author))
     return derive(entries, approvals)

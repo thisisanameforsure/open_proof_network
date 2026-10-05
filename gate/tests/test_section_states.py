@@ -46,11 +46,18 @@ __all__ = ["keys", "root"]  # the fixtures, imported for pytest
 A, B, C = "overview", "steps:s1", "steps:s2,s3"
 
 
-def entry(version: str, *, model: bool, withdrawn: bool = False, **texts: str) -> Entry:
+def entry(
+    version: str,
+    *,
+    model: bool,
+    withdrawn: bool = False,
+    author: str | None = None,
+    **texts: str,
+) -> Entry:
     """A version with sections A, B, C as given (``a=``, ``b=``, ``c=``), in that order."""
     keyed = {"a": A, "b": B, "c": C}
     parts = tuple(Part(keyed[k], t) for k, t in texts.items())
-    return Entry(version, parts, model, withdrawn)
+    return Entry(version, parts, model, withdrawn, author)
 
 
 def placed(found: list[sections.Placed]) -> list[tuple[str, str, str]]:
@@ -154,11 +161,55 @@ def test_ac10_a_persons_edit_of_verified_words_is_pending_until_signed() -> None
 
 def test_a_persons_edit_of_written_words_is_pending() -> None:
     """R11: written words are a person's; another person's change to them waits for approval."""
-    v1 = entry("v1", model=False, a="carol's a")
-    v2 = entry("v2", model=False, a="dave's a")
+    v1 = entry("v1", model=False, author="carol", a="carol's a")
+    v2 = entry("v2", model=False, author="dave", a="dave's a")
     got = sections.derive([v1, v2], {})
     assert placed(got.shown) == [(A, "v1", WRITTEN)]
     assert placed(got.pending) == [(A, "v2", PENDING)]
+
+
+def test_an_authors_edit_of_their_own_written_words_is_shown_at_once() -> None:
+    """The owner's ruling of 2026-10-06: a person's edit of words they wrote themselves, not yet
+    verified, takes effect at once (``written``, shown). Authors are compared as the record writes
+    them; a draft has no author, so no version is a draft's own edit."""
+    v1 = entry("v1", model=False, author="carol", a="carol's a", b="carol's b")
+    v2 = entry("v2", model=False, author="carol", a="carol's better a", b="carol's b")
+    got = sections.derive([v1, v2], {})
+    assert got.states["v2"] == [(A, WRITTEN), (B, UNCHANGED)]
+    assert placed(got.shown) == [(A, "v2", WRITTEN), (B, "v1", WRITTEN)]
+    assert got.pending == []
+
+
+def test_an_authors_edit_of_their_own_verified_words_is_pending() -> None:
+    """The ruling covers written words only: an edit of verified words is pending whoever wrote
+    them, until a steward or curator signs it."""
+    v1 = entry("v1", model=False, author="carol", a="carol's a")
+    v2 = entry("v2", model=False, author="carol", a="carol's better a")
+    got = sections.derive([v1, v2], {"v1": [None]})
+    assert placed(got.shown) == [(A, "v1", VERIFIED)]
+    assert placed(got.pending) == [(A, "v2", PENDING)]
+
+
+def test_an_authors_own_edit_leaves_anothers_pending_edit_listed() -> None:
+    """An author's own edit replaces their shown words but not another person's proposal: dave's
+    pending edit stays listed for review (only a signature clears a pending edit)."""
+    v1 = entry("v1", model=False, author="carol", a="carol's a")
+    v2 = entry("v2", model=False, author="dave", a="dave's a")
+    v3 = entry("v3", model=False, author="carol", a="carol's second a")
+    got = sections.derive([v1, v2, v3], {})
+    assert got.states["v3"] == [(A, WRITTEN)]
+    assert placed(got.shown) == [(A, "v3", WRITTEN)]
+    assert placed(got.pending) == [(A, "v2", PENDING)]
+
+
+def test_only_a_named_author_edits_their_own_words() -> None:
+    """Two versions with no author (drafts) are never one author's; a model's version by the
+    shown words' own author is still the model lock's (read as pending)."""
+    v1 = entry("v1", model=False, author="carol", a="carol's a")
+    v2 = entry("v2", model=True, author="carol", a="a model's a")
+    got = sections.derive([v1, v2], {})
+    assert got.states["v2"] == [(A, PENDING)]
+    assert placed(got.shown) == [(A, "v1", WRITTEN)]
 
 
 def test_a_model_may_change_only_drafted_words() -> None:
