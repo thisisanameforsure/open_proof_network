@@ -297,6 +297,10 @@ class TargetView:
     subjects: tuple[SubjectView, ...] = ()
     #: F20-T8 (R13): each definition module under ``defs/``, shown with its gloss.
     definitions: tuple[LeanFile, ...] = ()
+    #: F21-T7 (R9): the subjects that lack words, by ``glosses.needed`` over the committed
+    #: ``glosses.json`` and ``target.yaml`` (the rows ``list_words_needed`` serves); ``None``
+    #: when the product is absent or unreadable, so the page claims no count it cannot know.
+    words_needed: tuple[dict[str, Any], ...] | None = None
 
     @property
     def root(self) -> str:
@@ -391,6 +395,32 @@ def _load_record(target_dir: Path) -> dict[str, Any] | None:
     except schemas.SchemaError as exc:
         msg = f"targets/{target_dir.name}/{intake.TARGET_FILE} does not validate: {exc}"
         raise SiteError(msg) from exc
+
+
+#: F21-T7: the ``glosses.json`` versions ``glosses.needed`` reads (the live graph holds v1 until
+#: its re-pin).
+WORDS_GLOSSES_SCHEMAS = frozenset({"glosses/v1", "glosses/v2"})
+
+
+def _load_words_needed(target_dir: Path, root: str) -> tuple[dict[str, Any], ...] | None:
+    """F21-R9: the target's subjects without words, computed as the MCP's
+    ``list_words_needed`` computes them (F21-Q6): ``glosses.needed`` over the committed
+    product and the curated words of ``target.yaml``. A product that is absent, of another
+    version or invalid is warned about and gives ``None``: no count rather than a false zero."""
+    path = target_dir / GLOSSES_FILE
+    if not path.is_file():
+        return None
+    try:
+        doc = schemas.load_json(path)
+        if doc.get("schema") not in WORDS_GLOSSES_SCHEMAS or doc.get("target") != target_dir.name:
+            log.warning("%s: no words count from %s", path, doc.get("schema"))
+            return None
+        schemas.validate(doc, str(doc["schema"]))
+    except schemas.SchemaError as exc:
+        log.warning("%s: no words count, it does not validate: %s", path, exc)
+        return None
+    curated = glosses.curated_words(_load_record(target_dir))
+    return tuple(glosses.needed(doc, root=root, curated=curated))
 
 
 def _load_drift(target_dir: Path) -> tuple[watch.DriftRecord, ...]:
@@ -957,5 +987,6 @@ def load_site(root: Path, commit: str) -> Site:
             outlines=_load_outlines(target_dir),
             subjects=_load_glosses(target_dir),
             definitions=_load_definitions(root, target_dir),
+            words_needed=_load_words_needed(target_dir, str(graph["root"])),
         )
     return site

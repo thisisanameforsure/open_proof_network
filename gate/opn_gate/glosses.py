@@ -794,9 +794,73 @@ def _curated_words(target_dir: Path) -> str | None:
     except (OSError, UnicodeDecodeError, yaml.YAMLError) as exc:
         log.warning("%s does not read; the root has no curated words here: %s", path, exc)
         return None
-    if not isinstance(doc, dict):
+    return curated_words(doc)
+
+
+def curated_words(record: Any) -> str | None:
+    """Which curated words a parsed ``target.yaml`` holds for the root: ``informal``, else
+    ``paraphrase`` (D-6, D-9; F11-R10), else ``None``. Pure, so a reader of the committed file
+    (the service, the site) decides as ``coverage`` does."""
+    if not isinstance(record, dict):
         return None
     for field in ("informal", "paraphrase"):
-        if isinstance(doc.get(field), str) and doc[field].strip():
+        if isinstance(record.get(field), str) and record[field].strip():
             return field
     return None
+
+
+# --- words needed (F21-R8, R9; Q6) ---------------------------------------------------------------
+
+#: The proof artifacts an explainer describes; each has an outline at
+#: ``targets/<id>/outlines/<artifact-hash>.json`` (F19).
+ARTIFACT_KINDS = frozenset({"proof", "alternate", "partial"})
+
+
+def needed(doc: dict[str, Any], *, root: str | None, curated: str | None) -> list[dict[str, Any]]:
+    """F21-R8: the subjects of one target's ``glosses.json`` (``glosses/v1`` or ``v2``) that lack
+    words, in the product's order, ranked by nothing (D-25): each with its target, file (from
+    the graph root), kind, node, module, the reason ``coverage`` gives and, for a proof
+    artifact, the path of its outline. ``root`` is the target's root node and ``curated`` what
+    ``curated_words`` says of its ``target.yaml``. ``Context.lean`` takes no words of its own,
+    so it is not a subject here (Q6).
+
+    The rules are ``coverage``'s, read off the product: a Lean file is covered by a chain whose
+    current version describes the file as the product hashed it; a merged artifact by an
+    explainer chain with a current version; the root's statement, failing a gloss, by curated
+    words. A subject the tree does not hold (a gloss naming a missing file, an explainer of an
+    ``absent`` artifact) has no file to write words for and is not listed."""
+    target = str(doc["target"])
+    base = f"targets/{target}"
+    out: list[dict[str, Any]] = []
+    for subject in doc["subjects"]:
+        kind, file, lean_hash = subject["kind"], subject["file"], subject["lean_hash"]
+        if file is None or lean_hash is None or kind == "absent":
+            continue
+        chains_ = subject["chains"]
+        current = [c["current"] for c in chains_ if c["current"] is not None]
+        if subject["record"] == "explainer":
+            if current:
+                continue
+            reason = ALL_WITHDRAWN if chains_ else NO_EXPLAINER
+        else:
+            hashes = {v["hash"]: v["lean_hash"] for c in chains_ for v in c["versions"]}
+            if any(hashes.get(h) == lean_hash for h in current):
+                continue
+            reason = EARLIER_TEXT if current else ALL_WITHDRAWN if chains_ else NO_GLOSS
+            if kind == "statement" and subject["node"] == root and root is not None:
+                if curated is not None:
+                    continue
+                if reason == NO_GLOSS:
+                    reason = ROOT_WITHOUT_INFORMAL
+        out.append(
+            {
+                "target": target,
+                "file": f"{base}/{file}",
+                "kind": kind,
+                "node": subject["node"],
+                "module": subject["module"],
+                "reason": reason,
+                "outline": f"{base}/outlines/{lean_hash}.json" if kind in ARTIFACT_KINDS else None,
+            }
+        )
+    return out

@@ -20,6 +20,8 @@
     if (filter === "open") { return parseInt(card.getAttribute("data-open") || "0", 10) > 0; }
     if (filter === "proved") { return status === "proved"; }
     if (filter === "unstewarded") { return status === "needs a steward"; }
+    // F21-T7 (R9): a problem with any Lean file or merged proof that has no words yet.
+    if (filter === "words") { return parseInt(card.getAttribute("data-words") || "0", 10) > 0; }
     return true;
   }
 

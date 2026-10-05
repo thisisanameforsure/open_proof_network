@@ -18,7 +18,9 @@ import pytest
 import yaml
 from harness import copy_graph, take_in
 
-from opn_gate import cli, glosses, schemas
+from opn_gate import cli, glosses, products, schemas
+from opn_gate import graph as graphmod
+from opn_gate.signer import SshKeygenSigner
 
 TARGET = "euclid-primes"
 ROOT = "and-reassoc"  # take_in's root, with the fixture's Proof.lean
@@ -52,8 +54,13 @@ def add_node(root: Path, name: str, *, origin: str, relation: str | None = None)
 
 @pytest.fixture
 def root(tmp_path: Path) -> Path:
+    return curated_graph(tmp_path)
+
+
+def curated_graph(tmp_path: Path) -> Path:
     """A curated target: its root (informal statement on record, a proof, an alternate and a
-    partial assembly), a hole it depends on, a variant with a relation, and a definition."""
+    partial assembly), a hole it depends on, a variant with a relation, and a definition.
+    (F21-T7: the MCP's ``list_words_needed`` tests serve the same tree.)"""
     graph = copy_graph(tmp_path)
     take_in(graph, TARGET, defs={MODULE: "def Opn.IsPrime (p : Nat) : Prop := 2 ≤ p\n"})
     shutil.rmtree(graph / "targets" / "propositional")  # one target, so complete can be reached
@@ -232,3 +239,112 @@ def test_a_root_without_curated_words_needs_a_gloss(
 
 def test_a_missing_graph_is_a_usage_error(tmp_path: Path) -> None:
     assert cli.main(["gloss", "coverage", "--graph", str(tmp_path / "nope")]) == 2
+
+
+# --- F21-T7 / AC7: words needed, from the product (R8; Q6) --------------------------------------
+
+
+def _as_v1(doc: dict[str, Any]) -> dict[str, Any]:
+    """The same product as an older gate renders it (``glosses/v1``): the live graph holds v1
+    until its re-pin, so ``needed`` must read both."""
+    old = json.loads(json.dumps(doc))
+    old["schema"] = "glosses/v1"
+    for subject in old["subjects"]:
+        for chain in subject["chains"]:
+            chain.pop("shown")
+            chain.pop("pending")
+            for version in chain["versions"]:
+                version.pop("drafted_with")
+                version.pop("sections")
+                for sig in version["signatures"]:
+                    sig.pop("sections", None)
+    return schemas.validate(old, "glosses/v1")
+
+
+def _needed_everywhere(graph: Path) -> list[dict[str, Any]]:
+    """``glosses.needed`` over every target's rendered product, as the service and the site
+    call it: the product, the root and what ``target.yaml`` says, nothing read from the tree."""
+    out: list[dict[str, Any]] = []
+    for target in sorted(p.name for p in (graph / "targets").iterdir() if p.is_dir()):
+        tg = graphmod.load_target(graph, target)
+        doc = schemas.validate(
+            products.glosses_doc(tg, None, signer=SshKeygenSigner()), products.GLOSSES_SCHEMA
+        )
+        record = tg.path / "target.yaml"
+        curated = glosses.curated_words(
+            yaml.safe_load(record.read_text(encoding="utf-8")) if record.is_file() else None
+        )
+        rows = glosses.needed(doc, root=tg.root, curated=curated)
+        assert glosses.needed(_as_v1(doc), root=tg.root, curated=curated) == rows
+        out.extend(rows)
+    return out
+
+
+def _uncovered(graph: Path, capsys: pytest.CaptureFixture[str]) -> list[dict[str, Any]]:
+    _, doc = report(graph, capsys)
+    keep = ("target", "file", "kind", "node", "module", "reason")
+    return [
+        {k: r[k] for k in keep}
+        for r in doc["subjects"]
+        if not r["covered"] and r["kind"] != "context"
+    ]
+
+
+def _assert_parity(graph: Path, capsys: pytest.CaptureFixture[str]) -> list[dict[str, Any]]:
+    rows = _needed_everywhere(graph)
+    expected = _uncovered(graph, capsys)
+    assert expected, "guard: the state has subjects without words"
+    by_file = sorted(rows, key=lambda r: str(r["file"]))
+    assert [{k: v for k, v in r.items() if k != "outline"} for r in by_file] == sorted(
+        expected, key=lambda r: str(r["file"])
+    )
+    return rows
+
+
+def test_needed_from_the_product_matches_coverage(
+    root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """AC7 (R8, Q6): computed from the committed ``glosses.json`` and ``target.yaml`` alone,
+    the subjects lacking words are exactly ``gloss coverage``'s uncovered rows, Context files
+    aside — with nothing written, part way (a gloss of since-changed text, a withdrawn one, an
+    explained partial), and on a target with no curated words; a proof's row names its
+    outline's path."""
+    base = f"targets/{TARGET}"
+    rows = _assert_parity(root, capsys)  # nothing written: everything but the root statement
+    outline = {r["file"]: r["outline"] for r in rows}
+    proof = schemas.content_hash((nodes(root) / ROOT / "Proof.lean").read_bytes())
+    assert outline[f"{base}/nodes/{ROOT}/Proof.lean"] == f"{base}/outlines/{proof}.json"
+    assert outline[f"{base}/nodes/{VARIANT}/Statement.lean"] is None
+
+    gloss(root, "witness", ROOT)
+    gloss(root, "witness", HOLE)  # of the stub; the witness is then filled
+    (nodes(root) / HOLE / "Witness.lean").write_text("theorem witness : True := trivial\n")
+    digest = gloss(root, "statement", VARIANT)
+    withdrawals = nodes(root) / VARIANT / "withdrawals"
+    withdrawals.mkdir()
+    (withdrawals / "2026-10-04T00-00-00Z-carol.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "schema": "withdrawal/v2",
+                "withdraws": f"gloss/{digest}.md",
+                "reason": "Wrong.",
+                "author": "carol",
+                "date": "2026-10-04",
+            }
+        ),
+        encoding="utf-8",
+    )
+    gloss(root, "definition", None, MODULE)
+    explain(root, ROOT, PARTIAL)
+    rows = _assert_parity(root, capsys)
+    reasons = {r["file"]: r["reason"] for r in rows}
+    assert reasons[f"{base}/nodes/{HOLE}/Witness.lean"] == "describes-earlier-text"
+    assert reasons[f"{base}/nodes/{VARIANT}/Statement.lean"] == "all-withdrawn"
+    assert reasons[f"{base}/nodes/{ROOT}/{ALTERNATE}"] == "no-explainer"
+    assert f"{base}/nodes/{ROOT}/{PARTIAL}" not in reasons
+    assert not any(str(r["file"]).endswith("Context.lean") for r in rows)
+
+    # A target with no target.yaml: its root's statement needs words, and says why.
+    plain = copy_graph(tmp_path / "plain")
+    rows = _assert_parity(plain, capsys)
+    assert "root-without-informal" in {r["reason"] for r in rows}

@@ -29,7 +29,7 @@ from opn_api import glosses as glossroutes
 from opn_api.app import ApiError, CachedDir, CachedFile
 from opn_api.githost import GitHostError
 from opn_api.mcp import demarcate, results
-from opn_api.mcp.calls import ID_PARAM, Call, Source, Tool, error, params
+from opn_api.mcp.calls import ID_PARAM, Call, Source, Tool, ToolError, error, params
 from opn_gate import context, explainers, glosses, layout, products, schemas
 
 if TYPE_CHECKING:
@@ -611,6 +611,126 @@ async def list_error_codes(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     return service_answer(await call.endpoint("GET", path + query), path)
 
 
+# --- F21-T7 (R8; D-28 notation note of 2026-10-05): the files that lack words --------------------
+
+#: The kinds a subject lacking words can be: ``glosses/v2``'s subject kinds, ``absent`` aside
+#: (an explainer of an artifact the tree does not hold has no file to write words for).
+WORD_KINDS: tuple[str, ...] = (
+    "statement",
+    "witness",
+    "relation",
+    "definition",
+    "proof",
+    "alternate",
+    "partial",
+)
+
+
+#: The products ``glosses.needed`` reads: the live graph holds v1 until its re-pin (F21-R6).
+GLOSSES_VERSIONS = frozenset({"glosses/v1", "glosses/v2"})
+
+
+class _UnreadError(Exception):
+    """One target's file that could not be read, listed under ``unread`` (never an empty
+    answer: a target without its product has not been shown to need nothing)."""
+
+    def __init__(self, path: str, code: str, message: str) -> None:
+        super().__init__(message)
+        self.path, self.code, self.message = path, code, message
+
+
+def _at_head(ctx: Context, path: str) -> dict[str, Any]:
+    """A committed record at main's head (``frontier.committed``, F05-T13). ``reads.committed``
+    reads the branch path instead, which the host's CDN caches for minutes; this tool does not
+    inherit that gap."""
+    try:
+        return parse(frontier.committed(ctx, path), path)
+    except ApiError as exc:
+        raise _UnreadError(path, exc.code, exc.message) from exc
+    except ToolError as exc:  # unparseable
+        raise _UnreadError(path, str(exc.doc["error"]), str(exc.doc["message"])) from exc
+
+
+def _target_words(ctx: Context, entry: dict[str, Any]) -> list[dict[str, Any]]:
+    """One target's subjects lacking words, from its committed ``glosses.json`` and
+    ``target.yaml`` by the gate's own rule."""
+    target_id = str(entry["target_id"])
+    path = f"targets/{target_id}/{products.GLOSSES_FILE}"
+    doc = _at_head(ctx, path)
+    if doc.get("schema") not in GLOSSES_VERSIONS or doc.get("target") != target_id:
+        raise _UnreadError(
+            path,
+            "glosses-invalid",
+            f"{path} is {doc.get('schema')!r} for {doc.get('target')!r}; this service reads "
+            + ", ".join(sorted(GLOSSES_VERSIONS)),
+        )
+    try:
+        schemas.validate(doc, str(doc["schema"]))
+    except schemas.SchemaError as exc:
+        raise _UnreadError(path, "glosses-invalid", f"{path} does not validate: {exc}") from exc
+    curated = None
+    # targets-index: ``track`` is null exactly for a target with no target.yaml (F11). An
+    # older index without the field says nothing, so the record is read.
+    if "track" not in entry or entry["track"] is not None:
+        curated = glosses.curated_words(_at_head(ctx, f"targets/{target_id}/target.yaml"))
+    root = entry.get("root")
+    return glosses.needed(doc, root=str(root) if root else None, curated=curated)
+
+
+async def list_words_needed(call: Call, args: dict[str, Any]) -> dict[str, Any]:
+    """Every Lean file and merged proof that still lacks words (F21-R8), computed from the
+    committed products by ``glosses.needed`` (Q6), in the index's target order and each
+    product's subject order: equality filters only, nothing ranked (D-25), nothing recorded.
+
+    Every value served is an identifier, a path the gate's layout admits or a reason code, so
+    there is no contributor prose to demarcate (D-28's untrusted-data rule wraps prose)."""
+    ctx = call.ctx
+    target_id = args.get("target_id")
+    if target_id is not None:
+        target_id = check_id(target_id, "target_id")
+    kind = args.get("kind")
+    if kind is not None and kind not in WORD_KINDS:
+        raise error(
+            "filter-unknown",
+            f"no such kind: {kind!r}; the kinds are {', '.join(WORD_KINDS)}",
+            "adapter",
+        )
+    index_path = "targets/index.json"
+    try:
+        index = _at_head(ctx, index_path)
+    except _UnreadError as exc:
+        raise error(exc.code, exc.message, "graph") from exc
+    entries = [e for e in index.get("targets") or [] if isinstance(e, dict)]
+    if target_id is not None:
+        entries = [e for e in entries if e.get("target_id") == target_id]
+        if not entries:
+            raise error("not-found", f"no target {target_id} in {index_path} at main", "graph")
+    subjects: list[dict[str, Any]] = []
+    unread: list[dict[str, str]] = []
+    for entry in entries:
+        try:
+            rows = _target_words(ctx, entry)
+        except _UnreadError as exc:
+            unread.append(
+                {
+                    "target": str(entry.get("target_id")),
+                    "path": exc.path,
+                    "error": exc.code,
+                    "message": exc.message,
+                }
+            )
+            continue
+        subjects.extend(r for r in rows if kind is None or r["kind"] == kind)
+    return {
+        "read_at": ctx.head or ctx.settings.graph_branch,
+        "target_id": target_id,
+        "kind": kind,
+        "count": len(subjects),
+        "subjects": subjects,
+        "unread": unread,
+    }
+
+
 TOOLS: tuple[Tool, ...] = (
     Tool(
         "server_info",
@@ -775,5 +895,18 @@ TOOLS: tuple[Tool, ...] = (
         "verdict's diagnostic `code` up here. Plain path: GET /errors.json.",
         params({"prefix": PREFIX_PARAM}),
         list_error_codes,
+    ),
+    # F21-T7: D-28's read table, notation note of 2026-10-05.
+    Tool(
+        "list_words_needed",
+        "Every Lean file and merged proof that still lacks words (a gloss for a statement, "
+        "witness, relation or definition; an explainer for a proof, alternate or partial), with "
+        "its target, file, kind, node, the reason none covers it and, for a proof, the path of "
+        "its outline. `target_id` keeps one target; `kind` keeps one kind. Read from each "
+        "target's glosses.json and target.yaml at main's head; in the record's order, ranked by "
+        "nothing. A target whose files could not be read is named under `unread`. Plain path: "
+        "targets/<id>/glosses.json and targets/<id>/target.yaml.",
+        params({"target_id": ID_PARAM, "kind": {"type": "string"}}),
+        list_words_needed,
     ),
 )

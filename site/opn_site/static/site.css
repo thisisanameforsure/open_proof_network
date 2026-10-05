@@ -119,6 +119,8 @@ main > .crumbs, main > h1:first-child { margin-top: calc(var(--s8) * 1.6); }
 .steward { font-size: 13.5px; color: var(--n400); }
 .steward.has { color: var(--n300); }
 .steward.wanted { color: var(--accent-300); }
+.words { font-size: 13.5px; color: var(--n400); }
+.words.wanted { color: var(--accent-300); }
 
 /* — hover cards: the Glossary, on hover or focus, no pointer needed — */
 .term { position: relative; display: inline-block; border-bottom: 1px dotted var(--n500); cursor: help; color: inherit; }

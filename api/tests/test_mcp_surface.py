@@ -45,6 +45,8 @@ READS = {
     "get_check",
     # F09-T15 (audit 2026-10-04, owner-approved), D-28's notation note of 2026-10-04.
     "list_error_codes",
+    # F21-T7, D-28's notation note of 2026-10-05: the files that lack words.
+    "list_words_needed",
 }
 WRITES = {
     "claim_node",
