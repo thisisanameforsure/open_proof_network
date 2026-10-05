@@ -214,7 +214,7 @@ async def propose_witness(call: Call, args: dict[str, Any]) -> dict[str, Any]:
 
 async def submit_gloss(call: Call, args: dict[str, Any]) -> dict[str, Any]:
     """F20-R11: ``POST /glosses``, body for body."""
-    body = present("submit_gloss", args, "subject", "text", "supersedes", "licence")
+    body = present("submit_gloss", args, "subject", "text", "supersedes", "licence", "drafted_with")
     return await forward(call, "POST", "/glosses", body)
 
 
@@ -533,13 +533,18 @@ TOOLS: tuple[Tool, ...] = (
         "chain: `supersedes` is that version's hash, as get_node's gloss_chains and "
         "explainer_chains give it. Unverified prose that asserts nothing (D-3 v3.30): the "
         "author is your identity, the file is named by its hash, and `licence` is required "
-        "(D-23). A gloss names the text it describes (subject.lean_hash, the file as it stands "
-        "when omitted). An explainer's text is sections under level-2 headings; a heading may "
-        "end `{steps: s3 s4.1}` naming the outline's steps it describes. The gate's own checks "
-        "run first and refuse with their code before anything opens: gloss-subject-mismatch "
-        "(naming the current hash), explainer-proof-unknown, explainer-step-unknown, "
-        "record-not-head (409, naming the head), signed-supersede (403: only an active steward "
-        "or a listed curator supersedes a signed version; start a chain of your own instead).",
+        "(D-23); `drafted_with` names the model and tooling that drafted the words, if any "
+        "(1-200 characters; leave it out for your own writing). A gloss names the text it "
+        "describes (subject.lean_hash, the file as it stands when omitted). An explainer's text "
+        "is sections under level-2 headings; a heading may end `{steps: s3 s4.1}` naming the "
+        "outline's steps it describes. Anyone may supersede any version: a change to words a "
+        "person wrote or a steward verified waits, pending, until a steward or curator signs "
+        "it, except your own edit of your own unverified words, which shows at once. The gate's "
+        "own checks run first and refuse with their code before anything opens: "
+        "gloss-subject-mismatch (naming the current hash), explainer-proof-unknown, "
+        "explainer-step-unknown, section-duplicate, tooling-invalid, record-not-head (409, "
+        "naming the head), locked-by-a-person (409: a version with drafted_with may change only "
+        "drafted sections; it names the section and its Lean lines).",
         params(
             {
                 "subject": {
@@ -562,6 +567,11 @@ TOOLS: tuple[Tool, ...] = (
                 "text": {"type": "string", "description": "the prose, as Markdown"},
                 "supersedes": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
                 "licence": {"enum": ["CC-BY-4.0", "CDLA-Permissive-2.0", "Apache-2.0"]},
+                "drafted_with": {
+                    "type": "string",
+                    "description": "the model and tooling that drafted the words (D-23), "
+                    "1-200 characters; the route refuses anything else tooling-invalid",
+                },
             },
             ("subject", "text", "licence"),
         ),

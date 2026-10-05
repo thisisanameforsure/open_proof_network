@@ -374,18 +374,29 @@ def closing_route(node_id: str, statement: str | None) -> dict[str, Any]:
     }
 
 
+#: The ``glosses.json`` versions get_node reads (F21-R6): v1 until a graph's re-pin renders v2,
+#: which adds sections, shown and pending words and ``drafted_with``; the gate writes v2.
+GLOSSES_SCHEMAS: frozenset[str] = frozenset({"glosses/v1", products.GLOSSES_SCHEMA})
+
+
 def node_chains(ctx: Context, target_id: str, node_id: str) -> tuple[list[dict[str, Any]], str]:
-    """F20-R11: the node's ``glosses/v1`` subjects — each Lean file with the gloss chains filed
-    on it, each merged proof artifact with its explainer chains — from the committed
-    ``targets/<id>/glosses.json``, or derived from the node's files at ``main`` by the gate's
-    own function while the graph carries none (F10-Q7; ``derived``). Every version gains its
-    prose, as demarcated untrusted data (D-28)."""
+    """F20-R11: the node's ``glosses/v1`` or ``glosses/v2`` subjects — each Lean file with the
+    gloss chains filed on it, each merged proof artifact with its explainer chains — from the
+    committed ``targets/<id>/glosses.json``, or derived from the node's files at ``main`` by the
+    gate's own function while the graph carries none (F10-Q7; ``derived``). Every version gains
+    its prose, as demarcated untrusted data (D-28)."""
     path = f"targets/{target_id}/{products.GLOSSES_FILE}"
     raw = committed(ctx, path, optional=True)
     if raw is not None:
         doc = parse(raw, path)
         try:
-            schemas.validate(doc, products.GLOSSES_SCHEMA)
+            # F21-R6: the committed product is validated against the version it declares, v1 or
+            # v2 — the live graph holds glosses/v1 until the re-pin renders v2 (D-34).
+            declared = doc.get("schema")
+            if declared not in GLOSSES_SCHEMAS:
+                msg = f"declares {declared!r}, not one of {', '.join(sorted(GLOSSES_SCHEMAS))}"
+                raise schemas.SchemaError(msg)
+            schemas.validate(doc, str(declared))
         except schemas.SchemaError as exc:
             raise error("glosses-invalid", f"{path} does not validate: {exc}", "graph") from exc
         subjects = [s for s in doc["subjects"] if s.get("node") == node_id]

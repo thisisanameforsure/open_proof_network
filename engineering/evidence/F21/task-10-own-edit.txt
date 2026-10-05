@@ -1,0 +1,44 @@
+F21-T10 follow-up: the owner's ruling of 2026-10-06 - an author's own edit of their own
+written (not verified) section takes effect at once (written, shown); edits of another's
+written words or of any verified words stay pending.
+
+$ pytest gate/tests/test_section_states.py -k 'own or written_words'
+RED (seam: Entry.author added and unread; derive at today's behaviour):
+E       AssertionError: assert [('overview',... 'unchanged')] == [('overview',... 'unchanged')]
+E         
+E         At index 0 diff: ('overview', 'pending') != ('overview', 'written')
+E         Use -v to get more diff
+E       AssertionError: assert [('overview', 'pending')] == [('overview', 'written')]
+E         
+E         At index 0 diff: ('overview', 'pending') != ('overview', 'written')
+E         Use -v to get more diff
+FAILED gate/tests/test_section_states.py::test_an_authors_edit_of_their_own_written_words_is_shown_at_once
+FAILED gate/tests/test_section_states.py::test_an_authors_own_edit_leaves_anothers_pending_edit_listed
+2 failed, 6 passed, 15 deselected in 1.32s
+
+$ pytest gate/tests/test_section_states.py -v
+GREEN:
+gate/tests/test_section_states.py::test_an_explainers_sections_are_keyed_by_their_steps PASSED [  4%]
+gate/tests/test_section_states.py::test_an_explainer_without_anchors_is_one_overview PASSED [  8%]
+gate/tests/test_section_states.py::test_a_gloss_is_one_section PASSED    [ 13%]
+gate/tests/test_section_states.py::test_text_equality_ignores_trailing_whitespace_only PASSED [ 17%]
+gate/tests/test_section_states.py::test_two_sections_of_one_key_are_duplicates[## One {steps: s1 s2}\nx\n## Two {steps: s2 s1}\ny\n] PASSED [ 21%]
+gate/tests/test_section_states.py::test_two_sections_of_one_key_are_duplicates[## One {steps: s1}\nx\n## Two\ny\n## Three\nz\n] PASSED [ 26%]
+gate/tests/test_section_states.py::test_ac10_draft_edit_signature PASSED [ 30%]
+gate/tests/test_section_states.py::test_ac10_a_persons_edit_of_verified_words_is_pending_until_signed PASSED [ 34%]
+gate/tests/test_section_states.py::test_a_persons_edit_of_written_words_is_pending PASSED [ 39%]
+gate/tests/test_section_states.py::test_an_authors_edit_of_their_own_written_words_is_shown_at_once PASSED [ 43%]
+gate/tests/test_section_states.py::test_an_authors_edit_of_their_own_verified_words_is_pending PASSED [ 47%]
+gate/tests/test_section_states.py::test_an_authors_own_edit_leaves_anothers_pending_edit_listed PASSED [ 52%]
+gate/tests/test_section_states.py::test_only_a_named_author_edits_their_own_words PASSED [ 56%]
+gate/tests/test_section_states.py::test_a_model_may_change_only_drafted_words PASSED [ 60%]
+gate/tests/test_section_states.py::test_a_repeated_pending_edit_is_listed_once PASSED [ 65%]
+gate/tests/test_section_states.py::test_omitted_sections PASSED          [ 69%]
+gate/tests/test_section_states.py::test_a_withdrawn_version_shows_nothing PASSED [ 73%]
+gate/tests/test_section_states.py::test_a_legacy_draft_counts_as_a_models_words PASSED [ 78%]
+gate/tests/test_section_states.py::test_a_signature_approves_the_sections_it_names PASSED [ 82%]
+gate/tests/test_section_states.py::test_a_signature_naming_an_unknown_section_is_refused PASSED [ 86%]
+gate/tests/test_section_states.py::test_a_version_with_two_sections_of_one_key_is_refused PASSED [ 91%]
+gate/tests/test_section_states.py::test_the_product_publishes_shown_and_pending PASSED [ 95%]
+gate/tests/test_section_states.py::test_digestion_counts_a_node_while_every_shown_section_is_verified PASSED [100%]
+============================== 23 passed in 2.20s ==============================

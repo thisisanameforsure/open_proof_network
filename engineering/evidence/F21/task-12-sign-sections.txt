@@ -1,0 +1,27 @@
+F21-T12 (one item of three): `opn-gate gloss sign` and `opn-gate explainer sign` take
+--sections KEY[,KEY...] and pass approves= to glosses.sign / explainers.sign. 2026-10-06.
+
+Rules as built (gate/opn_gate/cli.py _section_keys):
+- --sections absent: a v1 signature, approving every section (as before).
+- --sections given: a v2 signature naming those keys; a key the version lacks is refused by
+  the writer (GlossError / ExplainerError), exit 1, nothing written.
+- A steps: key carries its own commas (steps:s1,s2): a comma-separated part that starts no key
+  of its own (overview, whole, steps:...) continues the steps: key before it.
+- The command's JSON answer carries "sections" (null for a v1 signature).
+
+$ pytest gate/tests/test_gloss_cli.py -k "sections or section_keys"
+RED (seam: --sections parsed and not passed on):
+E       AssertionError: assert ('gloss-signature/v1' == 'gloss-signature/v2'
+FAILED gate/tests/test_gloss_cli.py::test_sign_sections_writes_a_v2_signature_approving_them
+1 failed, 1 passed, 10 deselected
+
+$ pytest gate/tests/test_gloss_cli.py gate/tests/test_explainer_signature.py -v
+GREEN:
+test_sign_sections_writes_a_v2_signature_approving_them PASSED
+test_section_keys_keep_a_steps_keys_own_commas PASSED
+test_explainer_sign_command_takes_sections PASSED
+17 passed in 1.27s
+
+Not in this commit (T12's other items, other agents' work): the site's pending-changes display;
+get_node's states and pending sections are served as the product carries them (glosses/v2),
+see task-11.txt / the F21-T6 service commit.

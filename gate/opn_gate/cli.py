@@ -56,6 +56,7 @@ from opn_gate import (
     sandbox,
     scaffold,
     schemas,
+    sections,
     signed,
     signer,
     steward,
@@ -531,6 +532,35 @@ def _add_intake_parsers(  # noqa: PLR0915 — one statement per flag
     ev_add.add_argument("--branch", help="also commit what was written on this branch")
 
 
+SECTIONS_HELP = (
+    "approve only these sections, comma-separated keys as glosses.json lists them (whole; "
+    "overview, steps:s1,s2 ...): writes a v2 signature; omitted, a v1 signature approving every "
+    "section (F21-R13)"
+)
+
+
+def _section_keys(raw: str) -> list[str]:
+    """``--sections``: section keys, comma-separated. A ``steps:`` key holds commas of its own
+    (``steps:s1,s2``), so a part that is not a key of its own continues the ``steps:`` key
+    before it."""
+    keys: list[str] = []
+    for part in (p.strip() for p in raw.split(",")):
+        if not part:
+            continue
+        if keys and keys[-1].startswith(sections.STEPS) and not _starts_a_key(part):
+            keys[-1] = f"{keys[-1]},{part}"
+        else:
+            keys.append(part)
+    if not keys:
+        msg = "--sections names at least one section key"
+        raise argparse.ArgumentTypeError(msg)
+    return keys
+
+
+def _starts_a_key(part: str) -> bool:
+    return part in (sections.OVERVIEW, sections.WHOLE) or part.startswith(sections.STEPS)
+
+
 def _add_gloss_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     """The steward's commands on glosses and explainers (F20-R12)."""
     gl = sub.add_parser("gloss", help="revise, file and sign glosses and explainers (F20-R12)")
@@ -557,8 +587,8 @@ def _add_gloss_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser])
     gfile.add_argument("--graph", required=True, type=Path, help="path to the graph checkout")
     gfile.add_argument(
         "--author",
-        help="the login that will open the pull request (default: OPN_PR_AUTHOR); a steward or "
-        "curator may supersede a signed version (F20-R6)",
+        help="the login that will open the pull request (default: OPN_PR_AUTHOR); anyone may "
+        "supersede a signed version, and a change to verified words is pending (F21-R13)",
     )
     gfile.add_argument("--branch", help="also commit what was written on this branch")
     gsign = gl_acts.add_parser(
@@ -571,6 +601,7 @@ def _add_gloss_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser])
     gsign.add_argument("--key", required=True, type=Path, help="the signer's own SSH private key")
     gsign.add_argument("--date", help="UTC timestamp of the act (default: now)")
     gsign.add_argument("--branch", help="also commit what was written on this branch")
+    gsign.add_argument("--sections", type=_section_keys, help=SECTIONS_HELP)
     gcov = gl_acts.add_parser(
         "coverage", help="every Lean file and proof artifact, with its words or why none (R20)"
     )
@@ -626,6 +657,7 @@ def _add_steward_parsers(sub: argparse._SubParsersAction[argparse.ArgumentParser
     esign.add_argument("--key", required=True, type=Path, help="the signer's own SSH private key")
     esign.add_argument("--date", help="UTC timestamp of the act (default: now)")
     esign.add_argument("--branch", help="also commit what was written on this branch")
+    esign.add_argument("--sections", type=_section_keys, help=SECTIONS_HELP)
 
     wu = sub.add_parser("writeup", help="record a paper or a note about a target (F15-R6; D-32)")
     wu_acts = wu.add_subparsers(dest="action", required=True)
@@ -2504,6 +2536,7 @@ def run_explainer(args: argparse.Namespace, settings: config.Settings) -> int:
         date=_intake_date(args),
         key_path=args.key.resolve(),
         signer=signed.default_signer(),
+        approves=args.sections,
     )
     doc = {
         "ok": True,
@@ -2511,6 +2544,7 @@ def run_explainer(args: argparse.Namespace, settings: config.Settings) -> int:
         "node": args.node_id,
         "explainer": args.explainer,
         "signer": args.by,
+        "sections": args.sections,
         "written": [path.resolve().relative_to(graph.resolve()).as_posix()],
     }
     message = f"explainer: {args.by} signed {args.explainer[:12]} on {args.node_id}"
@@ -2769,6 +2803,7 @@ def _gloss_sign(args: argparse.Namespace, graph: Path) -> int:
         date=_intake_date(args),
         key_path=args.key.resolve(),
         signer=signed.default_signer(),
+        approves=args.sections,
     )
     doc = {
         "ok": True,
@@ -2776,6 +2811,7 @@ def _gloss_sign(args: argparse.Namespace, graph: Path) -> int:
         "node": node_id,
         "gloss": args.gloss,
         "signer": args.by,
+        "sections": args.sections,
         "written": [path.resolve().relative_to(graph.resolve()).as_posix()],
     }
     message = f"gloss: {args.by} signed {args.gloss[:12]} on {node_id or args.target_id}"
