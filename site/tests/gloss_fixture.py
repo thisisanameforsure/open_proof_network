@@ -46,6 +46,10 @@ DRAFTER = {
 STUB_WITNESS = "theorem witness : True := by\n  sorry\n"
 FILLED_WITNESS = "theorem witness : True := trivial\n"
 RELATION = "theorem relation : True := trivial\n"
+#: F21-R6, R7: what a contributor says drafted their words — markup in it, so the tests see it
+#: escaped.
+DRAFTED_WITH = 'anthropic/claude-opus-5.5 via "Claude Code" <cli> & tools'
+HOLE_STATEMENT_GLOSS = "The hole's obligation, as its parent's skeleton left it open."
 
 #: The words each gloss carries, so the tests can find them on the page.
 TUTORIAL_DRAFT = "For all propositions p and q, from p and q together one gets q and p."
@@ -107,16 +111,19 @@ def gloss(
     supersedes: str | None = None,
     target: str = TARGET,
     date: str = "2026-10-04",
+    drafted_with: str | None = None,
+    v2: bool = False,
 ) -> str:
-    """A ``gloss/v1`` record of the file as it stands now."""
+    """A ``gloss/v1`` record of the file as it stands now; ``gloss/v2`` when it names
+    ``drafted_with`` or ``v2`` is set (F21-R6)."""
     parent = node_dir(root, node, target) if node is not None else target_dir(root, target)
     file = (
         target_dir(root, target) / "defs" / str(module)
         if kind == "definition"
         else parent / glosses.KIND_FILES[kind]
     )
-    doc = {
-        "schema": "gloss/v1",
+    doc: dict[str, Any] = {
+        "schema": "gloss/v2" if v2 or drafted_with is not None else "gloss/v1",
         "target": target,
         "subject": {
             "kind": kind,
@@ -130,6 +137,8 @@ def gloss(
         "date": date,
         "licence": "CC-BY-4.0",
     }
+    if drafted_with is not None:
+        doc["drafted_with"] = drafted_with
     return put(parent / "gloss", front(doc, body + "\n"))
 
 
@@ -142,10 +151,14 @@ def explainer(
     drafter: dict[str, Any] | None = None,
     supersedes: str | None = None,
     date: str = "2026-10-04",
+    drafted_with: str | None = None,
+    v2: bool = False,
 ) -> str:
+    """An ``explainer/v1`` record of the node's proof; ``explainer/v2`` when it names
+    ``drafted_with`` or ``v2`` is set (F21-R6)."""
     proof = schemas.content_hash((node_dir(root, node) / "Proof.lean").read_bytes())
-    doc = {
-        "schema": "explainer/v1",
+    doc: dict[str, Any] = {
+        "schema": "explainer/v2" if v2 or drafted_with is not None else "explainer/v1",
         "target": TARGET,
         "node": node,
         "proof": proof,
@@ -155,6 +168,8 @@ def explainer(
         "date": date,
         "licence": "CC-BY-4.0",
     }
+    if drafted_with is not None:
+        doc["drafted_with"] = drafted_with
     return put(node_dir(root, node) / "explainer", front(doc, body))
 
 
@@ -238,6 +253,15 @@ def glossed_tree(tmp_path: Path) -> Path:
     # A hole whose stub witness was glossed, then filled: the gloss describes an earlier text.
     write_hole(root, witness=STUB_WITNESS, node_id=HOLE)
     gloss(root, WITNESS_OF_STUB, kind="witness", node=HOLE, drafter=DRAFTER)
+    # F21-R7: a person's words their agent drafted, saying so in ``drafted_with`` (gloss/v2).
+    gloss(
+        root,
+        HOLE_STATEMENT_GLOSS,
+        kind="statement",
+        node=HOLE,
+        author="dana",
+        drafted_with=DRAFTED_WITH,
+    )
     (node_dir(root, HOLE) / "Witness.lean").write_text(FILLED_WITNESS, encoding="utf-8")
 
     # A resolves variant and a draft of its relation.
@@ -289,3 +313,83 @@ def shoot_paths(root: Path) -> list[str]:
         "/" + reading.removesuffix("index.html"),
         f"/problems/{TARGET}/",
     ]
+
+
+# -- F21-T12 (R14; AC11): words by section, with an edit awaiting review ---------------------------
+
+#: The explainer chain of ``sectioned_tree`` on the tutorial's proof, three sections each. Dana's
+#: agent drafts all three; Alice rewrites the first anchored one (written); a curator signs the
+#: second in Alice's version (verified); Bob then edits the verified one (pending).
+SECTION_DRAFT = (
+    "## The idea\nSwap the two halves of the hypothesis.\n\n"
+    "## Getting q {steps: hq}\nThe right half is h.2.\n\n"
+    "## Getting p, and closing {steps: hp s3}\nThe left half is h.1; pair them the other way.\n"
+)
+SECTION_WRITTEN = (
+    "## The idea\nSwap the two halves of the hypothesis.\n\n"
+    "## Getting q {steps: hq}\nTake the hypothesis apart and keep its right half, which is "
+    "$q$.\n\n"
+    "## Getting p, and closing {steps: hp s3}\nThe left half is h.1; pair them the other way.\n"
+)
+SECTION_EDIT = (
+    "## The idea\nSwap the two halves of the hypothesis.\n\n"
+    "## Getting q {steps: hq}\nTake the hypothesis apart and keep its right half, which is "
+    "$q$.\n\n"
+    "## Getting p, and closing {steps: hp s3}\nThe left half is $p$, read off the hypothesis; "
+    "the anonymous constructor then builds $q \\land p$.\n"
+)
+KEY_OVERVIEW, KEY_Q, KEY_P = "overview", "steps:hq", "steps:hp,s3"
+#: The gloss chain of ``sectioned_tree`` on the tutorial's statement: Alice's words, signed by a
+#: curator, then Bob's edit of them.
+GLOSS_VERIFIED = "From p and q together, one gets q and p."
+GLOSS_EDIT = "If both p and q hold, then q and p hold: the order of a conjunction does not matter."
+
+
+def sectioned_tree(tmp_path: Path, *, approve_edit: bool = False) -> tuple[Path, dict[str, str]]:
+    """F21-T12's tree: the tutorial's explainer shows one section drafted, one written and one
+    verified, with Bob's edit of the verified one awaiting review; its statement's gloss shows
+    Alice's verified words with Bob's edit awaiting review. With ``approve_edit`` a curator then
+    signs the edited section of Bob's explainer and Bob's gloss. Products written by the gate.
+    Returns the root and the record hashes by name."""
+    root = rf.chain_tree(tmp_path)
+    signer = SshKeygenSigner()
+    curator_key = keypair(tmp_path, CURATOR)
+    node = node_dir(root, TUTORIAL)
+    h: dict[str, str] = {}
+    h["draft"] = explainer(
+        root, TUTORIAL, SECTION_DRAFT, author="dana", drafted_with=DRAFTED_WITH, date="2026-10-04"
+    )
+    h["written"] = explainer(
+        root, TUTORIAL, SECTION_WRITTEN, author="alice", supersedes=h["draft"], v2=True,
+        date="2026-10-05",
+    )  # fmt: skip
+    explainers.sign(
+        node, h["written"], target_id=TARGET, signer_login=CURATOR, date="2026-10-05",
+        key_path=curator_key, signer=signer, approves=[KEY_P],
+    )  # fmt: skip
+    h["edit"] = explainer(
+        root, TUTORIAL, SECTION_EDIT, author="bob", supersedes=h["written"], v2=True,
+        date="2026-10-06",
+    )  # fmt: skip
+    h["gloss"] = gloss(
+        root, GLOSS_VERIFIED, kind="statement", node=TUTORIAL, author="alice", v2=True
+    )
+    glosses.sign(
+        node, h["gloss"], target_id=TARGET, node_id=TUTORIAL, signer_login=CURATOR,
+        date="2026-10-05", key_path=curator_key, signer=signer,
+    )  # fmt: skip
+    h["gloss_edit"] = gloss(
+        root, GLOSS_EDIT, kind="statement", node=TUTORIAL, author="bob", supersedes=h["gloss"],
+        v2=True, date="2026-10-06",
+    )  # fmt: skip
+    if approve_edit:
+        explainers.sign(
+            node, h["edit"], target_id=TARGET, signer_login=CURATOR, date="2026-10-07",
+            key_path=curator_key, signer=signer, approves=[KEY_P],
+        )  # fmt: skip
+        glosses.sign(
+            node, h["gloss_edit"], target_id=TARGET, node_id=TUTORIAL, signer_login=CURATOR,
+            date="2026-10-07", key_path=curator_key, signer=signer, approves=["whole"],
+        )  # fmt: skip
+    rf.write_products(root)
+    return root, h

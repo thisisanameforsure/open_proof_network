@@ -48,8 +48,11 @@ def test_the_current_version_its_sections_history_and_no_form(pages: dict[str, s
     assert f"Explained and vouched for by <strong>{gf.CURATOR}</strong>" in current
 
     # Each anchored section sits beside the steps it names, linked into the outline above.
+    # F21-T12 (R14): under ``glosses/v2`` each section also names its key.
     sections = re.findall(
-        r'<section class="ex-section" data-steps="([^"]*)">(.*?)</section>', current, re.S
+        r'<section class="ex-section"(?: data-key="[^"]*")? data-steps="([^"]*)">(.*?)</section>',
+        current,
+        re.S,
     )
     assert [s for s, _ in sections] == ["", "hq", "hp s3"]
     for steps, body in sections[1:]:

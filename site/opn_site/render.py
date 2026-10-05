@@ -26,12 +26,14 @@ from opn_site.model import (
     ChainView,
     LeanFile,
     NodeView,
+    Placed,
     Prose,
     Site,
     SiteError,
     SubjectView,
     TargetView,
     VersionView,
+    WordsSection,
 )
 
 TEMPLATES = Path(__file__).resolve().parent / "templates"
@@ -3255,9 +3257,24 @@ class Renderer:
         F20-T8: the current version of the node's first explainer chain, where one exists."""
         tv = self.site.targets.get(nv.target_id)
         subjects = tv.explainer_subjects(nv.node_id) if tv is not None else []
-        current = next(
-            (c.current_version for s in subjects for c in s.chains if c.current_version), None
-        )
+        chain = next((c for s in subjects for c in s.chains if c.current_version), None)
+        current = chain.current_version if chain is not None else None
+        if chain is not None and chain.sectioned and chain.shown:
+            # F21-R14: the words shown are section by section; an edit awaiting review is not.
+            counts = [
+                f"{n} {state}"
+                for state in ("drafted", "written", "verified")
+                if (n := sum(1 for p in chain.shown if p.state == state))
+            ]
+            many = len(chain.shown) != 1
+            waiting = len(chain.pending)
+            pending = (
+                f"; {waiting} edit{'s' if waiting != 1 else ''} awaiting review" if waiting else ""
+            )
+            return (
+                f"unverified, {len(chain.shown)} section{'s' if many else ''}: "
+                f"{', '.join(counts)}{pending}"
+            )
         if current is not None:
             names = ", ".join(esc(s) for s, _d, _p in current.signers)
             state = f"signed by {names}" if names else "not signed"
@@ -3538,9 +3555,49 @@ class Renderer:
         if v.drafter is not None:
             name = esc(str(v.drafter.get("name") or "the drafter"))
             return f"machine-drafted by {esc(v.model or 'an unnamed model')} ({name})"
+        # F21-R7: a contributor whose agent drafted their words says so (D-23).
+        model = f"drafted with {esc(v.drafted_with)}" if v.drafted_with else ""
         if v.author:
-            return f"written by {esc(v.author)}"
-        return "author not recorded"
+            return f"written by {esc(v.author)}" + (f", {model}" if model else "")
+        return model or "author not recorded"
+
+    @staticmethod
+    def words_state(placed: Placed, v: VersionView) -> str:
+        """F21-R14: a shown section's state, in text — "drafted with <model>", "written by
+        <author>" or "verified by <signer>" — never by colour alone."""
+        if placed.state == "verified":
+            names = v.verified_by(placed.key)
+            words = "verified by " + ", ".join(esc(n) for n in names) if names else "verified"
+        elif placed.state == "drafted":
+            words = f"drafted with {esc(v.drafted_with or v.model or 'an unnamed model')}"
+        elif placed.state == "written":
+            words = f"written by {esc(v.author or 'an author not recorded')}"
+        else:
+            words = esc(placed.state)
+        return f'<p class="words-state" data-state="{esc(placed.state)}">{words}</p>'
+
+    def pending_block(self, chain: ChainView, placed: Placed) -> str:
+        """F21-R14: one edit awaiting review, beneath the words it would change — its author, the
+        words "awaiting review", and a diff against the section's shown words. Never shown as the
+        section's words (R11)."""
+        v = chain.version(placed.version)
+        if v is None:
+            return ""
+        shown = chain.shown_version(placed.key)
+        base = shown.part(placed.key) if shown is not None else None
+        edit = v.part(placed.key)
+        diff = self.diff_html(
+            base.canonical if base is not None else "", edit.canonical if edit is not None else ""
+        )
+        when = f", {esc(v.date)}" if v.date else ""
+        return (
+            f'<div class="pending-edit" data-pending="{esc(placed.key)}" '
+            f'data-version="{esc(v.hash)}"><p class="pending-head"><strong>Awaiting review</strong>'
+            f": an edit {self.who_wrote(v)}{when}. It is not shown as these words until a steward "
+            "of the problem or a curator signs it (D-3 v3.31). The change, against the words "
+            f"shown above (rendered from {self.version_link(v)}):</p>"
+            f'<pre class="diff">{diff}</pre></div>'
+        )
 
     def version_link(self, v: VersionView) -> str:
         """A version's file at the rendered commit, labelled by its directory and the first
@@ -3571,7 +3628,16 @@ class Renderer:
         informal = self.informal_block(tv) if is_root and tv is not None else ""
         parts.append(informal)
         current = subject.describing() if subject is not None else []
-        parts.extend(self.gloss_block(v, kind, root=is_root) for v in current)
+        chains = subject.chains if subject is not None else ()
+        for chain in chains:
+            v = chain.words()
+            if v is not None and v.describes_current is not False:
+                state = (
+                    self.words_state(chain.shown[0], v) if chain.sectioned and chain.shown else ""
+                )
+                parts.append(self.gloss_block(v, kind, root=is_root, state=state))
+            # F21-R14: each edit awaiting review sits beneath the words it would change.
+            parts.extend(self.pending_block(chain, p) for p in chain.pending)
         if is_root and not informal:
             parts.append(
                 '<p class="cue">No informal statement is recorded for this problem yet '
@@ -3615,7 +3681,7 @@ class Renderer:
             f'<p class="informal">{self.informal_line(tv)}</p></div>'
         )
 
-    def gloss_block(self, v: VersionView, kind: str, *, root: bool = False) -> str:
+    def gloss_block(self, v: VersionView, kind: str, *, root: bool = False, state: str = "") -> str:
         """One current gloss under its fixed label, with its provenance line (R13): who wrote it
         and, when validly signed, who read it against the Lean. A root's gloss says it is not the
         root's words of record (Q11)."""
@@ -3638,7 +3704,7 @@ class Renderer:
             )
         return (
             f'<div class="gloss" data-block="gloss" data-gloss="{esc(v.hash)}">'
-            f"{self.provenance('gloss', detail)}"
+            f"{self.provenance('gloss', detail)}{state}"
             f'<div class="prose gloss-prose">{prose.render(v.body, math=True)}</div>'
             f'<p class="gloss-foot">Rendered from {self.version_link(v)} · '
             f'<a href="{GLOSS_GUIDE_HREF}">Improve these words →</a></p></div>'
@@ -3755,14 +3821,24 @@ class Renderer:
             out.append(prose.render(sec.text, math=True))
         return "".join(out)
 
-    @staticmethod
-    def diff_block(before: VersionView, v: VersionView, *, ids: str) -> str:
+    @classmethod
+    def diff_block(cls, before: VersionView, v: VersionView, *, ids: str) -> str:
         """R14: a line diff of a version's words against its predecessor's, rendered here with the
         standard library (difflib) into escaped HTML; front matter left out, since only the words
         changed by hand."""
-        lines = difflib.unified_diff(
-            before.body.splitlines(), v.body.splitlines(), lineterm="", n=2
+        body = cls.diff_html(before.body, v.body)
+        return (
+            f'<details class="diff" id="{esc(ids)}diff-{esc(v.hash[:12])}">'
+            f"<summary>Diff of <code>{esc(v.hash[:12])}</code> against "
+            f"<code>{esc(before.hash[:12])}</code></summary>"
+            f'<pre class="diff">{body}</pre></details>'
         )
+
+    @staticmethod
+    def diff_html(before: str, after: str) -> str:
+        """A line diff of two texts (difflib), every line escaped, added and removed lines marked
+        by class and by their ``+`` and ``-`` in text."""
+        lines = difflib.unified_diff(before.splitlines(), after.splitlines(), lineterm="", n=2)
         out = []
         for line in lines:
             if line.startswith(("---", "+++")):
@@ -3778,13 +3854,7 @@ class Renderer:
             )
             text = esc(line)
             out.append(f'<span class="{cls}">{text}</span>' if cls else text)
-        body = "\n".join(out) or "(the words are the same)"
-        return (
-            f'<details class="diff" id="{esc(ids)}diff-{esc(v.hash[:12])}">'
-            f"<summary>Diff of <code>{esc(v.hash[:12])}</code> against "
-            f"<code>{esc(before.hash[:12])}</code></summary>"
-            f'<pre class="diff">{body}</pre></details>'
-        )
+        return "\n".join(out) or "(the words are the same)"
 
     def outline_anchors(self, tv: TargetView | None, nv: NodeView) -> frozenset[str]:
         """The artifact hashes whose outline the node page draws, so an explainer section links
@@ -3819,7 +3889,9 @@ class Renderer:
                 )
             for chain in s.chains:
                 current = chain.current_version
-                if current is None:
+                if chain.sectioned and chain.shown:
+                    parts.append(self.explainer_shown(tv, s, chain, anchors=anchors))
+                elif current is None:
                     parts.append(
                         '<p class="cue">Every version of this explainer is withdrawn; they are '
                         "listed in its history below (D-3 v3.30).</p>"
@@ -3882,16 +3954,86 @@ class Renderer:
             "</div>"
         )
 
-    def explainer_section(
+    def explainer_shown(
         self,
-        sec: explainers.Section,
+        tv: TargetView | None,
+        subject: SubjectView,
+        chain: ChainView,
+        *,
+        anchors: frozenset[str],
+    ) -> str:
+        """F21-R14: the words an explainer chain shows, section by section — each from the version
+        the product names, under a label saying its state in text, still beside the outline steps
+        it names — and beneath each section any edit of it awaiting review, with its diff. The
+        F15 vouching line is a signature on a whole version (a v1 signature), so only those are
+        shown as one; a signature naming sections verifies those sections, and says so on them."""
+        versions: list[VersionView] = []
+        for placed in chain.shown:
+            v = chain.version(placed.version)
+            if v is not None and v not in versions:
+                versions.append(v)
+        vouched = "".join(
+            f'<p class="vouched">Explained and vouched for by <strong>{esc(s)}</strong>, '
+            f"{esc(d)} (<em>I can explain this proof without the tool that produced it</em>; "
+            f"D-3 v3.17). Rendered from {self.file_link(path)}.</p>"
+            for v in versions
+            for (s, d, path), (_s, keys) in zip(v.signers, v.approvals, strict=True)
+            if keys is None
+        )
+        detail = (
+            f"{EXPLAINER_LABEL}; shown section by section, each labelled with who drafted, wrote "
+            "or verified it (D-3 v3.31)."
+        )
+        sources = "; ".join(f"{self.version_link(v)}, {self.who_wrote(v)}" for v in versions)
+        outline = (
+            tv.outlines.get(subject.lean_hash) if tv is not None and subject.lean_hash else None
+        )
+        steps = explainers.outline_steps(outline) if outline is not None else {}
+        linked = subject.lean_hash in anchors
+        prefix = (subject.lean_hash or "")[:12]
+        body: list[str] = []
+        shown_keys = {p.key for p in chain.shown}
+        for placed in chain.shown:
+            v = chain.version(placed.version)
+            part = v.part(placed.key) if v is not None else None
+            if v is None or part is None:
+                continue
+            body.append(
+                self.explainer_section(
+                    part,
+                    steps,
+                    key=prefix,
+                    linked=linked,
+                    words_key=placed.key,
+                    state=self.words_state(placed, v),
+                )
+            )
+            body.extend(self.pending_block(chain, p) for p in chain.pending if p.key == placed.key)
+        body.extend(self.pending_block(chain, p) for p in chain.pending if p.key not in shown_keys)
+        return (
+            f'{vouched}<div class="prose-block unverified explainer-version" '
+            f'data-block="explainer" data-explainer="{esc(chain.current or "")}">'
+            f"{self.provenance('unverified', detail)}"
+            f'<p class="label">Unverified: explainer, its words from {sources}.</p>'
+            f"{''.join(body)}"
+            f'<p class="gloss-foot"><a href="{GLOSS_GUIDE_HREF}">Improve these words →</a></p>'
+            "</div>"
+        )
+
+    def explainer_section(  # noqa: PLR0913 — the section, its outline, and where it is shown
+        self,
+        sec: explainers.Section | WordsSection,
         steps: dict[str, dict[str, Any]],
         *,
         key: str,
         linked: bool,
+        words_key: str | None = None,
+        state: str = "",
     ) -> str:
-        """One section of an ``explainer/v1``: the steps it names beside its words (stacked on a
-        phone, steps first), each step's id, kind and claim from the outline."""
+        """One section of an ``explainer/v1`` or ``v2``: the steps it names beside its words
+        (stacked on a phone, steps first), each step's id, kind and claim from the outline. Under
+        ``glosses/v2`` (F21-R14) the section carries its key and its state label; a section with no
+        heading (an explainer that names no step) is its words alone."""
         named = []
         for sid in sec.steps:
             step = steps.get(sid)
@@ -3916,9 +4058,11 @@ class Renderer:
             if named
             else ""
         )
+        data_key = f' data-key="{esc(words_key)}"' if words_key is not None else ""
+        heading = f"<h3>{prose.inline_math(sec.heading)}</h3>" if sec.heading is not None else ""
         return (
-            f'<section class="ex-section" data-steps="{esc(" ".join(sec.steps))}">{aside}'
-            f'<div class="ex-prose"><h3>{prose.inline_math(sec.heading)}</h3>'
+            f'<section class="ex-section"{data_key} data-steps="{esc(" ".join(sec.steps))}">'
+            f'{aside}<div class="ex-prose">{heading}{state}'
             f"{prose.render(sec.text, math=True)}</div></section>"
         )
 

@@ -23,6 +23,7 @@ from opn_gate import (
     paths,
     records,
     schemas,
+    sections,
     signed,
     watch,
 )
@@ -151,6 +152,20 @@ class SignatureView:
 
 
 @dataclass(frozen=True)
+class WordsSection:
+    """F21-R11: one section of a gloss or explainer version as the site prints it — its key (the
+    gate's, from ``opn_gate.sections``), its heading and the outline steps it names (an explainer's
+    level-2 section; ``None`` and none for a gloss or an unanchored explainer), its words, and the
+    gate's normalised text of the section, which is what a pending edit is diffed against."""
+
+    key: str
+    heading: str | None
+    steps: tuple[str, ...]
+    text: str
+    canonical: str
+
+
+@dataclass(frozen=True)
 class VersionView:
     """F20-R9, R13, R14: one version of a gloss or explainer chain, as ``glosses.json`` lists it,
     with its prose read from the tree and its signatures re-verified at render (F15's seam): only
@@ -171,6 +186,22 @@ class VersionView:
     body: str  # the prose after the front matter
     #: An ``explainer/v1``'s sections, each with the outline steps it names (F20-Q2).
     sections: tuple[explainers.Section, ...] = ()
+    #: F21-R6: the model and tooling a contributor says drafted this version (``gloss/v2``,
+    #: ``explainer/v2``); contributor text, escaped and demarcated wherever shown (C9).
+    drafted_with: str | None = None
+    #: F21-R13: each valid signature's signer and the section keys it approves (``None``: every
+    #: section of the version, a v1 signature), re-verified at render like ``signers``.
+    approvals: tuple[tuple[str, frozenset[str] | None], ...] = ()
+    #: F21-R11: the version's sections, keyed as the gate keys them.
+    parts: tuple[WordsSection, ...] = ()
+
+    def part(self, key: str) -> WordsSection | None:
+        return next((p for p in self.parts if p.key == key), None)
+
+    def verified_by(self, key: str) -> list[str]:
+        """The signers whose valid signature approves this version's section ``key``."""
+        found = [s for s, keys in self.approvals if keys is None or key in keys]
+        return list(dict.fromkeys(found))
 
     @property
     def model(self) -> str | None:
@@ -179,18 +210,48 @@ class VersionView:
 
 
 @dataclass(frozen=True)
+class Placed:
+    """F21-R14: one section a chain shows, or one awaiting review — its key, the version its words
+    come from, and its state (drafted, written, verified; pending for one awaiting review)."""
+
+    key: str
+    version: str
+    state: str
+
+
+@dataclass(frozen=True)
 class ChainView:
     versions: tuple[VersionView, ...]
     current: str | None  # the latest version not withdrawn (D-3 v3.30), or None
+    #: F21-R14 (``glosses/v2``): the chain is read section by section — ``shown`` is what it
+    #: shows, ``pending`` what awaits review. False for a ``glosses/v1`` product, which the site
+    #: renders as whole versions, as before.
+    sectioned: bool = False
+    shown: tuple[Placed, ...] = ()
+    pending: tuple[Placed, ...] = ()
 
     @property
     def current_version(self) -> VersionView | None:
         return next((v for v in self.versions if v.hash == self.current), None)
 
+    def version(self, digest: str) -> VersionView | None:
+        return next((v for v in self.versions if v.hash == digest), None)
+
+    def shown_version(self, key: str) -> VersionView | None:
+        """The version whose words the chain shows for section ``key`` (``glosses/v2``)."""
+        placed = next((p for p in self.shown if p.key == key), None)
+        return self.version(placed.version) if placed is not None else None
+
+    def words(self) -> VersionView | None:
+        """The version a gloss chain shows: under ``glosses/v2`` the one its ``whole`` section
+        comes from — never an edit awaiting review (F21-R11) — and under v1 the current one."""
+        return self.shown_version(sections.WHOLE) if self.sectioned else self.current_version
+
 
 @dataclass(frozen=True)
 class SubjectView:
-    """One Lean file or merged proof artifact with the chains filed on it (``glosses/v1``)."""
+    """One Lean file or merged proof artifact with the chains filed on it (``glosses/v1`` or
+    ``glosses/v2``)."""
 
     kind: str  # statement, witness, relation, definition; proof, alternate, partial, absent
     record: str  # gloss or explainer
@@ -203,7 +264,7 @@ class SubjectView:
     def describing(self) -> list[VersionView]:
         """R13: each chain's current version that describes the file as it stands, in record
         order (F20-Q4) — what the site prints beside the Lean."""
-        found = [c.current_version for c in self.chains]
+        found = [c.words() for c in self.chains]
         return [v for v in found if v is not None and v.describes_current is not False]
 
 
@@ -751,9 +812,12 @@ def _load_outlines(target_dir: Path) -> dict[str, dict[str, Any]]:
     return out
 
 
-#: F20-R9: the gloss and explainer chains per subject, and the one version this generator renders.
+#: F20-R9: the gloss and explainer chains per subject, and the versions this generator renders:
+#: v1 as whole versions (the live graph until its re-pin), v2 section by section (F21-R14).
 GLOSSES_FILE = "glosses.json"
-GLOSSES_SCHEMA = "glosses/v1"
+GLOSSES_SCHEMAS: tuple[str, ...] = ("glosses/v1", "glosses/v2")
+#: A signer, the signature's date, its file, and the section keys it approves (None: all).
+_Sig = tuple[str, str, str, frozenset[str] | None]
 
 
 def _load_glosses(target_dir: Path) -> tuple[SubjectView, ...]:
@@ -774,24 +838,30 @@ def _load_glosses(target_dir: Path) -> tuple[SubjectView, ...]:
     except schemas.SchemaError as exc:
         log.warning("%s skipped: it does not validate: %s", path, exc)
         return ()
-    if doc.get("schema") != GLOSSES_SCHEMA or doc.get("target") != target_dir.name:
+    if doc.get("schema") not in GLOSSES_SCHEMAS or doc.get("target") != target_dir.name:
         log.warning("%s skipped: it is %s for %s", path, doc.get("schema"), doc.get("target"))
         return ()
     signer = signed.default_signer()
-    gloss_sigs: dict[str, list[tuple[str, str, str]]] = {}
-    explainer_sigs: dict[str, list[tuple[str, str, str]]] = {}
+    gloss_sigs: dict[str, list[_Sig]] = {}
+    explainer_sigs: dict[str, list[_Sig]] = {}
     root = target_dir.parents[1]
     parents = {target_dir, *(p for p in (target_dir / "nodes").glob("*") if p.is_dir())}
     try:
         for parent in sorted(parents):
             for digest, found in glosses.valid_signatures(parent, signer).items():
                 gloss_sigs.setdefault(digest, []).extend(
-                    (s.signer, s.date, s.path.relative_to(root).as_posix()) for s in found
+                    (s.signer, s.date, s.path.relative_to(root).as_posix(), _keys(s.sections))
+                    for s in found
                 )
             if parent != target_dir:
                 for sig in explainers.valid(parent, signer):
                     explainer_sigs.setdefault(sig.explainer, []).append(
-                        (sig.signer, sig.date, sig.path.relative_to(root).as_posix())
+                        (
+                            sig.signer,
+                            sig.date,
+                            sig.path.relative_to(root).as_posix(),
+                            _keys(sig.sections),
+                        )
                     )
     except schemas.SchemaError as exc:
         msg = f"targets/{target_dir.name}: a gloss or explainer signature does not validate: {exc}"
@@ -803,6 +873,7 @@ def _load_glosses(target_dir: Path) -> tuple[SubjectView, ...]:
             schemas.content_hash(file.read_bytes()) if file is not None and file.is_file() else None
         )
         sigs = gloss_sigs if s["record"] == "gloss" else explainer_sigs
+        sectioned = doc["schema"] != "glosses/v1"
         chains = tuple(
             ChainView(
                 versions=tuple(
@@ -810,6 +881,9 @@ def _load_glosses(target_dir: Path) -> tuple[SubjectView, ...]:
                     for v in c["versions"]
                 ),
                 current=c["current"],
+                sectioned=sectioned,
+                shown=tuple(_placed(p) for p in c.get("shown", ())),
+                pending=tuple(_placed(p) for p in c.get("pending", ())),
             )
             for c in s["chains"]
         )
@@ -827,31 +901,66 @@ def _load_glosses(target_dir: Path) -> tuple[SubjectView, ...]:
     return tuple(out)
 
 
+def _keys(named: list[str] | None) -> frozenset[str] | None:
+    return None if named is None else frozenset(named)
+
+
+def _placed(p: dict[str, Any]) -> Placed:
+    return Placed(key=str(p["key"]), version=str(p["version"]), state=str(p["state"]))
+
+
+def _parts(
+    record: str, text: str, body: str, found: tuple[explainers.Section, ...]
+) -> tuple[WordsSection, ...]:
+    """F21-R11: a version's sections, keyed by the gate's own reading (``sections.parts_of_text``,
+    ``sections.key_of``) so the site's keys are the product's. An explainer whose sections name
+    no step is one ``overview`` of its whole body, as the gate reads it; a section key carried
+    twice (refused at the gate today) is shown once, its words joined, as the gate joins them."""
+    canonical = {
+        p.key: p.text for p in sections.keyed(sections.parts_of_text(text, gloss=record == "gloss"))
+    }
+    if record == "gloss" or not any(sec.steps for sec in found):
+        key = sections.WHOLE if record == "gloss" else sections.OVERVIEW
+        return (WordsSection(key, None, (), body, canonical.get(key, "")),)
+    out: dict[str, WordsSection] = {}
+    for sec in found:
+        key = sections.key_of(sec.steps)
+        if key in out:
+            prior = out[key]
+            out[key] = replace(prior, text=f"{prior.text}\n\n{sec.text}")
+            continue
+        out[key] = WordsSection(key, sec.heading, sec.steps, sec.text, canonical.get(key, ""))
+    return tuple(out.values())
+
+
 def _version(
     target_dir: Path,
     v: dict[str, Any],
     *,
     now: str | None,
     record: str,
-    sigs: dict[str, list[tuple[str, str, str]]],
+    sigs: dict[str, list[_Sig]],
 ) -> VersionView:
     """One version as the product lists it, its words read from the tree. ``now`` is the hash of
     the subject's file as the checkout holds it, from which a gloss's ``describes_current`` is
     re-derived."""
     root = target_dir.parents[1]
     path = target_dir / str(v["path"])
+    text = ""
     try:
         text = path.read_text(encoding="utf-8")
         _doc, body = glosses.split_front_matter(text)
     except (OSError, UnicodeDecodeError, ValueError) as exc:
         log.warning("%s does not read; shown without its words: %s", path, exc)
         body = ""
-    sections: tuple[explainers.Section, ...] = ()
-    if record == "explainer" and v["schema"] == explainers.RECORD_SCHEMA:
+    found: tuple[explainers.Section, ...] = ()
+    # F21-R6: an explainer/v2 is sectioned as a v1 is.
+    if record == "explainer" and v["schema"] in explainers.RECORD_SCHEMAS:
         try:
-            sections = tuple(explainers.sections(body))
+            found = tuple(explainers.sections(body))
         except ValueError:
-            sections = ()
+            found = ()
+    signatures = sigs.get(str(v["hash"]), [])
     describes = v["describes_current"]
     if record == "gloss" and now is not None and v.get("lean_hash"):
         describes = v["lean_hash"] == now
@@ -865,9 +974,12 @@ def _version(
         date=v["date"],
         withdrawn=bool(v["withdrawn"]),
         describes_current=describes,
-        signers=tuple(sigs.get(str(v["hash"]), ())),
+        signers=tuple((s, d, p) for s, d, p, _k in signatures),
         body=body,
-        sections=sections,
+        sections=found,
+        drafted_with=str(v["drafted_with"]) if v.get("drafted_with") else None,
+        approvals=tuple((s, k) for s, _d, _p, k in signatures),
+        parts=_parts(record, text, body, found),
     )
 
 
