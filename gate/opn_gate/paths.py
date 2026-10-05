@@ -296,8 +296,14 @@ SCHEMAS_FOR_ROLE: dict[Role, tuple[str, ...]] = {
     "formalization": ("formalization/v1",),
     "steward": ("steward/v1",),
     "policy": ("policy/v1",),
-    "explainer-signature": ("explainer-signature/v1",),
-    "gloss-signature": ("gloss-signature/v1",),
+    "explainer-signature": (
+        "explainer-signature/v1",
+        "explainer-signature/v2",
+    ),  # v2: the sections approved (F21-R13)
+    "gloss-signature": (
+        "gloss-signature/v1",
+        "gloss-signature/v2",
+    ),  # v2: the sections approved (F21-R13)
     "writeup": ("writeup/v1",),
     "proposed-for": ("proposed-for/v1",),
     "withdrawal": ("withdrawal/v1", "withdrawal/v2"),  # v2: gloss and explainer versions (F20)

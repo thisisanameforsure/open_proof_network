@@ -30,6 +30,7 @@ from typing import Any
 import yaml
 
 from opn_gate import glosses, schemas, signed
+from opn_gate import sections as sectionsmod
 from opn_gate.diagnostic import Diagnostic
 from opn_gate.paths import Located
 from opn_gate.signer import Signer
@@ -37,6 +38,9 @@ from opn_gate.signer import Signer
 log = logging.getLogger(__name__)
 
 SCHEMA = "explainer-signature/v1"
+#: v2 adds ``sections``: the section keys the signature approves (F21-R13; D-3 v3.31).
+SCHEMA_V2 = "explainer-signature/v2"
+SCHEMAS: frozenset[str] = frozenset({SCHEMA, SCHEMA_V2})
 EXPLAINER_DIR = "explainer"
 SIGNED_DIR = "signed"
 AFFIRMATION = "I can explain this proof without the tool that produced it."
@@ -57,6 +61,13 @@ class Signature:
     path: Path
     doc: dict[str, Any]
     n: int = 0
+
+    @property
+    def sections(self) -> list[str] | None:
+        """The section keys this signature approves; ``None`` for every section of the version
+        (a v1 signature) (F21-R13)."""
+        named = self.doc.get("sections")
+        return [str(k) for k in named] if isinstance(named, list) else None
 
     def as_dict(self) -> dict[str, Any]:
         return {"explainer": self.explainer, "signer": self.signer, "date": self.date}
@@ -102,7 +113,7 @@ def load(node_dir: Path) -> list[Signature]:
         if m is None:
             msg = f"{path}: an explainer signature is explainer/signed/<hash>-<n>.yaml (F15-R8)"
             raise schemas.SchemaError(msg)
-        doc = schemas.load_yaml(path, SCHEMA)
+        doc = glosses.load_signature_doc(path, SCHEMAS)
         out.append(signature_of(doc, path, int(m.group("n"))))
     return out
 
@@ -114,6 +125,15 @@ def problems_of(sig: Signature, node_dir: Path, signer: Signer) -> tuple[str, ..
         problems.append(
             f"explainer-absent: no explainer {sig.explainer[:12]}… is on {node_dir.name}"
         )
+    elif sig.sections is not None:
+        known = section_keys(node_dir / EXPLAINER_DIR / f"{sig.explainer}.md")
+        unknown = [k for k in sig.sections if k not in known]
+        if unknown:
+            problems.append(
+                f"signature-section-unknown: explainer {sig.explainer[:12]}… has no section "
+                f"{', '.join(unknown)}; its sections are {', '.join(known) or 'none'} "
+                "(F21-R11, R13)"
+            )
     if sig.doc.get("affirmation") != AFFIRMATION:
         problems.append("affirmation-differs: the sentence is not the fixed one (F15-R8)")
     if not signed.verifies(sig.doc, signer):
@@ -158,17 +178,29 @@ def sign(  # noqa: PLR0913 — one argument per fact the record carries
     date: str,
     key_path: Path,
     signer: Signer,
+    approves: list[str] | None = None,
 ) -> Path:
     """R8: write one signature with the signer's own key, refusing by name with nothing written
-    when the explainer is not on the node (C7)."""
+    when the explainer is not on the node (C7). ``approves`` names the sections approved
+    (``explainer-signature/v2``, F21-R13), each one the explainer has; ``None`` writes a v1
+    signature, which approves every section."""
     if not _HASH_RE.match(explainer_hash):
         msg = f"{explainer_hash!r} is not an explainer hash (64 lowercase hex characters, D-3)"
         raise ExplainerError(msg)
     if explainer_hash not in explainer_hashes(node_dir):
         msg = f"no explainer {explainer_hash[:12]}… is on {node_dir.name}; nothing to sign"
         raise ExplainerError(msg)
-    doc = {
-        "schema": SCHEMA,
+    if approves is not None:
+        known = section_keys(node_dir / EXPLAINER_DIR / f"{explainer_hash}.md")
+        unknown = [k for k in approves if k not in known]
+        if unknown:
+            msg = (
+                f"explainer {explainer_hash[:12]}… has no section {', '.join(unknown)}; its "
+                f"sections are {', '.join(known) or 'none'}"
+            )
+            raise ExplainerError(msg)
+    doc: dict[str, Any] = {
+        "schema": SCHEMA if approves is None else SCHEMA_V2,
         "target": target_id,
         "node": node_dir.name,
         "explainer": explainer_hash,
@@ -176,7 +208,9 @@ def sign(  # noqa: PLR0913 — one argument per fact the record carries
         "signer": signer_login,
         "date": date[:10],
     }
-    doc = schemas.validate(signed.sign(doc, key_path, signer), SCHEMA)
+    if approves is not None:
+        doc["sections"] = list(dict.fromkeys(approves))
+    doc = schemas.validate(signed.sign(doc, key_path, signer), str(doc["schema"]))
     path = next_path(node_dir, explainer_hash)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True), encoding="utf-8")
@@ -186,7 +220,8 @@ def sign(  # noqa: PLR0913 — one argument per fact the record carries
 
 def read_signature(path: Path) -> Signature:
     m = _FILE_RE.match(path.name)
-    return signature_of(schemas.load_yaml(path, SCHEMA), path, int(m.group("n")) if m else 0)
+    doc = glosses.load_signature_doc(path, SCHEMAS)
+    return signature_of(doc, path, int(m.group("n")) if m else 0)
 
 
 # --- explainer/v1: the proof described and the steps each section names (F20-R2, R4) ------------
@@ -196,6 +231,9 @@ def read_signature(path: Path) -> Signature:
 # and is held to it: only ``explainer/v1`` is accepted.
 
 RECORD_SCHEMA = "explainer/v1"
+#: Every explainer record version the gate reads, each validated against its own ``schema``
+#: (D-34): v2 adds ``drafted_with`` (F21-R6; D-3 v3.31, D-23).
+RECORD_SCHEMAS: frozenset[str] = frozenset({"explainer/v1", "explainer/v2"})
 OUTLINES_DIR = "outlines"
 OUTLINE_SCHEMA = "outline/v1"
 #: F20-Q2: a section names steps at the end of its level-2 heading, ``{steps: s3 s4.1}``.
@@ -320,9 +358,9 @@ def record(  # noqa: PLR0911 — one return per rule
         return _invalid(located, str(exc))
     if doc is None:
         return None, []
-    if doc.get("schema") != RECORD_SCHEMA:
+    if doc.get("schema") not in RECORD_SCHEMAS:
         return _invalid(located, f"the front matter declares {doc.get('schema')!r}")
-    violations = schemas.violations(doc, RECORD_SCHEMA)
+    violations = schemas.violations(doc, str(doc["schema"]))
     if violations:
         return _invalid(located, f"{violations[0].path}: {violations[0].message}")
     if (doc["author"] is None) == (doc["drafter"] is None):
@@ -339,7 +377,9 @@ def record(  # noqa: PLR0911 — one return per rule
         return _invalid(located, str(exc))
 
 
-def check_record(graph_root: Path, located: Located, data: bytes) -> list[Diagnostic] | None:
+def check_record(  # noqa: PLR0911 — one return per rule
+    graph_root: Path, located: Located, data: bytes
+) -> list[Diagnostic] | None:
     """R2, R4: an ``explainer/v1`` file's checks, or ``None`` for an explainer filed before F20
     (the caller keeps D-3's rule for those). Reads files; runs no Lean."""
     parsed = record(located, data)
@@ -348,6 +388,17 @@ def check_record(graph_root: Path, located: Located, data: bytes) -> list[Diagno
     doc, found = parsed
     if doc is None:
         return None
+    doubled = sectionsmod.duplicates(sectionsmod.explainer_parts("", found))
+    if doubled:
+        return [
+            Diagnostic(
+                "section-duplicate",
+                f"{located.path}: two sections have the key {', '.join(doubled)}; a section is "
+                "known by the steps it names, so each set of steps (and the unanchored overview) "
+                "has one section (F21-R11, Q8)",
+                {"path": located.path, "keys": doubled},
+            )
+        ]
     target_dir = graph_root / "targets" / located.target_id
     node_dir = target_dir / "nodes" / str(located.node_id)
     proof = str(doc["proof"])
@@ -432,8 +483,9 @@ def versions(node_dir: Path) -> list[glosses.Version]:
             subject: glosses.Subject = ("proof", node_dir.name, first)
             out.append(glosses.Version(path.stem, path, subject, None, author, None, date, None))
             continue
-        if doc.get("schema") != RECORD_SCHEMA or schemas.violations(doc, RECORD_SCHEMA):
-            log.warning("%s does not validate as %s and is passed over", path, RECORD_SCHEMA)
+        schema = doc.get("schema")
+        if schema not in RECORD_SCHEMAS or schemas.violations(doc, str(schema)):
+            log.warning("%s does not validate as an explainer record and is passed over", path)
             continue
         out.append(
             glosses.Version(
@@ -444,15 +496,11 @@ def versions(node_dir: Path) -> list[glosses.Version]:
                 author=doc["author"],
                 drafter=doc["drafter"],
                 date=str(doc["date"]),
-                schema=RECORD_SCHEMA,
+                schema=str(schema),
+                drafted_with=doc.get("drafted_with"),
             )
         )
     return out
-
-
-def signed_hashes(node_dir: Path, signer: Signer) -> frozenset[str]:
-    """The explainers on the node carrying at least one valid signature (F15-R8)."""
-    return frozenset(sig.explainer for sig in valid(node_dir, signer))
 
 
 def chains_on(node_dir: Path, proof: str | None) -> list[glosses.Chain]:
@@ -463,18 +511,41 @@ def chains_on(node_dir: Path, proof: str | None) -> list[glosses.Chain]:
 
 
 def explained(node_dir: Path, signer: Signer) -> bool:
-    """D-33 v3.30 (F20-R9, Q5): the node counts as explained while the *current* version of an
-    explainer chain on its first proof carries a valid explainer signature. A version written
-    after a signature must be signed again; a signature elsewhere in the chain vouches for text
-    its signer never saw, and a gloss signature counts for nothing here (F20-Q12)."""
+    """D-33 v3.31 (F21-R15): the node counts as explained while every section an explainer chain
+    on its first proof shows is verified — signed by a steward or curator, by a signature naming
+    that section or by one naming none (v1). A person's later edit of a verified section is
+    pending and leaves the verified words shown; a section shown as drafted or written does not
+    count, and a gloss signature counts for nothing here (F20-Q12)."""
     first = first_proof(node_dir)
     if first is None:
         return False
-    signed_ = signed_hashes(node_dir, signer)
+    approvals = approvals_of(valid(node_dir, signer))
+    withdrawn = glosses.withdrawn_versions(node_dir, EXPLAINER_DIR)
     return any(
-        chain.current is not None and chain.current.hash in signed_
+        sectionsmod.of_chain(chain, approvals, withdrawn).all_verified()
         for chain in chains_on(node_dir, first)
     )
+
+
+def approvals_of(sigs: list[Signature]) -> dict[str, list[frozenset[str] | None]]:
+    """What each explainer version's valid signatures approve: the keys a v2 signature names, or
+    ``None`` (every section) for a v1 one (F21-R13)."""
+    out: dict[str, list[frozenset[str] | None]] = {}
+    for sig in sigs:
+        out.setdefault(sig.explainer, []).append(
+            None if sig.sections is None else frozenset(sig.sections)
+        )
+    return out
+
+
+def section_keys(path: Path) -> list[str]:
+    """The section keys of the explainer file at ``path``, in order; empty when it cannot be
+    read (F21-R11)."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return []
+    return list(dict.fromkeys(p.key for p in sectionsmod.parts_of_text(text, gloss=False)))
 
 
 def name_warnings(graph_root: Path, located: Located) -> list[Diagnostic]:
