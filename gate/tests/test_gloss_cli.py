@@ -219,6 +219,35 @@ def test_sign_writes_a_valid_gloss_signature(
     assert code == 1 and out["ok"] is False and "nothing to sign" in out["refused"]
 
 
+def test_sign_sections_writes_a_v2_signature_approving_them(
+    root: Path, key: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """F21-R13 (T12): ``--sections`` names the section keys the signature approves and writes a
+    v2 signature the gate accepts; a key the version lacks is refused with nothing written."""
+    digest = seed_gloss(root)
+    base = ["gloss", "sign", TARGET, digest, "--graph", str(root), "--by", CURATOR,
+            "--key", str(key), "--date", "2026-10-06T00:00:00Z"]  # fmt: skip
+    code, out = run(capsys, *base, "--sections", "whole")
+    assert code == 0 and out["ok"] is True, out
+    [written] = out["written"]
+    doc = yaml.safe_load((root / written).read_text(encoding="utf-8"))
+    assert doc["schema"] == "gloss-signature/v2" and doc["sections"] == ["whole"]
+    assert classified(root, written, author=CURATOR) == []
+    code, out = run(capsys, *base, "--sections", "overview")
+    assert code == 1 and out["ok"] is False, out
+    assert sorted(p.name for p in glosses.signed_dir(node_dir(root)).iterdir()) == [
+        f"{digest}-1.yaml"
+    ]
+
+
+def test_section_keys_keep_a_steps_keys_own_commas() -> None:
+    """``steps:s1,s2`` is one key: a part that starts no key continues the steps: key before it."""
+    assert cli._section_keys("overview,steps:s1,s2,steps:s3") == [
+        "overview", "steps:s1,s2", "steps:s3"
+    ]  # fmt: skip
+    assert cli._section_keys(" whole ") == ["whole"]
+
+
 @pytest.mark.parametrize(
     "subject",
     ["statement:no-such-node", "nonsense", "relation:and-reassoc", f"explainer:{NODE}:{'f' * 64}"],

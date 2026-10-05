@@ -206,6 +206,26 @@ def test_only_valid_signatures_count(graph: tuple[Path, Path, str], keys: dict[s
         explainers.load(node)
 
 
+def test_explainer_sign_command_takes_sections(
+    graph: tuple[Path, Path, str], keys: dict[str, Path], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """F21-R13 (T12): ``--sections`` writes an ``explainer-signature/v2`` approving the named
+    sections; a key the explainer lacks is refused, nothing written."""
+    root, node, digest = graph
+    argv = [
+        "explainer", "sign", TARGET, NODE, digest, "--graph", str(root), "--by", CURATOR,
+        "--key", str(keys[CURATOR]), "--date", "2026-10-06T00:00:00Z", "--sections", "overview",
+    ]  # fmt: skip
+    assert cli.main(argv) == cli.EXIT_PASS
+    out = json.loads(capsys.readouterr().out)
+    doc = schemas.load_yaml(root / out["written"][0], "explainer-signature/v2")
+    assert doc["sections"] == ["overview"] and out["sections"] == ["overview"]
+    argv[-1] = "steps:s9"
+    assert cli.main(argv) == cli.EXIT_FAIL
+    capsys.readouterr()
+    assert sorted(p.name for p in explainers.signed_dir(node).iterdir()) == [f"{digest}-1.yaml"]
+
+
 def test_explainer_sign_command(
     graph: tuple[Path, Path, str], keys: dict[str, Path], capsys: pytest.CaptureFixture[str]
 ) -> None:
