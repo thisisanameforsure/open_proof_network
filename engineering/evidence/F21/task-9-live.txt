@@ -1,0 +1,29 @@
+F21-T9 live — 2026-10-05/06 (UTC)
+
+Network: main 629f916 pushed; api-deploy success at 629f9163. Tag gate-629f916, image-publish run
+37380745596: plain sha256:430779b35925500a855d1b763ad68851a6101f0ed58119e4d10e334b082f9ac6,
+Mathlib sha256:0b0b2d822aa5560682d46e2ac2c481add33d012a0e59d8019749bdad61df767e.
+
+Graph re-pin a1a7ada54: 27 targets name 629f9163; schemas published explainer/v2, gloss/v2,
+explainer-signature/v2, gloss-signature/v2, glosses/v2; guide copied; devcontainer diff image line
+only. Pregate (tutorial-and-swap) on the committed re-pin: verdict pass, steps 1, 2, 4-8 pass
+(repin-629f916-pregate.txt). render.yml: e04b76852 then 3582cd566 (the second a rendered_from-only
+re-render, finite, as on 2026-10-05). euclid-primes/glosses.json schema glosses/v2.
+
+Site deployed. /problems/ carries the "needs words" filter; every one of 27 cards a data-words
+count (21 of 1: a witness; the rest 6 to 126). Euclid's node page shows the 2026-10-05 drafts
+section by section, "drafted with" labels.
+
+AC9 end to end (not including the curator's signature, which is the owner's key):
+- list_words_needed(target_id=euclid-primes, kind=statement) on the live MCP: read_at 3582cd566
+  (main's head), 11 statements, the first infinitude-of-primes--h1 (no-gloss).
+- Test identity f21-words-check minted by the tutorial route.
+- submit_gloss through the live MCP, drafted_with "anthropic/claude-opus-5.5 via Claude Code":
+  201, graph PR #389, gloss/v2 df65addf…; merged by the queue; gate: #389 pass a99b6ae4e.
+- Live node page /nodes/euclid-primes/infinitude-of-primes--h1/: "In words, unverified — …
+  written by f21-words-check, drafted with anthropic/claude-opus-5.5 via Claude Code".
+- Pending: a curator's signature on it (approval and the write-up credit), the owner's act.
+
+Nothing outside the code was removed (F21-Q9): OPENROUTER_API_KEY and OPN_DRAFTER_TOKEN secrets,
+the DrafterPseudonym stack parameter and the graph's dispatch step stand, unread; the step finds no
+gloss-draft workflow and logs a warning.
