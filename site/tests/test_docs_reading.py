@@ -43,6 +43,9 @@ def test_the_reading_section_sits_before_the_state_map_and_is_linked(docs: str) 
     section = reading(docs)
     for words in ("routine", "hole", "read back", "machine-drafted by", "read against"):
         assert words in section, words
+    # F21-T8 (R14, D-3 v3.31): the section states and pending edits, in the renderer's own words.
+    for words in ("drafted with", "written by", "verified by", "awaiting review", "a diff"):
+        assert words in section, words
     assert "<script" not in section and 'href="http' not in section
 
 
@@ -84,8 +87,15 @@ def test_the_actions_table_names_the_word_actions(docs: str) -> None:
         "<code>opn-gate gloss revise</code>",
         "Withdraw a version",
         "<code>POST /glosses/withdrawals</code>",
+        # F21-T8: write, revise, approve as F21 has them (D-3 v3.31)
+        "<code>list_words_needed</code>",
+        "one writer per file",
+        "Approve words",
+        "<code>opn-gate gloss sign --sections</code>",
+        "awaiting review",
     ):
         assert needle in table, needle
+    assert "a signed version only a steward or curator" not in table  # F20-R6, withdrawn (R13)
 
 
 def test_heading_anchors_are_opt_in_slugged_and_unique() -> None:

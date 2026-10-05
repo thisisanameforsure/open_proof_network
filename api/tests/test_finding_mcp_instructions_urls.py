@@ -64,3 +64,17 @@ def test_the_instructions_give_the_usual_order_of_calls(configured: Harness) -> 
         found = text.find(tool, at)
         assert found >= 0, f"{tool} is not named after {text[:at][-60:]!r}"
         at = found + len(tool)
+
+
+def test_the_instructions_give_the_words_entry_task(configured: Harness) -> None:
+    """F21-T8 (R10, D-3 v3.31): the second entry task, words rather than a proof, in its order:
+    find a file without words, read it, submit a gloss naming the model that helped."""
+    text = instructions_of(configured)
+    words = ("list_words_needed", "get_node", "submit_gloss", "drafted_with")
+    assert set(words[:3]) <= {t.name for t in TOOLS}
+    at = text.index("needs no proof")
+    for name in words:
+        found = text.find(name, at)
+        assert found >= 0, f"{name} is not named after {text[:at][-60:]!r}"
+        at = found + len(name)
+    assert "one writer per file" in text

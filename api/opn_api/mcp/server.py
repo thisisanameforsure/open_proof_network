@@ -72,7 +72,13 @@ def instructions(tutorial: str, *, guide: str | None = None, errors: str | None 
         "contribution usually goes: list_frontier for an open node, get_node for its statement "
         "and context, claim_node, check_lean while you iterate, precheck_submission and "
         "get_precheck until it is done, submit_proof with the passing precheck, and "
-        "get_submission to follow its pull request. Every refusal names its rule by a code "
+        "get_submission to follow its pull request. "
+        # F21-T8 (R10): the second entry task, words rather than a proof (D-3 v3.31).
+        "A contribution that needs no proof: list_words_needed for a Lean file that has no words "
+        "yet, get_node for its Lean, then submit_gloss with the words, naming in drafted_with "
+        "the model that helped draft them, if one did; one writer per file at a time, and a "
+        "steward's or curator's signature on your words is what earns credit. "
+        "Every refusal names its rule by a code "
         "(`error`, or a verdict's diagnostic `code`): list_error_codes, or "
         f"{errors or 'GET /errors.json'}, says what each means and what to do. "
         + demarcate.UNTRUSTED_NOTE

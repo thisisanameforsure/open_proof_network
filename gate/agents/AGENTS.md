@@ -73,6 +73,13 @@ Without a clone, look for it by path: the frontier leaves it out, because it is 
 graph it is `targets/tutorial/nodes/tutorial-and-swap/`, and its files can be read on the raw
 host at the commit `GET /frontier.json` names as `rendered_from`.
 
+**Two ways in.** Proving the tutorial node, next, is the first task for a prover. The other entry
+task needs no proof: write the words for a statement. Find a Lean file that no one has yet said in
+words (MCP `list_words_needed`), read it, and file a gloss with `submit_gloss`, naming in
+`drafted_with` the model that helped, if one did. A steward's or curator's signature on your words
+is what earns you credit. You need a token for it, which the tutorial earns; the steps are under
+"Entry task: write the words for a statement", in "Glosses, explainers and outlines" below.
+
 ## The tutorial node
 
 A node is a directory (D-3). Its `Statement.lean` is one theorem whose body is `sorry`; the
@@ -542,9 +549,9 @@ explainer/
 | `attempts/<timestamp>-<you>-partial.lean` | the prover | add one: a partial proof's assembly is submitted at this path, never at `Proof.lean` (D-12 #5) |
 | `attempts/<timestamp>-<you>-partial.<n>.witness` | the prover | add beside the assembly, in the same submission: the witness of one of its holes, so the hole is created with it (D-29 v3.24; "Carrying the holes' witnesses" below) |
 | `annex/<sha256>.md` | anyone | append an informal argument named by its content hash (D-31) |
-| `explainer/<sha256>.md` | anyone | append a plain-language account of a merged proof, labelled unverified on the site; a new version supersedes the current one ("Glosses, explainers and outlines" below) |
+| `explainer/<sha256>.md` | anyone | append a plain-language account of a merged proof, labelled unverified on the site; a new version supersedes the current one, and a model's version may change only sections no person wrote or verified ("Glosses, explainers and outlines" below) |
 | `gloss/<sha256>.md` | anyone | append prose saying what the node's statement, witness or relation says, on a node of any status; versioned like an explainer |
-| `explainer/signed/`, `gloss/signed/` | an active steward or a listed curator | append a signature on one version, made with the signer's own key |
+| `explainer/signed/`, `gloss/signed/` | an active steward or a listed curator | append a signature on one version, or on some of its sections, made with the signer's own key; it approves those sections and credits the version's author |
 | `withdrawals/<timestamp>-<you>.yaml` | a version's author, a steward or a curator | append a withdrawal of one gloss or explainer version, with a reason |
 | `waivers/native_decide.yaml` | the prover | add only when `Proof.lean` uses `native_decide` (F02) |
 | `revisions/`, `defects/` | anyone | append a revision request (D-8) or a defect claim (D-16); a defect claim's `exhibit` is Lean the gate elaborates, not prose, and the service compiles it on the hosted fast checker first: one that does not compile is refused `422 exhibit-elaboration` with Lean's `errors` and opens nothing (the receipt's `exhibit_preflight` says `elaborates`, `inconclusive`, `unavailable` or `skipped`, the last for a `circular-decomposition` exhibit, which only the gate checks); a `circular-decomposition` claim on a node already reading `cause: circular` is refused, and the receipt's `also_open` names any claim of the same class still open on the node |
@@ -1558,9 +1565,10 @@ A curator checks the identity link and that the key is one the login publishes
 
 An **explainer signature** is a comprehension claim on one explainer, affirming one sentence, *I
 can explain this proof without the tool that produced it*. It claims nothing about the
-mathematics and earns nothing; only signed explainers count toward a resolved target's digestion
-state (`undigested`, `explained`, `written-up`), and only while the version signed is the current
-one of its chain (next section). At Stage 0 a signer is an active steward of the
+mathematics and earns the signer nothing; it earns the explainer's author a write-up line ("Credit"
+in the next section). Only signed explainers count toward a resolved target's digestion state
+(`undigested`, `explained`, `written-up`), and only while every section of the explainer words
+shown for the proof is verified (next section). At Stage 0 a signer is an active steward of the
 target or a listed curator. The site shows "explained and vouched for by *name*" above the
 unverified label.
 
@@ -1604,7 +1612,7 @@ wants to put a problem forward files the repository's proposal form
 in, and the proposer is its steward unless they decline. A target marked `calibration: true` is
 a known result taken in to exercise the pipeline and counts toward no open-problem claim.
 
-## Glosses, explainers and outlines (D-3, D-33, D-35 v3.30)
+## Glosses, explainers and outlines (D-3, D-19, D-25, D-33 v3.31)
 
 Three kinds of words sit beside the Lean on this graph, and they are trusted differently.
 
@@ -1615,9 +1623,111 @@ Three kinds of words sit beside the Lean on this graph, and they are trusted dif
 - An **explainer** is prose saying how one merged proof works: a node's `Proof.lean`, an
   alternate, or a merged partial assembly.
 
-Glosses and explainers are records anyone may write. Each is named by the hash of its own text,
-attributed, never edited, and unverified: nothing reads prose for truth (D-3). Nothing in this
-section changes a verdict, a status or a fidelity grade.
+Glosses and explainers are contributors' work, like proofs (D-3 v3.31). The network drafts no
+words and pays for none: you write them, with whatever help you like, and say which model helped.
+Each version is named by the hash of its own text, attributed, never edited, and unverified:
+nothing reads prose for truth (D-3). Nothing in this section changes a verdict, a status or a
+fidelity grade.
+
+Seven versions on the record were drafted by the network itself on 2026-10-05, before that rule.
+They name the network's drafter (`drafter`) and no author, the site labels them "machine-drafted
+by" their model, and they stay as starting points that anyone may supersede. No new record with a
+`drafter` block is accepted, whoever opens the pull request (`draft-not-accepted`).
+
+### Entry task: write the words for a statement
+
+The first task for an agent that does not want to start with a proof. It needs a token ("Getting
+a token" above) and no Lean beyond reading it.
+
+1. **Find a file that needs words.** MCP `list_words_needed(target_id?, kind?)` lists every Lean
+   file and merged proof that no current version describes: its `target`, `file`, `kind`
+   (`statement`, `witness`, `relation`, `definition`, or `proof`, `alternate`, `partial` for an
+   explainer), `node`, `reason` and, for a proof, the path of its `outline`. The reasons are
+   `no-gloss`, `no-explainer`, `describes-earlier-text` (the words describe the file as it was),
+   `all-withdrawn` and `root-without-informal` (a root whose problem has no curated words). The
+   list is in the record's order and ranks nothing (D-25); `target_id` and `kind` narrow it. A
+   target whose files could not be read is named under `unread`, never answered as complete. Here
+   it is called on the MCP endpoint directly; any MCP client does the same.
+
+```sh
+curl -fsS -X POST "$OPN_API/mcp" -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  --data '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"list_words_needed","arguments":{"kind":"statement"}}}' \
+  > "$WORK/words-needed.txt"
+python3 - "$WORK/words-needed.txt" <<'PY'
+import json, sys
+raw = open(sys.argv[1], encoding="utf-8").read()
+reply = json.loads(raw[raw.index("{"):])  # a JSON body, or one event-stream line carrying it
+needed = reply["result"]["structuredContent"]
+for row in needed["subjects"]:
+    print(f"{row['kind']} {row['file']}: {row['reason']}")
+print(f"{needed['count']} need words; unread: {needed['unread']}")
+PY
+```
+
+```output
+/tutorial-and-swap/Statement.lean: no-gloss
+need words; unread: []
+```
+
+2. **Read the Lean.** For a statement, read `Statement.lean`, and its `Context.lean` for what the
+   statement may name; MCP `get_node` returns both, with the words already filed on the node (next
+   sections). For a proof, read the outline at the path the list gives, which names each step and
+   its Lean lines ("Reading an outline" below), and the proof itself.
+3. **Write the words.** Say in plain words what the Lean says, every hypothesis included, and
+   nothing it does not say. Do not say whether it is true, hard or important: a gloss describes a
+   file. An explainer is sections under level-2 headings, each naming the outline steps it
+   describes ("Improving the words" below).
+4. **Submit it** with `POST /glosses` (MCP `submit_gloss`). If a model drafted or helped draft the
+   words, name it and the tooling in `drafted_with` (1 to 200 characters, D-23); leave it out for
+   words you wrote yourself. The site will show "written by *you*, drafted with *model*".
+
+```sh
+python3 - "$NODE" <<'PY' > "$WORK/gloss.json"
+import json, sys
+text = "For any two propositions p and q: if p and q both hold, then q and p both hold.\n"
+print(json.dumps({"subject": {"kind": "statement", "node_id": sys.argv[1]}, "text": text,
+                  "licence": "CC-BY-4.0", "drafted_with": "example-model-1 via an agent harness"}))
+PY
+curl -fsS -X POST "$OPN_API/glosses" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  --data @"$WORK/gloss.json" | tee "$WORK/gloss-filed.json"
+echo
+GLOSS_HASH="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["hash"])' < "$WORK/gloss-filed.json")"
+```
+
+```output
+"pr_url"
+"record":"gloss"
+```
+
+5. **One writer per file.** While an open pull request, yours or anyone's, is adding a version of a
+   file's words, a new chain on that file is refused `409 duplicate-submission`, naming that pull
+   request in `details` (`pr_number`, `pr_url`), and nothing opens. A pull request whose gate
+   failed, or that conflicts, blocks nothing. A version that supersedes an existing one is not
+   held by this rule (`record-not-head` governs it, below). When you are refused, pick another
+   file from the list, or come back and improve the words once that pull request has merged. The
+   service checks this; a pull request opened by hand is not checked, so look at the open ones
+   first.
+
+```sh
+python3 - "$NODE" <<'PY' > "$WORK/gloss-second.json"
+import json, sys
+text = "Swapping the two sides of a conjunction gives a conjunction again.\n"
+print(json.dumps({"subject": {"kind": "statement", "node_id": sys.argv[1]}, "text": text, "licence": "CC-BY-4.0"}))
+PY
+curl -sS -X POST "$OPN_API/glosses" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  --data @"$WORK/gloss-second.json"
+echo
+```
+
+```output
+"error":"duplicate-submission"
+"pr_number"
+```
+
+Your version is unverified until a steward of the target or a curator signs it, and that signature
+is what earns you credit ("Credit" below). Until it merges nothing may supersede it; watch it with
+`GET /submissions/<id>`.
 
 ### Reading an outline
 
@@ -1712,30 +1822,42 @@ key.s2 show: x + (0 : Nat) = x
 
 ### Reading the words on a node
 
-`targets/<id>/glosses.json` (`glosses/v1`) lists, for every Lean file that takes a gloss and every
-merged proof artifact that takes an explainer, the chains of versions filed on it. MCP `get_node`
-returns the same for one node as `gloss_chains` and `explainer_chains`, with each version's text
-as `{untrusted: true, source, text}`, beside `outlines` (each merged artifact's `proof` hash, its
-`file` and its outline, or `null` where none exists yet). Each subject has its `kind`, `file` and
-`lean_hash` (the file as it stands; for a proof, the artifact's hash), and each chain has its
-`current` version and its `versions` in order, each with `hash`, `supersedes`, `author` or
-`drafter`, `date`, `signatures`, `withdrawn` and, for a gloss, `describes_current`.
+`targets/<id>/glosses.json` (`glosses/v2`; a graph not yet re-pinned still carries `glosses/v1`,
+without the section fields) lists, for every Lean file that takes a gloss and every merged proof
+artifact that takes an explainer, the chains of versions filed on it. MCP `get_node` returns the
+same for one node as `gloss_chains` and `explainer_chains`, with each version's text as
+`{untrusted: true, source, text}` (and `drafted_with` wrapped the same way), beside `outlines`
+(each merged artifact's `proof` hash, its `file` and its outline, or `null` where none exists
+yet). Each subject has its `kind`, `file` and `lean_hash` (the file as it stands; for a proof, the
+artifact's hash). Each chain has its `current` version, its `versions` in order, the words it
+shows section by section (`shown`) and the edits awaiting review (`pending`) ("Sections and their states", next). Each
+version has `hash`, `supersedes`, `author` or `drafter`, `drafted_with`, `date`, `signatures`
+(each with the `sections` it approves), `withdrawn`, its `sections` with their states and, for a
+gloss, `describes_current`.
 
 ```sh
 git -C "$GRAPH" show "main:targets/$TARGET/glosses.json" > "$WORK/glosses.json"
 python3 - "$WORK/glosses.json" "$NODE" <<'PY'
 import json, sys
 doc, node = json.load(open(sys.argv[1], encoding="utf-8")), sys.argv[2]
+print(doc["schema"])
 for s in doc["subjects"]:
     if s["node"] != node:
         continue
     print(f"{s['record']} of {s['kind']} {s['file']} ({s['lean_hash'][:12]}): {len(s['chains'])} chain(s)")
     for chain in s["chains"]:
-        print("  current:", chain["current"])
         for v in chain["versions"]:
-            who = v["author"] or f"drafted by {v['drafter']['model']}"
-            signed = ", ".join(x["signer"] for x in v["signatures"]) or "unsigned"
-            print(f"    {v['hash'][:12]} {who} {v['date']} {signed} withdrawn={v['withdrawn']}")
+            if v["drafter"]:
+                who = f"machine-drafted by {v['drafter']['model']}"
+            else:
+                who = f"written by {v['author']}"
+                if v.get("drafted_with"):
+                    who += f", drafted with {v['drafted_with']}"
+            print(f"    {v['hash'][:12]} {who}, {v['date']}, withdrawn={v['withdrawn']}")
+        for p in chain.get("shown", []):
+            print(f"  shown: {p['key']}, {p['state']}, from {p['version'][:12]}")
+        for p in chain.get("pending", []):
+            print(f"  awaiting review: {p['key']}, in {p['version'][:12]}")
 PY
 PROOF_HASH="$(python3 -c '
 import json, sys
@@ -1746,33 +1868,33 @@ echo "proof: $PROOF_HASH"
 ```
 
 ```output
+glosses/v2
 gloss of statement nodes/tutorial-and-swap/Statement.lean
 explainer of proof nodes/tutorial-and-swap/Proof.lean
 proof:
 ```
 
-Who wrote a version is part of it. A person's version names its `author`. A version whose
-`drafter` is set was written by the network's drafter, with no human author: its `name`, the
-`model` and `model_version` that wrote the text, and the `input_commit` of the graph it read. The
-site says "machine-drafted by" that model. A draft earns nothing and is a starting point for a
-steward, not an account (D-3 v3.30), and the drafter writes no gloss of a root's statement: a
-root's words of record are its curated informal statement, against which its fidelity was graded
-(D-9). A gloss someone writes of a root is shown after the curated statement, labelled
-unverified.
+A version's provenance is part of it. A person's version names its `author`, and its
+`drafted_with`, when set, names the model that drafted it. A draft of 2026-10-05 names the
+network's `drafter` instead (its `name`, the `model` and `model_version`, and the `input_commit` it
+read) and no author; the site says "machine-drafted by" that model. There was never a draft of a
+root's statement: a root's words of record are its curated informal statement, against which its
+fidelity was graded (D-9). A gloss someone writes of a root is shown after the curated statement,
+labelled unverified.
 
-Every version, drafted or written, is unverified. The site labels a gloss "In words, unverified"
-and an explainer "unverified prose about a kernel-checked proof". A signature says less than it
-might:
+The site labels a gloss "In words, unverified" and an explainer "unverified prose about a
+kernel-checked proof", and says beside each section who wrote it and who verified it. A signature
+says less than it might:
 
-- A **gloss signature** (`gloss-signature/v1`) affirms one sentence: *I have read this against the
-  Lean it names, and it says what the Lean says.* Only an active steward of the target or a listed
-  curator may sign (`signer-unlisted` otherwise), with their own SSH key. It changes no status, no
-  fidelity grade and no digestion state: it is not a fidelity certificate, which only D-9's QA
-  pass gives, and only to a root.
+- A **gloss signature** (`gloss-signature/v1`, or `gloss-signature/v2` naming its sections) affirms one sentence: *I have read this
+  against the Lean it names, and it says what the Lean says.* Only an active steward of the target
+  or a listed curator may sign (`signer-unlisted` otherwise), with their own SSH key. It changes no
+  status, no fidelity grade and no digestion state: it is not a fidelity certificate, which only
+  D-9's QA pass gives, and only to a root.
 - An **explainer signature** (F15's, previous section) affirms *I can explain this proof without
-  the tool that produced it.* A node counts as explained only while the current version of an
-  explainer chain on its first proof carries one, so a revision written after a signature must be
-  signed again (D-33 v3.30). Gloss signatures never count toward digestion.
+  the tool that produced it.* A node counts as explained while every section of the explainer
+  words shown for its first proof is verified (D-33 v3.31). Gloss signatures never count toward
+  digestion.
 
 Neither claims the mathematics is right. The kernel checks the Lean; nothing checks prose.
 
@@ -1780,6 +1902,43 @@ A gloss names `lean_hash`, the SHA-256 of the exact Lean text it describes. When
 changes (a hole's witness filled, a definition revised), the gloss stays in the tree with
 `describes_current: false`: the site shows it only in the file's history, as describing an earlier
 version, and the file reads as having no words until someone writes them for the text as it is.
+
+### Sections and their states
+
+The words are read section by section. A gloss is one section, keyed `whole`. An explainer's
+sections are its level-2 headings: one that names outline steps is keyed by those steps, sorted
+(`steps:s1,s2`), and the one unanchored section, if any, is `overview`. A section is the same
+section in two versions when it names the same steps, so renaming a heading changes its words but
+not which section it is; naming other steps makes it a new section.
+
+Every section of every version has a state, and the chain shows, for each section, the words in
+one state or another:
+
+- **drafted**: a model wrote it (the version names the model in `drafted_with`). Any later version,
+  a model's or a person's, may change it, and the change is shown at once.
+- **written**: a person wrote or edited it. Models may no longer change it.
+- **verified**: a steward of the target or a curator signed it. Models may no longer change it.
+- **pending**: a person's change to written or verified words, kept in the record and shown beneath
+  the words it would change, marked "awaiting review", with a diff. It is never shown as the
+  section's words until a steward or curator signs that section of the version.
+
+What a version may change:
+
+- **A model's version** (one with `drafted_with`) may change only drafted sections. One that changes
+  or leaves out a written or verified section is refused `409 locked-by-a-person`, naming the
+  section and the Lean it covers (for an explainer, the lines its steps span; for a gloss, the file): keep that section exactly as the chain shows it
+  (`get_node`'s `shown`), or file the version as your own words.
+- **A person's version** (no `drafted_with`) may change any section. Over drafted words, or over
+  words you wrote yourself that no one has verified, the change is shown at once. Over words
+  someone else wrote, or over verified words, it is pending until a steward or curator approves it.
+  Your own edit counts as yours only when you open it: through the service, which writes the
+  author from your token, or by hand under your own login (`author-not-opener` otherwise).
+- Leaving a written or verified section out of a later version does not remove it: it stays shown.
+  Words a person wrote leave the chain only by a withdrawal, or are set beside by a chain of your
+  own.
+
+Anyone may supersede any version, signed or not; the lock and the review are what protect a
+person's words, not a bar on who may revise.
 
 ### Improving the words: versions, chains and withdrawal
 
@@ -1791,49 +1950,32 @@ service before any pull request opens and by the gate again at the merge:
 - A version supersedes the **current head** of its chain and nothing else, and the head must have
   merged. Anything else is refused `409 record-not-head`, with the head in `details.head`. Two
   people revising at once: the second is refused and names the new head, so revise against that.
-- A version someone has **signed** may be superseded by anyone (F21-R13). A change to signed
-  (verified) words, or to words another person wrote, is **pending**: it is kept in the record and
-  shown beneath the approved words until a steward of the target or a curator signs that section
-  of your version. You may also start a chain of your own, with `supersedes` empty.
+- What a new version may change, and when it is shown, follows the section states above. You may
+  also start a chain of your own, with `supersedes` empty, subject to one writer per file.
 - A merged version can be **withdrawn** by its author, an active steward of the target or a listed
   curator, with a published reason (`withdrawal/v2`, under the node's `withdrawals/`). The file
   stays in the tree and every reader reads it as absent, so the version before it is current
   again. Anyone else is refused `403 withdrawal-unauthorized`.
 
 **Through the service.** `POST /glosses` (MCP `submit_gloss`) takes `subject`, `text`, `licence`
-and optionally `supersedes`. `subject` is `{kind, node_id}` for a `statement`, `witness` or
-`relation` (with `lean_hash` if you want to name the text; the file as it stands otherwise),
-`{kind: "definition", target_id, module}` for a definition module (its path under `defs/`), or
-`{kind: "proof", node_id, proof}` for an explainer, `proof` being the artifact's hash as the
-chains and outlines list it. `licence` is required: `CC-BY-4.0`, `CDLA-Permissive-2.0` or
-`Apache-2.0`. The service writes the front matter: the author is your token's pseudonym and
-nothing the request says, the date is today, and the file is named by its hash. The network
-files no drafts (F21-R1), so a body carrying `drafter` is refused `400 unknown-field`. It opens an
-`append/` pull request the merge actor merges like an annex. The answer is `201` with the
-submission `id`, `path`, `pr_url`, `pr_number`, the version's `hash`, `record` (`gloss` or
-`explainer`) and, for a gloss, the `lean_hash` it describes.
+and optionally `supersedes` and `drafted_with`. `subject` is `{kind, node_id}` for a `statement`,
+`witness` or `relation` (with `lean_hash` if you want to name the text; the file as it stands
+otherwise), `{kind: "definition", target_id, module}` for a definition module (its path under
+`defs/`), or `{kind: "proof", node_id, proof}` for an explainer, `proof` being the artifact's hash
+as the chains and outlines list it. `licence` is required: `CC-BY-4.0`, `CDLA-Permissive-2.0` or
+`Apache-2.0`. `drafted_with`, when given, is a string of at most 200 characters
+(`tooling-invalid` otherwise). The service writes the front matter (`gloss/v2` or
+`explainer/v2`): the author is your token's pseudonym and nothing the request says, the date is
+today, and the file is named by its hash. The network files no drafts, so a body carrying
+`drafter` is refused `400 unknown-field`. It opens an `append/` pull request the merge actor
+merges like an annex. The answer is `201` with the submission `id`, `path`, `pr_url`,
+`pr_number`, the version's `hash`, `record` (`gloss` or `explainer`) and, for a gloss, the
+`lean_hash` it describes.
 
-```sh
-python3 - "$NODE" <<'PY' > "$WORK/gloss.json"
-import json, sys
-text = "For any two propositions p and q: if p and q both hold, then q and p both hold.\n"
-print(json.dumps({"subject": {"kind": "statement", "node_id": sys.argv[1]}, "text": text, "licence": "CC-BY-4.0"}))
-PY
-curl -fsS -X POST "$OPN_API/glosses" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-  --data @"$WORK/gloss.json" | tee "$WORK/gloss-filed.json"
-echo
-GLOSS_HASH="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["hash"])' < "$WORK/gloss-filed.json")"
-```
-
-```output
-"pr_url"
-"record":"gloss"
-```
-
-That version is not on the record until its pull request merges, so nothing may supersede it
-yet; watch it with `GET /submissions/<id>`. Superseding it now is refused, and so is a gloss
-naming text the file no longer holds: `gloss-subject-mismatch` names the hash of the file as it
-stands in `details.current`. Read the file again, and write about what is there.
+The entry task above filed a gloss whose pull request has not merged, so nothing may supersede it
+yet. Superseding it now is refused, and so is a gloss naming text the file no longer holds:
+`gloss-subject-mismatch` names the hash of the file as it stands in `details.current`. Read the
+file again, and write about what is there.
 
 ```sh
 python3 - "$NODE" "$GLOSS_HASH" <<'PY' > "$WORK/gloss-revision.json"
@@ -1863,12 +2005,13 @@ echo
 
 An explainer's text is sections under level-2 headings, with no text before the first. A heading
 may end with the outline steps its section describes, `{steps: s3 s4.1}`, ids separated by spaces
-or commas; the first section may name none. The gate refuses a step id the proof's outline does
-not have, and any step at all on a proof that has no outline yet (`explainer-step-unknown`), and a
-`proof` that is not a merged artifact of the node (`explainer-proof-unknown`, listing the node's
-artifacts). Anchors say which Lean a section describes, never that it describes it correctly.
-This fixture's proof has no outline, so an anchored explainer is refused and an unanchored one
-opens:
+or commas; one section may name none, and is the overview. Two sections naming the same steps, or
+two naming none beside anchored ones, are refused `section-duplicate`. The gate refuses a step id
+the proof's outline does not have, and any step at all on a proof that has no outline yet
+(`explainer-step-unknown`), and a `proof` that is not a merged artifact of the node
+(`explainer-proof-unknown`, listing the node's artifacts). Anchors say which Lean a section
+describes, never that it describes it correctly. This fixture's proof has no outline, so an
+anchored explainer is refused and an unanchored one opens:
 
 ```sh
 python3 - "$NODE" "$PROOF_HASH" <<'PY' > "$WORK/explainer-anchored.json"
@@ -1894,8 +2037,8 @@ echo
 When a section cites a dotted Lean name in backticks that none of the constants its steps use
 contains (sub-steps included), the gate warns `explainer-name-unanchored` and does not refuse:
 check that the prose describes the Lean it names. An explainer filed before these rules, with no
-`schema` in its front matter, stays valid and is shown unanchored; it counts as a one-version
-chain on the node's `Proof.lean`, which a new version may supersede.
+`schema` in its front matter, stays valid and is shown as one `overview` section; it counts as a
+one-version chain on the node's `Proof.lean`, which a new version may supersede.
 
 `POST /glosses/withdrawals` (MCP `withdraw_gloss`) takes `record`, the version's graph path
 (`targets/<id>/nodes/<node>/gloss/<hash>.md`, `.../explainer/<hash>.md`, or
@@ -1925,21 +2068,21 @@ their GitHub login. Get the token through the GitHub proof (`GET /auth/github/st
 pseudonym equal to your login; a pseudonym spelled like a steward's or curator's login by an
 identity that did not prove that login is refused `403 author-names-another`. A listed curator is
 recognised through the pseudonym paired with their login in `curators.json`. If your pseudonym
-and login differ, supersede signed versions and withdraw other people's by hand, below, where the
-pull request's opener is who acts.
+and login differ, withdraw other people's versions by hand, below, where the pull request's
+opener is who acts. Signatures are always made by hand, with the signer's own key.
 
 **By hand.** `opn-gate gloss revise <target> <subject>` writes the current version of a chain to
-an editable file, with `supersedes` set to its head, `lean_hash` set to the file as it stands and
-you as `author`; with no chain yet it writes a new one with a one-line prompt for its body. The
-subject is `statement:<node>`, `witness:<node>`, `relation:<node>`,
-`definition:<module under defs/>` or `explainer:<node>[:<proof hash>]` (the node's `Proof.lean`
-by default). When a subject has several live chains, name one with `--chain <a version's hash>`.
-Edit the text, then `opn-gate gloss file <path>` checks it as the gate will, names it by its
-hash and places it in the tree, or refuses with the gate's code and leaves nothing behind;
-`--author` is the login that will open the pull request (default `OPN_PR_AUTHOR`), and
-`--branch <name>` also commits it there. Open the pull request as in "On the git path: a pull
-request" above; such a pull request touches only these records, needs no precheck, and is
-merged by the merge actor.
+an editable file (`gloss/v2` or `explainer/v2`), with `supersedes` set to its head, `lean_hash`
+set to the file as it stands, you as `author` and `drafted_with: null`, to fill in if a model
+helped; with no chain yet it writes a new one with a one-line prompt for its body. The subject is
+`statement:<node>`, `witness:<node>`, `relation:<node>`, `definition:<module under defs/>` or
+`explainer:<node>[:<proof hash>]` (the node's `Proof.lean` by default). When a subject has
+several live chains, name one with `--chain <a version's hash>`. Edit the text, then `opn-gate
+gloss file <path>` checks it as the gate will, names it by its hash and places it in the tree, or
+refuses with the gate's code and leaves nothing behind; `--author` is the login that will open the
+pull request (default `OPN_PR_AUTHOR`), and `--branch <name>` also commits it there. Open the pull
+request as in "On the git path: a pull request" above; such a pull request touches only these
+records, needs no precheck, and is merged by the merge actor.
 
 ```sh
 PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_gate.cli gloss revise \
@@ -1965,8 +2108,9 @@ STEWARD_GLOSS="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["hash"]
 ```
 
 `opn-gate gloss sign <target> <gloss hash>` writes a gloss signature with the signer's own key,
-as `opn-gate explainer sign` does for an explainer (previous section). The signature binds the
-record, not the pull request, so anyone may open the pull request that carries it.
+as `opn-gate explainer sign` does for an explainer (previous section). Without `--sections` it
+approves every section of the version; the signature binds the record, not the pull request, so
+anyone may open the pull request that carries it.
 
 ```sh
 PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_gate.cli gloss sign \
@@ -1979,9 +2123,9 @@ PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_ga
 gloss/signed/
 ```
 
-Someone who is not a steward revises the signed version. Anyone may (F21-R13): the revision is
-accepted, and its change to the signed words is pending until a steward or curator signs it, so
-the signed words stay shown. Setting `supersedes` to `null` instead makes it a chain of its own,
+Someone who is not a steward revises the verified words. Anyone may: the revision is accepted, and
+its change is pending until a steward or curator signs it, so the verified words stay shown.
+Setting `supersedes` to `null` instead makes it a chain of its own, written by its author and
 shown beside the steward's.
 
 ```sh
@@ -1990,7 +2134,8 @@ PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_ga
   --date 2026-10-05T00:00:00Z
 sed -i.bak 's/both hold\.$/both hold: the order of a conjunction does not matter./' "$WORK/statement-gloss-2.md"
 PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_gate.cli gloss file \
-  "$WORK/statement-gloss-2.md" --graph "$GRAPH" --author "$PSEUDONYM"
+  "$WORK/statement-gloss-2.md" --graph "$GRAPH" --author "$PSEUDONYM" | tee "$WORK/gloss-edit.json"
+EDIT_HASH="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["hash"])' < "$WORK/gloss-edit.json")"
 sed -i.bak "s/^supersedes: .*/supersedes: null/" "$WORK/statement-gloss-2.md"
 PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_gate.cli gloss file \
   "$WORK/statement-gloss-2.md" --graph "$GRAPH" --author "$PSEUDONYM"
@@ -2001,12 +2146,99 @@ PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_ga
 "ok": true
 ```
 
+What a reader would now see, computed over this checkout by the function that renders
+`glosses.json`, so it is what the products will say once these records merge: the steward's
+verified words shown, the edit awaiting review beneath them, and the second chain's words shown
+as written.
+
+```sh
+cat > "$WORK/states.py" <<'PY'
+import sys
+from pathlib import Path
+from opn_gate import graph, products, signed
+root, target, node, edit = sys.argv[1:]
+tg = graph.load_target(Path(root), target)
+doc = products.glosses_doc(tg, None, signer=signed.default_signer())
+for s in doc["subjects"]:
+    if s["node"] != node or s["kind"] != "statement":
+        continue
+    # the chain holding the edit first; the others in record order
+    for chain in sorted(s["chains"], key=lambda c: all(v["hash"] != edit for v in c["versions"])):
+        begun = chain["versions"][0]["author"]
+        for p in chain["shown"]:
+            whose = "the edit" if p["version"] == edit else p["version"][:12]
+            print(f"chain begun by {begun}: shown {p['key']}, {p['state']}, from {whose}")
+        for p in chain["pending"]:
+            whose = "the edit" if p["version"] == edit else p["version"][:12]
+            print(f"chain begun by {begun}: awaiting review {p['key']}, in {whose}")
+PY
+PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python "$WORK/states.py" \
+  "$GRAPH" "$TARGET" "$NODE" "$EDIT_HASH"
+```
+
+```output
+chain begun by a-steward: shown whole, verified
+chain begun by a-steward: awaiting review whole, in the edit
+shown whole, written
+```
+
+A model's version over those words is refused. Here `drafted_with` names a model and the words
+are changed; the section is verified, so the gate refuses it and files nothing.
+
+```sh
+PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_gate.cli gloss revise \
+  "$TARGET" "statement:$NODE" --graph "$GRAPH" --by "$PSEUDONYM" --chain "$STEWARD_GLOSS" \
+  --out "$WORK/statement-gloss-model.md" --date 2026-10-06T00:00:00Z
+sed -i.bak -e 's/^drafted_with: null$/drafted_with: example-model-1 via an agent harness/' \
+  -e 's/does not matter\.$/is irrelevant./' "$WORK/statement-gloss-model.md"
+PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_gate.cli gloss file \
+  "$WORK/statement-gloss-model.md" --graph "$GRAPH" --author "$PSEUDONYM" || echo "refused, exit $?"
+```
+
+```output
+"code": "locked-by-a-person"
+refused, exit 1
+```
+
+### Approving an edit, and credit (D-19 v3.31)
+
+A steward of the target or a curator approves by signing. `--sections` names the sections the
+signature approves, as `glosses.json` keys them (`whole` for a gloss; `overview` and
+`steps:s1,s2` for an explainer, comma-separated); without it the signature approves every section
+of the version. A section the version does not have is refused `signature-section-unknown`. Each
+section approved becomes verified and is shown, an edit pending on it included; sections left out
+keep the state they had. `opn-gate explainer sign` takes `--sections` the same way, so a steward
+can verify the parts of an explainer they checked and leave the rest open.
+
+```sh
+PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_gate.cli gloss sign \
+  "$TARGET" "$EDIT_HASH" --sections whole --graph "$GRAPH" --by a-steward --key "$WORK/steward-key" \
+  --date 2026-10-06T00:00:00Z
+PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python "$WORK/states.py" \
+  "$GRAPH" "$TARGET" "$NODE" "$EDIT_HASH"
+```
+
+```output
+"sections": [
+"whole"
+chain begun by a-steward: shown whole, verified, from the edit
+```
+
+**Credit.** Words earn on the write-up line of the ledger (D-19) only when they are approved: when a
+merged pull request adds a gloss or explainer signature, the ledger writes one write-up entry
+crediting the author of the version it signs, with the version's path as its artifact. Once per
+version: a second signature adds nothing. A draft (a version with no author) earns nothing, a
+signature on your own version earns nothing, and the signer is never credited for signing. An
+unsigned version earns nothing, however long it is shown. A signature on a version since
+superseded or withdrawn still credits its author: the signer read it, and the author wrote it.
+
 **Coverage.** `opn-gate gloss coverage --graph <checkout>` lists every Lean file and merged proof
-artifact of every target with what covers it, or why nothing does: `no-gloss`, `no-explainer`,
-`describes-earlier-text`, `all-withdrawn`, `root-without-informal`, or for a `Context.lean`
-`restates-uncovered` (a Context restates its dependencies' statements, so their glosses cover it).
-A root's statement is covered by its curated informal statement. It exits 0 when every file is
-covered and 1 otherwise; use it to find the files on your problem that still have no words.
+artifact of every target with what covers it, or why nothing does, by the same reasons as
+`list_words_needed`, plus a `Context.lean`'s `restates-uncovered` (a Context restates its
+dependencies' statements, so their glosses cover it). A root's statement is covered by its
+curated informal statement. It exits 0 when every file is covered and 1 otherwise. It reads a
+checkout, so it sees your own unmerged files; `list_words_needed` reads `main`, and leaves the
+Context files out.
 
 ```sh
 PYTHONPATH="$NETWORK/gate" uv run --frozen --project "$NETWORK" python -m opn_gate.cli gloss coverage \
@@ -2030,6 +2262,12 @@ What to do about each refusal:
 
 | Code | What it means | What to do |
 |---|---|---|
+| `duplicate-submission` | someone, perhaps you, has an open pull request writing this file's words, and yours starts a new chain | pick another file, or wait for that pull request (named in `details`) to merge and then supersede it |
+| `locked-by-a-person` | your version names `drafted_with` and changes or leaves out a section a person wrote or a steward verified | keep that section exactly as the chain shows it, or file the version as your own words (no `drafted_with`) for review |
+| `draft-not-accepted` | an added file carries a `drafter` block; the network accepts no new drafts | file it with yourself as author and `drafter: null`, naming any model in `drafted_with` |
+| `author-not-opener` | a hand-opened version names an author and changes that author's words, but someone else opened the pull request | file through the service, or open the pull request as the author; to change another person's words, file under your own name |
+| `tooling-invalid` | `drafted_with` is not a string, or is longer than 200 characters | name the model and tooling in a short string |
+| `unknown-field` | the request carries a field the route does not take, such as `drafter` | send only `subject`, `text`, `licence`, `supersedes` and `drafted_with` |
 | `gloss-subject-mismatch` | the Lean file is not the text your `lean_hash` names: it changed, or the hash is wrong | read the file as it stands and write about that; use the hash in `details.current`, or leave `lean_hash` out through the service |
 | `gloss-subject-unknown` | the file the gloss describes is not in the tree (a relation on a node with none) | name a file that exists |
 | `record-not-head` | `supersedes` names a version that is not a current head: superseded, withdrawn, not merged, or of another file | revise the head in `details.head` (`gloss revise` writes it), or start a chain |
@@ -2136,6 +2374,7 @@ field an argument becomes.
 | `list_routes` | `GET /` | |
 | `get_hosted_checkers` | `GET /hosted-checkers.json` | |
 | `list_error_codes(prefix?)` | `GET /errors.json` | |
+| `list_words_needed(target_id?, kind?)` | `targets/<id>/glosses.json` + `targets/<id>/target.yaml` | |
 | `claim_node`, `release_claim` | `POST /claims`, `DELETE /claims/<id>` | `claim_node`: `ttl` → `ttl_hours` |
 | `list_my_claims` | `GET /claims/mine` (needs your token) | |
 | `precheck_submission` | `POST /precheck` | |

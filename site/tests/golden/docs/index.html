@@ -89,18 +89,29 @@ shown as its Lean lines only, rather than as text that might mean something else
 proof, a step marked <em>hole</em> is a gap the proof left open, and links to the statement it
 became.</p>
 <p><strong>The words.</strong> Beside each piece of Lean are words saying what it says (a gloss),
-and beside each proof an account of how it works (an explainer). A first draft may be written by a
-model, and then says so (<em>machine-drafted by</em> the model); stewards and others improve the
-words version by version. Nothing is edited in place: each version stays in the history, with a diff to
-the one before, and a withdrawn version stays listed as withdrawn. The words are unverified until
-someone signs them, and a signature claims less than it might. On a gloss it says <em>read against
-the Lean</em>: the signer has checked that the words say what the Lean says. On an explainer it
-says the signer can explain the proof without the tool that produced it. Neither says the
-mathematics is right: the kernel says that of the Lean, and nothing says it of prose. A gloss
-describes one exact version of its file; if the file has since changed, the gloss is shown only in
-the history. The site takes no input, so the way to improve any of these words is the contributor
-guide's section on <a href="/docs/#guide-glosses-explainers-and-outlines">glosses, explainers and outlines</a>, through the
-service, an agent, or a pull request.</p>
+and beside each proof an account of how it works (an explainer). Contributors write them, as they
+write proofs, and improve them version by version. Words a contributor's model helped draft say so
+(<em>drafted with</em> the model); a few early ones, drafted by the network itself before
+contributors took the work over, say <em>machine-drafted by</em> their model. Nothing is edited in
+place: each version stays in the history, with a diff to the one before, and a withdrawn version
+stays listed as withdrawn.</p>
+<p><strong>Sections, and who stands behind them.</strong> The words are read in sections. A gloss
+is one section; each section of an explainer covers some steps of the outline, and so some lines of
+Lean. Each section says in words where it stands: <em>drafted with</em> a model, <em>written by</em>
+a person, or <em>verified by</em> a steward of the problem or a curator who has signed it. A model
+may change only drafted words; once a person has written or verified a section, only a person may
+change it. A person's change to someone else's words, or to verified words, is not shown as the
+section's words. It appears beneath them, marked <em>awaiting review</em>, with a diff showing what it changes,
+until a steward or curator signs it; signing is how a steward approves an edit, and it is also what
+earns the words' author credit.</p>
+<p>A signature claims less than it might. On a gloss it says <em>read against the Lean</em>: the
+signer has checked that the words say what the Lean says. On an explainer it says the signer can
+explain the proof without the tool that produced it. Neither says the mathematics is right: the
+kernel says that of the Lean, and nothing says it of prose. A gloss describes one exact version of
+its file; if the file has since changed, the gloss is shown only in the history. The site takes no
+input, so the way to write or improve any of these words is the contributor guide's section on
+<a href="/docs/#guide-glosses-explainers-and-outlines">glosses, explainers and outlines</a>, through the service, an agent,
+or a pull request.</p>
 <h2 id="states">How a statement and a problem change state</h2>
 <div class="states">
 <p class="lead">Two things carry a status: a statement (one node of a problem's proof graph) and
@@ -373,9 +384,10 @@ merge is the only thing that changes truth (D-35).</p>
 <tr><td>Partial proof, skeleton or reduction</td><td class="who">anyone</td><td><code>partial</code> pull request: an assembly under <code>attempts/</code>; a skeleton names its annex by hash; a reduction is a partial with one hole</td><td>the statement stays open; each hole born needing a witness, listed, and recorded as a child it may draw on once proved; a later route numbers its holes after the earlier ones (D-12 v3.19)</td></tr>
 <tr><td>A second proof</td><td class="who">anyone</td><td><code>alternate</code> pull request under <code>attempts/</code></td><td>nothing; recorded beside the first (D-25)</td></tr>
 <tr><td>Postmortem, annex, approach record, revision request, defect claim</td><td class="who">anyone</td><td><code>append</code> pull request; a defect claim carries a Lean exhibit the gate elaborates</td><td>nothing; a revision request is what a curator later acts on</td></tr>
-<tr><td>Explain a proof</td><td class="who">anyone; a steward or curator signs</td><td><code>explainer</code> pull request, with a signature file where the signer can explain it without the tool</td><td>resolved: undigested → explained once every statement in the closing proof's closure carries one on the current version of its explainer; a later unsigned version undoes it until it is signed</td></tr>
-<tr><td>Say a file in words (a gloss)</td><td class="who">anyone; a steward or curator signs</td><td><code>explainer</code> pull request adding a gloss of a statement, witness, relation or definition (<code>POST /glosses</code>); a signature affirms it was read against the Lean</td><td>nothing; shown beside the Lean, unverified, on a statement of any status</td></tr>
-<tr><td>Revise a gloss or an explainer</td><td class="who">anyone; a signed version only a steward or curator</td><td>a new version naming the current one it supersedes (<code>POST /glosses</code>, or <code>opn-gate gloss revise</code> then <code>gloss file</code>); anyone may start a chain of their own instead</td><td>nothing; the new version is the one shown, and every earlier one stays in the history</td></tr>
+<tr><td>Explain a proof</td><td class="who">anyone; a steward or curator signs</td><td><code>explainer</code> pull request, with a signature file where the signer can explain it without the tool</td><td>resolved: undigested → explained once, for every statement in the closing proof's closure, every section of the explainer shown for its proof is verified; a section later changed and shown at once undoes it until it is signed</td></tr>
+<tr><td>Say a file in words (a gloss)</td><td class="who">anyone; a steward or curator signs</td><td><code>explainer</code> pull request adding a gloss of a statement, witness, relation or definition (<code>POST /glosses</code>; the files still without words are listed by <code>list_words_needed</code>), naming any model that helped draft it; one writer per file at a time; a signature affirms it was read against the Lean</td><td>nothing; shown beside the Lean, unverified, on a statement of any status</td></tr>
+<tr><td>Revise a gloss or an explainer</td><td class="who">anyone; a model may change only words no person has written or verified</td><td>a new version naming the current one it supersedes (<code>POST /glosses</code>, or <code>opn-gate gloss revise</code> then <code>gloss file</code>); anyone may start a chain of their own instead</td><td>nothing; a change to drafted words, or to your own unverified words, is shown at once; a change to someone else's words or to verified words waits beneath them, awaiting review, until a steward or curator signs it; every earlier version stays in the history</td></tr>
+<tr><td>Approve words</td><td class="who">a steward of the problem or a curator</td><td>a signature on one version naming the sections it approves (<code>opn-gate gloss sign --sections</code>, <code>opn-gate explainer sign --sections</code>; without it, every section)</td><td>those sections → verified and shown, an edit awaiting review included; the version's author earns one write-up line, once; the signer earns nothing, and a signature on one's own version earns nothing</td></tr>
 <tr><td>Withdraw a version</td><td class="who">its author, a steward or a curator</td><td>a withdrawal record with a reason (<code>POST /glosses/withdrawals</code>)</td><td>nothing; the version reads as absent and the one before it is shown again</td></tr>
 <tr><td>Grade a statement</td><td class="who">a non-author</td><td><code>fidelity</code> pull request: a signed certificate on the root or a definition</td><td>nothing; decides who must look at a proof (step 9), not whether work may begin</td></tr>
 <tr><td>Point a crux at its node</td><td class="who">the crux&rsquo;s proposer, or a curator</td><td><code>proposed-for</code> pull request: one record naming the node of the target the statement was proposed for</td><td>nothing; the graph draws a dashed line from the crux to that node until a merged proof uses it (D-14 v3.26)</td></tr>

@@ -71,18 +71,29 @@ shown as its Lean lines only, rather than as text that might mean something else
 proof, a step marked <em>hole</em> is a gap the proof left open, and links to the statement it
 became.</p>
 <p><strong>The words.</strong> Beside each piece of Lean are words saying what it says (a gloss),
-and beside each proof an account of how it works (an explainer). A first draft may be written by a
-model, and then says so (<em>machine-drafted by</em> the model); stewards and others improve the
-words version by version. Nothing is edited in place: each version stays in the history, with a diff to
-the one before, and a withdrawn version stays listed as withdrawn. The words are unverified until
-someone signs them, and a signature claims less than it might. On a gloss it says <em>read against
-the Lean</em>: the signer has checked that the words say what the Lean says. On an explainer it
-says the signer can explain the proof without the tool that produced it. Neither says the
-mathematics is right: the kernel says that of the Lean, and nothing says it of prose. A gloss
-describes one exact version of its file; if the file has since changed, the gloss is shown only in
-the history. The site takes no input, so the way to improve any of these words is the contributor
-guide's section on <a href="$gloss_guide_href">glosses, explainers and outlines</a>, through the
-service, an agent, or a pull request.</p>
+and beside each proof an account of how it works (an explainer). Contributors write them, as they
+write proofs, and improve them version by version. Words a contributor's model helped draft say so
+(<em>drafted with</em> the model); a few early ones, drafted by the network itself before
+contributors took the work over, say <em>machine-drafted by</em> their model. Nothing is edited in
+place: each version stays in the history, with a diff to the one before, and a withdrawn version
+stays listed as withdrawn.</p>
+<p><strong>Sections, and who stands behind them.</strong> The words are read in sections. A gloss
+is one section; each section of an explainer covers some steps of the outline, and so some lines of
+Lean. Each section says in words where it stands: <em>drafted with</em> a model, <em>written by</em>
+a person, or <em>verified by</em> a steward of the problem or a curator who has signed it. A model
+may change only drafted words; once a person has written or verified a section, only a person may
+change it. A person's change to someone else's words, or to verified words, is not shown as the
+section's words. It appears beneath them, marked <em>awaiting review</em>, with a diff showing what it changes,
+until a steward or curator signs it; signing is how a steward approves an edit, and it is also what
+earns the words' author credit.</p>
+<p>A signature claims less than it might. On a gloss it says <em>read against the Lean</em>: the
+signer has checked that the words say what the Lean says. On an explainer it says the signer can
+explain the proof without the tool that produced it. Neither says the mathematics is right: the
+kernel says that of the Lean, and nothing says it of prose. A gloss describes one exact version of
+its file; if the file has since changed, the gloss is shown only in the history. The site takes no
+input, so the way to write or improve any of these words is the contributor guide's section on
+<a href="$gloss_guide_href">glosses, explainers and outlines</a>, through the service, an agent,
+or a pull request.</p>
 $states
 <h2 id="glossary">Glossary</h2>
 <p>The site uses plain words. The protocol, the API and the repository keep their own; the third

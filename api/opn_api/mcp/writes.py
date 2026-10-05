@@ -544,7 +544,10 @@ TOOLS: tuple[Tool, ...] = (
         "gloss-subject-mismatch (naming the current hash), explainer-proof-unknown, "
         "explainer-step-unknown, section-duplicate, tooling-invalid, record-not-head (409, "
         "naming the head), locked-by-a-person (409: a version with drafted_with may change only "
-        "drafted sections; it names the section and its Lean lines).",
+        "drafted sections; it names the section and its Lean lines). Then one writer per file "
+        "(F21-R5): a new chain on a file another open pull request is already writing words for "
+        "is refused duplicate-submission (409, naming that pull request); list_words_needed "
+        "finds the files that still have none.",
         params(
             {
                 "subject": {
