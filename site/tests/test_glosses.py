@@ -176,3 +176,21 @@ def test_earlier_text_gloss_only_in_history(pages: dict[str, str]) -> None:
     assert "describes an earlier version of this file" in history[item : words + 400]
     # Nowhere else on the page does the stale gloss appear as current words.
     assert page.count(escape(gf.WITNESS_OF_STUB)) == 1
+
+
+def test_drafted_with_is_shown(pages: dict[str, str]) -> None:
+    """F21-AC6 (R7): a version naming ``drafted_with`` says "written by <author>, drafted with
+    <model>" in its provenance line — the gloss block's demarcated label (C9) — with the
+    contributor's words escaped and never raw; a legacy drafter-block draft keeps
+    "machine-drafted by <model>"."""
+    page = node_page(pages, gf.HOLE)
+    now = current_part(slot_of(page, f"{TARGET}/nodes/{gf.HOLE}/Statement.lean"))
+    assert escape(gf.HOLE_STATEMENT_GLOSS) in now
+    line = f"written by dana, drafted with {escape(gf.DRAFTED_WITH)}"
+    label = re.search(r'<p class="block-label" data-provenance="gloss">(.*?)</p>', now, re.S)
+    assert label is not None
+    assert line in label.group(1), label.group(1)
+    for page_html in pages.values():
+        assert gf.DRAFTED_WITH not in page_html  # escaped wherever it is shown
+    variant = slot_of(node_page(pages, gf.VARIANT), f"{TARGET}/nodes/{gf.VARIANT}/Relation.lean")
+    assert f"machine-drafted by {gf.DRAFTER['model']}" in variant

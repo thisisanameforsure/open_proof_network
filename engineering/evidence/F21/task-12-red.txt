@@ -1,0 +1,61 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+____ test_each_section_shows_its_words_and_state_and_the_edit_awaits_review ____
+
+before = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_each_section_shows_its_words_and_state_and_the_edit_awaits_review(
+        before: dict[str, str],
+    ) -> None:
+        page = before[NODE_PAGE]
+        shown, history = explainer_part(page)
+        sections = {key: (steps, body) for key, steps, body in SECTION.findall(shown)}
+>       assert list(sections) == [gf.KEY_OVERVIEW, gf.KEY_Q, gf.KEY_P]
+E       AssertionError: assert [] == ['overview', ...'steps:hp,s3']
+E         
+E         Right contains 3 more items, first extra item: 'overview'
+E         Use -v to get more diff
+
+site/tests/test_pending_changes.py:79: AssertionError
+___________________ test_a_signed_edit_is_shown_and_verified ___________________
+
+after = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_a_signed_edit_is_shown_and_verified(after: dict[str, str]) -> None:
+        page = after[NODE_PAGE]
+        shown, history = explainer_part(page)
+        sections = {key: body for key, _steps, body in SECTION.findall(shown)}
+>       assert list(sections) == [gf.KEY_OVERVIEW, gf.KEY_Q, gf.KEY_P]
+E       AssertionError: assert [] == ['overview', ...'steps:hp,s3']
+E         
+E         Right contains 3 more items, first extra item: 'overview'
+E         Use -v to get more diff
+
+site/tests/test_pending_changes.py:139: AssertionError
+__________________________ test_drafted_with_is_shown __________________________
+
+pages = {'index.html': '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="widt...6666666666666666666666666666666666666/frontier.json">frontier.json ↗</a></span>\n</footer>\n\n</body>\n</html>\n', ...}
+
+    def test_drafted_with_is_shown(pages: dict[str, str]) -> None:
+        """F21-AC6 (R7): a version naming ``drafted_with`` says "written by <author>, drafted with
+        <model>" in its provenance line — the gloss block's demarcated label (C9) — with the
+        contributor's words escaped and never raw; a legacy drafter-block draft keeps
+        "machine-drafted by <model>"."""
+        page = node_page(pages, gf.HOLE)
+        now = current_part(slot_of(page, f"{TARGET}/nodes/{gf.HOLE}/Statement.lean"))
+        assert escape(gf.HOLE_STATEMENT_GLOSS) in now
+        line = f"written by dana, drafted with {escape(gf.DRAFTED_WITH)}"
+        label = re.search(r'<p class="block-label" data-provenance="gloss">(.*?)</p>', now, re.S)
+        assert label is not None
+>       assert line in label.group(1), label.group(1)
+E       AssertionError: <strong>In words, unverified</strong> — what this statement says; written by dana, 2026-10-04; no one has read it against the Lean and signed it.
+E       assert 'written by dana, drafted with anthropic/claude-opus-5.5 via &quot;Claude Code&quot; &lt;cli&gt; &amp; tools' in '<strong>In words, unverified</strong> — what this statement says; written by dana, 2026-10-04; no one has read it against the Lean and signed it.'
+E        +  where '<strong>In words, unverified</strong> — what this statement says; written by dana, 2026-10-04; no one has read it against the Lean and signed it.' = <built-in method group of re.Match object at 0x107ed8e50>(1)
+E        +    where <built-in method group of re.Match object at 0x107ed8e50> = <re.Match object; span=(214, 410), match='<p class="block-label" data-provenance="gloss"><s>.group
+
+site/tests/test_glosses.py:192: AssertionError
+=========================== short test summary info ============================
+FAILED site/tests/test_pending_changes.py::test_each_section_shows_its_words_and_state_and_the_edit_awaits_review
+FAILED site/tests/test_pending_changes.py::test_a_signed_edit_is_shown_and_verified
+FAILED site/tests/test_glosses.py::test_drafted_with_is_shown - AssertionErro...
+3 failed in 61.76s (0:01:01)
