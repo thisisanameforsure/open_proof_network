@@ -24,7 +24,8 @@ each version's sections take a state, and the chain shows one text per key:
 - changed by a person over another's written words, or over verified words (their own
   included): ``pending``, not shown, listed under the chain's ``pending`` until a signature
   approves it (Wikipedia-style, Q7);
-- changed by a model over written or verified words: refused at the gate (R12, F21-T11); a
+- changed (or omitted) by a model over written or verified words: refused at the gate
+  (``locked-by-a-person``, R12, F21-T11: ``breaches`` here, ``modes.check_model_lock`` there); a
   version that reached the record anyway is read conservatively as ``pending``, never shown;
 - approved by a valid signature on the version — one naming the key, or one naming none (v1):
   ``verified``, shown, and every pending entry for that key is cleared (the approved words
@@ -153,6 +154,8 @@ class Derived:
     states: dict[str, list[tuple[str, str]]] = field(default_factory=dict)
     shown: list[Placed] = field(default_factory=list)
     pending: list[Placed] = field(default_factory=list)
+    #: The words each shown section holds, normalised, by key (what the model lock compares).
+    shown_text: dict[str, str] = field(default_factory=dict)
 
     def all_verified(self) -> bool:
         """R15: the chain shows something and every section it shows is verified."""
@@ -230,7 +233,21 @@ def derive(
     order += [k for k in shown if k not in order]
     out.shown = [Placed(k, shown[k].version, shown[k].state) for k in order]
     out.pending = [Placed(k, version, PENDING) for k in pending for version, _ in pending[k]]
+    out.shown_text = {k: shown[k].text for k in order}
     return out
+
+
+def breaches(before: Derived, parts: Sequence[Part]) -> list[Placed]:
+    """R12: the sections the chain shows as written or verified (``before``, derived over the
+    versions ahead of a new one) that the new version's ``parts`` change or omit, in the order the
+    chain shows them. Empty for a version that keeps every person's words exactly (Q8's
+    equality); it says nothing of who wrote the version, which is the caller's question."""
+    texts = {p.key: p.text for p in keyed(parts)}
+    return [
+        p
+        for p in before.shown
+        if p.state in LOCKED and texts.get(p.key) != before.shown_text.get(p.key)
+    ]
 
 
 def parts_of_text(text: str, *, gloss: bool) -> list[Part]:

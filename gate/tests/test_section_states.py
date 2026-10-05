@@ -29,6 +29,7 @@ from test_gloss_chains import (
     gloss,
     keys,
     node_dir,
+    problems,
     put,
     rel,
     root,
@@ -389,6 +390,162 @@ def test_a_version_with_two_sections_of_one_key_is_refused(root: Path) -> None:
     digest = anchored_explainer(root, "## One {steps: s1 s2}\nx\n\n## Two {steps: s2 s1}\ny\n")
     path = node_dir(root) / "explainer" / f"{digest}.md"
     assert codes(root, Change("A", rel(root, path))) == ["section-duplicate"]
+
+
+# --- the model lock (R12; AC10 lock half, F21-T11) ----------------------------------------------
+
+
+#: The Lean lines each outline step spans in the fixture's outline of ``and-reassoc``'s proof.
+SPANS = {"s1": (3, 4), "s2": (5, 7), "s3": (8, 12)}
+MODEL = "anthropic/claude-opus-5.5 via Claude Code"
+
+
+def write_outline(root: Path) -> str:
+    """F19's committed outline of the node's ``Proof.lean``, steps s1 to s3 at ``SPANS``."""
+    proof = schemas.content_hash((node_dir(root) / "Proof.lean").read_bytes())
+    doc = {
+        "schema": "outline/v1",
+        "target": TARGET,
+        "node": NODE,
+        "artifact": {"path": "Proof.lean", "hash": proof, "kind": "proof"},
+        "gate": "9" * 40,
+        "steps": [lock_step(i, *SPANS[i]) for i in SPANS],
+    }
+    assert schemas.violations(doc, "outline/v1") == []
+    out = root / "targets" / TARGET / "outlines" / f"{proof}.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_bytes(schemas.canonical_json(doc))
+    return proof
+
+
+def lock_step(step_id: str, start: int, end: int) -> dict[str, Any]:
+    claim = {"text": "True", "printed": "reliable", "truncated": False}
+    return {
+        "id": step_id, "kind": "have", "name": step_id, "claim": claim, "goal": None,
+        "span": {"start_line": start, "end_line": end},
+        "uses": {"nodes": [], "defs": [], "mathlib": []},
+        "closed_by": {"kind": "automation", "tactics": ["simp"]}, "child_node": None,
+        "children": [],
+    }  # fmt: skip
+
+
+def three(a: str, b: str, c: str) -> str:
+    """An explainer body with sections A (overview), B (s1) and C (s2, s3)."""
+    return (
+        f"## Idea\n{a}\n\n## The bound {{steps: s1}}\n{b}\n\n## The finish {{steps: s2 s3}}\n{c}\n"
+    )
+
+
+def version(
+    root: Path,
+    body: str,
+    *,
+    author: str,
+    drafted_with: str | None,
+    supersedes: str | None = None,
+) -> tuple[str, Change]:
+    """An ``explainer/v2`` version of the node's proof, written into the tree."""
+    doc = {
+        "schema": "explainer/v2",
+        "target": TARGET,
+        "node": NODE,
+        "proof": schemas.content_hash((node_dir(root) / "Proof.lean").read_bytes()),
+        "supersedes": supersedes,
+        "author": author,
+        "drafter": None,
+        "date": "2026-10-06",
+        "licence": "CC-BY-4.0",
+        "drafted_with": drafted_with,
+    }
+    path = put(node_dir(root) / "explainer", front(doc, body))
+    return path.stem, Change("A", rel(root, path))
+
+
+@pytest.fixture
+def ac10(root: Path, keys: dict[str, Path]) -> tuple[Path, str]:
+    """AC10's chain, merged: a model's draft of three sections (v1), a person's edit of B (v2)
+    and a curator's signature on C of v2. Answers the root and v2, the chain's head."""
+    write_outline(root)
+    v1, _ = version(root, three("draft a", "draft b", "draft c"), author="carol",
+                    drafted_with=MODEL)  # fmt: skip
+    v2, _ = version(root, three("draft a", "dave's b", "draft c"), author="dave",
+                    drafted_with=None, supersedes=v1)  # fmt: skip
+    sign_sections(root, v2, [C], keys[CURATOR])
+    return root, v2
+
+
+def test_ac10_a_second_model_may_change_only_the_drafted_section(
+    ac10: tuple[Path, str],
+) -> None:
+    """AC10: the chain shows A drafted, B written and C verified; a second model's version that
+    changes only A is accepted."""
+    root, v2 = ac10
+    [chain] = chains_of_v2(root, "proof")
+    assert [(s["key"], s["state"]) for s in chain["shown"]] == [
+        (A, DRAFTED), (B, WRITTEN), (C, VERIFIED)
+    ]  # fmt: skip
+    _, change = version(root, three("a newer model's a", "dave's b", "draft c"), author="erin",
+                        drafted_with="another model", supersedes=v2)  # fmt: skip
+    assert codes(root, change) == []
+
+
+@pytest.mark.parametrize(
+    ("changed", "key", "lines"),
+    [
+        (three("draft a", "a model's b", "draft c"), B, [3, 4]),
+        (three("draft a", "dave's b", "a model's c"), C, [5, 12]),
+        ("## Idea\ndraft a\n\n## The finish {steps: s2 s3}\ndraft c\n", B, [3, 4]),
+    ],
+    ids=["changes-written", "changes-verified", "omits-written"],
+)
+def test_ac10_a_model_changing_written_or_verified_words_is_refused_naming_the_lines(
+    ac10: tuple[Path, str], changed: str, key: str, lines: list[int]
+) -> None:
+    """R12: a version with ``drafted_with`` that changes or omits a section the chain shows as
+    written or verified is ``locked-by-a-person``, naming the section and the Lean lines its steps
+    span in the outline (the least start to the greatest end)."""
+    root, v2 = ac10
+    _, change = version(root, changed, author="erin", drafted_with="another model",
+                        supersedes=v2)  # fmt: skip
+    found = problems(root, change)
+    assert [d.code for d in found] == ["locked-by-a-person"]
+    assert found[0].details["section"] == key
+    assert found[0].details["file"] == f"nodes/{NODE}/Proof.lean"
+    assert found[0].details["lines"] == lines
+    assert key in found[0].message and f"lines {lines[0]}-{lines[1]}" in found[0].message
+
+
+def test_a_persons_version_is_never_refused_by_the_lock(ac10: tuple[Path, str]) -> None:
+    """R12 binds models only: a person's change to written or verified words merges, pending."""
+    root, v2 = ac10
+    _, change = version(root, three("draft a", "erin's b", "erin's c"), author="erin",
+                        drafted_with=None, supersedes=v2)  # fmt: skip
+    assert codes(root, change) == []
+
+
+def test_a_models_gloss_over_a_persons_words_is_refused_naming_the_file(root: Path) -> None:
+    """A gloss is one section, ``whole``: a model's version over a person's gloss is
+    ``locked-by-a-person`` naming the whole Lean file it describes (no line span)."""
+    first, _ = gloss(root, "A person's words.")
+    file = node_dir(root) / glosses.KIND_FILES["statement"]
+    doc = {
+        "schema": "gloss/v2",
+        "target": TARGET,
+        "subject": {"kind": "statement", "node": NODE, "module": None,
+                    "lean_hash": schemas.content_hash(file.read_bytes())},
+        "supersedes": first, "author": "erin", "drafter": None, "date": "2026-10-06",
+        "licence": "CC-BY-4.0", "drafted_with": MODEL,
+    }  # fmt: skip
+    path = put(node_dir(root) / "gloss", front(doc, "A model's words."))
+    found = problems(root, Change("A", rel(root, path)))
+    assert [d.code for d in found] == ["locked-by-a-person"]
+    assert found[0].details["section"] == "whole"
+    assert found[0].details["file"] == f"nodes/{NODE}/Statement.lean"
+    assert found[0].details["lines"] is None
+    # A model's version that starts a chain of its own supersedes nothing a person wrote.
+    doc |= {"supersedes": None}
+    fresh = put(node_dir(root) / "gloss", front(doc, "A model's first words."))
+    assert codes(root, Change("A", rel(root, fresh))) == []
 
 
 # --- the product and digestion (R14, R15) --------------------------------------------------------

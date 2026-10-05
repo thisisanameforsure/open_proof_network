@@ -1225,6 +1225,15 @@ _ROWS: dict[str, tuple[Source, int | None, str, str]] = {
         "An annex needs a licence: its author licenses it at submission.",
         "Send licence with one of the accepted values (details.accepted).",
     ),
+    "locked-by-a-person": (
+        "gate",
+        None,
+        "A gloss or explainer version naming drafted_with changes or omits a section its chain "
+        "shows as written or verified: a person's words are locked against models (F21-R12).",
+        "Keep the section the message names exactly as the chain shows it (get_node's shown "
+        "sections), changing only drafted ones; or file the version as your own words "
+        "(drafted_with: null), and a steward or curator will review the change.",
+    ),
     # --- m ------------------------------------------------------------------------------------
     "malformed-body": (
         "api",

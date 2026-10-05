@@ -1,0 +1,36 @@
+F21-T11: the model lock (R12; AC10 lock half). 2026-10-06.
+
+Rule as built (gate/opn_gate/modes.py check_model_lock, sections.breaches):
+- A gloss or explainer version naming drafted_with is checked against what its chain shows
+  over the versions AHEAD of it (sections.of_chain on the chain prefix, with the valid
+  signatures on those versions). Every shown section whose state is written or verified and
+  whose text the new version changes or omits is one `locked-by-a-person` diagnostic.
+- The diagnostic names the section key, its state, the version whose words are shown, the
+  Lean file relative to the target, and for an explainer's steps: section the line span
+  [min start_line, max end_line] over its steps in targets/<t>/outlines/<proof-hash>.json.
+  An overview section, a gloss, a missing outline or a missing step: lines null, "all of <file>".
+- A person's version (drafted_with null, no drafter block) is never refused by the lock.
+- A version starting a chain of its own has nothing ahead of it and is never locked.
+- A legacy drafter block is refused draft-not-accepted before the lock runs (R2).
+- Runs in modes.check after record-not-head, so the service's pre-flight
+  (modes.check_as_service) reaches it with no change of its own (route case below).
+
+$ pytest gate/tests/test_section_states.py -k "ac10 or lock or gloss_over"
+RED (no lock in the gate; the tests are the AC10 lock cases):
+E       AssertionError: assert [] == ['locked-by-a-person']
+  (x4)
+FAILED test_ac10_a_model_changing_written_or_verified_words_is_refused_naming_the_lines[changes-written]
+FAILED test_ac10_a_model_changing_written_or_verified_words_is_refused_naming_the_lines[changes-verified]
+FAILED test_ac10_a_model_changing_written_or_verified_words_is_refused_naming_the_lines[omits-written]
+FAILED test_a_models_gloss_over_a_persons_words_is_refused_naming_the_file
+4 failed, 4 passed, 21 deselected
+
+$ pytest gate/tests/test_section_states.py gate/tests/test_error_codes.py -v
+GREEN:
+test_ac10_a_second_model_may_change_only_the_drafted_section PASSED
+test_ac10_a_model_changing_written_or_verified_words_is_refused_naming_the_lines[changes-written] PASSED
+test_ac10_a_model_changing_written_or_verified_words_is_refused_naming_the_lines[changes-verified] PASSED
+test_ac10_a_model_changing_written_or_verified_words_is_refused_naming_the_lines[omits-written] PASSED
+test_a_persons_version_is_never_refused_by_the_lock PASSED
+test_a_models_gloss_over_a_persons_words_is_refused_naming_the_file PASSED
+36 passed in 31.65s

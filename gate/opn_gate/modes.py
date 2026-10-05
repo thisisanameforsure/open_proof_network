@@ -91,6 +91,7 @@ from opn_gate import (
     qa,
     records,
     schemas,
+    sections,
     signed,
     steward,
 )
@@ -1097,6 +1098,7 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
                 found
                 or check_draft_provenance(graph_root, located, classification)
                 or check_version_head(graph_root, located)
+                or check_model_lock(graph_root, located, signer=signer)
             )
         elif located.role == "explainer-signature":
             problems.extend(
@@ -1108,6 +1110,7 @@ def check(  # noqa: PLR0912 — one branch per role with a check of its own
                 found
                 or check_draft_provenance(graph_root, located, classification)
                 or check_version_head(graph_root, located)
+                or check_model_lock(graph_root, located, signer=signer)
             )
         elif located.role == "gloss-signature":
             problems.extend(
@@ -2421,6 +2424,104 @@ def check_version_head(graph_root: Path, located: Located) -> list[Diagnostic]:
     return glosses.head_problems(
         located.path, version, siblings, glosses.withdrawn_versions(parent, directory)
     )
+
+
+def check_model_lock(
+    graph_root: Path, located: Located, *, signer: Signer | None = None
+) -> list[Diagnostic]:
+    """F21-R12 (D-3 v3.31, Q7): a version a model drafted (one naming ``drafted_with``) may not
+    change or omit a section its chain shows as written or verified: ``locked-by-a-person``, one
+    per such section, naming its key and the Lean it describes — for an explainer's ``steps:``
+    section the lines its steps span in the proof's outline (the least start to the greatest
+    end), for its overview or a gloss the whole file. What the chain shows is derived over the
+    versions ahead of this one, with the valid signatures on them (``opn_gate.sections``). A
+    person's version is never refused here: their change to locked words is pending until a
+    steward or curator signs it. (A legacy ``drafter`` block is refused before this, R2.)"""
+    from opn_gate import explainers  # noqa: PLC0415 — explainers reads glosses, as this does
+
+    parent = _record_parent(graph_root, located)
+    siblings = _versions_of(parent, located.role)
+    stem = PurePosixPath(located.path).stem
+    version = next((v for v in siblings if v.hash == stem), None)
+    if version is None or not version.by_model:
+        return []
+    gloss = located.role == "gloss"
+    directory = glosses.GLOSS_DIR if gloss else explainers.EXPLAINER_DIR
+    withdrawn = glosses.withdrawn_versions(parent, directory)
+    same = [v for v in siblings if v.subject == version.subject]
+    chain = glosses.chain_of(glosses.chains(same, withdrawn), version.hash)
+    if chain is None:
+        return []  # defence in depth: every version is in some chain
+    ahead = chain.versions[: [v.hash for v in chain.versions].index(version.hash)]
+    if not ahead:
+        return []
+    verifier = signer or signed.default_signer()
+    if gloss:
+        approvals: dict[str, list[frozenset[str] | None]] = {
+            h: [None if s.sections is None else frozenset(s.sections) for s in found]
+            for h, found in glosses.valid_signatures(parent, verifier).items()
+        }
+    else:
+        approvals = explainers.approvals_of(explainers.valid(parent, verifier))
+    before = sections.of_chain(glosses.Chain(ahead, withdrawn), approvals, withdrawn)
+    try:
+        text = (graph_root / located.path).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return []  # the file's own check names what is wrong with it
+    target_dir = graph_root / "targets" / located.target_id
+    out: list[Diagnostic] = []
+    for placed in sections.breaches(before, sections.parts_of_text(text, gloss=gloss)):
+        file, lines = _locked_lean(target_dir, version, placed.key)
+        where = (
+            f"Lean lines {lines[0]}-{lines[1]} of {file}" if lines is not None else f"all of {file}"
+        )
+        out.append(
+            Diagnostic(
+                "locked-by-a-person",
+                f"{located.path} names drafted_with and changes or omits section {placed.key} "
+                f"({where}), which its chain shows as {placed.state} (version "
+                f"{placed.version[:12]}…): a person's words are locked against models (F21-R12, "
+                "D-3 v3.31). Keep that section exactly as the chain shows it, or file the version "
+                "as your own words (drafted_with: null); a person's change to it is pending until "
+                "a steward or curator signs it",
+                {
+                    "path": located.path,
+                    "section": placed.key,
+                    "state": placed.state,
+                    "version": placed.version,
+                    "file": file,
+                    "lines": list(lines) if lines is not None else None,
+                },
+            )
+        )
+    return out
+
+
+def _locked_lean(
+    target_dir: Path, version: glosses.Version, key: str
+) -> tuple[str, tuple[int, int] | None]:
+    """The Lean a locked section describes, as ``(file relative to the target, lines)``: an
+    explainer's ``steps:`` section spans its steps' lines in the artifact's outline (``None`` when
+    the outline or a step is missing); its overview, and a gloss, are the whole file."""
+    from opn_gate import explainers  # noqa: PLC0415 — explainers reads glosses, as this does
+
+    kind, node, third = version.subject
+    if kind != "proof":
+        lean = glosses.subject_file(target_dir, {"kind": kind, "node": node, "module": third})
+        return (lean.relative_to(target_dir).as_posix() if lean is not None else str(kind)), None
+    node_dir = target_dir / "nodes" / str(node)
+    proof = str(third)
+    artifact = explainers.merged_artifacts(node_dir).get(proof, proof)
+    file = f"nodes/{node}/{artifact}"
+    if not key.startswith(sections.STEPS):
+        return file, None
+    outline = explainers.outline_of(target_dir, proof)
+    steps = explainers.outline_steps(outline) if outline is not None else {}
+    named_steps = [steps.get(s) for s in key[len(sections.STEPS) :].split(",")]
+    spans = [s["span"] for s in named_steps if s is not None]
+    if not spans or len(spans) != len(named_steps):
+        return file, None
+    return file, (min(s["start_line"] for s in spans), max(s["end_line"] for s in spans))
 
 
 def check_gloss_signature(
