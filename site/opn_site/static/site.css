@@ -397,6 +397,9 @@ pre.prose { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--s
 .po-lean > summary { cursor: pointer; font-size: 13px; color: var(--accent-300); padding: var(--s1) 0; }
 .po-body pre.lean { margin: var(--s2) 0; padding: var(--s3) var(--s4); font-size: 12.5px; }
 .po-at { font-size: 12.5px; overflow-wrap: anywhere; }
+/* A file link names a path that may end in a 64-character hash (an annex, an explainer): it
+   breaks anywhere, or a phone page scrolls sideways (found live 2026-10-05). */
+a.file { overflow-wrap: anywhere; }
 .po-cut { color: var(--warn); font-family: var(--sans); font-size: 12px; }
 /* F19-R8, R10: the reading view — one proof, top-down. */
 .rv-statement .informal { font-size: 16px; color: var(--n200); max-width: 70ch; }
